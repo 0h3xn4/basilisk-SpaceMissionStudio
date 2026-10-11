@@ -54,20 +54,41 @@ diff -u docs/upstream/README.upstream.md /tmp/README.upstream.new
 
 If it did:
 
-1. Copy the new text over the copy:
+1. Copy the new text over the copy, unchanged:
    `cp /tmp/README.upstream.new docs/upstream/README.upstream.md`.
+   The copy stays byte-for-byte upstream's; it has no header of its own.
 2. Replace everything between the two markers in `README.md` with the
-   same text. Only change what the README's location breaks (relative
-   links and images); there are none today, because the README stays at
-   the repository root where upstream has it.
+   same text, every heading one level lower (outside code blocks):
+
+   ```bash
+   python3 - <<'PY'
+   up = open("docs/upstream/README.upstream.md").read().split("\n")
+   out, fence = [], False
+   for line in up:
+       if line.startswith("```"):
+           fence = not fence
+       out.append("#" + line if (not fence and line.startswith("#")) else line)
+   readme = open("README.md").read()
+   begin, end = "<!-- BEGIN UPSTREAM README -->\n", "<!-- END UPSTREAM README -->"
+   head, rest = readme.split(begin)
+   _, tail = rest.split(end)
+   open("README.md", "w").write(head + begin + "\n".join(out).rstrip("\n") + "\n" + end + tail)
+   PY
+   ```
+
+   Change nothing else. Relative links still work, because the README
+   stays at the repository root where upstream has it. One upstream link,
+   `docs/source/examples/index.rst`, points at a page Sphinx generates;
+   it is broken on GitHub upstream too, and stays as it is.
 3. Update the commit named under "Original Basilisk README" in
-   `README.md` and at the top of `docs/upstream/README.upstream.md`.
+   `README.md`.
 4. Note what changed in `SpaceMissionStudio/docs/DOCS_AUDIT.md` section 5.
 
 ## Move the tool to a new Basilisk release
 
 This is a requalification, described in
-[`compliance/docs/SMP.md`](../../compliance/docs/SMP.md) section 8:
+[`compliance/docs/SMP.md`](../../compliance/docs/SMP.md) section 8
+("Requalify a new Basilisk release"):
 
 1. Install the new release in a fresh environment:
    `pip install "bsk[all]==X.Y.Z"`.
