@@ -1,0 +1,38 @@
+# How-to guides
+
+Short, task-by-task pages: "How do I…?", with the clicks and the
+commands. Each page links to the section of the full
+[User Manual](../../USER_MANUAL.md) that explains the details. The same
+manual is in the app under **Help > User Manual** (`F1`).
+
+New to the app? Do [Getting started](../getting-started.md) first.
+
+## Run and read
+
+| How do I… | Page |
+|---|---|
+| Run a ready-made mission and look at the result? | [Run a template](run-a-template.md) |
+| Change a few settings of a template? | [Customize a template](customize-a-template.md) |
+| Build a mission of my own? | [Build your own scenario](build-your-own-scenario.md) |
+| Read plots, events and exports? | [Read the results](read-the-results.md) |
+| Run things without the GUI? | [Use the command line](command-line.md) |
+
+## Mission features
+
+| How do I… | Page |
+|---|---|
+| Plan burns and transfers in steps? | [Mission Sequence](mission-sequence.md) |
+| Keep an orbit, fly a formation or a constellation? | [Orbit keeping and formations](orbit-keeping-and-formations.md) |
+| Point the spacecraft, with real sensors and actuators? | [Attitude and hardware](attitude-and-hardware.md) |
+| Model power, the radio link and data? | [Power, link and data](power-link-and-data.md) |
+| Run many variations at once? | [Monte Carlo](monte-carlo.md) |
+| Know when it comes down, and how much propellant it needs? | [Lifetime and propellant budget](lifetime-and-budget.md) |
+| See it in 3D? | [Vizard](vizard.md) |
+| Export the flight software, or test my own in the loop? | [Flight software and SIL](flight-software-and-sil.md) |
+| Exchange orbits with other tools (CCSDS, TLE)? | [Orbit files](orbit-files.md) |
+| Manage the reference data, or work offline? | [Reference data](reference-data.md) |
+
+---
+
+**Next:** [Run a template](run-a-template.md) ·
+[Documentation index](../README.md)
