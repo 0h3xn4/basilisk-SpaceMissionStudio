@@ -833,8 +833,24 @@ def cmd_gui(args: argparse.Namespace) -> int:
     return gui_main([])
 
 
+# What ``spacemissionstudio --help`` shows: for users, unlike the module
+# docstring above, which is for developers.
+_HELP_DESCRIPTION = """\
+Check, run and analyse SpaceMissionStudio scenarios without the GUI.
+
+examples:
+  spacemissionstudio validate scenario.json
+  spacemissionstudio run scenario.json --out-dir out
+  spacemissionstudio lifetime scenario.json
+  spacemissionstudio gui
+
+Each command has its own help: spacemissionstudio <command> --help.
+Guide: SpaceMissionStudio/docs/user-manual/command-line.md
+"""
+
+
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="spacemissionstudio", description=__doc__,
+    parser = argparse.ArgumentParser(prog="spacemissionstudio", description=_HELP_DESCRIPTION,
                                       formatter_class=argparse.RawDescriptionHelpFormatter)
     subparsers = parser.add_subparsers(dest="command", required=True)
 
