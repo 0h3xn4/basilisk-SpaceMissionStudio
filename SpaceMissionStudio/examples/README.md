@@ -7,7 +7,7 @@ is run by `tests/test_examples.py`, so they keep working.
 Run them from the `SpaceMissionStudio` folder, with the environment you
 installed SpaceMissionStudio into active (see
 [Getting started](../docs/getting-started.md)). Each one takes `--help`.
-The times below were measured in a clean install on a 4-core Linux
+The times below were measured in two clean installs on a 4-core Linux
 machine; allow more on a slower one.
 
 | Script | Shows | Needs Basilisk | Takes about |
@@ -15,8 +15,8 @@ machine; allow more on a slower one.
 | [`build_a_scenario.py`](build_a_scenario.py) | Building a scenario from the schema's dataclasses: an orbit, a spacecraft, a ground station. It validates the scenario, saves it as JSON for the GUI or CLI, and prints the Explain tab's summary. | no | 1 s |
 | [`run_a_template.py`](run_a_template.py) | Running any bundled template (or your own file) and reading its results: time series, events (passes, eclipses), CSV export. | yes | 5 to 10 s |
 | [`hohmann_transfer.py`](hohmann_transfer.py) | A Mission Sequence in code: burn, coast until apoapsis, burn again. The result is checked against the textbook Hohmann transfer. | yes | 5 s |
-| [`altitude_lifetime_sweep.py`](altitude_lifetime_sweep.py) | A parameter sweep: orbital lifetime at several altitudes, with real solar activity, checked against the 5-year disposal rule. | yes | under a minute |
-| [`monte_carlo_spread.py`](monte_carlo_spread.py) | Running template 25's Monte Carlo batch and reading its summary back: the spread along, across and out of the orbit, day by day (the GUI's Monte Carlo tab shows the same). | yes | about 2 minutes |
+| [`altitude_lifetime_sweep.py`](altitude_lifetime_sweep.py) | A parameter sweep: orbital lifetime at several altitudes, with real solar activity, checked against the 5-year disposal rule. | yes | about a minute |
+| [`monte_carlo_spread.py`](monte_carlo_spread.py) | Running template 25's Monte Carlo batch and reading its summary back: the spread along, across and out of the orbit, day by day (the GUI's Monte Carlo tab shows the same). | yes | 2 to 3 minutes |
 
 ```bash
 python3 examples/build_a_scenario.py my_first_mission.json
@@ -81,7 +81,8 @@ Final orbit: altitude 699.69 to 700.31 km (target 700 km)
 ```
 
 **`monte_carlo_spread.py --runs 20 --archive mc_out`** (the values are
-drawn at random, so your numbers may differ a little):
+drawn at random, but repeatably: two clean installs printed exactly
+this):
 
 ```text
 20 runs; drag coefficients drawn between 2.22 and 2.98

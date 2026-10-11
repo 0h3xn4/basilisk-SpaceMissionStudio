@@ -49,8 +49,8 @@ python3 examples/monte_carlo_spread.py --runs 20 --archive mc_out
 ```
 
 The example prints the spread day by day and ends with a line like
-`day 3.00: 1-sigma 448.0 km along track`. Its 20 runs took about two
-minutes in our clean-install test.
+`day 3.00: 1-sigma 448.0 km along track`. Its 20 runs took 2 to 3
+minutes in our clean-install tests.
 
 ## Templates
 

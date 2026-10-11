@@ -108,8 +108,8 @@ Your prompt now starts with `(.venv)`. Activate again in every new
 terminal. (Windows refuses to run `Activate.ps1`? See
 [Troubleshooting](troubleshooting.md#windows-running-scripts-is-disabled-on-this-system).)
 
-**3. Install Basilisk** as a prebuilt wheel (no compiler needed; about 7
-minutes, most of it downloading):
+**3. Install Basilisk** as a prebuilt wheel (no compiler needed; 1.5 to 7
+minutes in our tests, most of it downloading):
 
 ```bash
 pip install "bsk[all]==2.12.0"

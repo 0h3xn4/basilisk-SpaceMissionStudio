@@ -1,7 +1,8 @@
 # Documentation audit
 
 This page records what was wrong with SpaceMissionStudio's documentation
-on 2026-10-10, how each problem was fixed, and what was deferred.
+on 2026-10-10, how each problem was fixed (the Status columns, filled in
+on 2026-10-11), and what was deferred.
 
 **Contents**
 
@@ -87,74 +88,78 @@ remote points there, and GitHub lists `AVSLab/basilisk` as the parent.
 
 | # | File | Problem | Severity | Planned fix | Status |
 |---|---|---|---|---|---|
-| A1 | `GETTING_STARTED.md` §1 | Says Linux with "glibc 2.24 or newer, e.g. Ubuntu 18.04+". Basilisk 2.12.0's wheels are `manylinux_2_28`: they need glibc 2.28 (Ubuntu 20.04, Debian 10, RHEL 8 or newer). On Ubuntu 18.04, `pip install bsk` finds no wheel. | High | State glibc 2.28 and give examples; add the error to troubleshooting. | |
-| A2 | `GETTING_STARTED.md` §1, `README.md` | macOS is "not supported" / "not tried". CI runs the full test suite with Basilisk on `macos-latest` and it passes; Basilisk has wheels for Apple Silicon (arm64, macOS 11+) only. The installers do not cover macOS. | Medium | Say exactly that: tested by CI from source on Apple Silicon; no installer. | |
-| A3 | `README.md`, `GETTING_STARTED.md`, `packaging/README.md` | "Has not been run on a real Windows machine." The test suite runs with Basilisk on `windows-latest` in CI. Still true for the Windows installer and `install.ps1`. | Medium | Separate the two: the suite runs on Windows; the installer and script have not been run. | |
-| A4 | `README.md` (4×), `GETTING_STARTED.md`, `USER_MANUAL.md` (2×) | "25 templates"; there are 27 (26: Earth-observation data downlink, 27: flexible solar arrays). | Medium | Correct the count wherever it remains. | |
-| A5 | `README.md` "Running the tests" | Test counts 2499 / 344 / 2489 are several releases old (2717 pass now). | Medium | Move to the developer guide without hard-coded totals that go stale; point to CI. | |
-| A6 | `README.md` "Known limitations" | "No `svIntegratorRK4` in this checkout". Basilisk 2.12.0 has RK4 and more (adaptive and fixed-step Runge-Kutta families); the app offers four of them. | Medium | Say the app offers four integrators. | |
-| A7 | `README.md` "Known limitations" | "No GUI/schema field yet to configure realistic navigation error." Navigation error exists (spacecraft editor, `navigation_error`). | Medium | Remove; link to the manual's "Navigation error". | |
-| A8 | `README.md` | "Run > Check Kernels" and "Abort Simulation": the menu items are **Run > Check Reference Data** and **Run > Abort Run**. | Medium | Use the real names. | |
-| A9 | `README.md` "Capabilities" | Launch Vizard is said to offer the download "automatically"; the offline-policy section of the same file says, correctly, that it needs an explicit click. | Low | Keep the correct statement only. | |
-| A10 | `README.md` "Repository layout" | The tree misses whole packages (`fsw_export/`, `sil/`) and many modules (`events`, `lifetime`, `propellant_budget`, `ccsds_odm`, `frames`, `geodesy`, `earth_orientation`, ...) and lists only part of the tests. | Medium | Replace with a short map in the developer guide, linking to `compliance/docs/SDD_components.md` (generated, complete). | |
-| A11 | `README.md` "Status: v2.0.0" | Large features came after 2.0.0 (flight-software export, software in the loop, CCSDS messages, Earth orientation, budgets, lifetime, data handling, ...) without a version or changelog entry. | Medium | `CHANGELOG.md` with an "Unreleased" section; the README states the version honestly. | |
-| A12 | CLI | Every command, including `--help`, first prints an `INFO ... Logging to ...` line on standard error. | Low | Mention it in the FAQ (it is not an error). | |
+| A1 | `GETTING_STARTED.md` §1 | Says Linux with "glibc 2.24 or newer, e.g. Ubuntu 18.04+". Basilisk 2.12.0's wheels are `manylinux_2_28`: they need glibc 2.28 (Ubuntu 20.04, Debian 10, RHEL 8 or newer). On Ubuntu 18.04, `pip install bsk` finds no wheel. | High | State glibc 2.28 and give examples; add the error to troubleshooting. | Fixed: `docs/getting-started.md` §1, troubleshooting, FAQ, READMEs |
+| A2 | `GETTING_STARTED.md` §1, `README.md` | macOS is "not supported" / "not tried". CI runs the full test suite with Basilisk on `macos-latest` and it passes; Basilisk has wheels for Apple Silicon (arm64, macOS 11+) only. The installers do not cover macOS. | Medium | Say exactly that: tested by CI from source on Apple Silicon; no installer. | Fixed: getting-started §1, READMEs, FAQ |
+| A3 | `README.md`, `GETTING_STARTED.md`, `packaging/README.md` | "Has not been run on a real Windows machine." The test suite runs with Basilisk on `windows-latest` in CI. Still true for the Windows installer and `install.ps1`. | Medium | Separate the two: the suite runs on Windows; the installer and script have not been run. | Fixed: getting-started, READMEs, `packaging/README.md` |
+| A4 | `README.md` (4×), `GETTING_STARTED.md`, `USER_MANUAL.md` (2×) | "25 templates"; there are 27 (26: Earth-observation data downlink, 27: flexible solar arrays). | Medium | Correct the count wherever it remains. | Fixed: READMEs, `USER_MANUAL.md` (2×), capabilities page |
+| A5 | `README.md` "Running the tests" | Test counts 2499 / 344 / 2489 are several releases old (2717 pass now). | Medium | Move to the developer guide without hard-coded totals that go stale; point to CI. | Fixed: developer guide (no hard-coded totals) |
+| A6 | `README.md` "Known limitations" | "No `svIntegratorRK4` in this checkout". Basilisk 2.12.0 has RK4 and more (adaptive and fixed-step Runge-Kutta families); the app offers four of them. | Medium | Say the app offers four integrators. | Fixed: `docs/reference/limitations.md` |
+| A7 | `README.md` "Known limitations" | "No GUI/schema field yet to configure realistic navigation error." Navigation error exists (spacecraft editor, `navigation_error`). | Medium | Remove; link to the manual's "Navigation error". | Fixed: `docs/reference/limitations.md` |
+| A8 | `README.md` | "Run > Check Kernels" and "Abort Simulation": the menu items are **Run > Check Reference Data** and **Run > Abort Run**. | Medium | Use the real names. | Fixed: capabilities page and how-to pages use the real names |
+| A9 | `README.md` "Capabilities" | Launch Vizard is said to offer the download "automatically"; the offline-policy section of the same file says, correctly, that it needs an explicit click. | Low | Keep the correct statement only. | Fixed: capabilities page, `USER_MANUAL.md` §9, Vizard how-to |
+| A10 | `README.md` "Repository layout" | The tree misses whole packages (`fsw_export/`, `sil/`) and many modules (`events`, `lifetime`, `propellant_budget`, `ccsds_odm`, `frames`, `geodesy`, `earth_orientation`, ...) and lists only part of the tests. | Medium | Replace with a short map in the developer guide, linking to `compliance/docs/SDD_components.md` (generated, complete). | Fixed: tree removed; `docs/developer/architecture.md` links the SDD component map |
+| A11 | `README.md` "Status: v2.0.0" | Large features came after 2.0.0 (flight-software export, software in the loop, CCSDS messages, Earth orientation, budgets, lifetime, data handling, ...) without a version or changelog entry. | Medium | `CHANGELOG.md` with an "Unreleased" section; the README states the version honestly. | Fixed: `CHANGELOG.md` with "Unreleased"; READMEs say "2.0.0, plus unreleased changes" |
+| A12 | CLI | Every command, including `--help`, first prints an `INFO ... Logging to ...` line on standard error. | Low | Mention it in the FAQ (it is not an error). | Fixed: FAQ and troubleshooting ("Messages that are normal") |
+| A14 | `README.md` "Known limitations", "Verification status" | "This development sandbox can't reach the NAIF SPICE kernel host": no longer true; the clean-install run downloaded from `naif.jpl.nasa.gov`. | Low | Remove. | Fixed: removed from the limitations page |
 | A13 | `README.md`, `GETTING_STARTED.md` | Install and CLI commands. A script compared every documented `spacemissionstudio` command and option with the real CLI: **all exist.** | — | None. | No problem |
 
 ### Completeness
 
 | # | File | Problem | Severity | Planned fix | Status |
 |---|---|---|---|---|---|
-| C1 | — | No documentation index; a newcomer has to know the files. | Medium | `docs/README.md`. | |
-| C2 | — | No FAQ; troubleshooting is split between `GETTING_STARTED.md` §9 and `USER_MANUAL.md` §11. | Medium | `docs/faq.md` and `docs/troubleshooting.md`, with the errors from section 4. | |
-| C3 | — | No task-oriented ("How do I…") pages. | Medium | `docs/user-manual/`, one page per task, linking to the manual sections for detail. | |
-| C4 | `USER_MANUAL.md` | Features with no user documentation: CCSDS import, export and validation; the **Generate phasing formation** wizard; Walker constellations (CLI); fuel tanks; script blocks and the consent they ask for; Earth orientation files. | Medium | How-to pages; glossary entries. | |
-| C5 | — | No contributor guide for the tool (the root `CONTRIBUTING.md` is Basilisk's); dev setup and tests live in the README; no release procedure. | Medium | `CONTRIBUTING.md` and `docs/developer/`. | |
-| C6 | — | No `CHANGELOG.md`; release notes sit at the bottom of the README. | Medium | `CHANGELOG.md`. | |
-| C7 | — | No tips page. | Low | `docs/tips.md`. | |
-| C8 | — | No architecture overview for developers outside the ECSS documents. | Low | `docs/developer/architecture.md`, linking to the SDD. | |
-| C9 | — | Integration with Harness Design Studio, Requirements Studio, Budget Studio, AIT Logbook or ICD Studio: **none exists in the code.** | — | `docs/tips.md` lists the files SpaceMissionStudio reads and writes, so the formats are clear; it claims no integration. | |
+| C1 | — | No documentation index; a newcomer has to know the files. | Medium | `docs/README.md`. | Fixed: `docs/README.md` |
+| C2 | — | No FAQ; troubleshooting is split between `GETTING_STARTED.md` §9 and `USER_MANUAL.md` §11. | Medium | `docs/faq.md` and `docs/troubleshooting.md`, with the errors from section 4. | Fixed: `docs/faq.md`, `docs/troubleshooting.md` |
+| C3 | — | No task-oriented ("How do I…") pages. | Medium | `docs/user-manual/`, one page per task, linking to the manual sections for detail. | Fixed: `docs/user-manual/` (15 pages) |
+| C4 | `USER_MANUAL.md` | Features with no user documentation: CCSDS import, export and validation; the **Generate phasing formation** wizard; Walker constellations (CLI); fuel tanks; script blocks and the consent they ask for; Earth orientation files. | Medium | How-to pages; glossary entries. | Fixed: orbit-files, orbit-keeping, attitude, mission-sequence and reference-data how-tos; glossary |
+| C5 | — | No contributor guide for the tool (the root `CONTRIBUTING.md` is Basilisk's); dev setup and tests live in the README; no release procedure. | Medium | `CONTRIBUTING.md` and `docs/developer/`. | Fixed: `CONTRIBUTING.md`, `docs/developer/` |
+| C6 | — | No `CHANGELOG.md`; release notes sit at the bottom of the README. | Medium | `CHANGELOG.md`. | Fixed: `CHANGELOG.md` |
+| C7 | — | No tips page. | Low | `docs/tips.md`. | Fixed: `docs/tips.md` |
+| C8 | — | No architecture overview for developers outside the ECSS documents. | Low | `docs/developer/architecture.md`, linking to the SDD. | Fixed: `docs/developer/architecture.md` |
+| C9 | — | Integration with Harness Design Studio, Requirements Studio, Budget Studio, AIT Logbook or ICD Studio: **none exists in the code.** | — | `docs/tips.md` lists the files SpaceMissionStudio reads and writes, so the formats are clear; it claims no integration. | Done: `docs/tips.md` "Other tools" says no integration exists and lists the formats |
+| C11 | `USER_MANUAL.md`, `GETTING_STARTED.md` | The **Fetch/update data?** dialog shown at every GUI start is not mentioned in any user guide (only `packaging/README.md`). Found while writing the new pages. | Medium | Describe it where the app is first started. | Fixed: manual §3, getting-started §7, FAQ, reference-data how-to |
 | C10 | — | Documentation of features that do not exist: none found. | — | None. | No problem |
 
 ### Links
 
 | # | File | Problem | Severity | Planned fix | Status |
 |---|---|---|---|---|---|
-| L1 | `spacemissionstudio/help/USER_MANUAL.md` | 14 relative links fail on GitHub: this is the copy bundled in the package, so `GETTING_STARTED.md` and the others are not next to it. In the app, such links show "Not found in the manual" (by design). | Low | Keep it out of the GitHub link check (generated); note in the developer guide. | |
-| L2 | `README.md` (root, upstream part) | `docs/source/examples/index.rst` does not exist in git: Sphinx generates it when the docs are built. The link is broken on GitHub, upstream too. | Low | Leave the upstream text verbatim (section 5); the new top part links to the published Basilisk docs instead. | |
-| L3 | all | External links: 3 of 11 checked fine. The other 8 (celestrak.org, nasa.gov, jrsoftware.org, ghcr.io, GitHub Discussions) could not be reached from this environment, whose network proxy blocks those hosts. | Low | Recheck them from an unrestricted network (section 6). | |
+| L1 | `spacemissionstudio/help/USER_MANUAL.md` | 14 relative links fail on GitHub: this is the copy bundled in the package, so `GETTING_STARTED.md` and the others are not next to it. In the app, such links show "Not found in the manual" (by design). | Low | Keep it out of the GitHub link check (generated); note in the developer guide. | Done: noted in the developer guide; excluded from link checks |
+| L2 | `README.md` (root, upstream part) | `docs/source/examples/index.rst` does not exist in git: Sphinx generates it when the docs are built. The link is broken on GitHub, upstream too. | Low | Leave the upstream text verbatim (section 5); the new top part links to the published Basilisk docs instead. | Left verbatim (section 5); the tool part links the published docs |
+| L3 | all | External links: 3 of 11 checked fine. The other 8 (celestrak.org, nasa.gov, jrsoftware.org, ghcr.io, GitHub Discussions) could not be reached from this environment, whose network proxy blocks those hosts. | Low | Recheck them from an unrestricted network (section 6). | Still deferred (section 6): the online pass on 2026-10-11 reached only pypi.org and sourceforge.net |
 | L4 | all others | No broken internal link or anchor otherwise (`lychee --offline --include-fragments`: 108 OK). | — | None. | No problem |
 
 ### Jargon
 
 | # | File | Problem | Severity | Planned fix | Status |
 |---|---|---|---|---|---|
-| J1 | all | The manual's glossary (§12) defines 23 terms. The guides use about 35 more without explaining them: AD10, ADCS, Ap, CCSDS, CSS, ECSS, EME2000, F10.7, FSW (in text), GEO, ICD (outside the glossary), IERS, IMU, ITRF93, J2, KVN, LEO, LTAN, MRP, MSFC, NAIF, NRLMSISE-00, OEM, OMM, OPM, RAAN, RF, RTN, RW, SRP, SSO, TDB, UTC, VNB, Vizard, Walker, Lambert, Hill frame, Basilisk. | Medium | `docs/glossary.md` with every term; first uses in the new pages link to it. | |
+| J1 | all | The manual's glossary (§12) defines 23 terms. The guides use about 35 more without explaining them: AD10, ADCS, Ap, CCSDS, CSS, ECSS, EME2000, F10.7, FSW (in text), GEO, ICD (outside the glossary), IERS, IMU, ITRF93, J2, KVN, LEO, LTAN, MRP, MSFC, NAIF, NRLMSISE-00, OEM, OMM, OPM, RAAN, RF, RTN, RW, SRP, SSO, TDB, UTC, VNB, Vizard, Walker, Lambert, Hill frame, Basilisk. | Medium | `docs/glossary.md` with every term; first uses in the new pages link to it. | Fixed: `docs/glossary.md` |
 
 ### Duplication and contradiction
 
 | # | Files | Problem | Severity | Planned fix | Status |
 |---|---|---|---|---|---|
-| D1 | `README.md`, `GETTING_STARTED.md`, `USER_MANUAL.md` §2, `packaging/README.md` | Install steps in four places, already diverging (A1–A3). | Medium | One install guide (`docs/getting-started.md`); the others link to it. | |
-| D2 | `README.md`, `packaging/README.md` | The offline policy, written twice at length. | Low | One statement, in the FAQ, linking to `packaging/README.md` for the installers' part. | |
-| D3 | `README.md`, templates `README.md`, `USER_MANUAL.md` | The template list three times (the README's is the one with the wrong count). | Low | The templates README is the catalog; the others link to it. | |
-| D4 | `README.md`, `HISTORY.md` | Release notes in both. | Low | `CHANGELOG.md` summarizes; `HISTORY.md` keeps the detail. | |
-| D5 | `README.md` "Capabilities" vs the offline policy | A9. | Low | As A9. | |
+| D1 | `README.md`, `GETTING_STARTED.md`, `USER_MANUAL.md` §2, `packaging/README.md` | Install steps in four places, already diverging (A1–A3). | Medium | One install guide (`docs/getting-started.md`); the others link to it. | Fixed: one install guide; README quick start is 9 commands and links to it |
+| D2 | `README.md`, `packaging/README.md` | The offline policy, written twice at length. | Low | One statement, in the FAQ, linking to `packaging/README.md` for the installers' part. | Fixed: one statement in `docs/reference/data-and-standards.md`, summarised in the FAQ |
+| D3 | `README.md`, templates `README.md`, `USER_MANUAL.md` | The template list three times (the README's is the one with the wrong count). | Low | The templates README is the catalog; the others link to it. | Fixed: the template catalog is the only list; READMEs link to it |
+| D4 | `README.md`, `HISTORY.md` | Release notes in both. | Low | `CHANGELOG.md` summarizes; `HISTORY.md` keeps the detail. | Fixed: `CHANGELOG.md` summarises; version sections removed from the README |
+| D5 | `README.md` "Capabilities" vs the offline policy | A9. | Low | As A9. | Fixed: as A9 |
 
 ### Findability
 
 | # | Path | Result before | Planned fix | Status |
 |---|---|---|---|---|
-| F1 | README → install | 2 clicks (root README → tool README → `GETTING_STARTED.md`) | 1 click from the root README | |
-| F2 | README → first result | 2 clicks (`GETTING_STARTED.md` §7) | 1–2 clicks | |
-| F3 | README → user manual | 2 clicks | 1 click | |
-| F4 | README → examples | 2 clicks | 1 click | |
-| F5 | README → troubleshooting | 3 clicks, and in two places (A, C2) | 1 click, one place | |
+| F1 | README → install | 2 clicks (root README → tool README → `GETTING_STARTED.md`) | 1 click from the root README | 1 click (root README → Getting started); the quick start is on the front page |
+| F2 | README → first result | 2 clicks (`GETTING_STARTED.md` §7) | 1–2 clicks | 0 clicks (root README quick start), 1 for the full walk-through |
+| F3 | README → user manual | 2 clicks | 1 click | 1 click |
+| F4 | README → examples | 2 clicks | 1 click | 1 click |
+| F5 | README → troubleshooting | 3 clicks, and in two places (A, C2) | 1 click, one place | 1 click, one place (`docs/troubleshooting.md`) |
 
 Every path already took three clicks or fewer. The problems were what
 the reader finds at the end of each path (stale or split content), and
 that the root README starts with a short block and then 110 lines about
-Basilisk.
+Basilisk. After the restructure (counted on 2026-10-11 from the root README's
+links, which the link checks confirm resolve), every path is one click from the root
+README, and the first run is on the front page itself.
 
 ## 4. Clean-install run
 
@@ -185,17 +190,61 @@ Findings from the run:
 
 | # | File | Problem | Severity | Planned fix | Status |
 |---|---|---|---|---|---|
-| R1 | `GETTING_STARTED.md` §1 | "About 1 GB" of disk. The environment alone is 1.4 GB (Basilisk, Qt with its web engine), plus 116 MB of reference data and 36 MB of Earth orientation files. | Medium | "About 1.6 GB". | |
-| R2 | `GETTING_STARTED.md` §8 | "Where things are kept" leaves out the Earth orientation files (`~/.cache/SpaceMissionStudio/earth_orientation/`), the Vizard download (`.../vizard/`) and the autosave folder (`~/.spacemissionstudio/autosave/`). | Low | Add them. | |
-| R3 | — | Every command first prints `INFO ... Logging to ...`; the first run also prints two `INFO matplotlib.font_manager` lines; runs after mid-2026 print `WARNING: space weather uses MSFC's prediction ...`. All normal, none explained. | Low | FAQ entries. | |
-| R4 | `examples/README.md` | Run times: the lifetime sweep took 44 s (35 s documented), the Monte Carlo example 126 s (1 min documented). | Low | Give ranges ("under a minute", "about 2 minutes"). | |
-| R5 | `spacemissionstudio --help` | The help text starts with a developer-facing paragraph about the code's architecture and internal module names; a newcomer needs a one-line purpose and the commands. | Low | Needs a change to the docstring in `cli.py`, which is code: deferred (section 6). The new CLI page documents each command instead. | |
-| R6 | — | Downloads go to `naif.jpl.nasa.gov`, `raw.githubusercontent.com` and `pypi.org`; behind a firewall these must be allowed. Not documented. | Low | Troubleshooting entry. | |
+| R1 | `GETTING_STARTED.md` §1 | "About 1 GB" of disk. The environment alone is 1.4 GB (Basilisk, Qt with its web engine), plus 116 MB of reference data and 36 MB of Earth orientation files. | Medium | "About 1.6 GB". | Fixed: getting-started §1, READMEs |
+| R2 | `GETTING_STARTED.md` §8 | "Where things are kept" leaves out the Earth orientation files (`~/.cache/SpaceMissionStudio/earth_orientation/`), the Vizard download (`.../vizard/`) and the autosave folder (`~/.spacemissionstudio/autosave/`). | Low | Add them. | Fixed: getting-started §8, reference-data how-to |
+| R3 | — | Every command first prints `INFO ... Logging to ...`; the first run also prints two `INFO matplotlib.font_manager` lines; runs after mid-2026 print `WARNING: space weather uses MSFC's prediction ...`. All normal, none explained. | Low | FAQ entries. | Fixed: troubleshooting "Messages that are normal", FAQ |
+| R4 | `examples/README.md` | Run times: the lifetime sweep took 44 s (35 s documented), the Monte Carlo example 126 s (1 min documented). | Low | Give ranges ("under a minute", "about 2 minutes"). | Fixed: examples README gives measured times and expected output |
+| R5 | `spacemissionstudio --help` | The help text starts with a developer-facing paragraph about the code's architecture and internal module names; a newcomer needs a one-line purpose and the commands. | Low | Needs a change to the docstring in `cli.py`, which is code: deferred (section 6). The new CLI page documents each command instead. | Deferred (section 6): code change |
+| R6 | — | Downloads go to `naif.jpl.nasa.gov`, `raw.githubusercontent.com` and `pypi.org`; behind a firewall these must be allowed. Not documented. | Low | Troubleshooting entry. | Fixed: troubleshooting "Behind a company firewall", reference-data how-to |
+
+### Second run, after the restructure
+
+On 2026-10-11 the new `docs/getting-started.md` path C was run the same
+way, from a fresh worktree of the `docs-audit` branch, a new virtual
+environment and an empty home folder and caches. Every step and every
+example passed (exit status 0), and every output the new pages quote
+matched exactly, the Monte Carlo spread included. Times differed:
+`pip install "bsk[all]==2.12.0"` 85 s (412 s the first time), the
+lifetime sweep 65 s (44 s), the Monte Carlo example 177 s (126 s); the
+pages give ranges that cover both runs. The disk use matched R1: 1.4 GB
+for the environment, 116 MB of support data, 36 MB of Earth orientation
+files. `spacemissionstudio gui` started and stayed up until it was
+stopped after 60 s (offscreen, so the startup dialog was not answered).
 
 ## 5. Changes to the upstream README
 
-_Filled in with the restructure._
+The root `README.md` holds upstream Basilisk's README from commit
+`c1bf0d7d6` (2026-10-02, the fork point; unchanged on `upstream/develop`
+as of 2026-10-11) between `<!-- BEGIN UPSTREAM README -->` and
+`<!-- END UPSTREAM README -->`. Every change made to it:
+
+| Change | Where | Why |
+|---|---|---|
+| Every heading one level lower (`#` → `##`, ..., `####` → `#####`); 9 headings | Whole upstream part | It now sits under `# Original Basilisk README` |
+| Nothing else | — | Its relative links still resolve, because the README stays at the root. The one broken link (`docs/source/examples/index.rst`, generated by Sphinx, L2) is broken upstream too and was left as it is. |
+
+The fork's own 13-line block that used to sit inside the upstream text
+was removed; its content is in the new top part. An untouched copy is in
+`docs/upstream/README.upstream.md` (checked: identical to
+`git show c1bf0d7d6:README.md`), with a short `docs/upstream/README.md`
+saying what it is for. The refresh procedure, and a script that
+reproduces the README's upstream part exactly, are in
+`docs/developer/upstream-sync.md`.
 
 ## 6. Deferred, or needs a decision
 
-_Filled in at the end._
+| # | Item | Why it is not done | What is needed |
+|---|---|---|---|
+| X1 | Screenshots: the four in `docs/images/` (2026-10-09) show the current look, but none shows the **Flight Software** tab, and there is no screenshot of the Events, Budget or End of Life tabs | New screenshots need the GUI run on a desktop with a real window manager; the offscreen ones the tests make are not representative | A decision on which screens to show; then a capture pass |
+| X2 | Licence copyright line: `SpaceMissionStudio/LICENSE` and every source header say "Copyright (c) 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder", although the AVS Lab did not write SpaceMissionStudio | Who holds the copyright is the owner's legal decision, not a documentation fix | The owner decides the copyright holder; then the LICENSE and headers change together |
+| X3 | `spacemissionstudio --help` starts with a developer paragraph about the code's architecture (R5) | It is the `cli.py` module docstring: code, outside this task | A one-paragraph code change, in a later pull request |
+| X4 | External links (L3): checked online on 2026-10-11 from this environment, only `pypi.org` and `sourceforge.net` answered; GitHub (other than this repository), `ghcr.io`, `celestrak.org`, `nasa.gov`, `jrsoftware.org`, `semver.org`, `img.shields.io` and `avslab.github.io` are blocked by its proxy. The fork-point commit was confirmed through git, the CI badge through the GitHub API | The environment's network policy | One `lychee` run from an unrestricted network |
+| X5 | Integration with Harness Design Studio, Requirements Studio, Budget Studio, AIT Logbook and ICD Studio (C9): none exists | Building it is code; which formats those tools expect is not known here | The formats each tool imports and exports |
+| X6 | The PR targets `develop`: the repository has no `main` branch | The task asked for `main` | Confirm `develop` is right |
+| X7 | The root `README.md` is also the `readme` of the root `pyproject.toml` (Basilisk's package metadata), so a Basilisk wheel built from this fork would show the SpaceMissionStudio part on PyPI | Changing packaging metadata is outside a documentation task; the fork does not publish Basilisk wheels | Decide whether that matters; if so, point `readme` at `docs/upstream/README.upstream.md` |
+| X8 | GitHub rendering was checked by fetching GitHub's own HTML for six pages (headings, anchors, tables, hidden markers) and screenshotting it; badges and images that GitHub serves through its image proxy could not be loaded here | The environment's network policy | A look at the pull request's rendered files |
+
+---
+
+**Next:** [Documentation index](README.md) ·
+[Developer guide](developer/README.md)
