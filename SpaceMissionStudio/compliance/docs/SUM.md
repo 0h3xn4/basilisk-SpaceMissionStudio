@@ -6,9 +6,13 @@ Document: SMS-SUM, issue 1 (draft), 2026-10-08. Remediation R14.
 **Status:** draft.
 - The user documentation already exists:
   - `USER_MANUAL.md` (UM), the tutorial and reference for users;
-  - `README.md` (RM), features, verification status and the CLI;
-  - `GETTING_STARTED.md` (GS), installation, first run and installation
-    problems;
+  - `README.md` and `docs/reference/` (RM), features, verification status,
+    limitations and data policy;
+  - `docs/getting-started.md` (GS), installation, first run and the most
+    common installation problems;
+  - `docs/troubleshooting.md` (TS), error messages and their fixes;
+  - `docs/user-manual/` (HT), task-oriented how-to pages, including the
+    CLI (`command-line.md`);
   - `examples/` (EX), Python scripts using the tool as a library.
 - This SUM maps each DRD section to them and adds what they do not cover:
   - data files;
@@ -29,8 +33,10 @@ not.
 | Ref. | Document |
 |---|---|
 | UM | `USER_MANUAL.md` |
-| RM | `README.md` |
-| GS | `GETTING_STARTED.md` |
+| RM | `README.md`, `docs/reference/` |
+| GS | `docs/getting-started.md` (`GETTING_STARTED.md` points to it) |
+| TS | `docs/troubleshooting.md` |
+| HT | `docs/user-manual/` |
 | EX | `examples/README.md` and its scripts |
 | AD1 | ICD (`ICD.md`, `ICD_cli.md`): file formats and CLI |
 | AD2 | CSD (`CSD.md`): frames, time scales, units |
@@ -171,7 +177,8 @@ Python).
 - Is Basilisk installed? **Help > About** shows the versions.
 - Is a display available (GUI)?
 - Read the log file (section 6).
-- GS section 9 lists the installation problems seen so far and their fixes.
+- GS section 9 and TS list the installation problems seen so far and
+  their fixes.
 
 ### 9.4 Access and security features (H.2.1<9.4>)
 
@@ -189,7 +196,7 @@ operating-system rights. See 9.9.
 | Vizard | 9 |
 | Monte Carlo | 10 |
 | Lifetime, budgets, launch delays, altitude trade, long runs | 11 |
-| CLI | RM; AD1 (`ICD_cli.md`) |
+| CLI | HT (`command-line.md`); AD1 (`ICD_cli.md`) |
 | CCSDS import and export | AD1 (ICD 5.3.4); `ccsds-import`, `ccsds-export`, `run --oem` |
 
 ### 9.6 Normal termination (H.2.1<9.6>)
@@ -276,7 +283,8 @@ in the CLI. An error never closes the application.
 ### 10.4 Commands and operations (H.2.1<10.4>)
 
 The CLI command language is in AD1 (`ICD_cli.md`, generated from the CLI
-itself). The mission-sequence commands are in UM section 6 and RM:
+itself). The mission-sequence commands are in UM section 6 and HT
+(`mission-sequence.md`):
 - `propagate`, `maneuver`, `lambert_transfer`, `assignment`, `report`;
 - `if`, `while`, whose conditions use the subset of 9.9;
 - `script_block`.

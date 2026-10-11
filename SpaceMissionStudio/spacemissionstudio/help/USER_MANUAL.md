@@ -7,11 +7,13 @@ application.
 
 **Looking for something else?**
 
-* Installing SpaceMissionStudio: [`GETTING_STARTED.md`](GETTING_STARTED.md),
-  step by step for Linux and Windows.
+* Installing SpaceMissionStudio: [Getting started](docs/getting-started.md),
+  step by step for Linux, Windows and macOS.
+* Short task-by-task pages ("How do I…?"): [How-to guides](docs/user-manual/README.md).
+* Every document in one place: [Documentation index](docs/README.md).
 * Using it from Python scripts: [`examples/`](examples/README.md).
 * The full technical capability list and verification status:
-  [`README.md`](README.md).
+  [Capabilities and verification](docs/reference/capabilities.md).
 * The story of how a specific feature or bug came to be: [`HISTORY.md`](HISTORY.md).
 
 This manual only covers *using the app once it's installed*.
@@ -123,7 +125,7 @@ leap seconds, Earth's gravity and magnetic field, about 116 MB). After
 that the app works offline.
 
 **No installer, or want to run it from source?**
-[`GETTING_STARTED.md`](GETTING_STARTED.md) walks through every way to
+[Getting started](docs/getting-started.md) walks through every way to
 install it, with copy-and-paste commands, how to check that it works,
 and what to do when it doesn't.
 
@@ -134,7 +136,11 @@ and what to do when it doesn't.
 * **Running from source:** open a terminal in the project folder and run
   `spacemissionstudio gui` (or `python3 -m spacemissionstudio.gui.app`).
 
-The window that opens looks like this:
+Each time it starts, a **Fetch/update data?** dialog first offers to
+check for newer reference data (support data, space weather, Earth
+orientation). Tick what you want and press **Fetch now**, or press
+**Skip**: then nothing is downloaded. The window that opens looks like
+this:
 
 ![The Load Scenario tab with template 22 selected and its description below the list](docs/images/load_scenario_tab.png)
 
@@ -148,14 +154,15 @@ A few things to notice right away:
 * Two tabs on the **left**: **Load Scenario** (where you start) and
   **Scenario Editor** (where you build/edit a mission in detail --
   Section 6).
-* Eight tabs on the **right**. **Results**, **Mission Dashboard**,
+* Nine tabs on the **right**. **Results**, **Mission Dashboard**,
   **Mission Output** and **Events** fill in when you run something
   (Section 7). **Data** lists the reference files and offers to
   download missing ones. **Explain** is a live summary of what the
   scenario you are editing does (end of Section 7). **End of Life** and
-  **Budget** estimate re-entry and delta-V (Section 11). A ninth,
-  **Monte Carlo**, appears when the scenario has Monte Carlo on
-  (Section 10).
+  **Budget** estimate re-entry and delta-V (Section 11). **Flight
+  Software** exports the attitude flight software and runs it in the
+  loop (Section 6). A tenth, **Monte Carlo**, appears when the scenario
+  has Monte Carlo on (Section 10).
 * The status bar at the bottom shows progress and, if it is not the
   verified 2.12.0, the Basilisk version.
 
@@ -165,7 +172,7 @@ up using a template as-is or editing it into something new.
 
 ## 4. Your first simulation, in five minutes
 
-1. **Pick a template.** The list on the left shows all twenty-five
+1. **Pick a template.** The list on the left shows all twenty-seven
    built-in example missions, numbered roughly from simplest to most
    advanced -- "01 - Two-body circular orbit" is the simplest possible
    case (one satellite, one orbit, nothing else going on) and a good
@@ -752,7 +759,8 @@ afterward) instead of just plots of numbers.
   playback file to watch afterward.
 * **Run > Launch Vizard** starts the separate Vizard application itself.
   If SpaceMissionStudio can't find it already installed, it offers to
-  download AVS's own pre-built copy for you automatically.
+  download AVS's own pre-built copy for you (only when you click
+  **Download Vizard**), or to **Browse...** for one you already have.
 * **Open in Vizard** appears on the Results tab after a run that saved a
   playback file, and starts Vizard on that file. Vizard cannot follow
   the time cursor (Section 7): it has no way for another program to set
@@ -822,7 +830,7 @@ carry their own coefficients).
 SpaceMissionStudio's graphical shell opens fine on its own, but actually
 *running* a simulation needs the separate Basilisk engine installed too.
 If you used the `.deb`/`.exe` installer, this should already be set up;
-if not, see [`GETTING_STARTED.md`](GETTING_STARTED.md). The app
+if not, see [Getting started](docs/getting-started.md). The app
 always reports this clearly rather than crashing -- if you see a plain
 error message naming Basilisk, that's exactly what's going on, not a bug.
 
@@ -837,8 +845,8 @@ does the same from the command line.
 
 **The Results plot area stays blank after a run.** The plots run inside
 an embedded web-rendering component. On a very minimal Linux install,
-you may need a few extra system libraries -- section 9 of
-[`GETTING_STARTED.md`](GETTING_STARTED.md) has the exact package names.
+you may need a few extra system libraries --
+[Troubleshooting](docs/troubleshooting.md#the-results-plot-stays-blank) has the exact package names.
 
 **A simulation is taking too long, or you started the wrong one.**
 **Run > Abort Run** stops it safely at the next checkpoint (not
@@ -1002,14 +1010,16 @@ anyone who hasn't worked with spacecraft before:
 
 * **More templates to learn from:**
   [`spacemissionstudio/scenarios/templates/README.md`](spacemissionstudio/scenarios/templates/README.md)
-  describes what each of the twenty-five built-in templates teaches, in
+  describes what each of the twenty-seven built-in templates teaches, in
   more depth than the in-app description box.
 * **Scripting it from Python:** [`examples/`](examples/README.md) builds
   a scenario in code, runs templates, writes a Mission Sequence, sweeps a
   parameter and reads a Monte Carlo archive.
 * **Installing it somewhere else, or something not working after
-  installation:** [`GETTING_STARTED.md`](GETTING_STARTED.md).
-* **The full feature list and technical details:** [`README.md`](README.md)'s
-  "Capabilities" section.
+  installation:** [Getting started](docs/getting-started.md) and
+  [Troubleshooting](docs/troubleshooting.md).
+* **Short "How do I…?" pages:** [How-to guides](docs/user-manual/README.md).
+* **The full feature list and technical details:**
+  [Capabilities and verification](docs/reference/capabilities.md).
 * **How a specific feature or fix came to be, including real bugs found
   and fixed along the way:** [`HISTORY.md`](HISTORY.md).
