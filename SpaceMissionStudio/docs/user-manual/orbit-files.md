@@ -40,8 +40,13 @@ add `--oem` to a run:
 spacemissionstudio run scenario.json --out-dir out --oem
 ```
 
-`--oem-stride N` keeps every Nth state; `--oem-interpolation lagrange` is
-the one GMAT reads.
+`--oem-stride N` keeps every Nth state.
+
+**For GMAT:** GMAT R2026a reads only OEM version 1.0 with Lagrange
+interpolation, and the app writes version 3.0 (the current standard).
+Write with `--oem-interpolation lagrange`, then change the first line to
+`CCSDS_OEM_VERS = 1.0` in a copy for GMAT; that is how the app's OEMs
+were checked against GMAT.
 
 ### Read
 
