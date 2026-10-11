@@ -255,7 +255,7 @@ most people start from a template (Section 4) or its customize wizard
 want to build something more specific, or just want to know what you're
 looking at.
 
-![The Scenario Editor tab with template 01 loaded, showing the Scenario and Propagation setup sections, with the Explain tab's summary on the right](docs/images/scenario_editor_tab.png)
+![The Scenario Editor tab with template 22 loaded, showing the Scenario and Propagation setup sections, with the Explain tab's summary on the right](docs/images/scenario_editor_tab.png)
 
 The form is organized top to bottom, roughly in the order you'd fill it
 out for a brand-new scenario:

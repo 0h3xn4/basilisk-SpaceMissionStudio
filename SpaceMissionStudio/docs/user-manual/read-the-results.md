@@ -35,6 +35,8 @@ an earlier run, dashed. **Input differences...** lists every input that
 differs between the two runs. The last five runs are kept until the app
 closes.
 
+![The Events tab after a run of template 22: a timeline of the Berlin passes and the eclipses, above a table of every event](../images/events_tab.png)
+
 ## Look at one moment
 
 Click a plot, or click on the **Events** timeline, to set the **time

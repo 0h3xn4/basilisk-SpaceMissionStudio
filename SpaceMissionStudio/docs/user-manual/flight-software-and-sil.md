@@ -20,6 +20,8 @@ the result.
    ctest --test-dir <folder>/build
    ```
 
+![The Flight Software tab for template 07: one card per spacecraft with its export status and the Export..., Run SIL... and Open folder buttons](../images/flight_software_tab.png)
+
 The folder holds Basilisk 2.12.0's C modules (unchanged), the
 configuration generated from your scenario, a scheduler, a host program,
 unit tests and a replay of a recorded run, an `ICD.md` listing every
