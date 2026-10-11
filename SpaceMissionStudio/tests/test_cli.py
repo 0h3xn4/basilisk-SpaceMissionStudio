@@ -270,6 +270,17 @@ def test_run_rejects_both_vizard_flags_at_once(tmp_path, capsys):
     assert "at most one of" in capsys.readouterr().err
 
 
+def test_help_opens_with_a_one_line_purpose_for_users():
+    """``spacemissionstudio --help`` starts with what the tool does, examples
+    and where the guide is, not the module's developer docstring."""
+    help_text = cli.build_parser().format_help()
+    description = help_text.split("\n\n")[1]
+    assert description == "Check, run and analyse SpaceMissionStudio scenarios without the GUI."
+    assert "spacemissionstudio run scenario.json --out-dir out" in help_text
+    assert "docs/user-manual/command-line.md" in help_text
+    assert "SimulationService" not in help_text  # internal names stay in the docstring
+
+
 def test_run_parses_vizard_camera_and_orbit_line_flags():
     parser = cli.build_parser()
     args = parser.parse_args([

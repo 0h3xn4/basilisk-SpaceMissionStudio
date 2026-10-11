@@ -18,6 +18,8 @@ record, then NASA MSFC's prediction.
 4. Tick **Lower perigee to** to plan a deorbit burn with the orbit
    thruster. If the propellant is short, it says how low the perigee gets.
 
+![The End of Life tab for template 22: re-entry in 2047 after 17.3 years, the 5-year rule not met and the 25-year guideline met, with the perigee and apogee decaying over time](../images/end_of_life_tab.png)
+
 It takes seconds and agrees with full simulations to about 2 %. The
 **Drag coefficient** defaults to 2.2 (ESA AD10's end-of-life value).
 
@@ -47,6 +49,8 @@ prints a table (400 km: 2.65 years, 550 km: 17.26 years).
 
 Without a run, a LEO station keeper's orbit control is estimated from the
 drag on its orbit.
+
+![The Budget tab for template 18, estimated without a run: each contributor per mission phase, 696.6 m/s and 7.26 kg in all, with notes on the space weather used](../images/budget_tab.png)
 
 Two trades, as AD10 asks:
 

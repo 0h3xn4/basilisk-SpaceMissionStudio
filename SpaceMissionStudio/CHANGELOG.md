@@ -56,7 +56,8 @@ Everything since 2.0.0. The version number in the code is still 2.0.0.
   mission (22 and 23), and Python examples in `examples/`.
 - **Documentation for newcomers:** a getting-started guide, the user
   manual in the app (**Help > User Manual**, `F1`), how-to pages, a
-  glossary, an FAQ and troubleshooting.
+  glossary, an FAQ and troubleshooting. Screenshots of every main tab, captured from
+  the app by `scripts/capture_screenshots.py`.
 
 **Changed**
 - A new look (IBM's Carbon design: IBM Plex fonts, flat panels).
@@ -66,6 +67,8 @@ Everything since 2.0.0. The version number in the code is still 2.0.0.
 - Script blocks in a Mission Sequence ask before they run; conditions no
   longer use Python's `eval()`.
 - The mouse wheel no longer changes values in forms.
+- `spacemissionstudio --help` opens with what the tool does and a few
+  examples, instead of a paragraph about the code.
 
 **Fixed** (the main ones; `HISTORY.md` lists every one)
 - Software in the loop: a run with a missed step deadline could hang.
