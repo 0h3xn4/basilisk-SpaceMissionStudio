@@ -280,6 +280,12 @@ the shortcut just uses `spacemissionstudio.exe`'s own embedded icon). If you
 run these on a real Windows 11 machine, please report anything that
 doesn't work as documented here.
 
+What *is* run on Windows: the application itself. CI installs it with
+`pip` on GitHub's `windows-latest` runner, with Basilisk 2.12.0 and the
+reference data, and runs the full test suite there on every change
+(`.github/workflows/spacemissionstudio.yml`, job `platforms`). Only the
+installer and these two scripts are unrun.
+
 ## The vendoring decision (why Basilisk isn't bundled inside the installers)
 
 Flagged since Phase 0's README: **vendor a prebuilt Basilisk wheel pinned
@@ -327,3 +333,8 @@ verified" discipline -- the pieces (a bundled SpaceMissionStudio wheel, a
 working `--basilisk-wheel`/`-BasiliskWheel` receiving end) are already
 in place; only the "download everything into one bundle" step is
 missing.
+
+---
+
+**Next:** [Getting started](../docs/getting-started.md) ·
+[Documentation index](../docs/README.md)

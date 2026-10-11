@@ -126,3 +126,9 @@ ground station and RF link to each satellite, matching what
 sensor/`motor_thermal_*` params for thermal telemetry). Copying the
 closest template and layering in the next concept from this list is
 generally easier than starting from a blank scenario.
+
+---
+
+**Next:** [Run a template](../../../docs/user-manual/run-a-template.md) ·
+[Build your own scenario](../../../docs/user-manual/build-your-own-scenario.md) ·
+[Documentation index](../../../docs/README.md)

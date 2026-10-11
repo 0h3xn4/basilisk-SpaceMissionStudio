@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="160" viewBox="0 0 960 160" role="img" aria-labelledby="t d">
+  <title id="t">SpaceMissionStudio</title>
+  <desc id="d">SpaceMissionStudio: satellite mission analysis on Basilisk. A satellite on an elliptical orbit around a planet.</desc>
+  <rect width="960" height="160" fill="#161616"/>
+  <g transform="translate(110 80)">
+    <ellipse cx="0" cy="0" rx="78" ry="34" fill="none" stroke="#4589ff" stroke-width="2" transform="rotate(-18)"/>
+    <circle cx="0" cy="0" r="22" fill="#0f62fe"/>
+    <circle cx="66" cy="-34" r="6" fill="#f4f4f4"/>
+  </g>
+  <text x="230" y="78" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif" font-size="44" font-weight="600" fill="#f4f4f4">SpaceMissionStudio</text>
+  <text x="232" y="114" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif" font-size="20" fill="#c6c6c6">Satellite mission analysis, built on the Basilisk astrodynamics framework</text>
+</svg>
