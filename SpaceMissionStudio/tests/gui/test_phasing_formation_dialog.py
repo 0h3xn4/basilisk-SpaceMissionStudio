@@ -128,7 +128,7 @@ def test_editing_fields_updates_request(qtbot):
     dialog.chief_combo.setCurrentIndex(1)
     dialog.follower_name_edit.setText("wingman")
     dialog.radial_km.setValue(1.5)
-    dialog.along_track_km.setValue(-75.0)
+    dialog.along_track_km.setValue(75.0)
     dialog.cross_track_km.setValue(3.0)
     dialog.thrust_n.setValue(0.1)
 
@@ -136,7 +136,9 @@ def test_editing_fields_updates_request(qtbot):
     assert request.chief_name == "chief-2"
     assert request.follower_name == "wingman"
     assert request.radial_km == 1.5
-    assert request.along_track_km == -75.0
+    assert request.along_track_km == 75.0
+    dialog.along_track_km.setValue(-75.0)  # the follower is always ahead (audit M5)
+    assert dialog.along_track_km.value() == 0.0  # clamped; validation then refuses 0
     assert request.cross_track_km == 3.0
     assert request.thrust_n == 0.1
 

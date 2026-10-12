@@ -118,18 +118,31 @@ def _command_references(commands: List["Command"], path_prefix: str) -> List[Ref
             # leading segment is the spacecraft that series belongs to.
             # Unlike "assignment"/"maneuver", a single report can reference
             # several spacecraft at once (one per series entry).
+            # A ground-station access series, "berlin-gs.access_to_sat-1.azimuth",
+            # belongs to a station and names the spacecraft in its second
+            # segment (engine.service); names cannot contain '.' (audit M6).
             for j, series in enumerate(command.params["series"]):
-                if isinstance(series, str) and "." in series:
-                    name = series.split(".", 1)[0]
-                    if name:
-                        refs.append(Reference(
-                            path=f"{path}.params['series'][{j}]", resource_kind="spacecraft", name=name,
-                        ))
+                if not (isinstance(series, str) and "." in series):
+                    continue
+                where = f"{path}.params['series'][{j}]"
+                owner, rest = series.split(".", 1)
+                if rest.startswith("access_to_"):
+                    station_side = rest[len("access_to_"):].split(".", 1)[0]
+                    if owner:
+                        refs.append(Reference(path=where, resource_kind="ground_station", name=owner))
+                    if station_side:
+                        refs.append(Reference(path=where, resource_kind="spacecraft", name=station_side))
+                elif owner:
+                    refs.append(Reference(path=where, resource_kind="spacecraft", name=owner))
 
         if command.kind in ("if", "while"):
             refs.extend(_command_references(command.children, f"{path}.children"))
 
     return refs
+
+
+# How messages name several of each kind ("spacecraft" has no plural "s").
+_PLURAL = {"spacecraft": "spacecraft", "ground_station": "ground stations"}
 
 
 def find_spacecraft_references(scenario: "Scenario", name: str) -> List[Reference]:
@@ -149,6 +162,9 @@ def find_spacecraft_references(scenario: "Scenario", name: str) -> List[Referenc
             refs.append(Reference(
                 path=f"monte_carlo.dispersions[{i}]", resource_kind="spacecraft", name=name,
             ))
+    for i, record in enumerate(scenario.fsw_exports):
+        if record.spacecraft == name:
+            refs.append(Reference(path=f"fsw_exports[{i}].spacecraft", resource_kind="spacecraft", name=name))
     refs.extend(r for r in _command_references(scenario.mission_sequence, "mission_sequence")
                 if r.resource_kind == "spacecraft" and r.name == name)
     return refs
@@ -199,6 +215,10 @@ def rename_spacecraft(scenario: "Scenario", old_name: str, new_name: str) -> int
         if dispersion.spacecraft == old_name:
             dispersion.spacecraft = new_name
             updated += 1
+    for record in scenario.fsw_exports:  # an export record names its spacecraft (audit L14)
+        if record.spacecraft == old_name:
+            record.spacecraft = new_name
+            updated += 1
     updated += _rename_in_commands(scenario.mission_sequence, "spacecraft", old_name, new_name)
 
     target.name = new_name
@@ -245,13 +265,34 @@ def _rename_in_commands(commands: List["Command"], resource_kind: str, old_name:
             elif command.kind == "report" and isinstance(command.params.get("series"), list):
                 series_list = command.params["series"]
                 for j, series in enumerate(series_list):
-                    if isinstance(series, str) and "." in series and series.split(".", 1)[0] == old_name:
+                    if not (isinstance(series, str) and "." in series):
+                        continue
+                    owner, rest = series.split(".", 1)
+                    if owner == old_name:
                         series_list[j] = new_name + series[len(old_name):]
                         updated += 1
-        elif (resource_kind == "ground_station" and command.kind == "propagate"
-                and command.params.get("ground_station") == old_name):
-            command.params["ground_station"] = new_name
-            updated += 1
+                    elif rest.split(".", 1)[0] == f"access_to_{old_name}":  # a station's access to it (L14)
+                        series_list[j] = f"{owner}.access_to_{new_name}" + rest[len(f"access_to_{old_name}"):]
+                        updated += 1
+            if command.kind in ("if", "while") and isinstance(command.params.get("condition"), str):
+                # spacecraft['sat-1'][...] in a condition (audit L14)
+                condition = command.params["condition"]
+                for quote in ("'", '"'):
+                    condition = condition.replace(f"spacecraft[{quote}{old_name}{quote}]",
+                                                  f"spacecraft[{quote}{new_name}{quote}]")
+                if condition != command.params["condition"]:
+                    command.params["condition"] = condition
+                    updated += 1
+        elif resource_kind == "ground_station":
+            if command.kind == "propagate" and command.params.get("ground_station") == old_name:
+                command.params["ground_station"] = new_name
+                updated += 1
+            elif command.kind == "report" and isinstance(command.params.get("series"), list):
+                series_list = command.params["series"]  # "<station>.access_to_<spacecraft>.<field>" (L14)
+                for j, series in enumerate(series_list):
+                    if isinstance(series, str) and series.startswith(f"{old_name}.access_to_"):
+                        series_list[j] = new_name + series[len(old_name):]
+                        updated += 1
         if command.kind in ("if", "while"):
             updated += _rename_in_commands(command.children, resource_kind, old_name, new_name)
     return updated

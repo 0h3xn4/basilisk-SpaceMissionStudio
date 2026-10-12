@@ -90,8 +90,12 @@ def file_record(path) -> Dict[str, object]:
     record["size_bytes"] = size
     if size <= _HASH_LIMIT_BYTES:
         digest = hashlib.sha256()
-        with open(path, "rb") as f:
-            for chunk in iter(lambda: f.read(1 << 20), b""):
-                digest.update(chunk)
+        try:
+            with open(path, "rb") as f:
+                for chunk in iter(lambda: f.read(1 << 20), b""):
+                    digest.update(chunk)
+        except OSError as exc:  # a folder, or no read permission: recorded, not raised (audit L26)
+            record["unreadable"] = str(exc)
+            return record
         record["sha256"] = digest.hexdigest()
     return record

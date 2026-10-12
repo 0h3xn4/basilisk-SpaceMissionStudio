@@ -120,3 +120,30 @@ def test_simulation_runs_without_crashing_with_the_new_fuel_tank_panel(tmp_path)
     scSim.InitializeSimulation()
     scSim.ConfigureStopTime(macros.sec2nano(2.0))
     scSim.ExecuteSimulation()  # must not raise/crash
+
+
+def test_a_second_vizard_run_does_not_resend_the_first_runs_settings(tmp_path):
+    """Audit L16 (decision Q3): Basilisk's module-level
+    instrumentGuiSettingList kept growing across runs in one session, so
+    each Vizard run re-sent every earlier run's instrument settings. Each
+    run now starts from an empty list."""
+    from Basilisk.utilities import vizSupport
+
+    (tmp_path / "first").mkdir()
+    (tmp_path / "second").mkdir()
+    _build_vizard_with_fuel_tank(tmp_path / "first")
+    _build_vizard_with_fuel_tank(tmp_path / "second")
+    assert len(vizSupport.instrumentGuiSettingList) == 1
+
+
+def test_a_vizard_save_folder_that_cannot_be_made_is_a_vizard_error(tmp_path):
+    """Audit L15: the folder error escaped as a raw OSError."""
+    from Basilisk.utilities import SimulationBaseClass
+
+    from spacemissionstudio.engine import vizard
+
+    blocker = tmp_path / "a_file"
+    blocker.write_text("not a folder")
+    request = vizard.VizardRequest(save_file=str(blocker / "out" / "run.viz.bin"))
+    with pytest.raises(vizard.VizardError, match="could not create the Vizard save folder"):
+        vizard.enable_vizard(SimulationBaseClass.SimBaseClass(), "task", [], request)

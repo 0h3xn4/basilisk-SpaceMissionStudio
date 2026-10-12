@@ -560,7 +560,7 @@ def _check_oem(message: OdmMessage, text: str, issues: List[Issue]) -> None:
             epochs = [_parse_time(e) for e in segment.epochs]
             if start and stop and epochs and (min(epochs) < _parse_time(start) or max(epochs) > _parse_time(stop)):
                 issues.append(Issue("error", 0, "Table 5-3", "ephemeris data lie outside START_TIME..STOP_TIME"))
-            if any(b < a for a, b in zip(epochs, epochs[1:])):
+            if any(b <= a for a, b in zip(epochs, epochs[1:])):  # equal epochs too (audit L20)
                 issues.append(Issue("error", 0, "5.2.4", "ephemeris epochs must increase"))
             useable_start = segment.get("USEABLE_START_TIME") or start
             if previous_useable_stop is not None and useable_start is not None \
@@ -755,6 +755,8 @@ def write_oem(segments: Sequence[Dict[str, object]], *, originator: str = "SPACE
     lines = _header("OEM", originator, creation, comments, None)
     for segment in segments:
         epochs = list(segment["epochs"])
+        if not epochs:  # an IndexError before (audit L20)
+            raise OdmError(f"OEM segment for {segment['object_name']}: no states to write")
         lines += ["", "META_START", _line("OBJECT_NAME", str(segment["object_name"])),
                   _line("OBJECT_ID", str(segment["object_id"])),
                   _line("CENTER_NAME", str(segment["center_name"]).upper()),
@@ -890,6 +892,8 @@ def oem_from_result(result, epoch_utc: str, central_body: str, spacecraft: Seque
     for name in spacecraft:
         position = result.series[f"{name}.position_N"]
         velocity = result.series[f"{name}.velocity_N"]
+        if not len(position.time_s):
+            raise OdmError(f"{name}: the run recorded no states, so there is no OEM to write")
         index = np.arange(0, len(position.time_s), max(1, int(stride)))
         if index[-1] != len(position.time_s) - 1:
             index = np.append(index, len(position.time_s) - 1)
@@ -908,14 +912,25 @@ def oem_from_result(result, epoch_utc: str, central_body: str, spacecraft: Seque
     return messages
 
 
-def orbit_ic_from_odm(text: str):
+def orbit_ic_from_odm(text: str, central_body: Optional[str] = None):
     """(schema OrbitIC, UTC epoch of the state or None, notes) from an OPM
     (cartesian state at its epoch) or a TLE-based OMM (TLE orbit, propagated
-    by SGP4 to the scenario epoch like any TLE)."""
+    by SGP4 to the scenario epoch like any TLE). With ``central_body`` (the
+    scenario's), an OPM centred on another body, or an OMM for a scenario
+    not around Earth, is refused: the state would be taken as relative to
+    the wrong body (audit M13)."""
     from ..schema.scenario import OrbitIC
 
     message, issues = read_checked(text)
     notes = [str(issue) for issue in issues]
+    if central_body is not None:
+        center = (message.get("CENTER_NAME") or "").strip().upper()
+        if message.kind == "OPM" and center != central_body.upper():
+            raise OdmError(f"the OPM's CENTER_NAME is {center or 'missing'}, but the scenario's central body is "
+                           f"{central_body}: its state would be read as {central_body}-centred")
+        if message.kind == "OMM" and central_body.lower() != "earth":
+            raise OdmError(f"an OMM holds a TLE, which describes an Earth orbit; the scenario's central body is "
+                           f"{central_body}")
     if message.kind == "OPM":
         epoch, r, v, frame_notes = state_from_opm(message)
         orbit = OrbitIC(type="cartesian", position_km=list(r / 1e3), velocity_km_s=list(v / 1e3))

@@ -22,7 +22,7 @@ works, run a first mission and know what you should see.
 | Linux | x86_64 or aarch64 with glibc 2.28 or newer (Ubuntu 20.04, Debian 10, RHEL 8 or later). Tested in CI on Ubuntu 24.04. |
 | Windows | Windows 10 or 11, x86_64. The test suite runs on Windows in CI; the Windows installers have not been run on a real Windows machine yet. |
 | macOS | macOS 11 or newer on Apple silicon (arm64), from source (path C) only. The test suite runs on macOS in CI. Intel Macs have no Basilisk wheel. |
-| Python | For paths B and C: CI tests with 3.11. Basilisk 2.12.0 has wheels for 3.9 to 3.14; versions other than 3.11 and 3.12 have not been tested with the app. |
+| Python | For paths B and C: 3.11 or newer. CI tests with 3.11; Basilisk 2.12.0 has wheels up to 3.14, and versions other than 3.11 and 3.12 have not been tested with the app. |
 | Disk | About 1.6 GB: 1.4 GB for the Python environment (Basilisk and Qt), 116 MB of reference data, 36 MB of Earth orientation files. |
 | Internet | Once, while installing. After that the app runs offline and downloads nothing without asking. |
 
@@ -52,13 +52,13 @@ There is no published installer yet. Build one with
 [Inno Setup](https://jrsoftware.org/isinfo.php) (Windows), or get it from
 whoever distributes the app to you.
 
-**Linux:** double-click `spacemissionstudio_2.0.0_all.deb`, or:
+**Linux:** double-click `spacemissionstudio_3.0.0_all.deb`, or:
 
 ```bash
-sudo apt install ./spacemissionstudio_2.0.0_all.deb
+sudo apt install ./spacemissionstudio_3.0.0_all.deb
 ```
 
-**Windows:** double-click `spacemissionstudio-2.0.0-setup.exe` and follow
+**Windows:** double-click `spacemissionstudio-3.0.0-setup.exe` and follow
 the wizard.
 
 The installer downloads Basilisk and the reference data once. Then open

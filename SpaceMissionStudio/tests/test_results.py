@@ -15,6 +15,7 @@ from spacemissionstudio.engine.results import (
     RunProvenance,
     TimeSeries,
     conservation_drift_warnings,
+    output_path,
 )
 
 _EARTH_MU = 3.986004418e14  # [m^3/s^2]
@@ -225,6 +226,28 @@ def test_command_summary_export_csv_creates_parent_dir(tmp_path):
     assert path.exists()
 
 
+def test_command_summary_csv_is_utf8_whatever_the_locale(tmp_path, monkeypatch):
+    """Audit L12: the Command Summary CSV was written in the locale's
+    encoding, so on Windows (cp1252) a label it cannot encode raised and
+    other text came out garbled. Simulates that locale for this module."""
+    import builtins
+
+    import spacemissionstudio.engine.results as results_module
+
+    def cp1252_default_open(*args, **kwargs):
+        if "b" not in (args[1] if len(args) > 1 else kwargs.get("mode", "r")):
+            kwargs.setdefault("encoding", "cp1252")
+        return builtins.open(*args, **kwargs)
+
+    monkeypatch.setattr(results_module, "open", cp1252_default_open, raising=False)
+    label = "Bahn \u2192 Ziel \u0394v"  # an arrow and a capital delta: not in cp1252
+    summary = CommandSummary(reports=[ReportEntry(label=label, t_s=0.0, values={"s": np.array([1.0])})])
+    path = summary.export_csv(tmp_path / "out.csv")
+    with open(path, newline="", encoding="utf-8") as f:
+        rows = list(csv.reader(f))
+    assert rows[1][2] == label
+
+
 def test_command_summary_export_csv_with_no_reports_writes_header_only(tmp_path):
     path = CommandSummary().export_csv(tmp_path / "out.csv")
     with open(path, newline="") as f:
@@ -239,3 +262,17 @@ def test_conservation_drift_warnings_stay_short():
     drifting_v = v * np.linspace(1.0, 1.10, r.shape[0])[:, None]
     for warning in conservation_drift_warnings("sat-1", _EARTH_MU, r, drifting_v):
         assert len(warning) <= 120, warning
+
+
+@pytest.mark.parametrize("file_name", ["../escaped.csv", "sub/inner.csv", "/abs.csv"])
+def test_output_path_refuses_a_file_name_that_leaves_the_folder(tmp_path, file_name):
+    """Audit H3, second line of defence: every result file built from a
+    scenario name must land directly inside the output folder."""
+    with pytest.raises(ResultsError, match="would land outside"):
+        output_path(tmp_path, file_name)
+
+
+def test_output_path_accepts_a_plain_file_name(tmp_path):
+    """A plain file name, spaces and non-ASCII letters included, is joined
+    onto the output folder unchanged."""
+    assert output_path(tmp_path, "Satellit Ü.csv") == tmp_path / "Satellit Ü.csv"

@@ -179,7 +179,7 @@ D-08, decision 7).
 
 | Item | Tool |
 |---|---|
-| Language and interpreter | Python 3.9+ (CI: 3.11) |
+| Language and interpreter | Python 3.11+ (CI: 3.11) |
 | Requirements analysis | Markdown documents, `compliance/tools/*.py` (CSV extraction, traceability) |
 | Design | Markdown; `build_sdd_components.py` |
 | Configuration management | git, GitHub |

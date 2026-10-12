@@ -22,18 +22,12 @@
 # wheel into the SAME venv if one is given, and drops a launcher script.
 #
 # This is the "vendor a prebuilt wheel pinned to a specific Basilisk
-# release/commit" default install path flagged in SpaceMissionStudio/README.md
-# since Phase 0. It has been run and verified for the spacemissionstudio-only
-# path in this project's development sandbox (build a wheel with
-# build_wheel.sh, run this script against it, launch `spacemissionstudio
-# validate` from the installed venv); the Basilisk-wheel path is written
-# against pip's ordinary wheel-install behavior (nothing spacemissionstudio
-# -specific) but could NOT be verified end-to-end here, because this
-# sandbox has no built Basilisk wheel to test against (see the main
-# README's "Environment honesty note" -- the same Conan Center network
-# block that stopped a from-source Basilisk build also means there is no
-# vendorable wheel sitting around here to test this script's other path
-# with). See this directory's README.md for the full picture.
+# release/commit" install path. For 3.0.0 it was run end to end on Linux
+# (Python 3.11, a fresh HOME) with the PyPI bsk 2.12.0 wheel: it also
+# pre-fetched the support data, and the installed tool validated every
+# template and ran templates and a Monte Carlo batch. The path without a
+# Basilisk wheel is the same steps minus the Basilisk ones. See this
+# directory's README.md for the full picture.
 #
 # Usage:
 #   ./install.sh [--prefix DIR] [--basilisk-wheel PATH_OR_URL] [--spacemissionstudio-wheel PATH] [--no-desktop-entry]
@@ -93,11 +87,16 @@ if [[ -z "$spacemissionstudio_wheel" ]]; then
 fi
 
 echo "Installing spacemissionstudio (+ gui extra) from $spacemissionstudio_wheel ..."
-python3 -m pip install --quiet "${spacemissionstudio_wheel}[gui]"
+# The tested dependency versions (constraints.txt, audit M14).
+python3 -m pip install --quiet -c "$script_dir/constraints.txt" "${spacemissionstudio_wheel}[gui]"
 
 if [[ -n "$basilisk_wheel" ]]; then
     echo "Installing vendored Basilisk wheel from $basilisk_wheel ..."
-    python3 -m pip install --quiet "$basilisk_wheel"
+    # Basilisk's own dependencies at the tested versions (constraints.txt,
+    # audit M14), but not its bsk pins, so any Basilisk wheel is accepted.
+    deps_constraints="$prefix/constraints-without-bsk.txt"
+    grep -v -i '^bsk' "$script_dir/constraints.txt" > "$deps_constraints"
+    python3 -m pip install --quiet -c "$deps_constraints" "$basilisk_wheel"
     basilisk_status="Basilisk was installed into this venv from: $basilisk_wheel"
 
     # SpaceMissionStudio never accesses the network at runtime (real user

@@ -156,3 +156,22 @@ def test_display_names_are_unique():
 
     names = [entry.display_name for entry in CATALOG]
     assert len(names) == len(set(names))
+
+
+# Countries of manufacture accepted as European (geographic Europe, as the
+# module docstring defines it).
+_EUROPEAN_COUNTRIES = {
+    "Austria", "Belgium", "Denmark", "France", "Germany", "Ireland", "Italy", "Netherlands", "Norway",
+    "Poland", "Spain", "Sweden", "Ukraine", "United Kingdom",
+}
+
+
+def test_every_entry_is_made_in_europe():
+    """Audit L30/Q6: the catalog said "European" but listed devices from
+    India, Japan, Canada, Israel, Taiwan and South Africa. Every entry now
+    names at least one European country of manufacture."""
+    from spacemissionstudio.engine.device_catalog import CATALOG
+
+    for entry in CATALOG:
+        countries = set(entry.country.split("/"))
+        assert countries & _EUROPEAN_COUNTRIES, f"{entry.display_name}: not made in Europe"

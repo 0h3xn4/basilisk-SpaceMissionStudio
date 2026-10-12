@@ -59,10 +59,10 @@ project's "never fabricate a Basilisk API" rule:
   -hardware wiring: ``examples/scenarioMtbMomentumManagement.py``, run
   directly against a real Basilisk build to confirm the exact wiring
   works (see this feature's ``HISTORY.md`` entry for the actual
-  numbers) -- notably WITHOUT a ``magneticFieldWMM.epochInMsg``
-  subscription, matching this file's own pre-existing
-  ``build_magnetic_field_wmm()`` precedent (confirmed that omitting it,
-  unlike the shipped example which sets one, does not break anything).
+  numbers). ``build_magnetic_field_wmm()`` subscribes
+  ``magneticFieldWMM.epochInMsg`` to the scenario epoch, as the shipped
+  example does; leaving it out ran without error but evaluated the field
+  at Basilisk's default 2019 epoch (audit M1).
 * ``thrMomentumManagement`` + ``thrForceMapping`` (momentum-dump mode,
   ``angErrThresh`` > pi) + ``thrMomentumDumping`` (RW desaturation via
   thrusters, :func:`build_momentum_dumping`), including the "re-``Reset()``
@@ -836,7 +836,11 @@ def build_reaction_wheels(scSim, task_name: str, tag: str, sc_object, actuator_c
         gsHat_B = [float(v) for v in params["gsHat_B"]]
         rw_type = params.get("rw_type", "custom")
         kwargs = _coerce_rw_kwargs(params)
-        rw_factory.create(rw_type, gsHat_B, **kwargs)
+        try:
+            rw_factory.create(rw_type, gsHat_B, **kwargs)
+        except SystemExit:  # rwFactory.create() calls exit(1) on settings it refuses (printing why)
+            raise FswError(f"{tag}: Basilisk's rwFactory refused reaction wheel {actuator.name!r} "
+                           f"(rw_type {rw_type!r}); its reason is printed above or in the log") from None
 
     rw_state_effector = reactionWheelStateEffector.ReactionWheelStateEffector()
     rw_state_effector.ModelTag = f"{tag}_reactionWheels"
@@ -932,7 +936,11 @@ def build_thrusters(scSim, task_name: str, tag: str, sc_object, actuator_configs
         tHat_B = [float(v) for v in params["tHat_B"]]
         thruster_type = params.get("thruster_type", "Blank_Thruster")
         kwargs = _coerce_thruster_kwargs(params)
-        thr_factory.create(thruster_type, r_B, tHat_B, **kwargs)
+        try:
+            thr_factory.create(thruster_type, r_B, tHat_B, **kwargs)
+        except SystemExit:  # thrusterFactory.create() calls exit(1) on settings it refuses (printing why)
+            raise FswError(f"{tag}: Basilisk's thrusterFactory refused thruster {actuator.name!r} "
+                           f"(thruster_type {thruster_type!r}); its reason is printed above or in the log") from None
 
     thruster_effector = thrusterDynamicEffector.ThrusterDynamicEffector()
     thruster_effector.ModelTag = f"{tag}_thrusters"
@@ -1244,13 +1252,18 @@ def add_access_analysis(ground_location, sc_objects: List) -> None:
         ground_location.addSpacecraftToModel(sc_object.scStateOutMsg)
 
 
-def build_magnetic_field_wmm(scSim, task_name: str, planet_state_out_msg, central_body_radius_m: float):
+def build_magnetic_field_wmm(scSim, task_name: str, planet_state_out_msg, central_body_radius_m: float,
+                             epoch_in_msg=None):
     """One shared ``magneticFieldWMM`` environment model for the whole
     scenario's central body (Earth only -- see module docstring); every
     spacecraft with a ``magnetometer`` sensor calls
     ``addSpacecraftToModel`` on this SAME instance and reads back its own
     indexed ``envOutMsgs[i]`` entry (index == call order, verified via
     ``magneticFieldWMM``'s own unit test).
+
+    ``epoch_in_msg`` (the gravity factory's epoch message) sets the date
+    the field is evaluated at. Without it Basilisk uses its default epoch,
+    2019-01-01, whatever the scenario's date (audit M1).
     """
     from Basilisk.utilities.supportDataTools.dataFetcher import DataFile
 
@@ -1261,6 +1274,8 @@ def build_magnetic_field_wmm(scSim, task_name: str, planet_state_out_msg, centra
     mod.configureWMMFile(str(kernels.cached_path(DataFile.MagneticFieldData.WMM)))  # no download (F-16)
     mod.planetRadius = central_body_radius_m
     mod.planetPosInMsg.subscribeTo(planet_state_out_msg)
+    if epoch_in_msg is not None:
+        mod.epochInMsg.subscribeTo(epoch_in_msg)
     scSim.AddModelToTask(task_name, mod)
     return mod
 

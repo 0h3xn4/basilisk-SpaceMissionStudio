@@ -53,6 +53,7 @@ scrolled-past or closed terminal, and can be attached to a bug report).
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -62,6 +63,7 @@ from typing import Optional
 # e.g. so gui.main_window's error dialogs can point the user at exactly
 # where the full traceback for what they just saw actually landed.
 _log_file_path: Optional[Path] = None
+_configured = False  # set once configure_logging has run, with or without a log file
 
 
 def default_log_dir() -> Path:
@@ -75,14 +77,15 @@ def default_log_dir() -> Path:
     return Path.home() / ".spacemissionstudio" / "logs"
 
 
-def configure_logging(log_dir: Optional[Path] = None, console_level: int = logging.INFO) -> Path:
+def configure_logging(log_dir: Optional[Path] = None, console_level: int = logging.INFO) -> Optional[Path]:
     """Call once, at the very start of both entry points (``gui.app.main``,
     ``cli.main``) -- before anything else runs, so nothing that happens
     afterward (including import-time errors from lazily-imported modules)
     is ever missed.
 
     Returns the log file path just created, also retrievable afterward
-    via :func:`get_log_file_path`.
+    via :func:`get_log_file_path`, or None when the log folder cannot be
+    written: logging then goes to the terminal only.
 
     Idempotent: a second call in the same process (``cli.cmd_gui()``
     dispatching into ``gui.app.main()``, which is ALSO a documented
@@ -103,30 +106,35 @@ def configure_logging(log_dir: Optional[Path] = None, console_level: int = loggi
             that happens," even when the terminal itself is deliberately
             kept less noisy for ordinary use).
     """
-    global _log_file_path
+    global _log_file_path, _configured
 
-    if _log_file_path is not None:
+    if _configured:
         return _log_file_path
 
     log_dir = log_dir if log_dir is not None else default_log_dir()
-    log_dir.mkdir(parents=True, exist_ok=True)
     # One file per process launch (timestamped, not appended/rotated) --
     # simplest possible answer to "which run does this log belong to"
-    # when several are kept around; old ones are left for the user to
-    # clean up themselves (matching this project's existing archive
-    # -directory conventions elsewhere, e.g. Monte Carlo's own
-    # --archive-dir, rather than silently deleting anything).
+    # when several are kept around. The process id keeps two launches in
+    # the same second apart, and only the newest KEEP_LOG_FILES of this
+    # tool's own log files are kept (audit L25: they were never pruned).
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    log_file = log_dir / f"spacemissionstudio_{timestamp}.log"
+    log_file = log_dir / f"spacemissionstudio_{timestamp}_{os.getpid()}.log"
 
     formatter = logging.Formatter(
         fmt="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
         datefmt="%Y-%m-%dT%H:%M:%S%z",
     )
 
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
+    # An unwritable home folder (or log_dir) must not stop the tool: it
+    # then logs to the terminal only, and says so once (audit M11).
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        file_handler: Optional[logging.Handler] = logging.FileHandler(log_file, encoding="utf-8")
+    except OSError as exc:
+        file_handler, file_error = None, exc
+    if file_handler is not None:
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
 
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(console_level)
@@ -134,7 +142,8 @@ def configure_logging(log_dir: Optional[Path] = None, console_level: int = loggi
 
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
-    root_logger.addHandler(file_handler)
+    if file_handler is not None:
+        root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
 
     # Uncaught exceptions (a genuine bug reaching all the way up through
@@ -153,9 +162,31 @@ def configure_logging(log_dir: Optional[Path] = None, console_level: int = loggi
 
     sys.excepthook = _log_uncaught_exception
 
+    _configured = True
+    if file_handler is not None:
+        _prune_old_logs(log_dir, keep=log_file)
+    if file_handler is None:
+        logging.getLogger(__name__).warning("Could not create the log file in %s (%s); logging to the terminal only",
+                                            log_dir, file_error)
+        return None
     logging.getLogger(__name__).info("Logging to %s", log_file)
     _log_file_path = log_file
     return log_file
+
+
+KEEP_LOG_FILES = 100  # [-] newest log files kept in the log folder
+
+
+def _prune_old_logs(log_dir: Path, keep: Path) -> None:
+    """Delete this tool's oldest log files beyond :data:`KEEP_LOG_FILES`
+    (only ``spacemissionstudio_*.log``; never ``keep``, the current one)."""
+    try:
+        logs = sorted((p for p in log_dir.glob("spacemissionstudio_*.log") if p != keep),
+                      key=lambda p: p.stat().st_mtime, reverse=True)
+        for old in logs[KEEP_LOG_FILES - 1:]:
+            old.unlink(missing_ok=True)
+    except OSError:  # pruning is housekeeping: it never stops the tool
+        pass
 
 
 def get_log_file_path() -> Optional[Path]:

@@ -323,7 +323,10 @@ def run_sil(scenario, spacecraft_name: str, options: SilOptions, vizard_request=
     reset_tap = ResetTap(graph)
     service.scSim.AddModelToTask(service.dyn_task_name, reset_tap, -10**6)
 
-    listener = Listener(options.transport)
+    try:
+        listener = Listener(options.transport)
+    except OSError as exc:  # no socket could be opened: a SilError like the rest, not a raw OSError (L23)
+        raise SilError(f"could not open the link for the flight software ({options.transport}): {exc}") from exc
     report.address_kind = listener.kind
     token = secrets.token_hex(16)
     # Again, right before the start: building the simulation above takes seconds, and a program swapped in
@@ -365,11 +368,16 @@ def run_sil(scenario, spacecraft_name: str, options: SilOptions, vizard_request=
         _finish(report, bridge, comparator)
         report.completed = True
         session.bye()
+        # Our end closes first: the program then sees the link end and exits
+        # at once (fsw_transport_socket.c reads to the end before it closes,
+        # so its last frame is never lost; audit M15).
+        session.transport.close()
         program.stop(options.timeouts.bye_s)
         return result, report
     except SilError as exc:
         if session is not None:
             session.send_error(f"the simulation stopped the run: {exc}")
+            session.transport.close()
         _finish(report, bridge, comparator)
         program.stop(0.5)
         report.log_tail = program.log_tail()

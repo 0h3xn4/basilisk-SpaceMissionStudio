@@ -24,7 +24,7 @@ Document: SMS-SUM, issue 1 (draft), 2026-10-08. Remediation R14.
 ## 1 Introduction (H.2.1<1>)
 
 This SUM is the entry point to the user documentation of SpaceMissionStudio
-2.0.0. Users should read the UM; this document points to it section by
+3.0.0. Users should read the UM; this document points to it section by
 section and holds the information ECSS-E-ST-40C asks for that the UM does
 not.
 
@@ -110,7 +110,7 @@ The tool lets a mission analyst do the following without writing code:
 
 ```
   Operating system (Linux, Windows)
-    Python 3.9+ virtual environment
+    Python 3.11+ virtual environment
       SpaceMissionStudio  --uses-->  Basilisk 2.12.0, numpy, sgp4, pyerfa, PySide6, plotly
       Vizard (optional, separate program)
 ```

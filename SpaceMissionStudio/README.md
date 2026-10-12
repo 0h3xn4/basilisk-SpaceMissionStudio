@@ -1,7 +1,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-spacemissionstudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-spacemissionstudio/actions/workflows/spacemissionstudio.yml)
-![Version 2.0.0, plus unreleased changes](https://img.shields.io/badge/version-2.0.0%2B-blue)
+![Version 3.0.0](https://img.shields.io/badge/version-3.0.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -102,7 +102,7 @@ Details, and the Basilisk module behind each feature:
 | | |
 |---|---|
 | System | Linux x86_64 or aarch64 (glibc 2.28 or newer), Windows 10 or 11 x86_64, macOS 11 or newer on Apple silicon |
-| Python | 3.11 is what CI tests (Basilisk's wheels cover 3.9 to 3.14) |
+| Python | 3.11 or newer; CI tests 3.11 (Basilisk's wheels go up to 3.14) |
 | Basilisk | 2.12.0, installed from PyPI (`bsk`) |
 | Disk | About 1.6 GB, including the reference data |
 | Internet | Once, to install and fetch the reference data |
@@ -113,8 +113,8 @@ scripts are in [`packaging/`](packaging/README.md).
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
-- **Version:** 2.0.0, plus the unreleased changes listed in the
-  [changelog](CHANGELOG.md).
+- **Version:** 3.0.0 ([changelog](CHANGELOG.md)). Needs Python 3.11 or
+  newer.
 - **Tested** in CI on Linux, Windows and macOS with Basilisk 2.12.0;
   the Linux packages were installed and run end to end. The Windows
   installer and install script have not yet been run on a real Windows

@@ -60,12 +60,15 @@ import re
 import dataclasses
 import json
 import math
+import os
+import tempfile
 from dataclasses import dataclass, field, asdict
-from datetime import datetime
 from pathlib import Path
 import typing
 from typing import Any, Dict, List, Optional
 
+from .epochs import parse_epoch_utc
+from .tle_format import TLEError, check_lines
 from .command import Command, report_before_propagate_errors
 
 CURRENT_SCHEMA_VERSION = 4
@@ -116,6 +119,90 @@ NAMED_RW_MAX_MOMENTUM_OPTIONS = {
     "Honeywell_HR14": (25.0, 50.0, 75.0),
     "Honeywell_HR16": (50.0, 75.0, 100.0),
 }
+
+# Every wheel and thruster type simIncludeRW.rwFactory /
+# simIncludeThruster.thrusterFactory build (Basilisk 2.12.0, the methods of
+# each factory class): any other name makes create() call exit(1).
+RW_TYPES = ("custom", "Honeywell_HR16", "Honeywell_HR14", "Honeywell_HR12", "BCT_RWP015", "NanoAvionics_RW0")
+THRUSTER_TYPES = ("MOOG_Monarc_1", "MOOG_Monarc_5", "MOOG_Monarc_22_6", "MOOG_Monarc_22_12", "MOOG_Monarc_90LT",
+                  "MOOG_Monarc_90HT", "MOOG_Monarc_445", "SEP", "TEST_Thruster", "EPSS_C2", "Blank_Thruster")
+
+# rwFactory.create() / thrusterFactory.create() keyword arguments by the type
+# each must have (engine.fsw coerces the numbers to float): a wrong type, a
+# non-positive limit, a zero betaStatic or a label over 5 characters makes
+# the factory call exit(1) instead of raising (simIncludeRW.py,
+# simIncludeThruster.py).
+_RW_NUMBER_KWARGS = ("Omega", "Omega_max", "maxMomentum", "P_max", "betaStatic", "fCoulomb", "fStatic", "cViscous",
+                     "u_min", "u_max", "Js")
+_RW_POSITIVE_KWARGS = ("Omega_max", "maxMomentum", "Js")
+_RW_BOOL_KWARGS = ("useRWfriction", "useMinTorque", "useMaxTorque")
+_THRUSTER_NUMBER_KWARGS = ("areaNozzle", "steadyIsp", "MaxThrust", "thrusterMagDisp", "MinOnTime", "cutoffFrequency",
+                           "MaxSwirlTorque")
+_THRUSTER_POSITIVE_KWARGS = ("steadyIsp", "MaxThrust")
+_THRUSTER_BOOL_KWARGS = ("useMinPulseTime",)
+
+
+def _factory_param_errors(where: str, params: dict, numbers, positive, bools) -> list:
+    """What in ``params`` would make a Basilisk device factory exit."""
+    errors = []
+    for key in numbers:
+        if key in params and not _is_finite_number(params[key]):
+            errors.append(f"{where}: params[{key!r}] must be a finite number, got {params[key]!r}")
+        elif key in positive and key in params and params[key] <= 0:
+            errors.append(f"{where}: params[{key!r}] must be > 0, got {params[key]!r}")
+    for key in bools:
+        if key in params and not isinstance(params[key], bool):
+            errors.append(f"{where}: params[{key!r}] must be true or false, got {params[key]!r}")
+    label = params.get("label")
+    if label is not None and not (isinstance(label, str) and len(label) <= 5):
+        errors.append(f"{where}: params['label'] must be text of at most 5 characters (Basilisk's limit)")
+    return errors
+
+
+def reaction_wheel_param_errors(where: str, params: dict) -> list:
+    """What would make ``rwFactory.create()`` exit for these params."""
+    errors = []
+    rw_type = params.get("rw_type", "custom")
+    if rw_type not in RW_TYPES:
+        errors.append(f"{where}: params['rw_type'] {rw_type!r} must be one of {RW_TYPES}")
+    errors += _factory_param_errors(where, params, _RW_NUMBER_KWARGS, _RW_POSITIVE_KWARGS, _RW_BOOL_KWARGS)
+    if "RWModel" in params and not (isinstance(params["RWModel"], int) and not isinstance(params["RWModel"], bool)):
+        errors.append(f"{where}: params['RWModel'] must be an integer")
+    if _is_finite_number(params.get("betaStatic")) and params["betaStatic"] == 0:
+        errors.append(f"{where}: params['betaStatic'] must not be 0 (positive turns Stribeck friction on, "
+                      "negative off)")
+    if _is_finite_number(params.get("u_max")) and params["u_max"] <= 0 and params.get("useMaxTorque", True):
+        errors.append(f"{where}: params['u_max'] must be > 0 [N*m] (or set useMaxTorque false)")
+    if _is_finite_number(params.get("u_min")) and params["u_min"] <= 0 and params.get("useMinTorque", False):
+        errors.append(f"{where}: params['u_min'] must be > 0 [N*m] when useMinTorque is true")
+    if "rWB_B" in params and not (isinstance(params["rWB_B"], list) and len(params["rWB_B"]) == 3
+                                  and all(_is_finite_number(v) for v in params["rWB_B"])):
+        errors.append(f"{where}: params['rWB_B'] must be 3 finite numbers [m]")
+    return errors
+
+
+def thruster_param_errors(where: str, params: dict) -> list:
+    """What would make ``thrusterFactory.create()`` exit, or build a thruster
+    that pushes along a NaN axis, for these params."""
+    errors = []
+    thruster_type = params.get("thruster_type", "Blank_Thruster")
+    if thruster_type not in THRUSTER_TYPES:
+        errors.append(f"{where}: params['thruster_type'] {thruster_type!r} must be one of {THRUSTER_TYPES}")
+    errors += _factory_param_errors(where, params, _THRUSTER_NUMBER_KWARGS, _THRUSTER_POSITIVE_KWARGS,
+                                    _THRUSTER_BOOL_KWARGS)
+    if _is_finite_number(params.get("MinOnTime")) and params["MinOnTime"] < 0:
+        errors.append(f"{where}: params['MinOnTime'] must be >= 0 [s]")
+    for key in ("thrBlowDownCoeff", "ispBlowDownCoeff"):
+        if key in params and not (isinstance(params[key], list) and all(_is_finite_number(v) for v in params[key])):
+            errors.append(f"{where}: params[{key!r}] must be a list of finite numbers")
+    r_B = params.get("r_B")
+    if r_B is not None and not (isinstance(r_B, list) and all(_is_finite_number(v) for v in r_B)):
+        errors.append(f"{where}: params['r_B'] must be 3 finite numbers [m]")
+    tHat_B = params.get("tHat_B")
+    if tHat_B is not None and len(tHat_B) == 3 and not _is_direction_vector(tHat_B):
+        errors.append(f"{where}: params['tHat_B'] must be a non-zero, finite thrust direction")
+    return errors
+
 
 # "thermal" (sensorThermal.SensorThermal, optionally chained into
 # tempMeasurement.TempMeasurement for measurement noise/bias/fault) models
@@ -189,6 +276,33 @@ def _is_finite_number(value) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
 
 
+# Spacecraft, station, sensor and actuator names become file names (CSV, OEM,
+# OPM, events, Monte Carlo archives) and the first parts of "<spacecraft>.<field>"
+# series names. A name must not be able to leave the output folder or split a
+# series name: no path separators or other characters Windows refuses in file
+# names, no '.', no control characters, no leading/trailing spaces, and not a
+# name Windows reserves for devices (audit H3).
+_NAME_FORBIDDEN = set('/\\:*?"<>|.')
+_WINDOWS_RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
+
+
+def name_error(what: str, name) -> "str | None":
+    """Why ``name`` cannot name a ``what`` (a spacecraft, ground station,
+    sensor or actuator), or None when it can."""
+    if not isinstance(name, str) or not name:
+        return f"{what} name must not be empty"
+    bad = sorted({ch for ch in name if ch in _NAME_FORBIDDEN or ord(ch) < 32 or ord(ch) == 127})
+    if bad:
+        shown = ", ".join(repr(ch) for ch in bad)
+        return (f"{what} name {name!r} contains {shown}: names become file names, so they cannot contain "
+                "/ \\ : * ? \" < > | . or control characters")
+    if name != name.strip():
+        return f"{what} name {name!r} must not start or end with a space"
+    if name.upper() in _WINDOWS_RESERVED:
+        return f"{what} name {name!r} is a name Windows reserves for devices; choose another"
+    return None
+
+
 def _is_direction_vector(values) -> bool:
     """True for a 3-element ``[x, y, z]`` of finite numbers that is not the
     zero vector -- what every body-frame axis/direction field here needs.
@@ -242,6 +356,13 @@ class OrbitIC:
         _require(self.type in ORBIT_IC_TYPES,
                   f"orbit.type {self.type!r} must be one of {ORBIT_IC_TYPES}")
         if self.type == "classical_elements":
+            # NaN and Infinity pass the comparisons below unnoticed (NaN) or
+            # look valid (Infinity), and Basilisk then misbehaves (audit M16).
+            for name in ("semi_major_axis_km", "eccentricity", "inclination_deg", "raan_deg", "arg_periapsis_deg",
+                         "true_anomaly_deg", "mean_anomaly_deg"):
+                value = getattr(self, name)
+                _require(value is None or _is_finite_number(value),
+                          f"classical_elements orbit: {name} must be a finite number, got {value!r}")
             _require(self.semi_major_axis_km is not None and self.semi_major_axis_km > 0,
                       "classical_elements orbit needs semi_major_axis_km > 0")
             _require(self.eccentricity is not None and 0.0 <= self.eccentricity < 1.0,
@@ -258,9 +379,18 @@ class OrbitIC:
                 value = getattr(self, name)
                 _require(value is not None and len(value) == 3,
                           f"cartesian orbit needs {name} as a 3-element [x, y, z] list")
+                _require(all(_is_finite_number(v) for v in value),
+                          f"cartesian orbit: {name} must hold finite numbers, got {value!r}")
+            _require(any(v != 0.0 for v in self.position_km), "cartesian orbit: position_km must not be [0, 0, 0]")
         elif self.type == "tle":
             _require(bool(self.tle_line1) and bool(self.tle_line2),
                       "tle orbit needs both tle_line1 and tle_line2")
+            # The line format is checked here, not first by SGP4 at run
+            # time (audit M16).
+            try:
+                check_lines(self.tle_line1, self.tle_line2)
+            except TLEError as exc:
+                raise ScenarioValidationError(f"tle orbit: {exc}") from None
 
 
 @dataclass
@@ -1286,7 +1416,7 @@ class SpacecraftConfig:
     vizard_model_scale: list = field(default_factory=lambda: [1.0, 1.0, 1.0])
 
     def validate(self) -> None:
-        _require(bool(self.name), "spacecraft.name must not be empty")
+        _require(name_error("spacecraft", self.name) is None, name_error("spacecraft", self.name) or "")
         # Generous plausibility ceiling (docs/ux_audit.md, "units
         # enforced only by naming convention") -- 1e6 kg is already far
         # above any single real spacecraft (the ISS, the largest
@@ -1374,12 +1504,19 @@ class SpacecraftConfig:
                       f"{self.name}: comms_pointing and fsw_mode cannot both be set -- comms_pointing "
                       "already builds its own Sun-pointing/ground-station-pointing guidance chains "
                       f"internally (got fsw_mode={self.fsw_mode!r})")
+            # Comms pointing drives an idealised torque, not actuators; with
+            # actuators the run failed asking for fsw_mode, which this
+            # check above forbids (audit M16).
+            _require(not self.actuators,
+                      f"{self.name}: comms_pointing commands an idealised control torque and cannot drive "
+                      "actuators -- remove the actuators from this spacecraft, or use an fsw_mode instead")
 
         sensor_names = [s.name for s in self.sensors]
         _require(len(sensor_names) == len(set(sensor_names)),
                   f"{self.name}: sensor names must be unique, got {sensor_names}")
         for sensor in self.sensors:
             _require(bool(sensor.kind) and bool(sensor.name), f"{self.name}: every sensor needs kind and name")
+            _require(name_error("sensor", sensor.name) is None, f"{self.name}: {name_error('sensor', sensor.name)}")
             _require(sensor.kind in SUPPORTED_SENSOR_KINDS,
                       f"{self.name}: sensor {sensor.name!r} kind {sensor.kind!r} must be one of "
                       f"{SUPPORTED_SENSOR_KINDS}")
@@ -1448,6 +1585,8 @@ class SpacecraftConfig:
                   f"{self.name}: actuator names must be unique, got {actuator_names}")
         for actuator in self.actuators:
             _require(bool(actuator.kind) and bool(actuator.name), f"{self.name}: every actuator needs kind and name")
+            _require(name_error("actuator", actuator.name) is None,
+                     f"{self.name}: {name_error('actuator', actuator.name)}")
             _require(actuator.kind in SUPPORTED_ACTUATOR_KINDS,
                       f"{self.name}: actuator {actuator.name!r} kind {actuator.kind!r} must be one of "
                       f"{SUPPORTED_ACTUATOR_KINDS}")
@@ -1456,6 +1595,8 @@ class SpacecraftConfig:
                 _require(gsHat_B is not None and _is_direction_vector(gsHat_B),
                           f"{self.name}: reaction_wheel {actuator.name!r} needs params['gsHat_B'] "
                           "as a non-zero, finite 3-element body-frame spin-axis unit vector")
+                rw_errors = reaction_wheel_param_errors(f"{self.name}: reaction_wheel {actuator.name!r}", actuator.params)
+                _require(not rw_errors, "; ".join(rw_errors))
                 rw_type = actuator.params.get("rw_type", "custom")
                 if rw_type == "custom":
                     # Confirmed directly against simIncludeRW.py's rwFactory.create(): the
@@ -1533,6 +1674,10 @@ class SpacecraftConfig:
                               f"{self.name}: reaction_wheel {actuator.name!r} has some but not all of "
                               f"{_MOTOR_THERMAL_KEYS} set -- motorThermal.MotorThermal hard-exits the whole "
                               f"process on an unset field in this group; missing {missing}")
+                    _require(_is_finite_number(actuator.params["motor_thermal_initial_temp_c"])
+                             and actuator.params["motor_thermal_initial_temp_c"] > -273.15,
+                             f"{self.name}: reaction_wheel {actuator.name!r} needs "
+                             "params['motor_thermal_initial_temp_c'] above absolute zero (-273.15 C)")
                     efficiency = actuator.params["motor_thermal_efficiency"]
                     _require(0.0 < efficiency < 1.0,
                               f"{self.name}: reaction_wheel {actuator.name!r} needs "
@@ -1558,14 +1703,17 @@ class SpacecraftConfig:
                           "simIncludeThruster.thrusterFactory()'s own default (0.2 N) is easy to mistake "
                           "for a wiring bug rather than a deliberately tiny thruster, so this schema "
                           "requires it explicitly rather than silently falling back to it")
+                thruster_errors = thruster_param_errors(f"{self.name}: thruster {actuator.name!r}", actuator.params)
+                _require(not thruster_errors, "; ".join(thruster_errors))
             if actuator.kind == "magnetic_torque_rod":
                 gtHat_B = actuator.params.get("gtHat_B")
                 _require(gtHat_B is not None and _is_direction_vector(gtHat_B),
                           f"{self.name}: magnetic_torque_rod {actuator.name!r} needs params['gtHat_B'] as a "
                           "non-zero, finite 3-element body-frame dipole-axis unit vector [-]")
-                _require(actuator.params.get("max_dipole_a_m2") is not None,
+                _require(_is_finite_number(actuator.params.get("max_dipole_a_m2"))
+                         and actuator.params["max_dipole_a_m2"] > 0,
                           f"{self.name}: magnetic_torque_rod {actuator.name!r} needs params['max_dipole_a_m2'] "
-                          "[A*m^2] (maximum commandable dipole magnitude)")
+                          "> 0 [A*m^2] (maximum commandable dipole magnitude)")
 
         # engine.fsw/engine.service build exactly one PRIMARY control-torque
         # path per spacecraft (reaction wheels via rwMotorTorque, OR
@@ -1728,7 +1876,7 @@ class GroundStationConfig:
     system_noise_temp_k: float = 290.0  # [K] ground receiver system noise temperature
 
     def validate(self) -> None:
-        _require(bool(self.name), "ground_station.name must not be empty")
+        _require(name_error("ground station", self.name) is None, name_error("ground station", self.name) or "")
         _require(-90.0 <= self.latitude_deg <= 90.0, f"{self.name}: latitude_deg must be in [-90, 90]")
         _require(-180.0 <= self.longitude_deg <= 180.0, f"{self.name}: longitude_deg must be in [-180, 180]")
         _require(0.0 <= self.min_elevation_deg < 90.0, f"{self.name}: min_elevation_deg must be in [0, 90)")
@@ -1810,7 +1958,9 @@ class SpaceWeatherConfig:
                       "space_weather.source is 'local_file' but local_file_path was not set")
         _require(self.atmosphere_model in ("nrlmsise00", "exponential"),
                   f"space_weather.atmosphere_model {self.atmosphere_model!r} must be 'nrlmsise00' or 'exponential'")
-        _require(float(self.forecast_percentile) in SUPPORTED_FORECAST_PERCENTILES,
+        # Text such as "95" gave a bare ValueError (audit L29).
+        _require(_is_finite_number(self.forecast_percentile)
+                  and float(self.forecast_percentile) in SUPPORTED_FORECAST_PERCENTILES,
                   f"space_weather.forecast_percentile {self.forecast_percentile!r} must be one of "
                   f"{SUPPORTED_FORECAST_PERCENTILES} (MSFC's published percentiles)")
 
@@ -1859,8 +2009,16 @@ class DispersionConfig:
                           f"{where}: element_spread[{key!r}] must be a finite number >= 0")
             return
         if self.kind in ("uniform", "uniform_euler_mrp"):
-            _require(self.bounds is not None and len(self.bounds) == 2,
+            _require(isinstance(self.bounds, (list, tuple)) and len(self.bounds) == 2,
                       f"{where}: kind {self.kind!r} needs bounds as a 2-element [lo, hi] list")
+        if self.bounds is not None:
+            # Reversed or non-numeric bounds reached Basilisk's sampler
+            # unchecked (audit L29).
+            _require(isinstance(self.bounds, (list, tuple)) and len(self.bounds) == 2
+                      and all(_is_finite_number(value) for value in self.bounds),
+                      f"{where}: bounds must be two finite numbers [lo, hi], got {self.bounds!r}")
+            _require(self.bounds[0] <= self.bounds[1],
+                      f"{where}: bounds [lo, hi] must have lo <= hi, got {self.bounds!r}")
         if self.kind == "normal":
             if self.quantity in SPREAD_ONLY_DISPERSION_QUANTITIES:
                 _require(self.std_deviation is not None and _is_finite_number(self.std_deviation)
@@ -1868,6 +2026,9 @@ class DispersionConfig:
             else:
                 _require(self.mean is not None and self.std_deviation is not None,
                           f"{where}: kind 'normal' needs mean and std_deviation")
+                _require(_is_finite_number(self.mean), f"{where}: mean must be a finite number")
+                _require(_is_finite_number(self.std_deviation) and self.std_deviation >= 0,
+                          f"{where}: std_deviation must be a finite number >= 0")
         if self.quantity == "inertia_kg_m2":
             _require(self.bounds is None or len(self.bounds) == 2,
                       f"{where}: bounds, if given, must be a 2-element [lo, hi] list")
@@ -1879,11 +2040,10 @@ class DispersionConfig:
 @dataclass
 class MonteCarloConfig:
     """Batch execution settings -- see ``engine/monte_carlo.py``.
-    ``thread_count`` > 1 uses ``multiprocessing.Pool`` under the hood
-    (``Basilisk.utilities.MonteCarlo.Controller``); this has NOT been
-    exercised in this project's development sandbox (no Basilisk build
-    here -- see engine/monte_carlo.py's verification-status note), so the
-    default is the conservative, definitely-safe ``1``.
+    ``thread_count`` > 1 runs the batch in parallel processes
+    (``Basilisk.utilities.MonteCarlo.Controller``'s ``multiprocessing.Pool``),
+    exercised by the test suite against Basilisk 2.12.0; the default stays
+    ``1``. Every run flies the scenario's Mission Sequence when it has one.
     """
 
     enabled: bool = False
@@ -1893,6 +2053,11 @@ class MonteCarloConfig:
     dispersions: list = field(default_factory=list)  # list[DispersionConfig]
 
     def validate(self) -> None:
+        # A float or text count reached the batch unchecked (audit L29).
+        for key in ("num_runs", "thread_count"):
+            value = getattr(self, key)
+            _require(isinstance(value, int) and not isinstance(value, bool),
+                      f"monte_carlo.{key} must be a whole number, got {value!r}")
         _require(self.num_runs >= 1, "monte_carlo.num_runs must be >= 1")
         _require(self.thread_count >= 1, "monte_carlo.thread_count must be >= 1")
         for dispersion in self.dispersions:
@@ -2030,7 +2195,7 @@ class Scenario:
     def validate(self) -> None:
         _require(bool(self.name), "scenario.name must not be empty")
         try:
-            datetime.fromisoformat(self.epoch_utc)
+            parse_epoch_utc(self.epoch_utc)
         except ValueError as exc:
             raise ScenarioValidationError(
                 f"scenario.epoch_utc {self.epoch_utc!r} is not a valid ISO 8601 datetime "
@@ -2042,6 +2207,15 @@ class Scenario:
         _require(len(self.spacecraft) >= 1, "scenario needs at least one spacecraft")
         names = [sc.name for sc in self.spacecraft]
         _require(len(names) == len(set(names)), f"spacecraft names must be unique, got {names}")
+        # Two names that differ only in case overwrite each other's files on
+        # Windows and macOS, and two that differ only in punctuation share one
+        # Monte Carlo accessor (engine.monte_carlo._accessor_name).
+        folded: dict = {}
+        for name in names:
+            key = re.sub(r"\W+", "_", name).casefold()
+            _require(key not in folded, f"spacecraft names {folded.get(key)!r} and {name!r} differ only in case or "
+                                        "punctuation; their output files would collide -- rename one")
+            folded[key] = name
         for sc in self.spacecraft:
             sc.validate()
         for record in self.fsw_exports:
@@ -2081,6 +2255,9 @@ class Scenario:
                           "'orbit_only' mode")
         gs_names = [gs.name for gs in self.ground_stations]
         _require(len(gs_names) == len(set(gs_names)), f"ground_station names must be unique, got {gs_names}")
+        folded_gs = [name.casefold() for name in gs_names]
+        _require(len(folded_gs) == len(set(folded_gs)),
+                 f"ground_station names {gs_names} differ only in case; their output files would collide")
         for gs in self.ground_stations:
             gs.validate()
         for sc in self.spacecraft:
@@ -2108,6 +2285,12 @@ class Scenario:
                 _require(sc.phasing_keeping.chief_spacecraft in names,
                           f"{sc.name}: phasing_keeping.chief_spacecraft {sc.phasing_keeping.chief_spacecraft!r} "
                           f"is not one of this scenario's spacecraft {names}")
+                # Phasing reads the chief's semi-major axis from its elements;
+                # any other orbit type failed at build (audit M16).
+                chief = next(other for other in self.spacecraft if other.name == sc.phasing_keeping.chief_spacecraft)
+                _require(chief.orbit.type == "classical_elements",
+                          f"{sc.name}: phasing_keeping.chief_spacecraft {chief.name!r} must have a "
+                          f"'classical_elements' orbit (phasing needs its semi-major axis), not {chief.orbit.type!r}")
                 # meanOEFeedback maps osculating to mean elements with
                 # Earth's J2; with point-mass gravity there is no J2 motion
                 # for that mapping to remove, and it would add a false one.
@@ -2142,13 +2325,22 @@ class Scenario:
         needs_sun = any(sc.power is not None or sc.station_keeping is not None or sc.enable_srp
                          or sc.comms_pointing is not None
                          for sc in self.spacecraft)
+        # A heliocentric run tracks the Sun as its central body (audit L27).
+        sun_tracked = "sun" in self.gravity.third_body_perturbers or self.gravity.central_body == "sun"
         if needs_sun:
-            _require("sun" in self.gravity.third_body_perturbers,
+            _require(sun_tracked,
                       "a spacecraft has power, station_keeping, enable_srp, or comms_pointing configured, "
                       "but 'sun' is not one of gravity.third_body_perturbers -- simpleSolarPanel/the eclipse "
                       "gate/SRP/comms_pointing's own sunSafePoint chain all need a sun ephemeris. Add 'sun' "
                       "to gravity.third_body_perturbers, or remove power/station_keeping/enable_srp/"
                       "comms_pointing from every spacecraft")
+        # A thermal sensor needs the Sun's position (sensorThermal); without
+        # a tracked Sun the build failed (audit M16).
+        for sc in self.spacecraft:
+            thermal = [sensor.name for sensor in sc.sensors if sensor.kind == "thermal"]
+            _require(not thermal or sun_tracked,
+                      f"{sc.name}: thermal sensor {thermal[0] if thermal else ''!r} needs the Sun's position -- add "
+                      "'sun' to gravity.third_body_perturbers")
         # Same mirroring reasoning as needs_sun just above:
         # engine.fsw.attach_sensors() raises an FswError for a
         # "magnetometer" sensor the moment gravity.central_body != "earth"
@@ -2158,6 +2350,11 @@ class Scenario:
         # bill of health for a scenario guaranteed to fail at run time.
         if self.gravity.central_body != "earth":
             for sc in self.spacecraft:
+                # A TLE describes an Earth orbit (SGP4, TEME); around another
+                # body it was accepted and misread (audit M13).
+                _require(sc.orbit.type != "tle",
+                          f"{sc.name}: a TLE orbit describes an Earth orbit, but gravity.central_body is "
+                          f"{self.gravity.central_body!r} -- give the orbit as cartesian or classical elements")
                 _require(not any(sensor.kind == "magnetometer" for sensor in sc.sensors),
                           f"{sc.name}: has a 'magnetometer' sensor, but gravity.central_body is "
                           f"{self.gravity.central_body!r}, not 'earth' -- magneticFieldWMM (the only "
@@ -2213,19 +2410,50 @@ class Scenario:
             _require(not command_errors, "; ".join(command_errors))
         order_errors = report_before_propagate_errors(self.mission_sequence)
         _require(not order_errors, "; ".join(order_errors))
+        self._validate_sequence_time()
         # local import: schema.references only imports schema.scenario
         # under TYPE_CHECKING (never at runtime), so this has no real
         # import cycle to avoid -- kept local anyway, matching
         # load_scenario()'s own "from . import migrations" precedent, so
         # a future change to that TYPE_CHECKING guard can't silently
         # create one here.
-        from .references import _command_references
+        from .references import _PLURAL, _command_references
 
         for ref in _command_references(self.mission_sequence, "mission_sequence"):
             known = names if ref.resource_kind == "spacecraft" else gs_names
             _require(ref.name in known,
                       f"{ref.path}: {ref.resource_kind} {ref.name!r} is not one of this scenario's "
-                      f"{ref.resource_kind}s {sorted(known)}")
+                      f"{_PLURAL[ref.resource_kind]} {sorted(known)}")
+
+    def _validate_sequence_time(self) -> None:
+        """A Mission Sequence is one Basilisk run, so its clock may not pass
+        SimSettings._MAX_SINGLE_RUN_DAYS (audit M3). Fixed-duration
+        propagates are added up (both branches of an ``if`` counted, a
+        ``while`` body once) and every stop epoch is checked; how long a
+        loop or an event search runs is checked as the sequence runs."""
+        limit_days = SimSettings._MAX_SINGLE_RUN_DAYS  # [day]
+        start = parse_epoch_utc(self.epoch_utc)
+
+        def fixed_days(commands) -> float:
+            total = 0.0  # [day]
+            for command in commands:
+                params = command.params
+                if command.kind == "propagate" and params.get("stop_condition", "duration") == "duration":
+                    total += float(params.get("duration_days", 0.0))
+                elif command.kind == "propagate" and params.get("stop_condition") == "epoch":
+                    stop = parse_epoch_utc(params["stop_epoch_utc"])
+                    days = (stop - start).total_seconds() / 86400.0  # [day]
+                    _require(days <= limit_days,
+                             f"mission_sequence: propagate.stop_epoch_utc {params['stop_epoch_utc']!r} is "
+                             f"{days:.1f} days after the scenario epoch; a Mission Sequence runs at most "
+                             f"{limit_days:g} days")
+                total += fixed_days(command.children)
+            return total
+
+        total_days = fixed_days(self.mission_sequence)
+        _require(total_days <= limit_days,
+                 f"mission_sequence: its fixed-duration propagates add up to {total_days:.1f} days; a Mission "
+                 f"Sequence runs at most {limit_days:g} days (one Basilisk run)")
 
     # -- (de)serialization -------------------------------------------------
     def to_dict(self) -> dict:
@@ -2309,10 +2537,29 @@ class Scenario:
         )
 
     def save(self, path: "str | Path") -> None:
+        """Validate, then write the scenario as JSON. The text goes to a
+        temporary file in the same folder, which then replaces ``path`` in
+        one step, so a failed or interrupted save leaves the previous file
+        as it was (audit M9). Raises OSError when the file cannot be
+        written."""
         self.validate()
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(self.to_dict(), indent=2) + "\n")
+        text = json.dumps(self.to_dict(), indent=2) + "\n"
+        # mkstemp makes an owner-only file; keep the replaced file's mode, or
+        # the usual rw-r--r-- for a new one.
+        mode = path.stat().st_mode & 0o777 if path.exists() else 0o644
+        handle, temporary = tempfile.mkstemp(dir=path.parent, prefix=f".{path.name}.", suffix=".tmp")
+        try:
+            with os.fdopen(handle, "w", encoding="utf-8") as stream:
+                stream.write(text)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.chmod(temporary, mode)
+            os.replace(temporary, path)
+        except BaseException:
+            Path(temporary).unlink(missing_ok=True)
+            raise
 
 
 _TYPE_HINTS: Dict[type, Dict[str, Any]] = {}
@@ -2404,12 +2651,14 @@ def load_scenario(path: "str | Path") -> Scenario:
 
     path = Path(path)
     try:
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8")  # as save() writes it, on every platform
     except OSError as exc:
         # Covers a missing file, a directory given by mistake, a
         # permissions error, etc. -- all "can't read this path" failures,
         # not just the literal FileNotFoundError case.
         raise ScenarioValidationError(f"{path}: could not read file ({exc.strerror or exc})") from exc
+    except UnicodeDecodeError as exc:
+        raise ScenarioValidationError(f"{path}: not a scenario file (not UTF-8 text: {exc.reason})") from exc
     try:
         raw = json.loads(text)
     except json.JSONDecodeError as exc:

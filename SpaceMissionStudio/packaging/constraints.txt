@@ -1,0 +1,51 @@
+# Tested dependency versions for SpaceMissionStudio 3.0.0 (audit M14).
+#
+# The installers (install.sh, install.ps1, the Debian package and the
+# Windows setup program) and CI install with `pip install -c
+# constraints.txt`, so a release installs exactly the versions its test
+# suite passed with, instead of whatever is newest on PyPI that day.
+# pyproject.toml keeps its lower bounds, so `pip install spacemissionstudio`
+# without this file still works with newer releases, untested.
+#
+# The set is what a clean install of bsk[all]==2.12.0 and
+# spacemissionstudio[gui] resolves to; the versions are the ones the full
+# test suite ran against on Linux x86_64, Python 3.11. To update: install
+# the new versions, run the full suite, then regenerate this list.
+bokeh==3.9.0
+bsk==2.12.0
+bsk-opnav==2.12.0
+certifi==2026.7.22
+charset-normalizer==3.5.2
+colorama==0.4.6
+contourpy==1.3.3
+cycler==0.12.1
+fonttools==4.66.1
+idna==3.20
+Jinja2==3.1.6
+kiwisolver==1.5.1
+MarkupSafe==3.0.3
+matplotlib==3.10.9
+narwhals==2.26.0
+numpy==2.4.6
+packaging==26.3
+pandas==3.0.3
+pillow==12.2.0
+platformdirs==4.12.2
+plotly==7.1.0
+pooch==1.9.0
+protobuf==7.35.0
+pyerfa==2.0.1.5
+pyparsing==3.3.3
+PySide6==6.11.2
+PySide6_Addons==6.11.2
+PySide6_Essentials==6.11.2
+python-dateutil==2.9.0.post0
+PyYAML==6.0.3
+requests==2.34.2
+sgp4==2.25
+shiboken6==6.11.2
+six==1.17.0
+tornado==6.5.10
+tqdm==4.67.3
+urllib3==2.8.0
+xyzservices==2026.9.1

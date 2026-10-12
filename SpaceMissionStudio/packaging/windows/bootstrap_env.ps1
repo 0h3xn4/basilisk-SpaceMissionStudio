@@ -47,7 +47,9 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "SpaceMissionStudio: installing Basilisk 2.12.0 (bsk[all]==2.12.0, the version SpaceMissionStudio is qualified with) from PyPI -- this needs internet access and can take a few minutes ..."
-& $VenvPython -m pip install --quiet "bsk[all]==2.12.0"
+# The tested dependency versions (constraints.txt, audit M14).
+$Constraints = Join-Path $InstallDir "constraints.txt"
+& $VenvPython -m pip install --quiet -c $Constraints "bsk[all]==2.12.0"
 if ($LASTEXITCODE -ne 0) {
     Fail "Basilisk install failed (exit code $LASTEXITCODE)"
 }
@@ -60,7 +62,7 @@ if (-not $Wheel) {
 }
 
 Write-Host "SpaceMissionStudio: installing SpaceMissionStudio itself from the bundled wheel ..."
-& $VenvPython -m pip install --quiet "$Wheel[gui]"
+& $VenvPython -m pip install --quiet -c $Constraints "$Wheel[gui]"
 if ($LASTEXITCODE -ne 0) {
     Fail "spacemissionstudio install failed (exit code $LASTEXITCODE)"
 }

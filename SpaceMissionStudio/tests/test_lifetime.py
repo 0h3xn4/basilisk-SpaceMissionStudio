@@ -250,3 +250,51 @@ def test_drag_makeup_is_the_delta_v_the_decay_takes_away():
     assert makeup.delta_v_m_s == pytest.approx(0.5 * n * (orbit.semi_major_axis_m - end_sma_m), rel=0.025)
     harder = lifetime.drag_makeup(scenario, spacecraft, start, window_years, drag_coeff=3.0)
     assert harder.delta_v_m_s == pytest.approx(makeup.delta_v_m_s * 3.0 / 2.2, rel=1e-9)
+
+
+@pytest.mark.parametrize("years", [-5.0, 0.0, float("nan")])
+def test_a_lookahead_that_is_not_positive_is_refused(years):
+    """Audit M12: `lifetime --max-years -5` reached Basilisk as an end before
+    the start (a traceback and a bad cache file); it is refused first."""
+    from spacemissionstudio.schema import load_scenario
+
+    scenario = load_scenario(Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates"
+                             / "18_leo_station_keeping.json")
+    with pytest.raises(lifetime.LifetimeError, match="max_years must be a positive number"):
+        lifetime.end_of_life(scenario, scenario.spacecraft[0].name, max_years=years)
+
+
+def test_a_retro_burn_at_apogee_keeps_the_argument_of_perigee():
+    """Audit L2: the lowered orbit's argument of perigee was turned by 180
+    deg; the burn point stays the apogee, so the perigee does not move."""
+    orbit = lifetime.MeanOrbit(lifetime.REQ_EARTH_M + 600e3, 0.01, math.radians(97.0), 0.2, 0.3)  # [m], [-], [rad]
+    _dv, _kg, lowered = lifetime.deorbit_burn(orbit, 250.0, 122.0, 1500.0)  # [km], [kg], [s]
+    assert lowered.arg_periapsis_rad == pytest.approx(0.3)  # [rad]
+    assert lowered.apogee_altitude_km == pytest.approx(orbit.apogee_altitude_km)  # [km]
+
+
+def test_a_cancelled_decay_is_an_error_not_a_lifetime():
+    """Audit L3: a cancelled decay returned a result as if it had finished."""
+    with pytest.raises(lifetime.LifetimeError, match="cancelled"):
+        lifetime.propagate_decay(_circular(400.0), datetime(2030, 1, 1), 0.01, lifetime.exponential_density,
+                                 should_cancel=lambda: True)
+
+
+@pytest.mark.requires_basilisk
+def test_lifetime_after_a_run_uses_the_fuel_left_in_the_tank():
+    """Audit L4: after a run the decay started with the tank's initial load.
+    Template 17 (300 kg dry, 0.5 kg in the tank): with 0.1 kg left, the
+    decay starts at 300.1 kg."""
+    from spacemissionstudio.engine.results import ResultSet, TimeSeries
+    from spacemissionstudio.engine.service import _orbit_ic_to_rv
+    from spacemissionstudio.schema import load_scenario
+
+    scenario = load_scenario(_TEMPLATES / "17_fuel_tank_depletion.json")
+    r_m, v_m_s = _orbit_ic_to_rv(lifetime.MU_EARTH_M3_S2, scenario.spacecraft[0].orbit, scenario.epoch_utc)
+    result = ResultSet(scenario_name=scenario.name)
+    t = np.array([0.0, 60.0])  # [s]
+    result.add(TimeSeries("sat-1.position_N", t, ("x", "y", "z"), np.array([r_m, r_m])))
+    result.add(TimeSeries("sat-1.velocity_N", t, ("x", "y", "z"), np.array([v_m_s, v_m_s])))
+    result.add(TimeSeries("sat-1.fuel_mass_remaining", t, ("fuel_mass_remaining",), np.array([[0.5], [0.1]])))
+    end = lifetime.end_of_life(scenario, "sat-1", result=result, max_years=0.01)
+    assert end.mass_kg == pytest.approx(300.1)  # [kg]

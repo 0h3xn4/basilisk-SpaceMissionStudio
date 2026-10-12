@@ -106,7 +106,7 @@ def write_recovery_file(scenario: Scenario, original_path: Optional[Path]) -> No
     }
     try:
         _AUTOSAVE_DIR.mkdir(parents=True, exist_ok=True)
-        _RECOVERY_FILE.write_text(json.dumps(envelope, indent=2))
+        _RECOVERY_FILE.write_text(json.dumps(envelope, indent=2), encoding="utf-8")
     except OSError:
         _logger.warning("Could not write autosave recovery file %s", _RECOVERY_FILE, exc_info=True)
 
@@ -143,7 +143,10 @@ def read_recovery_file() -> Optional[RecoveryInfo]:
     touching the scenario).
     """
     try:
-        text = _RECOVERY_FILE.read_text()
+        text = _RECOVERY_FILE.read_text(encoding="utf-8")
+    except UnicodeDecodeError:  # not text: raised at start-up before (audit L13)
+        _logger.warning("Autosave recovery file %s is not UTF-8 text -- ignoring", _RECOVERY_FILE)
+        return None
     except OSError:
         return None
     try:

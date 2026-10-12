@@ -75,6 +75,7 @@ def _isolate_logging_setup(tmp_path, monkeypatch):
     from spacemissionstudio import logging_setup
 
     monkeypatch.setattr(logging_setup, "_log_file_path", None)
+    monkeypatch.setattr(logging_setup, "_configured", False)
     # Patch Path.home() rather than default_log_dir() itself, so
     # default_log_dir()'s own logic (exercised directly by
     # test_default_log_dir_is_under_home_dot_spacemissionstudio) still runs for

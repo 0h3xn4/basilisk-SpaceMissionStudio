@@ -84,7 +84,7 @@ jobs:
         working-directory: SpaceMissionStudio
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -e ".[dev,gui]" pre-commit
+          python -m pip install -c packaging/constraints.txt -e ".[dev,gui]" pre-commit
       - name: Whitespace and end-of-file hooks on the changed files
         env:
           BASE: ${{ needs.changes.outputs.base }}
@@ -130,8 +130,8 @@ jobs:
       - name: Install the tool, the qualified Basilisk release and the dev tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install "bsk==2.12.0"
-          python -m pip install -e ".[dev,gui]"
+          python -m pip install -c packaging/constraints.txt "bsk==2.12.0"
+          python -m pip install -c packaging/constraints.txt -e ".[dev,gui]"
       - name: Lint (coding standard C-8)
         run: python -m ruff check spacemissionstudio tests scripts compliance/tools
       - name: Documents complete against their DRDs and generated parts current (R14)
@@ -236,8 +236,8 @@ jobs:
       - name: Install the tool, the qualified Basilisk release and the dev tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install "bsk==2.12.0"
-          python -m pip install -e ".[dev,gui]"
+          python -m pip install -c packaging/constraints.txt "bsk==2.12.0"
+          python -m pip install -c packaging/constraints.txt -e ".[dev,gui]"
       - name: Support data (SPICE kernels, gravity field, magnetic model), fetched once as the installers do
         run: spacemissionstudio kernels-status
       - name: IERS-based Earth orientation files for the validation cases (SVS VP-1)

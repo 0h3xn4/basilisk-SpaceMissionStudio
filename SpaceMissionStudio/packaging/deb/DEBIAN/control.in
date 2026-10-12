@@ -3,7 +3,7 @@ Version: @VERSION@
 Section: science
 Priority: optional
 Architecture: all
-Depends: python3 (>= 3.9), python3-venv, python3-pip
+Depends: python3 (>= 3.11), python3-venv, python3-pip
 Maintainer: SpaceMissionStudio contributors <spacemissionstudio@example.invalid>
 Homepage: https://github.com/AVSLab/basilisk
 Description: GUI mission-analysis application built on Basilisk

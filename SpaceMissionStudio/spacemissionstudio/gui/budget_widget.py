@@ -263,7 +263,7 @@ class _BudgetWorker(QThread):
                 self.finished_ok.emit(pb.compute_budget(scenario, name, result, run_scenario))
         except pb.BudgetError as exc:
             self.failed.emit(str(exc))
-        except Exception as exc:  # noqa: BLE001 -- shown in the tab, never a crashed thread
+        except (Exception, SystemExit) as exc:  # noqa: BLE001 -- shown in the tab, never a crashed thread
             self.failed.emit("cancelled" if self._cancelled else f"budget failed: {exc}")
 
 

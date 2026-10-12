@@ -23,7 +23,7 @@ Basilisk 2.12.0 has prebuilt wheels only for:
   shows yours);
 - Windows x86_64;
 - macOS 11 or newer on Apple silicon;
-- Python 3.9 to 3.14 (`python3 --version`).
+- Python 3.11 to 3.14 (`python3 --version`).
 
 On anything else (an older Linux such as Ubuntu 18.04, an Intel Mac) pip
 finds no wheel. Use a newer system, or build Basilisk from source

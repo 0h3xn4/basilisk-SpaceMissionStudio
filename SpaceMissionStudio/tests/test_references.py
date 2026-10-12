@@ -343,3 +343,25 @@ def test_pass_event_station_is_found_renamed_and_checked():
     scenario.mission_sequence[0].children[0].params["ground_station"] = "gone"
     with pytest.raises(ScenarioValidationError, match="ground_station 'gone' is not one of"):
         scenario.validate()
+
+
+def test_a_rename_reaches_export_records_conditions_and_access_series():
+    """Audit L14: renaming a spacecraft missed fsw_exports[].spacecraft,
+    spacecraft['...'] in conditions and stations' access series to it;
+    renaming a station missed its own access series."""
+    from spacemissionstudio.schema.scenario import FswExportRecord
+
+    report = Command(kind="report", params={"series": ["gs-1.access_to_sat-1.elevation", "sat-1.position_N"]})
+    loop = Command(kind="while", params={"condition": "spacecraft['sat-1']['altitude_m'] > 4e5"},
+                   children=[Command(kind="propagate", params={"duration_days": 0.1}), report])
+    scenario = _scenario(ground_stations=[GroundStationConfig(name="gs-1", latitude_deg=52.5, longitude_deg=13.4)],
+                         mission_sequence=[loop],
+                         fsw_exports=[FswExportRecord(spacecraft="sat-1", path="fsw", config_digest="0" * 64)])
+    assert any(ref.path == "fsw_exports[0].spacecraft" for ref in find_spacecraft_references(scenario, "sat-1"))
+    rename_spacecraft(scenario, "sat-1", "sat-A")
+    assert scenario.fsw_exports[0].spacecraft == "sat-A"
+    assert loop.params["condition"] == "spacecraft['sat-A']['altitude_m'] > 4e5"
+    assert report.params["series"] == ["gs-1.access_to_sat-A.elevation", "sat-A.position_N"]
+    rename_ground_station(scenario, "gs-1", "berlin")
+    assert report.params["series"] == ["berlin.access_to_sat-A.elevation", "sat-A.position_N"]
+    scenario.validate()

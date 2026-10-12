@@ -29,21 +29,19 @@ propellant bookkeeping.
 altitude, deadband/hysteresis, eclipse gating) and the propellant/delta-V
 bookkeeping math (explicit-Euler rocket equation, thrust-to-mass fed back
 into ``scObject.hub.mHub`` every tick so achieved acceleration stays
-physically consistent as propellant depletes) are unchanged. Two things
-differ from the original:
+physically consistent as propellant depletes) are unchanged. What
+differs from the original:
 
-* No separate fast-dynamics/coarse-control task split. ``missionAnalysis``
-  needed that to keep a 5-year multi-satellite run tractable; SpaceMissionStudio
-  scenarios are much shorter and single-spacecraft-scale, so this runs on
-  the same dynamics task as everything else, at
+* No separate fast-dynamics/coarse-control task split: this runs on the
+  same dynamics task as everything else, at
   ``schema.scenario.SimSettings.dynamics_task_rate_s`` -- see
-  :func:`build_station_keeping`.
+  :func:`build_station_keeping`. Multi-year runs are split into segments
+  by :mod:`engine.long_run` instead.
 * ``orbit_period_s`` is not a caller-supplied argument -- computed here
   from ``mu``/``nominal_alt_m``/``r_planet_m`` via Kepler's third law
   instead (one fewer thing ``engine.service`` needs to compute).
-* No ``log_decimation`` -- SpaceMissionStudio scenarios are short enough that
-  logging every tick (matching how every other recorder in
-  ``engine.service`` already behaves) doesn't need thinning.
+* No ``log_decimation`` of its own: recording is thinned for every
+  recorder alike by ``SimSettings.record_interval_s``.
 * Publishes ``fuelTankOutMsg`` (a real ``FuelTankMsgPayload``, not part of
   the original ``AltitudeKeepingController``) purely so ``engine.vizard``
   can drive a live "propellant remaining" bar in Vizard off of it (see
@@ -506,6 +504,9 @@ class StationKeepingController(sysModel.SysModel):
         self._burnWasOn = False
 
         self.burnOn = False
+        # [s] when a reboost was first wanted with the tank empty; None while
+        # propellant lasts. Logged once and reported as a run warning (audit M4).
+        self.depletedAtS: Optional[float] = None
         # Formation-follower mode -- see this class's own docstring. Set by
         # build_phasing_keeping, never by build_station_keeping itself.
         self.formationFollower = False
@@ -681,7 +682,9 @@ class StationKeepingController(sysModel.SysModel):
         self._burnWasOn = self.burnOn
         thrustMag = 0.0  # [N]
         if self.burnOn and self.propellant <= 1e-9:
-            self.bskLogger.warning(f"{self.ModelTag}: propellant depleted, reboost inhibited")
+            if self.depletedAtS is None:
+                self.depletedAtS = t
+                self.bskLogger.warning(f"{self.ModelTag}: propellant depleted, reboosts inhibited from now on")
         elif self.burnOn or self.thruster.firing_owned_by(self):
             massEstimate = (self.scObject.scMassOutMsg.read().massSC if self.scObject is not None
                             else (self.dryMass + self.propellant))  # [kg]

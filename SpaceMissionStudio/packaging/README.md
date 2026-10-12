@@ -214,6 +214,19 @@ package and still produces a valid, installable
 has still only been run once, at 1.0.0, against logic that is unchanged
 through both the 1.1.0 feature release and this rename.
 
+**3.0.0 release note**: the installers now install the tested
+dependency versions from `constraints.txt` (audit M14); a Basilisk wheel
+given to `install.sh`/`install.ps1` gets the same pins for its own
+dependencies, but any Basilisk version is accepted. For 3.0.0,
+`install.sh` was run end to end on Linux in a fresh HOME with the PyPI
+`bsk` 2.12.0 wheel: every pinned version installed as listed, the
+support data was pre-fetched, all 27 templates validated, and templates
+01, 08, 16, 19, 26 and the Monte Carlo template 09 ran from the
+installed tool, and the GUI started. `build_deb.sh` produced
+`spacemissionstudio_3.0.0_all.deb` (checksum verified, maintainer
+scripts parse); installing it with `dpkg` was not run this time. The
+Windows installer and `install.ps1` were not run.
+
 ### The Windows installer (Inno Setup)
 
 `windows/spacemissionstudio.iss` is an [Inno Setup](https://jrsoftware.org/isinfo.php)

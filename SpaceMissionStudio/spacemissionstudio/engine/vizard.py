@@ -729,7 +729,10 @@ def enable_vizard(scSim, task_name: str, sc_objects: List, request: VizardReques
 
     if request.save_file:
         save_path = Path(request.save_file)
-        save_path.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:  # reported like any other Vizard set-up problem (audit L15)
+            raise VizardError(f"could not create the Vizard save folder {save_path.parent}: {exc}") from exc
 
     battery_by_spacecraft = battery_by_spacecraft or {}
     station_keeping_by_spacecraft = station_keeping_by_spacecraft or {}
@@ -1088,6 +1091,11 @@ def enable_vizard(scSim, task_name: str, sc_objects: List, request: VizardReques
     # each call appends a new entry to vizSupport's own module-level
     # settings list rather than merging into an existing one, so a
     # spacecraft needing both flags must set them together.
+    # That module-level list also outlives the run: each Vizard run in one
+    # GUI session re-sent every earlier run's settings (audit L16, decision
+    # Q3). It is emptied here, in place, before this run adds its own; no
+    # Basilisk file is changed.
+    del vizSupport.instrumentGuiSettingList[:]
     for sc_name in set(spacecraft_with_storage_panel) | set(spacecraft_with_sensor_labels):
         kwargs = {}
         if sc_name in spacecraft_with_storage_panel:

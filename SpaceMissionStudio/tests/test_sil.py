@@ -276,3 +276,20 @@ def test_the_gui_worker_reports_the_comparison_then_the_result(built_07, qapp):
     worker.failed.connect(lambda message: events.append(("failed", message)))
     worker.run()
     assert [e[0] for e in events] == ["report", "failed"] and "does not match" in events[1][1]
+
+
+def test_a_link_that_cannot_be_opened_is_a_sil_error(tmp_path, monkeypatch):
+    """Audit L23: the listener was created outside the run's error handling,
+    so a socket that could not be opened escaped as a raw OSError."""
+    from spacemissionstudio.sil import runner
+    from spacemissionstudio.sil.runner import SilError, SilOptions, run_sil
+
+    def no_socket(kind):
+        raise OSError(98, "Address already in use")
+
+    script = tmp_path / "fsw.sh"
+    script.write_text("#!/bin/sh\nexit 0\n")
+    script.chmod(0o755)
+    monkeypatch.setattr(runner, "Listener", no_socket)
+    with pytest.raises(SilError, match="could not open the link for the flight software"):
+        run_sil(_template("07", 1), "sat-1", SilOptions(str(script)))

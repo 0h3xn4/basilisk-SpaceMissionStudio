@@ -76,13 +76,13 @@ narrowly as the Phase 6 part 1 schema module's own docstring describes.
 from __future__ import annotations
 
 import logging
-from datetime import datetime
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
+from ..schema.epochs import parse_epoch_utc
 from ..schema.command import PASS_EVENT_KINDS, Command, evaluate_condition, script_blocks
-from ..schema.scenario import Scenario
+from ..schema.scenario import Scenario, SimSettings
 from .orbit_maintenance import _rtn_basis, _vnb_basis
 from .results import CommandSummary, ReportEntry, ResultSet
 from .service import SimulationService, raise_clear_execution_error
@@ -107,6 +107,16 @@ _WHILE_MAX_ITERATIONS = 10_000
 # MissionEngineError is raised (not a silent partial result) if the event
 # never fires within it.
 _EVENT_PROPAGATE_SAFETY_MULTIPLIER = 10.0  # [-]
+
+# One Basilisk run keeps time in nanoseconds and fails past about 104 days
+# (SimSettings._MAX_SINGLE_RUN_DAYS); a Mission Sequence is one run, so its
+# clock may not pass that limit (audit M3), however its propagates add up.
+_MISSION_TIME_LIMIT_MESSAGE = (f"the Mission Sequence would run past {SimSettings._MAX_SINGLE_RUN_DAYS:g} days of "
+                               "mission time, the most one Basilisk run can simulate -- shorten its propagates")
+
+
+def _mission_time_limit_ns() -> int:
+    return int(SimSettings._MAX_SINGLE_RUN_DAYS * 86400.0 * 1e9)  # [ns]
 
 # A single propagate command's ExecuteSimulation() call used to run
 # straight through to its target time in one shot -- fine with no
@@ -316,8 +326,8 @@ class MissionEngine:
             self._advance_to(target_ns, summary)
         elif stop_condition == "epoch":
             stop_epoch_utc = command.params["stop_epoch_utc"]
-            stop_epoch = datetime.fromisoformat(stop_epoch_utc)
-            start_epoch = datetime.fromisoformat(self.scenario.epoch_utc)
+            stop_epoch = parse_epoch_utc(stop_epoch_utc)
+            start_epoch = parse_epoch_utc(self.scenario.epoch_utc)
             target_ns = macros.sec2nano((stop_epoch - start_epoch).total_seconds())
             if target_ns <= self._elapsed_ns:
                 raise MissionEngineError(
@@ -341,6 +351,8 @@ class MissionEngine:
         was actually simulated so far either way, so a cancelled (or
         completed) chunk never loses track of the mission clock.
         """
+        if target_ns > _mission_time_limit_ns():
+            raise MissionEngineError(_MISSION_TIME_LIMIT_MESSAGE)
         if self._should_cancel is None:
             self.service.scSim.ConfigureStopTime(target_ns)
             try:
@@ -466,7 +478,10 @@ class MissionEngine:
         )
 
         cap_days = max(self.scenario.sim_settings.duration_days, 1.0) * _EVENT_PROPAGATE_SAFETY_MULTIPLIER  # [d]
-        cap_ns = self._elapsed_ns + macros.sec2nano(cap_days * 86400.0)
+        cap_ns = min(self._elapsed_ns + macros.sec2nano(cap_days * 86400.0), _mission_time_limit_ns())
+        if cap_ns <= self._elapsed_ns:
+            raise MissionEngineError(_MISSION_TIME_LIMIT_MESSAGE)
+        cap_days = (cap_ns - self._elapsed_ns) * macros.NANO2SEC / 86400.0  # [d] what is actually searched
         if self._should_cancel is None:
             self.service.scSim.ConfigureStopTime(cap_ns)
             try:
@@ -852,11 +867,14 @@ class MissionEngine:
         scenario from someone else cannot run code without the user
         knowing (SRS-S-03).
         """
-        context: Dict[str, Any] = dict(self._script_context())
+        # One namespace, used as globals: with separate globals and locals, a
+        # function or (before Python 3.12) a comprehension in the script
+        # cannot see spacecraft, t_s and the rest (audit L1).
+        context: Dict[str, Any] = {"__builtins__": __builtins__, **self._script_context()}
         context["service"] = self.service
         context["scenario"] = self.scenario
         context["summary"] = summary
         try:
-            exec(command.params["code"], {"__builtins__": __builtins__}, context)  # noqa: S102 -- by design, after consent (run())
+            exec(command.params["code"], context)  # noqa: S102 -- by design, after consent (run())
         except Exception as exc:
             raise MissionEngineError(f"{path}: script_block raised {type(exc).__name__}: {exc}") from exc

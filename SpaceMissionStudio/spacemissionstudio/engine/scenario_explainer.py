@@ -28,7 +28,7 @@ This is the "what is this scenario actually doing, at a glance" layer a
 real user asked for directly: the app's bundled templates demonstrate
 real fidelity, but a hand-built scenario had no equivalent "here's what
 you've configured" summary anywhere in the GUI -- only the hand-written,
-narrative ``description`` text the 20 bundled templates carry (which a
+narrative ``description`` text the bundled templates carry (which a
 from-scratch scenario never has). This module is the ALWAYS-CURRENT,
 terse counterpart: it reads the scenario's actual current fields on
 every call, never narrative/pedagogical prose.
@@ -53,15 +53,22 @@ sections.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 from typing import Dict, List
 
+from ..schema.epochs import parse_epoch_utc
 from . import earth_orientation
 from .orbit_design import sun_synchronous_inclination_deg
 from .scenario_checks import gravity_fidelity_notes, pass_summary, scenario_warnings
 
+_logger = logging.getLogger(__name__)
+
 _EARTH_REQUATOR_KM = 6378.1366  # [km] -- same reference value as engine.orbit_design's own
+# [km] equatorial radius of each central body, Basilisk 2.12's astroConstants REQ_* values
+_BODY_RADIUS_KM = {"sun": 695000.0, "mercury": 2439.7, "venus": 6051.8, "earth": 6378.1366, "moon": 1737.4,
+                   "mars": 3396.19, "mars barycenter": 3396.19, "jupiter": 71492.0}
 
 # How close a classical-elements orbit's own inclination must be to the
 # computed Sun-synchronous value (at its own semi-major axis/eccentricity)
@@ -159,7 +166,8 @@ def _orbit_summary(orbit, gravity) -> str:
         if sma is None or inc is None:
             return "Classical elements"
         label = "SSO" if _is_sun_synchronous(orbit, gravity) else "Classical"
-        altitude_km = sma - _EARTH_REQUATOR_KM
+        # Above the central body, not always Earth (audit L21).
+        altitude_km = sma - _BODY_RADIUS_KM.get(getattr(gravity, "central_body", "earth"), _EARTH_REQUATOR_KM)
         return f"{label} {inc:g} deg, {altitude_km:.0f} km alt"
     if orbit_type == "cartesian":
         return "Cartesian state"
@@ -289,7 +297,7 @@ def _earth_frame_notes(scenario) -> List[str]:
     """The Earth-fixed frame a run will use and its accuracy
     (engine.earth_orientation, ECSS-E-ST-10-09C 5.4.9f)."""
     try:
-        start = datetime.fromisoformat(scenario.epoch_utc)
+        start = parse_epoch_utc(scenario.epoch_utc)
         if start.tzinfo is not None:
             start = start.astimezone(timezone.utc).replace(tzinfo=None)
         kernels = earth_orientation.installed()
@@ -440,6 +448,7 @@ def explain(scenario) -> ScenarioExplanation:
     try:
         return _explain(scenario)
     except Exception:  # noqa: BLE001 -- see docstring: must never raise
+        _logger.debug("Explain tab: the scenario could not be explained", exc_info=True)
         return ScenarioExplanation(headline=getattr(scenario, "name", "") or "(unnamed scenario)")
 
 
@@ -456,17 +465,19 @@ def _explain(scenario) -> ScenarioExplanation:
     if scenario.simulation_mode != "full_attitude":
         stat_tiles.append(StatTile("Mode", "Orbit only"))
 
-    sections = [s for s in (
-        _checks_section(scenario),
-        _formation_section(scenario),
-        _attitude_section(scenario),
-        _environment_section(scenario),
-        _power_comms_section(scenario),
-        _data_handling_section(scenario),
-        _solar_array_section(scenario),
-        _ground_stations_section(scenario),
-        _monte_carlo_section(scenario),
-    ) if s is not None]
+    # One section that fails (a half-edited scenario) is left out and
+    # logged; it used to blank the whole tab, with nothing logged (L21).
+    sections = []
+    for build in (_checks_section, _formation_section, _attitude_section, _environment_section,
+                  _power_comms_section, _data_handling_section, _solar_array_section, _ground_stations_section,
+                  _monte_carlo_section):
+        try:
+            section = build(scenario)
+        except Exception:  # noqa: BLE001 -- see explain(): the tab must never break
+            _logger.debug("Explain tab: %s failed; the section is left out", build.__name__, exc_info=True)
+            continue
+        if section is not None:
+            sections.append(section)
 
     spacecraft_table: List[SpacecraftFactRow] = []
     if len(spacecraft) >= 2:

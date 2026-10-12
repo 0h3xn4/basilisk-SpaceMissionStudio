@@ -369,6 +369,30 @@ def test_fetch_vizard_rejects_a_response_over_the_size_cap(tmp_path, monkeypatch
         vizard_launcher.fetch_vizard(dest_dir=tmp_path)
 
 
+def test_a_cancelled_or_oversized_download_leaves_no_partial_file(tmp_path, monkeypatch):
+    """Audit H4: the download streams to a .part file, which is removed when
+    the download stops early, so nothing half-written is left behind."""
+    from spacemissionstudio.gui import vizard_launcher
+
+    monkeypatch.setattr(vizard_launcher, "_MAX_DOWNLOAD_BYTES", 10)
+    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
+                         lambda *a, **k: _FakeUrlResponse(b"x" * 100))
+    with pytest.raises(vizard_launcher.VizardFetchError, match="exceeded"):
+        vizard_launcher.fetch_vizard(dest_dir=tmp_path)
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_fetch_vizard_reports_a_folder_it_cannot_create(tmp_path):
+    """Audit H4: a destination under a file is a VizardFetchError the dialog
+    can show, not an OSError that would end the worker thread silently."""
+    from spacemissionstudio.gui import vizard_launcher
+
+    blocker = tmp_path / "a_file"
+    blocker.write_text("not a folder")
+    with pytest.raises(vizard_launcher.VizardFetchError, match="could not create"):
+        vizard_launcher.fetch_vizard(dest_dir=blocker / "vizard")
+
+
 def test_fetch_vizard_reports_progress_status(tmp_path, monkeypatch):
     from spacemissionstudio.gui import vizard_launcher
 
@@ -494,6 +518,25 @@ def test_vizard_fetch_worker_emits_failed_on_error(tmp_path, monkeypatch, qtbot)
     assert worker.wait(5000)  # join it: GC of a still-running QThread aborts the process
 
     assert "boom" in blocker.args[0]
+
+
+def test_vizard_fetch_worker_reports_an_unexpected_error(tmp_path, monkeypatch, qtbot):
+    """Audit H4: any exception in the worker reaches the user through
+    ``failed``; before, only VizardFetchError did and the dialog waited
+    forever."""
+    from spacemissionstudio.gui import vizard_launcher
+
+    def _raise(*args, **kwargs):
+        raise PermissionError("disk is read-only")
+
+    monkeypatch.setattr(vizard_launcher, "fetch_vizard", _raise)
+
+    worker = vizard_launcher.VizardFetchWorker(dest_dir=tmp_path)
+    with qtbot.waitSignal(worker.failed, timeout=5000) as blocker:
+        worker.start()
+    assert worker.wait(5000)  # join it: GC of a still-running QThread aborts the process
+
+    assert blocker.args[0] == "PermissionError: disk is read-only"
 
 
 def test_vizard_fetch_worker_request_cancel_is_seen_by_should_cancel(tmp_path, monkeypatch, qtbot):

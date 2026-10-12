@@ -91,14 +91,19 @@ if (-not $SpaceMissionStudioWheel) {
 }
 
 Write-Host "Installing spacemissionstudio (+ gui extra) from $SpaceMissionStudioWheel ..."
-& $VenvPython -m pip install --quiet "$SpaceMissionStudioWheel[gui]"
+# The tested dependency versions (constraints.txt, audit M14).
+& $VenvPython -m pip install --quiet -c (Join-Path $ScriptDir "constraints.txt") "$SpaceMissionStudioWheel[gui]"
 if ($LASTEXITCODE -ne 0) {
     throw "pip install spacemissionstudio failed (exit code $LASTEXITCODE)"
 }
 
 if ($BasiliskWheel) {
     Write-Host "Installing vendored Basilisk wheel from $BasiliskWheel ..."
-    & $VenvPython -m pip install --quiet $BasiliskWheel
+    # Basilisk's own dependencies at the tested versions (constraints.txt,
+    # audit M14), but not its bsk pins, so any Basilisk wheel is accepted.
+    $DepsConstraints = Join-Path $Prefix "constraints-without-bsk.txt"
+    Get-Content (Join-Path $ScriptDir "constraints.txt") | Where-Object { $_ -notmatch '^bsk' } | Set-Content -Encoding utf8 $DepsConstraints
+    & $VenvPython -m pip install --quiet -c $DepsConstraints $BasiliskWheel
     if ($LASTEXITCODE -ne 0) {
         throw "pip install '$BasiliskWheel' failed (exit code $LASTEXITCODE)"
     }

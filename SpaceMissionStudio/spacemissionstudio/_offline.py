@@ -92,11 +92,16 @@ class _ContainedLoader(importlib.abc.Loader):
 class _ContainingFinder(importlib.abc.MetaPathFinder):
     """Finds :data:`DATA_FETCHER` with the other finders and wraps its loader."""
 
+    # Marks every copy of this finder, also one from a second import of
+    # this module (seen under a narrowed --cov): two copies asking each
+    # other recursed without end (audit L24).
+    _spacemissionstudio_containing = True
+
     def find_spec(self, fullname, path, target=None):
         if fullname != DATA_FETCHER:
             return None
         for finder in sys.meta_path:
-            if finder is self or not hasattr(finder, "find_spec"):
+            if getattr(finder, "_spacemissionstudio_containing", False) or not hasattr(finder, "find_spec"):
                 continue
             spec = finder.find_spec(fullname, path, target)
             if spec is not None and spec.loader is not None:
@@ -110,6 +115,6 @@ def install() -> bool:
     (then its request has already been made and cannot be contained)."""
     if DATA_FETCHER in sys.modules:
         return False
-    if not any(isinstance(finder, _ContainingFinder) for finder in sys.meta_path):
+    if not any(getattr(finder, "_spacemissionstudio_containing", False) for finder in sys.meta_path):
         sys.meta_path.insert(0, _ContainingFinder())
     return True

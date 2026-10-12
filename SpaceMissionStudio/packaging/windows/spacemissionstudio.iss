@@ -5,7 +5,7 @@
 ; License -> install location -> Install, and get a Start Menu (and
 ; optional Desktop) shortcut that launches the GUI directly.
 ;
-; What it does NOT avoid: this still needs (1) a system Python 3.9+
+; What it does NOT avoid: this still needs (1) a system Python 3.11+
 ; already installed (checked before the wizard even starts -- see
 ; InitializeSetup below -- with a guided prompt to python.org if missing,
 ; not a silent failure) and (2) internet access during setup, to
@@ -30,7 +30,7 @@
 ;        powershell -File packaging\build_wheel.ps1 packaging\windows\dist
 ;   2. Compile this script:
 ;        ISCC packaging\windows\spacemissionstudio.iss
-;      -> packaging\windows\Output\spacemissionstudio-2.0.0-setup.exe
+;      -> packaging\windows\Output\spacemissionstudio-3.0.0-setup.exe
 ;
 ; Verification status: written carefully against Inno Setup's documented,
 ; stable script syntax and packaging/install.ps1's own already-written
@@ -44,7 +44,7 @@
 ; Basilisk, in this project's own sandbox).
 
 #define MyAppName "SpaceMissionStudio"
-#define MyAppVersion "2.0.0"
+#define MyAppVersion "3.0.0"
 #define MyAppPublisher "SpaceMissionStudio contributors"
 #define MyAppURL "https://github.com/AVSLab/basilisk"
 
@@ -94,6 +94,8 @@ Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription
 ; version bump here needs no edit to this script.
 Source: "dist\spacemissionstudio-*.whl"; DestDir: "{app}\dist"; Flags: ignoreversion
 Source: "bootstrap_env.ps1"; DestDir: "{app}"; Flags: ignoreversion
+; The tested dependency versions bootstrap_env.ps1 installs (audit M14).
+Source: "..\constraints.txt"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 ; spacemissionstudio.exe (the [project.scripts] console entry point pip
@@ -131,17 +133,14 @@ var
   ResultCode: Integer;
 begin
   Result := True;
-  // Checks that SOME python.exe resolves on PATH and actually runs --
-  // the same check bootstrap_env.ps1 itself implicitly relies on
-  // (`python -m venv`). Does not parse/enforce the exact version (3.9+):
-  // Inno Setup's Exec() doesn't capture stdout without extra plumbing,
-  // and every actively-supported Python release today already clears
-  // 3.9, so this is a practical, not exhaustive, check -- if it resolves
-  // to something too old, pip itself will fail with a clear version
-  // error during the [Run] step instead of silently misbehaving.
-  if not Exec('cmd.exe', '/C python --version', '', SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
+  // Checks that the python.exe on PATH runs and is 3.11 or later -- the
+  // same python bootstrap_env.ps1 then uses (`python -m venv`). The
+  // version is checked by the interpreter itself, through its exit code,
+  // because Inno Setup's Exec() does not capture stdout.
+  if not Exec('cmd.exe', '/C python -c "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)"', '',
+              SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
   begin
-    if MsgBox('SpaceMissionStudio needs Python 3.9 or later, which was not found on this system (or not on PATH).' + #13#10 + #13#10 +
+    if MsgBox('SpaceMissionStudio needs Python 3.11 or later, which was not found on this system (or not on PATH).' + #13#10 + #13#10 +
               'Click OK to open the Python download page, then re-run this installer after installing it -- make sure to check "Add python.exe to PATH" during Python''s own setup.',
               mbError, MB_OKCANCEL) = IDOK then
       ShellExec('open', 'https://www.python.org/downloads/', '', '', SW_SHOWNORMAL, ewNoWait, ResultCode);

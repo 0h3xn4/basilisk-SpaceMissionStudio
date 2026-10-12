@@ -186,3 +186,48 @@ def test_a_run_uses_spice_itrf93_as_the_earth_frame(monkeypatch):
     np.testing.assert_allclose(np.array(earth.J20002Pfix), rotation("ITRF93"), atol=1e-12)
     difference = np.array(earth.J20002Pfix) @ rotation("IAU_EARTH").T
     assert np.degrees(np.arccos((np.trace(difference) - 1.0) / 2.0)) > 1e-3  # [deg] the frames really differ
+
+
+def test_importing_a_missing_file_is_reported_and_leaves_nothing_behind(tmp_path):
+    """Audit M12: `earth-orientation --import` with a missing file gave a
+    traceback, and a failed import left .part copies. Both are fixed."""
+    good = tmp_path / "source" / "earth_latest_high_prec.bpc"
+    good.parent.mkdir()
+    good.write_bytes(b"not used: the second file is missing")
+    target = tmp_path / "installed"
+    with pytest.raises(eo.EarthOrientationError, match="could not import"):
+        eo.import_files([good, tmp_path / "source" / "missing.bpc"], directory=target)
+    assert list(target.glob("*.part")) == []
+
+
+def test_a_manifest_with_a_newer_key_still_loads(tmp_path):
+    """Audit L19: a manifest entry with a key this version does not know
+    (written by a newer version) raised TypeError on every build."""
+    source = tmp_path / "media"
+    source.mkdir()
+    high = _fake_pck(source / "earth_latest_high_prec.bpc")
+    eo.import_files([high], tmp_path / "eop")
+    manifest_path = tmp_path / "eop" / "manifest.json"
+    entries = json.loads(manifest_path.read_text())
+    entries[0]["added_by_a_newer_version"] = True
+    entries.append({"role": "combined"})  # a broken entry is skipped
+    manifest_path.write_text(json.dumps(entries))
+    assert [k.role for k in eo.installed(tmp_path / "eop")] == ["high_precision"]
+
+
+def test_a_fetch_that_fails_part_way_leaves_no_part_files(tmp_path, monkeypatch):
+    """Audit L19: the second download failing left the first one's .part."""
+    listing = '<a href="earth_1962_260806_2126_combined.bpc"> <a href="earth_latest_high_prec.bpc">'
+    served = {eo.NAIF_PCK_URL: listing.encode(),
+              eo.NAIF_PCK_URL + "earth_1962_260806_2126_combined.bpc": b"DAF/PCK " + b"c" * 32,
+              eo.NAIF_PCK_URL + "earth_1962_260806_2126_combined.cmt": _COMMENT.encode()}
+
+    def get(url, timeout_s):
+        if url not in served:
+            raise eo.EarthOrientationError(f"could not download {url}")
+        return served[url]
+
+    monkeypatch.setattr(eo, "_get", get)
+    with pytest.raises(eo.EarthOrientationError, match="could not download"):
+        eo.fetch(tmp_path / "eop")
+    assert not list((tmp_path / "eop").glob("*.part"))

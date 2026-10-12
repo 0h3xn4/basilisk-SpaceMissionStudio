@@ -5,8 +5,7 @@ Document: SMS-SRS, issue 1 (draft), 2026-10-08. Remediation R14.
 
 **Status: draft, written by the supplier, not reviewed.**
 - No customer requirements baseline (SSS, IRD) exists for this tool, so
-  this SRS is derived from the software as implemented (version 2.0.0 on
-  branch `compliance/ecss-ccsds-audit`) and from the user's recorded
+  this SRS is derived from the software as implemented (version 3.0.0) and from the user's recorded
   decisions (`compliance/PROGRESS.md`).
 - No requirements baseline will be written: the user waived it
   (decision 9, deviation D-11), and reviews are waived too (D-08). The SRS
@@ -83,7 +82,7 @@ software.
   runs), and about 2 GB of disk for Basilisk and its data files.
 - **Operating environment:**
   - Linux (Ubuntu 22.04/24.04 tested) or Windows 10/11;
-  - Python >= 3.9 (3.11 tested);
+  - Python >= 3.11 (3.11 tested);
   - Basilisk 2.12.0, pinned;
   - Qt (PySide6) for the GUI.
 - **Network:** none is needed at run time. Downloads happen only on explicit

@@ -23,16 +23,13 @@ DISPLAY only (never for CSV/report export, which always stays in the
 series' own raw SI units -- see each call site's own docstring).
 
 Extracted (design-philosophy roadmap item S2, ``docs/ux_roadmap.md``)
-out of ``gui/results_widget.py``, which originally defined all of this
-itself, so that the new Qt-free, template-driven HTML report generator
-(``report.py``) can reuse the EXACT SAME category/unit logic the live
-GUI plots use, rather than maintaining a second, separately-evolving
-copy of "what does this series mean and what unit should it show in" --
-two places computing the same fact that could silently drift out of
-sync is exactly the kind of risk this whole design-philosophy audit
-exists to catch (``docs/ux_audit.md``). This module itself imports no
-Qt/Plotly/Basilisk -- only :class:`engine.results.TimeSeries` -- so
-both a GUI widget and a plain CLI report-generation path can depend on
+out of ``gui/results_widget.py`` so that every view of a series --
+``gui/results_widget.py`` and ``gui/mission_output_widget.py`` today --
+shares one copy of "what does this series mean and what unit should it
+show in", instead of separate copies that could drift apart
+(``docs/ux_audit.md``). An HTML report generator was planned to use it
+too; none exists yet. This module imports no Qt/Plotly/Basilisk -- only
+:class:`engine.results.TimeSeries` -- so a Qt-free caller can depend on
 it.
 
 :func:`categorize` is the one public entry point most callers need;

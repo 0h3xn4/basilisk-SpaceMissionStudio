@@ -399,6 +399,28 @@ def test_a_condition_cannot_exhaust_memory_or_the_stack(expression, reason):
         assert Command(kind="if", params={"condition": expression}).validate("mission_sequence[0]")
     assert evaluate_condition("((((1 + 2) * 3) - 4) / 5) > 0 and -(-(-1)) < 0", _CONTEXT) is True
 
+@pytest.mark.parametrize("expression", [
+    "('x' * 1000000) * 1000",
+    "('ab' * 50000) + ('cd' * 50000) + 'e'",
+    "((9 ** 999) ** 999) ** 999",
+    "(2 ** 999) * (2 ** 999) * (2 ** 999) * (2 ** 999) * (2 ** 999)",
+], ids=["repeat-chain", "concat", "power-chain", "product-chain"])
+def test_chained_operations_cannot_build_a_huge_value(expression):
+    """Audit M2: the per-operation limits let a chain of operations build a
+    1 GB text or a billion-digit integer. Each result is now bounded, and
+    the refusal comes at once, before the value is computed."""
+    import time
+
+    from spacemissionstudio.schema.command import ConditionError, evaluate_condition
+
+    started = time.perf_counter()
+    with pytest.raises(ConditionError, match="the result would"):
+        evaluate_condition(expression, _CONTEXT)
+    assert time.perf_counter() - started < 1.0  # [s]
+    assert evaluate_condition("'ab' * 3 + 'c'", _CONTEXT) == "abababc"
+    assert evaluate_condition("2 ** 64 * 3", _CONTEXT) == 3 * 2 ** 64
+
+
 def test_validation_reports_a_condition_outside_the_allowed_set():
     """The editor shows a disallowed condition before the run, with the
     command's path."""

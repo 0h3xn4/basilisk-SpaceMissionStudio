@@ -42,15 +42,17 @@ def _real_excerpt_csv(path, first, last):
 def test_the_shipped_record_parses_as_published():
     """Spot checks against the raw lines of data/spaceweather/SW-All.txt."""
     data = sw.load_celestrak(sw.BUNDLED_DATA_PATH)
-    assert data.updated == "2025 Jul 21 10:37:15 UTC"
+    assert data.updated == "2026 Oct 12 13:33:04 UTC"
     assert (data.first_date, data.last_date) == (date(1957, 10, 1), date(2041, 10, 31))
     first = data.days[date(1957, 10, 1)]
     assert first.ap == (32, 27, 15, 7, 22, 9, 32, 22) and first.ap_avg == 21
     assert (first.f107_obs, first.f107_center81) == (269.3, 266.6)
-    assert data.days[date(2025, 7, 20)].kind == "observed"
-    assert data.days[date(2025, 7, 21)].kind == "daily_forecast"
+    last_observed = data.days[date(2026, 10, 11)]
+    assert last_observed.kind == "observed" and last_observed.ap_avg == 13
+    assert last_observed.f107_obs == 121.9  # [sfu]
+    assert data.days[date(2026, 10, 12)].kind == "daily_forecast"
     month = data.days[date(2030, 1, 17)]
-    assert month.kind == "monthly_forecast" and month.f107_obs == 77.8  # [sfu] NOAA's January 2030 value
+    assert month.kind == "monthly_forecast" and month.f107_obs == 76.7  # [sfu] NOAA's January 2030 value
     assert month.ap_avg == pytest.approx(data.long_term_ap)
     observed = [r.ap_avg for r in data.days.values() if r.kind == "observed"]
     assert data.long_term_ap == pytest.approx(np.mean(observed)) == pytest.approx(12.83, abs=0.01)
@@ -83,15 +85,22 @@ def test_a_future_run_uses_msfcs_prediction_at_the_chosen_percentile(tmp_path):
 
 
 def test_noaa_fills_only_the_months_before_msfc_starts(tmp_path):
-    """The shipped CelesTrak file ends its 45-day forecast in August 2025;
-    MSFC's table starts in April 2026. In between, NOAA's monthly F10.7
-    (with the observed-mean Ap) is all the real data there is."""
-    resolved = sw.resolve("bundled", datetime(2025, 11, 1), datetime(2026, 5, 1), cache_dir=tmp_path)
+    """Between the end of CelesTrak's 45-day forecast and the first month of
+    MSFC's table, NOAA's monthly F10.7 (with the observed-mean Ap) is all
+    the real data there is. The shipped files now overlap, so the shipped
+    MSFC table is cut to start in June 2027 (its own rows, unchanged)."""
+    lines = sw.MSFC_BUNDLED_PATH.read_text(encoding="utf-8").splitlines(keepends=True)
+    first_row = next(i for i, line in enumerate(lines) if line.split()[:1] == ["2027.4170"])
+    header_end = next(i for i, line in enumerate(lines) if line.split()[:1] == ["2026.2503"])
+    later_msfc = tmp_path / "msfc_from_2027_06.txt"
+    later_msfc.write_text("".join(lines[:header_end] + lines[first_row:]), encoding="utf-8")
+    resolved = sw.resolve("bundled", datetime(2027, 1, 20), datetime(2027, 8, 1), cache_dir=tmp_path,
+                          msfc_file_path=str(later_msfc))
     assert any("NOAA's monthly F10.7 forecast" in w and "where MSFC's prediction does not reach" in w
                for w in resolved.warnings)
     rows = {r["DATE"]: r for r in csv.DictReader(open(resolved.path))}
-    assert float(rows["2026-01-15"]["F10.7_OBS"]) == sw.load_celestrak(_SHIPPED).days[date(2026, 1, 15)].f107_obs
-    assert float(rows["2026-04-15"]["F10.7_OBS"]) == 133.9  # [sfu] MSFC, April 2026, 50th
+    assert float(rows["2027-02-15"]["F10.7_OBS"]) == sw.load_celestrak(_SHIPPED).days[date(2027, 2, 15)].f107_obs
+    assert float(rows["2027-06-15"]["F10.7_OBS"]) == 105.1  # [sfu] MSFC, June 2027, 50th
 
 
 def test_msfc_parses_as_published_and_repeats_its_last_132_months():
@@ -131,14 +140,15 @@ def test_a_short_table_is_not_taken_for_an_msfc_prediction(tmp_path):
 def test_a_celestrak_csv_with_forecast_rows_reads_like_the_text_file(tmp_path):
     """CelesTrak's CSV layout (OBS/PRD/PRM rows, monthly rows without Ap)
     gives the same days as its text file."""
-    path = _real_excerpt_csv(tmp_path / "SW-excerpt.csv", date(2025, 6, 1), date(2025, 12, 31))
+    path = _real_excerpt_csv(tmp_path / "SW-excerpt.csv", date(2026, 6, 1), date(2027, 6, 30))
     from_csv = sw.load_celestrak(path)
     shipped = sw.load_celestrak(sw.BUNDLED_DATA_PATH)
-    for day in (date(2025, 6, 10), date(2025, 7, 25), date(2025, 11, 20)):
-        assert from_csv.days[day].kind == shipped.days[day].kind
+    for day, kind in ((date(2026, 6, 10), "observed"), (date(2026, 10, 20), "daily_forecast"),
+                      (date(2027, 3, 20), "monthly_forecast")):
+        assert from_csv.days[day].kind == shipped.days[day].kind == kind
         assert from_csv.days[day].f107_obs == shipped.days[day].f107_obs
     # the excerpt's own observed days set its long-term Ap
-    assert from_csv.days[date(2025, 11, 20)].ap_avg == pytest.approx(from_csv.long_term_ap)
+    assert from_csv.days[date(2027, 3, 20)].ap_avg == pytest.approx(from_csv.long_term_ap)
 
 
 def test_the_newer_of_the_shipped_and_downloaded_files_is_used(tmp_path, monkeypatch):
@@ -533,3 +543,14 @@ def test_import_checks_the_file_like_a_download(tmp_path):
 def _write(path, data: bytes):
     path.write_bytes(data)
     return path
+
+
+def test_a_folder_or_a_binary_file_is_a_space_weather_error(tmp_path):
+    """Audit M12: a local_file_path naming a folder or a binary file reached
+    `lifetime` as a UnicodeDecodeError traceback; both are now reported."""
+    with pytest.raises(sw.SpaceWeatherError, match="is not a file"):
+        sw.load_celestrak(tmp_path)
+    binary = tmp_path / "SW-All.txt"
+    binary.write_bytes(b"\xff\xfe\x00binary")
+    with pytest.raises(sw.SpaceWeatherError, match="could not read .* as a CelesTrak space-weather file"):
+        sw.load_celestrak(binary)

@@ -89,6 +89,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..engine.device_catalog import catalog_entries_for_kind
+from ..schema.scenario import RW_TYPES, THRUSTER_TYPES
 from .feedback import clear_invalid, mark_invalid, show_toast
 from .param_form import ParamForm
 from .theme import PALETTE
@@ -601,7 +602,9 @@ class _ItemEditorDialog(QDialog):
         return self.param_form.vector_boxes
 
     def _build_form(self, kind: str, params: dict) -> None:
-        self.param_form.set_specs(_KIND_PARAM_SPECS.get(kind, []), params,
+        # Only the models Basilisk's factories build: any other name made them exit() (audit H2).
+        options = {"rw_type": (list(RW_TYPES), False), "thruster_type": (list(THRUSTER_TYPES), False)}
+        self.param_form.set_specs(_KIND_PARAM_SPECS.get(kind, []), params, options=options,
                                   empty_text="This kind has no parameters.")
 
     def _update_hint(self, kind: str) -> None:

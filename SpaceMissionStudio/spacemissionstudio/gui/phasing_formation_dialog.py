@@ -173,7 +173,7 @@ class PhasingFormationDialog(QDialog):
             "burning propellant into that spiral, but it is a safety net, not a fix -- leave this at 0 "
             "unless you specifically need a radial offset, and prefer a small value if you do."
         )
-        self.along_track_km = _double_spin(-100000.0, 100000.0, 3, 1.0, 50.0)
+        self.along_track_km = _double_spin(0.0, 100000.0, 3, 1.0, 50.0)  # [km] ahead of the chief; 0 is refused
         self.along_track_km.setToolTip(
             "Along-track offset at epoch [km] -- ahead of the chief along its velocity direction. This IS "
             "actively held: it becomes phasing_keeping.target_separation_km, the one separation component "

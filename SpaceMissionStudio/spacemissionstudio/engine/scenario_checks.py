@@ -47,6 +47,7 @@ from typing import List, Optional
 
 import numpy as np
 
+from ..schema.epochs import parse_epoch_utc
 from . import environment_models, geodesy, tle
 
 _MU_M3_S2 = 3.986004415e14  # [m^3/s^2] Earth, as Basilisk's simIncludeGravBody uses
@@ -147,7 +148,7 @@ def _positions(elements, t, with_j2: bool):
 def _earth_rotation_angle(epoch_utc: str, t):
     """Angle [rad] of Earth's prime meridian from the inertial x axis
     (IAU_EARTH: the equator's node sits at alpha0 + 90 deg = 90 deg)."""
-    epoch = datetime.fromisoformat(epoch_utc)
+    epoch = parse_epoch_utc(epoch_utc)
     if epoch.tzinfo is not None:
         epoch = epoch.astimezone(timezone.utc).replace(tzinfo=None)
     days_tdb = ((epoch - datetime(2000, 1, 1, 12)).total_seconds() + _TT_MINUS_UTC_S) / 86400.0  # [day] from J2000
@@ -317,7 +318,7 @@ def _space_weather_coverage(source, local_file_path, msfc_file_path):
 
 
 def _run_span(scenario):
-    start = datetime.fromisoformat(scenario.epoch_utc.replace("Z", "+00:00"))
+    start = parse_epoch_utc(scenario.epoch_utc)
     if start.tzinfo is not None:
         start = start.astimezone(timezone.utc).replace(tzinfo=None)
     return start, start + timedelta(days=float(scenario.sim_settings.duration_days))

@@ -182,7 +182,7 @@ def validate_file(path, start_utc: datetime, end_utc: datetime) -> ValidationRes
         return ValidationResult(False, False, list(REQUIRED_COLUMNS), [], False, None, None,
                                  f"{path} does not exist")
 
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8") as f:
         reader = csv.reader(f)
         header = next(reader, [])
         missing = [c for c in REQUIRED_COLUMNS if c not in header]
@@ -454,7 +454,7 @@ def _number(text: str) -> Optional[float]:
 def _parse_txt(path: Path):
     """(updated, daily rows, monthly rows) from a CSSI ``.txt`` file."""
     daily, monthly, updated, section = [], [], "", None
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         for line in f:
             if line.startswith("UPDATED"):
                 updated = line[len("UPDATED"):].strip()
@@ -481,7 +481,7 @@ def _parse_csv(path: Path):
     (``F10.7_DATA_TYPE`` OBS/INT, PRD, PRM) or any CSV with the columns
     Basilisk's loader reads (taken as observed)."""
     daily, monthly = [], []
-    with open(path, newline="") as f:
+    with open(path, newline="", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         missing = [c for c in ("DATE", "AP_AVG", "F10.7_OBS", "F10.7_OBS_CENTER81")
                    if c not in (reader.fieldnames or [])]
@@ -516,11 +516,18 @@ def load_celestrak(path) -> CelestrakData:
     path = Path(path)
     if not path.exists():
         raise SpaceWeatherError(f"{path} does not exist")
+    if not path.is_file():
+        raise SpaceWeatherError(f"{path} is not a file")
     key = (str(path.resolve()), path.stat().st_mtime)
     if key in _LOADED:
         return _LOADED[key]
     parse = _parse_txt if path.suffix.lower() == ".txt" else _parse_csv
-    updated, daily, monthly = parse(path)
+    # A folder, a binary file or a damaged table is reported, not a
+    # traceback (audit M12).
+    try:
+        updated, daily, monthly = parse(path)
+    except (OSError, UnicodeDecodeError, ValueError, IndexError) as exc:
+        raise SpaceWeatherError(f"could not read {path} as a CelesTrak space-weather file: {exc}") from exc
     observed_ap = [ap_avg for _, _, ap_avg, _, _, kind in daily if kind == "observed" and ap_avg is not None]
     if not observed_ap:
         raise SpaceWeatherError(f"{path} has no observed Ap values")
@@ -591,17 +598,20 @@ def load_msfc(path) -> MsfcForecast:
     if not path.exists():
         raise SpaceWeatherError(f"{path} does not exist")
     months = {}
-    with open(path) as f:
-        for line in f:
-            fields = line.split()
-            if len(fields) != 8 or fields[1] not in _MONTHS:
-                continue
-            try:
-                year = int(float(fields[0]) + 1e-6)
-                numbers = [float(v) for v in fields[2:]]
-            except ValueError:
-                continue
-            months[date(year, _MONTHS.index(fields[1]) + 1, 1)] = (tuple(numbers[:3]), tuple(numbers[3:]))
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                fields = line.split()
+                if len(fields) != 8 or fields[1] not in _MONTHS:
+                    continue
+                try:
+                    year = int(float(fields[0]) + 1e-6)
+                    numbers = [float(v) for v in fields[2:]]
+                except ValueError:
+                    continue
+                months[date(year, _MONTHS.index(fields[1]) + 1, 1)] = (tuple(numbers[:3]), tuple(numbers[3:]))
+    except (OSError, UnicodeDecodeError) as exc:
+        raise SpaceWeatherError(f"could not read {path} as an MSFC prediction table: {exc}") from exc
     if len(months) < _MSFC_REPEAT_MONTHS:
         raise SpaceWeatherError(f"{path} has {len(months)} monthly rows; an MSFC prediction table needs at least "
                                 f"{_MSFC_REPEAT_MONTHS} (one solar cycle)")
@@ -674,7 +684,7 @@ def _span_days(data: "CelestrakData", msfc: Optional[MsfcForecast], percentile: 
 def _has_rows(path: Path, rows: int) -> bool:
     """True if ``path`` exists with exactly ``rows`` lines (header included)."""
     try:
-        with open(path, newline="") as f:
+        with open(path, newline="", encoding="utf-8") as f:
             return sum(1 for _line in f) == rows
     except OSError:
         return False

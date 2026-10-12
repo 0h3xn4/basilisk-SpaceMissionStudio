@@ -7,6 +7,7 @@ sandbox, which does not have one.
 import pytest
 
 from spacemissionstudio.schema import GravityConfig, MonteCarloConfig, OrbitIC, Scenario, SpacecraftConfig
+from spacemissionstudio.schema.command import Command
 from spacemissionstudio.schema.scenario import ConstantThrustConfig, DispersionConfig, StationKeepingConfig
 
 pytestmark = pytest.mark.requires_basilisk
@@ -257,3 +258,160 @@ def test_a_batch_leaves_a_pickle_free_summary_of_every_run(tmp_path):
     assert len({drawn[f"{name} drag coefficient [-]"] for drawn in batch.drawn}) == 3
     # the starting positions differ along track, as the true-anomaly spread says
     assert mcr.offsets(batch.positions[name], batch.velocities[name])[:, 0, 1].std() > 100.0  # [m]
+
+
+# -- Every run flies what `run` flies (audit H1, M10) -------------------------
+
+
+def _short(scenario, duration_s=60.0, **monte_carlo):
+    scenario.sim_settings.duration_days = duration_s / 86400.0  # [day]
+    scenario.sim_settings.dynamics_task_rate_s = 10.0  # [s]
+    for key, value in monte_carlo.items():
+        setattr(scenario.monte_carlo, key, value)
+    return scenario
+
+
+def test_each_run_starts_like_a_plain_run_and_flies_the_mission_sequence(monkeypatch):
+    """_execute_sim used to call InitializeSimulation() and propagate the set
+    duration only: no momentum-dumping priming (SimulationService.initialize)
+    and no Mission Sequence. It now does both, as `spacemissionstudio run`."""
+    from spacemissionstudio.engine import mission_engine, monte_carlo
+
+    calls = []
+
+    class FakeService:
+        def __init__(self, scenario):
+            self.scenario = scenario
+
+        def initialize(self):
+            calls.append("initialize")
+
+        def run(self):
+            calls.append("run")
+
+    class FakeEngine:
+        def __init__(self, scenario, service, allow_scripts):
+            calls.append(("engine", allow_scripts))
+
+        def run(self):
+            calls.append("sequence")
+
+    monkeypatch.setattr(mission_engine, "MissionEngine", FakeEngine)
+    plain = type("Sim", (), {})()
+    plain._spacemissionstudio_service = FakeService(_scenario())
+    monte_carlo._execute_sim(plain)
+    assert calls == ["initialize", "run"]
+
+    calls.clear()
+    scenario = _scenario()
+    scenario.mission_sequence = [Command(kind="propagate", params={"duration_days": 0.001})]
+    sequenced = type("Sim", (), {})()
+    sequenced._spacemissionstudio_service = FakeService(scenario)
+    monte_carlo._execute_sim(sequenced, allow_scripts=True)
+    assert calls == ["initialize", ("engine", True), "sequence"]
+
+
+def test_a_batch_flies_the_mission_sequence_burns(tmp_path):
+    """Template 08 raises its orbit with a maneuver. Every Monte Carlo run used
+    to stay on the starting orbit (max radius 6778.7 km) while `run` reached
+    6957.6 km; now every run reaches the raised orbit."""
+    import json
+    from pathlib import Path
+
+    import numpy as np
+
+    from spacemissionstudio.engine import monte_carlo_results as mcr
+    from spacemissionstudio.engine.monte_carlo import run_monte_carlo
+
+    path = Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates" / \
+        "08_mission_sequence_orbit_raise.json"
+    data = json.loads(path.read_text(encoding="utf-8"))
+    name = data["spacecraft"][0]["name"]
+    data["monte_carlo"] = {"enabled": True, "num_runs": 2, "dispersions": [
+        {"spacecraft": name, "quantity": "dry_mass_kg", "kind": "uniform",
+         "bounds": [data["spacecraft"][0]["dry_mass_kg"] * 0.999, data["spacecraft"][0]["dry_mass_kg"] * 1.001]}]}
+    scenario = Scenario.from_dict(data)
+    scenario.validate()
+    assert run_monte_carlo(scenario, scenario.monte_carlo, tmp_path / "batch") == []
+    batch = mcr.load(tmp_path / "batch")
+    radius_km = np.linalg.norm(batch.positions[name], axis=2).max(axis=1) / 1e3  # [km] per run
+    assert radius_km.min() > 6900.0  # [km] the maneuver was flown in every run
+
+
+def test_script_blocks_in_a_batch_need_consent(tmp_path):
+    from spacemissionstudio.engine.monte_carlo import MonteCarloError, run_monte_carlo
+
+    scenario = _scenario()
+    scenario.mission_sequence = [Command(kind="script_block", params={"code": "pass"})]
+    with pytest.raises(MonteCarloError, match="explicit consent"):
+        run_monte_carlo(scenario, scenario.monte_carlo, tmp_path / "batch")
+    assert not (tmp_path / "batch").exists()
+
+
+def test_a_folder_holding_other_files_is_refused(tmp_path):
+    from spacemissionstudio.engine.monte_carlo import MonteCarloError, run_monte_carlo
+
+    (tmp_path / "notes.txt").write_text("mine", encoding="utf-8")
+    with pytest.raises(MonteCarloError, match="holds no earlier Monte Carlo batch"):
+        run_monte_carlo(_short(_scenario()), MonteCarloConfig(enabled=True, num_runs=1), tmp_path, overwrite=True)
+    assert (tmp_path / "notes.txt").read_text(encoding="utf-8") == "mine"
+
+
+def test_an_earlier_batch_is_replaced_only_with_overwrite(tmp_path):
+    """A reused folder used to keep the earlier summary when every new run
+    failed, so the GUI showed the old batch as the new one."""
+    from spacemissionstudio.engine import monte_carlo_results as mcr
+    from spacemissionstudio.engine.monte_carlo import MonteCarloError, run_monte_carlo
+
+    scenario = _short(_scenario(), num_runs=2)
+    assert run_monte_carlo(scenario, scenario.monte_carlo, tmp_path) == []
+    assert mcr.folder_state(tmp_path) == "batch"
+    with pytest.raises(MonteCarloError, match="holds an earlier Monte Carlo batch"):
+        run_monte_carlo(scenario, scenario.monte_carlo, tmp_path)
+    smaller = _short(_scenario(), num_runs=1)
+    assert run_monte_carlo(smaller, smaller.monte_carlo, tmp_path, overwrite=True) == []
+    assert not (tmp_path / "run1.data").exists()  # nothing of the larger earlier batch is left
+    assert mcr.load(tmp_path).runs == [0]
+
+
+def test_a_batch_runs_in_several_processes(tmp_path):
+    """thread_count > 1 pickles the creation and execution functions into a
+    process pool (Controller.setThreadCount)."""
+    from spacemissionstudio.engine import monte_carlo_results as mcr
+    from spacemissionstudio.engine.monte_carlo import run_monte_carlo
+
+    scenario = _short(_scenario(), num_runs=2, thread_count=2)
+    assert run_monte_carlo(scenario, scenario.monte_carlo, tmp_path) == []
+    assert mcr.load(tmp_path).runs == [0, 1]
+
+
+def test_an_earlier_simulation_left_as_garbage_is_collected_before_the_batch_forks(tmp_path, monkeypatch):
+    """Audit H5: a Basilisk simulation left in a reference cycle by an earlier run hung
+    the batch: the Controller's forked data writer collected it, and
+    SimModel's destructor waited forever on thread state copied from the
+    parent. run_monte_carlo now collects such garbage before the Controller
+    forks."""
+    import gc
+    import weakref
+
+    from Basilisk.utilities.MonteCarlo.Controller import Controller
+
+    from spacemissionstudio.engine.monte_carlo import run_monte_carlo
+    from spacemissionstudio.engine.service import SimulationService
+
+    scenario = _short(_scenario(), num_runs=1)
+    alive_at_fork = []
+    monkeypatch.setattr(Controller, "executeSimulations", lambda self: alive_at_fork.append(earlier() is not None) or [])
+    gc.disable()
+    try:
+        service = SimulationService(scenario)
+        service.build()
+        cycle = [service]
+        cycle.append(cycle)
+        earlier = weakref.ref(service)
+        del service, cycle
+        assert earlier() is not None  # garbage, not yet collected
+        run_monte_carlo(scenario, scenario.monte_carlo, tmp_path)
+    finally:
+        gc.enable()
+    assert alive_at_fork == [False]

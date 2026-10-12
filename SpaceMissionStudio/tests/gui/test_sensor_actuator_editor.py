@@ -594,3 +594,22 @@ def test_every_catalog_entry_applies_and_validates(qtbot, entry_index):
         devices = {"actuators": [config, wheel],
                    "magnetic_momentum_management": MagneticMomentumManagementConfig(wheel_speed_biases_rad_s=[0.0])}
     SpacecraftConfig(name="sat-1", orbit=orbit, **devices).validate()
+
+
+@pytest.mark.parametrize("kind, key, names", [
+    ("reaction_wheel", "rw_type", "RW_TYPES"),
+    ("thruster", "thruster_type", "THRUSTER_TYPES"),
+])
+def test_the_model_field_offers_only_basilisks_own_models(qtbot, kind, key, names):
+    """Audit H2: a typed model name Basilisk does not know made its factory
+    exit(); the field is now a fixed list of the factory's own models."""
+    from spacemissionstudio.gui.sensor_actuator_editor import _ItemEditorDialog
+    from spacemissionstudio.schema import scenario
+    from spacemissionstudio.schema.scenario import SUPPORTED_ACTUATOR_KINDS, ActuatorConfig
+
+    dialog = _ItemEditorDialog(ActuatorConfig, SUPPORTED_ACTUATOR_KINDS)
+    qtbot.addWidget(dialog)
+    dialog.kind_combo.setCurrentText(kind)
+    _spec, _include, field = dialog.param_form.fields[key]
+    assert not field.isEditable()
+    assert [field.itemText(i) for i in range(field.count())] == list(getattr(scenario, names))

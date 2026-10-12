@@ -44,7 +44,11 @@ The protocol needs a reliable, ordered byte stream and nothing else. A
 serial line or a UDP link with its own framing can replace the socket:
 on the flight-software side fill in an `FswTransport` (`generated/fsw_transport.h`:
 `send`, `receive`, `close`) with your own functions; on the simulation
-side implement `spacemissionstudio.sil.transport.Transport`.
+side implement `spacemissionstudio.sil.transport.Transport`. Make `close`
+deliver what was sent before it: the socket transport ends its sending
+side, reads until the simulation closes (at most 2 s), then closes, because
+a socket closed with unread data can lose the last frame, such as the
+`ERROR` sent just before the program exits.
 
 ## 3 Frames
 

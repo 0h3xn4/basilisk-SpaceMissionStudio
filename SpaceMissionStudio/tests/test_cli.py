@@ -691,3 +691,71 @@ def test_budget_altitudes_parse():
     assert parser.parse_args(["budget", "s.json", "--altitudes", "400, 450"]).altitudes == [400.0, 450.0]
     with pytest.raises(SystemExit):
         parser.parse_args(["budget", "s.json", "--altitudes", "40"])
+
+
+@pytest.mark.requires_basilisk
+def test_run_reports_an_output_folder_it_cannot_write(tmp_path, capsys):
+    """Audit H3: an --out-dir that sits under a file is an error the user
+    sees (exit status 3), not a traceback."""
+    path, blocker = tmp_path / "scenario.json", tmp_path / "a_file"
+    from spacemissionstudio.schema import SimSettings
+
+    _write_scenario(path, sim_settings=SimSettings(duration_days=0.01))  # [d]
+    blocker.write_text("not a folder")
+    assert cli.main(["run", str(path), "--out-dir", str(blocker / "out")]) == 3
+    assert "ERROR: could not write the results" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("message", ["missing.opm", "."])
+def test_ccsds_import_reports_a_message_it_cannot_read(tmp_path, capsys, message):
+    """Audit M12: a missing message file, or a folder, gave a traceback."""
+    path = tmp_path / "scenario.json"
+    _write_scenario(path)
+    rc = cli.main(["ccsds-import", str(tmp_path / message), str(path), "--spacecraft", "sat-1"])
+    assert rc == 1
+    assert "ERROR: could not read" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("stride", ["0", "-3", "x"])
+def test_run_refuses_an_oem_stride_below_one(stride, capsys):
+    """Audit L7: --oem-stride 0 or -3 was accepted silently."""
+    with pytest.raises(SystemExit) as exited:
+        cli.build_parser().parse_args(["run", "s.json", "--oem-stride", stride])
+    assert exited.value.code == 2
+    assert "a whole number of 1 or more" in capsys.readouterr().err
+
+
+def test_budget_refuses_altitudes_with_launch_delays(capsys):
+    """Audit L8: --altitudes silently overrode --launch-delays."""
+    with pytest.raises(SystemExit):
+        cli.build_parser().parse_args(["budget", "s.json", "--launch-delays", "--altitudes", "400,450"])
+    assert "not allowed with argument" in capsys.readouterr().err
+
+
+def test_ctrl_c_and_unreported_file_errors_end_with_a_message(monkeypatch, capsys):
+    """Audit L10 and L9: Ctrl-C printed a traceback (now status 130), and a
+    write error a command does not report itself gave one too (status 3)."""
+    def interrupted(args):
+        raise KeyboardInterrupt
+
+    def unwritable(args):
+        raise PermissionError(13, "Permission denied", "out.json")
+
+    for func, status, text in ((interrupted, 130, "Interrupted."), (unwritable, 3, "ERROR: [Errno 13] Permission")):
+        monkeypatch.setattr(cli, "cmd_validate", func)
+        assert cli.main(["validate", "whatever.json"]) == status
+        assert text in capsys.readouterr().err
+
+
+def test_validate_prints_the_plausibility_warnings(tmp_path, capsys):
+    """Audit L11: validate printed none of the GUI's plausibility checks; a
+    perigee below the ground is now a WARNING line (the status stays 0)."""
+    from spacemissionstudio.schema import GravityConfig, OrbitIC, Scenario, SpacecraftConfig
+
+    path = tmp_path / "low.json"
+    Scenario(name="low", epoch_utc="2025-06-01T00:00:00", gravity=GravityConfig(central_body="earth"),
+             spacecraft=[SpacecraftConfig(name="sat-1", orbit=OrbitIC(
+                 type="classical_elements", semi_major_axis_km=6500.0, eccentricity=0.1, inclination_deg=51.6,
+                 raan_deg=0.0, arg_periapsis_deg=0.0, true_anomaly_deg=0.0))]).save(path)  # [km], [deg]
+    assert cli.main(["validate", str(path)]) == 0
+    assert "WARNING:" in capsys.readouterr().out

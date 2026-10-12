@@ -60,6 +60,8 @@ from typing import Dict, Sequence
 import erfa
 import numpy as np
 
+from ..schema.epochs import parse_epoch_utc
+
 # Fixed English month abbreviations -- NOT strftime("%b"), which follows
 # the process's LC_TIME locale. QApplication calls setlocale(LC_ALL, "")
 # at construction on Linux, so under e.g. a German desktop locale "%b"
@@ -77,7 +79,7 @@ def utc_iso_to_spice_string(epoch_utc: str) -> str:
     millisecond resolution -- ``dt.microsecond`` rounded down to
     milliseconds, not a literal ``.000`` that would silently discard it.
     """
-    dt = datetime.fromisoformat(epoch_utc)
+    dt = parse_epoch_utc(epoch_utc)
     if dt.tzinfo is not None:
         # Scenario.validate() only requires epoch_utc to parse via
         # datetime.fromisoformat() -- it does not reject a timezone-aware
@@ -97,7 +99,7 @@ _J2000_JD = 2451545.0  # [day]
 
 
 def _naive_utc(epoch_utc) -> datetime:
-    epoch = datetime.fromisoformat(epoch_utc) if isinstance(epoch_utc, str) else epoch_utc
+    epoch = parse_epoch_utc(epoch_utc) if isinstance(epoch_utc, str) else epoch_utc
     if epoch.tzinfo is not None:
         epoch = epoch.astimezone(timezone.utc).replace(tzinfo=None)
     return epoch

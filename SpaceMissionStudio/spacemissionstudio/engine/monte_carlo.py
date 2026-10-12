@@ -39,9 +39,11 @@ whatever attribute values are set AT THAT MOMENT -- if it already ran
 Phase 2), a dispersion applied afterward would silently have no effect,
 since Reset() already latched in the un-dispersed nominal values. So the
 creation function here calls ``service.build(initialize=False)`` and the
-execution function finishes the job (``InitializeSimulation()``,
-``ConfigureStopTime()``, ``ExecuteSimulation()``) AFTER the Controller has
-applied every dispersion.
+execution function finishes the job AFTER the Controller has applied every
+dispersion: ``SimulationService.initialize()`` (the same start-up as a
+plain run), then the scenario's Mission Sequence (``MissionEngine``) when
+it has one, else the set duration. Each run therefore flies what
+``spacemissionstudio run`` flies.
 
 A ``dry_mass_kg`` dispersion writes directly to ``hub.mHub`` (see
 ``_QUANTITY_PATHS`` below), which survives ``Reset()`` fine (no module's
@@ -139,26 +141,16 @@ parent process state duplicated (fork). This module's creation/execution
 functions are plain module-level functions (not closures) specifically so
 they pickle cleanly either way, but the SCENARIO itself is threaded through
 via ``functools.partial`` (also picklable, since :class:`Scenario` is a
-plain dataclass tree of built-in types). This has NOT been exercised
-against a real multi-process run in this project's development sandbox
-(no Basilisk build here -- see this module's own verification-status note
-below), so :data:`schema.scenario.MonteCarloConfig.thread_count` defaults
-to the definitely-safe ``1``.
-
-Verification status
---------------------
-Requires a Basilisk build -- cannot be executed in this development
-sandbox (no Basilisk build here; see ``SpaceMissionStudio/README.md``). Written
-directly against ``src/utilities/MonteCarlo/Controller.py``,
-``Dispersions.py``, and ``RetentionPolicy.py`` (read directly in this
-checkout, including ``Controller``'s path-parsing internals) and against
-that package's own ``README.md`` usage guide -- not from memory, and not
-guessed.
+plain dataclass tree of built-in types). It is exercised with
+``thread_count > 1`` by this project's own tests against a real Basilisk
+build; :data:`schema.scenario.MonteCarloConfig.thread_count` still defaults
+to ``1``.
 """
 
 from __future__ import annotations
 
 import functools
+import gc
 import gzip
 import json
 import logging
@@ -171,7 +163,7 @@ import math
 
 import numpy as np
 
-from Basilisk.utilities import macros, orbitalMotion, simIncludeGravBody
+from Basilisk.utilities import orbitalMotion, simIncludeGravBody
 from Basilisk.utilities.MonteCarlo.Controller import Controller
 from Basilisk.utilities.MonteCarlo.Dispersions import (
     InertiaTensorDispersion,
@@ -184,6 +176,7 @@ from Basilisk.utilities.MonteCarlo.Dispersions import (
 )
 from Basilisk.utilities.MonteCarlo.RetentionPolicy import RetentionPolicy
 
+from ..schema.command import script_blocks
 from ..schema.scenario import DispersionConfig, MonteCarloConfig, Scenario, SimSettings
 from . import monte_carlo_results
 from .solar_arrays import hub_mass_offset_kg
@@ -426,16 +419,23 @@ def _create_sim(scenario: Scenario):
     return sim
 
 
-def _execute_sim(sim) -> None:
+def _execute_sim(sim, allow_scripts: bool = False) -> None:
     """Monte Carlo execution function: finishes what ``_create_sim`` left
     undone, AFTER the Controller has applied every dispersion to ``sim``
-    (see module docstring).
+    (see module docstring) -- the same start-up as a plain run
+    (``SimulationService.initialize``: momentum dumping's primed reset),
+    then the Mission Sequence when the scenario has one, as ``run`` does,
+    else the set duration. Module-level (with ``allow_scripts`` bound by
+    ``functools.partial``) so it pickles for ``thread_count > 1``.
     """
+    from .mission_engine import MissionEngine
+
     service = sim._spacemissionstudio_service
-    sim.InitializeSimulation()
-    stop_time_s = service.scenario.sim_settings.duration_days * 86400.0
-    sim.ConfigureStopTime(macros.sec2nano(stop_time_s))
-    sim.ExecuteSimulation()
+    service.initialize()
+    if service.scenario.mission_sequence:
+        MissionEngine(service.scenario, service=service, allow_scripts=allow_scripts).run()
+    else:
+        service.run()
 
 
 def _default_retention_policy(scenario: Scenario) -> RetentionPolicy:
@@ -445,7 +445,8 @@ def _default_retention_policy(scenario: Scenario) -> RetentionPolicy:
     return policy
 
 
-def run_monte_carlo(scenario: Scenario, mc_config: MonteCarloConfig, archive_dir: "str | Path") -> List[int]:
+def run_monte_carlo(scenario: Scenario, mc_config: MonteCarloConfig, archive_dir: "str | Path",
+                    allow_scripts: bool = False, overwrite: bool = False) -> List[int]:
     """Runs ``mc_config.num_runs`` dispersed executions of ``scenario`` via
     ``Basilisk.utilities.MonteCarlo.Controller``, archiving retained
     position/velocity data (JSON per-run parameter files plus the
@@ -463,6 +464,12 @@ def run_monte_carlo(scenario: Scenario, mc_config: MonteCarloConfig, archive_dir
     function does not re-validate it, since :func:`SimulationService.build`
     inside each run's creation function does, and a validation failure
     there surfaces as a per-run failure rather than an upfront one).
+
+    Each run executes the scenario's Mission Sequence when it has one, as
+    ``spacemissionstudio run`` does; its script blocks need
+    ``allow_scripts`` (the user's consent, SRS-S-03). ``archive_dir`` must
+    be empty or hold an earlier batch, which ``overwrite`` replaces: a
+    reused folder must never show the previous batch as this one.
     """
     if not mc_config.enabled:
         raise MonteCarloError("monte_carlo.enabled is False -- set it True before calling run_monte_carlo()")
@@ -470,7 +477,29 @@ def run_monte_carlo(scenario: Scenario, mc_config: MonteCarloConfig, archive_dir
         raise MonteCarloError(f"Monte Carlo runs at most {SimSettings._MAX_SINGLE_RUN_DAYS:g} days per run "
                               "(sim_settings.duration_days) -- shorten the run")
 
+    blocks = script_blocks(scenario.mission_sequence)
+    if blocks and not allow_scripts:
+        raise MonteCarloError(
+            f"{', '.join(path for path, _ in blocks)}: script_block runs unrestricted Python from the scenario "
+            "file, so it runs only with your explicit consent -- check the code, then use --allow-scripts (CLI) "
+            "or confirm when asked (GUI)")
+
     archive_dir = Path(archive_dir)
+    if archive_dir.exists() and not archive_dir.is_dir():
+        raise MonteCarloError(f"could not create Monte Carlo archive directory {archive_dir}: it is a file")
+    state = monte_carlo_results.folder_state(archive_dir)
+    if state == "other":
+        raise MonteCarloError(f"{archive_dir} is not empty and holds no earlier Monte Carlo batch: choose an "
+                              "empty folder")
+    if state == "batch":
+        if not overwrite:
+            raise MonteCarloError(f"{archive_dir} holds an earlier Monte Carlo batch; choose another folder or "
+                                  "replace it (--overwrite)")
+        try:
+            for path in monte_carlo_results.batch_files(archive_dir):
+                path.unlink()
+        except OSError as exc:
+            raise MonteCarloError(f"could not remove the earlier batch in {archive_dir}: {exc}") from exc
     try:
         archive_dir.mkdir(parents=True, exist_ok=True)
     except OSError as exc:
@@ -484,7 +513,7 @@ def run_monte_carlo(scenario: Scenario, mc_config: MonteCarloConfig, archive_dir
 
     controller = Controller()
     controller.setSimulationFunction(functools.partial(_create_sim, scenario))
-    controller.setExecutionFunction(_execute_sim)
+    controller.setExecutionFunction(functools.partial(_execute_sim, allow_scripts=allow_scripts))
     controller.setExecutionCount(mc_config.num_runs)
     controller.setShouldDisperseSeeds(True)
     controller.setThreadCount(mc_config.thread_count)
@@ -496,6 +525,12 @@ def run_monte_carlo(scenario: Scenario, mc_config: MonteCarloConfig, archive_dir
 
     controller.addRetentionPolicy(_default_retention_policy(scenario))
 
+    # The Controller forks its data writer and worker processes from this
+    # one. A Basilisk simulation left uncollected here (an earlier run's,
+    # in a reference cycle) would be destroyed by the garbage collector in
+    # a child, where SimModel's destructor waits forever on thread state
+    # copied from this process: the batch hangs. Collect it here first.
+    gc.collect()
     try:
         failures = controller.executeSimulations()
     except Exception as exc:  # noqa: BLE001 -- report ANY batch-level failure with a specific message
