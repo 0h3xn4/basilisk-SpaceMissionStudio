@@ -259,10 +259,12 @@ against that release's `SHA256SUMS`. It compiles the script with Inno
 Setup, then installs the program silently (`/VERYSILENT /CURRENTUSER`).
 It then runs the installed tool: import, `kernels-status`, `validate`,
 and a run of template 01. The setup program, its checksum
-(`SHA256SUMS-windows`) and the install log are the run's artifact, to
-attach to the release. Run it from the Actions tab
-("SpaceMissionStudio Windows installer", with the release tag) or by
-pushing a change to `packaging/windows/`. For 3.0.0 it passed on
+(`SHA256SUMS-windows`) and the install log are the run's artifact. Run
+it from the Actions tab ("SpaceMissionStudio Windows installer", with the
+release tag); with "attach" ticked, a separate job, the only one with
+write access, also uploads the setup program and `SHA256SUMS-windows` to
+the release, replacing earlier copies. A push to `packaging/windows/`
+builds and tests without attaching. For 3.0.0 it passed on
 2026-10-12 ([run 38315713727](https://github.com/0h3xn4/basilisk-spacemissionstudio/actions/runs/38315713727)). Not yet done: the wizard clicked
 through by hand, and the GUI opened from the Start Menu shortcut, on a
 real Windows 10/11 machine.
