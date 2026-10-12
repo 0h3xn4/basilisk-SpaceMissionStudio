@@ -115,7 +115,7 @@ breaking changes that make this a major release are listed in
 | K-08 | Closed: the PNG/SVG export polled the page with overlapping asynchronous queries; a late timer tick read the cleared state (the CI tracebacks), and several answers could save the file twice. One query at a time now, late answers ignored (F-12) | – | `review_log.md` F-12 |
 | K-09 | 988 of 1488 unit and integration tests have no docstring | Weaker test documentation | `SUITP_test_cases.md` |
 | K-12 | Fixes for Windows behaviour (graceful SIL close, M15; the installer's Python version check) were not run on Windows | Unknown on Windows | `AUDIT.md` sections 5 and 6 |
-| K-13 | The bundled CelesTrak space weather ends its observations on 2025-07-20; it could not be refreshed for this release | Runs after that date use CelesTrak's and NOAA's forecasts until the user downloads a newer file (start-up prompt or Data tab) | `spacemissionstudio/data/spaceweather/README.md` |
+| K-13 | Closed: the bundled CelesTrak space weather (observations to 2025-07-20) was refreshed for this release: observations to 2026-10-11, updated 2026-10-12. Results of drag runs dated after 2025-07-20 change, because observed solar activity replaces the earlier forecasts | – | `spacemissionstudio/data/spaceweather/README.md` |
 
 **Waivers and deviations:** D-01 to D-13 (RD4). D-08 to D-13 are signed; D-01 to D-07
 are not (decision 14, H08).

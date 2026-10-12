@@ -93,6 +93,9 @@ Everything since 2.0.0, including the fixes from the pre-release audit
   the app by `scripts/capture_screenshots.py`.
 
 **Changed**
+- The bundled CelesTrak space weather is current: observations to
+  2026-10-11 (before: 2025-07-20). Drag results for dates after
+  2025-07-20 change, since measured solar activity replaces forecasts.
 - Installers and CI install the tested dependency versions from
   `packaging/constraints.txt` (Basilisk 2.12.0, PySide6 6.11.2, ...).
 - `validate` prints the GUI's plausibility warnings as `WARNING:` lines.

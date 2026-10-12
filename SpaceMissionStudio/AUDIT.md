@@ -576,12 +576,14 @@ section 6.
 - **macOS:** only the CI test job.
 - **The `.deb` install** on a real system, this release (last run at
   1.0.0; the install logic changed since, by the constraints).
-- **The bundled space weather is old:** CelesTrak's observations end on
-  2025-07-20. The release checklist says to refresh it; the download
-  from celestrak.org was refused by this environment's network policy.
-  Runs after that date use the file's forecasts until the user
-  downloads a newer file. Refresh it before tagging, then re-run the
-  tests (SRelD K-13).
+- **Bundled space weather: refreshed.** CelesTrak's `SW-All.txt`,
+  downloaded 2026-10-12 (observations to 2026-10-11). The full suite
+  passes with it (2865 passed, 10 skipped); two tests that relied on
+  where the old file's forecast ended now use the new boundaries, with
+  real data only. The drag figures quoted in `HISTORY.md` and the
+  template descriptions were measured with the earlier file and were not
+  re-measured; the template claim tests still pass within their
+  tolerances.
 - **The GUI** was smoke-started and is covered by the offscreen GUI
   tests; it was not used by hand.
 - The items of section 2.5 not verified then are still not verified
@@ -593,8 +595,9 @@ section 6.
 **Releasable?** Yes for Linux, in my judgement: every audit finding is
 fixed and tested, the suite is green with and without Basilisk, and a
 clean install works end to end. Before tagging I would:
-1. refresh the bundled space weather;
-2. run the Windows installer once on a real Windows machine;
+1. refresh the bundled space weather (done, 2026-10-12);
+2. run the Windows installer once on a real Windows machine (the user
+   will test it after the release);
 3. let CI pass on all three platforms on the release commit.
 
 Until the Windows installer has run once, the Windows build should be

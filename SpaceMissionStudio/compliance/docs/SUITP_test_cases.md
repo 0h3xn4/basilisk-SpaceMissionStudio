@@ -2508,7 +2508,7 @@ Levels: *unit* runs without Basilisk or Qt; *integration* runs a Basilisk simula
 | `test_the_shipped_record_parses_as_published` | Spot checks against the raw lines of data/spaceweather/SW-All.txt. | - | unit |
 | `test_a_past_run_gets_the_observed_days_unchanged` | The 2003 Halloween storms, as observed. | E-ST-10-04C 6.2.3b | unit |
 | `test_a_future_run_uses_msfcs_prediction_at_the_chosen_percentile` | January 2030 from MSFC's October 2026 table: 74.2 sfu / Ap 11.5 at the 50th percentile, 78.7 / 16.2 at the 95th (AD10: operations). | E-ST-10-04C 6.2.3b, E-ST-10-04C 7.2.1.2e | unit |
-| `test_noaa_fills_only_the_months_before_msfc_starts` | The shipped CelesTrak file ends its 45-day forecast in August 2025; MSFC's table starts in April 2026. | - | unit |
+| `test_noaa_fills_only_the_months_before_msfc_starts` | Between the end of CelesTrak's 45-day forecast and the first month of MSFC's table, NOAA's monthly F10.7 (with the observed-mean Ap) is all the real data there is. | - | unit |
 | `test_msfc_parses_as_published_and_repeats_its_last_132_months` | AD10 Sec. | - | unit |
 | `test_runs_past_2041_continue_on_the_repeated_cycle` | - | - | unit |
 | `test_a_run_before_the_record_is_refused_with_the_range` | - | - | unit |
