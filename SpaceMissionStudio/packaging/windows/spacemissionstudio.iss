@@ -32,16 +32,11 @@
 ;        ISCC packaging\windows\spacemissionstudio.iss
 ;      -> packaging\windows\Output\spacemissionstudio-3.0.0-setup.exe
 ;
-; Verification status: written carefully against Inno Setup's documented,
-; stable script syntax and packaging/install.ps1's own already-written
-; (though itself not yet run-on-real-Windows) logic, but NOT compiled or
-; run -- Inno Setup is Windows-only software with no equivalent in this
-; project's own (Linux-only) development sandbox. Flagged here rather
-; than claimed as verified; please report any issues building or running
-; this on a real Windows 11 machine. See packaging/README.md's "Windows
-; support" section for the full picture, including what HAS been
-; genuinely tested (the Linux .deb installer, end-to-end, with real
-; Basilisk, in this project's own sandbox).
+; Verification status: compiled, installed silently and the installed
+; tool run on a Windows runner by
+; .github/workflows/spacemissionstudio-windows-installer.yml (first passed
+; for 3.0.0, 2026-10-12). The wizard has not been clicked through by hand
+; on a real Windows 10/11 machine. See packaging/README.md.
 
 #define MyAppName "SpaceMissionStudio"
 #define MyAppVersion "3.0.0"
