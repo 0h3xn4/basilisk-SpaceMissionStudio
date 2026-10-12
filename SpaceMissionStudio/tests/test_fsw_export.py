@@ -251,3 +251,30 @@ def test_the_cli_exports_and_records(tmp_path, capsys):
     scenario_path.write_text(json.dumps(data))
     assert cli.main(["fsw-status", str(scenario_path)]) == 2
     assert "STALE -- changed since the export: control_params" in capsys.readouterr().out
+
+
+def test_a_failed_export_write_leaves_the_folder_reusable(tmp_path, monkeypatch):
+    """Audit L22: a write failing part way left files without manifest.json,
+    and the next export refused the folder as someone else's. The partial
+    files are removed, and an earlier export is only replaced once the new
+    one is ready to write."""
+    from spacemissionstudio.fsw_export.generate import ExportError
+    from spacemissionstudio.fsw_export.records import export_flight_software
+
+    out = tmp_path / "fsw"
+    calls = []
+    real_write_bytes = Path.write_bytes
+
+    def failing_write_bytes(self, data):
+        calls.append(self)
+        if len(calls) == 10:
+            raise OSError(28, "No space left on device")
+        return real_write_bytes(self, data)
+
+    monkeypatch.setattr(Path, "write_bytes", failing_write_bytes)
+    with pytest.raises(ExportError, match="could not write the export"):
+        export_flight_software(_template("13"), "sat-1", out, steps=5)
+    monkeypatch.undo()
+    assert not [p for p in out.rglob("*") if p.is_file()]
+    export_flight_software(_template("13"), "sat-1", out, steps=5)
+    assert (out / "manifest.json").is_file()

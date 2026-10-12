@@ -197,3 +197,57 @@ def test_a_support_file_with_a_wrong_checksum_is_refused(monkeypatch, tmp_path):
     monkeypatch.setattr(dataFetcher.POOCH, "path", tmp_path)
     with pytest.raises(kernels.KernelError, match="checksum"):
         kernels.cached_path(kernels.DataFile.LocalGravData.GGM03S)
+
+
+@pytest.mark.requires_basilisk
+def test_a_support_file_is_hashed_once_while_it_is_unchanged(monkeypatch, tmp_path):
+    """Audit L18: every lookup re-hashed the file (de430: 114 MB, ~1 s, twice
+    per build). The checksum is now checked again only when the file's size
+    or modification time changes."""
+    import os
+    import shutil
+
+    import pooch
+    from Basilisk.utilities.supportDataTools import dataFetcher
+
+    from spacemissionstudio.engine import kernels
+
+    good = kernels.cached_path(kernels.DataFile.LocalGravData.GGM03S)
+    rel = dataFetcher.relpath(kernels.DataFile.LocalGravData.GGM03S)
+    copy = tmp_path / rel
+    copy.parent.mkdir(parents=True)
+    shutil.copyfile(good, copy)
+    monkeypatch.setattr(dataFetcher, "LOCAL_SUPPORT", None)
+    monkeypatch.setattr(dataFetcher.POOCH, "path", tmp_path)
+    monkeypatch.setattr(kernels, "_VERIFIED", set())
+    hashed = []
+    real_hash = pooch.file_hash
+    monkeypatch.setattr(pooch, "file_hash", lambda *a, **k: hashed.append(a[0]) or real_hash(*a, **k))
+    for _ in range(3):
+        assert kernels.cached_path(kernels.DataFile.LocalGravData.GGM03S) == copy
+    assert len(hashed) == 1
+    os.utime(copy, ns=(copy.stat().st_atime_ns, copy.stat().st_mtime_ns + 1_000_000_000))  # [ns]
+    kernels.cached_path(kernels.DataFile.LocalGravData.GGM03S)
+    assert len(hashed) == 2
+
+
+def test_two_copies_of_the_import_finder_do_not_recurse(monkeypatch):
+    """Audit L24: imported twice (seen under a narrowed --cov), the module
+    installed two finders that asked each other without end
+    (RecursionError). Every copy now skips every other copy, and install()
+    adds none when one is there."""
+    import importlib.util
+    import sys
+
+    from spacemissionstudio import _offline
+
+    spec = importlib.util.spec_from_file_location("_offline_second_copy", _offline.__file__)
+    second = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(second)
+    monkeypatch.setattr(sys, "meta_path", [_offline._ContainingFinder(), second._ContainingFinder(), *sys.meta_path])
+    monkeypatch.delitem(sys.modules, _offline.DATA_FETCHER, raising=False)
+    found = sys.meta_path[0].find_spec(_offline.DATA_FETCHER, None)
+    assert found is None or isinstance(found.loader, _offline._ContainedLoader)
+    count = sum(1 for finder in sys.meta_path if getattr(finder, "_spacemissionstudio_containing", False))
+    second.install()
+    assert sum(1 for finder in sys.meta_path if getattr(finder, "_spacemissionstudio_containing", False)) == count

@@ -521,3 +521,26 @@ def test_a_tle_orbit_around_another_body_is_refused():
                             type="tle", tle_line1=_G6[0], tle_line2=_G6[1]))])
     with pytest.raises(ScenarioValidationError, match="TLE orbit describes an Earth orbit"):
         scenario.validate()
+
+
+@pytest.mark.requirement("CCSDS-502.0-B-3 5.2.4")
+def test_repeated_oem_epochs_are_an_error():
+    """Audit L20: two ephemeris lines at the same epoch were accepted; the
+    epochs must increase."""
+    text = _replace(_example("oem_g11.txt"), "2019-12-28T21:59:02.267 -2445.234",
+                    "2019-12-28T21:29:07.267 -2445.234")
+    assert any(e.clause == "5.2.4" and "increase" in e.message for e in _errors(text))
+
+
+def test_writing_an_oem_without_states_is_an_odm_error():
+    """Audit L20: an empty series raised IndexError."""
+    from spacemissionstudio.engine.results import ResultSet, TimeSeries
+
+    with pytest.raises(odm.OdmError, match="no states"):
+        odm.write_oem([{"object_name": "sat-1", "object_id": "X", "center_name": "EARTH", "ref_frame": "EME2000",
+                        "time_system": "UTC", "epochs": [], "r_km": np.zeros((0, 3)), "v_km_s": np.zeros((0, 3))}])
+    result = ResultSet(scenario_name="empty")
+    for field in ("position_N", "velocity_N"):
+        result.add(TimeSeries(f"sat-1.{field}", np.zeros(0), ("x", "y", "z"), np.zeros((0, 3))))
+    with pytest.raises(odm.OdmError, match="recorded no states"):
+        odm.oem_from_result(result, "2030-01-01T00:00:00", "earth", ["sat-1"])

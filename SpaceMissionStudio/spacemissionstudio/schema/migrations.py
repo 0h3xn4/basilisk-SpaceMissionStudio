@@ -123,6 +123,13 @@ def migrate(data: dict) -> dict:
             f"only understands up to version {CURRENT_SCHEMA_VERSION} -- upgrade SpaceMissionStudio "
             f"to open it, or use the version that wrote it."
         )
+    if version < 1:
+        # Version 0 or below was never written; it reported "a bug in
+        # SpaceMissionStudio" (audit L29).
+        raise ScenarioValidationError(
+            f"scenario file is schema_version {version}, but scenario versions start at 1 -- "
+            f"this is not a file SpaceMissionStudio wrote; set schema_version to the version that wrote it."
+        )
     while version < CURRENT_SCHEMA_VERSION:
         step = MIGRATIONS.get(version)
         if step is None:

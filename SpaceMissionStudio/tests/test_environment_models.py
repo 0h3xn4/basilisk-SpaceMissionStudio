@@ -249,3 +249,36 @@ def test_the_magnetic_field_is_evaluated_at_the_scenario_epoch():
     assert service._mag_field_model.epochInMsg.isLinked()
     epoch = service.grav_factory.epochMsg.read()
     assert (epoch.year, epoch.month, epoch.day) == (2026, 1, 1)
+
+
+def test_a_heliocentric_run_does_not_make_the_sun_shadow_itself():
+    """Audit L27: around the Sun, the eclipse model listed the Sun as an
+    occulting body of its own light. A Sun-centred run with SRP now passes
+    validation; only the other tracked bodies cast shadows, and with none
+    the spacecraft is always lit (no eclipse model, which Basilisk cannot
+    run without a planet)."""
+    from spacemissionstudio.engine.service import SimulationService
+    from spacemissionstudio.schema import GravityConfig, OrbitIC, Scenario, SimSettings, SpacecraftConfig
+
+    scenario = Scenario(
+        name="heliocentric srp", epoch_utc="2026-01-01T00:00:00",
+        gravity=GravityConfig(central_body="sun", central_body_degree=0),
+        sim_settings=SimSettings(duration_days=600.0 / 86400.0, dynamics_task_rate_s=60.0),  # [day], [s]
+        spacecraft=[SpacecraftConfig(
+            name="probe-1", enable_srp=True,
+            orbit=OrbitIC(type="cartesian", position_km=[1.496e8, 0.0, 0.0],  # [km] about 1 au
+                          velocity_km_s=[0.0, 29.78, 0.0]))],  # [km/s]
+    )
+    scenario.validate()
+    service = SimulationService(scenario)
+    service.build()
+    assert service._eclipse_object is None
+    assert service._record_eclipses is False
+    service.run()
+
+    scenario.gravity.third_body_perturbers = ["earth"]
+    scenario.validate()
+    service = SimulationService(scenario)
+    service.build()
+    assert len(service._eclipse_object.planetInMsgs) == 1
+    service.run()

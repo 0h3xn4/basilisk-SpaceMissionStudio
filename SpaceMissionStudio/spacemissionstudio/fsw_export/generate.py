@@ -775,7 +775,9 @@ def holds_export(folder) -> bool:
     return _export_manifest(Path(folder)) is not None
 
 
-def _remove_previous(out: Path, overwrite: bool) -> None:
+def _remove_previous(out: Path, overwrite: bool, check_only: bool = False) -> None:
+    """Refuse a folder that cannot take the export; with an earlier export
+    and ``overwrite``, remove it (unless ``check_only``)."""
     if not out.exists():
         return
     if not out.is_dir():
@@ -788,6 +790,8 @@ def _remove_previous(out: Path, overwrite: bool) -> None:
         raise ExportError(f"{out} is not empty and holds no earlier export: choose an empty folder")
     if not overwrite:
         raise ExportError(f"{out} holds an earlier export; export again with overwrite to replace it")
+    if check_only:
+        return
     manifest_path = out / "manifest.json"
     previous = manifest["files"]
     for relative in previous:
@@ -806,7 +810,9 @@ def generate(capture: FswCapture, out_dir, overwrite: bool = False) -> ExportRes
     from .documents import icd_markdown, readme_markdown, traceability_markdown
 
     out = Path(out_dir)
-    _remove_previous(out, overwrite)
+    # Refused before anything is generated; the earlier export is removed
+    # only once the new one is ready to write (audit L22).
+    _remove_previous(out, overwrite, check_only=True)
     ctx = _Context(capture, out)
     module_names = sorted({m.python_name for m in capture.modules})
     basilisk_files, types = source_closure(module_names)
@@ -856,16 +862,29 @@ def generate(capture: FswCapture, out_dir, overwrite: bool = False) -> ExportRes
         "recorded_steps": len(capture.times_ns),
         "files": {path: hashlib.sha256(data).hexdigest() for path, data in sorted(ctx.files.items())},
     }
-    out.mkdir(parents=True, exist_ok=True)
-    for relative, data in ctx.files.items():
-        target = out / relative
-        target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(data)
+    captured = (capture.to_json() + "\n").encode()
+    manifest["files"]["capture.json"] = hashlib.sha256(captured).hexdigest()
     # Bytes, not text: on Windows write_text would turn each \n into \r\n
     # and the file would no longer match the hash taken here.
-    (out / "manifest.json").write_bytes((json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode())
-    captured = (capture.to_json() + "\n").encode()
-    (out / "capture.json").write_bytes(captured)
-    manifest["files"]["capture.json"] = hashlib.sha256(captured).hexdigest()
-    (out / "manifest.json").write_bytes((json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode())
+    outputs = dict(ctx.files)
+    outputs["capture.json"] = captured
+    outputs["manifest.json"] = (json.dumps(manifest, indent=2, sort_keys=True) + "\n").encode()  # last
+    _remove_previous(out, overwrite)
+    # A write that fails part way removes what it wrote: a folder of files
+    # without manifest.json made the next export refuse it (audit L22).
+    written: List[Path] = []
+    try:
+        out.mkdir(parents=True, exist_ok=True)
+        for relative, data in outputs.items():
+            target = out / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+            written.append(target)
+    except OSError as exc:
+        for target in written:
+            target.unlink(missing_ok=True)
+        for directory in sorted((p for p in out.rglob("*") if p.is_dir()), key=lambda p: len(p.parts), reverse=True):
+            if not any(directory.iterdir()):
+                directory.rmdir()
+        raise ExportError(f"could not write the export to {out}: {exc}") from exc
     return ExportResult(out, sorted(ctx.files) + ["capture.json", "manifest.json"], manifest)

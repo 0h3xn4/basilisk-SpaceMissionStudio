@@ -29,21 +29,19 @@ propellant bookkeeping.
 altitude, deadband/hysteresis, eclipse gating) and the propellant/delta-V
 bookkeeping math (explicit-Euler rocket equation, thrust-to-mass fed back
 into ``scObject.hub.mHub`` every tick so achieved acceleration stays
-physically consistent as propellant depletes) are unchanged. Two things
-differ from the original:
+physically consistent as propellant depletes) are unchanged. What
+differs from the original:
 
-* No separate fast-dynamics/coarse-control task split. ``missionAnalysis``
-  needed that to keep a 5-year multi-satellite run tractable; SpaceMissionStudio
-  scenarios are much shorter and single-spacecraft-scale, so this runs on
-  the same dynamics task as everything else, at
+* No separate fast-dynamics/coarse-control task split: this runs on the
+  same dynamics task as everything else, at
   ``schema.scenario.SimSettings.dynamics_task_rate_s`` -- see
-  :func:`build_station_keeping`.
+  :func:`build_station_keeping`. Multi-year runs are split into segments
+  by :mod:`engine.long_run` instead.
 * ``orbit_period_s`` is not a caller-supplied argument -- computed here
   from ``mu``/``nominal_alt_m``/``r_planet_m`` via Kepler's third law
   instead (one fewer thing ``engine.service`` needs to compute).
-* No ``log_decimation`` -- SpaceMissionStudio scenarios are short enough that
-  logging every tick (matching how every other recorder in
-  ``engine.service`` already behaves) doesn't need thinning.
+* No ``log_decimation`` of its own: recording is thinned for every
+  recorder alike by ``SimSettings.record_interval_s``.
 * Publishes ``fuelTankOutMsg`` (a real ``FuelTankMsgPayload``, not part of
   the original ``AltitudeKeepingController``) purely so ``engine.vizard``
   can drive a live "propellant remaining" bar in Vizard off of it (see

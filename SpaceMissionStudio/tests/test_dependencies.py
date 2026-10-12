@@ -121,3 +121,10 @@ def test_the_release_constraints_pin_every_dependency_the_installers_use():
     for installer in ("packaging/install.sh", "packaging/install.ps1", "packaging/deb/DEBIAN/postinst",
                       "packaging/windows/bootstrap_env.ps1", "../.github/workflows/spacemissionstudio.yml"):
         assert "constraints.txt" in (root / installer).read_text(encoding="utf-8"), installer
+
+
+def test_file_record_of_an_unreadable_file_is_marked_not_raised(tmp_path):
+    """Audit L26: a file that could be stat()ed but not read (permissions, or
+    a folder) raised in the middle of a run's provenance record."""
+    record = dependencies.file_record(tmp_path)  # a folder: stat works, open fails
+    assert "unreadable" in record and "sha256" not in record

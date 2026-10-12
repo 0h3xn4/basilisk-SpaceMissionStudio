@@ -63,6 +63,7 @@ not eclipse-gated (GEO station-keeping thrusters are usually chemical).
 from __future__ import annotations
 
 import math
+from collections import deque
 from typing import Optional
 
 import numpy as np
@@ -122,7 +123,9 @@ class GeoStationKeepingController(sysModel.SysModel):
         self.depletedAtS: Optional[float] = None  # [s] first burn wanted with the tank empty
 
         self._lastT: Optional[float] = None  # [s]
-        self._history: list = []  # (t [s], unwrapped longitude error [rad]) over the last sidereal day
+        # (t [s], unwrapped longitude error [rad]) over the last sidereal day; a deque, as the
+        # oldest sample leaves on every step (list.pop(0) copied the whole day each time; L17)
+        self._history: deque = deque()
         self._historyStartT: Optional[float] = None  # [s]
         self._ewRemainingDv = 0.0  # [m/s] signed: + prograde
         self._nsActive = False
@@ -152,7 +155,7 @@ class GeoStationKeepingController(sysModel.SysModel):
 
     def Reset(self, CurrentSimNanos):
         self._lastT = CurrentSimNanos * macros.NANO2SEC
-        self._history = []
+        self._history = deque()
         self._historyStartT = None
         self._ewRemainingDv = 0.0
         self._nsActive = False
@@ -211,7 +214,7 @@ class GeoStationKeepingController(sysModel.SysModel):
             self._historyStartT = t
         self._history.append((t, error))
         while self._history and t - self._history[0][0] > _SIDEREAL_DAY_S:
-            self._history.pop(0)
+            self._history.popleft()
 
         pole_n = dcm_pn[2, :]  # Earth's spin axis, inertial components
         h_hat = np.cross(r_n, v_n)
@@ -252,7 +255,7 @@ class GeoStationKeepingController(sysModel.SysModel):
                 step_dv = ew_thrust / mass * dt  # [m/s]
                 if step_dv >= abs(self._ewRemainingDv) - 1e-12:
                     self._ewRemainingDv = 0.0
-                    self._history, self._historyStartT = [], None  # a new drift: refit from scratch
+                    self._history, self._historyStartT = deque(), None  # a new drift: refit from scratch
                     self._lastFit = None
                 else:
                     self._ewRemainingDv -= math.copysign(step_dv, self._ewRemainingDv)

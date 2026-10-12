@@ -2259,3 +2259,49 @@ def test_a_phasing_chief_without_classical_elements_is_refused_at_load():
                                            velocity_km_s=[0.0, 7.546, 0.0])  # [km], [km/s]
     with pytest.raises(ScenarioValidationError, match="must have a 'classical_elements' orbit"):
         scenario.validate()
+
+
+@pytest.mark.parametrize(("key", "value"), [("num_runs", 2.5), ("num_runs", "10"), ("thread_count", True)])
+def test_monte_carlo_counts_must_be_whole_numbers(key, value):
+    """Audit L29: a float, text or true/false run or thread count reached the
+    batch unchecked."""
+    sc = _minimal_scenario()
+    sc.monte_carlo = MonteCarloConfig(enabled=True, **{key: value})
+    with pytest.raises(ScenarioValidationError, match=f"monte_carlo.{key} must be a whole number"):
+        sc.validate()
+
+
+@pytest.mark.parametrize(("bounds", "message"), [
+    ([60.0, 40.0], "must have lo <= hi"),  # [kg]
+    ([40.0, "60"], "must be two finite numbers"),
+    ([40.0, float("nan")], "must be two finite numbers"),
+])
+def test_dispersion_bounds_must_be_ordered_finite_numbers(bounds, message):
+    """Audit L29: reversed or non-numeric bounds reached Basilisk's sampler."""
+    sc = _minimal_scenario()
+    sc.monte_carlo = MonteCarloConfig(enabled=True, dispersions=[DispersionConfig(
+        spacecraft="sat-1", quantity="dry_mass_kg", kind="uniform", bounds=bounds)])
+    with pytest.raises(ScenarioValidationError, match=message):
+        sc.validate()
+
+
+def test_dispersion_normal_needs_a_finite_mean_and_non_negative_spread():
+    """Audit L29: a normal dispersion took any mean and a negative 1-sigma."""
+    sc = _minimal_scenario()
+    sc.monte_carlo = MonteCarloConfig(enabled=True, dispersions=[DispersionConfig(
+        spacecraft="sat-1", quantity="dry_mass_kg", kind="normal", mean=50.0, std_deviation=-1.0)])  # [kg]
+    with pytest.raises(ScenarioValidationError, match="std_deviation must be a finite number >= 0"):
+        sc.validate()
+    sc.monte_carlo.dispersions[0].std_deviation = 1.0  # [kg]
+    sc.monte_carlo.dispersions[0].mean = float("inf")  # [kg]
+    with pytest.raises(ScenarioValidationError, match="mean must be a finite number"):
+        sc.validate()
+
+
+def test_forecast_percentile_as_text_is_a_validation_error():
+    """Audit L29: forecast_percentile given as text raised a bare ValueError
+    instead of naming the field."""
+    from spacemissionstudio.schema.scenario import SpaceWeatherConfig
+
+    with pytest.raises(ScenarioValidationError, match="forecast_percentile"):
+        SpaceWeatherConfig(forecast_percentile="high").validate()

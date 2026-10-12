@@ -187,11 +187,21 @@ def cached_path(kernel) -> Path:
             "during a run: download it from the Data tab (Download > Support data) or with `spacemissionstudio kernels-status`.")
     expected = dataFetcher.POOCH.registry.get(rel)
     if expected:
-        algorithm, _, digest = expected.rpartition(":")
-        if pooch.file_hash(str(path), alg=algorithm or "sha256") != digest:
-            raise KernelError(f"support-data file {path} does not match its checksum ({expected}); "
-                              "download it again from the Data tab")
+        # A file is hashed once per process while its size and modification
+        # time stay the same: de430.bsp (114 MB) took about 1 s per call,
+        # twice per build, per segment and per Monte Carlo run (audit L18).
+        stat = path.stat()
+        key = (str(path), stat.st_size, stat.st_mtime_ns, expected)
+        if key not in _VERIFIED:
+            algorithm, _, digest = expected.rpartition(":")
+            if pooch.file_hash(str(path), alg=algorithm or "sha256") != digest:
+                raise KernelError(f"support-data file {path} does not match its checksum ({expected}); "
+                                  "download it again from the Data tab")
+            _VERIFIED.add(key)
     return path
+
+
+_VERIFIED: set = set()  # (path, size, mtime_ns, registry checksum) of files whose checksum matched
 
 
 def cached_statuses(kernels: Iterable = ALL_SUPPORT_DATA_FILES) -> List[KernelStatus]:

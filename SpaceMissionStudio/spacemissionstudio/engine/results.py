@@ -344,7 +344,7 @@ class CommandSummary:
         """
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", newline="") as f:
+        with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["report_index", "t_s", "label", "series", "component", "value"])
             for report_index, report in enumerate(self.reports):

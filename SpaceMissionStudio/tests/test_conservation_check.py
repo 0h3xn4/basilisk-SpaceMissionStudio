@@ -136,3 +136,13 @@ def test_false_when_mission_sequence_is_present():
         Command(kind="maneuver", params={"spacecraft": "sat-1", "delta_v_m_s": [1.0, 0.0, 0.0]}),
     ])
     assert _is_two_body_only(scenario, scenario.spacecraft[0]) is False
+
+
+def test_false_with_geo_station_keeping():
+    """Audit L27: GEO station-keeping burns change the orbit's energy, so the
+    two-body drift check must not run (it did)."""
+    from spacemissionstudio.schema.scenario import GeoStationKeepingConfig
+
+    sc = SpacecraftConfig(name="sat-1", orbit=_orbit(), geo_station_keeping=GeoStationKeepingConfig(
+        target_longitude_deg=10.0, thrust_n=1.0, isp_s=220.0, propellant_kg=50.0))  # [deg], [N], [s], [kg]
+    assert _is_two_body_only(_scenario(spacecraft=[sc]), sc) is False

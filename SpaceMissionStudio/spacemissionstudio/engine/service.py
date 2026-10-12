@@ -17,134 +17,48 @@
 #
 
 r"""
-:class:`SimulationService` is the ONE GUI-agnostic backend API both the
-future GUI (Phase 1+) and a headless/batch CLI call to go from a
+:class:`SimulationService` is the one GUI-agnostic backend that the GUI,
+the CLI, Monte Carlo and the SIL runner use to go from a
 :class:`~spacemissionstudio.schema.Scenario` to a
 :class:`~spacemissionstudio.engine.results.ResultSet`. It wraps Basilisk's
-``SimulationBaseClass``/task-process architecture directly -- there is no
+``SimulationBaseClass`` task/process architecture directly; there is no
 other layer between this class and Basilisk.
 
-Phase 0 scope
--------------
-Deliberately narrow, matching exactly what the two-body analytical
-validation scenario (``scenarios/two_body_validation.json``,
-``tests/test_two_body_validation.py``) needs and nothing more:
+What :meth:`SimulationService.build` assembles
+----------------------------------------------
+* Gravity: the central body as a point mass or (Earth only) GGM03S
+  spherical harmonics, plus point-mass third bodies
+  (``gravity.third_body_perturbers``), all attached through
+  ``gravBodyFactory.addBodiesTo``. SPICE ephemerides are zero-based on the
+  central body; :mod:`engine.planet_rotation` supplies the mid-step planet
+  orientation.
+* One or more spacecraft from classical elements, Cartesian state, or a
+  TLE (:class:`~spacemissionstudio.schema.OrbitIC`), with mass, inertia and
+  the chosen integrator (``SUPPORTED_INTEGRATORS``).
+* Environment: NRLMSISE-00 or exponential drag from real space-weather data
+  (:mod:`engine.spaceweather`), cannonball or faceted SRP, a shared eclipse
+  model, gravity-gradient torque, and the Earth magnetic field (WMM, read at
+  the scenario epoch).
+* Attitude sensors, actuators and flight-software modes, built by
+  :mod:`engine.fsw`; orbit control (:mod:`engine.orbit_maintenance`,
+  :mod:`engine.geo_station_keeping`, :mod:`engine.formation_control`);
+  power, flexible solar arrays, thermal sensors and the data-handling chain.
+* Ground-station access for every (station, spacecraft) pair, and the
+  optional Vizard output (:mod:`engine.vizard`).
 
-* Central-body gravity, point-mass (``gravity.central_body_degree == 0``)
-  or spherical harmonics (> 0, Earth-only for now -- GGM03S, the same
-  gravity file already used in ``../missionAnalysis``), PLUS third-body
-  point-mass perturbers (``gravity.third_body_perturbers``): both the
-  central body and every perturber are created via
-  ``gravBodyFactory.createBodies()`` and then ``addBodiesTo(sc_object)``
-  attaches ALL of them as gravitational contributors to each spacecraft
-  -- this is the exact same mechanism (verified, not assumed: see
-  ``../missionAnalysis/run_constellation_mission.py``'s own comment on
-  ``addBodiesTo()``) that already gives the Moon and Sun as automatic
-  third-body perturbers there, with no extra per-body wiring needed
-  beyond creating them. An earlier version of this docstring claimed
-  third-body perturbers were schema-only and not actually wired up here;
-  that was wrong (this service already adds them) and has been corrected.
-* One or more spacecraft, each from a classical-elements, Cartesian, or
-  TLE initial condition (:class:`~spacemissionstudio.schema.OrbitIC`).
-* Orbital dynamics only -- attitude integrates (Basilisk always integrates
-  it), but nothing controls or reads it yet.
-* A single dynamics task, propagated for ``sim_settings.duration_days``.
+:meth:`build` takes ``initialize=False`` so :mod:`engine.monte_carlo` can
+apply Basilisk's dispersions before ``InitializeSimulation()``; runs longer
+than Basilisk's single-run limit are split into segments
+(:mod:`engine.long_run`). Mission Sequences run through
+:mod:`engine.mission_engine`.
 
-Explicitly NOT wired up yet in Phase 0 (validated by the schema and
-carried through save/load starting now, so the schema doesn't need to
-change shape later, but silently ignored by this service until the phase
-that implements it): drag, SRP, space weather. The Phase 1 GUI (see
-``gui/``) deliberately does not expose editors for these either, for the
-same reason: a control that looks like it configures simulated behavior
-but silently doesn't is worse than not offering it yet. (Phase 4, below,
-is where this gap closes: ``SpacecraftConfig.enable_drag``/``enable_srp``
-are wired up there via ``engine/spaceweather.py``'s resolver -> MSIS or
-exponential atmosphere (``SpaceWeatherConfig.atmosphere_model`` -- a later
-addition; see that schema class's own docstring) -> ``dragDynamicEffector``/
-``radiationPressure``.)
-
-Phase 2 scope
--------------
-Adds attitude sensors, actuators, FSW pointing/control modes, and Vizard
-integration on top of Phase 0's propagation-only baseline. All the actual
-guidance/control/actuation chain construction lives in ``engine/fsw.py``
-(kept separate so this file stays orchestration-only) -- see that module's
-docstring for the exact Basilisk module each ``fsw_mode``/sensor kind/
-actuator kind maps to, and for every scoping decision made along the way
-(e.g. why ``locationPointing``'s ``target_body`` option and the
-``"thruster"``/``"magnetic_torque_rod"`` actuator kinds are schema-valid
-but not built here). ``engine/vizard.py`` covers the Vizard integration,
-triggered via :class:`SimulationService`'s own ``vizard_request`` constructor
-parameter (an ``engine.vizard.VizardRequest``).
-
-Phase 3 scope
--------------
-Adds ground-station ACCESS analysis and Monte Carlo batch execution, per
-the roadmap's "Phase 3: Monte Carlo + access analysis + packaging".
-
-* Ground-station access: every :class:`schema.scenario.GroundStationConfig`
-  now gets a ``groundLocation.GroundLocation`` (used both as a
-  ``locationPointing`` target, per Phase 2, and for access analysis), and
-  once every spacecraft is built, :func:`engine.fsw.add_access_analysis`
-  is called once per station against the FULL spacecraft list -- every
-  station sees every spacecraft, which is the standard access-analysis
-  question ("when can station X see spacecraft Y"), not just the ones a
-  station happens to be a pointing target for. :meth:`run` records
-  ``hasAccess``/``slantRange``/``elevation``/``azimuth`` per
-  (station, spacecraft) pair.
-* Monte Carlo: lives in ``engine/monte_carlo.py``, not here --
-  :meth:`build` grew an ``initialize`` parameter (default ``True``)
-  specifically so that module can build a sim, apply
-  ``Basilisk.utilities.MonteCarlo`` dispersions to it, and only THEN call
-  ``InitializeSimulation()``/``ConfigureStopTime()`` itself (calling
-  ``InitializeSimulation()`` before dispersions are applied would `Reset()`
-  every module against the UN-dispersed nominal values, silently
-  defeating the dispersion). See that module's docstring for the full
-  design and its own scoping notes (e.g. why Cartesian position/velocity
-  dispersion is deliberately not offered).
-
-Packaging is covered in ``packaging/`` (build scripts, installer, desktop
-entry) and ``SpaceMissionStudio/README.md``'s packaging section, not in this
-module -- there's no runtime code for it.
-
-Verification status
---------------------
-Requires a Basilisk build. A from-source build inside this project's
-sandbox was attempted early on and failed (blocked Conan Center network
-access); later, ``pip install "bsk[all]"`` (Basilisk's own published PyPI
-package) turned out to work in that same sandbox -- see
-``SpaceMissionStudio/README.md``'s "Getting started" section for the working
-install path this project actually verified.
-
-Against that real build, ``build()`` was confirmed to run correctly
-through gravity/SPICE-interface construction, spacecraft assembly (mass,
-inertia, orbit IC, integrator selection), and attitude/sensor/actuator/
-ground-station wiring -- it fails only at the SPICE kernel DOWNLOAD step
-inside ``engine.kernels``, because that sandbox's network egress to NAIF's
-kernel host was blocked (see ``kernels.py``'s own verification note); this
-is an environment limitation, not a code path that was skipped. A real
-bug was found and fixed this way in ``engine/time_system.py`` (a bare
-``import pyswice`` that doesn't match the published package's module
-layout) -- see that module's own docstring. Every Basilisk module/class
-this file and ``engine/fsw.py``/``vizard.py``/``monte_carlo.py`` import
-was individually confirmed to exist under the expected name in that real
-build. Full end-to-end execution (a run that gets PAST kernel loading) was
-NOT achieved in this sandbox, for the network reason above -- that
-remains to be exercised on a machine with ordinary internet access, ideally
-starting with ``tests/test_two_body_validation.py``.
-
-The calling conventions in this file also mirror the same verified API
-calls already exercised (and long since run against a real Basilisk
-build) in ``../missionAnalysis/run_constellation_mission.py`` earlier in
-this project (``gravBodyFactory``, ``spacecraft.Spacecraft``,
-``svIntegrators``, ``orbitalMotion``). The integrator class lookup (see
-``_INTEGRATORS`` below) was confirmed both by directly listing
-``src/simulation/dynamics/Integrators/`` in this checkout and, now, by
-import against a real (if newer/PyPI-sourced) Basilisk build -- note that
-build also exposes ``svIntegratorRK4``, which this checkout's own source
-does not; ``_INTEGRATORS`` intentionally still doesn't offer it, since
-this schema targets what THIS checkout ships, not whatever a given
-installed version happens to add.
+Verification
+------------
+Verified against Basilisk 2.12.0 (``bsk`` from PyPI, the version pinned in
+``packaging/constraints.txt``) by the test suite; the evidence is in
+``compliance/docs/SVR.md``. Engine-level checks that only a run can make raise
+:class:`SimulationServiceError`; :meth:`Scenario.validate` mirrors them so a
+scenario that cannot be built is refused before it is run.
 """
 
 from __future__ import annotations
@@ -327,6 +241,7 @@ def _is_two_body_only(scenario: Scenario, sc_config) -> bool:
     if scenario.mission_sequence:
         return False
     if (sc_config.enable_drag or sc_config.enable_srp or sc_config.station_keeping is not None
+            or sc_config.geo_station_keeping is not None  # its burns were missed (audit L27)
             or sc_config.constant_thrust is not None or sc_config.phasing_keeping is not None
             or sc_config.comms_pointing is not None or sc_config.fuel_tank is not None
             or sc_config.momentum_dumping is not None):
@@ -940,7 +855,14 @@ class SimulationService:
         # needs them. The eclipse model only writes messages; adding a
         # spacecraft to it changes no dynamics.
         self._record_eclipses = self._sun_state_out_msg is not None and gravity.central_body != "sun"
-        if needs_eclipse or self._record_eclipses:
+        # The bodies that can shadow the Sun: the central body, except in a
+        # heliocentric run, where the Sun cannot shadow itself (audit L27)
+        # and only the other tracked bodies can.
+        if gravity.central_body == "sun":
+            occulter_names = [name for name in body_names if name != "sun"]
+        else:
+            occulter_names = [gravity.central_body]
+        if (needs_eclipse or self._record_eclipses) and occulter_names:
             if self._sun_state_out_msg is None:
                 raise SimulationServiceError(
                     "a spacecraft has a power budget, station-keeping, SRP (enable_srp), or a 'thermal' sensor "
@@ -953,7 +875,8 @@ class SimulationService:
             self._eclipse_object = eclipse.Eclipse()
             self._eclipse_object.ModelTag = "eclipse"
             self._eclipse_object.sunInMsg.subscribeTo(self._sun_state_out_msg)
-            self._eclipse_object.addPlanetToModel(central_body_state_out_msg)
+            for name in occulter_names:
+                self._eclipse_object.addPlanetToModel(self._planet_state_out_msgs[name])
             self.scSim.AddModelToTask(dyn_task_name, self._eclipse_object, 370)
 
         # Phase 4: atmospheric drag (schema.scenario.SpacecraftConfig.enable_drag)
@@ -1109,7 +1032,7 @@ class SimulationService:
                 sc_config.power is not None or sc_config.station_keeping is not None or sc_config.enable_srp
                 or any(sensor.kind == "thermal" for sensor in sc_config.sensors)
             )
-            if needs_eclipse_for_this_sc or self._record_eclipses:
+            if (needs_eclipse_for_this_sc or self._record_eclipses) and self._eclipse_object is not None:
                 self._eclipse_object.addSpacecraftToModel(sc_object.scStateOutMsg)
                 sc_eclipse_out_msg = self._eclipse_object.eclipseOutMsgs[eclipse_index]
                 eclipse_index += 1
@@ -1155,7 +1078,8 @@ class SimulationService:
                                           power_config.panel_efficiency)
                 panel.stateInMsg.subscribeTo(sc_object.scStateOutMsg)
                 panel.sunInMsg.subscribeTo(self._sun_state_out_msg)
-                panel.sunEclipseInMsg.subscribeTo(sc_eclipse_out_msg)
+                if sc_eclipse_out_msg is not None:  # None: nothing can shadow the Sun (heliocentric run)
+                    panel.sunEclipseInMsg.subscribeTo(sc_eclipse_out_msg)
                 self.scSim.AddModelToTask(dyn_task_name, panel, 50)
 
                 bus_sink = simplePowerSink.SimplePowerSink()
@@ -1259,9 +1183,9 @@ class SimulationService:
 
             # -- Phase 4: solar radiation pressure (schema.scenario.
             # SpacecraftConfig.enable_srp) -- shares the eclipse model/
-            # sc_eclipse_out_msg computed above (the eclipse-needs condition
-            # above this loop already includes enable_srp, so
-            # sc_eclipse_out_msg is non-None whenever this branch runs).
+            # sc_eclipse_out_msg computed above; it is None only in a
+            # heliocentric run with no other body to cast a shadow, where
+            # the spacecraft is always lit.
             if sc_config.enable_srp:
                 if sc_config.facets:
                     # Attitude-dependent SRP and its torque, from each lit
@@ -1287,7 +1211,8 @@ class SimulationService:
                 srp_effector.ModelTag = f"{sc_config.name}Srp"
                 sc_object.addDynamicEffector(srp_effector)
                 handle.srp_effector = srp_effector  # engine.monte_carlo disperses its coefficient
-                srp_effector.sunEclipseInMsg.subscribeTo(sc_eclipse_out_msg)
+                if sc_eclipse_out_msg is not None:
+                    srp_effector.sunEclipseInMsg.subscribeTo(sc_eclipse_out_msg)
                 self.scSim.AddModelToTask(dyn_task_name, srp_effector, 100)
 
             # -- gravity gradient torque (schema.scenario.SpacecraftConfig

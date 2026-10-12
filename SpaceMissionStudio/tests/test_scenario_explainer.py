@@ -296,3 +296,34 @@ def test_duration_tile_uses_a_readable_unit():
     assert [_duration_label(d) for d in (0.01, 0.09375, 0.5, 14.0)] == ["14.4 min", "2.25 h", "12 h", "14 d"]
     tile = next(t for t in explain(_template_scenario("19")).stat_tiles if t.label == "Duration")
     assert tile.value == "2.25 h"
+
+
+def test_the_altitude_is_above_the_scenarios_own_central_body():
+    """Audit L21: the orbit tile subtracted Earth's radius around any body;
+    a 1837.4 km orbit around the Moon is 100 km up, not -4541 km."""
+    from spacemissionstudio.engine.scenario_explainer import explain
+    from spacemissionstudio.schema import GravityConfig, OrbitIC, Scenario, SpacecraftConfig
+
+    scenario = Scenario(name="moon", epoch_utc="2030-01-01T00:00:00", gravity=GravityConfig(central_body="moon"),
+                        spacecraft=[SpacecraftConfig(name="lunar", orbit=OrbitIC(
+                            type="classical_elements", semi_major_axis_km=1837.4, eccentricity=0.0,
+                            inclination_deg=90.0, raan_deg=0.0, arg_periapsis_deg=0.0, true_anomaly_deg=0.0))])
+    orbit_tile = next(tile for tile in explain(scenario).stat_tiles if tile.label == "Orbit")
+    assert "100 km alt" in orbit_tile.value
+
+
+def test_a_failing_section_leaves_the_rest_of_the_tab(monkeypatch, caplog):
+    """Audit L21: one section raising blanked the whole Explain tab, with
+    nothing logged; now only that section is left out, and it is logged."""
+    import logging
+
+    from spacemissionstudio.engine import scenario_explainer
+    def broken(scenario):
+        raise ValueError("half-edited")
+
+    monkeypatch.setattr(scenario_explainer, "_environment_section", broken)
+    scenario = load_scenario(next(_TEMPLATES_DIR.glob("18_*.json")))
+    with caplog.at_level(logging.DEBUG, logger="spacemissionstudio.engine.scenario_explainer"):
+        explanation = scenario_explainer.explain(scenario)
+    assert explanation.stat_tiles and explanation.sections
+    assert "Explain tab: broken failed" in caplog.text and "half-edited" in caplog.text

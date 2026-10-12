@@ -68,9 +68,10 @@ codebase -- see e.g. ``engine.formation``'s R/N-placement docstring, or
   independent legal determination of export-control status for anyone's
   specific hardware/mission, and nothing here should be read as one.
 * "Europe" is read geographically (as the user's own request put it), not
-  strictly "EU member state" -- Ireland/Germany/Netherlands/Austria below
-  are all EU; none here happen to be European-but-non-EU, but that
-  wouldn't disqualify an entry either.
+  strictly "EU member state": most entries are from EU members, and the
+  Norway, United Kingdom and Ukraine entries are European but not EU.
+  Entries made outside Europe were removed before release 3.0.0 (audit
+  L30); ``tests/test_device_catalog.py`` keeps it that way.
 
 **Supplier-database entries.** A real user's supplier database ("Complete
 market research: subsystems for 100 - 500 kg satellites, LEO/SSO, 5 - 7
@@ -86,10 +87,10 @@ database's own status. Its values are as stated by the cited source;
 "Secondary" sources (directories, press) must be verified before use.
 
 Mirrors ``gui.sensor_actuator_editor._KIND_PARAM_SPECS``'s own kind/key
-shape exactly -- :func:`validate_catalog_against_param_specs` (used by this
-project's own test suite) checks that every entry's ``params`` satisfies
-every required key for its ``kind``, so this catalog can never drift out of
-sync with that module's own required-field list.
+shape exactly -- ``tests/test_device_catalog.py`` checks that every
+entry's ``params`` satisfies every required key for its ``kind`` (through
+``gui.sensor_actuator_editor._missing_required_keys``), so this catalog
+cannot drift out of sync with that module's own required-field list.
 """
 
 from __future__ import annotations
@@ -456,22 +457,6 @@ CATALOG: list[DeviceCatalogEntry] = [
         heritage="TRL 9: FORMOSAT-5 (~525 kg, 2017), Flying Laptop (2017); >70 spacecraft since 2008.",
         procurement_status="Candidate - ITAR status unknown",
     ),
-    DeviceCatalogEntry(
-        kind="star_tracker",
-        manufacturer="Antrix",
-        product_name="Mark-3 Star Sensor (M3SS)",
-        country="India",
-        source_url="https://www.satnow.com/products/star-trackers/antrix-corporation-limited/37-1183-mark-3-star-sensor-m3ss-",
-        itar_free_note=(
-            "No ITAR/US-content statement found; Indian export licensing (SCOMET/DGFT) likely applies "
-            "(supplier database) -- verify with the supplier."
-        ),
-        description="GEO/LEO star sensor: 8 Hz, 1024x1024 CMOS; 6.25 kg (head 2.0 kg + processor 4.25 kg), 14-24 W.",
-        params={"noise_arcsec": 40.0},
-        notes="noise_arcsec = the worse end of the published 10-40 arcsec. Source level: secondary (directory).",
-        heritage="Space heritage per directory.",
-        procurement_status="Candidate - ITAR status unknown",
-    ),
 
     # Gyros / IMUs. gyro_noise_rad_s follows the ARIETIS-NS conversion above:
     # angular random walk [deg/sqrt(h)] -> rad/sqrt(s), for a 1 s tick.
@@ -530,22 +515,6 @@ CATALOG: list[DeviceCatalogEntry] = [
         heritage="Space-qualified; GSTB-V2, Radarsat-2, COSMO-SkyMed.",
         procurement_status="Candidate - ITAR status unknown",
     ),
-    DeviceCatalogEntry(
-        kind="coarse_sun_sensor",
-        manufacturer="Tensor Tech",
-        product_name="FSS-15M",
-        country="Taiwan",
-        source_url="https://satsearch.co/products/tensortech-fss-15-fine-sun-sensor",
-        itar_free_note="'ITAR-free, no export control required' per satsearch (directory-only, per the supplier database).",
-        description="Fine sun sensor, 0.2 deg (1-sigma), RS485; 3-6 weeks lead time.",
-        params={"nHat_B": [1.0, 0.0, 0.0], "noise_std": 0.0025},
-        notes=(
-            "noise_std = sin(45 deg) x (0.2 deg in rad) = 0.0025. FOV not published: fov_deg is left "
-            "at the default. Variant naming differs between directories. Source level: secondary."
-        ),
-        heritage="TRL 9, heritage since 2022.",
-        procurement_status="RFI priority (ITAR-free stated)",
-    ),
 
     # Magnetometers. These publish a 1 deg direction accuracy, not a noise
     # density: noise_std_tesla is DERIVED as tan(1 deg) x ~45,000 nT (a
@@ -566,63 +535,10 @@ CATALOG: list[DeviceCatalogEntry] = [
         heritage="TRL 9 per the NASA small-spacecraft state-of-the-art report.",
         procurement_status="Candidate - ITAR status unknown",
     ),
-    DeviceCatalogEntry(
-        kind="magnetometer",
-        manufacturer="NewSpace Systems",
-        product_name="NMRM-Bn25o485",
-        country="South Africa",
-        source_url="https://www.nasa.gov/wp-content/uploads/2024/02/5.soa-gnc-2023-final.pdf",
-        itar_free_note="No ITAR statement found (supplier database); verify with the manufacturer.",
-        description="Small digital magnetometer, 0.085 kg, 0.75 W.",
-        params={"noise_std_tesla": [8.0e-7, 8.0e-7, 8.0e-7]},
-        notes=(
-            "noise_std_tesla derived from the 1 deg accuracy (see the comment above this group); range "
-            "not published. Source level: secondary (NASA SoA report)."
-        ),
-        heritage="TRL 7-9 per the NASA small-spacecraft state-of-the-art report.",
-        procurement_status="Candidate - ITAR status unknown",
-    ),
 
     # Reaction wheels. Js = published momentum / Omega_max; where the top
     # speed isn't published, 6,000 RPM is ASSUMED, which keeps the published
     # momentum capacity exact (only the wheel speed is then nominal).
-    DeviceCatalogEntry(
-        kind="reaction_wheel",
-        manufacturer="Dragonfly Aerospace",
-        product_name="RW-1Nms",
-        country="South Africa",
-        source_url="https://dragonflyaerospace.com/components/rw-1nms/",
-        itar_free_note="ITAR-free per Dragonfly Aerospace (product-level statement, confirmed by the supplier database).",
-        description="1.0 N*m*s reaction wheel, 1.0 kg, CAN/RS485, >20 krad, ABEC 7 bearings; 108 W peak.",
-        params={"gsHat_B": [0.0, 0.0, 1.0], "rw_type": "custom", "Omega_max": 6000.0, "u_max": 0.039,
-                "Js": 1.592e-3},
-        notes=(
-            "u_max = the published +/-39 mN*m (a v2 offers +/-74 mN*m). Top speed not published: "
-            "Omega_max 6,000 RPM assumed, Js = 1.0 / 628.3 = 1.592e-3 kg*m^2. Source level: primary (vendor)."
-        ),
-        heritage="TRL 9 per the manufacturer (no missions listed).",
-        procurement_status="RFI priority (ITAR-free stated)",
-    ),
-    DeviceCatalogEntry(
-        kind="reaction_wheel",
-        manufacturer="Microsat Systems Canada",
-        product_name="MicroWheel 1000",
-        country="Canada",
-        source_url="https://satnow.com/products/reaction-wheels/microsat-systems-canada-inc/38-1203-microwheel-1000",
-        itar_free_note=(
-            "No ITAR statement found; the supplier database could not reach the vendor's website -- "
-            "confirm the company is active and its export classification."
-        ),
-        description="1.1 N*m*s microsatellite wheel, 30 mN*m, 1.44 kg, <50 W peak, >7-year life.",
-        params={"gsHat_B": [0.0, 0.0, 1.0], "rw_type": "custom", "Omega_max": 6000.0, "u_max": 0.030,
-                "Js": 1.751e-3},
-        notes=(
-            "u_max = the published 30 mN*m. Top speed not published for this model: Omega_max 6,000 RPM "
-            "assumed, Js = 1.1 / 628.3 = 1.751e-3 kg*m^2. Source level: secondary (eoPortal/directory)."
-        ),
-        heritage="TRL 9: four MicroWheel 1000 on PROBA-2 (2009).",
-        procurement_status="Candidate - ITAR status unknown",
-    ),
     # From the manufacturer's datasheet the user supplied ("VRW-D-6
     # Reaction Wheel", A4, 25 Apr 2024).
     DeviceCatalogEntry(
@@ -810,37 +726,6 @@ CATALOG: list[DeviceCatalogEntry] = [
                 "thruster_type": "Blank_Thruster", "steadyIsp": 220.0},
         notes="MaxThrust = the top of the published 0.32-1.1 N; steadyIsp = the nominal 220 s (200-223 s). Source level: primary.",
         heritage=">500 units in space; Globalstar, Jason, Sentinel, COSMO-SkyMed (TRL 9).",
-        procurement_status="Candidate - ITAR status unknown",
-    ),
-    DeviceCatalogEntry(
-        kind="thruster",
-        manufacturer="Rafael",
-        product_name="1 N hydrazine thruster",
-        country="Israel",
-        source_url="https://blog.satsearch.co/2023-05-05-chemical-propulsion-systems-for-satellites",
-        itar_free_note=(
-            "'Free of any ITAR restrictions' per satsearch only (supplier database); Israeli defence "
-            "prime -- confirm export licensing in writing."
-        ),
-        description="Hydrazine monopropellant thruster (a 5 N version also exists).",
-        params={"r_B": [1.0, 0.0, 0.0], "tHat_B": [1.0, 0.0, 0.0], "MaxThrust": 1.0,
-                "thruster_type": "Blank_Thruster"},
-        notes="MaxThrust = 1 N. Isp not published. Source level: secondary (directory).",
-        heritage="Flight heritage; qualified for the OFEQ programme per directory.",
-        procurement_status="RFI priority (ITAR-free stated)",
-    ),
-    DeviceCatalogEntry(
-        kind="thruster",
-        manufacturer="IHI Aerospace",
-        product_name="BT-6",
-        country="Japan",
-        source_url="https://www.ihi.co.jp/ia/en/products/space/satprop/index.html",
-        itar_free_note="No ITAR statement found (supplier database); verify with the manufacturer.",
-        description="Bipropellant thruster (hydrazine/NTO or MMH/MON-3); >400 bipropellant thrusters delivered.",
-        params={"r_B": [1.0, 0.0, 0.0], "tHat_B": [1.0, 0.0, 0.0], "MaxThrust": 21.5,
-                "thruster_type": "Blank_Thruster"},
-        notes="MaxThrust = the published 21.5 N. Isp not published. Source level: primary (vendor).",
-        heritage="Listed as flight proven.",
         procurement_status="Candidate - ITAR status unknown",
     ),
     DeviceCatalogEntry(

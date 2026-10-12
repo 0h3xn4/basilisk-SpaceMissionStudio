@@ -8906,3 +8906,49 @@ path does not exist, and a folder with no cores, both exit 0. On the
 runner, the job repeats that deliberate segfault before the tests and
 prints the first frames, so every run shows that cores are written and
 readable there; if not, it warns.
+
+## Pre-release audit and release 3.0.0 (2026-10-12)
+
+**What was done.** A full audit before the release, written up in
+[`AUDIT.md`](AUDIT.md): every module, CLI command and GUI path, run
+where it could be. No finding was critical. There were five high, 17
+medium and 30 low findings; H5 and M17 were found while fixing. The
+user decided the open questions: Monte Carlo flies the Mission
+Sequence; behaviour changes are accepted; Basilisk's Vizard settings
+list is cleared before each run; Python 3.11 is the minimum; the
+release is 3.0.0; the device catalog keeps only European entries.
+
+**The high findings.**
+- H1: a Monte Carlo batch ignored the Mission Sequence. Each run now
+  flies it, with the same consent for script blocks as `run`.
+- H2: wheel and thruster settings that make Basilisk's factories call
+  `exit(1)` passed validation, and in the GUI the run thread died
+  silently. They are refused, and every worker turns `SystemExit` into
+  a failure.
+- H3: a spacecraft named `../../x` wrote files two folders up. Names
+  are checked (`schema.scenario.name_error`), and colliding names are
+  refused.
+- H4: a disk error during the Vizard download left a dialog that never
+  closed.
+- H5 (found while fixing): a forked Monte Carlo worker that
+  garbage-collected a `SimModel` inherited from an earlier run hung in
+  `pthread_cond_destroy`. `run_monte_carlo` collects garbage before
+  forking.
+
+**The medium and low findings** are listed in `AUDIT.md` with their
+fixes; the `CHANGELOG.md` 3.0.0 section summarises what users see. Two
+decisions to note:
+- the Ukraine entry stays in the device catalog. The audit listed it as
+  non-European, but the catalog defines Europe geographically;
+- a heliocentric run with SRP or power is now accepted. Basilisk's
+  eclipse model cannot run without an occulting planet, so with no
+  other tracked body there is no eclipse model and the spacecraft is
+  always lit.
+
+**How it was checked.** Each fix has a test (named after its finding
+in the docstring). Tests changed by the new rules: the phasing test now
+expects a negative distance to be refused; the flight-software
+injection test uses a name that is still legal and asserts the old one
+is refused; the installer pin check allows `-c constraints.txt`; two
+thermal-sensor fixtures add the Sun. The full suite, ruff and the
+compliance generators ran clean before the commit.

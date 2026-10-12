@@ -8,9 +8,42 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 3.0.0 (2026-10-12)
 
-Everything since 2.0.0. The version number in the code is still 2.0.0.
+Everything since 2.0.0, including the fixes from the pre-release audit
+([`AUDIT.md`](AUDIT.md)).
+
+**Breaking** (why this is a major version)
+- **Python 3.11 or newer** is required (was 3.9); 3.11 is what the test
+  suite and CI run.
+- **Monte Carlo flies the Mission Sequence.** Every run of a batch now
+  flies the scenario's Mission Sequence, as `run` does; before, the
+  batch silently propagated for the set duration instead. A batch with
+  script blocks needs consent (`monte-carlo --allow-scripts`, or Yes in
+  the GUI), and `monte-carlo` refuses a folder that holds files other
+  than an earlier batch unless given `--overwrite`.
+- **Scenario files that load in 2.0.0 can be refused**, each with a
+  message naming the field:
+  - Spacecraft, station, sensor and actuator names cannot contain
+    `/ \ : * ? " < > | .` or control characters, start or end with a
+    space, or be a Windows device name; two names that collide are
+    refused. Names become file names, and a name could write outside the
+    output folder.
+  - Unknown reaction-wheel and thruster types, and limits Basilisk would
+    exit on (non-positive `u_max`, `MaxThrust`, ...).
+  - Non-finite or zero orbit values, malformed TLEs, a TLE orbit around
+    another body than Earth.
+  - A Mission Sequence step longer than 100 days, a phasing formation
+    with a negative along-track distance, a thermal sensor without the
+    Sun, a phasing chief not given as classical elements,
+    comms-pointing with actuators.
+  - Monte Carlo counts that are not whole numbers, reversed or
+    non-numeric bounds, a normal dispersion with a negative 1-sigma, and
+    `schema_version` below 1.
+- `ccsds-import` refuses an OPM centred on another body than the
+  scenario's, and an OMM around another body than Earth.
+- **Device catalog:** the seven entries made outside Europe were removed
+  (32 remain).
 
 **New features**
 - **Flight-software export.** The **Flight Software** tab and
@@ -60,6 +93,14 @@ Everything since 2.0.0. The version number in the code is still 2.0.0.
   the app by `scripts/capture_screenshots.py`.
 
 **Changed**
+- Installers and CI install the tested dependency versions from
+  `packaging/constraints.txt` (Basilisk 2.12.0, PySide6 6.11.2, ...).
+- `validate` prints the GUI's plausibility warnings as `WARNING:` lines.
+- The CLI exits with 130 on Ctrl-C and 3 on a file-system error, with a
+  message instead of a traceback.
+- Log files carry the process id, and only the newest 100 are kept.
+- A heliocentric run is accepted with SRP or power; only the other
+  tracked bodies cast shadows.
 - A new look (IBM's Carbon design: IBM Plex fonts, flat panels).
 - Templates fly 100 to 500 kg spacecraft; the CubeSat presets were
   replaced by 150, 300 and 500 kg buses.
@@ -70,7 +111,22 @@ Everything since 2.0.0. The version number in the code is still 2.0.0.
 - `spacemissionstudio --help` opens with what the tool does and a few
   examples, instead of a paragraph about the code.
 
-**Fixed** (the main ones; `HISTORY.md` lists every one)
+**Fixed** (the main ones; `HISTORY.md` and `AUDIT.md` list every one)
+- The magnetic field was evaluated at 2019 whatever the scenario epoch.
+- A Monte Carlo batch could hang after an earlier run in the same
+  process; the GUI could show a previous batch as the new one.
+- Wheel or thruster settings Basilisk exits on, and a failed Vizard
+  download, could leave the GUI stuck at "Running..." or a dialog open.
+- GUI Save reported nothing when the file could not be written; saves
+  are now atomic.
+- Report series of ground-station access were refused; a `...Z` epoch
+  only half worked.
+- Station keeping logged "propellant depleted" every step; it now warns
+  once, also in the results.
+- Bad data files, an unwritable home folder and non-UTF-8 files give
+  messages instead of tracebacks.
+- SIL on Windows could lose the flight software's last error message.
+- Vizard re-sent earlier runs' instrument settings within one session.
 - Software in the loop: a run with a missed step deadline could hang.
 - Scenario files with wrong-typed values are refused, naming the field.
 - Malformed CCSDS messages give conformance errors instead of tracebacks.

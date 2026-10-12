@@ -1958,7 +1958,9 @@ class SpaceWeatherConfig:
                       "space_weather.source is 'local_file' but local_file_path was not set")
         _require(self.atmosphere_model in ("nrlmsise00", "exponential"),
                   f"space_weather.atmosphere_model {self.atmosphere_model!r} must be 'nrlmsise00' or 'exponential'")
-        _require(float(self.forecast_percentile) in SUPPORTED_FORECAST_PERCENTILES,
+        # Text such as "95" gave a bare ValueError (audit L29).
+        _require(_is_finite_number(self.forecast_percentile)
+                  and float(self.forecast_percentile) in SUPPORTED_FORECAST_PERCENTILES,
                   f"space_weather.forecast_percentile {self.forecast_percentile!r} must be one of "
                   f"{SUPPORTED_FORECAST_PERCENTILES} (MSFC's published percentiles)")
 
@@ -2007,8 +2009,16 @@ class DispersionConfig:
                           f"{where}: element_spread[{key!r}] must be a finite number >= 0")
             return
         if self.kind in ("uniform", "uniform_euler_mrp"):
-            _require(self.bounds is not None and len(self.bounds) == 2,
+            _require(isinstance(self.bounds, (list, tuple)) and len(self.bounds) == 2,
                       f"{where}: kind {self.kind!r} needs bounds as a 2-element [lo, hi] list")
+        if self.bounds is not None:
+            # Reversed or non-numeric bounds reached Basilisk's sampler
+            # unchecked (audit L29).
+            _require(isinstance(self.bounds, (list, tuple)) and len(self.bounds) == 2
+                      and all(_is_finite_number(value) for value in self.bounds),
+                      f"{where}: bounds must be two finite numbers [lo, hi], got {self.bounds!r}")
+            _require(self.bounds[0] <= self.bounds[1],
+                      f"{where}: bounds [lo, hi] must have lo <= hi, got {self.bounds!r}")
         if self.kind == "normal":
             if self.quantity in SPREAD_ONLY_DISPERSION_QUANTITIES:
                 _require(self.std_deviation is not None and _is_finite_number(self.std_deviation)
@@ -2016,6 +2026,9 @@ class DispersionConfig:
             else:
                 _require(self.mean is not None and self.std_deviation is not None,
                           f"{where}: kind 'normal' needs mean and std_deviation")
+                _require(_is_finite_number(self.mean), f"{where}: mean must be a finite number")
+                _require(_is_finite_number(self.std_deviation) and self.std_deviation >= 0,
+                          f"{where}: std_deviation must be a finite number >= 0")
         if self.quantity == "inertia_kg_m2":
             _require(self.bounds is None or len(self.bounds) == 2,
                       f"{where}: bounds, if given, must be a 2-element [lo, hi] list")
@@ -2027,11 +2040,10 @@ class DispersionConfig:
 @dataclass
 class MonteCarloConfig:
     """Batch execution settings -- see ``engine/monte_carlo.py``.
-    ``thread_count`` > 1 uses ``multiprocessing.Pool`` under the hood
-    (``Basilisk.utilities.MonteCarlo.Controller``); this has NOT been
-    exercised in this project's development sandbox (no Basilisk build
-    here -- see engine/monte_carlo.py's verification-status note), so the
-    default is the conservative, definitely-safe ``1``.
+    ``thread_count`` > 1 runs the batch in parallel processes
+    (``Basilisk.utilities.MonteCarlo.Controller``'s ``multiprocessing.Pool``),
+    exercised by the test suite against Basilisk 2.12.0; the default stays
+    ``1``. Every run flies the scenario's Mission Sequence when it has one.
     """
 
     enabled: bool = False
@@ -2041,6 +2053,11 @@ class MonteCarloConfig:
     dispersions: list = field(default_factory=list)  # list[DispersionConfig]
 
     def validate(self) -> None:
+        # A float or text count reached the batch unchecked (audit L29).
+        for key in ("num_runs", "thread_count"):
+            value = getattr(self, key)
+            _require(isinstance(value, int) and not isinstance(value, bool),
+                      f"monte_carlo.{key} must be a whole number, got {value!r}")
         _require(self.num_runs >= 1, "monte_carlo.num_runs must be >= 1")
         _require(self.thread_count >= 1, "monte_carlo.thread_count must be >= 1")
         for dispersion in self.dispersions:
@@ -2308,8 +2325,10 @@ class Scenario:
         needs_sun = any(sc.power is not None or sc.station_keeping is not None or sc.enable_srp
                          or sc.comms_pointing is not None
                          for sc in self.spacecraft)
+        # A heliocentric run tracks the Sun as its central body (audit L27).
+        sun_tracked = "sun" in self.gravity.third_body_perturbers or self.gravity.central_body == "sun"
         if needs_sun:
-            _require("sun" in self.gravity.third_body_perturbers,
+            _require(sun_tracked,
                       "a spacecraft has power, station_keeping, enable_srp, or comms_pointing configured, "
                       "but 'sun' is not one of gravity.third_body_perturbers -- simpleSolarPanel/the eclipse "
                       "gate/SRP/comms_pointing's own sunSafePoint chain all need a sun ephemeris. Add 'sun' "
@@ -2317,7 +2336,6 @@ class Scenario:
                       "comms_pointing from every spacecraft")
         # A thermal sensor needs the Sun's position (sensorThermal); without
         # a tracked Sun the build failed (audit M16).
-        sun_tracked = "sun" in self.gravity.third_body_perturbers or self.gravity.central_body == "sun"
         for sc in self.spacecraft:
             thermal = [sensor.name for sensor in sc.sensors if sensor.kind == "thermal"]
             _require(not thermal or sun_tracked,

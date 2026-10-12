@@ -163,3 +163,26 @@ def test_the_cli_runs_with_an_unwritable_home(tmp_path, monkeypatch, capsys, _cl
     bad.write_text(json.dumps({"schema_version": 1, "name": "", "epoch_utc": "2030-01-01T00:00:00"}))
     assert cli.main(["validate", str(bad)]) == 1
     assert "INVALID" in capsys.readouterr().err
+
+
+def test_old_log_files_are_pruned_and_names_carry_the_process(tmp_path, _clean_logging_state, monkeypatch):
+    """Audit L25: log names had one-second resolution (two launches in the
+    same second shared a file) and the folder grew for ever. Names carry
+    the process id; only the newest KEEP_LOG_FILES are kept, and only this
+    tool's own log files are touched."""
+    import os
+
+    from spacemissionstudio import logging_setup
+
+    monkeypatch.setattr(logging_setup, "KEEP_LOG_FILES", 3)
+    for i in range(5):
+        old = tmp_path / f"spacemissionstudio_20260101T00000{i}Z.log"
+        old.write_text("old")
+        os.utime(old, (1_000_000 + i, 1_000_000 + i))  # [s] oldest first
+    (tmp_path / "notes.log").write_text("not ours")
+    log_file = logging_setup.configure_logging(log_dir=tmp_path)
+    assert log_file.name.endswith(f"_{os.getpid()}.log")
+    remaining = sorted(p.name for p in tmp_path.glob("spacemissionstudio_*.log"))
+    assert len(remaining) == 3 and log_file.name in remaining
+    assert "spacemissionstudio_20260101T000004Z.log" in remaining  # the newest old one
+    assert (tmp_path / "notes.log").exists()

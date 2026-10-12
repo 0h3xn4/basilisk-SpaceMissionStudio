@@ -84,8 +84,9 @@ Baseline: `develop` at `f2f0ce140` (2026-10-12), Basilisk 2.12.0, Python
 
 ## 2. Findings
 
-Nothing has been changed yet. Each finding gives where, how bad, what is
-wrong, why it matters, the proposed fix, and the evidence:
+The findings below are as reported before any fix; section 5 gives what
+was done about each. Each finding gives where, how bad, what is wrong,
+why it matters, the proposed fix, and the evidence:
 
 - **run**: reproduced by running the tool (inputs kept in the audit scratch folder);
 - **measured**: shown with a short numerical check;
@@ -514,3 +515,39 @@ Working notes, inputs and scripts are in the session scratch folder
   Which number should this release carry?
 - **Q6. Device catalog (L30):** are the non-European catalog entries
   (from your supplier database) meant to stay?
+
+## 5. Fix status
+
+The answers to section 4: Q1 run the sequence; Q2 behaviour changes
+accepted; Q3 clear the list before each run; Q4 Python 3.11 minimum; Q5
+release 3.0.0; Q6 remove the non-European entries.
+
+Every finding in section 2 is fixed. Each fix has a test whose
+docstring names the finding (`grep -rn "Audit L12" tests/`), except:
+
+- L28 and L30: documentation only (L30's catalog part has a test);
+- L17: a performance change (`deque` instead of `list.pop(0)`) with the
+  same behaviour, covered by the existing GEO station-keeping tests;
+- M15: the lost ERROR frame is a Windows connection reset, which Linux
+  does not reproduce. The SIL tests with a BSK_ERROR pass on Linux; the
+  fix has not run on Windows.
+
+Where the fix differs from the proposal:
+
+| Finding | What was done instead |
+|---|---|
+| H3 | No migration renames old names; a file with such a name is refused with a message giving the rule. |
+| M8 | Python 3.11 minimum (Q4), not 3.9 in CI. |
+| L16 | Our side empties `vizSupport.instrumentGuiSettingList` in place before each Vizard run (Q3); no Basilisk file is changed. |
+| L22 | The new export is generated in memory before the earlier one is removed; a failed write removes what it wrote. No temporary sibling folder. |
+| L25 | Logs carry the process id, and only the newest 100 are kept: a behaviour change (logs used to be kept for ever). |
+| L27 | A heliocentric run casts shadows only from the other tracked bodies. With none, there is no eclipse model (Basilisk's cannot run without a planet) and the spacecraft is always lit. Validation now accepts SRP or power around the Sun. |
+| L30 (Q6) | The Ukraine entry stays: Ukraine is in Europe, which the catalog defines geographically. The audit's list named it in error. Seven entries removed (India, Taiwan, South Africa x2, Canada, Israel, Japan); 32 remain. |
+
+Found while fixing, beyond section 2.6: the security analysis S-01 now
+covers Monte Carlo (it flies the sequence since H1), and S-14 the new
+export order (L22).
+
+The release check (tests, clean install, what is still unverified) is in
+section 6.
+

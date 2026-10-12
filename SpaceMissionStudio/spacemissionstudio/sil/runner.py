@@ -323,7 +323,10 @@ def run_sil(scenario, spacecraft_name: str, options: SilOptions, vizard_request=
     reset_tap = ResetTap(graph)
     service.scSim.AddModelToTask(service.dyn_task_name, reset_tap, -10**6)
 
-    listener = Listener(options.transport)
+    try:
+        listener = Listener(options.transport)
+    except OSError as exc:  # no socket could be opened: a SilError like the rest, not a raw OSError (L23)
+        raise SilError(f"could not open the link for the flight software ({options.transport}): {exc}") from exc
     report.address_kind = listener.kind
     token = secrets.token_hex(16)
     # Again, right before the start: building the simulation above takes seconds, and a program swapped in

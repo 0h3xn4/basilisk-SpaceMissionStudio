@@ -130,3 +130,14 @@ def test_migrate_rejects_a_version_with_no_registered_step(monkeypatch):
     monkeypatch.setattr(migrations_module, "MIGRATIONS", {})
     with pytest.raises(ScenarioValidationError, match="no migration registered"):
         migrate(_v1_scenario())
+
+
+@pytest.mark.parametrize("version", [0, -3])
+def test_a_version_below_one_is_named_as_a_bad_file(version):
+    """Audit L29: schema_version 0 reported "a bug in SpaceMissionStudio";
+    it is a file this tool never wrote, and the message says so."""
+    data = _v1_scenario()
+    data["schema_version"] = version
+    with pytest.raises(ScenarioValidationError, match="scenario versions start at 1") as raised:
+        migrate(data)
+    assert "bug" not in str(raised.value)

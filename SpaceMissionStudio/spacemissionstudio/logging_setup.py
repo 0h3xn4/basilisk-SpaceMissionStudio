@@ -53,6 +53,7 @@ scrolled-past or closed terminal, and can be attached to a bug report).
 from __future__ import annotations
 
 import logging
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -113,12 +114,11 @@ def configure_logging(log_dir: Optional[Path] = None, console_level: int = loggi
     log_dir = log_dir if log_dir is not None else default_log_dir()
     # One file per process launch (timestamped, not appended/rotated) --
     # simplest possible answer to "which run does this log belong to"
-    # when several are kept around; old ones are left for the user to
-    # clean up themselves (matching this project's existing archive
-    # -directory conventions elsewhere, e.g. Monte Carlo's own
-    # --archive-dir, rather than silently deleting anything).
+    # when several are kept around. The process id keeps two launches in
+    # the same second apart, and only the newest KEEP_LOG_FILES of this
+    # tool's own log files are kept (audit L25: they were never pruned).
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    log_file = log_dir / f"spacemissionstudio_{timestamp}.log"
+    log_file = log_dir / f"spacemissionstudio_{timestamp}_{os.getpid()}.log"
 
     formatter = logging.Formatter(
         fmt="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
@@ -163,6 +163,8 @@ def configure_logging(log_dir: Optional[Path] = None, console_level: int = loggi
     sys.excepthook = _log_uncaught_exception
 
     _configured = True
+    if file_handler is not None:
+        _prune_old_logs(log_dir, keep=log_file)
     if file_handler is None:
         logging.getLogger(__name__).warning("Could not create the log file in %s (%s); logging to the terminal only",
                                             log_dir, file_error)
@@ -170,6 +172,21 @@ def configure_logging(log_dir: Optional[Path] = None, console_level: int = loggi
     logging.getLogger(__name__).info("Logging to %s", log_file)
     _log_file_path = log_file
     return log_file
+
+
+KEEP_LOG_FILES = 100  # [-] newest log files kept in the log folder
+
+
+def _prune_old_logs(log_dir: Path, keep: Path) -> None:
+    """Delete this tool's oldest log files beyond :data:`KEEP_LOG_FILES`
+    (only ``spacemissionstudio_*.log``; never ``keep``, the current one)."""
+    try:
+        logs = sorted((p for p in log_dir.glob("spacemissionstudio_*.log") if p != keep),
+                      key=lambda p: p.stat().st_mtime, reverse=True)
+        for old in logs[KEEP_LOG_FILES - 1:]:
+            old.unlink(missing_ok=True)
+    except OSError:  # pruning is housekeeping: it never stops the tool
+        pass
 
 
 def get_log_file_path() -> Optional[Path]:

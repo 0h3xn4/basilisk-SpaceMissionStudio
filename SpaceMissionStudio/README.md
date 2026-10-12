@@ -1,7 +1,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-spacemissionstudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-spacemissionstudio/actions/workflows/spacemissionstudio.yml)
-![Version 2.0.0, plus unreleased changes](https://img.shields.io/badge/version-2.0.0%2B-blue)
+![Version 3.0.0](https://img.shields.io/badge/version-3.0.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -113,8 +113,8 @@ scripts are in [`packaging/`](packaging/README.md).
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
-- **Version:** 2.0.0, plus the unreleased changes listed in the
-  [changelog](CHANGELOG.md).
+- **Version:** 3.0.0 ([changelog](CHANGELOG.md)). Needs Python 3.11 or
+  newer.
 - **Tested** in CI on Linux, Windows and macOS with Basilisk 2.12.0;
   the Linux packages were installed and run end to end. The Windows
   installer and install script have not yet been run on a real Windows

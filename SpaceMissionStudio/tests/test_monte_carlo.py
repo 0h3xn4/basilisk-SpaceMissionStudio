@@ -386,7 +386,7 @@ def test_a_batch_runs_in_several_processes(tmp_path):
 
 
 def test_an_earlier_simulation_left_as_garbage_is_collected_before_the_batch_forks(tmp_path, monkeypatch):
-    """A Basilisk simulation left in a reference cycle by an earlier run hung
+    """Audit H5: a Basilisk simulation left in a reference cycle by an earlier run hung
     the batch: the Controller's forked data writer collected it, and
     SimModel's destructor waited forever on thread state copied from the
     parent. run_monte_carlo now collects such garbage before the Controller

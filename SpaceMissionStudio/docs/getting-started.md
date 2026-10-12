@@ -52,13 +52,13 @@ There is no published installer yet. Build one with
 [Inno Setup](https://jrsoftware.org/isinfo.php) (Windows), or get it from
 whoever distributes the app to you.
 
-**Linux:** double-click `spacemissionstudio_2.0.0_all.deb`, or:
+**Linux:** double-click `spacemissionstudio_3.0.0_all.deb`, or:
 
 ```bash
-sudo apt install ./spacemissionstudio_2.0.0_all.deb
+sudo apt install ./spacemissionstudio_3.0.0_all.deb
 ```
 
-**Windows:** double-click `spacemissionstudio-2.0.0-setup.exe` and follow
+**Windows:** double-click `spacemissionstudio-3.0.0-setup.exe` and follow
 the wizard.
 
 The installer downloads Basilisk and the reference data once. Then open

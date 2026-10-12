@@ -155,7 +155,7 @@ def test_identical_runs_report_zero_spread_not_rounding_noise():
 
 
 def test_a_folder_holding_only_system_clutter_counts_as_empty(tmp_path):
-    """A folder a file manager has touched (.DS_Store, Thumbs.db, desktop.ini,
+    """Audit M17: a folder a file manager has touched (.DS_Store, Thumbs.db, desktop.ini,
     hidden folders) is still empty for a new batch; a real file is not."""
     from spacemissionstudio.engine.monte_carlo_results import folder_state
 

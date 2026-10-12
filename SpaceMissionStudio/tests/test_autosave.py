@@ -129,3 +129,11 @@ def test_clear_failure_is_swallowed_not_raised(tmp_path, monkeypatch):
 
     monkeypatch.setattr(Path, "unlink", _raise)
     autosave.clear_recovery_file()  # must not raise
+
+
+def test_read_a_recovery_file_that_is_not_text_returns_none():
+    """Audit L13: a non-UTF-8 recovery file raised UnicodeDecodeError at
+    start-up; it is ignored like a corrupt one."""
+    autosave._RECOVERY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    autosave._RECOVERY_FILE.write_bytes(b"\xff\xfe\x00not text")
+    assert autosave.read_recovery_file() is None

@@ -44,6 +44,7 @@ source, size, SHA-256 and the EOP's last datum.
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 import re
@@ -141,9 +142,16 @@ def _installed_in(directory: Path) -> List[EOPKernel]:
         entries = json.loads(_manifest_path(directory).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return []
+    # A key this version does not know (a newer version's manifest) is
+    # ignored, and a broken entry skipped: either used to stop every build
+    # with a TypeError (audit L19).
+    known = {f.name for f in dataclasses.fields(EOPKernel)}
     kernels = []
-    for entry in entries:
-        kernel = EOPKernel(**entry)
+    for entry in entries if isinstance(entries, list) else []:
+        try:
+            kernel = EOPKernel(**{key: value for key, value in entry.items() if key in known})
+        except (TypeError, AttributeError):
+            continue
         path = Path(kernel.path)
         if path.is_file() and path.stat().st_size == kernel.size_bytes:
             kernels.append(kernel)
@@ -208,13 +216,16 @@ def fetch(directory: Optional[Path] = None, timeout_s: float = 300.0) -> List[EO
     directory = Path(directory) if directory else DEFAULT_DIR
     directory.mkdir(parents=True, exist_ok=True)
     staged = []
-    for name in available_files(timeout_s):
-        url = NAIF_PCK_URL + name
-        part = directory / (name + ".part")
-        part.write_bytes(_get(url, timeout_s))
-        comment = _get(NAIF_PCK_URL + name.replace(".bpc", ".cmt"), timeout_s).decode("utf-8", "replace")
-        staged.append((name, part, comment, url))
+    # The download loop is inside the try: a download that fails part way
+    # left the .part files of the ones before it (audit L19).
     try:
+        for name in available_files(timeout_s):
+            url = NAIF_PCK_URL + name
+            part = directory / (name + ".part")
+            staged.append((name, part, "", url))
+            part.write_bytes(_get(url, timeout_s))
+            comment = _get(NAIF_PCK_URL + name.replace(".bpc", ".cmt"), timeout_s).decode("utf-8", "replace")
+            staged[-1] = (name, part, comment, url)
         return _install(directory, staged)
     finally:
         for _name, part, _comment, _url in staged:

@@ -29,15 +29,15 @@ command below is a thin wrapper over ``schema.load_scenario()``,
 executed via ``engine.mission_engine.MissionEngine`` (propagate/maneuver/
 .../script_block commands drive the simulation, and a Command Summary CSV
 is written alongside the usual per-series ones if any ``report`` commands
-ran) instead of a single ``SimulationService.run()`` call -- the only
-place this CLI (and, once it exists, the GUI) needs to know that
-distinction exists; a scenario with no mission_sequence behaves exactly
-as it always has.
+ran) instead of a single ``SimulationService.run()`` call. The GUI's run
+worker makes the same choice; a scenario with no mission_sequence runs
+for ``sim_settings.duration_days``.
 
-Commands that don't need Basilisk (``validate``) work without a Basilisk
-build; commands that do (``run``, ``kernels-status``) import it lazily and
-report a clear, specific error instead of an ``ImportError`` traceback if
-it's missing -- see each command function's own lazy import.
+Commands that don't need Basilisk (such as ``validate``) work without a
+Basilisk build; commands that do (such as ``run``, ``monte-carlo`` and
+``kernels-status``) import it lazily and report a clear, specific error
+instead of an ``ImportError`` traceback if it's missing -- see each command
+function's own lazy import.
 
 Usage::
 

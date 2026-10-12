@@ -197,7 +197,7 @@ Periodic reaction-wheel momentum desaturation via this spacecraft's ``"thruster"
 
 ## MonteCarloConfig
 
-Batch execution settings -- see ``engine/monte_carlo.py``. ``thread_count`` > 1 uses ``multiprocessing.Pool`` under the hood (``Basilisk.utilities.MonteCarlo.Controller``); this has NOT been exercised in this project's development sandbox (no Basilisk build here -- see engine/monte_carlo.py's verification-status note), so the default is the conservative, definitely-safe ``1``.
+Batch execution settings -- see ``engine/monte_carlo.py``. ``thread_count`` > 1 runs the batch in parallel processes (``Basilisk.utilities.MonteCarlo.Controller``'s ``multiprocessing.Pool``), exercised by the test suite against Basilisk 2.12.0; the default stays ``1``. Every run flies the scenario's Mission Sequence when it has one.
 
 | Field | Type | Default | Unit / note |
 |---|---|---|---|

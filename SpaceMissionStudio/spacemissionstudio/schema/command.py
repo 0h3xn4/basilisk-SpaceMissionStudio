@@ -21,9 +21,9 @@ r"""
 alongside the resource fields (``gravity``, ``spacecraft``,
 ``ground_stations``, ...) that already existed before this module: a
 scenario's ``mission_sequence`` is an ORDERED list of :class:`Command`,
-walked in order by ``engine.mission_engine`` (not yet written -- this
-module is the GUI/Basilisk-independent data model only, same split
-``schema/scenario.py`` already uses).
+walked in order by ``engine.mission_engine.MissionEngine``. This module
+is the GUI/Basilisk-independent data model only, the same split
+``schema/scenario.py`` uses.
 
 Inspired by GMAT's Resources/Mission-Sequence split and FreeFlyer's
 Objects/Mission-Sequence split, but deliberately NOT a port of either
