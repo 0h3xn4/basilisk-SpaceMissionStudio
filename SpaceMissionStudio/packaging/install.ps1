@@ -99,7 +99,11 @@ if ($LASTEXITCODE -ne 0) {
 
 if ($BasiliskWheel) {
     Write-Host "Installing vendored Basilisk wheel from $BasiliskWheel ..."
-    & $VenvPython -m pip install --quiet $BasiliskWheel
+    # Basilisk's own dependencies at the tested versions (constraints.txt,
+    # audit M14), but not its bsk pins, so any Basilisk wheel is accepted.
+    $DepsConstraints = Join-Path $Prefix "constraints-without-bsk.txt"
+    Get-Content (Join-Path $ScriptDir "constraints.txt") | Where-Object { $_ -notmatch '^bsk' } | Set-Content -Encoding utf8 $DepsConstraints
+    & $VenvPython -m pip install --quiet -c $DepsConstraints $BasiliskWheel
     if ($LASTEXITCODE -ne 0) {
         throw "pip install '$BasiliskWheel' failed (exit code $LASTEXITCODE)"
     }

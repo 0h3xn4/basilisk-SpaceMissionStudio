@@ -251,6 +251,7 @@ def test_the_magnetic_field_is_evaluated_at_the_scenario_epoch():
     assert (epoch.year, epoch.month, epoch.day) == (2026, 1, 1)
 
 
+@pytest.mark.requires_basilisk
 def test_a_heliocentric_run_does_not_make_the_sun_shadow_itself():
     """Audit L27: around the Sun, the eclipse model listed the Sun as an
     occulting body of its own light. A Sun-centred run with SRP now passes

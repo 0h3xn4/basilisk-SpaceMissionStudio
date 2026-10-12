@@ -113,7 +113,7 @@ If someone already installed SpaceMissionStudio for you, skip to
 [Section 3](#3-starting-the-app).
 
 **Linux:** double-click the `.deb` file you were given (or run
-`sudo apt install ./spacemissionstudio_2.0.0_all.deb` in a terminal), then
+`sudo apt install ./spacemissionstudio_3.0.0_all.deb` in a terminal), then
 find **SpaceMissionStudio** in your application menu like any other program.
 
 **Windows 10/11:** double-click the `.exe` installer you were given and

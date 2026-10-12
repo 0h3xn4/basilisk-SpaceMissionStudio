@@ -551,3 +551,52 @@ export order (L22).
 The release check (tests, clean install, what is still unverified) is in
 section 6.
 
+
+## 6. Release check (3.0.0, 2026-10-12)
+
+| Item | Result | Evidence |
+|---|---|---|
+| Full test suite | **Pass:** 2865 passed, 10 skipped, 0 failed (Python 3.11, Basilisk 2.12.0, PySide6 6.11.2, 8 min) | `pytest -n 4` on the release commit's tree |
+| Suite without Basilisk | **Pass:** 2445 passed, 430 skipped, 0 failed: the `requires_basilisk` markers hold | same tree, a venv without Basilisk |
+| Lint | **Pass:** `ruff check .` clean | |
+| Generated compliance documents | **Pass:** the five generators and `build_matrix.py` re-run; no drift left | `git diff --exit-code -- compliance/docs` |
+| Version | **3.0.0** in `pyproject.toml`, `__init__.py` and the `.iss`; the `.deb` reads it | `docs/developer/releasing.md` section 2 |
+| Changelog and records | **Done:** `CHANGELOG.md` 3.0.0 (breaking changes first), `HISTORY.md` entry, SRelD issue 2, this document | |
+| Release-note snippet | **Not needed:** snippets are for Basilisk framework changes; this release changes no file outside `SpaceMissionStudio/` (same reasoning as `HISTORY.md`'s earlier entry on snippets) | |
+| Pinned dependencies | **Done:** `packaging/constraints.txt` used by `install.sh`, `install.ps1`, the `.deb`, the `.iss` and CI. Found in the clean install: a Basilisk wheel given to the install scripts pulled newer MarkupSafe (3.0.4) and platformdirs (4.13.0); its dependencies are now constrained too (all pins except `bsk`). Re-run: every pin installed exactly | clean install below |
+| Debug output, TODO hacks | **None:** no `breakpoint`/`pdb`/stray `print` outside the CLI; no TODO/FIXME/XXX/HACK in the package, scripts, examples or C templates | grep |
+| Clean install from scratch | **Pass (Linux):** `install.sh` with the PyPI `bsk` 2.12.0 wheel, a fresh HOME, Python 3.11. Support data and Earth orientation pre-fetched; `kernels-status` all OK; all 27 templates validate; templates 01, 08, 16, 19, 26 run; Monte Carlo template 09 runs 20 cases; the GUI starts | logs kept in the session scratch folder |
+| Debian package | **Built**, checksum verified, maintainer scripts parse. **Installing it with `dpkg` was not run** (not permitted in this environment) | `build_deb.sh` |
+
+**What remains uncertain:**
+- **Windows:** the installer (`.iss`, with its new Python 3.11 check and
+  `constraints.txt` path), `install.ps1` (its new constraints step) and
+  the graceful SIL close (M15) have not run on Windows. CI's Windows job
+  runs the test suite, not the installers.
+- **macOS:** only the CI test job.
+- **The `.deb` install** on a real system, this release (last run at
+  1.0.0; the install logic changed since, by the constraints).
+- **The bundled space weather is old:** CelesTrak's observations end on
+  2025-07-20. The release checklist says to refresh it; the download
+  from celestrak.org was refused by this environment's network policy.
+  Runs after that date use the file's forecasts until the user
+  downloads a newer file. Refresh it before tagging, then re-run the
+  tests (SRelD K-13).
+- **The GUI** was smoke-started and is covered by the offscreen GUI
+  tests; it was not used by hand.
+- The items of section 2.5 not verified then are still not verified
+  (Mission Sequences past 104 days with drag or eclipse; Vizard on a
+  display).
+- **Small gap noticed:** the CLI has no `--version` flag (the version is
+  in `provenance.json`, the GUI and `pip show`). Not fixed.
+
+**Releasable?** Yes for Linux, in my judgement: every audit finding is
+fixed and tested, the suite is green with and without Basilisk, and a
+clean install works end to end. Before tagging I would:
+1. refresh the bundled space weather;
+2. run the Windows installer once on a real Windows machine;
+3. let CI pass on all three platforms on the release commit.
+
+Until the Windows installer has run once, the Windows build should be
+called untested in the release notes. The tag itself (H05) is yours to
+make.

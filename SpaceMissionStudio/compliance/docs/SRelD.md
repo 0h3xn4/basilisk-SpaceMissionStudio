@@ -1,20 +1,20 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 1 (draft), 2026-10-08. Remediation R14.
+Document: SMS-SRelD, issue 2 (draft), 2026-10-12. Remediation R14.
 
-**Status:** draft for a release candidate.
-- This branch has not been released. Its version string is still 2.0.0,
-  although it contains about 150 commits made after the 2.0.0 release
-  commit.
-- The release will be **2.1.0** (decision 11): the version is set and the
-  release tagged, without signing (D-13), when the user says release.
+**Status:** draft for release **3.0.0**.
+- The version string is set to 3.0.0. The user chose 3.0.0 in the
+  pre-release audit (`AUDIT.md`, Q5), replacing the 2.1.0 of decision
+  11, because the release changes behaviour users rely on (5.1).
+- The release is not yet tagged; the tag (without signing, D-13) is made
+  when the user says release.
 
 ## 1 Introduction (G.2.1<1>)
 
-This SRelD describes the release candidate built from branch
-`compliance/ecss-ccsds-audit` of `0h3xn4/basilisk`: what it contains, what
-changed since 2.0.0, what is known to be wrong, and how to use it.
+This SRelD describes release 3.0.0 of SpaceMissionStudio in
+`0h3xn4/basilisk`: what it contains, what changed since 2.0.0, what is
+known to be wrong, and how to use it.
 
 ## 2 Applicable and reference documents (G.2.1<2>)
 
@@ -38,8 +38,9 @@ changed since 2.0.0, what is known to be wrong, and how to use it.
 | Item | Value |
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
-| Baseline | The head commit of `compliance/ecss-ccsds-audit` at release. Previous release: 2.0.0, commit `56938840d`, 2026-10-01. |
-| Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3) |
+| Baseline | The commit tagged for 3.0.0. Previous release: 2.0.0, commit `56938840d`, 2026-10-01. |
+| Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt` |
+| Platform | Python 3.11 or newer |
 | Delivery | Python wheel and sdist (`packaging/build_wheel.sh`), Debian package (`packaging/build_deb.sh`), Windows installer (`packaging/windows/spacemissionstudio.iss`), each with SHA-256 checksums |
 | Documentation | SUM and `USER_MANUAL.md`; the documents in `compliance/docs/` |
 | Basilisk framework | Unchanged. Against `develop`, the branch changes only `SpaceMissionStudio/` and `.github/workflows/spacemissionstudio.yml` (`git diff --name-only origin/develop HEAD`). |
@@ -79,6 +80,17 @@ SpaceMissionStudio". In summary:
 - the documents of `compliance/docs/`;
 - the security changes: script-block consent and safe conditions.
 
+**Pre-release audit (`AUDIT.md`, 2026-10-12):** no critical findings;
+5 high, 17 medium and 30 low, all fixed (`AUDIT.md` section 5). The
+breaking changes that make this a major release are listed in
+`CHANGELOG.md` 3.0.0:
+- Python 3.11 minimum;
+- Monte Carlo runs fly the Mission Sequence (before, they silently did
+  not), with script-block consent;
+- scenario files with unsafe names, settings Basilisk exits on, or
+  values that fail at run time are refused at load, naming the field;
+- installers install the tested dependency versions.
+
 **Changes users notice:**
 - Drag results (lifetimes, budgets) change after F-07.
 - A scenario with script blocks now asks before running them.
@@ -102,14 +114,18 @@ SpaceMissionStudio". In summary:
 | K-11 | F-09, fixed: parallel runs could read a half-written space-weather file. Altitude trades with more than one worker and Monte Carlo runs with NRLMSISE-00 drag, made before the fix, may have used wrong solar activity | Those results are to be re-run | `review_log.md` F-09 |
 | K-08 | Closed: the PNG/SVG export polled the page with overlapping asynchronous queries; a late timer tick read the cleared state (the CI tracebacks), and several answers could save the file twice. One query at a time now, late answers ignored (F-12) | – | `review_log.md` F-12 |
 | K-09 | 988 of 1488 unit and integration tests have no docstring | Weaker test documentation | `SUITP_test_cases.md` |
+| K-12 | Fixes for Windows behaviour (graceful SIL close, M15; the installer's Python version check) were not run on Windows | Unknown on Windows | `AUDIT.md` sections 5 and 6 |
+| K-13 | The bundled CelesTrak space weather ends its observations on 2025-07-20; it could not be refreshed for this release | Runs after that date use CelesTrak's and NOAA's forecasts until the user downloads a newer file (start-up prompt or Data tab) | `spacemissionstudio/data/spaceweather/README.md` |
 
 **Waivers and deviations:** D-01 to D-13 (RD4). D-08 to D-13 are signed; D-01 to D-07
 are not (decision 14, H08).
 
 ## 6 Operational aspects (G.2.1<6>)
 
-- **Install Basilisk 2.12.0.** Other versions run, but with a warning:
-  their results are not covered by the validation.
+- **Use Python 3.11 or newer and Basilisk 2.12.0.** Other Basilisk
+  versions run, but with a warning: their results are not covered by
+  the validation. The installers install the versions in
+  `packaging/constraints.txt`.
 - **Install the IERS-based Earth orientation files** for any run with a
   gravity field:
   - start-up prompt, or

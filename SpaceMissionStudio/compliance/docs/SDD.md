@@ -3,7 +3,7 @@
 DRD: ECSS-E-ST-40C Annex F
 Document: SMS-SDD, issue 1 (draft), 2026-10-08. Remediation R14.
 
-**Status:** draft. It describes the design as implemented (version 2.0.0)
+**Status:** draft. It describes the design as implemented (version 3.0.0)
 after the fact; the design was not produced in this form before the code
 was written. It has not been reviewed (H01: PDR/CDR).
 
