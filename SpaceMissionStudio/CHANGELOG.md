@@ -10,6 +10,8 @@ fixes bugs.
 
 ## 3.0.0 (2026-10-12)
 
+[Release page](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0): the wheel, sdist, Linux `.deb` and `SHA256SUMS`.
+
 Everything since 2.0.0, including the fixes from the pre-release audit
 ([`AUDIT.md`](AUDIT.md)).
 

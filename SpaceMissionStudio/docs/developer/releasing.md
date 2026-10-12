@@ -82,15 +82,32 @@ sha256sum dist/*.whl dist/*.deb > SHA256SUMS
 
 ## 6. Publish
 
-- Tag the release commit: `git tag -a spacemissionstudio-vX.Y.Z -m "SpaceMissionStudio X.Y.Z"`,
-  then `git push origin spacemissionstudio-vX.Y.Z`.
-- Create a GitHub release from the tag, attach the artifacts and
-  `SHA256SUMS`, and paste the CHANGELOG section as the notes.
+- Create a GitHub release on <https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/new>:
+  a new tag on the release commit (`develop` after the release pull
+  request is merged), the title "SpaceMissionStudio X.Y.Z", the
+  CHANGELOG section as the notes, and the wheel, sdist, `.deb` and
+  `SHA256SUMS` attached. Say in the notes which platforms' installers
+  were not run.
+- After publishing, download the assets from the release and run
+  `sha256sum -c SHA256SUMS`.
+- Update the records that name the release: the Software Release
+  Document (status, baseline commit), `compliance/human_actions.md` H05,
+  and the compliance assessments (then run `compliance/tools/build_matrix.py`).
 
-No release tag exists yet for the tool; the versions so far (1.0.0,
-1.1.0, 2.0.0) were set in the files only. The tag name above is a
-proposal that keeps the tool's tags apart from Basilisk's own `vX.Y.Z`
-tags in this fork.
+**Tag name: use `spacemissionstudio-vX.Y.Z`, not `vX.Y.Z`.** This fork
+keeps Basilisk's own workflows, and a `v*` tag starts two of them:
+`publish-container.yml`, which pushes a *Basilisk* image tagged with the
+version and `latest` to this repository's GHCR, and `publish-wheels.yml`,
+which builds Basilisk wheels and tries to upload them to PyPI. Both ran
+for the `v3.0.0` tag: PyPI refused the upload (no trusted publisher for
+the fork), and the container run was cancelled after its arm64 image had
+been pushed. A `spacemissionstudio-v*` tag starts neither. The
+SpaceMissionStudio workflow also runs on a tag push, on the commit
+`develop` already passed.
+
+Releases so far, all tagged `vX.Y.Z` on `develop`: 1.0.0, 1.1.0 and
+2.0.0 (without assets), and 3.0.0 (2026-10-12, commit `a84ae3784`, with
+the wheel, sdist, `.deb` and `SHA256SUMS`).
 
 ---
 

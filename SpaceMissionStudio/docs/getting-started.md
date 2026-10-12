@@ -46,11 +46,15 @@ against.
 
 ## 3. Path A: the installer
 
-There is no published installer yet. Build one with
-`packaging/build_deb.sh` (Linux) or
+The Linux installer is published with each release: download
+`spacemissionstudio_3.0.0_all.deb` from the
+[3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) and check it against that release's
+`SHA256SUMS` (`sha256sum -c SHA256SUMS --ignore-missing`). There is no
+published Windows installer yet: build one from
 `packaging/windows/spacemissionstudio.iss` with
-[Inno Setup](https://jrsoftware.org/isinfo.php) (Windows), or get it from
-whoever distributes the app to you.
+[Inno Setup](https://jrsoftware.org/isinfo.php), or use
+`packaging/install.ps1` ([section 4](#4-path-b-the-install-script)).
+You can also build the `.deb` yourself with `packaging/build_deb.sh`.
 
 **Linux:** double-click `spacemissionstudio_3.0.0_all.deb`, or:
 

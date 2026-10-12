@@ -1,14 +1,15 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 2 (draft), 2026-10-12. Remediation R14.
+Document: SMS-SRelD, issue 3, 2026-10-12. Remediation R14.
 
-**Status:** draft for release **3.0.0**.
-- The version string is set to 3.0.0. The user chose 3.0.0 in the
-  pre-release audit (`AUDIT.md`, Q5), replacing the 2.1.0 of decision
-  11, because the release changes behaviour users rely on (5.1).
-- The release is not yet tagged; the tag (without signing, D-13) is made
-  when the user says release.
+**Status:** release **3.0.0**, published 2026-10-12.
+- The user chose 3.0.0 in the pre-release audit (`AUDIT.md`, Q5),
+  replacing the 2.1.0 of decision 11, because the release changes
+  behaviour users rely on (5.1).
+- Tag `v3.0.0` (not signed, D-13) on commit `a84ae3784`, the merge of
+  the release pull request into `develop`; GitHub release
+  <https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0>.
 
 ## 1 Introduction (G.2.1<1>)
 
@@ -38,10 +39,10 @@ known to be wrong, and how to use it.
 | Item | Value |
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
-| Baseline | The commit tagged for 3.0.0. Previous release: 2.0.0, commit `56938840d`, 2026-10-01. |
+| Baseline | Tag `v3.0.0`, commit `a84ae3784` on `develop`, 2026-10-12. Previous release: 2.0.0, commit `56938840d`, 2026-10-01. |
 | Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt` |
 | Platform | Python 3.11 or newer |
-| Delivery | Python wheel and sdist (`packaging/build_wheel.sh`), Debian package (`packaging/build_deb.sh`), Windows installer (`packaging/windows/spacemissionstudio.iss`), each with SHA-256 checksums |
+| Delivery | Attached to the GitHub release: the wheel and sdist (`packaging/build_wheel.sh`), the Debian package (`packaging/build_deb.sh`) and `SHA256SUMS` (wheel `4515f07c...aa91`, sdist `4ece7e2a...36a3`, `.deb` `807292d9...28e2`), checked after download. The Windows installer (`packaging/windows/spacemissionstudio.iss`) is not published: it has not been built or run (K-12) |
 | Documentation | SUM and `USER_MANUAL.md`; the documents in `compliance/docs/` |
 | Basilisk framework | Unchanged. Against `develop`, the branch changes only `SpaceMissionStudio/` and `.github/workflows/spacemissionstudio.yml` (`git diff --name-only origin/develop HEAD`). |
 

@@ -63,7 +63,7 @@ SOFTWARE_RULES = [
      "(manifest.json, capture.json), the interfaces (ICD.md), the parameter traceability (TRACEABILITY.md) and its "
      "verification (unit tests, the replay of a recorded run, and a SIL harness that runs it against the simulation, "
      "SRS-F-19).", "-", "S", "no", ""),
-    ("E-ST-40C", "5.3.2.5a", "P", "compliance/docs/SDP.md section 6 (configuration management description); git", "Changes go through git and CI; no change board (waived, D-12) and no release tags yet (version 3.0.0 set, to be tagged when the user releases; AUDIT.md Q5).", "-", "S", "no", "R14,D-12"),
+    ("E-ST-40C", "5.3.2.5a", "P", "compliance/docs/SDP.md section 6 (configuration management description); git", "Changes go through git and CI; no change board (waived, D-12) and releases are tagged on develop (v3.0.0 on a84ae3784, 2026-10-12; docs/developer/releasing.md).", "-", "S", "no", "R14,D-12"),
     ("E-ST-40C", "5.3.3*", "N", "-", "No joint or technical reviews held.", _REVIEW_FIX, "M", "no", "H01,D-08"),
     ("E-ST-40C", "5.3.4*", "N", "-", "No project reviews (SRR, PDR, CDR, QR, AR) held.", _REVIEW_FIX, "M", "no", "H01,D-08"),
     ("E-ST-40C", "5.3.5*", "N", "-", "No TRR/TRB/DRB/SVSR held.", _REVIEW_FIX, "S", "no", "H01,D-08"),
@@ -119,7 +119,7 @@ SOFTWARE_RULES = [
     ("E-ST-40C", "5.6.4.4a", "N", "-", "No QR.", _REVIEW_FIX, "S", "no", "H01,D-08"),
     ("E-ST-40C", "5.6.5a", "P", "compliance/docs/SVR.md 4.6 (validation status per case)", "Status reported by the supplier; not reviewed.", "Review (H01).", "S", "no", "R14,H01"),
     # 5.7 delivery and acceptance
-    ("E-ST-40C", "5.7.2.1a", "P", "packaging/; compliance/docs/SRelD.md", "Release document for 3.0.0 (version set, not yet tagged).", "Release with a new version (H05).", "S", "no", "R14,H05"),
+    ("E-ST-40C", "5.7.2.1a", "P", "packaging/; compliance/docs/SRelD.md", "Release 3.0.0 published on GitHub with the wheel, sdist, .deb and SHA-256 checksums; the Windows installer is not built or published (SRelD K-12).", "Release with a new version (H05).", "S", "no", "R14,H05"),
     ("E-ST-40C", "5.7.2.1b", "P", "packaging/build_wheel.sh, build_wheel.ps1, build_deb.sh write SHA-256 checksums (security analysis S-07)", "Releases are checksummed; signing waived by the user (decision 11); dependencies not pinned by hash (S-08).", "Lock file with hashes (S-08).", "S", "no", "R15,D-13"),
     ("E-ST-40C", "5.7.2.2a", "NA", "-", "No training specified in a business agreement.", "-", "S", "no", ""),
     ("E-ST-40C", "5.7.2.3*", "P", "packaging/README.md, install scripts; compliance/docs/security_analysis.md section 6; SUM 9.2, 9.9", "Installation security assessed; installs from PyPI without hash checking (S-08); Windows installer not tested (H13).", "S-08 lock file; test (H13).", "S", "no", "R15,H13"),

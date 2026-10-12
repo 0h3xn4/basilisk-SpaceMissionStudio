@@ -603,3 +603,13 @@ clean install works end to end. Before tagging I would:
 Until the Windows installer has run once, the Windows build should be
 called untested in the release notes. The tag itself (H05) is yours to
 make.
+
+**Released 2026-10-12** by the user: [`v3.0.0`](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) on `a84ae3784`
+(the merge of pull request #43), with the wheel, sdist, `.deb` and
+`SHA256SUMS`. The assets were downloaded from the release and checked
+against `SHA256SUMS`. The `v*` tag also started Basilisk's own publish
+workflows in this fork. PyPI refused their wheel upload, and the
+container run was cancelled after its arm64 image had been pushed to
+this repository's GHCR (to be deleted by the user). The release
+procedure now names `spacemissionstudio-vX.Y.Z` tags, which start
+neither (`docs/developer/releasing.md` section 6).
