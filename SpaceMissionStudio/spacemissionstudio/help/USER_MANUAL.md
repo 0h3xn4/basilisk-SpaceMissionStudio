@@ -112,7 +112,8 @@ you need pointing.
 If someone already installed SpaceMissionStudio for you, skip to
 [Section 3](#3-starting-the-app).
 
-**Linux:** double-click the `.deb` file you were given (or run
+**Linux:** double-click the `.deb` file you were given, or the one
+from the [3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) (or run
 `sudo apt install ./spacemissionstudio_3.0.0_all.deb` in a terminal), then
 find **SpaceMissionStudio** in your application menu like any other program.
 

@@ -113,8 +113,8 @@ scripts are in [`packaging/`](packaging/README.md).
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
-- **Version:** 3.0.0 ([changelog](CHANGELOG.md)). Needs Python 3.11 or
-  newer.
+- **Version:** 3.0.0 ([release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0),
+  [changelog](CHANGELOG.md)). Needs Python 3.11 or newer.
 - **Tested** in CI on Linux, Windows and macOS with Basilisk 2.12.0;
   the Linux packages were installed and run end to end. The Windows
   installer and install script have not yet been run on a real Windows

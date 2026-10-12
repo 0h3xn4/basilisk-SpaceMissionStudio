@@ -8952,3 +8952,12 @@ injection test uses a name that is still legal and asserts the old one
 is refused; the installer pin check allows `-c constraints.txt`; two
 thermal-sensor fixtures add the Sun. The full suite, ruff and the
 compliance generators ran clean before the commit.
+
+**Released.** The user published [`v3.0.0`](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) on 2026-10-12 on
+the merge commit `a84ae3784`, with the wheel, sdist, `.deb` and
+`SHA256SUMS`; the downloaded assets match the checksums. The tag also
+started two workflows this fork inherits from Basilisk. One was a wheel
+upload to PyPI, which PyPI refused. The other was a container publish,
+cancelled after it had pushed an arm64 Basilisk image to this
+repository's GHCR. Later releases use `spacemissionstudio-vX.Y.Z` tags,
+which start neither (`docs/developer/releasing.md`).
