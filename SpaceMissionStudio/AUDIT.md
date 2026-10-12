@@ -156,7 +156,7 @@ trav/a/b/out --oem` wrote `escaped.*.csv` and `escaped.oem` into
 `trav/a`, two levels up. The tool treats scenario files from other
 people as untrusted (script blocks need consent), but a shared file can
 place `.csv`/`.oem`/`.opm` files anywhere the user can write. Names
-containing `.` also break the `"<spacecraft>.<field>"` series naming.
+containing `.` also break the `"<spacecraft>.<field>"` series naming (read, not run).
 Two names that differ only in punctuation ("sat 1", "sat-1") also
 collide in Monte Carlo (`monte_carlo.py:226-239`): a dispersion silently
 lands on the other spacecraft. *Fix:* refuse `/`, `\`, `..`, a leading
