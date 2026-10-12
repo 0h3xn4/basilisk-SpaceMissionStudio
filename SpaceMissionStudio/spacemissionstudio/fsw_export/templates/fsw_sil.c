@@ -394,6 +394,10 @@ done:
 void fsw_sil_report_error(const char *message)
 {
     if (activeTransport != NULL) {
-        sendError(activeTransport, message);
+        FswTransport *t = activeTransport;
+        activeTransport = NULL;
+        sendError(t, message);
+        /* The caller exits next: close now, so the frame is delivered (audit M15). */
+        t->close(t);
     }
 }

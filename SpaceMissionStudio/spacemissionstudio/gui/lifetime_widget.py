@@ -72,7 +72,7 @@ class _LifetimeWorker(QThread):
                                                        forecast_percentile=percentile, drag_coeff=drag_coeff))
         except lifetime.LifetimeError as exc:
             self.failed.emit(str(exc))
-        except Exception as exc:  # noqa: BLE001 -- shown in the tab, never a crashed thread
+        except (Exception, SystemExit) as exc:  # noqa: BLE001 -- shown in the tab, never a crashed thread
             self.failed.emit(f"lifetime estimate failed: {exc}")
 
 

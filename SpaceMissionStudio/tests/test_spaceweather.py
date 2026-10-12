@@ -533,3 +533,14 @@ def test_import_checks_the_file_like_a_download(tmp_path):
 def _write(path, data: bytes):
     path.write_bytes(data)
     return path
+
+
+def test_a_folder_or_a_binary_file_is_a_space_weather_error(tmp_path):
+    """Audit M12: a local_file_path naming a folder or a binary file reached
+    `lifetime` as a UnicodeDecodeError traceback; both are now reported."""
+    with pytest.raises(sw.SpaceWeatherError, match="is not a file"):
+        sw.load_celestrak(tmp_path)
+    binary = tmp_path / "SW-All.txt"
+    binary.write_bytes(b"\xff\xfe\x00binary")
+    with pytest.raises(sw.SpaceWeatherError, match="could not read .* as a CelesTrak space-weather file"):
+        sw.load_celestrak(binary)

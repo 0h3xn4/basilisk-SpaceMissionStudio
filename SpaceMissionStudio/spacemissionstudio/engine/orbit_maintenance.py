@@ -506,6 +506,9 @@ class StationKeepingController(sysModel.SysModel):
         self._burnWasOn = False
 
         self.burnOn = False
+        # [s] when a reboost was first wanted with the tank empty; None while
+        # propellant lasts. Logged once and reported as a run warning (audit M4).
+        self.depletedAtS: Optional[float] = None
         # Formation-follower mode -- see this class's own docstring. Set by
         # build_phasing_keeping, never by build_station_keeping itself.
         self.formationFollower = False
@@ -681,7 +684,9 @@ class StationKeepingController(sysModel.SysModel):
         self._burnWasOn = self.burnOn
         thrustMag = 0.0  # [N]
         if self.burnOn and self.propellant <= 1e-9:
-            self.bskLogger.warning(f"{self.ModelTag}: propellant depleted, reboost inhibited")
+            if self.depletedAtS is None:
+                self.depletedAtS = t
+                self.bskLogger.warning(f"{self.ModelTag}: propellant depleted, reboosts inhibited from now on")
         elif self.burnOn or self.thruster.firing_owned_by(self):
             massEstimate = (self.scObject.scMassOutMsg.read().massSC if self.scObject is not None
                             else (self.dryMass + self.propellant))  # [kg]

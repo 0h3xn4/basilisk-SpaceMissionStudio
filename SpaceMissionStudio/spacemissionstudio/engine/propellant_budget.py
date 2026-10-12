@@ -72,6 +72,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Callable, List, Optional
 
+from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import PropellantBudgetConfig
 
 G0_M_S2 = 9.80665  # [m/s^2]
@@ -737,17 +738,28 @@ def altitude_trade(scenario, spacecraft_name: str, altitudes_km=None, result=Non
     else:
         import multiprocessing
         import os
-        from concurrent.futures import ProcessPoolExecutor, as_completed
 
         count = min(len(jobs), workers or os.cpu_count() or 1)
-        # spawn: a clean interpreter per worker (forking a process running Qt or Basilisk threads is unsafe)
-        with ProcessPoolExecutor(count, mp_context=multiprocessing.get_context("spawn")) as pool:
-            futures = [pool.submit(_sweep_at, job) for job in jobs]
-            for future in as_completed(futures):
+        # spawn: a clean interpreter per worker (forking a process running Qt
+        # or Basilisk threads is unsafe). A Pool, unlike ProcessPoolExecutor,
+        # can be terminated: Cancel stops the running sweeps at once instead
+        # of waiting for them (audit L5); cancellation is polled every 0.2 s.
+        pool = multiprocessing.get_context("spawn").Pool(count)
+        try:
+            pending = [pool.apply_async(_sweep_at, (job,)) for job in jobs]
+            while pending:
                 if should_cancel is not None and should_cancel():
-                    pool.shutdown(wait=False, cancel_futures=True)
                     raise BudgetError("cancelled")
-                report(future.result())
+                pending[0].wait(0.2)  # [s]
+                for done in [job for job in pending if job.ready()]:
+                    pending.remove(done)
+                    report(done.get())
+            pool.close()
+        except BaseException:
+            pool.terminate()
+            raise
+        finally:
+            pool.join()
     cases.sort(key=lambda case: case.altitude_km)
     tank = config.tank_capacity_kg or (spacecraft.station_keeping.propellant_kg
                                        if spacecraft.station_keeping is not None else None)
@@ -766,7 +778,7 @@ def altitude_trade(scenario, spacecraft_name: str, altitudes_km=None, result=Non
 
 
 def _parse_epoch(epoch_utc: str):
-    from datetime import datetime, timezone
+    from datetime import timezone
 
-    when = datetime.fromisoformat(epoch_utc)
+    when = parse_epoch_utc(epoch_utc)
     return when.astimezone(timezone.utc).replace(tzinfo=None) if when.tzinfo is not None else when

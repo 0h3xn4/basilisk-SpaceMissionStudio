@@ -107,12 +107,12 @@ def _dangling_command_references(scenario: "Scenario", spacecraft_names: set, gr
     ``dispersion.spacecraft in names`` style checks, but collecting every
     one found instead of raising on the first.
     """
-    from .references import _command_references  # local: internal helper, not part of the public API
+    from .references import _PLURAL, _command_references  # local: internal helpers, not part of the public API
 
     errors: List[str] = []
     for ref in _command_references(scenario.mission_sequence, "mission_sequence"):
         known = spacecraft_names if ref.resource_kind == "spacecraft" else ground_station_names
         if ref.name not in known:
             errors.append(f"{ref.path}: {ref.resource_kind} {ref.name!r} is not one of this scenario's "
-                            f"{ref.resource_kind}s {sorted(known)}")
+                            f"{_PLURAL[ref.resource_kind]} {sorted(known)}")
     return errors

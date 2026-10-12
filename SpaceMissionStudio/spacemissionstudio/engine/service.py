@@ -165,6 +165,7 @@ from Basilisk.simulation import spacecraft, svIntegrators
 from Basilisk.utilities import SimulationBaseClass, macros, orbitalMotion, simHelpers, simIncludeGravBody
 from Basilisk.utilities.supportDataTools.dataFetcher import DataFile
 
+from ..schema.epochs import parse_epoch_utc
 from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import dependencies, output_provenance
 from ..schema.scenario import OrbitIC, Scenario
@@ -629,6 +630,7 @@ class SimulationService:
         # the run stopped there rather than integrate it through the Earth
         self.reentry: Optional[tuple] = None
         self._space_weather_warnings: List[str] = []  # what the resolved space weather is built from
+        self._model_warnings: List[str] = []  # environment models used outside their validity
         self._data_files: Dict[str, Dict[str, object]] = {}  # reference data used, for RunProvenance
         self._earth_orientation_notes: List[str] = []
         self._geodetic_proxies: List = []
@@ -826,7 +828,7 @@ class SimulationService:
             if eop_kernels:
                 self.earth_frame = earth_orientation.EARTH_FIXED_FRAME
                 self.spice_object.planetFrames = [self.earth_frame if name == "earth" else "" for name in body_names]
-            start_utc = datetime.fromisoformat(scenario.epoch_utc)
+            start_utc = parse_epoch_utc(scenario.epoch_utc)
             if start_utc.tzinfo is not None:
                 start_utc = start_utc.astimezone(timezone.utc).replace(tzinfo=None)
             self._earth_orientation_notes = earth_orientation.notes(
@@ -912,9 +914,12 @@ class SimulationService:
         ) or any(sc.magnetic_momentum_management is not None for sc in scenario.spacecraft)
         if needs_magnetometer and gravity.central_body == "earth":
             self._mag_field_model = fsw.build_magnetic_field_wmm(
-                self.scSim, dyn_task_name, central_body_state_out_msg, central_body.radEquator
+                self.scSim, dyn_task_name, central_body_state_out_msg, central_body.radEquator,
+                epoch_in_msg=grav_factory.epochMsg,
             )
             self._data_files["magnetic_field"] = dependencies.file_record(kernels.cached_path(DataFile.MagneticFieldData.WMM))
+            self._model_warnings.extend(environment_models.wmm_validity_warnings(
+                scenario.epoch_utc, sim_settings.duration_days, kernels.cached_path(DataFile.MagneticFieldData.WMM)))
 
         # Phase 4: power budget (schema.scenario.PowerConfig),
         # station-keeping's eclipse-gated reboost burn
@@ -1016,7 +1021,7 @@ class SimulationService:
 
                 from . import spaceweather as sw
 
-                start_utc = datetime.fromisoformat(scenario.epoch_utc)
+                start_utc = parse_epoch_utc(scenario.epoch_utc)
                 end_utc = start_utc + timedelta(days=sim_settings.duration_days)
                 try:
                     resolved_sw = sw.resolve_for(scenario.space_weather, start_utc, end_utc)
@@ -2077,6 +2082,14 @@ class SimulationService:
                 transformations=dict(frames.TRANSFORMATIONS),
             )
         result.warnings.extend(self._space_weather_warnings)
+        result.warnings.extend(self._model_warnings)
+        for name, handle in self._handles.items():
+            for what, controller in (("station keeping", handle.station_keeping_controller),
+                                     ("GEO station keeping", handle.geo_station_keeping_controller)):
+                depleted_at_s = getattr(controller, "depletedAtS", None)
+                if depleted_at_s is not None:
+                    result.warnings.append(f"{name}: {what} ran out of propellant at t = {depleted_at_s / 86400.0:.2f} "
+                                           "days; no further burns were made")
         result.warnings.extend(note for note in self._earth_orientation_notes if "no IERS data" in note)
         spacecraft_by_name = {sc_config.name: sc_config for sc_config in self.scenario.spacecraft}
         for name, handle in self._handles.items():

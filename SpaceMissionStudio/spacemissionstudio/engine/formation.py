@@ -166,9 +166,12 @@ class PhasingFormationRequest:
         _require(bool(self.follower_name), "phasing_formation.follower_name must not be empty")
         _require(self.follower_name != self.chief_name,
                   "phasing_formation.follower_name must differ from chief_name")
-        _require(abs(self.along_track_km) > 1e-6,
-                  "phasing_formation.along_track_km must not be ~0 -- phasing_keeping needs a nonzero "
-                  "along-track target separation to hold (radial_km/cross_track_km may still be 0)")
+        # A negative value placed the follower behind the chief while
+        # phasing_keeping held abs(value) ahead, so the controller started
+        # 2 x |value| off and spent delta-V crossing over (audit M5).
+        _require(self.along_track_km > 1e-6,
+                  "phasing_formation.along_track_km must be > 0 -- the follower is placed this far ahead of the "
+                  "chief, and phasing_keeping holds that separation (radial_km/cross_track_km may still be 0)")
         _require(self.reconfiguration_interval_days >= 0,
                   "phasing_formation.reconfiguration_interval_days must be >= 0")
         _require(0.0 < self.tolerance_fraction,

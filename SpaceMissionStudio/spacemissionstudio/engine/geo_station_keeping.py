@@ -119,6 +119,7 @@ class GeoStationKeepingController(sysModel.SysModel):
         self.g0 = g0_mps2  # [m/s^2]
         self.dryMass = dry_mass_kg  # [kg]
         self.propellant = config.propellant_kg  # [kg]
+        self.depletedAtS: Optional[float] = None  # [s] first burn wanted with the tank empty
 
         self._lastT: Optional[float] = None  # [s]
         self._history: list = []  # (t [s], unwrapped longitude error [rad]) over the last sidereal day
@@ -240,6 +241,10 @@ class GeoStationKeepingController(sysModel.SysModel):
             self._nsActive = False
 
         ew_thrust = ns_thrust = 0.0  # [N]
+        wants_burn = self._ewRemainingDv != 0.0 or self._nsActive or self._nsBurn is not None
+        if wants_burn and self.propellant <= 1e-9 and self.depletedAtS is None:
+            self.depletedAtS = t  # reported once as a run warning (audit M4)
+            self.bskLogger.warning(f"{self.ModelTag}: propellant depleted, station keeping inhibited from now on")
         if self.propellant > 1e-9 and dt > 0.0:
             if self._ewRemainingDv != 0.0:
                 ew_thrust = min(self.thrustN, abs(self._ewRemainingDv) * mass / dt)

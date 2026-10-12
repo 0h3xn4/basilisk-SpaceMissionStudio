@@ -441,6 +441,33 @@ anything is built". *Fix:* move each check into `validate`, using
   swept for swallowed exceptions. I did not read every line of the 20.7k
   lines of editors and widgets the way I read `engine/` and `schema/`.
 
+### 2.6 Found while fixing
+
+These came up after the report was approved, while fixing the findings
+above.
+
+**H5. A Monte Carlo batch can hang for ever after an earlier run in the
+same process.** `engine/monte_carlo.py` (`run_monte_carlo`), Basilisk's
+`Controller.executeSimulations`. The Controller forks a data-writer
+process (and, with `thread_count > 1`, its workers) from the calling
+process. If an earlier run's Basilisk simulation is still in memory as
+uncollected garbage, the garbage collector in the child destroys it.
+`SimModel`'s destructor then waits in `pthread_cond_destroy` on thread
+state copied from the parent, and nothing ever releases it. In the test
+suite the batch hung after earlier tests had run simulations. A py-spy
+dump of the hung child showed it in
+`SimModel::~SimModel → deleteThreads → pthread_cond_destroy`, called
+from Basilisk's `DataWriter.run`. In the GUI, a normal run followed by a
+Monte Carlo batch is the same situation. *Fix:* `gc.collect()` in the
+parent just before the Controller forks, with a test that fails without
+it. No Basilisk change. *Evidence:* run (hang reproduced, stack captured,
+fixed).
+
+**M17. A Monte Carlo folder with only file-manager clutter is
+"not empty".** The empty-folder rule added for M10 counted `.DS_Store`,
+`Thumbs.db`, `desktop.ini` and hidden folders as other files. *Fix:*
+these are ignored. *Evidence:* run.
+
 ## 3. Method
 
 - **What I read:**

@@ -161,10 +161,15 @@ def test_along_track_separation_degrades_gracefully_with_nonzero_radial_and_cros
     assert 250.0 < measured < 500.0  # meaningfully close to 500, nowhere near the ~0 km bug
 
 
-def test_phasing_keeping_targets_abs_along_track_km():
-    follower = generate_phasing_follower(_request(along_track_km=-50.0), _chief(), _chief(), central_body="earth")
+def test_phasing_keeping_targets_the_along_track_km():
+    """The along-track offset is the separation phasing_keeping holds. A
+    negative one used to be accepted and held as its absolute value ahead,
+    so the follower started on the wrong side (audit M5); it is refused."""
+    follower = generate_phasing_follower(_request(along_track_km=50.0), _chief(), _chief(), central_body="earth")
     assert follower.phasing_keeping.target_separation_km == [50.0]
     assert follower.phasing_keeping.chief_spacecraft == "chief-1"
+    with pytest.raises(ScenarioValidationError, match="along_track_km must be > 0"):
+        generate_phasing_follower(_request(along_track_km=-50.0), _chief(), _chief(), central_body="earth")
 
 
 def test_station_keeping_is_required_and_set():

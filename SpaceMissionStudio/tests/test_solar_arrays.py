@@ -88,6 +88,7 @@ def test_the_flight_software_inertia_adds_each_undeflected_array_about_the_body_
     assert inertia - np.diag(np.diag(inertia)) == pytest.approx(np.zeros((3, 3)), abs=1e-12)
 
 
+@pytest.mark.requires_basilisk  # engine.monte_carlo imports Basilisk (audit M8)
 def test_the_hub_carries_the_dry_mass_less_the_arrays_plus_every_propellant():
     """The same helper engine.service and engine.monte_carlo use. Monte
     Carlo's version used to leave out the GEO station-keeping propellant."""

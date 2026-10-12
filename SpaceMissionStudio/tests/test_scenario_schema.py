@@ -1,5 +1,6 @@
 """Tests for spacemissionstudio.schema -- no Basilisk import, runs anywhere."""
 
+import copy
 import json
 
 import pytest
@@ -528,7 +529,7 @@ def test_thermal_sensor_rejects_unrecognized_measurement_fault_mode():
 
 
 def test_thermal_sensor_with_required_params_validates():
-    sc = _minimal_scenario()
+    sc = _minimal_scenario(gravity=GravityConfig(third_body_perturbers=["sun"]))  # sensorThermal needs the Sun
     sc.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1",
                                                params={"nHat_B": [0, 0, 1], "area_m2": 1.0, "absorptivity": 0.25,
                                                        "emissivity": 0.34})]
@@ -1342,7 +1343,7 @@ def test_thermal_sensor_rejects_implausibly_large_mass_when_set():
 
 def test_thermal_sensor_with_no_mass_kg_set_still_validates():
     # mass_kg stays genuinely optional -- this bound only applies when set.
-    sc = _minimal_scenario()
+    sc = _minimal_scenario(gravity=GravityConfig(third_body_perturbers=["sun"]))  # sensorThermal needs the Sun
     sc.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1",
                                                params={"nHat_B": [0, 0, 1], "area_m2": 1.0, "absorptivity": 0.25,
                                                        "emissivity": 0.34})]
@@ -2028,3 +2029,233 @@ def test_forecast_percentile_must_be_one_msfc_publishes():
     _minimal_scenario(space_weather=SpaceWeatherConfig(forecast_percentile=95.0)).validate()
     with pytest.raises(ScenarioValidationError, match="forecast_percentile 90.0 must be one of"):
         _minimal_scenario(space_weather=SpaceWeatherConfig(forecast_percentile=90.0)).validate()
+
+
+# -- Settings Basilisk's device factories exit() on (audit H2, M16) ------------
+
+
+@pytest.mark.parametrize("params, message", [
+    ({"gsHat_B": [1, 0, 0], "rw_type": "Bogus", "maxMomentum": 6.0}, "rw_type'\\] 'Bogus' must be one of"),
+    ({"gsHat_B": [1, 0, 0], "u_max": -0.1, "Js": 0.03}, "u_max'] must be > 0"),
+    ({"gsHat_B": [1, 0, 0], "u_max": 0.2, "Js": 0.0}, "Js'] must be > 0"),
+    ({"gsHat_B": [1, 0, 0], "u_max": "0.2", "Js": 0.03}, "u_max'] must be a finite number"),
+    ({"gsHat_B": [1, 0, 0], "u_max": 0.2, "Js": 0.03, "useMaxTorque": 1}, "useMaxTorque'] must be true or false"),
+    ({"gsHat_B": [1, 0, 0], "u_max": 0.2, "Js": 0.03, "betaStatic": 0.0}, "betaStatic'] must not be 0"),
+    ({"gsHat_B": [1, 0, 0], "u_max": 0.2, "Js": 0.03, "label": "wheel-one"}, "at most 5 characters"),
+    ({"gsHat_B": [1, 0, 0], "u_max": 0.2, "Js": 0.03, "motor_thermal_initial_temp_c": -300.0,
+      "motor_thermal_efficiency": 0.7, "motor_thermal_ambient_resistance_w_c": 5.0,
+      "motor_thermal_heat_capacity_j_c": 50.0}, "above absolute zero"),
+])
+def test_reaction_wheel_settings_basilisk_would_exit_on_are_refused(params, message):
+    sc = _minimal_scenario()
+    sc.spacecraft[0].actuators = [ActuatorConfig(kind="reaction_wheel", name="rw-1", params=params)]
+    sc.spacecraft[0].fsw_mode = "sunSafePoint"
+    with pytest.raises(ScenarioValidationError, match=message):
+        sc.validate()
+
+
+@pytest.mark.parametrize("change, message", [
+    ({"thruster_type": "Bogus"}, "thruster_type'\\] 'Bogus' must be one of"),
+    ({"tHat_B": [0, 0, 0]}, "non-zero, finite thrust direction"),
+    ({"MaxThrust": -1.0}, "MaxThrust'] must be > 0"),
+    ({"steadyIsp": 0.0}, "steadyIsp'] must be > 0"),
+    ({"r_B": [float("nan"), 0, 0]}, "r_B'] must be 3 finite numbers"),
+    ({"MinOnTime": -0.1}, "MinOnTime'] must be >= 0"),
+])
+def test_thruster_settings_basilisk_would_exit_on_are_refused(change, message):
+    sc = _minimal_scenario()
+    params = {"r_B": [1, 0, 1.28], "tHat_B": [1, 0, 0], "MaxThrust": 1.0}
+    params.update(change)
+    sc.spacecraft[0].actuators = [ActuatorConfig(kind="thruster", name="thr-1", params=params)]
+    sc.spacecraft[0].fsw_mode = "sunSafePoint"
+    with pytest.raises(ScenarioValidationError, match=message):
+        sc.validate()
+
+
+def test_a_torque_rod_needs_a_positive_dipole():
+    sc = _minimal_scenario()
+    sc.spacecraft[0].actuators = [ActuatorConfig(kind="magnetic_torque_rod", name="mtb-1",
+                                                 params={"gtHat_B": [1, 0, 0], "max_dipole_a_m2": -5.0})]
+    with pytest.raises(ScenarioValidationError, match="max_dipole_a_m2'\\] > 0"):
+        sc.validate()
+
+
+def test_the_wheel_and_thruster_type_lists_match_basilisk():
+    """The schema stays Basilisk-free, so it lists the factory types itself;
+    they must be exactly the factories' own build methods."""
+    pytest.importorskip("Basilisk")
+    import inspect
+
+    from Basilisk.utilities import simIncludeRW, simIncludeThruster
+
+    from spacemissionstudio.schema.scenario import RW_TYPES, THRUSTER_TYPES
+
+    def types(cls, argument):
+        return {name for name, member in inspect.getmembers(cls, inspect.isfunction)
+                if list(inspect.signature(member).parameters) == ["self", argument]}
+
+    assert set(RW_TYPES) == types(simIncludeRW.rwFactory, "RW")
+    assert set(THRUSTER_TYPES) == types(simIncludeThruster.thrusterFactory, "TH")
+
+
+@pytest.mark.parametrize("name", ["../../escaped", "a.b", "a/b", "gs:1", "CON", "com1", " x", "x ", "a\tb", ""])
+def test_names_that_cannot_be_file_names_are_refused(name):
+    """Audit H3: a spacecraft name becomes an output file name, so one that
+    climbs out of the output folder or is not a legal file name is refused."""
+    scenario = _minimal_scenario()
+    scenario.spacecraft[0].name = name
+    with pytest.raises(ScenarioValidationError, match="spacecraft name"):
+        scenario.validate()
+
+
+@pytest.mark.parametrize("name", ["sat 1", "Satellit-Ü", "sat_1", "CONSAT"])
+def test_ordinary_names_are_allowed(name):
+    """Spaces inside a name, non-ASCII letters and names that merely start
+    with a reserved device name stay valid."""
+    scenario = _minimal_scenario()
+    scenario.spacecraft[0].name = name
+    scenario.validate()
+
+
+@pytest.mark.parametrize("second", ["SAT-1", "sat 1", "sat_1"])
+def test_spacecraft_names_whose_files_would_collide_are_refused(second):
+    """Two spacecraft names that differ only in case or punctuation would
+    overwrite each other's output files, so the second one is refused."""
+    scenario = _minimal_scenario()
+    other = copy.deepcopy(scenario.spacecraft[0])
+    other.name = second
+    scenario.spacecraft.append(other)
+    with pytest.raises(ScenarioValidationError, match="differ only in case or punctuation"):
+        scenario.validate()
+
+
+def test_ground_station_names_differing_only_in_case_are_refused():
+    """Two ground stations named alike but for case share one output file on
+    Windows and macOS, so the scenario is refused."""
+    stations = [GroundStationConfig(name="Kiruna", latitude_deg=67.86, longitude_deg=20.96),  # [deg]
+                GroundStationConfig(name="KIRUNA", latitude_deg=67.86, longitude_deg=20.96)]  # [deg]
+    with pytest.raises(ScenarioValidationError, match="differ only in case"):
+        _minimal_scenario(ground_stations=stations).validate()
+
+
+def test_a_ground_station_name_with_a_path_separator_is_refused():
+    """A ground-station name is checked like a spacecraft name."""
+    stations = [GroundStationConfig(name="../gs", latitude_deg=67.86, longitude_deg=20.96)]  # [deg]
+    with pytest.raises(ScenarioValidationError, match="ground station name"):
+        _minimal_scenario(ground_stations=stations).validate()
+
+
+def test_a_mission_sequence_longer_than_one_run_is_refused():
+    """Audit M3: fixed-duration propagates adding up past 100 days, or a stop
+    epoch more than 100 days after the scenario epoch, are refused at load."""
+    from spacemissionstudio.schema.command import Command
+
+    too_long = [Command(kind="propagate", params={"duration_days": 60.0}),  # [day]
+                Command(kind="if", params={"condition": "True"},
+                        children=[Command(kind="propagate", params={"duration_days": 60.0})])]  # [day]
+    with pytest.raises(ScenarioValidationError, match="add up to 120.0 days"):
+        _minimal_scenario(mission_sequence=too_long).validate()
+    far_epoch = [Command(kind="propagate", params={"stop_condition": "epoch",
+                                                   "stop_epoch_utc": "2030-06-01T00:00:00"})]
+    with pytest.raises(ScenarioValidationError, match="151.0 days after the scenario epoch"):
+        _minimal_scenario(mission_sequence=far_epoch).validate()
+    _minimal_scenario(mission_sequence=[Command(kind="propagate", params={"duration_days": 99.0})]).validate()  # [day]
+
+
+def test_a_report_of_a_ground_station_access_series_validates():
+    """Audit M6: "berlin-gs.access_to_sat-1.azimuth" (offered by the Report
+    pick-list) was refused because its first segment was taken for a
+    spacecraft. The station and the spacecraft it names are both checked."""
+    from spacemissionstudio.schema.command import Command
+    from spacemissionstudio.schema.validation import validate_all
+
+    stations = [GroundStationConfig(name="berlin-gs", latitude_deg=52.52, longitude_deg=13.40)]  # [deg]
+    report = Command(kind="report", params={"series": ["berlin-gs.access_to_sat-1.azimuth"]})
+    sequence = [Command(kind="propagate", params={"duration_days": 0.1}), report]  # [day]
+    scenario = _minimal_scenario(ground_stations=stations, mission_sequence=sequence)
+    scenario.validate()
+    assert validate_all(scenario) == []
+    report.params["series"] = ["berlin-gs.access_to_sat-9.azimuth"]
+    with pytest.raises(ScenarioValidationError, match="spacecraft 'sat-9' is not one of this scenario's spacecraft "):
+        scenario.validate()
+    report.params["series"] = ["paris-gs.access_to_sat-1.azimuth"]
+    with pytest.raises(ScenarioValidationError, match="this scenario's ground stations"):
+        scenario.validate()
+
+
+def test_a_failed_save_leaves_the_previous_file_unchanged(tmp_path, monkeypatch):
+    """Audit M9: save truncated the file before writing, so a failure part
+    way through destroyed the previous good file. It now writes a temporary
+    file and replaces the old one in one step, keeping its permissions."""
+    import os
+    import stat
+
+    path = tmp_path / "scenario.json"
+    _minimal_scenario(description="first").save(path)
+    os.chmod(path, 0o640)
+    before = path.read_text()
+
+    def _fail(*args, **kwargs):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(os, "replace", _fail)
+    with pytest.raises(OSError, match="disk full"):
+        _minimal_scenario(description="second").save(path)
+    monkeypatch.undo()
+    assert path.read_text() == before
+    assert [p.name for p in tmp_path.iterdir()] == ["scenario.json"]  # no temporary file left
+    _minimal_scenario(description="second").save(path)
+    assert load_scenario(path).description == "second"
+    if os.name == "posix":
+        assert stat.S_IMODE(path.stat().st_mode) == 0o640
+
+
+@pytest.mark.parametrize("orbit, match", [
+    (OrbitIC(type="cartesian", position_km=[7000.0, float("nan"), 0.0], velocity_km_s=[0.0, 7.5, 0.0]),
+     "position_km must hold finite numbers"),
+    (OrbitIC(type="cartesian", position_km=[0.0, 0.0, 0.0], velocity_km_s=[0.0, 7.5, 0.0]),
+     "must not be \\[0, 0, 0\\]"),
+    (OrbitIC(type="classical_elements", semi_major_axis_km=float("inf"), eccentricity=0.0, inclination_deg=51.6,
+             raan_deg=0.0, arg_periapsis_deg=0.0, true_anomaly_deg=0.0), "semi_major_axis_km must be a finite"),
+    (OrbitIC(type="classical_elements", semi_major_axis_km=7000.0, eccentricity=0.0, inclination_deg=float("nan"),
+             raan_deg=0.0, arg_periapsis_deg=0.0, true_anomaly_deg=0.0), "inclination_deg must be a finite"),
+    (OrbitIC(type="tle", tle_line1="1 25544U 98067A   08264.51782528", tle_line2="2 25544  51.6416"),
+     "TLE line 1 has 32 characters"),
+], ids=["nan-position", "zero-position", "inf-sma", "nan-inclination", "short-tle"])
+def test_orbits_that_basilisk_cannot_fly_are_refused_at_load(orbit, match):
+    """Audit M16: these passed validation and then misbehaved or failed in
+    the run; they are refused when the scenario is checked."""
+    scenario = _minimal_scenario()
+    scenario.spacecraft[0].orbit = orbit
+    with pytest.raises(ScenarioValidationError, match=match):
+        scenario.validate()
+
+
+def test_comms_pointing_with_actuators_is_refused_at_load():
+    """Audit M16: comms pointing drives an idealised torque; with actuators
+    the run failed with "Set fsw_mode", which comms pointing forbids."""
+    scenario = _comms_pointing_scenario()
+    scenario.spacecraft[0].actuators = [ActuatorConfig(kind="reaction_wheel", name="rw-1", params={
+        "gsHat_B": [1, 0, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0})]  # [-], [N*m*s]
+    with pytest.raises(ScenarioValidationError, match="comms_pointing commands an idealised control torque"):
+        scenario.validate()
+
+
+def test_a_thermal_sensor_without_the_sun_is_refused_at_load():
+    """Audit M16: a thermal sensor needs the Sun's position; the build failed."""
+    scenario = _minimal_scenario()
+    scenario.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1", params={
+        "nHat_B": [0, 0, 1], "area_m2": 0.01, "absorptivity": 0.25, "emissivity": 0.34})]  # [-], [m^2]
+    with pytest.raises(ScenarioValidationError, match="thermal sensor 'therm-1' needs the Sun's position"):
+        scenario.validate()
+    scenario.gravity.third_body_perturbers = ["sun"]
+    scenario.validate()
+
+
+def test_a_phasing_chief_without_classical_elements_is_refused_at_load():
+    """Audit M16: phasing reads the chief's semi-major axis from its elements."""
+    scenario = _chief_and_follower_scenario()
+    scenario.spacecraft[0].orbit = OrbitIC(type="cartesian", position_km=[7000.0, 0.0, 0.0],
+                                           velocity_km_s=[0.0, 7.546, 0.0])  # [km], [km/s]
+    with pytest.raises(ScenarioValidationError, match="must have a 'classical_elements' orbit"):
+        scenario.validate()

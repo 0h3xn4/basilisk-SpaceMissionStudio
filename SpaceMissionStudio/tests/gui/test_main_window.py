@@ -180,6 +180,26 @@ def test_save_with_invalid_scenario_shows_error_and_does_not_write(window, tmp_p
     assert len(critical_calls) == 1
 
 
+def test_a_save_that_cannot_be_written_is_reported(window, tmp_path, monkeypatch):
+    """Audit M9: an OSError from saving (here a folder path under a file)
+    was only logged; the user now sees "Could not save" and the scenario
+    stays unsaved."""
+    from PySide6.QtWidgets import QFileDialog, QMessageBox
+
+    _add_valid_spacecraft(window)
+    blocker = tmp_path / "a_file"
+    blocker.write_text("not a folder")
+    monkeypatch.setattr(QFileDialog, "getSaveFileName",
+                        staticmethod(lambda *a, **k: (str(blocker / "scenario.json"), "")))
+    critical_calls = []
+    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
+
+    window.on_save_as()
+
+    assert len(critical_calls) == 1 and critical_calls[0][1] == "Could not save"
+    assert window._current_path is None and window._dirty
+
+
 def test_open_missing_file_shows_error(window, tmp_path, monkeypatch):
     from PySide6.QtWidgets import QFileDialog, QMessageBox
 
@@ -806,6 +826,77 @@ def test_run_monte_carlo_starts_worker_with_chosen_archive_dir(window, monkeypat
     assert not window.monte_carlo_action.isEnabled()
     assert not window.run_action.isEnabled()  # can't start a second run while one is in flight
     assert window._busy_timer.isActive()
+
+
+def _enable_monte_carlo(window):
+    from spacemissionstudio.schema.scenario import DispersionConfig, MonteCarloConfig
+
+    _add_valid_spacecraft(window)
+    window.scenario_editor.monte_carlo_group.set_spacecraft_names(["sat-1"])
+    window.scenario_editor.monte_carlo_group.from_dataclass(MonteCarloConfig(
+        enabled=True, num_runs=2,
+        dispersions=[DispersionConfig(spacecraft="sat-1", quantity="dry_mass_kg", kind="uniform", bounds=[90, 110])],
+    ))
+
+
+def test_run_monte_carlo_refuses_a_folder_holding_other_files(window, monkeypatch, tmp_path):
+    """Audit M10: the batch must never mix with (or be mistaken for) other files."""
+    from PySide6.QtWidgets import QFileDialog, QMessageBox
+
+    _enable_monte_carlo(window)
+    (tmp_path / "notes.txt").write_text("mine", encoding="utf-8")
+    monkeypatch.setattr(QFileDialog, "getExistingDirectory", staticmethod(lambda *a, **k: str(tmp_path)))
+    critical_calls = []
+    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
+
+    window.on_run_monte_carlo()
+    assert window._mc_worker is None
+    assert "empty folder" in critical_calls[0][2]
+
+
+def test_run_monte_carlo_asks_before_replacing_an_earlier_batch(window, monkeypatch, tmp_path):
+    from PySide6.QtWidgets import QFileDialog, QMessageBox
+
+    from spacemissionstudio.gui.run_worker import MonteCarloWorker
+
+    _enable_monte_carlo(window)
+    for name in ("MonteCarlo.data", "run0.data", "run0.json", "batch_results.json", "batch_results.npz"):
+        (tmp_path / name).write_bytes(b"old")
+    monkeypatch.setattr(QFileDialog, "getExistingDirectory", staticmethod(lambda *a, **k: str(tmp_path)))
+    monkeypatch.setattr(MonteCarloWorker, "start", lambda self: None)
+    answers = [QMessageBox.StandardButton.No, QMessageBox.StandardButton.Yes]
+    # Discard once the two answers are used: closing the window at teardown asks too.
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(
+        lambda *a, **k: answers.pop(0) if answers else QMessageBox.StandardButton.Discard))
+
+    window.on_run_monte_carlo()  # declined
+    assert window._mc_worker is None
+    window.on_run_monte_carlo()  # accepted
+    assert window._mc_worker is not None and window._mc_worker.overwrite
+
+
+def test_run_monte_carlo_asks_consent_for_script_blocks(window, monkeypatch, tmp_path):
+    """Audit H1: every Monte Carlo run now flies the Mission Sequence, so its
+    script blocks need the same consent as Run Simulation."""
+    from PySide6.QtWidgets import QFileDialog
+
+    from spacemissionstudio.gui.run_worker import MonteCarloWorker
+    from spacemissionstudio.schema.command import Command
+
+    _enable_monte_carlo(window)
+    window.scenario_editor.mission_sequence_editor.from_command_list([
+        Command(kind="propagate", params={"duration_days": 0.01}),
+        Command(kind="script_block", params={"code": "pass"}),
+    ])
+    monkeypatch.setattr(QFileDialog, "getExistingDirectory", staticmethod(lambda *a, **k: str(tmp_path / "mc")))
+    monkeypatch.setattr(MonteCarloWorker, "start", lambda self: None)
+    consent = [False, True]
+    monkeypatch.setattr(window, "_confirm_script_blocks", lambda blocks: consent.pop(0))
+
+    window.on_run_monte_carlo()
+    assert window._mc_worker is None
+    window.on_run_monte_carlo()
+    assert window._mc_worker is not None and window._mc_worker.allow_scripts
 
 
 def test_monte_carlo_finished_stops_busy_indicator_and_reenables_actions(window):

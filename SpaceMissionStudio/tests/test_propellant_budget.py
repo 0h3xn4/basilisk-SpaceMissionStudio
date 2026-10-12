@@ -343,3 +343,24 @@ def test_the_altitude_trade_runs_its_altitudes_in_parallel_processes():
     assert trade.altitudes[1].worst.budget.total_propellant_kg == pytest.approx(
         here.worst.budget.total_propellant_kg, rel=1e-9)
     assert trade.altitudes[0].worst.budget.total_propellant_kg > trade.altitudes[1].worst.budget.total_propellant_kg
+
+
+@pytest.mark.requires_basilisk
+def test_cancelling_a_parallel_altitude_trade_stops_its_workers_at_once():
+    """Audit L5: Cancel waited for every running sweep to finish (minutes).
+    The workers are now terminated, so the trade stops within seconds."""
+    import time
+
+    from spacemissionstudio.schema import load_scenario
+
+    scenario = load_scenario(_TEMPLATES / "18_leo_station_keeping.json")
+    calls = []
+
+    def cancel_after_start():
+        calls.append(time.perf_counter())
+        return len(calls) > 3  # let the workers start, then cancel
+
+    started = time.perf_counter()
+    with pytest.raises(pb.BudgetError, match="cancelled"):
+        pb.altitude_trade(scenario, "leo-sat-1", [400.0, 450.0], workers=2, should_cancel=cancel_after_start)
+    assert time.perf_counter() - started < 20.0  # [s] the sweeps themselves take far longer

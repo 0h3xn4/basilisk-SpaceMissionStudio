@@ -15,6 +15,7 @@ from spacemissionstudio.engine.results import (
     RunProvenance,
     TimeSeries,
     conservation_drift_warnings,
+    output_path,
 )
 
 _EARTH_MU = 3.986004418e14  # [m^3/s^2]
@@ -239,3 +240,17 @@ def test_conservation_drift_warnings_stay_short():
     drifting_v = v * np.linspace(1.0, 1.10, r.shape[0])[:, None]
     for warning in conservation_drift_warnings("sat-1", _EARTH_MU, r, drifting_v):
         assert len(warning) <= 120, warning
+
+
+@pytest.mark.parametrize("file_name", ["../escaped.csv", "sub/inner.csv", "/abs.csv"])
+def test_output_path_refuses_a_file_name_that_leaves_the_folder(tmp_path, file_name):
+    """Audit H3, second line of defence: every result file built from a
+    scenario name must land directly inside the output folder."""
+    with pytest.raises(ResultsError, match="would land outside"):
+        output_path(tmp_path, file_name)
+
+
+def test_output_path_accepts_a_plain_file_name(tmp_path):
+    """A plain file name, spaces and non-ASCII letters included, is joined
+    onto the output folder unchanged."""
+    assert output_path(tmp_path, "Satellit Ü.csv") == tmp_path / "Satellit Ü.csv"

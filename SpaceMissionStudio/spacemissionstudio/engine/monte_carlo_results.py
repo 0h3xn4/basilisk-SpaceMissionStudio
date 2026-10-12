@@ -126,6 +126,46 @@ def has_summary(folder: "str | Path") -> bool:
     return (folder / SUMMARY_JSON).is_file() and (folder / SUMMARY_NPZ).is_file()
 
 
+# What Basilisk's Controller and this tool write into a batch folder: its
+# archive, the provenance sidecar, the summary, and per-run and per-message files.
+BATCH_FILE_PATTERNS = ("MonteCarlo.data", "archive.provenance.json", SUMMARY_JSON, SUMMARY_NPZ,
+                       "run*.data", "run*.json", "*.scState.*.data")
+
+
+def batch_files(folder: "str | Path") -> List[Path]:
+    """The files of an earlier batch in ``folder`` (none when it holds none)."""
+    folder = Path(folder)
+    if not folder.is_dir():
+        return []
+    found = {path for pattern in BATCH_FILE_PATTERNS for path in folder.glob(pattern) if path.is_file()}
+    return sorted(found)
+
+
+# Entries the operating system or file manager adds by itself (macOS
+# .DS_Store, Windows Thumbs.db and desktop.ini, any hidden file): they do
+# not make a folder "hold other files".
+_SYSTEM_CLUTTER = {"thumbs.db", "desktop.ini"}
+
+
+def _is_clutter(path: Path) -> bool:
+    return path.name.startswith(".") or path.name.casefold() in _SYSTEM_CLUTTER
+
+
+def folder_state(folder: "str | Path") -> str:
+    """``"empty"`` (or missing), ``"batch"`` (only an earlier batch's files)
+    or ``"other"`` (anything else: not a folder, or other files in it).
+    Hidden files and the operating system's own clutter are ignored."""
+    folder = Path(folder)
+    if not folder.exists():
+        return "empty"
+    if not folder.is_dir():
+        return "other"
+    entries = {entry for entry in folder.iterdir() if not _is_clutter(entry)}
+    if not entries:
+        return "empty"
+    return "batch" if (folder / "MonteCarlo.data").is_file() and entries <= set(batch_files(folder)) else "other"
+
+
 def load(folder: "str | Path") -> MonteCarloBatch:
     """Read a summary written by :func:`save`. Never unpickles anything."""
     folder = Path(folder)

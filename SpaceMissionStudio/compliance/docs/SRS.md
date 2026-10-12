@@ -83,7 +83,7 @@ software.
   runs), and about 2 GB of disk for Basilisk and its data files.
 - **Operating environment:**
   - Linux (Ubuntu 22.04/24.04 tested) or Windows 10/11;
-  - Python >= 3.9 (3.11 tested);
+  - Python >= 3.11 (3.11 tested);
   - Basilisk 2.12.0, pinned;
   - Qt (PySide6) for the GUI.
 - **Network:** none is needed at run time. Downloads happen only on explicit

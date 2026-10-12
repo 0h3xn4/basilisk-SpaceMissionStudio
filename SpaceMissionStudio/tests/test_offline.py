@@ -62,6 +62,7 @@ def no_network(monkeypatch):
     return attempts
 
 
+@pytest.mark.requires_basilisk  # ccsds-export reads the central body's GM from Basilisk (audit M8)
 def test_validate_and_export_a_template_offline(no_network, tmp_path):
     """Validating, exporting to CCSDS and checking data needs no network."""
     template = sorted(_templates().glob("18_*.json"))[0]

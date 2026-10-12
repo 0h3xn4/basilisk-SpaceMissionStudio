@@ -42,6 +42,8 @@ import math
 from dataclasses import dataclass
 from datetime import datetime, timezone
 
+from ..schema.epochs import parse_epoch_utc
+
 TOTAL_SOLAR_IRRADIANCE_W_M2 = 1361.0  # [W/m^2] at 1 AU, ECSS-E-ST-10-04C Table 6-2
 SPACE_SINK_TEMPERATURE_K = 3.0  # [K] ECSS-E-ST-10-04C 6.2.1c
 STEFAN_BOLTZMANN_W_M2_K4 = 5.670374419e-8  # [W/m^2/K^4] CODATA 2018
@@ -58,7 +60,7 @@ _KAULA_MAX_DEGREE = 2000
 
 
 def _days_from_j2000(epoch_utc: str) -> float:
-    epoch = datetime.fromisoformat(epoch_utc)
+    epoch = parse_epoch_utc(epoch_utc)
     if epoch.tzinfo is not None:
         epoch = epoch.astimezone(timezone.utc).replace(tzinfo=None)
     return (epoch - datetime(2000, 1, 1, 12)).total_seconds() / 86400.0  # [day]
@@ -135,3 +137,37 @@ def degree_for(radius_m: float, acceleration_m_s2: float, max_degree: int = 180)
         if gravity_truncation_acceleration(degree, radius_m) <= acceleration_m_s2:
             return degree
     return max_degree
+
+
+WMM_VALIDITY_YEARS = 5.0  # [yr] each World Magnetic Model release is valid for five years from its epoch
+
+
+def _decimal_year(moment: datetime) -> float:
+    start = datetime(moment.year, 1, 1)
+    return moment.year + (moment - start).total_seconds() / (datetime(moment.year + 1, 1, 1) - start).total_seconds()
+
+
+def wmm_validity_warnings(epoch_utc: str, duration_days: float, cof_path) -> list:
+    """A warning when the run falls outside the World Magnetic Model's
+    validity: the coefficient file's epoch (its first value, e.g. 2025.0
+    in WMM2025.COF) to five years later. Outside it the field is an
+    extrapolation (audit M1). An unreadable file gives no warning; the
+    model itself reports that."""
+    try:
+        with open(cof_path, encoding="ascii", errors="replace") as handle:
+            model_epoch = float(handle.readline().split()[0])  # [yr]
+    except (OSError, ValueError, IndexError):
+        return []
+    start = parse_epoch_utc(epoch_utc)
+    if start.tzinfo is not None:
+        start = start.astimezone(timezone.utc).replace(tzinfo=None)
+    first = _decimal_year(start)
+    last = first + duration_days / 365.25  # [yr]
+    valid_until = model_epoch + WMM_VALIDITY_YEARS
+    if first >= model_epoch and last <= valid_until:
+        return []
+    # No run dates in the text: the segments of a long run then share one
+    # warning (engine.long_run merges identical warnings).
+    return [f"the magnetic field model (WMM, epoch {model_epoch:.1f}) is valid from {model_epoch:.1f} to "
+            f"{valid_until:.1f}; outside those years magnetometer readings and torque-rod control use an "
+            "extrapolated field"]

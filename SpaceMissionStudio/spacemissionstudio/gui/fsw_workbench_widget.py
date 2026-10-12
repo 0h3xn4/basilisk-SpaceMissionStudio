@@ -43,6 +43,7 @@ from PySide6.QtWidgets import (QFileDialog, QFrame, QGridLayout, QHBoxLayout, QL
                                QSizePolicy, QVBoxLayout, QWidget)
 
 from .badges import ACCENT, DANGER, MUTED, SUCCESS, WARNING, badge_style
+from .run_worker import failure_text
 from .sil_comparison_widget import SilComparisonWidget
 from .theme import PALETTE
 
@@ -83,8 +84,8 @@ class _ExportWorker(QThread):
 
             result, record = export_flight_software(self._scenario, self._spacecraft_name, self._folder,
                                                     overwrite=self._overwrite)
-        except Exception as exc:  # noqa: BLE001 -- every failure is shown to the user, named
-            self.failed.emit(str(exc) or type(exc).__name__)
+        except (Exception, SystemExit) as exc:  # noqa: BLE001 -- every failure (Basilisk's exit() too) is shown, named
+            self.failed.emit(failure_text(exc))
         else:
             self.finished_ok.emit(result, record)
 

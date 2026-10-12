@@ -3,7 +3,7 @@ name = "spacemissionstudio"
 version = "2.0.0"
 description = "Standalone GUI mission-analysis application built on the Basilisk astrodynamics framework"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 license = { text = "ISC" }
 authors = [
     { name = "SpaceMissionStudio contributors" },
@@ -92,16 +92,20 @@ qt_api = "pyside6"
 # existing lines). B023: the progress/add closures in long_run.py and
 # propellant_budget.py are called inside the iteration that defines them,
 # so late binding is intended. B007: loop counters kept for readability.
+# B905 (zip() without strict=) applies from py310, which the 3.11 minimum
+# turned on: the existing zips pair sequences built to the same length, and
+# adding strict= to all of them would change behaviour in 70 places without
+# a finding to fix.
 [tool.ruff]
 line-length = 120
-target-version = "py39"
+target-version = "py311"
 
 [tool.ruff.lint]
 # S (flake8-bandit): security rules, added by the R15 security analysis
 # (compliance/docs/security_analysis.md). Each remaining finding in the
 # package carries a noqa with its justification.
 select = ["E4", "E7", "E9", "F", "W", "B", "S"]
-ignore = ["B007", "B023"]
+ignore = ["B007", "B023", "B905"]
 
 [tool.ruff.lint.per-file-ignores]
 # Tests assert (S101) and use temporary paths (S108); the scripts and the

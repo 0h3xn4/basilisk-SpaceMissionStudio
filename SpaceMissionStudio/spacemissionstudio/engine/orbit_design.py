@@ -39,6 +39,8 @@ from __future__ import annotations
 import math
 from datetime import datetime, timezone
 
+from ..schema.epochs import parse_epoch_utc
+
 # J2/Req/mu below are Basilisk's own real Earth constants, confirmed
 # directly against a real build (not guessed):
 #   from Basilisk.utilities import orbitalMotion, simIncludeGravBody
@@ -101,7 +103,7 @@ def _sun_right_ascension_deg(epoch_utc: str) -> float:
     0.25 deg (``2000-03-20T12:00``, ``2030-06-21T12:00``,
     ``2030-09-23T06:00``).
     """
-    days_since_j2000 = (datetime.fromisoformat(epoch_utc) - datetime(2000, 1, 1, 12, 0, 0)).total_seconds() / 86400.0
+    days_since_j2000 = (parse_epoch_utc(epoch_utc) - datetime(2000, 1, 1, 12, 0, 0)).total_seconds() / 86400.0
     mean_longitude_deg = (280.460 + 0.9856474 * days_since_j2000) % 360.0
     mean_anomaly_rad = math.radians((357.528 + 0.9856003 * days_since_j2000) % 360.0)
     ecliptic_longitude_rad = math.radians((
@@ -138,7 +140,7 @@ def geostationary_elements_deg(epoch_utc: str, east_longitude_deg: float):
     J2000 by 2030. The node of the true equator sits at alpha0 + 90 deg, and
     the prime meridian is W = 190.147 + 360.9856235 d deg past it.
     """
-    epoch = datetime.fromisoformat(epoch_utc)
+    epoch = parse_epoch_utc(epoch_utc)
     if epoch.tzinfo is not None:
         epoch = epoch.astimezone(timezone.utc).replace(tzinfo=None)
     days = ((epoch - datetime(2000, 1, 1, 12)).total_seconds() + _TT_MINUS_UTC_S) / 86400.0  # [day] TDB

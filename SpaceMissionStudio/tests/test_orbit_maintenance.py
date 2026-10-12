@@ -963,3 +963,37 @@ def test_phasing_keeping_schedule_tick_mid_maneuver_does_not_reset_the_guard():
     assert controller.state == controller.IDLE
     assert controller._consecutiveNonConvergentCycles == _MAX_NON_CONVERGENT_CYCLES
     assert controller.suspendedDueToNonConvergence is True
+
+
+def test_an_empty_tank_is_logged_once_and_recorded():
+    """Audit M4: with the tank empty and a reboost wanted, the controller
+    logged "propellant depleted" on every step (1259 lines in half a day).
+    It now logs once and records when, for the run's warnings."""
+    from Basilisk.architecture import messaging
+    from Basilisk.simulation import extForceTorque
+
+    from spacemissionstudio.engine.orbit_maintenance import StationKeepingController
+
+    controller = StationKeepingController(
+        name="sk", mu=3.986004418e14, nominal_alt_m=550e3, deadband_m=2e3, r_planet_m=6378137.0,  # [m^3/s^2], [m]
+        thrust_n=0.05, isp_s=1500.0, dry_mass_kg=400.0, propellant_kg=0.0,  # [N], [s], [kg]
+    )
+    warnings = []
+
+    class _Logger:
+        def warning(self, text):
+            warnings.append(text)
+
+    controller.bskLogger = _Logger()
+    controller.smoothingWindowS = 1.0  # [s] a full smoothing window after one step, not one orbit
+    controller.extForceEffector = extForceTorque.ExtForceTorque()
+    sc_state_msg = messaging.SCStatesMsg()
+    controller.scStateInMsg.subscribeTo(sc_state_msg)
+    controller.Reset(0)
+    for step in range(5):
+        _write_sc_state(sc_state_msg, [6378137.0 + 500e3, 0.0, 0.0], [0.0, 7600.0, 0.0])  # [m], [m/s] below band
+        controller.UpdateState(int((step + 1) * 10e9))  # [ns]
+    assert controller.burnOn
+    assert controller.depletedAtS == 20.0  # [s] the first step with a full window
+    assert len(warnings) == 1 and "propellant depleted" in warnings[0]
+    assert _flat(controller.extForceEffector.extForce_N) == [0.0, 0.0, 0.0]

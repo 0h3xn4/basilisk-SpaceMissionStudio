@@ -57,6 +57,7 @@ from typing import Callable, Dict, List, Optional
 
 import numpy as np
 
+from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import OrbitIC, Scenario, SimSettings, SpaceWeatherConfig
 from . import time_system
 from .results import ResultSet, TimeSeries
@@ -102,7 +103,7 @@ def check_segmentable(scenario: Scenario, vizard_request=None) -> None:
 
 
 def _parse_epoch(epoch_utc: str) -> datetime:
-    epoch = datetime.fromisoformat(epoch_utc)
+    epoch = parse_epoch_utc(epoch_utc)
     if epoch.tzinfo is not None:
         epoch = epoch.astimezone(timezone.utc).replace(tzinfo=None)
     return epoch

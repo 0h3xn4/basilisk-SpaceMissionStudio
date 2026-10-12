@@ -110,7 +110,7 @@ The tool lets a mission analyst do the following without writing code:
 
 ```
   Operating system (Linux, Windows)
-    Python 3.9+ virtual environment
+    Python 3.11+ virtual environment
       SpaceMissionStudio  --uses-->  Basilisk 2.12.0, numpy, sgp4, pyerfa, PySide6, plotly
       Vizard (optional, separate program)
 ```

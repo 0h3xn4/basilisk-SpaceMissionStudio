@@ -74,6 +74,7 @@ chmod 755 "$staging"
 cp -r "$script_dir/deb/." "$staging/"
 mkdir -p "$staging/opt/spacemissionstudio/dist"
 cp "$wheel" "$staging/opt/spacemissionstudio/dist/"
+cp "$script_dir/constraints.txt" "$staging/opt/spacemissionstudio/"  # the tested versions postinst installs
 
 sed "s/@VERSION@/${version}/" "$staging/DEBIAN/control.in" > "$staging/DEBIAN/control"
 rm "$staging/DEBIAN/control.in"

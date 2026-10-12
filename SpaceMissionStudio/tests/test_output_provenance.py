@@ -46,6 +46,7 @@ def _provenance() -> RunProvenance:
                          data_files={"spice:naif0012.tls": {"path": "/x/naif0012.tls", "sha256": "cd" * 32}})
 
 
+@pytest.mark.requires_gui  # reads the PNG back with PySide6 (audit M8)
 def test_png_keeps_its_image_and_carries_the_record():
     """The text chunk goes after the header; the image chunks are unchanged."""
     png = _png_1x1()

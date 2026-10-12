@@ -81,8 +81,9 @@ from __future__ import annotations
 import ast
 import operator
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
+
+from .epochs import parse_epoch_utc
 
 SUPPORTED_COMMAND_KINDS = (
     "propagate", "maneuver", "lambert_transfer", "assignment", "report", "if", "while", "script_block",
@@ -198,7 +199,7 @@ class Command:
                 errors.append(f"{path}: propagate.stop_epoch_utc must be a string when stop_condition is 'epoch'")
             else:
                 try:
-                    datetime.fromisoformat(stop_epoch_utc)
+                    parse_epoch_utc(stop_epoch_utc)
                 except ValueError:
                     errors.append(f"{path}: propagate.stop_epoch_utc {stop_epoch_utc!r} is not a valid ISO 8601 "
                                     "datetime")
@@ -368,6 +369,11 @@ _MAX_POWER_EXPONENT = 1000  # [-] keeps a crafted ``10 ** 10 ** 10`` from hangin
 _MAX_CONDITION_LENGTH = 2000  # characters: a condition is a line, not a program
 _MAX_CONDITION_DEPTH = 50  # nesting levels: deeper ones exhaust the parser's and the evaluator's stack
 _MAX_REPEAT = 1_000_000  # [-] the most a text or list may be repeated (``'x' * n``)
+# The limits above are per operation; these bound what any operation may
+# produce, so chaining them cannot build a huge value either (audit M2):
+# ``('x' * 1000000) * 1000`` or ``((9 ** 999) ** 999) ** 999``.
+_MAX_RESULT_LENGTH = 100_000  # [-] characters in a text, items in a list or tuple
+_MAX_INTEGER_BITS = 4096  # [-] bits in an integer result (about 1233 decimal digits)
 
 
 def _depth(tree: ast.AST) -> int:
@@ -420,6 +426,27 @@ def _sequence(node, context):
     return tuple(values) if isinstance(node, ast.Tuple) else values
 
 
+def _is_integer(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
+def _check_result_size(op, left, right) -> None:
+    """Refuse an operation whose result would be too large, before it is
+    computed: computing it is what takes the time and memory."""
+    if isinstance(op, ast.Pow) and _is_integer(left) and _is_integer(right) and right > 0 and abs(left) > 1:
+        if left.bit_length() * right > _MAX_INTEGER_BITS:
+            raise ConditionError(f"the result would have more than {_MAX_INTEGER_BITS} bits")
+    if isinstance(op, ast.Mult):
+        if _is_integer(left) and _is_integer(right) and left.bit_length() + right.bit_length() > _MAX_INTEGER_BITS:
+            raise ConditionError(f"the result would have more than {_MAX_INTEGER_BITS} bits")
+        for sequence, count in ((left, right), (right, left)):
+            if isinstance(sequence, (str, list, tuple)) and _is_integer(count) and len(sequence) * count > _MAX_RESULT_LENGTH:
+                raise ConditionError(f"the result would be longer than {_MAX_RESULT_LENGTH} characters or items")
+    if isinstance(op, ast.Add) and isinstance(left, (str, list, tuple)) and isinstance(right, (str, list, tuple)):
+        if len(left) + len(right) > _MAX_RESULT_LENGTH:
+            raise ConditionError(f"the result would be longer than {_MAX_RESULT_LENGTH} characters or items")
+
+
 def _binary(node, context):
     left, right = _evaluate(node.left, context), _evaluate(node.right, context)
     if isinstance(node.op, ast.Pow) and abs(right) > _MAX_POWER_EXPONENT:
@@ -428,6 +455,7 @@ def _binary(node, context):
         for sequence, count in ((left, right), (right, left)):
             if isinstance(sequence, (str, list, tuple)) and isinstance(count, int) and count > _MAX_REPEAT:
                 raise ConditionError(f"repeats a text or list more than {_MAX_REPEAT} times")
+    _check_result_size(node.op, left, right)
     return _BINARY[type(node.op)](left, right)
 
 

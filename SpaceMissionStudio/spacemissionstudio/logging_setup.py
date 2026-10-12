@@ -62,6 +62,7 @@ from typing import Optional
 # e.g. so gui.main_window's error dialogs can point the user at exactly
 # where the full traceback for what they just saw actually landed.
 _log_file_path: Optional[Path] = None
+_configured = False  # set once configure_logging has run, with or without a log file
 
 
 def default_log_dir() -> Path:
@@ -75,14 +76,15 @@ def default_log_dir() -> Path:
     return Path.home() / ".spacemissionstudio" / "logs"
 
 
-def configure_logging(log_dir: Optional[Path] = None, console_level: int = logging.INFO) -> Path:
+def configure_logging(log_dir: Optional[Path] = None, console_level: int = logging.INFO) -> Optional[Path]:
     """Call once, at the very start of both entry points (``gui.app.main``,
     ``cli.main``) -- before anything else runs, so nothing that happens
     afterward (including import-time errors from lazily-imported modules)
     is ever missed.
 
     Returns the log file path just created, also retrievable afterward
-    via :func:`get_log_file_path`.
+    via :func:`get_log_file_path`, or None when the log folder cannot be
+    written: logging then goes to the terminal only.
 
     Idempotent: a second call in the same process (``cli.cmd_gui()``
     dispatching into ``gui.app.main()``, which is ALSO a documented
@@ -103,13 +105,12 @@ def configure_logging(log_dir: Optional[Path] = None, console_level: int = loggi
             that happens," even when the terminal itself is deliberately
             kept less noisy for ordinary use).
     """
-    global _log_file_path
+    global _log_file_path, _configured
 
-    if _log_file_path is not None:
+    if _configured:
         return _log_file_path
 
     log_dir = log_dir if log_dir is not None else default_log_dir()
-    log_dir.mkdir(parents=True, exist_ok=True)
     # One file per process launch (timestamped, not appended/rotated) --
     # simplest possible answer to "which run does this log belong to"
     # when several are kept around; old ones are left for the user to
@@ -124,9 +125,16 @@ def configure_logging(log_dir: Optional[Path] = None, console_level: int = loggi
         datefmt="%Y-%m-%dT%H:%M:%S%z",
     )
 
-    file_handler = logging.FileHandler(log_file, encoding="utf-8")
-    file_handler.setLevel(logging.DEBUG)
-    file_handler.setFormatter(formatter)
+    # An unwritable home folder (or log_dir) must not stop the tool: it
+    # then logs to the terminal only, and says so once (audit M11).
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        file_handler: Optional[logging.Handler] = logging.FileHandler(log_file, encoding="utf-8")
+    except OSError as exc:
+        file_handler, file_error = None, exc
+    if file_handler is not None:
+        file_handler.setLevel(logging.DEBUG)
+        file_handler.setFormatter(formatter)
 
     console_handler = logging.StreamHandler(sys.stderr)
     console_handler.setLevel(console_level)
@@ -134,7 +142,8 @@ def configure_logging(log_dir: Optional[Path] = None, console_level: int = loggi
 
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)
-    root_logger.addHandler(file_handler)
+    if file_handler is not None:
+        root_logger.addHandler(file_handler)
     root_logger.addHandler(console_handler)
 
     # Uncaught exceptions (a genuine bug reaching all the way up through
@@ -153,6 +162,11 @@ def configure_logging(log_dir: Optional[Path] = None, console_level: int = loggi
 
     sys.excepthook = _log_uncaught_exception
 
+    _configured = True
+    if file_handler is None:
+        logging.getLogger(__name__).warning("Could not create the log file in %s (%s); logging to the terminal only",
+                                            log_dir, file_error)
+        return None
     logging.getLogger(__name__).info("Logging to %s", log_file)
     _log_file_path = log_file
     return log_file

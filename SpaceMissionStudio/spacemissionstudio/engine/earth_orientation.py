@@ -226,17 +226,27 @@ def import_files(paths: Iterable, directory: Optional[Path] = None) -> List[EOPK
     """Install Earth PCKs from disk (e.g. removable media); a ``.cmt`` next
     to a ``.bpc`` is read for the last datum."""
     directory = Path(directory) if directory else DEFAULT_DIR
-    directory.mkdir(parents=True, exist_ok=True)
     staged = []
-    for path in map(Path, paths):
-        if path.suffix != ".bpc":
-            raise EarthOrientationError(f"{path.name}: expected a .bpc binary PCK")
-        part = directory / (path.name + ".part")
-        shutil.copyfile(path, part)
-        comment_file = path.with_suffix(".cmt")
-        comment = comment_file.read_text(encoding="utf-8", errors="replace") if comment_file.exists() else ""
-        staged.append((path.name, part, comment, str(path)))
-    return _install(directory, staged)
+    # A missing or unreadable file is an EarthOrientationError, and no
+    # .part copy is left behind (audit M12), as in fetch().
+    try:
+        directory.mkdir(parents=True, exist_ok=True)
+        for path in map(Path, paths):
+            if path.suffix != ".bpc":
+                raise EarthOrientationError(f"{path.name}: expected a .bpc binary PCK")
+            part = directory / (path.name + ".part")
+            staged.append((path.name, part, "", str(path)))
+            shutil.copyfile(path, part)
+            comment_file = path.with_suffix(".cmt")
+            comment = comment_file.read_text(encoding="utf-8", errors="replace") if comment_file.exists() else ""
+            staged[-1] = (path.name, part, comment, str(path))
+        return _install(directory, staged)
+    except OSError as exc:
+        raise EarthOrientationError(f"could not import the Earth orientation files: {exc}") from exc
+    finally:
+        for _name, part, _comment, _url in staged:
+            if part.exists():
+                part.unlink()
 
 
 def rollback(directory: Optional[Path] = None) -> List[EOPKernel]:

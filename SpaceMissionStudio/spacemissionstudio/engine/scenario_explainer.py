@@ -54,9 +54,10 @@ sections.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta, timezone
 from typing import Dict, List
 
+from ..schema.epochs import parse_epoch_utc
 from . import earth_orientation
 from .orbit_design import sun_synchronous_inclination_deg
 from .scenario_checks import gravity_fidelity_notes, pass_summary, scenario_warnings
@@ -289,7 +290,7 @@ def _earth_frame_notes(scenario) -> List[str]:
     """The Earth-fixed frame a run will use and its accuracy
     (engine.earth_orientation, ECSS-E-ST-10-09C 5.4.9f)."""
     try:
-        start = datetime.fromisoformat(scenario.epoch_utc)
+        start = parse_epoch_utc(scenario.epoch_utc)
         if start.tzinfo is not None:
             start = start.astimezone(timezone.utc).replace(tzinfo=None)
         kernels = earth_orientation.installed()

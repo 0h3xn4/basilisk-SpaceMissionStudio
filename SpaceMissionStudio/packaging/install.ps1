@@ -91,7 +91,8 @@ if (-not $SpaceMissionStudioWheel) {
 }
 
 Write-Host "Installing spacemissionstudio (+ gui extra) from $SpaceMissionStudioWheel ..."
-& $VenvPython -m pip install --quiet "$SpaceMissionStudioWheel[gui]"
+# The tested dependency versions (constraints.txt, audit M14).
+& $VenvPython -m pip install --quiet -c (Join-Path $ScriptDir "constraints.txt") "$SpaceMissionStudioWheel[gui]"
 if ($LASTEXITCODE -ne 0) {
     throw "pip install spacemissionstudio failed (exit code $LASTEXITCODE)"
 }

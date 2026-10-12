@@ -908,14 +908,25 @@ def oem_from_result(result, epoch_utc: str, central_body: str, spacecraft: Seque
     return messages
 
 
-def orbit_ic_from_odm(text: str):
+def orbit_ic_from_odm(text: str, central_body: Optional[str] = None):
     """(schema OrbitIC, UTC epoch of the state or None, notes) from an OPM
     (cartesian state at its epoch) or a TLE-based OMM (TLE orbit, propagated
-    by SGP4 to the scenario epoch like any TLE)."""
+    by SGP4 to the scenario epoch like any TLE). With ``central_body`` (the
+    scenario's), an OPM centred on another body, or an OMM for a scenario
+    not around Earth, is refused: the state would be taken as relative to
+    the wrong body (audit M13)."""
     from ..schema.scenario import OrbitIC
 
     message, issues = read_checked(text)
     notes = [str(issue) for issue in issues]
+    if central_body is not None:
+        center = (message.get("CENTER_NAME") or "").strip().upper()
+        if message.kind == "OPM" and center != central_body.upper():
+            raise OdmError(f"the OPM's CENTER_NAME is {center or 'missing'}, but the scenario's central body is "
+                           f"{central_body}: its state would be read as {central_body}-centred")
+        if message.kind == "OMM" and central_body.lower() != "earth":
+            raise OdmError(f"an OMM holds a TLE, which describes an Earth orbit; the scenario's central body is "
+                           f"{central_body}")
     if message.kind == "OPM":
         epoch, r, v, frame_notes = state_from_opm(message)
         orbit = OrbitIC(type="cartesian", position_km=list(r / 1e3), velocity_km_s=list(v / 1e3))

@@ -57,9 +57,10 @@ from __future__ import annotations
 
 import argparse
 import sys
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 
+from .schema.epochs import parse_epoch_utc
 from . import dependencies, output_provenance
 from .logging_setup import configure_logging
 from .schema import ScenarioValidationError, load_scenario
@@ -78,7 +79,14 @@ def cmd_validate(args: argparse.Namespace) -> int:
     blocks = script_blocks(scenario.mission_sequence)
     if blocks:
         print(f"NOTE: {len(blocks)} script_block(s) ({', '.join(path for path, _ in blocks)}) run unrestricted "
-              "Python; 'run' needs --allow-scripts to run them")
+              "Python; 'run' and 'monte-carlo' need --allow-scripts to run them")
+    # The plausibility checks the GUI shows while editing (perigee below
+    # the ground, an unusable TLE, no pass, data that does not cover the
+    # run): warnings only, the exit status stays 0 (audit L11).
+    from .engine import scenario_checks
+
+    for warning in scenario_checks.plausibility_warnings(scenario) + scenario_checks.scenario_warnings(scenario):
+        print(f"WARNING: {warning}")
     return 0
 
 
@@ -93,6 +101,46 @@ def _run_argument_error(scenario, args: argparse.Namespace):
         return (f"{len(blocks)} script_block(s) ({', '.join(path for path, _ in blocks)}) run unrestricted "
                 "Python from the scenario file. Read the code first, then pass --allow-scripts to run it.")
     return None
+
+
+def _write_run_outputs(args, scenario, result, command_summary) -> None:
+    """The CSV files, OEMs, events and Mission Sequence summary of a run."""
+    from .engine import ccsds_odm, data_budget, events
+    from .engine.results import output_path
+
+    paths = result.export_csv(args.out_dir)
+    print(f"Wrote {len(paths)} result file(s) to {args.out_dir}:")
+    for name, path in sorted(paths.items()):
+        print(f"  {name}: {path}")
+    if args.oem:
+        names = [sc.name for sc in scenario.spacecraft
+                 if f"{sc.name}.position_N" in result.series and len(result.series[f"{sc.name}.position_N"].time_s)]
+        for name, text in ccsds_odm.oem_from_result(result, scenario.epoch_utc, scenario.gravity.central_body,
+                                                    names, stride=args.oem_stride,
+                                                    interpolation=args.oem_interpolation).items():
+            oem_path = output_path(args.out_dir, f"{name}.oem")
+            oem_path.write_text(text, encoding="ascii")
+            print(f"  CCSDS OEM: {oem_path}")
+
+    for line in data_budget.summary_lines(result):
+        print(f"  data: {line}")
+    found = events.extract_events(result)  # the GUI's Events tab, headless (provenance.json covers it)
+    if found:
+        events_path = events.write_csv(found, args.out_dir / "events.csv", scenario.epoch_utc)
+        print(f"  events ({len(found)}): {events_path}")
+
+    # Informational only -- never affects the exit code (see
+    # ResultSet.warnings's own docstring: a non-empty list here is a
+    # numerical-health diagnostic, not a validation failure).
+    for warning in result.warnings:
+        print(f"WARNING: {warning}", file=sys.stderr)
+
+    if command_summary is not None:
+        print(f"Mission sequence: executed {command_summary.commands_executed} command(s), "
+              f"{len(command_summary.reports)} report(s).")
+        if command_summary.reports:
+            summary_path = command_summary.export_csv(args.out_dir / "command_summary.csv")
+            print(f"  command_summary: {summary_path}")
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -150,42 +198,11 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"ERROR: run failed: {exc}", file=sys.stderr)
         return 3
 
-    paths = result.export_csv(args.out_dir)
-    print(f"Wrote {len(paths)} result file(s) to {args.out_dir}:")
-    for name, path in sorted(paths.items()):
-        print(f"  {name}: {path}")
-    if args.oem:
-        from .engine import ccsds_odm
-
-        names = [sc.name for sc in scenario.spacecraft if f"{sc.name}.position_N" in result.series]
-        for name, text in ccsds_odm.oem_from_result(result, scenario.epoch_utc, scenario.gravity.central_body,
-                                                    names, stride=args.oem_stride,
-                                                    interpolation=args.oem_interpolation).items():
-            oem_path = args.out_dir / f"{name}.oem"
-            oem_path.write_text(text, encoding="ascii")
-            print(f"  CCSDS OEM: {oem_path}")
-
-    from .engine import data_budget, events
-
-    for line in data_budget.summary_lines(result):
-        print(f"  data: {line}")
-    found = events.extract_events(result)  # the GUI's Events tab, headless (provenance.json covers it)
-    if found:
-        events_path = events.write_csv(found, args.out_dir / "events.csv", scenario.epoch_utc)
-        print(f"  events ({len(found)}): {events_path}")
-
-    # Informational only -- never affects the exit code (see
-    # ResultSet.warnings's own docstring: a non-empty list here is a
-    # numerical-health diagnostic, not a validation failure).
-    for warning in result.warnings:
-        print(f"WARNING: {warning}", file=sys.stderr)
-
-    if command_summary is not None:
-        print(f"Mission sequence: executed {command_summary.commands_executed} command(s), "
-              f"{len(command_summary.reports)} report(s).")
-        if command_summary.reports:
-            summary_path = command_summary.export_csv(args.out_dir / "command_summary.csv")
-            print(f"  command_summary: {summary_path}")
+    try:
+        _write_run_outputs(args, scenario, result, command_summary)
+    except (OSError, ValueError) as exc:  # a write that failed, or a path refused by results.output_path
+        print(f"ERROR: could not write the results to {args.out_dir}: {exc}", file=sys.stderr)
+        return 3
 
     if any(sc.station_keeping is not None for sc in scenario.spacecraft):
         print("Station-keeping summary:")
@@ -281,10 +298,14 @@ def cmd_monte_carlo(args: argparse.Namespace) -> int:
     print(f"Running {scenario.monte_carlo.num_runs} Monte Carlo case(s) of {scenario.name!r} "
           f"({len(scenario.monte_carlo.dispersions)} dispersion(s), {scenario.monte_carlo.thread_count} thread(s))...")
     try:
-        failures = run_monte_carlo(scenario, scenario.monte_carlo, args.archive_dir)
+        failures = run_monte_carlo(scenario, scenario.monte_carlo, args.archive_dir,
+                                   allow_scripts=args.allow_scripts, overwrite=args.overwrite)
         output_provenance.write_sidecar(Path(args.archive_dir) / "archive", output_provenance.scenario_record(scenario))
     except MonteCarloError as exc:
         print(f"ERROR: Monte Carlo run failed: {exc}", file=sys.stderr)
+        return 3
+    except OSError as exc:
+        print(f"ERROR: could not write the Monte Carlo results: {exc}", file=sys.stderr)
         return 3
 
     print(f"Archived results to {args.archive_dir}")
@@ -356,6 +377,16 @@ def _print_altitude_trade(pb, scenario, name, result, altitudes) -> int:
     for note in trade.notes:
         print(f"NOTE: {note}")
     return 0
+
+
+def _positive_int_arg(text: str) -> int:
+    try:
+        value = int(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r}: a whole number of 1 or more") from None
+    if value < 1:
+        raise argparse.ArgumentTypeError(f"{text!r}: a whole number of 1 or more")  # 0 and -3 were accepted (L7)
+    return value
 
 
 def _altitudes_arg(text: str) -> list:
@@ -519,14 +550,19 @@ def cmd_ccsds_export(args: argparse.Namespace) -> int:
         print(f"INVALID: {exc}", file=sys.stderr)
         return 1
     from .engine import ccsds_odm, time_system
+    from .engine.results import output_path
 
-    args.out.mkdir(parents=True, exist_ok=True)
+    try:
+        args.out.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        print(f"ERROR: could not create {args.out}: {exc}", file=sys.stderr)
+        return 3
     epoch = time_system.elapsed_to_utc(scenario.epoch_utc, [0.0])[0]
     for sc in scenario.spacecraft:
         if sc.orbit.type == "tle":
             text = ccsds_odm.omm_from_tle(sc.orbit.tle_line1, sc.orbit.tle_line2, sc.name,
                                           comments=output_provenance.scenario_lines(scenario))
-            path = args.out / f"{sc.name}.omm"
+            path = output_path(args.out, f"{sc.name}.omm")
         else:
             try:
                 from .engine.service import _orbit_ic_to_rv
@@ -539,16 +575,30 @@ def cmd_ccsds_export(args: argparse.Namespace) -> int:
             text = ccsds_odm.write_opm(
                 object_name=sc.name, object_id="UNKNOWN", center_name=scenario.gravity.central_body,
                 ref_frame="EME2000", time_system="UTC", epoch=epoch, r_km=[x / 1e3 for x in r],
-                v_km_s=[x / 1e3 for x in v], gm_km3_s2=gm, mass_kg=sc.dry_mass_kg,
+                v_km_s=[x / 1e3 for x in v], gm_km3_s2=gm, mass_kg=_total_mass_kg(sc),
                 srp_area_m2=sc.srp_area_m2 if sc.enable_srp else None, srp_coeff=sc.srp_coeff if sc.enable_srp else None,
                 drag_area_m2=sc.drag_area_m2 if sc.enable_drag else None,
                 drag_coeff=sc.drag_coeff if sc.enable_drag else None,
                 comments=[f"Initial state of scenario {scenario.name!r}; EME2000 is SPICE J2000",
                           *output_provenance.scenario_lines(scenario)])
-            path = args.out / f"{sc.name}.opm"
-        path.write_text(text, encoding="ascii")
+            path = output_path(args.out, f"{sc.name}.opm")
+        try:
+            path.write_text(text, encoding="ascii")
+        except OSError as exc:
+            print(f"ERROR: could not write {path}: {exc}", file=sys.stderr)
+            return 3
         print(f"wrote {path}")
     return 0
+
+
+def _total_mass_kg(spacecraft) -> float:
+    """The spacecraft's mass at the epoch [kg] (CCSDS OPM MASS): dry mass plus
+    every propellant load aboard."""
+    blocks = (spacecraft.station_keeping, spacecraft.geo_station_keeping, spacecraft.constant_thrust)
+    propellant_kg = sum(block.propellant_kg for block in blocks if block is not None)  # [kg]
+    if spacecraft.fuel_tank is not None:
+        propellant_kg += spacecraft.fuel_tank.propellant_mass_kg
+    return spacecraft.dry_mass_kg + propellant_kg
 
 
 def _central_mu(scenario) -> float:
@@ -564,7 +614,11 @@ def cmd_ccsds_import(args: argparse.Namespace) -> int:
 
     try:
         scenario = load_scenario(args.scenario)
-        orbit, epoch, notes = ccsds_odm.orbit_ic_from_odm(args.message.read_text(encoding="ascii", errors="replace"))
+        orbit, epoch, notes = ccsds_odm.orbit_ic_from_odm(args.message.read_text(encoding="ascii", errors="replace"),
+                                                          central_body=scenario.gravity.central_body)
+    except OSError as exc:  # a missing message, or a folder (audit M12)
+        print(f"ERROR: could not read {args.message}: {exc}", file=sys.stderr)
+        return 1
     except (ScenarioValidationError, ccsds_odm.OdmError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         for issue in getattr(exc, "issues", []):
@@ -575,7 +629,7 @@ def cmd_ccsds_import(args: argparse.Namespace) -> int:
         print(f"ERROR: no spacecraft {args.spacecraft!r} in {args.scenario}", file=sys.stderr)
         return 1
     if epoch is not None:
-        scenario_epoch = datetime.fromisoformat(scenario.epoch_utc)
+        scenario_epoch = parse_epoch_utc(scenario.epoch_utc)
         if abs((epoch - scenario_epoch.replace(tzinfo=None)).total_seconds()) > 1e-3 and not args.set_epoch:
             print(f"ERROR: the OPM state is at {epoch.isoformat()} UTC, the scenario epoch is {scenario.epoch_utc}; "
                   "pass --set-epoch to move the scenario epoch to the OPM's", file=sys.stderr)
@@ -689,7 +743,7 @@ def cmd_spaceweather_resolve(args: argparse.Namespace) -> int:
 
     from .engine import spaceweather as sw
 
-    start = datetime.fromisoformat(scenario.epoch_utc)
+    start = parse_epoch_utc(scenario.epoch_utc)
     end = start + timedelta(days=scenario.sim_settings.duration_days)
     try:
         resolved = sw.resolve_for(scenario.space_weather, start, end)
@@ -863,7 +917,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--out-dir", type=Path, default=Path("results"), help="directory to write CSV results to")
     p_run.add_argument("--oem", action="store_true",
                        help="also write each spacecraft's ephemeris as a CCSDS OEM (KVN, EME2000, UTC)")
-    p_run.add_argument("--oem-stride", type=int, default=1, metavar="N",
+    p_run.add_argument("--oem-stride", type=_positive_int_arg, default=1, metavar="N",
                        help="write every Nth recorded state to the OEM (default 1: all)")
     p_run.add_argument("--oem-interpolation", choices=("hermite", "lagrange"), default="hermite",
                        help="interpolation the OEM suggests, degree 7 (GMAT reads only lagrange)")
@@ -888,7 +942,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_mc = subparsers.add_parser("monte-carlo", help="run a Monte Carlo batch and archive retained results")
     p_mc.add_argument("scenario", type=Path)
     p_mc.add_argument("--archive-dir", type=Path, default=Path("monte_carlo_results"),
-                       help="directory to archive per-run parameters and retained data to")
+                       help="directory to archive per-run parameters and retained data to (empty, or an earlier "
+                            "batch with --overwrite)")
+    p_mc.add_argument("--overwrite", action="store_true",
+                      help="replace an earlier Monte Carlo batch in --archive-dir")
+    p_mc.add_argument("--allow-scripts", action="store_true",
+                      help="run the Mission Sequence's script_block commands in every run (unrestricted Python: "
+                           "only for files you trust and have read)")
     p_mc.set_defaults(func=cmd_monte_carlo)
 
     p_life = subparsers.add_parser("lifetime", help="estimate when a spacecraft re-enters (orbit-averaged drag)")
@@ -908,12 +968,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_budget.add_argument("--spacecraft", help="spacecraft name (default: the first)")
     p_budget.add_argument("--run", action="store_true",
                           help="run the scenario first, for orbit control and formation keeping")
-    p_budget.add_argument("--launch-delays", action="store_true",
-                          help="repeat the budget for launches 1-5 years late (ESA AD10 Sec. 5.5)")
-    p_budget.add_argument("--altitudes", nargs="?", const="auto", type=_altitudes_arg, default=None,
-                          metavar="KM,KM,...",
-                          help="launch-delay sweep at each altitude [km] (default: five around the "
-                               "spacecraft's own), against the tank")
+    # --altitudes already sweeps the launch delays at each altitude, and
+    # silently overrode --launch-delays (audit L8): one or the other.
+    budget_sweep = p_budget.add_mutually_exclusive_group()
+    budget_sweep.add_argument("--launch-delays", action="store_true",
+                              help="repeat the budget for launches 1-5 years late (ESA AD10 Sec. 5.5)")
+    budget_sweep.add_argument("--altitudes", nargs="?", const="auto", type=_altitudes_arg, default=None,
+                              metavar="KM,KM,...",
+                              help="launch-delay sweep at each altitude [km] (default: five around the "
+                                   "spacecraft's own), against the tank")
     p_budget.set_defaults(func=cmd_budget)
 
     p_kernels = subparsers.add_parser("kernels-status", help="fetch/check SPICE kernel cache status")
@@ -1071,7 +1134,17 @@ def main(argv: list | None = None) -> int:
     configure_logging()
     parser = build_parser()
     args = parser.parse_args(argv)
-    return args.func(args)
+    try:
+        return args.func(args)
+    except KeyboardInterrupt:  # Ctrl-C: a message and the usual status, not a traceback (audit L10)
+        print("Interrupted.", file=sys.stderr)
+        return 130
+    except OSError as exc:
+        # A file a command could not write or read that the command itself
+        # does not report (saves, the SIL report, the Monte Carlo sidecar;
+        # audit L9): one line and status 3, not a traceback.
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 3
 
 
 if __name__ == "__main__":

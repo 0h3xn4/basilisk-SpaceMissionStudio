@@ -202,3 +202,50 @@ def test_no_jacchia_bowman_model_can_be_mixed_with_nrlmsise_00():
     for model in ("jb2006", "jb2008"):
         with pytest.raises(ScenarioValidationError, match="must be 'nrlmsise00' or 'exponential'"):
             SpaceWeatherConfig(atmosphere_model=model).validate()
+
+
+@pytest.mark.parametrize(("epoch", "days", "warned"), [
+    ("2026-03-01T00:00:00", 30.0, False),
+    ("2029-12-15T00:00:00", 30.0, True),  # ends past 2030.0
+    ("2024-06-01T00:00:00", 1.0, True),  # before the model's epoch
+    ("2030-01-01T00:00:00+02:00", 1.0, True),  # 2029-12-31T22:00Z, then past 2030.0
+])
+def test_a_run_outside_the_magnetic_model_validity_is_warned(tmp_path, epoch, days, warned):
+    """Audit M1: WMM2025 is valid from 2025.0 to 2030.0; a run outside that
+    window gets a result warning."""
+    cof = tmp_path / "WMM2025.COF"
+    cof.write_text("    2025.0            WMM-2025     11/13/2024\n")
+    warnings = env.wmm_validity_warnings(epoch, days, cof)
+    assert bool(warnings) is warned
+    if warned:
+        assert "valid from 2025.0 to 2030.0" in warnings[0]
+
+
+def test_an_unreadable_magnetic_model_file_gives_no_warning(tmp_path):
+    """The model itself reports a missing coefficient file; this check does
+    not add a second, misleading message."""
+    assert env.wmm_validity_warnings("2026-01-01T00:00:00", 1.0, tmp_path / "missing.COF") == []
+
+
+@pytest.mark.requires_basilisk
+def test_the_magnetic_field_is_evaluated_at_the_scenario_epoch():
+    """Audit M1: magneticFieldWMM.epochInMsg was never connected, so Basilisk
+    evaluated the field at its default 2019 epoch whatever the scenario's
+    date. It now reads the scenario epoch from the gravity factory."""
+    from spacemissionstudio.engine.service import SimulationService
+    from spacemissionstudio.schema import GravityConfig, OrbitIC, Scenario, SensorConfig, SimSettings, SpacecraftConfig
+
+    scenario = Scenario(
+        name="wmm epoch", epoch_utc="2026-01-01T00:00:00", simulation_mode="full_attitude",
+        gravity=GravityConfig(central_body="earth", central_body_degree=0),
+        sim_settings=SimSettings(duration_days=60.0 / 86400.0, dynamics_task_rate_s=10.0),  # [day], [s]
+        spacecraft=[SpacecraftConfig(
+            name="sat-1",
+            orbit=OrbitIC(type="cartesian", position_km=[7000.0, 0.0, 0.0], velocity_km_s=[0.0, 7.5, 0.0]),  # [km], [km/s]
+            sensors=[SensorConfig(kind="magnetometer", name="mag-1")])],
+    )
+    service = SimulationService(scenario)
+    service.build()
+    assert service._mag_field_model.epochInMsg.isLinked()
+    epoch = service.grav_factory.epochMsg.read()
+    assert (epoch.year, epoch.month, epoch.day) == (2026, 1, 1)

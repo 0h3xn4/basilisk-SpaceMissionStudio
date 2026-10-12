@@ -54,6 +54,7 @@ def _kepler(r0, v0, mu, times):
     return np.array(out)
 
 
+@pytest.mark.requires_basilisk  # engine.planet_rotation imports Basilisk (audit M8)
 def test_nearest_rotation_removes_the_linear_extrapolation_stretch():
     """R + R_dot dt is not a rotation; the corrected matrix is orthonormal
     to 1e-15 and equals the exact rotation to third order in omega dt."""

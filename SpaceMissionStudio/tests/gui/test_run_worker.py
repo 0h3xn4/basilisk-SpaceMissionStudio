@@ -290,3 +290,20 @@ def test_mission_engine_cancelled_emits_cancelled_signal_with_partial_result_and
     qtbot.waitUntil(lambda: not worker.isRunning(), timeout=5000)
 
     assert blocker.args == [partial, summary]
+
+
+def test_a_basilisk_exit_during_a_run_is_reported_not_silent(qtbot, monkeypatch):
+    """Audit H2: Basilisk's device factories call exit() (SystemExit) on
+    settings they refuse. RunWorker caught only Exception, so the thread
+    died with no signal and the GUI stayed "running" for ever."""
+    from spacemissionstudio.gui.run_worker import RunWorker
+
+    def exits(_service, _on_progress, _should_cancel):
+        raise SystemExit(1)
+
+    _install_fake_engine_service(monkeypatch, exits)
+    worker = RunWorker(_load_two_body_scenario())
+    with qtbot.waitSignal(worker.failed, timeout=5000) as blocker:
+        worker.start()
+    assert worker.wait(5000)
+    assert "Basilisk stopped the run (exit status 1)" in blocker.args[0]

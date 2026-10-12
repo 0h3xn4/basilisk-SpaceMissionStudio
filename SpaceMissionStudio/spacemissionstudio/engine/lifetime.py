@@ -57,6 +57,7 @@ from typing import Callable, List, Optional
 
 import numpy as np
 
+from ..schema.epochs import parse_epoch_utc
 from . import geodesy
 
 # Basilisk's own Earth constants (architecture/utilities/astroConstants.h)
@@ -301,7 +302,8 @@ def propagate_decay(orbit: MeanOrbit, start_utc: datetime, ballistic_m2_kg: floa
     times, perigees, apogees = [0.0], [orbit.perigee_altitude_km], [orbit.apogee_altitude_km]
     while t_s < horizon_s and orbit.perigee_altitude_km > REENTRY_ALTITUDE_KM:
         if should_cancel is not None and should_cancel():
-            break
+            # Returning would report a lifetime nobody computed (audit L3).
+            raise LifetimeError("the lifetime estimate was cancelled")
         da_dt, de_vec_dt = _drag_rates(orbit, t_s, ballistic_m2_kg, density)
         drop_m_s = _perigee_drop_rate(orbit, da_dt, de_vec_dt)
         remaining_m = (orbit.perigee_altitude_km - REENTRY_ALTITUDE_KM) * 1e3  # [m]
@@ -340,7 +342,7 @@ def deorbit_burn(orbit: MeanOrbit, target_perigee_km: float, mass_kg: float, isp
 
 
 def _parse_utc(epoch_utc: str) -> datetime:
-    when = datetime.fromisoformat(epoch_utc)
+    when = parse_epoch_utc(epoch_utc)
     return when.astimezone(timezone.utc).replace(tzinfo=None) if when.tzinfo is not None else when
 
 
@@ -534,6 +536,9 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
     50 for end of life, whatever the scenario's operations setting);
     ``drag_coeff`` replaces the spacecraft's own (AD10 Sec. 5.2: 2.2 at
     end of life, against 3.0 in operations)."""
+    if not (math.isfinite(max_years) and max_years > 0.0):
+        # -5 used to reach Basilisk as an end before the start (audit M12).
+        raise LifetimeError(f"max_years must be a positive number of years, got {max_years:g}")
     spacecraft = next((sc for sc in scenario.spacecraft if sc.name == spacecraft_name), None)
     if spacecraft is None:
         raise LifetimeError(f"no spacecraft named {spacecraft_name!r}")
@@ -549,7 +554,12 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
         propellant_kg = _remaining_propellant(result, spacecraft_name, propellant_kg)
     mass_kg = spacecraft.dry_mass_kg + propellant_kg  # [kg]
     if spacecraft.fuel_tank is not None:
-        mass_kg += spacecraft.fuel_tank.propellant_mass_kg
+        # After a run, what the tank still holds, not its initial load (audit L4).
+        tank_kg = spacecraft.fuel_tank.propellant_mass_kg  # [kg]
+        remaining = result.series.get(f"{spacecraft_name}.fuel_mass_remaining") if result is not None else None
+        if remaining is not None and len(remaining.data):
+            tank_kg = float(remaining.data[-1, 0])
+        mass_kg += tank_kg
 
     if scenario.gravity.central_body != "earth":
         raise LifetimeError("orbit lifetime is only estimated around Earth")
@@ -588,5 +598,7 @@ def _orbit_after_retro_burn(orbit: MeanOrbit, delta_v_m_s: float) -> MeanOrbit:
     v_apo = math.sqrt(MU_EARTH_M3_S2 * (2.0 / r_apo - 1.0 / orbit.semi_major_axis_m)) - delta_v_m_s  # [m/s]
     a_new = 1.0 / (2.0 / r_apo - v_apo * v_apo / MU_EARTH_M3_S2)  # [m]
     r_peri = 2.0 * a_new - r_apo  # [m]
+    # The burn point stays the apogee, so the perigee stays opposite it: the
+    # argument of perigee is unchanged (it was turned by 180 deg; audit L2).
     return MeanOrbit(a_new, (r_apo - r_peri) / (r_apo + r_peri), orbit.inclination_rad, orbit.raan_rad,
-                     orbit.arg_periapsis_rad + (math.pi if orbit.eccentricity > 0.0 else 0.0))
+                     orbit.arg_periapsis_rad)

@@ -120,3 +120,41 @@ def test_drift_fit_ignores_the_daily_libration():
     assert fitted == pytest.approx(drift, rel=0.02)
     naive = np.polyfit(times, [e for _, e in controller._history], 1)[0]
     assert abs(naive - drift) > 0.5 * drift  # what the first version did
+
+
+@pytest.mark.requires_basilisk
+def test_an_empty_geo_tank_is_logged_once_and_recorded():
+    """Audit M4: the GEO controller went silent when its tank was empty, so
+    a run gave no sign that station keeping had stopped. It now logs once
+    and records when, for the run's warnings."""
+    import numpy as np
+    from Basilisk.architecture import messaging
+
+    from spacemissionstudio.engine.geo_station_keeping import GeoStationKeepingController
+
+    config = GeoStationKeepingConfig(target_longitude_deg=0.0, thrust_n=1.0, isp_s=220.0,  # [deg], [N], [s]
+                                     propellant_kg=0.0, inclination_max_deg=0.05)  # [kg], [deg]
+    controller = GeoStationKeepingController("geo-sk", 3.986004418e14, 6378137.0, config, 500.0)  # [m^3/s^2], [m], [kg]
+    warnings = []
+
+    class _Logger:
+        def warning(self, text):
+            warnings.append(text)
+
+    controller.bskLogger = _Logger()
+    state, planet = messaging.SCStatesMsg(), messaging.SpicePlanetStateMsg()
+    payload = messaging.SpicePlanetStateMsgPayload()
+    payload.J20002Pfix = np.eye(3).tolist()
+    planet.write(payload)
+    controller.scStateInMsg.subscribeTo(state)
+    controller.planetStateInMsg.subscribeTo(planet)
+    controller.Reset(0)
+    inclination = math.radians(1.0)  # [rad] well above inclination_max_deg
+    for step in range(3):
+        sc = messaging.SCStatesMsgPayload()
+        sc.r_BN_N = [42164e3, 0.0, 0.0]  # [m]
+        sc.v_BN_N = [0.0, 3074.7 * math.cos(inclination), 3074.7 * math.sin(inclination)]  # [m/s]
+        state.write(sc, int(step * 60e9))  # [ns]
+        controller.UpdateState(int((step + 1) * 60e9))  # [ns]
+    assert controller.depletedAtS == pytest.approx(60.0)  # [s] the first step
+    assert len(warnings) == 1 and "propellant depleted" in warnings[0]

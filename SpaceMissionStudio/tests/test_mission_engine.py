@@ -764,3 +764,33 @@ def test_propagate_stops_at_ground_station_pass_start_and_end():
     assert minutes[1] == pytest.approx(18.2, abs=0.5)  # [min]
     assert minutes[2] == pytest.approx(106.9, abs=0.5)  # [min]
     assert minutes[3] > minutes[2] + 60.0  # not the pass already under way
+
+
+def test_a_loop_that_would_pass_one_runs_time_limit_is_stopped():
+    """Audit M3: a Mission Sequence is one Basilisk run, which fails past
+    about 104 days; a while loop of 40-day propagates is stopped before its
+    third pass would take the clock to 120 days."""
+    from spacemissionstudio.engine.mission_engine import MissionEngine, MissionEngineError
+
+    scenario = _scenario(duration_days=1.0, dynamics_task_rate_s=600.0, mission_sequence=[  # [day], [s]
+        Command(kind="while", params={"condition": "True"}, children=[
+            Command(kind="propagate", params={"duration_days": 40.0}),  # [day]
+        ]),
+    ])
+    engine = MissionEngine(scenario)
+    with pytest.raises(MissionEngineError, match="would run past 100 days"):
+        engine.run()
+    assert engine._elapsed_ns == pytest.approx(80.0 * 86400.0e9)  # [ns] two passes ran
+
+
+def test_a_script_block_function_and_comprehension_see_the_context():
+    """Audit L1: exec with separate globals and locals hid spacecraft, t_s and
+    summary from a def or a comprehension in the script (NameError)."""
+    from spacemissionstudio.engine.mission_engine import MissionEngine
+
+    code = ("def altitude_of(name):\n"
+            "    return spacecraft[name]['altitude_m']\n"
+            "summary.reports.extend([altitude_of(n) > 0 for n in spacecraft] + [t_s >= 0])")
+    scenario = _scenario(mission_sequence=[Command(kind="script_block", params={"code": code})])
+    _, summary = MissionEngine(scenario, allow_scripts=True).run()
+    assert summary.reports == [True, True]

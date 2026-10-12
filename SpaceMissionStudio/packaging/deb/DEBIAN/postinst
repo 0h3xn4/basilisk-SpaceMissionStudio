@@ -35,7 +35,8 @@ case "$1" in
         "$VENV_DIR/bin/python3" -m pip install --quiet --upgrade pip
 
         echo "SpaceMissionStudio: installing Basilisk 2.12.0 (bsk[all]==2.12.0, the version SpaceMissionStudio is qualified with) from PyPI -- this needs internet access and can take a few minutes ..."
-        "$VENV_DIR/bin/python3" -m pip install --quiet "bsk[all]==2.12.0"
+        # The tested dependency versions (constraints.txt, audit M14).
+        "$VENV_DIR/bin/python3" -m pip install --quiet -c "$INSTALL_DIR/constraints.txt" "bsk[all]==2.12.0"
 
         wheel=$(ls "$INSTALL_DIR"/dist/spacemissionstudio-*.whl 2>/dev/null | head -n1)
         if [ -z "$wheel" ]; then
@@ -43,7 +44,7 @@ case "$1" in
             exit 1
         fi
         echo "SpaceMissionStudio: installing SpaceMissionStudio itself from the bundled wheel ..."
-        "$VENV_DIR/bin/python3" -m pip install --quiet "${wheel}[gui]"
+        "$VENV_DIR/bin/python3" -m pip install --quiet -c "$INSTALL_DIR/constraints.txt" "${wheel}[gui]"
 
         # SpaceMissionStudio never accesses the network at runtime (real
         # user requirement: "the app must be completely closed off and

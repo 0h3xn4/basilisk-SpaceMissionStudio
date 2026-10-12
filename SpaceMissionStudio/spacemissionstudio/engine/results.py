@@ -39,7 +39,19 @@ from typing import Dict, List, Optional, Sequence
 import numpy as np
 
 
-class ResultsError(Exception):
+def output_path(out_dir: "str | Path", file_name: str) -> Path:
+    """``out_dir / file_name`` for a file name built from a scenario's names,
+    or :class:`ResultsError` if it would land anywhere but directly inside
+    ``out_dir``. Scenario.validate already refuses names that could do so
+    (audit H3); this is the second line of defence at every write."""
+    out_dir = Path(out_dir)
+    path = out_dir / file_name
+    if Path(file_name).name != file_name or path.resolve().parent != out_dir.resolve():
+        raise ResultsError(f"refusing to write {file_name!r}: it would land outside {out_dir}")
+    return path
+
+
+class ResultsError(ValueError):
     """Raised on malformed result data (mismatched array lengths, etc.) --
     never silently truncated or NaN-padded.
     """
@@ -168,7 +180,7 @@ class TimeSeries:
     def to_csv(self, path: "str | Path") -> Path:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", newline="") as f:
+        with open(path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             header = ["time_s"] + [f"{c}" + (f"_{self.units}" if self.units else "") for c in self.columns]
             writer.writerow(header)
@@ -278,7 +290,7 @@ class ResultSet:
         """
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
-        paths = {name: ts.to_csv(out_dir / f"{name}.csv") for name, ts in self.series.items()}
+        paths = {name: ts.to_csv(output_path(out_dir, f"{name}.csv")) for name, ts in self.series.items()}
         if self.provenance is not None:
             provenance_path = out_dir / "provenance.json"
             provenance_path.write_text(json.dumps(self.provenance.to_dict(), indent=2))

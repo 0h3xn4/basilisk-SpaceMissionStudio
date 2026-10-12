@@ -102,7 +102,7 @@ Details, and the Basilisk module behind each feature:
 | | |
 |---|---|
 | System | Linux x86_64 or aarch64 (glibc 2.28 or newer), Windows 10 or 11 x86_64, macOS 11 or newer on Apple silicon |
-| Python | 3.11 is what CI tests (Basilisk's wheels cover 3.9 to 3.14) |
+| Python | 3.11 or newer; CI tests 3.11 (Basilisk's wheels go up to 3.14) |
 | Basilisk | 2.12.0, installed from PyPI (`bsk`) |
 | Disk | About 1.6 GB, including the reference data |
 | Internet | Once, to install and fetch the reference data |

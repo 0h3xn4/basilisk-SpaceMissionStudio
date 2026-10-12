@@ -51,7 +51,6 @@ epoch and applies the ICRS frame bias, so the tool no longer uses it.
 from __future__ import annotations
 
 import math
-import re
 import warnings
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -61,11 +60,10 @@ import erfa
 import numpy as np
 from sgp4.api import SGP4_ERRORS, Satrec, jday
 
+from ..schema.epochs import parse_epoch_utc
+from ..schema.tle_format import TLEError, _checksum, check_lines  # noqa: F401 -- re-exported: engine.tle.TLEError, .check_lines
+
 TLE_AGE_WARNING_DAYS = 3.0  # [day] warn when the TLE epoch is further from the scenario epoch
-
-
-class TLEError(ValueError):
-    """A TLE that cannot be used, with the reason."""
 
 
 @dataclass(frozen=True)
@@ -77,28 +75,6 @@ class TLEState:
     tle_epoch_utc: datetime
     age_days: float  # [day] scenario epoch minus TLE epoch
     catalog_number: str
-
-
-def _checksum(line: str) -> int:
-    return sum(int(c) if c.isdigit() else 1 if c == "-" else 0 for c in line[:68]) % 10
-
-
-def check_lines(line1: str, line2: str) -> None:
-    """Raise :class:`TLEError` naming the first format problem found."""
-    for number, line in (("1", line1), ("2", line2)):
-        if len(line) != 69:
-            raise TLEError(f"TLE line {number} has {len(line)} characters, expected 69")
-        if line[0] != number or line[1] != " ":
-            raise TLEError(f"TLE line {number} must start with '{number} '")
-        if not line[68].isdigit():
-            raise TLEError(f"TLE line {number} has no checksum digit in column 69")
-        if _checksum(line) != int(line[68]):
-            raise TLEError(f"TLE line {number} checksum is {line[68]}, computed {_checksum(line)}")
-    if line1[2:7] != line2[2:7]:
-        raise TLEError(f"TLE catalogue numbers differ: {line1[2:7]!r} and {line2[2:7]!r}")
-    epoch = line1[18:32]  # columns 19-32: YYDDD.DDDDDDDD
-    if not re.fullmatch(r"\d{5}\.\d{8}", epoch) or not 1.0 <= float(epoch[2:]) < 367.0:
-        raise TLEError(f"TLE line 1 epoch {epoch!r} (columns 19-32) is not YYDDD.DDDDDDDD with a day of year 1-366")
 
 
 def parse(line1: str, line2: str) -> Satrec:
@@ -138,7 +114,7 @@ def teme_to_eme2000_matrix(epoch_utc: datetime) -> np.ndarray:
 
 
 def _naive_utc(epoch_utc: str) -> datetime:
-    epoch = datetime.fromisoformat(epoch_utc)
+    epoch = parse_epoch_utc(epoch_utc)
     if epoch.tzinfo is not None:
         epoch = epoch.astimezone(timezone.utc).replace(tzinfo=None)
     return epoch

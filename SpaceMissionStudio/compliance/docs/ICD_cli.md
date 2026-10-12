@@ -36,7 +36,9 @@ run a Monte Carlo batch and archive retained results
 | Argument | Help |
 |---|---|
 | `scenario` |  |
-| `--archive-dir` | directory to archive per-run parameters and retained data to |
+| `--archive-dir` | directory to archive per-run parameters and retained data to (empty, or an earlier batch with --overwrite) |
+| `--overwrite` | replace an earlier Monte Carlo batch in --archive-dir |
+| `--allow-scripts` | run the Mission Sequence's script_block commands in every run (unrestricted Python: only for files you trust and have read) |
 
 ## `lifetime`
 

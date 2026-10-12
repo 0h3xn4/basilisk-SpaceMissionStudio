@@ -52,6 +52,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import dependencies
+from ..engine import monte_carlo_results
 from ..engine.series_names import featured_series
 from ..logging_setup import get_log_file_path
 from ..schema.command import script_blocks
@@ -998,7 +999,12 @@ class MainWindow(QMainWindow):
         except ScenarioValidationError as exc:
             QMessageBox.critical(self, "Cannot save invalid scenario", str(exc))
             return
-        scenario.save(path)
+        try:
+            scenario.save(path)
+        except OSError as exc:  # unwritable folder, a file in the path, a full disk (audit M9)
+            QMessageBox.critical(self, "Could not save", f"Could not save the scenario to {path}:\n{exc}\n\n"
+                                 "The previous file, if there was one, is unchanged.")
+            return
         self._current_path = path
         self._mark_clean()
         self.statusBar().showMessage(f"Saved {path}")
@@ -1579,15 +1585,33 @@ class MainWindow(QMainWindow):
                                   "before running it.")
             return
 
+        # Every run flies the Mission Sequence (as Run Simulation does), so
+        # its script blocks need the same consent.
+        blocks = script_blocks(scenario.mission_sequence)
+        if blocks and not self._confirm_script_blocks(blocks):
+            return
         archive_dir_str = QFileDialog.getExistingDirectory(self, "Monte Carlo archive directory")
         if not archive_dir_str:
             return
         archive_dir = Path(archive_dir_str)
+        state = monte_carlo_results.folder_state(archive_dir)
+        if state == "other":
+            QMessageBox.critical(self, "Choose an empty folder",
+                                 f"{archive_dir} holds other files. Choose an empty folder for the Monte Carlo batch.")
+            return
+        overwrite = state == "batch"
+        if overwrite and QMessageBox.question(
+                self, "Replace the earlier batch?",
+                f"{archive_dir} holds an earlier Monte Carlo batch. Replace it with this one?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No) != QMessageBox.StandardButton.Yes:
+            return
 
         self._start_busy(f"Running {scenario.monte_carlo.num_runs} Monte Carlo case(s)...")
         _join_finished_worker(self._mc_worker)
         self._mc_archive_dir = archive_dir
-        self._mc_worker = MonteCarloWorker(scenario, scenario.monte_carlo, archive_dir)
+        self._mc_worker = MonteCarloWorker(scenario, scenario.monte_carlo, archive_dir,
+                                           allow_scripts=bool(blocks), overwrite=overwrite)
         self._mc_worker.finished_ok.connect(self._on_monte_carlo_finished)
         self._mc_worker.failed.connect(self._on_monte_carlo_failed)
         self._mc_worker.start()

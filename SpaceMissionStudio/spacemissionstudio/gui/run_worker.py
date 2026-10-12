@@ -76,6 +76,16 @@ from ..schema.scenario import MonteCarloConfig, Scenario
 _logger = logging.getLogger(__name__)
 
 
+def failure_text(exc: BaseException) -> str:
+    """What a worker reports for ``exc``. Basilisk's device factories call
+    ``exit()`` (``SystemExit``) on settings they refuse, printing the reason
+    first; ``str()`` of that is only the exit status."""
+    if isinstance(exc, SystemExit):
+        return (f"Basilisk stopped the run (exit status {exc.code}) on a setting it refuses; its reason is "
+                "printed in the terminal and the log file")
+    return str(exc) or type(exc).__name__
+
+
 class RunWorker(QThread):
     finished_ok = Signal(object, object)  # engine.results.ResultSet, Optional[engine.results.CommandSummary]
     failed = Signal(str)
@@ -152,14 +162,14 @@ class RunWorker(QThread):
                 except SimulationCancelled as exc:
                     self.cancelled.emit(exc.partial_result, None)
                     return
-        except Exception as exc:  # noqa: BLE001 -- surface ANY failure to the GUI, never crash the worker silently
+        except (Exception, SystemExit) as exc:  # noqa: BLE001 -- surface ANY failure (Basilisk's exit() too) to the GUI, never end the worker silently
             # Full traceback to the log file/terminal -- see
             # logging_setup's own module docstring for why str(exc) alone
             # (all the GUI's own error dialog ever shows) can be the ONLY
             # information anywhere about a genuinely unexpected failure,
             # with nothing else to go on, unless this is logged here.
             _logger.exception("RunWorker failed")
-            self.failed.emit(str(exc))
+            self.failed.emit(failure_text(exc))
             return
         self.finished_ok.emit(result, command_summary)
 
@@ -195,11 +205,14 @@ class MonteCarloWorker(QThread):
     finished_ok = Signal(list)  # list[int] of failed run indices (empty == all succeeded)
     failed = Signal(str)
 
-    def __init__(self, scenario: Scenario, mc_config: MonteCarloConfig, archive_dir: Path, parent=None):
+    def __init__(self, scenario: Scenario, mc_config: MonteCarloConfig, archive_dir: Path, parent=None,
+                 allow_scripts: bool = False, overwrite: bool = False):
         super().__init__(parent)
         self.scenario = scenario
         self.mc_config = mc_config
         self.archive_dir = archive_dir
+        self.allow_scripts = allow_scripts  # the user agreed to the Mission Sequence's script blocks
+        self.overwrite = overwrite  # the user agreed to replace an earlier batch in archive_dir
 
     def run(self) -> None:
         try:
@@ -211,14 +224,15 @@ class MonteCarloWorker(QThread):
             )
             return
         try:
-            failures = run_monte_carlo(self.scenario, self.mc_config, self.archive_dir)
+            failures = run_monte_carlo(self.scenario, self.mc_config, self.archive_dir,
+                                       allow_scripts=self.allow_scripts, overwrite=self.overwrite)
             output_provenance.write_sidecar(Path(self.archive_dir) / "archive",
                                             output_provenance.scenario_record(self.scenario))
         except MonteCarloError as exc:
             self.failed.emit(str(exc))
             return
-        except Exception as exc:  # noqa: BLE001 -- surface ANY failure to the GUI, never crash the worker silently
+        except (Exception, SystemExit) as exc:  # noqa: BLE001 -- surface ANY failure (Basilisk's exit() too) to the GUI, never end the worker silently
             _logger.exception("MonteCarloWorker failed")
-            self.failed.emit(str(exc))
+            self.failed.emit(failure_text(exc))
             return
         self.finished_ok.emit(failures)

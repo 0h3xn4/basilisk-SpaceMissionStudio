@@ -40,6 +40,7 @@ typedef SOCKET FswSocket;
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 #include <sys/un.h>
 #include <unistd.h>
 typedef int FswSocket;
@@ -95,12 +96,37 @@ static int socketReceive(FswTransport *transport, void *data, size_t size)
     return 0;
 }
 
+/*
+ * Closes gracefully: ends the send side first, then reads and discards what
+ * the simulation still sends (for at most 2 s) until it closes its end.
+ * Closing, or exiting, with unread data makes Windows reset the connection,
+ * and the reset can discard the last frame sent, such as the ERROR frame
+ * of a BSK_ERROR (audit M15).
+ */
 static void socketClose(FswTransport *transport)
 {
-    if ((FswSocket)transport->handle != FSW_BAD_SOCKET) {
-        fswCloseSocket((FswSocket)transport->handle);
-        transport->handle = (long long)FSW_BAD_SOCKET;
+    FswSocket s = (FswSocket)transport->handle;
+    char discard[256];
+    if (s == FSW_BAD_SOCKET) {
+        return;
     }
+#ifdef _WIN32
+    {
+        DWORD timeoutMs = 2000;
+        shutdown(s, SD_SEND);
+        setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeoutMs, sizeof timeoutMs);
+    }
+#else
+    {
+        struct timeval timeout = {2, 0};
+        shutdown(s, SHUT_WR);
+        setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof timeout);
+    }
+#endif
+    while (recv(s, discard, (int)sizeof discard, 0) > 0) {
+    }
+    fswCloseSocket(s);
+    transport->handle = (long long)FSW_BAD_SOCKET;
 #ifdef _WIN32
     WSACleanup();
 #endif

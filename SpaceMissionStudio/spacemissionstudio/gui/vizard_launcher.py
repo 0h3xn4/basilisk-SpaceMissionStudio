@@ -245,19 +245,25 @@ def fetch_vizard(dest_dir: Optional[Path] = None, timeout_s: float = 30.0,
     genuinely fail" signal for the caller to check.
     """
     dest_dir = Path(dest_dir) if dest_dir else DEFAULT_FETCH_DIR
-    dest_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        dest_dir.mkdir(parents=True, exist_ok=True)
+    except OSError as exc:
+        raise VizardFetchError(f"could not create {dest_dir}: {exc}") from exc
 
     url = _download_url_for_platform()
     zip_name = url.rsplit("/", 1)[-1]
     zip_path = dest_dir / zip_name
+    tmp = zip_path.with_suffix(zip_path.suffix + ".part")
 
     if on_status:
         on_status(f"Downloading {url} ...")
     request = urllib.request.Request(url, headers={"User-Agent": _USER_AGENT})  # noqa: S310 -- constant https URL
+    # Streamed to the .part file chunk by chunk, never held in memory
+    # whole (audit H4); renamed onto zip_path only once complete.
+    digest = hashlib.sha256()
+    total = 0
     try:
-        with urllib.request.urlopen(request, timeout=timeout_s) as response:  # noqa: S310 -- constant https URL
-            chunks = []
-            total = 0
+        with urllib.request.urlopen(request, timeout=timeout_s) as response, tmp.open("wb") as part:  # noqa: S310
             while True:
                 if should_cancel is not None and should_cancel():
                     raise VizardFetchError("download cancelled")
@@ -267,26 +273,34 @@ def fetch_vizard(dest_dir: Optional[Path] = None, timeout_s: float = 30.0,
                 total += len(chunk)
                 if total > _MAX_DOWNLOAD_BYTES:
                     raise VizardFetchError(
-                        f"{url} response exceeded {_MAX_DOWNLOAD_BYTES} bytes -- refusing to buffer an "
-                        f"unbounded download"
+                        f"{url} response exceeded {_MAX_DOWNLOAD_BYTES} bytes -- refusing an unbounded download"
                     )
-                chunks.append(chunk)
-    except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                digest.update(chunk)
+                part.write(chunk)
+        tmp.replace(zip_path)  # atomic-ish: never leave a half-written file at zip_path
+    except (urllib.error.URLError, TimeoutError, OSError, VizardFetchError) as exc:
+        tmp.unlink(missing_ok=True)
+        if isinstance(exc, VizardFetchError):
+            raise
         raise VizardFetchError(f"could not download {url}: {exc}") from exc
-    data = b"".join(chunks)
+    try:
+        return _install_download(url, zip_name, zip_path, dest_dir, total, digest.hexdigest(), on_status)
+    except OSError as exc:
+        raise VizardFetchError(f"could not install the downloaded Vizard in {dest_dir}: {exc}") from exc
 
-    tmp = zip_path.with_suffix(zip_path.suffix + ".part")
-    tmp.write_bytes(data)
-    tmp.replace(zip_path)  # atomic-ish: never leave a half-written file at zip_path
+
+def _install_download(url: str, zip_name: str, zip_path: Path, dest_dir: Path, size_bytes: int, sha256: str,
+                      on_status: Optional[Callable[[str], None]]) -> Path:
+    """Records, extracts and finds the executable in a completed download
+    (the second half of :func:`fetch_vizard`)."""
     # AVS publishes no checksum to verify against, so the download is at
     # least recorded: source, size and SHA-256 (security_analysis.md S-05).
-    sha256 = hashlib.sha256(data).hexdigest()
     (dest_dir / "download.json").write_text(json.dumps({
-        "url": url, "file": zip_name, "size_bytes": len(data), "sha256": sha256,
+        "url": url, "file": zip_name, "size_bytes": size_bytes, "sha256": sha256,
         "downloaded_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }, indent=2), encoding="utf-8")
     if on_status:
-        on_status(f"Downloaded {zip_name}: {len(data)} bytes, SHA-256 {sha256}")
+        on_status(f"Downloaded {zip_name}: {size_bytes} bytes, SHA-256 {sha256}")
 
     # A plain "extracted" staging name, not one derived from the zip's own
     # filename: AVS's own Vizard_<platform>.zip already wraps its contents
@@ -443,7 +457,7 @@ class VizardFetchWorker(QThread):
                 should_cancel=self._cancel_requested.is_set,
                 on_status=self.status.emit,
             )
-        except VizardFetchError as exc:
-            self.failed.emit(str(exc))
+        except Exception as exc:  # noqa: BLE001 -- any failure must reach the user, never end the thread silently
+            self.failed.emit(str(exc) if isinstance(exc, VizardFetchError) else f"{type(exc).__name__}: {exc}")
             return
         self.finished_ok.emit(str(executable))

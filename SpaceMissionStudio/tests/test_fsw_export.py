@@ -32,7 +32,7 @@ from pathlib import Path
 
 import pytest
 
-from spacemissionstudio.schema import load_scenario
+from spacemissionstudio.schema import ScenarioValidationError, load_scenario
 
 pytestmark = pytest.mark.requires_basilisk
 
@@ -197,24 +197,31 @@ def test_every_attitude_template_exports_builds_and_reproduces_the_simulation(tm
 
 @pytest.mark.requires_c_toolchain
 def test_names_from_a_shared_scenario_cannot_put_code_into_the_export(tmp_path):
-    """A scenario and spacecraft named to close a C comment, end a string
-    or start a CMake line: the export still builds, its tests pass, the
-    name comes back intact from fsw_host, and the raw text appears in no
-    generated C or CMake file (security analysis S-14)."""
+    """A scenario named to start a CMake line, and a spacecraft named with
+    the most hostile text a spacecraft name may still hold (quotes,
+    semicolons, a CMake variable, a CMake comment): the export still builds,
+    its tests pass, the name comes back intact from fsw_host, and the text
+    appears only inside comments and the escaped name string (security
+    analysis S-14). A name that would close a C comment or end a string is
+    now refused when the scenario is validated (audit H3)."""
     from spacemissionstudio.fsw_export.records import export_flight_software
 
-    hostile = 'x */ int injected = 1; /* "\\n'
     scenario = _template("06")
+    scenario.spacecraft[0].name = 'satx */ int injected = 1; /* "\\n'
+    with pytest.raises(ScenarioValidationError, match="names become file names"):
+        scenario.validate()
     scenario.name = "evil\nadd_custom_target(boom ALL COMMAND false)"
-    scenario.spacecraft[0].name = "sat" + hostile + "\u00e9"
+    scenario.spacecraft[0].name = "sat x'; int injected = 1; ${CMAKE_COMMAND} #\u00e9"
     scenario.validate()
     out = tmp_path / "fsw"
     export_flight_software(scenario, scenario.spacecraft[0].name, out, steps=5)
     for path in list((out / "generated").glob("*.[ch]")) + list((out / "tests").glob("*.c")) + [out / "CMakeLists.txt"]:
         text = path.read_text()
         for line in text.splitlines():
-            if "int injected" in line:  # only escaped in the name's string literal, or neutralised in a comment
-                assert line.startswith("const char fsw_spacecraft_name[]") or "* / int injected" in line, (path, line)
+            if "int injected" in line:  # only in the name's escaped string literal or inside a comment
+                before = line[:line.index("int injected")]
+                in_comment = "/*" in before if path.suffix in (".c", ".h") else line.lstrip().startswith("#")
+                assert line.startswith("const char fsw_spacecraft_name[]") or in_comment, (path, line)
             assert not line.lstrip().startswith("add_custom_target"), (path, line)
     build = tmp_path / "build"
     assert _cmake("-S", str(out), "-B", str(build)).returncode == 0

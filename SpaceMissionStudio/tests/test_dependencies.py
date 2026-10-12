@@ -52,7 +52,7 @@ def test_installers_pin_the_qualified_basilisk_version(installer):
     """Every pip install of Basilisk in the installers pins exactly the
     qualified version, so changing one without the other fails here."""
     text = (_PACKAGING / installer).read_text(encoding="utf-8")
-    pins = re.findall(r'pip install --quiet "bsk\[all\]([^"]*)"', text)
+    pins = re.findall(r'pip install --quiet (?:-c \S+ )?"bsk\[all\]([^"]*)"', text)  # -c: constraints.txt (M14)
     assert pins == [f"=={dependencies.QUALIFIED_BASILISK_VERSION}"]
 
 
@@ -96,3 +96,28 @@ def test_run_provenance_records_the_configuration(tmp_path):
     kernels = {name: record for name, record in provenance["data_files"].items() if name.startswith("spice:")}
     assert "spice:naif0012.tls" in kernels
     assert all("size_bytes" in record for record in kernels.values())
+
+
+def test_the_release_constraints_pin_every_dependency_the_installers_use():
+    """Audit M14: installers and CI took the newest PySide6, plotly and numpy
+    on every install. packaging/constraints.txt pins the tested versions:
+    every runtime and GUI dependency, Basilisk at the qualified version, and
+    each installer and the CI workflow installs with it."""
+    import tomllib
+
+    root = Path(__file__).resolve().parents[1]
+    pins = {}
+    for line in (root / "packaging" / "constraints.txt").read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line:
+            name, _, version = line.partition("==")
+            assert version, f"not an exact pin: {line!r}"
+            pins[name.lower().replace("_", "-")] = version
+    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    for requirement in project["dependencies"] + project["optional-dependencies"]["gui"]:
+        name = re.split(r"[<>=!~\[ ]", requirement, maxsplit=1)[0].lower().replace("_", "-")
+        assert name in pins, f"{name} is not pinned in constraints.txt"
+    assert pins["bsk"] == dependencies.QUALIFIED_BASILISK_VERSION
+    for installer in ("packaging/install.sh", "packaging/install.ps1", "packaging/deb/DEBIAN/postinst",
+                      "packaging/windows/bootstrap_env.ps1", "../.github/workflows/spacemissionstudio.yml"):
+        assert "constraints.txt" in (root / installer).read_text(encoding="utf-8"), installer

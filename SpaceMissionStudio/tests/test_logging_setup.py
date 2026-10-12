@@ -130,3 +130,36 @@ def test_default_log_dir_is_under_home_dot_spacemissionstudio():
 
     assert result.name == "logs"
     assert result.parent.name == ".spacemissionstudio"
+
+
+def test_an_unwritable_log_folder_falls_back_to_the_terminal(tmp_path, capsys, _clean_logging_state):
+    """Audit M11: with an unwritable home folder even `validate` died with a
+    traceback while creating the log folder. Logging now goes to the
+    terminal only, with one warning saying why."""
+    from spacemissionstudio.logging_setup import configure_logging, get_log_file_path
+
+    blocker = tmp_path / "a_file"
+    blocker.write_text("not a folder")
+    assert configure_logging(log_dir=blocker / "logs") is None
+    assert get_log_file_path() is None
+    logging.getLogger("spacemissionstudio.test").error("still reported")
+    err = capsys.readouterr().err
+    assert "Could not create the log file" in err and "still reported" in err
+    assert configure_logging(log_dir=tmp_path) is None  # configured once per process
+
+
+def test_the_cli_runs_with_an_unwritable_home(tmp_path, monkeypatch, capsys, _clean_logging_state):
+    """The audit's reproduction: `validate` with a home folder that cannot
+    hold ~/.spacemissionstudio/logs."""
+    import json
+    from pathlib import Path
+
+    from spacemissionstudio import cli
+
+    blocker = tmp_path / "home_is_a_file"
+    blocker.write_text("")
+    monkeypatch.setattr(Path, "home", lambda: blocker)
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps({"schema_version": 1, "name": "", "epoch_utc": "2030-01-01T00:00:00"}))
+    assert cli.main(["validate", str(bad)]) == 1
+    assert "INVALID" in capsys.readouterr().err

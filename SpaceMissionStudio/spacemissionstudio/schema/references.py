@@ -118,18 +118,31 @@ def _command_references(commands: List["Command"], path_prefix: str) -> List[Ref
             # leading segment is the spacecraft that series belongs to.
             # Unlike "assignment"/"maneuver", a single report can reference
             # several spacecraft at once (one per series entry).
+            # A ground-station access series, "berlin-gs.access_to_sat-1.azimuth",
+            # belongs to a station and names the spacecraft in its second
+            # segment (engine.service); names cannot contain '.' (audit M6).
             for j, series in enumerate(command.params["series"]):
-                if isinstance(series, str) and "." in series:
-                    name = series.split(".", 1)[0]
-                    if name:
-                        refs.append(Reference(
-                            path=f"{path}.params['series'][{j}]", resource_kind="spacecraft", name=name,
-                        ))
+                if not (isinstance(series, str) and "." in series):
+                    continue
+                where = f"{path}.params['series'][{j}]"
+                owner, rest = series.split(".", 1)
+                if rest.startswith("access_to_"):
+                    station_side = rest[len("access_to_"):].split(".", 1)[0]
+                    if owner:
+                        refs.append(Reference(path=where, resource_kind="ground_station", name=owner))
+                    if station_side:
+                        refs.append(Reference(path=where, resource_kind="spacecraft", name=station_side))
+                elif owner:
+                    refs.append(Reference(path=where, resource_kind="spacecraft", name=owner))
 
         if command.kind in ("if", "while"):
             refs.extend(_command_references(command.children, f"{path}.children"))
 
     return refs
+
+
+# How messages name several of each kind ("spacecraft" has no plural "s").
+_PLURAL = {"spacecraft": "spacecraft", "ground_station": "ground stations"}
 
 
 def find_spacecraft_references(scenario: "Scenario", name: str) -> List[Reference]:

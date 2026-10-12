@@ -152,3 +152,16 @@ def test_identical_runs_report_zero_spread_not_rounding_noise():
     batch = _circular_batch([0.0, 0.0, 0.0])
     assert mcr.format_km(4.14e-25) == "0 km" and mcr.format_km(447960.0) == "448 km"
     assert "along-track 0 km, radial 0 km, cross-track 0 km" in mcr.summary_lines(batch)[1]
+
+
+def test_a_folder_holding_only_system_clutter_counts_as_empty(tmp_path):
+    """A folder a file manager has touched (.DS_Store, Thumbs.db, desktop.ini,
+    hidden folders) is still empty for a new batch; a real file is not."""
+    from spacemissionstudio.engine.monte_carlo_results import folder_state
+
+    for name in (".DS_Store", "Thumbs.db", "desktop.ini"):
+        (tmp_path / name).write_text("")
+    (tmp_path / ".cache").mkdir(exist_ok=True)
+    assert folder_state(tmp_path) == "empty"
+    (tmp_path / "notes.txt").write_text("mine")
+    assert folder_state(tmp_path) == "other"

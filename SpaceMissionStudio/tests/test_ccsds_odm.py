@@ -486,3 +486,38 @@ def test_mutated_examples_validate_without_crashing():
             odm.read(text)
         except odm.OdmError:
             pass
+
+
+@pytest.mark.requires_basilisk
+def test_cli_export_opm_mass_includes_the_propellant(tmp_path):
+    """Audit L6: the OPM MASS is the spacecraft's mass at the epoch -- dry
+    mass plus its propellant (template 18: 120 kg dry plus 2 kg)."""
+    from spacemissionstudio import cli
+
+    source = Path(__file__).resolve().parent.parent / "spacemissionstudio" / "scenarios" / "templates" \
+        / "18_leo_station_keeping.json"
+    assert cli.main(["ccsds-export", str(source), "--out", str(tmp_path)]) == 0
+    assert math.isclose(odm.read((tmp_path / "leo-sat-1.opm").read_text()).number("MASS"), 122.0)  # [kg]
+
+
+def test_an_odm_for_another_central_body_is_refused():
+    """Audit M13: an OPM centred on Mars imported into an Earth scenario as an
+    Earth-centred state, and a TLE-based OMM was accepted around any body."""
+    opm = _example("opm_g1.txt").replace("ITRF2000", "EME2000")  # an inertial frame import reads
+    odm.orbit_ic_from_odm(opm, central_body="earth")
+    with pytest.raises(odm.OdmError, match="CENTER_NAME is EARTH, but the scenario's central body is mars"):
+        odm.orbit_ic_from_odm(opm, central_body="mars")
+    with pytest.raises(odm.OdmError, match="describes an Earth orbit"):
+        odm.orbit_ic_from_odm(_example("omm_g7.txt"), central_body="moon")
+    odm.orbit_ic_from_odm(_example("omm_g7.txt"), central_body="earth")
+
+
+def test_a_tle_orbit_around_another_body_is_refused():
+    """Audit M13: a TLE describes an Earth orbit (SGP4, TEME)."""
+    from spacemissionstudio.schema import GravityConfig, OrbitIC, Scenario, ScenarioValidationError, SpacecraftConfig
+
+    scenario = Scenario(name="tle", epoch_utc="2007-03-05T10:34:41", gravity=GravityConfig(central_body="mars"),
+                        spacecraft=[SpacecraftConfig(name="sat-1", orbit=OrbitIC(
+                            type="tle", tle_line1=_G6[0], tle_line2=_G6[1]))])
+    with pytest.raises(ScenarioValidationError, match="TLE orbit describes an Earth orbit"):
+        scenario.validate()

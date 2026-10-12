@@ -93,7 +93,8 @@ if [[ -z "$spacemissionstudio_wheel" ]]; then
 fi
 
 echo "Installing spacemissionstudio (+ gui extra) from $spacemissionstudio_wheel ..."
-python3 -m pip install --quiet "${spacemissionstudio_wheel}[gui]"
+# The tested dependency versions (constraints.txt, audit M14).
+python3 -m pip install --quiet -c "$script_dir/constraints.txt" "${spacemissionstudio_wheel}[gui]"
 
 if [[ -n "$basilisk_wheel" ]]; then
     echo "Installing vendored Basilisk wheel from $basilisk_wheel ..."

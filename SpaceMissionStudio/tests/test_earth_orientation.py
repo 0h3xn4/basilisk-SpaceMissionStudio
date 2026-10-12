@@ -186,3 +186,15 @@ def test_a_run_uses_spice_itrf93_as_the_earth_frame(monkeypatch):
     np.testing.assert_allclose(np.array(earth.J20002Pfix), rotation("ITRF93"), atol=1e-12)
     difference = np.array(earth.J20002Pfix) @ rotation("IAU_EARTH").T
     assert np.degrees(np.arccos((np.trace(difference) - 1.0) / 2.0)) > 1e-3  # [deg] the frames really differ
+
+
+def test_importing_a_missing_file_is_reported_and_leaves_nothing_behind(tmp_path):
+    """Audit M12: `earth-orientation --import` with a missing file gave a
+    traceback, and a failed import left .part copies. Both are fixed."""
+    good = tmp_path / "source" / "earth_latest_high_prec.bpc"
+    good.parent.mkdir()
+    good.write_bytes(b"not used: the second file is missing")
+    target = tmp_path / "installed"
+    with pytest.raises(eo.EarthOrientationError, match="could not import"):
+        eo.import_files([good, tmp_path / "source" / "missing.bpc"], directory=target)
+    assert list(target.glob("*.part")) == []
