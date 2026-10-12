@@ -1,0 +1,97 @@
+# SpaceMissionStudio: builds the Windows setup program
+# (SpaceMissionStudio/packaging/windows/spacemissionstudio.iss) on a Windows
+# runner, then installs it silently there and runs the installed tool. Inno
+# Setup is Windows-only, so this is the one place the installer is built
+# and run. The setup program bundles the wheel attached to a published
+# release (checked against that release's SHA256SUMS), so the program it
+# builds belongs to that release. The setup program, its checksum and the
+# install log are kept as the run's artifact, to attach to the release.
+name: "SpaceMissionStudio Windows installer"
+
+on:
+  push:
+    paths:
+      - "SpaceMissionStudio/packaging/windows/**"
+      - "SpaceMissionStudio/packaging/constraints.txt"
+      - ".github/workflows/spacemissionstudio-windows-installer.yml"
+  workflow_dispatch:
+    inputs:
+      release:
+        description: "Release tag whose wheel the setup program bundles"
+        default: "v3.0.0"
+
+permissions:
+  contents: read
+
+jobs:
+  installer:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: SpaceMissionStudio
+    env:
+      RELEASE: ${{ inputs.release || 'v3.0.0' }}
+      GH_TOKEN: ${{ github.token }}
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: The release's wheel, checked against its SHA256SUMS
+        run: |
+          gh release download $env:RELEASE --repo $env:GITHUB_REPOSITORY --pattern "spacemissionstudio-*.whl" --pattern SHA256SUMS --dir release
+          $wheel = Get-ChildItem release\spacemissionstudio-*.whl | Select-Object -First 1
+          $expected = (Select-String -Path release\SHA256SUMS -SimpleMatch $wheel.Name).Line.Split(" ")[0]
+          $actual = (Get-FileHash $wheel.FullName -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne $expected) { throw "$($wheel.Name): SHA-256 $actual, SHA256SUMS says $expected" }
+          $version = (Select-String -Path packaging\windows\spacemissionstudio.iss -Pattern '#define MyAppVersion "([^"]+)"').Matches[0].Groups[1].Value
+          if ($wheel.Name -notlike "spacemissionstudio-$version-*") { throw "$($wheel.Name) is not version $version of the .iss" }
+          New-Item -ItemType Directory -Force packaging\windows\dist | Out-Null
+          Copy-Item $wheel.FullName packaging\windows\dist\
+          Write-Host "Bundling $($wheel.Name) ($actual)"
+      - name: Inno Setup
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found at $iscc" }
+          "ISCC=$iscc" >> $env:GITHUB_ENV
+      - name: Build the setup program
+        run: |
+          & $env:ISCC packaging\windows\spacemissionstudio.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
+          $exe = Get-ChildItem packaging\windows\Output\spacemissionstudio-*-setup.exe | Select-Object -First 1
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          "$hash  $($exe.Name)" | Set-Content -Encoding ascii packaging\windows\Output\SHA256SUMS-windows
+          Get-Content packaging\windows\Output\SHA256SUMS-windows
+      - name: Install it silently, as a user would
+        run: |
+          $exe = Get-ChildItem packaging\windows\Output\spacemissionstudio-*-setup.exe | Select-Object -First 1
+          $dir = Join-Path $env:RUNNER_TEMP "SpaceMissionStudio"
+          $log = Join-Path $PWD "packaging\windows\Output\install.log"
+          $p = Start-Process $exe.FullName -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CURRENTUSER", "/DIR=`"$dir`"", "/LOG=`"$log`"" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "setup exited with $($p.ExitCode)" }
+          $python = Join-Path $dir "venv\Scripts\python.exe"
+          if (-not (Test-Path $python)) { throw "no environment at $($python); the setup's Python step failed (see install.log)" }
+          "INSTALLED_PYTHON=$python" >> $env:GITHUB_ENV
+      - name: Run the installed tool
+        run: |
+          & $env:INSTALLED_PYTHON -c "import spacemissionstudio, Basilisk; print('SpaceMissionStudio', spacemissionstudio.__version__)"
+          if ($LASTEXITCODE -ne 0) { throw "import failed" }
+          & $env:INSTALLED_PYTHON -m spacemissionstudio.cli kernels-status
+          if ($LASTEXITCODE -ne 0) { throw "kernels-status failed" }
+          $template = "spacemissionstudio\scenarios\templates\01_two_body_circular_orbit.json"
+          & $env:INSTALLED_PYTHON -m spacemissionstudio.cli validate $template
+          if ($LASTEXITCODE -ne 0) { throw "validate failed" }
+          & $env:INSTALLED_PYTHON -m spacemissionstudio.cli run $template --out-dir (Join-Path $env:RUNNER_TEMP "run01")
+          if ($LASTEXITCODE -ne 0) { throw "run failed" }
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: spacemissionstudio-windows-installer
+          path: |
+            SpaceMissionStudio/packaging/windows/Output/*.exe
+            SpaceMissionStudio/packaging/windows/Output/SHA256SUMS-windows
+            SpaceMissionStudio/packaging/windows/Output/install.log
