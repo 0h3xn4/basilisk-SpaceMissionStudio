@@ -8878,3 +8878,31 @@ answer at all for that long, so the wait now restarts with each late
 answer. Reproduced with a scripted flight software 20 ms per step behind
 (100 dropped steps against a 0.3 s timeout); the new test fails without
 the fix.
+
+## Native stacks for crashed CI test workers (2026-10-12)
+
+**What was seen.** Twice (pull requests #39 and #41) a pytest-xdist
+worker in the Linux `test` job died with `Fatal Python error:
+Segmentation fault` in a thread with `<no Python frame>`, in
+`tests/gui/test_main_window.py`. A re-run passed both times. Python's
+traceback cannot show where in native code (Qt WebEngine, numpy, ERFA,
+Basilisk) it crashed, so it could not be root-caused.
+
+**What changed (CI only).** The `test` job now:
+- writes core dumps to `/tmp/cores` (`kernel.core_pattern` set to
+  `core.%E.%p`, `ulimit -c unlimited` in the test step). Faulthandler
+  re-raises the signal after printing, so the kernel writes the core;
+- installs `gdb`, and after the tests runs
+  `scripts/print_core_backtraces.sh`, which prints the crashed thread's
+  stack, every thread and the loaded libraries for each core, deletes the
+  core and keeps the text;
+- uploads the text as the `native-stacks` artifact.
+
+**How it was checked.** A deliberate segfault in a Python thread
+(`ctypes.string_at(0)` with faulthandler on), its core renamed to the CI
+pattern: the script printed the crashed thread from the signal frame
+down to `_ctypes` and `libffi`, then every thread. A core whose program
+path does not exist, and a folder with no cores, both exit 0. On the
+runner, the job repeats that deliberate segfault before the tests and
+prints the first frames, so every run shows that cores are written and
+readable there; if not, it warns.

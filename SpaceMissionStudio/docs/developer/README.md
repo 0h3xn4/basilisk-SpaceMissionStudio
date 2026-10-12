@@ -153,6 +153,17 @@ request that touches `SpaceMissionStudio/`:
 | `test` | Ubuntu, Python 3.11 | Lint; compliance-document checks; reference data download; the full suite with coverage; the offline tests; metrics (statement coverage at least 90 %, branch at least 80 %); traceability and compliance matrix |
 | `platforms` | `windows-latest`, `macos-latest` | Reference data download and the full suite |
 
+If a process in the `test` job crashes in native code (Qt, numpy,
+Basilisk), Python's faulthandler shows only `<no Python frame>` for the
+crashed thread. The job therefore keeps core dumps in `/tmp/cores`, and
+the step **Native stacks of crashed processes, if any** runs
+[`scripts/print_core_backtraces.sh`](../../scripts/print_core_backtraces.sh)
+on them: `gdb` prints the crashed thread's C/C++ stack, every thread and
+the loaded libraries. The output is in that step's log and in the
+`native-stacks` artifact; the step finds nothing on a run without a
+crash. Before the tests, the job crashes one Python process on purpose
+to check that cores are written and readable, and warns if not.
+
 Basilisk's own workflows (in `.github/workflows/`, from upstream) also
 run; they build and test Basilisk itself.
 

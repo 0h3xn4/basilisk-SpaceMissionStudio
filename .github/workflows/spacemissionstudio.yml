@@ -79,6 +79,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libxkbcommon-x11-0 \
             libdbus-1-3 libfontconfig1 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxtst6 libasound2t64
+          sudo apt-get install -y --no-install-recommends gdb  # native stacks of crashed test workers
       - name: Install the tool and the dev tools (no Basilisk needed for these checks)
         working-directory: SpaceMissionStudio
         run: |
@@ -125,6 +126,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libxkbcommon-x11-0 \
             libdbus-1-3 libfontconfig1 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxtst6 libasound2t64
+          sudo apt-get install -y --no-install-recommends gdb  # native stacks of crashed test workers
       - name: Install the tool, the qualified Basilisk release and the dev tools
         run: |
           python -m pip install --upgrade pip
@@ -143,16 +145,41 @@ jobs:
         run: spacemissionstudio kernels-status
       - name: IERS-based Earth orientation files for the validation cases (SVS VP-1)
         run: spacemissionstudio earth-orientation --fetch
+      # A test worker that crashes in native code shows only "<no Python
+      # frame>" in faulthandler's output. Python's faulthandler re-raises the
+      # signal, so with core dumps on, the kernel writes a core that
+      # scripts/print_core_backtraces.sh turns into the C/C++ stacks.
+      - name: Keep core dumps of crashed processes
+        run: |
+          sudo mkdir -p /tmp/cores
+          sudo chmod 1777 /tmp/cores
+          # %E: the program's path, which gdb needs to read the core
+          sudo sysctl -w kernel.core_pattern='/tmp/cores/core.%E.%p'
+          # Self-check: a deliberate segfault must leave a core gdb can read.
+          (ulimit -c unlimited; python -X faulthandler -c "import ctypes; ctypes.string_at(0)") || true
+          if compgen -G "/tmp/cores/core.*" > /dev/null; then
+            scripts/print_core_backtraces.sh /tmp/cores > /tmp/core-selfcheck.log 2>&1
+            grep -A6 "=== Crashed thread ===" /tmp/core-selfcheck.log \
+              || echo "::warning::gdb could not read the self-check core"
+            rm -f /tmp/cores/*
+          else
+            echo "::warning::no core dump written; a crashed test worker would show no native stack"
+          fi
       - name: Tests with coverage (C-9, C-10)
-        run: >
-          python -m pytest tests -q -n auto -p no:cacheprovider -o faulthandler_timeout=600
-          --cov=spacemissionstudio --cov-branch --cov-report=json:coverage.json --cov-report=term
-          --junitxml=test-report.xml
+        run: |
+          ulimit -c unlimited || echo "::warning::core dumps could not be enabled"
+          python -m pytest tests -q -n auto -p no:cacheprovider -o faulthandler_timeout=600 \
+            --cov=spacemissionstudio --cov-branch --cov-report=json:coverage.json --cov-report=term \
+            --junitxml=test-report.xml
       - name: Offline tests with no network at all (UX/UI guidelines; review_log F-16)
         run: |
           # unprivileged user namespaces are restricted by AppArmor on ubuntu-24.04
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           unshare -rn python -m pytest tests/test_offline.py -q -p no:cacheprovider
+      - name: Native stacks of crashed processes, if any
+        if: always()
+        timeout-minutes: 15
+        run: scripts/print_core_backtraces.sh /tmp/cores
       - name: Metrics and statement coverage >= 90 % (C-7, C-10)
         if: always()
         run: python compliance/tools/metrics.py --coverage coverage.json --junit test-report.xml --fail-under 90 --fail-under-branch 80
@@ -174,6 +201,12 @@ jobs:
             SpaceMissionStudio/compliance/traceability_matrix.csv
             SpaceMissionStudio/compliance/compliance_matrix.csv
             SpaceMissionStudio/compliance/ics_ccsds_502.csv
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: native-stacks
+          path: /tmp/cores/*.txt
+          if-no-files-found: ignore
 
   # SRS-PO-01 (Windows, macOS; H13, decision 19): the test suite on the
   # other two platforms, against the same qualified Basilisk release. The
