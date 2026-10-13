@@ -34,6 +34,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import subprocess
+import weakref
 from pathlib import Path
 from typing import Optional
 
@@ -180,8 +181,12 @@ class MainWindow(QMainWindow):
         self._last_run_scenario: Scenario | None = None  # set in on_run(); fed to mission_dashboard_widget
 
         self.scenario_editor = ScenarioEditorWidget()
-        self.scenario_editor.set_base_dir_provider(
-            lambda: self._current_path.parent if self._current_path is not None else None)
+        # Through a weak reference: a lambda holding the window would make a
+        # cycle (window -> editor -> lambda -> window) that keeps the window
+        # and its web views alive until interpreter exit, after Qt WebEngine
+        # has shut down -- a segfault on exit, seen in CI's GUI tests.
+        window = weakref.ref(self)
+        self.scenario_editor.set_base_dir_provider(lambda: window()._scenario_dir() if window() else None)
         self.scenario_editor.reset_to_default()
         self.scenario_editor.changed.connect(self._mark_dirty)
         self.scenario_editor.changed.connect(self._refresh_scenario_explainer)
@@ -659,6 +664,10 @@ class MainWindow(QMainWindow):
         name = self._current_path.name if self._current_path else "untitled"
         star = "*" if self._dirty else ""
         self.setWindowTitle(f"SpaceMissionStudio -- {name}{star}")
+
+    def _scenario_dir(self) -> Path | None:
+        """The open scenario file's folder (a 3D model's mesh paths are relative to it)."""
+        return self._current_path.parent if self._current_path is not None else None
 
     def _mark_dirty(self) -> None:
         if not self._dirty:

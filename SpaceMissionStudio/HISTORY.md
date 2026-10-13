@@ -9167,5 +9167,16 @@ checks that.
 regenerated: `center_of_mass_b_m` at the origin and `"model": null`.
 Nothing else in them changed.
 
+**Found in CI and fixed: a segfault on exit.** CI's help test crashed
+(exit code 139) after all its tests had passed, when its main window was
+torn down. The window handed the scenario editor a lambda that held the
+window itself: a reference cycle (window -> editor -> lambda -> window)
+kept the window and its web views alive until interpreter exit, after Qt
+WebEngine had shut down. It reproduced only as a non-root user, as CI
+runs, which is why the local runs (as root) passed. The lambda now holds
+a weak reference. Checked as a non-root user: the help test exits 0
+three times out of three, against 139 three times before. `develop`
+exits 0 the same way.
+
 **Not done:** the model's look in a running Vizard; template 28 run from
 the GUI by hand.
