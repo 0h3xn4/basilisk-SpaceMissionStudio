@@ -164,8 +164,10 @@ site. It has no schedule, operational profile or site personnel.
   - Windows: **Settings > Apps**.
   - Your scenario files, results and the `~/.cache/SpaceMissionStudio/`
     directory are not removed. Delete them by hand if you want.
-- **Checking a download:** compare it with the published `SHA256SUMS`
-  (`sha256sum -c SHA256SUMS`).
+- **Checking a download:** compare it with the release's published
+  checksums: `sha256sum -c SHA256SUMS-linux --ignore-missing` on Linux;
+  on Windows, `Get-FileHash` on the setup program against
+  `SHA256SUMS-windows`.
 
 ### 9.3 Getting started (H.2.1<9.3>)
 

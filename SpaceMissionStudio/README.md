@@ -117,8 +117,7 @@ scripts are in [`packaging/`](packaging/README.md).
   [changelog](CHANGELOG.md)). Needs Python 3.11 or newer.
 - **Tested** in CI on Linux, Windows and macOS with Basilisk 2.12.0;
   the Linux packages were installed and run end to end. The Windows
-  installer and install script have not yet been run on a real Windows
-  machine.
+  setup program is built, installed and run in CI on a Windows runner; it has not yet been tried by hand on a real Windows machine; `install.ps1` has not been run.
 - **Known gaps:** [Known limitations](docs/reference/limitations.md).
 - **Standards:** the project's ECSS and CCSDS records are in
   [`compliance/`](compliance/README.md). They are the project's own

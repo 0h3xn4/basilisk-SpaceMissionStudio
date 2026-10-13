@@ -117,8 +117,12 @@ from the [3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/r
 `sudo apt install ./spacemissionstudio_3.0.0_all.deb` in a terminal), then
 find **SpaceMissionStudio** in your application menu like any other program.
 
-**Windows 10/11:** double-click the `.exe` installer you were given and
-follow the setup wizard, then find **SpaceMissionStudio** in your Start Menu.
+**Windows 10/11:** install Python 3.11 or newer first
+([python.org](https://www.python.org/downloads/), with "Add python.exe to
+PATH" ticked). Then double-click the `.exe` installer you were given, or
+`spacemissionstudio-3.0.0-setup.exe` from the [3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0),
+follow the setup wizard, and find **SpaceMissionStudio** in your Start
+Menu.
 
 Either installer needs an internet connection once, to download the
 Basilisk simulation engine and its reference data (planet positions,

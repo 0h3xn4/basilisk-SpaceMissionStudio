@@ -613,3 +613,13 @@ container run was cancelled after its arm64 image had been pushed to
 this repository's GHCR (to be deleted by the user). The release
 procedure now names `spacemissionstudio-vX.Y.Z` tags, which start
 neither (`docs/developer/releasing.md` section 6).
+
+**Windows setup program attached 2026-10-13.** The installer workflow
+(`.github/workflows/spacemissionstudio-windows-installer.yml`) built it
+around the released wheel. It installed the program silently on a
+Windows runner, ran the installed tool and attached the program and
+`SHA256SUMS-windows` to the release. The release's `SHA256SUMS` is now
+`SHA256SUMS-linux`. All six assets match their checksums after
+download. This answers the "Windows installer never run" item above, as
+far as an unattended install goes; the wizard by hand on a real machine
+is still open (SRelD K-12).

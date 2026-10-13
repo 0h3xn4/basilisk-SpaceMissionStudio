@@ -33,7 +33,8 @@ battery, link margin, lifetime and propellant.
 
 ## Quick start
 
-On Linux, the [3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) has a `.deb` installer. From
+The [3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) has installers for Linux (`.deb`)
+and Windows (setup program). From
 source, on Linux or macOS with Python 3.11 or newer (Windows: see
 [Getting started](SpaceMissionStudio/docs/getting-started.md)):
 
@@ -111,7 +112,7 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
   [changelog](SpaceMissionStudio/CHANGELOG.md)). Needs Python 3.11 or
   newer.
 - **Tested** in CI on Linux, Windows and macOS with Basilisk 2.12.0. The
-  Windows installer has not yet been run on a real Windows machine.
+  Windows setup program is built, installed and run in CI on a Windows runner; it has not yet been tried by hand on a real Windows machine.
 - **Known gaps:** [Known limitations](SpaceMissionStudio/docs/reference/limitations.md).
 
 ## Related tools

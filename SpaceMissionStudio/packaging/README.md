@@ -226,8 +226,9 @@ installed tool, and the GUI started. `build_deb.sh` produced
 `spacemissionstudio_3.0.0_all.deb` (checksum verified, maintainer
 scripts parse); installing it with `dpkg` was not run this time. The
 Windows installer and `install.ps1` were not run. The wheel, sdist and
-`.deb` are attached to the [3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) with `SHA256SUMS`;
-no Windows setup program is published.
+`.deb` are attached to the [3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) with
+`SHA256SUMS-linux`; the Windows setup program and `SHA256SUMS-windows`
+were attached by the installer workflow (below).
 
 ### The Windows installer (Inno Setup)
 
@@ -255,7 +256,8 @@ ISCC packaging\windows\spacemissionstudio.iss
 **Built and installed in CI.** The workflow
 `.github/workflows/spacemissionstudio-windows-installer.yml` does this on
 a Windows runner. It bundles the wheel attached to a release, checked
-against that release's `SHA256SUMS`. It compiles the script with Inno
+against that release's `SHA256SUMS-linux` (or an older release's
+`SHA256SUMS`). It compiles the script with Inno
 Setup, then installs the program silently (`/VERYSILENT /CURRENTUSER`).
 It then runs the installed tool: import, `kernels-status`, `validate`,
 and a run of template 01. The setup program, its checksum

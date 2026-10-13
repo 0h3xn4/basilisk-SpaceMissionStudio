@@ -39,8 +39,8 @@ explains the terms. Python is optional: for scripting and batch runs.
 
 Linux (x86_64 and aarch64, glibc 2.28 or newer), Windows 10 and 11
 (x86_64), and macOS 11 or newer on Apple silicon (from source only). The
-test suite runs on all three in CI. The Windows installers have not been
-run on a real Windows machine yet. Details:
+test suite runs on all three in CI. The Windows setup program is
+built, installed and run in CI on a Windows runner; it has not yet been tried by hand on a real Windows machine. Details:
 [Getting started, section 1](getting-started.md#1-what-you-need).
 
 ## Does it need the internet?
