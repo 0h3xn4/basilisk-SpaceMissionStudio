@@ -177,7 +177,10 @@ A few things to notice right away:
   field you are in: its value, the range it accepts and its help),
   **Explain** (a live summary of what the scenario does, end of
   Section 7) and **Problems** (what does not validate, and what looks
-  implausible; double-click one to go to the Scenario Editor). Drag it
+  implausible; double-click one to go where it is fixed: the Scenario
+  Editor's field, or the spacecraft, ground station or propagation setup
+  dialog opened at the field, with the problem named at the top and
+  under the field). Drag it
   to the left, close it, or put it back with **View > Reset Layout**;
   the app remembers where you left it.
 * A **top bar** above the tabs names the scenario and says whether it
@@ -307,7 +310,12 @@ out for a brand-new scenario:
   spacecraft from a 100-500 kg preset instead of a blank one. An orbit can be specified as classical orbital
   elements (semi-major axis, eccentricity, inclination, ...), Cartesian
   position/velocity, or a TLE (the format real tracked satellites are
-  published in) -- pick whichever you have on hand. There are also
+  published in) -- pick whichever you have on hand. Switching between
+  them asks first: **Convert and switch** keeps the same orbit (it shows
+  the values before and after, converted by Basilisk's own `orbitalMotion`
+  at the scenario epoch), or **Use the ... page's values** takes what that
+  page already holds. A TLE is never made from the other forms: it holds
+  SGP4 mean elements fitted to tracking data. There are also
   **Generate Walker constellation...** and **Generate phasing
   formation...** buttons here for building multi-satellite setups
   automatically instead of adding spacecraft one at a time.
@@ -360,8 +368,10 @@ The quickest way to a mission of your own is a starter template (22 or
 4. **Ground stations > Add...**: a name, latitude, longitude and the
    lowest usable elevation (10 deg is common).
 5. Look at the bottom of the tab: **✓ valid** means Run is available;
-   otherwise the message names the field to fix (the side panel's
-   **Problems** page lists it too). **Explain**, in the side panel,
+   otherwise the message names the field to fix, and a field of the
+   Scenario Editor's own is marked in red with the message under it (the
+   side panel's **Problems** page lists it too; double-click it to go to
+   the field). **Explain**, in the side panel,
    already shows the orbit type, the ground passes and what the
    environment includes, before anything runs.
 6. **File > Save As...**, then **Run > Run Simulation**.

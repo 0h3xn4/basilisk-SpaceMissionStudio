@@ -52,9 +52,11 @@ from ..schema.scenario import (
     SimSettings,
     SpaceWeatherConfig,
 )
+from .feedback import bring_into_view, clear_field_error, show_field_error
 from .ground_station_editor import GroundStationListWidget
 from .mission_sequence_editor import MissionSequenceEditorWidget
 from .monte_carlo_editor import MonteCarloGroupWidget
+from .problem_location import SCENARIO, locate
 from .spacecraft_editor import SpacecraftListWidget
 from .theme import PALETTE
 from .widgets import ComboBox
@@ -67,7 +69,7 @@ class ScenarioEditorWidget(QWidget):
     """
 
     changed = Signal()
-    # (severity, text) pairs after every revalidate(): the Problems dock lists them.
+    # (severity, text, shown text) after every revalidate(): the Problems dock lists them.
     problems_changed = Signal(list)
 
     def __init__(self, parent: QWidget | None = None):
@@ -215,9 +217,16 @@ class ScenarioEditorWidget(QWidget):
         return group
 
     def _on_edit_propagation_setup(self) -> None:
+        self.edit_propagation_setup()
+
+    def edit_propagation_setup(self, path: str = "", message: str = "") -> None:
+        """The propagation setup dialog, opened at the problem ``message``
+        about its field ``path`` when given (Problems, U-12)."""
         from .propagation_setup_dialog import PropagationSetupDialog
 
         dialog = PropagationSetupDialog(self._gravity, self._sim_settings, self._space_weather, parent=self)
+        if message:
+            dialog.show_problem(path, message)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self._gravity = dialog.to_gravity()
             self._sim_settings = dialog.to_sim_settings()
@@ -387,16 +396,62 @@ class ScenarioEditorWidget(QWidget):
             spacecraft=[],
         ))
 
+    # The scenario's own fields, by their path in Scenario, and the label
+    # their messages use (docs/ux-audit.md U-12).
+    _FIELDS = {"name": ("name_edit", "Name"), "epoch_utc": ("epoch_edit", "Epoch (UTC)"),
+               "simulation_mode": ("simulation_mode_combo", "Simulation mode"),
+               "description": ("description_edit", "Description")}
+
+    def field_widget(self, path: str):
+        """The editor's widget for a scenario field ("epoch_utc"), or None."""
+        entry = self._FIELDS.get(path)
+        return getattr(self, entry[0]) if entry else None
+
+    def focus_field(self, path: str) -> bool:
+        """Show and focus the field at ``path``; whether there is one."""
+        widget = self.field_widget(path)
+        if widget is not None:
+            bring_into_view(widget)
+        return widget is not None
+
+    def _spacecraft_and_station_names(self):
+        return ([sc.name for sc in self.spacecraft_list.to_list()],
+                [gs.name for gs in self.ground_station_list.to_list()])
+
+    def problem_display(self, text: str) -> str:
+        """``text`` as Problems and the field show it: a scenario field's
+        message starts with its label, not its schema path ("Epoch (UTC)
+        '2030-13-45T99:00:00' is not ...", not "scenario.epoch_utc ...")."""
+        location = locate(text, *self._spacecraft_and_station_names())
+        if location is not None and location.area == SCENARIO and location.path in self._FIELDS:
+            return self._FIELDS[location.path][1] + text[len("scenario." + location.path):]
+        return text
+
+    def _show_field_problem(self, text: str) -> None:
+        """Mark the scenario field ``text`` is about and show it under it;
+        clear the field marked before."""
+        marked = getattr(self, "_marked_field", None)
+        if marked is not None:
+            clear_field_error(marked)
+            self._marked_field = None
+        location = locate(text, *self._spacecraft_and_station_names()) if text else None
+        widget = self.field_widget(location.path) if location is not None and location.area == SCENARIO else None
+        if widget is not None:
+            show_field_error(widget, self.problem_display(text))
+            self._marked_field = widget
+
     def revalidate(self) -> None:
         warnings = []
         problems = []
         try:
             scenario = self.to_scenario()
         except ScenarioValidationError as exc:
-            self.validation_label.setText(f"⚠ {exc}")
+            self.validation_label.setText(f"⚠ {self.problem_display(str(exc))}")
             self.validation_label.setStyleSheet(f"color: {PALETTE['danger']};")
             problems.append(("error", str(exc)))
+            self._show_field_problem(str(exc))
         else:
+            self._show_field_problem("")
             self.validation_label.setText("✓ valid")
             self.validation_label.setStyleSheet(f"color: {PALETTE['success']};")
             base_dir = self._base_dir_provider() if self._base_dir_provider else None
@@ -404,4 +459,9 @@ class ScenarioEditorWidget(QWidget):
         self.plausibility_label.setText("\n".join(f"⚠ {warning}" for warning in warnings))
         self.plausibility_label.setVisible(bool(warnings))
         self.problems = problems + [("warning", warning) for warning in warnings]
-        self.problems_changed.emit(self.problems)
+        self.problems_changed.emit(self.problem_rows())
+
+    def problem_rows(self) -> list:
+        """The problems as the Problems dock lists them: ``(severity, text,
+        shown text)``."""
+        return [(severity, text, self.problem_display(text)) for severity, text in self.problems]

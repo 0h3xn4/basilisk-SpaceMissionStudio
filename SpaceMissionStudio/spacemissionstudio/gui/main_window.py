@@ -77,6 +77,7 @@ from .mission_dashboard_widget import MissionDashboardWidget
 from .mission_output_widget import MissionOutputWidget
 from .monte_carlo_results_widget import MonteCarloResultsWidget
 from .results_widget import ResultsWidget
+from .problem_location import GROUND_STATION, PROPAGATION, SCENARIO, SPACECRAFT, locate
 from .run_worker import MonteCarloWorker, RunWorker
 from .scenario_editor import ScenarioEditorWidget
 from .budget_widget import BudgetWidget
@@ -96,8 +97,7 @@ from .vizard_launcher import (
     remember_vizard_executable,
 )
 from .widgets import TabWidget
-from .workspace_panels import (CompareWidget, InspectorWidget, LogViewWidget, ProblemsWidget, install_log_view,
-                               model_problem_spacecraft)
+from .workspace_panels import CompareWidget, InspectorWidget, LogViewWidget, ProblemsWidget, install_log_view
 from ..engine.vizard import playback_file as vizard_playback_file
 
 _FILE_FILTER = "SpaceMissionStudio scenario (*.json)"
@@ -319,7 +319,7 @@ class MainWindow(QMainWindow):
         self.side_tabs.addTab(self.problems_widget, "Problems")
         self.side_tabs.setCurrentWidget(self.scenario_explainer_widget)
         self.side_dock = self._make_dock("Side Panel", "sidePanelDock", self.side_tabs)
-        self.problems_widget.set_problems(self.scenario_editor.problems)  # validated before the connection
+        self.problems_widget.set_problems(self.scenario_editor.problem_rows())  # validated before the connection
         app = QApplication.instance()
         if app is not None:
             app.focusChanged.connect(self._on_focus_changed)
@@ -744,13 +744,26 @@ class MainWindow(QMainWindow):
             spacecraft_list.open_model_editor(names.index(name))
 
     def _on_problem_activated(self, text: str) -> None:
-        """A double-clicked problem opens where it is fixed: a 3D model's
-        problem that spacecraft's model editor, any other the Scenario Editor."""
+        """A double-clicked problem opens where it is fixed (U-12): the
+        Scenario Editor at the scenario's own field; the propagation setup,
+        a spacecraft's or a ground station's editor at the field; a 3D
+        model's problem that spacecraft's model editor."""
         self._show_scenario_editor()
-        names = [config.name for config in self.scenario_editor.spacecraft_list.to_list()]
-        name = model_problem_spacecraft(text, names)
-        if name is not None:
-            self.open_3d_model_of(name)
+        editor = self.scenario_editor
+        location = locate(text, [c.name for c in editor.spacecraft_list.to_list()],
+                          [g.name for g in editor.ground_station_list.to_list()])
+        if location is None:
+            return
+        if location.area == SCENARIO:
+            editor.focus_field(location.path)
+        elif location.area == PROPAGATION:
+            editor.edit_propagation_setup(location.path, text)
+        elif location.area == SPACECRAFT and location.field == "model":
+            self.open_3d_model_of(location.name)
+        elif location.area == SPACECRAFT:
+            editor.spacecraft_list.edit_spacecraft_named(location.name, location.path, text)
+        elif location.area == GROUND_STATION:
+            editor.ground_station_list.edit_station_named(location.name, location.path, text)
 
     def _show_page(self, widget: QWidget) -> None:
         if widget is self.data_panel_widget:

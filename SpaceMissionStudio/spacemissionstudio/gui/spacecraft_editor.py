@@ -99,10 +99,12 @@ from ..schema.scenario import (
 from .data_handling_editor import GainTableWidget, InstrumentTableWidget
 from .facet_editor import FacetTableWidget
 from .solar_array_editor import SolarArrayTableWidget
-from .feedback import clear_invalid, mark_invalid, show_toast
+from .feedback import (ProblemBanner, bring_into_view, clear_field_error, clear_invalid, clear_on_edit,
+                       mark_invalid, show_field_error, show_toast)
 from .number_list import NumberListEditor
 from .orbit_ic_widget import OrbitIcWidget
 from .param_form import ParamForm
+from .problem_location import SPACECRAFT, locate
 from .sensor_actuator_editor import SensorActuatorListWidget
 from .theme import PALETTE
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, TabWidget
@@ -239,6 +241,33 @@ def _scrollable(content: QWidget) -> QScrollArea:
     return scroll
 
 
+# Where SpacecraftEditorDialog.field_widget finds a field (docs/ux-audit.md
+# U-12). Sections' widgets carry these prefixes; the table lists the rest.
+_ORBIT_WIDGETS = {"type": "type_combo", "semi_major_axis_km": "sma_km", "eccentricity": "ecc",
+                  "inclination_deg": "inc_deg", "raan_deg": "raan_deg", "arg_periapsis_deg": "aop_deg",
+                  "anomaly_type": "anomaly_type_combo", "true_anomaly_deg": "anomaly_deg",
+                  "mean_anomaly_deg": "anomaly_deg", "position_km": "pos_x_km", "velocity_km_s": "vel_x_km_s",
+                  "tle_line1": "tle_line1", "tle_line2": "tle_line2"}
+_SECTION_PREFIXES = {"station_keeping": "sk_", "geo_station_keeping": "geo_", "comms_pointing": "cp_",
+                     "constant_thrust": "ct_", "phasing_keeping": "pk_", "momentum_dumping": "md_",
+                     "magnetic_momentum_management": "mmm_", "fuel_tank": "ft_", "rf_link": "rf_",
+                     "data_handling": "dh_"}
+_FIELD_WIDGETS = {"name": "name_edit", "propellant_budget": "budget_group", "vizard_model_offset_m": "viz_offset_x",
+                  "vizard_model_rotation_deg": "viz_rotation_z", "vizard_model_scale": "viz_scale_x",
+                  "inertia_kg_m2": "ixx", "center_of_mass_b_m": "com_x", "sigma_bn_init": "sigma1",
+                  "omega_bn_b_init_rad_s": "omega1", "enable_gravity_gradient": "gravity_gradient_check",
+                  "facets": "facet_table", "solar_arrays": "solar_array_table", "sensors": "sensor_list",
+                  "actuators": "actuator_list", "model": "open_model_button", "fsw_params": "fsw_param_form",
+                  "control_params": "control_param_form", "vizard_model_path": "viz_model_path_edit",
+                  "power.panel_normal_b": "panel_normal_x", "rf_link.frequency_hz": "frequency_ghz",
+                  "rf_link.data_rate_bps": "data_rate_mbps", "rf_link.tx_power_w": "tx_power_w",
+                  "rf_link.tx_antenna_gain_dbi": "tx_antenna_gain_dbi",
+                  "rf_link.antenna_beamwidth_deg": "rf_beamwidth_deg", "rf_link.antenna_pattern": "rf_pattern_combo",
+                  "rf_link.required_ebno_db": "required_ebno_db",
+                  "data_handling.storage_capacity_gbit": "dh_capacity_gbit",
+                  "data_handling.instruments": "dh_instruments"}
+
+
 class SpacecraftEditorDialog(QDialog):
     """Edits one :class:`SpacecraftConfig` in place. Construct with an
     existing config to edit it, or ``None`` for a fresh default.
@@ -246,7 +275,8 @@ class SpacecraftEditorDialog(QDialog):
 
     def __init__(self, config: SpacecraftConfig | None = None, parent: QWidget | None = None,
                  other_spacecraft_names: list[str] | None = None, simulation_mode: str = "full_attitude",
-                 ground_station_names: list[str] | None = None, epoch_provider=None, base_dir_provider=None):
+                 ground_station_names: list[str] | None = None, epoch_provider=None, base_dir_provider=None,
+                 central_body_provider=None):
         super().__init__(parent)
         self.setWindowTitle("Spacecraft" if config is None else f"Spacecraft: {config.name}")
         # The scenario file's folder (for a 3D model's mesh paths), or None.
@@ -272,6 +302,10 @@ class SpacecraftEditorDialog(QDialog):
         self._orbit_only = simulation_mode == "orbit_only"
 
         outer_layout = QVBoxLayout(self)
+        # What is wrong, when the dialog is opened at a problem or OK finds one (U-12).
+        self.problem_banner = ProblemBanner()
+        outer_layout.addWidget(self.problem_banner)
+        self._problem_field = None
         tabs = TabWidget()
         self.tabs = tabs
         outer_layout.addWidget(tabs)
@@ -297,6 +331,8 @@ class SpacecraftEditorDialog(QDialog):
         self.orbit_widget = OrbitIcWidget()
         if epoch_provider is not None:
             self.orbit_widget.set_epoch_provider(epoch_provider)
+        if central_body_provider is not None:
+            self.orbit_widget.set_central_body_provider(central_body_provider)
         orbit_layout.addWidget(self.orbit_widget)
         layout.addWidget(orbit_group)
 
@@ -1584,12 +1620,50 @@ class SpacecraftEditorDialog(QDialog):
         try:
             self.to_dataclass()
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Invalid spacecraft", str(exc))
+            location = locate(str(exc), [name])
+            self.show_problem(location.path if location is not None and location.area == SPACECRAFT else "",
+                              str(exc))
             return
         except ValueError as exc:
             QMessageBox.critical(self, "Invalid input", str(exc))
             return
         self.accept()
+
+    def field_widget(self, path: str) -> QWidget | None:
+        """The widget for the spacecraft field at ``path`` ("dry_mass_kg",
+        "station_keeping.thrust_n", "orbit.eccentricity"), its section's
+        box when the field has none of its own, or None."""
+        parts = path.split(".") if path else []
+        if not parts:
+            return None
+        top, leaf = parts[0].split("[")[0], parts[-1].split("[")[0]
+        if top == "orbit":
+            return getattr(self.orbit_widget, _ORBIT_WIDGETS.get(leaf, "type_combo"), None)
+        prefix = _SECTION_PREFIXES.get(top, "")
+        names = [_FIELD_WIDGETS.get(path), _FIELD_WIDGETS.get(top) if len(parts) == 1 else None,
+                 prefix + leaf, leaf, leaf + "_check", leaf + "_combo", prefix + leaf + "_combo",
+                 _FIELD_WIDGETS.get(top), top + "_group"]
+        for name in names:
+            widget = getattr(self, name, None) if name else None
+            if isinstance(widget, QWidget):
+                return widget
+        return None
+
+    def show_problem(self, path: str, message: str) -> None:
+        """Opens at a problem: the banner says what is wrong, and the field
+        at ``path`` (when there is one) is shown, marked and focused."""
+        if self._problem_field is not None:
+            clear_field_error(self._problem_field)
+            self._problem_field = None
+        self.problem_banner.show_problem(message)
+        widget = self.field_widget(path)
+        if widget is None:
+            return
+        if not isinstance(widget, (QGroupBox, QPushButton)):
+            show_field_error(widget, message)
+            clear_on_edit(widget)
+            self._problem_field = widget
+        bring_into_view(widget)
 
     @property
     def fsw_params_edit(self) -> QPlainTextEdit:
@@ -2289,6 +2363,7 @@ class SpacecraftListWidget(QWidget):
                                          simulation_mode=self._simulation_mode(),
                                          ground_station_names=self._ground_station_names(),
                                          epoch_provider=self._epoch_provider,
+                                         central_body_provider=self._central_body_provider,
                                          base_dir_provider=self._base_dir_provider)
         # default name must be unique so QListWidget entries stay distinguishable
         base_name = dialog.name_edit.text()
@@ -2333,6 +2408,7 @@ class SpacecraftListWidget(QWidget):
                                          simulation_mode=self._simulation_mode(),
                                          ground_station_names=self._ground_station_names(),
                                          epoch_provider=self._epoch_provider,
+                                         central_body_provider=self._central_body_provider,
                                          base_dir_provider=self._base_dir_provider)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
@@ -2348,14 +2424,27 @@ class SpacecraftListWidget(QWidget):
 
     def _on_edit(self) -> None:
         row = self.list_widget.currentRow()
-        if row < 0:
-            return
+        if row >= 0:
+            self.edit_spacecraft(row)
+
+    def edit_spacecraft_named(self, name: str, path: str = "", message: str = "") -> None:
+        """Open the editor for the spacecraft ``name``, at the problem
+        ``message`` about its field ``path`` when given (Problems, U-12)."""
+        names = [config.name for config in self._configs]
+        if name in names:
+            self.list_widget.setCurrentRow(names.index(name))
+            self.edit_spacecraft(names.index(name), path, message)
+
+    def edit_spacecraft(self, row: int, path: str = "", message: str = "") -> None:
         other_names = sorted(c.name for i, c in enumerate(self._configs) if i != row)
         dialog = SpacecraftEditorDialog(config=self._configs[row], parent=self, other_spacecraft_names=other_names,
                                          simulation_mode=self._simulation_mode(),
                                          ground_station_names=self._ground_station_names(),
                                          epoch_provider=self._epoch_provider,
+                                         central_body_provider=self._central_body_provider,
                                          base_dir_provider=self._base_dir_provider)
+        if message:
+            dialog.show_problem(path, message)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             new_config = dialog.to_dataclass()
             other_names = {c.name for i, c in enumerate(self._configs) if i != row}

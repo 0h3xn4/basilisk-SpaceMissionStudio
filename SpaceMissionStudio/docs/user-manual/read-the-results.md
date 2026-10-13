@@ -19,7 +19,7 @@ and the exported files.
 | **Scenario > Flight Software** | Export the flight software, or run it in the loop | No |
 | Side panel: **Inspector** | The field you are in: its value, accepted range and help | No |
 | Side panel: **Explain** | What the scenario is set up to do, and warnings before you run | No |
-| Side panel: **Problems** | What does not validate or looks implausible | No |
+| Side panel: **Problems** | What does not validate or looks implausible; double-click one to go to its field | No |
 | **Reference data** dialog (status bar) | Every reference data file, its status and where it came from | No |
 
 ## Find a plot

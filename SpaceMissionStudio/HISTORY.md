@@ -9460,3 +9460,87 @@ two spacecraft, and Cancel; no spacecraft; the Use tab's note for each
 mode; the applied-values message; matching a problem to its spacecraft;
 a stale model's problem in template 28 opening the editor, whose OK
 clears it; the Explain badge opening the editor.
+
+## UX iteration 3a: errors at the field, and the orbit-type switch (2026-10-13)
+
+The first part of the Scenario Editor iteration, its two blockers: U-12
+(validation errors appeared only under the editor, with schema paths, and
+the field was not marked) and U-14 (switching the orbit type silently
+changed the orbit). The scenario tree (U-01, U-10, U-11, U-17) is 3b; the
+Mission Sequence list and the JSON view (U-15, U-16) are 3c.
+
+**Where a problem is fixed** (`gui/problem_location.py`, no Qt). The
+messages of `Scenario.validate()` and `engine.scenario_checks` already
+start with what they are about: `scenario.<field>`, `sim_settings.` /
+`gravity.` / `space_weather.<field>` (the propagation setup),
+`<spacecraft>: <field path>` or `<ground station>: <field>`. `locate()`
+turns a message into an area, a name and a field path. Plausibility
+warnings name no field; a short word list places them ("perigee" is the
+orbit's, "solar array" the arrays'), and anything about a 3D model is the
+model's. Names match longest first, so "sat-10" is not "sat-1".
+
+One gap in the messages showed: an orbit's own messages did not name the
+spacecraft ("classical_elements orbit needs 0 <= eccentricity < 1").
+`SpacecraftConfig.validate()` now prefixes them, "my-sat: orbit: ...". The
+file format and what is accepted are unchanged.
+
+**At the field** (`gui/feedback.py`): `show_field_error()` marks a field
+(the existing `mark_invalid` red border) and puts the message right under
+it, in a row of its form, found through nested layouts too, or after it in
+its box layout; `clear_field_error()` takes both away, and
+`clear_on_edit()` does so on the first edit in a dialog, where nothing
+revalidates until OK. `bring_into_view()` selects the tabs and stacked
+pages a field sits in, scrolls it into view and focuses it.
+`ProblemBanner` is a line at the top of a dialog saying what is wrong.
+
+- The Scenario Editor marks its own fields (name, simulation mode, epoch,
+  description) as it validates, and their messages start with the field's
+  label: "Epoch (UTC) '2030-13-45T99:00:00' is not a valid ...", in the
+  editor and in Problems. Problems still keeps the message as raised, which
+  is what says where it goes.
+- The spacecraft editor, the propagation setup and the ground station
+  editor take `show_problem(path, message)`: the banner, the field's tab
+  shown, the field marked and focused. Their OK does the same instead of
+  the "Invalid ..." message box. `SpacecraftEditorDialog.field_widget()`
+  finds a field by its section prefix (`sk_`, `geo_`, `cp_`, ...) or a
+  short table, falling back to its section's box; a test checks that every
+  top-level spacecraft field leads somewhere.
+- A double-click in Problems routes by location: the Scenario Editor's
+  field, the propagation setup, a spacecraft's or a station's editor, or a
+  model's editor.
+
+One thing seen while testing, not changed here: a dialog's spin box clamps
+a value from a file that is outside its range (a drag coefficient of -1
+shows as 0.1, its minimum), so the field holds a valid value while the
+problem names the file's. OK then saves the clamped value.
+
+**The orbit-type switch** (`engine/orbit_conversion.py`,
+`gui/orbit_ic_widget.py`). The type is a segmented control; the combo
+stays as the hidden model, so `from_dataclass()` and code switch it
+without a question. Picking another type asks (`OrbitSwitchDialog`), with
+the current values, the converted ones and the new page's own:
+
+- **Convert and switch**: classical elements to a Cartesian state and back
+  by Basilisk's `orbitalMotion` (`elem2rv`, `rv2elem`, `M2E`/`E2f`,
+  `f2E`/`E2M`) with the central body's `mu` from `simIncludeGravBody`, the
+  run's own functions and constants; a TLE by SGP4 at the scenario epoch,
+  TEME to EME2000 (`engine.tle`). The anomaly keeps the type chosen on the
+  elements page.
+- **Use the ... page's values**: the type switches, the page as it is.
+- **Cancel**: nothing changes.
+
+Nothing converts to a TLE (it holds SGP4 mean elements fitted to tracking
+data), and an escape trajectory has no elements; the question says why
+and offers only the second choice. Without Basilisk it says so too.
+
+Tests: `tests/test_problem_location.py` (each area on the messages
+validation really raises), `tests/gui/test_field_errors.py` (the message
+row and its clearing, the epoch marked and labelled, each kind of problem
+opening its dialog at the field, OK without a message box, every
+spacecraft field placed, an edit clearing the mark),
+`tests/test_orbit_conversion.py` (Basilisk: the converted state equals
+the one the run computes, round trips with both anomalies, a TLE at the
+epoch, Mars's `mu`, the refusals) and `tests/gui/test_orbit_switch.py`
+(the segments, convert, keep, cancel, a TLE's reason, code never asking,
+the dialog's buttons). `test_live_validation_reacts_to_bad_edit` now
+expects the labelled message.

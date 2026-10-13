@@ -180,7 +180,12 @@ def test_live_validation_reacts_to_bad_edit(widget, qtbot):
     with qtbot.waitSignal(widget.changed, timeout=1000):
         widget.name_edit.setText("")
     assert "⚠" in widget.validation_label.text()
-    assert "name must not be empty" in widget.validation_label.text()
+    # The message names the field by its label, not its schema path ("scenario.name"), and
+    # the field itself is marked with it (docs/ux-audit.md U-12).
+    assert "Name must not be empty" in widget.validation_label.text()
+    from spacemissionstudio.gui.feedback import field_error_text
+
+    assert field_error_text(widget.name_edit) == "Name must not be empty"
 
 
 def test_to_scenario_raises_on_invalid_state(widget):

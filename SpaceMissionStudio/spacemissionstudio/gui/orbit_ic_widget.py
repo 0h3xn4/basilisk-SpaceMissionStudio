@@ -24,10 +24,14 @@ maps 1:1 onto an ``OrbitIC`` field -- no separate GUI-only representation.
 
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
+    QButtonGroup,
+    QDialog,
+    QDialogButtonBox,
     QDoubleSpinBox,
     QFormLayout,
+    QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -38,7 +42,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from ..engine import tle
+from ..engine import orbit_conversion, tle
 from ..engine.orbit_design import DEFAULT_LTAN_HOUR, raan_for_ltan_deg, sun_synchronous_inclination_deg
 from ..schema.scenario import ANOMALY_TYPES, ORBIT_IC_TYPES, OrbitIC
 from .widgets import ComboBox, PreciseDoubleSpinBox
@@ -106,6 +110,30 @@ class OrbitIcWidget(QWidget):
             "start from its actual, currently-published orbit."
         )
         layout.addWidget(self.type_combo)
+        # The user picks the type on a segmented control (docs/ux-audit.md
+        # U-14); the combo stays as the model, hidden, so from_dataclass()
+        # and code set the type without the switch's question.
+        self.type_combo.setVisible(False)
+        self._central_body_provider = None
+        segments = QFrame()
+        segments.setObjectName("segmentedControl")
+        segment_row = QHBoxLayout(segments)
+        segment_row.setContentsMargins(0, 0, 0, 0)
+        segment_row.setSpacing(0)
+        self.type_group = QButtonGroup(self)
+        self.type_buttons = {}
+        for orbit_type in ORBIT_IC_TYPES:
+            button = QPushButton(_TYPE_LABELS[orbit_type])
+            button.setObjectName("segmentButton")
+            button.setCheckable(True)
+            button.setProperty("orbitType", orbit_type)
+            button.setToolTip(self.type_combo.toolTip())
+            self.type_group.addButton(button)
+            self.type_buttons[orbit_type] = button
+            segment_row.addWidget(button)
+        segment_row.addStretch(1)
+        self.type_group.buttonClicked.connect(self._on_type_clicked)
+        layout.addWidget(segments)
 
         self.stack = QStackedWidget()
         layout.addWidget(self.stack)
@@ -115,7 +143,48 @@ class OrbitIcWidget(QWidget):
         self._build_tle_page()
 
         self.type_combo.currentIndexChanged.connect(self.stack.setCurrentIndex)
+        self.type_combo.currentIndexChanged.connect(self._sync_type_buttons)
         self.type_combo.currentIndexChanged.connect(self.changed)
+        self._sync_type_buttons()
+
+    def set_central_body_provider(self, provider) -> None:
+        """``provider`` returns the scenario's central body, for converting
+        between orbit types; Earth when unset."""
+        self._central_body_provider = provider
+
+    def _sync_type_buttons(self) -> None:
+        button = self.type_buttons.get(self.type_combo.currentData())
+        if button is not None:
+            button.setChecked(True)
+
+    def _on_type_clicked(self, button) -> None:
+        """The user picked another orbit type: convert the orbit to it, or
+        use that page's own values, as they choose -- never silently (U-14)."""
+        new_type = button.property("orbitType")
+        old_type = self.type_combo.currentData()
+        if new_type == old_type:
+            return
+        current = self.to_dataclass()
+        own = self.to_dataclass(new_type)
+        converted, reason = None, ""
+        try:
+            central_body = self._central_body_provider() if self._central_body_provider else "earth"
+            epoch = self._epoch_provider() if self._epoch_provider else None
+            converted = orbit_conversion.convert(current, new_type, central_body, epoch,
+                                                 anomaly_type=self.anomaly_type_combo.currentData())
+        except (orbit_conversion.OrbitConversionError, ValueError, TypeError) as exc:
+            reason = str(exc)
+        choice = ask_orbit_switch(self, _TYPE_LABELS[old_type], _TYPE_LABELS[new_type], describe_orbit(current),
+                                  describe_orbit(converted) if converted is not None else "", describe_orbit(own),
+                                  reason)
+        if choice == "convert" and converted is not None:
+            if new_type == "classical_elements":
+                self.anomaly_type_combo.setCurrentIndex(self.anomaly_type_combo.findData(converted.anomaly_type))
+            self.from_dataclass(converted)
+        elif choice == "keep":
+            self.type_combo.setCurrentIndex(self.type_combo.findData(new_type))
+        else:
+            self._sync_type_buttons()
 
     def set_epoch_provider(self, provider) -> None:
         """``provider`` is a zero-argument callable returning this
@@ -350,8 +419,9 @@ class OrbitIcWidget(QWidget):
             return
         self.raan_deg.setValue(value)
 
-    def to_dataclass(self) -> OrbitIC:
-        orbit_type = self.type_combo.currentData()
+    def to_dataclass(self, orbit_type: str | None = None) -> OrbitIC:
+        """The orbit on the current type's page, or on ``orbit_type``'s."""
+        orbit_type = orbit_type or self.type_combo.currentData()
         if orbit_type == "classical_elements":
             anomaly_type = self.anomaly_type_combo.currentData()
             return OrbitIC(
@@ -403,3 +473,66 @@ class OrbitIcWidget(QWidget):
         elif orbit.type == "tle":
             self.tle_line1.setText(orbit.tle_line1 or "")
             self.tle_line2.setText(orbit.tle_line2 or "")
+
+
+def describe_orbit(orbit: OrbitIC | None) -> str:
+    """One line with an orbit's values, for the orbit-type switch."""
+    if orbit is None:
+        return ""
+    if orbit.type == "classical_elements":
+        anomaly = (f"mean anomaly {orbit.mean_anomaly_deg:.4f} deg" if orbit.anomaly_type == "mean"
+                   else f"true anomaly {orbit.true_anomaly_deg:.4f} deg")
+        return (f"a {orbit.semi_major_axis_km:.3f} km, e {orbit.eccentricity:.6f}, i {orbit.inclination_deg:.4f} deg, "
+                f"RAAN {orbit.raan_deg:.4f} deg, arg. of periapsis {orbit.arg_periapsis_deg:.4f} deg, {anomaly}")
+    if orbit.type == "cartesian":
+        r = ", ".join(f"{v:.3f}" for v in orbit.position_km)
+        v = ", ".join(f"{v:.6f}" for v in orbit.velocity_km_s)
+        return f"r [{r}] km, v [{v}] km/s (EME2000 at the epoch)"
+    lines = [line for line in (orbit.tle_line1, orbit.tle_line2) if line]
+    return "\n".join(lines) if lines else "no TLE lines yet"
+
+
+class OrbitSwitchDialog(QDialog):
+    """What switching the orbit type does: convert the orbit (both sets of
+    values shown), or use the new page's own values, or cancel (U-14)."""
+
+    def __init__(self, parent, old_label: str, new_label: str, current: str, converted: str, own: str,
+                 reason: str) -> None:
+        super().__init__(parent)
+        self.setWindowTitle(f"Switch to {new_label}")
+        self.choice = None
+        layout = QVBoxLayout(self)
+        for text in (f"Now ({old_label}): {current}",
+                     f"Converted to {new_label}: {converted}" if converted else f"It is not converted: {reason}",
+                     f"The {new_label} page's own values: {own}"):
+            label = QLabel(text)
+            label.setWordWrap(True)
+            label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+            layout.addWidget(label)
+        buttons = QDialogButtonBox()
+        self.convert_button = buttons.addButton("Convert and switch", QDialogButtonBox.ButtonRole.AcceptRole)
+        self.convert_button.setEnabled(bool(converted))
+        self.keep_button = buttons.addButton(f"Use the {new_label} page's values",
+                                             QDialogButtonBox.ButtonRole.ActionRole)
+        buttons.addButton(QDialogButtonBox.StandardButton.Cancel)
+        self.convert_button.clicked.connect(self._on_convert)
+        self.keep_button.clicked.connect(self._on_keep)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+        (self.convert_button if converted else self.keep_button).setDefault(True)
+
+    def _on_convert(self) -> None:
+        self.choice = "convert"
+        self.accept()
+
+    def _on_keep(self) -> None:
+        self.choice = "keep"
+        self.accept()
+
+
+def ask_orbit_switch(parent, old_label: str, new_label: str, current: str, converted: str, own: str,
+                     reason: str):
+    """"convert", "keep" or None (cancelled), from :class:`OrbitSwitchDialog`."""
+    dialog = OrbitSwitchDialog(parent, old_label, new_label, current, converted, own, reason)
+    dialog.exec()
+    return dialog.choice

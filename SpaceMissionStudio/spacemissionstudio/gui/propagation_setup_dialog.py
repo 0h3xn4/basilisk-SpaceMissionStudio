@@ -85,7 +85,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QMessageBox,
     QPushButton,
     QScrollArea,
     QVBoxLayout,
@@ -102,6 +101,8 @@ from ..schema.scenario import (
     SimSettings,
     SpaceWeatherConfig,
 )
+from .feedback import ProblemBanner, bring_into_view, clear_field_error, clear_on_edit, show_field_error
+from .problem_location import PROPAGATION, locate
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox
 
 # The minimum spherical-harmonics degree/order that's actually meaningful
@@ -123,6 +124,10 @@ class PropagationSetupDialog(QDialog):
         self.setWindowTitle("Propagation setup")
 
         layout = QVBoxLayout(self)
+        # What is wrong, when the dialog is opened at a problem or OK finds one (U-12).
+        self.problem_banner = ProblemBanner()
+        layout.addWidget(self.problem_banner)
+        self._problem_field = None
 
         # Everything but the OK/Cancel row lives in a QScrollArea: the
         # three groups together need ~800 px of height, more than a
@@ -560,6 +565,42 @@ class PropagationSetupDialog(QDialog):
             self.to_sim_settings().validate()
             self.to_space_weather().validate()
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Invalid propagation setup", str(exc))
+            location = locate(str(exc))
+            self.show_problem(location.path if location is not None and location.area == PROPAGATION else "",
+                              str(exc))
             return
         self.accept()
+
+    # Where a propagation field's widget is (docs/ux-audit.md U-12).
+    _FIELD_WIDGETS = {"gravity.central_body": "central_body_combo",
+                      "gravity.central_body_degree": "central_body_degree_spin",
+                      "gravity.third_body_perturbers": "third_body_list",
+                      "sim_settings.duration_days": "duration_days_spin",
+                      "sim_settings.dynamics_task_rate_s": "task_rate_spin",
+                      "sim_settings.record_interval_s": "record_interval_spin",
+                      "sim_settings.integrator": "integrator_combo",
+                      "space_weather.source": "space_weather_source_combo",
+                      "space_weather.local_file_path": "local_file_edit",
+                      "space_weather.cache_dir": "cache_dir_edit",
+                      "space_weather.atmosphere_model": "atmosphere_model_combo",
+                      "space_weather.forecast_percentile": "forecast_percentile_combo",
+                      "space_weather.msfc_file_path": "msfc_file_edit"}
+
+    def field_widget(self, path: str):
+        """The widget for ``path`` ("sim_settings.duration_days"), or None."""
+        name = self._FIELD_WIDGETS.get(path)
+        return getattr(self, name, None) if name else None
+
+    def show_problem(self, path: str, message: str) -> None:
+        """Opens at a problem: the banner says what is wrong, and the field
+        at ``path`` (when there is one) is shown, marked and focused."""
+        if self._problem_field is not None:
+            clear_field_error(self._problem_field)
+            self._problem_field = None
+        self.problem_banner.show_problem(message)
+        widget = self.field_widget(path)
+        if widget is not None:
+            show_field_error(widget, message)
+            clear_on_edit(widget)
+            self._problem_field = widget
+            bring_into_view(widget)
