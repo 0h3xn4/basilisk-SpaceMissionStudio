@@ -201,3 +201,27 @@ def test_the_status_bar_follows_the_data_tab(window, monkeypatch):
     monkeypatch.setattr(reference_data, "inventory", lambda: [_file("missing")])
     window.data_panel_widget.refresh()
     assert window.status_items.data_button.text() == "Reference data: 1 of 1 need attention"
+
+
+def test_a_closed_window_is_freed(qapp, monkeypatch):
+    """Nothing the window connects keeps it alive once it is closed and
+    dropped. A lambda holding the window on a child's signal did (the status
+    bar's reference data item): the window then lived until the interpreter
+    exited and its web views were torn down too late, a segfault on exit
+    (CI's offline step, PR #50; the same as #48's editor lambda)."""
+    import gc
+    import weakref
+
+    from PySide6.QtWidgets import QMessageBox
+
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
+    window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+    # Opening a file is left out: its toast holds the window only until the
+    # toast closes, a few seconds later, which is not a leak.
+    ref = weakref.ref(window)
+    window.close()
+    del window
+    gc.collect()
+    assert ref() is None

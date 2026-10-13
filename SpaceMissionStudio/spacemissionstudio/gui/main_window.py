@@ -340,7 +340,10 @@ class MainWindow(QMainWindow):
         self.basilisk_version_label = self.status_items.basilisk_label
         for widget in self.status_items.widgets:
             self.statusBar().addPermanentWidget(widget)
-        self.status_items.data_clicked.connect(lambda: self.right_tabs.setCurrentWidget(self.data_panel_widget))
+        # A bound method, not a lambda: a lambda holding self on a child's
+        # signal keeps the window alive until the interpreter exits, and its
+        # web views are then torn down too late (exit segfault, as in #48).
+        self.status_items.data_clicked.connect(self._show_data_tab)
         self.data_panel_widget.refreshed.connect(self.status_items.refresh)
         self.status_items.refresh()
         self.time_cursor_label = QLabel()
@@ -709,6 +712,9 @@ class MainWindow(QMainWindow):
         star = "*" if self._dirty else ""
         self.setWindowTitle(f"SpaceMissionStudio -- {name}{star}")
         self._refresh_top_bar()
+
+    def _show_data_tab(self) -> None:
+        self.right_tabs.setCurrentWidget(self.data_panel_widget)
 
     def _refresh_top_bar(self) -> None:
         if hasattr(self, "top_bar"):  # the editor emits changes while the window is still being built

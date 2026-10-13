@@ -9316,3 +9316,12 @@ The new test file changed how pytest-xdist spreads the tests, and five
 tests in `tests/gui/test_feedback.py` turned out to build a `QLineEdit`
 without a `QApplication`: whichever ran first on a worker aborted it. They
 now ask for the `qapp` fixture.
+
+**Exit segfault (PR #50 CI).** CI's offline step passed its 9 tests, then
+the process segfaulted on exit while web views were being torn down. The
+status bar's reference data item was connected through a lambda that held
+the window, so the window lived until the interpreter exited, the same
+cycle #48 found in the editor. It is now a bound method. A new test checks
+that a closed, dropped window is freed. It fails with the lambda. Locally
+the offline tests exited with 139 every time before the change and with 0
+after it.
