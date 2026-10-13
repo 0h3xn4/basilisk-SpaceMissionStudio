@@ -1010,9 +1010,9 @@ def test_a_large_series_still_shows_when_selected(widget, qtbot):
     result.add(TimeSeries("sat-1.semi_major_axis", t, ("a",), np.full((len(t), 1), 6928e3), units="m"))
     position = np.column_stack([7e6 * np.cos(t / 900.0), 7e6 * np.sin(t / 900.0), np.zeros(len(t))])  # [m]
     result.add(TimeSeries("sat-1.position_N", t, ("x", "y", "z"), position, units="m"))
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=20000):
+    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(result)
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=20000):
+    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.series_combo.setCurrentIndex(widget.series_combo.findData("sat-1.position_N"))
 
     shown = {}
@@ -1115,7 +1115,7 @@ def test_plot_page_fills_the_view_without_a_scroll_bar(widget, qtbot):
     widget.resize(800, 600)  # [px]
     widget.show()
     qtbot.waitExposed(widget)
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=20000):
+    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
     sizes = {}
     widget.web_view.page().runJavaScript(
