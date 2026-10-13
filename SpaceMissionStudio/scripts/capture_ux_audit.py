@@ -46,9 +46,11 @@ def main(out: Path) -> int:
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.gui.main_window import MainWindow
     from spacemissionstudio.gui.theme import apply_theme
+    from spacemissionstudio.logging_setup import configure_logging
 
     apply_theme(app)
     out.mkdir(parents=True, exist_ok=True)
+    configure_logging(log_dir=out / "logs")  # as the app does, so the Log tab shows the run's records
     taken = []
 
     def spin(duration_s: float) -> None:
@@ -85,12 +87,24 @@ def main(out: Path) -> int:
     spin(2.0)  # [s]
     save(window, "01_start.png")
 
+    def pages():
+        """Every page of the workspace: the main tabs' pages (the Scenario
+        and Results tabs' own pages each), then the side panel's."""
+        for main in range(window.main_tabs.count()):
+            page = window.main_tabs.widget(main)
+            inner = page if page in (window.scenario_tabs, window.results_views) else None
+            for sub in range(inner.count() if inner is not None else 1):
+                widget = inner.widget(sub) if inner is not None else page
+                label = window.main_tabs.tabText(main) + ("_" + inner.tabText(sub) if inner is not None else "")
+                yield widget, label
+        for index in range(window.side_tabs.count()):
+            yield window.side_tabs.widget(index), "side_" + window.side_tabs.tabText(index).split(" (")[0]
+
     def tab_shots(prefix: str) -> None:
-        for index in range(window.right_tabs.count()):
-            window.right_tabs.setCurrentIndex(index)
+        for index, (widget, label) in enumerate(pages()):
+            window.show_view(widget)
             spin(1.5)  # [s]
-            label = window.right_tabs.tabText(index).lower().replace(" ", "_")
-            save(window, f"{prefix}_{index:02d}_{label}.png")
+            save(window, f"{prefix}_{index:02d}_{label.lower().replace(' ', '_')}.png")
 
     templates = window.load_scenario_widget.list_widget
     row = next(i for i in range(templates.count()) if templates.item(i).text().startswith("22 "))
@@ -122,7 +136,7 @@ def main(out: Path) -> int:
         save(menu, f"05_menu_{title.strip('&').lower()}.png")
         menu.close()
 
-    window.right_tabs.setCurrentWidget(window.results_widget)
+    window.show_view(window.results_widget)
     window.on_run()
     spin(3.0)  # [s] the first seconds of the run
     save(window, "06_running.png")
@@ -133,7 +147,7 @@ def main(out: Path) -> int:
     # Results stale: change the spacecraft's drag area after the run.
     window.scenario_editor.name_edit.setText("22 - edited after the run")
     spin(1.5)  # [s]
-    window.right_tabs.setCurrentWidget(window.results_widget)
+    window.show_view(window.results_widget)
     spin(1.0)  # [s]
     save(window, "08_stale_results.png")
 
@@ -154,7 +168,7 @@ def main(out: Path) -> int:
     if combo.count() > 1:
         combo.setCurrentIndex(1)
         spin(2.0)  # [s]
-    window.right_tabs.setCurrentWidget(window.results_widget)
+    window.show_view(window.results_widget)
     spin(1.0)  # [s]
     save(window, "10_compare.png")
 
@@ -162,8 +176,7 @@ def main(out: Path) -> int:
         window.resize(*size)
         spin(2.0)  # [s]
         save(window, f"11_window_{name}_results.png")
-        window.left_tabs.setCurrentWidget(window.scenario_editor)
-        window.right_tabs.setCurrentWidget(window.event_timeline_widget)
+        window.show_view(window.event_timeline_widget)
         spin(1.5)  # [s]
         save(window, f"11_window_{name}_events.png")
     window.resize(*DEFAULT_SIZE)

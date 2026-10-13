@@ -19,7 +19,7 @@ observed record, then MSFC's prediction. There is no synthetic profile.
 
 ## Check what you have
 
-Open the **Data** tab (**Run > Check Reference Data**). It lists every
+Open the **Reference data** dialog (**Run > Check Reference Data**, **Tools > Reference Data...**, or the reference data entry in the status bar). It lists every
 file with its status (ok, missing, out of date), the dates it covers,
 where it came from and its SHA-256. From the command line:
 
@@ -36,7 +36,7 @@ the support data, CelesTrak's latest space weather and the Earth
 orientation files. Tick what you want and press **Fetch now**, or
 **Skip**: nothing is downloaded then.
 
-At any time, on the **Data** tab, **Download...** offers three downloads: *Support
+At any time, in the **Reference data** dialog, **Download...** offers three downloads: *Support
 data*, *Space weather* and *Earth orientation*. Each asks first, naming
 the source, the files and their size; the default is No. Afterwards it
 says what changed.

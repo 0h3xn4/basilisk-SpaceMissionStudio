@@ -3,20 +3,24 @@
 How to find what a run produced: plots, events, reports, the time cursor
 and the exported files.
 
-## The tabs on the right
+## Where things are
 
-| Tab | What it shows | Needs a run? |
+| Where | What it shows | Needs a run? |
 |---|---|---|
-| **Results** | One plot at a time; pick it in **Series** | Yes |
-| **Mission Dashboard** | Pointing mode, power and link at a glance (for a comms-pointing spacecraft) | Yes |
-| **Mission Output** | What each `report` command in a Mission Sequence recorded | Yes |
+| **Results > Plots** | One plot at a time; pick it in **Series** | Yes |
+| **Results > Dashboard** | Pointing mode, power and link at a glance (for a comms-pointing spacecraft) | Yes |
+| **Results > Output** | What each `report` command in a Mission Sequence recorded | Yes |
+| **Results > Monte Carlo** | The spread of a batch (only when Monte Carlo is on) | A batch |
 | **Events** | Passes, eclipses, burns and mode changes, as a timeline and a table | Yes |
-| **Data** | Every reference data file, its status and where it came from | No |
-| **Explain** | What the scenario is set up to do, and warnings before you run | No |
-| **End of Life** | Orbital lifetime and deorbit check | No |
-| **Budget** | Delta-V and propellant budget | No (better after a run) |
-| **Flight Software** | Export the flight software, or run it in the loop | No |
-| **Monte Carlo** | The spread of a batch (only when Monte Carlo is on) | A batch |
+| **Compare** | This session's runs, and the inputs that differ between two of them | Two runs |
+| **Log** | What the app logged in this session; a failed run opens it | No |
+| **Scenario > End of Life** | Orbital lifetime and deorbit check | No |
+| **Scenario > Budget** | Delta-V and propellant budget | No (better after a run) |
+| **Scenario > Flight Software** | Export the flight software, or run it in the loop | No |
+| Side panel: **Inspector** | The field you are in: its value, accepted range and help | No |
+| Side panel: **Explain** | What the scenario is set up to do, and warnings before you run | No |
+| Side panel: **Problems** | What does not validate or looks implausible | No |
+| **Reference data** dialog (status bar) | Every reference data file, its status and where it came from | No |
 
 ## Find a plot
 

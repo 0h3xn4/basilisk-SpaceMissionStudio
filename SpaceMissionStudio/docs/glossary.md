@@ -277,7 +277,7 @@ without propellant.
 
 **Reference data** -- the data files runs need: [SPICE kernels](#s), the
 gravity field, the magnetic field model, Earth orientation files and
-space weather. The **Data** tab lists them.
+space weather. The **Reference data** dialog lists them.
 
 **RF** -- radio frequency: the radio link between spacecraft and ground.
 

@@ -36,11 +36,11 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtWidgets import (
     QFrame,
-    QHBoxLayout,
     QLabel,
+    QPushButton,
     QScrollArea,
     QSizePolicy,
     QTableWidget,
@@ -51,6 +51,7 @@ from PySide6.QtWidgets import (
 
 from ..engine.scenario_explainer import ScenarioExplanation, explain
 from ..schema.scenario import Scenario
+from .flow_layout import FlowLayout
 from .badges import ACCENT, DANGER, MUTED, SUCCESS, WARNING, badge_style
 from .formation_diagram_widget import FormationDiagramWidget
 from .theme import PALETTE
@@ -106,6 +107,17 @@ def _badge_label(text: str, kind: str) -> QLabel:
     return label
 
 
+def _badge_button(text: str, kind: str) -> QPushButton:
+    """A badge that opens something: the badge's look, a button's focus and
+    keyboard use."""
+    button = QPushButton(text)
+    button.setFlat(True)
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.setStyleSheet(f"QPushButton {{ {badge_style(_BADGE_KIND_COLORS.get(kind, MUTED))} "
+                         "text-decoration: underline; border: none; }")
+    return button
+
+
 class ScenarioExplainerWidget(QWidget):
     """``set_scenario(Optional[Scenario])`` rebuilds the whole display
     from scratch (clear + repopulate -- mirrors
@@ -115,15 +127,21 @@ class ScenarioExplainerWidget(QWidget):
     a short placeholder instead of crashing.
     """
 
+    model_requested = Signal(str)  # a 3D model badge was clicked: the spacecraft's name
+
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.warning_count = 0  # pre-run warnings currently shown (see engine.scenario_checks)
+        self.model_buttons: list = []  # the 3D model badges, as buttons
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        # Text wraps to the panel's width (the side panel is narrow), never a
+        # sideways scroll bar; tiles and badges flow onto further lines.
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         outer_layout.addWidget(scroll)
 
         content = QWidget()
@@ -142,9 +160,9 @@ class ScenarioExplainerWidget(QWidget):
         self._headline_label.setWordWrap(True)
         self._content_layout.addWidget(self._headline_label)
 
-        self._tiles_row = QHBoxLayout()
-        self._tiles_row.setSpacing(8)
-        self._content_layout.addLayout(self._tiles_row)
+        tiles_box = QWidget()
+        self._tiles_row = FlowLayout(tiles_box, spacing=8)
+        self._content_layout.addWidget(tiles_box)
 
         self._sections_layout = QVBoxLayout()
         self._sections_layout.setSpacing(10)
@@ -187,6 +205,7 @@ class ScenarioExplainerWidget(QWidget):
     def set_scenario(self, scenario: Optional[Scenario]) -> None:
         self.warning_count = 0  # pre-run warnings shown (see engine.scenario_checks)
         if scenario is None:
+            self.model_buttons = []
             self._placeholder_label.setVisible(True)
             self._headline_label.setVisible(False)
             _clear_layout(self._tiles_row)
@@ -202,14 +221,17 @@ class ScenarioExplainerWidget(QWidget):
         explanation = explain(scenario)
         self._render(explanation)
 
+    def _on_model_badge(self) -> None:
+        self.model_requested.emit(self.sender().property("spacecraft"))
+
     def _render(self, explanation: ScenarioExplanation) -> None:
+        self.model_buttons = []
         self.warning_count = sum(len(s.notes) for s in explanation.sections if s.title == "Check before running")
         self._headline_label.setText(explanation.headline)
 
         _clear_layout(self._tiles_row)
         for tile in explanation.stat_tiles:
             self._tiles_row.addWidget(_stat_tile(tile.label, tile.value))
-        self._tiles_row.addStretch(1)
 
         _clear_layout(self._sections_layout)
         for section in explanation.sections:
@@ -227,12 +249,19 @@ class ScenarioExplainerWidget(QWidget):
             section_layout.addWidget(title_label)
 
             if section.badges:
-                badges_row = QHBoxLayout()
-                badges_row.setSpacing(6)
+                badges_box = QWidget()
+                badges_row = FlowLayout(badges_box, spacing=6)
                 for badge in section.badges:
-                    badges_row.addWidget(_badge_label(badge.label, badge.kind))
-                badges_row.addStretch(1)
-                section_layout.addLayout(badges_row)
+                    if badge.spacecraft:
+                        button = _badge_button(badge.label, badge.kind)
+                        button.setToolTip(f"Open the 3D model editor for {badge.spacecraft}")
+                        button.setProperty("spacecraft", badge.spacecraft)
+                        button.clicked.connect(self._on_model_badge)
+                        self.model_buttons.append(button)
+                        badges_row.addWidget(button)
+                    else:
+                        badges_row.addWidget(_badge_label(badge.label, badge.kind))
+                section_layout.addWidget(badges_box)
 
             for note in section.notes:
                 note_label = QLabel(note)

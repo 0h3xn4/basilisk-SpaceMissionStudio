@@ -29,7 +29,7 @@ solar pressure on.
 
 ## Read the batch
 
-The **Monte Carlo** tab opens on the batch:
+The **Monte Carlo** view of the Results tab opens on the batch:
 
 - **Tiles:** how many runs succeeded, and the 1-sigma spread at the end
   along track, radially and across track.

@@ -170,7 +170,7 @@ Then start the GUI (installed apps: from the menu; from source:
 - The status bar at the bottom shows the Basilisk version. "Basilisk
   version not qualified" means a version other than 2.12.0 is installed:
   runs still work, but outside what the app was verified against.
-- **Run > Check Reference Data** opens the **Data** tab: every file
+- **Run > Check Reference Data** opens the **Reference data** dialog: every file
   should be `ok`.
 - **Help > About SpaceMissionStudio** shows the app's version
   (`spacemissionstudio --version` in a terminal).
@@ -188,7 +188,7 @@ orbit for one day, with a ground station in Berlin.
 2. The app opens on **Load Scenario**. Click **22 - Starter: your first
    LEO satellite**; its description appears below the list.
 3. Click **Open Template**. The **Scenario Editor** shows the mission; the
-   **Explain** tab on the right says what it switches on, and predicts
+   **Explain** page of the side panel says what it switches on, and predicts
    `berlin-gs: 4 passes`.
 4. **Run > Run Simulation** (`Ctrl+R`). It takes a few seconds.
 5. The **Results** tab opens. Pick `my-sat.position_N` in **Series** to

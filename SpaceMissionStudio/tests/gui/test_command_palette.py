@@ -74,7 +74,7 @@ def test_the_main_window_lists_its_menus_and_tabs_on_ctrl_k(qtbot):
     assert not any(label.endswith("Command Palette...") for label in labels)
     go_events = next(e for e in window.palette_entries() if e.label == "Go to tab > Events")
     go_events.run()
-    assert window.right_tabs.currentWidget() is window.event_timeline_widget
+    assert window.current_view() is window.event_timeline_widget
     assert any(label.startswith("Open template > 05 formation flying") for label in labels)
 
 
@@ -93,4 +93,4 @@ def test_the_palette_shows_a_series_of_the_result(qtbot):
     entry = next(e for e in window.palette_entries() if e.label == "Show series > sat-1.velocity_N")
     entry.run()
     assert window.results_widget.current_series_name() == "sat-1.velocity_N"
-    assert window.right_tabs.currentWidget() is window.results_widget
+    assert window.current_view() is window.results_widget

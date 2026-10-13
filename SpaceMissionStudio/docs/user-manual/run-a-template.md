@@ -10,7 +10,7 @@ How to run one of the 27 ready-made missions and look at what it did.
    satellite**. Its description appears below the list: what it shows
    and what to look at.
 3. Click **Open Template**. The **Scenario Editor** tab shows the
-   mission; the **Explain** tab on the right summarises it.
+   mission; **Explain**, in the side panel on the right, summarises it.
 4. **Run > Run Simulation**, or `Ctrl+R`. The status bar shows
    progress. Template 22 takes a few seconds.
 5. The **Results** tab opens. Pick a quantity in **Series**, for example

@@ -90,6 +90,7 @@ class StatTile:
 class Badge:
     label: str
     kind: str = "neutral"  # "neutral" | "accent" | "success" | "warning"
+    spacecraft: str = ""  # set on a 3D model's badge: the GUI opens that spacecraft's model on a click
 
 
 @dataclass
@@ -288,7 +289,7 @@ def _environment_section(scenario) -> ExplanationSection | None:
         badges.append(Badge("Facet model (drag/SRP torques)", "accent"))
     for sc in scenario.spacecraft:
         if sc.model is not None:
-            badges.append(Badge(f"{sc.name}: 3D model, {len(sc.model.parts)} parts", "neutral"))
+            badges.append(Badge(f"{sc.name}: 3D model, {len(sc.model.parts)} parts", "neutral", spacecraft=sc.name))
     notes = gravity_fidelity_notes(scenario)
     for sc in scenario.spacecraft:
         offset = math.sqrt(sum(float(v) ** 2 for v in sc.center_of_mass_b_m))

@@ -396,8 +396,9 @@ def _model_warnings(scenario, base_dir) -> List[str]:
         warnings += [f"{sc.name}: 3D model: {message}" for message in derived.errors + derived.warnings]
         stale = model3d.stale_fields(sc, derived, orbit_only=orbit_only)
         if stale:
-            warnings.append(f"{sc.name}: {', '.join(stale)} differ from the 3D model -- open the model and "
-                            "apply it, or turn off applying it")
+            warnings.append(f"{sc.name}: {', '.join(stale)} differ from the 3D model -- open the model "
+                            "(3D Model... in the app) and press OK to apply it again, or run "
+                            "'spacemissionstudio model --apply', or turn off applying it")
     return warnings
 
 

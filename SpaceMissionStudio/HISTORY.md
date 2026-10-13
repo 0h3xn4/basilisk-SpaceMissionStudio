@@ -9346,3 +9346,117 @@ variable is missing, the save now starts the render again on the new
 page, within its existing attempts. A new test reloads the page in the
 middle of a save: without the change it fails with that message every
 time, and with it the PNG is written.
+
+## UX iteration 2b: the workspace (2026-10-13)
+
+The second part of the app shell: the tabs, the docks and the layout
+(U-02, U-05), and a first Log view (U-23).
+
+**Main tabs** (`MainWindow.main_tabs`): *Scenario, Results, Events,
+Compare, Log*, as the standard lists them.
+- *Scenario* holds Load Scenario, the Scenario Editor, and the End of
+  Life, Budget and Flight Software pages, until the scenario tree (U-01)
+  replaces these tabs in the Scenario Editor iteration. The Analyses and
+  Tools menus open the same pages.
+- *Results* holds Plots, Dashboard and Output, and Monte Carlo while
+  there is a batch or the scenario has Monte Carlo on (it used to be the
+  tenth tab).
+- *Compare* (`workspace_panels.CompareWidget`) lists the session's runs.
+  Choosing one shows the inputs that differ from the shown run in a
+  table, and has Results draw it dashed; the two stay in step.
+- *Log* (`LogViewWidget`) shows this session's log records (INFO and
+  up), filtered by level and text, with **Open log file**. A failed run
+  or Monte Carlo batch opens it at its warnings and errors. The error box
+  stays until the Run feedback iteration.
+
+**The side panel**, one dock on the right with its own tabs: *Inspector*
+(the focused field's label, value, accepted range and help), *Explain*
+(moved from the tabs) and *Problems* (the editor's validation error and
+plausibility warnings; the tab counts them, and double-clicking one
+opens the Scenario Editor). One dock rather than three tabbed docks: Qt's
+own tab bar for tabbed docks switches on the mouse wheel, which every
+tab bar here ignores (`tests/gui/test_wheel_in_dialogs.py` caught it).
+Explain was laid out for the old wide pane; its tiles and badges now
+flow onto further lines, and its text wraps instead of scrolling
+sideways.
+
+**The reference data** is a dialog, opened from the status bar entry,
+**Tools > Reference Data...** or **Run > Check Reference Data**.
+
+**Layout.** The window geometry and the dock state are saved on close
+in `~/.spacemissionstudio/layout.ini` and restored on start;
+**View > Reset Layout** restores the default. The View menu also shows
+or hides the side panel and opens each of its pages.
+
+**Smaller changes.**
+- The stale-results banner shows over Results, Events and Compare only,
+  not over the editor the change is being made in.
+- Thin rules separate the status-bar entries.
+- The menu actions use a bound method rather than lambdas holding the
+  window, as in 2a.
+
+**Tests.** `tests/gui/test_workspace.py`:
+- the tabs and what they hold;
+- `show_view` at every level;
+- the Problems list and its count;
+- the Inspector;
+- the Log and a failed run opening it;
+- Compare;
+- the banner over the run views only;
+- the layout kept and reset;
+- the View, Analyses and Tools menus.
+
+The tests that named the old tabs now ask the window which view it shows
+(`current_view()`), with the same expectations; the Data tab test checks
+the dialog.
+
+## The 3D model editor on the main toolbar (2026-10-13)
+
+User feedback: the 3D model editor is a big feature, and it was reachable
+only from the **3D model** tab of the spacecraft editor, two dialogs deep.
+It now has an entry of its own, **3D Model...**, on the main toolbar
+after Run Monte Carlo (with a cube icon, `tb-model-3d.svg`) and in the
+Tools menu.
+
+- With one spacecraft it opens the editor for it; with several it asks
+  which one (the one selected in the Spacecraft list comes first); with
+  none it opens the Scenario Editor and says to add one.
+- The work is done by `SpacecraftListWidget.open_model_editor(row)`: OK
+  stores the model and writes what it applies (dry mass, center of mass,
+  inertia, and in a full-attitude scenario the facets) into the
+  spacecraft, as the spacecraft editor's 3D model tab does, then the list
+  emits `changed`, so the change is marked unsaved and Edit > Undo takes
+  it back.
+
+The user also asked that the editor be no dead end: connected to the
+rest of the tool, not a window that edits numbers off to the side. So:
+
+- **Into the editor, from where a model needs attention.** A double-click
+  on a 3D model problem in Problems ("<spacecraft>: 3D model: ..." or
+  "... differ from the 3D model ...", from `engine.scenario_checks`) opens
+  that spacecraft's model editor (`workspace_panels.model_problem_spacecraft`
+  matches the name, the longest first); the item's tooltip says so. The
+  Explain panel's "3D model, N parts" badge is a button that does the
+  same (`Badge.spacecraft`, `ScenarioExplainerWidget.model_requested`).
+  The out-of-date warning now names how to fix it: 3D Model... and OK, or
+  `spacemissionstudio model --apply`.
+- **In the editor, what it changes in this scenario.** The Use tab says
+  what the next run takes from an applied model: the dry mass only in an
+  orbit-only scenario, the mass properties and facets in a full-attitude
+  one (`model_editor_dialog.uses_note`; both entry points pass the
+  scenario's simulation mode).
+- **Out of the editor, what it wrote.** OK's message names it: "Applied
+  the 3D model of 'octa-sat': dry mass 300 kg, center of mass 7.9 cm from
+  B, inertia, 36 facets" for template 28 (`spacecraft_editor.applied_summary`). The edit
+  then goes the way of any other: the scenario is unsaved, Undo takes it
+  back, Explain and Problems refresh, and earlier results show the
+  out-of-date banner.
+
+Tests (`tests/gui/test_workspace.py`): the entry's place on the toolbar
+(visible at the window's own size) and in the Tools menu; OK applying a
+100 kg, 1 m box (mass 100 kg, Ixx = 16.7 kg m^2, facets left alone in the
+orbit-only template 22) and Undo removing it; the spacecraft choice with
+two spacecraft, and Cancel; no spacecraft; the Use tab's note for each
+mode; the applied-values message; matching a problem to its spacecraft;
+a stale model's problem in template 28 opening the editor, whose OK
+clears it; the Explain badge opening the editor.

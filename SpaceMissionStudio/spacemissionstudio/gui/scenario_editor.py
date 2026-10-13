@@ -67,6 +67,8 @@ class ScenarioEditorWidget(QWidget):
     """
 
     changed = Signal()
+    # (severity, text) pairs after every revalidate(): the Problems dock lists them.
+    problems_changed = Signal(list)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -387,11 +389,13 @@ class ScenarioEditorWidget(QWidget):
 
     def revalidate(self) -> None:
         warnings = []
+        problems = []
         try:
             scenario = self.to_scenario()
         except ScenarioValidationError as exc:
             self.validation_label.setText(f"⚠ {exc}")
             self.validation_label.setStyleSheet(f"color: {PALETTE['danger']};")
+            problems.append(("error", str(exc)))
         else:
             self.validation_label.setText("✓ valid")
             self.validation_label.setStyleSheet(f"color: {PALETTE['success']};")
@@ -399,3 +403,5 @@ class ScenarioEditorWidget(QWidget):
             warnings = plausibility_warnings(scenario, base_dir=base_dir)
         self.plausibility_label.setText("\n".join(f"⚠ {warning}" for warning in warnings))
         self.plausibility_label.setVisible(bool(warnings))
+        self.problems = problems + [("warning", warning) for warning in warnings]
+        self.problems_changed.emit(self.problems)

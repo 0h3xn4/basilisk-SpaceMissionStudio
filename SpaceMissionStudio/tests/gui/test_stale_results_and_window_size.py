@@ -140,6 +140,7 @@ def test_the_window_fits_1280_by_720_after_a_comparison(app_theme, window, qtbot
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
 
     window.show()
+    window.show_view(window.results_widget)
     name = "22 - Starter: your first LEO satellite, with a much longer name than usual"
     result = ResultSet(scenario_name=name)
     result.add(TimeSeries("my-sat.position_N", [0.0, 60.0], ("x", "y", "z"),  # [s]

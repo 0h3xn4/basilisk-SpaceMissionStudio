@@ -97,7 +97,7 @@ Where each piece lives in the app, and which template shows it best:
 | Ground stations | Scenario Editor > Ground stations | 19, 22 |
 | Mission sequence | Scenario Editor > Mission sequence | 08, 16, 23 |
 | Monte Carlo | Scenario Editor > Monte Carlo | 09, 25 |
-| Results | the tabs on the right (Section 7) | any |
+| Results | the Results, Events and Compare tabs (Section 7) | any |
 
 **Orbit only or full attitude?** *Orbit only* simulates where each
 spacecraft goes: fast, and enough for orbits, drag, station keeping,
@@ -151,23 +151,35 @@ this:
 
 A few things to notice right away:
 
-* **File / Edit / Run / Help** along the top -- the four menus you'll
-  use for almost everything.
+* **File / Edit / Run / Analyses / Tools / View / Help** along the top.
+  File, Edit and Run hold almost everything you will use; Analyses and
+  Tools open the pages listed below; View shows or hides the side panel
+  and puts the layout back with **Reset Layout**.
 * A row of toolbar buttons just below the menus, mirroring the most
   common menu actions (New Scenario, Open, Save, Run Simulation, ...)
-  so you don't have to open a menu every time.
-* Two tabs on the **left**: **Load Scenario** (where you start) and
-  **Scenario Editor** (where you build/edit a mission in detail --
-  Section 6).
-* Nine tabs on the **right**. **Results**, **Mission Dashboard**,
-  **Mission Output** and **Events** fill in when you run something
-  (Section 7). **Data** lists the reference files and offers to
-  download missing ones. **Explain** is a live summary of what the
-  scenario you are editing does (end of Section 7). **End of Life** and
-  **Budget** estimate re-entry and delta-V (Section 11). **Flight
-  Software** exports the attitude flight software and runs it in the
-  loop (Section 6). A tenth, **Monte Carlo**, appears when the scenario
-  has Monte Carlo on (Section 10).
+  so you don't have to open a menu every time. **3D Model...** at its
+  end opens the 3D model editor for a spacecraft (Section 6).
+* Five main tabs:
+  * **Scenario**, with its own tabs: **Load Scenario** (where you
+    start), **Scenario Editor** (where you build or edit a mission --
+    Section 6), **End of Life** and **Budget** (re-entry and delta-V
+    estimates, Section 11) and **Flight Software** (export the attitude
+    flight software and run it in the loop, Section 6).
+  * **Results**, which fills in when you run something (Section 7), with
+    the **Plots**, the **Dashboard** and the mission **Output**, and a
+    **Monte Carlo** view when the scenario has Monte Carlo on (Section 10).
+  * **Events**: passes, eclipses, burns and mode changes (Section 7).
+  * **Compare**: this session's runs, and the inputs that differ between
+    the run shown and the one you choose (Section 7).
+  * **Log**: what the app logged in this session, filterable by level
+    and text; a failed run opens it at its warnings and errors.
+* A **side panel** on the right, with three pages: **Inspector** (the
+  field you are in: its value, the range it accepts and its help),
+  **Explain** (a live summary of what the scenario does, end of
+  Section 7) and **Problems** (what does not validate, and what looks
+  implausible; double-click one to go to the Scenario Editor). Drag it
+  to the left, close it, or put it back with **View > Reset Layout**;
+  the app remembers where you left it.
 * A **top bar** above the tabs names the scenario and says whether it
   has unsaved changes, where it came from ("from template 22", or the
   file's name) and when it last ran, how it ended and how long it took.
@@ -177,7 +189,7 @@ A few things to notice right away:
 * The status bar at the bottom shows progress, and always: the Basilisk
   version ("(not qualified)" when it is not the verified 2.12.0), the
   reference data ("all OK", or how many files need attention; click it
-  to open the **Data** tab), how far the Earth orientation data is high
+  to open the **Reference data** dialog), how far the Earth orientation data is high
   accuracy, and the frames runs use (EME2000 for orbits and results,
   ITRF93 or IAU_EARTH for ground stations, UTC for dates).
 
@@ -348,7 +360,8 @@ The quickest way to a mission of your own is a starter template (22 or
 4. **Ground stations > Add...**: a name, latitude, longitude and the
    lowest usable elevation (10 deg is common).
 5. Look at the bottom of the tab: **✓ valid** means Run is available;
-   otherwise the message names the field to fix. The **Explain** tab
+   otherwise the message names the field to fix (the side panel's
+   **Problems** page lists it too). **Explain**, in the side panel,
    already shows the orbit type, the ground passes and what the
    environment includes, before anything runs.
 6. **File > Save As...**, then **Run > Run Simulation**.
@@ -441,14 +454,18 @@ which is assumed perfect.
 
 ### A 3D model of the spacecraft
 
-The **3D model** tab of the spacecraft editor opens the 3D model editor:
+**3D Model...** on the toolbar (or **Tools > 3D Model...**) opens the
+3D model editor; with several spacecraft it first asks which one. The
+**3D model** tab of the spacecraft editor opens it too. In the editor,
 build the spacecraft from boxes, prisms (an octagonal bus), cylinders,
 cones, spheres and panels, or import an `.obj` from a CAD or modelling
 tool, and give each part its mass. The model then sets the spacecraft's
 dry mass, center of mass, inertia and surface facets, and its look in
 Vizard; mass properties can also be typed in or imported from a file.
-Step by step: [Build a 3D model](docs/user-manual/3d-model.md);
-template 28 is a worked example.
+A model problem in **Problems**, or the "3D model" badge in **Explain**,
+opens the editor for that spacecraft too. Step by step:
+[Build a 3D model](docs/user-manual/3d-model.md); template 28 is a
+worked example.
 
 ![The 3D model editor: the parts on the left, the selected part's settings in the middle, the model in 3D on the right and its mass properties below](docs/images/model_editor.png)
 
@@ -656,7 +673,7 @@ byte order.
 
 ## 7. Reading the Results tab
 
-After a run finishes, the **Results** tab shows one plot at a time:
+After a run finishes, the **Results** tab opens on **Plots**, which shows one plot at a time:
 
 * **Series** -- pick which quantity to look at, listed by plot title
   (e.g. "sat-1: Inertial Position (ECI)"). Type to filter the list.
@@ -679,10 +696,12 @@ After a run finishes, the **Results** tab shows one plot at a time:
   same series from an earlier run, dashed, in the same colours (the last
   five runs are kept until the app closes). **Input differences...**
   lists every scenario input that differs between the two runs, e.g.
-  `spacecraft[sat-1].orbit.semi_major_axis_km`.
+  `spacecraft[sat-1].orbit.semi_major_axis_km`. The **Compare** tab
+  shows the same: the session's runs, and for the one you pick, the
+  inputs that differ, in a table.
 
-If you change the scenario after a run, a yellow banner above the tabs
-says the results are from a previous version of it, with **Re-run**. It
+If you change the scenario after a run, a yellow banner above Results,
+Events and Compare says the results are from a previous version of it, with **Re-run**. It
 goes away if you undo back to the scenario that ran. While the scenario
 has a problem, the banner says so and Re-run waits until it is fixed.
 
@@ -694,7 +713,7 @@ dynamics step or a higher-order integrator.
 The plot is interactive: hover to see exact values, and use your
 scroll wheel/drag to zoom and pan.
 
-**Mission Output** (the tab next to Results) shows what each `report`
+**Output** (a view of the Results tab, next to Plots) shows what each `report`
 command in a Mission Sequence run (Section 6) recorded: one row per
 quantity and one column per report, in the same units as the plots.
 With exactly two reports (e.g. "Before burn" / "After burn") a
@@ -717,15 +736,16 @@ eclipses when the Sun is not one of the third-body perturbers.
 **The time cursor** is shared by every view of a run. Click a plot on
 the Results tab, or click or drag on the Events timeline, to set it: a
 red line marks it on the plot and the timeline, the Events tab says
-which events are in progress, Mission Dashboard shows the values at
-that moment instead of the end of the run, and Mission Output marks the
+which events are in progress, the Dashboard shows the values at
+that moment instead of the end of the run, and the Output marks the
 last report before it (click a report's column header to jump there). A
 table row on the Events tab moves the cursor to that event's start. The
 status bar shows the cursor's time; **Run > Clear Time Cursor** (or Esc
 on the Events tab) clears it. A saved PNG or SVG includes the line if
 it is showing.
 
-**Data** lists every reference data file the app uses (SPICE kernels,
+The **Reference data** dialog (the status bar's reference data entry,
+**Tools > Reference Data...** or **Run > Check Reference Data**) lists every reference data file the app uses (SPICE kernels,
 gravity field, magnetic model, space weather, Earth orientation) with
 its status, the dates it covers, where it came from and its SHA-256.
 Files that are missing or out of date are marked. This is the only place
@@ -822,8 +842,8 @@ Simulation. This is a more advanced feature; most people won't need it
 for a first mission. Templates 09 and 25 are ready-made batches.
 
 Run Monte Carlo asks for a folder, saves every run there, and opens the
-**Monte Carlo** tab on the batch (the tab is there whenever the scenario
-has Monte Carlo on, or a batch is open):
+**Monte Carlo** view of the Results tab on the batch (the view is there
+whenever the scenario has Monte Carlo on, or a batch is open):
 
 ![The Monte Carlo tab for template 25: tiles with the spread at the end, and every run's along-track offset from the batch mean](docs/images/monte_carlo_tab.png)
 
@@ -878,8 +898,8 @@ error message naming Basilisk, that's exactly what's going on, not a bug.
 download anything. The installer fetches the standard reference files
 (SPICE kernels -- leap seconds, planet positions -- plus the gravity
 field and magnetic model, around 116 MB) once. If they are missing (a
-development checkout, a cleared cache), open the **Data** tab
-(**Run > Check Reference Data**) and choose **Download... > Support
+development checkout, a cleared cache), open the **Reference data**
+dialog (**Run > Check Reference Data**) and choose **Download... > Support
 data**; it asks before fetching. `spacemissionstudio kernels-status`
 does the same from the command line.
 

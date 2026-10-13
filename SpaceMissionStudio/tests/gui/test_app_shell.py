@@ -185,16 +185,20 @@ def test_the_status_bar_items(window, monkeypatch):
     assert items.frames_label.text() == "Frames: EME2000 · IAU_EARTH · UTC"
 
 
-def test_the_reference_data_item_opens_the_data_tab(window):
-    """Clicking the reference data entry in the status bar opens the Data
-    tab, where the files are listed."""
-    window.right_tabs.setCurrentWidget(window.results_widget)
+def test_the_reference_data_item_opens_the_data_dialog(window):
+    """Clicking the reference data entry in the status bar opens the
+    Reference data dialog, where the files are listed; the main tabs stay
+    where they were."""
+    window.show_view(window.results_widget)
+    assert not window.data_dialog.isVisible()
     window.status_items.data_button.click()
-    assert window.right_tabs.currentWidget() is window.data_panel_widget
+    assert window.data_dialog.isVisible() and window.data_dialog.isAncestorOf(window.data_panel_widget)
+    assert window.current_view() is window.results_widget
+    window.data_dialog.close()
 
 
 def test_the_status_bar_follows_the_data_tab(window, monkeypatch):
-    """A refresh of the Data tab (after a download, import or rollback)
+    """A refresh of the reference data panel (after a download, import or rollback)
     refreshes the status bar's summary too."""
     from spacemissionstudio.engine import reference_data
 

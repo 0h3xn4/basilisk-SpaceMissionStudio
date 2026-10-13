@@ -108,31 +108,29 @@ def main(out: Path) -> int:
     save("load_scenario_tab.png")
 
     open_template("22_starter_first_leo_satellite.json")
-    window.right_tabs.setCurrentWidget(window.scenario_explainer_widget)
+    window.show_view(window.scenario_explainer_widget)
     spin(4.0)  # [s]
     save("scenario_editor_tab.png")
 
     window.on_run()
     wait(lambda: window.event_timeline_widget.table.rowCount() > 0, 300.0, "the run of template 22")  # [s]
-    window.right_tabs.setCurrentWidget(window.event_timeline_widget)
+    window.show_view(window.event_timeline_widget)
     spin(2.0)  # [s]
     save("events_tab.png")
 
-    lifetime_page = window.lifetime_widget.parentWidget().parentWidget()  # the tab's scroll area
-    window.right_tabs.setCurrentIndex(window.right_tabs.indexOf(lifetime_page))
+    window.show_view(window.lifetime_widget)
     window.lifetime_widget.compute()
     wait(lambda: window.lifetime_widget._worker is None, 300.0, "the lifetime estimate")  # [s]
     save("end_of_life_tab.png")
 
     open_template("18_leo_station_keeping.json")
-    budget_page = window.budget_widget.parentWidget().parentWidget()  # the tab's scroll area
-    window.right_tabs.setCurrentIndex(window.right_tabs.indexOf(budget_page))
+    window.show_view(window.budget_widget)
     window.budget_widget.compute()
     wait(lambda: window.budget_widget._worker is None, 600.0, "the budget")  # [s]
     save("budget_tab.png")
 
     open_template("07_attitude_pointing_with_adcs_hardware.json")
-    window.right_tabs.setCurrentWidget(window.flight_software_widget)
+    window.show_view(window.flight_software_widget)
     spin(1.5)  # [s]
     save("flight_software_tab.png")
 

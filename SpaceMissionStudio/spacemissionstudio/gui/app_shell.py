@@ -38,7 +38,7 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QHBoxLayout, QLabel, QToolButton, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QToolButton, QWidget
 
 CHIP_STATES = ("idle", "running", "done", "failed", "cancelled")
 
@@ -141,7 +141,12 @@ class StatusBarItems:
         self.frames_label.setObjectName("statusItem")
         self.frames_label.setToolTip("Inertial frame of orbits and results; Earth-fixed frame of ground "
                                      "stations; the time system of every date shown")
-        self.widgets = (self.basilisk_label, self.data_button, self.earth_orientation_label, self.frames_label)
+        items = (self.basilisk_label, self.data_button, self.earth_orientation_label, self.frames_label)
+        # A thin rule between entries: side by side they read as one line.
+        separated = [items[0]]
+        for item in items[1:]:
+            separated += [_separator(parent), item]
+        self.widgets = tuple(separated)
 
     @property
     def data_clicked(self) -> Signal:
@@ -185,3 +190,11 @@ class StatusBarItems:
 def _repolish(widget: QWidget) -> None:
     widget.style().unpolish(widget)
     widget.style().polish(widget)
+
+
+def _separator(parent: QWidget) -> QFrame:
+    rule = QFrame(parent)
+    rule.setObjectName("statusSeparator")
+    rule.setFrameShape(QFrame.Shape.VLine)
+    rule.setFixedWidth(9)  # [px] the rule and a little room either side
+    return rule

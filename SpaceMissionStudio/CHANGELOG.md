@@ -41,6 +41,23 @@ fixes bugs.
   open the Data tab), the Earth orientation data's date and the frames
   (UX audit U-04, U-06, U-07).
 
+- **A new workspace.** Five main tabs: Scenario (with Load Scenario, the
+  Scenario Editor, End of Life, Budget and Flight Software), Results
+  (Plots, Dashboard, Output, Monte Carlo), Events, Compare (the session's
+  runs and the inputs that differ) and Log (this session's log; a failed
+  run opens it). A side panel with the Inspector (the focused field's
+  value, range and help), Explain and Problems (what does not validate or
+  looks implausible). The reference data is a dialog from the status bar
+  or **Tools > Reference Data...**. New Analyses, Tools and View menus;
+  the app remembers the panel layout, and **View > Reset Layout** puts it
+  back (UX audit U-02, U-05, U-23).
+- **3D Model...** on the main toolbar and in the Tools menu opens the 3D
+  model editor for a spacecraft (it asks which one when there are
+  several), so the editor is no longer reachable only from a tab of the
+  spacecraft editor. OK applies the model and says what it wrote; Edit >
+  Undo takes it back. The editor says what the next run uses in this
+  scenario (orbit only: the dry mass). A 3D model problem in Problems and
+  the "3D model" badge in Explain open the editor for that spacecraft.
 **Fixed**
 - **Save PNG / Save SVG** no longer fails with "Could not render the plot"
   when the plot's page reloads while the image is rendering (a redraw, or
