@@ -114,14 +114,17 @@ def test_problems_list_the_validation_error_and_warnings(window):
     assert window.current_view() is window.scenario_editor
 
 
-def test_the_inspector_follows_the_focused_field(window, qtbot):
-    """Focusing a field shows its label, value, range and help."""
-    window.show()
-    qtbot.waitExposed(window)
+def test_the_inspector_follows_the_focused_field(window, qapp):
+    """Focusing a field shows its label, value, range and help. The test
+    sends the application's focusChanged signal itself: Qt sends it only
+    for the active window, and on a shared desktop (macOS CI, several
+    workers) the test's window need not be the active one."""
     inspector = window.inspector_widget
-    window.scenario_editor.name_edit.setFocus()
-    qtbot.waitUntil(lambda: inspector.name_label.text() == "Name", timeout=2000)  # [ms]
+    qapp.focusChanged.emit(None, window.scenario_editor.name_edit)
+    assert inspector.name_label.text() == "Name"
     assert inspector.value_label.text() == window.scenario_editor.name_edit.text()
+    qapp.focusChanged.emit(window.scenario_editor.name_edit, inspector.name_label)  # a click into the panel itself
+    assert inspector.name_label.text() == "Name"
 
     from spacemissionstudio.gui.workspace_panels import field_range
 
