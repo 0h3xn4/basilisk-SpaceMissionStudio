@@ -46,9 +46,11 @@ def main(out: Path) -> int:
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.gui.main_window import MainWindow
     from spacemissionstudio.gui.theme import apply_theme
+    from spacemissionstudio.logging_setup import configure_logging
 
     apply_theme(app)
     out.mkdir(parents=True, exist_ok=True)
+    configure_logging(log_dir=out / "logs")  # as the app does, so the Log tab shows the run's records
     taken = []
 
     def spin(duration_s: float) -> None:
