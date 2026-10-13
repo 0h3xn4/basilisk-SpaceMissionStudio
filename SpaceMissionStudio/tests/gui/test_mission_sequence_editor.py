@@ -12,6 +12,14 @@ def _dialog(command=None, spacecraft_names=None, series_names=None, ground_stati
                                 ground_station_names=ground_station_names)
 
 
+def _widget(qtbot):
+    from spacemissionstudio.gui.mission_sequence_editor import MissionSequenceEditorWidget
+
+    widget = MissionSequenceEditorWidget()
+    qtbot.addWidget(widget)
+    return widget
+
+
 def _tick(dialog, *names):
     from PySide6.QtCore import Qt
 
@@ -65,24 +73,13 @@ def test_propagate_pass_event_picks_a_station_only_when_needed(qtbot):
     assert reopened.to_dataclass().params == command.params
 
 
-def test_editor_offers_the_scenarios_ground_stations(qtbot, monkeypatch):
-    from spacemissionstudio.gui import mission_sequence_editor as module
-
-    captured = {}
-
-    class _Probe:
-        def __init__(self, **kwargs):
-            captured.update(kwargs)
-
-        def exec(self):
-            return 0
-
-    editor = module.MissionSequenceEditorWidget()
-    qtbot.addWidget(editor)
-    editor.set_ground_station_names_provider(lambda: ["kiruna-gs", "berlin-gs"])
-    monkeypatch.setattr(module, "_CommandEditorDialog", _Probe)
-    editor._on_add()
-    assert captured["ground_station_names"] == ["berlin-gs", "kiruna-gs"]
+def test_editor_offers_the_scenarios_ground_stations(qtbot):
+    """A step's form offers the scenario's ground stations, sorted."""
+    widget = _widget(qtbot)
+    widget.set_ground_station_names_provider(lambda: ["kiruna-gs", "berlin-gs"])
+    widget.add_step("propagate")
+    combo = widget.form.propagate_event_station_combo
+    assert [combo.itemText(i) for i in range(combo.count())] == ["berlin-gs", "kiruna-gs"]
 
 
 def test_propagate_epoch_rejects_bad_iso8601(qtbot):
@@ -294,157 +291,86 @@ def test_kind_combo_disabled_when_editing_existing_command(qtbot):
     assert not dialog.kind_combo.isEnabled()
 
 
-def test_widget_add_and_remove_show_a_toast(qtbot, monkeypatch):
-    from PySide6.QtWidgets import QDialog
-
-    from spacemissionstudio.gui.mission_sequence_editor import MissionSequenceEditorWidget, _CommandEditorDialog
-
-    widget = MissionSequenceEditorWidget()
-    qtbot.addWidget(widget)
+def test_widget_add_and_remove_show_a_toast(qtbot):
+    """Adding and removing a step each say so in a toast."""
+    widget = _widget(qtbot)
     widget.set_spacecraft_names_provider(lambda: ["sat-1"])
-
-    def fake_exec(self):
-        self.duration_days_spin.setValue(1.5)
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_CommandEditorDialog, "exec", fake_exec)
-    widget._on_add()
-
+    widget.add_step("propagate")
     toasts = getattr(widget.window(), "_spacemissionstudio_active_toasts", [])
-    assert any("propagate" in t.text() for t in toasts)
+    assert any("Propagate for 1 day" in t.text() for t in toasts)
 
     widget.tree.setCurrentItem(widget.tree.topLevelItem(0))
     widget._on_remove()
-
     toasts = getattr(widget.window(), "_spacemissionstudio_active_toasts", [])
     assert any("Removed" in t.text() for t in toasts)
 
 
-def test_widget_add_edit_remove_top_level(qtbot, monkeypatch):
-    from PySide6.QtWidgets import QDialog
-
-    from spacemissionstudio.gui.mission_sequence_editor import MissionSequenceEditorWidget, _CommandEditorDialog
-
-    widget = MissionSequenceEditorWidget()
-    qtbot.addWidget(widget)
+def test_widget_add_edit_remove_top_level(qtbot):
+    """Add a step, edit it in its form (applied once the edit settles, or
+    at once when the sequence is read), remove it."""
+    widget = _widget(qtbot)
     widget.set_spacecraft_names_provider(lambda: ["sat-1"])
-
-    def fake_exec(self):
-        self.duration_days_spin.setValue(1.5)
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_CommandEditorDialog, "exec", fake_exec)
     changed_count = []
     widget.changed.connect(lambda: changed_count.append(1))
 
-    widget._on_add()
-    assert widget.tree.topLevelItemCount() == 1
+    widget.add_step("propagate")
+    assert widget.tree.topLevelItemCount() == 1 and changed_count == [1]
+    widget.form.duration_days_spin.setValue(1.5)  # [day]
+    qtbot.waitUntil(lambda: len(changed_count) == 2, timeout=2000)
     commands = widget.to_command_list()
-    assert len(commands) == 1
-    assert commands[0].kind == "propagate"
-    assert commands[0].params["duration_days"] == 1.5
-    assert changed_count == [1]
+    assert len(commands) == 1 and commands[0].kind == "propagate"
+    assert commands[0].params["duration_days"] == 1.5  # [day]
+    assert widget.tree.topLevelItem(0).text(0) == "Propagate for 1.5 days"
 
-    def fake_edit_exec(self):
-        self.label_edit.setText("renamed")
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_CommandEditorDialog, "exec", fake_edit_exec)
-    widget.tree.setCurrentItem(widget.tree.topLevelItem(0))
-    widget._on_edit()
-    assert widget.to_command_list()[0].label == "renamed"
+    widget.form.label_edit.setText("renamed")
+    assert widget.to_command_list()[0].label == "renamed"  # flushed, no wait
 
     widget.tree.setCurrentItem(widget.tree.topLevelItem(0))
     widget._on_remove()
     assert widget.to_command_list() == []
 
 
-def test_add_child_only_enabled_for_if_while(qtbot, monkeypatch):
-    from PySide6.QtWidgets import QDialog
+def test_add_child_only_enabled_for_if_while(qtbot):
+    """Add inside is offered only on an if/while step, and only they
+    accept a dropped step."""
+    from PySide6.QtCore import Qt
 
-    from spacemissionstudio.gui.mission_sequence_editor import MissionSequenceEditorWidget, _CommandEditorDialog
-
-    widget = MissionSequenceEditorWidget()
-    qtbot.addWidget(widget)
-
-    def fake_exec_propagate(self):
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_CommandEditorDialog, "exec", fake_exec_propagate)
-    widget._on_add()  # default kind is "propagate"
-    widget.tree.setCurrentItem(widget.tree.topLevelItem(0))
+    widget = _widget(qtbot)
+    widget.add_step("propagate")
     assert not widget.add_child_button.isEnabled()
-
-    def fake_exec_while(self):
-        index = self.kind_combo.findText("while")
-        self.kind_combo.setCurrentIndex(index)
-        self.condition_edit.setText("t_s < 10")
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_CommandEditorDialog, "exec", fake_exec_while)
-    widget._on_add()
-    widget.tree.setCurrentItem(widget.tree.topLevelItem(1))
+    assert not widget.tree.topLevelItem(0).flags() & Qt.ItemFlag.ItemIsDropEnabled
+    widget.add_step("while")
+    assert widget.tree.currentItem() is widget.tree.topLevelItem(1)
     assert widget.add_child_button.isEnabled()
+    assert widget.tree.topLevelItem(1).flags() & Qt.ItemFlag.ItemIsDropEnabled
 
 
-def test_add_child_nests_command_and_round_trips(qtbot, monkeypatch):
-    from PySide6.QtWidgets import QDialog
-
-    from spacemissionstudio.gui.mission_sequence_editor import MissionSequenceEditorWidget, _CommandEditorDialog
-
-    widget = MissionSequenceEditorWidget()
-    qtbot.addWidget(widget)
-
-    def fake_exec_while(self):
-        index = self.kind_combo.findText("while")
-        self.kind_combo.setCurrentIndex(index)
-        self.condition_edit.setText("t_s < 10")
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_CommandEditorDialog, "exec", fake_exec_while)
-    widget._on_add()
-    parent_item = widget.tree.topLevelItem(0)
-    widget.tree.setCurrentItem(parent_item)
-
-    def fake_exec_report(self):
-        index = self.kind_combo.findText("report")
-        self.kind_combo.setCurrentIndex(index)
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_CommandEditorDialog, "exec", fake_exec_report)
-    widget._on_add_child()
+def test_add_child_nests_command_and_round_trips(qtbot):
+    """Add inside nests the new step in the selected while."""
+    widget = _widget(qtbot)
+    parent_item = widget.add_step("while")
+    widget.form.condition_edit.setText("t_s < 10")
+    widget.add_step("report", inside=True)
 
     assert parent_item.childCount() == 1
     commands = widget.to_command_list()
     assert len(commands) == 1
-    assert commands[0].kind == "while"
-    assert len(commands[0].children) == 1
-    assert commands[0].children[0].kind == "report"
+    assert commands[0].kind == "while" and commands[0].params == {"condition": "t_s < 10"}
+    assert [child.kind for child in commands[0].children] == ["report"]
 
 
-def test_move_up_down_reorders_siblings(qtbot, monkeypatch):
-    from PySide6.QtWidgets import QDialog
-
-    from spacemissionstudio.gui.mission_sequence_editor import MissionSequenceEditorWidget, _CommandEditorDialog
-
-    widget = MissionSequenceEditorWidget()
-    qtbot.addWidget(widget)
-
+def test_move_up_down_reorders_siblings(qtbot):
+    """Move up / Move down swap a step with its neighbour."""
+    widget = _widget(qtbot)
     for label in ("first", "second"):
-        def fake_exec(self, label=label):
-            self.label_edit.setText(label)
-            return QDialog.DialogCode.Accepted
-
-        monkeypatch.setattr(_CommandEditorDialog, "exec", fake_exec)
-        widget._on_add()
-
+        widget.add_step("propagate")
+        widget.form.label_edit.setText(label)
     assert [c.label for c in widget.to_command_list()] == ["first", "second"]
 
     widget.tree.setCurrentItem(widget.tree.topLevelItem(1))  # "second"
-    widget._on_move(-1)
+    widget._on_move_up()
     assert [c.label for c in widget.to_command_list()] == ["second", "first"]
-
-    widget._on_move(1)
+    widget._on_move_down()
     assert [c.label for c in widget.to_command_list()] == ["first", "second"]
 
 
@@ -474,37 +400,23 @@ def test_from_command_list_to_command_list_round_trip(qtbot):
     assert got[1].children[0].kind == "report"
 
 
-def test_editing_child_does_not_stale_parent_children_field(qtbot, monkeypatch):
+def test_editing_child_does_not_stale_parent_children_field(qtbot):
     """Regression guard for this module's own documented invariant: a
     parent's stored Command.children is always cleared (see _new_item),
     so to_command_list() must reflect an edited child via tree structure,
     never a stale copy captured when the parent was built.
     """
-    from PySide6.QtWidgets import QDialog
-
-    from spacemissionstudio.gui.mission_sequence_editor import MissionSequenceEditorWidget, _CommandEditorDialog
     from spacemissionstudio.schema.command import Command
 
-    widget = MissionSequenceEditorWidget()
-    qtbot.addWidget(widget)
+    widget = _widget(qtbot)
     widget.from_command_list([
         Command(kind="if", params={"condition": "t_s > 0"}, children=[
             Command(kind="report", label="before", params={"series": []}),
         ]),
     ])
-
-    child_item = widget.tree.topLevelItem(0).child(0)
-    widget.tree.setCurrentItem(child_item)
-
-    def fake_exec(self):
-        self.label_edit.setText("after")
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_CommandEditorDialog, "exec", fake_exec)
-    widget._on_edit()
-
-    got = widget.to_command_list()
-    assert got[0].children[0].label == "after"
+    widget.tree.setCurrentItem(widget.tree.topLevelItem(0).child(0))
+    widget.form.label_edit.setText("after")
+    assert widget.to_command_list()[0].children[0].label == "after"
 
 
 def test_command_editor_dialog_resizes_to_its_own_sizehint_on_construction(qtbot):

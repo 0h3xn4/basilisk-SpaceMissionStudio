@@ -79,6 +79,7 @@ from Basilisk.simulation import spacecraft, svIntegrators
 from Basilisk.utilities import SimulationBaseClass, macros, orbitalMotion, simHelpers, simIncludeGravBody
 from Basilisk.utilities.supportDataTools.dataFetcher import DataFile
 
+from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import dependencies, output_provenance
@@ -238,7 +239,7 @@ def _is_two_body_only(scenario: Scenario, sc_config) -> bool:
     gravity = scenario.gravity
     if gravity.central_body_degree != 0 or gravity.third_body_perturbers:
         return False
-    if scenario.mission_sequence:
+    if runs_sequence(scenario.mission_sequence):
         return False
     if (sc_config.enable_drag or sc_config.enable_srp or sc_config.station_keeping is not None
             or sc_config.geo_station_keeping is not None  # its burns were missed (audit L27)

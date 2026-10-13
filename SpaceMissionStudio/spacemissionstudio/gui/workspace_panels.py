@@ -43,6 +43,7 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QCheckBox, QComboBox, QDoubleSp
                                QLabel, QLineEdit, QListWidget, QListWidgetItem, QPlainTextEdit, QPushButton,
                                QSpinBox, QTableWidget, QTableWidgetItem, QTextEdit, QVBoxLayout, QWidget)
 
+from .feedback import row_label
 from .problem_location import SPACECRAFT, locate
 from .theme import MONO_FONT_FAMILY, PALETTE
 from .widgets import ComboBox
@@ -67,6 +68,9 @@ def _plain(text: str) -> str:
 def field_label(widget: QWidget) -> str:
     """The label a form gives ``widget`` (or the row holding it), else its
     accessible name, else a check box's own text, else ""."""
+    nested = row_label(widget)
+    if nested:
+        return nested
     node = widget
     for _level in range(3):  # a field can sit in a row widget inside the form
         parent = node.parentWidget()

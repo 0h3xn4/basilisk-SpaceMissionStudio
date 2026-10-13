@@ -71,6 +71,7 @@ from typing import Optional
 from PySide6.QtCore import QThread, Signal
 
 from .. import output_provenance
+from ..schema.command import runs_sequence
 from ..schema.scenario import MonteCarloConfig, Scenario
 
 _logger = logging.getLogger(__name__)
@@ -141,7 +142,7 @@ class RunWorker(QThread):
                 self._run_sil()
                 return
             service = SimulationService(self.scenario, vizard_request=self.vizard_request)
-            if self.scenario.mission_sequence:
+            if runs_sequence(self.scenario.mission_sequence):
                 from ..engine.mission_engine import MissionEngine, MissionEngineCancelled
 
                 try:

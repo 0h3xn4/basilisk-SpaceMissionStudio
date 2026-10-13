@@ -35,11 +35,13 @@ def test_dialog_rejects_out_of_range_latitude(qtbot):
 
     dialog = GroundStationEditorDialog()
     qtbot.addWidget(dialog)
-    # QDoubleSpinBox clamps to its own range, which is already [-90, 90] --
-    # confirm the widget itself enforces that rather than allowing an
-    # out-of-range value to reach the dataclass.
-    dialog.lat_deg.setValue(999.0)
-    assert dialog.lat_deg.value() <= 90.0
+    # The box keeps a value set outside its [-90, 90] range (never changed
+    # silently; gui/widgets.py) and shows 90; the dataclass refuses it, so
+    # an out-of-range latitude never reaches the scenario.
+    dialog.lat_deg.setValue(999.0)  # [deg]
+    assert dialog.lat_deg.out_of_range_value() == 999.0 and float(dialog.lat_deg.text()) == 90.0  # [deg]
+    with pytest.raises(ValueError, match="latitude_deg must be in"):
+        dialog.to_dataclass()
 
 
 def test_list_widget_round_trip(qtbot):

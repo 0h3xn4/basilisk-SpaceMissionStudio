@@ -280,6 +280,8 @@ class MissionEngine:
 
     def _run_commands(self, commands: List[Command], summary: CommandSummary, path: str) -> None:
         for i, command in enumerate(commands):
+            if not command.enabled:  # left out, as if commented out; keeps the other commands' paths
+                continue
             if self._should_cancel is not None and self._should_cancel():
                 raise MissionEngineCancelled(self.service._extract_results(), summary)
             self._run_command(command, summary, f"{path}[{i}]")

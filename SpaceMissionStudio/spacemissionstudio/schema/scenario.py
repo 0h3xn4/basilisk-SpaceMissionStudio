@@ -69,7 +69,7 @@ from typing import Any, Dict, List, Optional
 
 from .epochs import parse_epoch_utc
 from .tle_format import TLEError, check_lines
-from .command import Command, report_before_propagate_errors
+from .command import Command, command_dict, report_before_propagate_errors, runs_sequence
 
 CURRENT_SCHEMA_VERSION = 4
 
@@ -2498,7 +2498,7 @@ class Scenario:
         # (engine/long_run.py); these two cannot be split.
         single_run_days = SimSettings._MAX_SINGLE_RUN_DAYS
         if self.sim_settings.duration_days > single_run_days:
-            _require(not self.mission_sequence,
+            _require(not runs_sequence(self.mission_sequence),
                       f"sim_settings.duration_days is over {single_run_days:g} days, which a mission sequence "
                       "cannot run -- shorten the run or remove the mission sequence")
             for sc in self.spacecraft:
@@ -2632,6 +2632,8 @@ class Scenario:
         def fixed_days(commands) -> float:
             total = 0.0  # [day]
             for command in commands:
+                if not command.enabled:
+                    continue
                 params = command.params
                 if command.kind == "propagate" and params.get("stop_condition", "duration") == "duration":
                     total += float(params.get("duration_days", 0.0))
@@ -2652,7 +2654,9 @@ class Scenario:
 
     # -- (de)serialization -------------------------------------------------
     def to_dict(self) -> dict:
-        return asdict(self)
+        data = asdict(self)
+        data["mission_sequence"] = [command_dict(command) for command in self.mission_sequence]
+        return data
 
     @staticmethod
     def from_dict(data: dict) -> "Scenario":
@@ -2750,7 +2754,7 @@ class Scenario:
         self.validate()
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
-        text = json.dumps(self.to_dict(), indent=2) + "\n"
+        text = scenario_text(self)
         # mkstemp makes an owner-only file; keep the replaced file's mode, or
         # the usual rw-r--r-- for a new one.
         mode = path.stat().st_mode & 0o777 if path.exists() else 0o644
@@ -2846,14 +2850,57 @@ def _check_types(obj, path: str, errors: List[str]) -> None:
                     _check_types(item, f"{where}[{index}]", errors)
 
 
+class ScenarioJSONError(ScenarioValidationError):
+    """The text is not valid JSON; ``line`` and ``column`` (from 1) say
+    where, ``reason`` what is wrong there."""
+
+    def __init__(self, message: str, line: int, column: int, reason: str) -> None:
+        super().__init__(message)
+        self.line, self.column, self.reason = line, column, reason
+
+
+def scenario_text(scenario: Scenario) -> str:
+    """``scenario`` as :meth:`Scenario.save` writes it."""
+    return json.dumps(scenario.to_dict(), indent=2) + "\n"
+
+
+def parse_scenario_text(text: str, source: str) -> Scenario:
+    """A scenario file's text, parsed, migrated and type-checked but NOT
+    validated (``load_scenario`` validates it; the editor's JSON view loads
+    it into the editor, which shows its problems). Raises
+    :class:`ScenarioJSONError` for text that is not JSON, and
+    :class:`ScenarioValidationError` for one that is not a scenario; both
+    messages start with ``source``."""
+    from . import migrations  # local import: avoids a cycle at module load time
+
+    try:
+        raw = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ScenarioJSONError(f"{source}: not valid JSON ({exc})", exc.lineno, exc.colno, exc.msg) from exc
+
+    if not isinstance(raw, dict) or "schema_version" not in raw:
+        raise ScenarioValidationError(f"{source}: missing required top-level 'schema_version' field")
+
+    try:
+        raw = migrations.migrate(raw)
+        scenario = Scenario.from_dict(raw)
+    except ScenarioValidationError:
+        raise
+    except (TypeError, KeyError, ValueError, AttributeError) as exc:
+        raise ScenarioValidationError(f"{source}: malformed scenario structure ({exc})") from exc
+    errors: List[str] = []
+    _check_types(scenario, "", errors)
+    if errors:
+        raise ScenarioValidationError(f"{source}: " + "; ".join(errors[:10]))
+    return scenario
+
+
 def load_scenario(path: "str | Path") -> Scenario:
     """Load, migrate (if needed), and validate a scenario file. Raises
     :class:`ScenarioValidationError` with a specific message on anything
     malformed -- never returns a partially-populated or silently-defaulted
     :class:`Scenario`.
     """
-    from . import migrations  # local import: avoids a cycle at module load time
-
     path = Path(path)
     try:
         text = path.read_text(encoding="utf-8")  # as save() writes it, on every platform
@@ -2864,25 +2911,7 @@ def load_scenario(path: "str | Path") -> Scenario:
         raise ScenarioValidationError(f"{path}: could not read file ({exc.strerror or exc})") from exc
     except UnicodeDecodeError as exc:
         raise ScenarioValidationError(f"{path}: not a scenario file (not UTF-8 text: {exc.reason})") from exc
-    try:
-        raw = json.loads(text)
-    except json.JSONDecodeError as exc:
-        raise ScenarioValidationError(f"{path}: not valid JSON ({exc})") from exc
-
-    if not isinstance(raw, dict) or "schema_version" not in raw:
-        raise ScenarioValidationError(f"{path}: missing required top-level 'schema_version' field")
-
-    try:
-        raw = migrations.migrate(raw)
-        scenario = Scenario.from_dict(raw)
-    except ScenarioValidationError:
-        raise
-    except (TypeError, KeyError, ValueError, AttributeError) as exc:
-        raise ScenarioValidationError(f"{path}: malformed scenario structure ({exc})") from exc
-    errors: List[str] = []
-    _check_types(scenario, "", errors)
-    if errors:
-        raise ScenarioValidationError(f"{path}: " + "; ".join(errors[:10]))
+    scenario = parse_scenario_text(text, str(path))
     try:
         scenario.validate()
     except ScenarioValidationError:

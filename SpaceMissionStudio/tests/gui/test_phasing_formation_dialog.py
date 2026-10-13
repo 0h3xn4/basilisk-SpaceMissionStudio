@@ -137,10 +137,15 @@ def test_editing_fields_updates_request(qtbot):
     assert request.follower_name == "wingman"
     assert request.radial_km == 1.5
     assert request.along_track_km == 75.0
-    dialog.along_track_km.setValue(-75.0)  # the follower is always ahead (audit M5)
-    assert dialog.along_track_km.value() == 0.0  # clamped; validation then refuses 0
     assert request.cross_track_km == 3.0
     assert request.thrust_n == 0.1
+    # The follower is always ahead (audit M5): -75 km is kept by the box
+    # (never changed silently, gui/widgets.py), shown as its minimum, and
+    # refused by the request's validation.
+    dialog.along_track_km.setValue(-75.0)  # [km]
+    assert dialog.along_track_km.out_of_range_value() == -75.0  # [km]
+    with pytest.raises(ValueError, match="along_track_km must be > 0"):
+        dialog.to_request().validate()
 
 
 def test_accept_blocked_on_invalid_request(qtbot, monkeypatch):

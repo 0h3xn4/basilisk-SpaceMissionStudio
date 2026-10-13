@@ -283,13 +283,14 @@ def run_sil(scenario, spacecraft_name: str, options: SilOptions, vizard_request=
     from ..engine.service import SimulationCancelled, SimulationService
     from ..fsw_export.capture import CaptureError, read_graph
     from ..fsw_export.digest import fsw_config_digest
+    from ..schema.command import runs_sequence
 
     check_runnable(scenario, spacecraft_name)
     run = copy.deepcopy(scenario)
     notes = []
-    if run.mission_sequence:
+    if runs_sequence(run.mission_sequence):
         notes.append("mission sequence not run in SIL: the set duration only")
-        run.mission_sequence = []
+    run.mission_sequence = []
     if run.monte_carlo.enabled:
         notes.append("Monte Carlo off in SIL: one nominal run")
         run.monte_carlo.enabled = False

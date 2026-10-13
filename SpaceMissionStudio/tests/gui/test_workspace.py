@@ -80,7 +80,7 @@ def test_the_main_tabs_and_what_they_hold(window):
     assert _tab_texts(window.main_tabs) == ["Scenario", "Results", "Events", "Compare", "Log"]
     assert [path for path, _page in window.scenario_editor.page_tree.paths()] == [
         "Templates", "Scenario", "Environment", "Spacecraft", "Spacecraft > my-sat", "Ground stations",
-        "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo", "Analyses > End of Life",
+        "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo", "JSON", "Analyses > End of Life",
         "Analyses > Budget", "Analyses > Flight Software"]
     assert _tab_texts(window.results_views) == ["Plots", "Dashboard", "Output"]
     assert _tab_texts(window.side_tabs)[0:1] == ["Inspector"]

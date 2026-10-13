@@ -176,7 +176,7 @@ from Basilisk.utilities.MonteCarlo.Dispersions import (
 )
 from Basilisk.utilities.MonteCarlo.RetentionPolicy import RetentionPolicy
 
-from ..schema.command import script_blocks
+from ..schema.command import runs_sequence, script_blocks
 from ..schema.scenario import DispersionConfig, MonteCarloConfig, Scenario, SimSettings
 from . import monte_carlo_results
 from .solar_arrays import hub_mass_offset_kg
@@ -432,7 +432,7 @@ def _execute_sim(sim, allow_scripts: bool = False) -> None:
 
     service = sim._spacemissionstudio_service
     service.initialize()
-    if service.scenario.mission_sequence:
+    if runs_sequence(service.scenario.mission_sequence):
         MissionEngine(service.scenario, service=service, allow_scripts=allow_scripts).run()
     else:
         service.run()

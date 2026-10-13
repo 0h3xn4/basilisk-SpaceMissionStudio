@@ -219,11 +219,16 @@ def main(out: Path) -> int:
     # Template 23's Mission Sequence in the editor.
     window.open_path(TEMPLATES_DIR / "23_starter_complete_small_satellite.json")
     spin(2.0)  # [s]
-    sequence = window.scenario_editor.mission_sequence_editor
-    for area in window.scenario_editor.findChildren(QScrollArea):
-        area.ensureWidgetVisible(sequence)
+    editor = window.scenario_editor
+    editor.page_tree.tree.setCurrentItem(editor.mission_sequence_item)
+    sequence = editor.mission_sequence_editor
+    if sequence.tree.topLevelItemCount():
+        sequence.tree.setCurrentItem(sequence.tree.topLevelItem(0))
     spin(1.0)  # [s]
     save(window, "18_mission_sequence.png")
+    editor.show_json()
+    spin(1.0)  # [s]
+    save(window, "19_json.png")
 
     print(f"{len(taken)} screenshots")
     return 0

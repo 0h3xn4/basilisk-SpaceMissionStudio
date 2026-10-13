@@ -30,6 +30,12 @@ A second, smaller version of the same bug: values used to be kept to 10
 decimal places, which still rounded a magnetometer's 1.18e-9 T noise to
 1.2e-9 T (found applying a catalog preset). Values are now kept exactly
 and displayed as their shortest exact text.
+
+A third: a value outside a box's range (one from a file) was silently
+clamped to the range. Every spin box here now keeps it
+(:class:`_KeepsOutOfRange`): it shows the nearest allowed value, but
+``value()`` returns the file's until the box is changed, and
+:func:`out_of_range_boxes` finds such boxes so the editor can say so.
 """
 
 from __future__ import annotations
@@ -38,7 +44,7 @@ import math
 from decimal import Decimal
 
 from PySide6.QtGui import QValidator
-from PySide6.QtWidgets import QComboBox, QDoubleSpinBox, QSpinBox, QTabBar, QTabWidget, QWidget
+from PySide6.QtWidgets import QAbstractSpinBox, QComboBox, QDoubleSpinBox, QSpinBox, QTabBar, QTabWidget, QWidget
 
 # Qt rounds every value to decimals() as it is set. 40 decimal places
 # keep a double's full 17 significant digits for magnitudes down to
@@ -65,11 +71,70 @@ class _IgnoreWheel:
         event.ignore()
 
 
-class SpinBox(_IgnoreWheel, QSpinBox):
+class _KeepsOutOfRange:
+    """A value set outside the box's range is kept, not clamped: the box
+    shows the nearest allowed value, :meth:`value` returns the one set
+    until the box is changed (typed, stepped) or set again, and
+    :meth:`out_of_range_value` says which value it holds. A range set
+    later that takes the value shows it. (docs/ux-audit.md: values from a
+    file are never changed silently.)"""
+
+    def setValue(self, value) -> None:  # noqa: N802 -- Qt API name
+        kept = None
+        if isinstance(value, (int, float)) and math.isfinite(value) and not (
+                self.minimum() <= value <= self.maximum()):
+            kept = value
+        self._sms_setting = True
+        try:
+            super().setValue(value)
+        finally:
+            self._sms_setting = False
+        self._sms_kept = kept
+        if kept is not None and not getattr(self, "_sms_watching", False):
+            self.valueChanged.connect(self._sms_on_value_changed)
+            self._sms_watching = True
+
+    def value(self):
+        kept = getattr(self, "_sms_kept", None)
+        return kept if kept is not None else super().value()
+
+    def out_of_range_value(self):
+        """The value this box holds outside its range, or None."""
+        return getattr(self, "_sms_kept", None)
+
+    def _sms_on_value_changed(self, *_args) -> None:
+        if not getattr(self, "_sms_setting", False):
+            self._sms_kept = None  # changed in the box: what it shows is the value now
+
+    def setRange(self, minimum, maximum) -> None:  # noqa: N802 -- Qt API name
+        super().setRange(minimum, maximum)
+        self._sms_refit()
+
+    def setMinimum(self, minimum) -> None:  # noqa: N802 -- Qt API name
+        super().setMinimum(minimum)
+        self._sms_refit()
+
+    def setMaximum(self, maximum) -> None:  # noqa: N802 -- Qt API name
+        super().setMaximum(maximum)
+        self._sms_refit()
+
+    def _sms_refit(self) -> None:
+        kept = getattr(self, "_sms_kept", None)
+        if kept is not None and self.minimum() <= kept <= self.maximum():
+            self.setValue(kept)
+
+
+def out_of_range_boxes(root: QWidget) -> list:
+    """Every spin box in ``root`` holding a value outside its range."""
+    return [box for box in root.findChildren(QAbstractSpinBox)
+            if isinstance(box, _KeepsOutOfRange) and box.out_of_range_value() is not None]
+
+
+class SpinBox(_IgnoreWheel, _KeepsOutOfRange, QSpinBox):
     """A QSpinBox the mouse wheel doesn't change."""
 
 
-class DoubleSpinBox(_IgnoreWheel, QDoubleSpinBox):
+class DoubleSpinBox(_IgnoreWheel, _KeepsOutOfRange, QDoubleSpinBox):
     """A QDoubleSpinBox the mouse wheel doesn't change."""
 
 
@@ -89,7 +154,7 @@ class TabWidget(QTabWidget):
         self.setTabBar(_TabBar(self))
 
 
-class PreciseDoubleSpinBox(_IgnoreWheel, QDoubleSpinBox):
+class PreciseDoubleSpinBox(_IgnoreWheel, _KeepsOutOfRange, QDoubleSpinBox):
     """A ``QDoubleSpinBox`` that stores values at full precision.
 
     :meth:`setDecimals` sets the MINIMUM number of decimals shown (e.g.

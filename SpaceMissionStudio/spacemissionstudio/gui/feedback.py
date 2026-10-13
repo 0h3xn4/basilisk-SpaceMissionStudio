@@ -155,7 +155,7 @@ _ERROR_STATE_VALUE = "error"
 _SAVED_TOOLTIP_PROPERTY = "_feedback_saved_tooltip"
 
 
-def mark_invalid(widget: QWidget, message: str) -> None:
+def mark_invalid(widget: QWidget, message: str, warning: bool = False) -> None:
     """Flags ``widget`` (a ``QLineEdit``/``QDoubleSpinBox``/``QSpinBox``/
     ``QComboBox``) as holding an invalid value -- a red border (theme.py's
     ``[state="error"]`` QSS rule) plus ``message`` as its tooltip, so the
@@ -172,9 +172,10 @@ def mark_invalid(widget: QWidget, message: str) -> None:
     real, static tooltip (e.g. a units hint) would otherwise lose it
     permanently the first time validation ever flagged that field.
     """
-    if widget.property(_ERROR_STATE_PROPERTY) != _ERROR_STATE_VALUE:
+    if not widget.property(_ERROR_STATE_PROPERTY):
         widget.setProperty(_SAVED_TOOLTIP_PROPERTY, widget.toolTip())
-    widget.setProperty(_ERROR_STATE_PROPERTY, _ERROR_STATE_VALUE)
+    # ``warning``: a value to look at, not one that blocks (the warning outline).
+    widget.setProperty(_ERROR_STATE_PROPERTY, "warning" if warning else _ERROR_STATE_VALUE)
     widget.setToolTip(message)
     _repolish(widget)
 
@@ -186,7 +187,7 @@ def clear_invalid(widget: QWidget) -> None:
     whatever tooltip the widget had before :func:`mark_invalid` was first
     called, rather than always blanking it.
     """
-    if widget.property(_ERROR_STATE_PROPERTY) == _ERROR_STATE_VALUE:
+    if widget.property(_ERROR_STATE_PROPERTY):
         widget.setProperty(_ERROR_STATE_PROPERTY, "")
         widget.setToolTip(widget.property(_SAVED_TOOLTIP_PROPERTY) or "")
         widget.setProperty(_SAVED_TOOLTIP_PROPERTY, None)
@@ -232,17 +233,32 @@ def _form_row(widget: QWidget):
     return None
 
 
-def show_field_error(widget: QWidget, message: str) -> None:
+def row_label(widget: QWidget) -> str:
+    """The label of the form row holding ``widget``, also in a layout
+    nested in its form ("" when there is none)."""
+    found = _form_row(widget)
+    if found is None:
+        return ""
+    form, row, _field = found
+    item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
+    label = item.widget() if item is not None else None
+    return label.text().rstrip(":").strip() if isinstance(label, QLabel) else ""
+
+
+def show_field_error(widget: QWidget, message: str, warning: bool = False) -> None:
     """Marks ``widget`` (see :func:`mark_invalid`) and shows ``message``
     right under it (docs/ux-audit.md U-12): under its row in a form, or
-    after it in its own box layout. Calling it again updates the message."""
-    mark_invalid(widget, message)
+    after it in its own box layout. Calling it again updates the message.
+    ``warning`` marks a value to look at rather than an error."""
+    mark_invalid(widget, message, warning)
     label = _error_label(widget)
     if label is not None:
         label.setText(message)
+        label.setObjectName("fieldWarning" if warning else "fieldError")
+        _repolish(label)
         return
     label = QLabel(message)
-    label.setObjectName("fieldError")
+    label.setObjectName("fieldWarning" if warning else "fieldError")
     label.setWordWrap(True)
     placed = _form_row(widget)
     if placed is not None:

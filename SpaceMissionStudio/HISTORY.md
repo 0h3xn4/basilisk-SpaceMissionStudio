@@ -9620,3 +9620,122 @@ form; the palette listing the nodes). The tests that named the old tabs,
 the Propagation setup summary and its dialog now check the tree, the
 Environment form and its live edits (an invalid value left unapplied and
 blocking the scenario).
+
+## UX iteration 3c: the Mission Sequence list and the JSON page (2026-10-13)
+
+The third part of the Scenario Editor iteration: U-15 (the Mission
+Sequence was a tree of kind names, edited in a modal dialog, with no drag
+reorder and no way to leave a step out) and U-16 (no raw JSON view). Two
+gaps found in 3b and agreed with the user are closed in the same step:
+a value from a file outside a field's range, and a problem in one form
+hiding the others.
+
+**Leaving a step out** (`schema/command.py`): `Command` gains `enabled`
+(default true). A disabled step is treated as commented out: the mission
+engine skips it (and its children), keeping the other steps' paths, so
+messages still name `mission_sequence[2]` for the third step in the file;
+it needs no script consent (`script_blocks()` leaves it out); it does not
+count before a report or toward the one-run time limit. It is still
+validated, so ticking it again cannot break a scenario that ran. The
+places that ask "does this scenario run a sequence?" (the CLI, the GUI
+worker, Monte Carlo, SIL, long runs, the analytic two-body shortcut, the
+pass-prediction warnings, the duration check) now ask `runs_sequence()`:
+at least one top-level step enabled, so a sequence with every step
+unticked runs for the set duration, like an empty one. `enabled` is saved
+only when false (`command_dict()`), so every template and older file
+saves back byte for byte the same; `"enabled": "no"` is an error naming
+the step.
+
+**The list** (`gui/mission_sequence_editor.py`): each step shows its
+kind's line icon (new `assets/step-*.svg`, in the toolbar icons' style),
+its label, and a sentence (`step_sentence()`: "Propagate until sat-1's
+next pass over berlin-gs starts", "Burn 5 m/s on sat-1 (VNB 3, 4, 0
+m/s)", "Report every series"; a step with wrong parameters reads as its
+kind rather than failing). The checkbox sets `enabled`; a step left out
+is in italics in the muted text colour (not the disabled grey, which is
+too faint to read), and the steps inside an unticked `if` say why in their
+tooltip. A step with a problem is in the error colour, its problem in its
+tooltip and in a banner over its form.
+
+The selected step's form is the former dialog, embedded as the 3b pages
+are, with its Kind row hidden (the kind is fixed once a step exists and
+the title says it); it applies 300 ms after the last edit, a wrong value
+included, which the banner and Problems then show. The form sits beside
+the list on a wide page and under it on a narrow one (below 1100 px:
+1280 x 720 with the tree and the side panel open), so neither the
+sentences nor the form is cut off. Two width fixes were needed: the
+embedded form sized itself by the widest kind's page (the Lambert row,
+702 px) rather than its own, and the maneuver and Lambert x/y/z boxes
+were sized for their range's longest text (`-1000000000.000000`).
+
+Drag and drop moves the step itself (`move_into_place()`), not Qt's
+serialised copy, so its data and children come along; only `if`/`while`
+steps accept a step dropped onto them, and a step never into itself.
+Move up/down (Alt+Up/Down), Duplicate (with children) and Remove (Delete)
+work from the keyboard. Add step and Add inside offer the kinds in a menu
+and insert after the selection or inside it.
+
+The standard's proposal edited the selected step "in the Inspector"; it is
+edited in a form beside the list instead, as every other node has been
+since 3b, and the Inspector still describes the focused field.
+
+Problems now locate a step from its path (`mission_sequence[2].children[0]`,
+with or without a label after it) and a problem about the whole sequence;
+a double-click selects the step and shows its form, and the Mission
+sequence node counts them.
+
+**The JSON page** (`gui/json_view.py`): a node of the tree showing the text
+Save writes (`scenario_text()`). An edit applies 500 ms after the last
+keystroke through `parse_scenario_text()`, the parsing, migration and
+type check `load_scenario()` now shares, then loads into the editor as an
+edit (unsaved, Undo). The scenario's own problems show as for any edit: a
+bad epoch typed in the JSON is marked at the Epoch field. Text that is not
+JSON, or not a scenario (an unknown field), is not applied: the line is
+marked, the banner says where and what ("line 2, column 10: Expecting ':'
+delimiter"), and the problem blocks a save or run like a form's. An edit
+on another page shows on the JSON page when it is next shown, unless the
+page holds an edit not applied yet; opening another scenario drops it.
+`validate()` errors other than validation errors (a wrong type deep in a
+device's parameters, typed in the JSON) are reported as problems, as
+`load_scenario()` does, never as a traceback.
+
+**Values outside a field's range** (`gui/widgets.py`): every spin box now
+keeps a value set outside its range instead of clamping it. It shows the
+nearest allowed value, `value()` returns the one set until the box is
+changed, and a range set later that takes the value shows it (which also
+ends a quieter bug: a value set before its range was cut to Qt's default
+99.99). The editor lists each such box as a warning ("berlin-gs: Geodetic
+latitude [deg] (WGS-84) is 100 in the file, outside this field's range
+(-90 to 90): the box shows 90.000000, the scenario keeps 100 until you
+change it"), marks it with the warning outline (yellow, as Carbon's warning
+field; the red one stays for errors, and an error on the same field wins),
+and opens it from Problems. A station 12 000 m up
+(the box goes to 9000 m) now keeps its altitude through an edit to its
+name; before, it was saved as 9000 m. Forms are checked when built, so a
+spacecraft's fields are checked when its page is first opened. The field
+labels come from the form row, now also in layouts nested in a form, which
+the Inspector's label lookup gains too.
+
+**Every problem listed**: with an edit waiting to be fixed in one form,
+`revalidate()` listed only the forms' problems; it now also validates the
+scenario as the forms last applied it, so the bad epoch and the empty
+spacecraft name of the 3b screenshot both show, and the message under the
+editor says "(and 1 more: see Problems)".
+
+Tests: `tests/test_command_enabled.py` (saved only when false, templates
+unchanged, the type check, validated while disabled, `runs_sequence()`,
+consent, the report order, the time limit), `tests/test_mission_engine.py`
+(a disabled step and a disabled `if`'s children not run),
+`tests/gui/test_mission_sequence_list.py` (the sentences, icon, label and
+checkbox, unticking an `if`, drops only where a step can go, paths kept
+current, Duplicate, insertion after the selection, a wrong value marked,
+Problems opening the step), `tests/gui/test_json_view.py` (the saved text,
+an edit applied everywhere, an edit elsewhere shown, broken JSON marked
+and blocking, an unknown field refused, a bad value applied and shown at
+its field, Problems opening the page, another scenario dropping a broken
+edit), `tests/gui/test_out_of_range.py` (the three box classes, a range set
+late, the station kept, said and opened, a change ending the warning,
+every problem listed) and `tests/test_problem_location.py` (steps). The
+seven tests of the old dialog flow in
+`tests/gui/test_mission_sequence_editor.py` now drive the list and its form;
+the workspace test lists the JSON node.

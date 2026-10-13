@@ -86,3 +86,15 @@ def test_a_location_describes_itself():
     location = ProblemLocation(SPACECRAFT, "my-sat", "power.bus_idle_power_w")
     assert location.field == "power" and location.describe() == "my-sat, power.bus_idle_power_w"
     assert ProblemLocation(PROPAGATION).describe() == "the propagation setup"
+
+
+def test_a_mission_sequence_problem_names_its_step():
+    """A step's problem leads to the step, by its path, with or without a
+    label after it; one about the whole sequence to the sequence."""
+    from spacemissionstudio.gui.problem_location import MISSION_SEQUENCE, ProblemLocation, locate
+
+    assert locate("mission_sequence[2].children[0] ('Burn'): maneuver.spacecraft 'x' is not one of ...") == (
+        ProblemLocation(MISSION_SEQUENCE, path="mission_sequence[2].children[0]"))
+    assert locate("mission_sequence[0]: this report runs before any propagate").path == "mission_sequence[0]"
+    assert locate("mission_sequence: its fixed-duration propagates add up to 120.0 days") == (
+        ProblemLocation(MISSION_SEQUENCE, path="mission_sequence"))

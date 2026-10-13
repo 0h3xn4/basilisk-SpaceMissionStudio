@@ -211,3 +211,10 @@ def toolbar_icon(name: str) -> QIcon:
     Qt derives the greyed disabled look from the same SVG automatically.
     """
     return QIcon(str(_ASSETS_DIR / f"tb-{name}.svg"))
+
+
+def step_icon(kind: str) -> QIcon:
+    """A Mission Sequence step kind's line icon (``assets/step-<kind>.svg``),
+    in the toolbar icons' style; an empty icon for an unknown kind."""
+    path = _ASSETS_DIR / f"step-{kind}.svg"
+    return QIcon(str(path)) if path.exists() else QIcon()

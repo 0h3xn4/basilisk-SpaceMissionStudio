@@ -45,6 +45,8 @@ SCENARIO = "scenario"
 PROPAGATION = "propagation"
 SPACECRAFT = "spacecraft"
 GROUND_STATION = "ground_station"
+MISSION_SEQUENCE = "mission_sequence"
+JSON_VIEW = "json_view"  # the Scenario Editor's JSON page (gui/json_view.py)
 
 _PROPAGATION_SECTIONS = ("sim_settings", "gravity", "space_weather")
 _SPACECRAFT_FIELDS = {f.name for f in dataclasses.fields(SpacecraftConfig)}
@@ -53,6 +55,8 @@ _ORBIT_FIELDS = [f.name for f in dataclasses.fields(OrbitIC) if f.name != "type"
 # A field path at the start of a message: "dry_mass_kg", "power.bus_idle_power_w",
 # "fsw_params['target_ground_station']".
 _PATH = re.compile(r"[A-Za-z_]\w*(?:\[[^\]]*\])?(?:\.[A-Za-z_]\w*(?:\[[^\]]*\])?)*")
+# A Mission Sequence step, "mission_sequence[2].children[0]", or the whole sequence.
+_STEP = re.compile(r"mission_sequence(?:\[\d+\](?:\.children\[\d+\])*)?(?=[\s:(]|$)")
 # Plausibility warnings name no field; these words say which part they are about.
 _WORDS = (("solar array", "solar_arrays"), ("instrument", "data_handling"), ("perigee", "orbit"), ("position", "orbit"), ("escape", "orbit"), ("TLE", "orbit"),
           ("facets", "facets"), ("sun sensor", "sensors"),
@@ -76,7 +80,8 @@ class ProblemLocation:
 
     def describe(self) -> str:
         """Where to look, for a tooltip: "my-sat, orbit.eccentricity"."""
-        where = {SCENARIO: "the scenario", PROPAGATION: "the propagation setup"}.get(self.area, self.name)
+        where = {SCENARIO: "the scenario", PROPAGATION: "the propagation setup",
+                 MISSION_SEQUENCE: "the mission sequence", JSON_VIEW: "the JSON page"}.get(self.area, self.name)
         return f"{where}, {self.path}" if self.path else where
 
 
@@ -88,6 +93,11 @@ def locate(text: str, spacecraft_names: Iterable[str] = (), station_names: Itera
     if text.startswith("scenario."):
         match = _PATH.match(text, len("scenario."))
         return ProblemLocation(SCENARIO, path=match.group(0) if match else "")
+    if text.startswith("JSON view: "):
+        return ProblemLocation(JSON_VIEW)
+    step = _STEP.match(text)
+    if step:
+        return ProblemLocation(MISSION_SEQUENCE, path=step.group(0))
     for section in _PROPAGATION_SECTIONS:
         if text.startswith(section + "."):
             match = _PATH.match(text)

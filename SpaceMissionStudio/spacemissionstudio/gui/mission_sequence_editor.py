@@ -16,41 +16,37 @@
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-"""Tree editor for a scenario's ``mission_sequence`` -- the GUI counterpart
-of ``schema.command.Command``/``engine.mission_engine.MissionEngine``. The
-first :class:`QTreeWidget` user in ``gui/`` (every other list here --
-spacecraft, sensors/actuators, ground stations -- is flat), because
-``Command`` is the first schema type that nests (``if``/``while`` carry
-``children``).
+"""The Mission Sequence editor: a scenario's ``mission_sequence``, the GUI
+counterpart of ``schema.command.Command``/``engine.mission_engine.MissionEngine``
+(docs/ux-audit.md U-15).
 
-``_CommandEditorDialog`` is modeled directly on
-``gui.sensor_actuator_editor._ItemEditorDialog``: a Kind combo picks the
-command shape, the rest of the dialog is kind-conditional fields, and
-``to_dataclass()``/``_on_accept()`` validate before accepting. Unlike that
-dialog, validation here doesn't hand-check each field -- it builds a real
-``schema.command.Command`` and calls its own ``validate()``, since that's
-already the single source of truth for what each kind requires.
+:class:`MissionSequenceEditorWidget` shows the steps as a tree (``if``/``while``
+steps hold steps of their own): each with its kind's icon, a sentence saying
+what it does (:func:`step_sentence`) and a checkbox that leaves it out of the
+run (``Command.enabled``). Steps are reordered by dragging or with Move up /
+Move down. The selected step's form is shown beside the tree and applied as
+you type, 300 ms after the last edit; a step with a problem is shown in the
+error colour, the problem in a banner over its form and in Problems.
 
-``MissionSequenceEditorWidget.set_spacecraft_names_provider()`` mirrors
-``gui.spacecraft_editor.SpacecraftListWidget.set_central_body_provider()``'s
-zero-argument-callable convention; the snapshot list it returns is then
-passed into ``_CommandEditorDialog`` the same way
-``gui.spacecraft_editor.SpacecraftEditorDialog`` takes
-``other_spacecraft_names`` -- a fixed list captured when the dialog opens,
-not a live provider itself.
+``_CommandEditorDialog`` is that form: a Kind combo picks the command shape
+(fixed once a step exists), the rest of the form is kind-conditional fields.
+It builds a real ``schema.command.Command`` and calls its own ``validate()``,
+the single source of truth for what each kind requires. It also works as a
+dialog (``to_dataclass()``/``_on_accept()``).
 
-A tree node's ``children`` are never read off the ``Command`` stored on a
-``QTreeWidgetItem`` (see ``_new_item``, which always stores a ``Command``
-with ``children`` cleared) -- the tree's own nesting is the single source
-of truth for structure, so editing a child through this dialog can never
-leave a parent's stored (and otherwise-unused) ``children`` list stale.
+The spacecraft, ground-station and series names come from zero-argument
+providers (``set_spacecraft_names_provider()`` and its siblings), read each
+time a step's form is built.
 """
 
 from __future__ import annotations
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor
+import re
+
+from PySide6.QtCore import QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QBrush, QColor, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
+    QAbstractItemView,
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
@@ -60,9 +56,13 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
+    QMenu,
     QMessageBox,
     QPlainTextEdit,
     QPushButton,
+    QScrollArea,
+    QSizePolicy,
+    QSplitter,
     QStackedWidget,
     QTreeWidget,
     QTreeWidgetItem,
@@ -78,7 +78,9 @@ from ..schema.command import (
     SUPPORTED_STOP_CONDITIONS,
     Command,
 )
-from .feedback import show_toast
+from .feedback import ProblemBanner, show_toast
+from .icons import step_icon
+from .page_tree import embed_dialog, watch_edits
 from .theme import PALETTE
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox
 
@@ -104,6 +106,10 @@ def _spin_component(value: float = 0.0) -> QDoubleSpinBox:
     box.setDecimals(6)
     box.setSingleStep(0.1)
     box.setValue(value)
+    # Three side by side: sized for everyday values, not the range's longest
+    # text ("-1000000000.000000"), so the row fits a page beside the tree.
+    box.setMinimumWidth(110)  # [px]
+    box.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
     return box
 
 
@@ -608,193 +614,601 @@ class _CommandEditorDialog(QDialog):
         return command
 
 
+_KIND_TITLES = {
+    "propagate": "Propagate", "maneuver": "Maneuver (impulsive burn)", "lambert_transfer": "Lambert transfer",
+    "assignment": "Change a controller setting", "report": "Report", "if": "If", "while": "While",
+    "script_block": "Python script",
+}
+_CONTAINER_KINDS = ("if", "while")
+
+
+def _duration_text(days: float) -> str:
+    """ "1 day", "2.5 days", "6 h", "30 min"."""
+    if days >= 1.0:
+        return f"{days:g} day" + ("" if days == 1.0 else "s")
+    if days * 24.0 >= 1.0:
+        return f"{days * 24.0:.3g} h"
+    return f"{days * 1440.0:.3g} min"
+
+
+def step_sentence(command: Command) -> str:
+    """What a step does, in words (docs/ux-audit.md U-15): "Propagate until
+    my-sat's next pass over berlin-gs starts". Never raises: a step whose
+    parameters are wrong reads as its kind."""
+    try:
+        return _sentence(command.kind, command.params)
+    except (TypeError, ValueError, KeyError, AttributeError, ZeroDivisionError):
+        return _KIND_TITLES.get(command.kind, command.kind)
+
+
+def _sentence(kind: str, p: dict) -> str:
+    spacecraft = p.get("spacecraft") or "(no spacecraft)"
+    if kind == "propagate":
+        stop = p.get("stop_condition", "duration")
+        if stop == "duration":
+            return f"Propagate for {_duration_text(float(p.get('duration_days', 0.0)))}"
+        if stop == "epoch":
+            return f"Propagate until {p.get('stop_epoch_utc') or '(no epoch)'} UTC"
+        event = p.get("event_kind", "")
+        if event in PASS_EVENT_KINDS:
+            station = p.get("ground_station") or "(no station)"
+            return (f"Propagate until {spacecraft}'s next pass over {station} "
+                    f"{'starts' if event == 'pass_start' else 'ends'}")
+        return f"Propagate until {spacecraft}'s next {event}"
+    if kind == "maneuver":
+        delta_v = [float(v) for v in p.get("delta_v_m_s", [0.0, 0.0, 0.0])]
+        size = sum(v * v for v in delta_v) ** 0.5  # [m/s]
+        frame = p.get("frame", "inertial")
+        return (f"Burn {size:.3g} m/s on {spacecraft} "
+                f"({frame if frame == 'inertial' else frame.upper()} {', '.join(f'{v:g}' for v in delta_v)} m/s)")
+    if kind == "lambert_transfer":
+        return (f"Lambert transfer of {spacecraft} to the target in "
+                f"{_duration_text(float(p.get('time_of_flight_s', 0.0)) / 86400.0)}")
+    if kind == "assignment":
+        target = str(p.get("target", ""))
+        parts = target.split(".")
+        value = p.get("value")
+        if len(parts) == 3:
+            return f"Set {parts[0]}'s {parts[1].replace('_', ' ')} {parts[2]} to {value:g}"
+        return f"Set {target or '(no target)'} to {value}"
+    if kind == "report":
+        series = list(p.get("series", []))
+        if not series:
+            return "Report every series"
+        return f"Report {series[0]}" if len(series) == 1 else f"Report {len(series)} series"
+    if kind in _CONTAINER_KINDS:
+        return f"{_KIND_TITLES[kind]} {p.get('condition') or '(no condition)'}"
+    if kind == "script_block":
+        lines = len(str(p.get("code", "")).splitlines())
+        return f"Run a Python script ({lines} line{'' if lines == 1 else 's'})"
+    return _KIND_TITLES.get(kind, kind)
+
+
+class _StepTree(QTreeWidget):
+    """The steps, reordered by dragging: a step drops between steps, or
+    into an ``if``/``while`` (the only steps that take children)."""
+
+    moved = Signal()
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setHeaderHidden(True)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.setIconSize(QSize(18, 18))  # [px]
+
+    def dropEvent(self, event) -> None:  # noqa: N802 -- Qt override
+        item = self.currentItem()
+        if event.source() is not self or item is None:
+            event.ignore()
+            return
+        target = self.itemAt(event.position().toPoint())
+        where = self.dropIndicatorPosition()
+        # The move is made here, keeping the step's data and its children;
+        # a copy action stops Qt from also removing the dragged row.
+        event.setDropAction(Qt.DropAction.CopyAction)
+        event.accept()
+        if self.move_into_place(item, target, where):
+            self.moved.emit()
+
+    def move_into_place(self, item: QTreeWidgetItem, target: QTreeWidgetItem | None, where) -> bool:
+        """Move ``item`` above, below or (for an ``if``/``while``) into
+        ``target``, or to the end when ``target`` is None. False, and
+        nothing moved, for a drop into a step that takes no steps or into
+        ``item`` itself."""
+        position = QAbstractItemView.DropIndicatorPosition
+        root = self.invisibleRootItem()
+        if target is None or where == position.OnViewport:
+            owner, index = root, root.childCount()
+        elif where == position.OnItem:
+            if not target.flags() & Qt.ItemFlag.ItemIsDropEnabled:
+                return False
+            owner, index = target, target.childCount()
+        else:
+            owner = target.parent() or root
+            index = owner.indexOfChild(target) + (1 if where == position.BelowItem else 0)
+        node = owner
+        while node is not None:
+            if node is item:
+                return False
+            node = node.parent()
+        old_owner = item.parent() or root
+        old_index = old_owner.indexOfChild(item)
+        if old_owner is owner and old_index < index:
+            index -= 1
+        old_owner.takeChild(old_index)
+        owner.insertChild(index, item)
+        if owner is not root:
+            owner.setExpanded(True)
+        self._expand(item)  # a re-inserted row comes back collapsed
+        self.setCurrentItem(item)
+        return True
+
+    def _expand(self, item: QTreeWidgetItem) -> None:
+        item.setExpanded(True)
+        for i in range(item.childCount()):
+            self._expand(item.child(i))
+
+
 class MissionSequenceEditorWidget(QWidget):
-    """Edits a scenario's ``mission_sequence`` as an ordered tree of
-    :class:`Command`. Mirrors :class:`gui.sensor_actuator_editor.
-    SensorActuatorListWidget`'s Add/Edit/Remove shape, plus Add Child/Move
-    Up/Move Down for tree structure and ordering that a flat list doesn't
-    need.
+    """Edits a scenario's ``mission_sequence`` (docs/ux-audit.md U-15): the
+    steps as a tree, each with its kind's icon, a sentence saying what it
+    does and a checkbox that leaves it out of the run; the selected step's
+    form beside it, applied as you type. Steps are reordered by dragging or
+    with Move up / Move down, and nested inside an ``if``/``while`` with
+    Add inside.
+
+    A tree node's ``children`` are never read off the ``Command`` stored on
+    it (``_new_item`` stores it with ``children`` cleared): the tree's own
+    nesting is the structure.
     """
 
     changed = Signal()
+    form_shown = Signal(object)  # the selected step's new form
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self._spacecraft_names_provider = None
         self._series_names_provider = None
         self._ground_station_names_provider = None
+        self._building = False
+        self.form: _CommandEditorDialog | None = None
+        self._form_item: QTreeWidgetItem | None = None
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.setInterval(300)  # [ms] after the last edit
+        self._timer.timeout.connect(self._apply_form)
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        layout.addWidget(self.splitter, 1)
 
-        self.tree = QTreeWidget()
-        self.tree.setHeaderHidden(True)
-        layout.addWidget(self.tree)
+        steps = QWidget()
+        steps_layout = QVBoxLayout(steps)
+        steps_layout.setContentsMargins(0, 0, 0, 0)
+        self.tree = _StepTree()
+        self.tree.setToolTip("Drag a step to move it, or into an if/while step to nest it. Untick a step to "
+                             "leave it out of the run.")
+        steps_layout.addWidget(self.tree, 1)
 
-        # Two rows, not one: all six buttons side by side needed ~575 px,
-        # wider than the left pane gets at the default 1400x850 window --
-        # which pushed the whole Scenario Editor into a horizontal
-        # scrollbar and clipped every field's right edge.
         edit_row = QHBoxLayout()
-        self.add_button = QPushButton("Add...")
-        self.add_child_button = QPushButton("Add Child...")
-        self.add_child_button.setToolTip("Adds a nested command inside the selected 'if'/'while' command.")
-        self.edit_button = QPushButton("Edit...")
+        self.add_button = QPushButton("Add step")
+        self.add_button.setToolTip("Adds a step after the selected one.")
+        self.add_button.setMenu(self._kind_menu(self._on_add_kind))
+        self.add_child_button = QPushButton("Add inside")
+        self.add_child_button.setToolTip("Adds a step inside the selected 'if'/'while' step.")
+        self.add_child_button.setMenu(self._kind_menu(self._on_add_child_kind))
+        self.duplicate_button = QPushButton("Duplicate")
         self.remove_button = QPushButton("Remove")
-        for button in (self.add_button, self.add_child_button, self.edit_button, self.remove_button):
+        self.move_up_button = QPushButton("Move up")
+        self.move_up_button.setToolTip("Moves the step up (Alt+Up).")
+        self.move_down_button = QPushButton("Move down")
+        self.move_down_button.setToolTip("Moves the step down (Alt+Down).")
+        for button in (self.add_button, self.add_child_button, self.duplicate_button, self.remove_button,
+                       self.move_up_button, self.move_down_button):
             edit_row.addWidget(button)
-        layout.addLayout(edit_row)
+        edit_row.addStretch(1)
+        steps_layout.addLayout(edit_row)
+        self.splitter.addWidget(steps)
 
-        order_row = QHBoxLayout()
-        self.move_up_button = QPushButton("Move Up")
-        self.move_down_button = QPushButton("Move Down")
-        order_row.addWidget(self.move_up_button)
-        order_row.addWidget(self.move_down_button)
-        order_row.addStretch(1)
-        layout.addLayout(order_row)
+        self.form_stack = QStackedWidget()
+        self.empty_label = QLabel("Select a step to edit it here, or add one with Add step.")
+        self.empty_label.setWordWrap(True)
+        self.empty_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.form_stack.addWidget(self.empty_label)
+        form_page = QWidget()
+        form_layout = QVBoxLayout(form_page)
+        form_layout.setContentsMargins(0, 0, 0, 0)
+        self.form_title = QLabel()
+        self.form_title.setObjectName("sectionTitle")
+        form_layout.addWidget(self.form_title)
+        self.problem_banner = ProblemBanner()
+        form_layout.addWidget(self.problem_banner)
+        self.form_scroll = QScrollArea()
+        self.form_scroll.setWidgetResizable(True)
+        self.form_scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        form_layout.addWidget(self.form_scroll, 1)
+        self.form_stack.addWidget(form_page)
+        self.splitter.addWidget(self.form_stack)
+        self.splitter.setStretchFactor(0, 2)
+        self.splitter.setStretchFactor(1, 3)
 
-        self.add_button.clicked.connect(self._on_add)
-        self.add_child_button.clicked.connect(self._on_add_child)
-        self.edit_button.clicked.connect(self._on_edit)
+        self.duplicate_button.clicked.connect(self._on_duplicate)
         self.remove_button.clicked.connect(self._on_remove)
-        self.move_up_button.clicked.connect(lambda: self._on_move(-1))
-        self.move_down_button.clicked.connect(lambda: self._on_move(1))
-        self.tree.itemDoubleClicked.connect(lambda _item, _column: self._on_edit())
-        self.tree.itemSelectionChanged.connect(self._update_button_states)
+        self.move_up_button.clicked.connect(self._on_move_up)
+        self.move_down_button.clicked.connect(self._on_move_down)
+        QShortcut(QKeySequence("Alt+Up"), self.tree, self._on_move_up)
+        QShortcut(QKeySequence("Alt+Down"), self.tree, self._on_move_down)
+        QShortcut(QKeySequence(QKeySequence.StandardKey.Delete), self.tree, self._on_remove)
+        self.tree.currentItemChanged.connect(self._on_current_item)
+        self.tree.itemChanged.connect(self._on_item_changed)
+        self.tree.moved.connect(self._on_moved)
         self._update_button_states()
+
+    _SIDE_BY_SIDE_PX = 1100  # [px] narrower than this, the form goes under the list
+
+    def resizeEvent(self, event) -> None:  # noqa: N802 -- Qt override
+        """The form beside the list on a wide page, under it on a narrow one
+        (1280 px with the tree and the side panel), so neither the steps'
+        sentences nor the form is cut off."""
+        super().resizeEvent(event)
+        orientation = (Qt.Orientation.Horizontal if event.size().width() >= self._SIDE_BY_SIDE_PX
+                       else Qt.Orientation.Vertical)
+        if self.splitter.orientation() != orientation:
+            self.splitter.setOrientation(orientation)
+
+    # -- providers --------------------------------------------------------------------------------------------
 
     def set_spacecraft_names_provider(self, provider) -> None:
         """``provider`` is a zero-argument callable returning the
-        scenario's current spacecraft-name list, e.g.
-        ``lambda: [sc.name for sc in self.spacecraft_list.to_list()]`` from
-        ``ScenarioEditorWidget`` -- mirrors ``gui.spacecraft_editor.
-        SpacecraftListWidget.set_central_body_provider``'s zero-argument
-        -callable convention.
-        """
+        scenario's current spacecraft names."""
         self._spacecraft_names_provider = provider
 
     def _spacecraft_names(self) -> list[str]:
         return sorted(self._spacecraft_names_provider()) if self._spacecraft_names_provider else []
 
     def set_ground_station_names_provider(self, provider) -> None:
-        """Same zero-argument-callable convention as
-        :meth:`set_spacecraft_names_provider`, for the propagate command's
-        pass-event station picker."""
+        """Same convention as :meth:`set_spacecraft_names_provider`, for the
+        propagate step's pass-event station picker."""
         self._ground_station_names_provider = provider
 
     def _ground_station_names(self) -> list[str]:
         return sorted(self._ground_station_names_provider()) if self._ground_station_names_provider else []
 
     def set_series_names_provider(self, provider) -> None:
-        """``provider`` is a zero-argument callable returning the series
-        names the current scenario will produce (see
-        ``engine.series_names.expected_series_names``), for the Report
-        command's pick-list."""
+        """``provider`` returns the series names the current scenario will
+        produce (``engine.series_names.expected_series_names``), for the
+        report step's pick-list."""
         self._series_names_provider = provider
 
     def _series_names(self) -> list[str]:
         return list(self._series_names_provider()) if self._series_names_provider else []
 
-    def _update_button_states(self) -> None:
-        item = self.tree.currentItem()
-        has_selection = item is not None
-        self.edit_button.setEnabled(has_selection)
-        self.remove_button.setEnabled(has_selection)
-        self.move_up_button.setEnabled(has_selection)
-        self.move_down_button.setEnabled(has_selection)
-        command = item.data(0, Qt.ItemDataRole.UserRole) if item is not None else None
-        self.add_child_button.setEnabled(command is not None and command.kind in ("if", "while"))
+    # -- items ------------------------------------------------------------------------------------------------
+
+    def _kind_menu(self, slot) -> QMenu:
+        menu = QMenu(self)
+        for kind in SUPPORTED_COMMAND_KINDS:
+            action = menu.addAction(step_icon(kind), _KIND_TITLES.get(kind, kind))
+            action.setData(kind)
+        menu.triggered.connect(slot)
+        return menu
+
+    @staticmethod
+    def command_of(item: QTreeWidgetItem) -> Command:
+        return item.data(0, Qt.ItemDataRole.UserRole)
 
     @staticmethod
     def _item_text(command: Command) -> str:
-        return f"{command.kind}: {command.label}" if command.label else command.kind
+        sentence = step_sentence(command)
+        return f"{command.label}: {sentence}" if command.label else sentence
 
     def _new_item(self, command: Command) -> QTreeWidgetItem:
-        # children always cleared -- see this module's docstring on why the
-        # tree's own nesting, not this field, is the source of truth.
-        node_command = Command(kind=command.kind, label=command.label, params=dict(command.params))
-        item = QTreeWidgetItem([self._item_text(node_command)])
-        item.setData(0, Qt.ItemDataRole.UserRole, node_command)
+        item = QTreeWidgetItem()
+        self._building = True
+        try:
+            flags = (Qt.ItemFlag.ItemIsEnabled | Qt.ItemFlag.ItemIsSelectable | Qt.ItemFlag.ItemIsUserCheckable
+                     | Qt.ItemFlag.ItemIsDragEnabled)
+            if command.kind in _CONTAINER_KINDS:
+                flags |= Qt.ItemFlag.ItemIsDropEnabled
+            item.setFlags(flags)
+            self._store(item, command)
+        finally:
+            self._building = False
         return item
 
-    def _on_add(self) -> None:
-        dialog = _CommandEditorDialog(parent=self, spacecraft_names=self._spacecraft_names(),
-                                      series_names=self._series_names(),
-                                      ground_station_names=self._ground_station_names())
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            command = dialog.to_dataclass()
-            item = self._new_item(command)
+    def _store(self, item: QTreeWidgetItem, command: Command) -> None:
+        """Keep ``command`` (children cleared) on ``item`` and show it."""
+        node_command = Command(kind=command.kind, label=command.label, params=dict(command.params),
+                               enabled=command.enabled)
+        building, self._building = self._building, True
+        try:
+            item.setData(0, Qt.ItemDataRole.UserRole, node_command)
+            item.setText(0, self._item_text(node_command))
+            item.setIcon(0, step_icon(node_command.kind))
+            item.setCheckState(0, Qt.CheckState.Checked if node_command.enabled is not False
+                               else Qt.CheckState.Unchecked)
+            self._show_state(item)
+        finally:
+            self._building = building
+
+    def _show_state(self, item: QTreeWidgetItem) -> None:
+        """A disabled step is greyed (and so are the steps inside it); a
+        step with a problem is in the error colour, the problem in its
+        tooltip."""
+        command = self.command_of(item)
+        errors = command.validate(self.path_of(item))
+        off = not self._runs(item)
+        if errors:
+            item.setForeground(0, QBrush(QColor(PALETTE["danger_text"])))
+        elif off:
+            item.setForeground(0, QBrush(QColor(PALETTE["text_muted"])))
+        else:
+            item.setForeground(0, QBrush())
+        font = item.font(0)
+        font.setItalic(off)
+        item.setFont(0, font)
+        tips = [f"{_KIND_TITLES.get(command.kind, command.kind)} step"]
+        if off:
+            tips.append("Left out of the run (unticked)" if not command.enabled
+                        else "Left out of the run: a step it is inside is unticked")
+        tips.extend(errors)
+        item.setToolTip(0, "\n".join(tips))
+
+    def _runs(self, item: QTreeWidgetItem) -> bool:
+        node = item
+        while node is not None:
+            if not self.command_of(node).enabled:
+                return False
+            node = node.parent()
+        return True
+
+    def path_of(self, item: QTreeWidgetItem) -> str:
+        """The step's path in the scenario, as problems name it:
+        ``mission_sequence[2].children[0]``."""
+        parts = []
+        node = item
+        while node is not None:
+            parent = node.parent()
+            index = parent.indexOfChild(node) if parent is not None else self.tree.indexOfTopLevelItem(node)
+            parts.insert(0, f"[{index}]")
+            node = parent
+        return "mission_sequence" + ".children".join(parts)
+
+    def item_at_path(self, path: str) -> QTreeWidgetItem | None:
+        """The step a problem's path names (``mission_sequence[2].children[0]``,
+        with or without a label after it), or None."""
+        match = re.match(r"mission_sequence((?:\[\d+\])(?:\.children\[\d+\])*)", path)
+        if not match:
+            return None
+        item = None
+        for index in (int(i) for i in re.findall(r"\[(\d+)\]", match.group(1))):
+            count = item.childCount() if item is not None else self.tree.topLevelItemCount()
+            if index >= count:
+                return None
+            item = item.child(index) if item is not None else self.tree.topLevelItem(index)
+        return item
+
+    def _all_items(self, parent: QTreeWidgetItem | None = None):
+        owner = parent if parent is not None else self.tree.invisibleRootItem()
+        for i in range(owner.childCount()):
+            child = owner.child(i)
+            yield child
+            yield from self._all_items(child)
+
+    def _refresh_states(self) -> None:
+        """Paths and enabled states change when steps move: re-check all."""
+        for item in self._all_items():
+            self._show_state(item)
+
+    # -- editing ----------------------------------------------------------------------------------------------
+
+    def _update_button_states(self) -> None:
+        item = self.tree.currentItem()
+        has_selection = item is not None
+        for button in (self.duplicate_button, self.remove_button, self.move_up_button, self.move_down_button):
+            button.setEnabled(has_selection)
+        self.add_child_button.setEnabled(has_selection and self.command_of(item).kind in _CONTAINER_KINDS)
+
+    def _default_command(self, kind: str) -> Command:
+        """A new step of ``kind``, with the form's own defaults."""
+        form = _CommandEditorDialog(spacecraft_names=self._spacecraft_names(), series_names=self._series_names(),
+                                    ground_station_names=self._ground_station_names())
+        form.kind_combo.setCurrentText(kind)
+        command = Command(kind=kind, params=form._collect_params(kind))
+        form.deleteLater()
+        return command
+
+    def add_step(self, kind: str, inside: bool = False) -> QTreeWidgetItem:
+        """Add a ``kind`` step after the selected one (at the end when none
+        is), or as the last step inside the selected ``if``/``while``; it is
+        selected, its form shown."""
+        self.flush()
+        command = self._default_command(kind)
+        item = self._new_item(command)
+        current = self.tree.currentItem()
+        if inside and current is not None and self.command_of(current).kind in _CONTAINER_KINDS:
+            current.addChild(item)
+            current.setExpanded(True)
+        elif current is not None:
+            owner = current.parent() or self.tree.invisibleRootItem()
+            owner.insertChild(owner.indexOfChild(current) + 1, item)
+        else:
             self.tree.addTopLevelItem(item)
-            self.tree.setCurrentItem(item)
-            show_toast(self.window(), f"Added command: {self._item_text(command)}")
-            self.changed.emit()
+        self._refresh_states()
+        self.tree.setCurrentItem(item)
+        show_toast(self.window(), f"Added step: {self._item_text(command)}")
+        self.changed.emit()
+        return item
 
-    def _on_add_child(self) -> None:
-        parent_item = self.tree.currentItem()
-        if parent_item is None:
-            return
-        parent_command = parent_item.data(0, Qt.ItemDataRole.UserRole)
-        if parent_command.kind not in ("if", "while"):
-            return
-        dialog = _CommandEditorDialog(parent=self, spacecraft_names=self._spacecraft_names(),
-                                      series_names=self._series_names(),
-                                      ground_station_names=self._ground_station_names())
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            command = dialog.to_dataclass()
-            item = self._new_item(command)
-            parent_item.addChild(item)
-            parent_item.setExpanded(True)
-            self.tree.setCurrentItem(item)
-            show_toast(self.window(), f"Added child command: {self._item_text(command)}")
-            self.changed.emit()
+    def _on_add_kind(self, action) -> None:
+        self.add_step(action.data())
 
-    def _on_edit(self) -> None:
+    def _on_add_child_kind(self, action) -> None:
+        self.add_step(action.data(), inside=True)
+
+    def _on_duplicate(self) -> None:
         item = self.tree.currentItem()
         if item is None:
             return
-        command = item.data(0, Qt.ItemDataRole.UserRole)
-        dialog = _CommandEditorDialog(command=command, parent=self, spacecraft_names=self._spacecraft_names(),
-                                      series_names=self._series_names(),
-                                      ground_station_names=self._ground_station_names())
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            new_command = dialog.to_dataclass()
-            item.setData(0, Qt.ItemDataRole.UserRole, new_command)
-            item.setText(0, self._item_text(new_command))
-            show_toast(self.window(), f"Updated command: {self._item_text(new_command)}")
-            self.changed.emit()
+        self.flush()
+        copy = self._build_tree_item(self._item_to_command(item))
+        owner = item.parent() or self.tree.invisibleRootItem()
+        owner.insertChild(owner.indexOfChild(item) + 1, copy)
+        copy.setExpanded(True)
+        self._refresh_states()
+        self.tree.setCurrentItem(copy)
+        self.changed.emit()
 
     def _on_remove(self) -> None:
         item = self.tree.currentItem()
         if item is None:
             return
-        command = item.data(0, Qt.ItemDataRole.UserRole)
-        parent_item = item.parent()
-        if parent_item is None:
-            self.tree.takeTopLevelItem(self.tree.indexOfTopLevelItem(item))
-        else:
-            parent_item.removeChild(item)
-        show_toast(self.window(), f"Removed command: {self._item_text(command)}", kind="info")
+        self._timer.stop()
+        command = self.command_of(item)
+        owner = item.parent() or self.tree.invisibleRootItem()
+        owner.removeChild(item)
+        self._refresh_states()
+        show_toast(self.window(), f"Removed step: {self._item_text(command)}", kind="info")
         self.changed.emit()
 
-    def _on_move(self, delta: int) -> None:
+    def _on_move_up(self) -> None:
+        self._move(-1)
+
+    def _on_move_down(self) -> None:
+        self._move(1)
+
+    def _move(self, delta: int) -> None:
         item = self.tree.currentItem()
         if item is None:
             return
-        parent_item = item.parent()
-        siblings = parent_item if parent_item is not None else self.tree.invisibleRootItem()
-        index = siblings.indexOfChild(item)
+        self.flush()
+        owner = item.parent() or self.tree.invisibleRootItem()
+        index = owner.indexOfChild(item)
         new_index = index + delta
-        if not (0 <= new_index < siblings.childCount()):
+        if not 0 <= new_index < owner.childCount():
             return
-        siblings.takeChild(index)
-        siblings.insertChild(new_index, item)
+        owner.takeChild(index)
+        owner.insertChild(new_index, item)
+        self.tree._expand(item)
+        self._refresh_states()
         self.tree.setCurrentItem(item)
         self.changed.emit()
 
+    def _on_moved(self) -> None:
+        self._refresh_states()
+        self._update_button_states()
+        self._show_form_title()
+        self.changed.emit()
+
+    def _on_item_changed(self, item: QTreeWidgetItem, _column: int) -> None:
+        """The checkbox was toggled."""
+        if self._building:
+            return
+        command = self.command_of(item)
+        enabled = item.checkState(0) == Qt.CheckState.Checked
+        if command.enabled == enabled:
+            return
+        self._store(item, Command(kind=command.kind, label=command.label, params=dict(command.params),
+                                  enabled=enabled))
+        for child in self._all_items(item):
+            self._show_state(child)
+        self.changed.emit()
+
+    # -- the selected step's form -----------------------------------------------------------------------------
+
+    def _on_current_item(self, current: QTreeWidgetItem | None, _previous) -> None:
+        self.flush()
+        self._update_button_states()
+        self._show_form(current)
+
+    def _show_form(self, item: QTreeWidgetItem | None) -> None:
+        if self.form is not None:
+            self.form_scroll.takeWidget()
+            self.form.deleteLater()
+            self.form = None
+        self._form_item = item
+        if item is None:
+            self.form_stack.setCurrentWidget(self.empty_label)
+            return
+        form = _CommandEditorDialog(command=self.command_of(item), spacecraft_names=self._spacecraft_names(),
+                                    series_names=self._series_names(),
+                                    ground_station_names=self._ground_station_names())
+        embed_dialog(form)
+        # The kind is fixed once a step exists, and the title above says it.
+        form.kind_combo.hide()
+        kind_label = form.findChild(QFormLayout).labelForField(form.kind_combo)
+        if kind_label is not None:
+            kind_label.hide()
+        # Size the form by its own kind's page, not the widest of all kinds'.
+        for i in range(form.stack.count()):
+            if i != form.stack.currentIndex():
+                form.stack.widget(i).setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Ignored)
+        self.form = form
+        self.form_scroll.setWidget(form)
+        watch_edits(form, self._timer.start)
+        self.form_stack.setCurrentIndex(1)
+        self._show_form_title()
+        self._show_form_problems()
+        self.form_shown.emit(form)
+
+    def _show_form_title(self) -> None:
+        if self._form_item is not None:
+            command = self.command_of(self._form_item)
+            self.form_title.setText(f"{_KIND_TITLES.get(command.kind, command.kind)} -- "
+                                    f"{self.path_of(self._form_item)}")
+
+    def _show_form_problems(self) -> None:
+        errors = self.command_of(self._form_item).validate(self.path_of(self._form_item))
+        if errors:
+            self.problem_banner.show_problem("\n".join(errors))
+        else:
+            self.problem_banner.hide()
+
+    def _apply_form(self) -> None:
+        """Store the form's step on its node: a wrong value too, which the
+        tree, the banner and Problems then show."""
+        item, form = self._form_item, self.form
+        if item is None or form is None:
+            return
+        old = self.command_of(item)
+        kind = old.kind
+        command = Command(kind=kind, label=form.label_edit.text().strip() or None,
+                          params=form._collect_params(kind), enabled=old.enabled)
+        if command == old:
+            return
+        self._store(item, command)
+        self._show_form_problems()
+        self.changed.emit()
+
+    def flush(self) -> None:
+        """Apply the form now, if an edit is waiting."""
+        if self._timer.isActive():
+            self._timer.stop()
+            self._apply_form()
+
+    def show_step(self, path: str) -> bool:
+        """Select the step a problem's path names and show its form."""
+        item = self.item_at_path(path)
+        if item is None:
+            return False
+        node = item.parent()
+        while node is not None:
+            node.setExpanded(True)
+            node = node.parent()
+        self.tree.setCurrentItem(item)
+        self.tree.scrollToItem(item)
+        return True
+
+    # -- (dis)assembly ----------------------------------------------------------------------------------------
+
     def _item_to_command(self, item: QTreeWidgetItem) -> Command:
-        command = item.data(0, Qt.ItemDataRole.UserRole)
+        command = self.command_of(item)
         children = [self._item_to_command(item.child(i)) for i in range(item.childCount())]
-        return Command(kind=command.kind, label=command.label, params=dict(command.params), children=children)
+        return Command(kind=command.kind, label=command.label, params=dict(command.params), children=children,
+                       enabled=command.enabled)
 
     def _build_tree_item(self, command: Command) -> QTreeWidgetItem:
         item = self._new_item(command)
@@ -803,11 +1217,15 @@ class MissionSequenceEditorWidget(QWidget):
         return item
 
     def to_command_list(self) -> list[Command]:
+        self.flush()
         return [self._item_to_command(self.tree.topLevelItem(i)) for i in range(self.tree.topLevelItemCount())]
 
     def from_command_list(self, commands: list[Command]) -> None:
+        self._timer.stop()
+        self._show_form(None)
         self.tree.clear()
         for command in commands:
             self.tree.addTopLevelItem(self._build_tree_item(command))
         self.tree.expandAll()
+        self._refresh_states()
         self._update_button_states()
