@@ -9334,3 +9334,15 @@ page it counts as hidden or occluded, which would leave
 front first, as a user's click on Save does. If a save still times out,
 the failure reports the page's visibility and focus, whether Plotly is
 loaded, the pending result and the window's state.
+
+The diagnostics found it on the next run: the page was visible and
+Plotly loaded, but the save's result variable was `undefined` and the
+poll had ended. The page had been reloaded after the save started (a
+second page load after the one the test waited for), so the pending
+render was gone, and the poll took the missing value as the finished
+result and reported "Could not render the plot to a PNG image." A user
+saving while a redraw reloads the page got the same error. When the
+variable is missing, the save now starts the render again on the new
+page, within its existing attempts. A new test reloads the page in the
+middle of a save: without the change it fails with that message every
+time, and with it the PNG is written.

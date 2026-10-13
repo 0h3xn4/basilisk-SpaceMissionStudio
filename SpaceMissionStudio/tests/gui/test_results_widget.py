@@ -200,6 +200,31 @@ def test_export_with_no_result_is_a_no_op(widget, monkeypatch):
     assert calls == []
 
 
+def test_a_page_reload_during_a_save_still_saves(widget, tmp_path, monkeypatch, qtbot):
+    """A redraw that reloads the page while a save is rendering takes the
+    pending render with it; the save starts it again on the new page instead
+    of reporting "Could not render the plot" (macOS CI, PR #50: the first
+    save of a worker raced a second page load)."""
+    from PySide6.QtWidgets import QFileDialog, QMessageBox
+
+    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+        widget.set_result(_sample_result_set())
+    out_path = tmp_path / "plot.png"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName",
+                        staticmethod(lambda *a, **k: (str(out_path), "PNG images (*.png)")))
+    errors = []
+    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: errors.append(a[2])))
+    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
+
+    _to_front(qtbot, widget)
+    widget._on_save_plot_png()
+    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+        widget._redraw()  # a new page while the first render is pending
+    qtbot.waitUntil(lambda: out_path.exists() or bool(errors), timeout=_SAVE_TIMEOUT_MS)
+    assert not errors
+    assert out_path.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+
+
 def test_save_plot_as_png_writes_a_real_png_file(widget, tmp_path, monkeypatch, qtbot):
     """End-to-end: real plotly.js rendering a real PNG in the offscreen
     QWebEngineView, not a mocked JS call -- the same "confirmed directly

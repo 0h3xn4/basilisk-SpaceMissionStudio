@@ -42,6 +42,10 @@ fixes bugs.
   (UX audit U-04, U-06, U-07).
 
 **Fixed**
+- **Save PNG / Save SVG** no longer fails with "Could not render the plot"
+  when the plot's page reloads while the image is rendering (a redraw, or
+  the page still settling after a new result). The save starts the
+  render again on the new page.
 - Results no longer look current after the scenario changes: a banner
   above the run views says they are from a previous version, with
   **Re-run** (UX audit U-20).
