@@ -8984,3 +8984,12 @@ macOS the old `cd basilisk-spacemissionstudio` would no longer find it.
 A real clone of the new URL creates `basilisk-SpaceMissionStudio`. The
 SMP and SRelD name the new repository; the dated compliance summary
 keeps the name it had then.
+
+**The `.deb` tried by hand, 2026-10-13.** A user installed the released
+`spacemissionstudio_3.0.0_all.deb` with `apt` on Ubuntu 24.04, started
+the GUI and ran template 22; both worked. The install ended with apt's
+`N: Download is performed unsandboxed as root ... couldn't be accessed by
+user '_apt'` notice, which comes from installing out of a home folder
+and does not affect the install; Troubleshooting now lists it as a
+normal message. The README, Getting started, capabilities, packaging
+README and AUDIT.md now say the `.deb` was installed by hand, and where.

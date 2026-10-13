@@ -78,7 +78,8 @@ The installer downloads Basilisk and the reference data once. Then open
 **SpaceMissionStudio** from your application menu or Start Menu and go to
 [section 6](#6-check-that-it-works).
 
-The `.deb` was built and installed on Linux. The Windows setup program is
+The 3.0.0 `.deb` was installed by hand on Ubuntu 24.04, where the app
+started and template 22 ran. The Windows setup program is
 built, installed and run in CI on a Windows runner; it has not yet been tried by hand on a real Windows machine; please report anything that goes wrong. Details: [`packaging/README.md`](../packaging/README.md).
 
 ## 4. Path B: the install script

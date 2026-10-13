@@ -224,7 +224,10 @@ support data was pre-fetched, all 27 templates validated, and templates
 01, 08, 16, 19, 26 and the Monte Carlo template 09 ran from the
 installed tool, and the GUI started. `build_deb.sh` produced
 `spacemissionstudio_3.0.0_all.deb` (checksum verified, maintainer
-scripts parse); installing it with `dpkg` was not run this time. The
+scripts parse); installing it was not possible in the build environment.
+On 2026-10-13 a user installed the released `.deb` with `apt` on
+Ubuntu 24.04: the install completed, the GUI started and template 22
+ran. The
 Windows installer and `install.ps1` were not run. The wheel, sdist and
 `.deb` are attached to the [3.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0) with
 `SHA256SUMS-linux`; the Windows setup program and `SHA256SUMS-windows`

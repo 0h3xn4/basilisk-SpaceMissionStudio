@@ -116,7 +116,9 @@ scripts are in [`packaging/`](packaging/README.md).
 - **Version:** 3.0.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0),
   [changelog](CHANGELOG.md)). Needs Python 3.11 or newer.
 - **Tested** in CI on Linux, Windows and macOS with Basilisk 2.12.0;
-  the Linux packages were installed and run end to end. The Windows
+  the Linux packages were installed and run end to end, and the 3.0.0
+  `.deb` was installed by hand on Ubuntu 24.04 (the app started,
+  template 22 ran). The Windows
   setup program is built, installed and run in CI on a Windows runner; it has not yet been tried by hand on a real Windows machine; `install.ps1` has not been run.
 - **Known gaps:** [Known limitations](docs/reference/limitations.md).
 - **Standards:** the project's ECSS and CCSDS records are in

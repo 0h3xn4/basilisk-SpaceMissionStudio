@@ -112,6 +112,8 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
   [changelog](SpaceMissionStudio/CHANGELOG.md)). Needs Python 3.11 or
   newer.
 - **Tested** in CI on Linux, Windows and macOS with Basilisk 2.12.0. The
+  3.0.0 `.deb` was installed by hand on Ubuntu 24.04, where the app
+  started and template 22 ran. The
   Windows setup program is built, installed and run in CI on a Windows runner; it has not yet been tried by hand on a real Windows machine.
 - **Known gaps:** [Known limitations](SpaceMissionStudio/docs/reference/limitations.md).
 
