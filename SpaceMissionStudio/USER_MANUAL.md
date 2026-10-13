@@ -157,7 +157,8 @@ A few things to notice right away:
   and puts the layout back with **Reset Layout**.
 * A row of toolbar buttons just below the menus, mirroring the most
   common menu actions (New Scenario, Open, Save, Run Simulation, ...)
-  so you don't have to open a menu every time.
+  so you don't have to open a menu every time. **3D Model...** at its
+  end opens the 3D model editor for a spacecraft (Section 6).
 * Five main tabs:
   * **Scenario**, with its own tabs: **Load Scenario** (where you
     start), **Scenario Editor** (where you build or edit a mission --
@@ -453,7 +454,9 @@ which is assumed perfect.
 
 ### A 3D model of the spacecraft
 
-The **3D model** tab of the spacecraft editor opens the 3D model editor:
+**3D Model...** on the toolbar (or **Tools > 3D Model...**) opens the
+3D model editor; with several spacecraft it first asks which one. The
+**3D model** tab of the spacecraft editor opens it too. In the editor,
 build the spacecraft from boxes, prisms (an octagonal bus), cylinders,
 cones, spheres and panels, or import an `.obj` from a CAD or modelling
 tool, and give each part its mass. The model then sets the spacecraft's

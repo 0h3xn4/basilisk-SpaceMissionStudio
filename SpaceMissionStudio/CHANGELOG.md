@@ -51,6 +51,10 @@ fixes bugs.
   or **Tools > Reference Data...**. New Analyses, Tools and View menus;
   the app remembers the panel layout, and **View > Reset Layout** puts it
   back (UX audit U-02, U-05, U-23).
+- **3D Model...** on the main toolbar and in the Tools menu opens the 3D
+  model editor for a spacecraft (it asks which one when there are
+  several), so the editor is no longer reachable only from a tab of the
+  spacecraft editor. OK applies the model; Edit > Undo takes it back.
 **Fixed**
 - **Save PNG / Save SVG** no longer fails with "Could not render the plot"
   when the plot's page reloads while the image is rendering (a redraw, or

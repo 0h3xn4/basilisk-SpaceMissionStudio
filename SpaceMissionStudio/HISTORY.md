@@ -9409,3 +9409,27 @@ or hides the side panel and opens each of its pages.
 The tests that named the old tabs now ask the window which view it shows
 (`current_view()`), with the same expectations; the Data tab test checks
 the dialog.
+
+## The 3D model editor on the main toolbar (2026-10-13)
+
+User feedback: the 3D model editor is a big feature, and it was reachable
+only from the **3D model** tab of the spacecraft editor, two dialogs deep.
+It now has an entry of its own, **3D Model...**, on the main toolbar
+after Run Monte Carlo (with a cube icon, `tb-model-3d.svg`) and in the
+Tools menu.
+
+- With one spacecraft it opens the editor for it; with several it asks
+  which one (the one selected in the Spacecraft list comes first); with
+  none it opens the Scenario Editor and says to add one.
+- The work is done by `SpacecraftListWidget.open_model_editor(row)`: OK
+  stores the model and writes what it applies (dry mass, center of mass,
+  inertia, and in a full-attitude scenario the facets) into the
+  spacecraft, as the spacecraft editor's 3D model tab does, then the list
+  emits `changed`, so the change is marked unsaved and Edit > Undo takes
+  it back.
+
+Tests (`tests/gui/test_workspace.py`): the entry's place on the toolbar
+(visible at the window's own size) and in the Tools menu; OK applying a
+100 kg, 1 m box (mass 100 kg, Ixx = 16.7 kg m^2, facets left alone in the
+orbit-only template 22) and Undo removing it; the spacecraft choice with
+two spacecraft, and Cancel; no spacecraft.

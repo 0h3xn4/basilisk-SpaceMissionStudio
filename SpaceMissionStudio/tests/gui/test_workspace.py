@@ -234,3 +234,93 @@ def test_the_view_analyses_and_tools_menus(window):
     window.data_dialog.close()
     trigger("&View", "&Problems")
     assert window.side_tabs.currentWidget() is window.problems_widget
+
+
+def _box_model():
+    from spacemissionstudio.schema.scenario import ModelPartConfig, SpacecraftModelConfig
+
+    return SpacecraftModelConfig(parts=[
+        ModelPartConfig(name="bus", shape="box", dimensions_m={"x": 1.0, "y": 1.0, "z": 1.0},  # [m]
+                        mass_kg=100.0),  # [kg]
+    ])
+
+
+def _accept_the_model_editor(monkeypatch, model):
+    """The 3D model editor returns ``model`` at once, as if OK was clicked;
+    returns the names it was opened for."""
+    from PySide6.QtWidgets import QDialog
+
+    from spacemissionstudio.gui import model_editor_dialog
+
+    opened = []
+    monkeypatch.setattr(model_editor_dialog.ModelEditorDialog, "exec",
+                        lambda self: opened.append(self._spacecraft_name) or QDialog.DialogCode.Accepted)
+    monkeypatch.setattr(model_editor_dialog.ModelEditorDialog, "model", lambda self: model)
+    return opened
+
+
+def test_the_3d_model_entry_is_on_the_main_toolbar(window, qtbot):
+    """3D Model... sits on the main toolbar after Run Monte Carlo, visible
+    at the window's own size, and in the Tools menu, so the model editor is
+    not only a tab of the spacecraft editor."""
+    from PySide6.QtWidgets import QToolBar
+
+    window.show()
+    qtbot.waitExposed(window)
+    toolbar = window.findChild(QToolBar, "mainToolBar")
+    actions = [a for a in toolbar.actions() if not a.isSeparator()]
+    assert actions.index(window.model_3d_action) == actions.index(window.monte_carlo_action) + 1
+    assert toolbar.widgetForAction(window.model_3d_action).isVisibleTo(window)
+    tools = next(a.menu() for a in window.menuBar().actions() if a.text() == "&Tools")
+    assert window.model_3d_action in tools.actions()
+
+
+def test_the_3d_model_entry_applies_the_model(window, monkeypatch):
+    """With one spacecraft the editor opens for it. OK stores the model and
+    writes its mass and inertia into the spacecraft (template 22 is orbit
+    only, so its facets are left alone); Undo takes it back."""
+    opened = _accept_the_model_editor(monkeypatch, _box_model())
+    before = window.scenario_editor.spacecraft_list.to_list()[0]
+    window.model_3d_action.trigger()
+    after = window.scenario_editor.spacecraft_list.to_list()[0]
+    assert opened == [before.name]
+    assert after.model is not None and after.model.parts[0].name == "bus"
+    assert after.dry_mass_kg == pytest.approx(100.0)  # [kg]
+    assert after.inertia_kg_m2[0] == pytest.approx(100.0 * 2.0 / 12.0)  # [kg*m^2] m (y^2 + z^2) / 12
+    assert after.facets == before.facets
+    assert window.top_bar.detail_label.text().startswith("Unsaved changes")
+
+    window._history_timer.stop()
+    window._record_history()  # as the settle timer would
+    window.undo_action.trigger()
+    assert window.scenario_editor.spacecraft_list.to_list()[0].model is None
+
+
+def test_the_3d_model_entry_asks_which_spacecraft(window, monkeypatch):
+    """With several spacecraft it asks which one; Cancel changes nothing."""
+    import dataclasses
+
+    from PySide6.QtWidgets import QInputDialog
+
+    spacecraft_list = window.scenario_editor.spacecraft_list
+    first = spacecraft_list.to_list()[0]
+    spacecraft_list.from_list([first, dataclasses.replace(first, name="sat-b")])
+    opened = _accept_the_model_editor(monkeypatch, _box_model())
+
+    monkeypatch.setattr(QInputDialog, "getItem", staticmethod(lambda *a, **k: ("sat-b", True)))
+    window.model_3d_action.trigger()
+    assert opened == ["sat-b"]
+    assert [c.model is not None for c in spacecraft_list.to_list()] == [False, True]
+
+    monkeypatch.setattr(QInputDialog, "getItem", staticmethod(lambda *a, **k: ("", False)))
+    window.model_3d_action.trigger()
+    assert opened == ["sat-b"]
+
+
+def test_the_3d_model_entry_without_a_spacecraft(window, monkeypatch):
+    """With no spacecraft it opens the Scenario Editor and says to add one."""
+    opened = _accept_the_model_editor(monkeypatch, _box_model())
+    window.scenario_editor.spacecraft_list.from_list([])
+    window.show_view(window.results_widget)
+    window.model_3d_action.trigger()
+    assert opened == [] and window.current_view() is window.scenario_editor

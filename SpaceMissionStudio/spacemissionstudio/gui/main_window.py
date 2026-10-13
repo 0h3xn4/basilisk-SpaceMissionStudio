@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
     QApplication,
     QDialog,
     QFileDialog,
+    QInputDialog,
     QLabel,
     QMainWindow,
     QMessageBox,
@@ -602,6 +603,14 @@ class MainWindow(QMainWindow):
         # Scenario tab, also reachable from the menu bar.
         analyses_menu = self.menuBar().addMenu("&Analyses")
         tools_menu = self.menuBar().addMenu("&Tools")
+        # The 3D model editor, on the main toolbar too: it gives a
+        # spacecraft its look, mass properties and surfaces, too much to
+        # sit only in a tab of the spacecraft editor.
+        self.model_3d_action = QAction(toolbar_icon("model-3d"), "3D &Model...", self)
+        self.model_3d_action.setToolTip("Build or edit a spacecraft's 3D model: its look in Vizard, its mass, "
+                                        "center of mass and inertia, and its drag and solar pressure surfaces")
+        self.model_3d_action.triggered.connect(self.on_open_3d_model)
+        tools_menu.addAction(self.model_3d_action)
         for menu, label, widget, tip in (
                 (analyses_menu, "&End of Life", self.lifetime_widget, "Re-entry and deorbit estimates"),
                 (analyses_menu, "&Budget", self.budget_widget, "Delta-V and propellant budgets"),
@@ -705,6 +714,24 @@ class MainWindow(QMainWindow):
 
     def _on_page_action(self) -> None:
         self._show_page(self.sender().data())
+
+    def on_open_3d_model(self) -> None:
+        """Toolbar / Tools > 3D Model...: the 3D model editor for one of the
+        scenario's spacecraft, chosen from a list when there are several."""
+        spacecraft_list = self.scenario_editor.spacecraft_list
+        names = [config.name for config in spacecraft_list.to_list()]
+        if not names:
+            self.show_view(self.scenario_editor)
+            show_toast(self, "Add a spacecraft first (Spacecraft > Add...), then build its 3D model", kind="info")
+            return
+        row = 0
+        if len(names) > 1:
+            current = max(spacecraft_list.list_widget.currentRow(), 0)
+            name, ok = QInputDialog.getItem(self, "3D model", "Spacecraft:", names, current, False)
+            if not ok:
+                return
+            row = names.index(name)
+        spacecraft_list.open_model_editor(row)
 
     def _show_page(self, widget: QWidget) -> None:
         if widget is self.data_panel_widget:
@@ -864,6 +891,8 @@ class MainWindow(QMainWindow):
         primary.addAction(self.abort_action)
         primary.addAction(self.live_plot_action)
         primary.addAction(self.monte_carlo_action)
+        primary.addSeparator()
+        primary.addAction(self.model_3d_action)
 
         self.addToolBarBreak()
 

@@ -20,9 +20,11 @@ bus from a 3D model", is a worked example.
 
 ## Open the editor
 
-In the Scenario Editor's **Spacecraft** box, select a spacecraft and
-click **Edit...**; on the **3D model** tab, click **Build a 3D model...**
-(**Open 3D model editor...** once it has one). On the left is the list
+Click **3D Model...** on the toolbar, or choose **Tools > 3D Model...**;
+with several spacecraft, pick the one to model. **OK** stores the model
+and applies it to the spacecraft, and **Edit > Undo** takes it back.
+From inside the spacecraft editor it is on the **3D model** tab:
+**Build a 3D model...** (**Open 3D model editor...** once it has one). On the left is the list
 of parts, in the middle the selected part's settings, on the right the
 model in 3D: drag to turn it, scroll to zoom. The red, green and blue
 lines are the body axes x, y and z at point B; the black diamond is the

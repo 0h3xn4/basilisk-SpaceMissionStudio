@@ -2353,6 +2353,34 @@ class SpacecraftListWidget(QWidget):
             show_toast(self.window(), f"Updated spacecraft {new_config.name!r}")
             self.changed.emit()
 
+    def open_model_editor(self, row: int) -> bool:
+        """Open the 3D model editor for spacecraft ``row`` (the toolbar's
+        3D Model entry; the spacecraft editor's 3D model tab does the same
+        from inside that dialog). OK stores the model and writes what it
+        applies (mass, center of mass, inertia, facets) into the spacecraft,
+        as the 3D model tab does. Returns whether the spacecraft changed."""
+        from ..model3d import model as model3d
+        from .model_editor_dialog import ModelEditorDialog
+
+        config = self._configs[row]
+        base_dir = self._base_dir_provider() if self._base_dir_provider else None
+        dialog = ModelEditorDialog(config.model, spacecraft_name=config.name, base_dir=base_dir, parent=self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return False
+        new_config = copy.deepcopy(config)
+        new_config.model = dialog.model()
+        orbit_only = self._simulation_mode() == "orbit_only"
+        target = SimpleNamespace(model=new_config.model, solar_arrays=[] if orbit_only else new_config.solar_arrays)
+        derived = model3d.derive(new_config.model, base_dir)
+        for name, value in model3d.applied_values(target, derived, orbit_only=orbit_only).items():
+            setattr(new_config, name, value)
+        self._configs[row] = new_config
+        self._refresh_list()
+        self.list_widget.setCurrentRow(row)
+        show_toast(self.window(), f"Updated the 3D model of {new_config.name!r}")
+        self.changed.emit()
+        return True
+
     def _on_remove(self) -> None:
         row = self.list_widget.currentRow()
         if row < 0:
