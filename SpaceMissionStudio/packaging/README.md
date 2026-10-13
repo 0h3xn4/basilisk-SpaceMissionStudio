@@ -226,7 +226,7 @@ installed tool, and the GUI started. `build_deb.sh` produced
 `spacemissionstudio_3.0.0_all.deb` (checksum verified, maintainer
 scripts parse); installing it with `dpkg` was not run this time. The
 Windows installer and `install.ps1` were not run. The wheel, sdist and
-`.deb` are attached to the [3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) with
+`.deb` are attached to the [3.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0) with
 `SHA256SUMS-linux`; the Windows setup program and `SHA256SUMS-windows`
 were attached by the installer workflow (below).
 
@@ -267,7 +267,7 @@ release tag); with "attach" ticked, a separate job, the only one with
 write access, also uploads the setup program and `SHA256SUMS-windows` to
 the release, replacing earlier copies. A push to `packaging/windows/`
 builds and tests without attaching. For 3.0.0 it passed on
-2026-10-12 ([run 38315713727](https://github.com/0h3xn4/basilisk-spacemissionstudio/actions/runs/38315713727)). Not yet done: the wizard clicked
+2026-10-12 ([run 38315713727](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/38315713727)). Not yet done: the wizard clicked
 through by hand, and the GUI opened from the Start Menu shortcut, on a
 real Windows 10/11 machine.
 

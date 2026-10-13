@@ -604,7 +604,7 @@ Until the Windows installer has run once, the Windows build should be
 called untested in the release notes. The tag itself (H05) is yours to
 make.
 
-**Released 2026-10-12** by the user: [`v3.0.0`](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) on `a84ae3784`
+**Released 2026-10-12** by the user: [`v3.0.0`](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0) on `a84ae3784`
 (the merge of pull request #43), with the wheel, sdist, `.deb` and
 `SHA256SUMS`. The assets were downloaded from the release and checked
 against `SHA256SUMS`. The `v*` tag also started Basilisk's own publish

@@ -8953,7 +8953,7 @@ is refused; the installer pin check allows `-c constraints.txt`; two
 thermal-sensor fixtures add the Sun. The full suite, ruff and the
 compliance generators ran clean before the commit.
 
-**Released.** The user published [`v3.0.0`](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) on 2026-10-12 on
+**Released.** The user published [`v3.0.0`](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0) on 2026-10-12 on
 the merge commit `a84ae3784`, with the wheel, sdist, `.deb` and
 `SHA256SUMS`; the downloaded assets match the checksums. The tag also
 started two workflows this fork inherits from Basilisk. One was a wheel
@@ -8975,3 +8975,12 @@ the release's `SHA256SUMS` was renamed `SHA256SUMS-linux`. The workflow
 accepts either name, and the docs say how to check each download.
 Still not done: clicking through the wizard by hand on a real Windows
 machine.
+
+**The repository renamed, 2026-10-13.** The user renamed the repository
+to `0h3xn4/basilisk-SpaceMissionStudio`. Links and the clone steps now
+use that name. GitHub ignores case in names, so the old links still
+worked, but `git clone` names the folder after the URL, and on Linux and
+macOS the old `cd basilisk-spacemissionstudio` would no longer find it.
+A real clone of the new URL creates `basilisk-SpaceMissionStudio`. The
+SMP and SRelD name the new repository; the dated compliance summary
+keeps the name it had then.

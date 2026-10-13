@@ -47,7 +47,7 @@ against.
 ## 3. Path A: the installer
 
 Both installers are published with each release. From the
-[3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0), download:
+[3.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0), download:
 
 - **Linux:** `spacemissionstudio_3.0.0_all.deb` and `SHA256SUMS-linux`;
   check with `sha256sum -c SHA256SUMS-linux --ignore-missing`.
@@ -101,8 +101,8 @@ end; the Windows script has not yet been run on a real Windows machine.
 folder:
 
 ```bash
-git clone https://github.com/0h3xn4/basilisk-spacemissionstudio.git
-cd basilisk-spacemissionstudio/SpaceMissionStudio
+git clone https://github.com/0h3xn4/basilisk-SpaceMissionStudio.git
+cd basilisk-SpaceMissionStudio/SpaceMissionStudio
 ```
 
 **2. Make a private Python environment**, so nothing touches your system

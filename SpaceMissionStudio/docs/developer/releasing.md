@@ -82,7 +82,7 @@ cd dist && sha256sum *.whl *.tar.gz *.deb > SHA256SUMS-linux
 
 ## 6. Publish
 
-- Create a GitHub release on <https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/new>:
+- Create a GitHub release on <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/new>:
   a new tag on the release commit (`develop` after the release pull
   request is merged), the title "SpaceMissionStudio X.Y.Z", the
   CHANGELOG section as the notes, and the wheel, sdist, `.deb` and

@@ -7,7 +7,7 @@ guide is the repository root's [`CONTRIBUTING.md`](../CONTRIBUTING.md).
 ## Report a problem
 
 Open an issue on
-[GitHub](https://github.com/0h3xn4/basilisk-spacemissionstudio/issues)
+[GitHub](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/issues)
 with:
 
 - what you did, what you expected and what happened;

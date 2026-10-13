@@ -4,8 +4,8 @@
 
 # SpaceMissionStudio
 
-[![CI](https://github.com/0h3xn4/basilisk-spacemissionstudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-spacemissionstudio/actions/workflows/spacemissionstudio.yml)
-[![Version 3.0.0](https://img.shields.io/badge/version-3.0.0-blue)](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0)
+[![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
+[![Version 3.0.0](https://img.shields.io/badge/version-3.0.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -33,14 +33,14 @@ battery, link margin, lifetime and propellant.
 
 ## Quick start
 
-The [3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) has installers for Linux (`.deb`)
+The [3.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0) has installers for Linux (`.deb`)
 and Windows (setup program). From
 source, on Linux or macOS with Python 3.11 or newer (Windows: see
 [Getting started](SpaceMissionStudio/docs/getting-started.md)):
 
 ```bash
-git clone https://github.com/0h3xn4/basilisk-spacemissionstudio.git
-cd basilisk-spacemissionstudio/SpaceMissionStudio
+git clone https://github.com/0h3xn4/basilisk-SpaceMissionStudio.git
+cd basilisk-SpaceMissionStudio/SpaceMissionStudio
 python3 -m venv .venv
 source .venv/bin/activate
 pip install "bsk[all]==2.12.0"
@@ -108,7 +108,7 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE),
   [`SpaceMissionStudio/LICENSE`](SpaceMissionStudio/LICENSE)).
-- **Version:** 3.0.0 ([release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0),
+- **Version:** 3.0.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0),
   [changelog](SpaceMissionStudio/CHANGELOG.md)). Needs Python 3.11 or
   newer.
 - **Tested** in CI on Linux, Windows and macOS with Basilisk 2.12.0. The
