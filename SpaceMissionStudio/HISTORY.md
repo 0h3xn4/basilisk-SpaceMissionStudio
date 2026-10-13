@@ -9212,3 +9212,43 @@ The five that block work:
 The audit proposes an order of work and lists six decisions for the
 user: the visual system, where today's nine tabs go, one Run action, the
 plot library, keeping runs on disk, and no change to the file format.
+
+## UX iteration 1: stale results and a window that fits 1280 x 720 (2026-10-13)
+
+The user approved the audit's decisions:
+- Carbon, with the standard's type and spacing scales and a dark theme;
+- the tabs placed as proposed;
+- Plotly kept;
+- the two blockers that need no structural decision first.
+
+**U-20, stale results.** A banner above the run views
+(`feedback.StaleResultsBanner`) now says when the results shown are from
+a previous version of the scenario, with **Re-run**. It compares the
+editor's scenario with the run's, by the same SHA-256 the run provenance
+records, so undoing back to the run's scenario hides it again. While the
+scenario does not validate, the banner says so and Re-run is disabled.
+Opening another scenario clears it with the run views. Its colours are a
+theme rule (`QFrame#staleResultsBanner`), not a stylesheet in the widget.
+
+**U-03, the window size.** After two real runs of template 22 the window
+could not be narrower than 1516 px, or shorter than 758 px at start-up.
+- **Height:** the End of Life page's form and results needed 560 px; the
+  page now scrolls, like the Budget page.
+- **Width:** "Compare with" sat on the export row and grew with the run
+  label (368 px for template 22). It now has a row of its own, and the
+  combo is sized by 18 characters, with each label in full in its item's
+  tooltip.
+
+Measured again after two real runs: a minimum of 1118 x 529 px. The
+capture script's 1280 x 720 and 2560 x 1440 pictures come out at exactly
+those sizes.
+
+**Tests.** `tests/gui/test_stale_results_and_window_size.py`:
+- the banner after an edit, an undo, an invalid scenario and opening
+  another scenario;
+- Re-run asks for a run;
+- the window fits 1280 x 720 after a comparison.
+
+The size test first passed without the fix, because it measured before
+Qt had laid out the new widgets. With a short wait it fails without the
+fix (1345 px) and passes with it.

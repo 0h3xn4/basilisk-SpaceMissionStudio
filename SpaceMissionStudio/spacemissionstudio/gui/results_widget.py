@@ -550,16 +550,27 @@ class ResultsWidget(QWidget):
         self.compare_label = QLabel("Compare with:")
         self.compare_combo = ComboBox()
         self.compare_combo.setToolTip("Draws the same series from an earlier run of this session, dashed.")
+        # Sized by a fixed number of characters, not by the longest run
+        # label: a long scenario name widened the whole window past 1516 px
+        # (docs/ux-audit.md U-03). Each item's tooltip has its full label.
+        self.compare_combo.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self.compare_combo.setMinimumContentsLength(18)
         self.compare_combo.currentIndexChanged.connect(self._redraw)
         self.diff_button = QPushButton("Input differences...")
         self.diff_button.setToolTip("Lists every scenario input that differs between the two runs.")
         self.diff_button.clicked.connect(self.show_input_differences)
-        for widget in (self.compare_label, self.compare_combo, self.diff_button):
-            widget.setVisible(False)
-            button_row.addWidget(widget)
         button_row.addWidget(self.view_label)
         button_row.addWidget(self.view_combo)
         layout.addLayout(button_row)
+        # On a row of its own, shown only once there is an earlier run: on
+        # the export row it made the pane, and so the window, too wide for
+        # 1280 px (docs/ux-audit.md U-03).
+        compare_row = QHBoxLayout()
+        for widget in (self.compare_label, self.compare_combo, self.diff_button):
+            widget.setVisible(False)
+            compare_row.addWidget(widget)
+        compare_row.addStretch(1)
+        layout.addLayout(compare_row)
 
         # Design-philosophy audit finding (docs/ux_audit.md, "no run
         # provenance captured with results"): one line, always visible
@@ -1074,6 +1085,7 @@ class ResultsWidget(QWidget):
         self.compare_combo.addItem("(no comparison)", None)
         for record in reversed(others):
             self.compare_combo.addItem(record.label, record.number)
+            self.compare_combo.setItemData(self.compare_combo.count() - 1, record.label, Qt.ItemDataRole.ToolTipRole)
         index = self.compare_combo.findData(chosen) if chosen is not None else 0
         self.compare_combo.setCurrentIndex(max(index, 0))
         self.compare_combo.blockSignals(False)

@@ -118,7 +118,8 @@ def main(out: Path) -> int:
     spin(2.0)  # [s]
     save("events_tab.png")
 
-    window.right_tabs.setCurrentWidget(window.lifetime_widget)
+    lifetime_page = window.lifetime_widget.parentWidget().parentWidget()  # the tab's scroll area
+    window.right_tabs.setCurrentIndex(window.right_tabs.indexOf(lifetime_page))
     window.lifetime_widget.compute()
     wait(lambda: window.lifetime_widget._worker is None, 300.0, "the lifetime estimate")  # [s]
     save("end_of_life_tab.png")

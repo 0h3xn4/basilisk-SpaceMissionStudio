@@ -150,7 +150,7 @@ shows it.
 | U-25 | **No readout panel.** Hover shows one plot's value; there is no panel with every series at the cursor time | Slows work | A readout panel beside the grid: each shown series' value at the cursor, with units | - |
 | U-26 | **The time axis offers Elapsed time and Epoch (UTC)**, but not the orbit number | Cosmetic | Add "Orbit number"; one switch for all plots | [`07_after_run_00_results`](images/ux-audit/07_after_run_00_results.png) |
 | U-27 | **Events are not drawn on plots** (no eclipse or pass bands) | Slows work | Shaded bands and markers from the event model, each kind toggleable | - |
-| U-28 | **Plot library.** Plotly runs inside Qt WebEngine (a Chromium instance): one figure per web view, and the plots depend on WebEngine working on the machine ([Troubleshooting](troubleshooting.md#the-results-plot-stays-blank)) | Slows work | Decision 4: move the time-series grid to pyqtgraph, or keep Plotly with several figures in one page | - |
+| U-28 | **Plot library.** Plotly runs inside Qt WebEngine (a Chromium instance): one figure per web view, and the plots depend on WebEngine working on the machine ([Troubleshooting](troubleshooting.md#the-results-plot-stays-blank)) | Slows work | Decision 4 (taken: keep Plotly): build the grid as several figures in one web page, with one shared cursor and linked x-axes | - |
 | U-29 | **No "Export all"**; export is per plot | Cosmetic | Export all shown plots (PNG/SVG/CSV) with provenance | - |
 | U-30 | **The plot's epoch and time system are not shown** with Elapsed time | Slows work | Subtitle: "t0 = 2030-01-01 08:30:00 UTC" | [`07_after_run_00_results`](images/ux-audit/07_after_run_00_results.png) |
 
@@ -229,6 +229,25 @@ shows it.
    Basilisk computes. U-14 adds a conversion between orbit types; the conversion uses
    the existing `orbitalMotion` functions, and the scenario still stores the chosen
    type.
+
+## Decisions taken (2026-10-13)
+
+1. Visual system: Carbon's colours and components, with the standard's type and
+   spacing scales and a dark theme that follows the OS (as proposed).
+2. Tabs: as proposed.
+3. One Run: not asked yet; comes with the Run iteration.
+4. Plot library: **keep Plotly**. The Results grid and readout are built on Plotly,
+   with several figures in one web page; no new dependency.
+5. Keeping runs on disk: not asked yet; comes with the Compare iteration.
+6. File format: no change (for information).
+
+Start with the two blockers that need no structural decision: U-20 and U-03.
+
+## Done
+
+| Iteration | Issues | What changed |
+|---|---|---|
+| 1 (2026-10-13) | U-20, U-03 | A banner above the run views names stale results, with Re-run, by the scenario's SHA-256. The End of Life page scrolls. The comparison controls moved to their own row, and the combo is sized by characters, not by the longest run label. After two real runs of template 22 the window's minimum size went from 1516 px wide (and 758 px tall at start-up) to 1118 x 529 px. Tests: `tests/gui/test_stale_results_and_window_size.py` |
 
 ## Proposed order of work
 

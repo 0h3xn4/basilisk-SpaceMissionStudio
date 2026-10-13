@@ -419,6 +419,17 @@ def _qss() -> str:
     QScrollArea#paramReference > QWidget > QWidget {{
         background-color: {c['surface_alt']};
     }}
+    /* Carbon inline notification (warning, low contrast): the run views'
+       "results are from a previous version" banner (gui.feedback). */
+    QFrame#staleResultsBanner {{
+        background-color: {c['warning_soft']};
+        border: none;
+        border-left: 3px solid {c['warning_fill']};
+    }}
+    QFrame#staleResultsBanner QLabel {{
+        color: {c['text']};
+        background-color: transparent;
+    }}
     QScrollBar:vertical {{
         background: transparent;
         width: 10px;

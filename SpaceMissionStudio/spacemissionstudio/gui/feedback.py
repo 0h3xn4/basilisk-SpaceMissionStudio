@@ -54,8 +54,8 @@ from __future__ import annotations
 
 from typing import List
 
-from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QLabel, QWidget
+from PySide6.QtCore import QTimer, Signal
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QWidget
 from shiboken6 import isValid
 
 from .theme import PALETTE
@@ -202,3 +202,37 @@ def _repolish(widget: QWidget) -> None:
     style = widget.style()
     style.unpolish(widget)
     style.polish(widget)
+
+
+class StaleResultsBanner(QFrame):
+    """A persistent notice above the run views when the results shown no
+    longer match the scenario (UX/UI Standard, "State is always visible";
+    docs/ux-audit.md U-20): it names what changed and offers **Re-run**.
+    Hidden until :meth:`show_stale` is called; styled by theme.py's
+    ``QFrame#staleResultsBanner`` rule."""
+
+    rerun_requested = Signal()
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("staleResultsBanner")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 6, 8, 6)  # [px]
+        self.label = QLabel()
+        self.label.setWordWrap(True)
+        layout.addWidget(self.label, 1)
+        self.rerun_button = QPushButton("Re-run")
+        self.rerun_button.setToolTip("Run the scenario as it is now (Ctrl+R)")
+        self.rerun_button.clicked.connect(self.rerun_requested)
+        layout.addWidget(self.rerun_button)
+        self.hide()
+
+    def show_stale(self, scenario_valid: bool) -> None:
+        if scenario_valid:
+            self.label.setText("These results are from a previous version of this scenario. "
+                               "Re-run to see the current one.")
+        else:
+            self.label.setText("These results are from a previous version of this scenario, "
+                               "which now has a problem: fix it in the Scenario Editor, then re-run.")
+        self.rerun_button.setEnabled(scenario_valid)
+        self.show()
