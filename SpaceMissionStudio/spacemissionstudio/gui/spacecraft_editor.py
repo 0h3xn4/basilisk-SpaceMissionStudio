@@ -1836,7 +1836,8 @@ class SpacecraftEditorDialog(QDialog):
         from .model_editor_dialog import ModelEditorDialog
 
         dialog = ModelEditorDialog(self._model, spacecraft_name=self.name_edit.text().strip() or "sat-1",
-                                   base_dir=self._base_dir(), parent=self)
+                                   base_dir=self._base_dir(), parent=self,
+                                   simulation_mode="orbit_only" if self._orbit_only else "full_attitude")
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self._model = dialog.model()
             self._on_apply_model()
@@ -2141,6 +2142,21 @@ def _hbox(*widgets: QWidget) -> QWidget:
     return container
 
 
+def applied_summary(name: str, values: dict) -> str:
+    """One line on what applying a 3D model wrote into spacecraft ``name``
+    (``values`` from ``model3d.applied_values``)."""
+    parts = []
+    if "dry_mass_kg" in values:
+        offset_m = math.sqrt(sum(float(v) ** 2 for v in values["center_of_mass_b_m"]))
+        parts.append(f"dry mass {values['dry_mass_kg']:.4g} kg, center of mass {100.0 * offset_m:.1f} cm "
+                     "from B, inertia")
+    if "facets" in values:
+        parts.append(f"{len(values['facets'])} facets")
+    if not parts:
+        return f"Stored the 3D model of {name!r} (nothing applied: see its Use tab)"
+    return f"Applied the 3D model of {name!r}: {', '.join(parts)}"
+
+
 class SpacecraftListWidget(QWidget):
     """A list of spacecraft with Add/Edit/Remove, backed by a plain list
     of :class:`SpacecraftConfig`. Emits :attr:`changed` whenever that list
@@ -2364,7 +2380,8 @@ class SpacecraftListWidget(QWidget):
 
         config = self._configs[row]
         base_dir = self._base_dir_provider() if self._base_dir_provider else None
-        dialog = ModelEditorDialog(config.model, spacecraft_name=config.name, base_dir=base_dir, parent=self)
+        dialog = ModelEditorDialog(config.model, spacecraft_name=config.name, base_dir=base_dir, parent=self,
+                                   simulation_mode=self._simulation_mode())
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return False
         new_config = copy.deepcopy(config)
@@ -2372,12 +2389,13 @@ class SpacecraftListWidget(QWidget):
         orbit_only = self._simulation_mode() == "orbit_only"
         target = SimpleNamespace(model=new_config.model, solar_arrays=[] if orbit_only else new_config.solar_arrays)
         derived = model3d.derive(new_config.model, base_dir)
-        for name, value in model3d.applied_values(target, derived, orbit_only=orbit_only).items():
+        values = model3d.applied_values(target, derived, orbit_only=orbit_only)
+        for name, value in values.items():
             setattr(new_config, name, value)
         self._configs[row] = new_config
         self._refresh_list()
         self.list_widget.setCurrentRow(row)
-        show_toast(self.window(), f"Updated the 3D model of {new_config.name!r}")
+        show_toast(self.window(), applied_summary(new_config.name, values), duration_ms=5000)  # [ms]
         self.changed.emit()
         return True
 

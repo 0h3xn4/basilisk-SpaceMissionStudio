@@ -143,14 +143,29 @@ class _ImportOptionsDialog(QDialog):
         layout.addWidget(buttons)
 
 
+def uses_note(simulation_mode: Optional[str]) -> str:
+    """What the next run takes from an applied model in a scenario of this
+    simulation mode; empty when the mode is not known."""
+    if simulation_mode == "orbit_only":
+        return ("This scenario runs orbit only (Scenario Editor > Simulation mode): the next run uses the "
+                "dry mass, for drag and solar pressure. The center of mass, inertia and facets take effect "
+                "in a full-attitude run.")
+    if simulation_mode:
+        return ("The next run uses the mass, center of mass and inertia in the attitude dynamics, and the "
+                "facets for the drag and solar pressure forces and torques (when drag or solar pressure is "
+                "on).")
+    return ""
+
+
 class ModelEditorDialog(QDialog):
     """Edits a copy of a :class:`SpacecraftModelConfig` (see the module
     docstring). ``base_dir`` is the scenario file's folder: mesh paths are
     stored relative to it, and imports can be copied into it."""
 
     def __init__(self, model: Optional[SpacecraftModelConfig], spacecraft_name: str = "sat-1",
-                 base_dir=None, parent: Optional[QWidget] = None):
+                 base_dir=None, parent: Optional[QWidget] = None, simulation_mode: Optional[str] = None):
         super().__init__(parent)
+        self._simulation_mode = simulation_mode
         self.setWindowTitle(f"3D model: {spacecraft_name}")
         self.resize(1280, 820)
         self._spacecraft_name = spacecraft_name
@@ -714,6 +729,10 @@ class ModelEditorDialog(QDialog):
     def _build_use_tab(self) -> QWidget:
         tab = QWidget()
         layout = QVBoxLayout(tab)
+        self.use_note = QLabel(uses_note(self._simulation_mode))
+        self.use_note.setWordWrap(True)
+        self.use_note.setVisible(bool(self.use_note.text()))
+        layout.addWidget(self.use_note)
         self.apply_mass_check = QCheckBox("Apply the mass properties to the spacecraft (mass, center of mass, inertia)")
         self.apply_facets_check = QCheckBox("Apply the facets (drag and solar pressure; full-attitude runs only)")
         self.use_for_vizard_check = QCheckBox("Show this model in Vizard")

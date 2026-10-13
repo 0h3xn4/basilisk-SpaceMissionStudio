@@ -96,7 +96,8 @@ from .vizard_launcher import (
     remember_vizard_executable,
 )
 from .widgets import TabWidget
-from .workspace_panels import CompareWidget, InspectorWidget, LogViewWidget, ProblemsWidget, install_log_view
+from .workspace_panels import (CompareWidget, InspectorWidget, LogViewWidget, ProblemsWidget, install_log_view,
+                               model_problem_spacecraft)
 from ..engine.vizard import playback_file as vizard_playback_file
 
 _FILE_FILTER = "SpaceMissionStudio scenario (*.json)"
@@ -236,6 +237,7 @@ class MainWindow(QMainWindow):
         self.mission_output_widget.set_time_cursor(self.time_cursor)
         self.results_widget.open_in_vizard.connect(self.open_vizard_playback)
         self.scenario_explainer_widget = ScenarioExplainerWidget()
+        self.scenario_explainer_widget.model_requested.connect(self.open_3d_model_of)
         self.lifetime_widget = LifetimeWidget()
         self.budget_widget = BudgetWidget()
         self.flight_software_widget = FlightSoftwareWidget()
@@ -307,7 +309,7 @@ class MainWindow(QMainWindow):
         # the mouse wheel, which every tab bar here ignores.
         self.inspector_widget = InspectorWidget()
         self.problems_widget = ProblemsWidget()
-        self.problems_widget.activated.connect(self._show_scenario_editor)
+        self.problems_widget.activated.connect(self._on_problem_activated)
         self.problems_widget.count_changed.connect(self._on_problem_count)
         self.scenario_editor.problems_changed.connect(self.problems_widget.set_problems)
         self.side_tabs = TabWidget()
@@ -732,6 +734,23 @@ class MainWindow(QMainWindow):
                 return
             row = names.index(name)
         spacecraft_list.open_model_editor(row)
+
+    def open_3d_model_of(self, name: str) -> None:
+        """The 3D model editor for the spacecraft named ``name`` (a Problems
+        entry or the Explain badge about its model)."""
+        spacecraft_list = self.scenario_editor.spacecraft_list
+        names = [config.name for config in spacecraft_list.to_list()]
+        if name in names:
+            spacecraft_list.open_model_editor(names.index(name))
+
+    def _on_problem_activated(self, text: str) -> None:
+        """A double-clicked problem opens where it is fixed: a 3D model's
+        problem that spacecraft's model editor, any other the Scenario Editor."""
+        self._show_scenario_editor()
+        names = [config.name for config in self.scenario_editor.spacecraft_list.to_list()]
+        name = model_problem_spacecraft(text, names)
+        if name is not None:
+            self.open_3d_model_of(name)
 
     def _show_page(self, widget: QWidget) -> None:
         if widget is self.data_panel_widget:

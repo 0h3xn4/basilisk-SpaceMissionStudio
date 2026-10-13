@@ -166,7 +166,7 @@ class InspectorWidget(QWidget):
 class ProblemsWidget(QWidget):
     """The scenario's validation error and plausibility warnings."""
 
-    activated = Signal()  # a problem was double-clicked: show the editor
+    activated = Signal(str)  # a problem was double-clicked (its text): show where to fix it
     count_changed = Signal(int)
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
@@ -184,8 +184,8 @@ class ProblemsWidget(QWidget):
         self.problems: List[Tuple[str, str]] = []
         self.set_problems([])
 
-    def _on_item_activated(self, _item) -> None:
-        self.activated.emit()
+    def _on_item_activated(self, item) -> None:
+        self.activated.emit(self.problems[self.list.row(item)][1])
 
     def set_problems(self, problems: List[Tuple[str, str]]) -> None:
         """``problems``: ``(severity, text)`` pairs, severity "error" or "warning"."""
@@ -195,11 +195,29 @@ class ProblemsWidget(QWidget):
         for severity, text in self.problems:
             item = QListWidgetItem(f"{'Error' if severity == 'error' else 'Warning'}: {text}")
             item.setForeground(_brush(colours.get(severity, PALETTE["text"])))
-            item.setToolTip("Double-click to open the Scenario Editor")
+            item.setToolTip("Double-click to open the 3D model editor" if _MODEL_MARK in text
+                            else "Double-click to open the Scenario Editor")
             self.list.addItem(item)
         self.empty_label.setVisible(not self.problems)
         self.list.setVisible(bool(self.problems))
         self.count_changed.emit(len(self.problems))
+
+
+# engine.scenario_checks' 3D model warnings read "<spacecraft>: 3D model: ..."
+# or "<spacecraft>: ... differ from the 3D model ...".
+_MODEL_MARK = "3D model"
+
+
+def model_problem_spacecraft(text: str, names: List[str]) -> Optional[str]:
+    """The spacecraft whose 3D model problem ``text`` is about, or None when
+    it is not about a 3D model. The longest matching name wins, so "sat-10"
+    is not taken for "sat-1"."""
+    if _MODEL_MARK not in text:
+        return None
+    for name in sorted(names, key=len, reverse=True):
+        if text.startswith(f"{name}: "):
+            return name
+    return None
 
 
 def _brush(colour: str):

@@ -324,3 +324,82 @@ def test_the_3d_model_entry_without_a_spacecraft(window, monkeypatch):
     window.show_view(window.results_widget)
     window.model_3d_action.trigger()
     assert opened == [] and window.current_view() is window.scenario_editor
+
+
+@pytest.fixture
+def model_window(qtbot, monkeypatch):
+    """A main window with template 28, whose spacecraft has a 3D model."""
+    w = _new_window(qtbot, monkeypatch)
+    assert w.open_path(next(_TEMPLATES.glob("28_*.json")))
+    return w
+
+
+def test_the_model_editor_says_what_the_next_run_uses(qtbot):
+    """The editor's Use tab says what an applied model changes in this
+    scenario: only the dry mass in an orbit-only run, the mass properties
+    and facets in a full-attitude one; nothing when the mode is unknown."""
+    from spacemissionstudio.gui.model_editor_dialog import ModelEditorDialog
+
+    notes = {}
+    for mode in ("orbit_only", "full_attitude", None):
+        dialog = ModelEditorDialog(None, simulation_mode=mode)
+        qtbot.addWidget(dialog)
+        notes[mode] = (dialog.use_note.text(), dialog.use_note.isVisibleTo(dialog))
+    assert "orbit only" in notes["orbit_only"][0] and "dry mass" in notes["orbit_only"][0]
+    assert "inertia in the attitude dynamics" in notes["full_attitude"][0]
+    assert notes[None] == ("", False)
+
+
+def test_applying_a_model_says_what_it_wrote():
+    """The toast after OK names what the model wrote into the spacecraft."""
+    from spacemissionstudio.gui.spacecraft_editor import applied_summary
+
+    values = {"dry_mass_kg": 300.0, "center_of_mass_b_m": [0.048, 0.0, 0.0],  # [kg], [m]
+              "inertia_kg_m2": [0.0] * 9, "facets": [object()] * 18}
+    assert applied_summary("octa-sat", values) == ("Applied the 3D model of 'octa-sat': dry mass 300 kg, "
+                                                   "center of mass 4.8 cm from B, inertia, 18 facets")
+    assert applied_summary("octa-sat", {}).startswith("Stored the 3D model of 'octa-sat' (nothing applied")
+
+
+def test_model_problems_name_their_spacecraft():
+    """A 3D model problem is matched to its spacecraft, the longest name
+    first; other problems are not model problems."""
+    from spacemissionstudio.gui.workspace_panels import model_problem_spacecraft
+
+    names = ["sat-1", "sat-10"]
+    assert model_problem_spacecraft("sat-10: 3D model: the mesh file is missing", names) == "sat-10"
+    assert model_problem_spacecraft("sat-1: dry_mass_kg differ from the 3D model -- open the model", names) == "sat-1"
+    assert model_problem_spacecraft("sat-1: the perigee is below 100 km", names) is None
+    assert model_problem_spacecraft("other: 3D model: missing", names) is None
+
+
+def test_a_stale_model_problem_opens_the_model_editor(model_window, monkeypatch):
+    """When the spacecraft's mass no longer matches its 3D model, Problems
+    says so; double-clicking it opens that spacecraft's model editor, and OK
+    applies the model again, which clears the problem."""
+    import dataclasses
+
+    spacecraft_list = model_window.scenario_editor.spacecraft_list
+    sc = spacecraft_list.to_list()[0]
+    opened = _accept_the_model_editor(monkeypatch, sc.model)
+    spacecraft_list.from_list([dataclasses.replace(sc, dry_mass_kg=sc.dry_mass_kg + 10.0)])  # [kg]
+    model_window.scenario_editor.revalidate()
+    problems = model_window.problems_widget
+    row = next(i for i, (_severity, text) in enumerate(problems.problems) if "differ from the 3D model" in text)
+    assert problems.list.item(row).toolTip() == "Double-click to open the 3D model editor"
+
+    problems.list.itemActivated.emit(problems.list.item(row))
+    assert opened == [sc.name] and model_window.current_view() is model_window.scenario_editor
+    assert spacecraft_list.to_list()[0].dry_mass_kg == pytest.approx(sc.dry_mass_kg)
+    assert not [text for _severity, text in problems.problems if "differ from the 3D model" in text]
+
+
+def test_the_explain_badge_opens_the_model_editor(model_window, monkeypatch):
+    """The Explain panel's "3D model" badge is a button: it opens that
+    spacecraft's model editor."""
+    sc = model_window.scenario_editor.spacecraft_list.to_list()[0]
+    opened = _accept_the_model_editor(monkeypatch, sc.model)
+    buttons = model_window.scenario_explainer_widget.model_buttons
+    assert [b.text() for b in buttons] == [f"{sc.name}: 3D model, {len(sc.model.parts)} parts"]
+    buttons[0].click()
+    assert opened == [sc.name]

@@ -54,7 +54,10 @@ fixes bugs.
 - **3D Model...** on the main toolbar and in the Tools menu opens the 3D
   model editor for a spacecraft (it asks which one when there are
   several), so the editor is no longer reachable only from a tab of the
-  spacecraft editor. OK applies the model; Edit > Undo takes it back.
+  spacecraft editor. OK applies the model and says what it wrote; Edit >
+  Undo takes it back. The editor says what the next run uses in this
+  scenario (orbit only: the dry mass). A 3D model problem in Problems and
+  the "3D model" badge in Explain open the editor for that spacecraft.
 **Fixed**
 - **Save PNG / Save SVG** no longer fails with "Could not render the plot"
   when the plot's page reloads while the image is rendering (a redraw, or

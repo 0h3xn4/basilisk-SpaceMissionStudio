@@ -9428,8 +9428,35 @@ Tools menu.
   emits `changed`, so the change is marked unsaved and Edit > Undo takes
   it back.
 
+The user also asked that the editor be no dead end: connected to the
+rest of the tool, not a window that edits numbers off to the side. So:
+
+- **Into the editor, from where a model needs attention.** A double-click
+  on a 3D model problem in Problems ("<spacecraft>: 3D model: ..." or
+  "... differ from the 3D model ...", from `engine.scenario_checks`) opens
+  that spacecraft's model editor (`workspace_panels.model_problem_spacecraft`
+  matches the name, the longest first); the item's tooltip says so. The
+  Explain panel's "3D model, N parts" badge is a button that does the
+  same (`Badge.spacecraft`, `ScenarioExplainerWidget.model_requested`).
+  The out-of-date warning now names how to fix it: 3D Model... and OK, or
+  `spacemissionstudio model --apply`.
+- **In the editor, what it changes in this scenario.** The Use tab says
+  what the next run takes from an applied model: the dry mass only in an
+  orbit-only scenario, the mass properties and facets in a full-attitude
+  one (`model_editor_dialog.uses_note`; both entry points pass the
+  scenario's simulation mode).
+- **Out of the editor, what it wrote.** OK's message names it: "Applied
+  the 3D model of 'octa-sat': dry mass 300 kg, center of mass 7.9 cm from
+  B, inertia, 36 facets" for template 28 (`spacecraft_editor.applied_summary`). The edit
+  then goes the way of any other: the scenario is unsaved, Undo takes it
+  back, Explain and Problems refresh, and earlier results show the
+  out-of-date banner.
+
 Tests (`tests/gui/test_workspace.py`): the entry's place on the toolbar
 (visible at the window's own size) and in the Tools menu; OK applying a
 100 kg, 1 m box (mass 100 kg, Ixx = 16.7 kg m^2, facets left alone in the
 orbit-only template 22) and Undo removing it; the spacecraft choice with
-two spacecraft, and Cancel; no spacecraft.
+two spacecraft, and Cancel; no spacecraft; the Use tab's note for each
+mode; the applied-values message; matching a problem to its spacecraft;
+a stale model's problem in template 28 opening the editor, whose OK
+clears it; the Explain badge opening the editor.

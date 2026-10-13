@@ -462,8 +462,10 @@ cones, spheres and panels, or import an `.obj` from a CAD or modelling
 tool, and give each part its mass. The model then sets the spacecraft's
 dry mass, center of mass, inertia and surface facets, and its look in
 Vizard; mass properties can also be typed in or imported from a file.
-Step by step: [Build a 3D model](docs/user-manual/3d-model.md);
-template 28 is a worked example.
+A model problem in **Problems**, or the "3D model" badge in **Explain**,
+opens the editor for that spacecraft too. Step by step:
+[Build a 3D model](docs/user-manual/3d-model.md); template 28 is a
+worked example.
 
 ![The 3D model editor: the parts on the left, the selected part's settings in the middle, the model in 3D on the right and its mass properties below](docs/images/model_editor.png)
 

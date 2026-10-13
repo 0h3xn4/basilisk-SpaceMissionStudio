@@ -36,10 +36,11 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PySide6.QtCore import QEvent, Qt
+from PySide6.QtCore import QEvent, Qt, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QLabel,
+    QPushButton,
     QScrollArea,
     QSizePolicy,
     QTableWidget,
@@ -106,6 +107,17 @@ def _badge_label(text: str, kind: str) -> QLabel:
     return label
 
 
+def _badge_button(text: str, kind: str) -> QPushButton:
+    """A badge that opens something: the badge's look, a button's focus and
+    keyboard use."""
+    button = QPushButton(text)
+    button.setFlat(True)
+    button.setCursor(Qt.CursorShape.PointingHandCursor)
+    button.setStyleSheet(f"QPushButton {{ {badge_style(_BADGE_KIND_COLORS.get(kind, MUTED))} "
+                         "text-decoration: underline; border: none; }")
+    return button
+
+
 class ScenarioExplainerWidget(QWidget):
     """``set_scenario(Optional[Scenario])`` rebuilds the whole display
     from scratch (clear + repopulate -- mirrors
@@ -115,9 +127,12 @@ class ScenarioExplainerWidget(QWidget):
     a short placeholder instead of crashing.
     """
 
+    model_requested = Signal(str)  # a 3D model badge was clicked: the spacecraft's name
+
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.warning_count = 0  # pre-run warnings currently shown (see engine.scenario_checks)
+        self.model_buttons: list = []  # the 3D model badges, as buttons
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -190,6 +205,7 @@ class ScenarioExplainerWidget(QWidget):
     def set_scenario(self, scenario: Optional[Scenario]) -> None:
         self.warning_count = 0  # pre-run warnings shown (see engine.scenario_checks)
         if scenario is None:
+            self.model_buttons = []
             self._placeholder_label.setVisible(True)
             self._headline_label.setVisible(False)
             _clear_layout(self._tiles_row)
@@ -205,7 +221,11 @@ class ScenarioExplainerWidget(QWidget):
         explanation = explain(scenario)
         self._render(explanation)
 
+    def _on_model_badge(self) -> None:
+        self.model_requested.emit(self.sender().property("spacecraft"))
+
     def _render(self, explanation: ScenarioExplanation) -> None:
+        self.model_buttons = []
         self.warning_count = sum(len(s.notes) for s in explanation.sections if s.title == "Check before running")
         self._headline_label.setText(explanation.headline)
 
@@ -232,7 +252,15 @@ class ScenarioExplainerWidget(QWidget):
                 badges_box = QWidget()
                 badges_row = FlowLayout(badges_box, spacing=6)
                 for badge in section.badges:
-                    badges_row.addWidget(_badge_label(badge.label, badge.kind))
+                    if badge.spacecraft:
+                        button = _badge_button(badge.label, badge.kind)
+                        button.setToolTip(f"Open the 3D model editor for {badge.spacecraft}")
+                        button.setProperty("spacecraft", badge.spacecraft)
+                        button.clicked.connect(self._on_model_badge)
+                        self.model_buttons.append(button)
+                        badges_row.addWidget(button)
+                    else:
+                        badges_row.addWidget(_badge_label(badge.label, badge.kind))
                 section_layout.addWidget(badges_box)
 
             for note in section.notes:

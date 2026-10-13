@@ -126,12 +126,19 @@ shade each other in the simulation.
 
 ## What the model changes
 
-On **OK**, the model's values go into the spacecraft:
+On **OK**, the model's values go into the spacecraft, and a message
+names what was written:
 
 - **dry mass**: the model's mass, plus any flexible solar arrays';
 - the **center of mass**;
 - the **inertia**, including any products of inertia;
 - the **surface facets**, in full-attitude scenarios.
+
+The **Use** tab says what the next run takes from them in this scenario:
+in an orbit-only run only the dry mass (for drag and solar pressure); in a
+full-attitude run the mass properties drive the attitude dynamics and the
+facets the drag and solar pressure forces and torques. After a run, an
+edit to the model marks the results as out of date, as any edit does.
 
 While the model provides them, those fields are shown but locked. The
 **Use** tab switches each off, and **Export .obj...** saves the model.
@@ -143,7 +150,16 @@ B, so a center of mass away from B gives drag, sunlight and thrust a
 torque. If the model and the spacecraft's values drift apart (after an
 edit in the file, say), the 3D model tab and the Scenario Editor's
 warnings say so; **Apply the model** on the **3D model** tab puts them
-back in line.
+back in line, and so does **OK** in the editor.
+
+Elsewhere in the app:
+
+- **Problems** in the side panel lists a model that cannot be built or
+  whose values are out of date; double-click it to open that
+  spacecraft's model editor.
+- **Explain** shows a "3D model, N parts" badge for each spacecraft with a
+  model, and the center of mass offset; click the badge to open the
+  model editor.
 
 ## From the command line
 
