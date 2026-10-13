@@ -593,6 +593,7 @@ section 6.
   display).
 - **Small gap noticed:** the CLI has no `--version` flag (the version is
   in `provenance.json`, the GUI and `pip show`). Not fixed.
+  *Update 2026-10-13:* added: `spacemissionstudio --version` (`-V`).
 
 **Releasable?** Yes for Linux, in my judgement: every audit finding is
 fixed and tested, the suite is green with and without Basilisk, and a

@@ -921,7 +921,8 @@ also explains, in plain language, exactly what's wrong if something
 doesn't validate.
 
 **You want to know SpaceMissionStudio's version** (e.g. to report a problem).
-**Help > About SpaceMissionStudio** shows it.
+**Help > About SpaceMissionStudio** shows it; in a terminal,
+`spacemissionstudio --version` prints it with the Basilisk and Python versions.
 
 ## 12. A short glossary
 

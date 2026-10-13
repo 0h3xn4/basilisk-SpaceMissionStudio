@@ -172,7 +172,8 @@ Then start the GUI (installed apps: from the menu; from source:
   runs still work, but outside what the app was verified against.
 - **Run > Check Reference Data** opens the **Data** tab: every file
   should be `ok`.
-- **Help > About SpaceMissionStudio** shows the app's version.
+- **Help > About SpaceMissionStudio** shows the app's version
+  (`spacemissionstudio --version` in a terminal).
 
 ## 7. Your first run
 

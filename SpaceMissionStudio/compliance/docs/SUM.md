@@ -176,7 +176,8 @@ and 7 (checking the installation, a first run in the GUI, the CLI and
 Python).
 
 **Check-list when something does not start:**
-- Is Basilisk installed? **Help > About** shows the versions.
+- Is Basilisk installed? **Help > About** or `spacemissionstudio --version`
+  shows the versions.
 - Is a display available (GUI)?
 - Read the log file (section 6).
 - GS section 9 and TS list the installation problems seen so far and

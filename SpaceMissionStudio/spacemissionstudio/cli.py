@@ -51,6 +51,7 @@ Usage::
     spacemissionstudio generate-phasing-formation chief_only.json --out formation.json \
         --chief chief-1 --follower-name follower-1 --along-track-km 50
     spacemissionstudio gui
+    spacemissionstudio --version
 """
 
 from __future__ import annotations
@@ -61,7 +62,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from .schema.epochs import parse_epoch_utc
-from . import dependencies, output_provenance
+from . import __version__, dependencies, output_provenance
 from .logging_setup import configure_logging
 from .schema import ScenarioValidationError, load_scenario
 from .schema.command import script_blocks
@@ -903,9 +904,42 @@ Guide: SpaceMissionStudio/docs/user-manual/command-line.md
 """
 
 
+def version_text() -> str:
+    """What ``spacemissionstudio --version`` prints: this tool's version,
+    the Basilisk it runs with (and whether that is the qualified one) and
+    Python. Read from package metadata, so Basilisk is not imported unless
+    it was installed without any (a source build)."""
+    versions = dependencies.dependency_versions()
+    basilisk = versions.get("bsk") or dependencies.basilisk_version()
+    qualified = dependencies.QUALIFIED_BASILISK_VERSION
+    if basilisk is None:
+        basilisk_line = "Basilisk not installed (simulations cannot run)"
+    elif basilisk == qualified:
+        basilisk_line = f"Basilisk {basilisk}"
+    else:
+        basilisk_line = f"Basilisk {basilisk} (not qualified; SpaceMissionStudio is qualified with {qualified})"
+    return "\n".join([f"SpaceMissionStudio {__version__}", basilisk_line,
+                      f"Python {versions['python']} on {versions['platform']}"])
+
+
+class _VersionAction(argparse.Action):
+    """``--version``: print :func:`version_text` to stdout and exit 0.
+    Unlike argparse's own version action, the text is built only when the
+    option is given, not each time the parser is."""
+
+    def __init__(self, option_strings, dest=argparse.SUPPRESS, default=argparse.SUPPRESS, help=None):
+        super().__init__(option_strings, dest=dest, default=default, nargs=0, help=help)
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        print(version_text())
+        parser.exit()
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="spacemissionstudio", description=_HELP_DESCRIPTION,
                                       formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("-V", "--version", action=_VersionAction,
+                        help="show the SpaceMissionStudio, Basilisk and Python versions and exit")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     p_validate = subparsers.add_parser("validate", help="validate a scenario file (no Basilisk needed)")
@@ -1131,6 +1165,9 @@ def main(argv: list | None = None) -> int:
     # idempotent function itself too -- see its own docstring -- so
     # direct-launching the GUI via `python3 -m spacemissionstudio.gui.app`
     # gets it either way).
+    if (sys.argv[1:] if argv is None else list(argv)) in (["--version"], ["-V"]):
+        print(version_text())  # nothing to log: no log file and no "Logging to" line for a version query
+        return 0
     configure_logging()
     parser = build_parser()
     args = parser.parse_args(argv)

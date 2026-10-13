@@ -166,7 +166,8 @@ ERROR: the OPM state is at 2030-01-01T08:30:00 UTC, the scenario epoch is 2030-0
 Include:
 
 - the log file named in the error dialog (in `~/.spacemissionstudio/logs/`);
-- the version from **Help > About SpaceMissionStudio**;
+- the versions, from **Help > About SpaceMissionStudio** or
+  `spacemissionstudio --version`;
 - the scenario file, if you can share it.
 
 The [FAQ](faq.md) answers questions that are not errors.

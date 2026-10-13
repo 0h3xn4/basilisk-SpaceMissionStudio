@@ -8,6 +8,13 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+**New features**
+- `spacemissionstudio --version` (or `-V`) prints the SpaceMissionStudio,
+  Basilisk and Python versions, and says when the installed Basilisk is
+  not the qualified 2.12.0 or is missing.
+
 ## 3.0.0 (2026-10-12)
 
 [Release page](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0): the wheel, sdist, Linux `.deb`, Windows setup

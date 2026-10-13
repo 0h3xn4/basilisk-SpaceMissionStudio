@@ -8993,3 +8993,17 @@ user '_apt'` notice, which comes from installing out of a home folder
 and does not affect the install; Troubleshooting now lists it as a
 normal message. The README, Getting started, capabilities, packaging
 README and AUDIT.md now say the `.deb` was installed by hand, and where.
+
+## A `--version` flag (2026-10-13)
+
+The pre-release audit noted that the CLI had no `--version` (AUDIT.md
+section 6); a version was only in `provenance.json`, **Help > About** and
+`pip show`. `spacemissionstudio --version` (or `-V`) now prints three
+lines: the SpaceMissionStudio version, the installed Basilisk version
+(with the qualified one beside it when they differ, or "not installed"),
+and Python with the platform. It reads package metadata, so it does not
+import Basilisk and takes about 0.1 s. Given alone it writes no log file
+and no `Logging to` line; given before a command it still prints the
+versions and exits 0. The generated CLI interface document now has a
+section for options before the command. Tested with and without
+Basilisk installed; three new tests in `tests/test_cli.py`.
