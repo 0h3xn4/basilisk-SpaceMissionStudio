@@ -130,7 +130,7 @@ results so far. It is not instant.
 
 ### A long run fills memory
 
-Set **Record every** in **Edit Propagation Setup...** (for example 600 s).
+Set **Record every** on the scenario tree's **Environment** page (for example 600 s).
 Five years of LEO station keeping took about 50 minutes and 450 MB with
 it.
 

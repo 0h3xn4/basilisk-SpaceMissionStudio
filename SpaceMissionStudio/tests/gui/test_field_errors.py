@@ -18,9 +18,9 @@
 
 """Errors at the field (docs/ux-audit.md U-12): a problem's message shows
 under the field it is about, which is marked; Problems names a scenario
-field by its label; double-clicking a problem opens where it is fixed, the
-field shown and marked; the dialogs' OK shows a problem the same way
-instead of a message box."""
+field by its label; double-clicking a problem opens where it is fixed (the scenario tree's
+page, since 3b), the field shown and marked; the dialogs' OK shows a
+problem the same way instead of a message box."""
 
 import dataclasses
 from pathlib import Path
@@ -55,15 +55,6 @@ def window(qtbot, monkeypatch):
     qtbot.addWidget(w)
     assert w.open_path(_TEMPLATES / "22_starter_first_leo_satellite.json")
     return w
-
-
-def _opened(monkeypatch, dialog_class):
-    """``dialog_class.exec`` records the dialog and cancels it."""
-    from PySide6.QtWidgets import QDialog
-
-    opened = []
-    monkeypatch.setattr(dialog_class, "exec", lambda self: opened.append(self) or QDialog.DialogCode.Rejected)
-    return opened
 
 
 def _activate_error(window):
@@ -135,49 +126,52 @@ def test_a_scenario_problem_focuses_its_field(window, monkeypatch):
     (lambda sc: dataclasses.replace(sc, orbit=dataclasses.replace(sc.orbit, eccentricity=1.2)),  # [-]
      lambda d: d.orbit_widget.ecc),
 ])
-def test_a_spacecraft_problem_opens_its_editor_at_the_field(window, monkeypatch, edit, widget_of):
-    """Double-clicking a spacecraft's problem opens its editor: the banner
-    says what is wrong, the field's tab is shown and the field is marked."""
+def test_a_spacecraft_problem_opens_its_page_at_the_field(window, edit, widget_of):
+    """Double-clicking a spacecraft's problem opens its page in the scenario
+    tree: the banner says what is wrong, the field's tab is shown and the
+    field is marked."""
     from spacemissionstudio.gui.feedback import field_error_text
-    from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
-    spacecraft_list = window.scenario_editor.spacecraft_list
+    editor = window.scenario_editor
+    spacecraft_list = editor.spacecraft_list
     spacecraft_list.from_list([edit(spacecraft_list.to_list()[0])])
-    window.scenario_editor.revalidate()
-    opened = _opened(monkeypatch, SpacecraftEditorDialog)
+    editor.revalidate()
     _activate_error(window)
-    dialog = opened[0]
+    node = editor._spacecraft_nodes[0]
+    form = node.form
     error = next(text for severity, text in window.problems_widget.problems if severity == "error")
-    widget = widget_of(dialog)
-    assert dialog.problem_banner.isVisibleTo(dialog) and dialog.problem_banner.label.text() == error
+    widget = widget_of(form)
+    assert editor.page_tree.current_page() is node.holder
+    assert form.problem_banner.isVisibleTo(form) and form.problem_banner.label.text() == error
     assert field_error_text(widget) == error
-    assert dialog.tabs.currentWidget().isAncestorOf(widget)
+    assert form.tabs.currentWidget().isAncestorOf(widget)
 
 
-def test_a_propagation_problem_opens_the_setup_at_the_field(window, monkeypatch):
-    """A duration of -1 day opens the propagation setup at its duration."""
+def test_a_propagation_problem_opens_the_environment_at_the_field(window):
+    """A duration of -1 day opens the Environment page at its duration."""
     from spacemissionstudio.gui.feedback import field_error_text
-    from spacemissionstudio.gui.propagation_setup_dialog import PropagationSetupDialog
 
     editor = window.scenario_editor
     editor._sim_settings = dataclasses.replace(editor._sim_settings, duration_days=-1.0)  # [days]
     editor.revalidate()
-    opened = _opened(monkeypatch, PropagationSetupDialog)
     _activate_error(window)
-    assert field_error_text(opened[0].duration_days_spin).startswith("sim_settings.duration_days must be > 0")
+    assert editor.page_tree.current_page() is editor.environment_page
+    assert field_error_text(editor._environment_form.duration_days_spin).startswith(
+        "sim_settings.duration_days must be > 0")
 
 
-def test_a_ground_station_problem_opens_its_editor_at_the_field(window, monkeypatch):
-    """A latitude of 100 deg opens that station's editor at its latitude."""
+def test_a_ground_station_problem_opens_its_page_at_the_field(window):
+    """A latitude of 100 deg opens that station's page at its latitude."""
     from spacemissionstudio.gui.feedback import field_error_text
-    from spacemissionstudio.gui.ground_station_editor import GroundStationEditorDialog
 
-    stations = window.scenario_editor.ground_station_list
+    editor = window.scenario_editor
+    stations = editor.ground_station_list
     stations.from_list([dataclasses.replace(stations.to_list()[0], latitude_deg=100.0)])  # [deg]
-    window.scenario_editor.revalidate()
-    opened = _opened(monkeypatch, GroundStationEditorDialog)
+    editor.revalidate()
     _activate_error(window)
-    assert field_error_text(opened[0].lat_deg).startswith("berlin-gs: latitude_deg must be in [-90, 90]")
+    node = editor._station_nodes[0]
+    assert editor.page_tree.current_page() is node.holder
+    assert field_error_text(node.form.lat_deg).startswith("berlin-gs: latitude_deg must be in [-90, 90]")
 
 
 def test_the_spacecraft_editor_ok_shows_a_problem_at_the_field(qtbot, monkeypatch):

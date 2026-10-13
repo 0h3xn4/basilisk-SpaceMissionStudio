@@ -67,12 +67,12 @@ On macOS, `Cmd` replaces `Ctrl`.
 | File | Format | Where in the app |
 |---|---|---|
 | Scenario | JSON (`.json`) | File > Open..., `spacemissionstudio` commands |
-| TLE | Two text lines, pasted | Spacecraft editor, Orbit / mass |
+| TLE | Two text lines, pasted | Spacecraft page, Orbit / mass |
 | Orbit messages | CCSDS OPM, OMM (KVN text) | `ccsds-import`, `ccsds-validate` |
-| Space weather | CelesTrak CSV or TXT | Data > Import file..., Edit Propagation Setup... |
-| Solar-activity prediction | NASA MSFC table (`.txt`) | Edit Propagation Setup... |
+| Space weather | CelesTrak CSV or TXT | Data > Import file..., Scenario tree > Environment |
+| Solar-activity prediction | NASA MSFC table (`.txt`) | Scenario tree > Environment |
 | Earth orientation | NAIF Earth PCK (`.bpc`, `.cmt`) | Data > Import file..., `earth-orientation --import` |
-| 3D model | Wavefront OBJ (`.obj`) | Spacecraft editor, Vizard model |
+| 3D model | Wavefront OBJ (`.obj`) | Spacecraft page, Vizard model |
 | Flight-software program | An executable speaking the SIL contract | Run SIL..., `sil --binary` |
 
 **Writes**

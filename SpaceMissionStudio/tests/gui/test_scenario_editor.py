@@ -18,23 +18,18 @@ def widget(qtbot):
     return w
 
 
-def _propagation_summary_text(widget) -> str:
-    """Flattens the "Propagation setup" group's labeled QFormLayout rows
-    (see ScenarioEditorWidget._refresh_propagation_summary -- replaced a
-    single free-text QLabel per real user feedback that it read as
-    "cluttered" and unlabeled) into one string, so existing substring
-    assertions against the old single-label text keep working unchanged.
-    """
-    form = widget._propagation_form
-    parts = []
-    for row in range(form.rowCount()):
-        label_item = form.itemAt(row, form.ItemRole.LabelRole)
-        field_item = form.itemAt(row, form.ItemRole.FieldRole)
-        if label_item is not None and label_item.widget() is not None:
-            parts.append(label_item.widget().text())
-        if field_item is not None and field_item.widget() is not None:
-            parts.append(field_item.widget().text())
-    return " ".join(parts)
+def _environment_labels(widget) -> list:
+    """The field labels of the Environment page's form (the embedded
+    PropagationSetupDialog that replaced the read-only summary, U-17)."""
+    from PySide6.QtWidgets import QFormLayout, QLabel
+
+    labels = []
+    for form in widget._environment_form.findChildren(QFormLayout):
+        for row in range(form.rowCount()):
+            item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
+            if item is not None and isinstance(item.widget(), QLabel):
+                labels.append(item.widget().text())
+    return labels
 
 
 def test_default_state_is_invalid_with_no_spacecraft(widget):
@@ -90,37 +85,24 @@ def test_simulation_mode_combo_drives_spacecraft_list_provider(widget):
     assert widget.spacecraft_list._simulation_mode() == "full_attitude"
 
 
-def test_propagation_summary_reflects_defaults(widget):
-    text = _propagation_summary_text(widget)
-    assert "earth" in text
-    assert "Point-mass" in text
+def test_environment_form_reflects_defaults(widget):
+    """The Environment page shows the default settings: Earth, point-mass
+    gravity."""
+    form = widget._environment_form
+    assert form.central_body_combo.currentText().lower().startswith("earth")
+    assert not form.enable_harmonics_check.isChecked()
 
 
-def test_propagation_summary_has_labeled_rows_not_a_single_free_text_line(widget):
-    """Regression guard for the actual complaint (a screenshot of three
-    unlabeled, pipe-joined lines): every row must carry its own field
-    label, matching PropagationSetupDialog's own terminology exactly
-    (same strings -- see that dialog's form.addRow() calls) so the
-    summary and the dialog that edits it never say the same thing two
-    different ways.
-    """
-    form = widget._propagation_form
-    labels = [
-        form.itemAt(row, form.ItemRole.LabelRole).widget().text()
-        for row in range(form.rowCount())
-    ]
-    assert "Central body" in labels
-    assert "Gravity model" in labels
-    assert "Integrator" in labels
-    assert "Dynamics task rate [s]" in labels
-    assert "Duration [days]" in labels
-    assert "Atmosphere model" in labels
+def test_environment_form_has_labeled_rows(widget):
+    """Regression guard for the old summary's complaint (unlabeled,
+    pipe-joined lines): every field of the Environment page carries its
+    own label, the setup's own terminology."""
+    labels = _environment_labels(widget)
+    for label in ("Central body", "Integrator", "Dynamics task rate [s]", "Duration [days]", "Atmosphere model"):
+        assert label in labels, label
 
 
-def test_edit_propagation_setup_updates_state_and_emits_changed(widget, qtbot, monkeypatch):
-    from PySide6.QtWidgets import QDialog
-
-    from spacemissionstudio.gui.propagation_setup_dialog import PropagationSetupDialog
+def _one_spacecraft(widget):
     from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig
 
     widget.spacecraft_list.from_list([
@@ -128,33 +110,35 @@ def test_edit_propagation_setup_updates_state_and_emits_changed(widget, qtbot, m
                                                        velocity_km_s=[0, 7.5, 0]))
     ])
 
-    def fake_exec(self):
-        self.central_body_degree_spin.setValue(4)
-        self.enable_harmonics_check.setChecked(True)
-        return QDialog.DialogCode.Accepted
 
-    monkeypatch.setattr(PropagationSetupDialog, "exec", fake_exec)
-
-    with qtbot.waitSignal(widget.changed, timeout=1000):
-        widget._on_edit_propagation_setup()
-
+def test_edit_propagation_setup_updates_state_and_emits_changed(widget, qtbot):
+    """An edit in the Environment page applies once typing settles."""
+    _one_spacecraft(widget)
+    form = widget._environment_form
+    with qtbot.waitSignal(widget.changed, timeout=2000):  # [ms]
+        form.enable_harmonics_check.setChecked(True)
+        form.central_body_degree_spin.setValue(4)
     assert widget._gravity.central_body_degree == 4
-    assert "harmonics" in _propagation_summary_text(widget)
-
-    got = widget.to_scenario()
-    assert got.gravity.central_body_degree == 4
+    assert widget.to_scenario().gravity.central_body_degree == 4
 
 
-def test_edit_propagation_setup_cancel_leaves_state_unchanged(widget, monkeypatch):
-    from PySide6.QtWidgets import QDialog
+def test_an_invalid_environment_edit_leaves_state_unchanged(widget, monkeypatch):
+    """A form value that does not validate is not applied: the settings stay
+    as they were, the form names the problem, and the scenario is not valid
+    until it is fixed (no run with the old values)."""
+    from spacemissionstudio.gui.scenario_editor import _Debounce
+    from spacemissionstudio.schema.scenario import ScenarioValidationError, SimSettings
 
-    from spacemissionstudio.gui.propagation_setup_dialog import PropagationSetupDialog
-
-    monkeypatch.setattr(PropagationSetupDialog, "exec", lambda self: QDialog.DialogCode.Rejected)
-
-    before = widget._gravity
-    widget._on_edit_propagation_setup()
-    assert widget._gravity is before
+    _one_spacecraft(widget)
+    form = widget._environment_form
+    before = widget._sim_settings
+    monkeypatch.setattr(form, "to_sim_settings", lambda: SimSettings(duration_days=0.0))  # [days]
+    form.duration_days_spin.setValue(2.0)  # [days]
+    form.findChild(_Debounce).flush()
+    assert widget._sim_settings is before
+    assert form.problem_banner.label.text().startswith("sim_settings.duration_days must be > 0")
+    with pytest.raises(ScenarioValidationError, match="duration_days"):
+        widget.to_scenario()
 
 
 def test_third_body_perturbers_round_trip(widget):

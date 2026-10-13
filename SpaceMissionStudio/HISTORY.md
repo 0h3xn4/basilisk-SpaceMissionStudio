@@ -9544,3 +9544,79 @@ epoch, Mars's `mu`, the refusals) and `tests/gui/test_orbit_switch.py`
 (the segments, convert, keep, cancel, a TLE's reason, code never asking,
 the dialog's buttons). `test_live_validation_reacts_to_bad_edit` now
 expects the labelled message.
+
+## UX iteration 3b: the scenario tree (2026-10-13)
+
+The second part of the Scenario Editor iteration: U-01 (no scenario tree;
+one long scrolling page), U-10 (one giant form), U-11 (modal dialogs for
+what fits in a form, sometimes nested) and U-17 (the read-only
+Propagation setup summary).
+
+**The tree** (`gui/page_tree.py`, `PageTree`): a tree beside a stack of
+pages. A node is a page or a group that shows its first child; it can
+carry a problem count after its title, in the error colour. `show_page()`
+selects the node of any widget inside a page, and the stack carries a
+reference to its tree, so `MainWindow.show_view()` reaches a node from
+anywhere (a menu, the command palette, Problems) the same way it reaches
+a tab. The Scenario tab is now the Scenario Editor itself: its nodes, plus
+Templates (first, what a new window shows) and an Analyses group with End
+of Life, Budget and Flight Software, which used to be the Scenario tab's
+own tabs. `current_view()` reports the Scenario Editor on any of its own
+nodes, or Templates or the analysis shown.
+
+**Pages that apply as you type.** The Environment page, each spacecraft's
+page and each ground station's page hold the forms that were dialogs
+(`PropagationSetupDialog`, `SpacecraftEditorDialog`,
+`GroundStationEditorDialog`), embedded: no window, no OK/Cancel, Escape
+filtered out (a `QDialog` would close on it), and long form rows wrapping
+the field under its label (`WrapLongRows`), so a spacecraft's widest tab
+(the Vizard model one needed 826 px) fits the page at 1280 x 720 with the
+side panel open. `watch_edits()` hears every edit in a form (text,
+numbers, choices, ticks, and custom widgets' `changed` signals); 300 ms
+after the last one the form is validated:
+
+- valid: the value goes into the scenario (`replace_config()` on the list,
+  or the environment's three settings), the node is renamed if the name
+  changed, and the edit goes the way of any other (unsaved, Undo, Explain
+  and Problems refreshed);
+- not valid: the form marks the field and its banner names the problem,
+  without moving the focus while the user types; the problem is listed in
+  Problems, and `to_scenario()` raises it, so no save or run quietly uses
+  the last valid values. `to_scenario()` first applies any edit still
+  waiting in its 300 ms, so a save or run right after typing includes it.
+
+A spacecraft's or station's page is built the first time it is shown (a
+24-satellite constellation does not build 24 forms), and built again from
+the scenario when something else changes it: the 3D model editor's OK,
+Undo, a load, the simulation mode (which decides the spacecraft's tabs) or
+the ground station list (which the pointing target lists). The lists tell
+the editor about a reload with a new `reloaded` signal, so a load is not
+counted as an edit.
+
+Problems now goes to the node: a spacecraft's, station's or the
+environment's problem selects its page and shows it at the field. Edit...
+and a double-click in the Spacecraft and Ground stations lists go to the
+node too (`set_edit_handler`); Add..., New from template..., the
+generators and the 3D model editor stay dialogs, as the standard keeps
+dialogs for wizards and imports.
+
+The Explain placeholder for a scenario with a problem said "Fix
+validation errors above"; it now points to Problems.
+
+Not in this step: a spacecraft's tabs are still a tab bar in its page,
+which scrolls at 1280 px with the side panel open (seven tabs); making them
+child nodes of the spacecraft's node in the tree is the obvious next step.
+
+Tests: `tests/gui/test_page_tree.py` (pages and groups, paths, finding a
+widget's page, problem counts, removal, the edit watcher) and
+`tests/gui/test_scenario_tree.py` (a template opens on its Scenario page;
+a spacecraft edited in its page, a save right after the edit including it,
+Undo taking it back and the page following; a rename renaming the node;
+an invalid form blocking the scenario and counting on its node and its
+parent; a scenario problem's count; Edit... going to the node with no
+dialog; a station edited in its page; the 3D model editor's change
+rebuilding the page; the simulation mode's tabs; Escape not closing a
+form; the palette listing the nodes). The tests that named the old tabs,
+the Propagation setup summary and its dialog now check the tree, the
+Environment form and its live edits (an invalid value left unapplied and
+blocking the scenario).

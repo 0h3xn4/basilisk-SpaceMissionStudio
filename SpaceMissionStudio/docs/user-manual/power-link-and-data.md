@@ -3,7 +3,7 @@
 How to add a solar panel and battery, a downlink to a ground station, and
 instruments that fill an onboard memory.
 
-All three are groups on the spacecraft editor's **Power / propulsion /
+All three are groups on the spacecraft page's **Power / propulsion /
 link budget** tab. The power budget, and any antenna pattern other than
 *Fixed gain*, need *Full attitude*: they depend on where the spacecraft
 points.

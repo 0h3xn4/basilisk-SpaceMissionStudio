@@ -149,7 +149,7 @@ class ScenarioExplainerWidget(QWidget):
         scroll.setWidget(content)
 
         self._placeholder_label = QLabel(
-            "Fix validation errors above to see this scenario's recipe here."
+            "The scenario has a problem (see Problems): fix it to see its summary here."
         )
         self._placeholder_label.setWordWrap(True)
         self._placeholder_label.setStyleSheet(f"color: {PALETTE['text_muted']};")

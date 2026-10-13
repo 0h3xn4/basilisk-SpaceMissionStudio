@@ -66,6 +66,17 @@ fixes bugs.
   scenario field's message starts with its label ("Epoch (UTC) ...", not
   "scenario.epoch_utc ..."). OK in those dialogs shows a problem the same
   way instead of a message box.
+- **The scenario is a tree** (UX audit U-01, U-10, U-11, U-17). The
+  Scenario tab shows a tree beside the page of the node you pick:
+  Templates; Scenario; Environment; Spacecraft, with a node per
+  spacecraft; Ground stations, with a node per station; Mission sequence;
+  Monte Carlo; and Analyses (End of Life, Budget, Flight Software). The
+  environment (formerly the Propagation setup window), each spacecraft and
+  each ground station are edited in their pages, applied as you type, with
+  Edit > Undo; a page that does not validate marks the field and keeps the
+  scenario from running until it is fixed. A node shows how many problems
+  are about it. Edit... in the Spacecraft or Ground stations list goes to
+  the node; Add..., the templates and the generators stay dialogs.
 **Fixed**
 - **Switching the orbit type no longer changes the orbit silently** (UX
   audit U-14). The type is a segmented control; picking another asks

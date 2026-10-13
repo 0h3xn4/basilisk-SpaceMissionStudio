@@ -88,11 +88,14 @@ def main(out: Path) -> int:
     save(window, "01_start.png")
 
     def pages():
-        """Every page of the workspace: the main tabs' pages (the Scenario
-        and Results tabs' own pages each), then the side panel's."""
-        for main in range(window.main_tabs.count()):
+        """Every page of the workspace: the scenario tree's nodes, the other
+        main tabs' pages (the Results tab's own pages each), then the side
+        panel's."""
+        for path, page in window.scenario_editor.page_tree.paths():
+            yield page, "Scenario_" + path.replace(" > ", "_")
+        for main in range(1, window.main_tabs.count()):
             page = window.main_tabs.widget(main)
-            inner = page if page in (window.scenario_tabs, window.results_views) else None
+            inner = page if page is window.results_views else None
             for sub in range(inner.count() if inner is not None else 1):
                 widget = inner.widget(sub) if inner is not None else page
                 label = window.main_tabs.tabText(main) + ("_" + inner.tabText(sub) if inner is not None else "")
