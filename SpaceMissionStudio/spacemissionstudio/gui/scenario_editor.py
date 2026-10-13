@@ -267,6 +267,7 @@ class ScenarioEditorWidget(QWidget):
             lambda: [gs.name for gs in self.ground_station_list.to_list()]
         )
         self.spacecraft_list.set_epoch_provider(lambda: self.epoch_edit.text().strip())
+        self._base_dir_provider = None  # set_base_dir_provider
         self.spacecraft_list.changed.connect(self.changed)
         self.spacecraft_list.changed.connect(self._refresh_monte_carlo_spacecraft_names)
         layout.addWidget(self.spacecraft_list)
@@ -305,6 +306,13 @@ class ScenarioEditorWidget(QWidget):
         self.monte_carlo_group.set_spacecraft_names([sc.name for sc in self.spacecraft_list.to_list()])
 
     # -- (dis)assembly -------------------------------------------------------
+    def set_base_dir_provider(self, provider) -> None:
+        """``provider`` returns the scenario file's folder, or None while the
+        scenario is unsaved: where a 3D model's relative mesh paths start
+        (the spacecraft editor and the plausibility checks need it)."""
+        self._base_dir_provider = provider
+        self.spacecraft_list.set_base_dir_provider(provider)
+
     def to_scenario(self) -> Scenario:
         """Raises :class:`ScenarioValidationError` with a specific message
         on anything invalid -- callers (Save, Run, the live-validation
@@ -387,6 +395,7 @@ class ScenarioEditorWidget(QWidget):
         else:
             self.validation_label.setText("✓ valid")
             self.validation_label.setStyleSheet(f"color: {PALETTE['success']};")
-            warnings = plausibility_warnings(scenario)
+            base_dir = self._base_dir_provider() if self._base_dir_provider else None
+            warnings = plausibility_warnings(scenario, base_dir=base_dir)
         self.plausibility_label.setText("\n".join(f"⚠ {warning}" for warning in warnings))
         self.plausibility_label.setVisible(bool(warnings))

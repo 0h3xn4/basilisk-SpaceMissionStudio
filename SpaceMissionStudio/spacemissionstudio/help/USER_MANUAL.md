@@ -429,6 +429,18 @@ or adaptive coding; atmosphere, rain and polarisation losses in the link
 budget (lump them into the implementation loss); ground antenna pointing,
 which is assumed perfect.
 
+### A 3D model of the spacecraft
+
+The **3D model** tab of the spacecraft editor opens the 3D model editor:
+build the spacecraft from boxes, prisms (an octagonal bus), cylinders,
+cones, spheres and panels, or import an `.obj` from a CAD or modelling
+tool, and give each part its mass. The model then sets the spacecraft's
+dry mass, center of mass, inertia and surface facets, and its look in
+Vizard; mass properties can also be typed in or imported from a file.
+Step by step: [Build a 3D model](docs/user-manual/3d-model.md).
+
+![The 3D model editor: the parts on the left, the selected part's settings in the middle, the model in 3D on the right and its mass properties below](docs/images/model_editor.png)
+
 ### Flexible solar arrays
 
 **Flexible solar arrays** (spacecraft editor, **Orbit / mass** tab) lists
@@ -958,6 +970,10 @@ anyone who hasn't worked with spacecraft before:
   its own area, facing direction and centre of pressure. Drag and solar
   pressure push on each plate that faces the flow or the Sun, so both
   depend on the attitude and can twist the spacecraft.
+* **Center of mass** -- the point the spacecraft's mass balances on.
+  A force that does not pass through it turns the spacecraft.
+* **Moments of inertia** -- how hard the spacecraft is to turn about each
+  axis, the rotational counterpart of mass, in kg m^2.
 * **Orbital lifetime** -- how long drag takes to bring an orbit down to
   re-entry (here: the perigee reaching 120 km). Disposal rules cap it
   after the mission ends: 5 years under ESA's Zero Debris approach and

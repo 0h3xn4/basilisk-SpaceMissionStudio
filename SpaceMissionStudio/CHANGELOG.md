@@ -18,11 +18,21 @@ fixes bugs.
   and inertia (or typed in, or read from a JSON or CSV file) and the drag
   and solar-pressure facets; Vizard shows the model. `spacemissionstudio
   model` reports a model, applies it to the scenario and exports `.obj`.
-  The editor in the app follows.
+- **The 3D model editor** (spacecraft editor, **3D model** tab): a parts
+  list, each part's settings, and the model in 3D; mass properties
+  computed, typed in or imported; the facets it gives; an `.obj` export.
+  Guide: `docs/user-manual/3d-model.md`.
 - **Center of mass.** A spacecraft's `center_of_mass_b_m` is now Basilisk's
   hub offset: drag, solar pressure and thrust get their torque about the
   center of mass, not about the body origin. Older files load with it at
   the origin, as before.
+
+**Fixed**
+- The spacecraft editor kept only the moments of inertia: a spacecraft's
+  products of inertia (typed into the file) were set to 0 whenever it was
+  opened and OK'd. They are now kept, and shown.
+- The app's web views (the Results plots, the 3D view) start Chromium with
+  `--ignore-gpu-blocklist`, so WebGL works without a usable GPU.
 - `spacemissionstudio --version` (or `-V`) prints the SpaceMissionStudio,
   Basilisk and Python versions, and says when the installed Basilisk is
   not the qualified 2.12.0 or is missing.

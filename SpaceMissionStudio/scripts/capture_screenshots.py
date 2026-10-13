@@ -24,8 +24,8 @@ Basilisk 2.12.0, the ``gui`` extra and the reference data installed::
 
 It opens templates 22, 18 and 07, runs template 22, estimates its lifetime
 and template 18's propellant budget, and saves each view at 1600 x 900
-pixels. ``monte_carlo_tab.png`` needs a Monte Carlo batch and is not
-captured here.
+pixels, and the 3D model editor with an octagonal bus. ``monte_carlo_tab.png``
+needs a Monte Carlo batch and is not captured here.
 """
 
 import sys
@@ -35,6 +35,25 @@ from pathlib import Path
 WINDOW_SIZE = (1600, 900)  # [px]
 WIZARD_SIZE = (960, 640)  # [px]
 TOAST_S = 5.0  # [s] long enough for the "Opened ..." notice to fade
+
+
+def _octagonal_bus_model():
+    """The model shown in ``model_editor.png``: an octagonal bus, two
+    deployed panels and a dish."""
+    from spacemissionstudio.schema.scenario import ModelPartConfig, SpacecraftModelConfig
+
+    panel = {"width": 1.0, "length": 2.2, "thickness": 0.03}  # [m]
+    return SpacecraftModelConfig(parts=[
+        ModelPartConfig(name="bus", shape="prism", dimensions_m={"width_across_flats": 1.1, "height": 1.2},
+                        mass_kg=180.0, color=[0.78, 0.78, 0.8]),  # [m], [kg]
+        ModelPartConfig(name="wing +y", shape="panel", dimensions_m=dict(panel), position_b_m=[0.0, 1.75, 0.1],
+                        mass_kg=8.0, distribution="shell", color=[0.1, 0.2, 0.55]),  # [m], [kg]
+        ModelPartConfig(name="wing -y", shape="panel", dimensions_m=dict(panel), position_b_m=[0.0, -1.75, 0.1],
+                        mass_kg=8.0, distribution="shell", color=[0.1, 0.2, 0.55]),  # [m], [kg]
+        ModelPartConfig(name="dish", shape="cone", dimensions_m={"base_diameter": 0.6, "height": 0.18},
+                        position_b_m=[0.0, 0.0, 0.69], mass_kg=3.0, distribution="shell",
+                        color=[0.9, 0.9, 0.85]),  # [m], [kg]
+    ])
 
 
 def main(out: Path) -> int:
@@ -115,6 +134,16 @@ def main(out: Path) -> int:
     window.right_tabs.setCurrentWidget(window.flight_software_widget)
     spin(1.5)  # [s]
     save("flight_software_tab.png")
+
+    from spacemissionstudio.gui.model_editor_dialog import ModelEditorDialog
+
+    editor = ModelEditorDialog(_octagonal_bus_model(), spacecraft_name="sat-1")
+    editor.resize(*WINDOW_SIZE)
+    editor.show()
+    spin(6.0)  # [s] the 3D view loads plotly.js and draws
+    editor.grab().save(str(out / "model_editor.png"))
+    print(f"wrote {out / 'model_editor.png'}")
+    editor.close()
 
     name = "22_starter_first_leo_satellite.json"
     wizard = TemplateCustomizeWizard(load_scenario(TEMPLATES_DIR / name), get_wizard_spec(name))

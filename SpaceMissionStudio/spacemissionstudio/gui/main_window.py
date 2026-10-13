@@ -180,6 +180,8 @@ class MainWindow(QMainWindow):
         self._last_run_scenario: Scenario | None = None  # set in on_run(); fed to mission_dashboard_widget
 
         self.scenario_editor = ScenarioEditorWidget()
+        self.scenario_editor.set_base_dir_provider(
+            lambda: self._current_path.parent if self._current_path is not None else None)
         self.scenario_editor.reset_to_default()
         self.scenario_editor.changed.connect(self._mark_dirty)
         self.scenario_editor.changed.connect(self._refresh_scenario_explainer)

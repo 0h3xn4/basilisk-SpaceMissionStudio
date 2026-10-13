@@ -47,6 +47,11 @@ reads and writes three of its orbit messages: [OPM, OMM and OEM](#o).
 on a spacecraft for its size. ESA's [AD10](#a) uses 3.0 for operations (a
 higher, conservative value) and 2.2 for end of life.
 
+**Center of mass (center of gravity)** -- the point the spacecraft's mass
+balances on. Forces that do not pass through it (drag, sunlight, a
+thruster off its axis) turn the spacecraft. The app gives it from body
+point B (`center_of_mass_b_m`); a 3D model computes it.
+
 **Classical orbit elements** -- six numbers that describe an orbit:
 semi-major axis (roughly its average size), eccentricity (how stretched
 it is), inclination (its tilt to the equator), [RAAN](#r) and argument of
@@ -129,6 +134,12 @@ of travel) and **N**ormal (out of the orbit plane). Formation offsets are
 given in it.
 
 ## I
+
+**Inertia (moments and products of inertia)** -- how hard the
+spacecraft is to turn about each axis: the rotational counterpart of
+mass, in kg m^2. The moments Ixx, Iyy, Izz are about the body axes; the
+products Ixy, Ixz, Iyz say how the mass sits off those axes (zero for a
+symmetric body). The app uses the tensor sign convention, Ixy = -∫xy dm.
 
 **ICD (interface control document)** -- a document that lists every
 message a piece of software reads and writes: its fields, units, who
@@ -213,6 +224,10 @@ drag uses, driven by [F10.7](#f) and [Ap](#a).
 
 ## O
 
+**OBJ (Wavefront .obj)** -- a common text file format for 3D shapes,
+written by CAD and modelling tools. The app reads it into a 3D model and
+writes the model in it, for Vizard and for export.
+
 **OEM, OMM, OPM** -- three [CCSDS](#c) orbit files. An **OPM** (Orbit
 Parameter Message) gives one state at one time; an **OMM** (Orbit
 Mean-Elements Message) gives mean elements, such as a [TLE](#t); an
@@ -241,6 +256,10 @@ the link depends on where the spacecraft points.
 another spacecraft (the chief) a satellite sits along the same orbit.
 "Phasing-keeping" holds that separation, the way station-keeping holds
 altitude.
+
+**Principal axes** -- the three axes about which a body's products of
+inertia are zero; the moments about them are its principal moments. A
+model shows both, and how far each axis is from the nearest body axis.
 
 **Provenance** -- `provenance.json`, written with every run's results: the
 Basilisk version, whether it is the verified one, the other software

@@ -9060,3 +9060,55 @@ SRP torques were about B rather than about the center of mass.
 
 **Not done yet:** the editor in the app; the model's look in a running
 Vizard; a moving center of mass as propellant drains.
+
+## 3D spacecraft models, part 2: the editor (2026-10-13)
+
+The editor in the app, opened from a new **3D model** tab in the
+spacecraft editor (`gui/model_editor_dialog.py`).
+- **Parts:** shapes are added (the prism starts as an octagon) and `.obj`
+  files imported, one part per group, optionally copied into the
+  scenario's `models/` folder. Parts can be duplicated, renamed (names
+  checked), hidden and deleted.
+- **Part form:** sizes, place, rotation, colour, mass and its spread,
+  whether it counts toward the mass, faces left out of the surface model,
+  and the coefficients.
+- **3D view:** the model with the body axes and the center of mass
+  (`gui/model_view_widget.py`), updated in place with `Plotly.react`, so
+  the camera stays where the user put it.
+- **Tabs below:**
+  - mass properties: computed, typed in ("start from the computed
+    values"), or imported from JSON/CSV;
+  - the facets and the area seen from each axis;
+  - what the model is applied to, and an `.obj` export.
+
+**Found while building it, and fixed.**
+- **Products of inertia were lost.** The spacecraft editor showed only
+  Ixx, Iyy, Izz and wrote zeros for the products of inertia. A spacecraft
+  with products in its file lost them on any open-and-OK. The full tensor
+  is now kept, the products are shown, and a test reopens and re-saves
+  such a spacecraft. The same holds for a model's inertia, whose products
+  are rarely zero.
+- **The 3D view was blank without a GPU.** The first offscreen screenshot
+  showed "WebGL is not supported by your browser": Chromium blocklists
+  its own software renderer for WebGL. `gui/webengine_setup.py` now
+  starts Chromium with `--ignore-gpu-blocklist` (with `--no-sandbox`
+  only as root, as before) for both web views. With it the same view
+  rendered. A user's own `QTWEBENGINE_CHROMIUM_FLAGS` are kept as set.
+- **The form column was too narrow** for three x, y, z fields. They now
+  share the row without spin buttons.
+
+**Verified.**
+- `tests/gui/test_model_editor.py`:
+  - adding shapes;
+  - editing the form;
+  - duplicate, rename and delete;
+  - an `.obj` import in mm, copied with its `.mtl`;
+  - typed and imported mass properties;
+  - the spacecraft editor applying a model, locking the fields it fills
+    and giving back the same spacecraft after a reopen;
+  - products of inertia surviving a re-edit.
+- The screenshot `docs/images/model_editor.png`, taken offscreen by
+  `scripts/capture_screenshots.py`.
+
+**Not done:** using the editor by hand on a desktop; the model's look in a
+running Vizard.

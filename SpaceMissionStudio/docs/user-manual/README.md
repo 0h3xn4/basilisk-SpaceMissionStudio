@@ -24,6 +24,7 @@ New to the app? Do [Getting started](../getting-started.md) first.
 | Plan burns and transfers in steps? | [Mission Sequence](mission-sequence.md) |
 | Keep an orbit, fly a formation or a constellation? | [Orbit keeping and formations](orbit-keeping-and-formations.md) |
 | Point the spacecraft, with real sensors and actuators? | [Attitude and hardware](attitude-and-hardware.md) |
+| Build my spacecraft in 3D, or import it from CAD, with its mass, center of mass and inertia? | [3D model](3d-model.md) |
 | Model power, the radio link and data? | [Power, link and data](power-link-and-data.md) |
 | Run many variations at once? | [Monte Carlo](monte-carlo.md) |
 | Know when it comes down, and how much propellant it needs? | [Lifetime and propellant budget](lifetime-and-budget.md) |
