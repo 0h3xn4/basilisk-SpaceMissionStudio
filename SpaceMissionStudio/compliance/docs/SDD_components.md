@@ -86,7 +86,7 @@ Identifiers are module paths: `engine/service` is `spacemissionstudio/engine/ser
 | `gui/mission_output_widget` | MissionOutputWidget | SRS-F-15 | `MissionOutputWidget` | engine/results, gui/theme, output_provenance, plot_categories | PySide6, numpy | 382 |
 | `gui/mission_sequence_editor` | Tree editor for a scenario's ``mission_sequence`` -- the GUI counterpart of ``schema.command.Command``/``engine.mission_engine.MissionEngine``. | - | `MissionSequenceEditorWidget` | gui/feedback, gui/theme, gui/widgets, schema/command | PySide6 | 813 |
 | `gui/model_editor_dialog` | The 3D model editor | SRS-F-20 | `unique_name`, `ModelEditorDialog` | gui/model_view_widget, gui/theme, gui/widgets, model3d/mass_import, model3d/model, model3d/obj_io, schema/scenario | PySide6 | 813 |
-| `gui/model_view_widget` | The 3D view of a spacecraft's model in the model editor | SRS-F-20 | `model_figure`, `ModelViewWidget` | gui/results_widget, gui/theme, gui/webengine_setup | PySide6, numpy, plotly | 138 |
+| `gui/model_view_widget` | The 3D view of a spacecraft's model in the model editor | SRS-F-20 | `model_figure`, `ModelViewWidget` | gui/results_widget, gui/theme, gui/webengine_setup | PySide6, numpy, plotly | 137 |
 | `gui/monte_carlo_editor` | Monte Carlo editor | SRS-F-15 | `DispersionListWidget`, `MonteCarloGroupWidget` | gui/feedback, gui/widgets, schema/scenario | PySide6 | 454 |
 | `gui/monte_carlo_results_widget` | The "Monte Carlo" tab | - | `MonteCarloResultsWidget` | engine/monte_carlo_results, gui/results_widget, gui/scenario_explainer_widget, gui/theme, gui/widgets | PySide6 | 265 |
 | `gui/number_list` | An ordered list of numbers edited as one labelled spin box per entry. | - | `NumberListEditor` | gui/theme, gui/widgets | PySide6 | 151 |
