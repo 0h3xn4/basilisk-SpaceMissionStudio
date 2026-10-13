@@ -68,6 +68,9 @@ You can also build them yourself: the `.deb` with
 sudo apt install ./spacemissionstudio_3.0.0_all.deb
 ```
 
+A closing `N: Download is performed unsandboxed as root ...` line is a
+harmless apt notice ([Troubleshooting](troubleshooting.md#messages-that-are-normal)).
+
 **Windows:** double-click `spacemissionstudio-3.0.0-setup.exe` and follow
 the wizard.
 
