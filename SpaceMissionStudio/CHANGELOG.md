@@ -41,6 +41,16 @@ fixes bugs.
   open the Data tab), the Earth orientation data's date and the frames
   (UX audit U-04, U-06, U-07).
 
+- **A new workspace.** Five main tabs: Scenario (with Load Scenario, the
+  Scenario Editor, End of Life, Budget and Flight Software), Results
+  (Plots, Dashboard, Output, Monte Carlo), Events, Compare (the session's
+  runs and the inputs that differ) and Log (this session's log; a failed
+  run opens it). A side panel with the Inspector (the focused field's
+  value, range and help), Explain and Problems (what does not validate or
+  looks implausible). The reference data is a dialog from the status bar
+  or **Tools > Reference Data...**. New Analyses, Tools and View menus;
+  the app remembers the panel layout, and **View > Reset Layout** puts it
+  back (UX audit U-02, U-05, U-23).
 **Fixed**
 - **Save PNG / Save SVG** no longer fails with "Could not render the plot"
   when the plot's page reloads while the image is rendering (a redraw, or

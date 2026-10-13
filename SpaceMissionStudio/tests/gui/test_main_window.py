@@ -66,8 +66,8 @@ def test_initial_title_is_untitled(window):
 
 
 def test_explain_tab_exists_and_shows_the_default_scenario_on_startup(window):
-    assert window.right_tabs.indexOf(window.scenario_explainer_widget) >= 0
-    assert window.right_tabs.tabText(window.right_tabs.indexOf(window.scenario_explainer_widget)) == "Explain"
+    assert window.side_tabs.indexOf(window.scenario_explainer_widget) >= 0
+    assert window.side_tabs.tabText(window.side_tabs.indexOf(window.scenario_explainer_widget)) == "Explain"
     # reset_to_default()'s own scenario has zero spacecraft (invalid --
     # Scenario.validate() requires >= 1), so the placeholder is the
     # correct initial state here, not a crash -- this is the real
@@ -214,7 +214,7 @@ def test_open_missing_file_shows_error(window, tmp_path, monkeypatch):
 
 
 def test_window_starts_on_load_scenario_tab(window):
-    assert window.left_tabs.currentWidget() is window.load_scenario_widget
+    assert window.current_view() is window.load_scenario_widget
 
 
 def test_choosing_a_template_opens_it_and_switches_to_editor_tab(window):
@@ -225,7 +225,7 @@ def test_choosing_a_template_opens_it_and_switches_to_editor_tab(window):
     window.load_scenario_widget.path_chosen.emit(template_path)
 
     assert window._current_path == template_path
-    assert window.left_tabs.currentWidget() is window.scenario_editor
+    assert window.current_view() is window.scenario_editor
     assert len(window.scenario_editor.spacecraft_list.to_list()) >= 1
 
 
@@ -245,7 +245,7 @@ def test_choosing_a_template_with_unsaved_changes_prompts_first(window, monkeypa
     # Cancelled -- the original (dirty) scenario must still be showing,
     # not the template that was about to replace it.
     assert window._current_path is None
-    assert window.left_tabs.currentWidget() is window.load_scenario_widget
+    assert window.current_view() is window.load_scenario_widget
 
 
 def test_choosing_a_customized_scenario_opens_it_with_no_current_path(window):
@@ -265,7 +265,7 @@ def test_choosing_a_customized_scenario_opens_it_with_no_current_path(window):
     window.load_scenario_widget.scenario_customized.emit(scenario)
 
     assert window._current_path is None
-    assert window.left_tabs.currentWidget() is window.scenario_editor
+    assert window.current_view() is window.scenario_editor
     loaded = window.scenario_editor.to_scenario()
     assert loaded.spacecraft[0].geo_station_keeping.longitude_deadband_deg == 0.1
     # The original template file itself must be untouched.
@@ -286,7 +286,7 @@ def test_choosing_a_customized_scenario_with_unsaved_changes_prompts_first(windo
     window.load_scenario_widget.scenario_customized.emit(scenario)
 
     assert len(question_calls) == 1
-    assert window.left_tabs.currentWidget() is window.load_scenario_widget
+    assert window.current_view() is window.load_scenario_widget
 
 
 def test_customized_scenario_that_fails_validation_shows_error_not_crash(window, monkeypatch):
@@ -303,13 +303,13 @@ def test_customized_scenario_that_fails_validation_shows_error_not_crash(window,
     window.load_scenario_widget.scenario_customized.emit(scenario)
 
     assert len(critical_calls) == 1
-    assert window.left_tabs.currentWidget() is window.load_scenario_widget
+    assert window.current_view() is window.load_scenario_widget
 
 
 def test_on_new_switches_to_editor_tab(window):
-    window.left_tabs.setCurrentWidget(window.load_scenario_widget)
+    window.show_view(window.load_scenario_widget)
     window.on_new()
-    assert window.left_tabs.currentWidget() is window.scenario_editor
+    assert window.current_view() is window.scenario_editor
 
 
 def test_open_path_returns_true_on_success_false_on_failure(window, tmp_path, monkeypatch):
@@ -490,13 +490,13 @@ def test_run_with_live_plot_clears_previous_result_and_shows_results_tab(window,
     stale = ResultSet(scenario_name="stale")
     stale.add(TimeSeries("sat-1.position_N", [0.0], ("x", "y", "z"), [[0.0, 0.0, 0.0]], units="m"))
     window.results_widget.set_result(stale)
-    window.right_tabs.setCurrentWidget(window.data_panel_widget)
+    window.show_view(window.lifetime_widget)  # some page other than the run views
 
     window.live_plot_action.setChecked(True)
     window.on_run()
 
     assert window.results_widget.series_combo.count() == 0
-    assert window.right_tabs.currentWidget() is window.results_widget
+    assert window.current_view() is window.results_widget
 
 
 def test_run_finished_preserves_users_series_selection(window):
@@ -1041,16 +1041,16 @@ def test_run_finished_with_command_summary_shows_mission_output_tab(window):
     summary = CommandSummary(reports=[ReportEntry(label="x", t_s=1.0, values={})], commands_executed=1)
     window._on_run_finished(ResultSet(scenario_name="test", series={}), summary)
 
-    assert window.right_tabs.currentWidget() is window.mission_output_widget
+    assert window.current_view() is window.mission_output_widget
     assert "1 command run" in window.mission_output_widget.summary_label.text()
 
 
 def test_run_finished_without_command_summary_shows_results_tab(window):
     from spacemissionstudio.engine.results import ResultSet
 
-    window.right_tabs.setCurrentWidget(window.data_panel_widget)
+    window.show_view(window.lifetime_widget)  # some page other than the run views
     window._on_run_finished(ResultSet(scenario_name="test", series={}))
-    assert window.right_tabs.currentWidget() is window.results_widget
+    assert window.current_view() is window.results_widget
 
 
 class _FakeVizardProcess:
@@ -1741,7 +1741,7 @@ def test_run_cancelled_updates_results_widget_and_status(window):
     assert window.run_action.isEnabled()
     assert window.results_widget.series_combo.count() == 1
     assert window.results_widget._epoch_utc == "2032-01-01T00:00:00"
-    assert window.right_tabs.currentWidget() is window.results_widget
+    assert window.current_view() is window.results_widget
     assert window.statusBar().currentMessage() == "Run cancelled by user."
 
 
@@ -1751,7 +1751,7 @@ def test_run_cancelled_with_command_summary_shows_mission_output_tab(window):
     summary = CommandSummary(reports=[ReportEntry(label="x", t_s=1.0, values={})], commands_executed=1)
     window._on_run_cancelled(ResultSet(scenario_name="test", series={}), summary)
 
-    assert window.right_tabs.currentWidget() is window.mission_output_widget
+    assert window.current_view() is window.mission_output_widget
     assert "1 command run" in window.mission_output_widget.summary_label.text()
 
 
@@ -1978,16 +1978,16 @@ def test_explain_tab_title_counts_pre_run_warnings(window, qapp):
     from pathlib import Path
 
     templates = Path(__file__).resolve().parents[2] / "spacemissionstudio" / "scenarios" / "templates"
-    tab_index = window.right_tabs.indexOf(window.scenario_explainer_widget)
+    tab_index = window.side_tabs.indexOf(window.scenario_explainer_widget)
     from spacemissionstudio.schema import load_scenario
 
     assert window.open_path(next(templates.glob("19_*.json")))
-    assert window.right_tabs.tabText(tab_index) == "Explain"
+    assert window.side_tabs.tabText(tab_index) == "Explain"
     late = load_scenario(next(templates.glob("19_*.json")))
     late.epoch_utc = "2030-01-01T00:00:00"  # the old epoch: no Berlin pass in the run
     window.scenario_editor.from_scenario(late)
     window.scenario_editor.changed.emit()
-    assert window.right_tabs.tabText(tab_index) == "Explain (1 to check)"
+    assert window.side_tabs.tabText(tab_index) == "Explain (1 to check)"
 
 
 def test_a_run_hands_the_scenarios_featured_series_to_the_results_tab(window, monkeypatch):

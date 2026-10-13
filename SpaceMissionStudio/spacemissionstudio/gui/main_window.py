@@ -42,6 +42,7 @@ from typing import Optional
 from PySide6.QtCore import QElapsedTimer, QEventLoop, Qt, QTimer
 from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
+    QApplication,
     QDialog,
     QFileDialog,
     QLabel,
@@ -50,7 +51,9 @@ from PySide6.QtWidgets import (
     QProgressBar,
     QProgressDialog,
     QScrollArea,
-    QSplitter,
+    QDockWidget,
+    QStackedWidget,
+    QTabWidget,
     QToolBar,
     QVBoxLayout,
     QWidget,
@@ -92,6 +95,7 @@ from .vizard_launcher import (
     remember_vizard_executable,
 )
 from .widgets import TabWidget
+from .workspace_panels import CompareWidget, InspectorWidget, LogViewWidget, ProblemsWidget, install_log_view
 from ..engine.vizard import playback_file as vizard_playback_file
 
 _FILE_FILTER = "SpaceMissionStudio scenario (*.json)"
@@ -107,6 +111,7 @@ _HISTORY_SETTLE_MS = 400  # [ms] an edit is recorded for undo once typing pauses
 _AUTOSAVE_INTERVAL_MS = 30_000
 
 _logger = logging.getLogger(__name__)
+_LAYOUT_VERSION = 1  # [-] saveState() version: bump when the docks change, so an old layout is ignored
 
 
 def _duration_text(seconds: float) -> str:
@@ -242,60 +247,90 @@ class MainWindow(QMainWindow):
         self.stale_results_banner.rerun_requested.connect(self.on_run)
         self._shown_run_sha256: str | None = None  # the scenario hash of the run the views show
 
-        self.right_tabs = TabWidget()
-        self.right_tabs.addTab(self.results_widget, "Results")
-        self.right_tabs.addTab(self.mission_dashboard_widget, "Mission Dashboard")
-        self.right_tabs.addTab(self.mission_output_widget, "Mission Output")
-        self.right_tabs.addTab(self.event_timeline_widget, "Events")
+        # The workspace (UX/UI Standard, "Target layout"; docs/ux-audit.md
+        # U-02, U-05): five main tabs, three docks on the right, and the
+        # reference data in a dialog opened from the status bar.
+        # "Load Scenario" first, so it is what a new window shows: a new
+        # user's first move is picking a template or a file. open_path()
+        # switches to "Scenario Editor" once something loads. The analyses
+        # and the flight software tools follow; the scenario tree replaces
+        # these tabs in the Scenario Editor iteration (U-01).
+        self.scenario_tabs = TabWidget()
+        self.scenario_tabs.addTab(self.load_scenario_widget, "Load Scenario")
+        self.scenario_tabs.addTab(self.scenario_editor, "Scenario Editor")
+        # In scroll areas: the End of Life form and its results need about
+        # 560 px, which kept the window from fitting 720 px (U-03); the
+        # budget, launch-delay and altitude tables together outgrow short
+        # windows too.
+        lifetime_scroll = QScrollArea()
+        lifetime_scroll.setWidgetResizable(True)
+        lifetime_scroll.setWidget(self.lifetime_widget)
+        self.scenario_tabs.addTab(lifetime_scroll, "End of Life")
+        budget_scroll = QScrollArea()
+        budget_scroll.setWidgetResizable(True)
+        budget_scroll.setWidget(self.budget_widget)
+        self.scenario_tabs.addTab(budget_scroll, "Budget")
+        self.scenario_tabs.addTab(self.flight_software_widget, "Flight Software")
+
+        # Results: the plots, the dashboard, the mission output and, when
+        # there is something to show, the Monte Carlo statistics.
+        self.results_views = TabWidget()
+        self.results_views.setObjectName("resultsViews")
+        self.results_views.addTab(self.results_widget, "Plots")
+        self.results_views.addTab(self.mission_dashboard_widget, "Dashboard")
+        self.results_views.addTab(self.mission_output_widget, "Output")
         # Added and removed as needed (_update_monte_carlo_tab), never kept
         # as a hidden tab: selecting a hidden tab crashed the macOS test run.
         self.monte_carlo_results_widget = MonteCarloResultsWidget(self)
         self.monte_carlo_results_widget.hide()
-        self.right_tabs.addTab(self.data_panel_widget, "Data")
-        self.right_tabs.addTab(self.scenario_explainer_widget, "Explain")
-        # In a scroll area, like the budget below: the form and its results
-        # need about 560 px, which kept the window from fitting 720 px
-        # (docs/ux-audit.md U-03).
-        lifetime_scroll = QScrollArea()
-        lifetime_scroll.setWidgetResizable(True)
-        lifetime_scroll.setWidget(self.lifetime_widget)
-        self.right_tabs.addTab(lifetime_scroll, "End of Life")
-        budget_scroll = QScrollArea()  # the budget, launch-delay and altitude tables together outgrow short windows
-        budget_scroll.setWidgetResizable(True)
-        budget_scroll.setWidget(self.budget_widget)
-        self.right_tabs.addTab(budget_scroll, "Budget")
-        self.right_tabs.addTab(self.flight_software_widget, "Flight Software")
+
+        self.compare_widget = CompareWidget()
+        self.compare_widget.compare_chosen.connect(self._on_compare_chosen)
+        self.results_widget.compare_combo.currentIndexChanged.connect(self._refresh_compare_tab)
+        self.log_widget = LogViewWidget()
+        install_log_view(self.log_widget)
+
+        self.main_tabs = TabWidget()
+        self.main_tabs.setObjectName("mainTabs")
+        self.main_tabs.addTab(self.scenario_tabs, "Scenario")
+        self.main_tabs.addTab(self.results_views, "Results")
+        self.main_tabs.addTab(self.event_timeline_widget, "Events")
+        self.main_tabs.addTab(self.compare_widget, "Compare")
+        self.main_tabs.addTab(self.log_widget, "Log")
+        self.main_tabs.currentChanged.connect(self._apply_stale_banner)
+
+        # The side panel, a dock on the right: Inspector (the focused field),
+        # Explain (what the scenario does) and Problems (what does not
+        # validate or looks implausible). One dock with its own tabs, not
+        # three tabbed docks: Qt's tab bar for tabbed docks would switch on
+        # the mouse wheel, which every tab bar here ignores.
+        self.inspector_widget = InspectorWidget()
+        self.problems_widget = ProblemsWidget()
+        self.problems_widget.activated.connect(self._show_scenario_editor)
+        self.problems_widget.count_changed.connect(self._on_problem_count)
+        self.scenario_editor.problems_changed.connect(self.problems_widget.set_problems)
+        self.side_tabs = TabWidget()
+        self.side_tabs.setObjectName("sidePanelTabs")
+        self.side_tabs.addTab(self.inspector_widget, "Inspector")
+        self.side_tabs.addTab(self.scenario_explainer_widget, "Explain")
+        self.side_tabs.addTab(self.problems_widget, "Problems")
+        self.side_tabs.setCurrentWidget(self.scenario_explainer_widget)
+        self.side_dock = self._make_dock("Side Panel", "sidePanelDock", self.side_tabs)
+        self.problems_widget.set_problems(self.scenario_editor.problems)  # validated before the connection
+        app = QApplication.instance()
+        if app is not None:
+            app.focusChanged.connect(self._on_focus_changed)
+        self.scenario_editor.changed.connect(self.inspector_widget.refresh)
+
+        # The reference data files, with their downloads, imports and
+        # rollbacks: a dialog the status bar's entry opens.
+        self.data_dialog = QDialog(self)
+        self.data_dialog.setWindowTitle("Reference data")
+        self.data_dialog.resize(980, 460)  # [px]
+        data_layout = QVBoxLayout(self.data_dialog)
+        data_layout.addWidget(self.data_panel_widget)
         self._refresh_scenario_explainer()  # initial paint for the default scenario reset_to_default() just set up
 
-        # "Load Scenario" first (index 0, so it's what a freshly launched
-        # window shows) -- a new user's first move is picking a built-in
-        # template or browsing for a file, not editing the blank default
-        # scenario reset_to_default() just set up. open_path() (below)
-        # switches to "Scenario Editor" the moment anything actually
-        # loads, whichever of the two ways (this tab, or File > Open) got
-        # it there.
-        self.left_tabs = TabWidget()
-        self.left_tabs.addTab(self.load_scenario_widget, "Load Scenario")
-        self.left_tabs.addTab(self.scenario_editor, "Scenario Editor")
-
-        right_pane = QWidget()
-        right_layout = QVBoxLayout(right_pane)
-        right_layout.setContentsMargins(0, 0, 0, 0)
-        right_layout.setSpacing(0)
-        right_layout.addWidget(self.stale_results_banner)
-        right_layout.addWidget(self.right_tabs, 1)
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        splitter.addWidget(self.left_tabs)
-        splitter.addWidget(right_pane)
-        # Left (scenario form/template picker) is narrower than right
-        # (results plots/mission output/kernel status) by design -- an
-        # even 50/50 split left the form looking oversized relative to
-        # what it actually needs, and shortchanged the plots/text on the
-        # right. setSizes() fixes the initial split; the stretch factors
-        # keep that same ~3:5 ratio if the user resizes the window.
-        splitter.setSizes([580, 820])
-        splitter.setStretchFactor(0, 2)
-        splitter.setStretchFactor(1, 3)
         # The top bar: the scenario's name, its state, the last run and the
         # run status chip, always visible (gui.app_shell; docs/ux-audit.md U-04).
         self.top_bar = TopBar()
@@ -304,11 +339,17 @@ class MainWindow(QMainWindow):
         central_layout.setContentsMargins(0, 0, 0, 0)
         central_layout.setSpacing(0)
         central_layout.addWidget(self.top_bar)
-        central_layout.addWidget(splitter, 1)
+        # Above the run views: says when the results shown are from an
+        # earlier version of the scenario (U-20). Shown while a run view is.
+        central_layout.addWidget(self.stale_results_banner)
+        central_layout.addWidget(self.main_tabs, 1)
         self.setCentralWidget(central)
         self._run_started_s: float | None = None  # time.monotonic() when the current run started
 
         self._build_menu()
+        self.resizeDocks([self.side_dock], [380], Qt.Orientation.Horizontal)  # [px] room for Explain's tiles
+        self._default_layout = self.saveState(_LAYOUT_VERSION)
+        self._restore_layout()
 
         # Run-in-progress feedback (status bar): an indeterminate busy bar
         # plus an elapsed-time label, shown for the duration of ANY
@@ -343,7 +384,7 @@ class MainWindow(QMainWindow):
         # A bound method, not a lambda: a lambda holding self on a child's
         # signal keeps the window alive until the interpreter exits, and its
         # web views are then torn down too late (exit segfault, as in #48).
-        self.status_items.data_clicked.connect(self._show_data_tab)
+        self.status_items.data_clicked.connect(self._show_data_panel)
         self.data_panel_widget.refreshed.connect(self.status_items.refresh)
         self.status_items.refresh()
         self.time_cursor_label = QLabel()
@@ -557,6 +598,41 @@ class MainWindow(QMainWindow):
         # user filing a bug report or asking for support had no way to
         # even state which version they were running from inside the
         # app itself.
+        # Analyses and Tools (docs/ux-audit.md U-02): the pages under the
+        # Scenario tab, also reachable from the menu bar.
+        analyses_menu = self.menuBar().addMenu("&Analyses")
+        tools_menu = self.menuBar().addMenu("&Tools")
+        for menu, label, widget, tip in (
+                (analyses_menu, "&End of Life", self.lifetime_widget, "Re-entry and deorbit estimates"),
+                (analyses_menu, "&Budget", self.budget_widget, "Delta-V and propellant budgets"),
+                (tools_menu, "&Flight Software", self.flight_software_widget, "Export the flight software, run SIL"),
+                (tools_menu, "&Reference Data...", self.data_panel_widget, "The data files, downloads and imports")):
+            action = QAction(label, self)
+            action.setToolTip(tip)
+            action.setData(widget)
+            # A bound method, not a lambda holding the window (see the status bar's).
+            action.triggered.connect(self._on_page_action)
+            menu.addAction(action)
+        # View: the docks, and the default layout back (U-05).
+        view_menu = self.menuBar().addMenu("&View")
+        side_action = self.side_dock.toggleViewAction()
+        side_action.setText("&Side Panel")
+        side_action.setToolTip("Show or hide the Inspector, Explain and Problems panel")
+        view_menu.addAction(side_action)
+        for label, widget in (("&Inspector", self.inspector_widget), ("E&xplain", self.scenario_explainer_widget),
+                              ("&Problems", self.problems_widget)):
+            action = QAction(label, self)
+            action.setToolTip("Open it in the side panel")
+            action.setData(widget)
+            action.triggered.connect(self._on_page_action)
+            view_menu.addAction(action)
+        view_menu.addSeparator()
+        reset_layout_action = QAction("&Reset Layout", self)
+        reset_layout_action.setToolTip("Put the panels and toolbars back where they start")
+        reset_layout_action.triggered.connect(self.reset_layout)
+        view_menu.addAction(reset_layout_action)
+        self.reset_layout_action = reset_layout_action
+
         help_menu = self.menuBar().addMenu("&Help")
         manual_action = QAction("&User Manual", self)
         # F1 on every platform (macOS's HelpContents is Ctrl+?, CI run 48), plus the platform's own key
@@ -586,7 +662,102 @@ class MainWindow(QMainWindow):
 
     def _show_data_panel(self) -> None:
         self.data_panel_widget.refresh()
-        self.right_tabs.setCurrentWidget(self.data_panel_widget)
+        self.show_view(self.data_panel_widget)
+
+    # -- workspace: tabs, docks and their layout ---------------------------------
+    def _make_dock(self, title: str, name: str, widget: QWidget) -> QDockWidget:
+        dock = QDockWidget(title, self)
+        dock.setObjectName(name)  # saveState()/restoreState() find docks by name
+        dock.setWidget(widget)
+        dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+        return dock
+
+    def _docks(self) -> tuple:
+        return (self.side_dock,)
+
+    def show_view(self, widget: QWidget) -> None:
+        """Bring ``widget`` into view: select the tabs that hold it at every
+        level, raise the dock that holds it, or open the reference data
+        dialog."""
+        if widget is self.data_panel_widget:
+            self.data_dialog.show()
+            self.data_dialog.raise_()
+            self.data_dialog.activateWindow()
+            return
+        for dock in self._docks():
+            if dock.isAncestorOf(widget):
+                dock.show()
+                dock.raise_()
+        node = widget
+        while node is not None and node is not self:
+            stack = node.parentWidget()
+            if isinstance(stack, QStackedWidget) and isinstance(stack.parentWidget(), QTabWidget):
+                stack.parentWidget().setCurrentWidget(node)
+            node = stack
+
+    def current_view(self) -> QWidget:
+        """The innermost page the main tabs show (a scroll area's content)."""
+        widget = self.main_tabs.currentWidget()
+        while isinstance(widget, QTabWidget):
+            widget = widget.currentWidget()
+        return widget.widget() if isinstance(widget, QScrollArea) else widget
+
+    def _on_page_action(self) -> None:
+        self._show_page(self.sender().data())
+
+    def _show_page(self, widget: QWidget) -> None:
+        if widget is self.data_panel_widget:
+            self._show_data_panel()
+        else:
+            self.show_view(widget)
+
+    def _show_scenario_editor(self) -> None:
+        self.show_view(self.scenario_editor)
+
+    def _on_problem_count(self, count: int) -> None:
+        self.side_tabs.setTabText(self.side_tabs.indexOf(self.problems_widget),
+                                  f"Problems ({count})" if count else "Problems")
+
+    def _on_focus_changed(self, _old, new) -> None:
+        """The Inspector follows the focused field in this window."""
+        if new is None or not self.isAncestorOf(new) or self.inspector_widget.isAncestorOf(new):
+            return
+        self.inspector_widget.inspect(new)
+
+    def _on_compare_chosen(self, number) -> None:
+        combo = self.results_widget.compare_combo
+        combo.setCurrentIndex(max(combo.findData(number), 0) if number is not None else 0)
+
+    def _refresh_compare_tab(self, *_args) -> None:
+        self.compare_widget.set_runs(self.results_widget._runs, self.results_widget._current_run,
+                                     self.results_widget.compare_combo.currentData())
+
+    def _layout_settings(self):
+        from PySide6.QtCore import QSettings
+
+        return QSettings(str(Path.home() / ".spacemissionstudio" / "layout.ini"), QSettings.Format.IniFormat)
+
+    def _restore_layout(self) -> None:
+        settings = self._layout_settings()
+        geometry, state = settings.value("window/geometry"), settings.value("window/state")
+        if geometry is not None:
+            self.restoreGeometry(geometry)
+        if state is not None:
+            self.restoreState(state, _LAYOUT_VERSION)
+
+    def _save_layout(self) -> None:
+        settings = self._layout_settings()
+        settings.setValue("window/geometry", self.saveGeometry())
+        settings.setValue("window/state", self.saveState(_LAYOUT_VERSION))
+        settings.sync()
+
+    def reset_layout(self) -> None:
+        """View > Reset Layout: the docks and toolbars where a new window has them."""
+        self.restoreState(self._default_layout, _LAYOUT_VERSION)
+        for dock in self._docks():
+            dock.show()
+        self.side_tabs.setCurrentWidget(self.scenario_explainer_widget)
 
     def on_user_manual(self) -> None:
         from .help_dialog import ManualDialog
@@ -602,11 +773,17 @@ class MainWindow(QMainWindow):
         from .command_palette import PaletteEntry, menu_entries
 
         entries = [e for e in menu_entries(self.menuBar()) if not e.label.endswith("Command Palette...")]
-        for tabs in (self.left_tabs, self.right_tabs):
+        for tabs in (self.main_tabs, self.scenario_tabs, self.results_views):
             for index in range(tabs.count()):
                 name = tabs.tabText(index).replace("&", "")
-                entries.append(PaletteEntry(f"Go to tab > {name}",
-                                            lambda tabs=tabs, index=index: tabs.setCurrentIndex(index)))
+                if tabs is not self.main_tabs:
+                    name = f"{self.main_tabs.tabText(self.main_tabs.indexOf(tabs))} > {name}"
+                page = tabs.widget(index)
+                entries.append(PaletteEntry(f"Go to tab > {name}", lambda page=page: self.show_view(page)))
+        for index in range(self.side_tabs.count()):
+            panel = self.side_tabs.widget(index)
+            entries.append(PaletteEntry(f"Go to panel > {self.side_tabs.tabText(index)}",
+                                        lambda panel=panel: self.show_view(panel)))
         from .load_scenario_widget import TEMPLATES_DIR
 
         for path in sorted(TEMPLATES_DIR.glob("*.json")):
@@ -619,7 +796,7 @@ class MainWindow(QMainWindow):
 
     def _show_series(self, name: str) -> None:
         self.results_widget.show_series(name)
-        self.right_tabs.setCurrentWidget(self.results_widget)
+        self.show_view(self.results_widget)
 
     def on_command_palette(self) -> None:
         from .command_palette import CommandPalette
@@ -674,6 +851,7 @@ class MainWindow(QMainWindow):
         matter how any given platform handles toolbar overflow.
         """
         primary = QToolBar("Main", self)
+        primary.setObjectName("mainToolBar")  # saveState() finds toolbars by name
         primary.setMovable(False)
         primary.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.addToolBar(primary)
@@ -690,6 +868,7 @@ class MainWindow(QMainWindow):
         self.addToolBarBreak()
 
         secondary = QToolBar("Vizard/Kernels", self)
+        secondary.setObjectName("vizardToolBar")
         secondary.setMovable(False)
         secondary.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.addToolBar(secondary)
@@ -712,9 +891,6 @@ class MainWindow(QMainWindow):
         star = "*" if self._dirty else ""
         self.setWindowTitle(f"SpaceMissionStudio -- {name}{star}")
         self._refresh_top_bar()
-
-    def _show_data_tab(self) -> None:
-        self.right_tabs.setCurrentWidget(self.data_panel_widget)
 
     def _refresh_top_bar(self) -> None:
         if hasattr(self, "top_bar"):  # the editor emits changes while the window is still being built
@@ -752,8 +928,8 @@ class MainWindow(QMainWindow):
         # The tab says when there's something to check, so it's seen even
         # by someone who never opens it before pressing Run.
         count = self.scenario_explainer_widget.warning_count
-        self.right_tabs.setTabText(self.right_tabs.indexOf(self.scenario_explainer_widget),
-                                   f"Explain ({count} to check)" if count else "Explain")
+        self.side_tabs.setTabText(self.side_tabs.indexOf(self.scenario_explainer_widget),
+                                  f"Explain ({count} to check)" if count else "Explain")
         self._update_monte_carlo_tab(scenario)
 
     def _update_monte_carlo_tab(self, scenario=None) -> None:
@@ -766,15 +942,15 @@ class MainWindow(QMainWindow):
 
     def _set_monte_carlo_tab(self, wanted: bool) -> None:
         widget = self.monte_carlo_results_widget
-        index = self.right_tabs.indexOf(widget)
+        index = self.results_views.indexOf(widget)
         if wanted and index < 0:
-            self.right_tabs.insertTab(self.right_tabs.indexOf(self.data_panel_widget), widget, "Monte Carlo")
+            self.results_views.addTab(widget, "Monte Carlo")
         elif not wanted and index >= 0:
-            self.right_tabs.removeTab(index)  # the widget stays, hidden, as the tab stack's child
+            self.results_views.removeTab(index)  # the widget stays, hidden, as the tab stack's child
 
     def _show_monte_carlo_tab(self) -> None:
         self._set_monte_carlo_tab(True)
-        self.right_tabs.setCurrentWidget(self.monte_carlo_results_widget)
+        self.show_view(self.monte_carlo_results_widget)
 
     def on_open_monte_carlo_results(self) -> None:
         folder = QFileDialog.getExistingDirectory(self, "Open Monte Carlo results")
@@ -848,7 +1024,7 @@ class MainWindow(QMainWindow):
         self._mark_dirty()
         self.statusBar().showMessage("Restored autosaved changes.")
         show_toast(self, "Restored autosaved changes")
-        self.left_tabs.setCurrentWidget(self.scenario_editor)
+        self.show_view(self.scenario_editor)
 
     # -- undo and redo ----------------------------------------------------
 
@@ -914,11 +1090,21 @@ class MainWindow(QMainWindow):
         are the run provenance's (output_provenance.scenario_sha256), so
         undoing back to the run's scenario hides the banner again."""
         if self._shown_run_sha256 is None:
-            self.stale_results_banner.hide()
+            self._stale_state = None
         elif scenario is None:
-            self.stale_results_banner.show_stale(scenario_valid=False)
+            self._stale_state = "invalid"
         elif output_provenance.scenario_sha256(scenario) != self._shown_run_sha256:
-            self.stale_results_banner.show_stale(scenario_valid=True)
+            self._stale_state = "valid"
+        else:
+            self._stale_state = None
+        self._apply_stale_banner()
+
+    def _apply_stale_banner(self, *_args) -> None:
+        """The banner shows while a run view (Results, Events, Compare) is,
+        not above the editor the change is being made in."""
+        run_views = (self.results_views, self.event_timeline_widget, self.compare_widget)
+        if getattr(self, "_stale_state", None) and self.main_tabs.currentWidget() in run_views:
+            self.stale_results_banner.show_stale(scenario_valid=self._stale_state == "valid")
         else:
             self.stale_results_banner.hide()
 
@@ -938,6 +1124,7 @@ class MainWindow(QMainWindow):
         self.event_timeline_widget.set_result(None)
         self.results_widget.set_vizard_file(None)
         self.results_widget.set_runs(self.run_history.runs, None)
+        self._refresh_compare_tab()
         self.time_cursor.clear()
 
     def _keep_run(self, result, cancelled: bool) -> None:
@@ -947,6 +1134,7 @@ class MainWindow(QMainWindow):
         record = self.run_history.add(self._last_run_scenario.to_dict(), result, self._last_run_epoch_utc or "",
                                       cancelled=cancelled)
         self.results_widget.set_runs(self.run_history.runs, record)
+        self._refresh_compare_tab()
 
     def _offer_vizard_playback(self) -> None:
         """Show "Open in Vizard" on Results when the run wrote a playback file."""
@@ -1000,7 +1188,7 @@ class MainWindow(QMainWindow):
         self._mark_clean()
         self.statusBar().showMessage("New scenario.")
         show_toast(self, "New scenario")
-        self.left_tabs.setCurrentWidget(self.scenario_editor)
+        self.show_view(self.scenario_editor)
 
     def on_open(self) -> None:
         if not self._confirm_discard_unsaved():
@@ -1069,7 +1257,7 @@ class MainWindow(QMainWindow):
         label = str(current_path) if current_path is not None else scenario.name
         self.statusBar().showMessage(f"{verb} {label}")
         show_toast(self, f"{verb} {current_path.name if current_path is not None else scenario.name}")
-        self.left_tabs.setCurrentWidget(self.scenario_editor)
+        self.show_view(self.scenario_editor)
 
     def on_save(self) -> None:
         if self._current_path is None:
@@ -1528,7 +1716,7 @@ class MainWindow(QMainWindow):
         # to break a lot of things" feedback).
         self._clear_run_views()
         if live:
-            self.right_tabs.setCurrentWidget(self.results_widget)
+            self.show_view(self.results_widget)
         # Reset once per run -- see _on_run_progress's own comment for why
         # this exists: suppresses a dialog-per-chunk storm if something
         # about THIS run's own data keeps failing on every single update.
@@ -1637,11 +1825,11 @@ class MainWindow(QMainWindow):
             self.budget_widget.set_last_run(self._last_run_scenario, result)
             if command_summary is not None:
                 self.mission_output_widget.set_command_summary(command_summary, result)
-                self.right_tabs.setCurrentWidget(self.mission_output_widget)
+                self.show_view(self.mission_output_widget)
             elif getattr(self, "_last_run_sil", False):
-                self.right_tabs.setCurrentWidget(self.flight_software_widget)
+                self.show_view(self.flight_software_widget)
             else:
-                self.right_tabs.setCurrentWidget(self.results_widget)
+                self.show_view(self.results_widget)
         except Exception as exc:  # noqa: BLE001 -- the run itself DID succeed; never hide that behind a GUI bug
             _logger.exception("Run completed, but displaying its results failed")
             QMessageBox.warning(
@@ -1657,8 +1845,15 @@ class MainWindow(QMainWindow):
         self._stop_busy("Run failed.", "failed", "Failed")
         if getattr(self, "_last_run_sil", False):
             self.flight_software_widget.set_sil_running(None)
-            self.right_tabs.setCurrentWidget(self.flight_software_widget)
+            self.show_view(self.flight_software_widget)
+        else:
+            self._show_log_errors()
         QMessageBox.critical(self, "Simulation failed", _with_log_file_hint(message))
+
+    def _show_log_errors(self) -> None:
+        """A failure opens the Log tab at its warnings and errors (U-23)."""
+        self.log_widget.show_errors()
+        self.show_view(self.log_widget)
 
     def _on_run_cancelled(self, partial_result, command_summary=None) -> None:
         """Handles RunWorker.cancelled -- a user-requested abort (see
@@ -1678,9 +1873,9 @@ class MainWindow(QMainWindow):
             self._keep_run(partial_result, cancelled=True)
             if command_summary is not None:
                 self.mission_output_widget.set_command_summary(command_summary, partial_result)
-                self.right_tabs.setCurrentWidget(self.mission_output_widget)
+                self.show_view(self.mission_output_widget)
             else:
-                self.right_tabs.setCurrentWidget(self.results_widget)
+                self.show_view(self.results_widget)
         except Exception:  # noqa: BLE001 -- same reasoning as _on_run_finished's own try/except
             _logger.exception("Run was cancelled, but displaying its partial results failed")
             QMessageBox.warning(
@@ -1756,6 +1951,7 @@ class MainWindow(QMainWindow):
 
     def _on_monte_carlo_failed(self, message: str) -> None:
         self._stop_busy("Monte Carlo run failed.", "failed", "Failed")
+        self._show_log_errors()
         QMessageBox.critical(self, "Monte Carlo failed", _with_log_file_hint(message))
 
     # -- window lifecycle ---------------------------------------------------
@@ -1785,6 +1981,7 @@ class MainWindow(QMainWindow):
             self.lifetime_widget.wait_for_worker()  # a few seconds at most; its thread must not be destroyed mid-run
             self.budget_widget.wait_for_worker()
             self.flight_software_widget.wait_for_worker()
+            self._save_layout()
             event.accept()
         else:
             event.ignore()

@@ -20,7 +20,7 @@ instead of one run of a fixed length.
 | `maneuver` | An instant burn: a delta-V in the `inertial`, `vnb` (velocity, normal, binormal) or `rtn` (radial, along-track, normal) frame |
 | `lambert_transfer` | Works out the burn that reaches a target position after a set time, and applies it |
 | `assignment` | Sets a value, for example a spacecraft field |
-| `report` | Records chosen quantities at this moment; the **Mission Output** tab shows them |
+| `report` | Records chosen quantities at this moment; the **Output** view of Results shows them |
 | `if` / `while` | Runs the commands inside it when, or while, a condition is true |
 | `script_block` | Runs your own Python code (see below) |
 

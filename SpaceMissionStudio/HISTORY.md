@@ -9346,3 +9346,66 @@ variable is missing, the save now starts the render again on the new
 page, within its existing attempts. A new test reloads the page in the
 middle of a save: without the change it fails with that message every
 time, and with it the PNG is written.
+
+## UX iteration 2b: the workspace (2026-10-13)
+
+The second part of the app shell: the tabs, the docks and the layout
+(U-02, U-05), and a first Log view (U-23).
+
+**Main tabs** (`MainWindow.main_tabs`): *Scenario, Results, Events,
+Compare, Log*, as the standard lists them.
+- *Scenario* holds Load Scenario, the Scenario Editor, and the End of
+  Life, Budget and Flight Software pages, until the scenario tree (U-01)
+  replaces these tabs in the Scenario Editor iteration. The Analyses and
+  Tools menus open the same pages.
+- *Results* holds Plots, Dashboard and Output, and Monte Carlo while
+  there is a batch or the scenario has Monte Carlo on (it used to be the
+  tenth tab).
+- *Compare* (`workspace_panels.CompareWidget`) lists the session's runs.
+  Choosing one shows the inputs that differ from the shown run in a
+  table, and has Results draw it dashed; the two stay in step.
+- *Log* (`LogViewWidget`) shows this session's log records (INFO and
+  up), filtered by level and text, with **Open log file**. A failed run
+  or Monte Carlo batch opens it at its warnings and errors. The error box
+  stays until the Run feedback iteration.
+
+**The side panel**, one dock on the right with its own tabs: *Inspector*
+(the focused field's label, value, accepted range and help), *Explain*
+(moved from the tabs) and *Problems* (the editor's validation error and
+plausibility warnings; the tab counts them, and double-clicking one
+opens the Scenario Editor). One dock rather than three tabbed docks: Qt's
+own tab bar for tabbed docks switches on the mouse wheel, which every
+tab bar here ignores (`tests/gui/test_wheel_in_dialogs.py` caught it).
+Explain was laid out for the old wide pane; its tiles and badges now
+flow onto further lines, and its text wraps instead of scrolling
+sideways.
+
+**The reference data** is a dialog, opened from the status bar entry,
+**Tools > Reference Data...** or **Run > Check Reference Data**.
+
+**Layout.** The window geometry and the dock state are saved on close
+in `~/.spacemissionstudio/layout.ini` and restored on start;
+**View > Reset Layout** restores the default. The View menu also shows
+or hides the side panel and opens each of its pages.
+
+**Smaller changes.**
+- The stale-results banner shows over Results, Events and Compare only,
+  not over the editor the change is being made in.
+- Thin rules separate the status-bar entries.
+- The menu actions use a bound method rather than lambdas holding the
+  window, as in 2a.
+
+**Tests.** `tests/gui/test_workspace.py`:
+- the tabs and what they hold;
+- `show_view` at every level;
+- the Problems list and its count;
+- the Inspector;
+- the Log and a failed run opening it;
+- Compare;
+- the banner over the run views only;
+- the layout kept and reset;
+- the View, Analyses and Tools menus.
+
+The tests that named the old tabs now ask the window which view it shows
+(`current_view()`), with the same expectations; the Data tab test checks
+the dialog.

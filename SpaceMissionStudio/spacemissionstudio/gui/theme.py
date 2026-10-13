@@ -467,6 +467,11 @@ def _qss() -> str:
     }}
     /* Carbon inline notification (warning, low contrast): the run views'
        "results are from a previous version" banner (gui.feedback). */
+    QFrame#statusSeparator {{
+        border: none;
+        border-left: 1px solid {c['border']};
+        margin: 6px 4px;
+    }}
     QFrame#staleResultsBanner {{
         background-color: {c['warning_soft']};
         border: none;

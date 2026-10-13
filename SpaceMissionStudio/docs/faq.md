@@ -52,7 +52,7 @@ runs offline:
   says which one.
 - Nothing is downloaded without your say-so. Each time the GUI starts,
   a **Fetch/update data?** dialog offers to check for newer reference
-  data; **Skip** touches no network. The **Data** tab's downloads ask
+  data; **Skip** touches no network. The **Reference data** dialog's downloads ask
   first, naming the source, the files and the size, and default to No.
   Vizard downloads only when you click **Download Vizard**. On the
   command line, only `kernels-status` and `earth-orientation --fetch`

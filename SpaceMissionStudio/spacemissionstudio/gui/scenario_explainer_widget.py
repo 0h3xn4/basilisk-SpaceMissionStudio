@@ -39,7 +39,6 @@ from typing import Optional
 from PySide6.QtCore import QEvent, Qt
 from PySide6.QtWidgets import (
     QFrame,
-    QHBoxLayout,
     QLabel,
     QScrollArea,
     QSizePolicy,
@@ -51,6 +50,7 @@ from PySide6.QtWidgets import (
 
 from ..engine.scenario_explainer import ScenarioExplanation, explain
 from ..schema.scenario import Scenario
+from .flow_layout import FlowLayout
 from .badges import ACCENT, DANGER, MUTED, SUCCESS, WARNING, badge_style
 from .formation_diagram_widget import FormationDiagramWidget
 from .theme import PALETTE
@@ -124,6 +124,9 @@ class ScenarioExplainerWidget(QWidget):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+        # Text wraps to the panel's width (the side panel is narrow), never a
+        # sideways scroll bar; tiles and badges flow onto further lines.
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         outer_layout.addWidget(scroll)
 
         content = QWidget()
@@ -142,9 +145,9 @@ class ScenarioExplainerWidget(QWidget):
         self._headline_label.setWordWrap(True)
         self._content_layout.addWidget(self._headline_label)
 
-        self._tiles_row = QHBoxLayout()
-        self._tiles_row.setSpacing(8)
-        self._content_layout.addLayout(self._tiles_row)
+        tiles_box = QWidget()
+        self._tiles_row = FlowLayout(tiles_box, spacing=8)
+        self._content_layout.addWidget(tiles_box)
 
         self._sections_layout = QVBoxLayout()
         self._sections_layout.setSpacing(10)
@@ -209,7 +212,6 @@ class ScenarioExplainerWidget(QWidget):
         _clear_layout(self._tiles_row)
         for tile in explanation.stat_tiles:
             self._tiles_row.addWidget(_stat_tile(tile.label, tile.value))
-        self._tiles_row.addStretch(1)
 
         _clear_layout(self._sections_layout)
         for section in explanation.sections:
@@ -227,12 +229,11 @@ class ScenarioExplainerWidget(QWidget):
             section_layout.addWidget(title_label)
 
             if section.badges:
-                badges_row = QHBoxLayout()
-                badges_row.setSpacing(6)
+                badges_box = QWidget()
+                badges_row = FlowLayout(badges_box, spacing=6)
                 for badge in section.badges:
                     badges_row.addWidget(_badge_label(badge.label, badge.kind))
-                badges_row.addStretch(1)
-                section_layout.addLayout(badges_row)
+                section_layout.addWidget(badges_box)
 
             for note in section.notes:
                 note_label = QLabel(note)

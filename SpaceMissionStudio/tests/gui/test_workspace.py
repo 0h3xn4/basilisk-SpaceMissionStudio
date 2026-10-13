@@ -1,0 +1,233 @@
+#
+#  ISC License
+#
+#  Copyright (c) 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
+#
+#  Permission to use, copy, modify, and/or distribute this software for any
+#  purpose with or without fee is hereby granted, provided that the above
+#  copyright notice and this permission notice appear in all copies.
+#
+#  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+#  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+#  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+#  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+#  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+#  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+#  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+
+"""The app shell's workspace (docs/ux-audit.md U-02, U-05, U-23): the main
+tabs Scenario / Results / Events / Compare / Log, the side panel with the
+Inspector, Explain and Problems, the reference data dialog, and the layout
+kept between sessions with View > Reset Layout."""
+
+import logging
+from pathlib import Path
+
+import pytest
+
+pytestmark = pytest.mark.requires_gui
+
+_TEMPLATES = Path(__file__).resolve().parents[2] / "spacemissionstudio" / "scenarios" / "templates"
+
+
+@pytest.fixture(autouse=True)
+def _isolated_autosave(tmp_path, monkeypatch):
+    """Keep the window's autosave away from the real home directory."""
+    from spacemissionstudio.gui import autosave
+
+    monkeypatch.setattr(autosave, "_AUTOSAVE_DIR", tmp_path / "autosave")
+    monkeypatch.setattr(autosave, "_RECOVERY_FILE", tmp_path / "autosave" / "recovery.json")
+
+
+def _new_window(qtbot, monkeypatch):
+    from PySide6.QtWidgets import QMessageBox
+
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
+    w = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+    qtbot.addWidget(w)
+    return w
+
+
+@pytest.fixture
+def window(qtbot, monkeypatch):
+    """A main window with template 22 open; closing it discards changes."""
+    w = _new_window(qtbot, monkeypatch)
+    assert w.open_path(_TEMPLATES / "22_starter_first_leo_satellite.json")
+    return w
+
+
+def _tab_texts(tabs):
+    return [tabs.tabText(i) for i in range(tabs.count())]
+
+
+def _finish_a_run(window, name=None):
+    from spacemissionstudio.engine.results import ResultSet
+
+    if name is not None:
+        window.scenario_editor.name_edit.setText(name)
+    window._last_run_scenario = window.scenario_editor.to_scenario()
+    window._on_run_finished(ResultSet(scenario_name=window._last_run_scenario.name))
+
+
+def test_the_main_tabs_and_what_they_hold(window):
+    """Five main tabs as the standard lists them. The scenario's pages,
+    analyses and tools sit under Scenario; the run's plots, dashboard and
+    output under Results; Explain moved to the side panel."""
+    assert _tab_texts(window.main_tabs) == ["Scenario", "Results", "Events", "Compare", "Log"]
+    assert _tab_texts(window.scenario_tabs) == ["Load Scenario", "Scenario Editor", "End of Life", "Budget",
+                                                "Flight Software"]
+    assert _tab_texts(window.results_views) == ["Plots", "Dashboard", "Output"]
+    assert _tab_texts(window.side_tabs)[0:1] == ["Inspector"]
+    assert window.side_dock.isAncestorOf(window.scenario_explainer_widget)
+    assert window.current_view() is window.scenario_editor  # opening a template shows the editor
+
+
+def test_show_view_selects_every_level(window):
+    """show_view() reaches a page wherever it is: a page in a scroll area
+    under Scenario, a Results view, a side panel page."""
+    window.show_view(window.lifetime_widget)
+    assert window.main_tabs.currentWidget() is window.scenario_tabs and window.current_view() is window.lifetime_widget
+    window.show_view(window.mission_output_widget)
+    assert window.main_tabs.currentWidget() is window.results_views
+    assert window.current_view() is window.mission_output_widget
+    window.show_view(window.problems_widget)
+    assert window.side_tabs.currentWidget() is window.problems_widget and window.side_dock.isVisibleTo(window)
+
+
+def test_problems_list_the_validation_error_and_warnings(window):
+    """The Problems page lists what the editor finds, its tab counts them,
+    and double-clicking one opens the Scenario Editor."""
+    problems = window.problems_widget
+    assert not [p for p in problems.problems if p[0] == "error"]
+    window.scenario_editor.epoch_edit.setText("2030-13-45T99:00:00")
+    errors = [text for severity, text in problems.problems if severity == "error"]
+    assert errors and "epoch" in errors[0].lower()
+    tab_text = window.side_tabs.tabText(window.side_tabs.indexOf(problems))
+    assert tab_text == f"Problems ({len(problems.problems)})"
+    assert problems.list.count() == len(problems.problems) and problems.list.item(0).text().startswith("Error: ")
+
+    window.show_view(window.results_widget)
+    problems.list.itemActivated.emit(problems.list.item(0))
+    assert window.current_view() is window.scenario_editor
+
+
+def test_the_inspector_follows_the_focused_field(window, qtbot):
+    """Focusing a field shows its label, value, range and help."""
+    window.show()
+    qtbot.waitExposed(window)
+    inspector = window.inspector_widget
+    window.scenario_editor.name_edit.setFocus()
+    qtbot.waitUntil(lambda: inspector.name_label.text() == "Name", timeout=2000)  # [ms]
+    assert inspector.value_label.text() == window.scenario_editor.name_edit.text()
+
+    from spacemissionstudio.gui.workspace_panels import field_range
+
+    from PySide6.QtWidgets import QDoubleSpinBox
+
+    box = QDoubleSpinBox()
+    box.setRange(0.0, 10.0)  # [m]
+    box.setSuffix(" m")
+    box.setToolTip("<b>Height</b> of the thing")
+    inspector.inspect(box)
+    assert field_range(box) == "0 to 10 m" and inspector.range_label.text() == "0 to 10 m"
+    assert inspector.help_label.text() == "Height of the thing"
+    inspector.inspect(None)
+    assert inspector.empty_label.isVisibleTo(inspector) and not inspector.form.isVisibleTo(inspector)
+
+
+def test_the_log_tab_shows_the_session_log(window, qtbot):
+    """Records from any logger reach the Log tab; the level box and the
+    text filter narrow them; show_errors() keeps warnings and errors."""
+    log = window.log_widget
+    logging.getLogger().setLevel(logging.INFO)
+    logging.getLogger("spacemissionstudio.test").info("a plain note about orbit 7")
+    logging.getLogger("spacemissionstudio.test").warning("a warning about orbit 8")
+    qtbot.waitUntil(lambda: "orbit 8" in log.text.toPlainText(), timeout=2000)  # [ms]
+    assert "orbit 7" in log.text.toPlainText()
+    log.filter_edit.setText("orbit 7")
+    assert "orbit 7" in log.text.toPlainText() and "orbit 8" not in log.text.toPlainText()
+    log.show_errors()
+    assert "orbit 8" in log.text.toPlainText() and "orbit 7" not in log.text.toPlainText()
+
+
+def test_a_failed_run_opens_the_log(window, monkeypatch):
+    """A failed run opens the Log tab at its warnings and errors."""
+    from PySide6.QtWidgets import QMessageBox
+
+    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Ok))
+    window._start_busy("Running")
+    window._on_run_failed("boom")
+    assert window.current_view() is window.log_widget
+    assert window.log_widget.level_combo.currentData() == logging.WARNING
+
+
+def test_the_compare_tab_lists_runs_and_their_input_differences(window):
+    """With two runs, Compare lists the earlier one; choosing it shows the
+    inputs that differ and has Results draw it dashed."""
+    compare = window.compare_widget
+    assert compare.empty_label.isVisibleTo(compare)
+    _finish_a_run(window)
+    _finish_a_run(window, name="22 - a second version")
+    assert compare.content.isVisibleTo(compare) and compare.run_list.count() == 2  # "(no comparison)" + Run 1
+    compare.run_list.setCurrentRow(1)
+    assert window.results_widget.compare_combo.currentData() == 1
+    inputs = [compare.table.item(row, 0).text() for row in range(compare.table.rowCount())]
+    assert "name" in inputs
+    window.results_widget.compare_combo.setCurrentIndex(0)  # and back, from Results
+    assert compare.chosen_number() is None
+
+
+def test_the_stale_banner_shows_only_over_run_views(window):
+    """After an edit the banner shows over Results, Events and Compare, not
+    over the editor the edit is being made in."""
+    _finish_a_run(window)
+    window.scenario_editor.name_edit.setText("edited after the run")
+    banner = window.stale_results_banner
+    window.show_view(window.scenario_editor)
+    assert not banner.isVisibleTo(window)
+    for view in (window.results_widget, window.event_timeline_widget, window.compare_widget):
+        window.show_view(view)
+        assert banner.isVisibleTo(window)
+
+
+def test_the_layout_is_kept_and_reset(qtbot, monkeypatch):
+    """A hidden side panel stays hidden in the next window (the layout file
+    is under the home folder, a temporary one in tests); View > Reset
+    Layout brings it back."""
+    first = _new_window(qtbot, monkeypatch)
+    first.show()
+    first.side_dock.hide()
+    first.close()
+    assert (Path.home() / ".spacemissionstudio" / "layout.ini").is_file()
+
+    second = _new_window(qtbot, monkeypatch)
+    second.show()
+    assert not second.side_dock.isVisible()
+    second.reset_layout_action.trigger()
+    assert second.side_dock.isVisible()
+    assert second.side_tabs.currentWidget() is second.scenario_explainer_widget
+
+
+def test_the_view_analyses_and_tools_menus(window):
+    """View shows and hides the side panel and opens each of its pages;
+    Analyses and Tools open their pages; Tools > Reference Data opens the
+    dialog."""
+    menus = {action.text(): action.menu() for action in window.menuBar().actions() if action.menu()}
+    view = [a.text() for a in menus["&View"].actions() if a.text()]
+    assert view == ["&Side Panel", "&Inspector", "E&xplain", "&Problems", "&Reset Layout"]
+
+    def trigger(menu, label):
+        next(a for a in menus[menu].actions() if a.text() == label).trigger()
+
+    trigger("&Analyses", "&Budget")
+    assert window.current_view() is window.budget_widget
+    trigger("&Tools", "&Flight Software")
+    assert window.current_view() is window.flight_software_widget
+    trigger("&Tools", "&Reference Data...")
+    assert window.data_dialog.isVisible()
+    window.data_dialog.close()
+    trigger("&View", "&Problems")
+    assert window.side_tabs.currentWidget() is window.problems_widget
