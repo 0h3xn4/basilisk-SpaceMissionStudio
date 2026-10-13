@@ -83,6 +83,9 @@ _C = {
     "success_soft": "#DEFBE6",  # notification-background-success
     "warning_soft": "#FCF4D6",  # notification-background-warning
     "info_soft": "#EDF5FF",     # notification-background-info
+    "success_text": "#0E6027",  # green 70: text on success_soft (support-success is a fill colour)
+    "danger_text": "#A2191F",   # red 70: text on danger_soft
+    "info_text": "#0043CE",     # blue 70 (support-info): text on info_soft
 }
 
 # Public alias: widgets (feedback.py's toasts, badges, charts) reuse these
@@ -418,6 +421,49 @@ def _qss() -> str:
     }}
     QScrollArea#paramReference > QWidget > QWidget {{
         background-color: {c['surface_alt']};
+    }}
+    /* The app shell's top bar (gui.app_shell): the scenario's name, its
+       state and the run status chip, on one line above the work area. */
+    QWidget#topBar {{
+        background-color: {c['surface']};
+        border-bottom: 1px solid {c['border']};
+    }}
+    QLabel#topBarName {{
+        font-size: 16px;
+        font-weight: 600;
+    }}
+    QLabel#topBarDetail {{
+        color: {c['text_muted']};
+    }}
+    /* The run status chip: a Carbon tag, one colour pair per state, always
+       with its state written out. */
+    QLabel#statusChip {{
+        padding: 2px 10px;
+        font-weight: 600;
+        border-radius: 0px;
+    }}
+    QLabel#statusChip[state="idle"] {{
+        background-color: {c['selected']};
+        color: {c['text_muted']};
+    }}
+    QLabel#statusChip[state="running"] {{
+        background-color: {c['info_soft']};
+        color: {c['info_text']};
+    }}
+    QLabel#statusChip[state="done"] {{
+        background-color: {c['success_soft']};
+        color: {c['success_text']};
+    }}
+    QLabel#statusChip[state="failed"] {{
+        background-color: {c['danger_soft']};
+        color: {c['danger_text']};
+    }}
+    QLabel#statusChip[state="cancelled"] {{
+        background-color: {c['warning_soft']};
+        color: {c['warning']};
+    }}
+    QLabel#statusItem[state="warning"], QToolButton#statusDataButton[state="warning"] {{
+        color: {c['warning']};
     }}
     /* Carbon inline notification (warning, low contrast): the run views'
        "results are from a previous version" banner (gui.feedback). */

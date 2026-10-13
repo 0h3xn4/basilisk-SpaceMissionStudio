@@ -9267,3 +9267,52 @@ restores that handler around every test, so a warning from a non-GUI
 thread at a test boundary can land between the two. No test reads the
 captured messages, so the suite now runs with `--no-qt-log`
 (`pyproject.toml`), and the dialog-guard test's own child pytest does too.
+
+## UX iteration 2a: a top bar and a fuller status bar (2026-10-13)
+
+The user chose the app shell next. This first part makes the state
+visible (U-04, U-06, U-07); the main tabs and the docks (U-05) come in
+2b.
+
+**Top bar** (`gui/app_shell.TopBar`), above the work area:
+- the scenario's name;
+- Unsaved changes, Unchanged (a template as shipped), Saved, or Not
+  saved yet;
+- where it came from: "from template 22", or the file's name;
+- the last run: its time, how it ended and how long it took;
+- a status chip (`StatusChip`): No run yet, Running 43 % (a live run) or
+  Running 1:05, Done in 6 s, Failed, Cancelled. Its colours are theme
+  rules on a `state` property, with three new text tokens (`success_text`,
+  `danger_text`, `info_text`) for the chip's text on its soft fills.
+
+The run progress bar no longer prints its own percentage: the chip does.
+
+**Status bar** (`StatusBarItems`), always shown; local reads only:
+- the Basilisk version, in the warning style when it is not the
+  qualified one (it used to appear only then);
+- the reference data: "all N OK" or "k of N need attention". Clicking it
+  opens the Data tab, and a refresh of the Data tab (after a download,
+  import or rollback) refreshes it, through a new
+  `DataPanelWidget.refreshed` signal;
+- how far the Earth orientation data is high accuracy, or "none
+  (IAU_EARTH)";
+- the frames: EME2000, ITRF93 or IAU_EARTH, UTC.
+
+**The toolbars stay.** The standard's top bar also holds Run, and the
+other actions move to menus. But the toolbar test guards a real user
+report (a missing Launch Vizard button), and decision 3 (one Run) is
+part of the Run feedback iteration. So the top bar is a strip of its own
+and the two toolbars are unchanged for now.
+
+**Tests.** `tests/gui/test_app_shell.py`:
+- `source_of`;
+- the top bar for a template, an edit and a saved file;
+- the chip through a finished, a failed and a cancelled run, a live
+  run's percentage, and an unknown state;
+- the status items with the data present, missing and not qualified;
+- the reference data item opening the Data tab, and following it.
+
+The new test file changed how pytest-xdist spreads the tests, and five
+tests in `tests/gui/test_feedback.py` turned out to build a `QLineEdit`
+without a `QApplication`: whichever ran first on a worker aborted it. They
+now ask for the `qapp` fixture.

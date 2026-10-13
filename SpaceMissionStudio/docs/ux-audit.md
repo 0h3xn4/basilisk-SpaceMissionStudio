@@ -248,6 +248,7 @@ Start with the two blockers that need no structural decision: U-20 and U-03.
 | Iteration | Issues | What changed |
 |---|---|---|
 | 1 (2026-10-13) | U-20, U-03 | A banner above the run views names stale results, with Re-run, by the scenario's SHA-256. The End of Life page scrolls. The comparison controls moved to their own row, and the combo is sized by characters, not by the longest run label. After two real runs of template 22 the window's minimum size went from 1516 px wide (and 758 px tall at start-up) to 1118 x 529 px. Tests: `tests/gui/test_stale_results_and_window_size.py` |
+| 2a (2026-10-13) | U-04, U-06, U-07 | A top bar above the work area: the scenario's name · Unsaved changes / Unchanged / Saved / Not saved yet · where it came from ("from template 22", a file name) · the last run (time, state, length), and a status chip (No run yet, Running 43 % or Running 1:05, Done in 6 s, Failed, Cancelled) in the theme's status colours. Permanent status-bar items: the Basilisk version (warning style when not the qualified one), the reference data ("all N OK" or "k of N need attention"; clicking it opens the Data tab), the Earth orientation data's high-accuracy end date, and the frames (EME2000 · ITRF93 or IAU_EARTH · UTC). The two toolbars stay as they were: Run stays their one primary button (decision 3, one Run, comes with the Run feedback iteration). Tests: `tests/gui/test_app_shell.py` |
 
 ## Proposed order of work
 
