@@ -29,6 +29,40 @@ def _sample_result_set(n=50):
 # The first plot page (plotly.js) can take over 10 s to load on a loaded CI runner
 # with several test workers (Windows, macOS: SRelD K-10); the tool is not at fault.
 _PAGE_LOAD_TIMEOUT_MS = 30000  # [ms]
+# Saving a plot polls Plotly.toImage() for up to 10 s of attempts
+# (results_widget._SAVE_PNG_MAX_POLL_ATTEMPTS), and longer while answers are
+# late. A test that waits only 10 s for the file can give up while the app is
+# still within its own budget (macOS CI, PR #50).
+_SAVE_TIMEOUT_MS = 30000  # [ms]
+
+
+def _wait_for_saved_file(qtbot, widget, path):
+    """Wait for a plot save to write ``path``. On a timeout the failure says
+    what the page was doing: macOS CI (PR #50) twice never finished the first
+    save of a worker, and Chromium stops drawing a page it counts as hidden
+    or occluded, which would leave Plotly.toImage() pending."""
+    from pytestqt.exceptions import TimeoutError as QtTimeoutError
+
+    from spacemissionstudio.gui.results_widget import _PNG_RESULT_JS_VAR
+
+    try:
+        qtbot.waitUntil(path.exists, timeout=_SAVE_TIMEOUT_MS)
+    except QtTimeoutError:
+        state = []
+        widget.web_view.page().runJavaScript(
+            "JSON.stringify({visibility: document.visibilityState, focus: document.hasFocus(), "
+            "plotly: typeof Plotly, result: String(window.%s).slice(0, 60)})" % _PNG_RESULT_JS_VAR,
+            state.append)
+        qtbot.waitUntil(lambda: bool(state), timeout=5000)  # [ms]
+        pytest.fail(f"no file after {_SAVE_TIMEOUT_MS} ms; page {state[0]}; window visible "
+                    f"{widget.isVisible()}, active {widget.isActiveWindow()}, poll {widget._png_poll_state}")
+
+
+def _to_front(qtbot, widget):
+    """Raise and activate the widget, as a user's click on Save would."""
+    widget.raise_()
+    widget.activateWindow()
+    qtbot.wait(50)  # [ms] let the window system act on it
 
 
 @pytest.fixture
@@ -166,6 +200,31 @@ def test_export_with_no_result_is_a_no_op(widget, monkeypatch):
     assert calls == []
 
 
+def test_a_page_reload_during_a_save_still_saves(widget, tmp_path, monkeypatch, qtbot):
+    """A redraw that reloads the page while a save is rendering takes the
+    pending render with it; the save starts it again on the new page instead
+    of reporting "Could not render the plot" (macOS CI, PR #50: the first
+    save of a worker raced a second page load)."""
+    from PySide6.QtWidgets import QFileDialog, QMessageBox
+
+    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+        widget.set_result(_sample_result_set())
+    out_path = tmp_path / "plot.png"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName",
+                        staticmethod(lambda *a, **k: (str(out_path), "PNG images (*.png)")))
+    errors = []
+    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: errors.append(a[2])))
+    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
+
+    _to_front(qtbot, widget)
+    widget._on_save_plot_png()
+    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+        widget._redraw()  # a new page while the first render is pending
+    qtbot.waitUntil(lambda: out_path.exists() or bool(errors), timeout=_SAVE_TIMEOUT_MS)
+    assert not errors
+    assert out_path.read_bytes()[:8] == b"\x89PNG\r\n\x1a\n"
+
+
 def test_save_plot_as_png_writes_a_real_png_file(widget, tmp_path, monkeypatch, qtbot):
     """End-to-end: real plotly.js rendering a real PNG in the offscreen
     QWebEngineView, not a mocked JS call -- the same "confirmed directly
@@ -186,8 +245,9 @@ def test_save_plot_as_png_writes_a_real_png_file(widget, tmp_path, monkeypatch, 
     info_calls = []
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: info_calls.append(a)))
 
+    _to_front(qtbot, widget)
     widget._on_save_plot_png()
-    qtbot.waitUntil(lambda: out_path.exists(), timeout=10000)
+    _wait_for_saved_file(qtbot, widget, out_path)
 
     png_bytes = out_path.read_bytes()
     assert png_bytes[:8] == b"\x89PNG\r\n\x1a\n"  # real PNG magic bytes, not an empty/garbage file
@@ -205,9 +265,10 @@ def test_save_plot_as_png_appends_extension_if_missing(widget, tmp_path, monkeyp
                          staticmethod(lambda *a, **k: (str(out_path_no_ext), "PNG images (*.png)")))
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
 
+    _to_front(qtbot, widget)
     widget._on_save_plot_png()
     expected_path = tmp_path / "plot.png"
-    qtbot.waitUntil(lambda: expected_path.exists(), timeout=10000)
+    _wait_for_saved_file(qtbot, widget, expected_path)
     assert not out_path_no_ext.exists()
 
 
@@ -287,8 +348,9 @@ def test_save_plot_as_png_poll_state_resets_after_completion_allowing_a_later_sa
                          staticmethod(lambda *a, **k: (str(first_path), "PNG images (*.png)")))
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
 
+    _to_front(qtbot, widget)
     widget._on_save_plot_png()
-    qtbot.waitUntil(lambda: first_path.exists(), timeout=10000)
+    _wait_for_saved_file(qtbot, widget, first_path)
     qtbot.waitUntil(lambda: widget._png_poll_state is None, timeout=5000)
     assert widget.save_png_button.isEnabled()
 
@@ -296,8 +358,9 @@ def test_save_plot_as_png_poll_state_resets_after_completion_allowing_a_later_sa
     monkeypatch.setattr(QFileDialog, "getSaveFileName",
                          staticmethod(lambda *a, **k: (str(second_path), "PNG images (*.png)")))
 
+    _to_front(qtbot, widget)
     widget._on_save_plot_png()
-    qtbot.waitUntil(lambda: second_path.exists(), timeout=10000)
+    _wait_for_saved_file(qtbot, widget, second_path)
 
 
 def test_save_plot_as_svg_writes_a_real_svg_file(widget, tmp_path, monkeypatch, qtbot):
@@ -319,8 +382,9 @@ def test_save_plot_as_svg_writes_a_real_svg_file(widget, tmp_path, monkeypatch, 
     info_calls = []
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: info_calls.append(a)))
 
+    _to_front(qtbot, widget)
     widget._on_save_plot_svg()
-    qtbot.waitUntil(lambda: out_path.exists(), timeout=10000)
+    _wait_for_saved_file(qtbot, widget, out_path)
 
     svg_text = out_path.read_text(encoding="utf-8")
     assert svg_text.startswith("<svg")
@@ -338,9 +402,10 @@ def test_save_plot_as_svg_appends_extension_if_missing(widget, tmp_path, monkeyp
                          staticmethod(lambda *a, **k: (str(out_path_no_ext), "SVG images (*.svg)")))
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
 
+    _to_front(qtbot, widget)
     widget._on_save_plot_svg()
     expected_path = tmp_path / "plot.svg"
-    qtbot.waitUntil(lambda: expected_path.exists(), timeout=10000)
+    _wait_for_saved_file(qtbot, widget, expected_path)
     assert not out_path_no_ext.exists()
 
 
@@ -945,9 +1010,9 @@ def test_a_large_series_still_shows_when_selected(widget, qtbot):
     result.add(TimeSeries("sat-1.semi_major_axis", t, ("a",), np.full((len(t), 1), 6928e3), units="m"))
     position = np.column_stack([7e6 * np.cos(t / 900.0), 7e6 * np.sin(t / 900.0), np.zeros(len(t))])  # [m]
     result.add(TimeSeries("sat-1.position_N", t, ("x", "y", "z"), position, units="m"))
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=20000):
+    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(result)
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=20000):
+    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.series_combo.setCurrentIndex(widget.series_combo.findData("sat-1.position_N"))
 
     shown = {}
@@ -1050,7 +1115,7 @@ def test_plot_page_fills_the_view_without_a_scroll_bar(widget, qtbot):
     widget.resize(800, 600)  # [px]
     widget.show()
     qtbot.waitExposed(widget)
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=20000):
+    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
     sizes = {}
     widget.web_view.page().runJavaScript(

@@ -34,6 +34,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import subprocess
+import time
 import weakref
 from pathlib import Path
 from typing import Optional
@@ -55,18 +56,19 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import dependencies, output_provenance
+from .. import output_provenance
 from ..engine import monte_carlo_results
 from ..engine.series_names import featured_series
 from ..logging_setup import get_log_file_path
 from ..schema.command import script_blocks
 from ..schema.scenario import Scenario, ScenarioValidationError, load_scenario
 from . import autosave
+from .app_shell import StatusBarItems, TopBar, source_of
 from .feedback import StaleResultsBanner, show_toast
 from .icons import toolbar_icon
 from .data_panel_widget import DataPanelWidget
 from .event_timeline_widget import EventTimelineWidget
-from .load_scenario_widget import LoadScenarioWidget
+from .load_scenario_widget import TEMPLATES_DIR, LoadScenarioWidget
 from .mission_dashboard_widget import MissionDashboardWidget
 from .mission_output_widget import MissionOutputWidget
 from .monte_carlo_results_widget import MonteCarloResultsWidget
@@ -79,7 +81,6 @@ from .lifetime_widget import LifetimeWidget
 from .scenario_explainer_widget import ScenarioExplainerWidget
 from .startup_fetch_dialog import maybe_run_startup_fetch
 from .time_cursor import TimeCursor, describe as describe_time
-from .theme import PALETTE
 from .undo_history import ScenarioHistory
 from .run_history import RunHistory
 from .vizard_dialog import VizardDialog
@@ -106,6 +107,16 @@ _HISTORY_SETTLE_MS = 400  # [ms] an edit is recorded for undo once typing pauses
 _AUTOSAVE_INTERVAL_MS = 30_000
 
 _logger = logging.getLogger(__name__)
+
+
+def _duration_text(seconds: float) -> str:
+    """A run's length for the top bar: "6 s", "2 min 05 s", "1 h 03 min"."""
+    seconds = int(round(seconds))
+    if seconds < 60:
+        return f"{seconds} s"
+    if seconds < 3600:
+        return f"{seconds // 60} min {seconds % 60:02d} s"
+    return f"{seconds // 3600} h {seconds % 3600 // 60:02d} min"
 
 
 def _with_log_file_hint(message: str) -> str:
@@ -285,7 +296,17 @@ class MainWindow(QMainWindow):
         splitter.setSizes([580, 820])
         splitter.setStretchFactor(0, 2)
         splitter.setStretchFactor(1, 3)
-        self.setCentralWidget(splitter)
+        # The top bar: the scenario's name, its state, the last run and the
+        # run status chip, always visible (gui.app_shell; docs/ux-audit.md U-04).
+        self.top_bar = TopBar()
+        central = QWidget()
+        central_layout = QVBoxLayout(central)
+        central_layout.setContentsMargins(0, 0, 0, 0)
+        central_layout.setSpacing(0)
+        central_layout.addWidget(self.top_bar)
+        central_layout.addWidget(splitter, 1)
+        self.setCentralWidget(central)
+        self._run_started_s: float | None = None  # time.monotonic() when the current run started
 
         self._build_menu()
 
@@ -307,18 +328,24 @@ class MainWindow(QMainWindow):
         self._busy_progress = QProgressBar()
         self._busy_progress.setRange(0, 0)  # indeterminate ("marching ants") -- see comment above
         self._busy_progress.setMaximumWidth(120)
+        self._busy_progress.setTextVisible(False)  # the top bar's status chip shows the percentage
         self._busy_progress.setVisible(False)
         self.statusBar().addPermanentWidget(self._busy_label)
         self.statusBar().addPermanentWidget(self._busy_progress)
-        # Basilisk version check at start-up (ECSS-Q-ST-80C 6.2.7, decision D5).
-        self.basilisk_version_label = QLabel()
-        version_note = dependencies.basilisk_check()
-        self.basilisk_version_label.setVisible(version_note is not None)
-        if version_note is not None:
-            self.basilisk_version_label.setText("Basilisk version not qualified")
-            self.basilisk_version_label.setToolTip(version_note)
-            self.basilisk_version_label.setStyleSheet(f"color: {PALETTE['warning']};")
-        self.statusBar().addPermanentWidget(self.basilisk_version_label)
+        # Always shown (gui.app_shell; docs/ux-audit.md U-06): the Basilisk
+        # version, checked at start-up (ECSS-Q-ST-80C 6.2.7, decision D5), the
+        # reference data (a click opens the Data tab), Earth orientation and
+        # the frames. Local files only.
+        self.status_items = StatusBarItems(self)
+        self.basilisk_version_label = self.status_items.basilisk_label
+        for widget in self.status_items.widgets:
+            self.statusBar().addPermanentWidget(widget)
+        # A bound method, not a lambda: a lambda holding self on a child's
+        # signal keeps the window alive until the interpreter exits, and its
+        # web views are then torn down too late (exit segfault, as in #48).
+        self.status_items.data_clicked.connect(self._show_data_tab)
+        self.data_panel_widget.refreshed.connect(self.status_items.refresh)
+        self.status_items.refresh()
         self.time_cursor_label = QLabel()
         self.time_cursor_label.setToolTip("The shared time cursor. Click a plot or the Events timeline to move it; "
                                           "Run > Clear Time Cursor clears it.")
@@ -684,6 +711,15 @@ class MainWindow(QMainWindow):
         name = self._current_path.name if self._current_path else "untitled"
         star = "*" if self._dirty else ""
         self.setWindowTitle(f"SpaceMissionStudio -- {name}{star}")
+        self._refresh_top_bar()
+
+    def _show_data_tab(self) -> None:
+        self.right_tabs.setCurrentWidget(self.data_panel_widget)
+
+    def _refresh_top_bar(self) -> None:
+        if hasattr(self, "top_bar"):  # the editor emits changes while the window is still being built
+            self.top_bar.set_scenario(self.scenario_editor.name_edit.text().strip(), self._dirty,
+                                      source_of(self._current_path, TEMPLATES_DIR))
 
     def _scenario_dir(self) -> Path | None:
         """The open scenario file's folder (a 3D model's mesh paths are relative to it)."""
@@ -708,6 +744,7 @@ class MainWindow(QMainWindow):
             scenario = None
         self.scenario_explainer_widget.set_scenario(scenario)
         self._refresh_stale_banner(scenario)
+        self._refresh_top_bar()
         self.lifetime_widget.set_scenario(scenario)
         self.budget_widget.set_scenario(scenario)
         self.flight_software_widget.set_base_dir(self._current_path.parent if self._current_path else None)
@@ -1094,9 +1131,21 @@ class MainWindow(QMainWindow):
             self._busy_progress.setValue(0)
         self._busy_progress.setVisible(True)
         self._busy_timer.start()
+        self._run_started_s = time.monotonic()
+        self.top_bar.chip.set_state("running", "Running")
         self.statusBar().showMessage(message)
 
-    def _stop_busy(self, message: str) -> None:
+    def _stop_busy(self, message: str, chip_state: str = "idle", chip_text: str = "Ready") -> None:
+        """End the busy state; the chip shows ``chip_state``, the top bar the
+        run's start time and length when it ran."""
+        if self._run_started_s is not None:
+            seconds = time.monotonic() - self._run_started_s
+            if chip_state in ("done", "failed", "cancelled"):
+                chip_text = f"{chip_text} in {_duration_text(seconds)}" if chip_state == "done" else chip_text
+                self.top_bar.set_last_run(f"last run {time.strftime('%H:%M')}, {chip_state}, "
+                                          f"{_duration_text(seconds)}")
+            self._run_started_s = None
+        self.top_bar.chip.set_state(chip_state, chip_text)
         self._set_running(False)
         self.abort_action.setEnabled(False)
         self._busy_timer.stop()
@@ -1107,6 +1156,10 @@ class MainWindow(QMainWindow):
     def _update_busy_elapsed(self) -> None:
         seconds = self._busy_elapsed.elapsed() // 1000
         self._busy_label.setText(f"{seconds // 60}:{seconds % 60:02d} elapsed")
+        if self._busy_progress.maximum() > 0:
+            self.top_bar.chip.set_state("running", f"Running {self._busy_progress.value()} %")
+        else:
+            self.top_bar.chip.set_state("running", f"Running {seconds // 60}:{seconds % 60:02d}")
 
     # -- Run --------------------------------------------------------------
     def on_configure_vizard(self) -> None:
@@ -1561,7 +1614,7 @@ class MainWindow(QMainWindow):
                 )
 
     def _on_run_finished(self, result, command_summary=None) -> None:
-        self._stop_busy(f"Run complete: {len(result.series)} result series.")
+        self._stop_busy(f"Run complete: {len(result.series)} result series.", "done", "Done")
         show_toast(self, f"Run complete -- {len(result.series)} result series")
         try:
             # set_live_result(), not set_result(): a live run's final chunk
@@ -1601,7 +1654,7 @@ class MainWindow(QMainWindow):
             )
 
     def _on_run_failed(self, message: str) -> None:
-        self._stop_busy("Run failed.")
+        self._stop_busy("Run failed.", "failed", "Failed")
         if getattr(self, "_last_run_sil", False):
             self.flight_software_widget.set_sil_running(None)
             self.right_tabs.setCurrentWidget(self.flight_software_widget)
@@ -1614,7 +1667,7 @@ class MainWindow(QMainWindow):
         normal finish would show it, just with "cancelled" messaging
         instead of "complete".
         """
-        self._stop_busy("Run cancelled by user.")
+        self._stop_busy("Run cancelled by user.", "cancelled", "Cancelled")
         show_toast(self, "Run cancelled", kind="info")
         try:
             self.results_widget.set_live_result(partial_result, self._last_run_epoch_utc)
@@ -1681,7 +1734,8 @@ class MainWindow(QMainWindow):
     def _on_monte_carlo_finished(self, failures: list) -> None:
         self._stop_busy(
             f"Monte Carlo complete with {len(failures)} failed run(s)." if failures
-            else "Monte Carlo complete -- all runs succeeded."
+            else "Monte Carlo complete -- all runs succeeded.",
+            "failed" if failures else "done", f"{len(failures)} runs failed" if failures else "Done",
         )
         try:
             if failures:
@@ -1701,7 +1755,7 @@ class MainWindow(QMainWindow):
             _logger.exception("Monte Carlo batch finished, but reporting its outcome failed")
 
     def _on_monte_carlo_failed(self, message: str) -> None:
-        self._stop_busy("Monte Carlo run failed.")
+        self._stop_busy("Monte Carlo run failed.", "failed", "Failed")
         QMessageBox.critical(self, "Monte Carlo failed", _with_log_file_hint(message))
 
     # -- window lifecycle ---------------------------------------------------

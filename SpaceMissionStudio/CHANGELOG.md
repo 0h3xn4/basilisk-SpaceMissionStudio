@@ -33,7 +33,19 @@ fixes bugs.
   center of mass, not about the body origin. Older files load with it at
   the origin, as before.
 
+- **A top bar and a fuller status bar.** Above the tabs: the scenario's
+  name, whether it has unsaved changes, where it came from (a template
+  or a file), the last run, and a tag with the run state (running and
+  its percentage, done and how long it took, failed, cancelled). In the
+  status bar, always: the Basilisk version, the reference data (click to
+  open the Data tab), the Earth orientation data's date and the frames
+  (UX audit U-04, U-06, U-07).
+
 **Fixed**
+- **Save PNG / Save SVG** no longer fails with "Could not render the plot"
+  when the plot's page reloads while the image is rendering (a redraw, or
+  the page still settling after a new result). The save starts the
+  render again on the new page.
 - Results no longer look current after the scenario changes: a banner
   above the run views says they are from a previous version, with
   **Re-run** (UX audit U-20).

@@ -68,7 +68,7 @@ def test_toast_kind_selects_a_different_color(window):
     assert success.styleSheet() != error.styleSheet()
 
 
-def test_mark_invalid_sets_error_state_and_tooltip():
+def test_mark_invalid_sets_error_state_and_tooltip(qapp):
     from PySide6.QtWidgets import QLineEdit
 
     from spacemissionstudio.gui.feedback import mark_invalid
@@ -80,7 +80,7 @@ def test_mark_invalid_sets_error_state_and_tooltip():
     assert field.toolTip() == "must not be empty"
 
 
-def test_clear_invalid_undoes_mark_invalid():
+def test_clear_invalid_undoes_mark_invalid(qapp):
     from PySide6.QtWidgets import QLineEdit
 
     from spacemissionstudio.gui.feedback import clear_invalid, mark_invalid
@@ -93,7 +93,7 @@ def test_clear_invalid_undoes_mark_invalid():
     assert field.toolTip() == ""
 
 
-def test_clear_invalid_on_an_unmarked_field_is_a_no_op():
+def test_clear_invalid_on_an_unmarked_field_is_a_no_op(qapp):
     from PySide6.QtWidgets import QLineEdit
 
     from spacemissionstudio.gui.feedback import clear_invalid
@@ -104,7 +104,7 @@ def test_clear_invalid_on_an_unmarked_field_is_a_no_op():
     assert field.property("state") != "error"
 
 
-def test_clear_invalid_restores_a_pre_existing_tooltip():
+def test_clear_invalid_restores_a_pre_existing_tooltip(qapp):
     """Real audit finding: mark_invalid()/clear_invalid() used to
     unconditionally overwrite/blank the widget's tooltip rather than
     saving/restoring whatever was there before -- a field with its own
@@ -125,7 +125,7 @@ def test_clear_invalid_restores_a_pre_existing_tooltip():
     assert field.toolTip() == "units: km"
 
 
-def test_repeated_mark_invalid_does_not_save_its_own_error_message_as_the_tooltip():
+def test_repeated_mark_invalid_does_not_save_its_own_error_message_as_the_tooltip(qapp):
     from PySide6.QtWidgets import QLineEdit
 
     from spacemissionstudio.gui.feedback import clear_invalid, mark_invalid

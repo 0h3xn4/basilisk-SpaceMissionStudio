@@ -1395,7 +1395,8 @@ class ResultsWidget(QWidget):
         self.web_view.page().runJavaScript(kickoff_script)
 
         poll_timer = QTimer(self)
-        self._png_poll_state = {"path": path, "fmt": fmt, "timer": poll_timer, "attempts": 0}
+        self._png_poll_state = {"path": path, "fmt": fmt, "timer": poll_timer, "attempts": 0,
+                                "kickoff": kickoff_script}
         poll_timer.timeout.connect(self._poll_plot_png)
         poll_timer.start(_SAVE_PNG_POLL_INTERVAL_MS)
 
@@ -1423,7 +1424,16 @@ class ResultsWidget(QWidget):
             state["in_flight"] = False
             if self._png_poll_state is not state:
                 return  # this poll already finished (or was replaced)
-            if value == _SAVE_PNG_PENDING_SENTINEL:
+            page_replaced = value in ("", None)
+            if page_replaced and state["attempts"] < _SAVE_PNG_MAX_POLL_ATTEMPTS:
+                # The result variable is gone: the page was reloaded since the
+                # render started (a redraw loads a new page), and the pending
+                # render went with it. Start it again on the new page; tryRender
+                # waits for that page's Plotly. Seen on macOS CI, where it was
+                # reported as "Could not render the plot".
+                self.web_view.page().runJavaScript(state["kickoff"])
+                return
+            if value == _SAVE_PNG_PENDING_SENTINEL or page_replaced:
                 if state["attempts"] >= _SAVE_PNG_MAX_POLL_ATTEMPTS:
                     state["timer"].stop()
                     self._png_poll_state = None  # see _on_save_plot_png's own re-entrancy-guard comment

@@ -111,6 +111,8 @@ def changes(before: List[reference_data.ReferenceFile], after: List[reference_da
 class DataPanelWidget(QWidget):
     """Reference data files, with consented downloads, import and rollback."""
 
+    refreshed = Signal()  # after every refresh(): the status bar re-reads its summary
+
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
@@ -192,6 +194,7 @@ class DataPanelWidget(QWidget):
             f"{len(files)} reference data file(s); " + (
                 f"{len(problems)} need attention: " + ", ".join(f"{f.name} ({f.status})" for f in problems)
                 if problems else "all present and current."))
+        self.refreshed.emit()
 
     # -- actions ----------------------------------------------------------
 

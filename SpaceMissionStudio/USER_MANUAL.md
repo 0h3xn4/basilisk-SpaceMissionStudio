@@ -168,8 +168,18 @@ A few things to notice right away:
   Software** exports the attitude flight software and runs it in the
   loop (Section 6). A tenth, **Monte Carlo**, appears when the scenario
   has Monte Carlo on (Section 10).
-* The status bar at the bottom shows progress and, if it is not the
-  verified 2.12.0, the Basilisk version.
+* A **top bar** above the tabs names the scenario and says whether it
+  has unsaved changes, where it came from ("from template 22", or the
+  file's name) and when it last ran, how it ended and how long it took.
+  The tag on its right shows the run state: **No run yet**, **Running**
+  (with the percentage, or the time so far), **Done in 6 s**,
+  **Failed** or **Cancelled**.
+* The status bar at the bottom shows progress, and always: the Basilisk
+  version ("(not qualified)" when it is not the verified 2.12.0), the
+  reference data ("all OK", or how many files need attention; click it
+  to open the **Data** tab), how far the Earth orientation data is high
+  accuracy, and the frames runs use (EME2000 for orbits and results,
+  ITRF93 or IAU_EARTH for ground stations, UTC for dates).
 
 The app opens on the **Load Scenario** tab deliberately: picking a
 starting point is the natural first move for everyone, whether you end
@@ -188,8 +198,8 @@ up using a template as-is or editing it into something new.
    -- you don't need to look at or understand this tab yet, just confirm
    something loaded (its name appears in the "Name" field at the top).
 3. Open the **Run** menu and choose **Run Simulation** (or click the
-   matching toolbar button, or press `Ctrl+R`). The status bar at the
-   bottom shows progress; a short run like this one finishes in seconds.
+   matching toolbar button, or press `Ctrl+R`). The tag in the top bar
+   shows progress; a short run like this one finishes in seconds.
 4. When it finishes, the app switches to the **Results** tab
    automatically. Pick a series from the **Series** dropdown (e.g. a
    spacecraft's position) to see it plotted. Hover over the plot to read

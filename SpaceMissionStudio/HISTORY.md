@@ -9267,3 +9267,82 @@ restores that handler around every test, so a warning from a non-GUI
 thread at a test boundary can land between the two. No test reads the
 captured messages, so the suite now runs with `--no-qt-log`
 (`pyproject.toml`), and the dialog-guard test's own child pytest does too.
+
+## UX iteration 2a: a top bar and a fuller status bar (2026-10-13)
+
+The user chose the app shell next. This first part makes the state
+visible (U-04, U-06, U-07); the main tabs and the docks (U-05) come in
+2b.
+
+**Top bar** (`gui/app_shell.TopBar`), above the work area:
+- the scenario's name;
+- Unsaved changes, Unchanged (a template as shipped), Saved, or Not
+  saved yet;
+- where it came from: "from template 22", or the file's name;
+- the last run: its time, how it ended and how long it took;
+- a status chip (`StatusChip`): No run yet, Running 43 % (a live run) or
+  Running 1:05, Done in 6 s, Failed, Cancelled. Its colours are theme
+  rules on a `state` property, with three new text tokens (`success_text`,
+  `danger_text`, `info_text`) for the chip's text on its soft fills.
+
+The run progress bar no longer prints its own percentage: the chip does.
+
+**Status bar** (`StatusBarItems`), always shown; local reads only:
+- the Basilisk version, in the warning style when it is not the
+  qualified one (it used to appear only then);
+- the reference data: "all N OK" or "k of N need attention". Clicking it
+  opens the Data tab, and a refresh of the Data tab (after a download,
+  import or rollback) refreshes it, through a new
+  `DataPanelWidget.refreshed` signal;
+- how far the Earth orientation data is high accuracy, or "none
+  (IAU_EARTH)";
+- the frames: EME2000, ITRF93 or IAU_EARTH, UTC.
+
+**The toolbars stay.** The standard's top bar also holds Run, and the
+other actions move to menus. But the toolbar test guards a real user
+report (a missing Launch Vizard button), and decision 3 (one Run) is
+part of the Run feedback iteration. So the top bar is a strip of its own
+and the two toolbars are unchanged for now.
+
+**Tests.** `tests/gui/test_app_shell.py`:
+- `source_of`;
+- the top bar for a template, an edit and a saved file;
+- the chip through a finished, a failed and a cancelled run, a live
+  run's percentage, and an unknown state;
+- the status items with the data present, missing and not qualified;
+- the reference data item opening the Data tab, and following it.
+
+The new test file changed how pytest-xdist spreads the tests, and five
+tests in `tests/gui/test_feedback.py` turned out to build a `QLineEdit`
+without a `QApplication`: whichever ran first on a worker aborted it. They
+now ask for the `qapp` fixture.
+
+**Exit segfault (PR #50 CI).** CI's offline step passed its 9 tests, then
+the process segfaulted on exit while web views were being torn down. The
+status bar's reference data item was connected through a lambda that held
+the window, so the window lived until the interpreter exited, the same
+cycle #48 found in the editor. It is now a bound method. A new test checks
+that a closed, dropped window is freed. It fails with the lambda. Locally
+the offline tests exited with 139 every time before the change and with 0
+after it.
+
+**macOS: the first plot save of a test worker.** On PR #50's macOS CI
+the first PNG save of one test worker never wrote its file, even with
+30 s; the later saves in the same worker did. Chromium stops drawing a
+page it counts as hidden or occluded, which would leave
+`Plotly.toImage()` pending. The save tests now bring their widget to the
+front first, as a user's click on Save does. If a save still times out,
+the failure reports the page's visibility and focus, whether Plotly is
+loaded, the pending result and the window's state.
+
+The diagnostics found it on the next run: the page was visible and
+Plotly loaded, but the save's result variable was `undefined` and the
+poll had ended. The page had been reloaded after the save started (a
+second page load after the one the test waited for), so the pending
+render was gone, and the poll took the missing value as the finished
+result and reported "Could not render the plot to a PNG image." A user
+saving while a redraw reloads the page got the same error. When the
+variable is missing, the save now starts the render again on the new
+page, within its existing attempts. A new test reloads the page in the
+middle of a save: without the change it fails with that message every
+time, and with it the PNG is written.
