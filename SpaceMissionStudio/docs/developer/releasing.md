@@ -71,7 +71,7 @@ From the `SpaceMissionStudio` folder:
 |---|---|---|
 | Wheel (any platform) | `packaging/build_wheel.sh` (Windows: `packaging\build_wheel.ps1`) | `dist/spacemissionstudio-X.Y.Z-py3-none-any.whl` |
 | Linux installer | `packaging/build_deb.sh` | `dist/spacemissionstudio_X.Y.Z_all.deb` |
-| Windows installer | Compile `packaging/windows/spacemissionstudio.iss` with [Inno Setup](https://jrsoftware.org/isinfo.php) | `spacemissionstudio-X.Y.Z-setup.exe` |
+| Windows installer | After the release is published (it bundles the release's wheel): Actions > "SpaceMissionStudio Windows installer" > Run workflow, with the release tag and "attach" ticked. It builds, installs and runs the program on a Windows runner, then attaches it to the release | `spacemissionstudio-X.Y.Z-setup.exe` and `SHA256SUMS-windows` on the release (and in the run's artifact) |
 
 [`packaging/README.md`](../../packaging/README.md) explains each one and
 what has been verified where. Record a SHA-256 checksum of each artifact:
