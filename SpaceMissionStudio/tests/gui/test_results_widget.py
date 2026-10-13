@@ -29,6 +29,11 @@ def _sample_result_set(n=50):
 # The first plot page (plotly.js) can take over 10 s to load on a loaded CI runner
 # with several test workers (Windows, macOS: SRelD K-10); the tool is not at fault.
 _PAGE_LOAD_TIMEOUT_MS = 30000  # [ms]
+# Saving a plot polls Plotly.toImage() for up to 10 s of attempts
+# (results_widget._SAVE_PNG_MAX_POLL_ATTEMPTS), and longer while answers are
+# late. A test that waits only 10 s for the file can give up while the app is
+# still within its own budget (macOS CI, PR #50).
+_SAVE_TIMEOUT_MS = 30000  # [ms]
 
 
 @pytest.fixture
@@ -187,7 +192,7 @@ def test_save_plot_as_png_writes_a_real_png_file(widget, tmp_path, monkeypatch, 
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: info_calls.append(a)))
 
     widget._on_save_plot_png()
-    qtbot.waitUntil(lambda: out_path.exists(), timeout=10000)
+    qtbot.waitUntil(lambda: out_path.exists(), timeout=_SAVE_TIMEOUT_MS)
 
     png_bytes = out_path.read_bytes()
     assert png_bytes[:8] == b"\x89PNG\r\n\x1a\n"  # real PNG magic bytes, not an empty/garbage file
@@ -207,7 +212,7 @@ def test_save_plot_as_png_appends_extension_if_missing(widget, tmp_path, monkeyp
 
     widget._on_save_plot_png()
     expected_path = tmp_path / "plot.png"
-    qtbot.waitUntil(lambda: expected_path.exists(), timeout=10000)
+    qtbot.waitUntil(lambda: expected_path.exists(), timeout=_SAVE_TIMEOUT_MS)
     assert not out_path_no_ext.exists()
 
 
@@ -288,7 +293,7 @@ def test_save_plot_as_png_poll_state_resets_after_completion_allowing_a_later_sa
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
 
     widget._on_save_plot_png()
-    qtbot.waitUntil(lambda: first_path.exists(), timeout=10000)
+    qtbot.waitUntil(lambda: first_path.exists(), timeout=_SAVE_TIMEOUT_MS)
     qtbot.waitUntil(lambda: widget._png_poll_state is None, timeout=5000)
     assert widget.save_png_button.isEnabled()
 
@@ -297,7 +302,7 @@ def test_save_plot_as_png_poll_state_resets_after_completion_allowing_a_later_sa
                          staticmethod(lambda *a, **k: (str(second_path), "PNG images (*.png)")))
 
     widget._on_save_plot_png()
-    qtbot.waitUntil(lambda: second_path.exists(), timeout=10000)
+    qtbot.waitUntil(lambda: second_path.exists(), timeout=_SAVE_TIMEOUT_MS)
 
 
 def test_save_plot_as_svg_writes_a_real_svg_file(widget, tmp_path, monkeypatch, qtbot):
@@ -320,7 +325,7 @@ def test_save_plot_as_svg_writes_a_real_svg_file(widget, tmp_path, monkeypatch, 
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: info_calls.append(a)))
 
     widget._on_save_plot_svg()
-    qtbot.waitUntil(lambda: out_path.exists(), timeout=10000)
+    qtbot.waitUntil(lambda: out_path.exists(), timeout=_SAVE_TIMEOUT_MS)
 
     svg_text = out_path.read_text(encoding="utf-8")
     assert svg_text.startswith("<svg")
@@ -340,7 +345,7 @@ def test_save_plot_as_svg_appends_extension_if_missing(widget, tmp_path, monkeyp
 
     widget._on_save_plot_svg()
     expected_path = tmp_path / "plot.svg"
-    qtbot.waitUntil(lambda: expected_path.exists(), timeout=10000)
+    qtbot.waitUntil(lambda: expected_path.exists(), timeout=_SAVE_TIMEOUT_MS)
     assert not out_path_no_ext.exists()
 
 
