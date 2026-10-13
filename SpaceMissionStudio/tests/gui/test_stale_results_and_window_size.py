@@ -110,13 +110,33 @@ def test_re_run_on_the_banner_starts_a_run(qtbot, monkeypatch):
     assert calls == ["run"]
 
 
-def test_the_window_fits_1280_by_720_after_a_comparison(window, qtbot):
+@pytest.fixture
+def app_theme(qapp):
+    """The app's own look, as ``gui/app.py`` sets it: the Fusion style and
+    the bundled IBM Plex font. Without it a test measures the platform's
+    native style and font instead (on Windows 11, 1562 px for the window
+    this app shows at 1118 px), which no user of the app sees. Restored
+    afterwards for the other tests in the process."""
+    from spacemissionstudio.gui.theme import apply_theme
+
+    saved = (qapp.style().name(), qapp.font(), qapp.palette(), qapp.styleSheet())
+    apply_theme(qapp)
+    yield
+    style, font, palette, sheet = saved
+    qapp.setStyleSheet(sheet)
+    qapp.setStyle(style)
+    qapp.setFont(font)
+    qapp.setPalette(palette)
+
+
+def test_the_window_fits_1280_by_720_after_a_comparison(app_theme, window, qtbot):
     """A result on show (its export buttons visible) and two runs of a
     scenario with a long name, so Results shows "Compare with". The
-    window's minimum size still fits 1280 x 720, so resizing it there
-    works. Before the fix a real run's window could not go below
-    1516 x 758: the End of Life form forced the height; the run label in
-    the combo, on the same row as the export buttons, the width."""
+    window's minimum size, in the app's own style and font, still fits
+    1280 x 720, so resizing it there works. Before the fix a real run's
+    window could not go below 1516 x 758: the End of Life form forced the
+    height; the run label in the combo, on the same row as the export
+    buttons, the width."""
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
 
     window.show()

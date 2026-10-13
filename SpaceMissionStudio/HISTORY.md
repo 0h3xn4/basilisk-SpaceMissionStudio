@@ -9252,3 +9252,9 @@ those sizes.
 The size test first passed without the fix, because it measured before
 Qt had laid out the new widgets. With a short wait it fails without the
 fix (1345 px) and passes with it.
+
+On Windows CI the size test then failed at 1562 px: it measured Qt's
+native Windows 11 style and font, which the app never shows (`gui/app.py`
+always applies the Fusion style and the bundled IBM Plex font). The test
+now applies the app's theme first and restores the previous look after.
+It still fails without the fix (1557 px) and passes with it.
