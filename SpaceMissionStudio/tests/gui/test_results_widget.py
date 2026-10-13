@@ -36,6 +36,35 @@ _PAGE_LOAD_TIMEOUT_MS = 30000  # [ms]
 _SAVE_TIMEOUT_MS = 30000  # [ms]
 
 
+def _wait_for_saved_file(qtbot, widget, path):
+    """Wait for a plot save to write ``path``. On a timeout the failure says
+    what the page was doing: macOS CI (PR #50) twice never finished the first
+    save of a worker, and Chromium stops drawing a page it counts as hidden
+    or occluded, which would leave Plotly.toImage() pending."""
+    from pytestqt.exceptions import TimeoutError as QtTimeoutError
+
+    from spacemissionstudio.gui.results_widget import _PNG_RESULT_JS_VAR
+
+    try:
+        qtbot.waitUntil(path.exists, timeout=_SAVE_TIMEOUT_MS)
+    except QtTimeoutError:
+        state = []
+        widget.web_view.page().runJavaScript(
+            "JSON.stringify({visibility: document.visibilityState, focus: document.hasFocus(), "
+            "plotly: typeof Plotly, result: String(window.%s).slice(0, 60)})" % _PNG_RESULT_JS_VAR,
+            state.append)
+        qtbot.waitUntil(lambda: bool(state), timeout=5000)  # [ms]
+        pytest.fail(f"no file after {_SAVE_TIMEOUT_MS} ms; page {state[0]}; window visible "
+                    f"{widget.isVisible()}, active {widget.isActiveWindow()}, poll {widget._png_poll_state}")
+
+
+def _to_front(qtbot, widget):
+    """Raise and activate the widget, as a user's click on Save would."""
+    widget.raise_()
+    widget.activateWindow()
+    qtbot.wait(50)  # [ms] let the window system act on it
+
+
 @pytest.fixture
 def widget(qtbot):
     """A shown, exposed ResultsWidget, as in the app. Hidden, its web view
@@ -191,8 +220,9 @@ def test_save_plot_as_png_writes_a_real_png_file(widget, tmp_path, monkeypatch, 
     info_calls = []
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: info_calls.append(a)))
 
+    _to_front(qtbot, widget)
     widget._on_save_plot_png()
-    qtbot.waitUntil(lambda: out_path.exists(), timeout=_SAVE_TIMEOUT_MS)
+    _wait_for_saved_file(qtbot, widget, out_path)
 
     png_bytes = out_path.read_bytes()
     assert png_bytes[:8] == b"\x89PNG\r\n\x1a\n"  # real PNG magic bytes, not an empty/garbage file
@@ -210,9 +240,10 @@ def test_save_plot_as_png_appends_extension_if_missing(widget, tmp_path, monkeyp
                          staticmethod(lambda *a, **k: (str(out_path_no_ext), "PNG images (*.png)")))
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
 
+    _to_front(qtbot, widget)
     widget._on_save_plot_png()
     expected_path = tmp_path / "plot.png"
-    qtbot.waitUntil(lambda: expected_path.exists(), timeout=_SAVE_TIMEOUT_MS)
+    _wait_for_saved_file(qtbot, widget, expected_path)
     assert not out_path_no_ext.exists()
 
 
@@ -292,8 +323,9 @@ def test_save_plot_as_png_poll_state_resets_after_completion_allowing_a_later_sa
                          staticmethod(lambda *a, **k: (str(first_path), "PNG images (*.png)")))
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
 
+    _to_front(qtbot, widget)
     widget._on_save_plot_png()
-    qtbot.waitUntil(lambda: first_path.exists(), timeout=_SAVE_TIMEOUT_MS)
+    _wait_for_saved_file(qtbot, widget, first_path)
     qtbot.waitUntil(lambda: widget._png_poll_state is None, timeout=5000)
     assert widget.save_png_button.isEnabled()
 
@@ -301,8 +333,9 @@ def test_save_plot_as_png_poll_state_resets_after_completion_allowing_a_later_sa
     monkeypatch.setattr(QFileDialog, "getSaveFileName",
                          staticmethod(lambda *a, **k: (str(second_path), "PNG images (*.png)")))
 
+    _to_front(qtbot, widget)
     widget._on_save_plot_png()
-    qtbot.waitUntil(lambda: second_path.exists(), timeout=_SAVE_TIMEOUT_MS)
+    _wait_for_saved_file(qtbot, widget, second_path)
 
 
 def test_save_plot_as_svg_writes_a_real_svg_file(widget, tmp_path, monkeypatch, qtbot):
@@ -324,8 +357,9 @@ def test_save_plot_as_svg_writes_a_real_svg_file(widget, tmp_path, monkeypatch, 
     info_calls = []
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: info_calls.append(a)))
 
+    _to_front(qtbot, widget)
     widget._on_save_plot_svg()
-    qtbot.waitUntil(lambda: out_path.exists(), timeout=_SAVE_TIMEOUT_MS)
+    _wait_for_saved_file(qtbot, widget, out_path)
 
     svg_text = out_path.read_text(encoding="utf-8")
     assert svg_text.startswith("<svg")
@@ -343,9 +377,10 @@ def test_save_plot_as_svg_appends_extension_if_missing(widget, tmp_path, monkeyp
                          staticmethod(lambda *a, **k: (str(out_path_no_ext), "SVG images (*.svg)")))
     monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: None))
 
+    _to_front(qtbot, widget)
     widget._on_save_plot_svg()
     expected_path = tmp_path / "plot.svg"
-    qtbot.waitUntil(lambda: expected_path.exists(), timeout=_SAVE_TIMEOUT_MS)
+    _wait_for_saved_file(qtbot, widget, expected_path)
     assert not out_path_no_ext.exists()
 
 

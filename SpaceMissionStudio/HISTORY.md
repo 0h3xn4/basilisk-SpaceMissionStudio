@@ -9325,3 +9325,12 @@ cycle #48 found in the editor. It is now a bound method. A new test checks
 that a closed, dropped window is freed. It fails with the lambda. Locally
 the offline tests exited with 139 every time before the change and with 0
 after it.
+
+**macOS: the first plot save of a test worker.** On PR #50's macOS CI
+the first PNG save of one test worker never wrote its file, even with
+30 s; the later saves in the same worker did. Chromium stops drawing a
+page it counts as hidden or occluded, which would leave
+`Plotly.toImage()` pending. The save tests now bring their widget to the
+front first, as a user's click on Save does. If a save still times out,
+the failure reports the page's visibility and focus, whether Plotly is
+loaded, the pending result and the window's state.
