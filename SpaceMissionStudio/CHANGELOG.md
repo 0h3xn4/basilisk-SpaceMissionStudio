@@ -11,6 +11,18 @@ fixes bugs.
 ## Unreleased
 
 **New features**
+- **3D spacecraft models** (part 1: the model and what it drives). A
+  spacecraft can carry a model built from boxes, n-sided prisms (an
+  octagonal bus), cylinders, cones, spheres and thin panels, and from the
+  groups of imported `.obj` files. From it come the mass, center of mass
+  and inertia (or typed in, or read from a JSON or CSV file) and the drag
+  and solar-pressure facets; Vizard shows the model. `spacemissionstudio
+  model` reports a model, applies it to the scenario and exports `.obj`.
+  The editor in the app follows.
+- **Center of mass.** A spacecraft's `center_of_mass_b_m` is now Basilisk's
+  hub offset: drag, solar pressure and thrust get their torque about the
+  center of mass, not about the body origin. Older files load with it at
+  the origin, as before.
 - `spacemissionstudio --version` (or `-V`) prints the SpaceMissionStudio,
   Basilisk and Python versions, and says when the installed Basilisk is
   not the qualified 2.12.0 or is missing.

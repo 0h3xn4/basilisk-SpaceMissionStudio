@@ -357,17 +357,47 @@ def _data_coverage_warnings(scenario) -> List[str]:
     return warnings
 
 
-def plausibility_warnings(scenario) -> List[str]:
+def plausibility_warnings(scenario, base_dir=None) -> List[str]:
     """Checks to show while the scenario is edited (UX/UI guidelines,
     "plausibility checks while typing"): initial orbits that cannot be
-    flown, and a run outside the installed reference data. Short lines,
-    deterministic rules. Never raises."""
+    flown, a run outside the installed reference data, and 3D models whose
+    applied values are out of date. Short lines, deterministic rules. Never
+    raises. ``base_dir`` (the scenario file's folder) resolves relative
+    model mesh paths."""
     warnings: List[str] = []
-    for check in (_orbit_warnings, _data_coverage_warnings):
+    for check in (_orbit_warnings, _data_coverage_warnings, lambda s: _model_warnings(s, base_dir)):
         try:
             warnings += check(scenario)
         except Exception:  # noqa: BLE001, S110 -- a half-edited scenario must never break the editor
             pass
+    return warnings
+
+
+# One cache for every check, so mesh files are read once while editing.
+_MODEL_CACHE = None
+
+
+def _model_warnings(scenario, base_dir) -> List[str]:
+    """A spacecraft's 3D model that cannot be built, or whose mass
+    properties or facets differ from the stored ones."""
+    global _MODEL_CACHE
+    if not any(sc.model is not None for sc in scenario.spacecraft):
+        return []
+    from ..model3d import model as model3d
+
+    if _MODEL_CACHE is None:
+        _MODEL_CACHE = model3d.MeshCache()
+    orbit_only = scenario.simulation_mode == "orbit_only"
+    warnings: List[str] = []
+    for sc in scenario.spacecraft:
+        if sc.model is None:
+            continue
+        derived = model3d.derive(sc.model, base_dir, cache=_MODEL_CACHE)
+        warnings += [f"{sc.name}: 3D model: {message}" for message in derived.errors + derived.warnings]
+        stale = model3d.stale_fields(sc, derived, orbit_only=orbit_only)
+        if stale:
+            warnings.append(f"{sc.name}: {', '.join(stale)} differ from the 3D model -- open the model and "
+                            "apply it, or turn off applying it")
     return warnings
 
 

@@ -60,6 +60,8 @@ Wheels slowly fill up with momentum. Two ways to unload them, both on
 - **Enable gravity gradient torque** (Orbit / mass tab, template **10**).
 - **Surface facets** (Orbit / mass tab): drag and solar pressure that
   depend on the attitude and can twist the spacecraft (template **21**).
+  A spacecraft's 3D model can generate them, with its mass, center of
+  mass and inertia ([`model`](command-line.md#3d-models)).
 - **Flexible solar arrays** that swing when the spacecraft turns
   (template **27**).
 

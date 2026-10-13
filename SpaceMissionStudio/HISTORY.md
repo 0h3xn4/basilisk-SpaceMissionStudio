@@ -9007,3 +9007,56 @@ and no `Logging to` line; given before a command it still prints the
 versions and exits 0. The generated CLI interface document now has a
 section for options before the command. Tested with and without
 Basilisk installed; three new tests in `tests/test_cli.py`.
+
+## 3D spacecraft models, part 1: geometry, mass properties, facets (2026-10-13)
+
+The user asked for a 3D model editor: build a spacecraft from simple
+shapes (octagons included) or import an `.obj`, edit it, and configure or
+import the center of gravity and moments of inertia. Their choices: the
+model drives the look, the mass properties and the drag/SRP surfaces; a
+parts list with a live 3D view; an imported `.obj` is edited part by part
+(its groups), not triangle by triangle; mass data can be computed, typed
+in or imported. Three pull requests: this one (geometry, schema, engine,
+CLI), then the editor, then a template.
+
+**What was there.** The Vizard model was cosmetic only; facets were typed
+in by hand; mass and inertia were typed in; and the engine never set
+Basilisk's `hub.r_BcB_B`, so the center of mass was always at body point
+B. Facet locations are measured from B, so with no offset their drag and
+SRP torques were about B rather than about the center of mass.
+
+**What was built.**
+- `spacemissionstudio/model3d/` (numpy only, no Basilisk):
+  - shapes with their meshes, faces and mass properties;
+  - exact solid (signed tetrahedra) and shell integrals for meshes;
+  - an `.obj`/`.mtl` reader and writer with size limits;
+  - facets from outer faces, with coplanar mesh triangles merged;
+  - `derive`/`apply`/`stale_fields`;
+  - JSON/CSV mass-property import with the about-B and
+    products-of-inertia sign options.
+- Schema: `SpacecraftConfig.model` and `center_of_mass_b_m`. These are
+  additive, so old files load unchanged.
+- Engine:
+  - `hub.r_BcB_B` from `center_of_mass_b_m`;
+  - the Vizard copy of the model, in Vizard's axes, read from Vizard's
+    own source: its importer mirrors x, and body axes map to Unity
+    (y, z, -x);
+  - mesh files in the run's provenance.
+- Plausibility warnings when stored values differ from the model.
+- An Explain-tab badge and a center-of-mass note.
+- The `model` CLI command.
+
+**Verified.**
+- Every shape's mass properties against textbook formulas: the box, the
+  regular-polygon prism, cylinder, cone and sphere, solid and shell.
+- The mesh integrals against the closed forms (0.1 % at 256 sides).
+- A 490,000-triangle mesh in about 7 s, its inertia right to 0.002 %.
+- `.obj` round trips, units, Y-up, malformed and oversized files.
+- In Basilisk: an uncontrolled 1 m cube under drag with its center of
+  mass 5 cm off along x spins up about +z at 2.14e-4 rad/s after 100 s.
+  That is the sign r x F gives. 10 cm gives x 1.994 the spin, and a
+  centred cube 6e-22 rad/s. A first try over 600 s gave x 1.89 instead
+  of 2, because the cube had turned 0.75 rad by then.
+
+**Not done yet:** the editor in the app; the model's look in a running
+Vizard; a moving center of mass as propellant drains.

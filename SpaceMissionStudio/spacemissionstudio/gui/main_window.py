@@ -31,6 +31,7 @@ with a different UI toolkit entirely without touching
 
 from __future__ import annotations
 
+import dataclasses
 import logging
 import subprocess
 from pathlib import Path
@@ -1438,7 +1439,11 @@ class MainWindow(QMainWindow):
         self.results_widget.set_featured_series(featured_series(scenario))
         _join_finished_worker(self._run_worker)
         extra = {"sil": sil} if sil is not None else {}  # a plain run builds its worker exactly as before
-        self._run_worker = RunWorker(scenario, vizard_request=self._vizard_request, live=live,
+        vizard_request = self._vizard_request
+        if vizard_request is not None and self._current_path is not None:
+            # A 3D model's relative mesh paths are relative to the scenario file.
+            vizard_request = dataclasses.replace(vizard_request, model_base_dir=str(self._current_path.parent))
+        self._run_worker = RunWorker(scenario, vizard_request=vizard_request, live=live,
                                      allow_scripts=bool(blocks), **extra)
         self._last_run_sil = sil is not None
         if sil is not None:

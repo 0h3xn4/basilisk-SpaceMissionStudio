@@ -1325,6 +1325,185 @@ class FacetConfig:
                   f"{where}: specular_coeff and diffuse_coeff must each be in [0, 1] and sum to at most 1")
 
 
+# A spacecraft's 3D model (SpacecraftModelConfig): the shapes it is built
+# from and the dimensions each takes, in the order forms show them. The
+# geometry itself (meshes, mass properties, facets) is model3d's; these
+# names live here so validation needs no numpy.
+MODEL_SHAPE_DIMENSIONS = {
+    "box": ("x", "y", "z"),
+    "prism": ("width_across_flats", "height"),
+    "cylinder": ("diameter", "height"),
+    "cone": ("base_diameter", "height"),
+    "sphere": ("diameter",),
+    "panel": ("width", "length", "thickness"),
+    "mesh": (),
+}
+MODEL_SHAPES = tuple(MODEL_SHAPE_DIMENSIONS)
+# The face names a part can leave out of the surface model; "sides" stands
+# for all side faces of a prism, cylinder or cone.
+MODEL_SHAPE_FACES = {
+    "box": ("+x", "-x", "+y", "-y", "+z", "-z"),
+    "prism": ("+z", "-z", "sides"),
+    "cylinder": ("+z", "-z", "sides"),
+    "cone": ("-z", "sides"),
+    "sphere": (),
+    "panel": ("+z", "-z"),
+    "mesh": (),
+}
+MODEL_DISTRIBUTIONS = ("solid", "shell")
+MASS_PROPERTIES_SOURCES = ("computed", "typed", "imported")
+MESH_UNITS = ("m", "mm", "cm", "in")
+MESH_UP_AXES = ("z", "y")
+
+
+def _finite_vector(values, length: int = 3) -> bool:
+    return (isinstance(values, list) and len(values) == length
+            and all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) for v in values))
+
+
+@dataclass
+class ModelMeshConfig:
+    """An imported ``.obj`` file that a model's ``mesh`` parts come from.
+    ``.obj`` files carry no unit or up direction, so both are recorded."""
+
+    path: str  # absolute, or relative to the scenario file
+    sha256: str = ""  # [-] of the file when it was imported; "" when not recorded
+    units: str = "m"  # one of MESH_UNITS
+    up_axis: str = "z"  # one of MESH_UP_AXES: "y" for files exported Y-up
+
+    def validate(self, where: str) -> None:
+        _require(isinstance(self.path, str) and bool(self.path.strip()), f"{where}: path must not be empty")
+        _require(self.sha256 == "" or (len(self.sha256) == 64 and all(c in "0123456789abcdef" for c in self.sha256)),
+                 f"{where}: sha256 must be empty or 64 lowercase hex digits")
+        _require(self.units in MESH_UNITS, f"{where}: units {self.units!r} must be one of {MESH_UNITS}")
+        _require(self.up_axis in MESH_UP_AXES, f"{where}: up_axis {self.up_axis!r} must be one of {MESH_UP_AXES}")
+
+
+@dataclass
+class ModelPartConfig:
+    """One part of a 3D model: a simple shape, or a group of an imported
+    mesh, placed in the body frame and given a mass and surface properties.
+
+    The part's local frame is turned by ``rotation_deg = [roll, pitch,
+    yaw]`` (yaw about z, then pitch about the new y, then roll about the
+    new x) and moved by ``position_b_m``. ``scale`` applies to mesh parts
+    only, in the mesh's own axes, before the rotation.
+    """
+
+    name: str
+    shape: str  # one of MODEL_SHAPES
+    dimensions_m: dict = field(default_factory=dict)  # [m] the keys MODEL_SHAPE_DIMENSIONS gives for the shape
+    sides: int = 8  # prism only: an octagon by default
+    segments: int = 16  # cylinder, cone, sphere: sides they are drawn and faceted with
+    mesh_index: Optional[int] = None  # mesh parts: index into SpacecraftModelConfig.meshes
+    mesh_group: str = ""  # mesh parts: the group (o/g name) in that file
+    position_b_m: list = field(default_factory=lambda: [0.0, 0.0, 0.0])  # [m]
+    rotation_deg: list = field(default_factory=lambda: [0.0, 0.0, 0.0])  # [deg] roll, pitch, yaw (3-2-1)
+    scale: list = field(default_factory=lambda: [1.0, 1.0, 1.0])  # [-] mesh parts only
+    color: list = field(default_factory=lambda: [0.7, 0.7, 0.7])  # [-] RGB, each 0..1
+    visible: bool = True
+    mass_kg: float = 0.0  # [kg]
+    distribution: str = "solid"  # "solid": through the volume; "shell": over the surface
+    counts_toward_mass: bool = True  # False for a part whose mass is modelled elsewhere (a flexible array)
+    in_surface_model: bool = True  # its outer faces become drag/SRP facets
+    excluded_faces: list = field(default_factory=list)  # names from MODEL_SHAPE_FACES left out of the facets
+    drag_coeff: float = 2.2  # [-]
+    specular_coeff: float = 0.3  # [-]
+    diffuse_coeff: float = 0.1  # [-]
+
+    def validate(self, where: str, mesh_count: int) -> None:
+        _require(name_error("part", self.name) is None, f"{where}: {name_error('part', self.name)}")
+        where = f"{where}: part {self.name!r}"
+        _require(self.shape in MODEL_SHAPES, f"{where}: shape {self.shape!r} must be one of {MODEL_SHAPES}")
+        expected = set(MODEL_SHAPE_DIMENSIONS[self.shape])
+        _require(set(self.dimensions_m) == expected,
+                 f"{where}: a {self.shape} needs dimensions_m with exactly {sorted(expected)}, "
+                 f"got {sorted(self.dimensions_m)}")
+        for key, value in self.dimensions_m.items():
+            _require(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+                     and 0.0 < value <= 1000.0, f"{where}: dimensions_m[{key!r}] must be in (0, 1000] m")
+        _require(isinstance(self.sides, int) and 3 <= self.sides <= 64, f"{where}: sides must be 3 to 64")
+        _require(isinstance(self.segments, int) and 8 <= self.segments <= 256, f"{where}: segments must be 8 to 256")
+        if self.shape == "mesh":
+            _require(isinstance(self.mesh_index, int) and 0 <= self.mesh_index < mesh_count,
+                     f"{where}: mesh_index must name one of the model's {mesh_count} mesh file(s)")
+            _require(bool(self.mesh_group), f"{where}: mesh_group must name a group of the mesh file")
+        _require(_finite_vector(self.position_b_m), f"{where}: position_b_m must be a finite [x, y, z] in m")
+        _require(_finite_vector(self.rotation_deg), f"{where}: rotation_deg must be a finite [roll, pitch, yaw]")
+        _require(_finite_vector(self.scale) and all(v != 0.0 for v in self.scale),
+                 f"{where}: scale must be three finite, non-zero factors")
+        _require(_finite_vector(self.color) and all(0.0 <= v <= 1.0 for v in self.color),
+                 f"{where}: color must be [r, g, b], each 0 to 1")
+        _require(isinstance(self.mass_kg, (int, float)) and math.isfinite(self.mass_kg)
+                 and 0.0 <= self.mass_kg <= 1.0e6, f"{where}: mass_kg must be in [0, 1e6]")
+        _require(self.distribution in MODEL_DISTRIBUTIONS,
+                 f"{where}: distribution {self.distribution!r} must be one of {MODEL_DISTRIBUTIONS}")
+        allowed = MODEL_SHAPE_FACES[self.shape]
+        bad = [face for face in self.excluded_faces if face not in allowed]
+        _require(not bad, f"{where}: excluded_faces {bad} are not faces of a {self.shape}"
+                 + (f" (it has {list(allowed)})" if allowed else ""))
+        _require(isinstance(self.drag_coeff, (int, float)) and 0.0 <= self.drag_coeff <= 10.0,
+                 f"{where}: drag_coeff must be in [0, 10]")
+        _require(0.0 <= self.specular_coeff <= 1.0 and 0.0 <= self.diffuse_coeff <= 1.0
+                 and self.specular_coeff + self.diffuse_coeff <= 1.0,
+                 f"{where}: specular_coeff and diffuse_coeff must each be in [0, 1] and sum to at most 1")
+
+
+@dataclass
+class ModelMassPropertiesConfig:
+    """Mass properties typed in, or imported from a file, instead of
+    computed from the parts: about the center of mass, in body axes."""
+
+    mass_kg: float  # [kg]
+    center_of_mass_b_m: list = field(default_factory=lambda: [0.0, 0.0, 0.0])  # [m] from body point B
+    inertia_kg_m2: list = field(default_factory=lambda: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0])  # about it
+    source_file: str = ""  # imported: the file's name
+    source_sha256: str = ""  # imported: its SHA-256
+
+    def validate(self, where: str) -> None:
+        _require(isinstance(self.mass_kg, (int, float)) and math.isfinite(self.mass_kg)
+                 and 0.0 < self.mass_kg <= 1.0e6, f"{where}: mass_kg must be in (0, 1e6]")
+        _require(_finite_vector(self.center_of_mass_b_m), f"{where}: center_of_mass_b_m must be a finite [x, y, z]")
+        _require(_finite_vector(self.inertia_kg_m2, 9), f"{where}: inertia_kg_m2 must be 9 finite numbers (3x3)")
+
+
+@dataclass
+class SpacecraftModelConfig:
+    """A spacecraft's 3D model (see ``spacemissionstudio.model3d``): parts
+    built from simple shapes or imported ``.obj`` groups. Applying it
+    (``model3d.model.apply``) writes what it derives into the spacecraft's
+    own fields -- ``dry_mass_kg``, ``center_of_mass_b_m``, ``inertia_kg_m2``
+    and ``facets`` -- which are what the simulation reads; the model is
+    kept so it can be edited again. ``use_for_vizard`` shows the model in
+    Vizard when ``vizard_model_path`` is not set."""
+
+    parts: list = field(default_factory=list)  # list[ModelPartConfig]
+    meshes: list = field(default_factory=list)  # list[ModelMeshConfig]
+    mass_properties_source: str = "computed"  # one of MASS_PROPERTIES_SOURCES
+    mass_properties: Optional[ModelMassPropertiesConfig] = None  # for "typed" and "imported"
+    apply_mass_properties: bool = True
+    apply_facets: bool = True
+    use_for_vizard: bool = True
+
+    def validate(self, spacecraft_name: str) -> None:
+        where = f"{spacecraft_name}: model"
+        _require(bool(self.parts), f"{where} needs at least one part")
+        names = [part.name for part in self.parts]
+        _require(len(names) == len(set(names)), f"{where}: part names must be unique, got {names}")
+        for k, mesh in enumerate(self.meshes):
+            mesh.validate(f"{where}: meshes[{k}]")
+        for part in self.parts:
+            part.validate(where, len(self.meshes))
+        _require(self.mass_properties_source in MASS_PROPERTIES_SOURCES,
+                 f"{where}: mass_properties_source {self.mass_properties_source!r} must be one of "
+                 f"{MASS_PROPERTIES_SOURCES}")
+        if self.mass_properties_source != "computed":
+            _require(self.mass_properties is not None,
+                     f"{where}: mass_properties_source {self.mass_properties_source!r} needs mass_properties")
+        if self.mass_properties is not None:
+            self.mass_properties.validate(f"{where}: mass_properties")
+
+
 @dataclass
 class SpacecraftConfig:
     name: str
@@ -1338,6 +1517,11 @@ class SpacecraftConfig:
     # as propellant burns -- see StationKeepingConfig's docstring.
     dry_mass_kg: float = 100.0
     inertia_kg_m2: list = field(default_factory=lambda: [10.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0])
+    # [m] The center of mass from body point B, in body axes (Basilisk's
+    # hub.r_BcB_B); inertia_kg_m2 is about this point. Facet locations,
+    # thruster and sensor positions stay measured from B, so an offset
+    # here gives drag, SRP and thrust their torque about the center of mass.
+    center_of_mass_b_m: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
     sigma_bn_init: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
     omega_bn_b_init_rad_s: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
 
@@ -1414,6 +1598,9 @@ class SpacecraftConfig:
     vizard_model_offset_m: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
     vizard_model_rotation_deg: list = field(default_factory=lambda: [0.0, 0.0, 0.0])  # 3-2-1 Euler (z,y,x)
     vizard_model_scale: list = field(default_factory=lambda: [1.0, 1.0, 1.0])
+    # The spacecraft's 3D model, if one was built or imported in the model
+    # editor; see SpacecraftModelConfig.
+    model: Optional[SpacecraftModelConfig] = None
 
     def validate(self) -> None:
         _require(name_error("spacecraft", self.name) is None, name_error("spacecraft", self.name) or "")
@@ -1459,6 +1646,11 @@ class SpacecraftConfig:
                       f"{self.name}: inertia_kg_m2's diagonal entries ({ix:g}, {iy:g}, {iz:g}) violate the "
                       "triangle inequality -- no rigid body's principal moment of inertia can exceed the "
                       "sum of the other two; check for a units/axis mixup")
+        _require(_finite_vector(self.center_of_mass_b_m)
+                 and math.sqrt(sum(v * v for v in self.center_of_mass_b_m)) <= 100.0,
+                 f"{self.name}: center_of_mass_b_m must be a finite [x, y, z] within 100 m of point B")
+        if self.model is not None:
+            self.model.validate(self.name)
         _require(len(self.sigma_bn_init) == 3, f"{self.name}: sigma_bn_init must have 3 elements")
         _require(len(self.omega_bn_b_init_rad_s) == 3, f"{self.name}: omega_bn_b_init_rad_s must have 3 elements")
         # drag_coeff/drag_area_m2/srp_coeff/srp_area_m2 feed straight into
@@ -2477,6 +2669,16 @@ class Scenario:
             orbit = OrbitIC(**sc.pop("orbit"))
             sensors = [SensorConfig(**s) for s in sc.pop("sensors", [])]
             facets = [FacetConfig(**f) for f in sc.pop("facets", [])]
+            model_data = sc.pop("model", None)
+            model = None
+            if model_data is not None:
+                model_data = dict(model_data)
+                parts = [ModelPartConfig(**part) for part in model_data.pop("parts", [])]
+                meshes = [ModelMeshConfig(**mesh) for mesh in model_data.pop("meshes", [])]
+                mass_data = model_data.pop("mass_properties", None)
+                mass_properties = ModelMassPropertiesConfig(**mass_data) if mass_data is not None else None
+                model = SpacecraftModelConfig(parts=parts, meshes=meshes, mass_properties=mass_properties,
+                                              **model_data)
             actuators = [ActuatorConfig(**a) for a in sc.pop("actuators", [])]
             power_data = sc.pop("power", None)
             power = PowerConfig(**power_data) if power_data is not None else None
@@ -2524,7 +2726,7 @@ class Scenario:
                                                 momentum_dumping=momentum_dumping,
                                                 magnetic_momentum_management=magnetic_momentum_management,
                                                 navigation_error=navigation_error,
-                                                fuel_tank=fuel_tank, facets=facets,
+                                                fuel_tank=fuel_tank, facets=facets, model=model,
                                                 **sc))
 
         mission_sequence = [Command.from_dict(c) for c in data.pop("mission_sequence", [])]
