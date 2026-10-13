@@ -58,7 +58,25 @@ fixes bugs.
   Undo takes it back. The editor says what the next run uses in this
   scenario (orbit only: the dry mass). A 3D model problem in Problems and
   the "3D model" badge in Explain open the editor for that spacecraft.
+- **Problems take you to the field** (UX audit U-12). A double-click on a
+  problem opens where it is fixed: the Scenario Editor's own field, or
+  the spacecraft, ground station or propagation setup dialog at the
+  field, with the problem in a banner at the top. The field is marked in
+  red with the message under it, and the mark goes when you edit it. A
+  scenario field's message starts with its label ("Epoch (UTC) ...", not
+  "scenario.epoch_utc ..."). OK in those dialogs shows a problem the same
+  way instead of a message box.
 **Fixed**
+- **Switching the orbit type no longer changes the orbit silently** (UX
+  audit U-14). The type is a segmented control; picking another asks
+  first, showing both sets of values: **Convert and switch** keeps the
+  same orbit (Basilisk's `orbitalMotion` and the central body's `mu`, the
+  run's own; a TLE at the scenario epoch), **Use the ... page's values**
+  takes that page as it is, Cancel keeps everything. Nothing converts to
+  a TLE, and the question says why.
+- An orbit's validation message now names its spacecraft
+  ("my-sat: orbit: classical_elements orbit needs 0 <= eccentricity < 1"):
+  with several spacecraft it did not say which one.
 - **Save PNG / Save SVG** no longer fails with "Could not render the plot"
   when the plot's page reloads while the image is rendering (a redraw, or
   the page still settling after a new result). The save starts the

@@ -28,13 +28,16 @@ or build one up from an empty scenario.
    - semi-major axis = 6378 km + altitude, so 6928 km for 550 km;
    - for an Earth-observation orbit, press **Compute Sun-sync inclination
      for this altitude** and **Compute RAAN for LTAN...** (10:30 is usual);
-   - or choose the TLE orbit type and paste a real satellite's TLE;
+   - or choose the TLE orbit type and paste a real satellite's TLE
+     (switching the orbit type asks whether to convert the orbit you
+     have or use the new page's values);
    - set **Dry mass**, and tick **Enable atmospheric drag** with its area
      (and **Enable solar radiation pressure**).
 4. **Ground stations > Add...**: a name, latitude, longitude and the lowest
    usable elevation (10 deg is common).
 5. Check the bottom of the tab. **✓ valid** means you can run; otherwise
-   the message names the field to fix. **Explain**, in the side panel, already shows
+   the message names the field to fix, and **Problems** in the side panel
+   takes you to it with a double-click. **Explain**, in the side panel, already shows
    the orbit type and the predicted ground passes.
 6. **File > Save As...**, then **Run > Run Simulation**.
 

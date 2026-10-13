@@ -55,7 +55,8 @@ from __future__ import annotations
 from typing import List
 
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QPushButton, QWidget
+from PySide6.QtWidgets import (QBoxLayout, QFormLayout, QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea,
+                               QStackedWidget, QTabWidget, QWidget)
 from shiboken6 import isValid
 
 from .theme import PALETTE
@@ -190,6 +191,144 @@ def clear_invalid(widget: QWidget) -> None:
         widget.setToolTip(widget.property(_SAVED_TOOLTIP_PROPERTY) or "")
         widget.setProperty(_SAVED_TOOLTIP_PROPERTY, None)
         _repolish(widget)
+
+
+# The attribute show_field_error keeps a field's message label in.
+_FIELD_ERROR_ATTR = "_smsFieldErrorLabel"
+
+
+def _error_label(widget: QWidget):
+    label = getattr(widget, _FIELD_ERROR_ATTR, None)
+    return label if label is not None and isValid(label) else None
+
+
+def _find_in_forms(layout, widget: QWidget):
+    """``(form, row)`` for ``widget`` in ``layout`` or the layouts nested in
+    it, or None."""
+    if isinstance(layout, QFormLayout):
+        row, _role = layout.getWidgetPosition(widget)
+        if row >= 0:
+            return layout, row
+    for index in range(layout.count() if layout is not None else 0):
+        child = layout.itemAt(index).layout()
+        found = _find_in_forms(child, widget) if child is not None else None
+        if found is not None:
+            return found
+    return None
+
+
+def _form_row(widget: QWidget):
+    """``(form, row, field)``: the QFormLayout row holding ``widget`` (or
+    the row widget it sits in, up to three parents up), or None."""
+    field = widget
+    for _level in range(4):
+        parent = field.parentWidget()
+        if parent is None:
+            return None
+        found = _find_in_forms(parent.layout(), field)
+        if found is not None:
+            return found[0], found[1], field
+        field = parent
+    return None
+
+
+def show_field_error(widget: QWidget, message: str) -> None:
+    """Marks ``widget`` (see :func:`mark_invalid`) and shows ``message``
+    right under it (docs/ux-audit.md U-12): under its row in a form, or
+    after it in its own box layout. Calling it again updates the message."""
+    mark_invalid(widget, message)
+    label = _error_label(widget)
+    if label is not None:
+        label.setText(message)
+        return
+    label = QLabel(message)
+    label.setObjectName("fieldError")
+    label.setWordWrap(True)
+    placed = _form_row(widget)
+    if placed is not None:
+        form, row, _field = placed
+        form.insertRow(row + 1, "", label)
+    else:
+        parent = widget.parentWidget()
+        layout = parent.layout() if parent is not None else None
+        if not isinstance(layout, QBoxLayout) or layout.indexOf(widget) < 0:
+            label.deleteLater()  # nowhere to put it: the border and tooltip still say it
+            return
+        layout.insertWidget(layout.indexOf(widget) + 1, label)
+    setattr(widget, _FIELD_ERROR_ATTR, label)
+
+
+def clear_field_error(widget: QWidget) -> None:
+    """Undoes :func:`show_field_error`; safe to call on any widget."""
+    clear_invalid(widget)
+    label = _error_label(widget)
+    setattr(widget, _FIELD_ERROR_ATTR, None)
+    if label is None:
+        return
+    placed = _form_row(label)
+    if placed is not None:
+        placed[0].removeRow(placed[1])  # deletes the label and its empty row label
+    else:
+        label.deleteLater()
+
+
+def clear_on_edit(widget: QWidget) -> None:
+    """Clears ``widget``'s :func:`show_field_error` the first time the user
+    changes its value: in a dialog nothing revalidates until OK."""
+    for name in ("valueChanged", "textChanged", "currentIndexChanged", "itemChanged"):
+        signal = getattr(widget, name, None)
+        if signal is None:
+            continue
+
+        def clear(*_args, _signal=signal):
+            clear_field_error(widget)
+            _signal.disconnect(clear)
+
+        signal.connect(clear)
+        return
+
+
+def field_error_text(widget: QWidget) -> str:
+    """The message :func:`show_field_error` shows under ``widget``, or ""."""
+    label = _error_label(widget)
+    return label.text() if label is not None else ""
+
+
+def bring_into_view(widget: QWidget) -> None:
+    """Selects every tab and stacked page ``widget`` sits in, scrolls it into
+    view, and focuses it: where Problems sends the user (U-12)."""
+    child = widget
+    parent = widget.parentWidget()
+    while parent is not None:
+        if isinstance(parent, QStackedWidget) and parent.indexOf(child) >= 0:
+            container = parent.parentWidget()
+            if isinstance(container, QTabWidget):
+                container.setCurrentWidget(child)
+            else:
+                parent.setCurrentWidget(child)
+        if isinstance(parent, QScrollArea) and parent.widget() is not None:
+            parent.ensureWidgetVisible(widget)
+        child, parent = parent, parent.parentWidget()
+    widget.setFocus()
+
+
+class ProblemBanner(QFrame):
+    """A line at the top of a dialog opened at a problem: what is wrong,
+    while the field itself is marked. Hidden until :meth:`show_problem`."""
+
+    def __init__(self, parent: QWidget | None = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("problemBanner")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 6, 8, 6)  # [px]
+        self.label = QLabel()
+        self.label.setWordWrap(True)
+        layout.addWidget(self.label, 1)
+        self.hide()
+
+    def show_problem(self, message: str) -> None:
+        self.label.setText(message)
+        self.show()
 
 
 def _repolish(widget: QWidget) -> None:

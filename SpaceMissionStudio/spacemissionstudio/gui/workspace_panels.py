@@ -43,6 +43,7 @@ from PySide6.QtWidgets import (QAbstractSpinBox, QCheckBox, QComboBox, QDoubleSp
                                QLabel, QLineEdit, QListWidget, QListWidgetItem, QPlainTextEdit, QPushButton,
                                QSpinBox, QTableWidget, QTableWidgetItem, QTextEdit, QVBoxLayout, QWidget)
 
+from .problem_location import SPACECRAFT, locate
 from .theme import MONO_FONT_FAMILY, PALETTE
 from .widgets import ComboBox
 
@@ -187,36 +188,34 @@ class ProblemsWidget(QWidget):
     def _on_item_activated(self, item) -> None:
         self.activated.emit(self.problems[self.list.row(item)][1])
 
-    def set_problems(self, problems: List[Tuple[str, str]]) -> None:
-        """``problems``: ``(severity, text)`` pairs, severity "error" or "warning"."""
-        self.problems = list(problems)
+    def set_problems(self, problems: List[Tuple[str, ...]]) -> None:
+        """``problems``: ``(severity, text)`` or ``(severity, text, shown
+        text)``, severity "error" or "warning". ``text`` is the message as
+        raised, which says where it is fixed; the list shows the shown text."""
+        self.problems = [(problem[0], problem[1]) for problem in problems]
+        shown = [problem[2] if len(problem) > 2 else problem[1] for problem in problems]
         self.list.clear()
         colours = {"error": PALETTE["danger_text"], "warning": PALETTE["warning"]}
-        for severity, text in self.problems:
-            item = QListWidgetItem(f"{'Error' if severity == 'error' else 'Warning'}: {text}")
+        for (severity, text), display in zip(self.problems, shown):
+            item = QListWidgetItem(f"{'Error' if severity == 'error' else 'Warning'}: {display}")
             item.setForeground(_brush(colours.get(severity, PALETTE["text"])))
             item.setToolTip("Double-click to open the 3D model editor" if _MODEL_MARK in text
-                            else "Double-click to open the Scenario Editor")
+                            else "Double-click to go to where it is fixed")
             self.list.addItem(item)
         self.empty_label.setVisible(not self.problems)
         self.list.setVisible(bool(self.problems))
         self.count_changed.emit(len(self.problems))
 
 
-# engine.scenario_checks' 3D model warnings read "<spacecraft>: 3D model: ..."
-# or "<spacecraft>: ... differ from the 3D model ...".
-_MODEL_MARK = "3D model"
+_MODEL_MARK = "3D model"  # in every 3D model problem (engine.scenario_checks)
 
 
 def model_problem_spacecraft(text: str, names: List[str]) -> Optional[str]:
     """The spacecraft whose 3D model problem ``text`` is about, or None when
-    it is not about a 3D model. The longest matching name wins, so "sat-10"
-    is not taken for "sat-1"."""
-    if _MODEL_MARK not in text:
-        return None
-    for name in sorted(names, key=len, reverse=True):
-        if text.startswith(f"{name}: "):
-            return name
+    it is not about a 3D model (see :mod:`problem_location`)."""
+    location = locate(text, names)
+    if location is not None and location.area == SPACECRAFT and location.field == "model":
+        return location.name
     return None
 
 

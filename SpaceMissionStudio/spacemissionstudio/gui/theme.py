@@ -284,6 +284,14 @@ def _qss() -> str:
         border: 2px solid {c['danger']};
         padding: 4px 7px;
     }}
+    QPlainTextEdit[state="error"], QListWidget[state="error"], QTableWidget[state="error"] {{
+        border: 2px solid {c['danger']};
+    }}
+    /* The message under a field with a problem (gui/feedback.py's show_field_error). */
+    QLabel#fieldError {{
+        color: {c['danger_text']};
+        font-size: 12px;
+    }}
     QLineEdit[state="error"]:focus, QDoubleSpinBox[state="error"]:focus,
     QSpinBox[state="error"]:focus, QComboBox[state="error"]:focus {{
         border: 2px solid {c['danger']};
@@ -476,6 +484,34 @@ def _qss() -> str:
         background-color: {c['warning_soft']};
         border: none;
         border-left: 3px solid {c['warning_fill']};
+    }}
+    /* A segmented control (gui/orbit_ic_widget.py's orbit type, U-14):
+       joined buttons, the chosen one filled. */
+    QFrame#segmentedControl QPushButton#segmentButton {{
+        background-color: {c['field']};
+        color: {c['text']};
+        border: 1px solid {c['border_strong']};
+        border-radius: 0px;
+        padding: 6px 14px;
+        margin: 0px;
+    }}
+    QFrame#segmentedControl QPushButton#segmentButton:hover {{
+        background-color: {c['hover']};
+    }}
+    QFrame#segmentedControl QPushButton#segmentButton:checked {{
+        background-color: {c['accent']};
+        color: {c['on_accent']};
+        border-color: {c['accent']};
+    }}
+    /* A dialog opened at a problem (gui/feedback.py's ProblemBanner). */
+    QFrame#problemBanner {{
+        background-color: {c['danger_soft']};
+        border: none;
+        border-left: 3px solid {c['danger']};
+    }}
+    QFrame#problemBanner QLabel {{
+        color: {c['danger_text']};
+        background-color: transparent;
     }}
     QFrame#staleResultsBanner QLabel {{
         color: {c['text']};

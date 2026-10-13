@@ -45,7 +45,9 @@ from PySide6.QtWidgets import (
 )
 
 from ..schema.scenario import GroundStationConfig, ScenarioValidationError
-from .feedback import clear_invalid, mark_invalid, show_toast
+from .feedback import (ProblemBanner, bring_into_view, clear_field_error, clear_invalid, clear_on_edit,
+                       mark_invalid, show_field_error, show_toast)
+from .problem_location import GROUND_STATION, locate
 from .widgets import PreciseDoubleSpinBox
 
 
@@ -66,6 +68,10 @@ class GroundStationEditorDialog(QDialog):
         self.setWindowTitle("Ground station" if config is None else f"Ground station: {config.name}")
 
         layout = QVBoxLayout(self)
+        # What is wrong, when the dialog is opened at a problem or OK finds one (U-12).
+        self.problem_banner = ProblemBanner()
+        layout.addWidget(self.problem_banner)
+        self._problem_field = None
         form = QFormLayout()
         self.name_edit = QLineEdit(config.name if config else "gs-1")
         self.name_edit.textChanged.connect(self._on_name_changed)
@@ -149,7 +155,9 @@ class GroundStationEditorDialog(QDialog):
         try:
             self.to_dataclass()
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Invalid ground station", str(exc))
+            location = locate(str(exc), station_names=[self.name_edit.text().strip()])
+            self.show_problem(location.path if location is not None and location.area == GROUND_STATION else "",
+                              str(exc))
             return
         self.accept()
 
@@ -165,6 +173,31 @@ class GroundStationEditorDialog(QDialog):
         )
         config.validate()
         return config
+
+
+    # Where a ground station field's widget is (docs/ux-audit.md U-12).
+    _FIELD_WIDGETS = {"name": "name_edit", "latitude_deg": "lat_deg", "longitude_deg": "lon_deg",
+                      "altitude_m": "alt_m", "min_elevation_deg": "min_elev_deg",
+                      "rx_antenna_gain_dbi": "rx_antenna_gain_dbi", "system_noise_temp_k": "system_noise_temp_k"}
+
+    def field_widget(self, path: str):
+        """The widget for the station field ``path``, or None."""
+        name = self._FIELD_WIDGETS.get(path)
+        return getattr(self, name, None) if name else None
+
+    def show_problem(self, path: str, message: str) -> None:
+        """Opens at a problem: the banner says what is wrong, and the field
+        at ``path`` (when there is one) is shown, marked and focused."""
+        if self._problem_field is not None:
+            clear_field_error(self._problem_field)
+            self._problem_field = None
+        self.problem_banner.show_problem(message)
+        widget = self.field_widget(path)
+        if widget is not None:
+            show_field_error(widget, message)
+            clear_on_edit(widget)
+            self._problem_field = widget
+            bring_into_view(widget)
 
 
 class GroundStationListWidget(QWidget):
@@ -220,10 +253,22 @@ class GroundStationListWidget(QWidget):
 
     def _on_edit(self) -> None:
         row = self.list_widget.currentRow()
-        if row < 0:
-            return
+        if row >= 0:
+            self.edit_station(row)
+
+    def edit_station_named(self, name: str, path: str = "", message: str = "") -> None:
+        """Open the editor for the ground station ``name``, at the problem
+        ``message`` about its field ``path`` when given (Problems, U-12)."""
+        names = [config.name for config in self._configs]
+        if name in names:
+            self.list_widget.setCurrentRow(names.index(name))
+            self.edit_station(names.index(name), path, message)
+
+    def edit_station(self, row: int, path: str = "", message: str = "") -> None:
         other_names = sorted(c.name for i, c in enumerate(self._configs) if i != row)
         dialog = GroundStationEditorDialog(config=self._configs[row], parent=self, other_names=other_names)
+        if message:
+            dialog.show_problem(path, message)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             new_config = dialog.to_dataclass()
             if new_config.name in set(other_names):

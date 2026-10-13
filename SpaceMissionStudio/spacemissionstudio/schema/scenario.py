@@ -1677,7 +1677,10 @@ class SpacecraftConfig:
         _require(0.0 < self.srp_area_m2 <= 1.0e4,
                   f"{self.name}: srp_area_m2 must be in (0, 1e4] -- if your intended value is outside "
                   "this range, check for a units mixup (e.g. cm^2 instead of m^2)")
-        self.orbit.validate()
+        try:
+            self.orbit.validate()
+        except ScenarioValidationError as exc:  # name the spacecraft: the orbit's own messages cannot
+            raise ScenarioValidationError(f"{self.name}: orbit: {exc}") from None
 
         _require(self.fsw_mode is None or self.fsw_mode in SUPPORTED_FSW_MODES,
                   f"{self.name}: fsw_mode {self.fsw_mode!r} must be None or one of {SUPPORTED_FSW_MODES}")
