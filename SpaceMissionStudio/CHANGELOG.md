@@ -93,6 +93,16 @@ fixes bugs.
   An edit applies to the other pages, checked as when a file is opened;
   an edit elsewhere shows there. Text that is not JSON is marked at its
   line and keeps the scenario from running until it is fixed.
+- **One Run** (UX audit U-18). **Run** (`Ctrl+R`) starts the mode picked
+  beside it: **Single run**, **Monte Carlo** or **SIL** (flight software
+  in the loop; it asks which spacecraft when more than one can). Run
+  Monte Carlo... is gone from the toolbar and the Run menu.
+- **A progress strip** (U-19) under the top bar while a run goes: what it
+  is doing ("Propagating: day 0.40 of 1", "Step 2 of 5: Burn 5 m/s on
+  sat-1", "Monte Carlo: 37 of 200 cases done"), a bar, the time so far,
+  about how long is left, and **Cancel (Esc)**. Every run shows its
+  progress now, not only with Live plot on. Live plot reads "Live plot:
+  on" or "off".
 **Fixed**
 - **A value from a file outside a field's range is no longer cut to the
   range.** A station 12 000 m up showed, and on the next edit to its form

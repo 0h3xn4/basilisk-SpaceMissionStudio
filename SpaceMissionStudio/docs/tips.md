@@ -18,7 +18,8 @@ On macOS, `Cmd` replaces `Ctrl`.
 | Keys | Does |
 |---|---|
 | `Ctrl+K` | Command palette: find any menu command, tab, template or result series by a few letters ("save as", "events", "05 formation", "velocity") |
-| `Ctrl+R` | Run Simulation |
+| `Ctrl+R` | Run, in the mode beside it (Single run, Monte Carlo, SIL) |
+| `Esc` | Cancel the run |
 | `F1` | User Manual |
 | `Ctrl+Z` / `Ctrl+Shift+Z` (`Ctrl+Y` on Windows) | Undo / redo a scenario edit |
 | `Ctrl+N`, `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S` | New, Open, Save, Save As |
@@ -73,7 +74,7 @@ On macOS, `Cmd` replaces `Ctrl`.
 | Solar-activity prediction | NASA MSFC table (`.txt`) | Scenario tree > Environment |
 | Earth orientation | NAIF Earth PCK (`.bpc`, `.cmt`) | Data > Import file..., `earth-orientation --import` |
 | 3D model | Wavefront OBJ (`.obj`) | Spacecraft page, Vizard model |
-| Flight-software program | An executable speaking the SIL contract | Run SIL..., `sil --binary` |
+| Flight-software program | An executable speaking the SIL contract | Run in SIL mode, `sil --binary` |
 
 **Writes**
 
@@ -87,7 +88,7 @@ On macOS, `Cmd` replaces `Ctrl`.
 | Plots | PNG, SVG | Results > Save PNG... / Save SVG... |
 | Orbit messages | CCSDS OPM, OEM (KVN text) | `ccsds-export`, `run --oem` |
 | Vizard playback | `.bin` | Vizard Configuration..., `run --vizard-save-file` |
-| Monte Carlo batch | `batch_results.npz` and `.json`, plus Basilisk's archive | Run Monte Carlo..., `monte-carlo --archive-dir` |
+| Monte Carlo batch | `batch_results.npz` and `.json`, plus Basilisk's archive | Run in Monte Carlo mode, `monte-carlo --archive-dir` |
 | Monte Carlo table | CSV | Monte Carlo > Export table CSV... |
 | Budget | CSV on the clipboard | Budget > Copy as CSV |
 | Flight software | A C project with CMake, `ICD.md`, `TRACEABILITY.md`, `manifest.json` | Flight Software > Export..., `export-fsw` |

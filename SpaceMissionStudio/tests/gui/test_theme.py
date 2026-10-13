@@ -100,6 +100,8 @@ def test_every_toolbar_action_has_an_icon(qtbot):
         for action in toolbar.actions():
             if action.isSeparator():
                 continue
+            if action is window.run_mode_button_action:
+                continue  # the run mode picker beside Run: a text drop-down, like a combo box (U-18)
             assert not action.icon().isNull(), action.text()
 
 

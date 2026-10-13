@@ -811,3 +811,21 @@ def test_disabled_commands_are_skipped():
     result, summary = MissionEngine(scenario).run()
     assert summary.commands_executed == 1
     assert result.series["sat-1.position_N"].time_s[-1] == pytest.approx(0.01 * 86400.0, abs=10.0)  # [s]
+
+
+def test_on_step_reports_each_enabled_top_level_step():
+    """``on_step`` hears each enabled top-level step, numbered among the
+    enabled ones; nested and disabled steps are not counted."""
+    from spacemissionstudio.engine.mission_engine import MissionEngine
+
+    def propagate(days, **kwargs):
+        return Command(kind="propagate", params={"stop_condition": "duration", "duration_days": days}, **kwargs)
+
+    scenario = _scenario(mission_sequence=[
+        propagate(0.01, label="first"),  # [day]
+        propagate(0.01, label="off", enabled=False),  # [day]
+        Command(kind="if", label="branch", params={"condition": "True"}, children=[propagate(0.01)]),  # [day]
+    ])
+    steps = []
+    MissionEngine(scenario, on_step=lambda number, total, command: steps.append((number, total, command.label))).run()
+    assert steps == [(1, 2, "first"), (2, 2, "branch")]

@@ -45,7 +45,7 @@ Nothing is duplicated between the GUI and the CLI: both call `schema` and
    task at the scenario's dynamics step, with SPICE, the environment
    models, the spacecraft, its flight software and recorders.
 3. The simulation runs in chunks (`run_live`). After each chunk the GUI
-   updates the live plot and checks for **Abort Run**, so a cancel takes
+   updates the live plot and checks for **Cancel Run**, so a cancel takes
    effect at the next chunk and keeps the results so far.
 4. The recorded messages become a `ResultSet` of `TimeSeries`
    (`engine/results.py`), plus events and warnings.

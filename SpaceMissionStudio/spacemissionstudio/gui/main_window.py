@@ -40,16 +40,16 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import QElapsedTimer, QEventLoop, Qt, QTimer
-from PySide6.QtGui import QAction, QCloseEvent, QKeySequence
+from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
+    QToolButton,
     QDialog,
     QFileDialog,
     QInputDialog,
     QLabel,
     QMainWindow,
     QMessageBox,
-    QProgressBar,
     QProgressDialog,
     QScrollArea,
     QDockWidget,
@@ -67,7 +67,7 @@ from ..logging_setup import get_log_file_path
 from ..schema.command import runs_sequence, script_blocks
 from ..schema.scenario import Scenario, ScenarioValidationError, load_scenario
 from . import autosave
-from .app_shell import StatusBarItems, TopBar, source_of
+from .app_shell import RunProgressStrip, StatusBarItems, TopBar, source_of
 from .feedback import StaleResultsBanner, show_toast
 from .icons import toolbar_icon
 from .data_panel_widget import DataPanelWidget
@@ -338,11 +338,19 @@ class MainWindow(QMainWindow):
         # The top bar: the scenario's name, its state, the last run and the
         # run status chip, always visible (gui.app_shell; docs/ux-audit.md U-04).
         self.top_bar = TopBar()
+        # The progress strip under the top bar (U-19): phase, bar, elapsed
+        # time, time left, Cancel. Its bar and time label are the busy
+        # indicator every run updates.
+        self.run_progress = RunProgressStrip()
+        self.run_progress.cancel_requested.connect(self.on_abort_run)
+        self._busy_label = self.run_progress.time_label
+        self._busy_progress = self.run_progress.bar
         central = QWidget()
         central_layout = QVBoxLayout(central)
         central_layout.setContentsMargins(0, 0, 0, 0)
         central_layout.setSpacing(0)
         central_layout.addWidget(self.top_bar)
+        central_layout.addWidget(self.run_progress)
         # Above the run views: says when the results shown are from an
         # earlier version of the scenario (U-20). Shown while a run view is.
         central_layout.addWidget(self.stale_results_banner)
@@ -355,28 +363,19 @@ class MainWindow(QMainWindow):
         self._default_layout = self.saveState(_LAYOUT_VERSION)
         self._restore_layout()
 
-        # Run-in-progress feedback (status bar): an indeterminate busy bar
-        # plus an elapsed-time label, shown for the duration of ANY
-        # run/Monte Carlo worker. Indeterminate rather than a real percentage
-        # because neither SimBaseClass.ExecuteSimulation() nor
-        # MonteCarlo.Controller.executeSimulations() exposes a step/run
-        # progress callback to drive one -- this at least answers "is it
-        # running, or did it silently die" (users previously had only a
-        # static status-bar string and no other feedback while a run was in
-        # flight -- see the on_run/on_run_monte_carlo history).
+        # Run-in-progress feedback: the progress strip (self.run_progress,
+        # under the top bar) and the status chip. A run reports its phase
+        # and fraction (RunWorker.phase/fraction: chunks of the propagation,
+        # or the Mission Sequence's steps); a Monte Carlo batch is counted
+        # by its finished cases' files (_poll_monte_carlo), since Basilisk's
+        # Controller has no progress hook.
         self._busy_elapsed = QElapsedTimer()
         self._busy_timer = QTimer(self)
         self._busy_timer.setInterval(200)
         self._busy_timer.timeout.connect(self._update_busy_elapsed)
-        self._busy_label = QLabel()
-        self._busy_label.setVisible(False)
-        self._busy_progress = QProgressBar()
-        self._busy_progress.setRange(0, 0)  # indeterminate ("marching ants") -- see comment above
-        self._busy_progress.setMaximumWidth(120)
-        self._busy_progress.setTextVisible(False)  # the top bar's status chip shows the percentage
-        self._busy_progress.setVisible(False)
-        self.statusBar().addPermanentWidget(self._busy_label)
-        self.statusBar().addPermanentWidget(self._busy_progress)
+        self._mc_poll = QTimer(self)
+        self._mc_poll.setInterval(1000)  # [ms] a Monte Carlo case takes seconds at least
+        self._mc_poll.timeout.connect(self._poll_monte_carlo)
         # Always shown (gui.app_shell; docs/ux-audit.md U-06): the Basilisk
         # version, checked at start-up (ECSS-Q-ST-80C 6.2.7, decision D5), the
         # reference data (a click opens the Data tab), Earth orientation and
@@ -511,18 +510,36 @@ class MainWindow(QMainWindow):
         self._update_undo_actions()
 
         run_menu = self.menuBar().addMenu("&Run")
-        run_action = QAction(toolbar_icon("run"), "&Run Simulation", self)
+        # One Run (docs/ux-audit.md U-18, decision 3): Run starts the run
+        # mode picked beside it -- a single run, a Monte Carlo batch, or a
+        # run with a spacecraft's flight software in the loop (SIL).
+        run_action = QAction(toolbar_icon("run"), "&Run", self)
         run_action.setShortcut("Ctrl+R")
-        run_action.setToolTip(
-            "Run Simulation (Ctrl+R) -- builds the current scenario in Basilisk and propagates "
-            "it for its full configured duration, showing results live in the Results tab as "
-            "it progresses (see Live Plot below to toggle that) and the final results once it "
-            "finishes. The scenario must be valid first -- check the validity indicator at the "
-            "bottom of the Scenario tab if this doesn't start."
-        )
         run_action.triggered.connect(self.on_run)
         run_menu.addAction(run_action)
         self.run_action = run_action
+        self.run_mode_group = QActionGroup(self)
+        self.run_mode_group.setExclusive(True)
+        mode_menu = run_menu.addMenu("Run &mode")
+        self.run_mode_menu = mode_menu
+        self.single_run_action = QAction("&Single run", self)
+        self.single_run_action.setToolTip("Build the scenario in Basilisk and run it once (the Mission Sequence, "
+                                          "when it has one, or the set duration).")
+        monte_carlo_action = QAction(toolbar_icon("monte-carlo"), "&Monte Carlo", self)
+        monte_carlo_action.setToolTip("Run the scenario's Monte Carlo batch (Scenario > Monte Carlo): many runs "
+                                      "with dispersed inputs, saved to a folder you choose.")
+        self.sil_run_action = QAction("S&IL (flight software in the loop)", self)
+        self.sil_run_action.setToolTip("Run with a spacecraft's exported flight software as an external program "
+                                       "in the loop (Analyses > Flight Software).")
+        for mode, action in (("single", self.single_run_action), ("monte_carlo", monte_carlo_action),
+                             ("sil", self.sil_run_action)):
+            action.setCheckable(True)
+            action.setData(mode)
+            self.run_mode_group.addAction(action)
+            mode_menu.addAction(action)
+        self.single_run_action.setChecked(True)
+        self.run_mode_group.triggered.connect(self._on_run_mode_changed)
+        self.monte_carlo_action = monte_carlo_action
 
         # "Abort a running simulation, if needed, without breaking the
         # tool" -- direct user feedback. Only ever enabled while a single
@@ -531,19 +548,23 @@ class MainWindow(QMainWindow):
         # only worker with a request_cancel() to call (see its module
         # docstring for the cooperative-cancellation design; Monte Carlo
         # batches have no equivalent hook and are out of scope here).
-        abort_action = QAction(toolbar_icon("abort"), "&Abort Run", self)
-        abort_action.setToolTip("Abort the running simulation (takes effect at the next checkpoint, not instantly)")
+        abort_action = QAction(toolbar_icon("abort"), "&Cancel Run", self)
+        abort_action.setShortcut(QKeySequence(Qt.Key.Key_Escape))  # enabled only while a run can be cancelled
+        abort_action.setToolTip("Cancel the run (Esc); it stops at the next checkpoint, keeping what was computed")
         abort_action.setEnabled(False)
         abort_action.triggered.connect(self.on_abort_run)
         run_menu.addAction(abort_action)
         self.abort_action = abort_action
 
-        live_plot_action = QAction(toolbar_icon("live-plot"), "&Live Plot", self)
+        # A labelled toggle (U-46): it says its state, rather than looking
+        # like a pressed tab.
+        live_plot_action = QAction(toolbar_icon("live-plot"), "Live plot: on", self)
         live_plot_action.setCheckable(True)
         live_plot_action.setChecked(True)
         live_plot_action.setToolTip(
             "Update the Results plot as the simulation runs, instead of only once it finishes"
         )
+        live_plot_action.toggled.connect(self._on_live_plot_toggled)
         run_menu.addAction(live_plot_action)
         self.live_plot_action = live_plot_action
 
@@ -576,12 +597,6 @@ class MainWindow(QMainWindow):
         run_menu.addAction(vizard_launch_action)
         self.vizard_launch_action = vizard_launch_action
 
-        monte_carlo_action = QAction(toolbar_icon("monte-carlo"),
-                                      "Run &Monte Carlo...", self)
-        monte_carlo_action.setToolTip("Run a Monte Carlo batch")
-        monte_carlo_action.triggered.connect(self.on_run_monte_carlo)
-        run_menu.addAction(monte_carlo_action)
-        self.monte_carlo_action = monte_carlo_action
         open_mc_action = QAction("Open Monte Carlo &Results...", self)
         open_mc_action.setToolTip("Show the batch an earlier Run Monte Carlo... saved in a folder")
         open_mc_action.triggered.connect(self.on_open_monte_carlo_results)
@@ -944,9 +959,15 @@ class MainWindow(QMainWindow):
         primary.addAction(self.save_action)
         primary.addSeparator()
         primary.addAction(self.run_action)
+        # The run mode beside Run: its menu holds the three modes.
+        self.run_mode_button = QToolButton()
+        self.run_mode_button.setObjectName("runModeButton")
+        self.run_mode_button.setMenu(self.run_mode_menu)
+        self.run_mode_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        self.run_mode_button.setToolTip("What Run starts: a single run, the Monte Carlo batch, or SIL")
+        self.run_mode_button_action = primary.addWidget(self.run_mode_button)
         primary.addAction(self.abort_action)
         primary.addAction(self.live_plot_action)
-        primary.addAction(self.monte_carlo_action)
         primary.addSeparator()
         primary.addAction(self.model_3d_action)
 
@@ -970,6 +991,7 @@ class MainWindow(QMainWindow):
         run_button = primary.widgetForAction(self.run_action)
         if run_button is not None:
             run_button.setObjectName("primaryToolButton")
+        self._on_run_mode_changed()
 
     def _update_window_title(self) -> None:
         name = self._current_path.name if self._current_path else "untitled"
@@ -1384,25 +1406,22 @@ class MainWindow(QMainWindow):
         single run's worker was still using ``self._run_worker``, silently
         losing track of it. One run at a time.
         """
-        for action in (self.run_action, self.live_plot_action, self.monte_carlo_action, self.vizard_action,
-                       self.vizard_launch_action, self.check_kernels_action):
+        for action in (self.run_action, self.live_plot_action, self.vizard_action,
+                       self.vizard_launch_action, self.check_kernels_action, *self.run_mode_group.actions()):
             action.setEnabled(not running)
+        if hasattr(self, "run_mode_button"):
+            self.run_mode_button.setEnabled(not running)
 
-    def _start_busy(self, message: str, determinate: bool = False) -> None:
+    def _start_busy(self, message: str, determinate: bool = False, cancellable: bool = True,
+                    cancel_note: str = "") -> None:
+        """A run starts: the progress strip shows ``message`` until the run
+        reports its phase; its bar is busy until the run reports a fraction
+        (``determinate``: it starts at 0 %)."""
         self._set_running(True)
         self._busy_elapsed.start()
-        self._busy_label.setText("0:00 elapsed")
-        self._busy_label.setVisible(True)
-        # A live-plot run reports real progress (engine.service.
-        # SimulationService.run_live()'s fraction_complete) -- a real
-        # percentage bar for it, rather than the indeterminate ("marching
-        # ants") bar every other run still uses, since nothing else here
-        # exposes a step/run progress callback to drive one (see the
-        # class-level comment by self._busy_progress's construction).
-        self._busy_progress.setRange(0, 100 if determinate else 0)
+        self.run_progress.start(message.rstrip("."), cancellable=cancellable, cancel_note=cancel_note)
         if determinate:
-            self._busy_progress.setValue(0)
-        self._busy_progress.setVisible(True)
+            self.run_progress.set_fraction(0.0)
         self._busy_timer.start()
         self._run_started_s = time.monotonic()
         self.top_bar.chip.set_state("running", "Running")
@@ -1422,13 +1441,15 @@ class MainWindow(QMainWindow):
         self._set_running(False)
         self.abort_action.setEnabled(False)
         self._busy_timer.stop()
-        self._busy_label.setVisible(False)
-        self._busy_progress.setVisible(False)
+        self._mc_poll.stop()
+        self.run_progress.finish()
         self.statusBar().showMessage(message)
 
     def _update_busy_elapsed(self) -> None:
+        """The status chip mirrors the strip: the percentage when the run
+        reports one, else the time elapsed."""
         seconds = self._busy_elapsed.elapsed() // 1000
-        self._busy_label.setText(f"{seconds // 60}:{seconds % 60:02d} elapsed")
+        self.run_progress.refresh_time()
         if self._busy_progress.maximum() > 0:
             self.top_bar.chip.set_state("running", f"Running {self._busy_progress.value()} %")
         else:
@@ -1715,8 +1736,67 @@ class MainWindow(QMainWindow):
         box.setDefaultButton(QMessageBox.StandardButton.No)
         return box.exec() == QMessageBox.StandardButton.Yes
 
+    # The run modes (U-18): what the mode button and the Run tooltip say.
+    _RUN_MODE_TEXT = {"single": ("Single run", "run the scenario once"),
+                      "monte_carlo": ("Monte Carlo", "run the scenario's Monte Carlo batch"),
+                      "sil": ("SIL", "run with a spacecraft's flight software in the loop")}
+
+    @property
+    def run_mode(self) -> str:
+        """``"single"``, ``"monte_carlo"`` or ``"sil"``: what Run starts."""
+        action = self.run_mode_group.checkedAction()
+        return action.data() if action is not None else "single"
+
+    def set_run_mode(self, mode: str) -> None:
+        action = next(a for a in self.run_mode_group.actions() if a.data() == mode)
+        action.setChecked(True)
+        self._on_run_mode_changed(action)
+
+    def _on_run_mode_changed(self, _action=None) -> None:
+        label, doing = self._RUN_MODE_TEXT[self.run_mode]
+        self.run_mode_button.setText(label)  # the button draws its own menu arrow
+        self.run_action.setToolTip(f"Run (Ctrl+R): {doing}. Pick another mode beside it. The scenario must be "
+                                   "valid first: Problems says what to fix.")
+
+    def _on_live_plot_toggled(self, checked: bool) -> None:
+        self.live_plot_action.setText(f"Live plot: {'on' if checked else 'off'}")
+
     def on_run(self) -> None:
-        self._launch_run()
+        """Run: start the selected mode (U-18)."""
+        mode = self.run_mode
+        if mode == "monte_carlo":
+            self.on_run_monte_carlo()
+        elif mode == "sil":
+            self._run_sil_mode()
+        else:
+            self._launch_run()
+
+    def _run_sil_mode(self) -> None:
+        """Run in SIL mode: the spacecraft whose flight software runs in the
+        loop (asked when there is more than one that can), then the program
+        to run, as the Flight Software page's Run SIL... asks."""
+        from .fsw_workbench_widget import exportable_reason
+
+        try:
+            scenario = self.scenario_editor.to_scenario()
+        except ScenarioValidationError as exc:
+            QMessageBox.critical(self, "Cannot run invalid scenario", str(exc))
+            return
+        names = [sc.name for sc in scenario.spacecraft if exportable_reason(scenario, sc) is None]
+        if not names:
+            show_toast(self, "SIL needs a spacecraft whose flight software can be exported: see Flight Software",
+                       kind="error")
+            self.show_view(self.flight_software_widget)
+            return
+        name = names[0]
+        if len(names) > 1:
+            name, ok = QInputDialog.getItem(self, "Run SIL", "Spacecraft whose flight software runs in the loop:",
+                                            names, 0, False)
+            if not ok:
+                return
+        options = self.flight_software_widget.ask_sil_options(name)
+        if options is not None:
+            self.on_run_sil(name, options)
 
     def on_run_sil(self, spacecraft_name: str, options) -> None:
         """Flight Software tab, Run SIL...: the scenario with that
@@ -1725,6 +1805,7 @@ class MainWindow(QMainWindow):
         if self._run_worker is not None and self._run_worker.isRunning():
             QMessageBox.information(self, "A run is in progress", "Wait for the current run to finish.")
             return
+        self.set_run_mode("sil")  # the page's Run SIL... is Run in SIL mode, for that spacecraft
         self._launch_run(sil=(spacecraft_name, options))
 
     def _launch_run(self, sil=None) -> None:
@@ -1831,6 +1912,8 @@ class MainWindow(QMainWindow):
             self.flight_software_widget.set_sil_running(sil[0])
             self._run_worker.sil_report.connect(self.flight_software_widget.show_sil_report)
         self._run_worker.progress.connect(self._on_run_progress)
+        self._run_worker.phase.connect(self.run_progress.set_phase)
+        self._run_worker.fraction.connect(self.run_progress.set_fraction)
         self._run_worker.finished_ok.connect(self._on_run_finished)
         self._run_worker.failed.connect(self._on_run_failed)
         self._run_worker.cancelled.connect(self._on_run_cancelled)
@@ -1851,7 +1934,8 @@ class MainWindow(QMainWindow):
             # checkpoint; _stop_busy() re-disables it anyway once the
             # worker actually reports back, but that can be a moment away.
             self.abort_action.setEnabled(False)
-            self.statusBar().showMessage("Aborting... this takes effect at the next checkpoint, not instantly.")
+            self.run_progress.cancelling()
+            self.statusBar().showMessage("Cancelling... the run stops at its next checkpoint.")
 
     def _on_run_progress(self, partial_result, fraction: float) -> None:
         # Real user feedback ("the app really should be robust and
@@ -1872,7 +1956,7 @@ class MainWindow(QMainWindow):
         try:
             self.results_widget.set_live_result(partial_result, self._last_run_epoch_utc)
             self.mission_dashboard_widget.set_live_result(partial_result, self._last_run_scenario)
-            self._busy_progress.setValue(int(round(fraction * 100)))
+            self.run_progress.set_fraction(fraction)
         except Exception as exc:  # noqa: BLE001 -- see this method's own comment on why ANY failure is caught here
             _logger.exception("Failed to apply a live progress update")
             if not self._progress_error_shown:
@@ -2002,14 +2086,28 @@ class MainWindow(QMainWindow):
                 QMessageBox.StandardButton.No) != QMessageBox.StandardButton.Yes:
             return
 
-        self._start_busy(f"Running {scenario.monte_carlo.num_runs} Monte Carlo case(s)...")
+        self._start_busy(f"Monte Carlo: 0 of {scenario.monte_carlo.num_runs} cases done", cancellable=False,
+                         cancel_note="A Monte Carlo batch runs to the end: Basilisk's Controller has no way to stop "
+                                     "it part way.")
         _join_finished_worker(self._mc_worker)
         self._mc_archive_dir = archive_dir
+        self._mc_total = scenario.monte_carlo.num_runs
+        self._mc_poll.start()
         self._mc_worker = MonteCarloWorker(scenario, scenario.monte_carlo, archive_dir,
                                            allow_scripts=bool(blocks), overwrite=overwrite)
         self._mc_worker.finished_ok.connect(self._on_monte_carlo_finished)
         self._mc_worker.failed.connect(self._on_monte_carlo_failed)
         self._mc_worker.start()
+
+    def _poll_monte_carlo(self) -> None:
+        """Count the batch's finished cases (Basilisk's Controller has no
+        progress hook; it writes a file per case)."""
+        total = getattr(self, "_mc_total", 0)
+        if not total or getattr(self, "_mc_archive_dir", None) is None:
+            return
+        done = min(monte_carlo_results.finished_cases(self._mc_archive_dir), total)
+        self.run_progress.set_phase(f"Monte Carlo: {done} of {total} cases done")
+        self.run_progress.set_fraction(done / total)
 
     def _on_monte_carlo_finished(self, failures: list) -> None:
         self._stop_busy(

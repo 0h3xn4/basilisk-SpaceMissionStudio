@@ -10,8 +10,9 @@ far apart the results end up.
 2. Set how many runs, and how many run in parallel.
 3. Add one or more **dispersions**: which quantity varies, for which
    spacecraft, and by how much.
-4. **Run > Run Monte Carlo...** (not Run Simulation), and choose a folder.
-   Every run is saved there.
+4. Set the mode beside **Run** to **Monte Carlo**, press **Run**, and
+   choose a folder. Every run is saved there; the progress strip counts
+   the cases done. A batch runs to the end: it cannot be cancelled.
 
 What can vary:
 

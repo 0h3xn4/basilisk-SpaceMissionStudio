@@ -444,6 +444,14 @@ def _qss() -> str:
     }}
     /* The app shell's top bar (gui.app_shell): the scenario's name, its
        state and the run status chip, on one line above the work area. */
+    /* A run in progress, under the top bar (gui/app_shell.py's RunProgressStrip). */
+    QFrame#runProgressStrip {{
+        background-color: {c['accent_soft']};
+        border-bottom: 1px solid {c['border']};
+    }}
+    QLabel#runTime {{
+        color: {c['text_muted']};
+    }}
     QWidget#topBar {{
         background-color: {c['surface']};
         border-bottom: 1px solid {c['border']};

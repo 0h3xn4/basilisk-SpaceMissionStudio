@@ -70,7 +70,7 @@ def test_the_main_window_lists_its_menus_and_tabs_on_ctrl_k(qtbot):
     qtbot.addWidget(window)
     assert window.palette_action.shortcut().toString() == "Ctrl+K"
     labels = [e.label for e in window.palette_entries()]
-    assert "Run > Run Simulation" in labels and "Go to tab > Events" in labels
+    assert "Run > Run" in labels and "Go to tab > Events" in labels
     assert not any(label.endswith("Command Palette...") for label in labels)
     go_events = next(e for e in window.palette_entries() if e.label == "Go to tab > Events")
     go_events.run()
