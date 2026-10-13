@@ -9180,3 +9180,35 @@ exits 0 the same way.
 
 **Not done:** the model's look in a running Vizard; template 28 run from
 the GUI by hand.
+
+## UX audit against the new UX/UI Standard (2026-10-13)
+
+The user supplied a new UX/UI Standard (`docs/ux-standard.md`). Its first
+step is an audit, then a stop for approval. `docs/ux-audit.md` is that
+audit; no UI code changed.
+
+**How.** `scripts/capture_ux_audit.py` walks the README's template 22
+flow offscreen and saves 48 screenshots (`docs/images/ux-audit/`, reduced
+to 128 colours, 2 MB). It covers:
+- every tab before and after a run, and a run in progress;
+- stale results and an invalid field;
+- the menus and the dialogs;
+- a comparison of two runs;
+- the window at 1280 x 720 and 2560 x 1440.
+
+The code was read for what pictures cannot show: shortcuts, tables,
+message boxes, stylesheets, minimum sizes and the orbit-type switch.
+
+**Found.** 46 issues: 5 block work, 28 slow it down, 13 are cosmetic.
+The five that block work:
+- results are not marked stale after an edit;
+- switching the orbit type shows another page's values, with no
+  conversion and no notice;
+- the window cannot be 1280 x 720 (minimum height 758 px), and after a
+  second run Results' comparison row raises the minimum width to 1516 px;
+- validation errors show only under the editor, not at the field;
+- a failed run's details appear only in a modal box, with no log view.
+
+The audit proposes an order of work and lists six decisions for the
+user: the visual system, where today's nine tabs go, one Run action, the
+plot library, keeping runs on disk, and no change to the file format.
