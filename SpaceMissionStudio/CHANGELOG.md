@@ -34,6 +34,13 @@ fixes bugs.
   the origin, as before.
 
 **Fixed**
+- Results no longer look current after the scenario changes: a banner
+  above the run views says they are from a previous version, with
+  **Re-run** (UX audit U-20).
+- The window fits a 1280 x 720 screen again. The End of Life page
+  scrolls, and the comparison controls in Results have their own row; a
+  second run of a scenario with a long name used to need 1516 px of width
+  (UX audit U-03).
 - The spacecraft editor kept only the moments of inertia: a spacecraft's
   products of inertia (typed into the file) were set to 0 whenever it was
   opened and OK'd. They are now kept, and shown.

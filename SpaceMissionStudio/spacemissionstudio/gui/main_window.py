@@ -51,16 +51,18 @@ from PySide6.QtWidgets import (
     QScrollArea,
     QSplitter,
     QToolBar,
+    QVBoxLayout,
+    QWidget,
 )
 
-from .. import dependencies
+from .. import dependencies, output_provenance
 from ..engine import monte_carlo_results
 from ..engine.series_names import featured_series
 from ..logging_setup import get_log_file_path
 from ..schema.command import script_blocks
 from ..schema.scenario import Scenario, ScenarioValidationError, load_scenario
 from . import autosave
-from .feedback import show_toast
+from .feedback import StaleResultsBanner, show_toast
 from .icons import toolbar_icon
 from .data_panel_widget import DataPanelWidget
 from .event_timeline_widget import EventTimelineWidget
@@ -223,6 +225,12 @@ class MainWindow(QMainWindow):
         self.flight_software_widget.exports_changed.connect(self.scenario_editor.set_fsw_exports)
         self.flight_software_widget.sil_requested.connect(self.on_run_sil)
 
+        # Above every run view: says when the results shown are from an
+        # earlier version of the scenario (docs/ux-audit.md U-20).
+        self.stale_results_banner = StaleResultsBanner()
+        self.stale_results_banner.rerun_requested.connect(self.on_run)
+        self._shown_run_sha256: str | None = None  # the scenario hash of the run the views show
+
         self.right_tabs = TabWidget()
         self.right_tabs.addTab(self.results_widget, "Results")
         self.right_tabs.addTab(self.mission_dashboard_widget, "Mission Dashboard")
@@ -234,7 +242,13 @@ class MainWindow(QMainWindow):
         self.monte_carlo_results_widget.hide()
         self.right_tabs.addTab(self.data_panel_widget, "Data")
         self.right_tabs.addTab(self.scenario_explainer_widget, "Explain")
-        self.right_tabs.addTab(self.lifetime_widget, "End of Life")
+        # In a scroll area, like the budget below: the form and its results
+        # need about 560 px, which kept the window from fitting 720 px
+        # (docs/ux-audit.md U-03).
+        lifetime_scroll = QScrollArea()
+        lifetime_scroll.setWidgetResizable(True)
+        lifetime_scroll.setWidget(self.lifetime_widget)
+        self.right_tabs.addTab(lifetime_scroll, "End of Life")
         budget_scroll = QScrollArea()  # the budget, launch-delay and altitude tables together outgrow short windows
         budget_scroll.setWidgetResizable(True)
         budget_scroll.setWidget(self.budget_widget)
@@ -253,9 +267,15 @@ class MainWindow(QMainWindow):
         self.left_tabs.addTab(self.load_scenario_widget, "Load Scenario")
         self.left_tabs.addTab(self.scenario_editor, "Scenario Editor")
 
+        right_pane = QWidget()
+        right_layout = QVBoxLayout(right_pane)
+        right_layout.setContentsMargins(0, 0, 0, 0)
+        right_layout.setSpacing(0)
+        right_layout.addWidget(self.stale_results_banner)
+        right_layout.addWidget(self.right_tabs, 1)
         splitter = QSplitter(Qt.Orientation.Horizontal)
         splitter.addWidget(self.left_tabs)
-        splitter.addWidget(self.right_tabs)
+        splitter.addWidget(right_pane)
         # Left (scenario form/template picker) is narrower than right
         # (results plots/mission output/kernel status) by design -- an
         # even 50/50 split left the form looking oversized relative to
@@ -687,6 +707,7 @@ class MainWindow(QMainWindow):
         except ScenarioValidationError:
             scenario = None
         self.scenario_explainer_widget.set_scenario(scenario)
+        self._refresh_stale_banner(scenario)
         self.lifetime_widget.set_scenario(scenario)
         self.budget_widget.set_scenario(scenario)
         self.flight_software_widget.set_base_dir(self._current_path.parent if self._current_path else None)
@@ -849,8 +870,31 @@ class MainWindow(QMainWindow):
         self._update_undo_actions()
         self.statusBar().showMessage(message)
 
+    def _refresh_stale_banner(self, scenario: Scenario | None) -> None:
+        """Show the stale-results banner when the run the views show was
+        made from a different scenario than the editor's (``scenario`` is
+        the editor's, or ``None`` while it does not validate). The hashes
+        are the run provenance's (output_provenance.scenario_sha256), so
+        undoing back to the run's scenario hides the banner again."""
+        if self._shown_run_sha256 is None:
+            self.stale_results_banner.hide()
+        elif scenario is None:
+            self.stale_results_banner.show_stale(scenario_valid=False)
+        elif output_provenance.scenario_sha256(scenario) != self._shown_run_sha256:
+            self.stale_results_banner.show_stale(scenario_valid=True)
+        else:
+            self.stale_results_banner.hide()
+
+    def _set_shown_run(self) -> None:
+        """The views now show the last run: remember its scenario's hash."""
+        if self._last_run_scenario is not None:
+            self._shown_run_sha256 = output_provenance.scenario_sha256(self._last_run_scenario)
+        self._refresh_scenario_explainer()
+
     def _clear_run_views(self) -> None:
         """Clear every view of the previous run, and the time cursor."""
+        self._shown_run_sha256 = None
+        self.stale_results_banner.hide()
         self.results_widget.set_result(None)
         self.mission_dashboard_widget.set_result(None)
         self.mission_output_widget.clear()
@@ -1533,6 +1577,7 @@ class MainWindow(QMainWindow):
             self.results_widget.set_live_result(result, self._last_run_epoch_utc)
             self.mission_dashboard_widget.set_live_result(result, self._last_run_scenario)
             self.event_timeline_widget.set_result(result, self._last_run_epoch_utc)
+            self._set_shown_run()
             self._offer_vizard_playback()
             self._keep_run(result, cancelled=False)
             self.lifetime_widget.set_last_run(self._last_run_scenario, result)
@@ -1575,6 +1620,7 @@ class MainWindow(QMainWindow):
             self.results_widget.set_live_result(partial_result, self._last_run_epoch_utc)
             self.mission_dashboard_widget.set_live_result(partial_result, self._last_run_scenario)
             self.event_timeline_widget.set_result(partial_result, self._last_run_epoch_utc)
+            self._set_shown_run()
             self._offer_vizard_playback()
             self._keep_run(partial_result, cancelled=True)
             if command_summary is not None:

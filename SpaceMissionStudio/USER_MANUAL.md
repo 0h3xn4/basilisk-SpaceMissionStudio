@@ -671,6 +671,11 @@ After a run finishes, the **Results** tab shows one plot at a time:
   lists every scenario input that differs between the two runs, e.g.
   `spacecraft[sat-1].orbit.semi_major_axis_km`.
 
+If you change the scenario after a run, a yellow banner above the tabs
+says the results are from a previous version of it, with **Re-run**. It
+goes away if you undo back to the scenario that ran. While the scenario
+has a problem, the banner says so and Re-run waits until it is fixed.
+
 A line under the buttons names what produced the result (versions,
 integrator and step, run time). If an orbit-only run's energy or angular
 momentum drifts, an amber note appears there too: try a smaller

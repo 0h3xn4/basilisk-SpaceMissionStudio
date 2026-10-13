@@ -9180,3 +9180,90 @@ exits 0 the same way.
 
 **Not done:** the model's look in a running Vizard; template 28 run from
 the GUI by hand.
+
+## UX audit against the new UX/UI Standard (2026-10-13)
+
+The user supplied a new UX/UI Standard (`docs/ux-standard.md`). Its first
+step is an audit, then a stop for approval. `docs/ux-audit.md` is that
+audit; no UI code changed.
+
+**How.** `scripts/capture_ux_audit.py` walks the README's template 22
+flow offscreen and saves 48 screenshots (`docs/images/ux-audit/`, reduced
+to 128 colours, 2 MB). It covers:
+- every tab before and after a run, and a run in progress;
+- stale results and an invalid field;
+- the menus and the dialogs;
+- a comparison of two runs;
+- the window at 1280 x 720 and 2560 x 1440.
+
+The code was read for what pictures cannot show: shortcuts, tables,
+message boxes, stylesheets, minimum sizes and the orbit-type switch.
+
+**Found.** 46 issues: 5 block work, 28 slow it down, 13 are cosmetic.
+The five that block work:
+- results are not marked stale after an edit;
+- switching the orbit type shows another page's values, with no
+  conversion and no notice;
+- the window cannot be 1280 x 720 (minimum height 758 px), and after a
+  second run Results' comparison row raises the minimum width to 1516 px;
+- validation errors show only under the editor, not at the field;
+- a failed run's details appear only in a modal box, with no log view.
+
+The audit proposes an order of work and lists six decisions for the
+user: the visual system, where today's nine tabs go, one Run action, the
+plot library, keeping runs on disk, and no change to the file format.
+
+## UX iteration 1: stale results and a window that fits 1280 x 720 (2026-10-13)
+
+The user approved the audit's decisions:
+- Carbon, with the standard's type and spacing scales and a dark theme;
+- the tabs placed as proposed;
+- Plotly kept;
+- the two blockers that need no structural decision first.
+
+**U-20, stale results.** A banner above the run views
+(`feedback.StaleResultsBanner`) now says when the results shown are from
+a previous version of the scenario, with **Re-run**. It compares the
+editor's scenario with the run's, by the same SHA-256 the run provenance
+records, so undoing back to the run's scenario hides it again. While the
+scenario does not validate, the banner says so and Re-run is disabled.
+Opening another scenario clears it with the run views. Its colours are a
+theme rule (`QFrame#staleResultsBanner`), not a stylesheet in the widget.
+
+**U-03, the window size.** After two real runs of template 22 the window
+could not be narrower than 1516 px, or shorter than 758 px at start-up.
+- **Height:** the End of Life page's form and results needed 560 px; the
+  page now scrolls, like the Budget page.
+- **Width:** "Compare with" sat on the export row and grew with the run
+  label (368 px for template 22). It now has a row of its own, and the
+  combo is sized by 18 characters, with each label in full in its item's
+  tooltip.
+
+Measured again after two real runs: a minimum of 1118 x 529 px. The
+capture script's 1280 x 720 and 2560 x 1440 pictures come out at exactly
+those sizes.
+
+**Tests.** `tests/gui/test_stale_results_and_window_size.py`:
+- the banner after an edit, an undo, an invalid scenario and opening
+  another scenario;
+- Re-run asks for a run;
+- the window fits 1280 x 720 after a comparison.
+
+The size test first passed without the fix, because it measured before
+Qt had laid out the new widgets. With a short wait it fails without the
+fix (1345 px) and passes with it.
+
+On Windows CI the size test then failed at 1562 px: it measured Qt's
+native Windows 11 style and font, which the app never shows (`gui/app.py`
+always applies the Fusion style and the bundled IBM Plex font). The test
+now applies the app's theme first and restores the previous look after.
+It still fails without the fix (1557 px) and passes with it.
+
+Linux CI then crashed a test worker twice in a row, in two different
+tests, both times with the same native stack: a Qt WebEngine thread
+logged a warning (`QMessageLogger::warning`) and reached a cleared Python
+message handler (`callable=0x0`). pytest-qt's log capture installs and
+restores that handler around every test, so a warning from a non-GUI
+thread at a test boundary can land between the two. No test reads the
+captured messages, so the suite now runs with `--no-qt-log`
+(`pyproject.toml`), and the dialog-guard test's own child pytest does too.
