@@ -59,6 +59,17 @@ estimate when a spacecraft re-enters (orbit-averaged drag)
 | `--forecast-percentile {95.0,50.0,5.0}` | MSFC solar-activity percentile (ESA AD10: 50 for end of life) |
 | `--drag-coeff` | drag coefficient, or 'own' for the spacecraft's (default 2.2: ESA AD10 end of life) |
 
+## `model`
+
+report a spacecraft's 3D model: mass properties and facets
+
+| Argument | Help |
+|---|---|
+| `scenario` |  |
+| `--spacecraft` | spacecraft name (default: every one with a model) |
+| `--apply` | write the model's mass properties and facets into the scenario file |
+| `--export-obj` | write the model as a Wavefront .obj (and .mtl) in the body frame |
+
 ## `budget`
 
 delta-V and propellant budget (ESA AD10 style)

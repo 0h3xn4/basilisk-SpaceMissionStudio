@@ -11,6 +11,37 @@ fixes bugs.
 ## Unreleased
 
 **New features**
+- **3D spacecraft models** (part 1: the model and what it drives). A
+  spacecraft can carry a model built from boxes, n-sided prisms (an
+  octagonal bus), cylinders, cones, spheres and thin panels, and from the
+  groups of imported `.obj` files. From it come the mass, center of mass
+  and inertia (or typed in, or read from a JSON or CSV file) and the drag
+  and solar-pressure facets; Vizard shows the model. `spacemissionstudio
+  model` reports a model, applies it to the scenario and exports `.obj`.
+- **The 3D model editor** (spacecraft editor, **3D model** tab): a parts
+  list, each part's settings, and the model in 3D; mass properties
+  computed, typed in or imported; the facets it gives; an `.obj` export.
+  Guide: `docs/user-manual/3d-model.md`.
+- **Template 28, "Octagonal bus from a 3D model"**: a 300 kg satellite
+  whose mass, center of mass (4.8 cm off its body origin), inertia,
+  facets and Vizard look come from its parts; its wheels show the torque
+  the offset center of mass gives. The other templates gain the new
+  fields' defaults (`center_of_mass_b_m` at the origin, no model) and
+  behave as before.
+- **Center of mass.** A spacecraft's `center_of_mass_b_m` is now Basilisk's
+  hub offset: drag, solar pressure and thrust get their torque about the
+  center of mass, not about the body origin. Older files load with it at
+  the origin, as before.
+
+**Fixed**
+- The spacecraft editor kept only the moments of inertia: a spacecraft's
+  products of inertia (typed into the file) were set to 0 whenever it was
+  opened and OK'd. They are now kept, and shown.
+- The facet table kept only 6 significant digits: a facet with more (a
+  computed one, or one typed into the file) was rounded whenever the
+  spacecraft editor was opened and OK'd. It now keeps every digit.
+- The app's web views (the Results plots, the 3D view) start Chromium with
+  `--ignore-gpu-blocklist`, so WebGL works without a usable GPU.
 - `spacemissionstudio --version` (or `-V`) prints the SpaceMissionStudio,
   Basilisk and Python versions, and says when the installed Basilisk is
   not the qualified 2.12.0 or is missing.

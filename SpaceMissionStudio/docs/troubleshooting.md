@@ -70,6 +70,15 @@ more libraries on minimal Linux systems. On Debian or Ubuntu:
 sudo apt-get install libnss3 libatk-bridge2.0-0 libgbm1
 ```
 
+### The 3D model view says "WebGL is not supported", or stays blank
+
+The 3D model editor draws with WebGL. The app already lets Chromium use
+software rendering where there is no usable GPU (a virtual machine, a
+remote desktop). If you set `QTWEBENGINE_CHROMIUM_FLAGS` yourself, the
+app keeps exactly yours: add `--ignore-gpu-blocklist` to them. The model
+still works without the view: the mass properties and facets are shown
+in the tabs below it.
+
 ### "Basilisk version not qualified" in the status bar
 
 A Basilisk version other than 2.12.0 is installed. Runs still work, but

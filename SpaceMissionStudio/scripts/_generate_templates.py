@@ -1502,6 +1502,98 @@ def build_27_flexible_solar_arrays() -> Scenario:
     )
 
 
+# Template 28's model: an octagonal bus (1.2 m across flats, 1.4 m tall),
+# two deployed panels on the +/-y faces, a dish on +x, a star tracker on -x
+# and the battery inside, off-centre -- that puts the center of mass a few
+# centimetres from B. Masses add up to the 300 kg class [kg].
+_OCTA_BUS_WIDTH_M = 1.2  # [m] across flats
+_OCTA_BUS_HEIGHT_M = 1.4  # [m]
+_OCTA_PANEL_SIZE_M = (1.0, 2.0, 0.03)  # [m] width (x), length (y), thickness (z)
+_OCTA_PANEL_GAP_M = 0.1  # [m] from the bus face to the panel's inner edge (the yoke is not modelled)
+
+
+def _octagonal_bus_model():
+    """Template 28's :class:`SpacecraftModelConfig`: six parts, mass
+    properties computed from them, facets from their outer faces."""
+    from spacemissionstudio.schema.scenario import ModelPartConfig, SpacecraftModelConfig
+
+    half_width = _OCTA_BUS_WIDTH_M / 2.0  # [m]
+    width, length, thickness = _OCTA_PANEL_SIZE_M
+    panel_y = half_width + _OCTA_PANEL_GAP_M + length / 2.0  # [m] panel centre
+    common = dict(drag_coeff=OPERATIONS_DRAG_COEFF)
+    panels = [
+        ModelPartConfig(name=f"panel {side}", shape="panel",
+                        dimensions_m={"width": width, "length": length, "thickness": thickness},
+                        position_b_m=[0.0, sign * panel_y, 0.0], color=[0.15, 0.2, 0.45],
+                        mass_kg=10.0, specular_coeff=0.05, diffuse_coeff=0.1, **common)  # [kg], [-], [-]
+        for side, sign in (("+y", 1.0), ("-y", -1.0))
+    ]
+    return SpacecraftModelConfig(parts=[
+        ModelPartConfig(name="bus", shape="prism", sides=8,
+                        dimensions_m={"width_across_flats": _OCTA_BUS_WIDTH_M, "height": _OCTA_BUS_HEIGHT_M},
+                        color=[0.85, 0.7, 0.25], mass_kg=232.0, **common),  # [kg] structure and equipment
+        *panels,
+        ModelPartConfig(name="dish", shape="cone", dimensions_m={"base_diameter": 0.6, "height": 0.2},  # [m]
+                        position_b_m=[half_width + 0.1, 0.0, -0.3], rotation_deg=[0.0, 90.0, 0.0],  # [m], [deg]
+                        color=[0.9, 0.9, 0.9], mass_kg=6.0, distribution="shell", **common),  # [kg]
+        ModelPartConfig(name="star tracker", shape="box", dimensions_m={"x": 0.15, "y": 0.15, "z": 0.25},  # [m]
+                        position_b_m=[-half_width - 0.075, 0.0, 0.5], color=[0.3, 0.3, 0.3],  # [m]
+                        mass_kg=2.0, excluded_faces=["+x"], **common),  # [kg]; +x sits on the bus
+        ModelPartConfig(name="battery", shape="box", dimensions_m={"x": 0.4, "y": 0.5, "z": 0.3},  # [m]
+                        position_b_m=[0.3, 0.0, -0.45], color=[0.6, 0.2, 0.2], visible=False,  # [m]
+                        mass_kg=40.0, in_surface_model=False),  # [kg] inside the bus: no outer faces
+    ])
+
+
+def build_28_octagonal_bus_3d_model() -> Scenario:
+    # A spacecraft described by a 3D model (spacemissionstudio.model3d):
+    # its mass, center of mass, inertia (with products of inertia) and
+    # drag/SRP facets are all derived from the parts and written into the
+    # spacecraft's own fields, and Vizard draws the model. Sun-safe
+    # pointing with wheels only (no torque rods), so the wheels keep the
+    # momentum that drag and sunlight put in through the offset center of
+    # mass.
+    from spacemissionstudio.model3d import model as model3d
+
+    axes = (("x", [1.0, 0.0, 0.0]), ("y", [0.0, 1.0, 0.0]), ("z", [0.0, 0.0, 1.0]))
+    spacecraft = SpacecraftConfig(
+        name="octa-sat",
+        orbit=_starter_orbit(),
+        enable_drag=True, enable_srp=True,
+        sensors=[
+            SensorConfig(kind="star_tracker", name="st-1", params={"noise_arcsec": 5.0}),  # [arcsec]
+            SensorConfig(kind="imu", name="imu-1", params={"gyro_noise_rad_s": 1e-5}),  # [rad/s]
+            SensorConfig(kind="coarse_sun_sensor", name="css-1", params={"nHat_B": [0.0, 0.0, 1.0]}),
+        ],
+        actuators=[ActuatorConfig(kind="reaction_wheel", name=f"rw-{axis_name}",
+                                  params={"gsHat_B": axis, "rw_type": "Honeywell_HR12",
+                                          "maxMomentum": 12.0})  # [N*m*s]
+                   for axis_name, axis in axes],
+        power=PowerConfig(panel_area_m2=4.0, panel_efficiency=0.29, panel_normal_b=[0.0, 0.0, 1.0],  # [m^2], [-]
+                          bus_idle_power_w=150.0, battery_capacity_wh=700.0,  # [W], [W*h]
+                          battery_initial_soc=0.9),  # [-]
+        sigma_bn_init=[0.1, 0.2, -0.15],  # [-] MRP, tipped away from the Sun (as template 27)
+        fsw_mode="sunSafePoint",
+        fsw_params={"sHatBdyCmd": [0.0, 0.0, 1.0]},
+        model=_octagonal_bus_model(),
+    )
+    derived = model3d.derive(spacecraft.model)
+    if derived.errors:
+        raise ValueError(f"template 28's model: {derived.errors}")
+    model3d.apply(spacecraft, derived)
+    return Scenario(
+        name="28 - Octagonal bus from a 3D model",
+        description=DESCRIPTIONS["28"],
+        epoch_utc=_STARTER_EPOCH_UTC,
+        simulation_mode="full_attitude",
+        gravity=GravityConfig(central_body="earth", central_body_degree=10, third_body_perturbers=["sun", "moon"]),
+        sim_settings=SimSettings(duration_days=0.2, dynamics_task_rate_s=1.0, integrator="rkf78",
+                                 record_interval_s=10.0),  # [day], [s], [s]
+        space_weather=_real_space_weather(),
+        spacecraft=[spacecraft],
+    )
+
+
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     _save(build_01_two_body_circular_orbit(), "01_two_body_circular_orbit.json")
@@ -1532,6 +1624,7 @@ def main() -> None:
     _save(build_25_monte_carlo_orbit_and_drag_dispersions(), "25_monte_carlo_orbit_and_drag_dispersions.json")
     _save(build_26_earth_observation_data_downlink(), "26_earth_observation_data_downlink.json")
     _save(build_27_flexible_solar_arrays(), "27_flexible_solar_arrays.json")
+    _save(build_28_octagonal_bus_3d_model(), "28_octagonal_bus_3d_model.json")
 
 
 if __name__ == "__main__":

@@ -108,6 +108,14 @@ def _row(*widgets) -> QWidget:
     return holder
 
 
+def _number_text(value: float) -> str:
+    """The shortest text that reads back as exactly ``value`` ("1" for 1.0):
+    a facet computed from a 3D model keeps every digit through an
+    open-and-OK of the spacecraft editor."""
+    text = repr(float(value))
+    return text[:-2] if text.endswith(".0") else text
+
+
 class FacetTableWidget(QWidget):
     """Table of facets with Add / Remove / Box + solar array... buttons."""
 
@@ -167,7 +175,7 @@ class FacetTableWidget(QWidget):
             value = getattr(facet, attribute)
             if index is not None:
                 value = value[index]
-            text = value if isinstance(value, str) else f"{value:g}"
+            text = value if isinstance(value, str) else _number_text(value)
             self.table.setItem(row, column, QTableWidgetItem(text))
 
     def _on_add(self) -> None:

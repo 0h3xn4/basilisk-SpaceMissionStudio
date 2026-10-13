@@ -1,0 +1,1087 @@
+{
+  "name": "28 - Octagonal bus from a 3D model",
+  "epoch_utc": "2030-01-01T08:30:00",
+  "simulation_mode": "full_attitude",
+  "gravity": {
+    "central_body": "earth",
+    "central_body_degree": 10,
+    "third_body_perturbers": [
+      "sun",
+      "moon"
+    ]
+  },
+  "spacecraft": [
+    {
+      "name": "octa-sat",
+      "orbit": {
+        "type": "classical_elements",
+        "semi_major_axis_km": 6928.0,
+        "eccentricity": 0.0,
+        "inclination_deg": 97.59,
+        "raan_deg": 259.42,
+        "arg_periapsis_deg": 0.0,
+        "anomaly_type": "true",
+        "true_anomaly_deg": 0.0,
+        "mean_anomaly_deg": null,
+        "position_km": null,
+        "velocity_km_s": null,
+        "tle_line1": null,
+        "tle_line2": null
+      },
+      "dry_mass_kg": 300.0,
+      "inertia_kg_m2": [
+        133.8150139,
+        0.0,
+        6.313818083,
+        0.0,
+        76.83732319,
+        0.0,
+        6.313818083,
+        0.0,
+        118.0481037
+      ],
+      "center_of_mass_b_m": [
+        0.04822778206,
+        0.0,
+        -0.06266666667
+      ],
+      "sigma_bn_init": [
+        0.1,
+        0.2,
+        -0.15
+      ],
+      "omega_bn_b_init_rad_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "enable_drag": true,
+      "drag_coeff": 2.2,
+      "drag_area_m2": 1.0,
+      "enable_srp": true,
+      "srp_coeff": 1.3,
+      "srp_area_m2": 1.0,
+      "facets": [
+        {
+          "name": "bus: +z",
+          "area_m2": 1.1929350596345136,
+          "normal_b": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "location_b": [
+            0.0,
+            0.0,
+            0.7
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "bus: -z",
+          "area_m2": 1.1929350596345136,
+          "normal_b": [
+            0.0,
+            0.0,
+            -1.0
+          ],
+          "location_b": [
+            0.0,
+            0.0,
+            -0.7
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "bus: side 1",
+          "area_m2": 0.6958787847867997,
+          "normal_b": [
+            1.0,
+            0.0,
+            0.0
+          ],
+          "location_b": [
+            0.6,
+            0.0,
+            0.0
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "bus: side 2",
+          "area_m2": 0.6958787847867997,
+          "normal_b": [
+            0.7071067811865476,
+            0.7071067811865475,
+            0.0
+          ],
+          "location_b": [
+            0.4242640687119285,
+            0.42426406871192845,
+            0.0
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "bus: side 3",
+          "area_m2": 0.6958787847867997,
+          "normal_b": [
+            6.123233995736766e-17,
+            1.0,
+            0.0
+          ],
+          "location_b": [
+            3.6739403974420595e-17,
+            0.6,
+            0.0
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "bus: side 4",
+          "area_m2": 0.6958787847867997,
+          "normal_b": [
+            -0.7071067811865475,
+            0.7071067811865476,
+            0.0
+          ],
+          "location_b": [
+            -0.42426406871192845,
+            0.4242640687119285,
+            0.0
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "bus: side 5",
+          "area_m2": 0.6958787847867997,
+          "normal_b": [
+            -1.0,
+            1.2246467991473532e-16,
+            0.0
+          ],
+          "location_b": [
+            -0.6,
+            7.347880794884119e-17,
+            0.0
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "bus: side 6",
+          "area_m2": 0.6958787847867997,
+          "normal_b": [
+            -0.7071067811865477,
+            -0.7071067811865475,
+            0.0
+          ],
+          "location_b": [
+            -0.4242640687119286,
+            -0.42426406871192845,
+            0.0
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "bus: side 7",
+          "area_m2": 0.6958787847867997,
+          "normal_b": [
+            -1.8369701987210297e-16,
+            -1.0,
+            0.0
+          ],
+          "location_b": [
+            -1.1021821192326178e-16,
+            -0.6,
+            0.0
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "bus: side 8",
+          "area_m2": 0.6958787847867997,
+          "normal_b": [
+            0.7071067811865474,
+            -0.7071067811865477,
+            0.0
+          ],
+          "location_b": [
+            0.4242640687119284,
+            -0.4242640687119286,
+            0.0
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "panel +y: +z",
+          "area_m2": 2.0,
+          "normal_b": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "location_b": [
+            0.0,
+            1.7,
+            0.015
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.05,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "panel +y: -z",
+          "area_m2": 2.0,
+          "normal_b": [
+            0.0,
+            0.0,
+            -1.0
+          ],
+          "location_b": [
+            0.0,
+            1.7,
+            -0.015
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.05,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "panel -y: +z",
+          "area_m2": 2.0,
+          "normal_b": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "location_b": [
+            0.0,
+            -1.7,
+            0.015
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.05,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "panel -y: -z",
+          "area_m2": 2.0,
+          "normal_b": [
+            0.0,
+            0.0,
+            -1.0
+          ],
+          "location_b": [
+            0.0,
+            -1.7,
+            -0.015
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.05,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: -z",
+          "area_m2": 0.2827433388230814,
+          "normal_b": [
+            -1.0,
+            0.0,
+            -6.123233995736766e-17
+          ],
+          "location_b": [
+            0.6,
+            0.0,
+            -0.3
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 1",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            0.0,
+            -0.5547001962252291
+          ],
+          "location_b": [
+            0.6666666666666666,
+            0.0,
+            -0.5
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 2",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            0.21227457502505953,
+            -0.5124761579724838
+          ],
+          "location_b": [
+            0.6666666666666666,
+            0.07653668647301795,
+            -0.4847759065022573
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 3",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            0.3922322702763681,
+            -0.3922322702763681
+          ],
+          "location_b": [
+            0.6666666666666666,
+            0.14142135623730948,
+            -0.4414213562373095
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 4",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            0.5124761579724838,
+            -0.21227457502505953
+          ],
+          "location_b": [
+            0.6666666666666666,
+            0.18477590650225734,
+            -0.37653668647301797
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 5",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            0.5547001962252291,
+            1.6982795494840884e-17
+          ],
+          "location_b": [
+            0.6666666666666666,
+            0.19999999999999998,
+            -0.3
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 6",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            0.5124761579724838,
+            0.21227457502505956
+          ],
+          "location_b": [
+            0.6666666666666666,
+            0.18477590650225734,
+            -0.22346331352698207
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 7",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            0.39223227027636814,
+            0.39223227027636814
+          ],
+          "location_b": [
+            0.6666666666666666,
+            0.1414213562373095,
+            -0.1585786437626905
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 8",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            0.2122745750250596,
+            0.5124761579724838
+          ],
+          "location_b": [
+            0.6666666666666666,
+            0.07653668647301798,
+            -0.11522409349774265
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 9",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            6.793118197936357e-17,
+            0.5547001962252291
+          ],
+          "location_b": [
+            0.6666666666666666,
+            2.4492935982947062e-17,
+            -0.1
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 10",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            -0.21227457502505948,
+            0.5124761579724839
+          ],
+          "location_b": [
+            0.6666666666666666,
+            -0.07653668647301792,
+            -0.11522409349774262
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 11",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            -0.3922322702763681,
+            0.3922322702763682
+          ],
+          "location_b": [
+            0.6666666666666666,
+            -0.14142135623730948,
+            -0.15857864376269046
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 12",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            -0.5124761579724836,
+            0.2122745750250599
+          ],
+          "location_b": [
+            0.6666666666666666,
+            -0.18477590650225728,
+            -0.22346331352698193
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 13",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            -0.5547001962252291,
+            1.5284515945356802e-16
+          ],
+          "location_b": [
+            0.6666666666666666,
+            -0.19999999999999998,
+            -0.29999999999999993
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 14",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            -0.5124761579724837,
+            -0.2122745750250596
+          ],
+          "location_b": [
+            0.6666666666666666,
+            -0.1847759065022573,
+            -0.37653668647301797
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 15",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            -0.39223227027636814,
+            -0.392232270276368
+          ],
+          "location_b": [
+            0.6666666666666666,
+            -0.14142135623730953,
+            -0.44142135623730944
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "dish: side 16",
+          "area_m2": 0.021238450123385582,
+          "normal_b": [
+            0.8320502943378437,
+            -0.2122745750250599,
+            -0.5124761579724836
+          ],
+          "location_b": [
+            0.6666666666666666,
+            -0.07653668647301808,
+            -0.48477590650225727
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "star tracker: -x",
+          "area_m2": 0.0375,
+          "normal_b": [
+            -1.0,
+            0.0,
+            0.0
+          ],
+          "location_b": [
+            -0.7499999999999999,
+            0.0,
+            0.5
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "star tracker: +y",
+          "area_m2": 0.0375,
+          "normal_b": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "location_b": [
+            -0.6749999999999999,
+            0.075,
+            0.5
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "star tracker: -y",
+          "area_m2": 0.0375,
+          "normal_b": [
+            0.0,
+            -1.0,
+            0.0
+          ],
+          "location_b": [
+            -0.6749999999999999,
+            -0.075,
+            0.5
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "star tracker: +z",
+          "area_m2": 0.0225,
+          "normal_b": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "location_b": [
+            -0.6749999999999999,
+            0.0,
+            0.625
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        },
+        {
+          "name": "star tracker: -z",
+          "area_m2": 0.0225,
+          "normal_b": [
+            0.0,
+            0.0,
+            -1.0
+          ],
+          "location_b": [
+            -0.6749999999999999,
+            0.0,
+            0.375
+          ],
+          "drag_coeff": 3.0,
+          "specular_coeff": 0.3,
+          "diffuse_coeff": 0.1
+        }
+      ],
+      "enable_gravity_gradient": false,
+      "sensors": [
+        {
+          "kind": "star_tracker",
+          "name": "st-1",
+          "params": {
+            "noise_arcsec": 5.0
+          }
+        },
+        {
+          "kind": "imu",
+          "name": "imu-1",
+          "params": {
+            "gyro_noise_rad_s": 1e-05
+          }
+        },
+        {
+          "kind": "coarse_sun_sensor",
+          "name": "css-1",
+          "params": {
+            "nHat_B": [
+              0.0,
+              0.0,
+              1.0
+            ]
+          }
+        }
+      ],
+      "actuators": [
+        {
+          "kind": "reaction_wheel",
+          "name": "rw-x",
+          "params": {
+            "gsHat_B": [
+              1.0,
+              0.0,
+              0.0
+            ],
+            "rw_type": "Honeywell_HR12",
+            "maxMomentum": 12.0
+          }
+        },
+        {
+          "kind": "reaction_wheel",
+          "name": "rw-y",
+          "params": {
+            "gsHat_B": [
+              0.0,
+              1.0,
+              0.0
+            ],
+            "rw_type": "Honeywell_HR12",
+            "maxMomentum": 12.0
+          }
+        },
+        {
+          "kind": "reaction_wheel",
+          "name": "rw-z",
+          "params": {
+            "gsHat_B": [
+              0.0,
+              0.0,
+              1.0
+            ],
+            "rw_type": "Honeywell_HR12",
+            "maxMomentum": 12.0
+          }
+        }
+      ],
+      "fsw_mode": "sunSafePoint",
+      "fsw_params": {
+        "sHatBdyCmd": [
+          0.0,
+          0.0,
+          1.0
+        ]
+      },
+      "control_params": {},
+      "power": {
+        "panel_area_m2": 4.0,
+        "panel_efficiency": 0.29,
+        "panel_normal_b": [
+          0.0,
+          0.0,
+          1.0
+        ],
+        "bus_idle_power_w": 150.0,
+        "battery_capacity_wh": 700.0,
+        "battery_initial_soc": 0.9
+      },
+      "rf_link": null,
+      "comms_pointing": null,
+      "data_handling": null,
+      "solar_arrays": [],
+      "station_keeping": null,
+      "geo_station_keeping": null,
+      "phasing_keeping": null,
+      "constant_thrust": null,
+      "momentum_dumping": null,
+      "magnetic_momentum_management": null,
+      "navigation_error": null,
+      "fuel_tank": null,
+      "propellant_budget": null,
+      "vizard_model_path": null,
+      "vizard_model_offset_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "vizard_model_rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "vizard_model_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "model": {
+        "parts": [
+          {
+            "name": "bus",
+            "shape": "prism",
+            "dimensions_m": {
+              "width_across_flats": 1.2,
+              "height": 1.4
+            },
+            "sides": 8,
+            "segments": 16,
+            "mesh_index": null,
+            "mesh_group": "",
+            "position_b_m": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "rotation_deg": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "color": [
+              0.85,
+              0.7,
+              0.25
+            ],
+            "visible": true,
+            "mass_kg": 232.0,
+            "distribution": "solid",
+            "counts_toward_mass": true,
+            "in_surface_model": true,
+            "excluded_faces": [],
+            "drag_coeff": 3.0,
+            "specular_coeff": 0.3,
+            "diffuse_coeff": 0.1
+          },
+          {
+            "name": "panel +y",
+            "shape": "panel",
+            "dimensions_m": {
+              "width": 1.0,
+              "length": 2.0,
+              "thickness": 0.03
+            },
+            "sides": 8,
+            "segments": 16,
+            "mesh_index": null,
+            "mesh_group": "",
+            "position_b_m": [
+              0.0,
+              1.7,
+              0.0
+            ],
+            "rotation_deg": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "color": [
+              0.15,
+              0.2,
+              0.45
+            ],
+            "visible": true,
+            "mass_kg": 10.0,
+            "distribution": "solid",
+            "counts_toward_mass": true,
+            "in_surface_model": true,
+            "excluded_faces": [],
+            "drag_coeff": 3.0,
+            "specular_coeff": 0.05,
+            "diffuse_coeff": 0.1
+          },
+          {
+            "name": "panel -y",
+            "shape": "panel",
+            "dimensions_m": {
+              "width": 1.0,
+              "length": 2.0,
+              "thickness": 0.03
+            },
+            "sides": 8,
+            "segments": 16,
+            "mesh_index": null,
+            "mesh_group": "",
+            "position_b_m": [
+              0.0,
+              -1.7,
+              0.0
+            ],
+            "rotation_deg": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "color": [
+              0.15,
+              0.2,
+              0.45
+            ],
+            "visible": true,
+            "mass_kg": 10.0,
+            "distribution": "solid",
+            "counts_toward_mass": true,
+            "in_surface_model": true,
+            "excluded_faces": [],
+            "drag_coeff": 3.0,
+            "specular_coeff": 0.05,
+            "diffuse_coeff": 0.1
+          },
+          {
+            "name": "dish",
+            "shape": "cone",
+            "dimensions_m": {
+              "base_diameter": 0.6,
+              "height": 0.2
+            },
+            "sides": 8,
+            "segments": 16,
+            "mesh_index": null,
+            "mesh_group": "",
+            "position_b_m": [
+              0.7,
+              0.0,
+              -0.3
+            ],
+            "rotation_deg": [
+              0.0,
+              90.0,
+              0.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "color": [
+              0.9,
+              0.9,
+              0.9
+            ],
+            "visible": true,
+            "mass_kg": 6.0,
+            "distribution": "shell",
+            "counts_toward_mass": true,
+            "in_surface_model": true,
+            "excluded_faces": [],
+            "drag_coeff": 3.0,
+            "specular_coeff": 0.3,
+            "diffuse_coeff": 0.1
+          },
+          {
+            "name": "star tracker",
+            "shape": "box",
+            "dimensions_m": {
+              "x": 0.15,
+              "y": 0.15,
+              "z": 0.25
+            },
+            "sides": 8,
+            "segments": 16,
+            "mesh_index": null,
+            "mesh_group": "",
+            "position_b_m": [
+              -0.6749999999999999,
+              0.0,
+              0.5
+            ],
+            "rotation_deg": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "color": [
+              0.3,
+              0.3,
+              0.3
+            ],
+            "visible": true,
+            "mass_kg": 2.0,
+            "distribution": "solid",
+            "counts_toward_mass": true,
+            "in_surface_model": true,
+            "excluded_faces": [
+              "+x"
+            ],
+            "drag_coeff": 3.0,
+            "specular_coeff": 0.3,
+            "diffuse_coeff": 0.1
+          },
+          {
+            "name": "battery",
+            "shape": "box",
+            "dimensions_m": {
+              "x": 0.4,
+              "y": 0.5,
+              "z": 0.3
+            },
+            "sides": 8,
+            "segments": 16,
+            "mesh_index": null,
+            "mesh_group": "",
+            "position_b_m": [
+              0.3,
+              0.0,
+              -0.45
+            ],
+            "rotation_deg": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "scale": [
+              1.0,
+              1.0,
+              1.0
+            ],
+            "color": [
+              0.6,
+              0.2,
+              0.2
+            ],
+            "visible": false,
+            "mass_kg": 40.0,
+            "distribution": "solid",
+            "counts_toward_mass": true,
+            "in_surface_model": false,
+            "excluded_faces": [],
+            "drag_coeff": 2.2,
+            "specular_coeff": 0.3,
+            "diffuse_coeff": 0.1
+          }
+        ],
+        "meshes": [],
+        "mass_properties_source": "computed",
+        "mass_properties": null,
+        "apply_mass_properties": true,
+        "apply_facets": true,
+        "use_for_vizard": true
+      }
+    }
+  ],
+  "ground_stations": [],
+  "space_weather": {
+    "source": "bundled",
+    "local_file_path": null,
+    "cache_dir": null,
+    "atmosphere_model": "nrlmsise00",
+    "forecast_percentile": 50.0,
+    "msfc_file_path": null
+  },
+  "sim_settings": {
+    "duration_days": 0.2,
+    "dynamics_task_rate_s": 1.0,
+    "integrator": "rkf78",
+    "record_interval_s": 10.0
+  },
+  "monte_carlo": {
+    "enabled": false,
+    "num_runs": 10,
+    "thread_count": 1,
+    "verbose": false,
+    "dispersions": []
+  },
+  "mission_sequence": [],
+  "fsw_exports": [],
+  "description": "A 300 kg satellite built in the 3D model editor: an octagonal bus, two solar panels, a dish, a star tracker and, inside, a battery off to one side. Its mass, center of mass, inertia, drag and sunlight surfaces and Vizard look all come from the model. Sun-safe pointing, wheels only; three orbits.\n\nWhat to look at:\n- Spacecraft > Edit... > 3D model: the center of mass is 4.8 cm toward +x and 6.3 cm toward -z of B, the bus's centre; a product of inertia (Ixz 6.3 kg m^2) turns two principal axes 19 deg.\n- octa-sat.rw_speeds: up to 850 RPM in the turn to the Sun, then rw-y drifts about -2.1 RPM an orbit: sunlight pushes 4.8 cm off the center of mass, and no torque rods unload the wheels.\n- octa-sat.sun_heading_body: within 0.1 deg of the Sun after 7 min.\n\nTry changing:\n- The battery's position x to 0 (Open 3D model editor...): the center of mass moves to 0.8 cm from B, and rw-y ends near +0.9 RPM instead of -6.5. At x = -0.3 m it drifts the other way, to +8.3 RPM.\n- The bus Shell instead of Solid: Ixx grows from 134 to 172 kg m^2.\n- Import .obj... in the editor, for your own model.\n\nNote:\n- Parts do not shade each other, and the panels are fixed to the body.",
+  "schema_version": 4
+}

@@ -9007,3 +9007,176 @@ and no `Logging to` line; given before a command it still prints the
 versions and exits 0. The generated CLI interface document now has a
 section for options before the command. Tested with and without
 Basilisk installed; three new tests in `tests/test_cli.py`.
+
+## 3D spacecraft models, part 1: geometry, mass properties, facets (2026-10-13)
+
+The user asked for a 3D model editor: build a spacecraft from simple
+shapes (octagons included) or import an `.obj`, edit it, and configure or
+import the center of gravity and moments of inertia. Their choices: the
+model drives the look, the mass properties and the drag/SRP surfaces; a
+parts list with a live 3D view; an imported `.obj` is edited part by part
+(its groups), not triangle by triangle; mass data can be computed, typed
+in or imported. Three pull requests: this one (geometry, schema, engine,
+CLI), then the editor, then a template.
+
+**What was there.** The Vizard model was cosmetic only; facets were typed
+in by hand; mass and inertia were typed in; and the engine never set
+Basilisk's `hub.r_BcB_B`, so the center of mass was always at body point
+B. Facet locations are measured from B, so with no offset their drag and
+SRP torques were about B rather than about the center of mass.
+
+**What was built.**
+- `spacemissionstudio/model3d/` (numpy only, no Basilisk):
+  - shapes with their meshes, faces and mass properties;
+  - exact solid (signed tetrahedra) and shell integrals for meshes;
+  - an `.obj`/`.mtl` reader and writer with size limits;
+  - facets from outer faces, with coplanar mesh triangles merged;
+  - `derive`/`apply`/`stale_fields`;
+  - JSON/CSV mass-property import with the about-B and
+    products-of-inertia sign options.
+- Schema: `SpacecraftConfig.model` and `center_of_mass_b_m`. These are
+  additive, so old files load unchanged.
+- Engine:
+  - `hub.r_BcB_B` from `center_of_mass_b_m`;
+  - the Vizard copy of the model, in Vizard's axes, read from Vizard's
+    own source: its importer mirrors x, and body axes map to Unity
+    (y, z, -x);
+  - mesh files in the run's provenance.
+- Plausibility warnings when stored values differ from the model.
+- An Explain-tab badge and a center-of-mass note.
+- The `model` CLI command.
+
+**Verified.**
+- Every shape's mass properties against textbook formulas: the box, the
+  regular-polygon prism, cylinder, cone and sphere, solid and shell.
+- The mesh integrals against the closed forms (0.1 % at 256 sides).
+- A 490,000-triangle mesh in about 7 s, its inertia right to 0.002 %.
+- `.obj` round trips, units, Y-up, malformed and oversized files.
+- In Basilisk: an uncontrolled 1 m cube under drag with its center of
+  mass 5 cm off along x spins up about +z at 2.14e-4 rad/s after 100 s.
+  That is the sign r x F gives. 10 cm gives x 1.994 the spin, and a
+  centred cube 6e-22 rad/s. A first try over 600 s gave x 1.89 instead
+  of 2, because the cube had turned 0.75 rad by then.
+
+**Not done yet:** the editor in the app; the model's look in a running
+Vizard; a moving center of mass as propellant drains.
+
+## 3D spacecraft models, part 2: the editor (2026-10-13)
+
+The editor in the app, opened from a new **3D model** tab in the
+spacecraft editor (`gui/model_editor_dialog.py`).
+- **Parts:** shapes are added (the prism starts as an octagon) and `.obj`
+  files imported, one part per group, optionally copied into the
+  scenario's `models/` folder. Parts can be duplicated, renamed (names
+  checked), hidden and deleted.
+- **Part form:** sizes, place, rotation, colour, mass and its spread,
+  whether it counts toward the mass, faces left out of the surface model,
+  and the coefficients.
+- **3D view:** the model with the body axes and the center of mass
+  (`gui/model_view_widget.py`), updated in place with `Plotly.react`, so
+  the camera stays where the user put it.
+- **Tabs below:**
+  - mass properties: computed, typed in ("start from the computed
+    values"), or imported from JSON/CSV;
+  - the facets and the area seen from each axis;
+  - what the model is applied to, and an `.obj` export.
+
+**Found while building it, and fixed.**
+- **Products of inertia were lost.** The spacecraft editor showed only
+  Ixx, Iyy, Izz and wrote zeros for the products of inertia. A spacecraft
+  with products in its file lost them on any open-and-OK. The full tensor
+  is now kept, the products are shown, and a test reopens and re-saves
+  such a spacecraft. The same holds for a model's inertia, whose products
+  are rarely zero.
+- **The 3D view was blank without a GPU.** The first offscreen screenshot
+  showed "WebGL is not supported by your browser": Chromium blocklists
+  its own software renderer for WebGL. `gui/webengine_setup.py` now
+  starts Chromium with `--ignore-gpu-blocklist` (with `--no-sandbox`
+  only as root, as before) for both web views. With it the same view
+  rendered. A user's own `QTWEBENGINE_CHROMIUM_FLAGS` are kept as set.
+- **The form column was too narrow** for three x, y, z fields. They now
+  share the row without spin buttons.
+
+**Verified.**
+- `tests/gui/test_model_editor.py`:
+  - adding shapes;
+  - editing the form;
+  - duplicate, rename and delete;
+  - an `.obj` import in mm, copied with its `.mtl`;
+  - typed and imported mass properties;
+  - the spacecraft editor applying a model, locking the fields it fills
+    and giving back the same spacecraft after a reopen;
+  - products of inertia surviving a re-edit.
+- The screenshot `docs/images/model_editor.png`, taken offscreen by
+  `scripts/capture_screenshots.py`.
+
+**Not done:** using the editor by hand on a desktop; the model's look in a
+running Vizard.
+
+## 3D spacecraft models, part 3: template 28 (2026-10-13)
+
+**Template 28, "Octagonal bus from a 3D model"**, built by
+`scripts/_generate_templates.py` from six parts:
+- an octagonal prism bus, 1.2 m across flats and 1.4 m tall, 232 kg;
+- two 1.0 x 2.0 m panels on the +/-y sides, 10 kg each;
+- a cone dish on +x, 6 kg, as a shell;
+- a star tracker on -x, 2 kg, with the face against the bus left out;
+- a 40 kg battery inside the bus at x = 0.3 m, hidden and with no facets.
+
+The model gives 300 kg, a center of mass [4.8, 0, -6.3] cm from B, a
+product of inertia Ixz of 6.3 kg m^2 (two principal axes 19 deg off the
+body axes) and 36 facets. The spacecraft is Sun-safe on three wheels with
+no torque rods, so the wheels keep the momentum the offset puts in. It
+starts 71 deg off the Sun (template 27's attitude) and runs 0.2 days.
+
+**Measured in Basilisk** (`tests/test_template_claims.py`, about 12 s a
+run):
+- the wheels reach 854 RPM in the turn, and the Sun is within 0.1 deg
+  after 7 min;
+- then rw-y drifts -2.14, -4.30, -6.50 RPM after one, two and three
+  orbits. Sunlit stretches drift faster (-5.4 RPM/h) than eclipses
+  (-0.8 RPM/h, drag only);
+- put the center of mass back at B and rw-y ends at +0.35 RPM.
+
+A hand check of the size: sunlight on the panels and the bus top (with
+their reflection coefficients) gives about 2.8e-5 N, and 4.8 cm of lever
+arm about 1.4e-6 N m. In sunlight 63 % of the time, that is about
+0.015 N m s in 0.2 days. The run gives 0.0137 N m s: rw-y's 6.85 RPM
+difference from the centred run, with a spin inertia of 0.019 kg m^2 (a
+12 N m s wheel at 6000 RPM). The sign follows r x F: the center of mass
+is at +x, so the push along -z turns the body about -y.
+
+The description's "Try changing" lines were run too:
+- the battery at x = 0 gives a center of mass 0.8 cm from B, and rw-y
+  ends at +0.91 RPM;
+- at x = -0.3 m it drifts the other way, to +8.33 RPM;
+- a Shell bus raises Ixx from 134 to 172 kg m^2 (computed, no run).
+
+The template's "Customize..." wizard moves the battery and sets the bus
+mass. Each change re-applies the model, as the editor's OK does.
+
+**Found and fixed: the facet table rounded facets.** Opening and OK'ing
+the spacecraft editor on template 28 changed a facet's area from
+1.1929350596345136 to 1.19294 m^2. `tests/gui/test_scenario_templates_gui.py`
+caught it. The table wrote each number with `:g`, which keeps 6
+significant digits, so typed-in facets with more digits were rounded too.
+It now writes the shortest text that reads back exactly, and a test
+checks that.
+
+**The other 27 templates** gain the two new fields' defaults when
+regenerated: `center_of_mass_b_m` at the origin and `"model": null`.
+Nothing else in them changed.
+
+**Found in CI and fixed: a segfault on exit.** CI's help test crashed
+(exit code 139) after all its tests had passed, when its main window was
+torn down. The window handed the scenario editor a lambda that held the
+window itself: a reference cycle (window -> editor -> lambda -> window)
+kept the window and its web views alive until interpreter exit, after Qt
+WebEngine had shut down. It reproduced only as a non-root user, as CI
+runs, which is why the local runs (as root) passed. The lambda now holds
+a weak reference. Checked as a non-root user: the help test exits 0
+three times out of three, against 139 three times before. `develop`
+exits 0 the same way.
+
+**Not done:** the model's look in a running Vizard; template 28 run from
+the GUI by hand.

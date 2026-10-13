@@ -35,6 +35,26 @@ def test_table_round_trips_facets(qtbot):
     assert table.to_list() == facets
 
 
+def test_table_keeps_every_digit(qtbot):
+    """A facet computed from a 3D model (here a curved face's area and a
+    tilted normal) reads back exactly: the table used to write 6
+    significant digits, so an open-and-OK of the spacecraft editor
+    rounded 1.1929350596345136 m^2 to 1.19294. Whole numbers still show
+    without a trailing ".0"."""
+    from spacemissionstudio.gui.facet_editor import FacetTableWidget
+    from spacemissionstudio.schema.scenario import FacetConfig
+
+    facet = FacetConfig(name="dish: side 1", area_m2=1.1929350596345136,  # [m^2]
+                        normal_b=[0.9238795325112867, 0.3826834323650898, 0.0],
+                        location_b=[0.8125, 0.0337, -0.3], drag_coeff=3.0)  # [m], [-]
+    table = FacetTableWidget()
+    qtbot.addWidget(table)
+    table.from_list([facet])
+    assert table.to_list() == [facet]
+    assert table.table.item(0, 1).text() == "1.1929350596345136"
+    assert table.table.item(0, 4).text() == "0"
+
+
 def test_add_remove_and_a_bad_number_is_named(qtbot):
     from spacemissionstudio.gui.facet_editor import FacetTableWidget
 

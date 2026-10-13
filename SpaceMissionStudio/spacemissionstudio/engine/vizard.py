@@ -481,6 +481,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import numpy as np
+
 
 _VIZARD_PANEL_TITLE_SUFFIX = " Storage"  # GenericStoragePanelMethods.cs: panelName = scName + " Storage"
 _VIZARD_MIN_BAR_WIDTH_PX = 90.0  # GenericStoragePanelMethods.cs: private int barWidth = 90
@@ -607,6 +609,38 @@ class VizardRequest:
     # hundreds of overlapping lines merge into a solid band.
     show_trajectory_trail: bool = False
     show_ground_tracks: bool = False
+    # The scenario file's folder: resolves the relative mesh paths of a
+    # spacecraft's 3D model (SpacecraftConfig.model) for its Vizard copy.
+    model_base_dir: Optional[str] = None
+
+
+# Body frame -> the coordinates to write so Vizard shows the model as
+# built. Checked in Vizard's source (0h3xn4/vizard): its OBJ importer
+# mirrors x (OBJImport/OBJLoader.cs, ``localScale = (-1, 1, 1)``), and a
+# body-frame vector (x, y, z) becomes Unity (y, z, -x) on the spacecraft
+# (ModelDirectoryPanelMethods.cs, FinalizeCustomModel's offset). So a body
+# point is written as (-y, z, -x). Not yet looked at in a running Vizard.
+_BODY_TO_VIZARD_OBJ = [[0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, 0.0]]
+
+
+def write_model_for_vizard(sc_config, directory, base_dir=None) -> Optional[Path]:
+    """Write a spacecraft's 3D model (``sc_config.model``) as ``<name>.obj``
+    (+ ``.mtl``) in ``directory`` for Vizard, in the axes Vizard expects
+    (see ``_BODY_TO_VIZARD_OBJ``). Hidden parts and parts that cannot be
+    built are left out. Returns the path, or None when nothing could be
+    drawn."""
+    from ..model3d import model as model3d
+    from ..model3d.obj_io import ObjGroup, write_obj
+
+    derived = model3d.derive(sc_config.model, base_dir)
+    groups = model3d.obj_groups(derived)
+    if not groups:
+        return None
+    turn = np.asarray(_BODY_TO_VIZARD_OBJ)
+    turned = [ObjGroup(g.name, g.mesh.transformed(turn, [0.0, 0.0, 0.0]), g.color) for g in groups]
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    return write_obj(directory / f"{sc_config.name}.obj", turned)
 
 
 def _highest_initial_orbit_radius_m(sc_objects) -> Optional[float]:

@@ -9,6 +9,7 @@ do it, and what has been verified.
   - [Scenario model & data](#scenario-model--data)
   - [Orbital dynamics & propagation](#orbital-dynamics--propagation)
   - [Attitude, sensors & actuators](#attitude-sensors--actuators)
+  - [3D spacecraft models](#3d-spacecraft-models)
   - [Flight-software export](#flight-software-export)
   - [Software in the loop](#software-in-the-loop)
   - [Mission planning](#mission-planning)
@@ -83,6 +84,20 @@ each is a panel on a spring-damper hinge
 (`hingedRigidBodyStateEffector`), whose swinging acts back on the
 attitude and whose cells feed the power budget at the panel's own
 deflected attitude. See template 27 and the User Manual, section 6.
+
+### 3D spacecraft models
+
+A spacecraft can carry a 3D model (`SpacecraftConfig.model`) built from
+boxes, n-sided prisms (an octagonal bus), cylinders, cones, spheres and
+thin panels, and from the groups of imported `.obj` files. Its mass,
+center of mass and inertia are computed from the parts (or typed in, or
+read from a JSON or CSV file), its parts' outer faces become the drag and
+solar-pressure facets, and Vizard draws it. The center of mass is
+Basilisk's hub offset (`hub.r_BcB_B`), so drag, sunlight and thrust act
+about it, not about the body origin. The **3D model editor** shows the
+model as it is built; `spacemissionstudio model` reports, applies and
+exports it. See template 28 and
+[Build a 3D model](../user-manual/3d-model.md).
 
 ### Flight-software export
 
@@ -207,7 +222,7 @@ and -- for a `comms_pointing` spacecraft -- a pointing-error bar plus
 "Mode"/"Link status" badges mirroring the Mission Dashboard's own live
 GUI telemetry -- all driven by real, already-simulated values, not
 static snapshots, with Vizard's own native live current/max readout on
-every panel), custom 3D models per spacecraft (purely cosmetic), and a **Launch
+every panel), custom 3D models per spacecraft (a file of your own, cosmetic only, or the spacecraft's [3D model](#3d-spacecraft-models)), and a **Launch
 Vizard** action that starts the external application itself (if it
 cannot find Vizard, it offers to download AVS's own pre-built binary
 when you click **Download Vizard**), not just configures what feeds
@@ -218,7 +233,7 @@ it.
 Four spacecraft "bus" templates
 (100 kg ESPA-class, 150 kg microsatellite, 300 kg and 500 kg small
 satellites) and
-twenty-seven complete example scenarios: most cover one concept each,
+twenty-eight complete example scenarios: most cover one concept each,
 several integrate a whole system, and four are starting points for your
 own mission (the [template catalog](../../spacemissionstudio/scenarios/templates/README.md)).
 Five Python scripts in [`examples/`](../../examples/README.md) use the
@@ -291,7 +306,7 @@ compliance matrix.
 - **The GUI is tested for real**, headless, with `pytest-qt`: forms,
   menus, dialogs and the plots in their embedded web view.
 - **Template claims are re-checked.** `tests/test_template_claims.py`
-  runs templates 03, 07, 08, 10-14, 16, 17 and 19-24 in Basilisk and
+  runs templates 03, 07, 08, 10-14, 16, 17, 19-24 and 26-28 in Basilisk and
   checks the headline numbers their descriptions quote; template 25 runs
   in `tests/test_examples.py`.
 - **Long runs**: a real 5-year LEO station-keeping run and a 7-day run of

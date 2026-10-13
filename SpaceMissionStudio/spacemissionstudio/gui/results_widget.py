@@ -113,14 +113,13 @@ unambiguous, not follow a plot-only display preference):
 from __future__ import annotations
 
 import base64
-import os
 import urllib.parse
 
-# See module docstring's "Running as root" section -- MUST happen before
+# See module docstring's "Running as root" section, and gui.webengine_setup
+# (which now sets the flags for every web view) -- MUST happen before
 # PySide6.QtWebEngineWidgets is imported below (env var read at that
 # module's own native init time; setting it any later has no effect).
-if hasattr(os, "geteuid") and os.geteuid() == 0:
-    os.environ.setdefault("QTWEBENGINE_CHROMIUM_FLAGS", "--no-sandbox")
+from . import webengine_setup  # noqa: F401 -- importing it sets the flags
 
 import json
 import tempfile

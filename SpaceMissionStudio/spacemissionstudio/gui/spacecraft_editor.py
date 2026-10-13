@@ -44,7 +44,9 @@ corrected.
 
 from __future__ import annotations
 
+import copy
 import math
+from types import SimpleNamespace
 from typing import NamedTuple
 
 from PySide6.QtCore import Signal
@@ -244,9 +246,17 @@ class SpacecraftEditorDialog(QDialog):
 
     def __init__(self, config: SpacecraftConfig | None = None, parent: QWidget | None = None,
                  other_spacecraft_names: list[str] | None = None, simulation_mode: str = "full_attitude",
-                 ground_station_names: list[str] | None = None, epoch_provider=None):
+                 ground_station_names: list[str] | None = None, epoch_provider=None, base_dir_provider=None):
         super().__init__(parent)
         self.setWindowTitle("Spacecraft" if config is None else f"Spacecraft: {config.name}")
+        # The scenario file's folder (for a 3D model's mesh paths), or None.
+        self._base_dir_provider = base_dir_provider
+        # The spacecraft's 3D model (edited in ModelEditorDialog) and its full
+        # inertia: the form shows only the moments, and the products (from a
+        # file or the model) must survive a re-edit.
+        self._model = copy.deepcopy(config.model) if config is not None else None
+        self._full_inertia = list(config.inertia_kg_m2) if config is not None else [
+            10.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0]
         self._other_spacecraft_names = other_spacecraft_names or []
         # Used only to populate comms_pointing_group's target_ground_station
         # combo below -- same "provider-fed, not cross-checked here"
@@ -290,7 +300,7 @@ class SpacecraftEditorDialog(QDialog):
         orbit_layout.addWidget(self.orbit_widget)
         layout.addWidget(orbit_group)
 
-        inertia_group = QGroupBox("Principal moments of inertia [kg*m^2] (off-diagonal terms fixed at 0)")
+        inertia_group = QGroupBox("Center of mass and moments of inertia [kg*m^2] (about the center of mass)")
         inertia_group.setToolTip(
             "How the spacecraft's mass is distributed around its own body axes -- resistance to "
             "being rotated about each axis, the rotational analog of mass. A larger value on an "
@@ -299,6 +309,12 @@ class SpacecraftEditorDialog(QDialog):
             "no cross-coupling terms) -- the common simplifying assumption for a simple-shaped bus."
         )
         inertia_form = QFormLayout(inertia_group)
+        com0 = config.center_of_mass_b_m if config else [0.0, 0.0, 0.0]
+        self.com_x, self.com_y, self.com_z = (_spin(-100.0, 100.0, decimals=4, step=0.01, value=v) for v in com0)
+        for box in (self.com_x, self.com_y, self.com_z):
+            box.setToolTip("Where the center of mass is, from body point B [m]. Facets, thrusters and sensors are "
+                           "placed from B, so an offset gives drag, solar pressure and thrust a torque.")
+        inertia_form.addRow("Center of mass [m] (x, y, z from B)", _hbox(self.com_x, self.com_y, self.com_z))
         inertia0 = config.inertia_kg_m2 if config else [10.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0]
         self.ixx = _spin(0.001, 1.0e8, decimals=3, step=1.0, value=inertia0[0])
         self.iyy = _spin(0.001, 1.0e8, decimals=3, step=1.0, value=inertia0[4])
@@ -306,6 +322,10 @@ class SpacecraftEditorDialog(QDialog):
         inertia_form.addRow("Ixx", self.ixx)
         inertia_form.addRow("Iyy", self.iyy)
         inertia_form.addRow("Izz", self.izz)
+        self.products_label = QLabel()
+        self.products_label.setWordWrap(True)
+        inertia_form.addRow(self.products_label)
+        self._show_products()
         self.gravity_gradient_check = QCheckBox("Enable gravity gradient torque")
         self.gravity_gradient_check.setToolTip(
             "Real torque from the central body's gravity acting across this spacecraft's own inertia "
@@ -1449,6 +1469,7 @@ class SpacecraftEditorDialog(QDialog):
         viz_model_layout.addWidget(self.viz_model_group)
         viz_model_layout.addStretch(1)
         tabs.addTab(_scrollable(viz_model_tab), "Vizard model")
+        tabs.insertTab(tabs.count() - 1, _scrollable(self._build_model_tab()), "3D model")
 
         # -- Delta-V and propellant budget inputs (ESA AD10) --------------------
         from .budget_widget import BudgetInputsGroup
@@ -1672,11 +1693,9 @@ class SpacecraftEditorDialog(QDialog):
             name=name,
             orbit=self.orbit_widget.to_dataclass(),
             dry_mass_kg=self.dry_mass_kg.value(),
-            inertia_kg_m2=[
-                self.ixx.value(), 0.0, 0.0,
-                0.0, self.iyy.value(), 0.0,
-                0.0, 0.0, self.izz.value(),
-            ],
+            inertia_kg_m2=self._inertia_from_form(),
+            center_of_mass_b_m=[self.com_x.value(), self.com_y.value(), self.com_z.value()],
+            model=copy.deepcopy(self._model),
             sigma_bn_init=[self.sigma1.value(), self.sigma2.value(), self.sigma3.value()],
             omega_bn_b_init_rad_s=[self.omega1.value(), self.omega2.value(), self.omega3.value()],
             sensors=sensors,
@@ -1714,6 +1733,137 @@ class SpacecraftEditorDialog(QDialog):
         )
         config.validate()  # raises ScenarioValidationError with a specific message on anything bad
         return config
+
+    # -- inertia and the 3D model -----------------------------------------------------------------------------
+
+    def _inertia_from_form(self) -> list:
+        """The moments from the form; the products of inertia as loaded or
+        as the 3D model gave them (the form does not edit them)."""
+        i = list(self._full_inertia)
+        i[0], i[4], i[8] = self.ixx.value(), self.iyy.value(), self.izz.value()
+        return i
+
+    def _show_products(self) -> None:
+        i = self._full_inertia
+        products = (i[1], i[2], i[5])
+        if any(abs(v) > 0.0 for v in products):
+            self.products_label.setText(f"Products of inertia (kept from the file or the 3D model): Ixy {i[1]:.6g}, "
+                                        f"Ixz {i[2]:.6g}, Iyz {i[5]:.6g} kg*m^2")
+            self.products_label.setVisible(True)
+        else:
+            self.products_label.setVisible(False)
+
+    def _base_dir(self):
+        return self._base_dir_provider() if self._base_dir_provider else None
+
+    def _build_model_tab(self) -> QWidget:
+        tab = QWidget()
+        layout = QVBoxLayout(tab)
+        intro = QLabel("Build the spacecraft from shapes or an .obj file: it gives the mass, center of mass, "
+                       "inertia and facets, and Vizard shows it.")
+        intro.setWordWrap(True)
+        layout.addWidget(intro)
+        self.model_summary = QLabel()
+        self.model_summary.setWordWrap(True)
+        layout.addWidget(self.model_summary)
+        row = QHBoxLayout()
+        self.open_model_button = QPushButton("Open 3D model editor...")
+        self.open_model_button.clicked.connect(self._on_open_model_editor)
+        self.apply_model_button = QPushButton("Apply the model")
+        self.apply_model_button.setToolTip("Write the model's mass properties and facets into this spacecraft.")
+        self.apply_model_button.clicked.connect(self._on_apply_model)
+        self.remove_model_button = QPushButton("Remove the model")
+        self.remove_model_button.setToolTip("Keeps the values it gave; they become editable again.")
+        self.remove_model_button.clicked.connect(self._on_remove_model)
+        for button in (self.open_model_button, self.apply_model_button, self.remove_model_button):
+            row.addWidget(button)
+        row.addStretch(1)
+        layout.addLayout(row)
+        layout.addStretch(1)
+        self._refresh_model_tab()
+        return tab
+
+    def _model_target(self):
+        """What model3d.applied_values needs of this spacecraft: its model
+        and its flexible arrays (their mass is added to the dry mass)."""
+        arrays = [] if self._orbit_only else self.solar_array_table.to_list()
+        return SimpleNamespace(model=self._model, solar_arrays=arrays)
+
+    def _refresh_model_tab(self) -> None:
+        from ..model3d import model as model3d
+
+        has_model = self._model is not None
+        self.apply_model_button.setVisible(has_model)
+        self.remove_model_button.setVisible(has_model)
+        self.open_model_button.setText("Open 3D model editor..." if has_model else "Build a 3D model...")
+        if not has_model:
+            self.model_summary.setText("No 3D model: mass, inertia and facets are typed in.")
+            self._update_model_locks()
+            return
+        derived = model3d.derive(self._model, self._base_dir())
+        lines = [f"{len(self._model.parts)} part(s): " + ", ".join(p.name for p in self._model.parts)]
+        if derived.mass_properties is not None:
+            props = model3d.tidy(derived.mass_properties)
+            com = props.center_of_mass_m
+            lines.append(f"Mass {props.mass_kg:.6g} kg, center of mass [{com[0]:.4g}, {com[1]:.4g}, {com[2]:.4g}] m "
+                         f"({self._model.mass_properties_source})")
+        if derived.faces:
+            lines.append(f"{len(derived.faces)} facets")
+        lines += [f"Problem: {m}" for m in derived.errors + derived.warnings]
+        current = SimpleNamespace(**self._model_target().__dict__, dry_mass_kg=self.dry_mass_kg.value(),
+                                  center_of_mass_b_m=[self.com_x.value(), self.com_y.value(), self.com_z.value()],
+                                  inertia_kg_m2=self._inertia_from_form(),
+                                  facets=[] if self._orbit_only else self.facet_table.to_list())
+        stale = model3d.stale_fields(current, derived, orbit_only=self._orbit_only)
+        lines.append(f"Out of date: {', '.join(stale)} -- click Apply the model." if stale else
+                     "This spacecraft's values match the model.")
+        self.model_summary.setText("\n".join(lines))
+        self._update_model_locks()
+
+    def _update_model_locks(self) -> None:
+        """Fields the model fills are shown but not editable while it does."""
+        mass_locked = self._model is not None and self._model.apply_mass_properties
+        facets_locked = self._model is not None and self._model.apply_facets and not self._orbit_only
+        tip = "From the 3D model (3D model tab)."
+        for box in (self.dry_mass_kg, self.com_x, self.com_y, self.com_z, self.ixx, self.iyy, self.izz):
+            box.setEnabled(not mass_locked)
+            if mass_locked:
+                box.setStatusTip(tip)
+        self.facet_table.setEnabled(not facets_locked)
+        self.facet_table.setToolTip(tip if facets_locked else "")
+
+    def _on_open_model_editor(self) -> None:
+        from .model_editor_dialog import ModelEditorDialog
+
+        dialog = ModelEditorDialog(self._model, spacecraft_name=self.name_edit.text().strip() or "sat-1",
+                                   base_dir=self._base_dir(), parent=self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self._model = dialog.model()
+            self._on_apply_model()
+
+    def _on_apply_model(self) -> None:
+        from ..model3d import model as model3d
+
+        if self._model is None:
+            return
+        derived = model3d.derive(self._model, self._base_dir())
+        values = model3d.applied_values(self._model_target(), derived, orbit_only=self._orbit_only)
+        if "dry_mass_kg" in values:
+            self.dry_mass_kg.setValue(values["dry_mass_kg"])
+            for box, value in zip((self.com_x, self.com_y, self.com_z), values["center_of_mass_b_m"]):
+                box.setValue(value)
+            self._full_inertia = list(values["inertia_kg_m2"])
+            self.ixx.setValue(self._full_inertia[0])
+            self.iyy.setValue(self._full_inertia[4])
+            self.izz.setValue(self._full_inertia[8])
+            self._show_products()
+        if "facets" in values:
+            self.facet_table.from_list(values["facets"])
+        self._refresh_model_tab()
+
+    def _on_remove_model(self) -> None:
+        self._model = None
+        self._refresh_model_tab()
 
     def _viz_model_to_dataclass_path(self) -> str | None:
         if not self.viz_model_group.isChecked():
@@ -2028,6 +2178,9 @@ class SpacecraftListWidget(QWidget):
         # straight down to OrbitIcWidget's own "Compute RAAN for LTAN..."
         # button -- same provider pattern as the two above.
         self._epoch_provider = None
+        # Set by the owning ScenarioEditorWidget (see set_base_dir_provider):
+        # the scenario file's folder, for a 3D model's mesh paths.
+        self._base_dir_provider = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -2098,6 +2251,11 @@ class SpacecraftListWidget(QWidget):
         """
         self._epoch_provider = provider
 
+    def set_base_dir_provider(self, provider) -> None:
+        """``provider`` returns the scenario file's folder (a Path) or None
+        while it is unsaved: where a 3D model's relative mesh paths start."""
+        self._base_dir_provider = provider
+
     def _simulation_mode(self) -> str:
         return self._simulation_mode_provider() if self._simulation_mode_provider else "full_attitude"
 
@@ -2114,7 +2272,8 @@ class SpacecraftListWidget(QWidget):
         dialog = SpacecraftEditorDialog(parent=self, other_spacecraft_names=sorted(existing_names),
                                          simulation_mode=self._simulation_mode(),
                                          ground_station_names=self._ground_station_names(),
-                                         epoch_provider=self._epoch_provider)
+                                         epoch_provider=self._epoch_provider,
+                                         base_dir_provider=self._base_dir_provider)
         # default name must be unique so QListWidget entries stay distinguishable
         base_name = dialog.name_edit.text()
         candidate, n = base_name, 1
@@ -2157,7 +2316,8 @@ class SpacecraftListWidget(QWidget):
         dialog = SpacecraftEditorDialog(config=prefilled, parent=self, other_spacecraft_names=sorted(existing_names),
                                          simulation_mode=self._simulation_mode(),
                                          ground_station_names=self._ground_station_names(),
-                                         epoch_provider=self._epoch_provider)
+                                         epoch_provider=self._epoch_provider,
+                                         base_dir_provider=self._base_dir_provider)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
             if config.name in existing_names:
@@ -2178,7 +2338,8 @@ class SpacecraftListWidget(QWidget):
         dialog = SpacecraftEditorDialog(config=self._configs[row], parent=self, other_spacecraft_names=other_names,
                                          simulation_mode=self._simulation_mode(),
                                          ground_station_names=self._ground_station_names(),
-                                         epoch_provider=self._epoch_provider)
+                                         epoch_provider=self._epoch_provider,
+                                         base_dir_provider=self._base_dir_provider)
         if dialog.exec() == QDialog.DialogCode.Accepted:
             new_config = dialog.to_dataclass()
             other_names = {c.name for i, c in enumerate(self._configs) if i != row}

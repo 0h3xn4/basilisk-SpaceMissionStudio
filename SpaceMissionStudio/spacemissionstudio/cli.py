@@ -50,6 +50,7 @@ Usage::
         --total-satellites 12 --planes 3 --phasing-factor 1 --altitude-km 780 --inclination-deg 86.4
     spacemissionstudio generate-phasing-formation chief_only.json --out formation.json \
         --chief chief-1 --follower-name follower-1 --along-track-km 50
+    spacemissionstudio model scenario.json --spacecraft sat-1 --apply
     spacemissionstudio gui
     spacemissionstudio --version
 """
@@ -86,7 +87,9 @@ def cmd_validate(args: argparse.Namespace) -> int:
     # run): warnings only, the exit status stays 0 (audit L11).
     from .engine import scenario_checks
 
-    for warning in scenario_checks.plausibility_warnings(scenario) + scenario_checks.scenario_warnings(scenario):
+    base_dir = args.scenario.resolve().parent  # resolves a 3D model's relative mesh paths
+    for warning in (scenario_checks.plausibility_warnings(scenario, base_dir=base_dir)
+                    + scenario_checks.scenario_warnings(scenario)):
         print(f"WARNING: {warning}")
     return 0
 
@@ -173,6 +176,7 @@ def cmd_run(args: argparse.Namespace) -> int:
             save_file=args.vizard_save_file, live_stream=args.vizard_live_stream,
             camera_target=args.vizard_camera_target, show_orbit_lines=not args.vizard_no_orbit_lines,
             show_trajectory_trail=args.vizard_trail, show_ground_tracks=args.vizard_ground_tracks,
+            model_base_dir=str(args.scenario.resolve().parent),
         )
 
     print(f"Running {scenario.name!r} ({len(scenario.spacecraft)} spacecraft, "
@@ -320,6 +324,77 @@ def cmd_monte_carlo(args: argparse.Namespace) -> int:
         return 4
     print(f"All {scenario.monte_carlo.num_runs} run(s) succeeded.")
     return 0
+
+
+def cmd_model(args: argparse.Namespace) -> int:
+    """Report a spacecraft's 3D model: its parts, the mass properties and
+    facets it gives, and whether the spacecraft's stored values match;
+    optionally apply them to the file, or export the model as .obj."""
+    try:
+        scenario = load_scenario(args.scenario)
+    except ScenarioValidationError as exc:
+        print(f"INVALID: {exc}", file=sys.stderr)
+        return 1
+    from .model3d import model as model3d
+    from .model3d.obj_io import write_obj
+
+    with_model = [sc for sc in scenario.spacecraft if sc.model is not None]
+    if args.spacecraft:
+        with_model = [sc for sc in with_model if sc.name == args.spacecraft]
+        if not with_model:
+            print(f"ERROR: no spacecraft {args.spacecraft!r} with a 3D model", file=sys.stderr)
+            return 1
+    if not with_model:
+        print("No spacecraft in this scenario has a 3D model.")
+        return 0
+    if args.export_obj and len(with_model) > 1:
+        print("ERROR: --export-obj writes one model; name it with --spacecraft", file=sys.stderr)
+        return 1
+    base_dir = args.scenario.resolve().parent
+    orbit_only = scenario.simulation_mode == "orbit_only"
+    failed = False
+    for sc in with_model:
+        derived = model3d.derive(sc.model, base_dir)
+        parts = ", ".join(f"{p.name} ({p.shape}, {p.mass_kg:g} kg{'' if p.counts_toward_mass else ', not counted'})"
+                          for p in sc.model.parts)
+        print(f"{sc.name}: 3D model, {len(sc.model.parts)} part(s): {parts}")
+        props = derived.mass_properties
+        if props is not None:
+            print(f"  mass properties ({sc.model.mass_properties_source}):")
+            for line in model3d.principal_summary(props):
+                print(f"    {line}")
+        if derived.faces:
+            areas = derived.projected_areas_m2()
+            seen = ", ".join(f"{axis} {area:.3g}" for axis, area in areas.items())
+            print(f"  facets: {len(derived.faces)}, {sum(f.area_m2 for f in derived.faces):.3g} m^2 in all; "
+                  f"seen from {seen} m^2")
+        for message in derived.errors:
+            print(f"  ERROR: {message}")
+            failed = True
+        for message in derived.warnings:
+            print(f"  WARNING: {message}")
+        if args.apply:
+            written = model3d.apply(sc, derived, orbit_only=orbit_only)
+            print(f"  applied: {', '.join(written) if written else 'nothing (applying is switched off)'}")
+        else:
+            stale = model3d.stale_fields(sc, derived, orbit_only=orbit_only)
+            print(f"  stored values: {'differ in ' + ', '.join(stale) if stale else 'match the model'}")
+        if args.export_obj:
+            groups = model3d.obj_groups(derived)
+            if not groups:
+                print("ERROR: the model has no part that can be drawn", file=sys.stderr)
+                return 1
+            path = write_obj(args.export_obj, groups)
+            print(f"  wrote {path} and {path.with_suffix('.mtl').name} (body frame, metres, +z up)")
+    if args.apply:
+        try:
+            scenario.validate()
+        except ScenarioValidationError as exc:
+            print(f"INVALID after applying, not saved: {exc}", file=sys.stderr)
+            return 1
+        scenario.save(args.scenario)
+        print(f"Saved {args.scenario}")
+    return 1 if failed else 0
 
 
 def cmd_lifetime(args: argparse.Namespace) -> int:
@@ -996,6 +1071,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_life.add_argument("--drag-coeff", default="2.2", type=_drag_coeff_arg,
                         help="drag coefficient, or 'own' for the spacecraft's (default 2.2: ESA AD10 end of life)")
     p_life.set_defaults(func=cmd_lifetime)
+
+    p_model = subparsers.add_parser("model", help="report a spacecraft's 3D model: mass properties and facets")
+    p_model.add_argument("scenario", type=Path)
+    p_model.add_argument("--spacecraft", help="spacecraft name (default: every one with a model)")
+    p_model.add_argument("--apply", action="store_true",
+                         help="write the model's mass properties and facets into the scenario file")
+    p_model.add_argument("--export-obj", type=Path, metavar="PATH",
+                         help="write the model as a Wavefront .obj (and .mtl) in the body frame")
+    p_model.set_defaults(func=cmd_model)
 
     p_budget = subparsers.add_parser("budget", help="delta-V and propellant budget (ESA AD10 style)")
     p_budget.add_argument("scenario", type=Path)

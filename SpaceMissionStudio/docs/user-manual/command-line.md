@@ -13,6 +13,7 @@ with a non-zero status and prints `ERROR:` or `INVALID:` with the reason.
 - [Check and run](#check-and-run)
 - [Analyse](#analyse)
 - [Build scenarios](#build-scenarios)
+- [3D models](#3d-models)
 - [Orbit files (CCSDS)](#orbit-files-ccsds)
 - [Flight software](#flight-software)
 - [Reference data](#reference-data)
@@ -68,6 +69,36 @@ used. This took about 40 s.
 |---|---|
 | `generate-constellation in.json --out out.json --total-satellites 12 --planes 3 --phasing-factor 1 --altitude-km 780 --inclination-deg 86.4` | A Walker constellation from one spacecraft |
 | `generate-phasing-formation in.json --out out.json --chief chief-1 --follower-name follower-1 --along-track-km 50` | A follower that holds a distance ahead of a chief |
+
+## 3D models
+
+A spacecraft's 3D model (the `model` block of a spacecraft in the
+scenario file) gives its mass, center of mass, inertia and the facets
+drag and solar pressure act on.
+
+| Command | What it does |
+|---|---|
+| `model scenario.json` | Lists each model's parts, the mass properties and facets it gives, and whether the spacecraft's stored values still match |
+| `model scenario.json --apply` | Writes those values into the scenario file |
+| `model scenario.json --spacecraft sat-1 --export-obj sat.obj` | Writes the model as a Wavefront `.obj` (and `.mtl`), body frame, metres, +z up |
+
+```console
+$ spacemissionstudio model octagon.json
+sat-1: 3D model, 2 part(s): bus (prism, 120 kg), dish (cone, 4 kg)
+  mass properties (computed):
+    mass 124 kg
+    center of mass [0, 0, 0.0173029] m from B
+    inertia about it [kg m^2]: Ixx 19.1419, Iyy 19.1419, Izz 16.0379, Ixy 0, Ixz 0, Iyz 0
+    principal moments [kg m^2]: 16.0379, 19.1419, 19.1419
+      axis 1: [0.0000, 0.0000, 1.0000] (0.0 deg from the nearest body axis)
+      axis 2: [0.0000, 1.0000, 0.0000] (0.0 deg from the nearest body axis)
+      axis 3: [1.0000, 0.0000, 0.0000] (0.0 deg from the nearest body axis)
+  facets: 27, 5.59 m^2 in all; seen from +x 1.06, -x 1.06, +y 1.06, -y 1.06, +z 1.11, -z 1.11 m^2
+  stored values: match the model
+```
+
+`validate` also warns when the stored values differ from the model. The
+file formats are in the ICD (`compliance/docs/ICD.md`, 5.3.11).
 
 ## Orbit files (CCSDS)
 

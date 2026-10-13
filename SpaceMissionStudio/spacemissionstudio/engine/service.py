@@ -616,6 +616,40 @@ class SimulationService:
         """
         return dict(self._handles)
 
+    def _vizard_models_from_3d_models(self, scenario: Scenario) -> Dict[str, dict]:
+        """``.obj`` files written from each spacecraft's 3D model, for
+        Vizard, where ``use_for_vizard`` is on and no ``vizard_model_path``
+        is set. Next to a Vizard save file (it needs them when it plays the
+        file back), or in a temporary folder for a live stream."""
+        wanted = [sc for sc in scenario.spacecraft
+                  if sc.model is not None and sc.model.use_for_vizard and sc.vizard_model_path is None]
+        if not wanted:
+            return {}
+        if self.vizard_request.save_file:
+            save = Path(self.vizard_request.save_file)
+            directory = save.with_name(f"{save.stem}_models")
+        else:
+            import tempfile
+
+            directory = Path(tempfile.mkdtemp(prefix="spacemissionstudio_vizard_models_"))
+        from ..model3d.model import mesh_path
+
+        models = {}
+        for sc_config in wanted:
+            for mesh_config in sc_config.model.meshes:  # what the Vizard copy was drawn from
+                mesh_file = mesh_path(mesh_config, self.vizard_request.model_base_dir)
+                if mesh_file.is_file():
+                    self._data_files[f"model_mesh:{sc_config.name}:{mesh_file.name}"] = (
+                        dependencies.file_record(mesh_file))
+            path = vizard.write_model_for_vizard(sc_config, directory, self.vizard_request.model_base_dir)
+            if path is None:
+                _logger.warning("%s: its 3D model has no part that can be drawn; Vizard shows the default model",
+                                sc_config.name)
+                continue
+            models[sc_config.name] = {"path": str(path), "offset_m": [0.0, 0.0, 0.0],
+                                      "rotation_deg": [0.0, 0.0, 0.0], "scale": [1.0, 1.0, 1.0]}
+        return models
+
     def build(self, initialize: bool = True) -> None:
         """Assemble the Basilisk simulation from ``self.scenario`` without
         running it. Safe to call at most once per instance (see the class
@@ -991,6 +1025,10 @@ class SimulationService:
             sc_object.hub.mHub = solar_arrays.hub_mass_kg(sc_config)
             fsw_inertia = solar_arrays.fsw_inertia_kg_m2(sc_config)  # the hub's plus the undeflected arrays'
             sc_object.hub.IHubPntBc_B = simHelpers.np2EigenMatrix3d(sc_config.inertia_kg_m2)
+            # The center of mass from B (a 3D model's, or typed in); facet,
+            # thruster and sensor positions are from B, so their torques act
+            # about this point.
+            sc_object.hub.r_BcB_B = [[float(v)] for v in sc_config.center_of_mass_b_m]
             sc_object.hub.sigma_BNInit = [[v] for v in sc_config.sigma_bn_init]
             sc_object.hub.omega_BN_BInit = [[v] for v in sc_config.omega_bn_b_init_rad_s]
 
@@ -1671,6 +1709,7 @@ class SimulationService:
                 }
                 for sc_config in scenario.spacecraft if sc_config.vizard_model_path is not None
             }
+            custom_models_by_spacecraft.update(self._vizard_models_from_3d_models(scenario))
             try:
                 (
                     self._viz,

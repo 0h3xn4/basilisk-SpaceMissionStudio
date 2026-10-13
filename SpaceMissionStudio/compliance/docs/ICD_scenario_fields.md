@@ -185,6 +185,56 @@ Continuous reaction-wheel momentum management via this spacecraft's ``"magnetic_
 | `wheel_speed_biases_rad_s` | list | `required` | [rad/s] one entry per reaction_wheel actuator, in listed order |
 | `c_gain` | float | `0.003` | [-] control gain mapping wheel speed error to desired magnetic torque |
 
+## ModelMassPropertiesConfig
+
+Mass properties typed in, or imported from a file, instead of computed from the parts: about the center of mass, in body axes.
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `mass_kg` | float | `required` | [kg] |
+| `center_of_mass_b_m` | list | `[0.0, 0.0, 0.0]` | [m] from body point B |
+| `inertia_kg_m2` | list | `[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]` | about it |
+| `source_file` | str | `''` | imported: the file's name |
+| `source_sha256` | str | `''` | imported: its SHA-256 |
+
+## ModelMeshConfig
+
+An imported ``.obj`` file that a model's ``mesh`` parts come from. ``.obj`` files carry no unit or up direction, so both are recorded.
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `path` | str | `required` | absolute, or relative to the scenario file |
+| `sha256` | str | `''` | [-] of the file when it was imported; "" when not recorded |
+| `units` | str | `'m'` | one of MESH_UNITS |
+| `up_axis` | str | `'z'` | one of MESH_UP_AXES: "y" for files exported Y-up |
+
+## ModelPartConfig
+
+One part of a 3D model: a simple shape, or a group of an imported mesh, placed in the body frame and given a mass and surface properties.
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `name` | str | `required` |  |
+| `shape` | str | `required` | one of MODEL_SHAPES |
+| `dimensions_m` | dict | `{}` | [m] the keys MODEL_SHAPE_DIMENSIONS gives for the shape |
+| `sides` | int | `8` | prism only: an octagon by default |
+| `segments` | int | `16` | cylinder, cone, sphere: sides they are drawn and faceted with |
+| `mesh_index` | Optional[int] | `None` | mesh parts: index into SpacecraftModelConfig.meshes |
+| `mesh_group` | str | `''` | mesh parts: the group (o/g name) in that file |
+| `position_b_m` | list | `[0.0, 0.0, 0.0]` | [m] |
+| `rotation_deg` | list | `[0.0, 0.0, 0.0]` | [deg] roll, pitch, yaw (3-2-1) |
+| `scale` | list | `[1.0, 1.0, 1.0]` | [-] mesh parts only |
+| `color` | list | `[0.7, 0.7, 0.7]` | [-] RGB, each 0..1 |
+| `visible` | bool | `True` |  |
+| `mass_kg` | float | `0.0` | [kg] |
+| `distribution` | str | `'solid'` | "solid": through the volume; "shell": over the surface |
+| `counts_toward_mass` | bool | `True` | False for a part whose mass is modelled elsewhere (a flexible array) |
+| `in_surface_model` | bool | `True` | its outer faces become drag/SRP facets |
+| `excluded_faces` | list | `[]` | names from MODEL_SHAPE_FACES left out of the facets |
+| `drag_coeff` | float | `2.2` | [-] |
+| `specular_coeff` | float | `0.3` | [-] |
+| `diffuse_coeff` | float | `0.1` | [-] |
+
 ## MomentumDumpingConfig
 
 Periodic reaction-wheel momentum desaturation via this spacecraft's ``"thruster"`` actuators -- Basilisk's ``thrMomentumManagement`` + ``thrForceMapping`` (momentum-dump mode) + ``thrMomentumDumping``, firing thrusters ONLY to bleed off accumulated wheel momentum, never for primary attitude control (that stays on ``"reaction_wheel"`` actuators via the existing control path -- see ``engine.fsw``'s module docstring for why the two would otherwise need a control -allocation module this app doesn't build).
@@ -391,6 +441,7 @@ See engine/spaceweather.py and engine/service.py. Real data only (user requireme
 | `orbit` | OrbitIC | `required` |  |
 | `dry_mass_kg` | float | `100.0` |  |
 | `inertia_kg_m2` | list | `[10.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0, 10.0]` |  |
+| `center_of_mass_b_m` | list | `[0.0, 0.0, 0.0]` |  |
 | `sigma_bn_init` | list | `[0.0, 0.0, 0.0]` |  |
 | `omega_bn_b_init_rad_s` | list | `[0.0, 0.0, 0.0]` |  |
 | `enable_drag` | bool | `False` |  |
@@ -424,6 +475,21 @@ See engine/spaceweather.py and engine/service.py. Real data only (user requireme
 | `vizard_model_offset_m` | list | `[0.0, 0.0, 0.0]` |  |
 | `vizard_model_rotation_deg` | list | `[0.0, 0.0, 0.0]` | 3-2-1 Euler (z,y,x) |
 | `vizard_model_scale` | list | `[1.0, 1.0, 1.0]` |  |
+| `model` | Optional[SpacecraftModelConfig] | `None` |  |
+
+## SpacecraftModelConfig
+
+A spacecraft's 3D model (see ``spacemissionstudio.model3d``): parts built from simple shapes or imported ``.obj`` groups. Applying it (``model3d.model.apply``) writes what it derives into the spacecraft's own fields -- ``dry_mass_kg``, ``center_of_mass_b_m``, ``inertia_kg_m2`` and ``facets`` -- which are what the simulation reads; the model is kept so it can be edited again. ``use_for_vizard`` shows the model in Vizard when ``vizard_model_path`` is not set.
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `parts` | list | `[]` | list[ModelPartConfig] |
+| `meshes` | list | `[]` | list[ModelMeshConfig] |
+| `mass_properties_source` | str | `'computed'` | one of MASS_PROPERTIES_SOURCES |
+| `mass_properties` | Optional[ModelMassPropertiesConfig] | `None` | for "typed" and "imported" |
+| `apply_mass_properties` | bool | `True` |  |
+| `apply_facets` | bool | `True` |  |
+| `use_for_vizard` | bool | `True` |  |
 
 ## StationKeepingConfig
 

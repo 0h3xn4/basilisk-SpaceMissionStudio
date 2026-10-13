@@ -101,6 +101,22 @@ Each item was checked against Basilisk's own source.
     the atmosphere-model-choice work that added `ExponentialAtmosphere`
     as the second option.
 
+* **3D models (`spacemissionstudio.model3d`).**
+  * Basilisk's facet effectors treat every facet as exposed whenever it
+    faces the flow or the Sun: one part shading another is not modelled.
+    Faces where parts touch can be left out per part.
+  * Cylinders, cones and spheres give flat facets with the true curved
+    area shared out (16 by default); their mass properties are exact.
+  * An imported mesh gives one facet per flat plane; a curved mesh gives
+    many, and over 200 facets the model's facets are not applied.
+  * A *solid* mass distribution needs a closed mesh; an open one can only
+    be a *shell*.
+  * The center of mass is fixed: propellant draining does not move it.
+  * The model's orientation in Vizard follows Vizard's source (its
+    importer mirrors x); it has not been looked at in a running Vizard.
+  * Facets apply only in full-attitude runs; an orbit-only run keeps
+    `drag_area_m2` and `srp_area_m2`.
+
 ## Planned, not yet built
 
 Scoped from real use, with the detail in

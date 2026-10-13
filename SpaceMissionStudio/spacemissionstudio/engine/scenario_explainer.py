@@ -54,6 +54,7 @@ sections.
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass, field
 from datetime import timedelta, timezone
 from typing import Dict, List
@@ -285,7 +286,14 @@ def _environment_section(scenario) -> ExplanationSection | None:
         badges.append(Badge("Gravity gradient", "accent"))
     if any(sc.facets and (sc.enable_drag or sc.enable_srp) for sc in scenario.spacecraft):
         badges.append(Badge("Facet model (drag/SRP torques)", "accent"))
+    for sc in scenario.spacecraft:
+        if sc.model is not None:
+            badges.append(Badge(f"{sc.name}: 3D model, {len(sc.model.parts)} parts", "neutral"))
     notes = gravity_fidelity_notes(scenario)
+    for sc in scenario.spacecraft:
+        offset = math.sqrt(sum(float(v) ** 2 for v in sc.center_of_mass_b_m))
+        if offset > 0.0:
+            notes.append(f"{sc.name}: center of mass {100.0 * offset:.1f} cm from B")
     if getattr(scenario.gravity, "central_body", "") == "earth":
         notes += _earth_frame_notes(scenario)
     if not badges:

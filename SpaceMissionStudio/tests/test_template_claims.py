@@ -277,3 +277,32 @@ def test_27_the_wings_ring_at_their_coupled_mode_and_the_pointing_settles():
     assert 6.5 * 60.0 < heading.time_s[off_sun_deg > 0.1][-1] < 7.7 * 60.0  # [s]
     power = result.series["flex-sat.solar_array.wing-1.power"].data[:, 0]  # [W]
     assert 960.0 < power.max() < 1000.0
+
+
+def test_28_the_model_s_center_of_mass_offset_drives_the_y_wheel():
+    """The model gives 300 kg and a center of mass [4.8, 0, -6.3] cm from
+    B. The turn to the Sun takes the wheels up to ~850 RPM and ends within
+    0.1 deg after ~7 min; then sunlight, pushing 4.8 cm off the center of
+    mass, drifts rw-y ~-2.1 RPM an orbit, to ~-6.5 RPM after three orbits.
+    The same run with the center of mass put back at B ends near +0.3 RPM,
+    so the drift is the offset's."""
+    scenario = _template("28")
+    spacecraft = scenario.spacecraft[0]
+    assert spacecraft.dry_mass_kg == pytest.approx(300.0)
+    np.testing.assert_allclose(spacecraft.center_of_mass_b_m, [0.0482, 0.0, -0.0627], atol=1e-4)  # [m]
+    result = _run(scenario)
+    rpm = result.series["octa-sat.rw_speeds"].data * 30.0 / np.pi  # [RPM]
+    assert 750.0 < np.abs(rpm).max() < 950.0
+    heading = result.series["octa-sat.sun_heading_body"]
+    unit = heading.data / np.linalg.norm(heading.data, axis=1)[:, None]
+    off_sun_deg = np.degrees(np.arccos(np.clip(unit[:, 2], -1.0, 1.0)))
+    assert 6.0 * 60.0 < heading.time_s[off_sun_deg > 0.1][-1] < 8.0 * 60.0  # [s]
+    orbit_s = 5739.0  # [s] at 550 km
+    wheels = result.series["octa-sat.rw_speeds"]
+    for orbits, expected_rpm in ((1, -2.1), (2, -4.3), (3, -6.5)):
+        assert _at(wheels, orbits * orbit_s, column=1) * 30.0 / np.pi == pytest.approx(expected_rpm, abs=0.4)
+
+    centred = _template("28")
+    centred.spacecraft[0].center_of_mass_b_m = [0.0, 0.0, 0.0]  # [m]
+    centred_rpm = _run(centred).series["octa-sat.rw_speeds"].data[-1, 1] * 30.0 / np.pi  # [RPM]
+    assert 0.0 < centred_rpm < 1.5
