@@ -85,6 +85,12 @@ spacemissionstudio = ["scenarios/*.json", "scenarios/templates/*.json", "scenari
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 qt_api = "pyside6"
+# pytest-qt's Qt log capture installs and restores a Qt message handler
+# around every test. A Qt WebEngine thread that logs a warning at that
+# moment reaches a cleared Python handler and the worker segfaults (CI,
+# 2026-10-13: callable=0x0 under QMessageLogger::warning, twice). No test
+# reads the captured messages (no qtlog, qt_log_level_fail stays NO).
+addopts = "--no-qt-log"
 
 # Coding standard (compliance/docs/coding_standard.md; ECSS-Q-ST-80C 6.3.4,
 # remediation R10). pyflakes, pycodestyle errors/warnings and bugbear; the

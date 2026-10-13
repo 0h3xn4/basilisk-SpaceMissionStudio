@@ -81,7 +81,7 @@ def test_dialogs_fail_the_test_instead_of_hanging_the_suite(tmp_path):
     env = {**os.environ, "QT_QPA_PLATFORM": "offscreen", "HOME": str(tmp_path / "home"),
            "PYTHONPATH": os.pathsep.join(filter(None, [str(_PROJECT), os.environ.get("PYTHONPATH")]))}
     done = subprocess.run([sys.executable, "-m", "pytest", str(folder), "-q", "-p", "no:cacheprovider", "-p",  # noqa: S603
-                           "no:xdist", "-rf"], capture_output=True, text=True, env=env, cwd=str(tmp_path),
+                           "no:xdist", "--no-qt-log", "-rf"], capture_output=True, text=True, env=env, cwd=str(tmp_path),
                           timeout=120)
     out = done.stdout + done.stderr
     assert "2 failed, 1 passed" in out, out

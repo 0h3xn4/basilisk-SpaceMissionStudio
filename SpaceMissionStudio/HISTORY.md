@@ -9258,3 +9258,12 @@ native Windows 11 style and font, which the app never shows (`gui/app.py`
 always applies the Fusion style and the bundled IBM Plex font). The test
 now applies the app's theme first and restores the previous look after.
 It still fails without the fix (1557 px) and passes with it.
+
+Linux CI then crashed a test worker twice in a row, in two different
+tests, both times with the same native stack: a Qt WebEngine thread
+logged a warning (`QMessageLogger::warning`) and reached a cleared Python
+message handler (`callable=0x0`). pytest-qt's log capture installs and
+restores that handler around every test, so a warning from a non-GUI
+thread at a test boundary can land between the two. No test reads the
+captured messages, so the suite now runs with `--no-qt-log`
+(`pyproject.toml`), and the dialog-guard test's own child pytest does too.
