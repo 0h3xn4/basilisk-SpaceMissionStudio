@@ -135,4 +135,3 @@ class ModelViewWidget(QWidget):
             self.web_view.page().runJavaScript(script)
         else:
             self._pending = script
-
