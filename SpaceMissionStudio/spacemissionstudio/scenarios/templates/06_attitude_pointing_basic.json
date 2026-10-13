@@ -40,6 +40,11 @@
         0.0,
         72.0
       ],
+      "center_of_mass_b_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
       "sigma_bn_init": [
         0.1,
         0.2,
@@ -92,7 +97,8 @@
         1.0,
         1.0,
         1.0
-      ]
+      ],
+      "model": null
     }
   ],
   "ground_stations": [],

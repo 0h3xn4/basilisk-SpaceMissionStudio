@@ -22,6 +22,12 @@ fixes bugs.
   list, each part's settings, and the model in 3D; mass properties
   computed, typed in or imported; the facets it gives; an `.obj` export.
   Guide: `docs/user-manual/3d-model.md`.
+- **Template 28, "Octagonal bus from a 3D model"**: a 300 kg satellite
+  whose mass, center of mass (4.8 cm off its body origin), inertia,
+  facets and Vizard look come from its parts; its wheels show the torque
+  the offset center of mass gives. The other templates gain the new
+  fields' defaults (`center_of_mass_b_m` at the origin, no model) and
+  behave as before.
 - **Center of mass.** A spacecraft's `center_of_mass_b_m` is now Basilisk's
   hub offset: drag, solar pressure and thrust get their torque about the
   center of mass, not about the body origin. Older files load with it at
@@ -31,6 +37,9 @@ fixes bugs.
 - The spacecraft editor kept only the moments of inertia: a spacecraft's
   products of inertia (typed into the file) were set to 0 whenever it was
   opened and OK'd. They are now kept, and shown.
+- The facet table kept only 6 significant digits: a facet with more (a
+  computed one, or one typed into the file) was rounded whenever the
+  spacecraft editor was opened and OK'd. It now keeps every digit.
 - The app's web views (the Results plots, the 3D view) start Chromium with
   `--ignore-gpu-blocklist`, so WebGL works without a usable GPU.
 - `spacemissionstudio --version` (or `-V`) prints the SpaceMissionStudio,

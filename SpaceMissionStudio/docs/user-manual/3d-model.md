@@ -3,7 +3,8 @@
 A spacecraft's 3D model gives it its mass, center of mass and moments of
 inertia, the flat plates (facets) drag and sunlight push on, and its look
 in Vizard. You build it from simple shapes, import it from a CAD or
-modelling tool as an `.obj` file, or mix both.
+modelling tool as an `.obj` file, or mix both. Template 28, "Octagonal
+bus from a 3D model", is a worked example.
 
 ![The 3D model editor: an octagonal bus with two solar panels and a dish](../images/model_editor.png)
 

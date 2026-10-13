@@ -175,6 +175,25 @@ def _set_all_arrays(scenario: Scenario, attribute: str, value: float) -> None:
         setattr(array, attribute, value)
 
 
+def _model_part(scenario: Scenario, name: str):
+    return next(part for part in _sc(scenario).model.parts if part.name == name)
+
+
+def _set_model_part(scenario: Scenario, name: str, change: Callable) -> None:
+    """Change one part of the spacecraft's 3D model, then write what the
+    model derives (mass, center of mass, inertia, facets) back into the
+    spacecraft, as the 3D model editor's OK does."""
+    from ..model3d import model as model3d
+
+    change(_model_part(scenario, name))
+    model3d.apply(_sc(scenario), model3d.derive(_sc(scenario).model),
+                  orbit_only=scenario.simulation_mode == "orbit_only")
+
+
+def _set_part_x(part, value: float) -> None:
+    part.position_b_m = [value, *part.position_b_m[1:]]
+
+
 def _rw_max_momentum(scenario: Scenario) -> float:
     return float(_sc(scenario).actuators[0].params["maxMomentum"])
 
@@ -1668,6 +1687,31 @@ _SPECS: Dict[str, TemplateWizardSpec] = {
                 ],
             ),
             _duration_page("The wings ring out within minutes; longer runs add orbits of power.",
+                           SimSettings._MAX_SINGLE_RUN_DAYS),
+        ],
+    ),
+    "28_octagonal_bus_3d_model.json": TemplateWizardSpec(
+        template_filename="28_octagonal_bus_3d_model.json",
+        pages=[
+            WizardPageSpec(
+                title="3D model",
+                intro="The mass, center of mass and inertia follow from the parts. The editor has the rest.",
+                fields=[
+                    WizardField(
+                        "Battery position x", "Where the battery sits inside the bus, along x from B.",
+                        lambda s: _model_part(s, "battery").position_b_m[0],
+                        lambda s, v: _set_model_part(s, "battery", lambda part: _set_part_x(part, v)),
+                        -0.35, 0.35, decimals=3, step=0.05, suffix=" m", hint="0 m: rw-y stays near 1 RPM",
+                    ),
+                    WizardField(
+                        "Bus mass", "The bus's structure and equipment, without the other parts.",
+                        lambda s: _model_part(s, "bus").mass_kg,
+                        lambda s, v: _set_model_part(s, "bus", lambda part: setattr(part, "mass_kg", v)),
+                        50.0, 2000.0, decimals=1, step=10.0, suffix=" kg", hint="Heavier = smaller offset",
+                    ),
+                ],
+            ),
+            _duration_page("Each orbit adds about 2 RPM to rw-y; longer runs show the drift grow.",
                            SimSettings._MAX_SINGLE_RUN_DAYS),
         ],
     ),

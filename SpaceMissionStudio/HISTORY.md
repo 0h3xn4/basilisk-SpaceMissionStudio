@@ -9112,3 +9112,60 @@ spacecraft editor (`gui/model_editor_dialog.py`).
 
 **Not done:** using the editor by hand on a desktop; the model's look in a
 running Vizard.
+
+## 3D spacecraft models, part 3: template 28 (2026-10-13)
+
+**Template 28, "Octagonal bus from a 3D model"**, built by
+`scripts/_generate_templates.py` from six parts:
+- an octagonal prism bus, 1.2 m across flats and 1.4 m tall, 232 kg;
+- two 1.0 x 2.0 m panels on the +/-y sides, 10 kg each;
+- a cone dish on +x, 6 kg, as a shell;
+- a star tracker on -x, 2 kg, with the face against the bus left out;
+- a 40 kg battery inside the bus at x = 0.3 m, hidden and with no facets.
+
+The model gives 300 kg, a center of mass [4.8, 0, -6.3] cm from B, a
+product of inertia Ixz of 6.3 kg m^2 (two principal axes 19 deg off the
+body axes) and 36 facets. The spacecraft is Sun-safe on three wheels with
+no torque rods, so the wheels keep the momentum the offset puts in. It
+starts 71 deg off the Sun (template 27's attitude) and runs 0.2 days.
+
+**Measured in Basilisk** (`tests/test_template_claims.py`, about 12 s a
+run):
+- the wheels reach 854 RPM in the turn, and the Sun is within 0.1 deg
+  after 7 min;
+- then rw-y drifts -2.14, -4.30, -6.50 RPM after one, two and three
+  orbits. Sunlit stretches drift faster (-5.4 RPM/h) than eclipses
+  (-0.8 RPM/h, drag only);
+- put the center of mass back at B and rw-y ends at +0.35 RPM.
+
+A hand check of the size: sunlight on the panels and the bus top (with
+their reflection coefficients) gives about 2.8e-5 N, and 4.8 cm of lever
+arm about 1.4e-6 N m. In sunlight 63 % of the time, that is about
+0.015 N m s in 0.2 days. The run gives 0.0137 N m s: rw-y's 6.85 RPM
+difference from the centred run, with a spin inertia of 0.019 kg m^2 (a
+12 N m s wheel at 6000 RPM). The sign follows r x F: the center of mass
+is at +x, so the push along -z turns the body about -y.
+
+The description's "Try changing" lines were run too:
+- the battery at x = 0 gives a center of mass 0.8 cm from B, and rw-y
+  ends at +0.91 RPM;
+- at x = -0.3 m it drifts the other way, to +8.33 RPM;
+- a Shell bus raises Ixx from 134 to 172 kg m^2 (computed, no run).
+
+The template's "Customize..." wizard moves the battery and sets the bus
+mass. Each change re-applies the model, as the editor's OK does.
+
+**Found and fixed: the facet table rounded facets.** Opening and OK'ing
+the spacecraft editor on template 28 changed a facet's area from
+1.1929350596345136 to 1.19294 m^2. `tests/gui/test_scenario_templates_gui.py`
+caught it. The table wrote each number with `:g`, which keeps 6
+significant digits, so typed-in facets with more digits were rounded too.
+It now writes the shortest text that reads back exactly, and a test
+checks that.
+
+**The other 27 templates** gain the two new fields' defaults when
+regenerated: `center_of_mass_b_m` at the origin and `"model": null`.
+Nothing else in them changed.
+
+**Not done:** the model's look in a running Vizard; template 28 run from
+the GUI by hand.

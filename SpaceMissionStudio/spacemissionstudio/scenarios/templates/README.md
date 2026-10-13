@@ -1,6 +1,6 @@
 # Template missions
 
-Twenty-seven ready-to-run scenario files, for learning the tool and the
+Twenty-eight ready-to-run scenario files, for learning the tool and the
 orbital mechanics it simulates, and as starting points for your own
 missions (copy one, edit it, save it under a new name):
 
@@ -13,6 +13,8 @@ missions (copy one, edit it, save it under a new name):
   antenna and the passes that empty it.
 * **27** gives a satellite flexible solar-array wings and swings them
   with a turn to the Sun.
+* **28** describes a satellite by a 3D model: its mass, center of mass,
+  inertia, surfaces and Vizard look all come from the parts.
 
 **New here?** Run 01, then 22, then follow the learning path at the end
 of this file. To start your own mission, open 22 or 23 and Save As.
@@ -88,6 +90,7 @@ before it, but none of them depend on running an earlier one first.
 | 25 | `25_monte_carlo_orbit_and_drag_dispersions.json` | Template 09's idea with the newer dispersions: 20 runs of a 150 kg satellite at 400 km for 3 days, each starting on a slightly different orbit (`orbit_elements`, 1-sigma: 1 km in semi-major axis, 0.02 deg in inclination, 0.1 deg in true anomaly) with a drag coefficient drawn between 2.2 and 3.0 (`drag_coeff`). Measured in a real 20-run batch: the runs start ~10 km apart along track (1-sigma) and spread ~150 km per day (448 km after 3 days, 0.8 km radially), almost all from the semi-major-axis spread (a 1 km lower orbit gains ~9 km per orbit); drag alone separates them by only ~10 km in 3 days. The GUI's Monte Carlo tab shows the batch; `examples/monte_carlo_spread.py` reads the same summary. |
 | 26 | `26_earth_observation_data_downlink.json` | An Earth-observation microsatellite pointing at nadir: a camera (80 kbit/s orbit average) and housekeeping fill a 3 Gbit memory (`data_handling`), and an S-band patch antenna on the nadir face (`antenna_pattern: "cosine"`, 6 dBi) sends it to Berlin at 5 Mbit/s whenever the link closes. Measured over its 2 days: 14.5 Gbit generated, 11.5 downlinked, 0.9 lost while the memory was full between Berlin's two daily pass groups (first full 12 h in); the margin is 16 dB at the best pass and 3.7 dB at the 10 deg edge, where Berlin is 65 deg off the patch's boresight. An 8 Gbit memory, or a second station on Svalbard, loses nothing. |
 | 27 | `27_flexible_solar_arrays.json` | The "Small satellite (300 kg)" preset in Sun-safe pointing, its cells on two deployed wings (`solar_arrays`: 2.4 x 1.0 m, 8 kg each, on the +/-y faces, cells on +z). Each wing is a Basilisk `hingedRigidBodyStateEffector`, a panel on a spring-damper hinge, with an assumed first mode of 0.2 Hz (hub held fixed) and 0.5% damping; its own `simpleSolarPanel` follows the wing's deflected attitude. The run starts 71 deg off the Sun. Measured in a real Basilisk run (`tests/test_template_claims.py`): each wing swings 0.07 deg as the wheels start the turn and rings at 0.26 Hz (the coupled mode, above the hub-fixed 0.2 Hz), below 0.001 deg within 4.3 min; the Sun is within 0.1 deg after 7.1 min, as with the wings rigid on the hub; each wing gives up to 980 W in sunlight. With a 0.05 Hz first mode the wings swing 0.94 deg and the pointing settles as before; 5% damping barely shortens the ringing, which the attitude control already damps through the hub. |
+| 28 | `28_octagonal_bus_3d_model.json` | A 300 kg satellite described by a 3D model (`model`, see [Build a 3D model](../../../docs/user-manual/3d-model.md)): an octagonal prism bus 1.2 m across flats and 1.4 m tall, two 1.0 x 2.0 m panels on the +/-y sides, a cone dish on +x, a star tracker on -x and a 40 kg battery inside the bus at x = 0.3 m (hidden, no facets). Mass properties are computed from the parts: 300 kg, center of mass [4.8, 0, -6.3] cm from B, Ixx/Iyy/Izz 134/77/118 kg m^2 with Ixz 6.3 kg m^2; the parts' outer faces give 36 drag/SRP facets (Cd 3.0); Vizard draws the model. Sun-safe pointing on three wheels, no torque rods, starting 71 deg off the Sun; 0.2 days. Measured in a real Basilisk run (`tests/test_template_claims.py`): the wheels reach up to 850 RPM in the turn and the Sun is within 0.1 deg after 7 min; then rw-y drifts -2.1 RPM an orbit, to -6.5 RPM after three orbits, against +0.3 RPM with the center of mass set to B. With the battery at x = 0 (center of mass 0.8 cm from B) rw-y ends at +0.9 RPM; at x = -0.3 m at +8.3 RPM. |
 
 ## A learning path
 
@@ -96,7 +99,7 @@ before it, but none of them depend on running an earlier one first.
 | 1. Orbits | 01, 02, 22 | An ideal orbit; what Earth's shape, the Sun and the Moon do to it; a realistic satellite with drag and a ground station |
 | 2. Keeping an orbit | 18, 03, 17 | Station keeping against drag (LEO) and drift (GEO); how propellant runs down |
 | 3. Pointing | 06, 07, 15, 14, 27 | Attitude control, ideal and with real hardware; pointing at the Moon; finding the Sun with sun sensors; flexible wings swinging in a turn |
-| 4. Disturbances and momentum | 10, 21, 12, 13, 11 | Gravity-gradient and surface torques; unloading wheels with thrusters or torque rods; thrusters for pointing |
+| 4. Disturbances and momentum | 10, 21, 28, 12, 13, 11 | Gravity-gradient and surface torques; a center of mass off the body origin; unloading wheels with thrusters or torque rods; thrusters for pointing |
 | 5. Missions in steps | 08, 16, 23 | Mission Sequences: burns, a Lambert transfer, stopping on a ground pass |
 | 6. Several spacecraft | 04, 05, 24 | A Walker constellation; a formation held by two different control laws |
 | 7. Whole systems | 19, 20, 23, 26 | Power, radio link and thermal working together; data from instrument to ground |

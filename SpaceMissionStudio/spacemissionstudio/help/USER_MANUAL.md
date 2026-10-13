@@ -177,7 +177,7 @@ up using a template as-is or editing it into something new.
 
 ## 4. Your first simulation, in five minutes
 
-1. **Pick a template.** The list on the left shows all twenty-seven
+1. **Pick a template.** The list on the left shows all twenty-eight
    built-in example missions, numbered roughly from simplest to most
    advanced -- "01 - Two-body circular orbit" is the simplest possible
    case (one satellite, one orbit, nothing else going on) and a good
@@ -437,7 +437,8 @@ cones, spheres and panels, or import an `.obj` from a CAD or modelling
 tool, and give each part its mass. The model then sets the spacecraft's
 dry mass, center of mass, inertia and surface facets, and its look in
 Vizard; mass properties can also be typed in or imported from a file.
-Step by step: [Build a 3D model](docs/user-manual/3d-model.md).
+Step by step: [Build a 3D model](docs/user-manual/3d-model.md);
+template 28 is a worked example.
 
 ![The 3D model editor: the parts on the left, the selected part's settings in the middle, the model in 3D on the right and its mass properties below](docs/images/model_editor.png)
 
@@ -1039,7 +1040,7 @@ anyone who hasn't worked with spacecraft before:
 
 * **More templates to learn from:**
   [`spacemissionstudio/scenarios/templates/README.md`](spacemissionstudio/scenarios/templates/README.md)
-  describes what each of the twenty-seven built-in templates teaches, in
+  describes what each of the twenty-eight built-in templates teaches, in
   more depth than the in-app description box.
 * **Scripting it from Python:** [`examples/`](examples/README.md) builds
   a scenario in code, runs templates, writes a Mission Sequence, sweeps a

@@ -464,4 +464,24 @@ Try changing:
 
 Note:
 - Flexible arrays need the rkf45 or rkf78 integrator.""",
+    "28": """\
+A 300 kg satellite built in the 3D model editor: an octagonal bus, two solar panels, a dish, a star \
+tracker and, inside, a battery off to one side. Its mass, center of mass, inertia, drag and sunlight \
+surfaces and Vizard look all come from the model. Sun-safe pointing, wheels only; three orbits.
+
+What to look at:
+- Spacecraft > Edit... > 3D model: the center of mass is 4.8 cm toward +x and 6.3 cm toward -z of B, the \
+bus's centre; a product of inertia (Ixz 6.3 kg m^2) turns two principal axes 19 deg.
+- octa-sat.rw_speeds: up to 850 RPM in the turn to the Sun, then rw-y drifts about -2.1 RPM an orbit: \
+sunlight pushes 4.8 cm off the center of mass, and no torque rods unload the wheels.
+- octa-sat.sun_heading_body: within 0.1 deg of the Sun after 7 min.
+
+Try changing:
+- The battery's position x to 0 (Open 3D model editor...): the center of mass moves to 0.8 cm from B, \
+and rw-y ends near +0.9 RPM instead of -6.5. At x = -0.3 m it drifts the other way, to +8.3 RPM.
+- The bus Shell instead of Solid: Ixx grows from 134 to 172 kg m^2.
+- Import .obj... in the editor, for your own model.
+
+Note:
+- Parts do not shade each other, and the panels are fixed to the body.""",
 }

@@ -31,7 +31,7 @@ checks around it.
 
 ## Do I need to know programming, or spaceflight?
 
-No. Start from one of the 27 templates and change it in forms
+No. Start from one of the 28 templates and change it in forms
 ([Getting started](getting-started.md)). The [glossary](glossary.md)
 explains the terms. Python is optional: for scripting and batch runs.
 
