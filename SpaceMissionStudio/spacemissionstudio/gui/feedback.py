@@ -55,8 +55,8 @@ from __future__ import annotations
 from typing import List
 
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtWidgets import (QBoxLayout, QFormLayout, QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea,
-                               QStackedWidget, QTabWidget, QWidget)
+from PySide6.QtWidgets import (QBoxLayout, QFormLayout, QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton,
+                               QScrollArea, QStackedWidget, QTabWidget, QWidget)
 from shiboken6 import isValid
 
 from .theme import PALETTE
@@ -67,6 +67,7 @@ _TOAST_KIND_COLORS = {
     "success": (PALETTE["success_soft"], PALETTE["success"]),
     "error": (PALETTE["danger_soft"], PALETTE["danger"]),
     "info": (PALETTE["info_soft"], "#0043CE"),  # support-info
+    "warning": (PALETTE["warning_soft"], PALETTE["warning_fill"]),
 }
 _TOAST_MARGIN_PX = 16
 _TOAST_GAP_PX = 8
@@ -91,8 +92,9 @@ class _Toast(QLabel):
 def show_toast(window: QWidget, message: str, kind: str = "success", duration_ms: int = 2600) -> QLabel:
     """Shows ``message`` in a small notification anchored to the
     bottom-right corner of ``window`` (the app's top-level window, or any
-    dialog), auto-dismissing after ``duration_ms``. ``kind`` is
-    ``"success"`` (default), ``"error"``, or ``"info"`` -- picks the
+    dialog), above its status bar, auto-dismissing after ``duration_ms``.
+    ``kind`` is ``"success"`` (default), ``"error"``, ``"warning"`` or
+    ``"info"`` -- picks the
     toast's color from theme.py's own palette so it reads as part of the
     same themed system, not a visually foreign popup.
 
@@ -144,6 +146,9 @@ def show_toast(window: QWidget, message: str, kind: str = "success", duration_ms
 
 def _reposition_toasts(window: QWidget, stack: List[QLabel]) -> None:
     y = window.height() - _TOAST_MARGIN_PX
+    status_bar = window.statusBar() if isinstance(window, QMainWindow) else None
+    if status_bar is not None and status_bar.isVisible():
+        y -= status_bar.height()  # never over the status bar's run state and reference data
     for toast in reversed(stack):
         y -= toast.height()
         toast.move(window.width() - toast.width() - _TOAST_MARGIN_PX, y)

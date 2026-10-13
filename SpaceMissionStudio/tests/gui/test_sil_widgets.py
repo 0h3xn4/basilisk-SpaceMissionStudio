@@ -16,12 +16,11 @@
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-"""Running the flight software in the loop from the Flight Software tab
-(SRS-F-19): the Run SIL dialog's consent (the program's path and SHA-256,
-confirmed again for every new program), the request it hands to the main
-window, and the comparison panel."""
+"""Running the flight software in the loop (SRS-F-19): the Run SIL
+dialog's consent (the program's path and SHA-256, confirmed again for
+every new program), the Flight Software tab during a run, and the
+comparison panel."""
 
-import copy
 import hashlib
 import json
 import struct
@@ -91,37 +90,26 @@ def test_the_dialog_shows_the_programs_hash_and_needs_consent_for_each_program(q
     assert options.timeouts.deadline_s == pytest.approx(2.5e-3) and options.transport == "auto"
 
 
-def test_the_tab_hands_the_confirmed_request_to_the_main_window(qtbot):
-    """Run SIL... asks for the options and emits sil_requested; while the
-    run is in progress no other SIL or export can start; the report comes
-    back into the comparison panel. A spacecraft that cannot be exported
-    cannot be run in the loop either."""
+def test_the_tab_shows_the_run_in_the_loop_and_its_report(qtbot):
+    """The cards have no Run SIL... of their own: SIL starts from Run in SIL
+    mode (docs/ux-audit.md U-18), and the page says so. While a SIL run is
+    in progress its spacecraft's card says so; the report comes back into
+    the comparison panel and the card shows its export status again."""
     from spacemissionstudio.gui.fsw_workbench_widget import FlightSoftwareWidget
     from spacemissionstudio.schema import load_scenario
-    from spacemissionstudio.sil.runner import SilOptions
 
     scenario = load_scenario(next(_TEMPLATES.glob("06_*.json")))
-    probe = copy.deepcopy(scenario.spacecraft[0])
-    probe.name, probe.fsw_mode = "probe", None
-    scenario.spacecraft.append(probe)
     widget = FlightSoftwareWidget()
     qtbot.addWidget(widget)
     widget.set_scenario(scenario)
     widget._refresh()
-    assert widget.card("sat-1").sil_button.isEnabled() and not widget.card("probe").sil_button.isEnabled()
-    options = SilOptions("/opt/fsw/fsw_host")
-    widget.ask_sil_options = lambda name: options
-    with qtbot.waitSignal(widget.sil_requested) as signal:
-        widget.card("sat-1").sil_button.click()
-    assert signal.args == ["sat-1", options]
-    widget.set_sil_running("sat-1")
     card = widget.card("sat-1")
-    assert card.badge.text() == "In the loop..." and not card.sil_button.isEnabled()
+    assert not hasattr(card, "sil_button") and not hasattr(widget, "sil_requested")
+    assert "SIL beside Run" in widget.sil_hint.text()
+    widget.set_sil_running("sat-1")
+    assert card.badge.text() == "In the loop..."
     widget.show_sil_report(_report())
-    assert card.sil_button.isEnabled() and widget.comparison.report is not None
-    widget.ask_sil_options = lambda name: None  # cancelled: nothing is requested
-    with qtbot.assertNotEmitted(widget.sil_requested):
-        card.sil_button.click()
+    assert card.badge.text() != "In the loop..." and widget.comparison.report is not None
 
 
 def test_the_comparison_panel_shows_the_numbers_and_saves_the_report(qtbot, tmp_path):

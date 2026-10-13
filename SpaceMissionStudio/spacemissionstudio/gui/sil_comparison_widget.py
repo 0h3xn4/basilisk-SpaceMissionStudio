@@ -75,7 +75,7 @@ class SilComparisonWidget(QWidget):
         self.save_button.clicked.connect(self._on_save)
         header.addWidget(self.save_button)
         layout.addLayout(header)
-        self.status_label = QLabel("Run SIL... on a spacecraft shows its comparison here.")
+        self.status_label = QLabel("A run in SIL mode shows its comparison here.")
         self.status_label.setWordWrap(True)
         self.status_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
         layout.addWidget(self.status_label)
@@ -116,7 +116,7 @@ class SilComparisonWidget(QWidget):
         self._set_tiles([])
         if not has:
             self.title_label.setText("No SIL run yet")
-            self.status_label.setText("Run SIL... on a spacecraft shows its comparison here.")
+            self.status_label.setText("A run in SIL mode shows its comparison here.")
             self.table.setRowCount(0)
             if self.plots is not None:
                 self.plots.set_result(None)

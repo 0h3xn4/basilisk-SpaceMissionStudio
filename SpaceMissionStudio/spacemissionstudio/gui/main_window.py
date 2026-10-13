@@ -142,6 +142,27 @@ def _with_log_file_hint(message: str) -> str:
     return f"{message}\n\nFull details logged to:\n{log_file}"
 
 
+_EVENT_WORDS = {"pass": ("pass", "passes"), "eclipse": ("eclipse", "eclipses"), "burn": ("burn", "burns"),
+                "thruster firing": ("thruster firing", "thruster firings"), "mode": ("mode change", "mode changes"),
+                "downlink": ("downlink", "downlinks")}
+
+
+def events_summary(result) -> str:
+    """ "4 passes, 15 eclipses" for a run's events, "no events" when it had
+    none (the post-run toast, docs/ux-audit.md U-21)."""
+    from ..engine.events import KINDS, extract_events
+
+    try:
+        events = extract_events(result)
+    except Exception:  # noqa: BLE001 -- a summary must never turn a finished run into a failure
+        _logger.exception("Counting the run's events failed")
+        return ""
+    counts = {kind: sum(1 for event in events if event.kind == kind) for kind in KINDS}
+    parts = [f"{count} {_EVENT_WORDS.get(kind, (kind, kind + 's'))[count != 1]}"
+             for kind, count in counts.items() if count]
+    return ", ".join(parts) if parts else "no events"
+
+
 def _join_finished_worker(worker) -> None:
     """Waits out a previous run's QThread before its last reference is replaced.
 
@@ -243,7 +264,6 @@ class MainWindow(QMainWindow):
         self.budget_widget = BudgetWidget()
         self.flight_software_widget = FlightSoftwareWidget()
         self.flight_software_widget.exports_changed.connect(self.scenario_editor.set_fsw_exports)
-        self.flight_software_widget.sil_requested.connect(self.on_run_sil)
 
         # Above every run view: says when the results shown are from an
         # earlier version of the scenario (docs/ux-audit.md U-20).
@@ -373,6 +393,8 @@ class MainWindow(QMainWindow):
         self._busy_timer = QTimer(self)
         self._busy_timer.setInterval(200)
         self._busy_timer.timeout.connect(self._update_busy_elapsed)
+        self.run_problems: list[str] = []  # what _report_run_problem said, newest last
+        self.last_run_seconds = None  # the last run's length [s]
         self._mc_poll = QTimer(self)
         self._mc_poll.setInterval(1000)  # [ms] a Monte Carlo case takes seconds at least
         self._mc_poll.timeout.connect(self._poll_monte_carlo)
@@ -1427,15 +1449,21 @@ class MainWindow(QMainWindow):
         self.top_bar.chip.set_state("running", "Running")
         self.statusBar().showMessage(message)
 
-    def _stop_busy(self, message: str, chip_state: str = "idle", chip_text: str = "Ready") -> None:
+    def _stop_busy(self, message: str, chip_state: str = "idle", chip_text: str = "Ready",
+                   run_name: str = "") -> None:
         """End the busy state; the chip shows ``chip_state``, the top bar the
-        run's start time and length when it ran."""
+        run's start time and length when it ran. ``run_name`` ("Run 2")
+        names a run that is kept (U-22)."""
+        self.last_run_seconds = None
         if self._run_started_s is not None:
             seconds = time.monotonic() - self._run_started_s
+            self.last_run_seconds = seconds
             if chip_state in ("done", "failed", "cancelled"):
                 chip_text = f"{chip_text} in {_duration_text(seconds)}" if chip_state == "done" else chip_text
-                self.top_bar.set_last_run(f"last run {time.strftime('%H:%M')}, {chip_state}, "
-                                          f"{_duration_text(seconds)}")
+                if run_name:
+                    chip_text = f"{run_name}: {chip_text[0].lower()}{chip_text[1:]}"
+                self.top_bar.set_last_run(f"{run_name + ' at ' if run_name else 'last run '}"
+                                          f"{time.strftime('%H:%M')}, {chip_state}, {_duration_text(seconds)}")
             self._run_started_s = None
         self.top_bar.chip.set_state(chip_state, chip_text)
         self._set_running(False)
@@ -1444,6 +1472,29 @@ class MainWindow(QMainWindow):
         self._mc_poll.stop()
         self.run_progress.finish()
         self.statusBar().showMessage(message)
+
+    def _report_run_problem(self, text: str, view=None, level: int = logging.ERROR) -> None:
+        """A run could not start, or went wrong (U-23, U-39): written to the
+        Log (where it stays), said in a toast and the status bar, and the view
+        where it is dealt with opened. No message box: those are kept for
+        confirming what cannot be undone. ``run_problems`` keeps the texts."""
+        self.run_problems.append(text)
+        _logger.log(level, "%s", text)
+        first = text.strip().splitlines()[0] if text.strip() else text
+        short = first if len(first) <= 160 else first[:157] + "..."
+        kind = "error" if level >= logging.ERROR else "warning" if level >= logging.WARNING else "info"
+        show_toast(self, short, kind=kind, duration_ms=6000)
+        self.statusBar().showMessage(first)
+        if view is not None:
+            self.show_view(view)
+
+    def _cannot_run(self, exc: Exception) -> None:
+        """The scenario is not valid: say so, and open the problem at its field."""
+        text = self.scenario_editor.problem_display(str(exc))
+        self._report_run_problem(f"Cannot run: {text}", level=logging.WARNING)
+        self.side_dock.show()
+        self.side_tabs.setCurrentWidget(self.problems_widget)
+        self._on_problem_activated(str(exc))
 
     def _update_busy_elapsed(self) -> None:
         """The status chip mirrors the strip: the percentage when the run
@@ -1774,13 +1825,13 @@ class MainWindow(QMainWindow):
     def _run_sil_mode(self) -> None:
         """Run in SIL mode: the spacecraft whose flight software runs in the
         loop (asked when there is more than one that can), then the program
-        to run, as the Flight Software page's Run SIL... asks."""
+        to run (SilRunDialog)."""
         from .fsw_workbench_widget import exportable_reason
 
         try:
             scenario = self.scenario_editor.to_scenario()
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Cannot run invalid scenario", str(exc))
+            self._cannot_run(exc)
             return
         names = [sc.name for sc in scenario.spacecraft if exportable_reason(scenario, sc) is None]
         if not names:
@@ -1799,20 +1850,21 @@ class MainWindow(QMainWindow):
             self.on_run_sil(name, options)
 
     def on_run_sil(self, spacecraft_name: str, options) -> None:
-        """Flight Software tab, Run SIL...: the scenario with that
-        spacecraft's flight software in the program ``options.binary``
-        (sil.runner); the user confirmed the program in SilRunDialog."""
+        """Run in SIL mode: the scenario with that spacecraft's flight
+        software in the program ``options.binary`` (sil.runner); the user
+        confirmed the program in SilRunDialog."""
         if self._run_worker is not None and self._run_worker.isRunning():
-            QMessageBox.information(self, "A run is in progress", "Wait for the current run to finish.")
+            self._report_run_problem("A run is in progress: wait for it to finish, or cancel it (Esc).",
+                                     level=logging.INFO)
             return
-        self.set_run_mode("sil")  # the page's Run SIL... is Run in SIL mode, for that spacecraft
+        self.set_run_mode("sil")
         self._launch_run(sil=(spacecraft_name, options))
 
     def _launch_run(self, sil=None) -> None:
         try:
             scenario = self.scenario_editor.to_scenario()
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Cannot run invalid scenario", str(exc))
+            self._cannot_run(exc)
             return
         blocks = [] if sil is not None else script_blocks(scenario.mission_sequence)  # SIL leaves the sequence out
         if blocks and not self._confirm_script_blocks(blocks):
@@ -1858,12 +1910,10 @@ class MainWindow(QMainWindow):
             # instead, with a clear reason, rather than silently risking
             # it.
             if not self.on_launch_vizard():
-                QMessageBox.critical(
-                    self, "Vizard not connected",
-                    "Vizard Configuration is set to live-stream, but Vizard could not be confirmed running. "
-                    "Starting the run now would hang waiting for a Vizard connection that never arrives, "
-                    "with no way to abort it -- use \"Launch Vizard\" (or fix the live-stream setup) first."
-                )
+                self._report_run_problem(
+                    "Vizard is not connected: Vizard Configuration streams live, but Vizard could not be confirmed "
+                    "running, and the run would wait for it with no way to cancel. Use Launch Vizard (or turn the "
+                    "live stream off) first.")
                 return
 
         # engine.mission_engine.MissionEngine (used when scenario.
@@ -1961,18 +2011,19 @@ class MainWindow(QMainWindow):
             _logger.exception("Failed to apply a live progress update")
             if not self._progress_error_shown:
                 self._progress_error_shown = True
-                QMessageBox.warning(
-                    self, "Live update failed",
+                self._report_run_problem(
                     _with_log_file_hint(
-                        f"Updating the live display failed ({exc}) -- the simulation itself is still running "
-                        "normally in the background and this won't be shown again for this run, but the "
-                        "Results/Mission Dashboard tabs may lag until it finishes."
-                    ),
-                )
+                        f"Updating the live display failed ({exc}): the run goes on, and the plots and dashboard "
+                        "catch up when it ends. (Said once per run.)"),
+                    level=logging.WARNING)
 
     def _on_run_finished(self, result, command_summary=None) -> None:
-        self._stop_busy(f"Run complete: {len(result.series)} result series.", "done", "Done")
-        show_toast(self, f"Run complete -- {len(result.series)} result series")
+        number = self.run_history.next_number
+        self._stop_busy(f"Run {number} complete: {len(result.series)} result series.", "done", "Done",
+                        run_name=f"Run {number}")
+        took = f" in {_duration_text(self.last_run_seconds)}" if self.last_run_seconds is not None else ""
+        summary = events_summary(result)
+        show_toast(self, f"Run {number} complete{took}" + (f": {summary}" if summary else ""))
         try:
             # set_live_result(), not set_result(): a live run's final chunk
             # and its "finished" result always share the same series names,
@@ -2001,23 +2052,22 @@ class MainWindow(QMainWindow):
                 self.show_view(self.results_widget)
         except Exception as exc:  # noqa: BLE001 -- the run itself DID succeed; never hide that behind a GUI bug
             _logger.exception("Run completed, but displaying its results failed")
-            QMessageBox.warning(
-                self, "Run complete, but the display failed",
+            self._report_run_problem(
                 _with_log_file_hint(
-                    f"The simulation finished successfully with {len(result.series)} result series, but "
-                    f"showing them failed ({exc}). The run itself is not affected; try File > Save to keep "
-                    "the scenario, or re-run to try displaying the results again."
-                ),
-            )
+                    f"The run finished with {len(result.series)} result series, but showing them failed ({exc}). "
+                    "The run itself is not affected: run again to show its results."),
+                view=self.log_widget)
 
     def _on_run_failed(self, message: str) -> None:
+        """A failed run: the Log opens at its error (SIL: the Flight Software
+        page, with its report), and a toast says what failed (U-23)."""
         self._stop_busy("Run failed.", "failed", "Failed")
+        self._report_run_problem(_with_log_file_hint(f"Run failed: {message}"))
         if getattr(self, "_last_run_sil", False):
             self.flight_software_widget.set_sil_running(None)
             self.show_view(self.flight_software_widget)
         else:
             self._show_log_errors()
-        QMessageBox.critical(self, "Simulation failed", _with_log_file_hint(message))
 
     def _show_log_errors(self) -> None:
         """A failure opens the Log tab at its warnings and errors (U-23)."""
@@ -2031,8 +2081,9 @@ class MainWindow(QMainWindow):
         normal finish would show it, just with "cancelled" messaging
         instead of "complete".
         """
-        self._stop_busy("Run cancelled by user.", "cancelled", "Cancelled")
-        show_toast(self, "Run cancelled", kind="info")
+        number = self.run_history.next_number
+        self._stop_busy(f"Run {number} cancelled.", "cancelled", "Cancelled", run_name=f"Run {number}")
+        show_toast(self, f"Run {number} cancelled: what was computed is shown", kind="info")
         try:
             self.results_widget.set_live_result(partial_result, self._last_run_epoch_utc)
             self.mission_dashboard_widget.set_live_result(partial_result, self._last_run_scenario)
@@ -2047,21 +2098,20 @@ class MainWindow(QMainWindow):
                 self.show_view(self.results_widget)
         except Exception:  # noqa: BLE001 -- same reasoning as _on_run_finished's own try/except
             _logger.exception("Run was cancelled, but displaying its partial results failed")
-            QMessageBox.warning(
-                self, "Run cancelled, but the display failed",
-                _with_log_file_hint("The run was cancelled, but showing its partial results failed."),
-            )
+            self._report_run_problem(
+                _with_log_file_hint("The run was cancelled, but showing what it computed failed."),
+                view=self.log_widget)
 
     def on_run_monte_carlo(self) -> None:
         try:
             scenario = self.scenario_editor.to_scenario()
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Cannot run invalid scenario", str(exc))
+            self._cannot_run(exc)
             return
         if not scenario.monte_carlo.enabled:
-            QMessageBox.critical(self, "Monte Carlo is disabled",
-                                  "Enable Monte Carlo (and add at least one dispersion) in the scenario form "
-                                  "before running it.")
+            self._report_run_problem("Monte Carlo is off for this scenario: enable Monte Carlo and add at least one "
+                                     "dispersion on the Monte Carlo page, then Run.", level=logging.WARNING)
+            self.show_view(self.scenario_editor.monte_carlo_page)
             return
 
         # Every run flies the Mission Sequence (as Run Simulation does), so
@@ -2075,8 +2125,8 @@ class MainWindow(QMainWindow):
         archive_dir = Path(archive_dir_str)
         state = monte_carlo_results.folder_state(archive_dir)
         if state == "other":
-            QMessageBox.critical(self, "Choose an empty folder",
-                                 f"{archive_dir} holds other files. Choose an empty folder for the Monte Carlo batch.")
+            self._report_run_problem(f"{archive_dir} holds other files: choose an empty folder for the Monte Carlo "
+                                     "batch.", level=logging.WARNING)
             return
         overwrite = state == "batch"
         if overwrite and QMessageBox.question(
@@ -2110,23 +2160,23 @@ class MainWindow(QMainWindow):
         self.run_progress.set_fraction(done / total)
 
     def _on_monte_carlo_finished(self, failures: list) -> None:
+        total = getattr(self, "_mc_total", 0)
         self._stop_busy(
             f"Monte Carlo complete with {len(failures)} failed run(s)." if failures
             else "Monte Carlo complete -- all runs succeeded.",
             "failed" if failures else "done", f"{len(failures)} runs failed" if failures else "Done",
         )
+        took = f" in {_duration_text(self.last_run_seconds)}" if self.last_run_seconds is not None else ""
         try:
             if failures:
-                QMessageBox.warning(self, "Monte Carlo finished with failures",
-                                     f"Run indices that failed: {failures}")
+                # In the Log, where the failed runs' own errors are (U-23).
+                self._report_run_problem(
+                    f"Monte Carlo finished{took}: {len(failures)} of {total or '?'} runs failed "
+                    f"(runs {', '.join(str(f) for f in failures)}). The Log has their errors.",
+                    level=logging.WARNING)
             else:
-                # A QMessageBox.warning already covers the failures>0 branch
-                # above (strong enough feedback on its own, matching
-                # _on_run_failed's reasoning for why IT has no toast either)
-                # -- this all-succeeded branch had none at all, unlike its
-                # single-run sibling _on_run_finished's own toast, found
-                # while checking this tab's feedback for consistency.
-                show_toast(self, "Monte Carlo complete -- all runs succeeded")
+                show_toast(self, f"Monte Carlo complete{took}: all {total} runs succeeded" if total
+                           else f"Monte Carlo complete{took}: all runs succeeded")
             if self.monte_carlo_results_widget.load_folder(self._mc_archive_dir):
                 self._show_monte_carlo_tab()
         except Exception:  # noqa: BLE001 -- the batch itself DID finish; never hide that behind a GUI bug
@@ -2134,8 +2184,8 @@ class MainWindow(QMainWindow):
 
     def _on_monte_carlo_failed(self, message: str) -> None:
         self._stop_busy("Monte Carlo run failed.", "failed", "Failed")
+        self._report_run_problem(_with_log_file_hint(f"Monte Carlo failed: {message}"))
         self._show_log_errors()
-        QMessageBox.critical(self, "Monte Carlo failed", _with_log_file_hint(message))
 
     # -- window lifecycle ---------------------------------------------------
     def closeEvent(self, event: QCloseEvent) -> None:
@@ -2154,10 +2204,8 @@ class MainWindow(QMainWindow):
         # an implicit abort the user never asked for.
         for worker, label in ((self._run_worker, "A simulation"), (self._mc_worker, "A Monte Carlo run")):
             if worker is not None and worker.isRunning():
-                QMessageBox.information(
-                    self, "Run in progress",
-                    f"{label} is still running. Please wait for it to finish (or fail) before closing SpaceMissionStudio.",
-                )
+                self._report_run_problem(f"{label} is still running: wait for it to finish, or cancel it (Esc), "
+                                         "before closing SpaceMissionStudio.", level=logging.INFO)
                 event.ignore()
                 return
         if self._confirm_discard_unsaved():

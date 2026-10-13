@@ -115,7 +115,7 @@ change. User Manual section 6, "Exporting the flight software".
 
 ### Software in the loop
 
-Run in SIL mode, or Run SIL... on the Flight Software page (or `spacemissionstudio sil`)
+Run in SIL mode (or `spacemissionstudio sil`)
 flies a spacecraft with an external flight-software program in
 lock-step, over a versioned transport contract (`SIL_CONTRACT.md` in each export, a
 local socket), and compares every command with the simulation's own
