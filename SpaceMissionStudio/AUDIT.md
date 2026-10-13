@@ -566,7 +566,7 @@ section 6.
 | Pinned dependencies | **Done:** `packaging/constraints.txt` used by `install.sh`, `install.ps1`, the `.deb`, the `.iss` and CI. Found in the clean install: a Basilisk wheel given to the install scripts pulled newer MarkupSafe (3.0.4) and platformdirs (4.13.0); its dependencies are now constrained too (all pins except `bsk`). Re-run: every pin installed exactly | clean install below |
 | Debug output, TODO hacks | **None:** no `breakpoint`/`pdb`/stray `print` outside the CLI; no TODO/FIXME/XXX/HACK in the package, scripts, examples or C templates | grep |
 | Clean install from scratch | **Pass (Linux):** `install.sh` with the PyPI `bsk` 2.12.0 wheel, a fresh HOME, Python 3.11. Support data and Earth orientation pre-fetched; `kernels-status` all OK; all 27 templates validate; templates 01, 08, 16, 19, 26 run; Monte Carlo template 09 runs 20 cases; the GUI starts | logs kept in the session scratch folder |
-| Debian package | **Built**, checksum verified, maintainer scripts parse. **Installing it with `dpkg` was not run** (not permitted in this environment) | `build_deb.sh` |
+| Debian package | **Built**, checksum verified, maintainer scripts parse. **Installing it with `dpkg` was not run** (not permitted in this environment). *Update 2026-10-13:* a user installed the released `.deb` with `apt` on Ubuntu 24.04; the GUI started and template 22 ran | `build_deb.sh`; user report |
 
 **What remains uncertain:**
 - **Windows:** the installer (`.iss`, with its new Python 3.11 check and
@@ -576,6 +576,8 @@ section 6.
 - **macOS:** only the CI test job.
 - **The `.deb` install** on a real system, this release (last run at
   1.0.0; the install logic changed since, by the constraints).
+  *Update 2026-10-13:* done by a user on Ubuntu 24.04: installed with
+  `apt`, the GUI started, template 22 ran.
 - **Bundled space weather: refreshed.** CelesTrak's `SW-All.txt`,
   downloaded 2026-10-12 (observations to 2026-10-11). The full suite
   passes with it (2865 passed, 10 skipped); two tests that relied on
@@ -591,6 +593,7 @@ section 6.
   display).
 - **Small gap noticed:** the CLI has no `--version` flag (the version is
   in `provenance.json`, the GUI and `pip show`). Not fixed.
+  *Update 2026-10-13:* added: `spacemissionstudio --version` (`-V`).
 
 **Releasable?** Yes for Linux, in my judgement: every audit finding is
 fixed and tested, the suite is green with and without Basilisk, and a
@@ -604,7 +607,7 @@ Until the Windows installer has run once, the Windows build should be
 called untested in the release notes. The tag itself (H05) is yours to
 make.
 
-**Released 2026-10-12** by the user: [`v3.0.0`](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) on `a84ae3784`
+**Released 2026-10-12** by the user: [`v3.0.0`](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0) on `a84ae3784`
 (the merge of pull request #43), with the wheel, sdist, `.deb` and
 `SHA256SUMS`. The assets were downloaded from the release and checked
 against `SHA256SUMS`. The `v*` tag also started Basilisk's own publish

@@ -8953,7 +8953,7 @@ is refused; the installer pin check allows `-c constraints.txt`; two
 thermal-sensor fixtures add the Sun. The full suite, ruff and the
 compliance generators ran clean before the commit.
 
-**Released.** The user published [`v3.0.0`](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) on 2026-10-12 on
+**Released.** The user published [`v3.0.0`](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0) on 2026-10-12 on
 the merge commit `a84ae3784`, with the wheel, sdist, `.deb` and
 `SHA256SUMS`; the downloaded assets match the checksums. The tag also
 started two workflows this fork inherits from Basilisk. One was a wheel
@@ -8975,3 +8975,35 @@ the release's `SHA256SUMS` was renamed `SHA256SUMS-linux`. The workflow
 accepts either name, and the docs say how to check each download.
 Still not done: clicking through the wizard by hand on a real Windows
 machine.
+
+**The repository renamed, 2026-10-13.** The user renamed the repository
+to `0h3xn4/basilisk-SpaceMissionStudio`. Links and the clone steps now
+use that name. GitHub ignores case in names, so the old links still
+worked, but `git clone` names the folder after the URL, and on Linux and
+macOS the old `cd basilisk-spacemissionstudio` would no longer find it.
+A real clone of the new URL creates `basilisk-SpaceMissionStudio`. The
+SMP and SRelD name the new repository; the dated compliance summary
+keeps the name it had then.
+
+**The `.deb` tried by hand, 2026-10-13.** A user installed the released
+`spacemissionstudio_3.0.0_all.deb` with `apt` on Ubuntu 24.04, started
+the GUI and ran template 22; both worked. The install ended with apt's
+`N: Download is performed unsandboxed as root ... couldn't be accessed by
+user '_apt'` notice, which comes from installing out of a home folder
+and does not affect the install; Troubleshooting now lists it as a
+normal message. The README, Getting started, capabilities, packaging
+README and AUDIT.md now say the `.deb` was installed by hand, and where.
+
+## A `--version` flag (2026-10-13)
+
+The pre-release audit noted that the CLI had no `--version` (AUDIT.md
+section 6); a version was only in `provenance.json`, **Help > About** and
+`pip show`. `spacemissionstudio --version` (or `-V`) now prints three
+lines: the SpaceMissionStudio version, the installed Basilisk version
+(with the qualified one beside it when they differ, or "not installed"),
+and Python with the platform. It reads package metadata, so it does not
+import Basilisk and takes about 0.1 s. Given alone it writes no log file
+and no `Logging to` line; given before a command it still prints the
+versions and exits 0. The generated CLI interface document now has a
+section for options before the command. Tested with and without
+Basilisk installed; three new tests in `tests/test_cli.py`.

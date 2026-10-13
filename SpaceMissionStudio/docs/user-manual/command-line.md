@@ -4,7 +4,8 @@ How to check, run and analyse scenarios without the GUI, for scripts,
 batch jobs and CI. Every command uses the same engine as the app.
 
 `spacemissionstudio --help` lists the commands; `spacemissionstudio
-<command> --help` shows one command's options. A command that fails exits
+<command> --help` shows one command's options; `spacemissionstudio
+--version` shows the SpaceMissionStudio, Basilisk and Python versions. A command that fails exits
 with a non-zero status and prints `ERROR:` or `INVALID:` with the reason.
 
 ## Contents

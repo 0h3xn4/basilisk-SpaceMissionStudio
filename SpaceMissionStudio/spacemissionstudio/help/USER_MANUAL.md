@@ -113,14 +113,14 @@ If someone already installed SpaceMissionStudio for you, skip to
 [Section 3](#3-starting-the-app).
 
 **Linux:** double-click the `.deb` file you were given, or the one
-from the [3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) (or run
+from the [3.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0) (or run
 `sudo apt install ./spacemissionstudio_3.0.0_all.deb` in a terminal), then
 find **SpaceMissionStudio** in your application menu like any other program.
 
 **Windows 10/11:** install Python 3.11 or newer first
 ([python.org](https://www.python.org/downloads/), with "Add python.exe to
 PATH" ticked). Then double-click the `.exe` installer you were given, or
-`spacemissionstudio-3.0.0-setup.exe` from the [3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0),
+`spacemissionstudio-3.0.0-setup.exe` from the [3.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0),
 follow the setup wizard, and find **SpaceMissionStudio** in your Start
 Menu.
 
@@ -921,7 +921,8 @@ also explains, in plain language, exactly what's wrong if something
 doesn't validate.
 
 **You want to know SpaceMissionStudio's version** (e.g. to report a problem).
-**Help > About SpaceMissionStudio** shows it.
+**Help > About SpaceMissionStudio** shows it; in a terminal,
+`spacemissionstudio --version` prints it with the Basilisk and Python versions.
 
 ## 12. A short glossary
 

@@ -161,7 +161,7 @@ As in development:
 ### 10.1 Problem and modification analysis (T.2.1<10.1>)
 
 **Decided (decision 11):**
-- SPRs and SMRs as GitHub issues on `0h3xn4/basilisk`, labelled `bug`,
+- SPRs and SMRs as GitHub issues on `0h3xn4/basilisk-SpaceMissionStudio`, labelled `bug`,
   `accuracy`, `security` or `feature`. The labels are created when the user
   agrees.
 - **Priority:**

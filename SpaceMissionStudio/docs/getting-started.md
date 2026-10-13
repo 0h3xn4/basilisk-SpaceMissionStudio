@@ -47,7 +47,7 @@ against.
 ## 3. Path A: the installer
 
 Both installers are published with each release. From the
-[3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0), download:
+[3.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0), download:
 
 - **Linux:** `spacemissionstudio_3.0.0_all.deb` and `SHA256SUMS-linux`;
   check with `sha256sum -c SHA256SUMS-linux --ignore-missing`.
@@ -68,6 +68,9 @@ You can also build them yourself: the `.deb` with
 sudo apt install ./spacemissionstudio_3.0.0_all.deb
 ```
 
+A closing `N: Download is performed unsandboxed as root ...` line is a
+harmless apt notice ([Troubleshooting](troubleshooting.md#messages-that-are-normal)).
+
 **Windows:** double-click `spacemissionstudio-3.0.0-setup.exe` and follow
 the wizard.
 
@@ -75,7 +78,8 @@ The installer downloads Basilisk and the reference data once. Then open
 **SpaceMissionStudio** from your application menu or Start Menu and go to
 [section 6](#6-check-that-it-works).
 
-The `.deb` was built and installed on Linux. The Windows setup program is
+The 3.0.0 `.deb` was installed by hand on Ubuntu 24.04, where the app
+started and template 22 ran. The Windows setup program is
 built, installed and run in CI on a Windows runner; it has not yet been tried by hand on a real Windows machine; please report anything that goes wrong. Details: [`packaging/README.md`](../packaging/README.md).
 
 ## 4. Path B: the install script
@@ -101,8 +105,8 @@ end; the Windows script has not yet been run on a real Windows machine.
 folder:
 
 ```bash
-git clone https://github.com/0h3xn4/basilisk-spacemissionstudio.git
-cd basilisk-spacemissionstudio/SpaceMissionStudio
+git clone https://github.com/0h3xn4/basilisk-SpaceMissionStudio.git
+cd basilisk-SpaceMissionStudio/SpaceMissionStudio
 ```
 
 **2. Make a private Python environment**, so nothing touches your system
@@ -168,7 +172,8 @@ Then start the GUI (installed apps: from the menu; from source:
   runs still work, but outside what the app was verified against.
 - **Run > Check Reference Data** opens the **Data** tab: every file
   should be `ok`.
-- **Help > About SpaceMissionStudio** shows the app's version.
+- **Help > About SpaceMissionStudio** shows the app's version
+  (`spacemissionstudio --version` in a terminal).
 
 ## 7. Your first run
 

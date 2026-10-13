@@ -9,12 +9,12 @@ Document: SMS-SRelD, issue 3, 2026-10-12. Remediation R14.
   behaviour users rely on (5.1).
 - Tag `v3.0.0` (not signed, D-13) on commit `a84ae3784`, the merge of
   the release pull request into `develop`; GitHub release
-  <https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0>.
+  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0>.
 
 ## 1 Introduction (G.2.1<1>)
 
 This SRelD describes release 3.0.0 of SpaceMissionStudio in
-`0h3xn4/basilisk`: what it contains, what changed since 2.0.0, what is
+`0h3xn4/basilisk-SpaceMissionStudio`: what it contains, what changed since 2.0.0, what is
 known to be wrong, and how to use it.
 
 ## 2 Applicable and reference documents (G.2.1<2>)

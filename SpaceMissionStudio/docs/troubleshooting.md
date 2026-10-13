@@ -159,13 +159,15 @@ ERROR: the OPM state is at 2030-01-01T08:30:00 UTC, the scenario epoch is 2030-0
 | `INFO matplotlib.font_manager: ... generated new fontManager` | The first run builds a font cache, once |
 | `WARNING: space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap` | The run is past the end of the observed space-weather record, so drag uses NASA MSFC's prediction |
 | `WARNING: past 2041-10 MSFC's last 132 months repeat (ESA AD10 Sec. 5.9)` | A long lifetime estimate runs past MSFC's prediction; its last solar cycle is repeated |
+| `N: Download is performed unsandboxed as root, as file '.../spacemissionstudio_3.0.0_all.deb' couldn't be accessed by user '_apt'` | apt's notice when the `.deb` is in a folder its `_apt` user cannot read, such as your home folder. The install still succeeds. To avoid the notice, copy the `.deb` to `/tmp` and install it from there |
 
 ## Reporting a problem
 
 Include:
 
 - the log file named in the error dialog (in `~/.spacemissionstudio/logs/`);
-- the version from **Help > About SpaceMissionStudio**;
+- the versions, from **Help > About SpaceMissionStudio** or
+  `spacemissionstudio --version`;
 - the scenario file, if you can share it.
 
 The [FAQ](faq.md) answers questions that are not errors.

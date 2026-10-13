@@ -281,6 +281,51 @@ def test_help_opens_with_a_one_line_purpose_for_users():
     assert "SimulationService" not in help_text  # internal names stay in the docstring
 
 
+def test_version_prints_tool_basilisk_and_python_versions(capsys):
+    """``spacemissionstudio --version`` (and ``-V``) prints three lines:
+    the tool's version, the Basilisk line and Python, exits 0, and logs
+    nothing (no "Logging to" line on stderr)."""
+    from spacemissionstudio import __version__
+
+    for flag in ("--version", "-V"):
+        assert cli.main([flag]) == 0
+        captured = capsys.readouterr()
+        lines = captured.out.splitlines()
+        assert len(lines) == 3
+        assert lines[0] == f"SpaceMissionStudio {__version__}"
+        assert lines[1].startswith("Basilisk ")
+        assert lines[2].startswith("Python ")
+        assert captured.err == ""
+
+
+def test_version_says_when_basilisk_is_missing_or_not_qualified(monkeypatch):
+    """The Basilisk line names the qualified version when another one is
+    installed, and says simulations cannot run when none is."""
+    from spacemissionstudio import dependencies
+
+    base = {"python": "3.11.0", "platform": "linux x86_64"}
+    qualified = dependencies.QUALIFIED_BASILISK_VERSION
+    monkeypatch.setattr(dependencies, "dependency_versions", lambda: {**base, "bsk": qualified})
+    assert cli.version_text().splitlines()[1] == f"Basilisk {qualified}"
+
+    monkeypatch.setattr(dependencies, "dependency_versions", lambda: {**base, "bsk": "9.9.9"})
+    assert cli.version_text().splitlines()[1] == (
+        f"Basilisk 9.9.9 (not qualified; SpaceMissionStudio is qualified with {qualified})")
+
+    monkeypatch.setattr(dependencies, "dependency_versions", lambda: dict(base))
+    monkeypatch.setattr(dependencies, "basilisk_version", lambda: None)
+    assert cli.version_text().splitlines()[1] == "Basilisk not installed (simulations cannot run)"
+
+
+def test_version_before_a_command_prints_the_versions_and_exits(capsys):
+    """``--version`` given with other arguments goes through the parser:
+    it still prints the versions to stdout and exits with status 0."""
+    with pytest.raises(SystemExit) as exit_info:
+        cli.build_parser().parse_args(["--version", "validate", "scenario.json"])
+    assert exit_info.value.code == 0
+    assert capsys.readouterr().out.startswith("SpaceMissionStudio ")
+
+
 def test_run_parses_vizard_camera_and_orbit_line_flags():
     parser = cli.build_parser()
     args = parser.parse_args([

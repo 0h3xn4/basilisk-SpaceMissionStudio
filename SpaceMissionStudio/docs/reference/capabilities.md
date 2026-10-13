@@ -297,7 +297,9 @@ compliance matrix.
 - **Long runs**: a real 5-year LEO station-keeping run and a 7-day run of
   template 05 with live Vizard were run to completion.
 - **Packaging**: the Linux `.deb` and `install.sh` were built and
-  installed end to end with Basilisk on Linux. The Windows setup program
+  installed end to end with Basilisk on Linux; the released 3.0.0 `.deb`
+  was installed by hand on Ubuntu 24.04, where the GUI started and
+  template 22 ran. The Windows setup program
   is built, installed and run in CI on a Windows runner, but not yet
   tried by hand; `install.ps1` has not been run;
   [`packaging/README.md`](../../packaging/README.md) says exactly what was

@@ -1,6 +1,6 @@
 # SpaceMissionStudio
 
-[![CI](https://github.com/0h3xn4/basilisk-spacemissionstudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-spacemissionstudio/actions/workflows/spacemissionstudio.yml)
+[![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
 ![Version 3.0.0](https://img.shields.io/badge/version-3.0.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
@@ -36,8 +36,8 @@ battery, link margin, lifetime and propellant.
 On Linux or macOS (Windows: see [Getting started](docs/getting-started.md)):
 
 ```bash
-git clone https://github.com/0h3xn4/basilisk-spacemissionstudio.git
-cd basilisk-spacemissionstudio/SpaceMissionStudio
+git clone https://github.com/0h3xn4/basilisk-SpaceMissionStudio.git
+cd basilisk-SpaceMissionStudio/SpaceMissionStudio
 python3 -m venv .venv
 source .venv/bin/activate
 pip install "bsk[all]==2.12.0"
@@ -113,10 +113,12 @@ scripts are in [`packaging/`](packaging/README.md).
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
-- **Version:** 3.0.0 ([release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0),
+- **Version:** 3.0.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0),
   [changelog](CHANGELOG.md)). Needs Python 3.11 or newer.
 - **Tested** in CI on Linux, Windows and macOS with Basilisk 2.12.0;
-  the Linux packages were installed and run end to end. The Windows
+  the Linux packages were installed and run end to end, and the 3.0.0
+  `.deb` was installed by hand on Ubuntu 24.04 (the app started,
+  template 22 ran). The Windows
   setup program is built, installed and run in CI on a Windows runner; it has not yet been tried by hand on a real Windows machine; `install.ps1` has not been run.
 - **Known gaps:** [Known limitations](docs/reference/limitations.md).
 - **Standards:** the project's ECSS and CCSDS records are in
