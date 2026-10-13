@@ -77,7 +77,7 @@ From the `SpaceMissionStudio` folder:
 what has been verified where. Record a SHA-256 checksum of each artifact:
 
 ```bash
-sha256sum dist/*.whl dist/*.deb > SHA256SUMS
+cd dist && sha256sum *.whl *.tar.gz *.deb > SHA256SUMS-linux
 ```
 
 ## 6. Publish
@@ -86,10 +86,12 @@ sha256sum dist/*.whl dist/*.deb > SHA256SUMS
   a new tag on the release commit (`develop` after the release pull
   request is merged), the title "SpaceMissionStudio X.Y.Z", the
   CHANGELOG section as the notes, and the wheel, sdist, `.deb` and
-  `SHA256SUMS` attached. Say in the notes which platforms' installers
-  were not run.
+  `SHA256SUMS-linux` attached. Say in the notes which platforms'
+  installers were not run.
+- Attach the Windows setup program with the installer workflow
+  (section 5); it adds `SHA256SUMS-windows`.
 - After publishing, download the assets from the release and run
-  `sha256sum -c SHA256SUMS`.
+  `sha256sum -c SHA256SUMS-linux` and `sha256sum -c SHA256SUMS-windows`.
 - Update the records that name the release: the Software Release
   Document (status, baseline commit), `compliance/human_actions.md` H05,
   and the compliance assessments (then run `compliance/tools/build_matrix.py`).
@@ -107,7 +109,9 @@ SpaceMissionStudio workflow also runs on a tag push, on the commit
 
 Releases so far, all tagged `vX.Y.Z` on `develop`: 1.0.0, 1.1.0 and
 2.0.0 (without assets), and 3.0.0 (2026-10-12, commit `a84ae3784`, with
-the wheel, sdist, `.deb` and `SHA256SUMS`).
+the wheel, sdist, `.deb` and `SHA256SUMS-linux`; the Windows setup program
+and `SHA256SUMS-windows` were attached on 2026-10-13 by the installer
+workflow).
 
 ---
 

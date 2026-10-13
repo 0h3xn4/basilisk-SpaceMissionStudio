@@ -42,7 +42,7 @@ known to be wrong, and how to use it.
 | Baseline | Tag `v3.0.0`, commit `a84ae3784` on `develop`, 2026-10-12. Previous release: 2.0.0, commit `56938840d`, 2026-10-01. |
 | Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt` |
 | Platform | Python 3.11 or newer |
-| Delivery | Attached to the GitHub release: the wheel and sdist (`packaging/build_wheel.sh`), the Debian package (`packaging/build_deb.sh`) and `SHA256SUMS` (wheel `4515f07c...aa91`, sdist `4ece7e2a...36a3`, `.deb` `807292d9...28e2`), checked after download. The Windows installer (`packaging/windows/spacemissionstudio.iss`) is not published: it has not been built or run (K-12) |
+| Delivery | Attached to the GitHub release: the wheel and sdist (`packaging/build_wheel.sh`), the Debian package (`packaging/build_deb.sh`) and `SHA256SUMS-linux` (wheel `4515f07c...aa91`, sdist `4ece7e2a...36a3`, `.deb` `807292d9...28e2`); the Windows setup program (`packaging/windows/spacemissionstudio.iss`, built by `.github/workflows/spacemissionstudio-windows-installer.yml` around the released wheel) with `SHA256SUMS-windows` (`1c469648...1c30`), attached 2026-10-13. All checked after download |
 | Documentation | SUM and `USER_MANUAL.md`; the documents in `compliance/docs/` |
 | Basilisk framework | Unchanged. Against `develop`, the branch changes only `SpaceMissionStudio/` and `.github/workflows/spacemissionstudio.yml` (`git diff --name-only origin/develop HEAD`). |
 
@@ -115,7 +115,7 @@ breaking changes that make this a major release are listed in
 | K-11 | F-09, fixed: parallel runs could read a half-written space-weather file. Altitude trades with more than one worker and Monte Carlo runs with NRLMSISE-00 drag, made before the fix, may have used wrong solar activity | Those results are to be re-run | `review_log.md` F-09 |
 | K-08 | Closed: the PNG/SVG export polled the page with overlapping asynchronous queries; a late timer tick read the cleared state (the CI tracebacks), and several answers could save the file twice. One query at a time now, late answers ignored (F-12) | – | `review_log.md` F-12 |
 | K-09 | 988 of 1488 unit and integration tests have no docstring | Weaker test documentation | `SUITP_test_cases.md` |
-| K-12 | Fixes for Windows behaviour (graceful SIL close, M15; the installer's Python version check) were not run on Windows | Unknown on Windows | `AUDIT.md` sections 5 and 6 |
+| K-12 | The Windows setup program is built, installed silently and the installed tool run on a GitHub Windows runner, including the installer's Python version check; the wizard has not been clicked through by hand and the GUI not opened on a real Windows machine. The graceful SIL close (M15) has not run on Windows | Unknown for interactive use on Windows | `AUDIT.md` sections 5 and 6; `packaging/README.md` |
 | K-13 | Closed: the bundled CelesTrak space weather (observations to 2025-07-20) was refreshed for this release: observations to 2026-10-11, updated 2026-10-12. Results of drag runs dated after 2025-07-20 change, because observed solar activity replaces the earlier forecasts | – | `spacemissionstudio/data/spaceweather/README.md` |
 
 **Waivers and deviations:** D-01 to D-13 (RD4). D-08 to D-13 are signed; D-01 to D-07

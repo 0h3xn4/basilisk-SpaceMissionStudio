@@ -8961,3 +8961,17 @@ upload to PyPI, which PyPI refused. The other was a container publish,
 cancelled after it had pushed an arm64 Basilisk image to this
 repository's GHCR. Later releases use `spacemissionstudio-vX.Y.Z` tags,
 which start neither (`docs/developer/releasing.md`).
+
+**The Windows setup program, 2026-10-13.** Inno Setup is Windows-only, so
+the release first went out without one. A new workflow
+(`.github/workflows/spacemissionstudio-windows-installer.yml`) now builds
+it on a Windows runner. It bundles the wheel attached to the release,
+checked against the release's checksums. It installs the program
+silently and runs the installed tool: import, `kernels-status`,
+`validate` and a run of template 01. On a manual run with "attach", it
+uploads the program and `SHA256SUMS-windows` to the release. Its runs
+passed, and the attached `.exe` matches its checksum. At the same time
+the release's `SHA256SUMS` was renamed `SHA256SUMS-linux`. The workflow
+accepts either name, and the docs say how to check each download.
+Still not done: clicking through the wizard by hand on a real Windows
+machine.

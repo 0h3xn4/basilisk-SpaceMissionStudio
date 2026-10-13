@@ -20,9 +20,9 @@ works, run a first mission and know what you should see.
 | | |
 |---|---|
 | Linux | x86_64 or aarch64 with glibc 2.28 or newer (Ubuntu 20.04, Debian 10, RHEL 8 or later). Tested in CI on Ubuntu 24.04. |
-| Windows | Windows 10 or 11, x86_64. The test suite runs on Windows in CI; the Windows installers have not been run on a real Windows machine yet. |
+| Windows | Windows 10 or 11, x86_64. The test suite runs on Windows in CI, and the setup program is built, installed and run there; it has not yet been tried by hand on a real Windows machine. |
 | macOS | macOS 11 or newer on Apple silicon (arm64), from source (path C) only. The test suite runs on macOS in CI. Intel Macs have no Basilisk wheel. |
-| Python | For paths B and C: 3.11 or newer. CI tests with 3.11; Basilisk 2.12.0 has wheels up to 3.14, and versions other than 3.11 and 3.12 have not been tested with the app. |
+| Python | 3.11 or newer, for every path: the installers set up the app with the Python already on the computer (Windows: `python` on PATH, from [python.org](https://www.python.org/downloads/)). CI tests with 3.11; Basilisk 2.12.0 has wheels up to 3.14, and versions other than 3.11 and 3.12 have not been tested with the app. |
 | Disk | About 1.6 GB: 1.4 GB for the Python environment (Basilisk and Qt), 116 MB of reference data, 36 MB of Earth orientation files. |
 | Internet | Once, while installing. After that the app runs offline and downloads nothing without asking. |
 
@@ -46,15 +46,21 @@ against.
 
 ## 3. Path A: the installer
 
-The Linux installer is published with each release: download
-`spacemissionstudio_3.0.0_all.deb` from the
-[3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0) and check it against that release's
-`SHA256SUMS` (`sha256sum -c SHA256SUMS --ignore-missing`). There is no
-published Windows installer yet: build one from
-`packaging/windows/spacemissionstudio.iss` with
-[Inno Setup](https://jrsoftware.org/isinfo.php), or use
-`packaging/install.ps1` ([section 4](#4-path-b-the-install-script)).
-You can also build the `.deb` yourself with `packaging/build_deb.sh`.
+Both installers are published with each release. From the
+[3.0.0 release](https://github.com/0h3xn4/basilisk-spacemissionstudio/releases/tag/v3.0.0), download:
+
+- **Linux:** `spacemissionstudio_3.0.0_all.deb` and `SHA256SUMS-linux`;
+  check with `sha256sum -c SHA256SUMS-linux --ignore-missing`.
+- **Windows:** `spacemissionstudio-3.0.0-setup.exe` and
+  `SHA256SUMS-windows`; check in PowerShell with
+  `Get-FileHash .\spacemissionstudio-3.0.0-setup.exe` and compare the
+  hash with the one in `SHA256SUMS-windows`. The program is not signed,
+  so Windows SmartScreen may warn about an unknown publisher.
+
+You can also build them yourself: the `.deb` with
+`packaging/build_deb.sh`, the setup program with
+[Inno Setup](https://jrsoftware.org/isinfo.php) from
+`packaging/windows/spacemissionstudio.iss`.
 
 **Linux:** double-click `spacemissionstudio_3.0.0_all.deb`, or:
 
@@ -69,9 +75,8 @@ The installer downloads Basilisk and the reference data once. Then open
 **SpaceMissionStudio** from your application menu or Start Menu and go to
 [section 6](#6-check-that-it-works).
 
-The `.deb` was built and installed on Linux. The Windows installer has not
-yet been run on a real Windows machine; please report anything that goes
-wrong. Details: [`packaging/README.md`](../packaging/README.md).
+The `.deb` was built and installed on Linux. The Windows setup program is
+built, installed and run in CI on a Windows runner; it has not yet been tried by hand on a real Windows machine; please report anything that goes wrong. Details: [`packaging/README.md`](../packaging/README.md).
 
 ## 4. Path B: the install script
 

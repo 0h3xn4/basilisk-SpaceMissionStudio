@@ -3,7 +3,8 @@
 # runner, then installs it silently there and runs the installed tool. Inno
 # Setup is Windows-only, so this is the one place the installer is built
 # and run. The setup program bundles the wheel attached to a published
-# release (checked against that release's SHA256SUMS), so the program it
+# release (checked against that release's SHA256SUMS-linux, or SHA256SUMS
+# on older releases), so the program it
 # builds belongs to that release. The setup program, its checksum and the
 # install log are kept as the run's artifact. Started by hand with "attach"
 # ticked, the run also uploads the setup program and its checksum to the
@@ -46,13 +47,16 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
-      - name: The release's wheel, checked against its SHA256SUMS
+      - name: The release's wheel, checked against its SHA256SUMS-linux
         run: |
-          gh release download $env:RELEASE --repo $env:GITHUB_REPOSITORY --pattern "spacemissionstudio-*.whl" --pattern SHA256SUMS --dir release
+          gh release download $env:RELEASE --repo $env:GITHUB_REPOSITORY --pattern "spacemissionstudio-*.whl" --pattern "SHA256SUMS*" --dir release
           $wheel = Get-ChildItem release\spacemissionstudio-*.whl | Select-Object -First 1
-          $expected = (Select-String -Path release\SHA256SUMS -SimpleMatch $wheel.Name).Line.Split(" ")[0]
+          # SHA256SUMS-linux lists the wheel (SHA256SUMS on releases before 3.0.0's rename).
+          $line = Select-String -Path release\SHA256SUMS* -SimpleMatch $wheel.Name | Select-Object -First 1
+          if (-not $line) { throw "no SHA256SUMS file of $env:RELEASE lists $($wheel.Name)" }
+          $expected = $line.Line.Split(" ")[0]
           $actual = (Get-FileHash $wheel.FullName -Algorithm SHA256).Hash.ToLower()
-          if ($actual -ne $expected) { throw "$($wheel.Name): SHA-256 $actual, SHA256SUMS says $expected" }
+          if ($actual -ne $expected) { throw "$($wheel.Name): SHA-256 $actual, $($line.Filename) says $expected" }
           $version = (Select-String -Path packaging\windows\spacemissionstudio.iss -Pattern '#define MyAppVersion "([^"]+)"').Matches[0].Groups[1].Value
           if ($wheel.Name -notlike "spacemissionstudio-$version-*") { throw "$($wheel.Name) is not version $version of the .iss" }
           New-Item -ItemType Directory -Force packaging\windows\dist | Out-Null
