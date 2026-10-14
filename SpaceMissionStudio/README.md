@@ -1,7 +1,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-![Version 3.0.0](https://img.shields.io/badge/version-3.0.0-blue)
+![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -113,13 +113,15 @@ scripts are in [`packaging/`](packaging/README.md).
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
-- **Version:** 3.0.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0),
-  [changelog](CHANGELOG.md)). Needs Python 3.11 or newer.
-- **Tested** in CI on Linux, Windows and macOS with Basilisk 2.12.0;
-  the Linux packages were installed and run end to end, and the 3.0.0
-  `.deb` was installed by hand on Ubuntu 24.04 (the app started,
-  template 22 ran). The Windows
-  setup program is built, installed and run in CI on a Windows runner; it has not yet been tried by hand on a real Windows machine; `install.ps1` has not been run.
+- **Version:** 1.0.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0),
+  [changelog](CHANGELOG.md)), the first release of the renewed tool.
+  Needs Python 3.11 or newer.
+- **Platforms:** 1.0.0 is a Linux release: the `.deb`, the wheel and
+  `install.sh` were built, installed and run end to end with Basilisk
+  2.12.0 ([`packaging/README.md`](packaging/README.md)). The test suite
+  also runs in CI on Windows and macOS, where a few test failures are
+  not yet fixed (SRelD K-14); their installers follow in a later
+  release.
 - **Known gaps:** [Known limitations](docs/reference/limitations.md).
 - **Standards:** the project's ECSS and CCSDS records are in
   [`compliance/`](compliance/README.md). They are the project's own

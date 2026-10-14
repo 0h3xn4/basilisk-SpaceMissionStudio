@@ -110,19 +110,15 @@ in `packaging/` needed to change for it.
   `gui` extra, optionally installs a vendored Basilisk wheel into the same
   venv (`--basilisk-wheel PATH_OR_URL`), writes a `spacemissionstudio` launcher
   script, and installs a `~/.local/share/applications/spacemissionstudio.desktop`
-  entry (skippable with `--no-desktop-entry`). Genuinely run here TWICE in
-  a row (the regression check for the bug above) with a fake `$HOME`/
-  `$XDG_DATA_HOME`, confirming: the venv installs cleanly, the launcher
-  script's `spacemissionstudio validate` works against the installed scenario
-  file, and the desktop entry is written with the correct `Exec=` path.
-  **The `--basilisk-wheel` path itself is now ALSO genuinely verified**
-  (re-run while building the `.deb` package below, once PyPI turned out
-  to be reachable from this sandbox after all --
-  `./install.sh --basilisk-wheel "bsk[all]"` installed a real Basilisk
-  build end-to-end and the launcher's `spacemissionstudio validate` worked
-  against it), not just asserted to be "ordinary, non-spacemissionstudio
-  -specific `pip` behavior" as an earlier revision of this note had to
-  settle for.
+  entry (skippable with `--no-desktop-entry`). **Verified for 1.0.0**
+  (2026-10-14, Ubuntu 24.04 container, Python 3.11, a fresh `$HOME`):
+  `install.sh --basilisk-wheel "bsk[all]==2.12.0"` with the 1.0.0 wheel
+  installed every pinned version of `constraints.txt` (bsk 2.12.0, numpy,
+  PySide6, plotly, sgp4, pyerfa as listed), pre-fetched the support data
+  and the Earth orientation files, and wrote the launcher, the desktop
+  entry and the icon. The launcher reported 1.0.0 with Basilisk 2.12.0,
+  validated all 28 templates, ran templates 01, 16 and 28, and ran the
+  Monte Carlo template 09's 20 runs.
 
 * **`spacemissionstudio.desktop.in`** -- the desktop-entry template `install.sh`
   fills in (`@INSTALL_PREFIX@` -> the venv's parent directory).
@@ -151,87 +147,35 @@ and pip-installs `bsk[all]` there the moment the package is configured
 (`apt install`/`dpkg -i`'s normal "configure" step), which needs
 internet access on the installing machine.
 
-**Genuinely built AND installed for real in this project's development
-sandbox** -- this is the first time ANY Basilisk-dependent path in this
-whole project has been exercised against a real Basilisk build from
-inside the sandbox itself, not just written carefully against verified
-API sequences:
+**Verified for 1.0.0** (2026-10-14, Ubuntu 24.04 container, Python
+3.11, as root):
 
-```bash
-./build_deb.sh                       # -> dist/spacemissionstudio_1.0.0_all.deb (an honest record of
-sudo apt install ./dist/spacemissionstudio_1.0.0_all.deb  # what this verification run actually produced
-                                      # at the time -- today's build_deb.sh reads the package's own
-                                      # current __version__ instead, currently 2.0.0, so expect
-                                      # dist/spacemissionstudio_2.0.0_all.deb if you run this yourself now)
-```
+- `build_wheel.sh` and `build_deb.sh` built
+  `spacemissionstudio-1.0.0-py3-none-any.whl`, the sdist and
+  `spacemissionstudio_1.0.0_all.deb`.
+- `apt install ./spacemissionstudio_1.0.0_all.deb` completed: `postinst`
+  created `/opt/spacemissionstudio/venv`, installed `bsk[all]==2.12.0`
+  from PyPI and the bundled wheel, pre-fetched the support data and the
+  Earth orientation files, and wrote `/usr/bin/spacemissionstudio` and
+  the desktop entry.
+- The installed tool: `--version` gave SpaceMissionStudio 1.0.0 and
+  Basilisk 2.12.0; `kernels-status` found every kernel; all 28 templates
+  validated; templates 01 and 22 ran (22's `provenance.json` records
+  1.0.0); the Monte Carlo template 09 ran its 20 runs; the GUI started
+  (offscreen) and stayed up.
+- Not done for 1.0.0: an install by hand on a desktop, with the app
+  opened from the application menu.
 
-ran end-to-end with no errors: the venv was created, `bsk[all]` installed
-for real from PyPI (confirmed with a real build's own `printBuildInfo()`),
-SpaceMissionStudio installed from the bundled wheel, the `/usr/bin/spacemissionstudio`
-launcher and the desktop entry + a real rendered PNG icon were all
-written correctly. `spacemissionstudio validate` against a real bundled
-scenario file, and `spacemissionstudio kernels-status`, were both run against
-the installed copy afterward and behaved exactly as expected -- including
-`kernels-status` correctly reporting the NAIF SPICE kernel host as
-unreachable, this sandbox's one remaining, already-documented network
-gap (see the note at the top of this file), not a bug in the package.
+Uninstalling (`apt remove`/`apt purge spacemissionstudio`) also removes
+the venv and the rendered icon (`postrm`): they are created at configure
+time and are not part of the package's tracked files.
 
-Went further: `SpaceMissionStudio`'s own real `pytest` suite was then run from
-the installed venv (`/opt/spacemissionstudio/venv/bin/python3 -m pytest tests/`)
-against this real Basilisk build. Every test up through
-`tests/test_mission_engine.py` passed genuinely -- hundreds of tests,
-including every Basilisk-IMPORTING module that doesn't need an actual
-kernel-loaded simulation run (schema, GUI, link budget, logging,
-constellation generation, and more) -- confirmed real, not the
-auto-skip-without-Basilisk path this suite normally takes. It only starts
-failing exactly at the tests that DO need kernel loading
-(`test_mission_engine.py`, `test_two_body_validation.py`, and similar),
-and for exactly the expected reason: the agent proxy's own connection log
-for that run shows rejected `CONNECT` attempts to `naif.jpl.nasa.gov` and
-`celestrak.org` specifically -- the same already-documented network gap,
-not a new or different problem.
-
-Uninstalling (`apt remove`/`apt purge spacemissionstudio`) correctly removes
-the venv and rendered icon too (`postrm`) -- these aren't part of the
-package's own tracked payload (they're created at configure time), so
-without `postrm` they'd survive an uninstall silently.
-
-**1.1.0 release note**: `build_deb.sh` was re-run for the 1.1.0 release
-and still produces a valid, installable `spacemissionstudio_1.1.0_all.deb`
-(`dpkg-deb --build` succeeds; the version string above comes from
-`spacemissionstudio.__version__`, never hardcoded, so this needed no script
-change). The full real-Basilisk install/test pass described above was
-not independently re-run against that specific 1.1.0 artifact this
-release -- it was run once, at 1.0.0, against install logic that hasn't
-changed since.
-
-**2.0.0 release note**: the 2.0.0 bump is the missionStudio ->
-SpaceMissionStudio rename (see README.md's "Version 2.0.0" for the full
-list of what changed) -- a new package/command/installer identity, not
-new install LOGIC. `build_deb.sh` was re-run again under the renamed
-package and still produces a valid, installable
-`spacemissionstudio_2.0.0_all.deb`; the real-Basilisk install/test pass
-has still only been run once, at 1.0.0, against logic that is unchanged
-through both the 1.1.0 feature release and this rename.
-
-**3.0.0 release note**: the installers now install the tested
-dependency versions from `constraints.txt` (audit M14); a Basilisk wheel
-given to `install.sh`/`install.ps1` gets the same pins for its own
-dependencies, but any Basilisk version is accepted. For 3.0.0,
-`install.sh` was run end to end on Linux in a fresh HOME with the PyPI
-`bsk` 2.12.0 wheel: every pinned version installed as listed, the
-support data was pre-fetched, all 27 templates validated, and templates
-01, 08, 16, 19, 26 and the Monte Carlo template 09 ran from the
-installed tool, and the GUI started. `build_deb.sh` produced
-`spacemissionstudio_3.0.0_all.deb` (checksum verified, maintainer
-scripts parse); installing it was not possible in the build environment.
-On 2026-10-13 a user installed the released `.deb` with `apt` on
-Ubuntu 24.04: the install completed, the GUI started and template 22
-ran. The
-Windows installer and `install.ps1` were not run. The wheel, sdist and
-`.deb` are attached to the [3.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0) with
-`SHA256SUMS-linux`; the Windows setup program and `SHA256SUMS-windows`
-were attached by the installer workflow (below).
+**Coming from 3.0.0** (the earlier numbering): apt sees 1.0.0 as older.
+Tried on 2026-10-14: over an installed 3.0.0 `.deb`, `apt-get install -y
+./spacemissionstudio_1.0.0_all.deb` refused the downgrade ("Packages were
+downgraded and -y was used without --allow-downgrades"); after `apt
+remove spacemissionstudio` the same command installed 1.0.0, which then
+reported 1.0.0 with Basilisk 2.12.0.
 
 ### The Windows installer (Inno Setup)
 
@@ -258,9 +202,10 @@ ISCC packaging\windows\spacemissionstudio.iss
 
 **Built and installed in CI.** The workflow
 `.github/workflows/spacemissionstudio-windows-installer.yml` does this on
-a Windows runner. It bundles the wheel attached to a release, checked
-against that release's `SHA256SUMS-linux` (or an older release's
-`SHA256SUMS`). It compiles the script with Inno
+a Windows runner. Started by hand, it bundles the wheel attached to a
+release, checked against that release's `SHA256SUMS-linux`; a push
+bundles a wheel built from the pushed commit, since the release it
+belongs to may not exist yet. It compiles the script with Inno
 Setup, then installs the program silently (`/VERYSILENT /CURRENTUSER`).
 It then runs the installed tool: import, `kernels-status`, `validate`,
 and a run of template 01. The setup program, its checksum
@@ -269,7 +214,7 @@ it from the Actions tab ("SpaceMissionStudio Windows installer", with the
 release tag); with "attach" ticked, a separate job, the only one with
 write access, also uploads the setup program and `SHA256SUMS-windows` to
 the release, replacing earlier copies. A push to `packaging/windows/`
-builds and tests without attaching. For 3.0.0 it passed on
+or `constraints.txt` builds and tests without attaching. It first passed on
 2026-10-12 ([run 38315713727](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/38315713727)). Not yet done: the wizard clicked
 through by hand, and the GUI opened from the Start Menu shortcut, on a
 real Windows 10/11 machine.
@@ -279,7 +224,7 @@ real Windows 10/11 machine.
 Not the Inno Setup wizard above -- this is `build_wheel.ps1`/`install.ps1`,
 the Windows counterpart of `build_wheel.sh`/`install.sh` (tier 2 from the
 top of this file: scriptable, for anyone who'd rather not use a GUI
-installer). Added for the 1.0.0 release, direct PowerShell ports --
+installer). Direct PowerShell ports --
 same steps, same flags (`-Prefix`/`-BasiliskWheel`/`-SpaceMissionStudioWheel`/`-NoShortcut`
 instead of `--prefix`/`--basilisk-wheel`/`--spacemissionstudio-wheel`/
 `--no-desktop-entry`), same two already-verified bugs from the Linux

@@ -101,17 +101,18 @@ keeps Basilisk's own workflows, and a `v*` tag starts two of them:
 `publish-container.yml`, which pushes a *Basilisk* image tagged with the
 version and `latest` to this repository's GHCR, and `publish-wheels.yml`,
 which builds Basilisk wheels and tries to upload them to PyPI. Both ran
-for the `v3.0.0` tag: PyPI refused the upload (no trusted publisher for
+for a `v3.0.0` tag of the earlier numbering: PyPI refused the upload (no trusted publisher for
 the fork), and the container run was cancelled after its arm64 image had
 been pushed. A `spacemissionstudio-v*` tag starts neither. The
 SpaceMissionStudio workflow also runs on a tag push, on the commit
 `develop` already passed.
 
-Releases so far, all tagged `vX.Y.Z` on `develop`: 1.0.0, 1.1.0 and
-2.0.0 (without assets), and 3.0.0 (2026-10-12, commit `a84ae3784`, with
-the wheel, sdist, `.deb` and `SHA256SUMS-linux`; the Windows setup program
-and `SHA256SUMS-windows` were attached on 2026-10-13 by the installer
-workflow).
+**Releases.** The tool was renewed on 2026-10-14 and its numbering
+restarted at 1.0.0; the releases and tags of the earlier numbering
+(1.0.0 to 3.0.0) were removed. 1.0.0 is a Linux release: the wheel,
+sdist, `.deb` and `SHA256SUMS-linux`, without the Windows setup program
+(SRelD K-14). `pip` and `apt` see 1.0.0 as older than the earlier
+3.0.0, so the release notes tell users of that build to remove it first.
 
 ---
 

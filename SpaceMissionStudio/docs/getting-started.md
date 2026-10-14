@@ -20,8 +20,8 @@ works, run a first mission and know what you should see.
 | | |
 |---|---|
 | Linux | x86_64 or aarch64 with glibc 2.28 or newer (Ubuntu 20.04, Debian 10, RHEL 8 or later). Tested in CI on Ubuntu 24.04. |
-| Windows | Windows 10 or 11, x86_64. The test suite runs on Windows in CI, and the setup program is built, installed and run there; it has not yet been tried by hand on a real Windows machine. |
-| macOS | macOS 11 or newer on Apple silicon (arm64), from source (path C) only. The test suite runs on macOS in CI. Intel Macs have no Basilisk wheel. |
+| Windows | Windows 10 or 11, x86_64. The test suite runs on Windows in CI, with two intermittent test failures not yet fixed. 1.0.0 has no Windows installer: install from source (path C). |
+| macOS | macOS 11 or newer on Apple silicon (arm64), from source (path C) only. The test suite runs on macOS in CI, with two wide-screen layout tests not yet fixed. Intel Macs have no Basilisk wheel. |
 | Python | 3.11 or newer, for every path: the installers set up the app with the Python already on the computer (Windows: `python` on PATH, from [python.org](https://www.python.org/downloads/)). CI tests with 3.11; Basilisk 2.12.0 has wheels up to 3.14, and versions other than 3.11 and 3.12 have not been tested with the app. |
 | Disk | About 1.6 GB: 1.4 GB for the Python environment (Basilisk and Qt), 116 MB of reference data, 36 MB of Earth orientation files. |
 | Internet | Once, while installing. After that the app runs offline and downloads nothing without asking. |
@@ -37,7 +37,7 @@ The app has two parts:
 
 | Path | For | You type |
 |---|---|---|
-| **A. Installer** (`.deb` on Linux, `-setup.exe` on Windows) | Using the app | Nothing: double-click |
+| **A. Installer** (`.deb`, Linux) | Using the app | Nothing: double-click |
 | **B. Install script** (`packaging/install.sh` or `install.ps1`) | Using the app from a checkout of this repository | One command |
 | **C. From source** with `pip` | macOS; developing; scripting from Python; running the tests | About eight commands |
 
@@ -46,41 +46,32 @@ against.
 
 ## 3. Path A: the installer
 
-Both installers are published with each release. From the
-[3.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0), download:
+From the [1.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0), download
+`spacemissionstudio_1.0.0_all.deb` and `SHA256SUMS-linux`, and check
+them with `sha256sum -c SHA256SUMS-linux --ignore-missing`. You can also
+build the `.deb` yourself with `packaging/build_deb.sh`.
 
-- **Linux:** `spacemissionstudio_3.0.0_all.deb` and `SHA256SUMS-linux`;
-  check with `sha256sum -c SHA256SUMS-linux --ignore-missing`.
-- **Windows:** `spacemissionstudio-3.0.0-setup.exe` and
-  `SHA256SUMS-windows`; check in PowerShell with
-  `Get-FileHash .\spacemissionstudio-3.0.0-setup.exe` and compare the
-  hash with the one in `SHA256SUMS-windows`. The program is not signed,
-  so Windows SmartScreen may warn about an unknown publisher.
+1.0.0 has the Linux installer only. The Windows setup program
+(`packaging/windows/spacemissionstudio.iss`, built with
+[Inno Setup](https://jrsoftware.org/isinfo.php)) follows in a later
+release; on Windows and macOS, use [path C](#5-path-c-from-source-step-by-step) until
+then.
 
-You can also build them yourself: the `.deb` with
-`packaging/build_deb.sh`, the setup program with
-[Inno Setup](https://jrsoftware.org/isinfo.php) from
-`packaging/windows/spacemissionstudio.iss`.
-
-**Linux:** double-click `spacemissionstudio_3.0.0_all.deb`, or:
+**Linux:** double-click `spacemissionstudio_1.0.0_all.deb`, or:
 
 ```bash
-sudo apt install ./spacemissionstudio_3.0.0_all.deb
+sudo apt install ./spacemissionstudio_1.0.0_all.deb
 ```
 
 A closing `N: Download is performed unsandboxed as root ...` line is a
 harmless apt notice ([Troubleshooting](troubleshooting.md#messages-that-are-normal)).
 
-**Windows:** double-click `spacemissionstudio-3.0.0-setup.exe` and follow
-the wizard.
-
 The installer downloads Basilisk and the reference data once. Then open
-**SpaceMissionStudio** from your application menu or Start Menu and go to
+**SpaceMissionStudio** from your application menu and go to
 [section 6](#6-check-that-it-works).
 
-The 3.0.0 `.deb` was installed by hand on Ubuntu 24.04, where the app
-started and template 22 ran. The Windows setup program is
-built, installed and run in CI on a Windows runner; it has not yet been tried by hand on a real Windows machine; please report anything that goes wrong. Details: [`packaging/README.md`](../packaging/README.md).
+What was verified for the `.deb`, and how:
+[`packaging/README.md`](../packaging/README.md).
 
 ## 4. Path B: the install script
 

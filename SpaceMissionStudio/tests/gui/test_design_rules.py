@@ -67,7 +67,10 @@ def test_the_token_table_matches_the_theme():
 def test_the_shortcut_table_matches_the_menus(qtbot, monkeypatch):
     """Every menu command with a shortcut, submenus included, is a row of
     DESIGN.md's shortcut table with its first shortcut; every row is such
-    a command."""
+    a command. A row naming a standard key has that key's first binding on
+    the running platform (none: no shortcut), whatever its Keys column
+    says (Redo is Ctrl+Y offscreen, Ctrl+Shift+Z on macOS)."""
+    from PySide6.QtGui import QKeySequence
     from PySide6.QtWidgets import QMessageBox
 
     from spacemissionstudio.gui.main_window import MainWindow
@@ -87,10 +90,19 @@ def test_the_shortcut_table_matches_the_menus(qtbot, monkeypatch):
 
     for action in window.menuBar().actions():
         walk(action.menu(), [action.text().replace("&", "")])
-    table = _section(_DESIGN.read_text(), "| Command | Keys |")
-    rows = dict(re.findall(r"^\| ([^|]+?) \| ([^|]+?) \|$", table, re.MULTILINE)[1:])  # past the header row
-    rows.pop("---", None)
-    assert rows == found
+    table = _section(_DESIGN.read_text(), "| Command | Keys | Standard key |").split("\n\n")[0]  # this table only
+    rows = re.findall(r"^\| ([^|]+?) \| ([^|]+?) \| ([^|]+?) \|$", table, re.MULTILINE)[1:]  # past the header
+    expected = {}
+    for command, keys, standard in rows:
+        if command == "---":
+            continue
+        if standard != "-":
+            bindings = QKeySequence.keyBindings(getattr(QKeySequence.StandardKey, standard))
+            keys = bindings[0].toString() if bindings else None
+        if keys is not None:
+            expected[command] = keys
+    assert expected == found
+    assert {command for command, _keys, standard in rows if standard == "-"} <= set(found)
 
 
 def test_no_hard_coded_colour_outside_the_theme():

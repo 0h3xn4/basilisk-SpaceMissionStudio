@@ -10541,3 +10541,94 @@ the code:
 - the "has a problem" empty state is Explain's;
 - a validation message box is guarded by
   `test_messages.py::test_no_information_warning_or_critical_message_box_is_left`.
+
+## Release 1.0.0: the renewed tool, for Linux (2026-10-14)
+
+**Decision (the user's, 2026-10-14):** the tool is renewed and starts
+again at 1.0.0. The earlier versions (1.0.0, 1.1.0, 2.0.0 and 3.0.0) are
+withdrawn. The repository already had no releases and no tags left when
+this was checked (`git ls-remote --tags origin` empty, no latest
+release). Linux comes first; Windows and macOS are fixed and released
+later.
+
+**What changed in the records:**
+- the version is 1.0.0 in `pyproject.toml`, `__init__.py` and the
+  Windows installer script;
+- `CHANGELOG.md` starts over with a single 1.0.0 entry: what the tool
+  does, the platforms, and how to move from an earlier build;
+- README, getting started, the user manual, the FAQ, troubleshooting
+  and the capabilities page point to the `spacemissionstudio-v1.0.0`
+  release and say that 1.0.0 has no Windows installer;
+- `packaging/README.md` and `install.sh` give what was run for 1.0.0
+  (below) in place of the earlier releases' notes;
+- the SRelD is issue 4 for 1.0.0, with the new known problem K-14 (the
+  two intermittent Windows test failures);
+- SRS, SDD, ICD, CSD, SUM, the security analysis, human action H05, the
+  compliance assessments and `releasing.md` name 1.0.0.
+
+This file keeps its earlier entries as they were written, earlier
+version numbers included: it is the record of how the tool got here.
+
+**Why a reinstall:** `pip` and `apt` compare versions, and 1.0.0 is
+lower than 3.0.0. Over an installed 3.0.0 `.deb`, `apt-get install -y`
+refused the downgrade; after `apt remove`, 1.0.0 installed. The
+CHANGELOG says so.
+
+**Verified on Linux** (Ubuntu 24.04 container, Python 3.11, Basilisk
+2.12.0 from PyPI):
+- `build_wheel.sh` and `build_deb.sh` built the 1.0.0 wheel, sdist and
+  `.deb`;
+- `apt install` of the `.deb`: the venv, Basilisk, the support data and
+  the Earth orientation files were installed;
+- the installed tool:
+  - reported 1.0.0 and Basilisk 2.12.0;
+  - validated all 28 templates;
+  - ran templates 01 and 22, and the 20-run Monte Carlo template 09;
+  - started the GUI offscreen;
+- `apt remove` removed `/opt/spacemissionstudio`;
+- `install.sh --basilisk-wheel "bsk[all]==2.12.0"` in a fresh `$HOME`:
+  - installed the versions pinned in `constraints.txt`;
+  - validated all 28 templates;
+  - ran templates 01, 16 and 28, and template 09.
+
+**Windows CI on PR #64**, the reason for the Linux-first release. Two
+tests failed intermittently, each in one attempt only:
+- `test_the_altitude_trade_runs_its_altitudes_in_parallel_processes`: a
+  worker's Basilisk error cannot be pickled, so its message is lost;
+- `test_a_step_without_deadline_waits_while_earlier_steps_are_still_answered`:
+  0.302 s of silence against a 0.3 s timeout, on a loaded runner.
+
+Neither is in code that PR changed. The proposed fixes are in the PR's
+comments and in SRelD K-14.
+
+**macOS CI on PR #65:** two of 7c's wide-screen tests fail their own
+precondition there. Qt's `cocoa` platform fits the 2560 x 1440 window to
+the runner's screen, so the page is 618 px wide. Deferred with the rest,
+in SRelD K-14; the proposed fix (`WA_DontShowOnScreen` on the test
+window) is in the PR comment.
+
+**The Windows installer workflow on the release PR (#68).** The version
+change in `spacemissionstudio.iss` starts
+`spacemissionstudio-windows-installer.yml`, which bundled the wheel of
+release `v3.0.0`, a release that is gone, so the run failed at its
+download. A push now bundles a wheel built from the pushed commit, and a
+run started by hand defaults to `spacemissionstudio-v1.0.0`. The installer
+is not part of 1.0.0; the workflow still checks that it builds,
+installs and runs.
+
+**DESIGN.md's shortcut table and the platform's standard keys.** The
+macOS job on #68 failed `test_the_shortcut_table_matches_the_menus`
+there: Edit > Redo was Ctrl+Shift+Z, not the table's Ctrl+Y, and
+File > Quit had Ctrl+Q, which the table did not list. Both commands, and
+New, Open, Save, Save As and Undo, take the platform's standard key
+(`QKeySequence.StandardKey`), and Qt's documentation gives Ctrl+Shift+Z
+for Redo on GNOME and KDE too. So the table was right only for Qt
+without a desktop theme, as on the offscreen CI. The table now has a
+Standard key column; the test checks those rows against the running
+platform's first binding, and the other rows as written. Checked
+offscreen: the test passes; changing a fixed key, naming the wrong
+standard key, or dropping a fixed row makes it fail. The macOS case
+itself shows on the next macOS run. Also checked: Undo's standard
+bindings include Alt+Backspace offscreen, the key of Run > Clear Time
+Cursor, but `setShortcut` keeps only the first (Ctrl+Z), and
+Alt+Backspace clears the cursor.
