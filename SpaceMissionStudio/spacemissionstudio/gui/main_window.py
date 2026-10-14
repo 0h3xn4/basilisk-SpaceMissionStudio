@@ -773,6 +773,13 @@ class MainWindow(QMainWindow):
                 break
         return widget.widget() if isinstance(widget, QScrollArea) else widget
 
+    def _show_tree_item(self, item) -> None:
+        """The scenario tree's node ``item``: its page, then the node (a
+        section of the page, too)."""
+        tree = self.scenario_editor.page_tree
+        self.show_view(tree.page_of(item))
+        tree.tree.setCurrentItem(item)
+
     def _on_page_action(self) -> None:
         self._show_page(self.sender().data())
 
@@ -912,8 +919,9 @@ class MainWindow(QMainWindow):
         from .command_palette import PaletteEntry, menu_entries
 
         entries = [e for e in menu_entries(self.menuBar()) if not e.label.endswith("Command Palette...")]
-        for path, page in self.scenario_editor.page_tree.paths():
-            entries.append(PaletteEntry(f"Go to tab > Scenario > {path}", lambda page=page: self.show_view(page)))
+        for path, item in self.scenario_editor.page_tree.paths():
+            entries.append(PaletteEntry(f"Go to tab > Scenario > {path}",
+                                        lambda item=item: self._show_tree_item(item)))
         for tabs in (self.main_tabs, self.results_views):
             for index in range(tabs.count()):
                 name = tabs.tabText(index).replace("&", "")
