@@ -12,7 +12,7 @@ and the exported files.
 | **Results > Output** | What each `report` command in a Mission Sequence recorded | Yes |
 | **Results > Monte Carlo** | The spread of a batch (only when Monte Carlo is on) | A batch |
 | **Events** | Passes, eclipses, burns and mode changes, as a timeline and a table | Yes |
-| **Compare** | This session's runs, and the inputs that differ between two of them | Two runs |
+| **Compare** | Two or more saved runs: a summary with differences, the inputs that differ, events, plots | Two runs |
 | **Log** | What the app logged in this session; a failed run opens it | No |
 | **Scenario > End of Life** | Orbital lifetime and deorbit check | No |
 | **Scenario > Budget** | Delta-V and propellant budget | No (better after a run) |
@@ -40,10 +40,22 @@ and the exported files.
 
 ## Compare two runs
 
-Run again after a change. **Compare with** then draws the same series from
-an earlier run, dashed. **Input differences...** lists every input that
-differs between the two runs. The last five runs are kept until the app
-closes.
+Run again after a change, then open **Compare**. The run and the one
+before it are ticked; tick others to add them. The oldest ticked run is
+the base:
+
+* **Summary**: delta-V, propellant, link margin, battery, passes,
+  eclipses, data and more, with a **Δ** column per run.
+* **Inputs**: what you changed, old to new.
+* **Events**: each kind of event counted, with its total time.
+* **Plots**: one series of every ticked run, overlaid.
+
+Every run is saved in `~/.spacemissionstudio/runs` (the newest 20), so
+you can compare with a run from an earlier session. **Delete run...**
+removes one. On **Results**, **Compare with** draws an earlier run's
+curves dashed, and **Input differences...** lists what differs.
+
+![The Compare tab with two runs of template 22, one day and two days long: the summary with a difference column](../images/compare_tab.png)
 
 On the **Events** tab, the search box (**Ctrl+F**) and the station list
 narrow the timeline and the table. Each value has its own column with

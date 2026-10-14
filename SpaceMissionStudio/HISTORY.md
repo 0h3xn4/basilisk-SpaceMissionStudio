@@ -10011,3 +10011,92 @@ time system and units, right alignment and precision, columns only when
 used, search and station narrowing the timeline, table and export, Ctrl+C
 as TSV, arrow keys and Ctrl+F). The table test that read the Detail
 column now reads the row's tooltip.
+
+## UX iteration 5c: the Compare tab and runs on disk (2026-10-14)
+
+The last part of iteration 5: U-33, with decision 5 (runs saved to disk).
+
+**The run store** (`engine/run_store.py`, Basilisk-free). Each run that
+ends, finished or cancelled, is written to
+`~/.spacemissionstudio/runs/run-NNNN-YYYYMMDDTHHMMSS/`: `run.json` (format
+version 1: the scenario as it ran, the epoch, when it finished, whether it
+was cancelled, the provenance, the warnings and each series' name,
+columns and units) and `series.npz` (each series' time and data arrays,
+by index, so no series name becomes a file key). It is written to
+`.<name>.partial` and renamed, so a crash leaves no half run.
+`load_index` reads only the `run.json` files; `load_result` reads one
+run's arrays with `numpy.load(allow_pickle=False)` and rebuilds each
+series through `TimeSeries`, which refuses mismatched lengths. A folder
+that does not read back (edited JSON, another format version, a truncated
+`series.npz`) is skipped and logged. Only folder names the store writes
+are opened or deleted. `prune` keeps the newest 20 runs and at most 2 GiB,
+never deleting the newest. Security analysis S-17.
+
+**The run history** (`gui/run_history.py`) is built on it: the main window
+opens the store at start-up and lists the earlier sessions' runs, named
+with their date ("Run 7, 13 Oct 17:30"), and numbers new runs on from the
+last. A `RunRecord` reads its series from disk the first time it is used;
+only the last five keep them in memory. If the store cannot be written,
+the run stays in memory for the session and a toast says it is not saved.
+Without a store (the tests that build a history by hand) it works as
+before.
+
+**The headline figures** (`engine/run_summary.py`), one per spacecraft and
+quantity, only when recorded: run length, delta-V (the station-, GEO-,
+phasing-keeping and constant-thrust controllers' cumulative delta-V at
+the end), propellant used (the drop of every recorded propellant mass),
+the mean semi-major axis change, the lowest link margin while a station
+is in view, the lowest battery charge, passes and contact time, eclipses
+and eclipse time, and data downlinked. The first version took the
+semi-major axis change as last minus first sample: on template 22 it read
++47 m in a day, the wrong sign for a dragged orbit, because first-order
+mean elements keep an orbital-period wobble of about 100 m. It is now the
+mean over the last orbit minus the mean over the first (-4 m in a day,
+-5 m in two), and a run shorter than two orbits has none. The orbital
+lifetime U-33 named is not a run result (the End of Life analysis
+computes it from the scenario), so it is not in the summary.
+`event_table` counts the events per kind ("pass over berlin-gs") with
+their total time.
+
+**The Compare tab** (`gui/compare_widget.py`, replacing the list in
+`workspace_panels`): every run, newest first, two lines each (the run, and
+the scenario's name) with a tick box; after a run, it and the run before
+it are ticked. The oldest ticked run is the base. Summary (a delta column
+per run), Inputs (`engine.scenario_diff` against the base for each run,
+"(same)" where a run matches it), Events (count and total time, and the
+difference) and Plots (one series of every ticked run, the base solid and
+the others dashed, so runs that agree still both show). With the shown run
+and one other ticked, Results draws the other dashed; Results' Compare
+with ticks the pair here, and "(no comparison)" unticks it. **Delete
+run...** asks, then removes the selected run from disk; the run shown
+cannot be deleted. A run that cannot be read back is named in the status
+line.
+
+Found on the way: the Explain panel kept its old badges and tiles
+painted over the new ones after a second scenario was opened in a capture
+script (also on develop). `_clear_layout` only called `deleteLater()`, which
+runs when the event loop gets to it; a script that pumps events itself
+never does. The removed widgets are now hidden at once as well.
+
+Also found in the captures: after a session's second run the window was
+1280 x 744, not 720 (U-03). Its minimum height had grown to 716 px:
+Qt counts a word-wrapped label's minimum height at the label's narrowest
+width, so the one-line provenance line under the Results toolbar (130 px
+at its narrowest) counted as five lines and a space-weather warning as
+four. Both, and the event-band note, now get at least 360 px, at most two
+lines: the minimum is 621 px after two runs and the window stays 720.
+`tests/gui/test_stale_results_and_window_size.py::
+test_the_window_fits_1280_by_720_with_provenance_and_warning_lines` fails
+without the change (95 px for the provenance line).
+
+Tests: `tests/test_run_store.py` (a run reads back unchanged, unreadable
+runs skipped, names outside the store refused, pruning, earlier sessions
+listed and numbered on, series in memory only for the last runs, a store
+that cannot be written), `tests/test_run_summary.py` (each figure from
+its series, orbit averaging, a run too short for it, several spacecraft,
+the event table) and `tests/gui/test_compare_tab.py` (the default ticks,
+the summary deltas, the inputs old to new, the events, the overlaid plot,
+earlier sessions in the main window read back when ticked and deleted, the
+shown run not deletable, an unreadable run named). The workspace test of
+the old Compare list now checks the tab's ticks and the link with Results
+(same checks; none removed).

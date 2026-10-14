@@ -172,19 +172,23 @@ def test_a_failed_run_opens_the_log(window, monkeypatch):
 
 
 def test_the_compare_tab_lists_runs_and_their_input_differences(window):
-    """With two runs, Compare lists the earlier one; choosing it shows the
-    inputs that differ and has Results draw it dashed."""
+    """With two runs, Compare ticks both and shows the inputs that differ;
+    the shown run and one other ticked has Results draw that one dashed,
+    and Results' choice ticks the pair here (U-33)."""
     compare = window.compare_widget
     assert compare.empty_label.isVisibleTo(compare)
     _finish_a_run(window)
     _finish_a_run(window, name="22 - a second version")
-    assert compare.content.isVisibleTo(compare) and compare.run_list.count() == 2  # "(no comparison)" + Run 1
-    compare.run_list.setCurrentRow(1)
-    assert window.results_widget.compare_combo.currentData() == 1
-    inputs = [compare.table.item(row, 0).text() for row in range(compare.table.rowCount())]
+    assert compare.content.isVisibleTo(compare) and compare.run_list.count() == 2
+    assert [r.number for r in compare.checked_runs()] == [1, 2]  # the new run and the one before it
+    inputs = [compare.inputs_table.item(row, 0).text() for row in range(compare.inputs_table.rowCount())]
     assert "name" in inputs
+    compare.set_checked([1, 2])
+    assert window.results_widget.compare_combo.currentData() == 1
     window.results_widget.compare_combo.setCurrentIndex(0)  # and back, from Results
-    assert compare.chosen_number() is None
+    assert compare.chosen_number() is None and [r.number for r in compare.checked_runs()] == [2]
+    window.results_widget.compare_combo.setCurrentIndex(window.results_widget.compare_combo.findData(1))
+    assert [r.number for r in compare.checked_runs()] == [1, 2]
 
 
 def test_the_stale_banner_shows_only_over_run_views(window):

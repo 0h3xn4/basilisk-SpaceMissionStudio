@@ -156,3 +156,37 @@ def test_the_window_fits_1280_by_720_after_a_comparison(app_theme, window, qtbot
     assert hint.width() <= 1280 and hint.height() <= 720, hint
     window.resize(1280, 720)  # [px]
     assert (window.width(), window.height()) == (1280, 720)
+
+
+def test_the_window_fits_1280_by_720_with_provenance_and_warning_lines(app_theme, window, qtbot):
+    """A real run's provenance line and a warning under the Results toolbar,
+    each one line at the window's width, after two runs. Before the fix
+    each counted as four or five lines in the window's minimum height
+    (Qt measures a wrapped label at its narrowest), and a session's second
+    run made the window 744 px tall."""
+    from spacemissionstudio.engine.results import ResultSet, RunProvenance, TimeSeries
+
+    window.show()
+    window.show_view(window.results_widget)
+    result = ResultSet(scenario_name="22 - Starter: your first LEO satellite",
+                       provenance=RunProvenance("3.0.0", "2.12.0", "2026-10-14T09:17:00+00:00", "rkf78", 30.0),
+                       warnings=["space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile "
+                                 "F10.7 and Ap"])
+    result.add(TimeSeries("my-sat.position_N", [0.0, 60.0], ("x", "y", "z"),  # [s]
+                          [[6928.0e3, 0.0, 0.0], [6927.0e3, 450.0e3, 0.0]], units="m"))  # [m]
+    window.results_widget.set_result(result, "2030-01-01T08:30:00")
+    window.run_history.add({"name": result.scenario_name}, result, "2030-01-01T08:30:00")
+    second = window.run_history.add({"name": result.scenario_name}, result, "2030-01-01T08:30:00")
+    window.results_widget.set_runs(window.run_history.runs, second)
+    assert window.results_widget.provenance_label.text() and window.results_widget.warnings_label.isVisibleTo(window)
+    qtbot.wait(100)  # [ms] let the layouts take in the new widgets before measuring
+
+    hint = window.minimumSizeHint()
+    assert hint.height() <= 720, hint
+    window.resize(1280, 720)  # [px]
+    assert (window.width(), window.height()) == (1280, 720)
+    rw = window.results_widget
+    for note in (rw.provenance_label, rw.warnings_label):
+        item = rw.layout().itemAt(rw.layout().indexOf(note))
+        assert item.minimumSize().height() <= 2 * note.fontMetrics().lineSpacing() + 4, note.text()  # [px]
+        assert note.height() >= note.fontMetrics().height()  # still shown in full at the window's width

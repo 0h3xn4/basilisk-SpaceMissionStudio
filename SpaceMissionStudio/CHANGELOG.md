@@ -123,6 +123,15 @@ fixes bugs.
   arrow keys move the time cursor from row to row. The events CSV (Events
   tab and `spacemissionstudio run`) gains one column per measured value,
   e.g. `max_elevation_deg`.
+- **A Compare tab, and runs saved to disk** (UX audit U-33, decision 5).
+  Every run is saved as it ends in `~/.spacemissionstudio/runs` (the
+  newest 20, at most 2 GB), so runs of earlier sessions can be compared
+  too. Tick two or more runs: a summary (delta-V, propellant, mean
+  semi-major axis change, lowest link margin and battery charge, passes,
+  eclipses, data downlinked) with a difference column per run, the inputs
+  that differ from the oldest ticked run, the events counted with their
+  total time, and one series of every run overlaid. **Delete run...**
+  removes a saved run.
 - **Runs are named and say how they went** (UX audit U-21 to U-23,
   U-39). Runs are numbered in the session ("Run 2, 12:19"): the status
   tag, the top bar, the plots' provenance line and, when comparing, every
