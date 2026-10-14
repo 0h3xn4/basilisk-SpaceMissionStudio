@@ -10482,3 +10482,62 @@ Six of them fail with `labelled` made a no-op; the seventh failed on the
 code before (41 fields without a title). Five tests in
 `test_field_errors.py` and `test_scenario_editor.py` that compared a banner
 or field line with the raw message now compare it with the labelled text.
+
+## The design system, written down: docs/DESIGN.md (2026-10-14)
+
+The standard's last step: a reference for the tokens, components, status
+colours and shortcuts. `docs/DESIGN.md` describes what the code does now,
+names the test behind each rule, and lists where the app still falls
+short of the standard rather than claiming it.
+
+**Contents.**
+
+- **Foundations:** the colour token table, both themes, with each token's
+  Carbon name and use; the status colours and what each means; the eight
+  series colours; type; layout measures; icons.
+- **Components:** each with its function or class and when to use it.
+- **Patterns:**
+  - messages (form labels in the GUI, the file's names in the CLI and
+    Log);
+  - which feedback to use when, and the toast durations;
+  - shortcuts, the shortcuts inside views, and the Tab order;
+  - themes, long operations, empty states.
+- **Rules for new code**, and how a change is checked.
+
+**Known gaps:**
+
+- tables are not one component yet (U-38), and their number formats
+  vary;
+- the JSON page uses the platform's fixed-width font;
+- there is no shortcut-sheet key;
+- spacing has no single scale;
+- the icons are not one set;
+- Vizard still has two actions (U-37).
+
+**Kept true by tests** (`tests/gui/test_design_rules.py`):
+
+- The token table must equal `theme.LIGHT` and `theme.DARK`, row for row.
+- The shortcut table must equal the menus' shortcuts, submenus included.
+- No module in `gui/` but `theme.py` may hold a colour literal (#rrggbb,
+  #rgb, rgb()) or name a Qt colour. The exceptions are listed in the
+  test with their reasons:
+  - the app icon's own colours;
+  - a user-picked 3D part colour and the black or white text on it;
+  - the 3D view's x/y/z body axes.
+
+  None of them is UI chrome. Before this, "no new hard-coded colours"
+  was checked only at run time, for the dark theme's stylesheets. The
+  scan reads Python 3.12's f-string tokens too.
+
+Each of the three fails when its side is changed (a token value, a
+removed shortcut row, a `#123456` added to a module) and passes again
+once restored.
+
+**Corrections made on the way**, after checking the first draft against
+the code:
+
+- the command palette finds the menus' commands but not those in
+  submenus;
+- the "has a problem" empty state is Explain's;
+- a validation message box is guarded by
+  `test_messages.py::test_no_information_warning_or_critical_message_box_is_left`.

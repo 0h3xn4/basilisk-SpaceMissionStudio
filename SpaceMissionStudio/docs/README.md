@@ -47,6 +47,8 @@ to do. New here? Start with **Getting started**.
 | [Contributing](../CONTRIBUTING.md) | How to propose a change |
 | [Developer guide](developer/README.md) | Set up, run the tests and the linter, regenerate generated files |
 | [Architecture](developer/architecture.md) | The layers, how a run flows, where things live |
+| [Design system](DESIGN.md) | Colour tokens in both themes, type, layout, components, message and keyboard patterns, and the rules new GUI code follows |
+| [UX/UI standard](ux-standard.md) and [UX audit](ux-audit.md) | The goals for the interface, and the findings and changes made against them |
 | [Releasing](developer/releasing.md) | Version numbers, checks, building the packages |
 | [Keeping up with upstream Basilisk](developer/upstream-sync.md) | Merging upstream, refreshing the root README's upstream part |
 | [Development log](../HISTORY.md) | Why everything is the way it is, change by change |
