@@ -8,7 +8,7 @@
 A desktop app for planning and simulating satellite missions, built on
 the Basilisk astrodynamics framework.
 
-![The Scenario Editor with template 22 loaded; the Explain tab on the right summarises the orbit, the environment and the predicted ground passes](docs/images/scenario_editor_tab.png)
+![The Scenario tab with template 22 loaded; the Explain page on the right summarises the orbit, the environment and the predicted ground passes](docs/images/scenario_editor_tab.png)
 
 ## What it is
 
@@ -19,7 +19,7 @@ Colorado Boulder); SpaceMissionStudio adds the windows, scenario files,
 plots, checks and analysis around it. Each feature maps to a Basilisk
 module, or is marked as the tool's own code.
 
-Start from one of 27 template missions (a single orbit, a GEO slot, a
+Start from one of 28 template missions (a single orbit, a GEO slot, a
 formation, a complete small satellite with power and a radio link), or
 build your own, then look at orbits, ground passes, eclipses, pointing,
 battery, link margin, lifetime and propellant.
@@ -107,8 +107,8 @@ Details, and the Basilisk module behind each feature:
 | Disk | About 1.6 GB, including the reference data |
 | Internet | Once, to install and fetch the reference data |
 
-Installers (a Linux `.deb` and a Windows setup program) and install
-scripts are in [`packaging/`](packaging/README.md).
+The Linux `.deb`, the install scripts and the Windows setup script
+(not yet released) are in [`packaging/`](packaging/README.md).
 
 ## Licence and status
 

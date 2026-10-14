@@ -49,7 +49,7 @@ On macOS, `Cmd` replaces `Ctrl`.
 - **Set Record every** for runs longer than a few weeks, or the results
   fill memory.
 - **Hover a field** for a short explanation; the message at the bottom of
-  the Scenario Editor names the field to fix when something is invalid.
+  the Scenario tab names the field to fix when something is invalid.
 - **Write series names in your scenario's description** under "What to
   look at": they appear as **Suggested** buttons on the Results tab.
 
@@ -73,10 +73,11 @@ On macOS, `Cmd` replaces `Ctrl`.
 | Scenario | JSON (`.json`) | File > Open..., `spacemissionstudio` commands |
 | TLE | Two text lines, pasted | Spacecraft page, Orbit / mass |
 | Orbit messages | CCSDS OPM, OMM (KVN text) | `ccsds-import`, `ccsds-validate` |
-| Space weather | CelesTrak CSV or TXT | Data > Import file..., Scenario tree > Environment |
+| Space weather | CelesTrak CSV or TXT | Reference data > Import file..., Scenario tree > Environment |
 | Solar-activity prediction | NASA MSFC table (`.txt`) | Scenario tree > Environment |
-| Earth orientation | NAIF Earth PCK (`.bpc`, `.cmt`) | Data > Import file..., `earth-orientation --import` |
-| 3D model | Wavefront OBJ (`.obj`) | Spacecraft page, Vizard model |
+| Earth orientation | NAIF Earth PCK (`.bpc`, `.cmt`) | Reference data > Import file..., `earth-orientation --import` |
+| 3D model | Wavefront OBJ (`.obj`, with its `.mtl`) | 3D Model... > Import .obj..., Spacecraft page > Vizard model |
+| Mass properties | JSON or CSV | 3D Model... > Mass properties > Import file... |
 | Flight-software program | An executable speaking the SIL contract | Run in SIL mode, `sil --binary` |
 
 **Writes**
@@ -92,10 +93,11 @@ On macOS, `Cmd` replaces `Ctrl`.
 | Orbit messages | CCSDS OPM, OEM (KVN text) | `ccsds-export`, `run --oem` |
 | Vizard playback | `.bin` | Vizard Configuration..., `run --vizard-save-file` |
 | Monte Carlo batch | `batch_results.npz` and `.json`, plus Basilisk's archive | Run in Monte Carlo mode, `monte-carlo --archive-dir` |
-| Monte Carlo table | CSV | Monte Carlo > Export table CSV... |
-| Budget | CSV on the clipboard | Budget > Copy as CSV |
-| Flight software | A C project with CMake, `ICD.md`, `TRACEABILITY.md`, `manifest.json` | Flight Software > Export..., `export-fsw` |
-| SIL report | JSON and CSV | Flight Software > Save report..., `sil --report` |
+| Monte Carlo table | CSV | Results > Monte Carlo > Export table CSV... |
+| Budget | CSV on the clipboard | Analyses > Budget > Copy as CSV |
+| 3D model | Wavefront OBJ and `.mtl` | 3D Model... > Export .obj..., `model --export-obj` |
+| Flight software | A C project with CMake, `ICD.md`, `TRACEABILITY.md`, `manifest.json` | Tools > Flight Software > Export..., `export-fsw` |
+| SIL report | JSON and CSV | Tools > Flight Software > Save report..., `sil --report` |
 | Logs | Text | `~/.spacemissionstudio/logs/` |
 
 ## Other tools

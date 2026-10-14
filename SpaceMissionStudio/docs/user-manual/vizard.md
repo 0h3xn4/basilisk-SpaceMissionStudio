@@ -44,8 +44,9 @@ spacemissionstudio run scenario.json --out-dir out --vizard-live-stream
 
 Live streaming and playback files are limited to runs of up to 100 days.
 Vizard shows the RF link and the Mission Dashboard values for a
-comms-pointing spacecraft (template 19). A spacecraft's own 3D model can
-be set on the spacecraft page's **Vizard model** tab.
+comms-pointing spacecraft (template 19). A spacecraft's own look comes
+from its [3D model](3d-model.md), or from a model file set on the
+spacecraft page's **Vizard model** tab.
 
 **More detail:** User Manual section 9,
 [3D visualization with Vizard](../../USER_MANUAL.md#9-3d-visualization-with-vizard).

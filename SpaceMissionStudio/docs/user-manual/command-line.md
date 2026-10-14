@@ -53,7 +53,7 @@ Useful `run` options:
 
 ```console
 $ spacemissionstudio lifetime spacemissionstudio/scenarios/templates/22_starter_first_leo_satellite.json
-My-sat: re-entry 2047-04-07, 17.26 years from 2030-01-01
+my-sat: re-entry 2047-04-07, 17.26 years from 2030-01-01
   5-year rule: not met
   25-year guideline: met
 WARNING: space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap

@@ -9,7 +9,7 @@ or build one up from an empty scenario.
    (one satellite, orbit only) or **23 - Starter: a complete small
    satellite** (sensors, wheels, power and a radio link).
 2. **File > Save As...** and give it your own name.
-3. Change what you need in the **Scenario Editor**. Each template's
+3. Change what you need in the **Scenario** tab. Each template's
    description says what to change first.
 
 ## From an empty scenario
