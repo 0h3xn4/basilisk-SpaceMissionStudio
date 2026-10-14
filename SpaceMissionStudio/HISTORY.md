@@ -10114,10 +10114,14 @@ a click, and most said something routine.
 **Routine outcomes and failures** go through the new `feedback.report(widget,
 text, kind)`: the whole text goes to the Log (logger
 `spacemissionstudio.gui`, at error, warning or info level), a toast on the
-widget's window shows its first line (cut at 160 characters, with "(more
-in the Log)" when an error or a warning has more lines) and the status
-bar shows it when the window is the main window. Without a widget it only
-logs. Errors and warnings stay up 6 s, information 4.5 s, a success 3 s.
+widget's window shows its first line (with "(more in the Log)" when an
+error or a warning has more lines) and the status bar shows it when the
+window is the main window. Without a widget it only logs. Errors and
+warnings stay up 6 s, information 4.5 s, a success 3 s. The first line is
+never cut: CI on macOS, whose temporary folders give long paths, showed
+that a 160-character cut took the file name off "Exported ... to <path>";
+instead the toast breaks a path after its separators (a zero-width space,
+shown only), so it wraps inside the toast's 360 px.
 `_report_run_problem` (4b) is unchanged.
 
 **Input a dialog refuses** is shown in the dialog:
@@ -10148,7 +10152,7 @@ is a Log line and a 10 s toast.
 Tests: `tests/gui/test_messages.py` (no information, warning or critical
 box left in `gui/`, `report` to the toast, the status bar and the Log,
 `report` without a window, the dialog error line above the buttons and
-cleared, a generator dialog that refuses OK, the Discard wording). The
+cleared, a generator dialog that refuses OK, the Discard wording, a long path reported whole and wrapped in the toast). The
 tests that checked a message box's text now check the toast (a new
 `reported` fixture in `tests/gui/conftest.py`) or the dialog's error line
 (`feedback.dialog_error_text`); the same checks, none removed.

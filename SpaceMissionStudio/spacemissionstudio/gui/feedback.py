@@ -61,6 +61,7 @@ GUI-chrome dependency beyond PySide6 itself" precedent (see theme.py).
 from __future__ import annotations
 
 import logging
+import re
 from typing import List, Optional
 
 from PySide6.QtCore import QTimer, Signal
@@ -91,7 +92,10 @@ class _Toast(QLabel):
     """Not meant to be constructed directly -- see :func:`show_toast`."""
 
     def __init__(self, parent: QWidget, message: str, kind: str) -> None:
-        super().__init__(message, parent)
+        # A long path has no space to wrap at: a zero-width space after each
+        # separator lets it wrap inside the toast's width (shown only; the
+        # message itself is unchanged).
+        super().__init__(re.sub(r"([/\\])", "\\1\u200b", message), parent)
         bg, rule = _TOAST_KIND_COLORS.get(kind, _TOAST_KIND_COLORS["info"])
         self.setStyleSheet(
             f"background-color: {bg}; color: {PALETTE['text']}; border: none; border-left: 3px solid {rule}; "
@@ -165,13 +169,11 @@ def report(widget: Optional[QWidget], text: str, kind: str = "error") -> None:
     With no widget, only the Log."""
     _logger.log(_REPORT_LOG_LEVELS.get(kind, logging.INFO), "%s", text)
     first = text.strip().splitlines()[0] if text.strip() else text
-    short = first if len(first) <= 160 else first[:157] + "..."
     if widget is None or not isValid(widget):
         return
     window = widget.window()
-    if "\n" in text.strip() and kind in ("error", "warning"):
-        short += " (more in the Log)"
-    show_toast(window, short, kind=kind, duration_ms=_REPORT_TOAST_MS.get(kind, 3000))
+    shown = first + (" (more in the Log)" if "\n" in text.strip() and kind in ("error", "warning") else "")
+    show_toast(window, shown, kind=kind, duration_ms=_REPORT_TOAST_MS.get(kind, 3000))
     if isinstance(window, QMainWindow):
         window.statusBar().showMessage(first)
 
