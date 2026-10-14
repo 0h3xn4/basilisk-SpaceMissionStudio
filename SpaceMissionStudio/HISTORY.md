@@ -10364,3 +10364,45 @@ The test now raises and activates the window and waits until it is
 active before sending the keys, as the Results export tests already do.
 The keys themselves are unchanged: in use the app's window is the active
 one.
+
+## UX iteration 7c: the window at 2560 x 1440 (2026-10-14)
+
+The standard's acceptance includes 2560 x 1440. Every view and every page
+of the Scenario tree was captured at that size, in the light and the dark
+theme, with templates 07 (full attitude) and 22 (orbit only).
+
+**What was wrong.** Pages, plots and tables filled the screen as they
+should, but forms did too: on a page about 1500 px wide, a name field, a
+mode list or a spin box was 1500 px long, its label at the far left and
+its value's end far off to the right (Scenario, Environment, a
+spacecraft's and a station's pages, Monte Carlo, End of Life). The
+Scenario form's four rows were spread over the page's height, 150 px
+apart. Add / Edit / Remove under a list each took a third of the page.
+In the template list, a row's Customize... sat 1400 px from its title.
+The plot list on Results stayed 250 px wide, cutting most plot names
+short with 2000 px of plots beside it.
+
+**The fix.** One width, `theme.CONTENT_MAX_WIDTH_PX` (960 px), the most
+a form, a list editor or the template list and its description grow;
+they keep the left edge, and below 960 px nothing changes. The Scenario
+tree's pages get it in `_page()`, which also packs the Scenario form at
+the top (`top=True`); the embedded Environment, spacecraft and station
+forms get it where they are embedded; End of Life puts its settings in a
+capped holder and keeps the plot full width. The template list's cap is
+on a holder around its splitter: a `QSplitter` sets its own maximum size
+from its children's, so a cap on the splitter itself is undone. The list
+editors' button rows end in a stretch. The plot list is 16 % of the
+Results pane, 250 to 400 px, on every resize until the user drags the
+divider (`splitterMoved` comes from drags only); a first attempt sized it
+once on the first show, but in the main window that comes before the
+page is laid out, at the splitter's 900 px default.
+
+Plots, tables, the event timeline, the JSON view, Compare and the model
+editor keep the full width. At 1280 x 720 the pages are narrower than
+960 px and look as before (re-captured).
+
+Tests: `tests/gui/test_wide_screen.py` (forms and the End of Life
+settings within the width, its plot wider; the Scenario rows together at
+the top; list buttons under 200 px; Customize... within the template
+list; the plot list at 1000 and 2200 px, and a dragged width kept). Each
+fails on the code before the fix.

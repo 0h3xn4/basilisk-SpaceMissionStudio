@@ -86,7 +86,7 @@ import spacemissionstudio
 from ..schema import load_scenario
 from .template_wizard import TemplateCustomizeWizard, get_wizard_spec
 from .feedback import report
-from .theme import PALETTE
+from .theme import CONTENT_MAX_WIDTH_PX, PALETTE
 
 _logger = logging.getLogger(__name__)
 
@@ -262,7 +262,15 @@ class LoadScenarioWidget(QWidget):
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 1)
         splitter.setSizes([300, 360])  # roughly half each; the divider stays draggable
-        layout.addWidget(splitter, 1)
+        # A row's "Customize..." stays next to its title, and the
+        # description's lines readable, on a wide screen. The cap is on a
+        # holder: a splitter sets its own maximum size from its children's.
+        holder = QWidget()
+        holder_layout = QVBoxLayout(holder)
+        holder_layout.setContentsMargins(0, 0, 0, 0)
+        holder_layout.addWidget(splitter)
+        holder.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
+        layout.addWidget(holder, 1)
 
         self.list_widget.currentItemChanged.connect(self._on_selection_changed)
         self.list_widget.itemDoubleClicked.connect(lambda _item: self._on_open_template_clicked())

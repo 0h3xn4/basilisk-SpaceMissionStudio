@@ -200,6 +200,8 @@ _SERIES_COLORS = list(SERIES_COLORS)
 # IBM Plex Sans from the bundled file (an @font-face in _page_style()): the
 # chart page cannot see fonts loaded into Qt.
 _NOTE_MIN_WIDTH_PX = 360  # [px] the narrowest the wrapped notes under the toolbar get
+_CATALOG_WIDTH_PX = (250, 400)  # [px] the plot list's narrowest and widest width before a drag
+_CATALOG_WIDTH_SHARE = 0.16  # [-] its share of the pane until the user drags it (~350 px at 2560 px)
 _FONT_FAMILY = "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"
 
 # Fixed ids (rather than Plotly's own randomly-generated default) so
@@ -634,12 +636,27 @@ class ResultsWidget(QWidget):
         self.splitter.setStretchFactor(0, 0)
         self.splitter.setStretchFactor(1, 1)
         self.splitter.setCollapsible(1, False)
-        self.splitter.setSizes([250, 650])  # [px]
+        self.splitter.setSizes([_CATALOG_WIDTH_PX[0], 650])  # [px]
+        # The list follows the pane's width (resizeEvent) until the user
+        # drags the divider; splitterMoved comes from drags only.
+        self._catalog_dragged = False
+        self.splitter.splitterMoved.connect(self._on_catalog_dragged)
         # stretch=1: the one widget in this column that should claim all
         # leftover vertical space -- see provenance_label's own comment.
         layout.addWidget(self.splitter, stretch=1)
         self._update_event_buttons()
         self._redraw()  # shows the empty-state message immediately, not just after the first set_result() call
+
+    def resizeEvent(self, event):  # noqa: N802 -- Qt API name
+        super().resizeEvent(event)
+        total = sum(self.splitter.sizes())  # [px]
+        if not self._catalog_dragged and total > 0:
+            # At 2560 px a 250 px list cut most plot names short.
+            wanted = min(max(int(total * _CATALOG_WIDTH_SHARE), _CATALOG_WIDTH_PX[0]), _CATALOG_WIDTH_PX[1])  # [px]
+            self.splitter.setSizes([wanted, total - wanted])
+
+    def _on_catalog_dragged(self, _pos: int, _index: int) -> None:
+        self._catalog_dragged = True
 
     # -- the result ---------------------------------------------------------
 

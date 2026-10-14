@@ -143,6 +143,12 @@ fixes bugs.
   tick boxes. System follows the desktop's light or dark setting. The
   choice is kept in `~/.spacemissionstudio/settings.ini` and applies at
   the next start.
+- **Wide screens** (2560 x 1440). Forms, list editors and the template
+  list stay at most 960 px wide instead of stretching across the page;
+  the Scenario page's fields stay together at the top; Add, Edit and
+  Remove under a list keep their own width; the plot list on Results
+  widens with the window (up to 400 px) until you drag its divider.
+  Plots, tables and the JSON view keep the full width.
 - **The Output view says why it is empty** after a run without Report
   steps, as it does before the first run (it was blank).
 - **A spacecraft's tabs are nodes of the scenario tree** (UX audit
