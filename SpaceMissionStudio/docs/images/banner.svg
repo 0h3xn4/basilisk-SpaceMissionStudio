@@ -1,12 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="960" height="160" viewBox="0 0 960 160" role="img" aria-labelledby="t d">
   <title id="t">SpaceMissionStudio</title>
-  <desc id="d">SpaceMissionStudio: satellite mission analysis on Basilisk. A satellite on an elliptical orbit around a planet.</desc>
+  <desc id="d">SpaceMissionStudio: satellite mission analysis on Basilisk. The app icon: a satellite with two solar panels and an antenna.</desc>
   <rect width="960" height="160" fill="#161616"/>
-  <g transform="translate(110 80)">
-    <ellipse cx="0" cy="0" rx="78" ry="34" fill="none" stroke="#4589ff" stroke-width="2" transform="rotate(-18)"/>
-    <circle cx="0" cy="0" r="22" fill="#0f62fe"/>
-    <circle cx="66" cy="-34" r="6" fill="#f4f4f4"/>
+  <!-- The app icon of gui/icons.py (_render), on its 256 px grid: rotated -32 deg, panels 58 x 96, body 46 x 46, gap 7. -->
+  <g transform="translate(110 80) rotate(-32) scale(0.66)">
+    <rect x="-88" y="-48" width="58" height="96" rx="5" fill="#0F62FE"/>
+    <rect x="30" y="-48" width="58" height="96" rx="5" fill="#0F62FE"/>
+    <g stroke="#002D9C" stroke-width="1.5">
+      <line x1="-86" y1="-16.32" x2="-32" y2="-16.32"/>
+      <line x1="-86" y1="15.36" x2="-32" y2="15.36"/>
+      <line x1="32" y1="-16.32" x2="86" y2="-16.32"/>
+      <line x1="32" y1="15.36" x2="86" y2="15.36"/>
+    </g>
+    <rect x="-23" y="-23" width="46" height="46" rx="9" fill="#CFB87C"/>
+    <line x1="-20" y1="0" x2="20" y2="0" stroke="#A88F53" stroke-width="1.4"/>
+    <line x1="0" y1="-23" x2="0" y2="-45" stroke="#002D9C" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="0" cy="-45" r="5" fill="#002D9C"/>
   </g>
   <text x="230" y="78" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif" font-size="44" font-weight="600" fill="#f4f4f4">SpaceMissionStudio</text>
-  <text x="232" y="114" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif" font-size="20" fill="#c6c6c6">Satellite mission analysis, built on the Basilisk astrodynamics framework</text>
+  <text x="232" y="114" font-family="IBM Plex Sans, Helvetica, Arial, sans-serif" font-size="19" fill="#c6c6c6">Satellite mission analysis, built on the Basilisk astrodynamics framework</text>
 </svg>

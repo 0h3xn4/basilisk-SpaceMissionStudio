@@ -10730,3 +10730,15 @@ branch holds only Basilisk's own documentation under `develop/` (built
 by Basilisk's `merge.yml`) and has no `index.html` at its root, so the
 link most likely shows a 404 (the site could not be opened from the
 session to confirm). The link is a repository setting for the owner.
+
+## The banner's logo (2026-10-14)
+
+The user asked why the logo in the README banner is wrong. The banner
+(`docs/images/banner.svg`, drawn with the fork-layout README) still
+showed the first app icon: a planet inside a tilted orbit ellipse with a
+dot on the ring. `gui/icons.py` replaced that design with a satellite
+(gold body, two blue solar panels with grid lines, an antenna) because
+at small sizes the ring and dot read as a cartoon eye; the banner was not
+updated with it. The banner now draws the app icon from the same 256 px
+grid, angle and colours as `icons._render` (checked by rendering both).
+Its subtitle, which ran to about 958 of the 960 px, is a point smaller.
