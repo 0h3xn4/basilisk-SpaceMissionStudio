@@ -132,6 +132,11 @@ fixes bugs.
   that differ from the oldest ticked run, the events counted with their
   total time, and one series of every run overlaid. **Delete run...**
   removes a saved run.
+- **The time cursor from the keyboard** (Results tab, View > Time
+  Cursor): Alt+Right and Alt+Left move it a sample (with Shift, ten),
+  Alt+PgDown and Alt+PgUp to the next or previous event, Alt+Home and
+  Alt+End to the start and end of the run; Run > Clear Time Cursor is
+  Alt+Backspace. Help > Keyboard Shortcuts now lists submenus' commands.
 - **A dark theme** (View > Theme: System, Light or Dark). Carbon's g100
   colours throughout: the window, the forms, the tables, the badges,
   toasts and problem lines, the plots and the 3D view, the icons and the

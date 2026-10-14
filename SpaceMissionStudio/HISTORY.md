@@ -10313,3 +10313,39 @@ was; `select_palette` fills the one dict; the setting and System; the
 recoloured glyphs, the tick dark on dark; no light colour in a dark
 window, badges and the chart page dark; View > Theme stores the choice
 and says when it applies).
+
+## UX iteration 7b: the time cursor from the keyboard (2026-10-14)
+
+The second part of the polish pass: the standard asks that every view
+work from the keyboard. Only one thing did not: the Results plots set the
+time cursor by a click only (the Events table already moved it with the
+arrow keys).
+
+**The commands.** `ResultsWidget.cursor_actions`, shortcuts while Results
+has the focus (`WidgetWithChildrenShortcut`, so they reach it from the
+catalog, the readout or the plot page) and listed under View > Time
+Cursor: Next and Previous Sample (Alt+Right, Alt+Left), Ten Samples On
+and Back (with Shift), Next and Previous Event (Alt+PgDown, Alt+PgUp: the
+start of the next event of a kind shown on the plots) and Start and End
+of the Run (Alt+Home, Alt+End). A sample is one of the selected plot's
+series; from no cursor, Next Sample goes to the first and Previous Sample
+to the last. Clearing it stays Run > Clear Time Cursor, which now has
+Alt+Backspace; a second "clear" in the new menu was dropped. The readout
+says "click a plot or press Alt+Right to set the cursor".
+
+**Help > Keyboard Shortcuts** listed the menus' own commands only; it now
+looks into submenus, so the cursor's keys are listed.
+
+**Tab order.** A script walked the Tab chain of Templates, the Scenario
+page, a spacecraft's page, Results, Events, Log, End of Life and Budget
+with template 22 open at 1280 x 720: every visible field, button and list
+was in the chain, none came after a widget well below it, and the only
+widgets Tab skips are table headers, which Qt leaves out of the chain by
+design. Toolbar buttons are not in the chain (Qt's default); every
+toolbar command is in a menu.
+
+Tests: `tests/gui/test_keyboard_cursor.py` (stepping a sample and ten,
+held at the ends, from no cursor forward and back; from event to event;
+the keys reaching the cursor from a widget inside Results; the menu and
+the shortcut list). The workspace test's View menu list gains Time
+Cursor.

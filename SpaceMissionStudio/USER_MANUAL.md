@@ -865,9 +865,13 @@ which events are in progress, the Dashboard shows the values at
 that moment instead of the end of the run, and the Output marks the
 last report before it (click a report's column header to jump there). A
 table row on the Events tab (clicked, or reached with the arrow keys)
-moves the cursor to that event's start. The
-status bar shows the cursor's time; **Run > Clear Time Cursor** (or Esc
-on the Events tab) clears it. A saved PNG or SVG includes the line if
+moves the cursor to that event's start. From the keyboard, on the
+Results tab (**View > Time Cursor**): **Alt+Right** and **Alt+Left** move
+it one sample, with **Shift** ten samples, **Alt+PgDown** and
+**Alt+PgUp** to the next or previous event, **Alt+Home** and **Alt+End**
+to the start and end of the run. The
+status bar shows the cursor's time; **Run > Clear Time Cursor**
+(**Alt+Backspace**, or Esc on the Events tab) clears it. A saved PNG or SVG includes the line if
 it is showing.
 
 The **Reference data** dialog (the status bar's reference data entry,

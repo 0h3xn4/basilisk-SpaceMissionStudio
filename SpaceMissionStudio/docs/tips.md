@@ -23,7 +23,9 @@ On macOS, `Cmd` replaces `Ctrl`.
 | `F1` | User Manual |
 | `Ctrl+Z` / `Ctrl+Shift+Z` (`Ctrl+Y` on Windows) | Undo / redo a scenario edit |
 | `Ctrl+N`, `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S` | New, Open, Save, Save As |
-| `Esc` on the Events tab | Clear the time cursor |
+| `Esc` on the Events tab, `Alt+Backspace` anywhere | Clear the time cursor |
+| `Alt+Right` / `Alt+Left` on the Results tab (with `Shift`: ten) | Move the time cursor a sample |
+| `Alt+PgDown` / `Alt+PgUp`, `Alt+Home` / `Alt+End` on the Results tab | The time cursor to the next or previous event, or the run's start or end |
 
 **Help > Keyboard Shortcuts** lists them all in the app.
 
