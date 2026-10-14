@@ -68,9 +68,13 @@ time cursor from event to event.
 ## Look at one moment
 
 Click a plot, or click on the **Events** timeline, to set the **time
-cursor**. A red line marks it on every view; the Events tab says what is
-in progress then, and Mission Dashboard shows the values at that moment.
-**Run > Clear Time Cursor** removes it.
+cursor**, or press **Alt+Right** on the Results tab. A red line marks it
+on every view; the Events tab says what is in progress then, and Mission
+Dashboard shows the values at that moment. On the Results tab
+**Alt+Left**/**Alt+Right** move it a sample (with **Shift**, ten),
+**Alt+PgUp**/**Alt+PgDown** to the previous or next event, and
+**Alt+Home**/**Alt+End** to the run's start or end (**View > Time
+Cursor**). **Run > Clear Time Cursor** (**Alt+Backspace**) removes it.
 
 ## Save what you see
 

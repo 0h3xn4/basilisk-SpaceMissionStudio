@@ -634,6 +634,7 @@ class MainWindow(QMainWindow):
         run_menu.addSeparator()
         clear_cursor_action = QAction("Clear &Time Cursor", self)
         clear_cursor_action.setToolTip("Clears the shared time cursor; the views show the end of the run again.")
+        clear_cursor_action.setShortcut(QKeySequence("Alt+Backspace"))
         clear_cursor_action.triggered.connect(self.time_cursor.clear)
         run_menu.addAction(clear_cursor_action)
         self.clear_cursor_action = clear_cursor_action
@@ -688,6 +689,11 @@ class MainWindow(QMainWindow):
         reset_layout_action.triggered.connect(self.reset_layout)
         view_menu.addAction(reset_layout_action)
         self.reset_layout_action = reset_layout_action
+        # The Results time cursor from the keyboard (its shortcuts work
+        # while Results has the focus).
+        cursor_menu = view_menu.addMenu("Time &Cursor")
+        for action in self.results_widget.cursor_actions:
+            cursor_menu.addAction(action)
         # The theme: the palette is read when widgets are built, so a new
         # choice applies at the next start (gui/theme.py).
         theme_menu = view_menu.addMenu("&Theme")
@@ -982,8 +988,15 @@ class MainWindow(QMainWindow):
     def on_keyboard_shortcuts(self) -> None:
         from .help_dialog import ShortcutsDialog
 
+        def walk(menu):  # submenus too (View > Time Cursor)
+            for action in menu.actions():
+                if action.menu() is not None:
+                    yield from walk(action.menu())
+                else:
+                    yield action
+
         actions = [action for menu_action in self.menuBar().actions() if menu_action.menu() is not None
-                   for action in menu_action.menu().actions()]
+                   for action in walk(menu_action.menu())]
         ShortcutsDialog(actions, self).exec()
 
     def on_about(self) -> None:

@@ -228,11 +228,11 @@ def test_the_layout_is_kept_and_reset(qtbot, monkeypatch):
 
 def test_the_view_analyses_and_tools_menus(window):
     """View shows and hides the side panel, opens each of its pages and
-    holds the Theme; Analyses and Tools open their pages; Tools >
+    holds the Time Cursor moves and the Theme; Analyses and Tools open their pages; Tools >
     Reference Data opens the dialog."""
     menus = {action.text(): action.menu() for action in window.menuBar().actions() if action.menu()}
     view = [a.text() for a in menus["&View"].actions() if a.text()]
-    assert view == ["&Side Panel", "&Inspector", "E&xplain", "&Problems", "&Reset Layout", "&Theme"]
+    assert view == ["&Side Panel", "&Inspector", "E&xplain", "&Problems", "&Reset Layout", "Time &Cursor", "&Theme"]
 
     def trigger(menu, label):
         next(a for a in menus[menu].actions() if a.text() == label).trigger()

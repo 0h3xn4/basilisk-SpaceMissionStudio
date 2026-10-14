@@ -154,7 +154,7 @@ import numpy as np
 
 import plotly.graph_objects as go
 from PySide6.QtCore import QElapsedTimer, QSettings, Qt, QTimer, QUrl, Signal
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QComboBox,
@@ -419,6 +419,7 @@ class ResultsWidget(QWidget):
         self._epoch_utc: Optional[str] = None
         self.figures: list = []  # the plotted go.Figure of each grid cell, in order
         self._time_cursor = None  # gui.time_cursor.TimeCursor, set by set_time_cursor()
+        self.cursor_actions = self._build_cursor_actions()
         self._x_is_epoch = False  # the shown figures' x axis is UTC (else elapsed hours or orbit number)
         self._png_poll_state: Optional[dict] = None  # set by _on_save_plot_png, read by _poll_plot_png
         self._live_redraw_elapsed = QElapsedTimer()  # throttles set_live_result()'s own redraws -- see
@@ -1410,6 +1411,83 @@ class ResultsWidget(QWidget):
         cursor.changed.connect(lambda _t: self._on_cursor_moved())
         self.apply_cursor_line()
 
+    # The time cursor from the keyboard (docs/ux-standard.md, keyboard-only
+    # use): a step is one sample of the selected plot's series.
+    _CURSOR_KEYS = (
+        ("Next Sample", "Alt+Right", "step_cursor", 1),
+        ("Previous Sample", "Alt+Left", "step_cursor", -1),
+        ("Ten Samples On", "Alt+Shift+Right", "step_cursor", 10),
+        ("Ten Samples Back", "Alt+Shift+Left", "step_cursor", -10),
+        ("Next Event", "Alt+PgDown", "cursor_to_event", 1),
+        ("Previous Event", "Alt+PgUp", "cursor_to_event", -1),
+        ("Start of the Run", "Alt+Home", "cursor_to_end", -1),
+        ("End of the Run", "Alt+End", "cursor_to_end", 1),
+    )  # Run > Clear Time Cursor (Alt+Backspace, MainWindow) clears it
+
+    def _build_cursor_actions(self) -> list:
+        """The time cursor's keyboard commands: shortcuts while Results has
+        the focus (MainWindow lists them under View > Time Cursor)."""
+        actions = []
+        for text, keys, method, amount in self._CURSOR_KEYS:
+            action = QAction(text, self)
+            action.setShortcut(QKeySequence(keys))
+            action.setShortcutContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+            action.setData((method, amount))
+            action.triggered.connect(self._on_cursor_action)
+            self.addAction(action)
+            actions.append(action)
+        return actions
+
+    def _on_cursor_action(self) -> None:
+        method, amount = self.sender().data()
+        getattr(self, method)(amount)
+
+    def _cursor_times(self) -> np.ndarray:
+        """The sample times [s] the cursor steps through: the selected
+        plot's series (the first shown series for the access timeline)."""
+        result = self._result
+        if result is None:
+            return np.zeros(0)
+        focused = self._shown[self._focused] if 0 <= self._focused < len(self._shown) else None
+        candidates = [focused, *self._shown, *result.series]
+        name = next((n for n in candidates if n in result.series), None)
+        return np.asarray(result.series[name].time_s, dtype=float) if name is not None else np.zeros(0)
+
+    def step_cursor(self, steps: int) -> None:
+        """Move the cursor ``steps`` samples (back when negative); with no
+        cursor, put it on the first sample (or the last, going back)."""
+        times = self._cursor_times()
+        if self._time_cursor is None or not len(times):
+            return
+        now = self._time_cursor.time_s
+        if now is None:
+            index = 0 if steps > 0 else len(times) - 1
+        else:
+            index = int(np.argmin(np.abs(times - now))) + steps
+        self._time_cursor.set_time(float(times[min(max(index, 0), len(times) - 1)]))
+
+    def cursor_to_end(self, direction: int) -> None:
+        """The cursor to the run's first sample (``direction`` < 0) or last."""
+        times = self._cursor_times()
+        if self._time_cursor is not None and len(times):
+            self._time_cursor.set_time(float(times[0] if direction < 0 else times[-1]))
+
+    def cursor_to_event(self, direction: int) -> None:
+        """The cursor to the start of the next (or previous) event of the
+        kinds shown; from no cursor, the first (or last) event."""
+        if self._time_cursor is None:
+            return
+        starts = sorted({e.start_s for e in self._events() if e.kind not in self._hidden_kinds})
+        now = self._time_cursor.time_s
+        if direction > 0:
+            later = [t for t in starts if now is None or t > now + 1e-6]
+            target = later[0] if later else None
+        else:
+            earlier = [t for t in starts if now is None or t < now - 1e-6]
+            target = earlier[-1] if earlier else None
+        if target is not None:
+            self._time_cursor.set_time(float(target))
+
     def _on_cursor_moved(self) -> None:
         self.apply_cursor_line()
         self._update_readout()
@@ -1495,7 +1573,8 @@ class ResultsWidget(QWidget):
         """Every shown series' value at :meth:`readout_time_s` (U-25)."""
         time_s = self.readout_time_s()
         if time_s is None or self._result is None:
-            self.readout.show_rows("Readout: click a plot to set the cursor, or point at a plot", [])
+            self.readout.show_rows("Readout: click a plot or press Alt+Right to set the cursor, "
+                                   "or point at a plot", [])
             return
         source = "pointer" if self._hover_time_s is not None else "cursor"
         heading = f"At t = {time_s / 3600.0:.4f} h"
