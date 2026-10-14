@@ -9962,4 +9962,3 @@ readout at the cursor and the pointer, bands and their switch, the band
 cap, the layout kept per scenario, Export all in the real page, and the
 live run's events). The results tests that drove the Series and View
 boxes now drive the catalog (same checks; none removed).
-
