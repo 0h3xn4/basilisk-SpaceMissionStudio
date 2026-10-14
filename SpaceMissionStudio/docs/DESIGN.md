@@ -300,29 +300,38 @@ Help > Command Palette (Ctrl+K) finds, by name:
 - the templates;
 - the plotted series.
 
-| Command | Keys |
-|---|---|
-| File > New Scenario | Ctrl+N |
-| File > Open... | Ctrl+O |
-| File > Save | Ctrl+S |
-| File > Save As... | Ctrl+Shift+S |
-| Edit > Undo | Ctrl+Z |
-| Edit > Redo | Ctrl+Y |
-| Run > Run | Ctrl+R |
-| Run > Cancel Run | Esc |
-| Run > Clear Time Cursor | Alt+Backspace |
-| View > Time Cursor > Next Sample | Alt+Right |
-| View > Time Cursor > Previous Sample | Alt+Left |
-| View > Time Cursor > Ten Samples On | Alt+Shift+Right |
-| View > Time Cursor > Ten Samples Back | Alt+Shift+Left |
-| View > Time Cursor > Next Event | Alt+PgDown |
-| View > Time Cursor > Previous Event | Alt+PgUp |
-| View > Time Cursor > Start of the Run | Alt+Home |
-| View > Time Cursor > End of the Run | Alt+End |
-| Help > User Manual | F1 |
-| Help > Command Palette... | Ctrl+K |
+Commands with a **standard key** take the platform's own key for it
+(Qt's `QKeySequence.StandardKey`), so their keys differ between systems.
+The table gives them as Qt binds them without a desktop theme (the CI's
+offscreen platform). On macOS, Redo is Ctrl+Shift+Z and Quit is Ctrl+Q
+(seen in CI). Qt's documentation gives Ctrl+Shift+Z for Redo on GNOME
+and KDE too.
 
-The table is checked against the menus by `tests/gui/test_design_rules.py`.
+| Command | Keys | Standard key |
+|---|---|---|
+| File > New Scenario | Ctrl+N | New |
+| File > Open... | Ctrl+O | Open |
+| File > Save | Ctrl+S | Save |
+| File > Save As... | Ctrl+Shift+S | SaveAs |
+| File > Quit | none | Quit |
+| Edit > Undo | Ctrl+Z | Undo |
+| Edit > Redo | Ctrl+Y | Redo |
+| Run > Run | Ctrl+R | - |
+| Run > Cancel Run | Esc | - |
+| Run > Clear Time Cursor | Alt+Backspace | - |
+| View > Time Cursor > Next Sample | Alt+Right | - |
+| View > Time Cursor > Previous Sample | Alt+Left | - |
+| View > Time Cursor > Ten Samples On | Alt+Shift+Right | - |
+| View > Time Cursor > Ten Samples Back | Alt+Shift+Left | - |
+| View > Time Cursor > Next Event | Alt+PgDown | - |
+| View > Time Cursor > Previous Event | Alt+PgUp | - |
+| View > Time Cursor > Start of the Run | Alt+Home | - |
+| View > Time Cursor > End of the Run | Alt+End | - |
+| Help > User Manual | F1 | - |
+| Help > Command Palette... | Ctrl+K | - |
+
+The table is checked against the menus by `tests/gui/test_design_rules.py`;
+a standard key is checked against the running platform's binding.
 
 **Shortcuts inside a view:**
 

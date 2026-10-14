@@ -10615,3 +10615,20 @@ download. A push now bundles a wheel built from the pushed commit, and a
 run started by hand defaults to `spacemissionstudio-v1.0.0`. The installer
 is not part of 1.0.0; the workflow still checks that it builds,
 installs and runs.
+
+**DESIGN.md's shortcut table and the platform's standard keys.** The
+macOS job on #68 failed `test_the_shortcut_table_matches_the_menus`
+there: Edit > Redo was Ctrl+Shift+Z, not the table's Ctrl+Y, and
+File > Quit had Ctrl+Q, which the table did not list. Both commands, and
+New, Open, Save, Save As and Undo, take the platform's standard key
+(`QKeySequence.StandardKey`), and Qt's documentation gives Ctrl+Shift+Z
+for Redo on GNOME and KDE too. So the table was right only for Qt
+without a desktop theme, as on the offscreen CI. The table now has a
+Standard key column; the test checks those rows against the running
+platform's first binding, and the other rows as written. Checked
+offscreen: the test passes; changing a fixed key, naming the wrong
+standard key, or dropping a fixed row makes it fail. The macOS case
+itself shows on the next macOS run. Also checked: Undo's standard
+bindings include Alt+Backspace offscreen, the key of Run > Clear Time
+Cursor, but `setShortcut` keeps only the first (Ctrl+Z), and
+Alt+Backspace clears the cursor.
