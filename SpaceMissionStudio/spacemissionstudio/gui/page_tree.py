@@ -27,17 +27,18 @@ page, so ``MainWindow.show_view`` finds pages through it.
 
 :func:`watch_edits` calls back on any edit in a form: a forms' fields'
 change signals, and the ``changed`` signal of custom widgets.
+:func:`embed_dialog` shows an editor dialog as a form inside a page.
 """
 
 from __future__ import annotations
 
 from typing import Callable, Dict, Iterator, List, Optional, Tuple
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import QEvent, QObject, Qt, Signal
 from PySide6.QtGui import QBrush, QColor
-from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QComboBox, QHBoxLayout, QLineEdit, QListWidget,
-                               QPlainTextEdit, QSplitter, QStackedWidget, QTableWidget, QTreeWidget,
-                               QTreeWidgetItem, QWidget)
+from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout,
+                               QHBoxLayout, QLineEdit, QListWidget, QPlainTextEdit, QSplitter, QStackedWidget,
+                               QTableWidget, QTreeWidget, QTreeWidgetItem, QWidget)
 
 from .theme import PALETTE
 
@@ -213,3 +214,26 @@ def watch_edits(root: QWidget, callback: Callable[[], None]) -> int:
                     connected += 1
                 break
     return connected
+
+
+class _EscapeFilter(QObject):
+    """An embedded dialog would close on Escape (QDialog.reject)."""
+
+    def eventFilter(self, _watched, event):  # noqa: N802 -- Qt API name
+        return event.type() == QEvent.Type.KeyPress and event.key() == Qt.Key.Key_Escape
+
+
+def embed_dialog(dialog: QDialog) -> None:
+    """Show ``dialog`` as a form inside a page: no window, no OK/Cancel."""
+    dialog.setWindowFlags(Qt.WindowType.Widget)
+    for box in dialog.findChildren(QDialogButtonBox):
+        if box.parentWidget() is dialog:
+            box.hide()
+    # A page is narrower than the dialog's window was (the tree and the side
+    # panel beside it, at 1280 px): a row too wide for it puts its field
+    # under its label instead of scrolling sideways.
+    for form in dialog.findChildren(QFormLayout):
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        form.invalidate()
+    dialog._escape_filter = _EscapeFilter(dialog)
+    dialog.installEventFilter(dialog._escape_filter)

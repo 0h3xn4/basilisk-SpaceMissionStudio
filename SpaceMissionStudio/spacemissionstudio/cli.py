@@ -66,7 +66,7 @@ from .schema.epochs import parse_epoch_utc
 from . import __version__, dependencies, output_provenance
 from .logging_setup import configure_logging
 from .schema import ScenarioValidationError, load_scenario
-from .schema.command import script_blocks
+from .schema.command import runs_sequence, script_blocks
 from .schema.scenario import PHASING_CONTROL_LAWS
 
 
@@ -184,7 +184,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     service = SimulationService(scenario, vizard_request=vizard_request)
     command_summary = None
     try:
-        if scenario.mission_sequence:
+        if runs_sequence(scenario.mission_sequence):
             # A non-empty mission_sequence takes over how far/how the sim
             # actually runs (propagate/maneuver/... commands drive
             # ConfigureStopTime()/ExecuteSimulation(), not a single

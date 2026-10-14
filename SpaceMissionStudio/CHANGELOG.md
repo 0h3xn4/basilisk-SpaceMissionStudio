@@ -77,7 +77,31 @@ fixes bugs.
   scenario from running until it is fixed. A node shows how many problems
   are about it. Edit... in the Spacecraft or Ground stations list goes to
   the node; Add..., the templates and the generators stay dialogs.
+- **The Mission Sequence as a list of sentences** (UX audit U-15). Each
+  step reads as what it does ("Propagate until sat-1's next pass over
+  berlin-gs starts"), with its kind's icon; the selected step is edited
+  in a form beside the list, applied as you type. Steps move by dragging
+  (into an `if`/`while` too) or with Move up/Move down (Alt+Up/Down);
+  Duplicate copies one with its children. A step with a problem is shown
+  in red and Problems opens it.
+- **Steps can be left out of the run.** Untick a step: it is skipped as
+  if it were not there (no script consent for it either), still checked
+  for problems, and saved as `"enabled": false`. Files without the field
+  load as before; a sequence with every step unticked runs for the set
+  duration.
+- **A JSON page** (UX audit U-16): the scenario as it is saved, editable.
+  An edit applies to the other pages, checked as when a file is opened;
+  an edit elsewhere shows there. Text that is not JSON is marked at its
+  line and keeps the scenario from running until it is fixed.
 **Fixed**
+- **A value from a file outside a field's range is no longer cut to the
+  range.** A station 12 000 m up showed, and on the next edit to its form
+  saved, 9000 m. The field now keeps the file's value until you change
+  it, is marked, and Problems says so. A value set in code before its
+  field's range was cut to 99.99 the same way; it no longer is.
+- **A problem in one form no longer hides the others.** With an edit
+  waiting to be fixed in one page, Problems listed only that one; it now
+  lists every problem, and the message under the editor says how many.
 - **Switching the orbit type no longer changes the orbit silently** (UX
   audit U-14). The type is a segmented control; picking another asks
   first, showing both sets of values: **Convert and switch** keeps the

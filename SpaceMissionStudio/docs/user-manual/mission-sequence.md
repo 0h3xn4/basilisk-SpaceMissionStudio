@@ -5,12 +5,23 @@ instead of one run of a fixed length.
 
 ## Add commands
 
-1. In the **Scenario Editor**, go to the **Mission sequence** section.
-2. **Add...** adds a command after the selected one; **Add Child...** adds
-   one inside an `if` or `while`. **Edit...**, **Remove** and **Move
-   Up/Down** do what they say.
-3. Run it as usual (**Run > Run Simulation**). The run follows the
+1. In the scenario tree, pick **Mission sequence**.
+2. **Add step** adds a command after the selected one; **Add inside**
+   adds one inside an `if` or `while`. Each step reads as a sentence, for
+   example "Propagate until sat-1's next pass over berlin-gs starts".
+3. Pick a step to edit it in the form beside the list; it applies as you
+   type. **Duplicate** and **Remove** do what they say. Drag a step to
+   move it, into an `if` or `while` too, or use **Move up**/**Move down**
+   (Alt+Up, Alt+Down).
+4. Untick a step to leave it out of the run. It stays in the file
+   (`"enabled": false`) and is still checked, so ticking it again cannot
+   break the scenario. With every step unticked the run lasts the
+   scenario's duration, as without a sequence.
+5. Run it as usual (**Run > Run Simulation**). The run follows the
    commands instead of the scenario's duration.
+
+A step with a problem is shown in red; the problem is over its form and
+in **Problems**, which opens the step on a double-click.
 
 ## The commands
 

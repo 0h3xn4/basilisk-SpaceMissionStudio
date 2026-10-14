@@ -42,6 +42,7 @@ One node in a scenario's ``mission_sequence`` tree.
 | `label` | Optional[str] | `None` |  |
 | `params` | dict | `{}` |  |
 | `children` | List['Command'] | `[]` |  |
+| `enabled` | bool | `True` |  |
 
 ## CommsPointingConfig
 

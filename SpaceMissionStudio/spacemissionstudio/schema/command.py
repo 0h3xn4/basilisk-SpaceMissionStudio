@@ -79,6 +79,7 @@ the full spacecraft/ground-station name list to check against.
 from __future__ import annotations
 
 import ast
+import copy
 import operator
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple
@@ -139,12 +140,17 @@ class Command:
             separate type, so the same tree-walking code (validation,
             reference-scanning, execution) recurses uniformly regardless
             of nesting depth.
+        enabled: False leaves the command (and its children) out of the
+            run, as if commented out; it is still validated, so enabling it
+            again cannot break the scenario. Saved only when False
+            (``Scenario.to_dict``), so older files load unchanged.
     """
 
     kind: str
     label: Optional[str] = None
     params: dict = field(default_factory=dict)
     children: List["Command"] = field(default_factory=list)
+    enabled: bool = True
 
     def validate(self, path: str) -> List[str]:
         """Returns every problem found in this command (and, for
@@ -157,6 +163,8 @@ class Command:
         label_suffix = f" ({self.label!r})" if self.label else ""
         full_path = f"{path}{label_suffix}"
 
+        _collect(errors, full_path, isinstance(self.enabled, bool),
+                 f"enabled {self.enabled!r} must be true or false")
         if self.kind not in SUPPORTED_COMMAND_KINDS:
             errors.append(f"{full_path}: kind {self.kind!r} must be one of {SUPPORTED_COMMAND_KINDS}")
             return errors  # nothing else here is checkable without a known kind
@@ -300,7 +308,25 @@ class Command:
             label=data.get("label"),
             params=dict(data.get("params", {})),
             children=[Command.from_dict(c) for c in data.get("children", [])],
+            enabled=data.get("enabled", True),
         )
+
+
+def command_dict(command: Command) -> dict:
+    """``command`` as saved: :func:`dataclasses.asdict`, with ``enabled``
+    left out when it is True (the default), recursively."""
+    data = {"kind": command.kind, "label": command.label, "params": copy.deepcopy(command.params),
+            "children": [command_dict(child) for child in command.children]}
+    if command.enabled is not True:
+        data["enabled"] = command.enabled
+    return data
+
+
+def runs_sequence(commands: List[Command]) -> bool:
+    """True when the run executes a mission sequence: at least one
+    top-level command is enabled. A sequence whose commands are all
+    disabled runs like an empty one (``sim_settings.duration_days``)."""
+    return any(command.enabled for command in commands)
 
 
 def report_before_propagate_errors(commands: List[Command], path: str = "mission_sequence") -> List[str]:
@@ -313,9 +339,12 @@ def report_before_propagate_errors(commands: List[Command], path: str = "mission
     own run-time message still covers them. Returns at most one error."""
 
     def has_propagate(command: Command) -> bool:
-        return command.kind == "propagate" or any(has_propagate(child) for child in command.children)
+        return command.enabled and (command.kind == "propagate"
+                                    or any(has_propagate(child) for child in command.children))
 
     for i, command in enumerate(commands):
+        if not command.enabled:
+            continue
         if has_propagate(command):
             return []
         if command.kind == "report":
@@ -330,10 +359,13 @@ def script_blocks(commands: List[Command], path: str = "mission_sequence") -> Li
     unrestricted Python, so the engine runs one only with the user's
     explicit consent (SRS-S-03; ``compliance/docs/security_analysis.md``):
     the CLI's ``--allow-scripts``, or the GUI's confirmation, which shows
-    the code this function finds."""
+    the code this function finds. Disabled commands are left out: they do
+    not run."""
     found: List[Tuple[str, Command]] = []
     for i, command in enumerate(commands):
         item = f"{path}[{i}]"
+        if not command.enabled:
+            continue
         if command.kind == "script_block":
             found.append((item, command))
         found += script_blocks(command.children, f"{item}.children")

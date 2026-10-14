@@ -29,10 +29,9 @@ sensors/actuators/FSW modes, which this editor deliberately omits).
 
 from __future__ import annotations
 
-from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
+import shiboken6
+from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import (
-    QDialog,
-    QDialogButtonBox,
     QFormLayout,
     QGroupBox,
     QLabel,
@@ -53,14 +52,17 @@ from ..schema.scenario import (
     SpaceWeatherConfig,
 )
 from .feedback import bring_into_view, clear_field_error, show_field_error
-from .page_tree import PageTree, watch_edits
+from .json_view import ScenarioJsonView
+from .page_tree import PageTree, embed_dialog, watch_edits
 from .ground_station_editor import GroundStationListWidget
 from .mission_sequence_editor import MissionSequenceEditorWidget
 from .monte_carlo_editor import MonteCarloGroupWidget
-from .problem_location import GROUND_STATION, PROPAGATION, SCENARIO, SPACECRAFT, locate
+from .problem_location import (GROUND_STATION, JSON_VIEW, MISSION_SEQUENCE, PROPAGATION, SCENARIO, SPACECRAFT,
+                               locate)
 from .spacecraft_editor import SpacecraftListWidget
 from .theme import PALETTE
-from .widgets import ComboBox
+from .widgets import ComboBox, out_of_range_boxes
+from .workspace_panels import field_label
 
 
 
@@ -74,27 +76,16 @@ def _page(widget: QWidget) -> QScrollArea:
     return scroll
 
 
-class _EscapeFilter(QObject):
-    """An embedded dialog would close on Escape (QDialog.reject)."""
-
-    def eventFilter(self, _watched, event):  # noqa: N802 -- Qt API name
-        return event.type() == QEvent.Type.KeyPress and event.key() == Qt.Key.Key_Escape
-
-
-def _embed(dialog: QDialog) -> None:
-    """Show ``dialog`` as a form inside a page: no window, no OK/Cancel."""
-    dialog.setWindowFlags(Qt.WindowType.Widget)
-    for box in dialog.findChildren(QDialogButtonBox):
-        if box.parentWidget() is dialog:
-            box.hide()
-    # A page is narrower than the dialog's window was (the tree and the side
-    # panel beside it, at 1280 px): a row too wide for it puts its field
-    # under its label instead of scrolling sideways.
-    for form in dialog.findChildren(QFormLayout):
-        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
-        form.invalidate()
-    dialog._escape_filter = _EscapeFilter(dialog)
-    dialog.installEventFilter(dialog._escape_filter)
+def _validate(scenario: Scenario) -> None:
+    """``scenario.validate()``; a wrong-typed value it trips over (one typed
+    on the JSON page) is a validation error too, as ``load_scenario`` makes
+    it, never a traceback."""
+    try:
+        scenario.validate()
+    except ScenarioValidationError:
+        raise
+    except (TypeError, KeyError, ValueError, AttributeError, OverflowError) as exc:
+        raise ScenarioValidationError(f"malformed value ({exc})") from exc
 
 
 class _Debounce(QObject):
@@ -164,8 +155,15 @@ class ScenarioEditorWidget(QWidget):
         self.environment_page = self._build_propagation_group()
         self.spacecraft_page = _page(self._build_spacecraft_group())
         self.ground_station_page = _page(self._build_ground_station_group())
-        self.mission_sequence_page = _page(self._build_mission_sequence_group())
+        self.mission_sequence_page = self._build_mission_sequence_group()  # its tree and form scroll themselves
         self.monte_carlo_page = _page(self._build_monte_carlo_group())
+        # The scenario as JSON, edited directly (U-16).
+        self.json_view = ScenarioJsonView()
+        self.json_page = self.json_view
+        self._applying_json = False
+        self._json_stale = True
+        self.json_view.applied.connect(self._apply_json)
+        self.json_view.failed.connect(self._on_json_failed)
         tree = self.page_tree
         self.scenario_item = tree.add_page("Scenario", self.scenario_page)
         self.environment_item = tree.add_page("Environment", self.environment_page)
@@ -173,6 +171,7 @@ class ScenarioEditorWidget(QWidget):
         self.ground_station_item = tree.add_page("Ground stations", self.ground_station_page)
         self.mission_sequence_item = tree.add_page("Mission sequence", self.mission_sequence_page)
         self.monte_carlo_item = tree.add_page("Monte Carlo", self.monte_carlo_page)
+        self.json_item = tree.add_page("JSON", self.json_page)
         tree.page_shown.connect(self._on_page_shown)
         self.spacecraft_list.set_edit_handler(self.show_spacecraft)
         self.ground_station_list.set_edit_handler(self.show_station)
@@ -196,6 +195,7 @@ class ScenarioEditorWidget(QWidget):
         outer_layout.addWidget(self.plausibility_label)
 
         self.changed.connect(self.revalidate)
+        self.changed.connect(self._on_changed_for_json)
         self._rebuild_environment_form()
         self._rebuild_nodes(self._spacecraft_nodes, self.spacecraft_list.to_list(), self.spacecraft_item, "spacecraft")
         self._rebuild_nodes(self._station_nodes, self.ground_station_list.to_list(), self.ground_station_item,
@@ -290,7 +290,7 @@ class ScenarioEditorWidget(QWidget):
             self._environment_form.deleteLater()
         form = PropagationSetupDialog(self._gravity, self._sim_settings, self._space_weather,
                                       parent=self.environment_page)
-        _embed(form)
+        embed_dialog(form)
         _Debounce(form, "environment").settled.connect(self._on_form_settled)
         self.environment_page.layout().addWidget(form)
         self._environment_form = form
@@ -331,6 +331,7 @@ class ScenarioEditorWidget(QWidget):
         )
         self.mission_sequence_editor.set_series_names_provider(self._expected_series_names)
         self.mission_sequence_editor.changed.connect(self.changed)
+        self.mission_sequence_editor.form_shown.connect(self._on_step_form_shown)
         layout.addWidget(self.mission_sequence_editor)
         return group
 
@@ -403,6 +404,10 @@ class ScenarioEditorWidget(QWidget):
             self._drop_form(node)
 
     def _on_page_shown(self, page) -> None:
+        if page is self.json_page:
+            self._refresh_json()
+        else:
+            self.json_view.flush()  # leaving the JSON page applies its waiting edit
         node = self._node_of(page)
         if node is not None and node.form is None:
             self._build_form(node)
@@ -432,11 +437,13 @@ class ScenarioEditorWidget(QWidget):
             others = sorted(c.name for i, c in enumerate(self.ground_station_list.to_list()) if i != row)
             form = GroundStationEditorDialog(config=node.config, parent=node.holder, other_names=others)
             kind = "station"
-        _embed(form)
+        embed_dialog(form)
         node.holder.layout().addWidget(form)
         node.form = form
         node.debounce = _Debounce(form, kind, node)
         node.debounce.settled.connect(self._on_form_settled)
+        if out_of_range_boxes(form):  # a value from the file outside its box's range: say so now
+            self.revalidate()
 
     def _on_form_settled(self) -> None:
         debounce = self.sender()
@@ -509,12 +516,50 @@ class ScenarioEditorWidget(QWidget):
 
     def flush_forms(self) -> None:
         """Apply every live form's waiting edit now (before a save or a run)."""
+        if hasattr(self, "json_view") and not self._applying_json:
+            self.json_view.flush()
         forms = [getattr(self, "_environment_form", None)]
         forms += [n.form for n in getattr(self, "_spacecraft_nodes", []) + getattr(self, "_station_nodes", [])]
         for form in forms:
             debounce = form.findChild(_Debounce) if form is not None else None
             if debounce is not None:
                 debounce.flush()
+        if hasattr(self, "mission_sequence_editor"):
+            self.mission_sequence_editor.flush()
+
+    # -- the JSON page ---------------------------------------------------------
+    def _on_changed_for_json(self) -> None:
+        """An edit elsewhere: the JSON page shows it when next shown (now,
+        if it is shown), unless the edit came from it."""
+        if self._applying_json:
+            return
+        self._json_stale = True
+        if self.page_tree.current_page() is self.json_page:
+            self._refresh_json()
+
+    def _refresh_json(self) -> None:
+        if self._json_stale and not self.json_view.dirty:
+            self.json_view.show_scenario(self._draft_scenario())
+            self._json_stale = False
+
+    def _apply_json(self, scenario: Scenario) -> None:
+        """The JSON page's edit: every page shows it, as an edit."""
+        self._applying_json = True
+        try:
+            self.from_scenario(scenario)
+            self.changed.emit()
+        finally:
+            self._applying_json = False
+
+    def _on_json_failed(self, message: str) -> None:
+        if message:
+            self._form_errors[id(self.json_view)] = message
+        else:
+            self._form_errors.pop(id(self.json_view), None)
+        self.revalidate()
+
+    def show_json(self) -> None:
+        self.page_tree.tree.setCurrentItem(self.json_item)
 
     # -- going to a node ------------------------------------------------------
     def show_scenario_page(self) -> None:
@@ -524,7 +569,7 @@ class ScenarioEditorWidget(QWidget):
         """Whether ``page`` is one of the editor's own (not Templates or an
         analysis, which MainWindow adds)."""
         return page in (self.scenario_page, self.environment_page, self.spacecraft_page, self.ground_station_page,
-                        self.mission_sequence_page, self.monte_carlo_page) or self._node_of(page) is not None
+                        self.mission_sequence_page, self.monte_carlo_page, self.json_page) or self._node_of(page) is not None
 
     def _show_node(self, nodes: list, row: int):
         node = nodes[row]
@@ -557,6 +602,12 @@ class ScenarioEditorWidget(QWidget):
             if message:
                 node.form.show_problem(path, message)
 
+    def show_step(self, path: str) -> None:
+        """The Mission sequence page, at the step a problem's ``path`` names
+        (``mission_sequence[2].children[0]``)."""
+        self.page_tree.tree.setCurrentItem(self.mission_sequence_item)
+        self.mission_sequence_editor.show_step(path)
+
     def edit_propagation_setup(self, path: str = "", message: str = "") -> None:
         """The Environment page, at the problem ``message`` about its field
         ``path`` when given (Problems, U-12)."""
@@ -571,7 +622,13 @@ class ScenarioEditorWidget(QWidget):
         spacecraft = [node.config.name for node in self._spacecraft_nodes]
         stations = [node.config.name for node in self._station_nodes]
         counts: dict = {}
+        range_boxes = getattr(self, "_range_boxes", {})
         for _severity, text in problems:
+            if text in range_boxes:
+                item = self.page_tree.item_of(range_boxes[text]) if shiboken6.isValid(range_boxes[text]) else None
+                if item is not None:
+                    counts[id(item)] = counts.get(id(item), 0) + 1
+                continue
             location = locate(text, spacecraft, stations)
             item = None
             if location is None:
@@ -584,6 +641,10 @@ class ScenarioEditorWidget(QWidget):
                 item = self._spacecraft_nodes[spacecraft.index(location.name)].item
             elif location.area == GROUND_STATION and location.name in stations:
                 item = self._station_nodes[stations.index(location.name)].item
+            elif location.area == MISSION_SEQUENCE:
+                item = self.mission_sequence_item
+            elif location.area == JSON_VIEW:
+                item = self.json_item
             if item is not None:
                 counts[id(item)] = counts.get(id(item), 0) + 1
         for item, _page_widget in self.page_tree.items():
@@ -609,7 +670,7 @@ class ScenarioEditorWidget(QWidget):
         if self._form_errors:
             raise ScenarioValidationError(next(iter(self._form_errors.values())))
         scenario = self._draft_scenario()
-        scenario.validate()
+        _validate(scenario)
         return scenario
 
     def draft_scenario(self) -> Scenario:
@@ -665,6 +726,12 @@ class ScenarioEditorWidget(QWidget):
         self.monte_carlo_group.from_dataclass(scenario.monte_carlo)
         self.mission_sequence_editor.from_command_list(scenario.mission_sequence)
         self._fsw_exports = list(scenario.fsw_exports)
+        if not self._applying_json:  # another scenario: the JSON page forgets an edit it held
+            self.json_view.reset()
+            self._form_errors.pop(id(self.json_view), None)
+            self._json_stale = True
+            if self.page_tree.current_page() is self.json_page:
+                self._refresh_json()
 
         self.revalidate()
 
@@ -721,16 +788,28 @@ class ScenarioEditorWidget(QWidget):
             self._marked_field = widget
 
     def revalidate(self) -> None:
+        """Validate the scenario and list every problem: each live form's,
+        and the scenario's own as the forms last applied it, so an edit
+        waiting to be fixed in one form never hides a problem elsewhere."""
         warnings = []
-        problems = []
+        self.flush_forms()
+        errors = list(self._form_errors.values())
+        scenario = self._draft_scenario()
         try:
-            scenario = self.to_scenario()
+            _validate(scenario)
         except ScenarioValidationError as exc:
-            self.validation_label.setText(f"⚠ {self.problem_display(str(exc))}")
+            errors.append(str(exc))
+        errors = list(dict.fromkeys(errors))  # a form's problem can also be the scenario's
+        problems = [("error", error) for error in errors]
+        if errors:
+            more = len(errors) - 1
+            self.validation_label.setText(f"⚠ {self.problem_display(errors[0])}"
+                                          + (f" (and {more} more: see Problems)" if more else ""))
             self.validation_label.setStyleSheet(f"color: {PALETTE['danger']};")
-            problems.append(("error", str(exc)))
-            problems += [("error", error) for error in self._form_errors.values() if error != str(exc)]
-            self._show_field_problem(str(exc))
+            location_names = self._spacecraft_and_station_names()
+            field_error = next((error for error in errors if (location := locate(error, *location_names)) is not None
+                                and location.area == SCENARIO), "")
+            self._show_field_problem(field_error)
         else:
             self._show_field_problem("")
             self.validation_label.setText("✓ valid")
@@ -739,9 +818,62 @@ class ScenarioEditorWidget(QWidget):
             warnings = plausibility_warnings(scenario, base_dir=base_dir)
         self.plausibility_label.setText("\n".join(f"⚠ {warning}" for warning in warnings))
         self.plausibility_label.setVisible(bool(warnings))
+        warnings = self._range_warnings() + warnings
         self.problems = problems + [("warning", warning) for warning in warnings]
         self._update_problem_counts()
         self.problems_changed.emit(self.problem_rows())
+
+    def _range_owner(self, box) -> str:
+        """Who a box's value belongs to, as its message starts."""
+        node = next((n for n in self._spacecraft_nodes + self._station_nodes if n.holder.isAncestorOf(box)), None)
+        if node is not None:
+            return node.config.name
+        if self.mission_sequence_page.isAncestorOf(box):
+            item = self.mission_sequence_editor.tree.currentItem()
+            return self.mission_sequence_editor.path_of(item) if item is not None else "mission_sequence"
+        for page, owner in ((self.environment_page, "Environment"), (self.monte_carlo_page, "Monte Carlo")):
+            if page.isAncestorOf(box):
+                return owner
+        return "Scenario"
+
+    def _range_warnings(self) -> list:
+        """A value from the file outside its box's range is kept (gui/widgets.py),
+        and said: the box is marked, and each is a warning in Problems that
+        opens it. Only forms shown so far are checked (a spacecraft's form is
+        built when its page is first shown)."""
+        found = {}
+        for box in out_of_range_boxes(self):
+            kept = box.out_of_range_value()
+            label = field_label(box) or "a field"
+            text = (f"{self._range_owner(box)}: {label} is {kept:g} in the file, outside this field's range "
+                    f"({box.minimum():g} to {box.maximum():g}): the box shows {box.text()}, the scenario keeps "
+                    f"{kept:g} until you change it")
+            found[text] = box
+        for box in getattr(self, "_range_boxes", {}).values():
+            if shiboken6.isValid(box) and box not in found.values():  # not when its form was rebuilt
+                clear_field_error(box)
+        for text, box in found.items():
+            if box.property("state") != "error":  # an error marked on the same field stays the one shown
+                show_field_error(box, text, warning=True)
+        self._range_boxes = found
+        return list(found)
+
+    def _on_step_form_shown(self, form) -> None:
+        """A step's form: check its values, and drop the last one's warnings."""
+        if out_of_range_boxes(form) or getattr(self, "_range_boxes", {}):
+            self.revalidate()
+
+    def show_range_problem(self, text: str) -> bool:
+        """Open the field an out-of-range warning is about; whether it is one."""
+        box = getattr(self, "_range_boxes", {}).get(text)
+        if box is None or not shiboken6.isValid(box):
+            return False
+        if self.mission_sequence_page.isAncestorOf(box):
+            self.page_tree.tree.setCurrentItem(self.mission_sequence_item)
+        else:
+            self.page_tree.show_page(box)
+        bring_into_view(box)
+        return True
 
     def problem_rows(self) -> list:
         """The problems as the Problems dock lists them: ``(severity, text,

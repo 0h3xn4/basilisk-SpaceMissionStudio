@@ -794,3 +794,20 @@ def test_a_script_block_function_and_comprehension_see_the_context():
     scenario = _scenario(mission_sequence=[Command(kind="script_block", params={"code": code})])
     _, summary = MissionEngine(scenario, allow_scripts=True).run()
     assert summary.reports == [True, True]
+
+
+def test_disabled_commands_are_skipped():
+    """A disabled command (and a disabled ``if``'s children) does not run;
+    the enabled ones run in order."""
+    from spacemissionstudio.engine.mission_engine import MissionEngine
+
+    scenario = _scenario(mission_sequence=[
+        Command(kind="propagate", params={"stop_condition": "duration", "duration_days": 0.01}),
+        Command(kind="maneuver", params={"spacecraft": "sat-1", "delta_v_m_s": [5.0, 0.0, 0.0], "frame": "inertial"},
+                enabled=False),
+        Command(kind="if", params={"condition": "True"}, enabled=False, children=[
+            Command(kind="propagate", params={"stop_condition": "duration", "duration_days": 0.05})]),
+    ])
+    result, summary = MissionEngine(scenario).run()
+    assert summary.commands_executed == 1
+    assert result.series["sat-1.position_N"].time_s[-1] == pytest.approx(0.01 * 86400.0, abs=10.0)  # [s]

@@ -47,6 +47,7 @@ from typing import List, Optional
 
 import numpy as np
 
+from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from . import environment_models, geodesy, tle
 
@@ -490,7 +491,7 @@ def _recording_warnings(scenario) -> List[str]:
 
 
 def _pass_warnings(scenario) -> List[str]:
-    if scenario.mission_sequence:
+    if runs_sequence(scenario.mission_sequence):
         return []  # the run's length comes from its commands, not sim_settings
     run_s = scenario.sim_settings.duration_days * 86400.0
     passes = predict_passes(scenario, horizon_s=min(run_s, _MAX_HORIZON_S) + _LOOKAHEAD_S)

@@ -57,6 +57,7 @@ from typing import Callable, Dict, List, Optional
 
 import numpy as np
 
+from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import OrbitIC, Scenario, SimSettings, SpaceWeatherConfig
 from . import time_system
@@ -91,7 +92,7 @@ def check_segmentable(scenario: Scenario, vizard_request=None) -> None:
     """Raises :class:`LongRunError` for what cannot be split. Mission
     sequences and phasing keeping are also refused by
     ``Scenario.validate()``; checked again here for scenarios built in code."""
-    if scenario.mission_sequence:
+    if runs_sequence(scenario.mission_sequence):
         raise LongRunError("a mission sequence runs as one simulation, at most "
                            f"{SimSettings._MAX_SINGLE_RUN_DAYS:g} days -- shorten it, or remove the sequence")
     if any(sc.phasing_keeping is not None for sc in scenario.spacecraft):

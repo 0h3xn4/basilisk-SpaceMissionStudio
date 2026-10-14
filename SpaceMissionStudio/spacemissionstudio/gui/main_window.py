@@ -64,7 +64,7 @@ from .. import output_provenance
 from ..engine import monte_carlo_results
 from ..engine.series_names import featured_series
 from ..logging_setup import get_log_file_path
-from ..schema.command import script_blocks
+from ..schema.command import runs_sequence, script_blocks
 from ..schema.scenario import Scenario, ScenarioValidationError, load_scenario
 from . import autosave
 from .app_shell import StatusBarItems, TopBar, source_of
@@ -77,7 +77,8 @@ from .mission_dashboard_widget import MissionDashboardWidget
 from .mission_output_widget import MissionOutputWidget
 from .monte_carlo_results_widget import MonteCarloResultsWidget
 from .results_widget import ResultsWidget
-from .problem_location import GROUND_STATION, PROPAGATION, SCENARIO, SPACECRAFT, locate
+from .problem_location import (GROUND_STATION, JSON_VIEW, MISSION_SEQUENCE, PROPAGATION, SCENARIO, SPACECRAFT,
+                               locate)
 from .run_worker import MonteCarloWorker, RunWorker
 from .scenario_editor import ScenarioEditorWidget
 from .budget_widget import BudgetWidget
@@ -765,6 +766,8 @@ class MainWindow(QMainWindow):
         model's problem that spacecraft's model editor."""
         self._show_scenario_editor()
         editor = self.scenario_editor
+        if editor.show_range_problem(text):
+            return
         location = locate(text, [c.name for c in editor.spacecraft_list.to_list()],
                           [g.name for g in editor.ground_station_list.to_list()])
         if location is None:
@@ -779,6 +782,10 @@ class MainWindow(QMainWindow):
             editor.show_spacecraft_problem(location.name, location.path, text)
         elif location.area == GROUND_STATION:
             editor.show_station_problem(location.name, location.path, text)
+        elif location.area == MISSION_SEQUENCE:
+            editor.show_step(location.path)
+        elif location.area == JSON_VIEW:
+            editor.show_json()
 
     def _show_page(self, widget: QWidget) -> None:
         if widget is self.data_panel_widget:
@@ -1782,7 +1789,7 @@ class MainWindow(QMainWindow):
         # mission_sequence is non-empty) has no run_live() equivalent --
         # see RunWorker.run()'s docstring -- so live plotting only applies
         # when there's no mission sequence to execute instead.
-        live = self.live_plot_action.isChecked() and (sil is not None or not scenario.mission_sequence)
+        live = self.live_plot_action.isChecked() and (sil is not None or not runs_sequence(scenario.mission_sequence))
         self._start_busy(f"Running {scenario.name}" + (f" with {sil[0]}'s flight software in the loop..."
                                                         if sil is not None else "..."), determinate=live)
         # Always clear the PREVIOUS run's results before this one starts --

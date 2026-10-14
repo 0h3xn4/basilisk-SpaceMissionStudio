@@ -164,8 +164,8 @@ A few things to notice right away:
     you pick beside it. **Templates** (where you start), then the
     scenario's own nodes -- **Scenario**, **Environment**,
     **Spacecraft** with a node per spacecraft, **Ground stations** with a
-    node per station, **Mission sequence** and **Monte Carlo** (Section
-    6) -- and **Analyses**: **End of Life** and **Budget** (re-entry and
+    node per station, **Mission sequence**, **Monte Carlo** and **JSON**
+    (Section 6) -- and **Analyses**: **End of Life** and **Budget** (re-entry and
     delta-V estimates, Section 11) and **Flight Software** (export the
     attitude flight software and run it in the loop, Section 6). A node
     with problems shows how many after its name.
@@ -335,7 +335,17 @@ fixed:
   signal link margin, etc.), each a node with its own page.
 * **Mission sequence** -- an optional, ordered list of commands (coast
   for a while, do a burn, take a snapshot, ...) for missions more
-  complex than "just propagate forward for N days". A propagate can stop
+  complex than "just propagate forward for N days". Each step reads as a
+  sentence ("Propagate until sat-1's next pass over berlin-gs starts"),
+  with its kind's icon. Pick a step to edit it in the form beside (or,
+  on a narrow window, under) the list; it applies as you type. **Add
+  step** adds one after the selected step, **Add inside** one inside an
+  `if` or `while`; drag a step to move it (into an `if`/`while` too), or
+  use **Move up**/**Move down** (Alt+Up, Alt+Down). Untick a step to
+  leave it out of the run, as if it were not there; it is still checked
+  for problems, and a sequence with every step unticked runs for the
+  set duration like a scenario without one. A step with a problem is
+  shown in red, the problem over its form. A propagate can stop
   after a duration, at an epoch, or at an event: periapsis, apoapsis, or
   the start or end of the next pass over a ground station
   (`pass_start`/`pass_end`). A `pass_start` issued during a pass waits
@@ -345,10 +355,24 @@ fixed:
   mass unchanged. For propellant, use the **Budget** tab (Section 11)
   or a fuel tank with station-keeping or constant thrust.
 * **Monte Carlo** -- see Section 10.
+* **JSON** -- the scenario as it is saved, as text you can edit. An edit
+  there applies to the other pages half a second after you stop typing,
+  checked as when a file is opened; an edit on another page shows there.
+  Text that is not JSON (a missing comma) is not applied: its line is
+  marked, the page says where and what is wrong, and the scenario cannot
+  run or be saved until it is fixed or another scenario is opened.
 
 A **validation message** at the very bottom of this tab updates live as
 you type, in plain language (e.g. naming exactly which field is missing
-or invalid) -- you don't have to guess why Run is unavailable.
+or invalid) -- you don't have to guess why Run is unavailable. It names
+the first problem and how many more there are; **Problems** lists them
+all.
+
+A value in a file outside the range a field takes (a station 12 000 m
+up, where the field goes to 9000 m) is kept, not cut to the range: the
+field shows the nearest value it takes, is marked, and Problems says
+which value the scenario keeps. Changing the field replaces it. The
+spacecraft's fields are checked when its page is first opened.
 
 ### Building your own scenario, step by step
 

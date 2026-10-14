@@ -287,9 +287,21 @@ def _qss() -> str:
     QPlainTextEdit[state="error"], QListWidget[state="error"], QTableWidget[state="error"] {{
         border: 2px solid {c['danger']};
     }}
+    /* A value to look at, not an error (show_field_error(..., warning=True)):
+       Carbon's warning field, a 2 px support-warning outline. */
+    QLineEdit[state="warning"], QDoubleSpinBox[state="warning"], QSpinBox[state="warning"],
+    QComboBox[state="warning"], QLineEdit[state="warning"]:focus, QDoubleSpinBox[state="warning"]:focus,
+    QSpinBox[state="warning"]:focus, QComboBox[state="warning"]:focus {{
+        border: 2px solid {c['warning_fill']};
+        padding: 4px 7px;
+    }}
     /* The message under a field with a problem (gui/feedback.py's show_field_error). */
     QLabel#fieldError {{
         color: {c['danger_text']};
+        font-size: 12px;
+    }}
+    QLabel#fieldWarning {{
+        color: {c['warning']};
         font-size: 12px;
     }}
     QLineEdit[state="error"]:focus, QDoubleSpinBox[state="error"]:focus,
@@ -442,6 +454,12 @@ def _qss() -> str:
     }}
     QLabel#topBarDetail {{
         color: {c['text_muted']};
+    }}
+    /* A page section's heading: the Mission Sequence step being edited. */
+    QLabel#sectionTitle {{
+        font-size: 14px;
+        font-weight: 600;
+        padding: 4px 0px;
     }}
     /* The run status chip: a Carbon tag, one colour pair per state, always
        with its state written out. */
