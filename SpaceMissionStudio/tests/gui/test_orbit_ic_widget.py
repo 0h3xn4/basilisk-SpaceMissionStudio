@@ -46,14 +46,10 @@ def test_compute_sso_raan_button_writes_raan_deg_using_epoch_provider(widget, qt
     assert widget.raan_deg.value() == pytest.approx(raan_for_ltan_deg("2030-01-01T00:00:00", 10.5), abs=1.0e-6)
 
 
-def test_compute_sso_raan_button_warns_with_no_epoch_provider(widget, qtbot, monkeypatch):
-    from PySide6.QtWidgets import QMessageBox
-
-    warned = []
-    monkeypatch.setattr(QMessageBox, "warning", lambda *a, **k: warned.append(a))
+def test_compute_sso_raan_button_warns_with_no_epoch_provider(widget, qtbot, monkeypatch, reported):
     widget.raan_deg.setValue(42.0)
     widget._on_compute_sso_raan()
-    assert warned  # a warning dialog was shown
+    assert len(reported) == 1 and reported[0][1] == "warning" and "No epoch set" in reported[0][0]  # no box
     assert widget.raan_deg.value() == 42.0  # left untouched
 
 

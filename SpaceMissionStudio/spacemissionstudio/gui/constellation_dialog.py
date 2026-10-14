@@ -37,7 +37,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QPushButton,
     QSpinBox,
     QVBoxLayout,
@@ -46,6 +45,7 @@ from PySide6.QtWidgets import (
 from ..engine.constellation import CENTRAL_BODY_EQUATORIAL_RADIUS_KM, WALKER_PATTERNS, WalkerConstellationRequest
 from ..engine.orbit_design import sun_synchronous_inclination_deg
 from ..schema.scenario import ScenarioValidationError
+from .feedback import show_dialog_error
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox
 
 _PATTERN_LABELS = {
@@ -164,7 +164,7 @@ class WalkerConstellationDialog(QDialog):
         try:
             self.to_request()
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Invalid constellation request", str(exc))
+            show_dialog_error(self, f"This constellation cannot be made: {exc}")
             return
         self.accept()
 
@@ -174,7 +174,7 @@ class WalkerConstellationDialog(QDialog):
             self.inclination_deg.setValue(
                 sun_synchronous_inclination_deg(semi_major_axis_km, self.eccentricity.value()))
         except ValueError as exc:  # too high an orbit to be Sun-synchronous
-            QMessageBox.warning(self, "No Sun-synchronous inclination", str(exc))
+            show_dialog_error(self, f"No Sun-synchronous inclination: {exc}")
 
     def to_request(self) -> WalkerConstellationRequest:
         request = WalkerConstellationRequest(

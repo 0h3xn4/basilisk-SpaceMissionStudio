@@ -71,7 +71,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
-    QMessageBox,
     QPushButton,
     QScrollArea,
     QSizePolicy,
@@ -86,6 +85,7 @@ import spacemissionstudio
 
 from ..schema import load_scenario
 from .template_wizard import TemplateCustomizeWizard, get_wizard_spec
+from .feedback import report
 from .theme import PALETTE
 
 _logger = logging.getLogger(__name__)
@@ -320,7 +320,7 @@ class LoadScenarioWidget(QWidget):
             scenario = load_scenario(path)
         except Exception as exc:  # noqa: BLE001 -- surface ANY failure in a dialog, never crash the GUI
             _logger.exception("Could not load template %s for the customize wizard", path)
-            QMessageBox.critical(self, "Could not open template", str(exc))
+            report(self, f"Could not open the template {path.name}: {exc}")
             return
         wizard = TemplateCustomizeWizard(scenario, spec, self)
         if wizard.exec() == TemplateCustomizeWizard.DialogCode.Accepted:

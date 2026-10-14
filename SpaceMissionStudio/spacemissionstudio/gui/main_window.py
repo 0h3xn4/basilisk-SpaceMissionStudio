@@ -68,7 +68,7 @@ from ..schema.command import runs_sequence, script_blocks
 from ..schema.scenario import Scenario, ScenarioValidationError, load_scenario
 from . import autosave
 from .app_shell import RunProgressStrip, StatusBarItems, TopBar, source_of
-from .feedback import StaleResultsBanner, show_toast
+from .feedback import StaleResultsBanner, report, show_toast
 from .icons import toolbar_icon
 from .data_panel_widget import DataPanelWidget
 from .event_timeline_widget import EventTimelineWidget
@@ -1109,7 +1109,8 @@ class MainWindow(QMainWindow):
         if self.monte_carlo_results_widget.load_folder(folder):
             self._show_monte_carlo_tab()
         else:
-            QMessageBox.warning(self, "No Monte Carlo results", self.monte_carlo_results_widget.hint_label.text())
+            report(self, f"No Monte Carlo results in {folder}: {self.monte_carlo_results_widget.hint_label.text()}",
+                   kind="warning")
 
     def _mark_clean(self) -> None:
         self._dirty = False
@@ -1296,7 +1297,7 @@ class MainWindow(QMainWindow):
     def open_vizard_playback(self, path: str) -> bool:
         """Start Vizard on ``path`` (``-loadFile``); False if it could not be started."""
         if not path or not Path(path).is_file():
-            QMessageBox.warning(self, "No playback file", f"The run's Vizard file is not there: {path}")
+            report(self, f"No Vizard playback file: {path} is not there", kind="warning")
             return False
         executable = find_vizard_executable() or self._locate_vizard()
         if executable is None:
@@ -1304,7 +1305,7 @@ class MainWindow(QMainWindow):
         try:
             launch_vizard(executable, load_file=Path(path))
         except OSError as exc:
-            QMessageBox.critical(self, "Could not launch Vizard", f"{executable}: {exc}")
+            report(self, f"Could not launch Vizard ({executable}): {exc}")
             return False
         self.statusBar().showMessage(f"Opened {path} in Vizard.")
         return True
@@ -1322,7 +1323,8 @@ class MainWindow(QMainWindow):
             return True
         response = QMessageBox.question(
             self, "Unsaved changes",
-            "This scenario has unsaved changes. Discard them?",
+            f"Discard the unsaved changes to {self.scenario_editor.name_edit.text() or 'this scenario'}? "
+            "They cannot be recovered.",
             QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
             QMessageBox.StandardButton.Cancel,
         )
@@ -1378,7 +1380,7 @@ class MainWindow(QMainWindow):
         try:
             scenario.validate()
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Could not open customized scenario", str(exc))
+            report(self, f"Could not open the customized scenario: {exc}")
             return
         self._open_scenario(scenario, current_path=None, verb="Customized")
 
@@ -1386,7 +1388,7 @@ class MainWindow(QMainWindow):
         try:
             scenario = load_scenario(path)
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Could not open scenario", str(exc))
+            report(self, f"Could not open {path}: {exc}")
             return False
         self._open_scenario(scenario, current_path=path, verb="Opened")
         return True
@@ -1430,13 +1432,13 @@ class MainWindow(QMainWindow):
         try:
             scenario: Scenario = self.scenario_editor.to_scenario()
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Cannot save invalid scenario", str(exc))
+            self._open_problem(f"Cannot save: {self.scenario_editor.problem_display(str(exc))}", str(exc))
             return
         try:
             scenario.save(path)
         except OSError as exc:  # unwritable folder, a file in the path, a full disk (audit M9)
-            QMessageBox.critical(self, "Could not save", f"Could not save the scenario to {path}:\n{exc}\n\n"
-                                 "The previous file, if there was one, is unchanged.")
+            report(self, f"Could not save the scenario to {path}: {exc}\n"
+                         "The previous file, if there was one, is unchanged.")
             return
         self._current_path = path
         self._mark_clean()
@@ -1515,9 +1517,18 @@ class MainWindow(QMainWindow):
         """The scenario is not valid: say so, and open the problem at its field."""
         text = self.scenario_editor.problem_display(str(exc))
         self._report_run_problem(f"Cannot run: {text}", level=logging.WARNING)
+        self._show_problem_at_field(str(exc))
+
+    def _open_problem(self, text: str, problem: str) -> None:
+        """Say ``text`` (a toast, the status bar, the Log) and open
+        ``problem`` at its field, as a refused run does (U-39)."""
+        report(self, text, kind="warning")
+        self._show_problem_at_field(problem)
+
+    def _show_problem_at_field(self, problem: str) -> None:
         self.side_dock.show()
         self.side_tabs.setCurrentWidget(self.problems_widget)
-        self._on_problem_activated(str(exc))
+        self._on_problem_activated(problem)
 
     def _update_busy_elapsed(self) -> None:
         """The status chip mirrors the strip: the percentage when the run
@@ -1651,7 +1662,7 @@ class MainWindow(QMainWindow):
 
         error = outcome.get("error", "download cancelled")
         if error != "download cancelled":
-            QMessageBox.critical(self, "Could not download Vizard", error)
+            report(self, f"Could not download Vizard: {error}")
         return None
 
     def on_launch_vizard(self) -> bool:
@@ -1742,7 +1753,7 @@ class MainWindow(QMainWindow):
         try:
             self._vizard_process = launch_vizard(executable, direct_comm_address=direct_comm_address)
         except OSError as exc:
-            QMessageBox.critical(self, "Could not launch Vizard", f"{executable}: {exc}")
+            report(self, f"Could not launch Vizard ({executable}): {exc}")
             return False
         self._vizard_direct_comm_address = direct_comm_address
         if direct_comm_address:
@@ -1755,15 +1766,14 @@ class MainWindow(QMainWindow):
                 # status bar message above (shown every time) is easy to
                 # miss/get overwritten by the "Running..." message that
                 # follows moments later when this was triggered from
-                # on_run() -- this dialog can't be missed the first time.
-                QMessageBox.information(
-                    self, "Vizard needs one click to connect",
-                    f"Vizard was launched with its socket address already filled in "
-                    f"({direct_comm_address}), but it still needs \"Start Visualization\" clicked in "
-                    f"its own window before the run can begin -- Vizard has no command-line option to "
-                    f"skip that one click while still showing the live view. SpaceMissionStudio will wait "
-                    f"for it (this is shown once per session)."
-                )
+                # on_run(): a longer toast the first time (U-39: no box for
+                # information), and the full text in the Log.
+                _logger.info("Vizard was launched with its socket address filled in (%s), but it still needs "
+                             "\"Start Visualization\" clicked in its own window before the run can begin: Vizard "
+                             "has no command-line option to skip that click while showing the live view.",
+                             direct_comm_address)
+                show_toast(self, "Vizard is open: click \"Start Visualization\" in its window to connect",
+                           kind="info", duration_ms=10000)
                 self._vizard_live_stream_hint_shown = True
         else:
             self.statusBar().showMessage(f"Launched Vizard ({executable}).")
@@ -2155,7 +2165,7 @@ class MainWindow(QMainWindow):
         overwrite = state == "batch"
         if overwrite and QMessageBox.question(
                 self, "Replace the earlier batch?",
-                f"{archive_dir} holds an earlier Monte Carlo batch. Replace it with this one?",
+                f"Replace the earlier Monte Carlo batch in {archive_dir}? Its run files are deleted.",
                 QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                 QMessageBox.StandardButton.No) != QMessageBox.StandardButton.Yes:
             return

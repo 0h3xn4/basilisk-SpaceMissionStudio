@@ -35,7 +35,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QPushButton,
     QStackedWidget,
     QVBoxLayout,
@@ -45,6 +44,7 @@ from PySide6.QtWidgets import (
 from ..engine import orbit_conversion, tle
 from ..engine.orbit_design import DEFAULT_LTAN_HOUR, raan_for_ltan_deg, sun_synchronous_inclination_deg
 from ..schema.scenario import ANOMALY_TYPES, ORBIT_IC_TYPES, OrbitIC
+from .feedback import report
 from .widgets import ComboBox, PreciseDoubleSpinBox
 
 _ANOMALY_TYPE_LABELS = {
@@ -406,16 +406,14 @@ class OrbitIcWidget(QWidget):
     def _on_compute_sso_raan(self) -> None:
         epoch_utc = (self._epoch_provider() if self._epoch_provider else "").strip()
         if not epoch_utc:
-            QMessageBox.warning(self, "No epoch set",
-                                 "This scenario's Epoch (UTC) field is empty -- set a valid "
-                                 "ISO 8601 epoch before computing a RAAN for LTAN.")
+            report(self, "No epoch set: give the scenario an Epoch (UTC) before computing the RAAN for an LTAN",
+                   kind="warning")
             return
         try:
             value = raan_for_ltan_deg(epoch_utc, self.sso_ltan_hour.value())
         except ValueError as exc:
-            QMessageBox.warning(self, "Invalid epoch",
-                                 f"Could not parse this scenario's Epoch (UTC) {epoch_utc!r} as a "
-                                 f"valid ISO 8601 date/time: {exc}")
+            report(self, f"The scenario's Epoch (UTC) {epoch_utc!r} is not an ISO 8601 date and time: {exc}",
+                   kind="warning")
             return
         self.raan_deg.setValue(value)
 

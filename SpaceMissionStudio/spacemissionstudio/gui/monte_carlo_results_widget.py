@@ -35,12 +35,13 @@ from typing import Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QAbstractItemView, QFileDialog, QHBoxLayout, QHeaderView, QLabel,
-                               QMessageBox, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout,
+                               QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout,
                                QWidget)
 
 from ..engine import monte_carlo_results as mcr
 from .results_widget import ResultsWidget
 from .scenario_explainer_widget import _stat_tile
+from .feedback import report
 from .theme import PALETTE
 from .widgets import ComboBox, TabWidget
 
@@ -146,7 +147,7 @@ class MonteCarloResultsWidget(QWidget):
     def _on_open(self) -> None:
         folder = QFileDialog.getExistingDirectory(self, "Open Monte Carlo results")
         if folder and not self.load_folder(folder):
-            QMessageBox.warning(self, "No Monte Carlo results", self.hint_label.text())
+            report(self, f"No Monte Carlo results in {folder}: {self.hint_label.text()}", kind="warning")
 
     def _show(self, batch: Optional[mcr.MonteCarloBatch]) -> None:
         self.batch = batch
@@ -260,6 +261,6 @@ class MonteCarloResultsWidget(QWidget):
         try:
             self.export_table_csv(path)
         except OSError as exc:
-            QMessageBox.critical(self, "Export failed", str(exc))
+            report(self, f"Could not export the Monte Carlo table to {path}: {exc}")
             return
-        QMessageBox.information(self, "Export complete", f"Wrote {path}")
+        report(self, f"Exported the Monte Carlo table to {path}", kind="success")

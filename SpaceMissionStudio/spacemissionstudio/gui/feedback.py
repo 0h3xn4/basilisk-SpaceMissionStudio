@@ -37,6 +37,14 @@ never at the specific field, at the moment it's typed):
   one-time blocking dialog to be noticed at all -- a toast is the
   general-purpose fix that case shouldn't have needed a bespoke one-off
   dialog for.
+* :func:`report` -- a routine outcome (a file written, a file that could
+  not be read, a launch that failed) said without a message box
+  (docs/ux-audit.md U-39): a toast, the window's status bar, and for a
+  warning or an error a line in the Log. Message boxes are kept for
+  confirming what cannot be undone.
+* :func:`show_dialog_error` -- a dialog's own error line, above its
+  buttons, for input the dialog refuses on OK (U-39), instead of a box on
+  top of the dialog.
 * :func:`mark_invalid`/:func:`clear_invalid` -- inline, per-field
   validation feedback (a red border, via theme.py's own
   ``[state="error"]`` QSS rule, plus the reason as a tooltip), so a
@@ -52,11 +60,12 @@ GUI-chrome dependency beyond PySide6 itself" precedent (see theme.py).
 
 from __future__ import annotations
 
-from typing import List
+import logging
+from typing import List, Optional
 
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtWidgets import (QBoxLayout, QFormLayout, QFrame, QHBoxLayout, QLabel, QMainWindow, QPushButton,
-                               QScrollArea, QStackedWidget, QTabWidget, QWidget)
+from PySide6.QtWidgets import (QBoxLayout, QDialogButtonBox, QFormLayout, QFrame, QHBoxLayout, QLabel, QMainWindow,
+                               QPushButton, QScrollArea, QStackedWidget, QTabWidget, QWidget)
 from shiboken6 import isValid
 
 from .theme import PALETTE
@@ -69,6 +78,10 @@ _TOAST_KIND_COLORS = {
     "info": (PALETTE["info_soft"], "#0043CE"),  # support-info
     "warning": (PALETTE["warning_soft"], PALETTE["warning_fill"]),
 }
+_logger = logging.getLogger("spacemissionstudio.gui")
+_REPORT_LOG_LEVELS = {"error": logging.ERROR, "warning": logging.WARNING, "info": logging.INFO,
+                      "success": logging.INFO}
+_REPORT_TOAST_MS = {"error": 6000, "warning": 6000, "info": 4500, "success": 3000}  # [ms]
 _TOAST_MARGIN_PX = 16
 _TOAST_GAP_PX = 8
 _TOAST_STACK_ATTR = "_spacemissionstudio_active_toasts"
@@ -142,6 +155,67 @@ def show_toast(window: QWidget, message: str, kind: str = "success", duration_ms
 
     QTimer.singleShot(duration_ms, _dismiss)
     return toast
+
+
+def report(widget: Optional[QWidget], text: str, kind: str = "error") -> None:
+    """Say ``text`` without a message box (U-39). The first line goes in a
+    toast on ``widget``'s window (``kind`` "error", "warning", "info" or
+    "success") and in its status bar; the whole text goes in the Log (an
+    error or a warning at that level, the others as INFO), where it stays.
+    With no widget, only the Log."""
+    _logger.log(_REPORT_LOG_LEVELS.get(kind, logging.INFO), "%s", text)
+    first = text.strip().splitlines()[0] if text.strip() else text
+    short = first if len(first) <= 160 else first[:157] + "..."
+    if widget is None or not isValid(widget):
+        return
+    window = widget.window()
+    if "\n" in text.strip() and kind in ("error", "warning"):
+        short += " (more in the Log)"
+    show_toast(window, short, kind=kind, duration_ms=_REPORT_TOAST_MS.get(kind, 3000))
+    if isinstance(window, QMainWindow):
+        window.statusBar().showMessage(first)
+
+
+_DIALOG_ERROR_NAME = "dialogError"
+
+
+def show_dialog_error(dialog: QWidget, text: str) -> QLabel:
+    """Show ``text`` in ``dialog``'s error line, made the first time just
+    above its button box (or at the end of its layout), and keep the
+    dialog open (U-39). Cleared by :func:`clear_dialog_error`."""
+    label = dialog.findChild(QLabel, _DIALOG_ERROR_NAME)
+    if label is None:
+        label = QLabel(dialog)
+        label.setObjectName(_DIALOG_ERROR_NAME)
+        label.setWordWrap(True)
+        label.setStyleSheet(f"color: {PALETTE['danger']};")
+        layout = dialog.layout()
+        if layout is not None:
+            buttons = dialog.findChild(QDialogButtonBox)
+            index = layout.indexOf(buttons) if buttons is not None else -1
+            if isinstance(layout, QBoxLayout) and index >= 0:
+                layout.insertWidget(index, label)
+            elif isinstance(layout, QFormLayout):
+                layout.addRow(label)
+            else:
+                layout.addWidget(label)
+    label.setText(text)
+    label.setToolTip(text)
+    label.show()
+    return label
+
+
+def dialog_error_text(dialog: QWidget) -> str:
+    """The text of ``dialog``'s error line, "" when it has none showing."""
+    label = dialog.findChild(QLabel, _DIALOG_ERROR_NAME)
+    return label.text() if label is not None and not label.isHidden() else ""
+
+
+def clear_dialog_error(dialog: QWidget) -> None:
+    label = dialog.findChild(QLabel, _DIALOG_ERROR_NAME)
+    if label is not None:
+        label.clear()
+        label.hide()
 
 
 def _reposition_toasts(window: QWidget, stack: List[QLabel]) -> None:

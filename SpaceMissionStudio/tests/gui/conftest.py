@@ -130,3 +130,20 @@ def _join_qthreads_started_by_the_test(monkeypatch):
             thread.wait(10_000)
         except RuntimeError:  # the C++ object was already deleted, so the thread is long gone
             pass
+
+
+@pytest.fixture
+def reported(monkeypatch):
+    """What :func:`gui.feedback.report` said, as ``(message, kind)``: the
+    toasts that replaced routine message boxes (docs/ux-audit.md U-39)."""
+    from spacemissionstudio.gui import feedback
+
+    shown = []
+    real = feedback.show_toast
+
+    def record(window, message, kind="success", **kwargs):
+        shown.append((message, kind))
+        return real(window, message, kind, **kwargs)
+
+    monkeypatch.setattr(feedback, "show_toast", record)
+    return shown

@@ -270,7 +270,8 @@ class FlightSoftwareWidget(QWidget):
     def confirm_overwrite(self, folder: Path) -> bool:
         """Asks before replacing an earlier export (tests replace this)."""
         answer = QMessageBox.question(self, "Replace the earlier export?",
-                                      f"{folder} holds an earlier flight-software export. Replace it?",
+                                      f"Replace the earlier flight-software export in {folder}? The files it lists are "
+                                      "deleted and written again.",
                                       QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                                       QMessageBox.StandardButton.No)
         return answer == QMessageBox.StandardButton.Yes

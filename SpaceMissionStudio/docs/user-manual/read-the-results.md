@@ -13,7 +13,7 @@ and the exported files.
 | **Results > Monte Carlo** | The spread of a batch (only when Monte Carlo is on) | A batch |
 | **Events** | Passes, eclipses, burns and mode changes, as a timeline and a table | Yes |
 | **Compare** | Two or more saved runs: a summary with differences, the inputs that differ, events, plots | Two runs |
-| **Log** | What the app logged in this session; a failed run opens it | No |
+| **Log** | What the app logged in this session, with every message a toast showed; a failed run opens it | No |
 | **Scenario > End of Life** | Orbital lifetime and deorbit check | No |
 | **Scenario > Budget** | Delta-V and propellant budget | No (better after a run) |
 | **Scenario > Flight Software** | Export the flight software, or run it in the loop | No |

@@ -82,8 +82,8 @@ def test_edit_and_remove(qtbot, monkeypatch):
     assert widget.to_list() == []
 
 
-def test_rejects_duplicate_name_on_add(qtbot, monkeypatch):
-    from PySide6.QtWidgets import QDialog, QMessageBox
+def test_rejects_duplicate_name_on_add(qtbot, monkeypatch, reported):
+    from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget, _ItemEditorDialog
     from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
@@ -97,12 +97,10 @@ def test_rejects_duplicate_name_on_add(qtbot, monkeypatch):
         return QDialog.DialogCode.Accepted
 
     monkeypatch.setattr(_ItemEditorDialog, "exec", fake_exec)
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     widget._on_add()
     assert len(widget.to_list()) == 1
-    assert len(critical_calls) == 1
+    assert reported == [("Not saved: a device named 'dup' already exists", "warning")]  # a toast, no box
 
 
 def test_item_editor_dialog_rejects_invalid_json(qtbot):

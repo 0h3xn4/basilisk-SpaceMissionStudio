@@ -46,7 +46,6 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -57,6 +56,7 @@ from PySide6.QtWidgets import (
 from .. import output_provenance
 from ..engine.results import CommandSummary, ResultSet, TimeSeries
 from ..plot_categories import categorize, legacy_display
+from . import feedback
 from .theme import PALETTE
 
 _FILE_FILTER = "CSV files (*.csv)"
@@ -377,6 +377,6 @@ class MissionOutputWidget(QWidget):
             if provenance is not None:  # provenance on every output (UX/UI guidelines)
                 output_provenance.write_sidecar(path, provenance.to_dict())
         except OSError as exc:
-            QMessageBox.critical(self, "Export failed", str(exc))
+            feedback.report(self, f"Could not export the mission output to {path}: {exc}")
             return
-        QMessageBox.information(self, "Export complete", f"Wrote {path}")
+        feedback.report(self, f"Exported the mission output to {path}", kind="success")

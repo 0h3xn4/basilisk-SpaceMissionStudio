@@ -80,7 +80,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
@@ -90,7 +89,7 @@ from PySide6.QtWidgets import (
 
 from ..engine.device_catalog import catalog_entries_for_kind
 from ..schema.scenario import RW_TYPES, THRUSTER_TYPES
-from .feedback import clear_invalid, mark_invalid, show_toast
+from .feedback import clear_invalid, mark_invalid, report, show_dialog_error, show_toast
 from .param_form import ParamForm
 from .theme import PALETTE
 from .widgets import ComboBox
@@ -688,7 +687,7 @@ class _ItemEditorDialog(QDialog):
         try:
             self.to_dataclass()
         except ValueError as exc:
-            QMessageBox.critical(self, "Invalid params", str(exc))
+            show_dialog_error(self, f"These settings are not valid: {exc}")
             return
         self.accept()
 
@@ -754,7 +753,7 @@ class SensorActuatorListWidget(QWidget):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             new_item = dialog.to_dataclass()
             if new_item.name in self._existing_names():
-                QMessageBox.critical(self, "Duplicate name", f"{new_item.name!r} already exists.")
+                report(self, f"Not saved: a device named {new_item.name!r} already exists", kind="warning")
                 return
             self._items.append(new_item)
             self._refresh_list()
@@ -771,7 +770,7 @@ class SensorActuatorListWidget(QWidget):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             new_item = dialog.to_dataclass()
             if new_item.name in self._existing_names(exclude_row=row):
-                QMessageBox.critical(self, "Duplicate name", f"{new_item.name!r} already exists.")
+                report(self, f"Not saved: a device named {new_item.name!r} already exists", kind="warning")
                 return
             self._items[row] = new_item
             self._refresh_list()

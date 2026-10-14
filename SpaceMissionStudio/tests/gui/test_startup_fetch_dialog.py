@@ -113,14 +113,13 @@ def test_maybe_run_fetches_selected_items_and_shows_summary(qtbot, monkeypatch):
     monkeypatch.setattr(module.StartupFetchWorker, "run", _fake_run)
     monkeypatch.setattr(module.StartupFetchWorker, "start", lambda self: self.run())
 
-    shown = []
-    monkeypatch.setattr(module.QMessageBox, "information",
-                         staticmethod(lambda *a, **k: shown.append(a)))
+    shown = []  # what was reported instead of a message box (U-39)
+    monkeypatch.setattr(module, "report", lambda parent, text, kind="error": shown.append((kind, text)))
 
     module.maybe_run_startup_fetch(None)
 
     assert shown
-    message = shown[0][-1]
+    message = shown[0][1]
     assert "4/4 support-data file(s) available." in message
     assert "/fake/cache/SW-All.csv" in message
 
@@ -136,15 +135,15 @@ def test_maybe_run_reports_a_failed_space_weather_fetch(qtbot, monkeypatch):
     monkeypatch.setattr(module.StartupFetchWorker, "run", _fake_run)
     monkeypatch.setattr(module.StartupFetchWorker, "start", lambda self: self.run())
 
-    shown = []
-    monkeypatch.setattr(module.QMessageBox, "information",
-                         staticmethod(lambda *a, **k: shown.append(a)))
+    shown = []  # what was reported instead of a message box (U-39)
+    monkeypatch.setattr(module, "report", lambda parent, text, kind="error": shown.append((kind, text)))
 
     module.maybe_run_startup_fetch(None)
 
-    message = shown[0][-1]
+    message = shown[0][1]
     assert "could not fetch" in message
     assert "boom" in message
+    assert shown[0][0] == "warning"  # a failed fetch is a warning toast, and in the Log
 
 
 def test_maybe_run_reports_an_unexpected_worker_error(qtbot, monkeypatch):
@@ -158,16 +157,16 @@ def test_maybe_run_reports_an_unexpected_worker_error(qtbot, monkeypatch):
     monkeypatch.setattr(module.StartupFetchWorker, "run", _fake_run)
     monkeypatch.setattr(module.StartupFetchWorker, "start", lambda self: self.run())
 
-    shown = []
-    monkeypatch.setattr(module.QMessageBox, "information",
-                         staticmethod(lambda *a, **k: shown.append(a)))
+    shown = []  # what was reported instead of a message box (U-39)
+    monkeypatch.setattr(module, "report", lambda parent, text, kind="error": shown.append((kind, text)))
 
     module.maybe_run_startup_fetch(None)
 
     assert shown
-    message = shown[0][-1]
+    message = shown[0][1]
     assert "unexpectedly" in message
     assert "something nobody expected" in message
+    assert shown[0][0] == "warning"
 
 
 @pytest.mark.skipif(
@@ -278,8 +277,8 @@ def test_maybe_run_reports_the_earth_orientation_fetch(qtbot, monkeypatch):
                         staticmethod(lambda: (True, "2 file(s), ITRF93, high accuracy until 2026-12-16")))
     monkeypatch.setattr(module.StartupFetchWorker, "start", lambda self: self.run())
     shown = []
-    monkeypatch.setattr(module.QMessageBox, "information", lambda parent, title, text: shown.append(text))
+    monkeypatch.setattr(module, "report", lambda parent, text, kind="error": shown.append((kind, text)))
 
     module.maybe_run_startup_fetch(None)
 
-    assert shown == ["Earth orientation: 2 file(s), ITRF93, high accuracy until 2026-12-16"]
+    assert shown == [("success", "Reference data: Earth orientation: 2 file(s), ITRF93, high accuracy until 2026-12-16")]

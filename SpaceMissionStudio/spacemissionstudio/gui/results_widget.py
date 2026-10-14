@@ -162,7 +162,6 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QMenu,
-    QMessageBox,
     QPushButton,
     QSizePolicy,
     QSplitter,
@@ -183,6 +182,7 @@ from . import plot_page
 from .flow_layout import FlowLayout
 from .plot_catalog import ACCESS_TIMELINE, PlotCatalog
 from .readout_panel import ReadoutPanel, value_at
+from .feedback import report
 from .theme import FONTS_DIR, PALETTE, SERIES_COLORS
 from .widgets import ComboBox
 
@@ -1539,9 +1539,10 @@ class ResultsWidget(QWidget):
         try:
             paths = self._result.export_csv(Path(out_dir))
         except OSError as exc:
-            QMessageBox.critical(self, "Export failed", str(exc))
+            report(self, f"Could not export the results to {out_dir}: {exc}")
             return
-        QMessageBox.information(self, "Export complete", f"Wrote {len(paths)} CSV file(s) to {out_dir}")
+        csv_count = sum(1 for key in paths if key != "provenance")
+        report(self, f"Exported {csv_count} CSV file(s) to {out_dir}", kind="success")
 
     def _on_export_all(self, fmt: str) -> None:
         folder = QFileDialog.getExistingDirectory(self, f"Export the shown plots ({fmt.upper()}) and their data")
@@ -1756,7 +1757,7 @@ class ResultsWidget(QWidget):
             if value == _SAVE_PNG_PENDING_SENTINEL or page_replaced:
                 if state["attempts"] >= _SAVE_PNG_MAX_POLL_ATTEMPTS:
                     self._finish_poll(state)
-                    QMessageBox.critical(self, "Save failed", "Timed out waiting for the plot to render.")
+                    report(self, f"Could not save the plot to {state['path']}: it did not render in time")
                 return
             self._finish_poll(state)
             state.get("on_done", self._on_plot_png_rendered)(value, state["path"], state["fmt"])
@@ -1768,7 +1769,7 @@ class ResultsWidget(QWidget):
         for PNG, a percent-encoded TEXT data URL for SVG -- see
         :meth:`_decode_image`) to ``path``, with the run's provenance."""
         if isinstance(data_url, str) and data_url.startswith(_SAVE_PNG_ERROR_PREFIX):
-            QMessageBox.critical(self, "Save failed", data_url[len(_SAVE_PNG_ERROR_PREFIX):])
+            report(self, f"Could not save the plot to {path}: {data_url[len(_SAVE_PNG_ERROR_PREFIX):]}")
             return
         try:
             content = self._decode_image(data_url, fmt)
@@ -1777,6 +1778,6 @@ class ResultsWidget(QWidget):
             else:
                 Path(path).write_bytes(content)
         except (OSError, ValueError) as exc:
-            QMessageBox.critical(self, "Save failed", str(exc))
+            report(self, f"Could not save the plot to {path}: {exc}")
             return
-        QMessageBox.information(self, "Plot saved", f"Saved plot to {path}")
+        report(self, f"Saved the plot to {path}", kind="success")

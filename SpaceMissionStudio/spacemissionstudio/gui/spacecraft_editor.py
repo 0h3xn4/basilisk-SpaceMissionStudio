@@ -64,7 +64,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
@@ -100,7 +99,7 @@ from .data_handling_editor import GainTableWidget, InstrumentTableWidget
 from .facet_editor import FacetTableWidget
 from .solar_array_editor import SolarArrayTableWidget
 from .feedback import (ProblemBanner, bring_into_view, clear_field_error, clear_invalid, clear_on_edit,
-                       mark_invalid, show_field_error, show_toast)
+                       mark_invalid, report, show_dialog_error, show_field_error, show_toast)
 from .number_list import NumberListEditor
 from .orbit_ic_widget import OrbitIcWidget
 from .param_form import ParamForm
@@ -1625,7 +1624,7 @@ class SpacecraftEditorDialog(QDialog):
                               str(exc))
             return
         except ValueError as exc:
-            QMessageBox.critical(self, "Invalid input", str(exc))
+            show_dialog_error(self, f"This spacecraft is not valid: {exc}")
             return
         self.accept()
 
@@ -2387,8 +2386,7 @@ class SpacecraftListWidget(QWidget):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
             if config.name in existing_names:
-                QMessageBox.critical(self, "Duplicate name",
-                                      f"A spacecraft named {config.name!r} already exists.")
+                report(self, f"Not added: a spacecraft named {config.name!r} already exists", kind="warning")
                 return
             self._configs.append(config)
             self._refresh_list()
@@ -2425,8 +2423,7 @@ class SpacecraftListWidget(QWidget):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
             if config.name in existing_names:
-                QMessageBox.critical(self, "Duplicate name",
-                                      f"A spacecraft named {config.name!r} already exists.")
+                report(self, f"Not added: a spacecraft named {config.name!r} already exists", kind="warning")
                 return
             self._configs.append(config)
             self._refresh_list()
@@ -2476,8 +2473,7 @@ class SpacecraftListWidget(QWidget):
             new_config = dialog.to_dataclass()
             other_names = {c.name for i, c in enumerate(self._configs) if i != row}
             if new_config.name in other_names:
-                QMessageBox.critical(self, "Duplicate name",
-                                      f"A spacecraft named {new_config.name!r} already exists.")
+                report(self, f"Not saved: a spacecraft named {new_config.name!r} already exists", kind="warning")
                 return
             self._configs[row] = new_config
             self._refresh_list()
@@ -2547,15 +2543,14 @@ class SpacecraftListWidget(QWidget):
         try:
             generated = generate_walker_constellation(request, template)
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Cannot generate constellation", str(exc))
+            report(self, f"Could not make the constellation: {exc}")
             return
 
         existing_names = {c.name for c in self._configs}
         colliding = [s.name for s in generated if s.name in existing_names]
         if colliding:
-            QMessageBox.critical(self, "Name collision",
-                                  f"Generated spacecraft name(s) already exist in this scenario: {colliding}. "
-                                  "Change the name prefix and try again.")
+            report(self, f"Not added: the scenario already has spacecraft named {colliding}; change the name "
+                         "prefix and try again", kind="warning")
             return
 
         self._configs.extend(generated)
@@ -2580,8 +2575,7 @@ class SpacecraftListWidget(QWidget):
 
         existing_names = {c.name for c in self._configs}
         if request.follower_name in existing_names:
-            QMessageBox.critical(self, "Duplicate name",
-                                  f"A spacecraft named {request.follower_name!r} already exists.")
+            report(self, f"Not added: a spacecraft named {request.follower_name!r} already exists", kind="warning")
             return
 
         # engine.formation imports Basilisk lazily (at generate_phasing_follower()
@@ -2594,14 +2588,12 @@ class SpacecraftListWidget(QWidget):
         try:
             follower = generate_phasing_follower(request, chief, template, central_body)
         except ImportError as exc:
-            QMessageBox.critical(self, "Basilisk not available",
-                                  f"Basilisk is not installed/built ({exc}) -- generating a phasing formation "
-                                  "needs a real Basilisk build (it computes the follower's orbit via a real "
-                                  "Hill-frame state-vector transform, not a hand-rolled equivalent). See "
-                                  "SpaceMissionStudio/README.md.")
+            report(self, f"Could not make the phasing formation: Basilisk is not installed ({exc}).\n"
+                         "The follower's orbit comes from Basilisk's Hill-frame transform; see "
+                         "SpaceMissionStudio/README.md.")
             return
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Cannot generate phasing formation", str(exc))
+            report(self, f"Could not make the phasing formation: {exc}")
             return
 
         chief.station_keeping = dialog.chief_station_keeping()  # the chief section of the dialog

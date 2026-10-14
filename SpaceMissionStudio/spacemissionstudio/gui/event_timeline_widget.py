@@ -44,12 +44,13 @@ import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFontMetrics, QKeySequence, QPainter, QPen, QShortcut
 from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComboBox, QFileDialog, QHBoxLayout,
-                               QHeaderView, QLabel, QLineEdit, QMessageBox, QPushButton, QSplitter, QTableWidget,
+                               QHeaderView, QLabel, QLineEdit, QPushButton, QSplitter, QTableWidget,
                                QTableWidgetItem, QToolTip, QVBoxLayout, QWidget)
 
 from .. import output_provenance
 from ..engine import events as event_model
 from ..engine.results import ResultSet
+from .feedback import report
 from .theme import PALETTE, SERIES_COLORS
 from .time_cursor import TimeCursor, describe
 
@@ -522,9 +523,9 @@ class EventTimelineWidget(QWidget):
         try:
             self.export_csv(path)
         except OSError as exc:
-            QMessageBox.critical(self, "Export failed", str(exc))
+            report(self, f"Could not export the events to {path}: {exc}")
             return
-        QMessageBox.information(self, "Export complete", f"Wrote {path}")
+        report(self, f"Exported {len(self.visible_events())} events to {path}", kind="success")
 
     def export_csv(self, path: Path) -> Path:
         """Write the shown events to ``path``, and the run's provenance to

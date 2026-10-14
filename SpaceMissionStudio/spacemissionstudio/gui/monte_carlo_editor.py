@@ -45,7 +45,6 @@ from PySide6.QtWidgets import (
     QLabel,
     QListWidget,
     QListWidgetItem,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -59,7 +58,7 @@ from ..schema.scenario import (
     DispersionConfig,
     MonteCarloConfig,
 )
-from .feedback import show_toast
+from .feedback import show_dialog_error, show_toast
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox
 
 
@@ -273,7 +272,7 @@ class _DispersionEditorDialog(QDialog):
         try:
             self.to_dataclass()
         except ValueError as exc:
-            QMessageBox.critical(self, "Invalid dispersion", str(exc))
+            show_dialog_error(self, f"This dispersion is not valid: {exc}")
             return
         self.accept()
 
