@@ -394,10 +394,10 @@ class MonteCarloGroupWidget(QGroupBox):
         form = QFormLayout()
         self.enabled_check = QCheckBox("Enabled")
         self.enabled_check.setToolTip(
-            "Checking this ON runs this scenario repeatedly (Number of runs below), each time "
-            "with a fresh random draw for every dispersion configured below, instead of the "
-            "single ordinary run Run Simulation otherwise does -- for statistically "
-            "characterizing how sensitive the outcome is to real initial-condition uncertainty."
+            "Checking this ON lets Run, in Monte Carlo mode (the run mode beside Run), run this scenario "
+            "repeatedly (Number of runs below), each time with a fresh random draw for every dispersion "
+            "configured below, instead of a single run -- for statistically characterizing how "
+            "sensitive the outcome is to real initial-condition uncertainty."
         )
         self.enabled_check.toggled.connect(self.changed)
         form.addRow(self.enabled_check)

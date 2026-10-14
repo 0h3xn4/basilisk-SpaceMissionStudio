@@ -32,6 +32,7 @@ Each layer uses only the layers below it.
 | `cli.py` | The `spacemissionstudio` command, over the same `engine` calls as the GUI | Only for commands that run something |
 | `fsw_export/` | Exports a spacecraft's attitude flight software as a standalone C project | Only to record a run |
 | `sil/` | Software in the loop: the transport contract, the session, the runner, the comparison report | Only to run |
+| `model3d/` | 3D spacecraft models: shapes and `.obj` files, mass properties, surface facets, and applying them to a spacecraft | No (numpy only) |
 
 Nothing is duplicated between the GUI and the CLI: both call `schema` and
 `engine`.

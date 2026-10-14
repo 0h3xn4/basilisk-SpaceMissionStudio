@@ -14,13 +14,13 @@ and the exported files.
 | **Events** | Passes, eclipses, burns and mode changes, as a timeline and a table | Yes |
 | **Compare** | Two or more saved runs: a summary with differences, the inputs that differ, events, plots | Two runs |
 | **Log** | What the app logged in this session, with every message a toast showed; a failed run opens it | No |
-| **Scenario > End of Life** | Orbital lifetime and deorbit check | No |
-| **Scenario > Budget** | Delta-V and propellant budget | No (better after a run) |
-| **Scenario > Flight Software** | Export the flight software, or run it in the loop | No |
+| **Analyses > End of Life** | Orbital lifetime and deorbit check | No |
+| **Analyses > Budget** | Delta-V and propellant budget | No (better after a run) |
+| **Tools > Flight Software** | Export the flight software, or run it in the loop | No |
 | Side panel: **Inspector** | The field you are in: its value, accepted range and help | No |
 | Side panel: **Explain** | What the scenario is set up to do, and warnings before you run | No |
 | Side panel: **Problems** | What does not validate or looks implausible; double-click one to go to its field | No |
-| **Reference data** dialog (status bar) | Every reference data file, its status and where it came from | No |
+| **Reference data** dialog (status bar, or **Tools > Reference Data...**) | Every reference data file, its status and where it came from | No |
 
 ## Find a plot
 

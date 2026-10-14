@@ -68,7 +68,7 @@ Each item was checked against Basilisk's own source.
   deliberately NOT offered: Basilisk's Cartesian dispersion classes
   replace each component with an absolute random value, not a
   perturbation around the nominal orbit; the orbit varies as orbital
-  elements instead. The Monte Carlo tab tracks position and velocity
+  elements instead. The Monte Carlo view tracks position and velocity
   only (attitude, wheel speeds and other series are not kept per run).
 * **`monte_carlo.thread_count > 1`** has been run in this project's Linux
   environment (template 25 and three-run batches with 3 threads, Basilisk
@@ -83,7 +83,7 @@ Each item was checked against Basilisk's own source.
   * Jacchia-Roberts genuinely doesn't exist anywhere in Basilisk (checked
     `src/simulation/environment/` -- only `ExponentialAtmosphere`,
     `MsisAtmosphere`, `TabularAtmosphere` do); `atmosphere_model` offers
-    the first two (see "Orbital dynamics & propagation" above), not the
+    the first two (see [Orbital dynamics & propagation](capabilities.md#orbital-dynamics--propagation)), not the
     one that doesn't exist.
   * Basilisk's `earthRadiationModel` module computes Earth albedo/IR
     flux, but its own payload comment names `facetERPDynamicEffector` as

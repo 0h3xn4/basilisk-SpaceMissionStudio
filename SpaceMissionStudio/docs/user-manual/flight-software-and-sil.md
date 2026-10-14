@@ -10,7 +10,8 @@ You need a spacecraft with an FSW mode ([Attitude and
 hardware](attitude-and-hardware.md)) and a C compiler with CMake to build
 the result.
 
-1. On the **Flight Software** tab, find the spacecraft's card and press
+1. On the **Flight Software** page (**Tools > Flight Software**, or under
+   **Analyses** in the scenario tree), find the spacecraft's card and press
    **Export...**. Choose an empty folder.
 2. Build and test it:
 
@@ -20,7 +21,7 @@ the result.
    ctest --test-dir <folder>/build
    ```
 
-![The Flight Software tab for template 07: one card per spacecraft with its export status and the Export... and Open folder buttons](../images/flight_software_tab.png)
+![The Flight Software page for template 07: one card per spacecraft with its export status and the Export... and Open folder buttons](../images/flight_software_tab.png)
 
 The folder holds Basilisk 2.12.0's C modules (unchanged), the
 configuration generated from your scenario, a scheduler, a host program,
@@ -49,7 +50,7 @@ Python inside the tool.
    which spacecraft when more than one can). The dialog finds `fsw_host`, or you
    choose another program. It shows the program's SHA-256. Tick that you
    trust it (it runs with your rights) and press **Run SIL**.
-3. The run goes as usual. At the end, the Flight Software tab compares
+3. The run goes as usual. At the end, the Flight Software page compares
    every command the program sent with what the simulation's own modules
    computed: the largest residual, round-trip times, and plots over time.
    **Save report...** writes it as JSON and CSV.

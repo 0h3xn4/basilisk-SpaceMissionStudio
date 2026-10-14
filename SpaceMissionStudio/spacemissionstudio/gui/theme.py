@@ -798,7 +798,7 @@ def _qss() -> str:
         border-bottom: 2px solid {c['accent']};
         color: {c['text']};
     }}
-    /* A menu button laid out among push buttons (the Data tab's Download,
+    /* A menu button laid out among push buttons (the reference data panel's Download,
        Import, Roll back): Carbon tertiary, like QPushButton above. */
     QToolButton[tertiary="true"] {{
         border: 1px solid {c['accent_text']};

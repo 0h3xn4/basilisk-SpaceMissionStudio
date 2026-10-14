@@ -22,7 +22,7 @@ Shows the summary ``engine.monte_carlo_results`` keeps of a batch (never
 Basilisk's pickled archive, security analysis S-04): headline tiles for
 how far the runs spread, the per-run curves and their 1-sigma spread in
 an embedded Results view, and a sortable table of what each run drew
-and where it ended. Filled after Run Monte Carlo..., or from a folder an
+and where it ended. Filled after a run in Monte Carlo mode, or from a folder an
 earlier batch saved (**Open results...**).
 """
 
@@ -45,8 +45,8 @@ from .feedback import report
 from .theme import PALETTE
 from .widgets import ComboBox, TabWidget
 
-_EMPTY_HINT = ("Run > Run Monte Carlo... shows its batch here. Open results... shows one an earlier batch saved "
-               "(the folder you chose for it).")
+_EMPTY_HINT = ("A run in Monte Carlo mode (Run > Run mode > Monte Carlo) shows its batch here. Open results... "
+               "shows one an earlier batch saved (the folder you chose for it).")
 
 
 class _NumberItem(QTableWidgetItem):
@@ -83,7 +83,7 @@ class MonteCarloResultsWidget(QWidget):
         header.addWidget(self.spacecraft_label)
         header.addWidget(self.spacecraft_combo)
         self.open_button = QPushButton("Open results...")
-        self.open_button.setToolTip("Show the batch an earlier Run Monte Carlo... saved in a folder.")
+        self.open_button.setToolTip("Show the batch an earlier Monte Carlo run saved in a folder.")
         self.open_button.clicked.connect(self._on_open)
         header.addWidget(self.open_button)
         layout.addLayout(header)

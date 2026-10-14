@@ -5,7 +5,7 @@ far apart the results end up.
 
 ## Set up a batch
 
-1. In the **Scenario Editor**, open the **Monte Carlo** section and tick
+1. In the scenario tree, open the **Monte Carlo** page and tick
    **Enabled**.
 2. Set how many runs, and how many run in parallel.
 3. Add one or more **dispersions**: which quantity varies, for which

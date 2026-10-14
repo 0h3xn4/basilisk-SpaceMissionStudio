@@ -177,6 +177,14 @@ downgraded and -y was used without --allow-downgrades"); after `apt
 remove spacemissionstudio` the same command installed 1.0.0, which then
 reported 1.0.0 with Basilisk 2.12.0.
 
+**The published 1.0.0 files.** The final wheel, sdist and `.deb` were
+rebuilt from the release commit `f288e0c73` and the `.deb` installed
+again (it reported 1.0.0 with Basilisk 2.12.0, validated the 28
+templates and ran template 01). Those are the files attached to the
+[1.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0):
+GitHub's SHA-256 digest of each attached file equals the built file's
+(`SHA256SUMS-linux`).
+
 ### The Windows installer (Inno Setup)
 
 `windows/spacemissionstudio.iss` is an [Inno Setup](https://jrsoftware.org/isinfo.php)

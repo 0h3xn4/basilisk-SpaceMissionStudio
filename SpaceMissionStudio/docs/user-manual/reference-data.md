@@ -54,7 +54,8 @@ install itself.
    (above). Copy the files you need, for example from
    `~/.cache/SpaceMissionStudio/earth_orientation/` or a CelesTrak
    `SW-All.csv`.
-2. On the offline machine, **Data > Import file...** installs a
+2. On the offline machine, **Import file...** in the **Reference data**
+   dialog installs a
    space-weather or Earth orientation file from disk. From the command
    line: `spacemissionstudio earth-orientation --import FILE.bpc`.
 3. Support data (SPICE kernels, gravity, magnetic model) goes into
@@ -67,7 +68,7 @@ file.
 
 ## Undo an update
 
-**Data > Roll back...** puts back the version that the last download or
+**Roll back...** in the **Reference data** dialog puts back the version that the last download or
 import replaced. From the command line: `spacemissionstudio
 earth-orientation --rollback`.
 
@@ -80,7 +81,7 @@ earth-orientation --rollback`.
 | Earth orientation | `~/.cache/SpaceMissionStudio/earth_orientation/` |
 | Vizard download | `~/.cache/SpaceMissionStudio/vizard/` |
 
-**More detail:** User Manual section 7, the **Data** paragraph of
+**More detail:** User Manual section 7, the **Reference data** paragraph of
 [Reading the Results tab](../../USER_MANUAL.md#7-reading-the-results-tab).
 
 ---

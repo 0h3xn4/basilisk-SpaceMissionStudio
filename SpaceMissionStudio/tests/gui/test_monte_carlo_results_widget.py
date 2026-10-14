@@ -16,8 +16,8 @@
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-"""The Monte Carlo tab: a batch's tiles, plots and run table, from its
-pickle-free summary; and when the main window shows the tab."""
+"""The Monte Carlo view of the Results tab: a batch's tiles, plots and run
+table, from its pickle-free summary; and when the main window shows the view."""
 
 import csv
 import math

@@ -79,7 +79,7 @@ app keeps exactly yours: add `--ignore-gpu-blocklist` to them. The model
 still works without the view: the mass properties and facets are shown
 in the tabs below it.
 
-### "Basilisk version not qualified" in the status bar
+### "(not qualified)" after the Basilisk version in the status bar
 
 A Basilisk version other than 2.12.0 is installed. Runs still work, but
 outside what the app was verified against. To go back:
@@ -97,16 +97,17 @@ from disk ([work offline](user-manual/reference-data.md#work-offline)).
 ### `ERROR: run failed: support-data file GGM03S.txt is not installed (...)`
 
 The full message continues: "SpaceMissionStudio does not download during
-a run: download it from the Data tab (Download > Support data) or with
-`spacemissionstudio kernels-status`." Do one of those two, then run again.
+a run: download it from the Reference data dialog (Tools > Reference
+Data..., Download... > Support data) or with `spacemissionstudio
+kernels-status`." Do one of those two, then run again.
 
-### `Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km); download them from the Data tab`
+### `Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km); Tools > Reference Data downloads them`
 
-The Explain tab shows this, and a run reports `Earth orientation: IAU
+The Explain page shows this, and a run reports `Earth orientation: IAU
 rotation model, no IERS data installed`. The measured Earth orientation
 files are missing, so the run uses the simpler IAU model. Run
-`spacemissionstudio earth-orientation --fetch`, or **Data > Download... >
-Earth orientation**.
+`spacemissionstudio earth-orientation --fetch`, or, in the **Reference
+data** dialog, **Download... > Earth orientation**.
 
 ## Running a scenario
 
@@ -120,7 +121,7 @@ while connected to the internet.
 
 ### Run is not available
 
-Look at the message at the bottom of the **Scenario Editor**: it names the
+Look at the message at the bottom of the **Scenario** tab: it names the
 field to fix. **✓ valid** means you can run.
 
 ### A run takes too long, or you started the wrong one

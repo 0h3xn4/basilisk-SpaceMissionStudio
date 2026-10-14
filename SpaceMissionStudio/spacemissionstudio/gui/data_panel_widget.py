@@ -15,14 +15,15 @@
 #  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
-"""The Data tab: every reference data file the tool uses, and the only
+"""The reference data panel, shown in the Reference data dialog: every
+reference data file the tool uses, and the only
 places it downloads (UX/UI guidelines, "offline and closed operation").
 
 The table lists each file's kind, status, the dates it covers, its
 source, SHA-256 and install time (:func:`engine.reference_data.inventory`,
 local reads only; out-of-date files are flagged). A download starts only
 from the Download menu, after a prompt that names the source, the files
-and their size; afterwards the tab says what changed. Space weather and
+and their size; afterwards the panel says what changed. Space weather and
 Earth orientation files can also be imported from local files and rolled
 back to the previous version.
 """

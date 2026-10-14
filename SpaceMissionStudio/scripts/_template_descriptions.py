@@ -148,7 +148,7 @@ Introduces the Mission Sequence: coast, take a snapshot, burn +50 m/s prograde, 
 snapshot -- instead of one plain propagation.
 
 What to look at:
-- The Mission Output tab: the snapshots before and after the burn.
+- Results > Output: the snapshots before and after the burn.
 - The orbit turns into an ellipse: apoapsis raised opposite the burn, periapsis unchanged.
 
 Try changing:
@@ -160,7 +160,7 @@ Template 01's circular orbit as a 20-run Monte Carlo batch: each run's dry mass 
 distribution, 500 kg +/- 25 kg.
 
 What to look at:
-- Run it with Run Monte Carlo...: the Monte Carlo tab shows every run and their spread.
+- Run it in Monte Carlo mode (the mode beside Run): Results > Monte Carlo shows every run and their spread.
 - Mass barely matters here: with no drag, radiation pressure or burns, mass doesn't change the trajectory.
 
 Try changing:
@@ -248,7 +248,7 @@ A Mission Sequence step that solves for the burn: lambert_transfer finds the del
 position after a set time of flight, then applies it.
 
 What to look at:
-- The Mission Output tab: after the time of flight, the position sits at the target [-6578000, 0, 0] m, \
+- Results > Output: after the time of flight, the position sits at the target [-6578000, 0, 0] m, \
 within about 2 m (the solver accepts up to 500 m).
 
 Try changing:
@@ -283,7 +283,7 @@ Try changing:
 
 Note:
 - Drag uses real space weather; 2030 is NASA MSFC's 50th-percentile prediction.
-- Cd 3.0: ESA AD10's operations value. The Budget tab's Launch delays repeats the budget for launches \
+- Cd 3.0: ESA AD10's operations value. The Budget page's Launch delays repeats the budget for launches \
 up to 5 years late.""",
 
     "19": """\
@@ -355,7 +355,7 @@ solar pressure -- and the Berlin ground station. No attitude, so a day runs in s
 What to look at:
 - The Events tab: four Berlin passes (the first 10-18 min in) and 15 eclipses of about 35 min.
 - my-sat.orbit_elements_mean.raan: the orbit plane turns about 1 deg a day, in step with the Sun.
-- The Explain tab: everything this scenario switches on, in one view.
+- Explain, in the side panel: everything this scenario switches on, in one view.
 
 Make it your own (Save As first):
 - Spacecraft > Edit: your mass, drag area and orbit (a TLE works too).
@@ -375,7 +375,7 @@ A Mission Sequence stops at the start and end of the first pass (about 10 and 18
 then coasts on for an hour.
 
 What to look at:
-- The Mission Output tab: the two reports.
+- Results > Output: the two reports.
 - berlin-gs.access_to_smallsat-1.link_margin_db: 11 dB at the 10 deg edge of the pass, 21 dB at its peak.
 - smallsat-1.rw_speeds: up to ~300 RPM while turning to the Sun, then the torque rods bring them back \
 near zero.
@@ -411,7 +411,7 @@ different orbit (1-sigma: 1 km in semi-major axis, 0.02 deg in inclination, 0.1 
 with a drag coefficient between 2.2 and 3.0. Three days at 400 km, with real space weather.
 
 What to look at:
-- Run it with Run Monte Carlo...: the Monte Carlo tab opens on the runs' spread.
+- Run it in Monte Carlo mode (the mode beside Run): Results > Monte Carlo opens on the runs' spread.
 - The runs start ~10 km apart along track (1-sigma) and spread ~150 km a day: a lower orbit is faster.
 - The Runs table: sort by semi-major axis to see the lowest orbits pull ahead.
 - Drag alone (spreads set to 0) separates them by only ~10 km in three days.
@@ -460,7 +460,7 @@ Try changing:
 - First mode 0.05 Hz (Flexible solar arrays, Orbit / mass tab): the wings swing 0.94 deg and ring at \
 0.065 Hz, and the pointing still settles as before.
 - Damping 5%: the ringing dies only slightly sooner, since the control already damps most of it.
-- Recording interval 5 s: the Explain tab warns that the samples are too far apart to show the flexing.
+- Recording interval 5 s: Explain warns that the samples are too far apart to show the flexing.
 
 Note:
 - Flexible arrays need the rkf45 or rkf78 integrator.""",

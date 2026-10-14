@@ -1,7 +1,7 @@
 # SpaceMissionStudio: Software User Manual (SUM)
 
 DRD: ECSS-E-ST-40C Annex H
-Document: SMS-SUM, issue 1 (draft), 2026-10-08. Remediation R14.
+Document: SMS-SUM, issue 1 (draft), 2026-10-08; menu and window names updated 2026-10-14. Remediation R14.
 
 **Status:** draft.
 - The user documentation already exists:
@@ -49,7 +49,7 @@ UM section 12 (glossary) and the SRS terms.
 
 ## 4 Conventions (H.2.1<4>)
 
-- **Menus and buttons:** in bold (**Run > Abort Run**).
+- **Menus and buttons:** in bold (**Run > Cancel Run**).
 - **Typed text and commands:** in `code`.
 - **CLI syntax:** `spacemissionstudio <command> [arguments]`. Optional
   arguments are in brackets; AD1 lists every argument.
@@ -72,7 +72,7 @@ The tool lets a mission analyst do the following without writing code:
 
 | File | Location | Notes |
 |---|---|---|
-| Basilisk 2.12.0 and its data (SPICE kernels) | Python environment; Basilisk's data cache | Installed by the installer; runs never download. The **Data** tab lists every file (source, dates, SHA-256) and downloads only after asking |
+| Basilisk 2.12.0 and its data (SPICE kernels) | Python environment; Basilisk's data cache | Installed by the installer; runs never download. The **Reference data** dialog lists every file (source, dates, SHA-256) and downloads only after asking |
 | Space weather (CelesTrak SW-All, NASA MSFC prediction) | Bundled in the package; optional newer copy in `~/.cache/SpaceMissionStudio/` | Downloaded only when you agree (start-up prompt) |
 | IERS-based Earth orientation files (NAIF PCKs) | `~/.cache/SpaceMissionStudio/earth_orientation/` or the installation's `share/` | Optional. Without them the Earth frame is less accurate and runs say so. `spacemissionstudio earth-orientation --fetch` |
 | Vizard (optional) | Downloaded on request, or your own installation | 3-D view only |
@@ -118,13 +118,18 @@ The tool lets a mission analyst do the following without writing code:
 ### 7.4 Software organization and overview of operation (H.2.1<7.4>)
 
 - **Window layout:** UM section 3:
-  - left tabs **Load Scenario** and **Scenario Editor**;
-  - right tabs **Results**, **Mission Dashboard**, **Mission Output**,
-    **Data**, **Explain**.
+  - main tabs **Scenario** (the scenario tree: **Templates**, the
+    scenario's pages, and the **Analyses** End of Life, Budget and
+    Flight Software), **Results** (**Plots**, **Dashboard**, **Output**,
+    and **Monte Carlo** when there is a batch), **Events**, **Compare**
+    and **Log**;
+  - a side panel with **Inspector**, **Explain** and **Problems**;
+  - the **Reference data** dialog, from the status bar or **Tools >
+    Reference Data...**.
 - **States:**
   - **Editing:** everything available.
-  - **Running:** the run controls are disabled and **Abort Run** is
-    enabled.
+  - **Running:** the run controls are disabled and **Cancel Run**
+    (`Esc`) is enabled, except for a Monte Carlo batch.
   - **Degraded:**
     - without Basilisk, you can edit but not run (UM section 11);
     - without the Earth orientation files, runs are less accurate and
@@ -205,8 +210,8 @@ operating-system rights. See 9.9.
 ### 9.6 Normal termination (H.2.1<9.6>)
 
 - **Close the window:** the tool refuses to close while a run is in
-  progress. Abort the run first.
-- **Run > Abort Run:** stops a run at the next checkpoint and keeps the
+  progress. Cancel the run first.
+- **Run > Cancel Run** (`Esc`): stops a run at the next checkpoint and keeps the
   results so far. The status says "cancelled".
 - **CLI:** a finished command prints its result and returns 0 (AD1).
 
@@ -238,7 +243,7 @@ in the CLI. An error never closes the application.
   - Conditions (`if`/`while`) cannot run code (AD3, S-02).
 - **Monte Carlo archives:** Basilisk writes them as pickle files. Do not
   load archives you did not create with Basilisk's own tools (AD3, S-04).
-  The Monte Carlo tab and **Open Monte Carlo Results...** read only the
+  The Results tab's Monte Carlo view and **Open Monte Carlo Results...** read only the
   pickle-free summary next to them (`batch_results.npz`, `.json`).
 - **Vizard live streaming:** the tool opens no network port. Vizard
   listens on port 5556 while a run streams, and the simulation connects
@@ -261,10 +266,10 @@ in the CLI. An error never closes the application.
 | Action | GUI | CLI |
 |---|---|---|
 | Validate | automatic while editing | `spacemissionstudio validate FILE` |
-| Run | **Run > Run Simulation** | `spacemissionstudio run FILE --out-dir DIR [--oem] [--allow-scripts]` |
-| Abort | **Run > Abort Run** | Ctrl+C |
-| Lifetime | **End of life** panel | `spacemissionstudio lifetime FILE` |
-| Budget | **Budget** tab | `spacemissionstudio budget FILE` |
+| Run | **Run > Run** (`Ctrl+R`), in the run mode beside it | `spacemissionstudio run FILE --out-dir DIR [--oem] [--allow-scripts]` |
+| Cancel | **Run > Cancel Run** (`Esc`) | Ctrl+C |
+| Lifetime | **Analyses > End of Life** | `spacemissionstudio lifetime FILE` |
+| Budget | **Analyses > Budget** | `spacemissionstudio budget FILE` |
 | Earth orientation files | start-up prompt | `spacemissionstudio earth-orientation [--fetch \| --import FILES \| --rollback]` |
 | CCSDS | – | `ccsds-validate`, `ccsds-export`, `ccsds-import` |
 

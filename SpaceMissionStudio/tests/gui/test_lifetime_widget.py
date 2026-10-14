@@ -16,7 +16,7 @@
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-"""Tests for gui.lifetime_widget (the End of Life tab)."""
+"""Tests for gui.lifetime_widget (the End of Life page)."""
 
 from pathlib import Path
 

@@ -158,8 +158,8 @@ OK: '22 - Starter: your first LEO satellite' -- 1 spacecraft, schema version 4, 
 Then start the GUI (installed apps: from the menu; from source:
 `spacemissionstudio gui`) and check:
 
-- The status bar at the bottom shows the Basilisk version. "Basilisk
-  version not qualified" means a version other than 2.12.0 is installed:
+- The status bar at the bottom shows the Basilisk version. "(not
+  qualified)" after it means a version other than 2.12.0 is installed:
   runs still work, but outside what the app was verified against.
 - **Run > Check Reference Data** opens the **Reference data** dialog: every file
   should be `ok`.
@@ -178,7 +178,7 @@ orbit for one day, with a ground station in Berlin.
    data is installed; **Fetch now** downloads only what you tick.
 2. The app opens on **Templates**. Click **22 - Starter: your first
    LEO satellite**; its description appears below the list.
-3. Click **Open Template**. The **Scenario Editor** shows the mission; the
+3. Click **Open Template**. The **Scenario** tab shows the mission; the
    **Explain** page of the side panel says what it switches on, and predicts
    `berlin-gs: 4 passes`.
 4. **Run** on the toolbar (`Ctrl+R`). It takes a few seconds.

@@ -16,7 +16,7 @@
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-"""The Flight Software tab: export each spacecraft's flight software as a
+"""The Flight Software page: export each spacecraft's flight software as a
 standalone C project, and see whether an earlier export still matches the
 scenario (User Manual, "Exporting the flight software").
 

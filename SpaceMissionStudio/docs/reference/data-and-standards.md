@@ -17,8 +17,8 @@ and when it uses the network.
 
 SpaceMissionStudio is verified against **Basilisk 2.12.0**
 (`spacemissionstudio.dependencies.QUALIFIED_BASILISK_VERSION`; ECSS
-compliance decision D5). The `.deb` and Windows installers install
-`bsk[all]==2.12.0`. Another version still runs, but the GUI status bar and
+compliance decision D5). The `.deb`, the install scripts and the Windows
+setup script install `bsk[all]==2.12.0`. Another version still runs, but the GUI status bar and
 `spacemissionstudio run` say so, and every run's `provenance.json` records
 the Basilisk version, whether it is the qualified one, the other dependency
 versions, a SHA-256 of the scenario and the reference data files used
@@ -117,13 +117,13 @@ access happens only in these places, each started by you:
 |---|---|---|
 | Installation | Basilisk and the Python packages (PyPI), then the support data once | You run the installer or `pip` |
 | The **Fetch/update data?** dialog at each GUI start (`gui.startup_fetch_dialog`) | Support data, CelesTrak space weather, Earth orientation files: what you tick | Shown every time; **Skip** touches no network; no "don't ask again" |
-| The **Data** tab's **Download...** | Support data, space weather or Earth orientation | Names the source, the files and the size; default No |
+| The **Reference data** dialog's **Download...** | Support data, space weather or Earth orientation | Names the source, the files and the size; default No |
 | **Download Vizard** in the "Vizard not found" dialog | AVS's pre-built Vizard | Only on that click; **Browse...** is the alternative |
 | Commands you type | `kernels-status` (missing support data), `earth-orientation --fetch` | Running the command is the request |
 
 Everything fetched is stored locally, and every file can also be
-installed from disk (**Data > Import file...**, `earth-orientation
---import`), so a machine can stay offline for good. The installers'
+installed from disk (**Import file...** in the **Reference data** dialog,
+`earth-orientation --import`), so a machine can stay offline for good. The installers'
 part is described in [`packaging/README.md`](../../packaging/README.md);
 `tests/test_offline.py` runs with all network access blocked in CI.
 

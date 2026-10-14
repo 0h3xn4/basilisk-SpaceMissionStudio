@@ -11,7 +11,7 @@ without learning the whole Scenario Editor.
    - The filter box finds a setting by name, for example `drag` or
      `duration`.
 3. Change what you need, then click **Open in editor**. The changed
-   mission opens in the **Scenario Editor**, ready to run.
+   mission opens in the **Scenario** tab, ready to run.
 4. **File > Save As...** to keep it under your own name.
 
 The template file on disk is never changed, so you can always start

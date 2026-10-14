@@ -101,7 +101,7 @@ exports it. See template 28 and
 
 ### Flight-software export
 
-The Flight Software tab and
+The Flight Software page (**Tools > Flight Software**) and
 `spacemissionstudio export-fsw` write a spacecraft's attitude flight
 software as a standalone C99 project (`spacemissionstudio.fsw_export`):
 the Basilisk C modules it runs, copied unchanged from Basilisk 2.12.0,
@@ -152,7 +152,7 @@ gain pattern applied to the real attitude; template 26, User Manual
 section 6), and
 Monte Carlo batch analysis (`Basilisk.utilities.MonteCarlo`: dry mass,
 attitude, orbital elements, inertia, body rate, drag and SRP
-coefficients), shown in the GUI's Monte Carlo tab (each run, the spread
+coefficients), shown in the Results tab's Monte Carlo view (each run, the spread
 along, across and out of the orbit, and a table of what each run drew).
 
 ### Automatic Sun-pointing / ground-station-pointing attitude switching
@@ -252,14 +252,14 @@ state mid-mutation.
 
 Runs of up to about 10 years, chained
 past Basilisk's ~104-day limit, with a "Record every" setting to keep
-them in memory; and an **End of Life** tab (and `spacemissionstudio
-lifetime`) estimating when a spacecraft re-enters, with or without a
+them in memory; and an **End of Life** page (**Analyses > End of Life**,
+and `spacemissionstudio lifetime`) estimating when a spacecraft re-enters, with or without a
 deorbit burn, checked against the 5- and 25-year disposal rules. The
 estimate agrees with full Basilisk decay runs to within ~2% in seconds.
 
 ### Propellant budgets (ESA AD10 style)
 
-A Budget tab and
+A **Budget** page (**Analyses > Budget**) and
 `spacemissionstudio budget`: delta-V and propellant per mission phase with
 the guideline's margins, residuals and iteration, simulated orbit control
 taken from the last run (or estimated from the drag), the disposal burn
@@ -273,18 +273,18 @@ drag coefficient, 3.0.
 
 A full PySide6 desktop shell (scenario editor,
 Monte Carlo, live progress feedback, a real visual theme/icon/
-toolbar) and an equivalent headless CLI (17 commands; see
+toolbar) and an equivalent headless CLI (18 commands; see
 [Use the command line](../user-manual/command-line.md)), both built on
 the exact same `schema`/`engine` layer -- neither is a thin wrapper
 around the other. Result plots are Plotly figures (a validated,
 colorblind-safe categorical palette; a unified hover tooltip; plain
 decimal axis ticks -- never matplotlib's scientific/offset notation)
-rendered in an embedded `QWebEngineView`, with the epoch/elapsed-time
-x-axis toggle and per-series km-unit conversion described above still
-applying unchanged; see `results_widget.py`'s own module docstring for
+rendered in an embedded `QWebEngineView`, with a shared
+x-axis (elapsed time, calendar date or orbit number) and per-series
+km-unit conversion; see `results_widget.py`'s own module docstring for
 why `QWebEngineView` over a static image, and "Verification status"
-below for this migration's one open packaging caveat. A "Mission
-Dashboard" tab (`mission_dashboard_widget.py`) shows the same live run
+below for its one packaging caveat. The Results tab's **Dashboard**
+view (`mission_dashboard_widget.py`) shows the same live run
 as a set of grouped status readouts (operating state, attitude, power,
 RF link) instead of a plot, for a `comms_pointing`-configured
 spacecraft -- fed from the exact same `RunWorker.progress`/

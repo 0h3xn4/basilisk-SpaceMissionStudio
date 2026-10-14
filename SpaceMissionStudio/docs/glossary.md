@@ -12,7 +12,7 @@ explained in plain words, in alphabetical order. The app's built-in manual
 ## A
 
 **AD10** -- ESA's guideline for delta-V and propellant budgets (document
-EOP-FM/2024-07-177). The **Budget** tab follows its structure: margins,
+EOP-FM/2024-07-177). The **Budget** page follows its structure: margins,
 residual propellant, and solar activity at a high (95th) percentile for
 operations.
 

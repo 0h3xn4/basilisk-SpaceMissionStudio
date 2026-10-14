@@ -1,7 +1,7 @@
 # SpaceMissionStudio: Software Development Plan (SDP), with the configuration management description
 
 DRD: ECSS-E-ST-40C Annex O
-Document: SMS-SDP, issue 1 (draft), 2026-10-08. Remediation R14.
+Document: SMS-SDP, issue 1 (draft), 2026-10-08; release lines updated 2026-10-14. Remediation R14.
 
 **Status:** draft.
 - It describes how the tool is developed now, after the audit introduced
@@ -60,8 +60,9 @@ The objectives, in order:
 ### 4.2 Master schedule (O.2.1<4.2>)
 
 No project master schedule exists. Development is continuous and driven by
-the user's requests. Releases are made when the user decides. The next release
-is 2.1.0, tagged, not signed (decision 11).
+the user's requests. Releases are made when the user decides, tagged, not
+signed (decision 11). The current release is 1.0.0 (2026-10-14), after the
+renewal that restarted the numbering (SRelD).
 
 ### 4.3 Assumptions, dependencies and constraints (O.2.1<4.3>)
 
@@ -137,8 +138,9 @@ Incremental development on the `develop` line.
   - Each increment is recorded in `HISTORY.md` with what was found, what
     was changed and how it was verified.
 - **Versioning:** semantic version (`MAJOR.MINOR.PATCH`) in
-  `spacemissionstudio/__init__.py` and `pyproject.toml`, set at release;
-  the next is 2.1.0 (decision 11).
+  `spacemissionstudio/__init__.py`, `pyproject.toml` and the Inno Setup
+  script, set at release (`docs/developer/releasing.md`); the current
+  release is 1.0.0.
 - **Processes covered:**
   - requirements: SRS;
   - design: SDD;
@@ -245,7 +247,7 @@ the category C tailoring (RD1) and its status. This SDP does not repeat it.
 | Item | In place |
 |---|---|
 | Configuration items | `SpaceMissionStudio/` (code, tests, data, documents), `.github/workflows/spacemissionstudio.yml` |
-| Identification | git commits. Release versions are set in `__init__.py` and `pyproject.toml`. No SpaceMissionStudio release is tagged yet (the repository's tags are Basilisk's); releases are tagged from 2.1.0 on (decision 11). |
+| Identification | git commits. Release versions are set in `__init__.py` and `pyproject.toml`. Releases are tagged `spacemissionstudio-vX.Y.Z` (decision 11; a `v*` tag would start Basilisk's own publish workflows). 1.0.0 is tagged `spacemissionstudio-v1.0.0` on `f288e0c73`. |
 | Baselines | A release commit. The reused baseline is recorded in the SRF (Basilisk 2.12.0 with its published SHA-256). |
 | Change control | Branches. CI must pass. Commit messages reference requirement IDs or findings. A change board does not exist: waived (decision 11, D-12). |
 | Status accounting | `HISTORY.md`; `compliance/PROGRESS.md`; each run's `provenance.json` records the tool and dependency versions and the data files used |

@@ -8,7 +8,8 @@ record, then NASA MSFC's prediction.
 
 ## Orbital lifetime
 
-1. Open the **End of Life** tab and pick the spacecraft.
+1. Open the **End of Life** page (**Analyses > End of Life**, or under
+   **Analyses** in the scenario tree) and pick the spacecraft.
 2. Press **Estimate lifetime**. You get the re-entry date and whether two
    rules are met:
    - the **5-year rule** (ESA's Zero Debris approach, the FCC);
@@ -18,17 +19,21 @@ record, then NASA MSFC's prediction.
 4. Tick **Lower perigee to** to plan a deorbit burn with the orbit
    thruster. If the propellant is short, it says how low the perigee gets.
 
-![The End of Life tab for template 22: re-entry in 2047 after 17.3 years, the 5-year rule not met and the 25-year guideline met, with the perigee and apogee decaying over time](../images/end_of_life_tab.png)
+![The End of Life page for template 22: re-entry in 2047 after 17.3 years, the 5-year rule not met and the 25-year guideline met, with the perigee and apogee decaying over time](../images/end_of_life_tab.png)
 
 It takes seconds and agrees with full simulations to about 2 %. The
 **Drag coefficient** defaults to 2.2 (ESA AD10's end-of-life value).
 
 ```console
 $ spacemissionstudio lifetime spacemissionstudio/scenarios/templates/22_starter_first_leo_satellite.json
-My-sat: re-entry 2047-04-07, 17.26 years from 2030-01-01
+my-sat: re-entry 2047-04-07, 17.26 years from 2030-01-01
   5-year rule: not met
   25-year guideline: met
+WARNING: space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap
+WARNING: past 2041-10 MSFC's last 132 months repeat (ESA AD10 Sec. 5.9)
 ```
+
+The warnings are normal for a mission after the observed record ends.
 
 To compare altitudes, [`examples/altitude_lifetime_sweep.py`](../../examples/altitude_lifetime_sweep.py)
 prints a table (400 km: 2.65 years, 550 km: 17.26 years).
@@ -42,7 +47,7 @@ prints a table (400 km: 2.65 years, 550 km: 17.26 years).
 2. Run the mission, ideally for its whole length. For an ESA AD10 budget,
    set **Solar activity** (on the **Environment** page) to
    *Conservative: MSFC 95th percentile* and the drag coefficient to 3.0.
-3. On the **Budget** tab, press **Compute budget**. It lists each
+3. On the **Budget** page (**Analyses > Budget**), press **Compute budget**. It lists each
    contributor per mission phase with its margin, the total, and notes on
    anything that departs from the guideline. **Copy as CSV** puts the
    table on the clipboard.
@@ -50,7 +55,7 @@ prints a table (400 km: 2.65 years, 550 km: 17.26 years).
 Without a run, a LEO station keeper's orbit control is estimated from the
 drag on its orbit.
 
-![The Budget tab for template 18, estimated without a run: each contributor per mission phase, 696.6 m/s and 7.26 kg in all, with notes on the space weather used](../images/budget_tab.png)
+![The Budget page for template 18, estimated without a run: each contributor per mission phase, 696.6 m/s and 7.26 kg in all, with notes on the space weather used](../images/budget_tab.png)
 
 Two trades, as AD10 asks:
 

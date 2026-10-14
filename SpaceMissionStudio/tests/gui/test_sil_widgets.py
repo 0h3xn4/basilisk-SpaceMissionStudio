@@ -18,7 +18,7 @@
 
 """Running the flight software in the loop (SRS-F-19): the Run SIL
 dialog's consent (the program's path and SHA-256, confirmed again for
-every new program), the Flight Software tab during a run, and the
+every new program), the Flight Software page during a run, and the
 comparison panel."""
 
 import hashlib

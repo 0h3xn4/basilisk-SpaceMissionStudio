@@ -184,7 +184,8 @@ def cached_path(kernel) -> Path:
     if not path.is_file():
         raise KernelError(
             f"support-data file {kernel.value} is not installed ({path}). SpaceMissionStudio does not download "
-            "during a run: download it from the Data tab (Download > Support data) or with `spacemissionstudio kernels-status`.")
+            "during a run: download it from the Reference data dialog (Tools > Reference Data..., Download... > Support data) "
+            "or with `spacemissionstudio kernels-status`.")
     expected = dataFetcher.POOCH.registry.get(rel)
     if expected:
         # A file is hashed once per process while its size and modification
@@ -196,7 +197,7 @@ def cached_path(kernel) -> Path:
             algorithm, _, digest = expected.rpartition(":")
             if pooch.file_hash(str(path), alg=algorithm or "sha256") != digest:
                 raise KernelError(f"support-data file {path} does not match its checksum ({expected}); "
-                                  "download it again from the Data tab")
+                                  "download it again from the Reference data dialog")
             _VERIFIED.add(key)
     return path
 

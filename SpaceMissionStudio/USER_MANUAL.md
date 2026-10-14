@@ -47,7 +47,7 @@ starting orbits, optional sensors/actuators/ground stations), click
 **Run**, and get back real physics: trajectories, fuel use, pointing
 accuracy, ground-station visibility, and more.
 
-Under the hood, every number comes from [Basilisk](http://hanspeterschaub.info/basilisk/),
+Under the hood, every number comes from [Basilisk](https://avslab.github.io/basilisk/),
 a real astrodynamics simulation framework built by the University of
 Colorado Boulder's Autonomous Vehicle Systems (AVS) Lab -- the same kind
 of software used for real mission analysis. SpaceMissionStudio is a friendly
@@ -133,8 +133,9 @@ and what to do when it doesn't.
 
 ## 3. Starting the app
 
-* **Installed via `.deb`/`.exe`:** open **SpaceMissionStudio** from your
-  application menu/Start Menu, same as any other program.
+* **Installed with the `.deb` or the install script:** open
+  **SpaceMissionStudio** from your application menu (the Start Menu on
+  Windows), same as any other program.
 * **Running from source:** open a terminal in the project folder and run
   `spacemissionstudio gui` (or `python3 -m spacemissionstudio.gui.app`).
 
@@ -370,7 +371,7 @@ fixed:
   for the next one. The Explain tab lists each station's first pass and
   how long it lasts. A `maneuver` or `lambert_transfer` burn is an
   instant change of velocity only: it uses no propellant and leaves the
-  mass unchanged. For propellant, use the **Budget** tab (Section 11)
+  mass unchanged. For propellant, use the **Budget** page (Section 11)
   or a fuel tank with station-keeping or constant thrust.
 * **Monte Carlo** -- see Section 10.
 * **JSON** -- the scenario as it is saved, as text you can edit. An edit
@@ -608,14 +609,15 @@ navigation as the simulation's own modules.
 
 ### Exporting the flight software
 
-The **Flight Software** tab (or `spacemissionstudio export-fsw`) writes a
+The **Flight Software** page (**Tools > Flight Software**, or Analyses in
+the scenario tree; `spacemissionstudio export-fsw` from a terminal) writes a
 spacecraft's attitude flight software as a standalone C project: the same
 Basilisk C modules the simulation runs, with every parameter the scenario
 gives them, ready to build without Python or Basilisk.
 
 1. Set up and check the spacecraft as usual (pointing mode, gains,
    actuators).
-2. On the **Flight Software** tab, press **Export...** on its card and
+2. On the **Flight Software** page, press **Export...** on its card and
    choose an empty folder.
 3. Build and test it:
 
@@ -688,7 +690,7 @@ they computed.
    choose another program. It shows the program's SHA-256. Tick that you
    trust it (it runs with your user's rights) and press **Run SIL**.
 3. The run goes as any other run (progress strip, live plots, Cancel). At
-   the end the Flight Software tab shows the comparison.
+   the end the Flight Software page shows the comparison.
 
 | In the comparison | What it is |
 |---|---|
@@ -964,7 +966,7 @@ everything numerically; Vizard is for *seeing* the mission.
 Real spacecraft never have perfectly known mass, attitude, etc. --
 **Monte Carlo** mode runs your scenario many times with small, randomized
 variations and reports the spread of outcomes, instead of one single
-result. In the Scenario Editor's **Monte Carlo** section, check
+result. On the scenario tree's **Monte Carlo** page, check
 **Enabled**, set how many runs and how many to run in parallel, and add
 one or more **dispersions** (which quantity varies, and by how much) --
 then set the run mode beside **Run** to **Monte Carlo** and press
@@ -977,7 +979,7 @@ way, as Basilisk's Controller has no way to stop it), and opens the
 **Monte Carlo** view of the Results tab on the batch (the view is there
 whenever the scenario has Monte Carlo on, or a batch is open):
 
-![The Monte Carlo tab for template 25: tiles with the spread at the end, and every run's along-track offset from the batch mean](docs/images/monte_carlo_tab.png)
+![The Monte Carlo view for template 25: tiles with the spread at the end, and every run's along-track offset from the batch mean](docs/images/monte_carlo_tab.png)
 
 * **Tiles:** how many runs succeeded, which failed, and how far apart
   the runs ended (1-sigma) along the orbit, radially and across it, plus
@@ -1021,7 +1023,7 @@ carry their own coefficients).
 **Run says Basilisk isn't installed/built.**
 SpaceMissionStudio's graphical shell opens fine on its own, but actually
 *running* a simulation needs the separate Basilisk engine installed too.
-If you used the `.deb`/`.exe` installer, this should already be set up;
+If you used the `.deb` or the install script, this should already be set up;
 if not, see [Getting started](docs/getting-started.md). The app
 always reports this clearly rather than crashing -- if you see a plain
 error message naming Basilisk, that's exactly what's going on, not a bug.
@@ -1054,7 +1056,8 @@ minutes and 450 MB. Mission sequences, phasing keeping, Monte Carlo and Vizard
 are limited to 100 days.
 
 **You want to know when the spacecraft comes down.** Open the **End of
-Life** tab, pick the spacecraft and press **Estimate lifetime**. It
+Life** page (**Analyses > End of Life**), pick the spacecraft and press
+**Estimate lifetime**. It
 gives the re-entry date and whether the 5-year rule (ESA's Zero Debris
 approach, the FCC) and the 25-year guideline (IADC) are met. Choose
 **End of last run** to start from where a run finished, with the
@@ -1070,7 +1073,8 @@ operations value.
 **You need a delta-V and propellant budget.** Fill in the spacecraft
 editor's **Budget (AD10)** tab, run the mission (ideally its whole
 length, with Solar activity at Conservative (95th) and Cd 3.0 for an ESA AD10
-budget), then press **Compute budget** on the **Budget** tab. It lists
+budget), then press **Compute budget** on the **Budget** page (**Analyses >
+Budget**). It lists
 each contributor per mission phase with its margin, the total, and notes
 on anything that departs from the guideline. **Copy as CSV** puts the
 table on the clipboard. Without a run, a LEO station keeper's orbit
@@ -1211,7 +1215,7 @@ anyone who hasn't worked with spacecraft before:
   more depth than the in-app description box.
 * **Scripting it from Python:** [`examples/`](examples/README.md) builds
   a scenario in code, runs templates, writes a Mission Sequence, sweeps a
-  parameter and reads a Monte Carlo archive.
+  parameter and reads a Monte Carlo batch's summary.
 * **Installing it somewhere else, or something not working after
   installation:** [Getting started](docs/getting-started.md) and
   [Troubleshooting](docs/troubleshooting.md).
