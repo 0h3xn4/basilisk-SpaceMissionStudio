@@ -82,6 +82,10 @@ def test_an_estimate_shows_the_reentry_and_the_rule_badges(qtbot):
     widget.deorbit_check.setChecked(True)
     widget.compute()
     qtbot.waitUntil(lambda: widget.tiles_row.count() > 0, timeout=60000)
+    # The tiles come with the result, before the worker's thread has ended:
+    # the widget must not be torn down under a running thread (a crashed
+    # test worker on Windows CI), as MainWindow waits for it on close.
+    widget.wait_for_worker()
     texts = [w.text() for w in widget.findChildren(QLabel)]
     assert "5-year rule: met" in texts and "25-year guideline: met" in texts
     assert any(text.endswith("m/s, 0.67 kg") for text in texts)

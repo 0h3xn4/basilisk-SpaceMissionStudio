@@ -127,3 +127,22 @@ def test_confirmations_name_the_object_and_the_consequence(qtbot, monkeypatch):
     assert window._confirm_discard_unsaved() is False
     assert asked == ["Discard the unsaved changes to my mission? They cannot be recovered."]
     window._mark_clean()
+
+
+def test_a_long_path_is_reported_whole_and_wraps_in_the_toast(qtbot, reported):
+    """A path longer than a toast line (macOS temporary folders are) is
+    not cut: the message keeps it whole, and the toast breaks it after its
+    separators so it wraps inside the toast's width."""
+    from PySide6.QtWidgets import QLabel, QMainWindow
+
+    from spacemissionstudio.gui.feedback import _Toast, report
+
+    window = QMainWindow()
+    qtbot.addWidget(window)
+    window.setCentralWidget(QLabel("x"))
+    path = "/private/var/folders/36/" + "/".join(["tjdph2t965j8snz9_vkdnw0r0000gn"] * 6) + "/output.csv"
+    report(window.centralWidget(), f"Exported the mission output to {path}", kind="success")
+    assert reported == [(f"Exported the mission output to {path}", "success")]
+    toast = _Toast(window, f"Exported the mission output to {path}", "success")
+    assert toast.text().replace("​", "") == f"Exported the mission output to {path}"
+    assert toast.width() <= 360 and toast.height() > toast.fontMetrics().height() * 2  # [px] wrapped, not clipped

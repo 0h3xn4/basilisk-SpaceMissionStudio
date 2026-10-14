@@ -41,10 +41,13 @@ _FILES = [
 
 @pytest.fixture
 def panel(qtbot, monkeypatch):
+    """The Data panel; a download's thread is waited for before the panel
+    is torn down (its result shows before the thread ends)."""
     monkeypatch.setattr(dp.reference_data, "inventory", lambda now=None: list(_FILES))
     widget = dp.DataPanelWidget()
     qtbot.addWidget(widget)
-    return widget
+    yield widget
+    widget.wait_for_worker()
 
 
 def test_the_table_lists_every_file_with_status_dates_source_and_checksum(panel):

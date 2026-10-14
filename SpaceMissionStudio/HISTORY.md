@@ -10114,10 +10114,14 @@ a click, and most said something routine.
 **Routine outcomes and failures** go through the new `feedback.report(widget,
 text, kind)`: the whole text goes to the Log (logger
 `spacemissionstudio.gui`, at error, warning or info level), a toast on the
-widget's window shows its first line (cut at 160 characters, with "(more
-in the Log)" when an error or a warning has more lines) and the status
-bar shows it when the window is the main window. Without a widget it only
-logs. Errors and warnings stay up 6 s, information 4.5 s, a success 3 s.
+widget's window shows its first line (with "(more in the Log)" when an
+error or a warning has more lines) and the status bar shows it when the
+window is the main window. Without a widget it only logs. Errors and
+warnings stay up 6 s, information 4.5 s, a success 3 s. The first line is
+never cut: CI on macOS, whose temporary folders give long paths, showed
+that a 160-character cut took the file name off "Exported ... to <path>";
+instead the toast breaks a path after its separators (a zero-width space,
+shown only), so it wraps inside the toast's 360 px.
 `_report_run_problem` (4b) is unchanged.
 
 **Input a dialog refuses** is shown in the dialog:
@@ -10148,7 +10152,22 @@ is a Log line and a 10 s toast.
 Tests: `tests/gui/test_messages.py` (no information, warning or critical
 box left in `gui/`, `report` to the toast, the status bar and the Log,
 `report` without a window, the dialog error line above the buttons and
-cleared, a generator dialog that refuses OK, the Discard wording). The
+cleared, a generator dialog that refuses OK, the Discard wording, a long path reported whole and wrapped in the toast). The
 tests that checked a message box's text now check the toast (a new
 `reported` fixture in `tests/gui/conftest.py`) or the dialog's error line
 (`feedback.dialog_error_text`); the same checks, none removed.
+
+## Tests: never tear a widget down under its running thread (2026-10-14)
+
+Windows CI crashed a test worker twice in
+`tests/gui/test_lifetime_widget.py::test_an_estimate_shows_the_reentry_and_the_rule_badges`
+(develop at 6c8de18da, then #61). The test waited for the result tiles,
+which a queued slot shows from the worker's result signal, and ended: the
+worker's `QThread` could still be returning from `run()`, and destroying
+a running `QThread` aborts the process. Reproduced on Linux by holding
+the worker 1 s after its result: the test then aborts (exit 134). The
+test now waits for the thread (`wait_for_worker()`, as `MainWindow` does
+on close) and passes with the delay too. The budget table test had the
+same wait for its result only and now waits too; the Data panel's fixture
+waits for a download's thread at teardown. No test was removed or
+weakened.
