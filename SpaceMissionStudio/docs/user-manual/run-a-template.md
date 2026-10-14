@@ -5,7 +5,7 @@ How to run one of the 27 ready-made missions and look at what it did.
 ## In the app
 
 1. Start the app: `spacemissionstudio gui` (or from your application
-   menu if you used an installer). It opens on the **Load Scenario** tab.
+   menu if you used an installer). It opens on **Templates**, in the scenario tree.
 2. Click a template, for example **22 - Starter: your first LEO
    satellite**. Its description appears below the list: what it shows
    and what to look at.

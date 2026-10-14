@@ -87,16 +87,16 @@ Where each piece lives in the app, and which template shows it best:
 
 | Piece | Where you edit it | Learn it from template |
 |---|---|---|
-| Simulation mode, epoch | Scenario Editor, top | 01 (orbit only), 06 (attitude) |
-| Gravity, Sun and Moon, atmosphere, duration | Scenario Editor > **Edit Propagation Setup...** | 02, 18 |
-| A spacecraft's orbit and mass | Spacecraft > **Add...** / **Edit...** > **Orbit / mass** | 01, 22 |
+| Simulation mode, epoch | Scenario tree > **Scenario** | 01 (orbit only), 06 (attitude) |
+| Gravity, Sun and Moon, atmosphere, duration | Scenario tree > **Environment** | 02, 18 |
+| A spacecraft's orbit and mass | Scenario tree > **Spacecraft** > its name > **Orbit / mass** | 01, 22 |
 | Sensors and actuators | ... > **Sensors / actuators** | 07, 12, 13, 14 |
 | Where it points | ... > **Attitude control** | 06, 15, 19 |
 | Power, thrusters, radio | ... > **Power / propulsion / link budget** | 07, 17, 18, 19 |
 | Instruments, memory, downlink | ... > **Power / propulsion / link budget** > Data handling | 26 |
-| Ground stations | Scenario Editor > Ground stations | 19, 22 |
-| Mission sequence | Scenario Editor > Mission sequence | 08, 16, 23 |
-| Monte Carlo | Scenario Editor > Monte Carlo | 09, 25 |
+| Ground stations | Scenario tree > **Ground stations** > its name | 19, 22 |
+| Mission sequence | Scenario tree > **Mission sequence** | 08, 16, 23 |
+| Monte Carlo | Scenario tree > **Monte Carlo** | 09, 25 |
 | Results | the Results, Events and Compare tabs (Section 7) | any |
 
 **Orbit only or full attitude?** *Orbit only* simulates where each
@@ -147,7 +147,7 @@ orientation). Tick what you want and press **Fetch now**, or press
 **Skip**: then nothing is downloaded. The window that opens looks like
 this:
 
-![The Load Scenario tab with template 22 selected and its description below the list](docs/images/load_scenario_tab.png)
+![Templates, in the scenario tree, with template 22 selected and its description below the list](docs/images/load_scenario_tab.png)
 
 A few things to notice right away:
 
@@ -160,11 +160,15 @@ A few things to notice right away:
   so you don't have to open a menu every time. **3D Model...** at its
   end opens the 3D model editor for a spacecraft (Section 6).
 * Five main tabs:
-  * **Scenario**, with its own tabs: **Load Scenario** (where you
-    start), **Scenario Editor** (where you build or edit a mission --
-    Section 6), **End of Life** and **Budget** (re-entry and delta-V
-    estimates, Section 11) and **Flight Software** (export the attitude
-    flight software and run it in the loop, Section 6).
+  * **Scenario**: the scenario tree on the left and the page of the node
+    you pick beside it. **Templates** (where you start), then the
+    scenario's own nodes -- **Scenario**, **Environment**,
+    **Spacecraft** with a node per spacecraft, **Ground stations** with a
+    node per station, **Mission sequence** and **Monte Carlo** (Section
+    6) -- and **Analyses**: **End of Life** and **Budget** (re-entry and
+    delta-V estimates, Section 11) and **Flight Software** (export the
+    attitude flight software and run it in the loop, Section 6). A node
+    with problems shows how many after its name.
   * **Results**, which fills in when you run something (Section 7), with
     the **Plots**, the **Dashboard** and the mission **Output**, and a
     **Monte Carlo** view when the scenario has Monte Carlo on (Section 10).
@@ -196,7 +200,7 @@ A few things to notice right away:
   accuracy, and the frames runs use (EME2000 for orbits and results,
   ITRF93 or IAU_EARTH for ground stations, UTC for dates).
 
-The app opens on the **Load Scenario** tab deliberately: picking a
+The app opens on **Templates** deliberately: picking a
 starting point is the natural first move for everyone, whether you end
 up using a template as-is or editing it into something new.
 
@@ -209,9 +213,9 @@ up using a template as-is or editing it into something new.
    first choice. Click it once; its description appears below the list,
    explaining what it demonstrates and what to look for.
 2. Click **Open Template** (or just double-click the list entry). The
-   app switches to the **Scenario Editor** tab with that mission loaded
-   -- you don't need to look at or understand this tab yet, just confirm
-   something loaded (its name appears in the "Name" field at the top).
+   app shows the mission's **Scenario** page -- you don't need to look at
+   or understand it yet, just confirm something loaded (its name appears
+   in the "Name" field at the top).
 3. Open the **Run** menu and choose **Run Simulation** (or click the
    matching toolbar button, or press `Ctrl+R`). The tag in the top bar
    shows progress; a short run like this one finishes in seconds.
@@ -260,8 +264,8 @@ by step (Section 6).
 
 Say "22 - Starter: your first LEO satellite" is close to what you
 want, but you'd like a lower orbit or a heavier satellite, without
-learning the full Scenario Editor. Every row in the Load Scenario
-tab's template list has its own **Customize...** button on its right
+learning the full Scenario Editor. Every row in the Templates
+list has its own **Customize...** button on its right
 -- click the one on that template's row (no need to select the row
 first):
 
@@ -285,28 +289,31 @@ most people start from a template (Section 4) or its customize wizard
 want to build something more specific, or just want to know what you're
 looking at.
 
-![The Scenario Editor tab with template 22 loaded, showing the Scenario and Propagation setup sections, with the Explain tab's summary on the right](docs/images/scenario_editor_tab.png)
+![The scenario tree with template 22 loaded, its Scenario page open, and the Explain summary on the right](docs/images/scenario_editor_tab.png)
 
-The form is organized top to bottom, roughly in the order you'd fill it
-out for a brand-new scenario:
+The scenario is a tree on the left of the **Scenario** tab, in roughly
+the order you'd fill it out for a brand-new scenario. Pick a node to edit
+its page; what you change there applies as you type (Edit > Undo takes
+it back), and a page whose values do not validate marks the field, lists
+it in **Problems**, and keeps the scenario from running until it is
+fixed:
 
 * **Scenario** -- the mission's name, its **Simulation mode**
   ("Full attitude" if you need sensors/actuators/pointing control, or
   the simpler "Orbit only" if you just care about trajectories), the
   **Epoch** (the real calendar date/time the simulation starts, in UTC),
   and a free-text **Description**.
-* **Propagation setup** -- a read-only summary (central body, gravity
-  model, integrator, duration, atmosphere) with one **Edit Propagation
-  Setup...** button that opens a dedicated window for changing any of
-  it: which planet you're orbiting, how detailed its gravity model is,
-  which other bodies' gravity to include (Sun, Moon, ...), the numerical
-  integrator, how long to simulate, and atmospheric drag/space-weather
-  settings.
-* **Spacecraft** -- the list of spacecraft in the mission. **Add...**
-  opens a dialog with its own tabs: **Orbit / mass**, **Sensors /
-  actuators**, **Attitude control**, **Power / propulsion / link
-  budget**, a cosmetic **Vizard model** tab (Section 9) and **Budget
-  (AD10)** (Section 11). **New from template...** adds a complete
+* **Environment** -- which planet you're orbiting, how detailed its
+  gravity model is, which other bodies' gravity to include (Sun, Moon,
+  ...), the numerical integrator, how long to simulate, and atmospheric
+  drag/space-weather settings.
+* **Spacecraft** -- the list of spacecraft in the mission, and under it a
+  node for each one. A spacecraft's page has its own tabs: **Orbit /
+  mass**, **Sensors / actuators**, **Attitude control**, **Power /
+  propulsion / link budget**, **3D model**, a cosmetic **Vizard model**
+  tab (Section 9) and **Budget (AD10)** (Section 11). In the list,
+  **Edit...** (or a double-click) goes to the spacecraft's node, and
+  **Add...** opens a dialog to set a new one up. **New from template...** adds a complete
   spacecraft from a 100-500 kg preset instead of a blank one. An orbit can be specified as classical orbital
   elements (semi-major axis, eccentricity, inclination, ...), Cartesian
   position/velocity, or a TLE (the format real tracked satellites are
@@ -325,7 +332,7 @@ out for a brand-new scenario:
   plate adds a torque the wheels must absorb (template 21).
 * **Ground stations** -- optional stations on the ground to check
   visibility/communication with (each spacecraft's contact windows,
-  signal link margin, etc.).
+  signal link margin, etc.), each a node with its own page.
 * **Mission sequence** -- an optional, ordered list of commands (coast
   for a while, do a burn, take a snapshot, ...) for missions more
   complex than "just propagate forward for N days". A propagate can stop
@@ -352,26 +359,27 @@ The quickest way to a mission of your own is a starter template (22 or
    mode** *Orbit only* to begin with (Section 1 explains the choice) and
    set the **Epoch (UTC)**: the date decides where the Sun and Moon are,
    how dense the upper atmosphere is and when ground stations see you.
-2. **Edit Propagation Setup...** For a satellite around Earth: tick
+2. **Environment**: for a satellite around Earth, tick
    **Enable spherical-harmonics gravity** with degree 10, add **sun** and
    **moon** as third-body perturbers, start with a **Duration** of 1 day,
    and leave the atmosphere on the bundled, real space-weather data.
-3. **Spacecraft > Add...**, or **New from template...** for a 100-500 kg
+3. **Spacecraft**: **Add...**, or **New from template...** for a 100-500 kg
    preset (in *Orbit only* mode it keeps the preset's mass, inertia and
-   drag areas and leaves its hardware out). On **Orbit / mass**: the semi-major axis is Earth's
+   drag areas and leaves its hardware out); the spacecraft then has its
+   own node in the tree. On its **Orbit / mass** tab: the semi-major axis is Earth's
    radius (6378 km) plus the altitude, so 6928 km for 550 km. For an
    Earth-observation orbit, press **Compute Sun-sync inclination for
    this altitude** and **Compute RAAN for LTAN...** (10:30 is the usual
    local time). Have a real satellite's TLE? Choose the TLE orbit type
    and paste it. Then set the **Dry mass**, and tick **Enable atmospheric
    drag** with its area (and **Enable solar radiation pressure**).
-4. **Ground stations > Add...**: a name, latitude, longitude and the
+4. **Ground stations**: **Add...**, with a name, latitude, longitude and the
    lowest usable elevation (10 deg is common).
 5. Look at the bottom of the tab: **✓ valid** means Run is available;
-   otherwise the message names the field to fix, and a field of the
-   Scenario Editor's own is marked in red with the message under it (the
-   side panel's **Problems** page lists it too; double-click it to go to
-   the field). **Explain**, in the side panel,
+   otherwise the message names the field to fix, the field is marked in
+   red with the message under it, and its node in the tree shows a count
+   (the side panel's **Problems** page lists it too; double-click it to go
+   to the field). **Explain**, in the side panel,
    already shows the orbit type, the ground passes and what the
    environment includes, before anything runs.
 6. **File > Save As...**, then **Run > Run Simulation**.
@@ -383,7 +391,7 @@ The quickest way to a mission of your own is a starter template (22 or
 
 ### Formation control laws
 
-A follower's **Phasing keeping** (spacecraft editor, power/propulsion
+A follower's **Phasing keeping** (the spacecraft's page, power/propulsion
 tab) holds its distance ahead of the chief with one of three laws, set
 in **Control law**. All three use the follower's station-keeping
 thruster and tank, and none fires in eclipse.
@@ -418,7 +426,7 @@ chief's reboosts itself.
 
 ### Data handling and the downlink
 
-**Data handling** (spacecraft editor, **Power / propulsion / link budget**
+**Data handling** (the spacecraft's page, **Power / propulsion / link budget**
 tab) gives a spacecraft instruments, an onboard memory and a transmitter,
 all Basilisk modules (`simpleInstrument`, `partitionedStorageUnit`,
 `spaceToGroundTransmitter`):
@@ -466,7 +474,7 @@ which is assumed perfect.
 
 **3D Model...** on the toolbar (or **Tools > 3D Model...**) opens the
 3D model editor; with several spacecraft it first asks which one. The
-**3D model** tab of the spacecraft editor opens it too. In the editor,
+**3D model** tab of a spacecraft's page opens it too. In the editor,
 build the spacecraft from boxes, prisms (an octagonal bus), cylinders,
 cones, spheres and panels, or import an `.obj` from a CAD or modelling
 tool, and give each part its mass. The model then sets the spacecraft's
@@ -481,7 +489,7 @@ worked example.
 
 ### Flexible solar arrays
 
-**Flexible solar arrays** (spacecraft editor, **Orbit / mass** tab) lists
+**Flexible solar arrays** (the spacecraft's page, **Orbit / mass** tab) lists
 deployed arrays that flex. Each is a flat panel on a hinge with a spring
 and a damper (Basilisk's `hingedRigidBodyStateEffector`): when the
 spacecraft turns, the panel swings, and its swinging pushes back on the

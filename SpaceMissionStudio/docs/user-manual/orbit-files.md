@@ -5,7 +5,7 @@ your orbits to other tools as standard CCSDS files.
 
 ## Start from a TLE
 
-In the spacecraft editor, **Orbit / mass** tab, choose the TLE orbit type
+On the spacecraft's page, **Orbit / mass** tab, choose the TLE orbit type
 and paste the two lines (from [CelesTrak](https://celestrak.org), for
 example). The app propagates the TLE with SGP4 to the scenario's epoch and
 converts it to the simulation's frame. The Explain tab warns when the

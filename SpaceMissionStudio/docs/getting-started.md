@@ -185,7 +185,7 @@ orbit for one day, with a ground station in Berlin.
 1. Start the app. Each time it starts, a **Fetch/update data?** dialog
    offers to check for newer reference data. **Skip** is fine once the
    data is installed; **Fetch now** downloads only what you tick.
-2. The app opens on **Load Scenario**. Click **22 - Starter: your first
+2. The app opens on **Templates**. Click **22 - Starter: your first
    LEO satellite**; its description appears below the list.
 3. Click **Open Template**. The **Scenario Editor** shows the mission; the
    **Explain** page of the side panel says what it switches on, and predicts

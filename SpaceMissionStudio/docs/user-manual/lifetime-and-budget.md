@@ -35,12 +35,12 @@ prints a table (400 km: 2.65 years, 550 km: 17.26 years).
 
 ## Propellant budget
 
-1. Fill in the spacecraft editor's **Budget (AD10)** tab: mission
+1. Fill in the spacecraft page's **Budget (AD10)** tab: mission
    duration, dry-mass margin, tank capacity, specific impulse, injection
    errors, and the delta-V of each manoeuvre class (orbit acquisition,
    orbit control, formation keeping, collision avoidance, disposal).
 2. Run the mission, ideally for its whole length. For an ESA AD10 budget,
-   set **Solar activity** (in **Edit Propagation Setup...**) to
+   set **Solar activity** (on the **Environment** page) to
    *Conservative: MSFC 95th percentile* and the drag coefficient to 3.0.
 3. On the **Budget** tab, press **Compute budget**. It lists each
    contributor per mission phase with its margin, the total, and notes on

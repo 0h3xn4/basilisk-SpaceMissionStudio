@@ -73,12 +73,15 @@ def _finish_a_run(window, name=None):
 
 
 def test_the_main_tabs_and_what_they_hold(window):
-    """Five main tabs as the standard lists them. The scenario's pages,
-    analyses and tools sit under Scenario; the run's plots, dashboard and
-    output under Results; Explain moved to the side panel."""
+    """Five main tabs as the standard lists them. The Scenario tab is the
+    scenario tree (U-01): Templates, the scenario's own nodes with one per
+    spacecraft and ground station, and the Analyses; the run's plots,
+    dashboard and output are under Results; Explain is in the side panel."""
     assert _tab_texts(window.main_tabs) == ["Scenario", "Results", "Events", "Compare", "Log"]
-    assert _tab_texts(window.scenario_tabs) == ["Load Scenario", "Scenario Editor", "End of Life", "Budget",
-                                                "Flight Software"]
+    assert [path for path, _page in window.scenario_editor.page_tree.paths()] == [
+        "Templates", "Scenario", "Environment", "Spacecraft", "Spacecraft > my-sat", "Ground stations",
+        "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo", "Analyses > End of Life",
+        "Analyses > Budget", "Analyses > Flight Software"]
     assert _tab_texts(window.results_views) == ["Plots", "Dashboard", "Output"]
     assert _tab_texts(window.side_tabs)[0:1] == ["Inspector"]
     assert window.side_dock.isAncestorOf(window.scenario_explainer_widget)
@@ -87,9 +90,10 @@ def test_the_main_tabs_and_what_they_hold(window):
 
 def test_show_view_selects_every_level(window):
     """show_view() reaches a page wherever it is: a page in a scroll area
-    under Scenario, a Results view, a side panel page."""
+    in the scenario tree, a Results view, a side panel page."""
     window.show_view(window.lifetime_widget)
-    assert window.main_tabs.currentWidget() is window.scenario_tabs and window.current_view() is window.lifetime_widget
+    assert window.main_tabs.currentWidget() is window.scenario_editor
+    assert window.current_view() is window.lifetime_widget
     window.show_view(window.mission_output_widget)
     assert window.main_tabs.currentWidget() is window.results_views
     assert window.current_view() is window.mission_output_widget

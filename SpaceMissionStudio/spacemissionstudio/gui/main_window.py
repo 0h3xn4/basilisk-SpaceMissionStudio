@@ -253,14 +253,12 @@ class MainWindow(QMainWindow):
         # The workspace (UX/UI Standard, "Target layout"; docs/ux-audit.md
         # U-02, U-05): five main tabs, three docks on the right, and the
         # reference data in a dialog opened from the status bar.
-        # "Load Scenario" first, so it is what a new window shows: a new
-        # user's first move is picking a template or a file. open_path()
-        # switches to "Scenario Editor" once something loads. The analyses
-        # and the flight software tools follow; the scenario tree replaces
-        # these tabs in the Scenario Editor iteration (U-01).
-        self.scenario_tabs = TabWidget()
-        self.scenario_tabs.addTab(self.load_scenario_widget, "Load Scenario")
-        self.scenario_tabs.addTab(self.scenario_editor, "Scenario Editor")
+        # The Scenario tab is the scenario tree (docs/ux-audit.md U-01):
+        # Templates first, so a new window shows them (a new user's first
+        # move is picking a template or a file; open_path() goes on to the
+        # Scenario page), then the editor's own nodes, then the Analyses.
+        tree = self.scenario_editor.page_tree
+        self.templates_item = tree.add_page("Templates", self.load_scenario_widget, index=0)
         # In scroll areas: the End of Life form and its results need about
         # 560 px, which kept the window from fitting 720 px (U-03); the
         # budget, launch-delay and altitude tables together outgrow short
@@ -268,12 +266,14 @@ class MainWindow(QMainWindow):
         lifetime_scroll = QScrollArea()
         lifetime_scroll.setWidgetResizable(True)
         lifetime_scroll.setWidget(self.lifetime_widget)
-        self.scenario_tabs.addTab(lifetime_scroll, "End of Life")
         budget_scroll = QScrollArea()
         budget_scroll.setWidgetResizable(True)
         budget_scroll.setWidget(self.budget_widget)
-        self.scenario_tabs.addTab(budget_scroll, "Budget")
-        self.scenario_tabs.addTab(self.flight_software_widget, "Flight Software")
+        analyses = tree.add_group("Analyses")
+        tree.add_page("End of Life", lifetime_scroll, analyses)
+        tree.add_page("Budget", budget_scroll, analyses)
+        tree.add_page("Flight Software", self.flight_software_widget, analyses)
+        tree.tree.setCurrentItem(self.templates_item)
 
         # Results: the plots, the dashboard, the mission output and, when
         # there is something to show, the Monte Carlo statistics.
@@ -295,7 +295,7 @@ class MainWindow(QMainWindow):
 
         self.main_tabs = TabWidget()
         self.main_tabs.setObjectName("mainTabs")
-        self.main_tabs.addTab(self.scenario_tabs, "Scenario")
+        self.main_tabs.addTab(self.scenario_editor, "Scenario")
         self.main_tabs.addTab(self.results_views, "Results")
         self.main_tabs.addTab(self.event_timeline_widget, "Events")
         self.main_tabs.addTab(self.compare_widget, "Compare")
@@ -700,18 +700,33 @@ class MainWindow(QMainWindow):
             if dock.isAncestorOf(widget):
                 dock.show()
                 dock.raise_()
+        if widget is self.scenario_editor and not self.scenario_editor.is_editor_page(
+                self.scenario_editor.page_tree.current_page()):
+            self.scenario_editor.show_scenario_page()
         node = widget
         while node is not None and node is not self:
             stack = node.parentWidget()
             if isinstance(stack, QStackedWidget) and isinstance(stack.parentWidget(), QTabWidget):
                 stack.parentWidget().setCurrentWidget(node)
+            elif isinstance(stack, QStackedWidget) and getattr(stack, "page_tree", None) is not None:
+                stack.page_tree.show_page(node)  # a node of the scenario tree
             node = stack
 
     def current_view(self) -> QWidget:
-        """The innermost page the main tabs show (a scroll area's content)."""
+        """The innermost page the main tabs show (a scroll area's content).
+        In the Scenario tab that is the Scenario Editor on any of its own
+        nodes, or Templates or the analysis shown."""
         widget = self.main_tabs.currentWidget()
-        while isinstance(widget, QTabWidget):
-            widget = widget.currentWidget()
+        while True:
+            if isinstance(widget, QTabWidget):
+                widget = widget.currentWidget()
+            elif widget is self.scenario_editor:
+                page = widget.page_tree.current_page()
+                if widget.is_editor_page(page):
+                    return widget
+                widget = page
+            else:
+                break
         return widget.widget() if isinstance(widget, QScrollArea) else widget
 
     def _on_page_action(self) -> None:
@@ -761,9 +776,9 @@ class MainWindow(QMainWindow):
         elif location.area == SPACECRAFT and location.field == "model":
             self.open_3d_model_of(location.name)
         elif location.area == SPACECRAFT:
-            editor.spacecraft_list.edit_spacecraft_named(location.name, location.path, text)
+            editor.show_spacecraft_problem(location.name, location.path, text)
         elif location.area == GROUND_STATION:
-            editor.ground_station_list.edit_station_named(location.name, location.path, text)
+            editor.show_station_problem(location.name, location.path, text)
 
     def _show_page(self, widget: QWidget) -> None:
         if widget is self.data_panel_widget:
@@ -832,7 +847,9 @@ class MainWindow(QMainWindow):
         from .command_palette import PaletteEntry, menu_entries
 
         entries = [e for e in menu_entries(self.menuBar()) if not e.label.endswith("Command Palette...")]
-        for tabs in (self.main_tabs, self.scenario_tabs, self.results_views):
+        for path, page in self.scenario_editor.page_tree.paths():
+            entries.append(PaletteEntry(f"Go to tab > Scenario > {path}", lambda page=page: self.show_view(page)))
+        for tabs in (self.main_tabs, self.results_views):
             for index in range(tabs.count()):
                 name = tabs.tabText(index).replace("&", "")
                 if tabs is not self.main_tabs:

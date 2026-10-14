@@ -3,7 +3,7 @@
 How to hold a satellite's altitude or GEO slot, keep one spacecraft at a
 set distance from another, and build a Walker constellation.
 
-All of these are on the spacecraft editor's **Power / propulsion / link
+All of these are on the spacecraft page's **Power / propulsion / link
 budget** tab, except the two generators, which are buttons under the
 **Spacecraft** list.
 

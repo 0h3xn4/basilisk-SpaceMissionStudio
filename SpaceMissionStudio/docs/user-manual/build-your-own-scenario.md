@@ -5,7 +5,7 @@ or build one up from an empty scenario.
 
 ## The quick way: start from a starter
 
-1. On **Load Scenario**, open **22 - Starter: your first LEO satellite**
+1. On **Templates**, open **22 - Starter: your first LEO satellite**
    (one satellite, orbit only) or **23 - Starter: a complete small
    satellite** (sensors, wheels, power and a radio link).
 2. **File > Save As...** and give it your own name.
@@ -18,12 +18,12 @@ or build one up from an empty scenario.
    The epoch matters: it decides where the Sun and Moon are, how dense the
    upper atmosphere is, and when ground stations see you. Leave
    **Simulation mode** on *Orbit only* for now.
-2. **Edit Propagation Setup...** For a satellite around Earth:
+2. **Environment** (in the scenario tree): for a satellite around Earth,
    - tick **Enable spherical-harmonics gravity**, degree 10;
    - add **sun** and **moon** as third-body perturbers;
    - set **Duration** to 1 day;
    - leave the atmosphere on the bundled, real space-weather data.
-3. **Spacecraft > Add...** (or **New from template...** for a 100 to
+3. **Spacecraft**: **Add...** (or **New from template...** for a 100 to
    500 kg preset). On **Orbit / mass**:
    - semi-major axis = 6378 km + altitude, so 6928 km for 550 km;
    - for an Earth-observation orbit, press **Compute Sun-sync inclination

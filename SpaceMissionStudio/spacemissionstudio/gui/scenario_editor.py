@@ -29,15 +29,15 @@ sensors/actuators/FSW modes, which this editor deliberately omits).
 
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QDialog,
+    QDialogButtonBox,
     QFormLayout,
     QGroupBox,
     QLabel,
     QLineEdit,
     QPlainTextEdit,
-    QPushButton,
     QScrollArea,
     QVBoxLayout,
     QWidget,
@@ -53,13 +53,83 @@ from ..schema.scenario import (
     SpaceWeatherConfig,
 )
 from .feedback import bring_into_view, clear_field_error, show_field_error
+from .page_tree import PageTree, watch_edits
 from .ground_station_editor import GroundStationListWidget
 from .mission_sequence_editor import MissionSequenceEditorWidget
 from .monte_carlo_editor import MonteCarloGroupWidget
-from .problem_location import SCENARIO, locate
+from .problem_location import GROUND_STATION, PROPAGATION, SCENARIO, SPACECRAFT, locate
 from .spacecraft_editor import SpacecraftListWidget
 from .theme import PALETTE
 from .widgets import ComboBox
+
+
+
+def _page(widget: QWidget) -> QScrollArea:
+    """``widget`` as a page of the tree: in a scroll area, so a long form
+    never sets the window's height."""
+    scroll = QScrollArea()
+    scroll.setWidgetResizable(True)
+    scroll.setFrameShape(QScrollArea.Shape.NoFrame)
+    scroll.setWidget(widget)
+    return scroll
+
+
+class _EscapeFilter(QObject):
+    """An embedded dialog would close on Escape (QDialog.reject)."""
+
+    def eventFilter(self, _watched, event):  # noqa: N802 -- Qt API name
+        return event.type() == QEvent.Type.KeyPress and event.key() == Qt.Key.Key_Escape
+
+
+def _embed(dialog: QDialog) -> None:
+    """Show ``dialog`` as a form inside a page: no window, no OK/Cancel."""
+    dialog.setWindowFlags(Qt.WindowType.Widget)
+    for box in dialog.findChildren(QDialogButtonBox):
+        if box.parentWidget() is dialog:
+            box.hide()
+    # A page is narrower than the dialog's window was (the tree and the side
+    # panel beside it, at 1280 px): a row too wide for it puts its field
+    # under its label instead of scrolling sideways.
+    for form in dialog.findChildren(QFormLayout):
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        form.invalidate()
+    dialog._escape_filter = _EscapeFilter(dialog)
+    dialog.installEventFilter(dialog._escape_filter)
+
+
+class _Debounce(QObject):
+    """Tells the editor a live form settled: 300 ms after its last edit,
+    so a form is not validated at every keystroke."""
+
+    settled = Signal()
+
+    def __init__(self, form: QWidget, kind: str, node=None) -> None:
+        super().__init__(form)
+        self.form, self.kind, self.node = form, kind, node
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.setInterval(300)  # [ms]
+        self._timer.timeout.connect(self.settled)
+        watch_edits(form, self.poke)
+
+    def poke(self, *_args) -> None:
+        self._timer.start()
+
+    def flush(self) -> None:
+        """Apply now, if an edit is waiting."""
+        if self._timer.isActive():
+            self._timer.stop()
+            self.settled.emit()
+
+
+class _FormNode:
+    """A spacecraft's or ground station's node: its page, the config it
+    shows, and its live form once the page was first shown."""
+
+    def __init__(self, item, holder: QWidget, config) -> None:
+        self.item, self.holder, self.config = item, holder, config
+        self.form = None
+        self.debounce = None
 
 
 class ScenarioEditorWidget(QWidget):
@@ -77,21 +147,42 @@ class ScenarioEditorWidget(QWidget):
 
         outer_layout = QVBoxLayout(self)
         outer_layout.setContentsMargins(0, 0, 0, 0)
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
-        outer_layout.addWidget(scroll)
+        # The scenario as a tree of pages (docs/ux-audit.md U-01): one page
+        # per node, the spacecraft and ground stations each a node of their
+        # own whose form applies edits as they are made (U-11). MainWindow
+        # adds Templates and the Analyses to the same tree.
+        self.page_tree = PageTree()
+        outer_layout.addWidget(self.page_tree, 1)
+        self.problems: list = []
+        self._form_errors: dict = {}  # a live form's problem, by form; the scenario is not valid while there is one
+        self._applying = False  # a live form is writing its value: the lists need no rebuild
+        self._spacecraft_nodes: list = []
+        self._station_nodes: list = []
+        self._environment_form = None
 
-        content = QWidget()
-        scroll.setWidget(content)
-        layout = QVBoxLayout(content)
-
-        layout.addWidget(self._build_identity_group())
-        layout.addWidget(self._build_propagation_group())
-        layout.addWidget(self._build_spacecraft_group())
-        layout.addWidget(self._build_ground_station_group())
-        layout.addWidget(self._build_mission_sequence_group())
-        layout.addWidget(self._build_monte_carlo_group())
-        layout.addStretch(1)
+        self.scenario_page = _page(self._build_identity_group())
+        self.environment_page = self._build_propagation_group()
+        self.spacecraft_page = _page(self._build_spacecraft_group())
+        self.ground_station_page = _page(self._build_ground_station_group())
+        self.mission_sequence_page = _page(self._build_mission_sequence_group())
+        self.monte_carlo_page = _page(self._build_monte_carlo_group())
+        tree = self.page_tree
+        self.scenario_item = tree.add_page("Scenario", self.scenario_page)
+        self.environment_item = tree.add_page("Environment", self.environment_page)
+        self.spacecraft_item = tree.add_page("Spacecraft", self.spacecraft_page)
+        self.ground_station_item = tree.add_page("Ground stations", self.ground_station_page)
+        self.mission_sequence_item = tree.add_page("Mission sequence", self.mission_sequence_page)
+        self.monte_carlo_item = tree.add_page("Monte Carlo", self.monte_carlo_page)
+        tree.page_shown.connect(self._on_page_shown)
+        self.spacecraft_list.set_edit_handler(self.show_spacecraft)
+        self.ground_station_list.set_edit_handler(self.show_station)
+        self.spacecraft_list.changed.connect(self._on_spacecraft_list_changed)
+        self.ground_station_list.changed.connect(self._on_station_list_changed)
+        self.spacecraft_list.reloaded.connect(self._on_spacecraft_list_changed)
+        self.ground_station_list.reloaded.connect(self._on_station_list_changed)
+        # The spacecraft forms show the tabs of the mode and offer the
+        # stations there are: a new mode or station list rebuilds them.
+        self.simulation_mode_combo.currentIndexChanged.connect(self._reset_spacecraft_forms)
 
         self.validation_label = QLabel()
         self.validation_label.setWordWrap(True)
@@ -105,6 +196,10 @@ class ScenarioEditorWidget(QWidget):
         outer_layout.addWidget(self.plausibility_label)
 
         self.changed.connect(self.revalidate)
+        self._rebuild_environment_form()
+        self._rebuild_nodes(self._spacecraft_nodes, self.spacecraft_list.to_list(), self.spacecraft_item, "spacecraft")
+        self._rebuild_nodes(self._station_nodes, self.ground_station_list.to_list(), self.ground_station_item,
+                            "station")
         self.revalidate()
 
     # -- construction ------------------------------------------------------
@@ -168,105 +263,37 @@ class ScenarioEditorWidget(QWidget):
         form.addRow("Description", self.description_edit)
         return group
 
-    def _build_propagation_group(self) -> QGroupBox:
-        """Gravity/perturbations, integrator/duration, and space weather
-        all live in a dedicated :class:`PropagationSetupDialog` now (user
-        feedback specifically asked for "a full and comprehensive
-        propagate setup window" plus the ability to switch each
-        perturbation on/off individually) -- this group box is just a
-        read-only summary of the current settings plus the button that
-        opens it. ``self._gravity``/``self._sim_settings``/
-        ``self._space_weather`` are this widget's actual source of truth
-        for those three dataclasses (mirroring how ``self.spacecraft_list``
-        owns the spacecraft list); the dialog only ever replaces them
-        wholesale, on OK.
-        """
+    def _build_propagation_group(self) -> QWidget:
+        """The Environment page: gravity and perturbations, the integrator
+        and duration, and space weather, in :class:`PropagationSetupDialog`'s
+        form, embedded and applied as it is edited (U-17; it used to be a
+        read-only summary and a modal dialog). ``self._gravity`` /
+        ``self._sim_settings`` / ``self._space_weather`` stay this widget's
+        source of truth for those three dataclasses."""
         self._gravity = GravityConfig()
         self._fsw_exports: list = []  # FswExportRecord list, kept as loaded (see set_fsw_exports)
         self._sim_settings = SimSettings()
         self._space_weather = SpaceWeatherConfig()
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        layout.setContentsMargins(0, 0, 0, 0)
+        return page
 
-        group = QGroupBox("Propagation setup")
-        layout = QVBoxLayout(group)
-        # A labeled form (field name -> value), not a single free-text
-        # line -- real user feedback, with a screenshot: three
-        # pipe-joined, unlabeled lines ("earth | spherical harmonics
-        # (degree 10) | +sun, moon") read as "cluttered" and "doesn't
-        # help the user understand what those values stand for". Every
-        # row label below is copied VERBATIM from PropagationSetupDialog's
-        # own field labels (propagation_setup_dialog.py's form.addRow()
-        # calls) -- this summary and the dialog that edits it now use
-        # identical terminology, and the row/value-label QFormLayout
-        # shape matches every other settings panel in this app
-        # (spacecraft_editor.py, ground_station_editor.py, the dialog
-        # itself), instead of being the one place that looked different.
-        self._propagation_form = QFormLayout()
-        self._propagation_form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
-        layout.addLayout(self._propagation_form)
-        edit_button = QPushButton("Edit Propagation Setup...")
-        edit_button.setToolTip(
-            "Choose how the orbit is propagated: which gravity model and perturbations "
-            "(drag, third-body, SRP) are turned on, the numerical integrator, the simulated "
-            "duration, and the space-weather assumption behind the drag model. These settings "
-            "affect every spacecraft in this scenario, and more realism (e.g. a higher-degree "
-            "gravity field, more perturbations) costs more run time."
-        )
-        edit_button.clicked.connect(self._on_edit_propagation_setup)
-        layout.addWidget(edit_button)
-        self._refresh_propagation_summary()
-        return group
-
-    def _on_edit_propagation_setup(self) -> None:
-        self.edit_propagation_setup()
-
-    def edit_propagation_setup(self, path: str = "", message: str = "") -> None:
-        """The propagation setup dialog, opened at the problem ``message``
-        about its field ``path`` when given (Problems, U-12)."""
+    def _rebuild_environment_form(self) -> None:
+        """A new Environment form from the current settings (after a load or
+        an undo)."""
         from .propagation_setup_dialog import PropagationSetupDialog
 
-        dialog = PropagationSetupDialog(self._gravity, self._sim_settings, self._space_weather, parent=self)
-        if message:
-            dialog.show_problem(path, message)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            self._gravity = dialog.to_gravity()
-            self._sim_settings = dialog.to_sim_settings()
-            self._space_weather = dialog.to_space_weather()
-            self._refresh_propagation_summary()
-            self.changed.emit()
-
-    def _refresh_propagation_summary(self) -> None:
-        gravity, sim, sw = self._gravity, self._sim_settings, self._space_weather
-
-        while self._propagation_form.rowCount():
-            self._propagation_form.removeRow(0)
-
-        def add_row(label: str, value: str) -> None:
-            value_label = QLabel(value)
-            value_label.setWordWrap(True)
-            self._propagation_form.addRow(label, value_label)
-
-        add_row("Central body", gravity.central_body)
-        add_row(
-            "Gravity model",
-            f"Spherical harmonics (degree {gravity.central_body_degree})"
-            if gravity.central_body_degree > 0 else "Point-mass",
-        )
-        if gravity.third_body_perturbers:
-            add_row("Third-body perturbers", ", ".join(gravity.third_body_perturbers))
-
-        add_row("Integrator", sim.integrator)
-        add_row("Dynamics task rate [s]", f"{sim.dynamics_task_rate_s:g}")
-        add_row("Duration [days]", f"{sim.duration_days:g}")
-        if sim.record_interval_s > 0.0:
-            add_row("Recorded every [s]", f"{sim.record_interval_s:g}")
-
-        if sw.atmosphere_model == "exponential":
-            add_row("Atmosphere model", "Exponential (no space weather)")
-        else:
-            add_row("Atmosphere model", "NRLMSISE-00")
-            add_row("Space weather source", sw.source)
-            level = {95.0: "Conservative", 50.0: "Nominal", 5.0: "Low"}.get(float(sw.forecast_percentile), "")
-            add_row("Solar activity", f"{level}: MSFC {sw.forecast_percentile:g}th percentile")
+        if self._environment_form is not None:
+            self._form_errors.pop(id(self._environment_form), None)
+            self._environment_form.setParent(None)
+            self._environment_form.deleteLater()
+        form = PropagationSetupDialog(self._gravity, self._sim_settings, self._space_weather,
+                                      parent=self.environment_page)
+        _embed(form)
+        _Debounce(form, "environment").settled.connect(self._on_form_settled)
+        self.environment_page.layout().addWidget(form)
+        self._environment_form = form
 
     def _build_spacecraft_group(self) -> QGroupBox:
         group = QGroupBox("Spacecraft")
@@ -316,6 +343,255 @@ class ScenarioEditorWidget(QWidget):
     def _refresh_monte_carlo_spacecraft_names(self) -> None:
         self.monte_carlo_group.set_spacecraft_names([sc.name for sc in self.spacecraft_list.to_list()])
 
+    # -- the tree's spacecraft and ground station nodes ---------------------
+    def _rebuild_nodes(self, nodes: list, configs: list, parent_item, kind: str) -> None:
+        """One node per spacecraft or station under ``parent_item``, each
+        with an empty page its form fills when first shown."""
+        current = self.page_tree.current_page()
+        shown = next((node.config.name for node in nodes if node.holder is current), None)
+        for node in nodes:
+            self._form_errors.pop(id(node), None)
+            self.page_tree.remove(node.item)
+        nodes.clear()
+        for config in configs:
+            holder = QWidget()
+            QVBoxLayout(holder).setContentsMargins(0, 0, 0, 0)
+            holder.setProperty("formKind", kind)
+            nodes.append(_FormNode(self.page_tree.add_page(config.name, holder, parent_item), holder, config))
+        again = next((node for node in nodes if node.config.name == shown), None)
+        if again is not None:
+            self.page_tree.tree.setCurrentItem(again.item)
+        elif shown is not None:
+            self.page_tree.tree.setCurrentItem(parent_item)
+        self._update_problem_counts()
+
+    def _on_spacecraft_list_changed(self) -> None:
+        self._follow_list(self._spacecraft_nodes, self.spacecraft_list.to_list(), self.spacecraft_item, "spacecraft")
+
+    def _on_station_list_changed(self) -> None:
+        self._follow_list(self._station_nodes, self.ground_station_list.to_list(), self.ground_station_item,
+                          "station")
+        self._reset_spacecraft_forms()  # their pointing target lists the stations
+
+    def _follow_list(self, nodes: list, configs: list, parent_item, kind: str) -> None:
+        """After a list changed outside its nodes' forms (Add, Remove, a
+        generator, the 3D model editor, Undo): rebuild the nodes when the
+        list's shape changed, else refresh the forms whose config changed."""
+        if self._applying:
+            return
+        if [node.config.name for node in nodes] != [config.name for config in configs]:
+            self._rebuild_nodes(nodes, configs, parent_item, kind)
+            return
+        for node, config in zip(nodes, configs):
+            if node.config is not config:
+                node.config = config
+                self._drop_form(node)
+
+    def _drop_form(self, node: _FormNode) -> None:
+        """Forget ``node``'s form; it is built again from its config, now if
+        its page is shown."""
+        self._form_errors.pop(id(node), None)
+        if node.form is not None:
+            node.form.setParent(None)
+            node.form.deleteLater()
+            node.form = node.debounce = None
+        if self.page_tree.current_page() is node.holder:
+            self._build_form(node)
+
+    def _reset_spacecraft_forms(self) -> None:
+        for node in self._spacecraft_nodes:
+            self._drop_form(node)
+
+    def _on_page_shown(self, page) -> None:
+        node = self._node_of(page)
+        if node is not None and node.form is None:
+            self._build_form(node)
+
+    def _node_of(self, page):
+        return next((node for node in self._spacecraft_nodes + self._station_nodes if node.holder is page), None)
+
+    def _build_form(self, node: _FormNode) -> None:
+        """``node``'s live form: the spacecraft or station editor, embedded."""
+        if node in self._spacecraft_nodes:
+            from .spacecraft_editor import SpacecraftEditorDialog
+
+            row = self._spacecraft_nodes.index(node)
+            others = sorted(c.name for i, c in enumerate(self.spacecraft_list.to_list()) if i != row)
+            spacecraft_list = self.spacecraft_list
+            form = SpacecraftEditorDialog(
+                config=node.config, parent=node.holder, other_spacecraft_names=others,
+                simulation_mode=self.simulation_mode_combo.currentData(),
+                ground_station_names=[gs.name for gs in self.ground_station_list.to_list()],
+                epoch_provider=spacecraft_list._epoch_provider, base_dir_provider=spacecraft_list._base_dir_provider,
+                central_body_provider=spacecraft_list._central_body_provider)
+            kind = "spacecraft"
+        else:
+            from .ground_station_editor import GroundStationEditorDialog
+
+            row = self._station_nodes.index(node)
+            others = sorted(c.name for i, c in enumerate(self.ground_station_list.to_list()) if i != row)
+            form = GroundStationEditorDialog(config=node.config, parent=node.holder, other_names=others)
+            kind = "station"
+        _embed(form)
+        node.holder.layout().addWidget(form)
+        node.form = form
+        node.debounce = _Debounce(form, kind, node)
+        node.debounce.settled.connect(self._on_form_settled)
+
+    def _on_form_settled(self) -> None:
+        debounce = self.sender()
+        if debounce.kind == "environment":
+            self._apply_environment(debounce.form)
+        elif debounce.node is not None and debounce.node.form is debounce.form:
+            self._apply_node(debounce.node, debounce.kind)
+
+    def _apply_environment(self, form) -> None:
+        """The Environment form's values, when they validate."""
+        try:
+            gravity, sim_settings, space_weather = form.to_gravity(), form.to_sim_settings(), form.to_space_weather()
+            gravity.validate()
+            sim_settings.validate()
+            space_weather.validate()
+        except (ScenarioValidationError, ValueError) as exc:
+            location = locate(str(exc))
+            form.show_problem(location.path if location is not None and location.area == PROPAGATION else "",
+                              str(exc), focus=False)
+            self._form_errors[id(form)] = str(exc)
+            self.revalidate()
+            return
+        form.clear_problem()
+        self._form_errors.pop(id(form), None)
+        if (gravity, sim_settings, space_weather) == (self._gravity, self._sim_settings, self._space_weather):
+            self.revalidate()
+            return
+        self._gravity, self._sim_settings, self._space_weather = gravity, sim_settings, space_weather
+        self.changed.emit()
+
+    def _apply_node(self, node: _FormNode, kind: str) -> None:
+        """A spacecraft's or station's form's values, when they validate:
+        written into its list, and the node renamed when the name changed."""
+        nodes, config_list, area = ((self._spacecraft_nodes, self.spacecraft_list, SPACECRAFT) if kind == "spacecraft"
+                                    else (self._station_nodes, self.ground_station_list, GROUND_STATION))
+        form, row = node.form, nodes.index(node)
+        name = form.name_edit.text().strip()
+        others = {c.name for i, c in enumerate(config_list.to_list()) if i != row}
+        what = "spacecraft" if kind == "spacecraft" else "ground station"
+        error, config = "", None
+        if not name:
+            error = f"{node.config.name}: name must not be empty"
+        elif name in others:
+            error = f"{name}: name -- a {what} named {name!r} already exists"
+        else:
+            try:
+                config = form.to_dataclass()
+            except (ScenarioValidationError, ValueError) as exc:
+                error = str(exc)
+        if error:
+            location = locate(error, [name, node.config.name]) if kind == "spacecraft" else \
+                locate(error, station_names=[name, node.config.name])
+            path = location.path if location is not None and location.area == area else ""
+            form.show_problem(path or ("name" if "name" in error.split(" -- ")[0] else ""), error, focus=False)
+            self._form_errors[id(node)] = error
+            self.revalidate()
+            return
+        form.clear_problem()
+        self._form_errors.pop(id(node), None)
+        if config == node.config:
+            self.revalidate()
+            return
+        node.config = config
+        self._applying = True
+        try:
+            config_list.replace_config(row, config)
+        finally:
+            self._applying = False
+        self.page_tree.set_title(node.item, config.name)
+
+    def flush_forms(self) -> None:
+        """Apply every live form's waiting edit now (before a save or a run)."""
+        forms = [getattr(self, "_environment_form", None)]
+        forms += [n.form for n in getattr(self, "_spacecraft_nodes", []) + getattr(self, "_station_nodes", [])]
+        for form in forms:
+            debounce = form.findChild(_Debounce) if form is not None else None
+            if debounce is not None:
+                debounce.flush()
+
+    # -- going to a node ------------------------------------------------------
+    def show_scenario_page(self) -> None:
+        self.page_tree.tree.setCurrentItem(self.scenario_item)
+
+    def is_editor_page(self, page) -> bool:
+        """Whether ``page`` is one of the editor's own (not Templates or an
+        analysis, which MainWindow adds)."""
+        return page in (self.scenario_page, self.environment_page, self.spacecraft_page, self.ground_station_page,
+                        self.mission_sequence_page, self.monte_carlo_page) or self._node_of(page) is not None
+
+    def _show_node(self, nodes: list, row: int):
+        node = nodes[row]
+        self.page_tree.tree.setCurrentItem(node.item)
+        if node.form is None:
+            self._build_form(node)
+        return node
+
+    def show_spacecraft(self, row: int) -> None:
+        """The page of spacecraft ``row``: Edit... and a double-click in the
+        Spacecraft list."""
+        self._show_node(self._spacecraft_nodes, row)
+
+    def show_station(self, row: int) -> None:
+        self._show_node(self._station_nodes, row)
+
+    def show_spacecraft_problem(self, name: str, path: str = "", message: str = "") -> None:
+        """The page of spacecraft ``name``, at the problem ``message`` about
+        its field ``path`` (Problems, U-12)."""
+        rows = [node.config.name for node in self._spacecraft_nodes]
+        if name in rows:
+            node = self._show_node(self._spacecraft_nodes, rows.index(name))
+            if message:
+                node.form.show_problem(path, message)
+
+    def show_station_problem(self, name: str, path: str = "", message: str = "") -> None:
+        rows = [node.config.name for node in self._station_nodes]
+        if name in rows:
+            node = self._show_node(self._station_nodes, rows.index(name))
+            if message:
+                node.form.show_problem(path, message)
+
+    def edit_propagation_setup(self, path: str = "", message: str = "") -> None:
+        """The Environment page, at the problem ``message`` about its field
+        ``path`` when given (Problems, U-12)."""
+        self.page_tree.tree.setCurrentItem(self.environment_item)
+        if message:
+            self._environment_form.show_problem(path, message)
+
+    def _update_problem_counts(self, problems=None) -> None:
+        """Each node's count of the problems about it; Spacecraft and
+        Ground stations add up their nodes'."""
+        problems = self.problems if problems is None else problems
+        spacecraft = [node.config.name for node in self._spacecraft_nodes]
+        stations = [node.config.name for node in self._station_nodes]
+        counts: dict = {}
+        for _severity, text in problems:
+            location = locate(text, spacecraft, stations)
+            item = None
+            if location is None:
+                continue
+            if location.area == SCENARIO:
+                item = self.scenario_item
+            elif location.area == PROPAGATION:
+                item = self.environment_item
+            elif location.area == SPACECRAFT and location.name in spacecraft:
+                item = self._spacecraft_nodes[spacecraft.index(location.name)].item
+            elif location.area == GROUND_STATION and location.name in stations:
+                item = self._station_nodes[stations.index(location.name)].item
+            if item is not None:
+                counts[id(item)] = counts.get(id(item), 0) + 1
+        for item, _page_widget in self.page_tree.items():
+            self.page_tree.set_problem_count(item, counts.get(id(item), 0))
+        for parent, nodes in ((self.spacecraft_item, self._spacecraft_nodes), (self.ground_station_item,
+                                                                                self._station_nodes)):
+            self.page_tree.set_problem_count(parent, sum(counts.get(id(node.item), 0) for node in nodes))
+
     # -- (dis)assembly -------------------------------------------------------
     def set_base_dir_provider(self, provider) -> None:
         """``provider`` returns the scenario file's folder, or None while the
@@ -329,6 +605,9 @@ class ScenarioEditorWidget(QWidget):
         on anything invalid -- callers (Save, Run, the live-validation
         label) all go through this one method.
         """
+        self.flush_forms()  # an edit still waiting in a live form counts (a save or a run right after it)
+        if self._form_errors:
+            raise ScenarioValidationError(next(iter(self._form_errors.values())))
         scenario = self._draft_scenario()
         scenario.validate()
         return scenario
@@ -378,7 +657,7 @@ class ScenarioEditorWidget(QWidget):
         self._gravity = scenario.gravity
         self._sim_settings = scenario.sim_settings
         self._space_weather = scenario.space_weather
-        self._refresh_propagation_summary()
+        self._rebuild_environment_form()
 
         self.spacecraft_list.from_list(scenario.spacecraft)
         self.ground_station_list.from_list(scenario.ground_stations)
@@ -411,6 +690,7 @@ class ScenarioEditorWidget(QWidget):
         """Show and focus the field at ``path``; whether there is one."""
         widget = self.field_widget(path)
         if widget is not None:
+            self.show_scenario_page()
             bring_into_view(widget)
         return widget is not None
 
@@ -449,6 +729,7 @@ class ScenarioEditorWidget(QWidget):
             self.validation_label.setText(f"⚠ {self.problem_display(str(exc))}")
             self.validation_label.setStyleSheet(f"color: {PALETTE['danger']};")
             problems.append(("error", str(exc)))
+            problems += [("error", error) for error in self._form_errors.values() if error != str(exc)]
             self._show_field_problem(str(exc))
         else:
             self._show_field_problem("")
@@ -459,6 +740,7 @@ class ScenarioEditorWidget(QWidget):
         self.plausibility_label.setText("\n".join(f"⚠ {warning}" for warning in warnings))
         self.plausibility_label.setVisible(bool(warnings))
         self.problems = problems + [("warning", warning) for warning in warnings]
+        self._update_problem_counts()
         self.problems_changed.emit(self.problem_rows())
 
     def problem_rows(self) -> list:

@@ -1649,9 +1649,18 @@ class SpacecraftEditorDialog(QDialog):
                 return widget
         return None
 
-    def show_problem(self, path: str, message: str) -> None:
+    def clear_problem(self) -> None:
+        """Hide the banner and unmark the field :meth:`show_problem` marked."""
+        if self._problem_field is not None:
+            clear_field_error(self._problem_field)
+            self._problem_field = None
+        self.problem_banner.hide()
+
+    def show_problem(self, path: str, message: str, focus: bool = True) -> None:
         """Opens at a problem: the banner says what is wrong, and the field
-        at ``path`` (when there is one) is shown, marked and focused."""
+        at ``path`` (when there is one) is marked, and shown and focused
+        when ``focus`` (not while the user types in the form: a live form
+        in the Scenario Editor marks a problem where it is, U-01)."""
         if self._problem_field is not None:
             clear_field_error(self._problem_field)
             self._problem_field = None
@@ -1661,9 +1670,11 @@ class SpacecraftEditorDialog(QDialog):
             return
         if not isinstance(widget, (QGroupBox, QPushButton)):
             show_field_error(widget, message)
-            clear_on_edit(widget)
+            if focus:
+                clear_on_edit(widget)
             self._problem_field = widget
-        bring_into_view(widget)
+        if focus:
+            bring_into_view(widget)
 
     @property
     def fsw_params_edit(self) -> QPlainTextEdit:
@@ -2238,6 +2249,7 @@ class SpacecraftListWidget(QWidget):
     """
 
     changed = Signal()
+    reloaded = Signal()  # from_list() replaced every entry (a load, an undo): not an edit
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -2422,9 +2434,24 @@ class SpacecraftListWidget(QWidget):
             show_toast(self.window(), f"Added spacecraft {config.name!r} from template")
             self.changed.emit()
 
+    def set_edit_handler(self, handler) -> None:
+        """``handler(row)`` replaces the editor dialog that Edit... and a
+        double-click open: the Scenario Editor shows the spacecraft's page
+        in its tree instead (docs/ux-audit.md U-01, U-11)."""
+        self._edit_handler = handler
+
+    def replace_config(self, row: int, config) -> None:
+        """Put ``config`` in ``row``, as an edit in the spacecraft's page
+        does: the list's text follows, and :attr:`changed` is emitted."""
+        self._configs[row] = config
+        self.list_widget.item(row).setText(config.name)
+        self.changed.emit()
+
     def _on_edit(self) -> None:
         row = self.list_widget.currentRow()
-        if row >= 0:
+        if row >= 0 and getattr(self, "_edit_handler", None) is not None:
+            self._edit_handler(row)
+        elif row >= 0:
             self.edit_spacecraft(row)
 
     def edit_spacecraft_named(self, name: str, path: str = "", message: str = "") -> None:
@@ -2590,3 +2617,4 @@ class SpacecraftListWidget(QWidget):
     def from_list(self, configs: list[SpacecraftConfig]) -> None:
         self._configs = list(configs)
         self._refresh_list()
+        self.reloaded.emit()

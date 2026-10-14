@@ -591,9 +591,18 @@ class PropagationSetupDialog(QDialog):
         name = self._FIELD_WIDGETS.get(path)
         return getattr(self, name, None) if name else None
 
-    def show_problem(self, path: str, message: str) -> None:
+    def clear_problem(self) -> None:
+        """Hide the banner and unmark the field :meth:`show_problem` marked."""
+        if self._problem_field is not None:
+            clear_field_error(self._problem_field)
+            self._problem_field = None
+        self.problem_banner.hide()
+
+    def show_problem(self, path: str, message: str, focus: bool = True) -> None:
         """Opens at a problem: the banner says what is wrong, and the field
-        at ``path`` (when there is one) is shown, marked and focused."""
+        at ``path`` (when there is one) is marked, and shown and focused
+        when ``focus`` (not while the user types in the form: a live form
+        in the Scenario Editor marks a problem where it is, U-01)."""
         if self._problem_field is not None:
             clear_field_error(self._problem_field)
             self._problem_field = None
@@ -601,6 +610,8 @@ class PropagationSetupDialog(QDialog):
         widget = self.field_widget(path)
         if widget is not None:
             show_field_error(widget, message)
-            clear_on_edit(widget)
+            if focus:
+                clear_on_edit(widget)
             self._problem_field = widget
-            bring_into_view(widget)
+            if focus:
+                bring_into_view(widget)
