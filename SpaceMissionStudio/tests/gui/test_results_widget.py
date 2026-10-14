@@ -79,12 +79,13 @@ def widget(qtbot):
     return w
 
 
-def test_set_result_populates_series_combo_and_plots(widget):
+def test_set_result_populates_the_catalog_and_plots(widget):
+    """Every series becomes a catalog entry, and the grid opens on one plot."""
     widget.set_result(_sample_result_set())
-    assert widget.series_combo.count() == 2
+    assert widget.plot_names() == ["sat-1.position_N", "sat-1.velocity_N"]
+    assert widget.shown_plots() == ["sat-1.position_N"]
     assert widget.export_button.isEnabled()
     assert len(widget.figure.data) == 3  # x, y, z
-
 
 def test_set_result_with_no_provenance_leaves_label_blank(widget):
     widget.set_result(_sample_result_set())
@@ -121,60 +122,54 @@ def test_set_result_none_clears_provenance_label(widget):
     assert widget.provenance_label.text() == ""
 
 
-def test_series_combo_is_searchable_by_substring(widget):
+def test_the_catalog_is_searchable_by_substring(widget):
     """Real scenarios (e.g. the built-in 6-satellite Walker constellation
     template) produce 30-40+ series named after the dotted
-    "{spacecraft}.{category}..." scheme -- a plain, unsearchable dropdown
-    that long is tedious to scan. The combo must be editable with a
-    substring (not just prefix) completer, since the useful
-    discriminator (the spacecraft name, or the category after the first
-    dot) is often in the middle of the string, not the start.
+    "{spacecraft}.{category}..." scheme -- a long unsearchable list is
+    tedious to scan. The catalog's search matches anywhere in the title,
+    the code name or the group, case-insensitively, since the useful
+    discriminator (the spacecraft, or the category after the first dot) is
+    often in the middle of the name.
     """
     widget.set_result(_sample_result_set())
+    widget.catalog.search.setText("VELOC")
+    assert widget.catalog.visible_names() == ["sat-1.velocity_N"]
+    widget.catalog.search.setText("sat-1.pos")  # the middle of a code name
+    assert widget.catalog.visible_names() == ["sat-1.position_N"]
+    widget.catalog.search.setText("orbit")  # the group
+    assert widget.catalog.visible_names() == ["sat-1.position_N", "sat-1.velocity_N"]
+    widget.catalog.search.clear()
 
-    assert widget.series_combo.isEditable()
-    completer = widget.series_combo.completer()
-    assert completer is not None
-    from PySide6.QtCore import Qt
-
-    assert completer.filterMode() == Qt.MatchFlag.MatchContains
-    assert completer.caseSensitivity() == Qt.CaseSensitivity.CaseInsensitive
-
-
-def test_series_combo_completer_model_stays_in_sync_after_set_result(widget):
-    """Regression guard: the QCompleter is bound to series_combo's model
-    once at construction -- if set_result()'s clear()/addItem() calls
-    ever replaced that model object instead of mutating it in place, the
-    completer would silently keep matching against stale, previously
-    -shown series names.
-    """
+def test_a_new_result_replaces_the_catalog_entries(widget):
+    """Regression guard (from the old series box, whose completer could
+    keep matching stale names): a new result's catalog lists its series
+    only, and the search works on them."""
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
 
     widget.set_result(_sample_result_set())
-    first_model = widget.series_combo.completer().model()
-
     other = ResultSet(scenario_name="demo2")
     other.add(TimeSeries("sat-9.battery_charge", np.linspace(0, 10, 5), ("charge",),
                           np.zeros((5, 1)), units="W*hr"))
     widget.set_result(other)
 
-    assert widget.series_combo.completer().model() is first_model
-    assert widget.series_combo.completer().model().rowCount() == 1
-
+    assert widget.plot_names() == ["sat-9.battery_charge"]
+    widget.catalog.search.setText("position")
+    assert widget.catalog.visible_names() == []
+    widget.catalog.search.clear()
 
 def test_switching_series_redraws(widget):
     widget.set_result(_sample_result_set())
-    widget.series_combo.setCurrentIndex(1)
+    widget.show_series("sat-1.velocity_N")
+    assert widget.current_series_name() == "sat-1.velocity_N"
+    assert widget.figure.layout.yaxis.title.text == "Velocity [m/s]"
     assert len(widget.figure.data) == 3
-
 
 def test_set_result_none_clears_everything(widget):
     widget.set_result(_sample_result_set())
     widget.set_result(None)
-    assert widget.series_combo.count() == 0
+    assert widget.plot_names() == [] and widget.shown_plots() == []
     assert not widget.export_button.isEnabled()
     assert widget.figure is None
-
 
 def test_export_writes_csv_files(widget, tmp_path, monkeypatch):
     from PySide6.QtWidgets import QFileDialog, QMessageBox
@@ -500,25 +495,30 @@ def _access_result_set(n=20):
     return rs
 
 
-def test_view_combo_defaults_to_single_series(widget):
-    assert widget.view_combo.currentData() == "single"
-    assert widget.series_combo.isEnabled()
+def test_the_grid_opens_on_a_single_series_plot(widget):
+    """Without a saved layout a result opens on one series plot, not the
+    access timeline."""
+    from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
 
-
-def test_switching_to_access_timeline_disables_series_combo(widget):
     widget.set_result(_access_result_set())
-    index = widget.view_combo.findData("access_timeline")
-    widget.view_combo.setCurrentIndex(index)
-    assert not widget.series_combo.isEnabled()
+    assert widget.shown_plots() != [ACCESS_TIMELINE] and len(widget.shown_plots()) == 1
+    assert widget.current_series_name() == widget.shown_plots()[0]
 
-    index = widget.view_combo.findData("single")
-    widget.view_combo.setCurrentIndex(index)
-    assert widget.series_combo.isEnabled()
+def test_the_access_timeline_is_a_catalog_entry_under_link(widget):
+    """The access timeline is one more plot in the catalog (it used to be a
+    separate view); shown, it has no series of its own."""
+    from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
 
+    widget.set_result(_access_result_set())
+    assert ACCESS_TIMELINE in widget.plot_names()
+    widget.show_series(ACCESS_TIMELINE)
+    assert widget.current_series_name() == "" and widget.shown_plots() == [ACCESS_TIMELINE]
 
 def test_access_timeline_plots_one_trace_per_pair_with_a_segment_per_window(widget):
+    from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
+
     widget.set_result(_access_result_set())
-    widget.view_combo.setCurrentIndex(widget.view_combo.findData("access_timeline"))
+    widget.show_series(ACCESS_TIMELINE)
 
     assert widget.figure is not None
     y_values = {trace.y[0] for trace in widget.figure.data}
@@ -534,39 +534,41 @@ def test_access_timeline_plots_one_trace_per_pair_with_a_segment_per_window(widg
                 if part.strip("|")]
     assert len(segments) == 2
 
-
 def test_access_timeline_with_no_access_series_shows_explanatory_empty_state(widget):
+    """Without access series the catalog does not offer the timeline, and
+    the timeline itself explains why it is empty."""
+    from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
+
     widget.set_result(_sample_result_set())  # position/velocity only, no access series
-    widget.view_combo.setCurrentIndex(widget.view_combo.findData("access_timeline"))
+    assert ACCESS_TIMELINE not in widget.plot_names()
+    figure = widget._build_access_timeline_figure()
 
-    assert widget.figure is not None
-    assert len(widget.figure.data) == 0
-    assert "No ground-station access series" in widget.figure.layout.annotations[0].text
-
+    assert len(figure.data) == 0
+    assert "No ground-station access series" in figure.layout.annotations[0].text
 
 def test_access_timeline_ignores_x_axis_combo_always_uses_elapsed_time(widget):
+    from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
+
     widget.set_result(_access_result_set())
-    widget.view_combo.setCurrentIndex(widget.view_combo.findData("access_timeline"))
+    widget.show_series(ACCESS_TIMELINE)
     widget.x_axis_combo.setCurrentIndex(widget.x_axis_combo.findData("epoch"))
 
     assert widget.figure.layout.xaxis.title.text == "Elapsed time [hr]"
 
-
 def test_switching_back_to_single_series_restores_previous_plot(widget):
+    from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
+
     widget.set_result(_access_result_set())
-    widget.series_combo.setCurrentIndex(0)
-    single_series_name = widget.series_combo.currentText()
+    single_series_name = widget.current_series_name()
     single_series_figure_data_len = len(widget.figure.data)
 
-    widget.view_combo.setCurrentIndex(widget.view_combo.findData("access_timeline"))
+    widget.show_series(ACCESS_TIMELINE)
     assert widget.figure.layout.title.text == "Ground Station Access Timeline"
 
-    widget.view_combo.setCurrentIndex(widget.view_combo.findData("single"))
+    widget.show_series(single_series_name)
 
-    assert widget.series_combo.currentText() == single_series_name
-    assert widget.series_combo.isEnabled()
+    assert widget.current_series_name() == single_series_name
     assert len(widget.figure.data) == single_series_figure_data_len
-
 
 def test_access_timeline_renders_in_the_real_webview(widget, qtbot):
     """End-to-end check that the access-timeline figure's generated HTML
@@ -575,18 +577,21 @@ def test_access_timeline_renders_in_the_real_webview(widget, qtbot):
     figure that builds fine in Python but is malformed Plotly JSON
     (e.g. a NaN/non-JSON-serializable value sneaking into a trace).
     """
+    from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
+
     widget.set_result(_access_result_set())
     with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS) as blocker:
-        widget.view_combo.setCurrentIndex(widget.view_combo.findData("access_timeline"))
+        widget.show_series(ACCESS_TIMELINE)
     assert blocker.args == [True]
 
-
 def test_save_plot_default_name_is_access_timeline_in_that_view(widget, tmp_path, monkeypatch, qtbot):
+    from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
+
     from PySide6.QtWidgets import QFileDialog
 
     with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_access_result_set())
-    widget.view_combo.setCurrentIndex(widget.view_combo.findData("access_timeline"))
+    widget.show_series(ACCESS_TIMELINE)
 
     captured = {}
 
@@ -599,30 +604,26 @@ def test_save_plot_default_name_is_access_timeline_in_that_view(widget, tmp_path
 
     assert captured["default_name"] == "access_timeline.png"
 
-
-def test_set_live_result_populates_combo_on_first_update(widget):
+def test_set_live_result_populates_the_catalog_on_first_update(widget):
     widget.set_live_result(_sample_result_set(n=5))
-    assert widget.series_combo.count() == 2
+    assert len(widget.plot_names()) == 2
     assert widget.export_button.isEnabled()
     assert len(widget.figure.data) == 3  # x, y, z
-
 
 def test_set_live_result_does_not_reset_users_series_selection(widget):
     """Regression guard: a live run's series names are fixed from its
     first chunk (see set_live_result's docstring) -- later chunks with
-    MORE data but the SAME series names must not rebuild series_combo,
-    which would silently snap the user's current selection back to index
-    0 every time a new chunk arrives while they're watching a different
-    series.
+    MORE data but the SAME series names must not rebuild the catalog,
+    which would silently snap the user's plot back to the first one every
+    time a new chunk arrives while they're watching a different series.
     """
     widget.set_live_result(_sample_result_set(n=5))
-    widget.series_combo.setCurrentIndex(1)  # "sat-1.velocity_N"
+    widget.show_series("sat-1.velocity_N")
 
     widget.set_live_result(_sample_result_set(n=25))  # later chunk, more samples, same series names
 
-    assert widget.series_combo.currentIndex() == 1
-    assert widget.series_combo.count() == 2
-
+    assert widget.current_series_name() == "sat-1.velocity_N"
+    assert len(widget.plot_names()) == 2
 
 def test_set_live_result_grows_the_plotted_data(widget):
     widget.set_live_result(_sample_result_set(n=5))
@@ -691,63 +692,43 @@ def test_user_series_change_is_never_throttled_during_a_live_run(widget, monkeyp
 
     push_calls = []
     monkeypatch.setattr(widget, "_push_figure_to_webview", lambda: push_calls.append(1))
-    # setCurrentIndex (not setCurrentText): the combo is editable, where
-    # setCurrentText only updates the line-edit's displayed text and
-    # relies on editingFinished (Enter/focus-loss) to sync currentIndex
-    # -- not what a real dropdown pick (this test's actual subject) does.
-    widget.series_combo.setCurrentIndex(widget.series_combo.findData(other_series))  # still inside the throttle window
+    widget.show_series(other_series)  # still inside the throttle window
 
     assert widget.current_series_name() == other_series
     assert push_calls == [1]
 
 
-def test_selecting_a_series_via_the_completer_popup_redraws_the_plot(widget):
-    """Real user report, reproduced here: picking a series by typing to
-    filter and then selecting a suggestion from the completer popup (the
-    combo's own documented reason for being editable -- see its
-    construction comment) left the OLD series' plot on screen even
-    though the text box showed the newly-picked series name. Root cause:
-    series_combo.currentIndexChanged (what _redraw() was wired to) does
-    not reliably fire for a completer-driven pick in this combo's
-    configuration -- only for a plain dropdown-arrow click. Simulates the
-    actual completer path (QCompleter.activated, emitted the instant a
-    popup suggestion is chosen by click or Enter-within-the-popup), not
-    series_combo.setCurrentIndex() directly (already covered by
-    test_user_series_change_is_never_throttled_during_a_live_run, which
-    is deliberately the OTHER, dropdown-arrow pick path).
-    """
+def test_clicking_a_plot_name_in_the_catalog_redraws_the_plot(widget, qtbot):
+    """Real user report (from the old series box): picking a series left
+    the OLD plot on screen. A click on a name in the catalog shows that
+    plot at once; a click on its tick box only ticks it (adds it to the
+    grid) and does not replace the selected plot."""
+    from PySide6.QtCore import QPoint, Qt
+
     widget.set_result(_sample_result_set())
-    first_series = widget.current_series_name()
-    other_series = next(name for name in widget._result.series if name != first_series)
     original_y_title = widget.figure.layout.yaxis.title.text
+    rect = widget.catalog.tree.visualItemRect(widget.catalog._items["sat-1.velocity_N"])
+    name_point = QPoint(rect.center().x() + rect.width() // 4, rect.center().y())  # on the text, not the box
+    qtbot.mouseClick(widget.catalog.tree.viewport(), Qt.MouseButton.LeftButton, pos=name_point)
 
-    # The popup offers the shown labels, so that is what it emits.
-    widget.series_combo.completer().activated.emit(
-        widget.series_combo.itemText(widget.series_combo.findData(other_series)))
-
-    assert widget.current_series_name() == other_series
-    assert widget.figure.layout.yaxis.title.text != original_y_title  # the plot actually rebuilt, not just the combo text
-
+    assert widget.current_series_name() == "sat-1.velocity_N"
+    assert widget.shown_plots() == ["sat-1.velocity_N"]
+    assert widget.figure.layout.yaxis.title.text != original_y_title  # the plot actually rebuilt
 
 def test_typing_an_exact_series_name_and_pressing_enter_redraws_the_plot(widget, qtbot):
-    """Same real report, other reliable commit path: typing a series
-    name out in full (no popup suggestion ever clicked) and pressing
-    Enter -- QLineEdit.editingFinished, not the completer at all.
-    """
+    """Same real report, other path: typing a plot's title in the
+    catalog's search and pressing Enter shows it."""
     from PySide6.QtCore import Qt
 
     widget.set_result(_sample_result_set())
-    first_series = widget.current_series_name()
-    other_series = next(name for name in widget._result.series if name != first_series)
     original_y_title = widget.figure.layout.yaxis.title.text
 
-    widget.series_combo.setFocus()
-    widget.series_combo.lineEdit().setText(widget.series_combo.itemText(widget.series_combo.findData(other_series)))
-    qtbot.keyClick(widget.series_combo.lineEdit(), Qt.Key.Key_Return)
+    widget.catalog.search.setFocus()
+    widget.catalog.search.setText(widget.catalog.label("sat-1.velocity_N"))
+    qtbot.keyClick(widget.catalog.search, Qt.Key.Key_Return)
 
-    assert widget.current_series_name() == other_series
-    assert widget.figure.layout.yaxis.title.text != original_y_title  # the plot actually rebuilt, not just the combo text
-
+    assert widget.current_series_name() == "sat-1.velocity_N"
+    assert widget.figure.layout.yaxis.title.text != original_y_title  # the plot actually rebuilt
 
 def test_position_series_plots_in_raw_meters(widget):
     """Regression guard for a real, explicit user request ("state vector
@@ -771,7 +752,7 @@ def test_velocity_series_plots_in_raw_m_s(widget):
     raw_vx_m_s = rs.series["sat-1.velocity_N"].data[:, 0]
 
     widget.set_result(rs)
-    widget.series_combo.setCurrentIndex(1)  # "sat-1.velocity_N"
+    widget.show_series("sat-1.velocity_N")
 
     plotted_x = np.asarray(widget.figure.data[0].y)
     np.testing.assert_allclose(plotted_x, raw_vx_m_s)
@@ -980,20 +961,19 @@ def test_live_result_carries_epoch_through_to_the_plot(widget):
     assert widget.figure.layout.xaxis.title.text == "Epoch (UTC)"
 
 
-def test_set_live_result_rebuilds_combo_if_series_names_change(widget):
+def test_set_live_result_rebuilds_the_catalog_if_series_names_change(widget):
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
 
     widget.set_live_result(_sample_result_set(n=5))
-    widget.series_combo.setCurrentIndex(1)
+    widget.show_series("sat-1.velocity_N")
 
     other = ResultSet(scenario_name="demo")
     other.add(TimeSeries("sat-2.position_N", np.linspace(0, 10, 5), ("x", "y", "z"),
                           np.zeros((5, 3)), units="m"))
     widget.set_live_result(other)
 
-    assert widget.series_combo.count() == 1
+    assert widget.plot_names() == ["sat-2.position_N"]
     assert widget.current_series_name() == "sat-2.position_N"
-
 
 def test_a_large_series_still_shows_when_selected(widget, qtbot):
     """Real user report: during a long run, switching to chief-1.position_N
@@ -1013,11 +993,11 @@ def test_a_large_series_still_shows_when_selected(widget, qtbot):
     with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(result)
     with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
-        widget.series_combo.setCurrentIndex(widget.series_combo.findData("sat-1.position_N"))
+        widget.show_series("sat-1.position_N")
 
     shown = {}
     widget.web_view.page().runJavaScript(
-        "(function(){var d=document.querySelector('.plotly-graph-div');"
+        "(function(){var d=document.getElementById('spacemissionstudio-plot');"
         "return d && d.layout ? d.layout.title.text + '|' + d.data.length : 'NO PLOT';})()",
         0, lambda value: shown.setdefault("title", value))
     qtbot.waitUntil(lambda: "title" in shown, timeout=10000)
@@ -1046,46 +1026,40 @@ def test_display_thinning_keeps_peaks_and_caps_points():
 # -- decluttering (real user feedback: "check the Results tab for the same clutter") --
 
 def test_series_list_shows_plot_titles_with_the_code_name_as_tooltip(widget):
-    """The Series list used raw dotted code names; entries now read like
-    their plot titles, and the code name (the CSV file name) stays
-    available as the item's data and tooltip."""
-    from PySide6.QtCore import Qt
-
+    """Catalog entries read like their plot titles (without the spacecraft
+    when the run has one), and the code name (the CSV file name) stays
+    available as the entry's tooltip."""
     widget.set_result(_sample_result_set())
-    combo = widget.series_combo
-    labels = [combo.itemText(i) for i in range(combo.count())]
-    assert labels == ["sat-1: Inertial Position (ECI)", "sat-1: Inertial Velocity (ECI)"]
-    assert [combo.itemData(i) for i in range(combo.count())] == ["sat-1.position_N", "sat-1.velocity_N"]
-    assert combo.itemData(0, Qt.ItemDataRole.ToolTipRole) == "sat-1.position_N"
-    assert widget.figure.layout.title.text == labels[0]  # list entry == plot title
-
+    catalog = widget.catalog
+    assert [catalog.label(name) for name in catalog.names()] == ["Inertial Position (ECI)", "Inertial Velocity (ECI)"]
+    assert catalog._items["sat-1.position_N"].toolTip(0) == "sat-1.position_N"
+    assert widget.figure.layout.title.text == "sat-1: Inertial Position (ECI)"  # the plot names the spacecraft
 
 def test_typing_a_full_code_name_still_selects_that_series(widget, qtbot):
     from PySide6.QtCore import Qt
 
     widget.set_result(_sample_result_set())
-    widget.series_combo.setFocus()
-    widget.series_combo.lineEdit().setText("sat-1.velocity_N")
-    qtbot.keyClick(widget.series_combo.lineEdit(), Qt.Key.Key_Return)
+    widget.catalog.search.setFocus()
+    widget.catalog.search.setText("sat-1.velocity_N")
+    qtbot.keyClick(widget.catalog.search, Qt.Key.Key_Return)
 
     assert widget.current_series_name() == "sat-1.velocity_N"
 
+def test_the_access_timeline_is_offered_only_with_access_series(widget):
+    """With no ground stations there is no timeline to offer; a later
+    result without stations drops it from the grid too."""
+    from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
 
-def test_view_selector_only_appears_when_there_are_access_series(widget):
-    """With no ground stations there is nothing to choose between."""
-    widget.show()
     widget.set_result(_sample_result_set())
-    assert not widget.view_combo.isVisible() and not widget.view_label.isVisible()
+    assert ACCESS_TIMELINE not in widget.plot_names()
 
     widget.set_result(_access_result_set())
-    assert widget.view_combo.isVisible() and widget.view_label.isVisible()
+    assert ACCESS_TIMELINE in widget.plot_names()
 
-    widget.view_combo.setCurrentIndex(widget.view_combo.findData("access_timeline"))
+    widget.show_series(ACCESS_TIMELINE)
     widget.set_result(_sample_result_set())  # back to a result without stations
-    assert not widget.view_combo.isVisible()
-    assert widget.view_combo.currentData() == "single"
+    assert ACCESS_TIMELINE not in widget.plot_names() + widget.shown_plots()
     assert widget.figure.layout.title.text == "sat-1: Inertial Position (ECI)"
-
 
 def test_results_tab_fits_a_narrow_pane(widget):
     """A one-line provenance label and a wide toolbar used to force the tab
@@ -1131,14 +1105,15 @@ def test_access_timeline_marks_each_pass_and_starts_at_zero(widget):
     """On a long run a pass is narrower than a pixel, so its segment alone
     vanished; fixed-size end ticks keep it visible. The ticks must not pad
     the axis to before t = 0."""
+    from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
+
     widget.set_result(_access_result_set())
-    widget.view_combo.setCurrentIndex(widget.view_combo.findData("access_timeline"))
+    widget.show_series(ACCESS_TIMELINE)
 
     with_passes = [t for t in widget.figure.data if t.y[0] == "station-a -> sat-1"][0]
     assert "markers" in with_passes.mode
     assert with_passes.marker.symbol == "line-ns"
     assert widget.figure.layout.xaxis.range == (0.0, 1.0)  # [hr] the whole 3600 s run
-
 
 # -- one-click "What to look at" suggestions ------------------------------------
 
@@ -1173,18 +1148,18 @@ def test_suggestions_offer_the_featured_series_and_open_on_the_first(widget):
 
 
 def test_clicking_a_suggestion_shows_it_even_from_the_access_timeline(widget):
+    from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
+
     widget.show()
     widget.set_featured_series(["leo-comms-1.battery_charge"])
     widget.set_result(_comms_result())
-    widget.view_combo.setCurrentIndex(widget.view_combo.findData("access_timeline"))
+    widget.show_series(ACCESS_TIMELINE)
 
     widget._suggestion_chips[0].click()
 
-    assert widget.view_combo.currentData() == "single"
     assert widget.current_series_name() == "leo-comms-1.battery_charge"
     assert widget.figure.layout.title.text == "leo-comms-1: Battery State of Charge"
     assert widget._suggestion_chips[0].isChecked()
-
 
 def test_suggestions_keep_names_that_tell_spacecraft_apart_and_hide_when_empty(widget):
     from spacemissionstudio.engine.results import TimeSeries

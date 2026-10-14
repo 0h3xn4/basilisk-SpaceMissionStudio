@@ -107,7 +107,29 @@ unambiguous, not follow a plot-only display preference):
   :meth:`set_live_result` were given) via ``x_axis_combo``. ``epoch_utc``
   is optional and defaults to ``None`` (falls back to elapsed time even
   if "Epoch (UTC)" is selected) so every existing caller/test that only
-  ever passed a bare ``ResultSet`` keeps working unchanged.
+  ever passed a bare ``ResultSet`` keeps working unchanged. A third
+  choice, "Orbit number" (``engine.orbit_number``), counts revolutions of
+  one spacecraft from the ascending node (docs/ux-audit.md U-26).
+
+The plot workspace (UX iteration 5a, docs/ux-audit.md U-24 to U-30):
+
+* A plot **catalog** (``gui.plot_catalog``) on the left lists every plot
+  of the run by group, with a search box; a tick shows a plot in the
+  grid, a click on its name shows it in the selected cell.
+* A **grid** of up to six plots (1 x 1 to 2 x 3), drawn as several
+  Plotly figures in one web page (``gui.plot_page``; decision 4): linked
+  x axes, the shared time cursor on every plot, a click selects a plot
+  (Save PNG/SVG act on the selected one). The layout and the plots shown
+  are kept per scenario (``set_layout_key``) in
+  ``~/.spacemissionstudio/layout.ini``.
+* A **readout** (``gui.readout_panel``) on the right: every shown
+  series' value at the time under the pointer, or at the cursor.
+* **Event bands**: eclipses, passes, burns, thruster firings, mode
+  changes and downlinks from ``engine.events``, drawn behind the lines in
+  the Events tab's colours, each kind switched on and off above the grid.
+* The epoch under the title ("t0 = 2030-01-01 08:30:00 UTC") when the
+  axis is elapsed time or orbit number, and **Export all** (every shown
+  plot as PNG or SVG, with its data as CSV and the run's provenance).
 """
 
 from __future__ import annotations
@@ -123,6 +145,7 @@ from . import webengine_setup  # noqa: F401 -- importing it sets the flags
 
 import json
 import tempfile
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -130,28 +153,36 @@ from typing import Optional
 import numpy as np
 
 import plotly.graph_objects as go
-from PySide6.QtCore import QElapsedTimer, Qt, QTimer, QUrl, Signal
+from PySide6.QtCore import QElapsedTimer, QSettings, Qt, QTimer, QUrl, Signal
+from PySide6.QtGui import QAction
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
-    QCompleter,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
     QLabel,
+    QMenu,
     QMessageBox,
     QPushButton,
     QSizePolicy,
+    QSplitter,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
 
 from .. import output_provenance
-from ..engine import time_system
-from ..engine.results import ResultSet, TimeSeries
+from ..engine import events as event_model
+from ..engine import orbit_number, time_system
+from ..engine.results import ResultSet, TimeSeries, output_path
 from ..plot_categories import categorize as _categorize
 from ..plot_categories import legacy_display as _legacy_display
 from ..plot_categories import parse_access_pair as _parse_access_pair
+from ..plot_categories import plot_group
+from . import plot_page
 from .flow_layout import FlowLayout
+from .plot_catalog import ACCESS_TIMELINE, PlotCatalog
+from .readout_panel import ReadoutPanel, value_at
 from .theme import FONTS_DIR, PALETTE, SERIES_COLORS
 from .widgets import ComboBox
 
@@ -173,12 +204,13 @@ _EMPTY_STATE_TEXT = PALETTE["text_muted"]
 # chart page cannot see fonts loaded into Qt.
 _FONT_FAMILY = "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"
 
-# A fixed id (rather than Plotly's own randomly-generated default) so
+# Fixed ids (rather than Plotly's own randomly-generated default) so
 # _on_save_plot_png's injected JS can reliably find the chart div to
 # rasterize -- see that method's own docstring for why a client-side
 # Plotly.toImage() call is used instead of a server-side renderer
-# (kaleido) this project doesn't otherwise depend on.
-_PLOT_DIV_ID = "spacemissionstudio-plot"
+# (kaleido) this project doesn't otherwise depend on. The first plot of
+# the grid has this id, the others plot_page.div_id(i).
+_PLOT_DIV_ID = plot_page.PLOT_DIV_ID
 
 # _on_save_plot_png/_poll_plot_png's poll-for-an-async-JS-result protocol
 # -- see _on_save_plot_png's own docstring for why polling a page-global
@@ -224,35 +256,19 @@ _MAX_PLOT_POINTS_PER_LINE = 10000
 
 
 # The shared time cursor (gui.time_cursor) on a plot: a click puts this
-# prefix, the clicked x value and a click counter in the page title, which
-# the view reports through titleChanged (there is no QWebChannel in this
-# app, and this needs no QWebEnginePage subclass). The cursor is drawn as
-# a layout shape of this name, updated with Plotly.relayout (no reload).
-_CURSOR_MESSAGE = "spacemissionstudio-cursor:"
-_CURSOR_SHAPE = "spacemissionstudio-cursor"
-_CLICK_SCRIPT = f"""<script>
-(function attach(attemptsLeft) {{
-    var gd = document.getElementById({_PLOT_DIV_ID!r});
-    if (!gd || !gd.on) {{
-        if (attemptsLeft > 0) {{ setTimeout(function() {{ attach(attemptsLeft - 1); }}, 50); }}
-        return;
-    }}
-    var clicks = 0;
-    gd.on('plotly_click', function(event) {{
-        if (event && event.points && event.points.length) {{
-            clicks += 1;
-            document.title = {_CURSOR_MESSAGE!r} + event.points[0].x + '|' + clicks;
-        }}
-    }});
-}})(40);
-</script>"""
+# prefix, the plot's index, the clicked x value and a counter in the page
+# title, which the view reports through titleChanged (there is no
+# QWebChannel in this app). See gui.plot_page for the page script. The
+# cursor is drawn as a layout shape of this name, with Plotly.relayout
+# (no reload).
+_CURSOR_MESSAGE = plot_page.CLICK_MESSAGE
+_CURSOR_SHAPE = plot_page.CURSOR_SHAPE
 
 
 def _clicked_x(title: str) -> Optional[str]:
     """The x value a plot click put in the page title, or None."""
-    if not title.startswith(_CURSOR_MESSAGE):
-        return None
-    return title[len(_CURSOR_MESSAGE):].rsplit("|", 1)[0]
+    message = plot_page.parse_message(title)
+    return message[2] if message is not None and message[0] == "click" else None
 
 
 def _display_indices(values: np.ndarray, max_points: int = _MAX_PLOT_POINTS_PER_LINE) -> np.ndarray:
@@ -367,6 +383,32 @@ def _empty_state_html() -> str:
 <body><div class="empty">Run a simulation to see results here</div></body></html>"""
 
 
+_X_AXES = (("elapsed", "Elapsed time"), ("epoch", "Epoch (UTC)"), ("orbit", "Orbit number"))
+_EVENT_LABELS = {event_model.ECLIPSE: "Eclipses", event_model.ACCESS: "Passes", event_model.BURN: "Burns",
+                 event_model.THRUSTER: "Thruster firings", event_model.MODE: "Modes",
+                 event_model.DOWNLINK: "Downlinks"}
+# [-] band opacity behind the lines: light enough that every line stays readable
+_BAND_OPACITY = 0.16
+# Bands of one kind drawn on one plot at most: Plotly redraws every shape on
+# each zoom, and a year of LEO eclipses (~5,500) made zooming crawl.
+_MAX_BANDS_PER_KIND = 400
+_LAYOUT_SETTINGS_PREFIX = "results_layout"
+_EVENTS_REFRESH_S = 2.0  # [s] a live run's events are read again at most this often
+
+
+def _settings() -> QSettings:
+    return QSettings(str(Path.home() / ".spacemissionstudio" / "layout.ini"), QSettings.Format.IniFormat)
+
+
+def _utc_text(epoch_utc: str) -> str:
+    """ "2030-01-01T08:30:00" -> "2030-01-01 08:30:00 UTC" (unchanged if it doesn't parse)."""
+    try:
+        parsed = datetime.fromisoformat(epoch_utc.replace("Z", ""))
+    except (ValueError, AttributeError):
+        return epoch_utc
+    return parsed.strftime("%Y-%m-%d %H:%M:%S UTC")
+
+
 class ResultsWidget(QWidget):
     open_in_vizard = Signal(str)  # the last run's playback file
 
@@ -374,106 +416,66 @@ class ResultsWidget(QWidget):
         super().__init__(parent)
         self._result: ResultSet | None = None
         self._epoch_utc: Optional[str] = None
-        self.figure: Optional[go.Figure] = None  # the currently-plotted go.Figure, or None (empty state)
+        self.figures: list = []  # the plotted go.Figure of each grid cell, in order
         self._time_cursor = None  # gui.time_cursor.TimeCursor, set by set_time_cursor()
-        self._x_is_epoch = False  # the shown figure's x axis is UTC (else elapsed hours)
+        self._x_is_epoch = False  # the shown figures' x axis is UTC (else elapsed hours or orbit number)
         self._png_poll_state: Optional[dict] = None  # set by _on_save_plot_png, read by _poll_plot_png
         self._live_redraw_elapsed = QElapsedTimer()  # throttles set_live_result()'s own redraws -- see
         # _LIVE_REDRAW_MIN_INTERVAL_MS's own comment
+        self._shown: list = []  # the plots in the grid, in order (series names or ACCESS_TIMELINE)
+        self._focused = 0  # the selected grid cell
+        self._layout = "1x1"
+        self._layout_key: Optional[str] = None  # the scenario, for the saved layout
+        self._hidden_kinds: set = set()  # event kinds switched off
+        self._events_cache: tuple = (None, [], None, 0.0)  # (result, its events, its series names, when [s])
+        self._allow_stale_events = False  # set while a live chunk that is not drawn rebuilds the figures
+        self._orbit_cache: tuple = (None, None, None)  # (result, spacecraft, (time_s, numbers) or None)
+        self._hover_time_s: Optional[float] = None
+        self._band_notes: list = []  # kinds left out of a plot for having too many bands
 
         layout = QVBoxLayout(self)
 
         top_row = QHBoxLayout()
-        # Design-philosophy roadmap item M5 (docs/ux_roadmap.md): a
-        # second, purely additive view mode alongside the existing
-        # single-series plot -- "most of the value of 'see access
-        # windows at a glance' comes from one more chart, not a new
-        # interaction model" (the roadmap's own scoping). Switching to
-        # "Ground station access timeline" disables series_combo (it
-        # has no effect in that view) and redraws; switching back
-        # restores the single-series view exactly as it was.
-        # Shown only for a result with ground-station access series --
-        # without them there is nothing to choose.
-        self.view_label = QLabel("View:")
-        self.view_label.setVisible(False)
-        self.view_combo = ComboBox()
-        self.view_combo.addItem("Single series", "single")
-        self.view_combo.addItem("Access timeline", "access_timeline")
-        self.view_combo.setToolTip("\"Access timeline\" shows every ground station's passes over every "
-                                   "spacecraft in one chart.")
-        self.view_combo.setVisible(False)
-        self.view_combo.currentIndexChanged.connect(self._on_view_changed)
-        top_row.addWidget(QLabel("Series:"))
-        self.series_combo = ComboBox()
-        # Editable + a substring-matching QCompleter -- a real scenario
-        # (e.g. the built-in 6-satellite Walker constellation template)
-        # produces 30-40+ series, all named after the dotted scheme
-        # engine.service/engine.link_budget use
-        # ("leo-02-03.orbit_elements_mean.inclination", ...); a plain,
-        # unsearchable dropdown list that long is tedious to scan.
-        # MatchContains (not the default MatchStartsWith) matters here
-        # specifically because the useful discriminator is usually in
-        # the MIDDLE of the name (the spacecraft, or the category after
-        # the first dot), not always the start. InsertPolicy.NoInsert
-        # keeps typed-but-not-selected text from being added as a fake
-        # new entry -- this combo's contents are always exactly
-        # result.series's keys, nothing a user types can add to them.
-        self.series_combo.setEditable(True)
-        self.series_combo.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
-        self.series_combo.setToolTip("Type to filter, or use the dropdown")
-        # A long real series name (e.g. "leo-02-03.orbit_elements_mean.inclination")
-        # needs real room to be readable -- without a floor, this is the
-        # one widget on the row with stretch=1, so it's also the first
-        # one Qt shrinks below its natural size when the row is tight
-        # (see button_row's own comment for the regression this guards
-        # against going forward).
-        self.series_combo.setMinimumWidth(220)
-        completer = QCompleter(self.series_combo.model(), self.series_combo)
-        completer.setCaseSensitivity(Qt.CaseSensitivity.CaseInsensitive)
-        completer.setFilterMode(Qt.MatchFlag.MatchContains)
-        completer.setCompletionMode(QCompleter.CompletionMode.PopupCompletion)
-        self.series_combo.setCompleter(completer)
-        self.series_combo.currentIndexChanged.connect(self._redraw)
-        # Real user-reported bug: picking a series via the completer popup
-        # (type to filter, then click/Enter a suggestion -- this combo's
-        # whole reason for being editable, see the comment above) often
-        # left the line edit showing the new series name while the plot
-        # kept showing the old one. Root cause: QComboBox.currentIndexChanged
-        # above only fires when the combo's OWN internal index-selection
-        # path changes the index -- a completer operates on the line edit
-        # directly and, confirmed in this Qt version, does not reliably
-        # drive that same path (a known-inconsistent area of
-        # QComboBox+QCompleter interaction, not unique to this app). Two
-        # more explicit hooks close the gap: the completer's own
-        # ``activated`` fires the instant a popup suggestion is picked
-        # (click or Enter-within-the-popup), and the line edit's
-        # ``editingFinished`` catches the remaining case of typing an
-        # exact, already-complete name and pressing Enter with no popup
-        # open. Both funnel through ``_on_series_text_committed`` so the
-        # combo's own index is explicitly synced (not just its displayed
-        # text) before redrawing -- harmless if ``currentIndexChanged``
-        # also fires for the same pick (``_redraw()`` is idempotent).
-        completer.activated.connect(self._on_series_text_committed)
-        self.series_combo.lineEdit().editingFinished.connect(
-            lambda: self._on_series_text_committed(self.series_combo.currentText())
-        )
-        top_row.addWidget(self.series_combo, stretch=1)
+        top_row.addWidget(QLabel("Layout:"))
+        self.layout_combo = ComboBox()
+        for name in plot_page.LAYOUTS:
+            self.layout_combo.addItem(plot_page.layout_label(name), name)
+        self.layout_combo.setToolTip("How many plots the grid shows. Tick plots in the catalog to fill it.")
+        self.layout_combo.setAccessibleName("Plot layout")
+        self.layout_combo.currentIndexChanged.connect(self._on_layout_chosen)
+        top_row.addWidget(self.layout_combo)
         top_row.addWidget(QLabel("X-axis:"))
         self.x_axis_combo = ComboBox()
-        self.x_axis_combo.addItem("Elapsed time", "elapsed")
-        self.x_axis_combo.addItem("Epoch (UTC)", "epoch")
+        for data, text in _X_AXES:
+            self.x_axis_combo.addItem(text, data)
         self.x_axis_combo.setToolTip(
-            "\"Epoch (UTC)\" needs the scenario's epoch, which is only known once a run has actually "
-            "produced this result -- falls back to elapsed time if it isn't available."
+            "Applies to every plot. \"Epoch (UTC)\" needs the scenario's epoch, known once a run has produced "
+            "this result. \"Orbit number\" counts one spacecraft's revolutions from the ascending node and needs "
+            "its recorded position and velocity. Either falls back to elapsed time when it can't be shown."
         )
+        self.x_axis_combo.setAccessibleName("X-axis")
         self.x_axis_combo.currentIndexChanged.connect(self._redraw)
         top_row.addWidget(self.x_axis_combo)
+        self.events_label = QLabel("Events:")
+        top_row.addWidget(self.events_label)
+        self._event_buttons: dict = {}
+        for kind in event_model.KINDS:
+            button = QToolButton()
+            button.setText(_EVENT_LABELS[kind])
+            button.setCheckable(True)
+            button.setChecked(True)
+            button.setToolTip(f"Draw {_EVENT_LABELS[kind].lower()} on the plots")
+            button.toggled.connect(lambda on, k=kind: self._on_event_kind_toggled(k, on))
+            top_row.addWidget(button)
+            self._event_buttons[kind] = button
+        top_row.addStretch(1)
         layout.addLayout(top_row)
 
         # One-click shortcuts to the series the scenario's own description
         # points at ("What to look at"), so nobody has to find
         # berlin-gs.access_to_leo-comms-1.link_margin_db among 40 entries.
-        # Filled from set_featured_series(); hidden when there are none.
+        # Filled from set_featured_series(); hidden when there are none. A
+        # chip shows its plot in the selected cell.
         self._featured: list = []
         self._suggestion_chips: list = []
         self.suggestion_row = QWidget()
@@ -495,21 +497,10 @@ class ResultsWidget(QWidget):
         self.suggestion_row.setVisible(False)
         layout.addWidget(self.suggestion_row)
 
-        # Real UI regression, caught from a screenshot: this row used to
-        # share ONE QHBoxLayout with the "View"/"Series"/"X-axis" combos
-        # above. Adding the "View" combo (roadmap item M5) and the "Save
-        # plot as SVG..." button (roadmap item M2) on top of what was
-        # already there left too many widgets competing for one row's
-        # width inside the (non-full-window) Results panel -- Qt resolved
-        # that by squeezing series_combo (the one widget with
-        # stretch=1, i.e. the one meant to actually use spare space) down
-        # toward its minimum size instead, which on a real window left it
-        # showing only a few truncated characters of whatever was
-        # selected/typed, looking exactly like garbled text. Splitting
-        # "what am I looking at" (above) from "do something with it"
-        # (below) onto separate rows removes that width pressure
-        # entirely rather than trying to tune individual widths against
-        # an unbounded number of future buttons on the same row.
+        # "What am I looking at" (above) and "do something with it" (below)
+        # are separate rows: one shared row squeezed the series box to a few
+        # characters in the Results pane (a real regression, from a
+        # screenshot).
         button_row = QHBoxLayout()
         self.export_button = QPushButton("Export CSV...")
         self.export_button.setToolTip("Export every series in this result as CSV files (SI units)")
@@ -517,22 +508,30 @@ class ResultsWidget(QWidget):
         self.export_button.setEnabled(False)
         button_row.addWidget(self.export_button)
         self.save_png_button = QPushButton("Save PNG...")
-        self.save_png_button.setToolTip("Save the currently displayed plot (not every series -- see "
-                                         "\"Export CSV...\" for that) as a PNG image")
+        self.save_png_button.setToolTip("Save the selected plot (click a plot to select it) as a PNG image")
         self.save_png_button.clicked.connect(self._on_save_plot_png)
         self.save_png_button.setEnabled(False)
         button_row.addWidget(self.save_png_button)
-        # Design-philosophy roadmap item M2 (docs/ux_roadmap.md): a vector
-        # export alongside the existing raster one, for a plot a user wants
-        # to drop into a paper/report at arbitrary scale without it going
-        # blurry. Shares _on_save_plot_png's whole dialog/kickoff/poll
-        # machinery via its ``fmt`` parameter -- see that method's own
-        # docstring -- rather than duplicating it.
+        # A vector export alongside the raster one, for a plot dropped into
+        # a paper or report at any scale. Shares _on_save_plot_png's
+        # dialog/kickoff/poll machinery via its ``fmt`` parameter.
         self.save_svg_button = QPushButton("Save SVG...")
-        self.save_svg_button.setToolTip("Save the currently displayed plot as a scalable vector (SVG) image")
+        self.save_svg_button.setToolTip("Save the selected plot as a scalable vector (SVG) image")
         self.save_svg_button.clicked.connect(self._on_save_plot_svg)
         self.save_svg_button.setEnabled(False)
         button_row.addWidget(self.save_svg_button)
+        # Every shown plot at once (U-29), with its data and the provenance.
+        self.export_all_button = QPushButton("Export all...")
+        self.export_all_button.setToolTip("Every shown plot as an image, with its data as CSV and the run's "
+                                          "provenance, into one folder")
+        export_menu = QMenu(self.export_all_button)
+        for fmt, text in (("png", "PNG images and CSV..."), ("svg", "SVG images and CSV...")):
+            action = QAction(text, export_menu)
+            action.triggered.connect(lambda _checked=False, f=fmt: self._on_export_all(f))
+            export_menu.addAction(action)
+        self.export_all_button.setMenu(export_menu)
+        self.export_all_button.setEnabled(False)
+        button_row.addWidget(self.export_all_button)
         # The last run's Vizard playback file (UX/UI guidelines, decision 3:
         # open only -- Vizard has no interface to follow the time cursor).
         self.vizard_button = QPushButton("Open in Vizard")
@@ -559,8 +558,6 @@ class ResultsWidget(QWidget):
         self.diff_button = QPushButton("Input differences...")
         self.diff_button.setToolTip("Lists every scenario input that differs between the two runs.")
         self.diff_button.clicked.connect(self.show_input_differences)
-        button_row.addWidget(self.view_label)
-        button_row.addWidget(self.view_combo)
         layout.addLayout(button_row)
         # On a row of its own, shown only once there is an earlier run: on
         # the export row it made the pane, and so the window, too wide for
@@ -572,106 +569,160 @@ class ResultsWidget(QWidget):
         compare_row.addStretch(1)
         layout.addLayout(compare_row)
 
-        # Design-philosophy audit finding (docs/ux_audit.md, "no run
-        # provenance captured with results"): one line, always visible
-        # once a result exists, naming exactly what produced it --
-        # ResultSet.provenance is None for a hand-built/synthetic result
-        # (e.g. a test), so this stays blank rather than guessing.
+        # One line, always visible once a result exists, naming exactly what
+        # produced it; blank for a hand-built result without provenance.
         self.provenance_label = QLabel("")
         self.provenance_label.setStyleSheet("color: palette(mid); font-size: 90%;")
         self.provenance_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.provenance_label.setWordWrap(True)  # never forces the pane wider
-        # Real UI bug, caught from a screenshot: this label and web_view
-        # both default to QSizePolicy.Preferred vertically with 0
-        # stretch, which Qt's QVBoxLayout resolved by handing almost ALL
-        # of the layout's surplus height to this one-line label (a large
-        # blank area below its own text, pushing the actual plot down
-        # and off the bottom of the window) instead of to the plot that
-        # should obviously be the one expanding to fill the space.
-        # Fixed=vertical pins it to its own sizeHint no matter how much
-        # extra room the layout has -- paired with web_view's own
-        # stretch=1 below, which is what actually directs the surplus to
-        # it explicitly rather than relying on size-policy tie-breaking.
+        # Fixed vertically: with Preferred, Qt gave this one-line label most
+        # of the spare height and pushed the plots off the window (a real
+        # bug, from a screenshot); the splitter below takes it instead.
         self.provenance_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         layout.addWidget(self.provenance_label)
 
-        # Design-philosophy audit finding (docs/ux_audit.md, "no active
-        # conservation/drift diagnostic") -- see
-        # engine.results.conservation_drift_warnings's own docstring.
-        # Hidden (no empty banner taking up space) whenever
-        # ResultSet.warnings is empty, which is the common case: most
-        # scenarios have SOME perturbation/thrust configured, so the
-        # check never even runs for them (see
-        # engine.service._is_two_body_only). Reuses PALETTE["danger"] --
-        # this app's one existing "needs attention" color (feedback.py's
-        # own error-toast color) -- rather than inventing a second
-        # semantic color never used elsewhere; the wording itself (not
-        # just the color) makes clear this is informational, not fatal.
+        # The conservation/drift diagnostic (engine.results.
+        # conservation_drift_warnings); hidden when there are none.
         self.warnings_label = QLabel("")
         self.warnings_label.setWordWrap(True)
         self.warnings_label.setStyleSheet(f"color: {PALETTE['warning']}; font-size: 90%;")
         self.warnings_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.warnings_label.setVisible(False)
-        # Same fix as provenance_label just above, for the same reason --
-        # this is wrapped text whose natural height already varies with
-        # width and warning count; it must still never grow to consume
-        # leftover layout space beyond that natural height.
         self.warnings_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         layout.addWidget(self.warnings_label)
+        # Event kinds left off a plot because there were too many bands.
+        self.events_note = QLabel("")
+        self.events_note.setWordWrap(True)
+        self.events_note.setStyleSheet(f"color: {PALETTE['text_muted']}; font-size: 90%;")
+        self.events_note.setVisible(False)
+        self.events_note.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        layout.addWidget(self.events_note)
 
+        self.catalog = PlotCatalog()
+        self.catalog.activated.connect(self.show_series)
+        self.catalog.toggled.connect(self._on_catalog_toggled)
         self.web_view = QWebEngineView()
         self.web_view.titleChanged.connect(self._on_page_title)
-        self.web_view.loadFinished.connect(lambda _ok: self.apply_cursor_line())
+        self.web_view.loadFinished.connect(lambda _ok: self._on_page_loaded())
+        self.web_view.setMinimumWidth(320)  # [px]
         # Plot pages are written here and loaded from file -- see
         # _MAX_PLOT_POINTS_PER_LINE for why setHtml() can't be used.
         self._page_dir = tempfile.TemporaryDirectory(prefix="spacemissionstudio-plot-")
         self._page_counter = 0
-        # stretch=1: the one widget in this column that should actually
-        # claim all leftover vertical space -- see provenance_label's own
-        # comment above for the real bug this fixes.
-        layout.addWidget(self.web_view, stretch=1)
+        self.readout = ReadoutPanel()
+        # The catalog over the readout, beside the grid: the plots keep the
+        # width (at 1280 px with the side panel open the pane is ~880 px).
+        self.side_splitter = QSplitter(Qt.Orientation.Vertical)
+        self.side_splitter.addWidget(self.catalog)
+        self.side_splitter.addWidget(self.readout)
+        self.side_splitter.setSizes([300, 200])  # [px]
+        # Both may shrink: their own minimum heights (176 px together) made
+        # the window taller than 720 px (docs/ux-audit.md U-03).
+        self.catalog.setMinimumHeight(40)  # [px]
+        self.readout.setMinimumHeight(30)  # [px]
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+        self.splitter.addWidget(self.side_splitter)
+        self.splitter.addWidget(self.web_view)
+        self.splitter.setStretchFactor(0, 0)
+        self.splitter.setStretchFactor(1, 1)
+        self.splitter.setCollapsible(1, False)
+        self.splitter.setSizes([250, 650])  # [px]
+        # stretch=1: the one widget in this column that should claim all
+        # leftover vertical space -- see provenance_label's own comment.
+        layout.addWidget(self.splitter, stretch=1)
+        self._update_event_buttons()
         self._redraw()  # shows the empty-state message immediately, not just after the first set_result() call
+
+    # -- the result ---------------------------------------------------------
 
     def set_result(self, result: ResultSet | None, epoch_utc: Optional[str] = None) -> None:
         self._result = result
         self._epoch_utc = epoch_utc
-        self._fill_series_combo(result)
+        self._fill_catalog(result)
         self.export_button.setEnabled(result is not None and bool(result.series))
         self._update_provenance_label()
         self._update_warnings_label()
+        self._update_event_buttons()
         self._redraw()
 
-    def _fill_series_combo(self, result: Optional[ResultSet]) -> None:
-        """One entry per series, shown by its plot title; the code name
-        (the CSV file name) is the item's data and tooltip."""
-        self.series_combo.blockSignals(True)
-        self.series_combo.clear()
-        if result is not None:
-            labels = {name: _series_label(name, series) for name, series in result.series.items()}
-            label_counts: dict = {}
-            for label in labels.values():
-                label_counts[label] = label_counts.get(label, 0) + 1
-            for name, label in labels.items():
-                self.series_combo.addItem(label if label_counts[label] == 1 else name, name)
-                self.series_combo.setItemData(self.series_combo.count() - 1, name, Qt.ItemDataRole.ToolTipRole)
-        featured_present = [name for name in self._featured if result is not None and name in result.series]
-        if featured_present:  # open on what the scenario says to look at, not whatever comes first
-            self.series_combo.setCurrentIndex(self.series_combo.findData(featured_present[0]))
-        self.series_combo.blockSignals(False)
+    @property
+    def figure(self) -> Optional[go.Figure]:
+        """The selected plot's go.Figure, or None (empty state)."""
+        return self.figures[self._focused] if 0 <= self._focused < len(self.figures) else None
+
+    def _catalog_entries(self, result: ResultSet) -> list:
+        """``(name, label, group)`` of every plot: the label is the plot
+        title, or the code name when two plots would have the same title."""
+        labels = {name: _series_label(name, series) for name, series in result.series.items()}
+        counts: dict = {}
+        for label in labels.values():
+            counts[label] = counts.get(label, 0) + 1
+        entries = [(name, self._chip_label(name) if counts[label] == 1 else name,
+                    plot_group(name, result.series[name])) for name, label in labels.items()]
+        if _has_access_series(result):
+            entries.append((ACCESS_TIMELINE, "Ground Station Access Timeline", "Link"))
+        return entries
+
+    def _fill_catalog(self, result: Optional[ResultSet]) -> None:
+        """New result: the catalog lists its plots, and the grid opens on the
+        layout saved for this scenario, else the first suggested series,
+        else the first series."""
+        if result is None:
+            self._shown, self._focused = [], 0
+            self.catalog.set_entries([], [])
+            self._set_layout_combo("1x1")
+            self._refresh_suggestions()
+            return
+        entries = self._catalog_entries(result)
+        names = [entry[0] for entry in entries]
+        layout, shown = self._saved_layout()
+        shown = [name for name in shown if name in names]
+        if not shown:
+            featured = [name for name in self._featured if name in result.series]
+            shown = [featured[0]] if featured else names[:1]
+            layout = "1x1"
+        self._layout = layout if layout in plot_page.LAYOUTS else plot_page.smallest_layout(len(shown))
+        if plot_page.capacity(self._layout) < len(shown):
+            self._layout = plot_page.smallest_layout(len(shown))
+        self._shown = shown[:plot_page.capacity(self._layout)]
+        self._focused = 0
+        self.catalog.set_entries(entries, self._shown)
+        self._set_layout_combo(self._layout)
+        if self._shown:
+            self.catalog.select(self._shown[0])
         self._refresh_suggestions()
-        has_access = _has_access_series(result)
-        if not has_access and self.view_combo.currentData() != "single":
-            self.view_combo.setCurrentIndex(self.view_combo.findData("single"))
-        self.view_label.setVisible(has_access)
-        self.view_combo.setVisible(has_access)
 
     def set_featured_series(self, names) -> None:
         """The series to offer as one-click suggestions (normally
         ``engine.series_names.featured_series(scenario)`` for the scenario
         being run). Only those present in the result are shown, and a new
-        result opens on the first of them."""
+        result opens on the first of them (unless a layout was saved)."""
         self._featured = list(names)
         self._refresh_suggestions()
+
+    def set_layout_key(self, key: Optional[str]) -> None:
+        """The scenario whose layout and plots the grid keeps (its name);
+        None keeps nothing."""
+        self._layout_key = key or None
+
+    def _saved_layout(self) -> tuple:
+        if not self._layout_key:
+            return "1x1", []
+        value = _settings().value(f"{_LAYOUT_SETTINGS_PREFIX}/{self._layout_key}")
+        try:
+            saved = json.loads(value) if isinstance(value, str) else {}
+        except ValueError:
+            saved = {}
+        plots = saved.get("plots") if isinstance(saved, dict) else None
+        return (saved.get("layout", "1x1") if isinstance(saved, dict) else "1x1",
+                [p for p in plots if isinstance(p, str)] if isinstance(plots, list) else [])
+
+    def _save_layout(self) -> None:
+        if self._layout_key and self._result is not None:
+            settings = _settings()
+            settings.setValue(f"{_LAYOUT_SETTINGS_PREFIX}/{self._layout_key}",
+                              json.dumps({"layout": self._layout, "plots": self._shown}))
+            settings.sync()
 
     def _refresh_suggestions(self) -> None:
         for chip in self._suggestion_chips:
@@ -710,22 +761,97 @@ class ResultsWidget(QWidget):
         return label
 
     def _update_suggestion_states(self) -> None:
-        showing = self.current_series_name() if self.view_combo.currentData() == "single" else ""
         for chip in self._suggestion_chips:
-            chip.setChecked(chip.property("series_name") == showing)
+            chip.setChecked(chip.property("series_name") in self._shown)
 
-    def show_series(self, name: str) -> None:
-        """Show one series (switching out of the access timeline if needed)."""
-        if self.view_combo.currentData() != "single":
-            self.view_combo.setCurrentIndex(self.view_combo.findData("single"))
-        index = self.series_combo.findData(name)
-        if index >= 0 and index != self.series_combo.currentIndex():
-            self.series_combo.setCurrentIndex(index)  # redraws via currentIndexChanged
-        self._update_suggestion_states()
+    # -- what the grid shows ------------------------------------------------
+
+    def shown_plots(self) -> list:
+        """The plots in the grid, in order (series names, or ACCESS_TIMELINE)."""
+        return list(self._shown)
+
+    def plot_names(self) -> list:
+        """Every plot the catalog offers, in catalog order."""
+        return self.catalog.names()
 
     def current_series_name(self) -> str:
-        """Code name of the selected series ("" when there is none)."""
-        return self.series_combo.currentData() or ""
+        """Code name of the selected plot's series ("" when there is none,
+        or the selected plot is the access timeline)."""
+        if 0 <= self._focused < len(self._shown) and self._shown[self._focused] != ACCESS_TIMELINE:
+            return self._shown[self._focused]
+        return ""
+
+    def show_series(self, name: str) -> None:
+        """Show ``name`` (a series or ACCESS_TIMELINE): select its cell when
+        it is already in the grid, else put it in the selected cell."""
+        if self._result is None or name not in self.catalog.names():
+            return
+        if name in self._shown:
+            self.focus_plot(self._shown.index(name))
+            return
+        if self._shown:
+            self._shown[min(self._focused, len(self._shown) - 1)] = name
+        else:
+            self._shown, self._focused = [name], 0
+        self.catalog.set_shown(self._shown)
+        self.catalog.select(name)
+        self._save_layout()
+        self._redraw()
+
+    def focus_plot(self, index: int) -> None:
+        """Select grid cell ``index`` (no reload)."""
+        if not 0 <= index < len(self._shown):
+            return
+        self._focused = index
+        self.web_view.page().runJavaScript(plot_page.focus_script(index))
+        self.catalog.select(self._shown[index])
+        self._update_suggestion_states()
+
+    def set_layout(self, name: str) -> None:
+        """Show the grid as ``name`` (a key of plot_page.LAYOUTS); plots past
+        its last cell leave the grid."""
+        if name not in plot_page.LAYOUTS:
+            return
+        self._layout = name
+        self._shown = self._shown[:plot_page.capacity(name)]
+        self._focused = min(self._focused, max(len(self._shown) - 1, 0))
+        self.catalog.set_shown(self._shown)
+        self._set_layout_combo(name)
+        self._save_layout()
+        self._redraw()
+
+    def _set_layout_combo(self, name: str) -> None:
+        self.layout_combo.blockSignals(True)
+        self.layout_combo.setCurrentIndex(max(self.layout_combo.findData(name), 0))
+        self.layout_combo.blockSignals(False)
+
+    def _on_layout_chosen(self) -> None:
+        self.set_layout(self.layout_combo.currentData())
+
+    def _on_catalog_toggled(self, name: str, on: bool) -> None:
+        if on and name not in self._shown:
+            if len(self._shown) >= plot_page.MAX_PLOTS:
+                self.catalog.set_shown(self._shown)  # untick: the grid is full
+                from .feedback import show_toast
+
+                show_toast(self.window(), f"The grid shows at most {plot_page.MAX_PLOTS} plots: clear one first",
+                           kind="info")
+                return
+            self._shown.append(name)
+            self._focused = len(self._shown) - 1
+            if plot_page.capacity(self._layout) < len(self._shown):
+                self._layout = plot_page.best_layout(len(self._shown), self.web_view.width(),
+                                                     self.web_view.height())
+                self._set_layout_combo(self._layout)
+        elif not on and name in self._shown:
+            index = self._shown.index(name)
+            self._shown.remove(name)
+            if self._focused >= index:
+                self._focused = max(self._focused - 1, 0)
+        self._save_layout()
+        self._redraw()
+
+    # -- labels -------------------------------------------------------------
 
     def _update_warnings_label(self) -> None:
         warnings = self._result.warnings if self._result is not None else []
@@ -752,84 +878,140 @@ class ResultsWidget(QWidget):
         self.provenance_label.setToolTip(provenance.rng_seed_note)
 
     def set_live_result(self, result: ResultSet, epoch_utc: Optional[str] = None) -> None:
-        """Updates the plot with one chunk's worth of a still-running
+        """Updates the plots with one chunk's worth of a still-running
         simulation (see ``gui.run_worker.RunWorker``'s ``progress`` signal /
         :meth:`engine.service.SimulationService.run_live`). Unlike
-        :meth:`set_result`, this never rebuilds ``series_combo`` once it
-        already holds this result's series names -- the set of series a
-        live run reports is fixed from its very first callback (which
-        series exist is decided by the scenario, not by how much data has
-        been recorded), so rebuilding it every chunk would keep resetting
-        whatever series the user is currently looking at, fighting them
-        while they watch it run.
+        :meth:`set_result`, this never rebuilds the catalog once it already
+        holds this result's series names -- the set of series a live run
+        reports is fixed from its very first callback (which series exist
+        is decided by the scenario, not by how much data has been
+        recorded), so rebuilding it every chunk would keep resetting
+        whatever the user is looking at, fighting them while they watch it
+        run.
 
         The actual ``QWebEngineView`` redraw is throttled to at most once
         per :data:`_LIVE_REDRAW_MIN_INTERVAL_MS` -- see that constant's
         own comment for the real bug this fixes (a fast-running scenario
         firing chunks faster than a full page reload can settle, which
-        left the plot visibly stuck and made switching series look like
-        clicking did nothing). :attr:`figure` itself is still rebuilt
+        left the plot visibly stuck). :attr:`figures` are still rebuilt
         from ``result`` on every single call, throttled or not.
         """
         is_first_update = self._result is None or set(self._result.series) != set(result.series)
         self._result = result
         self._epoch_utc = epoch_utc  # same every chunk of one run, but cheap enough not to bother guarding
-        # Unlike provenance (fixed once at run start), warnings can only
-        # become non-empty partway through a long live run (more samples
-        # -> more opportunity for drift to exceed tolerance) -- updated
-        # on every call, not just is_first_update, and never throttled
-        # like the webview redraw below (a QLabel update is cheap, no
-        # page reload).
+        # Warnings can become non-empty partway through a long live run,
+        # so they are updated on every call (a QLabel update is cheap).
         self._update_warnings_label()
         if is_first_update:
-            self._fill_series_combo(result)
+            self._fill_catalog(result)
             self.export_button.setEnabled(bool(result.series))
             self._update_provenance_label()
+            self._update_event_buttons()
             self._redraw()
             self._live_redraw_elapsed.start()
             return
-        # Throttled -- see _LIVE_REDRAW_MIN_INTERVAL_MS's own comment: a
-        # scenario that simulates faster than it can be watched fires
-        # chunks faster than a full QWebEngineView page reload can settle,
-        # so redrawing on every single chunk left the view stuck mid
-        # -reload forever, including while the user tried to switch which
-        # series is shown. Skipping a throttled chunk's WEBVIEW push only
-        # delays the on-screen display catching up to self._result by at
-        # most this interval -- self.figure itself is kept fresh every
-        # single chunk regardless (_update_figure() is cheap, no page
-        # reload), a user-initiated series/x-axis change still calls
-        # _redraw() directly (see series_combo/x_axis_combo's own
-        # currentIndexChanged connections) and is never throttled, and the
-        # final frame always renders anyway once the run finishes and
-        # set_result() is called.
-        self._update_figure()
-        if self._live_redraw_elapsed.elapsed() >= _LIVE_REDRAW_MIN_INTERVAL_MS:
+        # Throttled -- see _LIVE_REDRAW_MIN_INTERVAL_MS's own comment.
+        # Skipping a chunk's WEBVIEW push only delays the display by at
+        # most this interval; self.figures are kept fresh every chunk, a
+        # user's own change (plot, layout, axis) redraws at once, and the
+        # final frame always renders when the run ends.
+        push = self._live_redraw_elapsed.elapsed() >= _LIVE_REDRAW_MIN_INTERVAL_MS
+        self._allow_stale_events = not push
+        try:
+            self._update_figure()
+        finally:
+            self._allow_stale_events = False
+        if push:
             self._push_figure_to_webview()
             self._live_redraw_elapsed.restart()
 
-    def _x_axis_values(self, time_s):
-        """Returns ``(x_values, axis_label)``. "Epoch (UTC)" needs both a
-        real epoch (``set_result``/``set_live_result`` were given one --
-        absent for e.g. a bare synthetic ``ResultSet`` in a test, or
-        before any run has actually happened yet) and for it to parse;
-        either problem falls back to elapsed time rather than raising,
-        matching this widget's existing "never crash the GUI over
-        display preferences" behavior (see e.g. ``_redraw``'s own
-        empty-state handling).
-        """
-        if self.x_axis_combo.currentData() == "epoch" and self._epoch_utc:
+    # -- the time axis ------------------------------------------------------
+
+    def _orbit_reference(self):
+        """``(spacecraft, (time_s, numbers))`` the orbit-number axis uses, or
+        ``(None, None)`` when no spacecraft recorded its position and
+        velocity. The first shown series' spacecraft is preferred."""
+        preferred = next((name.split(".", 1)[0] for name in self._shown if name != ACCESS_TIMELINE), None)
+        result = self._result
+        cached_result, cached_spacecraft, cached = self._orbit_cache
+        spacecraft = orbit_number.reference_spacecraft(result, preferred)
+        if cached_result is result and cached_spacecraft == spacecraft:
+            return spacecraft, cached
+        reference = orbit_number.for_result(result, spacecraft)
+        self._orbit_cache = (result, spacecraft, reference)
+        return spacecraft, reference
+
+    def _x_mode(self) -> str:
+        """The axis actually drawn: "epoch", "orbit" or "elapsed" (the first
+        two fall back to elapsed time when they can't be shown)."""
+        chosen = self.x_axis_combo.currentData()
+        if chosen == "epoch" and self._epoch_utc:
+            try:
+                time_system.elapsed_to_utc(self._epoch_utc, [0.0])
+                return "epoch"
+            except ValueError:
+                return "elapsed"
+        if chosen == "orbit" and self._orbit_reference()[1] is not None:
+            return "orbit"
+        return "elapsed"
+
+    def _x_axis_values(self, time_s, result: Optional[ResultSet] = None, epoch_utc: Optional[str] = None):
+        """Returns ``(x_values, axis_label)`` for ``time_s`` [s] of ``result``
+        (default: the shown one). "Epoch (UTC)" needs a real epoch and
+        "Orbit number" a spacecraft's position and velocity; without them
+        the axis falls back to elapsed time rather than raising, matching
+        this widget's "never crash the GUI over display preferences"
+        behaviour."""
+        mode = self._x_mode()
+        epoch_utc = epoch_utc if epoch_utc is not None else self._epoch_utc
+        time_s = np.asarray(time_s, dtype=float)
+        if mode == "epoch" and epoch_utc:
             try:
                 # time_s is TDB seconds since the epoch (engine.time_system).
-                return list(time_system.elapsed_to_utc(self._epoch_utc, time_s)), "Epoch (UTC)"
+                return list(time_system.elapsed_to_utc(epoch_utc, time_s)), "Epoch (UTC)"
             except ValueError:
                 pass
+        if mode == "orbit":
+            spacecraft, reference = self._orbit_reference()
+            if result is not None and result is not self._result:
+                reference = orbit_number.for_result(result, spacecraft)
+            if reference is not None:
+                ref_t, ref_n = reference
+                note = orbit_number.reference_note(self._result, spacecraft)
+                suffix = ", from the X axis" if "X axis" in note else ""  # an equatorial orbit has no node
+                return np.interp(time_s, ref_t, ref_n), f"Orbit number ({spacecraft}{suffix})"
         return time_s / 3600.0, "Elapsed time [hr]"
+
+    def _subtitle(self) -> str:
+        """ "t0 = 2030-01-01 08:30:00 UTC" under a title, for an elapsed-time
+        or orbit-number axis (U-30); the epoch axis shows UTC itself."""
+        if self._x_mode() == "epoch" or not self._epoch_utc:
+            return ""
+        return f"t0 = {_utc_text(self._epoch_utc)}"
+
+    # -- figures ------------------------------------------------------------
+
+    def _compact(self) -> bool:
+        """Several plots share the pane: smaller titles and margins."""
+        return len(self._shown) > 1
+
+    def _title(self, text: str) -> dict:
+        subtitle = self._subtitle()
+        size, sub_size = (13, 11) if self._compact() else (16, 12)
+        full = text if not subtitle else (f"{text}<br><span style=\"font-size:{sub_size}px;color:{_INK_MUTED}\">"
+                                          f"{subtitle}</span>")
+        return dict(text=full, font=dict(size=size, color=_INK_PRIMARY, family=_FONT_FAMILY))
+
+    def _margin(self, left: int = 70) -> dict:
+        if self._compact():
+            return dict(l=min(left, 62), r=16, t=52 if self._subtitle() else 36, b=40)
+        return dict(l=left, r=30, t=78 if self._subtitle() else 60, b=50)
 
     def _build_figure(self, name: str, series: TimeSeries) -> go.Figure:
         display = _categorize(name, series) or _legacy_display(name, series)
         display_data = series.data * display.factor
         x_values, x_label = self._x_axis_values(series.time_s)
-        is_datetime_axis = self.x_axis_combo.currentData() == "epoch" and x_label == "Epoch (UTC)"
+        is_datetime_axis = self._x_mode() == "epoch" and x_label == "Epoch (UTC)"
         self._x_is_epoch = is_datetime_axis
 
         fig = go.Figure()
@@ -868,23 +1050,16 @@ class ResultsWidget(QWidget):
         y_axis = dict(axis_common, title_text=y_title)
         x_axis = dict(axis_common, title_text=x_label)
         if not is_datetime_axis:
-            # Both fix the exact complaint that started this: matplotlib's
-            # default tick formatter fell back to an offset/scientific
-            # notation (e.g. "1e6") on several of this app's own plots.
-            # exponentformat="none" forbids it entirely, on every axis,
-            # regardless of how large/small the data range is;
-            # separatethousands adds comma grouping so a plain large
-            # number (e.g. "7,123,456") still reads cleanly instead of as
-            # one long digit run. Skipped for a datetime axis, where
-            # neither setting is meaningful (Plotly formats dates on its
-            # own date-axis path).
+            # Never an offset/scientific tick notation (the complaint that
+            # started this widget), and comma grouping for large numbers;
+            # meaningless on a date axis, which Plotly formats itself.
             y_axis["exponentformat"] = "none"
             y_axis["separatethousands"] = True
             x_axis["exponentformat"] = "none"
             x_axis["separatethousands"] = True
 
         fig.update_layout(
-            title=dict(text=_series_label(name, series), font=dict(size=16, color=_INK_PRIMARY, family=_FONT_FAMILY)),
+            title=self._title(_series_label(name, series)),
             xaxis=x_axis,
             yaxis=y_axis,
             font=dict(family=_FONT_FAMILY, color=_INK_PRIMARY),
@@ -894,73 +1069,113 @@ class ResultsWidget(QWidget):
             # a single series names itself in the title -- no legend box needed, unless compared
             showlegend=len(series.columns) > 1 or self.comparison_run() is not None,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color=_INK_MUTED)),
-            margin=dict(l=70, r=30, t=60, b=50),
+            margin=self._margin(),
         )
         if ensemble:  # one hover row per run would list them all; show the run under the pointer
             fig.update_layout(hovermode="closest")
+        self._add_event_bands(fig, name)
         return fig
 
-    def _on_view_changed(self) -> None:
-        """``view_combo``'s own ``currentIndexChanged`` handler -- see
-        that combo's construction comment (roadmap item M5).
-        ``series_combo`` (and its completer) have no effect in the
-        access-timeline view, so they're disabled rather than merely
-        ignored -- a disabled, grayed-out control is a clearer signal
-        that it doesn't currently apply than a control that still looks
-        interactive but silently does nothing.
-        """
-        is_single_series = self.view_combo.currentData() == "single"
-        self.series_combo.setEnabled(is_single_series)
+    def _events(self) -> list:
+        """The result's events (engine.events), cached. A live run sends a
+        new result every chunk: for a chunk that is not drawn (throttled)
+        the events are read again at most every _EVENTS_REFRESH_S while the
+        series stay the same (each read goes through the whole run so far);
+        anything drawn has them fresh."""
+        cached_result, cached, keys, when = self._events_cache
+        result = self._result
+        if cached_result is result:
+            return cached
+        now = time.monotonic()
+        if (self._allow_stale_events and result is not None and keys == frozenset(result.series)
+                and now - when < _EVENTS_REFRESH_S):
+            return cached
+        cached = event_model.extract_events(result)
+        self._events_cache = (result, cached, frozenset(result.series) if result is not None else None, now)
+        return cached
+
+    def _event_x(self, times_s: list) -> list:
+        """Event times [s] on the shown x axis."""
+        x_values, _label = self._x_axis_values(np.asarray(times_s, dtype=float))
+        return list(x_values) if isinstance(x_values, list) else [float(x) for x in x_values]
+
+    def _add_event_bands(self, fig: go.Figure, name: str) -> None:
+        """The run's events behind ``name``'s lines (U-27): a band from start
+        to end of each, in the Events tab's colour; a mode change a dashed
+        line at its start. Only the plot's own spacecraft's events."""
+        from .event_timeline_widget import KIND_COLOURS
+
+        parsed = _parse_access_pair(name)
+        spacecraft = parsed[1] if parsed is not None else name.split(".", 1)[0]
+        events = [e for e in self._events() if e.spacecraft == spacecraft and e.kind not in self._hidden_kinds]
+        shapes = list(fig.layout.shapes or [])
+        for kind in event_model.KINDS:
+            of_kind = [e for e in events if e.kind == kind]
+            if not of_kind:
+                continue
+            if len(of_kind) > _MAX_BANDS_PER_KIND:
+                self._band_notes.append(f"{_EVENT_LABELS[kind]} of {spacecraft}: {len(of_kind):,}, too many to draw "
+                                        f"(see the Events tab)")
+                continue
+            colour = KIND_COLOURS.get(kind, PALETTE["accent"])
+            starts = self._event_x([e.start_s for e in of_kind])
+            ends = self._event_x([e.end_s for e in of_kind])
+            for start, end in zip(starts, ends):
+                if kind == event_model.MODE:
+                    shapes.append(dict(type="line", xref="x", yref="paper", x0=start, x1=start, y0=0, y1=1,
+                                       layer="below", name=f"event-{kind}",
+                                       line=dict(color=colour, width=1, dash="dash")))
+                else:
+                    shapes.append(dict(type="rect", xref="x", yref="paper", x0=start, x1=end, y0=0, y1=1,
+                                       layer="below", name=f"event-{kind}", fillcolor=colour,
+                                       opacity=_BAND_OPACITY, line=dict(width=0)))
+        fig.update_layout(shapes=shapes)
+
+    def _update_event_buttons(self) -> None:
+        """Offer the kinds this run has."""
+        present = {e.kind for e in self._events()}
+        for kind, button in self._event_buttons.items():
+            button.setVisible(kind in present)
+        self.events_label.setVisible(bool(present))
+
+    def _on_event_kind_toggled(self, kind: str, on: bool) -> None:
+        (self._hidden_kinds.discard if on else self._hidden_kinds.add)(kind)
         self._redraw()
 
+    def _build_plot(self, name: str) -> Optional[go.Figure]:
+        if name == ACCESS_TIMELINE:
+            return self._build_access_timeline_figure()
+        series = self._result.series.get(name) if self._result is not None else None
+        return self._build_figure(name, series) if series is not None else None
+
     def _update_figure(self) -> None:
-        """Rebuilds :attr:`figure` from the current :attr:`_result`/selected
-        series (or, in the access-timeline view, from every access-pair
-        series at once -- see :meth:`_build_access_timeline_figure`) --
-        cheap (no HTML string building, no ``QWebEngineView`` page
-        reload), so it's always kept fresh even on a chunk
-        :meth:`set_live_result` otherwise throttles (see that method's own
-        comment): other code (the PNG-save button's enabled state,
-        tests) reads :attr:`figure` directly and must never see stale
-        data just because the webview push itself was skipped.
-        """
-        self.figure = None
+        """Rebuilds :attr:`figures` from the current result and the shown
+        plots -- cheap (no page reload), so it is kept fresh even on a chunk
+        :meth:`set_live_result` otherwise throttles: other code (the save
+        buttons, tests) reads :attr:`figure`/:attr:`figures` directly and
+        must never see stale data just because the page push was skipped."""
+        self.figures = []
+        self._band_notes = []
         self._x_is_epoch = False
         if self._result is None:
             return
-        if self.view_combo.currentData() == "access_timeline":
-            self.figure = self._build_access_timeline_figure()
-            return
-        if self.series_combo.count() > 0:
-            name = self.current_series_name()
-            series = self._result.series.get(name)
-            if series is not None:
-                self.figure = self._build_figure(name, series)
+        built = [(name, self._build_plot(name)) for name in self._shown]
+        self._shown = [name for name, fig in built if fig is not None]
+        self.figures = [fig for _name, fig in built if fig is not None]
+        self._x_is_epoch = self._x_mode() == "epoch" and any(name != ACCESS_TIMELINE for name in self._shown)
+        self._focused = min(self._focused, max(len(self.figures) - 1, 0))
+        self.events_note.setText("\n".join(self._band_notes))
+        self.events_note.setVisible(bool(self._band_notes))
 
     def _build_access_timeline_figure(self) -> Optional[go.Figure]:
-        """Roadmap item M5: one combined Gantt-style chart showing every
-        ``{station}.access_to_{spacecraft}.has_access`` series in
-        :attr:`_result` at once -- "most of the value of 'see access
-        windows at a glance' comes from one more chart, not a new
-        interaction model" (the roadmap's own scoping decision; a
-        click-to-jump interaction linking a clicked bar to the main
-        plot's x-axis range was explicitly left as unimplemented future
-        scope -- this app has no JS<->Python click bridge
-        (``QWebChannel``) anywhere yet, and inventing one for this alone
-        would be a far bigger lift than the chart itself).
+        """One Gantt-style chart of every
+        ``{station}.access_to_{spacecraft}.has_access`` series in the result
+        (roadmap item M5).
 
-        Returns ``None`` (an explanatory empty-state figure, same
-        pattern as :func:`_empty_state_html` for the no-result case) if
-        :attr:`_result` has no access-pair series at all -- e.g. a
-        scenario with no ``ground_stations`` configured.
-
-        Deliberately uses ELAPSED TIME ONLY, ignoring ``x_axis_combo``
-        -- a horizontal bar's ``base``/width on Plotly's date axis needs
-        real ``timedelta``-typed values, not the plain float seconds
-        ``TimeSeries.time_s`` already is, and this view's whole value is
-        "see every pass at a glance," which elapsed time already serves
-        perfectly well; the main single-series view is still there for
-        anyone who specifically wants epoch/UTC timestamps.
+        Uses ELAPSED TIME ONLY, whatever the axis choice -- a horizontal
+        bar on Plotly's date axis needs ``timedelta`` values, and the view's
+        point is "every pass at a glance", which elapsed time serves. So in
+        the grid its x axis is not linked to the others.
         """
         pairs: list = []
         for name, series in self._result.series.items():
@@ -1012,10 +1227,8 @@ class ResultsWidget(QWidget):
                     name=pair_label, hovertemplate=f"{pair_label}<br>%{{x:.3f}} hr<extra></extra>",
                 ))
             else:
-                # No access window at all for this pair -- still give it
-                # a row (an invisible trace) so it appears in the legend
-                # and on the y-axis, same as every other pair, rather
-                # than silently vanishing from the chart.
+                # No access window at all for this pair: still a row (an
+                # invisible trace), so it does not vanish from the chart.
                 fig.add_trace(go.Scatter(
                     x=[t_hours[0]], y=[pair_label], mode="markers",
                     marker=dict(size=0, color=color), name=pair_label, legendgroup=pair_label,
@@ -1026,9 +1239,12 @@ class ResultsWidget(QWidget):
             gridcolor=_GRID_COLOR, zerolinecolor=_GRID_COLOR, linecolor=_GRID_COLOR,
             tickfont=dict(color=_INK_MUTED), title_font=dict(color=_INK_MUTED),
         )
+        subtitle = f"t0 = {_utc_text(self._epoch_utc)}" if self._epoch_utc else ""
+        title = "Ground Station Access Timeline"
         fig.update_layout(
-            title=dict(text="Ground Station Access Timeline", font=dict(size=16, color=_INK_PRIMARY,
-                                                                          family=_FONT_FAMILY)),
+            title=dict(text=title if not subtitle else (f"{title}<br><span style=\"font-size:12px;color:{_INK_MUTED}\">"
+                                                        f"{subtitle}</span>"),
+                       font=dict(size=16, color=_INK_PRIMARY, family=_FONT_FAMILY)),
             # Fixed to the run: the end-of-pass ticks would otherwise pad
             # the axis to before t = 0.
             xaxis=dict(axis_common, title_text="Elapsed time [hr]", exponentformat="none",
@@ -1037,26 +1253,30 @@ class ResultsWidget(QWidget):
             font=dict(family=_FONT_FAMILY, color=_INK_PRIMARY),
             plot_bgcolor=_SURFACE, paper_bgcolor=_SURFACE,
             showlegend=False,  # the y-axis category labels already name every pair -- a legend would be redundant
-            margin=dict(l=160, r=30, t=60, b=50),
+            margin=dict(l=160, r=30, t=78 if subtitle else 60, b=50),
         )
         return fig
 
+    def _empty_html(self) -> str:
+        if self._result is None:
+            return _empty_state_html()
+        return _empty_state_html().replace("Run a simulation to see results here",
+                                           "Tick a plot in the catalog to show it here")
+
     def _push_figure_to_webview(self) -> None:
-        """Pushes :attr:`figure` (already current -- see
-        :meth:`_update_figure`) to the ``QWebEngineView`` via a full
-        ``setHtml()`` page reload. The expensive, disruptive half of what
-        used to be one ``_redraw()`` -- see :meth:`set_live_result`'s own
-        throttling comment for why this is split out separately.
+        """Pushes :attr:`figures` (already current -- see
+        :meth:`_update_figure`) to the ``QWebEngineView`` as one page. The
+        expensive, disruptive half of what used to be one ``_redraw()`` --
+        see :meth:`set_live_result`'s own throttling comment for why this
+        is split out separately.
         """
-        if self.figure is None:
-            self.web_view.setHtml(_empty_state_html(), QUrl())  # small: setHtml's 2 MB limit is no issue
+        if not self.figures:
+            self.web_view.setHtml(self._empty_html(), QUrl())  # small: setHtml's 2 MB limit is no issue
         else:
-            html = self.figure.to_html(
-                include_plotlyjs=QUrl.fromLocalFile(str(_plotlyjs_path())).toString(), full_html=True,
-                div_id=_PLOT_DIV_ID, config={"displaylogo": False, "responsive": True},
-            )
-            html = html.replace("<head>", "<head>" + _PAGE_STYLE, 1)
-            html = html.replace("</body>", _CLICK_SCRIPT + "</body>", 1)
+            html = plot_page.build_page(
+                [fig.to_json() for fig in self.figures], self._layout, self._focused,
+                [name != ACCESS_TIMELINE for name in self._shown],
+                QUrl.fromLocalFile(str(_plotlyjs_path())).toString(), _PAGE_STYLE)
             # Alternating file names, so a new page never overwrites one
             # that is still loading.
             self._page_counter += 1
@@ -1068,16 +1288,19 @@ class ResultsWidget(QWidget):
                 return
             page.write_text(html, encoding="utf-8")
             self.web_view.load(QUrl.fromLocalFile(str(page)))
-        # Never force-enable while a save-as-PNG poll is in flight (e.g. a
-        # live-updating run calling _redraw() repeatedly via
-        # set_live_result() while the user's earlier click is still being
-        # polled) -- see _on_save_plot_png's own re-entrancy-guard comment
-        # for what a second concurrent poll would do. _poll_plot_png's own
-        # completion paths already re-enable the button once that poll
-        # actually finishes.
+        # Never force-enable while a save-as-PNG poll is in flight (a live
+        # run redraws repeatedly while the user's earlier click is still
+        # being polled) -- see _on_save_plot_png's re-entrancy guard.
+        # _poll_plot_png's completion paths re-enable them.
         if self._png_poll_state is None:
-            self.save_png_button.setEnabled(self.figure is not None)
-            self.save_svg_button.setEnabled(self.figure is not None)
+            for button in (self.save_png_button, self.save_svg_button, self.export_all_button):
+                button.setEnabled(bool(self.figures))
+
+    def _on_page_loaded(self) -> None:
+        self.apply_cursor_line()
+        self._update_readout()
+
+    # -- comparison ---------------------------------------------------------
 
     def set_runs(self, runs: list, current=None) -> None:
         """The session's runs (``gui.run_history.RunRecord``) and the one shown;
@@ -1148,13 +1371,10 @@ class ResultsWidget(QWidget):
         series = other.result.series.get(name) if other is not None else None
         if series is None or series.data.shape[0] == 0:
             return
-        if self._x_is_epoch and other.epoch_utc:
-            try:
-                x_values = np.asarray(list(time_system.elapsed_to_utc(other.epoch_utc, series.time_s)), dtype=object)
-            except ValueError:
-                return
-        else:
-            x_values = series.time_s / 3600.0  # [h]
+        if self._x_mode() == "epoch" and not other.epoch_utc:
+            return
+        x_values, _label = self._x_axis_values(series.time_s, other.result, other.epoch_utc or None)
+        x_values = np.asarray(x_values, dtype=object if isinstance(x_values, list) else None)
         data = series.data * display.factor
         labels = display.columns or {}
         for i, column in enumerate(series.columns):
@@ -1175,19 +1395,34 @@ class ResultsWidget(QWidget):
         self._vizard_file = path
         self.vizard_button.setVisible(bool(path))
 
-    # -- the shared time cursor -------------------------------------------
+    # -- the shared time cursor and the readout -----------------------------
 
     def set_time_cursor(self, cursor) -> None:
         """Follow ``cursor`` (a :class:`gui.time_cursor.TimeCursor`) and set it on a plot click."""
         self._time_cursor = cursor
-        cursor.changed.connect(lambda _t: self.apply_cursor_line())
+        cursor.changed.connect(lambda _t: self._on_cursor_moved())
         self.apply_cursor_line()
 
-    def plot_x_to_elapsed_s(self, x: str) -> Optional[float]:
-        """Elapsed (TDB) seconds of a clicked x value: hours, or UTC text on an epoch axis."""
+    def _on_cursor_moved(self) -> None:
+        self.apply_cursor_line()
+        self._update_readout()
+
+    def _plot_is_hours(self, index: int) -> bool:
+        """Plot ``index`` is drawn against elapsed hours (the access timeline always is)."""
+        names = self._shown
+        return (0 <= index < len(names) and names[index] == ACCESS_TIMELINE) or self._x_mode() == "elapsed"
+
+    def plot_x_to_elapsed_s(self, x: str, index: Optional[int] = None) -> Optional[float]:
+        """Elapsed (TDB) seconds of an x value of plot ``index`` (default:
+        the selected one): hours, an orbit number, or UTC text on an epoch
+        axis."""
+        index = self._focused if index is None else index
         try:
-            if not self._x_is_epoch:
+            if self._plot_is_hours(index):
                 return float(x) * 3600.0  # [s]
+            if self._x_mode() == "orbit":
+                _spacecraft, (ref_t, ref_n) = self._orbit_reference()
+                return float(np.interp(float(x), np.maximum.accumulate(ref_n), ref_t))  # [s]
             clicked = datetime.fromisoformat(x.strip().replace("T", " "))
             epoch = datetime.fromisoformat(self._epoch_utc.replace("Z", "").replace("T", " "))
         except (TypeError, ValueError, AttributeError):
@@ -1200,69 +1435,93 @@ class ResultsWidget(QWidget):
         return first_guess + (clicked - back).total_seconds()  # [s]
 
     def _on_page_title(self, title: str) -> None:
-        x = _clicked_x(title)
-        if x is not None:
-            self._on_plot_clicked(x)
+        message = plot_page.parse_message(title)
+        if message is None:
+            return
+        kind, index, x = message
+        if kind == "focus":
+            self.focus_plot(index)
+        elif kind == "click" and x is not None:
+            self.focus_plot(index)
+            self._on_plot_clicked(x, index)
+        elif kind == "hover":
+            self._hover_time_s = self.plot_x_to_elapsed_s(x, index) if x is not None else None
+            self._update_readout()
 
-    def _on_plot_clicked(self, x: str) -> None:
-        time_s = self.plot_x_to_elapsed_s(x)
+    def _on_plot_clicked(self, x: str, index: Optional[int] = None) -> None:
+        time_s = self.plot_x_to_elapsed_s(x, index)
         if time_s is not None and self._time_cursor is not None:
             self._time_cursor.set_time(time_s)
 
-    def cursor_x_literal(self) -> str:
-        """The cursor as a JavaScript x value for the shown figure, or ``null``."""
+    def cursor_x_literal(self, index: Optional[int] = None) -> str:
+        """The cursor as a JavaScript x value for plot ``index`` (default:
+        the selected one), or ``null``."""
+        index = self._focused if index is None else index
         time_s = None if self._time_cursor is None else self._time_cursor.time_s
-        if time_s is None or self.figure is None:
+        if time_s is None or not 0 <= index < len(self.figures):
             return "null"
-        if self._x_is_epoch:
-            try:
-                moment = time_system.elapsed_to_utc(self._epoch_utc, [time_s])[0]
-            except ValueError:
-                return "null"
-            return json.dumps(moment.isoformat(sep=" "))
-        return repr(time_s / 3600.0)  # [h]
+        if self._plot_is_hours(index):
+            return repr(time_s / 3600.0)  # [h]
+        if self._x_mode() == "orbit":
+            _spacecraft, (ref_t, ref_n) = self._orbit_reference()
+            return repr(float(np.interp(time_s, ref_t, ref_n)))
+        try:
+            moment = time_system.elapsed_to_utc(self._epoch_utc, [time_s])[0]
+        except (ValueError, TypeError):
+            return "null"
+        return json.dumps(moment.isoformat(sep=" "))
 
     def apply_cursor_line(self) -> None:
-        """Draw (or remove) the cursor line on the loaded plot, without a reload."""
-        if self.figure is None:
+        """Draw (or remove) the cursor line on every loaded plot, without a reload."""
+        if not self.figures:
             return
-        script = f"""
-        (function() {{
-            var gd = document.getElementById({_PLOT_DIV_ID!r});
-            if (typeof Plotly === 'undefined' || !gd || !gd.layout) {{ return; }}
-            var x = {self.cursor_x_literal()};
-            var shapes = (gd.layout.shapes || []).filter(function(s) {{ return s.name !== {_CURSOR_SHAPE!r}; }});
-            if (x !== null) {{
-                shapes.push({{type: 'line', name: {_CURSOR_SHAPE!r}, xref: 'x', yref: 'paper', x0: x, x1: x,
-                              y0: 0, y1: 1, line: {{color: {_CURSOR_COLOR!r}, width: 2}}}});
-            }}
-            Plotly.relayout(gd, {{shapes: shapes}});
-        }})();
-        """
-        self.web_view.page().runJavaScript(script)
+        literals = [self.cursor_x_literal(i) for i in range(len(self.figures))]
+        self.web_view.page().runJavaScript(plot_page.cursor_script(literals, _CURSOR_COLOR))
+
+    def readout_time_s(self) -> Optional[float]:
+        """The time the readout shows: under the pointer, else the cursor's."""
+        if self._hover_time_s is not None:
+            return self._hover_time_s
+        return None if self._time_cursor is None else self._time_cursor.time_s
+
+    def _update_readout(self) -> None:
+        """Every shown series' value at :meth:`readout_time_s` (U-25)."""
+        time_s = self.readout_time_s()
+        if time_s is None or self._result is None:
+            self.readout.show_rows("Readout: click a plot to set the cursor, or point at a plot", [])
+            return
+        source = "pointer" if self._hover_time_s is not None else "cursor"
+        heading = f"At t = {time_s / 3600.0:.4f} h"
+        if self._epoch_utc:
+            try:
+                moment = time_system.elapsed_to_utc(self._epoch_utc, [time_s])[0]
+                heading += f" · {moment.strftime('%Y-%m-%d %H:%M:%S')} UTC"
+            except ValueError:
+                pass
+        spacecraft, reference = self._orbit_reference()
+        if reference is not None:
+            heading += f" · orbit {float(np.interp(time_s, reference[0], reference[1])):.3f} of {spacecraft}"
+        blocks = []
+        for name in self._shown:
+            series = self._result.series.get(name)
+            if series is None:
+                continue
+            display = _categorize(name, series) or _legacy_display(name, series)
+            labels = dict(display.columns or {})
+            if len(series.columns) == 1 and not labels and display.y_label:
+                labels = {series.columns[0]: display.y_label}
+            lines = [(labels.get(column, column), value_at(series, i, time_s, display.factor,
+                                                           wraps=display.wrap_period is not None), display.unit)
+                     for i, column in enumerate(series.columns)]
+            blocks.append((self._chip_label(name), lines))
+        self.readout.show_rows(f"{heading} ({source})", blocks)
 
     def _redraw(self) -> None:
         self._update_figure()
         self._push_figure_to_webview()
         self._update_suggestion_states()
 
-    def _on_series_text_committed(self, text: str) -> None:
-        """A series name was committed via the completer popup or by
-        pressing Enter in the line edit -- see ``series_combo``'s own
-        construction comment for why ``currentIndexChanged`` alone isn't
-        a reliable signal for either of those paths. Explicitly syncs
-        the combo's real selected index to match the committed text
-        (not just its displayed string) before redrawing, so
-        ``_redraw()``/``_on_save_plot_png()`` -- both of which read
-        ``current_series_name()`` -- agree with what's actually
-        showing.
-        """
-        index = self.series_combo.findText(text)
-        if index < 0:
-            index = self.series_combo.findData(text)  # a code name typed in full
-        if index >= 0:
-            self.series_combo.setCurrentIndex(index)
-        self._redraw()
+    # -- export -------------------------------------------------------------
 
     def _on_export(self) -> None:
         if self._result is None:
@@ -1277,112 +1536,155 @@ class ResultsWidget(QWidget):
             return
         QMessageBox.information(self, "Export complete", f"Wrote {len(paths)} CSV file(s) to {out_dir}")
 
+    def _on_export_all(self, fmt: str) -> None:
+        folder = QFileDialog.getExistingDirectory(self, f"Export the shown plots ({fmt.upper()}) and their data")
+        if folder:
+            self.export_all(Path(folder), fmt)
+
+    def export_all(self, folder: Path, fmt: str = "png") -> None:
+        """Every shown plot as ``fmt`` (png or svg) into ``folder``, numbered
+        in grid order, with each plot's series as CSV and the run's
+        provenance (U-29). Rendering is asynchronous: the files are written
+        when the page answers (see :meth:`_on_save_plot_png`)."""
+        if not self.figures or self._png_poll_state is not None:
+            return
+        self._start_render(f"""Promise.all(IDS.map(function(id) {{
+                return Plotly.toImage(document.getElementById(id), {{format: {fmt!r}, scale: 2}});
+            }})).then(function(urls) {{ window.{_PNG_RESULT_JS_VAR} = JSON.stringify(urls); }})""",
+                           str(folder), fmt, self._on_all_rendered)
+
+    def _plot_file_stem(self, index: int) -> str:
+        name = self._shown[index] if index < len(self._shown) else "plot"
+        return f"{index + 1:02d}_{'access_timeline' if name == ACCESS_TIMELINE else name}"
+
+    def _on_all_rendered(self, data: object, folder: str, fmt: str) -> None:
+        from .feedback import show_toast
+
+        if isinstance(data, str) and data.startswith(_SAVE_PNG_ERROR_PREFIX):
+            show_toast(self.window(), f"Export failed: {data[len(_SAVE_PNG_ERROR_PREFIX):]}", kind="error")
+            return
+        try:
+            urls = json.loads(data) if isinstance(data, str) else None
+            if not isinstance(urls, list) or len(urls) != len(self.figures):
+                raise ValueError("the plots could not be rendered")
+            out_dir = Path(folder)
+            out_dir.mkdir(parents=True, exist_ok=True)
+            for index, url in enumerate(urls):
+                content = self._decode_image(url, fmt)
+                path = output_path(out_dir, f"{self._plot_file_stem(index)}.{fmt}")
+                if isinstance(content, str):
+                    path.write_text(content, encoding="utf-8")
+                else:
+                    path.write_bytes(content)
+            written = 0
+            for name in self._shown:
+                series = self._result.series.get(name) if self._result is not None else None
+                if series is not None:
+                    series.to_csv(output_path(out_dir, f"{name}.csv"))
+                    written += 1
+            provenance = self._result.provenance if self._result is not None else None
+            if provenance is not None:
+                (out_dir / "provenance.json").write_text(json.dumps(provenance.to_dict(), indent=2))
+        except (OSError, ValueError) as exc:
+            show_toast(self.window(), f"Export failed: {exc}", kind="error")
+            return
+        show_toast(self.window(), f"Exported {len(urls)} plot(s) as {fmt.upper()} and {written} CSV file(s) "
+                                  f"to {folder}")
+
+    def _decode_image(self, data_url: object, fmt: str):
+        """A rendered plot's file content: PNG bytes or SVG text, with the
+        run's provenance embedded. Raises ValueError when it is not one."""
+        provenance = self._result.provenance if self._result is not None else None
+        if fmt == "svg":
+            prefix = "data:image/svg+xml,"
+            if not isinstance(data_url, str) or not data_url.startswith(prefix):
+                raise ValueError("Could not render the plot to an SVG image.")
+            svg_text = urllib.parse.unquote(data_url[len(prefix):])
+            if provenance is not None:  # provenance on every output (UX/UI guidelines)
+                svg_text = output_provenance.svg_with_provenance(svg_text, provenance.summary_lines(),
+                                                                 provenance.to_dict())
+            return svg_text
+        prefix = "data:image/png;base64,"
+        if not isinstance(data_url, str) or not data_url.startswith(prefix):
+            raise ValueError("Could not render the plot to a PNG image.")
+        png_bytes = base64.b64decode(data_url[len(prefix):])
+        if provenance is not None:  # provenance on every output (UX/UI guidelines)
+            png_bytes = output_provenance.png_with_provenance(png_bytes, provenance.to_dict())
+        return png_bytes
+
     def _on_save_plot_svg(self) -> None:
         """Thin wrapper around :meth:`_on_save_plot_png` -- see that
         method's own docstring for the whole dialog/kickoff/poll
-        mechanism, which is format-agnostic and shared as-is. Named/kept
-        separate (rather than exposing ``fmt`` on the button's own
-        ``clicked`` connection) purely so ``save_svg_button``'s signal
-        handler has the same zero-argument shape every other button's
-        does, and so a test can call it by name symmetrically with
-        ``_on_save_plot_png()``.
+        mechanism, which is format-agnostic and shared as-is. Kept separate
+        so ``save_svg_button``'s handler has the same zero-argument shape
+        every other button's does, and a test can call it by name.
         """
         self._on_save_plot_png(fmt="svg")
 
     def _on_save_plot_png(self, fmt: str = "png") -> None:
-        """Saves the CURRENTLY DISPLAYED plot (only -- see
-        ``_on_export`` for every series at once) to a user-chosen
-        location via a native "Save As" dialog, as either a PNG
-        (``fmt="png"``, the default -- every existing call site/test
-        calls this with no arguments and must keep behaving exactly as
-        before) or an SVG (``fmt="svg"``, via :meth:`_on_save_plot_svg`).
-        Real user request for the PNG case ("would be great to also have
-        a button to save the plots as png images in a desired
-        location"); SVG added alongside it (roadmap item M2) for a plot
-        a user wants to drop into a paper/report at arbitrary scale
-        without it going blurry.
+        """Saves the SELECTED plot (only -- see :meth:`export_all` for
+        every shown plot, ``_on_export`` for every series) to a
+        user-chosen location via a native "Save As" dialog, as either a PNG
+        (``fmt="png"``, the default) or an SVG (``fmt="svg"``, via
+        :meth:`_on_save_plot_svg`).
 
-        Plotly's own modebar already has a built-in camera/download-as
-        -png icon (``config={"displaylogo": False}`` above leaves it in;
-        see this module's own docstring), but inside an embedded
-        ``QWebEngineView`` that triggers Chromium's OWN download
-        machinery, which this app never wires up
-        (``QWebEngineProfile.downloadRequested``) -- confirmed directly
-        that clicking it does nothing observable here, not assumed. This
-        button instead renders the chart CLIENT-SIDE, via the SAME
-        ``plotly.js`` already loaded on the page (``Plotly.toImage()``),
-        rather than pulling in a server-side renderer (the ``kaleido``
-        package) this project doesn't otherwise depend on -- consistent
-        with this module's own "no unnecessary dependency" choice for
-        ``plotly.js`` itself. ``scale: 2`` (meaningful for the PNG raster
-        case; harmless/ignored by Plotly for SVG) asks for a
-        higher-than-screen-resolution render (sharper on a high-DPI
-        display/print) at the chart's own current on-screen size, rather
-        than a hardcoded width/height that might not match what's
-        actually visible.
+        Plotly's own modebar has a download-as-PNG icon, but inside an
+        embedded ``QWebEngineView`` it triggers Chromium's OWN download
+        machinery, which this app never wires up -- confirmed directly that
+        clicking it does nothing observable here. This button instead
+        renders the chart CLIENT-SIDE with the plotly.js already on the
+        page (``Plotly.toImage()``), rather than pulling in a server-side
+        renderer (``kaleido``) this project doesn't otherwise depend on.
+        ``scale: 2`` asks for a sharper-than-screen render at the chart's
+        current on-screen size.
 
-        ``Plotly.toImage()`` is asynchronous (it returns a ``Promise``).
-        ``QWebEnginePage.runJavaScript()`` does NOT await a top-level
-        returned ``Promise`` on this PySide6 version (confirmed directly,
-        not assumed -- an earlier version of this method relied on that
-        and silently got back an empty string every time, which looked
-        exactly like a render failure but wasn't one), so this instead
-        kicks the render off into a page-global variable and polls for it
-        via :meth:`_poll_plot_png` -- ``_SAVE_PNG_PENDING_SENTINEL``
-        distinguishes "still rendering" from a real (possibly falsy)
-        result, since a bare JS ``null``/``undefined`` also bridges back
-        as an empty string here, not ``None`` as plain Python code might
-        expect.
+        ``Plotly.toImage()`` is asynchronous (a ``Promise``), and
+        ``QWebEnginePage.runJavaScript()`` does NOT await a returned
+        ``Promise`` on this PySide6 version (confirmed directly: it silently
+        returned an empty string), so the render is started into a
+        page-global variable that :meth:`_poll_plot_png` polls --
+        ``_SAVE_PNG_PENDING_SENTINEL`` distinguishes "still rendering" from
+        a real result, since a bare JS ``null``/``undefined`` also bridges
+        back as an empty string.
         """
         if self.figure is None:
             return
         if self._png_poll_state is not None:
-            # Re-entrancy guard, same convention as
-            # gui.kernel_status_widget.KernelStatusWidget.refresh()'s own:
-            # a live-updating run calls _redraw() repeatedly (see its own
-            # comment on why it must NOT blindly re-enable the save
-            # buttons while a poll is in flight), but belt-and-suspenders
-            # here too -- a second _on_save_plot_png() call (PNG or SVG,
-            # either button) while one poll is already running would
-            # overwrite self._png_poll_state AND the page-global JS
-            # result variable both polls share, orphaning the first
-            # poll_timer (nothing would ever stop it, since
-            # state["timer"] would now point at the SECOND timer) -- it
-            # would keep firing forever, re-triggering
-            # _on_plot_png_rendered() (a duplicate file write + a
-            # duplicate "saved" dialog, repeating every poll interval)
-            # long after the user thinks they're done.
+            # Re-entrancy guard: a second save (either button, or Export
+            # all) while a poll runs would overwrite self._png_poll_state
+            # AND the page variable both polls share, orphaning the first
+            # timer -- it would fire forever, writing the file and saying
+            # "saved" again every poll interval.
             return
-        is_access_timeline = self.view_combo.currentData() == "access_timeline"
-        default_name = f"{'access_timeline' if is_access_timeline else self.current_series_name()}.{fmt}"
+        default_name = f"{'access_timeline' if self._shown[self._focused] == ACCESS_TIMELINE else self.current_series_name()}.{fmt}"
         file_filter = "SVG images (*.svg)" if fmt == "svg" else "PNG images (*.png)"
         path, _ = QFileDialog.getSaveFileName(self, f"Save plot as {fmt.upper()}", default_name, file_filter)
         if not path:
             return
         if not path.lower().endswith(f".{fmt}"):
             path += f".{fmt}"
+        plot_id = plot_page.div_id(self._focused)
+        self._start_render(f"""Plotly.toImage(document.getElementById({plot_id!r}), {{format: {fmt!r}, scale: 2}})
+                .then(function(url) {{ window.{_PNG_RESULT_JS_VAR} = url; }})""",
+                           path, fmt, self._on_plot_png_rendered)
 
-        # Guards against a second click (either button) racing this
-        # one's own poll -- see the re-entrancy-guard comment above.
-        self.save_png_button.setEnabled(False)
-        self.save_svg_button.setEnabled(False)
-        # tryRender's retry loop guards a real (if narrow) race: this
-        # button's own enabled state is set synchronously inside
-        # _redraw(), right after kicking off setHtml() -- but setHtml()
-        # itself loads/executes the page (including plotly.js and the
-        # Plotly.newPlot() call that defines window.Plotly) ASYNCHRONOUSLY.
-        # An ordinary human click is far slower than that load, but an
-        # automated one (a UI test, accessibility tooling) could win the
-        # race and hit "Plotly is not defined" -- confirmed directly, not
-        # hypothetical (this project's own test for this method did
-        # exactly that before it was changed to wait for loadFinished).
-        # A short, near-zero-cost-in-the-common-case retry loop is more
-        # robust than asserting the race away.
+    def _start_render(self, render_js: str, path: str, fmt: str, on_done) -> None:
+        """Run ``render_js`` (which stores its answer in the page variable)
+        once Plotly and the plots are loaded, then poll for the answer and
+        hand it to ``on_done(value, path, fmt)``."""
+        # Guards against a second click racing this one's own poll -- see
+        # the re-entrancy guard in _on_save_plot_png.
+        for button in (self.save_png_button, self.save_svg_button, self.export_all_button):
+            button.setEnabled(False)
+        # tryRender's retry loop guards a real (if narrow) race: the buttons
+        # are enabled as soon as a page load starts, but the page loads
+        # asynchronously -- an automated click (a test) could hit "Plotly is
+        # not defined" (confirmed directly: this project's own test once did).
         kickoff_script = f"""
         window.{_PNG_RESULT_JS_VAR} = {_SAVE_PNG_PENDING_SENTINEL!r};
         (function tryRender(attemptsLeft) {{
             var el = document.getElementById({_PLOT_DIV_ID!r});
-            if (typeof Plotly === 'undefined' || !el) {{
+            if (typeof Plotly === 'undefined' || !el || !el.layout) {{
                 if (attemptsLeft > 0) {{
                     setTimeout(function() {{ tryRender(attemptsLeft - 1); }}, 50);
                 }} else {{
@@ -1390,8 +1692,7 @@ class ResultsWidget(QWidget):
                 }}
                 return;
             }}
-            Plotly.toImage(el, {{format: {fmt!r}, scale: 2}})
-                .then(function(url) {{ window.{_PNG_RESULT_JS_VAR} = url; }})
+            {render_js}
                 .catch(function(err) {{
                     window.{_PNG_RESULT_JS_VAR} =
                         '{_SAVE_PNG_ERROR_PREFIX}' + (err && err.message ? err.message : err);
@@ -1402,9 +1703,15 @@ class ResultsWidget(QWidget):
 
         poll_timer = QTimer(self)
         self._png_poll_state = {"path": path, "fmt": fmt, "timer": poll_timer, "attempts": 0,
-                                "kickoff": kickoff_script}
+                                "kickoff": kickoff_script, "on_done": on_done}
         poll_timer.timeout.connect(self._poll_plot_png)
         poll_timer.start(_SAVE_PNG_POLL_INTERVAL_MS)
+
+    def _finish_poll(self, state: dict) -> None:
+        state["timer"].stop()
+        self._png_poll_state = None  # see _on_save_plot_png's own re-entrancy-guard comment
+        for button in (self.save_png_button, self.save_svg_button, self.export_all_button):
+            button.setEnabled(bool(self.figures))
 
     def _poll_plot_png(self) -> None:
         # runJavaScript() answers asynchronously, while the timer keeps
@@ -1441,64 +1748,27 @@ class ResultsWidget(QWidget):
                 return
             if value == _SAVE_PNG_PENDING_SENTINEL or page_replaced:
                 if state["attempts"] >= _SAVE_PNG_MAX_POLL_ATTEMPTS:
-                    state["timer"].stop()
-                    self._png_poll_state = None  # see _on_save_plot_png's own re-entrancy-guard comment
-                    self.save_png_button.setEnabled(self.figure is not None)
-                    self.save_svg_button.setEnabled(self.figure is not None)
+                    self._finish_poll(state)
                     QMessageBox.critical(self, "Save failed", "Timed out waiting for the plot to render.")
                 return
-            state["timer"].stop()
-            self._png_poll_state = None  # see _on_save_plot_png's own re-entrancy-guard comment
-            self.save_png_button.setEnabled(self.figure is not None)
-            self.save_svg_button.setEnabled(self.figure is not None)
-            self._on_plot_png_rendered(value, state["path"], state["fmt"])
+            self._finish_poll(state)
+            state.get("on_done", self._on_plot_png_rendered)(value, state["path"], state["fmt"])
 
         self.web_view.page().runJavaScript(f"window.{_PNG_RESULT_JS_VAR}", on_poll_result)
 
     def _on_plot_png_rendered(self, data_url: object, path: str, fmt: str = "png") -> None:
-        """Decodes ``data_url`` (``Plotly.toImage()``'s resolved value --
-        see :meth:`_on_save_plot_png`'s own docstring for why this
-        arrives via polling rather than an awaited ``Promise``) and
-        writes it to ``path``. PNG and SVG use genuinely different
-        encodings on the JS side -- confirmed directly against the
-        installed ``plotly.min.js`` bundle's own ``encodeSVG``, not
-        assumed -- so this is NOT a single shared prefix-strip: PNG is
-        base64 (``data:image/png;base64,...``), SVG is a
-        percent-encoded TEXT data URL (``data:image/svg+xml,...``,
-        ``encodeURIComponent``-escaped, no base64 anywhere), decoded with
-        ``urllib.parse.unquote`` and written as UTF-8 text, never
-        ``base64.b64decode``.
-        """
+        """Writes the rendered plot (``Plotly.toImage()``'s data URL: base64
+        for PNG, a percent-encoded TEXT data URL for SVG -- see
+        :meth:`_decode_image`) to ``path``, with the run's provenance."""
         if isinstance(data_url, str) and data_url.startswith(_SAVE_PNG_ERROR_PREFIX):
             QMessageBox.critical(self, "Save failed", data_url[len(_SAVE_PNG_ERROR_PREFIX):])
             return
-        if fmt == "svg":
-            prefix = "data:image/svg+xml,"
-            if not isinstance(data_url, str) or not data_url.startswith(prefix):
-                QMessageBox.critical(self, "Save failed", "Could not render the plot to an SVG image.")
-                return
-            try:
-                svg_text = urllib.parse.unquote(data_url[len(prefix):])
-                provenance = self._result.provenance if self._result is not None else None
-                if provenance is not None:  # provenance on every output (UX/UI guidelines)
-                    svg_text = output_provenance.svg_with_provenance(svg_text, provenance.summary_lines(),
-                                                                     provenance.to_dict())
-                Path(path).write_text(svg_text, encoding="utf-8")
-            except OSError as exc:
-                QMessageBox.critical(self, "Save failed", str(exc))
-                return
-            QMessageBox.information(self, "Plot saved", f"Saved plot to {path}")
-            return
-        prefix = "data:image/png;base64,"
-        if not isinstance(data_url, str) or not data_url.startswith(prefix):
-            QMessageBox.critical(self, "Save failed", "Could not render the plot to a PNG image.")
-            return
         try:
-            png_bytes = base64.b64decode(data_url[len(prefix):])
-            provenance = self._result.provenance if self._result is not None else None
-            if provenance is not None:  # provenance on every output (UX/UI guidelines)
-                png_bytes = output_provenance.png_with_provenance(png_bytes, provenance.to_dict())
-            Path(path).write_bytes(png_bytes)
+            content = self._decode_image(data_url, fmt)
+            if isinstance(content, str):
+                Path(path).write_text(content, encoding="utf-8")
+            else:
+                Path(path).write_bytes(content)
         except (OSError, ValueError) as exc:
             QMessageBox.critical(self, "Save failed", str(exc))
             return

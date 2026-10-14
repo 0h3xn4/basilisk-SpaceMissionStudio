@@ -497,14 +497,14 @@ def test_run_with_live_plot_clears_previous_result_and_shows_results_tab(window,
     window.live_plot_action.setChecked(True)
     window.on_run()
 
-    assert window.results_widget.series_combo.count() == 0
+    assert window.results_widget.plot_names() == []
     assert window.current_view() is window.results_widget
 
 
 def test_run_finished_preserves_users_series_selection(window):
     """Regression test for an audit finding: _on_run_finished() used to
     call ResultsWidget.set_result(), which unconditionally rebuilds
-    series_combo and resets its selection to the first series -- so the
+    the plot catalog and resets the shown plot to the first series -- so the
     instant a live-watched run actually finished, whatever series the
     user had picked to watch snapped back to the first one. It must use
     set_live_result() instead, which only rebuilds when the series set
@@ -519,11 +519,11 @@ def test_run_finished_preserves_users_series_selection(window):
         return rs
 
     window._on_run_progress(_result(), 0.5)
-    window.results_widget.series_combo.setCurrentIndex(1)  # "sat-1.velocity_N"
+    window.results_widget.show_series("sat-1.velocity_N")
 
     window._on_run_finished(_result())
 
-    assert window.results_widget.series_combo.currentIndex() == 1
+    assert window.results_widget.current_series_name() == "sat-1.velocity_N"
 
 
 def test_close_while_run_in_progress_is_blocked(window, qtbot, monkeypatch):
@@ -558,7 +558,7 @@ def test_run_progress_updates_results_widget_and_busy_bar(window):
 
     window._on_run_progress(partial, 0.5)
 
-    assert window.results_widget.series_combo.count() == 1
+    assert len(window.results_widget.plot_names()) == 1
     assert window._busy_progress.value() == 50
 
 
@@ -665,14 +665,14 @@ def test_on_run_clears_previous_results_even_when_not_live(window, monkeypatch):
     stale.add(TimeSeries("sat-1.position_N", [0.0, 1.0], ("x", "y", "z"),
                           [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]], units="m"))
     window.results_widget.set_result(stale)
-    assert window.results_widget.series_combo.count() == 1
+    assert len(window.results_widget.plot_names()) == 1
 
     window.live_plot_action.setChecked(False)
     monkeypatch.setattr(RunWorker, "start", lambda self: None)  # don't actually spin up the thread
 
     window.on_run()
 
-    assert window.results_widget.series_combo.count() == 0
+    assert window.results_widget.plot_names() == []
 
 
 def test_on_run_captures_epoch_and_passes_it_to_results_widget(window, monkeypatch):
@@ -1715,7 +1715,7 @@ def test_run_cancelled_updates_results_widget_and_status(window):
     assert not window._busy_timer.isActive()
     assert not window.abort_action.isEnabled()
     assert window.run_action.isEnabled()
-    assert window.results_widget.series_combo.count() == 1
+    assert len(window.results_widget.plot_names()) == 1
     assert window.results_widget._epoch_utc == "2032-01-01T00:00:00"
     assert window.current_view() is window.results_widget
     assert window.statusBar().currentMessage() == "Run 1 cancelled."

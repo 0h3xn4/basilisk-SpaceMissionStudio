@@ -1949,6 +1949,7 @@ class MainWindow(QMainWindow):
         save_file = getattr(self._vizard_request, "save_file", None)
         self._last_run_vizard_file = str(vizard_playback_file(save_file)) if save_file else None
         self.results_widget.set_featured_series(featured_series(scenario))
+        self.results_widget.set_layout_key(scenario.name)  # the plot grid is kept per scenario (U-24)
         _join_finished_worker(self._run_worker)
         extra = {"sil": sil} if sil is not None else {}  # a plain run builds its worker exactly as before
         vizard_request = self._vizard_request

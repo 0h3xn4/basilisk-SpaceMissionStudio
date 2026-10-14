@@ -103,6 +103,16 @@ fixes bugs.
   about how long is left, and **Cancel (Esc)**. Every run shows its
   progress now, not only with Live plot on. Live plot reads "Live plot:
   on" or "off".
+- **A plot workspace on Results** (UX audit U-24 to U-30). A catalog of
+  the run's plots, grouped (Orbit, Attitude, Power, Link, ...) and
+  searchable, replaces the Series box; a grid shows up to six plots with
+  linked time axes and the time cursor on each, and is kept for each
+  scenario. A readout lists every shown value at the pointer or the
+  cursor, with units. The time axis offers the orbit number as well as
+  elapsed time and UTC, elapsed-time plots name their epoch ("t0 = ...
+  UTC"), eclipses, passes, burns and mode changes are drawn behind the
+  lines, and **Export all...** saves every shown plot with its data and
+  provenance.
 - **Runs are named and say how they went** (UX audit U-21 to U-23,
   U-39). Runs are numbered in the session ("Run 2, 12:19"): the status
   tag, the top bar, the plots' provenance line and, when comparing, every

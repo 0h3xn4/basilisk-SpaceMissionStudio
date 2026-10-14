@@ -232,9 +232,9 @@ up using a template as-is or editing it into something new.
    about how long is left; **Cancel** (`Esc`) stops it. A short run like
    this one finishes in seconds.
 4. When it finishes, the app switches to the **Results** tab
-   automatically. Pick a series from the **Series** dropdown (e.g. a
-   spacecraft's position) to see it plotted. Hover over the plot to read
-   exact values at any point.
+   automatically. Click a plot in the catalog on the left (e.g. a
+   spacecraft's position) to see it, or tick several to see them side by
+   side. Hover over a plot to read exact values at any point.
 5. Done exploring? **Export CSV...** saves every plotted
    quantity to a folder of `.csv` files you can open in a spreadsheet.
 
@@ -728,25 +728,52 @@ byte order.
 
 ## 7. Reading the Results tab
 
-After a run finishes, the **Results** tab opens on **Plots**, which shows one plot at a time:
+After a run finishes, the **Results** tab opens on **Plots**: a catalog
+of the run's plots on the left, the plots in a grid beside it, and a
+readout under the catalog.
 
-* **Series** -- pick which quantity to look at, listed by plot title
-  (e.g. "sat-1: Inertial Position (ECI)"). Type to filter the list.
-  Hover an entry to see its code name (e.g. `sat-1.position_N`), which
-  is also its CSV file name.
+* **The catalog** lists every plot by group (Orbit, Attitude, Power,
+  Link, Data, Thermal, Propellant, Sensors, Monte Carlo), by its title
+  (e.g. "Inertial Position (ECI)"; the spacecraft is named when the run
+  has several). **Search plots** filters it by title, code name or
+  group; Enter shows the first match. Hover an entry to see its code
+  name (e.g. `sat-1.position_N`), which is also its CSV file name.
+  Click a name to show that plot in the selected cell; tick it to add it
+  to the grid, clear the tick to take it out. With ground stations the
+  Link group also has **Ground Station Access Timeline**: every
+  station's passes over every spacecraft in one chart.
+* **Layout** -- how many plots the grid shows, from 1 x 1 to 3 x 2 (six
+  at most). Ticking more plots than fit picks a bigger layout by itself.
+  The layout and the plots shown are kept for each scenario and come
+  back after the next run.
+* **Click a plot** to select it (a blue frame): **Save PNG...** and
+  **Save SVG...** save the selected plot. A click also sets the time
+  cursor. Zooming or panning one plot does the same to the others: their
+  time axes are linked (the access timeline, always in elapsed hours, is
+  not).
+* **The readout** lists every shown series' value with its unit: at the
+  time under the pointer while it is over a plot, else at the time
+  cursor. Values between two samples are interpolated; a mode, a state or
+  an angle that wraps at 360 deg shows the last sample instead.
 * **Suggested** -- one-click shortcuts to the series the scenario's own
   description points at under "What to look at" (e.g. template 19's
   access window, pointing error, battery and link margin). A new run
   opens on the first of them. For your own scenarios, write series names
   in that section of the Description and they show up here too.
-* **X-axis** -- toggle between elapsed simulation time and the real
-  calendar epoch, whichever you find easier to read.
-* **Export CSV...** -- saves every series (not just the current one) to
+* **X-axis** -- for every plot: elapsed time (with "t0 = ... UTC" under
+  each title), the calendar date (UTC), or **Orbit number**: one
+  spacecraft's revolutions counted from the ascending node (orbit 0 is
+  the one in progress at the epoch; an equatorial orbit counts from the
+  inertial X axis).
+* **Events** -- eclipses, passes, burns, thruster firings, mode changes
+  and downlinks drawn behind each spacecraft's plots, in the Events
+  tab's colours; each button switches its kind on or off. A kind with
+  more than 400 events on one plot is not drawn, and a note says so.
+* **Export CSV...** -- saves every series (not just the shown ones) to
   `.csv` files in SI units, for a spreadsheet or another tool.
-  **Save PNG...** / **Save SVG...** save just the plot on screen.
-* **View** -- only shown when the scenario has ground stations:
-  "Access timeline" shows every station's passes over every spacecraft
-  in one chart.
+  **Export all...** saves every shown plot as a PNG or SVG image,
+  numbered in grid order, with each plot's series as CSV and the run's
+  `provenance.json`, into one folder.
 * **Compare with** -- after a second run in the same session: draws the
   same series from an earlier run, dashed, in the same colours (the last
   five runs are kept until the app closes). **Input differences...**
