@@ -10349,3 +10349,18 @@ held at the ends, from no cursor forward and back; from event to event;
 the keys reaching the cursor from a widget inside Results; the menu and
 the shortcut list). The workspace test's View menu list gains Time
 Cursor.
+
+## Tests: the cursor-key test activates its window first (2026-10-14)
+
+`test_keyboard_cursor.py::test_the_keys_work_where_results_has_the_focus`
+failed on the macOS CI (PR #64): Alt+Right left the cursor unset. A
+`WidgetWithChildrenShortcut` fires only when its widget's window is the
+active one. The offscreen platform activates a shown window, but cocoa on
+the CI runner does not have to. The same failure reproduces offscreen by
+activating another window first. The keys then do nothing, and they set
+the cursor once Results' window is activated again.
+
+The test now raises and activates the window and waits until it is
+active before sending the keys, as the Results export tests already do.
+The keys themselves are unchanged: in use the app's window is the active
+one.

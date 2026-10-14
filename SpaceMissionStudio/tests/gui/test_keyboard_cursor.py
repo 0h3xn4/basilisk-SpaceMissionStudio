@@ -93,6 +93,11 @@ def test_the_keys_work_where_results_has_the_focus(results, qtbot):
     widget, cursor = results
     with qtbot.waitExposed(widget):
         widget.show()
+    # A shortcut fires only in the active window. The offscreen platform
+    # activates a shown window; the macOS CI's cocoa platform may not.
+    widget.raise_()
+    widget.activateWindow()
+    qtbot.waitUntil(widget.isActiveWindow)
     target = widget.catalog
     target.setFocus()
     qtbot.keyClick(target, Qt.Key.Key_Right, Qt.KeyboardModifier.AltModifier)
