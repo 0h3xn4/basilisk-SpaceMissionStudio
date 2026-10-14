@@ -10156,3 +10156,18 @@ cleared, a generator dialog that refuses OK, the Discard wording, a long path re
 tests that checked a message box's text now check the toast (a new
 `reported` fixture in `tests/gui/conftest.py`) or the dialog's error line
 (`feedback.dialog_error_text`); the same checks, none removed.
+
+## Tests: never tear a widget down under its running thread (2026-10-14)
+
+Windows CI crashed a test worker twice in
+`tests/gui/test_lifetime_widget.py::test_an_estimate_shows_the_reentry_and_the_rule_badges`
+(develop at 6c8de18da, then #61). The test waited for the result tiles,
+which a queued slot shows from the worker's result signal, and ended: the
+worker's `QThread` could still be returning from `run()`, and destroying
+a running `QThread` aborts the process. Reproduced on Linux by holding
+the worker 1 s after its result: the test then aborts (exit 134). The
+test now waits for the thread (`wait_for_worker()`, as `MainWindow` does
+on close) and passes with the delay too. The budget table test had the
+same wait for its result only and now waits too; the Data panel's fixture
+waits for a download's thread at teardown. No test was removed or
+weakened.
