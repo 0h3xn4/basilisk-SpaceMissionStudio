@@ -130,6 +130,42 @@ def test_csv_export_has_seconds_and_utc_columns(tmp_path):
     assert "start_utc" not in open(plain, encoding="utf-8").readline()
 
 
+def test_events_carry_their_measured_values_with_units():
+    """Each value the detail text gives is also a number in a known unit
+    (docs/ux-audit.md U-31), so the Events table can give it a column."""
+    elevation = np.radians([0, 5, 20, 45, 30, 2, 0, 0, 0, 0])  # [rad]
+    factor = [1, 1, 1, 1, 1, 1, 0.4, 0.4, 1, 1]  # [-] illumination factor
+    delta_v = [0, 0, 0, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]  # [m/s] cumulative
+    on_time = np.zeros((10, 1))  # [s]
+    on_time[8, 0] = 0.1  # [s]
+    result = _result(**{"gs__access_to_sat__has_access": (("has_access",), [0, 1, 1, 1, 1, 1, 0, 0, 0, 0]),
+                        "gs__access_to_sat__elevation": (("elevation",), elevation),
+                        "sat__eclipse__illumination_factor": (("illumination_factor",), factor),
+                        "sat__station_keeping__burn_on": (("burn_on",), [0, 0, 1, 1, 0, 0, 0, 0, 0, 0]),
+                        "sat__station_keeping__delta_v": (("cumulative_delta_v",), delta_v),
+                        "sat__thruster_on_time": (("thruster_0",), on_time)})
+    by_kind = {e.kind: e for e in events.extract_events(result)}
+    assert math.isclose(by_kind[events.ACCESS].quantity("max_elevation"), 45.0)
+    assert math.isclose(by_kind[events.ECLIPSE].quantity("lowest_sunlight"), 40.0)
+    assert math.isclose(by_kind[events.BURN].quantity("delta_v"), 1.0)
+    assert by_kind[events.THRUSTER].quantities == () and by_kind[events.THRUSTER].note == "thruster_0"
+    assert by_kind[events.ACCESS].quantity("delta_v") is None
+    assert events.present_quantities(by_kind.values()) == ["max_elevation", "lowest_sunlight", "delta_v"]
+    assert all(unit for _heading, unit, _fmt in events.QUANTITIES.values())
+
+
+def test_csv_export_adds_one_column_per_measured_value(tmp_path):
+    """``<quantity>_<unit>`` columns, empty where an event has no such value."""
+    factor = [1, 1, 1, 1, 1, 1, 0.4, 0.4, 1, 1]  # [-] illumination factor
+    result = _result(**{"gs__access_to_sat__has_access": (("has_access",), [0, 1, 1, 0, 0, 0, 0, 0, 0, 0]),
+                        "sat__eclipse__illumination_factor": (("illumination_factor",), factor)})
+    path = events.write_csv(events.extract_events(result), tmp_path / "events.csv")
+    rows = list(csv.DictReader(open(path, encoding="utf-8")))
+    assert "max_elevation_deg" not in rows[0]  # no elevation recorded, so no column
+    assert rows[0]["lowest_sunlight_percent"] == ""
+    assert math.isclose(float(rows[1]["lowest_sunlight_percent"]), 40.0)
+
+
 @pytest.mark.requires_basilisk
 def test_a_real_leo_run_writes_eclipses_that_match_the_orbit(tmp_path):
     """Template 06 (550 km Sun-synchronous orbit) for 0.15 day through the

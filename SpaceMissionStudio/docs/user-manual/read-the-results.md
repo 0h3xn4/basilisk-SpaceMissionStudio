@@ -45,6 +45,12 @@ an earlier run, dashed. **Input differences...** lists every input that
 differs between the two runs. The last five runs are kept until the app
 closes.
 
+On the **Events** tab, the search box (**Ctrl+F**) and the station list
+narrow the timeline and the table. Each value has its own column with
+its unit, such as "Max elevation [deg]". Select rows and press
+**Ctrl+C** to paste them into a spreadsheet; the arrow keys move the
+time cursor from event to event.
+
 ![The Events tab after a run of template 22: a timeline of the Berlin passes and the eclipses, above a table of every event](../images/events_tab.png)
 
 ## Look at one moment
@@ -61,7 +67,8 @@ in progress then, and Mission Dashboard shows the values at that moment.
 | Results: **Export CSV...** | Every series, in SI units, one `.csv` per series |
 | Results: **Save PNG...** / **Save SVG...** | The selected plot (click a plot to select it) |
 | Results: **Export all...** | Every shown plot as PNG or SVG, with its data as CSV and `provenance.json` |
-| Events: **Export CSV...** | The events shown, in seconds and UTC |
+| Events: **Export CSV...** | The events shown, in seconds and UTC, one column per measured value |
+| Events: **Ctrl+C** | The selected rows, as tab-separated text |
 | Mission Output: **Export CSV...** | Every report, in SI units |
 
 Every export records its provenance: the software versions and the
