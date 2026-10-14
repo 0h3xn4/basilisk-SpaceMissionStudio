@@ -113,6 +113,16 @@ fixes bugs.
   UTC"), eclipses, passes, burns and mode changes are drawn behind the
   lines, and **Export all...** saves every shown plot with its data and
   provenance.
+- **An Events table you can search and copy** (UX audit U-31, U-32).
+  Headings say the time system and unit ("Start (UTC)", "Duration
+  [min]"); each measured value has its own right-aligned column at a
+  fixed precision ("Max elevation [deg]", "Lowest sunlight [%]",
+  "Delta-V [m/s]", "Data [Gbit]") instead of a Detail text. A search box
+  (Ctrl+F) and a ground-station filter narrow the timeline, the table and
+  the export; Ctrl+C copies the selected rows as tab-separated text; the
+  arrow keys move the time cursor from row to row. The events CSV (Events
+  tab and `spacemissionstudio run`) gains one column per measured value,
+  e.g. `max_elevation_deg`.
 - **Runs are named and say how they went** (UX audit U-21 to U-23,
   U-39). Runs are numbered in the session ("Run 2, 12:19"): the status
   tag, the top bar, the plots' provenance line and, when comparing, every

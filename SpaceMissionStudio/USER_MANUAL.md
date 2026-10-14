@@ -808,10 +808,18 @@ in SI units. Without a Mission Sequence you can ignore this tab.
 station-keeping, GEO and phasing burns (with the delta-V each added),
 thruster firings and mode changes (Sun or ground-station pointing,
 phasing drift). They are drawn as a timeline, one row per spacecraft and
-kind, above a table you can sort by any column. Untick a kind to hide it;
-hover a bar for its details; the mouse wheel zooms the timeline and
-**Fit** shows the whole run again. **Export CSV...** writes the events
-shown, in seconds and UTC, with a `.provenance.json` file beside them.
+kind, above a table you can sort by any column. Each heading gives the
+time system or the unit ("Start (UTC)", "Duration [min]"), and each
+measured value has its own column ("Max elevation [deg]", "Lowest
+sunlight [%]", "Delta-V [m/s]", "Data [Gbit]"); a column shows only when
+some event has a value for it. Untick a kind to hide it; type in the
+search box (**Ctrl+F**; every word must match) or pick a ground station
+to narrow the timeline and the table; hover a bar or a row for its
+details; the mouse wheel zooms the timeline and **Fit** shows the whole
+run again. **Ctrl+C** copies the selected rows, with the headings, as
+tab-separated text that pastes into a spreadsheet as columns. **Export
+CSV...** writes the events shown, in seconds and UTC with one column per
+measured value, with a `.provenance.json` file beside them.
 A kind the run could not produce is named with the reason, e.g. no
 eclipses when the Sun is not one of the third-body perturbers.
 
@@ -821,7 +829,8 @@ red line marks it on the plot and the timeline, the Events tab says
 which events are in progress, the Dashboard shows the values at
 that moment instead of the end of the run, and the Output marks the
 last report before it (click a report's column header to jump there). A
-table row on the Events tab moves the cursor to that event's start. The
+table row on the Events tab (clicked, or reached with the arrow keys)
+moves the cursor to that event's start. The
 status bar shows the cursor's time; **Run > Clear Time Cursor** (or Esc
 on the Events tab) clears it. A saved PNG or SVG includes the line if
 it is showing.

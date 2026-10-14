@@ -9962,3 +9962,52 @@ readout at the cursor and the pointer, bands and their switch, the band
 cap, the layout kept per scenario, Export all in the real page, and the
 live run's events). The results tests that drove the Series and View
 boxes now drive the catalog (same checks; none removed).
+
+## UX iteration 5b: the Events table (2026-10-14)
+
+The second part of iteration 5: U-31 and U-32.
+
+**Values as columns** (U-31). An `Event` now carries `quantities`, pairs
+of a `engine.events.QUANTITIES` key and a number in that key's unit
+(`max_elevation` [deg] for a pass, `lowest_sunlight` [%] for an eclipse,
+`delta_v` [m/s] for a burn, `data` [Gbit] for a downlink), and a `note`
+for what is text only (the thrusters that fired, the mode). The `detail`
+text is unchanged. The table gives each quantity a right-aligned column
+at its fixed precision ("Max elevation [deg]" at 0.1, "Lowest sunlight
+[%]" at 1, "Delta-V [m/s]" at 0.001, "Data [Gbit]" at 0.001), its unit
+on a second header line to keep the column narrow. "Start (UTC)" and
+"End (UTC)" say the time system ("Start [h]" right-aligned at 0.0001 h
+without an epoch); "Duration [min]" is right-aligned at 0.01 min. The
+full detail is each row's tooltip. The CSV export adds one
+`<quantity>_<unit>` column per quantity any event carries
+(`max_elevation_deg`, `lowest_sunlight_percent`, `delta_v_m_s`,
+`data_gbit`), empty where an event has none; the existing columns are
+unchanged.
+
+**Fitting 1280 px.** The first version kept Kind and Spacecraft and the
+Detail column's stretch: at 1280 x 720 beside the side panel the values
+were past the right edge, and at 2560 the last column stretched the
+sunlight figures to the far right. Now a column shows only when an event
+has it (Spacecraft only with several spacecraft; Kind is gone, the event
+names it: "pass over berlin-gs", "eclipse (umbra)"), the columns keep
+their content width, and the timeline takes only the height of its rows
+so the table gets the rest. At 1280 the last value column of template 22
+("Lowest sunlight") is still reached by scrolling or by closing the side
+panel.
+
+**Search, station, copy** (U-32). A search box (Ctrl+F; case-insensitive,
+every word must appear in the event, its spacecraft, station or detail)
+and a station list ("All stations" and each station with a pass or a
+downlink) filter `visible_events()`, so the timeline, the table and
+**Export CSV...** show the same events; "4 of 19 events shown" says when
+a filter is on. Ctrl+C on the table copies the selected rows, in the
+order shown, under a line of the headings, as TSV (the header's line
+break becomes a space again). The table's current row, moved with the
+arrow keys, now sets the time cursor as a click does.
+
+Tests: `tests/test_events.py` (each event's quantities and the CSV
+columns) and `tests/gui/test_event_timeline_widget.py` (headings with the
+time system and units, right alignment and precision, columns only when
+used, search and station narrowing the timeline, table and export, Ctrl+C
+as TSV, arrow keys and Ctrl+F). The table test that read the Detail
+column now reads the row's tooltip.

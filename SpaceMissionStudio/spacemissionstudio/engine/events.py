@@ -50,6 +50,17 @@ MODE = "mode"
 DOWNLINK = "downlink"
 KINDS = (ACCESS, ECLIPSE, BURN, THRUSTER, MODE, DOWNLINK)
 
+# The measured values an event can carry (Event.quantities): key -> (column
+# heading, unit, format). The Events table gives each its own column and the
+# CSV export a ``<key>_<unit>`` column (docs/ux-audit.md U-31).
+QUANTITIES: Dict[str, Tuple[str, str, str]] = {
+    "max_elevation": ("Max elevation", "deg", ".1f"),
+    "lowest_sunlight": ("Lowest sunlight", "%", ".0f"),
+    "delta_v": ("Delta-V", "m/s", ".3f"),
+    "data": ("Data", "Gbit", ".3f"),
+}
+_CSV_UNITS = {"deg": "deg", "%": "percent", "m/s": "m_s", "Gbit": "gbit"}
+
 _UMBRA_SHADOW_FACTOR = 0.01  # [-] below this the Sun is fully hidden (umbra)
 # The phasing controller's states (engine.orbit_maintenance.PhasingKeepingController).
 _PHASING_IDLE, _PHASING_BURN_OUT, _PHASING_DRIFT, _PHASING_BURN_RESTORE = range(4)
@@ -67,10 +78,16 @@ class Event:
     label: str
     detail: str = ""
     other: str = ""  # the ground station of a pass
+    quantities: Tuple[Tuple[str, float], ...] = ()  # (QUANTITIES key, value in its unit)
+    note: str = ""  # what the detail says that is not a quantity (the thrusters that fired, the mode)
 
     @property
     def duration_s(self) -> float:
         return self.end_s - self.start_s  # [s]
+
+    def quantity(self, key: str) -> Optional[float]:
+        """The value of quantity ``key`` (in its :data:`QUANTITIES` unit), or None."""
+        return dict(self.quantities).get(key)
 
     @property
     def row(self) -> str:
@@ -116,12 +133,12 @@ def _passes(result: ResultSet) -> List[Event]:
         elevation = result.series.get(f"{prefix}.elevation")
 
         def make(first, last, series=series, station=station, spacecraft=spacecraft, elevation=elevation):
-            detail = ""
+            detail, quantities = "", ()
             if elevation is not None and elevation.time_s.shape == series.time_s.shape:
                 peak = math.degrees(float(np.max(_column(elevation)[first:last + 1])))  # [deg]
-                detail = f"max elevation {peak:.1f} deg"
+                detail, quantities = f"max elevation {peak:.1f} deg", (("max_elevation", peak),)
             return Event(ACCESS, spacecraft, float(series.time_s[first]), float(series.time_s[last]),
-                         f"pass over {station}", detail, station)
+                         f"pass over {station}", detail, station, quantities)
 
         events += _spans(series, _column(series) != 0, make)
     return events
@@ -139,7 +156,8 @@ def _eclipses(result: ResultSet) -> List[Event]:
             deepest = float(np.min(factor[first:last + 1]))  # [-]
             label = "umbra" if deepest < _UMBRA_SHADOW_FACTOR else "penumbra"
             return Event(ECLIPSE, spacecraft, float(series.time_s[first]), float(series.time_s[last]),
-                         f"eclipse ({label})", f"lowest sunlight {deepest:.0%}")
+                         f"eclipse ({label})", f"lowest sunlight {deepest:.0%}",
+                         quantities=(("lowest_sunlight", deepest * 100.0),))
 
         events += _spans(series, factor < 1.0, make)
     return events
@@ -182,7 +200,10 @@ def _burn_maker(result, series, spacecraft, label, delta_v_name):
     def make(first, last):
         start, end = float(series.time_s[first]), float(series.time_s[last])
         delta_v = _delta_v_between(result, delta_v_name, start, end)
-        return Event(BURN, spacecraft, start, end, label, "" if delta_v is None else f"delta-V {delta_v:.3f} m/s")
+        if delta_v is None:
+            return Event(BURN, spacecraft, start, end, label)
+        return Event(BURN, spacecraft, start, end, label, f"delta-V {delta_v:.3f} m/s",
+                     quantities=(("delta_v", delta_v),))
     return make
 
 
@@ -197,7 +218,7 @@ def _thruster_firings(result: ResultSet) -> List[Event]:
         def make(first, last, series=series, spacecraft=spacecraft):
             fired = [c for i, c in enumerate(series.columns) if np.any(series.data[first:last + 1, i] > 0.0)]
             return Event(THRUSTER, spacecraft, float(series.time_s[first]), float(series.time_s[last]),
-                         "thruster firing", ", ".join(fired))
+                         "thruster firing", ", ".join(fired), note=", ".join(fired))
 
         events += _spans(series, firing, make)
     return events
@@ -210,14 +231,17 @@ def _modes(result: ResultSet) -> List[Event]:
             spacecraft = name[:-len(".comms_pointing.active_mode")]
             mode = _column(series) > 0.5
             events += _spans(series, mode, lambda f, la, s=series, sc=spacecraft: Event(
-                MODE, sc, float(s.time_s[f]), float(s.time_s[la]), "ground-station pointing", "comms mode"))
+                MODE, sc, float(s.time_s[f]), float(s.time_s[la]), "ground-station pointing", "comms mode",
+                note="comms mode"))
             events += _spans(series, ~mode, lambda f, la, s=series, sc=spacecraft: Event(
-                MODE, sc, float(s.time_s[f]), float(s.time_s[la]), "Sun pointing", "power mode"))
+                MODE, sc, float(s.time_s[f]), float(s.time_s[la]), "Sun pointing", "power mode",
+                note="power mode"))
         elif name.endswith(".phasing_keeping.state"):
             spacecraft = name[:-len(".phasing_keeping.state")]
             drifting = np.rint(_column(series)).astype(int) == _PHASING_DRIFT
             events += _spans(series, drifting, lambda f, la, s=series, sc=spacecraft: Event(
-                MODE, sc, float(s.time_s[f]), float(s.time_s[la]), "phasing drift", "between the two burns"))
+                MODE, sc, float(s.time_s[f]), float(s.time_s[la]), "phasing drift", "between the two burns",
+                note="between the two burns"))
     return events
 
 
@@ -240,7 +264,8 @@ def _downlinks(result: ResultSet) -> List[Event]:
             bits = values[last] - values[max(first - 1, 0)]  # [bit]
             if bits > 0:
                 events.append(Event(DOWNLINK, spacecraft, float(series.time_s[first]), float(series.time_s[last]),
-                                    f"downlink to {station}", f"{bits / 1e9:.3g} Gbit", station))
+                                    f"downlink to {station}", f"{bits / 1e9:.3g} Gbit", station,
+                                    (("data", bits / 1e9),)))
     return events
 
 
@@ -277,20 +302,35 @@ def missing_kinds(result: Optional[ResultSet]) -> Dict[str, str]:
 
 
 def write_csv(events: Iterable[Event], path: "str | Path", epoch_utc: Optional[str] = None) -> Path:
-    """The events as CSV. With an epoch, UTC start and end columns are added."""
+    """The events as CSV. With an epoch, UTC start and end columns are added;
+    then one ``<quantity>_<unit>`` column per :data:`QUANTITIES` entry any
+    event carries (empty where an event has none)."""
     events = list(events)
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     utc = _utc_columns(events, epoch_utc)
+    keys = present_quantities(events)
     with open(path, "w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
         writer.writerow(["kind", "spacecraft", "ground_station", "event", "start_s", "end_s", "duration_s",
-                         "detail"] + (["start_utc", "end_utc"] if utc else []))
+                         "detail"] + (["start_utc", "end_utc"] if utc else [])
+                        + [f"{key}_{_CSV_UNITS[QUANTITIES[key][1]]}" for key in keys])
         for index, event in enumerate(events):
             writer.writerow([event.kind, event.spacecraft, event.other, event.label, f"{event.start_s:.3f}",
                              f"{event.end_s:.3f}", f"{event.duration_s:.3f}", event.detail]
-                            + (list(utc[index]) if utc else []))
+                            + (list(utc[index]) if utc else [])
+                            + [_csv_number(event.quantity(key)) for key in keys])
     return path
+
+
+def present_quantities(events: Iterable[Event]) -> List[str]:
+    """The :data:`QUANTITIES` keys any of ``events`` carries, in table order."""
+    carried = {key for event in events for key, _value in event.quantities}
+    return [key for key in QUANTITIES if key in carried]
+
+
+def _csv_number(value: Optional[float]) -> str:
+    return "" if value is None else repr(float(value))
 
 
 def _utc_columns(events: List[Event], epoch_utc: Optional[str]) -> List[Tuple[str, str]]:

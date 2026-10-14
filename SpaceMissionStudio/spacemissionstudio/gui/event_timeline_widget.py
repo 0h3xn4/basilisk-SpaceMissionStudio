@@ -21,9 +21,18 @@ mode changes as a Gantt timeline over a sortable table (UX/UI guidelines,
 
 The events come from :func:`engine.events.extract_events`. The timeline
 shows the shared :class:`gui.time_cursor.TimeCursor` and sets it by click
-or drag; a table row sets it to the event's start; Esc clears it. The mouse wheel zooms
-the timeline around the pointer and "Fit" shows the whole run. The table
-exports to CSV with a provenance file beside it.
+or drag; a table row (clicked, or reached with the arrow keys) sets it to
+the event's start; Esc clears it. The mouse wheel zooms the timeline
+around the pointer and "Fit" shows the whole run.
+
+The table (docs/ux-audit.md U-31, U-32) says the time system and unit in
+each heading ("Start (UTC)", "Duration [min]") and gives every measured
+value its own right-aligned column at a fixed precision ("Max elevation
+[deg]", "Lowest sunlight [%]", ...; :data:`engine.events.QUANTITIES`).
+A search box (Ctrl+F) and a station filter narrow the timeline, the
+table and the export alike. Ctrl+C copies the selected rows, with the
+headings, as tab-separated text for a spreadsheet. The table exports to
+CSV with a provenance file beside it.
 """
 
 from __future__ import annotations
@@ -34,9 +43,9 @@ from typing import Dict, List, Optional
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFontMetrics, QKeySequence, QPainter, QPen, QShortcut
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QFileDialog, QHBoxLayout, QHeaderView, QLabel,
-                               QMessageBox, QPushButton, QSplitter, QTableWidget, QTableWidgetItem, QToolTip, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComboBox, QFileDialog, QHBoxLayout,
+                               QHeaderView, QLabel, QLineEdit, QMessageBox, QPushButton, QSplitter, QTableWidget,
+                               QTableWidgetItem, QToolTip, QVBoxLayout, QWidget)
 
 from .. import output_provenance
 from ..engine import events as event_model
@@ -46,7 +55,8 @@ from .time_cursor import TimeCursor, describe
 
 # Fixed categorical order, one colour per kind (the Results tab's series colours).
 KIND_COLOURS: Dict[str, str] = dict(zip(event_model.KINDS, SERIES_COLORS))
-_COLUMNS = ["Start", "End", "Duration", "Kind", "Spacecraft", "Event", "Detail"]
+_ALL_STATIONS = "All stations"
+_RIGHT = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 _ROW_HEIGHT = 22  # [px]
 _AXIS_HEIGHT = 26  # [px]
 _MIN_BAR_PX = 2  # [px] a short event on a long run stays visible
@@ -78,6 +88,35 @@ class _SortItem(QTableWidgetItem):
         if isinstance(other, _SortItem):
             return self._key < other._key
         return super().__lt__(other)
+
+
+def _matches(event: event_model.Event, words: List[str]) -> bool:
+    """Every search word appears in the event's text (any case)."""
+    text = " ".join((event.kind, event.spacecraft, event.other, event.label, event.detail)).lower()
+    return all(word in text for word in words)
+
+
+class _EventTable(QTableWidget):
+    """The events table; Ctrl+C copies the selected rows as TSV (U-32)."""
+
+    def keyPressEvent(self, event):  # noqa: N802 -- Qt API name
+        if event.matches(QKeySequence.StandardKey.Copy):
+            QApplication.clipboard().setText(self.selection_tsv())
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def selection_tsv(self) -> str:
+        """The selected rows, in the order shown, under a line of headings."""
+        rows = sorted({index.row() for index in self.selectedIndexes()})
+        if not rows:
+            return ""
+        columns = range(self.columnCount())
+        lines = ["\t".join(self.horizontalHeaderItem(c).text().replace("\n", " ") for c in columns)]
+        for row in rows:
+            cells = [self.item(row, c) for c in columns]
+            lines.append("\t".join(cell.text() if cell is not None else "" for cell in cells))
+        return "\n".join(lines) + "\n"
 
 
 class GanttView(QWidget):
@@ -251,6 +290,28 @@ class EventTimelineWidget(QWidget):
         controls.addWidget(self.export_button)
         layout.addLayout(controls)
 
+        filters = QHBoxLayout()
+        self.search = QLineEdit()
+        self.search.setPlaceholderText("Search events (Ctrl+F)")
+        self.search.setClearButtonEnabled(True)
+        self.search.setAccessibleName("Search events")
+        self.search.setToolTip("Every word must appear in the event, spacecraft, station or its values.")
+        self.search.textChanged.connect(self._apply_filter)
+        filters.addWidget(self.search, 2)
+        self.station_combo = QComboBox()
+        self.station_combo.setAccessibleName("Ground station")
+        self.station_combo.setToolTip("Show the passes and downlinks of one ground station only.")
+        self.station_combo.currentIndexChanged.connect(self._apply_filter)
+        filters.addWidget(self.station_combo, 1)
+        self.shown_label = QLabel("")
+        self.shown_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        filters.addWidget(self.shown_label)
+        filters.addStretch(1)
+        layout.addLayout(filters)
+        self.find_shortcut = QShortcut(QKeySequence("Ctrl+F"), self,
+                                       context=Qt.ShortcutContext.WidgetWithChildrenShortcut)
+        self.find_shortcut.activated.connect(lambda: (self.search.setFocus(), self.search.selectAll()))
+
         self.summary_label = QLabel("")
         self.summary_label.setWordWrap(True)
         layout.addWidget(self.summary_label)
@@ -258,23 +319,26 @@ class EventTimelineWidget(QWidget):
         self.cursor_label.setWordWrap(True)
         layout.addWidget(self.cursor_label)
 
-        splitter = QSplitter(Qt.Orientation.Vertical)
+        splitter = self.splitter = QSplitter(Qt.Orientation.Vertical)
         self.gantt = GanttView()
         self.fit_button.clicked.connect(self.gantt.fit)
         self.gantt.time_picked.connect(self._pick_time)
         splitter.addWidget(self.gantt)
-        self.table = QTableWidget(0, len(_COLUMNS))
-        self.table.setHorizontalHeaderLabels(_COLUMNS)
+        self.table = _EventTable(0, 0)
+        self.table.setAccessibleName("Events")
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.verticalHeader().setVisible(False)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
-        self.table.horizontalHeader().setSectionResizeMode(_COLUMNS.index("Detail"), QHeaderView.ResizeMode.Stretch)
+        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table.horizontalHeader().setStretchLastSection(False)  # values stay next to their event
         self.table.cellClicked.connect(self._on_row_clicked)
+        self._filling = False
+        self.table.currentCellChanged.connect(self._on_current_cell_changed)
         self._sorted_by_user = False
         self.table.horizontalHeader().sectionClicked.connect(lambda _c: setattr(self, "_sorted_by_user", True))
         splitter.addWidget(self.table)
-        splitter.setSizes([220, 300])
+        splitter.setStretchFactor(0, 0)
+        splitter.setStretchFactor(1, 1)
         layout.addWidget(splitter, 1)
         clear = QShortcut(QKeySequence("Esc"), self, context=Qt.ShortcutContext.WidgetWithChildrenShortcut)
         clear.activated.connect(lambda: self._pick_time(None))
@@ -299,46 +363,124 @@ class EventTimelineWidget(QWidget):
             self.summary_label.setText((text or "No events") + "." + "".join(
                 f" No {_plural(kind, 2)[2:]}: {why}." for kind, why in missing.items()))
         self.export_button.setEnabled(bool(self.events))
+        self._fill_stations()
         self._apply_filter()
 
+    def _fill_stations(self) -> None:
+        stations = sorted({e.other for e in self.events if e.other})
+        current = self.station_combo.currentText()
+        self.station_combo.blockSignals(True)
+        self.station_combo.clear()
+        self.station_combo.addItems([_ALL_STATIONS] + stations)
+        self.station_combo.setCurrentIndex(max(self.station_combo.findText(current), 0))
+        self.station_combo.blockSignals(False)
+        self.station_combo.setEnabled(bool(stations))
+        self.station_combo.setToolTip("Show the passes and downlinks of one ground station only." if stations
+                                      else "This run has no ground stations.")
+
     def visible_events(self) -> List[event_model.Event]:
+        """The events the kind boxes, the station filter and the search let
+        through: what the timeline, the table and the export show."""
         shown = {kind for kind, box in self.kind_boxes.items() if box.isChecked()}
-        return [e for e in self.events if e.kind in shown]
+        station = self.station_combo.currentText()
+        words = self.search.text().lower().split()
+        return [e for e in self.events if e.kind in shown and (station in ("", _ALL_STATIONS) or e.other == station)
+                and _matches(e, words)]
 
     def _apply_filter(self) -> None:
         visible = self.visible_events()
+        self.shown_label.setText(f"{len(visible)} of {len(self.events)} events shown"
+                                 if len(visible) != len(self.events) else "")
         run_end = max((float(s.time_s[-1]) for s in self._result.series.values() if s.time_s.size),
                       default=0.0) if self._result is not None else 0.0  # [s]
         self.gantt.set_events(visible, run_end)
         self._fill_table(visible)
+        self._fit_timeline_height()
 
-    def _time_text(self, time_s: float) -> str:
-        if self._epoch_utc:
-            from ..engine import time_system
+    def showEvent(self, event):  # noqa: N802 -- Qt API name
+        super().showEvent(event)
+        self._fit_timeline_height()
 
-            try:
-                return event_model.utc_text(time_system.elapsed_to_utc(self._epoch_utc, [time_s])[0], "seconds")
-            except ValueError:
-                pass
-        return f"T+{time_s / 3600.0:.3f} h"
+    def _fit_timeline_height(self) -> None:
+        """The timeline as tall as its rows; the table gets the rest."""
+        total = sum(self.splitter.sizes())
+        if total > 0:
+            wanted = min(self.gantt.minimumHeight() + 8, total // 2)  # [px]
+            self.splitter.setSizes([wanted, total - wanted])
+
+    def _utc_texts(self, times_s: List[float]) -> Optional[List[str]]:
+        """UTC text for each elapsed time, or None without a usable epoch."""
+        if not self._epoch_utc or not times_s:
+            return None
+        from ..engine import time_system
+
+        try:
+            return [event_model.utc_text(moment, "seconds")
+                    for moment in time_system.elapsed_to_utc(self._epoch_utc, times_s)]
+        except ValueError:
+            return None
+
+    def columns(self, visible: List[event_model.Event]) -> List[str]:
+        """The table's headings for ``visible``: a spacecraft column only
+        for a run with several, and a station, measured-value or note column
+        only when some event has one (so 1280 px holds the table)."""
+        utc = self._utc_texts([0.0]) is not None
+        headings = ["Start (UTC)", "End (UTC)"] if utc else ["Start [h]", "End [h]"]
+        headings += ["Duration [min]", "Event"]  # the event names its kind ("pass over ...", "eclipse (umbra)")
+        headings += ["Spacecraft"] if len({e.spacecraft for e in self.events}) > 1 else []
+        headings += ["Station"] if any(e.other for e in visible) else []
+        headings += [f"{event_model.QUANTITIES[key][0]} [{event_model.QUANTITIES[key][1]}]"
+                     for key in event_model.present_quantities(visible)]
+        headings += ["Note"] if any(e.note for e in visible) else []
+        return headings
 
     def _fill_table(self, visible: List[event_model.Event]) -> None:
+        headings = self.columns(visible)
+        keys = event_model.present_quantities(visible)
+        starts = self._utc_texts([e.start_s for e in visible])
+        ends = self._utc_texts([e.end_s for e in visible])
+        self._filling = True
         self.table.setSortingEnabled(False)
+        self.table.clearContents()
+        self.table.setColumnCount(len(headings))
+        # the unit under the name keeps the value columns narrow (Ctrl+C joins them again)
+        self.table.setHorizontalHeaderLabels([heading.replace(" [", "\n[") for heading in headings])
         self.table.setRowCount(len(visible))
         for row, event in enumerate(visible):
-            cells = [_SortItem(self._time_text(event.start_s), event.start_s),
-                     _SortItem(self._time_text(event.end_s), event.end_s),
-                     _SortItem(_duration_text(event.duration_s), event.duration_s),
-                     QTableWidgetItem(event.kind), QTableWidgetItem(event.spacecraft),
-                     QTableWidgetItem(event.label), QTableWidgetItem(event.detail)]
+            if starts is not None and ends is not None:
+                cells = [_SortItem(starts[row], event.start_s), _SortItem(ends[row], event.end_s)]
+            else:
+                cells = [_SortItem(f"{event.start_s / 3600.0:.4f}", event.start_s),
+                         _SortItem(f"{event.end_s / 3600.0:.4f}", event.end_s)]
+                for cell in cells:
+                    cell.setTextAlignment(_RIGHT)
+            cells.append(_SortItem(f"{event.duration_s / 60.0:.2f}", event.duration_s))
+            cells[-1].setTextAlignment(_RIGHT)
+            cells.append(QTableWidgetItem(event.label))
+            if "Spacecraft" in headings:
+                cells.append(QTableWidgetItem(event.spacecraft))
+            if "Station" in headings:
+                cells.append(QTableWidgetItem(event.other))
+            for key in keys:
+                value = event.quantity(key)
+                fmt = event_model.QUANTITIES[key][2]
+                cells.append(_SortItem("" if value is None else format(value, fmt),
+                                       float("-inf") if value is None else value))
+                cells[-1].setTextAlignment(_RIGHT)
+            if "Note" in headings:
+                cells.append(QTableWidgetItem(event.note))
+                cells[-1].setToolTip(event.note)
             cells[0].setData(Qt.ItemDataRole.UserRole, event.start_s)
-            cells[0].setToolTip(f"T+{event.start_s:.1f} s")
-            cells[-1].setToolTip(event.detail)
+            tip = f"T+{event.start_s:.1f} s" + (f"\n{event.detail}" if event.detail else "")
             for column, item in enumerate(cells):
+                if not item.toolTip():
+                    item.setToolTip(tip)
                 self.table.setItem(row, column, item)
         self.table.setSortingEnabled(True)
         if self.table.horizontalHeader().sortIndicatorSection() == 0 and not self._sorted_by_user:
             self.table.sortItems(0, Qt.SortOrder.AscendingOrder)  # earliest first until the user sorts
+        self.table.resizeColumnsToContents()
+        self._filling = False
 
     # -- cursor -----------------------------------------------------------
 
@@ -349,9 +491,15 @@ class EventTimelineWidget(QWidget):
             self.on_cursor_changed(time_s)
 
     def _on_row_clicked(self, row: int, _column: int) -> None:
-        start = self.table.item(row, 0).data(Qt.ItemDataRole.UserRole)
+        item = self.table.item(row, 0)
+        start = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
         if start is not None:
             self._pick_time(float(start))
+
+    def _on_current_cell_changed(self, row: int, _column: int, previous_row: int, _previous_column: int) -> None:
+        """The arrow keys move the cursor from row to row, as a click does."""
+        if not self._filling and row >= 0 and row != previous_row:
+            self._on_row_clicked(row, 0)
 
     def on_cursor_changed(self, time_s: Optional[float]) -> None:
         self.gantt.set_cursor_time(time_s)
