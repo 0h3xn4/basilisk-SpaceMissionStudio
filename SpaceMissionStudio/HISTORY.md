@@ -10171,3 +10171,66 @@ on close) and passes with the delay too. The budget table test had the
 same wait for its result only and now waits too; the Data panel's fixture
 waits for a download's thread at teardown. No test was removed or
 weakened.
+
+## UX iteration 6a: a spacecraft's tabs in the scenario tree (2026-10-14)
+
+Two follow-ups to the scenario tree (3b): a spacecraft's page still had
+its own row of tabs, so the tree said where you were only down to the
+spacecraft; and every problem count was red, a warning as loud as an
+error.
+
+**Sections.** `PageTree.add_section(title, key, parent)` adds a node
+under a page's node that shows part of that page: selecting it shows the
+page and emits `section_shown(page, key)`, and the page shows its part.
+`set_section_widget` names the widget holding the part once it exists,
+so `item_of` (and `show_page`, which `MainWindow.show_view` uses) finds a
+widget at its section. The Scenario Editor gives each spacecraft a
+section per tab of its editor. The tabs are listed by
+`spacecraft_editor.tab_titles(mode)` (`TAB_TITLES`, without Sensors /
+actuators and Attitude control in orbit-only mode), because a
+spacecraft's form is built only when its page is first shown and the
+nodes are needed before that; a test checks the list against the
+dialog's visible tabs in both modes. In the tree the form's tab bar is
+hidden; when the form changes tab itself (Problems opening a field on
+another tab) the tree selects that tab's node. A new simulation mode
+rebuilds the spacecraft's nodes, as a rename does, and the tab shown is
+kept. The Add... dialog keeps its tabs.
+
+**Counts.** `set_problem_count(item, count, warnings)`: red
+(`danger_text`) when one of the problems is an error, the warning text
+colour (`warning`) when all are warnings, and a tooltip with how many of
+each ("1 error and 2 warnings here: see Problems"). A spacecraft
+problem about a field counts on the spacecraft and, once its form is
+built, on the tab holding the field (`SpacecraftEditorDialog.tab_of`);
+before the form exists the field's tab is not known, so only the
+spacecraft counts it.
+
+**Keyboard.** A node without content of its own selects its first child.
+With the arrow keys that was a trap: Up from a group's first child (End
+of Life under Analyses, since 3b) selected the group, which went straight
+back to the child. A key filter now notes whether the key moves up: Up
+from inside such a node goes to the row above it, and Up into it from
+below selects its last child. Click and code still go to the first.
+
+**The command palette** lists each tab ("Go to tab > Scenario >
+Spacecraft > my-sat > Budget (AD10)"); `PageTree.paths()` now gives the
+node, not the page, so an entry can select a section.
+
+Seen in the 1280 x 720 capture: "Power / propulsion / link budget" is
+cut to "Power / propu..." at the tree's width; its tooltip has the whole
+title. Kept as it is for now: the tab titles are the names the manual and
+the flight software traceability use.
+
+Tests: `tests/gui/test_tree_sections.py` (a node per tab of the mode,
+before the form is built; the tree's tabs are the dialog's visible tabs
+in both modes; a node shows its tab and the form has no tab bar; a
+problem on another tab moves the tree there; a tab counts its fields'
+problems; a rename keeps the tab; the palette goes to a tab; a warning
+only count is yellow on the spacecraft and on Spacecraft) and
+`tests/gui/test_page_tree.py` (warning and error colours and tooltips; a
+section shows its part of the page, is found from a widget in it and
+leaves the page in the stack once; the arrow keys pass through a group
+and a sectioned page both ways, which fails without the key filter: Up
+from B came back to B). Two tests now expect the new tree: the
+workspace test lists the spacecraft's tabs among the tree's paths, and
+the count tooltip says "2 errors" rather than "2 problems" (same checks).

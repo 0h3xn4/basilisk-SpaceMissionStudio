@@ -267,6 +267,18 @@ _FIELD_WIDGETS = {"name": "name_edit", "propellant_budget": "budget_group", "viz
                   "data_handling.instruments": "dh_instruments"}
 
 
+# The editor's tabs, in order. The Scenario Editor's tree shows each as a
+# node under the spacecraft (its sections) before the form is built.
+TAB_TITLES = ("Orbit / mass", "Sensors / actuators", "Attitude control", "Power / propulsion / link budget",
+              "3D model", "Vizard model", "Budget (AD10)")
+_ATTITUDE_TABS = ("Sensors / actuators", "Attitude control")  # hidden in orbit_only mode
+
+
+def tab_titles(simulation_mode: str | None) -> list[str]:
+    """The tabs the editor shows in ``simulation_mode``."""
+    return [title for title in TAB_TITLES if simulation_mode != "orbit_only" or title not in _ATTITUDE_TABS]
+
+
 class SpacecraftEditorDialog(QDialog):
     """Edits one :class:`SpacecraftConfig` in place. Construct with an
     existing config to edit it, or ``None`` for a fresh default.
@@ -1646,6 +1658,24 @@ class SpacecraftEditorDialog(QDialog):
             widget = getattr(self, name, None) if name else None
             if isinstance(widget, QWidget):
                 return widget
+        return None
+
+    def tab_page(self, title: str) -> QWidget | None:
+        """The page of the tab named ``title``, or None."""
+        index = next((i for i in range(self.tabs.count()) if self.tabs.tabText(i) == title), -1)
+        return self.tabs.widget(index) if index >= 0 else None
+
+    def show_tab(self, title: str) -> None:
+        page = self.tab_page(title)
+        if page is not None:
+            self.tabs.setCurrentWidget(page)
+
+    def tab_of(self, widget: QWidget | None) -> str | None:
+        """The title of the tab holding ``widget``, or None."""
+        for index in range(self.tabs.count()):
+            page = self.tabs.widget(index)
+            if widget is not None and (page is widget or page.isAncestorOf(widget)):
+                return self.tabs.tabText(index)
         return None
 
     def clear_problem(self) -> None:

@@ -132,6 +132,13 @@ fixes bugs.
   that differ from the oldest ticked run, the events counted with their
   total time, and one series of every run overlaid. **Delete run...**
   removes a saved run.
+- **A spacecraft's tabs are nodes of the scenario tree** (UX audit
+  U-01). Under each spacecraft, a node per part of its page (Orbit /
+  mass, Attitude control, Budget (AD10) ...) replaces the tabs across
+  its page; a problem's count shows on the part that holds its field.
+  A count of warnings only is yellow; red means at least one error.
+  The arrow keys now move past a group (Up from a group's first node
+  used to land back on it).
 - **Fewer message boxes** (UX audit U-39). Messages about files,
   imports, exports, Vizard and reference data are a toast at the bottom
   of the window, the status bar and a line in the Log (with the whole

@@ -59,7 +59,7 @@ from .mission_sequence_editor import MissionSequenceEditorWidget
 from .monte_carlo_editor import MonteCarloGroupWidget
 from .problem_location import (GROUND_STATION, JSON_VIEW, MISSION_SEQUENCE, PROPAGATION, SCENARIO, SPACECRAFT,
                                locate)
-from .spacecraft_editor import SpacecraftListWidget
+from .spacecraft_editor import SpacecraftListWidget, tab_titles
 from .theme import PALETTE
 from .widgets import ComboBox, out_of_range_boxes
 from .workspace_panels import field_label
@@ -173,6 +173,7 @@ class ScenarioEditorWidget(QWidget):
         self.monte_carlo_item = tree.add_page("Monte Carlo", self.monte_carlo_page)
         self.json_item = tree.add_page("JSON", self.json_page)
         tree.page_shown.connect(self._on_page_shown)
+        tree.section_shown.connect(self._on_section_shown)
         self.spacecraft_list.set_edit_handler(self.show_spacecraft)
         self.ground_station_list.set_edit_handler(self.show_station)
         self.spacecraft_list.changed.connect(self._on_spacecraft_list_changed)
@@ -180,8 +181,9 @@ class ScenarioEditorWidget(QWidget):
         self.spacecraft_list.reloaded.connect(self._on_spacecraft_list_changed)
         self.ground_station_list.reloaded.connect(self._on_station_list_changed)
         # The spacecraft forms show the tabs of the mode and offer the
-        # stations there are: a new mode or station list rebuilds them.
-        self.simulation_mode_combo.currentIndexChanged.connect(self._reset_spacecraft_forms)
+        # stations there are: a new mode rebuilds the nodes (their sections
+        # are the mode's tabs), a new station list the forms.
+        self.simulation_mode_combo.currentIndexChanged.connect(self._on_spacecraft_list_changed_shape)
 
         self.validation_label = QLabel()
         self.validation_label.setWordWrap(True)
@@ -347,24 +349,38 @@ class ScenarioEditorWidget(QWidget):
     # -- the tree's spacecraft and ground station nodes ---------------------
     def _rebuild_nodes(self, nodes: list, configs: list, parent_item, kind: str) -> None:
         """One node per spacecraft or station under ``parent_item``, each
-        with an empty page its form fills when first shown."""
+        with an empty page its form fills when first shown. A spacecraft's
+        node has a section per tab of its editor."""
         current = self.page_tree.current_page()
         shown = next((node.config.name for node in nodes if node.holder is current), None)
+        current_item = self.page_tree.tree.currentItem()
+        section = self.page_tree.section_key(current_item) if current_item is not None and shown else None
         for node in nodes:
             self._form_errors.pop(id(node), None)
             self.page_tree.remove(node.item)
         nodes.clear()
+        tabs = tab_titles(self.simulation_mode_combo.currentData()) if kind == "spacecraft" else []
         for config in configs:
             holder = QWidget()
             QVBoxLayout(holder).setContentsMargins(0, 0, 0, 0)
             holder.setProperty("formKind", kind)
-            nodes.append(_FormNode(self.page_tree.add_page(config.name, holder, parent_item), holder, config))
+            node = _FormNode(self.page_tree.add_page(config.name, holder, parent_item), holder, config)
+            for title in tabs:
+                self.page_tree.add_section(title, title, node.item)
+            node.item.setExpanded(False)  # its tabs show when it is opened
+            nodes.append(node)
         again = next((node for node in nodes if node.config.name == shown), None)
         if again is not None:
-            self.page_tree.tree.setCurrentItem(again.item)
+            if section is None or not self.page_tree.show_section(again.item, section):
+                self.page_tree.tree.setCurrentItem(again.item)
         elif shown is not None:
             self.page_tree.tree.setCurrentItem(parent_item)
         self._update_problem_counts()
+
+    def _on_spacecraft_list_changed_shape(self) -> None:
+        """A new simulation mode: the spacecraft nodes' sections change."""
+        self._rebuild_nodes(self._spacecraft_nodes, self.spacecraft_list.to_list(), self.spacecraft_item,
+                            "spacecraft")
 
     def _on_spacecraft_list_changed(self) -> None:
         self._follow_list(self._spacecraft_nodes, self.spacecraft_list.to_list(), self.spacecraft_item, "spacecraft")
@@ -392,6 +408,8 @@ class ScenarioEditorWidget(QWidget):
         """Forget ``node``'s form; it is built again from its config, now if
         its page is shown."""
         self._form_errors.pop(id(node), None)
+        for section in self.page_tree.sections(node.item):
+            self.page_tree.set_section_widget(section, None)
         if node.form is not None:
             node.form.setParent(None)
             node.form.deleteLater()
@@ -411,6 +429,19 @@ class ScenarioEditorWidget(QWidget):
         node = self._node_of(page)
         if node is not None and node.form is None:
             self._build_form(node)
+
+    def _on_section_shown(self, page, key: str) -> None:
+        node = self._node_of(page)
+        if node is not None and node.form is not None and node in self._spacecraft_nodes:
+            node.form.show_tab(key)
+
+    def _on_spacecraft_tab_changed(self, _index: int) -> None:
+        """The form moved to another tab itself (to a problem's field): the
+        tree follows."""
+        tabs = self.sender()
+        node = next((n for n in self._spacecraft_nodes if n.form is not None and n.form.tabs is tabs), None)
+        if node is not None and self.page_tree.current_page() is node.holder:
+            self.page_tree.show_section(node.item, tabs.tabText(tabs.currentIndex()))
 
     def _node_of(self, page):
         return next((node for node in self._spacecraft_nodes + self._station_nodes if node.holder is page), None)
@@ -440,6 +471,13 @@ class ScenarioEditorWidget(QWidget):
         embed_dialog(form)
         node.holder.layout().addWidget(form)
         node.form = form
+        if kind == "spacecraft":
+            # The tree's sections are the tabs (U-01): no tab bar too.
+            form.tabs.tabBar().hide()
+            form.tabs.setDocumentMode(True)
+            for section in self.page_tree.sections(node.item):
+                self.page_tree.set_section_widget(section, form.tab_page(self.page_tree.section_key(section)))
+            form.tabs.currentChanged.connect(self._on_spacecraft_tab_changed)
         node.debounce = _Debounce(form, kind, node)
         node.debounce.settled.connect(self._on_form_settled)
         if out_of_range_boxes(form):  # a value from the file outside its box's range: say so now
@@ -616,18 +654,29 @@ class ScenarioEditorWidget(QWidget):
             self._environment_form.show_problem(path, message)
 
     def _update_problem_counts(self, problems=None) -> None:
-        """Each node's count of the problems about it; Spacecraft and
-        Ground stations add up their nodes'."""
+        """Each node's count of the problems about it, and how many of them
+        are warnings; Spacecraft and Ground stations add up their nodes',
+        a spacecraft's tab the ones about its fields (once its form is
+        built: before, the tab of a field is not known)."""
         problems = self.problems if problems is None else problems
         spacecraft = [node.config.name for node in self._spacecraft_nodes]
         stations = [node.config.name for node in self._station_nodes]
         counts: dict = {}
+        warnings: dict = {}
+
+        def count(item, severity) -> None:
+            counts[id(item)] = counts.get(id(item), 0) + 1
+            if severity == "warning":
+                warnings[id(item)] = warnings.get(id(item), 0) + 1
+
         range_boxes = getattr(self, "_range_boxes", {})
-        for _severity, text in problems:
+        for severity, text in problems:
             if text in range_boxes:
                 item = self.page_tree.item_of(range_boxes[text]) if shiboken6.isValid(range_boxes[text]) else None
                 if item is not None:
-                    counts[id(item)] = counts.get(id(item), 0) + 1
+                    count(item, severity)
+                    if item.parent() is not None and self.page_tree.section_key(item) is not None:
+                        count(item.parent(), severity)  # its spacecraft
                 continue
             location = locate(text, spacecraft, stations)
             item = None
@@ -638,7 +687,14 @@ class ScenarioEditorWidget(QWidget):
             elif location.area == PROPAGATION:
                 item = self.environment_item
             elif location.area == SPACECRAFT and location.name in spacecraft:
-                item = self._spacecraft_nodes[spacecraft.index(location.name)].item
+                node = self._spacecraft_nodes[spacecraft.index(location.name)]
+                item = node.item
+                tab = node.form.tab_of(node.form.field_widget(location.path)) if node.form is not None else None
+                if tab is not None:
+                    section = next((s for s in self.page_tree.sections(item) if self.page_tree.section_key(s) == tab),
+                                   None)
+                    if section is not None:
+                        count(section, severity)
             elif location.area == GROUND_STATION and location.name in stations:
                 item = self._station_nodes[stations.index(location.name)].item
             elif location.area == MISSION_SEQUENCE:
@@ -646,12 +702,13 @@ class ScenarioEditorWidget(QWidget):
             elif location.area == JSON_VIEW:
                 item = self.json_item
             if item is not None:
-                counts[id(item)] = counts.get(id(item), 0) + 1
+                count(item, severity)
         for item, _page_widget in self.page_tree.items():
-            self.page_tree.set_problem_count(item, counts.get(id(item), 0))
+            self.page_tree.set_problem_count(item, counts.get(id(item), 0), warnings.get(id(item), 0))
         for parent, nodes in ((self.spacecraft_item, self._spacecraft_nodes), (self.ground_station_item,
                                                                                 self._station_nodes)):
-            self.page_tree.set_problem_count(parent, sum(counts.get(id(node.item), 0) for node in nodes))
+            self.page_tree.set_problem_count(parent, sum(counts.get(id(node.item), 0) for node in nodes),
+                                             sum(warnings.get(id(node.item), 0) for node in nodes))
 
     # -- (dis)assembly -------------------------------------------------------
     def set_base_dir_provider(self, provider) -> None:

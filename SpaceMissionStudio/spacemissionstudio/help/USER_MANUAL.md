@@ -163,12 +163,18 @@ A few things to notice right away:
   * **Scenario**: the scenario tree on the left and the page of the node
     you pick beside it. **Templates** (where you start), then the
     scenario's own nodes -- **Scenario**, **Environment**,
-    **Spacecraft** with a node per spacecraft, **Ground stations** with a
+    **Spacecraft** with a node per spacecraft, and under each one a node
+    per part of its page (**Orbit / mass**, **Sensors / actuators**,
+    **Attitude control**, **Power / propulsion / link budget**, **3D
+    model**, **Vizard model**, **Budget (AD10)**; orbit-only scenarios
+    have no sensors or attitude control), **Ground stations** with a
     node per station, **Mission sequence**, **Monte Carlo** and **JSON**
     (Section 6) -- and **Analyses**: **End of Life** and **Budget** (re-entry and
     delta-V estimates, Section 11) and **Flight Software** (export the
     attitude flight software and run it in the loop, Section 6). A node
-    with problems shows how many after its name.
+    with problems shows how many after its name: in red when one of them
+    is an error, in yellow when they are all warnings. Hover over it to see
+    how many of each there are.
   * **Results**, which fills in when you run something (Section 7), with
     the **Plots**, the **Dashboard** and the mission **Output**, and a
     **Monte Carlo** view when the scenario has Monte Carlo on (Section 10).

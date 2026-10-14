@@ -75,11 +75,15 @@ def _finish_a_run(window, name=None):
 def test_the_main_tabs_and_what_they_hold(window):
     """Five main tabs as the standard lists them. The Scenario tab is the
     scenario tree (U-01): Templates, the scenario's own nodes with one per
-    spacecraft and ground station, and the Analyses; the run's plots,
+    spacecraft (one under it per tab of its editor) and ground station, and
+    the Analyses; the run's plots,
     dashboard and output are under Results; Explain is in the side panel."""
     assert _tab_texts(window.main_tabs) == ["Scenario", "Results", "Events", "Compare", "Log"]
     assert [path for path, _page in window.scenario_editor.page_tree.paths()] == [
-        "Templates", "Scenario", "Environment", "Spacecraft", "Spacecraft > my-sat", "Ground stations",
+        "Templates", "Scenario", "Environment", "Spacecraft", "Spacecraft > my-sat",
+        *(f"Spacecraft > my-sat > {tab}" for tab in ("Orbit / mass", "Power / propulsion / link budget", "3D model",
+                                                     "Vizard model", "Budget (AD10)")),
+        "Ground stations",
         "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo", "JSON", "Analyses > End of Life",
         "Analyses > Budget", "Analyses > Flight Software"]
     assert _tab_texts(window.results_views) == ["Plots", "Dashboard", "Output"]
