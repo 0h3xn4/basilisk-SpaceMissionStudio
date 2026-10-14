@@ -191,8 +191,8 @@ orbit for one day, with a ground station in Berlin.
    **Explain** page of the side panel says what it switches on, and predicts
    `berlin-gs: 4 passes`.
 4. **Run** on the toolbar (`Ctrl+R`). It takes a few seconds.
-5. The **Results** tab opens. Pick `my-sat.position_N` in **Series** to
-   see the orbit.
+5. The **Results** tab opens. Click "Inertial Position (ECI)" in the
+   catalog on the left (search `position_N`) to see the orbit.
 6. Open the **Events** tab: four Berlin passes (the first about 10 to 18
    minutes in) and fifteen eclipses of about 35 minutes each.
 7. **File > Save As...** to keep your own copy before changing anything.

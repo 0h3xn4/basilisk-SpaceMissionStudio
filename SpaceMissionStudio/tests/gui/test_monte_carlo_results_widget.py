@@ -75,7 +75,7 @@ def test_a_saved_batch_shows_tiles_plots_and_a_sortable_run_table(qtbot, tmp_pat
     assert tiles[0] == "5 of 6 | Runs" and tiles[1] == "5 | Failed"
     along_km = np.std((np.arange(5) - 2) * 1e-4) * _R_M / 1e3  # [km]
     assert tiles[2] == f"{along_km:.3g} km | Along-track spread, end"
-    assert widget.plots.series_combo.currentData() == "sat-1.monte_carlo.spread"
+    assert widget.plots.current_series_name() == "sat-1.monte_carlo.spread"
     table = widget.table
     assert table.rowCount() == 5
     headers = [table.horizontalHeaderItem(c).text() for c in range(table.columnCount())]
@@ -121,7 +121,7 @@ def test_several_spacecraft_choose_whose_spread_is_shown(qtbot, tmp_path):
     widget.load_folder(tmp_path)
     assert not widget.spacecraft_combo.isHidden()
     widget.spacecraft_combo.setCurrentText("follower")
-    assert widget.plots.series_combo.currentData() == "follower.monte_carlo.spread"
+    assert widget.plots.current_series_name() == "follower.monte_carlo.spread"
     assert widget.table.horizontalHeaderItem(widget.table.columnCount() - 1).text().startswith("follower final")
 
 

@@ -7,7 +7,7 @@ and the exported files.
 
 | Where | What it shows | Needs a run? |
 |---|---|---|
-| **Results > Plots** | One plot at a time; pick it in **Series** | Yes |
+| **Results > Plots** | A catalog of the run's plots and a grid of up to six, with a readout | Yes |
 | **Results > Dashboard** | Pointing mode, power and link at a glance (for a comms-pointing spacecraft) | Yes |
 | **Results > Output** | What each `report` command in a Mission Sequence recorded | Yes |
 | **Results > Monte Carlo** | The spread of a batch (only when Monte Carlo is on) | A batch |
@@ -24,13 +24,19 @@ and the exported files.
 
 ## Find a plot
 
-1. On **Results**, type a few letters in **Series**, for example
-   `altitude` or `rw_speeds`. Hover an entry to see its code name (for
-   example `sat-1.position_N`), which is also its CSV file name.
+1. On **Results**, type a few letters in **Search plots**, for example
+   `altitude` or `rw_speeds`, and press Enter, or click a plot in the
+   catalog. Hover an entry to see its code name (for example
+   `sat-1.position_N`), which is also its CSV file name.
 2. Or click one of the **Suggested** buttons: the series the scenario's
    description points at.
-3. **X-axis** switches between elapsed time and the calendar date.
-4. Hover the plot for exact values; scroll and drag to zoom and pan.
+3. Tick more plots to see them together (up to six); **Layout** sets the
+   grid. Zooming one zooms them all. The grid is kept for the scenario.
+4. **X-axis** switches every plot between elapsed time, the calendar date
+   and the orbit number. **Events** draws eclipses, passes and burns
+   behind the lines.
+5. Point at a plot: the readout under the catalog lists every shown
+   value at that moment, with units.
 
 ## Compare two runs
 
@@ -53,7 +59,8 @@ in progress then, and Mission Dashboard shows the values at that moment.
 | Button | Writes |
 |---|---|
 | Results: **Export CSV...** | Every series, in SI units, one `.csv` per series |
-| Results: **Save PNG...** / **Save SVG...** | The plot on screen |
+| Results: **Save PNG...** / **Save SVG...** | The selected plot (click a plot to select it) |
+| Results: **Export all...** | Every shown plot as PNG or SVG, with its data as CSV and `provenance.json` |
 | Events: **Export CSV...** | The events shown, in seconds and UTC |
 | Mission Output: **Export CSV...** | Every report, in SI units |
 

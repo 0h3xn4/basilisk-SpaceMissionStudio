@@ -85,7 +85,7 @@ On macOS, `Cmd` replaces `Ctrl`.
 | Events | CSV (seconds and UTC) | Events > Export CSV..., `run` (`events.csv`) |
 | Reports | CSV | Mission Output > Export CSV... |
 | Provenance | JSON (versions and checksums of every input) | Beside every export |
-| Plots | PNG, SVG | Results > Save PNG... / Save SVG... |
+| Plots | PNG, SVG | Results > Save PNG... / Save SVG... (the selected plot), Export all... (every shown plot, with CSV) |
 | Orbit messages | CCSDS OPM, OEM (KVN text) | `ccsds-export`, `run --oem` |
 | Vizard playback | `.bin` | Vizard Configuration..., `run --vizard-save-file` |
 | Monte Carlo batch | `batch_results.npz` and `.json`, plus Basilisk's archive | Run in Monte Carlo mode, `monte-carlo --archive-dir` |

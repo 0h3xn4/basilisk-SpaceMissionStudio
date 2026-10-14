@@ -401,6 +401,46 @@ def categorize(name: str, series: TimeSeries) -> Optional[SeriesDisplay]:
     return _sensor_display(name, series)
 
 
+# The Results plot catalog's groups (docs/ux-standard.md, "Results"), in
+# the order the catalog lists them.
+PLOT_GROUPS = ("Orbit", "Attitude", "Power", "Link", "Data", "Thermal", "Propellant", "Sensors", "Monte Carlo",
+               "Other")
+
+_PROPELLANT_ENDINGS = (".delta_v", ".propellant_remaining", ".fuel_mass_remaining", ".thruster_on_time")
+_ATTITUDE_ENDINGS = (".attitude_sigma_BN", ".body_rate_omega_BN_B", ".sun_heading_body", ".sun_heading_body_estimated",
+                     ".control_torque", ".rw_speeds", ".mtb_dipole_commanded")
+
+
+def plot_group(name: str, series: TimeSeries) -> str:
+    """Which of :data:`PLOT_GROUPS` the series ``name`` belongs to in the
+    Results plot catalog."""
+    if ".monte_carlo." in name:
+        return "Monte Carlo"
+    if name.endswith(_PROPELLANT_ENDINGS):
+        return "Propellant"
+    if parse_access_pair(name) is not None:
+        return "Link"
+    if name.rpartition(".")[0].endswith(".data_handling"):
+        return "Data"
+    if name.endswith(".motor_temperature"):
+        return "Thermal"
+    if ".sensor." in name:
+        return "Thermal" if tuple(series.columns) == ("temperature",) else "Sensors"
+    if ".solar_array." in name:
+        return "Power" if name.endswith(".power") else "Attitude"
+    if name.endswith((".battery_charge", ".battery_net_power")):
+        return "Power"
+    if name.endswith(_ATTITUDE_ENDINGS) or ".comms_pointing." in name:
+        return "Attitude"
+    navigation = re.search(r"\.navigation_error\.(\w+)$", name)
+    if navigation is not None:
+        return "Orbit" if navigation.group(1) in ("position", "velocity") else "Attitude"
+    if (name.endswith((".position_N", ".velocity_N", ".eclipse.illumination_factor"))
+            or ".orbit_elements" in name or any(f".{key}." in name for key in _CONTROLLER_TITLES)):
+        return "Orbit"
+    return "Other"
+
+
 _LEGACY_UNIT_CONVERSIONS = {"m": ("km", 0.001), "m/s": ("km/s", 0.001)}
 
 

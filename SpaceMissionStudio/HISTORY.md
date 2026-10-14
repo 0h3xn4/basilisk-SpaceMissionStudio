@@ -9867,3 +9867,99 @@ a failed run opening the Log, toasts above the status bar). The run-path tests i
 chip's run name instead of message boxes;
 `tests/gui/test_sil_widgets.py` checks the cards have no Run SIL... and
 the page's hint.
+
+## UX iteration 5a: the Results plot workspace (2026-10-14)
+
+The first part of iteration 5 (Results, Events, Compare): U-24 to U-30.
+The user decided decision 5: the Compare iteration keeps runs on disk.
+
+**The catalog** (`gui/plot_catalog.py`, `PlotCatalog`) replaces the
+Series box: every plot of the run in groups (`plot_categories.PLOT_GROUPS`,
+from the new `plot_group(name, series)`: Orbit, Attitude, Power, Link,
+Data, Thermal, Propellant, Sensors, Monte Carlo, Other), its title as
+text (without the spacecraft when the run has one; the code name when
+two titles would be the same) and its code name as tooltip. **Search
+plots** matches the title, code name and group, and Enter shows the first
+match (or the one typed in full), as the Series box's completer did. A
+click on a name shows the plot in the selected cell (`activated`); a tick
+adds it to the grid and clearing it takes it out (`toggled`); a click on
+the tick box only ticks. The access timeline (formerly the View box) is
+the catalog entry `ACCESS_TIMELINE` under Link.
+
+**The grid** (`gui/plot_page.py`): one page with a `div` per plot (the
+first keeps the id the single plot had), each its own Plotly figure
+(decision 4). Layouts 1 x 1 to 3 x 2, six plots at most. A tick past the
+layout's cells picks `best_layout(count, width, height)`: of the layouts
+that hold the plots with at most one spare cell, the one whose cells are
+nearest twice as wide as tall, a spare cell counting against it -- three
+plots in the 1280 x 720 pane share a 2 x 2 grid, two in a tall pane
+stack. Choosing a smaller layout clears the extra plots. The page links
+the x axes (a zoom, pan or double-click reset of one goes to every other
+linked plot; the access timeline, always in elapsed hours, is not
+linked), and reports clicks, hovers (at most every 80 ms) and focus
+through the page title (`parse_message`). A click selects the plot (a
+blue frame) that Save PNG/SVG act on and sets the cursor, which
+`cursor_script` draws on every plot without a reload. Several plots get
+smaller titles and margins. `figure` is now the selected plot's,
+`figures` all of them; `show_series`, `current_series_name`,
+`shown_plots`, `plot_names`, `focus_plot` and `set_layout` are the
+widget's API.
+
+The layout and the plots shown are kept per scenario
+(`set_layout_key(scenario.name)`, set by the main window before a run) in
+`~/.spacemissionstudio/layout.ini`, under `results_layout`, and come back
+when the next result has those plots; otherwise a result opens on the
+first suggested series, as before. The Monte Carlo and SIL panels, which
+embed the widget, keep nothing.
+
+**The readout** (`gui/readout_panel.py`), under the catalog: every shown
+series' value with its unit at the time under the pointer, else at the
+cursor, and the time in hours, UTC and orbit. `value_at` interpolates
+between samples, except for a wrapping series and a step (whole numbers
+that hold between most samples: a mode, a state), which show the last
+sample at or before the time. A smooth series with whole-number samples
+is not taken for a step (found by its test).
+
+**Orbit number** (`engine/orbit_number.py`, Basilisk-free): the argument
+of latitude from the recorded position and velocity, unwrapped with the
+mean motion (so one sample an orbit or less still counts every turn), in
+turns. Orbit 0 is the one in progress at the epoch; each ascending node
+starts the next. An equatorial orbit counts from the inertial X axis. The
+axis follows the first shown series' spacecraft ("Orbit number
+(sat-1)"); a click on it maps back to time by interpolation. A compared
+run is drawn against its own orbits.
+
+**Event bands**: each plot's spacecraft's events from `engine.events`,
+behind the lines (`layer="below"`), in the Events tab's colours
+(`KIND_COLOURS`) at 16 % opacity; a mode change is a dashed line at its
+start. A button per kind the run has switches it on all plots. Plotly
+redraws every shape on each zoom, so a kind with more than 400 events on
+one plot is left out and a note says so (a year of LEO eclipses is about
+5,500). During a live run the events are read again only for the chunks
+that are drawn, so a throttled chunk does not read the whole run again.
+
+**The epoch** (U-30): "t0 = 2030-01-01 08:30:00 UTC" under each title on
+an elapsed-time or orbit axis.
+
+**Export all...** (U-29): every shown plot rendered in the page
+(`Plotly.toImage` for all of them, through the same poll as Save PNG),
+written as `01_<code name>.png` (or `.svg`) in grid order with the run's
+provenance embedded, each plot's series as CSV and `provenance.json`. It
+says what it wrote in a toast.
+
+Found on the way: the new side column made the window taller than 720 px
+(the catalog and readout's own minimum heights, 176 px together); both
+may now shrink. A first layout rule (fewest cells, tall before wide) gave
+three thin strips at 1280 x 720; the pane's shape now decides.
+
+Tests: `tests/test_orbit_number.py` (turns from the node, one sample an
+orbit, an equatorial orbit, the spacecraft choice, and every series' catalog
+group) and `tests/gui/test_plot_workspace.py` (layouts, page messages,
+readout values, groups, ticking and the layout growing, a smaller
+layout, the six-plot limit, selecting the plot that saves, linked axes in
+the real page, the orbit axis and cursor, the epoch subtitle, the
+readout at the cursor and the pointer, bands and their switch, the band
+cap, the layout kept per scenario, Export all in the real page, and the
+live run's events). The results tests that drove the Series and View
+boxes now drive the catalog (same checks; none removed).
+

@@ -15,8 +15,9 @@ How to run one of the 27 ready-made missions and look at what it did.
    **Single run**). A strip under the top bar shows what the run is
    doing, how far it is and the time left; **Cancel** (`Esc`) stops it.
    Template 22 takes a few seconds.
-5. The **Results** tab opens. Pick a quantity in **Series**, for example
-   `my-sat.position_N`, or click one of the **Suggested** buttons.
+5. The **Results** tab opens. Click a plot in the catalog on the left,
+   for example "Inertial Position (ECI)", or one of the **Suggested**
+   buttons. Tick several to see them side by side.
 6. Open the **Events** tab to see ground-station passes and eclipses.
 
 To keep a copy you can change, use **File > Save As...** first. The
