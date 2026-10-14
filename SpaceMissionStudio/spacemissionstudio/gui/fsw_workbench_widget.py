@@ -22,14 +22,15 @@ scenario (User Manual, "Exporting the flight software").
 
 One card per spacecraft: a status badge (not exported, up to date, stale
 with what changed, folder missing, changed on disk, or why it cannot be
-exported), the folder, and **Export...** / **Open folder** / **Run SIL...**.
+exported), the folder, and **Export...** / **Open folder**.
 An export runs in a worker thread (it records a short simulation run); the
 new record goes back to the scenario through
-:attr:`FlightSoftwareWidget.exports_changed`. Run SIL... asks for the
-program (:class:`.sil_dialog.SilRunDialog`) and hands the run to the main
-window (:attr:`FlightSoftwareWidget.sil_requested`), which runs it like any
-other run; its comparison comes back to :meth:`FlightSoftwareWidget.show_sil_report`
-(User Manual, "Running the flight software in the loop").
+:attr:`FlightSoftwareWidget.exports_changed`. A SIL run starts from **Run**
+in SIL mode (docs/ux-audit.md U-18: one way to run): the main window asks
+for the program through :meth:`FlightSoftwareWidget.ask_sil_options`
+(:class:`.sil_dialog.SilRunDialog`), and the comparison comes back to
+:meth:`FlightSoftwareWidget.show_sil_report` (User Manual, "Running the
+flight software in the loop").
 """
 
 from __future__ import annotations
@@ -109,13 +110,9 @@ class _SpacecraftCard(QFrame):
         self.folder.setStyleSheet("border: none;")
         self.export_button = QPushButton("Export...")
         self.open_button = QPushButton("Open folder")
-        self.sil_button = QPushButton("Run SIL...")
-        self.sil_button.setToolTip("Fly this spacecraft with an external flight-software program, step by step, "
-                                   "and compare it with the simulation's own.")
         buttons = QHBoxLayout()
         buttons.addStretch(1)
         buttons.addWidget(self.open_button)
-        buttons.addWidget(self.sil_button)
         buttons.addWidget(self.export_button)
         layout.addWidget(self.title, 0, 0)
         layout.addWidget(self.badge, 0, 1)
@@ -138,7 +135,6 @@ class FlightSoftwareWidget(QWidget):
     """Export status and actions, one card per spacecraft."""
 
     exports_changed = Signal(list)  # the scenario's new fsw_exports list
-    sil_requested = Signal(str, object)  # spacecraft name, sil.runner.SilOptions
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
@@ -154,6 +150,11 @@ class FlightSoftwareWidget(QWidget):
                        "(User Manual, \"Exporting the flight software\").")
         intro.setWordWrap(True)
         outer.addWidget(intro)
+        self.sil_hint = QLabel("To fly an exported program in the loop, choose SIL beside Run on the toolbar, "
+                               "then press Run.")
+        self.sil_hint.setWordWrap(True)
+        self.sil_hint.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        outer.addWidget(self.sil_hint)
         self._list = QVBoxLayout()
         outer.addLayout(self._list)
         self._placeholder = QLabel("Fix the validation errors to see the flight software.")
@@ -201,13 +202,11 @@ class FlightSoftwareWidget(QWidget):
                 card = _SpacecraftCard(spacecraft.name)
                 card.export_button.clicked.connect(lambda _=False, n=spacecraft.name: self._on_export(n))
                 card.open_button.clicked.connect(lambda _=False, n=spacecraft.name: self._on_open(n))
-                card.sil_button.clicked.connect(lambda _=False, n=spacecraft.name: self._on_sil(n))
                 self._cards[spacecraft.name] = card
                 self._list.insertWidget(index, card)
             reason = exportable_reason(scenario, spacecraft)
             record = next((r for r in scenario.fsw_exports if r.spacecraft == spacecraft.name), None)
             card.export_button.setEnabled(reason is None and self._busy is None)
-            card.sil_button.setEnabled(reason is None and self._busy is None and self._sil_running is None)
             card.open_button.setEnabled(record is not None)
             card.set_folder(record.path if record is not None else None)
             if self._busy == spacecraft.name:
@@ -246,13 +245,6 @@ class FlightSoftwareWidget(QWidget):
         if dialog.exec() != SilRunDialog.DialogCode.Accepted:
             return None
         return dialog.to_options()
-
-    def _on_sil(self, name: str) -> None:
-        if self._scenario is None or self._busy is not None or self._sil_running is not None:
-            return
-        options = self.ask_sil_options(name)
-        if options is not None:
-            self.sil_requested.emit(name, options)
 
     def set_sil_running(self, name: Optional[str]) -> None:
         """The spacecraft whose SIL run is in progress, or None."""

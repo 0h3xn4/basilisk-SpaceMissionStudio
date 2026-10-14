@@ -9808,3 +9808,62 @@ Live plot label, the mode locked during a run) and
 `tests/test_mission_engine.py` (`on_step` hearing each enabled top-level
 step). The toolbar tests now find the modes in the mode button's menu, and
 3D Model after the run controls.
+
+## UX iteration 4b: run names, and no message boxes on the run path (2026-10-13)
+
+The rest of the Run feedback iteration: U-21 (the post-run toast gave
+only the number of series), U-22 (which run is shown), U-23 (the rest: a
+failed run's modal box) and U-39 for the run path. The user decided that
+the Flight Software page's per-spacecraft **Run SIL...** should go.
+
+**Run names.** `RunHistory.next_number` is the number the next kept run
+gets, and `RunRecord.name` is "Run 2, 12:19". `_stop_busy` takes the
+run's name: the chip reads "Run 2: done in 6 s" or "Run 2: cancelled",
+and the top bar "Run 2 at 22:40, done, 6 s". The Results provenance line
+starts with the shown run's name; with a run to compare, the shown run's
+traces end in "(Run 2)" as the compared run's end in "(Run 1)". A failed
+run is not kept, so it has no number: the chip says "Failed".
+
+**The toast** after a run: "Run 2 complete in 6 s: 4 passes, 15
+eclipses" (`events_summary`, from the same events as the Events tab;
+"no events" when there were none; a failure to count them is logged and
+never fails the run), or "Run 2 cancelled: what was computed is shown".
+
+**No message boxes on the run path.** `_report_run_problem(text, view,
+level)` writes the message to the Log (it stays there; the Log tab shows
+it), shows it in a toast for 6 s and in the status bar, and opens the view
+where it is dealt with. `_cannot_run` does this for a scenario that does
+not validate and opens Problems at the field. The 14 boxes it replaces:
+the three invalid-scenario checks (Run, Monte Carlo, SIL), a run in
+progress, Vizard not connected, a live update that failed (once per run),
+showing the results that failed (opens the Log), a failed run (the Log at
+its errors; SIL: the Flight Software page), cancelling's display that
+failed, Monte Carlo turned off (opens the Monte Carlo page), a batch
+folder that is not empty, a batch with failed cases (names them), a batch
+that failed, and closing while a run goes. Message boxes stay for
+questions (replace a file, discard changes, run a script block) and, for
+now, for the file, save and Vizard launch paths (U-39, iteration 5).
+
+**Toasts** gain a `warning` kind (Carbon's warning background and rule,
+`warning_soft` and `warning_fill`): a scenario that cannot run is a
+warning, a failure an error. In a main window they now sit above the
+status bar; before, a toast covered its right end (the frames and the
+reference data), seen in the 4b screenshots.
+
+**Run SIL... is gone from the cards.** `_SpacecraftCard.sil_button`,
+`FlightSoftwareWidget.sil_requested` and `_on_sil` are removed; the page
+says to choose SIL beside Run. `ask_sil_options` stays: Run in SIL mode
+asks through it. The SIL comparison panel's empty text, the export's
+`README.md`, `ADAPTER_GUIDE.md` and adapter source comment, the manual,
+the flight-software guide and the capabilities page now say "Run in SIL
+mode".
+
+Tests: `tests/gui/test_run_messages.py` (the events summary, the toast's
+name, length and events, a cancelled run's toast, run names on the plot's
+traces and provenance line and none without a comparison, `RunRecord.name`,
+an invalid scenario opening Problems at the field with a warning toast,
+a failed run opening the Log, toasts above the status bar). The run-path tests in `tests/gui/test_main_window.py` and
+`tests/gui/test_app_shell.py` now check `window.run_problems` and the
+chip's run name instead of message boxes;
+`tests/gui/test_sil_widgets.py` checks the cards have no Run SIL... and
+the page's hint.

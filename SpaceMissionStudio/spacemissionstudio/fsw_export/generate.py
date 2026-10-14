@@ -554,7 +554,7 @@ def _generate_adapter(ctx: _Context) -> None:
 
     a = [_isc_c(), "",
          f"/* SIL adapter template for {_comment(cap.spacecraft)}: put your own flight software behind the same ports as",
-         " * the export, then build fsw_adapter_host and run it from SpaceMissionStudio (Flight Software tab, Run SIL)",
+         " * the export, then build fsw_adapter_host and run it from SpaceMissionStudio (Run in SIL mode)",
          " * or with `fsw_adapter_host replay ...`. ADAPTER_GUIDE.md walks through it. As generated it builds and runs,",
          " * but sets no command: the simulation then holds the actuators at zero and reports the outputs missing.",
          " *",

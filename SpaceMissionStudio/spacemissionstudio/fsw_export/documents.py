@@ -229,7 +229,7 @@ def readme_markdown(cap: FswCapture) -> str:
         "parameter comes from.", "",
         "## In the loop", "",
         "`fsw_host sil <address>` serves the SIL transport contract (`SIL_CONTRACT.md`): SpaceMissionStudio "
-        "starts it (Flight Software tab, Run SIL...) and flies the spacecraft with its commands, comparing them "
+        "starts it (Run in SIL mode) and flies the spacecraft with its commands, comparing them "
         "with its own modules. To put flight software of your own behind the same ports, edit "
         "`adapter/fsw_adapter.c` and build `fsw_adapter_host` (`ADAPTER_GUIDE.md`).", "",
         "## Contents", "",

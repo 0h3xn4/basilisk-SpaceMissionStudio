@@ -103,6 +103,16 @@ fixes bugs.
   about how long is left, and **Cancel (Esc)**. Every run shows its
   progress now, not only with Live plot on. Live plot reads "Live plot:
   on" or "off".
+- **Runs are named and say how they went** (UX audit U-21 to U-23,
+  U-39). Runs are numbered in the session ("Run 2, 12:19"): the status
+  tag, the top bar, the plots' provenance line and, when comparing, every
+  trace say which run. A finished run says "Run 2 complete in 6 s: 4
+  passes, 15 eclipses". A run that cannot start or that fails no longer
+  opens a message box: a note and the status bar say why, the message
+  goes to the Log, and the place to deal with it opens (Problems at the
+  field, the Monte Carlo page, or the Log at its errors).
+- **SIL runs start from Run.** The Flight Software page's per-spacecraft
+  **Run SIL...** is gone: choose **SIL** beside **Run**. The page says so.
 **Fixed**
 - **A value from a file outside a field's range is no longer cut to the
   range.** A station 12 000 m up showed, and on the next edit to its form

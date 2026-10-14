@@ -44,6 +44,11 @@ class RunRecord:
     cancelled: bool = False
 
     @property
+    def name(self) -> str:
+        """ "Run 2, 12:19": how the run is named in the status chip, the plots and Compare (U-22)."""
+        return f"Run {self.number}, {self.finished:%H:%M}"
+
+    @property
     def label(self) -> str:
         name = self.scenario.get("name", "")
         return f"Run {self.number} ({self.finished:%H:%M}{', cancelled' if self.cancelled else ''}): {name}"
@@ -62,6 +67,11 @@ class RunHistory:
         self.runs.append(record)
         del self.runs[:-self._max_runs]
         return record
+
+    @property
+    def next_number(self) -> int:
+        """The number the next run kept will get: "Run 3" (U-22)."""
+        return self._count + 1
 
     def latest(self) -> Optional[RunRecord]:
         return self.runs[-1] if self.runs else None

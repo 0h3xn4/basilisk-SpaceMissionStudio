@@ -191,8 +191,17 @@ A few things to notice right away:
   has unsaved changes, where it came from ("from template 22", or the
   file's name) and when it last ran, how it ended and how long it took.
   The tag on its right shows the run state: **No run yet**, **Running**
-  (with the percentage, or the time so far), **Done in 6 s**,
-  **Failed** or **Cancelled**.
+  (with the percentage, or the time so far), **Run 2: done in 6 s**,
+  **Failed** or **Run 2: cancelled**. Runs are numbered in the session
+  ("Run 2, 12:19"): the top bar, the plots' provenance line and the
+  traces of a comparison name them.
+* When a run ends, a note at the bottom right says so: "Run 2 complete
+  in 6 s: 4 passes, 15 eclipses". A run that cannot start (a problem in
+  the scenario, Monte Carlo turned off, Vizard not connected) or that
+  fails says why in a note and the status bar and opens where it is
+  dealt with: **Problems** at the field, the Monte Carlo page, or the
+  **Log** at its errors. The message stays in the Log. Message boxes are
+  kept for questions such as replacing a file.
 * The status bar at the bottom shows progress, and always: the Basilisk
   version ("(not qualified)" when it is not the verified 2.12.0), the
   reference data ("all OK", or how many files need attention; click it
@@ -653,8 +662,8 @@ and are listed in the ICD as not exported.
 
 ### Running the flight software in the loop
 
-**Run SIL...** on a spacecraft's card, **Run** in **SIL** mode (it asks
-which spacecraft when more than one can), or `spacemissionstudio sil` runs
+**Run** in **SIL** mode (choose **SIL** beside **Run**; it asks which
+spacecraft when more than one can), or `spacemissionstudio sil` runs
 the scenario with that spacecraft's flight software in a separate
 program: software in the loop (SIL). Each step the tool sends the
 program the spacecraft's inputs, waits for its commands, and gives them
@@ -666,10 +675,10 @@ they computed.
 1. Export the flight software and build it (above): the program is
    `<folder>/build/fsw_host`. For flight software of your own, build
    `fsw_adapter_host` from the export's `adapter/` (its `ADAPTER_GUIDE.md`).
-2. Press **Run SIL...** (or **Run** in SIL mode). The dialog finds the export's `fsw_host`, or
+2. Choose **SIL** beside **Run** and press **Run**. The dialog finds the export's `fsw_host`, or
    choose another program. It shows the program's SHA-256. Tick that you
    trust it (it runs with your user's rights) and press **Run SIL**.
-3. The run goes as any other run (progress bar, live plots, Abort). At
+3. The run goes as any other run (progress strip, live plots, Cancel). At
    the end the Flight Software tab shows the comparison.
 
 | In the comparison | What it is |

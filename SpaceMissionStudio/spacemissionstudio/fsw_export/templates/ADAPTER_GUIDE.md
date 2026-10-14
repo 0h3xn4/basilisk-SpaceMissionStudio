@@ -52,8 +52,8 @@ sure their binary layout is the one the simulation uses.
    ```
 
    It prints the largest difference per output and telemetry port.
-5. **Run it in the loop**: in SpaceMissionStudio, Flight Software tab,
-   choose **Run SIL...** on the spacecraft and pick
+5. **Run it in the loop**: in SpaceMissionStudio, choose **SIL** beside
+   **Run**, press **Run**, and pick
    `build/fsw_adapter_host` (`build\Release\fsw_adapter_host.exe` on
    Windows). From the command line:
 

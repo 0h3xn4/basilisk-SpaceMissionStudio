@@ -344,15 +344,14 @@ def test_run_without_basilisk_shows_error_and_reenables_action(window, qtbot, mo
     assert "Basilisk is not installed" in critical_calls[0][2]
 
 
-def test_run_with_invalid_scenario_shows_error_without_starting_worker(window, monkeypatch):
-    from PySide6.QtWidgets import QMessageBox
-
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
-
+def test_run_with_invalid_scenario_shows_error_without_starting_worker(window):
+    """An invalid scenario never starts a worker: the problem is said once
+    (Log, toast, status bar; no message box, U-23) and Problems opens."""
     window.on_run()  # no spacecraft -- invalid, should never construct a RunWorker
 
-    assert len(critical_calls) == 1
+    assert len(window.run_problems) == 1 and window.run_problems[0].startswith("Cannot run: ")
+    assert window.statusBar().currentMessage().startswith("Cannot run: ")
+    assert window.side_tabs.currentWidget() is window.problems_widget
     assert window._run_worker is None
 
 
@@ -531,13 +530,9 @@ def test_close_while_run_in_progress_is_blocked(window, qtbot, monkeypatch):
     import threading
 
     from PySide6.QtGui import QCloseEvent
-    from PySide6.QtWidgets import QMessageBox
     from spacemissionstudio.gui.run_worker import RunWorker
 
     _add_valid_spacecraft(window)
-    info_calls = []
-    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: info_calls.append(a)))
-
     release = threading.Event()
     monkeypatch.setattr(RunWorker, "run", lambda self: release.wait(5))
 
@@ -547,7 +542,7 @@ def test_close_while_run_in_progress_is_blocked(window, qtbot, monkeypatch):
     event = QCloseEvent()
     window.closeEvent(event)
     assert not event.isAccepted()
-    assert len(info_calls) == 1
+    assert len(window.run_problems) == 1 and "still running" in window.run_problems[0]
 
     release.set()
     qtbot.waitUntil(lambda: not window._run_worker.isRunning(), timeout=5000)
@@ -573,51 +568,43 @@ def test_run_progress_exception_is_caught_not_propagated(window, monkeypatch):
     never crash or get stuck just because something unusual happened.
     If a live-progress update ever raises (for whatever reason, on
     whichever chunk), _on_run_progress must swallow it (logged, surfaced
-    once via a warning dialog) rather than let it propagate out through
+    once in the Log and a toast) rather than let it propagate out through
     Qt's own signal dispatch -- the simulation itself, on its own
     thread, is completely unaffected either way.
     """
     from spacemissionstudio.engine.results import ResultSet
-    from spacemissionstudio.gui import main_window as main_window_module
 
     window._start_busy("Running test...", determinate=True)
     monkeypatch.setattr(
         window.results_widget, "set_live_result",
         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")),
     )
-    warnings = []
-    monkeypatch.setattr(main_window_module.QMessageBox, "warning",
-                         lambda *a, **k: warnings.append(a) or None)
 
     window._on_run_progress(ResultSet(scenario_name="test"), 0.5)  # must not raise
 
-    assert len(warnings) == 1
+    assert len(window.run_problems) == 1 and "boom" in window.run_problems[0]
 
 
 def test_run_progress_exception_dialog_shown_only_once_per_run(window, monkeypatch):
     from spacemissionstudio.engine.results import ResultSet
-    from spacemissionstudio.gui import main_window as main_window_module
 
     window._start_busy("Running test...", determinate=True)
     monkeypatch.setattr(
         window.results_widget, "set_live_result",
         lambda *a, **k: (_ for _ in ()).throw(RuntimeError("boom")),
     )
-    warnings = []
-    monkeypatch.setattr(main_window_module.QMessageBox, "warning",
-                         lambda *a, **k: warnings.append(a) or None)
 
     for _ in range(5):
         window._on_run_progress(ResultSet(scenario_name="test"), 0.5)
 
-    assert len(warnings) == 1  # not a dialog-per-chunk storm
+    assert len(window.run_problems) == 1  # not a message-per-chunk storm
 
     # A fresh on_run() (a new run starting) resets the suppression --
     # confirmed via the same flag on_run() itself resets, not by driving
     # a full real run here.
     window._progress_error_shown = False
     window._on_run_progress(ResultSet(scenario_name="test"), 0.5)
-    assert len(warnings) == 2
+    assert len(window.run_problems) == 2
 
 
 def test_run_finished_exception_still_stops_busy_indicator(window, monkeypatch):
@@ -740,69 +727,59 @@ def test_run_failed_dialog_mentions_the_log_file_when_configured(window, monkeyp
     diagnose an unexpected failure -- see logging_setup's own module
     docstring. Once logging is configured (real entry points always do
     this; a bare MainWindow() in a test does not, by default -- see the
-    test right after this one for that case), the error dialog must say
-    where the full traceback landed.
+    test right after this one for that case), the error must say where
+    the full traceback landed. It goes to the Log, which opens at its
+    errors (U-23), rather than a message box.
     """
     from pathlib import Path
 
-    from PySide6.QtWidgets import QMessageBox
-
     from spacemissionstudio.gui import main_window
 
     fake_log_path = Path("/tmp/fake/spacemissionstudio_20300101T000000Z.log")
     monkeypatch.setattr(main_window, "get_log_file_path", lambda: fake_log_path)
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     window._on_run_failed("boom")
 
-    assert len(critical_calls) == 1
-    shown_message = critical_calls[0][2]
+    assert len(window.run_problems) == 1
+    shown_message = window.run_problems[0]
     assert "boom" in shown_message
     assert str(fake_log_path) in shown_message
+    assert window.current_view() is window.log_widget
 
 
 def test_run_failed_dialog_omits_the_log_hint_when_logging_was_never_configured(window, monkeypatch):
-    from PySide6.QtWidgets import QMessageBox
-
+    """Without a log file there is no path to name: the message is just the error."""
     from spacemissionstudio.gui import main_window
 
     monkeypatch.setattr(main_window, "get_log_file_path", lambda: None)
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     window._on_run_failed("boom")
 
-    assert critical_calls[0][2] == "boom"
+    assert window.run_problems == ["Run failed: boom"]
 
 
 def test_monte_carlo_failed_dialog_mentions_the_log_file_when_configured(window, monkeypatch):
+    """A failed Monte Carlo batch names the log file, like a failed run."""
     from pathlib import Path
-
-    from PySide6.QtWidgets import QMessageBox
 
     from spacemissionstudio.gui import main_window
 
     fake_log_path = Path("/tmp/fake/spacemissionstudio_20300101T000000Z.log")
     monkeypatch.setattr(main_window, "get_log_file_path", lambda: fake_log_path)
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     window._on_monte_carlo_failed("boom")
 
-    assert str(fake_log_path) in critical_calls[0][2]
+    assert str(fake_log_path) in window.run_problems[0]
 
 
-def test_run_monte_carlo_rejects_disabled_monte_carlo(window, monkeypatch):
-    from PySide6.QtWidgets import QMessageBox
-
+def test_run_monte_carlo_rejects_disabled_monte_carlo(window):
+    """Monte Carlo turned off: said once, and the Monte Carlo page opens
+    where it is turned on."""
     _add_valid_spacecraft(window)  # monte_carlo defaults to disabled
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     window.on_run_monte_carlo()
-    assert len(critical_calls) == 1
-    assert "enable monte carlo" in critical_calls[0][2].lower()
+    assert len(window.run_problems) == 1
+    assert "enable monte carlo" in window.run_problems[0].lower()
     assert window._mc_worker is None
 
 
@@ -844,17 +821,15 @@ def _enable_monte_carlo(window):
 
 def test_run_monte_carlo_refuses_a_folder_holding_other_files(window, monkeypatch, tmp_path):
     """Audit M10: the batch must never mix with (or be mistaken for) other files."""
-    from PySide6.QtWidgets import QFileDialog, QMessageBox
+    from PySide6.QtWidgets import QFileDialog
 
     _enable_monte_carlo(window)
     (tmp_path / "notes.txt").write_text("mine", encoding="utf-8")
     monkeypatch.setattr(QFileDialog, "getExistingDirectory", staticmethod(lambda *a, **k: str(tmp_path)))
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     window.on_run_monte_carlo()
     assert window._mc_worker is None
-    assert "empty folder" in critical_calls[0][2]
+    assert "empty folder" in window.run_problems[0]
 
 
 def test_run_monte_carlo_asks_before_replacing_an_earlier_batch(window, monkeypatch, tmp_path):
@@ -1533,8 +1508,8 @@ def test_run_ensures_vizard_is_running_before_a_live_stream_run(window, monkeypa
 
 
 def test_run_refuses_to_start_when_vizard_cannot_be_confirmed(window, monkeypatch):
-    from PySide6.QtWidgets import QMessageBox
-
+    """A live Vizard stream that cannot be confirmed running stops the run
+    before it starts, and says why."""
     from spacemissionstudio.engine.vizard import VizardRequest
     from spacemissionstudio.gui.main_window import MainWindow
     from spacemissionstudio.gui.run_worker import RunWorker
@@ -1542,14 +1517,12 @@ def test_run_refuses_to_start_when_vizard_cannot_be_confirmed(window, monkeypatc
     _add_valid_spacecraft(window)
     window._vizard_request = VizardRequest(live_stream=True)
     monkeypatch.setattr(MainWindow, "on_launch_vizard", lambda self: False)
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
     start_calls = []
     monkeypatch.setattr(RunWorker, "start", lambda self: start_calls.append(1))
 
     window.on_run()
 
-    assert len(critical_calls) == 1
+    assert len(window.run_problems) == 1 and "Vizard is not connected" in window.run_problems[0]
     assert start_calls == []
     assert window._run_worker is None  # never even constructed
 
@@ -1745,7 +1718,7 @@ def test_run_cancelled_updates_results_widget_and_status(window):
     assert window.results_widget.series_combo.count() == 1
     assert window.results_widget._epoch_utc == "2032-01-01T00:00:00"
     assert window.current_view() is window.results_widget
-    assert window.statusBar().currentMessage() == "Run cancelled by user."
+    assert window.statusBar().currentMessage() == "Run 1 cancelled."
 
 
 def test_run_cancelled_with_command_summary_shows_mission_output_tab(window):
@@ -1786,7 +1759,7 @@ def test_end_to_end_cancel_signal_updates_window_without_crashing(window, qtbot,
     # slot's own observable effect rather than the thread state.
     qtbot.waitUntil(lambda: not window.abort_action.isEnabled(), timeout=5000)
 
-    assert window.statusBar().currentMessage() == "Run cancelled by user."
+    assert window.statusBar().currentMessage() == "Run 1 cancelled."
 
 
 def test_about_dialog_shows_version_and_basilisk_status(window, monkeypatch):

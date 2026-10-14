@@ -743,8 +743,9 @@ class ResultsWidget(QWidget):
             self.provenance_label.setText("")
             self.provenance_label.setToolTip("")
             return
+        run = f"{self._current_run.name} · " if self._current_run is not None else ""  # U-22
         self.provenance_label.setText(
-            f"SpaceMissionStudio {provenance.spacemissionstudio_version} · "
+            f"{run}SpaceMissionStudio {provenance.spacemissionstudio_version} · "
             f"Basilisk {provenance.basilisk_version} · {provenance.integrator.upper()}, "
             f"{provenance.dynamics_task_rate_s:g} s step · {_short_utc(provenance.run_started_utc)}"
         )
@@ -838,6 +839,9 @@ class ResultsWidget(QWidget):
         # the runs are interchangeable, so one thin, translucent colour and
         # one legend entry rather than a colour (and legend row) each.
         ensemble = len(series.columns) > 1 and all(str(c).startswith("run_") for c in series.columns)
+        # Compared with another run, each trace says which run it is (U-22).
+        own_run = (f" (Run {self._current_run.number})"
+                   if self._current_run is not None and self.comparison_run() is not None else "")
         for i, column in enumerate(series.columns):
             if display.wrap_period:
                 keep = _wrapping_display_indices(len(display_data))
@@ -847,7 +851,8 @@ class ResultsWidget(QWidget):
                 x_shown, y_shown = x_array[keep], display_data[keep, i]
             fig.add_trace(go.Scatter(
                 x=list(x_shown) if x_array.dtype == object else x_shown, y=y_shown, mode="lines",
-                name=(f"Each run ({len(series.columns)})" if ensemble else column_labels.get(column, column)),
+                name=(f"Each run ({len(series.columns)})" if ensemble
+                      else f"{column_labels.get(column, column)}{own_run}"),
                 line=(dict(color=_SERIES_COLORS[0], width=1) if ensemble
                       else dict(color=_SERIES_COLORS[i % len(_SERIES_COLORS)], width=2)),
                 **(dict(opacity=0.45, legendgroup="runs", showlegend=i == 0,
@@ -1091,6 +1096,7 @@ class ResultsWidget(QWidget):
         self.compare_combo.blockSignals(False)
         for widget in (self.compare_label, self.compare_combo, self.diff_button):
             widget.setVisible(bool(others) and current is not None)
+        self._update_provenance_label()
         self._redraw()
 
     def comparison_run(self):

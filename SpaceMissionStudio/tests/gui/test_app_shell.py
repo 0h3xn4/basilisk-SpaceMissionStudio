@@ -90,9 +90,9 @@ def test_the_top_bar_says_saved_for_a_saved_file(window, tmp_path):
 
 
 def test_the_chip_follows_a_finished_run(window):
-    """Idle at start; "Running" while busy, with the elapsed time; "Done
-    in ..." afterwards, and the top bar keeps the run's time, state and
-    length."""
+    """Idle at start; "Running" while busy, with the elapsed time; "Run 1:
+    done in ..." afterwards, and the top bar keeps the run's name, time,
+    state and length (U-22)."""
     from spacemissionstudio.engine.results import ResultSet
 
     chip = window.top_bar.chip
@@ -106,7 +106,8 @@ def test_the_chip_follows_a_finished_run(window):
 
     window._last_run_scenario = window.scenario_editor.to_scenario()
     window._on_run_finished(ResultSet(scenario_name=window._last_run_scenario.name))
-    assert (chip.state, chip.text()) == ("done", "Done in 1 min 05 s")
+    assert (chip.state, chip.text()) == ("done", "Run 1: done in 1 min 05 s")
+    assert "Run 1 at " in window.top_bar.detail_label.text()
     assert ", done, 1 min 05 s" in window.top_bar.detail_label.text()
 
 
@@ -120,7 +121,7 @@ def test_the_chip_shows_a_live_run_percentage(window):
 
 @pytest.mark.parametrize("handler, state, text", [
     ("failed", "failed", "Failed"),
-    ("cancelled", "cancelled", "Cancelled"),
+    ("cancelled", "cancelled", "Run 1: cancelled"),
 ])
 def test_the_chip_shows_failed_and_cancelled_runs(window, handler, state, text):
     """A failed or cancelled run leaves its state on the chip and in the
