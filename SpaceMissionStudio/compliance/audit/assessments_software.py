@@ -63,7 +63,7 @@ SOFTWARE_RULES = [
      "(manifest.json, capture.json), the interfaces (ICD.md), the parameter traceability (TRACEABILITY.md) and its "
      "verification (unit tests, the replay of a recorded run, and a SIL harness that runs it against the simulation, "
      "SRS-F-19).", "-", "S", "no", ""),
-    ("E-ST-40C", "5.3.2.5a", "P", "compliance/docs/SDP.md section 6 (configuration management description); git", "Changes go through git and CI; no change board (waived, D-12) and releases are tagged on develop (v3.0.0 on a84ae3784, 2026-10-12; docs/developer/releasing.md).", "-", "S", "no", "R14,D-12"),
+    ("E-ST-40C", "5.3.2.5a", "P", "compliance/docs/SDP.md section 6 (configuration management description); git", "Changes go through git and CI; no change board (waived, D-12) and releases are tagged on develop (from 1.0.0 as spacemissionstudio-vX.Y.Z; docs/developer/releasing.md).", "-", "S", "no", "R14,D-12"),
     ("E-ST-40C", "5.3.3*", "N", "-", "No joint or technical reviews held.", _REVIEW_FIX, "M", "no", "H01,D-08"),
     ("E-ST-40C", "5.3.4*", "N", "-", "No project reviews (SRR, PDR, CDR, QR, AR) held.", _REVIEW_FIX, "M", "no", "H01,D-08"),
     ("E-ST-40C", "5.3.5*", "N", "-", "No TRR/TRB/DRB/SVSR held.", _REVIEW_FIX, "S", "no", "H01,D-08"),

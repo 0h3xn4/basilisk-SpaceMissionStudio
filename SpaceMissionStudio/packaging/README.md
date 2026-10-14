@@ -202,9 +202,10 @@ ISCC packaging\windows\spacemissionstudio.iss
 
 **Built and installed in CI.** The workflow
 `.github/workflows/spacemissionstudio-windows-installer.yml` does this on
-a Windows runner. It bundles the wheel attached to a release, checked
-against that release's `SHA256SUMS-linux` (or an older release's
-`SHA256SUMS`). It compiles the script with Inno
+a Windows runner. Started by hand, it bundles the wheel attached to a
+release, checked against that release's `SHA256SUMS-linux`; a push
+bundles a wheel built from the pushed commit, since the release it
+belongs to may not exist yet. It compiles the script with Inno
 Setup, then installs the program silently (`/VERYSILENT /CURRENTUSER`).
 It then runs the installed tool: import, `kernels-status`, `validate`,
 and a run of template 01. The setup program, its checksum
@@ -213,7 +214,7 @@ it from the Actions tab ("SpaceMissionStudio Windows installer", with the
 release tag); with "attach" ticked, a separate job, the only one with
 write access, also uploads the setup program and `SHA256SUMS-windows` to
 the release, replacing earlier copies. A push to `packaging/windows/`
-builds and tests without attaching. It first passed on
+or `constraints.txt` builds and tests without attaching. It first passed on
 2026-10-12 ([run 38315713727](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/38315713727)). Not yet done: the wizard clicked
 through by hand, and the GUI opened from the Start Menu shortcut, on a
 real Windows 10/11 machine.

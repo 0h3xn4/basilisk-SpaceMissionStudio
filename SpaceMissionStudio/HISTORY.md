@@ -10606,3 +10606,12 @@ precondition there. Qt's `cocoa` platform fits the 2560 x 1440 window to
 the runner's screen, so the page is 618 px wide. Deferred with the rest,
 in SRelD K-14; the proposed fix (`WA_DontShowOnScreen` on the test
 window) is in the PR comment.
+
+**The Windows installer workflow on the release PR (#68).** The version
+change in `spacemissionstudio.iss` starts
+`spacemissionstudio-windows-installer.yml`, which bundled the wheel of
+release `v3.0.0`, a release that is gone, so the run failed at its
+download. A push now bundles a wheel built from the pushed commit, and a
+run started by hand defaults to `spacemissionstudio-v1.0.0`. The installer
+is not part of 1.0.0; the workflow still checks that it builds,
+installs and runs.

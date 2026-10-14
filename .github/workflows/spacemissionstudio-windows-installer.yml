@@ -2,10 +2,11 @@
 # (SpaceMissionStudio/packaging/windows/spacemissionstudio.iss) on a Windows
 # runner, then installs it silently there and runs the installed tool. Inno
 # Setup is Windows-only, so this is the one place the installer is built
-# and run. The setup program bundles the wheel attached to a published
-# release (checked against that release's SHA256SUMS-linux, or SHA256SUMS
-# on older releases), so the program it
-# builds belongs to that release. The setup program, its checksum and the
+# and run. Started by hand, the setup program bundles the wheel attached to
+# a published release (checked against that release's SHA256SUMS-linux), so
+# the program it builds belongs to that release. A push bundles a wheel
+# built from the pushed commit instead: it tests the installer script, and
+# the release it belongs to may not exist yet. The setup program, its checksum and the
 # install log are kept as the run's artifact. Started by hand with "attach"
 # ticked, the run also uploads the setup program and its checksum to the
 # release (the only step with write access).
@@ -21,7 +22,7 @@ on:
     inputs:
       release:
         description: "Release tag whose wheel the setup program bundles"
-        default: "v3.0.0"
+        default: "spacemissionstudio-v1.0.0"
       attach:
         description: "Attach the setup program and SHA256SUMS-windows to that release"
         type: boolean
@@ -39,7 +40,7 @@ jobs:
         shell: pwsh
         working-directory: SpaceMissionStudio
     env:
-      RELEASE: ${{ inputs.release || 'v3.0.0' }}
+      RELEASE: ${{ inputs.release || 'spacemissionstudio-v1.0.0' }}
       GH_TOKEN: ${{ github.token }}
       QT_QPA_PLATFORM: offscreen
     steps:
@@ -47,11 +48,22 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.11"
+      - name: The wheel built from this commit (push)
+        if: github.event_name == 'push'
+        run: |
+          python -m pip install --quiet build
+          if ($LASTEXITCODE -ne 0) { throw "pip install build failed" }
+          python -m build --wheel --outdir packaging\windows\dist
+          if ($LASTEXITCODE -ne 0) { throw "python -m build failed" }
+          $wheel = Get-ChildItem packaging\windows\dist\spacemissionstudio-*.whl | Select-Object -First 1
+          $version = (Select-String -Path packaging\windows\spacemissionstudio.iss -Pattern '#define MyAppVersion "([^"]+)"').Matches[0].Groups[1].Value
+          if ($wheel.Name -notlike "spacemissionstudio-$version-*") { throw "$($wheel.Name) is not version $version of the .iss" }
+          Write-Host "Bundling $($wheel.Name), built from $env:GITHUB_SHA"
       - name: The release's wheel, checked against its SHA256SUMS-linux
+        if: github.event_name != 'push'
         run: |
           gh release download $env:RELEASE --repo $env:GITHUB_REPOSITORY --pattern "spacemissionstudio-*.whl" --pattern "SHA256SUMS*" --dir release
           $wheel = Get-ChildItem release\spacemissionstudio-*.whl | Select-Object -First 1
-          # SHA256SUMS-linux lists the wheel (SHA256SUMS on releases before 3.0.0's rename).
           $line = Select-String -Path release\SHA256SUMS* -SimpleMatch $wheel.Name | Select-Object -First 1
           if (-not $line) { throw "no SHA256SUMS file of $env:RELEASE lists $($wheel.Name)" }
           $expected = $line.Line.Split(" ")[0]
