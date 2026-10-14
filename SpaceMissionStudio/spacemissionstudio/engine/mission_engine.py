@@ -205,8 +205,13 @@ class MissionEngine:
     """
 
     def __init__(self, scenario: Scenario, service: Optional[SimulationService] = None,
-                 should_cancel: Optional[Callable[[], bool]] = None, allow_scripts: bool = False):
+                 should_cancel: Optional[Callable[[], bool]] = None, allow_scripts: bool = False,
+                 on_step: Optional[Callable[[int, int, Command], None]] = None):
         self.scenario = scenario
+        # Called before each enabled top-level command with (its number from
+        # 1, how many enabled top-level commands there are, the command): the
+        # GUI's progress strip shows "Step 2 of 5: ..." from it.
+        self._on_step = on_step
         # script_block runs unrestricted Python from the scenario file: it
         # runs only when the caller has the user's explicit consent
         # (SRS-S-03; CLI --allow-scripts, GUI confirmation).
@@ -279,11 +284,17 @@ class MissionEngine:
     # -- command tree walking ------------------------------------------------
 
     def _run_commands(self, commands: List[Command], summary: CommandSummary, path: str) -> None:
+        top_level = path == "mission_sequence"
+        total = sum(1 for command in commands if command.enabled)
+        step = 0
         for i, command in enumerate(commands):
             if not command.enabled:  # left out, as if commented out; keeps the other commands' paths
                 continue
             if self._should_cancel is not None and self._should_cancel():
                 raise MissionEngineCancelled(self.service._extract_results(), summary)
+            step += 1
+            if top_level and self._on_step is not None:
+                self._on_step(step, total, command)
             self._run_command(command, summary, f"{path}[{i}]")
 
     def _run_command(self, command: Command, summary: CommandSummary, path: str) -> None:

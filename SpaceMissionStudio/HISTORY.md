@@ -9739,3 +9739,72 @@ every problem listed) and `tests/test_problem_location.py` (steps). The
 seven tests of the old dialog flow in
 `tests/gui/test_mission_sequence_editor.py` now drive the list and its form;
 the workspace test lists the JSON node.
+
+## UX iteration 4a: one Run, and the progress strip (2026-10-13)
+
+The first part of the Run feedback iteration: U-18 (more than one way to
+run), U-19 (progress only as a percentage, only with Live plot on, in a
+120 px status-bar bar), the Esc of U-41 and U-46 (Live Plot looking like a
+pressed tab). Decision 3 was asked and taken: Run with a mode.
+
+**One Run.** `run_action` is **Run** (`Ctrl+R`). A mode button beside it
+(`run_mode_button`, its menu the Run menu's **Run mode** submenu) picks
+what Run starts: **Single run** (`_launch_run`, as before), **Monte
+Carlo** (`on_run_monte_carlo`, as before; the toolbar's Run Monte Carlo
+button and the menu entry are gone) or **SIL**. SIL asks which spacecraft
+when more than one can run its flight software in the loop
+(`exportable_reason`), then for the program as the Flight Software page
+does (`ask_sil_options`); with none it says so and opens that page. The
+page keeps its per-spacecraft **Run SIL...**: it names the spacecraft, and
+it now sets the SIL mode and starts the same run. While a run goes, Run,
+the mode button and the modes are disabled.
+
+**The progress strip** (`gui/app_shell.py`, `RunProgressStrip`), under the
+top bar while a run goes: the phase, a bar (busy until a fraction arrives),
+"25 % · 0:08 elapsed · about 0:24 left", and **Cancel (Esc)**, which asks
+the run to stop and then reads "Cancelling..." until it does. The time left
+is estimated from the fraction done (elapsed x (1 - f) / f) once there is
+2 % and 3 s to go on, and not before: an early guess swings too much to be
+useful. The status chip mirrors the strip. The status bar's busy bar and
+elapsed label are gone; `_busy_progress` and `_busy_label` are now the
+strip's bar and time label.
+
+Where the phases come from:
+
+- a run (`RunWorker`): its new `phase` and `fraction` signals. Every chunk
+  of the propagation now reports "Propagating: day 0.40 of 1" and its
+  fraction, with Live plot on or off; Live plot still decides whether the
+  partial results are sent to the plots. A SIL run says "Propagating with
+  sat-1's flight software in the loop: ...";
+- a Mission Sequence: `MissionEngine` takes `on_step(number, total,
+  command)`, called before each enabled top-level step (nested and
+  disabled steps are not counted), so the strip reads "Step 2 of 5: Burn
+  5 m/s on sat-1" (the step's sentence from 3c) and the bar counts the
+  steps done;
+- a Monte Carlo batch: Basilisk's Controller has no progress hook, but it
+  writes each case's `run<i>.data` when the case ends, and the batch's
+  earlier files are removed before it starts, so
+  `monte_carlo_results.finished_cases()` counts them once a second: "Monte
+  Carlo: 37 of 200 cases done". A batch cannot be stopped part way (the
+  Controller has no way to), so its Cancel is disabled and says why.
+
+**Esc** is Cancel Run's shortcut. The action is enabled only while a run
+can be cancelled, so Esc does nothing otherwise and dialogs keep it.
+
+**Live plot** is a toggle that says its state, "Live plot: on" or "Live
+plot: off", rather than a button that looked pressed.
+
+Found on the way: the capabilities page said Abort cancelled a Monte Carlo
+batch; it cannot, and now says so. A capture run with an empty home folder
+showed what 4b fixes next: a run failure (here, the gravity model not
+installed) still opens a message box.
+
+Tests: `tests/gui/test_run_feedback.py` (Run starting each mode, the mode
+menu, SIL with no spacecraft that can and with one, the strip's phase,
+percentage, elapsed and remaining time, no early guess of the time left,
+Esc cancelling, a batch's cases counted and its Cancel disabled, the worker
+reporting phase and fraction with Live plot off, a sequence's steps, the
+Live plot label, the mode locked during a run) and
+`tests/test_mission_engine.py` (`on_step` hearing each enabled top-level
+step). The toolbar tests now find the modes in the mode button's menu, and
+3D Model after the run controls.

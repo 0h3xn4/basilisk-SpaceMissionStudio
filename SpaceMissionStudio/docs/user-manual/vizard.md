@@ -27,7 +27,7 @@ The app remembers where Vizard is.
 2. Choose what to show: **Camera starts locked on** (the central body by
    default, or a spacecraft), **Show each spacecraft's orbit**, **Show the
    flown path**, **Show ground tracks**.
-3. **Run > Run Simulation.**
+3. **Run** (`Ctrl+R`).
 4. After a run that wrote a playback file, **Open in Vizard** on the
    Results tab opens it.
 

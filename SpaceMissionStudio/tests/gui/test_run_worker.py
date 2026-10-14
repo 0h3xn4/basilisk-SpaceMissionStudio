@@ -113,7 +113,7 @@ def _install_fake_mission_engine(monkeypatch, run_impl):
     import types
 
     class FakeMissionEngine:
-        def __init__(self, scenario, service=None, should_cancel=None, allow_scripts=False):
+        def __init__(self, scenario, service=None, should_cancel=None, allow_scripts=False, on_step=None):
             self.scenario = scenario
             self.service = service
             self.should_cancel = should_cancel

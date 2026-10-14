@@ -39,7 +39,7 @@ or build one up from an empty scenario.
    the message names the field to fix, and **Problems** in the side panel
    takes you to it with a double-click. **Explain**, in the side panel, already shows
    the orbit type and the predicted ground passes.
-6. **File > Save As...**, then **Run > Run Simulation**.
+6. **File > Save As...**, then **Run** (`Ctrl+R`).
 
 ## Then grow it, one step at a time
 

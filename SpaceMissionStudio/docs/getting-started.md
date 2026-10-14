@@ -190,7 +190,7 @@ orbit for one day, with a ground station in Berlin.
 3. Click **Open Template**. The **Scenario Editor** shows the mission; the
    **Explain** page of the side panel says what it switches on, and predicts
    `berlin-gs: 4 passes`.
-4. **Run > Run Simulation** (`Ctrl+R`). It takes a few seconds.
+4. **Run** on the toolbar (`Ctrl+R`). It takes a few seconds.
 5. The **Results** tab opens. Pick `my-sat.position_N` in **Series** to
    see the orbit.
 6. Open the **Events** tab: four Berlin passes (the first about 10 to 18

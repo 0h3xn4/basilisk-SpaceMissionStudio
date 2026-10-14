@@ -264,16 +264,17 @@ def _accept_the_model_editor(monkeypatch, model):
 
 
 def test_the_3d_model_entry_is_on_the_main_toolbar(window, qtbot):
-    """3D Model... sits on the main toolbar after Run Monte Carlo, visible
-    at the window's own size, and in the Tools menu, so the model editor is
-    not only a tab of the spacecraft editor."""
+    """3D Model... sits on the main toolbar after the run controls (Run, its
+    mode, Cancel, Live plot), visible at the window's own size, and in the
+    Tools menu, so the model editor is not only a tab of the spacecraft
+    editor."""
     from PySide6.QtWidgets import QToolBar
 
     window.show()
     qtbot.waitExposed(window)
     toolbar = window.findChild(QToolBar, "mainToolBar")
     actions = [a for a in toolbar.actions() if not a.isSeparator()]
-    assert actions.index(window.model_3d_action) == actions.index(window.monte_carlo_action) + 1
+    assert actions.index(window.model_3d_action) == actions.index(window.live_plot_action) + 1
     assert toolbar.widgetForAction(window.model_3d_action).isVisibleTo(window)
     tools = next(a.menu() for a in window.menuBar().actions() if a.text() == "&Tools")
     assert window.model_3d_action in tools.actions()

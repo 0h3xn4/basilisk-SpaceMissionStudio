@@ -93,6 +93,10 @@ class RunWorker(QThread):
     progress = Signal(object, float)  # engine.results.ResultSet (partial), fraction_complete in [0, 1]
     cancelled = Signal(object, object)  # engine.results.ResultSet (partial), Optional[engine.results.CommandSummary]
     sil_report = Signal(object, str)  # sil.report.SilReport, and the failure message ("" when it ran to the end)
+    # What the run is doing ("Propagating: day 0.4 of 1", "Step 2 of 5: ..."), and how far it is in [0, 1]:
+    # sent for every run, with Live plot on or off, for the progress strip (docs/ux-audit.md U-19).
+    phase = Signal(str)
+    fraction = Signal(float)
 
     def __init__(self, scenario: Scenario, vizard_request: Optional[object] = None, live: bool = False,
                  parent=None, allow_scripts: bool = False, sil: Optional[tuple] = None):
@@ -138,6 +142,7 @@ class RunWorker(QThread):
             return
         try:
             command_summary = None
+            self.phase.emit("Building the simulation in Basilisk")
             if self.sil is not None:
                 self._run_sil()
                 return
@@ -148,13 +153,14 @@ class RunWorker(QThread):
                 try:
                     result, command_summary = MissionEngine(
                         self.scenario, service=service, should_cancel=self._should_cancel,
-                        allow_scripts=self.allow_scripts,
+                        allow_scripts=self.allow_scripts, on_step=self._on_step,
                     ).run()
                 except MissionEngineCancelled as exc:
                     self.cancelled.emit(exc.partial_result, exc.summary)
                     return
             else:
                 def on_progress(partial, fraction):
+                    self._report(fraction, "Propagating")
                     if self.live:
                         self.progress.emit(partial, fraction)
 
@@ -174,15 +180,31 @@ class RunWorker(QThread):
             return
         self.finished_ok.emit(result, command_summary)
 
+    def _report(self, fraction: float, doing: str) -> None:
+        """Send the phase ("Propagating: day 0.4 of 1") and the fraction."""
+        total_days = float(self.scenario.sim_settings.duration_days)  # [day]
+        decimals = 1 if total_days >= 10.0 else 2  # a 1-day run moves in hundredths of a day
+        self.phase.emit(f"{doing}: day {fraction * total_days:.{decimals}f} of {total_days:g}")
+        self.fraction.emit(float(fraction))
+
+    def _on_step(self, number: int, total: int, command) -> None:
+        """A Mission Sequence step starts: "Step 2 of 5: Burn 5 m/s on sat-1"."""
+        from .mission_sequence_editor import step_sentence
+
+        self.phase.emit(f"Step {number} of {total}: {step_sentence(command)}")
+        self.fraction.emit((number - 1) / total if total else 0.0)
+
     def _run_sil(self) -> None:
         from ..sil.contract import SilError
         from ..sil.runner import SilCancelled, SilRunError, run_sil
 
+        name, options = self.sil
+
         def on_progress(partial, fraction):
+            self._report(fraction, f"Propagating with {name}'s flight software in the loop")
             if self.live:
                 self.progress.emit(partial, fraction)
 
-        name, options = self.sil
         try:
             result, report = run_sil(self.scenario, name, options, vizard_request=self.vizard_request,
                                      on_progress=on_progress, should_cancel=self._should_cancel)

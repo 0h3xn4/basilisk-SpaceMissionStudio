@@ -156,7 +156,7 @@ A few things to notice right away:
   Tools open the pages listed below; View shows or hides the side panel
   and puts the layout back with **Reset Layout**.
 * A row of toolbar buttons just below the menus, mirroring the most
-  common menu actions (New Scenario, Open, Save, Run Simulation, ...)
+  common menu actions (New Scenario, Open, Save, Run, ...)
   so you don't have to open a menu every time. **3D Model...** at its
   end opens the 3D model editor for a spacecraft (Section 6).
 * Five main tabs:
@@ -216,9 +216,12 @@ up using a template as-is or editing it into something new.
    app shows the mission's **Scenario** page -- you don't need to look at
    or understand it yet, just confirm something loaded (its name appears
    in the "Name" field at the top).
-3. Open the **Run** menu and choose **Run Simulation** (or click the
-   matching toolbar button, or press `Ctrl+R`). The tag in the top bar
-   shows progress; a short run like this one finishes in seconds.
+3. Click **Run** on the toolbar (or **Run > Run**, or press `Ctrl+R`).
+   The mode beside it says what Run starts: **Single run** here. While it
+   runs, a strip under the top bar shows what it is doing ("Propagating:
+   day 0.40 of 1"), how far it is, the time so far and, once it can tell,
+   about how long is left; **Cancel** (`Esc`) stops it. A short run like
+   this one finishes in seconds.
 4. When it finishes, the app switches to the **Results** tab
    automatically. Pick a series from the **Series** dropdown (e.g. a
    spacecraft's position) to see it plotted. Hover over the plot to read
@@ -406,7 +409,7 @@ The quickest way to a mission of your own is a starter template (22 or
    to the field). **Explain**, in the side panel,
    already shows the orbit type, the ground passes and what the
    environment includes, before anything runs.
-6. **File > Save As...**, then **Run > Run Simulation**.
+6. **File > Save As...**, then **Run** (`Ctrl+R`).
 7. Grow it one step at a time, running after each: switch to *Full
    attitude* and pick a pointing mode on **Attitude control**; add
    sensors and actuators; add station keeping on **Power / propulsion /
@@ -650,7 +653,8 @@ and are listed in the ICD as not exported.
 
 ### Running the flight software in the loop
 
-**Run SIL...** on a spacecraft's card (or `spacemissionstudio sil`) runs
+**Run SIL...** on a spacecraft's card, **Run** in **SIL** mode (it asks
+which spacecraft when more than one can), or `spacemissionstudio sil` runs
 the scenario with that spacecraft's flight software in a separate
 program: software in the loop (SIL). Each step the tool sends the
 program the spacecraft's inputs, waits for its commands, and gives them
@@ -662,7 +666,7 @@ they computed.
 1. Export the flight software and build it (above): the program is
    `<folder>/build/fsw_host`. For flight software of your own, build
    `fsw_adapter_host` from the export's `adapter/` (its `ADAPTER_GUIDE.md`).
-2. Press **Run SIL...**. The dialog finds the export's `fsw_host`, or
+2. Press **Run SIL...** (or **Run** in SIL mode). The dialog finds the export's `fsw_host`, or
    choose another program. It shows the program's SHA-256. Tick that you
    trust it (it runs with your user's rights) and press **Run SIL**.
 3. The run goes as any other run (progress bar, live plots, Abort). At
@@ -879,11 +883,13 @@ variations and reports the spread of outcomes, instead of one single
 result. In the Scenario Editor's **Monte Carlo** section, check
 **Enabled**, set how many runs and how many to run in parallel, and add
 one or more **dispersions** (which quantity varies, and by how much) --
-then use **Run > Run Monte Carlo...** instead of the ordinary Run
-Simulation. This is a more advanced feature; most people won't need it
+then set the run mode beside **Run** to **Monte Carlo** and press
+**Run**. This is a more advanced feature; most people won't need it
 for a first mission. Templates 09 and 25 are ready-made batches.
 
-Run Monte Carlo asks for a folder, saves every run there, and opens the
+A Monte Carlo run asks for a folder, saves every run there (the
+progress strip counts the cases done; a batch cannot be cancelled part
+way, as Basilisk's Controller has no way to stop it), and opens the
 **Monte Carlo** view of the Results tab on the batch (the view is there
 whenever the scenario has Monte Carlo on, or a batch is open):
 
@@ -928,7 +934,7 @@ carry their own coefficients).
 
 ## 11. Common questions and problems
 
-**"Run Simulation" says Basilisk isn't installed/built.**
+**Run says Basilisk isn't installed/built.**
 SpaceMissionStudio's graphical shell opens fine on its own, but actually
 *running* a simulation needs the separate Basilisk engine installed too.
 If you used the `.deb`/`.exe` installer, this should already be set up;
@@ -951,8 +957,8 @@ you may need a few extra system libraries --
 [Troubleshooting](docs/troubleshooting.md#the-results-plot-stays-blank) has the exact package names.
 
 **A simulation is taking too long, or you started the wrong one.**
-**Run > Abort Run** stops it safely at the next checkpoint (not
-instantly) and keeps whatever partial results were already produced --
+**Cancel** on the progress strip (`Esc`, or **Run > Cancel Run**) stops it
+safely at the next checkpoint (not instantly) and keeps whatever partial results were already produced --
 it's always safe to use, never a forced/unsafe kill.
 
 **You want to simulate years, not weeks.** Set the duration (up to about

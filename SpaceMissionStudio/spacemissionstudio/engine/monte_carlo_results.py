@@ -151,6 +151,15 @@ def _is_clutter(path: Path) -> bool:
     return path.name.startswith(".") or path.name.casefold() in _SYSTEM_CLUTTER
 
 
+def finished_cases(folder: "str | Path") -> int:
+    """How many of a running batch's cases have finished: Basilisk's
+    Controller writes a case's ``run<i>.data`` when the case ends (the
+    earlier batch's files are removed before a batch starts), so the GUI can
+    show "37 of 200 cases" without a hook into the Controller."""
+    folder = Path(folder)
+    return sum(1 for _ in folder.glob("run*.data")) if folder.is_dir() else 0
+
+
 def folder_state(folder: "str | Path") -> str:
     """``"empty"`` (or missing), ``"batch"`` (only an earlier batch's files)
     or ``"other"`` (anything else: not a folder, or other files in it).

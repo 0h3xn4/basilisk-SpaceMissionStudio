@@ -130,11 +130,14 @@ def test_toolbar_actions_are_all_visible(window, qtbot):
     toolbar_actions = [a for tb in toolbars for a in tb.actions() if not a.isSeparator()]
 
     for action in (window.new_action, window.open_action, window.save_action, window.run_action,
-                   window.abort_action, window.live_plot_action, window.monte_carlo_action,
+                   window.run_mode_button_action, window.abort_action, window.live_plot_action,
                    window.vizard_action, window.vizard_launch_action, window.check_kernels_action):
         assert action in toolbar_actions, f"{action.text()!r} is missing from every toolbar"
         widget = next(tb.widgetForAction(action) for tb in toolbars if tb.widgetForAction(action) is not None)
         assert widget.isVisibleTo(window), f"{action.text()!r}'s toolbar button is not visible"
+    # The run modes (Monte Carlo among them) are in the mode button's menu, beside Run (U-18).
+    assert window.run_mode_button.menu().actions() == window.run_mode_group.actions()
+    assert window.monte_carlo_action in window.run_mode_group.actions()
 
 
 def test_editing_marks_dirty(window):

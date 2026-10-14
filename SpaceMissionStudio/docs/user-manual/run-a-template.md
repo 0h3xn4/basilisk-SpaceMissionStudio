@@ -11,8 +11,10 @@ How to run one of the 27 ready-made missions and look at what it did.
    and what to look at.
 3. Click **Open Template**. The **Scenario Editor** tab shows the
    mission; **Explain**, in the side panel on the right, summarises it.
-4. **Run > Run Simulation**, or `Ctrl+R`. The status bar shows
-   progress. Template 22 takes a few seconds.
+4. **Run** on the toolbar, or `Ctrl+R` (the mode beside it says
+   **Single run**). A strip under the top bar shows what the run is
+   doing, how far it is and the time left; **Cancel** (`Esc`) stops it.
+   Template 22 takes a few seconds.
 5. The **Results** tab opens. Pick a quantity in **Series**, for example
    `my-sat.position_N`, or click one of the **Suggested** buttons.
 6. Open the **Events** tab to see ground-station passes and eclipses.

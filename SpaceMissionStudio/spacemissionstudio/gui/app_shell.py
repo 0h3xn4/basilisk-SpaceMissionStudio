@@ -23,6 +23,10 @@ visible" and "Target layout"; docs/ux-audit.md U-04, U-06, U-07):
   whether it has unsaved changes, where it came from (a template, a file
   or nothing yet), the last run, and a :class:`StatusChip` (idle,
   running 43 %, done, failed, cancelled).
+* :class:`RunProgressStrip` -- under the top bar while a run is going
+  (U-19): what it is doing ("Step 2 of 5: ...", "Propagating: day 0.4
+  of 1"), a progress bar, the time elapsed and an estimate of the time
+  left, and **Cancel (Esc)**.
 * :class:`StatusBarItems` -- permanent status-bar entries: the Basilisk
   version, the reference data (clicking it opens the Data tab), the
   Earth orientation data and the frames runs use. They read local files
@@ -37,8 +41,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QToolButton, QWidget
+from PySide6.QtCore import QElapsedTimer, QTimer, Signal
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QPushButton, QToolButton, QWidget
 
 CHIP_STATES = ("idle", "running", "done", "failed", "cancelled")
 
@@ -64,6 +68,102 @@ class StatusChip(QLabel):
         # A changed dynamic property only restyles after a re-polish.
         self.style().unpolish(self)
         self.style().polish(self)
+
+
+def clock_text(seconds: float) -> str:
+    """ "0:07", "12:30", "1:02:05"."""
+    seconds = int(max(seconds, 0.0))
+    hours, rest = divmod(seconds, 3600)
+    return f"{hours}:{rest // 60:02d}:{rest % 60:02d}" if hours else f"{rest // 60}:{rest % 60:02d}"
+
+
+class RunProgressStrip(QFrame):
+    """A run in progress, under the top bar: phase, progress, elapsed time,
+    the time left, and Cancel. Hidden while no run is going.
+
+    The time left is estimated from the fraction done once there is enough
+    to go on (2 % and 3 s); before that, and for a run that reports no
+    fraction, it says nothing rather than guess."""
+
+    cancel_requested = Signal()
+
+    def __init__(self, parent: Optional[QWidget] = None) -> None:
+        super().__init__(parent)
+        self.setObjectName("runProgressStrip")
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(12, 4, 12, 4)  # [px]
+        layout.setSpacing(12)  # [px]
+        self.phase_label = QLabel()
+        self.phase_label.setObjectName("runPhase")
+        self.bar = QProgressBar()
+        self.bar.setTextVisible(False)  # the percentage is in the time label and the status chip
+        self.bar.setFixedWidth(200)  # [px]
+        self.time_label = QLabel()
+        self.time_label.setObjectName("runTime")
+        self.cancel_button = QPushButton("Cancel (Esc)")
+        self.cancel_button.clicked.connect(self.cancel_requested)
+        layout.addWidget(self.phase_label, 1)
+        layout.addWidget(self.bar)
+        layout.addWidget(self.time_label)
+        layout.addWidget(self.cancel_button)
+        self._elapsed = QElapsedTimer()
+        self._fraction: Optional[float] = None
+        self._timer = QTimer(self)
+        self._timer.setInterval(500)  # [ms]
+        self._timer.timeout.connect(self.refresh_time)
+        self.hide()
+
+    def start(self, phase: str, cancellable: bool = True, cancel_note: str = "") -> None:
+        """A run starts: ``cancel_note`` says why it cannot be cancelled."""
+        self._elapsed.start()
+        self._fraction = None
+        self.bar.setRange(0, 0)  # busy until a fraction arrives
+        self.phase_label.setText(phase)
+        self.cancel_button.setEnabled(cancellable)
+        self.cancel_button.setText("Cancel (Esc)")
+        self.cancel_button.setToolTip("" if cancellable else cancel_note)
+        self.refresh_time()
+        self._timer.start()
+        self.show()
+
+    def set_phase(self, text: str) -> None:
+        self.phase_label.setText(text)
+
+    def set_fraction(self, fraction: float) -> None:
+        fraction = min(max(float(fraction), 0.0), 1.0)
+        self._fraction = fraction
+        if self.bar.maximum() == 0:
+            self.bar.setRange(0, 100)
+        self.bar.setValue(int(round(fraction * 100)))
+        self.refresh_time()
+
+    def cancelling(self) -> None:
+        """Cancel was asked for: it takes effect at the next checkpoint."""
+        self.cancel_button.setEnabled(False)
+        self.cancel_button.setText("Cancelling...")
+
+    def finish(self) -> None:
+        self._timer.stop()
+        self.hide()
+
+    def elapsed_s(self) -> float:
+        return self._elapsed.elapsed() / 1000.0 if self._elapsed.isValid() else 0.0
+
+    def remaining_s(self) -> Optional[float]:
+        """The estimated time left [s], or None when there is too little to go on."""
+        elapsed, fraction = self.elapsed_s(), self._fraction
+        if fraction is None or fraction < 0.02 or elapsed < 3.0 or fraction >= 1.0:
+            return None
+        return elapsed * (1.0 - fraction) / fraction
+
+    def refresh_time(self) -> None:
+        parts = [f"{clock_text(self.elapsed_s())} elapsed"]
+        if self._fraction is not None:
+            parts.insert(0, f"{int(round(self._fraction * 100))} %")
+        remaining = self.remaining_s()
+        if remaining is not None and remaining >= 1.0:  # [s] under a second, "about 0:00 left" says nothing
+            parts.append(f"about {clock_text(remaining)} left")
+        self.time_label.setText(" · ".join(parts))
 
 
 class TopBar(QWidget):

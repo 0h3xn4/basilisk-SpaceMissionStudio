@@ -45,7 +45,9 @@ Python inside the tool.
 1. Export and build (above). The program is `<folder>/build/fsw_host`.
    For flight software of your own, build `fsw_adapter_host` from the
    export's `adapter/` folder; its `ADAPTER_GUIDE.md` explains how.
-2. Press **Run SIL...** on the card. The dialog finds `fsw_host`, or you
+2. Press **Run SIL...** on the card, or set the mode beside **Run** to
+   **SIL** and press **Run** (it asks which spacecraft when more than one
+   can). The dialog finds `fsw_host`, or you
    choose another program. It shows the program's SHA-256. Tick that you
    trust it (it runs with your rights) and press **Run SIL**.
 3. The run goes as usual. At the end, the Flight Software tab compares
