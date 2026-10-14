@@ -132,6 +132,14 @@ fixes bugs.
   that differ from the oldest ticked run, the events counted with their
   total time, and one series of every run overlaid. **Delete run...**
   removes a saved run.
+- **Fewer message boxes** (UX audit U-39). Messages about files,
+  imports, exports, Vizard and reference data are a toast at the bottom
+  of the window, the status bar and a line in the Log (with the whole
+  message, when the toast says "more in the Log"). A dialog that cannot
+  take what you typed says why above its buttons and stays open. A
+  message box is left only to confirm what cannot be undone, and it says
+  what is lost ("Discard the unsaved changes to my mission? They cannot
+  be recovered.").
 - **Runs are named and say how they went** (UX audit U-21 to U-23,
   U-39). Runs are numbered in the session ("Run 2, 12:19"): the status
   tag, the top bar, the plots' provenance line and, when comparing, every

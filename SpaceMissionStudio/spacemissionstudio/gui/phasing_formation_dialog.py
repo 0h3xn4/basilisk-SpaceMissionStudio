@@ -44,13 +44,13 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
-    QMessageBox,
     QVBoxLayout,
 )
 
 from ..engine.constellation import CENTRAL_BODY_EQUATORIAL_RADIUS_KM
 from ..engine.formation import PhasingFormationRequest
 from ..schema.scenario import ScenarioValidationError, SpacecraftConfig, StationKeepingConfig
+from .feedback import show_dialog_error
 from .widgets import ComboBox, PreciseDoubleSpinBox
 
 
@@ -348,11 +348,10 @@ class PhasingFormationDialog(QDialog):
             if self._spacecraft and self.chief_station_keeping() is not None:
                 self.chief_station_keeping().validate(self.chief_combo.currentData() or "chief")
         except ScenarioValidationError as exc:
-            QMessageBox.critical(self, "Invalid phasing formation request", str(exc))
+            show_dialog_error(self, f"This formation cannot be made: {exc}")
             return
         if self.selected_chief_name() is None:
-            QMessageBox.critical(self, "No chief spacecraft",
-                                  "Add at least one spacecraft to this scenario before generating a formation.")
+            show_dialog_error(self, "No chief spacecraft: add a spacecraft to the scenario first.")
             return
         self.accept()
 

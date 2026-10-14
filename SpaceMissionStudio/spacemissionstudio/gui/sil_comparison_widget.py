@@ -28,11 +28,11 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QAbstractItemView, QFileDialog, QHBoxLayout, QHeaderView, QLabel, QMessageBox,
-                               QPlainTextEdit, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout,
+from PySide6.QtWidgets import (QAbstractItemView, QFileDialog, QHBoxLayout, QHeaderView, QLabel, QPlainTextEdit, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout,
                                QWidget)
 
 from .scenario_explainer_widget import _stat_tile
+from .feedback import report
 from .theme import PALETTE
 from .widgets import TabWidget
 
@@ -203,4 +203,4 @@ class SilComparisonWidget(QWidget):
             path.write_text(self.report.to_json() + "\n", encoding="utf-8")
             self.report.write_residuals_csv(path.with_suffix(".residuals.csv"))
         except OSError as exc:
-            QMessageBox.warning(self, "Could not save the report", str(exc))
+            report(self, f"Could not save the SIL report to {path}: {exc}")

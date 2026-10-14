@@ -169,50 +169,47 @@ def test_save_as_then_open_round_trip(window, tmp_path, monkeypatch):
     assert window.scenario_editor.spacecraft_list.to_list()[0].name == "sat-1"
 
 
-def test_save_with_invalid_scenario_shows_error_and_does_not_write(window, tmp_path, monkeypatch):
-    from PySide6.QtWidgets import QFileDialog, QMessageBox
+def test_save_with_invalid_scenario_shows_error_and_does_not_write(window, tmp_path, monkeypatch, reported):
+    """No message box (U-39): a warning toast says why, and Problems opens
+    at the field, as a refused run does."""
+    from PySide6.QtWidgets import QFileDialog
 
     save_path = tmp_path / "invalid.json"
     monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: (str(save_path), "")))
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     window.on_save_as()  # no spacecraft yet -- invalid
 
     assert not save_path.exists()
-    assert len(critical_calls) == 1
+    assert len(reported) == 1 and reported[0][1] == "warning" and reported[0][0].startswith("Cannot save:")
+    assert window.side_tabs.currentWidget() is window.problems_widget
 
 
-def test_a_save_that_cannot_be_written_is_reported(window, tmp_path, monkeypatch):
+def test_a_save_that_cannot_be_written_is_reported(window, tmp_path, monkeypatch, reported):
     """Audit M9: an OSError from saving (here a folder path under a file)
     was only logged; the user now sees "Could not save" and the scenario
     stays unsaved."""
-    from PySide6.QtWidgets import QFileDialog, QMessageBox
+    from PySide6.QtWidgets import QFileDialog
 
     _add_valid_spacecraft(window)
     blocker = tmp_path / "a_file"
     blocker.write_text("not a folder")
     monkeypatch.setattr(QFileDialog, "getSaveFileName",
                         staticmethod(lambda *a, **k: (str(blocker / "scenario.json"), "")))
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
-
     window.on_save_as()
 
-    assert len(critical_calls) == 1 and critical_calls[0][1] == "Could not save"
+    assert len(reported) == 1 and reported[0][1] == "error"
+    assert reported[0][0].startswith("Could not save the scenario to") and "(more in the Log)" in reported[0][0]
     assert window._current_path is None and window._dirty
 
 
-def test_open_missing_file_shows_error(window, tmp_path, monkeypatch):
-    from PySide6.QtWidgets import QFileDialog, QMessageBox
+def test_open_missing_file_shows_error(window, tmp_path, monkeypatch, reported):
+    from PySide6.QtWidgets import QFileDialog
 
     missing = tmp_path / "does_not_exist.json"
     monkeypatch.setattr(QFileDialog, "getOpenFileName", staticmethod(lambda *a, **k: (str(missing), "")))
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     window.on_open()
-    assert len(critical_calls) == 1
+    assert len(reported) == 1 and reported[0][1] == "error" and str(missing) in reported[0][0]
     assert window._current_path is None
 
 
@@ -292,20 +289,16 @@ def test_choosing_a_customized_scenario_with_unsaved_changes_prompts_first(windo
     assert window.current_view() is window.load_scenario_widget
 
 
-def test_customized_scenario_that_fails_validation_shows_error_not_crash(window, monkeypatch):
+def test_customized_scenario_that_fails_validation_shows_error_not_crash(window, monkeypatch, reported):
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.schema import load_scenario
-    from PySide6.QtWidgets import QMessageBox
-
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     scenario = load_scenario(TEMPLATES_DIR / "03_geo_station_keeping.json")
     scenario.spacecraft[0].geo_station_keeping.longitude_deadband_deg = -1.0  # invalid: must be > 0
 
     window.load_scenario_widget.scenario_customized.emit(scenario)
 
-    assert len(critical_calls) == 1
+    assert len(reported) == 1 and reported[0][0].startswith("Could not open the customized scenario")
     assert window.current_view() is window.load_scenario_widget
 
 
@@ -316,14 +309,11 @@ def test_on_new_switches_to_editor_tab(window):
 
 
 def test_open_path_returns_true_on_success_false_on_failure(window, tmp_path, monkeypatch):
-    from PySide6.QtWidgets import QMessageBox
-
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
 
     template_path = sorted(TEMPLATES_DIR.glob("*.json"))[0]
     assert window.open_path(template_path) is True
 
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: None))
     missing = tmp_path / "does_not_exist.json"
     assert window.open_path(missing) is False
 
@@ -1245,21 +1235,16 @@ def test_fetch_vizard_with_progress_success_remembers_and_returns_the_path(windo
     assert remembered == [fetched]
 
 
-def test_fetch_vizard_with_progress_failure_shows_error_and_returns_none(window, monkeypatch):
-    from PySide6.QtWidgets import QMessageBox
-
+def test_fetch_vizard_with_progress_failure_shows_error_and_returns_none(window, monkeypatch, reported):
     from spacemissionstudio.gui import main_window
 
     monkeypatch.setattr(main_window, "VizardFetchWorker",
                          lambda parent=None: _FakeVizardFetchWorker(outcome_error="could not download: boom"))
-    shown = []
-    monkeypatch.setattr(main_window.QMessageBox, "critical",
-                         staticmethod(lambda *a, **k: shown.append(a) or QMessageBox.StandardButton.Ok))
 
     result = window._fetch_vizard_with_progress()
 
     assert result is None
-    assert shown  # a critical dialog was shown with the failure reason
+    assert reported == [("Could not download Vizard: could not download: boom", "error")]  # the reason, no box
 
 
 def _click_message_box_button(button_text):
@@ -1279,9 +1264,7 @@ def _click_message_box_button(button_text):
     return _exec
 
 
-def test_launch_vizard_failure_shows_error(window, monkeypatch):
-    from PySide6.QtWidgets import QMessageBox
-
+def test_launch_vizard_failure_shows_error(window, monkeypatch, reported):
     from pathlib import Path
 
     from spacemissionstudio.gui import main_window
@@ -1292,12 +1275,10 @@ def test_launch_vizard_failure_shows_error(window, monkeypatch):
         raise OSError("permission denied")
 
     monkeypatch.setattr(main_window, "launch_vizard", raise_oserror)
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     window.on_launch_vizard()
 
-    assert len(critical_calls) == 1
+    assert len(reported) == 1 and reported[0][1] == "error" and "permission denied" in reported[0][0]
     assert window._vizard_process is None
 
 
@@ -1339,11 +1320,10 @@ def test_launch_vizard_shows_the_one_click_hint_once_per_session(window, monkeyp
     direct user report) does not click "Start Visualization" for the
     user -- shown once per session as an info dialog so that one
     remaining click isn't a silent surprise, but not repeated on every
-    single subsequent live-stream launch/run.
+    single subsequent live-stream launch/run. A long info toast since
+    U-39, not a message box.
     """
     from pathlib import Path
-
-    from PySide6.QtWidgets import QMessageBox
 
     from spacemissionstudio.engine.vizard import VizardRequest
     from spacemissionstudio.gui import main_window
@@ -1353,12 +1333,15 @@ def test_launch_vizard_shows_the_one_click_hint_once_per_session(window, monkeyp
     monkeypatch.setattr(main_window, "launch_vizard",
                          lambda path, direct_comm_address=None: _FakeVizardProcess())
     info_calls = []
-    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: info_calls.append(a)))
+    real_toast = main_window.show_toast
+    monkeypatch.setattr(main_window, "show_toast",
+                        lambda parent, message, kind="success", **k: info_calls.append((message, kind))
+                        or real_toast(parent, message, kind, **k))
 
     assert not window._vizard_live_stream_hint_shown
     window.on_launch_vizard()
     assert len(info_calls) == 1
-    assert "Start Visualization" in info_calls[0][2]
+    assert "Start Visualization" in info_calls[0][0] and info_calls[0][1] == "info"
     assert window._vizard_live_stream_hint_shown
 
     # Vizard process still running -> "already running" early return,

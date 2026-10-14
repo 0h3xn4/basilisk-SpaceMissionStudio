@@ -74,11 +74,12 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QLabel,
-    QMessageBox,
     QProgressDialog,
     QVBoxLayout,
     QWidget,
 )
+
+from .feedback import report
 
 _logger = logging.getLogger(__name__)
 
@@ -306,4 +307,5 @@ def maybe_run_startup_fetch(parent: QWidget) -> None:
         lines.append(f"Fetch/update failed unexpectedly: {message}")
 
     if lines:
-        QMessageBox.information(parent, "Fetch/update complete", "\n\n".join(lines))
+        failed = any("could not" in line or "failed" in line for line in lines)
+        report(parent, "Reference data: " + "\n".join(lines), kind="warning" if failed else "success")

@@ -38,7 +38,6 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QListWidget,
     QListWidgetItem,
-    QMessageBox,
     QPushButton,
     QVBoxLayout,
     QWidget,
@@ -46,7 +45,7 @@ from PySide6.QtWidgets import (
 
 from ..schema.scenario import GroundStationConfig, ScenarioValidationError
 from .feedback import (ProblemBanner, bring_into_view, clear_field_error, clear_invalid, clear_on_edit,
-                       mark_invalid, show_field_error, show_toast)
+                       mark_invalid, report, show_field_error, show_toast)
 from .problem_location import GROUND_STATION, locate
 from .widgets import PreciseDoubleSpinBox
 
@@ -255,7 +254,7 @@ class GroundStationListWidget(QWidget):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
             if config.name in existing_names:
-                QMessageBox.critical(self, "Duplicate name", f"A ground station named {config.name!r} already exists.")
+                report(self, f"Not added: a ground station named {config.name!r} already exists", kind="warning")
                 return
             self._configs.append(config)
             self._refresh_list()
@@ -299,8 +298,8 @@ class GroundStationListWidget(QWidget):
         if dialog.exec() == QDialog.DialogCode.Accepted:
             new_config = dialog.to_dataclass()
             if new_config.name in set(other_names):
-                QMessageBox.critical(self, "Duplicate name",
-                                      f"A ground station named {new_config.name!r} already exists.")
+                report(self, f"Not saved: a ground station named {new_config.name!r} already exists",
+                       kind="warning")
                 return
             self._configs[row] = new_config
             self._refresh_list()

@@ -50,6 +50,7 @@ from ..model3d import model as model3d
 from ..schema.scenario import (MESH_UNITS, MODEL_SHAPE_DIMENSIONS, MODEL_SHAPE_FACES, ModelMassPropertiesConfig,
                                ModelMeshConfig, ModelPartConfig, ScenarioValidationError, SpacecraftModelConfig,
                                name_error)
+from .feedback import report, show_dialog_error
 from .model_view_widget import ModelViewWidget
 from .theme import PALETTE
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, TabWidget
@@ -323,7 +324,7 @@ class ModelEditorDialog(QDialog):
             self.import_obj(name, units=options.units.currentData(), up_axis=options.up_axis.currentData(),
                             copy_to_scenario=options.copy_check.isChecked())
         except (OSError, obj_io.ObjError) as exc:
-            QMessageBox.warning(self, "Import failed", str(exc))
+            report(self, f"Could not import {name}: {exc}")
 
     def import_obj(self, path, units: str = "m", up_axis: str = "z", copy_to_scenario: bool = False) -> List[str]:
         """Add every group of the ``.obj`` at ``path`` as a mesh part (mass
@@ -708,7 +709,7 @@ class ModelEditorDialog(QDialog):
             try:
                 notes = self.import_mass_properties(name)
             except mass_import.MassImportError as exc:
-                QMessageBox.warning(self, "Import failed", str(exc))
+                report(self, f"Could not import the mass properties from {name}: {exc}")
                 return
             if notes:
                 self.messages.setText("; ".join(notes))
@@ -761,7 +762,7 @@ class ModelEditorDialog(QDialog):
     def _on_export(self) -> None:
         groups = model3d.obj_groups(self.derived)
         if not groups:
-            QMessageBox.information(self, "Nothing to export", "The model has no part that can be drawn.")
+            report(self, "Nothing to export: the model has no part that can be drawn", kind="info")
             return
         start = str((self._base_dir or Path.home()) / f"{self._spacecraft_name}.obj")
         name, _ = QFileDialog.getSaveFileName(self, "Export the 3D model", start, "Wavefront OBJ (*.obj)")
@@ -769,7 +770,9 @@ class ModelEditorDialog(QDialog):
             try:
                 obj_io.write_obj(name, groups)
             except OSError as exc:
-                QMessageBox.warning(self, "Export failed", str(exc))
+                report(self, f"Could not export the model to {name}: {exc}")
+                return
+            report(self, f"Exported the model to {name}", kind="success")
 
     # -- recomputing -------------------------------------------------------------------------------------------
 
@@ -819,14 +822,14 @@ class ModelEditorDialog(QDialog):
         try:
             self._model.validate(self._spacecraft_name)
         except ScenarioValidationError as exc:
-            QMessageBox.warning(self, "The model is not complete", str(exc))
+            show_dialog_error(self, f"The model is not complete: {exc}")
             return
         self.recompute_now()
         if self.derived.errors:
             answer = QMessageBox.question(
                 self, "Parts that cannot be built",
-                "Some parts cannot be built and are left out:\n\n" + "\n".join(self.derived.errors)
-                + "\n\nKeep the model anyway?")
+                "These parts cannot be built and are left out of the model, its mass and its facets:\n\n"
+                + "\n".join(self.derived.errors) + "\n\nKeep the model without them?")
             if answer != QMessageBox.StandardButton.Yes:
                 return
         self.accept()

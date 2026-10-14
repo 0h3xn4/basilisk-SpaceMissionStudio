@@ -57,7 +57,6 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QMenu,
-    QMessageBox,
     QPlainTextEdit,
     QPushButton,
     QScrollArea,
@@ -78,7 +77,7 @@ from ..schema.command import (
     SUPPORTED_STOP_CONDITIONS,
     Command,
 )
-from .feedback import ProblemBanner, show_toast
+from .feedback import ProblemBanner, show_dialog_error, show_toast
 from .icons import step_icon
 from .page_tree import embed_dialog, watch_edits
 from .theme import PALETTE
@@ -585,7 +584,7 @@ class _CommandEditorDialog(QDialog):
         try:
             self.to_dataclass()
         except ValueError as exc:
-            QMessageBox.critical(self, "Invalid command", str(exc))
+            show_dialog_error(self, f"This command is not valid: {exc}")
             return
         self.accept()
 

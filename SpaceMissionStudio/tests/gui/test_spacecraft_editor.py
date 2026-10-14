@@ -1342,8 +1342,8 @@ def test_list_widget_edit_and_remove(qtbot, monkeypatch):
     assert lw.to_list() == []
 
 
-def test_list_widget_rejects_duplicate_name_on_add(qtbot, monkeypatch):
-    from PySide6.QtWidgets import QDialog, QMessageBox
+def test_list_widget_rejects_duplicate_name_on_add(qtbot, monkeypatch, reported):
+    from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog, SpacecraftListWidget
     from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig
@@ -1358,12 +1358,10 @@ def test_list_widget_rejects_duplicate_name_on_add(qtbot, monkeypatch):
         return QDialog.DialogCode.Accepted
 
     monkeypatch.setattr(SpacecraftEditorDialog, "exec", fake_exec)
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     lw._on_add()
     assert len(lw.to_list()) == 1  # not added
-    assert len(critical_calls) == 1
+    assert reported == [("Not added: a spacecraft named 'dup' already exists", "warning")]
 
 
 def test_list_widget_generate_constellation_appends_generated_spacecraft(qtbot, monkeypatch):
@@ -1422,8 +1420,8 @@ def test_list_widget_generate_constellation_uses_default_template_when_list_empt
     assert len(lw.to_list()) == 2
 
 
-def test_list_widget_generate_constellation_reports_name_collision(qtbot, monkeypatch):
-    from PySide6.QtWidgets import QDialog, QMessageBox
+def test_list_widget_generate_constellation_reports_name_collision(qtbot, monkeypatch, reported):
+    from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftListWidget
@@ -1445,12 +1443,10 @@ def test_list_widget_generate_constellation_reports_name_collision(qtbot, monkey
         return QDialog.DialogCode.Accepted
 
     monkeypatch.setattr(WalkerConstellationDialog, "exec", fake_exec)
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     lw._on_generate_constellation()
     assert len(lw.to_list()) == 1  # nothing added
-    assert len(critical_calls) == 1
+    assert len(reported) == 1 and reported[0][1] == "warning" and "sat-01-01" in reported[0][0]
 
 
 def test_list_widget_generate_constellation_cancel_does_nothing(qtbot, monkeypatch):
@@ -1533,8 +1529,8 @@ def test_list_widget_generate_phasing_formation_appends_follower(qtbot, monkeypa
 
 
 @pytest.mark.requires_basilisk
-def test_list_widget_generate_phasing_formation_reports_name_collision(qtbot, monkeypatch):
-    from PySide6.QtWidgets import QDialog, QMessageBox
+def test_list_widget_generate_phasing_formation_reports_name_collision(qtbot, monkeypatch, reported):
+    from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftListWidget
@@ -1561,12 +1557,10 @@ def test_list_widget_generate_phasing_formation_reports_name_collision(qtbot, mo
         return QDialog.DialogCode.Accepted
 
     monkeypatch.setattr(PhasingFormationDialog, "exec", fake_exec)
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     lw._on_generate_phasing_formation()
     assert len(lw.to_list()) == 2  # nothing added
-    assert len(critical_calls) == 1
+    assert reported == [("Not added: a spacecraft named 'follower-1' already exists", "warning")]
 
 
 def test_list_widget_generate_phasing_formation_cancel_does_nothing(qtbot, monkeypatch):
@@ -1582,14 +1576,14 @@ def test_list_widget_generate_phasing_formation_cancel_does_nothing(qtbot, monke
     assert lw.to_list() == []
 
 
-def test_list_widget_generate_phasing_formation_reports_missing_basilisk(qtbot, monkeypatch):
+def test_list_widget_generate_phasing_formation_reports_missing_basilisk(qtbot, monkeypatch, reported):
     """Does NOT need requires_basilisk: generate_phasing_follower is
     monkeypatched to simulate the "no Basilisk build" case directly, same
     "clear error, not a traceback" pattern every other Basilisk-needing
     GUI action already uses (gui.run_worker) -- exercised here without
     actually needing Basilisk uninstalled.
     """
-    from PySide6.QtWidgets import QDialog, QMessageBox
+    from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftListWidget
@@ -1614,18 +1608,16 @@ def test_list_widget_generate_phasing_formation_reports_missing_basilisk(qtbot, 
         raise ImportError("No module named 'Basilisk'")
 
     monkeypatch.setattr("spacemissionstudio.engine.formation.generate_phasing_follower", fake_generate)
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     lw._on_generate_phasing_formation()
     configs = lw.to_list()
     assert len(configs) == 1  # nothing added beyond the original chief
     assert configs[0].name == "chief-1"
-    assert len(critical_calls) == 1
-    assert "Basilisk" in critical_calls[0][1]
+    assert len(reported) == 1 and reported[0][1] == "error"
+    assert "Basilisk is not installed" in reported[0][0] and "(more in the Log)" in reported[0][0]
 
 
-def test_list_widget_generate_phasing_formation_without_basilisk_reports_clear_error(qtbot, monkeypatch):
+def test_list_widget_generate_phasing_formation_without_basilisk_reports_clear_error(qtbot, monkeypatch, reported):
     """Same as the test above, but against the REAL no-Basilisk import
     path (no mocking of generate_phasing_follower itself) -- regression
     test for a real bug found while writing this feature: the ImportError
@@ -1639,7 +1631,7 @@ def test_list_widget_generate_phasing_formation_without_basilisk_reports_clear_e
     """
     import importlib.util
 
-    from PySide6.QtWidgets import QDialog, QMessageBox
+    from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftListWidget
@@ -1662,14 +1654,12 @@ def test_list_widget_generate_phasing_formation_without_basilisk_reports_clear_e
         return QDialog.DialogCode.Accepted
 
     monkeypatch.setattr(PhasingFormationDialog, "exec", fake_exec)
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     lw._on_generate_phasing_formation()  # must not raise
 
     assert len(lw.to_list()) == 1
-    assert len(critical_calls) == 1
-    assert "Basilisk" in critical_calls[0][1]
+    assert len(reported) == 1 and reported[0][1] == "error"
+    assert "Basilisk is not installed" in reported[0][0] and "(more in the Log)" in reported[0][0]
 
 
 def test_dialog_momentum_dumping_defaults_to_none(qtbot):

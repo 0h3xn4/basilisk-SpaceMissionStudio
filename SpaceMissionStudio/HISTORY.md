@@ -10100,3 +10100,55 @@ earlier sessions in the main window read back when ticked and deleted, the
 shown run not deletable, an unreadable run named). The workspace test of
 the old Compare list now checks the tab's ticks and the link with Results
 (same checks; none removed).
+
+## UX iteration 5d: the remaining message boxes (2026-10-14)
+
+U-39, the rest of it. Iteration 4b took the run path's 14 message boxes
+out; this takes out the other 54 (35 critical, 11 warning, 8
+information). They told the user that a file could not be opened or
+saved, that an import or export worked or failed, that Vizard could not
+be found or launched, how the reference data fetch went, and why an
+editor or generator would not take its input. Each stopped the work for
+a click, and most said something routine.
+
+**Routine outcomes and failures** go through the new `feedback.report(widget,
+text, kind)`: the whole text goes to the Log (logger
+`spacemissionstudio.gui`, at error, warning or info level), a toast on the
+widget's window shows its first line (cut at 160 characters, with "(more
+in the Log)" when an error or a warning has more lines) and the status
+bar shows it when the window is the main window. Without a widget it only
+logs. Errors and warnings stay up 6 s, information 4.5 s, a success 3 s.
+`_report_run_problem` (4b) is unchanged.
+
+**Input a dialog refuses** is shown in the dialog:
+`feedback.show_dialog_error` puts a red line (`QLabel` "dialogError")
+just above the dialog's buttons and the dialog stays open, as the
+spacecraft and ground-station dialogs have done since 3a for fields. It
+is used by the constellation and phasing-formation generators, the
+command and dispersion editors, a device's parameters, the spacecraft
+dialog's OK, the 3D model editor and the Vizard dialog (which also marks
+its save-file field). Duplicate names in the spacecraft, ground-station
+and device lists are toasts ("Not added: a spacecraft named sat-1
+already exists").
+
+**Saving an invalid scenario** now opens Problems at the field, with the
+message as a toast, through the same `_open_problem` that a run that
+cannot start uses.
+
+**The questions left** are seven, each confirming something that cannot
+be undone or asking consent, and each now names the object and the
+consequence: restore an autosave, "Discard the unsaved changes to my
+mission? They cannot be recovered.", "Replace the earlier Monte Carlo
+batch in <folder>? Its run files are deleted.", "Replace the earlier
+flight-software export in <folder>? The files it lists are deleted and
+written again.", delete a saved run, leave parts that cannot be built out
+of a 3D model, and download reference data. The Vizard one-click hint
+is a Log line and a 10 s toast.
+
+Tests: `tests/gui/test_messages.py` (no information, warning or critical
+box left in `gui/`, `report` to the toast, the status bar and the Log,
+`report` without a window, the dialog error line above the buttons and
+cleared, a generator dialog that refuses OK, the Discard wording). The
+tests that checked a message box's text now check the toast (a new
+`reported` fixture in `tests/gui/conftest.py`) or the dialog's error line
+(`feedback.dialog_error_text`); the same checks, none removed.

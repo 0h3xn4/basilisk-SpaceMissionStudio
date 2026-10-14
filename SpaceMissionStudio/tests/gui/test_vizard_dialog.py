@@ -105,12 +105,10 @@ def test_preselects_from_current_request(qtbot):
 
 
 def test_accept_blocked_when_save_file_mode_has_no_path(qtbot, monkeypatch):
-    from PySide6.QtWidgets import QDialog, QMessageBox
+    from PySide6.QtWidgets import QDialog
 
+    from spacemissionstudio.gui.feedback import dialog_error_text
     from spacemissionstudio.gui.vizard_dialog import VizardDialog
-
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     dialog = VizardDialog()
     qtbot.addWidget(dialog)
@@ -119,11 +117,10 @@ def test_accept_blocked_when_save_file_mode_has_no_path(qtbot, monkeypatch):
     dialog._on_accept()
     assert dialog.result() != QDialog.DialogCode.Accepted
     # Regression guard: this used to silently move focus back to the empty
-    # field with no explanation at all -- every sibling dialog in this app
-    # (dispersion/ground-station/propagation-setup/constellation) tells the
-    # user why OK didn't do anything via QMessageBox.critical; this dialog
-    # must too.
-    assert len(critical_calls) == 1
+    # field with no explanation at all. It says why at the field now, not
+    # in a message box (U-39).
+    assert "playback file" in dialog_error_text(dialog)
+    assert dialog.save_file_edit.property("state") == "error"  # the field is marked too
 
 
 def test_dialog_resizes_to_its_own_sizehint_on_construction(qtbot):

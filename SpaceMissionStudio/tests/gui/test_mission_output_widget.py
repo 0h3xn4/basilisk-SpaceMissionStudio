@@ -239,8 +239,8 @@ def test_export_button_disabled_until_a_summary_with_reports_is_set(qtbot):
     assert not widget.export_button.isEnabled()
 
 
-def test_export_writes_a_csv_file(qtbot, tmp_path, monkeypatch):
-    from PySide6.QtWidgets import QFileDialog, QMessageBox
+def test_export_writes_a_csv_file(qtbot, tmp_path, monkeypatch, reported):
+    from PySide6.QtWidgets import QFileDialog
 
     from spacemissionstudio.engine.results import CommandSummary, ReportEntry
     from spacemissionstudio.gui.mission_output_widget import MissionOutputWidget
@@ -253,15 +253,13 @@ def test_export_writes_a_csv_file(qtbot, tmp_path, monkeypatch):
 
     dest = tmp_path / "output.csv"
     monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: (str(dest), "")))
-    info_calls = []
-    monkeypatch.setattr(QMessageBox, "information", staticmethod(lambda *a, **k: info_calls.append(a)))
 
     widget._on_export()
 
     assert dest.exists()
     content = dest.read_text()
     assert "sat-1.position_N" in content
-    assert len(info_calls) == 1
+    assert reported == [(f"Exported the mission output to {dest}", "success")]
 
 
 def test_export_with_no_summary_is_a_no_op(qtbot, monkeypatch):
