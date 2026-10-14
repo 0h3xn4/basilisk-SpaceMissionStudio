@@ -45,7 +45,9 @@ corrected.
 from __future__ import annotations
 
 import copy
+import dataclasses
 import math
+import re
 from types import SimpleNamespace
 from typing import NamedTuple
 
@@ -98,10 +100,11 @@ from ..schema.scenario import (
 from .data_handling_editor import GainTableWidget, InstrumentTableWidget
 from .facet_editor import FacetTableWidget
 from .solar_array_editor import SolarArrayTableWidget
+from .field_text import field_title, labelled
 from .feedback import (ProblemBanner, bring_into_view, clear_field_error, clear_invalid, clear_on_edit,
                        mark_invalid, report, show_dialog_error, show_field_error, show_toast)
 from .number_list import NumberListEditor
-from .orbit_ic_widget import OrbitIcWidget
+from .orbit_ic_widget import ANOMALY_LABELS, ORBIT_TYPE_LABELS, OrbitIcWidget
 from .param_form import ParamForm
 from .problem_location import SPACECRAFT, locate
 from .sensor_actuator_editor import SensorActuatorListWidget
@@ -264,7 +267,14 @@ _FIELD_WIDGETS = {"name": "name_edit", "propellant_budget": "budget_group", "viz
                   "rf_link.antenna_beamwidth_deg": "rf_beamwidth_deg", "rf_link.antenna_pattern": "rf_pattern_combo",
                   "rf_link.required_ebno_db": "required_ebno_db",
                   "data_handling.storage_capacity_gbit": "dh_capacity_gbit",
-                  "data_handling.instruments": "dh_instruments"}
+                  "data_handling.instruments": "dh_instruments",
+                  "rf_link.antenna_front_to_back_db": "rf_front_to_back_db",
+                  "geo_station_keeping.target_longitude_deg": "geo_longitude_deg",
+                  "geo_station_keeping.longitude_deadband_deg": "geo_deadband_deg",
+                  "phasing_keeping.max_delta_semi_major_axis_km": "pk_max_delta_sma_km",
+                  "fuel_tank.propellant_mass_kg": "ft_propellant_mass",
+                  "fuel_tank.max_propellant_mass_kg": "ft_max_propellant_mass"}
+_TOP_FIELDS = frozenset(f.name for f in dataclasses.fields(SpacecraftConfig))  # what a code may start with
 
 
 # The editor's tabs, in order. The Scenario Editor's tree shows each as a
@@ -316,6 +326,7 @@ class SpacecraftEditorDialog(QDialog):
         # What is wrong, when the dialog is opened at a problem or OK finds one (U-12).
         self.problem_banner = ProblemBanner()
         outer_layout.addWidget(self.problem_banner)
+        self.other_titles = None  # code -> title for the scenario's other fields (the Scenario Editor's)
         self._problem_field = None
         tabs = TabWidget()
         self.tabs = tabs
@@ -1650,6 +1661,16 @@ class SpacecraftEditorDialog(QDialog):
         top, leaf = parts[0].split("[")[0], parts[-1].split("[")[0]
         if top == "orbit":
             return getattr(self.orbit_widget, _ORBIT_WIDGETS.get(leaf, "type_combo"), None)
+        if top == "navigation_error" and len(parts) == 2:
+            if leaf == "seed":
+                return self.nav_seed
+            spins = self.nav_spins.get(leaf.split("_")[0])
+            if spins is not None:
+                return spins[0] if "_step_" in leaf else spins[1]
+        if top == "propellant_budget" and len(parts) == 2:
+            widget = self.budget_group.field_widget(leaf)
+            if widget is not None:
+                return widget
         prefix = _SECTION_PREFIXES.get(top, "")
         names = [_FIELD_WIDGETS.get(path), _FIELD_WIDGETS.get(top) if len(parts) == 1 else None,
                  prefix + leaf, leaf, leaf + "_check", leaf + "_combo", prefix + leaf + "_combo",
@@ -1659,6 +1680,38 @@ class SpacecraftEditorDialog(QDialog):
             if isinstance(widget, QWidget):
                 return widget
         return None
+
+    def field_title(self, code: str) -> str:
+        """The form's title for the field ``code`` names ("Station keeping:
+        Reboost thrust [N]" for "station_keeping.thrust_n"), or "". An
+        orbit message names its fields bare ("semi_major_axis_km") and its
+        type by code ("classical_elements")."""
+        if code in ORBIT_TYPE_LABELS:
+            return ORBIT_TYPE_LABELS[code]
+        if code.removeprefix("orbit.") in ANOMALY_LABELS:  # its row's label is the anomaly-type list
+            return ANOMALY_LABELS[code.removeprefix("orbit.")]
+        top = code.split(".")[0]
+        if top in _ORBIT_WIDGETS and "." not in code:
+            code, top = f"orbit.{code}", "orbit"
+        if top not in _TOP_FIELDS or (top == "orbit" and code.split(".")[-1] not in _ORBIT_WIDGETS):
+            return ""
+        widget = self.field_widget(code)
+        if isinstance(widget, QGroupBox) and "." in code:  # a field of a section without its own widget
+            return ""
+        if top == "orbit":  # the message starts with the orbit already; a vector's widget is its x box
+            return field_title(widget).rpartition(": ")[2].replace(" X [", " [")
+        return field_title(widget)
+
+    def problem_text(self, message: str) -> str:
+        """``message`` with its field codes as this form's titles, and the
+        scenario's codes it names ("sim_settings.duration_days") as
+        :attr:`other_titles` gives them. "orbit: classical_elements orbit:
+        ..." reads "Orbit (Classical elements): ..."."""
+        message = re.sub(r"^([^:]*: )?orbit: (\w+) orbit\b",  # after the spacecraft's name, when it has one
+                         lambda m: f"{m.group(1) or ''}Orbit ({ORBIT_TYPE_LABELS.get(m.group(2), m.group(2))})",
+                         message)
+        other = self.other_titles
+        return labelled(message, lambda code: self.field_title(code) or (other(code) if other else ""))
 
     def tab_page(self, title: str) -> QWidget | None:
         """The page of the tab named ``title``, or None."""
@@ -1693,6 +1746,7 @@ class SpacecraftEditorDialog(QDialog):
         if self._problem_field is not None:
             clear_field_error(self._problem_field)
             self._problem_field = None
+        message = self.problem_text(message)
         self.problem_banner.show_problem(message)
         widget = self.field_widget(path)
         if widget is None:
@@ -2082,8 +2136,9 @@ class SpacecraftEditorDialog(QDialog):
             step, bound = nav0.channel(channel) if nav0 is not None else (0.0, 0.0)
             spins = (_spin(0.0, maximum, decimals=6, step=0.001, value=step),
                      _spin(0.0, maximum, decimals=6, step=0.01, value=bound))
-            for spin in spins:
+            for spin, part in zip(spins, ("step per update", "bound")):
                 spin.setSuffix(f" {unit}")
+                spin.setAccessibleName(f"{label} {part}")  # a grid row has no form label
             grid.addWidget(QLabel(label), row, 0)
             grid.addWidget(spins[0], row, 1)
             grid.addWidget(spins[1], row, 2)
@@ -2093,6 +2148,7 @@ class SpacecraftEditorDialog(QDialog):
         self.nav_seed.setSpecialValueText("Basilisk default")
         self.nav_seed.setValue(nav0.seed if nav0 is not None and nav0.seed is not None else -1)
         self.nav_seed.setToolTip("The same seed gives the same errors in every run.")
+        self.nav_seed.setAccessibleName("Random seed")
         grid.addWidget(QLabel("Random seed"), len(self._NAV_ROWS) + 1, 0)
         grid.addWidget(self.nav_seed, len(self._NAV_ROWS) + 1, 1)
 

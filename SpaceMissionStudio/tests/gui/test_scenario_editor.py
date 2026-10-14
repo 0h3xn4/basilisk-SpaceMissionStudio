@@ -136,7 +136,7 @@ def test_an_invalid_environment_edit_leaves_state_unchanged(widget, monkeypatch)
     form.duration_days_spin.setValue(2.0)  # [days]
     form.findChild(_Debounce).flush()
     assert widget._sim_settings is before
-    assert form.problem_banner.label.text().startswith("sim_settings.duration_days must be > 0")
+    assert form.problem_banner.label.text().startswith("Simulation settings: Duration [days] must be > 0")
     with pytest.raises(ScenarioValidationError, match="duration_days"):
         widget.to_scenario()
 

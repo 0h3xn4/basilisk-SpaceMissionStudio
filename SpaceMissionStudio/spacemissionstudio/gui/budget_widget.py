@@ -178,6 +178,27 @@ class BudgetInputsGroup(QGroupBox):
         eol.addRow("Controlled re-entry: last burn", self.controlled_last)
         layout.addWidget(_titled("End of life", eol))
 
+    # Where a PropellantBudgetConfig field's widget is (a message's field).
+    _FIELD_WIDGETS = {"mission_years": "mission_years", "dry_mass_includes_margin": "dry_includes_margin",
+                      "system_margin_fraction": "system_margin", "tank_capacity_kg": "tank_capacity",
+                      "isp_s": "isp", "thrust_angle_deg": "thrust_angle", "misalignment_deg": "misalignment",
+                      "plume_efficiency": "plume", "modulation_efficiency": "modulation",
+                      "injection_sma_error_km": "injection_sma", "injection_eccentricity_error": "injection_ecc",
+                      "injection_inclination_error_deg": "injection_inc",
+                      "injection_raan_delta_v_m_s": "injection_raan", "orbit_acquisition_delta_v_m_s": "acquisition",
+                      "transfer_delta_v_m_s": "transfer", "in_plane_control_delta_v_m_s": "in_plane",
+                      "out_of_plane_control_delta_v_m_s": "out_of_plane", "formation_delta_v_m_s": "formation",
+                      "collision_avoidance_count": "cam_count", "attitude_thruster_propellant_kg": "attitude_kg",
+                      "disposal": "disposal", "clearance_sma_drop_km": "clearance",
+                      "disposal_lifetime_years": "disposal_years", "controlled_reentry_delta_v_m_s": "controlled_dv",
+                      "controlled_reentry_last_burn_m_s": "controlled_last",
+                      "hall_thruster_ignition_kg": "hall_kg"}
+
+    def field_widget(self, name: str) -> Optional[QWidget]:
+        """The widget for the budget field ``name`` ("mission_years"), or None."""
+        attribute = self._FIELD_WIDGETS.get(name)
+        return getattr(self, attribute, None) if attribute else None
+
     def to_config(self) -> Optional[PropellantBudgetConfig]:
         if not self.isChecked():
             return None

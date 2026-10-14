@@ -140,10 +140,12 @@ def test_a_spacecraft_problem_opens_its_page_at_the_field(window, edit, widget_o
     node = editor._spacecraft_nodes[0]
     form = node.form
     error = next(text for severity, text in window.problems_widget.problems if severity == "error")
+    shown = editor.problem_display(error)  # with the form's labels (iteration 7d)
     widget = widget_of(form)
+    assert shown != error and shown.startswith("my-sat: ")
     assert editor.page_tree.current_page() is node.holder
-    assert form.problem_banner.isVisibleTo(form) and form.problem_banner.label.text() == error
-    assert field_error_text(widget) == error
+    assert form.problem_banner.isVisibleTo(form) and form.problem_banner.label.text() == shown
+    assert field_error_text(widget) == shown
     assert form.tabs.currentWidget().isAncestorOf(widget)
 
 
@@ -157,7 +159,7 @@ def test_a_propagation_problem_opens_the_environment_at_the_field(window):
     _activate_error(window)
     assert editor.page_tree.current_page() is editor.environment_page
     assert field_error_text(editor._environment_form.duration_days_spin).startswith(
-        "sim_settings.duration_days must be > 0")
+        "Simulation settings: Duration [days] must be > 0")
 
 
 def test_a_ground_station_problem_opens_its_page_at_the_field(window):
@@ -171,7 +173,7 @@ def test_a_ground_station_problem_opens_its_page_at_the_field(window):
     _activate_error(window)
     node = editor._station_nodes[0]
     assert editor.page_tree.current_page() is node.holder
-    assert field_error_text(node.form.lat_deg).startswith("berlin-gs: latitude_deg must be in [-90, 90]")
+    assert field_error_text(node.form.lat_deg).startswith("berlin-gs: Geodetic latitude [deg] must be in [-90, 90]")
 
 
 def test_the_spacecraft_editor_ok_shows_a_problem_at_the_field(qtbot, monkeypatch):
@@ -191,7 +193,7 @@ def test_the_spacecraft_editor_ok_shows_a_problem_at_the_field(qtbot, monkeypatc
         box.setValue(0.0)  # [km]
     dialog._on_accept()
     assert dialog.result() == 0 and dialog.problem_banner.isVisibleTo(dialog)
-    assert "position_km must not be [0, 0, 0]" in field_error_text(orbit.pos_x_km)
+    assert "Orbit (Cartesian state): Position [km] must not be [0, 0, 0]" in field_error_text(orbit.pos_x_km)
 
 
 def test_every_spacecraft_field_has_a_place(qtbot):

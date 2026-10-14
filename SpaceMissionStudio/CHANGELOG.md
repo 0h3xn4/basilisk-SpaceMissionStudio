@@ -143,6 +143,12 @@ fixes bugs.
   tick boxes. System follows the desktop's light or dark setting. The
   choice is kept in `~/.spacemissionstudio/settings.ini` and applies at
   the next start.
+- **Messages name fields as the forms do.** The banner, Problems, a
+  field's own error line and the constellation and phasing dialogs say
+  "my-sat: Station keeping: Reboost thrust [N] must be > 0", not
+  "my-sat: station_keeping.thrust_n must be > 0"; an orbit's message
+  starts "Orbit (Classical elements): ...". The command line and the
+  Log keep the field names of the scenario file.
 - **Wide screens** (2560 x 1440). Forms, list editors and the template
   list stay at most 960 px wide instead of stretching across the page;
   the Scenario page's fields stay together at the top; Add, Edit and

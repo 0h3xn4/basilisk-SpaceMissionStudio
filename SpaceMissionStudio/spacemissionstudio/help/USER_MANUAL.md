@@ -387,7 +387,10 @@ A **validation message** at the very bottom of this tab updates live as
 you type, in plain language (e.g. naming exactly which field is missing
 or invalid) -- you don't have to guess why Run is unavailable. It names
 the first problem and how many more there are; **Problems** lists them
-all.
+all. A message names a field as its form does, after its section ("my-sat:
+Station keeping: Reboost thrust [N] must be > 0"); the command line and the
+Log give the same message with the field's name in the scenario file
+(`station_keeping.thrust_n`).
 
 A value in a file outside the range a field takes (a station 12 000 m
 up, where the field goes to 9000 m) is kept, not cut to the range: the

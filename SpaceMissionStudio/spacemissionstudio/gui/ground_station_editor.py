@@ -44,6 +44,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..schema.scenario import GroundStationConfig, ScenarioValidationError
+from .field_text import field_title, labelled
 from .feedback import (ProblemBanner, bring_into_view, clear_field_error, clear_invalid, clear_on_edit,
                        mark_invalid, report, show_field_error, show_toast)
 from .problem_location import GROUND_STATION, locate
@@ -184,6 +185,14 @@ class GroundStationEditorDialog(QDialog):
         name = self._FIELD_WIDGETS.get(path)
         return getattr(self, name, None) if name else None
 
+
+    def field_title(self, code: str) -> str:
+        """The form's title for the field ``code`` names, or ""."""
+        return field_title(self.field_widget(code)) if code in self._FIELD_WIDGETS else ""
+
+    def problem_text(self, message: str) -> str:
+        """``message`` with its field codes as this form's titles."""
+        return labelled(message, self.field_title)
     def clear_problem(self) -> None:
         """Hide the banner and unmark the field :meth:`show_problem` marked."""
         if self._problem_field is not None:
@@ -199,6 +208,7 @@ class GroundStationEditorDialog(QDialog):
         if self._problem_field is not None:
             clear_field_error(self._problem_field)
             self._problem_field = None
+        message = self.problem_text(message)
         self.problem_banner.show_problem(message)
         widget = self.field_widget(path)
         if widget is not None:

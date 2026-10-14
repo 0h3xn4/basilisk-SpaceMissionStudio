@@ -46,6 +46,7 @@ from ..engine.constellation import CENTRAL_BODY_EQUATORIAL_RADIUS_KM, WALKER_PAT
 from ..engine.orbit_design import sun_synchronous_inclination_deg
 from ..schema.scenario import ScenarioValidationError
 from .feedback import show_dialog_error
+from .field_text import attribute_title, labelled
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox
 
 _PATTERN_LABELS = {
@@ -164,7 +165,8 @@ class WalkerConstellationDialog(QDialog):
         try:
             self.to_request()
         except ScenarioValidationError as exc:
-            show_dialog_error(self, f"This constellation cannot be made: {exc}")
+            message = labelled(str(exc), lambda code: attribute_title(self, code, "constellation"))
+            show_dialog_error(self, f"This constellation cannot be made: {message}")
             return
         self.accept()
 

@@ -10406,3 +10406,79 @@ settings within the width, its plot wider; the Scenario rows together at
 the top; list buttons under 200 px; Customize... within the template
 list; the plot list at 1000 and 2200 px, and a dragged width kept). Each
 fails on the code before the fix.
+
+## UX iteration 7d: messages name fields as the forms do (2026-10-14)
+
+Validation messages are written for the scenario file: "my-sat:
+station_keeping.thrust_n must be > 0", "sim_settings.duration_days must be
+> 0", "my-sat: orbit: classical_elements orbit: semi_major_axis_km must be
+a finite number". The GUI showed them that way in the banner, Problems and
+a field's error line; only the four Scenario page fields had labels. The
+standard asks for the user's terms.
+
+**How.** `gui/field_text.py`:
+
+- `labelled(text, title_for)` replaces each field code in a message (a
+  lower-case word with "_" or ".", not in a file name, a quoted key or an
+  indexed name) with the title its form gives it.
+- `field_title(widget)` is the field's form label after its group box's
+  title, both cut at " (" or ":" ("Station keeping: Reboost thrust [N]").
+- A bare code after a dotted one is looked up in that section first ("...
+  must be > 0 and < target_altitude_km").
+- A later field of a section already named drops the section ("Fuel tank:
+  Propellant mass [kg] must be between 0 and Tank capacity [kg]").
+
+**Each form knows its own fields.** The spacecraft, Environment, ground
+station and Monte Carlo forms each have `field_title(code)` and
+`problem_text(message)`, from the `field_widget` map Problems already uses
+to jump to a field. Their `show_problem` labels the banner and the field
+line. `ScenarioEditorWidget.problem_display`, which the banner, Problems
+and the Save and Run errors already went through, picks the form: the
+spacecraft's or station's own when its page was opened, else one built,
+never shown, for its labels. A spacecraft message that names a scenario
+setting ("sim_settings.duration_days") takes the Environment form's
+title.
+
+**Orbit messages** start "Orbit (Classical elements): ..." in place of
+"orbit: classical_elements orbit: ...". Their fields have no section
+title, since the message already names the orbit, and a vector reads
+"Position [km]", not its x box's "Position X [km]".
+
+**Gaps closed on the way.** Walking every number of a spacecraft and its
+sections found 41 without a widget of their own in `field_widget`, so
+Problems opened only their section:
+
+- six fields that missed the map's naming rules (the fuel tank's two, the
+  GEO slot longitude and box half-width, the drift-orbit SMA offset, the
+  antenna front-to-back ratio);
+- the navigation-error grid, whose spin boxes now also have accessible
+  names ("Attitude bound"; a grid row has no form label);
+- the AD10 budget inputs, which gained their own field map.
+
+A test keeps every numeric field labelled.
+
+**The generator dialogs** (Walker constellation, phasing formation) name
+their own fields: "Total satellites (5) must be evenly divisible by Number
+of planes (2)".
+
+**Checked.** Every number of every template's spacecraft and settings was
+set to -1, 0, NaN and 1e12. That gives 78 distinct messages; each was shown
+through `problem_display` and none kept a code. The messages themselves,
+the command line and the Log are unchanged: they speak in the file's
+field names.
+
+Tests: `tests/gui/test_field_text.py`:
+
+- `labelled`'s rules, and what it leaves alone;
+- the spacecraft form's titles, including orbit, navigation error, budget
+  and cross-section names;
+- every numeric spacecraft field has a title;
+- the editor's display for each area;
+- no template message left with a code;
+- the banner, the field line and the Problems row;
+- the Walker dialog.
+
+Six of them fail with `labelled` made a no-op; the seventh failed on the
+code before (41 fields without a title). Five tests in
+`test_field_errors.py` and `test_scenario_editor.py` that compared a banner
+or field line with the raw message now compare it with the labelled text.

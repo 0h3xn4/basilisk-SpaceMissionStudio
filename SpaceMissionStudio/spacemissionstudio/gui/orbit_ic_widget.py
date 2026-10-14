@@ -57,6 +57,8 @@ _TYPE_LABELS = {
     "cartesian": "Cartesian state",
     "tle": "Two-Line Element (TLE)",
 }
+ORBIT_TYPE_LABELS = _TYPE_LABELS  # the names messages use for the types and anomalies (gui/field_text.py)
+ANOMALY_LABELS = {f"{key}_anomaly_deg": label for key, label in _ANOMALY_TYPE_LABELS.items()}
 
 
 def _spin(minimum: float, maximum: float, decimals: int = 6, step: float = 1.0, value: float = 0.0) -> QDoubleSpinBox:
