@@ -5,7 +5,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-[![Version 3.0.0](https://img.shields.io/badge/version-3.0.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0)
+[![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -15,14 +15,14 @@ satellite mission analysis added in [`SpaceMissionStudio/`](SpaceMissionStudio/)
 Basilisk itself is unchanged: its README follows below, under
 [Original Basilisk README](#original-basilisk-readme).
 
-![The Scenario Editor with template 22 loaded; the Explain tab on the right summarises the orbit, the environment and the predicted ground passes](SpaceMissionStudio/docs/images/scenario_editor_tab.png)
+![The Scenario tab with template 22 loaded; the Explain page on the right summarises the orbit, the environment and the predicted ground passes](SpaceMissionStudio/docs/images/scenario_editor_tab.png)
 
 ## What it is
 
 SpaceMissionStudio lets you design a satellite mission in forms, run it,
 and read the results, without writing code. Every number comes from
 Basilisk; SpaceMissionStudio adds the windows, scenario files, plots,
-checks and analysis around it. Start from one of 27 template missions, or
+checks and analysis around it. Start from one of 28 template missions, or
 build your own, then look at orbits, ground passes, eclipses, pointing,
 battery, link margin, lifetime and propellant.
 
@@ -33,9 +33,11 @@ battery, link margin, lifetime and propellant.
 
 ## Quick start
 
-The [3.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0) has installers for Linux (`.deb`)
-and Windows (setup program). From
-source, on Linux or macOS with Python 3.11 or newer (Windows: see
+**Linux:** the [1.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0)
+has a `.deb` installer (`sudo apt install ./spacemissionstudio_1.0.0_all.deb`)
+and the wheel. 1.0.0 has no Windows or macOS installer yet.
+
+**From source**, on Linux or macOS with Python 3.11 or newer (Windows: see
 [Getting started](SpaceMissionStudio/docs/getting-started.md)):
 
 ```bash
@@ -50,8 +52,8 @@ spacemissionstudio earth-orientation --fetch
 spacemissionstudio gui
 ```
 
-The app opens on **Load Scenario**. Click **22 - Starter: your first LEO
-satellite**, **Open Template**, then **Run > Run Simulation** (`Ctrl+R`).
+The app opens on **Templates**. Click **22 - Starter: your first LEO
+satellite**, **Open Template**, then **Run** (`Ctrl+R`).
 A few seconds later the **Results** tab shows the orbit and the
 **Events** tab lists four ground passes over Berlin.
 
@@ -71,13 +73,15 @@ A few seconds later the **Results** tab shows the orbit and the
 
 ## Features
 
-- **Scenarios** as plain JSON, checked as you type; orbits from
-  elements, position and velocity, or a TLE.
+- **Scenarios** as plain JSON, edited in a tree of forms and checked as
+  you type; orbits from elements, position and velocity, or a TLE.
 - **Orbits:** detailed Earth gravity, Sun and Moon, drag from real space
   weather, solar pressure, measured Earth orientation, runs of up to
   about 10 years.
 - **Pointing:** five pointing modes, real sensors and actuators, momentum
   unloading, navigation error, surface facets, flexible solar arrays.
+- **3D models** of the spacecraft, built from shapes or imported `.obj`
+  files, giving its mass, center of mass, inertia and surfaces.
 - **Orbit keeping:** LEO and GEO station keeping, formations with three
   control laws, Walker constellations.
 - **Mission Sequence:** burns, Lambert transfers, reports, conditions,
@@ -85,12 +89,13 @@ A few seconds later the **Results** tab shows the orbit and the
 - **Analysis:** passes, eclipses, power, link margin, onboard data,
   thermal, Monte Carlo, orbital lifetime, ESA AD10-style propellant
   budgets.
-- **Results:** interactive plots, an events timeline, run comparison,
-  CSV, PNG and SVG export, provenance on every output.
+- **Results:** interactive plots, an events timeline, a shared time
+  cursor, run comparison, CSV, PNG and SVG export, provenance on every
+  output.
 - **Exchange:** CCSDS orbit messages; flight-software export as a C
   project; software-in-the-loop testing.
 - **3D view** in Vizard; a **command line** for every analysis; a
-  **Python API**; **offline by design**.
+  **Python API**; light and dark themes; **offline by design**.
 
 Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capabilities.md).
 
@@ -98,8 +103,8 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 
 | | |
 |---|---|
-| System | Linux x86_64 or aarch64 (glibc 2.28 or newer), Windows 10 or 11 x86_64, macOS 11 or newer on Apple silicon |
-| Python | 3.11 is what CI tests (Basilisk's wheels cover 3.9 to 3.14) |
+| System | Linux x86_64 or aarch64 (glibc 2.28 or newer); from source also Windows 10 or 11 x86_64 and macOS 11 or newer on Apple silicon |
+| Python | 3.11 or newer; CI tests 3.11 (Basilisk's wheels go up to 3.14) |
 | Basilisk | 2.12.0, from PyPI |
 | Disk | About 1.6 GB, including the reference data |
 | Internet | Once, to install and fetch the reference data |
@@ -108,13 +113,14 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE),
   [`SpaceMissionStudio/LICENSE`](SpaceMissionStudio/LICENSE)).
-- **Version:** 3.0.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0),
-  [changelog](SpaceMissionStudio/CHANGELOG.md)). Needs Python 3.11 or
-  newer.
-- **Tested** in CI on Linux, Windows and macOS with Basilisk 2.12.0. The
-  3.0.0 `.deb` was installed by hand on Ubuntu 24.04, where the app
-  started and template 22 ran. The
-  Windows setup program is built, installed and run in CI on a Windows runner; it has not yet been tried by hand on a real Windows machine.
+- **Version:** 1.0.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0),
+  [changelog](SpaceMissionStudio/CHANGELOG.md)), the first release of the
+  renewed tool; the version numbers used before the renewal are withdrawn.
+- **Platforms:** 1.0.0 is a Linux release: the `.deb`, the wheel and
+  `install.sh` were built, installed and run end to end with Basilisk
+  2.12.0 ([`packaging/README.md`](SpaceMissionStudio/packaging/README.md)).
+  The test suite also runs in CI on Windows and macOS, where a few test
+  failures are not yet fixed; their installers follow in a later release.
 - **Known gaps:** [Known limitations](SpaceMissionStudio/docs/reference/limitations.md).
 
 ## Related tools
@@ -133,7 +139,8 @@ Everything else in the repository is upstream Basilisk, unchanged.
 |---|---|
 | [`SpaceMissionStudio/`](SpaceMissionStudio/) | The app: code, tests, documentation, packaging, compliance records |
 | [`.github/workflows/spacemissionstudio.yml`](.github/workflows/spacemissionstudio.yml) | CI for the app (Linux, Windows, macOS) |
-| [`docs/upstream/README.upstream.md`](docs/upstream/README.upstream.md) | An untouched copy of the upstream README, for syncing |
+| [`.github/workflows/spacemissionstudio-windows-installer.yml`](.github/workflows/spacemissionstudio-windows-installer.yml) | Builds, installs and runs the Windows setup program on a Windows runner |
+| [`docs/upstream/`](docs/upstream/README.md) | An untouched copy of the upstream README, for syncing, and a note on it |
 | `README.md` (this file) | The part above this line; the upstream README follows unchanged |
 | `.gitignore` | One blank line |
 
