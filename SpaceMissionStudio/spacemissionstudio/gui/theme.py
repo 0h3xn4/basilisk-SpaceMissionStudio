@@ -179,6 +179,10 @@ UI_FONT_FAMILY = "IBM Plex Sans"
 MONO_FONT_FAMILY = "IBM Plex Mono"
 _UI_FONT_SIZE_PT = 10.5  # [pt] 14 px at 96 dpi (Carbon body-compact-01)
 _UI_LETTER_SPACING_PX = 0.16  # [px] Carbon body-compact-01 tracking
+# The widest a form, a list editor or a page of reading text grows: at
+# 2560 px its fields and buttons stretched to 1500 px, labels and values a
+# head-turn apart. Plots, tables and the JSON view keep the full width.
+CONTENT_MAX_WIDTH_PX = 960  # [px]
 _loaded_families: List[str] = []
 
 

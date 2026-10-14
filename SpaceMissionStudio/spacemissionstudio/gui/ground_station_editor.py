@@ -230,6 +230,7 @@ class GroundStationListWidget(QWidget):
         button_row.addWidget(self.add_button)
         button_row.addWidget(self.edit_button)
         button_row.addWidget(self.remove_button)
+        button_row.addStretch(1)  # buttons at their own width, not a third of a wide page each
         layout.addLayout(button_row)
 
         self.add_button.clicked.connect(self._on_add)

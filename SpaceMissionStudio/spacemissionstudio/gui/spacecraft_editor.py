@@ -2333,6 +2333,7 @@ class SpacecraftListWidget(QWidget):
         button_row.addWidget(self.new_from_template_button)
         button_row.addWidget(self.edit_button)
         button_row.addWidget(self.remove_button)
+        button_row.addStretch(1)  # buttons at their own width, not a quarter of a wide page each
         layout.addLayout(button_row)
 
         second_button_row = QHBoxLayout()

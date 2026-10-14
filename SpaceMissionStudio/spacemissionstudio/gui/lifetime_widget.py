@@ -41,7 +41,7 @@ from PySide6.QtWidgets import (
 
 from .badges import MUTED, SUCCESS, WARNING, badge_style
 from .scenario_explainer_widget import _clear_layout, _stat_tile
-from .theme import PALETTE
+from .theme import CONTENT_MAX_WIDTH_PX, PALETTE
 from .widgets import ComboBox, PreciseDoubleSpinBox
 
 _FROM_START = "Start of scenario"
@@ -234,7 +234,11 @@ class LifetimeWidget(QWidget):
         self.horizon_spin.setValue(_DEFAULT_HORIZON_YEARS)
         self.horizon_spin.setSuffix(" years")
         form.addRow("Look ahead", self.horizon_spin)
-        layout.addLayout(form)
+        settings = QWidget()  # the settings at a form's width; the plot below keeps the page's
+        settings.setLayout(form)
+        form.setContentsMargins(0, 0, 0, 0)
+        settings.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
+        layout.addWidget(settings)
 
         button_row = QHBoxLayout()
         self.compute_button = QPushButton("Estimate lifetime")

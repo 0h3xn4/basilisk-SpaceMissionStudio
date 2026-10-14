@@ -60,19 +60,28 @@ from .monte_carlo_editor import MonteCarloGroupWidget
 from .problem_location import (GROUND_STATION, JSON_VIEW, MISSION_SEQUENCE, PROPAGATION, SCENARIO, SPACECRAFT,
                                locate)
 from .spacecraft_editor import SpacecraftListWidget, tab_titles
-from .theme import PALETTE
+from .theme import CONTENT_MAX_WIDTH_PX, PALETTE
 from .widgets import ComboBox, out_of_range_boxes
 from .workspace_panels import field_label
 
 
 
-def _page(widget: QWidget) -> QScrollArea:
+def _page(widget: QWidget, top: bool = False) -> QScrollArea:
     """``widget`` as a page of the tree: in a scroll area, so a long form
-    never sets the window's height."""
+    never sets the window's height, and no wider than
+    :data:`CONTENT_MAX_WIDTH_PX`. ``top``: at its own height at the top of
+    the page; a form's rows were spread over a tall window."""
+    widget.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
+    holder = QWidget()
+    layout = QVBoxLayout(holder)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.addWidget(widget)
+    if top:
+        layout.addStretch(1)
     scroll = QScrollArea()
     scroll.setWidgetResizable(True)
     scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-    scroll.setWidget(widget)
+    scroll.setWidget(holder)
     return scroll
 
 
@@ -151,7 +160,7 @@ class ScenarioEditorWidget(QWidget):
         self._station_nodes: list = []
         self._environment_form = None
 
-        self.scenario_page = _page(self._build_identity_group())
+        self.scenario_page = _page(self._build_identity_group(), top=True)
         self.environment_page = self._build_propagation_group()
         self.spacecraft_page = _page(self._build_spacecraft_group())
         self.ground_station_page = _page(self._build_ground_station_group())
@@ -293,6 +302,7 @@ class ScenarioEditorWidget(QWidget):
         form = PropagationSetupDialog(self._gravity, self._sim_settings, self._space_weather,
                                       parent=self.environment_page)
         embed_dialog(form)
+        form.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
         _Debounce(form, "environment").settled.connect(self._on_form_settled)
         self.environment_page.layout().addWidget(form)
         self._environment_form = form
@@ -469,6 +479,7 @@ class ScenarioEditorWidget(QWidget):
             form = GroundStationEditorDialog(config=node.config, parent=node.holder, other_names=others)
             kind = "station"
         embed_dialog(form)
+        form.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
         node.holder.layout().addWidget(form)
         node.form = form
         if kind == "spacecraft":
