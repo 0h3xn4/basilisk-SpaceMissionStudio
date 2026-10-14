@@ -407,7 +407,7 @@ class MainWindow(QMainWindow):
         self._mc_poll.timeout.connect(self._poll_monte_carlo)
         # Always shown (gui.app_shell; docs/ux-audit.md U-06): the Basilisk
         # version, checked at start-up (ECSS-Q-ST-80C 6.2.7, decision D5), the
-        # reference data (a click opens the Data tab), Earth orientation and
+        # reference data (a click opens the Reference data dialog), Earth orientation and
         # the frames. Local files only.
         self.status_items = StatusBarItems(self)
         self.basilisk_version_label = self.status_items.basilisk_label
@@ -602,7 +602,7 @@ class MainWindow(QMainWindow):
         check_kernels_action.setToolTip(
             "Shows every reference data file (SPICE kernels, gravity field, magnetic model, space "
             "weather, Earth orientation) with its source, dates and checksum. No network: downloads "
-            "start only from the Data tab's Download menu, after asking."
+            "start only from the Reference data dialog's Download... menu, after asking."
         )
         check_kernels_action.triggered.connect(self._show_data_panel)
         run_menu.addAction(check_kernels_action)
@@ -627,7 +627,7 @@ class MainWindow(QMainWindow):
         self.vizard_launch_action = vizard_launch_action
 
         open_mc_action = QAction("Open Monte Carlo &Results...", self)
-        open_mc_action.setToolTip("Show the batch an earlier Run Monte Carlo... saved in a folder")
+        open_mc_action.setToolTip("Show the batch an earlier Monte Carlo run saved in a folder")
         open_mc_action.triggered.connect(self.on_open_monte_carlo_results)
         run_menu.addAction(open_mc_action)
         self.open_monte_carlo_results_action = open_mc_action

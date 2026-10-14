@@ -16,7 +16,7 @@
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 
-"""The SIL comparison panel (Flight Software tab): the last SIL run's
+"""The SIL comparison panel (Flight Software page): the last SIL run's
 headline numbers, each signal's residual against the simulation's own
 flight software, the residual plots and the program's output.
 Vizard stays the 3D view of the same run."""

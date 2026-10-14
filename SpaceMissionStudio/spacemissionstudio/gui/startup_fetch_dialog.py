@@ -203,7 +203,7 @@ class StartupFetchDialog(QDialog):
         self.space_weather_checkbox.setChecked(True)
         self.space_weather_checkbox.setToolTip(
             f"From {weather.source}. The file is checked before it replaces the current one, which is kept "
-            "for rollback (Data tab). Downloads a real F10.7/Ap CSV, refreshed every time you agree. The Propagation Setup "
+            "for rollback (Reference data dialog). Downloads a real F10.7/Ap CSV, refreshed every time you agree. The Propagation Setup "
             "dialog's Local file field pre-fills with it automatically once fetched."
         )
         layout.addWidget(self.space_weather_checkbox)

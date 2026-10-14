@@ -15,7 +15,7 @@
 #  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
-"""The Flight Software tab (SRS-F-18): each spacecraft's export state,
+"""The Flight Software page (SRS-F-18): each spacecraft's export state,
 and an export recorded back into the scenario."""
 
 import copy

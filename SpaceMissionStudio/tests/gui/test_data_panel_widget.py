@@ -15,7 +15,7 @@
 #  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
-"""The Data tab (UX/UI guidelines: every reference file with its version,
+"""The reference data panel (UX/UI guidelines: every reference file with its version,
 dates and source; downloads only with consent, naming source, files and
 size; what changed; import and rollback). Replaces the Kernel Status tab,
 whose checks (table layout, tooltips, a second click while busy, failures)

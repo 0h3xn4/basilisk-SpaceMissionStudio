@@ -400,7 +400,7 @@ def _hint_text(kind: str) -> str:
     if kind in _UNIMPLEMENTED_ACTUATOR_KINDS:
         return (
             f"⚠ {kind!r} is schema-valid but not simulated yet -- engine.service will raise an error at "
-            "Run Simulation if this actuator is actually configured on a spacecraft with fsw_mode set. "
+            "Run if this actuator is actually configured on a spacecraft with fsw_mode set. "
             "Pick 'reaction_wheel' for a working actuator."
         )
     note = _CONDITIONAL_ACTUATOR_NOTES.get(kind)

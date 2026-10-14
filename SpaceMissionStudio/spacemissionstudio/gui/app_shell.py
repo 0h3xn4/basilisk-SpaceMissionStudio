@@ -28,7 +28,8 @@ visible" and "Target layout"; docs/ux-audit.md U-04, U-06, U-07):
   of 1"), a progress bar, the time elapsed and an estimate of the time
   left, and **Cancel (Esc)**.
 * :class:`StatusBarItems` -- permanent status-bar entries: the Basilisk
-  version, the reference data (clicking it opens the Data tab), the
+  version, the reference data (clicking it opens the Reference data
+  dialog), the
   Earth orientation data and the frames runs use. They read local files
   only, never the network.
 
@@ -225,8 +226,8 @@ def source_of(path: Optional[Path], templates_dir: Path) -> str:
 
 class StatusBarItems:
     """The permanent status-bar entries. :meth:`refresh` re-reads local
-    files only; the window calls it at start-up, after the Data tab
-    changes something and when a run starts."""
+    files only; the window calls it at start-up, after the reference
+    data panel changes something and when a run starts."""
 
     def __init__(self, parent: QWidget) -> None:
         self.basilisk_label = QLabel(parent)
@@ -234,7 +235,7 @@ class StatusBarItems:
         self.data_button = QToolButton(parent)
         self.data_button.setObjectName("statusDataButton")
         self.data_button.setAutoRaise(True)
-        self.data_button.setToolTip("Reference data: open the Data tab")
+        self.data_button.setToolTip("Reference data: open the Reference data dialog")
         self.earth_orientation_label = QLabel(parent)
         self.earth_orientation_label.setObjectName("statusItem")
         self.frames_label = QLabel(parent)
