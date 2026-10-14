@@ -22,7 +22,7 @@
 # wheel into the SAME venv if one is given, and drops a launcher script.
 #
 # This is the "vendor a prebuilt wheel pinned to a specific Basilisk
-# release/commit" install path. For 3.0.0 it was run end to end on Linux
+# release/commit" install path. For 1.0.0 it was run end to end on Linux
 # (Python 3.11, a fresh HOME) with the PyPI bsk 2.12.0 wheel: it also
 # pre-fetched the support data, and the installed tool validated every
 # template and ran templates and a Monte Carlo batch. The path without a

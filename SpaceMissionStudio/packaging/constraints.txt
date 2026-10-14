@@ -1,4 +1,4 @@
-# Tested dependency versions for SpaceMissionStudio 3.0.0 (audit M14).
+# Tested dependency versions for SpaceMissionStudio 1.0.0 (audit M14).
 #
 # The installers (install.sh, install.ps1, the Debian package and the
 # Windows setup program) and CI install with `pip install -c

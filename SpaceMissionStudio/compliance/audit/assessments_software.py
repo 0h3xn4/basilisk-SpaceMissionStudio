@@ -119,7 +119,7 @@ SOFTWARE_RULES = [
     ("E-ST-40C", "5.6.4.4a", "N", "-", "No QR.", _REVIEW_FIX, "S", "no", "H01,D-08"),
     ("E-ST-40C", "5.6.5a", "P", "compliance/docs/SVR.md 4.6 (validation status per case)", "Status reported by the supplier; not reviewed.", "Review (H01).", "S", "no", "R14,H01"),
     # 5.7 delivery and acceptance
-    ("E-ST-40C", "5.7.2.1a", "P", "packaging/; compliance/docs/SRelD.md", "Release 3.0.0 published on GitHub with the wheel, sdist, .deb and SHA-256 checksums; the Windows installer is not built or published (SRelD K-12).", "Release with a new version (H05).", "S", "no", "R14,H05"),
+    ("E-ST-40C", "5.7.2.1a", "P", "packaging/; compliance/docs/SRelD.md", "Release 1.0.0 (Linux) prepared with the wheel, sdist, .deb and SHA-256 checksums; the earlier releases are withdrawn; no Windows installer in 1.0.0 (SRelD K-12, K-14).", "Release with a new version (H05).", "S", "no", "R14,H05"),
     ("E-ST-40C", "5.7.2.1b", "P", "packaging/build_wheel.sh, build_wheel.ps1, build_deb.sh write SHA-256 checksums (security analysis S-07)", "Releases are checksummed; signing waived by the user (decision 11); dependencies not pinned by hash (S-08).", "Lock file with hashes (S-08).", "S", "no", "R15,D-13"),
     ("E-ST-40C", "5.7.2.2a", "NA", "-", "No training specified in a business agreement.", "-", "S", "no", ""),
     ("E-ST-40C", "5.7.2.3*", "P", "packaging/README.md, install scripts; compliance/docs/security_analysis.md section 6; SUM 9.2, 9.9", "Installation security assessed; installs from PyPI without hash checking (S-08); Windows installer not tested (H13).", "S-08 lock file; test (H13).", "S", "no", "R15,H13"),
@@ -251,7 +251,7 @@ SOFTWARE_RULES = [
     ("Q-ST-80C", "6.2.2.1a", "P", "compliance/docs/dependability_safety_analysis.md section 1", "Classification by the user's judgement; the ECSS-Q-ST-40 6.5.6.3 analysis is not available; ECSS-Q-ST-40 not supplied (decision 18).", "-", "S", "no", "H04,H12"),
     ("Q-ST-80C", "6.2.2.*", "P", "compliance/docs/dependability_safety_analysis.md (functional FMEA, FM-01 to FM-12, safeguards with evidence)", "Drafted by the supplier, waiting for the user's approval; methods not agreed with a separate customer; no system-level analysis to start from.", "User approves the analysis (H04).", "S", "no", "H04"),
     ("Q-ST-80C", "6.2.3.*", "P", "compliance/docs/dependability_safety_analysis.md section 4 (measures for critical software: the whole tool, category C)", "Measures applied and verified by the supplier; unreachable-code analysis (6.2.3.6a) done, unreachable code removed (review_log F-13), defensive checks kept as an interpretation to confirm; no independent verification (H06).", "Confirm the defensive-check interpretation; H06.", "S", "no", "H04,H06"),
-    ("Q-ST-80C", "6.2.4.*", "P", "git; version 3.0.0 (pyproject.toml); schema_version + migrations; "
+    ("Q-ST-80C", "6.2.4.*", "P", "git; version 1.0.0 (pyproject.toml); schema_version + migrations; "
      "R01 (Phase 2): spacemissionstudio/dependencies.py QUALIFIED_BASILISK_VERSION = 2.12.0, installers pin "
      "bsk[all]==2.12.0, start-up check (GUI status bar, CLI run), RunProvenance/provenance.json records "
      "Basilisk version and qualification, dependency versions, scenario SHA-256 and reference data files "

@@ -70,7 +70,7 @@ codebase -- see e.g. ``engine.formation``'s R/N-placement docstring, or
 * "Europe" is read geographically (as the user's own request put it), not
   strictly "EU member state": most entries are from EU members, and the
   Norway, United Kingdom and Ukraine entries are European but not EU.
-  Entries made outside Europe were removed before release 3.0.0 (audit
+  Entries made outside Europe were removed in the pre-release audit (audit
   L30); ``tests/test_device_catalog.py`` keeps it that way.
 
 **Supplier-database entries.** A real user's supplier database ("Complete

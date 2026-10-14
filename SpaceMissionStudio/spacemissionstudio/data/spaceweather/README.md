@@ -9,7 +9,7 @@ unmodified except for line endings (stored with LF):
 * observed daily Kp/Ap and F10.7 from 1957-10-01 to 2026-10-11, CelesTrak's
   45-day daily forecast to 2026-11-25, and NOAA's monthly F10.7 forecast
   from 2026-12 to 2041-10;
-* downloaded from the source above on 2026-10-12 for release 3.0.0. The
+* downloaded from the source above on 2026-10-12. The
   copy before it (updated 2025-07-21) came from the `spaceweather` Python
   package (version 0.4.2), which redistributes it with CelesTrak's
   permission.

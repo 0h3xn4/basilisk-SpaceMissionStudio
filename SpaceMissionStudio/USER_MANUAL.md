@@ -113,18 +113,15 @@ If someone already installed SpaceMissionStudio for you, skip to
 [Section 3](#3-starting-the-app).
 
 **Linux:** double-click the `.deb` file you were given, or the one
-from the [3.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0) (or run
-`sudo apt install ./spacemissionstudio_3.0.0_all.deb` in a terminal), then
+from the [1.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0) (or run
+`sudo apt install ./spacemissionstudio_1.0.0_all.deb` in a terminal), then
 find **SpaceMissionStudio** in your application menu like any other program.
 
-**Windows 10/11:** install Python 3.11 or newer first
-([python.org](https://www.python.org/downloads/), with "Add python.exe to
-PATH" ticked). Then double-click the `.exe` installer you were given, or
-`spacemissionstudio-3.0.0-setup.exe` from the [3.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/v3.0.0),
-follow the setup wizard, and find **SpaceMissionStudio** in your Start
-Menu.
+**Windows 10/11 and macOS:** 1.0.0 has no installer for them yet. Install
+from source as the [Getting started guide](docs/getting-started.md)
+describes (path C).
 
-Either installer needs an internet connection once, to download the
+The installer needs an internet connection once, to download the
 Basilisk simulation engine and its reference data (planet positions,
 leap seconds, Earth's gravity and magnetic field, about 116 MB). After
 that the app works offline.
