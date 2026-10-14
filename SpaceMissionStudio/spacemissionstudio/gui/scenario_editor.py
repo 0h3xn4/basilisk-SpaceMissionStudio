@@ -59,7 +59,7 @@ from .mission_sequence_editor import MissionSequenceEditorWidget
 from .monte_carlo_editor import MonteCarloGroupWidget
 from .problem_location import (GROUND_STATION, JSON_VIEW, MISSION_SEQUENCE, PROPAGATION, SCENARIO, SPACECRAFT,
                                locate)
-from .spacecraft_editor import SpacecraftListWidget, tab_titles
+from .spacecraft_editor import SpacecraftEditorDialog, SpacecraftListWidget, tab_titles
 from .theme import CONTENT_MAX_WIDTH_PX, PALETTE
 from .widgets import ComboBox, out_of_range_boxes
 from .workspace_panels import field_label
@@ -159,6 +159,7 @@ class ScenarioEditorWidget(QWidget):
         self._spacecraft_nodes: list = []
         self._station_nodes: list = []
         self._environment_form = None
+        self._label_forms: dict = {}  # area -> a form never shown, for its labels (problem_display)
 
         self.scenario_page = _page(self._build_identity_group(), top=True)
         self.environment_page = self._build_propagation_group()
@@ -459,8 +460,6 @@ class ScenarioEditorWidget(QWidget):
     def _build_form(self, node: _FormNode) -> None:
         """``node``'s live form: the spacecraft or station editor, embedded."""
         if node in self._spacecraft_nodes:
-            from .spacecraft_editor import SpacecraftEditorDialog
-
             row = self._spacecraft_nodes.index(node)
             others = sorted(c.name for i, c in enumerate(self.spacecraft_list.to_list()) if i != row)
             spacecraft_list = self.spacecraft_list
@@ -480,6 +479,8 @@ class ScenarioEditorWidget(QWidget):
             kind = "station"
         embed_dialog(form)
         form.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
+        if kind == "spacecraft":
+            form.other_titles = self._environment_title
         node.holder.layout().addWidget(form)
         node.form = form
         if kind == "spacecraft":
@@ -834,13 +835,48 @@ class ScenarioEditorWidget(QWidget):
                 [gs.name for gs in self.ground_station_list.to_list()])
 
     def problem_display(self, text: str) -> str:
-        """``text`` as Problems and the field show it: a scenario field's
-        message starts with its label, not its schema path ("Epoch (UTC)
-        '2030-13-45T99:00:00' is not ...", not "scenario.epoch_utc ...")."""
+        """``text`` as the banner, Problems and the field show it: with the
+        labels of the form that edits it in place of its field codes
+        ("Epoch (UTC) '2030-13-45T99:00:00' is not ...", not
+        "scenario.epoch_utc ..."; "my-sat: Station keeping: Reboost thrust
+        [N] must be > 0", not "my-sat: station_keeping.thrust_n ...")."""
         location = locate(text, *self._spacecraft_and_station_names())
         if location is not None and location.area == SCENARIO and location.path in self._FIELDS:
             return self._FIELDS[location.path][1] + text[len("scenario." + location.path):]
+        if text.startswith("monte_carlo."):
+            return self.monte_carlo_group.problem_text(text)
+        if location is None:
+            return text
+        if location.area == PROPAGATION and self._environment_form is not None:
+            return self._environment_form.problem_text(text)
+        if location.area in (SPACECRAFT, GROUND_STATION):
+            prefix = f"{location.name}: "
+            return prefix + self._labels_form(location.area, location.name).problem_text(text[len(prefix):])
         return text
+
+    def _environment_title(self, code: str) -> str:
+        """The Environment form's title for ``code`` ("sim_settings.duration_days"),
+        or "": a spacecraft's message can name the scenario's settings."""
+        return self._environment_form.field_title(code) if self._environment_form is not None else ""
+
+    def _labels_form(self, area: str, name: str):
+        """The form whose labels a message about the spacecraft or station
+        ``name`` uses: its node's, else one built for its labels only."""
+        nodes = self._spacecraft_nodes if area == SPACECRAFT else self._station_nodes
+        for node in nodes:
+            if node.form is not None and node.config.name == name:
+                return node.form
+        form = self._label_forms.get(area)
+        if form is None:
+            if area == SPACECRAFT:
+                form = SpacecraftEditorDialog(parent=self)
+                form.other_titles = self._environment_title
+            else:
+                from .ground_station_editor import GroundStationEditorDialog
+
+                form = GroundStationEditorDialog(parent=self)
+            self._label_forms[area] = form
+        return form
 
     def _show_field_problem(self, text: str) -> None:
         """Mark the scenario field ``text`` is about and show it under it;

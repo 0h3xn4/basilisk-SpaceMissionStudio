@@ -59,6 +59,7 @@ from ..schema.scenario import (
     MonteCarloConfig,
 )
 from .feedback import show_dialog_error, show_toast
+from .field_text import field_title, labelled
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox
 
 
@@ -432,6 +433,20 @@ class MonteCarloGroupWidget(QGroupBox):
         self.dispersion_list.changed.connect(self.changed)
         layout.addWidget(self.dispersion_list)
 
+
+    # Where a MonteCarloConfig field's widget is (a message's field).
+    _FIELD_WIDGETS = {"monte_carlo.enabled": "enabled_check", "monte_carlo.num_runs": "num_runs_spin",
+                      "monte_carlo.thread_count": "thread_count_spin", "monte_carlo.verbose": "verbose_check"}
+
+    def field_title(self, code: str) -> str:
+        """The form's title for the field ``code`` names ("Monte Carlo:
+        Number of runs" for "monte_carlo.num_runs"), or ""."""
+        attribute = self._FIELD_WIDGETS.get(code)
+        return field_title(getattr(self, attribute)) if attribute else ""
+
+    def problem_text(self, message: str) -> str:
+        """``message`` with its field codes as this form's titles."""
+        return labelled(message, self.field_title)
     def set_spacecraft_names(self, names: list) -> None:
         self.dispersion_list.set_spacecraft_names(names)
 

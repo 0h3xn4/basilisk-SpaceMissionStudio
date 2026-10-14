@@ -51,6 +51,7 @@ from ..engine.constellation import CENTRAL_BODY_EQUATORIAL_RADIUS_KM
 from ..engine.formation import PhasingFormationRequest
 from ..schema.scenario import ScenarioValidationError, SpacecraftConfig, StationKeepingConfig
 from .feedback import show_dialog_error
+from .field_text import attribute_title, labelled
 from .widgets import ComboBox, PreciseDoubleSpinBox
 
 
@@ -67,6 +68,13 @@ def _double_spin(minimum: float, maximum: float, decimals: int, step: float, val
     box.setValue(value)
     return box
 
+
+
+# A request field's widget, where its name is not the field's
+# (PhasingFormationRequest -> this dialog; gui/field_text.py).
+_WIDGET_NAMES = {"chief_name": "chief_combo", "follower_name": "follower_name_edit",
+                 "max_delta_semi_major_axis_km": "max_delta_sma_km", "station_keeping_deadband_km": "deadband_km",
+                 "control_law": "control_law_combo"}
 
 class PhasingFormationDialog(QDialog):
     """Modal "Generate phasing formation..." dialog. ``spacecraft_names``
@@ -342,13 +350,20 @@ class PhasingFormationDialog(QDialog):
             eccentricity_neutral_burns=self.chief_eccentricity_neutral_check.isChecked(),
         )
 
+    def _field_title(self, code: str) -> str:
+        """The dialog's title for a field of the request, or of the chief's
+        station keeping ("station_keeping.thrust_n": the chief's thrust)."""
+        if code.startswith("station_keeping."):
+            return attribute_title(self, "chief_" + code.split(".", 1)[1], "")
+        return attribute_title(self, code, "phasing_formation", _WIDGET_NAMES)
+
     def _on_accept(self) -> None:
         try:
             self.to_request()
             if self._spacecraft and self.chief_station_keeping() is not None:
                 self.chief_station_keeping().validate(self.chief_combo.currentData() or "chief")
         except ScenarioValidationError as exc:
-            show_dialog_error(self, f"This formation cannot be made: {exc}")
+            show_dialog_error(self, f"This formation cannot be made: {labelled(str(exc), self._field_title)}")
             return
         if self.selected_chief_name() is None:
             show_dialog_error(self, "No chief spacecraft: add a spacecraft to the scenario first.")
