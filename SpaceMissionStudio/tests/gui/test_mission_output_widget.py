@@ -196,10 +196,12 @@ def test_export_writes_every_report_regardless_of_active_filter(qtbot, tmp_path,
 
 
 def test_clear_empties_the_table(qtbot):
+    """A cleared view (a run without a Mission sequence) has no rows and
+    says why it is empty, as before the first run."""
     widget = _widget(qtbot, _apogee_perigee())
     widget.clear()
     assert widget.table.rowCount() == 0
-    assert widget.summary_label.text() == ""
+    assert widget.summary_label.text().startswith("No reports yet")
 
 
 def test_clear_also_resets_the_filter_box(qtbot):

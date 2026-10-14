@@ -194,13 +194,10 @@ from .widgets import ComboBox
 _SERIES_COLORS = list(SERIES_COLORS)
 
 # Chart chrome from the theme's Carbon tokens, so a chart reads as part of
-# the application.
-_INK_PRIMARY = PALETTE["text"]  # text-primary
-_INK_MUTED = PALETTE["text_muted"]  # text-secondary
-_GRID_COLOR = PALETTE["border"]  # border-subtle
-_SURFACE = PALETTE["surface"]  # layer-01
-_EMPTY_STATE_TEXT = PALETTE["text_muted"]
-# IBM Plex Sans from the bundled file (an @font-face in _PAGE_STYLE): the
+# the application: text-primary and text-secondary for its ink,
+# border-subtle for the grid, layer-01 for its surface. Read from PALETTE
+# where a figure is built, so a chart takes the theme in use.
+# IBM Plex Sans from the bundled file (an @font-face in _page_style()): the
 # chart page cannot see fonts loaded into Qt.
 _NOTE_MIN_WIDTH_PX = 360  # [px] the narrowest the wrapped notes under the toolbar get
 _FONT_FAMILY = "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"
@@ -348,12 +345,15 @@ def _short_utc(timestamp: str) -> str:
 
 # Plotly's full page keeps the browser's default 8 px body margin under a
 # 100%-height plot, which put a scroll bar beside every plot.
-_CURSOR_COLOR = PALETTE["danger"]  # as on the Events timeline
-_PAGE_STYLE = ("<style>html, body { margin: 0; height: 100%; overflow: hidden; } "
-               "@font-face { font-family: 'IBM Plex Sans'; font-weight: 400; src: url('"
-               + QUrl.fromLocalFile(str(FONTS_DIR / "IBMPlexSans-Regular.woff")).toString() + "'); } "
-               "@font-face { font-family: 'IBM Plex Sans'; font-weight: 600; src: url('"
-               + QUrl.fromLocalFile(str(FONTS_DIR / "IBMPlexSans-SemiBold.woff")).toString() + "'); }</style>")
+def _page_style() -> str:
+    """The chart page's style: no margin, the theme's surface behind the
+    figure, and the bundled IBM Plex faces."""
+    return ("<style>html, body { margin: 0; height: 100%; overflow: hidden; background: "
+            + PALETTE["surface"] + "; } "
+            "@font-face { font-family: 'IBM Plex Sans'; font-weight: 400; src: url('"
+            + QUrl.fromLocalFile(str(FONTS_DIR / "IBMPlexSans-Regular.woff")).toString() + "'); } "
+            "@font-face { font-family: 'IBM Plex Sans'; font-weight: 600; src: url('"
+            + QUrl.fromLocalFile(str(FONTS_DIR / "IBMPlexSans-SemiBold.woff")).toString() + "'); }</style>")
 
 
 def _plotlyjs_path() -> Path:
@@ -376,10 +376,10 @@ def _empty_state_html() -> str:
     """
     return f"""<!doctype html>
 <html><head><meta charset="utf-8"><style>
-  html, body {{ margin: 0; height: 100%; background: {_SURFACE};
+  html, body {{ margin: 0; height: 100%; background: {PALETTE['surface']};
                 font-family: {_FONT_FAMILY}; }}
   .empty {{ display: flex; align-items: center; justify-content: center;
-            height: 100%; color: {_EMPTY_STATE_TEXT}; font-size: 14px; }}
+            height: 100%; color: {PALETTE['text_muted']}; font-size: 14px; }}
 </style></head>
 <body><div class="empty">Run a simulation to see results here</div></body></html>"""
 
@@ -1005,9 +1005,9 @@ class ResultsWidget(QWidget):
     def _title(self, text: str) -> dict:
         subtitle = self._subtitle()
         size, sub_size = (13, 11) if self._compact() else (16, 12)
-        full = text if not subtitle else (f"{text}<br><span style=\"font-size:{sub_size}px;color:{_INK_MUTED}\">"
+        full = text if not subtitle else (f"{text}<br><span style=\"font-size:{sub_size}px;color:{PALETTE['text_muted']}\">"
                                           f"{subtitle}</span>")
-        return dict(text=full, font=dict(size=size, color=_INK_PRIMARY, family=_FONT_FAMILY))
+        return dict(text=full, font=dict(size=size, color=PALETTE['text'], family=_FONT_FAMILY))
 
     def _margin(self, left: int = 70) -> dict:
         if self._compact():
@@ -1050,8 +1050,8 @@ class ResultsWidget(QWidget):
         self._add_comparison_traces(fig, name, display)
 
         axis_common = dict(
-            gridcolor=_GRID_COLOR, zerolinecolor=_GRID_COLOR, linecolor=_GRID_COLOR,
-            tickfont=dict(color=_INK_MUTED), title_font=dict(color=_INK_MUTED),
+            gridcolor=PALETTE['border'], zerolinecolor=PALETTE['border'], linecolor=PALETTE['border'],
+            tickfont=dict(color=PALETTE['text_muted']), title_font=dict(color=PALETTE['text_muted']),
         )
         y_title = f"{display.y_label} [{display.unit}]" if display.y_label else (f"[{display.unit}]" if display.unit else None)
         y_axis = dict(axis_common, title_text=y_title)
@@ -1069,13 +1069,13 @@ class ResultsWidget(QWidget):
             title=self._title(_series_label(name, series)),
             xaxis=x_axis,
             yaxis=y_axis,
-            font=dict(family=_FONT_FAMILY, color=_INK_PRIMARY),
-            plot_bgcolor=_SURFACE,
-            paper_bgcolor=_SURFACE,
+            font=dict(family=_FONT_FAMILY, color=PALETTE['text']),
+            plot_bgcolor=PALETTE['surface'],
+            paper_bgcolor=PALETTE['surface'],
             hovermode="x unified",
             # a single series names itself in the title -- no legend box needed, unless compared
             showlegend=len(series.columns) > 1 or self.comparison_run() is not None,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color=_INK_MUTED)),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color=PALETTE['text_muted'])),
             margin=self._margin(),
         )
         if ensemble:  # one hover row per run would list them all; show the run under the pointer
@@ -1200,10 +1200,10 @@ class ResultsWidget(QWidget):
             fig.update_layout(
                 annotations=[dict(
                     text="No ground-station access series in this result (no ground stations configured?)",
-                    showarrow=False, font=dict(color=_EMPTY_STATE_TEXT, size=14),
+                    showarrow=False, font=dict(color=PALETTE['text_muted'], size=14),
                     xref="paper", yref="paper", x=0.5, y=0.5,
                 )],
-                plot_bgcolor=_SURFACE, paper_bgcolor=_SURFACE,
+                plot_bgcolor=PALETTE['surface'], paper_bgcolor=PALETTE['surface'],
                 xaxis=dict(visible=False), yaxis=dict(visible=False),
             )
             return fig
@@ -1243,22 +1243,22 @@ class ResultsWidget(QWidget):
                 ))
 
         axis_common = dict(
-            gridcolor=_GRID_COLOR, zerolinecolor=_GRID_COLOR, linecolor=_GRID_COLOR,
-            tickfont=dict(color=_INK_MUTED), title_font=dict(color=_INK_MUTED),
+            gridcolor=PALETTE['border'], zerolinecolor=PALETTE['border'], linecolor=PALETTE['border'],
+            tickfont=dict(color=PALETTE['text_muted']), title_font=dict(color=PALETTE['text_muted']),
         )
         subtitle = f"t0 = {_utc_text(self._epoch_utc)}" if self._epoch_utc else ""
         title = "Ground Station Access Timeline"
         fig.update_layout(
-            title=dict(text=title if not subtitle else (f"{title}<br><span style=\"font-size:12px;color:{_INK_MUTED}\">"
+            title=dict(text=title if not subtitle else (f"{title}<br><span style=\"font-size:12px;color:{PALETTE['text_muted']}\">"
                                                         f"{subtitle}</span>"),
-                       font=dict(size=16, color=_INK_PRIMARY, family=_FONT_FAMILY)),
+                       font=dict(size=16, color=PALETTE['text'], family=_FONT_FAMILY)),
             # Fixed to the run: the end-of-pass ticks would otherwise pad
             # the axis to before t = 0.
             xaxis=dict(axis_common, title_text="Elapsed time [hr]", exponentformat="none",
                        separatethousands=True, range=[0.0, t_end_hr]),
             yaxis=dict(axis_common, title_text=None, categoryorder="category descending"),
-            font=dict(family=_FONT_FAMILY, color=_INK_PRIMARY),
-            plot_bgcolor=_SURFACE, paper_bgcolor=_SURFACE,
+            font=dict(family=_FONT_FAMILY, color=PALETTE['text']),
+            plot_bgcolor=PALETTE['surface'], paper_bgcolor=PALETTE['surface'],
             showlegend=False,  # the y-axis category labels already name every pair -- a legend would be redundant
             margin=dict(l=160, r=30, t=78 if subtitle else 60, b=50),
         )
@@ -1283,7 +1283,7 @@ class ResultsWidget(QWidget):
             html = plot_page.build_page(
                 [fig.to_json() for fig in self.figures], self._layout, self._focused,
                 [name != ACCESS_TIMELINE for name in self._shown],
-                QUrl.fromLocalFile(str(_plotlyjs_path())).toString(), _PAGE_STYLE)
+                QUrl.fromLocalFile(str(_plotlyjs_path())).toString(), _page_style())
             # Alternating file names, so a new page never overwrites one
             # that is still loading.
             self._page_counter += 1
@@ -1483,7 +1483,7 @@ class ResultsWidget(QWidget):
         if not self.figures:
             return
         literals = [self.cursor_x_literal(i) for i in range(len(self.figures))]
-        self.web_view.page().runJavaScript(plot_page.cursor_script(literals, _CURSOR_COLOR))
+        self.web_view.page().runJavaScript(plot_page.cursor_script(literals, PALETTE['danger']))
 
     def readout_time_s(self) -> Optional[float]:
         """The time the readout shows: under the pointer, else the cursor's."""

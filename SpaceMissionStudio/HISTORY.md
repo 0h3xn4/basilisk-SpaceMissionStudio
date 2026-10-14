@@ -10234,3 +10234,82 @@ and a sectioned page both ways, which fails without the key filter: Up
 from B came back to B). Two tests now expect the new tree: the
 workspace test lists the spacecraft's tabs among the tree's paths, and
 the count tooltip says "2 errors" rather than "2 problems" (same checks).
+
+## UX iteration 7a: a dark theme (2026-10-14)
+
+The first part of the polish pass: the standard asks for every view in
+dark and light themes, and the app had only Carbon's light (g10) theme.
+
+**The palette.** `theme.LIGHT` is the g10 palette as it was; `theme.DARK`
+holds Carbon g100 under the same keys (background #161616, layer-01
+#262626, field and layer-02 #393939, text #F4F4F4 and #C6C6C6, button
+#0F62FE with white text). Carbon g100 makes the notification backgrounds
+one grey; here each hue's 90 step is the fill and its 30 step the text on
+it, so a toast, a problem banner and a badge keep their colour. Some
+light colours did two jobs, and one dark colour cannot do both, so they
+got their own keys: `accent_text` (blue text and the tertiary buttons'
+outline: Carbon's blue 60 is 2.9:1 on #262626, blue 40 is used),
+`focus` (white on dark, as Carbon), `on_inverse` (tooltip text: the
+tooltip is light on dark), `icon_inverse` (the tick on a ticked box,
+which is filled with the text colour: white on white otherwise),
+`disabled_fill` and `on_disabled_fill` (a disabled primary button: the
+dark theme's disabled text on its disabled fill was invisible, seen in the
+first capture), the three tag pairs and `info`. In the light theme each
+new key is the colour its uses had, so the light theme looks as before
+(tested).
+
+**Choosing it.** Widgets read `PALETTE` when they are built, so the theme
+is chosen once, before the window is: `apply_theme(app)` reads View >
+Theme from `~/.spacemissionstudio/settings.ini` (System, the default,
+follows `QStyleHints.colorScheme()`, light when the platform says
+nothing), and `select_palette` fills the one `PALETTE` dict in place, so
+every module that imported it sees the theme. A new choice applies at the
+next start, and the toast says so. Switching live would leave every
+widget built with the old colours until rebuilt.
+
+**What read colours too early.** Three modules copied palette colours
+when imported, which is before the theme is chosen: the badges
+(`badges.SUCCESS` and the rest are now pairs of palette keys, resolved by
+`badge_style`), the toast kinds (`feedback._TOAST_KIND_COLORS`, keys too)
+and the chart chrome in `results_widget` (`_INK_PRIMARY`, `_SURFACE` and
+the others, now read where a figure is built; the chart page's style is
+`_page_style()`, which also gives the page the theme's surface behind
+the figure). A scan of every GUI module's top level found nothing else;
+the event colours are the series colours, the same in both themes.
+
+**Glyphs.** The SVGs (arrows, tick, radio dot, toolbar and step icons)
+are drawn in the light theme's colours. `themed_asset` gives each a dark
+copy, written once per process to a temporary folder: every light glyph
+colour (text, text-secondary, text-disabled, danger) becomes the dark
+theme's colour for the same key; white stays white, except the tick's,
+which becomes `icon_inverse`.
+
+**Charts.** The eight series colours, checked with the dataviz validator
+against the dark chart surface #262626: all in the dark lightness band,
+chroma above the floor, worst adjacent CVD Delta E 14.6, worst
+normal-vision Delta E 19.4, all at least 3:1. They pass unchanged, so a
+series keeps its colour in both themes.
+
+**Checked.** Every text pair the stylesheet and the widgets draw is at
+least 4.5:1 and every outline and indicator 3:1, in both themes (WCAG
+2.1, 1.4.3 and 1.4.11; `tests/gui/test_dark_theme.py`). A main window
+built in the dark theme with template 22 open holds no colour only the
+light theme has in any widget's stylesheet; the test fails when a badge
+is given its old light colours. Captures of every main view in the dark
+theme at 1280 x 720 (`scripts/capture_screenshots.py` gains `--theme`
+and `--size`): Templates, the scenario tree and a spacecraft's page,
+Results (plots, dashboard, output), Events, Compare, Log, End of Life,
+Budget, Flight Software, the reference data dialog, the 3D model editor,
+the customize wizard and a dialog's error line.
+
+Also found in the captures: after a run without Report steps the Output
+view was blank, where before a first run it says how to get reports;
+`clear()` emptied its message. It now shows the message again
+(`test_clear_empties_the_table` checks it instead of the empty text).
+
+Tests: `tests/gui/test_dark_theme.py` (both themes have the same keys;
+each pair readable in each theme; the new keys keep the light theme as it
+was; `select_palette` fills the one dict; the setting and System; the
+recoloured glyphs, the tick dark on dark; no light colour in a dark
+window, badges and the chart page dark; View > Theme stores the choice
+and says when it applies).

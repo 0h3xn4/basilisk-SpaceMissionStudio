@@ -27,7 +27,7 @@ status-color meaning genuinely reserved/consistent app-wide (per the
 appears, never reused as decoration).
 
 Pure Qt styling, no logic -- every badge kind maps to one fixed
-``(background, foreground)`` pair from ``theme.PALETTE``, applied via
+``(background, foreground)`` pair of ``theme.PALETTE`` keys, applied via
 :func:`badge_style`.
 """
 
@@ -35,16 +35,20 @@ from __future__ import annotations
 
 from .theme import PALETTE
 
-# Carbon tags: a light fill with dark text of the same hue (gray, green,
-# red, blue tags; warning uses the warning notification colours, Carbon
-# having no yellow tag). Status colours keep their one meaning.
-MUTED = (PALETTE["selected"], PALETTE["text"])  # gray tag
-SUCCESS = ("#A7F0BA", "#0E6027")  # green tag
-DANGER = ("#FFD7D9", "#A2191F")  # red tag
-ACCENT = ("#D0E2FF", "#0043CE")  # blue tag
-WARNING = (PALETTE["warning_soft"], PALETTE["warning"])
+# Carbon tags: a fill with text of the same hue (gray, green, red, blue
+# tags; warning uses the warning notification colours, Carbon having no
+# yellow tag). Status colours keep their one meaning. Each is a pair of
+# PALETTE keys, looked up when a badge is styled, so a badge takes the
+# theme in use.
+MUTED = ("selected", "text")  # gray tag
+SUCCESS = ("tag_success_bg", "tag_success_text")  # green tag
+DANGER = ("tag_danger_bg", "tag_danger_text")  # red tag
+ACCENT = ("tag_accent_bg", "tag_accent_text")  # blue tag
+WARNING = ("warning_soft", "warning")
 
 
 def badge_style(colors: tuple) -> str:
-    bg, fg = colors
+    """The stylesheet of a badge in ``colors``: a pair of PALETTE keys (or
+    of colours)."""
+    bg, fg = (PALETTE.get(name, name) for name in colors)
     return f"background-color: {bg}; color: {fg}; border-radius: 10px; padding: 2px 10px;"

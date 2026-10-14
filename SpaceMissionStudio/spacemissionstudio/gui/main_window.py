@@ -98,6 +98,7 @@ from .vizard_launcher import (
     remember_vizard_executable,
 )
 from .widgets import TabWidget
+from .theme import current_theme, resolve_theme, set_theme_setting, theme_setting
 from .compare_widget import CompareWidget
 from .workspace_panels import InspectorWidget, LogViewWidget, ProblemsWidget, install_log_view
 from ..engine.vizard import playback_file as vizard_playback_file
@@ -687,6 +688,23 @@ class MainWindow(QMainWindow):
         reset_layout_action.triggered.connect(self.reset_layout)
         view_menu.addAction(reset_layout_action)
         self.reset_layout_action = reset_layout_action
+        # The theme: the palette is read when widgets are built, so a new
+        # choice applies at the next start (gui/theme.py).
+        theme_menu = view_menu.addMenu("&Theme")
+        self.theme_group = QActionGroup(self)
+        self.theme_actions = {}
+        chosen = theme_setting()
+        for value, label in (("system", "&System"), ("light", "&Light"), ("dark", "&Dark")):
+            action = QAction(label, self)
+            action.setCheckable(True)
+            action.setChecked(value == chosen)
+            action.setData(value)
+            action.setToolTip("Follow the system's light or dark setting" if value == "system"
+                              else f"The {value} theme")
+            action.triggered.connect(self._on_theme_chosen)
+            self.theme_group.addAction(action)
+            theme_menu.addAction(action)
+            self.theme_actions[value] = action
 
         help_menu = self.menuBar().addMenu("&Help")
         manual_action = QAction("&User Manual", self)
@@ -897,6 +915,15 @@ class MainWindow(QMainWindow):
         settings.setValue("window/geometry", self.saveGeometry())
         settings.setValue("window/state", self.saveState(_LAYOUT_VERSION))
         settings.sync()
+
+    def _on_theme_chosen(self) -> None:
+        """View > Theme: remember the choice; it applies at the next start."""
+        value = self.sender().data()
+        set_theme_setting(value)
+        if resolve_theme(value) == current_theme():
+            report(self, f"Theme: {value}. It is the theme shown now.", kind="info")
+        else:
+            report(self, f"Theme: {value}. It applies when SpaceMissionStudio next starts.", kind="info")
 
     def reset_layout(self) -> None:
         """View > Reset Layout: the docks and toolbars where a new window has them."""

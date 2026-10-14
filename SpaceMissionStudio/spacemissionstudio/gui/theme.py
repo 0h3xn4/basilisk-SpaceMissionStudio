@@ -19,7 +19,7 @@
 guidelines, decision 1: full restyle): Carbon's g10 colour tokens, its type
 (IBM Plex, bundled) and its component looks, rebuilt in Qt as one QSS
 stylesheet plus a QPalette, applied once at start-up (:func:`apply_theme`,
-called from ``gui/app.py``).
+called from ``gui/app.py``), in Carbon's light (g10) or dark (g100) theme.
 
 What is Carbon here:
 
@@ -29,6 +29,13 @@ What is Carbon here:
   #525252, ``interactive``/``button-primary`` #0f62fe, the support colours).
   :data:`PALETTE` keeps this module's earlier key names, so every widget
   that reads it follows; the Carbon token each key stands for is noted.
+  The dark theme is Carbon g100 under the same keys (:data:`DARK`).
+  Widgets read :data:`PALETTE` when they are built, so the theme is chosen
+  before the main window is: :func:`apply_theme` reads the View > Theme
+  setting (System, Light or Dark; ``~/.spacemissionstudio/settings.ini``)
+  and a change applies at the next start. The SVG glyphs are drawn in the
+  light theme's colours and recoloured for the dark one
+  (:func:`themed_asset`).
 * **Type:** IBM Plex Sans at 14 px (Carbon ``body-compact-01``, 10.5 pt at
   96 dpi) with 0.16 px tracking; semibold for headings and selected tabs;
   IBM Plex Mono for code. The WOFF files ship unmodified under the SIL Open
@@ -56,7 +63,7 @@ from PySide6.QtGui import QColor, QFont, QFontDatabase, QPalette
 from PySide6.QtWidgets import QApplication
 
 # Carbon g10 tokens (Carbon v11), under this module's key names.
-_C = {
+LIGHT = {
     "bg": "#F4F4F4",            # background
     "surface": "#FFFFFF",       # layer-01: tiles, group boxes, tab panes, popups
     "surface_alt": "#F4F4F4",   # layer-02 (on layer-01): status bar, recessed panels, disabled fields
@@ -69,12 +76,18 @@ _C = {
     "text": "#161616",          # text-primary (also icon-primary)
     "text_muted": "#525252",    # text-secondary
     "text_disabled": "#C6C6C6",  # text-disabled
-    "accent": "#0F62FE",        # interactive, button-primary, focus, border-interactive
+    "disabled_fill": "#C6C6C6",  # button-disabled
+    "on_disabled_fill": "#8D8D8D",  # text-on-color-disabled
+    "accent": "#0F62FE",        # interactive, button-primary, border-interactive (fills, indicators)
+    "accent_text": "#0F62FE",   # link-primary: blue text and the tertiary buttons' outline
+    "focus": "#0F62FE",         # focus: the 2 px outline of the focused field or button
     "accent_hover": "#0050E6",  # button-primary-hover
     "accent_pressed": "#002D9C",  # button-primary-active
     "accent_soft": "#D0E2FF",   # highlight (text selection, soft accent)
     "on_accent": "#FFFFFF",     # text-on-color
     "inverse": "#393939",       # background-inverse (tooltips)
+    "on_inverse": "#FFFFFF",    # text-inverse: tooltip text
+    "icon_inverse": "#FFFFFF",  # icon-inverse: the tick on a ticked box (filled with icon-primary, "text")
     "danger": "#DA1E28",        # support-error
     "success": "#24A148",       # support-success
     "warning": "#8E6A00",       # yellow 60: warning TEXT (support-warning #F1C21B is too light for text)
@@ -86,11 +99,66 @@ _C = {
     "success_text": "#0E6027",  # green 70: text on success_soft (support-success is a fill colour)
     "danger_text": "#A2191F",   # red 70: text on danger_soft
     "info_text": "#0043CE",     # blue 70 (support-info): text on info_soft
+    "info": "#0043CE",          # support-info: the info toast's rule
+    "tag_success_bg": "#A7F0BA", "tag_success_text": "#0E6027",  # green tag (green 20 / 70)
+    "tag_danger_bg": "#FFD7D9", "tag_danger_text": "#A2191F",    # red tag (red 20 / 70)
+    "tag_accent_bg": "#D0E2FF", "tag_accent_text": "#0043CE",    # blue tag (blue 20 / 70)
 }
 
+# Carbon g100 tokens under the same keys. Where Carbon's dark theme has no
+# token (the notification backgrounds are one grey there), the hue's 90
+# step is the soft fill and its 30 step the text on it, so a toast and a
+# problem banner keep their colour.
+DARK = {
+    "bg": "#161616",            # background
+    "surface": "#262626",       # layer-01
+    "surface_alt": "#393939",   # layer-02
+    "field": "#393939",         # field-02
+    "hover": "#333333",         # layer-hover-01
+    "selected": "#393939",      # layer-selected-01
+    "border": "#393939",        # border-subtle-01
+    "border_strong": "#6F6F6F",  # border-strong-01
+    "field_edge": "#525252",    # gray 70: a field's other three edges
+    "text": "#F4F4F4",          # text-primary
+    "text_muted": "#C6C6C6",    # text-secondary
+    "text_disabled": "#6F6F6F",  # text-disabled (Carbon: text-primary at 25 %)
+    "disabled_fill": "#525252",  # button-disabled
+    "on_disabled_fill": "#8D8D8D",  # text-on-color-disabled
+    "accent": "#0F62FE",        # button-primary (white text on it)
+    "accent_text": "#78A9FF",   # link-primary (blue 40)
+    "focus": "#FFFFFF",         # focus
+    "accent_hover": "#0050E6",  # button-primary-hover
+    "accent_pressed": "#002D9C",  # button-primary-active
+    "accent_soft": "#002D9C",   # highlight
+    "on_accent": "#FFFFFF",     # text-on-color
+    "inverse": "#F4F4F4",       # background-inverse
+    "on_inverse": "#161616",    # text-inverse
+    "icon_inverse": "#161616",  # icon-inverse
+    "danger": "#FA4D56",        # support-error
+    "success": "#42BE65",       # support-success
+    "warning": "#F1C21B",       # support-warning: readable as text on dark
+    "warning_fill": "#F1C21B",  # support-warning
+    "danger_soft": "#520408",   # red 90
+    "success_soft": "#022D0D",  # green 90
+    "warning_soft": "#302400",  # yellow 90
+    "info_soft": "#001D6C",     # blue 90
+    "success_text": "#6FDC8C",  # green 30
+    "danger_text": "#FFB3B8",   # red 30
+    "info_text": "#A6C8FF",     # blue 30
+    "info": "#4589FF",          # support-info
+    "tag_success_bg": "#0E6027", "tag_success_text": "#A7F0BA",  # green tag (green 70 / 20)
+    "tag_danger_bg": "#A2191F", "tag_danger_text": "#FFD7D9",    # red tag (red 70 / 20)
+    "tag_accent_bg": "#0043CE", "tag_accent_text": "#D0E2FF",    # blue tag (blue 70 / 20)
+}
+
+_C = dict(LIGHT)
+
 # Public alias: widgets (feedback.py's toasts, badges, charts) reuse these
-# colours rather than picking their own.
+# colours rather than picking their own. The same dict in either theme:
+# :func:`select_palette` fills it in place.
 PALETTE = _C
+THEMES = ("system", "light", "dark")  # the View > Theme choices
+_current = "light"
 
 # Carbon's categorical data-visualisation hues (cyan 50, orange 50, purple 60,
 # yellow 50, teal 50, orange 60, blue 50, magenta 60), stepped and ordered
@@ -114,9 +182,96 @@ _UI_LETTER_SPACING_PX = 0.16  # [px] Carbon body-compact-01 tracking
 _loaded_families: List[str] = []
 
 
+def select_palette(theme: str) -> None:
+    """Fill :data:`PALETTE` with the ``"light"`` or ``"dark"`` tokens. Call
+    before building widgets: they read the palette when they are built."""
+    global _current
+    if theme not in ("light", "dark"):
+        raise ValueError(f"theme must be 'light' or 'dark', not {theme!r}")
+    _C.clear()
+    _C.update(DARK if theme == "dark" else LIGHT)
+    _current = theme
+
+
+def current_theme() -> str:
+    """``"light"`` or ``"dark"``: the palette in use."""
+    return _current
+
+
+def _settings():
+    from PySide6.QtCore import QSettings
+
+    return QSettings(str(Path.home() / ".spacemissionstudio" / "settings.ini"), QSettings.Format.IniFormat)
+
+
+def theme_setting() -> str:
+    """The View > Theme choice: ``"system"`` (the default), ``"light"`` or
+    ``"dark"``."""
+    value = str(_settings().value("appearance/theme", "system"))
+    return value if value in THEMES else "system"
+
+
+def set_theme_setting(value: str) -> None:
+    """Remember the View > Theme choice; it applies at the next start."""
+    if value not in THEMES:
+        raise ValueError(f"theme must be one of {THEMES}, not {value!r}")
+    settings = _settings()
+    settings.setValue("appearance/theme", value)
+    settings.sync()
+
+
+def resolve_theme(setting: str, app: QApplication | None = None) -> str:
+    """``"light"`` or ``"dark"`` for the setting: ``"system"`` follows the
+    platform's colour scheme (light when it does not say)."""
+    if setting in ("light", "dark"):
+        return setting
+    app = app or QApplication.instance()
+    if app is not None:
+        from PySide6.QtCore import Qt
+
+        if app.styleHints().colorScheme() == Qt.ColorScheme.Dark:
+            return "dark"
+    return "light"
+
+
+_LIGHT_GLYPH_KEYS = ("text", "text_muted", "text_disabled", "danger")  # the colours the SVGs are drawn in
+# A glyph drawn on a fill of another key: its white is that key's colour
+# (the tick sits on a ticked box filled with text-primary).
+_GLYPH_WHITE_KEY = {"check.svg": "icon_inverse"}
+_themed_dir: Path | None = None
+
+
+def themed_asset(path: Path) -> Path:
+    """``path`` (an SVG in ``assets/``) in the current theme's colours: the
+    file itself in the light theme; in the dark one a copy, written once
+    per process to a temporary folder, with each light glyph colour
+    replaced by the dark theme's colour for the same key."""
+    if _current == "light" or path.suffix != ".svg":
+        return path
+    global _themed_dir
+    if _themed_dir is None:
+        import atexit
+        import shutil
+        import tempfile
+
+        _themed_dir = Path(tempfile.mkdtemp(prefix="spacemissionstudio-theme-"))
+        atexit.register(shutil.rmtree, _themed_dir, True)
+    target = _themed_dir / path.name
+    if not target.exists():
+        import re
+
+        swap = {LIGHT[key].upper(): DARK[key] for key in _LIGHT_GLYPH_KEYS}
+        if path.name in _GLYPH_WHITE_KEY:
+            swap["#FFFFFF"] = DARK[_GLYPH_WHITE_KEY[path.name]]
+        text = re.sub(r"#[0-9A-Fa-f]{6}\b", lambda m: swap.get(m.group(0).upper(), m.group(0)),
+                      path.read_text(encoding="utf-8"))
+        target.write_text(text, encoding="utf-8")
+    return target
+
+
 def _asset(name: str) -> str:
     # Qt's url() wants forward slashes on every platform, Windows included.
-    return (_ASSETS_DIR / name).as_posix()
+    return themed_asset(_ASSETS_DIR / name).as_posix()
 
 
 def load_fonts() -> List[str]:
@@ -146,7 +301,7 @@ def _qss() -> str:
     }}
     QToolTip {{
         background-color: {c['inverse']};
-        color: {c['on_accent']};
+        color: {c['on_inverse']};
         border: none;
         padding: 4px 8px;
         border-radius: 2px;
@@ -181,10 +336,10 @@ def _qss() -> str:
     /* ---- buttons: primary filled, others Carbon tertiary ------------- */
     QPushButton {{
         background-color: transparent;
-        border: 1px solid {c['accent']};
+        border: 1px solid {c['accent_text']};
         border-radius: 0px;
         padding: 6px 16px;
-        color: {c['accent']};
+        color: {c['accent_text']};
     }}
     QPushButton:hover {{
         background-color: {c['accent_hover']};
@@ -197,7 +352,7 @@ def _qss() -> str:
         color: {c['on_accent']};
     }}
     QPushButton:focus {{
-        border: 2px solid {c['accent']};
+        border: 2px solid {c['focus']};
         padding: 5px 15px;
     }}
     QPushButton:disabled {{
@@ -227,15 +382,15 @@ def _qss() -> str:
     /* A disabled primary button must not keep the bright fill (Carbon:
        button-disabled #C6C6C6 with text-on-color-disabled #8D8D8D). */
     QPushButton:default:disabled, QPushButton[primary="true"]:disabled {{
-        background-color: {c['text_disabled']};
-        border: 1px solid {c['text_disabled']};
-        color: {c['border_strong']};
+        background-color: {c['disabled_fill']};
+        border: 1px solid {c['disabled_fill']};
+        color: {c['on_disabled_fill']};
     }}
     /* Compact in-row action (a template row's "Customize..."): Carbon ghost. */
     QPushButton#rowCustomizeButton {{
         padding: 1px 8px;
         border: 1px solid transparent;
-        color: {c['accent']};
+        color: {c['accent_text']};
         font-weight: 600;
     }}
     QPushButton#rowCustomizeButton:hover {{
@@ -264,7 +419,7 @@ def _qss() -> str:
     }}
     QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus,
     QComboBox:focus, QDateTimeEdit:focus {{
-        border: 2px solid {c['accent']};
+        border: 2px solid {c['focus']};
         padding: 4px 7px;
     }}
     QLineEdit:disabled, QPlainTextEdit:disabled, QTextEdit:disabled, QSpinBox:disabled,
@@ -642,8 +797,8 @@ def _qss() -> str:
     /* A menu button laid out among push buttons (the Data tab's Download,
        Import, Roll back): Carbon tertiary, like QPushButton above. */
     QToolButton[tertiary="true"] {{
-        border: 1px solid {c['accent']};
-        color: {c['accent']};
+        border: 1px solid {c['accent_text']};
+        color: {c['accent_text']};
         padding: 6px 24px 6px 16px;
     }}
     QToolButton[tertiary="true"]:hover {{
@@ -737,7 +892,7 @@ def _qss() -> str:
     }}
     QCheckBox::indicator:hover, QGroupBox::indicator:hover, QRadioButton::indicator:hover,
     QListWidget::indicator:hover, QTreeWidget::indicator:hover {{
-        border: 2px solid {c['accent']};
+        border: 2px solid {c['focus']};
         width: 12px;
         height: 12px;
     }}
@@ -768,11 +923,13 @@ def _qss() -> str:
     """
 
 
-def apply_theme(app: QApplication) -> None:
-    """Call once, right after constructing the ``QApplication`` (see
-    ``gui/app.py``). "Fusion" is the base QStyle: the one built-in Qt style
-    that renders the same, and is predictably styleable by QSS, on Linux,
-    macOS and Windows."""
+def apply_theme(app: QApplication, theme: str | None = None) -> None:
+    """Call once, right after constructing the ``QApplication`` and before
+    building any widget (see ``gui/app.py``). ``theme`` is ``"light"`` or
+    ``"dark"``; None takes the View > Theme setting. "Fusion" is the base
+    QStyle: the one built-in Qt style that renders the same, and is
+    predictably styleable by QSS, on Linux, macOS and Windows."""
+    select_palette(theme or resolve_theme(theme_setting(), app))
     app.setStyle("Fusion")
     if UI_FONT_FAMILY in load_fonts():
         font = QFont(UI_FONT_FAMILY)
@@ -795,9 +952,9 @@ def apply_theme(app: QApplication) -> None:
     palette.setColor(QPalette.ColorRole.Highlight, QColor(_C["accent"]))
     palette.setColor(QPalette.ColorRole.HighlightedText, QColor(_C["on_accent"]))
     palette.setColor(QPalette.ColorRole.ToolTipBase, QColor(_C["inverse"]))
-    palette.setColor(QPalette.ColorRole.ToolTipText, QColor(_C["on_accent"]))
+    palette.setColor(QPalette.ColorRole.ToolTipText, QColor(_C["on_inverse"]))
     palette.setColor(QPalette.ColorRole.PlaceholderText, QColor(_C["text_muted"]))
-    palette.setColor(QPalette.ColorRole.Link, QColor(_C["accent"]))
+    palette.setColor(QPalette.ColorRole.Link, QColor(_C["accent_text"]))
     # Several widgets' own stylesheets use "color: palette(mid);" for muted
     # hint text; Qt's computed Mid (a bevel shade) was unreadable on this
     # light background (a user report). Mapped to text-secondary.

@@ -210,11 +210,15 @@ def toolbar_icon(name: str) -> QIcon:
     with no icon at all -- one consistent outline set reads as one app.
     Qt derives the greyed disabled look from the same SVG automatically.
     """
-    return QIcon(str(_ASSETS_DIR / f"tb-{name}.svg"))
+    from .theme import themed_asset
+
+    return QIcon(str(themed_asset(_ASSETS_DIR / f"tb-{name}.svg")))
 
 
 def step_icon(kind: str) -> QIcon:
     """A Mission Sequence step kind's line icon (``assets/step-<kind>.svg``),
     in the toolbar icons' style; an empty icon for an unknown kind."""
+    from .theme import themed_asset
+
     path = _ASSETS_DIR / f"step-{kind}.svg"
-    return QIcon(str(path)) if path.exists() else QIcon()
+    return QIcon(str(themed_asset(path))) if path.exists() else QIcon()
