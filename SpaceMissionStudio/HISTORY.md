@@ -10705,3 +10705,28 @@ download names, the template facts the how-to pages quote (18 at 400 km,
 (`check_drds`: 0 problems); the link and anchor check over every current
 Markdown file; `ruff check`; pre-commit; the full suite (results in the
 pull request).
+
+## The repository's main README (2026-10-14)
+
+The documentation audit above covered `SpaceMissionStudio/` only; the
+user pointed out the README on the repository's main page. Its tool part
+(above the upstream README) still described the earlier numbering: a
+3.0.0 badge and three links to the deleted `v3.0.0` release, a Windows
+setup program in that release, 27 templates, **Load Scenario** and
+**Run > Run Simulation**, and a 3.0.0 `.deb` tested by hand. It now
+matches `SpaceMissionStudio/README.md` and the published 1.0.0 (badge and
+links to `spacemissionstudio-v1.0.0`, Linux installer only, 28
+templates, Templates and Run), lists 3D models and the themes among the
+features, and its "What this fork adds" table gains the two files it
+missed (`spacemissionstudio-windows-installer.yml`,
+`docs/upstream/README.md`), checked with `git diff --stat c1bf0d7d6 HEAD`
+outside `SpaceMissionStudio/`. The upstream part between the markers is
+byte-for-byte unchanged, and every relative link in the tool part
+resolves.
+
+Not changed here: the repository's "About" website link,
+`https://0h3xn4.github.io/basilisk-SpaceMissionStudio/`. The `gh-pages`
+branch holds only Basilisk's own documentation under `develop/` (built
+by Basilisk's `merge.yml`) and has no `index.html` at its root, so the
+link most likely shows a 404 (the site could not be opened from the
+session to confirm). The link is a repository setting for the owner.
