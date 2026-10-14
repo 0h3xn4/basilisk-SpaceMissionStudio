@@ -313,8 +313,8 @@ class MainWindow(QMainWindow):
         self.compare_widget = CompareWidget()
         self.compare_widget.compare_chosen.connect(self._on_compare_chosen)
         self.compare_widget.delete_requested.connect(self._on_delete_run)
-        self.results_widget.compare_combo.currentIndexChanged.connect(
-            lambda _index: self.compare_widget.follow_results_choice(self.results_widget.compare_combo.currentData()))
+        # a bound method, not a lambda holding the window (test_a_closed_window_is_freed)
+        self.results_widget.compare_combo.currentIndexChanged.connect(self._on_results_compare_changed)
         self.log_widget = LogViewWidget()
         install_log_view(self.log_widget)
 
@@ -852,6 +852,10 @@ class MainWindow(QMainWindow):
     def _on_compare_chosen(self, number) -> None:
         combo = self.results_widget.compare_combo
         combo.setCurrentIndex(max(combo.findData(number), 0) if number is not None else 0)
+
+    def _on_results_compare_changed(self, _index: int) -> None:
+        """Results' Compare with changed: the Compare tab ticks the pair (U-33)."""
+        self.compare_widget.follow_results_choice(self.results_widget.compare_combo.currentData())
 
     def _refresh_compare_tab(self, *_args) -> None:
         self.compare_widget.set_runs(self.run_history.runs, self.results_widget._current_run,
