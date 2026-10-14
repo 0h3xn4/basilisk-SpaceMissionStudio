@@ -132,6 +132,14 @@ fixes bugs.
   that differ from the oldest ticked run, the events counted with their
   total time, and one series of every run overlaid. **Delete run...**
   removes a saved run.
+- **A dark theme** (View > Theme: System, Light or Dark). Carbon's g100
+  colours throughout: the window, the forms, the tables, the badges,
+  toasts and problem lines, the plots and the 3D view, the icons and the
+  tick boxes. System follows the desktop's light or dark setting. The
+  choice is kept in `~/.spacemissionstudio/settings.ini` and applies at
+  the next start.
+- **The Output view says why it is empty** after a run without Report
+  steps, as it does before the first run (it was blank).
 - **A spacecraft's tabs are nodes of the scenario tree** (UX audit
   U-01). Under each spacecraft, a node per part of its page (Orbit /
   mass, Attitude control, Budget (AD10) ...) replaces the tabs across

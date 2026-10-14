@@ -442,7 +442,7 @@ class CompareWidget(QWidget):
         self._draw_plot()
 
     def _draw_plot(self, *_args) -> None:
-        from .results_widget import _FONT_FAMILY, _PAGE_STYLE, _display_indices, _plotlyjs_path
+        from .results_widget import _FONT_FAMILY, _display_indices, _page_style, _plotlyjs_path
 
         name, column = self.series_combo.currentData(), self.column_combo.currentData()
         runs = [r for r in self.checked_runs() if r.result is not None and name in r.result.series] if name else []
@@ -481,7 +481,7 @@ class CompareWidget(QWidget):
             margin=dict(l=70, r=30, t=60, b=80))
         self.figure = fig
         html = plot_page.build_page([fig.to_json()], "1x1", 0, [True],
-                                    QUrl.fromLocalFile(str(_plotlyjs_path())).toString(), _PAGE_STYLE)
+                                    QUrl.fromLocalFile(str(_plotlyjs_path())).toString(), _page_style())
         page = Path(self._page_dir.name) / "compare.html"
         if not page.parent.is_dir():
             return

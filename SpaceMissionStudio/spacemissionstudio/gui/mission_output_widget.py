@@ -128,6 +128,9 @@ def _series_rows(name: str, values: np.ndarray, result: Optional[ResultSet], mul
             for column in series.columns]
 
 
+_EMPTY_TEXT = "No reports yet: add a Report step under Mission sequence, then Run."
+
+
 class MissionOutputWidget(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -156,9 +159,7 @@ class MissionOutputWidget(QWidget):
         top_row.addWidget(self.export_button)
         layout.addLayout(top_row)
 
-        self.summary_label = QLabel(
-            "No reports yet -- add report commands under Mission sequence, then Run Simulation."
-        )
+        self.summary_label = QLabel(_EMPTY_TEXT)
         self.summary_label.setWordWrap(True)
         self.summary_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
         layout.addWidget(self.summary_label)
@@ -183,7 +184,7 @@ class MissionOutputWidget(QWidget):
         self.table.setRowCount(0)
         self.table.setColumnCount(0)
         self.table.setVisible(False)
-        self.summary_label.setText("")
+        self.summary_label.setText(_EMPTY_TEXT)  # say why the view is empty, as before a first run
 
     def set_command_summary(self, summary: Optional[CommandSummary], result: Optional[ResultSet] = None) -> None:
         """``result`` (the same run's ResultSet) supplies each series'

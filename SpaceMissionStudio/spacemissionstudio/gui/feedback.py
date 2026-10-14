@@ -72,12 +72,13 @@ from shiboken6 import isValid
 from .theme import PALETTE
 
 # Carbon toast notifications (low contrast): the status background, a 3 px
-# status-colour rule on the left, primary text. (background, rule) per kind.
+# status-colour rule on the left, primary text. (background, rule) PALETTE
+# keys per kind, looked up when a toast is shown.
 _TOAST_KIND_COLORS = {
-    "success": (PALETTE["success_soft"], PALETTE["success"]),
-    "error": (PALETTE["danger_soft"], PALETTE["danger"]),
-    "info": (PALETTE["info_soft"], "#0043CE"),  # support-info
-    "warning": (PALETTE["warning_soft"], PALETTE["warning_fill"]),
+    "success": ("success_soft", "success"),
+    "error": ("danger_soft", "danger"),
+    "info": ("info_soft", "info"),  # support-info
+    "warning": ("warning_soft", "warning_fill"),
 }
 _logger = logging.getLogger("spacemissionstudio.gui")
 _REPORT_LOG_LEVELS = {"error": logging.ERROR, "warning": logging.WARNING, "info": logging.INFO,
@@ -96,7 +97,7 @@ class _Toast(QLabel):
         # separator lets it wrap inside the toast's width (shown only; the
         # message itself is unchanged).
         super().__init__(re.sub(r"([/\\])", "\\1\u200b", message), parent)
-        bg, rule = _TOAST_KIND_COLORS.get(kind, _TOAST_KIND_COLORS["info"])
+        bg, rule = (PALETTE[key] for key in _TOAST_KIND_COLORS.get(kind, _TOAST_KIND_COLORS["info"]))
         self.setStyleSheet(
             f"background-color: {bg}; color: {PALETTE['text']}; border: none; border-left: 3px solid {rule}; "
             f"border-radius: 0px; padding: 10px 16px; font-weight: 600;"

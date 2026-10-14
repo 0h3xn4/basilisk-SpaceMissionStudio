@@ -26,8 +26,15 @@ It opens templates 22, 18 and 07, runs template 22, estimates its lifetime
 and template 18's propellant budget, and saves each view at 1600 x 900
 pixels, and the 3D model editor with an octagonal bus. ``monte_carlo_tab.png``
 needs a Monte Carlo batch and is not captured here.
+
+``--theme light|dark`` captures in that theme (default: light, as the
+documentation shows) and ``--size WxH`` at another window size, e.g. for
+the dark-theme and 2560 x 1440 checks, into another folder::
+
+    QT_QPA_PLATFORM=offscreen python scripts/capture_screenshots.py /tmp/dark --theme dark --size 1280x720
 """
 
+import argparse
 import sys
 import time
 from pathlib import Path
@@ -56,7 +63,7 @@ def _octagonal_bus_model():
     ])
 
 
-def main(out: Path) -> int:
+def main(out: Path, theme: str = "light", size: tuple = WINDOW_SIZE) -> int:
     from PySide6.QtWidgets import QApplication
 
     app = QApplication(sys.argv[:1])
@@ -66,7 +73,7 @@ def main(out: Path) -> int:
     from spacemissionstudio.gui.theme import apply_theme
     from spacemissionstudio.schema import load_scenario
 
-    apply_theme(app)
+    apply_theme(app, theme)
     out.mkdir(parents=True, exist_ok=True)
 
     def spin(duration_s: float) -> None:
@@ -94,7 +101,7 @@ def main(out: Path) -> int:
         print(f"wrote {out / name}")
 
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
-    window.resize(*WINDOW_SIZE)
+    window.resize(*size)
     window.show()
     spin(1.5)  # [s]
 
@@ -137,7 +144,7 @@ def main(out: Path) -> int:
     from spacemissionstudio.gui.model_editor_dialog import ModelEditorDialog
 
     editor = ModelEditorDialog(_octagonal_bus_model(), spacecraft_name="sat-1")
-    editor.resize(*WINDOW_SIZE)
+    editor.resize(*size)
     editor.show()
     spin(6.0)  # [s] the 3D view loads plotly.js and draws
     editor.grab().save(str(out / "model_editor.png"))
@@ -155,4 +162,10 @@ def main(out: Path) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main(Path(sys.argv[1] if len(sys.argv) > 1 else "docs/images")))
+    parser = argparse.ArgumentParser(description="Capture the GUI's screenshots, offscreen.")
+    parser.add_argument("out", nargs="?", default="docs/images", help="the folder to write them to")
+    parser.add_argument("--theme", choices=("light", "dark"), default="light")
+    parser.add_argument("--size", default=f"{WINDOW_SIZE[0]}x{WINDOW_SIZE[1]}", help="the window size, WxH [px]")
+    args = parser.parse_args()
+    width, height = (int(v) for v in args.size.lower().split("x"))
+    sys.exit(main(Path(args.out), args.theme, (width, height)))
