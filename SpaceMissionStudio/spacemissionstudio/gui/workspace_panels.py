@@ -25,8 +25,6 @@ docs/ux-audit.md U-02, U-05, U-23):
   warnings (a right dock); double-clicking one opens the Scenario Editor.
 * :class:`LogViewWidget` -- the session's log, filterable by level and text
   (the *Log* tab). :func:`install_log_view` attaches it to the root logger.
-* :class:`CompareWidget` -- the session's runs and the inputs that differ
-  between the shown run and the chosen one (the *Compare* tab).
 """
 
 from __future__ import annotations
@@ -41,7 +39,7 @@ from PySide6.QtCore import QObject, Qt, QUrl, Signal
 from PySide6.QtGui import QDesktopServices, QFont
 from PySide6.QtWidgets import (QAbstractSpinBox, QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QHBoxLayout,
                                QLabel, QLineEdit, QListWidget, QListWidgetItem, QPlainTextEdit, QPushButton,
-                               QSpinBox, QTableWidget, QTableWidgetItem, QTextEdit, QVBoxLayout, QWidget)
+                               QSpinBox, QTextEdit, QVBoxLayout, QWidget)
 
 from .feedback import row_label
 from .problem_location import SPACECRAFT, locate
@@ -346,99 +344,3 @@ def install_log_view(view: LogViewWidget) -> logging.Handler:
     root.addHandler(handler)
     view.destroyed.connect(lambda *_args: root.removeHandler(handler))
     return handler
-
-
-# -- Compare ------------------------------------------------------------------
-
-class CompareWidget(QWidget):
-    """The session's runs; choosing one compares it with the shown run: its
-    inputs that differ, here, and its curves, dashed, in Results."""
-
-    compare_chosen = Signal(object)  # a run number, or None for no comparison
-
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
-        super().__init__(parent)
-        layout = QVBoxLayout(self)
-        self.empty_label = _empty_state("Run the scenario twice (or two versions of it) to compare the runs here.")
-        layout.addWidget(self.empty_label)
-        self.content = QWidget()
-        content = QVBoxLayout(self.content)
-        content.setContentsMargins(0, 0, 0, 0)
-        self.shown_label = QLabel()
-        self.shown_label.setWordWrap(True)
-        content.addWidget(self.shown_label)
-        content.addWidget(QLabel("Compare with:"))
-        self.run_list = QListWidget()
-        self.run_list.setMaximumHeight(160)  # [px]
-        self.run_list.currentItemChanged.connect(self._on_choice)
-        content.addWidget(self.run_list)
-        self.summary_label = QLabel()
-        content.addWidget(self.summary_label)
-        self.table = QTableWidget(0, 3)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.verticalHeader().setVisible(False)
-        self.table.horizontalHeader().setStretchLastSection(True)
-        content.addWidget(self.table, 1)
-        layout.addWidget(self.content, 1)
-        self._runs: list = []
-        self._current = None
-        self._updating = False
-        self.set_runs([], None)
-
-    def set_runs(self, runs: list, current, chosen_number=None) -> None:
-        """``runs``: ``gui.run_history.RunRecord`` objects, oldest first;
-        ``current``: the one the run views show; ``chosen_number``: the run
-        compared with it, if any."""
-        self._runs, self._current = list(runs), current
-        others = [r for r in self._runs if current is None or r.number != current.number]
-        self._updating = True
-        self.run_list.clear()
-        none_item = QListWidgetItem("(no comparison)")
-        none_item.setData(Qt.ItemDataRole.UserRole, None)
-        self.run_list.addItem(none_item)
-        selected = none_item
-        for record in reversed(others):
-            item = QListWidgetItem(record.label)
-            item.setData(Qt.ItemDataRole.UserRole, record.number)
-            self.run_list.addItem(item)
-            if record.number == chosen_number:
-                selected = item
-        self.run_list.setCurrentItem(selected)
-        self._updating = False
-        has = current is not None and bool(others)
-        self.empty_label.setVisible(not has)
-        self.content.setVisible(has)
-        self.shown_label.setText(f"Shown: {current.label}" if current is not None else "")
-        self._fill_table(chosen_number)
-
-    def chosen_number(self):
-        item = self.run_list.currentItem()
-        return item.data(Qt.ItemDataRole.UserRole) if item is not None else None
-
-    def _on_choice(self, *_args) -> None:
-        if self._updating:
-            return
-        number = self.chosen_number()
-        self._fill_table(number)
-        self.compare_chosen.emit(number)
-
-    def _fill_table(self, number) -> None:
-        from ..engine import scenario_diff
-
-        other = next((r for r in self._runs if r.number == number), None) if number is not None else None
-        rows = scenario_diff.diff(self._current.scenario, other.scenario) if other and self._current else []
-        self.table.setRowCount(len(rows))
-        if other is None or self._current is None:
-            self.table.setHorizontalHeaderLabels(["Input", "Shown run", "Compared run"])
-            self.summary_label.setText("Choose a run to see the inputs that differ.")
-            return
-        self.table.setHorizontalHeaderLabels(["Input", f"Run {self._current.number} (shown)",
-                                              f"Run {other.number}"])
-        for row, (path, mine, theirs) in enumerate(rows):
-            for column, value in enumerate((path, scenario_diff.short(mine), scenario_diff.short(theirs))):
-                item = QTableWidgetItem(value)
-                item.setToolTip(str((path, mine, theirs)[column]))
-                self.table.setItem(row, column, item)
-        self.table.resizeColumnsToContents()
-        self.summary_label.setText(f"{len(rows)} input(s) differ; Results draws Run {other.number} dashed."
-                                   if rows else f"The inputs are the same; Results draws Run {other.number} dashed.")

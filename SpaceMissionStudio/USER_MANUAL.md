@@ -173,8 +173,9 @@ A few things to notice right away:
     the **Plots**, the **Dashboard** and the mission **Output**, and a
     **Monte Carlo** view when the scenario has Monte Carlo on (Section 10).
   * **Events**: passes, eclipses, burns and mode changes (Section 7).
-  * **Compare**: this session's runs, and the inputs that differ between
-    the run shown and the one you choose (Section 7).
+  * **Compare**: your saved runs, of this session and earlier ones, side
+    by side: a summary with differences, the inputs that differ, the
+    events and overlaid plots (Section 7).
   * **Log**: what the app logged in this session, filterable by level
     and text; a failed run opens it at its warnings and errors.
 * A **side panel** on the right, with three pages: **Inspector** (the
@@ -774,13 +775,39 @@ readout under the catalog.
   **Export all...** saves every shown plot as a PNG or SVG image,
   numbered in grid order, with each plot's series as CSV and the run's
   `provenance.json`, into one folder.
-* **Compare with** -- after a second run in the same session: draws the
-  same series from an earlier run, dashed, in the same colours (the last
-  five runs are kept until the app closes). **Input differences...**
+* **Compare with** -- once there is an earlier run: draws the same
+  series from it, dashed, in the same colours. **Input differences...**
   lists every scenario input that differs between the two runs, e.g.
-  `spacecraft[sat-1].orbit.semi_major_axis_km`. The **Compare** tab
-  shows the same: the session's runs, and for the one you pick, the
-  inputs that differ, in a table.
+  `spacecraft[sat-1].orbit.semi_major_axis_km`.
+
+**Compare** puts two or more runs side by side. Every run is saved as it
+ends, in `~/.spacemissionstudio/runs`, so the runs of earlier sessions
+are listed too ("Run 7, 13 Oct 17:30"); runs are numbered on from the
+last one. The newest 20 runs are kept, at most 2 GB together; the oldest
+go first. Tick the runs to compare (Space ticks the selected one); after a
+run, it and the run before it are ticked. The oldest ticked run is the
+**base**, and each other run is compared with it:
+
+* **Summary**: run length, delta-V, propellant used, the change of the
+  mean semi-major axis (averaged over the first and the last orbit),
+  the lowest link margin, the lowest battery charge, passes and contact
+  time, eclipses and eclipse time, and data downlinked, each with its
+  unit, for every run, with a **Δ** column per run. A figure shows only
+  when the run recorded it. The orbital lifetime is not a run result:
+  see the End of Life analysis.
+* **Inputs**: every input that differs from the base, old to new;
+  "(same)" where a run matches the base.
+* **Events**: each kind of event ("pass over berlin-gs", "eclipse
+  (umbra)") counted, with its total time, and the difference.
+* **Plots**: one series of every ticked run on one plot, the base solid
+  and the others dashed.
+
+With the run shown and one other ticked, Results draws that other run
+dashed; choosing a run under **Compare with** ticks the pair here.
+**Delete run...** removes the selected run from disk (not the run shown).
+A run whose files cannot be read back is named in the status line and
+the Log. If the folder cannot be written, the run is kept for this
+session only and a notice says so.
 
 If you change the scenario after a run, a yellow banner above Results,
 Events and Compare says the results are from a previous version of it, with **Re-run**. It

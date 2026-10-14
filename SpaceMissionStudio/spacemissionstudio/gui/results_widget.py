@@ -202,6 +202,7 @@ _SURFACE = PALETTE["surface"]  # layer-01
 _EMPTY_STATE_TEXT = PALETTE["text_muted"]
 # IBM Plex Sans from the bundled file (an @font-face in _PAGE_STYLE): the
 # chart page cannot see fonts loaded into Qt.
+_NOTE_MIN_WIDTH_PX = 360  # [px] the narrowest the wrapped notes under the toolbar get
 _FONT_FAMILY = "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"
 
 # Fixed ids (rather than Plotly's own randomly-generated default) so
@@ -597,6 +598,12 @@ class ResultsWidget(QWidget):
         self.events_note.setVisible(False)
         self.events_note.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         layout.addWidget(self.events_note)
+        # Qt counts a wrapped label's minimum height at its narrowest width:
+        # at 90-130 px a one-line provenance line or warning took 4-5 lines
+        # of the window's minimum height, and a second run left the window
+        # at 1280 x 744. At 360 px each is at most two lines.
+        for note in (self.provenance_label, self.warnings_label, self.events_note):
+            note.setMinimumWidth(_NOTE_MIN_WIDTH_PX)
 
         self.catalog = PlotCatalog()
         self.catalog.activated.connect(self.show_series)

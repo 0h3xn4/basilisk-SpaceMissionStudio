@@ -72,6 +72,7 @@ def _clear_layout(layout) -> None:
         item = layout.takeAt(0)
         widget = item.widget()
         if widget is not None:
+            widget.hide()  # gone now, not only once the event loop gets to the deferred delete
             widget.deleteLater()
         elif item.layout() is not None:
             _clear_layout(item.layout())

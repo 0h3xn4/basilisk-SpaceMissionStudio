@@ -61,7 +61,7 @@ from PySide6.QtWidgets import (
 )
 
 from .. import output_provenance
-from ..engine import monte_carlo_results
+from ..engine import monte_carlo_results, run_store
 from ..engine.series_names import featured_series
 from ..logging_setup import get_log_file_path
 from ..schema.command import runs_sequence, script_blocks
@@ -98,7 +98,8 @@ from .vizard_launcher import (
     remember_vizard_executable,
 )
 from .widgets import TabWidget
-from .workspace_panels import CompareWidget, InspectorWidget, LogViewWidget, ProblemsWidget, install_log_view
+from .compare_widget import CompareWidget
+from .workspace_panels import InspectorWidget, LogViewWidget, ProblemsWidget, install_log_view
 from ..engine.vizard import playback_file as vizard_playback_file
 
 _FILE_FILTER = "SpaceMissionStudio scenario (*.json)"
@@ -219,7 +220,8 @@ class MainWindow(QMainWindow):
         self._vizard_live_stream_hint_shown = False
         self._last_run_epoch_utc: str | None = None  # set in on_run(); see its own comment
         self._last_run_vizard_file: str | None = None  # the playback file the last run writes, if any
-        self.run_history = RunHistory()  # this session's runs, for comparison
+        # the runs kept for comparison, saved in ~/.spacemissionstudio/runs (U-33, decision 5)
+        self.run_history = RunHistory(store_root=run_store.default_root())
         self._last_run_scenario: Scenario | None = None  # set in on_run(); fed to mission_dashboard_widget
 
         self.scenario_editor = ScenarioEditorWidget()
@@ -310,7 +312,9 @@ class MainWindow(QMainWindow):
 
         self.compare_widget = CompareWidget()
         self.compare_widget.compare_chosen.connect(self._on_compare_chosen)
-        self.results_widget.compare_combo.currentIndexChanged.connect(self._refresh_compare_tab)
+        self.compare_widget.delete_requested.connect(self._on_delete_run)
+        # a bound method, not a lambda holding the window (test_a_closed_window_is_freed)
+        self.results_widget.compare_combo.currentIndexChanged.connect(self._on_results_compare_changed)
         self.log_widget = LogViewWidget()
         install_log_view(self.log_widget)
 
@@ -322,6 +326,8 @@ class MainWindow(QMainWindow):
         self.main_tabs.addTab(self.compare_widget, "Compare")
         self.main_tabs.addTab(self.log_widget, "Log")
         self.main_tabs.currentChanged.connect(self._apply_stale_banner)
+        self.results_widget.set_runs(self.run_history.runs, None)  # the saved runs of earlier sessions (U-33)
+        self._refresh_compare_tab()
 
         # The side panel, a dock on the right: Inspector (the focused field),
         # Explain (what the scenario does) and Problems (what does not
@@ -847,9 +853,24 @@ class MainWindow(QMainWindow):
         combo = self.results_widget.compare_combo
         combo.setCurrentIndex(max(combo.findData(number), 0) if number is not None else 0)
 
+    def _on_results_compare_changed(self, _index: int) -> None:
+        """Results' Compare with changed: the Compare tab ticks the pair (U-33)."""
+        self.compare_widget.follow_results_choice(self.results_widget.compare_combo.currentData())
+
     def _refresh_compare_tab(self, *_args) -> None:
-        self.compare_widget.set_runs(self.results_widget._runs, self.results_widget._current_run,
-                                     self.results_widget.compare_combo.currentData())
+        self.compare_widget.set_runs(self.run_history.runs, self.results_widget._current_run,
+                                     self.results_widget.compare_combo.currentData(), self.run_history.store_root)
+
+    def _on_delete_run(self, record) -> None:
+        """Compare's Delete: forget the run and remove it from disk."""
+        try:
+            self.run_history.delete(record)
+        except OSError as exc:
+            show_toast(self, f"Could not delete {record.name}: {exc}", kind="error")
+            return
+        self.results_widget.set_runs(self.run_history.runs, self.results_widget._current_run)
+        self._refresh_compare_tab()
+        show_toast(self, f"Deleted {record.name}")
 
     def _layout_settings(self):
         from PySide6.QtCore import QSettings
@@ -1262,6 +1283,8 @@ class MainWindow(QMainWindow):
             return
         record = self.run_history.add(self._last_run_scenario.to_dict(), result, self._last_run_epoch_utc or "",
                                       cancelled=cancelled)
+        if self.run_history.last_save_error:  # kept in memory for this session only
+            show_toast(self, f"{record.name} is not saved for later sessions: see the Log", kind="warning")
         self.results_widget.set_runs(self.run_history.runs, record)
         self._refresh_compare_tab()
 

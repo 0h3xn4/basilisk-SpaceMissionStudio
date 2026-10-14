@@ -38,9 +38,10 @@ On macOS, `Cmd` replaces `Ctrl`.
   are: "Explain (1 to check)".
 - **Grow a scenario one step at a time** and run after each step, so you
   know which change changed the result.
-- **Compare runs.** Run, change one thing, run again: **Compare with**
-  on the Results tab overlays the earlier run and **Input differences...**
-  lists exactly what changed.
+- **Compare runs.** Run, change one thing, run again: the **Compare** tab
+  shows what changed in the inputs and in the results, with the
+  differences, and **Compare with** on the Results tab overlays the
+  earlier run. Runs are saved, so you can compare with yesterday's.
 - **Use orbit only while you design the orbit.** It is much faster than
   full attitude.
 - **Set Record every** for runs longer than a few weeks, or the results
