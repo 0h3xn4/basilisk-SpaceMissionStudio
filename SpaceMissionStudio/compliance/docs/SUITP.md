@@ -212,16 +212,18 @@ sentence).
 
 ### 9.1 General (K.2.1<9.1>)
 
-RD1 identifies the 1488 unit and integration test cases (test functions).
-Parametrized functions run once per parameter set, so the suite runs more
-cases than functions (about 2200 with the validation set).
+RD1 identifies the unit and integration test cases (test functions): 2135
+on 2026-10-14. Parametrized functions run once per parameter set, so the
+suite runs more cases than functions (3242 on 2026-10-14, with the
+validation set).
 
 ### 9.2 Organization of each software unit and integration test case
 
 #### 9.2.1 Test case identifier (K.2.1<9.2.1>)
 
 `<file>::<function>`. The purpose is the docstring.
-- 500 of the 1488 functions have a docstring.
+- 1079 of the 2135 functions have a docstring (RD1 gives the current
+  count).
 - The others are described only by their name. Adding docstrings to them
   is an open item; rule C-9 requires them for new tests.
 

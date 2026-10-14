@@ -6,7 +6,8 @@ Document: SMS-SVR, issue 1 (draft), 2026-10-08. Remediation R14.
 **Status:** draft, by the supplier.
 - It reports the verification and validation of the release candidate
   (SRelD) at the end of the audit: commit `23a78d885` plus the Phase 4
-  documents.
+  documents. Section 4.6 adds the CI results of later commits, up to the
+  1.0.0 release commit `f288e0c73` (2026-10-14).
 - The review of these results (CDR/QR, H01) has not taken place.
 - No verification was independent (SVerP 4.1).
 
@@ -177,6 +178,18 @@ macOS uses its native window system. Nobody has used the GUI on Windows
 or macOS by hand. The macOS plot-page load stall of CI run 27 did not
 recur after the results-widget tests began showing their widget
 (commit `6e9cbacd7`).
+
+Release 1.0.0, commit `f288e0c73`, GitHub Actions run 38633749308 (the
+push to `develop`):
+
+| Platform | Passed | Failed | Skipped | Verdict |
+|---|---|---|---|---|
+| Linux (ubuntu-24.04, Python 3.11) | the `test` job passed, coverage 92.7 % | 0 | – | Met |
+| Windows (windows-latest, Python 3.11, `offscreen`) | 3224 | 0 | 16 | Met in this run; two tests fail intermittently in others (SRelD K-14) |
+| macOS (macos-latest, arm64, Python 3.11, `cocoa`) | 3229 | 2 | 11 | Not met: the two wide-screen tests (SRelD K-14) |
+
+1.0.0 is released for Linux only (the user's decision, 2026-10-14), so
+SRS-PO-01 is not claimed for Windows and macOS in this release.
 
 **Not done:** the Windows installer has not been run (SRS-DEL-01, manual
 test, H13; SRelD K-06).

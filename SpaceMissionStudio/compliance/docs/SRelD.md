@@ -1,18 +1,25 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 4, 2026-10-14. Remediation R14.
+Document: SMS-SRelD, issue 5, 2026-10-14. Remediation R14.
 
-**Status:** release **1.0.0**, prepared; not yet published.
+**Status:** release **1.0.0**, published 2026-10-14 (21:06 UTC).
 - On 2026-10-14 the user chose to renew the tool and restart its
   numbering at 1.0.0. The releases made before (1.0.0, 1.1.0, 2.0.0
   and 3.0.0 of the earlier numbering) are withdrawn: on 2026-10-14 the
   repository had no releases and no tags left.
 - 1.0.0 is released for Linux. Windows and macOS follow in a later
   release (the user's decision, 2026-10-14; 5.2, K-14).
-- To be tagged `spacemissionstudio-v1.0.0` (not signed, D-13) on the
-  merge of the release pull request into `develop`; GitHub release
+- Tagged `spacemissionstudio-v1.0.0` (not signed, D-13) on commit
+  `f288e0c73`, the merge of the release pull request (#68) into
+  `develop`. GitHub release "SpaceMissionStudio 1.0.0", published by
+  the user:
   <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0>.
+- Its four files (the wheel, the sdist, the `.deb` and
+  `SHA256SUMS-linux`) have the SHA-256 digests GitHub reports for them,
+  and these equal the files built and installed for the release
+  (`packaging/README.md`). The files were not downloaded back from the
+  release.
 
 ## 1 Introduction (G.2.1<1>)
 
@@ -26,7 +33,7 @@ wrong, and how to use it.
 | Ref. | Document |
 |---|---|
 | RD1 | `HISTORY.md`: the change log, with an entry per change |
-| RD2 | SVR (`SVR.md`): the verification and validation results of this candidate |
+| RD2 | SVR (`SVR.md`): the verification and validation results of this release |
 | RD3 | SRF (`SRF.md`): the reused software baseline |
 | RD4 | `compliance/deviations.md`, `compliance/human_actions.md` |
 | RD5 | SUM (`SUM.md`) |
@@ -43,10 +50,10 @@ wrong, and how to use it.
 | Item | Value |
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
-| Baseline | The merge of the release pull request into `develop`, tagged `spacemissionstudio-v1.0.0` (recorded here once published). Last build before the renewal: 3.0.0 of the earlier numbering, commit `a84ae3784`, 2026-10-12. |
+| Baseline | Commit `f288e0c73` (`f288e0c7323b99fa26c2a5cb73d3f9c5bcfc9e5e`), the merge of the release pull request into `develop`, tagged `spacemissionstudio-v1.0.0`. Last build before the renewal: 3.0.0 of the earlier numbering, commit `a84ae3784`, 2026-10-12. |
 | Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt` |
 | Platform | Python 3.11 or newer |
-| Delivery | Attached to the GitHub release: the wheel and sdist (`packaging/build_wheel.sh`), the Debian package (`packaging/build_deb.sh`) and `SHA256SUMS-linux`, checked after download. No Windows setup program in 1.0.0 (K-14) |
+| Delivery | Attached to the GitHub release: the wheel and sdist (`packaging/build_wheel.sh`), the Debian package (`packaging/build_deb.sh`) and `SHA256SUMS-linux`. GitHub's digest of each published file equals the SHA-256 of the file built and installed (status above). No Windows setup program in 1.0.0 (K-14) |
 | Documentation | SUM and `USER_MANUAL.md`; the documents in `compliance/docs/` |
 | Basilisk framework | Unchanged. Against `develop`, the branch changes only `SpaceMissionStudio/` and `.github/workflows/spacemissionstudio.yml` (`git diff --name-only origin/develop HEAD`). |
 
@@ -97,10 +104,10 @@ before installing this one. Scenario files are unchanged.
 | K-10 | Closed: the test suite failed on Windows (34 tests) and macOS (10 tests) in CI run 20. Four causes were tool defects (F-09 to F-12, fixed); the rest were tests that assumed Linux. Since commit `41b73b1c3` the suite passes on all three (2259 passed, 11 skipped, 0 failed; run 37854361784). The GUI has not been used by hand on Windows or macOS | – | SVR 4.6; `review_log.md` |
 | K-11 | F-09, fixed: parallel runs could read a half-written space-weather file. Altitude trades with more than one worker and Monte Carlo runs with NRLMSISE-00 drag, made before the fix, may have used wrong solar activity | Those results are to be re-run | `review_log.md` F-09 |
 | K-08 | Closed: the PNG/SVG export polled the page with overlapping asynchronous queries; a late timer tick read the cleared state (the CI tracebacks), and several answers could save the file twice. One query at a time now, late answers ignored (F-12) | – | `review_log.md` F-12 |
-| K-09 | 988 of 1488 unit and integration tests have no docstring | Weaker test documentation | `SUITP_test_cases.md` |
+| K-09 | 1056 of the 2135 unit and integration test functions have no docstring (on 2026-10-14) | Weaker test documentation | `SUITP_test_cases.md` |
 | K-12 | The Windows setup program is built, installed silently and the installed tool run on a GitHub Windows runner, including the installer's Python version check; the wizard has not been clicked through by hand and the GUI not opened on a real Windows machine. The graceful SIL close (M15) has not run on Windows. 1.0.0 does not ship the setup program (K-14) | Unknown for interactive use on Windows | `AUDIT.md` sections 5 and 6; `packaging/README.md` |
 | K-13 | Closed: the bundled CelesTrak space weather (observations to 2025-07-20) was refreshed for this release: observations to 2026-10-11, updated 2026-10-12. Results of drag runs dated after 2025-07-20 change, because observed solar activity replaces the earlier forecasts | – | `spacemissionstudio/data/spaceweather/README.md` |
-| K-14 | Open: platform test failures. On Windows, two tests fail intermittently in CI (PR #64, 2026-10-14; each passed on the same commit in another run). `test_the_altitude_trade_runs_its_altitudes_in_parallel_processes`: a worker hit a Basilisk error whose exception cannot be pickled, so its message is lost (cause not yet known; suspected: the cached space-weather file opened by one worker while another replaces it). `test_a_step_without_deadline_waits_while_earlier_steps_are_still_answered`: its fake flight software went over the 0.3 s step timeout on a loaded runner (a test margin). On macOS (PR #65, 2026-10-14), `test_forms_stay_at_a_readable_width` and `test_a_template_row_keeps_its_customize_button_close` fail their own precondition: Qt's `cocoa` platform fits the 2560 x 1440 test window to the runner's screen, so the page is 618 px wide and there is no wide screen to check (a test set-up problem, not the layout). By the user's decision 1.0.0 is a Linux release; Windows and macOS are fixed and released later | Windows: an altitude trade with several workers may fail with an unexplained error. macOS: the wide-screen layout is not checked in CI | PR #64 and #65 comments |
+| K-14 | Open: platform test failures. On Windows, two tests fail intermittently in CI (PR #64, 2026-10-14; each passed on the same commit in another run). `test_the_altitude_trade_runs_its_altitudes_in_parallel_processes`: a worker hit a Basilisk error whose exception cannot be pickled, so its message is lost (cause not yet known; suspected: the cached space-weather file opened by one worker while another replaces it). `test_a_step_without_deadline_waits_while_earlier_steps_are_still_answered`: its fake flight software went over the 0.3 s step timeout on a loaded runner (a test margin). On macOS (PR #65, 2026-10-14), `test_forms_stay_at_a_readable_width` and `test_a_template_row_keeps_its_customize_button_close` fail their own precondition: Qt's `cocoa` platform fits the 2560 x 1440 test window to the runner's screen, so the page is 618 px wide and there is no wide screen to check (a test set-up problem, not the layout). On the release commit `f288e0c73` (run 38633749308) Windows passed (3224 passed, 16 skipped) and macOS failed these two (3229 passed, 2 failed, 11 skipped). By the user's decision 1.0.0 is a Linux release; Windows and macOS are fixed and released later | Windows: an altitude trade with several workers may fail with an unexplained error. macOS: the wide-screen layout is not checked in CI | PR #64 and #65 comments |
 
 **Waivers and deviations:** D-01 to D-13 (RD4). D-08 to D-13 are signed; D-01 to D-07
 are not (decision 14, H08).

@@ -10632,3 +10632,76 @@ itself shows on the next macOS run. Also checked: Undo's standard
 bindings include Alt+Backspace offscreen, the key of Run > Clear Time
 Cursor, but `setShortcut` keeps only the first (Ctrl+Z), and
 Alt+Backspace clears the cursor.
+
+## Documentation audit after the 1.0.0 release (2026-10-14)
+
+The user asked for every document to be checked and anything outdated or
+stale updated. Every current document was read against the code; dated
+records (`AUDIT.md`, `docs/DOCS_AUDIT.md`, the UX audits and roadmap,
+the compliance phase logs, the gap analysis, the review log, the SPAMR,
+the summary report, `docs/ux-standard.md` as the brief the redesign was
+written against, and the earlier entries here) were left as written.
+
+**What was out of date:**
+
+- **Names from before the UX work.** End of Life, Budget and Flight
+  Software were called tabs; they are pages under Analyses in the
+  scenario tree, opened from Analyses and Tools. The Data tab is now the
+  Reference data dialog: its Import file... and Roll back... were
+  described as "Data > ...". The SUM still had Run > Run Simulation,
+  Run > Abort Run, and a window of Load Scenario, Mission Dashboard,
+  Mission Output and Data tabs.
+- **Messages and tooltips in the app** that the docs quote: the missing
+  support-data error, the checksum error, the Earth orientation warning,
+  the status bar's reference-data tooltip, the startup dialog and the
+  Check Reference Data tooltip named the Data tab; the Monte Carlo view's
+  empty hint and two tooltips named Run > Run Monte Carlo...; the Monte
+  Carlo Enabled tooltip said ticking it runs the batch, while Run needs
+  the Monte Carlo mode. Each now names what is there; the Earth
+  orientation warning ends "Tools > Reference Data downloads them", to stay
+  within the 160-character label limit (`tests/gui/test_label_text.py`
+  caught a first, longer wording). Eight template
+  descriptions named old places: 08, 09, 16, 23 and 25 the Mission
+  Output and Monte Carlo tabs and Run Monte Carlo..., 18 the Budget tab,
+  22 and 27 the Explain tab. `scripts/_template_descriptions.py` was
+  changed and the templates regenerated; only their description lines
+  changed.
+- **Numbers:** the README, the documentation index and the run-a-template
+  page said 27 templates (there are 28); the capabilities page said 17
+  CLI commands (there are 18). The `lifetime` output on two pages showed
+  `My-sat` where the command prints `my-sat` (run again on template 22);
+  the lifetime page now shows the two warning lines it also prints. The
+  developer guide's screenshot count, and the SUITP and SRelD K-09 test
+  and docstring counts (1488 test functions; now 2135, 1079 with a
+  docstring), were from earlier.
+- **Release records** said 1.0.0 was prepared but not published. The
+  user published it on 2026-10-14 at 21:06 UTC: tag
+  `spacemissionstudio-v1.0.0` on `f288e0c73`. GitHub's SHA-256 digest of
+  each of its four files equals the SHA-256 of the file built and
+  installed here (`release-1.0.0/`, not committed). The SRelD (issue 5),
+  the SDP (which still named 2.1.0 and "no release tagged"), human
+  actions H05 and H13, `releasing.md` and `packaging/README.md` say so.
+- **Platform evidence:** H13 and the SVR said the suite passes on all
+  three platforms, from the K-10 fixes (commit `41b73b1c3`). On the
+  release commit (run 38633749308), Windows passed (3224 passed, 16
+  skipped) and macOS failed the two wide-screen tests of K-14 (3229
+  passed, 2 failed, 11 skipped). The SVR now gives these, and does not
+  claim SRS-PO-01 for Windows and macOS in 1.0.0.
+- **Smaller ones:** the user manual linked Basilisk's old site and
+  mentioned a `.exe` installer; the tips' file table lacked the 3D
+  model's `.obj` and mass-properties files; the architecture page lacked
+  `model3d/`; the limitations page pointed to a section that is on the
+  capabilities page; `CHANGELOG.md` had no "Unreleased" section, which
+  CONTRIBUTING and releasing.md tell contributors to use (added, with
+  this change).
+
+**Checked and left:** "Run SIL" (the SIL dialog's button), the Explain tab
+(a tab of the side panel), the CLI command list on the command-line page
+(all 18), the Vizard dialog's labels, the Reference data dialog's
+download names, the template facts the how-to pages quote (18 at 400 km,
+04 with six satellites in two planes, 03 at 10 deg E within 0.05 deg).
+
+**Verified:** `scripts/sync_help.py`; the compliance generators
+(`check_drds`: 0 problems); the link and anchor check over every current
+Markdown file; `ruff check`; pre-commit; the full suite (results in the
+pull request).

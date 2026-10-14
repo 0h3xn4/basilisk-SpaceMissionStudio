@@ -113,6 +113,9 @@ restarted at 1.0.0; the releases and tags of the earlier numbering
 sdist, `.deb` and `SHA256SUMS-linux`, without the Windows setup program
 (SRelD K-14). `pip` and `apt` see 1.0.0 as older than the earlier
 3.0.0, so the release notes tell users of that build to remove it first.
+It was published on 2026-10-14: tag `spacemissionstudio-v1.0.0` on
+`f288e0c73`, and GitHub's SHA-256 digest of each attached file equals
+the file built and installed for it (SRelD, status).
 
 ---
 

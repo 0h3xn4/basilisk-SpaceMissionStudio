@@ -163,7 +163,7 @@ messages (`SimulationBaseClass`, `spacecraft`, `gravityEffector`,
 
 | Item | Definition |
 |---|---|
-| Service | `export-fsw` (CLI) or the Flight Software tab writes one spacecraft's attitude flight software as a C project; `fsw-status` and the tab check a recorded export against the scenario. |
+| Service | `export-fsw` (CLI) or the Flight Software page (Tools > Flight Software) writes one spacecraft's attitude flight software as a C project; `fsw-status` and the page check a recorded export against the scenario. |
 | Format | A folder: `CMakeLists.txt`; `basilisk/` (the Basilisk 2.12.0 C sources the modules need, unchanged, with Basilisk's licence); `generated/` (C message interface, `fsw_config.[ch]`, scheduler, port tables, layout checks); `host/fsw_host.c`; `tests/` (one C unit test per module, replay traces); `ICD.md`; `TRACEABILITY.md`; `README.md`; `capture.json`; `manifest.json`. |
 | Key items | `manifest.json`: `format` (1), `config_digest` (64 hex digits), `basilisk_revision`, `rate_ns`, `ports` (name, message type, size in bytes, 16-hex-digit layout hash), `files` (path to SHA-256). Trace files: magic `SMSFTRC1`, little-endian, one record per step of time in ns, written flags and raw payloads (`generated/fsw_trace.h`). |
 | Record in the scenario | `Scenario.fsw_exports[]`: spacecraft, folder, `config_digest`, per-group hashes (`parts`), export time, Basilisk revision (RD1). |
@@ -173,7 +173,7 @@ messages (`SimulationBaseClass`, `spacecraft`, `gravityEffector`,
 
 | Item | Definition |
 |---|---|
-| Service | `sil` (CLI) or Run SIL... in the Flight Software tab runs the scenario with one spacecraft's flight software in an external program, one step at a time. |
+| Service | `sil` (CLI) or Run in SIL mode (the run mode beside Run) runs the scenario with one spacecraft's flight software in an external program, one step at a time. |
 | Parties | The tool listens; the program, started as `<program> sil <address>` with the session token in `SMS_SIL_TOKEN`, connects. |
 | Transport | A Unix-domain stream socket in a folder only the user can open (Linux, macOS), or TCP on 127.0.0.1 (Windows, or on request). The protocol needs only a reliable ordered byte stream (`generated/fsw_transport.h`, `spacemissionstudio.sil.transport.Transport`). |
 | Format | Frames of a 28-byte little-endian header (magic `SMSL`, contract version 1, type, sequence number, payload length, simulation time in ns, CRC-32) and a payload. HELLO carries the token, name, configuration digest, step and every port (name, message type, size, 16-hex-digit layout hash); RESET and STEP carry a written flag and the raw payload per input port; OUTPUT the program's execution time and the same per output and telemetry port. Normative: `spacemissionstudio/fsw_export/templates/SIL_CONTRACT.md`. |

@@ -8,6 +8,18 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **Documentation brought up to date with the app:** menu, tab and page
+  names (End of Life, Budget and Flight Software are pages under
+  Analyses and Tools; the Data tab is now the Reference data dialog;
+  Monte Carlo runs from the run mode beside Run), the template count
+  (28), sample command output, and the records of the published 1.0.0
+  release.
+- **Messages and tooltips** that named the old Data tab or Run Monte
+  Carlo... now name the Reference data dialog and the Monte Carlo run
+  mode.
+
 ## 1.0.0 (2026-10-14)
 
 The first release of the renewed SpaceMissionStudio. The version numbers
