@@ -379,6 +379,31 @@ A spacecraft's downlink transmitter, for a reported link-margin ESTIMATE only (`
 | `antenna_front_to_back_db` | float | `15.0` | [dB] "cosine" only: gain behind the ground plane, below the peak |
 | `antenna_boresight_b` | Optional[list] | `None` |  |
 
+## RoeFormationConfig
+
+Formation flying in relative orbital elements (ROE): this (follower) spacecraft holds, or moves between, ROE targets relative to ``chief_spacecraft`` (``engine.roe`` for the math, ``engine.roe_formation`` for the controllers).
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `chief_spacecraft` | str | `required` |  |
+| `targets` | list | `required` | RoeTargetConfig, start_day increasing from 0 |
+| `control_law` | str | `'impulsive'` | one of ROE_CONTROL_LAWS |
+| `tolerance_m` | list | `[2.0, 20.0, 10.0, 10.0]` |  |
+| `correction_window_days` | float | `1.0` | [day] "impulsive": time to bring the mean longitude back by drifting |
+| `max_drift_m` | float | `100.0` | [m] "impulsive": largest a*/da/ held while drifting |
+| `max_burn_fraction_of_orbit` | float | `0.1` |  |
+| `continuous_gain` | float | `2500.0` | [m^2/s^3] "continuous": diagonal of K per kg (as phasing_keeping.mean_oe_gain) |
+| `target_refresh_s` | float | `600.0` | [s] "continuous": how often the element target follows the chief's J2 drift |
+
+## RoeTargetConfig
+
+One ROE target of a :class:`RoeFormationConfig`: from ``start_day`` (days after the epoch) on, the follower holds ``roe_m``, the six quasi-nonsingular relative orbital elements times the chief's semi-major axis (``engine.roe``).
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `start_day` | float | `0.0` | [day] from the epoch |
+| `roe_m` | list | `[0.0, 0.0, 0.0, 0.0, 0.0, 0.0]` |  |
+
 ## SensorConfig
 
 One sensor instance. ``kind`` is one of :data:`SUPPORTED_SENSOR_KINDS` (see the capability matrix for which Basilisk module each one maps to: ``starTracker``, ``imuSensor``, ``coarseSunSensor``, ``magnetometer``, ``sensorThermal`` -- see :data:`SUPPORTED_SENSOR_KINDS`'s own comment for ``"thermal"``'s extra ``tempMeasurement`` measurement-noise layer). ``params`` is an open dict of module-specific settings (noise std devs, mounting direction, ...) -- kept generic here rather than one dataclass per sensor type so new sensor kinds can be added without another schema migration; :meth:`SpacecraftConfig.validate` checks the kind-specific params it can check early (e.g. ``coarse_sun_sensor`` needs ``nHat_B``).
@@ -466,6 +491,7 @@ See engine/spaceweather.py and engine/service.py. Real data only (user requireme
 | `station_keeping` | Optional[StationKeepingConfig] | `None` |  |
 | `geo_station_keeping` | Optional[GeoStationKeepingConfig] | `None` |  |
 | `phasing_keeping` | Optional[PhasingKeepingConfig] | `None` |  |
+| `roe_formation` | Optional[RoeFormationConfig] | `None` | formation in relative orbital elements |
 | `constant_thrust` | Optional[ConstantThrustConfig] | `None` |  |
 | `momentum_dumping` | Optional[MomentumDumpingConfig] | `None` |  |
 | `magnetic_momentum_management` | Optional[MagneticMomentumManagementConfig] | `None` |  |

@@ -157,6 +157,11 @@ def find_spacecraft_references(scenario: "Scenario", name: str) -> List[Referenc
                 path=f"spacecraft[{i}] ({sc.name!r}).phasing_keeping.chief_spacecraft",
                 resource_kind="spacecraft", name=name,
             ))
+        if sc.roe_formation is not None and sc.roe_formation.chief_spacecraft == name:
+            refs.append(Reference(
+                path=f"spacecraft[{i}] ({sc.name!r}).roe_formation.chief_spacecraft",
+                resource_kind="spacecraft", name=name,
+            ))
     for i, dispersion in enumerate(scenario.monte_carlo.dispersions):
         if dispersion.spacecraft == name:
             refs.append(Reference(
@@ -210,6 +215,9 @@ def rename_spacecraft(scenario: "Scenario", old_name: str, new_name: str) -> int
     for sc in scenario.spacecraft:
         if sc.phasing_keeping is not None and sc.phasing_keeping.chief_spacecraft == old_name:
             sc.phasing_keeping.chief_spacecraft = new_name
+            updated += 1
+        if sc.roe_formation is not None and sc.roe_formation.chief_spacecraft == old_name:
+            sc.roe_formation.chief_spacecraft = new_name
             updated += 1
     for dispersion in scenario.monte_carlo.dispersions:
         if dispersion.spacecraft == old_name:

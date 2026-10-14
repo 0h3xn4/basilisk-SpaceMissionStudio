@@ -85,6 +85,7 @@
       },
       "geo_station_keeping": null,
       "phasing_keeping": null,
+      "roe_formation": null,
       "constant_thrust": null,
       "momentum_dumping": null,
       "magnetic_momentum_management": null,
@@ -198,6 +199,7 @@
         "hill_position_gain": 2e-06,
         "hill_velocity_gain": 0.002
       },
+      "roe_formation": null,
       "constant_thrust": null,
       "momentum_dumping": null,
       "magnetic_momentum_management": null,

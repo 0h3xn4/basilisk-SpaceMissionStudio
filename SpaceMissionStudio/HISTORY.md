@@ -10742,3 +10742,49 @@ at small sizes the ring and dot read as a cartoon eye; the banner was not
 updated with it. The banner now draws the app icon from the same 256 px
 grid, angle and colours as `icons._render` (checked by rendering both).
 Its subtitle, which ran to about 958 of the 960 px, is a point smaller.
+
+## ROE formation flying, part 1: the math, the scenario file and the form (2026-10-14)
+
+The user asked for formation flying in relative orbital elements (ROE),
+with both control laws selectable (impulsive burns planned by the tool,
+and Basilisk's continuous `meanOEFeedback`), ROE targets typed in, a
+passively safe formation helper and reconfiguration, and J2 in the
+guidance model. Basilisk 2.12.0 has no ROE module, so the guidance is the
+tool's own. This first part adds what the controllers will stand on.
+
+- **`engine/roe.py`** (numpy only): the quasi-nonsingular ROE of
+  D'Amico (2010) from mean elements and back; the first-order RTN motion;
+  secular J2 rates and the J2 state transition matrix of Koenig,
+  Guffanti and D'Amico (2017); the closed-form impulsive burns (an
+  along-track pair half an orbit apart for the relative semi-major axis
+  and eccentricity vector, at the least delta-V; a least-squares set at
+  other locations, for when the best ones are in eclipse; one
+  cross-track burn for the inclination vector); a drift plan for the
+  mean longitude; the passively safe formation (parallel e/i vectors);
+  and the closest radial/cross-track approach (D'Amico and Montenbruck
+  2006).
+- **Checked against independent computations** (`tests/test_roe.py`, 20
+  tests): the STM against secular J2 propagation of both spacecraft's
+  mean elements agrees within 0.1 m over 10 days for a formation of a
+  few hundred metres, while the Keplerian matrix is more than 30 m off
+  after 3 days (so the J2 terms are really tested); the burns applied
+  through Gauss's equations make the requested change, and the pair's
+  delta-V equals the closed-form minimum; the safety formula equals a
+  brute-force minimum over an orbit.
+- **Scenario file:** `SpacecraftConfig.roe_formation` (an additive
+  field, `null` in every template; no migration). Validation names each
+  bad value, and refuses a formation without station keeping (it fires
+  that thruster), together with phasing keeping, an eccentric chief
+  (above 0.01), an equatorial chief, gravity without J2, and a run over
+  100 days. Renaming the chief follows into it.
+- **Spacecraft editor:** an "ROE formation" group with the chief, the
+  law, a table of targets, the passively safe helper (it shows the
+  closest approach of the selected target and flags orbits that cross),
+  and the settings of the chosen law only.
+- **Until the controllers exist** (the next change), a run with an ROE
+  formation stops with a message, so a saved formation is never ignored
+  silently.
+
+Checks: the compliance generators (ICD fields, SDD components and SUITP
+regenerated); `ruff check`; pre-commit; the full suite (results in the
+pull request).

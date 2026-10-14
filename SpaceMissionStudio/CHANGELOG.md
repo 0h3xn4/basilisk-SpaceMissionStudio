@@ -10,6 +10,13 @@ fixes bugs.
 
 ## Unreleased
 
+- **Relative orbital elements (first part):** a follower's scenario
+  file can describe a formation in quasi-nonsingular relative orbital
+  elements (ROE, in metres), with a schedule of targets, and the
+  spacecraft editor has a form for it with a passively safe formation
+  helper. The math (the J2 state transition matrix, the impulsive burns,
+  the passive-safety margin) is in place and tested; runs refuse an ROE
+  formation until its controllers arrive in the next change.
 - **Documentation brought up to date with the app:** menu, tab and page
   names (End of Life, Budget and Flight Software are pages under
   Analyses and Tools; the Data tab is now the Reference data dialog;
