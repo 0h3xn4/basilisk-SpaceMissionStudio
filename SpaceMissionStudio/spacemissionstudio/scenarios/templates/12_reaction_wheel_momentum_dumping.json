@@ -280,6 +280,7 @@
       "station_keeping": null,
       "geo_station_keeping": null,
       "phasing_keeping": null,
+      "roe_formation": null,
       "constant_thrust": null,
       "momentum_dumping": {
         "hs_max": 9.6,

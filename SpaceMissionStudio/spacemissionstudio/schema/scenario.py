@@ -1016,6 +1016,103 @@ class PhasingKeepingConfig:
                       f"{spacecraft_name}: phasing_keeping.{field_name} must be a finite number > 0")
 
 
+# RoeFormationConfig.control_law values (engine.roe_formation).
+ROE_CONTROL_LAWS = ("impulsive", "continuous")
+# The chief's largest eccentricity for ROE formations: the impulsive
+# guidance (engine.roe) is the near-circular one.
+ROE_MAX_CHIEF_ECCENTRICITY = 0.01  # [-]
+
+
+@dataclass
+class RoeTargetConfig:
+    """One ROE target of a :class:`RoeFormationConfig`: from
+    ``start_day`` (days after the epoch) on, the follower holds
+    ``roe_m``, the six quasi-nonsingular relative orbital elements times
+    the chief's semi-major axis (``engine.roe``)."""
+
+    start_day: float = 0.0  # [day] from the epoch
+    # [m] a*(da, dlambda, dex, dey, dix, diy): relative semi-major axis,
+    # mean longitude, eccentricity vector, inclination vector
+    roe_m: list = field(default_factory=lambda: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+
+@dataclass
+class RoeFormationConfig:
+    """Formation flying in relative orbital elements (ROE): this
+    (follower) spacecraft holds, or moves between, ROE targets relative to
+    ``chief_spacecraft`` (``engine.roe`` for the math,
+    ``engine.roe_formation`` for the controllers).
+
+    ``targets`` is a schedule: each entry's ROE apply from its
+    ``start_day`` on (the first at day 0); one entry holds that formation,
+    more reconfigure it, e.g. an approach from 2 km behind to a passively
+    safe helix.
+
+    ``control_law``:
+
+    * ``"impulsive"``: the tool's own guidance. When the mean ROE leave
+      ``tolerance_m``, it plans along-track burn pairs (relative
+      semi-major axis and eccentricity vector), a cross-track burn
+      (inclination vector) and a drift for the mean longitude, with the J2
+      state transition matrix, and fires them as short arcs at the planned
+      arguments of latitude.
+    * ``"continuous"``: Basilisk's ``meanOEFeedback`` (Lyapunov feedback on
+      mean equinoctial elements), its target the ROE target turned into
+      element differences, refreshed every ``target_refresh_s``.
+
+    Both fire the follower's ``station_keeping`` thruster and use its tank,
+    as phasing keeping does; that controller stops holding altitude on its
+    own (the ROE controller holds the relative semi-major axis). Needs a
+    near-circular chief around Earth with J2 in the dynamics.
+    """
+
+    chief_spacecraft: str
+    targets: list  # RoeTargetConfig, start_day increasing from 0
+    control_law: str = "impulsive"  # one of ROE_CONTROL_LAWS
+    # [m] "impulsive": how far each part of the mean ROE may stray before
+    # a correction: a*|d(da)|, a*|d(dlambda)|, a*|d(de)|, a*|d(di)|
+    tolerance_m: list = field(default_factory=lambda: [2.0, 20.0, 10.0, 10.0])
+    correction_window_days: float = 1.0  # [day] "impulsive": time to bring the mean longitude back by drifting
+    max_drift_m: float = 100.0  # [m] "impulsive": largest a*|da| held while drifting
+    # [-] "impulsive": a burn longer than this fraction of an orbit is split
+    # over several orbits, so it stays close to an impulse
+    max_burn_fraction_of_orbit: float = 0.1
+    continuous_gain: float = 2500.0  # [m^2/s^3] "continuous": diagonal of K per kg (as phasing_keeping.mean_oe_gain)
+    target_refresh_s: float = 600.0  # [s] "continuous": how often the element target follows the chief's J2 drift
+
+    def validate(self, spacecraft_name: str) -> None:
+        prefix = f"{spacecraft_name}: roe_formation"
+        _require(bool(self.chief_spacecraft), f"{prefix}.chief_spacecraft must not be empty")
+        _require(self.chief_spacecraft != spacecraft_name,
+                  f"{prefix}.chief_spacecraft cannot be the spacecraft itself")
+        _require(self.control_law in ROE_CONTROL_LAWS,
+                  f"{prefix}.control_law {self.control_law!r} must be one of {ROE_CONTROL_LAWS}")
+        _require(isinstance(self.targets, list) and len(self.targets) >= 1,
+                  f"{prefix}.targets needs at least one entry")
+        previous = None
+        for index, target in enumerate(self.targets):
+            _require(isinstance(target, RoeTargetConfig), f"{prefix}.targets[{index}] must be an ROE target")
+            _require(isinstance(target.start_day, (int, float)) and math.isfinite(target.start_day),
+                      f"{prefix}.targets[{index}].start_day must be a finite number")
+            _require(_finite_vector(target.roe_m, 6),
+                      f"{prefix}.targets[{index}].roe_m must be 6 finite numbers [m]")
+            if previous is None:
+                _require(target.start_day == 0.0, f"{prefix}.targets[0].start_day must be 0")
+            else:
+                _require(target.start_day > previous,
+                          f"{prefix}.targets[{index}].start_day must be later than the one before")
+            previous = target.start_day
+        _require(_finite_vector(self.tolerance_m, 4) and all(t > 0 for t in self.tolerance_m),
+                  f"{prefix}.tolerance_m must be 4 finite numbers > 0 [m]")
+        for field_name in ("correction_window_days", "max_drift_m", "max_burn_fraction_of_orbit",
+                           "continuous_gain", "target_refresh_s"):
+            value = getattr(self, field_name)
+            _require(isinstance(value, (int, float)) and math.isfinite(value) and value > 0,
+                      f"{prefix}.{field_name} must be a finite number > 0")
+        _require(self.max_burn_fraction_of_orbit <= 0.5,
+                  f"{prefix}.max_burn_fraction_of_orbit must be at most 0.5")
+
+
 @dataclass
 class MomentumDumpingConfig:
     """Periodic reaction-wheel momentum desaturation via this spacecraft's
@@ -1579,6 +1676,7 @@ class SpacecraftConfig:
     station_keeping: Optional[StationKeepingConfig] = None
     geo_station_keeping: Optional[GeoStationKeepingConfig] = None
     phasing_keeping: Optional[PhasingKeepingConfig] = None
+    roe_formation: Optional[RoeFormationConfig] = None  # formation in relative orbital elements
     constant_thrust: Optional[ConstantThrustConfig] = None
     momentum_dumping: Optional[MomentumDumpingConfig] = None
     magnetic_momentum_management: Optional[MagneticMomentumManagementConfig] = None
@@ -1970,6 +2068,14 @@ class SpacecraftConfig:
                       f"{self.name}: phasing_keeping requires station_keeping to also be set on this spacecraft "
                       "-- they share one physical thruster/propellant tank (see PhasingKeepingConfig's docstring)")
             self.phasing_keeping.validate(self.name)
+        if self.roe_formation is not None:
+            _require(self.station_keeping is not None,
+                      f"{self.name}: roe_formation requires station_keeping to also be set on this spacecraft "
+                      "-- the ROE controller fires its thruster and uses its tank")
+            _require(self.phasing_keeping is None,
+                      f"{self.name}: roe_formation and phasing_keeping both control the same formation -- "
+                      "keep one of them")
+            self.roe_formation.validate(self.name)
         if self.constant_thrust is not None:
             self.constant_thrust.validate(self.name)
         if self.momentum_dumping is not None:
@@ -2494,6 +2600,25 @@ class Scenario:
                               f"{sc.name}: phasing_keeping.control_law 'mean_oe' needs Earth's J2 in the "
                               "dynamics -- set gravity.central_body to 'earth' and central_body_degree to 2 "
                               "or more, or choose 'drift_orbit' or 'hill_pd'")
+            if sc.roe_formation is not None:
+                prefix = f"{sc.name}: roe_formation.chief_spacecraft {sc.roe_formation.chief_spacecraft!r}"
+                _require(sc.roe_formation.chief_spacecraft in names,
+                          f"{prefix} is not one of this scenario's spacecraft {names}")
+                chief = next(other for other in self.spacecraft if other.name == sc.roe_formation.chief_spacecraft)
+                # The ROE are taken from mean elements around the chief's
+                # orbit, and the impulsive guidance is the near-circular one.
+                _require(chief.orbit.type == "classical_elements",
+                          f"{prefix} must have a 'classical_elements' orbit, not {chief.orbit.type!r}")
+                _require((chief.orbit.eccentricity or 0.0) <= ROE_MAX_CHIEF_ECCENTRICITY,
+                          f"{prefix} must be near-circular (eccentricity at most "
+                          f"{ROE_MAX_CHIEF_ECCENTRICITY:g}), not {chief.orbit.eccentricity or 0.0:g}")
+                _require(0.0 < (chief.orbit.inclination_deg or 0.0) < 180.0,
+                          f"{prefix} must be inclined: the relative inclination vector needs a node")
+                # Mean elements (clMeanOscMap) and the J2 state transition
+                # matrix are Earth's J2 theory.
+                _require(self.gravity.central_body == "earth" and self.gravity.central_body_degree >= 2,
+                          f"{sc.name}: roe_formation needs Earth's J2 in the dynamics -- set "
+                          "gravity.central_body to 'earth' and central_body_degree to 2 or more")
         # Past one Basilisk run's limit the run is split into segments
         # (engine/long_run.py); these two cannot be split.
         single_run_days = SimSettings._MAX_SINGLE_RUN_DAYS
@@ -2504,6 +2629,9 @@ class Scenario:
             for sc in self.spacecraft:
                 _require(sc.phasing_keeping is None,
                           f"{sc.name}: phasing_keeping runs at most {single_run_days:g} days "
+                          "(sim_settings.duration_days) -- shorten the run")
+                _require(sc.roe_formation is None,
+                          f"{sc.name}: roe_formation runs at most {single_run_days:g} days "
                           "(sim_settings.duration_days) -- shorten the run")
         # engine.service.SimulationService.build() raises a
         # SimulationServiceError for this same condition (power/
@@ -2706,6 +2834,12 @@ class Scenario:
             geo_station_keeping = GeoStationKeepingConfig(**geo_data) if geo_data is not None else None
             phasing_keeping_data = sc.pop("phasing_keeping", None)
             phasing_keeping = PhasingKeepingConfig(**phasing_keeping_data) if phasing_keeping_data is not None else None
+            roe_formation_data = sc.pop("roe_formation", None)
+            roe_formation = None
+            if roe_formation_data is not None:
+                roe_formation_data = dict(roe_formation_data)
+                targets = [RoeTargetConfig(**target) for target in roe_formation_data.pop("targets", [])]
+                roe_formation = RoeFormationConfig(targets=targets, **roe_formation_data)
             constant_thrust_data = sc.pop("constant_thrust", None)
             constant_thrust = ConstantThrustConfig(**constant_thrust_data) if constant_thrust_data is not None else None
             momentum_dumping_data = sc.pop("momentum_dumping", None)
@@ -2729,7 +2863,8 @@ class Scenario:
                                                 data_handling=data_handling, solar_arrays=solar_arrays,
                                                 station_keeping=station_keeping,
                                                 geo_station_keeping=geo_station_keeping,
-                                                phasing_keeping=phasing_keeping, constant_thrust=constant_thrust,
+                                                phasing_keeping=phasing_keeping, roe_formation=roe_formation,
+                                                constant_thrust=constant_thrust,
                                                 momentum_dumping=momentum_dumping,
                                                 magnetic_momentum_management=magnetic_momentum_management,
                                                 navigation_error=navigation_error,

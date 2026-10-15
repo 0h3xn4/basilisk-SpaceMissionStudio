@@ -686,6 +686,12 @@ class SimulationService:
 
         scenario = self.scenario
         scenario.validate()  # re-validate: the scenario object may have been mutated after load
+        roe_followers = [sc_config.name for sc_config in scenario.spacecraft if sc_config.roe_formation is not None]
+        if roe_followers:  # the controllers (engine.roe_formation) come in a later change; never ignore it silently
+            raise SimulationServiceError(
+                f"{', '.join(roe_followers)}: roe_formation is saved in this scenario, but this version cannot fly "
+                "an ROE formation yet -- uncheck 'ROE formation' or use phasing keeping"
+            )
         gravity = scenario.gravity
         sim_settings = scenario.sim_settings
 

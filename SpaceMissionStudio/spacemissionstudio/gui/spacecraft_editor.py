@@ -88,6 +88,8 @@ from ..schema.scenario import (
     PhasingKeepingConfig,
     PowerConfig,
     RFLinkConfig,
+    RoeFormationConfig,
+    RoeTargetConfig,
     ScenarioValidationError,
     SensorConfig,
     SpacecraftConfig,
@@ -98,6 +100,7 @@ from ..schema.scenario import (
     SUPPORTED_THRUST_FRAMES,
 )
 from .data_handling_editor import GainTableWidget, InstrumentTableWidget
+from .roe_formation_editor import RoeTargetTableWidget
 from .facet_editor import FacetTableWidget
 from .solar_array_editor import SolarArrayTableWidget
 from .field_text import field_title, labelled
@@ -251,7 +254,7 @@ _ORBIT_WIDGETS = {"type": "type_combo", "semi_major_axis_km": "sma_km", "eccentr
                   "mean_anomaly_deg": "anomaly_deg", "position_km": "pos_x_km", "velocity_km_s": "vel_x_km_s",
                   "tle_line1": "tle_line1", "tle_line2": "tle_line2"}
 _SECTION_PREFIXES = {"station_keeping": "sk_", "geo_station_keeping": "geo_", "comms_pointing": "cp_",
-                     "constant_thrust": "ct_", "phasing_keeping": "pk_", "momentum_dumping": "md_",
+                     "constant_thrust": "ct_", "phasing_keeping": "pk_", "roe_formation": "roe_", "momentum_dumping": "md_",
                      "magnetic_momentum_management": "mmm_", "fuel_tank": "ft_", "rf_link": "rf_",
                      "data_handling": "dh_"}
 _FIELD_WIDGETS = {"name": "name_edit", "propellant_budget": "budget_group", "vizard_model_offset_m": "viz_offset_x",
@@ -1139,6 +1142,104 @@ class SpacecraftEditorDialog(QDialog):
                 self.pk_chief_combo.setCurrentIndex(self.pk_chief_combo.count() - 1)
         power_layout.addWidget(self.phasing_keeping_group)
 
+        # schema.scenario.RoeFormationConfig: like phasing keeping, it fires
+        # the station-keeping thruster and has no thruster fields of its own.
+        roe0 = config.roe_formation if config else None
+        self.roe_formation_group = QGroupBox("ROE formation (relative orbital elements)")
+        self.roe_formation_group.setCheckable(True)
+        self.roe_formation_group.setToolTip(
+            "Checking this ON holds this spacecraft in a formation around a 'chief' spacecraft, given as "
+            "relative orbital elements (ROE): an along-track offset, an ellipse of radial and cross-track "
+            "motion around it, and a relative semi-major axis. A schedule of targets moves the formation, "
+            "e.g. from an approach to a passively safe helix. REQUIRES 'Station keeping' above (it fires that "
+            "thruster and uses its tank) and cannot be combined with 'Phasing keeping'. Needs a near-circular "
+            "chief (eccentricity up to 0.01) around Earth with J2 in the gravity model."
+        )
+        self.roe_formation_group.setChecked(roe0 is not None)
+        roe_form = QFormLayout(self.roe_formation_group)
+        self._roe_form = roe_form
+        self.roe_chief_spacecraft_combo = ComboBox()
+        self.roe_chief_spacecraft_combo.setToolTip("The spacecraft the relative orbital elements are measured from.")
+        if self._other_spacecraft_names:
+            for other_name in self._other_spacecraft_names:
+                self.roe_chief_spacecraft_combo.addItem(other_name, userData=other_name)
+        else:
+            self.roe_chief_spacecraft_combo.addItem("(add another spacecraft to this scenario first)", userData=None)
+            self.roe_chief_spacecraft_combo.setEnabled(False)
+        if roe0 is not None:
+            chief_index = self.roe_chief_spacecraft_combo.findData(roe0.chief_spacecraft)
+            if chief_index < 0:  # a stale name stays visible, as for phasing keeping's chief
+                self.roe_chief_spacecraft_combo.addItem(f"{roe0.chief_spacecraft} (not found in this scenario)",
+                                                        userData=roe0.chief_spacecraft)
+                chief_index = self.roe_chief_spacecraft_combo.count() - 1
+            self.roe_chief_spacecraft_combo.setCurrentIndex(chief_index)
+        roe_form.addRow("Chief spacecraft", self.roe_chief_spacecraft_combo)
+        self.roe_control_law_combo = ComboBox()
+        for label, law in (("Impulsive burns (planned with the J2 model)", "impulsive"),
+                           ("Continuous (Basilisk meanOEFeedback)", "continuous")):
+            self.roe_control_law_combo.addItem(label, userData=law)
+        self.roe_control_law_combo.setToolTip(
+            "Impulsive burns: when the mean ROE leave their tolerances, a few short burns at planned points of "
+            "the orbit (along-track pairs for the relative semi-major axis and eccentricity vector, one "
+            "cross-track burn for the inclination vector) and a drift for the along-track offset.\n"
+            "Continuous: Basilisk's mean orbital element feedback, which fires most of the time for a tighter "
+            "hold and more delta-V.")
+        roe_form.addRow("Control law", self.roe_control_law_combo)
+        self.roe_targets = RoeTargetTableWidget()
+        default_target = RoeTargetConfig(0.0, [0.0, -2000.0, 0.0, 0.0, 0.0, 0.0])  # [day], [m] 2 km behind
+        self.roe_targets.from_list(roe0.targets if roe0 else [default_target])
+        roe_form.addRow("Targets", self.roe_targets)
+        tolerance0 = roe0.tolerance_m if roe0 else [2.0, 20.0, 10.0, 10.0]  # [m]
+        self.roe_tolerance_m = QWidget()
+        tolerance_row = QHBoxLayout(self.roe_tolerance_m)
+        tolerance_row.setContentsMargins(0, 0, 0, 0)
+        self.roe_tolerance_spins = []
+        for label, value in zip(("δa", "δλ", "|δe|", "|δi|"), tolerance0):
+            spin = _spin(1.0e-3, 1.0e6, decimals=2, step=1.0, value=value)
+            spin.setPrefix(f"{label} ")
+            spin.setSuffix(" m")
+            tolerance_row.addWidget(spin)
+            self.roe_tolerance_spins.append(spin)
+        tolerance_row.addStretch(1)
+        self.roe_tolerance_m.setToolTip(
+            "How far each part of the mean ROE (times the chief's semi-major axis) may stray from the target "
+            "before burns are planned: the relative semi-major axis, the along-track offset, and the size of "
+            "the eccentricity and inclination vector errors.")
+        roe_form.addRow("Tolerances [m]", self.roe_tolerance_m)
+        self.roe_correction_window_days = _spin(0.01, 1.0e3, decimals=2, step=0.5,
+                                                value=roe0.correction_window_days if roe0 else 1.0)
+        self.roe_correction_window_days.setToolTip(
+            "Time to bring the along-track offset back by drifting (a small relative semi-major axis). "
+            "Shorter needs a larger drift, capped by 'Max drift' below.")
+        roe_form.addRow("Correction window [days]", self.roe_correction_window_days)
+        self.roe_max_drift_m = _spin(1.0e-3, 1.0e5, decimals=2, step=10.0, value=roe0.max_drift_m if roe0 else 100.0)
+        self.roe_max_drift_m.setToolTip(
+            "Largest relative semi-major axis (times the chief's) held while drifting; a larger correction "
+            "then takes longer than the window.")
+        roe_form.addRow("Max drift [m]", self.roe_max_drift_m)
+        self.roe_max_burn_fraction_of_orbit = _spin(
+            1.0e-3, 0.5, decimals=3, step=0.01, value=roe0.max_burn_fraction_of_orbit if roe0 else 0.1)
+        self.roe_max_burn_fraction_of_orbit.setToolTip(
+            "A burn longer than this fraction of an orbit is split over several orbits, so each part stays "
+            "close to the impulse it was planned as.")
+        roe_form.addRow("Max burn length [-] (fraction of an orbit)", self.roe_max_burn_fraction_of_orbit)
+        self.roe_continuous_gain = _spin(1.0e-3, 1.0e9, decimals=1, step=500.0,
+                                         value=roe0.continuous_gain if roe0 else 2500.0)
+        self.roe_continuous_gain.setToolTip(
+            "meanOEFeedback's gain on every mean-element error, per kg of spacecraft, as for phasing keeping's "
+            "'Element gain'.")
+        roe_form.addRow("Element gain [m^2/s^3 per kg]", self.roe_continuous_gain)
+        self.roe_target_refresh_s = _spin(1.0, 1.0e5, decimals=1, step=60.0,
+                                          value=roe0.target_refresh_s if roe0 else 600.0)
+        self.roe_target_refresh_s.setToolTip(
+            "How often the element target is recomputed from the chief's mean elements, which J2 turns.")
+        roe_form.addRow("Target refresh [s]", self.roe_target_refresh_s)
+        law_index = self.roe_control_law_combo.findData(roe0.control_law if roe0 else "impulsive")
+        self.roe_control_law_combo.setCurrentIndex(max(law_index, 0))
+        self.roe_control_law_combo.currentIndexChanged.connect(self._show_roe_law_fields)
+        self._show_roe_law_fields()
+        power_layout.addWidget(self.roe_formation_group)
+
         # Requires BOTH a "reaction_wheel" AND a "thruster" actuator on this
         # spacecraft (see schema.scenario.MomentumDumpingConfig's docstring
         # for why mixing those two kinds is otherwise rejected) -- not
@@ -1878,6 +1979,7 @@ class SpacecraftEditorDialog(QDialog):
             station_keeping=self._station_keeping_to_dataclass(),
             geo_station_keeping=self._geo_station_keeping_to_dataclass(),
             phasing_keeping=self._phasing_keeping_to_dataclass(),
+            roe_formation=self._roe_formation_to_dataclass(),
             constant_thrust=self._constant_thrust_to_dataclass(),
             momentum_dumping=self._momentum_dumping_to_dataclass(),
             magnetic_momentum_management=self._magnetic_momentum_management_to_dataclass(),
@@ -2231,6 +2333,43 @@ class SpacecraftEditorDialog(QDialog):
             mean_oe_gain=self.pk_mean_oe_gain.value(),
             hill_position_gain=self.pk_hill_position_gain.value(),
             hill_velocity_gain=self.pk_hill_velocity_gain.value(),
+        )
+
+    def _show_roe_law_fields(self) -> None:
+        """Only the chosen ROE control law's own settings are shown."""
+        impulsive = self.roe_control_law_combo.currentData() == "impulsive"
+        rows = [(w, impulsive) for w in (self.roe_tolerance_m, self.roe_correction_window_days, self.roe_max_drift_m,
+                                         self.roe_max_burn_fraction_of_orbit)]
+        rows += [(w, not impulsive) for w in (self.roe_continuous_gain, self.roe_target_refresh_s)]
+        for widget, shown in rows:
+            widget.setVisible(shown)
+            label = self._roe_form.labelForField(widget)
+            if label is not None:
+                label.setVisible(shown)
+
+    def _roe_formation_to_dataclass(self) -> RoeFormationConfig | None:
+        if not self.roe_formation_group.isChecked():
+            return None
+        chief = self.roe_chief_spacecraft_combo.currentData()
+        if chief is None:
+            raise ScenarioValidationError(
+                "roe_formation is enabled but no chief spacecraft is selectable -- add another spacecraft to "
+                "this scenario first, or uncheck 'ROE formation'"
+            )
+        try:
+            targets = self.roe_targets.to_list()
+        except ValueError as exc:
+            raise ScenarioValidationError(str(exc)) from None
+        return RoeFormationConfig(
+            chief_spacecraft=chief,
+            targets=targets,
+            control_law=self.roe_control_law_combo.currentData(),
+            tolerance_m=[spin.value() for spin in self.roe_tolerance_spins],
+            correction_window_days=self.roe_correction_window_days.value(),
+            max_drift_m=self.roe_max_drift_m.value(),
+            max_burn_fraction_of_orbit=self.roe_max_burn_fraction_of_orbit.value(),
+            continuous_gain=self.roe_continuous_gain.value(),
+            target_refresh_s=self.roe_target_refresh_s.value(),
         )
 
     def _power_to_dataclass(self) -> PowerConfig | None:
