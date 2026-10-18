@@ -34,7 +34,7 @@ template with a registered spec here; every other template still only
 opens straight into the full editor via the existing "Open Template"
 button, unchanged.
 
-Every bundled template ('01' through '25') has a registered spec. The
+Every bundled template ('01' through '29') has a registered spec. The
 first pass covered three representative ones ('03' GEO station-keeping,
 '18' LEO station-keeping, '07' full attitude + hardware + power) to
 validate the spec format and the UX before this full rollout -- adding a
@@ -487,6 +487,16 @@ def _sun_synchronous_orbit_page(intro: str) -> "WizardPageSpec":
             ),
         ],
     )
+
+
+def _roe_helix(scenario: Scenario):
+    """'29's second target, the helix (``RoeTargetConfig``)."""
+    follower = next(sc for sc in scenario.spacecraft if sc.roe_formation is not None)
+    return follower.roe_formation.targets[1]
+
+
+def _set_roe_helix(scenario: Scenario, index: int, value: float) -> None:
+    _roe_helix(scenario).roe_m[index] = value
 
 
 def _duration_page(intro: str, maximum_days: float) -> "WizardPageSpec":
@@ -1712,6 +1722,38 @@ _SPECS: Dict[str, TemplateWizardSpec] = {
                 ],
             ),
             _duration_page("Each orbit adds about 2 RPM to rw-y; longer runs show the drift grow.",
+                           SimSettings._MAX_SINGLE_RUN_DAYS),
+        ],
+    ),
+    "29_roe_formation_helix.json": TemplateWizardSpec(
+        template_filename="29_roe_formation_helix.json",
+        pages=[
+            WizardPageSpec(
+                title="Helix",
+                intro="follower-1 moves from 2 km behind chief-1 to a helix around it.",
+                fields=[
+                    WizardField(
+                        "Start of the helix", "The day follower-1 starts the move to the helix.",
+                        lambda s: _roe_helix(s).start_day,
+                        lambda s, v: setattr(_roe_helix(s), "start_day", v),
+                        0.01, 90.0, decimals=2, step=0.5, suffix=" day", hint="Before it: 2 km behind",
+                    ),
+                    WizardField(
+                        "Radial size", "Half the helix's radial size: a times the eccentricity vector.",
+                        lambda s: _roe_helix(s).roe_m[3],
+                        lambda s, v: _set_roe_helix(s, 3, v),
+                        0.0, 5000.0, decimals=1, step=50.0, suffix=" m", hint="0 m: not passively safe",
+                    ),
+                    WizardField(
+                        "Cross-track size", "Half the helix's cross-track size: a times the inclination "
+                        "vector.",
+                        lambda s: _roe_helix(s).roe_m[5],
+                        lambda s, v: _set_roe_helix(s, 5, v),
+                        0.0, 5000.0, decimals=1, step=50.0, suffix=" m", hint="0 m: not passively safe",
+                    ),
+                ],
+            ),
+            _duration_page("The move takes about 1.5 days; the rest holds the helix.",
                            SimSettings._MAX_SINGLE_RUN_DAYS),
         ],
     ),

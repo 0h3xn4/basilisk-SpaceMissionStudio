@@ -327,3 +327,46 @@ def test_a_failing_section_leaves_the_rest_of_the_tab(monkeypatch, caplog):
         explanation = scenario_explainer.explain(scenario)
     assert explanation.stat_tiles and explanation.sections
     assert "Explain tab: broken failed" in caplog.text and "half-edited" in caplog.text
+
+
+def _roe_scenario(control_law="impulsive"):
+    """Template 05 with its follower in an ROE formation: 2 km behind,
+    then a 300 m passively safe helix from day 1."""
+    from spacemissionstudio.schema import RoeFormationConfig, RoeTargetConfig
+
+    scenario = _template_scenario("05")
+    follower = next(sc for sc in scenario.spacecraft if sc.phasing_keeping is not None)
+    chief = follower.phasing_keeping.chief_spacecraft
+    follower.phasing_keeping = None
+    follower.roe_formation = RoeFormationConfig(
+        chief_spacecraft=chief, control_law=control_law,
+        targets=[RoeTargetConfig(0.0, [0.0, -2000.0, 0.0, 0.0, 0.0, 0.0]),  # [m]
+                 RoeTargetConfig(1.0, [0.0, 0.0, 0.0, 300.0, 0.0, 300.0])])  # [m]
+    return scenario, follower
+
+
+@pytest.mark.parametrize("law, badge", [("impulsive", "ROE formation (impulsive)"),
+                                        ("continuous", "ROE formation (Basilisk mean-element feedback)")])
+def test_an_roe_formation_is_explained(law, badge):
+    """The formation section names the ROE law, says each target in words
+    (with its closest radial/cross-track approach), and carries one
+    e/i-vector diagram with every target."""
+    scenario, follower = _roe_scenario(law)
+    explanation = explain(scenario)
+    section = next(s for s in explanation.sections if s.title == "Formation / orbit maintenance")
+    assert badge in [b.label for b in section.badges]
+    notes = [n for n in section.notes if n.startswith(follower.name)]
+    assert len(notes) == 2
+    assert "2000 m behind" in notes[0] and "not passively safe" in notes[0]
+    assert "closest radial/cross-track approach 300 m" in notes[1]
+    assert all(len(note) <= 220 for note in notes)
+    assert explanation.formation_diagrams == []  # no phasing keeping left
+    [diagram] = explanation.roe_diagrams
+    assert diagram.follower_name == follower.name
+    assert diagram.chief_name == follower.roe_formation.chief_spacecraft
+    assert diagram.targets == [(0.0, [0.0, -2000.0, 0.0, 0.0, 0.0, 0.0]), (1.0, [0.0, 0.0, 0.0, 300.0, 0.0, 300.0])]
+
+
+def test_no_roe_diagram_without_an_roe_formation():
+    """A scenario without an ROE formation has no ROE diagram."""
+    assert explain(_template_scenario("05")).roe_diagrams == []

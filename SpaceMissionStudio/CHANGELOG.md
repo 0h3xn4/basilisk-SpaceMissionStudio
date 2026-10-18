@@ -10,6 +10,14 @@ fixes bugs.
 
 ## Unreleased
 
+- **Relative orbital elements (third part): the generator, the diagram
+  and template 29.** **Generate ROE formation...** under the Spacecraft
+  list adds a follower placed on a passively safe helix or on six typed
+  ROE, with the closest approach shown as you type. The Explain tab draws
+  each target's eccentricity and inclination vectors and the path around
+  the chief. New template 29 moves a follower from 2 km behind its chief
+  to a passively safe 300 m helix. A how-to page, a User Manual section
+  and glossary entries explain ROE and passive safety.
 - **Relative orbital elements (second part): ROE formations fly.** A
   follower holds, or moves between, its ROE targets with either law:
   - *impulsive*: the tool's own guidance plans along-track and
@@ -35,7 +43,7 @@ fixes bugs.
   names (End of Life, Budget and Flight Software are pages under
   Analyses and Tools; the Data tab is now the Reference data dialog;
   Monte Carlo runs from the run mode beside Run), the template count
-  (28), sample command output, and the records of the published 1.0.0
+  (then 28), sample command output, and the records of the published 1.0.0
   release.
 - **Messages and tooltips** that named the old Data tab or Run Monte
   Carlo... now name the Reference data dialog and the Monte Carlo run

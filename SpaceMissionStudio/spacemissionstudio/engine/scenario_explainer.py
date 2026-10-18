@@ -57,7 +57,7 @@ import logging
 import math
 from dataclasses import dataclass, field
 from datetime import timedelta, timezone
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from ..schema.epochs import parse_epoch_utc
 from . import earth_orientation
@@ -130,12 +130,24 @@ class FormationDiagram:
 
 
 @dataclass
+class RoeDiagram:
+    """An ROE formation's targets, for the e/i-vector diagram
+    (``gui.roe_diagram_widget``): each target's start day and its six
+    relative orbital elements [m], in ``engine.roe.ROE_LABELS`` order."""
+
+    chief_name: str
+    follower_name: str
+    targets: List[Tuple[float, List[float]]]  # (start day, a times the ROE [m])
+
+
+@dataclass
 class ScenarioExplanation:
     headline: str
     stat_tiles: List[StatTile] = field(default_factory=list)
     sections: List[ExplanationSection] = field(default_factory=list)
     spacecraft_table: List[SpacecraftFactRow] = field(default_factory=list)  # empty if < 2 spacecraft
     formation_diagrams: List[FormationDiagram] = field(default_factory=list)  # one per phasing_keeping spacecraft
+    roe_diagrams: List[RoeDiagram] = field(default_factory=list)  # one per roe_formation spacecraft
 
 
 def _models_oblateness(gravity) -> bool:
@@ -457,6 +469,12 @@ def _formation_diagrams(scenario) -> List[FormationDiagram]:
     return diagrams
 
 
+def _roe_diagrams(scenario) -> List[RoeDiagram]:
+    return [RoeDiagram(chief_name=sc.roe_formation.chief_spacecraft, follower_name=sc.name,
+                       targets=[(t.start_day, list(t.roe_m)) for t in sc.roe_formation.targets])
+            for sc in scenario.spacecraft if sc.roe_formation is not None and sc.roe_formation.targets]
+
+
 def _monte_carlo_section(scenario) -> ExplanationSection | None:
     mc = scenario.monte_carlo
     if not mc.enabled:
@@ -541,4 +559,5 @@ def _explain(scenario) -> ScenarioExplanation:
         sections=sections,
         spacecraft_table=spacecraft_table,
         formation_diagrams=_formation_diagrams(scenario),
+        roe_diagrams=_roe_diagrams(scenario),
     )

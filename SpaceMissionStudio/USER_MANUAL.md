@@ -222,7 +222,7 @@ up using a template as-is or editing it into something new.
 
 ## 4. Your first simulation, in five minutes
 
-1. **Pick a template.** The list on the left shows all twenty-eight
+1. **Pick a template.** The list on the left shows all twenty-nine
    built-in example missions, numbered roughly from simplest to most
    advanced -- "01 - Two-body circular orbit" is the simplest possible
    case (one satellite, one orbit, nothing else going on) and a good
@@ -270,7 +270,7 @@ path, each step building on the one before:
 | 3. Pointing | 06, 07, 15, 14, 27 | Attitude control, ideal and with real hardware; pointing at the Moon; finding the Sun with sun sensors; flexible wings swinging in a turn |
 | 4. Disturbances and momentum | 10, 21, 12, 13, 11 | Gravity-gradient and surface torques; unloading wheels with thrusters or torque rods; thrusters for pointing |
 | 5. Missions in steps | 08, 16, 23 | Mission Sequences: burns, a Lambert transfer, stopping on a ground pass |
-| 6. Several spacecraft | 04, 05, 24 | A Walker constellation; a formation held by two different control laws |
+| 6. Several spacecraft | 04, 05, 24, 29 | A Walker constellation; a formation held by two different control laws; a passively safe formation in relative orbital elements |
 | 7. Whole systems | 19, 20, 23, 26 | Power, radio link and thermal working together; data from instrument to ground |
 | 8. Uncertainty | 09, 25 | Monte Carlo batches: mass, orbit insertion, drag |
 
@@ -469,6 +469,52 @@ bit are not fired. The Basilisk gains are in the same group. The drift
 orbit's tolerances apply to the drift orbit only. With a Basilisk law,
 the follower's own station keeping never fires: the law follows the
 chief's reboosts itself.
+
+### Formations in relative orbital elements
+
+An **ROE formation (relative orbital elements)** (the follower's page,
+power/propulsion tab) holds a follower in a formation around a chief,
+given as six numbers in metres: the chief's semi-major axis times each
+quasi-nonsingular relative orbital element (D'Amico).
+
+* **a·δa**, the relative semi-major axis: the follower drifts along-track
+  while it is not zero.
+* **a·δλ**, the relative mean longitude: where along the track the
+  follower's centre of motion sits, + ahead.
+* **a·δex, a·δey**, the eccentricity vector: an ellipse around that
+  centre, this half-size radially and twice it along-track.
+* **a·δix, a·δiy**, the inclination vector: the cross-track motion.
+
+With the two vectors parallel the orbits never cross in the
+radial/cross-track plane, so a lost along-track spacing cannot bring the
+two together: the formation is *passively safe*. The app shows the
+closest radial/cross-track approach under the targets table, in the
+generator and on the Explain tab, which also draws the vectors.
+
+**Targets** is a schedule: each row holds from its start day to the
+next, so a follower can approach and then move to a helix. **Generate ROE
+formation...** under the Spacecraft list adds a follower already placed
+on its formation (Basilisk's mean-to-osculating J2 mapping), from a
+passively safe shape or from the six numbers.
+
+Two control laws fire the follower's station-keeping thruster (its station
+keeping itself then never fires), never in eclipse:
+
+| Law | How it works |
+|---|---|
+| Impulsive burns (planned with the J2 model), default | When the mean ROE leave their tolerances: along-track burns for a·δa and the eccentricity vector, a cross-track burn for the inclination vector, and a drift for the along-track offset. Planned with the J2 state transition matrix (Koenig, Guffanti and D'Amico 2017), fired only in sunlight. |
+| Continuous (Basilisk meanOEFeedback) | Basilisk's mean-element feedback, aimed at the elements the target gives. A tighter hold for more delta-V. |
+
+Measured on template 29 (two 150 kg satellites at 550 km, 0.05 N
+thrusters, from 2 km behind to a 300 m helix on day 1): the impulsive law
+is on target 1.5 days after the switch for 0.56 m/s, then holds within
+13 m along-track for 0.026 m/s in 1.5 days; the continuous law is on
+target in 0.4 days and holds within 5 m, for 1.85 m/s in 4 days.
+
+The chief must be near-circular (eccentricity up to 0.01) and inclined,
+around Earth with J2; one run is at most 100 days; the guidance has no
+differential drag; a follower cannot also have phasing keeping. See
+[Fly a formation with relative orbital elements](docs/user-manual/roe-formation.md).
 
 ### Data handling and the downlink
 
@@ -1161,6 +1207,13 @@ anyone who hasn't worked with spacecraft before:
   orbit, measured as a distance along the direction of travel.
   "Phasing-keeping" holds that separation steady over time, the same
   way station-keeping holds altitude steady.
+* **Relative orbital elements (ROE)** -- six numbers that describe one
+  spacecraft's orbit relative to another's: a drift, an along-track
+  offset, and two small vectors (eccentricity and inclination) that set
+  the radial and cross-track motion around that offset.
+* **Passive safety** -- a formation whose two spacecraft never meet in
+  the radial/cross-track plane, even if the along-track spacing is lost:
+  its eccentricity and inclination vectors are parallel.
 * **Sun-synchronous orbit** -- an orbit whose plane rotates (from
   Earth's own gravity being slightly non-spherical) at exactly the same
   rate the Sun appears to move around the sky over a year -- so the
@@ -1211,7 +1264,7 @@ anyone who hasn't worked with spacecraft before:
 
 * **More templates to learn from:**
   [`spacemissionstudio/scenarios/templates/README.md`](spacemissionstudio/scenarios/templates/README.md)
-  describes what each of the twenty-eight built-in templates teaches, in
+  describes what each of the twenty-nine built-in templates teaches, in
   more depth than the in-app description box.
 * **Scripting it from Python:** [`examples/`](examples/README.md) builds
   a scenario in code, runs templates, writes a Mission Sequence, sweeps a

@@ -54,6 +54,7 @@ from ..schema.scenario import Scenario
 from .flow_layout import FlowLayout
 from .badges import ACCENT, DANGER, MUTED, SUCCESS, WARNING, badge_style
 from .formation_diagram_widget import FormationDiagramWidget
+from .roe_diagram_widget import RoeDiagramWidget
 from .theme import PALETTE
 
 _FORMATION_SECTION_TITLE = "Formation / orbit maintenance"
@@ -280,6 +281,8 @@ class ScenarioExplainerWidget(QWidget):
             if section.title == _FORMATION_SECTION_TITLE:
                 for diagram in explanation.formation_diagrams:
                     section_layout.addWidget(FormationDiagramWidget(diagram))
+                for diagram in explanation.roe_diagrams:
+                    section_layout.addWidget(RoeDiagramWidget(diagram))
 
             self._sections_layout.addWidget(section_widget)
 

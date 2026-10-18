@@ -10857,3 +10857,69 @@ cross-track burn direction fails the reconfiguration test.
 
 Checks: the compliance generators (ICD, SDD, SUITP regenerated); `ruff
 check`; pre-commit; the full suite (results in the pull request).
+
+## ROE formation flying, part 3: the generator, the diagram, template 29 and the docs (2026-10-18)
+
+Parts 1 and 2 put the ROE formation in the scenario file and flew it.
+This part makes it reachable without the command line or a hand-edited
+table, and documents it.
+
+**Generate ROE formation...** (`gui/roe_formation_dialog.py`) sits next
+to the phasing generator under the Spacecraft list. It takes the chief,
+the template, the follower's name, the law, and the formation either as
+a passively safe shape (along-track offset, radial and cross-track
+half-sizes, phase) or as the six ROE in metres; it shows the closest
+radial/cross-track approach as you type. It refuses, inside the dialog, a
+missing chief or name, a central body other than Earth, a template
+without station keeping and an all-zero formation. The follower is
+placed by `engine.roe_formation.generate_roe_follower` (Basilisk's J2
+mapping, as the command line does); the GUI test measures the placed
+follower's mean ROE within 0.2 m of the request. A first screenshot
+showed the stacked pages keeping room for the six-element page under the
+four-field one; each page now takes only its own height.
+
+**The e/i-vector diagram** (`gui/roe_diagram_widget.py`) on the Explain
+page draws, at one scale, each target's eccentricity vector, inclination
+vector and the path around the chief in the radial/cross-track plane,
+one colour per target in the categorical order (folded into one legend
+line past eight, never cycled), with each target's place and closest
+approach in the legend and all of it in the tooltip. Part 2's Explain
+notes and badges had no tests; they are tested now with the diagram's
+data (`ScenarioExplanation.roe_diagrams`).
+
+**Template 29, "ROE formation: approach and passively safe helix"**:
+two 150 kg satellites at 550 km SSO (10th-degree gravity, Sun, Moon,
+drag, SRP, 50 mN thrusters), the follower placed 2 km behind by the
+generator and moved on day 1 to a 300 m helix at 90 deg phase, 4 days,
+impulsive law. Measured in Basilisk (`tests/test_template_claims.py`):
+
+| | Result |
+|---|---|
+| Days 0-1 | held 2 km behind within 4 m; closest approach 0 m (the orbits cross) |
+| The move | e and i vectors at 300 m within 5 h; 0.56 m/s by day 2.5 |
+| Along-track | slips to 3.96 km behind first, then a drift closes it by day 2.5 |
+| Closest approach | 147 m between the two cross-track burns, 292 m or more from day 1.2 |
+| Hold, days 2.5-4 | within 13 m along-track, for 0.026 m/s |
+| Continuous law instead | on target by day 1.4, within 5 m after, 1.85 m/s in all |
+| 0 deg phase instead | holding costs 3.1 times as much (J2 turns the inclination vector) |
+
+The along-track slip was checked before it went into the description: the
+first along-track burn's partner falls at eclipse exit (the eclipse
+record shows the shadow at days 1.015-1.035 and 1.08-1.10), so the
+sequence spreads over 1.6 orbits with the relative semi-major axis up to
+163 m between burns. That is the designed behaviour (burns only in
+sunlight), and the description says so. The claim test also caught one
+figure: the continuous law's "within 2.3 m" held only from day 2.5; from
+day 1.4 it is 4.3 m, so the description says 5 m. The template has a
+Customize wizard (the helix's start day, radial and cross-track sizes,
+duration).
+
+**Docs**: a how-to page (`docs/user-manual/roe-formation.md`), a User
+Manual section "Formations in relative orbital elements" with glossary
+entries (also in `docs/glossary.md`: ROE, e/i vectors, passive safety),
+the capabilities and limitations pages, the template catalog and the
+template counts (28 to 29). SRS-F-21 states the requirement, with its
+verification row; the SDD component table traces it.
+
+Checks: the compliance generators (SDD, SUITP regenerated; `check_drds`
+0 problems); `ruff check`; the full suite (results in the pull request).
