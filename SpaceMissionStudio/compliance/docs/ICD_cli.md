@@ -225,6 +225,21 @@ generate a follower spacecraft holding a phasing formation with an existing chie
 | `--eccentricity-neutral-burns` | gate firings so long eclipse-interrupted burns don't change eccentricity |
 | `--control-law {drift_orbit,mean_oe,hill_pd}` | drift_orbit (occasional burns), mean_oe (Basilisk meanOEFeedback) or hill_pd (Basilisk hillFrameRelativeControl, close formations); see the User Manual's 'Formation control laws' |
 
+## `generate-roe-formation`
+
+generate a follower in a formation of relative orbital elements (ROE) with an existing chief (needs a Basilisk build -- places it with the mean/osculating element mapping)
+
+| Argument | Help |
+|---|---|
+| `scenario` | scenario file to load the chief/template spacecraft from |
+| `--out` | scenario file to write the result to |
+| `--chief` | name of the existing chief spacecraft |
+| `--follower-name` | name for the new follower spacecraft |
+| `--template-spacecraft` | spacecraft to clone the follower from, with its station keeping (default: the chief) |
+| `--roe` | six ROE times the chief's semi-major axis [m]: a_da,a_dlambda,a_dex,a_dey,a_dix,a_diy |
+| `--safe` | a passively safe formation [m, deg]: along,radial,cross[,phase] (parallel e/i vectors; phase 90 deg by default) |
+| `--control-law {impulsive,continuous}` | impulsive (the tool's burns, planned with the J2 model) or continuous (Basilisk meanOEFeedback) |
+
 ## `gui`
 
 launch the PySide6 GUI shell

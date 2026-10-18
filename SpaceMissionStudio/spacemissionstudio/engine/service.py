@@ -85,7 +85,7 @@ from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import dependencies, output_provenance
 from ..schema.scenario import OrbitIC, Scenario
 from . import (data_handling, earth_orientation, environment_models, formation_control, frames, fsw, geodesy,
-               geodetic_atmosphere, kernels, link_budget, long_run, orbit_maintenance, planet_rotation,
+               geodetic_atmosphere, kernels, link_budget, long_run, orbit_maintenance, planet_rotation, roe_formation,
                solar_arrays, time_system, tle, vizard)
 from .results import ResultSet, RunProvenance, TimeSeries, conservation_drift_warnings
 from .vizard import VizardRequest
@@ -501,6 +501,7 @@ class _SpacecraftHandle:
     eclipse_out_msg: Optional[object] = None  # Phase 4: only set if power or station_keeping was configured
     eclipse_recorder: Optional[object] = None  # set with eclipse_out_msg (the Events tab's eclipses)
     phasing_keeping_controller: Optional[object] = None  # Phase 4: only set if sc_config.phasing_keeping was configured
+    roe_formation_controller: Optional[object] = None  # engine.roe_formation, if sc_config.roe_formation is set
     constant_thrust_controller: Optional[object] = None  # Phase 5: only set if sc_config.constant_thrust was configured
     drag_effector: Optional[object] = None  # only set if sc_config.enable_drag
     srp_effector: Optional[object] = None  # only set if sc_config.enable_srp
@@ -686,12 +687,6 @@ class SimulationService:
 
         scenario = self.scenario
         scenario.validate()  # re-validate: the scenario object may have been mutated after load
-        roe_followers = [sc_config.name for sc_config in scenario.spacecraft if sc_config.roe_formation is not None]
-        if roe_followers:  # the controllers (engine.roe_formation) come in a later change; never ignore it silently
-            raise SimulationServiceError(
-                f"{', '.join(roe_followers)}: roe_formation is saved in this scenario, but this version cannot fly "
-                "an ROE formation yet -- uncheck 'ROE formation' or use phasing keeping"
-            )
         gravity = scenario.gravity
         sim_settings = scenario.sim_settings
 
@@ -1614,6 +1609,24 @@ class SimulationService:
                     j2=self.mean_elements_j2,
                 )
 
+        # ROE formations (engine.roe_formation): like phasing keeping, a pass
+        # once every spacecraft exists. Scenario.validate() guarantees the
+        # follower's station keeping, a near-circular inclined chief with
+        # classical elements, and Earth with J2 (so mean_elements_j2 is set).
+        for sc_config in scenario.spacecraft:
+            if sc_config.roe_formation is None:
+                continue
+            follower_handle = self._handles[sc_config.name]
+            chief_handle = self._handles[sc_config.roe_formation.chief_spacecraft]
+            follower_handle.roe_formation_controller = roe_formation.build_roe_formation(
+                self.scSim, dyn_task_name, sc_config.name, mu,
+                chief_sc_object=chief_handle.sc_object, follower_sc_object=follower_handle.sc_object,
+                follower_station_keeping_controller=follower_handle.station_keeping_controller,
+                follower_eclipse_out_msg=follower_handle.eclipse_out_msg,
+                config=sc_config.roe_formation, central_radius_m=self.central_radius_m,
+                j2=self.mean_elements_j2,
+            )
+
         # Phase 3: access analysis -- every ground station sees every
         # spacecraft, now that all spacecraft exist (see fsw.add_access_analysis).
         # accessOutMsgs[i] corresponds to sc_objects_in_order[i]: fsw.add_access_analysis
@@ -1743,7 +1756,8 @@ class SimulationService:
         # sim_settings.record_interval_s as the Basilisk recorders above.
         for handle in self._handles.values():
             for controller in (handle.station_keeping_controller, handle.geo_station_keeping_controller,
-                               handle.phasing_keeping_controller, handle.constant_thrust_controller,
+                               handle.phasing_keeping_controller, handle.roe_formation_controller,
+                               handle.constant_thrust_controller,
                                handle.comms_pointing_arbitrator):
                 if controller is not None:
                     controller.logThinner.intervalS = sim_settings.record_interval_s
@@ -2272,6 +2286,10 @@ class SimulationService:
                     result.add(TimeSeries(f"{name}.phasing_keeping.force", pk_t_s, ("commanded", "applied"),
                                            np.column_stack([phase_controller.commandedForceLog,
                                                             phase_controller.appliedForceLog]), units="N"))
+
+            if handle.roe_formation_controller is not None:
+                for series in roe_formation.result_series(name, handle.roe_formation_controller):
+                    result.add(series)
 
             if handle.constant_thrust_controller is not None:
                 ct_controller = handle.constant_thrust_controller

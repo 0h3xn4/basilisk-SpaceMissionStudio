@@ -10,13 +10,27 @@ fixes bugs.
 
 ## Unreleased
 
+- **Relative orbital elements (second part): ROE formations fly.** A
+  follower holds, or moves between, its ROE targets with either law:
+  - *impulsive*: the tool's own guidance plans along-track and
+    cross-track burns with the J2 model, avoids eclipse, splits long
+    burns, and drifts to the along-track offset, gliding in so it does
+    not overshoot;
+  - *continuous*: Basilisk's `meanOEFeedback` with the ROE target as its
+    element target (default gain 25000; phasing keeping's 2500 lets
+    metre-scale errors grow).
+
+  Results gain `{spacecraft}.roe_formation.*` series, the Events tab
+  shows ROE burns and drifts, the budget counts their delta-V as
+  formation keeping, and Explain describes each target and its
+  passive-safety margin. New command `generate-roe-formation` places a
+  follower at the requested ROE from the chief's mean elements.
 - **Relative orbital elements (first part):** a follower's scenario
   file can describe a formation in quasi-nonsingular relative orbital
   elements (ROE, in metres), with a schedule of targets, and the
   spacecraft editor has a form for it with a passively safe formation
   helper. The math (the J2 state transition matrix, the impulsive burns,
-  the passive-safety margin) is in place and tested; runs refuse an ROE
-  formation until its controllers arrive in the next change.
+  the passive-safety margin) is in place and tested.
 - **Documentation brought up to date with the app:** menu, tab and page
   names (End of Life, Budget and Flight Software are pages under
   Analyses and Tools; the Data tab is now the Reference data dialog;

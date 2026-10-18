@@ -1051,11 +1051,12 @@ class RoeFormationConfig:
     ``control_law``:
 
     * ``"impulsive"``: the tool's own guidance. When the mean ROE leave
-      ``tolerance_m``, it plans along-track burn pairs (relative
-      semi-major axis and eccentricity vector), a cross-track burn
-      (inclination vector) and a drift for the mean longitude, with the J2
-      state transition matrix, and fires them as short arcs at the planned
-      arguments of latitude.
+      ``tolerance_m``, it plans along-track burns (relative semi-major
+      axis, eccentricity vector and, for small errors, the mean longitude
+      too), a cross-track burn (inclination vector), and for larger
+      along-track errors a drift planned with the J2 state transition
+      matrix, and fires them as short arcs at sunlit planned arguments of
+      latitude.
     * ``"continuous"``: Basilisk's ``meanOEFeedback`` (Lyapunov feedback on
       mean equinoctial elements), its target the ROE target turned into
       element differences, refreshed every ``target_refresh_s``.
@@ -1077,7 +1078,9 @@ class RoeFormationConfig:
     # [-] "impulsive": a burn longer than this fraction of an orbit is split
     # over several orbits, so it stays close to an impulse
     max_burn_fraction_of_orbit: float = 0.1
-    continuous_gain: float = 2500.0  # [m^2/s^3] "continuous": diagonal of K per kg (as phasing_keeping.mean_oe_gain)
+    # [m^2/s^3] "continuous": diagonal of K per kg (as phasing_keeping.mean_oe_gain);
+    # ten times phasing's default, which leaves metre-scale ROE errors growing
+    continuous_gain: float = 25000.0
     target_refresh_s: float = 600.0  # [s] "continuous": how often the element target follows the chief's J2 drift
 
     def validate(self, spacecraft_name: str) -> None:

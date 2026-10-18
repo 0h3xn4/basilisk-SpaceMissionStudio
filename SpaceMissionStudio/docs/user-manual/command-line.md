@@ -69,6 +69,7 @@ used. This took about 40 s.
 |---|---|
 | `generate-constellation in.json --out out.json --total-satellites 12 --planes 3 --phasing-factor 1 --altitude-km 780 --inclination-deg 86.4` | A Walker constellation from one spacecraft |
 | `generate-phasing-formation in.json --out out.json --chief chief-1 --follower-name follower-1 --along-track-km 50` | A follower that holds a distance ahead of a chief |
+| `generate-roe-formation in.json --out out.json --chief chief-1 --follower-name follower-1 --safe 0,300,300` | A follower in a formation of relative orbital elements: `--safe along,radial,cross[,phase]` [m, deg] for a passively safe helix, or `--roe` with the six ROE in metres; `--control-law impulsive` (default) or `continuous`. Clones the chief (or `--template-spacecraft`), whose station keeping provides the thruster |
 
 ## 3D models
 

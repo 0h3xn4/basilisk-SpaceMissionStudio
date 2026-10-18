@@ -17,8 +17,8 @@
 #
 """The ROE formation in the scenario file (schema.scenario.RoeFormationConfig):
 it saves and loads unchanged, each rule of its validation names what is
-wrong, renaming the chief follows into it, and the engine refuses it
-until its controllers exist (the one test that needs Basilisk)."""
+wrong, and renaming the chief follows into it. No Basilisk (the runs
+are in ``test_roe_formation_run.py``)."""
 
 from pathlib import Path
 
@@ -132,14 +132,3 @@ def test_renaming_the_chief_follows_into_the_formation():
     assert any(path.endswith("roe_formation.chief_spacecraft") for path in paths)
     rename_spacecraft(scenario, chief, "lead")
     assert follower.roe_formation.chief_spacecraft == "lead"
-
-
-@pytest.mark.requires_basilisk
-def test_the_engine_refuses_a_formation_it_cannot_fly_yet():
-    """Until the ROE controllers exist, a run with an ROE formation stops
-    with a message instead of ignoring it."""
-    from spacemissionstudio.engine.service import SimulationService, SimulationServiceError
-
-    scenario, follower = _scenario()
-    with pytest.raises(SimulationServiceError, match=f"{follower.name}: roe_formation .* cannot fly"):
-        SimulationService(scenario).build()

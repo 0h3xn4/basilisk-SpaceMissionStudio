@@ -105,6 +105,11 @@ def _spacecraft_series(scenario: Scenario, sc) -> List[str]:
                   for part in ("separation_error", "state", "delta_v", "relative_semi_major_axis")]
         if sc.phasing_keeping.control_law != "drift_orbit":  # engine.formation_control
             names.append(f"{name}.phasing_keeping.force")
+    if sc.roe_formation is not None:  # engine.roe_formation.result_series
+        names += [f"{name}.roe_formation.{part}"
+                  for part in ("roe", "roe_error", "state", "delta_v", "min_rn_separation", "target_index")]
+        if sc.roe_formation.control_law == "continuous":
+            names.append(f"{name}.roe_formation.force")
     if sc.constant_thrust is not None:
         names += [f"{name}.constant_thrust.propellant_remaining", f"{name}.constant_thrust.delta_v"]
     if sc.comms_pointing is not None:

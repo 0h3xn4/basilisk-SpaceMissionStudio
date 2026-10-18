@@ -92,7 +92,8 @@ parser. The commands are:
 
 - **Scenario:** `validate`, `run`, `monte-carlo`.
 - **Analyses:** `lifetime`, `budget`, `spaceweather-resolve`.
-- **Design:** `generate-constellation`, `generate-phasing-formation`.
+- **Design:** `generate-constellation`, `generate-phasing-formation`,
+  `generate-roe-formation`.
 - **Data:** `kernels-status`, `earth-orientation` (status, `--fetch`,
   `--import`, `--rollback`).
 - **Exchange:** `ccsds-validate`, `ccsds-export`, `ccsds-import`.

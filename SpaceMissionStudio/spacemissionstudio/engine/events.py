@@ -65,6 +65,8 @@ _UMBRA_SHADOW_FACTOR = 0.01  # [-] below this the Sun is fully hidden (umbra)
 # The phasing controller's states (engine.orbit_maintenance.PhasingKeepingController).
 _PHASING_IDLE, _PHASING_BURN_OUT, _PHASING_DRIFT, _PHASING_BURN_RESTORE = range(4)
 _PHASING_FIRING = 4  # a Basilisk formation law firing (engine.formation_control.FIRING)
+# engine.roe_formation states (not imported: events must load without Basilisk)
+_ROE_IN_PLANE, _ROE_OUT_OF_PLANE, _ROE_DRIFTING, _ROE_CONTINUOUS = 2, 3, 4, 5
 
 
 @dataclass(frozen=True)
@@ -193,6 +195,15 @@ def _burns(result: ResultSet) -> List[Event]:
                          _burn_maker(result, series, spacecraft, "phasing burn (stop drift)", delta_v_name))
         events += _spans(series, state == _PHASING_FIRING,
                          _burn_maker(result, series, spacecraft, "formation control firing", delta_v_name))
+    for name, series in result.series.items():
+        if not name.endswith(".roe_formation.state"):
+            continue
+        spacecraft = name[:-len(".roe_formation.state")]
+        state = np.rint(_column(series)).astype(int)
+        delta_v_name = f"{spacecraft}.roe_formation.delta_v"
+        for value, label in ((_ROE_IN_PLANE, "ROE burn (in-plane)"), (_ROE_OUT_OF_PLANE, "ROE burn (out-of-plane)"),
+                             (_ROE_CONTINUOUS, "ROE control firing")):
+            events += _spans(series, state == value, _burn_maker(result, series, spacecraft, label, delta_v_name))
     return events
 
 
@@ -236,6 +247,12 @@ def _modes(result: ResultSet) -> List[Event]:
             events += _spans(series, ~mode, lambda f, la, s=series, sc=spacecraft: Event(
                 MODE, sc, float(s.time_s[f]), float(s.time_s[la]), "Sun pointing", "power mode",
                 note="power mode"))
+        elif name.endswith(".roe_formation.state"):
+            spacecraft = name[:-len(".roe_formation.state")]
+            drifting = np.rint(_column(series)).astype(int) == _ROE_DRIFTING
+            events += _spans(series, drifting, lambda f, la, s=series, sc=spacecraft: Event(
+                MODE, sc, float(s.time_s[f]), float(s.time_s[la]), "ROE drift", "to the target's along-track offset",
+                note="to the target's along-track offset"))
         elif name.endswith(".phasing_keeping.state"):
             spacecraft = name[:-len(".phasing_keeping.state")]
             drifting = np.rint(_column(series)).astype(int) == _PHASING_DRIFT
@@ -293,9 +310,11 @@ def missing_kinds(result: Optional[ResultSet]) -> Dict[str, str]:
         ACCESS: ("no ground stations", lambda n: n.endswith(".has_access")),
         ECLIPSE: ("no Sun ephemeris (add 'sun' to the third-body perturbers)",
                   lambda n: n.endswith(".eclipse.illumination_factor")),
-        BURN: ("no station-keeping or phasing control", lambda n: n.endswith((".burn_on", ".phasing_keeping.state"))),
-        MODE: ("no comms pointing or phasing control",
-               lambda n: n.endswith((".comms_pointing.active_mode", ".phasing_keeping.state"))),
+        BURN: ("no station-keeping or formation control",
+               lambda n: n.endswith((".burn_on", ".phasing_keeping.state", ".roe_formation.state"))),
+        MODE: ("no comms pointing or formation control",
+               lambda n: n.endswith((".comms_pointing.active_mode", ".phasing_keeping.state",
+                                     ".roe_formation.state"))),
         DOWNLINK: ("no data handling", lambda n: n.endswith(".data_handling.downlink_rate")),
     }
     return {kind: why for kind, (why, has) in reasons.items() if not any(has(n) for n in names)}

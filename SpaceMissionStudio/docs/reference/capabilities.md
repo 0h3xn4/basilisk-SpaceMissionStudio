@@ -273,7 +273,7 @@ drag coefficient, 3.0.
 
 A full PySide6 desktop shell (scenario editor,
 Monte Carlo, live progress feedback, a real visual theme/icon/
-toolbar) and an equivalent headless CLI (18 commands; see
+toolbar) and an equivalent headless CLI (19 commands; see
 [Use the command line](../user-manual/command-line.md)), both built on
 the exact same `schema`/`engine` layer -- neither is a thin wrapper
 around the other. Result plots are Plotly figures (a validated,

@@ -1223,11 +1223,12 @@ class SpacecraftEditorDialog(QDialog):
             "A burn longer than this fraction of an orbit is split over several orbits, so each part stays "
             "close to the impulse it was planned as.")
         roe_form.addRow("Max burn length [-] (fraction of an orbit)", self.roe_max_burn_fraction_of_orbit)
-        self.roe_continuous_gain = _spin(1.0e-3, 1.0e9, decimals=1, step=500.0,
-                                         value=roe0.continuous_gain if roe0 else 2500.0)
+        self.roe_continuous_gain = _spin(1.0e-3, 1.0e9, decimals=1, step=5000.0,
+                                         value=roe0.continuous_gain if roe0 else 25000.0)
         self.roe_continuous_gain.setToolTip(
             "meanOEFeedback's gain on every mean-element error, per kg of spacecraft, as for phasing keeping's "
-            "'Element gain'.")
+            "'Element gain'. 25000 holds a few-hundred-metre formation within a few metres; phasing keeping's "
+            "2500 lets metre-scale errors grow to tens of metres.")
         roe_form.addRow("Element gain [m^2/s^3 per kg]", self.roe_continuous_gain)
         self.roe_target_refresh_s = _spin(1.0, 1.0e5, decimals=1, step=60.0,
                                           value=roe0.target_refresh_s if roe0 else 600.0)

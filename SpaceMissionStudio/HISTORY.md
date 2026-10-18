@@ -10788,3 +10788,72 @@ tool's own. This first part adds what the controllers will stand on.
 Checks: the compliance generators (ICD fields, SDD components and SUITP
 regenerated); `ruff check`; pre-commit; the full suite (results in the
 pull request).
+
+## ROE formation flying, part 2: the controllers fly (2026-10-18)
+
+Part 1 (#72) added the math, the scenario file and the editor form, and
+runs refused an ROE formation. This part flies it: `engine/roe_formation.py`
+measures the mean ROE every tick (Basilisk's `clMeanOscMap` on both
+truth states) and holds or moves the follower with either law.
+
+**Impulsive (the tool's own guidance).** Getting it right took five
+rounds against Basilisk runs, each fixing a real fault the runs showed:
+
+- A 35 m along-track error over a one-day window needs only a 0.25 m
+  relative semi-major axis, below the 2 m tolerance, so no burn fired and
+  the error grew. A drift now sets its `da` to a quarter of the
+  tolerance, and is at least that (shorter, not smaller).
+- A minimum drift of 4 m (tried first) overshot: stopping takes the half
+  orbit between a pair's burns, at 20 m of along-track per half orbit.
+- Stopping a 20 m drift at its deadline overshot by 280 m, and then, with
+  a predicted stop, still by 160 m: where the mean longitude ends depends
+  on which pass over the burn locations the stop uses, in steps of
+  `1.5 n da T` (120 m for 13 m). The drift now glides in: its `da` is cut
+  back so the rest takes at least three orbits, down to the slow `da`
+  whose steps fit the tolerance, and it stops once stopping now (with
+  `roe.sequence_dl_shift`, the along-track motion until the burns fire)
+  reaches the target. 2 km to a 300 m helix now lands within 0.1 m.
+- An eccentricity-vector correction moved the along-track offset 24 to
+  39 m (the relative semi-major axis is off between the burns), out of
+  tolerance every time J2 turned the e vector by 10 m. Small corrections
+  now use `roe.in_plane_sequence`: four to six along-track burns over two
+  orbits, sized by least squares to set `da`, the e vector and the mean
+  longitude together. The hold then keeps the along-track offset within
+  10 m of its 20 m tolerance.
+- Placing the follower with the first-order mean-to-osculating map left
+  it 3.4 m off in `da` (the map is not its own inverse; 480 m of drift a
+  day). `follower_orbit` now corrects the osculating elements, in the
+  near-circular orbit's well-conditioned set (e vector and argument of
+  latitude), until their mean elements match: below a millimetre in two
+  iterations.
+
+Burns go only where the last orbit was sunlit (recorded by argument of
+latitude); a burn that meets eclipse waits an orbit; long burns split
+over orbits.
+
+**Continuous (Basilisk `meanOEFeedback`, unmodified).** Its target is the
+ROE target turned into equinoctial element differences, refreshed every
+600 s as J2 turns the chief's node and perigee. With phasing keeping's
+gain (2500) a formation started on its target drifted 70 m in two days
+while the law commanded 0.4 mN: not saturated, just a steady offset. At
+25000 (the new default) it holds within 2 m.
+
+**Measured** (template 05's two 405 kg satellites, 550 km SSO, 10th-degree
+gravity, Sun, Moon, drag, a 0.05 N thruster; `tests/test_roe_formation_run.py`):
+
+| Case | Result | delta-V |
+|---|---|---|
+| impulsive hold, 2 days | along-track within 10 m, e and i vectors within tolerance | 0.022 m/s |
+| impulsive, 2 km behind to a 300 m helix | on target by day 1.6; closest radial/cross-track approach after it 300 m | 0.57 m/s (closed-form least 0.495) |
+| continuous, same reconfiguration | every ROE error under 3 m from day 0.75 | 1.13 m/s |
+
+**Around it.** Results `{sc}.roe_formation.*` (ROE, error, state,
+delta-V, passive-safety margin, target index, and the continuous law's
+force); Events show ROE burns (in-plane, out-of-plane) and drifts; the
+budget counts the delta-V as formation keeping; Explain describes each
+target and its safety margin; `generate-roe-formation` places a follower
+at `--roe` or a `--safe` helix. A mutation check: flipping the
+cross-track burn direction fails the reconfiguration test.
+
+Checks: the compliance generators (ICD, SDD, SUITP regenerated); `ruff
+check`; pre-commit; the full suite (results in the pull request).

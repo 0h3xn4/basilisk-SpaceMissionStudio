@@ -80,7 +80,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import List, Optional, Sequence, Tuple
+from typing import Callable, List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -309,25 +309,186 @@ class DriftPlan:
 
 
 def plan_drift(roe_now: Sequence[float], target: Sequence[float], chief: MeanElements, window_s: float,
-               max_drift_da: float, j2: float, r_eq: float, mu: float) -> DriftPlan:
+               max_drift_da: float, j2: float, r_eq: float, mu: float, min_drift_da: float = 0.0) -> DriftPlan:
     """The ``da`` that brings ``dl`` to the target in ``window_s`` [s],
     the other ROE already at their target; with the J2 STM, so the drift
     the e/i vectors cause under J2 is included. Limited to
-    ``|da| <= max_drift_da``; the drift then takes longer."""
+    ``|da| <= max_drift_da``; the drift then takes longer. At least
+    ``min_drift_da``, a drift the burns can set; the drift is then
+    shorter."""
     x = np.asarray(target, dtype=float).copy()
     x[1] = float(roe_now[1])
     phi = j2_stm(chief, window_s, j2, r_eq, mu)
     rate = phi[1, 0]  # d(dl) per unit da over the window
     without_da = float(phi[1] @ np.r_[0.0, x[1:]])
     drift_da = (float(target[1]) - without_da) / rate if rate != 0.0 else 0.0
-    if abs(drift_da) <= max_drift_da:
+    if min_drift_da <= abs(drift_da) <= max_drift_da:
         return DriftPlan(drift_da=drift_da, duration_s=window_s)
-    drift_da = math.copysign(max_drift_da, drift_da)
+    drift_da = math.copysign(min(max(abs(drift_da), min_drift_da), max_drift_da), drift_da)
     per_second = j2_stm(chief, 1.0, j2, r_eq, mu)
-    rate_per_s = float(per_second[1] @ np.r_[drift_da, x[1:]] - x[1])  # d(dl)/dt at the capped da
+    rate_per_s = float(per_second[1] @ np.r_[drift_da, x[1:]] - x[1])  # d(dl)/dt at this da
     needed = wrap_pi(float(target[1]) - x[1])
     duration = needed / rate_per_s if rate_per_s != 0.0 else window_s
-    return DriftPlan(drift_da=drift_da, duration_s=max(duration, window_s))
+    return DriftPlan(drift_da=drift_da, duration_s=max(duration, 0.0))
+
+
+# -- guidance: what to fire, where and when -------------------------------------
+
+@dataclass(frozen=True)
+class Correction:
+    """What :func:`plan_correction` decided: the burns to fire, and the
+    drift's ``da`` from then on (``None``: no drift)."""
+
+    burns: Tuple[Burn, ...]
+    drift_da: Optional[float]  # [-]
+    drift_s: Optional[float]  # [s] a new drift's planned duration (None otherwise)
+
+
+def plan_correction(roe_now: Sequence[float], target: Sequence[float], chief: MeanElements,
+                    tolerance: Sequence[float], window_s: float, max_drift_da: float,
+                    drift_da: Optional[float], stop_drift: bool, sunlit: Optional[Callable[[float], bool]],
+                    j2: float, r_eq: float, mu: float) -> Correction:
+    """The impulsive guidance's decision, from the mean ROE now (all
+    dimensionless).
+
+    ``tolerance`` is ``(da, dl, |de|, |di|)``: how far each part may stray
+    from ``target``. The mean longitude is moved by drifting: out of
+    tolerance and not drifting, a drift is planned (:func:`plan_drift`,
+    over ``window_s``); a drift in progress (``drift_da``, the ``da`` it
+    holds) keeps that ``da`` until ``stop_drift``, when ``da`` goes back
+    to the target's. When to stop is the caller's (it knows when the
+    burns will fire, :func:`sequence_dl_shift`). A drift's ``da`` is
+    small (0.25 m moves ``dl`` 35 m in a day at 550 km), so a drift is at
+    least a quarter of the ``da`` tolerance, and while one starts, runs or
+    stops ``da`` is set to half that; holding, the whole tolerance
+    applies.
+
+    The ``da`` wanted and the eccentricity vector are set by one set of
+    along-track burns, the inclination vector by one cross-track burn;
+    each only when out of tolerance. ``sunlit(u)``, when given, says
+    whether a burn at mean argument of latitude ``u`` would be in
+    sunlight. The optimal along-track pair is then replaced by burns at
+    sunlit locations (:func:`in_plane_at`), the cross-track burn moved
+    half an orbit (opposite sign)."""
+    roe_now = np.asarray(roe_now, dtype=float)
+    target = np.asarray(target, dtype=float)
+    a = chief.a
+    n = math.sqrt(mu / a ** 3)  # [rad/s]
+    error_dl = wrap_pi(float(roe_now[1] - target[1]))
+    fine_da = 0.25 * tolerance[0]
+    desired_da, new_drift_da, drift_s = float(target[0]), None, None
+    if drift_da is not None:
+        if not stop_drift:
+            desired_da = new_drift_da = drift_da
+    elif abs(error_dl) > tolerance[1]:
+        plan = plan_drift(roe_now, target, chief, window_s, max_drift_da, j2, r_eq, mu, fine_da)
+        desired_da = new_drift_da = plan.drift_da
+        drift_s = plan.duration_s
+
+    d_da = desired_da - float(roe_now[0])
+    d_de = target[2:4] - roe_now[2:4]
+    d_di = target[4:6] - roe_now[4:6]
+    burns: List[Burn] = []
+    da_threshold = tolerance[0] if drift_da is None and new_drift_da is None else 0.5 * fine_da
+    if abs(d_da) > da_threshold or math.hypot(*d_de) > tolerance[2]:
+        pair = in_plane_pair(d_da, float(d_de[0]), float(d_de[1]), a, n)
+        if sunlit is not None and not all(sunlit(b.u) for b in pair):
+            locations = sunlit_locations(sunlit, [b.u for b in pair] or [0.0])
+            pair = in_plane_at(d_da, float(d_de[0]), float(d_de[1]), locations, a, n)
+        burns += pair
+    if math.hypot(*d_di) > tolerance[3]:
+        burn = out_of_plane(float(d_di[0]), float(d_di[1]), a, n)
+        if sunlit is not None and not sunlit(burn.u):
+            burn = out_of_plane(float(d_di[0]), float(d_di[1]), a, n, opposite=True)
+        burns.append(burn)
+    return Correction(burns=tuple(burns), drift_da=new_drift_da, drift_s=drift_s)
+
+
+def in_plane_sequence(d_da: float, d_dex: float, d_dey: float, d_dl: float, da_now: float,
+                      times_s: Sequence[float], locations_u: Sequence[float], a: float,
+                      n: float) -> List[Tuple[float, Burn]]:
+    """Along-track burns at the given times [s from now] and arguments of
+    latitude [rad] that change ``da`` by ``d_da`` and the eccentricity
+    vector by ``(d_dex, d_dey)`` and move ``dl`` by ``d_dl`` by the last
+    burn, with ``da`` ``da_now`` until the first: four conditions, so at
+    least four burns; with more, the smallest sum of squares (least
+    squares, minimum norm). Unlike :func:`in_plane_pair`, the mean
+    longitude ends where it should: a pair alone moves it by
+    ``1.5 n (d(da)_1) T/2`` (24 m for a 10 m eccentricity change at
+    550 km), because ``da`` is off between its burns."""
+    end_s = max(times_s)
+    scale = 2.0 / (n * a)  # d(da) per m/s along-track
+    matrix = np.array([[scale] * len(times_s),
+                       [scale * math.cos(u) for u in locations_u],
+                       [scale * math.sin(u) for u in locations_u],
+                       [-1.5 * n * scale * (end_s - t) for t in times_s]])
+    wanted = np.array([d_da, d_dex, d_dey, d_dl + 1.5 * n * da_now * end_s])
+    dv = np.linalg.lstsq(matrix, wanted, rcond=None)[0]
+    return sorted(((float(t), Burn(u=float(u) % (2.0 * math.pi), dv_rtn=(0.0, float(v), 0.0), kind="in-plane"))
+                   for t, u, v in zip(times_s, locations_u, dv) if abs(v) > 1e-12), key=lambda p: p[0])
+
+
+def sequence_dl_shift(scheduled: Sequence[Tuple[float, Burn]], a: float, n: float) -> float:
+    """How much further [-] ``dl`` moves by the end of a burn sequence
+    (:func:`schedule_burns` output) than if its total change of ``da`` were
+    made now: each along-track burn's ``d(da)`` acts only from its time
+    ``t_i`` on, so ``1.5 n sum(d(da)_i t_i)``. A pair half an orbit apart
+    or three burns around the eclipse leave ``da`` off between burns, and
+    this is the ``dl`` that costs."""
+    return 1.5 * n * sum(2.0 * burn.dv_rtn[1] / (n * a) * when for when, burn in scheduled)
+
+
+def sunlit_locations(sunlit: Callable[[float], bool], preferred: Sequence[float], count: int = 3,
+                     step_rad: float = math.radians(5.0), min_separation_rad: float = math.radians(20.0)
+                     ) -> List[float]:
+    """``count`` distinct sunlit arguments of latitude [rad] for
+    :func:`in_plane_at`: the sunlit one nearest each ``preferred``
+    location first, then the sunlit ones farthest from those chosen. The
+    ``preferred`` locations themselves when no location is sunlit."""
+    grid = [k * step_rad for k in range(int(round(2.0 * math.pi / step_rad)))]
+    lit = [u for u in grid if sunlit(u)]
+    if not lit:
+        return list(preferred)
+
+    def separation(u1: float, u2: float) -> float:
+        return abs(wrap_pi(u1 - u2))
+
+    chosen: List[float] = []
+    for u in preferred:
+        nearest = min(lit, key=lambda candidate: separation(candidate, u))
+        if all(separation(nearest, c) >= min_separation_rad for c in chosen):
+            chosen.append(nearest)
+    while len(chosen) < count:
+        candidate = max(lit, key=lambda u: min((separation(u, c) for c in chosen), default=math.pi))
+        if chosen and min(separation(candidate, c) for c in chosen) < min_separation_rad:
+            break  # the sunlit arc is too short for more distinct locations
+        chosen.append(candidate)
+    return chosen[:count]
+
+
+def schedule_burns(burns: Sequence[Burn], u_now: float, n: float, max_dv_per_burn: float,
+                   min_lead_s: float, min_separation_s: float) -> List[Tuple[float, Burn]]:
+    """When to fire each burn, as ``(seconds from now, burn)`` in time
+    order: the next time the spacecraft passes the burn's argument of
+    latitude, at least ``min_lead_s`` ahead. A burn larger than
+    ``max_dv_per_burn`` [m/s] is split into equal parts at the same
+    location on consecutive orbits; a part closer than
+    ``min_separation_s`` to one already scheduled waits an orbit."""
+    period_s = 2.0 * math.pi / n
+    pieces: List[Tuple[float, Burn]] = []
+    for burn in burns:
+        parts = max(1, math.ceil(burn.magnitude / max_dv_per_burn)) if max_dv_per_burn > 0.0 else 1
+        part = Burn(u=burn.u, dv_rtn=tuple(x / parts for x in burn.dv_rtn), kind=burn.kind)
+        lead_s = ((burn.u - u_now) % (2.0 * math.pi)) / n
+        if lead_s < min_lead_s:
+            lead_s += period_s
+        pieces += [(lead_s + k * period_s, part) for k in range(parts)]
+    scheduled: List[Tuple[float, Burn]] = []
+    for when, part in sorted(pieces, key=lambda p: p[0]):
+        while any(abs(when - other) < min_separation_s for other, _ in scheduled):
+            when += period_s
+        scheduled.append((when, part))
+    return sorted(scheduled, key=lambda p: p[0])
 
 
 # -- formation design ---------------------------------------------------------
