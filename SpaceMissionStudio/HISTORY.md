@@ -10900,7 +10900,7 @@ impulsive law. Measured in Basilisk (`tests/test_template_claims.py`):
 | Along-track | slips to 3.96 km behind first, then a drift closes it by day 2.5 |
 | Closest approach | 147 m between the two cross-track burns, 292 m or more from day 1.2 |
 | Hold, days 2.5-4 | within 13 m along-track, for 0.026 m/s |
-| Continuous law instead | on target by day 1.4, within 3 m from day 1.5, 1.85 m/s in all |
+| Continuous law instead | on target by day 1.4, within 3 m from day 2, 1.85 m/s in all |
 | 0 deg phase instead | holding costs 3.1 times as much (J2 turns the inclination vector) |
 
 The along-track slip was checked before it went into the description: the
@@ -10911,10 +10911,11 @@ sequence spreads over 1.6 orbits with the relative semi-major axis up to
 sunlight), and the description says so. The claim test also caught one
 figure: the continuous law's "within 2.3 m" held only from day 2.5. The
 next wording, "within 5 m" from day 1.4, then failed on Windows CI (6.2 m;
-a Linux rerun gave 6.9 m): at day 1.4 the law is still converging (12.6 m
-at day 1.35), so the bound depended on the platform's arithmetic. From
-day 1.5 the error stays under 2.4 m, and the claim is now "within 3 m from
-day 1.5". The template has a
+a second Windows workflow 9.4 m, a Linux rerun 6.9 m): at day 1.4 the law
+is still converging (12.6 m at day 1.35), so the bound depended on the
+platform's arithmetic. Once settled the error stays under 2.4 m (Linux,
+from day 1.5); the claim is "within 3 m from day 2", half a day clear of
+the convergence. The template has a
 Customize wizard (the helix's start day, radial and cross-track sizes,
 duration).
 

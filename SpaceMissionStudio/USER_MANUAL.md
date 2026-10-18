@@ -509,7 +509,7 @@ Measured on template 29 (two 150 kg satellites at 550 km, 0.05 N
 thrusters, from 2 km behind to a 300 m helix on day 1): the impulsive law
 is on target 1.5 days after the switch for 0.56 m/s, then holds within
 13 m along-track for 0.026 m/s in 1.5 days; the continuous law is on
-target in 0.4 days and within 3 m a day later, for 1.85 m/s in 4 days.
+target in 0.4 days and within 3 m from day 2, for 1.85 m/s in 4 days.
 
 The chief must be near-circular (eccentricity up to 0.01) and inclined,
 around Earth with J2; one run is at most 100 days; the guidance has no

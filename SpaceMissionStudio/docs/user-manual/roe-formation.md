@@ -75,7 +75,7 @@ target, use the generator.
 | Control law | How it works | Template 29, 2 km behind to a 300 m helix |
 |---|---|---|
 | Impulsive burns (planned with the J2 model), default | When the mean ROE leave their **Tolerances [m]**, along-track burns set a·δa and the eccentricity vector, a cross-track burn the inclination vector, and a drift (a small a·δa, held for about the **Correction window [days]**, no more than **Max drift [m]**) moves the along-track offset. Burns are planned with the J2 state transition matrix and fired only in sunlight; one in eclipse waits an orbit. | On target 1.5 days after the switch, for 0.56 m/s; then 0.026 m/s in 1.5 days to hold it within 13 m. |
-| Continuous (Basilisk meanOEFeedback) | Basilisk's mean-element feedback, aimed at the elements the ROE target gives, which are recomputed every **Target refresh [s]**. Fires most of the time. | On target 0.4 days after the switch and within 3 m from 0.5 days, for 1.85 m/s in 4 days. |
+| Continuous (Basilisk meanOEFeedback) | Basilisk's mean-element feedback, aimed at the elements the ROE target gives, which are recomputed every **Target refresh [s]**. Fires most of the time. | On target 0.4 days after the switch and within 3 m one day after it, for 1.85 m/s in 4 days. |
 
 Neither fires in eclipse. Both fire the follower's station-keeping
 thruster; the follower's station keeping itself never fires, because the
