@@ -554,3 +554,39 @@ def test_a_folder_or_a_binary_file_is_a_space_weather_error(tmp_path):
     binary.write_bytes(b"\xff\xfe\x00binary")
     with pytest.raises(sw.SpaceWeatherError, match="could not read .* as a CelesTrak space-weather file"):
         sw.load_celestrak(binary)
+
+
+def test_a_complete_file_another_process_wrote_meanwhile_is_never_replaced(tmp_path, monkeypatch):
+    """SRelD K-14: two processes that both find the window missing both
+    write it. The second's copy goes in only where no file is (a hard
+    link); the first's complete file stays, and is never replaced while
+    the first process reads it."""
+    window = (datetime(2003, 10, 1), datetime(2003, 12, 1))
+    full = sw.resolve("bundled", *window, cache_dir=tmp_path / "reference").path.read_text()
+    real_link = sw.os.link
+    replaced = []
+
+    def link_after_another_process(src, dst):
+        Path(dst).write_text(full)  # the other process finished first
+        return real_link(src, dst)
+
+    monkeypatch.setattr(sw.os, "link", link_after_another_process)
+    monkeypatch.setattr(sw.os, "replace", lambda src, dst: replaced.append(dst))
+    resolved = sw.resolve("bundled", *window, cache_dir=tmp_path / "cache")
+    assert resolved.path.read_text() == full
+    assert replaced == []
+    assert sorted(p.name for p in (tmp_path / "cache").iterdir()) == [resolved.path.name]  # no temporary file left
+
+
+def test_without_hard_links_the_file_is_moved_into_place(tmp_path, monkeypatch):
+    """A file system without hard links (OSError from os.link) still gets
+    the file, moved into place as before."""
+    window = (datetime(2003, 10, 1), datetime(2003, 12, 1))
+
+    def no_links(src, dst):
+        raise OSError("hard links are not supported")
+
+    monkeypatch.setattr(sw.os, "link", no_links)
+    resolved = sw.resolve("bundled", *window, cache_dir=tmp_path)
+    assert resolved.path.exists() and len(resolved.path.read_text().splitlines()) > 60
+    assert sorted(p.name for p in tmp_path.iterdir()) == [resolved.path.name]

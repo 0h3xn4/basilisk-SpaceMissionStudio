@@ -364,3 +364,60 @@ def test_cancelling_a_parallel_altitude_trade_stops_its_workers_at_once():
     with pytest.raises(pb.BudgetError, match="cancelled"):
         pb.altitude_trade(scenario, "leo-sat-1", [400.0, 450.0], workers=2, should_cancel=cancel_after_start)
     assert time.perf_counter() - started < 20.0  # [s] the sweeps themselves take far longer
+
+
+def test_a_worker_error_that_cannot_be_pickled_keeps_its_message(monkeypatch):
+    """SRelD K-14: Basilisk's BasiliskError cannot be pickled back from a
+    pool worker, so its message was lost. The worker sends it as a
+    BudgetError with the altitude, type, message and traceback; an error
+    that pickles is passed on unchanged."""
+    import pickle
+
+    class Unpicklable(Exception):  # defined in a function: pickle cannot find it by name
+        pass
+
+    def fail(job):
+        raise Unpicklable("Atmosphere model has no spacecraft added to it.")
+
+    monkeypatch.setattr(pb, "_sweep_at", fail)
+    job = (None, "sat-1", 450.0, None, (0.0,), None, None, {})
+    with pytest.raises(pb.BudgetError) as caught:
+        pb._sweep_in_worker(job)
+    message = str(pickle.loads(pickle.dumps(caught.value)))
+    assert message.startswith("450 km: Unpicklable: Atmosphere model has no spacecraft added to it.")
+    assert "Traceback" in message and "in fail" in message
+
+    def fail_plainly(job):
+        raise ValueError("bad altitude")
+
+    monkeypatch.setattr(pb, "_sweep_at", fail_plainly)
+    with pytest.raises(ValueError, match="bad altitude"):
+        pb._sweep_in_worker(job)
+
+
+@pytest.mark.requires_basilisk
+def test_basilisks_own_error_is_the_one_that_does_not_pickle(monkeypatch):
+    """The real BasiliskError, raised by a Basilisk module, does not pickle
+    by itself and arrives through the worker wrapper with its message."""
+    import pickle
+
+    from Basilisk.simulation import exponentialAtmosphere
+    from Basilisk.utilities import SimulationBaseClass, macros
+
+    def basilisk_fails(job):
+        sim = SimulationBaseClass.SimBaseClass()
+        process = sim.CreateNewProcess("process")
+        process.addTask(sim.CreateNewTask("task", macros.sec2nano(1.0)))
+        atmosphere = exponentialAtmosphere.ExponentialAtmosphere()  # no spacecraft: BSK_ERROR
+        sim.AddModelToTask("task", atmosphere)
+        sim.InitializeSimulation()
+        sim.ConfigureStopTime(macros.sec2nano(2.0))
+        sim.ExecuteSimulation()
+
+    with pytest.raises(Exception) as raw:
+        basilisk_fails(None)
+    with pytest.raises(pickle.PicklingError):
+        pickle.dumps(raw.value)
+    monkeypatch.setattr(pb, "_sweep_at", basilisk_fails)
+    with pytest.raises(pb.BudgetError, match="BasiliskError: Atmosphere model has no spacecraft"):
+        pb._sweep_in_worker((None, "sat-1", 400.0, None, (0.0,), None, None, {}))

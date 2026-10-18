@@ -333,10 +333,12 @@ def test_thousands_of_dropped_steps_never_block_the_link(kind):
 def test_a_step_without_deadline_waits_while_earlier_steps_are_still_answered():
     """The step timeout is "no answer at all" for that long: a step with no
     deadline keeps waiting while the program works through late answers to
-    earlier steps (100 dropped steps at 20 ms each, over 1 s of backlog,
-    against a 0.3 s step timeout), and gets its own answer."""
-    listener, fake, side = _session(KINDS[0], {"delay_s": 0.02},
-                                    Timeouts(handshake_s=5.0, step_s=0.3, deadline_s=1e-9))
+    earlier steps (100 dropped steps at 30 ms each, 3 s of backlog, against
+    a 1 s step timeout), and gets its own answer. The timeout leaves each
+    30 ms answer a second: with 0.3 s, one answer 0.302 s late on a loaded
+    Windows runner failed the run (SRelD K-14)."""
+    listener, fake, side = _session(KINDS[0], {"delay_s": 0.03},
+                                    Timeouts(handshake_s=5.0, step_s=1.0, deadline_s=1e-9))
 
     def run():
         side.handshake()

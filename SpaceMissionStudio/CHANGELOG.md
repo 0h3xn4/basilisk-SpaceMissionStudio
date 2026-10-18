@@ -10,6 +10,11 @@ fixes bugs.
 
 ## Unreleased
 
+- **Altitude trade errors keep their message.** When Basilisk stopped
+  one of the parallel workers with an error, the trade failed with a
+  pickling error that hid it. It now names the altitude and Basilisk's
+  message. Two workers writing the same space-weather window no longer
+  replace each other's file.
 - **Relative orbital elements (third part): the generator, the diagram
   and template 29.** **Generate ROE formation...** under the Spacecraft
   list adds a follower placed on a passively safe helix or on six typed
