@@ -43,6 +43,7 @@ def _isolated_autosave(tmp_path, monkeypatch):
 def window(qtbot, monkeypatch):
     """A 2560 x 1440 main window with template 07 (full attitude, one
     spacecraft with sensors and actuators, no station) open."""
+    from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QMessageBox
 
     from spacemissionstudio.gui.main_window import MainWindow
@@ -50,9 +51,14 @@ def window(qtbot, monkeypatch):
     monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
     w = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(w)
+    # Laid out but never put on a screen: Qt's cocoa platform fits a
+    # window it shows to the screen, which on the macOS runner left the
+    # 2560 px window 618 px wide (SRelD K-14).
+    w.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, True)
     w.resize(*_WIDE)
     w.show()
-    qtbot.waitExposed(w)
+    qtbot.waitUntil(w.isVisible)
+    assert (w.width(), w.height()) == _WIDE  # [px] the size the checks below rely on
     assert w.open_path(_TEMPLATES / "07_attitude_pointing_with_adcs_hardware.json")
     return w
 
