@@ -3143,7 +3143,7 @@ Levels: *unit* runs without Basilisk or Qt; *integration* runs a Basilisk simula
 | `test_27_the_wings_ring_at_their_coupled_mode_and_the_pointing_settles` | The turn to the Sun swings each wing ~0.07 deg, ringing at ~0.26 Hz (above its hub-fixed 0.2 Hz) and below 0.001 deg within ~4.3 min; the Sun is within 0.1 deg after ~7.1 min; each wing gives up to ~980 W. | - | integration |
 | `test_28_the_model_s_center_of_mass_offset_drives_the_y_wheel` | The model gives 300 kg and a center of mass [4.8, 0, -6.3] cm from B. | - | integration |
 | `test_29_the_follower_moves_to_a_passively_safe_helix_and_holds_it` | Held 2 km behind to day 1; the e/i vectors reach 300 m within 5 h while a_dlambda slips to ~4 km behind (eclipse spreads the burns), and a drift closes it by day 2.5. | - | integration |
-| `test_29_continuous_law_and_a_zero_phase_helix` | Continuous: on target by day 1.4, held within 5 m, 1.85 m/s in all. | - | integration |
+| `test_29_continuous_law_and_a_zero_phase_helix` | Continuous: on target by day 1.4, within 3 m from day 1.5 (still converging at 1.4: 12 m at 1.35, up to 7 m at 1.4), 1.85 m/s in all. | - | integration |
 
 ### `tests/test_thermal_simulation.py`
 

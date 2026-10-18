@@ -499,7 +499,7 @@ day 1.2: passively safe.
 - Explain: the e/i-vector diagram. Events: each burn and drift.
 
 Try changing:
-- Control law Continuous (follower-1's ROE formation): on target by day 1.4, within 5 m, 1.85 m/s in all.
+- Control law Continuous (follower-1's ROE formation): on target by day 1.4, within 3 m from day 1.5, 1.85 m/s in all.
 - The helix's phase to 0 deg (a_dex = a_dix = 300 m, a_dey = a_diy = 0): J2 turns the inclination \
 vector, and holding costs about three times as much.
 - Generate ROE formation... under the spacecraft list, for another follower.
