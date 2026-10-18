@@ -10788,3 +10788,156 @@ tool's own. This first part adds what the controllers will stand on.
 Checks: the compliance generators (ICD fields, SDD components and SUITP
 regenerated); `ruff check`; pre-commit; the full suite (results in the
 pull request).
+
+## ROE formation flying, part 2: the controllers fly (2026-10-18)
+
+Part 1 (#72) added the math, the scenario file and the editor form, and
+runs refused an ROE formation. This part flies it: `engine/roe_formation.py`
+measures the mean ROE every tick (Basilisk's `clMeanOscMap` on both
+truth states) and holds or moves the follower with either law.
+
+**Impulsive (the tool's own guidance).** Getting it right took five
+rounds against Basilisk runs, each fixing a real fault the runs showed:
+
+- A 35 m along-track error over a one-day window needs only a 0.25 m
+  relative semi-major axis, below the 2 m tolerance, so no burn fired and
+  the error grew. A drift now sets its `da` to a quarter of the
+  tolerance, and is at least that (shorter, not smaller).
+- A minimum drift of 4 m (tried first) overshot: stopping takes the half
+  orbit between a pair's burns, at 20 m of along-track per half orbit.
+- Stopping a 20 m drift at its deadline overshot by 280 m, and then, with
+  a predicted stop, still by 160 m: where the mean longitude ends depends
+  on which pass over the burn locations the stop uses, in steps of
+  `1.5 n da T` (120 m for 13 m). The drift now glides in: its `da` is cut
+  back so the rest takes at least three orbits, down to the slow `da`
+  whose steps fit the tolerance, and it stops once stopping now (with
+  `roe.sequence_dl_shift`, the along-track motion until the burns fire)
+  reaches the target. 2 km to a 300 m helix now lands within 0.1 m.
+- An eccentricity-vector correction moved the along-track offset 24 to
+  39 m (the relative semi-major axis is off between the burns), out of
+  tolerance every time J2 turned the e vector by 10 m. Small corrections
+  now use `roe.in_plane_sequence`: four to six along-track burns over two
+  orbits, sized by least squares to set `da`, the e vector and the mean
+  longitude together. The hold then keeps the along-track offset within
+  10 m of its 20 m tolerance.
+- Placing the follower with the first-order mean-to-osculating map left
+  it 3.4 m off in `da` (the map is not its own inverse; 480 m of drift a
+  day). `follower_orbit` now corrects the osculating elements, in the
+  near-circular orbit's well-conditioned set (e vector and argument of
+  latitude), until their mean elements match: below a millimetre in two
+  iterations.
+
+Burns go only where the last orbit was sunlit (recorded by argument of
+latitude); a burn that meets eclipse waits an orbit; long burns split
+over orbits.
+
+**Continuous (Basilisk `meanOEFeedback`, unmodified).** Its target is the
+ROE target turned into equinoctial element differences, refreshed every
+600 s as J2 turns the chief's node and perigee. With phasing keeping's
+gain (2500) a formation started on its target drifted 70 m in two days
+while the law commanded 0.4 mN: not saturated, just a steady offset. At
+25000 (the new default) it holds within 2 m.
+
+**Measured** (template 05's two 405 kg satellites, 550 km SSO, 10th-degree
+gravity, Sun, Moon, drag, a 0.05 N thruster; `tests/test_roe_formation_run.py`):
+
+| Case | Result | delta-V |
+|---|---|---|
+| impulsive hold, 2 days | along-track within 10 m, e and i vectors within tolerance | 0.022 m/s |
+| impulsive, 2 km behind to a 300 m helix | on target by day 1.6; closest radial/cross-track approach after it 300 m | 0.57 m/s (closed-form least 0.495) |
+| continuous, same reconfiguration | every ROE error under 3 m from day 0.75 | 1.13 m/s |
+
+**Around it.** Results `{sc}.roe_formation.*` (ROE, error, state,
+delta-V, passive-safety margin, target index, and the continuous law's
+force); Events show ROE burns (in-plane, out-of-plane) and drifts; the
+budget counts the delta-V as formation keeping; Explain describes each
+target and its safety margin; `generate-roe-formation` places a follower
+at `--roe` or a `--safe` helix. A mutation check: flipping the
+cross-track burn direction fails the reconfiguration test.
+
+Checks: the compliance generators (ICD, SDD, SUITP regenerated); `ruff
+check`; pre-commit; the full suite (results in the pull request).
+
+## ROE formation flying, part 3: the generator, the diagram, template 29 and the docs (2026-10-18)
+
+Parts 1 and 2 put the ROE formation in the scenario file and flew it.
+This part makes it reachable without the command line or a hand-edited
+table, and documents it.
+
+**Generate ROE formation...** (`gui/roe_formation_dialog.py`) sits next
+to the phasing generator under the Spacecraft list. It takes the chief,
+the template, the follower's name, the law, and the formation either as
+a passively safe shape (along-track offset, radial and cross-track
+half-sizes, phase) or as the six ROE in metres; it shows the closest
+radial/cross-track approach as you type. It refuses, inside the dialog, a
+missing chief or name, a central body other than Earth, a template
+without station keeping and an all-zero formation. The follower is
+placed by `engine.roe_formation.generate_roe_follower` (Basilisk's J2
+mapping, as the command line does); the GUI test measures the placed
+follower's mean ROE within 0.2 m of the request. A first screenshot
+showed the stacked pages keeping room for the six-element page under the
+four-field one; each page now takes only its own height.
+
+**The e/i-vector diagram** (`gui/roe_diagram_widget.py`) on the Explain
+page draws, at one scale, each target's eccentricity vector, inclination
+vector and the path around the chief in the radial/cross-track plane,
+one colour per target in the categorical order (folded into one legend
+line past eight, never cycled), with each target's place and closest
+approach in the legend and all of it in the tooltip. Part 2's Explain
+notes and badges had no tests; they are tested now with the diagram's
+data (`ScenarioExplanation.roe_diagrams`).
+
+**Template 29, "ROE formation: approach and passively safe helix"**:
+two 150 kg satellites at 550 km SSO (10th-degree gravity, Sun, Moon,
+drag, SRP, 50 mN thrusters), the follower placed 2 km behind by the
+generator and moved on day 1 to a 300 m helix at 90 deg phase, 4 days,
+impulsive law. Measured in Basilisk (`tests/test_template_claims.py`):
+
+| | Result |
+|---|---|
+| Days 0-1 | held 2 km behind within 4 m; closest approach 0 m (the orbits cross) |
+| The move | e and i vectors at 300 m within 5 h; 0.56 m/s by day 2.5 |
+| Along-track | slips to 3.96 km behind first, then a drift closes it by day 2.5 |
+| Closest approach | 147 m between the two cross-track burns, 292 m or more from day 1.2 |
+| Hold, days 2.5-4 | within 13 m along-track, for 0.026 m/s |
+| Continuous law instead | on target by day 1.4, within 3 m from day 2, 1.85 m/s in all |
+| 0 deg phase instead | holding costs 3.1 times as much (J2 turns the inclination vector) |
+
+The along-track slip was checked before it went into the description: the
+first along-track burn's partner falls at eclipse exit (the eclipse
+record shows the shadow at days 1.015-1.035 and 1.08-1.10), so the
+sequence spreads over 1.6 orbits with the relative semi-major axis up to
+163 m between burns. That is the designed behaviour (burns only in
+sunlight), and the description says so. The claim test also caught one
+figure: the continuous law's "within 2.3 m" held only from day 2.5. The
+next wording, "within 5 m" from day 1.4, then failed on Windows CI (6.2 m;
+a second Windows workflow 9.4 m, a Linux rerun 6.9 m): at day 1.4 the law
+is still converging (12.6 m at day 1.35), so the bound depended on the
+platform's arithmetic. Once settled the error stays under 2.4 m (Linux,
+from day 1.5); the claim is "within 3 m from day 2", half a day clear of
+the convergence. The template has a
+Customize wizard (the helix's start day, radial and cross-track sizes,
+duration).
+
+**Docs**: a how-to page (`docs/user-manual/roe-formation.md`), a User
+Manual section "Formations in relative orbital elements" with glossary
+entries (also in `docs/glossary.md`: ROE, e/i vectors, passive safety),
+the capabilities and limitations pages, the template catalog and the
+template counts (28 to 29). SRS-F-21 states the requirement, with its
+verification row; the SDD component table traces it.
+
+Checks: the compliance generators (SDD, SUITP regenerated; `check_drds`
+0 problems); `ruff check`; the full suite (results in the pull request).
+
+## K-14, macOS: the wide-screen tests check a wide screen again (2026-10-18)
+
+Since PR #65 the two wide-screen tests (`test_forms_stay_at_a_readable_width`,
+`test_a_template_row_keeps_its_customize_button_close`) failed on macOS CI:
+Qt's `cocoa` platform fits a shown window to the runner's screen, so the
+2560 x 1440 test window was 618 px wide and the tests' own precondition
+failed. The failure had been recorded (SRelD K-14) but left red on every
+pull request since. The fixture now lays the window out with
+`WA_DontShowOnScreen`, so no screen constrains it, and asserts the
+2560 x 1440 size the checks rely on. macOS CI on `f601576c1`: 3347
+passed, 0 failed, 11 skipped (before: the same suite with these two
+failing). K-14's Windows pair (intermittent) is still open.

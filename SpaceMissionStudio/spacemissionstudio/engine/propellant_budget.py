@@ -214,9 +214,11 @@ def run_contributors(result, spacecraft_name: str, mission_years: float) -> Opti
 
     sk_dv = _final(result, f"{prefix}.station_keeping.delta_v")
     pk_dv = _final(result, f"{prefix}.phasing_keeping.delta_v")
+    if pk_dv is None:  # an ROE formation fires the same thruster (engine.roe_formation)
+        pk_dv = _final(result, f"{prefix}.roe_formation.delta_v")
     sk_used = _used(result, f"{prefix}.station_keeping.propellant_remaining")
     if sk_dv is not None:
-        # phasing keeping fires the station-keeping thruster from the same tank: split by delta-V
+        # formation keeping fires the station-keeping thruster from the same tank: split by delta-V
         total_dv = sk_dv + (pk_dv or 0.0)
         share = sk_dv / total_dv if total_dv > 0.0 else 1.0
         contributors.in_plane = (sk_dv * scale, (sk_used or 0.0) * share * scale)
@@ -368,7 +370,8 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
     oop_dv, oop_kg, oop_source = simulated(config.out_of_plane_control_delta_v_m_s,
                                            flown and flown.out_of_plane, "")
     form_dv, form_kg, form_source = simulated(config.formation_delta_v_m_s, flown and flown.formation,
-                                              "formation keeping" if spacecraft.phasing_keeping else "")
+                                              "formation keeping" if spacecraft.phasing_keeping or spacecraft.roe_formation
+                                              else "")
     lie_ip, lie_oop = injection_delta_v(config, a_m)
     cam_count = config.collision_avoidance_count * CAM_COUNT_FACTOR
     cam_dv = cam_count * collision_avoidance_delta_v(a_m)

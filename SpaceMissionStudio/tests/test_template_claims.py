@@ -306,3 +306,60 @@ def test_28_the_model_s_center_of_mass_offset_drives_the_y_wheel():
     centred.spacecraft[0].center_of_mass_b_m = [0.0, 0.0, 0.0]  # [m]
     centred_rpm = _run(centred).series["octa-sat.rw_speeds"].data[-1, 1] * 30.0 / np.pi  # [RPM]
     assert 0.0 < centred_rpm < 1.5
+
+
+def _roe_flight(result, name="follower-1"):
+    """Days, the ROE error box (|a da|, |a dlambda|, |a de|, |a di|) [m],
+    delta-V [m/s], closest radial/cross-track approach [m] and ROE [m]."""
+    error = result.series[f"{name}.roe_formation.roe_error"]
+    e = error.data
+    box = np.c_[np.abs(e[:, 0]), np.abs(e[:, 1]), np.hypot(e[:, 2], e[:, 3]), np.hypot(e[:, 4], e[:, 5])]
+    return (error.time_s / 86400.0, box, result.series[f"{name}.roe_formation.delta_v"].data[:, 0],
+            result.series[f"{name}.roe_formation.min_rn_separation"].data[:, 0],
+            result.series[f"{name}.roe_formation.roe"].data)
+
+
+def _dv_at(day, dv, when):
+    return float(dv[int(np.argmin(np.abs(day - when)))])
+
+
+def test_29_the_follower_moves_to_a_passively_safe_helix_and_holds_it():
+    """Held 2 km behind to day 1; the e/i vectors reach 300 m within 5 h
+    while a_dlambda slips to ~4 km behind (eclipse spreads the burns), and
+    a drift closes it by day 2.5. The closest approach is 0 m while
+    behind, 147 m between the cross-track burns, then 292 m or more from
+    day 1.2. 0.56 m/s for the move, 0.026 m/s to hold it to day 4, within
+    13 m along-track."""
+    day, box, dv, margin, roe_m = _roe_flight(_run(_template("29")))
+    before = day < 1.0
+    assert np.all(np.abs(roe_m[before, 1] + 2000.0) < 5.0)  # [m] held 2 km behind
+    assert np.all(margin[before] < 1.0)  # [m] the orbits cross
+    shaped = day >= 1.0 + 5.0 / 24.0
+    assert np.all(np.abs(np.hypot(roe_m[shaped, 2], roe_m[shaped, 3]) - 300.0) < 11.0)  # [m] |a de|
+    assert np.all(np.abs(np.hypot(roe_m[shaped, 4], roe_m[shaped, 5]) - 300.0) < 11.0)  # [m] |a di|
+    assert -4100.0 < roe_m[:, 1].min() < -3800.0  # [m] the slip
+    assert 140.0 < margin[(day > 1.15) & (day < 1.17)].min() < 155.0  # [m] between the cross-track burns
+    assert margin[day >= 1.2].min() > 290.0  # [m]
+    settled = day >= 2.5
+    assert box[settled, 1].max() < 15.0  # [m] a dlambda
+    assert _dv_at(day, dv, 2.5) == pytest.approx(0.56, abs=0.02)  # [m/s]
+    assert dv[-1] - _dv_at(day, dv, 2.5) == pytest.approx(0.026, abs=0.01)  # [m/s]
+
+
+def test_29_continuous_law_and_a_zero_phase_helix():
+    """Continuous: on target by day 1.4, within 3 m from day 2 (still
+    converging at 1.4: 7 to 9 m there, by platform), 1.85 m/s in
+    all. A 0 deg phase (dix nonzero, which J2 turns): holding from day 2.5
+    costs about three times the 90 deg helix's 0.026 m/s."""
+    continuous = _template("29")
+    continuous.spacecraft[1].roe_formation.control_law = "continuous"
+    day, box, dv, _margin, _roe = _roe_flight(_run(continuous))
+    outside = (day >= 1.0) & np.any(box > np.array([6.0, 20.0, 10.0, 10.0]), axis=1)  # [m] 3 x the da tolerance
+    assert day[outside].max() < 1.45  # [day]
+    assert box[day >= 2.0].max() < 3.0  # [m]
+    assert dv[-1] == pytest.approx(1.85, abs=0.1)  # [m/s]
+
+    zero_phase = _template("29")
+    zero_phase.spacecraft[1].roe_formation.targets[1].roe_m = [0.0, 0.0, 300.0, 0.0, 300.0, 0.0]  # [m]
+    day, _box, dv, _margin, _roe = _roe_flight(_run(zero_phase))
+    assert 2.0 < (dv[-1] - _dv_at(day, dv, 2.5)) / 0.026 < 4.5

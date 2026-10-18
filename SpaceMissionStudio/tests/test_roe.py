@@ -32,16 +32,20 @@ from spacemissionstudio.engine.roe import (
     deputy_elements_from_roe,
     in_plane_at,
     in_plane_pair,
+    in_plane_sequence,
     j2_stm,
     min_radial_normal_separation,
     minimum_in_plane_dv,
     out_of_plane,
+    plan_correction,
     plan_drift,
     propagate_roe,
     roe_from_mean_elements,
     roe_to_rtn,
     safe_formation,
+    schedule_burns,
     secular_j2_rates,
+    sequence_dl_shift,
 )
 
 MU = 3.986004415e14  # [m^3/s^2] Earth
@@ -211,3 +215,122 @@ def test_the_safety_margin_is_the_closest_radial_cross_track_approach(roe_m, exp
     assert margin == pytest.approx(brute, abs=1e-3)
     if expected_m is not None:
         assert margin == pytest.approx(expected_m, abs=1e-6)
+
+
+TOLERANCE = [x / CHIEF.a for x in (2.0, 20.0, 10.0, 10.0)]  # [-] da, dl, |de|, |di|
+HELIX = np.array([0.0, 0.0, 0.0, 300.0, 0.0, 300.0]) / CHIEF.a  # [-]
+
+
+def _plan(roe_m, target=HELIX, drift_da=None, stop_drift=False, sunlit=None):
+    return plan_correction(np.asarray(roe_m) / CHIEF.a, target, CHIEF, TOLERANCE, 86400.0, 100.0 / CHIEF.a,
+                           drift_da, stop_drift, sunlit, J2, R_EQ, MU)
+
+
+def test_inside_the_tolerances_nothing_is_planned():
+    """A formation inside every tolerance gets no burns and no drift."""
+    correction = _plan([1.0, 10.0, 5.0, 305.0, -5.0, 300.0])
+    assert correction.burns == () and correction.drift_da is None
+
+
+def test_an_along_track_error_starts_a_drift():
+    """A mean-longitude error out of tolerance starts a drift: along-track
+    burns set the drift's da, which the STM says closes the error in the
+    window."""
+    correction = _plan([0.0, -100.0, 0.0, 300.0, 0.0, 300.0])
+    assert correction.drift_s == pytest.approx(86400.0)
+    total = sum(burn_effect(b, CHIEF.a, N) for b in correction.burns)
+    assert total[0] == pytest.approx(correction.drift_da)
+    assert {b.kind for b in correction.burns} == {"in-plane"}
+    drifting = np.array([0.0, -100.0, 0.0, 300.0, 0.0, 300.0]) / CHIEF.a + total
+    after = propagate_roe(drifting, CHIEF, 86400.0, J2, R_EQ, MU)
+    assert after[1] * CHIEF.a == pytest.approx(0.0, abs=0.5)
+
+
+def test_a_small_drift_is_shorter_not_smaller():
+    """A drift whose da would be below what the burns set (a quarter of the
+    da tolerance) holds that da for less time instead."""
+    correction = _plan([0.0, -25.0, 0.0, 300.0, 0.0, 300.0])
+    d_da = sum(burn_effect(b, CHIEF.a, N) for b in correction.burns)[0] * CHIEF.a
+    assert abs(d_da) == pytest.approx(0.5, rel=1e-6)  # [m] a quarter of 2 m
+    assert correction.drift_s < 86400.0
+
+
+def test_a_drift_in_progress_holds_its_da():
+    """While drifting, the drift's da is kept: no burns while it holds."""
+    correction = _plan([-0.5, -60.0, 0.0, 300.0, 0.0, 300.0], drift_da=-0.5 / CHIEF.a)
+    assert correction.burns == () and correction.drift_da == -0.5 / CHIEF.a
+
+
+def test_a_stopped_drift_returns_da_to_the_target():
+    """Stopping a drift brings da back to the target's, and the drift
+    ends."""
+    correction = _plan([-0.5, -5.0, 0.0, 300.0, 0.0, 300.0], drift_da=-0.5 / CHIEF.a, stop_drift=True)
+    assert correction.drift_da is None
+    assert sum(burn_effect(b, CHIEF.a, N) for b in correction.burns)[0] * CHIEF.a == pytest.approx(0.5)
+
+
+def test_eclipsed_locations_are_avoided():
+    """With the optimal locations in eclipse, the along-track burns move to
+    sunlit ones and the cross-track burn half an orbit on, and still make
+    the change."""
+    sunlit = lambda u: not (math.radians(150.0) < u % (2.0 * math.pi) < math.radians(280.0))  # noqa: E731
+    roe_m = np.array([0.0, 0.0, -150.0, 0.0, 0.0, 120.0])  # [m] de change along +x, di along +y
+    correction = _plan(roe_m, sunlit=sunlit)
+    assert all(sunlit(b.u) for b in correction.burns)
+    total = sum(burn_effect(b, CHIEF.a, N) for b in correction.burns)
+    assert (roe_m / CHIEF.a + total)[2:] * CHIEF.a == pytest.approx(HELIX[2:] * CHIEF.a, abs=1e-6)
+    assert len([b for b in correction.burns if b.kind == "in-plane"]) == 3
+
+
+def test_a_long_burn_is_split_over_orbits():
+    """A burn larger than one part is split into equal parts at the same
+    location on consecutive orbits; the parts come in time order."""
+    burn = out_of_plane(0.0, 300.0 / CHIEF.a, CHIEF.a, N)
+    scheduled = schedule_burns([burn], u_now=0.0, n=N, max_dv_per_burn=burn.magnitude / 2.5, min_lead_s=10.0,
+                               min_separation_s=100.0)
+    period = 2.0 * math.pi / N
+    assert len(scheduled) == 3
+    assert [when for when, _ in scheduled] == pytest.approx([burn.u / N + k * period for k in range(3)])
+    assert sum(part.magnitude for _, part in scheduled) == pytest.approx(burn.magnitude)
+
+
+def test_burns_too_close_together_wait_an_orbit():
+    """A burn closer than the minimum separation to one already scheduled
+    waits an orbit; one too close ahead also waits an orbit."""
+    a = in_plane_pair(5.0 / CHIEF.a, 0.0, 0.0, CHIEF.a, N)[0]
+    b = out_of_plane(1e-6, 0.0, CHIEF.a, N)  # at u = 0, like a
+    scheduled = schedule_burns([a, b], u_now=-0.001, n=N, max_dv_per_burn=1.0, min_lead_s=1.0, min_separation_s=300.0)
+    period = 2.0 * math.pi / N
+    assert scheduled[1][0] - scheduled[0][0] == pytest.approx(period)
+    late = schedule_burns([a], u_now=-1.0e-4, n=N, max_dv_per_burn=1.0, min_lead_s=60.0, min_separation_s=1.0)
+    assert late[0][0] == pytest.approx(1.0e-4 / N + period)
+
+
+def test_the_sequence_dl_shift_is_the_delayed_da():
+    """A da change made t seconds from now leaves dl 1.5 n d(da) t further
+    than one made now (the Keplerian STM over the same span)."""
+    burn = in_plane_pair(4.0 / CHIEF.a, 0.0, 0.0, CHIEF.a, N)[0]
+    delay = 3000.0  # [s]
+    shift = sequence_dl_shift([(delay, burn)], CHIEF.a, N)
+    d_da = burn_effect(burn, CHIEF.a, N)[0]
+    now = propagate_roe([d_da, 0, 0, 0, 0, 0], CHIEF, delay, 0.0, R_EQ, MU)[1]
+    assert shift == pytest.approx(-now)
+
+
+def test_the_in_plane_sequence_also_lands_dl():
+    """Four along-track burns over two orbits change da and the e vector
+    and bring dl to its target by the last burn: stepped through with the
+    Keplerian ROE motion (dl moves at -3/2 n da between burns), unlike the
+    pair, which leaves dl off by 1.5 n d(da)_1 T/2."""
+    roe_now = np.array([0.0, 30.0, -10.0, 300.0, 0.0, 300.0]) / CHIEF.a  # e vector 10 m off, dl 30 m off
+    period = 2.0 * math.pi / N
+    for places in ([0.0, math.pi], [0.3, 2.4, 4.5]):  # the change's own pair; three sunlit locations
+        times = [600.0 + (u / (2.0 * math.pi) + k) * period for k in range(2) for u in places]
+        sequence = in_plane_sequence(0.0, 10.0 / CHIEF.a, 0.0, -30.0 / CHIEF.a, 0.0, times, places * 2,
+                                     CHIEF.a, N)
+        state, clock = roe_now.copy(), 0.0
+        for when, burn in sequence:
+            state[1] += -1.5 * N * state[0] * (when - clock)
+            state = state + burn_effect(burn, CHIEF.a, N)
+            clock = when
+        assert state * CHIEF.a == pytest.approx([0.0, 0.0, 0.0, 300.0, 0.0, 300.0], abs=1e-6)

@@ -1223,11 +1223,12 @@ class SpacecraftEditorDialog(QDialog):
             "A burn longer than this fraction of an orbit is split over several orbits, so each part stays "
             "close to the impulse it was planned as.")
         roe_form.addRow("Max burn length [-] (fraction of an orbit)", self.roe_max_burn_fraction_of_orbit)
-        self.roe_continuous_gain = _spin(1.0e-3, 1.0e9, decimals=1, step=500.0,
-                                         value=roe0.continuous_gain if roe0 else 2500.0)
+        self.roe_continuous_gain = _spin(1.0e-3, 1.0e9, decimals=1, step=5000.0,
+                                         value=roe0.continuous_gain if roe0 else 25000.0)
         self.roe_continuous_gain.setToolTip(
             "meanOEFeedback's gain on every mean-element error, per kg of spacecraft, as for phasing keeping's "
-            "'Element gain'.")
+            "'Element gain'. 25000 holds a few-hundred-metre formation within a few metres; phasing keeping's "
+            "2500 lets metre-scale errors grow to tens of metres.")
         roe_form.addRow("Element gain [m^2/s^3 per kg]", self.roe_continuous_gain)
         self.roe_target_refresh_s = _spin(1.0, 1.0e5, decimals=1, step=60.0,
                                           value=roe0.target_refresh_s if roe0 else 600.0)
@@ -2536,6 +2537,11 @@ class SpacecraftListWidget(QWidget):
         self.generate_phasing_formation_button = QPushButton("Generate phasing formation...")
         second_button_row.addWidget(self.generate_constellation_button)
         second_button_row.addWidget(self.generate_phasing_formation_button)
+        self.generate_roe_formation_button = QPushButton("Generate ROE formation...")
+        self.generate_roe_formation_button.setToolTip(
+            "Adds a follower flying in formation with a chosen spacecraft, set by relative orbital elements "
+            "(for example a passively safe helix), held by impulsive burns or Basilisk's mean-element feedback.")
+        second_button_row.addWidget(self.generate_roe_formation_button)
         second_button_row.addStretch(1)
         layout.addLayout(second_button_row)
 
@@ -2545,6 +2551,7 @@ class SpacecraftListWidget(QWidget):
         self.remove_button.clicked.connect(self._on_remove)
         self.generate_constellation_button.clicked.connect(self._on_generate_constellation)
         self.generate_phasing_formation_button.clicked.connect(self._on_generate_phasing_formation)
+        self.generate_roe_formation_button.clicked.connect(self._on_generate_roe_formation)
         self.list_widget.itemDoubleClicked.connect(lambda _item: self._on_edit())
 
     def set_central_body_provider(self, provider) -> None:
@@ -2827,6 +2834,43 @@ class SpacecraftListWidget(QWidget):
         self._refresh_list()
         self.list_widget.setCurrentRow(len(self._configs) - 1)
         show_toast(self.window(), f"Generated phasing follower {follower.name!r}")
+        self.changed.emit()
+
+    def _on_generate_roe_formation(self) -> None:
+        from .roe_formation_dialog import RoeFormationDialog
+
+        central_body = self._central_body_provider() if self._central_body_provider else "earth"
+        dialog = RoeFormationDialog([c.name for c in self._configs], central_body=central_body, parent=self,
+                                    spacecraft=self._configs)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        chief = next(c for c in self._configs if c.name == dialog.selected_chief_name())
+        template = next((c for c in self._configs if c.name == dialog.selected_template_name()), chief)
+        if dialog.follower_name() in {c.name for c in self._configs}:
+            report(self, f"Not added: a spacecraft named {dialog.follower_name()!r} already exists", kind="warning")
+            return
+
+        # engine.roe_formation imports Basilisk at module level: the
+        # follower is placed with its mean/osculating element mapping.
+        try:
+            from ..engine.roe_formation import generate_roe_follower
+
+            follower = generate_roe_follower(chief, template, dialog.follower_name(), dialog.roe_m(),
+                                             dialog.control_law())
+        except ImportError as exc:
+            report(self, f"Could not make the ROE formation: Basilisk is not installed ({exc}).\n"
+                         "The follower is placed with Basilisk's mean/osculating element mapping; see "
+                         "SpaceMissionStudio/README.md.")
+            return
+        except ScenarioValidationError as exc:
+            report(self, f"Could not make the ROE formation: {exc}")
+            return
+
+        self._configs.append(follower)
+        self._refresh_list()
+        self.list_widget.setCurrentRow(len(self._configs) - 1)
+        show_toast(self.window(), f"Generated ROE follower {follower.name!r}")
         self.changed.emit()
 
     def to_list(self) -> list[SpacecraftConfig]:

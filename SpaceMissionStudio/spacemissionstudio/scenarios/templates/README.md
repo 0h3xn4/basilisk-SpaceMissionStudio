@@ -1,6 +1,6 @@
 # Template missions
 
-Twenty-eight ready-to-run scenario files, for learning the tool and the
+Twenty-nine ready-to-run scenario files, for learning the tool and the
 orbital mechanics it simulates, and as starting points for your own
 missions (copy one, edit it, save it under a new name):
 
@@ -15,6 +15,8 @@ missions (copy one, edit it, save it under a new name):
   with a turn to the Sun.
 * **28** describes a satellite by a 3D model: its mass, center of mass,
   inertia, surfaces and Vizard look all come from the parts.
+* **29** flies a formation set by relative orbital elements: a move
+  from 2 km behind to a passively safe helix around the chief.
 
 **New here?** Run 01, then 22, then follow the learning path at the end
 of this file. To start your own mission, open 22 or 23 and Save As.
@@ -91,6 +93,7 @@ before it, but none of them depend on running an earlier one first.
 | 26 | `26_earth_observation_data_downlink.json` | An Earth-observation microsatellite pointing at nadir: a camera (80 kbit/s orbit average) and housekeeping fill a 3 Gbit memory (`data_handling`), and an S-band patch antenna on the nadir face (`antenna_pattern: "cosine"`, 6 dBi) sends it to Berlin at 5 Mbit/s whenever the link closes. Measured over its 2 days: 14.5 Gbit generated, 11.5 downlinked, 0.9 lost while the memory was full between Berlin's two daily pass groups (first full 12 h in); the margin is 16 dB at the best pass and 3.7 dB at the 10 deg edge, where Berlin is 65 deg off the patch's boresight. An 8 Gbit memory, or a second station on Svalbard, loses nothing. |
 | 27 | `27_flexible_solar_arrays.json` | The "Small satellite (300 kg)" preset in Sun-safe pointing, its cells on two deployed wings (`solar_arrays`: 2.4 x 1.0 m, 8 kg each, on the +/-y faces, cells on +z). Each wing is a Basilisk `hingedRigidBodyStateEffector`, a panel on a spring-damper hinge, with an assumed first mode of 0.2 Hz (hub held fixed) and 0.5% damping; its own `simpleSolarPanel` follows the wing's deflected attitude. The run starts 71 deg off the Sun. Measured in a real Basilisk run (`tests/test_template_claims.py`): each wing swings 0.07 deg as the wheels start the turn and rings at 0.26 Hz (the coupled mode, above the hub-fixed 0.2 Hz), below 0.001 deg within 4.3 min; the Sun is within 0.1 deg after 7.1 min, as with the wings rigid on the hub; each wing gives up to 980 W in sunlight. With a 0.05 Hz first mode the wings swing 0.94 deg and the pointing settles as before; 5% damping barely shortens the ringing, which the attitude control already damps through the hub. |
 | 28 | `28_octagonal_bus_3d_model.json` | A 300 kg satellite described by a 3D model (`model`, see [Build a 3D model](../../../docs/user-manual/3d-model.md)): an octagonal prism bus 1.2 m across flats and 1.4 m tall, two 1.0 x 2.0 m panels on the +/-y sides, a cone dish on +x, a star tracker on -x and a 40 kg battery inside the bus at x = 0.3 m (hidden, no facets). Mass properties are computed from the parts: 300 kg, center of mass [4.8, 0, -6.3] cm from B, Ixx/Iyy/Izz 134/77/118 kg m^2 with Ixz 6.3 kg m^2; the parts' outer faces give 36 drag/SRP facets (Cd 3.0); Vizard draws the model. Sun-safe pointing on three wheels, no torque rods, starting 71 deg off the Sun; 0.2 days. Measured in a real Basilisk run (`tests/test_template_claims.py`): the wheels reach up to 850 RPM in the turn and the Sun is within 0.1 deg after 7 min; then rw-y drifts -2.1 RPM an orbit, to -6.5 RPM after three orbits, against +0.3 RPM with the center of mass set to B. With the battery at x = 0 (center of mass 0.8 cm from B) rw-y ends at +0.9 RPM; at x = -0.3 m at +8.3 RPM. |
+| 29 | `29_roe_formation_helix.json` | Two 150 kg satellites at 550 km Sun-synchronous with 10th-degree gravity, Sun, Moon, drag and SRP, each with a 50 mN station-keeping thruster. follower-1 has an ROE formation (`roe_formation`, see [Fly a formation with relative orbital elements](../../../docs/user-manual/roe-formation.md)): placed 2 km behind chief-1 by the generator (`engine.roe_formation.generate_roe_follower`), held there to day 1, then moved to a passively safe helix (a·δe = a·δi = 300 m, parallel, phase 90 deg) by the impulsive law, which plans with the J2 state transition matrix and fires only in sunlight. 4 days. Measured in a real Basilisk run (`tests/test_template_claims.py`): the e/i vectors reach 300 m within 5 h; the along-track offset first slips to 4 km behind (a burn's partner falls in eclipse, so the raised orbit lingers 1.6 orbits), and a drift closes it by day 2.5; the closest radial/cross-track approach is 292 m or more from day 1.2. 0.56 m/s for the move, 0.026 m/s to hold the helix to day 4 within 13 m along-track. The continuous law (Basilisk `meanOEFeedback`) is on target by day 1.4 and within 3 m from day 2, for 1.85 m/s; a 0 deg phase, whose inclination vector J2 turns, costs about three times as much to hold. |
 
 ## A learning path
 
@@ -101,7 +104,7 @@ before it, but none of them depend on running an earlier one first.
 | 3. Pointing | 06, 07, 15, 14, 27 | Attitude control, ideal and with real hardware; pointing at the Moon; finding the Sun with sun sensors; flexible wings swinging in a turn |
 | 4. Disturbances and momentum | 10, 21, 28, 12, 13, 11 | Gravity-gradient and surface torques; a center of mass off the body origin; unloading wheels with thrusters or torque rods; thrusters for pointing |
 | 5. Missions in steps | 08, 16, 23 | Mission Sequences: burns, a Lambert transfer, stopping on a ground pass |
-| 6. Several spacecraft | 04, 05, 24 | A Walker constellation; a formation held by two different control laws |
+| 6. Several spacecraft | 04, 05, 24, 29 | A Walker constellation; a formation held by two different control laws; a formation in relative orbital elements, made passively safe |
 | 7. Whole systems | 19, 20, 23, 26 | Power, radio link and thermal working together; data from instrument to ground |
 | 8. Uncertainty | 09, 25 | Monte Carlo batches: mass, orbit insertion, drag |
 

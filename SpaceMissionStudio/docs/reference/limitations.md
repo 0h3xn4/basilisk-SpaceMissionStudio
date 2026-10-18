@@ -117,6 +117,23 @@ Each item was checked against Basilisk's own source.
   * Facets apply only in full-attitude runs; an orbit-only run keeps
     `drag_area_m2` and `srp_area_m2`.
 
+* **ROE formations (`engine.roe`, `engine.roe_formation`).**
+  * The chief must be near-circular (eccentricity up to 0.01) and
+    inclined: the guidance is the near-circular one (D'Amico) and the
+    inclination vector needs a node.
+  * Earth only, with J2 in the gravity model: the mean elements and the
+    J2 state transition matrix are Earth's J2 theory. Higher harmonics,
+    the Sun and the Moon act in the run but not in the guidance.
+  * The guidance has no differential drag. Two spacecraft with different
+    ballistic coefficients drift apart, and the controller meets that as
+    an error, after the fact.
+  * One run of at most 100 days; ROE formations are not split into
+    segments.
+  * A follower cannot have both an ROE formation and phasing keeping.
+  * The impulsive law fires only in sunlight: a burn whose location is in
+    eclipse waits for another, and the formation can move meanwhile
+    (template 29's along-track offset slips 2 km this way).
+
 ## Planned, not yet built
 
 Scoped from real use, with the detail in

@@ -484,4 +484,26 @@ and rw-y ends near +0.9 RPM instead of -6.5. At x = -0.3 m it drifts the other w
 
 Note:
 - Parts do not shade each other, and the panels are fixed to the body.""",
+    "29": """\
+Two 150 kg satellites at 550 km, Sun-synchronous. follower-1 starts 2 km behind chief-1 and, on day 1, \
+moves to a passively safe helix around it: 300 m radial and cross-track motion. Impulsive burns, planned \
+with J2 and fired only in sunlight, make the move and hold it. 4 days.
+
+What to look at:
+- follower-1.roe_formation.roe: the e and i vectors reach 300 m within 5 hours. a_dlambda first slips to \
+4 km behind (a burn's partner falls in eclipse), then a drift closes it by day 2.5.
+- follower-1.roe_formation.min_rn_separation: 0 m while behind (the orbits cross), 292 m or more from \
+day 1.2: passively safe.
+- follower-1.roe_formation.delta_v: 0.56 m/s for the move, then 0.026 m/s to hold it to day 4, within \
+13 m along-track.
+- Explain: the e/i-vector diagram. Events: each burn and drift.
+
+Try changing:
+- Control law Continuous (follower-1's ROE formation): on target by day 1.4, within 3 m from day 2, 1.85 m/s in all.
+- The helix's phase to 0 deg (a_dex = a_dix = 300 m, a_dey = a_diy = 0): J2 turns the inclination \
+vector, and holding costs about three times as much.
+- Generate ROE formation... under the spacecraft list, for another follower.
+
+Note:
+- Near-circular Earth orbits only. The guidance has no differential drag; these satellites are identical.""",
 }

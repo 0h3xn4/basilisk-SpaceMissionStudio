@@ -59,6 +59,7 @@ from spacemissionstudio.schema.scenario import (
     OrbitIC,
     PhasingKeepingConfig,
     PowerConfig,
+    RoeTargetConfig,
     RFLinkConfig,
     Scenario,
     SensorConfig,
@@ -1594,6 +1595,45 @@ def build_28_octagonal_bus_3d_model() -> Scenario:
     )
 
 
+def build_29_roe_formation_helix() -> Scenario:
+    # An ROE formation (engine.roe, engine.roe_formation): two 150 kg
+    # sister satellites, the follower placed 2 km behind the chief by
+    # generate_roe_follower (mean elements mapped to osculating with
+    # Basilisk's J2 mapping), reconfiguring on day 1 to a passively safe
+    # helix (parallel e/i vectors, 300 m) centred on the chief and holding
+    # it for 3 days with the impulsive law.
+    from spacemissionstudio.engine.roe_formation import generate_roe_follower
+
+    approach_m = [0.0, -2000.0, 0.0, 0.0, 0.0, 0.0]  # [m] 2 km behind
+    helix_m = [0.0, 0.0, 0.0, 300.0, 0.0, 300.0]  # [m] radial and cross-track half-sizes 300 m
+    epoch_utc = "2030-01-01T00:00:00"
+    chief = SpacecraftConfig(
+        name="chief-1",
+        orbit=OrbitIC(type="classical_elements", semi_major_axis_km=6928.0, eccentricity=0.001,  # [km], [-]
+                      inclination_deg=sun_synchronous_inclination_deg(6928.0, 0.001),
+                      raan_deg=raan_for_ltan_deg(epoch_utc), arg_periapsis_deg=0.0, true_anomaly_deg=0.0),
+        dry_mass_kg=150.0,  # [kg]
+        inertia_kg_m2=_box_inertia(150.0, _SMALLSAT_SIZE_M),
+        enable_drag=True, drag_coeff=OPERATIONS_DRAG_COEFF, drag_area_m2=1.0,  # [m^2]
+        enable_srp=True, srp_coeff=1.3, srp_area_m2=1.0,  # [-], [m^2]
+        station_keeping=StationKeepingConfig(target_altitude_km=550.0, deadband_km=15.0, thrust_n=0.05,  # [km], [N]
+                                             isp_s=1500.0, propellant_kg=5.0),  # [s], [kg]
+    )
+    follower = generate_roe_follower(chief, chief, "follower-1", approach_m, "impulsive")
+    follower.roe_formation.targets.append(RoeTargetConfig(1.0, helix_m))  # [day]
+    return Scenario(
+        name="29 - ROE formation: approach and passively safe helix",
+        description=DESCRIPTIONS["29"],
+        epoch_utc=epoch_utc,
+        simulation_mode="orbit_only",
+        gravity=GravityConfig(central_body="earth", central_body_degree=10, third_body_perturbers=["sun", "moon"]),
+        sim_settings=SimSettings(duration_days=4.0, dynamics_task_rate_s=30.0, integrator="rkf78",
+                                 record_interval_s=60.0),  # [day], [s], [s]
+        space_weather=_real_space_weather(),
+        spacecraft=[chief, follower],
+    )
+
+
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     _save(build_01_two_body_circular_orbit(), "01_two_body_circular_orbit.json")
@@ -1625,6 +1665,7 @@ def main() -> None:
     _save(build_26_earth_observation_data_downlink(), "26_earth_observation_data_downlink.json")
     _save(build_27_flexible_solar_arrays(), "27_flexible_solar_arrays.json")
     _save(build_28_octagonal_bus_3d_model(), "28_octagonal_bus_3d_model.json")
+    _save(build_29_roe_formation_helix(), "29_roe_formation_helix.json")
 
 
 if __name__ == "__main__":

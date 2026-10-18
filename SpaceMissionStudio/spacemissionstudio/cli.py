@@ -50,6 +50,8 @@ Usage::
         --total-satellites 12 --planes 3 --phasing-factor 1 --altitude-km 780 --inclination-deg 86.4
     spacemissionstudio generate-phasing-formation chief_only.json --out formation.json \
         --chief chief-1 --follower-name follower-1 --along-track-km 50
+    spacemissionstudio generate-roe-formation chief_only.json --out helix.json \
+        --chief chief-1 --follower-name follower-1 --safe 0,300,300
     spacemissionstudio model scenario.json --spacecraft sat-1 --apply
     spacemissionstudio gui
     spacemissionstudio --version
@@ -67,7 +69,7 @@ from . import __version__, dependencies, output_provenance
 from .logging_setup import configure_logging
 from .schema import ScenarioValidationError, load_scenario
 from .schema.command import runs_sequence, script_blocks
-from .schema.scenario import PHASING_CONTROL_LAWS
+from .schema.scenario import PHASING_CONTROL_LAWS, ROE_CONTROL_LAWS
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
@@ -953,6 +955,64 @@ def cmd_generate_phasing_formation(args: argparse.Namespace) -> int:
     return 0
 
 
+def _numbers(text: str, counts, what: str):
+    try:
+        values = [float(x) for x in text.split(",")]
+    except ValueError:
+        raise ValueError(f"{what} must be comma-separated numbers, got {text!r}") from None
+    if len(values) not in counts:
+        raise ValueError(f"{what} takes {' or '.join(str(c) for c in counts)} numbers, got {len(values)}")
+    return values
+
+
+def cmd_generate_roe_formation(args: argparse.Namespace) -> int:
+    try:
+        scenario = load_scenario(args.scenario)
+    except ScenarioValidationError as exc:
+        print(f"INVALID: {exc}", file=sys.stderr)
+        return 1
+    names = [sc.name for sc in scenario.spacecraft]
+    chief = next((sc for sc in scenario.spacecraft if sc.name == args.chief), None)
+    template = next((sc for sc in scenario.spacecraft if sc.name == (args.template_spacecraft or args.chief)), None)
+    if chief is None or template is None:
+        missing = args.chief if chief is None else args.template_spacecraft
+        print(f"ERROR: no spacecraft named {missing!r} in {args.scenario} -- this scenario has: {names}",
+              file=sys.stderr)
+        return 1
+    if args.follower_name in names:
+        print(f"ERROR: a spacecraft named {args.follower_name!r} already exists in {args.scenario}", file=sys.stderr)
+        return 1
+    from .engine.roe import min_radial_normal_separation, safe_formation  # numpy only
+    try:
+        if args.roe is not None:
+            roe_m = _numbers(args.roe, (6,), "--roe")
+        else:
+            along, radial, cross, *phase = _numbers(args.safe, (3, 4), "--safe")
+            roe_m = [round(float(x), 9) + 0.0  # cos(90 deg) as 0, not 6e-17; + 0.0 drops -0.0
+                     for x in safe_formation(along, radial, cross, phase[0] if phase else 90.0, 1.0)]
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    try:
+        from .engine.roe_formation import generate_roe_follower
+    except ImportError as exc:
+        print(f"ERROR: Basilisk is not installed/built ({exc}) -- placing an ROE follower needs its mean/osculating "
+              f"element mapping -- see SpaceMissionStudio/README.md", file=sys.stderr)
+        return 2
+    try:
+        follower = generate_roe_follower(chief, template, args.follower_name, roe_m, args.control_law)
+        scenario.spacecraft = scenario.spacecraft + [follower]
+        scenario.save(args.out)
+    except ScenarioValidationError as exc:
+        print(f"INVALID: {exc}", file=sys.stderr)
+        return 1
+    margin = min_radial_normal_separation(roe_m, 1.0)  # [m] the ROE are in metres
+    print(f"Generated follower {follower.name!r} at ROE {', '.join(f'{x:g}' for x in roe_m)} m from chief "
+          f"{chief.name!r} ({args.control_law} law; closest radial/cross-track approach {margin:.1f} m), wrote "
+          f"{len(scenario.spacecraft)}-spacecraft scenario to {args.out}")
+    return 0
+
+
 def cmd_gui(args: argparse.Namespace) -> int:
     try:
         from .gui.app import main as gui_main
@@ -1235,6 +1295,27 @@ def build_parser() -> argparse.ArgumentParser:
                                  "hill_pd (Basilisk hillFrameRelativeControl, close formations); see "
                                  "the User Manual's 'Formation control laws'")
     p_phasing.set_defaults(func=cmd_generate_phasing_formation)
+
+    p_roe = subparsers.add_parser(
+        "generate-roe-formation",
+        help="generate a follower in a formation of relative orbital elements (ROE) with an existing chief "
+             "(needs a Basilisk build -- places it with the mean/osculating element mapping)",
+    )
+    p_roe.add_argument("scenario", type=Path, help="scenario file to load the chief/template spacecraft from")
+    p_roe.add_argument("--out", type=Path, required=True, help="scenario file to write the result to")
+    p_roe.add_argument("--chief", type=str, required=True, help="name of the existing chief spacecraft")
+    p_roe.add_argument("--follower-name", type=str, required=True, help="name for the new follower spacecraft")
+    p_roe.add_argument("--template-spacecraft", type=str, default=None,
+                       help="spacecraft to clone the follower from, with its station keeping (default: the chief)")
+    where = p_roe.add_mutually_exclusive_group(required=True)
+    where.add_argument("--roe", type=str, help="six ROE times the chief's semi-major axis [m]: "
+                                               "a_da,a_dlambda,a_dex,a_dey,a_dix,a_diy")
+    where.add_argument("--safe", type=str, help="a passively safe formation [m, deg]: along,radial,cross[,phase] "
+                                                "(parallel e/i vectors; phase 90 deg by default)")
+    p_roe.add_argument("--control-law", choices=ROE_CONTROL_LAWS, default="impulsive",
+                       help="impulsive (the tool's burns, planned with the J2 model) or continuous (Basilisk "
+                            "meanOEFeedback)")
+    p_roe.set_defaults(func=cmd_generate_roe_formation)
 
     p_gui = subparsers.add_parser("gui", help="launch the PySide6 GUI shell")
     p_gui.set_defaults(func=cmd_gui)

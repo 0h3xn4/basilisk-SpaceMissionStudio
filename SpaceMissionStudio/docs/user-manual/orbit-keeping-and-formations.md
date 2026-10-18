@@ -51,6 +51,11 @@ spacecraft** and the **Target separation**, and pick a **Control law**:
 None of them fires in eclipse. The Explain tab draws the formation and
 warns when a law asks for more thrust than the thruster has.
 
+To hold a whole relative orbit (radial and cross-track motion too, for
+example a passively safe helix) rather than one distance, use an ROE
+formation instead: [Fly a formation with relative orbital
+elements](roe-formation.md), and template **29**.
+
 ## Build a constellation
 
 **Generate Walker constellation...** under the Spacecraft list copies one

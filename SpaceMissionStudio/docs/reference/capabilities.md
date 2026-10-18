@@ -195,6 +195,21 @@ separation target; radial/cross-track (R/N) only set the follower's
 starting geometry, since the phasing controller has no radial/
 cross-track control authority (the wizard says so up front).
 
+**Formations in relative orbital elements** (`SpacecraftConfig.roe_formation`):
+a follower holds, or moves through a schedule of, targets given as the
+six quasi-nonsingular relative orbital elements (D'Amico), with a
+passively safe helper (parallel eccentricity and inclination vectors)
+and the closest radial/cross-track approach shown wherever a target is.
+Two laws: impulsive burns planned by the tool's own guidance (`engine.roe`:
+the J2 state transition matrix of Koenig, Guffanti and D'Amico 2017,
+closed-form along-track and cross-track burns, a drift for the
+along-track offset, fired only in sunlight), and Basilisk's
+`meanOEFeedback` aimed at the elements the target gives. A **Generate
+ROE formation...** generator and the `generate-roe-formation` command
+place the follower with Basilisk's mean-to-osculating J2 mapping. See
+template 29 and [Fly a formation with relative orbital
+elements](../user-manual/roe-formation.md).
+
 ### Fuel tank
 
 Real propellant depletion for `"thruster"` actuators
@@ -233,7 +248,7 @@ it.
 Four spacecraft "bus" templates
 (100 kg ESPA-class, 150 kg microsatellite, 300 kg and 500 kg small
 satellites) and
-twenty-eight complete example scenarios: most cover one concept each,
+twenty-nine complete example scenarios: most cover one concept each,
 several integrate a whole system, and four are starting points for your
 own mission (the [template catalog](../../spacemissionstudio/scenarios/templates/README.md)).
 Five Python scripts in [`examples/`](../../examples/README.md) use the
@@ -273,7 +288,7 @@ drag coefficient, 3.0.
 
 A full PySide6 desktop shell (scenario editor,
 Monte Carlo, live progress feedback, a real visual theme/icon/
-toolbar) and an equivalent headless CLI (18 commands; see
+toolbar) and an equivalent headless CLI (19 commands; see
 [Use the command line](../user-manual/command-line.md)), both built on
 the exact same `schema`/`engine` layer -- neither is a thin wrapper
 around the other. Result plots are Plotly figures (a validated,

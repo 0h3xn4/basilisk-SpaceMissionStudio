@@ -80,6 +80,12 @@ how SpaceMissionStudio measures up to four of them (and one CCSDS standard).
 stars) defined by Earth's equator and equinox on 1 January 2000. The
 inertial frame of CCSDS files SpaceMissionStudio writes.
 
+**E/i vectors** -- the eccentricity and inclination parts of a
+formation's [relative orbital elements](#r). The eccentricity vector sets
+the follower's radial motion around the chief, the inclination vector its
+cross-track motion. Parallel vectors make the formation
+[passively safe](#p).
+
 **Epoch** -- the calendar date and time a simulation starts at, in
 [UTC](#u), for example `2030-01-01T00:00:00`. Sun and Moon positions,
 atmospheric density and where the ground is all depend on it.
@@ -248,6 +254,11 @@ at that instant. They wobble along the orbit; see mean elements.
 **Pass** -- one period when a spacecraft is above a ground station's
 horizon (and above its minimum elevation).
 
+**Passive safety** -- a formation whose two spacecraft never meet in the
+radial/cross-track plane, so they cannot collide even if the along-track
+spacing is lost: its [e/i vectors](#e) are parallel. The app shows the
+closest radial/cross-track approach.
+
 **Patch antenna** -- a flat antenna on one face of the spacecraft. Its
 gain is highest straight out of the face and falls off to the sides, so
 the link depends on where the spacecraft points.
@@ -278,6 +289,12 @@ without propellant.
 **Reference data** -- the data files runs need: [SPICE kernels](#s), the
 gravity field, the magnetic field model, Earth orientation files and
 space weather. The **Reference data** dialog lists them.
+
+**Relative orbital elements (ROE)** -- six numbers that describe one
+spacecraft's orbit relative to another's (D'Amico's quasi-nonsingular
+set): a relative semi-major axis (a drift), a relative mean longitude
+(the along-track offset) and the two [e/i vectors](#e). The app gives
+them in metres, times the chief's semi-major axis.
 
 **RF** -- radio frequency: the radio link between spacecraft and ground.
 

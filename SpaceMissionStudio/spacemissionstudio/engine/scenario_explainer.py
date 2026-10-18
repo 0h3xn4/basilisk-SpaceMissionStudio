@@ -57,11 +57,12 @@ import logging
 import math
 from dataclasses import dataclass, field
 from datetime import timedelta, timezone
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 from ..schema.epochs import parse_epoch_utc
 from . import earth_orientation
 from .orbit_design import sun_synchronous_inclination_deg
+from .roe import min_radial_normal_separation
 from .scenario_checks import gravity_fidelity_notes, pass_summary, scenario_warnings
 
 _logger = logging.getLogger(__name__)
@@ -129,12 +130,24 @@ class FormationDiagram:
 
 
 @dataclass
+class RoeDiagram:
+    """An ROE formation's targets, for the e/i-vector diagram
+    (``gui.roe_diagram_widget``): each target's start day and its six
+    relative orbital elements [m], in ``engine.roe.ROE_LABELS`` order."""
+
+    chief_name: str
+    follower_name: str
+    targets: List[Tuple[float, List[float]]]  # (start day, a times the ROE [m])
+
+
+@dataclass
 class ScenarioExplanation:
     headline: str
     stat_tiles: List[StatTile] = field(default_factory=list)
     sections: List[ExplanationSection] = field(default_factory=list)
     spacecraft_table: List[SpacecraftFactRow] = field(default_factory=list)  # empty if < 2 spacecraft
     formation_diagrams: List[FormationDiagram] = field(default_factory=list)  # one per phasing_keeping spacecraft
+    roe_diagrams: List[RoeDiagram] = field(default_factory=list)  # one per roe_formation spacecraft
 
 
 def _models_oblateness(gravity) -> bool:
@@ -213,6 +226,8 @@ def _spacecraft_control_summary(sc) -> str:
         parts.append("GEO station-keeping")
     if sc.phasing_keeping is not None:
         parts.append("phasing-keeping")
+    if sc.roe_formation is not None:
+        parts.append(f"ROE formation ({sc.roe_formation.control_law})")
     if sc.constant_thrust is not None:
         parts.append("constant-thrust")
     if sc.momentum_dumping is not None:
@@ -237,6 +252,25 @@ def _spacecraft_propellant_kg(sc) -> float:
     return total
 
 
+def _roe_notes(scenario) -> List[str]:
+    """Each ROE target in words: where the follower sits and how close the
+    two can come in the radial/cross-track plane (passive safety)."""
+    notes = []
+    for sc in scenario.spacecraft:
+        if sc.roe_formation is None:
+            continue
+        for index, target in enumerate(sc.roe_formation.targets):
+            da, dl, dex, dey, dix, diy = target.roe_m
+            margin = min_radial_normal_separation(target.roe_m, 1.0)  # [m] the ROE are in metres
+            safety = (f"closest radial/cross-track approach {margin:.0f} m" if margin > 1.0
+                      else "the orbits cross in the radial/cross-track plane: not passively safe")
+            notes.append(f"{sc.name} from day {target.start_day:g}: {abs(dl):.0f} m "
+                         f"{'ahead of' if dl >= 0 else 'behind'} {sc.roe_formation.chief_spacecraft}, "
+                         f"{math.hypot(dex, dey):.0f} m radial and {math.hypot(dix, diy):.0f} m cross-track "
+                         f"motion; {safety}" + ("" if abs(da) < 1e-9 else f"; relative semi-major axis {da:g} m"))
+    return notes
+
+
 def _formation_section(scenario) -> ExplanationSection | None:
     badges: List[Badge] = []
     if any(sc.station_keeping is not None for sc in scenario.spacecraft):
@@ -249,11 +283,16 @@ def _formation_section(scenario) -> ExplanationSection | None:
     for law, label in (("mean_oe", "Basilisk mean-element feedback"), ("hill_pd", "Basilisk Hill-frame PD")):
         if law in laws:
             badges.append(Badge(label, "accent"))
+    roe_laws = {sc.roe_formation.control_law for sc in scenario.spacecraft if sc.roe_formation is not None}
+    for law, label in (("impulsive", "ROE formation (impulsive)"),
+                       ("continuous", "ROE formation (Basilisk mean-element feedback)")):
+        if law in roe_laws:
+            badges.append(Badge(label, "accent"))
     if any(sc.constant_thrust is not None for sc in scenario.spacecraft):
         badges.append(Badge("Constant thrust", "accent"))
     if not badges:
         return None
-    notes = []
+    notes = _roe_notes(scenario)
     no_station_keeping = [sc.name for sc in scenario.spacecraft
                            if sc.phasing_keeping is not None and sc.station_keeping is None]
     if no_station_keeping:
@@ -430,6 +469,12 @@ def _formation_diagrams(scenario) -> List[FormationDiagram]:
     return diagrams
 
 
+def _roe_diagrams(scenario) -> List[RoeDiagram]:
+    return [RoeDiagram(chief_name=sc.roe_formation.chief_spacecraft, follower_name=sc.name,
+                       targets=[(t.start_day, list(t.roe_m)) for t in sc.roe_formation.targets])
+            for sc in scenario.spacecraft if sc.roe_formation is not None and sc.roe_formation.targets]
+
+
 def _monte_carlo_section(scenario) -> ExplanationSection | None:
     mc = scenario.monte_carlo
     if not mc.enabled:
@@ -514,4 +559,5 @@ def _explain(scenario) -> ScenarioExplanation:
         sections=sections,
         spacecraft_table=spacecraft_table,
         formation_diagrams=_formation_diagrams(scenario),
+        roe_diagrams=_roe_diagrams(scenario),
     )

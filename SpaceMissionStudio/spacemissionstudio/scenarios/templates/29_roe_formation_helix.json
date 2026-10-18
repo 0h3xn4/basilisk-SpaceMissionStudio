@@ -1,0 +1,277 @@
+{
+  "name": "29 - ROE formation: approach and passively safe helix",
+  "epoch_utc": "2030-01-01T00:00:00",
+  "simulation_mode": "orbit_only",
+  "gravity": {
+    "central_body": "earth",
+    "central_body_degree": 10,
+    "third_body_perturbers": [
+      "sun",
+      "moon"
+    ]
+  },
+  "spacecraft": [
+    {
+      "name": "chief-1",
+      "orbit": {
+        "type": "classical_elements",
+        "semi_major_axis_km": 6928.0,
+        "eccentricity": 0.001,
+        "inclination_deg": 97.59,
+        "raan_deg": 259.03,
+        "arg_periapsis_deg": 0.0,
+        "anomaly_type": "true",
+        "true_anomaly_deg": 0.0,
+        "mean_anomaly_deg": null,
+        "position_km": null,
+        "velocity_km_s": null,
+        "tle_line1": null,
+        "tle_line2": null
+      },
+      "dry_mass_kg": 150.0,
+      "inertia_kg_m2": [
+        46.1,
+        0.0,
+        0.0,
+        0.0,
+        46.1,
+        0.0,
+        0.0,
+        0.0,
+        36.0
+      ],
+      "center_of_mass_b_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "sigma_bn_init": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "omega_bn_b_init_rad_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "enable_drag": true,
+      "drag_coeff": 3.0,
+      "drag_area_m2": 1.0,
+      "enable_srp": true,
+      "srp_coeff": 1.3,
+      "srp_area_m2": 1.0,
+      "facets": [],
+      "enable_gravity_gradient": false,
+      "sensors": [],
+      "actuators": [],
+      "fsw_mode": null,
+      "fsw_params": {},
+      "control_params": {},
+      "power": null,
+      "rf_link": null,
+      "comms_pointing": null,
+      "data_handling": null,
+      "solar_arrays": [],
+      "station_keeping": {
+        "target_altitude_km": 550.0,
+        "deadband_km": 15.0,
+        "thrust_n": 0.05,
+        "isp_s": 1500.0,
+        "propellant_kg": 5.0,
+        "eclipse_sunlit_threshold": 0.99,
+        "min_on_time_s": 0.0,
+        "eccentricity_neutral_burns": false
+      },
+      "geo_station_keeping": null,
+      "phasing_keeping": null,
+      "roe_formation": null,
+      "constant_thrust": null,
+      "momentum_dumping": null,
+      "magnetic_momentum_management": null,
+      "navigation_error": null,
+      "fuel_tank": null,
+      "propellant_budget": null,
+      "vizard_model_path": null,
+      "vizard_model_offset_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "vizard_model_rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "vizard_model_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "model": null
+    },
+    {
+      "name": "follower-1",
+      "orbit": {
+        "type": "classical_elements",
+        "semi_major_axis_km": 6927.999998423546,
+        "eccentricity": 0.00099999979474653,
+        "inclination_deg": 97.59000000086472,
+        "raan_deg": 259.0300030225408,
+        "arg_periapsis_deg": 359.9771275282152,
+        "anomaly_type": "true",
+        "true_anomaly_deg": 0.006288940948887392,
+        "mean_anomaly_deg": null,
+        "position_km": null,
+        "velocity_km_s": null,
+        "tle_line1": null,
+        "tle_line2": null
+      },
+      "dry_mass_kg": 150.0,
+      "inertia_kg_m2": [
+        46.1,
+        0.0,
+        0.0,
+        0.0,
+        46.1,
+        0.0,
+        0.0,
+        0.0,
+        36.0
+      ],
+      "center_of_mass_b_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "sigma_bn_init": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "omega_bn_b_init_rad_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "enable_drag": true,
+      "drag_coeff": 3.0,
+      "drag_area_m2": 1.0,
+      "enable_srp": true,
+      "srp_coeff": 1.3,
+      "srp_area_m2": 1.0,
+      "facets": [],
+      "enable_gravity_gradient": false,
+      "sensors": [],
+      "actuators": [],
+      "fsw_mode": null,
+      "fsw_params": {},
+      "control_params": {},
+      "power": null,
+      "rf_link": null,
+      "comms_pointing": null,
+      "data_handling": null,
+      "solar_arrays": [],
+      "station_keeping": {
+        "target_altitude_km": 550.0,
+        "deadband_km": 15.0,
+        "thrust_n": 0.05,
+        "isp_s": 1500.0,
+        "propellant_kg": 5.0,
+        "eclipse_sunlit_threshold": 0.99,
+        "min_on_time_s": 0.0,
+        "eccentricity_neutral_burns": false
+      },
+      "geo_station_keeping": null,
+      "phasing_keeping": null,
+      "roe_formation": {
+        "chief_spacecraft": "chief-1",
+        "targets": [
+          {
+            "start_day": 0.0,
+            "roe_m": [
+              0.0,
+              -2000.0,
+              0.0,
+              0.0,
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "start_day": 1.0,
+            "roe_m": [
+              0.0,
+              0.0,
+              0.0,
+              300.0,
+              0.0,
+              300.0
+            ]
+          }
+        ],
+        "control_law": "impulsive",
+        "tolerance_m": [
+          2.0,
+          20.0,
+          10.0,
+          10.0
+        ],
+        "correction_window_days": 1.0,
+        "max_drift_m": 100.0,
+        "max_burn_fraction_of_orbit": 0.1,
+        "continuous_gain": 25000.0,
+        "target_refresh_s": 600.0
+      },
+      "constant_thrust": null,
+      "momentum_dumping": null,
+      "magnetic_momentum_management": null,
+      "navigation_error": null,
+      "fuel_tank": null,
+      "propellant_budget": null,
+      "vizard_model_path": null,
+      "vizard_model_offset_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "vizard_model_rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "vizard_model_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "model": null
+    }
+  ],
+  "ground_stations": [],
+  "space_weather": {
+    "source": "bundled",
+    "local_file_path": null,
+    "cache_dir": null,
+    "atmosphere_model": "nrlmsise00",
+    "forecast_percentile": 50.0,
+    "msfc_file_path": null
+  },
+  "sim_settings": {
+    "duration_days": 4.0,
+    "dynamics_task_rate_s": 30.0,
+    "integrator": "rkf78",
+    "record_interval_s": 60.0
+  },
+  "monte_carlo": {
+    "enabled": false,
+    "num_runs": 10,
+    "thread_count": 1,
+    "verbose": false,
+    "dispersions": []
+  },
+  "mission_sequence": [],
+  "fsw_exports": [],
+  "description": "Two 150 kg satellites at 550 km, Sun-synchronous. follower-1 starts 2 km behind chief-1 and, on day 1, moves to a passively safe helix around it: 300 m radial and cross-track motion. Impulsive burns, planned with J2 and fired only in sunlight, make the move and hold it. 4 days.\n\nWhat to look at:\n- follower-1.roe_formation.roe: the e and i vectors reach 300 m within 5 hours. a_dlambda first slips to 4 km behind (a burn's partner falls in eclipse), then a drift closes it by day 2.5.\n- follower-1.roe_formation.min_rn_separation: 0 m while behind (the orbits cross), 292 m or more from day 1.2: passively safe.\n- follower-1.roe_formation.delta_v: 0.56 m/s for the move, then 0.026 m/s to hold it to day 4, within 13 m along-track.\n- Explain: the e/i-vector diagram. Events: each burn and drift.\n\nTry changing:\n- Control law Continuous (follower-1's ROE formation): on target by day 1.4, within 3 m from day 2, 1.85 m/s in all.\n- The helix's phase to 0 deg (a_dex = a_dix = 300 m, a_dey = a_diy = 0): J2 turns the inclination vector, and holding costs about three times as much.\n- Generate ROE formation... under the spacecraft list, for another follower.\n\nNote:\n- Near-circular Earth orbits only. The guidance has no differential drag; these satellites are identical.",
+  "schema_version": 4
+}
