@@ -10928,3 +10928,16 @@ verification row; the SDD component table traces it.
 
 Checks: the compliance generators (SDD, SUITP regenerated; `check_drds`
 0 problems); `ruff check`; the full suite (results in the pull request).
+
+## K-14, macOS: the wide-screen tests check a wide screen again (2026-10-18)
+
+Since PR #65 the two wide-screen tests (`test_forms_stay_at_a_readable_width`,
+`test_a_template_row_keeps_its_customize_button_close`) failed on macOS CI:
+Qt's `cocoa` platform fits a shown window to the runner's screen, so the
+2560 x 1440 test window was 618 px wide and the tests' own precondition
+failed. The failure had been recorded (SRelD K-14) but left red on every
+pull request since. The fixture now lays the window out with
+`WA_DontShowOnScreen`, so no screen constrains it, and asserts the
+2560 x 1440 size the checks rely on. macOS CI on `f601576c1`: 3347
+passed, 0 failed, 11 skipped (before: the same suite with these two
+failing). K-14's Windows pair (intermittent) is still open.
