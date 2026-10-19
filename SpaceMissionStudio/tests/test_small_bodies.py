@@ -143,7 +143,7 @@ def test_the_schema_refuses_what_a_run_around_eros_cannot_do():
         scenario.validate()
     scenario = _eros_scenario()
     scenario.gravity.central_body_degree = 4
-    with pytest.raises(ScenarioValidationError, match="only wired up for central_body 'earth'"):
+    with pytest.raises(ScenarioValidationError, match="needs a central body with a gravity field"):
         scenario.validate()
     scenario = _eros_scenario()
     scenario.sim_settings.duration_days = 150.0  # [day]

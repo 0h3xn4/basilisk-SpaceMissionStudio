@@ -11419,3 +11419,71 @@ the other 104 test files. No test changed: in each changed file, the
 syntax tree without docstrings equals the one before. A spelling check
 of the added text found nothing. SUITP, its generated case list
 (2314 of 2314 documented) and K-09 (closed) record it.
+
+## Mars gravity field; every field keeps its own reference radius (K-04) (2026-10-19)
+
+The limitations listed "spherical-harmonics gravity away from Earth" as a
+gap. It wasn't a deliberate choice: Basilisk 2.12 ships Mars's GGM2B
+field (degree 80) next to Earth's GGM03S, and the tool simply never used
+it. Mars orbits (template 30) had only a point mass.
+
+**What Mars needed first: K-04.** Basilisk's
+`SphericalHarmonicsGravityModel::initializeParameters(body)` replaces the
+field file's reference radius with the body's equatorial radius (read in
+its source, not changed). For Earth that is 6378136.6 m against
+GGM03S's 6378136.3 m, 1e-7 on J2, which F-03 accepted. For Mars it is
+3396.19 km against GGM2B's 3397 km: every degree-n term scaled by
+(R_body/R_file)^n, 4.8e-4 too weak on J2. So the tool now builds
+Basilisk's model itself (`engine/gravity_field.py`): it loads the file
+with Basilisk's `loadGravFromFileToList` and multiplies each degree-n
+coefficient by (R_file/R_body)^n, so that Basilisk, evaluating with the
+body's radius, applies the field the file describes. The model is
+Basilisk's own class, set through its public fields; Basilisk is not
+modified. Earth gets the same fix. The GM stays the body's (D-07: 1.4e-8
+apart for Earth, 1.4e-6 for Mars).
+
+**What changed for the user.**
+* **Enable spherical-harmonics gravity (Earth, Mars)** in the gravity
+  settings. Its degree box stops at 80 for Mars and 180 for Earth. Other
+  bodies still have it switched off.
+* The schema refuses a degree above the field's maximum, naming it.
+* The run's provenance records GGM2BData.txt as an input.
+* The reference data includes the 0.4 MB GGM2B file. The total is still
+  about 116 MB.
+
+Mean elements stay Earth-only. They are first-order J2 theory on the
+equator of the central body, and the run's inertial frame is Earth's
+equator, about 37 deg from Mars's. Computing them in that frame for Mars
+would be wrong, so they are not offered.
+
+**Verification** (`tests/test_gravity_field.py`):
+* **The model is the file's field:** for Earth and Mars, to degree and
+  order 4 at three points 300 to 2000 km up, the attached model's
+  perturbing acceleration equals an independent numpy evaluation: the
+  gradient of the potential from the file's normalised coefficients at its
+  own radius, with its own Legendre recursion. They agree to 1e-7.
+* **What the fix removes:** Basilisk's own radius would scale the field
+  by (R_body/R_file)^2 - 1: -4.8e-4 for Mars and +9.4e-8 for Earth.
+  Measured within 10 % of that, the rest being degrees 3 and 4.
+* **A Mars run:** a day in a 500 km orbit at 45 deg to Mars's equator,
+  with degree 2. The node, measured on Mars's equator (pole from the
+  recorded planet orientation), turns at -1.5 n J2 (R/a)^2 cos i, with
+  GGM2B's J2 and radius, to 0.7 % (first-order theory against osculating
+  states; the test allows 1 %).
+
+**V-04 (GMAT).** The degree-20 reference had been made with Basilisk's
+radius, so that it compared like with like. After the fix the tool was
+0.162 m from it. GMAT R2026a was fetched again: the same build, its
+SHA-256 matching the phase 3 log's. Only that case's reference was
+regenerated, with the file's radius (`make_gmat_references.py` now writes
+the header radius into the `.grv`). The implementation difference is
+0.126 m/day; it was 0.116 m with both sides at the body's radius. The
+radius change itself moves GMAT's 400 km orbit by 0.160 m in the day. The
+same-UTC difference is 0.176 m, within the 1 m tolerance. GMAT's reported
+epochs moved by a few microseconds, because the force model changed its
+step sequence. That moved the time-argument allowance from 0.147 m to
+0.192 m. The other four cases have no field and were not regenerated.
+
+**Records:** SRelD K-04 (radius part closed), phase 3 log F-03 and V-04,
+SVR, SRF, summary report, D-07, SRS-F-03, SDD, capabilities, limitations,
+user manual, CHANGELOG.

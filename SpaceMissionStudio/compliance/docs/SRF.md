@@ -147,7 +147,8 @@ These data files are reused through Basilisk or by the tool:
   - **F-07:** the atmosphere models use spherical altitude and latitude.
 - Validation also found these behaviours, which are documented and
   accepted:
-  - **F-03:** the field's GM and radius are the body's, not the file's.
+  - **F-03:** the field's GM is the body's, not the file's (its radius
+    is corrected in the tool, `engine/gravity_field.py`).
   - **F-05:** the time argument is TDB.
   - **F-06:** IAU_EARTH is used without EOP files.
 - Gaps in the reused models are deviations D-02 to D-06 (RD3): no
@@ -200,7 +201,7 @@ validation in RD2:
 |---|---|---|
 | V-01 time scales | pyerfa (ERFA); Basilisk SPICE interface | TAI 0.15 µs, TT 0.11 µs, TDB 34 µs against GMAT |
 | V-02 Earth orientation | SPICE ITRF93 PCK | 0.425 m at the surface against IERS 20 C04 |
-| V-04 propagation | `spacecraft`, `svIntegrators`, gravity, SPICE, `msisAtmosphere`, `radiationPressure` | Two-body 0.004 m/day; 20 × 20 field 0.116 m/day (after F-01); third body 0.009 m in 7 days; SRP 1.135 m in 7 days; drag 0.78 km of 32 km (after F-07) |
+| V-04 propagation | `spacecraft`, `svIntegrators`, gravity, SPICE, `msisAtmosphere`, `radiationPressure` | Two-body 0.004 m/day; 20 × 20 field 0.126 m/day (after F-01 and the F-03 radius fix); third body 0.009 m in 7 days; SRP 1.135 m in 7 days; drag 0.78 km of 32 km (after F-07) |
 | V-05 passes | `groundLocation` geometry (tool's geodetic elevation) | 0.081 s against GMAT |
 | V-06 CCSDS OEM | – (the tool's own code) | 8.4 mm GMAT reading the tool's OEM |
 | V-07 | `msisAtmosphere`, `magneticFieldWMM`: Basilisk's own unit tests, run unchanged against the pinned release | 294 passed |
@@ -212,7 +213,7 @@ The findings F-01 to F-08 and their analyses are in RD2.
 
 | Action | For | Implementation | Result |
 |---|---|---|---|
-| Mid-step planet orientation | F-01 | `engine/planet_rotation.py`: a SysModel (priority 450) giving the gravity model the orientation at the middle of each step, from a copy of the SPICE message. Basilisk is not modified. | 20 × 20 field error against GMAT reduced to 0.116 m/day (V-04) |
+| Mid-step planet orientation | F-01 | `engine/planet_rotation.py`: a SysModel (priority 450) giving the gravity model the orientation at the middle of each step, from a copy of the SPICE message. Basilisk is not modified. | 20 × 20 field error against GMAT reduced to 0.116 m/day (V-04; 0.126 m/day after the F-03 radius fix) |
 | Geodetic proxy position for the atmosphere | F-07 | `engine/geodetic_atmosphere.py`: a SysModel (priority 395) giving the atmosphere a position whose spherical altitude and latitude equal the true geodetic ones | Drag displacement difference against GMAT 0.78 km of 32 km (V-04); the remaining 1.6 % is unexplained (`phase3_log.md`) |
 | Version pin and start-up check | Configuration of the reused baseline | `dependencies.py`: `QUALIFIED_BASILISK_VERSION = "2.12.0"`; warning on any other version; `basilisk_qualified` in every provenance | `tests/test_dependencies.py` |
 | Warning without EOP files | F-06 | `engine/service.py` warns: ~160 m/day at degree 20 | `tests/test_frames.py::test_a_gravity_field_without_iers_data_warns_of_its_accuracy` |

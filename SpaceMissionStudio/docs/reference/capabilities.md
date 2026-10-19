@@ -45,8 +45,9 @@ references it). No third-party schema library.
 
 ### Orbital dynamics & propagation
 
-Central-body point-mass or Earth
-spherical-harmonics gravity plus third-body point-mass perturbers,
+Central-body point-mass or spherical-harmonics gravity (Earth GGM03S to
+degree 180, Mars GGM2B to degree 80, each with its file's own reference
+radius: `engine.gravity_field`) plus third-body point-mass perturbers,
 atmospheric drag (Earth-only; a choice of NRLMSISE-00 or a simple
 exponential model -- see `SpaceWeatherConfig.atmosphere_model`'s own
 docstring for why not Jacchia-Roberts too: Basilisk has no such model)

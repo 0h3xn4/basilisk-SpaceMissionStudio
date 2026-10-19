@@ -8,7 +8,7 @@ disk on a machine without internet, and undo an update.
 | Data | Used for | Comes from | Size |
 |---|---|---|---|
 | SPICE kernels (leap seconds, planet positions, masses, orientations) | Time, Sun and Moon positions | NAIF | about 116 MB with the next two |
-| Gravity field (GGM03S) | Earth's detailed gravity | the Basilisk repository | |
+| Gravity fields (GGM03S, GGM2B) | Earth's and Mars's detailed gravity | the Basilisk repository | |
 | Magnetic model (WMM2025) | Torque rods, magnetometers | the Basilisk repository | |
 | Space weather (observed F10.7 and Ap) | Atmospheric density, so drag | CelesTrak; a copy is bundled | about 3 MB |
 | Solar-activity prediction | Drag after the observed record ends | NASA MSFC; bundled | small |

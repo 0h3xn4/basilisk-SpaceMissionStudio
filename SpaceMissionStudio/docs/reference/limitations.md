@@ -8,10 +8,13 @@ Each item was checked against Basilisk's own source.
   (`schema.scenario.SimSettings`, `engine.service._INTEGRATORS`);
   `"rkf78"` is the default. Basilisk 2.12.0 has more (RK4 and other
   Runge-Kutta variants), which the app does not offer yet.
-* **Spherical-harmonics gravity is Earth-only in `service.py`**
-  (GGM03S). Other central bodies
-  are limited to point-mass gravity (`central_body_degree=0`) until a
-  later phase adds their gravity-field files.
+* **Spherical-harmonics gravity for Earth and Mars only**
+  (`engine.gravity_field`: GGM03S, GGM2B). The other central bodies are
+  point masses (`central_body_degree=0`); Eros can use its shape model
+  instead. The field's GM is Basilisk's for the body, not the file's
+  (1.4e-8 apart for Earth, 1.4e-6 for Mars; deviation D-07). Mean
+  elements stay Earth-only: they need the elements on the body's
+  equator, and the run's frame is Earth's.
 * **Small bodies and landmark navigation (`engine.small_bodies`,
   `engine.polyhedron`, `engine.landmarks`, `engine.landmark_navigation`).**
   * 433 Eros only, only as the central body; one run of at most 100 days

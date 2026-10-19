@@ -3,7 +3,7 @@ Model GGM03S (converted for SpaceMissionStudio validation)
 Degree 20
 Order 20
 Gm 3.9860043600e+14
-RefDistance 6378136.6
+RefDistance 6378136.3
 Normalized Yes
 BEGIN Coefficients
 2 0 -4.841692638330E-04 0.000000000000E+00

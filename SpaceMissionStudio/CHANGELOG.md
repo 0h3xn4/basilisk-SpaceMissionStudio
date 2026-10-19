@@ -10,6 +10,13 @@ fixes bugs.
 
 ## Unreleased
 
+- **Mars gravity field.** Spherical-harmonics gravity now works around
+  Mars too, with the GGM2B field from Basilisk's data up to degree 80
+  (gravity settings: **Enable spherical-harmonics gravity (Earth, Mars)**).
+  Every field now uses the reference radius of its own file: Basilisk
+  put the planet's radius in its place, which made Mars's J2 0.05 % too
+  weak (Earth's 1e-7). A 400 km Earth orbit with a degree-20 field
+  moves by about 0.16 m in a day.
 - **Albedo on the sun sensors.** With **Reflected sunlight on the sun
   sensors** (gravity settings), coarse sun sensors around Earth or Mars
   also see the sunlight the planet reflects, from Basilisk's albedo module

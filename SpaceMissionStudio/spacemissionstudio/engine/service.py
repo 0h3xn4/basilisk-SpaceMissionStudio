@@ -26,8 +26,9 @@ other layer between this class and Basilisk.
 
 What :meth:`SimulationService.build` assembles
 ----------------------------------------------
-* Gravity: the central body as a point mass or (Earth only) GGM03S
-  spherical harmonics, plus point-mass third bodies
+* Gravity: the central body as a point mass or spherical harmonics
+  (Earth GGM03S, Mars GGM2B; engine.gravity_field), plus point-mass third
+  bodies
   (``gravity.third_body_perturbers``), all attached through
   ``gravBodyFactory.addBodiesTo``. SPICE ephemerides are zero-based on the
   central body; :mod:`engine.planet_rotation` supplies the mid-step planet
@@ -85,9 +86,9 @@ from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import dependencies, output_provenance
 from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario
 from . import (data_handling, earth_orientation, environment_models, formation_control, frames, fsw, geodesy,
-               geodetic_atmosphere, kernels, landmark_navigation, link_budget, long_run, optical_navigation,
-               orbit_maintenance, planet_rotation, polyhedron, roe_formation, small_bodies, solar_arrays,
-               time_system, tle, vizard)
+               geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
+               optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, small_bodies,
+               solar_arrays, time_system, tle, vizard)
 from .results import ResultSet, RunProvenance, TimeSeries, conservation_drift_warnings
 from .vizard import VizardRequest
 
@@ -759,17 +760,18 @@ class SimulationService:
             self.small_body_shape = polyhedron.load(shape_file)
             self._data_files["shape_model"] = dependencies.file_record(shape_file)
 
+        self.gravity_field = None
         if gravity.central_body_degree > 0:
-            if gravity.central_body != "earth":
+            if gravity.central_body not in gravity_field.FIELD_FILES:
                 raise SimulationServiceError(
-                    "spherical-harmonics gravity (gravity.central_body_degree > 0) is only wired up "
-                    f"for 'earth' in Phase 0 (GGM03S data); {gravity.central_body!r} needs "
-                    "gravity.central_body_degree == 0 (point-mass) until engine.service is extended "
-                    "with that body's gravity-field file."
+                    "spherical-harmonics gravity (gravity.central_body_degree > 0) has a field for "
+                    f"{', '.join(sorted(gravity_field.FIELD_FILES))} only, not {gravity.central_body!r}; "
+                    "set gravity.central_body_degree to 0 (point mass)."
                 )
-            gravity_file = kernels.cached_path(DataFile.LocalGravData.GGM03S)
-            central_body.useSphericalHarmonicsGravityModel(str(gravity_file), gravity.central_body_degree)
-            self._data_files["gravity_field"] = dependencies.file_record(gravity_file)
+            # The field keeps its own reference radius (engine.gravity_field, SRelD K-04).
+            self.gravity_field = gravity_field.attach(central_body, gravity.central_body,
+                                                      gravity.central_body_degree)
+            self._data_files["gravity_field"] = dependencies.file_record(self.gravity_field.path)
         mu = central_body.mu
         self.mu = mu
         self.grav_factory = grav_factory
@@ -778,8 +780,8 @@ class SimulationService:
         if gravity.central_body == "earth" and gravity.central_body_degree >= 2:
             # A real J2 (degree-2 zonal) term is only actually present in
             # the propagated dynamics once spherical-harmonics gravity is
-            # active with degree >= 2 (Phase 0's Earth-only GGM03S field,
-            # enforced above to be Earth-only already) -- a point-mass-only
+            # active with degree >= 2 (the GGM03S field attached above)
+            # -- a point-mass-only
             # central body has no J2 short-period oscillation in its
             # simulated motion for clMeanOscMap to remove, so computing
             # "mean elements" there would inject an artificial correction

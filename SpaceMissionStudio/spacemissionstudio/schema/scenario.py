@@ -2327,22 +2327,16 @@ class GravityConfig:
                   f"gravity.albedo needs a central body with an albedo map ({', '.join(ALBEDO_MAPS)}), "
                   f"not {self.central_body!r}")
         _require(self.central_body_degree >= 0, "gravity.central_body_degree must be >= 0")
-        _require(self.central_body_degree <= MAX_GRAVITY_DEGREE,
-                 f"gravity.central_body_degree must be <= {MAX_GRAVITY_DEGREE} (the GGM03S field's maximum)")
-        # engine.service.SimulationService.build() only has spherical
-        # -harmonics gravity-field data (GGM03S) for Earth, and raises
-        # SimulationServiceError for any other central_body with
-        # central_body_degree > 0 -- but that's an engine-layer check that
-        # only runs when a scenario is actually simulated. Without this
-        # mirrored check here, `spacemissionstudio validate`/`Scenario.save()`
-        # (both Basilisk-independent, schema-only) would report a clean
-        # bill of health for a scenario guaranteed to fail the moment it's
-        # actually run -- defeating the point of an early, engine
-        # -independent correctness check.
-        _require(self.central_body_degree == 0 or self.central_body == "earth",
-                  f"gravity.central_body_degree > 0 (spherical-harmonics gravity) is only wired up for "
-                  f"central_body 'earth', not {self.central_body!r} -- set central_body_degree = 0 "
-                  f"(point-mass) or central_body = 'earth'")
+        # The fields engine.gravity_field loads; checked here too so that
+        # `spacemissionstudio validate` and Save refuse what a run would.
+        field = GRAVITY_FIELDS.get(self.central_body)
+        _require(self.central_body_degree == 0 or field is not None,
+                  f"gravity.central_body_degree > 0 (spherical-harmonics gravity) needs a central body with a "
+                  f"gravity field ({', '.join(GRAVITY_FIELDS)}), not {self.central_body!r} -- set "
+                  f"central_body_degree = 0 (point mass)")
+        if field is not None:
+            _require(self.central_body_degree <= field[1],
+                     f"gravity.central_body_degree must be <= {field[1]} (the {field[0]} field's maximum)")
         for name in self.third_body_perturbers:
             _require(name in SUPPORTED_CENTRAL_BODIES,
                       _body_problem("gravity.third_body_perturbers entry", name))
@@ -2373,7 +2367,10 @@ class GroundStationConfig:
         _require(self.system_noise_temp_k > 0, f"{self.name}: system_noise_temp_k must be > 0")
 
 
-MAX_GRAVITY_DEGREE = 180  # GGM03S, the Earth field engine.service loads
+#: Central body -> (gravity field, its maximum degree and order); the files are
+#: Basilisk's support data (engine.gravity_field).
+GRAVITY_FIELDS = {"earth": ("GGM03S", 180), "mars barycenter": ("GGM2B", 80)}
+MAX_GRAVITY_DEGREE = max(degree for _name, degree in GRAVITY_FIELDS.values())
 SUPPORTED_SPACE_WEATHER_SOURCES = ("bundled", "local_file")
 SUPPORTED_FORECAST_PERCENTILES = (95.0, 50.0, 5.0)  # [%] MSFC's published columns
 

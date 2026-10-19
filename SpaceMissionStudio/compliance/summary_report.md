@@ -120,7 +120,7 @@ human action moves its rows out of the last column.
 |---|---|
 | V-01 time scales | TAI, TT 0.15 µs and 0.11 µs; TDB 34 µs |
 | V-02 Earth frame | 0.43 m |
-| V-04 propagation | two-body 0.004 m/day; 20 × 20 0.116 m/day; Sun/Moon 0.009 m/7 days; SRP 1.135 m/7 days; drag 0.78 km of 32 km |
+| V-04 propagation | two-body 0.004 m/day; 20 × 20 0.126 m/day; Sun/Moon 0.009 m/7 days; SRP 1.135 m/7 days; drag 0.78 km of 32 km |
 | V-05 passes | 0.081 s |
 | V-06 OEM exchange with GMAT | 8.4 mm |
 | V-07, V-08 reused models | 294 and 49 tests passed |

@@ -134,8 +134,8 @@ spacemissionstudio kernels-status
 spacemissionstudio earth-orientation --fetch
 ```
 
-The first downloads 116 MB (SPICE kernels, the gravity field and the
-magnetic model) and lists six files as `OK`. The second downloads the
+The first downloads 116 MB (SPICE kernels, the gravity fields and the
+magnetic model) and lists nine files as `OK`. The second downloads the
 measured Earth orientation files (36 MB) and ends with:
 
 ```text
