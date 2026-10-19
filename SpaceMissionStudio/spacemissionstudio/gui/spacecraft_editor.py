@@ -81,6 +81,7 @@ from ..schema.scenario import (
     FuelTankConfig,
     GeoStationKeepingConfig,
     InstrumentConfig,
+    LandmarkNavigationConfig,
     MagneticMomentumManagementConfig,
     MomentumDumpingConfig,
     NavigationErrorConfig,
@@ -256,7 +257,7 @@ _ORBIT_WIDGETS = {"type": "type_combo", "semi_major_axis_km": "sma_km", "eccentr
                   "tle_line1": "tle_line1", "tle_line2": "tle_line2"}
 _SECTION_PREFIXES = {"station_keeping": "sk_", "geo_station_keeping": "geo_", "comms_pointing": "cp_",
                      "constant_thrust": "ct_", "phasing_keeping": "pk_", "roe_formation": "roe_", "momentum_dumping": "md_",
-                     "optical_navigation": "on_",
+                     "optical_navigation": "on_", "landmark_navigation": "ln_",
                      "magnetic_momentum_management": "mmm_", "fuel_tank": "ft_", "rf_link": "rf_",
                      "data_handling": "dh_"}
 _FIELD_WIDGETS = {"name": "name_edit", "propellant_budget": "budget_group", "vizard_model_offset_m": "viz_offset_x",
@@ -1260,6 +1261,7 @@ class SpacecraftEditorDialog(QDialog):
         self._show_roe_law_fields()
         power_layout.addWidget(self.roe_formation_group)
         self._build_optical_navigation_group(config.optical_navigation if config else None, power_layout)
+        self._build_landmark_navigation_group(config.landmark_navigation if config else None, power_layout)
 
         # Requires BOTH a "reaction_wheel" AND a "thruster" actuator on this
         # spacecraft (see schema.scenario.MomentumDumpingConfig's docstring
@@ -2002,6 +2004,7 @@ class SpacecraftEditorDialog(QDialog):
             phasing_keeping=self._phasing_keeping_to_dataclass(),
             roe_formation=self._roe_formation_to_dataclass(),
             optical_navigation=self._optical_navigation_to_dataclass(),
+            landmark_navigation=self._landmark_navigation_to_dataclass(),
             constant_thrust=self._constant_thrust_to_dataclass(),
             momentum_dumping=self._momentum_dumping_to_dataclass(),
             magnetic_momentum_management=self._magnetic_momentum_management_to_dataclass(),
@@ -2456,6 +2459,104 @@ class SpacecraftEditorDialog(QDialog):
             process_noise_position_m=self.on_process_noise_position_m.value(),
             process_noise_velocity_mps=self.on_process_noise_velocity_mps.value(),
             seed=self.on_seed.value(),
+        )
+
+    def _build_landmark_navigation_group(self, ln0: LandmarkNavigationConfig | None, layout) -> None:
+        """schema.scenario.LandmarkNavigationConfig: landmarks, the camera
+        and the navigation filter's start."""
+        defaults = ln0 or LandmarkNavigationConfig()
+        self.landmark_navigation_group = QGroupBox("Landmark navigation (camera on a small body's surface)")
+        self.landmark_navigation_group.setCheckable(True)
+        self.landmark_navigation_group.setToolTip(
+            "Checking this ON places landmarks on the small body's shape model and gives the spacecraft a "
+            "camera that sees them (Basilisk's pinholeCamera: whole pixels, only lit landmarks that face the "
+            "camera; it does not check whether other terrain hides one). A Kalman filter (the tool's own) "
+            "estimates position and velocity from the pixels, predicting with the shape's gravity. Needs 433 "
+            "Eros with 'Gravity from the shape model' and the Sun in the run. In an orbit-only run the camera "
+            "points at the body's centre; with attitude, point the camera with 'locationPointing' at the "
+            "central body.")
+        self.landmark_navigation_group.setChecked(ln0 is not None)
+        form = QFormLayout(self.landmark_navigation_group)
+        self._ln_form = form
+        self.ln_landmark_count = SpinBox()
+        self.ln_landmark_count.setRange(1, 1000)
+        self.ln_landmark_count.setValue(int(defaults.landmark_count))
+        self.ln_landmark_count.setToolTip("Landmarks on the surface, spread evenly by area.")
+        form.addRow("Landmarks", self.ln_landmark_count)
+        self.ln_field_of_view_deg = _spin(0.1, 179.0, decimals=2, step=1.0, value=defaults.field_of_view_deg)
+        self.ln_field_of_view_deg.setToolTip("Edge to edge along the image's width.")
+        form.addRow("Field of view [deg]", self.ln_field_of_view_deg)
+        self.ln_resolution_px = QWidget()
+        row = QHBoxLayout(self.ln_resolution_px)
+        row.setContentsMargins(0, 0, 0, 0)
+        self.ln_resolution_spins = []
+        for label, value in zip(("width", "height"), defaults.resolution_px):
+            spin = SpinBox()
+            spin.setRange(16, 16384)
+            spin.setValue(int(value))
+            spin.setSuffix(" px")
+            spin.setAccessibleName(f"Landmark camera resolution {label}")
+            row.addWidget(spin)
+            self.ln_resolution_spins.append(spin)
+        row.addStretch(1)
+        form.addRow("Resolution [px] (width, height)", self.ln_resolution_px)
+        self.ln_camera_mrp_cb = QWidget()
+        row = QHBoxLayout(self.ln_camera_mrp_cb)
+        row.setContentsMargins(0, 0, 0, 0)
+        self.ln_camera_mrp_spins = []
+        for axis, value in zip("123", defaults.camera_mrp_cb):
+            spin = _spin(-1.0, 1.0, decimals=4, step=0.05, value=float(value))
+            spin.setPrefix(f"σ{axis} ")
+            spin.setAccessibleName(f"Landmark camera mounting MRP {axis}")
+            row.addWidget(spin)
+            self.ln_camera_mrp_spins.append(spin)
+        row.addStretch(1)
+        self.ln_camera_mrp_cb.setToolTip(
+            "The camera frame's orientation in the body frame as an MRP; the camera looks along its own +z. "
+            "All zero: the camera looks along the body's +z axis.")
+        form.addRow("Camera mounting [-] (MRP, camera from body)", self.ln_camera_mrp_cb)
+        rows = [
+            ("measurement_interval_s", "Image every [s]", 1.0, 1.0e5, 1, 60.0,
+             "One image, and one filter update, this often."),
+            ("pixel_noise_px", "Added pixel noise [px] (1 sigma)", 0.0, 100.0, 3, 0.1,
+             "Noise on each landmark's pixel, each axis, on top of the rounding to whole pixels (0.29 px)."),
+            ("min_sun_elevation_deg", "Lowest Sun elevation [deg]", -90.0, 89.9, 1, 5.0,
+             "A landmark with the Sun lower above its horizon than this is not seen."),
+            ("initial_position_sigma_m", "Initial position uncertainty [m] (1 sigma)", 1.0e-3, 1.0e6, 3, 10.0,
+             "The filter starts this far off (one random draw) and with this uncertainty, each axis."),
+            ("initial_velocity_sigma_mps", "Initial velocity uncertainty [m/s] (1 sigma)", 1.0e-6, 1.0e3, 4, 0.01,
+             "As above, for velocity."),
+            ("process_noise_mps2_per_sqrt_hz", "Process noise [m/s^1.5]", 0.0, 1.0e-2, 10, 1.0e-9,
+             "The filter's white acceleration noise, each axis: what its gravity model and the Sun's light "
+             "pressure leave out."),
+        ]
+        for field_name, label, low, high, decimals, step, tip in rows:
+            spin = _spin(low, high, decimals=decimals, step=step, value=float(getattr(defaults, field_name)))
+            spin.setToolTip(tip)
+            setattr(self, f"ln_{field_name}", spin)
+            form.addRow(label, spin)
+        self.ln_seed = SpinBox()
+        self.ln_seed.setRange(0, 2 ** 31 - 1)
+        self.ln_seed.setValue(int(defaults.seed))
+        self.ln_seed.setToolTip("The same seed gives the same landmarks, pixel noise and starting error in every run.")
+        form.addRow("Random seed", self.ln_seed)
+        layout.addWidget(self.landmark_navigation_group)
+
+    def _landmark_navigation_to_dataclass(self) -> LandmarkNavigationConfig | None:
+        if not self.landmark_navigation_group.isChecked():
+            return None
+        return LandmarkNavigationConfig(
+            landmark_count=self.ln_landmark_count.value(),
+            field_of_view_deg=self.ln_field_of_view_deg.value(),
+            resolution_px=[spin.value() for spin in self.ln_resolution_spins],
+            camera_mrp_cb=[spin.value() for spin in self.ln_camera_mrp_spins],
+            measurement_interval_s=self.ln_measurement_interval_s.value(),
+            pixel_noise_px=self.ln_pixel_noise_px.value(),
+            min_sun_elevation_deg=self.ln_min_sun_elevation_deg.value(),
+            initial_position_sigma_m=self.ln_initial_position_sigma_m.value(),
+            initial_velocity_sigma_mps=self.ln_initial_velocity_sigma_mps.value(),
+            process_noise_mps2_per_sqrt_hz=self.ln_process_noise_mps2_per_sqrt_hz.value(),
+            seed=self.ln_seed.value(),
         )
 
     def _show_roe_law_fields(self) -> None:
