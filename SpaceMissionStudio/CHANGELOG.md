@@ -10,6 +10,15 @@ fixes bugs.
 
 ## Unreleased
 
+- **Optical navigation.** A spacecraft can carry a camera that sees the
+  central body (Earth, Mars or Jupiter) and estimate its own orbit from
+  where the planet's disk falls in each image and how large it is, with
+  Basilisk's `pixelLineConverter` and `relativeODuKF`. Images from the night
+  side are left out. New template 30 navigates around Mars: from 68 km off
+  to within 2 km in a day. A how-to page explains the settings and the
+  results.
+- **Template 29's note** no longer says the ROE guidance has no
+  differential drag: it compensates it now (below).
 - **Runs around Mars and Jupiter work.** A scenario around `mars` or
   `jupiter` (or with them as third bodies) passed its checks and then
   failed: around Mars the whole app closed. The bundled planet ephemeris

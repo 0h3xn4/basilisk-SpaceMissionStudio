@@ -85,8 +85,8 @@ from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import dependencies, output_provenance
 from ..schema.scenario import OrbitIC, Scenario
 from . import (data_handling, earth_orientation, environment_models, formation_control, frames, fsw, geodesy,
-               geodetic_atmosphere, kernels, link_budget, long_run, orbit_maintenance, planet_rotation, roe_formation,
-               solar_arrays, time_system, tle, vizard)
+               geodetic_atmosphere, kernels, link_budget, long_run, optical_navigation, orbit_maintenance,
+               planet_rotation, roe_formation, solar_arrays, time_system, tle, vizard)
 from .results import ResultSet, RunProvenance, TimeSeries, conservation_drift_warnings
 from .vizard import VizardRequest
 
@@ -502,6 +502,7 @@ class _SpacecraftHandle:
     eclipse_recorder: Optional[object] = None  # set with eclipse_out_msg (the Events tab's eclipses)
     phasing_keeping_controller: Optional[object] = None  # Phase 4: only set if sc_config.phasing_keeping was configured
     roe_formation_controller: Optional[object] = None  # engine.roe_formation, if sc_config.roe_formation is set
+    optical_navigation: Optional[object] = None  # engine.optical_navigation chain, if sc_config.optical_navigation
     constant_thrust_controller: Optional[object] = None  # Phase 5: only set if sc_config.constant_thrust was configured
     drag_effector: Optional[object] = None  # only set if sc_config.enable_drag
     srp_effector: Optional[object] = None  # only set if sc_config.enable_srp
@@ -1627,6 +1628,19 @@ class SimulationService:
                 j2=self.mean_elements_j2,
             )
 
+        # Optical navigation (engine.optical_navigation): a camera model,
+        # Basilisk's pixelLineConverter and relativeODuKF on a task of
+        # their own at the measurement interval. Scenario.validate()
+        # guarantees a central body those two know and the Sun in the run.
+        for sc_config in scenario.spacecraft:
+            if sc_config.optical_navigation is None:
+                continue
+            handle = self._handles[sc_config.name]
+            handle.optical_navigation = optical_navigation.build_optical_navigation(
+                self.scSim, dyn_process, sc_config.name, handle.sc_object, self._sun_state_out_msg,
+                sc_config.optical_navigation, gravity.central_body,
+                ideal_pointing=scenario.simulation_mode == "orbit_only")
+
         # Phase 3: access analysis -- every ground station sees every
         # spacecraft, now that all spacecraft exist (see fsw.add_access_analysis).
         # accessOutMsgs[i] corresponds to sc_objects_in_order[i]: fsw.add_access_analysis
@@ -2294,6 +2308,9 @@ class SimulationService:
 
             if handle.roe_formation_controller is not None:
                 for series in roe_formation.result_series(name, handle.roe_formation_controller):
+                    result.add(series)
+            if handle.optical_navigation is not None:
+                for series in optical_navigation.result_series(name, handle.optical_navigation):
                     result.add(series)
 
             if handle.constant_thrust_controller is not None:

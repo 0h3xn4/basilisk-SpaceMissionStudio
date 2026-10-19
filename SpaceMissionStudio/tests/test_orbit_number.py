@@ -114,6 +114,8 @@ def test_the_result_helpers_pick_a_spacecraft_with_both_vectors():
     ("sat.actuator.rw1.motor_temperature", ("temperature",), "Thermal"),
     ("sat.sensor.panel_temp", ("temperature",), "Thermal"),
     ("sat.sensor.mag", ("x", "y", "z"), "Sensors"),
+    ("sat.optical_navigation.position_error", ("x", "y", "z", "norm"), "Sensors"),
+    ("sat.optical_navigation.measurement", ("pixel", "line", "radius"), "Sensors"),
     ("sat.monte_carlo.spread", ("radial",), "Monte Carlo"),
     ("sat.something_new", ("value",), "Other"),
 ])
@@ -123,3 +125,22 @@ def test_every_series_has_a_catalog_group(name, columns, group):
 
     series = TimeSeries(name, [0.0, 1.0], columns, np.zeros((2, len(columns))))
     assert plot_group(name, series) == group and group in PLOT_GROUPS
+
+
+def test_optical_navigation_series_have_their_own_titles_and_units():
+    """Every series engine.optical_navigation records has a title, and the
+    position ones show in km."""
+    from spacemissionstudio.plot_categories import categorize
+
+    for field, columns, unit in [("position_error", ("x", "y", "z", "norm"), "km"),
+                                 ("velocity_error", ("x", "y", "z", "norm"), "m/s"),
+                                 ("position_3sigma", ("x", "y", "z"), "km"),
+                                 ("velocity_3sigma", ("x", "y", "z"), "m/s"),
+                                 ("measurement", ("pixel", "line", "radius"), "px"),
+                                 ("measurement_error", ("x", "y", "z", "norm"), "km"),
+                                 ("measurement_state", ("state",), "-"),
+                                 ("range", ("range",), "km"),
+                                 ("phase_angle", ("phase_angle",), "deg")]:
+        name = f"sat.optical_navigation.{field}"
+        display = categorize(name, TimeSeries(name, [0.0, 1.0], columns, np.zeros((2, len(columns)))))
+        assert display is not None and display.title.startswith("Optical Navigation") and display.unit == unit

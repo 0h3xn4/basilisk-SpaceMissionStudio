@@ -1,0 +1,152 @@
+{
+  "name": "30 - Mars orbit: optical navigation from the planet's disk",
+  "epoch_utc": "2030-01-01T00:00:00",
+  "simulation_mode": "orbit_only",
+  "gravity": {
+    "central_body": "mars barycenter",
+    "central_body_degree": 0,
+    "third_body_perturbers": [
+      "sun"
+    ]
+  },
+  "spacecraft": [
+    {
+      "name": "probe-1",
+      "orbit": {
+        "type": "classical_elements",
+        "semi_major_axis_km": 18000.0,
+        "eccentricity": 0.2,
+        "inclination_deg": 30.0,
+        "raan_deg": 0.0,
+        "arg_periapsis_deg": 0.0,
+        "anomaly_type": "true",
+        "true_anomaly_deg": 0.0,
+        "mean_anomaly_deg": null,
+        "position_km": null,
+        "velocity_km_s": null,
+        "tle_line1": null,
+        "tle_line2": null
+      },
+      "dry_mass_kg": 300.0,
+      "inertia_kg_m2": [
+        92.2,
+        0.0,
+        0.0,
+        0.0,
+        92.2,
+        0.0,
+        0.0,
+        0.0,
+        72.0
+      ],
+      "center_of_mass_b_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "sigma_bn_init": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "omega_bn_b_init_rad_s": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "enable_drag": false,
+      "drag_coeff": 2.2,
+      "drag_area_m2": 1.0,
+      "enable_srp": false,
+      "srp_coeff": 1.3,
+      "srp_area_m2": 1.0,
+      "facets": [],
+      "enable_gravity_gradient": false,
+      "sensors": [],
+      "actuators": [],
+      "fsw_mode": null,
+      "fsw_params": {},
+      "control_params": {},
+      "power": null,
+      "rf_link": null,
+      "comms_pointing": null,
+      "data_handling": null,
+      "solar_arrays": [],
+      "station_keeping": null,
+      "geo_station_keeping": null,
+      "phasing_keeping": null,
+      "roe_formation": null,
+      "optical_navigation": {
+        "field_of_view_deg": 40.0,
+        "resolution_px": [
+          512,
+          512
+        ],
+        "camera_mrp_cb": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "measurement_interval_s": 60.0,
+        "center_noise_px": 0.5,
+        "radius_noise_px": 0.5,
+        "min_radius_px": 5.0,
+        "max_phase_angle_deg": 90.0,
+        "initial_position_sigma_m": 50000.0,
+        "initial_velocity_sigma_mps": 5.0,
+        "process_noise_position_m": 0.1,
+        "process_noise_velocity_mps": 0.001,
+        "seed": 1
+      },
+      "constant_thrust": null,
+      "momentum_dumping": null,
+      "magnetic_momentum_management": null,
+      "navigation_error": null,
+      "fuel_tank": null,
+      "propellant_budget": null,
+      "vizard_model_path": null,
+      "vizard_model_offset_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "vizard_model_rotation_deg": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "vizard_model_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "model": null
+    }
+  ],
+  "ground_stations": [],
+  "space_weather": {
+    "source": "bundled",
+    "local_file_path": null,
+    "cache_dir": null,
+    "atmosphere_model": "nrlmsise00",
+    "forecast_percentile": 50.0,
+    "msfc_file_path": null
+  },
+  "sim_settings": {
+    "duration_days": 2.0,
+    "dynamics_task_rate_s": 30.0,
+    "integrator": "rkf78",
+    "record_interval_s": 60.0
+  },
+  "monte_carlo": {
+    "enabled": false,
+    "num_runs": 10,
+    "thread_count": 1,
+    "verbose": false,
+    "dispersions": []
+  },
+  "mission_sequence": [],
+  "fsw_exports": [],
+  "description": "A 300 kg probe in an 18 000 km x 0.2 orbit around Mars. A 40 deg, 512 px camera sees the planet's disk; its place and size give a position, and Basilisk's relativeODuKF filter estimates the orbit from those. The filter starts 68 km off. 2 days.\n\nWhat to look at:\n- probe-1.optical_navigation.position_error: from 68 km to under 2 km by day 1 (1.6 km median after it); up to 12 km just after each night-side stretch, inside the filter's own 3-sigma.\n- probe-1.optical_navigation.measurement_error: one image alone is good to 56 km (median); the filter does better.\n- probe-1.optical_navigation.measurement_state and .phase_angle: night-side images (phase over 90 deg) are not used; 62 % are.\n- probe-1.optical_navigation.measurement: the disk is 110 to 152 px in radius over the orbit.\n\nTry changing:\n- Disk centre and radius noise (probe-1's Optical navigation) to 0: every image gives the true position.\n- Largest phase angle to 180 deg: every image is used, the night side too.\n\nNote:\n- The images are computed from the true geometry with 0.5 px noise, not rendered: a crescent's centre is not offset as a real one would be. Mars is its system barycentre here.",
+  "schema_version": 4
+}

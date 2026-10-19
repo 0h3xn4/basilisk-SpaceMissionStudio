@@ -98,6 +98,9 @@ def check_segmentable(scenario: Scenario, vizard_request=None) -> None:
     if any(sc.phasing_keeping is not None for sc in scenario.spacecraft):
         raise LongRunError(f"phasing keeping runs as one simulation, at most {SimSettings._MAX_SINGLE_RUN_DAYS:g} "
                            "days (its correction state and schedule are not carried between segments)")
+    if any(sc.roe_formation is not None or sc.optical_navigation is not None for sc in scenario.spacecraft):
+        raise LongRunError(f"ROE formations and optical navigation run as one simulation, at most "
+                           f"{SimSettings._MAX_SINGLE_RUN_DAYS:g} days (their state is not carried between segments)")
     if vizard_request is not None:
         raise LongRunError(f"the Vizard view covers one simulation, at most {SimSettings._MAX_SINGLE_RUN_DAYS:g} "
                            "days -- turn Vizard off for longer runs")

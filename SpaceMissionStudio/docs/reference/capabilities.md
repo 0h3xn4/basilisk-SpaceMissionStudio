@@ -195,6 +195,17 @@ separation target; radial/cross-track (R/N) only set the follower's
 starting geometry, since the phasing controller has no radial/
 cross-track control authority (the wizard says so up front).
 
+**Optical navigation** (`SpacecraftConfig.optical_navigation`): a camera
+sees the central body (Earth, the Mars barycentre or the Jupiter
+barycentre); each image's disk centre and size are computed from the true
+geometry with pixel noise (the tool's own `engine.opnav`; no image is
+rendered), Basilisk's `pixelLineConverter` turns them into a position and
+Basilisk's `relativeODuKF` filters those into a position and velocity
+estimate, with its covariance. Night-side images are left out by phase
+angle; the camera points perfectly in an orbit-only run and through the
+spacecraft's attitude otherwise. See template 30 and [Navigate from camera
+images of a planet](../user-manual/optical-navigation.md).
+
 **Formations in relative orbital elements** (`SpacecraftConfig.roe_formation`):
 a follower holds, or moves through a schedule of, targets given as the
 six quasi-nonsingular relative orbital elements (D'Amico), with a

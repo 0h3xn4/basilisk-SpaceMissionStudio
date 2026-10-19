@@ -276,6 +276,26 @@ Errors on what the flight software is told, by Basilisk's ``simpleNav`` (its Gau
 | `velocity_bound_m_s` | float | `0.0` | [m/s] |
 | `seed` | Optional[int] | `None` |  |
 
+## OpticalNavigationConfig
+
+Optical navigation from the central body's disk (``engine.opnav`` for the camera geometry, ``engine.optical_navigation`` for the run).
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `field_of_view_deg` | float | `40.0` | [deg] edge to edge along the image's y (line) axis |
+| `resolution_px` | list | `[512, 512]` | [px] width, height |
+| `camera_mrp_cb` | list | `[0.0, 0.0, 0.0]` |  |
+| `measurement_interval_s` | float | `60.0` | [s] one image this often |
+| `center_noise_px` | float | `0.5` | [px] 1 sigma on the disk centre, each axis |
+| `radius_noise_px` | float | `0.5` | [px] 1 sigma on the disk radius |
+| `min_radius_px` | float | `5.0` | [px] a smaller disk is not used |
+| `max_phase_angle_deg` | float | `90.0` | [deg] Sun-body-camera angle above which the image is not used |
+| `initial_position_sigma_m` | float | `1000.0` | [m] 1 sigma, each axis: the filter's start and its error |
+| `initial_velocity_sigma_mps` | float | `1.0` | [m/s] 1 sigma, each axis |
+| `process_noise_position_m` | float | `0.1` |  |
+| `process_noise_velocity_mps` | float | `0.001` |  |
+| `seed` | int | `1` | pixel noise and the initial error |
+
 ## OrbitIC
 
 One spacecraft's orbit initial condition, in exactly one of three forms. Only the fields for ``type`` need to be set; the others are left ``None`` and ignored -- this keeps the JSON readable (no all-fields-always-present clutter) while still being one dataclass, so ``engine.service.SimulationService`` has a single type to switch on.
@@ -494,6 +514,7 @@ See engine/spaceweather.py and engine/service.py. Real data only (user requireme
 | `geo_station_keeping` | Optional[GeoStationKeepingConfig] | `None` |  |
 | `phasing_keeping` | Optional[PhasingKeepingConfig] | `None` |  |
 | `roe_formation` | Optional[RoeFormationConfig] | `None` | formation in relative orbital elements |
+| `optical_navigation` | Optional[OpticalNavigationConfig] | `None` | camera navigation from the central body's disk |
 | `constant_thrust` | Optional[ConstantThrustConfig] | `None` |  |
 | `momentum_dumping` | Optional[MomentumDumpingConfig] | `None` |  |
 | `magnetic_momentum_management` | Optional[MagneticMomentumManagementConfig] | `None` |  |

@@ -84,6 +84,7 @@ from ..schema.scenario import (
     MagneticMomentumManagementConfig,
     MomentumDumpingConfig,
     NavigationErrorConfig,
+    OpticalNavigationConfig,
     OrbitIC,
     PhasingKeepingConfig,
     PowerConfig,
@@ -255,6 +256,7 @@ _ORBIT_WIDGETS = {"type": "type_combo", "semi_major_axis_km": "sma_km", "eccentr
                   "tle_line1": "tle_line1", "tle_line2": "tle_line2"}
 _SECTION_PREFIXES = {"station_keeping": "sk_", "geo_station_keeping": "geo_", "comms_pointing": "cp_",
                      "constant_thrust": "ct_", "phasing_keeping": "pk_", "roe_formation": "roe_", "momentum_dumping": "md_",
+                     "optical_navigation": "on_",
                      "magnetic_momentum_management": "mmm_", "fuel_tank": "ft_", "rf_link": "rf_",
                      "data_handling": "dh_"}
 _FIELD_WIDGETS = {"name": "name_edit", "propellant_budget": "budget_group", "vizard_model_offset_m": "viz_offset_x",
@@ -1257,6 +1259,7 @@ class SpacecraftEditorDialog(QDialog):
         self.roe_control_law_combo.currentIndexChanged.connect(self._show_roe_law_fields)
         self._show_roe_law_fields()
         power_layout.addWidget(self.roe_formation_group)
+        self._build_optical_navigation_group(config.optical_navigation if config else None, power_layout)
 
         # Requires BOTH a "reaction_wheel" AND a "thruster" actuator on this
         # spacecraft (see schema.scenario.MomentumDumpingConfig's docstring
@@ -1998,6 +2001,7 @@ class SpacecraftEditorDialog(QDialog):
             geo_station_keeping=self._geo_station_keeping_to_dataclass(),
             phasing_keeping=self._phasing_keeping_to_dataclass(),
             roe_formation=self._roe_formation_to_dataclass(),
+            optical_navigation=self._optical_navigation_to_dataclass(),
             constant_thrust=self._constant_thrust_to_dataclass(),
             momentum_dumping=self._momentum_dumping_to_dataclass(),
             magnetic_momentum_management=self._magnetic_momentum_management_to_dataclass(),
@@ -2351,6 +2355,107 @@ class SpacecraftEditorDialog(QDialog):
             mean_oe_gain=self.pk_mean_oe_gain.value(),
             hill_position_gain=self.pk_hill_position_gain.value(),
             hill_velocity_gain=self.pk_hill_velocity_gain.value(),
+        )
+
+    def _build_optical_navigation_group(self, on0: OpticalNavigationConfig | None, layout) -> None:
+        """schema.scenario.OpticalNavigationConfig: the camera, its noise
+        and the navigation filter's start."""
+        defaults = on0 or OpticalNavigationConfig()
+        self.optical_navigation_group = QGroupBox("Optical navigation (camera on the central body)")
+        self.optical_navigation_group.setCheckable(True)
+        self.optical_navigation_group.setToolTip(
+            "Checking this ON gives the spacecraft a camera that sees the central body's disk. Each image's "
+            "disk position and size give a position relative to the body (Basilisk's pixelLineConverter), "
+            "and a Kalman filter (Basilisk's relativeODuKF) estimates position and velocity from them. The "
+            "images are computed from the true geometry with pixel noise, not rendered. Needs Earth, the Mars "
+            "barycentre or the Jupiter barycentre as the central body and the Sun in the run. In an orbit-only "
+            "run the camera points at the body perfectly; with attitude, point the camera with "
+            "'locationPointing' at the central body.")
+        self.optical_navigation_group.setChecked(on0 is not None)
+        form = QFormLayout(self.optical_navigation_group)
+        self._on_form = form
+        self.on_field_of_view_deg = _spin(0.1, 179.0, decimals=2, step=1.0, value=defaults.field_of_view_deg)
+        self.on_field_of_view_deg.setToolTip("Edge to edge along the image's height (Basilisk's convention).")
+        form.addRow("Field of view [deg]", self.on_field_of_view_deg)
+        self.on_resolution_px = QWidget()
+        row = QHBoxLayout(self.on_resolution_px)
+        row.setContentsMargins(0, 0, 0, 0)
+        self.on_resolution_spins = []
+        for label, value in zip(("width", "height"), defaults.resolution_px):
+            spin = SpinBox()
+            spin.setRange(16, 16384)
+            spin.setValue(int(value))
+            spin.setSuffix(" px")
+            spin.setAccessibleName(f"Resolution {label}")
+            row.addWidget(spin)
+            self.on_resolution_spins.append(spin)
+        row.addStretch(1)
+        form.addRow("Resolution [px] (width, height)", self.on_resolution_px)
+        self.on_camera_mrp_cb = QWidget()
+        row = QHBoxLayout(self.on_camera_mrp_cb)
+        row.setContentsMargins(0, 0, 0, 0)
+        self.on_camera_mrp_spins = []
+        for axis, value in zip("123", defaults.camera_mrp_cb):
+            spin = _spin(-1.0, 1.0, decimals=4, step=0.05, value=float(value))
+            spin.setPrefix(f"σ{axis} ")
+            spin.setAccessibleName(f"Camera mounting MRP {axis}")
+            row.addWidget(spin)
+            self.on_camera_mrp_spins.append(spin)
+        row.addStretch(1)
+        self.on_camera_mrp_cb.setToolTip(
+            "The camera frame's orientation in the body frame as an MRP; the camera looks along its own +z. "
+            "All zero: the camera looks along the body's +z axis.")
+        form.addRow("Camera mounting [-] (MRP, camera from body)", self.on_camera_mrp_cb)
+        rows = [
+            ("measurement_interval_s", "Image every [s]", 1.0, 1.0e5, 1, 10.0,
+             "One image, and one filter update, this often."),
+            ("center_noise_px", "Disk centre noise [px] (1 sigma)", 0.0, 100.0, 3, 0.1,
+             "Noise on where the disk's centre is found, each axis."),
+            ("radius_noise_px", "Disk radius noise [px] (1 sigma)", 0.0, 100.0, 3, 0.1,
+             "Noise on the disk's radius; it sets the range error, the largest part."),
+            ("min_radius_px", "Smallest usable disk [px] (radius)", 0.1, 1.0e4, 2, 1.0,
+             "A disk smaller than this, far away, is not used."),
+            ("max_phase_angle_deg", "Largest phase angle [deg]", 0.1, 180.0, 1, 5.0,
+             "Sun-body-camera angle above which the image is not used: 90 deg leaves out the night side."),
+            ("initial_position_sigma_m", "Initial position uncertainty [m] (1 sigma)", 1.0e-3, 1.0e9, 3, 100.0,
+             "The filter starts this far off (one random draw) and with this uncertainty, each axis."),
+            ("initial_velocity_sigma_mps", "Initial velocity uncertainty [m/s] (1 sigma)", 1.0e-6, 1.0e4, 4, 0.1,
+             "As above, for velocity."),
+            ("process_noise_position_m", "Process noise, position [m] (1 sigma)", 0.0, 1.0e6, 4, 0.1,
+             "What the filter adds to its uncertainty at each of its updates (Basilisk's relativeODuKF "
+             "makes two per image)."),
+            ("process_noise_velocity_mps", "Process noise, velocity [m/s] (1 sigma)", 0.0, 1.0e3, 6, 1.0e-4,
+             "As above, for velocity."),
+        ]
+        for field_name, label, low, high, decimals, step, tip in rows:
+            spin = _spin(low, high, decimals=decimals, step=step, value=float(getattr(defaults, field_name)))
+            spin.setToolTip(tip)
+            setattr(self, f"on_{field_name}", spin)
+            form.addRow(label, spin)
+        self.on_seed = SpinBox()
+        self.on_seed.setRange(0, 2 ** 31 - 1)
+        self.on_seed.setValue(int(defaults.seed))
+        self.on_seed.setToolTip("The same seed gives the same pixel noise and starting error in every run.")
+        form.addRow("Random seed", self.on_seed)
+        layout.addWidget(self.optical_navigation_group)
+
+    def _optical_navigation_to_dataclass(self) -> OpticalNavigationConfig | None:
+        if not self.optical_navigation_group.isChecked():
+            return None
+        return OpticalNavigationConfig(
+            field_of_view_deg=self.on_field_of_view_deg.value(),
+            resolution_px=[spin.value() for spin in self.on_resolution_spins],
+            camera_mrp_cb=[spin.value() for spin in self.on_camera_mrp_spins],
+            measurement_interval_s=self.on_measurement_interval_s.value(),
+            center_noise_px=self.on_center_noise_px.value(),
+            radius_noise_px=self.on_radius_noise_px.value(),
+            min_radius_px=self.on_min_radius_px.value(),
+            max_phase_angle_deg=self.on_max_phase_angle_deg.value(),
+            initial_position_sigma_m=self.on_initial_position_sigma_m.value(),
+            initial_velocity_sigma_mps=self.on_initial_velocity_sigma_mps.value(),
+            process_noise_position_m=self.on_process_noise_position_m.value(),
+            process_noise_velocity_mps=self.on_process_noise_velocity_mps.value(),
+            seed=self.on_seed.value(),
         )
 
     def _show_roe_law_fields(self) -> None:

@@ -92,6 +92,8 @@ SRS_TO_COMPONENTS = {
     "SRS-F-21": ["engine/roe", "engine/roe_formation", "engine/service", "engine/events", "engine/scenario_explainer",
                  "schema/scenario", "cli", "gui/roe_formation_editor", "gui/roe_formation_dialog",
                  "gui/roe_diagram_widget", "gui/spacecraft_editor"],
+    "SRS-F-22": ["engine/opnav", "engine/optical_navigation", "engine/service", "engine/scenario_explainer",
+                 "schema/scenario", "gui/spacecraft_editor", "plot_categories"],
     "SRS-P-01": ["engine/service"],
     "SRS-P-02": ["engine/service", "engine/planet_rotation", "engine/earth_orientation"],
     "SRS-P-03": ["engine/service"],

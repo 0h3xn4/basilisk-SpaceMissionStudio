@@ -112,6 +112,10 @@ def _spacecraft_series(scenario: Scenario, sc) -> List[str]:
             names.append(f"{name}.roe_formation.drag_da_rate")
         if sc.roe_formation.control_law == "continuous":
             names.append(f"{name}.roe_formation.force")
+    if sc.optical_navigation is not None:  # engine.optical_navigation.result_series
+        names += [f"{name}.optical_navigation.{part}"
+                  for part in ("position_error", "velocity_error", "position_3sigma", "velocity_3sigma",
+                               "measurement", "measurement_error", "measurement_state", "range", "phase_angle")]
     if sc.constant_thrust is not None:
         names += [f"{name}.constant_thrust.propellant_remaining", f"{name}.constant_thrust.delta_v"]
     if sc.comms_pointing is not None:

@@ -12,6 +12,20 @@ Each item was checked against Basilisk's own source.
   (GGM03S). Other central bodies
   are limited to point-mass gravity (`central_body_degree=0`) until a
   later phase adds their gravity-field files.
+* **Optical navigation (`engine.opnav`, `engine.optical_navigation`).**
+  * No image is rendered or processed: the disk's centre and size are
+    computed from the true geometry with Gaussian pixel noise. A
+    crescent's centre, which real image processing finds offset from the
+    planet's, is taken as the planet's, so results near 90 deg phase are
+    optimistic.
+  * Attitude knowledge is perfect (the converter reads the true
+    attitude).
+  * Earth, the Mars barycentre and the Jupiter barycentre only (the
+    bodies Basilisk's `pixelLineConverter` and `relativeODuKF` know); one
+    run of at most 100 days.
+  * The filter's model is two-body: the Sun and higher gravity terms act
+    in the run but not in it, and its 3-sigma bounds held 94-95 % of the
+    axis errors in the measured runs, a little optimistic.
 * **Mars and Jupiter are their system barycentres** (`"mars barycenter"`,
   `"jupiter barycenter"`): the bundled DE430 ephemeris has no state for
   the planets themselves. Basilisk gives each the planet's own mass and

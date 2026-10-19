@@ -226,6 +226,36 @@ def _controller_display(name: str) -> Optional[SeriesDisplay]:
     return None
 
 
+_OPNAV_AXES = {"x": "X", "y": "Y", "z": "Z", "norm": "Magnitude"}
+# engine.optical_navigation.result_series: field -> (title, y label, unit, factor, column labels)
+_OPNAV_SERIES = {
+    "position_error": ("Optical Navigation Position Error (estimate - truth)", "Position error", "km", 0.001,
+                       _OPNAV_AXES),
+    "velocity_error": ("Optical Navigation Velocity Error (estimate - truth)", "Velocity error", "m/s", 1.0,
+                       _OPNAV_AXES),
+    "position_3sigma": ("Optical Navigation Position 3-Sigma", "3-sigma", "km", 0.001, _OPNAV_AXES),
+    "velocity_3sigma": ("Optical Navigation Velocity 3-Sigma", "3-sigma", "m/s", 1.0, _OPNAV_AXES),
+    "measurement": ("Optical Navigation Disk on the Detector", "Pixels", "px", 1.0,
+                    {"pixel": "Centre x (pixel)", "line": "Centre y (line)", "radius": "Radius"}),
+    "measurement_error": ("Optical Navigation Single-Image Position Error", "Position error", "km", 0.001,
+                          _OPNAV_AXES),
+    "measurement_state": ("Optical Navigation Image (0 used, 1 behind, 2 off image, 3 too small, 4 night side, "
+                          "5 inside)", "State", "-", 1.0, {"state": "State"}),
+    "range": ("Optical Navigation Range to the Body", "Range", "km", 0.001, {"range": "Range"}),
+    "phase_angle": ("Optical Navigation Phase Angle (Sun-body-camera)", "Phase angle", "deg", 1.0,
+                    {"phase_angle": "Phase angle"}),
+}
+
+
+def _optical_navigation_display(name: str) -> Optional[SeriesDisplay]:
+    """``"{sc}.optical_navigation.<field>"`` series (``engine.optical_navigation``)."""
+    head, _, field = name.rpartition(".")
+    if not head.endswith(".optical_navigation") or field not in _OPNAV_SERIES:
+        return None
+    title, y_label, unit, factor, columns = _OPNAV_SERIES[field]
+    return SeriesDisplay(title, y_label, unit, factor, columns)
+
+
 def _comms_and_thermal_display(name: str) -> Optional[SeriesDisplay]:
     """Template 19's comms-pointing series and the reaction-wheel motor
     thermal model -- both featured in template descriptions, and both
@@ -394,7 +424,8 @@ def categorize(name: str, series: TimeSeries) -> Optional[SeriesDisplay]:
     this feature existed -- rather than erroring or looking unfinished.
     """
     for fn in (_vector_display, _orbit_element_display, _controller_display, _comms_and_thermal_display,
-               _access_pair_display, _monte_carlo_display, _data_handling_display, _solar_array_display):
+               _access_pair_display, _monte_carlo_display, _data_handling_display, _solar_array_display,
+               _optical_navigation_display):
         result = fn(name)
         if result is not None:
             return result
@@ -426,6 +457,8 @@ def plot_group(name: str, series: TimeSeries) -> str:
         return "Thermal"
     if ".sensor." in name:
         return "Thermal" if tuple(series.columns) == ("temperature",) else "Sensors"
+    if ".optical_navigation." in name:
+        return "Sensors"
     if ".solar_array." in name:
         return "Power" if name.endswith(".power") else "Attitude"
     if name.endswith((".battery_charge", ".battery_net_power")):

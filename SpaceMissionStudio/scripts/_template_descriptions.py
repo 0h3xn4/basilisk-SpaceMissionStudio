@@ -505,5 +505,27 @@ vector, and holding costs about three times as much.
 - Generate ROE formation... under the spacecraft list, for another follower.
 
 Note:
-- Near-circular Earth orbits only. The guidance has no differential drag; these satellites are identical.""",
+- Near-circular Earth orbits only. These satellites are identical, so there is no differential drag to \
+compensate.""",
+    "30": """\
+A 300 kg probe in an 18 000 km x 0.2 orbit around Mars. A 40 deg, 512 px camera sees the planet's disk; \
+its place and size give a position, and Basilisk's relativeODuKF filter estimates the orbit from those. \
+The filter starts 68 km off. 2 days.
+
+What to look at:
+- probe-1.optical_navigation.position_error: from 68 km to under 2 km by day 1 (1.6 km median after \
+it); up to 12 km just after each night-side stretch, inside the filter's own 3-sigma.
+- probe-1.optical_navigation.measurement_error: one image alone is good to 56 km (median); the filter does \
+better.
+- probe-1.optical_navigation.measurement_state and .phase_angle: night-side images (phase over 90 deg) are \
+not used; 62 % are.
+- probe-1.optical_navigation.measurement: the disk is 110 to 152 px in radius over the orbit.
+
+Try changing:
+- Disk centre and radius noise (probe-1's Optical navigation) to 0: every image gives the true position.
+- Largest phase angle to 180 deg: every image is used, the night side too.
+
+Note:
+- The images are computed from the true geometry with 0.5 px noise, not rendered: a crescent's centre \
+is not offset as a real one would be. Mars is its system barycentre here.""",
 }

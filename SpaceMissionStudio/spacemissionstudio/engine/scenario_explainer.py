@@ -60,7 +60,7 @@ from datetime import timedelta, timezone
 from typing import Dict, List, Tuple
 
 from ..schema.epochs import parse_epoch_utc
-from . import earth_orientation
+from . import earth_orientation, opnav
 from .orbit_design import sun_synchronous_inclination_deg
 from .roe import min_radial_normal_separation
 from .scenario_checks import gravity_fidelity_notes, pass_summary, scenario_warnings
@@ -453,6 +453,53 @@ def _data_handling_section(scenario) -> ExplanationSection | None:
     return ExplanationSection(title="Data handling", badges=badges, notes=notes)
 
 
+def _optical_navigation_section(scenario) -> ExplanationSection | None:
+    """How large the central body's disk is on the camera, at periapsis
+    and apoapsis of an orbit given by its elements, and whether the camera
+    is pointed (engine.opnav) -- arithmetic on the settings, before any run."""
+    with_camera = [sc for sc in scenario.spacecraft if sc.optical_navigation is not None]
+    if not with_camera:
+        return None
+    badges = [Badge("Optical navigation (Basilisk pixelLineConverter + relativeODuKF)", "accent")]
+    notes = []
+    radius_m = opnav.BODY_RADIUS_M.get(scenario.gravity.central_body)
+    for sc in with_camera:
+        camera = sc.optical_navigation
+        width, height = camera.resolution_px
+        notes.append(f"{sc.name}: {camera.field_of_view_deg:g} deg camera, {width} x {height} px, one image every "
+                     f"{camera.measurement_interval_s:g} s; images beyond {camera.max_phase_angle_deg:g} deg phase "
+                     "are not used")
+        if radius_m is not None and sc.orbit.type == "classical_elements":
+            x_scale, _ = opnav.pixel_scales(math.radians(camera.field_of_view_deg), camera.resolution_px)
+            a_m = sc.orbit.semi_major_axis_km * 1000.0  # [m]
+            sizes = []
+            for label, r_m in (("periapsis", a_m * (1.0 - sc.orbit.eccentricity)),
+                               ("apoapsis", a_m * (1.0 + sc.orbit.eccentricity))):
+                if r_m > radius_m:
+                    sizes.append((label, math.tan(math.asin(radius_m / r_m)) / x_scale))  # [px]
+            if sizes:
+                notes.append(f"{sc.name}: the disk is " + " and ".join(
+                    f"{2.0 * size:.0f} px across at {label}" for label, size in sizes))
+            if any(2.0 * size > min(width, height) for _, size in sizes):
+                badges.append(Badge(f"{sc.name}: the disk is larger than the image near periapsis", "warning"))
+            if any(size < camera.min_radius_px for _, size in sizes):
+                badges.append(Badge(f"{sc.name}: the disk is smaller than the usable size near apoapsis", "warning"))
+        if scenario.simulation_mode == "orbit_only":
+            notes.append(f"{sc.name}: orbit only, so the camera points at the body perfectly")
+        elif sc.fsw_mode != "locationPointing" or sc.fsw_params.get("target_body") != scenario.gravity.central_body:
+            badges.append(Badge(f"{sc.name}: the camera is not pointed at the central body (use locationPointing "
+                                "on it)", "warning"))
+        else:
+            boresight_b = opnav.mrp_to_dcm(camera.camera_mrp_cb).T @ (0.0, 0.0, 1.0)
+            axis = sc.fsw_params.get("pHat_B") or (0.0, 0.0, 1.0)
+            norm = math.sqrt(sum(c * c for c in axis))
+            cosine = sum(b * c for b, c in zip(boresight_b, axis)) / norm if norm > 0.0 else -1.0
+            if cosine < math.cos(math.radians(1.0)):
+                badges.append(Badge(f"{sc.name}: locationPointing's pointing axis (pHat_B) is not the camera's "
+                                    "boresight", "warning"))
+    return ExplanationSection(title="Optical navigation", badges=badges, notes=notes)
+
+
 def _ground_stations_section(scenario) -> ExplanationSection | None:
     if not scenario.ground_stations:
         return None
@@ -552,7 +599,8 @@ def _explain(scenario) -> ScenarioExplanation:
     # logged; it used to blank the whole tab, with nothing logged (L21).
     sections = []
     for build in (_checks_section, _formation_section, _attitude_section, _environment_section,
-                  _power_comms_section, _data_handling_section, _solar_array_section, _ground_stations_section,
+                  _power_comms_section, _data_handling_section, _solar_array_section,
+                  _optical_navigation_section, _ground_stations_section,
                   _monte_carlo_section):
         try:
             section = build(scenario)
