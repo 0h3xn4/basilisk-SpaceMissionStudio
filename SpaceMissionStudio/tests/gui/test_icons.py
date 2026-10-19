@@ -6,6 +6,7 @@ pytestmark = pytest.mark.requires_gui
 
 
 def test_app_icon_returns_a_non_null_icon(qapp):
+    """The app icon exists in at least one size."""
     from spacemissionstudio.gui.icons import app_icon
 
     icon = app_icon()
@@ -87,6 +88,7 @@ def test_small_icon_omits_fine_detail_that_would_render_illegibly(qapp):
 
 
 def test_ensure_icon_file_creates_a_real_png(qapp, tmp_path):
+    """ensure_icon_file writes a PNG file."""
     from spacemissionstudio.gui.icons import ensure_icon_file
 
     target = tmp_path / "icons" / "spacemissionstudio.png"
@@ -99,6 +101,7 @@ def test_ensure_icon_file_creates_a_real_png(qapp, tmp_path):
 
 
 def test_ensure_icon_file_does_not_overwrite_an_existing_file(qapp, tmp_path):
+    """ensure_icon_file leaves an existing file as it is."""
     from spacemissionstudio.gui.icons import ensure_icon_file
 
     target = tmp_path / "spacemissionstudio.png"

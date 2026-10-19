@@ -113,6 +113,8 @@ def test_no_group_is_squashed_below_its_minimum_height(dialog):
 
 
 def test_defaults_round_trip(dialog):
+    """A new dialog gives the default gravity, simulation and space-weather
+    settings."""
     got_gravity = dialog.to_gravity()
     got_sim = dialog.to_sim_settings()
     got_sw = dialog.to_space_weather()
@@ -137,11 +139,13 @@ def test_cache_dir_round_trips(qtbot):
 
 
 def test_cache_dir_blank_stays_none(dialog):
+    """A blank cache folder gives no cache folder."""
     assert dialog.cache_dir_edit.text() == ""
     assert dialog.to_space_weather().cache_dir is None
 
 
 def test_central_body_removed_from_third_body_choices(dialog):
+    """The central body is not offered as a third body."""
     dialog.central_body_combo.setCurrentText("sun")
     choices = [dialog.third_body_list.item(i).text() for i in range(dialog.third_body_list.count())]
     assert "sun" not in choices
@@ -149,6 +153,7 @@ def test_central_body_removed_from_third_body_choices(dialog):
 
 
 def test_third_body_perturbers_round_trip(qtbot):
+    """The Sun and Moon as third bodies open checked and come back."""
     from spacemissionstudio.schema.scenario import GravityConfig
 
     d = _dialog(gravity=GravityConfig(central_body="earth", third_body_perturbers=["sun", "moon"]))
@@ -157,6 +162,7 @@ def test_third_body_perturbers_round_trip(qtbot):
 
 
 def test_space_weather_local_file_field_enabled_only_for_local_file_source(dialog):
+    """The file field is enabled only for the local_file source."""
     assert not dialog.local_file_edit.isEnabled()
     dialog.space_weather_source_combo.setCurrentText("local_file")
     assert dialog.local_file_edit.isEnabled()
@@ -165,6 +171,7 @@ def test_space_weather_local_file_field_enabled_only_for_local_file_source(dialo
 
 
 def test_local_file_field_prefills_from_a_cached_startup_fetch_when_empty(qtbot, monkeypatch, tmp_path):
+    """An empty file field is filled with the file fetched at start-up."""
     from spacemissionstudio.engine import spaceweather as sw
     from spacemissionstudio.schema.scenario import SpaceWeatherConfig
 
@@ -199,6 +206,7 @@ def test_cached_fetch_is_suggested_only_once_the_source_is_local_file(qtbot, mon
 
 
 def test_local_file_field_does_not_override_an_explicit_local_file_path(qtbot, monkeypatch, tmp_path):
+    """A file the scenario names is kept, not replaced by the fetched one."""
     from spacemissionstudio.engine import spaceweather as sw
     from spacemissionstudio.schema.scenario import SpaceWeatherConfig
 
@@ -214,6 +222,7 @@ def test_local_file_field_does_not_override_an_explicit_local_file_path(qtbot, m
 
 
 def test_local_file_field_stays_empty_with_no_cached_fetch(qtbot, monkeypatch, tmp_path):
+    """Without a fetched file, the file field stays empty."""
     from spacemissionstudio.engine import spaceweather as sw
 
     monkeypatch.setattr(sw, "cached_fetch_path", lambda *a, **k: None)
@@ -225,6 +234,8 @@ def test_local_file_field_stays_empty_with_no_cached_fetch(qtbot, monkeypatch, t
 
 
 def test_harmonics_checkbox_off_by_default_forces_point_mass(dialog):
+    """Spherical harmonics are off by default, giving a point mass (degree
+    0)."""
     assert not dialog.enable_harmonics_check.isChecked()
     assert dialog.to_gravity().central_body_degree == 0
 
@@ -248,6 +259,7 @@ def test_harmonics_checkbox_preserves_spinner_value_when_toggled_off(dialog):
 
 
 def test_checking_harmonics_with_zero_degree_bumps_to_a_sane_default(dialog):
+    """Checking spherical harmonics at degree 0 sets a positive degree."""
     dialog.central_body_degree_spin.setValue(0)
     dialog.enable_harmonics_check.setChecked(True)
     assert dialog.central_body_degree_spin.value() > 0
@@ -255,6 +267,8 @@ def test_checking_harmonics_with_zero_degree_bumps_to_a_sane_default(dialog):
 
 
 def test_non_earth_central_body_disables_and_clears_harmonics(dialog):
+    """Choosing Mars disables and clears spherical harmonics, giving degree
+    0."""
     dialog.enable_harmonics_check.setChecked(True)
     dialog.central_body_degree_spin.setValue(20)
 
@@ -266,6 +280,8 @@ def test_non_earth_central_body_disables_and_clears_harmonics(dialog):
 
 
 def test_loading_existing_harmonics_degree_checks_the_box(qtbot):
+    """A scenario with degree 8 opens with harmonics checked at 8 and gives 8
+    back."""
     from spacemissionstudio.schema.scenario import GravityConfig
 
     d = _dialog(gravity=GravityConfig(central_body="earth", central_body_degree=8))
@@ -276,6 +292,7 @@ def test_loading_existing_harmonics_degree_checks_the_box(qtbot):
 
 
 def test_accept_with_valid_state_closes_dialog(dialog, qtbot):
+    """OK with valid settings accepts the dialog."""
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QDialogButtonBox
 
@@ -285,11 +302,13 @@ def test_accept_with_valid_state_closes_dialog(dialog, qtbot):
 
 
 def test_atmosphere_model_defaults_to_nrlmsise00(dialog):
+    """The atmosphere model defaults to NRLMSISE-00."""
     assert dialog._selected_atmosphere_model() == "nrlmsise00"
     assert dialog.to_space_weather().atmosphere_model == "nrlmsise00"
 
 
 def test_selecting_exponential_atmosphere_model_round_trips(dialog):
+    """Choosing the exponential atmosphere gives it back."""
     dialog.atmosphere_model_combo.setCurrentIndex(1)
     assert dialog._selected_atmosphere_model() == "exponential"
     assert dialog.to_space_weather().atmosphere_model == "exponential"
@@ -341,6 +360,8 @@ def test_srp_location_pointer_label_is_present(dialog):
 
 
 def test_record_interval_round_trips_and_zero_reads_every_step(qtbot):
+    """A 600 s record interval comes back, and 0 shows as Every step and gives
+    0."""
     from spacemissionstudio.schema.scenario import SimSettings
 
     dialog = _dialog(sim_settings=SimSettings(duration_days=30.0, record_interval_s=600.0))

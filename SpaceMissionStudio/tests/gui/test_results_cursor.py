@@ -63,6 +63,8 @@ def _cursor_shapes(qtbot, widget):
 
 
 def test_the_cursor_is_drawn_and_moved_on_the_loaded_plot(qtbot, plot):
+    """The time cursor is drawn on the plot at its time in hours and removed
+    when cleared."""
     widget, cursor = plot
     assert _cursor_shapes(qtbot, widget) == "[]"
     cursor.set_time(1800.0)  # [s]
@@ -81,6 +83,8 @@ def test_a_click_on_the_plot_sets_the_cursor(qtbot, plot):
 
 
 def test_on_a_utc_axis_the_cursor_round_trips_through_the_plotted_text(qtbot, plot):
+    """On a UTC axis the cursor's plotted text reads back as its elapsed time;
+    text that is not a date gives none."""
     widget, cursor = plot
     with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.x_axis_combo.setCurrentIndex(widget.x_axis_combo.findData("epoch"))

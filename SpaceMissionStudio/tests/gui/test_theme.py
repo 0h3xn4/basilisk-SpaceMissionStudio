@@ -6,6 +6,8 @@ pytestmark = pytest.mark.requires_gui
 
 
 def test_apply_theme_runs_without_error(qapp):
+    """Applying the theme sets a stylesheet and the palette's background and
+    highlight colors."""
     from PySide6.QtGui import QPalette
 
     from spacemissionstudio.gui.theme import _C, apply_theme
@@ -90,6 +92,7 @@ def test_svg_asset_colors_match_the_palette():
 
 
 def test_every_toolbar_action_has_an_icon(qtbot):
+    """Every toolbar action has an icon, except the run-mode drop-down."""
     from spacemissionstudio.gui.main_window import MainWindow
 
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
@@ -123,6 +126,8 @@ def test_ibm_plex_is_loaded_and_set_as_the_application_font(qapp):
 
 
 def test_the_palette_carries_carbon_g10_tokens_and_the_charts_share_its_series_colours():
+    """The palette uses Carbon's g10 colors, plots and the event timeline share
+    its series colors, and the status colors are not series colors."""
     from spacemissionstudio.gui import event_timeline_widget, results_widget
     from spacemissionstudio.gui.theme import PALETTE, SERIES_COLORS
 

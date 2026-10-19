@@ -58,6 +58,10 @@ def _run():
 
 
 def test_the_figures_come_from_the_recorded_series_and_events():
+    """The run's headline figures (delta-V of both controllers, propellant,
+    orbit-averaged SMA change, length, lowest margin and charge, passes,
+    eclipses, data downlinked) come from its series and events; a ground
+    station gets none."""
     figures = run_summary.by_key(run_summary.summarize(_run()))
     assert math.isclose(figures["sat.delta_v"].value, 1.75)  # [m/s] both controllers
     assert math.isclose(figures["sat.propellant_used"].value, 0.1)  # [kg]
@@ -73,6 +77,7 @@ def test_the_figures_come_from_the_recorded_series_and_events():
 
 
 def test_a_run_shorter_than_two_orbits_has_no_semi_major_axis_change():
+    """A run shorter than two orbits gives no SMA change, only its length."""
     result = ResultSet("short")
     _add(result, "sat.position_N", ("x", "y", "z"), np.zeros((_N, 3)), "m")
     _add(result, "sat.orbit_elements_mean.semi_major_axis", ("semi_major_axis",), np.linspace(6928e3, 6927e3, _N), "m")
@@ -81,6 +86,8 @@ def test_a_run_shorter_than_two_orbits_has_no_semi_major_axis_change():
 
 
 def test_a_figure_shows_only_when_the_run_recorded_it():
+    """A run that recorded only a position gives only its length; no run gives
+    nothing."""
     result = ResultSet("bare")
     _add(result, "sat.position_N", ("x", "y", "z"), np.zeros((_N, 3)), "m")
     assert [f.key for f in run_summary.summarize(result)] == ["run_length"]
@@ -88,6 +95,7 @@ def test_a_figure_shows_only_when_the_run_recorded_it():
 
 
 def test_several_spacecraft_name_theirs():
+    """With two spacecraft, each figure carries its spacecraft's name."""
     result = _run()
     _add(result, "sat-2.position_N", ("x", "y", "z"), np.zeros((_N, 3)), "m")
     _add(result, "sat-2.station_keeping.delta_v", ("cumulative_delta_v",), np.linspace(0.0, 0.5, _N), "m/s")
@@ -96,6 +104,7 @@ def test_several_spacecraft_name_theirs():
 
 
 def test_the_event_table_counts_each_kind_with_its_total_time():
+    """The event table gives each kind's count and total minutes."""
     from spacemissionstudio.engine import events
 
     table = run_summary.event_table(events.extract_events(_run()))

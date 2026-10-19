@@ -26,6 +26,7 @@ def _apogee_perigee():
 
 
 def test_none_summary_clears_the_table(qtbot):
+    """Clearing the command summary empties and hides the table."""
     widget = _widget(qtbot, _apogee_perigee())
     assert widget.table.rowCount() > 0
 
@@ -35,6 +36,9 @@ def test_none_summary_clears_the_table(qtbot):
 
 
 def test_summary_shows_one_column_per_report_and_one_row_per_value(qtbot):
+    """The table has one column per report (label and time) and one row per
+    value, named like its plot with a dash where a report lacks it; an
+    uncategorized series keeps its code name."""
     from spacemissionstudio.engine.results import CommandSummary, ReportEntry
 
     summary = CommandSummary(reports=[
@@ -79,6 +83,7 @@ def test_values_use_display_units_and_change_column_for_two_reports(qtbot):
 
 
 def test_change_in_an_angle_goes_the_short_way_round(qtbot):
+    """A true anomaly going from 350 to 10 deg changes by +20 deg, not -340."""
     from spacemissionstudio.engine.results import CommandSummary, ReportEntry
 
     summary = CommandSummary(commands_executed=3, reports=[
@@ -89,6 +94,8 @@ def test_change_in_an_angle_goes_the_short_way_round(qtbot):
 
 
 def test_filter_on_a_report_label_shows_just_that_report(qtbot):
+    """Filtering on a report's label shows only that report and says how many
+    match."""
     widget = _widget(qtbot, _apogee_perigee())
 
     widget.filter_edit.setText("apogee")
@@ -101,6 +108,7 @@ def test_filter_on_a_report_label_shows_just_that_report(qtbot):
 
 
 def test_filter_on_a_quantity_keeps_only_matching_rows(qtbot):
+    """Filtering on a quantity keeps only its rows and says how many match."""
     widget = _widget(qtbot, _apogee_perigee())
 
     widget.filter_edit.setText("mass")
@@ -112,6 +120,7 @@ def test_filter_on_a_quantity_keeps_only_matching_rows(qtbot):
 
 
 def test_filter_matches_series_name_and_value_not_just_label(qtbot):
+    """The filter also matches a value."""
     from spacemissionstudio.engine.results import CommandSummary, ReportEntry
 
     widget = _widget(qtbot, CommandSummary(reports=[
@@ -127,6 +136,7 @@ def test_filter_matches_series_name_and_value_not_just_label(qtbot):
 
 
 def test_clearing_the_filter_restores_the_full_table(qtbot):
+    """Clearing the filter shows every report again."""
     widget = _widget(qtbot, _apogee_perigee())
 
     widget.filter_edit.setText("apogee")
@@ -139,6 +149,8 @@ def test_clearing_the_filter_restores_the_full_table(qtbot):
 
 
 def test_filter_is_case_insensitive_and_persists_across_a_new_run(qtbot):
+    """The filter ignores case and stays in force when a new run's summary
+    arrives."""
     widget = _widget(qtbot)
     widget.filter_edit.setText("APOGEE")
 
@@ -150,6 +162,7 @@ def test_filter_is_case_insensitive_and_persists_across_a_new_run(qtbot):
 
 
 def test_two_spacecraft_name_their_rows_and_groups(qtbot):
+    """With two spacecraft, the groups and rows carry the spacecraft names."""
     from spacemissionstudio.engine.results import CommandSummary, ReportEntry
 
     widget = _widget(qtbot, CommandSummary(commands_executed=1, reports=[ReportEntry("r", 1.0, {
@@ -163,6 +176,8 @@ def test_two_spacecraft_name_their_rows_and_groups(qtbot):
 
 
 def test_export_button_tooltip_notes_filter_does_not_affect_export(qtbot):
+    """The Export button's tooltip says the filter does not affect the
+    export."""
     from spacemissionstudio.gui.mission_output_widget import MissionOutputWidget
 
     widget = MissionOutputWidget()
@@ -171,6 +186,7 @@ def test_export_button_tooltip_notes_filter_does_not_affect_export(qtbot):
 
 
 def test_export_writes_every_report_regardless_of_active_filter(qtbot, tmp_path, monkeypatch):
+    """Export writes every report, including those the filter hides."""
     from PySide6.QtWidgets import QFileDialog, QMessageBox
 
     from spacemissionstudio.engine.results import CommandSummary, ReportEntry
@@ -205,6 +221,7 @@ def test_clear_empties_the_table(qtbot):
 
 
 def test_clear_also_resets_the_filter_box(qtbot):
+    """Clearing the page empties the filter."""
     from spacemissionstudio.gui.mission_output_widget import MissionOutputWidget
 
     widget = MissionOutputWidget()
@@ -242,6 +259,7 @@ def test_export_button_disabled_until_a_summary_with_reports_is_set(qtbot):
 
 
 def test_export_writes_a_csv_file(qtbot, tmp_path, monkeypatch, reported):
+    """Export writes the CSV file and reports where."""
     from PySide6.QtWidgets import QFileDialog
 
     from spacemissionstudio.engine.results import CommandSummary, ReportEntry
@@ -265,6 +283,7 @@ def test_export_writes_a_csv_file(qtbot, tmp_path, monkeypatch, reported):
 
 
 def test_export_with_no_summary_is_a_no_op(qtbot, monkeypatch):
+    """Export without a summary opens no dialog."""
     from PySide6.QtWidgets import QFileDialog
 
     from spacemissionstudio.gui.mission_output_widget import MissionOutputWidget

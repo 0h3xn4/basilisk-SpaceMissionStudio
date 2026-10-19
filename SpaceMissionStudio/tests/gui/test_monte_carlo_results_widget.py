@@ -88,6 +88,7 @@ def test_a_saved_batch_shows_tiles_plots_and_a_sortable_run_table(qtbot, tmp_pat
 
 
 def test_the_run_table_exports_to_csv(qtbot, tmp_path):
+    """The run table exports to CSV with each run's dispersed values."""
     from spacemissionstudio.gui.monte_carlo_results_widget import MonteCarloResultsWidget
 
     _save_batch(tmp_path)
@@ -101,6 +102,7 @@ def test_the_run_table_exports_to_csv(qtbot, tmp_path):
 
 
 def test_a_folder_without_results_says_so_and_shows_nothing(qtbot, tmp_path):
+    """A folder without results says so, and nothing is shown or plotted."""
     from spacemissionstudio.gui.monte_carlo_results_widget import MonteCarloResultsWidget
 
     widget = MonteCarloResultsWidget()
@@ -113,6 +115,8 @@ def test_a_folder_without_results_says_so_and_shows_nothing(qtbot, tmp_path):
 
 
 def test_several_spacecraft_choose_whose_spread_is_shown(qtbot, tmp_path):
+    """With two spacecraft, the list chooses whose spread is plotted and
+    tabulated."""
     from spacemissionstudio.gui.monte_carlo_results_widget import MonteCarloResultsWidget
 
     _save_batch(tmp_path, names=("chief", "follower"))

@@ -51,6 +51,9 @@ def panel(qtbot, monkeypatch):
 
 
 def test_the_table_lists_every_file_with_status_dates_source_and_checksum(panel):
+    """The reference-data table lists each file with its status and dates, the
+    full checksum, source and path on hover, and counts the files that need
+    attention."""
     assert panel.table.rowCount() == 3
     cells = [[panel.table.item(r, c).text() for c in range(panel.table.columnCount())] for r in range(3)]
     assert cells[1][:4] == ["space weather", "SW-All.txt", "out of date", _FILES[1].covers]
@@ -62,6 +65,7 @@ def test_the_table_lists_every_file_with_status_dates_source_and_checksum(panel)
 
 
 def test_only_the_source_column_stretches(panel):
+    """Only the Source column stretches."""
     from PySide6.QtWidgets import QHeaderView
 
     header = panel.table.horizontalHeader()
@@ -80,6 +84,8 @@ def test_a_declined_download_fetches_nothing(panel, monkeypatch):
 
 
 def test_the_consent_prompt_names_source_files_and_size(panel, monkeypatch):
+    """The download prompt names the source, the files and the size, and
+    defaults to No; No downloads nothing."""
     from PySide6.QtWidgets import QMessageBox
 
     shown = {}
@@ -115,6 +121,8 @@ def test_the_eros_download_asks_first_naming_naif_and_its_files(panel, monkeypat
 
 
 def test_an_accepted_download_runs_and_reports_what_changed(panel, qtbot, monkeypatch):
+    """An accepted download runs once, keeps the button disabled until done and
+    reports what changed."""
     after = list(_FILES)
     after[1] = ReferenceFile("space weather", "SW-All.txt", "ok", "bundled", "/pkg/SW-All.txt", 100, "ef" * 32, "",
                              "1957-10-01 to 2041-10-31 (observed to 2026-10-08)")
@@ -148,6 +156,8 @@ def test_a_second_download_while_one_runs_is_refused(panel, qtbot, monkeypatch):
 
 
 def test_a_failed_download_says_so_and_keeps_the_files(panel, qtbot, monkeypatch):
+    """A failed download says why and that the files are unchanged, and enables
+    the button again."""
     def boom():
         raise OSError("network unreachable")
 
@@ -161,6 +171,8 @@ def test_a_failed_download_says_so_and_keeps_the_files(panel, qtbot, monkeypatch
 
 
 def test_changes_lists_new_replaced_and_removed_files():
+    """The change list names new, replaced and removed files, or says nothing
+    changed."""
     before = [ReferenceFile("k", "a", "ok", covers="2020"), ReferenceFile("k", "gone", "ok")]
     after = [ReferenceFile("k", "a", "ok", covers="2026"), ReferenceFile("k", "new", "ok", covers="x")]
     lines = dp.changes(before, after)

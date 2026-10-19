@@ -61,6 +61,7 @@ def test_png_keeps_its_image_and_carries_the_record():
 
 
 def test_svg_gets_a_metadata_element():
+    """An SVG gets a metadata element holding the provenance."""
     svg = '<?xml version="1.0"?><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect/></svg>'
     provenance = _provenance()
     tagged = output_provenance.svg_with_provenance(svg, provenance.summary_lines(), provenance.to_dict())
@@ -72,6 +73,8 @@ def test_svg_gets_a_metadata_element():
 
 
 def test_summary_lines_name_the_versions_the_scenario_and_the_data():
+    """The provenance lines name the versions, the scenario's hash and each
+    data file's hash, in ASCII."""
     lines = _provenance().summary_lines()
     assert lines[0] == "SpaceMissionStudio 2.0.0, Basilisk 2.12.0 (qualified)"
     assert any(line == "Scenario SHA-256 " + "ab" * 32 for line in lines)
@@ -107,6 +110,8 @@ def test_a_run_writes_its_provenance_into_the_oem(tmp_path):
 
 
 def test_sidecar_sits_beside_the_output(tmp_path):
+    """The provenance sidecar is written beside the output as
+    name.provenance.json."""
     output = tmp_path / "table.csv"
     output.write_text("a,b\n", encoding="utf-8")
     sidecar = output_provenance.write_sidecar(output, {"scenario_sha256": "ef" * 32})

@@ -30,6 +30,8 @@ def test_description_label_wraps_instead_of_blowing_up_dialog_width(qtbot):
 
 
 def test_defaults_produce_a_valid_request(qtbot):
+    """The constellation dialog's defaults give a request around the scenario's
+    body on the first spacecraft."""
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
 
     dialog = WalkerConstellationDialog(template_names=["sat-1"], central_body="earth")
@@ -41,6 +43,7 @@ def test_defaults_produce_a_valid_request(qtbot):
 
 
 def test_central_body_is_not_independently_selectable(qtbot):
+    """The central body is the one passed in."""
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
 
     dialog = WalkerConstellationDialog(template_names=[], central_body="mars barycenter")
@@ -49,6 +52,8 @@ def test_central_body_is_not_independently_selectable(qtbot):
 
 
 def test_empty_template_list_disables_combo_and_returns_none(qtbot):
+    """Without spacecraft, the template list is disabled and nothing is
+    chosen."""
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
 
     dialog = WalkerConstellationDialog(template_names=[])
@@ -58,6 +63,8 @@ def test_empty_template_list_disables_combo_and_returns_none(qtbot):
 
 
 def test_editing_fields_updates_request(qtbot):
+    """The satellites, planes, phasing, altitude, inclination and prefix typed
+    are used."""
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
 
     dialog = WalkerConstellationDialog(template_names=["sat-1"])
@@ -79,6 +86,7 @@ def test_editing_fields_updates_request(qtbot):
 
 
 def test_accept_blocked_on_invalid_request(qtbot, monkeypatch):
+    """OK with 10 satellites in 3 planes does not accept the dialog."""
     from PySide6.QtWidgets import QDialog, QMessageBox
 
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
@@ -93,6 +101,7 @@ def test_accept_blocked_on_invalid_request(qtbot, monkeypatch):
 
 
 def test_pattern_combo_offers_delta_and_star(qtbot):
+    """The pattern list offers delta and star."""
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
 
     dialog = WalkerConstellationDialog(template_names=["sat-1"])
@@ -118,6 +127,8 @@ def test_dialog_resizes_to_its_own_sizehint_on_construction(qtbot):
 
 
 def test_sun_synchronous_button_sets_the_inclination_for_the_altitude(qtbot):
+    """Sun-synchronous sets the inclination for the altitude: about 97.6 deg at
+    550 km."""
     from spacemissionstudio.engine.orbit_design import sun_synchronous_inclination_deg
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
 
@@ -130,6 +141,7 @@ def test_sun_synchronous_button_sets_the_inclination_for_the_altitude(qtbot):
 
 
 def test_sun_synchronous_button_is_disabled_off_earth(qtbot):
+    """Sun-synchronous is disabled around the Moon."""
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
 
     dialog = WalkerConstellationDialog(["sat-1"], central_body="moon")

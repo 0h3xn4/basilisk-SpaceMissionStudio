@@ -40,6 +40,7 @@ def _sample_series(name="s", n=10):
 
 
 def test_time_series_shape_mismatch_rejected():
+    """A series with one data row fewer than its times is refused."""
     t = np.linspace(0, 10, 5)
     data = np.zeros((4, 3))  # one row short
     with pytest.raises(ResultsError, match="must match"):
@@ -47,6 +48,7 @@ def test_time_series_shape_mismatch_rejected():
 
 
 def test_time_series_column_count_mismatch_rejected():
+    """A series with two column names for three data columns is refused."""
     t = np.linspace(0, 10, 5)
     data = np.zeros((5, 3))
     with pytest.raises(ResultsError, match="columns"):
@@ -54,12 +56,15 @@ def test_time_series_column_count_mismatch_rejected():
 
 
 def test_time_series_accepts_1d_data_as_single_column():
+    """One-dimensional data becomes a single column."""
     t = np.linspace(0, 10, 5)
     ts = TimeSeries(name="scalar", time_s=t, columns=("value",), data=np.arange(5.0))
     assert ts.data.shape == (5, 1)
 
 
 def test_to_csv_round_trips_values(tmp_path):
+    """A series' CSV has a header of time and unit-tagged columns, one row per
+    sample, and the values read back."""
     ts = _sample_series()
     path = ts.to_csv(tmp_path / "out.csv")
     with open(path, newline="") as f:
@@ -72,6 +77,7 @@ def test_to_csv_round_trips_values(tmp_path):
 
 
 def test_result_set_add_and_export(tmp_path):
+    """A result exports one CSV file per series."""
     rs = ResultSet(scenario_name="test")
     rs.add(_sample_series("sat-1.position_N"))
     rs.add(_sample_series("sat-1.velocity_N"))
@@ -91,11 +97,13 @@ def _sample_provenance(**overrides) -> RunProvenance:
 
 
 def test_result_set_provenance_defaults_to_none():
+    """A new result has no provenance."""
     rs = ResultSet(scenario_name="test")
     assert rs.provenance is None
 
 
 def test_result_set_export_csv_without_provenance_writes_no_sidecar(tmp_path):
+    """Without provenance, export writes no provenance.json."""
     rs = ResultSet(scenario_name="test")
     rs.add(_sample_series("sat-1.position_N"))
     paths = rs.export_csv(tmp_path / "out")
@@ -104,6 +112,8 @@ def test_result_set_export_csv_without_provenance_writes_no_sidecar(tmp_path):
 
 
 def test_result_set_export_csv_with_provenance_writes_sidecar_json(tmp_path):
+    """With provenance, export writes provenance.json holding every provenance
+    field."""
     rs = ResultSet(scenario_name="test", provenance=_sample_provenance())
     rs.add(_sample_series("sat-1.position_N"))
     paths = rs.export_csv(tmp_path / "out")
@@ -131,6 +141,8 @@ def test_result_set_export_csv_with_provenance_writes_sidecar_json(tmp_path):
 
 
 def test_result_set_export_csv_with_provenance_and_no_series_still_writes_sidecar(tmp_path):
+    """A result with provenance and no series still writes provenance.json,
+    creating the folder."""
     # export_csv() must mkdir the output directory itself in this case --
     # with at least one series, TimeSeries.to_csv() already does that, but
     # a ResultSet with ONLY provenance and no series (e.g. a mission with
@@ -142,6 +154,7 @@ def test_result_set_export_csv_with_provenance_and_no_series_still_writes_sideca
 
 
 def test_result_set_rejects_duplicate_series_name():
+    """Adding a second series with the same name is refused."""
     rs = ResultSet(scenario_name="test")
     rs.add(_sample_series("dup"))
     with pytest.raises(ResultsError, match="already added"):
@@ -149,22 +162,28 @@ def test_result_set_rejects_duplicate_series_name():
 
 
 def test_result_set_warnings_defaults_to_empty_list():
+    """A new result has no warnings."""
     assert ResultSet(scenario_name="test").warnings == []
 
 
 # -- conservation_drift_warnings ---------------------------------------------
 
 def test_conservation_drift_warnings_clean_circular_orbit_has_no_warnings():
+    """Three revolutions of an exact circular orbit give no energy or momentum
+    warning."""
     r, v = _circular_orbit_rv(num_orbits=3.0)
     assert conservation_drift_warnings("sat-1", _EARTH_MU, r, v) == []
 
 
 def test_conservation_drift_warnings_too_few_samples_has_no_warnings():
+    """A single sample gives no warning."""
     r, v = _circular_orbit_rv(n=1)
     assert conservation_drift_warnings("sat-1", _EARTH_MU, r, v) == []
 
 
 def test_conservation_drift_warnings_detects_injected_energy_and_momentum_drift():
+    """A speed that grows 10 % over one orbit gives both an energy and an
+    angular-momentum warning naming the spacecraft."""
     r, v = _circular_orbit_rv(n=200, num_orbits=1.0)
     # A velocity magnitude that grows 10% over the run is not anything a
     # real two-body orbit would do on its own -- injected here to
@@ -181,6 +200,8 @@ def test_conservation_drift_warnings_detects_injected_energy_and_momentum_drift(
 
 
 def test_conservation_drift_warnings_respects_custom_tolerance():
+    """A 0.1 % drift passes the default 1 % tolerance but trips a 1e-6
+    tolerance on both quantities."""
     r, v = _circular_orbit_rv(n=200, num_orbits=1.0)
     growth = np.linspace(1.0, 1.001, r.shape[0])[:, None]  # a tiny, sub-1% drift
     drifting_v = v * growth
@@ -192,6 +213,8 @@ def test_conservation_drift_warnings_respects_custom_tolerance():
 
 
 def test_command_summary_export_csv_long_format(tmp_path):
+    """The command summary's CSV has one row per report, series and component,
+    with the label (empty when none) and the values in order."""
     summary = CommandSummary(reports=[
         ReportEntry(label="checkpoint", t_s=100.0, values={
             "sat-1.position_N": np.array([1.0, 2.0, 3.0]),
@@ -219,6 +242,7 @@ def test_command_summary_export_csv_long_format(tmp_path):
 
 
 def test_command_summary_export_csv_creates_parent_dir(tmp_path):
+    """The command summary's CSV export creates missing parent folders."""
     summary = CommandSummary(reports=[
         ReportEntry(label="x", t_s=0.0, values={"s": np.array([1.0])}),
     ])
@@ -249,6 +273,7 @@ def test_command_summary_csv_is_utf8_whatever_the_locale(tmp_path, monkeypatch):
 
 
 def test_command_summary_export_csv_with_no_reports_writes_header_only(tmp_path):
+    """A command summary without reports writes only the header."""
     path = CommandSummary().export_csv(tmp_path / "out.csv")
     with open(path, newline="") as f:
         rows = list(csv.reader(f))

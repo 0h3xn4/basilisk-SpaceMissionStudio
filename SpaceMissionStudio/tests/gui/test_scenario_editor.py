@@ -33,11 +33,14 @@ def _environment_labels(widget) -> list:
 
 
 def test_default_state_is_invalid_with_no_spacecraft(widget):
+    """A new editor shows a warning that the scenario has no spacecraft."""
     assert "⚠" in widget.validation_label.text()
     assert "spacecraft" in widget.validation_label.text().lower()
 
 
 def test_full_round_trip_matches_loaded_scenario(widget):
+    """A loaded scenario shows as valid and comes back with its name, epoch,
+    gravity, simulation settings and spacecraft orbit."""
     from spacemissionstudio.schema import load_scenario
 
     scenario = load_scenario(_SCENARIO_PATH)
@@ -57,11 +60,14 @@ def test_full_round_trip_matches_loaded_scenario(widget):
 
 
 def test_simulation_mode_defaults_to_full_attitude(widget):
+    """The simulation mode defaults to full attitude, and the spacecraft list
+    sees it."""
     assert widget.simulation_mode_combo.currentData() == "full_attitude"
     assert widget.spacecraft_list._simulation_mode() == "full_attitude"
 
 
 def test_simulation_mode_round_trips(widget):
+    """An orbit-only scenario opens in orbit-only mode and comes back so."""
     from spacemissionstudio.schema import load_scenario
 
     scenario = load_scenario(_SCENARIO_PATH)
@@ -78,6 +84,8 @@ def test_simulation_mode_round_trips(widget):
 
 
 def test_simulation_mode_combo_drives_spacecraft_list_provider(widget):
+    """Changing the simulation mode changes the mode the spacecraft list
+    sees."""
     widget.simulation_mode_combo.setCurrentIndex(widget.simulation_mode_combo.findData("orbit_only"))
     assert widget.spacecraft_list._simulation_mode() == "orbit_only"
 
@@ -142,6 +150,7 @@ def test_an_invalid_environment_edit_leaves_state_unchanged(widget, monkeypatch)
 
 
 def test_third_body_perturbers_round_trip(widget):
+    """The Sun and Moon as third bodies come back from the editor."""
     from spacemissionstudio.schema.scenario import GravityConfig, Scenario, SpacecraftConfig, OrbitIC
 
     scenario = Scenario(
@@ -156,6 +165,8 @@ def test_third_body_perturbers_round_trip(widget):
 
 
 def test_live_validation_reacts_to_bad_edit(widget, qtbot):
+    """Clearing the name turns the check into a warning that names the field by
+    its label and marks the field with it."""
     from spacemissionstudio.schema import load_scenario
 
     widget.from_scenario(load_scenario(_SCENARIO_PATH))
@@ -173,6 +184,7 @@ def test_live_validation_reacts_to_bad_edit(widget, qtbot):
 
 
 def test_to_scenario_raises_on_invalid_state(widget):
+    """Reading a scenario without spacecraft from the editor is refused."""
     from spacemissionstudio.schema.scenario import ScenarioValidationError
 
     with pytest.raises(ScenarioValidationError):
@@ -180,6 +192,8 @@ def test_to_scenario_raises_on_invalid_state(widget):
 
 
 def test_monte_carlo_round_trips(widget):
+    """Monte Carlo's switch, run and thread counts and dispersion come back
+    from the editor."""
     from spacemissionstudio.schema.scenario import DispersionConfig, MonteCarloConfig, OrbitIC, SpacecraftConfig
 
     widget.spacecraft_list.from_list([
@@ -201,6 +215,7 @@ def test_monte_carlo_round_trips(widget):
 
 
 def test_monte_carlo_spacecraft_names_track_spacecraft_list(widget):
+    """The dispersion list offers the spacecraft the list has."""
     from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig
 
     assert widget.monte_carlo_group.dispersion_list._spacecraft_names == []
@@ -212,6 +227,7 @@ def test_monte_carlo_spacecraft_names_track_spacecraft_list(widget):
 
 
 def test_reset_to_default_clears_spacecraft(widget):
+    """Resetting the editor removes the spacecraft."""
     from spacemissionstudio.schema import load_scenario
 
     widget.from_scenario(load_scenario(_SCENARIO_PATH))
@@ -221,6 +237,7 @@ def test_reset_to_default_clears_spacecraft(widget):
 
 
 def test_mission_sequence_round_trips(widget):
+    """The mission sequence comes back from the editor with its label."""
     from spacemissionstudio.schema.command import Command
     from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig
 
@@ -238,6 +255,7 @@ def test_mission_sequence_round_trips(widget):
 
 
 def test_mission_sequence_spacecraft_provider_tracks_spacecraft_list(widget):
+    """The mission-sequence editor offers the spacecraft the list has."""
     from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig
 
     assert widget.mission_sequence_editor._spacecraft_names() == []
@@ -249,6 +267,7 @@ def test_mission_sequence_spacecraft_provider_tracks_spacecraft_list(widget):
 
 
 def test_reset_to_default_clears_mission_sequence(widget):
+    """Resetting the editor empties the mission sequence."""
     from spacemissionstudio.schema.command import Command
 
     widget.mission_sequence_editor.from_command_list([

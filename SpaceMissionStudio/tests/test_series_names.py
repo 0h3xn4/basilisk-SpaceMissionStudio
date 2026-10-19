@@ -50,6 +50,8 @@ def test_template_05_matches_a_real_run():
 
 
 def test_devices_and_ground_stations_add_their_series():
+    """Comms pointing, power, a ground station, an IMU and wheels each add
+    their series to the prediction."""
     names = expected_series_names(load_scenario(_TEMPLATES_DIR / "19_sun_pointing_comms_link.json"))
     assert "leo-comms-1.comms_pointing.active_mode" in names
     assert "leo-comms-1.battery_charge" in names
@@ -60,6 +62,7 @@ def test_devices_and_ground_stations_add_their_series():
 
 @pytest.mark.parametrize("path", _TEMPLATE_PATHS, ids=lambda p: p.name)
 def test_names_are_sorted_and_unique(path):
+    """Every template's predicted names are sorted and unique."""
     names = expected_series_names(load_scenario(path))
     assert names == sorted(set(names))
 
@@ -85,6 +88,8 @@ def test_prediction_matches_a_real_run(path, request):
 # -- featured_series: the Results tab's one-click suggestions ------------------
 
 def test_featured_series_follow_the_description_in_order():
+    """The featured series are the ones template 19's description names, in its
+    order."""
     from spacemissionstudio.engine.series_names import featured_series
 
     assert featured_series(load_scenario(_TEMPLATES_DIR / "19_sun_pointing_comms_link.json")) == [
@@ -105,6 +110,8 @@ def test_featured_series_expand_shorthand_siblings():
 
 
 def test_featured_series_skip_names_a_run_will_not_produce():
+    """Featured series skip names the run will not produce and look only in the
+    What to look at section."""
     from spacemissionstudio.engine.series_names import featured_series
 
     scenario = load_scenario(_TEMPLATES_DIR / "07_attitude_pointing_with_adcs_hardware.json")

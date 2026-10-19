@@ -15,18 +15,22 @@ def widget(qtbot):
 
 
 def test_default_is_classical_elements(widget):
+    """The orbit form defaults to classical elements with a = 7000 km."""
     oe = widget.to_dataclass()
     assert oe.type == "classical_elements"
     assert oe.semi_major_axis_km == 7000.0
 
 
 def test_editing_a_field_emits_changed_and_updates_value(widget, qtbot):
+    """Editing the semi-major axis signals a change and gives the new value."""
     with qtbot.waitSignal(widget.changed, timeout=1000):
         widget.sma_km.setValue(8000.0)
     assert widget.to_dataclass().semi_major_axis_km == 8000.0
 
 
 def test_compute_sso_inclination_button_writes_inc_deg(widget, qtbot):
+    """Compute Sun-sync inclination fills in the inclination for the orbit's
+    semi-major axis."""
     from spacemissionstudio.engine.orbit_design import sun_synchronous_inclination_deg
 
     widget.sma_km.setValue(6878.1366)
@@ -37,6 +41,8 @@ def test_compute_sso_inclination_button_writes_inc_deg(widget, qtbot):
 
 
 def test_compute_sso_raan_button_writes_raan_deg_using_epoch_provider(widget, qtbot):
+    """Compute RAAN for LTAN fills in the RAAN for the scenario's epoch and the
+    local time chosen."""
     from spacemissionstudio.engine.orbit_design import raan_for_ltan_deg
 
     widget.set_epoch_provider(lambda: "2030-01-01T00:00:00")
@@ -47,6 +53,7 @@ def test_compute_sso_raan_button_writes_raan_deg_using_epoch_provider(widget, qt
 
 
 def test_compute_sso_raan_button_warns_with_no_epoch_provider(widget, qtbot, monkeypatch, reported):
+    """Without an epoch, Compute RAAN warns and leaves the RAAN as it was."""
     widget.raan_deg.setValue(42.0)
     widget._on_compute_sso_raan()
     assert len(reported) == 1 and reported[0][1] == "warning" and "No epoch set" in reported[0][0]  # no box
@@ -54,6 +61,7 @@ def test_compute_sso_raan_button_warns_with_no_epoch_provider(widget, qtbot, mon
 
 
 def test_switching_type_emits_changed_and_updates_dataclass(widget, qtbot):
+    """Switching to Cartesian signals a change and gives a Cartesian orbit."""
     with qtbot.waitSignal(widget.changed, timeout=1000):
         widget.type_combo.setCurrentIndex(widget.type_combo.findData("cartesian"))
     cart = widget.to_dataclass()
@@ -71,6 +79,8 @@ def test_switching_type_emits_changed_and_updates_dataclass(widget, qtbot):
     dict(type="tle", tle_line1="1 25544U", tle_line2="2 25544"),
 ])
 def test_from_dataclass_round_trips(widget, orbit_kwargs):
+    """Classical elements with true or mean anomaly, Cartesian and TLE orbits
+    come back unchanged."""
     from spacemissionstudio.schema.scenario import OrbitIC
 
     orbit = OrbitIC(**orbit_kwargs)
@@ -80,6 +90,8 @@ def test_from_dataclass_round_trips(widget, orbit_kwargs):
 
 
 def test_default_classical_elements_uses_true_anomaly(widget):
+    """The default classical elements give a true anomaly of 0 and no mean
+    anomaly."""
     oe = widget.to_dataclass()
     assert oe.anomaly_type == "true"
     assert oe.true_anomaly_deg == 0.0
@@ -87,6 +99,8 @@ def test_default_classical_elements_uses_true_anomaly(widget):
 
 
 def test_switching_anomaly_type_to_mean_updates_dataclass(widget, qtbot):
+    """Switching to mean anomaly gives the typed mean anomaly and no true
+    anomaly."""
     from spacemissionstudio.schema.scenario import ANOMALY_TYPES
 
     assert set(ANOMALY_TYPES) == {"true", "mean"}
@@ -101,6 +115,7 @@ def test_switching_anomaly_type_to_mean_updates_dataclass(widget, qtbot):
 
 
 def test_from_dataclass_rejects_unknown_type(widget):
+    """An orbit type the form does not know is refused."""
     from spacemissionstudio.schema.scenario import OrbitIC
 
     with pytest.raises(ValueError, match="doesn't know orbit type"):

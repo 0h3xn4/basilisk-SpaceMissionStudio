@@ -86,6 +86,8 @@ def _build_vizard_with_fuel_tank(tmp_path):
 
 
 def test_fuel_tank_gets_its_own_generic_storage_panel(tmp_path):
+    """A fuel tank gets its own Vizard storage panel, a propellant tank in
+    kg."""
     _, storage_list = _build_vizard_with_fuel_tank(tmp_path)
 
     assert len(storage_list) == 1
@@ -114,6 +116,7 @@ def test_fuel_tank_panel_label_is_distinct_from_station_keepings_own_propellant_
 
 
 def test_simulation_runs_without_crashing_with_the_new_fuel_tank_panel(tmp_path):
+    """A run with the fuel-tank panel executes."""
     from Basilisk.utilities import macros
 
     scSim, storage_list = _build_vizard_with_fuel_tank(tmp_path)

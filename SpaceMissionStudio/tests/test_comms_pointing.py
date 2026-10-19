@@ -175,6 +175,8 @@ def _run_comms_pointing(segments, rf_link=None, ground_station_config=None):
 
 
 def test_arbitrator_output_mirrors_the_active_chain_exactly():
+    """The mode arbitrator follows the requested mode: Sun, then comms, then
+    Sun again, without NaN."""
     arbitrator, sigma_BN, t_s, _ = _run_comms_pointing([(False, 20.0), (True, 20.0), (False, 20.0)])
 
     assert not np.any(np.isnan(sigma_BN)), "attitude went non-physical (NaN)"
@@ -204,6 +206,7 @@ def test_pointing_error_deg_log_matches_the_active_chains_own_sigma_br():
 
 
 def test_comms_power_sink_only_draws_power_while_comms_mode_is_active():
+    """The comms power draw is on only while comms pointing is active."""
     _, _, _, power_rec = _run_comms_pointing([(False, 10.0), (True, 10.0), (False, 10.0)])
 
     # The recorded PowerNodeUsageMsgPayload's own field is netPower -- NOT

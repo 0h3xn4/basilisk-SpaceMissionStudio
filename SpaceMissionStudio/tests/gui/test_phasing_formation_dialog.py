@@ -41,6 +41,9 @@ def test_description_label_wraps_instead_of_blowing_up_dialog_width(qtbot):
 
 
 def test_defaults_produce_a_valid_request(qtbot):
+    """The dialog's defaults give a request on the first spacecraft with a
+    non-zero separation, a derived station-keeping altitude and a sunlit
+    threshold of 0.99."""
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
 
     dialog = PhasingFormationDialog(["chief-1", "follower-1"], central_body="earth")
@@ -55,6 +58,7 @@ def test_defaults_produce_a_valid_request(qtbot):
 
 
 def test_station_keeping_target_altitude_defaults_to_disabled_spin_box(qtbot):
+    """Derive altitude is checked by default and the altitude box disabled."""
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
 
     dialog = PhasingFormationDialog(["chief-1"])
@@ -64,6 +68,7 @@ def test_station_keeping_target_altitude_defaults_to_disabled_spin_box(qtbot):
 
 
 def test_unchecking_derive_altitude_enables_spin_box_and_is_used(qtbot):
+    """Unchecking Derive altitude enables the box, and its value is used."""
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
 
     dialog = PhasingFormationDialog(["chief-1"])
@@ -77,6 +82,7 @@ def test_unchecking_derive_altitude_enables_spin_box_and_is_used(qtbot):
 
 
 def test_editing_eclipse_sunlit_threshold_updates_request(qtbot):
+    """The sunlit threshold typed is used."""
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
 
     dialog = PhasingFormationDialog(["chief-1"])
@@ -101,6 +107,8 @@ def test_the_control_law_choice_reaches_the_request(qtbot):
 
 
 def test_central_body_is_not_independently_selectable(qtbot):
+    """The central body is the one passed in; the dialog offers no way to
+    change it."""
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
 
     dialog = PhasingFormationDialog(["chief-1"], central_body="mars")
@@ -111,6 +119,8 @@ def test_central_body_is_not_independently_selectable(qtbot):
 
 
 def test_empty_spacecraft_list_disables_combos(qtbot):
+    """Without spacecraft, the chief and template lists are disabled and
+    nothing is chosen."""
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
 
     dialog = PhasingFormationDialog([])
@@ -121,6 +131,9 @@ def test_empty_spacecraft_list_disables_combos(qtbot):
 
 
 def test_editing_fields_updates_request(qtbot):
+    """The chief, name, offsets and thrust typed are used; a negative
+    along-track offset is kept, shown as out of range and refused by the
+    request's validation."""
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
 
     dialog = PhasingFormationDialog(["chief-1", "chief-2"])
@@ -149,6 +162,7 @@ def test_editing_fields_updates_request(qtbot):
 
 
 def test_accept_blocked_on_invalid_request(qtbot, monkeypatch):
+    """OK with a 0 km along-track offset does not accept the dialog."""
     from PySide6.QtWidgets import QDialog, QMessageBox
 
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
@@ -162,6 +176,7 @@ def test_accept_blocked_on_invalid_request(qtbot, monkeypatch):
 
 
 def test_accept_blocked_when_follower_name_equals_chief_name(qtbot, monkeypatch):
+    """OK with the follower named like the chief does not accept the dialog."""
     from PySide6.QtWidgets import QDialog, QMessageBox
 
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
@@ -188,6 +203,7 @@ def test_dialog_resizes_to_its_own_sizehint_on_construction(qtbot):
 
 
 def test_thruster_realism_settings_reach_the_request(qtbot):
+    """The minimum on-time and eccentricity-neutral burns reach the request."""
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
 
     dialog = PhasingFormationDialog(["chief-1"])
@@ -201,6 +217,7 @@ def test_thruster_realism_settings_reach_the_request(qtbot):
 
 
 def test_dialog_defaults_match_the_generator_request_defaults(qtbot):
+    """The dialog's correction window starts at the request's default."""
     import dataclasses
 
     from spacemissionstudio.engine.formation import PhasingFormationRequest

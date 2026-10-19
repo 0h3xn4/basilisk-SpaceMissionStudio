@@ -62,6 +62,8 @@ def test_struct_fields_units_and_message_roles_come_from_the_header():
 
 
 def test_array_sizes_resolve_macros_and_refuse_unknown_names():
+    """C array sizes resolve Basilisk's macros and products of them; an unknown
+    name is refused."""
     macros = cdecl.integer_macros(sources.read_text("architecture/utilities/macroDefinitions.h"))
     assert macros["MAX_EFF_CNT"] == 36
     assert cdecl.array_shape("[MAX_EFF_CNT]", macros) == [36]
@@ -115,6 +117,8 @@ def test_the_message_interface_keeps_basilisks_c_functions_only():
 
 
 def test_leaves_flatten_nested_payloads_without_padding():
+    """A nested payload flattens into its leaf fields at their offsets, without
+    padding."""
     inner = np.dtype({"names": ["n", "v"], "formats": ["<i4", "<f8"], "offsets": [0, 8], "itemsize": 16})
     layout = model.layout_of(np.dtype({"names": ["k", "s"], "formats": ["<i4", (inner, (2,))], "offsets": [0, 8],
                                        "itemsize": 40}))
@@ -164,6 +168,8 @@ def _fake_export(tmp_path, scenario, name="sat-1"):
 
 
 def test_export_status_tells_current_stale_modified_and_missing(tmp_path):
+    """An export is current, stale (naming what changed), modified, missing, or
+    for an unknown spacecraft."""
     scenario = _scenario()
     folder, record = _fake_export(tmp_path, scenario)
     assert records.export_status(scenario, record).state == records.CURRENT
@@ -179,6 +185,8 @@ def test_export_status_tells_current_stale_modified_and_missing(tmp_path):
 
 
 def test_export_records_validate_and_round_trip_with_the_scenario(tmp_path):
+    """Export records survive a save and load, one per spacecraft; two for one
+    spacecraft or a bad digest are refused."""
     scenario = _scenario()
     _, record = _fake_export(tmp_path, scenario)
     scenario.fsw_exports = records.with_record(scenario, record)

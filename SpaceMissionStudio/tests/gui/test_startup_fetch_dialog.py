@@ -16,6 +16,7 @@ pytestmark = pytest.mark.requires_gui
 
 
 def test_dialog_defaults_to_both_items_checked(qtbot):
+    """The start-up fetch dialog offers both downloads checked."""
     from spacemissionstudio.gui.startup_fetch_dialog import StartupFetchDialog
 
     dialog = StartupFetchDialog()
@@ -25,6 +26,7 @@ def test_dialog_defaults_to_both_items_checked(qtbot):
 
 
 def test_dialog_selected_reflects_unchecked_items(qtbot):
+    """An unchecked item is not selected."""
     from spacemissionstudio.gui.startup_fetch_dialog import StartupFetchDialog
 
     dialog = StartupFetchDialog()
@@ -35,6 +37,7 @@ def test_dialog_selected_reflects_unchecked_items(qtbot):
 
 
 def test_skip_button_rejects_the_dialog(qtbot):
+    """Skip rejects the dialog."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.startup_fetch_dialog import StartupFetchDialog
@@ -47,6 +50,7 @@ def test_skip_button_rejects_the_dialog(qtbot):
 
 
 def test_fetch_now_button_accepts_the_dialog(qtbot):
+    """Fetch now accepts the dialog."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.startup_fetch_dialog import StartupFetchDialog
@@ -74,6 +78,7 @@ def _mock_dialog_exec(monkeypatch, *, accept: bool, fetch_kernels: bool = True, 
 
 
 def test_maybe_run_skips_entirely_without_touching_the_worker(qtbot, monkeypatch):
+    """When the user skips, no fetch is started."""
     from spacemissionstudio.gui import startup_fetch_dialog as module
 
     _mock_dialog_exec(monkeypatch, accept=False)
@@ -86,6 +91,7 @@ def test_maybe_run_skips_entirely_without_touching_the_worker(qtbot, monkeypatch
 
 
 def test_maybe_run_skips_when_both_items_unchecked(qtbot, monkeypatch):
+    """When both items are unchecked, no fetch is started."""
     from spacemissionstudio.gui import startup_fetch_dialog as module
 
     _mock_dialog_exec(monkeypatch, accept=True, fetch_kernels=False, fetch_space_weather=False)
@@ -98,6 +104,7 @@ def test_maybe_run_skips_when_both_items_unchecked(qtbot, monkeypatch):
 
 
 def test_maybe_run_fetches_selected_items_and_shows_summary(qtbot, monkeypatch):
+    """Both fetches run and their results are reported together."""
     from spacemissionstudio.gui import startup_fetch_dialog as module
 
     _mock_dialog_exec(monkeypatch, accept=True, fetch_kernels=True, fetch_space_weather=True)
@@ -125,6 +132,8 @@ def test_maybe_run_fetches_selected_items_and_shows_summary(qtbot, monkeypatch):
 
 
 def test_maybe_run_reports_a_failed_space_weather_fetch(qtbot, monkeypatch):
+    """A failed space-weather fetch is reported as a warning with its
+    reason."""
     from spacemissionstudio.gui import startup_fetch_dialog as module
 
     _mock_dialog_exec(monkeypatch, accept=True, fetch_kernels=False, fetch_space_weather=True)
@@ -147,6 +156,7 @@ def test_maybe_run_reports_a_failed_space_weather_fetch(qtbot, monkeypatch):
 
 
 def test_maybe_run_reports_an_unexpected_worker_error(qtbot, monkeypatch):
+    """An unexpected worker error is reported as a warning with its message."""
     from spacemissionstudio.gui import startup_fetch_dialog as module
 
     _mock_dialog_exec(monkeypatch, accept=True, fetch_kernels=True, fetch_space_weather=False)
@@ -189,6 +199,7 @@ def test_worker_fetch_kernels_reports_missing_basilisk():
 
 
 def test_worker_fetch_space_weather_reports_failure(monkeypatch):
+    """The worker's space-weather fetch reports a failure with its reason."""
     from spacemissionstudio.gui.startup_fetch_dialog import StartupFetchWorker
     from spacemissionstudio.engine import spaceweather as sw
 
@@ -204,6 +215,8 @@ def test_worker_fetch_space_weather_reports_failure(monkeypatch):
 
 
 def test_worker_fetch_space_weather_reports_success(monkeypatch, tmp_path):
+    """The worker's space-weather fetch reports success with the file's
+    path."""
     from spacemissionstudio.gui.startup_fetch_dialog import StartupFetchWorker
     from spacemissionstudio.engine import spaceweather as sw
 

@@ -28,6 +28,7 @@ def _circular_rv(n=5):
 
 
 def test_finite_samples_produce_normal_elements():
+    """Finite samples give finite, positive semi-major axes."""
     from spacemissionstudio.engine.service import _osculating_elements
 
     r, v = _circular_rv()
@@ -57,6 +58,7 @@ def test_nan_sample_raises_a_clear_error_not_an_attribute_error():
 
 
 def test_inf_sample_also_raises_the_clear_error():
+    """An infinite velocity is refused as non-physical."""
     from spacemissionstudio.engine.service import SimulationServiceError, _osculating_elements
 
     r, v = _circular_rv(n=3)
@@ -91,6 +93,8 @@ def _leo_osculating_elements(n=5):
 
 
 def test_mean_elements_are_finite_and_close_to_osculating():
+    """Mean (first-order J2) elements in LEO are finite and within 10 km of the
+    osculating semi-major axis."""
     from Basilisk.utilities import orbitalMotion
 
     from spacemissionstudio.engine.service import _mean_elements
@@ -216,6 +220,8 @@ def test_live_extraction_computes_each_sample_once_and_matches_a_full_pass(monke
 
 
 def test_incremental_nan_error_reports_the_recorded_sample_index():
+    """A NaN found when elements are computed in pieces is reported at its
+    sample number in the whole record."""
     from spacemissionstudio.engine.service import SimulationServiceError
 
     r, v = _inclined_orbit_rv(8)

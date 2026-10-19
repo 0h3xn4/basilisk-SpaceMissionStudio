@@ -49,6 +49,8 @@ def _scenario(duration_days=0.2, dynamics_task_rate_s=10.0, mission_sequence=Non
 
 
 def test_empty_mission_sequence_executes_nothing():
+    """An empty mission sequence runs no command, reports nothing and records
+    no sample (Basilisk records only once the simulation has ticked)."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     scenario = _scenario()
@@ -159,6 +161,7 @@ def test_multiple_propagate_segments_accumulate_not_restart():
 
 
 def test_propagate_epoch_stop_condition():
+    """A propagate to 02:00 UTC stops two hours into the run."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     scenario = _scenario(duration_days=1.0, mission_sequence=[
@@ -172,6 +175,8 @@ def test_propagate_epoch_stop_condition():
 
 
 def test_propagate_epoch_before_current_time_is_rejected():
+    """A propagate to a stop epoch that is not after the current mission time
+    is refused."""
     from spacemissionstudio.engine.mission_engine import MissionEngine, MissionEngineError
 
     scenario = _scenario(duration_days=1.0, mission_sequence=[
@@ -289,6 +294,8 @@ def _read_velocity_state(handle):
 
 
 def test_maneuver_inertial_frame_applies_exact_delta_v():
+    """An inertial maneuver changes the spacecraft's velocity state by exactly
+    the delta-V, to 1e-9 m/s."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     delta_v = np.array([10.0, -5.0, 2.0])  # [m/s]
@@ -308,6 +315,8 @@ def test_maneuver_inertial_frame_applies_exact_delta_v():
 
 
 def test_maneuver_vnb_prograde_increases_speed_by_exact_magnitude():
+    """A 25 m/s prograde VNB maneuver increases the speed by 25 m/s, to 1e-6
+    m/s."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     dv_mag = 25.0  # [m/s]
@@ -346,6 +355,8 @@ def test_maneuver_unknown_spacecraft_raises():
 
 
 def test_assignment_updates_live_station_keeping_thrust():
+    """An assignment to station_keeping.thrust_n changes the running
+    controller's thrust."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     scenario = _scenario(mission_sequence=[
@@ -365,6 +376,8 @@ def test_assignment_updates_live_station_keeping_thrust():
 
 
 def test_assignment_bad_target_shape_raises():
+    """An assignment target without three dotted parts is refused at run
+    time."""
     from spacemissionstudio.engine.mission_engine import MissionEngine, MissionEngineError
 
     scenario = _scenario(mission_sequence=[
@@ -375,6 +388,8 @@ def test_assignment_bad_target_shape_raises():
 
 
 def test_assignment_missing_controller_raises():
+    """An assignment to station keeping on a spacecraft without it is refused
+    at run time."""
     from spacemissionstudio.engine.mission_engine import MissionEngine, MissionEngineError
 
     scenario = _scenario(mission_sequence=[
@@ -385,6 +400,8 @@ def test_assignment_missing_controller_raises():
 
 
 def test_report_snapshots_current_value_not_whole_history():
+    """A report between two propagates holds the position at its own time, not
+    the final one."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     scenario = _scenario(duration_days=0.05, mission_sequence=[
@@ -408,6 +425,7 @@ def test_report_snapshots_current_value_not_whole_history():
 
 
 def test_report_unknown_series_raises():
+    """A report of a series the result does not have is refused at run time."""
     from spacemissionstudio.engine.mission_engine import MissionEngine, MissionEngineError
 
     scenario = _scenario(mission_sequence=[
@@ -420,6 +438,7 @@ def test_report_unknown_series_raises():
 
 
 def test_if_true_branch_runs_children():
+    """An if whose condition holds runs its children."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     # A script_block marker, not a report command: this test is about
@@ -436,6 +455,8 @@ def test_if_true_branch_runs_children():
 
 
 def test_if_false_branch_skips_children():
+    """An if whose condition fails skips its children but counts as an executed
+    command."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     scenario = _scenario(mission_sequence=[
@@ -451,6 +472,7 @@ def test_if_false_branch_skips_children():
 
 
 def test_if_condition_can_read_spacecraft_state():
+    """An if condition can read a spacecraft's altitude."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     scenario = _scenario(mission_sequence=[
@@ -463,6 +485,8 @@ def test_if_condition_can_read_spacecraft_state():
 
 
 def test_while_loop_runs_expected_iterations_and_terminates():
+    """A while re-checks its condition against the advanced mission time after
+    each iteration: a threshold of 1.5 segments runs it exactly twice."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     segment_days = 0.01
@@ -492,6 +516,8 @@ def test_while_loop_runs_expected_iterations_and_terminates():
 
 
 def test_while_loop_exceeding_iteration_cap_raises_clear_error():
+    """A while that never ends is stopped at its iteration limit with an error
+    saying so."""
     from spacemissionstudio.engine.mission_engine import MissionEngine, MissionEngineError
 
     scenario = _scenario(mission_sequence=[
@@ -504,6 +530,8 @@ def test_while_loop_exceeding_iteration_cap_raises_clear_error():
 
 
 def test_script_block_can_write_to_summary():
+    """A script block, with scripts allowed, can write to the command
+    summary."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     scenario = _scenario(mission_sequence=[
@@ -514,6 +542,8 @@ def test_script_block_can_write_to_summary():
 
 
 def test_script_block_exception_is_wrapped_in_mission_engine_error():
+    """An exception in a script block is reported as a mission-engine error
+    with its message."""
     from spacemissionstudio.engine.mission_engine import MissionEngine, MissionEngineError
 
     scenario = _scenario(mission_sequence=[
@@ -559,6 +589,8 @@ def test_condition_cannot_reach_python_objects():
 
 
 def test_nested_if_inside_while_shares_one_command_summary():
+    """Reports from an if inside a while, three iterations, all land in one
+    command summary."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     segment_days = 0.01

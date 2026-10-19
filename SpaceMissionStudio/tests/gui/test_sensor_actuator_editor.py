@@ -9,6 +9,8 @@ pytestmark = pytest.mark.requires_gui
 
 
 def test_from_list_to_list_round_trip(qtbot):
+    """The device list shows the devices it is given and gives them back with
+    their parameters."""
     from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget
     from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
 
@@ -25,6 +27,8 @@ def test_from_list_to_list_round_trip(qtbot):
 
 
 def test_add_via_dialog(qtbot, monkeypatch):
+    """Add opens the editor; the accepted wheel is listed with its spin axis,
+    as one change."""
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QDialog
 
@@ -59,6 +63,8 @@ def test_add_via_dialog(qtbot, monkeypatch):
 
 
 def test_edit_and_remove(qtbot, monkeypatch):
+    """Edit applies the editor's changes to the selected device; Remove deletes
+    it."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget, _ItemEditorDialog
@@ -83,6 +89,8 @@ def test_edit_and_remove(qtbot, monkeypatch):
 
 
 def test_rejects_duplicate_name_on_add(qtbot, monkeypatch, reported):
+    """A device with a name already listed is not saved, with a warning toast
+    naming it."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget, _ItemEditorDialog
@@ -104,6 +112,8 @@ def test_rejects_duplicate_name_on_add(qtbot, monkeypatch, reported):
 
 
 def test_item_editor_dialog_rejects_invalid_json(qtbot):
+    """Device parameters that are not JSON are refused when the dialog is
+    read."""
     from spacemissionstudio.gui.sensor_actuator_editor import _ItemEditorDialog
     from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
 
@@ -116,6 +126,7 @@ def test_item_editor_dialog_rejects_invalid_json(qtbot):
 
 
 def test_item_editor_dialog_rejects_empty_name(qtbot):
+    """An empty device name is refused when the dialog is read."""
     from spacemissionstudio.gui.sensor_actuator_editor import _ItemEditorDialog
     from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
 
@@ -127,6 +138,8 @@ def test_item_editor_dialog_rejects_empty_name(qtbot):
 
 
 def test_item_editor_dialog_name_field_shows_inline_error_on_duplicate(qtbot):
+    """A name another device has marks the field as an error; a free name
+    clears it."""
     from spacemissionstudio.gui.sensor_actuator_editor import _ItemEditorDialog
     from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
 
@@ -159,6 +172,7 @@ def test_item_editor_dialog_accept_blocks_and_keeps_dialog_open_on_duplicate_nam
 
 
 def test_add_via_dialog_shows_a_toast_and_selects_the_row(qtbot, monkeypatch):
+    """An added device is selected and shown in a toast."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget, _ItemEditorDialog
@@ -280,6 +294,7 @@ def test_missing_required_vector_key_is_caught_defensively():
 
 
 def test_reset_to_template_button_overwrites_params(qtbot):
+    """Reset to template replaces a wheel's parameters with the template's."""
     from spacemissionstudio.gui.sensor_actuator_editor import _ItemEditorDialog
     from spacemissionstudio.schema.scenario import SUPPORTED_ACTUATOR_KINDS, ActuatorConfig
 
@@ -423,6 +438,8 @@ def test_parameter_rows_show_units_and_optional_checkboxes(qtbot):
 # of commonly used devices from the space industry" --------------------
 
 def test_catalog_row_is_visible_for_a_kind_with_entries(qtbot):
+    """For star trackers the device catalog row shows, listing every entry
+    after the custom placeholder."""
     from spacemissionstudio.engine.device_catalog import catalog_entries_for_kind
     from spacemissionstudio.gui.sensor_actuator_editor import _ItemEditorDialog
     from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
@@ -461,6 +478,8 @@ def test_catalog_row_is_hidden_for_a_kind_with_no_entries(qtbot):
 
 
 def test_selecting_a_catalog_entry_previews_its_info_without_changing_fields(qtbot):
+    """Choosing a catalog entry shows its source and enables Apply, without
+    changing the parameters."""
     from spacemissionstudio.engine.device_catalog import catalog_entries_for_kind
     from spacemissionstudio.gui.sensor_actuator_editor import _ItemEditorDialog
     from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
@@ -484,6 +503,7 @@ def test_selecting_a_catalog_entry_previews_its_info_without_changing_fields(qtb
 
 
 def test_applying_a_catalog_entry_fills_real_device_params(qtbot):
+    """Applying a catalog entry fills in its parameters."""
     from spacemissionstudio.engine.device_catalog import catalog_entries_for_kind
     from spacemissionstudio.gui.sensor_actuator_editor import _ItemEditorDialog
     from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
@@ -534,6 +554,8 @@ def test_applying_a_catalog_entry_leaves_the_result_freely_editable(qtbot):
 
 
 def test_catalog_combo_resets_to_custom_placeholder_when_kind_changes(qtbot):
+    """Changing the device kind sets the catalog back to its placeholder and
+    clears the preview."""
     from spacemissionstudio.gui.sensor_actuator_editor import _ItemEditorDialog
     from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
 

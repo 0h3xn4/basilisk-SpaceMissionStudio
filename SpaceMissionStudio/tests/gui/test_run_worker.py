@@ -25,6 +25,8 @@ def _load_two_body_scenario():
 
 @pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
 def test_run_without_basilisk_emits_failed(qtbot):
+    """Without Basilisk, the run worker fails saying Basilisk is not
+    installed."""
     from spacemissionstudio.gui.run_worker import RunWorker
 
     worker = RunWorker(_load_two_body_scenario())
@@ -51,6 +53,8 @@ def test_live_run_without_basilisk_emits_failed(qtbot):
 
 @pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
 def test_monte_carlo_worker_without_basilisk_emits_failed(qtbot, tmp_path):
+    """Without Basilisk, the Monte Carlo worker fails saying Basilisk is not
+    installed."""
     from spacemissionstudio.gui.run_worker import MonteCarloWorker
     from spacemissionstudio.schema.scenario import MonteCarloConfig
 
@@ -159,6 +163,7 @@ def test_run_always_uses_run_live_and_passes_should_cancel(qtbot, monkeypatch):
 
 
 def test_live_false_never_emits_progress(qtbot, monkeypatch):
+    """A run that is not live signals no progress."""
     from spacemissionstudio.gui.run_worker import RunWorker
 
     def run_live_impl(service, on_progress, should_cancel):
@@ -179,6 +184,7 @@ def test_live_false_never_emits_progress(qtbot, monkeypatch):
 
 
 def test_live_true_emits_progress(qtbot, monkeypatch):
+    """A live run signals each progress update."""
     from spacemissionstudio.gui.run_worker import RunWorker
 
     def run_live_impl(service, on_progress, should_cancel):
@@ -199,6 +205,7 @@ def test_live_true_emits_progress(qtbot, monkeypatch):
 
 
 def test_request_cancel_makes_should_cancel_true(qtbot, monkeypatch):
+    """A cancel request is seen by the run's cancel check."""
     from spacemissionstudio.gui.run_worker import RunWorker
 
     seen = []
@@ -220,6 +227,8 @@ def test_request_cancel_makes_should_cancel_true(qtbot, monkeypatch):
 
 
 def test_simulation_cancelled_emits_cancelled_signal_with_partial_result(qtbot, monkeypatch):
+    """A cancelled run signals cancellation with its partial result and no
+    summary."""
     from spacemissionstudio.gui.run_worker import RunWorker
 
     partial = _FakeResultSet()
@@ -239,6 +248,8 @@ def test_simulation_cancelled_emits_cancelled_signal_with_partial_result(qtbot, 
 
 
 def test_mission_sequence_dispatch_passes_should_cancel_to_mission_engine(qtbot, monkeypatch):
+    """A mission-sequence run hands the worker's cancel check to the mission
+    engine."""
     from spacemissionstudio.gui.run_worker import RunWorker
 
     from spacemissionstudio.schema.command import Command
@@ -268,6 +279,8 @@ def test_mission_sequence_dispatch_passes_should_cancel_to_mission_engine(qtbot,
 
 
 def test_mission_engine_cancelled_emits_cancelled_signal_with_partial_result_and_summary(qtbot, monkeypatch):
+    """A cancelled mission-sequence run signals cancellation with its partial
+    result and summary."""
     from spacemissionstudio.gui.run_worker import RunWorker
 
     from spacemissionstudio.schema.command import Command

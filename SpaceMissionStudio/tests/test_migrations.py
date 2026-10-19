@@ -36,6 +36,7 @@ def _v1_scenario(space_weather: dict | None = None) -> dict:
 
 
 def test_migrate_bumps_schema_version_to_current():
+    """Migrating a schema 1 file brings it to the current schema version."""
     data = migrate(_v1_scenario())
     assert data["schema_version"] == CURRENT_SCHEMA_VERSION
 
@@ -66,6 +67,7 @@ def test_migrate_downgrades_conservative_celestrak_to_nominal_bundled():
 
 
 def test_migrate_leaves_local_file_source_untouched():
+    """Migration keeps a local_file space-weather source and its path."""
     data = migrate(_v1_scenario({"source": "local_file", "local_file_path": "/some/file.csv"}))
     assert data["space_weather"]["source"] == "local_file"
     assert data["space_weather"]["local_file_path"] == "/some/file.csv"
@@ -82,6 +84,8 @@ def test_migrate_turns_conservative_into_msfcs_95th_percentile():
 
 
 def test_migrate_drops_a_nominal_activity_level():
+    """Migration drops the old activity level and percentile, keeping the
+    forecast percentile."""
     data = _v1_scenario({"source": "bundled", "activity_level": "nominal", "activity_percentile": 95.0,
                          "forecast_percentile": 5.0})
     data["schema_version"] = 3
@@ -113,6 +117,8 @@ def test_load_scenario_migrates_an_old_celestrak_file_end_to_end(tmp_path):
 
 
 def test_load_scenario_migrates_an_old_conservative_celestrak_file_end_to_end(tmp_path):
+    """An old file with a conservative celestrak source loads as bundled space
+    weather at the 50th percentile."""
     path = tmp_path / "old_conservative.json"
     path.write_text(json.dumps(_v1_scenario({
         "source": "celestrak", "activity_level": "conservative", "activity_percentile": 95.0,
@@ -125,6 +131,7 @@ def test_load_scenario_migrates_an_old_conservative_celestrak_file_end_to_end(tm
 
 
 def test_migrate_rejects_a_version_with_no_registered_step(monkeypatch):
+    """A schema version without a migration step is refused."""
     import spacemissionstudio.schema.migrations as migrations_module
 
     monkeypatch.setattr(migrations_module, "MIGRATIONS", {})

@@ -212,8 +212,8 @@ sentence).
 
 ### 9.1 General (K.2.1<9.1>)
 
-RD1 identifies the unit and integration test cases (test functions): 2135
-on 2026-10-14. Parametrized functions run once per parameter set, so the
+RD1 identifies the unit and integration test cases (test functions): 2314
+on 2026-10-19. Parametrized functions run once per parameter set, so the
 suite runs more cases than functions (3242 on 2026-10-14, with the
 validation set).
 
@@ -222,10 +222,8 @@ validation set).
 #### 9.2.1 Test case identifier (K.2.1<9.2.1>)
 
 `<file>::<function>`. The purpose is the docstring.
-- 1079 of the 2135 functions have a docstring (RD1 gives the current
-  count).
-- The others are described only by their name. Adding docstrings to them
-  is an open item; rule C-9 requires them for new tests.
+- All 2314 functions have a docstring (on 2026-10-19; RD1 gives the
+  current count), as rule C-9 requires. Until then 1054 had none (K-09).
 
 #### 9.2.2 Test items (K.2.1<9.2.2>)
 

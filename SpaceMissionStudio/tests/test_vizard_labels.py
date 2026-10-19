@@ -23,6 +23,7 @@ from spacemissionstudio.engine.vizard import _rtn_panel_label, _usable_label_wid
 
 
 def test_usable_width_stays_at_the_minimum_for_a_short_spacecraft_name():
+    """A short spacecraft name keeps Vizard's 90 px panel, less its margin."""
     # len("sat-1" + " Storage") == 13, <= 16 -- Vizard's own
     # GenericStoragePanelMethods.cs never widens the bar past its
     # hardcoded 90px default in this case.
@@ -30,12 +31,14 @@ def test_usable_width_stays_at_the_minimum_for_a_short_spacecraft_name():
 
 
 def test_usable_width_grows_with_a_longer_spacecraft_name():
+    """A longer name widens the panel by 7 px per character."""
     # len("follower-1" + " Storage") == 18, > 16 -- widened to 18*7px.
     assert _usable_label_width_px("follower-1") == 18 * 7.0 - 3.0
     assert _usable_label_width_px("follower-1") > _usable_label_width_px("sat-1")
 
 
 def test_short_chief_name_is_used_directly_on_a_wide_enough_panel():
+    """A short chief name is shown in each RTN label."""
     # follower-1's own panel (123px usable) is wide enough for all three.
     assert _rtn_panel_label("R", "chief-1", "follower-1") == "R vs chief-1"
     assert _rtn_panel_label("T", "chief-1", "follower-1") == "T vs chief-1"
@@ -43,6 +46,7 @@ def test_short_chief_name_is_used_directly_on_a_wide_enough_panel():
 
 
 def test_long_chief_name_falls_back_to_the_generic_label():
+    """A long chief name gives the generic label, never a truncated name."""
     long_name = "a-very-long-chief-spacecraft-name"
     label = _rtn_panel_label("R", long_name, "follower-1")
     assert label == "R vs chief"
@@ -62,6 +66,7 @@ def test_narrow_panel_falls_back_further_than_the_generic_label():
 
 
 def test_label_never_exceeds_that_scenarios_own_usable_width():
+    """No label is wider than its panel, for any combination of names."""
     for follower_name in ("sat-1", "follower-1", "a-very-long-follower-spacecraft-name", "x"):
         max_len = _usable_label_width_px(follower_name) / 9.5  # _PIXELS_PER_LABEL_CHARACTER_ESTIMATE
         for axis in ("R", "T", "N"):
@@ -70,10 +75,12 @@ def test_label_never_exceeds_that_scenarios_own_usable_width():
 
 
 def test_empty_chief_name_falls_back_to_the_generic_label():
+    """An empty chief name gives the generic label."""
     assert _rtn_panel_label("N", "", "follower-1") == "N vs chief"
 
 
 def test_bare_axis_letter_always_fits_even_on_the_narrowest_realistic_panel():
+    """On the narrowest panel the label falls back to the bare axis letter."""
     # A single-character follower name is the narrowest realistic case
     # (still under the widening threshold) -- the bare axis letter (1
     # character) must always be a safe last resort.

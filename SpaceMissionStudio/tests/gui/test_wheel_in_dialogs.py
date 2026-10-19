@@ -93,6 +93,8 @@ _WHEEL_CASES = [(name, factory) for name, factory in _CASES if name != "vizard"]
 
 @pytest.mark.parametrize("factory", [f for _, f in _WHEEL_CASES], ids=[name for name, _ in _WHEEL_CASES])
 def test_mouse_wheel_changes_nothing(qtbot, qapp, factory):
+    """Wheeling over every box, drop-down and tab bar of a dialog, on every
+    tab, changes nothing."""
     dialog = factory()
     qtbot.addWidget(dialog)
     dialog.resize(max(dialog.width(), 1000), max(dialog.height(), 800))  # [px]

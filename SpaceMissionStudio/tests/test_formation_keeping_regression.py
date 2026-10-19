@@ -154,6 +154,9 @@ def test_follower_mirrors_a_chief_reboost_so_the_formation_holds():
 
 
 def test_formation_follower_burn_logic():
+    """A formation follower never reboosts on its own; it mirrors the chief's
+    burn and ends with it, and burns alone only when more than the deadband
+    below the chief, until level again."""
     from spacemissionstudio.engine.orbit_maintenance import StationKeepingController
 
     follower = StationKeepingController("follower", mu=3.986004418e14, nominal_alt_m=550e3, deadband_m=2e3,
@@ -189,6 +192,8 @@ def test_formation_follower_burn_logic():
     (-179.99, 1.0, False),
 ])
 def test_zero_crossing_ignores_the_plus_minus_180_wrap(error_deg, drift_sign, expected):
+    """A separation error crossing zero counts as reached; a wrap from -180 to
+    +180 deg does not."""
     from spacemissionstudio.engine.orbit_maintenance import _crossed_zero
 
     assert _crossed_zero(np.radians(error_deg), drift_sign) is expected
@@ -221,6 +226,8 @@ _KW = dict(owner=_OWNER, sign=1.0, thrust_n=0.05, mass_kg=100.0, dt_s=30.0, in_s
 
 
 def test_on_time_model_ideal_thruster_fires_only_the_delta_v_still_needed():
+    """An ideal thruster gives the average thrust for exactly the delta-V still
+    needed, with nothing left over."""
     from spacemissionstudio.engine.orbit_maintenance import ThrusterOnTimeModel
 
     model = ThrusterOnTimeModel()
@@ -231,6 +238,8 @@ def test_on_time_model_ideal_thruster_fires_only_the_delta_v_still_needed():
 
 
 def test_on_time_model_rounds_a_small_burn_up_to_one_minimum_firing():
+    """A burn of more than half a 300 s minimum firing is rounded up to the
+    full firing, reports the extra delta-V and runs ten 30 s ticks."""
     from spacemissionstudio.engine.orbit_maintenance import ThrusterOnTimeModel
 
     model = ThrusterOnTimeModel(min_on_time_s=300.0)  # [s]
@@ -249,6 +258,8 @@ def test_on_time_model_rounds_a_small_burn_up_to_one_minimum_firing():
 
 
 def test_on_time_model_skips_a_burn_below_half_an_impulse_bit():
+    """A burn below half a minimum firing is skipped and reported as too
+    small."""
     from spacemissionstudio.engine.orbit_maintenance import ThrusterOnTimeModel
 
     model = ThrusterOnTimeModel(min_on_time_s=300.0)  # [s]
@@ -257,6 +268,7 @@ def test_on_time_model_skips_a_burn_below_half_an_impulse_bit():
 
 
 def test_on_time_model_eclipse_cuts_a_firing_short():
+    """Eclipse ends a firing at once."""
     from spacemissionstudio.engine.orbit_maintenance import ThrusterOnTimeModel
 
     model = ThrusterOnTimeModel(min_on_time_s=300.0)  # [s]
@@ -267,6 +279,8 @@ def test_on_time_model_eclipse_cuts_a_firing_short():
 
 
 def test_on_time_model_open_ended_firing_outlasts_its_request_until_the_minimum_on_time():
+    """An open-ended firing goes on for its 90 s minimum after the request
+    stops."""
     from spacemissionstudio.engine.orbit_maintenance import ThrusterOnTimeModel
 
     model = ThrusterOnTimeModel(min_on_time_s=90.0)  # [s]
@@ -277,6 +291,9 @@ def test_on_time_model_open_ended_firing_outlasts_its_request_until_the_minimum_
 
 
 def test_eccentricity_gate_waits_for_the_balancing_side_of_the_orbit():
+    """Eccentricity-neutral burns stop at u = 0 once the eccentricity change
+    reaches its allowance and fire again on the opposite side, which cancels
+    it."""
     from spacemissionstudio.engine.orbit_maintenance import ThrusterOnTimeModel
 
     model = ThrusterOnTimeModel(eccentricity_neutral=True)

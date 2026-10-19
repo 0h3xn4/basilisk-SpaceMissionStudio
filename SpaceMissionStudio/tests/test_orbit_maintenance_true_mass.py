@@ -163,6 +163,8 @@ def _run_one_tick(include_fuel_tank: bool, dt_s: float = 1.0):
 
 
 def test_station_keeping_cumulative_dv_uses_true_total_mass_including_fuel_tank():
+    """Station keeping's delta-V divides the thrust by the total mass, fuel
+    tank included, not by the hub mass alone."""
     controller, hub_mass, cumulative_dv_before = _run_one_tick(include_fuel_tank=True, dt_s=1.0)
 
     assert controller.burnLog[-1] == 1, "test setup must actually trigger a burn to be meaningful"

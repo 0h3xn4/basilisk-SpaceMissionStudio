@@ -31,10 +31,13 @@ def _sample_scenario() -> Scenario:
 
 
 def test_read_with_no_recovery_file_returns_none():
+    """Without a recovery file, there is nothing to recover."""
     assert autosave.read_recovery_file() is None
 
 
 def test_write_then_read_round_trips_scenario_and_original_path(tmp_path):
+    """A recovery file gives back the scenario, its original path and when it
+    was saved."""
     scenario = _sample_scenario()
     original_path = tmp_path / "mission.json"
 
@@ -48,6 +51,7 @@ def test_write_then_read_round_trips_scenario_and_original_path(tmp_path):
 
 
 def test_write_with_no_original_path_round_trips_to_none():
+    """A recovery file of a never-saved scenario has no original path."""
     autosave.write_recovery_file(_sample_scenario(), None)
     info = autosave.read_recovery_file()
     assert info is not None
@@ -55,6 +59,7 @@ def test_write_with_no_original_path_round_trips_to_none():
 
 
 def test_clear_removes_the_file(tmp_path):
+    """Clearing removes the recovery file."""
     autosave.write_recovery_file(_sample_scenario(), tmp_path / "mission.json")
     assert autosave._RECOVERY_FILE.exists()
 
@@ -65,16 +70,19 @@ def test_clear_removes_the_file(tmp_path):
 
 
 def test_clear_with_no_file_present_is_a_no_op():
+    """Clearing without a recovery file raises nothing."""
     autosave.clear_recovery_file()  # must not raise
 
 
 def test_read_corrupt_json_returns_none_not_raise():
+    """A recovery file that is not JSON is ignored."""
     autosave._AUTOSAVE_DIR.mkdir(parents=True, exist_ok=True)
     autosave._RECOVERY_FILE.write_text("{not valid json")
     assert autosave.read_recovery_file() is None
 
 
 def test_read_malformed_envelope_missing_scenario_key_returns_none():
+    """A recovery file without a scenario is ignored."""
     import json
 
     autosave._AUTOSAVE_DIR.mkdir(parents=True, exist_ok=True)
@@ -83,6 +91,7 @@ def test_read_malformed_envelope_missing_scenario_key_returns_none():
 
 
 def test_read_non_dict_envelope_returns_none():
+    """A recovery file holding a list is ignored."""
     autosave._AUTOSAVE_DIR.mkdir(parents=True, exist_ok=True)
     autosave._RECOVERY_FILE.write_text("[1, 2, 3]")
     assert autosave.read_recovery_file() is None
@@ -120,6 +129,7 @@ def test_write_failure_is_swallowed_not_raised(monkeypatch):
 
 
 def test_clear_failure_is_swallowed_not_raised(tmp_path, monkeypatch):
+    """A recovery file that cannot be deleted raises nothing."""
     from pathlib import Path
 
     autosave.write_recovery_file(_sample_scenario(), None)

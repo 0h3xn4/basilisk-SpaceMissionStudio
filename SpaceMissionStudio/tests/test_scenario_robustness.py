@@ -60,6 +60,8 @@ def _set(data, path, value):
     ("05", ["spacecraft", 0, "station_keeping", "thrust_n"], True, "expected a number, got true/false"),
 ])
 def test_a_wrong_typed_value_is_refused_naming_the_field(tmp_path, prefix, path, value, message):
+    """A value of the wrong type in a template file is refused, naming the
+    field and what it got."""
     data = _template(prefix)
     _set(data, path, value)
     file = tmp_path / "s.json"

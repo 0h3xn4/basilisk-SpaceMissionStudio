@@ -64,11 +64,13 @@ def _is_two_body_only(scenario, sc_config):
 
 
 def test_true_for_plain_point_mass_no_perturbers():
+    """A point-mass scenario without perturbations counts as two-body."""
     scenario = _scenario()
     assert _is_two_body_only(scenario, scenario.spacecraft[0]) is True
 
 
 def test_true_with_a_reaction_wheel_actuator():
+    """A reaction wheel (torque only) keeps a spacecraft two-body."""
     # Reaction wheels apply TORQUE only (no net translational force on
     # the center of mass) -- must not disqualify the check, unlike a
     # "thruster" actuator.
@@ -81,28 +83,33 @@ def test_true_with_a_reaction_wheel_actuator():
 
 
 def test_false_for_nonzero_gravity_degree():
+    """Spherical-harmonics gravity is not two-body."""
     scenario = _scenario(gravity=GravityConfig(central_body="earth", central_body_degree=10))
     assert _is_two_body_only(scenario, scenario.spacecraft[0]) is False
 
 
 def test_false_for_third_body_perturbers():
+    """A third body is not two-body."""
     scenario = _scenario(gravity=GravityConfig(central_body="earth", third_body_perturbers=["sun"]))
     assert _is_two_body_only(scenario, scenario.spacecraft[0]) is False
 
 
 def test_false_for_enable_drag():
+    """Drag is not two-body."""
     sc = SpacecraftConfig(name="sat-1", orbit=_orbit(), enable_drag=True)
     scenario = _scenario(spacecraft=[sc])
     assert _is_two_body_only(scenario, sc) is False
 
 
 def test_false_for_enable_srp():
+    """SRP is not two-body."""
     sc = SpacecraftConfig(name="sat-1", orbit=_orbit(), enable_srp=True)
     scenario = _scenario(spacecraft=[sc])
     assert _is_two_body_only(scenario, sc) is False
 
 
 def test_false_for_station_keeping():
+    """Station keeping is not two-body."""
     sc = SpacecraftConfig(name="sat-1", orbit=_orbit(), station_keeping=StationKeepingConfig(
         target_altitude_km=500.0, deadband_km=2.0, thrust_n=0.1, isp_s=200.0, propellant_kg=1.0,
     ))
@@ -111,6 +118,7 @@ def test_false_for_station_keeping():
 
 
 def test_false_for_constant_thrust():
+    """Constant thrust is not two-body."""
     sc = SpacecraftConfig(name="sat-1", orbit=_orbit(), constant_thrust=ConstantThrustConfig(
         thrust_n=0.01, frame="VNB", direction=[1.0, 0.0, 0.0], isp_s=1500.0, propellant_kg=0.5,
     ))
@@ -119,6 +127,7 @@ def test_false_for_constant_thrust():
 
 
 def test_false_for_thruster_actuator():
+    """A thruster is not two-body."""
     sc = SpacecraftConfig(name="sat-1", orbit=_orbit(), fsw_mode="inertial3D",
                             actuators=[ActuatorConfig(kind="thruster", name="t-1",
                                                        params={"r_B": [1, 0, 0], "tHat_B": [1, 0, 0],
@@ -128,6 +137,8 @@ def test_false_for_thruster_actuator():
 
 
 def test_false_when_mission_sequence_is_present():
+    """A mission sequence (its maneuvers jump the velocity) excludes the
+    scenario."""
     # A maneuver/lambert_transfer command applies a deliberate,
     # instantaneous delta-V -- a real, legitimate "jump" this drift
     # check cannot tell apart from a numerical error, so the whole

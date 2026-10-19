@@ -51,6 +51,8 @@ def test_a_pass_runs_from_its_first_to_its_last_sample_in_view_with_its_peak_ele
 
 
 def test_eclipses_are_umbra_or_penumbra_by_their_lowest_sunlight():
+    """An eclipse reaching zero sunlight is umbra, one that does not is
+    penumbra with its lowest sunlight; each spans its samples."""
     factor = [1, 0.6, 0, 0, 0.5, 1, 1, 0.4, 1, 1]  # [-] illumination factor
     result = _result(**{"sat__eclipse__illumination_factor": (("illumination_factor",), factor)})
     eclipses = events.extract_events(result)
@@ -60,6 +62,8 @@ def test_eclipses_are_umbra_or_penumbra_by_their_lowest_sunlight():
 
 
 def test_a_station_keeping_burn_reports_the_delta_v_it_added():
+    """A station-keeping burn spans its burn-on samples and reports the delta-V
+    added during it."""
     burn = [0, 0, 1, 1, 0, 0, 0, 0, 0, 0]
     delta_v = [0, 0, 0, 0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]  # [m/s] cumulative
     result = _result(**{"sat__station_keeping__burn_on": (("burn_on",), burn),
@@ -71,6 +75,7 @@ def test_a_station_keeping_burn_reports_the_delta_v_it_added():
 
 
 def test_geo_burns_are_split_east_west_and_north_south():
+    """GEO burns are reported as east-west or north-south."""
     burn = np.zeros((10, 2))
     burn[1, 0] = burn[5:7, 1] = 1
     result = _result(**{"geo__geo_station_keeping__burn_on": (("east_west", "north_south"), burn)})
@@ -78,6 +83,7 @@ def test_geo_burns_are_split_east_west_and_north_south():
 
 
 def test_phasing_states_give_two_burns_and_the_drift_between_them():
+    """Phasing states give the start burn, the drift and the stop burn."""
     state = [0, 1, 1, 2, 2, 2, 3, 0, 0, 0]  # idle, burn out, drift, burn restore
     result = _result(**{"f1__phasing_keeping__state": (("state",), state)})
     found = [(e.kind, e.label, e.start_s, e.end_s) for e in events.extract_events(result)]
@@ -87,6 +93,8 @@ def test_phasing_states_give_two_burns_and_the_drift_between_them():
 
 
 def test_comms_pointing_alternates_sun_and_ground_station_pointing():
+    """Comms pointing gives alternating Sun-pointing and
+    ground-station-pointing modes."""
     result = _result(**{"sat__comms_pointing__active_mode": (("active_mode",), [0, 0, 1, 1, 1, 0, 0, 0, 0, 0])})
     found = [(e.label, e.start_s, e.end_s) for e in events.extract_events(result)]
     assert found == [("Sun pointing", 0.0, 60.0), ("ground-station pointing", 120.0, 240.0),
@@ -94,6 +102,8 @@ def test_comms_pointing_alternates_sun_and_ground_station_pointing():
 
 
 def test_thruster_firings_name_the_thrusters_that_fired():
+    """A thruster firing spans its samples and names the thrusters that
+    fired."""
     on_time = np.zeros((10, 2))  # [s] on-time requests
     on_time[3, 1] = 0.2
     on_time[4, 0] = 0.1
@@ -104,6 +114,8 @@ def test_thruster_firings_name_the_thrusters_that_fired():
 
 
 def test_events_are_sorted_and_an_empty_or_missing_result_gives_none():
+    """Events come out in time order; no result, or an empty one, gives
+    none."""
     result = _result(**{"sat__eclipse__illumination_factor": (("f",), [1, 1, 1, 1, 1, 0, 0, 1, 1, 1]),
                         "gs__access_to_sat__has_access": (("has_access",), [0, 1, 0, 0, 0, 0, 0, 0, 0, 0])})
     assert [e.kind for e in events.extract_events(result)] == [events.ACCESS, events.ECLIPSE]
@@ -120,6 +132,8 @@ def test_missing_kinds_say_why_a_kind_is_absent():
 
 
 def test_csv_export_has_seconds_and_utc_columns(tmp_path):
+    """The events CSV gives kind, station, start, end and duration in seconds,
+    and UTC times when the epoch is known."""
     result = _result(**{"gs__access_to_sat__has_access": (("has_access",), [0, 1, 1, 0, 0, 0, 0, 0, 0, 0])})
     path = events.write_csv(events.extract_events(result), tmp_path / "events.csv", "2026-01-01T00:00:00")
     rows = list(csv.DictReader(open(path, encoding="utf-8")))

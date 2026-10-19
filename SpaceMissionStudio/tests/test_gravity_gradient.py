@@ -93,6 +93,8 @@ def _run_and_get_sigma_history(enable_gravity_gradient: bool) -> np.ndarray:
 
 
 def test_gravity_gradient_torque_perturbs_an_otherwise_frozen_attitude():
+    """Gravity-gradient torque moves the attitude of an elongated, uncontrolled
+    spacecraft at rest."""
     sigma_with_gg = _run_and_get_sigma_history(enable_gravity_gradient=True)
     # With zero initial body rate and no torque of any kind, attitude is
     # exactly frozen for the whole run -- the real physical contrast this
@@ -104,6 +106,8 @@ def test_gravity_gradient_torque_perturbs_an_otherwise_frozen_attitude():
 
 
 def test_disabled_gravity_gradient_leaves_attitude_exactly_frozen():
+    """Without gravity gradient, that spacecraft's attitude stays exactly as it
+    started."""
     sigma_without_gg = _run_and_get_sigma_history(enable_gravity_gradient=False)
     assert np.allclose(sigma_without_gg[0], sigma_without_gg[-1]), (
         "with enable_gravity_gradient=False and no other torque source, attitude must stay exactly at "

@@ -61,6 +61,8 @@ def _analytical_state_at(mu, oe0, elapsed_s):
 
 
 def test_two_body_propagation_matches_analytical_kepler_solution():
+    """A two-body run stays within the position and velocity tolerances of the
+    analytical Kepler solution at every sample."""
     from spacemissionstudio.engine.service import SimulationService
     from Basilisk.utilities import orbitalMotion as om
 
@@ -102,6 +104,8 @@ def test_two_body_propagation_matches_analytical_kepler_solution():
 
 
 def test_two_body_propagation_conserves_energy_and_angular_momentum():
+    """A two-body run conserves specific energy and angular momentum within
+    their tolerances."""
     from spacemissionstudio.engine.service import SimulationService
 
     scenario = load_scenario(SCENARIO_PATH)

@@ -15,6 +15,7 @@ def _diagram(**overrides):
 
 
 def test_no_diagram_collapses_to_zero_height(qtbot):
+    """Without a diagram the widget takes no height."""
     from spacemissionstudio.gui.formation_diagram_widget import FormationDiagramWidget
 
     widget = FormationDiagramWidget()
@@ -24,6 +25,7 @@ def test_no_diagram_collapses_to_zero_height(qtbot):
 
 
 def test_setting_a_diagram_gives_the_widget_real_height(qtbot):
+    """With a diagram the widget takes height."""
     from spacemissionstudio.gui.formation_diagram_widget import FormationDiagramWidget
 
     widget = FormationDiagramWidget()
@@ -34,6 +36,7 @@ def test_setting_a_diagram_gives_the_widget_real_height(qtbot):
 
 
 def test_clearing_a_diagram_collapses_back_to_zero_height(qtbot):
+    """Clearing the diagram collapses the widget again."""
     from spacemissionstudio.gui.formation_diagram_widget import FormationDiagramWidget
 
     widget = FormationDiagramWidget()
@@ -69,6 +72,7 @@ def test_paints_without_raising_for_a_range_of_tolerance_fractions(qtbot):
 
 
 def test_constructor_accepts_an_initial_diagram(qtbot):
+    """A diagram given at construction is shown."""
     from spacemissionstudio.gui.formation_diagram_widget import FormationDiagramWidget
 
     widget = FormationDiagramWidget(_diagram())

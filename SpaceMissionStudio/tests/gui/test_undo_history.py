@@ -23,6 +23,8 @@ from spacemissionstudio.gui.undo_history import ScenarioHistory
 
 
 def test_undo_and_redo_walk_the_recorded_states():
+    """Undo and redo walk the recorded states; an unchanged state is not
+    recorded, and a new edit drops what could be redone."""
     history = ScenarioHistory()
     history.reset({"name": "a"})
     assert not history.can_undo()
@@ -36,6 +38,8 @@ def test_undo_and_redo_walk_the_recorded_states():
 
 
 def test_states_are_copies_and_the_history_is_capped():
+    """The history keeps copies, not the caller's dicts, and at most max_steps
+    undo steps."""
     history = ScenarioHistory(max_steps=3)
     state = {"list": [1]}
     history.reset(state)

@@ -11408,3 +11408,14 @@ names it, and a claim test holds the figures.
 
 **Records:** SRS-F-24, CHANGELOG, capabilities, limitations, glossary
 (albedo), the attitude how-to page.
+
+## K-09: every test states what it checks (2026-10-19)
+
+Rule C-9 says every test has a docstring stating what it checks; 1054 of
+the 2314 test functions had none, and K-09 kept that open. Every one now
+has one, written from the test's body: 377 first in the scenario schema,
+command, main window, spacecraft editor and Results tests, then 677 in
+the other 104 test files. No test changed: in each changed file, the
+syntax tree without docstrings equals the one before. A spelling check
+of the added text found nothing. SUITP, its generated case list
+(2314 of 2314 documented) and K-09 (closed) record it.

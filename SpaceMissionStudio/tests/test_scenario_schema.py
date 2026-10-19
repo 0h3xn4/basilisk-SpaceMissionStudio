@@ -50,10 +50,14 @@ def _minimal_scenario(**overrides) -> Scenario:
 
 
 def test_minimal_scenario_validates():
+    """A scenario with only a name, an epoch and one spacecraft on classical
+    elements validates."""
     _minimal_scenario().validate()
 
 
 def test_round_trip_save_load(tmp_path):
+    """Saving and loading keeps the name, epoch, description, spacecraft orbit
+    and schema version."""
     scenario = _minimal_scenario(description="round-trip check")
     path = tmp_path / "scenario.json"
     scenario.save(path)
@@ -68,6 +72,8 @@ def test_round_trip_save_load(tmp_path):
 
 
 def test_round_trip_preserves_every_field_category(tmp_path):
+    """Gravity settings, ground stations and sensor parameters survive a save
+    and load."""
     scenario = _minimal_scenario()
     scenario.gravity = GravityConfig(central_body="earth", central_body_degree=10,
                                       third_body_perturbers=["sun", "moon"])
@@ -86,6 +92,8 @@ def test_round_trip_preserves_every_field_category(tmp_path):
 
 
 def test_saved_file_is_plain_readable_json(tmp_path):
+    """A saved scenario is plain JSON that json.loads reads without a custom
+    decoder, with the current schema version."""
     path = tmp_path / "scenario.json"
     _minimal_scenario().save(path)
     # round-trips through plain json.loads with no custom decoder -- this
@@ -100,17 +108,21 @@ def test_saved_file_is_plain_readable_json(tmp_path):
     ("epoch_utc", "not-a-date", "not a valid ISO 8601"),
 ])
 def test_scenario_level_validation_errors(bad_field, bad_value, match):
+    """An empty name and an epoch that is not ISO 8601 are refused with a
+    message naming the problem."""
     scenario = _minimal_scenario(**{bad_field: bad_value})
     with pytest.raises(ScenarioValidationError, match=match):
         scenario.validate()
 
 
 def test_duration_days_at_the_100_day_cap_validates():
+    """A 100-day run validates."""
     scenario = _minimal_scenario(sim_settings=SimSettings(duration_days=100.0))
     scenario.validate()
 
 
 def test_duration_days_beyond_ten_years_rejected():
+    """A run longer than 3660 days (ten years) is refused."""
     scenario = _minimal_scenario(sim_settings=SimSettings(duration_days=4000.0))
     with pytest.raises(ScenarioValidationError, match="duration_days must be <= 3660"):
         scenario.validate()
@@ -134,12 +146,14 @@ def test_a_mission_sequence_past_one_basilisk_run_is_rejected():
 
 
 def test_zero_spacecraft_rejected():
+    """A scenario without a spacecraft is refused."""
     scenario = _minimal_scenario(spacecraft=[])
     with pytest.raises(ScenarioValidationError, match="at least one spacecraft"):
         scenario.validate()
 
 
 def test_duplicate_spacecraft_names_rejected():
+    """Two spacecraft with the same name are refused."""
     sc = _minimal_scenario()
     sc.spacecraft.append(SpacecraftConfig(name="sat-1", orbit=sc.spacecraft[0].orbit))
     with pytest.raises(ScenarioValidationError, match="unique"):
@@ -147,6 +161,7 @@ def test_duplicate_spacecraft_names_rejected():
 
 
 def test_unsupported_central_body_rejected():
+    """A central body the tool does not offer (Pluto) is refused."""
     sc = _minimal_scenario()
     sc.gravity = GravityConfig(central_body="pluto")
     with pytest.raises(ScenarioValidationError, match="must be one of"):
@@ -171,18 +186,22 @@ def test_spherical_harmonics_on_non_earth_body_rejected():
 
 
 def test_spherical_harmonics_on_earth_is_allowed():
+    """Earth with a degree-20 spherical-harmonics field validates."""
     sc = _minimal_scenario()
     sc.gravity = GravityConfig(central_body="earth", central_body_degree=20)
     sc.validate()  # must not raise
 
 
 def test_point_mass_on_non_earth_body_is_allowed():
+    """Mars as a point mass (degree 0) validates."""
     sc = _minimal_scenario()
     sc.gravity = GravityConfig(central_body="mars barycenter", central_body_degree=0)
     sc.validate()  # must not raise
 
 
 def test_invalid_eccentricity_rejected():
+    """An eccentricity of 1.2 (hyperbolic) is refused: the schema takes 0 <= e
+    < 1."""
     sc = _minimal_scenario()
     sc.spacecraft[0].orbit.eccentricity = 1.2  # hyperbolic, out of this schema's supported range
     with pytest.raises(ScenarioValidationError, match="0 <= eccentricity < 1"):
@@ -190,18 +209,23 @@ def test_invalid_eccentricity_rejected():
 
 
 def test_cartesian_orbit_requires_full_vectors():
+    """A Cartesian orbit with a two-element position and no velocity is
+    refused."""
     orbit = OrbitIC(type="cartesian", position_km=[7000.0, 0.0])  # only 2 elements, missing velocity
     with pytest.raises(ScenarioValidationError, match="3-element"):
         orbit.validate()
 
 
 def test_tle_orbit_requires_both_lines():
+    """A TLE orbit with only its first line is refused."""
     orbit = OrbitIC(type="tle", tle_line1="1 25544U ...")
     with pytest.raises(ScenarioValidationError, match="both tle_line1 and tle_line2"):
         orbit.validate()
 
 
 def test_classical_elements_orbit_defaults_to_true_anomaly():
+    """Classical elements take the true anomaly unless told otherwise, and
+    validate."""
     orbit = OrbitIC(type="classical_elements", semi_major_axis_km=7000.0, eccentricity=0.001,
                      inclination_deg=51.6, raan_deg=0.0, arg_periapsis_deg=0.0, true_anomaly_deg=30.0)
     assert orbit.anomaly_type == "true"
@@ -209,6 +233,8 @@ def test_classical_elements_orbit_defaults_to_true_anomaly():
 
 
 def test_classical_elements_orbit_accepts_mean_anomaly():
+    """Classical elements with anomaly_type 'mean' and a mean anomaly
+    validate."""
     orbit = OrbitIC(type="classical_elements", semi_major_axis_km=7000.0, eccentricity=0.001,
                      inclination_deg=51.6, raan_deg=0.0, arg_periapsis_deg=0.0,
                      anomaly_type="mean", mean_anomaly_deg=30.0)
@@ -216,6 +242,8 @@ def test_classical_elements_orbit_accepts_mean_anomaly():
 
 
 def test_classical_elements_orbit_requires_the_anomaly_matching_anomaly_type():
+    """anomaly_type 'mean' with only a true anomaly is refused, asking for
+    mean_anomaly_deg."""
     orbit = OrbitIC(type="classical_elements", semi_major_axis_km=7000.0, eccentricity=0.001,
                      inclination_deg=51.6, raan_deg=0.0, arg_periapsis_deg=0.0,
                      anomaly_type="mean", true_anomaly_deg=30.0)  # wrong field for anomaly_type="mean"
@@ -224,6 +252,7 @@ def test_classical_elements_orbit_requires_the_anomaly_matching_anomaly_type():
 
 
 def test_classical_elements_orbit_rejects_unknown_anomaly_type():
+    """An anomaly type other than true or mean ('eccentric') is refused."""
     orbit = OrbitIC(type="classical_elements", semi_major_axis_km=7000.0, eccentricity=0.001,
                      inclination_deg=51.6, raan_deg=0.0, arg_periapsis_deg=0.0,
                      anomaly_type="eccentric", true_anomaly_deg=30.0)
@@ -232,6 +261,7 @@ def test_classical_elements_orbit_rejects_unknown_anomaly_type():
 
 
 def test_space_weather_local_file_requires_path():
+    """The local_file space-weather source without a file path is refused."""
     sc = _minimal_scenario()
     sc.space_weather.source = "local_file"
     sc.space_weather.local_file_path = None
@@ -240,6 +270,8 @@ def test_space_weather_local_file_requires_path():
 
 
 def test_space_weather_defaults_to_nrlmsise00_nominal():
+    """Space weather defaults to NRLMSISE-00 at the 50th percentile, and the
+    defaults validate."""
     sc = _minimal_scenario()
     assert sc.space_weather.atmosphere_model == "nrlmsise00"
     assert sc.space_weather.forecast_percentile == 50.0  # nominal; 95 is the conservative AD10 case
@@ -247,6 +279,8 @@ def test_space_weather_defaults_to_nrlmsise00_nominal():
 
 
 def test_space_weather_rejects_unknown_atmosphere_model():
+    """An atmosphere model Basilisk does not have (Jacchia-Roberts) is
+    refused."""
     sc = _minimal_scenario()
     sc.space_weather.atmosphere_model = "jacchia_roberts"  # not implemented in Basilisk -- see schema docstring
     with pytest.raises(ScenarioValidationError, match="atmosphere_model"):
@@ -263,6 +297,7 @@ def test_space_weather_takes_msfcs_published_percentiles(percentile):
 
 @pytest.mark.parametrize("percentile", [97.7, 75.0, 0.0])
 def test_space_weather_rejects_other_percentiles(percentile):
+    """Forecast percentiles MSFC does not publish (97.7, 75, 0) are refused."""
     sc = _minimal_scenario()
     sc.space_weather.forecast_percentile = percentile
     with pytest.raises(ScenarioValidationError, match="forecast_percentile"):
@@ -270,6 +305,7 @@ def test_space_weather_rejects_other_percentiles(percentile):
 
 
 def test_space_weather_exponential_model_round_trips_through_save_load(tmp_path):
+    """The exponential atmosphere model survives a save and load."""
     sc = _minimal_scenario()
     sc.space_weather.atmosphere_model = "exponential"
     sc.save(tmp_path / "s.json")
@@ -278,11 +314,13 @@ def test_space_weather_exponential_model_round_trips_through_save_load(tmp_path)
 
 
 def test_load_scenario_missing_file_gives_clear_error(tmp_path):
+    """Loading a file that does not exist says the file could not be read."""
     with pytest.raises(ScenarioValidationError, match="could not read file"):
         load_scenario(tmp_path / "does_not_exist.json")
 
 
 def test_load_scenario_malformed_json_gives_clear_error(tmp_path):
+    """Loading a file that is not JSON says so."""
     path = tmp_path / "bad.json"
     path.write_text("{not valid json")
     with pytest.raises(ScenarioValidationError, match="not valid JSON"):
@@ -290,6 +328,7 @@ def test_load_scenario_malformed_json_gives_clear_error(tmp_path):
 
 
 def test_load_scenario_missing_schema_version_gives_clear_error(tmp_path):
+    """Loading a file without schema_version names the missing field."""
     path = tmp_path / "bad.json"
     path.write_text(json.dumps({"name": "no version"}))
     with pytest.raises(ScenarioValidationError, match="missing required top-level 'schema_version'"):
@@ -309,6 +348,8 @@ def test_load_scenario_rejects_an_unknown_field_naming_it(tmp_path, where):
 
 
 def test_load_scenario_future_schema_version_gives_clear_error(tmp_path):
+    """A file from a newer schema version is refused, asking for an upgrade of
+    the tool."""
     path = tmp_path / "future.json"
     path.write_text(json.dumps({"schema_version": 999, "name": "from the future", "epoch_utc": "2030-01-01T00:00:00"}))
     with pytest.raises(ScenarioValidationError, match="upgrade SpaceMissionStudio"):
@@ -332,6 +373,7 @@ def test_load_scenario_boolean_schema_version_gives_clear_error(tmp_path):
 # -- Phase 2: sensors/actuators/FSW mode validation ---------------------------
 
 def test_unsupported_sensor_kind_rejected():
+    """A sensor kind the tool does not offer (lidar) is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].sensors = [SensorConfig(kind="lidar", name="l-1")]
     with pytest.raises(ScenarioValidationError, match="must be one of"):
@@ -339,6 +381,7 @@ def test_unsupported_sensor_kind_rejected():
 
 
 def test_unsupported_actuator_kind_rejected():
+    """An actuator kind the tool does not offer (ion_engine) is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [ActuatorConfig(kind="ion_engine", name="ie-1")]
     with pytest.raises(ScenarioValidationError, match="must be one of"):
@@ -346,6 +389,7 @@ def test_unsupported_actuator_kind_rejected():
 
 
 def test_duplicate_sensor_names_rejected():
+    """Two sensors with the same name on one spacecraft are refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].sensors = [SensorConfig(kind="imu", name="dup"), SensorConfig(kind="star_tracker", name="dup")]
     with pytest.raises(ScenarioValidationError, match="sensor names must be unique"):
@@ -353,6 +397,7 @@ def test_duplicate_sensor_names_rejected():
 
 
 def test_duplicate_actuator_names_rejected():
+    """Two actuators with the same name on one spacecraft are refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="dup", params={"gsHat_B": [1, 0, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0}),
@@ -363,6 +408,7 @@ def test_duplicate_actuator_names_rejected():
 
 
 def test_coarse_sun_sensor_requires_nHat_B():
+    """A coarse sun sensor without its normal nHat_B is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].sensors = [SensorConfig(kind="coarse_sun_sensor", name="css-1")]
     with pytest.raises(ScenarioValidationError, match="nHat_B"):
@@ -370,6 +416,7 @@ def test_coarse_sun_sensor_requires_nHat_B():
 
 
 def test_reaction_wheel_requires_gsHat_B():
+    """A reaction wheel without its spin axis gsHat_B is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [ActuatorConfig(kind="reaction_wheel", name="rw-1")]
     with pytest.raises(ScenarioValidationError, match="gsHat_B"):
@@ -377,6 +424,8 @@ def test_reaction_wheel_requires_gsHat_B():
 
 
 def test_custom_reaction_wheel_requires_u_max_or_useMaxTorque_false():
+    """A custom reaction wheel without u_max is refused before
+    rwFactory.create(), which exits the process on a non-positive u_max."""
     # rwFactory.create() hard-exits the whole process (not a catchable
     # error) on a non-positive u_max for rw_type="custom" (the default) --
     # this schema check exists specifically to never reach that call.
@@ -390,6 +439,7 @@ def test_custom_reaction_wheel_requires_u_max_or_useMaxTorque_false():
 
 
 def test_custom_reaction_wheel_requires_inertia():
+    """A custom reaction wheel without its spin inertia Js is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1",
@@ -400,6 +450,7 @@ def test_custom_reaction_wheel_requires_inertia():
 
 
 def test_custom_reaction_wheel_with_u_max_and_Js_validates():
+    """A custom reaction wheel with u_max and Js validates."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1",
@@ -410,6 +461,8 @@ def test_custom_reaction_wheel_with_u_max_and_Js_validates():
 
 
 def test_named_hardware_reaction_wheel_type_skips_custom_requirements():
+    """A named Honeywell wheel needs no u_max or Js: rwFactory supplies
+    them."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1",
@@ -439,6 +492,8 @@ def test_named_honeywell_wheel_needs_one_of_its_own_momentum_sizes(rw_type, max_
 
 
 def test_motor_thermal_requires_all_four_fields_together():
+    """A wheel with only one of the four motor-thermal fields is refused, since
+    motorThermal's Reset() exits the process on an unset field."""
     # motorThermal.MotorThermal.Reset() hard-exits the whole process (not
     # a catchable error) on an unset field in this group -- this schema
     # check exists specifically to never reach that call partially
@@ -455,6 +510,8 @@ def test_motor_thermal_requires_all_four_fields_together():
 
 
 def test_motor_thermal_efficiency_must_be_strictly_between_zero_and_one():
+    """A motor-thermal efficiency of 1.0 (motorThermal's own default, which its
+    Reset() rejects) is refused."""
     # motorThermal.MotorThermal's own constructor default (1.0) is ITSELF
     # one of the values Reset() rejects -- confirmed directly against
     # motorThermal.cpp.
@@ -472,6 +529,7 @@ def test_motor_thermal_efficiency_must_be_strictly_between_zero_and_one():
 
 
 def test_motor_thermal_with_all_fields_validates():
+    """A wheel with all four motor-thermal fields in range validates."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1",
@@ -485,6 +543,7 @@ def test_motor_thermal_with_all_fields_validates():
 
 
 def test_thermal_sensor_requires_nHat_B():
+    """A thermal sensor without its normal nHat_B is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1",
                                                params={"area_m2": 1.0, "absorptivity": 0.25, "emissivity": 0.34})]
@@ -493,6 +552,7 @@ def test_thermal_sensor_requires_nHat_B():
 
 
 def test_thermal_sensor_requires_area_m2():
+    """A thermal sensor without its area is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1",
                                                params={"nHat_B": [0, 0, 1], "absorptivity": 0.25,
@@ -502,6 +562,7 @@ def test_thermal_sensor_requires_area_m2():
 
 
 def test_thermal_sensor_requires_absorptivity_in_range():
+    """A thermal sensor absorptivity above 1 is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1",
                                                params={"nHat_B": [0, 0, 1], "area_m2": 1.0, "absorptivity": 1.5,
@@ -511,6 +572,7 @@ def test_thermal_sensor_requires_absorptivity_in_range():
 
 
 def test_thermal_sensor_requires_emissivity_in_range():
+    """A thermal sensor emissivity of 0 is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1",
                                                params={"nHat_B": [0, 0, 1], "area_m2": 1.0, "absorptivity": 0.25,
@@ -520,6 +582,8 @@ def test_thermal_sensor_requires_emissivity_in_range():
 
 
 def test_thermal_sensor_rejects_unrecognized_measurement_fault_mode():
+    """A thermal sensor measurement fault mode the tool does not know is
+    refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1",
                                                params={"nHat_B": [0, 0, 1], "area_m2": 1.0, "absorptivity": 0.25,
@@ -529,6 +593,8 @@ def test_thermal_sensor_rejects_unrecognized_measurement_fault_mode():
 
 
 def test_thermal_sensor_with_required_params_validates():
+    """A thermal sensor with normal, area, absorptivity and emissivity
+    validates when the Sun is in the run."""
     sc = _minimal_scenario(gravity=GravityConfig(third_body_perturbers=["sun"]))  # sensorThermal needs the Sun
     sc.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1",
                                                params={"nHat_B": [0, 0, 1], "area_m2": 1.0, "absorptivity": 0.25,
@@ -537,6 +603,8 @@ def test_thermal_sensor_with_required_params_validates():
 
 
 def test_sunSafePoint_use_css_estimation_requires_a_coarse_sun_sensor():
+    """use_css_estimation in sunSafePoint without a coarse sun sensor is
+    refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].fsw_mode = "sunSafePoint"
     sc.spacecraft[0].fsw_params = {"use_css_estimation": True}
@@ -545,6 +613,8 @@ def test_sunSafePoint_use_css_estimation_requires_a_coarse_sun_sensor():
 
 
 def test_sunSafePoint_use_css_estimation_with_a_coarse_sun_sensor_validates():
+    """use_css_estimation in sunSafePoint with a coarse sun sensor
+    validates."""
     sc = _minimal_scenario()
     sc.spacecraft[0].fsw_mode = "sunSafePoint"
     sc.spacecraft[0].fsw_params = {"use_css_estimation": True}
@@ -553,6 +623,7 @@ def test_sunSafePoint_use_css_estimation_with_a_coarse_sun_sensor_validates():
 
 
 def test_thruster_requires_r_B():
+    """A thruster without its position r_B is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="thruster", name="thr-1", params={"tHat_B": [1, 0, 0], "MaxThrust": 1.0})
@@ -562,6 +633,7 @@ def test_thruster_requires_r_B():
 
 
 def test_thruster_requires_tHat_B():
+    """A thruster without its direction tHat_B is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="thruster", name="thr-1", params={"r_B": [1, 0, 0], "MaxThrust": 1.0})
@@ -571,6 +643,7 @@ def test_thruster_requires_tHat_B():
 
 
 def test_thruster_requires_MaxThrust():
+    """A thruster without MaxThrust is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="thruster", name="thr-1", params={"r_B": [1, 0, 0], "tHat_B": [1, 0, 0]})
@@ -580,6 +653,7 @@ def test_thruster_requires_MaxThrust():
 
 
 def test_thruster_with_all_required_params_validates():
+    """A thruster with position, direction and MaxThrust validates."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="thruster", name="thr-1",
@@ -590,6 +664,8 @@ def test_thruster_with_all_required_params_validates():
 
 
 def test_mixing_reaction_wheel_and_thruster_actuators_rejected():
+    """Reaction wheels and thrusters together, without momentum dumping, are
+    refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1", params={"gsHat_B": [1, 0, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0}),
@@ -601,6 +677,8 @@ def test_mixing_reaction_wheel_and_thruster_actuators_rejected():
 
 
 def test_momentum_dumping_allows_mixing_reaction_wheel_and_thruster():
+    """With momentum dumping, reaction wheels and thrusters together
+    validate."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1", params={"gsHat_B": [1, 0, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0}),
@@ -613,6 +691,7 @@ def test_momentum_dumping_allows_mixing_reaction_wheel_and_thruster():
 
 
 def test_momentum_dumping_requires_reaction_wheel_actuator():
+    """Momentum dumping without a reaction wheel is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="thruster", name="thr-1",
@@ -625,6 +704,7 @@ def test_momentum_dumping_requires_reaction_wheel_actuator():
 
 
 def test_momentum_dumping_requires_thruster_actuator():
+    """Momentum dumping without a thruster is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1", params={"gsHat_B": [1, 0, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0}),
@@ -636,6 +716,7 @@ def test_momentum_dumping_requires_thruster_actuator():
 
 
 def test_momentum_dumping_requires_hs_max_positive():
+    """Momentum dumping with hs_max 0 is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1", params={"gsHat_B": [1, 0, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0}),
@@ -649,6 +730,8 @@ def test_momentum_dumping_requires_hs_max_positive():
 
 
 def test_momentum_dumping_round_trips():
+    """Momentum dumping's hs_max, minimum fire time and counter limit survive
+    to_dict and from_dict."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1", params={"gsHat_B": [1, 0, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0}),
@@ -667,6 +750,7 @@ def test_momentum_dumping_round_trips():
 
 
 def test_magnetic_torque_rod_requires_gtHat_B():
+    """A magnetic torque rod without its axis gtHat_B is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="magnetic_torque_rod", name="mtb-1", params={"max_dipole_a_m2": 0.1}),
@@ -677,6 +761,7 @@ def test_magnetic_torque_rod_requires_gtHat_B():
 
 
 def test_magnetic_torque_rod_requires_max_dipole_a_m2():
+    """A magnetic torque rod without its maximum dipole is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="magnetic_torque_rod", name="mtb-1", params={"gtHat_B": [1, 0, 0]}),
@@ -687,6 +772,8 @@ def test_magnetic_torque_rod_requires_max_dipole_a_m2():
 
 
 def test_magnetic_torque_rod_without_magnetic_momentum_management_rejected():
+    """A magnetic torque rod without magnetic momentum management is
+    refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="magnetic_torque_rod", name="mtb-1",
@@ -697,6 +784,7 @@ def test_magnetic_torque_rod_without_magnetic_momentum_management_rejected():
 
 
 def test_magnetic_momentum_management_requires_reaction_wheel_actuator():
+    """Magnetic momentum management without a reaction wheel is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="magnetic_torque_rod", name="mtb-1",
@@ -709,6 +797,8 @@ def test_magnetic_momentum_management_requires_reaction_wheel_actuator():
 
 
 def test_magnetic_momentum_management_requires_magnetic_torque_rod_actuator():
+    """Magnetic momentum management without a magnetic torque rod is
+    refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1", params={"gsHat_B": [1, 0, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0}),
@@ -720,6 +810,8 @@ def test_magnetic_momentum_management_requires_magnetic_torque_rod_actuator():
 
 
 def test_magnetic_momentum_management_requires_one_bias_per_reaction_wheel():
+    """One wheel-speed bias for two reaction wheels is refused: it needs one
+    per wheel."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1", params={"gsHat_B": [1, 0, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0}),
@@ -736,6 +828,8 @@ def test_magnetic_momentum_management_requires_one_bias_per_reaction_wheel():
 
 
 def test_magnetic_momentum_management_with_all_required_params_validates():
+    """Magnetic momentum management with a wheel, a torque rod and one bias per
+    wheel validates."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1", params={"gsHat_B": [1, 0, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0}),
@@ -748,6 +842,7 @@ def test_magnetic_momentum_management_with_all_required_params_validates():
 
 
 def test_fuel_tank_requires_a_thruster_actuator():
+    """A fuel tank without a thruster is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].fuel_tank = FuelTankConfig(propellant_mass_kg=20.0, max_propellant_mass_kg=25.0)
     with pytest.raises(ScenarioValidationError, match="needs at least one 'thruster' actuator"):
@@ -755,6 +850,7 @@ def test_fuel_tank_requires_a_thruster_actuator():
 
 
 def test_fuel_tank_propellant_mass_must_not_exceed_capacity():
+    """A fuel tank holding more propellant than its capacity is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="thruster", name="thr-1",
@@ -767,6 +863,7 @@ def test_fuel_tank_propellant_mass_must_not_exceed_capacity():
 
 
 def test_fuel_tank_requires_positive_capacity():
+    """A fuel tank with zero capacity is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="thruster", name="thr-1",
@@ -779,6 +876,7 @@ def test_fuel_tank_requires_positive_capacity():
 
 
 def test_fuel_tank_with_thruster_actuator_validates():
+    """A fuel tank within its capacity, with a thruster, validates."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="thruster", name="thr-1",
@@ -790,6 +888,8 @@ def test_fuel_tank_with_thruster_actuator_validates():
 
 
 def test_fuel_tank_round_trips():
+    """The fuel tank's propellant mass, capacity and position survive to_dict
+    and from_dict."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="thruster", name="thr-1",
@@ -852,6 +952,8 @@ def test_momentum_dumping_and_magnetic_momentum_management_are_mutually_exclusiv
 
 
 def test_magnetic_momentum_management_round_trips():
+    """Magnetic momentum management's wheel-speed biases and gain survive
+    to_dict and from_dict."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1", params={"gsHat_B": [1, 0, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0}),
@@ -884,6 +986,7 @@ def test_non_positive_drag_or_srp_coefficient_or_area_rejected(field_name, bad_v
 
 
 def test_unsupported_fsw_mode_rejected():
+    """An FSW mode the tool does not offer is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].fsw_mode = "sunTrackingRasterScan"
     with pytest.raises(ScenarioValidationError, match="fsw_mode"):
@@ -891,14 +994,17 @@ def test_unsupported_fsw_mode_rejected():
 
 
 def test_none_fsw_mode_is_valid():
+    """A spacecraft without an FSW mode (the default) validates."""
     _minimal_scenario().validate()  # fsw_mode defaults to None -- must not raise
 
 
 def test_none_vizard_model_path_is_valid():
+    """A spacecraft without a Vizard model path (the default) validates."""
     _minimal_scenario().validate()  # vizard_model_path defaults to None -- must not raise
 
 
 def test_blank_vizard_model_path_rejected():
+    """A Vizard model path of only spaces is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].vizard_model_path = "   "
     with pytest.raises(ScenarioValidationError, match="vizard_model_path must not be blank"):
@@ -907,6 +1013,8 @@ def test_blank_vizard_model_path_rejected():
 
 @pytest.mark.parametrize("field", ["vizard_model_offset_m", "vizard_model_rotation_deg", "vizard_model_scale"])
 def test_vizard_model_vectors_require_3_elements(field):
+    """The Vizard model offset, rotation and scale with two elements each are
+    refused."""
     sc = _minimal_scenario()
     setattr(sc.spacecraft[0], field, [1.0, 2.0])
     with pytest.raises(ScenarioValidationError, match=f"{field} must have 3 elements"):
@@ -914,6 +1022,8 @@ def test_vizard_model_vectors_require_3_elements(field):
 
 
 def test_vizard_model_path_round_trips_through_json(tmp_path):
+    """The Vizard model path, offset, rotation and scale survive writing to
+    JSON and loading."""
     sc = _minimal_scenario()
     sc.spacecraft[0].vizard_model_path = "CUBE"
     sc.spacecraft[0].vizard_model_offset_m = [0.1, 0.2, 0.3]
@@ -932,12 +1042,16 @@ def test_vizard_model_path_round_trips_through_json(tmp_path):
 
 @pytest.mark.parametrize("mode", ["inertial3D", "hillPoint", "velocityPoint", "sunSafePoint"])
 def test_every_supported_fsw_mode_validates(mode):
+    """inertial3D, hillPoint, velocityPoint and sunSafePoint each validate on a
+    plain spacecraft."""
     sc = _minimal_scenario()
     sc.spacecraft[0].fsw_mode = mode
     sc.validate()  # must not raise
 
 
 def test_location_pointing_requires_exactly_one_target():
+    """locationPointing with no target, or with both a ground station and a
+    body, is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].fsw_mode = "locationPointing"
     sc.spacecraft[0].fsw_params = {}  # neither target given
@@ -950,6 +1064,8 @@ def test_location_pointing_requires_exactly_one_target():
 
 
 def test_location_pointing_target_ground_station_must_exist():
+    """locationPointing at a ground station the scenario does not have is
+    refused."""
     sc = _minimal_scenario()
     sc.ground_stations = [GroundStationConfig(name="gs-1", latitude_deg=40.0, longitude_deg=-105.0)]
     sc.spacecraft[0].fsw_mode = "locationPointing"
@@ -959,6 +1075,7 @@ def test_location_pointing_target_ground_station_must_exist():
 
 
 def test_location_pointing_with_existing_ground_station_validates():
+    """locationPointing at one of the scenario's ground stations validates."""
     sc = _minimal_scenario()
     sc.ground_stations = [GroundStationConfig(name="gs-1", latitude_deg=40.0, longitude_deg=-105.0)]
     sc.spacecraft[0].fsw_mode = "locationPointing"
@@ -967,6 +1084,8 @@ def test_location_pointing_with_existing_ground_station_validates():
 
 
 def test_location_pointing_target_body_requires_spice_tracking():
+    """locationPointing at the Sun is refused when the Sun is not in the run
+    (no SPICE ephemeris)."""
     sc = _minimal_scenario()
     sc.spacecraft[0].fsw_mode = "locationPointing"
     sc.spacecraft[0].fsw_params = {"target_body": "sun"}  # not in gravity.third_body_perturbers
@@ -975,6 +1094,7 @@ def test_location_pointing_target_body_requires_spice_tracking():
 
 
 def test_location_pointing_with_spice_tracked_target_body_validates():
+    """locationPointing at the Moon validates when the Moon is a third body."""
     sc = _minimal_scenario(gravity=GravityConfig(central_body="earth", third_body_perturbers=["moon"]))
     sc.spacecraft[0].fsw_mode = "locationPointing"
     sc.spacecraft[0].fsw_params = {"target_body": "moon"}
@@ -982,6 +1102,7 @@ def test_location_pointing_with_spice_tracked_target_body_validates():
 
 
 def test_location_pointing_target_body_can_be_the_central_body():
+    """locationPointing at the central body validates."""
     sc = _minimal_scenario(gravity=GravityConfig(central_body="earth"))
     sc.spacecraft[0].fsw_mode = "locationPointing"
     sc.spacecraft[0].fsw_params = {"target_body": "earth"}
@@ -991,10 +1112,13 @@ def test_location_pointing_target_body_can_be_the_central_body():
 # -- Phase 3: Monte Carlo validation ------------------------------------------
 
 def test_monte_carlo_defaults_to_disabled_and_validates():
+    """Monte Carlo is off by default, without dispersions, and the default
+    validates."""
     _minimal_scenario().validate()  # monte_carlo defaults to enabled=False, no dispersions
 
 
 def test_monte_carlo_num_runs_must_be_positive():
+    """Monte Carlo with zero runs is refused."""
     sc = _minimal_scenario()
     sc.monte_carlo = MonteCarloConfig(enabled=True, num_runs=0)
     with pytest.raises(ScenarioValidationError, match="num_runs must be >= 1"):
@@ -1002,6 +1126,7 @@ def test_monte_carlo_num_runs_must_be_positive():
 
 
 def test_monte_carlo_thread_count_must_be_positive():
+    """Monte Carlo with zero threads is refused."""
     sc = _minimal_scenario()
     sc.monte_carlo = MonteCarloConfig(enabled=True, thread_count=0)
     with pytest.raises(ScenarioValidationError, match="thread_count must be >= 1"):
@@ -1009,6 +1134,7 @@ def test_monte_carlo_thread_count_must_be_positive():
 
 
 def test_dispersion_unsupported_quantity_rejected():
+    """A dispersion of a quantity the tool does not offer is refused."""
     sc = _minimal_scenario()
     sc.monte_carlo = MonteCarloConfig(
         enabled=True,
@@ -1019,6 +1145,8 @@ def test_dispersion_unsupported_quantity_rejected():
 
 
 def test_dispersion_kind_not_valid_for_quantity_rejected():
+    """A dispersion kind that does not fit its quantity (uniform_euler_mrp on
+    dry mass) is refused."""
     sc = _minimal_scenario()
     sc.monte_carlo = MonteCarloConfig(
         enabled=True,
@@ -1030,6 +1158,7 @@ def test_dispersion_kind_not_valid_for_quantity_rejected():
 
 
 def test_dispersion_uniform_requires_bounds():
+    """A uniform dispersion without bounds is refused."""
     sc = _minimal_scenario()
     sc.monte_carlo = MonteCarloConfig(
         enabled=True,
@@ -1040,6 +1169,7 @@ def test_dispersion_uniform_requires_bounds():
 
 
 def test_dispersion_normal_requires_mean_and_std():
+    """A normal dispersion without mean and standard deviation is refused."""
     sc = _minimal_scenario()
     sc.monte_carlo = MonteCarloConfig(
         enabled=True,
@@ -1050,6 +1180,7 @@ def test_dispersion_normal_requires_mean_and_std():
 
 
 def test_dispersion_unknown_spacecraft_rejected():
+    """A dispersion on a spacecraft the scenario does not have is refused."""
     sc = _minimal_scenario()
     sc.monte_carlo = MonteCarloConfig(
         enabled=True,
@@ -1061,6 +1192,8 @@ def test_dispersion_unknown_spacecraft_rejected():
 
 
 def test_valid_dispersions_validate():
+    """A normal dry-mass dispersion and a uniform attitude dispersion
+    validate."""
     sc = _minimal_scenario()
     sc.monte_carlo = MonteCarloConfig(
         enabled=True, num_runs=25,
@@ -1133,6 +1266,8 @@ def test_attitude_dispersions_need_full_attitude(quantity, extra):
 
 
 def test_monte_carlo_round_trips_through_save_load(tmp_path):
+    """Monte Carlo's switch, run count, thread count and dispersions survive a
+    save and load."""
     sc = _minimal_scenario()
     sc.monte_carlo = MonteCarloConfig(
         enabled=True, num_runs=25, thread_count=2,
@@ -1150,6 +1285,8 @@ def test_monte_carlo_round_trips_through_save_load(tmp_path):
 
 
 def test_old_scenario_file_without_monte_carlo_key_still_loads(tmp_path):
+    """A schema 1 file without a monte_carlo key loads with Monte Carlo off and
+    no dispersions."""
     path = tmp_path / "old.json"
     path.write_text(json.dumps({
         "schema_version": 1, "name": "old scenario", "epoch_utc": "2030-01-01T00:00:00",
@@ -1164,6 +1301,8 @@ def test_old_scenario_file_without_monte_carlo_key_still_loads(tmp_path):
 
 
 def test_phase2_fields_round_trip_through_save_load(tmp_path):
+    """Sensor and actuator parameters, the FSW mode and the control gains
+    survive a save and load."""
     sc = _minimal_scenario()
     sc.spacecraft[0].sensors = [SensorConfig(kind="coarse_sun_sensor", name="css-1", params={"nHat_B": [1, 0, 0]})]
     sc.spacecraft[0].actuators = [ActuatorConfig(kind="reaction_wheel", name="rw-1", params={"gsHat_B": [0, 1, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0})]
@@ -1181,6 +1320,8 @@ def test_phase2_fields_round_trip_through_save_load(tmp_path):
 
 
 def test_power_and_rf_link_default_to_none():
+    """Power and RF link are unset by default, and a spacecraft without them
+    validates."""
     sc = _minimal_scenario()
     assert sc.spacecraft[0].power is None
     assert sc.spacecraft[0].rf_link is None
@@ -1188,6 +1329,8 @@ def test_power_and_rf_link_default_to_none():
 
 
 def test_power_config_round_trips_through_save_load(tmp_path):
+    """Power and RF-link settings load back as their own classes with their
+    values."""
     sc = _minimal_scenario(gravity=GravityConfig(third_body_perturbers=["sun"]))
     sc.spacecraft[0].power = PowerConfig(panel_area_m2=1.2, panel_efficiency=0.29,
                                           bus_idle_power_w=25.0, battery_capacity_wh=120.0,
@@ -1207,6 +1350,7 @@ def test_power_config_round_trips_through_save_load(tmp_path):
 
 
 def test_power_config_rejects_invalid_panel_efficiency():
+    """A solar panel efficiency above 1 is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].power = PowerConfig(panel_area_m2=1.0, panel_efficiency=1.5)
     with pytest.raises(ScenarioValidationError, match="panel_efficiency"):
@@ -1214,6 +1358,7 @@ def test_power_config_rejects_invalid_panel_efficiency():
 
 
 def test_power_config_rejects_invalid_initial_soc():
+    """A battery initial state of charge above 1 is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].power = PowerConfig(panel_area_m2=1.0, panel_efficiency=0.3, battery_initial_soc=1.5)
     with pytest.raises(ScenarioValidationError, match="battery_initial_soc"):
@@ -1221,6 +1366,7 @@ def test_power_config_rejects_invalid_initial_soc():
 
 
 def test_rf_link_config_rejects_non_positive_data_rate():
+    """An RF link with a data rate of 0 is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].rf_link = RFLinkConfig(tx_power_w=10.0, frequency_hz=8.0e9, data_rate_bps=0.0)
     with pytest.raises(ScenarioValidationError, match="data_rate_bps"):
@@ -1233,6 +1379,7 @@ def test_rf_link_config_rejects_non_positive_data_rate():
 # physically real. ----------------------------------------------------
 
 def test_power_config_rejects_implausibly_large_panel_area():
+    """A solar panel area of 1e6 m^2, likely a unit mix-up, is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].power = PowerConfig(panel_area_m2=1.0e6, panel_efficiency=0.3)
     with pytest.raises(ScenarioValidationError, match="panel_area_m2"):
@@ -1240,6 +1387,7 @@ def test_power_config_rejects_implausibly_large_panel_area():
 
 
 def test_power_config_rejects_implausibly_large_battery_capacity():
+    """A battery capacity of 1e9 Wh, likely a unit mix-up, is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].power = PowerConfig(panel_area_m2=1.0, panel_efficiency=0.3, battery_capacity_wh=1.0e9)
     with pytest.raises(ScenarioValidationError, match="battery_capacity_wh"):
@@ -1247,6 +1395,7 @@ def test_power_config_rejects_implausibly_large_battery_capacity():
 
 
 def test_rf_link_config_rejects_implausibly_large_tx_power():
+    """A transmit power of 1e8 W, likely a unit mix-up, is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].rf_link = RFLinkConfig(tx_power_w=1.0e8, frequency_hz=8.0e9, data_rate_bps=1.0e6)
     with pytest.raises(ScenarioValidationError, match="tx_power_w"):
@@ -1254,6 +1403,7 @@ def test_rf_link_config_rejects_implausibly_large_tx_power():
 
 
 def test_spacecraft_rejects_implausibly_large_dry_mass():
+    """A dry mass of 1e12 kg, likely a unit mix-up, is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].dry_mass_kg = 1.0e12
     with pytest.raises(ScenarioValidationError, match="dry_mass_kg"):
@@ -1278,6 +1428,7 @@ def test_spacecraft_rejects_diagonal_inertia_violating_the_triangle_inequality()
 
 
 def test_spacecraft_rejects_diagonal_inertia_with_a_non_positive_entry():
+    """A diagonal inertia with a negative moment is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].inertia_kg_m2 = [10.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, 10.0]
     with pytest.raises(ScenarioValidationError, match="positive"):
@@ -1310,6 +1461,7 @@ def test_spacecraft_skips_the_triangle_check_for_a_non_diagonal_inertia_tensor()
 
 
 def test_spacecraft_rejects_implausibly_large_drag_area():
+    """A drag area of 1e8 m^2, likely a unit mix-up, is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].drag_area_m2 = 1.0e8
     with pytest.raises(ScenarioValidationError, match="drag_area_m2"):
@@ -1317,6 +1469,7 @@ def test_spacecraft_rejects_implausibly_large_drag_area():
 
 
 def test_spacecraft_rejects_implausibly_large_srp_area():
+    """An SRP area of 1e8 m^2, likely a unit mix-up, is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].srp_area_m2 = 1.0e8
     with pytest.raises(ScenarioValidationError, match="srp_area_m2"):
@@ -1324,6 +1477,7 @@ def test_spacecraft_rejects_implausibly_large_srp_area():
 
 
 def test_thermal_sensor_rejects_implausibly_large_area():
+    """A thermal sensor area of 1e8 m^2, likely a unit mix-up, is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1",
                                                params={"nHat_B": [0, 0, 1], "area_m2": 1.0e8, "absorptivity": 0.25,
@@ -1333,6 +1487,7 @@ def test_thermal_sensor_rejects_implausibly_large_area():
 
 
 def test_thermal_sensor_rejects_implausibly_large_mass_when_set():
+    """A thermal sensor mass of 1e9 kg, likely a unit mix-up, is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1",
                                                params={"nHat_B": [0, 0, 1], "area_m2": 1.0, "absorptivity": 0.25,
@@ -1342,6 +1497,8 @@ def test_thermal_sensor_rejects_implausibly_large_mass_when_set():
 
 
 def test_thermal_sensor_with_no_mass_kg_set_still_validates():
+    """A thermal sensor without a mass validates: the mass is optional and its
+    bound applies only when it is set."""
     # mass_kg stays genuinely optional -- this bound only applies when set.
     sc = _minimal_scenario(gravity=GravityConfig(third_body_perturbers=["sun"]))  # sensorThermal needs the Sun
     sc.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1",
@@ -1351,18 +1508,22 @@ def test_thermal_sensor_with_no_mass_kg_set_still_validates():
 
 
 def test_ground_station_rejects_non_positive_system_noise_temp():
+    """A ground station with a system noise temperature of 0 K is refused."""
     gs = GroundStationConfig(name="gs1", latitude_deg=0.0, longitude_deg=0.0, system_noise_temp_k=0.0)
     with pytest.raises(ScenarioValidationError, match="system_noise_temp_k"):
         gs.validate()
 
 
 def test_rf_link_antenna_beamwidth_deg_defaults_to_none():
+    """The antenna beamwidth is unset by default, and an RF link without it
+    validates."""
     rf_link = RFLinkConfig(tx_power_w=10.0, frequency_hz=8.0e9, data_rate_bps=1.0e6)
     assert rf_link.antenna_beamwidth_deg is None
     rf_link.validate("sat-1")  # must not raise -- not required
 
 
 def test_rf_link_antenna_beamwidth_deg_rejects_non_positive():
+    """An antenna beamwidth of 0 deg is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].rf_link = RFLinkConfig(tx_power_w=10.0, frequency_hz=8.0e9, data_rate_bps=1.0e6,
                                              antenna_beamwidth_deg=0.0)
@@ -1371,6 +1532,8 @@ def test_rf_link_antenna_beamwidth_deg_rejects_non_positive():
 
 
 def test_comms_pointing_defaults_to_none():
+    """Comms pointing is unset by default, and a spacecraft without it
+    validates."""
     sc = _minimal_scenario()
     assert sc.spacecraft[0].comms_pointing is None
     sc.validate()  # must not raise -- not required
@@ -1393,10 +1556,14 @@ def _comms_pointing_scenario(**overrides) -> Scenario:
 
 
 def test_comms_pointing_valid_scenario_validates():
+    """Comms pointing at an existing ground station, with the Sun in the run,
+    validates."""
     _comms_pointing_scenario().validate()  # must not raise
 
 
 def test_comms_pointing_round_trips_through_save_load(tmp_path):
+    """Comms pointing's target station, boresight, Sun-pointing axis and power
+    survive a save and load."""
     sc = _comms_pointing_scenario()
     sc.spacecraft[0].comms_pointing = CommsPointingConfig(
         target_ground_station="gs-1", antenna_boresight_b=[1.0, 0.0, 0.0],
@@ -1415,6 +1582,7 @@ def test_comms_pointing_round_trips_through_save_load(tmp_path):
 
 
 def test_comms_pointing_rejects_being_combined_with_fsw_mode():
+    """Comms pointing together with an FSW mode is refused."""
     sc = _comms_pointing_scenario()
     sc.spacecraft[0].fsw_mode = "sunSafePoint"
     with pytest.raises(ScenarioValidationError, match="comms_pointing and fsw_mode"):
@@ -1422,6 +1590,8 @@ def test_comms_pointing_rejects_being_combined_with_fsw_mode():
 
 
 def test_comms_pointing_rejects_unknown_ground_station():
+    """Comms pointing at a ground station the scenario does not have is
+    refused, naming it."""
     sc = _comms_pointing_scenario()
     sc.spacecraft[0].comms_pointing.target_ground_station = "does-not-exist"
     with pytest.raises(ScenarioValidationError, match="does-not-exist"):
@@ -1429,6 +1599,7 @@ def test_comms_pointing_rejects_unknown_ground_station():
 
 
 def test_comms_pointing_rejects_comms_power_without_power_config():
+    """A comms power draw on a spacecraft without a power model is refused."""
     sc = _comms_pointing_scenario()
     sc.spacecraft[0].power = None
     sc.spacecraft[0].comms_pointing.comms_power_w = 15.0
@@ -1437,6 +1608,8 @@ def test_comms_pointing_rejects_comms_power_without_power_config():
 
 
 def test_comms_pointing_allows_zero_comms_power_without_power_config():
+    """Comms pointing without a power model validates when its power draw is 0
+    (the default)."""
     sc = _comms_pointing_scenario()
     sc.spacecraft[0].power = None
     assert sc.spacecraft[0].comms_pointing.comms_power_w == 0.0
@@ -1444,6 +1617,7 @@ def test_comms_pointing_allows_zero_comms_power_without_power_config():
 
 
 def test_comms_pointing_rejects_malformed_antenna_boresight():
+    """A two-element antenna boresight is refused."""
     sc = _comms_pointing_scenario()
     sc.spacecraft[0].comms_pointing.antenna_boresight_b = [1.0, 0.0]
     with pytest.raises(ScenarioValidationError, match="antenna_boresight_b"):
@@ -1451,6 +1625,8 @@ def test_comms_pointing_rejects_malformed_antenna_boresight():
 
 
 def test_old_scenario_file_without_power_or_rf_link_keys_still_loads(tmp_path):
+    """A schema 1 file without power, RF-link or station-keeping keys loads
+    with all three unset."""
     path = tmp_path / "old.json"
     path.write_text(json.dumps({
         "schema_version": 1, "name": "old scenario", "epoch_utc": "2030-01-01T00:00:00",
@@ -1466,12 +1642,16 @@ def test_old_scenario_file_without_power_or_rf_link_keys_still_loads(tmp_path):
 
 
 def test_station_keeping_defaults_to_none():
+    """Station keeping is unset by default, and a spacecraft without it
+    validates."""
     sc = _minimal_scenario()
     assert sc.spacecraft[0].station_keeping is None
     sc.validate()  # must not raise -- not required
 
 
 def test_station_keeping_round_trips_through_save_load(tmp_path):
+    """Station keeping's settings survive a save and load, with the default
+    eclipse threshold kept."""
     sc = _minimal_scenario(gravity=GravityConfig(third_body_perturbers=["sun"]))
     sc.spacecraft[0].station_keeping = StationKeepingConfig(
         target_altitude_km=500.0, deadband_km=1.0, thrust_n=0.01, isp_s=1500.0, propellant_kg=2.0,
@@ -1488,6 +1668,8 @@ def test_station_keeping_round_trips_through_save_load(tmp_path):
 
 
 def test_station_keeping_rejects_deadband_not_less_than_target_altitude():
+    """A station-keeping deadband as large as the target altitude is
+    refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].station_keeping = StationKeepingConfig(
         target_altitude_km=500.0, deadband_km=500.0, thrust_n=0.01, isp_s=1500.0, propellant_kg=2.0,
@@ -1497,6 +1679,7 @@ def test_station_keeping_rejects_deadband_not_less_than_target_altitude():
 
 
 def test_station_keeping_rejects_zero_deadband():
+    """A station-keeping deadband of 0 km is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].station_keeping = StationKeepingConfig(
         target_altitude_km=500.0, deadband_km=0.0, thrust_n=0.01, isp_s=1500.0, propellant_kg=2.0,
@@ -1506,6 +1689,7 @@ def test_station_keeping_rejects_zero_deadband():
 
 
 def test_station_keeping_rejects_non_positive_thrust():
+    """Station keeping with a thrust of 0 N is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].station_keeping = StationKeepingConfig(
         target_altitude_km=500.0, deadband_km=1.0, thrust_n=0.0, isp_s=1500.0, propellant_kg=2.0,
@@ -1515,6 +1699,7 @@ def test_station_keeping_rejects_non_positive_thrust():
 
 
 def test_station_keeping_rejects_negative_propellant():
+    """Station keeping with negative propellant is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].station_keeping = StationKeepingConfig(
         target_altitude_km=500.0, deadband_km=1.0, thrust_n=0.01, isp_s=1500.0, propellant_kg=-1.0,
@@ -1524,6 +1709,7 @@ def test_station_keeping_rejects_negative_propellant():
 
 
 def test_station_keeping_rejects_out_of_range_eclipse_threshold():
+    """A station-keeping sunlit threshold above 1 is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].station_keeping = StationKeepingConfig(
         target_altitude_km=500.0, deadband_km=1.0, thrust_n=0.01, isp_s=1500.0, propellant_kg=2.0,
@@ -1574,18 +1760,24 @@ def test_power_station_keeping_or_srp_without_sun_third_body_is_rejected(configu
     _configure_comms_pointing,
 ], ids=["power", "station_keeping", "enable_srp", "comms_pointing"])
 def test_power_station_keeping_or_srp_with_sun_third_body_validates(configure):
+    """Power, station keeping, SRP and comms pointing each validate when the
+    Sun is a third body."""
     sc = _minimal_scenario(gravity=GravityConfig(third_body_perturbers=["sun"]))
     configure(sc)
     sc.validate()  # must not raise
 
 
 def test_no_power_station_keeping_or_srp_does_not_need_sun_third_body():
+    """A spacecraft with nothing that needs an eclipse shadow validates without
+    the Sun."""
     sc = _minimal_scenario()
     assert "sun" not in sc.gravity.third_body_perturbers
     sc.validate()  # must not raise -- nothing here needs an eclipse shadow factor
 
 
 def test_constant_thrust_defaults_to_none():
+    """Constant thrust is unset by default, and a spacecraft without it
+    validates."""
     sc = _minimal_scenario()
     assert sc.spacecraft[0].constant_thrust is None
     sc.validate()  # must not raise -- not required
@@ -1607,6 +1799,7 @@ def test_magnetometer_sensor_without_earth_central_body_is_rejected():
 
 
 def test_magnetometer_sensor_with_earth_central_body_validates():
+    """A magnetometer validates around Earth."""
     sc = _minimal_scenario(gravity=GravityConfig(central_body="earth"))
     sc.spacecraft[0].sensors = [SensorConfig(kind="magnetometer", name="mag-1")]
     sc.validate()  # must not raise
@@ -1634,6 +1827,8 @@ def test_magnetic_momentum_management_without_earth_central_body_is_rejected():
 
 
 def test_constant_thrust_round_trips_through_save_load(tmp_path):
+    """Constant thrust's frame, direction and thrust survive a save and
+    load."""
     sc = _minimal_scenario()
     sc.spacecraft[0].constant_thrust = ConstantThrustConfig(
         frame="RTN", direction=[0.0, 1.0, 0.0], thrust_n=0.05, isp_s=2000.0, propellant_kg=1.5,
@@ -1650,12 +1845,14 @@ def test_constant_thrust_round_trips_through_save_load(tmp_path):
 
 
 def test_constant_thrust_defaults_to_vnb_prograde():
+    """Constant thrust defaults to the VNB frame along +V (prograde)."""
     config = ConstantThrustConfig()
     assert config.frame == "VNB"
     assert config.direction == [1.0, 0.0, 0.0]
 
 
 def test_constant_thrust_rejects_unknown_frame():
+    """A constant-thrust frame the tool does not offer (LVLH) is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].constant_thrust = ConstantThrustConfig(frame="LVLH")
     with pytest.raises(ScenarioValidationError, match="frame"):
@@ -1663,6 +1860,7 @@ def test_constant_thrust_rejects_unknown_frame():
 
 
 def test_constant_thrust_rejects_wrong_length_direction():
+    """A two-element constant-thrust direction is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].constant_thrust = ConstantThrustConfig(direction=[1.0, 0.0])
     with pytest.raises(ScenarioValidationError, match="direction"):
@@ -1670,6 +1868,7 @@ def test_constant_thrust_rejects_wrong_length_direction():
 
 
 def test_constant_thrust_rejects_zero_direction_vector():
+    """A zero constant-thrust direction is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].constant_thrust = ConstantThrustConfig(direction=[0.0, 0.0, 0.0])
     with pytest.raises(ScenarioValidationError, match="non-zero, finite"):
@@ -1677,6 +1876,7 @@ def test_constant_thrust_rejects_zero_direction_vector():
 
 
 def test_constant_thrust_rejects_non_positive_thrust():
+    """Constant thrust of 0 N is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].constant_thrust = ConstantThrustConfig(thrust_n=0.0)
     with pytest.raises(ScenarioValidationError, match="thrust_n"):
@@ -1684,6 +1884,7 @@ def test_constant_thrust_rejects_non_positive_thrust():
 
 
 def test_constant_thrust_rejects_non_positive_isp():
+    """Constant thrust with a specific impulse of 0 s is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].constant_thrust = ConstantThrustConfig(isp_s=0.0)
     with pytest.raises(ScenarioValidationError, match="isp_s"):
@@ -1691,6 +1892,7 @@ def test_constant_thrust_rejects_non_positive_isp():
 
 
 def test_constant_thrust_rejects_negative_propellant():
+    """Constant thrust with negative propellant is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].constant_thrust = ConstantThrustConfig(propellant_kg=-1.0)
     with pytest.raises(ScenarioValidationError, match="propellant_kg"):
@@ -1710,12 +1912,15 @@ def test_constant_thrust_allowed_alongside_station_keeping():
 
 
 def test_simulation_mode_defaults_to_full_attitude():
+    """The simulation mode defaults to full_attitude, and the default
+    validates."""
     sc = _minimal_scenario()
     assert sc.simulation_mode == "full_attitude"
     sc.validate()  # must not raise
 
 
 def test_simulation_mode_rejects_unknown_value():
+    """A simulation mode the tool does not offer is refused."""
     sc = _minimal_scenario()
     sc.simulation_mode = "cannonball"
     with pytest.raises(ScenarioValidationError, match="simulation_mode"):
@@ -1723,6 +1928,7 @@ def test_simulation_mode_rejects_unknown_value():
 
 
 def test_orbit_only_mode_rejects_fsw_mode():
+    """An FSW mode in an orbit-only run is refused."""
     sc = _minimal_scenario(simulation_mode="orbit_only")
     sc.spacecraft[0].fsw_mode = "hillPoint"
     with pytest.raises(ScenarioValidationError, match="fsw_mode"):
@@ -1730,6 +1936,7 @@ def test_orbit_only_mode_rejects_fsw_mode():
 
 
 def test_orbit_only_mode_rejects_sensors():
+    """Sensors in an orbit-only run are refused."""
     sc = _minimal_scenario(simulation_mode="orbit_only")
     sc.spacecraft[0].sensors = [SensorConfig(kind="imu", name="imu-1")]
     with pytest.raises(ScenarioValidationError, match="sensors"):
@@ -1737,6 +1944,7 @@ def test_orbit_only_mode_rejects_sensors():
 
 
 def test_orbit_only_mode_rejects_actuators():
+    """Actuators in an orbit-only run are refused."""
     sc = _minimal_scenario(simulation_mode="orbit_only")
     sc.spacecraft[0].actuators = [ActuatorConfig(kind="reaction_wheel", name="rw-1", params={"gsHat_B": [1, 0, 0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0})]
     with pytest.raises(ScenarioValidationError, match="actuators"):
@@ -1744,6 +1952,7 @@ def test_orbit_only_mode_rejects_actuators():
 
 
 def test_orbit_only_mode_rejects_power():
+    """A power model in an orbit-only run is refused."""
     sc = _minimal_scenario(simulation_mode="orbit_only")
     sc.spacecraft[0].power = PowerConfig(panel_area_m2=1.0, panel_efficiency=0.29)
     with pytest.raises(ScenarioValidationError, match="power"):
@@ -1764,6 +1973,7 @@ def test_orbit_only_mode_allows_station_keeping_and_constant_thrust():
 
 
 def test_orbit_only_mode_allows_plain_cannonball_spacecraft():
+    """An orbit-only spacecraft with drag and SRP validates."""
     sc = _minimal_scenario(simulation_mode="orbit_only", gravity=GravityConfig(third_body_perturbers=["sun"]))
     sc.spacecraft[0].enable_drag = True
     sc.spacecraft[0].drag_area_m2 = 2.5
@@ -1796,12 +2006,16 @@ def _chief_and_follower_scenario(**follower_overrides):
 
 
 def test_phasing_keeping_defaults_to_none():
+    """Phasing keeping is unset by default, and a spacecraft without it
+    validates."""
     sc = _minimal_scenario()
     assert sc.spacecraft[0].phasing_keeping is None
     sc.validate()  # must not raise
 
 
 def test_phasing_keeping_round_trips_through_save_load(tmp_path):
+    """Phasing keeping's chief and target separation survive a save and load,
+    with the default tolerance kept."""
     scenario = _chief_and_follower_scenario()
     path = tmp_path / "phasing.json"
     scenario.save(path)
@@ -1815,12 +2029,14 @@ def test_phasing_keeping_round_trips_through_save_load(tmp_path):
 
 
 def test_phasing_keeping_requires_station_keeping_on_same_spacecraft():
+    """Phasing keeping on a follower without station keeping is refused."""
     scenario = _chief_and_follower_scenario(station_keeping=None)
     with pytest.raises(ScenarioValidationError, match="requires station_keeping"):
         scenario.validate()
 
 
 def test_phasing_keeping_rejects_chief_being_itself():
+    """A follower that names itself as its chief is refused."""
     scenario = _chief_and_follower_scenario()
     scenario.spacecraft[1].phasing_keeping.chief_spacecraft = "follower"
     with pytest.raises(ScenarioValidationError, match="cannot be the spacecraft itself"):
@@ -1828,6 +2044,7 @@ def test_phasing_keeping_rejects_chief_being_itself():
 
 
 def test_phasing_keeping_rejects_unknown_chief_spacecraft():
+    """A chief the scenario does not have is refused."""
     scenario = _chief_and_follower_scenario()
     scenario.spacecraft[1].phasing_keeping.chief_spacecraft = "no-such-satellite"
     with pytest.raises(ScenarioValidationError, match="chief_spacecraft"):
@@ -1835,6 +2052,7 @@ def test_phasing_keeping_rejects_unknown_chief_spacecraft():
 
 
 def test_phasing_keeping_rejects_empty_target_separation():
+    """Phasing keeping without a target separation is refused."""
     scenario = _chief_and_follower_scenario()
     scenario.spacecraft[1].phasing_keeping.target_separation_km = []
     with pytest.raises(ScenarioValidationError, match="target_separation_km"):
@@ -1842,6 +2060,7 @@ def test_phasing_keeping_rejects_empty_target_separation():
 
 
 def test_phasing_keeping_rejects_non_positive_target_separation():
+    """A target separation of 0 km in the list is refused."""
     scenario = _chief_and_follower_scenario()
     scenario.spacecraft[1].phasing_keeping.target_separation_km = [100.0, 0.0]
     with pytest.raises(ScenarioValidationError, match="target_separation_km"):
@@ -1857,6 +2076,9 @@ def test_phasing_keeping_rejects_non_positive_target_separation():
     ("max_delta_semi_major_axis_km", 0.0, "max_delta_semi_major_axis_km"),
 ])
 def test_phasing_keeping_rejects_bad_tuning_knobs(field, value, match):
+    """Each phasing-keeping tuning value out of range (a negative
+    reconfiguration interval, or a zero tolerance, window, drift time or
+    semi-major-axis step) is refused, naming the field."""
     scenario = _chief_and_follower_scenario()
     setattr(scenario.spacecraft[1].phasing_keeping, field, value)
     with pytest.raises(ScenarioValidationError, match=match):
@@ -1864,6 +2086,8 @@ def test_phasing_keeping_rejects_bad_tuning_knobs(field, value, match):
 
 
 def test_phasing_keeping_full_scenario_validates():
+    """A chief and a follower with station keeping and phasing keeping
+    validate."""
     scenario = _chief_and_follower_scenario()
     scenario.validate()  # must not raise
 
@@ -1871,6 +2095,7 @@ def test_phasing_keeping_full_scenario_validates():
 # -- Mission sequence (schema.command.Command) -------------------------------
 
 def test_mission_sequence_defaults_to_empty_list():
+    """The mission sequence is empty by default."""
     assert _minimal_scenario().mission_sequence == []
 
 
@@ -1883,6 +2108,8 @@ def test_mission_sequence_empty_does_not_affect_existing_validation():
 
 
 def test_mission_sequence_round_trips_through_save_load(tmp_path):
+    """A mission sequence with nested commands, labels and parameters survives
+    a save and load."""
     from spacemissionstudio.schema.command import Command
 
     scenario = _minimal_scenario(mission_sequence=[
@@ -1904,6 +2131,8 @@ def test_mission_sequence_round_trips_through_save_load(tmp_path):
 
 
 def test_scenario_validate_raises_on_first_bad_command():
+    """A maneuver command without a spacecraft makes the scenario fail
+    validation."""
     from spacemissionstudio.schema.command import Command
 
     scenario = _minimal_scenario(mission_sequence=[Command(kind="maneuver", params={})])
@@ -1912,6 +2141,8 @@ def test_scenario_validate_raises_on_first_bad_command():
 
 
 def test_scenario_validate_raises_on_dangling_command_reference():
+    """A maneuver on a spacecraft the scenario does not have is refused, naming
+    it."""
     from spacemissionstudio.schema.command import Command
 
     scenario = _minimal_scenario(mission_sequence=[
@@ -1922,6 +2153,8 @@ def test_scenario_validate_raises_on_dangling_command_reference():
 
 
 def test_scenario_validate_accepts_valid_mission_sequence():
+    """A propagate followed by a maneuver on an existing spacecraft
+    validates."""
     from spacemissionstudio.schema.command import Command
 
     scenario = _minimal_scenario(mission_sequence=[
@@ -1999,6 +2232,8 @@ def test_direction_vectors_reject_zero_and_non_finite_values(target, bad_vector)
 
 @pytest.mark.parametrize("min_on_time_s", [-1.0, float("nan"), 1.0e6])
 def test_station_keeping_rejects_an_invalid_min_on_time(min_on_time_s):
+    """A negative, NaN or implausibly long (1e6 s) thruster minimum on-time is
+    refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].station_keeping = StationKeepingConfig(target_altitude_km=550.0, deadband_km=5.0, thrust_n=0.05,
                                                              isp_s=1500.0, propellant_kg=5.0,
@@ -2008,6 +2243,8 @@ def test_station_keeping_rejects_an_invalid_min_on_time(min_on_time_s):
 
 
 def test_station_keeping_thruster_realism_fields_default_to_an_ideal_thruster_when_absent_from_json():
+    """A file without min_on_time_s and eccentricity_neutral_burns loads as an
+    ideal thruster: no minimum on-time, single burns."""
     from spacemissionstudio.schema.scenario import Scenario
 
     sc = _minimal_scenario()
@@ -2047,6 +2284,10 @@ def test_forecast_percentile_must_be_one_msfc_publishes():
       "motor_thermal_heat_capacity_j_c": 50.0}, "above absolute zero"),
 ])
 def test_reaction_wheel_settings_basilisk_would_exit_on_are_refused(params, message):
+    """Reaction-wheel settings on which Basilisk's rwFactory would exit the
+    process (an unknown type, non-positive or non-numeric u_max or Js, a
+    non-boolean useMaxTorque, a zero betaStatic, a label over 5 characters, a
+    motor below absolute zero) are refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [ActuatorConfig(kind="reaction_wheel", name="rw-1", params=params)]
     sc.spacecraft[0].fsw_mode = "sunSafePoint"
@@ -2063,6 +2304,9 @@ def test_reaction_wheel_settings_basilisk_would_exit_on_are_refused(params, mess
     ({"MinOnTime": -0.1}, "MinOnTime'] must be >= 0"),
 ])
 def test_thruster_settings_basilisk_would_exit_on_are_refused(change, message):
+    """Thruster settings on which Basilisk's thrusterFactory would exit the
+    process (an unknown type, a zero direction, non-positive thrust or Isp, a
+    non-finite position, a negative minimum on-time) are refused."""
     sc = _minimal_scenario()
     params = {"r_B": [1, 0, 1.28], "tHat_B": [1, 0, 0], "MaxThrust": 1.0}
     params.update(change)
@@ -2073,6 +2317,7 @@ def test_thruster_settings_basilisk_would_exit_on_are_refused(change, message):
 
 
 def test_a_torque_rod_needs_a_positive_dipole():
+    """A torque rod with a negative maximum dipole is refused."""
     sc = _minimal_scenario()
     sc.spacecraft[0].actuators = [ActuatorConfig(kind="magnetic_torque_rod", name="mtb-1",
                                                  params={"gtHat_B": [1, 0, 0], "max_dipole_a_m2": -5.0})]

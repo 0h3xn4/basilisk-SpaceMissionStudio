@@ -35,6 +35,7 @@ def _write_scenario(path, **overrides):
 
 
 def test_validate_accepts_a_valid_scenario(tmp_path, capsys):
+    """validate on a valid scenario exits 0 and prints OK."""
     path = tmp_path / "scenario.json"
     _write_scenario(path)
     rc = cli.main(["validate", str(path)])
@@ -43,6 +44,8 @@ def test_validate_accepts_a_valid_scenario(tmp_path, capsys):
 
 
 def test_validate_rejects_an_invalid_scenario(tmp_path, capsys):
+    """validate on a scenario with an empty name exits 1 and prints INVALID to
+    stderr."""
     path = tmp_path / "bad.json"
     path.write_text(json.dumps({"schema_version": 1, "name": "", "epoch_utc": "2030-01-01T00:00:00"}))
     rc = cli.main(["validate", str(path)])
@@ -51,6 +54,8 @@ def test_validate_rejects_an_invalid_scenario(tmp_path, capsys):
 
 
 def test_validate_rejects_malformed_json(tmp_path, capsys):
+    """validate on a file that is not JSON exits 1 and prints INVALID to
+    stderr."""
     path = tmp_path / "malformed.json"
     path.write_text("{not json")
     rc = cli.main(["validate", str(path)])
@@ -59,6 +64,8 @@ def test_validate_rejects_malformed_json(tmp_path, capsys):
 
 
 def test_spaceweather_resolve_reports_resolution(tmp_path, capsys):
+    """spaceweather-resolve exits 0 and says what the scenario's space weather
+    resolved to, from the bundled CelesTrak SW-All data."""
     path = tmp_path / "scenario.json"
     _write_scenario(path)
     rc = cli.main(["spaceweather-resolve", str(path)])
@@ -90,6 +97,8 @@ def test_spaceweather_resolve_reports_a_clean_error_instead_of_a_traceback(tmp_p
 
 
 def test_generate_constellation_writes_new_scenario(tmp_path, capsys):
+    """generate-constellation writes a scenario with 6 uniquely named
+    spacecraft on classical elements and says how many it generated."""
     path = tmp_path / "template.json"
     _write_scenario(path)
     out_path = tmp_path / "constellation.json"
@@ -111,6 +120,8 @@ def test_generate_constellation_writes_new_scenario(tmp_path, capsys):
 
 
 def test_generate_constellation_append_keeps_existing_spacecraft(tmp_path, capsys):
+    """generate-constellation --append keeps the original spacecraft beside the
+    generated ones."""
     path = tmp_path / "template.json"
     _write_scenario(path)  # one spacecraft named "sat-1"
     out_path = tmp_path / "constellation.json"
@@ -139,6 +150,8 @@ def _write_scenario_with_spacecraft(path, spacecraft):
 
 
 def test_generate_constellation_requires_template_spacecraft_flag_when_ambiguous(tmp_path, capsys):
+    """With two spacecraft in the file and no --template-spacecraft,
+    generate-constellation exits 1 asking for the flag."""
     from spacemissionstudio.schema import OrbitIC, SpacecraftConfig
 
     path = tmp_path / "template.json"
@@ -158,6 +171,8 @@ def test_generate_constellation_requires_template_spacecraft_flag_when_ambiguous
 
 
 def test_generate_constellation_uses_named_template_spacecraft(tmp_path, capsys):
+    """generate-constellation copies the spacecraft named by
+    --template-spacecraft."""
     from spacemissionstudio.schema import OrbitIC, SpacecraftConfig
 
     path = tmp_path / "template.json"
@@ -182,6 +197,7 @@ def test_generate_constellation_uses_named_template_spacecraft(tmp_path, capsys)
 
 
 def test_generate_constellation_rejects_unknown_template_spacecraft_name(tmp_path, capsys):
+    """A --template-spacecraft the file does not have exits 1, naming it."""
     path = tmp_path / "template.json"
     _write_scenario(path)
     rc = cli.main([
@@ -195,6 +211,7 @@ def test_generate_constellation_rejects_unknown_template_spacecraft_name(tmp_pat
 
 
 def test_generate_constellation_rejects_invalid_walker_parameters(tmp_path, capsys):
+    """10 satellites in 3 planes (not divisible) exits 1 with INVALID."""
     path = tmp_path / "template.json"
     _write_scenario(path)
     rc = cli.main([
@@ -208,6 +225,7 @@ def test_generate_constellation_rejects_invalid_walker_parameters(tmp_path, caps
 
 @pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
 def test_run_without_basilisk_reports_clear_error(tmp_path, capsys):
+    """Without Basilisk, run exits 2 saying Basilisk is not installed."""
     path = tmp_path / "scenario.json"
     _write_scenario(path)
     rc = cli.main(["run", str(path), "--out-dir", str(tmp_path / "out")])
@@ -217,6 +235,8 @@ def test_run_without_basilisk_reports_clear_error(tmp_path, capsys):
 
 @pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
 def test_kernels_status_without_basilisk_reports_clear_error(capsys):
+    """Without Basilisk, kernels-status exits 2 saying Basilisk is not
+    installed."""
     rc = cli.main(["kernels-status"])
     assert rc == 2
     assert "Basilisk is not installed" in capsys.readouterr().err
@@ -260,6 +280,8 @@ def test_run_with_allow_scripts_runs_them(tmp_path, capsys):
 
 
 def test_run_rejects_both_vizard_flags_at_once(tmp_path, capsys):
+    """run with both --vizard-save-file and --vizard-live-stream exits 1: at
+    most one is allowed."""
     path = tmp_path / "scenario.json"
     _write_scenario(path)
     rc = cli.main([
@@ -327,6 +349,7 @@ def test_version_before_a_command_prints_the_versions_and_exits(capsys):
 
 
 def test_run_parses_vizard_camera_and_orbit_line_flags():
+    """run parses --vizard-camera-target and --vizard-no-orbit-lines."""
     parser = cli.build_parser()
     args = parser.parse_args([
         "run", "scenario.json",
@@ -337,6 +360,8 @@ def test_run_parses_vizard_camera_and_orbit_line_flags():
 
 
 def test_run_vizard_camera_target_defaults_to_none():
+    """Without the flags, run has no Vizard camera target and draws orbit
+    lines."""
     parser = cli.build_parser()
     args = parser.parse_args(["run", "scenario.json"])
     assert args.vizard_camera_target is None
@@ -344,6 +369,8 @@ def test_run_vizard_camera_target_defaults_to_none():
 
 
 def test_station_keeping_summary_reports_delta_v_and_propellant_used(capsys):
+    """The station-keeping summary gives the final cumulative delta-V, the
+    propellant used and the propellant left."""
     import numpy as np
 
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
@@ -374,6 +401,9 @@ def test_station_keeping_summary_reports_delta_v_and_propellant_used(capsys):
 
 
 def test_station_keeping_summary_includes_phasing_delta_v_breakdown(capsys):
+    """A phasing follower's summary adds its altitude-keeping and phasing
+    delta-V and lists both; the chief, without station keeping, is not
+    summarized."""
     import numpy as np
 
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
@@ -422,6 +452,7 @@ def test_station_keeping_summary_includes_phasing_delta_v_breakdown(capsys):
 
 
 def test_station_keeping_summary_skips_spacecraft_without_the_config(capsys):
+    """A spacecraft without station keeping prints no summary."""
     from spacemissionstudio.engine.results import ResultSet
     from spacemissionstudio.schema import GravityConfig, OrbitIC, Scenario, SpacecraftConfig
 
@@ -439,6 +470,7 @@ def test_station_keeping_summary_skips_spacecraft_without_the_config(capsys):
 
 
 def test_monte_carlo_rejects_scenario_without_enabled_flag(tmp_path, capsys):
+    """monte-carlo on a scenario with Monte Carlo off exits 1 saying so."""
     path = tmp_path / "scenario.json"
     _write_scenario(path)  # monte_carlo.enabled defaults to False
     rc = cli.main(["monte-carlo", str(path), "--archive-dir", str(tmp_path / "mc")])
@@ -448,6 +480,8 @@ def test_monte_carlo_rejects_scenario_without_enabled_flag(tmp_path, capsys):
 
 @pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
 def test_monte_carlo_without_basilisk_reports_clear_error(tmp_path, capsys):
+    """Without Basilisk, monte-carlo exits 2 saying Basilisk is not
+    installed."""
     from spacemissionstudio.schema import MonteCarloConfig
 
     path = tmp_path / "scenario.json"
@@ -458,11 +492,13 @@ def test_monte_carlo_without_basilisk_reports_clear_error(tmp_path, capsys):
 
 
 def test_no_subcommand_is_an_error():
+    """The command line without a subcommand exits with an error."""
     with pytest.raises(SystemExit):
         cli.main([])
 
 
 def test_unknown_scenario_file_is_a_clear_error(tmp_path, capsys):
+    """validate on a file that does not exist exits 1 with INVALID."""
     rc = cli.main(["validate", str(tmp_path / "does_not_exist.json")])
     assert rc == 1
     assert "INVALID" in capsys.readouterr().err
@@ -491,6 +527,8 @@ def _write_chief_scenario(path, **overrides):
 
 @pytest.mark.skipif(not _BASILISK_AVAILABLE, reason="needs a real Basilisk build (real Hill-frame transform)")
 def test_generate_phasing_formation_writes_new_scenario(tmp_path, capsys):
+    """generate-phasing-formation adds a follower with phasing keeping 50 km
+    from the chief, and station keeping, after the chief."""
     path = tmp_path / "chief.json"
     _write_chief_scenario(path)
     out_path = tmp_path / "formation.json"
@@ -531,6 +569,8 @@ def test_generate_phasing_formation_takes_a_control_law(tmp_path):
 
 @pytest.mark.skipif(not _BASILISK_AVAILABLE, reason="needs a real Basilisk build (real Hill-frame transform)")
 def test_generate_phasing_formation_rejects_zero_along_track_km(tmp_path, capsys):
+    """generate-phasing-formation with a 0 km separation exits 1 with
+    INVALID."""
     path = tmp_path / "chief.json"
     _write_chief_scenario(path)
     rc = cli.main([
@@ -542,6 +582,8 @@ def test_generate_phasing_formation_rejects_zero_along_track_km(tmp_path, capsys
 
 
 def test_generate_phasing_formation_rejects_unknown_chief_name(tmp_path, capsys):
+    """generate-phasing-formation with a chief the file does not have exits 1
+    with ERROR."""
     path = tmp_path / "chief.json"
     _write_chief_scenario(path)
     rc = cli.main([
@@ -554,6 +596,8 @@ def test_generate_phasing_formation_rejects_unknown_chief_name(tmp_path, capsys)
 
 @pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
 def test_generate_phasing_formation_without_basilisk_reports_clear_error(tmp_path, capsys):
+    """Without Basilisk, generate-phasing-formation exits 2 saying Basilisk is
+    not installed."""
     path = tmp_path / "chief.json"
     _write_chief_scenario(path)
     rc = cli.main([
@@ -630,6 +674,8 @@ def test_phasing_defaults_agree_between_schema_generator_and_cli():
 
 
 def test_run_parses_vizard_trail_and_ground_track_flags():
+    """--vizard-trail and --vizard-ground-tracks are off by default and on when
+    given."""
     parser = cli.build_parser()
     assert parser.parse_args(["run", "s.json"]).vizard_trail is False
     assert parser.parse_args(["run", "s.json"]).vizard_ground_tracks is False
@@ -695,6 +741,8 @@ def test_budget_launch_delays_prints_one_row_per_launch_date(capsys, monkeypatch
 
 
 def test_lifetime_drag_coefficient_defaults_to_ad10s_end_of_life_value():
+    """lifetime's drag coefficient defaults to 2.2 (AD10's end-of-life value),
+    takes 'own', and refuses a negative value."""
     parser = cli.build_parser()
     assert parser.parse_args(["lifetime", "s.json"]).drag_coeff == "2.2"
     assert parser.parse_args(["lifetime", "s.json", "--drag-coeff", "own"]).drag_coeff == "own"
@@ -730,6 +778,9 @@ def test_budget_altitudes_prints_one_row_per_altitude(capsys, monkeypatch):
 
 
 def test_budget_altitudes_parse():
+    """budget's --altitudes is unset by default, empty when given bare, takes a
+    comma-separated list in km and refuses an altitude below the allowed range
+    (40 km)."""
     parser = cli.build_parser()
     assert parser.parse_args(["budget", "s.json"]).altitudes is None
     assert parser.parse_args(["budget", "s.json", "--altitudes"]).altitudes == []

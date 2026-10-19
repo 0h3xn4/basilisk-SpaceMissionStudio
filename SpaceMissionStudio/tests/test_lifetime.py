@@ -53,6 +53,8 @@ def test_a_deorbit_burn_matches_the_vis_viva_equation():
 
 
 def test_no_burn_is_needed_when_the_perigee_is_already_low_enough():
+    """An orbit at 200 km, below the 250 km disposal perigee, needs no deorbit
+    burn."""
     assert lifetime.deorbit_burn(_circular(200.0), 250.0, 100.0, 1500.0)[:2] == (0.0, 0.0)
 
 
@@ -67,10 +69,13 @@ def test_facets_use_the_tumbling_average_area():
 
 
 def test_sidereal_angle_at_j2000_is_the_standard_value():
+    """Greenwich mean sidereal time at J2000 is 280.46061837 deg."""
     assert math.degrees(lifetime._gmst_rad(datetime(2000, 1, 1, 12))) == pytest.approx(280.46061837)
 
 
 def test_rule_checks_need_an_actual_reentry():
+    """A re-entry after four years meets the zero-debris rule and has a date;
+    without re-entry no rule is met and there is no date."""
     result = lifetime.LifetimeResult(True, 4.0 * 365.25 * 86400.0, np.zeros(2), np.zeros(2), np.zeros(2),
                                      datetime(2030, 1, 1))
     assert result.meets(lifetime.ZERO_DEBRIS_YEARS) and result.reentry_utc.year == 2034

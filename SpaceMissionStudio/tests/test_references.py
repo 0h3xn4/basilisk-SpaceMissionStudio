@@ -40,10 +40,13 @@ def _scenario(**overrides):
 # -- find_spacecraft_references ---------------------------------------------
 
 def test_no_references_when_unreferenced():
+    """A spacecraft nothing names has no references."""
     assert find_spacecraft_references(_scenario(), "sat-1") == []
 
 
 def test_phasing_keeping_chief_is_found():
+    """A follower's phasing-keeping chief is found as one spacecraft reference,
+    at the follower's chief_spacecraft field."""
     chief = SpacecraftConfig(name="chief", orbit=_orbit())
     follower = SpacecraftConfig(name="follower", orbit=_orbit(), phasing_keeping=PhasingKeepingConfig(
         chief_spacecraft="chief", target_separation_km=[100.0], tolerance_fraction=0.1, restore_tolerance_fraction=0.5,
@@ -60,6 +63,8 @@ def test_phasing_keeping_chief_is_found():
 
 
 def test_monte_carlo_dispersion_is_found():
+    """A Monte Carlo dispersion on the spacecraft is found at its dispersion
+    index."""
     scenario = _scenario(monte_carlo=MonteCarloConfig(
         enabled=True, num_runs=2,
         dispersions=[DispersionConfig(spacecraft="sat-1", quantity="dry_mass_kg", kind="uniform", bounds=[90, 110])],
@@ -72,6 +77,8 @@ def test_monte_carlo_dispersion_is_found():
 
 
 def test_maneuver_command_reference_is_found():
+    """A maneuver on the spacecraft is found at its sequence index, with the
+    command's label."""
     scenario = _scenario(mission_sequence=[
         Command(kind="maneuver", label="Trim", params={"spacecraft": "sat-1", "delta_v_m_s": [1.0, 0.0, 0.0]}),
     ])
@@ -84,6 +91,8 @@ def test_maneuver_command_reference_is_found():
 
 
 def test_lambert_transfer_command_reference_is_found():
+    """A Lambert transfer of the spacecraft is found at its sequence index,
+    with the command's label."""
     scenario = _scenario(mission_sequence=[
         Command(kind="lambert_transfer", label="Transfer", params={
             "spacecraft": "sat-1", "target_position_m": [1.0, 0.0, 0.0], "time_of_flight_s": 3600.0,
@@ -98,6 +107,8 @@ def test_lambert_transfer_command_reference_is_found():
 
 
 def test_propagate_event_command_reference_is_found():
+    """A propagate to the spacecraft's next periapsis is found as a
+    reference."""
     scenario = _scenario(mission_sequence=[
         Command(kind="propagate", params={"stop_condition": "event", "event_kind": "periapsis",
                                             "spacecraft": "sat-1"}),
@@ -107,6 +118,8 @@ def test_propagate_event_command_reference_is_found():
 
 
 def test_assignment_target_reference_is_found():
+    """An assignment to one of the spacecraft's fields is found at the
+    command's target."""
     scenario = _scenario(mission_sequence=[
         Command(kind="assignment", params={"target": "sat-1.station_keeping.thrust_n", "value": 0.5}),
     ])
@@ -136,6 +149,8 @@ def test_report_series_reference_is_found():
 
 
 def test_report_series_reference_to_other_spacecraft_is_not_found():
+    """A report of another spacecraft's series is not a reference to this
+    one."""
     scenario = _scenario(spacecraft=[SpacecraftConfig(name="sat-1", orbit=_orbit()),
                                        SpacecraftConfig(name="sat-2", orbit=_orbit())],
                           mission_sequence=[
@@ -145,6 +160,7 @@ def test_report_series_reference_to_other_spacecraft_is_not_found():
 
 
 def test_reference_nested_inside_if_is_found():
+    """A maneuver inside an if is found at its child path."""
     scenario = _scenario(mission_sequence=[
         Command(kind="if", params={"condition": "True"}, children=[
             Command(kind="maneuver", params={"spacecraft": "sat-1", "delta_v_m_s": [1.0, 0.0, 0.0]}),
@@ -158,6 +174,7 @@ def test_reference_nested_inside_if_is_found():
 
 
 def test_reference_to_a_different_spacecraft_is_not_found():
+    """A maneuver on another spacecraft is not a reference to this one."""
     scenario = _scenario(spacecraft=[SpacecraftConfig(name="sat-1", orbit=_orbit()),
                                        SpacecraftConfig(name="sat-2", orbit=_orbit())],
                           mission_sequence=[
@@ -169,6 +186,8 @@ def test_reference_to_a_different_spacecraft_is_not_found():
 # -- find_ground_station_references ------------------------------------------
 
 def test_ground_station_target_is_found():
+    """A locationPointing target ground station is found at the spacecraft's
+    target_ground_station."""
     sc = SpacecraftConfig(name="sat-1", orbit=_orbit(), fsw_mode="locationPointing",
                             fsw_params={"target_ground_station": "dsn-goldstone", "pHat_B": [0, 0, 1]})
     scenario = _scenario(spacecraft=[sc],
@@ -200,6 +219,7 @@ def test_comms_pointing_target_is_found():
 
 
 def test_ground_station_unreferenced_is_empty():
+    """A ground station nothing names has no references."""
     scenario = _scenario(ground_stations=[GroundStationConfig(name="gs-1", latitude_deg=0.0, longitude_deg=0.0)])
     assert find_ground_station_references(scenario, "gs-1") == []
 
@@ -207,6 +227,9 @@ def test_ground_station_unreferenced_is_empty():
 # -- rename_spacecraft ------------------------------------------------------
 
 def test_rename_spacecraft_updates_self_and_every_reference():
+    """Renaming a chief renames it and its four references (phasing keeping,
+    dispersion, maneuver, assignment target), after which the old name has
+    none."""
     chief = SpacecraftConfig(name="chief", orbit=_orbit())
     follower = SpacecraftConfig(name="follower", orbit=_orbit(), phasing_keeping=PhasingKeepingConfig(
         chief_spacecraft="chief", target_separation_km=[100.0], tolerance_fraction=0.1, restore_tolerance_fraction=0.5,
@@ -232,6 +255,8 @@ def test_rename_spacecraft_updates_self_and_every_reference():
 
 
 def test_rename_spacecraft_updates_lambert_transfer_reference():
+    """Renaming a spacecraft updates a Lambert transfer's spacecraft, counted
+    as one reference."""
     scenario = _scenario(mission_sequence=[
         Command(kind="lambert_transfer", params={
             "spacecraft": "sat-1", "target_position_m": [1.0, 0.0, 0.0], "time_of_flight_s": 3600.0,
@@ -246,6 +271,7 @@ def test_rename_spacecraft_updates_lambert_transfer_reference():
 
 
 def test_rename_spacecraft_in_nested_if_children():
+    """Renaming a spacecraft updates a maneuver inside a while."""
     scenario = _scenario(mission_sequence=[
         Command(kind="while", params={"condition": "True"}, children=[
             Command(kind="maneuver", params={"spacecraft": "sat-1", "delta_v_m_s": [1.0, 0.0, 0.0]}),
@@ -256,11 +282,13 @@ def test_rename_spacecraft_in_nested_if_children():
 
 
 def test_rename_spacecraft_raises_if_old_name_not_found():
+    """Renaming a spacecraft the scenario does not have is refused."""
     with pytest.raises(ReferenceError, match="no spacecraft named"):
         rename_spacecraft(_scenario(), "does-not-exist", "new-name")
 
 
 def test_rename_spacecraft_raises_on_collision():
+    """Renaming a spacecraft to another spacecraft's name is refused."""
     scenario = _scenario(spacecraft=[SpacecraftConfig(name="sat-1", orbit=_orbit()),
                                        SpacecraftConfig(name="sat-2", orbit=_orbit())])
     with pytest.raises(ReferenceError, match="already exists"):
@@ -268,11 +296,14 @@ def test_rename_spacecraft_raises_on_collision():
 
 
 def test_rename_spacecraft_raises_on_empty_new_name():
+    """Renaming a spacecraft to an empty name is refused."""
     with pytest.raises(ReferenceError, match="must not be empty"):
         rename_spacecraft(_scenario(), "sat-1", "")
 
 
 def test_rename_spacecraft_to_same_name_is_a_harmless_no_op():
+    """Renaming a spacecraft to its own name changes nothing and counts no
+    references."""
     scenario = _scenario()
     updated = rename_spacecraft(scenario, "sat-1", "sat-1")
     assert updated == 0
@@ -282,6 +313,8 @@ def test_rename_spacecraft_to_same_name_is_a_harmless_no_op():
 # -- rename_ground_station ----------------------------------------------------
 
 def test_rename_ground_station_updates_self_and_references():
+    """Renaming a ground station renames it and the spacecraft's pointing
+    target."""
     sc = SpacecraftConfig(name="sat-1", orbit=_orbit(), fsw_mode="locationPointing",
                             fsw_params={"target_ground_station": "gs-1", "pHat_B": [0, 0, 1]})
     scenario = _scenario(spacecraft=[sc],
@@ -295,6 +328,7 @@ def test_rename_ground_station_updates_self_and_references():
 
 
 def test_rename_ground_station_raises_if_not_found():
+    """Renaming a ground station the scenario does not have is refused."""
     with pytest.raises(ReferenceError, match="no ground station named"):
         rename_ground_station(_scenario(), "does-not-exist", "new-name")
 
@@ -331,6 +365,9 @@ def _pass_scenario():
 
 
 def test_pass_event_station_is_found_renamed_and_checked():
+    """A pass event's ground station inside a loop is found, renamed with the
+    station and checked: a station the scenario does not have fails
+    validation."""
     from spacemissionstudio.schema import find_ground_station_references, rename_ground_station
     from spacemissionstudio.schema.scenario import ScenarioValidationError
 

@@ -70,6 +70,8 @@ def _problems(root):
 
 @pytest.mark.parametrize("factory", [factory for _, factory in _CASES], ids=[name for name, _ in _CASES])
 def test_help_text_is_short_and_plain(qtbot, qapp, themed, factory):
+    """Every visible help label of a dialog, on every tab, is at most 160
+    characters and names no code."""
     dialog = factory()
     qtbot.addWidget(dialog)
     dialog.resize(max(dialog.width(), 1000), max(dialog.height(), 800))  # [px]

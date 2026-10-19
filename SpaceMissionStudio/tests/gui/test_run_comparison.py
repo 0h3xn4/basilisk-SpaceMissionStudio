@@ -34,6 +34,8 @@ def _result(offset_m):
 
 
 def test_the_history_keeps_the_last_runs_numbered():
+    """The run history keeps the last runs, numbered and labelled; older ones
+    are dropped."""
     history = RunHistory(max_runs=2)
     for n in range(3):
         history.add({"name": f"s{n}"}, _result(0.0), "2026-01-01T00:00:00")
@@ -58,6 +60,8 @@ def results(qtbot):
 
 
 def test_an_earlier_run_is_overlaid_dashed_and_named(results):
+    """An earlier run chosen for comparison is overlaid dashed, named in the
+    legend, at its true offset."""
     widget, first, _second = results
     assert widget.compare_combo.isVisibleTo(widget) and widget.compare_combo.count() == 2
     assert len(widget.figure.data) == 1
@@ -69,6 +73,8 @@ def test_an_earlier_run_is_overlaid_dashed_and_named(results):
 
 
 def test_the_input_differences_name_the_changed_fields(results, monkeypatch):
+    """The input differences name the changed field with both values, and the
+    button shows them."""
     from PySide6.QtWidgets import QDialog
 
     widget, first, _second = results
@@ -81,6 +87,7 @@ def test_the_input_differences_name_the_changed_fields(results, monkeypatch):
 
 
 def test_no_earlier_run_hides_the_comparison(qtbot):
+    """With one run, the comparison is hidden and there are no differences."""
     from spacemissionstudio.gui.results_widget import ResultsWidget
 
     widget = ResultsWidget()

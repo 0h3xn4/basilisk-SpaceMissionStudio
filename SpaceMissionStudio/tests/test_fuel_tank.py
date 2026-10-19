@@ -94,6 +94,8 @@ def _run_fuel_tank(duration_s: float, max_thrust_n: float, steady_isp_s: float,
 
 
 def test_firing_thruster_depletes_fuel_at_the_expected_rocket_equation_rate():
+    """A firing thruster drains the tank at MaxThrust / (Isp g0), within 1 %
+    over 200 s."""
     max_thrust_n = 5.0
     steady_isp_s = 220.0
     duration_s = 200.0
@@ -118,6 +120,7 @@ def test_firing_thruster_depletes_fuel_at_the_expected_rocket_equation_rate():
 
 
 def test_no_firing_command_leaves_fuel_mass_unchanged():
+    """A thruster that never fires leaves the tank's mass unchanged."""
     from Basilisk.simulation import spacecraft
     from Basilisk.utilities import SimulationBaseClass, macros, simHelpers
 

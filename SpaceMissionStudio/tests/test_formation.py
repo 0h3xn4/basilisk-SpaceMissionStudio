@@ -31,6 +31,8 @@ def _request(**overrides):
 
 
 def test_follower_orbit_type_is_classical_elements():
+    """The generated follower is on classical elements, each a float or
+    unset."""
     follower = generate_phasing_follower(_request(), _chief(), _chief(), central_body="earth")
     assert follower.orbit.type == "classical_elements"
     assert all(
@@ -61,6 +63,8 @@ def test_zero_cross_track_offset_keeps_the_chiefs_orbital_plane():
 
 
 def test_nonzero_cross_track_offset_changes_orbital_plane():
+    """A 5 km cross-track offset gives the follower a different inclination
+    from the chief's."""
     chief = _chief()
     follower = generate_phasing_follower(
         _request(radial_km=0.0, along_track_km=50.0, cross_track_km=5.0), chief, chief, central_body="earth",
@@ -173,18 +177,23 @@ def test_phasing_keeping_targets_the_along_track_km():
 
 
 def test_station_keeping_is_required_and_set():
+    """The follower gets station keeping with the request's default 5 kg of
+    propellant."""
     follower = generate_phasing_follower(_request(), _chief(), _chief(), central_body="earth")
     assert follower.station_keeping is not None
     assert follower.station_keeping.propellant_kg == 5.0  # PhasingFormationRequest's own default
 
 
 def test_default_target_altitude_is_derived_from_chief():
+    """The station-keeping altitude defaults to the chief's semi-major axis
+    minus Earth's radius (549.863 km for a = 6928 km)."""
     chief = _chief()  # a = 6928.0 km, earth radius ~6378.1366 km -> alt ~549.86 km
     follower = generate_phasing_follower(_request(), chief, chief, central_body="earth")
     assert follower.station_keeping.target_altitude_km == pytest.approx(549.8634, abs=1e-3)
 
 
 def test_explicit_target_altitude_overrides_derived_default():
+    """A station-keeping altitude given in the request is used."""
     follower = generate_phasing_follower(
         _request(station_keeping_target_altitude_km=600.0), _chief(), _chief(), central_body="earth",
     )
@@ -192,6 +201,8 @@ def test_explicit_target_altitude_overrides_derived_default():
 
 
 def test_template_fields_other_than_orbit_are_cloned():
+    """The follower copies the template's power model but takes its own
+    name."""
     template = _chief(name="chief-1", power=PowerConfig(panel_area_m2=0.5, panel_efficiency=0.3,
                                                           battery_capacity_wh=100.0))
     follower = generate_phasing_follower(_request(), _chief(), template, central_body="earth")
@@ -201,16 +212,19 @@ def test_template_fields_other_than_orbit_are_cloned():
 
 
 def test_generated_follower_passes_full_scenario_validation():
+    """The generated follower validates."""
     follower = generate_phasing_follower(_request(), _chief(), _chief(), central_body="earth")
     follower.validate()  # must not raise
 
 
 def test_rejects_zero_along_track_km():
+    """A 0 km along-track offset is refused."""
     with pytest.raises(ScenarioValidationError, match="along_track_km"):
         generate_phasing_follower(_request(along_track_km=0.0), _chief(), _chief(), central_body="earth")
 
 
 def test_rejects_follower_name_matching_chief_name():
+    """A follower named like the chief is refused."""
     with pytest.raises(ScenarioValidationError, match="differ from chief_name"):
         generate_phasing_follower(
             _request(chief_name="chief-1", follower_name="chief-1"), _chief(), _chief(), central_body="earth",
@@ -218,6 +232,7 @@ def test_rejects_follower_name_matching_chief_name():
 
 
 def test_rejects_non_classical_elements_chief_orbit():
+    """A chief on a Cartesian orbit is refused: it needs classical elements."""
     chief = _chief(orbit=OrbitIC(type="cartesian", position_km=[7000.0, 0.0, 0.0], velocity_km_s=[0.0, 7.5, 0.0]))
     with pytest.raises(ScenarioValidationError, match="classical_elements"):
         generate_phasing_follower(_request(), chief, chief, central_body="earth")

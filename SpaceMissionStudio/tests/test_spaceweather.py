@@ -115,22 +115,29 @@ def test_msfc_parses_as_published_and_repeats_its_last_132_months():
 
 
 def test_runs_past_2041_continue_on_the_repeated_cycle(tmp_path):
+    """A run past October 2041 resolves, warning that MSFC's last 132 months
+    repeat (ESA AD10 Sec. 5.9); the bundled record covers 1957-10-01 onward
+    without an end."""
     resolved = sw.resolve("bundled", datetime(2041, 6, 1), datetime(2045, 1, 1), cache_dir=tmp_path)
     assert "past 2041-10 MSFC's last 132 months repeat (ESA AD10 Sec. 5.9)" in resolved.warnings
     assert sw.data_coverage("bundled") == (date(1957, 10, 1), None)
 
 
 def test_a_run_before_the_record_is_refused_with_the_range(tmp_path):
+    """A run before October 1957 is refused, giving the record's first day."""
     with pytest.raises(sw.SpaceWeatherError, match=r"covers 1957-10-01; this run needs"):
         sw.resolve("bundled", datetime(1957, 9, 1), datetime(1957, 11, 1), cache_dir=tmp_path)
 
 
 def test_an_unknown_forecast_percentile_is_refused():
+    """A forecast percentile MSFC does not publish (90) is refused."""
     with pytest.raises(sw.SpaceWeatherError, match="forecast_percentile"):
         sw.resolve("bundled", datetime(2030, 1, 1), datetime(2030, 1, 5), forecast_percentile=90.0)
 
 
 def test_a_short_table_is_not_taken_for_an_msfc_prediction(tmp_path):
+    """An MSFC table cut to 40 lines is refused: a prediction needs at least
+    132 months."""
     path = tmp_path / "short.txt"
     path.write_text("".join(sw.MSFC_BUNDLED_PATH.read_text().splitlines(keepends=True)[:40]))
     with pytest.raises(sw.SpaceWeatherError, match="needs at least 132"):
@@ -165,12 +172,15 @@ def test_the_newer_of_the_shipped_and_downloaded_files_is_used(tmp_path, monkeyp
 
 
 def test_validate_file_rejects_missing_file(tmp_path):
+    """Checking a file that does not exist fails, saying so."""
     result = sw.validate_file(tmp_path / "nope.csv", datetime(2030, 1, 1), datetime(2030, 1, 2))
     assert not result.ok
     assert "does not exist" in result.message
 
 
 def test_validate_file_rejects_missing_required_columns(tmp_path):
+    """A file without the required columns fails, naming one missing
+    (AP_AVG)."""
     path = tmp_path / "bad.csv"
     path.write_text("DATE,AP1\n2030-01-01,5\n")
     result = sw.validate_file(path, datetime(2030, 1, 1), datetime(2030, 1, 2))
@@ -179,6 +189,8 @@ def test_validate_file_rejects_missing_required_columns(tmp_path):
 
 
 def test_validate_file_rejects_insufficient_date_range(tmp_path):
+    """A file of one day fails for a nine-day run: it does not cover the
+    range."""
     path = tmp_path / "short.csv"
     header = ",".join(sw.REQUIRED_COLUMNS)
     row = "2030-01-01," + ",".join(["5"] * 8) + ",5,100,100"
@@ -212,6 +224,7 @@ def test_validate_file_covers_range_ignores_time_of_day(tmp_path):
 
 
 def test_validate_file_detects_unsorted_dates(tmp_path):
+    """A file with dates out of order fails as unsorted."""
     path = tmp_path / "unsorted.csv"
     header = ",".join(sw.REQUIRED_COLUMNS)
     row_tail = "," + ",".join(["5"] * 8) + ",5,100,100"
@@ -222,6 +235,7 @@ def test_validate_file_detects_unsorted_dates(tmp_path):
 
 
 def test_validate_file_detects_duplicate_dates(tmp_path):
+    """A file with a date twice fails, listing the duplicate date."""
     path = tmp_path / "dupe.csv"
     header = ",".join(sw.REQUIRED_COLUMNS)
     row_tail = "," + ",".join(["5"] * 8) + ",5,100,100"
@@ -232,6 +246,8 @@ def test_validate_file_detects_duplicate_dates(tmp_path):
 
 
 def test_resolve_local_file_source_reads_that_file(tmp_path):
+    """The local_file source uses the given file (an excerpt of the real
+    record), and the file it resolves to covers the run."""
     local_path = _real_excerpt_csv(tmp_path / "mine.csv", date(2024, 1, 1), date(2024, 3, 1))
     resolved = sw.resolve("local_file", datetime(2024, 1, 20), datetime(2024, 2, 1),
                           local_file_path=str(local_path), cache_dir=tmp_path / "cache")
@@ -240,16 +256,19 @@ def test_resolve_local_file_source_reads_that_file(tmp_path):
 
 
 def test_resolve_local_file_source_raises_if_missing():
+    """The local_file source with a file that does not exist is refused."""
     with pytest.raises(sw.SpaceWeatherError, match="does not exist"):
         sw.resolve("local_file", datetime(2030, 1, 1), datetime(2030, 1, 5), local_file_path="/nonexistent.csv")
 
 
 def test_resolve_local_file_source_raises_without_path():
+    """The local_file source without a path is refused."""
     with pytest.raises(sw.SpaceWeatherError, match="local_file_path was not set"):
         sw.resolve("local_file", datetime(2030, 1, 1), datetime(2030, 1, 5))
 
 
 def test_resolve_unknown_source_raises():
+    """An unknown space-weather source is refused."""
     with pytest.raises(sw.SpaceWeatherError, match="unknown space_weather.source"):
         sw.resolve("magic", datetime(2030, 1, 1), datetime(2030, 1, 5))
 
@@ -332,6 +351,8 @@ def _celestrak_csv(days: int = 3, start: str = "2025-01-01", f107: float = 150.0
 
 
 def test_fetch_downloads_and_caches(tmp_path, monkeypatch):
+    """fetch saves the downloaded SW-All file in the cache folder unchanged
+    (network mocked)."""
     fake_csv = _celestrak_csv()
     monkeypatch.setattr(sw.urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(fake_csv))
 
@@ -342,6 +363,7 @@ def test_fetch_downloads_and_caches(tmp_path, monkeypatch):
 
 
 def test_fetch_is_a_cache_hit_without_force(tmp_path, monkeypatch):
+    """fetch with a cached file returns it without touching the network."""
     calls = []
     monkeypatch.setattr(sw.urllib.request, "urlopen",
                          lambda *a, **k: calls.append(1) or _FakeFetchResponse(b"x"))
@@ -357,6 +379,7 @@ def test_fetch_is_a_cache_hit_without_force(tmp_path, monkeypatch):
 
 
 def test_fetch_force_redownloads_even_if_cached(tmp_path, monkeypatch):
+    """fetch with force replaces a cached file with a new download."""
     fake_csv = _celestrak_csv(days=5)
     monkeypatch.setattr(sw.urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(fake_csv))
 
@@ -369,11 +392,13 @@ def test_fetch_force_redownloads_even_if_cached(tmp_path, monkeypatch):
 
 
 def test_fetch_rejects_unknown_dataset():
+    """fetch of a dataset CelesTrak does not have is refused."""
     with pytest.raises(sw.SpaceWeatherError, match="unknown CelesTrak dataset"):
         sw.fetch(dataset="not-a-real-dataset")
 
 
 def test_fetch_reports_network_failure(tmp_path, monkeypatch):
+    """A network error during fetch is reported as a space-weather error."""
     def _raise(*args, **kwargs):
         raise OSError("boom")
 
@@ -403,6 +428,8 @@ def test_fetch_reports_a_disk_write_failure(tmp_path, monkeypatch):
 
 
 def test_fetch_reports_a_cache_dir_creation_failure(tmp_path, monkeypatch):
+    """A cache folder that cannot be created is reported as a space-weather
+    error."""
     from pathlib import Path as _Path
 
     def _raise_mkdir(self, *args, **kwargs):
@@ -415,10 +442,12 @@ def test_fetch_reports_a_cache_dir_creation_failure(tmp_path, monkeypatch):
 
 
 def test_cached_fetch_path_is_none_when_nothing_fetched(tmp_path):
+    """Without a fetched file, there is no cached fetch path."""
     assert sw.cached_fetch_path(cache_dir=tmp_path) is None
 
 
 def test_cached_fetch_path_finds_a_real_fetch(tmp_path, monkeypatch):
+    """After a fetch, the cached fetch path is the fetched file."""
     monkeypatch.setattr(sw.urllib.request, "urlopen", lambda *a, **k: _FakeFetchResponse(_celestrak_csv()))
     fetched = sw.fetch(dataset="SW-All", cache_dir=tmp_path)
 
@@ -525,6 +554,8 @@ def test_a_download_records_its_source_and_checksum_and_keeps_the_previous_file(
 
 
 def test_rollback_restores_the_previous_file(tmp_path, monkeypatch):
+    """Rollback after two imports restores the first file and its record, and a
+    second rollback is refused: there is no earlier file."""
     first, second = _celestrak_csv(days=3), _celestrak_csv(days=6)
     sw.import_file(_write(tmp_path / "a.csv", first), cache_dir=tmp_path / "cache")
     sw.import_file(_write(tmp_path / "b.csv", second), cache_dir=tmp_path / "cache")
@@ -536,6 +567,8 @@ def test_rollback_restores_the_previous_file(tmp_path, monkeypatch):
 
 
 def test_import_checks_the_file_like_a_download(tmp_path):
+    """Importing a file that is not a CelesTrak record is refused, as a bad
+    download would be."""
     with pytest.raises(sw.SpaceWeatherError, match="not a usable CelesTrak"):
         sw.import_file(_write(tmp_path / "bad.csv", b"not,a,celestrak,file\n"), cache_dir=tmp_path / "cache")
 

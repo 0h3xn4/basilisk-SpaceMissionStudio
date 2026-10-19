@@ -80,6 +80,8 @@ _BIASES_RPM = [800.0, 600.0, 400.0, 200.0]
 
 
 def test_mtb_cmd_out_msg_produces_a_real_nonzero_recordable_dipole_command():
+    """The recorded torque-rod dipole command is non-zero and finite over 30
+    minutes."""
     from Basilisk.architecture import messaging
     from Basilisk.simulation import spacecraft
     from Basilisk.utilities import SimulationBaseClass, macros, orbitalMotion, simHelpers, simIncludeGravBody

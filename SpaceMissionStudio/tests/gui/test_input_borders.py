@@ -215,4 +215,6 @@ _CASES = _dialogs()
 
 @pytest.mark.parametrize("factory", [factory for _, factory in _CASES], ids=[name for name, _ in _CASES])
 def test_every_input_box_has_a_visible_border(qtbot, qapp, themed, factory):
+    """Every input of a dialog, on every tab, draws a border distinct from its
+    inside."""
     _check(factory(), qtbot, qapp)
