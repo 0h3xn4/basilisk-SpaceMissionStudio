@@ -88,6 +88,7 @@
       "phasing_keeping": null,
       "roe_formation": null,
       "optical_navigation": null,
+      "landmark_navigation": null,
       "constant_thrust": null,
       "momentum_dumping": null,
       "magnetic_momentum_management": null,
@@ -228,6 +229,7 @@
         "target_refresh_s": 600.0
       },
       "optical_navigation": null,
+      "landmark_navigation": null,
       "constant_thrust": null,
       "momentum_dumping": null,
       "magnetic_momentum_management": null,

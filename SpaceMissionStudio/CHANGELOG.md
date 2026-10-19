@@ -10,6 +10,17 @@ fixes bugs.
 
 ## Unreleased
 
+- **Asteroid 433 Eros as a central body.** Its real position (a JPL
+  Horizons solution from NAIF, 1900 to 2100), its 5.27 h rotation and,
+  with **Gravity from the shape model**, the gravity of its NEAR shape
+  (Basilisk's polyhedral gravity) instead of a point mass. Download the
+  two files in Reference data (**Small bodies**). Positions are also given
+  in Eros's frame, and an orbit into the asteroid is reported as an impact.
+- **Landmark navigation.** A spacecraft around Eros can carry a camera
+  that sees landmarks on the surface (Basilisk's `pinholeCamera`), and a
+  Kalman filter estimates its orbit from their pixels. New template 31:
+  from 100 m off to 0.35 m (median) in a 35 km orbit. A how-to page
+  explains the settings and the results.
 - **SIL runs no longer stop when the simulator itself stalls.** A send to the
   flight software gave up as soon as its time ran out, even when the flight
   software was taking data and only the simulator had been slow (a loaded

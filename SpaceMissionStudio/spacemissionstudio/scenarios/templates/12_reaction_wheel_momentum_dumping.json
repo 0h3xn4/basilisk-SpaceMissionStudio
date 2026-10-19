@@ -283,6 +283,7 @@
       "phasing_keeping": null,
       "roe_formation": null,
       "optical_navigation": null,
+      "landmark_navigation": null,
       "constant_thrust": null,
       "momentum_dumping": {
         "hs_max": 9.6,

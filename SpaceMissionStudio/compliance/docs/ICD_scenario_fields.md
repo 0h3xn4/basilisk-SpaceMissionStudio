@@ -151,6 +151,7 @@ GEO station-keeping (``engine.geo_station_keeping``): east-west control holds th
 | `central_body` | str | `'earth'` |  |
 | `central_body_degree` | int | `0` | 0 == point-mass only |
 | `third_body_perturbers` | list | `[]` | e.g. ["sun", "moon"] |
+| `polyhedral_gravity` | bool | `False` |  |
 
 ## GroundStationConfig
 
@@ -176,6 +177,24 @@ One source of onboard data -- a payload instrument, or the platform's housekeepi
 | `data_rate_bps` | float | `required` | [bit/s] |
 | `power_w` | float | `0.0` | [W] constant electrical draw; needs SpacecraftConfig.power when > 0 |
 | `initial_data_gbit` | float | `0.0` | [Gbit] already in the instrument's memory partition at the start |
+
+## LandmarkNavigationConfig
+
+Navigation from surface landmarks around a small body (``engine.landmarks`` for the camera geometry and the filter, ``engine.landmark_navigation`` for the run).
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `landmark_count` | int | `100` |  |
+| `field_of_view_deg` | float | `30.0` | [deg] edge to edge along the image's width (x) |
+| `resolution_px` | list | `[1024, 1024]` | [px] width, height |
+| `camera_mrp_cb` | list | `[0.0, 0.0, 0.0]` |  |
+| `measurement_interval_s` | float | `600.0` | [s] one image this often |
+| `pixel_noise_px` | float | `0.0` | [px] 1 sigma added to each pixel coordinate, on top of the rounding |
+| `min_sun_elevation_deg` | float | `10.0` | [deg] a landmark in lower light is not seen |
+| `initial_position_sigma_m` | float | `100.0` | [m] 1 sigma, each axis: the filter's start and its error |
+| `initial_velocity_sigma_mps` | float | `0.05` | [m/s] 1 sigma, each axis |
+| `process_noise_mps2_per_sqrt_hz` | float | `1e-08` |  |
+| `seed` | int | `1` | landmark placement, pixel noise and the initial error |
 
 ## MagneticMomentumManagementConfig
 
@@ -515,6 +534,7 @@ See engine/spaceweather.py and engine/service.py. Real data only (user requireme
 | `phasing_keeping` | Optional[PhasingKeepingConfig] | `None` |  |
 | `roe_formation` | Optional[RoeFormationConfig] | `None` | formation in relative orbital elements |
 | `optical_navigation` | Optional[OpticalNavigationConfig] | `None` | camera navigation from the central body's disk |
+| `landmark_navigation` | Optional[LandmarkNavigationConfig] | `None` | camera navigation from a small body's landmarks |
 | `constant_thrust` | Optional[ConstantThrustConfig] | `None` |  |
 | `momentum_dumping` | Optional[MomentumDumpingConfig] | `None` |  |
 | `magnetic_momentum_management` | Optional[MagneticMomentumManagementConfig] | `None` |  |

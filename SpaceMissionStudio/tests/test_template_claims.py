@@ -401,3 +401,36 @@ def test_30_without_pixel_noise_every_image_gives_the_true_position():
     _day, _error, _sigma3, single, state, _disk = _opnav_flight(_run(scenario))
     assert np.all(state == 0)
     assert np.nanmax(single) < 1.0e-3  # [m]
+
+
+def _landmark_flight(result):
+    prefix = "probe-1.landmark_navigation."
+    error = result.series[prefix + "position_error"]
+    return (error.time_s, error.data, result.series[prefix + "position_3sigma"].data,
+            result.series[prefix + "landmarks_seen"].data[:, 0], result.series[prefix + "residual_rms"].data[:, 0],
+            result.series["probe-1.small_body.distance"].data[:, 0])
+
+
+def test_31_the_filter_finds_the_orbit_from_eros_landmarks(real_small_body_files):
+    """5.5 m after the first image, 0.35 m median after, up to 4.8 m just
+    after the night-side stretches, inside the filter's 3-sigma; about 18
+    landmarks per image and none in 22 of 289; 0.28 px residuals; the
+    probe between 35.0 and 38.0 km from the centre."""
+    _t, error, sigma3, seen, residual, distance = _landmark_flight(_run(_template("31")))
+    assert error[0, 3] == pytest.approx(5.5, abs=0.1)  # [m] after the first image
+    assert np.median(error[1:, 3]) == pytest.approx(0.35, abs=0.05)  # [m]
+    assert error[1:, 3].max() == pytest.approx(4.8, abs=0.2)  # [m]
+    assert np.mean(np.abs(error[:, :3]) <= sigma3) > 0.99
+    assert np.median(seen) == 18 and np.sum(seen == 0) == 22 and len(seen) == 289
+    assert np.nanmedian(residual) == pytest.approx(0.28, abs=0.01)  # [px]
+    assert distance.min() == pytest.approx(35.0e3, rel=1e-3) and distance.max() == pytest.approx(38.0e3, abs=100.0)
+
+
+def test_31_one_pixel_of_noise_shows_in_the_residuals_and_the_error(real_small_body_files):
+    """Added pixel noise 1 px: residuals of about 1 px (hypot(0.29, 1)) and
+    a median error of about 5 m over the first half day (5.1 m seen)."""
+    scenario = _template("31")
+    scenario.spacecraft[0].landmark_navigation.pixel_noise_px = 1.0  # [px]
+    _t, error, _sigma3, _seen, residual, _distance = _landmark_flight(_run(scenario, duration_days=0.5))
+    assert np.nanmedian(residual) == pytest.approx(1.04, abs=0.1)  # [px]
+    assert np.median(error[1:, 3]) == pytest.approx(5.1, abs=0.5)  # [m]

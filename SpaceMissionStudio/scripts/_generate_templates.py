@@ -56,6 +56,7 @@ from spacemissionstudio.schema.scenario import (
     MagneticMomentumManagementConfig,
     MomentumDumpingConfig,
     MonteCarloConfig,
+    LandmarkNavigationConfig,
     OpticalNavigationConfig,
     OrbitIC,
     PhasingKeepingConfig,
@@ -1665,6 +1666,36 @@ def build_30_mars_optical_navigation() -> Scenario:
     )
 
 
+def build_31_eros_landmark_navigation() -> Scenario:
+    # Landmark navigation around 433 Eros (engine.landmarks,
+    # engine.landmark_navigation): a 35 km circular orbit polar to Eros's
+    # spin axis (its pole is RA 11.35 deg, Dec 17.22 deg in pck00010: an
+    # orbit normal at inclination 90 deg and RAAN 11.35 deg is perpendicular
+    # to it), gravity from the NEAR shape, the Sun for the lighting, 100
+    # landmarks, and a filter that starts 100 m and 5 cm/s (1 sigma per axis) off.
+    return Scenario(
+        name="31 - Eros orbit: landmark navigation with the shape's gravity",
+        description=DESCRIPTIONS["31"],
+        epoch_utc="2030-01-01T00:00:00",
+        simulation_mode="orbit_only",
+        gravity=GravityConfig(central_body="eros", central_body_degree=0, third_body_perturbers=["sun"],
+                              polyhedral_gravity=True),
+        sim_settings=SimSettings(duration_days=2.0, dynamics_task_rate_s=10.0, integrator="rkf78",
+                                 record_interval_s=60.0),  # [day], [s], [s]
+        spacecraft=[
+            SpacecraftConfig(
+                name="probe-1",
+                orbit=OrbitIC(type="classical_elements", semi_major_axis_km=35.0, eccentricity=0.0,  # [km], [-]
+                              inclination_deg=90.0, raan_deg=11.35, arg_periapsis_deg=0.0,  # [deg]
+                              true_anomaly_deg=0.0),  # [deg]
+                dry_mass_kg=_SMALLSAT_MASS_KG,
+                inertia_kg_m2=_box_inertia(_SMALLSAT_MASS_KG, _SMALLSAT_SIZE_M),
+                landmark_navigation=LandmarkNavigationConfig(),
+            ),
+        ],
+    )
+
+
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     _save(build_01_two_body_circular_orbit(), "01_two_body_circular_orbit.json")
@@ -1698,6 +1729,7 @@ def main() -> None:
     _save(build_28_octagonal_bus_3d_model(), "28_octagonal_bus_3d_model.json")
     _save(build_29_roe_formation_helix(), "29_roe_formation_helix.json")
     _save(build_30_mars_optical_navigation(), "30_mars_optical_navigation.json")
+    _save(build_31_eros_landmark_navigation(), "31_eros_landmark_navigation.json")
 
 
 if __name__ == "__main__":

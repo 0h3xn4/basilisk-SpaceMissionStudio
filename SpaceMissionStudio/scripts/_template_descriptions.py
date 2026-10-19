@@ -528,4 +528,23 @@ Try changing:
 Note:
 - The images are computed from the true geometry with 0.5 px noise, not rendered: a crescent's centre \
 is not offset as a real one would be. Mars is its system barycentre here.""",
+    "31": """A 300 kg probe in a 35 km orbit over the poles of asteroid 433 Eros, whose gravity comes from its NEAR \
+shape model. A 30 deg, 1024 px camera sees 100 landmarks on the surface; the tool's Kalman filter \
+estimates the orbit from their pixels. The filter starts 100 m off (1 sigma). 2 days.
+
+What to look at:
+- probe-1.landmark_navigation.position_error: 5.5 m after the first image, 0.35 m median after, \
+up to 4.8 m just after the stretches over the night side, inside the filter's own 3-sigma.
+- probe-1.landmark_navigation.landmarks_seen: about 18 landmarks per image; none over the night side \
+(22 of 289 images).
+- probe-1.landmark_navigation.residual_rms: 0.28 px, the rounding to whole pixels.
+- probe-1.small_body.distance: the shape's pull moves the probe between 35.0 and 38.0 km from the centre.
+
+Try changing:
+- Added pixel noise (probe-1's Landmark navigation) to 1 px: the residuals grow to about 1 px and the \
+error to about 5 m (median over the first half day).
+
+Note:
+- Needs the Eros files: Reference data, Download..., Small bodies. Basilisk's camera does not check whether \
+terrain hides a landmark. About 4 minutes to run.""",
 }

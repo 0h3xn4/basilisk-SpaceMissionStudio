@@ -273,7 +273,7 @@ path, each step building on the one before:
 | 6. Several spacecraft | 04, 05, 24, 29 | A Walker constellation; a formation held by two different control laws; a passively safe formation in relative orbital elements |
 | 7. Whole systems | 19, 20, 23, 26 | Power, radio link and thermal working together; data from instrument to ground |
 | 8. Uncertainty | 09, 25 | Monte Carlo batches: mass, orbit insertion, drag |
-| 9. Navigation | 30 | Estimating an orbit around Mars from camera images of the planet |
+| 9. Navigation | 30, 31 | Estimating an orbit around Mars from camera images of the planet; flying around asteroid Eros with its shape's gravity and navigating from its landmarks |
 
 **Starting your own mission?** Open **22** (a realistic satellite, orbit
 only) or **23** (a complete small satellite with hardware, a radio link
@@ -550,6 +550,33 @@ Measured on template 30 (an 18 000 km x 0.2 orbit around Mars, a 40 deg
 the filter, started 68 km off, is within 2 km by day 1 and 1.6 km
 (median) after it, up to 12 km just after each night-side stretch. See
 [Navigate from camera images of a planet](docs/user-manual/optical-navigation.md).
+
+### Small bodies and landmark navigation
+
+**433 Eros** can be the central body (Scenario Editor, gravity). It needs
+two files from **Reference data** (**Download...**, **Small bodies**): its
+ephemeris, a JPL Horizons solution from NAIF (1900 to 2100), and Gaskell's
+NEAR shape model. **Gravity from the shape model** gives its gravity from
+the shape at constant density (Basilisk's `polyhedralGravityModel`)
+instead of a point mass; close to an elongated body the difference is
+tens of percent. Eros turns once every 5.27 h; results include the
+position in its frame (`{spacecraft}.position_P`), and a position inside
+the shape is reported as an impact. Runs around Eros are one simulation
+of at most 100 days.
+
+**Landmark navigation** (the spacecraft's page, power/propulsion tab)
+places landmarks on the shape. Basilisk's `pinholeCamera` reports the
+whole pixel of each one it sees (lit, facing the camera, on the
+detector), and the app's own Kalman filter estimates position and
+velocity from them, predicting with the shape's gravity. It needs the
+shape's gravity and the Sun in the run. Results are under
+`{spacecraft}.landmark_navigation.`.
+
+Measured on template 31 (a 35 km orbit over Eros's poles, 100 landmarks,
+a 30 deg 1024 px camera): the filter, started 100 m off, is within 0.35 m
+(median) after the first image, up to 4.8 m just after the night-side
+stretches. See
+[Fly around an asteroid and navigate from its landmarks](docs/user-manual/small-body-navigation.md).
 
 ### Data handling and the downlink
 

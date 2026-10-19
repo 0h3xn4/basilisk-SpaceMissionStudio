@@ -21,7 +21,6 @@ NEAR shape model (installed by 'spacemissionstudio small-bodies --fetch';
 CI installs them): Eros's frame, the polyhedral field's Jacobi integral,
 the impact warning, and the message when the files are missing."""
 
-import os
 from pathlib import Path
 
 import numpy as np
@@ -31,28 +30,11 @@ from spacemissionstudio.engine import polyhedron, small_bodies
 from spacemissionstudio.schema import load_scenario
 
 _TEMPLATES = Path(__file__).resolve().parent.parent / "spacemissionstudio" / "scenarios" / "templates"
-_REAL_DIR = Path(os.path.expanduser("~")) / ".cache" / "SpaceMissionStudio" / "small_bodies"
 _ROTATION_RATE = np.radians(1639.38864745) / 86400.0  # [rad/s] pck00010 BODY2000433_PM
 _POLE_RA, _POLE_DEC = np.radians(11.35), np.radians(17.22)  # [rad] pck00010 BODY2000433_POLE_RA/DEC
 
 
-def _shape_installed() -> bool:
-    try:
-        return small_bodies.shape_path(small_bodies.EROS) is not None
-    except ImportError:
-        return False
-
-
-pytestmark = [
-    pytest.mark.requires_basilisk,
-    pytest.mark.skipif(small_bodies.installed("eros", _REAL_DIR) is None or not _shape_installed(),
-                       reason="Eros ephemeris and shape not installed (spacemissionstudio small-bodies --fetch)"),
-]
-
-
-@pytest.fixture
-def real_kernels(monkeypatch):
-    monkeypatch.setattr(small_bodies, "DEFAULT_DIR", _REAL_DIR)
+pytestmark = pytest.mark.requires_basilisk
 
 
 def _scenario(polyhedral: bool, hours: float, sma_km: float, eccentricity: float = 0.0):
@@ -79,7 +61,7 @@ def _run(scenario):
     return service, service.run()
 
 
-def test_eros_turns_about_its_iau_pole_every_5_27_hours(real_kernels):
+def test_eros_turns_about_its_iau_pole_every_5_27_hours(real_small_body_files):
     """The run's Eros frame is pck00010's: the pole at RA 11.35, Dec 17.22
     deg, and a 1639.39 deg/day spin; the SPK and shape are in the run's
     provenance."""
@@ -97,7 +79,7 @@ def test_eros_turns_about_its_iau_pole_every_5_27_hours(real_kernels):
     assert result.series["sat-1.small_body.distance"].data[:, 0] == pytest.approx(35e3, rel=1e-6)
 
 
-def test_in_the_polyhedral_field_the_jacobi_integral_is_constant(real_kernels):
+def test_in_the_polyhedral_field_the_jacobi_integral_is_constant(real_small_body_files):
     """Around a uniformly spinning body the energy in its frame (Jacobi
     integral) is conserved: within 1e-6 over 6 h with the shape's gravity,
     while the orbit's radius changes by kilometres; no false warnings."""
@@ -121,7 +103,7 @@ def test_in_the_polyhedral_field_the_jacobi_integral_is_constant(real_kernels):
     assert np.abs(jacobi - jacobi[0]).max() < 1e-6 * abs(jacobi[0])
 
 
-def test_an_orbit_into_the_shape_is_reported_as_an_impact(real_kernels):
+def test_an_orbit_into_the_shape_is_reported_as_an_impact(real_small_body_files):
     """Periapsis 5 km from the centre: the spacecraft enters Eros and the
     run says when, as polyhedron.contains does for the recorded positions."""
     service, result = _run(_scenario(True, 3.0, 10.0, 0.5))

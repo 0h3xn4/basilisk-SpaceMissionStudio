@@ -27,22 +27,13 @@ import math
 import numpy as np
 import pytest
 
-from spacemissionstudio.engine import landmarks, small_bodies
+from spacemissionstudio.engine import landmarks
 from spacemissionstudio.schema import ScenarioValidationError, load_scenario
 from spacemissionstudio.schema.scenario import LandmarkNavigationConfig
 
-from test_small_body_run import _REAL_DIR, _TEMPLATES, _shape_installed
+from test_small_body_run import _TEMPLATES
 
-pytestmark = [
-    pytest.mark.requires_basilisk,
-    pytest.mark.skipif(small_bodies.installed("eros", _REAL_DIR) is None or not _shape_installed(),
-                       reason="Eros ephemeris and shape not installed (spacemissionstudio small-bodies --fetch)"),
-]
-
-
-@pytest.fixture
-def real_kernels(monkeypatch):
-    monkeypatch.setattr(small_bodies, "DEFAULT_DIR", _REAL_DIR)
+pytestmark = pytest.mark.requires_basilisk
 
 
 def _scenario(hours: float, template: str = "01_two_body_circular_orbit.json", **config):
@@ -78,7 +69,7 @@ def _series(result, part):
     return result.series[f"sat-1.landmark_navigation.{part}"].data
 
 
-def test_basilisks_camera_sees_what_the_tools_camera_model_predicts(real_kernels):
+def test_basilisks_camera_sees_what_the_tools_camera_model_predicts(real_small_body_files):
     """At the last image, every landmark pinholeCamera reports is where
     engine.landmarks puts it (the same whole pixel), and it reports exactly
     the landmarks engine.landmarks.visible() says are seen."""
@@ -107,7 +98,7 @@ def test_basilisks_camera_sees_what_the_tools_camera_model_predicts(real_kernels
         assert list(reported[index].pL) == pixels[index].astype(int).tolist()
 
 
-def test_the_filter_finds_the_orbit_from_whole_pixels(real_kernels):
+def test_the_filter_finds_the_orbit_from_whole_pixels(real_small_body_files):
     """From 100 m off (1 sigma each axis), the first image brings the
     filter within 20 m and it stays within 5 m (median) afterwards, inside
     its 3 sigma, with residuals of whole-pixel rounding (0.29 px rms); the
@@ -125,7 +116,7 @@ def test_the_filter_finds_the_orbit_from_whole_pixels(real_kernels):
     assert ((illumination >= 0.0) & (illumination <= 1.0)).all()
 
 
-def test_added_pixel_noise_shows_in_the_residuals(real_kernels):
+def test_added_pixel_noise_shows_in_the_residuals(real_small_body_files):
     """1 px of added noise: the residuals grow to hypot(0.29, 1) px and
     the filter still converges, with a larger 3 sigma."""
     _, result = _run(_scenario(2.0, pixel_noise_px=1.0))
@@ -134,7 +125,7 @@ def test_added_pixel_noise_shows_in_the_residuals(real_kernels):
     assert np.median(_series(result, "position_error")[1:, 3]) < 15.0
 
 
-def test_with_attitude_the_spacecraft_points_the_camera(real_kernels):
+def test_with_attitude_the_spacecraft_points_the_camera(real_small_body_files):
     """Full attitude, locationPointing at Eros with the body +z axis (the
     camera's boresight): the camera sees landmarks and the filter converges."""
     _, result = _run(_scenario(2.0, template="15_celestial_body_pointing.json"))

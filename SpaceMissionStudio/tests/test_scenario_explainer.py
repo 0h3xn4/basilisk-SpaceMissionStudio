@@ -441,3 +441,58 @@ def test_optical_navigation_warns_about_disk_size_and_pointing():
     sc.fsw_params = {"target_body": "mars barycenter", "pHat_B": [0.0, 0.0, 1.0]}
     section = next(s for s in explain(scenario).sections if s.title == "Optical navigation")
     assert not [b for b in section.badges if b.kind == "warning"]
+
+
+def _eros_scenario():
+    from spacemissionstudio.schema.scenario import LandmarkNavigationConfig
+
+    scenario = _template_scenario("01")
+    scenario.gravity.central_body = "eros"
+    scenario.gravity.polyhedral_gravity = True
+    scenario.gravity.third_body_perturbers = ["sun"]
+    scenario.spacecraft[0].orbit.semi_major_axis_km = 35.0  # [km]
+    scenario.spacecraft[0].landmark_navigation = LandmarkNavigationConfig()
+    return scenario
+
+
+def test_the_small_body_section_gives_spin_orbit_and_pixel_size():
+    """Around Eros: the gravity model, its 5.27 h spin, the orbit's period
+    in turns of Eros, and the landmark camera's 13.9 m per pixel at the
+    lowest point (30 deg over 1024 px from 35 km, above Eros's 8.42 km mean
+    radius); the tiles give the distance from the centre and the shape model."""
+    explanation = explain(_eros_scenario())
+    section = next(s for s in explanation.sections if s.title == "Small body")
+    assert [b.label for b in section.badges] == ["433 Eros: shape model (Basilisk polyhedralGravityModel)"]
+    notes = " ".join(section.notes)
+    assert "every 5.27 h" in notes and "17.1 h, 3.2 turns" in notes and "13.9 m on the surface per pixel" in notes
+    tiles = {tile.label: tile.value for tile in explanation.stat_tiles}
+    assert tiles["Orbit"].endswith("35 km from the centre") and tiles["Gravity"] == "Eros shape model + Sun"
+
+
+def test_a_point_mass_eros_or_an_unpointed_camera_is_flagged():
+    """Point-mass gravity around Eros, and a camera with attitude but no
+    pointing at Eros, each get a warning badge."""
+    scenario = _eros_scenario()
+    scenario.gravity.polyhedral_gravity = False
+    scenario.spacecraft[0].landmark_navigation = None
+    labels = [b.label for s in explain(scenario).sections if s.title == "Small body" for b in s.badges]
+    assert any("Point-mass gravity" in label for label in labels)
+    scenario = _eros_scenario()
+    scenario.simulation_mode = "full_attitude"
+    labels = [b.label for s in explain(scenario).sections if s.title == "Small body" for b in s.badges]
+    assert any("not pointed at 433 Eros" in label for label in labels)
+
+
+def test_missing_eros_files_are_checked_before_running():
+    """Without the Eros ephemeris and shape the run would stop at once:
+    'Check before running' says so."""
+    from spacemissionstudio.engine import small_bodies
+    from spacemissionstudio.engine.scenario_checks import scenario_warnings
+
+    warnings = scenario_warnings(_eros_scenario())
+    assert any("ephemeris of 433 Eros is not installed" in w for w in warnings)
+    try:
+        shape_missing = small_bodies.shape_path(small_bodies.EROS) is None
+    except ImportError:
+        shape_missing = False
+    assert any("shape model of 433 Eros" in w for w in warnings) == shape_missing

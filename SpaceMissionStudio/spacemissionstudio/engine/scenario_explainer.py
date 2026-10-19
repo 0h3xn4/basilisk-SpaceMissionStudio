@@ -520,9 +520,6 @@ def _small_body_section(scenario) -> ExplanationSection | None:
     rotation_h = 2.0 * math.pi / body.spin_rad_s / 3600.0  # [h]
     notes = [f"{body.title} turns once every {rotation_h:.2f} h (pck00010); the shadow is a sphere of "
              f"{body.mean_radius_m / 1000.0:g} km"]
-    if small_bodies.installed(body.name) is None:
-        badges.append(Badge(f"The ephemeris of {body.title} ({body.spk_name}) is not installed: download it in "
-                            "Reference data", "warning"))
     for sc in scenario.spacecraft:
         if sc.orbit.type == "classical_elements" and sc.orbit.semi_major_axis_km:
             a_m = sc.orbit.semi_major_axis_km * 1000.0  # [m]

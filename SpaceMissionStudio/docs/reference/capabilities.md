@@ -206,6 +206,18 @@ angle; the camera points perfectly in an orbit-only run and through the
 spacecraft's attitude otherwise. See template 30 and [Navigate from camera
 images of a planet](../user-manual/optical-navigation.md).
 
+**Small bodies** (`gravity.central_body = "eros"`): asteroid 433 Eros as
+the central body, its position from NAIF's `eros_1900_2100.bsp` (a JPL
+Horizons solution, 1900 to 2100) and its rotation from pck00010, with
+gravity from Gaskell's NEAR shape model through Basilisk's
+`polyhedralGravityModel` (`gravity.polyhedral_gravity`), positions in its
+frame and an impact check against the shape. **Landmark navigation**
+(`SpacecraftConfig.landmark_navigation`): landmarks on the shape seen by
+Basilisk's `pinholeCamera`, and the tool's own Kalman filter, predicting
+with the shape's gravity, estimating position and velocity from their
+pixels. See template 31 and [Fly around an asteroid and navigate from its
+landmarks](../user-manual/small-body-navigation.md).
+
 **Formations in relative orbital elements** (`SpacecraftConfig.roe_formation`):
 a follower holds, or moves through a schedule of, targets given as the
 six quasi-nonsingular relative orbital elements (D'Amico), with a

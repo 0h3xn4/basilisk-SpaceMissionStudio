@@ -49,7 +49,7 @@ import numpy as np
 
 from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
-from . import environment_models, geodesy, tle
+from . import environment_models, geodesy, small_bodies, tle
 
 _MU_M3_S2 = 3.986004415e14  # [m^3/s^2] Earth, as Basilisk's simIncludeGravBody uses
 _R_EARTH_M = 6378.1366e3  # [m] equatorial radius, as engine.service gives groundLocation
@@ -246,7 +246,7 @@ def scenario_warnings(scenario) -> List[str]:
     for. Never raises."""
     warnings: List[str] = []
     for check in (_pass_warnings, _recording_warnings, _tle_warnings, _gravity_warnings,
-                  _formation_law_warnings, _navigation_restart_warnings):
+                  _formation_law_warnings, _navigation_restart_warnings, _small_body_data_warnings):
         try:
             warnings += check(scenario)
         except Exception:  # noqa: BLE001, S110 -- a half-edited scenario must never break the Explain tab
@@ -256,6 +256,27 @@ def scenario_warnings(scenario) -> List[str]:
             warnings += _spacecraft_warnings(sc)
         except Exception:  # noqa: BLE001, S110 -- same reason
             pass
+    return warnings
+
+
+def _small_body_data_warnings(scenario) -> List[str]:
+    """A run around a small body needs its ephemeris kernel (and, with
+    polyhedral gravity, its shape); without them it stops at once."""
+    body = small_bodies.body(getattr(scenario.gravity, "central_body", ""))
+    if body is None:
+        return []
+    warnings = []
+    if small_bodies.installed(body.name) is None:
+        warnings.append(f"The ephemeris of {body.title} is not installed: download it in Reference data "
+                        "(Small bodies)")
+    if getattr(scenario.gravity, "polyhedral_gravity", False):
+        try:
+            missing_shape = small_bodies.shape_path(body) is None
+        except ImportError:  # no Basilisk, no support-data cache to look in
+            missing_shape = False
+        if missing_shape:
+            warnings.append(f"The shape model of {body.title} is not installed: download it in Reference data "
+                            "(Small bodies)")
     return warnings
 
 
