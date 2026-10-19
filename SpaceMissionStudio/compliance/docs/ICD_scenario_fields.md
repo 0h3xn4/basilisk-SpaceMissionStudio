@@ -152,6 +152,7 @@ GEO station-keeping (``engine.geo_station_keeping``): east-west control holds th
 | `central_body_degree` | int | `0` | 0 == point-mass only |
 | `third_body_perturbers` | list | `[]` | e.g. ["sun", "moon"] |
 | `polyhedral_gravity` | bool | `False` |  |
+| `albedo` | bool | `False` |  |
 
 ## GroundStationConfig
 

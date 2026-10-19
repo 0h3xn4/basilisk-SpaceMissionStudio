@@ -70,7 +70,12 @@ Each item was checked against Basilisk's own source.
   `fsw_params['use_css_estimation']` is the one exception: it drives the
   controller from a real `cssWlsEst` weighted-least-squares estimate
   computed from a dedicated `coarse_sun_sensor` cluster, not truth (see
-  `14_css_sun_heading_estimation.json`). A full attitude DETERMINATION
+  `14_css_sun_heading_estimation.json`). Albedo (the planet's reflected
+  sunlight) reaches the coarse sun sensors only, from Earth or Mars: Basilisk's
+  `simpleSolarPanel` takes no albedo, so solar arrays and the power budget
+  see the Sun alone, and thermal sensors see no albedo or planet infrared.
+  The albedo map is a 2018 annual mean (CERES) or a TES mean, not the
+  clouds of the day. A full attitude DETERMINATION
   filter (star tracker + rate gyro + reaction-wheel speeds through
   Basilisk's `inertialUKF`) is deliberately not built -- no clean shipped
   Basilisk example was found to verify one against safely.

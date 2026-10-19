@@ -11348,3 +11348,63 @@ sensor editor's label, halved in `attach_sensors`). The wizard now says
 so.
 
 **Records.** SRelD K-17, CHANGELOG, capabilities, templates README.
+
+## Albedo on the coarse sun sensors (2026-10-19)
+
+The last backlog item, "extra environment models". The user did not pick
+from the four candidates offered, so I chose by usefulness and by what
+Basilisk can carry without changes:
+
+* **Solar flux with distance:** not needed. `simpleSolarPanel`,
+  `radiationPressure` and `facetSRPDynamicEffector` already scale the flux
+  by (1 AU / r)². Checking this turned up K-16 (thermal sensors).
+* **Albedo:** done, on the coarse sun sensors. Reading their wiring
+  turned up K-17 (sun sensors lit in eclipse).
+* **Earth infrared and albedo heating** for the thermal model, and **GEO
+  charging**: not done. They are listed as candidates only.
+
+**The model.** `gravity.albedo` adds one Basilisk `albedo` module per
+spacecraft that has coarse sun sensors, as `examples/scenarioAlbedo.py`
+wires it:
+* **Map:** the planet's measured albedo map, `Earth_ALB_2018_CERES_All_5x5`
+  (CERES 2018, all-sky) or `Mars_ALB_TES_5x5` (TES), 5 x 5 deg cells,
+  from Basilisk's support data. Both are now in `ALL_SUPPORT_DATA_FILES`,
+  so the installers and CI fetch them, and a run never downloads.
+* **Instruments:** one per sensor, with the sensor's normal and half-angle
+  field of view. Its output feeds the sensor's `albedoInMsg`: both the
+  telemetry sensor and its twin in the estimation cluster, which has the
+  same geometry and therefore the same albedo.
+* **Order:** the module is added at the default priority between the
+  spacecraft (priority 10) and the sensors, so it reads this step's state
+  and they read this step's albedo.
+* **Results:** each sensor's albedo is recorded as
+  `{sc}.sensor.{css}.albedo` (reflected over solar flux, through the
+  sensor's field of view).
+* **Refusals:** albedo is refused for bodies without a map, and without
+  the Sun in the run.
+* **Limits:** solar panels see no albedo, because `simpleSolarPanel` has
+  no albedo input and Basilisk is not modified. Thermal sensors see no
+  albedo or planet infrared either.
+
+**Verification:**
+* **Wiring:** template 14 is pointed by the true Sun direction, so the
+  attitude is the same with and without albedo. Every sensor's output with
+  albedo is its output without plus its recorded albedo, to 1e-12, at
+  every sample.
+* **Physics:** an independent numpy integral of the same map, the sum of
+  a f1 f2 f3 dA / (pi d²) with the cell, Sun and sensor cosines, on the
+  mean-radius sphere, from recorded states once a minute over the orbit.
+  * Earth: 249 comparisons with a sunlit Earth in view, all within 0.44 %.
+  * Mars (500 km): 293 comparisons, within 0.77 %.
+  * The remainder is Basilisk's authalic sphere and authalic cell bounds.
+* **Size:** the Earth-facing sensors see up to 0.24 of the direct
+  sunlight.
+
+**What it does to template 14.** In sunlight the estimated Sun direction
+is 15.8 deg off (median), up to 26.8 deg, against 0.0 without albedo. +Z
+follows the estimate up to 26.7 deg off the Sun. This is the classic
+coarse-sun-sensor albedo problem. The template's "Try changing" list now
+names it, and a claim test holds the figures.
+
+**Records:** SRS-F-24, CHANGELOG, capabilities, limitations, glossary
+(albedo), the attitude how-to page.

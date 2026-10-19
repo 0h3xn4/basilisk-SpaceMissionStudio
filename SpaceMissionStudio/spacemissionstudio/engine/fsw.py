@@ -143,6 +143,7 @@ against the verified call sequences cited above.
 from __future__ import annotations
 
 import math
+from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -166,6 +167,7 @@ from Basilisk.fswAlgorithms import (
     velocityPoint,
 )
 from Basilisk.simulation import (
+    albedo,
     coarseSunSensor,
     ephemerisConverter,
     extForceTorque,
@@ -321,8 +323,37 @@ def _wrap_with_att_tracking_error(scSim, task_name: str, tag: str, att_ref_out_m
     return err.attGuidOutMsg
 
 
+def build_albedo(scSim, task_name: str, tag: str, sc_object, css_sensor_configs: List, sun_state_out_msg,
+                 planet_state_msg, map_path: str) -> Dict[str, object]:
+    """Basilisk's ``albedo`` module for one spacecraft: the sunlight the
+    planet reflects onto each coarse sun sensor, from the planet's
+    measured albedo map (``map_path``, a ``DataFile.AlbedoData`` file),
+    as Basilisk's ``examples/scenarioAlbedo.py`` wires it. One instrument
+    per sensor, with the sensor's ``nHat_B`` and half-angle field of view;
+    returns ``{sensor.name: albedo output message}``, for the sensors'
+    ``albedoInMsg``. Added to ``task_name`` at the default priority: call
+    it after the spacecraft is added and before the sensors, so it reads
+    this step's state and they read this step's albedo."""
+    module = albedo.Albedo()
+    module.ModelTag = f"{tag}_albedo"
+    module.spacecraftStateInMsg.subscribeTo(sc_object.scStateOutMsg)
+    module.sunPositionInMsg.subscribeTo(sun_state_out_msg)
+    path = Path(map_path)
+    module.addPlanetandAlbedoDataModel(planet_state_msg, str(path.parent), path.name)
+    out_msgs = {}
+    for index, sensor in enumerate(css_sensor_configs):
+        config = albedo.instConfig_t()
+        config.fov = np.radians(float(sensor.params.get("fov_deg", 90.0)) / 2.0)  # [rad] half angle, as the CSS
+        config.nHat_B = [float(v) for v in sensor.params["nHat_B"]]
+        config.r_IB_B = [0.0, 0.0, 0.0]  # [m] at the spacecraft's centre, as the CSS (r_PB_B default)
+        module.addInstrumentConfig(config)
+        out_msgs[sensor.name] = module.albOutMsgs[index]
+    scSim.AddModelToTask(task_name, module)
+    return out_msgs
+
+
 def build_css_sun_estimation(scSim, task_name: str, tag: str, sc_object, css_sensor_configs: List,
-                              sun_state_out_msg, sun_eclipse_in_msg=None):
+                              sun_state_out_msg, sun_eclipse_in_msg=None, albedo_msgs=None):
     """Real sun-heading ESTIMATION (not truth) from a spacecraft's own
     ``coarse_sun_sensor`` hardware: a dedicated ``CSSConstellation`` (one
     ``CoarseSunSensor`` device per entry in ``css_sensor_configs``, same
@@ -385,6 +416,8 @@ def build_css_sun_estimation(scSim, task_name: str, tag: str, sc_object, css_sen
         css.stateInMsg.subscribeTo(sc_object.scStateOutMsg)
         if sun_eclipse_in_msg is not None:  # unlinked, the sensor is lit in the planet's shadow too
             css.sunEclipseInMsg.subscribeTo(sun_eclipse_in_msg)
+        if albedo_msgs:  # same geometry as the telemetry sensor of the same name: the same albedo
+            css.albedoInMsg.subscribeTo(albedo_msgs[sensor.name])
         css_devices.append(css)
 
     constellation = coarseSunSensor.CSSConstellation()
@@ -1298,7 +1331,7 @@ def set_sensor_thermal_flux(thermal_models: List, solar_flux_w_m2: float) -> Non
 def attach_sensors(scSim, task_name: str, tag: str, sc_object, sensor_configs: List,
                     sun_state_out_msg=None, mag_field_model=None, sun_eclipse_in_msg=None,
                     solar_flux_w_m2: float = environment_models.TOTAL_SOLAR_IRRADIANCE_W_M2,
-                    thermal_models: Optional[List] = None) -> Dict[str, object]:
+                    thermal_models: Optional[List] = None, albedo_msgs: Optional[Dict] = None) -> Dict[str, object]:
     """Builds every :class:`schema.scenario.SensorConfig` entry for one
     spacecraft and returns ``{sensor.name: output_message}`` for
     :class:`~spacemissionstudio.engine.results.ResultSet` recording.
@@ -1310,7 +1343,8 @@ def attach_sensors(scSim, task_name: str, tag: str, sc_object, sensor_configs: L
     rather than silently building a sensor that would output nothing.
     ``sun_eclipse_in_msg`` (also ``None`` unless provided) is the
     spacecraft's eclipse message, for ``"thermal"`` and
-    ``coarse_sun_sensor`` entries. Each ``"thermal"`` sensor is appended to
+    ``coarse_sun_sensor`` entries; ``albedo_msgs`` (from :func:`build_albedo`)
+    adds the planet's reflected light to each ``coarse_sun_sensor``. Each ``"thermal"`` sensor is appended to
     ``thermal_models`` (when given) as ``(module, raw inputs)``, so
     :func:`set_sensor_thermal_flux` can apply another solar flux later.
     """
@@ -1443,6 +1477,8 @@ def attach_sensors(scSim, task_name: str, tag: str, sc_object, sensor_configs: L
             # through the planet in eclipse.
             if sun_eclipse_in_msg is not None:
                 mod.sunEclipseInMsg.subscribeTo(sun_eclipse_in_msg)
+            if albedo_msgs:  # light the planet reflects (build_albedo), added to the sensor's signal
+                mod.albedoInMsg.subscribeTo(albedo_msgs[sensor.name])
             scSim.AddModelToTask(task_name, mod)
             out_msgs[sensor.name] = mod.cssDataOutMsg
 

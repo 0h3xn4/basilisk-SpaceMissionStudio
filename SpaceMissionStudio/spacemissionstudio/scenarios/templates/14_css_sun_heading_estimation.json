@@ -8,7 +8,8 @@
     "third_body_perturbers": [
       "sun"
     ],
-    "polyhedral_gravity": false
+    "polyhedral_gravity": false,
+    "albedo": false
   },
   "spacecraft": [
     {
@@ -278,6 +279,6 @@
   },
   "mission_sequence": [],
   "fsw_exports": [],
-  "description": "Sun-safe pointing driven by an estimated Sun direction: eight coarse sun sensors feed a weighted least-squares estimator, instead of using the true direction.\n\nWhat to look at:\n- sat-1.sun_heading_body_estimated settling near [0, 0, 1] as the +Z axis turns to the Sun.\n- Earth's shadow, minutes 10 to 44: every sensor reads zero, the estimate drops to [0, 0, 0] and the spacecraft holds its attitude.\n- Out of the shadow, the estimate is back at once.\n- Accuracy depends on how many sensors are lit, as on real hardware.\n\nTry changing:\n- The sensors' field of view: narrower means fewer lit sensors and a worse estimate.\n- Turn off \"Estimate Sun heading from coarse sun sensors\" to compare with the true direction.",
+  "description": "Sun-safe pointing driven by an estimated Sun direction: eight coarse sun sensors feed a weighted least-squares estimator, instead of using the true direction.\n\nWhat to look at:\n- sat-1.sun_heading_body_estimated settling near [0, 0, 1] as the +Z axis turns to the Sun.\n- Earth's shadow, minutes 10 to 44: every sensor reads zero, the estimate drops to [0, 0, 0] and the spacecraft holds its attitude.\n- Out of the shadow, the estimate is back at once.\n- Accuracy depends on how many sensors are lit, as on real hardware.\n\nTry changing:\n- The sensors' field of view: narrower means fewer lit sensors and a worse estimate.\n- Turn off \"Estimate Sun heading from coarse sun sensors\" to compare with the true direction.\n- Turn on \"Reflected sunlight on the sun sensors\" (gravity): Earth's albedo pulls the estimate about 16 deg off the Sun, up to 27 deg, and +Z follows it.",
   "schema_version": 4
 }

@@ -92,6 +92,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..schema.scenario import (
+    ALBEDO_MAPS,
     MAX_GRAVITY_DEGREE,
     SMALL_BODY_CENTRAL_BODIES,
     SUPPORTED_CENTRAL_BODIES,
@@ -235,6 +236,16 @@ class PropagationSetupDialog(QDialog):
             "(10 s steps, RKF78).")
         form.addRow(self.polyhedral_gravity_check)
 
+        self.albedo_check = QCheckBox("Reflected sunlight on the sun sensors (albedo)")
+        self.albedo_check.setChecked(gravity.albedo)
+        self.albedo_check.setToolTip(
+            "The sunlight the central body reflects onto the coarse sun sensors (Basilisk's albedo module): "
+            "Earth from the CERES 2018 albedo map, Mars from the TES map, 5 x 5 deg cells. An Earth-facing "
+            "sensor can see a quarter of the direct sunlight, which biases a sun heading estimated from "
+            "the sensors (template 14). Needs 'sun' among the third bodies. Solar panels are not affected "
+            "(Basilisk's simpleSolarPanel takes no albedo).")
+        form.addRow(self.albedo_check)
+
         self.third_body_list = QListWidget()
         self.third_body_list.setFixedHeight(130)
         self.third_body_list.setToolTip(
@@ -266,6 +277,10 @@ class PropagationSetupDialog(QDialog):
         self.polyhedral_gravity_check.setEnabled(is_small_body)
         if not is_small_body:
             self.polyhedral_gravity_check.setChecked(False)
+        has_albedo_map = text in ALBEDO_MAPS
+        self.albedo_check.setEnabled(has_albedo_map)
+        if not has_albedo_map:
+            self.albedo_check.setChecked(False)
         base_tooltip = (
             "Checking this ON replaces the idealized point-mass gravity model with Earth's "
             "real, lumpy mass distribution (the GGM03S gravity field) -- this is what makes "
@@ -555,6 +570,7 @@ class PropagationSetupDialog(QDialog):
             ),
             third_body_perturbers=self._checked_third_bodies(),
             polyhedral_gravity=self.polyhedral_gravity_check.isChecked(),
+            albedo=self.albedo_check.isChecked(),
         )
 
     def to_sim_settings(self) -> SimSettings:

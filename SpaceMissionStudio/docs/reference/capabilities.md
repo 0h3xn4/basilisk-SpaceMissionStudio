@@ -70,7 +70,9 @@ Every `fsw_mode` maps to a real
 Basilisk FSW module chain (attitude nav/guidance/control), idealized or
 real reaction-wheel actuation, and star tracker/IMU/coarse-sun-sensor/
 magnetometer sensors (magnetometer is Earth-only; coarse sun sensors read
-zero in a planet's shadow). A `"thermal"` sensor
+zero in a planet's shadow, and with **Reflected sunlight on the sun
+sensors** also see the sunlight Earth or Mars reflects: Basilisk's
+`albedo` module with the CERES 2018 map of Earth or the TES map of Mars). A `"thermal"` sensor
 (`sensorThermal.SensorThermal`) models the real temperature of any
 flat-plate component -- radiative absorption/emission driven by the
 actual simulated attitude, the solar flux at the spacecraft's distance

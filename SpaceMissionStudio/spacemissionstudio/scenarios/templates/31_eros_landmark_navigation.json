@@ -8,7 +8,8 @@
     "third_body_perturbers": [
       "sun"
     ],
-    "polyhedral_gravity": true
+    "polyhedral_gravity": true,
+    "albedo": false
   },
   "spacecraft": [
     {

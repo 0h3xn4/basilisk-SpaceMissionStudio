@@ -89,6 +89,8 @@ def _spacecraft_series(scenario: Scenario, sc) -> List[str]:
             names += [f"{series}.accel", f"{series}.gyro"]
         elif sensor.kind in ("star_tracker", "coarse_sun_sensor", "magnetometer", "thermal"):
             names.append(series)
+        if sensor.kind == "coarse_sun_sensor" and gravity.albedo:  # validation requires the Sun then
+            names.append(f"{series}.albedo")
 
     tracked = {gravity.central_body, *gravity.third_body_perturbers}
     if "sun" in tracked and gravity.central_body != "sun":  # engine.service records every eclipse then

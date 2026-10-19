@@ -109,6 +109,8 @@ DEFAULT_KERNELS: tuple = (
 ALL_SUPPORT_DATA_FILES: tuple = DEFAULT_KERNELS + (
     DataFile.LocalGravData.GGM03S,     # spherical-harmonics gravity (engine.service)
     DataFile.MagneticFieldData.WMM,    # magnetometer sensors (engine.fsw.build_magnetic_field_wmm)
+    DataFile.AlbedoData.Earth_ALB_2018_CERES_All_5x5,  # albedo on sun sensors (engine.fsw.build_albedo)
+    DataFile.AlbedoData.Mars_ALB_TES_5x5,
 )
 
 

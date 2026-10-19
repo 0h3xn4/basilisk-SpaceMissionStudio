@@ -233,7 +233,9 @@ holds its attitude.
 
 Try changing:
 - The sensors' field of view: narrower means fewer lit sensors and a worse estimate.
-- Turn off "Estimate Sun heading from coarse sun sensors" to compare with the true direction.""",
+- Turn off "Estimate Sun heading from coarse sun sensors" to compare with the true direction.
+- Turn on "Reflected sunlight on the sun sensors" (gravity): Earth's albedo pulls the estimate about 16 deg \
+off the Sun, up to 27 deg, and +Z follows it.""",
 
     "15": """\
 The spacecraft's +Z axis stays pointed at the Moon for the whole run, about three-quarters of an orbit \

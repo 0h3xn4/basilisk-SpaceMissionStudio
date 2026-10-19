@@ -98,6 +98,8 @@ SRS_TO_COMPONENTS = {
                  "engine/service", "engine/planet_rotation", "engine/scenario_explainer", "engine/scenario_checks",
                  "engine/reference_data", "schema/scenario", "cli", "gui/spacecraft_editor",
                  "gui/propagation_setup_dialog", "gui/data_panel_widget", "plot_categories"],
+    "SRS-F-24": ["engine/fsw", "engine/service", "engine/kernels", "engine/series_names", "schema/scenario",
+                 "gui/propagation_setup_dialog", "plot_categories"],
     "SRS-P-01": ["engine/service"],
     "SRS-P-02": ["engine/service", "engine/planet_rotation", "engine/earth_orientation"],
     "SRS-P-03": ["engine/service"],

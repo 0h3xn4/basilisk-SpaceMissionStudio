@@ -9,7 +9,8 @@
       "sun",
       "moon"
     ],
-    "polyhedral_gravity": false
+    "polyhedral_gravity": false,
+    "albedo": false
   },
   "spacecraft": [
     {

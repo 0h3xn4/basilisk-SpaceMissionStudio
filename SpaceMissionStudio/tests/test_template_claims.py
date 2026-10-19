@@ -186,6 +186,25 @@ def test_14_css_estimate_settles_on_the_sun_axis_and_is_lost_in_the_shadow():
         assert not sensor.data[np.isin(sensor.time_s, illumination.time_s[dark])].any()
 
 
+def test_14_earths_albedo_pulls_the_estimate_off_the_sun():
+    """With "Reflected sunlight on the sun sensors" on, the estimate in
+    sunlight is about 16 deg off the Sun (median), up to 27 deg, and +Z
+    follows it (the description's "Try changing" claim)."""
+    scenario = _template("14")
+    scenario.gravity.albedo = True
+    result = _run(scenario)
+    true = result.series["sat-1.sun_heading_body"]
+    estimate = result.series["sat-1.sun_heading_body_estimated"].data
+    lit = (np.linalg.norm(estimate, axis=1) > 0.0) & (result.series["sat-1.eclipse.illumination_factor"].data.ravel()
+                                                      == 1.0)
+    error_deg = np.degrees(np.arccos(np.clip(np.einsum(
+        "ij,ij->i", estimate[lit] / np.linalg.norm(estimate[lit], axis=1)[:, None],
+        true.data[lit] / np.linalg.norm(true.data[lit], axis=1)[:, None]), -1.0, 1.0)))
+    assert 13.0 < np.median(error_deg) < 19.0 and 22.0 < error_deg.max() < 30.0  # [deg] "about 16", "up to 27"
+    off_sun_deg = np.degrees(np.arccos(np.clip(true.data[:, 2] / np.linalg.norm(true.data, axis=1), -1.0, 1.0)))
+    assert 22.0 < off_sun_deg[true.time_s > 600.0].max() < 30.0  # [deg] +Z follows the estimate
+
+
 def test_21_off_centre_array_loads_the_wheels_unless_torque_rods_unload_them():
     """A real run: rods-off stores ~1.7 N*m*s by the end of the day (1.72,
     rw-x -815 RPM), rods-on keeps its wheels under ~20 RPM (18.7): January

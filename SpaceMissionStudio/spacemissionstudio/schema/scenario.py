@@ -89,6 +89,10 @@ SUPPORTED_CENTRAL_BODIES = (
 # ephemeris is a separate NAIF kernel and their gravity can be a shape
 # model (engine.small_bodies, engine.polyhedron).
 SMALL_BODY_CENTRAL_BODIES = ("eros",)
+# Central bodies with an albedo map in Basilisk's support data, and the
+# map's file stem (DataFile.AlbedoData): CERES 2018, all-sky, for Earth;
+# MGS TES for Mars. 5 x 5 deg cells.
+ALBEDO_MAPS = {"earth": "Earth_ALB_2018_CERES_All_5x5", "mars barycenter": "Mars_ALB_TES_5x5"}
 # The span the small bodies' ephemeris kernels cover (eros_1900_2100.bsp), UTC.
 SMALL_BODY_EPHEMERIS_SPAN = {"eros": ("1900-01-01T00:00:00", "2100-01-01T00:00:00")}
 # Central bodies optical navigation can use: the ones Basilisk's
@@ -2307,6 +2311,9 @@ class GravityConfig:
     # A small body's gravity from its shape model at constant density
     # (Basilisk's polyhedralGravityModel) instead of a point mass.
     polyhedral_gravity: bool = False
+    # Sunlight the central body reflects onto the coarse sun sensors
+    # (Basilisk's albedo module with the body's measured albedo map).
+    albedo: bool = False
 
     def validate(self) -> None:
         _require(self.central_body in SUPPORTED_CENTRAL_BODIES + SMALL_BODY_CENTRAL_BODIES,
@@ -2315,6 +2322,10 @@ class GravityConfig:
         _require(not self.polyhedral_gravity or self.central_body in SMALL_BODY_CENTRAL_BODIES,
                   f"gravity.polyhedral_gravity needs a small body with a shape model as the central body "
                   f"({', '.join(SMALL_BODY_CENTRAL_BODIES)}), not {self.central_body!r}")
+        _require(isinstance(self.albedo, bool), "gravity.albedo must be true or false")
+        _require(not self.albedo or self.central_body in ALBEDO_MAPS,
+                  f"gravity.albedo needs a central body with an albedo map ({', '.join(ALBEDO_MAPS)}), "
+                  f"not {self.central_body!r}")
         _require(self.central_body_degree >= 0, "gravity.central_body_degree must be >= 0")
         _require(self.central_body_degree <= MAX_GRAVITY_DEGREE,
                  f"gravity.central_body_degree must be <= {MAX_GRAVITY_DEGREE} (the GGM03S field's maximum)")
@@ -2919,6 +2930,8 @@ class Scenario:
                           f"Earth's J22 term), but gravity.central_body is {self.gravity.central_body!r}")
         if self.gravity.central_body in SMALL_BODY_CENTRAL_BODIES:
             self._validate_small_body()
+        _require(not self.gravity.albedo or sun_tracked,
+                  "gravity.albedo needs 'sun' in gravity.third_body_perturbers: the reflected light is the Sun's")
         self.space_weather.validate()
         self.sim_settings.validate()
         self.monte_carlo.validate()
