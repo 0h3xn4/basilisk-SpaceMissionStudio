@@ -11216,3 +11216,66 @@ the frame still goes out. It fails on the previous code.
 
 **Records.** SRelD K-14 records the failure and the fix. Whether this was the
 Windows failure is known only if it does not recur.
+
+## 433 Eros: polyhedral gravity and landmark navigation (2026-10-19)
+
+The small-body item, scoped with the user: the first small body is 433 Eros
+with the gravity of its shape, and the spacecraft navigates from landmarks
+a camera sees on the surface.
+
+**The data.** Eros is a SPICE body: NAIF's generic kernel
+`eros_1900_2100.bsp` (a JPL Horizons n-body solution, Sun-centred, 1900 to
+2100; 4589568 bytes, SHA-256 `1389946d...f701537`, checked before use), and
+pck00010's rotation model (pole RA 11.35 deg, Dec 17.22 deg, 5.27 h), frame
+`IAU_EROS`. The GM, 4.463e-4 km³/s², is the kernel's Horizons header. The
+shape is Gaskell's NEAR model `eros007790.tab` (3897 vertices, 7790
+facets, 2526 km³), which Basilisk's `dataFetcher` already provides. Neither
+file ships with the app: `spacemissionstudio small-bodies --fetch` or
+Reference data downloads them after asking, `--import` takes a copied
+ephemeris, and CI fetches them in a step of its own. A run that needs them
+and lacks them says so in "Check before running".
+
+**Two Basilisk findings.**
+* `createCustomGravObject` without `planetFrame` left the frame list one
+  short, and Eros was given the Sun's orientation. With
+  `planetFrame="IAU_EROS"` the body-fixed frame is Eros's.
+* Basilisk's `eclipse` knows planets by name only and stopped on
+  "unrecognized planetSpiceName" for Eros. `RenamedPlanetState` copies
+  Eros's state message under the name `custom`, and `rEqCustom` is the mean
+  radius, 8.42 km: the shadow is a sphere.
+
+**Gravity.** Basilisk's `polyhedralGravityModel` at constant density. The
+tool's own polyhedron (`engine.polyhedron`, Werner & Scheeres 1997, for the
+filter and the impact check) gives Basilisk's field and potential to about
+1e-14, and a cube's far field to 1e-7 of a point mass. In Eros's rotating
+frame, the Jacobi integral is conserved to 9e-8 over a day (rkf78, 10 s).
+A position inside the shape is reported as a hit. The re-entry check and
+the two-body conservation check do not apply around a small body and are
+skipped.
+
+**Landmark navigation.** Landmarks on facets of the shape, spread by area;
+Basilisk's `pinholeCamera`, unmodified, reports their whole pixels; the
+tool's own EKF (`engine.landmarks`: position and velocity, the shape's
+gravity and its gradient, Eros's spin, Joseph update) measures each pixel
+from its centre, with sigma `hypot(1/sqrt(12), noise)` px. The camera takes
+the Sun's direction as minus the planet's position, so its inputs are
+shifted to the Sun's origin (`LandmarkCameraInputs`). At the last image of
+a test run, the landmarks `pinholeCamera` reports are exactly those
+`engine.landmarks.visible()` predicts, at the same pixels. Over six hours
+the residuals are 0.29 px; 66 % of the errors are within the filter's
+1 sigma, and the mean squared normalised error is 0.92.
+
+**Template 31.** A 35 km orbit over Eros's poles for two days, the filter
+starting 100 m off: 5.5 m after the first image, 0.35 m median afterwards,
+4.8 m at most, after the passes over the night side (22 of 289 images see
+no landmark); about 18 landmarks per image; residuals of 0.28 px. The
+shape alone moves the probe between 35.0 and 38.0 km from the centre. The
+description first said 1 px of added noise multiplies the error "a few
+times"; measured, it is 5.1 m (median over the first half day), about 15
+times, so it now says "about 5 m", and a claim test holds the figure.
+
+**Limits.** Eros only, and only as the central body; one run of at most
+100 days; no terrain occlusion in Basilisk's camera; the filter knows the
+shape, GM, spin, attitude and landmarks exactly. A simulated day takes
+about 2 minutes. Records: SRS-F-23, the how-to page, the manual,
+capabilities, limitations and the glossary.

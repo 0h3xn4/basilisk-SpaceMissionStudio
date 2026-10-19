@@ -7,7 +7,8 @@
     "central_body_degree": 2,
     "third_body_perturbers": [
       "sun"
-    ]
+    ],
+    "polyhedral_gravity": false
   },
   "spacecraft": [
     {
@@ -272,6 +273,7 @@
       "phasing_keeping": null,
       "roe_formation": null,
       "optical_navigation": null,
+      "landmark_navigation": null,
       "constant_thrust": null,
       "momentum_dumping": null,
       "magnetic_momentum_management": null,
@@ -594,6 +596,7 @@
       "phasing_keeping": null,
       "roe_formation": null,
       "optical_navigation": null,
+      "landmark_navigation": null,
       "constant_thrust": null,
       "momentum_dumping": null,
       "magnetic_momentum_management": {

@@ -93,6 +93,7 @@ from PySide6.QtWidgets import (
 
 from ..schema.scenario import (
     MAX_GRAVITY_DEGREE,
+    SMALL_BODY_CENTRAL_BODIES,
     SUPPORTED_CENTRAL_BODIES,
     SUPPORTED_INTEGRATORS,
     SUPPORTED_SPACE_WEATHER_SOURCES,
@@ -187,7 +188,7 @@ class PropagationSetupDialog(QDialog):
         form = QFormLayout(group)
 
         self.central_body_combo = ComboBox()
-        self.central_body_combo.addItems(SUPPORTED_CENTRAL_BODIES)
+        self.central_body_combo.addItems(SUPPORTED_CENTRAL_BODIES + SMALL_BODY_CENTRAL_BODIES)
         self.central_body_combo.setCurrentText(gravity.central_body)
         self.central_body_combo.setToolTip(
             "Which body's gravity dominates this scenario's orbit -- every spacecraft's "
@@ -225,6 +226,15 @@ class PropagationSetupDialog(QDialog):
         )
         form.addRow("Degree/order", self.central_body_degree_spin)
 
+        self.polyhedral_gravity_check = QCheckBox("Gravity from the shape model (small bodies)")
+        self.polyhedral_gravity_check.setChecked(gravity.polyhedral_gravity)
+        self.polyhedral_gravity_check.setToolTip(
+            "A small body's gravity from its shape at constant density (Basilisk's polyhedralGravityModel; "
+            "433 Eros: the NEAR shape, 7790 facets) instead of a point mass. Close to an elongated body "
+            "like Eros the difference is tens of percent. A simulated day takes about 1.5 minutes of computing "
+            "(10 s steps, RKF78).")
+        form.addRow(self.polyhedral_gravity_check)
+
         self.third_body_list = QListWidget()
         self.third_body_list.setFixedHeight(130)
         self.third_body_list.setToolTip(
@@ -252,6 +262,10 @@ class PropagationSetupDialog(QDialog):
         if not is_earth:
             self.enable_harmonics_check.setChecked(False)
         self.central_body_degree_spin.setEnabled(is_earth and self.enable_harmonics_check.isChecked())
+        is_small_body = text in SMALL_BODY_CENTRAL_BODIES
+        self.polyhedral_gravity_check.setEnabled(is_small_body)
+        if not is_small_body:
+            self.polyhedral_gravity_check.setChecked(False)
         base_tooltip = (
             "Checking this ON replaces the idealized point-mass gravity model with Earth's "
             "real, lumpy mass distribution (the GGM03S gravity field) -- this is what makes "
@@ -540,6 +554,7 @@ class PropagationSetupDialog(QDialog):
                 self.central_body_degree_spin.value() if self.enable_harmonics_check.isChecked() else 0
             ),
             third_body_perturbers=self._checked_third_bodies(),
+            polyhedral_gravity=self.polyhedral_gravity_check.isChecked(),
         )
 
     def to_sim_settings(self) -> SimSettings:

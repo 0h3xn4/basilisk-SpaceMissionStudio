@@ -12,6 +12,19 @@ Each item was checked against Basilisk's own source.
   (GGM03S). Other central bodies
   are limited to point-mass gravity (`central_body_degree=0`) until a
   later phase adds their gravity-field files.
+* **Small bodies and landmark navigation (`engine.small_bodies`,
+  `engine.polyhedron`, `engine.landmarks`, `engine.landmark_navigation`).**
+  * 433 Eros only, only as the central body; one run of at most 100 days
+    (segmented runs are not verified around it), inside the ephemeris
+    kernel's 1900 to 2100.
+  * The shape's gravity is at constant density.
+  * Eros's shadow is a sphere of its 8.42 km mean radius (Basilisk's
+    eclipse model takes only spheres).
+  * Basilisk's `pinholeCamera` does not check whether other terrain hides
+    a landmark; no image is rendered.
+  * The filter knows the shape, GM, spin, attitude and landmark positions
+    exactly, and leaves out the Sun's pull and light pressure (its
+    process noise covers them): results are optimistic.
 * **Optical navigation (`engine.opnav`, `engine.optical_navigation`).**
   * No image is rendered or processed: the disk's centre and size are
     computed from the true geometry with Gaussian pixel noise. A

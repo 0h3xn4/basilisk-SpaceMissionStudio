@@ -95,6 +95,25 @@ def test_the_consent_prompt_names_source_files_and_size(panel, monkeypatch):
     assert shown["default"] == QMessageBox.StandardButton.No
 
 
+def test_the_eros_download_asks_first_naming_naif_and_its_files(panel, monkeypatch):
+    """The small-body download asks before anything is fetched and names
+    NAIF, both files and the size; declining starts nothing."""
+    from PySide6.QtWidgets import QMessageBox
+
+    shown, started = {}, []
+    monkeypatch.setitem(dp._DOWNLOAD_TASKS, "small_bodies", lambda: started.append(1))
+
+    def question(parent, title, text, buttons, default):
+        shown.update(text=text)
+        return QMessageBox.StandardButton.No
+
+    monkeypatch.setattr(QMessageBox, "question", question)
+    assert panel.download("small_bodies") is False
+    assert "naif.jpl.nasa.gov" in shown["text"] and "about 5 MB" in shown["text"]
+    assert "eros_1900_2100.bsp" in shown["text"] and "eros007790.tab" in shown["text"]
+    assert started == []
+
+
 def test_an_accepted_download_runs_and_reports_what_changed(panel, qtbot, monkeypatch):
     after = list(_FILES)
     after[1] = ReferenceFile("space weather", "SW-All.txt", "ok", "bundled", "/pkg/SW-All.txt", 100, "ef" * 32, "",

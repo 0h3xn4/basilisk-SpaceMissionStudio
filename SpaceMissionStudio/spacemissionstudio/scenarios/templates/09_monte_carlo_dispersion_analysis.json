@@ -5,7 +5,8 @@
   "gravity": {
     "central_body": "earth",
     "central_body_degree": 0,
-    "third_body_perturbers": []
+    "third_body_perturbers": [],
+    "polyhedral_gravity": false
   },
   "spacecraft": [
     {
@@ -75,6 +76,7 @@
       "phasing_keeping": null,
       "roe_formation": null,
       "optical_navigation": null,
+      "landmark_navigation": null,
       "constant_thrust": null,
       "momentum_dumping": null,
       "magnetic_momentum_management": null,

@@ -89,6 +89,28 @@ class MidStepPlanetOrientation(sysModel.SysModel):
         self.planetOutMsg.write(payload, CurrentSimNanos, self.moduleID)
 
 
+class RenamedPlanetState(sysModel.SysModel):
+    """Copies a ``SpicePlanetStateMsg`` under another ``PlanetName``.
+    Basilisk's ``eclipse`` knows the planets' radii by name and takes any
+    other body only as ``"custom"`` with its ``rEqCustom``."""
+
+    def __init__(self, name: str, planet_name: str):
+        super().__init__()
+        self.ModelTag = name
+        self.planetInMsg = messaging.SpicePlanetStateMsgReader()
+        self.planetOutMsg = messaging.SpicePlanetStateMsg()
+        self.planetName = planet_name
+
+    def UpdateState(self, CurrentSimNanos):
+        source = self.planetInMsg()
+        payload = messaging.SpicePlanetStateMsgPayload()
+        for name in ("J2000Current", "PositionVector", "VelocityVector", "J20002Pfix", "J20002Pfix_dot",
+                     "computeOrient"):
+            setattr(payload, name, getattr(source, name))
+        payload.PlanetName = self.planetName
+        self.planetOutMsg.write(payload, CurrentSimNanos, self.moduleID)
+
+
 def attach(sim, task_name: str, spice_object, grav_bodies: dict, body_names, step_s: float) -> list:
     """Insert one :class:`MidStepPlanetOrientation` per gravity body and
     subscribe the body to it. Returns the modules (kept alive by the caller)."""

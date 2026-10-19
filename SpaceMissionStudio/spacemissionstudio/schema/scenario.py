@@ -63,6 +63,7 @@ import math
 import os
 import tempfile
 from dataclasses import dataclass, field, asdict
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import typing
 from typing import Any, Dict, List, Optional
@@ -84,6 +85,12 @@ CURRENT_SCHEMA_VERSION = 4
 SUPPORTED_CENTRAL_BODIES = (
     "sun", "mercury", "venus", "earth", "moon", "mars barycenter", "jupiter barycenter",
 )
+# Small bodies a run can orbit but not take as third bodies: their
+# ephemeris is a separate NAIF kernel and their gravity can be a shape
+# model (engine.small_bodies, engine.polyhedron).
+SMALL_BODY_CENTRAL_BODIES = ("eros",)
+# The span the small bodies' ephemeris kernels cover (eros_1900_2100.bsp), UTC.
+SMALL_BODY_EPHEMERIS_SPAN = {"eros": ("1900-01-01T00:00:00", "2100-01-01T00:00:00")}
 # Central bodies optical navigation can use: the ones Basilisk's
 # pixelLineConverter and relativeODuKF know by number (engine.opnav.BODY_IDS).
 OPTICAL_NAVIGATION_BODIES = ("earth", "mars barycenter", "jupiter barycenter")
@@ -96,12 +103,15 @@ UNRUNNABLE_BODIES = {
 }
 
 
-def _body_problem(where: str, name: str) -> str:
+def _body_problem(where: str, name: str, small_bodies: bool = False) -> str:
     """Why ``name`` cannot be used at ``where``, naming the body to use instead."""
     if name in UNRUNNABLE_BODIES:
         instead, reason = UNRUNNABLE_BODIES[name]
         return f"{where} {name!r} cannot be run: {reason}; use {instead!r}"
-    return f"{where} {name!r} must be one of {SUPPORTED_CENTRAL_BODIES}"
+    if name in SMALL_BODY_CENTRAL_BODIES and not small_bodies:
+        return f"{where} {name!r} can only be the central body"
+    allowed = SUPPORTED_CENTRAL_BODIES + (SMALL_BODY_CENTRAL_BODIES if small_bodies else ())
+    return f"{where} {name!r} must be one of {allowed}"
 
 ORBIT_IC_TYPES = ("classical_elements", "cartesian", "tle")
 
@@ -1208,6 +1218,67 @@ class OpticalNavigationConfig:
 
 
 @dataclass
+class LandmarkNavigationConfig:
+    """Navigation from surface landmarks around a small body
+    (``engine.landmarks`` for the camera geometry and the filter,
+    ``engine.landmark_navigation`` for the run).
+
+    ``landmark_count`` landmarks are placed on facets of the body's shape
+    model (area-weighted, seeded). Every ``measurement_interval_s``
+    Basilisk's ``pinholeCamera`` reports the whole pixel of each landmark
+    it sees (in front of the camera, facing it, on the detector, the Sun
+    at least ``min_sun_elevation_deg`` above the landmark's horizon; it
+    does not check whether other terrain hides one). The tool's extended
+    Kalman filter estimates position and velocity relative to the body
+    from them, predicting with the shape's own gravity; it starts from the
+    true state off by one draw of the initial sigmas (seeded).
+
+    Needs a small body with ``gravity.polyhedral_gravity`` as the central
+    body and the Sun in the run. In an orbit-only run the camera points at
+    the body's centre; with attitude, the spacecraft's attitude and
+    ``camera_mrp_cb`` point it.
+    """
+
+    landmark_count: int = 100
+    field_of_view_deg: float = 30.0  # [deg] edge to edge along the image's width (x)
+    resolution_px: list = field(default_factory=lambda: [1024, 1024])  # [px] width, height
+    # [-] MRP of the camera frame (boresight +z) relative to the body frame
+    camera_mrp_cb: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
+    measurement_interval_s: float = 600.0  # [s] one image this often
+    pixel_noise_px: float = 0.0  # [px] 1 sigma added to each pixel coordinate, on top of the rounding
+    min_sun_elevation_deg: float = 10.0  # [deg] a landmark in lower light is not seen
+    initial_position_sigma_m: float = 100.0  # [m] 1 sigma, each axis: the filter's start and its error
+    initial_velocity_sigma_mps: float = 0.05  # [m/s] 1 sigma, each axis
+    # [m/s^1.5] spectral density of the filter's white acceleration noise, each axis
+    process_noise_mps2_per_sqrt_hz: float = 1.0e-8
+    seed: int = 1  # landmark placement, pixel noise and the initial error
+
+    def validate(self, spacecraft_name: str) -> None:
+        prefix = f"{spacecraft_name}: landmark_navigation"
+        _require(isinstance(self.landmark_count, int) and not isinstance(self.landmark_count, bool)
+                 and 1 <= self.landmark_count <= 1000, f"{prefix}.landmark_count must be a whole number from 1 to 1000")
+        for field_name in ("field_of_view_deg", "measurement_interval_s", "initial_position_sigma_m",
+                           "initial_velocity_sigma_mps"):
+            value = getattr(self, field_name)
+            _require(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+                     and value > 0, f"{prefix}.{field_name} must be a finite number > 0")
+        for field_name in ("pixel_noise_px", "process_noise_mps2_per_sqrt_hz"):
+            value = getattr(self, field_name)
+            _require(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+                     and value >= 0, f"{prefix}.{field_name} must be a finite number >= 0")
+        _require(self.field_of_view_deg < 180.0, f"{prefix}.field_of_view_deg must be under 180")
+        value = self.min_sun_elevation_deg
+        _require(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+                 and -90.0 <= value < 90.0, f"{prefix}.min_sun_elevation_deg must be from -90 to under 90")
+        _require(isinstance(self.resolution_px, list) and len(self.resolution_px) == 2
+                 and all(isinstance(n, int) and not isinstance(n, bool) and n >= 16 for n in self.resolution_px),
+                 f"{prefix}.resolution_px must be two whole numbers of at least 16 [px]")
+        _require(_finite_vector(self.camera_mrp_cb, 3), f"{prefix}.camera_mrp_cb must be 3 finite numbers")
+        _require(isinstance(self.seed, int) and not isinstance(self.seed, bool) and self.seed >= 0,
+                 f"{prefix}.seed must be a whole number >= 0")
+
+
+@dataclass
 class MomentumDumpingConfig:
     """Periodic reaction-wheel momentum desaturation via this spacecraft's
     ``"thruster"`` actuators -- Basilisk's ``thrMomentumManagement`` +
@@ -1772,6 +1843,7 @@ class SpacecraftConfig:
     phasing_keeping: Optional[PhasingKeepingConfig] = None
     roe_formation: Optional[RoeFormationConfig] = None  # formation in relative orbital elements
     optical_navigation: Optional[OpticalNavigationConfig] = None  # camera navigation from the central body's disk
+    landmark_navigation: Optional[LandmarkNavigationConfig] = None  # camera navigation from a small body's landmarks
     constant_thrust: Optional[ConstantThrustConfig] = None
     momentum_dumping: Optional[MomentumDumpingConfig] = None
     magnetic_momentum_management: Optional[MagneticMomentumManagementConfig] = None
@@ -2173,6 +2245,8 @@ class SpacecraftConfig:
             self.roe_formation.validate(self.name)
         if self.optical_navigation is not None:
             self.optical_navigation.validate(self.name)
+        if self.landmark_navigation is not None:
+            self.landmark_navigation.validate(self.name)
         if self.constant_thrust is not None:
             self.constant_thrust.validate(self.name)
         if self.momentum_dumping is not None:
@@ -2230,10 +2304,17 @@ class GravityConfig:
     central_body: str = "earth"
     central_body_degree: int = 0  # 0 == point-mass only
     third_body_perturbers: list = field(default_factory=list)  # e.g. ["sun", "moon"]
+    # A small body's gravity from its shape model at constant density
+    # (Basilisk's polyhedralGravityModel) instead of a point mass.
+    polyhedral_gravity: bool = False
 
     def validate(self) -> None:
-        _require(self.central_body in SUPPORTED_CENTRAL_BODIES,
-                  _body_problem("gravity.central_body", self.central_body))
+        _require(self.central_body in SUPPORTED_CENTRAL_BODIES + SMALL_BODY_CENTRAL_BODIES,
+                  _body_problem("gravity.central_body", self.central_body, small_bodies=True))
+        _require(isinstance(self.polyhedral_gravity, bool), "gravity.polyhedral_gravity must be true or false")
+        _require(not self.polyhedral_gravity or self.central_body in SMALL_BODY_CENTRAL_BODIES,
+                  f"gravity.polyhedral_gravity needs a small body with a shape model as the central body "
+                  f"({', '.join(SMALL_BODY_CENTRAL_BODIES)}), not {self.central_body!r}")
         _require(self.central_body_degree >= 0, "gravity.central_body_degree must be >= 0")
         _require(self.central_body_degree <= MAX_GRAVITY_DEGREE,
                  f"gravity.central_body_degree must be <= {MAX_GRAVITY_DEGREE} (the GGM03S field's maximum)")
@@ -2590,6 +2671,20 @@ class Scenario:
     description: str = ""
     schema_version: int = CURRENT_SCHEMA_VERSION
 
+    def _validate_small_body(self) -> None:
+        """Checks for a run around a small body (``SMALL_BODY_CENTRAL_BODIES``)."""
+        body = self.gravity.central_body
+        first, last = (datetime.fromisoformat(part) for part in SMALL_BODY_EPHEMERIS_SPAN[body])
+        start = parse_epoch_utc(self.epoch_utc)
+        if start.tzinfo is not None:
+            start = start.astimezone(timezone.utc).replace(tzinfo=None)
+        end = start + timedelta(days=self.sim_settings.duration_days)
+        _require(first <= start and end <= last,
+                  f"gravity.central_body {body!r}: its ephemeris covers {first:%Y-%m-%d} to {last:%Y-%m-%d}; "
+                  f"this run goes from {start:%Y-%m-%d} to {end:%Y-%m-%d}")
+        _require(not self.ground_stations,
+                  f"gravity.central_body {body!r}: ground stations are only for planets, remove them")
+
     def validate(self) -> None:
         _require(bool(self.name), "scenario.name must not be empty")
         try:
@@ -2707,6 +2802,14 @@ class Scenario:
                 _require("sun" in self.gravity.third_body_perturbers,
                           f"{sc.name}: optical_navigation needs 'sun' in gravity.third_body_perturbers "
                           "(the image is used only on the lit side)")
+            if sc.landmark_navigation is not None:
+                # The filter predicts with the shape's gravity; the lighting needs the Sun.
+                _require(self.gravity.central_body in SMALL_BODY_CENTRAL_BODIES and self.gravity.polyhedral_gravity,
+                          f"{sc.name}: landmark_navigation needs a small body ({', '.join(SMALL_BODY_CENTRAL_BODIES)}) "
+                          "as gravity.central_body with gravity.polyhedral_gravity (landmarks sit on its shape)")
+                _require("sun" in self.gravity.third_body_perturbers,
+                          f"{sc.name}: landmark_navigation needs 'sun' in gravity.third_body_perturbers "
+                          "(a landmark is seen only in sunlight)")
             if sc.roe_formation is not None:
                 prefix = f"{sc.name}: roe_formation.chief_spacecraft {sc.roe_formation.chief_spacecraft!r}"
                 _require(sc.roe_formation.chief_spacecraft in names,
@@ -2730,6 +2833,10 @@ class Scenario:
         # (engine/long_run.py); these two cannot be split.
         single_run_days = SimSettings._MAX_SINGLE_RUN_DAYS
         if self.sim_settings.duration_days > single_run_days:
+            _require(self.gravity.central_body not in SMALL_BODY_CENTRAL_BODIES,
+                      f"a run around {self.gravity.central_body!r} is one simulation, at most {single_run_days:g} "
+                      "days (sim_settings.duration_days; longer, segmented runs are not verified around small "
+                      "bodies) -- shorten the run")
             _require(not runs_sequence(self.mission_sequence),
                       f"sim_settings.duration_days is over {single_run_days:g} days, which a mission sequence "
                       "cannot run -- shorten the run or remove the mission sequence")
@@ -2810,6 +2917,8 @@ class Scenario:
                 _require(sc.geo_station_keeping is None,
                           f"{sc.name}: geo_station_keeping is Earth-only (it plans east-west burns from "
                           f"Earth's J22 term), but gravity.central_body is {self.gravity.central_body!r}")
+        if self.gravity.central_body in SMALL_BODY_CENTRAL_BODIES:
+            self._validate_small_body()
         self.space_weather.validate()
         self.sim_settings.validate()
         self.monte_carlo.validate()
@@ -2954,6 +3063,9 @@ class Scenario:
             optical_navigation_data = sc.pop("optical_navigation", None)
             optical_navigation = (OpticalNavigationConfig(**optical_navigation_data)
                                   if optical_navigation_data is not None else None)
+            landmark_navigation_data = sc.pop("landmark_navigation", None)
+            landmark_navigation = (LandmarkNavigationConfig(**landmark_navigation_data)
+                                   if landmark_navigation_data is not None else None)
             constant_thrust_data = sc.pop("constant_thrust", None)
             constant_thrust = ConstantThrustConfig(**constant_thrust_data) if constant_thrust_data is not None else None
             momentum_dumping_data = sc.pop("momentum_dumping", None)
@@ -2979,6 +3091,7 @@ class Scenario:
                                                 geo_station_keeping=geo_station_keeping,
                                                 phasing_keeping=phasing_keeping, roe_formation=roe_formation,
                                                 optical_navigation=optical_navigation,
+                                                landmark_navigation=landmark_navigation,
                                                 constant_thrust=constant_thrust,
                                                 momentum_dumping=momentum_dumping,
                                                 magnetic_momentum_management=magnetic_momentum_management,

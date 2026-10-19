@@ -27,6 +27,9 @@ import pytest
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 BASILISK_AVAILABLE = importlib.util.find_spec("Basilisk") is not None
+# Where 'spacemissionstudio small-bodies --fetch' installs the Eros kernel for
+# this user (CI runs it); the autouse fixture below hides it from other tests.
+REAL_SMALL_BODIES_DIR = os.path.join(os.path.expanduser("~"), ".cache", "SpaceMissionStudio", "small_bodies")
 GUI_AVAILABLE = importlib.util.find_spec("PySide6") is not None
 # The exported flight-software package (spacemissionstudio.fsw_export) is
 # built with CMake and the platform's C compiler; GitHub's Linux, macOS and
@@ -99,6 +102,11 @@ def _isolate_logging_setup(tmp_path, monkeypatch):
 
     monkeypatch.setattr(earth_orientation, "DEFAULT_DIR", tmp_path / ".cache" / "SpaceMissionStudio" / "earth_orientation")
     monkeypatch.setattr(earth_orientation, "SYSTEM_DIR", tmp_path / "share" / "earth_orientation")
+    # And for the small-body kernels (engine.small_bodies).
+    from spacemissionstudio.engine import small_bodies
+
+    monkeypatch.setattr(small_bodies, "DEFAULT_DIR", tmp_path / ".cache" / "SpaceMissionStudio" / "small_bodies")
+    monkeypatch.setattr(small_bodies, "SYSTEM_DIR", tmp_path / "share" / "small_bodies")
 
     root_logger = logging.getLogger()
     original_handlers = list(root_logger.handlers)
@@ -113,6 +121,45 @@ def _isolate_logging_setup(tmp_path, monkeypatch):
             handler.close()
     root_logger.setLevel(original_level)
     sys.excepthook = original_excepthook
+
+
+def small_body_files_installed() -> bool:
+    """The real Eros ephemeris kernel and shape model are installed."""
+    from pathlib import Path
+
+    from spacemissionstudio.engine import small_bodies
+
+    try:
+        return (small_bodies.installed("eros", Path(REAL_SMALL_BODIES_DIR)) is not None
+                and small_bodies.shape_path(small_bodies.EROS) is not None)
+    except ImportError:
+        return False
+
+
+@pytest.fixture
+def real_small_body_files(monkeypatch):
+    """Runs around Eros use the real installed files; skipped without them."""
+    from pathlib import Path
+
+    from spacemissionstudio.engine import small_bodies
+
+    if not small_body_files_installed():
+        pytest.skip("Eros ephemeris and shape not installed (spacemissionstudio small-bodies --fetch)")
+    monkeypatch.setattr(small_bodies, "DEFAULT_DIR", Path(REAL_SMALL_BODIES_DIR))
+
+
+@pytest.fixture
+def eros_files_if_installed(monkeypatch) -> bool:
+    """Whether the real Eros files are installed; when they are, runs use
+    them (as real_small_body_files does), and nothing is skipped."""
+    from pathlib import Path
+
+    from spacemissionstudio.engine import small_bodies
+
+    installed = small_body_files_installed()
+    if installed:
+        monkeypatch.setattr(small_bodies, "DEFAULT_DIR", Path(REAL_SMALL_BODIES_DIR))
+    return installed
 
 
 def pytest_collection_modifyitems(config, items):

@@ -85,8 +85,9 @@ from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import dependencies, output_provenance
 from ..schema.scenario import OrbitIC, Scenario
 from . import (data_handling, earth_orientation, environment_models, formation_control, frames, fsw, geodesy,
-               geodetic_atmosphere, kernels, link_budget, long_run, optical_navigation, orbit_maintenance,
-               planet_rotation, roe_formation, solar_arrays, time_system, tle, vizard)
+               geodetic_atmosphere, kernels, landmark_navigation, link_budget, long_run, optical_navigation,
+               orbit_maintenance, planet_rotation, polyhedron, roe_formation, small_bodies, solar_arrays,
+               time_system, tle, vizard)
 from .results import ResultSet, RunProvenance, TimeSeries, conservation_drift_warnings
 from .vizard import VizardRequest
 
@@ -237,7 +238,7 @@ def _is_two_body_only(scenario: Scenario, sc_config) -> bool:
     target this specific spacecraft.
     """
     gravity = scenario.gravity
-    if gravity.central_body_degree != 0 or gravity.third_body_perturbers:
+    if gravity.central_body_degree != 0 or gravity.third_body_perturbers or gravity.polyhedral_gravity:
         return False
     if runs_sequence(scenario.mission_sequence):
         return False
@@ -503,6 +504,7 @@ class _SpacecraftHandle:
     phasing_keeping_controller: Optional[object] = None  # Phase 4: only set if sc_config.phasing_keeping was configured
     roe_formation_controller: Optional[object] = None  # engine.roe_formation, if sc_config.roe_formation is set
     optical_navigation: Optional[object] = None  # engine.optical_navigation chain, if sc_config.optical_navigation
+    landmark_navigation: Optional[object] = None  # engine.landmark_navigation chain, if sc_config.landmark_navigation
     constant_thrust_controller: Optional[object] = None  # Phase 5: only set if sc_config.constant_thrust was configured
     drag_effector: Optional[object] = None  # only set if sc_config.enable_drag
     srp_effector: Optional[object] = None  # only set if sc_config.enable_srp
@@ -580,6 +582,11 @@ class SimulationService:
         # access_indicator_bridges/generic_storage_list/generic_sensor_list.
         self._css_estimation_devices: List = []
         self._sun_state_out_msg = None
+        # Set in build() for a small central body (engine.small_bodies).
+        self.small_body = None
+        self.small_body_shape = None
+        self._central_body_recorder = None
+        self._shadow_copy = None
         self._ground_locations: Dict[str, object] = {}
         self._mag_field_model = None
         self._access_recorders: Dict[tuple, object] = {}  # (ground_station_name, spacecraft_name) -> recorder
@@ -722,9 +729,29 @@ class SimulationService:
         for name in gravity.third_body_perturbers:
             if name not in body_names:
                 body_names.append(name)
-        grav_bodies = grav_factory.createBodies(body_names)
+        small_body = small_bodies.body(gravity.central_body)
+        self.small_body = small_body
+        if small_body is None:
+            grav_bodies = grav_factory.createBodies(body_names)
+        else:
+            # Created first, so its SPICE state is planetStateOutMsgs[0] as
+            # body_names says; planetFrame, or the SPICE interface gives it
+            # the next body's frame (a custom body records none).
+            grav_bodies = {small_body.name: grav_factory.createCustomGravObject(
+                small_body.name, mu=small_body.gm_m3_s2, radEquator=small_body.mean_radius_m,
+                planetFrame=small_body.frame)}
+            grav_bodies.update(grav_factory.createBodies(body_names[1:]))
         central_body = grav_bodies[gravity.central_body]
         central_body.isCentralBody = True
+        if gravity.polyhedral_gravity:
+            shape_file = small_bodies.shape_path(small_body) if small_body is not None else None
+            if shape_file is None:
+                raise SimulationServiceError(
+                    f"the shape model of {small_body.title if small_body else gravity.central_body} is not "
+                    "installed -- download it in Reference data, or run 'spacemissionstudio small-bodies --fetch'")
+            central_body.usePolyhedralGravityModel(str(shape_file))
+            self.small_body_shape = polyhedron.load(shape_file)
+            self._data_files["shape_model"] = dependencies.file_record(shape_file)
 
         if gravity.central_body_degree > 0:
             if gravity.central_body != "earth":
@@ -764,6 +791,17 @@ class SimulationService:
         self.spice_object = kernels.build_spice_interface(grav_factory, spice_time_string, epoch_in_msg=True)
         for status in kernels.cached_statuses(kernels.DEFAULT_KERNELS):
             self._data_files[f"spice:{status.filename}"] = dependencies.file_record(status.path)
+        if small_body is not None:
+            installed_spk = small_bodies.installed(small_body.name)
+            if installed_spk is None:
+                raise SimulationServiceError(
+                    f"the ephemeris of {small_body.title} ({small_body.spk_name}) is not installed -- download "
+                    "it in Reference data, or run 'spacemissionstudio small-bodies --fetch'")
+            spk_path = Path(installed_spk.path)
+            self.spice_object.loadSpiceKernel(spk_path.name, str(spk_path.parent) + os.sep)
+            self._data_files[f"spice:{spk_path.name}"] = {
+                "path": installed_spk.path, "size_bytes": installed_spk.size_bytes,
+                "sha256": installed_spk.sha256, "source": installed_spk.source}
         # Earth-fixed frame: ITRF93 from the IERS-based NAIF Earth PCKs when
         # installed (engine.earth_orientation, ECSS-E-ST-10-09C 5.4.9f),
         # else Basilisk's default IAU_EARTH. Combined file first, so the
@@ -842,6 +880,10 @@ class SimulationService:
         }
 
         central_body_state_out_msg = self.spice_object.planetStateOutMsgs[body_names.index(gravity.central_body)]
+        if small_body is not None:
+            # Its orientation, sampled with the spacecraft, for positions in its frame.
+            self._central_body_recorder = self._record(central_body_state_out_msg)
+            self.scSim.AddModelToTask(dyn_task_name, self._central_body_recorder)
 
         # Phase 3: every ground station is built (used as both a possible
         # locationPointing target and an access-analysis station), not just
@@ -913,6 +955,15 @@ class SimulationService:
             self._eclipse_object.ModelTag = "eclipse"
             self._eclipse_object.sunInMsg.subscribeTo(self._sun_state_out_msg)
             for name in occulter_names:
+                if small_body is not None and name == small_body.name:
+                    # A sphere of the body's mean radius casts its shadow:
+                    # eclipse knows only planets by name (planet_rotation.RenamedPlanetState).
+                    self._shadow_copy = planet_rotation.RenamedPlanetState(f"shadow_{name}", "custom")
+                    self._shadow_copy.planetInMsg.subscribeTo(self._planet_state_out_msgs[name])
+                    self.scSim.AddModelToTask(dyn_task_name, self._shadow_copy, 460)
+                    self._eclipse_object.rEqCustom = small_body.mean_radius_m  # [m]
+                    self._eclipse_object.addPlanetToModel(self._shadow_copy.planetOutMsg)
+                    continue
                 self._eclipse_object.addPlanetToModel(self._planet_state_out_msgs[name])
             self.scSim.AddModelToTask(dyn_task_name, self._eclipse_object, 370)
 
@@ -1641,6 +1692,19 @@ class SimulationService:
                 sc_config.optical_navigation, gravity.central_body,
                 ideal_pointing=scenario.simulation_mode == "orbit_only")
 
+        # Landmark navigation (engine.landmark_navigation): Basilisk's
+        # pinholeCamera and the tool's filter on a task of their own.
+        # Scenario.validate() guarantees a small body with its shape's
+        # gravity and the Sun in the run.
+        for sc_config in scenario.spacecraft:
+            if sc_config.landmark_navigation is None:
+                continue
+            handle = self._handles[sc_config.name]
+            handle.landmark_navigation = landmark_navigation.build_landmark_navigation(
+                self.scSim, dyn_process, sc_config.name, handle.sc_object, self._sun_state_out_msg,
+                central_body_state_out_msg, sc_config.landmark_navigation, small_body, self.small_body_shape,
+                ideal_pointing=scenario.simulation_mode == "orbit_only")
+
         # Phase 3: access analysis -- every ground station sees every
         # spacecraft, now that all spacecraft exist (see fsw.add_access_analysis).
         # accessOutMsgs[i] corresponds to sc_objects_in_order[i]: fsw.add_access_analysis
@@ -2029,6 +2093,22 @@ class SimulationService:
             now_ns = next_ns
         return True
 
+    def _add_small_body_results(self, result: ResultSet, name: str, handle, t_s: np.ndarray) -> None:
+        """Position in the small body's frame, and a warning when the
+        spacecraft is inside its shape (an impact: later results are not
+        physical, the run integrates on through the body)."""
+        r_n = np.asarray(handle.recorder.r_BN_N).reshape(-1, 3)
+        dcm_pn = np.asarray(self._central_body_recorder.J20002Pfix).reshape(-1, 3, 3)
+        r_p = np.einsum("kij,kj->ki", dcm_pn, r_n)
+        result.add(TimeSeries(f"{name}.position_P", t_s, ("x", "y", "z"), r_p, units="m"))
+        result.add(TimeSeries(f"{name}.small_body.distance", t_s, ("r",), np.linalg.norm(r_p, axis=1), units="m"))
+        if self.small_body_shape is None:
+            return
+        inside = np.nonzero(self.small_body_shape.contains(r_p))[0]
+        if len(inside):
+            result.warnings.append(f"{name} hit {self.small_body.title}: inside its shape from "
+                                   f"t = {t_s[inside[0]] / 86400.0:.3f} days -- later results are not physical")
+
     def _sc_has_drag(self, name: str) -> bool:
         sc_config = next((sc for sc in self.scenario.spacecraft if sc.name == name), None)
         return sc_config is not None and sc_config.enable_drag
@@ -2101,8 +2181,10 @@ class SimulationService:
             result.add(TimeSeries(f"{name}.position_N", t_s, ("x", "y", "z"), handle.recorder.r_BN_N, units="m"))
             result.add(TimeSeries(f"{name}.velocity_N", t_s, ("x", "y", "z"), handle.recorder.v_BN_N, units="m/s"))
             altitude_m = np.linalg.norm(np.asarray(handle.recorder.r_BN_N).reshape(-1, 3), axis=1) - self.central_radius_m
-            below = np.nonzero(altitude_m < _REENTRY_ALTITUDE_M)[0]
-            if self.reentry is not None and self.reentry[0] == name:
+            below = np.nonzero(altitude_m < _REENTRY_ALTITUDE_M)[0] if self.small_body is None else []
+            if self.small_body is not None:
+                self._add_small_body_results(result, name, handle, t_s)
+            elif self.reentry is not None and self.reentry[0] == name:
                 result.warnings.append(f"{name} re-entered: below {_REENTRY_ALTITUDE_M / 1e3:g} km at "
                                        f"t = {self.reentry[1] / 86400.0:.2f} days -- the run stopped there")
             elif len(below):
@@ -2311,6 +2393,9 @@ class SimulationService:
                     result.add(series)
             if handle.optical_navigation is not None:
                 for series in optical_navigation.result_series(name, handle.optical_navigation):
+                    result.add(series)
+            if handle.landmark_navigation is not None:
+                for series in landmark_navigation.result_series(name, handle.landmark_navigation):
                     result.add(series)
 
             if handle.constant_thrust_controller is not None:

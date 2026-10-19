@@ -129,13 +129,22 @@ def test_station_keeping_without_drag_is_flagged():
     assert isinstance(sc.station_keeping, StationKeepingConfig)
 
 
-def test_every_template_is_checked_quickly_and_none_is_flagged():
+def test_every_template_is_checked_quickly_and_none_is_flagged(eros_files_if_installed):
+    """No template is flagged. Template 31 (433 Eros) is checked with the
+    real Eros files when they are installed; without them, the only
+    warnings allowed are the ones naming the missing files."""
+    from spacemissionstudio.engine import small_bodies
+
+    eros_installed = eros_files_if_installed
+    small_bodies.shape_path(small_bodies.EROS)  # imports Basilisk's data fetcher once, not per edit
     for path in sorted(_TEMPLATES_DIR.glob("*.json")):
         scenario = load_scenario(path)
         start = time.perf_counter()
         warnings = scenario_warnings(scenario)
         pass_summary(scenario)
         assert time.perf_counter() - start < 0.5, path.name  # [s] runs on every edit in the Explain tab
+        if small_bodies.body(scenario.gravity.central_body) is not None and not eros_installed:
+            warnings = [w for w in warnings if "433 Eros is not installed" not in w]
         assert not warnings, (path.name, warnings)
 
 

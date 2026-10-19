@@ -99,6 +99,15 @@ IERS-based Earth orientation files: status, --fetch, --import, --rollback
 | `--import` | install Earth PCK .bpc files from disk (a .cmt next to each is read too) |
 | `--rollback` | restore the previously installed files |
 
+## `small-bodies`
+
+small-body files (433 Eros ephemeris and shape): status, --fetch, --import
+
+| Argument | Help |
+|---|---|
+| `--fetch` | download the Eros ephemeris (NAIF) and shape (Basilisk support data) (internet) |
+| `--import` | install the Eros ephemeris kernel eros_1900_2100.bsp from disk |
+
 ## `ccsds-validate`
 
 check CCSDS OPM/OMM/OEM (KVN) files (no Basilisk needed)

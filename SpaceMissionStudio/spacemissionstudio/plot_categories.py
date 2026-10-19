@@ -101,6 +101,10 @@ def _vector_display(name: str) -> Optional[SeriesDisplay]:
         return SeriesDisplay("Inertial Position (ECI)", "Position", "m", 1.0, dict(_XYZ_LABELS))
     if name.endswith(".velocity_N"):
         return SeriesDisplay("Inertial Velocity (ECI)", "Velocity", "m/s", 1.0, dict(_XYZ_LABELS))
+    if name.endswith(".position_P"):
+        return SeriesDisplay("Position in the Small Body's Frame", "Position", "km", 1e-3, dict(_XYZ_LABELS))
+    if name.endswith(".small_body.distance"):
+        return SeriesDisplay("Distance from the Small Body's Centre", "Distance", "km", 1e-3, {"r": "Distance"})
     if name.endswith(".attitude_sigma_BN"):
         return SeriesDisplay("Attitude (MRP, Body to Inertial)", "MRP component", "-")
     if name.endswith(".body_rate_omega_BN_B"):
@@ -245,6 +249,30 @@ _OPNAV_SERIES = {
     "phase_angle": ("Optical Navigation Phase Angle (Sun-body-camera)", "Phase angle", "deg", 1.0,
                     {"phase_angle": "Phase angle"}),
 }
+
+
+# engine.landmark_navigation.result_series: field -> (title, y label, unit, factor, column labels)
+_LANDMARK_SERIES = {
+    "position_error": ("Landmark Navigation Position Error (estimate - truth)", "Position error", "m", 1.0,
+                       _OPNAV_AXES),
+    "velocity_error": ("Landmark Navigation Velocity Error (estimate - truth)", "Velocity error", "mm/s", 1e3,
+                       _OPNAV_AXES),
+    "position_3sigma": ("Landmark Navigation Position 3-Sigma", "3-sigma", "m", 1.0, _OPNAV_AXES),
+    "velocity_3sigma": ("Landmark Navigation Velocity 3-Sigma", "3-sigma", "mm/s", 1e3, _OPNAV_AXES),
+    "landmarks_seen": ("Landmark Navigation Landmarks Seen per Image", "Landmarks", "-", 1.0,
+                       {"count": "Landmarks seen"}),
+    "residual_rms": ("Landmark Navigation Pixel Residuals (rms, before the update)", "Residual", "px", 1.0,
+                     {"rms": "RMS residual"}),
+}
+
+
+def _landmark_navigation_display(name: str) -> Optional[SeriesDisplay]:
+    """``"{sc}.landmark_navigation.<field>"`` series (``engine.landmark_navigation``)."""
+    head, _, field = name.rpartition(".")
+    if not head.endswith(".landmark_navigation") or field not in _LANDMARK_SERIES:
+        return None
+    title, y_label, unit, factor, columns = _LANDMARK_SERIES[field]
+    return SeriesDisplay(title, y_label, unit, factor, columns)
 
 
 def _optical_navigation_display(name: str) -> Optional[SeriesDisplay]:
@@ -425,7 +453,7 @@ def categorize(name: str, series: TimeSeries) -> Optional[SeriesDisplay]:
     """
     for fn in (_vector_display, _orbit_element_display, _controller_display, _comms_and_thermal_display,
                _access_pair_display, _monte_carlo_display, _data_handling_display, _solar_array_display,
-               _optical_navigation_display):
+               _optical_navigation_display, _landmark_navigation_display):
         result = fn(name)
         if result is not None:
             return result
@@ -457,7 +485,7 @@ def plot_group(name: str, series: TimeSeries) -> str:
         return "Thermal"
     if ".sensor." in name:
         return "Thermal" if tuple(series.columns) == ("temperature",) else "Sensors"
-    if ".optical_navigation." in name:
+    if ".optical_navigation." in name or ".landmark_navigation." in name:
         return "Sensors"
     if ".solar_array." in name:
         return "Power" if name.endswith(".power") else "Attitude"
@@ -468,7 +496,8 @@ def plot_group(name: str, series: TimeSeries) -> str:
     navigation = re.search(r"\.navigation_error\.(\w+)$", name)
     if navigation is not None:
         return "Orbit" if navigation.group(1) in ("position", "velocity") else "Attitude"
-    if (name.endswith((".position_N", ".velocity_N", ".eclipse.illumination_factor"))
+    if (name.endswith((".position_N", ".velocity_N", ".position_P", ".eclipse.illumination_factor"))
+            or ".small_body." in name
             or ".orbit_elements" in name or any(f".{key}." in name for key in _CONTROLLER_TITLES)):
         return "Orbit"
     return "Other"

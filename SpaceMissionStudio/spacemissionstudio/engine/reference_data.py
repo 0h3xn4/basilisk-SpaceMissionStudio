@@ -75,6 +75,10 @@ DOWNLOADS: Dict[str, Download] = {
         "earth_orientation", "Earth orientation (IERS-based NAIF Earth PCKs)",
         "NAIF, https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/",
         ["earth_<dates>_combined.bpc", "earth_latest_high_prec.bpc", "their comment files"], "about 36 MB"),
+    "small_bodies": Download(
+        "small_bodies", "Small bodies (433 Eros: ephemeris and shape model)",
+        "NAIF, https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/asteroids/a_old_versions/ (ephemeris), "
+        "the Basilisk repository (shape)", ["eros_1900_2100.bsp", "eros007790.tab"], "about 5 MB"),
 }
 
 
@@ -173,12 +177,42 @@ def _earth_orientation_files(now: datetime) -> List[ReferenceFile]:
     return files
 
 
+def _small_body_files() -> List[ReferenceFile]:
+    from . import small_bodies
+
+    files = []
+    for body in small_bodies.BODIES.values():
+        kernel = small_bodies.installed(body.name)
+        if kernel is None:
+            files.append(ReferenceFile("small-body ephemeris", body.spk_name, "missing", body.spk_url,
+                                       covers=body.spk_covers.replace("/", " to "),
+                                       note=f"needed for runs around {body.title}"))
+        else:
+            files.append(ReferenceFile("small-body ephemeris", Path(kernel.path).name, "ok", kernel.source,
+                                       kernel.path, kernel.size_bytes, kernel.sha256, kernel.installed_utc,
+                                       body.spk_covers.replace("/", " to "), "checksum checked"))
+        try:
+            shape = small_bodies.shape_path(body)
+        except ImportError:
+            shape = None
+        name = f"{body.shape_data_file}.tab"
+        if shape is None:
+            files.append(ReferenceFile("shape model", name, "missing",
+                                       note=f"needed for polyhedral gravity around {body.title}"))
+        else:
+            files.append(ReferenceFile("shape model", name, "ok", "Basilisk support data", str(shape),
+                                       shape.stat().st_size, _sha256(shape), _mtime_utc(shape),
+                                       note="checksum checked"))
+    return files
+
+
 def inventory(now: Optional[datetime] = None) -> List[ReferenceFile]:
     """Every reference data file, local reads only. Never raises: a part
     that cannot be read is listed as missing with the reason."""
     now = now or datetime.now(timezone.utc).replace(tzinfo=None)
     files: List[ReferenceFile] = []
-    for part, args in ((_support_files, ()), (_space_weather_files, (now.date(),)), (_earth_orientation_files, (now,))):
+    for part, args in ((_support_files, ()), (_space_weather_files, (now.date(),)), (_earth_orientation_files, (now,)),
+                       (_small_body_files, ())):
         try:
             files += part(*args)
         except Exception as exc:  # noqa: BLE001 -- the panel must show the rest

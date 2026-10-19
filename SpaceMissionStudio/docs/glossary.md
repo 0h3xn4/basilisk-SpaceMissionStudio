@@ -194,6 +194,10 @@ writes KVN, not the XML form.
 is to a chosen position in a chosen time. The `lambert_transfer` command
 in a [Mission Sequence](#m) computes it.
 
+**Landmark navigation** -- estimating where a spacecraft is from where
+known surface features of a small body (landmarks) appear in camera
+images, combined over many images by a [Kalman filter](#k).
+
 **LEO (low Earth orbit)** -- orbits below about 2000 km. Most satellites
 fly there, low enough to feel [drag](#d).
 
@@ -287,6 +291,11 @@ sees mostly the night side.
 another spacecraft (the chief) a satellite sits along the same orbit.
 "Phasing-keeping" holds that separation, the way station-keeping holds
 altitude.
+
+**Polyhedral gravity** -- the gravity of a body computed from its shape,
+given as a closed surface of triangles (a polyhedron), at constant density
+(Werner and Scheeres 1997). Close to an irregular small body such as an
+asteroid it is far closer to the real pull than a point mass.
 
 **Principal axes** -- the three axes about which a body's products of
 inertia are zero; the moments about them are its principal moments. A

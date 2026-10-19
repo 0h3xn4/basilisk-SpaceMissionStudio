@@ -66,12 +66,15 @@ def test_names_are_sorted_and_unique(path):
 
 @pytest.mark.requires_basilisk
 @pytest.mark.parametrize("path", _TEMPLATE_PATHS, ids=lambda p: p.name)
-def test_prediction_matches_a_real_run(path):
+def test_prediction_matches_a_real_run(path, request):
     """The prediction must equal the series a real (shortened) run
     produces -- a wrong name would make a Report command fail."""
+    from spacemissionstudio.engine import small_bodies
     from spacemissionstudio.engine.service import SimulationService
 
     scenario = load_scenario(path)
+    if small_bodies.body(scenario.gravity.central_body) is not None:
+        request.getfixturevalue("real_small_body_files")
     scenario.mission_sequence = []
     scenario.monte_carlo.enabled = False
     scenario.sim_settings.duration_days = 120.0 / 86400.0  # [day] two minutes

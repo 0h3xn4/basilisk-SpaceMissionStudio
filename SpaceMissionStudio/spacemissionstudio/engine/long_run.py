@@ -59,7 +59,7 @@ import numpy as np
 
 from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
-from ..schema.scenario import OrbitIC, Scenario, SimSettings, SpaceWeatherConfig
+from ..schema.scenario import SMALL_BODY_CENTRAL_BODIES, OrbitIC, Scenario, SimSettings, SpaceWeatherConfig
 from . import time_system
 from .results import ResultSet, TimeSeries
 
@@ -101,6 +101,9 @@ def check_segmentable(scenario: Scenario, vizard_request=None) -> None:
     if any(sc.roe_formation is not None or sc.optical_navigation is not None for sc in scenario.spacecraft):
         raise LongRunError(f"ROE formations and optical navigation run as one simulation, at most "
                            f"{SimSettings._MAX_SINGLE_RUN_DAYS:g} days (their state is not carried between segments)")
+    if scenario.gravity.central_body in SMALL_BODY_CENTRAL_BODIES:
+        raise LongRunError(f"a run around a small body is one simulation, at most {SimSettings._MAX_SINGLE_RUN_DAYS:g} "
+                           "days (longer, segmented runs are not verified around small bodies)")
     if vizard_request is not None:
         raise LongRunError(f"the Vizard view covers one simulation, at most {SimSettings._MAX_SINGLE_RUN_DAYS:g} "
                            "days -- turn Vizard off for longer runs")

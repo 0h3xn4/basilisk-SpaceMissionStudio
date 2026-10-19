@@ -504,6 +504,11 @@ def _camera(scenario: Scenario):
     return next(sc for sc in scenario.spacecraft if sc.optical_navigation is not None).optical_navigation
 
 
+def _landmark_camera(scenario: Scenario):
+    """'31's landmark camera (``LandmarkNavigationConfig``)."""
+    return next(sc for sc in scenario.spacecraft if sc.landmark_navigation is not None).landmark_navigation
+
+
 def _duration_page(intro: str, maximum_days: float) -> "WizardPageSpec":
     return WizardPageSpec(
         title="Simulation length",
@@ -1790,6 +1795,37 @@ _SPECS: Dict[str, TemplateWizardSpec] = {
                 ],
             ),
             _duration_page("One orbit is 20 hours; the filter settles within the first day.",
+                           SimSettings._MAX_SINGLE_RUN_DAYS),
+        ],
+    ),
+    "31_eros_landmark_navigation.json": TemplateWizardSpec(
+        template_filename="31_eros_landmark_navigation.json",
+        pages=[
+            WizardPageSpec(
+                title="Landmark camera",
+                intro="probe-1 navigates from the pixels of landmarks on Eros's surface.",
+                fields=[
+                    WizardField(
+                        "Landmarks", "How many landmarks are placed on the shape model.",
+                        lambda s: _landmark_camera(s).landmark_count,
+                        lambda s, v: setattr(_landmark_camera(s), "landmark_count", int(v)),
+                        1, 1000, decimals=0, step=10, kind="int", hint="Spread evenly by area",
+                    ),
+                    WizardField(
+                        "Added pixel noise", "1-sigma noise on each landmark's pixel, on top of the rounding.",
+                        lambda s: _landmark_camera(s).pixel_noise_px,
+                        lambda s, v: setattr(_landmark_camera(s), "pixel_noise_px", v),
+                        0.0, 10.0, decimals=2, step=0.1, suffix=" px", hint="0 px: whole pixels only",
+                    ),
+                    WizardField(
+                        "Initial position uncertainty", "How far off the filter starts (1 sigma, each axis).",
+                        lambda s: _landmark_camera(s).initial_position_sigma_m,
+                        lambda s, v: setattr(_landmark_camera(s), "initial_position_sigma_m", v),
+                        0.001, 100000.0, decimals=3, step=10.0, suffix=" m", hint="The filter's start",
+                    ),
+                ],
+            ),
+            _duration_page("One orbit takes 17 hours; about 2 minutes of computing per simulated day.",
                            SimSettings._MAX_SINGLE_RUN_DAYS),
         ],
     ),

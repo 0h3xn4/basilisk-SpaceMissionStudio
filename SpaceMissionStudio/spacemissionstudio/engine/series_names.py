@@ -34,7 +34,7 @@ import re
 
 from typing import List
 
-from ..schema.scenario import Scenario
+from ..schema.scenario import SMALL_BODY_CENTRAL_BODIES, Scenario
 from . import link_budget
 
 _ELEMENTS = ("semi_major_axis", "eccentricity", "inclination", "raan", "arg_periapsis", "true_anomaly")
@@ -47,6 +47,8 @@ def _spacecraft_series(scenario: Scenario, sc) -> List[str]:
     gravity = scenario.gravity
     if gravity.central_body == "earth" and gravity.central_body_degree >= 2:
         names += [f"{name}.orbit_elements_mean.{element}" for element in _ELEMENTS]
+    if gravity.central_body in SMALL_BODY_CENTRAL_BODIES:  # engine.service._add_small_body_results
+        names += [f"{name}.position_P", f"{name}.small_body.distance"]
 
     if sc.fsw_mode is not None:
         names += [f"{name}.attitude_sigma_BN", f"{name}.body_rate_omega_BN_B", f"{name}.sun_heading_body",
@@ -116,6 +118,10 @@ def _spacecraft_series(scenario: Scenario, sc) -> List[str]:
         names += [f"{name}.optical_navigation.{part}"
                   for part in ("position_error", "velocity_error", "position_3sigma", "velocity_3sigma",
                                "measurement", "measurement_error", "measurement_state", "range", "phase_angle")]
+    if sc.landmark_navigation is not None:  # engine.landmark_navigation.result_series
+        names += [f"{name}.landmark_navigation.{part}"
+                  for part in ("position_error", "velocity_error", "position_3sigma", "velocity_3sigma",
+                               "landmarks_seen", "residual_rms")]
     if sc.constant_thrust is not None:
         names += [f"{name}.constant_thrust.propellant_remaining", f"{name}.constant_thrust.delta_v"]
     if sc.comms_pointing is not None:

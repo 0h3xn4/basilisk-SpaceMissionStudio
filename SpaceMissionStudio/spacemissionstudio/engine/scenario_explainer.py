@@ -60,7 +60,7 @@ from datetime import timedelta, timezone
 from typing import Dict, List, Tuple
 
 from ..schema.epochs import parse_epoch_utc
-from . import earth_orientation, opnav
+from . import earth_orientation, landmarks, opnav, small_bodies
 from .orbit_design import sun_synchronous_inclination_deg
 from .roe import min_radial_normal_separation
 from .scenario_checks import gravity_fidelity_notes, pass_summary, scenario_warnings
@@ -181,6 +181,8 @@ def _orbit_summary(orbit, gravity) -> str:
         if sma is None or inc is None:
             return "Classical elements"
         label = "SSO" if _is_sun_synchronous(orbit, gravity) else "Classical"
+        if small_bodies.body(getattr(gravity, "central_body", "earth")) is not None:
+            return f"{label} {inc:g} deg, {sma:g} km from the centre"  # a small body has no single radius
         # Above the central body, not always Earth (audit L21).
         altitude_km = sma - _BODY_RADIUS_KM.get(getattr(gravity, "central_body", "earth"), _EARTH_REQUATOR_KM)
         return f"{label} {inc:g} deg, {altitude_km:.0f} km alt"
@@ -207,6 +209,11 @@ def _mode_name(fsw_mode: str) -> str:
 
 def _gravity_summary(gravity) -> str:
     body = gravity.central_body.capitalize()
+    if getattr(gravity, "polyhedral_gravity", False):
+        body_part = f"{body} shape model"
+        if gravity.third_body_perturbers:
+            return f"{body_part} + {'/'.join(b.capitalize() for b in gravity.third_body_perturbers)}"
+        return body_part
     if gravity.central_body_degree <= 0:
         body_part = f"Point-mass {body}"
     else:
@@ -500,6 +507,46 @@ def _optical_navigation_section(scenario) -> ExplanationSection | None:
     return ExplanationSection(title="Optical navigation", badges=badges, notes=notes)
 
 
+def _small_body_section(scenario) -> ExplanationSection | None:
+    """The small body's data files, its spin against the orbit, and each
+    landmark camera's pixel size on the surface -- before any run."""
+    body = small_bodies.body(scenario.gravity.central_body)
+    if body is None:
+        return None
+    gravity = "shape model (Basilisk polyhedralGravityModel)" if scenario.gravity.polyhedral_gravity else "point mass"
+    badges = [Badge(f"{body.title}: {gravity}", "accent")]
+    if not scenario.gravity.polyhedral_gravity:
+        badges.append(Badge("Point-mass gravity: close to an elongated body this is tens of percent off", "warning"))
+    rotation_h = 2.0 * math.pi / body.spin_rad_s / 3600.0  # [h]
+    notes = [f"{body.title} turns once every {rotation_h:.2f} h (pck00010); the shadow is a sphere of "
+             f"{body.mean_radius_m / 1000.0:g} km"]
+    for sc in scenario.spacecraft:
+        if sc.orbit.type == "classical_elements" and sc.orbit.semi_major_axis_km:
+            a_m = sc.orbit.semi_major_axis_km * 1000.0  # [m]
+            period_h = 2.0 * math.pi * math.sqrt(a_m ** 3 / body.gm_m3_s2) / 3600.0  # [h]
+            notes.append(f"{sc.name}: one orbit takes {period_h:.1f} h, {period_h / rotation_h:.1f} turns of "
+                         f"{body.title}")
+        camera = sc.landmark_navigation
+        if camera is None:
+            continue
+        width, height = camera.resolution_px
+        notes.append(f"{sc.name}: {camera.landmark_count} landmarks; {camera.field_of_view_deg:g} deg camera, "
+                     f"{width} x {height} px, one image every {camera.measurement_interval_s:g} s")
+        if sc.orbit.type == "classical_elements" and sc.orbit.semi_major_axis_km:
+            pixel_rad = landmarks.pixel_pitch_m(math.radians(camera.field_of_view_deg), width) \
+                / landmarks.FOCAL_LENGTH_M  # [rad]
+            low_m = sc.orbit.semi_major_axis_km * 1000.0 * (1.0 - sc.orbit.eccentricity) - body.mean_radius_m  # [m]
+            if low_m > 0.0:
+                notes.append(f"{sc.name}: about {low_m * pixel_rad:.1f} m on the surface per pixel at the lowest "
+                             "point (above the mean radius)")
+        if scenario.simulation_mode == "orbit_only":
+            notes.append(f"{sc.name}: orbit only, so the camera points at the body's centre")
+        elif sc.fsw_mode != "locationPointing" or sc.fsw_params.get("target_body") != body.name:
+            badges.append(Badge(f"{sc.name}: the landmark camera is not pointed at {body.title} (use "
+                                "locationPointing on it)", "warning"))
+    return ExplanationSection(title="Small body", badges=badges, notes=notes)
+
+
 def _ground_stations_section(scenario) -> ExplanationSection | None:
     if not scenario.ground_stations:
         return None
@@ -600,7 +647,7 @@ def _explain(scenario) -> ScenarioExplanation:
     sections = []
     for build in (_checks_section, _formation_section, _attitude_section, _environment_section,
                   _power_comms_section, _data_handling_section, _solar_array_section,
-                  _optical_navigation_section, _ground_stations_section,
+                  _optical_navigation_section, _small_body_section, _ground_stations_section,
                   _monte_carlo_section):
         try:
             section = build(scenario)

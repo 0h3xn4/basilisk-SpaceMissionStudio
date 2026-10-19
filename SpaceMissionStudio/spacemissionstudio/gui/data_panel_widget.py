@@ -84,10 +84,19 @@ def _fetch_earth_orientation():
     earth_orientation.fetch()
 
 
+def _fetch_small_bodies():
+    from ..engine import small_bodies
+
+    for body in small_bodies.BODIES.values():
+        small_bodies.fetch(body.name)
+        small_bodies.fetch_shape(body)
+
+
 _DOWNLOAD_TASKS: Dict[str, Callable[[], object]] = {
     "support_data": _fetch_support_data,
     "space_weather": _fetch_space_weather,
     "earth_orientation": _fetch_earth_orientation,
+    "small_bodies": _fetch_small_bodies,
 }
 
 
@@ -142,7 +151,8 @@ class DataPanelWidget(QWidget):
         self.import_button = self._menu_button(
             "Import file...", "Install a file you already have, for example from removable media. No network.",
             [("Space-weather file (CelesTrak CSV or TXT)...", self.import_space_weather),
-             ("Earth orientation files (NAIF Earth PCKs)...", self.import_earth_orientation)])
+             ("Earth orientation files (NAIF Earth PCKs)...", self.import_earth_orientation),
+             ("433 Eros ephemeris (eros_1900_2100.bsp)...", self.import_small_body)])
         self.rollback_button = self._menu_button(
             "Roll back...", "Put back the version that the last download or import replaced.",
             [("Space weather", lambda: self.roll_back("space_weather")),
@@ -231,6 +241,14 @@ class DataPanelWidget(QWidget):
             from ..engine import earth_orientation
 
             self._start(lambda: earth_orientation.import_files(paths), "Importing the Earth orientation files...")
+
+    def import_small_body(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "Import the 433 Eros ephemeris", "",
+                                              "NAIF SPK kernel (*.bsp)")
+        if path and not self._busy():
+            from ..engine import small_bodies
+
+            self._start(lambda: small_bodies.import_file(path), "Importing the 433 Eros ephemeris...")
 
     def roll_back(self, which: str) -> None:
         if self._busy():
