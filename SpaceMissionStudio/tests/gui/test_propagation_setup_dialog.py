@@ -258,7 +258,7 @@ def test_non_earth_central_body_disables_and_clears_harmonics(dialog):
     dialog.enable_harmonics_check.setChecked(True)
     dialog.central_body_degree_spin.setValue(20)
 
-    dialog.central_body_combo.setCurrentText("mars")
+    dialog.central_body_combo.setCurrentText("mars barycenter")
 
     assert not dialog.enable_harmonics_check.isEnabled()
     assert not dialog.enable_harmonics_check.isChecked()

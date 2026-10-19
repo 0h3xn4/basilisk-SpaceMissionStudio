@@ -499,6 +499,11 @@ def _set_roe_helix(scenario: Scenario, index: int, value: float) -> None:
     _roe_helix(scenario).roe_m[index] = value
 
 
+def _camera(scenario: Scenario):
+    """'30's camera (``OpticalNavigationConfig``)."""
+    return next(sc for sc in scenario.spacecraft if sc.optical_navigation is not None).optical_navigation
+
+
 def _duration_page(intro: str, maximum_days: float) -> "WizardPageSpec":
     return WizardPageSpec(
         title="Simulation length",
@@ -1754,6 +1759,37 @@ _SPECS: Dict[str, TemplateWizardSpec] = {
                 ],
             ),
             _duration_page("The move takes about 1.5 days; the rest holds the helix.",
+                           SimSettings._MAX_SINGLE_RUN_DAYS),
+        ],
+    ),
+    "30_mars_optical_navigation.json": TemplateWizardSpec(
+        template_filename="30_mars_optical_navigation.json",
+        pages=[
+            WizardPageSpec(
+                title="Camera",
+                intro="probe-1 navigates from the size and place of Mars's disk in its images.",
+                fields=[
+                    WizardField(
+                        "Disk radius noise", "1-sigma noise on the disk's radius, which sets the range error.",
+                        lambda s: _camera(s).radius_noise_px,
+                        lambda s, v: setattr(_camera(s), "radius_noise_px", v),
+                        0.0, 10.0, decimals=2, step=0.1, suffix=" px", hint="0 px: exact range",
+                    ),
+                    WizardField(
+                        "Largest phase angle", "Images from beyond this Sun-Mars-camera angle are not used.",
+                        lambda s: _camera(s).max_phase_angle_deg,
+                        lambda s, v: setattr(_camera(s), "max_phase_angle_deg", v),
+                        1.0, 180.0, decimals=1, step=5.0, suffix=" deg", hint="180 deg: the night side too",
+                    ),
+                    WizardField(
+                        "Initial position uncertainty", "How far off the filter starts (1 sigma, each axis).",
+                        lambda s: _camera(s).initial_position_sigma_m / 1000.0,
+                        lambda s, v: setattr(_camera(s), "initial_position_sigma_m", v * 1000.0),
+                        0.001, 10000.0, decimals=3, step=10.0, suffix=" km", hint="The filter's start",
+                    ),
+                ],
+            ),
+            _duration_page("One orbit is 20 hours; the filter settles within the first day.",
                            SimSettings._MAX_SINGLE_RUN_DAYS),
         ],
     ),

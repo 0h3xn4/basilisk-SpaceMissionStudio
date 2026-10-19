@@ -391,3 +391,53 @@ def test_differential_drag_is_explained(law, compensate, words):
 def test_no_roe_diagram_without_an_roe_formation():
     """A scenario without an ROE formation has no ROE diagram."""
     assert explain(_template_scenario("05")).roe_diagrams == []
+
+
+def _opnav_scenario(template="01", **camera):
+    from spacemissionstudio.schema import GravityConfig, OpticalNavigationConfig
+
+    scenario = _template_scenario(template)
+    scenario.gravity = GravityConfig(central_body="mars barycenter", third_body_perturbers=["sun"])
+    sc = scenario.spacecraft[0]
+    sc.orbit.type = "classical_elements"
+    sc.orbit.semi_major_axis_km = 18000.0  # [km]
+    sc.orbit.eccentricity = 0.2  # [-]
+    sc.optical_navigation = OpticalNavigationConfig(**camera)
+    return scenario, sc
+
+
+def test_optical_navigation_is_explained():
+    """The section names the camera and the disk's size at periapsis and
+    apoapsis (Mars, 40 deg over 512 px, 14 400 and 21 600 km: radius
+    tan(asin(R / r)) / X, 341 and 224 px across), and says an
+    orbit-only camera points perfectly."""
+    scenario, sc = _opnav_scenario()
+    section = next(s for s in explain(scenario).sections if s.title == "Optical navigation")
+    assert any("40 deg camera, 512 x 512 px" in n for n in section.notes)
+    sizes = next(n for n in section.notes if "px across" in n)
+    assert "341 px across at periapsis" in sizes and "224 px across at apoapsis" in sizes
+    assert any("points at the body perfectly" in n for n in section.notes)
+    assert not [b for b in section.badges if b.kind == "warning"]
+
+
+def test_optical_navigation_warns_about_disk_size_and_pointing():
+    """A narrow camera sees the disk larger than the image at periapsis, a
+    coarse one too small at apoapsis; with attitude, a camera not pointed
+    at the central body, or along another axis than locationPointing's,
+    is flagged."""
+    scenario, _ = _opnav_scenario(field_of_view_deg=10.0)
+    section = next(s for s in explain(scenario).sections if s.title == "Optical navigation")
+    assert any("larger than the image" in b.label for b in section.badges)
+    scenario, _ = _opnav_scenario(resolution_px=[16, 16], min_radius_px=10.0)
+    section = next(s for s in explain(scenario).sections if s.title == "Optical navigation")
+    assert any("smaller than the usable size" in b.label for b in section.badges)
+    scenario, sc = _opnav_scenario(template="15")
+    sc.fsw_params = {"target_body": "moon", "pHat_B": [0.0, 0.0, 1.0]}
+    section = next(s for s in explain(scenario).sections if s.title == "Optical navigation")
+    assert any("not pointed at the central body" in b.label for b in section.badges)
+    sc.fsw_params = {"target_body": "mars barycenter", "pHat_B": [1.0, 0.0, 0.0]}
+    section = next(s for s in explain(scenario).sections if s.title == "Optical navigation")
+    assert any("is not the camera's boresight" in b.label for b in section.badges)
+    sc.fsw_params = {"target_body": "mars barycenter", "pHat_B": [0.0, 0.0, 1.0]}
+    section = next(s for s in explain(scenario).sections if s.title == "Optical navigation")
+    assert not [b for b in section.badges if b.kind == "warning"]

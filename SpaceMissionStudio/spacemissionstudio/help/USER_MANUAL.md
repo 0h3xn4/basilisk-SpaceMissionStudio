@@ -273,6 +273,7 @@ path, each step building on the one before:
 | 6. Several spacecraft | 04, 05, 24, 29 | A Walker constellation; a formation held by two different control laws; a passively safe formation in relative orbital elements |
 | 7. Whole systems | 19, 20, 23, 26 | Power, radio link and thermal working together; data from instrument to ground |
 | 8. Uncertainty | 09, 25 | Monte Carlo batches: mass, orbit insertion, drag |
+| 9. Navigation | 30 | Estimating an orbit around Mars from camera images of the planet |
 
 **Starting your own mission?** Open **22** (a realistic satellite, orbit
 only) or **23** (a complete small satellite with hardware, a radio link
@@ -523,6 +524,32 @@ With three times the chief's drag area on template 05's follower, a
 3-day hold stays within 13 m along-track for 30 burns and 0.036 m/s,
 against 27 m, 60 burns and 0.044 m/s without it. See
 [Fly a formation with relative orbital elements](docs/user-manual/roe-formation.md).
+
+### Optical navigation
+
+**Optical navigation (camera on the central body)** (the spacecraft's
+page, power/propulsion tab) gives a spacecraft a camera that sees the
+central body's disk. Each image is reduced to where the disk's centre is
+and how large it is, computed from the true geometry with pixel noise (no
+image is rendered). Basilisk's `pixelLineConverter` turns that into a
+position relative to the body (the range from the disk's size), and
+Basilisk's `relativeODuKF`, a Kalman filter with two-body dynamics,
+estimates position and velocity.
+
+The central body must be Earth, the Mars barycentre or the Jupiter
+barycentre, with the Sun in the run: images from beyond the **Largest
+phase angle** (90 deg by default, the night side) are not used. In an
+orbit-only run the camera points at the body perfectly; with attitude,
+point it with **locationPointing** on the central body along the
+camera's boresight. Results are under `{spacecraft}.optical_navigation.`:
+the filter's error and 3-sigma bounds, one image's error, the disk on the
+detector and whether each image was used.
+
+Measured on template 30 (an 18 000 km x 0.2 orbit around Mars, a 40 deg
+512 px camera, 0.5 px noise): one image alone is good to 56 km (median);
+the filter, started 68 km off, is within 2 km by day 1 and 1.6 km
+(median) after it, up to 12 km just after each night-side stretch. See
+[Navigate from camera images of a planet](docs/user-manual/optical-navigation.md).
 
 ### Data handling and the downlink
 

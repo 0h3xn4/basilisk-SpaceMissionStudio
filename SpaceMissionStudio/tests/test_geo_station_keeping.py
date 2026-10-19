@@ -77,7 +77,7 @@ def test_it_replaces_altitude_station_keeping_and_is_earth_only():
         _geo_spacecraft(station_keeping=StationKeepingConfig(target_altitude_km=35786.0, deadband_km=5.0,
                                                             thrust_n=1.0, isp_s=220.0, propellant_kg=1.0)).validate()
     scenario = Scenario(name="g", epoch_utc="2030-01-01T00:00:00", simulation_mode="orbit_only",
-                        gravity=GravityConfig(central_body="mars"), spacecraft=[_geo_spacecraft()])
+                        gravity=GravityConfig(central_body="mars barycenter"), spacecraft=[_geo_spacecraft()])
     with pytest.raises(ScenarioValidationError, match="geo_station_keeping is Earth-only"):
         scenario.validate()
     assert Scenario.from_dict(Scenario(name="g", epoch_utc="2030-01-01T00:00:00", simulation_mode="orbit_only",

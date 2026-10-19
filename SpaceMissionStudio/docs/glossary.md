@@ -178,6 +178,12 @@ that.
 
 ## K
 
+**Kalman filter** -- an estimator that keeps a best guess of a state
+(here a position and velocity) and its uncertainty, moves both forward
+with a model of the motion, and corrects them with each measurement in
+proportion to how much it trusts it. Basilisk's `relativeODuKF`, used by
+[optical navigation](#o), is an *unscented* Kalman filter.
+
 **KVN (keyword = value notation)** -- the plain-text form of [CCSDS](#c)
 files: one `KEYWORD = value` per line. SpaceMissionStudio reads and
 writes KVN, not the XML form.
@@ -245,6 +251,11 @@ Mean-Elements Message) gives mean elements, such as a [TLE](#t); an
 **OEM** (Orbit Ephemeris Message) lists positions and velocities over
 time.
 
+**Optical navigation** -- estimating where a spacecraft is from camera
+images: here, from where a planet's disk falls in the image (the
+direction) and how large it is (the range), combined over many images by
+a [Kalman filter](#k).
+
 **Orbital lifetime** -- how long [drag](#d) takes to bring an orbit down
 to re-entry (here: the perigee reaching 120 km). Disposal rules cap it
 after the mission ends: 5 years under ESA's Zero Debris approach and the
@@ -267,6 +278,10 @@ closest radial/cross-track approach.
 **Patch antenna** -- a flat antenna on one face of the spacecraft. Its
 gain is highest straight out of the face and falls off to the sides, so
 the link depends on where the spacecraft points.
+
+**Phase angle** -- the angle at a planet between the Sun and the
+spacecraft. At 0 deg the camera sees the full lit disk; past 90 deg it
+sees mostly the night side.
 
 **Phasing (along-track separation)** -- how far ahead of or behind
 another spacecraft (the chief) a satellite sits along the same orbit.

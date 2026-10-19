@@ -24,6 +24,7 @@ New to the app? Do [Getting started](../getting-started.md) first.
 | Plan burns and transfers in steps? | [Mission Sequence](mission-sequence.md) |
 | Keep an orbit, fly a formation or a constellation? | [Orbit keeping and formations](orbit-keeping-and-formations.md) |
 | Fly a formation set by relative orbital elements, and make it passively safe? | [ROE formations](roe-formation.md) |
+| Navigate from camera images of a planet? | [Optical navigation](optical-navigation.md) |
 | Point the spacecraft, with real sensors and actuators? | [Attitude and hardware](attitude-and-hardware.md) |
 | Build my spacecraft in 3D, or import it from CAD, with its mass, center of mass and inertia? | [3D model](3d-model.md) |
 | Model power, the radio link and data? | [Power, link and data](power-link-and-data.md) |

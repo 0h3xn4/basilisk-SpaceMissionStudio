@@ -89,9 +89,8 @@ CENTRAL_BODY_EQUATORIAL_RADIUS_KM = {
     "venus": 6051.8,
     "earth": 6378.1366,
     "moon": 1737.4,
-    "mars": 3396.19,
     "mars barycenter": 3396.19,
-    "jupiter": 71492.0,
+    "jupiter barycenter": 71492.0,
 }
 
 WALKER_PATTERNS = ("delta", "star")

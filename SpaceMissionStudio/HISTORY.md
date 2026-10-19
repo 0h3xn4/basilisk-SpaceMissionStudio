@@ -11079,3 +11079,107 @@ in Qt 6 but still the call that sets it; its warning is silenced at that
 one call) and checks it took. Linux's offscreen platform activates every
 shown window, so the failure cannot be reproduced here; the next macOS CI
 runs are the evidence. SRelD K-14 records it.
+
+## Mars and Jupiter: the bodies a run can actually use (2026-10-19)
+
+Found while preparing optical navigation around Mars: a 0.2-day run of
+template 01 moved to an 18 000 km orbit around `"mars"` stopped with
+`SPICE(SPKINSUFFDATA)`: "Insufficient ephemeris data has been loaded to
+compute the state of 10 (SUN) relative to 499 (MARS)". The bundled DE430
+ephemeris holds the Mars system barycentre (body 4), not Mars itself
+(499). SPICE's default error action ends the process, and the GUI runs a
+simulation on a thread of its own process, so the app would close. Every
+offered body was then tried as the central body for 0.01 days: sun,
+mercury, venus, earth, moon and mars barycenter ran; mars stopped the
+process the same way; `"jupiter"` failed with Basilisk's "Body jupiter is
+unknown" (its gravity factory knows only `"jupiter barycenter"`). As third
+bodies around Earth, `"mars"` and `"jupiter"` failed the same two ways.
+All of these scenarios passed `Scenario.validate()`.
+
+`SUPPORTED_CENTRAL_BODIES` is now the seven bodies that run: sun,
+mercury, venus, earth, moon, `mars barycenter` and `jupiter barycenter`
+(Basilisk gives both the planet's own mass and radius). A file naming
+`"mars"` or `"jupiter"`, as central or third body, is refused with the
+body to use instead (`UNRUNNABLE_BODIES`); no result could ever have been
+made with them, so nothing is migrated silently. The Mars barycentre is
+about 0.2 m from Mars's centre (Phobos and Deimos: mass ratio times orbit
+radius, 0.16 + 0.05 m); the Galilean moons move Jupiter's by up to about
+230 km (the same sum), recorded in the limitations. The radius tables
+(`engine.constellation`, `engine.scenario_explainer`) and the editor's
+pointing targets follow.
+
+Tests: `tests/test_central_bodies.py` flies every offered body as the
+central body (with the Sun as a third body) and all of them as third
+bodies around Earth, and checks the two old names are refused with their
+barycentre named. Tests that used `"mars"` as an example of a non-Earth
+body in a validated scenario now use `"mars barycenter"` (nine tests,
+their assertions unchanged). SRelD K-15 records it.
+
+## Optical navigation from the central body's disk (2026-10-19)
+
+The camera and optical navigation item, scoped with the user: the
+measurements come from a geometry model (testable everywhere, in CI too)
+rather than Vizard-rendered images, and the first use is planet approach.
+Basilisk 2.12's `camera` module only corrupts images Vizard renders, and
+no Vizard runs here or in CI (only its Unity source is on disk), so an
+image pipeline could be checked only on a machine with Vizard.
+
+**The camera model** (`engine.opnav`, numpy only) is the exact inverse of
+Basilisk's `pixelLineConverter.c`: boresight +z, the field of view along
+the image's y axis and `fov * w / h` along x, pixel scales
+`X = 2 tan(fov w / h / 2) / w`, `Y = 2 tan(fov / 2) / h`, the disk centre
+at `(x / z) / X + w / 2 - 0.5`, and the apparent radius
+`tan(asin(R / d)) / X` (the converter takes the range as
+`R / sin(atan(X rho))`). Basilisk's own converter, fed a noise-free disk,
+returns the true position within 1e-9 of the distance for Earth, Mars and
+Jupiter (`tests/test_opnav.py`), the three bodies it knows by number with
+Basilisk's `REQ_*` radii. An image is not used with the body behind the
+camera, its disk not wholly on the detector, under `min_radius_px`, or
+from beyond `max_phase_angle_deg`.
+
+**The chain** (`engine.optical_navigation`) runs on a task of its own at
+the measurement interval, after the dynamics: `OpNavCamera` (the tool's
+SysModel: truth state, the Sun's, ideal pointing in an orbit-only run or
+the spacecraft's attitude otherwise, the circles message with the noise
+variance, the camera configuration, the attitude), Basilisk's
+`pixelLineConverter` and `relativeODuKF`, unmodified, then recorders. The
+converter writes on every call and the filter takes every new valid
+write, so running the three once per image filters each image once.
+Units checked in the C source: the converter writes metres, the filter
+converts to km on reading; its `qNoise` is in km units and is added at
+each time update, which Basilisk's filter does twice per valid image (at
+the measurement and at the call time). The filter starts from the true
+state plus one seeded draw of the initial sigmas.
+
+Found on the way: no run around Mars itself was possible (SPICE has no
+Mars, body 499, in DE430), fixed separately (Mars and Jupiter barycentres,
+SRelD K-15); optical navigation uses the Mars barycentre, about 0.2 m from
+Mars's centre.
+
+Measured on an 18 000 km x 0.2 Mars orbit with the Sun, a 40 deg 512 px
+camera and 0.5 px noise (`tests/test_optical_navigation_run.py`): with no
+noise every image gives the true position (0.0 m) and the filter stays
+within 20 m (0.4 to 1.9 m measured: the Sun's pull, which the filter's
+two-body model lacks); with noise and a 50 km / 5 m/s start (68 km off), 45 % of the
+images are used, one image alone is good to 47 km (median; the range from
+the disk radius, 0.5 px of about 110 to 170 px), and the filter is within
+2.7 km after day 1.5, with 95 % of the axis errors inside its 3-sigma (a
+little optimistic). In full attitude, with locationPointing on the Mars
+barycentre along the boresight, the images after the slew are used and
+the disk is centred within 2 px.
+
+**Template 30** ("Mars orbit: optical navigation from the planet's disk",
+the same orbit with RAAN 0): 62 % of the images used; one image 56 km
+(median); the filter within 2 km by day 1, 1.6 km median after it, up to
+12 km just after each night-side stretch (inside its 3-sigma: 20 km
+there), 94 % inside overall; disk radius 110 to 152 px.
+
+Also: the Explain tab's Optical navigation section (the disk's size at
+periapsis and apoapsis; warnings for a disk larger than the image or too
+small, and for a camera not pointed at the central body or along another
+axis than locationPointing's), the editor's group, plot titles and the
+Sensors group, series names, the 100-day single-run limit (also checked
+in `long_run.check_segmentable`, with ROE formations, for scenarios built
+in code), the how-to page, the manual, capabilities, limitations, the
+glossary (Kalman filter, optical navigation, phase angle) and SRS-F-22.
+Template 29's note no longer says the guidance has no differential drag.

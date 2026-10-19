@@ -516,7 +516,7 @@ def test_a_tle_orbit_around_another_body_is_refused():
     """Audit M13: a TLE describes an Earth orbit (SGP4, TEME)."""
     from spacemissionstudio.schema import GravityConfig, OrbitIC, Scenario, ScenarioValidationError, SpacecraftConfig
 
-    scenario = Scenario(name="tle", epoch_utc="2007-03-05T10:34:41", gravity=GravityConfig(central_body="mars"),
+    scenario = Scenario(name="tle", epoch_utc="2007-03-05T10:34:41", gravity=GravityConfig(central_body="mars barycenter"),
                         spacecraft=[SpacecraftConfig(name="sat-1", orbit=OrbitIC(
                             type="tle", tle_line1=_G6[0], tle_line2=_G6[1]))])
     with pytest.raises(ScenarioValidationError, match="TLE orbit describes an Earth orbit"):

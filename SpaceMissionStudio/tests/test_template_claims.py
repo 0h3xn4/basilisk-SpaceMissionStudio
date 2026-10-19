@@ -363,3 +363,41 @@ def test_29_continuous_law_and_a_zero_phase_helix():
     zero_phase.spacecraft[1].roe_formation.targets[1].roe_m = [0.0, 0.0, 300.0, 0.0, 300.0, 0.0]  # [m]
     day, _box, dv, _margin, _roe = _roe_flight(_run(zero_phase))
     assert 2.0 < (dv[-1] - _dv_at(day, dv, 2.5)) / 0.026 < 4.5
+
+
+def _opnav_flight(result):
+    prefix = "probe-1.optical_navigation."
+    error = result.series[prefix + "position_error"]
+    return (error.time_s / 86400.0, error.data, result.series[prefix + "position_3sigma"].data,
+            result.series[prefix + "measurement_error"].data[:, 3],
+            result.series[prefix + "measurement_state"].data[:, 0], result.series[prefix + "measurement"].data)
+
+
+def test_30_the_filter_converges_from_mars_images():
+    """From 68 km off to under 2 km by day 1 (1.6 km median after it), up
+    to 12 km just after each night-side stretch, inside the filter's
+    3-sigma for 94 % of the axis samples; one image alone 56 km (median);
+    62 % of the images used; the disk 110 to 152 px in radius."""
+    day, error, sigma3, single, state, disk = _opnav_flight(_run(_template("30")))
+    assert error[0, 3] == pytest.approx(68.2e3, rel=0.01)  # [m] the seeded start
+    after = day >= 1.0
+    assert error[np.searchsorted(day, 1.0), 3] < 2.0e3  # [m]
+    assert np.median(error[after, 3]) < 2.5e3  # [m]
+    assert error[after, 3].max() < 20.0e3  # [m]
+    assert np.mean(np.abs(error[:, :3]) <= sigma3) > 0.9
+    assert 45.0e3 < np.nanmedian(single) < 70.0e3  # [m]
+    assert 0.55 < np.mean(state == 0) < 0.7
+    assert 105.0 < np.nanmin(disk[:, 2]) and np.nanmax(disk[:, 2]) < 160.0  # [px]
+
+
+def test_30_without_pixel_noise_every_image_gives_the_true_position():
+    """With centre and radius noise at 0 every used image gives the true
+    position (pixelLineConverter inverts the camera model exactly); with
+    the largest phase angle at 180 deg every image is used."""
+    scenario = _template("30")
+    camera = scenario.spacecraft[0].optical_navigation
+    camera.center_noise_px = camera.radius_noise_px = 0.0  # [px]
+    camera.max_phase_angle_deg = 180.0  # [deg]
+    _day, _error, _sigma3, single, state, _disk = _opnav_flight(_run(scenario))
+    assert np.all(state == 0)
+    assert np.nanmax(single) < 1.0e-3  # [m]

@@ -43,9 +43,9 @@ def test_defaults_produce_a_valid_request(qtbot):
 def test_central_body_is_not_independently_selectable(qtbot):
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
 
-    dialog = WalkerConstellationDialog(template_names=[], central_body="mars")
+    dialog = WalkerConstellationDialog(template_names=[], central_body="mars barycenter")
     qtbot.addWidget(dialog)
-    assert dialog.to_request().central_body == "mars"
+    assert dialog.to_request().central_body == "mars barycenter"
 
 
 def test_empty_template_list_disables_combo_and_returns_none(qtbot):

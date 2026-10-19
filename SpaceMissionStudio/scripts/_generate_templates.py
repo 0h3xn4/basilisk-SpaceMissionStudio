@@ -56,6 +56,7 @@ from spacemissionstudio.schema.scenario import (
     MagneticMomentumManagementConfig,
     MomentumDumpingConfig,
     MonteCarloConfig,
+    OpticalNavigationConfig,
     OrbitIC,
     PhasingKeepingConfig,
     PowerConfig,
@@ -1634,6 +1635,36 @@ def build_29_roe_formation_helix() -> Scenario:
     )
 
 
+def build_30_mars_optical_navigation() -> Scenario:
+    # Optical navigation around Mars (engine.opnav, engine.optical_navigation):
+    # an 18 000 km x 0.2 orbit around the Mars barycentre (DE430 has no Mars
+    # itself), the Sun as a third body for the phase angle, a 40 deg 512 x
+    # 512 px camera pointed perfectly (orbit only), and a filter that starts
+    # 50 km and 5 m/s (1 sigma per axis) off.
+    epoch_utc = "2030-01-01T00:00:00"
+    return Scenario(
+        name="30 - Mars orbit: optical navigation from the planet's disk",
+        description=DESCRIPTIONS["30"],
+        epoch_utc=epoch_utc,
+        simulation_mode="orbit_only",
+        gravity=GravityConfig(central_body="mars barycenter", central_body_degree=0, third_body_perturbers=["sun"]),
+        sim_settings=SimSettings(duration_days=2.0, dynamics_task_rate_s=30.0, integrator="rkf78",
+                                 record_interval_s=60.0),  # [day], [s], [s]
+        spacecraft=[
+            SpacecraftConfig(
+                name="probe-1",
+                orbit=OrbitIC(type="classical_elements", semi_major_axis_km=18000.0, eccentricity=0.2,  # [km], [-]
+                              inclination_deg=30.0, raan_deg=0.0, arg_periapsis_deg=0.0,  # [deg]
+                              true_anomaly_deg=0.0),  # [deg]
+                dry_mass_kg=_SMALLSAT_MASS_KG,
+                inertia_kg_m2=_box_inertia(_SMALLSAT_MASS_KG, _SMALLSAT_SIZE_M),
+                optical_navigation=OpticalNavigationConfig(initial_position_sigma_m=50.0e3,  # [m]
+                                                           initial_velocity_sigma_mps=5.0),  # [m/s]
+            ),
+        ],
+    )
+
+
 def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     _save(build_01_two_body_circular_orbit(), "01_two_body_circular_orbit.json")
@@ -1666,6 +1697,7 @@ def main() -> None:
     _save(build_27_flexible_solar_arrays(), "27_flexible_solar_arrays.json")
     _save(build_28_octagonal_bus_3d_model(), "28_octagonal_bus_3d_model.json")
     _save(build_29_roe_formation_helix(), "29_roe_formation_helix.json")
+    _save(build_30_mars_optical_navigation(), "30_mars_optical_navigation.json")
 
 
 if __name__ == "__main__":

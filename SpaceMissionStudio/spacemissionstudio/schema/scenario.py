@@ -73,14 +73,35 @@ from .command import Command, command_dict, report_before_propagate_errors, runs
 
 CURRENT_SCHEMA_VERSION = 4
 
-# SPICE-recognized central body name strings this schema accepts, matching
-# Basilisk's simIncludeGravBody.gravBodyFactory named helpers
-# (createSun/createEarth/createMoon/createMars/createMarsBarycenter/
-# createVenus/createJupiter) -- see engine/service.py for where this list
-# is actually consumed.
+# Central bodies (and third bodies) a run can use: Basilisk's
+# simIncludeGravBody.gravBodyFactory names whose SPICE states the bundled
+# planetary ephemeris (DE430, engine.kernels) holds -- see engine/service.py
+# for where this list is consumed. DE430 has the Mars and Jupiter system
+# barycentres, not the planets themselves, so those two are offered as
+# their barycentres (Basilisk gives them the planet's own mass and radius):
+# a run around "mars" stopped the whole process with SPICE(SPKINSUFFDATA),
+# and Basilisk has no body named "jupiter" (UNRUNNABLE_BODIES).
 SUPPORTED_CENTRAL_BODIES = (
-    "sun", "mercury", "venus", "earth", "moon", "mars", "mars barycenter", "jupiter",
+    "sun", "mercury", "venus", "earth", "moon", "mars barycenter", "jupiter barycenter",
 )
+# Central bodies optical navigation can use: the ones Basilisk's
+# pixelLineConverter and relativeODuKF know by number (engine.opnav.BODY_IDS).
+OPTICAL_NAVIGATION_BODIES = ("earth", "mars barycenter", "jupiter barycenter")
+# Names an older file may hold that no run can use, and the body to use instead.
+UNRUNNABLE_BODIES = {
+    "mars": ("mars barycenter", "the bundled planetary ephemeris (DE430) has the Mars system barycentre, "
+             "about 0.2 m from Mars's centre, not Mars itself"),
+    "jupiter": ("jupiter barycenter", "the bundled planetary ephemeris (DE430) has the Jupiter system "
+                "barycentre, not Jupiter itself, and Basilisk has no body named 'jupiter'"),
+}
+
+
+def _body_problem(where: str, name: str) -> str:
+    """Why ``name`` cannot be used at ``where``, naming the body to use instead."""
+    if name in UNRUNNABLE_BODIES:
+        instead, reason = UNRUNNABLE_BODIES[name]
+        return f"{where} {name!r} cannot be run: {reason}; use {instead!r}"
+    return f"{where} {name!r} must be one of {SUPPORTED_CENTRAL_BODIES}"
 
 ORBIT_IC_TYPES = ("classical_elements", "cartesian", "tle")
 
@@ -1126,6 +1147,67 @@ class RoeFormationConfig:
 
 
 @dataclass
+class OpticalNavigationConfig:
+    """Optical navigation from the central body's disk (``engine.opnav``
+    for the camera geometry, ``engine.optical_navigation`` for the run).
+
+    A camera on the spacecraft sees the central body; every
+    ``measurement_interval_s`` the tool computes where the body's disk
+    falls on the detector and how large it is, from the true geometry with
+    Gaussian pixel noise (no image is rendered: the measurement an image
+    processing step would report). Basilisk's ``pixelLineConverter`` turns
+    it into a position and ``relativeODuKF`` (an unscented Kalman filter
+    with two-body dynamics) estimates position and velocity relative to
+    the body. The filter starts from the true state off by one draw of
+    ``initial_position_sigma_m`` / ``initial_velocity_sigma_mps`` (seeded).
+
+    The central body must be one the two Basilisk modules know: Earth,
+    the Mars barycentre or the Jupiter barycentre, and the Sun must be in
+    the run (for the phase angle). In an orbit-only run the camera points
+    at the body perfectly; with attitude, the spacecraft's attitude and
+    ``camera_mrp_cb`` point it (point the boresight with
+    ``locationPointing`` at the central body).
+    """
+
+    field_of_view_deg: float = 40.0  # [deg] edge to edge along the image's y (line) axis
+    resolution_px: list = field(default_factory=lambda: [512, 512])  # [px] width, height
+    # [-] MRP of the camera frame (boresight +z) relative to the body frame
+    camera_mrp_cb: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
+    measurement_interval_s: float = 60.0  # [s] one image this often
+    center_noise_px: float = 0.5  # [px] 1 sigma on the disk centre, each axis
+    radius_noise_px: float = 0.5  # [px] 1 sigma on the disk radius
+    min_radius_px: float = 5.0  # [px] a smaller disk is not used
+    max_phase_angle_deg: float = 90.0  # [deg] Sun-body-camera angle above which the image is not used
+    initial_position_sigma_m: float = 1000.0  # [m] 1 sigma, each axis: the filter's start and its error
+    initial_velocity_sigma_mps: float = 1.0  # [m/s] 1 sigma, each axis
+    # [m] and [m/s] 1 sigma of the process noise the filter adds at each of its time updates
+    process_noise_position_m: float = 0.1
+    process_noise_velocity_mps: float = 1.0e-3
+    seed: int = 1  # pixel noise and the initial error
+
+    def validate(self, spacecraft_name: str) -> None:
+        prefix = f"{spacecraft_name}: optical_navigation"
+        for field_name in ("field_of_view_deg", "measurement_interval_s", "min_radius_px", "max_phase_angle_deg",
+                           "initial_position_sigma_m", "initial_velocity_sigma_mps"):
+            value = getattr(self, field_name)
+            _require(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+                     and value > 0, f"{prefix}.{field_name} must be a finite number > 0")
+        for field_name in ("center_noise_px", "radius_noise_px", "process_noise_position_m",
+                           "process_noise_velocity_mps"):
+            value = getattr(self, field_name)
+            _require(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+                     and value >= 0, f"{prefix}.{field_name} must be a finite number >= 0")
+        _require(self.field_of_view_deg < 180.0, f"{prefix}.field_of_view_deg must be under 180")
+        _require(self.max_phase_angle_deg <= 180.0, f"{prefix}.max_phase_angle_deg must be at most 180")
+        _require(isinstance(self.resolution_px, list) and len(self.resolution_px) == 2
+                 and all(isinstance(n, int) and not isinstance(n, bool) and n >= 16 for n in self.resolution_px),
+                 f"{prefix}.resolution_px must be two whole numbers of at least 16 [px]")
+        _require(_finite_vector(self.camera_mrp_cb, 3), f"{prefix}.camera_mrp_cb must be 3 finite numbers")
+        _require(isinstance(self.seed, int) and not isinstance(self.seed, bool) and self.seed >= 0,
+                 f"{prefix}.seed must be a whole number >= 0")
+
+
+@dataclass
 class MomentumDumpingConfig:
     """Periodic reaction-wheel momentum desaturation via this spacecraft's
     ``"thruster"`` actuators -- Basilisk's ``thrMomentumManagement`` +
@@ -1689,6 +1771,7 @@ class SpacecraftConfig:
     geo_station_keeping: Optional[GeoStationKeepingConfig] = None
     phasing_keeping: Optional[PhasingKeepingConfig] = None
     roe_formation: Optional[RoeFormationConfig] = None  # formation in relative orbital elements
+    optical_navigation: Optional[OpticalNavigationConfig] = None  # camera navigation from the central body's disk
     constant_thrust: Optional[ConstantThrustConfig] = None
     momentum_dumping: Optional[MomentumDumpingConfig] = None
     magnetic_momentum_management: Optional[MagneticMomentumManagementConfig] = None
@@ -2088,6 +2171,8 @@ class SpacecraftConfig:
                       f"{self.name}: roe_formation and phasing_keeping both control the same formation -- "
                       "keep one of them")
             self.roe_formation.validate(self.name)
+        if self.optical_navigation is not None:
+            self.optical_navigation.validate(self.name)
         if self.constant_thrust is not None:
             self.constant_thrust.validate(self.name)
         if self.momentum_dumping is not None:
@@ -2148,7 +2233,7 @@ class GravityConfig:
 
     def validate(self) -> None:
         _require(self.central_body in SUPPORTED_CENTRAL_BODIES,
-                  f"gravity.central_body {self.central_body!r} must be one of {SUPPORTED_CENTRAL_BODIES}")
+                  _body_problem("gravity.central_body", self.central_body))
         _require(self.central_body_degree >= 0, "gravity.central_body_degree must be >= 0")
         _require(self.central_body_degree <= MAX_GRAVITY_DEGREE,
                  f"gravity.central_body_degree must be <= {MAX_GRAVITY_DEGREE} (the GGM03S field's maximum)")
@@ -2168,7 +2253,7 @@ class GravityConfig:
                   f"(point-mass) or central_body = 'earth'")
         for name in self.third_body_perturbers:
             _require(name in SUPPORTED_CENTRAL_BODIES,
-                      f"gravity.third_body_perturbers entry {name!r} must be one of {SUPPORTED_CENTRAL_BODIES}")
+                      _body_problem("gravity.third_body_perturbers entry", name))
 
 
 @dataclass
@@ -2612,6 +2697,16 @@ class Scenario:
                               f"{sc.name}: phasing_keeping.control_law 'mean_oe' needs Earth's J2 in the "
                               "dynamics -- set gravity.central_body to 'earth' and central_body_degree to 2 "
                               "or more, or choose 'drift_orbit' or 'hill_pd'")
+            if sc.optical_navigation is not None:
+                # pixelLineConverter and relativeODuKF know these bodies by
+                # number (engine.opnav.BODY_IDS); the phase angle needs the Sun.
+                _require(self.gravity.central_body in OPTICAL_NAVIGATION_BODIES,
+                          f"{sc.name}: optical_navigation needs gravity.central_body to be one of "
+                          f"{OPTICAL_NAVIGATION_BODIES} (the bodies Basilisk's pixelLineConverter and "
+                          f"relativeODuKF know), not {self.gravity.central_body!r}")
+                _require("sun" in self.gravity.third_body_perturbers,
+                          f"{sc.name}: optical_navigation needs 'sun' in gravity.third_body_perturbers "
+                          "(the image is used only on the lit side)")
             if sc.roe_formation is not None:
                 prefix = f"{sc.name}: roe_formation.chief_spacecraft {sc.roe_formation.chief_spacecraft!r}"
                 _require(sc.roe_formation.chief_spacecraft in names,
@@ -2645,6 +2740,10 @@ class Scenario:
                 _require(sc.roe_formation is None,
                           f"{sc.name}: roe_formation runs at most {single_run_days:g} days "
                           "(sim_settings.duration_days) -- shorten the run")
+                _require(sc.optical_navigation is None,
+                          f"{sc.name}: optical_navigation runs at most {single_run_days:g} days "
+                          "(sim_settings.duration_days; its filter is not carried between segments) "
+                          "-- shorten the run")
         # engine.service.SimulationService.build() raises a
         # SimulationServiceError for this same condition (power/
         # station_keeping/enable_srp all need the real eclipse shadow
@@ -2852,6 +2951,9 @@ class Scenario:
                 roe_formation_data = dict(roe_formation_data)
                 targets = [RoeTargetConfig(**target) for target in roe_formation_data.pop("targets", [])]
                 roe_formation = RoeFormationConfig(targets=targets, **roe_formation_data)
+            optical_navigation_data = sc.pop("optical_navigation", None)
+            optical_navigation = (OpticalNavigationConfig(**optical_navigation_data)
+                                  if optical_navigation_data is not None else None)
             constant_thrust_data = sc.pop("constant_thrust", None)
             constant_thrust = ConstantThrustConfig(**constant_thrust_data) if constant_thrust_data is not None else None
             momentum_dumping_data = sc.pop("momentum_dumping", None)
@@ -2876,6 +2978,7 @@ class Scenario:
                                                 station_keeping=station_keeping,
                                                 geo_station_keeping=geo_station_keeping,
                                                 phasing_keeping=phasing_keeping, roe_formation=roe_formation,
+                                                optical_navigation=optical_navigation,
                                                 constant_thrust=constant_thrust,
                                                 momentum_dumping=momentum_dumping,
                                                 magnetic_momentum_management=magnetic_momentum_management,
