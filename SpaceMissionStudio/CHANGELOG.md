@@ -10,6 +10,11 @@ fixes bugs.
 
 ## Unreleased
 
+- **SIL runs no longer stop when the simulator itself stalls.** A send to the
+  flight software gave up as soon as its time ran out, even when the flight
+  software was taking data and only the simulator had been slow (a loaded
+  computer, a debugger). It now counts from the last data taken and tries once
+  more before reporting that the flight software took nothing.
 - **Optical navigation.** A spacecraft can carry a camera that sees the
   central body (Earth, Mars or Jupiter) and estimate its own orbit from
   where the planet's disk falls in each image and how large it is, with

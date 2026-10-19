@@ -11183,3 +11183,36 @@ in `long_run.check_segmentable`, with ROE formations, for scenarios built
 in code), the how-to page, the manual, capabilities, limitations, the
 glossary (Kalman filter, optical navigation, phase angle) and SRS-F-22.
 Template 29's note no longer says the guidance has no differential drag.
+
+## K-14, Windows: a SIL send gave up without trying the socket again (2026-10-19)
+
+On PR #76, one Windows job failed
+`test_thousands_of_dropped_steps_never_block_the_link[tcp]`: at step 16172 of
+20000 the simulation side reported "the flight software took no STEP for
+10 s". The other Windows job on the same commit passed, and so did the one
+re-run. The fake flight software was waiting to read when the link closed.
+
+**Cause not confirmed.** On Linux the test passed 60 times out of 60, run four
+at a time beside six busy processes on four cores.
+
+**A related defect, confirmed and fixed.** `SocketTransport.send` checked its
+time limit before each try at the socket. If the simulation's own process
+stalled after the send started (a loaded machine, a debugger), the next check
+found the time gone and gave up without trying again, though the flight
+software was reading all along. Pausing the test process for 11 s
+(`SIGSTOP`, `SIGCONT`) makes the same test fail. In that case it fails in the
+receive path, which measures silence by wall-clock time while the fake
+flight software, in the same process, is paused too. A real flight-software
+program is a separate process, and its answers are read once the pause ends.
+
+**The fix.** The send's time limit now counts from the last bytes the peer
+took. Once the limit has run out, the socket is tried once more without
+waiting before the send gives up. A peer that takes nothing still times out
+as before (`test_a_send_never_waits_for_a_peer_that_is_itself_sending`).
+
+**The new test.** `test_a_stall_of_this_process_is_not_the_peers_silence`
+moves the send's clock 60 s ahead just after the send starts, and checks that
+the frame still goes out. It fails on the previous code.
+
+**Records.** SRelD K-14 records the failure and the fix. Whether this was the
+Windows failure is known only if it does not recur.

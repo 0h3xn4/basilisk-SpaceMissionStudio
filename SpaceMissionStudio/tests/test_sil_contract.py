@@ -303,6 +303,34 @@ def test_a_send_never_waits_for_a_peer_that_is_itself_sending():
         theirs.close()
 
 
+def test_a_stall_of_this_process_is_not_the_peers_silence(monkeypatch):
+    """The send's clock jumps 60 s just after the send starts, as when this
+    process is stalled (a loaded machine, a debugger) while the flight
+    software keeps reading: the socket is tried once more before the send
+    gives up, so the frame goes out. A peer that takes nothing still times
+    out (test above)."""
+    import spacemissionstudio.sil.transport as transport_module
+
+    ours, theirs = socket.socketpair()
+    transport = SocketTransport(ours)
+    calls = []
+
+    class _StalledClock:
+        @staticmethod
+        def perf_counter():
+            calls.append(None)
+            return time.perf_counter() + (60.0 if len(calls) > 1 else 0.0)  # [s] the stall
+
+    monkeypatch.setattr(transport_module, "time", _StalledClock)
+    frame = c.encode_frame(c.Frame(c.FrameType.STEP, 7, 0, b""))
+    try:
+        transport.send(frame, 10.0)
+        assert theirs.recv(len(frame)) == frame and len(calls) > 1
+    finally:
+        transport.close()
+        theirs.close()
+
+
 @pytest.mark.parametrize("kind", KINDS)
 def test_thousands_of_dropped_steps_never_block_the_link(kind):
     """With a deadline no answer can meet, every step is dropped and no

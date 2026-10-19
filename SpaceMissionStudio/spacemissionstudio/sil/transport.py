@@ -90,23 +90,31 @@ class SocketTransport(Transport):
         # while nobody reads them (steps past their deadline), both socket
         # buffers fill and each side waits for the other for ever. Reading
         # while sending breaks that cycle.
+        # The time limit counts from the last bytes the peer took, and once
+        # it has run out the socket is tried once more without waiting: a
+        # stall of this process (a loaded machine, a debugger) is not the
+        # flight software's silence.
         view = memoryview(data)
         end = None if timeout_s is None else time.perf_counter() + max(0.0, timeout_s)
         try:
             self._sock.setblocking(False)
             while view:
-                remaining = None if end is None else end - time.perf_counter()
-                if remaining is not None and remaining <= 0.0:
-                    raise SilTimeout(f"the flight software took nothing for {timeout_s:.3g} s")
+                remaining = None if end is None else max(0.0, end - time.perf_counter())
                 readable, writable, _ = select.select([] if self._eof else [self._sock], [self._sock], [],
                                                       remaining)
                 if readable:
                     self._read_available()
+                sent = 0
                 if writable:
                     try:
-                        view = view[self._sock.send(view):]
+                        sent = self._sock.send(view)
                     except (BlockingIOError, InterruptedError):
                         pass
+                    view = view[sent:]
+                if sent and end is not None:
+                    end = time.perf_counter() + max(0.0, timeout_s)
+                elif remaining == 0.0:
+                    raise SilTimeout(f"the flight software took nothing for {timeout_s:.3g} s")
         except OSError as exc:
             raise SilLinkClosed(f"the link to the flight software failed while sending ({exc})") from None
         finally:
