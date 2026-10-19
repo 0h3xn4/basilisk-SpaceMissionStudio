@@ -42,15 +42,15 @@ def _real_excerpt_csv(path, first, last):
 def test_the_shipped_record_parses_as_published():
     """Spot checks against the raw lines of data/spaceweather/SW-All.txt."""
     data = sw.load_celestrak(sw.BUNDLED_DATA_PATH)
-    assert data.updated == "2026 Oct 12 13:33:04 UTC"
+    assert data.updated == "2026 Oct 19 20:34:48 UTC"
     assert (data.first_date, data.last_date) == (date(1957, 10, 1), date(2041, 10, 31))
     first = data.days[date(1957, 10, 1)]
     assert first.ap == (32, 27, 15, 7, 22, 9, 32, 22) and first.ap_avg == 21
     assert (first.f107_obs, first.f107_center81) == (269.3, 266.6)
-    last_observed = data.days[date(2026, 10, 11)]
-    assert last_observed.kind == "observed" and last_observed.ap_avg == 13
-    assert last_observed.f107_obs == 121.9  # [sfu]
-    assert data.days[date(2026, 10, 12)].kind == "daily_forecast"
+    last_observed = data.days[date(2026, 10, 18)]
+    assert last_observed.kind == "observed" and last_observed.ap_avg == 5
+    assert last_observed.f107_obs == 136.6  # [sfu]
+    assert data.days[date(2026, 10, 19)].kind == "daily_forecast"
     month = data.days[date(2030, 1, 17)]
     assert month.kind == "monthly_forecast" and month.f107_obs == 76.7  # [sfu] NOAA's January 2030 value
     assert month.ap_avg == pytest.approx(data.long_term_ap)

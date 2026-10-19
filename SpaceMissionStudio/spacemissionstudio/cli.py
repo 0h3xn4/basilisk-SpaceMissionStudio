@@ -60,6 +60,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import math
 import sys
 from datetime import timedelta
 from pathlib import Path
@@ -455,6 +456,19 @@ def _print_altitude_trade(pb, scenario, name, result, altitudes) -> int:
     for note in trade.notes:
         print(f"NOTE: {note}")
     return 0
+
+
+def _finite_float_arg(text: str) -> float:
+    """A number argument: ``nan`` and ``inf``, which ``float()`` accepts,
+    are refused here, before they reach Basilisk's element conversions
+    as a traceback."""
+    try:
+        value = float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r}: not a number") from None
+    if not math.isfinite(value):
+        raise argparse.ArgumentTypeError(f"{text!r}: a finite number")
+    return value
 
 
 def _positive_int_arg(text: str) -> int:
@@ -991,6 +1005,8 @@ def _numbers(text: str, counts, what: str):
         raise ValueError(f"{what} must be comma-separated numbers, got {text!r}") from None
     if len(values) not in counts:
         raise ValueError(f"{what} takes {' or '.join(str(c) for c in counts)} numbers, got {len(values)}")
+    if not all(math.isfinite(x) for x in values):
+        raise ValueError(f"{what} must be finite numbers, got {text!r}")
     return values
 
 
@@ -1017,6 +1033,9 @@ def cmd_generate_roe_formation(args: argparse.Namespace) -> int:
             roe_m = _numbers(args.roe, (6,), "--roe")
         else:
             along, radial, cross, *phase = _numbers(args.safe, (3, 4), "--safe")
+            if radial < 0.0 or cross < 0.0:
+                raise ValueError(f"--safe: the radial and cross-track sizes are half-sizes of the ellipse and "
+                                 f"cannot be negative, got {radial:g} and {cross:g} m (the phase sets the direction)")
             roe_m = [round(float(x), 9) + 0.0  # cos(90 deg) as 0, not 6e-17; + 0.0 drops -0.0
                      for x in safe_formation(along, radial, cross, phase[0] if phase else 90.0, 1.0)]
     except ValueError as exc:
@@ -1152,10 +1171,10 @@ def build_parser() -> argparse.ArgumentParser:
     p_life = subparsers.add_parser("lifetime", help="estimate when a spacecraft re-enters (orbit-averaged drag)")
     p_life.add_argument("scenario", type=Path)
     p_life.add_argument("--spacecraft", help="spacecraft name (default: the first)")
-    p_life.add_argument("--deorbit-perigee-km", type=float, default=None,
+    p_life.add_argument("--deorbit-perigee-km", type=_finite_float_arg, default=None,
                         help="first lower the perigee to this altitude [km] with the orbit thruster")
-    p_life.add_argument("--max-years", type=float, default=30.0, help="how far ahead to look [years]")
-    p_life.add_argument("--forecast-percentile", type=float, choices=(95.0, 50.0, 5.0), default=50.0,
+    p_life.add_argument("--max-years", type=_finite_float_arg, default=30.0, help="how far ahead to look [years]")
+    p_life.add_argument("--forecast-percentile", type=_finite_float_arg, choices=(95.0, 50.0, 5.0), default=50.0,
                         help="MSFC solar-activity percentile (ESA AD10: 50 for end of life)")
     p_life.add_argument("--drag-coeff", default="2.2", type=_drag_coeff_arg,
                         help="drag coefficient, or 'own' for the spacecraft's (default 2.2: ESA AD10 end of life)")
@@ -1245,13 +1264,13 @@ def build_parser() -> argparse.ArgumentParser:
                        help="the program: an export's fsw_host or fsw_adapter_host, or any program following "
                             "SIL_CONTRACT.md; it is run as <binary> sil <address>")
     p_sil.add_argument("--transport", choices=("auto", "unix", "tcp"), default="auto")
-    p_sil.add_argument("--deadline-ms", type=float, default=None,
+    p_sil.add_argument("--deadline-ms", type=_finite_float_arg, default=None,
                        help="an answer later than this counts as a dropped step (default: none, pure lock-step)")
-    p_sil.add_argument("--step-timeout", type=float, default=10.0, help="seconds without any answer before failing")
-    p_sil.add_argument("--handshake-timeout", type=float, default=30.0, help="seconds to connect and say HELLO")
+    p_sil.add_argument("--step-timeout", type=_finite_float_arg, default=10.0, help="seconds without any answer before failing")
+    p_sil.add_argument("--handshake-timeout", type=_finite_float_arg, default=30.0, help="seconds to connect and say HELLO")
     p_sil.add_argument("--report", type=Path, help="write the full report (JSON) here")
     p_sil.add_argument("--residuals-csv", type=Path, help="write the sampled residuals (CSV) here")
-    p_sil.add_argument("--max-error", type=float, default=None,
+    p_sil.add_argument("--max-error", type=_finite_float_arg, default=None,
                        help="exit with status 2 if any residual is larger, or an output was never written")
     p_sil.set_defaults(func=cmd_sil)
 
@@ -1272,13 +1291,13 @@ def build_parser() -> argparse.ArgumentParser:
     p_const.add_argument("--total-satellites", type=int, required=True, help="T -- total satellite count")
     p_const.add_argument("--planes", type=int, required=True, help="P -- number of orbital planes")
     p_const.add_argument("--phasing-factor", type=int, required=True, help="F -- Walker phasing factor, 0 <= F < P")
-    p_const.add_argument("--altitude-km", type=float, required=True, help="circular-orbit altitude [km]")
-    p_const.add_argument("--inclination-deg", type=float, required=True, help="orbit inclination [deg]")
+    p_const.add_argument("--altitude-km", type=_finite_float_arg, required=True, help="circular-orbit altitude [km]")
+    p_const.add_argument("--inclination-deg", type=_finite_float_arg, required=True, help="orbit inclination [deg]")
     p_const.add_argument("--pattern", choices=["delta", "star"], default="delta",
                           help="Walker-Delta (RAAN spread over 360deg) or Walker-Star (180deg); default delta")
-    p_const.add_argument("--eccentricity", type=float, default=0.0)
-    p_const.add_argument("--arg-periapsis-deg", type=float, default=0.0)
-    p_const.add_argument("--raan-offset-deg", type=float, default=0.0,
+    p_const.add_argument("--eccentricity", type=_finite_float_arg, default=0.0)
+    p_const.add_argument("--arg-periapsis-deg", type=_finite_float_arg, default=0.0)
+    p_const.add_argument("--raan-offset-deg", type=_finite_float_arg, default=0.0,
                           help="rotates the whole constellation's RAAN reference")
     p_const.add_argument("--name-prefix", type=str, default="sat",
                           help="generated spacecraft are named '{prefix}-{plane:02d}-{slot:02d}'")
@@ -1299,31 +1318,31 @@ def build_parser() -> argparse.ArgumentParser:
     p_phasing.add_argument("--template-spacecraft", type=str, default=None,
                             help="name of the spacecraft to clone the follower's non-orbit fields from "
                                  "(default: the chief itself)")
-    p_phasing.add_argument("--radial-km", type=float, default=0.0,
+    p_phasing.add_argument("--radial-km", type=_finite_float_arg, default=0.0,
                             help="Hill-frame radial (R) offset at epoch [km] -- starting geometry only, not "
                                  "actively held (see PhasingKeepingController's own docstring)")
-    p_phasing.add_argument("--along-track-km", type=float, required=True,
+    p_phasing.add_argument("--along-track-km", type=_finite_float_arg, required=True,
                             help="Hill-frame along-track (T) offset at epoch [km] -- becomes "
                                  "phasing_keeping.target_separation_km, the ACTIVELY HELD separation")
-    p_phasing.add_argument("--cross-track-km", type=float, default=0.0,
+    p_phasing.add_argument("--cross-track-km", type=_finite_float_arg, default=0.0,
                             help="Hill-frame cross-track (N) offset at epoch [km] -- starting geometry only, "
                                  "not actively held")
-    p_phasing.add_argument("--reconfiguration-interval-days", type=float, default=90.0)
-    p_phasing.add_argument("--tolerance-fraction", type=float, default=0.10)
-    p_phasing.add_argument("--restore-tolerance-fraction", type=float, default=0.02)
-    p_phasing.add_argument("--correction-window-days", type=float, default=3.0)
-    p_phasing.add_argument("--max-drift-days", type=float, default=90.0)
-    p_phasing.add_argument("--max-delta-semi-major-axis-km", type=float, default=3.0)
-    p_phasing.add_argument("--station-keeping-target-altitude-km", type=float, default=None,
+    p_phasing.add_argument("--reconfiguration-interval-days", type=_finite_float_arg, default=90.0)
+    p_phasing.add_argument("--tolerance-fraction", type=_finite_float_arg, default=0.10)
+    p_phasing.add_argument("--restore-tolerance-fraction", type=_finite_float_arg, default=0.02)
+    p_phasing.add_argument("--correction-window-days", type=_finite_float_arg, default=3.0)
+    p_phasing.add_argument("--max-drift-days", type=_finite_float_arg, default=90.0)
+    p_phasing.add_argument("--max-delta-semi-major-axis-km", type=_finite_float_arg, default=3.0)
+    p_phasing.add_argument("--station-keeping-target-altitude-km", type=_finite_float_arg, default=None,
                             help="default: derived from the chief's own altitude at generation time")
-    p_phasing.add_argument("--station-keeping-deadband-km", type=float, default=2.0)
-    p_phasing.add_argument("--thrust-n", type=float, default=0.05, help="shared thruster thrust [N]")
-    p_phasing.add_argument("--isp-s", type=float, default=1500.0, help="shared thruster specific impulse [s]")
-    p_phasing.add_argument("--propellant-kg", type=float, default=5.0, help="shared tank propellant [kg]")
-    p_phasing.add_argument("--eclipse-sunlit-threshold", type=float, default=0.99,
+    p_phasing.add_argument("--station-keeping-deadband-km", type=_finite_float_arg, default=2.0)
+    p_phasing.add_argument("--thrust-n", type=_finite_float_arg, default=0.05, help="shared thruster thrust [N]")
+    p_phasing.add_argument("--isp-s", type=_finite_float_arg, default=1500.0, help="shared thruster specific impulse [s]")
+    p_phasing.add_argument("--propellant-kg", type=_finite_float_arg, default=5.0, help="shared tank propellant [kg]")
+    p_phasing.add_argument("--eclipse-sunlit-threshold", type=_finite_float_arg, default=0.99,
                             help="minimum shadow factor [-] (1.0 = full sunlight) before a station-keeping "
                                  "reboost burn may fire")
-    p_phasing.add_argument("--min-on-time-s", type=float, default=0.0,
+    p_phasing.add_argument("--min-on-time-s", type=_finite_float_arg, default=0.0,
                             help="shared thruster's minimum firing duration [s] (minimum impulse bit = "
                                  "thrust x this); 0 = ideal")
     p_phasing.add_argument("--eccentricity-neutral-burns", action="store_true",

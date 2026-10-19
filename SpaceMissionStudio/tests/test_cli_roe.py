@@ -108,10 +108,14 @@ def test_explicit_roe_and_the_continuous_law(tmp_path):
     (["--roe", "1,2,3"], "--roe takes 6 numbers"),
     (["--safe", "1,two,3"], "comma-separated numbers"),
     (["--safe", "0,300,300", "--follower-name", "chief-1"], "already exists"),
+    (["--safe", "0,nan,300"], "must be finite numbers"),
+    (["--roe", "0,inf,0,0,0,0"], "must be finite numbers"),
+    (["--safe", "0,-5,300"], "cannot be negative"),
 ])
 def test_bad_requests_are_refused(tmp_path, capsys, extra, message):
-    """A wrong number of ROE, text where a number belongs, or a name in use
-    is refused with a message, and nothing is written."""
+    """A wrong number of ROE, text where a number belongs, a NaN or infinite
+    value, a negative half-size of the safe ellipse, or a name in use is
+    refused with a message, and nothing is written."""
     args = ["generate-roe-formation", str(_chief_only(tmp_path)), "--out", str(tmp_path / "x.json"),
             "--chief", "chief-1", "--follower-name", "f"]
     assert cli.main(args + extra) == 1

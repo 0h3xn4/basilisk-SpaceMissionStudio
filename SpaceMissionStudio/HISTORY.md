@@ -11519,3 +11519,25 @@ The plan:
   now has a line of its own, and the tab needs 1111 px. The test runs
   with the app's theme applied, because without it the fonts are
   narrower and the problem does not show. It fails on the old layout.
+* **NaN and infinity reached Basilisk from the command line.**
+  `float()` reads `nan` and `inf`, so:
+  * `generate-phasing-formation --radial-km nan` ended in a Basilisk
+    `AttributeError` traceback;
+  * `generate-roe-formation --safe 0,nan,200` ended in `M2E()`'s
+    ValueError.
+
+  Every number option of the CLI (28 of them) now takes a finite number
+  and says so as a usage error. The comma-separated lists of
+  `generate-roe-formation` refuse NaN and infinity too, and `--safe`
+  refuses a negative radial or cross-track half-size, as the GUI's boxes
+  do. Scenario files were already safe: a NaN anywhere in them is refused
+  by validation, naming the field (checked for orbit, mass, duration,
+  ROE, phasing, camera and inertia values).
+* **Bundled space weather refreshed** (CelesTrak `SW-All.txt`, downloaded
+  2026-10-19, updated 20:34 UTC). It has observations to 2026-10-18 and a
+  daily forecast to 2026-12-02. Only line endings and trailing spaces
+  were changed, as before. The full suite then gave one failure: the test
+  that pins the shipped file's header and last observed day, now set to
+  the new raw lines. No drag figure moved, because the templates start in
+  2030, in the monthly forecast, and the dated tests lie before
+  2026-10-11. MSFC's October 2026 prediction is still the latest issue.
