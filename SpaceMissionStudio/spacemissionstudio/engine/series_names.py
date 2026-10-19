@@ -108,6 +108,8 @@ def _spacecraft_series(scenario: Scenario, sc) -> List[str]:
     if sc.roe_formation is not None:  # engine.roe_formation.result_series
         names += [f"{name}.roe_formation.{part}"
                   for part in ("roe", "roe_error", "state", "delta_v", "min_rn_separation", "target_index")]
+        if sc.roe_formation.control_law == "impulsive" and sc.roe_formation.differential_drag:
+            names.append(f"{name}.roe_formation.drag_da_rate")
         if sc.roe_formation.control_law == "continuous":
             names.append(f"{name}.roe_formation.force")
     if sc.constant_thrust is not None:

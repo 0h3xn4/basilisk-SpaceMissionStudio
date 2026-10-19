@@ -203,7 +203,9 @@ and the closest radial/cross-track approach shown wherever a target is.
 Two laws: impulsive burns planned by the tool's own guidance (`engine.roe`:
 the J2 state transition matrix of Koenig, Guffanti and D'Amico 2017,
 closed-form along-track and cross-track burns, a drift for the
-along-track offset, fired only in sunlight), and Basilisk's
+along-track offset, fired only in sunlight, and a differential-drag
+compensation that estimates the decay of the relative semi-major axis
+from the measurements and plans the hold around it), and Basilisk's
 `meanOEFeedback` aimed at the elements the target gives. A **Generate
 ROE formation...** generator and the `generate-roe-formation` command
 place the follower with Basilisk's mean-to-osculating J2 mapping. See

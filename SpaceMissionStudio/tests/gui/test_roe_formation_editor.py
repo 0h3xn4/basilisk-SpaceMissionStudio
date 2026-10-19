@@ -55,7 +55,7 @@ def test_an_roe_formation_round_trips(qtbot):
 
     existing = _follower(control_law="continuous", tolerance_m=[1.0, 15.0, 5.0, 6.0], correction_window_days=2.0,
                          max_drift_m=50.0, max_burn_fraction_of_orbit=0.05, continuous_gain=1000.0,
-                         target_refresh_s=300.0)
+                         target_refresh_s=300.0, differential_drag=False, drag_estimate_window_days=2.5)
     dialog = SpacecraftEditorDialog(config=existing, other_spacecraft_names=["chief"])
     qtbot.addWidget(dialog)
     assert dialog.roe_formation_group.isChecked()
@@ -154,11 +154,26 @@ def test_only_the_chosen_laws_settings_are_shown(qtbot):
     dialog = SpacecraftEditorDialog(config=_follower(), other_spacecraft_names=["chief"])
     qtbot.addWidget(dialog)
     impulsive = (dialog.roe_tolerance_m, dialog.roe_correction_window_days, dialog.roe_max_drift_m,
-                 dialog.roe_max_burn_fraction_of_orbit)
+                 dialog.roe_max_burn_fraction_of_orbit, dialog.roe_differential_drag,
+                 dialog.roe_drag_estimate_window_days)
     continuous = (dialog.roe_continuous_gain, dialog.roe_target_refresh_s)
     assert all(not w.isHidden() for w in impulsive) and all(w.isHidden() for w in continuous)
     dialog.roe_control_law_combo.setCurrentIndex(dialog.roe_control_law_combo.findData("continuous"))
     assert all(w.isHidden() for w in impulsive) and all(not w.isHidden() for w in continuous)
+
+
+def test_the_drag_window_follows_the_compensation_switch(qtbot):
+    """The estimate window can only be edited while differential drag is
+    compensated; a new formation compensates it."""
+    from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
+
+    dialog = SpacecraftEditorDialog(config=_follower(), other_spacecraft_names=["chief"])
+    qtbot.addWidget(dialog)
+    assert dialog.roe_differential_drag.isChecked()
+    assert dialog.roe_drag_estimate_window_days.isEnabled()
+    dialog.roe_differential_drag.setChecked(False)
+    assert not dialog.roe_drag_estimate_window_days.isEnabled()
+    assert dialog.to_dataclass().roe_formation.differential_drag is False
 
 
 def test_a_problem_names_the_form_label(qtbot):

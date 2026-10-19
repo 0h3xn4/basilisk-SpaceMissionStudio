@@ -268,7 +268,36 @@ def _roe_notes(scenario) -> List[str]:
                          f"{'ahead of' if dl >= 0 else 'behind'} {sc.roe_formation.chief_spacecraft}, "
                          f"{math.hypot(dex, dey):.0f} m radial and {math.hypot(dix, diy):.0f} m cross-track "
                          f"motion; {safety}" + ("" if abs(da) < 1e-9 else f"; relative semi-major axis {da:g} m"))
+        chief = next((c for c in scenario.spacecraft if c.name == sc.roe_formation.chief_spacecraft), None)
+        note = _differential_drag_note(sc, chief) if chief is not None else None
+        if note:
+            notes.append(note)
     return notes
+
+
+def _ballistic_coefficient(sc) -> float:
+    """Drag coefficient x area / dry mass [m^2/kg] of flat-plate drag (0 without drag)."""
+    return sc.drag_coeff * sc.drag_area_m2 / sc.dry_mass_kg if sc.enable_drag else 0.0
+
+
+def _differential_drag_note(follower, chief) -> str | None:
+    """Whether the follower's flat-plate drag differs from the chief's by
+    more than 5 %, and what the ROE guidance does about it; ``None`` when
+    it does not, or when either uses facets (attitude-dependent area)."""
+    if follower.facets or chief.facets or not (follower.enable_drag or chief.enable_drag):
+        return None
+    mine, theirs = _ballistic_coefficient(follower), _ballistic_coefficient(chief)
+    if abs(mine - theirs) <= 0.05 * max(mine, theirs):
+        return None
+    config = follower.roe_formation
+    if config.control_law != "impulsive":
+        handling = "the continuous law's feedback corrects it"
+    elif config.differential_drag:
+        handling = "the guidance measures the decay it causes and compensates it"
+    else:
+        handling = "corrected as an error ('Compensate differential drag' is off)"
+    return (f"{follower.name}: drag coefficient x area / dry mass {mine:.4f} m^2/kg against "
+            f"{chief.name}'s {theirs:.4f}: differential drag; {handling}")
 
 
 def _formation_section(scenario) -> ExplanationSection | None:

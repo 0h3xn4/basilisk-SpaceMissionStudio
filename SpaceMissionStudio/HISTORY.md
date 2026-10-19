@@ -10995,3 +10995,70 @@ a 0.1-day Basilisk run of template 29 whose messages hold the logged
 delta-V and approach and the Hill-frame separation of the final states;
 and a template 29 run writing a playback file with the panels attached.
 The panels have not been looked at in a running Vizard.
+
+## ROE formations compensate differential drag (2026-10-19)
+
+The ROE guidance had no differential drag (a listed limit): a follower
+with a different ballistic coefficient sees its relative semi-major axis
+decay steadily, and the impulsive law met the runaway along-track offset
+only as an error. Measured first, template 05's 400 kg pair holding
+`[0, -500, 0, 200, 0, 200]` m for 3 days, the follower with three times
+the chief's drag area (a·δa decays 3.5 m a day): the along-track error
+reached 27 m against its 20 m tolerance (RMS 15 m), for 60 burns and
+0.044 m/s; the twins take 18 burns and 0.032 m/s.
+
+**The estimate** (`roe.DifferentialDragEstimator`) is density-model-free,
+as in Koenig, Guffanti and D'Amico 2017: a straight-line fit of the
+measured mean a·δa with one common slope and one offset per stretch
+between burns, over the last `drag_estimate_window_days` (1 day). A
+stretch also ends at any jump over 0.1 m between samples, which catches
+the chief's reboosts the follower's controller does not see. Measured on
+a left-alone follower over 2 days, the mean a·δa scatters 1-3 cm about
+the trend and the decay itself varies by 4 % (-3.53 ± 0.15 m/day);
+fits over one orbit are biased by the short-period residual (-3.12), so
+the estimate is used once four orbits of data are in. Fitting
+orbit-frequency harmonics as well did not help consistently and was left
+out.
+
+**The hold** (`roe.drag_hold_cycle`): when the decay would move the mean
+longitude by more than half its tolerance over the correction window
+(`roe.drag_is_significant`; the twins' scatter, 0.03 m a day, is far
+below), a small correction sets a·δa to the side the drag takes it from
+and the mean longitude to the side it moves away from, so it swings
+evenly about its target within six tenths of the da and dl tolerances;
+the burns are planned with the decay (`in_plane_sequence(da_dot=...)`).
+The next correction comes when da or dl two orbits ahead, decay included
+(`propagate_roe(da_dot=...)`, with `drag_column`, the extra column of the
+J2 STM), would be past seven tenths of its tolerance. A first version
+checked a quarter orbit ahead at six tenths: it fired at the turn of the
+swing, not its end, and asked for a 24 m swing in two orbits (da lurched
+by ±5 m); the along-track error still reached 22 m.
+
+Measured after the change (3 days):
+
+| Follower | Compensated | Not compensated |
+|---|---|---|
+| 3 × the chief's drag area (-3.5 m/day) | max 13 m along-track, RMS 7.7 m, 30 burns, 0.036 m/s | 27 m, RMS 15 m, 60 burns, 0.044 m/s |
+| half the chief's drag area (+0.9 m/day) | max 15 m, RMS 8.3 m, 24 burns, 0.027 m/s | 25 m, RMS 12 m, 28 burns, 0.034 m/s |
+| twins | identical to before (same delta-V to the last digit): nothing compensated | |
+
+The estimate in the 3 × run was -3.45 to -3.65 m/day against the
+left-alone follower's -3.53. The compensation is on by default
+(`RoeFormationConfig.differential_drag`, **Compensate differential drag**
+in the editor) and applies to the impulsive law only; during a drift the
+burns hold the drift's da, drag included, as before. The decay is new
+telemetry, `{sc}.roe_formation.drag_da_rate` (estimated and compensated,
+m/day), and the Explain tab notes a follower whose drag coefficient ×
+area / dry mass differs from its chief's by more than 5 %. Template 29's
+satellites are twins, so its figures do not change.
+
+Tests: the drag column against a stepped J2 propagation, the estimator
+across burns, a reboost jump, its four-orbit wait and its window, the
+significance threshold, the cycle stepped through for both signs and a
+da-limited rate, the sequence landing da and dl under the decay
+(`tests/test_roe.py`); the fields' validation and an old file's defaults
+(`tests/test_roe_schema.py`); the editor (`tests/gui/test_roe_formation_editor.py`);
+the Explain note; and three Basilisk runs (`tests/test_roe_formation_run.py`):
+the estimate within 8 % of the left-alone decay, the compensated hold
+inside its tolerances with less delta-V and at most 70 % of the burns of
+the uncompensated one, and the twins compensating nothing.

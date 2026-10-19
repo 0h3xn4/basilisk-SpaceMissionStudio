@@ -69,6 +69,22 @@ eccentricity vector at the least delta-V, ``(n a / 2) max(|d(da)|,
 change at ``-3/2 n da`` (plus J2 terms) and a second pair of burns stops
 the drift (:func:`plan_drift`).
 
+**Differential drag.** Two spacecraft with different ballistic
+coefficients see the relative semi-major axis decay at a nearly steady
+rate ``da_dot``, so the mean longitude drifts away quadratically. As in
+the density-model-free approach of Koenig, Guffanti and D'Amico (2017),
+the rate is not computed from an atmosphere model but estimated from the
+measured mean ``da`` (:class:`DifferentialDragEstimator`, a straight-line
+fit with one offset per stretch between burns) and treated as constant
+over a prediction: :func:`drag_column` is the matching extra column of
+the state transition matrix (the drift of ``da`` itself plus the J2
+terms through it; drag's direct effect on the e vector is of the order
+of the eccentricity and left out). In a hold, :func:`drag_hold_cycle`
+sets ``da`` to the side the drag takes it from, so the mean longitude
+swings symmetrically about its target between two corrections and the
+delta-V spent is the least that cancels the decay, ``n a |da_dot| / 2``
+per second.
+
 **Passive safety** (D'Amico and Montenbruck, JGCD 29(3), 2006). With
 ``da = 0`` the radial and cross-track separations are an ellipse in the
 radial/cross-track plane; it keeps away from the origin when the e/i
@@ -213,10 +229,146 @@ def j2_stm(chief: MeanElements, dt: float, j2: float, r_eq: float, mu: float) ->
     return phi
 
 
+def drag_column(chief: MeanElements, dt: float, j2: float, r_eq: float, mu: float) -> np.ndarray:
+    """The change of the six mean ROE over ``dt`` [s] per unit of a steady
+    relative semi-major axis decay ``da_dot`` [1/s] (module docstring):
+    ``da`` moves by ``da_dot dt``, and everything :func:`j2_stm` drives
+    from ``da`` by half its ``da`` column times ``dt``, since ``da`` grows
+    linearly from its start."""
+    column = 0.5 * dt * j2_stm(chief, dt, j2, r_eq, mu)[:, 0]
+    column[0] = dt
+    return column
+
+
 def propagate_roe(roe: Sequence[float], chief: MeanElements, dt: float, j2: float, r_eq: float,
-                  mu: float) -> np.ndarray:
-    """The mean ROE ``dt`` [s] later (:func:`j2_stm`)."""
-    return j2_stm(chief, dt, j2, r_eq, mu) @ np.asarray(roe, dtype=float)
+                  mu: float, da_dot: float = 0.0) -> np.ndarray:
+    """The mean ROE ``dt`` [s] later (:func:`j2_stm`), with a steady
+    differential-drag decay ``da_dot`` [1/s] of the relative semi-major
+    axis (:func:`drag_column`)."""
+    later = j2_stm(chief, dt, j2, r_eq, mu) @ np.asarray(roe, dtype=float)
+    if da_dot != 0.0:
+        later = later + da_dot * drag_column(chief, dt, j2, r_eq, mu)
+    return later
+
+
+# -- differential drag ------------------------------------------------------------
+
+class DifferentialDragEstimator:
+    """The relative semi-major axis decay rate ``da_dot`` [1/s] from the
+    measured mean ``da``: one straight line with a common slope and one
+    offset per segment, fitted over the last ``window_s`` [s].
+
+    A burn changes ``da``, so the caller starts a new segment after each
+    (``add(..., new_segment=True)``); a jump between two samples larger
+    than ``jump_da`` [-] starts one too (the chief's own reboosts, which
+    this spacecraft's controller does not see). Segments with fewer than
+    three samples are left out. :meth:`rate` gives ``None`` until the
+    segments together span ``min_span_s`` [s]: over one orbit the short-
+    period part the mean-element map leaves in ``da`` biases the slope.
+    """
+
+    def __init__(self, window_s: float, min_span_s: float, jump_da: float, sample_interval_s: float = 60.0):
+        self.window_s = window_s  # [s]
+        self.min_span_s = min_span_s  # [s]
+        self.jump_da = jump_da  # [-]
+        self.sample_interval_s = sample_interval_s  # [s]
+        self._t: List[float] = []  # [s]
+        self._da: List[float] = []  # [-]
+        self._segment: List[int] = []
+        self._next_segment = False
+
+    def break_segment(self) -> None:
+        """The next sample starts a new segment (a burn in between)."""
+        self._next_segment = True
+
+    def add(self, t_s: float, da: float, new_segment: bool = False) -> None:
+        """One measurement of the mean ``da`` [-] at ``t_s`` [s]; kept at
+        most every ``sample_interval_s``."""
+        new_segment = new_segment or self._next_segment
+        if self._t and not new_segment and t_s - self._t[-1] < self.sample_interval_s:
+            return
+        self._next_segment = False
+        if not self._t:
+            segment = 0
+        elif new_segment or abs(da - self._da[-1]) > self.jump_da:
+            segment = self._segment[-1] + 1
+        else:
+            segment = self._segment[-1]
+        self._t.append(t_s)
+        self._da.append(da)
+        self._segment.append(segment)
+        start = t_s - self.window_s
+        drop = 0
+        while drop < len(self._t) and self._t[drop] < start:
+            drop += 1
+        if drop:
+            del self._t[:drop], self._da[:drop], self._segment[:drop]
+
+    def rate(self) -> Optional[float]:
+        """The fitted ``da_dot`` [1/s], or ``None`` without enough data."""
+        if not self._t:
+            return None
+        t = np.asarray(self._t)
+        da = np.asarray(self._da)
+        segment = np.asarray(self._segment)
+        numerator = denominator = span = 0.0
+        for label in np.unique(segment):
+            part = segment == label
+            if np.count_nonzero(part) < 3:
+                continue
+            dt = t[part] - t[part].mean()
+            numerator += float(dt @ (da[part] - da[part].mean()))
+            denominator += float(dt @ dt)
+            span += float(t[part][-1] - t[part][0])
+        if span < self.min_span_s or denominator <= 0.0:
+            return None
+        return numerator / denominator
+
+
+def drag_is_significant(da_dot: float, tolerance_dl: float, window_s: float, n: float) -> bool:
+    """Whether a decay ``da_dot`` [1/s] moves the mean longitude by more
+    than half its tolerance ``tolerance_dl`` [-] over ``window_s`` [s]:
+    ``3/4 n |da_dot| window^2`` (the Keplerian drift of a linearly growing
+    ``da``). Smaller rates, such as the scatter of the estimate for twin
+    spacecraft, are left to the ordinary corrections."""
+    return 0.75 * n * abs(da_dot) * window_s ** 2 > 0.5 * tolerance_dl
+
+
+@dataclass(frozen=True)
+class DragHoldCycle:
+    """How a hold copes with a steady decay of ``da`` (:func:`drag_hold_cycle`)."""
+
+    da_bias: float  # [-] da to set at a correction, relative to the target's
+    dl_offset: float  # [-] dl to set at a correction, relative to the target's
+    half_cycle_s: float  # [s] until dl turns back towards where it started
+
+
+def drag_hold_cycle(da_dot: float, tolerance_da: float, tolerance_dl: float, n: float,
+                    fraction: float = 0.6) -> DragHoldCycle:
+    """The correction that keeps a hold inside ``fraction`` of its ``da``
+    and ``dl`` tolerances [-] for as long as it can under a steady decay
+    ``da_dot`` [1/s].
+
+    With ``da`` set to ``-da_dot t*`` off the target's, the drag carries it
+    through the target to ``+da_dot t*`` in ``2 t*``, while the mean
+    longitude, moving at ``-3/2 n da``, goes out and comes back along a
+    parabola that turns at ``t*``: it swings by ``3/4 n |da_dot| t*^2``. It
+    starts at half that swing on the side it moves away from, so it stays
+    symmetric about the target. ``t*`` is the largest time for which both
+    the swing and ``|da|`` stay inside ``fraction`` of their tolerances.
+    Each correction then changes ``da`` by ``2 da_dot t*``, which over the
+    cycle is the least delta-V that cancels the drag."""
+    rate = abs(da_dot)
+    if rate == 0.0:
+        return DragHoldCycle(da_bias=0.0, dl_offset=0.0, half_cycle_s=math.inf)
+    by_dl = math.sqrt(4.0 * fraction * tolerance_dl / (1.5 * n * rate))
+    by_da = fraction * tolerance_da / rate
+    half = min(by_dl, by_da)  # [s]
+    swing = 0.75 * n * rate * half ** 2
+    # da starts on the side opposite to the decay; dl first moves the way
+    # -3/2 n da takes it, which is the sign of da_dot, so it starts on the other side.
+    return DragHoldCycle(da_bias=-da_dot * half, dl_offset=-math.copysign(0.5 * swing, da_dot),
+                         half_cycle_s=half)
 
 
 # -- impulsive manoeuvres -------------------------------------------------------
@@ -406,7 +558,7 @@ def plan_correction(roe_now: Sequence[float], target: Sequence[float], chief: Me
 
 def in_plane_sequence(d_da: float, d_dex: float, d_dey: float, d_dl: float, da_now: float,
                       times_s: Sequence[float], locations_u: Sequence[float], a: float,
-                      n: float) -> List[Tuple[float, Burn]]:
+                      n: float, da_dot: float = 0.0) -> List[Tuple[float, Burn]]:
     """Along-track burns at the given times [s from now] and arguments of
     latitude [rad] that change ``da`` by ``d_da`` and the eccentricity
     vector by ``(d_dex, d_dey)`` and move ``dl`` by ``d_dl`` by the last
@@ -415,14 +567,19 @@ def in_plane_sequence(d_da: float, d_dex: float, d_dey: float, d_dl: float, da_n
     squares, minimum norm). Unlike :func:`in_plane_pair`, the mean
     longitude ends where it should: a pair alone moves it by
     ``1.5 n (d(da)_1) T/2`` (24 m for a 10 m eccentricity change at
-    550 km), because ``da`` is off between its burns."""
+    550 km), because ``da`` is off between its burns.
+
+    With a differential-drag decay ``da_dot`` [1/s], ``da`` is
+    ``da_now + d_da`` at the last burn, drag included, and the mean
+    longitude's extra drift ``-3/4 n da_dot t^2`` is allowed for."""
     end_s = max(times_s)
     scale = 2.0 / (n * a)  # d(da) per m/s along-track
     matrix = np.array([[scale] * len(times_s),
                        [scale * math.cos(u) for u in locations_u],
                        [scale * math.sin(u) for u in locations_u],
                        [-1.5 * n * scale * (end_s - t) for t in times_s]])
-    wanted = np.array([d_da, d_dex, d_dey, d_dl + 1.5 * n * da_now * end_s])
+    wanted = np.array([d_da - da_dot * end_s, d_dex, d_dey,
+                       d_dl + 1.5 * n * da_now * end_s + 0.75 * n * da_dot * end_s ** 2])
     dv = np.linalg.lstsq(matrix, wanted, rcond=None)[0]
     return sorted(((float(t), Burn(u=float(u) % (2.0 * math.pi), dv_rtn=(0.0, float(v), 0.0), kind="in-plane"))
                    for t, u, v in zip(times_s, locations_u, dv) if abs(v) > 1e-12), key=lambda p: p[0])

@@ -124,9 +124,12 @@ Each item was checked against Basilisk's own source.
   * Earth only, with J2 in the gravity model: the mean elements and the
     J2 state transition matrix are Earth's J2 theory. Higher harmonics,
     the Sun and the Moon act in the run but not in the guidance.
-  * The guidance has no differential drag. Two spacecraft with different
-    ballistic coefficients drift apart, and the controller meets that as
-    an error, after the fact.
+  * Differential drag: the impulsive law compensates the steady decay of
+    the relative semi-major axis it measures; how it changes within a
+    day (day and night, solar activity), and all of it during a drift,
+    are corrected as errors, after the fact. The estimate needs four
+    orbits of data first. The continuous law has no compensation: its
+    feedback corrects the decay.
   * One run of at most 100 days; ROE formations are not split into
     segments.
   * A follower cannot have both an ROE formation and phasing keeping.

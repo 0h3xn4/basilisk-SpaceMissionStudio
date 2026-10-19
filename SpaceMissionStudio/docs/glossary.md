@@ -67,6 +67,11 @@ them, facing different ways, give a rough direction to the Sun.
 m/s. The usual way to say how much propellant something costs,
 independent of the spacecraft.
 
+**Differential drag** -- the difference in [drag](#d) between two
+spacecraft flying together, from different mass, area or drag
+coefficient. It makes their orbits decay at different rates, so one
+slowly drifts along-track from the other.
+
 **Drag** -- the push of the thin upper atmosphere against a low-orbiting
 spacecraft. It slowly lowers the orbit until the spacecraft re-enters.
 
