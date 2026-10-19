@@ -147,6 +147,40 @@ and pip-installs `bsk[all]` there the moment the package is configured
 (`apt install`/`dpkg -i`'s normal "configure" step), which needs
 internet access on the installing machine.
 
+**Verified for 1.1.0** (2026-10-19, Ubuntu 24.04 container, Python
+3.11, as root), with the files built from the release branch at commit
+`330941b03`:
+
+- `build_wheel.sh` and `build_deb.sh` built
+  `spacemissionstudio-1.1.0-py3-none-any.whl`, the sdist and
+  `spacemissionstudio_1.1.0_all.deb`. Their SHA-256:
+
+  ```
+  2d19110f8db26106227a49f75bbe5baa341ecfc41b780ea621031a7b6ded2a86  spacemissionstudio-1.1.0-py3-none-any.whl
+  3cec5c6eb0b981d7d57af34db34c103ddae4ec782dc78e0713d3d4d0fe81cceb  spacemissionstudio-1.1.0.tar.gz
+  7e4078b411337e3edefdd20289bbd1d0d045e21fddc046a5bb2e6362a278a1aa  spacemissionstudio_1.1.0_all.deb
+  ```
+- **Upgrade from 1.0.0:** over the published 1.0.0 package, `apt-get
+  install -y ./spacemissionstudio_1.1.0_all.deb` reported "Unpacking
+  spacemissionstudio (1.1.0) over (1.0.0)". `postinst` rebuilt
+  `/opt/spacemissionstudio/venv` with `bsk[all]==2.12.0` and the bundled
+  wheel, and fetched the support data and Earth orientation files. (That
+  first upgrade used a build from one commit earlier. The final `.deb`
+  was then installed over it with `--reinstall`.)
+- The installed tool (`/usr/bin/spacemissionstudio`), checked on both
+  builds:
+  - `--version` gave SpaceMissionStudio 1.1.0 and Basilisk 2.12.0, and
+    `kernels-status` found all nine support files;
+  - all 31 templates validated;
+  - template 01 ran.
+- On the first build only (its package differs only in the bundled
+  user manual's install section, which names 1.1.0 in the final one):
+  - templates 22 and 29 ran, and 22's `provenance.json` records 1.1.0;
+  - the Monte Carlo template 09 ran its 20 runs;
+  - the GUI started (offscreen) and stayed up.
+- Not done for 1.1.0: an install by hand on a desktop, with the app
+  opened from the application menu.
+
 **Verified for 1.0.0** (2026-10-14, Ubuntu 24.04 container, Python
 3.11, as root):
 
