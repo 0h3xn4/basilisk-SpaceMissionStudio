@@ -85,8 +85,9 @@ from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import dependencies, output_provenance
 from ..schema.scenario import OrbitIC, Scenario
 from . import (data_handling, earth_orientation, environment_models, formation_control, frames, fsw, geodesy,
-               geodetic_atmosphere, kernels, link_budget, long_run, optical_navigation, orbit_maintenance,
-               planet_rotation, polyhedron, roe_formation, small_bodies, solar_arrays, time_system, tle, vizard)
+               geodetic_atmosphere, kernels, landmark_navigation, link_budget, long_run, optical_navigation,
+               orbit_maintenance, planet_rotation, polyhedron, roe_formation, small_bodies, solar_arrays,
+               time_system, tle, vizard)
 from .results import ResultSet, RunProvenance, TimeSeries, conservation_drift_warnings
 from .vizard import VizardRequest
 
@@ -503,6 +504,7 @@ class _SpacecraftHandle:
     phasing_keeping_controller: Optional[object] = None  # Phase 4: only set if sc_config.phasing_keeping was configured
     roe_formation_controller: Optional[object] = None  # engine.roe_formation, if sc_config.roe_formation is set
     optical_navigation: Optional[object] = None  # engine.optical_navigation chain, if sc_config.optical_navigation
+    landmark_navigation: Optional[object] = None  # engine.landmark_navigation chain, if sc_config.landmark_navigation
     constant_thrust_controller: Optional[object] = None  # Phase 5: only set if sc_config.constant_thrust was configured
     drag_effector: Optional[object] = None  # only set if sc_config.enable_drag
     srp_effector: Optional[object] = None  # only set if sc_config.enable_srp
@@ -584,6 +586,7 @@ class SimulationService:
         self.small_body = None
         self.small_body_shape = None
         self._central_body_recorder = None
+        self._shadow_copy = None
         self._ground_locations: Dict[str, object] = {}
         self._mag_field_model = None
         self._access_recorders: Dict[tuple, object] = {}  # (ground_station_name, spacecraft_name) -> recorder
@@ -952,6 +955,15 @@ class SimulationService:
             self._eclipse_object.ModelTag = "eclipse"
             self._eclipse_object.sunInMsg.subscribeTo(self._sun_state_out_msg)
             for name in occulter_names:
+                if small_body is not None and name == small_body.name:
+                    # A sphere of the body's mean radius casts its shadow:
+                    # eclipse knows only planets by name (planet_rotation.RenamedPlanetState).
+                    self._shadow_copy = planet_rotation.RenamedPlanetState(f"shadow_{name}", "custom")
+                    self._shadow_copy.planetInMsg.subscribeTo(self._planet_state_out_msgs[name])
+                    self.scSim.AddModelToTask(dyn_task_name, self._shadow_copy, 460)
+                    self._eclipse_object.rEqCustom = small_body.mean_radius_m  # [m]
+                    self._eclipse_object.addPlanetToModel(self._shadow_copy.planetOutMsg)
+                    continue
                 self._eclipse_object.addPlanetToModel(self._planet_state_out_msgs[name])
             self.scSim.AddModelToTask(dyn_task_name, self._eclipse_object, 370)
 
@@ -1680,6 +1692,19 @@ class SimulationService:
                 sc_config.optical_navigation, gravity.central_body,
                 ideal_pointing=scenario.simulation_mode == "orbit_only")
 
+        # Landmark navigation (engine.landmark_navigation): Basilisk's
+        # pinholeCamera and the tool's filter on a task of their own.
+        # Scenario.validate() guarantees a small body with its shape's
+        # gravity and the Sun in the run.
+        for sc_config in scenario.spacecraft:
+            if sc_config.landmark_navigation is None:
+                continue
+            handle = self._handles[sc_config.name]
+            handle.landmark_navigation = landmark_navigation.build_landmark_navigation(
+                self.scSim, dyn_process, sc_config.name, handle.sc_object, self._sun_state_out_msg,
+                central_body_state_out_msg, sc_config.landmark_navigation, small_body, self.small_body_shape,
+                ideal_pointing=scenario.simulation_mode == "orbit_only")
+
         # Phase 3: access analysis -- every ground station sees every
         # spacecraft, now that all spacecraft exist (see fsw.add_access_analysis).
         # accessOutMsgs[i] corresponds to sc_objects_in_order[i]: fsw.add_access_analysis
@@ -2368,6 +2393,9 @@ class SimulationService:
                     result.add(series)
             if handle.optical_navigation is not None:
                 for series in optical_navigation.result_series(name, handle.optical_navigation):
+                    result.add(series)
+            if handle.landmark_navigation is not None:
+                for series in landmark_navigation.result_series(name, handle.landmark_navigation):
                     result.add(series)
 
             if handle.constant_thrust_controller is not None:

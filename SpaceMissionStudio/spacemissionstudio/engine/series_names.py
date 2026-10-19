@@ -118,6 +118,10 @@ def _spacecraft_series(scenario: Scenario, sc) -> List[str]:
         names += [f"{name}.optical_navigation.{part}"
                   for part in ("position_error", "velocity_error", "position_3sigma", "velocity_3sigma",
                                "measurement", "measurement_error", "measurement_state", "range", "phase_angle")]
+    if sc.landmark_navigation is not None:  # engine.landmark_navigation.result_series
+        names += [f"{name}.landmark_navigation.{part}"
+                  for part in ("position_error", "velocity_error", "position_3sigma", "velocity_3sigma",
+                               "landmarks_seen", "residual_rms")]
     if sc.constant_thrust is not None:
         names += [f"{name}.constant_thrust.propellant_remaining", f"{name}.constant_thrust.delta_v"]
     if sc.comms_pointing is not None:

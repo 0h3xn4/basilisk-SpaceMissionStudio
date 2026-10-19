@@ -137,6 +137,16 @@ class Polyhedron:
         [m/s^2] at ``point`` [m] of the body with gravitational parameter
         ``mu`` [m^3/s^2] at constant density (Werner and Scheeres 1997,
         eqs. 15 and 16)."""
+        potential, acceleration, _ = self._evaluate(point, mu, gradient=False)
+        return potential, acceleration
+
+    def field_and_gradient(self, point: np.ndarray, mu: float) -> Tuple[np.ndarray, np.ndarray]:
+        """Acceleration [m/s^2] and its gradient d a / d r [1/s^2] (Werner
+        and Scheeres 1997, eq. 17) at ``point`` [m]."""
+        _, acceleration, gradient = self._evaluate(point, mu, gradient=True)
+        return acceleration, gradient
+
+    def _evaluate(self, point, mu: float, gradient: bool):
         p = np.asarray(point, float)
         g_rho = mu / self.volume  # [1/s^2] G times the density
         i_start, i_end, dyads = self._edge_data()
@@ -151,7 +161,11 @@ class Polyhedron:
         fr = normals * np.einsum("ij,ij->i", normals, rf)[:, None]
         potential = 0.5 * g_rho * (np.einsum("ij,ij,i->", ra, er, wire) - np.einsum("ij,ij,i->", rf, fr, omega))
         acceleration = -g_rho * (er * wire[:, None]).sum(axis=0) + g_rho * (fr * omega[:, None]).sum(axis=0)
-        return float(potential), acceleration
+        tensor = None
+        if gradient:
+            facet_dyads = np.einsum("ij,ik->ijk", normals, normals)
+            tensor = g_rho * (np.einsum("ijk,i->jk", dyads, wire) - np.einsum("ijk,i->jk", facet_dyads, omega))
+        return float(potential), acceleration, tensor
 
 
 def load(path) -> Polyhedron:

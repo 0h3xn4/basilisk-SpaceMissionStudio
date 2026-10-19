@@ -1218,6 +1218,67 @@ class OpticalNavigationConfig:
 
 
 @dataclass
+class LandmarkNavigationConfig:
+    """Navigation from surface landmarks around a small body
+    (``engine.landmarks`` for the camera geometry and the filter,
+    ``engine.landmark_navigation`` for the run).
+
+    ``landmark_count`` landmarks are placed on facets of the body's shape
+    model (area-weighted, seeded). Every ``measurement_interval_s``
+    Basilisk's ``pinholeCamera`` reports the whole pixel of each landmark
+    it sees (in front of the camera, facing it, on the detector, the Sun
+    at least ``min_sun_elevation_deg`` above the landmark's horizon; it
+    does not check whether other terrain hides one). The tool's extended
+    Kalman filter estimates position and velocity relative to the body
+    from them, predicting with the shape's own gravity; it starts from the
+    true state off by one draw of the initial sigmas (seeded).
+
+    Needs a small body with ``gravity.polyhedral_gravity`` as the central
+    body and the Sun in the run. In an orbit-only run the camera points at
+    the body's centre; with attitude, the spacecraft's attitude and
+    ``camera_mrp_cb`` point it.
+    """
+
+    landmark_count: int = 100
+    field_of_view_deg: float = 30.0  # [deg] edge to edge along the image's width (x)
+    resolution_px: list = field(default_factory=lambda: [1024, 1024])  # [px] width, height
+    # [-] MRP of the camera frame (boresight +z) relative to the body frame
+    camera_mrp_cb: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
+    measurement_interval_s: float = 600.0  # [s] one image this often
+    pixel_noise_px: float = 0.0  # [px] 1 sigma added to each pixel coordinate, on top of the rounding
+    min_sun_elevation_deg: float = 10.0  # [deg] a landmark in lower light is not seen
+    initial_position_sigma_m: float = 100.0  # [m] 1 sigma, each axis: the filter's start and its error
+    initial_velocity_sigma_mps: float = 0.05  # [m/s] 1 sigma, each axis
+    # [m/s^1.5] spectral density of the filter's white acceleration noise, each axis
+    process_noise_mps2_per_sqrt_hz: float = 1.0e-8
+    seed: int = 1  # landmark placement, pixel noise and the initial error
+
+    def validate(self, spacecraft_name: str) -> None:
+        prefix = f"{spacecraft_name}: landmark_navigation"
+        _require(isinstance(self.landmark_count, int) and not isinstance(self.landmark_count, bool)
+                 and 1 <= self.landmark_count <= 1000, f"{prefix}.landmark_count must be a whole number from 1 to 1000")
+        for field_name in ("field_of_view_deg", "measurement_interval_s", "initial_position_sigma_m",
+                           "initial_velocity_sigma_mps"):
+            value = getattr(self, field_name)
+            _require(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+                     and value > 0, f"{prefix}.{field_name} must be a finite number > 0")
+        for field_name in ("pixel_noise_px", "process_noise_mps2_per_sqrt_hz"):
+            value = getattr(self, field_name)
+            _require(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+                     and value >= 0, f"{prefix}.{field_name} must be a finite number >= 0")
+        _require(self.field_of_view_deg < 180.0, f"{prefix}.field_of_view_deg must be under 180")
+        value = self.min_sun_elevation_deg
+        _require(isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value)
+                 and -90.0 <= value < 90.0, f"{prefix}.min_sun_elevation_deg must be from -90 to under 90")
+        _require(isinstance(self.resolution_px, list) and len(self.resolution_px) == 2
+                 and all(isinstance(n, int) and not isinstance(n, bool) and n >= 16 for n in self.resolution_px),
+                 f"{prefix}.resolution_px must be two whole numbers of at least 16 [px]")
+        _require(_finite_vector(self.camera_mrp_cb, 3), f"{prefix}.camera_mrp_cb must be 3 finite numbers")
+        _require(isinstance(self.seed, int) and not isinstance(self.seed, bool) and self.seed >= 0,
+                 f"{prefix}.seed must be a whole number >= 0")
+
+
+@dataclass
 class MomentumDumpingConfig:
     """Periodic reaction-wheel momentum desaturation via this spacecraft's
     ``"thruster"`` actuators -- Basilisk's ``thrMomentumManagement`` +
@@ -1782,6 +1843,7 @@ class SpacecraftConfig:
     phasing_keeping: Optional[PhasingKeepingConfig] = None
     roe_formation: Optional[RoeFormationConfig] = None  # formation in relative orbital elements
     optical_navigation: Optional[OpticalNavigationConfig] = None  # camera navigation from the central body's disk
+    landmark_navigation: Optional[LandmarkNavigationConfig] = None  # camera navigation from a small body's landmarks
     constant_thrust: Optional[ConstantThrustConfig] = None
     momentum_dumping: Optional[MomentumDumpingConfig] = None
     magnetic_momentum_management: Optional[MagneticMomentumManagementConfig] = None
@@ -2183,6 +2245,8 @@ class SpacecraftConfig:
             self.roe_formation.validate(self.name)
         if self.optical_navigation is not None:
             self.optical_navigation.validate(self.name)
+        if self.landmark_navigation is not None:
+            self.landmark_navigation.validate(self.name)
         if self.constant_thrust is not None:
             self.constant_thrust.validate(self.name)
         if self.momentum_dumping is not None:
@@ -2738,6 +2802,14 @@ class Scenario:
                 _require("sun" in self.gravity.third_body_perturbers,
                           f"{sc.name}: optical_navigation needs 'sun' in gravity.third_body_perturbers "
                           "(the image is used only on the lit side)")
+            if sc.landmark_navigation is not None:
+                # The filter predicts with the shape's gravity; the lighting needs the Sun.
+                _require(self.gravity.central_body in SMALL_BODY_CENTRAL_BODIES and self.gravity.polyhedral_gravity,
+                          f"{sc.name}: landmark_navigation needs a small body ({', '.join(SMALL_BODY_CENTRAL_BODIES)}) "
+                          "as gravity.central_body with gravity.polyhedral_gravity (landmarks sit on its shape)")
+                _require("sun" in self.gravity.third_body_perturbers,
+                          f"{sc.name}: landmark_navigation needs 'sun' in gravity.third_body_perturbers "
+                          "(a landmark is seen only in sunlight)")
             if sc.roe_formation is not None:
                 prefix = f"{sc.name}: roe_formation.chief_spacecraft {sc.roe_formation.chief_spacecraft!r}"
                 _require(sc.roe_formation.chief_spacecraft in names,
@@ -2991,6 +3063,9 @@ class Scenario:
             optical_navigation_data = sc.pop("optical_navigation", None)
             optical_navigation = (OpticalNavigationConfig(**optical_navigation_data)
                                   if optical_navigation_data is not None else None)
+            landmark_navigation_data = sc.pop("landmark_navigation", None)
+            landmark_navigation = (LandmarkNavigationConfig(**landmark_navigation_data)
+                                   if landmark_navigation_data is not None else None)
             constant_thrust_data = sc.pop("constant_thrust", None)
             constant_thrust = ConstantThrustConfig(**constant_thrust_data) if constant_thrust_data is not None else None
             momentum_dumping_data = sc.pop("momentum_dumping", None)
@@ -3016,6 +3091,7 @@ class Scenario:
                                                 geo_station_keeping=geo_station_keeping,
                                                 phasing_keeping=phasing_keeping, roe_formation=roe_formation,
                                                 optical_navigation=optical_navigation,
+                                                landmark_navigation=landmark_navigation,
                                                 constant_thrust=constant_thrust,
                                                 momentum_dumping=momentum_dumping,
                                                 magnetic_momentum_management=magnetic_momentum_management,

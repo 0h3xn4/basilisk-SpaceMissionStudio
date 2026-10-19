@@ -251,6 +251,30 @@ _OPNAV_SERIES = {
 }
 
 
+# engine.landmark_navigation.result_series: field -> (title, y label, unit, factor, column labels)
+_LANDMARK_SERIES = {
+    "position_error": ("Landmark Navigation Position Error (estimate - truth)", "Position error", "m", 1.0,
+                       _OPNAV_AXES),
+    "velocity_error": ("Landmark Navigation Velocity Error (estimate - truth)", "Velocity error", "mm/s", 1e3,
+                       _OPNAV_AXES),
+    "position_3sigma": ("Landmark Navigation Position 3-Sigma", "3-sigma", "m", 1.0, _OPNAV_AXES),
+    "velocity_3sigma": ("Landmark Navigation Velocity 3-Sigma", "3-sigma", "mm/s", 1e3, _OPNAV_AXES),
+    "landmarks_seen": ("Landmark Navigation Landmarks Seen per Image", "Landmarks", "-", 1.0,
+                       {"count": "Landmarks seen"}),
+    "residual_rms": ("Landmark Navigation Pixel Residuals (rms, before the update)", "Residual", "px", 1.0,
+                     {"rms": "RMS residual"}),
+}
+
+
+def _landmark_navigation_display(name: str) -> Optional[SeriesDisplay]:
+    """``"{sc}.landmark_navigation.<field>"`` series (``engine.landmark_navigation``)."""
+    head, _, field = name.rpartition(".")
+    if not head.endswith(".landmark_navigation") or field not in _LANDMARK_SERIES:
+        return None
+    title, y_label, unit, factor, columns = _LANDMARK_SERIES[field]
+    return SeriesDisplay(title, y_label, unit, factor, columns)
+
+
 def _optical_navigation_display(name: str) -> Optional[SeriesDisplay]:
     """``"{sc}.optical_navigation.<field>"`` series (``engine.optical_navigation``)."""
     head, _, field = name.rpartition(".")
@@ -429,7 +453,7 @@ def categorize(name: str, series: TimeSeries) -> Optional[SeriesDisplay]:
     """
     for fn in (_vector_display, _orbit_element_display, _controller_display, _comms_and_thermal_display,
                _access_pair_display, _monte_carlo_display, _data_handling_display, _solar_array_display,
-               _optical_navigation_display):
+               _optical_navigation_display, _landmark_navigation_display):
         result = fn(name)
         if result is not None:
             return result
@@ -461,7 +485,7 @@ def plot_group(name: str, series: TimeSeries) -> str:
         return "Thermal"
     if ".sensor." in name:
         return "Thermal" if tuple(series.columns) == ("temperature",) else "Sensors"
-    if ".optical_navigation." in name:
+    if ".optical_navigation." in name or ".landmark_navigation." in name:
         return "Sensors"
     if ".solar_array." in name:
         return "Power" if name.endswith(".power") else "Attitude"

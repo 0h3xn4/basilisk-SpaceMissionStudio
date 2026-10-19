@@ -41,6 +41,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import shutil
 import sys
 import urllib.error
@@ -69,6 +70,7 @@ class SmallBody:
     title: str
     naif_id: int
     frame: str  # SPICE body-fixed frame
+    spin_rad_s: float  # [rad/s] rotation rate about the pole (the frame's z axis)
     gm_m3_s2: float  # [m^3/s^2]
     mean_radius_m: float  # [m] for display only; the shape decides impacts
     spk_name: str
@@ -85,6 +87,7 @@ EROS = SmallBody(
     title="433 Eros",
     naif_id=2000433,
     frame="IAU_EROS",
+    spin_rad_s=math.radians(1639.38864745) / 86400.0,  # [rad/s] pck00010 BODY2000433_PM rate (deg/day)
     gm_m3_s2=4.463e-4 * 1e9,  # [m^3/s^2] Horizons header of eros_1900_2100.bsp (4.463e-4 km^3/s^2)
     mean_radius_m=8.42e3,  # [m] Horizons header of eros_1900_2100.bsp (RAD = 8.42 km)
     spk_name="eros_1900_2100.bsp",
