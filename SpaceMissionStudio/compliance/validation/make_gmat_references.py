@@ -258,7 +258,9 @@ def main(argv=None) -> int:
             report.unlink()
             print(f"{name}: written")
             continue
-        (cases.GMAT_DATA / f"{name}.txt").write_text(header + report.read_text(), encoding="utf-8")
+        # GMAT pads its report columns with trailing spaces; the repository's pre-commit hook refuses them.
+        rows = "".join(line.rstrip() + "\n" for line in report.read_text().splitlines())
+        (cases.GMAT_DATA / f"{name}.txt").write_text(header + rows, encoding="utf-8")
         report.unlink()
         print(f"{name}: {sum(1 for _ in open(cases.GMAT_DATA / f'{name}.txt')) - 3} rows")
     return 0
