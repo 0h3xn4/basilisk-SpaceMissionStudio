@@ -10,6 +10,18 @@ fixes bugs.
 
 ## Unreleased
 
+- **ROE formations compensate differential drag.** When a follower feels
+  more or less drag than its chief, the impulsive law measures how fast
+  their relative semi-major axis decays and sets it so the along-track
+  offset swings evenly about its target between corrections. With three
+  times the chief's drag area, a 3-day hold stays within 13 m along-track
+  (27 m before) for half the burns and less delta-V. On by default
+  (**Compensate differential drag**); twin spacecraft fly as before. The
+  Explain tab says when a follower's drag differs from its chief's.
+- **ROE formations in Vizard.** A follower in an ROE formation gets live
+  panels for its delta-V, its radial, along-track and cross-track
+  separation from the chief, and its closest radial/cross-track
+  approach.
 - **Altitude trade errors keep their message.** When Basilisk stopped
   one of the parallel workers with an error, the trade failed with a
   pickling error that hid it. It now names the altitude and Basilisk's

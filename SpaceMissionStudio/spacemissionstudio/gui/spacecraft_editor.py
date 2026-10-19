@@ -1223,6 +1223,23 @@ class SpacecraftEditorDialog(QDialog):
             "A burn longer than this fraction of an orbit is split over several orbits, so each part stays "
             "close to the impulse it was planned as.")
         roe_form.addRow("Max burn length [-] (fraction of an orbit)", self.roe_max_burn_fraction_of_orbit)
+        self.roe_differential_drag = QCheckBox("Compensate differential drag")
+        self.roe_differential_drag.setChecked(bool(roe0.differential_drag) if roe0 else True)
+        self.roe_differential_drag.setToolTip(
+            "When the two spacecraft feel different drag (different mass, area or drag coefficient), the "
+            "relative semi-major axis decays steadily and the along-track offset runs away. With this on, the "
+            "guidance measures that decay and sets the relative semi-major axis so the offset swings evenly "
+            "about its target between corrections: fewer burns, less delta-V. Twin spacecraft see no decay "
+            "worth compensating, and nothing changes for them.")
+        roe_form.addRow(self.roe_differential_drag)
+        self.roe_drag_estimate_window_days = _spin(0.1, 100.0, decimals=2, step=0.5,
+                                                   value=roe0.drag_estimate_window_days if roe0 else 1.0)
+        self.roe_drag_estimate_window_days.setToolTip(
+            "How far back the decay is measured. Longer smooths the estimate; shorter follows changes in "
+            "solar activity sooner. It is used once four orbits of data are in.")
+        roe_form.addRow("Drag estimate window [days]", self.roe_drag_estimate_window_days)
+        self.roe_differential_drag.toggled.connect(self.roe_drag_estimate_window_days.setEnabled)
+        self.roe_drag_estimate_window_days.setEnabled(self.roe_differential_drag.isChecked())
         self.roe_continuous_gain = _spin(1.0e-3, 1.0e9, decimals=1, step=5000.0,
                                          value=roe0.continuous_gain if roe0 else 25000.0)
         self.roe_continuous_gain.setToolTip(
@@ -2340,7 +2357,8 @@ class SpacecraftEditorDialog(QDialog):
         """Only the chosen ROE control law's own settings are shown."""
         impulsive = self.roe_control_law_combo.currentData() == "impulsive"
         rows = [(w, impulsive) for w in (self.roe_tolerance_m, self.roe_correction_window_days, self.roe_max_drift_m,
-                                         self.roe_max_burn_fraction_of_orbit)]
+                                         self.roe_max_burn_fraction_of_orbit, self.roe_differential_drag,
+                                         self.roe_drag_estimate_window_days)]
         rows += [(w, not impulsive) for w in (self.roe_continuous_gain, self.roe_target_refresh_s)]
         for widget, shown in rows:
             widget.setVisible(shown)
@@ -2369,6 +2387,8 @@ class SpacecraftEditorDialog(QDialog):
             correction_window_days=self.roe_correction_window_days.value(),
             max_drift_m=self.roe_max_drift_m.value(),
             max_burn_fraction_of_orbit=self.roe_max_burn_fraction_of_orbit.value(),
+            differential_drag=self.roe_differential_drag.isChecked(),
+            drag_estimate_window_days=self.roe_drag_estimate_window_days.value(),
             continuous_gain=self.roe_continuous_gain.value(),
             target_refresh_s=self.roe_target_refresh_s.value(),
         )

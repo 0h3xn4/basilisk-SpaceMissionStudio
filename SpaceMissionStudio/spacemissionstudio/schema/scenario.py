@@ -1056,7 +1056,10 @@ class RoeFormationConfig:
       too), a cross-track burn (inclination vector), and for larger
       along-track errors a drift planned with the J2 state transition
       matrix, and fires them as short arcs at sunlit planned arguments of
-      latitude.
+      latitude. With ``differential_drag`` it estimates how fast drag
+      changes the relative semi-major axis, over the last
+      ``drag_estimate_window_days``, and sets that axis so the mean
+      longitude swings evenly about its target between corrections.
     * ``"continuous"``: Basilisk's ``meanOEFeedback`` (Lyapunov feedback on
       mean equinoctial elements), its target the ROE target turned into
       element differences, refreshed every ``target_refresh_s``.
@@ -1078,6 +1081,11 @@ class RoeFormationConfig:
     # [-] "impulsive": a burn longer than this fraction of an orbit is split
     # over several orbits, so it stays close to an impulse
     max_burn_fraction_of_orbit: float = 0.1
+    # "impulsive": estimate the steady decay of the relative semi-major
+    # axis that differential drag causes (from the measured mean ROE) and
+    # plan the hold around it, once it is large enough to matter
+    differential_drag: bool = True
+    drag_estimate_window_days: float = 1.0  # [day] "impulsive": how far back the decay is fitted
     # [m^2/s^3] "continuous": diagonal of K per kg (as phasing_keeping.mean_oe_gain);
     # ten times phasing's default, which leaves metre-scale ROE errors growing
     continuous_gain: float = 25000.0
@@ -1107,8 +1115,9 @@ class RoeFormationConfig:
             previous = target.start_day
         _require(_finite_vector(self.tolerance_m, 4) and all(t > 0 for t in self.tolerance_m),
                   f"{prefix}.tolerance_m must be 4 finite numbers > 0 [m]")
+        _require(isinstance(self.differential_drag, bool), f"{prefix}.differential_drag must be true or false")
         for field_name in ("correction_window_days", "max_drift_m", "max_burn_fraction_of_orbit",
-                           "continuous_gain", "target_refresh_s"):
+                           "drag_estimate_window_days", "continuous_gain", "target_refresh_s"):
             value = getattr(self, field_name)
             _require(isinstance(value, (int, float)) and math.isfinite(value) and value > 0,
                       f"{prefix}.{field_name} must be a finite number > 0")

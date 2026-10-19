@@ -367,6 +367,27 @@ def test_an_roe_formation_is_explained(law, badge):
     assert diagram.targets == [(0.0, [0.0, -2000.0, 0.0, 0.0, 0.0, 0.0]), (1.0, [0.0, 0.0, 0.0, 300.0, 0.0, 300.0])]
 
 
+@pytest.mark.parametrize("law, compensate, words", [
+    ("impulsive", True, "measures the decay it causes and compensates it"),
+    ("impulsive", False, "'Compensate differential drag' is off"),
+    ("continuous", True, "continuous law's feedback corrects it"),
+])
+def test_differential_drag_is_explained(law, compensate, words):
+    """A follower with three times the chief's drag area is told to feel
+    differential drag, with what its law does about it; the twins of
+    template 05 are not."""
+    scenario, follower = _roe_scenario(law)
+    section = next(s for s in explain(scenario).sections if s.title == "Formation / orbit maintenance")
+    assert not any("differential drag" in n for n in section.notes)
+    follower.drag_area_m2 *= 3.0
+    follower.roe_formation.differential_drag = compensate
+    section = next(s for s in explain(scenario).sections if s.title == "Formation / orbit maintenance")
+    [note] = [n for n in section.notes if "differential drag" in n]
+    assert note.startswith(f"{follower.name}: drag coefficient x area / dry mass 0.0225 m^2/kg against ")
+    assert "0.0075: differential drag" in note and words in note
+    assert len(note) <= 220
+
+
 def test_no_roe_diagram_without_an_roe_formation():
     """A scenario without an ROE formation has no ROE diagram."""
     assert explain(_template_scenario("05")).roe_diagrams == []

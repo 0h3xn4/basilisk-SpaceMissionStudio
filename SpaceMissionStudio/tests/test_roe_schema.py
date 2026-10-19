@@ -49,7 +49,8 @@ def _scenario(**roe_overrides):
 def test_an_roe_formation_saves_and_loads_unchanged(tmp_path):
     """A valid ROE formation, with a reconfiguration, survives a save and
     a load field by field."""
-    scenario, follower = _scenario(control_law="continuous", tolerance_m=[1.0, 10.0, 5.0, 5.0])
+    scenario, follower = _scenario(control_law="continuous", tolerance_m=[1.0, 10.0, 5.0, 5.0],
+                                   differential_drag=False, drag_estimate_window_days=2.5)
     scenario.validate()
     path = tmp_path / "roe.json"
     scenario.save(path)
@@ -68,6 +69,9 @@ def test_an_roe_formation_saves_and_loads_unchanged(tmp_path):
     ({"tolerance_m": [1.0, 0.0, 1.0, 1.0]}, "tolerance_m"),
     ({"correction_window_days": 0.0}, "correction_window_days"),
     ({"max_burn_fraction_of_orbit": 0.8}, "at most 0.5"),
+    ({"differential_drag": 1}, "differential_drag must be true or false"),
+    ({"drag_estimate_window_days": 0.0}, "drag_estimate_window_days"),
+    ({"drag_estimate_window_days": float("inf")}, "drag_estimate_window_days"),
     ({"chief_spacecraft": "nobody"}, "not one of this scenario's spacecraft"),
 ])
 def test_each_bad_value_is_named(overrides, message):
@@ -132,3 +136,20 @@ def test_renaming_the_chief_follows_into_the_formation():
     assert any(path.endswith("roe_formation.chief_spacecraft") for path in paths)
     rename_spacecraft(scenario, chief, "lead")
     assert follower.roe_formation.chief_spacecraft == "lead"
+
+
+def test_a_file_from_before_differential_drag_compensates_it(tmp_path):
+    """A scenario saved before the drag fields existed loads with the
+    compensation on and a one-day estimate window, the defaults."""
+    import json
+
+    scenario, follower = _scenario()
+    path = tmp_path / "roe.json"
+    scenario.save(path)
+    data = json.loads(path.read_text())
+    saved = next(sc for sc in data["spacecraft"] if sc["name"] == follower.name)["roe_formation"]
+    del saved["differential_drag"], saved["drag_estimate_window_days"]
+    path.write_text(json.dumps(data))
+    loaded = next(sc for sc in load_scenario(path).spacecraft if sc.name == follower.name).roe_formation
+    assert loaded.differential_drag is True
+    assert loaded.drag_estimate_window_days == 1.0  # [day]

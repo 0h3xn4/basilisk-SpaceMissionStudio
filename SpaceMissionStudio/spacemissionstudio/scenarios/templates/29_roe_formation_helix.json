@@ -220,6 +220,8 @@
         "correction_window_days": 1.0,
         "max_drift_m": 100.0,
         "max_burn_fraction_of_orbit": 0.1,
+        "differential_drag": true,
+        "drag_estimate_window_days": 1.0,
         "continuous_gain": 25000.0,
         "target_refresh_s": 600.0
       },

@@ -58,6 +58,21 @@ navigation filter.
   plan at once. During a correction the ROE can leave their tolerances
   (``da`` between the burns of a sequence, the along-track offset during
   e-vector changes); they come back when it ends.
+
+  *Differential drag* (``differential_drag``): the controller fits the
+  decay of the mean relative semi-major axis over the last
+  ``drag_estimate_window_days`` (:class:`.roe.DifferentialDragEstimator`;
+  a new stretch after each burn and after any jump, such as the chief's
+  reboosts) once four orbits of data are in. When the decay would move the
+  mean longitude by more than half its tolerance over the correction
+  window (:func:`.roe.drag_is_significant`), a small correction sets ``da``
+  and the mean longitude for a drag cycle (:func:`.roe.drag_hold_cycle`:
+  the mean longitude swings evenly about its target, both inside six
+  tenths of their tolerances), plans its burns with the decay included,
+  and a hold check corrects when ``da`` or the mean longitude two orbits
+  ahead, decay included (:func:`.roe.propagate_roe`), would be past seven
+  tenths of its tolerance: about when the cycle ends. A drift
+  and its stop are corrected by feedback as before.
 * ``"continuous"``: Basilisk's ``meanOEFeedback`` (oeType 1, mean
   equinoctial elements), run unmodified. Its target difference is the ROE
   target turned into the deputy's mean elements
@@ -78,8 +93,17 @@ semi-major axis, the chief's reboosts included.
 the mean ROE and their error from the target in metres, the state
 (:data:`HOLDING` ... :data:`CONTINUOUS_FIRING`), the cumulative delta-V,
 the closest radial/cross-track approach the current ROE give, the active
-target's index and, for the continuous law, the commanded and applied
-force.
+target's index, for the impulsive law with ``differential_drag`` the
+estimated decay of ``a da`` and the part of it the guidance compensates
+(m/day), and, for the continuous law, the commanded and applied force.
+
+**Vizard** (``engine.vizard``'s ROE panels): every tick the controller
+writes its delta-V against the shared tank's total, the Hill-frame
+separation from the chief (R, T, N in km, one scale for the three: twice
+the largest extent any target asks for) and the closest radial/cross-track
+approach the current ROE give (m, against twice the largest any target
+asks for), each as a magnitude within its scale (a negative level shows as
+"Unavailable" in Vizard).
 """
 
 from __future__ import annotations
@@ -101,6 +125,7 @@ from .orbit_maintenance import (
     LogThinner,
     PhasingKeepingController,
     StationKeepingController,
+    _clamp_magnitude,
     _eclipse_illumination_fraction,
     _log_sunlit_transition,
 )
@@ -121,6 +146,14 @@ _GLIDE_ORBITS = 3.0  # [-] a drift's da is cut back to close the rest in no less
 _DIRECT_DL_FACTOR = 5.0  # [-] dl errors up to this many tolerances are corrected without a drift
 _DAY_S = 86400.0  # [s]
 _PLACEMENT_ITERATIONS = 6  # follower_orbit's mean/osculating correction (below a millimetre in two)
+_DRAG_MIN_ORBITS = 4.0  # [-] of data before the decay estimate is used (shorter fits are biased)
+_DRAG_JUMP_M = 0.1  # [m] a*da change between two samples that starts a new stretch (a burn unseen here)
+_DRAG_HOLD_FRACTION = 0.6  # [-] of the da and dl tolerances a drag cycle may use
+# [-] a drag cycle is corrected when da or dl, this many orbits ahead (about
+# when a correction's last burn fires), would be past this fraction of its
+# tolerance: just after the cycle's end, never at its turn
+_DRAG_LOOKAHEAD_ORBITS = 2.0
+_DRAG_TRIGGER_FRACTION = 0.7
 
 
 def mean_elements(r_m, v_mps, mu: float, req: float, j2: float) -> Optional[roe.MeanElements]:
@@ -287,6 +320,11 @@ class RoeFormationController(sysModel.SysModel):
         self.scStateInMsgB = messaging.SCStatesMsgReader()  # follower
         self.eclipseInMsgB = messaging.EclipseMsgReader()
         self.forceInMsg = messaging.CmdForceInertialMsgReader()  # "continuous": meanOEFeedback's request
+        self.deltaVOutMsg = messaging.DataStorageStatusMsg()  # Vizard gauges (module docstring)
+        self.separationRadialOutMsg = messaging.DataStorageStatusMsg()
+        self.separationTransverseOutMsg = messaging.DataStorageStatusMsg()
+        self.separationNormalOutMsg = messaging.DataStorageStatusMsg()
+        self.minSeparationOutMsg = messaging.DataStorageStatusMsg()
 
         # Wired by build_roe_formation.
         self.extForceEffectorB = None
@@ -302,6 +340,8 @@ class RoeFormationController(sysModel.SysModel):
         self.g0 = g0_mps2  # [m/s^2]
         self.dryMass = dry_mass_kg  # [kg]
         self.sunlitThreshold = eclipse_sunlit_threshold  # [-]
+        self.dvBudgetMps = 0.0  # [m/s] shared-tank total, for the Vizard gauge (set by build_roe_formation)
+        self.separationCapacityKm, self.marginCapacityM = gauge_scales(config)  # [km], [m]
 
         self.state = HOLDING
         self._lastT: Optional[float] = None  # [s]
@@ -321,6 +361,12 @@ class RoeFormationController(sysModel.SysModel):
 
         self.lastRoeM = np.full(6, np.nan)  # [m]
         self.lastErrorM = np.full(6, np.nan)  # [m]
+        self.estimateDrag = self.controlLaw == "impulsive" and config.differential_drag
+        self.dragEstimator: Optional[roe.DifferentialDragEstimator] = None  # made on the first measurement
+        self._dragEstimate: Optional[float] = None  # [1/s] the latest fit of da_dot
+        self._dragRate: Optional[float] = None  # [1/s] the da_dot the guidance plans with (None: none)
+        self._thrustLastTick = False
+        self._chiefA = math.nan  # [m] the chief's mean semi-major axis at the last measurement
 
         self.logThinner = LogThinner()
         self.tLog: list = []
@@ -333,6 +379,7 @@ class RoeFormationController(sysModel.SysModel):
         self.targetIndexLog: list = []
         self.commandedForceLog: list = []  # [N] "continuous"
         self.appliedForceLog: list = []  # [N] "continuous"
+        self.dragRateLog: list = []  # [m/day] estimated and compensated decay of a*da
 
     # -- helpers ----------------------------------------------------------
     def Reset(self, CurrentSimNanos):
@@ -343,6 +390,10 @@ class RoeFormationController(sysModel.SysModel):
         self._pending = []
         self._firing = None
         self._lastRefreshT = None
+        self.dragEstimator = None
+        self._dragEstimate = None
+        self._dragRate = None
+        self._thrustLastTick = False
         if self.extForceEffectorB is not None:
             self.extForceEffectorB.extForce_N = [0.0, 0.0, 0.0]
 
@@ -368,6 +419,9 @@ class RoeFormationController(sysModel.SysModel):
         self.targetIndexLog.append(self._targetIndex if self._targetIndex is not None else 0)
         self.commandedForceLog.append(self._peakCommandSinceLog)
         self.appliedForceLog.append(self._peakAppliedSinceLog)
+        to_m_per_day = self._chiefA * _DAY_S  # [m*s/day] da_dot [1/s] to a*da_dot [m/day]
+        self.dragRateLog.append((self._dragEstimate * to_m_per_day if self._dragEstimate is not None else math.nan,
+                                 self._dragRate * to_m_per_day if self._dragRate is not None else 0.0))
         self._loggedState = HOLDING
         self._peakCommandSinceLog = 0.0
         self._peakAppliedSinceLog = 0.0
@@ -411,6 +465,12 @@ class RoeFormationController(sysModel.SysModel):
             burns = [b for b in correction.burns if b.magnitude > 0.0]
             return correction, roe.schedule_burns(burns, u, n, max_dv, min_lead_s=0.5 * longest_s + 1.0,
                                                   min_separation_s=1.5 * longest_s)
+
+        if self.dragEstimator is not None:
+            self._dragEstimate = self.dragEstimator.rate()
+            significant = self._dragEstimate is not None and roe.drag_is_significant(
+                self._dragEstimate, tolerance[1], self.config.correction_window_days * _DAY_S, n)
+            self._dragRate = self._dragEstimate if significant else None
 
         error_dl = roe.wrap_pi(float(roe_now[1] - target[1]))
         next_check_s = period_s * _HOLDING_CHECK_FRACTION
@@ -458,7 +518,13 @@ class RoeFormationController(sysModel.SysModel):
         planned, and along-track burns over the next two orbits that set
         da, the e vector and dl together (:func:`.roe.in_plane_sequence`),
         so an e-vector correction does not throw dl out. Falls back to the
-        drift plan when a burn would be longer than a part may be."""
+        drift plan when a burn would be longer than a part may be.
+
+        With a differential-drag decay to plan with (``self._dragRate``),
+        da and dl are also corrected when either, about as far ahead as a
+        correction takes, would be past its share of a drag cycle, and the
+        sequence sets them for the next cycle, decay included
+        (:func:`.roe.drag_hold_cycle`)."""
         a = chief.a
         period_s = 2.0 * math.pi / n
         longest_s = period_s * self.config.max_burn_fraction_of_orbit  # [s]
@@ -470,6 +536,14 @@ class RoeFormationController(sysModel.SysModel):
         scheduled = [(when, burn) for when, burn in scheduled if burn.kind == "out-of-plane"]
         needs_in_plane = (abs(error[0]) > tolerance[0] or math.hypot(error[2], error[3]) > tolerance[2]
                           or abs(error[1]) > tolerance[1])
+        da_dot = self._dragRate if self._dragRate is not None else 0.0  # [1/s]
+        cycle = roe.drag_hold_cycle(da_dot, tolerance[0], tolerance[1], n, _DRAG_HOLD_FRACTION)
+        if da_dot != 0.0 and not needs_in_plane:
+            ahead = roe.propagate_roe(roe_now, chief, _DRAG_LOOKAHEAD_ORBITS * period_s, self.j2, self.req,
+                                      self.mu, da_dot) - target
+            ahead[1] = roe.wrap_pi(float(ahead[1]))
+            needs_in_plane = (abs(ahead[0]) > _DRAG_TRIGGER_FRACTION * tolerance[0]
+                              or abs(ahead[1]) > _DRAG_TRIGGER_FRACTION * tolerance[1])
         if not needs_in_plane:
             return correction, scheduled
         u1 = math.atan2(-error[3], -error[2]) if math.hypot(error[2], error[3]) > 0.0 else u + math.pi / 2.0
@@ -484,8 +558,9 @@ class RoeFormationController(sysModel.SysModel):
                 lead_s += period_s
             times += [lead_s, lead_s + period_s]
             places += [location, location]
-        sequence = roe.in_plane_sequence(-float(error[0]), -float(error[2]), -float(error[3]), -float(error[1]),
-                                         float(roe_now[0]), times, places, a, n)
+        sequence = roe.in_plane_sequence(cycle.da_bias - float(error[0]), -float(error[2]), -float(error[3]),
+                                         cycle.dl_offset - float(error[1]), float(roe_now[0]), times, places, a,
+                                         n, da_dot)
         max_dv = longest_s * self.thrustN / mass_kg  # [m/s]
         if any(burn.magnitude > max_dv for _, burn in sequence):
             return plan(roe_now, stop_drift=False)
@@ -604,6 +679,13 @@ class RoeFormationController(sysModel.SysModel):
         error[1] = roe.wrap_pi(float(error[1]))
         self.lastRoeM = roe_now * a
         self.lastErrorM = error * a
+        self._chiefA = a
+        if self.estimateDrag:
+            if self.dragEstimator is None:
+                self.dragEstimator = roe.DifferentialDragEstimator(
+                    window_s=self.config.drag_estimate_window_days * _DAY_S,
+                    min_span_s=_DRAG_MIN_ORBITS * 2.0 * math.pi / n, jump_da=_DRAG_JUMP_M / a)
+            self.dragEstimator.add(t, float(roe_now[0]), new_segment=self._thrustLastTick)
 
         u = PhasingKeepingController._argument_of_latitude(rB, vB)
         in_sun = True
@@ -628,10 +710,42 @@ class RoeFormationController(sysModel.SysModel):
         if self.scObjectB is not None:
             self.scObjectB.hub.mHub = new_mass
         held_by_station_keeping = tracker.burnOn or self.thruster.firing_owned_by(tracker)
+        self._thrustLastTick = thrust > 0.0 or held_by_station_keeping
         if self.extForceEffectorB is not None and not held_by_station_keeping:
             self.extForceEffectorB.extForce_N = (thrust * self._direction).tolist()
 
-        self._log(t, tracker.propellant, roe.min_radial_normal_separation(roe_now, a))
+        margin_m = roe.min_radial_normal_separation(roe_now, a)
+        self._publish(CurrentSimNanos, rA, vA, rB, vB, margin_m)
+        self._log(t, tracker.propellant, margin_m)
+
+    def _publish(self, now_ns: int, rA, vA, rB, vB, margin_m: float) -> None:
+        """The Vizard gauges (module docstring)."""
+        rho, _ = orbitalMotion.rv2hill(rA, vA, rB, vB)
+        gauges = [(self.deltaVOutMsg, self._cumulativeDv, self.dvBudgetMps)]  # [m/s]
+        gauges += [(msg, float(x) / 1000.0, self.separationCapacityKm)  # [km]
+                   for msg, x in zip((self.separationRadialOutMsg, self.separationTransverseOutMsg,
+                                      self.separationNormalOutMsg), rho)]
+        gauges.append((self.minSeparationOutMsg, margin_m, self.marginCapacityM))  # [m]
+        for msg, value, capacity in gauges:
+            payload = messaging.DataStorageStatusMsgPayload()
+            payload.storageCapacity = capacity
+            payload.storageLevel = _clamp_magnitude(value, capacity)
+            msg.write(payload, now_ns, self.moduleID)
+
+
+def gauge_scales(config: RoeFormationConfig):
+    """(separation scale [km], approach scale [m]) for the Vizard gauges:
+    twice the largest radial (|a da| + |a de|), along-track (|a dl| +
+    2 |a de|) or cross-track (|a di|) extent any target asks for, and
+    twice the largest closest approach any target has; at least 0.1 km
+    and 10 m, so a formation of zeros still draws."""
+    extent_m, margin_m = 0.0, 0.0  # [m]
+    for target in config.targets:
+        da, dl, dex, dey, dix, diy = target.roe_m
+        de, di = math.hypot(dex, dey), math.hypot(dix, diy)  # [m]
+        extent_m = max(extent_m, abs(da) + de, abs(dl) + 2.0 * de, di)
+        margin_m = max(margin_m, roe.min_radial_normal_separation(target.roe_m, 1.0))
+    return max(2.0 * extent_m / 1000.0, 0.1), max(2.0 * margin_m, 10.0)  # [km], [m]
 
 
 def build_roe_formation(scSim, task_name: str, tag: str, mu: float, chief_sc_object, follower_sc_object,
@@ -680,6 +794,7 @@ def build_roe_formation(scSim, task_name: str, tag: str, mu: float, chief_sc_obj
     controller.altitudeControllerB = station_keeping
     controller.thruster = station_keeping.thruster
     controller.chiefName = chief_sc_object.ModelTag
+    controller.dvBudgetMps = station_keeping.dvBudgetMps  # [m/s] the shared tank's total
     # The ROE controller holds the relative semi-major axis, the chief's
     # reboosts included: the follower's station keeping never fires on its
     # own (formation follower with nothing to follow).
@@ -710,6 +825,9 @@ def result_series(name: str, controller: RoeFormationController) -> List[TimeSer
         TimeSeries(f"{prefix}.target_index", t_s, ("target_index",),
                    np.asarray(controller.targetIndexLog, dtype=float), units="-"),
     ]
+    if controller.estimateDrag:
+        series.append(TimeSeries(f"{prefix}.drag_da_rate", t_s, ("estimated", "compensated"),
+                                 np.asarray(controller.dragRateLog, dtype=float).reshape(-1, 2), units="m/day"))
     if controller.controlLaw == "continuous":
         series.append(TimeSeries(f"{prefix}.force", t_s, ("commanded", "applied"),
                                  np.column_stack([controller.commandedForceLog, controller.appliedForceLog])

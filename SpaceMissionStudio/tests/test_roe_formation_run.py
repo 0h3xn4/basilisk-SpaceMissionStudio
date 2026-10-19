@@ -21,8 +21,9 @@ and Moon, drag, a 0.05 N thruster. Each check compares the flight with
 what the guidance promises: the follower placed at the requested ROE, a
 hold inside its tolerances, a reconfiguration from 2 km behind to a
 passively safe helix (impulsive: for no less than the closed-form least
-delta-V; continuous: Basilisk's meanOEFeedback), and the results' series
-and events."""
+delta-V; continuous: Basilisk's meanOEFeedback), the results' series
+and events, and a follower with three times the chief's drag area held
+with and without the differential-drag compensation."""
 
 import math
 from pathlib import Path
@@ -39,9 +40,10 @@ APPROACH_M = [0.0, -2000.0, 0.0, 0.0, 0.0, 0.0]  # [m] 2 km behind
 HELIX_M = [0.0, 0.0, 0.0, 300.0, 0.0, 300.0]  # [m] parallel e/i vectors, 300 m
 HOLD_M = [0.0, -500.0, 0.0, 200.0, 0.0, 200.0]  # [m]
 DAY_S = 86400.0  # [s]
+HEAVY_DRAG_AREA_M2 = 3.0  # [m^2] the follower's, three times the chief's: a*da decays about 3.5 m a day
 
 
-def _fly(law, days, targets, start_m):
+def _fly(law, days, targets, start_m, follower_drag_area_m2=None, **roe_fields):
     from Basilisk.utilities import orbitalMotion
 
     from spacemissionstudio.engine import roe_formation
@@ -52,7 +54,10 @@ def _fly(law, days, targets, start_m):
     chief, follower = scenario.spacecraft
     follower.phasing_keeping = None
     follower.roe_formation = RoeFormationConfig(chief_spacecraft=chief.name, control_law=law,
-                                                targets=[RoeTargetConfig(day, roe) for day, roe in targets])
+                                                targets=[RoeTargetConfig(day, roe) for day, roe in targets],
+                                                **roe_fields)
+    if follower_drag_area_m2 is not None:
+        follower.drag_area_m2 = follower_drag_area_m2
     follower.orbit = roe_formation.follower_orbit(chief.orbit, start_m, orbitalMotion.REQ_EARTH * 1000.0,
                                                   orbitalMotion.J2_EARTH)
     scenario.sim_settings.duration_days = days
@@ -73,6 +78,30 @@ def _after(series, day):
 @pytest.fixture(scope="module")
 def hold():
     return _fly("impulsive", 2.0, [(0.0, HOLD_M)], HOLD_M)
+
+
+@pytest.fixture(scope="module")
+def heavy_hold():
+    return _fly("impulsive", 3.0, [(0.0, HOLD_M)], HOLD_M, HEAVY_DRAG_AREA_M2)
+
+
+@pytest.fixture(scope="module")
+def heavy_hold_uncompensated():
+    return _fly("impulsive", 3.0, [(0.0, HOLD_M)], HOLD_M, HEAVY_DRAG_AREA_M2, differential_drag=False)
+
+
+@pytest.fixture(scope="module")
+def heavy_drift():
+    """The heavy follower left alone (tolerances no error reaches): the
+    decay as Basilisk's drag, with the bundled real space weather, makes it."""
+    return _fly("impulsive", 2.0, [(0.0, HOLD_M)], HOLD_M, HEAVY_DRAG_AREA_M2, tolerance_m=[1.0e6] * 4)
+
+
+def _burn_arcs(result, name):
+    """How many times the logged state turns to a burn."""
+    state = _series(result, name, "state").data[:, 0]
+    burning = (state == 2) | (state == 3)  # IN_PLANE_BURN, OUT_OF_PLANE_BURN
+    return int(np.count_nonzero(burning[1:] & ~burning[:-1]) + int(burning[0]))
 
 
 @pytest.fixture(scope="module")
@@ -158,3 +187,51 @@ def test_the_results_have_the_expected_series_and_events(reconfiguration):
     assert {"ROE burn (in-plane)", "ROE burn (out-of-plane)"} <= labels
     assert any(e.kind == MODE and e.label == "ROE drift" for e in events)
     assert all("delta_v" in dict(e.quantities) for e in events if e.label.startswith("ROE burn"))
+
+
+def test_the_differential_drag_estimate_is_the_decay_basilisk_flies(heavy_hold, heavy_drift):
+    """The decay the controller estimates while holding (from half a day
+    on, once four orbits are in) is within 8 % of the one a straight line
+    through the left-alone follower's mean a*da gives over two days
+    (about -3.5 m a day), and the guidance compensates all of it."""
+    _, drift_name, drift = heavy_drift
+    roe_series = _series(drift, drift_name, "roe")
+    assert _series(drift, drift_name, "delta_v").data[-1, 0] == 0.0  # left alone
+    flown_m_per_day = np.polyfit(roe_series.time_s / DAY_S, roe_series.data[:, 0], 1)[0]
+    assert -4.5 < flown_m_per_day < -2.5  # [m/day]
+    _, name, result = heavy_hold
+    rate = _after(_series(result, name, "drag_da_rate"), 0.5)
+    assert np.all(np.abs(rate[:, 0] / flown_m_per_day - 1.0) < 0.08)
+    assert np.array_equal(rate[:, 1], rate[:, 0])
+
+
+def test_compensating_differential_drag_keeps_the_hold_in_tolerance(heavy_hold, heavy_hold_uncompensated):
+    """With the compensation the heavy follower's mean longitude stays
+    inside its 20 m tolerance after the first half day (13 m measured),
+    the e and i vectors as in the twin hold, the relative semi-major axis
+    within three times its; without it the mean longitude leaves the
+    tolerance (27 m measured). It also takes less delta-V (0.036 against
+    0.044 m/s over 3 days measured) and at most 70 % of the burns (30
+    against 60)."""
+    _, name, result = heavy_hold
+    error = np.abs(_after(_series(result, name, "roe_error"), 0.5))
+    assert np.max(error[:, 1]) <= TOLERANCE_M[1]
+    assert np.max(np.hypot(error[:, 2], error[:, 3])) <= 1.2 * TOLERANCE_M[2]
+    assert np.max(np.hypot(error[:, 4], error[:, 5])) <= TOLERANCE_M[3]
+    assert np.max(error[:, 0]) <= 3.0 * TOLERANCE_M[0]
+    _, other_name, uncompensated = heavy_hold_uncompensated
+    assert np.max(np.abs(_after(_series(uncompensated, other_name, "roe_error"), 0.5)[:, 1])) > TOLERANCE_M[1]
+    assert (_series(result, name, "delta_v").data[-1, 0]
+            < _series(uncompensated, other_name, "delta_v").data[-1, 0])
+    assert _burn_arcs(result, name) <= 0.7 * _burn_arcs(uncompensated, other_name)
+    assert f"{other_name}.roe_formation.drag_da_rate" not in uncompensated.series
+
+
+def test_twin_spacecraft_compensate_no_drag(hold):
+    """Template 05's sister satellites feel the same drag: the estimate
+    stays under a tenth of a metre a day and nothing is compensated, so
+    the hold flies as it did before the compensation existed."""
+    _, name, result = hold
+    rate = _series(result, name, "drag_da_rate").data
+    assert np.all(rate[:, 1] == 0.0)
+    assert np.nanmax(np.abs(_after(_series(result, name, "drag_da_rate"), 0.5)[:, 0])) < 0.1  # [m/day]

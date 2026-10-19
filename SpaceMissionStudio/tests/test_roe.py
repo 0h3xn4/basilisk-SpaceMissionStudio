@@ -27,9 +27,13 @@ import numpy as np
 import pytest
 
 from spacemissionstudio.engine.roe import (
+    DifferentialDragEstimator,
     MeanElements,
     burn_effect,
     deputy_elements_from_roe,
+    drag_column,
+    drag_hold_cycle,
+    drag_is_significant,
     in_plane_at,
     in_plane_pair,
     in_plane_sequence,
@@ -334,3 +338,168 @@ def test_the_in_plane_sequence_also_lands_dl():
             state = state + burn_effect(burn, CHIEF.a, N)
             clock = when
         assert state * CHIEF.a == pytest.approx([0.0, 0.0, 0.0, 300.0, 0.0, 300.0], abs=1e-6)
+
+
+# -- differential drag -----------------------------------------------------------
+
+DA_DOT = -3.5 / CHIEF.a / 86400.0  # [1/s] a*da decaying 3.5 m a day (a 400 kg follower with 3x the chief's area)
+
+
+def _with_drag_kepler(state, dt, da_dot):
+    """Exact Keplerian ROE motion over ``dt`` [s] with da growing at ``da_dot``."""
+    state = np.array(state, dtype=float)
+    state[1] += -1.5 * N * (state[0] * dt + 0.5 * da_dot * dt ** 2)
+    state[0] += da_dot * dt
+    return state
+
+
+def test_without_j2_drag_moves_dl_by_three_quarters_n_da_dot_t_squared():
+    """With J2 off, a steady decay moves da by da_dot t and dl by
+    -3/4 n da_dot t^2 on top of the Keplerian drift."""
+    dt = 86400.0  # [s]
+    later = propagate_roe(ROE_M / CHIEF.a, CHIEF, dt, 0.0, R_EQ, MU, da_dot=DA_DOT)
+    assert later * CHIEF.a == pytest.approx(_with_drag_kepler(ROE_M / CHIEF.a, dt, DA_DOT) * CHIEF.a, abs=1e-6)
+
+
+def test_the_drag_column_matches_a_stepped_j2_propagation():
+    """Over a day under J2, the drag column's change of every ROE matches
+    stepping the J2 STM in one-minute steps with da growing between them
+    (the chief's elements moved on with the secular rates): the decay's
+    effect, with and without it, within 0.5 % of its largest part."""
+    step, steps = 60.0, 1440  # [s], one day
+    def stepped(da_dot):
+        state, chief = ROE_M / CHIEF.a, CHIEF
+        for _ in range(steps):
+            state = j2_stm(chief, step, J2, R_EQ, MU) @ state
+            state[0] += da_dot * step
+            chief = _secularly(chief, step)
+        return state
+    effect = (stepped(DA_DOT) - stepped(0.0)) * CHIEF.a
+    predicted = DA_DOT * drag_column(CHIEF, step * steps, J2, R_EQ, MU) * CHIEF.a
+    assert predicted == pytest.approx(effect, abs=5e-3 * np.max(np.abs(effect)))
+    assert predicted[0] == pytest.approx(-3.5, rel=1e-9)
+
+
+def _decaying_da(days, rate_m_per_day, jumps=(), ripple_m=0.03, step_s=60.0):
+    """Mean a*da samples [m]: a steady decay, an orbit-period ripple of
+    ``ripple_m``, and a step of each ``(time [s], size [m])`` in ``jumps``."""
+    t = np.arange(0.0, days * 86400.0, step_s)
+    da_m = rate_m_per_day * t / 86400.0 + ripple_m * np.sin(N * t + 0.4)
+    for when, size in jumps:
+        da_m = da_m + np.where(t >= when, size, 0.0)
+    return t, da_m
+
+
+def _estimator(**overrides):
+    fields = dict(window_s=86400.0, min_span_s=4.0 * 2.0 * math.pi / N, jump_da=0.1 / CHIEF.a)
+    fields.update(overrides)
+    return DifferentialDragEstimator(**fields)
+
+
+def test_the_estimator_finds_the_decay_across_burns():
+    """Burns that move da by metres (told to the estimator) and a chief
+    reboost it is not told about (a 13 m jump) do not throw the fit: over
+    a day the decay comes out within 1 %."""
+    t, da_m = _decaying_da(1.0, -3.5, jumps=[(20000.0, 2.0), (45000.0, -1.5), (70000.0, 13.0)])
+    estimator = _estimator()
+    for when, value in zip(t, da_m):
+        estimator.add(when, value / CHIEF.a, new_segment=when in (20000.0, 45000.0))
+    assert estimator.rate() * CHIEF.a * 86400.0 == pytest.approx(-3.5, rel=0.01)
+
+
+def test_the_estimator_waits_for_four_orbits_of_data():
+    """No estimate until the stretches together span four orbits."""
+    period = 2.0 * math.pi / N  # [s]
+    t, da_m = _decaying_da(5.0 * period / 86400.0, -3.5)
+    estimator = _estimator()
+    for when, value in zip(t, da_m):
+        estimator.add(when, value / CHIEF.a)
+        if when < 4.0 * period - 60.0:
+            assert estimator.rate() is None
+    assert estimator.rate() is not None
+
+
+def test_the_estimator_forgets_what_left_its_window():
+    """When the decay changes, a day later only the new one is fitted."""
+    t, da_m = _decaying_da(2.0, -3.5)
+    da_m = np.where(t >= 86400.0, -3.5 + (-1.0) * (t - 86400.0) / 86400.0, da_m)
+    estimator = _estimator()
+    for when, value in zip(t, da_m):
+        estimator.add(when, value / CHIEF.a)
+    assert estimator.rate() * CHIEF.a * 86400.0 == pytest.approx(-1.0, rel=0.02)
+
+
+def test_the_estimator_keeps_one_sample_a_minute():
+    """Ticks closer together than the sample interval are skipped, unless
+    they start a new stretch."""
+    estimator = _estimator()
+    for when in np.arange(0.0, 600.0, 10.0):
+        estimator.add(when, 0.0)
+    assert len(estimator._t) == 10
+    estimator.add(605.0, 0.0, new_segment=True)
+    assert len(estimator._t) == 11 and estimator._segment[-1] == 1
+
+
+def test_only_a_decay_that_matters_is_compensated():
+    """The decay is compensated when it would move dl by more than half
+    its tolerance over the window: 3.5 m a day would move it 800 m in a
+    day, the scatter twin spacecraft show (0.03 m a day) 7 m, under the
+    20 m tolerance's half."""
+    tolerance_dl = 20.0 / CHIEF.a
+    assert drag_is_significant(DA_DOT, tolerance_dl, 86400.0, N)
+    assert not drag_is_significant(DA_DOT * 0.03 / 3.5, tolerance_dl, 86400.0, N)
+    assert drag_is_significant(-DA_DOT, tolerance_dl, 86400.0, N)
+
+
+@pytest.mark.parametrize("rate_m_per_day", [-3.5, 0.9, -40.0])
+def test_a_drag_cycle_swings_dl_evenly_inside_its_tolerances(rate_m_per_day):
+    """Started from the cycle's da and dl, the Keplerian motion with the
+    decay keeps dl and da inside six tenths of their tolerances for the
+    whole cycle (2 t*), dl back where it started and da on the other
+    side, so the next correction changes da by 2 da_dot t*. At 40 m a day
+    the da tolerance limits the cycle, not dl."""
+    da_dot = rate_m_per_day / CHIEF.a / 86400.0
+    tolerance_da, tolerance_dl = 2.0 / CHIEF.a, 20.0 / CHIEF.a
+    cycle = drag_hold_cycle(da_dot, tolerance_da, tolerance_dl, N)
+    state = np.array([cycle.da_bias, cycle.dl_offset, 0.0, 0.0, 0.0, 0.0])
+    peak_dl = peak_da = 0.0
+    for dt in np.linspace(0.0, 2.0 * cycle.half_cycle_s, 401):
+        now = _with_drag_kepler(state, dt, da_dot)
+        peak_dl, peak_da = max(peak_dl, abs(now[1])), max(peak_da, abs(now[0]))
+    assert peak_dl <= 0.6 * tolerance_dl * (1.0 + 1e-9)
+    assert peak_da <= 0.6 * tolerance_da * (1.0 + 1e-9)
+    end = _with_drag_kepler(state, 2.0 * cycle.half_cycle_s, da_dot)
+    assert end[1] == pytest.approx(cycle.dl_offset, abs=1e-12)
+    assert end[0] == pytest.approx(-cycle.da_bias, abs=1e-15)
+    limited_by_da = abs(cycle.da_bias) == pytest.approx(0.6 * tolerance_da)
+    assert limited_by_da == (rate_m_per_day == -40.0)
+
+
+def test_no_decay_means_no_drag_cycle():
+    """With no decay the cycle changes nothing and never ends."""
+    cycle = drag_hold_cycle(0.0, 2.0 / CHIEF.a, 20.0 / CHIEF.a, N)
+    assert (cycle.da_bias, cycle.dl_offset, cycle.half_cycle_s) == (0.0, 0.0, math.inf)
+
+
+def test_the_in_plane_sequence_lands_dl_under_drag():
+    """With the decay passed in, the burns bring da, the e vector and dl
+    where they were asked to by the last burn, stepped through with the
+    decay acting between them. Planned without it, the two orbits of
+    decay leave da 0.4 m and dl nearly 3 m off (``3/4 n da_dot t^2``)."""
+    roe_now = np.array([0.5, 12.0, -6.0, 300.0, 0.0, 300.0]) / CHIEF.a
+    wanted = np.array([1.0, -12.0, 0.0, 300.0, 0.0, 300.0]) / CHIEF.a
+    period = 2.0 * math.pi / N
+    places = [0.0, math.pi]
+    times = [600.0 + (u / (2.0 * math.pi) + k) * period for k in range(2) for u in places]
+    change = wanted - roe_now
+    def flown(da_dot_planned):
+        sequence = in_plane_sequence(change[0], change[2], change[3], change[1], roe_now[0], times, places * 2,
+                                     CHIEF.a, N, da_dot=da_dot_planned)
+        state, clock = roe_now.copy(), 0.0
+        for when, burn in sequence:
+            state = _with_drag_kepler(state, when - clock, DA_DOT) + burn_effect(burn, CHIEF.a, N)
+            clock = when
+        return state * CHIEF.a
+    assert flown(DA_DOT) == pytest.approx(wanted * CHIEF.a, abs=1e-6)
+    unplanned = flown(0.0) - wanted * CHIEF.a  # [m]
+    assert abs(unplanned[0]) > 0.3 and abs(unplanned[1]) > 2.5  # [m]

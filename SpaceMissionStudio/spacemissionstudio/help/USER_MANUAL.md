@@ -512,8 +512,16 @@ is on target 1.5 days after the switch for 0.56 m/s, then holds within
 target in 0.4 days and within 3 m from day 2, for 1.85 m/s in 4 days.
 
 The chief must be near-circular (eccentricity up to 0.01) and inclined,
-around Earth with J2; one run is at most 100 days; the guidance has no
-differential drag; a follower cannot also have phasing keeping. See
+around Earth with J2; one run is at most 100 days; a follower cannot
+also have phasing keeping.
+
+**Differential drag.** When the two spacecraft feel different drag, the
+impulsive law measures how fast their relative semi-major axis decays
+(**Compensate differential drag**, on by default) and sets it so the
+along-track offset swings evenly about its target between corrections.
+With three times the chief's drag area on template 05's follower, a
+3-day hold stays within 13 m along-track for 30 burns and 0.036 m/s,
+against 27 m, 60 burns and 0.044 m/s without it. See
 [Fly a formation with relative orbital elements](docs/user-manual/roe-formation.md).
 
 ### Data handling and the downlink

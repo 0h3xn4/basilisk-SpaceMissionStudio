@@ -392,6 +392,8 @@ Formation flying in relative orbital elements (ROE): this (follower) spacecraft 
 | `correction_window_days` | float | `1.0` | [day] "impulsive": time to bring the mean longitude back by drifting |
 | `max_drift_m` | float | `100.0` | [m] "impulsive": largest a*/da/ held while drifting |
 | `max_burn_fraction_of_orbit` | float | `0.1` |  |
+| `differential_drag` | bool | `True` |  |
+| `drag_estimate_window_days` | float | `1.0` | [day] "impulsive": how far back the decay is fitted |
 | `continuous_gain` | float | `25000.0` |  |
 | `target_refresh_s` | float | `600.0` | [s] "continuous": how often the element target follows the chief's J2 drift |
 

@@ -77,6 +77,36 @@ target, use the generator.
 | Impulsive burns (planned with the J2 model), default | When the mean ROE leave their **Tolerances [m]**, along-track burns set a·δa and the eccentricity vector, a cross-track burn the inclination vector, and a drift (a small a·δa, held for about the **Correction window [days]**, no more than **Max drift [m]**) moves the along-track offset. Burns are planned with the J2 state transition matrix and fired only in sunlight; one in eclipse waits an orbit. | On target 1.5 days after the switch, for 0.56 m/s; then 0.026 m/s in 1.5 days to hold it within 13 m. |
 | Continuous (Basilisk meanOEFeedback) | Basilisk's mean-element feedback, aimed at the elements the ROE target gives, which are recomputed every **Target refresh [s]**. Fires most of the time. | On target 0.4 days after the switch and within 3 m one day after it, for 1.85 m/s in 4 days. |
 
+## Differential drag
+
+Two spacecraft with different drag (mass, area or drag coefficient) see
+their relative semi-major axis decay at a steady rate, and the
+along-track offset runs away faster and faster. With **Compensate
+differential drag** ticked (the default; impulsive law only), the
+guidance measures that decay from the mean ROE over the last **Drag
+estimate window [days]**, once four orbits of data are in. When it is
+large enough to matter (it would move the along-track offset by more
+than half its tolerance over the **Correction window [days]**), each
+small correction sets a·δa a little to the side the drag takes it from:
+the offset then swings evenly about its target, within six tenths of its
+tolerance, and the next correction comes when the swing ends. The
+estimate comes from the measurements, not from an atmosphere model, so
+it follows the real space weather and any attitude-dependent area.
+
+Measured with template 05's two 400 kg satellites at 550 km, the
+follower given three times the chief's drag area (a·δa decays 3.5 m a
+day), holding a 200 m helix 500 m behind for 3 days:
+
+| | Compensated | Not compensated |
+|---|---|---|
+| Along-track error after half a day | at most 13 m | up to 27 m, over its 20 m tolerance |
+| Burns | 30 | 60 |
+| Delta-V | 0.036 m/s | 0.044 m/s |
+
+Twin spacecraft see a decay too small to compensate (under 0.1 m a day),
+and fly as without the setting. The **Explain** tab says when a
+follower's drag coefficient × area / dry mass differs from its chief's.
+
 Neither fires in eclipse. Both fire the follower's station-keeping
 thruster; the follower's station keeping itself never fires, because the
 ROE controller already holds the relative semi-major axis, the chief's
@@ -88,10 +118,17 @@ reboosts included.
   measures; `.roe_error`: the same minus the target.
 * `.min_rn_separation`: the closest radial/cross-track approach [m].
 * `.state`, `.delta_v`, `.target_index`; `.force` for the continuous law.
+* `.drag_da_rate` (impulsive law with **Compensate differential drag**):
+  the estimated decay of a·δa and the part the guidance compensates
+  [m/day]; empty until four orbits of data are in, and 0 compensated
+  while the decay is too small to matter.
 * **Events**: each burn ("ROE burn (in-plane)", "ROE burn
   (out-of-plane)", "ROE control firing") and each drift.
 * **Explain**: the e/i-vector diagram, one colour per target: the two
   vectors and the path around the chief in the radial/cross-track plane.
+* **Vizard**: the follower's panels show **ROE Delta-V**, the
+  separation from the chief (**R**, **T** and **N vs** the chief, in km)
+  and **R/N gap**, the closest radial/cross-track approach in metres.
 
 ## Limits
 
@@ -99,9 +136,10 @@ reboosts included.
   equatorial, around Earth with J2 in the gravity model (degree 2 or
   more).
 * One run of at most 100 days.
-* The guidance has no differential drag: two spacecraft with different
-  ballistic coefficients drift apart, and the controller corrects it as
-  an error.
+* Differential drag is compensated by the impulsive law only, as a
+  steady decay: its changes within a day (day and night, solar activity)
+  are corrected as errors, and so is all of it during a drift. The
+  continuous law corrects it by feedback.
 * A follower cannot have both an ROE formation and phasing keeping.
 
 **More detail:** User Manual section 6,

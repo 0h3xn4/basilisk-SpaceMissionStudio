@@ -20,6 +20,8 @@ keyboard-only use; iteration 7b): a sample at a time, ten at a time, to
 the run's ends and to the next or previous event, listed under View >
 Time Cursor and in Help > Keyboard Shortcuts; Alt+Backspace clears it."""
 
+import warnings
+
 import numpy as np
 import pytest
 from PySide6.QtCore import Qt
@@ -90,14 +92,23 @@ def test_the_cursor_goes_from_event_to_event(results):
 
 def test_the_keys_work_where_results_has_the_focus(results, qtbot):
     """Alt+Right and Alt+End reach the cursor from a widget inside Results."""
+    from PySide6.QtWidgets import QApplication
+
     widget, cursor = results
     with qtbot.waitExposed(widget):
         widget.show()
-    # A shortcut fires only in the active window. The offscreen platform
-    # activates a shown window; the macOS CI's cocoa platform may not.
-    widget.raise_()
-    widget.activateWindow()
-    qtbot.waitUntil(widget.isActiveWindow)
+    # A shortcut fires only in Qt's active window. Asking the window system
+    # (activateWindow) is not enough on macOS: activation is per application
+    # there, and the other test workers' windows, each its own process, can
+    # keep it from this one (CI, cocoa: not active within 5 s). Qt's own
+    # notion of the active window is what the shortcut map checks, so it is
+    # set directly. QApplication.setActiveWindow is deprecated (its
+    # replacement, activateWindow, is only a request to the window system) but
+    # still what sets that notion in Qt 6.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore", DeprecationWarning)
+        QApplication.setActiveWindow(widget)
+    assert QApplication.activeWindow() is widget
     target = widget.catalog
     target.setFocus()
     qtbot.keyClick(target, Qt.Key.Key_Right, Qt.KeyboardModifier.AltModifier)
