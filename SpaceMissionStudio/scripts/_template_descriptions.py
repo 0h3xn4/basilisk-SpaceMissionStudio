@@ -226,7 +226,9 @@ least-squares estimator, instead of using the true direction.
 
 What to look at:
 - sat-1.sun_heading_body_estimated settling near [0, 0, 1] as the +Z axis turns to the Sun.
-- Earth's shadow, from minute 10 to minute 44 of the orbit: every sensor reads zero, the estimate drops to [0, 0, 0] and the spacecraft holds its attitude. Out of the shadow the estimate is back at once.
+- Earth's shadow, minutes 10 to 44: every sensor reads zero, the estimate drops to [0, 0, 0] and the spacecraft \
+holds its attitude.
+- Out of the shadow, the estimate is back at once.
 - Accuracy depends on how many sensors are lit, as on real hardware.
 
 Try changing:
