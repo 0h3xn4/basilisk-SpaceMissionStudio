@@ -11062,3 +11062,20 @@ the Explain note; and three Basilisk runs (`tests/test_roe_formation_run.py`):
 the estimate within 8 % of the left-alone decay, the compensated hold
 inside its tolerances with less delta-V and at most 70 % of the burns of
 the uncompensated one, and the twins compensating nothing.
+
+## K-14, macOS: a keyboard test waited for an activation it could not get (2026-10-19)
+
+On PR #75's second commit the macOS CI failed
+`tests/gui/test_keyboard_cursor.py::test_the_keys_work_where_results_has_the_focus`:
+`qtbot.waitUntil(widget.isActiveWindow)` timed out after 5 s (it passed on
+the PR's first commit). The test checks that Alt+Right and Alt+End reach
+the time cursor from a widget inside Results, and a shortcut fires only in
+Qt's active window. The test asked the window system for activation
+(`activateWindow`), but on macOS activation belongs to an application, and
+pytest-xdist's workers are four applications showing windows at once:
+which one is frontmost depends on the others, not on this test. The test
+now sets Qt's own active window (`QApplication.setActiveWindow`, deprecated
+in Qt 6 but still the call that sets it; its warning is silenced at that
+one call) and checks it took. Linux's offscreen platform activates every
+shown window, so the failure cannot be reproduced here; the next macOS CI
+runs are the evidence. SRelD K-14 records it.
