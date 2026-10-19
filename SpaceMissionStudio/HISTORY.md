@@ -11313,3 +11313,38 @@ pool is separate from Basilisk's `spiceInterface`, so the test loads the
 leap seconds and DE430 into it. The Mars test fails on the previous code.
 
 **Records.** SRelD K-16, CHANGELOG, capabilities.
+
+## K-17: coarse sun sensors saw the Sun in Earth's shadow (2026-10-19)
+
+Found while reading how the tool builds its coarse sun sensors, to add
+Earth albedo to them. Basilisk's `coarseSunSensor` takes the eclipse
+through `sunEclipseInMsg`, which is optional. Left unlinked, its
+`illuminationFactor` stays 1.0 (`coarseSunSensor.cpp`, lines 60 and 191),
+so the sensor reads the Sun through the planet. The tool linked the
+eclipse for thermal sensors and solar panels, but not for sun sensors:
+neither for the per-sensor telemetry (`attach_sensors`) nor for the
+cluster behind the CSS sun-heading estimate
+(`build_css_sun_estimation`).
+
+**Effect.** Template 14 is in Earth's shadow from minute 9.5 to minute
+44.3. A sensor read 0.73 there, and the estimated sun heading stayed
+within 0.01 deg of the true one. Real sensors see nothing.
+
+**Fix.** A spacecraft with a coarse sun sensor gets its eclipse message,
+and both kinds of sensor link it. In the shadow every sensor now reads
+0.0 and the estimate is [0, 0, 0]. Sun-safe pointing then holds the
+attitude, which here keeps +Z on the Sun, since that direction hardly
+moves in 35 min. The estimate is back with no error as soon as the
+spacecraft leaves the shadow.
+
+**Template 14.** It ran for 36 min and ended in the shadow, where its
+claim, an estimate near [0, 0, 1] at the end, no longer holds. It now
+runs for one orbit (96 min) and ends in sunlight. Its description and
+claim test now cover the shadow: the shadow's start and end, every
+sensor at zero inside it, and the estimate lost there and back after.
+The test fails on the previous code. The template wizard called the
+field of view "half-cone", but the value is the full field of view (the
+sensor editor's label, halved in `attach_sensors`). The wizard now says
+so.
+
+**Records.** SRelD K-17, CHANGELOG, capabilities, templates README.

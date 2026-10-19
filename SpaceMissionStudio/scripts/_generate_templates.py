@@ -853,7 +853,9 @@ def build_14_css_sun_heading_estimation() -> Scenario:
         # simpleNav's own truth sun direction uses (see engine.service.py's
         # SimulationServiceError guard for this exact requirement).
         gravity=GravityConfig(central_body="earth", central_body_degree=0, third_body_perturbers=["sun"]),
-        sim_settings=SimSettings(duration_days=2160.0 / 86400.0, dynamics_task_rate_s=1.0, integrator="rkf78"),
+        # one orbit: through Earth's shadow (minutes 9.5 to 44.3) and out
+        sim_settings=SimSettings(duration_days=5760.0 / 86400.0, dynamics_task_rate_s=1.0,  # [day], [s]
+                                 integrator="rkf78"),
         spacecraft=[
             SpacecraftConfig(
                 name="sat-1",

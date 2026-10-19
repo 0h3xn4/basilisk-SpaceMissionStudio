@@ -1125,7 +1125,7 @@ class SimulationService:
             sc_eclipse_out_msg = None
             needs_eclipse_for_this_sc = (
                 sc_config.power is not None or sc_config.station_keeping is not None or sc_config.enable_srp
-                or any(sensor.kind == "thermal" for sensor in sc_config.sensors)
+                or any(sensor.kind in ("thermal", "coarse_sun_sensor") for sensor in sc_config.sensors)
             )
             if (needs_eclipse_for_this_sc or self._record_eclipses) and self._eclipse_object is not None:
                 self._eclipse_object.addSpacecraftToModel(sc_object.scStateOutMsg)
@@ -1397,7 +1397,8 @@ class SimulationService:
                         )
                     css_sensors = [s for s in sc_config.sensors if s.kind == "coarse_sun_sensor"]
                     sun_direction_override_msg, css_devices = fsw.build_css_sun_estimation(
-                        self.scSim, dyn_task_name, sc_config.name, sc_object, css_sensors, self._sun_state_out_msg
+                        self.scSim, dyn_task_name, sc_config.name, sc_object, css_sensors, self._sun_state_out_msg,
+                        sun_eclipse_in_msg=sc_eclipse_out_msg,
                     )
                     # Must outlive build() -- see engine.fsw.build_css_sun_estimation's
                     # docstring and self._css_estimation_devices's own comment.

@@ -322,7 +322,7 @@ def _wrap_with_att_tracking_error(scSim, task_name: str, tag: str, att_ref_out_m
 
 
 def build_css_sun_estimation(scSim, task_name: str, tag: str, sc_object, css_sensor_configs: List,
-                              sun_state_out_msg):
+                              sun_state_out_msg, sun_eclipse_in_msg=None):
     """Real sun-heading ESTIMATION (not truth) from a spacecraft's own
     ``coarse_sun_sensor`` hardware: a dedicated ``CSSConstellation`` (one
     ``CoarseSunSensor`` device per entry in ``css_sensor_configs``, same
@@ -383,6 +383,8 @@ def build_css_sun_estimation(scSim, task_name: str, tag: str, sc_object, css_sen
         css.senNoiseStd = float(sensor.params.get("noise_std", 0.0))
         css.sunInMsg.subscribeTo(sun_state_out_msg)
         css.stateInMsg.subscribeTo(sc_object.scStateOutMsg)
+        if sun_eclipse_in_msg is not None:  # unlinked, the sensor is lit in the planet's shadow too
+            css.sunEclipseInMsg.subscribeTo(sun_eclipse_in_msg)
         css_devices.append(css)
 
     constellation = coarseSunSensor.CSSConstellation()
@@ -1306,9 +1308,9 @@ def attach_sensors(scSim, task_name: str, tag: str, sc_object, sensor_configs: L
     a ``coarse_sun_sensor``/``magnetometer``/``thermal`` entry without the
     matching precondition raises :class:`FswError` with a specific message
     rather than silently building a sensor that would output nothing.
-    ``sun_eclipse_in_msg`` (also ``None`` unless provided) is used only by
-    a ``"thermal"`` sensor, and is itself optional even then -- see that
-    branch's own comment. Each ``"thermal"`` sensor is appended to
+    ``sun_eclipse_in_msg`` (also ``None`` unless provided) is the
+    spacecraft's eclipse message, for ``"thermal"`` and
+    ``coarse_sun_sensor`` entries. Each ``"thermal"`` sensor is appended to
     ``thermal_models`` (when given) as ``(module, raw inputs)``, so
     :func:`set_sensor_thermal_flux` can apply another solar flux later.
     """
@@ -1436,6 +1438,11 @@ def attach_sensors(scSim, task_name: str, tag: str, sc_object, sensor_configs: L
                 mod.faultNoiseStd = float(params["fault_noise_std"])
             mod.sunInMsg.subscribeTo(sun_state_out_msg)
             mod.stateInMsg.subscribeTo(sc_object.scStateOutMsg)
+            # Optional in coarseSunSensor.cpp, but unlinked its
+            # illuminationFactor stays 1.0: the sensor would read the Sun
+            # through the planet in eclipse.
+            if sun_eclipse_in_msg is not None:
+                mod.sunEclipseInMsg.subscribeTo(sun_eclipse_in_msg)
             scSim.AddModelToTask(task_name, mod)
             out_msgs[sensor.name] = mod.cssDataOutMsg
 

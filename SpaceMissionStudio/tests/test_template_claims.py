@@ -168,10 +168,22 @@ def test_13_torque_rods_steer_the_wheels_to_their_target_speeds():
     assert np.abs(speeds_rpm - targets_rpm).max() < 0.5  # [RPM] "within ~0.5 RPM"
 
 
-def test_14_css_estimate_settles_on_the_sun_axis():
+def test_14_css_estimate_settles_on_the_sun_axis_and_is_lost_in_the_shadow():
+    """The estimate settles near [0, 0, 1]; in Earth's shadow (minutes
+    10 to 44) every sensor reads zero and the estimate is [0, 0, 0], and
+    out of it the estimate is back at the end of the orbit."""
     result = _run(_template("14"))
-    estimate = result.series["sat-1.sun_heading_body_estimated"].data[-1]
-    assert estimate[2] / np.linalg.norm(estimate) > 0.98  # near [0, 0, 1]
+    estimate = result.series["sat-1.sun_heading_body_estimated"]
+    assert estimate.data[-1][2] / np.linalg.norm(estimate.data[-1]) > 0.98  # near [0, 0, 1]
+    illumination = result.series["sat-1.eclipse.illumination_factor"]
+    dark = illumination.data.ravel() == 0.0
+    shadow_min = illumination.time_s[dark] / 60.0  # [min]
+    assert 9.0 < shadow_min.min() < 11.0 and 43.0 < shadow_min.max() < 45.0  # [min]
+    in_shadow = np.isin(estimate.time_s, illumination.time_s[dark])
+    assert in_shadow.any() and not estimate.data[in_shadow].any()
+    for i in range(1, 9):
+        sensor = result.series[f"sat-1.sensor.css-{i}"]
+        assert not sensor.data[np.isin(sensor.time_s, illumination.time_s[dark])].any()
 
 
 def test_21_off_centre_array_loads_the_wheels_unless_torque_rods_unload_them():

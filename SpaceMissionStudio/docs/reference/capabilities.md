@@ -69,7 +69,8 @@ constant.
 Every `fsw_mode` maps to a real
 Basilisk FSW module chain (attitude nav/guidance/control), idealized or
 real reaction-wheel actuation, and star tracker/IMU/coarse-sun-sensor/
-magnetometer sensors (magnetometer is Earth-only). A `"thermal"` sensor
+magnetometer sensors (magnetometer is Earth-only; coarse sun sensors read
+zero in a planet's shadow). A `"thermal"` sensor
 (`sensorThermal.SensorThermal`) models the real temperature of any
 flat-plate component -- radiative absorption/emission driven by the
 actual simulated attitude, the solar flux at the spacecraft's distance

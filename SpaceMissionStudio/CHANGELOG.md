@@ -10,6 +10,11 @@ fixes bugs.
 
 ## Unreleased
 
+- **Sun sensors are dark in eclipse.** Coarse sun sensors read the Sun
+  through the Earth in its shadow, and the sun heading estimated from them
+  stayed right. They now read zero there, as real sensors do: the
+  estimate is lost in the shadow and back when the spacecraft leaves it.
+  Template 14 now runs for a whole orbit and shows this.
 - **Thermal sensors away from Earth.** A thermal sensor took the
   sunlight at Earth's distance from the Sun whatever the spacecraft
   orbited, so around Mars it absorbed about twice the real sunlight, and
