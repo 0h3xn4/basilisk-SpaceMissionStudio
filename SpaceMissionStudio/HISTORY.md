@@ -11487,3 +11487,35 @@ step sequence. That moved the time-argument allowance from 0.147 m to
 **Records:** SRelD K-04 (radius part closed), phase 3 log F-03 and V-04,
 SVR, SRF, summary report, D-07, SRS-F-03, SDD, capabilities, limitations,
 user manual, CHANGELOG.
+
+## Towards release 1.1.0 (2026-10-19)
+
+**User decision (2026-10-19):** "From now on you do not need my
+permission and continue always with your recommendations, until you are
+ready for release." So the next steps are chosen and done without asking,
+up to a release candidate. Merging the pull requests, tagging and
+publishing stay with the user, as before (they merged #78 to #80
+themselves). Items that need the user's or other people's input stay
+open: IERS TN36 (D-07), the human actions H01 to H13.
+
+The plan:
+1. PR #81 to green.
+2. A pre-release review of what changed since 1.0.0 (14 pull requests,
+   279 files).
+3. Fresh bundled space weather.
+4. A 1.1.0 release candidate: version, records, the build and an install
+   check.
+
+**Pre-release review, first findings.**
+* Every template was run at full length through `spacemissionstudio
+  run`, as a user would. All 31 exit cleanly. The only warnings are the
+  two expected ones: future solar activity from MSFC's prediction, and
+  the WMM magnetic model past 2030.0 for the templates that start on
+  2030-01-01.
+* **The spacecraft editor's Power tab scrolled sideways in a 1280 px
+  window.** With the app's own font (IBM Plex), a follower with an ROE
+  formation made the tab 1256 px wide. The passively-safe helper's four
+  boxes and its **Add safe formation** button shared one line. The button
+  now has a line of its own, and the tab needs 1111 px. The test runs
+  with the app's theme applied, because without it the fonts are
+  narrower and the problem does not show. It fails on the old layout.
