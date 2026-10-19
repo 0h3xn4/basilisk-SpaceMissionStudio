@@ -148,6 +148,20 @@ def real_small_body_files(monkeypatch):
     monkeypatch.setattr(small_bodies, "DEFAULT_DIR", Path(REAL_SMALL_BODIES_DIR))
 
 
+@pytest.fixture
+def eros_files_if_installed(monkeypatch) -> bool:
+    """Whether the real Eros files are installed; when they are, runs use
+    them (as real_small_body_files does), and nothing is skipped."""
+    from pathlib import Path
+
+    from spacemissionstudio.engine import small_bodies
+
+    installed = small_body_files_installed()
+    if installed:
+        monkeypatch.setattr(small_bodies, "DEFAULT_DIR", Path(REAL_SMALL_BODIES_DIR))
+    return installed
+
+
 def pytest_collection_modifyitems(config, items):
     skip_basilisk = pytest.mark.skip(reason="Basilisk is not installed/built in this environment")
     skip_gui = pytest.mark.skip(reason="PySide6 is not installed (pip install -e '.[gui]')")

@@ -129,17 +129,14 @@ def test_station_keeping_without_drag_is_flagged():
     assert isinstance(sc.station_keeping, StationKeepingConfig)
 
 
-def test_every_template_is_checked_quickly_and_none_is_flagged(monkeypatch):
+def test_every_template_is_checked_quickly_and_none_is_flagged(eros_files_if_installed):
     """No template is flagged. Template 31 (433 Eros) is checked with the
     real Eros files when they are installed; without them, the only
     warnings allowed are the ones naming the missing files."""
-    from conftest import REAL_SMALL_BODIES_DIR, small_body_files_installed
     from spacemissionstudio.engine import small_bodies
 
-    eros_installed = small_body_files_installed()  # also imports Basilisk's data fetcher once
-    small_bodies.shape_path(small_bodies.EROS)  # (a one-time import, not a cost per edit)
-    if eros_installed:
-        monkeypatch.setattr(small_bodies, "DEFAULT_DIR", Path(REAL_SMALL_BODIES_DIR))
+    eros_installed = eros_files_if_installed
+    small_bodies.shape_path(small_bodies.EROS)  # imports Basilisk's data fetcher once, not per edit
     for path in sorted(_TEMPLATES_DIR.glob("*.json")):
         scenario = load_scenario(path)
         start = time.perf_counter()
