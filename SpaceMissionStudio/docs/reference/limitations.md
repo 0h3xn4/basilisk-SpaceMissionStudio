@@ -12,6 +12,13 @@ Each item was checked against Basilisk's own source.
   (GGM03S). Other central bodies
   are limited to point-mass gravity (`central_body_degree=0`) until a
   later phase adds their gravity-field files.
+* **Mars and Jupiter are their system barycentres** (`"mars barycenter"`,
+  `"jupiter barycenter"`): the bundled DE430 ephemeris has no state for
+  the planets themselves. Basilisk gives each the planet's own mass and
+  radius. The Mars barycentre is about 0.2 m from Mars's centre (Phobos
+  and Deimos); Jupiter's is moved by the Galilean moons by up to about
+  230 km (the sum of their mass ratios times their orbit radii), which
+  matters for close Jupiter orbits.
 * **Magnetometer sensors are Earth-only** (`magneticFieldWMM`, same
   reasoning as spherical-harmonics gravity) -- `engine.fsw` raises a clear
   error for a magnetometer on any other central body rather than silently

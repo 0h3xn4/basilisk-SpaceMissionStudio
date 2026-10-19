@@ -70,7 +70,7 @@ _logger = logging.getLogger(__name__)
 _EARTH_REQUATOR_KM = 6378.1366  # [km] -- same reference value as engine.orbit_design's own
 # [km] equatorial radius of each central body, Basilisk 2.12's astroConstants REQ_* values
 _BODY_RADIUS_KM = {"sun": 695000.0, "mercury": 2439.7, "venus": 6051.8, "earth": 6378.1366, "moon": 1737.4,
-                   "mars": 3396.19, "mars barycenter": 3396.19, "jupiter": 71492.0}
+                   "mars barycenter": 3396.19, "jupiter barycenter": 71492.0}
 
 # How close a classical-elements orbit's own inclination must be to the
 # computed Sun-synchronous value (at its own semi-major axis/eccentricity)

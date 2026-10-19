@@ -73,14 +73,32 @@ from .command import Command, command_dict, report_before_propagate_errors, runs
 
 CURRENT_SCHEMA_VERSION = 4
 
-# SPICE-recognized central body name strings this schema accepts, matching
-# Basilisk's simIncludeGravBody.gravBodyFactory named helpers
-# (createSun/createEarth/createMoon/createMars/createMarsBarycenter/
-# createVenus/createJupiter) -- see engine/service.py for where this list
-# is actually consumed.
+# Central bodies (and third bodies) a run can use: Basilisk's
+# simIncludeGravBody.gravBodyFactory names whose SPICE states the bundled
+# planetary ephemeris (DE430, engine.kernels) holds -- see engine/service.py
+# for where this list is consumed. DE430 has the Mars and Jupiter system
+# barycentres, not the planets themselves, so those two are offered as
+# their barycentres (Basilisk gives them the planet's own mass and radius):
+# a run around "mars" stopped the whole process with SPICE(SPKINSUFFDATA),
+# and Basilisk has no body named "jupiter" (UNRUNNABLE_BODIES).
 SUPPORTED_CENTRAL_BODIES = (
-    "sun", "mercury", "venus", "earth", "moon", "mars", "mars barycenter", "jupiter",
+    "sun", "mercury", "venus", "earth", "moon", "mars barycenter", "jupiter barycenter",
 )
+# Names an older file may hold that no run can use, and the body to use instead.
+UNRUNNABLE_BODIES = {
+    "mars": ("mars barycenter", "the bundled planetary ephemeris (DE430) has the Mars system barycentre, "
+             "about 0.2 m from Mars's centre, not Mars itself"),
+    "jupiter": ("jupiter barycenter", "the bundled planetary ephemeris (DE430) has the Jupiter system "
+                "barycentre, not Jupiter itself, and Basilisk has no body named 'jupiter'"),
+}
+
+
+def _body_problem(where: str, name: str) -> str:
+    """Why ``name`` cannot be used at ``where``, naming the body to use instead."""
+    if name in UNRUNNABLE_BODIES:
+        instead, reason = UNRUNNABLE_BODIES[name]
+        return f"{where} {name!r} cannot be run: {reason}; use {instead!r}"
+    return f"{where} {name!r} must be one of {SUPPORTED_CENTRAL_BODIES}"
 
 ORBIT_IC_TYPES = ("classical_elements", "cartesian", "tle")
 
@@ -2148,7 +2166,7 @@ class GravityConfig:
 
     def validate(self) -> None:
         _require(self.central_body in SUPPORTED_CENTRAL_BODIES,
-                  f"gravity.central_body {self.central_body!r} must be one of {SUPPORTED_CENTRAL_BODIES}")
+                  _body_problem("gravity.central_body", self.central_body))
         _require(self.central_body_degree >= 0, "gravity.central_body_degree must be >= 0")
         _require(self.central_body_degree <= MAX_GRAVITY_DEGREE,
                  f"gravity.central_body_degree must be <= {MAX_GRAVITY_DEGREE} (the GGM03S field's maximum)")
@@ -2168,7 +2186,7 @@ class GravityConfig:
                   f"(point-mass) or central_body = 'earth'")
         for name in self.third_body_perturbers:
             _require(name in SUPPORTED_CENTRAL_BODIES,
-                      f"gravity.third_body_perturbers entry {name!r} must be one of {SUPPORTED_CENTRAL_BODIES}")
+                      _body_problem("gravity.third_body_perturbers entry", name))
 
 
 @dataclass

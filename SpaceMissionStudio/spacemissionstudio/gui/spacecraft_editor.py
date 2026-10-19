@@ -181,7 +181,7 @@ _FSW_MODE_SUMMARIES: dict = {
     "locationPointing": "Points a body axis at a ground station or a celestial body.",
 }
 
-_TARGET_BODY_CHOICES = ["moon", "sun", "earth", "mars", "venus", "jupiter"]
+_TARGET_BODY_CHOICES = ["moon", "sun", "earth", "mars barycenter", "venus", "jupiter barycenter"]
 
 # Mirrors engine.fsw.DEFAULT_MRP_GAINS -- not imported directly since
 # engine.fsw pulls in Basilisk, which this GUI module must not require

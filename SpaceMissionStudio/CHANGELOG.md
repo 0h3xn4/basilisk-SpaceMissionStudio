@@ -10,6 +10,12 @@ fixes bugs.
 
 ## Unreleased
 
+- **Runs around Mars and Jupiter work.** A scenario around `mars` or
+  `jupiter` (or with them as third bodies) passed its checks and then
+  failed: around Mars the whole app closed. The bundled planet ephemeris
+  has the Mars and Jupiter system barycentres only, so the app now offers
+  **mars barycenter** and **jupiter barycenter** and tells you to use them
+  when a file names the old ones.
 - **ROE formations compensate differential drag.** When a follower feels
   more or less drag than its chief, the impulsive law measures how fast
   their relative semi-major axis decays and sets it so the along-track

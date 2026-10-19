@@ -11079,3 +11079,38 @@ in Qt 6 but still the call that sets it; its warning is silenced at that
 one call) and checks it took. Linux's offscreen platform activates every
 shown window, so the failure cannot be reproduced here; the next macOS CI
 runs are the evidence. SRelD K-14 records it.
+
+## Mars and Jupiter: the bodies a run can actually use (2026-10-19)
+
+Found while preparing optical navigation around Mars: a 0.2-day run of
+template 01 moved to an 18 000 km orbit around `"mars"` stopped with
+`SPICE(SPKINSUFFDATA)`: "Insufficient ephemeris data has been loaded to
+compute the state of 10 (SUN) relative to 499 (MARS)". The bundled DE430
+ephemeris holds the Mars system barycentre (body 4), not Mars itself
+(499). SPICE's default error action ends the process, and the GUI runs a
+simulation on a thread of its own process, so the app would close. Every
+offered body was then tried as the central body for 0.01 days: sun,
+mercury, venus, earth, moon and mars barycenter ran; mars stopped the
+process the same way; `"jupiter"` failed with Basilisk's "Body jupiter is
+unknown" (its gravity factory knows only `"jupiter barycenter"`). As third
+bodies around Earth, `"mars"` and `"jupiter"` failed the same two ways.
+All of these scenarios passed `Scenario.validate()`.
+
+`SUPPORTED_CENTRAL_BODIES` is now the seven bodies that run: sun,
+mercury, venus, earth, moon, `mars barycenter` and `jupiter barycenter`
+(Basilisk gives both the planet's own mass and radius). A file naming
+`"mars"` or `"jupiter"`, as central or third body, is refused with the
+body to use instead (`UNRUNNABLE_BODIES`); no result could ever have been
+made with them, so nothing is migrated silently. The Mars barycentre is
+about 0.2 m from Mars's centre (Phobos and Deimos: mass ratio times orbit
+radius, 0.16 + 0.05 m); the Galilean moons move Jupiter's by up to about
+230 km (the same sum), recorded in the limitations. The radius tables
+(`engine.constellation`, `engine.scenario_explainer`) and the editor's
+pointing targets follow.
+
+Tests: `tests/test_central_bodies.py` flies every offered body as the
+central body (with the Sun as a third body) and all of them as third
+bodies around Earth, and checks the two old names are refused with their
+barycentre named. Tests that used `"mars"` as an example of a non-Earth
+body in a validated scenario now use `"mars barycenter"` (nine tests,
+their assertions unchanged). SRelD K-15 records it.

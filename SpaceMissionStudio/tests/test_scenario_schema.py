@@ -165,7 +165,7 @@ def test_spherical_harmonics_on_non_earth_body_rejected():
     actually run.
     """
     sc = _minimal_scenario()
-    sc.gravity = GravityConfig(central_body="mars", central_body_degree=20)
+    sc.gravity = GravityConfig(central_body="mars barycenter", central_body_degree=20)
     with pytest.raises(ScenarioValidationError, match="only wired up for central_body 'earth'"):
         sc.validate()
 
@@ -178,7 +178,7 @@ def test_spherical_harmonics_on_earth_is_allowed():
 
 def test_point_mass_on_non_earth_body_is_allowed():
     sc = _minimal_scenario()
-    sc.gravity = GravityConfig(central_body="mars", central_body_degree=0)
+    sc.gravity = GravityConfig(central_body="mars barycenter", central_body_degree=0)
     sc.validate()  # must not raise
 
 
@@ -1600,7 +1600,7 @@ def test_magnetometer_sensor_without_earth_central_body_is_rejected():
     this schema already closed for power/station_keeping/enable_srp/
     comms_pointing needing a sun ephemeris (see the tests above).
     """
-    sc = _minimal_scenario(gravity=GravityConfig(central_body="mars"))
+    sc = _minimal_scenario(gravity=GravityConfig(central_body="mars barycenter"))
     sc.spacecraft[0].sensors = [SensorConfig(kind="magnetometer", name="mag-1")]
     with pytest.raises(ScenarioValidationError, match="magnetometer"):
         sc.validate()
@@ -1619,7 +1619,7 @@ def test_magnetic_momentum_management_without_earth_central_body_is_rejected():
     already pointed at this exact gap as deferred-to-the-engine-layer;
     this closes it, same as the magnetometer sensor case above.
     """
-    sc = _minimal_scenario(gravity=GravityConfig(central_body="mars"))
+    sc = _minimal_scenario(gravity=GravityConfig(central_body="mars barycenter"))
     sc.spacecraft[0].actuators = [
         ActuatorConfig(kind="reaction_wheel", name="rw-1",
                         params={"gsHat_B": [1.0, 0.0, 0.0], "rw_type": "Honeywell_HR16", "maxMomentum": 100.0}),

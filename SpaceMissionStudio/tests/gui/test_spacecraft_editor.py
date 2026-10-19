@@ -1470,7 +1470,7 @@ def test_list_widget_uses_central_body_provider(qtbot, monkeypatch):
 
     lw = SpacecraftListWidget()
     qtbot.addWidget(lw)
-    lw.set_central_body_provider(lambda: "mars")
+    lw.set_central_body_provider(lambda: "mars barycenter")
 
     captured = {}
 
@@ -1480,7 +1480,7 @@ def test_list_widget_uses_central_body_provider(qtbot, monkeypatch):
 
     monkeypatch.setattr(WalkerConstellationDialog, "exec", fake_exec)
     lw._on_generate_constellation()
-    assert captured["central_body"] == "mars"
+    assert captured["central_body"] == "mars barycenter"
 
 
 @pytest.mark.requires_basilisk
