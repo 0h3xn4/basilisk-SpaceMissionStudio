@@ -11279,3 +11279,37 @@ times, so it now says "about 5 m", and a claim test holds the figure.
 shape, GM, spin, attitude and landmarks exactly. A simulated day takes
 about 2 minutes. Records: SRS-F-23, the how-to page, the manual,
 capabilities, limitations and the glossary.
+
+## K-16: a thermal sensor away from Earth took Earth's sunlight (2026-10-19)
+
+Found while scoping more environment models. One of the candidates was a
+solar flux that falls off with distance from the Sun, for the Mars,
+Jupiter and Eros runs. Checking it showed that Basilisk already does this
+where it matters for the orbit and power: `simpleSolarPanel`,
+`radiationPressure` and `facetSRPDynamicEffector` all scale the 1 AU flux
+by (1 AU / r)². So that candidate was not needed.
+
+**The defect.** Basilisk's `sensorThermal` does not scale the flux: it
+uses 1366 W/m² at any distance (`this->S`, which Python cannot set). The
+tool corrects for this by scaling the sensor's absorptivity
+(`environment_models.sensor_thermal_inputs`). The flux it corrected to
+was `solar_flux_w_m2(epoch)`: the flux at Earth's distance on the epoch,
+whatever the central body. Around Mars on 2030-01-01, a thermal sensor
+absorbed 1408 W/m² instead of 713 W/m². Around Mercury or Venus it
+absorbed too little. Runs around Earth and the Moon were right.
+
+**The fix.** `attach_sensors` keeps each thermal sensor's raw inputs.
+After `InitializeSimulation`, SPICE and the spacecraft have written their
+positions (both `Reset`s write their messages). The service then sets
+the flux at the spacecraft's own distance from the Sun,
+`TSI × (1 AU / r)²`, with the IAU 2012 astronomical unit. As before,
+the flux is the one when the run starts and does not change during it.
+
+**The test.** `tests/test_sensor_thermal_flux.py` puts a thermal sensor
+on template 15. Around Earth, the flux matches the almanac formula to
+0.1 %. Around Mars, it matches a direct SPICE query of the spacecraft's
+distance from the Sun to 1e-6. That query uses `pyswice`, whose kernel
+pool is separate from Basilisk's `spiceInterface`, so the test loads the
+leap seconds and DE430 into it. The Mars test fails on the previous code.
+
+**Records.** SRelD K-16, CHANGELOG, capabilities.

@@ -10,6 +10,12 @@ fixes bugs.
 
 ## Unreleased
 
+- **Thermal sensors away from Earth.** A thermal sensor took the
+  sunlight at Earth's distance from the Sun whatever the spacecraft
+  orbited, so around Mars it absorbed about twice the real sunlight, and
+  around Venus too little. It now takes the sunlight at the spacecraft's
+  own distance from the Sun. Runs around Earth and the Moon are
+  unchanged.
 - **Asteroid 433 Eros as a central body.** Its real position (a JPL
   Horizons solution from NAIF, 1900 to 2100), its 5.27 h rotation and,
   with **Gravity from the shape model**, the gravity of its NEAR shape

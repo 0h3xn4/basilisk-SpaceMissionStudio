@@ -582,6 +582,9 @@ class SimulationService:
         # access_indicator_bridges/generic_storage_list/generic_sensor_list.
         self._css_estimation_devices: List = []
         self._sun_state_out_msg = None
+        # (spacecraft, [(sensorThermal module, raw inputs)]): the sensors'
+        # solar flux is set in initialize(), once the Sun's distance is known
+        self._sensor_thermal_models: list = []
         # Set in build() for a small central body (engine.small_bodies).
         self.small_body = None
         self.small_body_shape = None
@@ -1137,12 +1140,15 @@ class SimulationService:
             # directly, not simpleNav -- see engine.fsw.attach_sensors), so
             # they're attached regardless of whether attitude control is on.
             if sc_config.sensors:
+                thermal_models: list = []
+                self._sensor_thermal_models.append((sc_object, thermal_models))
                 try:
                     sensor_out_msgs = fsw.attach_sensors(
                         self.scSim, dyn_task_name, sc_config.name, sc_object, sc_config.sensors,
                         sun_state_out_msg=self._sun_state_out_msg, mag_field_model=self._mag_field_model,
                         sun_eclipse_in_msg=sc_eclipse_out_msg,
                         solar_flux_w_m2=environment_models.solar_flux_w_m2(scenario.epoch_utc),
+                        thermal_models=thermal_models,
                     )
                 except fsw.FswError as exc:
                     raise SimulationServiceError(str(exc)) from exc
@@ -1872,6 +1878,15 @@ class SimulationService:
         its recorder this way)."""
         sim_settings = self.scenario.sim_settings
         self.scSim.InitializeSimulation()
+        for sc_object, thermal_models in self._sensor_thermal_models:
+            if not thermal_models:
+                continue
+            # SPICE and the spacecraft write their positions on Reset: the
+            # flux at the spacecraft's own distance from the Sun, not
+            # Earth's (a Mars orbit gets about 43 % of it)
+            sun_distance_m = float(np.linalg.norm(np.array(self._sun_state_out_msg.read().PositionVector)
+                                                  - np.array(sc_object.scStateOutMsg.read().r_BN_N)))  # [m]
+            fsw.set_sensor_thermal_flux(thermal_models, environment_models.solar_flux_at_distance_w_m2(sun_distance_m))
         stop_time_s = sim_settings.duration_days * 86400.0
         if self._desat_controls:
             # thrMomentumManagement needs a real (nonzero) rwSpeedsInMsg

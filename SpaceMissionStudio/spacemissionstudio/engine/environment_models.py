@@ -48,6 +48,7 @@ TOTAL_SOLAR_IRRADIANCE_W_M2 = 1361.0  # [W/m^2] at 1 AU, ECSS-E-ST-10-04C Table 
 SPACE_SINK_TEMPERATURE_K = 3.0  # [K] ECSS-E-ST-10-04C 6.2.1c
 STEFAN_BOLTZMANN_W_M2_K4 = 5.670374419e-8  # [W/m^2/K^4] CODATA 2018
 SPEED_OF_LIGHT_M_S = 299792458.0  # [m/s]
+ASTRONOMICAL_UNIT_M = 149597870700.0  # [m] IAU 2012 Resolution B2
 
 # Basilisk 2.12 sensorThermal's built-in constants (sensorThermal.cpp).
 BASILISK_SENSOR_THERMAL_FLUX_W_M2 = 1366.0  # [W/m^2] at any Sun distance
@@ -76,6 +77,11 @@ def sun_distance_au(epoch_utc: str) -> float:
 def solar_flux_w_m2(epoch_utc: str) -> float:
     """Solar flux at Earth's distance on ``epoch_utc`` [W/m^2]."""
     return TOTAL_SOLAR_IRRADIANCE_W_M2 / sun_distance_au(epoch_utc) ** 2
+
+
+def solar_flux_at_distance_w_m2(sun_distance_m: float) -> float:
+    """Solar flux [W/m^2] at ``sun_distance_m`` from the Sun."""
+    return TOTAL_SOLAR_IRRADIANCE_W_M2 * (ASTRONOMICAL_UNIT_M / sun_distance_m) ** 2
 
 
 @dataclass(frozen=True)

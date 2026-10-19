@@ -72,8 +72,10 @@ real reaction-wheel actuation, and star tracker/IMU/coarse-sun-sensor/
 magnetometer sensors (magnetometer is Earth-only). A `"thermal"` sensor
 (`sensorThermal.SensorThermal`) models the real temperature of any
 flat-plate component -- radiative absorption/emission driven by the
-actual simulated attitude and (when shared with a power/eclipse-aware
-spacecraft) real eclipse state, plus an optional internal power draw --
+actual simulated attitude, the solar flux at the spacecraft's distance
+from the Sun at the start of the run, and (when shared with a
+power/eclipse-aware spacecraft) real eclipse state, plus an optional
+internal power draw --
 with its own measurement noise/bias/fault layer
 (`tempMeasurement.TempMeasurement`). `"reaction_wheel"` actuators
 separately gain an OPTIONAL per-wheel motor-thermal model

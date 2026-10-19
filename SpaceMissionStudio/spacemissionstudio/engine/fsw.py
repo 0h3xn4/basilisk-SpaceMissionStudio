@@ -1280,9 +1280,23 @@ def build_magnetic_field_wmm(scSim, task_name: str, planet_state_out_msg, centra
     return mod
 
 
+def set_sensor_thermal_flux(thermal_models: List, solar_flux_w_m2: float) -> None:
+    """Scales each ``(sensorThermal module, raw inputs)`` from
+    :func:`attach_sensors` so its heat balance uses ``solar_flux_w_m2``
+    (see :func:`engine.environment_models.sensor_thermal_inputs`)."""
+    for mod, (absorptivity, emissivity, power_draw_w, mass_kg) in thermal_models:
+        corrected = environment_models.sensor_thermal_inputs(absorptivity, emissivity, power_draw_w, mass_kg,
+                                                             solar_flux_w_m2)
+        mod.sensorAbsorptivity = corrected.absorptivity
+        mod.sensorEmissivity = corrected.emissivity
+        mod.sensorPowerDraw = corrected.power_draw_w
+        mod.sensorMass = corrected.mass_kg
+
+
 def attach_sensors(scSim, task_name: str, tag: str, sc_object, sensor_configs: List,
                     sun_state_out_msg=None, mag_field_model=None, sun_eclipse_in_msg=None,
-                    solar_flux_w_m2: float = environment_models.TOTAL_SOLAR_IRRADIANCE_W_M2) -> Dict[str, object]:
+                    solar_flux_w_m2: float = environment_models.TOTAL_SOLAR_IRRADIANCE_W_M2,
+                    thermal_models: Optional[List] = None) -> Dict[str, object]:
     """Builds every :class:`schema.scenario.SensorConfig` entry for one
     spacecraft and returns ``{sensor.name: output_message}`` for
     :class:`~spacemissionstudio.engine.results.ResultSet` recording.
@@ -1294,7 +1308,9 @@ def attach_sensors(scSim, task_name: str, tag: str, sc_object, sensor_configs: L
     rather than silently building a sensor that would output nothing.
     ``sun_eclipse_in_msg`` (also ``None`` unless provided) is used only by
     a ``"thermal"`` sensor, and is itself optional even then -- see that
-    branch's own comment.
+    branch's own comment. Each ``"thermal"`` sensor is appended to
+    ``thermal_models`` (when given) as ``(module, raw inputs)``, so
+    :func:`set_sensor_thermal_flux` can apply another solar flux later.
     """
     out_msgs: Dict[str, object] = {}
     for sensor in sensor_configs:
@@ -1525,14 +1541,13 @@ def attach_sensors(scSim, task_name: str, tag: str, sc_object, sensor_configs: L
                 mod.sensorPowerDraw = float(params["power_draw_w"])
             # sensorThermal's own constants (1366 W/m^2 at any distance,
             # sigma 5.76051e-8) are not settable: scale its inputs so the
-            # heat balance uses the scenario epoch's solar flux and the
-            # CODATA sigma (ECSS-E-ST-10-04C 6.2.1a; engine.environment_models).
-            corrected = environment_models.sensor_thermal_inputs(
-                mod.sensorAbsorptivity, mod.sensorEmissivity, mod.sensorPowerDraw, mod.sensorMass, solar_flux_w_m2)
-            mod.sensorAbsorptivity = corrected.absorptivity
-            mod.sensorEmissivity = corrected.emissivity
-            mod.sensorPowerDraw = corrected.power_draw_w
-            mod.sensorMass = corrected.mass_kg
+            # heat balance uses the given solar flux and the CODATA sigma
+            # (ECSS-E-ST-10-04C 6.2.1a; engine.environment_models).
+            thermal_model = (mod, (mod.sensorAbsorptivity, mod.sensorEmissivity, mod.sensorPowerDraw,
+                                   mod.sensorMass))
+            set_sensor_thermal_flux([thermal_model], solar_flux_w_m2)
+            if thermal_models is not None:
+                thermal_models.append(thermal_model)
             mod.sunInMsg.subscribeTo(sun_state_out_msg)
             mod.stateInMsg.subscribeTo(sc_object.scStateOutMsg)
             # Optional, confirmed directly against sensorThermal.cpp's own
