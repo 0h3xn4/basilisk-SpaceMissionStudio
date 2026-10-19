@@ -1225,7 +1225,7 @@ _SPECS: Dict[str, TemplateWizardSpec] = {
                 intro='Applied to all 8 sun sensors; narrower means fewer lit, a poorer estimate.',
                 fields=[
                     WizardField(
-                        "Field of view", "Each sensor's own half-cone field of view.",
+                        "Field of view", "Each sensor's full field of view (the whole cone's angle).",
                         _css_fov_deg, _set_css_fov_deg,
                         10.0, 180.0, decimals=1, step=5.0, suffix=" deg",
                     ),

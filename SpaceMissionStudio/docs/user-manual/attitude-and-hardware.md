@@ -33,7 +33,13 @@ choosing an FSW mode (template **19**).
 On **Sensors / actuators**, **Add...** a device:
 
 - **Sensors:** star tracker, IMU, coarse sun sensor, magnetometer,
-  thermal.
+  thermal. Coarse sun sensors read zero in a planet's shadow. To include
+  the sunlight Earth or Mars reflects onto them, tick **Reflected sunlight
+  on the sun sensors** in the Scenario Editor's gravity settings: an
+  Earth-facing sensor can see a quarter of the direct sunlight, which
+  pulls a sun heading estimated from the sensors off the Sun (template 14,
+  "Try changing"). Each sensor's share is plotted as
+  `{spacecraft}.sensor.{sensor}.albedo`.
 - **Actuators:** reaction wheel, thruster, magnetic torque rod.
 
 In the dialog, **Start from a real device** lists commercially available

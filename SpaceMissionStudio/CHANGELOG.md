@@ -10,6 +10,24 @@ fixes bugs.
 
 ## Unreleased
 
+- **Albedo on the sun sensors.** With **Reflected sunlight on the sun
+  sensors** (gravity settings), coarse sun sensors around Earth or Mars
+  also see the sunlight the planet reflects, from Basilisk's albedo module
+  with the measured CERES (Earth) or TES (Mars) albedo map. An
+  Earth-facing sensor can see a quarter of the direct sunlight; in
+  template 14 it pulls the estimated Sun direction about 16 deg off.
+  Each sensor's albedo is plotted.
+- **Sun sensors are dark in eclipse.** Coarse sun sensors read the Sun
+  through the Earth in its shadow, and the sun heading estimated from them
+  stayed right. They now read zero there, as real sensors do: the
+  estimate is lost in the shadow and back when the spacecraft leaves it.
+  Template 14 now runs for a whole orbit and shows this.
+- **Thermal sensors away from Earth.** A thermal sensor took the
+  sunlight at Earth's distance from the Sun whatever the spacecraft
+  orbited, so around Mars it absorbed about twice the real sunlight, and
+  around Venus too little. It now takes the sunlight at the spacecraft's
+  own distance from the Sun. Runs around Earth and the Moon are
+  unchanged.
 - **Asteroid 433 Eros as a central body.** Its real position (a JPL
   Horizons solution from NAIF, 1900 to 2100), its 5.27 h rotation and,
   with **Gravity from the shape model**, the gravity of its NEAR shape

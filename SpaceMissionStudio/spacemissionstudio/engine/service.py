@@ -83,7 +83,7 @@ from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import dependencies, output_provenance
-from ..schema.scenario import OrbitIC, Scenario
+from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario
 from . import (data_handling, earth_orientation, environment_models, formation_control, frames, fsw, geodesy,
                geodetic_atmosphere, kernels, landmark_navigation, link_budget, long_run, optical_navigation,
                orbit_maintenance, planet_rotation, polyhedron, roe_formation, small_bodies, solar_arrays,
@@ -495,6 +495,9 @@ class _SpacecraftHandle:
     # actuators whose own params set the motor_thermal_* group -- most
     # wheels have none, so this is usually empty.
     rw_motor_thermal_recorders: Dict[str, object] = field(default_factory=dict)
+    # coarse sun sensor name -> recorder of its albedo (gravity.albedo)
+    albedo_recorders: Dict[str, object] = field(default_factory=dict)
+    albedo_msgs: Dict[str, object] = field(default_factory=dict)
     battery_recorder: Optional[object] = None  # Phase 4: only set if sc_config.power was configured
     battery_module: Optional[object] = None  # Phase 4: the simpleBattery.SimpleBattery itself, for engine.vizard
     station_keeping_controller: Optional[object] = None  # Phase 4: only set if sc_config.station_keeping was configured
@@ -582,6 +585,9 @@ class SimulationService:
         # access_indicator_bridges/generic_storage_list/generic_sensor_list.
         self._css_estimation_devices: List = []
         self._sun_state_out_msg = None
+        # (spacecraft, [(sensorThermal module, raw inputs)]): the sensors'
+        # solar flux is set in initialize(), once the Sun's distance is known
+        self._sensor_thermal_models: list = []
         # Set in build() for a small central body (engine.small_bodies).
         self.small_body = None
         self.small_body_shape = None
@@ -1122,7 +1128,7 @@ class SimulationService:
             sc_eclipse_out_msg = None
             needs_eclipse_for_this_sc = (
                 sc_config.power is not None or sc_config.station_keeping is not None or sc_config.enable_srp
-                or any(sensor.kind == "thermal" for sensor in sc_config.sensors)
+                or any(sensor.kind in ("thermal", "coarse_sun_sensor") for sensor in sc_config.sensors)
             )
             if (needs_eclipse_for_this_sc or self._record_eclipses) and self._eclipse_object is not None:
                 self._eclipse_object.addSpacecraftToModel(sc_object.scStateOutMsg)
@@ -1137,12 +1143,25 @@ class SimulationService:
             # directly, not simpleNav -- see engine.fsw.attach_sensors), so
             # they're attached regardless of whether attitude control is on.
             if sc_config.sensors:
+                thermal_models: list = []
+                self._sensor_thermal_models.append((sc_object, thermal_models))
+                css_configs = [sensor for sensor in sc_config.sensors if sensor.kind == "coarse_sun_sensor"]
+                if gravity.albedo and css_configs and self._sun_state_out_msg is not None:
+                    albedo_map = kernels.cached_path(getattr(DataFile.AlbedoData, ALBEDO_MAPS[gravity.central_body]))
+                    self._data_files["albedo_map"] = dependencies.file_record(albedo_map)
+                    handle.albedo_msgs = fsw.build_albedo(
+                        self.scSim, dyn_task_name, sc_config.name, sc_object, css_configs, self._sun_state_out_msg,
+                        central_body_state_out_msg, str(albedo_map))
+                    for css_name, albedo_msg in handle.albedo_msgs.items():
+                        handle.albedo_recorders[css_name] = self._record(albedo_msg)
+                        self.scSim.AddModelToTask(dyn_task_name, handle.albedo_recorders[css_name])
                 try:
                     sensor_out_msgs = fsw.attach_sensors(
                         self.scSim, dyn_task_name, sc_config.name, sc_object, sc_config.sensors,
                         sun_state_out_msg=self._sun_state_out_msg, mag_field_model=self._mag_field_model,
                         sun_eclipse_in_msg=sc_eclipse_out_msg,
                         solar_flux_w_m2=environment_models.solar_flux_w_m2(scenario.epoch_utc),
+                        thermal_models=thermal_models, albedo_msgs=handle.albedo_msgs,
                     )
                 except fsw.FswError as exc:
                     raise SimulationServiceError(str(exc)) from exc
@@ -1391,7 +1410,8 @@ class SimulationService:
                         )
                     css_sensors = [s for s in sc_config.sensors if s.kind == "coarse_sun_sensor"]
                     sun_direction_override_msg, css_devices = fsw.build_css_sun_estimation(
-                        self.scSim, dyn_task_name, sc_config.name, sc_object, css_sensors, self._sun_state_out_msg
+                        self.scSim, dyn_task_name, sc_config.name, sc_object, css_sensors, self._sun_state_out_msg,
+                        sun_eclipse_in_msg=sc_eclipse_out_msg, albedo_msgs=handle.albedo_msgs,
                     )
                     # Must outlive build() -- see engine.fsw.build_css_sun_estimation's
                     # docstring and self._css_estimation_devices's own comment.
@@ -1872,6 +1892,15 @@ class SimulationService:
         its recorder this way)."""
         sim_settings = self.scenario.sim_settings
         self.scSim.InitializeSimulation()
+        for sc_object, thermal_models in self._sensor_thermal_models:
+            if not thermal_models:
+                continue
+            # SPICE and the spacecraft write their positions on Reset: the
+            # flux at the spacecraft's own distance from the Sun, not
+            # Earth's (a Mars orbit gets about 43 % of it)
+            sun_distance_m = float(np.linalg.norm(np.array(self._sun_state_out_msg.read().PositionVector)
+                                                  - np.array(sc_object.scStateOutMsg.read().r_BN_N)))  # [m]
+            fsw.set_sensor_thermal_flux(thermal_models, environment_models.solar_flux_at_distance_w_m2(sun_distance_m))
         stop_time_s = sim_settings.duration_days * 86400.0
         if self._desat_controls:
             # thrMomentumManagement needs a real (nonzero) rwSpeedsInMsg
@@ -2305,6 +2334,11 @@ class SimulationService:
                 elif kind == "thermal":
                     result.add(TimeSeries(series_name, sensor_t_s, ("temperature",), recorder.temperature,
                                            units="C"))
+
+            for css_name, albedo_recorder in handle.albedo_recorders.items():
+                # the albedo the sensor adds to its output: reflected flux / solar flux, through its field of view
+                result.add(TimeSeries(f"{name}.sensor.{css_name}.albedo", albedo_recorder.times() * macros.NANO2SEC,
+                                       ("albedo",), albedo_recorder.albedoAtInstrument, units="-"))
 
             for actuator_name, rw_thermal_recorder in handle.rw_motor_thermal_recorders.items():
                 rwt_t_s = rw_thermal_recorder.times() * macros.NANO2SEC

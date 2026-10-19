@@ -424,6 +424,10 @@ def _sensor_display(name: str, series: TimeSeries) -> Optional[SeriesDisplay]:
         sensor_name = name[: -len(".accel")].rsplit(".sensor.", 1)[-1]
         return SeriesDisplay(f"IMU Accelerometer: {sensor_name}", "Acceleration", series.units, 1.0,
                               dict(_XYZ_LABELS))
+    if name.endswith(".albedo"):
+        sensor_name = name[: -len(".albedo")].rsplit(".sensor.", 1)[-1]
+        return SeriesDisplay(f"Albedo at Coarse Sun Sensor: {sensor_name}", "Albedo (reflected / solar flux)", "-",
+                              1.0, {"albedo": "Albedo"})
     if name.endswith(".gyro"):
         sensor_name = name[: -len(".gyro")].rsplit(".sensor.", 1)[-1]
         return SeriesDisplay(f"IMU Gyroscope: {sensor_name}", "Angular rate", series.units, 1.0,

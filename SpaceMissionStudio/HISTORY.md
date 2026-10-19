@@ -11279,3 +11279,132 @@ times, so it now says "about 5 m", and a claim test holds the figure.
 shape, GM, spin, attitude and landmarks exactly. A simulated day takes
 about 2 minutes. Records: SRS-F-23, the how-to page, the manual,
 capabilities, limitations and the glossary.
+
+## K-16: a thermal sensor away from Earth took Earth's sunlight (2026-10-19)
+
+Found while scoping more environment models. One of the candidates was a
+solar flux that falls off with distance from the Sun, for the Mars,
+Jupiter and Eros runs. Checking it showed that Basilisk already does this
+where it matters for the orbit and power: `simpleSolarPanel`,
+`radiationPressure` and `facetSRPDynamicEffector` all scale the 1 AU flux
+by (1 AU / r)². So that candidate was not needed.
+
+**The defect.** Basilisk's `sensorThermal` does not scale the flux: it
+uses 1366 W/m² at any distance (`this->S`, which Python cannot set). The
+tool corrects for this by scaling the sensor's absorptivity
+(`environment_models.sensor_thermal_inputs`). The flux it corrected to
+was `solar_flux_w_m2(epoch)`: the flux at Earth's distance on the epoch,
+whatever the central body. Around Mars on 2030-01-01, a thermal sensor
+absorbed 1408 W/m² instead of 713 W/m². Around Mercury or Venus it
+absorbed too little. Runs around Earth and the Moon were right.
+
+**The fix.** `attach_sensors` keeps each thermal sensor's raw inputs.
+After `InitializeSimulation`, SPICE and the spacecraft have written their
+positions (both `Reset`s write their messages). The service then sets
+the flux at the spacecraft's own distance from the Sun,
+`TSI × (1 AU / r)²`, with the IAU 2012 astronomical unit. As before,
+the flux is the one when the run starts and does not change during it.
+
+**The test.** `tests/test_sensor_thermal_flux.py` puts a thermal sensor
+on template 15. Around Earth, the flux matches the almanac formula to
+0.1 %. Around Mars, it matches a direct SPICE query of the spacecraft's
+distance from the Sun to 1e-6. That query uses `pyswice`, whose kernel
+pool is separate from Basilisk's `spiceInterface`, so the test loads the
+leap seconds and DE430 into it. The Mars test fails on the previous code.
+
+**Records.** SRelD K-16, CHANGELOG, capabilities.
+
+## K-17: coarse sun sensors saw the Sun in Earth's shadow (2026-10-19)
+
+Found while reading how the tool builds its coarse sun sensors, to add
+Earth albedo to them. Basilisk's `coarseSunSensor` takes the eclipse
+through `sunEclipseInMsg`, which is optional. Left unlinked, its
+`illuminationFactor` stays 1.0 (`coarseSunSensor.cpp`, lines 60 and 191),
+so the sensor reads the Sun through the planet. The tool linked the
+eclipse for thermal sensors and solar panels, but not for sun sensors:
+neither for the per-sensor telemetry (`attach_sensors`) nor for the
+cluster behind the CSS sun-heading estimate
+(`build_css_sun_estimation`).
+
+**Effect.** Template 14 is in Earth's shadow from minute 9.5 to minute
+44.3. A sensor read 0.73 there, and the estimated sun heading stayed
+within 0.01 deg of the true one. Real sensors see nothing.
+
+**Fix.** A spacecraft with a coarse sun sensor gets its eclipse message,
+and both kinds of sensor link it. In the shadow every sensor now reads
+0.0 and the estimate is [0, 0, 0]. Sun-safe pointing then holds the
+attitude, which here keeps +Z on the Sun, since that direction hardly
+moves in 35 min. The estimate is back with no error as soon as the
+spacecraft leaves the shadow.
+
+**Template 14.** It ran for 36 min and ended in the shadow, where its
+claim, an estimate near [0, 0, 1] at the end, no longer holds. It now
+runs for one orbit (96 min) and ends in sunlight. Its description and
+claim test now cover the shadow: the shadow's start and end, every
+sensor at zero inside it, and the estimate lost there and back after.
+The test fails on the previous code. The template wizard called the
+field of view "half-cone", but the value is the full field of view (the
+sensor editor's label, halved in `attach_sensors`). The wizard now says
+so.
+
+**Records.** SRelD K-17, CHANGELOG, capabilities, templates README.
+
+## Albedo on the coarse sun sensors (2026-10-19)
+
+The last backlog item, "extra environment models". The user did not pick
+from the four candidates offered, so I chose by usefulness and by what
+Basilisk can carry without changes:
+
+* **Solar flux with distance:** not needed. `simpleSolarPanel`,
+  `radiationPressure` and `facetSRPDynamicEffector` already scale the flux
+  by (1 AU / r)². Checking this turned up K-16 (thermal sensors).
+* **Albedo:** done, on the coarse sun sensors. Reading their wiring
+  turned up K-17 (sun sensors lit in eclipse).
+* **Earth infrared and albedo heating** for the thermal model, and **GEO
+  charging**: not done. They are listed as candidates only.
+
+**The model.** `gravity.albedo` adds one Basilisk `albedo` module per
+spacecraft that has coarse sun sensors, as `examples/scenarioAlbedo.py`
+wires it:
+* **Map:** the planet's measured albedo map, `Earth_ALB_2018_CERES_All_5x5`
+  (CERES 2018, all-sky) or `Mars_ALB_TES_5x5` (TES), 5 x 5 deg cells,
+  from Basilisk's support data. Both are now in `ALL_SUPPORT_DATA_FILES`,
+  so the installers and CI fetch them, and a run never downloads.
+* **Instruments:** one per sensor, with the sensor's normal and half-angle
+  field of view. Its output feeds the sensor's `albedoInMsg`: both the
+  telemetry sensor and its twin in the estimation cluster, which has the
+  same geometry and therefore the same albedo.
+* **Order:** the module is added at the default priority between the
+  spacecraft (priority 10) and the sensors, so it reads this step's state
+  and they read this step's albedo.
+* **Results:** each sensor's albedo is recorded as
+  `{sc}.sensor.{css}.albedo` (reflected over solar flux, through the
+  sensor's field of view).
+* **Refusals:** albedo is refused for bodies without a map, and without
+  the Sun in the run.
+* **Limits:** solar panels see no albedo, because `simpleSolarPanel` has
+  no albedo input and Basilisk is not modified. Thermal sensors see no
+  albedo or planet infrared either.
+
+**Verification:**
+* **Wiring:** template 14 is pointed by the true Sun direction, so the
+  attitude is the same with and without albedo. Every sensor's output with
+  albedo is its output without plus its recorded albedo, to 1e-12, at
+  every sample.
+* **Physics:** an independent numpy integral of the same map, the sum of
+  a f1 f2 f3 dA / (pi d²) with the cell, Sun and sensor cosines, on the
+  mean-radius sphere, from recorded states once a minute over the orbit.
+  * Earth: 249 comparisons with a sunlit Earth in view, all within 0.44 %.
+  * Mars (500 km): 293 comparisons, within 0.77 %.
+  * The remainder is Basilisk's authalic sphere and authalic cell bounds.
+* **Size:** the Earth-facing sensors see up to 0.24 of the direct
+  sunlight.
+
+**What it does to template 14.** In sunlight the estimated Sun direction
+is 15.8 deg off (median), up to 26.8 deg, against 0.0 without albedo. +Z
+follows the estimate up to 26.7 deg off the Sun. This is the classic
+coarse-sun-sensor albedo problem. The template's "Try changing" list now
+names it, and a claim test holds the figures.
+
+**Records:** SRS-F-24, CHANGELOG, capabilities, limitations, glossary
+(albedo), the attitude how-to page.

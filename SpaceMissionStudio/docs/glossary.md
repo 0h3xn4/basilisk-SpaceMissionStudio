@@ -20,6 +20,11 @@ operations.
 actuators and software that work out which way a spacecraft points and
 turn it.
 
+**Albedo** -- the share of sunlight a planet reflects. Earth reflects
+about 30 %, Mars about 16 %. Sunlight reflected by the planet below
+reaches a spacecraft's sun sensors as well and can pull a sun-direction
+estimate away from the Sun (template 14).
+
 **Ap** -- a daily index of how disturbed Earth's magnetic field is. With
 [F10.7](#f), it sets how dense the upper atmosphere is, and so how much
 [drag](#d) a low satellite feels.

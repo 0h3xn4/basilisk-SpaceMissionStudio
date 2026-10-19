@@ -361,3 +361,19 @@ def test_forecast_percentile_and_msfc_file_round_trip(qtbot):
     weather = d.to_space_weather()
     assert weather.forecast_percentile == 95.0 and weather.msfc_file_path == "/study/oct2026f10-prd.txt"
     assert _dialog().to_space_weather().forecast_percentile == 50.0
+
+
+def test_albedo_is_offered_for_bodies_with_an_albedo_map(qtbot):
+    """Earth and Mars have albedo maps: the box is enabled there, round-trips
+    into the gravity settings, and is cleared and disabled for the Moon."""
+    from spacemissionstudio.schema.scenario import GravityConfig
+
+    d = _dialog(gravity=GravityConfig(central_body="earth", third_body_perturbers=["sun"], albedo=True))
+    qtbot.addWidget(d)
+    assert d.albedo_check.isEnabled() and d.albedo_check.isChecked()
+    assert d.to_gravity().albedo is True
+    d.central_body_combo.setCurrentText("mars barycenter")
+    assert d.albedo_check.isEnabled()
+    d.central_body_combo.setCurrentText("moon")
+    assert not d.albedo_check.isEnabled() and not d.albedo_check.isChecked()
+    assert d.to_gravity().albedo is False

@@ -168,10 +168,41 @@ def test_13_torque_rods_steer_the_wheels_to_their_target_speeds():
     assert np.abs(speeds_rpm - targets_rpm).max() < 0.5  # [RPM] "within ~0.5 RPM"
 
 
-def test_14_css_estimate_settles_on_the_sun_axis():
+def test_14_css_estimate_settles_on_the_sun_axis_and_is_lost_in_the_shadow():
+    """The estimate settles near [0, 0, 1]; in Earth's shadow (minutes
+    10 to 44) every sensor reads zero and the estimate is [0, 0, 0], and
+    out of it the estimate is back at the end of the orbit."""
     result = _run(_template("14"))
-    estimate = result.series["sat-1.sun_heading_body_estimated"].data[-1]
-    assert estimate[2] / np.linalg.norm(estimate) > 0.98  # near [0, 0, 1]
+    estimate = result.series["sat-1.sun_heading_body_estimated"]
+    assert estimate.data[-1][2] / np.linalg.norm(estimate.data[-1]) > 0.98  # near [0, 0, 1]
+    illumination = result.series["sat-1.eclipse.illumination_factor"]
+    dark = illumination.data.ravel() == 0.0
+    shadow_min = illumination.time_s[dark] / 60.0  # [min]
+    assert 9.0 < shadow_min.min() < 11.0 and 43.0 < shadow_min.max() < 45.0  # [min]
+    in_shadow = np.isin(estimate.time_s, illumination.time_s[dark])
+    assert in_shadow.any() and not estimate.data[in_shadow].any()
+    for i in range(1, 9):
+        sensor = result.series[f"sat-1.sensor.css-{i}"]
+        assert not sensor.data[np.isin(sensor.time_s, illumination.time_s[dark])].any()
+
+
+def test_14_earths_albedo_pulls_the_estimate_off_the_sun():
+    """With "Reflected sunlight on the sun sensors" on, the estimate in
+    sunlight is about 16 deg off the Sun (median), up to 27 deg, and +Z
+    follows it (the description's "Try changing" claim)."""
+    scenario = _template("14")
+    scenario.gravity.albedo = True
+    result = _run(scenario)
+    true = result.series["sat-1.sun_heading_body"]
+    estimate = result.series["sat-1.sun_heading_body_estimated"].data
+    lit = (np.linalg.norm(estimate, axis=1) > 0.0) & (result.series["sat-1.eclipse.illumination_factor"].data.ravel()
+                                                      == 1.0)
+    error_deg = np.degrees(np.arccos(np.clip(np.einsum(
+        "ij,ij->i", estimate[lit] / np.linalg.norm(estimate[lit], axis=1)[:, None],
+        true.data[lit] / np.linalg.norm(true.data[lit], axis=1)[:, None]), -1.0, 1.0)))
+    assert 13.0 < np.median(error_deg) < 19.0 and 22.0 < error_deg.max() < 30.0  # [deg] "about 16", "up to 27"
+    off_sun_deg = np.degrees(np.arccos(np.clip(true.data[:, 2] / np.linalg.norm(true.data, axis=1), -1.0, 1.0)))
+    assert 22.0 < off_sun_deg[true.time_s > 600.0].max() < 30.0  # [deg] +Z follows the estimate
 
 
 def test_21_off_centre_array_loads_the_wheels_unless_torque_rods_unload_them():
