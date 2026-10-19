@@ -62,10 +62,14 @@ def _add_valid_spacecraft(window):
 
 
 def test_initial_title_is_untitled(window):
+    """A new window's title says the scenario is untitled."""
     assert window.windowTitle() == "SpaceMissionStudio -- untitled"
 
 
 def test_explain_tab_exists_and_shows_the_default_scenario_on_startup(window):
+    """The Explain tab exists and, on start-up, shows its placeholder for the
+    default scenario (which has no spacecraft and so does not validate) instead
+    of its blank constructor state."""
     assert window.side_tabs.indexOf(window.scenario_explainer_widget) >= 0
     assert window.side_tabs.tabText(window.side_tabs.indexOf(window.scenario_explainer_widget)) == "Explain"
     # reset_to_default()'s own scenario has zero spacecraft (invalid --
@@ -80,6 +84,8 @@ def test_explain_tab_exists_and_shows_the_default_scenario_on_startup(window):
 
 
 def test_explain_tab_refreshes_on_edit(window):
+    """Adding a valid spacecraft makes the Explain tab show a headline and at
+    least one stat tile."""
     _add_valid_spacecraft(window)
     assert window.scenario_explainer_widget._headline_label.isHidden() is False
     tile_labels = {
@@ -91,12 +97,16 @@ def test_explain_tab_refreshes_on_edit(window):
 
 
 def test_explain_tab_shows_placeholder_while_scenario_is_invalid(window):
+    """While the scenario does not validate (an empty name), the Explain tab
+    shows its placeholder."""
     window.scenario_editor.name_edit.setText("")  # name must not be empty -- an invalid scenario
     window.scenario_editor.changed.emit()
     assert not window.scenario_explainer_widget._placeholder_label.isHidden()
 
 
 def test_explain_tab_refreshes_on_new(window):
+    """File > New replaces the explained scenario with the placeholder, not the
+    previous headline."""
     _add_valid_spacecraft(window)
     assert not window.scenario_explainer_widget._headline_label.isHidden()
     window.on_new()
@@ -141,6 +151,7 @@ def test_toolbar_actions_are_all_visible(window, qtbot):
 
 
 def test_editing_marks_dirty(window):
+    """An edit marks the scenario unsaved and adds an asterisk to the title."""
     assert not window._dirty
     _add_valid_spacecraft(window)
     assert window._dirty
@@ -148,6 +159,8 @@ def test_editing_marks_dirty(window):
 
 
 def test_save_as_then_open_round_trip(window, tmp_path, monkeypatch):
+    """Save As writes the file and clears the unsaved mark; New empties the
+    editor; Open brings the saved spacecraft back."""
     from PySide6.QtWidgets import QFileDialog
 
     _add_valid_spacecraft(window)
@@ -203,6 +216,8 @@ def test_a_save_that_cannot_be_written_is_reported(window, tmp_path, monkeypatch
 
 
 def test_open_missing_file_shows_error(window, tmp_path, monkeypatch, reported):
+    """Opening a file that does not exist reports one error naming the path and
+    keeps no current file."""
     from PySide6.QtWidgets import QFileDialog
 
     missing = tmp_path / "does_not_exist.json"
@@ -214,10 +229,13 @@ def test_open_missing_file_shows_error(window, tmp_path, monkeypatch, reported):
 
 
 def test_window_starts_on_load_scenario_tab(window):
+    """The window starts on the Load scenario page."""
     assert window.current_view() is window.load_scenario_widget
 
 
 def test_choosing_a_template_opens_it_and_switches_to_editor_tab(window):
+    """Choosing a template opens it as the current file and switches to the
+    Scenario Editor."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
 
     template_path = sorted(TEMPLATES_DIR.glob("*.json"))[0]
@@ -230,6 +248,8 @@ def test_choosing_a_template_opens_it_and_switches_to_editor_tab(window):
 
 
 def test_choosing_a_template_with_unsaved_changes_prompts_first(window, monkeypatch):
+    """Choosing a template with unsaved changes asks first; cancelling keeps
+    the unsaved scenario and the Load page."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from PySide6.QtWidgets import QMessageBox
 
@@ -273,6 +293,8 @@ def test_choosing_a_customized_scenario_opens_it_with_no_current_path(window):
 
 
 def test_choosing_a_customized_scenario_with_unsaved_changes_prompts_first(window, monkeypatch):
+    """Opening a customized template with unsaved changes asks first;
+    cancelling stays on the Load page."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.schema import load_scenario
     from PySide6.QtWidgets import QMessageBox
@@ -290,6 +312,8 @@ def test_choosing_a_customized_scenario_with_unsaved_changes_prompts_first(windo
 
 
 def test_customized_scenario_that_fails_validation_shows_error_not_crash(window, monkeypatch, reported):
+    """A customized template that fails validation reports an error and stays
+    on the Load page."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.schema import load_scenario
 
@@ -303,12 +327,14 @@ def test_customized_scenario_that_fails_validation_shows_error_not_crash(window,
 
 
 def test_on_new_switches_to_editor_tab(window):
+    """File > New switches to the Scenario Editor."""
     window.show_view(window.load_scenario_widget)
     window.on_new()
     assert window.current_view() is window.scenario_editor
 
 
 def test_open_path_returns_true_on_success_false_on_failure(window, tmp_path, monkeypatch):
+    """open_path returns True for a template and False for a missing file."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
 
     template_path = sorted(TEMPLATES_DIR.glob("*.json"))[0]
@@ -320,6 +346,8 @@ def test_open_path_returns_true_on_success_false_on_failure(window, tmp_path, mo
 
 @pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
 def test_run_without_basilisk_shows_error_and_reenables_action(window, qtbot, monkeypatch):
+    """Without Basilisk, Run shows one error saying Basilisk is not installed
+    and enables Run again."""
     from PySide6.QtWidgets import QMessageBox
 
     _add_valid_spacecraft(window)
@@ -346,6 +374,7 @@ def test_run_with_invalid_scenario_shows_error_without_starting_worker(window):
 
 
 def test_close_with_unsaved_changes_prompts_and_cancel_blocks_close(window, monkeypatch):
+    """Closing with unsaved changes asks; Cancel keeps the window open."""
     from PySide6.QtGui import QCloseEvent
     from PySide6.QtWidgets import QMessageBox
 
@@ -359,6 +388,7 @@ def test_close_with_unsaved_changes_prompts_and_cancel_blocks_close(window, monk
 
 
 def test_close_with_unsaved_changes_discard_allows_close(window, monkeypatch):
+    """Closing with unsaved changes asks; Discard closes the window."""
     from PySide6.QtGui import QCloseEvent
     from PySide6.QtWidgets import QMessageBox
 
@@ -372,6 +402,8 @@ def test_close_with_unsaved_changes_discard_allows_close(window, monkeypatch):
 
 
 def test_configure_vizard_sets_request(window, monkeypatch):
+    """Accepting the Vizard dialog with live streaming chosen stores a
+    live-stream request."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.vizard_dialog import VizardDialog
@@ -390,6 +422,7 @@ def test_configure_vizard_sets_request(window, monkeypatch):
 
 
 def test_configure_vizard_cancel_leaves_request_unchanged(window, monkeypatch):
+    """Cancelling the Vizard dialog stores no request."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.vizard_dialog import VizardDialog
@@ -400,6 +433,7 @@ def test_configure_vizard_cancel_leaves_request_unchanged(window, monkeypatch):
 
 
 def test_run_passes_vizard_request_to_worker(window, monkeypatch):
+    """Run hands the stored Vizard request to the run worker."""
     from spacemissionstudio.gui.main_window import MainWindow
     from spacemissionstudio.gui.run_worker import RunWorker
     from spacemissionstudio.engine.vizard import VizardRequest
@@ -429,6 +463,8 @@ def test_run_passes_vizard_request_to_worker(window, monkeypatch):
 
 
 def test_run_starts_busy_indicator_and_disables_other_run_actions(window, monkeypatch):
+    """Run starts the busy indicator, disables Run, Live plot and Monte Carlo,
+    and says it is running."""
     from spacemissionstudio.gui.run_worker import RunWorker
 
     _add_valid_spacecraft(window)
@@ -443,10 +479,12 @@ def test_run_starts_busy_indicator_and_disables_other_run_actions(window, monkey
 
 
 def test_live_plot_action_is_checked_by_default(window):
+    """Live plot is on by default."""
     assert window.live_plot_action.isChecked()
 
 
 def test_run_passes_live_flag_from_action_to_worker(window, monkeypatch):
+    """Run passes the Live plot toggle to the run worker, on and off."""
     from spacemissionstudio.gui.run_worker import RunWorker
 
     _add_valid_spacecraft(window)
@@ -473,6 +511,8 @@ def test_run_passes_live_flag_from_action_to_worker(window, monkeypatch):
 
 
 def test_run_with_live_plot_clears_previous_result_and_shows_results_tab(window, monkeypatch):
+    """A live run clears the previous run's plots and switches to the Results
+    page."""
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
     from spacemissionstudio.gui.run_worker import RunWorker
 
@@ -517,6 +557,8 @@ def test_run_finished_preserves_users_series_selection(window):
 
 
 def test_close_while_run_in_progress_is_blocked(window, qtbot, monkeypatch):
+    """Closing during a run is refused, with one problem saying the run is
+    still going."""
     import threading
 
     from PySide6.QtGui import QCloseEvent
@@ -539,6 +581,8 @@ def test_close_while_run_in_progress_is_blocked(window, qtbot, monkeypatch):
 
 
 def test_run_progress_updates_results_widget_and_busy_bar(window):
+    """A progress update plots the partial result and sets the progress bar to
+    its fraction."""
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
 
     window._start_busy("Running test...", determinate=True)
@@ -576,6 +620,8 @@ def test_run_progress_exception_is_caught_not_propagated(window, monkeypatch):
 
 
 def test_run_progress_exception_dialog_shown_only_once_per_run(window, monkeypatch):
+    """A live-plot error is reported once per run, not once per update, and
+    again in the next run."""
     from spacemissionstudio.engine.results import ResultSet
 
     window._start_busy("Running test...", determinate=True)
@@ -621,6 +667,8 @@ def test_run_finished_exception_still_stops_busy_indicator(window, monkeypatch):
 
 
 def test_run_cancelled_exception_still_stops_busy_indicator(window, monkeypatch):
+    """An error while showing a cancelled run's result still stops the busy
+    indicator, enables Run and disables Abort."""
     from spacemissionstudio.engine.results import ResultSet
     from spacemissionstudio.gui import main_window as main_window_module
 
@@ -666,6 +714,7 @@ def test_on_run_clears_previous_results_even_when_not_live(window, monkeypatch):
 
 
 def test_on_run_captures_epoch_and_passes_it_to_results_widget(window, monkeypatch):
+    """Run remembers the scenario's epoch at the time it starts."""
     from spacemissionstudio.gui.run_worker import RunWorker
 
     _add_valid_spacecraft(window)
@@ -678,6 +727,8 @@ def test_on_run_captures_epoch_and_passes_it_to_results_widget(window, monkeypat
 
 
 def test_run_finished_passes_captured_epoch_to_results_widget(window):
+    """A finished run gives the Results page the epoch captured when it
+    started."""
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
 
     window._last_run_epoch_utc = "2032-01-01T00:00:00"
@@ -691,6 +742,8 @@ def test_run_finished_passes_captured_epoch_to_results_widget(window):
 
 
 def test_run_finished_stops_busy_indicator_and_reenables_actions(window):
+    """A finished run stops the busy indicator and enables Run and Monte
+    Carlo."""
     from spacemissionstudio.engine.results import ResultSet
 
     window._start_busy("Running test...")
@@ -701,6 +754,8 @@ def test_run_finished_stops_busy_indicator_and_reenables_actions(window):
 
 
 def test_run_failed_stops_busy_indicator_and_reenables_actions(window, monkeypatch):
+    """A failed run stops the busy indicator and enables Run and Monte
+    Carlo."""
     from PySide6.QtWidgets import QMessageBox
 
     monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: None))
@@ -774,6 +829,8 @@ def test_run_monte_carlo_rejects_disabled_monte_carlo(window):
 
 
 def test_run_monte_carlo_starts_worker_with_chosen_archive_dir(window, monkeypatch, tmp_path):
+    """Monte Carlo starts its worker with the chosen archive folder and run
+    count, disables both run actions and starts the busy indicator."""
     from spacemissionstudio.gui.run_worker import MonteCarloWorker
     from spacemissionstudio.schema.scenario import DispersionConfig, MonteCarloConfig
     from PySide6.QtWidgets import QFileDialog
@@ -823,6 +880,8 @@ def test_run_monte_carlo_refuses_a_folder_holding_other_files(window, monkeypatc
 
 
 def test_run_monte_carlo_asks_before_replacing_an_earlier_batch(window, monkeypatch, tmp_path):
+    """A folder holding an earlier batch is replaced only after the user
+    agrees: No starts nothing, Yes starts a worker that overwrites."""
     from PySide6.QtWidgets import QFileDialog, QMessageBox
 
     from spacemissionstudio.gui.run_worker import MonteCarloWorker
@@ -868,6 +927,8 @@ def test_run_monte_carlo_asks_consent_for_script_blocks(window, monkeypatch, tmp
 
 
 def test_monte_carlo_finished_stops_busy_indicator_and_reenables_actions(window):
+    """A finished Monte Carlo batch stops the busy indicator and enables both
+    run actions."""
     window._start_busy("Running Monte Carlo test...")
     window._on_monte_carlo_finished([])
     assert not window._busy_timer.isActive()
@@ -904,6 +965,8 @@ def test_monte_carlo_finished_with_failures_does_not_show_a_toast(window, monkey
 
 
 def test_monte_carlo_failed_stops_busy_indicator_and_reenables_actions(window, monkeypatch):
+    """A failed Monte Carlo batch stops the busy indicator and enables both run
+    actions."""
     from PySide6.QtWidgets import QMessageBox
 
     monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: None))
@@ -915,6 +978,7 @@ def test_monte_carlo_failed_stops_busy_indicator_and_reenables_actions(window, m
 
 
 def test_run_monte_carlo_cancel_dialog_does_not_start_worker(window, monkeypatch):
+    """Cancelling the archive-folder dialog starts no Monte Carlo worker."""
     from spacemissionstudio.schema.scenario import MonteCarloConfig
     from PySide6.QtWidgets import QFileDialog
 
@@ -928,6 +992,8 @@ def test_run_monte_carlo_cancel_dialog_does_not_start_worker(window, monkeypatch
 
 
 def test_run_with_mission_sequence_ignores_live_flag_and_shows_mission_output(window, monkeypatch):
+    """A run with a mission sequence is never live, whatever the Live plot
+    toggle says (MissionEngine has no live mode)."""
     from spacemissionstudio.gui.run_worker import RunWorker
     from spacemissionstudio.schema.command import Command
 
@@ -1004,6 +1070,8 @@ def test_script_block_confirmation_shows_the_code_and_defaults_to_no(window, mon
 
 
 def test_run_finished_with_command_summary_shows_mission_output_tab(window):
+    """A finished mission-sequence run switches to Mission Output, which counts
+    the commands run."""
     from spacemissionstudio.engine.results import CommandSummary, ReportEntry, ResultSet
 
     summary = CommandSummary(reports=[ReportEntry(label="x", t_s=1.0, values={})], commands_executed=1)
@@ -1014,6 +1082,7 @@ def test_run_finished_with_command_summary_shows_mission_output_tab(window):
 
 
 def test_run_finished_without_command_summary_shows_results_tab(window):
+    """A finished plain run switches to the Results page."""
     from spacemissionstudio.engine.results import ResultSet
 
     window.show_view(window.lifetime_widget)  # some page other than the run views
@@ -1047,6 +1116,8 @@ class _FakeVizardProcess:
 
 
 def test_launch_vizard_starts_it_when_not_running(window, monkeypatch):
+    """Launch Vizard starts the found executable and says so in the status
+    bar."""
     from pathlib import Path
 
     from spacemissionstudio.gui import main_window
@@ -1084,6 +1155,7 @@ def test_launch_vizard_does_not_relaunch_while_already_running(window, monkeypat
 
 
 def test_launch_vizard_relaunches_after_the_process_exits(window, monkeypatch):
+    """After Vizard exits, Launch Vizard starts a new process."""
     from pathlib import Path
 
     from spacemissionstudio.gui import main_window
@@ -1123,6 +1195,8 @@ def test_launch_vizard_not_found_falls_back_to_browse(window, monkeypatch):
 
 
 def test_launch_vizard_not_found_and_resolution_cancelled_does_nothing(window, monkeypatch):
+    """When Vizard is not found and the user cancels locating it, nothing is
+    launched."""
     from spacemissionstudio.gui import main_window
 
     monkeypatch.setattr(main_window, "find_vizard_executable", lambda: None)
@@ -1161,6 +1235,7 @@ def test_locate_vizard_browse_option_remembers_the_picked_path(window, monkeypat
 
 
 def test_locate_vizard_browse_cancelled_returns_none(window, monkeypatch):
+    """Cancelling the Browse dialog while locating Vizard returns no path."""
     from PySide6.QtWidgets import QFileDialog, QMessageBox
 
     monkeypatch.setattr(QMessageBox, "exec", _click_message_box_button("Browse..."))
@@ -1219,6 +1294,8 @@ class _FakeVizardFetchWorker(QObject):
 
 
 def test_fetch_vizard_with_progress_success_remembers_and_returns_the_path(window, monkeypatch):
+    """A successful Vizard download returns the executable's path and remembers
+    it."""
     from pathlib import Path
 
     from spacemissionstudio.gui import main_window
@@ -1236,6 +1313,8 @@ def test_fetch_vizard_with_progress_success_remembers_and_returns_the_path(windo
 
 
 def test_fetch_vizard_with_progress_failure_shows_error_and_returns_none(window, monkeypatch, reported):
+    """A failed Vizard download returns no path and reports the reason as an
+    error, without a message box."""
     from spacemissionstudio.gui import main_window
 
     monkeypatch.setattr(main_window, "VizardFetchWorker",
@@ -1265,6 +1344,8 @@ def _click_message_box_button(button_text):
 
 
 def test_launch_vizard_failure_shows_error(window, monkeypatch, reported):
+    """An OS error launching Vizard is reported with its reason, and no process
+    is kept."""
     from pathlib import Path
 
     from spacemissionstudio.gui import main_window
@@ -1351,6 +1432,8 @@ def test_launch_vizard_shows_the_one_click_hint_once_per_session(window, monkeyp
 
 
 def test_launch_vizard_passes_no_direct_comm_address_without_live_stream(window, monkeypatch):
+    """Without a live-stream request, Vizard is launched without a
+    direct-communication address."""
     from pathlib import Path
 
     from spacemissionstudio.gui import main_window
@@ -1575,6 +1658,7 @@ def test_run_never_touches_vizard_without_a_live_stream_request(window, monkeypa
 
 
 def test_close_with_no_unsaved_changes_does_not_prompt(window, monkeypatch):
+    """Closing without unsaved changes closes at once, without asking."""
     from PySide6.QtGui import QCloseEvent
     from PySide6.QtWidgets import QMessageBox
 
@@ -1593,10 +1677,12 @@ def test_close_with_no_unsaved_changes_does_not_prompt(window, monkeypatch):
 # wiring for.
 
 def test_abort_action_disabled_until_a_run_starts(window):
+    """Abort is disabled before any run."""
     assert not window.abort_action.isEnabled()
 
 
 def test_on_run_enables_abort_action(window, monkeypatch):
+    """Starting a run enables Abort."""
     from spacemissionstudio.gui.run_worker import RunWorker
 
     _add_valid_spacecraft(window)
@@ -1629,6 +1715,7 @@ def test_on_run_monte_carlo_never_enables_abort_action(window, monkeypatch):
 
 
 def test_run_finished_disables_abort_action(window):
+    """A finished run disables Abort."""
     from spacemissionstudio.engine.results import ResultSet
 
     window._start_busy("Running test...")
@@ -1638,6 +1725,7 @@ def test_run_finished_disables_abort_action(window):
 
 
 def test_run_failed_disables_abort_action(window, monkeypatch):
+    """A failed run disables Abort."""
     from PySide6.QtWidgets import QMessageBox
 
     monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: None))
@@ -1648,6 +1736,7 @@ def test_run_failed_disables_abort_action(window, monkeypatch):
 
 
 def test_on_abort_run_calls_request_cancel_on_the_running_worker(window, monkeypatch):
+    """Abort asks the running worker to cancel and disables itself."""
     from PySide6.QtWidgets import QMessageBox
     from spacemissionstudio.gui.run_worker import RunWorker
 
@@ -1677,6 +1766,7 @@ def test_on_abort_run_calls_request_cancel_on_the_running_worker(window, monkeyp
 
 
 def test_on_abort_run_is_a_no_op_without_a_running_worker(window):
+    """Abort without a run does nothing and raises nothing."""
     # No run ever started -- window._run_worker is still None -- must not
     # raise.
     window.on_abort_run()
@@ -1684,6 +1774,9 @@ def test_on_abort_run_is_a_no_op_without_a_running_worker(window):
 
 
 def test_run_cancelled_updates_results_widget_and_status(window):
+    """A cancelled run stops the busy indicator, switches Abort off and Run on,
+    plots the partial result with the run's epoch on the Results page and says
+    the run was cancelled."""
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
 
     window._start_busy("Running test...")
@@ -1705,6 +1798,8 @@ def test_run_cancelled_updates_results_widget_and_status(window):
 
 
 def test_run_cancelled_with_command_summary_shows_mission_output_tab(window):
+    """A cancelled mission-sequence run switches to Mission Output, which
+    counts the commands run."""
     from spacemissionstudio.engine.results import CommandSummary, ReportEntry, ResultSet
 
     summary = CommandSummary(reports=[ReportEntry(label="x", t_s=1.0, values={})], commands_executed=1)
@@ -1770,6 +1865,7 @@ def test_about_dialog_shows_version_and_basilisk_status(window, monkeypatch):
 # -- autosave / crash recovery (design-philosophy roadmap item M4) ----------
 
 def test_autosave_tick_does_nothing_when_not_dirty(window):
+    """Without unsaved changes, the autosave timer writes no recovery file."""
     from spacemissionstudio.gui import autosave
 
     assert not window._dirty
@@ -1778,6 +1874,8 @@ def test_autosave_tick_does_nothing_when_not_dirty(window):
 
 
 def test_autosave_tick_writes_recovery_file_while_dirty(window):
+    """With unsaved changes, the autosave timer writes a recovery file holding
+    the scenario and no original path."""
     from spacemissionstudio.gui import autosave
 
     _add_valid_spacecraft(window)
@@ -1813,6 +1911,7 @@ def test_autosave_tick_skips_silently_when_scenario_currently_invalid(window):
 
 
 def test_saving_clears_the_recovery_file(window, tmp_path, monkeypatch):
+    """Saving removes the recovery file."""
     from PySide6.QtWidgets import QFileDialog
 
     from spacemissionstudio.gui import autosave
@@ -1829,6 +1928,8 @@ def test_saving_clears_the_recovery_file(window, tmp_path, monkeypatch):
 
 
 def test_discarding_unsaved_changes_clears_the_recovery_file(window, monkeypatch):
+    """Discarding unsaved changes (File > New, Discard) removes the recovery
+    file."""
     from PySide6.QtWidgets import QMessageBox
 
     from spacemissionstudio.gui import autosave
@@ -1845,12 +1946,15 @@ def test_discarding_unsaved_changes_clears_the_recovery_file(window, monkeypatch
 
 
 def test_check_autosave_recovery_with_no_recovery_file_does_nothing(window):
+    """Without a recovery file, the start-up check changes nothing."""
     window._check_autosave_recovery()  # must not raise, nothing to restore
     assert window._current_path is None
     assert not window._dirty
 
 
 def test_check_autosave_recovery_user_accepts_restores_and_marks_dirty(window, monkeypatch):
+    """Accepting recovery restores the scenario and its original path, still
+    marked unsaved."""
     from pathlib import Path
 
     from PySide6.QtWidgets import QMessageBox
@@ -1877,6 +1981,8 @@ def test_check_autosave_recovery_user_accepts_restores_and_marks_dirty(window, m
 
 
 def test_check_autosave_recovery_user_declines_clears_file_and_leaves_editor_untouched(window, monkeypatch):
+    """Declining recovery removes the recovery file and leaves the editor empty
+    and unchanged."""
     from PySide6.QtWidgets import QMessageBox
 
     from spacemissionstudio.gui import autosave
@@ -1991,6 +2097,8 @@ def test_results_offer_the_last_runs_vizard_file_and_open_it(window, monkeypatch
 
 
 def test_no_vizard_button_when_the_run_wrote_no_file(window, tmp_path):
+    """When the run's Vizard file does not exist, the Results page offers no
+    Vizard playback button."""
     window._last_run_vizard_file = str(tmp_path / "missing.bin")
     window._offer_vizard_playback()
     assert not window.results_widget.vizard_button.isVisibleTo(window.results_widget)

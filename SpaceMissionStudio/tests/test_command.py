@@ -10,10 +10,13 @@ from spacemissionstudio.schema.command import Command
 
 
 def test_default_command_has_no_children():
+    """A command made without children has an empty child list."""
     assert Command(kind="script_block", params={"code": "x = 1"}).children == []
 
 
 def test_unknown_kind_is_rejected():
+    """An unknown command kind gives one error naming the kind and the
+    command's path."""
     errors = Command(kind="nonsense").validate("mission_sequence[0]")
     assert len(errors) == 1
     assert "nonsense" in errors[0]
@@ -21,6 +24,7 @@ def test_unknown_kind_is_rejected():
 
 
 def test_label_appears_in_error_paths():
+    """A command's label is quoted in its error messages."""
     errors = Command(kind="nonsense", label="My Command").validate("mission_sequence[0]")
     assert "'My Command'" in errors[0]
 
@@ -28,41 +32,50 @@ def test_label_appears_in_error_paths():
 # -- propagate -----------------------------------------------------------
 
 def test_propagate_duration_valid():
+    """A propagate for a positive duration validates."""
     assert Command(kind="propagate", params={"stop_condition": "duration", "duration_days": 1.0}).validate("p") == []
 
 
 def test_propagate_duration_missing_is_rejected():
+    """A duration propagate without duration_days is refused."""
     errors = Command(kind="propagate", params={"stop_condition": "duration"}).validate("p")
     assert any("duration_days" in e for e in errors)
 
 
 def test_propagate_duration_zero_is_rejected():
+    """A duration propagate of 0 days is refused."""
     errors = Command(kind="propagate", params={"stop_condition": "duration", "duration_days": 0}).validate("p")
     assert any("duration_days" in e for e in errors)
 
 
 def test_propagate_epoch_valid():
+    """A propagate to an ISO 8601 stop epoch validates."""
     cmd = Command(kind="propagate", params={"stop_condition": "epoch", "stop_epoch_utc": "2030-01-02T00:00:00"})
     assert cmd.validate("p") == []
 
 
 def test_propagate_epoch_malformed_is_rejected():
+    """A propagate to a stop epoch that is not a date is refused."""
     errors = Command(kind="propagate", params={"stop_condition": "epoch", "stop_epoch_utc": "not-a-date"}).validate("p")
     assert any("stop_epoch_utc" in e for e in errors)
 
 
 def test_propagate_event_valid():
+    """A propagate to a spacecraft's next periapsis validates."""
     cmd = Command(kind="propagate",
                   params={"stop_condition": "event", "event_kind": "periapsis", "spacecraft": "sat-1"})
     assert cmd.validate("p") == []
 
 
 def test_propagate_event_missing_spacecraft_is_rejected():
+    """An event propagate without a spacecraft is refused."""
     errors = Command(kind="propagate", params={"stop_condition": "event", "event_kind": "periapsis"}).validate("p")
     assert any("spacecraft" in e for e in errors)
 
 
 def test_propagate_pass_event_needs_a_ground_station():
+    """A propagate to the start of a pass is refused without a ground station
+    and validates with one."""
     command = Command(kind="propagate", params={"stop_condition": "event", "event_kind": "pass_start",
                                                 "spacecraft": "sat-1"})
     assert any("propagate.ground_station must name the station" in e for e in command.validate("c"))
@@ -71,12 +84,14 @@ def test_propagate_pass_event_needs_a_ground_station():
 
 
 def test_propagate_event_bad_kind_is_rejected():
+    """An event kind the tool does not offer (sunrise) is refused."""
     errors = Command(kind="propagate",
                       params={"stop_condition": "event", "event_kind": "sunrise", "spacecraft": "sat-1"}).validate("p")
     assert any("event_kind" in e for e in errors)
 
 
 def test_propagate_bad_stop_condition_is_rejected():
+    """A stop condition the tool does not offer is refused."""
     errors = Command(kind="propagate", params={"stop_condition": "bogus"}).validate("p")
     assert any("stop_condition" in e for e in errors)
 
@@ -84,26 +99,31 @@ def test_propagate_bad_stop_condition_is_rejected():
 # -- maneuver --------------------------------------------------------------
 
 def test_maneuver_valid():
+    """A maneuver with a spacecraft and a three-element delta-V validates."""
     cmd = Command(kind="maneuver", params={"spacecraft": "sat-1", "delta_v_m_s": [1.0, 0.0, 0.0]})
     assert cmd.validate("m") == []
 
 
 def test_maneuver_defaults_to_inertial_frame():
+    """A maneuver without a frame validates: the frame defaults to inertial."""
     cmd = Command(kind="maneuver", params={"spacecraft": "sat-1", "delta_v_m_s": [1.0, 0.0, 0.0]})
     assert cmd.validate("m") == []  # frame omitted -> "inertial" default is valid
 
 
 def test_maneuver_missing_spacecraft_is_rejected():
+    """A maneuver without a spacecraft is refused."""
     errors = Command(kind="maneuver", params={"delta_v_m_s": [1.0, 0.0, 0.0]}).validate("m")
     assert any("spacecraft" in e for e in errors)
 
 
 def test_maneuver_bad_delta_v_shape_is_rejected():
+    """A two-element maneuver delta-V is refused."""
     errors = Command(kind="maneuver", params={"spacecraft": "sat-1", "delta_v_m_s": [1.0, 0.0]}).validate("m")
     assert any("delta_v_m_s" in e for e in errors)
 
 
 def test_maneuver_bad_frame_is_rejected():
+    """A maneuver frame the tool does not offer (lvlh) is refused."""
     errors = Command(kind="maneuver",
                       params={"spacecraft": "sat-1", "delta_v_m_s": [1.0, 0.0, 0.0], "frame": "lvlh"}).validate("m")
     assert any("frame" in e for e in errors)
@@ -120,6 +140,8 @@ def test_maneuver_reports_every_problem_at_once():
 # -- lambert_transfer -------------------------------------------------------
 
 def test_lambert_transfer_valid():
+    """A Lambert transfer with a spacecraft, a target position and a time of
+    flight validates."""
     cmd = Command(kind="lambert_transfer", params={
         "spacecraft": "sat-1", "target_position_m": [1.0, 0.0, 0.0], "time_of_flight_s": 3600.0,
     })
@@ -127,6 +149,8 @@ def test_lambert_transfer_valid():
 
 
 def test_lambert_transfer_defaults_num_revolutions_and_constraints():
+    """A Lambert transfer validates without revolutions, target distance or
+    minimum radius: all are optional."""
     cmd = Command(kind="lambert_transfer", params={
         "spacecraft": "sat-1", "target_position_m": [1.0, 0.0, 0.0], "time_of_flight_s": 3600.0,
     })
@@ -134,12 +158,14 @@ def test_lambert_transfer_defaults_num_revolutions_and_constraints():
 
 
 def test_lambert_transfer_missing_spacecraft_is_rejected():
+    """A Lambert transfer without a spacecraft is refused."""
     errors = Command(kind="lambert_transfer",
                       params={"target_position_m": [1.0, 0.0, 0.0], "time_of_flight_s": 3600.0}).validate("l")
     assert any("spacecraft" in e for e in errors)
 
 
 def test_lambert_transfer_bad_target_position_shape_is_rejected():
+    """A two-element Lambert target position is refused."""
     errors = Command(kind="lambert_transfer",
                       params={"spacecraft": "sat-1", "target_position_m": [1.0, 0.0],
                                "time_of_flight_s": 3600.0}).validate("l")
@@ -147,12 +173,14 @@ def test_lambert_transfer_bad_target_position_shape_is_rejected():
 
 
 def test_lambert_transfer_missing_time_of_flight_is_rejected():
+    """A Lambert transfer without a time of flight is refused."""
     errors = Command(kind="lambert_transfer",
                       params={"spacecraft": "sat-1", "target_position_m": [1.0, 0.0, 0.0]}).validate("l")
     assert any("time_of_flight_s" in e for e in errors)
 
 
 def test_lambert_transfer_non_positive_time_of_flight_is_rejected():
+    """A Lambert transfer with a time of flight of 0 s is refused."""
     errors = Command(kind="lambert_transfer", params={
         "spacecraft": "sat-1", "target_position_m": [1.0, 0.0, 0.0], "time_of_flight_s": 0.0,
     }).validate("l")
@@ -160,6 +188,7 @@ def test_lambert_transfer_non_positive_time_of_flight_is_rejected():
 
 
 def test_lambert_transfer_negative_num_revolutions_is_rejected():
+    """A Lambert transfer with a negative number of revolutions is refused."""
     errors = Command(kind="lambert_transfer", params={
         "spacecraft": "sat-1", "target_position_m": [1.0, 0.0, 0.0], "time_of_flight_s": 3600.0,
         "num_revolutions": -1,
@@ -168,6 +197,7 @@ def test_lambert_transfer_negative_num_revolutions_is_rejected():
 
 
 def test_lambert_transfer_negative_min_orbit_radius_is_rejected():
+    """A Lambert transfer with a negative minimum orbit radius is refused."""
     errors = Command(kind="lambert_transfer", params={
         "spacecraft": "sat-1", "target_position_m": [1.0, 0.0, 0.0], "time_of_flight_s": 3600.0,
         "min_orbit_radius_m": -1.0,
@@ -176,6 +206,8 @@ def test_lambert_transfer_negative_min_orbit_radius_is_rejected():
 
 
 def test_lambert_transfer_reports_every_problem_at_once():
+    """An empty Lambert transfer reports the missing spacecraft, target
+    position and time of flight together."""
     errors = Command(kind="lambert_transfer", params={}).validate("l")
     assert len(errors) >= 2  # missing spacecraft AND missing target_position_m AND time_of_flight_s
     assert any("spacecraft" in e for e in errors)
@@ -186,25 +218,30 @@ def test_lambert_transfer_reports_every_problem_at_once():
 # -- assignment / report ----------------------------------------------------
 
 def test_assignment_valid():
+    """An assignment of a value to a dotted spacecraft field validates."""
     cmd = Command(kind="assignment", params={"target": "sat-1.station_keeping.thrust_n", "value": 0.5})
     assert cmd.validate("a") == []
 
 
 def test_assignment_missing_value_is_rejected():
+    """An assignment without a value is refused."""
     errors = Command(kind="assignment", params={"target": "sat-1.x"}).validate("a")
     assert any("value" in e for e in errors)
 
 
 def test_assignment_target_without_dot_is_rejected():
+    """An assignment target without a dotted field is refused."""
     errors = Command(kind="assignment", params={"target": "sat-1", "value": 1}).validate("a")
     assert any("target" in e for e in errors)
 
 
 def test_report_empty_series_is_valid():
+    """A report without a series list validates."""
     assert Command(kind="report", params={}).validate("r") == []
 
 
 def test_report_bad_series_type_is_rejected():
+    """A report whose series is a string, not a list, is refused."""
     errors = Command(kind="report", params={"series": "sat-1.position_N"}).validate("r")
     assert any("series" in e for e in errors)
 
@@ -212,11 +249,14 @@ def test_report_bad_series_type_is_rejected():
 # -- if/while + children ----------------------------------------------------
 
 def test_conditional_requires_condition():
+    """An if without a condition is refused."""
     errors = Command(kind="if", params={}).validate("i")
     assert any("condition" in e for e in errors)
 
 
 def test_non_conditional_kind_rejects_children():
+    """A maneuver with children is refused: only conditionals and loops take
+    children."""
     child = Command(kind="script_block", params={"code": "pass"})
     errors = Command(kind="maneuver", params={"spacecraft": "s", "delta_v_m_s": [0, 0, 0]},
                       children=[child]).validate("m")
@@ -224,6 +264,7 @@ def test_non_conditional_kind_rejects_children():
 
 
 def test_if_validates_children_recursively():
+    """An if's invalid child is reported under the child's own path."""
     bad_child = Command(kind="maneuver", params={})  # missing everything
     cmd = Command(kind="if", params={"condition": "True"}, children=[bad_child])
     errors = cmd.validate("mission_sequence[0]")
@@ -231,6 +272,8 @@ def test_if_validates_children_recursively():
 
 
 def test_nested_if_validates_grandchildren():
+    """A grandchild inside an if and a while is validated and reported under
+    its full path."""
     grandchild = Command(kind="script_block", params={})  # missing code
     child = Command(kind="while", params={"condition": "True"}, children=[grandchild])
     root = Command(kind="if", params={"condition": "True"}, children=[child])
@@ -239,10 +282,12 @@ def test_nested_if_validates_grandchildren():
 
 
 def test_script_block_valid():
+    """A script block with code validates."""
     assert Command(kind="script_block", params={"code": "x = 1"}).validate("s") == []
 
 
 def test_script_block_missing_code_is_rejected():
+    """A script block without code is refused."""
     errors = Command(kind="script_block", params={}).validate("s")
     assert any("code" in e for e in errors)
 
@@ -250,6 +295,8 @@ def test_script_block_missing_code_is_rejected():
 # -- (de)serialization -------------------------------------------------------
 
 def test_to_dict_via_asdict_and_from_dict_round_trip():
+    """A command with a label, parameters and a child comes back equal through
+    asdict and from_dict."""
     original = Command(
         kind="if", label="Check altitude", params={"condition": "alt < 500"},
         children=[Command(kind="maneuver", label="Trim burn",
@@ -261,6 +308,8 @@ def test_to_dict_via_asdict_and_from_dict_round_trip():
 
 
 def test_from_dict_defaults_missing_optional_fields():
+    """from_dict with only a kind gives no label, no parameters and no
+    children."""
     rebuilt = Command.from_dict({"kind": "propagate"})
     assert rebuilt.label is None
     assert rebuilt.params == {}
@@ -288,6 +337,8 @@ def test_a_report_before_any_propagate_is_flagged():
 
 
 def test_a_report_after_a_propagate_is_fine():
+    """Reports after a propagate, and an empty sequence, give no
+    report-before-propagate error."""
     from spacemissionstudio.schema.command import report_before_propagate_errors
 
     assert report_before_propagate_errors([_propagate(), _report(), _report()]) == []
@@ -307,6 +358,8 @@ def test_only_certain_cases_are_flagged():
 
 
 def test_scenario_validation_reports_it(tmp_path):
+    """A report before any propagate in template 08 fails validation and is
+    listed by validate_all."""
     from pathlib import Path
 
     import pytest

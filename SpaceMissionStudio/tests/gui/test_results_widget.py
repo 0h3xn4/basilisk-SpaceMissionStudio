@@ -88,11 +88,15 @@ def test_set_result_populates_the_catalog_and_plots(widget):
     assert len(widget.figure.data) == 3  # x, y, z
 
 def test_set_result_with_no_provenance_leaves_label_blank(widget):
+    """A result without provenance leaves the provenance label empty."""
     widget.set_result(_sample_result_set())
     assert widget.provenance_label.text() == ""
 
 
 def test_set_result_with_provenance_shows_version_and_run_time(widget):
+    """The provenance label shows the tool and Basilisk versions, the
+    integrator and step, and the run time in UTC, and its tooltip says the run
+    is deterministic."""
     from spacemissionstudio.engine.results import RunProvenance
 
     rs = _sample_result_set()
@@ -110,6 +114,7 @@ def test_set_result_with_provenance_shows_version_and_run_time(widget):
 
 
 def test_set_result_none_clears_provenance_label(widget):
+    """Clearing the result empties the provenance label."""
     from spacemissionstudio.engine.results import RunProvenance
 
     rs = _sample_result_set()
@@ -158,6 +163,8 @@ def test_a_new_result_replaces_the_catalog_entries(widget):
     widget.catalog.search.clear()
 
 def test_switching_series_redraws(widget):
+    """Showing the velocity series plots its three components with a velocity
+    axis in m/s."""
     widget.set_result(_sample_result_set())
     widget.show_series("sat-1.velocity_N")
     assert widget.current_series_name() == "sat-1.velocity_N"
@@ -165,6 +172,8 @@ def test_switching_series_redraws(widget):
     assert len(widget.figure.data) == 3
 
 def test_set_result_none_clears_everything(widget):
+    """Clearing the result removes every plot and the figure and disables
+    Export."""
     widget.set_result(_sample_result_set())
     widget.set_result(None)
     assert widget.plot_names() == [] and widget.shown_plots() == []
@@ -172,6 +181,8 @@ def test_set_result_none_clears_everything(widget):
     assert widget.figure is None
 
 def test_export_writes_csv_files(widget, tmp_path, monkeypatch, reported):
+    """Export writes one CSV file per series to the chosen folder and reports
+    the count and folder."""
     from PySide6.QtWidgets import QFileDialog
 
     widget.set_result(_sample_result_set())
@@ -185,6 +196,7 @@ def test_export_writes_csv_files(widget, tmp_path, monkeypatch, reported):
 
 
 def test_export_with_no_result_is_a_no_op(widget, monkeypatch):
+    """Export without a result opens no folder dialog."""
     from PySide6.QtWidgets import QFileDialog
 
     calls = []
@@ -246,6 +258,7 @@ def test_save_plot_as_png_writes_a_real_png_file(widget, tmp_path, monkeypatch, 
 
 
 def test_save_plot_as_png_appends_extension_if_missing(widget, tmp_path, monkeypatch, qtbot):
+    """Saving a PNG under a name without an extension writes name.png."""
     from PySide6.QtWidgets import QFileDialog, QMessageBox
 
     with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
@@ -263,6 +276,7 @@ def test_save_plot_as_png_appends_extension_if_missing(widget, tmp_path, monkeyp
 
 
 def test_save_plot_as_png_with_no_result_is_a_no_op(widget, monkeypatch):
+    """Without a result, Save PNG is disabled and opens no dialog."""
     from PySide6.QtWidgets import QFileDialog
 
     assert not widget.save_png_button.isEnabled()
@@ -273,6 +287,7 @@ def test_save_plot_as_png_with_no_result_is_a_no_op(widget, monkeypatch):
 
 
 def test_save_plot_as_png_cancelled_dialog_is_a_no_op(widget, tmp_path, monkeypatch):
+    """Cancelling the Save PNG dialog writes nothing."""
     from PySide6.QtWidgets import QFileDialog
 
     widget.set_result(_sample_result_set())
@@ -308,6 +323,8 @@ def test_redraw_does_not_reenable_save_button_while_a_png_poll_is_in_flight(widg
 
 
 def test_save_plot_as_png_is_a_no_op_while_a_poll_is_already_in_flight(widget, qtbot, monkeypatch):
+    """Save PNG while an earlier save is still being written opens no
+    dialog."""
     from PySide6.QtCore import QTimer
     from PySide6.QtWidgets import QFileDialog
 
@@ -380,6 +397,7 @@ def test_save_plot_as_svg_writes_a_real_svg_file(widget, tmp_path, monkeypatch, 
 
 
 def test_save_plot_as_svg_appends_extension_if_missing(widget, tmp_path, monkeypatch, qtbot):
+    """Saving an SVG under a name without an extension writes name.svg."""
     from PySide6.QtWidgets import QFileDialog, QMessageBox
 
     with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
@@ -397,6 +415,7 @@ def test_save_plot_as_svg_appends_extension_if_missing(widget, tmp_path, monkeyp
 
 
 def test_save_plot_as_svg_with_no_result_is_a_no_op(widget, monkeypatch):
+    """Without a result, Save SVG is disabled and opens no dialog."""
     from PySide6.QtWidgets import QFileDialog
 
     assert not widget.save_svg_button.isEnabled()
@@ -507,6 +526,9 @@ def test_the_access_timeline_is_a_catalog_entry_under_link(widget):
     assert widget.current_series_name() == "" and widget.shown_plots() == [ACCESS_TIMELINE]
 
 def test_access_timeline_plots_one_trace_per_pair_with_a_segment_per_window(widget):
+    """The access timeline draws one trace per station-spacecraft pair, with
+    one segment per access window and a placeholder for a pair that never sees
+    the spacecraft."""
     from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
 
     widget.set_result(_access_result_set())
@@ -539,6 +561,8 @@ def test_access_timeline_with_no_access_series_shows_explanatory_empty_state(wid
     assert "No ground-station access series" in figure.layout.annotations[0].text
 
 def test_access_timeline_ignores_x_axis_combo_always_uses_elapsed_time(widget):
+    """The access timeline stays in elapsed hours when the epoch x-axis is
+    chosen."""
     from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
 
     widget.set_result(_access_result_set())
@@ -548,6 +572,8 @@ def test_access_timeline_ignores_x_axis_combo_always_uses_elapsed_time(widget):
     assert widget.figure.layout.xaxis.title.text == "Elapsed time [hr]"
 
 def test_switching_back_to_single_series_restores_previous_plot(widget):
+    """Going from the access timeline back to a series plots that series as
+    before."""
     from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
 
     widget.set_result(_access_result_set())
@@ -577,6 +603,7 @@ def test_access_timeline_renders_in_the_real_webview(widget, qtbot):
     assert blocker.args == [True]
 
 def test_save_plot_default_name_is_access_timeline_in_that_view(widget, tmp_path, monkeypatch, qtbot):
+    """Saving from the access timeline suggests access_timeline.png."""
     from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
 
     from PySide6.QtWidgets import QFileDialog
@@ -597,6 +624,8 @@ def test_save_plot_default_name_is_access_timeline_in_that_view(widget, tmp_path
     assert captured["default_name"] == "access_timeline.png"
 
 def test_set_live_result_populates_the_catalog_on_first_update(widget):
+    """The first live update fills the plot catalog, enables Export and plots
+    three components."""
     widget.set_live_result(_sample_result_set(n=5))
     assert len(widget.plot_names()) == 2
     assert widget.export_button.isEnabled()
@@ -618,6 +647,7 @@ def test_set_live_result_does_not_reset_users_series_selection(widget):
     assert len(widget.plot_names()) == 2
 
 def test_set_live_result_grows_the_plotted_data(widget):
+    """A later live update with more samples plots more points."""
     widget.set_live_result(_sample_result_set(n=5))
     first_trace_length = len(widget.figure.data[0].x)
 
@@ -659,6 +689,7 @@ def test_set_live_result_throttles_rapid_webview_redraws(widget, monkeypatch):
 
 
 def test_set_live_result_eventually_pushes_after_the_throttle_window(widget, qtbot, monkeypatch):
+    """A live update after the 300 ms redraw interval redraws the page once."""
     widget.set_live_result(_sample_result_set(n=5))
 
     push_calls = []
@@ -740,6 +771,7 @@ def test_position_series_plots_in_raw_meters(widget):
 
 
 def test_velocity_series_plots_in_raw_m_s(widget):
+    """Velocity is plotted unconverted, in m/s."""
     rs = _sample_result_set()
     raw_vx_m_s = rs.series["sat-1.velocity_N"].data[:, 0]
 
@@ -800,6 +832,8 @@ def test_altitude_and_semi_major_axis_series_plot_in_km():
 
 
 def test_mean_orbital_element_series_is_plotted_and_labeled_distinctly_from_osculating():
+    """A mean inclination is plotted in degrees and titled as a mean
+    (first-order J2) element."""
     from PySide6.QtWidgets import QApplication
 
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
@@ -849,6 +883,8 @@ def test_long_wrapping_series_is_thinned_evenly_not_min_max():
 
 
 def test_dimensionless_series_is_not_unit_converted(widget):
+    """An uncategorized dimensionless series is plotted unconverted under its
+    own name."""
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
 
     rs = ResultSet(scenario_name="demo")
@@ -880,6 +916,7 @@ def test_single_column_series_has_no_legend():
 
 
 def test_multi_column_series_has_a_legend(widget):
+    """A series with several columns shows a legend."""
     widget.set_result(_sample_result_set())
     assert widget.figure.layout.showlegend is True
 
@@ -895,6 +932,7 @@ def test_axes_never_use_scientific_notation(widget):
 
 
 def test_default_x_axis_is_elapsed_time_in_hours(widget):
+    """The x-axis defaults to elapsed time in hours."""
     rs = _sample_result_set()
     widget.set_result(rs)
 
@@ -904,6 +942,8 @@ def test_default_x_axis_is_elapsed_time_in_hours(widget):
 
 
 def test_epoch_x_axis_converts_time_s_to_datetimes(widget):
+    """With the epoch x-axis, sample times become UTC dates from the run's
+    epoch, within a millisecond (TDB seconds converted to UTC)."""
     from datetime import datetime, timedelta
 
     rs = _sample_result_set(n=5)
@@ -921,6 +961,7 @@ def test_epoch_x_axis_converts_time_s_to_datetimes(widget):
 
 
 def test_epoch_x_axis_falls_back_to_elapsed_time_without_a_known_epoch(widget):
+    """Without an epoch, the epoch x-axis falls back to elapsed time."""
     rs = _sample_result_set()
     widget.set_result(rs)  # no epoch_utc given
     widget.x_axis_combo.setCurrentIndex(widget.x_axis_combo.findData("epoch"))
@@ -929,6 +970,8 @@ def test_epoch_x_axis_falls_back_to_elapsed_time_without_a_known_epoch(widget):
 
 
 def test_epoch_x_axis_falls_back_to_elapsed_time_on_unparseable_epoch(widget):
+    """With an epoch that cannot be read, the epoch x-axis falls back to
+    elapsed time."""
     rs = _sample_result_set()
     widget.set_result(rs, epoch_utc="not a real epoch string")
     widget.x_axis_combo.setCurrentIndex(widget.x_axis_combo.findData("epoch"))
@@ -937,6 +980,8 @@ def test_epoch_x_axis_falls_back_to_elapsed_time_on_unparseable_epoch(widget):
 
 
 def test_switching_x_axis_back_to_elapsed_time_restores_it(widget):
+    """Switching from the epoch x-axis back to elapsed time restores elapsed
+    time."""
     rs = _sample_result_set()
     widget.set_result(rs, epoch_utc="2030-01-01T00:00:00")
     widget.x_axis_combo.setCurrentIndex(widget.x_axis_combo.findData("epoch"))
@@ -946,6 +991,7 @@ def test_switching_x_axis_back_to_elapsed_time_restores_it(widget):
 
 
 def test_live_result_carries_epoch_through_to_the_plot(widget):
+    """A live result's epoch is used by the epoch x-axis."""
     rs = _sample_result_set(n=5)
     widget.set_live_result(rs, epoch_utc="2030-06-15T00:00:00")
     widget.x_axis_combo.setCurrentIndex(widget.x_axis_combo.findData("epoch"))
@@ -954,6 +1000,8 @@ def test_live_result_carries_epoch_through_to_the_plot(widget):
 
 
 def test_set_live_result_rebuilds_the_catalog_if_series_names_change(widget):
+    """A live update with other series names rebuilds the catalog and shows the
+    new series."""
     from spacemissionstudio.engine.results import ResultSet, TimeSeries
 
     widget.set_live_result(_sample_result_set(n=5))
@@ -1028,6 +1076,8 @@ def test_series_list_shows_plot_titles_with_the_code_name_as_tooltip(widget):
     assert widget.figure.layout.title.text == "sat-1: Inertial Position (ECI)"  # the plot names the spacecraft
 
 def test_typing_a_full_code_name_still_selects_that_series(widget, qtbot):
+    """Typing a series' full code name in the catalog search and pressing Enter
+    shows it."""
     from PySide6.QtCore import Qt
 
     widget.set_result(_sample_result_set())
@@ -1124,6 +1174,9 @@ def _comms_result():
 
 
 def test_suggestions_offer_the_featured_series_and_open_on_the_first(widget):
+    """The suggestion chips offer the featured series the result has, in order
+    and without repeating the only spacecraft's name, and the first one is
+    shown and checked."""
     widget.show()
     widget.set_featured_series(["berlin-gs.access_to_leo-comms-1.has_access",
                                 "leo-comms-1.comms_pointing.pointing_error_deg",
@@ -1140,6 +1193,8 @@ def test_suggestions_offer_the_featured_series_and_open_on_the_first(widget):
 
 
 def test_clicking_a_suggestion_shows_it_even_from_the_access_timeline(widget):
+    """Clicking a suggestion chip from the access timeline shows that series
+    and checks the chip."""
     from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
 
     widget.show()
@@ -1154,6 +1209,8 @@ def test_clicking_a_suggestion_shows_it_even_from_the_access_timeline(widget):
     assert widget._suggestion_chips[0].isChecked()
 
 def test_suggestions_keep_names_that_tell_spacecraft_apart_and_hide_when_empty(widget):
+    """With two spacecraft, the chips keep the spacecraft names; the row hides
+    without featured series or without a result."""
     from spacemissionstudio.engine.results import TimeSeries
 
     widget.show()

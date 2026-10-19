@@ -6,6 +6,8 @@ pytestmark = pytest.mark.requires_gui
 
 
 def test_dialog_default_spacecraft(qtbot):
+    """A new dialog gives sat-1 on classical elements with a 10 kg*m^2 diagonal
+    inertia."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -103,6 +105,8 @@ def test_dialog_opens_at_a_usable_size_not_just_a_reasonable_upper_bound(qtbot):
 
 
 def test_dialog_edits_existing_config(qtbot):
+    """A dialog opened on a spacecraft gives back its name, dry mass and
+    Cartesian position."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig
 
@@ -152,6 +156,7 @@ def test_dialog_round_trips_sensors_actuators_and_fsw_mode(qtbot):
 
 
 def test_dialog_defaults_fsw_mode_to_none(qtbot):
+    """A new dialog gives no FSW mode, sensors or actuators."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -182,6 +187,8 @@ def test_dialog_catches_missing_locationpointing_target_immediately(qtbot):
 
 
 def test_dialog_fsw_reset_template_fills_working_example(qtbot):
+    """Resetting the FSW parameters for locationPointing fills in a target
+    ground station."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -195,6 +202,9 @@ def test_dialog_fsw_reset_template_fills_working_example(qtbot):
 
 
 def test_dialog_fsw_hint_updates_with_mode(qtbot):
+    """Without an FSW mode the hint says there is no attitude control and the
+    parameters are hidden; locationPointing shows its hint and exactly its
+    three parameters."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -260,6 +270,8 @@ def test_attitude_tab_round_trips_existing_params_and_extras(qtbot):
 
 
 def test_switching_fsw_mode_away_and_back_keeps_edits(qtbot):
+    """An FSW parameter edited in one mode is kept after switching to another
+    mode and back."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -273,6 +285,8 @@ def test_switching_fsw_mode_away_and_back_keeps_edits(qtbot):
 
 
 def test_dialog_power_and_rf_link_default_to_none(qtbot):
+    """A new dialog has the power and RF-link groups unchecked and gives
+    neither."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -285,6 +299,8 @@ def test_dialog_power_and_rf_link_default_to_none(qtbot):
 
 
 def test_dialog_builds_power_config_when_group_checked(qtbot):
+    """With the power group checked, the dialog gives a power model with the
+    typed values and still no RF link."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -307,6 +323,9 @@ def test_dialog_builds_power_config_when_group_checked(qtbot):
 
 
 def test_dialog_builds_rf_link_config_when_group_checked(qtbot):
+    """With the RF-link group checked, the dialog gives an RF link with the
+    typed values, frequency in Hz and data rate in bit/s, and still no power
+    model."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -331,6 +350,8 @@ def test_dialog_builds_rf_link_config_when_group_checked(qtbot):
 
 
 def test_dialog_round_trips_power_and_rf_link(qtbot):
+    """A spacecraft's power model and RF link open checked and come back
+    unchanged."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import OrbitIC, PowerConfig, RFLinkConfig, SpacecraftConfig
 
@@ -378,6 +399,7 @@ def test_dialog_round_trips_rf_link_antenna_beamwidth_deg(qtbot):
 
 
 def test_dialog_rf_link_antenna_beamwidth_deg_defaults_to_none_unchecked(qtbot):
+    """A new RF link has its beamwidth box unchecked and gives no beamwidth."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -390,6 +412,7 @@ def test_dialog_rf_link_antenna_beamwidth_deg_defaults_to_none_unchecked(qtbot):
 
 
 def test_dialog_comms_pointing_defaults_to_none(qtbot):
+    """A new dialog has comms pointing unchecked and gives none."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -400,6 +423,8 @@ def test_dialog_comms_pointing_defaults_to_none(qtbot):
 
 
 def test_dialog_comms_pointing_ground_station_combo_lists_provided_names(qtbot):
+    """The comms-pointing station list offers exactly the scenario's ground
+    stations."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog(ground_station_names=["berlin", "svalbard"])
@@ -411,6 +436,7 @@ def test_dialog_comms_pointing_ground_station_combo_lists_provided_names(qtbot):
 
 
 def test_dialog_comms_pointing_disabled_combo_with_no_ground_stations(qtbot):
+    """Without ground stations, the comms-pointing station list is disabled."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -420,6 +446,8 @@ def test_dialog_comms_pointing_disabled_combo_with_no_ground_stations(qtbot):
 
 
 def test_dialog_comms_pointing_requires_a_selectable_ground_station(qtbot):
+    """Comms pointing checked without a ground station to choose is refused
+    when the dialog is read."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import ScenarioValidationError
 
@@ -431,6 +459,9 @@ def test_dialog_comms_pointing_requires_a_selectable_ground_station(qtbot):
 
 
 def test_dialog_builds_comms_pointing_config_when_group_checked(qtbot):
+    """With comms pointing checked, the dialog gives the chosen station,
+    boresight and power, and no Sun-pointing axis while the default box stays
+    checked."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog(ground_station_names=["berlin"])
@@ -451,6 +482,8 @@ def test_dialog_builds_comms_pointing_config_when_group_checked(qtbot):
 
 
 def test_dialog_comms_pointing_sun_axis_override(qtbot):
+    """Unchecking the default Sun axis enables its fields, and the typed axis
+    is given."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog(ground_station_names=["berlin"])
@@ -550,6 +583,8 @@ def test_dialog_template_19_leo_comms_1_survives_open_then_ok(qtbot):
 
 
 def test_dialog_orbit_only_mode_force_clears_comms_pointing(qtbot):
+    """In an orbit-only scenario, the dialog drops a spacecraft's comms
+    pointing."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import CommsPointingConfig, OrbitIC, SpacecraftConfig
 
@@ -566,6 +601,7 @@ def test_dialog_orbit_only_mode_force_clears_comms_pointing(qtbot):
 
 
 def test_dialog_station_keeping_defaults_to_none(qtbot):
+    """A new dialog has station keeping unchecked and gives none."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -576,6 +612,8 @@ def test_dialog_station_keeping_defaults_to_none(qtbot):
 
 
 def test_dialog_builds_station_keeping_config_when_group_checked(qtbot):
+    """With station keeping checked, the dialog gives the typed altitude,
+    deadband, thrust, Isp, propellant and sunlit threshold."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -599,6 +637,8 @@ def test_dialog_builds_station_keeping_config_when_group_checked(qtbot):
 
 
 def test_dialog_round_trips_station_keeping(qtbot):
+    """A spacecraft's station keeping opens checked and comes back
+    unchanged."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig, StationKeepingConfig
 
@@ -618,6 +658,7 @@ def test_dialog_round_trips_station_keeping(qtbot):
 
 
 def test_dialog_phasing_keeping_defaults_to_none(qtbot):
+    """A new dialog has phasing keeping unchecked and gives none."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -628,6 +669,7 @@ def test_dialog_phasing_keeping_defaults_to_none(qtbot):
 
 
 def test_dialog_phasing_keeping_chief_combo_lists_other_spacecraft(qtbot):
+    """The phasing-keeping chief list offers exactly the other spacecraft."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog(other_spacecraft_names=["chief", "follower-2"])
@@ -639,6 +681,7 @@ def test_dialog_phasing_keeping_chief_combo_lists_other_spacecraft(qtbot):
 
 
 def test_dialog_phasing_keeping_disabled_combo_with_no_other_spacecraft(qtbot):
+    """Without other spacecraft, the chief list is disabled and empty."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -649,6 +692,8 @@ def test_dialog_phasing_keeping_disabled_combo_with_no_other_spacecraft(qtbot):
 
 
 def test_dialog_phasing_keeping_requires_a_selectable_chief(qtbot):
+    """Phasing keeping checked without a chief to choose is refused when the
+    dialog is read."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import ScenarioValidationError
 
@@ -661,6 +706,8 @@ def test_dialog_phasing_keeping_requires_a_selectable_chief(qtbot):
 
 
 def test_dialog_builds_phasing_keeping_config_when_group_checked(qtbot):
+    """With phasing keeping checked, the dialog gives the chief, the
+    separations in order and every tuning value typed."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog(other_spacecraft_names=["chief"])
@@ -829,6 +876,8 @@ def test_dialog_round_trips_drag_and_srp_fields(qtbot):
 
 
 def test_dialog_drag_srp_editor_actually_edits(qtbot):
+    """Drag starts off; the typed drag and SRP switches, coefficients and areas
+    are given."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -852,6 +901,7 @@ def test_dialog_drag_srp_editor_actually_edits(qtbot):
 
 
 def test_dialog_defaults_to_no_constant_thrust(qtbot):
+    """A new dialog has constant thrust unchecked and gives none."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -862,6 +912,8 @@ def test_dialog_defaults_to_no_constant_thrust(qtbot):
 
 
 def test_dialog_builds_constant_thrust_when_group_checked(qtbot):
+    """With constant thrust checked, the dialog gives the chosen frame,
+    direction, thrust, Isp and propellant."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -885,6 +937,8 @@ def test_dialog_builds_constant_thrust_when_group_checked(qtbot):
 
 
 def test_dialog_round_trips_constant_thrust(qtbot):
+    """A spacecraft's constant thrust opens checked in its frame and comes back
+    unchanged."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import ConstantThrustConfig, OrbitIC, SpacecraftConfig
 
@@ -904,6 +958,8 @@ def test_dialog_round_trips_constant_thrust(qtbot):
 
 
 def test_dialog_orbit_only_mode_hides_attitude_tabs_and_power(qtbot):
+    """In an orbit-only scenario, the sensors and FSW tabs and the power group
+    are hidden."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog(simulation_mode="orbit_only")
@@ -968,6 +1024,8 @@ def test_every_spacecraft_preset_is_valid_in_an_orbit_only_scenario(qtbot, prese
 
 
 def test_dialog_full_attitude_mode_keeps_tabs_visible(qtbot):
+    """In a full-attitude scenario, the sensors and FSW tabs and the power
+    group are shown."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog(simulation_mode="full_attitude")
@@ -978,6 +1036,8 @@ def test_dialog_full_attitude_mode_keeps_tabs_visible(qtbot):
 
 
 def test_dialog_defaults_to_no_vizard_model(qtbot):
+    """A new dialog has no Vizard model: no path, zero offset and rotation,
+    unit scale."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -991,6 +1051,8 @@ def test_dialog_defaults_to_no_vizard_model(qtbot):
 
 
 def test_dialog_builds_vizard_model_when_group_checked(qtbot):
+    """With the Vizard model group checked, the dialog gives the typed path,
+    offset, rotation and scale."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -1028,6 +1090,7 @@ def test_dialog_vizard_model_checked_but_blank_path_is_none(qtbot):
 
 
 def test_dialog_round_trips_vizard_model(qtbot):
+    """A spacecraft's Vizard model opens checked and comes back unchanged."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig
 
@@ -1052,6 +1115,8 @@ def test_dialog_round_trips_vizard_model(qtbot):
 
 
 def test_dialog_round_trips_phasing_keeping(qtbot):
+    """A follower's phasing keeping opens checked with its chief and
+    separations and comes back unchanged."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import (
         OrbitIC,
@@ -1080,6 +1145,7 @@ def test_dialog_round_trips_phasing_keeping(qtbot):
 
 
 def test_dialog_rejects_invalid_fsw_params_json(qtbot):
+    """FSW parameters that are not JSON are refused when the dialog is read."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -1090,6 +1156,7 @@ def test_dialog_rejects_invalid_fsw_params_json(qtbot):
 
 
 def test_dialog_rejects_empty_name(qtbot):
+    """An empty spacecraft name is refused when the dialog is read."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import ScenarioValidationError
 
@@ -1118,6 +1185,8 @@ def test_dialog_name_field_shows_inline_error_while_empty(qtbot):
 
 
 def test_dialog_name_field_shows_inline_error_on_duplicate(qtbot):
+    """A name another spacecraft has marks the field as an error naming it; a
+    free name clears it."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog(other_spacecraft_names=["sat-1", "sat-2"])
@@ -1151,6 +1220,8 @@ def test_dialog_accept_blocks_and_keeps_dialog_open_on_empty_name(qtbot):
 
 
 def test_dialog_accept_blocks_on_duplicate_name(qtbot):
+    """OK with a name another spacecraft has keeps the dialog open and the
+    field marked."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog(other_spacecraft_names=["sat-1"])
@@ -1164,6 +1235,8 @@ def test_dialog_accept_blocks_on_duplicate_name(qtbot):
 
 
 def test_list_widget_from_list_to_list_round_trip(qtbot):
+    """The spacecraft list shows the spacecraft it is given and gives them back
+    in order."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftListWidget
     from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig
 
@@ -1179,6 +1252,8 @@ def test_list_widget_from_list_to_list_round_trip(qtbot):
 
 
 def test_list_widget_add_via_dialog(qtbot, monkeypatch):
+    """Add opens the editor; the accepted spacecraft is listed, selected and
+    reported as one change."""
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QDialog
 
@@ -1204,6 +1279,7 @@ def test_list_widget_add_via_dialog(qtbot, monkeypatch):
 
 
 def test_list_widget_add_and_remove_show_a_toast(qtbot, monkeypatch):
+    """Adding and removing a spacecraft each show a toast naming it."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog, SpacecraftListWidget
@@ -1229,6 +1305,9 @@ def test_list_widget_add_and_remove_show_a_toast(qtbot, monkeypatch):
 
 
 def test_list_widget_new_from_template(qtbot, monkeypatch):
+    """New from template adds the chosen template's spacecraft, keeping its
+    wheels, torque rods, magnetic momentum management and FSW mode through the
+    editor."""
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QDialog
 
@@ -1267,6 +1346,7 @@ def test_list_widget_new_from_template(qtbot, monkeypatch):
 
 
 def test_list_widget_new_from_template_dedupes_name_on_collision(qtbot, monkeypatch):
+    """A template whose name is taken opens in the editor as name-2."""
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QDialog
 
@@ -1300,6 +1380,7 @@ def test_list_widget_new_from_template_dedupes_name_on_collision(qtbot, monkeypa
 
 
 def test_list_widget_new_from_template_cancel_does_nothing(qtbot, monkeypatch):
+    """Cancelling the template picker adds nothing."""
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QDialog
 
@@ -1316,6 +1397,8 @@ def test_list_widget_new_from_template_cancel_does_nothing(qtbot, monkeypatch):
 
 
 def test_list_widget_edit_and_remove(qtbot, monkeypatch):
+    """Edit applies the editor's changes to the selected spacecraft; Remove
+    deletes it."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog, SpacecraftListWidget
@@ -1343,6 +1426,8 @@ def test_list_widget_edit_and_remove(qtbot, monkeypatch):
 
 
 def test_list_widget_rejects_duplicate_name_on_add(qtbot, monkeypatch, reported):
+    """Adding a spacecraft with a name already listed adds nothing and warns,
+    naming it."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog, SpacecraftListWidget
@@ -1365,6 +1450,8 @@ def test_list_widget_rejects_duplicate_name_on_add(qtbot, monkeypatch, reported)
 
 
 def test_list_widget_generate_constellation_appends_generated_spacecraft(qtbot, monkeypatch):
+    """Generating a 4-satellite Walker constellation appends four copies of the
+    selected spacecraft, reports one change and says so in a toast."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
@@ -1401,6 +1488,8 @@ def test_list_widget_generate_constellation_appends_generated_spacecraft(qtbot, 
 
 
 def test_list_widget_generate_constellation_uses_default_template_when_list_empty(qtbot, monkeypatch):
+    """With no spacecraft listed, the constellation generator uses a default
+    spacecraft."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
@@ -1421,6 +1510,8 @@ def test_list_widget_generate_constellation_uses_default_template_when_list_empt
 
 
 def test_list_widget_generate_constellation_reports_name_collision(qtbot, monkeypatch, reported):
+    """A constellation whose names are taken adds nothing and warns, naming the
+    clash."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
@@ -1450,6 +1541,7 @@ def test_list_widget_generate_constellation_reports_name_collision(qtbot, monkey
 
 
 def test_list_widget_generate_constellation_cancel_does_nothing(qtbot, monkeypatch):
+    """Cancelling the constellation dialog adds nothing."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
@@ -1463,6 +1555,8 @@ def test_list_widget_generate_constellation_cancel_does_nothing(qtbot, monkeypat
 
 
 def test_list_widget_uses_central_body_provider(qtbot, monkeypatch):
+    """The constellation dialog takes the scenario's central body from the
+    list's provider."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
@@ -1530,6 +1624,8 @@ def test_list_widget_generate_phasing_formation_appends_follower(qtbot, monkeypa
 
 @pytest.mark.requires_basilisk
 def test_list_widget_generate_phasing_formation_reports_name_collision(qtbot, monkeypatch, reported):
+    """A phasing follower whose name is taken adds nothing and warns, naming
+    it."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
@@ -1564,6 +1660,7 @@ def test_list_widget_generate_phasing_formation_reports_name_collision(qtbot, mo
 
 
 def test_list_widget_generate_phasing_formation_cancel_does_nothing(qtbot, monkeypatch):
+    """Cancelling the phasing-formation dialog adds nothing."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
@@ -1663,6 +1760,7 @@ def test_list_widget_generate_phasing_formation_without_basilisk_reports_clear_e
 
 
 def test_dialog_momentum_dumping_defaults_to_none(qtbot):
+    """A new dialog has momentum dumping unchecked and gives none."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -1673,6 +1771,8 @@ def test_dialog_momentum_dumping_defaults_to_none(qtbot):
 
 
 def test_dialog_builds_momentum_dumping_config_when_group_checked(qtbot):
+    """With momentum dumping checked, the dialog gives the typed momentum
+    limit, minimum fire time and counter limit."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import ActuatorConfig, OrbitIC, SpacecraftConfig
 
@@ -1701,6 +1801,8 @@ def test_dialog_builds_momentum_dumping_config_when_group_checked(qtbot):
 
 
 def test_dialog_round_trips_momentum_dumping(qtbot):
+    """A spacecraft's momentum dumping opens checked with its values and comes
+    back."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import ActuatorConfig, MomentumDumpingConfig, OrbitIC, SpacecraftConfig
 
@@ -1728,6 +1830,8 @@ def test_dialog_round_trips_momentum_dumping(qtbot):
 
 
 def test_dialog_builds_fuel_tank_config_when_group_checked(qtbot):
+    """With the fuel tank checked, the dialog gives the typed propellant,
+    capacity and tank position."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import ActuatorConfig, OrbitIC, SpacecraftConfig
 
@@ -1757,6 +1861,8 @@ def test_dialog_builds_fuel_tank_config_when_group_checked(qtbot):
 
 
 def test_dialog_round_trips_fuel_tank(qtbot):
+    """A spacecraft's fuel tank opens checked with its values and comes
+    back."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import ActuatorConfig, FuelTankConfig, OrbitIC, SpacecraftConfig
 
@@ -1782,6 +1888,7 @@ def test_dialog_round_trips_fuel_tank(qtbot):
 
 
 def test_dialog_fuel_tank_defaults_to_none(qtbot):
+    """A new dialog has the fuel tank unchecked and gives none."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -1792,6 +1899,8 @@ def test_dialog_fuel_tank_defaults_to_none(qtbot):
 
 
 def test_dialog_magnetic_momentum_management_defaults_to_none(qtbot):
+    """A new dialog has magnetic momentum management unchecked and gives
+    none."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog()
@@ -1802,6 +1911,8 @@ def test_dialog_magnetic_momentum_management_defaults_to_none(qtbot):
 
 
 def test_dialog_builds_magnetic_momentum_management_config_when_group_checked(qtbot):
+    """Magnetic momentum management shows one bias box per reaction wheel,
+    labelled with its name, and gives the typed biases and gain."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import ActuatorConfig, OrbitIC, SpacecraftConfig
 
@@ -1832,6 +1943,8 @@ def test_dialog_builds_magnetic_momentum_management_config_when_group_checked(qt
 
 
 def test_dialog_round_trips_magnetic_momentum_management(qtbot):
+    """A spacecraft's magnetic momentum management opens checked with its
+    biases and gain and comes back."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import (
         ActuatorConfig, MagneticMomentumManagementConfig, OrbitIC, SpacecraftConfig,
@@ -1905,6 +2018,8 @@ def test_wheel_speed_bias_rows_follow_the_reaction_wheel_list(qtbot):
 
 
 def test_dialog_round_trips_thruster_realism_settings(qtbot):
+    """Station keeping's minimum on-time and eccentricity-neutral burns open as
+    set and come back unchanged."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig, StationKeepingConfig
 
