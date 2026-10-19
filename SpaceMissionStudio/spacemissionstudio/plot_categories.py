@@ -101,6 +101,10 @@ def _vector_display(name: str) -> Optional[SeriesDisplay]:
         return SeriesDisplay("Inertial Position (ECI)", "Position", "m", 1.0, dict(_XYZ_LABELS))
     if name.endswith(".velocity_N"):
         return SeriesDisplay("Inertial Velocity (ECI)", "Velocity", "m/s", 1.0, dict(_XYZ_LABELS))
+    if name.endswith(".position_P"):
+        return SeriesDisplay("Position in the Small Body's Frame", "Position", "km", 1e-3, dict(_XYZ_LABELS))
+    if name.endswith(".small_body.distance"):
+        return SeriesDisplay("Distance from the Small Body's Centre", "Distance", "km", 1e-3, {"r": "Distance"})
     if name.endswith(".attitude_sigma_BN"):
         return SeriesDisplay("Attitude (MRP, Body to Inertial)", "MRP component", "-")
     if name.endswith(".body_rate_omega_BN_B"):
@@ -468,7 +472,8 @@ def plot_group(name: str, series: TimeSeries) -> str:
     navigation = re.search(r"\.navigation_error\.(\w+)$", name)
     if navigation is not None:
         return "Orbit" if navigation.group(1) in ("position", "velocity") else "Attitude"
-    if (name.endswith((".position_N", ".velocity_N", ".eclipse.illumination_factor"))
+    if (name.endswith((".position_N", ".velocity_N", ".position_P", ".eclipse.illumination_factor"))
+            or ".small_body." in name
             or ".orbit_elements" in name or any(f".{key}." in name for key in _CONTROLLER_TITLES)):
         return "Orbit"
     return "Other"

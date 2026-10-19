@@ -598,6 +598,35 @@ def cmd_earth_orientation(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_small_bodies(args: argparse.Namespace) -> int:
+    """Status of the small-body files (433 Eros: ephemeris and shape);
+    --fetch downloads them (network: only when asked), --import installs
+    the ephemeris kernel from disk."""
+    from .engine import small_bodies as sb
+
+    body = sb.EROS
+    try:
+        if args.fetch:
+            print(f"Downloading {body.spk_name} from {body.spk_url} and the shape {body.shape_data_file}.tab ...")
+            sb.fetch(body.name)
+            sb.fetch_shape(body)
+        elif args.import_file:
+            sb.import_file(args.import_file, body.name)
+    except sb.SmallBodyError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    kernel = sb.installed(body.name)
+    shape = sb.shape_path(body)
+    print(f"{body.title}:")
+    print(f"  ephemeris  {Path(kernel.path).name}  {kernel.size_bytes / 1e6:.1f} MB  sha256 {kernel.sha256[:16]}  "
+          f"from {kernel.source}" if kernel else f"  ephemeris  missing ({body.spk_name})")
+    print(f"  shape      {shape}" if shape else f"  shape      missing ({body.shape_data_file}.tab)")
+    if kernel is None or shape is None:
+        print("Run 'spacemissionstudio small-bodies --fetch' (needs internet), or --import the ephemeris file.")
+        return 1
+    return 0
+
+
 def cmd_ccsds_validate(args: argparse.Namespace) -> int:
     """Check KVN OPM/OMM/OEM files against CCSDS 502.0-B-3."""
     from .engine import ccsds_odm
@@ -1168,6 +1197,15 @@ def build_parser() -> argparse.ArgumentParser:
                             help="install Earth PCK .bpc files from disk (a .cmt next to each is read too)")
     eop_action.add_argument("--rollback", action="store_true", help="restore the previously installed files")
     p_eop.set_defaults(func=cmd_earth_orientation)
+
+    p_small = subparsers.add_parser("small-bodies",
+                                    help="small-body files (433 Eros ephemeris and shape): status, --fetch, --import")
+    small_action = p_small.add_mutually_exclusive_group()
+    small_action.add_argument("--fetch", action="store_true",
+                              help="download the Eros ephemeris (NAIF) and shape (Basilisk support data) (internet)")
+    small_action.add_argument("--import", dest="import_file", type=Path, metavar="FILE",
+                              help="install the Eros ephemeris kernel eros_1900_2100.bsp from disk")
+    p_small.set_defaults(func=cmd_small_bodies)
 
     p_ccsds = subparsers.add_parser("ccsds-validate", help="check CCSDS OPM/OMM/OEM (KVN) files (no Basilisk needed)")
     p_ccsds.add_argument("files", nargs="+", type=Path)

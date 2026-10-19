@@ -99,6 +99,11 @@ def _isolate_logging_setup(tmp_path, monkeypatch):
 
     monkeypatch.setattr(earth_orientation, "DEFAULT_DIR", tmp_path / ".cache" / "SpaceMissionStudio" / "earth_orientation")
     monkeypatch.setattr(earth_orientation, "SYSTEM_DIR", tmp_path / "share" / "earth_orientation")
+    # And for the small-body kernels (engine.small_bodies).
+    from spacemissionstudio.engine import small_bodies
+
+    monkeypatch.setattr(small_bodies, "DEFAULT_DIR", tmp_path / ".cache" / "SpaceMissionStudio" / "small_bodies")
+    monkeypatch.setattr(small_bodies, "SYSTEM_DIR", tmp_path / "share" / "small_bodies")
 
     root_logger = logging.getLogger()
     original_handlers = list(root_logger.handlers)

@@ -145,6 +145,8 @@ jobs:
         run: spacemissionstudio kernels-status
       - name: IERS-based Earth orientation files for the validation cases (SVS VP-1)
         run: spacemissionstudio earth-orientation --fetch
+      - name: 433 Eros ephemeris (NAIF) and shape model for the small-body runs
+        run: spacemissionstudio small-bodies --fetch
       # A test worker that crashes in native code shows only "<no Python
       # frame>" in faulthandler's output. Python's faulthandler re-raises the
       # signal, so with core dumps on, the kernel writes a core that
@@ -242,6 +244,8 @@ jobs:
         run: spacemissionstudio kernels-status
       - name: IERS-based Earth orientation files for the validation cases (SVS VP-1)
         run: spacemissionstudio earth-orientation --fetch
+      - name: 433 Eros ephemeris (NAIF) and shape model for the small-body runs
+        run: spacemissionstudio small-bodies --fetch
       - name: Tests
         run: python -m pytest tests -q -n auto -p no:cacheprovider -o faulthandler_timeout=600 --junitxml=test-report-${{ matrix.os }}.xml
       - uses: actions/upload-artifact@v6

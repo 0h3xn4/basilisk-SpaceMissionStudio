@@ -7,7 +7,8 @@
     "central_body_degree": 2,
     "third_body_perturbers": [
       "sun"
-    ]
+    ],
+    "polyhedral_gravity": false
   },
   "spacecraft": [
     {

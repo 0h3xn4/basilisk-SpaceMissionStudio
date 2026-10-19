@@ -8,7 +8,8 @@
     "third_body_perturbers": [
       "sun",
       "moon"
-    ]
+    ],
+    "polyhedral_gravity": false
   },
   "spacecraft": [
     {

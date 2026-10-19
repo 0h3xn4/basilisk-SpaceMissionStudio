@@ -63,6 +63,7 @@ import math
 import os
 import tempfile
 from dataclasses import dataclass, field, asdict
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import typing
 from typing import Any, Dict, List, Optional
@@ -84,6 +85,12 @@ CURRENT_SCHEMA_VERSION = 4
 SUPPORTED_CENTRAL_BODIES = (
     "sun", "mercury", "venus", "earth", "moon", "mars barycenter", "jupiter barycenter",
 )
+# Small bodies a run can orbit but not take as third bodies: their
+# ephemeris is a separate NAIF kernel and their gravity can be a shape
+# model (engine.small_bodies, engine.polyhedron).
+SMALL_BODY_CENTRAL_BODIES = ("eros",)
+# The span the small bodies' ephemeris kernels cover (eros_1900_2100.bsp), UTC.
+SMALL_BODY_EPHEMERIS_SPAN = {"eros": ("1900-01-01T00:00:00", "2100-01-01T00:00:00")}
 # Central bodies optical navigation can use: the ones Basilisk's
 # pixelLineConverter and relativeODuKF know by number (engine.opnav.BODY_IDS).
 OPTICAL_NAVIGATION_BODIES = ("earth", "mars barycenter", "jupiter barycenter")
@@ -96,12 +103,15 @@ UNRUNNABLE_BODIES = {
 }
 
 
-def _body_problem(where: str, name: str) -> str:
+def _body_problem(where: str, name: str, small_bodies: bool = False) -> str:
     """Why ``name`` cannot be used at ``where``, naming the body to use instead."""
     if name in UNRUNNABLE_BODIES:
         instead, reason = UNRUNNABLE_BODIES[name]
         return f"{where} {name!r} cannot be run: {reason}; use {instead!r}"
-    return f"{where} {name!r} must be one of {SUPPORTED_CENTRAL_BODIES}"
+    if name in SMALL_BODY_CENTRAL_BODIES and not small_bodies:
+        return f"{where} {name!r} can only be the central body"
+    allowed = SUPPORTED_CENTRAL_BODIES + (SMALL_BODY_CENTRAL_BODIES if small_bodies else ())
+    return f"{where} {name!r} must be one of {allowed}"
 
 ORBIT_IC_TYPES = ("classical_elements", "cartesian", "tle")
 
@@ -2230,10 +2240,17 @@ class GravityConfig:
     central_body: str = "earth"
     central_body_degree: int = 0  # 0 == point-mass only
     third_body_perturbers: list = field(default_factory=list)  # e.g. ["sun", "moon"]
+    # A small body's gravity from its shape model at constant density
+    # (Basilisk's polyhedralGravityModel) instead of a point mass.
+    polyhedral_gravity: bool = False
 
     def validate(self) -> None:
-        _require(self.central_body in SUPPORTED_CENTRAL_BODIES,
-                  _body_problem("gravity.central_body", self.central_body))
+        _require(self.central_body in SUPPORTED_CENTRAL_BODIES + SMALL_BODY_CENTRAL_BODIES,
+                  _body_problem("gravity.central_body", self.central_body, small_bodies=True))
+        _require(isinstance(self.polyhedral_gravity, bool), "gravity.polyhedral_gravity must be true or false")
+        _require(not self.polyhedral_gravity or self.central_body in SMALL_BODY_CENTRAL_BODIES,
+                  f"gravity.polyhedral_gravity needs a small body with a shape model as the central body "
+                  f"({', '.join(SMALL_BODY_CENTRAL_BODIES)}), not {self.central_body!r}")
         _require(self.central_body_degree >= 0, "gravity.central_body_degree must be >= 0")
         _require(self.central_body_degree <= MAX_GRAVITY_DEGREE,
                  f"gravity.central_body_degree must be <= {MAX_GRAVITY_DEGREE} (the GGM03S field's maximum)")
@@ -2590,6 +2607,20 @@ class Scenario:
     description: str = ""
     schema_version: int = CURRENT_SCHEMA_VERSION
 
+    def _validate_small_body(self) -> None:
+        """Checks for a run around a small body (``SMALL_BODY_CENTRAL_BODIES``)."""
+        body = self.gravity.central_body
+        first, last = (datetime.fromisoformat(part) for part in SMALL_BODY_EPHEMERIS_SPAN[body])
+        start = parse_epoch_utc(self.epoch_utc)
+        if start.tzinfo is not None:
+            start = start.astimezone(timezone.utc).replace(tzinfo=None)
+        end = start + timedelta(days=self.sim_settings.duration_days)
+        _require(first <= start and end <= last,
+                  f"gravity.central_body {body!r}: its ephemeris covers {first:%Y-%m-%d} to {last:%Y-%m-%d}; "
+                  f"this run goes from {start:%Y-%m-%d} to {end:%Y-%m-%d}")
+        _require(not self.ground_stations,
+                  f"gravity.central_body {body!r}: ground stations are only for planets, remove them")
+
     def validate(self) -> None:
         _require(bool(self.name), "scenario.name must not be empty")
         try:
@@ -2730,6 +2761,10 @@ class Scenario:
         # (engine/long_run.py); these two cannot be split.
         single_run_days = SimSettings._MAX_SINGLE_RUN_DAYS
         if self.sim_settings.duration_days > single_run_days:
+            _require(self.gravity.central_body not in SMALL_BODY_CENTRAL_BODIES,
+                      f"a run around {self.gravity.central_body!r} is one simulation, at most {single_run_days:g} "
+                      "days (sim_settings.duration_days; longer, segmented runs are not verified around small "
+                      "bodies) -- shorten the run")
             _require(not runs_sequence(self.mission_sequence),
                       f"sim_settings.duration_days is over {single_run_days:g} days, which a mission sequence "
                       "cannot run -- shorten the run or remove the mission sequence")
@@ -2810,6 +2845,8 @@ class Scenario:
                 _require(sc.geo_station_keeping is None,
                           f"{sc.name}: geo_station_keeping is Earth-only (it plans east-west burns from "
                           f"Earth's J22 term), but gravity.central_body is {self.gravity.central_body!r}")
+        if self.gravity.central_body in SMALL_BODY_CENTRAL_BODIES:
+            self._validate_small_body()
         self.space_weather.validate()
         self.sim_settings.validate()
         self.monte_carlo.validate()
