@@ -23,6 +23,8 @@ pytestmark = pytest.mark.requires_gui
 
 
 def test_precise_spin_box_keeps_full_precision_beyond_its_display_decimals(qtbot):
+    """The precise box keeps and shows every digit stored, beyond its display
+    decimals."""
     from spacemissionstudio.gui.widgets import PreciseDoubleSpinBox
 
     box = PreciseDoubleSpinBox()
@@ -51,6 +53,8 @@ def test_precise_spin_box_stores_and_shows_values_exactly(qtbot, value):
 
 
 def test_precise_spin_box_pads_to_its_minimum_display_decimals(qtbot):
+    """The precise box pads a value to its display decimals and keeps its
+    suffix."""
     from spacemissionstudio.gui.widgets import PreciseDoubleSpinBox
 
     box = PreciseDoubleSpinBox()
@@ -64,6 +68,7 @@ def test_precise_spin_box_pads_to_its_minimum_display_decimals(qtbot):
 
 
 def test_precise_spin_box_parses_typed_text_with_either_decimal_separator(qtbot):
+    """The precise box reads a comma or a point as the decimal separator."""
     from spacemissionstudio.gui.widgets import PreciseDoubleSpinBox
 
     box = PreciseDoubleSpinBox()
@@ -79,6 +84,8 @@ def test_precise_spin_box_parses_typed_text_with_either_decimal_separator(qtbot)
 
 
 def test_precise_spin_box_rejects_garbage_and_out_of_range_input(qtbot):
+    """The precise box refuses text and NaN, treats a lone minus or an
+    out-of-range number as incomplete and accepts a number in range."""
     from PySide6.QtGui import QValidator
 
     from spacemissionstudio.gui.widgets import PreciseDoubleSpinBox
@@ -95,6 +102,7 @@ def test_precise_spin_box_rejects_garbage_and_out_of_range_input(qtbot):
 
 @pytest.mark.parametrize("value, text", [(50.0, "50"), (83.7758040957278, "83.7758040957278"), (-0.5, "-0.5")])
 def test_exact_number_text_round_trips_exactly(value, text):
+    """A number's text reads back as exactly the same number."""
     from spacemissionstudio.gui.widgets import exact_number_text
 
     assert exact_number_text(value) == text

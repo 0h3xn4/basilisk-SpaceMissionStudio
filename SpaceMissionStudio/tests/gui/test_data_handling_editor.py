@@ -55,6 +55,8 @@ def test_an_opened_spacecraft_comes_back_with_its_data_handling_and_antenna_unch
 
 
 def test_each_pattern_shows_only_its_own_controls(qtbot):
+    """Each antenna pattern shows only its own controls; the cosine pattern
+    shows its half-power beamwidth and gives no gain table."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     dialog = SpacecraftEditorDialog(_spacecraft())
@@ -72,6 +74,9 @@ def test_each_pattern_shows_only_its_own_controls(qtbot):
 
 
 def test_a_bad_instrument_cell_is_named_and_unticking_drops_the_chain(qtbot):
+    """A non-number in the instrument table is refused naming its row and
+    column, Add appends a numbered instrument, and unticking data handling
+    drops it."""
     from PySide6.QtWidgets import QTableWidgetItem
 
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog

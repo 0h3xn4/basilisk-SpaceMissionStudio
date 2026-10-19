@@ -14,12 +14,14 @@ from spacemissionstudio.engine.orbit_design import (
 
 
 def test_sun_synchronous_inclination_matches_known_reference_value():
+    """The Sun-synchronous inclination at a = 6878.1366 km is 97.40 deg."""
     # engine.spacecraft_templates._placeholder_orbit()'s own
     # "inclination_deg=97.4  # sun-synchronous at ~500 km" comment.
     assert sun_synchronous_inclination_deg(6878.1366) == pytest.approx(97.40, abs=0.01)
 
 
 def test_sun_synchronous_inclination_increases_with_altitude():
+    """A higher orbit needs a higher Sun-synchronous inclination."""
     # A higher orbit needs a steeper (more retrograde) inclination to
     # keep the same nodal regression rate -- real, well-known behavior,
     # not just "doesn't crash".
@@ -29,6 +31,7 @@ def test_sun_synchronous_inclination_increases_with_altitude():
 
 
 def test_sun_synchronous_inclination_accepts_nonzero_eccentricity():
+    """An eccentricity of 0.001 changes the inclination by under 0.1 deg."""
     # Template 05's own orbit (a=6928 km, e=0.001) -- must not raise, and
     # should stay close to the circular-orbit value at the same altitude.
     circular = sun_synchronous_inclination_deg(6928.0, 0.0)
@@ -42,6 +45,8 @@ def test_sun_synchronous_inclination_accepts_nonzero_eccentricity():
     ("2030-09-23T06:00:00", 180.0),  # autumnal equinox
 ])
 def test_raan_for_ltan_at_noon_matches_known_sun_right_ascension(epoch_utc, expected_ra_deg):
+    """At a 12:00 LTAN the RAAN is the Sun's right ascension at the equinoxes
+    and the solstice, within 0.25 deg."""
     # RAAN at a 12:00 (noon) LTAN equals the Sun's own right ascension
     # exactly, by definition of local solar time -- the real,
     # independently-known reference points this module's own docstring
@@ -51,6 +56,7 @@ def test_raan_for_ltan_at_noon_matches_known_sun_right_ascension(epoch_utc, expe
 
 
 def test_raan_for_ltan_default_matches_1030_am():
+    """The default LTAN is 10:30, 22.5 deg of RAAN before noon."""
     assert DEFAULT_LTAN_HOUR == 10.5
     noon = raan_for_ltan_deg("2030-01-01T00:00:00", ltan_hour=12.0)
     default = raan_for_ltan_deg("2030-01-01T00:00:00")
@@ -59,6 +65,7 @@ def test_raan_for_ltan_default_matches_1030_am():
 
 
 def test_raan_for_ltan_wraps_into_0_360():
+    """The RAAN is always in [0, 360) deg."""
     for ltan_hour in (0.0, 6.0, 12.0, 18.0, 23.99):
         got = raan_for_ltan_deg("2030-01-01T00:00:00", ltan_hour=ltan_hour)
         assert 0.0 <= got < 360.0

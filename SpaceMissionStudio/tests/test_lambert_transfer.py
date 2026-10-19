@@ -71,6 +71,8 @@ def _build_spacecraft_with_state(r_bn_n, v_bn_n):
 
 
 def test_lambert_transfer_applies_a_delta_v_that_reaches_the_target():
+    """A Lambert transfer changes only the velocity, and the new orbit reaches
+    the target within 1 m after the time of flight (two-body RK4)."""
     from Basilisk.utilities import orbitalMotion
 
     from spacemissionstudio.engine.mission_engine import MissionEngine
@@ -138,6 +140,8 @@ def test_lambert_transfer_applies_a_delta_v_that_reaches_the_target():
 
 
 def test_lambert_transfer_unreachable_target_raises_a_clear_error():
+    """A target that needs a path through the Earth is refused with
+    lambertValidator's report."""
     from spacemissionstudio.engine.mission_engine import MissionEngine, MissionEngineError
 
     # A circular low orbit with a target position barely outside it and an

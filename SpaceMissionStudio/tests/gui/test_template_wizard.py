@@ -43,6 +43,7 @@ def test_every_bundled_template_has_a_registered_spec():
 
 
 def test_get_wizard_spec_returns_none_for_an_unregistered_template():
+    """A template without a wizard has no wizard spec."""
     from spacemissionstudio.gui.template_wizard import get_wizard_spec
 
     assert get_wizard_spec("99_not_a_real_template.json") is None
@@ -50,6 +51,8 @@ def test_get_wizard_spec_returns_none_for_an_unregistered_template():
 
 @pytest.mark.parametrize("filename", _ALL_TEMPLATE_FILENAMES)
 def test_wizard_pages_are_prefilled_with_the_templates_own_current_values(qtbot, filename):
+    """Every template's wizard pages are titled as their spec says and start at
+    the template's values."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.gui.template_wizard import TemplateCustomizeWizard, get_wizard_spec
     from spacemissionstudio.schema import load_scenario
@@ -67,6 +70,7 @@ def test_wizard_pages_are_prefilled_with_the_templates_own_current_values(qtbot,
 
 
 def test_finishing_without_changes_reproduces_the_original_scenario(qtbot):
+    """Finishing the wizard unchanged gives back the template exactly."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.gui.template_wizard import TemplateCustomizeWizard, get_wizard_spec
     from spacemissionstudio.schema import load_scenario
@@ -84,6 +88,9 @@ def test_finishing_without_changes_reproduces_the_original_scenario(qtbot):
 
 
 def test_finishing_applies_edited_values_and_leaves_the_original_scenario_untouched(qtbot):
+    """Edited GEO slot, box and duration are applied, the satellite moves with
+    its slot, and neither the scenario passed in nor the template file
+    changes."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.gui.template_wizard import TemplateCustomizeWizard, get_wizard_spec
     from spacemissionstudio.schema import load_scenario
@@ -153,6 +160,7 @@ def test_leo_altitude_field_moves_both_target_altitude_and_orbit_semi_major_axis
 
 
 def test_reaction_wheel_max_momentum_applies_to_every_wheel_uniformly(qtbot):
+    """The wheel momentum typed applies to all three wheels."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.gui.template_wizard import TemplateCustomizeWizard, get_wizard_spec
     from spacemissionstudio.schema import load_scenario
@@ -349,6 +357,8 @@ def test_formation_wizard_sets_the_correction_window_and_the_chiefs_parameters(q
 
 
 def test_filter_shows_only_matching_sections_and_jumps_to_the_first(qtbot):
+    """The wizard's filter shows only matching sections and opens the first;
+    clearing it shows them all."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.gui.template_wizard import TemplateCustomizeWizard, get_wizard_spec
     from spacemissionstudio.schema import load_scenario

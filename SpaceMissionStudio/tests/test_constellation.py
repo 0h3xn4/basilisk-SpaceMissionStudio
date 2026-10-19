@@ -30,12 +30,15 @@ def _request(**overrides):
 
 
 def test_generates_total_satellites_count():
+    """A 12-satellite Walker request gives 12 spacecraft with unique names."""
     sats = generate_walker_constellation(_request(), _template())
     assert len(sats) == 12
     assert len({s.name for s in sats}) == 12  # every name unique
 
 
 def test_semi_major_axis_matches_altitude_plus_earth_radius():
+    """Every satellite's semi-major axis is Earth's equatorial radius plus the
+    500 km altitude."""
     sats = generate_walker_constellation(_request(altitude_km=500.0), _template())
     expected_sma = CENTRAL_BODY_EQUATORIAL_RADIUS_KM["earth"] + 500.0
     for s in sats:
@@ -43,12 +46,15 @@ def test_semi_major_axis_matches_altitude_plus_earth_radius():
 
 
 def test_raan_spacing_is_360_over_planes_for_delta_pattern():
+    """A delta pattern of 3 planes spaces them 360/3 = 120 deg apart in
+    RAAN."""
     sats = generate_walker_constellation(_request(total_satellites=6, num_planes=3, phasing_factor=0), _template())
     raans = sorted({s.orbit.raan_deg for s in sats})
     assert raans == pytest.approx([0.0, 120.0, 240.0])
 
 
 def test_raan_spacing_is_180_over_planes_for_star_pattern():
+    """A star pattern of 3 planes spaces them 180/3 = 60 deg apart in RAAN."""
     sats = generate_walker_constellation(
         _request(total_satellites=6, num_planes=3, phasing_factor=0, pattern="star"), _template()
     )
@@ -57,12 +63,15 @@ def test_raan_spacing_is_180_over_planes_for_star_pattern():
 
 
 def test_mean_anomaly_spacing_within_one_plane():
+    """Four satellites in a plane are 90 deg apart in mean anomaly."""
     sats = generate_walker_constellation(_request(total_satellites=8, num_planes=2, phasing_factor=0), _template())
     plane1_anomalies = sorted(s.orbit.mean_anomaly_deg for s in sats if s.orbit.raan_deg == 0.0)
     assert plane1_anomalies == pytest.approx([0.0, 90.0, 180.0, 270.0])
 
 
 def test_phasing_factor_offsets_adjacent_planes():
+    """With T=8, P=2, F=1 the second plane is offset by F*360/T = 45 deg in
+    mean anomaly."""
     # T=8, P=2, F=1 -> phase offset between planes = F * 360/T = 45 deg
     sats = generate_walker_constellation(_request(total_satellites=8, num_planes=2, phasing_factor=1), _template())
     plane0 = sorted(s.orbit.mean_anomaly_deg for s in sats if s.orbit.raan_deg == 0.0)
@@ -72,6 +81,7 @@ def test_phasing_factor_offsets_adjacent_planes():
 
 
 def test_raan_offset_rotates_whole_constellation():
+    """A 30 deg RAAN offset rotates every plane by 30 deg."""
     sats = generate_walker_constellation(
         _request(total_satellites=6, num_planes=3, phasing_factor=0, raan_offset_deg=30.0), _template()
     )
@@ -80,6 +90,7 @@ def test_raan_offset_rotates_whole_constellation():
 
 
 def test_orbit_uses_mean_anomaly_not_true_anomaly():
+    """Generated orbits give the mean anomaly, not the true anomaly."""
     sats = generate_walker_constellation(_request(), _template())
     for s in sats:
         assert s.orbit.anomaly_type == "mean"
@@ -88,6 +99,8 @@ def test_orbit_uses_mean_anomaly_not_true_anomaly():
 
 
 def test_template_fields_other_than_name_and_orbit_are_preserved():
+    """Every satellite keeps the template's other fields, with its own copy of
+    the power model."""
     template = _template(dry_mass_kg=123.0, power=PowerConfig(panel_area_m2=1.5, panel_efficiency=0.3))
     sats = generate_walker_constellation(_request(total_satellites=4, num_planes=2, phasing_factor=0), template)
     for s in sats:
@@ -97,12 +110,14 @@ def test_template_fields_other_than_name_and_orbit_are_preserved():
 
 
 def test_generated_names_are_deterministic_and_prefixed():
+    """Names are prefix-plane-slot, numbered from 01."""
     sats = generate_walker_constellation(_request(total_satellites=4, num_planes=2, name_prefix="iridium"),
                                           _template())
     assert {s.name for s in sats} == {"iridium-01-01", "iridium-01-02", "iridium-02-01", "iridium-02-02"}
 
 
 def test_generated_scenario_validates(tmp_path):
+    """A scenario of the generated satellites validates and saves."""
     from spacemissionstudio.schema.scenario import GravityConfig, Scenario
 
     sats = generate_walker_constellation(_request(total_satellites=4, num_planes=2), _template())
@@ -125,6 +140,10 @@ def test_generated_scenario_validates(tmp_path):
     (dict(name_prefix="  "), "name_prefix"),
 ])
 def test_request_validation_rejects_bad_input(overrides, match):
+    """Each bad request field is refused, naming it: zero satellites or planes,
+    satellites not divisible by planes, a phasing factor of P or more, a zero
+    altitude, an inclination over 180 deg, eccentricity 1, an unknown pattern
+    or body, a blank prefix."""
     with pytest.raises(ScenarioValidationError, match=match):
         _request(**overrides).validate()
 
@@ -132,11 +151,14 @@ def test_request_validation_rejects_bad_input(overrides, match):
 # -- SeparationSchedule -----------------------------------------------------
 
 def test_separation_schedule_rejects_empty_distances():
+    """A separation schedule without distances is refused."""
     with pytest.raises(ValueError, match="at least one distance"):
         SeparationSchedule(distances_km=[], interval_days=90.0, semi_major_axis_m=7.0e6)
 
 
 def test_separation_schedule_single_entry_holds_for_whole_mission():
+    """A one-entry schedule gives that separation, as an angle (distance / a),
+    at any time."""
     schedule = SeparationSchedule(distances_km=[100.0], interval_days=90.0, semi_major_axis_m=7.0e6)
     expected = 100.0 * 1000.0 / 7.0e6
     assert schedule.value_at(0.0) == pytest.approx(expected)
@@ -144,6 +166,8 @@ def test_separation_schedule_single_entry_holds_for_whole_mission():
 
 
 def test_separation_schedule_steps_through_distances_on_schedule():
+    """A three-entry schedule changes separation at each 90-day interval, not
+    before."""
     a_m = 7.0e6
     schedule = SeparationSchedule(distances_km=[1000.0, 500.0, 100.0], interval_days=90.0, semi_major_axis_m=a_m)
     day_s = 86400.0
@@ -156,6 +180,8 @@ def test_separation_schedule_steps_through_distances_on_schedule():
 
 
 def test_separation_schedule_holds_at_last_entry_when_not_looping():
+    """Without looping, the schedule holds its last separation after its
+    end."""
     a_m = 7.0e6
     schedule = SeparationSchedule(distances_km=[1000.0, 500.0, 100.0], interval_days=90.0, semi_major_axis_m=a_m,
                                    loop=False)
@@ -165,6 +191,8 @@ def test_separation_schedule_holds_at_last_entry_when_not_looping():
 
 
 def test_separation_schedule_loops_when_requested():
+    """With looping, the schedule starts again from its first separation after
+    its last."""
     a_m = 7.0e6
     schedule = SeparationSchedule(distances_km=[1000.0, 500.0, 100.0], interval_days=90.0, semi_major_axis_m=a_m,
                                    loop=True)
@@ -175,6 +203,7 @@ def test_separation_schedule_loops_when_requested():
 
 
 def test_separation_schedule_zero_interval_holds_first_entry():
+    """A zero interval holds the first separation for the whole mission."""
     schedule = SeparationSchedule(distances_km=[1000.0, 500.0], interval_days=0.0, semi_major_axis_m=7.0e6)
     assert schedule.value_at(0.0) == pytest.approx(1000.0 * 1000.0 / 7.0e6)
     assert schedule.value_at(1.0e9) == pytest.approx(1000.0 * 1000.0 / 7.0e6)

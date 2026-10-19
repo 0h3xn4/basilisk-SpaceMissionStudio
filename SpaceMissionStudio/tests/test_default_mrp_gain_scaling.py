@@ -110,6 +110,8 @@ def test_unscaled_reference_gains_reproduce_the_documented_nan_divergence():
 
 
 def test_default_control_params_now_converge_at_schema_default_inertia_and_rate():
+    """With every schema default, the inertia-scaled MRP gains converge within
+    1 deg in 20 minutes, without NaN."""
     sigma = _run_inertial3d_idealized(
         control_params={}, inertia=_SCHEMA_DEFAULT_INERTIA,
         rate_s=_SCHEMA_DEFAULT_RATE_S, duration_s=1200.0,
@@ -123,6 +125,8 @@ def test_default_control_params_now_converge_at_schema_default_inertia_and_rate(
 
 
 def test_explicit_control_params_still_override_the_scaled_default():
+    """Gains given explicitly are used unscaled (and diverge at the default
+    inertia, as documented)."""
     sigma = _run_inertial3d_idealized(
         control_params={"K": 3.5, "P": 30.0}, inertia=_SCHEMA_DEFAULT_INERTIA,
         rate_s=1.0, duration_s=120.0,

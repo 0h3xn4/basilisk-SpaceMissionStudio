@@ -19,6 +19,7 @@ from spacemissionstudio.engine.propellant_bookkeeping import apply_propellant_bu
 
 
 def test_no_op_when_thrust_is_zero():
+    """Zero thrust burns no propellant and changes no mass."""
     new_mass, new_propellant, burned_kg, mdot = apply_propellant_burn(
         current_total_mass_kg=100.0, propellant_kg=10.0, thrust_n=0.0,
         isp_s=220.0, dt_s=1.0)
@@ -29,6 +30,7 @@ def test_no_op_when_thrust_is_zero():
 
 
 def test_no_op_when_propellant_already_exhausted():
+    """With no propellant left, nothing is burned."""
     new_mass, new_propellant, burned_kg, mdot = apply_propellant_burn(
         current_total_mass_kg=90.0, propellant_kg=0.0, thrust_n=1.0,
         isp_s=220.0, dt_s=1.0)
@@ -39,6 +41,8 @@ def test_no_op_when_propellant_already_exhausted():
 
 
 def test_normal_burn_applies_rocket_equation_delta():
+    """A burn uses mdot = F / (Isp g0) for dt, taken off both the propellant
+    and the total mass."""
     isp_s = 220.0
     g0 = 9.80665
     thrust_n = 1.0
@@ -57,6 +61,8 @@ def test_normal_burn_applies_rocket_equation_delta():
 
 
 def test_burn_is_clamped_to_remaining_propellant():
+    """A burn larger than the propellant left uses only what is left, still
+    reporting the full rate."""
     # thrust/isp/dt imply far more burned mass than is actually left.
     new_mass, new_propellant, burned_kg, mdot = apply_propellant_burn(
         current_total_mass_kg=100.0, propellant_kg=0.001, thrust_n=50.0,
@@ -110,6 +116,7 @@ def test_delta_preserves_a_prior_dry_mass_dispersion():
 
 
 def test_total_delta_v_budget_matches_closed_form_tsiolkovsky():
+    """The delta-V budget is Isp g0 ln((m_dry + m_prop) / m_dry)."""
     dry_mass_kg = 100.0
     propellant_kg = 5.0
     isp_s = 1500.0
@@ -119,10 +126,12 @@ def test_total_delta_v_budget_matches_closed_form_tsiolkovsky():
 
 
 def test_total_delta_v_budget_is_zero_with_no_propellant():
+    """Without propellant, the budget is 0."""
     assert total_delta_v_budget(dry_mass_kg=100.0, propellant_kg=0.0, isp_s=1500.0) == 0.0
 
 
 def test_total_delta_v_budget_is_zero_with_no_dry_mass():
+    """A zero dry mass gives a budget of 0 instead of dividing by zero."""
     # Defensive only -- dry_mass_kg <= 0 is not a scenario schema.scenario
     # itself allows, but this must not raise (division by zero) either way.
     assert total_delta_v_budget(dry_mass_kg=0.0, propellant_kg=5.0, isp_s=1500.0) == 0.0

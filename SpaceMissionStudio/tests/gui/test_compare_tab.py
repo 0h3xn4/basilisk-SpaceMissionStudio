@@ -75,6 +75,7 @@ def _row(table, first_cell):
 
 
 def test_a_new_run_is_compared_with_the_one_before_it(compare):
+    """A new run is ticked with the one before it and compared with it."""
     widget, _history = compare
     assert [r.number for r in widget.checked_runs()] == [2, 3]
     assert "Comparing with Run 2" in widget.status_label.text()
@@ -83,6 +84,8 @@ def test_a_new_run_is_compared_with_the_one_before_it(compare):
 
 
 def test_the_summary_has_a_delta_per_run_against_the_oldest_ticked(compare):
+    """The summary has each run's figure and its difference from the oldest
+    ticked run, units, and right-aligned numbers."""
     widget, _history = compare
     widget.set_checked([1, 2, 3])
     table = widget.summary_table
@@ -96,6 +99,8 @@ def test_the_summary_has_a_delta_per_run_against_the_oldest_ticked(compare):
 
 
 def test_the_inputs_that_differ_from_the_base_old_to_new(compare):
+    """The inputs table lists each input that differs from the base run, per
+    run; fewer than two runs ticked asks for two."""
     widget, _history = compare
     widget.set_checked([1, 2, 3])
     table = widget.inputs_table
@@ -107,6 +112,8 @@ def test_the_inputs_that_differ_from_the_base_old_to_new(compare):
 
 
 def test_the_events_are_counted_with_their_total_time(compare):
+    """Events are counted with their total time per run and their difference
+    from the base."""
     widget, _history = compare
     table = widget.events_table
     row = _row(table, "pass over gs")
@@ -116,6 +123,8 @@ def test_the_events_are_counted_with_their_total_time(compare):
 
 
 def test_the_plots_overlay_one_series_of_every_ticked_run(compare):
+    """The plot overlays the chosen series of every ticked run, the base solid
+    and the others dashed."""
     widget, _history = compare
     widget.set_checked([1, 2, 3])
     widget.series_combo.setCurrentIndex(widget.series_combo.findData("sat.station_keeping.delta_v"))
@@ -158,6 +167,8 @@ def test_runs_of_an_earlier_session_are_listed_and_read_back_when_ticked(qtbot, 
 
 
 def test_the_shown_run_cannot_be_deleted_and_an_unreadable_one_is_named(compare):
+    """The run on show cannot be deleted; a run whose file cannot be read is
+    named."""
     widget, history = compare
     widget.run_list.setCurrentRow(0)  # Run 3, shown
     assert not widget.delete_button.isEnabled()

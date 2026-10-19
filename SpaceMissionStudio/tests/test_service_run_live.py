@@ -22,6 +22,9 @@ SCENARIO_PATH = Path(__file__).resolve().parent.parent / "spacemissionstudio" / 
 
 
 def test_run_live_reports_progress_and_matches_run():
+    """A live run reports progress more than once, never backwards, ending at
+    1, with the same series and growing samples, and ends identical to a plain
+    run."""
     from spacemissionstudio.engine.service import SimulationService
 
     scenario = load_scenario(SCENARIO_PATH)
@@ -126,6 +129,8 @@ def test_run_live_without_should_cancel_runs_to_completion_as_before():
 
 
 def test_run_live_honors_explicit_step():
+    """A live step of a quarter of the run gives three to six updates, ending
+    at 1."""
     from spacemissionstudio.engine.service import SimulationService
 
     scenario = load_scenario(SCENARIO_PATH)

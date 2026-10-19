@@ -40,6 +40,8 @@ def _scenario(duration_days, step_s=10.0):
 
 
 def test_five_years_splits_into_whole_step_segments_under_the_limit():
+    """Five years splits into 21 segments of at most 90 days, whole dynamics
+    steps, adding up to the run; 100 days needs no split."""
     lengths = long_run.segment_lengths_s(_scenario(1826.25, step_s=30.0))  # [day], [s]
     assert len(lengths) == 21
     assert sum(lengths) == pytest.approx(1826.25 * 86400.0)  # [s]
@@ -49,6 +51,7 @@ def test_five_years_splits_into_whole_step_segments_under_the_limit():
 
 
 def test_the_vizard_view_and_phasing_keeping_are_refused():
+    """A split run with Vizard is refused; without it, it is allowed."""
     scenario = _scenario(200.0)
     with pytest.raises(long_run.LongRunError, match="turn Vizard off"):
         long_run.check_segmentable(scenario, vizard_request=object())
@@ -56,6 +59,8 @@ def test_the_vizard_view_and_phasing_keeping_are_refused():
 
 
 def test_appending_shifts_time_drops_the_repeated_sample_and_offsets_delta_v():
+    """Appending a segment shifts its times, drops the repeated first sample
+    and continues the cumulative delta-V."""
     first = ResultSet(scenario_name="s")
     first.add(TimeSeries("a.position_N", [0.0, 10.0], ("x",), [1.0, 2.0]))
     first.add(TimeSeries("a.station_keeping.delta_v", [0.0, 10.0], ("dv",), [0.0, 0.5]))
@@ -200,6 +205,8 @@ def test_live_progress_runs_over_the_whole_split_run_and_cancel_keeps_what_ran(m
 
 
 def test_recording_every_step_of_a_long_run_is_flagged():
+    """Recording every step of a five-year run is flagged with its sample
+    count; a 600 s interval is not."""
     from spacemissionstudio.engine.scenario_checks import scenario_warnings
 
     scenario = _scenario(1826.25, step_s=30.0)  # [day], [s]

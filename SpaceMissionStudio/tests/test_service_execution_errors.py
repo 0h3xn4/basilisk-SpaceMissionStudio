@@ -28,6 +28,8 @@ SCENARIO_PATH = Path(__file__).resolve().parent.parent / "spacemissionstudio" / 
 
 
 def test_raise_clear_execution_error_wraps_with_actionable_message():
+    """A Basilisk run error is re-raised with its original text, an explanation
+    that the state went non-physical, and the original as its cause."""
     from spacemissionstudio.engine.service import SimulationServiceError, raise_clear_execution_error
 
     original = RuntimeError("std::bad_alloc")
@@ -41,6 +43,7 @@ def test_raise_clear_execution_error_wraps_with_actionable_message():
 
 
 def test_run_translates_execute_simulation_runtime_error(monkeypatch):
+    """run turns Basilisk's std::bad_alloc into that explained error."""
     from spacemissionstudio.engine.service import SimulationService, SimulationServiceError
 
     service = SimulationService(load_scenario(SCENARIO_PATH))
@@ -56,6 +59,8 @@ def test_run_translates_execute_simulation_runtime_error(monkeypatch):
 
 
 def test_run_live_translates_execute_simulation_runtime_error(monkeypatch):
+    """run_live turns Basilisk's basic_string error into that explained
+    error."""
     from spacemissionstudio.engine.service import SimulationService, SimulationServiceError
 
     service = SimulationService(load_scenario(SCENARIO_PATH))

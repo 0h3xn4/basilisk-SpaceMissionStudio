@@ -41,6 +41,8 @@ _PACKAGING_DIR = Path(__file__).resolve().parents[2] / "packaging"
 
 
 def test_main_sets_the_desktop_file_name_to_match_the_installed_desktop_entries():
+    """main() sets the desktop file name the installed .desktop entries use, so
+    shells find the icon."""
     from spacemissionstudio.gui.app import main
 
     source = inspect.getsource(main)
@@ -59,6 +61,7 @@ def test_main_sets_the_desktop_file_name_to_match_the_installed_desktop_entries(
     ],
 )
 def test_desktop_entry_declares_a_matching_startup_wm_class(desktop_file):
+    """Each .desktop entry sets StartupWMClass=spacemissionstudio."""
     text = desktop_file.read_text()
     assert "StartupWMClass=spacemissionstudio" in text, (
         f"{desktop_file} must set StartupWMClass=spacemissionstudio so X11 window managers "

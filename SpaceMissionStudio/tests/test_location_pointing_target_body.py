@@ -112,6 +112,8 @@ def _run_location_pointing_at_target_body(target_dir, duration_s: float):
 
 
 def test_location_pointing_target_body_converges_pHat_B_onto_the_target_direction():
+    """Pointing at a body brings pHat_B from over 45 deg to within 1 deg of its
+    direction, without NaN."""
     target_dir = np.array([0.2, 0.9, 0.1])
     sigma, angle_errors_deg = _run_location_pointing_at_target_body(target_dir, duration_s=1500.0)
     assert not np.any(np.isnan(sigma)), "attitude went non-physical (NaN)"

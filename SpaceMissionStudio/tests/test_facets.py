@@ -41,6 +41,8 @@ def _spacecraft(**overrides):
 
 
 def test_box_facets_cover_each_face_once_plus_a_two_sided_array():
+    """A box gives six faces of the right areas and places, whose area-weighted
+    normals cancel, plus a two-sided array; every facet validates."""
     facets = box_facets((1.2, 1.0, 1.5), 2.5, (0.0, 0.0, 1.0), (0.0, 1.5, 0.75))  # [m], [m^2]
     assert [f.name for f in facets] == ["bus +x", "bus -x", "bus +y", "bus -y", "bus +z", "bus -z",
                                         "array front", "array back"]
@@ -60,6 +62,7 @@ def test_box_facets_cover_each_face_once_plus_a_two_sided_array():
 
 
 def test_no_array_means_just_the_box():
+    """A box without an array gives six facets."""
     assert len(box_facets((1.0, 1.0, 1.0))) == 6
 
 
@@ -71,6 +74,8 @@ def test_no_array_means_just_the_box():
     ({"drag_coeff": -1.0}, "drag_coeff must be in"),
 ])
 def test_a_bad_facet_is_rejected(change, message):
+    """A facet with zero area, a zero normal, a NaN location, coefficients
+    summing above 1 or a negative drag coefficient is refused."""
     facet = FacetConfig(name="f", area_m2=1.0, normal_b=[1.0, 0.0, 0.0])
     for key, value in change.items():
         setattr(facet, key, value)
@@ -79,12 +84,15 @@ def test_a_bad_facet_is_rejected(change, message):
 
 
 def test_facet_names_must_be_unique():
+    """Two facets with the same name are refused."""
     facet = FacetConfig(name="f", area_m2=1.0, normal_b=[1.0, 0.0, 0.0])
     with pytest.raises(ScenarioValidationError, match="facet names must be unique"):
         _spacecraft(facets=[facet, facet]).validate()
 
 
 def test_facets_need_full_attitude_and_round_trip():
+    """Facets are refused in orbit-only mode, validate with full attitude and
+    survive to_dict and from_dict."""
     scenario = Scenario(name="f", epoch_utc="2030-01-01T00:00:00", simulation_mode="orbit_only",
                         spacecraft=[_spacecraft(facets=box_facets((1.0, 1.0, 1.0)), enable_drag=True)])
     with pytest.raises(ScenarioValidationError, match="facets are set but scenario.simulation_mode is 'orbit_only'"):
@@ -95,6 +103,8 @@ def test_facets_need_full_attitude_and_round_trip():
 
 
 def test_facets_with_drag_and_srp_off_are_flagged():
+    """Facets with drag and SRP both off are flagged as unused; with SRP on,
+    not."""
     scenario = Scenario(name="f", epoch_utc="2030-01-01T00:00:00",
                         spacecraft=[_spacecraft(facets=box_facets((1.0, 1.0, 1.0)))])
     assert scenario_warnings(scenario) == ["sat-1: its facets are unused -- they only shape drag and SRP, "
@@ -156,6 +166,7 @@ def test_an_off_centre_array_torques_the_spacecraft():
 
 
 def test_explain_tab_names_the_facet_model():
+    """The Explain tab names the facet model."""
     from spacemissionstudio.engine.scenario_explainer import explain
 
     scenario = Scenario(name="f", epoch_utc="2030-01-01T00:00:00",

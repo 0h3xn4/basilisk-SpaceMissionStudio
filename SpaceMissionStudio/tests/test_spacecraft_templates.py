@@ -8,18 +8,21 @@ from spacemissionstudio.engine.spacecraft_templates import SPACECRAFT_TEMPLATES
 
 
 def test_every_template_builds_a_valid_spacecraft_config():
+    """Every spacecraft preset builds a spacecraft that validates."""
     for template in SPACECRAFT_TEMPLATES:
         config = template.build()
         config.validate()  # raises ScenarioValidationError with a specific message on anything bad
 
 
 def test_every_template_has_a_name_and_description():
+    """Every preset has a name and a description."""
     for template in SPACECRAFT_TEMPLATES:
         assert template.name.strip()
         assert template.description.strip()
 
 
 def test_template_names_are_unique():
+    """No two presets share a name."""
     names = [t.name for t in SPACECRAFT_TEMPLATES]
     assert len(names) == len(set(names))
 
@@ -51,6 +54,9 @@ def test_presets_cover_the_100_to_500_kg_class_with_fitting_inertias():
 
 
 def test_sun_safe_presets_put_array_sensor_and_sun_axis_on_the_same_face():
+    """Every Sun-safe preset has its array, a sun sensor and the Sun axis on
+    one face, three wheels and three torque rods with zero bias, and drag and
+    SRP on."""
     for template in SPACECRAFT_TEMPLATES:
         config = template.build()
         if config.fsw_mode != "sunSafePoint":

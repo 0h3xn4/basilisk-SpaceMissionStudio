@@ -124,6 +124,8 @@ def test_10_uncontrolled_spacecraft_drifts_under_gravity_gradient():
 
 
 def test_12_thrusters_dump_wheel_momentum():
+    """Template 12 fires its thrusters three times and slows the first wheel by
+    over 10 %."""
     result = _run(_template("12"))
     firing = result.series["sat-1.thruster_on_time"].data.max(axis=1) > 0.0
     assert np.count_nonzero(np.diff(firing.astype(int)) == 1) == 3  # "three in the first 4 minutes"
@@ -140,6 +142,8 @@ def test_17_fuel_tank_drains_about_as_described():
 
 
 def test_11_thrusters_settle_the_attitude_within_a_few_minutes():
+    """Template 11 fires real pulses and settles within a few degrees in four
+    minutes."""
     result = _run(_template("11"), duration_days=4.0 / 1440.0)  # [day]
     assert result.series["sat-1.thruster_on_time"].data.max() > 0.02  # [s] real pulses, above the minimum on-time
     sigma = result.series["sat-1.attitude_sigma_BN"]
@@ -147,6 +151,8 @@ def test_11_thrusters_settle_the_attitude_within_a_few_minutes():
 
 
 def test_08_prograde_burn_raises_the_orbit_on_the_far_side():
+    """Template 08's 50 m/s prograde burn raises the semi-major axis by 60 to
+    100 km and makes the orbit elliptical."""
     from spacemissionstudio.engine.mission_engine import MissionEngine
 
     _result, summary = MissionEngine(_template("08")).run()
@@ -160,6 +166,8 @@ def test_08_prograde_burn_raises_the_orbit_on_the_far_side():
 
 
 def test_13_torque_rods_steer_the_wheels_to_their_target_speeds():
+    """Template 13's torque rods bring every wheel within 0.5 RPM of its
+    target."""
     scenario = _template("13")
     result = _run(scenario)
     speeds_rpm = result.series["sat-1.rw_speeds"].data[-1] * 60.0 / (2.0 * np.pi)  # [RPM]

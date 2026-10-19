@@ -33,6 +33,7 @@ def _clean_logging_state(_isolate_logging_setup):
 
 
 def test_configure_logging_creates_a_log_file(tmp_path, _clean_logging_state):
+    """Configuring logging creates a log file in the folder given."""
     from spacemissionstudio.logging_setup import configure_logging
 
     log_file = configure_logging(log_dir=tmp_path)
@@ -42,6 +43,7 @@ def test_configure_logging_creates_a_log_file(tmp_path, _clean_logging_state):
 
 
 def test_configure_logging_returns_get_log_file_path(tmp_path, _clean_logging_state):
+    """The log file returned is the one get_log_file_path gives."""
     from spacemissionstudio.logging_setup import configure_logging, get_log_file_path
 
     log_file = configure_logging(log_dir=tmp_path)
@@ -50,6 +52,7 @@ def test_configure_logging_returns_get_log_file_path(tmp_path, _clean_logging_st
 
 
 def test_get_log_file_path_is_none_before_configure(_clean_logging_state):
+    """Before logging is configured there is no log file."""
     from spacemissionstudio.logging_setup import get_log_file_path
 
     assert get_log_file_path() is None
@@ -104,6 +107,7 @@ def test_a_logged_exception_lands_in_the_log_file(tmp_path, _clean_logging_state
 
 
 def test_uncaught_exception_hook_logs_to_the_file(tmp_path, _clean_logging_state):
+    """An uncaught exception is written to the log file with its message."""
     from spacemissionstudio.logging_setup import configure_logging
 
     log_file = configure_logging(log_dir=tmp_path)
@@ -124,6 +128,7 @@ def test_uncaught_exception_hook_logs_to_the_file(tmp_path, _clean_logging_state
 
 
 def test_default_log_dir_is_under_home_dot_spacemissionstudio():
+    """The default log folder is ~/.spacemissionstudio/logs."""
     from spacemissionstudio.logging_setup import default_log_dir
 
     result = default_log_dir()

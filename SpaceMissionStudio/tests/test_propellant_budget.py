@@ -153,6 +153,8 @@ def test_the_last_run_supplies_orbit_control_scaled_to_the_mission():
 
 
 def test_budget_inputs_validate_and_round_trip():
+    """Budget settings validate and survive to_dict and from_dict; an unknown
+    disposal or a negative collision-avoidance count is refused."""
     config = PropellantBudgetConfig(disposal="graveyard", collision_avoidance_count=2.0)
     scenario = _scenario(config)
     scenario.validate()
@@ -164,6 +166,8 @@ def test_budget_inputs_validate_and_round_trip():
 
 
 def test_a_spacecraft_without_a_thruster_needs_an_isp():
+    """A budget for a spacecraft without a thruster asks for
+    propellant_budget.isp_s."""
     scenario = _scenario(PropellantBudgetConfig())
     scenario.spacecraft[0].station_keeping = None
     with pytest.raises(pb.BudgetError, match="set propellant_budget.isp_s"):
@@ -247,6 +251,8 @@ def test_the_sweep_scales_the_entered_or_flown_figure_by_the_drag_ratio():
 
 
 def test_without_drag_driven_station_keeping_every_launch_date_is_the_same():
+    """Without drag, every launch date needs the same delta-V, and the sweep
+    says so."""
     scenario = _scenario(PropellantBudgetConfig(in_plane_control_delta_v_m_s=10.0))
     scenario.spacecraft[0].enable_drag = False
     sweep = pb.launch_delay_sweep(scenario, "sat-1", delays_years=(0.0, 4.0), reentry_solver=_no_reentry,
@@ -318,6 +324,8 @@ def test_the_altitude_trade_scales_the_scenarios_own_figure():
 
 
 def test_the_altitude_trade_needs_classical_elements():
+    """An altitude trade on a Cartesian orbit is refused: it needs classical
+    elements."""
     scenario = _scenario(PropellantBudgetConfig())
     scenario.spacecraft[0].orbit = OrbitIC(type="cartesian", position_km=[6778.0, 0.0, 0.0],
                                            velocity_km_s=[0.0, 7.67, 0.0])
@@ -326,6 +334,8 @@ def test_the_altitude_trade_needs_classical_elements():
 
 
 def test_default_altitudes_are_five_around_the_spacecrafts_own():
+    """The default trade is five altitudes 50 km apart around the spacecraft's
+    own, from 250 km up."""
     assert pb.default_altitudes_km(402.0) == [300.0, 350.0, 400.0, 450.0, 500.0]
     assert pb.default_altitudes_km(260.0) == [250.0, 300.0, 350.0, 400.0, 450.0]
 

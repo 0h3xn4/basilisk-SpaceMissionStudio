@@ -78,6 +78,8 @@ def test_unreadable_runs_are_skipped_and_names_outside_the_store_refused(tmp_pat
 
 
 def test_prune_keeps_the_newest_runs_within_the_limits(tmp_path):
+    """Pruning keeps the newest runs within the count and size limits, always
+    keeping the newest."""
     for number in range(1, 6):
         run_store.save(tmp_path, number, {"name": f"s{number}"}, _result(), "", _WHEN)
     assert run_store.prune(tmp_path, keep=3) == ["run-0001-20261013T121905", "run-0002-20261013T121905"]
@@ -104,6 +106,8 @@ def test_the_history_lists_earlier_sessions_and_numbers_on(tmp_path):
 
 
 def test_only_the_last_runs_keep_their_series_in_memory(tmp_path):
+    """Only the last runs keep their series in memory; the older ones are read
+    back from disk."""
     history = RunHistory(max_runs=2, store_root=tmp_path)
     for _ in range(4):
         history.add({"name": "demo"}, _result(), "", finished=_WHEN)
@@ -112,6 +116,8 @@ def test_only_the_last_runs_keep_their_series_in_memory(tmp_path):
 
 
 def test_a_store_that_cannot_be_written_keeps_the_run_in_memory(tmp_path):
+    """When the store cannot be written, the run stays in memory and the error
+    says so."""
     blocked = tmp_path / "file"
     blocked.write_text("not a folder", encoding="utf-8")
     history = RunHistory(store_root=blocked)

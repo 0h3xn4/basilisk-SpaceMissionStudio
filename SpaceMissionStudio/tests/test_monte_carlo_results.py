@@ -128,6 +128,8 @@ def test_result_set_has_per_run_series_and_the_spread(monkeypatch):
 
 
 def test_run_table_lists_drawn_values_and_where_each_run_ended():
+    """The run table gives each run's drawn values and final RTN offsets; the
+    spread is their standard deviation and the lowest altitude is reported."""
     batch = _circular_batch([0.0, 1e-4, -1e-4])
     labels, rows = mcr.run_table(batch)
     assert labels == ["Run", "sat-1 drag coefficient [-]", "sat-1 final radial offset [km]",
@@ -141,6 +143,7 @@ def test_run_table_lists_drawn_values_and_where_each_run_ended():
 
 
 def test_the_summary_keeps_at_most_max_samples():
+    """The summary keeps at most MAX_SAMPLES samples, striding as needed."""
     assert mcr.stride_for(mcr.MAX_SAMPLES) == 1
     assert mcr.stride_for(mcr.MAX_SAMPLES + 1) == 2
     assert -(-86401 // mcr.stride_for(86401)) <= mcr.MAX_SAMPLES  # a day at 1 s

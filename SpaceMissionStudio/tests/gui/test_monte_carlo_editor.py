@@ -6,6 +6,8 @@ pytestmark = pytest.mark.requires_gui
 
 
 def test_group_default_state(qtbot):
+    """The Monte Carlo group starts off, with 10 runs, 1 thread and no
+    dispersions."""
     from spacemissionstudio.gui.monte_carlo_editor import MonteCarloGroupWidget
 
     widget = MonteCarloGroupWidget()
@@ -18,6 +20,8 @@ def test_group_default_state(qtbot):
 
 
 def test_group_round_trip(qtbot):
+    """Monte Carlo's settings and an attitude dispersion come back from the
+    group."""
     from spacemissionstudio.gui.monte_carlo_editor import MonteCarloGroupWidget
     from spacemissionstudio.schema.scenario import DispersionConfig, MonteCarloConfig
 
@@ -40,6 +44,8 @@ def test_group_round_trip(qtbot):
 
 
 def test_dispersion_dialog_uniform(qtbot):
+    """A uniform dispersion gives its spacecraft, quantity and bounds and no
+    mean."""
     from spacemissionstudio.gui.monte_carlo_editor import _DispersionEditorDialog
 
     dialog = _DispersionEditorDialog(["sat-1", "sat-2"])
@@ -59,6 +65,8 @@ def test_dispersion_dialog_uniform(qtbot):
 
 
 def test_dispersion_dialog_normal(qtbot):
+    """A normal dispersion gives its mean and standard deviation and no
+    bounds."""
     from spacemissionstudio.gui.monte_carlo_editor import _DispersionEditorDialog
 
     dialog = _DispersionEditorDialog(["sat-1"])
@@ -144,6 +152,8 @@ def test_dispersion_dialog_round_trips_the_new_quantities(qtbot):
 
 
 def test_dispersion_dialog_kind_choices_follow_quantity(qtbot):
+    """The kinds offered follow the quantity: uniform_euler_mrp for the
+    attitude, uniform or normal for the dry mass."""
     from spacemissionstudio.gui.monte_carlo_editor import _DispersionEditorDialog
 
     dialog = _DispersionEditorDialog(["sat-1"])
@@ -180,6 +190,8 @@ def test_dispersion_dialog_stale_spacecraft_is_preserved_not_silently_swapped(qt
 
 
 def test_dispersion_dialog_rejects_when_no_spacecraft(qtbot):
+    """A dispersion without a spacecraft to choose is refused when the dialog
+    is read."""
     from spacemissionstudio.gui.monte_carlo_editor import _DispersionEditorDialog
 
     dialog = _DispersionEditorDialog([])
@@ -189,6 +201,8 @@ def test_dispersion_dialog_rejects_when_no_spacecraft(qtbot):
 
 
 def test_dispersion_list_add_edit_remove(qtbot, monkeypatch):
+    """Add lists a dispersion as one change; Edit keeps one; Remove deletes
+    it."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.monte_carlo_editor import DispersionListWidget, _DispersionEditorDialog
@@ -221,6 +235,8 @@ def test_dispersion_list_add_edit_remove(qtbot, monkeypatch):
 
 
 def test_dispersion_list_add_and_remove_show_a_toast(qtbot, monkeypatch):
+    """Adding and removing a dispersion each show a toast; the added one is
+    selected."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.monte_carlo_editor import DispersionListWidget, _DispersionEditorDialog

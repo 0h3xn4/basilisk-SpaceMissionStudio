@@ -8,6 +8,7 @@ import pytest
 
 
 def test_utc_iso_to_spice_string_whole_second():
+    """An ISO 8601 UTC time becomes SPICE's UTC string."""
     from spacemissionstudio.engine.time_system import utc_iso_to_spice_string
 
     assert utc_iso_to_spice_string("2030-01-01T00:00:00") == "2030 JAN 01 00:00:00.000 (UTC)"
@@ -46,6 +47,7 @@ def test_utc_iso_to_spice_string_converts_timezone_aware_input_to_utc():
     (7, "JUL"), (8, "AUG"), (9, "SEP"), (10, "OCT"), (11, "NOV"), (12, "DEC"),
 ])
 def test_every_month_uses_the_english_spice_abbreviation(month, expected):
+    """Every month uses SPICE's English three-letter abbreviation."""
     from spacemissionstudio.engine.time_system import utc_iso_to_spice_string
 
     assert utc_iso_to_spice_string(f"2030-{month:02d}-15T12:00:00") == f"2030 {expected} 15 12:00:00.000 (UTC)"

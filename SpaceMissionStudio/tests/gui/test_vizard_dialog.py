@@ -27,6 +27,7 @@ def test_description_label_wraps_instead_of_blowing_up_dialog_width(qtbot):
 
 
 def test_defaults_to_disabled(qtbot):
+    """The Vizard dialog starts disabled and gives no request."""
     from spacemissionstudio.gui.vizard_dialog import VizardDialog
 
     dialog = VizardDialog()
@@ -36,6 +37,7 @@ def test_defaults_to_disabled(qtbot):
 
 
 def test_save_file_mode(qtbot):
+    """Save-file mode gives the file and no live stream."""
     from spacemissionstudio.gui.vizard_dialog import VizardDialog
 
     dialog = VizardDialog()
@@ -48,6 +50,7 @@ def test_save_file_mode(qtbot):
 
 
 def test_live_stream_mode(qtbot):
+    """Live-stream mode gives a live stream and no file."""
     from spacemissionstudio.gui.vizard_dialog import VizardDialog
 
     dialog = VizardDialog()
@@ -59,6 +62,8 @@ def test_live_stream_mode(qtbot):
 
 
 def test_camera_target_and_orbit_lines_default(qtbot):
+    """By default there is no camera target (Vizard then looks at the central
+    body) and orbit lines are shown."""
     from spacemissionstudio.gui.vizard_dialog import VizardDialog
 
     dialog = VizardDialog()
@@ -70,6 +75,7 @@ def test_camera_target_and_orbit_lines_default(qtbot):
 
 
 def test_camera_target_and_orbit_lines_overridden(qtbot):
+    """The camera target typed and orbit lines turned off are given."""
     from spacemissionstudio.gui.vizard_dialog import VizardDialog
 
     dialog = VizardDialog()
@@ -83,6 +89,8 @@ def test_camera_target_and_orbit_lines_overridden(qtbot):
 
 
 def test_preselects_camera_target_and_orbit_lines(qtbot):
+    """The dialog opens with the current camera target and orbit-line
+    setting."""
     from spacemissionstudio.gui.vizard_dialog import VizardDialog
 
     dialog = VizardDialog(current_live_stream=True, current_camera_target="earth", current_show_orbit_lines=False)
@@ -92,6 +100,8 @@ def test_preselects_camera_target_and_orbit_lines(qtbot):
 
 
 def test_preselects_from_current_request(qtbot):
+    """The dialog opens in the current mode: live stream, or save file with its
+    path."""
     from spacemissionstudio.gui.vizard_dialog import VizardDialog
 
     dialog = VizardDialog(current_live_stream=True)
@@ -105,6 +115,8 @@ def test_preselects_from_current_request(qtbot):
 
 
 def test_accept_blocked_when_save_file_mode_has_no_path(qtbot, monkeypatch):
+    """OK in save-file mode without a path keeps the dialog open, says a
+    playback file is needed and marks the field."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.feedback import dialog_error_text

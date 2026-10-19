@@ -21,10 +21,12 @@ def _scenario(**overrides):
 
 
 def test_valid_scenario_has_no_errors():
+    """A valid scenario has no problems."""
     assert validate_all(_scenario()) == []
 
 
 def test_invalid_resource_reports_one_error():
+    """A scenario without spacecraft has one problem, saying so."""
     scenario = _scenario(spacecraft=[])  # Scenario.validate() raises on this first
     errors = validate_all(scenario)
     assert len(errors) == 1
@@ -52,6 +54,7 @@ def test_collects_every_bad_command_not_just_the_first():
 
 
 def test_collects_dangling_spacecraft_reference():
+    """A maneuver on a spacecraft the scenario does not have is listed."""
     scenario = _scenario(mission_sequence=[
         Command(kind="maneuver", params={"spacecraft": "does-not-exist", "delta_v_m_s": [1.0, 0.0, 0.0]}),
     ])
@@ -62,6 +65,7 @@ def test_collects_dangling_spacecraft_reference():
 
 
 def test_collects_multiple_dangling_references_across_commands():
+    """Two commands naming missing spacecraft are both listed."""
     scenario = _scenario(mission_sequence=[
         Command(kind="maneuver", params={"spacecraft": "ghost-1", "delta_v_m_s": [1.0, 0.0, 0.0]}),
         Command(kind="maneuver", params={"spacecraft": "ghost-2", "delta_v_m_s": [1.0, 0.0, 0.0]}),
@@ -74,6 +78,7 @@ def test_collects_multiple_dangling_references_across_commands():
 
 
 def test_dangling_reference_nested_in_if_is_collected():
+    """A missing spacecraft named inside an if is listed."""
     scenario = _scenario(mission_sequence=[
         Command(kind="if", params={"condition": "True"}, children=[
             Command(kind="maneuver", params={"spacecraft": "ghost", "delta_v_m_s": [1.0, 0.0, 0.0]}),
@@ -108,6 +113,7 @@ def test_bad_first_command_is_not_reported_twice():
 
 
 def test_dangling_reference_in_first_command_is_not_reported_twice():
+    """A missing spacecraft named in the first command is listed once."""
     scenario = _scenario(mission_sequence=[
         Command(kind="maneuver", params={"spacecraft": "ghost-only", "delta_v_m_s": [1.0, 0.0, 0.0]}),
     ])
@@ -119,6 +125,7 @@ def test_dangling_reference_in_first_command_is_not_reported_twice():
 
 
 def test_valid_mission_sequence_referencing_real_spacecraft_has_no_errors():
+    """A mission sequence naming only real spacecraft has no problems."""
     scenario = _scenario(mission_sequence=[
         Command(kind="propagate", params={"stop_condition": "duration", "duration_days": 1.0}),
         Command(kind="maneuver", params={"spacecraft": "sat-1", "delta_v_m_s": [1.0, 0.0, 0.0]}),

@@ -35,6 +35,8 @@ def _template(prefix):
 
 
 def test_interval_is_validated_and_round_trips():
+    """A negative record interval is refused; a 600 s one survives to_dict and
+    from_dict."""
     with pytest.raises(ScenarioValidationError, match="record_interval_s must be in"):
         SimSettings(record_interval_s=-1.0).validate()
     scenario = _template("18")
@@ -43,12 +45,15 @@ def test_interval_is_validated_and_round_trips():
 
 
 def test_old_files_without_the_field_record_every_step():
+    """A file without record_interval_s records every step."""
     data = _template("18").to_dict()
     del data["sim_settings"]["record_interval_s"]
     assert Scenario.from_dict(data).sim_settings.record_interval_s == 0.0
 
 
 def test_a_coarse_interval_warns_when_passes_are_short():
+    """A 10 min interval with 5 min passes is warned about; a 1 min one is
+    not."""
     scenario = _template("19")  # Berlin passes of ~4 and ~8 min
     scenario.sim_settings.record_interval_s = 600.0  # [s]
     assert scenario_warnings(scenario) == [
@@ -86,6 +91,7 @@ def test_thinning_changes_the_data_not_the_physics():
 
 @pytest.mark.requires_basilisk
 def test_log_thinner_samples_on_the_interval():
+    """The log thinner keeps one sample per interval, or every sample at 0."""
     from spacemissionstudio.engine.orbit_maintenance import LogThinner
 
     thinner = LogThinner(600.0)  # [s]

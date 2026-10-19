@@ -57,6 +57,8 @@ def _column(widget, heading):
 
 
 def test_the_cursor_emits_only_when_it_moves(qtbot):
+    """The time cursor signals only when it moves or clears, and describes a
+    time as T+ hours with the UTC time when the epoch is known."""
     cursor = TimeCursor()
     seen = []
     cursor.changed.connect(seen.append)
@@ -69,6 +71,9 @@ def test_the_cursor_emits_only_when_it_moves(qtbot):
 
 
 def test_the_table_lists_every_event_and_sorts_by_time_not_text(qtbot):
+    """The table lists every event earliest first, summarizes them, gives the
+    full detail on hover and sorts durations as numbers; the timeline has one
+    row per source."""
     widget = EventTimelineWidget()
     qtbot.addWidget(widget)
     widget.set_result(_result())
@@ -84,6 +89,7 @@ def test_the_table_lists_every_event_and_sorts_by_time_not_text(qtbot):
 
 
 def test_kind_filters_hide_rows_in_the_table_and_the_timeline(qtbot):
+    """Unticking a kind hides its events in the table and the timeline."""
     widget = EventTimelineWidget()
     qtbot.addWidget(widget)
     widget.set_result(_result())
@@ -93,6 +99,8 @@ def test_kind_filters_hide_rows_in_the_table_and_the_timeline(qtbot):
 
 
 def test_a_click_on_the_timeline_or_a_row_moves_the_shared_cursor(qtbot):
+    """A click on the timeline or on a row moves the shared cursor there and
+    names the event under it; clearing the cursor clears it on the timeline."""
     widget = EventTimelineWidget()
     qtbot.addWidget(widget)
     widget.resize(800, 500)
@@ -115,6 +123,7 @@ def test_a_click_on_the_timeline_or_a_row_moves_the_shared_cursor(qtbot):
 
 
 def test_the_wheel_zooms_and_fit_shows_the_whole_run(qtbot):
+    """The wheel zooms the timeline in, and Fit shows the whole run again."""
     widget = EventTimelineWidget()
     qtbot.addWidget(widget)
     widget.set_result(_result())
@@ -130,6 +139,8 @@ def test_the_wheel_zooms_and_fit_shows_the_whole_run(qtbot):
 
 
 def test_export_writes_the_shown_events_and_the_run_provenance(qtbot, tmp_path):
+    """Export writes the events shown, with UTC times, and the run's provenance
+    beside them."""
     widget = EventTimelineWidget()
     qtbot.addWidget(widget)
     result = _result()
@@ -145,6 +156,8 @@ def test_export_writes_the_shown_events_and_the_run_provenance(qtbot, tmp_path):
 
 
 def test_no_result_shows_a_hint_and_disables_export(qtbot):
+    """Without a result, the tab says to run a scenario and Export is
+    disabled."""
     widget = EventTimelineWidget()
     qtbot.addWidget(widget)
     assert widget.table.rowCount() == 0

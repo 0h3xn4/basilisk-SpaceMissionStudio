@@ -40,6 +40,8 @@ def _single_spacecraft_scenario(**orbit_overrides) -> Scenario:
 
 
 def test_zero_spacecraft_scenario_does_not_raise():
+    """A scenario without spacecraft is explained under its name, with an empty
+    spacecraft table."""
     scenario = Scenario(name="empty", epoch_utc="2030-01-01T00:00:00", spacecraft=[])
     explanation = explain(scenario)
     assert explanation.headline == "empty"
@@ -47,6 +49,8 @@ def test_zero_spacecraft_scenario_does_not_raise():
 
 
 def test_trivial_scenario_produces_short_tiles_and_no_table():
+    """One spacecraft gives at least the spacecraft, duration and gravity tiles
+    and no spacecraft table."""
     explanation = explain(_single_spacecraft_scenario())
     assert len(explanation.stat_tiles) >= 3
     assert explanation.spacecraft_table == []
@@ -57,6 +61,8 @@ def test_trivial_scenario_produces_short_tiles_and_no_table():
 
 
 def test_degree_10_sun_moon_gravity_shows_up_as_a_tile():
+    """Degree-10 Earth gravity with the Sun and Moon reads 'Degree-10 Earth +
+    Sun/Moon' on its tile."""
     scenario = _single_spacecraft_scenario()
     scenario.gravity = GravityConfig(central_body="earth", central_body_degree=10,
                                       third_body_perturbers=["sun", "moon"])
@@ -67,6 +73,8 @@ def test_degree_10_sun_moon_gravity_shows_up_as_a_tile():
 
 
 def test_sso_detection_fires_at_the_real_reference_point():
+    """97.40 deg at a = 6878.1366 km with J2 is shown as SSO on the orbit tile
+    and as a Sun-synchronous badge."""
     # 97.40 deg at 6878.1366 km altitude -- the same reference value
     # engine.orbit_design.sun_synchronous_inclination_deg's own docstring
     # verifies against.
@@ -83,6 +91,7 @@ def test_sso_detection_fires_at_the_real_reference_point():
 
 
 def test_sso_detection_does_not_fire_for_an_unrelated_inclination():
+    """51.6 deg at the same altitude is not shown as Sun-synchronous."""
     explanation = explain(_single_spacecraft_scenario(semi_major_axis_km=6878.1366, inclination_deg=51.6))
     orbit_tile = next(t for t in explanation.stat_tiles if t.label == "Orbit")
     assert "SSO" not in orbit_tile.value
@@ -91,6 +100,9 @@ def test_sso_detection_does_not_fire_for_an_unrelated_inclination():
 
 
 def test_template_05_shaped_chief_follower_pair_produces_spacecraft_table():
+    """A chief and a phasing follower, both with station keeping, give a
+    two-row table, station- and phasing-keeping badges without a warning note,
+    and one formation diagram with the follower's target and tolerances."""
     chief = SpacecraftConfig(
         name="chief-1",
         orbit=OrbitIC(type="classical_elements", semi_major_axis_km=6928.0, eccentricity=0.001,
@@ -130,6 +142,7 @@ def test_template_05_shaped_chief_follower_pair_produces_spacecraft_table():
 
 
 def test_formation_diagram_uses_the_first_entry_of_a_multi_step_schedule():
+    """The formation diagram shows the first separation of a schedule."""
     chief = SpacecraftConfig(name="chief-1", orbit=OrbitIC(
         type="classical_elements", semi_major_axis_km=6928.0, eccentricity=0.001,
         inclination_deg=97.59, raan_deg=0.0, arg_periapsis_deg=0.0, true_anomaly_deg=0.0))
@@ -166,12 +179,15 @@ def test_a_basilisk_formation_law_gets_its_badge_and_no_tolerance_diagram():
 
 
 def test_no_formation_diagram_without_phasing_keeping():
+    """A scenario without phasing keeping has no formation diagram."""
     scenario = _single_spacecraft_scenario()
     explanation = explain(scenario)
     assert explanation.formation_diagrams == []
 
 
 def test_phasing_keeping_without_station_keeping_surfaces_a_note():
+    """A follower with phasing keeping but no station keeping gets a note
+    naming it."""
     chief = SpacecraftConfig(name="chief-1", orbit=OrbitIC(
         type="classical_elements", semi_major_axis_km=6928.0, eccentricity=0.001,
         inclination_deg=97.59, raan_deg=0.0, arg_periapsis_deg=0.0, true_anomaly_deg=0.0))
@@ -191,6 +207,7 @@ def test_phasing_keeping_without_station_keeping_surfaces_a_note():
 
 @pytest.mark.parametrize("path", _TEMPLATE_PATHS, ids=lambda p: p.name)
 def test_explain_does_not_raise_on_any_bundled_template(path):
+    """Every template is explained under its name."""
     scenario = load_scenario(path)
     explanation = explain(scenario)
     assert explanation.headline  # every bundled template has a real name
@@ -218,6 +235,8 @@ def test_every_string_in_the_explanation_stays_short(path):
 
 
 def test_explain_never_raises_even_on_a_scenario_missing_its_own_schema_defaults():
+    """A scenario with an empty name and epoch and no spacecraft is still
+    explained."""
     # A somewhat pathological but legal input -- an empty-string name and
     # no spacecraft -- exercising the try/except wrapper directly rather
     # than only via well-formed inputs.
@@ -227,6 +246,7 @@ def test_explain_never_raises_even_on_a_scenario_missing_its_own_schema_defaults
 
 
 def test_badge_default_kind_is_neutral():
+    """A badge is neutral by default."""
     assert Badge("x").kind == "neutral"
 
 

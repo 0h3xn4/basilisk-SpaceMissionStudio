@@ -46,6 +46,8 @@ def _trivial_scenario():
 
 
 def test_none_scenario_shows_placeholder_without_raising(qtbot):
+    """Without a scenario, the Explain page shows its placeholder and nothing
+    else."""
     from spacemissionstudio.gui.scenario_explainer_widget import ScenarioExplainerWidget
 
     widget = ScenarioExplainerWidget()
@@ -58,6 +60,8 @@ def test_none_scenario_shows_placeholder_without_raising(qtbot):
 
 
 def test_rich_scenario_renders_tiles_badges_and_table(qtbot):
+    """A two-spacecraft formation shows its headline, tiles, sections and a
+    two-row table."""
     from spacemissionstudio.gui.scenario_explainer_widget import ScenarioExplainerWidget
 
     widget = ScenarioExplainerWidget()
@@ -75,6 +79,7 @@ def test_rich_scenario_renders_tiles_badges_and_table(qtbot):
 
 
 def test_rich_scenario_renders_a_formation_diagram(qtbot):
+    """A formation shows one formation diagram with a size."""
     from spacemissionstudio.gui.formation_diagram_widget import FormationDiagramWidget
     from spacemissionstudio.gui.scenario_explainer_widget import ScenarioExplainerWidget
 
@@ -88,6 +93,7 @@ def test_rich_scenario_renders_a_formation_diagram(qtbot):
 
 
 def test_trivial_scenario_has_no_formation_diagram(qtbot):
+    """A single spacecraft shows no formation diagram."""
     from spacemissionstudio.gui.formation_diagram_widget import FormationDiagramWidget
     from spacemissionstudio.gui.scenario_explainer_widget import ScenarioExplainerWidget
 
@@ -99,6 +105,7 @@ def test_trivial_scenario_has_no_formation_diagram(qtbot):
 
 
 def test_switching_from_rich_to_trivial_removes_the_formation_diagram(qtbot):
+    """Switching to a single spacecraft removes the formation diagram."""
     from spacemissionstudio.gui.formation_diagram_widget import FormationDiagramWidget
     from spacemissionstudio.gui.scenario_explainer_widget import ScenarioExplainerWidget
 
@@ -113,6 +120,8 @@ def test_switching_from_rich_to_trivial_removes_the_formation_diagram(qtbot):
 
 
 def test_trivial_scenario_renders_no_table_and_fewer_badges_than_rich(qtbot):
+    """A single spacecraft shows no table and no more sections than a
+    formation."""
     from spacemissionstudio.gui.scenario_explainer_widget import ScenarioExplainerWidget
 
     widget = ScenarioExplainerWidget()
@@ -130,6 +139,7 @@ def test_trivial_scenario_renders_no_table_and_fewer_badges_than_rich(qtbot):
 
 
 def test_switching_between_scenarios_clears_previous_table(qtbot):
+    """Switching to a single spacecraft empties and hides the table."""
     from spacemissionstudio.gui.scenario_explainer_widget import ScenarioExplainerWidget
 
     widget = ScenarioExplainerWidget()
@@ -143,6 +153,8 @@ def test_switching_between_scenarios_clears_previous_table(qtbot):
 
 
 def test_set_scenario_none_after_rich_hides_everything(qtbot):
+    """Clearing the scenario after a formation brings back the placeholder
+    alone."""
     from spacemissionstudio.gui.scenario_explainer_widget import ScenarioExplainerWidget
 
     widget = ScenarioExplainerWidget()

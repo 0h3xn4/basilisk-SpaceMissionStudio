@@ -17,6 +17,8 @@ _TEMPLATE_PATHS = sorted(_TEMPLATES_DIR.glob("*.json"))
 
 @pytest.mark.parametrize("path", _TEMPLATE_PATHS, ids=lambda p: p.name)
 def test_template_round_trips_through_scenario_editor_widget(qtbot, path):
+    """Every template opens valid in the Scenario Editor and comes back
+    unchanged."""
     from spacemissionstudio.gui.scenario_editor import ScenarioEditorWidget
     from spacemissionstudio.schema import load_scenario
 

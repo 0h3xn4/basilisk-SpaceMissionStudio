@@ -13,6 +13,8 @@ pytestmark = pytest.mark.requires_basilisk
 
 
 def test_eclipse_illumination_fraction_prefers_new_name():
+    """The eclipse reading takes illuminationFactor, not the old
+    shadowFactor."""
     from spacemissionstudio.engine.orbit_maintenance import _eclipse_illumination_fraction
 
     class _NewStylePayload:
@@ -211,6 +213,8 @@ def _flat(vec3) -> list:
 
 
 def test_station_keeping_skips_thrust_on_nan_state():
+    """A NaN state makes station keeping apply no thrust and log NaN, without
+    an error."""
     from Basilisk.architecture import messaging
     from Basilisk.simulation import extForceTorque
 
@@ -258,6 +262,8 @@ def test_station_keeping_skips_thrust_on_zero_velocity():
 
 
 def test_phasing_keeping_skips_thrust_on_nan_state():
+    """A NaN follower state makes phasing keeping apply no thrust and log NaN,
+    without an error."""
     from Basilisk.architecture import messaging
     from Basilisk.simulation import extForceTorque
 
@@ -378,6 +384,8 @@ def test_constant_thrust_skips_on_nan_state():
 
 
 def test_constant_thrust_skips_on_zero_velocity():
+    """A zero velocity makes constant thrust apply no force, without an
+    error."""
     from Basilisk.architecture import messaging
     from Basilisk.simulation import extForceTorque
 
@@ -489,6 +497,8 @@ def test_phasing_keeping_runs_normally_with_finite_state():
 # panels) -------------------------------------------------------------------
 
 def test_station_keeping_dv_budget_is_tsiolkovsky_closed_form():
+    """Station keeping's delta-V budget is Tsiolkovsky's for its mass,
+    propellant and Isp."""
     from spacemissionstudio.engine.orbit_maintenance import StationKeepingController
     from spacemissionstudio.engine.propellant_bookkeeping import total_delta_v_budget
 
@@ -608,6 +618,7 @@ def test_station_keeping_cold_start_guard_only_gates_the_start_not_the_stop():
 
 
 def test_phasing_keeping_dv_budget_is_passed_through_from_constructor():
+    """Phasing keeping keeps the delta-V budget it is given."""
     from spacemissionstudio.engine.orbit_maintenance import PhasingKeepingController, SeparationSchedule
 
     controller = PhasingKeepingController(
@@ -834,6 +845,8 @@ def _build_non_convergent_phasing_controller():
 
 
 def test_phasing_keeping_divergence_guard_suspends_after_non_convergent_cycles():
+    """Phasing keeping suspends itself after the set number of cycles that end
+    outside tolerance, and not before."""
     from spacemissionstudio.engine.orbit_maintenance import _MAX_NON_CONVERGENT_CYCLES
 
     controller = _build_non_convergent_phasing_controller()

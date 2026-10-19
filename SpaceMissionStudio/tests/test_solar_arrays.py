@@ -106,6 +106,7 @@ def test_the_hub_carries_the_dry_mass_less_the_arrays_plus_every_propellant():
 # -- schema -----------------------------------------------------------------------------
 
 def test_a_scenario_with_arrays_round_trips_through_json():
+    """Solar arrays survive JSON."""
     scenario = _scenario([_wing(), _wing("wing-y", -1.0, generates_power=False, initial_deflection_deg=2.0)])
     scenario.validate()
     back = Scenario.from_dict(json.loads(json.dumps(dataclasses.asdict(scenario))))
@@ -122,6 +123,9 @@ def test_a_scenario_with_arrays_round_trips_through_json():
     (lambda s: setattr(s, "simulation_mode", "orbit_only"), "'orbit_only'"),
 ])
 def test_bad_array_settings_are_refused_plainly(change, message):
+    """Each bad array setting is refused plainly: a normal not perpendicular to
+    the hinge, an array heavier than the spacecraft, a zero frequency, critical
+    damping, a repeated name, a fixed-step integrator, orbit-only mode."""
     scenario = _scenario([_wing()])
     change(scenario)
     with pytest.raises(ScenarioValidationError, match=message):
@@ -139,6 +143,7 @@ def test_the_explain_tab_warns_when_samples_alias_the_flexing():
 
 
 def test_predicted_series_include_each_array():
+    """Each array's deflection, rate and power are predicted."""
     scenario = _scenario([_wing()])
     scenario.spacecraft[0].power = PowerConfig(panel_area_m2=0.5, panel_efficiency=0.29)  # [m^2], [-]
     names = expected_series_names(scenario)

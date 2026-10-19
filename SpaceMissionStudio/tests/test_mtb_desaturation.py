@@ -158,6 +158,8 @@ def _run_mtb_momentum_management(duration_min: float):
 
 
 def test_mtb_momentum_management_drives_wheel_speeds_to_the_commanded_biases():
+    """Torque-rod momentum management brings every wheel within 2 RPM of its
+    bias in two hours."""
     speeds_rpm = _run_mtb_momentum_management(duration_min=120.0)
     final_error_rpm = speeds_rpm[-1] - np.array(_BIASES_RPM)
     assert np.all(np.abs(final_error_rpm) < 2.0), (
@@ -167,6 +169,8 @@ def test_mtb_momentum_management_drives_wheel_speeds_to_the_commanded_biases():
 
 
 def test_mtb_momentum_management_actually_moves_wheel_speeds_from_zero():
+    """The wheels start at rest and end above 100 RPM, so the torque rods did
+    act."""
     speeds_rpm = _run_mtb_momentum_management(duration_min=120.0)
     assert np.linalg.norm(speeds_rpm[0]) < 1e-9, "test setup expects wheels starting at rest"
     assert np.linalg.norm(speeds_rpm[-1]) > 100.0, (

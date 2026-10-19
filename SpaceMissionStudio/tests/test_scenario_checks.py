@@ -53,6 +53,8 @@ def test_template_19_passes_match_an_independent_propagation():
 
 
 def test_a_cartesian_orbit_predicts_the_same_passes():
+    """The same orbit given as Cartesian predicts the same passes within a
+    minute."""
     from spacemissionstudio.schema.scenario import OrbitIC
 
     scenario = _template("19")
@@ -73,6 +75,7 @@ def test_a_cartesian_orbit_predicts_the_same_passes():
 
 
 def test_unsupported_cases_predict_nothing_rather_than_guess():
+    """Around Mars, or without ground stations, no passes are predicted."""
     scenario = _template("19")
     scenario.gravity.central_body = "mars"
     assert predict_passes(scenario) is None and pass_summary(scenario) == []
@@ -80,6 +83,9 @@ def test_unsupported_cases_predict_nothing_rather_than_guess():
 
 
 def test_a_late_first_pass_and_no_pass_at_all_are_both_flagged():
+    """A first pass late in the run and a run without a pass are flagged,
+    saying when the first pass comes; a station that never sees the spacecraft
+    is flagged too."""
     scenario = _template("19")
     scenario.epoch_utc = "2030-01-01T00:00:00"  # the old epoch: first pass ~8.2 h in
     scenario.sim_settings.duration_days = 0.5
@@ -149,6 +155,7 @@ def test_every_template_is_checked_quickly_and_none_is_flagged(eros_files_if_ins
 
 
 def test_a_half_edited_scenario_never_raises():
+    """A half-edited scenario gives a list of warnings, not an error."""
     scenario = _template("19")
     scenario.spacecraft[0].orbit.semi_major_axis_km = None
     scenario.spacecraft[0].sensors = None

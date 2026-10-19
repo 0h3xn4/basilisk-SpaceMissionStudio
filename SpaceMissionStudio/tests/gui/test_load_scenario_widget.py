@@ -11,6 +11,7 @@ pytestmark = pytest.mark.requires_gui
 
 
 def test_populates_one_item_per_bundled_template(qtbot):
+    """The Load page lists one row per template file."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR, LoadScenarioWidget
 
     widget = LoadScenarioWidget()
@@ -22,6 +23,7 @@ def test_populates_one_item_per_bundled_template(qtbot):
 
 
 def test_items_are_in_filename_order(qtbot):
+    """The rows are in file-name order, starting with template 01."""
     from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
 
     widget = LoadScenarioWidget()
@@ -38,6 +40,7 @@ def test_items_are_in_filename_order(qtbot):
 
 
 def test_no_selection_disables_open_button_and_clears_description(qtbot):
+    """Without a selection, Open is disabled and no description is shown."""
     from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
 
     widget = LoadScenarioWidget()
@@ -101,6 +104,7 @@ def test_customize_button_exists_for_every_template_with_a_registered_wizard_spe
 
 
 def test_customize_clicked_emits_scenario_customized_on_accept(qtbot, monkeypatch):
+    """Customize, accepted, hands on the customized template."""
     from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
     from spacemissionstudio.gui.template_wizard import TemplateCustomizeWizard
 
@@ -119,6 +123,7 @@ def test_customize_clicked_emits_scenario_customized_on_accept(qtbot, monkeypatc
 
 
 def test_customize_clicked_emits_nothing_on_cancel(qtbot, monkeypatch):
+    """Customize, cancelled, hands on nothing."""
     from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
     from spacemissionstudio.gui.template_wizard import TemplateCustomizeWizard
 
@@ -160,6 +165,7 @@ def test_customize_clicked_is_independent_of_the_lists_current_selection(qtbot, 
 
 
 def test_selecting_an_item_enables_open_and_shows_its_description(qtbot):
+    """Selecting a row enables Open and shows its description."""
     from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
 
     widget = LoadScenarioWidget()
@@ -172,6 +178,7 @@ def test_selecting_an_item_enables_open_and_shows_its_description(qtbot):
 
 
 def test_open_template_button_emits_the_matching_path(qtbot):
+    """Open hands on the selected template's file."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR, LoadScenarioWidget
 
     widget = LoadScenarioWidget()
@@ -188,6 +195,7 @@ def test_open_template_button_emits_the_matching_path(qtbot):
 
 
 def test_double_click_opens_the_template(qtbot):
+    """Double-clicking the selected row opens that template, once."""
     from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
 
     widget = LoadScenarioWidget()
@@ -209,6 +217,7 @@ def test_double_click_opens_the_template(qtbot):
 
 
 def test_browse_emits_the_picked_path(qtbot, monkeypatch, tmp_path):
+    """Browse hands on the file picked."""
     from PySide6.QtWidgets import QFileDialog
 
     from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
@@ -227,6 +236,7 @@ def test_browse_emits_the_picked_path(qtbot, monkeypatch, tmp_path):
 
 
 def test_browse_cancelled_emits_nothing(qtbot, monkeypatch):
+    """Cancelling Browse hands on nothing."""
     from PySide6.QtWidgets import QFileDialog
 
     from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
@@ -303,6 +313,7 @@ def test_description_label_is_never_squeezed_below_its_needed_height(qtbot):
 
 
 def test_a_malformed_template_is_skipped_not_crashed_on(qtbot, monkeypatch, tmp_path):
+    """A template file that is not JSON is left out of the list."""
     from spacemissionstudio.gui import load_scenario_widget
 
     broken_dir = tmp_path / "templates"
@@ -317,6 +328,8 @@ def test_a_malformed_template_is_skipped_not_crashed_on(qtbot, monkeypatch, tmp_
 
 
 def test_description_renders_headings_and_bullets(qtbot):
+    """A description's headings become bold, its bullets list items and its
+    text is escaped, not interpreted."""
     from spacemissionstudio.gui.load_scenario_widget import description_html
 
     html_text = description_html("Summary line.\n\nTry changing:\n- First <one>\n- Second")

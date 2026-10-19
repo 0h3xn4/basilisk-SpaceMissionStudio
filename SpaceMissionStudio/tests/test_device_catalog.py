@@ -9,6 +9,8 @@ import pytest
 
 
 def test_every_entry_kind_is_a_supported_sensor_or_actuator_kind():
+    """Every catalog entry is of a sensor or actuator kind the schema
+    supports."""
     from spacemissionstudio.engine.device_catalog import CATALOG
     from spacemissionstudio.schema.scenario import SUPPORTED_ACTUATOR_KINDS, SUPPORTED_SENSOR_KINDS
 
@@ -69,6 +71,7 @@ def test_every_entry_params_key_is_recognized_by_its_kind():
 
 
 def test_vector_params_are_three_element_lists():
+    """Every vector parameter in the catalog has three numbers."""
     from spacemissionstudio.engine.device_catalog import CATALOG
 
     for entry in CATALOG:
@@ -79,6 +82,8 @@ def test_vector_params_are_three_element_lists():
 
 
 def test_catalog_entries_for_kind_filters_and_preserves_order():
+    """Filtering the catalog by kind keeps exactly that kind's entries, in
+    order."""
     from spacemissionstudio.engine.device_catalog import CATALOG, catalog_entries_for_kind
 
     for kind in {entry.kind for entry in CATALOG}:
@@ -88,6 +93,7 @@ def test_catalog_entries_for_kind_filters_and_preserves_order():
 
 
 def test_catalog_entries_for_kind_returns_empty_not_an_error_for_unknown_kind():
+    """An unknown kind gives no entries, not an error."""
     from spacemissionstudio.engine.device_catalog import catalog_entries_for_kind
 
     assert catalog_entries_for_kind("no_such_kind") == []
@@ -119,6 +125,8 @@ def test_every_sensor_and_actuator_kind_has_at_least_one_catalog_entry():
 
 
 def test_display_name_includes_manufacturer_product_and_country():
+    """Every entry's display name gives its manufacturer, product and
+    country."""
     from spacemissionstudio.engine.device_catalog import CATALOG
 
     for entry in CATALOG:
@@ -152,6 +160,7 @@ def test_no_supplier_database_entry_is_development_or_flagged_export_risk():
 
 
 def test_display_names_are_unique():
+    """No two entries share a display name."""
     from spacemissionstudio.engine.device_catalog import CATALOG
 
     names = [entry.display_name for entry in CATALOG]

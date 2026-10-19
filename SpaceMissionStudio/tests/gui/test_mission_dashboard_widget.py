@@ -67,6 +67,8 @@ def widget(qtbot):
 
 
 def test_empty_state_shows_placeholder_and_hides_panels(widget):
+    """Without a result, the dashboard shows its placeholder and hides every
+    panel."""
     assert not widget._placeholder.isHidden()
     assert widget._state_box.isHidden()
     assert widget._attitude_box.isHidden()
@@ -75,6 +77,7 @@ def test_empty_state_shows_placeholder_and_hides_panels(widget):
 
 
 def test_set_result_none_restores_empty_state(widget):
+    """Clearing the result brings the placeholder back."""
     widget.set_result(_result_set([1], [2.0], [1], [1.0e6], [30.0], [5.0]), _scenario())
     assert widget._state_box.isHidden() is False
 
@@ -84,6 +87,8 @@ def test_set_result_none_restores_empty_state(widget):
 
 
 def test_sun_pointing_mode_shows_success_badge_and_no_access(widget):
+    """In Sun pointing without a station in view, the badges say Sun-pointing,
+    no station in view, no access and converged."""
     result = _result_set(
         active_mode=[0, 0], pointing_error_deg=[1.0, 0.5], has_access=[0, 0],
         slant_range_m=[2.0e7, 2.0e7], battery_charge_wh=[35.0, 35.2], net_power_w=[8.0, 8.0],
@@ -97,6 +102,8 @@ def test_sun_pointing_mode_shows_success_badge_and_no_access(widget):
 
 
 def test_comms_pointing_mode_shows_accent_badge_and_visibility(widget):
+    """In ground-station pointing with a station in view, the badges say so and
+    the slant range is shown in km."""
     result = _result_set(
         active_mode=[0, 1], pointing_error_deg=[1.0, 3.0], has_access=[0, 1],
         slant_range_m=[2.0e7, 9.0e5], battery_charge_wh=[35.0, 33.0], net_power_w=[8.0, -10.0],
@@ -153,6 +160,8 @@ def test_large_pointing_error_shows_slewing_badge_and_degraded_link(widget):
 
 
 def test_battery_soc_bar_reflects_capacity_when_scenario_given(widget):
+    """With the scenario's 40 Wh battery, 20 Wh reads 50 %, beside the bar, and
+    the net power is signed."""
     result = _result_set(
         active_mode=[0], pointing_error_deg=[0.0], has_access=[0],
         slant_range_m=[2.0e7], battery_charge_wh=[20.0], net_power_w=[5.0],
@@ -166,6 +175,8 @@ def test_battery_soc_bar_reflects_capacity_when_scenario_given(widget):
 
 
 def test_battery_soc_bar_disabled_without_scenario(widget):
+    """Without the scenario, the charge bar is disabled and the charge shown in
+    W*hr."""
     result = _result_set(
         active_mode=[0], pointing_error_deg=[0.0], has_access=[0],
         slant_range_m=[2.0e7], battery_charge_wh=[20.0], net_power_w=[5.0],
@@ -177,6 +188,7 @@ def test_battery_soc_bar_disabled_without_scenario(widget):
 
 
 def test_negative_net_power_shown_without_plus_sign(widget):
+    """A negative net power is shown with its minus sign."""
     result = _result_set(
         active_mode=[1], pointing_error_deg=[2.0], has_access=[1],
         slant_range_m=[1.0e6], battery_charge_wh=[20.0], net_power_w=[-12.5],
@@ -187,6 +199,7 @@ def test_negative_net_power_shown_without_plus_sign(widget):
 
 
 def test_set_live_result_is_an_alias_for_set_result(widget):
+    """A live result is shown as a finished one is."""
     result = _result_set(
         active_mode=[1], pointing_error_deg=[2.0], has_access=[1],
         slant_range_m=[1.0e6], battery_charge_wh=[20.0], net_power_w=[-12.5],

@@ -24,6 +24,7 @@ pytestmark = pytest.mark.requires_gui
 
 
 def test_table_round_trips_facets(qtbot):
+    """The facet table shows the facets it is given and gives them back."""
     from spacemissionstudio.engine.facets import box_facets
     from spacemissionstudio.gui.facet_editor import FacetTableWidget
 
@@ -56,6 +57,8 @@ def test_table_keeps_every_digit(qtbot):
 
 
 def test_add_remove_and_a_bad_number_is_named(qtbot):
+    """Add appends numbered facets, a non-number is refused naming its row and
+    column, and Remove without a selection removes the last row."""
     from spacemissionstudio.gui.facet_editor import FacetTableWidget
 
     table = FacetTableWidget()
@@ -71,6 +74,8 @@ def test_add_remove_and_a_bad_number_is_named(qtbot):
 
 
 def test_box_dialog_builds_the_box_and_array(qtbot, monkeypatch):
+    """The box dialog builds the six faces and the array at the offset
+    typed."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui import facet_editor

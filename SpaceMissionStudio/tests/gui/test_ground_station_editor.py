@@ -6,6 +6,8 @@ pytestmark = pytest.mark.requires_gui
 
 
 def test_dialog_default(qtbot):
+    """A new ground station is gs-1 with a 10 deg mask, a 45 dBi antenna and
+    290 K noise."""
     from spacemissionstudio.gui.ground_station_editor import GroundStationEditorDialog
 
     dialog = GroundStationEditorDialog()
@@ -18,6 +20,8 @@ def test_dialog_default(qtbot):
 
 
 def test_dialog_round_trips_rf_link_fields(qtbot):
+    """A station's antenna gain and noise temperature come back from the
+    dialog."""
     from spacemissionstudio.gui.ground_station_editor import GroundStationEditorDialog
     from spacemissionstudio.schema.scenario import GroundStationConfig
 
@@ -31,6 +35,8 @@ def test_dialog_round_trips_rf_link_fields(qtbot):
 
 
 def test_dialog_rejects_out_of_range_latitude(qtbot):
+    """A latitude of 999 deg is kept by the box, shown as 90 and refused when
+    the dialog is read."""
     from spacemissionstudio.gui.ground_station_editor import GroundStationEditorDialog
 
     dialog = GroundStationEditorDialog()
@@ -45,6 +51,7 @@ def test_dialog_rejects_out_of_range_latitude(qtbot):
 
 
 def test_list_widget_round_trip(qtbot):
+    """The station list shows the stations it is given and gives them back."""
     from spacemissionstudio.gui.ground_station_editor import GroundStationListWidget
     from spacemissionstudio.schema.scenario import GroundStationConfig
 
@@ -56,6 +63,7 @@ def test_list_widget_round_trip(qtbot):
 
 
 def test_list_widget_add_via_dialog(qtbot, monkeypatch):
+    """An added station is listed, selected and shown in a toast."""
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.ground_station_editor import GroundStationEditorDialog, GroundStationListWidget
@@ -78,6 +86,8 @@ def test_list_widget_add_via_dialog(qtbot, monkeypatch):
 
 
 def test_dialog_name_field_shows_inline_error_on_duplicate(qtbot):
+    """A name another station has marks the field as an error; a free name
+    clears it."""
     from spacemissionstudio.gui.ground_station_editor import GroundStationEditorDialog
 
     dialog = GroundStationEditorDialog(other_names=["gs-1", "gs-2"])
@@ -108,6 +118,7 @@ def test_dialog_accept_blocks_and_keeps_dialog_open_on_duplicate_name(qtbot):
 
 
 def test_list_widget_remove_shows_a_toast(qtbot):
+    """Removing a station shows a toast naming it."""
     from spacemissionstudio.gui.ground_station_editor import GroundStationListWidget
     from spacemissionstudio.schema.scenario import GroundStationConfig
 

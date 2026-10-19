@@ -222,10 +222,8 @@ validation set).
 #### 9.2.1 Test case identifier (K.2.1<9.2.1>)
 
 `<file>::<function>`. The purpose is the docstring.
-- 1637 of the 2314 functions have a docstring (on 2026-10-19; RD1 gives
-  the current count).
-- The others are described only by their name. Docstrings are being added
-  to them file by file (K-09); rule C-9 requires them for every test.
+- All 2314 functions have a docstring (on 2026-10-19; RD1 gives the
+  current count), as rule C-9 requires. Until then 1054 had none (K-09).
 
 #### 9.2.2 Test items (K.2.1<9.2.2>)
 

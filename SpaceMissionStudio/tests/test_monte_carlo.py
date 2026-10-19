@@ -44,6 +44,8 @@ def test_run_monte_carlo_reports_a_clean_error_when_archive_dir_is_a_file(tmp_pa
 
 
 def test_propellant_offset_kg_sums_station_keeping_and_constant_thrust():
+    """The propellant added to the dry mass is station keeping's plus constant
+    thrust's."""
     from spacemissionstudio.engine.monte_carlo import _propellant_offset_kg
 
     sc = SpacecraftConfig(
@@ -56,6 +58,7 @@ def test_propellant_offset_kg_sums_station_keeping_and_constant_thrust():
 
 
 def test_propellant_offset_kg_is_zero_with_neither_configured():
+    """Without either, no propellant is added."""
     from spacemissionstudio.engine.monte_carlo import _propellant_offset_kg
 
     sc = SpacecraftConfig(name="s", orbit=OrbitIC(type="cartesian", position_km=[7000, 0, 0],
@@ -85,6 +88,8 @@ def test_dry_mass_dispersion_adds_propellant_offset_on_top():
 
 
 def test_dry_mass_dispersion_with_no_propellant_is_unshifted():
+    """Without propellant, a uniform dry-mass dispersion stays within its
+    bounds."""
     from spacemissionstudio.engine.monte_carlo import _build_dispersion
 
     scenario = _scenario()  # no station_keeping/constant_thrust
@@ -97,6 +102,7 @@ def test_dry_mass_dispersion_with_no_propellant_is_unshifted():
 
 
 def test_dry_mass_normal_dispersion_adds_propellant_offset_on_top():
+    """A normal dry-mass dispersion adds the 5 kg of propellant to its mean."""
     from spacemissionstudio.engine.monte_carlo import _build_dispersion
 
     scenario = _scenario(constant_thrust=ConstantThrustConfig(propellant_kg=5.0))
@@ -109,6 +115,8 @@ def test_dry_mass_normal_dispersion_adds_propellant_offset_on_top():
 
 
 def test_build_dispersion_unknown_spacecraft_raises_clear_error():
+    """A dispersion on a spacecraft the scenario does not have is refused,
+    naming it."""
     from spacemissionstudio.engine.monte_carlo import MonteCarloError, _build_dispersion
 
     scenario = _scenario()
@@ -339,6 +347,8 @@ def test_a_batch_flies_the_mission_sequence_burns(tmp_path):
 
 
 def test_script_blocks_in_a_batch_need_consent(tmp_path):
+    """A batch with script blocks is refused without explicit consent and
+    creates no folder."""
     from spacemissionstudio.engine.monte_carlo import MonteCarloError, run_monte_carlo
 
     scenario = _scenario()
@@ -349,6 +359,8 @@ def test_script_blocks_in_a_batch_need_consent(tmp_path):
 
 
 def test_a_folder_holding_other_files_is_refused(tmp_path):
+    """A folder holding files other than an earlier batch is refused, even with
+    overwrite, and left unchanged."""
     from spacemissionstudio.engine.monte_carlo import MonteCarloError, run_monte_carlo
 
     (tmp_path / "notes.txt").write_text("mine", encoding="utf-8")

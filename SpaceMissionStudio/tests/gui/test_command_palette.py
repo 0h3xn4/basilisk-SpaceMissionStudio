@@ -32,6 +32,8 @@ def _entries(calls):
 
 
 def test_every_word_must_match_and_name_prefixes_come_first():
+    """Every typed word must match; matches at the start of a name come first,
+    menu names count, and an empty search lists everything."""
     entries = _entries([])
     assert [e.label for e in matches("save as", entries)] == ["File > Save As..."]
     assert [e.label for e in matches("s", entries)][:2] == ["File > Save As...", "File > Save"]
@@ -42,6 +44,8 @@ def test_every_word_must_match_and_name_prefixes_come_first():
 
 
 def test_enter_runs_the_highlighted_command_and_skips_disabled_ones(qtbot):
+    """Enter runs the highlighted command, and a disabled one cannot be
+    highlighted."""
     calls = []
     palette = CommandPalette(_entries(calls))
     qtbot.addWidget(palette)
@@ -55,6 +59,7 @@ def test_enter_runs_the_highlighted_command_and_skips_disabled_ones(qtbot):
 
 
 def test_nothing_matching_says_so(qtbot):
+    """A search that matches nothing says so, and running then does nothing."""
     palette = CommandPalette(_entries([]))
     qtbot.addWidget(palette)
     palette.search.setText("zzz")
@@ -64,6 +69,8 @@ def test_nothing_matching_says_so(qtbot):
 
 
 def test_the_main_window_lists_its_menus_and_tabs_on_ctrl_k(qtbot):
+    """Ctrl+K opens the palette, which lists menu commands, tabs and templates
+    but not itself, and going to a tab shows it."""
     from spacemissionstudio.gui.main_window import MainWindow
 
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
@@ -79,6 +86,8 @@ def test_the_main_window_lists_its_menus_and_tabs_on_ctrl_k(qtbot):
 
 
 def test_the_palette_shows_a_series_of_the_result(qtbot):
+    """The palette offers each result series, and choosing one shows it on the
+    Results page."""
     import numpy as np
 
     from spacemissionstudio.engine.results import ResultSet, TimeSeries

@@ -30,6 +30,7 @@ def _tick(dialog, *names):
 
 
 def test_propagate_duration_round_trips(qtbot):
+    """A duration propagate gives its label and duration in days."""
     dialog = _dialog(spacecraft_names=["sat-1"])
     qtbot.addWidget(dialog)
     dialog.label_edit.setText("Coast")
@@ -42,6 +43,7 @@ def test_propagate_duration_round_trips(qtbot):
 
 
 def test_propagate_event_round_trips(qtbot):
+    """An event propagate gives the chosen event (apoapsis) and spacecraft."""
     dialog = _dialog(spacecraft_names=["sat-1", "sat-2"])
     qtbot.addWidget(dialog)
     index = dialog.stop_condition_combo.findText("event")
@@ -56,6 +58,8 @@ def test_propagate_event_round_trips(qtbot):
 
 
 def test_propagate_pass_event_picks_a_station_only_when_needed(qtbot):
+    """The station list shows only for a pass event, the chosen station is
+    given, and reopening the command gives the same parameters."""
     dialog = _dialog(spacecraft_names=["sat-1"], ground_station_names=["berlin-gs", "kiruna-gs"])
     qtbot.addWidget(dialog)
     dialog.show()
@@ -83,6 +87,7 @@ def test_editor_offers_the_scenarios_ground_stations(qtbot):
 
 
 def test_propagate_epoch_rejects_bad_iso8601(qtbot):
+    """A stop epoch that is not ISO 8601 is refused when the dialog is read."""
     dialog = _dialog()
     qtbot.addWidget(dialog)
     index = dialog.stop_condition_combo.findText("epoch")
@@ -94,6 +99,7 @@ def test_propagate_epoch_rejects_bad_iso8601(qtbot):
 
 
 def test_maneuver_round_trips(qtbot):
+    """A maneuver gives its spacecraft, delta-V and frame."""
     dialog = _dialog(spacecraft_names=["sat-1"])
     qtbot.addWidget(dialog)
     index = dialog.kind_combo.findText("maneuver")
@@ -112,6 +118,8 @@ def test_maneuver_round_trips(qtbot):
 
 
 def test_maneuver_rejects_missing_spacecraft(qtbot):
+    """A maneuver without a spacecraft to choose is refused when the dialog is
+    read."""
     dialog = _dialog(spacecraft_names=[])  # no spacecraft defined yet -- combo stays empty
     qtbot.addWidget(dialog)
     index = dialog.kind_combo.findText("maneuver")
@@ -122,6 +130,8 @@ def test_maneuver_rejects_missing_spacecraft(qtbot):
 
 
 def test_lambert_transfer_round_trips(qtbot):
+    """A Lambert transfer gives its spacecraft, target, time of flight,
+    revolutions and both limits."""
     dialog = _dialog(spacecraft_names=["sat-1"])
     qtbot.addWidget(dialog)
     index = dialog.kind_combo.findText("lambert_transfer")
@@ -149,6 +159,8 @@ def test_lambert_transfer_round_trips(qtbot):
 
 
 def test_lambert_transfer_rejects_missing_spacecraft(qtbot):
+    """A Lambert transfer without a spacecraft to choose is refused when the
+    dialog is read."""
     dialog = _dialog(spacecraft_names=[])  # no spacecraft defined yet -- combo stays empty
     qtbot.addWidget(dialog)
     index = dialog.kind_combo.findText("lambert_transfer")
@@ -159,6 +171,8 @@ def test_lambert_transfer_rejects_missing_spacecraft(qtbot):
 
 
 def test_assignment_round_trips(qtbot):
+    """An assignment built from the spacecraft, controller and parameter lists
+    gives the dotted target and value."""
     dialog = _dialog(spacecraft_names=["sat-1"])
     qtbot.addWidget(dialog)
     index = dialog.kind_combo.findText("assignment")
@@ -177,6 +191,8 @@ def test_assignment_round_trips(qtbot):
 
 
 def test_assignment_dialog_prefills_target_from_existing_command(qtbot):
+    """Opening an assignment selects its spacecraft, controller and parameter
+    and shows its value."""
     from spacemissionstudio.schema.command import Command
 
     existing = Command(kind="assignment", params={"target": "sat-1.phasing_keeping.isp_s", "value": 220.0})
@@ -229,6 +245,8 @@ def test_report_series_are_picked_from_the_scenario_list(qtbot):
 
 
 def test_report_keeps_and_flags_a_series_the_scenario_does_not_produce(qtbot):
+    """A reported series the scenario no longer produces is kept, marked as not
+    produced, and OK changes nothing."""
     from spacemissionstudio.schema.command import Command
 
     command = Command(kind="report", params={"series": ["sat-1.position_N", "old-sat.position_N"]})
@@ -240,6 +258,8 @@ def test_report_keeps_and_flags_a_series_the_scenario_does_not_produce(qtbot):
 
 
 def test_report_empty_series_means_snapshot_everything(qtbot):
+    """A report with no series chosen gives an empty list, meaning every
+    series."""
     dialog = _dialog()
     qtbot.addWidget(dialog)
     index = dialog.kind_combo.findText("report")
@@ -250,6 +270,7 @@ def test_report_empty_series_means_snapshot_everything(qtbot):
 
 
 def test_if_condition_round_trips(qtbot):
+    """An if gives its condition."""
     dialog = _dialog()
     qtbot.addWidget(dialog)
     index = dialog.kind_combo.findText("if")
@@ -262,6 +283,7 @@ def test_if_condition_round_trips(qtbot):
 
 
 def test_if_rejects_empty_condition(qtbot):
+    """A while without a condition is refused when the dialog is read."""
     dialog = _dialog()
     qtbot.addWidget(dialog)
     index = dialog.kind_combo.findText("while")
@@ -272,6 +294,7 @@ def test_if_rejects_empty_condition(qtbot):
 
 
 def test_script_block_round_trips(qtbot):
+    """A script block gives its code."""
     dialog = _dialog()
     qtbot.addWidget(dialog)
     index = dialog.kind_combo.findText("script_block")
@@ -284,6 +307,7 @@ def test_script_block_round_trips(qtbot):
 
 
 def test_kind_combo_disabled_when_editing_existing_command(qtbot):
+    """The kind list is disabled when editing an existing command."""
     from spacemissionstudio.schema.command import Command
 
     dialog = _dialog(command=Command(kind="propagate", params={"duration_days": 1.0}))
@@ -375,6 +399,8 @@ def test_move_up_down_reorders_siblings(qtbot):
 
 
 def test_from_command_list_to_command_list_round_trip(qtbot):
+    """A sequence with a nested while shows as a tree and comes back with its
+    labels, kinds and child."""
     from spacemissionstudio.gui.mission_sequence_editor import MissionSequenceEditorWidget
     from spacemissionstudio.schema.command import Command
 

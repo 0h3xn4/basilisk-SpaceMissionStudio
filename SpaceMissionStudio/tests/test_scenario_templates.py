@@ -17,6 +17,8 @@ _TEMPLATE_PATHS = sorted(_TEMPLATES_DIR.glob("*.json"))
 
 
 def test_at_least_one_template_exists():
+    """At least 18 templates are found, so the per-template tests below do not
+    pass on an empty list."""
     # A guard against the glob above silently matching nothing (e.g. the
     # directory got renamed/moved) and every parametrized test below
     # collecting zero cases, which would pass "successfully" while
@@ -26,12 +28,14 @@ def test_at_least_one_template_exists():
 
 @pytest.mark.parametrize("path", _TEMPLATE_PATHS, ids=lambda p: p.name)
 def test_template_loads_and_validates(path):
+    """Every template loads and validates."""
     scenario = load_scenario(path)
     scenario.validate()  # must not raise
 
 
 @pytest.mark.parametrize("path", _TEMPLATE_PATHS, ids=lambda p: p.name)
 def test_template_has_at_least_one_spacecraft(path):
+    """Every template has at least one spacecraft."""
     scenario = load_scenario(path)
     assert len(scenario.spacecraft) >= 1
 
@@ -48,6 +52,7 @@ def test_template_has_a_substantial_description(path):
 
 @pytest.mark.parametrize("path", _TEMPLATE_PATHS, ids=lambda p: p.name)
 def test_template_round_trips_through_save_load(path, tmp_path):
+    """Every template saved and loaded again validates and is unchanged."""
     scenario = load_scenario(path)
     out_path = tmp_path / path.name
     scenario.save(out_path)
@@ -57,6 +62,7 @@ def test_template_round_trips_through_save_load(path, tmp_path):
 
 
 def test_walker_constellation_template_has_six_uniquely_named_satellites():
+    """Template 04 has six uniquely named satellites."""
     scenario = load_scenario(_TEMPLATES_DIR / "04_walker_constellation.json")
     names = [sc.name for sc in scenario.spacecraft]
     assert len(names) == 6
@@ -64,12 +70,14 @@ def test_walker_constellation_template_has_six_uniquely_named_satellites():
 
 
 def test_mission_sequence_template_has_a_maneuver_command():
+    """Template 08's mission sequence has a maneuver."""
     scenario = load_scenario(_TEMPLATES_DIR / "08_mission_sequence_orbit_raise.json")
     kinds = [c.kind for c in scenario.mission_sequence]
     assert "maneuver" in kinds
 
 
 def test_monte_carlo_template_has_monte_carlo_enabled():
+    """Template 09 has Monte Carlo on with at least one dispersion."""
     scenario = load_scenario(_TEMPLATES_DIR / "09_monte_carlo_dispersion_analysis.json")
     assert scenario.monte_carlo.enabled
     assert len(scenario.monte_carlo.dispersions) >= 1
@@ -91,6 +99,8 @@ def test_gravity_gradient_template_has_no_attitude_control_and_an_elongated_iner
 
 
 def test_thruster_attitude_control_template_has_only_thruster_actuators():
+    """Template 11 has only thrusters, at least six (fewer cannot give a pure
+    three-axis torque), and an FSW mode."""
     scenario = load_scenario(_TEMPLATES_DIR / "11_thruster_attitude_control.json")
     sat = scenario.spacecraft[0]
     kinds = {a.kind for a in sat.actuators}
@@ -100,6 +110,8 @@ def test_thruster_attitude_control_template_has_only_thruster_actuators():
 
 
 def test_momentum_dumping_template_mixes_reaction_wheel_and_thruster_actuators():
+    """Template 12 has reaction wheels and thrusters and momentum dumping with
+    a positive limit."""
     scenario = load_scenario(_TEMPLATES_DIR / "12_reaction_wheel_momentum_dumping.json")
     sat = scenario.spacecraft[0]
     kinds = {a.kind for a in sat.actuators}
@@ -109,6 +121,8 @@ def test_momentum_dumping_template_mixes_reaction_wheel_and_thruster_actuators()
 
 
 def test_magnetic_momentum_management_template_mixes_reaction_wheel_and_mtb_actuators():
+    """Template 13 has reaction wheels and torque rods, and one speed bias per
+    wheel."""
     scenario = load_scenario(_TEMPLATES_DIR / "13_magnetic_torque_rod_momentum_management.json")
     sat = scenario.spacecraft[0]
     kinds = {a.kind for a in sat.actuators}
@@ -129,6 +143,9 @@ def test_every_template_flies_a_100_to_500_kg_spacecraft(path):
 
 
 def test_css_sun_heading_estimation_template_wires_use_css_estimation():
+    """Template 14 points at the Sun from eight coarse sun sensors' estimate,
+    with the Sun in the run and no explicit gains (the scaled default P is
+    below 1)."""
     scenario = load_scenario(_TEMPLATES_DIR / "14_css_sun_heading_estimation.json")
     sat = scenario.spacecraft[0]
     assert sat.fsw_mode == "sunSafePoint"
@@ -144,6 +161,8 @@ def test_css_sun_heading_estimation_template_wires_use_css_estimation():
 
 
 def test_celestial_body_pointing_template_uses_target_body_not_ground_station():
+    """Template 15 points at the Moon, a body in the run, not at a ground
+    station."""
     scenario = load_scenario(_TEMPLATES_DIR / "15_celestial_body_pointing.json")
     sat = scenario.spacecraft[0]
     assert sat.fsw_mode == "locationPointing"
@@ -155,6 +174,8 @@ def test_celestial_body_pointing_template_uses_target_body_not_ground_station():
 
 
 def test_lambert_transfer_template_targets_the_documented_position():
+    """Template 16's Lambert transfer moves sat-1 to the documented position in
+    the documented 2490 s."""
     scenario = load_scenario(_TEMPLATES_DIR / "16_lambert_transfer.json")
     kinds = [c.kind for c in scenario.mission_sequence]
     assert "lambert_transfer" in kinds
@@ -165,6 +186,7 @@ def test_lambert_transfer_template_targets_the_documented_position():
 
 
 def test_fuel_tank_template_has_a_tank_tied_to_its_thrusters():
+    """Template 17 has a half-full 1 kg tank and thrusters."""
     scenario = load_scenario(_TEMPLATES_DIR / "17_fuel_tank_depletion.json")
     sat = scenario.spacecraft[0]
     assert sat.fuel_tank is not None
@@ -361,6 +383,8 @@ def test_formation_template_24_differs_from_05_only_in_its_control_law():
 
 
 def test_monte_carlo_template_25_disperses_the_orbit_and_the_drag_coefficient():
+    """Template 25 disperses the orbit elements and the drag coefficient by the
+    documented spreads, with drag on."""
     scenario = load_scenario(_TEMPLATES_DIR / "25_monte_carlo_orbit_and_drag_dispersions.json")
     assert scenario.monte_carlo.enabled
     by_quantity = {d.quantity: d for d in scenario.monte_carlo.dispersions}

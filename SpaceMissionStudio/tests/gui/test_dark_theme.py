@@ -67,6 +67,7 @@ def dark_palette():
 
 
 def test_both_themes_have_the_same_keys():
+    """The dark and light themes define the same colors."""
     from spacemissionstudio.gui.theme import DARK, LIGHT
 
     assert set(DARK) == set(LIGHT)

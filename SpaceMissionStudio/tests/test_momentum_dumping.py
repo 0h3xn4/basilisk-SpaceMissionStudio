@@ -132,6 +132,8 @@ def _run_momentum_dumping(duration_s: float, prime_before_reset: bool, momentum_
 
 
 def test_momentum_dumping_reduces_wheel_speed_when_primed():
+    """With the priming tick, thruster momentum dumping fires and slows the
+    wheels."""
     speeds, on_times = _run_momentum_dumping(
         duration_s=300.0, prime_before_reset=True, momentum_config=MomentumDumpingConfig(hs_max=80.0)
     )

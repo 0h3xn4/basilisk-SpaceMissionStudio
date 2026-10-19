@@ -22,6 +22,8 @@ def _settings(tmp_path):
 
 
 def test_find_returns_none_with_no_remembered_path_and_nothing_on_disk(tmp_path, monkeypatch):
+    """With nothing remembered and nothing in the search folders, no Vizard is
+    found."""
     from spacemissionstudio.gui import vizard_launcher
 
     monkeypatch.setattr(vizard_launcher, "_candidate_roots", lambda: [tmp_path / "does_not_exist"])
@@ -29,6 +31,7 @@ def test_find_returns_none_with_no_remembered_path_and_nothing_on_disk(tmp_path,
 
 
 def test_remember_then_find_returns_the_remembered_path(tmp_path, monkeypatch):
+    """A remembered Vizard executable that exists is the one found."""
     from spacemissionstudio.gui import vizard_launcher
 
     fake_exe = tmp_path / "Vizard.x86_64"
@@ -40,6 +43,8 @@ def test_remember_then_find_returns_the_remembered_path(tmp_path, monkeypatch):
 
 
 def test_remembered_path_that_no_longer_exists_falls_back_to_search(tmp_path, monkeypatch):
+    """A remembered executable that no longer exists is skipped, and the search
+    finds another."""
     from spacemissionstudio.gui import vizard_launcher
 
     settings = _settings(tmp_path)
@@ -55,6 +60,7 @@ def test_remembered_path_that_no_longer_exists_falls_back_to_search(tmp_path, mo
 
 
 def test_search_finds_executable_directly_in_a_candidate_root(tmp_path, monkeypatch):
+    """The search finds the executable directly in a search folder."""
     from spacemissionstudio.gui import vizard_launcher
 
     root = tmp_path / "Desktop"
@@ -81,6 +87,8 @@ def test_search_finds_executable_one_level_down_in_a_candidate_root(tmp_path, mo
 
 
 def test_search_skips_a_nonexistent_root_without_raising(tmp_path, monkeypatch):
+    """A missing search folder ahead of a real one is skipped without an
+    error."""
     from spacemissionstudio.gui import vizard_launcher
 
     real_root = tmp_path / "real"
@@ -94,6 +102,8 @@ def test_search_skips_a_nonexistent_root_without_raising(tmp_path, monkeypatch):
 
 
 def test_launch_starts_the_given_executable_directly_on_non_macos(tmp_path, monkeypatch):
+    """On Linux, the executable is started directly, without arguments, and its
+    process returned."""
     from spacemissionstudio.gui import vizard_launcher
 
     monkeypatch.setattr(vizard_launcher.sys, "platform", "linux")
@@ -139,6 +149,8 @@ def test_launch_appends_direct_comm_flag_when_given(tmp_path, monkeypatch):
 
 
 def test_launch_omits_direct_comm_flag_when_not_given(tmp_path, monkeypatch):
+    """Without a direct-communication address, Vizard is started without that
+    flag."""
     from spacemissionstudio.gui import vizard_launcher
 
     monkeypatch.setattr(vizard_launcher.sys, "platform", "linux")
@@ -154,6 +166,7 @@ def test_launch_omits_direct_comm_flag_when_not_given(tmp_path, monkeypatch):
 
 
 def test_launch_resolves_macos_app_bundle_to_its_inner_binary(tmp_path, monkeypatch):
+    """On macOS, an app bundle is started through its Contents/MacOS binary."""
     from spacemissionstudio.gui import vizard_launcher
 
     monkeypatch.setattr(vizard_launcher.sys, "platform", "darwin")
@@ -171,6 +184,7 @@ def test_launch_resolves_macos_app_bundle_to_its_inner_binary(tmp_path, monkeypa
 
 
 def test_launch_raises_a_clear_error_for_an_empty_macos_bundle(tmp_path, monkeypatch):
+    """A macOS bundle without a binary is refused as not a valid app bundle."""
     from spacemissionstudio.gui import vizard_launcher
 
     monkeypatch.setattr(vizard_launcher.sys, "platform", "darwin")
@@ -243,6 +257,8 @@ def _make_vizard_zip(zip_path, *, executable_name, wrapper_folder=None):
 
 
 def test_fetch_vizard_downloads_extracts_and_finds_the_executable(tmp_path, monkeypatch):
+    """fetch_vizard downloads the zip, extracts it and returns the executable
+    inside (network mocked)."""
     from spacemissionstudio.gui import vizard_launcher
 
     _as_linux_build(monkeypatch, vizard_launcher)
@@ -289,6 +305,8 @@ def test_fetch_vizard_sends_a_browser_like_user_agent(tmp_path, monkeypatch):
 
 
 def test_fetch_vizard_sets_the_executable_bit_on_non_windows(tmp_path, monkeypatch):
+    """fetch_vizard makes the extracted Linux executable executable by its
+    owner."""
     from spacemissionstudio.gui import vizard_launcher
 
     _as_linux_build(monkeypatch, vizard_launcher)
@@ -313,6 +331,8 @@ def test_fetch_vizard_sets_the_executable_bit_on_non_windows(tmp_path, monkeypat
 
 
 def test_fetch_vizard_reports_network_failure(tmp_path, monkeypatch):
+    """A network error during fetch_vizard is reported as a download
+    failure."""
     from spacemissionstudio.gui import vizard_launcher
 
     def _raise(*args, **kwargs):
@@ -325,6 +345,7 @@ def test_fetch_vizard_reports_network_failure(tmp_path, monkeypatch):
 
 
 def test_fetch_vizard_reports_a_corrupt_zip(tmp_path, monkeypatch):
+    """A download that is not a zip file is reported as such."""
     from spacemissionstudio.gui import vizard_launcher
 
     monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
@@ -335,6 +356,8 @@ def test_fetch_vizard_reports_a_corrupt_zip(tmp_path, monkeypatch):
 
 
 def test_fetch_vizard_reports_a_zip_with_no_recognizable_executable(tmp_path, monkeypatch):
+    """A zip without a Vizard executable is reported: the executable could not
+    be found."""
     from spacemissionstudio.gui import vizard_launcher
 
     _as_linux_build(monkeypatch, vizard_launcher)
@@ -349,6 +372,8 @@ def test_fetch_vizard_reports_a_zip_with_no_recognizable_executable(tmp_path, mo
 
 
 def test_fetch_vizard_honors_cooperative_cancellation(tmp_path, monkeypatch):
+    """fetch_vizard stops with a cancelled error when its cancel check says
+    so."""
     from spacemissionstudio.gui import vizard_launcher
 
     monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
@@ -359,6 +384,7 @@ def test_fetch_vizard_honors_cooperative_cancellation(tmp_path, monkeypatch):
 
 
 def test_fetch_vizard_rejects_a_response_over_the_size_cap(tmp_path, monkeypatch):
+    """A download larger than the size limit is refused."""
     from spacemissionstudio.gui import vizard_launcher
 
     monkeypatch.setattr(vizard_launcher, "_MAX_DOWNLOAD_BYTES", 10)
@@ -394,6 +420,8 @@ def test_fetch_vizard_reports_a_folder_it_cannot_create(tmp_path):
 
 
 def test_fetch_vizard_reports_progress_status(tmp_path, monkeypatch):
+    """fetch_vizard reports downloading and extracting through its status
+    callback."""
     from spacemissionstudio.gui import vizard_launcher
 
     _as_linux_build(monkeypatch, vizard_launcher)
@@ -452,6 +480,8 @@ def test_fetch_vizard_finds_the_executable_inside_a_same_named_wrapper_folder(tm
 
 
 def test_fetch_vizard_clears_stale_files_from_an_earlier_extraction(tmp_path, monkeypatch):
+    """A second fetch removes the first extraction and returns the new
+    executable."""
     from spacemissionstudio.gui import vizard_launcher
 
     _as_linux_build(monkeypatch, vizard_launcher)
@@ -475,6 +505,8 @@ def test_fetch_vizard_clears_stale_files_from_an_earlier_extraction(tmp_path, mo
 
 
 def test_fetch_vizard_rejects_a_zip_slip_entry(tmp_path, monkeypatch):
+    """A zip entry that would extract outside the folder (../) is refused as
+    unsafe."""
     from spacemissionstudio.gui import vizard_launcher
 
     _as_linux_build(monkeypatch, vizard_launcher)
@@ -491,6 +523,7 @@ def test_fetch_vizard_rejects_a_zip_slip_entry(tmp_path, monkeypatch):
 # -- VizardFetchWorker -- the QThread wrapper -------------------------------
 
 def test_vizard_fetch_worker_emits_finished_ok_on_success(tmp_path, monkeypatch, qtbot):
+    """The fetch worker signals success with the executable's path."""
     from spacemissionstudio.gui import vizard_launcher
 
     fake_path = tmp_path / "Vizard.x86_64"
@@ -505,6 +538,7 @@ def test_vizard_fetch_worker_emits_finished_ok_on_success(tmp_path, monkeypatch,
 
 
 def test_vizard_fetch_worker_emits_failed_on_error(tmp_path, monkeypatch, qtbot):
+    """The fetch worker signals failure with the error's message."""
     from spacemissionstudio.gui import vizard_launcher
 
     def _raise(*args, **kwargs):
@@ -540,6 +574,8 @@ def test_vizard_fetch_worker_reports_an_unexpected_error(tmp_path, monkeypatch, 
 
 
 def test_vizard_fetch_worker_request_cancel_is_seen_by_should_cancel(tmp_path, monkeypatch, qtbot):
+    """A cancel requested before the worker starts is seen by the fetch's
+    cancel check."""
     from spacemissionstudio.gui import vizard_launcher
 
     seen_should_cancel = {}

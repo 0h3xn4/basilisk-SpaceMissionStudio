@@ -27,6 +27,8 @@ def _ground_station(**overrides):
 
 
 def test_link_margin_db_matches_hand_computed_value():
+    """The link margin at 1000 km and 8.2 GHz equals the budget worked by hand,
+    25.647 dB, within 0.01 dB."""
     # Independently computed (not copy-pasted from link_budget.py's own
     # expression): EIRP = 10*log10(15) + 6 - 2 = 15.761 dBW
     # FSPL @ 1000 km, 8.2 GHz = 20*log10(4*pi*1e6*8.2e9/299792458) = 170.724 dB
@@ -40,6 +42,7 @@ def test_link_margin_db_matches_hand_computed_value():
 
 
 def test_link_margin_decreases_20db_per_decade_of_range():
+    """Ten times the range lowers the margin by 20 dB (free-space loss)."""
     rf_link, gs = _rf_link(), _ground_station()
     margin_near = link_margin_db(1.0e6, rf_link, gs)
     margin_far = link_margin_db(1.0e7, rf_link, gs)
@@ -47,6 +50,7 @@ def test_link_margin_decreases_20db_per_decade_of_range():
 
 
 def test_higher_tx_power_increases_margin_by_matching_db():
+    """Twice the transmit power raises the margin by 10 log10(2) dB."""
     rf_link_lo, gs = _rf_link(tx_power_w=10.0), _ground_station()
     rf_link_hi = _rf_link(tx_power_w=20.0)  # +3.01 dB
     delta = link_margin_db(1.0e6, rf_link_hi, gs) - link_margin_db(1.0e6, rf_link_lo, gs)
@@ -64,6 +68,8 @@ def _access_result(range_m, has_access, n=5):
 
 
 def test_link_margin_series_only_defined_during_access():
+    """The margin series is named after the pair, in dB, holds the margin
+    during access and NaN outside it."""
     has_access = [0, 1, 1, 0, 0]
     result = _access_result(1.0e6, has_access)
     series = link_margin_series(result, "gs1", "sat1", _rf_link(), _ground_station())
@@ -79,6 +85,7 @@ def test_link_margin_series_only_defined_during_access():
 
 
 def test_link_margin_series_missing_pair_raises_clear_error():
+    """A pair without access series is refused, saying so."""
     result = ResultSet(scenario_name="test")
     with pytest.raises(ResultsError, match="no access-analysis series found"):
         link_margin_series(result, "gs1", "sat1", _rf_link(), _ground_station())
@@ -103,6 +110,8 @@ def test_link_budget_breakdown_zero_pointing_error_matches_no_beamwidth_case():
 
 
 def test_link_budget_breakdown_pointing_loss_matches_parabolic_formula():
+    """A 10 deg pointing error on a 20 deg beam costs 12 (10/20)^2 = 3 dB,
+    taken off the margin."""
     # 12 * (pointing_error_deg / antenna_beamwidth_deg)^2, per this
     # module's own docstring -- independently computed here, not
     # copy-pasted from link_budget.py's own expression.
@@ -117,6 +126,7 @@ def test_link_budget_breakdown_pointing_loss_matches_parabolic_formula():
 
 
 def test_link_budget_breakdown_pointing_loss_clamped_at_max():
+    """The pointing loss stops at 30 dB."""
     rf_link = _rf_link(antenna_beamwidth_deg=1.0)  # tiny beamwidth -> huge unclamped loss
     gs = _ground_station()
     breakdown = link_budget_breakdown(1.0e6, rf_link, gs, pointing_error_deg=90.0)
@@ -124,6 +134,7 @@ def test_link_budget_breakdown_pointing_loss_clamped_at_max():
 
 
 def test_link_margin_db_pointing_error_kwarg_matches_breakdown():
+    """link_margin_db with a pointing error equals the breakdown's margin."""
     rf_link = _rf_link(antenna_beamwidth_deg=15.0)
     gs = _ground_station()
     assert link_margin_db(1.0e6, rf_link, gs, pointing_error_deg=7.0) == pytest.approx(
@@ -171,6 +182,8 @@ def test_link_margin_series_gates_on_active_mode_in_addition_to_has_access():
 
 
 def test_link_margin_series_applies_the_pointing_error_series_per_sample():
+    """The margin series applies each sample's own pointing error: the
+    better-pointed sample has more margin."""
     has_access = [1, 1]
     active_mode = [1, 1]
     pointing_error_deg = [20.0, 1.0]  # degraded right at the transition, converged afterward
@@ -213,6 +226,8 @@ def test_link_margin_series_is_nan_for_a_ground_station_other_than_the_comms_poi
 
 
 def test_link_margin_series_still_applies_normal_gating_for_the_actual_comms_pointing_target():
+    """For the station comms pointing aims at, the margin series uses the
+    recorded pointing error."""
     has_access = [1, 1]
     active_mode = [1, 1]
     pointing_error_deg = [2.0, 2.0]

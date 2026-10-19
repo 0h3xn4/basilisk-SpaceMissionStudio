@@ -78,6 +78,8 @@ def test_residuals_are_external_minus_reference_per_scalar_with_their_time():
 
 
 def test_a_flight_software_that_never_writes_is_reported_as_such():
+    """Outputs the flight software never wrote are counted and reported as
+    never written."""
     comparator = Comparator([OUT], [], {"Demo": LAYOUT}, expected_steps=2)
     for t in (0.0, 1.0):
         comparator.add(t, [None], [_payload(1.0, 0.0, 0.0, 0)])
@@ -111,6 +113,7 @@ def test_the_report_round_trips_and_exports(tmp_path):
 
 
 def test_long_runs_keep_a_bounded_sample_of_the_residuals():
+    """A long run keeps MAX_SAMPLES residual samples, evenly strided."""
     from spacemissionstudio.sil import report as module
 
     comparator = Comparator([OUT], [], {"Demo": LAYOUT}, expected_steps=module.MAX_SAMPLES * 3)

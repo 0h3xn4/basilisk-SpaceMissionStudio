@@ -183,6 +183,8 @@ def test_the_trade_table_marks_the_lowest_fitting_altitude_and_drills_down(qtbot
 
 
 def test_unreadable_altitudes_are_refused_before_any_work(qtbot):
+    """Altitudes that are not numbers are refused before any work starts,
+    saying what is expected."""
     from spacemissionstudio.gui.budget_widget import BudgetWidget
     from spacemissionstudio.schema import load_scenario
 

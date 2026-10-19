@@ -109,6 +109,7 @@ def _run_thruster_attitude_control(duration_s: float):
 
 
 def test_thruster_chain_commands_nonzero_on_times():
+    """The thruster attitude chain commands some on-time in 60 s."""
     _, on_times = _run_thruster_attitude_control(duration_s=60.0)
     assert np.any(on_times > 0.0), (
         "an 8-thruster cluster controlling a spacecraft with nonzero initial attitude error commanded "
@@ -118,6 +119,7 @@ def test_thruster_chain_commands_nonzero_on_times():
 
 
 def test_thruster_chain_reduces_attitude_error():
+    """The thruster attitude chain reduces the attitude error in 60 s."""
     sigma, _ = _run_thruster_attitude_control(duration_s=60.0)
     initial_error = np.linalg.norm(sigma[0])
     final_error = np.linalg.norm(sigma[-1])

@@ -73,6 +73,7 @@ def _run_css(params: dict):
 
 
 def test_css_baseline_reads_near_full_illumination():
+    """A coarse sun sensor facing the Sun reads 1 within 1e-3."""
     # Not exactly 1.0 -- computeSunData()'s own real geometry (this test's
     # sun direction isn't perfectly antiparallel to the CSS boresight at
     # floating-point precision) leaves a small, expected residual; this
@@ -84,22 +85,27 @@ def test_css_baseline_reads_near_full_illumination():
 
 
 def test_css_bias_adds_to_the_true_reading():
+    """A bias of 0.5 adds 0.5 to the reading."""
     baseline = _run_css({})
     value = _run_css({"bias": 0.5})
     assert value == pytest.approx(baseline + 0.5, abs=1e-6)
 
 
 def test_css_saturation_max_clips_the_output():
+    """A saturation of 0.1 clips the reading to 0.1."""
     value = _run_css({"saturation_max": 0.1})
     assert value == pytest.approx(0.1, abs=1e-6)
 
 
 def test_css_fault_stuck_max_freezes_at_saturation_regardless_of_bias():
+    """A stuck-at-maximum fault reads the saturation value whatever the
+    bias."""
     value = _run_css({"saturation_max": 0.3, "bias": 100.0, "fault_mode": "stuck_max"})
     assert value == pytest.approx(0.3, abs=1e-6)
 
 
 def test_css_unrecognized_fault_mode_raises_fsw_error():
+    """An unknown coarse-sun-sensor fault mode is refused."""
     from spacemissionstudio.engine.fsw import FswError
 
     with pytest.raises(FswError, match="fault_mode"):
@@ -158,6 +164,7 @@ def _run_magnetometer(params: dict):
 
 
 def test_magnetometer_bias_adds_per_axis_to_the_true_field():
+    """A magnetometer bias adds to each axis separately."""
     baseline = _run_magnetometer({})
     biased = _run_magnetometer({"bias_tesla": [1.0e-6, -2.0e-6, 0.0]})
     assert biased[0] == pytest.approx(baseline[0] + 1.0e-6, abs=1e-9)
@@ -166,11 +173,15 @@ def test_magnetometer_bias_adds_per_axis_to_the_true_field():
 
 
 def test_magnetometer_saturation_clips_every_axis_symmetrically():
+    """A magnetometer saturation clips every axis to plus or minus its
+    value."""
     reading = _run_magnetometer({"saturation_tesla": 1.0e-9})
     assert np.all(np.abs(reading) <= 1.0e-9 + 1e-15)
 
 
 def test_magnetometer_fault_stuck_value_freezes_only_the_named_axis():
+    """A stuck-value fault on axis 1 reads the stuck value there and leaves the
+    other axes as they were."""
     baseline = _run_magnetometer({})
     faulted = _run_magnetometer({"fault_mode": "stuck_value", "fault_axis": 1, "stuck_value_tesla": 4.2e-5})
     assert faulted[1] == pytest.approx(4.2e-5, abs=1e-9)
@@ -180,6 +191,7 @@ def test_magnetometer_fault_stuck_value_freezes_only_the_named_axis():
 
 
 def test_magnetometer_unrecognized_fault_mode_raises_fsw_error():
+    """An unknown magnetometer fault mode is refused."""
     from spacemissionstudio.engine.fsw import FswError
 
     with pytest.raises(FswError, match="fault_mode"):
@@ -222,6 +234,7 @@ def _run_imu(params: dict, omega_init=(0.0, 0.0, 0.0)):
 
 
 def test_imu_gyro_bias_adds_to_the_true_rate():
+    """The gyro reads the true rate, and a gyro bias adds to each axis."""
     omega_true = (0.01, -0.02, 0.0)
     gyro, _ = _run_imu({}, omega_init=omega_true)
     assert gyro == pytest.approx(omega_true, abs=1e-6)
@@ -241,6 +254,7 @@ def test_imu_accel_bias_reads_directly_since_true_accel_is_zero():
 
 
 def test_imu_gyro_saturation_clips_the_output():
+    """A gyro saturation of 0.01 rad/s clips a 1 rad/s rate to 0.01."""
     gyro, _ = _run_imu({"gyro_saturation_rad_s": 0.01}, omega_init=(1.0, 0.0, 0.0))
     assert abs(gyro[0]) <= 0.01 + 1e-9
 

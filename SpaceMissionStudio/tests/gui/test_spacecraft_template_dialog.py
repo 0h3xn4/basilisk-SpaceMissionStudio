@@ -27,6 +27,7 @@ def test_description_label_wraps_instead_of_blowing_up_dialog_width(qtbot):
 
 
 def test_dialog_lists_every_template(qtbot):
+    """The preset dialog lists every spacecraft preset."""
     from spacemissionstudio.engine.spacecraft_templates import SPACECRAFT_TEMPLATES
     from spacemissionstudio.gui.spacecraft_template_dialog import SpacecraftTemplateDialog
 
@@ -36,6 +37,7 @@ def test_dialog_lists_every_template(qtbot):
 
 
 def test_dialog_defaults_to_first_template_selected(qtbot):
+    """The first preset is selected, with its description shown."""
     from spacemissionstudio.engine.spacecraft_templates import SPACECRAFT_TEMPLATES
     from spacemissionstudio.gui.spacecraft_template_dialog import SpacecraftTemplateDialog
 
@@ -46,6 +48,7 @@ def test_dialog_defaults_to_first_template_selected(qtbot):
 
 
 def test_dialog_selection_changes_description(qtbot):
+    """Selecting another preset shows its description."""
     from spacemissionstudio.engine.spacecraft_templates import SPACECRAFT_TEMPLATES
     from spacemissionstudio.gui.spacecraft_template_dialog import SpacecraftTemplateDialog
 

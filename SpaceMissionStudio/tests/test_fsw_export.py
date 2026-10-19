@@ -91,6 +91,9 @@ def test_momentum_dumping_records_the_priming_reset():
     ("22", "my-sat", "no attitude flight software"),
 ])
 def test_exports_that_cannot_reproduce_the_simulation_are_refused(prefix, name, reason):
+    """Exports the flight software cannot reproduce (comms pointing, no
+    attitude control) are refused, as is a spacecraft the scenario does not
+    have."""
     from spacemissionstudio.fsw_export.capture import CaptureError, capture
 
     with pytest.raises(CaptureError, match=reason):

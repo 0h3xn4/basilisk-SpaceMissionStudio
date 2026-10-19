@@ -65,6 +65,8 @@ def test_true_equator_placement_follows_iau_earth():
     ({"target_longitude_deg": 400.0}, "target_longitude_deg must be in"),
 ])
 def test_bad_settings_are_rejected(change, message):
+    """A zero longitude box, a 20 deg inclination limit, zero thrust or a 400
+    deg longitude is refused."""
     spacecraft = _geo_spacecraft()
     for key, value in change.items():
         setattr(spacecraft.geo_station_keeping, key, value)
@@ -73,6 +75,8 @@ def test_bad_settings_are_rejected(change, message):
 
 
 def test_it_replaces_altitude_station_keeping_and_is_earth_only():
+    """GEO station keeping with altitude station keeping, or around Mars, is
+    refused; otherwise it survives to_dict and from_dict."""
     with pytest.raises(ScenarioValidationError, match="replaces station_keeping"):
         _geo_spacecraft(station_keeping=StationKeepingConfig(target_altitude_km=35786.0, deadband_km=5.0,
                                                             thrust_n=1.0, isp_s=220.0, propellant_kg=1.0)).validate()

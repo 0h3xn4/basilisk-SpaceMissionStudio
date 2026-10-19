@@ -104,6 +104,7 @@ def _run_thermal_sensor(params: dict, sun_eclipse_in_msg=None, num_ticks: int = 
 
 
 def test_thermal_sensor_requires_sun_tracked():
+    """A thermal sensor without the Sun's message is refused."""
     from spacemissionstudio.engine.fsw import FswError
     from spacemissionstudio.engine import fsw
 
@@ -116,6 +117,8 @@ def test_thermal_sensor_requires_sun_tracked():
 
 
 def test_thermal_sensor_sun_facing_heats_up():
+    """A sensor facing the Sun warms above 0 deg C (as Basilisk's
+    scenarioSensorThermal describes)."""
     # Matches examples/scenarioSensorThermal.py's own documented behavior:
     # "pointed directly at the sun, heating it up."
     final_temp = _run_thermal_sensor({}, num_ticks=5)
@@ -123,6 +126,8 @@ def test_thermal_sensor_sun_facing_heats_up():
 
 
 def test_thermal_sensor_facing_away_from_sun_does_not_heat_up():
+    """A sensor facing away from the Sun, starting at 50 deg C, only cools: it
+    absorbs no sunlight."""
     # nHat_B anti-aligned with the sun direction -> projectedArea clips to
     # 0 (sensorThermal.cpp's own computeSunData()), so there is no solar
     # absorption term at all -- only radiative emission, which can only
@@ -132,6 +137,7 @@ def test_thermal_sensor_facing_away_from_sun_does_not_heat_up():
 
 
 def test_thermal_sensor_eclipse_blocks_solar_heating():
+    """In eclipse a sensor ends cooler than in sunlight."""
     from Basilisk.architecture import messaging
 
     eclipsed = messaging.EclipseMsgPayload()
@@ -144,6 +150,8 @@ def test_thermal_sensor_eclipse_blocks_solar_heating():
 
 
 def test_thermal_sensor_power_draw_adds_heat():
+    """With the Sun behind it, a 5 W power draw ends the sensor warmer than
+    without."""
     # Facing away from the sun (no solar term at all, see above) isolates
     # the power-draw term cleanly: the only source of heat left is
     # sensorPowerDraw.
@@ -155,12 +163,14 @@ def test_thermal_sensor_power_draw_adds_heat():
 # -- "thermal" sensor: measurement noise/bias/fault (tempMeasurement) -----
 
 def test_thermal_sensor_measurement_bias_adds_to_the_true_reading():
+    """A 2.5 deg C measurement bias adds exactly 2.5 deg C to the reading."""
     baseline = _run_thermal_sensor({})
     value = _run_thermal_sensor({"measurement_bias_c": 2.5})
     assert value == pytest.approx(baseline + 2.5, abs=1e-9)
 
 
 def test_thermal_sensor_measurement_stuck_value_overrides_true_reading():
+    """A stuck-value fault reads the stuck value."""
     value = _run_thermal_sensor({
         "measurement_fault_mode": "stuck_value", "measurement_stuck_value_c": -40.0,
     })
@@ -168,6 +178,7 @@ def test_thermal_sensor_measurement_stuck_value_overrides_true_reading():
 
 
 def test_thermal_sensor_measurement_spiking_with_certainty_multiplies_the_reading():
+    """A spike of probability 1 and amount 3 triples the reading."""
     baseline = _run_thermal_sensor({}, num_ticks=2)
     value = _run_thermal_sensor({
         "measurement_fault_mode": "spiking", "measurement_spike_probability": 1.0, "measurement_spike_amount": 3.0,
@@ -176,6 +187,7 @@ def test_thermal_sensor_measurement_spiking_with_certainty_multiplies_the_readin
 
 
 def test_thermal_sensor_unrecognized_fault_mode_falls_back_to_schema_validation():
+    """Every fault mode the schema allows builds without an error."""
     # engine.fsw itself trusts schema.scenario's own measurement_fault_mode
     # check (see SpacecraftConfig.validate()) rather than re-raising here
     # -- confirm the dict lookup used internally covers exactly the
@@ -219,6 +231,7 @@ _MOTOR_THERMAL_PARAMS = {
 
 
 def test_build_reaction_wheel_motor_thermal_skips_wheels_without_thermal_params():
+    """A wheel without motor-thermal settings gets no motor-thermal model."""
     from spacemissionstudio.engine import fsw
 
     scSim, task_name, sc_object = _bare_sim()
@@ -231,6 +244,8 @@ def test_build_reaction_wheel_motor_thermal_skips_wheels_without_thermal_params(
 
 
 def test_build_reaction_wheel_motor_thermal_only_builds_the_configured_wheel():
+    """Of two wheels, only the second, with motor-thermal settings, gets a
+    model."""
     # Two wheels, only the SECOND has motor-thermal params set -- confirms
     # build_reaction_wheel_motor_thermal correctly skips index 0 and wires
     # index 1 (rwOutMsgs[1]), not a positional/off-by-one mismatch.
@@ -250,6 +265,8 @@ def test_build_reaction_wheel_motor_thermal_only_builds_the_configured_wheel():
 
 
 def test_motor_thermal_idle_wheel_cools_exactly_toward_ambient():
+    """An idle wheel's motor cools in one 1 s step by exactly (T - T_amb) / (R
+    C), the only term left."""
     # An idle wheel (zero commanded torque, no friction model enabled) has
     # zero heat GENERATION (motorThermal.cpp's own computeTemperature():
     # wheelPower = Omega * u_current = 0, frictionHeat = Omega *
@@ -267,6 +284,8 @@ def test_motor_thermal_idle_wheel_cools_exactly_toward_ambient():
 
 
 def test_motor_thermal_with_friction_generates_more_heat_than_without():
+    """At 2000 rad/s, a wheel with friction ends warmer than the same wheel
+    without."""
     # Same starting temperature/ambient/efficiency/heat-capacity, same
     # nonzero wheel speed -- only useRWfriction differs. The friction
     # -enabled wheel must end up warmer (or cool less) than the otherwise

@@ -60,6 +60,9 @@ def test_the_cosine_exponent_gives_the_peak_gain_as_the_patterns_directivity():
 
 
 def test_a_patch_loses_gain_off_boresight_and_floors_behind_its_ground_plane():
+    """A cosine patch of 6.02 dBi (n = 1) has its peak on boresight, loses 3 dB
+    at 60 deg, sits at its front-to-back floor from 90 deg, never rises off
+    boresight and has a 120 deg half-power beam."""
     rf = _patch(10.0 * math.log10(4.0), antenna_front_to_back_db=18.0)  # [dBi] n = 1
     peak = rf.tx_antenna_gain_dbi
     assert link_budget.cosine_exponent(peak) == pytest.approx(1.0)
@@ -73,6 +76,8 @@ def test_a_patch_loses_gain_off_boresight_and_floors_behind_its_ground_plane():
 
 
 def test_a_datasheet_table_interpolates_in_db_and_holds_its_last_gain():
+    """A gain table interpolates in dB, holds its last gain beyond its end and
+    gives its half-power beamwidth."""
     rf = dataclasses.replace(_patch(), antenna_pattern="table",
                              antenna_gain_table=[[0.0, 7.0], [40.0, 4.0], [90.0, -6.0]])  # [deg, dBi]
     assert link_budget.peak_gain_dbi(rf) == 7.0
@@ -119,6 +124,7 @@ def _scenario(**sc_overrides):
 
 
 def test_a_data_handling_scenario_round_trips_through_json():
+    """Data handling and the RF link survive JSON."""
     scenario = _scenario()
     scenario.validate()
     back = Scenario.from_dict(json.loads(json.dumps(dataclasses.asdict(scenario))))
@@ -142,6 +148,8 @@ def test_a_data_handling_scenario_round_trips_through_json():
     (lambda sc: setattr(sc.data_handling, "transmitter_power_w", 5.0), "no power budget"),
 ])
 def test_bad_data_handling_and_antenna_settings_are_refused_plainly(change, message):
+    """Each bad data-handling or antenna setting is refused with a plain
+    message."""
     scenario = _scenario()
     change(scenario.spacecraft[0])
     with pytest.raises(ScenarioValidationError, match=message):
@@ -149,6 +157,8 @@ def test_bad_data_handling_and_antenna_settings_are_refused_plainly(change, mess
 
 
 def test_an_attitude_dependent_pattern_is_refused_in_orbit_only_mode():
+    """A patch pattern is refused in orbit-only mode; a fixed one is
+    allowed."""
     scenario = _scenario()
     scenario.simulation_mode = "orbit_only"
     with pytest.raises(ScenarioValidationError, match="'orbit_only' mode"):
@@ -160,6 +170,8 @@ def test_an_attitude_dependent_pattern_is_refused_in_orbit_only_mode():
 # -- what the GUI, CLI and Events tab make of it ------------------------------------
 
 def test_the_explain_tab_gives_the_data_budget_before_any_run():
+    """The Explain tab gives the daily data and the time to fill memory, the
+    rate per pass, and warns when there is no downlink."""
     section = next(s for s in explain(_scenario()).sections if s.title == "Data handling")
     assert [b.label for b in section.badges] == ["Data handling", "Patch antenna"]
     assert section.notes == ["sat: 17.6 Gbit/day; memory full in 5.45 h",  # 204 kbit/s into 4 Gbit
@@ -170,6 +182,7 @@ def test_the_explain_tab_gives_the_data_budget_before_any_run():
 
 
 def test_predicted_series_include_the_data_chain_and_the_link_gate():
+    """The predicted series include the data chain and the link gate."""
     names = expected_series_names(_scenario())
     for part in ("stored", "downlink_rate", "data_generated", "data_downlinked", "data_lost"):
         assert f"sat.data_handling.{part}" in names
@@ -195,6 +208,8 @@ def _synthetic_result():
 
 
 def test_each_link_window_that_sent_data_is_one_downlink_event():
+    """Each link window that sent data is one downlink event with the data
+    sent."""
     found = [e for e in events.extract_events(_synthetic_result()) if e.kind == events.DOWNLINK]
     assert [(e.start_s, e.end_s, e.detail, e.other) for e in found] == [
         (10.0, 30.0, "0.03 Gbit", "gs"), (60.0, 70.0, "0.01 Gbit", "gs")]
@@ -202,6 +217,8 @@ def test_each_link_window_that_sent_data_is_one_downlink_event():
 
 
 def test_the_run_summary_reads_the_totals_back():
+    """The run summary gives the data generated, downlinked, lost and left on
+    board."""
     (budget,) = data_budget.budgets(_synthetic_result())
     assert (budget.generated, budget.downlinked, budget.lost) == (9.0e7, 4.0e7, 0.0)
     assert data_budget.summary_lines(_synthetic_result()) == [
