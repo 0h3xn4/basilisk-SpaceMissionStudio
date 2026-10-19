@@ -11541,3 +11541,49 @@ The plan:
   the new raw lines. No drag figure moved, because the templates start in
   2030, in the monthly forecast, and the dated tests lie before
   2026-10-11. MSFC's October 2026 prediction is still the latest issue.
+
+## Release 1.1.0 prepared (2026-10-19)
+
+The release candidate, by `docs/developer/releasing.md`.
+* The version is 1.1.0 in `pyproject.toml`, `__init__.py` and the Inno
+  Setup script.
+* The CHANGELOG's Unreleased entries became "1.1.0 (2026-10-19)", with a
+  summary.
+* The SRelD is at issue 6: the candidate's contents, changes and status,
+  with 1.0.0 as the previous release.
+* The user documents name 1.1.0 where they named the current release:
+  README, user manual, getting started, FAQ, troubleshooting and
+  capabilities.
+* The compliance documents that state the version they describe (SDD,
+  SRS, ICD, CSD, SUM, SDP) say 1.1.0, and H05 notes the prepared release.
+
+Two stale statements were corrected on the way. Getting started still
+said two Windows tests fail intermittently and two macOS wide-screen tests
+fail. Both pairs were fixed or addressed after 1.0.0 (SRelD K-14), and CI
+passes on all three platforms; it now says so.
+
+**Checked before the records were written:**
+* 1.0.0's 28 templates load and validate with the 1.1.0 code: scenario
+  files are unchanged (schema version 4).
+* The wheel, sdist and `.deb` were built from the branch.
+* The `.deb` was installed with `apt-get install` over the published
+  1.0.0 package in this container: "Unpacking spacemissionstudio (1.1.0)
+  over (1.0.0)". `postinst` rebuilt the environment with Basilisk 2.12.0
+  and fetched the support data and Earth orientation files.
+* The installed tool (`/usr/bin/spacemissionstudio`) reported 1.1.0 with
+  Basilisk 2.12.0. `kernels-status` found the nine support files, and all
+  31 templates validated.
+* Templates 01, 22 and 29 ran, and 22's provenance records 1.1.0.
+* The Monte Carlo template 09 ran its 20 runs. Their spread is 0 km, as
+  its description says: only the mass is dispersed, and nothing in that
+  orbit depends on it.
+* The GUI started offscreen and stayed up.
+
+A first attempt ran a different `spacemissionstudio`: an older
+developer entry point in `/usr/local/bin`, earlier on PATH, that runs the
+source tree with the system Python. It reported "Basilisk not installed",
+which had nothing to do with the package.
+
+Not done: an install by hand on a desktop, and the Windows and macOS
+installers (not part of 1.1.0). Merging the release pull request,
+tagging `spacemissionstudio-v1.1.0` and publishing are the user's.

@@ -113,11 +113,11 @@ If someone already installed SpaceMissionStudio for you, skip to
 [Section 3](#3-starting-the-app).
 
 **Linux:** double-click the `.deb` file you were given, or the one
-from the [1.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0) (or run
-`sudo apt install ./spacemissionstudio_1.0.0_all.deb` in a terminal), then
+from the [1.1.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.0) (or run
+`sudo apt install ./spacemissionstudio_1.1.0_all.deb` in a terminal), then
 find **SpaceMissionStudio** in your application menu like any other program.
 
-**Windows 10/11 and macOS:** 1.0.0 has no installer for them yet. Install
+**Windows 10/11 and macOS:** 1.1.0 has no installer for them yet. Install
 from source as the [Getting started guide](docs/getting-started.md)
 describes (path C).
 

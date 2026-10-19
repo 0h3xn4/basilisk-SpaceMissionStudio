@@ -30,7 +30,7 @@
 ;        powershell -File packaging\build_wheel.ps1 packaging\windows\dist
 ;   2. Compile this script:
 ;        ISCC packaging\windows\spacemissionstudio.iss
-;      -> packaging\windows\Output\spacemissionstudio-1.0.0-setup.exe
+;      -> packaging\windows\Output\spacemissionstudio-1.1.0-setup.exe
 ;
 ; Verification status: compiled, installed silently and the installed
 ; tool run on a Windows runner by
@@ -39,7 +39,7 @@
 ; on a real Windows 10/11 machine. See packaging/README.md.
 
 #define MyAppName "SpaceMissionStudio"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "1.1.0"
 #define MyAppPublisher "SpaceMissionStudio contributors"
 #define MyAppURL "https://github.com/AVSLab/basilisk"
 

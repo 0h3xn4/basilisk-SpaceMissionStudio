@@ -39,7 +39,7 @@ explains the terms. Python is optional: for scripting and batch runs.
 
 Linux (x86_64 and aarch64, glibc 2.28 or newer), Windows 10 and 11
 (x86_64), and macOS 11 or newer on Apple silicon (from source only). The
-test suite runs on all three in CI. Release 1.0.0 has an installer for
+test suite runs on all three in CI. Release 1.1.0 has an installer for
 Linux only; on Windows and macOS, install from source for now. Details:
 [Getting started, section 1](getting-started.md#1-what-you-need).
 

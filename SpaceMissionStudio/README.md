@@ -1,7 +1,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-blue)
+![Version 1.1.0](https://img.shields.io/badge/version-1.1.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -113,14 +113,16 @@ The Linux `.deb`, the install scripts and the Windows setup script
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
-- **Version:** 1.0.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0),
-  [changelog](CHANGELOG.md)), the first release of the renewed tool.
-  Needs Python 3.11 or newer.
-- **Platforms:** 1.0.0 is a Linux release: the `.deb`, the wheel and
-  `install.sh` were built, installed and run end to end with Basilisk
+- **Version:** 1.1.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.0),
+  [changelog](CHANGELOG.md)): relative-orbital-element formations,
+  optical and landmark navigation, asteroid Eros, Mars's gravity field and
+  albedo on the sun sensors, after 1.0.0, the first release of the renewed
+  tool. Needs Python 3.11 or newer.
+- **Platforms:** 1.1.0 is a Linux release, like 1.0.0: the `.deb` and
+  the wheel were built, installed and run end to end with Basilisk
   2.12.0 ([`packaging/README.md`](packaging/README.md)). The test suite
-  also runs in CI on Windows and macOS, where a few test failures are
-  not yet fixed (SRelD K-14); their installers follow in a later
+  also passes in CI on Windows and macOS (failures seen there before are
+  fixed or under watch, SRelD K-14); their installers follow in a later
   release.
 - **Known gaps:** [Known limitations](docs/reference/limitations.md).
 - **Standards:** the project's ECSS and CCSDS records are in

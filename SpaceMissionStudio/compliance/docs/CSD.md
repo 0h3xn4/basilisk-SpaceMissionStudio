@@ -20,7 +20,7 @@ for the tool's inputs, results and exchanged data.
 
 It was prepared during the ECSS/CCSDS audit (remediation R02 implemented
 the frame and time layer; R14 wrote this document). It applies to version
-1.0.0 of the tool.
+1.1.0 of the tool.
 
 ## 2 Applicable and reference documents (A.2.1<2>)
 
