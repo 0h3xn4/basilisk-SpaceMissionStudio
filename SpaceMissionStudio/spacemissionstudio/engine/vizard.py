@@ -127,6 +127,12 @@ analytical estimate -- see each source module's own docstring):
   docstring) -- deliberately not a second ``FuelTankMsgPayload`` reuse, so
   the propellant and delta-V panels are never racing to overwrite the
   same message.
+* **ROE formation** -- for a follower with ``roe_formation``, the same
+  gauges as phasing keeping's ("ROE Delta-V", or "ROE dV" where the
+  label would not fit; R/T/N "vs" the chief) plus "R/N gap", the closest
+  radial/cross-track approach the current ROE give (m), all fed by
+  ``RoeFormationController``'s own ``DataStorageStatusMsg`` outputs
+  (``engine.roe_formation``'s docstring has their scales).
 * **Fuel tank remaining** -- a ``GenericStorage`` panel per spacecraft with
   a real ``schema.scenario.FuelTankConfig`` "fuel_tank" state effector
   configured (``engine.fsw.build_fuel_tank``), labeled "Fuel Tank" and
@@ -541,6 +547,14 @@ def _usable_label_width_px(follower_name: str) -> float:
     return bar_width_px - _VIZARD_LABEL_MARGIN_PX
 
 
+def _fitting_label(candidates, follower_name: str) -> str:
+    """The first of ``candidates`` (longest first) that fits a panel
+    label on ``follower_name``'s panel (:func:`_usable_label_width_px`),
+    else the last."""
+    max_len = max(1, int(_usable_label_width_px(follower_name) / _PIXELS_PER_LABEL_CHARACTER_ESTIMATE))
+    return next((label for label in candidates if len(label) <= max_len), candidates[-1])
+
+
 def _rtn_panel_label(axis_letter: str, chief_name: str, follower_name: str) -> str:
     """Short ``GenericStorage`` panel label for an RTN separation panel,
     e.g. ``"R vs chief-1"`` -- real user feedback that "Radial (R)"/
@@ -679,6 +693,7 @@ def enable_vizard(scSim, task_name: str, sc_objects: List, request: VizardReques
                    battery_by_spacecraft: Optional[Dict[str, object]] = None,
                    station_keeping_by_spacecraft: Optional[Dict[str, object]] = None,
                    phasing_keeping_by_spacecraft: Optional[Dict[str, object]] = None,
+                   roe_formation_by_spacecraft: Optional[Dict[str, object]] = None,
                    fuel_tank_by_spacecraft: Optional[Dict[str, object]] = None,
                    comms_pointing_by_spacecraft: Optional[Dict[str, object]] = None,
                    access_out_msgs: Optional[Dict[tuple, object]] = None,
@@ -771,6 +786,7 @@ def enable_vizard(scSim, task_name: str, sc_objects: List, request: VizardReques
     battery_by_spacecraft = battery_by_spacecraft or {}
     station_keeping_by_spacecraft = station_keeping_by_spacecraft or {}
     phasing_keeping_by_spacecraft = phasing_keeping_by_spacecraft or {}
+    roe_formation_by_spacecraft = roe_formation_by_spacecraft or {}
     fuel_tank_by_spacecraft = fuel_tank_by_spacecraft or {}
     comms_pointing_by_spacecraft = comms_pointing_by_spacecraft or {}
     access_out_msgs = access_out_msgs or {}
@@ -924,6 +940,33 @@ def enable_vizard(scSim, task_name: str, sc_objects: List, request: VizardReques
             normal_reader.subscribeTo(phasing_controller.separationNormalOutMsg)
             normal_panel.dataStorageStateInMsg = normal_reader
             storages.append(normal_panel)
+
+        # ROE formation (engine.roe_formation): the same gauges as phasing
+        # keeping's (delta-V, R/T/N from the chief, same colours), plus the
+        # closest radial/cross-track approach, the passive-safety margin.
+        roe_controller = roe_formation_by_spacecraft.get(sc_name)
+        if roe_controller is not None:
+            gauges = [
+                (_fitting_label(("ROE Delta-V", "ROE dV"), sc_name), "Delta-V", "m/s", "orange",
+                 roe_controller.deltaVOutMsg),
+                (_rtn_panel_label("R", roe_controller.chiefName, sc_name), "Separation", "km", "lightskyblue",
+                 roe_controller.separationRadialOutMsg),
+                (_rtn_panel_label("T", roe_controller.chiefName, sc_name), "Separation", "km", "violet",
+                 roe_controller.separationTransverseOutMsg),
+                (_rtn_panel_label("N", roe_controller.chiefName, sc_name), "Separation", "km", "springgreen",
+                 roe_controller.separationNormalOutMsg),
+                ("R/N gap", "Separation", "m", "khaki", roe_controller.minSeparationOutMsg),
+            ]
+            for label, kind, units, colour, out_msg in gauges:
+                panel = vizInterface.GenericStorage()
+                panel.label = label
+                panel.type = kind
+                panel.units = units
+                panel.color = vizInterface.IntVector(vizSupport.toRGBA255(colour))
+                reader = messaging.DataStorageStatusMsgReader()
+                reader.subscribeTo(out_msg)
+                panel.dataStorageStateInMsg = reader
+                storages.append(panel)
 
         fuel_tank_effector = fuel_tank_by_spacecraft.get(sc_name)
         if fuel_tank_effector is not None:

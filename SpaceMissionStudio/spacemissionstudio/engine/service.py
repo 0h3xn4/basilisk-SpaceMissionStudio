@@ -1712,6 +1712,10 @@ class SimulationService:
                 name: handle.phasing_keeping_controller for name, handle in self._handles.items()
                 if handle.phasing_keeping_controller is not None
             }
+            roe_formation_by_spacecraft = {
+                name: handle.roe_formation_controller for name, handle in self._handles.items()
+                if handle.roe_formation_controller is not None
+            }
             fuel_tank_by_spacecraft = {
                 name: handle.fuel_tank_effector for name, handle in self._handles.items()
                 if handle.fuel_tank_effector is not None
@@ -1744,6 +1748,7 @@ class SimulationService:
                     battery_by_spacecraft=battery_by_spacecraft,
                     station_keeping_by_spacecraft=station_keeping_by_spacecraft,
                     phasing_keeping_by_spacecraft=phasing_keeping_by_spacecraft,
+                    roe_formation_by_spacecraft=roe_formation_by_spacecraft,
                     fuel_tank_by_spacecraft=fuel_tank_by_spacecraft,
                     comms_pointing_by_spacecraft=comms_pointing_by_spacecraft,
                     access_out_msgs=self._access_out_msgs,

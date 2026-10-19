@@ -80,6 +80,14 @@ the mean ROE and their error from the target in metres, the state
 the closest radial/cross-track approach the current ROE give, the active
 target's index and, for the continuous law, the commanded and applied
 force.
+
+**Vizard** (``engine.vizard``'s ROE panels): every tick the controller
+writes its delta-V against the shared tank's total, the Hill-frame
+separation from the chief (R, T, N in km, one scale for the three: twice
+the largest extent any target asks for) and the closest radial/cross-track
+approach the current ROE give (m, against twice the largest any target
+asks for), each as a magnitude within its scale (a negative level shows as
+"Unavailable" in Vizard).
 """
 
 from __future__ import annotations
@@ -101,6 +109,7 @@ from .orbit_maintenance import (
     LogThinner,
     PhasingKeepingController,
     StationKeepingController,
+    _clamp_magnitude,
     _eclipse_illumination_fraction,
     _log_sunlit_transition,
 )
@@ -287,6 +296,11 @@ class RoeFormationController(sysModel.SysModel):
         self.scStateInMsgB = messaging.SCStatesMsgReader()  # follower
         self.eclipseInMsgB = messaging.EclipseMsgReader()
         self.forceInMsg = messaging.CmdForceInertialMsgReader()  # "continuous": meanOEFeedback's request
+        self.deltaVOutMsg = messaging.DataStorageStatusMsg()  # Vizard gauges (module docstring)
+        self.separationRadialOutMsg = messaging.DataStorageStatusMsg()
+        self.separationTransverseOutMsg = messaging.DataStorageStatusMsg()
+        self.separationNormalOutMsg = messaging.DataStorageStatusMsg()
+        self.minSeparationOutMsg = messaging.DataStorageStatusMsg()
 
         # Wired by build_roe_formation.
         self.extForceEffectorB = None
@@ -302,6 +316,8 @@ class RoeFormationController(sysModel.SysModel):
         self.g0 = g0_mps2  # [m/s^2]
         self.dryMass = dry_mass_kg  # [kg]
         self.sunlitThreshold = eclipse_sunlit_threshold  # [-]
+        self.dvBudgetMps = 0.0  # [m/s] shared-tank total, for the Vizard gauge (set by build_roe_formation)
+        self.separationCapacityKm, self.marginCapacityM = gauge_scales(config)  # [km], [m]
 
         self.state = HOLDING
         self._lastT: Optional[float] = None  # [s]
@@ -631,7 +647,38 @@ class RoeFormationController(sysModel.SysModel):
         if self.extForceEffectorB is not None and not held_by_station_keeping:
             self.extForceEffectorB.extForce_N = (thrust * self._direction).tolist()
 
-        self._log(t, tracker.propellant, roe.min_radial_normal_separation(roe_now, a))
+        margin_m = roe.min_radial_normal_separation(roe_now, a)
+        self._publish(CurrentSimNanos, rA, vA, rB, vB, margin_m)
+        self._log(t, tracker.propellant, margin_m)
+
+    def _publish(self, now_ns: int, rA, vA, rB, vB, margin_m: float) -> None:
+        """The Vizard gauges (module docstring)."""
+        rho, _ = orbitalMotion.rv2hill(rA, vA, rB, vB)
+        gauges = [(self.deltaVOutMsg, self._cumulativeDv, self.dvBudgetMps)]  # [m/s]
+        gauges += [(msg, float(x) / 1000.0, self.separationCapacityKm)  # [km]
+                   for msg, x in zip((self.separationRadialOutMsg, self.separationTransverseOutMsg,
+                                      self.separationNormalOutMsg), rho)]
+        gauges.append((self.minSeparationOutMsg, margin_m, self.marginCapacityM))  # [m]
+        for msg, value, capacity in gauges:
+            payload = messaging.DataStorageStatusMsgPayload()
+            payload.storageCapacity = capacity
+            payload.storageLevel = _clamp_magnitude(value, capacity)
+            msg.write(payload, now_ns, self.moduleID)
+
+
+def gauge_scales(config: RoeFormationConfig):
+    """(separation scale [km], approach scale [m]) for the Vizard gauges:
+    twice the largest radial (|a da| + |a de|), along-track (|a dl| +
+    2 |a de|) or cross-track (|a di|) extent any target asks for, and
+    twice the largest closest approach any target has; at least 0.1 km
+    and 10 m, so a formation of zeros still draws."""
+    extent_m, margin_m = 0.0, 0.0  # [m]
+    for target in config.targets:
+        da, dl, dex, dey, dix, diy = target.roe_m
+        de, di = math.hypot(dex, dey), math.hypot(dix, diy)  # [m]
+        extent_m = max(extent_m, abs(da) + de, abs(dl) + 2.0 * de, di)
+        margin_m = max(margin_m, roe.min_radial_normal_separation(target.roe_m, 1.0))
+    return max(2.0 * extent_m / 1000.0, 0.1), max(2.0 * margin_m, 10.0)  # [km], [m]
 
 
 def build_roe_formation(scSim, task_name: str, tag: str, mu: float, chief_sc_object, follower_sc_object,
@@ -680,6 +727,7 @@ def build_roe_formation(scSim, task_name: str, tag: str, mu: float, chief_sc_obj
     controller.altitudeControllerB = station_keeping
     controller.thruster = station_keeping.thruster
     controller.chiefName = chief_sc_object.ModelTag
+    controller.dvBudgetMps = station_keeping.dvBudgetMps  # [m/s] the shared tank's total
     # The ROE controller holds the relative semi-major axis, the chief's
     # reboosts included: the follower's station keeping never fires on its
     # own (formation follower with nothing to follow).

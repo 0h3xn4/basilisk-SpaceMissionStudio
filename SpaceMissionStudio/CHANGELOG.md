@@ -10,6 +10,10 @@ fixes bugs.
 
 ## Unreleased
 
+- **ROE formations in Vizard.** A follower in an ROE formation gets live
+  panels for its delta-V, its radial, along-track and cross-track
+  separation from the chief, and its closest radial/cross-track
+  approach.
 - **Altitude trade errors keep their message.** When Basilisk stopped
   one of the parallel workers with an error, the trade failed with a
   pickling error that hid it. It now names the altitude and Basilisk's

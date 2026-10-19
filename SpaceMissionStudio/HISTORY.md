@@ -10973,3 +10973,25 @@ software answers each of 100 late steps 20 ms apart, and one answer came
 late on a loaded runner. The test keeps its point (a backlog longer than
 the step timeout does not fail the run) with more room for each answer:
 30 ms answers, 3 s of backlog, 1 s step timeout.
+
+## ROE formations in Vizard (2026-10-19)
+
+ROE formations (#72, #73) had no Vizard panels; phasing keeping has had
+them since the formation work. `RoeFormationController` now writes five
+`DataStorageStatusMsg` outputs every tick, and `enable_vizard` gives the
+follower a panel for each (`roe_formation_by_spacecraft`):
+
+| Panel | Value | Scale |
+|---|---|---|
+| ROE Delta-V ("ROE dV" where the label would be cut) | the controller's delta-V [m/s] | the shared tank's total |
+| R / T / N vs the chief | Hill-frame separation (`orbitalMotion.rv2hill`) [km] | twice the largest extent any target asks for (min 0.1 km) |
+| R/N gap | closest radial/cross-track approach of the current ROE [m] | twice the largest any target has (min 10 m) |
+
+Values are magnitudes clamped to their scale, as for phasing keeping (a
+negative level shows as "Unavailable" in Vizard). Template 29's scales
+are 4 km and 600 m. Checked: the panels' labels, types and units, and a
+short follower name's fitting labels (`tests/test_vizard_roe_panels.py`);
+a 0.1-day Basilisk run of template 29 whose messages hold the logged
+delta-V and approach and the Hill-frame separation of the final states;
+and a template 29 run writing a playback file with the panels attached.
+The panels have not been looked at in a running Vizard.
