@@ -68,6 +68,8 @@ the Moon's 18.6-year cycle in GEO north-south control).
 from __future__ import annotations
 
 import math
+import pickle
+import traceback
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Callable, List, Optional
@@ -687,6 +689,22 @@ def _sweep_at(job):
     return AltitudeCase(altitude_km, inclination, sweep)
 
 
+def _sweep_in_worker(job):
+    """:func:`_sweep_at` in a pool worker. An error the pool cannot pickle
+    back to this process (Basilisk's ``BasiliskError``: its module,
+    ``_bskLogging``, does not import by that name) arrives as a
+    ``BudgetError`` with its type, message and traceback, instead of a
+    pickling error that loses them (SRelD K-14)."""
+    try:
+        return _sweep_at(job)
+    except Exception as exc:
+        try:
+            pickle.dumps(exc)
+        except Exception:
+            raise BudgetError(f"{job[2]:g} km: {type(exc).__name__}: {exc}\n{traceback.format_exc()}") from None
+        raise
+
+
 def altitude_trade(scenario, spacecraft_name: str, altitudes_km=None, result=None, run_scenario=None,
                    delays_years=LAUNCH_DELAYS_YEARS, workers: Optional[int] = None,
                    reentry_solver=uncontrolled_reentry_delta_v, makeup=_drag_makeup,
@@ -749,7 +767,7 @@ def altitude_trade(scenario, spacecraft_name: str, altitudes_km=None, result=Non
         # of waiting for them (audit L5); cancellation is polled every 0.2 s.
         pool = multiprocessing.get_context("spawn").Pool(count)
         try:
-            pending = [pool.apply_async(_sweep_at, (job,)) for job in jobs]
+            pending = [pool.apply_async(_sweep_in_worker, (job,)) for job in jobs]
             while pending:
                 if should_cancel is not None and should_cancel():
                     raise BudgetError("cancelled")

@@ -10941,3 +10941,35 @@ pull request since. The fixture now lays the window out with
 2560 x 1440 size the checks rely on. macOS CI on `f601576c1`: 3347
 passed, 0 failed, 11 skipped (before: the same suite with these two
 failing). K-14's Windows pair (intermittent) is still open.
+
+## K-14, Windows: the altitude trade's lost error and the SIL test's margin (2026-10-18)
+
+The two tests that failed intermittently on Windows CI (PR #64):
+
+**`test_the_altitude_trade_runs_its_altitudes_in_parallel_processes`**
+failed with "a worker's Basilisk error cannot be pickled". That part is a
+confirmed bug: Basilisk's `BasiliskError` (raised by `BSK_ERROR`) is
+defined in the module `_bskLogging`, which `pickle` cannot import by that
+name, so every Basilisk error in a pool worker reached the trade as a
+`PicklingError` and its message was lost (reproduced here: an
+`exponentialAtmosphere` with no spacecraft raises one, and `pickle.dumps`
+of it fails). Workers now run `_sweep_in_worker`, which sends an error
+that does not pickle as a `BudgetError` with the altitude, the error's
+type, message and traceback; errors that pickle pass unchanged.
+
+The Basilisk error itself was never seen, so its cause is not confirmed.
+The suspect recorded in K-14 is removed: when two workers both found a
+space-weather window missing, both wrote it and the second replaced the
+first's complete file, on Windows possibly while Basilisk in the first
+worker opened it. The second copy is now linked into place only where no
+file is (`os.link`, which fails if one appeared); a complete file found
+there is kept. Where the file system has no hard links, the file is moved
+into place as before. A test checks that a complete file another process
+wrote meanwhile is never replaced; it fails on the previous code.
+
+**`test_a_step_without_deadline_waits_while_earlier_steps_are_still_answered`**
+saw 0.302 s of silence against a 0.3 s step timeout: the fake flight
+software answers each of 100 late steps 20 ms apart, and one answer came
+late on a loaded runner. The test keeps its point (a backlog longer than
+the step timeout does not fail the run) with more room for each answer:
+30 ms answers, 3 s of backlog, 1 s step timeout.

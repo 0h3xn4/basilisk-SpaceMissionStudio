@@ -700,9 +700,12 @@ def _write_basilisk_csv(days: dict, dest_path) -> Path:
     another's half-written file, and Basilisk then held the last day it had
     read (finding F-09). A write that fails leaves no file at ``dest_path``.
 
-    On Windows a file another process has open cannot be replaced. That
-    process wrote the same window, so a complete file already there is kept
-    and the new copy discarded; an incomplete one is retried briefly.
+    A complete file is never replaced: the new copy is linked into place
+    only where no file is, so a process reading the file (Basilisk opening
+    it) never meets another process's replace of it (SRelD K-14). On
+    Windows a file another process has open cannot be replaced either; an
+    incomplete file there (cut short before F-09's fix) is replaced, and
+    retried briefly while it is held open.
     """
     dest_path = Path(dest_path)
     dest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -728,9 +731,23 @@ _REPLACE_RETRY_S = 0.05  # [s] between attempts
 
 
 def _replace_or_keep_complete(tmp_path: Path, dest_path: Path, rows: int) -> None:
-    """Move ``tmp_path`` to ``dest_path``. Where the move is refused because
-    another process has ``dest_path`` open (Windows), keep ``dest_path`` if it
-    is complete (``rows`` lines) and drop ``tmp_path``; retry otherwise."""
+    """Move ``tmp_path`` to ``dest_path``. Where no file is there, the move
+    is a hard link, which fails rather than replace one another process put
+    there meanwhile; a complete file (``rows`` lines) found there is kept
+    and ``tmp_path`` dropped. An incomplete one is replaced; where that is
+    refused because another process has it open (Windows), it is kept once
+    complete, and retried otherwise."""
+    try:
+        os.link(tmp_path, dest_path)
+    except FileExistsError:
+        if _has_rows(dest_path, rows):
+            tmp_path.unlink(missing_ok=True)
+            return
+    except OSError:
+        pass  # no hard links on this file system: replace it, as before
+    else:
+        tmp_path.unlink(missing_ok=True)
+        return
     for attempt in range(_REPLACE_RETRIES):
         try:
             os.replace(tmp_path, dest_path)
