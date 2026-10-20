@@ -11419,3 +11419,171 @@ the other 104 test files. No test changed: in each changed file, the
 syntax tree without docstrings equals the one before. A spelling check
 of the added text found nothing. SUITP, its generated case list
 (2314 of 2314 documented) and K-09 (closed) record it.
+
+## Mars gravity field; every field keeps its own reference radius (K-04) (2026-10-19)
+
+The limitations listed "spherical-harmonics gravity away from Earth" as a
+gap. It wasn't a deliberate choice: Basilisk 2.12 ships Mars's GGM2B
+field (degree 80) next to Earth's GGM03S, and the tool simply never used
+it. Mars orbits (template 30) had only a point mass.
+
+**What Mars needed first: K-04.** Basilisk's
+`SphericalHarmonicsGravityModel::initializeParameters(body)` replaces the
+field file's reference radius with the body's equatorial radius (read in
+its source, not changed). For Earth that is 6378136.6 m against
+GGM03S's 6378136.3 m, 1e-7 on J2, which F-03 accepted. For Mars it is
+3396.19 km against GGM2B's 3397 km: every degree-n term scaled by
+(R_body/R_file)^n, 4.8e-4 too weak on J2. So the tool now builds
+Basilisk's model itself (`engine/gravity_field.py`): it loads the file
+with Basilisk's `loadGravFromFileToList` and multiplies each degree-n
+coefficient by (R_file/R_body)^n, so that Basilisk, evaluating with the
+body's radius, applies the field the file describes. The model is
+Basilisk's own class, set through its public fields; Basilisk is not
+modified. Earth gets the same fix. The GM stays the body's (D-07: 1.4e-8
+apart for Earth, 1.4e-6 for Mars).
+
+**What changed for the user.**
+* **Enable spherical-harmonics gravity (Earth, Mars)** in the gravity
+  settings. Its degree box stops at 80 for Mars and 180 for Earth. Other
+  bodies still have it switched off.
+* The schema refuses a degree above the field's maximum, naming it.
+* The run's provenance records GGM2BData.txt as an input.
+* The reference data includes the 0.4 MB GGM2B file. The total is still
+  about 116 MB.
+
+Mean elements stay Earth-only. They are first-order J2 theory on the
+equator of the central body, and the run's inertial frame is Earth's
+equator, about 37 deg from Mars's. Computing them in that frame for Mars
+would be wrong, so they are not offered.
+
+**Verification** (`tests/test_gravity_field.py`):
+* **The model is the file's field:** for Earth and Mars, to degree and
+  order 4 at three points 300 to 2000 km up, the attached model's
+  perturbing acceleration equals an independent numpy evaluation: the
+  gradient of the potential from the file's normalised coefficients at its
+  own radius, with its own Legendre recursion. They agree to 1e-7.
+* **What the fix removes:** Basilisk's own radius would scale the field
+  by (R_body/R_file)^2 - 1: -4.8e-4 for Mars and +9.4e-8 for Earth.
+  Measured within 10 % of that, the rest being degrees 3 and 4.
+* **A Mars run:** a day in a 500 km orbit at 45 deg to Mars's equator,
+  with degree 2. The node, measured on Mars's equator (pole from the
+  recorded planet orientation), turns at -1.5 n J2 (R/a)^2 cos i, with
+  GGM2B's J2 and radius, to 0.7 % (first-order theory against osculating
+  states; the test allows 1 %).
+
+**V-04 (GMAT).** The degree-20 reference had been made with Basilisk's
+radius, so that it compared like with like. After the fix the tool was
+0.162 m from it. GMAT R2026a was fetched again: the same build, its
+SHA-256 matching the phase 3 log's. Only that case's reference was
+regenerated, with the file's radius (`make_gmat_references.py` now writes
+the header radius into the `.grv`). The implementation difference is
+0.126 m/day; it was 0.116 m with both sides at the body's radius. The
+radius change itself moves GMAT's 400 km orbit by 0.160 m in the day. The
+same-UTC difference is 0.176 m, within the 1 m tolerance. GMAT's reported
+epochs moved by a few microseconds, because the force model changed its
+step sequence. That moved the time-argument allowance from 0.147 m to
+0.192 m. The other four cases have no field and were not regenerated.
+
+**Records:** SRelD K-04 (radius part closed), phase 3 log F-03 and V-04,
+SVR, SRF, summary report, D-07, SRS-F-03, SDD, capabilities, limitations,
+user manual, CHANGELOG.
+
+## Towards release 1.1.0 (2026-10-19)
+
+**User decision (2026-10-19):** "From now on you do not need my
+permission and continue always with your recommendations, until you are
+ready for release." So the next steps are chosen and done without asking,
+up to a release candidate. Merging the pull requests, tagging and
+publishing stay with the user, as before (they merged #78 to #80
+themselves). Items that need the user's or other people's input stay
+open: IERS TN36 (D-07), the human actions H01 to H13.
+
+The plan:
+1. PR #81 to green.
+2. A pre-release review of what changed since 1.0.0 (14 pull requests,
+   279 files).
+3. Fresh bundled space weather.
+4. A 1.1.0 release candidate: version, records, the build and an install
+   check.
+
+**Pre-release review, first findings.**
+* Every template was run at full length through `spacemissionstudio
+  run`, as a user would. All 31 exit cleanly. The only warnings are the
+  two expected ones: future solar activity from MSFC's prediction, and
+  the WMM magnetic model past 2030.0 for the templates that start on
+  2030-01-01.
+* **The spacecraft editor's Power tab scrolled sideways in a 1280 px
+  window.** With the app's own font (IBM Plex), a follower with an ROE
+  formation made the tab 1256 px wide. The passively-safe helper's four
+  boxes and its **Add safe formation** button shared one line. The button
+  now has a line of its own, and the tab needs 1111 px. The test runs
+  with the app's theme applied, because without it the fonts are
+  narrower and the problem does not show. It fails on the old layout.
+* **NaN and infinity reached Basilisk from the command line.**
+  `float()` reads `nan` and `inf`, so:
+  * `generate-phasing-formation --radial-km nan` ended in a Basilisk
+    `AttributeError` traceback;
+  * `generate-roe-formation --safe 0,nan,200` ended in `M2E()`'s
+    ValueError.
+
+  Every number option of the CLI (28 of them) now takes a finite number
+  and says so as a usage error. The comma-separated lists of
+  `generate-roe-formation` refuse NaN and infinity too, and `--safe`
+  refuses a negative radial or cross-track half-size, as the GUI's boxes
+  do. Scenario files were already safe: a NaN anywhere in them is refused
+  by validation, naming the field (checked for orbit, mass, duration,
+  ROE, phasing, camera and inertia values).
+* **Bundled space weather refreshed** (CelesTrak `SW-All.txt`, downloaded
+  2026-10-19, updated 20:34 UTC). It has observations to 2026-10-18 and a
+  daily forecast to 2026-12-02. Only line endings and trailing spaces
+  were changed, as before. The full suite then gave one failure: the test
+  that pins the shipped file's header and last observed day, now set to
+  the new raw lines. No drag figure moved, because the templates start in
+  2030, in the monthly forecast, and the dated tests lie before
+  2026-10-11. MSFC's October 2026 prediction is still the latest issue.
+
+## Release 1.1.0 prepared (2026-10-19)
+
+The release candidate, by `docs/developer/releasing.md`.
+* The version is 1.1.0 in `pyproject.toml`, `__init__.py` and the Inno
+  Setup script.
+* The CHANGELOG's Unreleased entries became "1.1.0 (2026-10-19)", with a
+  summary.
+* The SRelD is at issue 6: the candidate's contents, changes and status,
+  with 1.0.0 as the previous release.
+* The user documents name 1.1.0 where they named the current release:
+  README, user manual, getting started, FAQ, troubleshooting and
+  capabilities.
+* The compliance documents that state the version they describe (SDD,
+  SRS, ICD, CSD, SUM, SDP) say 1.1.0, and H05 notes the prepared release.
+
+Two stale statements were corrected on the way. Getting started still
+said two Windows tests fail intermittently and two macOS wide-screen tests
+fail. Both pairs were fixed or addressed after 1.0.0 (SRelD K-14), and CI
+passes on all three platforms; it now says so.
+
+**Checked before the records were written:**
+* 1.0.0's 28 templates load and validate with the 1.1.0 code: scenario
+  files are unchanged (schema version 4).
+* The wheel, sdist and `.deb` were built from the branch.
+* The `.deb` was installed with `apt-get install` over the published
+  1.0.0 package in this container: "Unpacking spacemissionstudio (1.1.0)
+  over (1.0.0)". `postinst` rebuilt the environment with Basilisk 2.12.0
+  and fetched the support data and Earth orientation files.
+* The installed tool (`/usr/bin/spacemissionstudio`) reported 1.1.0 with
+  Basilisk 2.12.0. `kernels-status` found the nine support files, and all
+  31 templates validated.
+* Templates 01, 22 and 29 ran, and 22's provenance records 1.1.0.
+* The Monte Carlo template 09 ran its 20 runs. Their spread is 0 km, as
+  its description says: only the mass is dispersed, and nothing in that
+  orbit depends on it.
+* The GUI started offscreen and stayed up.
+
+A first attempt ran a different `spacemissionstudio`: an older
+developer entry point in `/usr/local/bin`, earlier on PATH, that runs the
+source tree with the system Python. It reported "Basilisk not installed",
+which had nothing to do with the package.
+
+Not done: an install by hand on a desktop, and the Windows and macOS
+installers (not part of 1.1.0). Merging the release pull request,
+tagging `spacemissionstudio-v1.1.0` and publishing are the user's.

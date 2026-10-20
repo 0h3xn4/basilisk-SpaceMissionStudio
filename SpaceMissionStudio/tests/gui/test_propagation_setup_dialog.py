@@ -266,17 +266,36 @@ def test_checking_harmonics_with_zero_degree_bumps_to_a_sane_default(dialog):
     assert dialog.to_gravity().central_body_degree > 0
 
 
-def test_non_earth_central_body_disables_and_clears_harmonics(dialog):
-    """Choosing Mars disables and clears spherical harmonics, giving degree
-    0."""
+def test_a_central_body_without_a_field_disables_and_clears_harmonics(dialog):
+    """Choosing the Moon (no gravity field) disables and clears spherical
+    harmonics, giving degree 0."""
     dialog.enable_harmonics_check.setChecked(True)
     dialog.central_body_degree_spin.setValue(20)
 
-    dialog.central_body_combo.setCurrentText("mars barycenter")
+    dialog.central_body_combo.setCurrentText("moon")
 
     assert not dialog.enable_harmonics_check.isEnabled()
     assert not dialog.enable_harmonics_check.isChecked()
     assert dialog.to_gravity().central_body_degree == 0
+
+
+def test_mars_offers_harmonics_up_to_the_ggm2b_degree(dialog):
+    """Mars keeps spherical harmonics enabled, its degree box stops at
+    GGM2B's 80 (a higher Earth degree is clamped to it), and Earth gives
+    back GGM03S's 180."""
+    dialog.enable_harmonics_check.setChecked(True)
+    dialog.central_body_degree_spin.setValue(120)
+
+    dialog.central_body_combo.setCurrentText("mars barycenter")
+
+    assert dialog.enable_harmonics_check.isEnabled()
+    assert dialog.enable_harmonics_check.isChecked()
+    assert dialog.central_body_degree_spin.maximum() == 80
+    assert dialog.to_gravity().central_body_degree == 80
+    assert "GGM2B" in dialog.enable_harmonics_check.toolTip()
+
+    dialog.central_body_combo.setCurrentText("earth")
+    assert dialog.central_body_degree_spin.maximum() == 180
 
 
 def test_loading_existing_harmonics_degree_checks_the_box(qtbot):

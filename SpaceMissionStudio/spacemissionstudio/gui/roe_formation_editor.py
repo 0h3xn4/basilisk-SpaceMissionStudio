@@ -79,9 +79,14 @@ class RoeTargetTableWidget(_TableEditor):
             "eccentricity and inclination vectors. The two spacecraft then never cross in the radial/cross-track "
             "plane, even when the along-track spacing is lost. A phase of 90 deg is the one J2 keeps.")
         self.safe_add_button.clicked.connect(self.add_safe_formation)
-        helper.addWidget(self.safe_add_button)
         helper.addStretch(1)
         self.layout().addLayout(helper)
+        # On a line of its own: beside the four boxes it made the Power tab
+        # wider than a 1280 px window (with the app's font).
+        add_row = QHBoxLayout()
+        add_row.addWidget(self.safe_add_button)
+        add_row.addStretch(1)
+        self.layout().addLayout(add_row)
 
         self.margin_label = QLabel("")
         self.margin_label.setWordWrap(True)

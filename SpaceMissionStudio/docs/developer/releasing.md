@@ -117,6 +117,12 @@ It was published on 2026-10-14: tag `spacemissionstudio-v1.0.0` on
 `f288e0c73`, and GitHub's SHA-256 digest of each attached file equals
 the file built and installed for it (SRelD, status).
 
+1.1.0 was prepared on 2026-10-19 by the same checklist, again for Linux:
+the version set in the three files, the CHANGELOG section, the SRelD
+(issue 6), the build, and the `.deb` installed as an upgrade over 1.0.0
+(`packaging/README.md`). Merging, tagging (`spacemissionstudio-v1.1.0`)
+and publishing are the user's.
+
 ---
 
 **Next:** [Syncing with upstream Basilisk](upstream-sync.md) ·

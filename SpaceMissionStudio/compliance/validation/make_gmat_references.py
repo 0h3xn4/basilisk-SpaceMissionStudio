@@ -24,9 +24,10 @@ the script's SHA-256, in ``tests/data/validation/gmat/``. The tests compare
 the tool against these files, so GMAT is needed only to regenerate them.
 
 GMAT is configured with the tool's constants (validation_cases docstring):
-the GGM03S field is converted to GMAT's ``.grv`` format with the GM and
-reference radius Basilisk actually applies, and the ephemerides are the same
-DE430 file. Usage::
+the GGM03S field is converted to GMAT's ``.grv`` format with the GM the tool
+applies (Basilisk's, deviation D-07) and the file's own reference radius
+(which the tool keeps, engine.gravity_field, SRelD K-04), and the
+ephemerides are the same DE430 file. Usage::
 
     python compliance/validation/make_gmat_references.py --gmat /path/to/GMAT/R2026a/bin
 """
@@ -48,7 +49,6 @@ sys.path.insert(0, str(TOOL))
 import validation_cases as cases  # noqa: E402
 
 SCRIPTS = HERE / "gmat"
-BASILISK_EARTH_RADIUS_M = 6378136.6  # [m] Basilisk's REQ_EARTH, which its harmonics model applies
 _BODY = {"sun": "Sun", "moon": "Luna"}
 
 
@@ -59,14 +59,14 @@ def _support_file(name: str) -> Path:
 
 
 def write_grv(path: Path, degree: int) -> None:
-    """GGM03S to degree ``degree`` in GMAT's .grv format, with the GM and
-    radius Basilisk's SphericalHarmonicsGravityModel applies (the body's,
-    not the file header's)."""
-    lines = ["stk.v.4.3", "Model GGM03S (converted for SpaceMissionStudio validation)", f"Degree {degree}",
-             f"Order {degree}", f"Gm {cases.EARTH_GM_KM3_S2 * 1e9:.10e}", f"RefDistance {BASILISK_EARTH_RADIUS_M}",
-             "Normalized Yes", "BEGIN Coefficients"]
+    """GGM03S to degree ``degree`` in GMAT's .grv format, with the GM the
+    tool applies (Basilisk's, not the file header's; deviation D-07) and the
+    file header's reference radius, which the tool keeps (SRelD K-04)."""
     with open(_support_file("ggm03s"), encoding="utf-8") as f:
-        next(f)  # header: radius, GM, ...
+        radius_m = float(next(f).split(",")[0])  # [m] header: radius, GM, ...
+        lines = ["stk.v.4.3", "Model GGM03S (converted for SpaceMissionStudio validation)", f"Degree {degree}",
+                 f"Order {degree}", f"Gm {cases.EARTH_GM_KM3_S2 * 1e9:.10e}", f"RefDistance {radius_m}",
+                 "Normalized Yes", "BEGIN Coefficients"]
         for line in f:
             fields = [x.strip() for x in line.split(",")]
             n, m = int(fields[0]), int(fields[1])
@@ -258,7 +258,9 @@ def main(argv=None) -> int:
             report.unlink()
             print(f"{name}: written")
             continue
-        (cases.GMAT_DATA / f"{name}.txt").write_text(header + report.read_text(), encoding="utf-8")
+        # GMAT pads its report columns with trailing spaces; the repository's pre-commit hook refuses them.
+        rows = "".join(line.rstrip() + "\n" for line in report.read_text().splitlines())
+        (cases.GMAT_DATA / f"{name}.txt").write_text(header + rows, encoding="utf-8")
         report.unlink()
         print(f"{name}: {sum(1 for _ in open(cases.GMAT_DATA / f'{name}.txt')) - 3} rows")
     return 0

@@ -64,10 +64,10 @@ class Download:
 
 DOWNLOADS: Dict[str, Download] = {
     "support_data": Download(
-        "support_data", "Support data (SPICE kernels, gravity field, magnetic model, albedo maps)",
+        "support_data", "Support data (SPICE kernels, gravity fields, magnetic model, albedo maps)",
         "NAIF (naif.jpl.nasa.gov) and the Basilisk repository (raw.githubusercontent.com/AVSLab)",
-        ["naif0012.tls", "de430.bsp", "de-403-masses.tpc", "pck00010.tpc", "GGM03S.txt", "WMM2025.COF",
-         "Earth_ALB_2018_CERES_All_5x5.csv", "Mars_ALB_TES_5x5.csv"],
+        ["naif0012.tls", "de430.bsp", "de-403-masses.tpc", "pck00010.tpc", "GGM03S.txt", "GGM2BData.txt",
+         "WMM2025.COF", "Earth_ALB_2018_CERES_All_5x5.csv", "Mars_ALB_TES_5x5.csv"],
         "about 116 MB, only the files that are missing"),
     "space_weather": Download(
         "space_weather", "Space weather (observed F10.7 and Ap, 45-day forecast)",

@@ -93,6 +93,7 @@ from PySide6.QtWidgets import (
 
 from ..schema.scenario import (
     ALBEDO_MAPS,
+    GRAVITY_FIELDS,
     MAX_GRAVITY_DEGREE,
     SMALL_BODY_CENTRAL_BODIES,
     SUPPORTED_CENTRAL_BODIES,
@@ -207,7 +208,7 @@ class PropagationSetupDialog(QDialog):
         # bare spin box with no enable control meant unchecking it required
         # zeroing out (and losing) whatever degree/order the user had typed.
         # to_gravity() below folds this checkbox back into that one field.
-        self.enable_harmonics_check = QCheckBox("Enable spherical-harmonics gravity (Earth only)")
+        self.enable_harmonics_check = QCheckBox("Enable spherical-harmonics gravity (Earth, Mars)")
         self.enable_harmonics_check.setChecked(gravity.central_body_degree > 0)
         self.enable_harmonics_check.toggled.connect(self._on_harmonics_toggled)
         form.addRow(self.enable_harmonics_check)
@@ -222,7 +223,8 @@ class PropagationSetupDialog(QDialog):
             "mass-distribution detail at the cost of more compute per step. Degree 2 alone "
             "already captures J2 (by far the dominant term); low double digits (e.g. 8-10) is "
             "a common practical choice for most mission-design work.\n"
-            "ECSS-E-ST-10-04C 4.2.2a: Earth orbits need degree and order 70 or more (GGM03S goes to 180). "
+            "ECSS-E-ST-10-04C 4.2.2a: Earth orbits need degree and order 70 or more (GGM03S goes to 180; "
+            "Mars's GGM2B to 80). "
             "The Explain tab notes when the degree leaves out more than the SRP acceleration (4.2.1b)."
         )
         form.addRow("Degree/order", self.central_body_degree_spin)
@@ -257,22 +259,23 @@ class PropagationSetupDialog(QDialog):
         form.addRow("Third-body perturbers", self.third_body_list)
         self._refresh_third_body_choices(gravity.third_body_perturbers)
 
-        self._on_central_body_changed(gravity.central_body)  # applies the Earth-only harmonics gate immediately
+        self._on_central_body_changed(gravity.central_body)  # applies the gravity-field gate immediately
         return group
 
     def _on_central_body_changed(self, text: str) -> None:
         self._refresh_third_body_choices()
-        is_earth = text == "earth"
-        # Spherical harmonics here is Earth-only (engine.service.build()
-        # only has a gravity-field data file for Earth -- GGM03S -- and
-        # raises a clear SimulationServiceError for any other central body
-        # with central_body_degree > 0). Disabling it here means the GUI
-        # can never construct that invalid combination in the first place,
+        field = GRAVITY_FIELDS.get(text)
+        # Spherical harmonics needs a gravity-field file for the central
+        # body (GRAVITY_FIELDS: Earth GGM03S, Mars GGM2B); the schema
+        # refuses any other body with central_body_degree > 0. Disabling it
+        # here means the GUI can never construct that invalid combination,
         # rather than letting the user discover it only when a run fails.
-        self.enable_harmonics_check.setEnabled(is_earth)
-        if not is_earth:
+        self.enable_harmonics_check.setEnabled(field is not None)
+        if field is None:
             self.enable_harmonics_check.setChecked(False)
-        self.central_body_degree_spin.setEnabled(is_earth and self.enable_harmonics_check.isChecked())
+        else:
+            self.central_body_degree_spin.setRange(0, field[1])
+        self.central_body_degree_spin.setEnabled(field is not None and self.enable_harmonics_check.isChecked())
         is_small_body = text in SMALL_BODY_CENTRAL_BODIES
         self.polyhedral_gravity_check.setEnabled(is_small_body)
         if not is_small_body:
@@ -281,14 +284,16 @@ class PropagationSetupDialog(QDialog):
         self.albedo_check.setEnabled(has_albedo_map)
         if not has_albedo_map:
             self.albedo_check.setChecked(False)
-        base_tooltip = (
-            "Checking this ON replaces the idealized point-mass gravity model with Earth's "
-            "real, lumpy mass distribution (the GGM03S gravity field) -- this is what makes "
-            "effects like J2 nodal/apsidal precession real rather than absent, and is REQUIRED "
-            "for a genuine Sun-synchronous orbit to actually stay Sun-synchronous over time. "
-            "Point-mass gravity alone (this unchecked) has no such precession at all."
-        )
-        tooltip = base_tooltip if is_earth else "Spherical-harmonics gravity is only wired up for Earth (GGM03S data)."
+        if field is None:
+            tooltip = "Spherical-harmonics gravity needs a gravity field: Earth (GGM03S) or Mars (GGM2B)."
+        else:
+            tooltip = (
+                f"Checking this ON replaces the idealized point-mass gravity model with the central body's "
+                f"real, lumpy mass distribution (the {field[0]} gravity field, up to degree {field[1]}) -- this "
+                "is what makes effects like J2 nodal/apsidal precession real rather than absent, and is "
+                "REQUIRED for a genuine Sun-synchronous orbit to actually stay Sun-synchronous over time. "
+                "Point-mass gravity alone (this unchecked) has no such precession at all."
+            )
         self.enable_harmonics_check.setToolTip(tooltip)
 
     def _on_harmonics_toggled(self, checked: bool) -> None:

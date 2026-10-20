@@ -45,8 +45,9 @@ references it). No third-party schema library.
 
 ### Orbital dynamics & propagation
 
-Central-body point-mass or Earth
-spherical-harmonics gravity plus third-body point-mass perturbers,
+Central-body point-mass or spherical-harmonics gravity (Earth GGM03S to
+degree 180, Mars GGM2B to degree 80, each with its file's own reference
+radius: `engine.gravity_field`) plus third-body point-mass perturbers,
 atmospheric drag (Earth-only; a choice of NRLMSISE-00 or a simple
 exponential model -- see `SpaceWeatherConfig.atmosphere_model`'s own
 docstring for why not Jacchia-Roberts too: Basilisk has no such model)
@@ -357,9 +358,10 @@ compliance matrix.
   in `tests/test_examples.py`.
 - **Long runs**: a real 5-year LEO station-keeping run and a 7-day run of
   template 05 with live Vizard were run to completion.
-- **Packaging**: for 1.0.0 the Linux `.deb` and `install.sh` were built
-  and installed end to end with Basilisk 2.12.0 on Linux. Release 1.0.0
-  has no Windows installer; the Windows setup program is built,
+- **Packaging**: for 1.0.0 the Linux `.deb` and `install.sh`, and for
+  1.1.0 the `.deb` (as an upgrade from 1.0.0), were built and installed
+  end to end with Basilisk 2.12.0 on Linux. Neither release has a Windows
+  installer; the Windows setup program is built,
   installed and run in CI on a Windows runner, but not yet tried by
   hand, and `install.ps1` has not been run;
   [`packaging/README.md`](../../packaging/README.md) says exactly what was

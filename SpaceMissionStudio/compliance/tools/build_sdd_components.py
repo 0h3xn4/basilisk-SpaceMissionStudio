@@ -54,7 +54,8 @@ PACKAGE = ROOT.parent / "spacemissionstudio"
 SRS_TO_COMPONENTS = {
     "SRS-F-01": ["schema/scenario", "schema/migrations", "schema/validation"],
     "SRS-F-02": ["schema/scenario", "engine/tle", "engine/service"],
-    "SRS-F-03": ["engine/service", "engine/long_run", "engine/environment_models", "engine/facets"],
+    "SRS-F-03": ["engine/service", "engine/gravity_field", "engine/long_run", "engine/environment_models",
+                 "engine/facets"],
     "SRS-F-04": ["engine/planet_rotation", "engine/geodetic_atmosphere", "engine/geodesy"],
     "SRS-F-05": ["engine/spaceweather", "engine/service"],
     "SRS-F-06": ["engine/earth_orientation", "engine/service"],

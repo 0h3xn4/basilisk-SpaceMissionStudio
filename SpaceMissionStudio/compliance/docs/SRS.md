@@ -5,7 +5,7 @@ Document: SMS-SRS, issue 1 (draft), 2026-10-08. Remediation R14.
 
 **Status: draft, written by the supplier, not reviewed.**
 - No customer requirements baseline (SSS, IRD) exists for this tool, so
-  this SRS is derived from the software as implemented (version 1.0.0) and from the user's recorded
+  this SRS is derived from the software as implemented (version 1.1.0) and from the user's recorded
   decisions (`compliance/PROGRESS.md`).
 - No requirements baseline will be written: the user waived it
   (decision 9, deviation D-11), and reviews are waived too (D-08). The SRS
@@ -109,7 +109,7 @@ Block diagram:
                          ▼
                  engine (service, analyses) ──► Basilisk 2.12 (SPICE, gravity, drag, FSW, ...)
                          │                      ▲
-                         │                      └─ data files: DE430, GGM03S, WMM2025, EOP, space weather
+                         │                      └─ data files: DE430, GGM03S, GGM2B, WMM2025, EOP, space weather
                          ▼
          results: CSV, provenance.json, CCSDS OEM/OPM, plots ──► Vizard (optional)
 ```
@@ -150,7 +150,7 @@ states or modes beyond those in 5.5.
 |---|---|---|
 | SRS-F-01 | Scenarios shall be stored as versioned JSON (`schema_version`). Older versions shall be migrated on load. Validation errors shall name the field at fault. | Tool |
 | SRS-F-02 | Orbit initial conditions shall be accepted in three forms: classical elements (true or mean anomaly); Cartesian EME2000 state; TLE. A TLE shall be propagated by SGP4 to the scenario epoch and rotated TEME → EME2000 (IAU 1976/1980). The run shall warn when the TLE is more than 3 days from the epoch. | E-ST-10-09C 5.3.1b/c; CCSDS 4.2.4.9 |
-| SRS-F-03 | Orbits shall be propagated with Basilisk using: central-body point mass or GGM03S spherical harmonics up to degree 180; DE430 third bodies; NRLMSISE-00 (default) or exponential drag; cannonball or faceted SRP; a chosen integrator (Euler, RK2, RKF45, RKF78). | E-ST-10-04C 4.2.1a, 4.2.2c, 7.2.1.1a |
+| SRS-F-03 | Orbits shall be propagated with Basilisk using: central-body point mass or spherical harmonics (Earth GGM03S up to degree 180, Mars GGM2B up to degree 80, at the field's own reference radius); DE430 third bodies; NRLMSISE-00 (default) or exponential drag; cannonball or faceted SRP; a chosen integrator (Euler, RK2, RKF45, RKF78). | E-ST-10-04C 4.2.1a, 4.2.2c, 7.2.1.1a |
 | SRS-F-04 | The gravity model shall use the planet orientation at the middle of each integration step (F-01). The atmosphere model shall use the WGS-84 geodetic altitude and latitude (F-07). | Q-ST-80C 7.1.7a; E-ST-10-04C 7.2.1.1a |
 | SRS-F-05 | Solar and geomagnetic activity shall come only from real data: CelesTrak observations and forecast; beyond them, NASA MSFC's prediction at the chosen percentile (5, 50 or 95). The run shall report the source it used. | UD-4 (D1), deviation D-01; user rule |
 | SRS-F-06 | The Earth-fixed frame shall be ITRF93 from installed IERS-based NAIF files. Without them it shall be IAU_EARTH, with a warning stating the accuracy cost. | E-ST-10-09C 5.4.9f; E-ST-10-04C 4.2.1c |

@@ -120,7 +120,7 @@ SUITP, run on 2026-10-08 on the audit's container (Python 3.11, Basilisk
 | V-02 Earth frame vs IERS 20 C04 | 0.43 m max, 0.13 m median | 1 m | SRS-P-06 | Met |
 | V-02 Vallado example | 0.37 m | 1 m | SRS-P-06 | Met |
 | V-04a two-body | 0.004 m/day | 0.05 m | SRS-P-01 | Met |
-| V-04b GGM03S 20 × 20 | 0.116 m/day | 1 m | SRS-P-02 | Met |
+| V-04b GGM03S 20 × 20 | 0.126 m/day | 1 m | SRS-P-02 | Met |
 | V-04c Sun and Moon, GEO | 0.009 m / 7 days | 1 m | SRS-P-03 | Met |
 | V-04d SRP, GEO | 1.135 m / 7 days | 10 m | SRS-P-03 | Met |
 | V-04e drag | 0.78 km of 32 km | 1.6 km (revised from 500 m) | SRS-P-04 | Met |
@@ -247,7 +247,7 @@ in RD1:
 | Finding | Effect | Status |
 |---|---|---|
 | F-01 | Linear orientation extrapolation | Corrected in the tool |
-| F-03 | Field GM and radius | Accepted, centimetres per day |
+| F-03 | Field GM and radius | Radius corrected in the tool (K-04); GM accepted (D-07) |
 | F-05 | TDB time argument | Accepted, 0.1 m/day |
 | F-06 | IAU_EARTH without the Earth files | Warned, 160 m/day |
 | F-07 | Spherical altitude in the atmosphere | Corrected in the tool |

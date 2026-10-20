@@ -185,3 +185,38 @@ def test_a_problem_names_the_form_label(qtbot):
     qtbot.addWidget(dialog)
     assert dialog.problem_text("roe_formation.correction_window_days must be a finite number > 0") \
         == "ROE formation: Correction window [days] must be a finite number > 0"
+
+
+def test_the_power_tab_fits_a_1280_px_window_in_the_app_font(qtbot, qapp):
+    """With the app's theme (IBM Plex at its own size), the Power tab of a
+    follower with an ROE formation fits a 1280 px dialog without sideways
+    scrolling: the "Add safe formation" button no longer sits beside the
+    four helper boxes, which made the tab 1256 px wide."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QScrollArea
+
+    from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
+    from spacemissionstudio.gui.theme import apply_theme
+
+    saved = (qapp.style().name(), qapp.font(), qapp.palette(), qapp.styleSheet())
+    apply_theme(qapp, "light")
+    try:
+        dialog = SpacecraftEditorDialog(config=_follower(), other_spacecraft_names=["chief"])
+        qtbot.addWidget(dialog)
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DontShowOnScreen, True)
+        dialog.resize(1280, 900)  # [px]
+        dialog.show()
+        qtbot.waitUntil(dialog.isVisible)
+        index = next(i for i in range(dialog.tabs.count())
+                     if dialog.tabs.widget(i).isAncestorOf(dialog.roe_formation_group))
+        dialog.tabs.setCurrentIndex(index)
+        qtbot.wait(100)
+        scroll = dialog.tabs.widget(index)
+        assert isinstance(scroll, QScrollArea)
+        assert scroll.widget().minimumSizeHint().width() <= scroll.viewport().width()
+        assert scroll.horizontalScrollBar().maximum() == 0
+    finally:
+        qapp.setStyle(saved[0])
+        qapp.setFont(saved[1])
+        qapp.setPalette(saved[2])
+        qapp.setStyleSheet(saved[3])

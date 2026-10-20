@@ -8,8 +8,31 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 1.1.0 (2026-10-19)
 
+Formations in relative orbital elements, navigation from a camera
+(around Mars, and around asteroid Eros from its landmarks), Eros itself,
+reflected sunlight on the sun sensors and Mars's gravity field, plus
+fixes found along the way. Scenario files of 1.0.0 open unchanged, and
+`apt` and `pip` upgrade 1.0.0 in place. 31 templates (three new: 29, 30,
+31). Linux, like 1.0.0. Details below, newest first; the full story of
+each is in [`HISTORY.md`](HISTORY.md).
+
+- **Bundled space weather refreshed:** CelesTrak's observations to
+  2026-10-18 and its daily forecast to 2026-12-02 (was: to 2026-10-11).
+  Drag runs dated after 2026-10-11 change slightly.
+- **The command line refuses `nan` and `inf`** for every number option,
+  with a usage message; some of them ended in a Basilisk traceback.
+  `generate-roe-formation --safe` refuses negative sizes.
+- **The spacecraft editor's Power tab fits a 1280 px window** with an ROE
+  formation (it scrolled sideways).
+- **Mars gravity field.** Spherical-harmonics gravity now works around
+  Mars too, with the GGM2B field from Basilisk's data up to degree 80
+  (gravity settings: **Enable spherical-harmonics gravity (Earth, Mars)**).
+  Every field now uses the reference radius of its own file: Basilisk
+  put the planet's radius in its place, which made Mars's J2 0.05 % too
+  weak (Earth's 1e-7). A 400 km Earth orbit with a degree-20 field
+  moves by about 0.16 m in a day.
 - **Albedo on the sun sensors.** With **Reflected sunlight on the sun
   sensors** (gravity settings), coarse sun sensors around Earth or Mars
   also see the sunlight the planet reflects, from Basilisk's albedo module

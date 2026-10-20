@@ -821,6 +821,23 @@ def test_run_refuses_an_oem_stride_below_one(stride, capsys):
     assert "a whole number of 1 or more" in capsys.readouterr().err
 
 
+@pytest.mark.parametrize("argv", [
+    ["generate-phasing-formation", "s.json", "--out", "o.json", "--chief", "c", "--follower-name", "f",
+     "--along-track-km", "10", "--radial-km", "nan"],
+    ["lifetime", "s.json", "--max-years", "inf"],
+    ["generate-constellation", "s.json", "--out", "o.json", "--altitude-km=-inf", "--inclination-deg", "53",
+     "--planes", "2", "--total-satellites", "4", "--phasing-factor", "1"],
+])
+def test_number_options_refuse_nan_and_infinity(argv, capsys):
+    """float() accepts "nan" and "inf": every number option refuses them
+    with a usage error, before they reach Basilisk (generate-phasing-formation
+    --radial-km nan ended in a Basilisk AttributeError)."""
+    with pytest.raises(SystemExit) as exited:
+        cli.build_parser().parse_args(argv)
+    assert exited.value.code == 2
+    assert "a finite number" in capsys.readouterr().err
+
+
 def test_budget_refuses_altitudes_with_launch_delays(capsys):
     """Audit L8: --altitudes silently overrode --launch-delays."""
     with pytest.raises(SystemExit):

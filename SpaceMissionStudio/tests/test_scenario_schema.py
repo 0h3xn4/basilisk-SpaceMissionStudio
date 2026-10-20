@@ -168,21 +168,21 @@ def test_unsupported_central_body_rejected():
         sc.validate()
 
 
-def test_spherical_harmonics_on_non_earth_body_rejected():
-    """Regression test for an audit finding: engine.service.
-    SimulationService.build() only has spherical-harmonics gravity-field
-    data (GGM03S) for Earth and raises SimulationServiceError for any
-    other central_body with central_body_degree > 0 -- but that's an
-    engine-layer check that only runs when a scenario is actually
-    simulated. Without a matching schema-layer check, `spacemissionstudio
-    validate`/Scenario.save() (both Basilisk-independent) would report a
-    clean bill of health for a scenario guaranteed to fail the moment it's
-    actually run.
-    """
+def test_spherical_harmonics_on_a_body_without_a_field_rejected():
+    """Spherical harmonics around a body without a gravity field (the Moon)
+    are refused by the schema, as engine.service would refuse them at run
+    time (an audit finding: `validate` and Save passed such a scenario)."""
     sc = _minimal_scenario()
-    sc.gravity = GravityConfig(central_body="mars barycenter", central_body_degree=20)
-    with pytest.raises(ScenarioValidationError, match="only wired up for central_body 'earth'"):
+    sc.gravity = GravityConfig(central_body="moon", central_body_degree=20)
+    with pytest.raises(ScenarioValidationError, match="needs a central body with a gravity field"):
         sc.validate()
+
+
+def test_mars_takes_the_ggm2b_field_up_to_its_degree():
+    """Mars takes spherical harmonics up to GGM2B's degree 80, not beyond."""
+    GravityConfig(central_body="mars barycenter", central_body_degree=80).validate()
+    with pytest.raises(ScenarioValidationError, match="must be <= 80 \\(the GGM2B field's maximum\\)"):
+        GravityConfig(central_body="mars barycenter", central_body_degree=81).validate()
 
 
 def test_spherical_harmonics_on_earth_is_allowed():

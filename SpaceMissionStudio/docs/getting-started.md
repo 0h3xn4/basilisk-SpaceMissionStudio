@@ -20,8 +20,8 @@ works, run a first mission and know what you should see.
 | | |
 |---|---|
 | Linux | x86_64 or aarch64 with glibc 2.28 or newer (Ubuntu 20.04, Debian 10, RHEL 8 or later). Tested in CI on Ubuntu 24.04. |
-| Windows | Windows 10 or 11, x86_64. The test suite runs on Windows in CI, with two intermittent test failures not yet fixed. 1.0.0 has no Windows installer: install from source (path C). |
-| macOS | macOS 11 or newer on Apple silicon (arm64), from source (path C) only. The test suite runs on macOS in CI, with two wide-screen layout tests not yet fixed. Intel Macs have no Basilisk wheel. |
+| Windows | Windows 10 or 11, x86_64. The test suite passes on Windows in CI (two tests that failed intermittently are fixed and under watch, SRelD K-14). 1.1.0 has no Windows installer: install from source (path C). |
+| macOS | macOS 11 or newer on Apple silicon (arm64), from source (path C) only. The test suite passes on macOS in CI. Intel Macs have no Basilisk wheel. |
 | Python | 3.11 or newer, for every path: the installers set up the app with the Python already on the computer (Windows: `python` on PATH, from [python.org](https://www.python.org/downloads/)). CI tests with 3.11; Basilisk 2.12.0 has wheels up to 3.14, and versions other than 3.11 and 3.12 have not been tested with the app. |
 | Disk | About 1.6 GB: 1.4 GB for the Python environment (Basilisk and Qt), 116 MB of reference data, 36 MB of Earth orientation files. |
 | Internet | Once, while installing. After that the app runs offline and downloads nothing without asking. |
@@ -46,21 +46,21 @@ against.
 
 ## 3. Path A: the installer
 
-From the [1.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0), download
-`spacemissionstudio_1.0.0_all.deb` and `SHA256SUMS-linux`, and check
+From the [1.1.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.0), download
+`spacemissionstudio_1.1.0_all.deb` and `SHA256SUMS-linux`, and check
 them with `sha256sum -c SHA256SUMS-linux --ignore-missing`. You can also
 build the `.deb` yourself with `packaging/build_deb.sh`.
 
-1.0.0 has the Linux installer only. The Windows setup program
+1.1.0 has the Linux installer only. The Windows setup program
 (`packaging/windows/spacemissionstudio.iss`, built with
 [Inno Setup](https://jrsoftware.org/isinfo.php)) follows in a later
 release; on Windows and macOS, use [path C](#5-path-c-from-source-step-by-step) until
 then.
 
-**Linux:** double-click `spacemissionstudio_1.0.0_all.deb`, or:
+**Linux:** double-click `spacemissionstudio_1.1.0_all.deb`, or:
 
 ```bash
-sudo apt install ./spacemissionstudio_1.0.0_all.deb
+sudo apt install ./spacemissionstudio_1.1.0_all.deb
 ```
 
 A closing `N: Download is performed unsandboxed as root ...` line is a
@@ -134,8 +134,8 @@ spacemissionstudio kernels-status
 spacemissionstudio earth-orientation --fetch
 ```
 
-The first downloads 116 MB (SPICE kernels, the gravity field and the
-magnetic model) and lists six files as `OK`. The second downloads the
+The first downloads 116 MB (SPICE kernels, the gravity fields and the
+magnetic model) and lists nine files as `OK`. The second downloads the
 measured Earth orientation files (36 MB) and ends with:
 
 ```text

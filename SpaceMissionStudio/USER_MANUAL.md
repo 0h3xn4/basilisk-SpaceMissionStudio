@@ -113,18 +113,18 @@ If someone already installed SpaceMissionStudio for you, skip to
 [Section 3](#3-starting-the-app).
 
 **Linux:** double-click the `.deb` file you were given, or the one
-from the [1.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0) (or run
-`sudo apt install ./spacemissionstudio_1.0.0_all.deb` in a terminal), then
+from the [1.1.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.0) (or run
+`sudo apt install ./spacemissionstudio_1.1.0_all.deb` in a terminal), then
 find **SpaceMissionStudio** in your application menu like any other program.
 
-**Windows 10/11 and macOS:** 1.0.0 has no installer for them yet. Install
+**Windows 10/11 and macOS:** 1.1.0 has no installer for them yet. Install
 from source as the [Getting started guide](docs/getting-started.md)
 describes (path C).
 
 The installer needs an internet connection once, to download the
 Basilisk simulation engine and its reference data (planet positions,
-leap seconds, Earth's gravity and magnetic field, about 116 MB). After
-that the app works offline.
+leap seconds, Earth's and Mars's gravity fields, Earth's magnetic field,
+about 116 MB). After that the app works offline.
 
 **No installer, or want to run it from source?**
 [Getting started](docs/getting-started.md) walks through every way to
@@ -324,7 +324,8 @@ fixed:
   **Epoch** (the real calendar date/time the simulation starts, in UTC),
   and a free-text **Description**.
 * **Environment** -- which planet you're orbiting, how detailed its
-  gravity model is, which other bodies' gravity to include (Sun, Moon,
+  gravity model is (spherical harmonics for Earth, to degree 180, and
+  Mars, to degree 80), which other bodies' gravity to include (Sun, Moon,
   ...), the numerical integrator, how long to simulate, and atmospheric
   drag/space-weather settings.
 * **Spacecraft** -- the list of spacecraft in the mission, and under it a
@@ -1139,7 +1140,7 @@ error message naming Basilisk, that's exactly what's going on, not a bug.
 **Run says a support-data file is not installed.** Runs never
 download anything. The installer fetches the standard reference files
 (SPICE kernels -- leap seconds, planet positions -- plus the gravity
-field and magnetic model, around 116 MB) once. If they are missing (a
+fields and magnetic model, around 116 MB) once. If they are missing (a
 development checkout, a cleared cache), open the **Reference data**
 dialog (**Run > Check Reference Data**) and choose **Download... > Support
 data**; it asks before fetching. `spacemissionstudio kernels-status`
