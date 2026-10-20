@@ -1,11 +1,16 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 7, 2026-10-20. Remediation R14.
+Document: SMS-SRelD, issue 8, 2026-10-20. Remediation R14.
 
-**Status:** release **1.1.0**, a candidate prepared on 2026-10-19 and
-rebuilt on 2026-10-20 with the fix of K-18 (GUI Monte Carlo batches); not
-yet published. Merging the release pull request, tagging and publishing
+**Status:** release **1.1.0**, a candidate prepared on 2026-10-19,
+rebuilt on 2026-10-20 with the fix of K-18 (GUI Monte Carlo batches), and
+rebuilt again the same day from `develop` with the first step of the UI
+overhaul (M1, the new look; the user's decision of 2026-10-20 to release
+from `develop`). Not yet published: a first `spacemissionstudio-v1.1.0`
+tag and release, made on 2026-10-20 on commit `c931ccd4d` before these
+records, are to be replaced by the user with a tag on the merge of this
+issue's pull request. Merging the release pull request, tagging and publishing
 are the user's (decision of 2026-10-19, HISTORY "Towards release
 1.1.0").
 - 1.1.0 is a Linux release, like 1.0.0: the wheel, the sdist, the `.deb`
@@ -15,7 +20,8 @@ are the user's (decision of 2026-10-19, HISTORY "Towards release
 - The candidate's files were built from the release branch and the
   `.deb` installed as an upgrade over the published 1.0.0
   (`packaging/README.md`, "Verified for 1.1.0"). The baseline commit and
-  the tag (`spacemissionstudio-v1.1.0`) are set when the user publishes.
+  the tag (`spacemissionstudio-v1.1.0`) are recorded when the user
+  publishes.
 
 **Previous release:** 1.0.0, published 2026-10-14 (21:06 UTC):
 - On 2026-10-14 the user chose to renew the tool and restart its
@@ -62,7 +68,7 @@ This SRelD describes release 1.1.0 of SpaceMissionStudio in
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
 | Baseline | The merge of the release pull request into `develop`, to be tagged `spacemissionstudio-v1.1.0` by the user. Previous release: 1.0.0, commit `f288e0c73` (`f288e0c7323b99fa26c2a5cb73d3f9c5bcfc9e5e`), tagged `spacemissionstudio-v1.0.0`. |
-| Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt` |
+| Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt`. Bundled with the GUI as files, not packages: Inter 4.1 and JetBrains Mono 2.304 (SIL OFL 1.1) and 35 Lucide icons from lucide-static 1.52.0 (ISC), with versions, sources and checksums in `docs/THIRD_PARTY_ASSETS.md` |
 | Platform | Python 3.11 or newer |
 | Delivery | Attached to the GitHub release: the wheel and sdist (`packaging/build_wheel.sh`), the Debian package (`packaging/build_deb.sh`) and `SHA256SUMS-linux`. GitHub's digest of each published file equals the SHA-256 of the file built and installed (status above). No Windows setup program in 1.1.0 (K-14) |
 | Documentation | SUM and `USER_MANUAL.md`; the documents in `compliance/docs/` |
@@ -86,7 +92,12 @@ RD1 has the full story of each, from "Release 1.0.0" on. In summary:
   (Basilisk's `polyhedralGravityModel`) and landmark navigation (template
   31);
 - albedo on the coarse sun sensors (Earth CERES, Mars TES maps);
-- Mars's GGM2B gravity field to degree 80.
+- Mars's GGM2B gravity field to degree 80;
+- a new look (UI overhaul M1): the brief's colour tokens in light and
+  dark, Inter and JetBrains Mono bundled, Lucide icons, every text and
+  icon colour at WCAG 2.2 AA (tested), and View > Theme applied at once
+  instead of at the next start. The layout, the outputs and the command
+  line are unchanged (`docs/DECISIONS.md`).
 
 **Fixed:**
 - runs around, or with, `mars` and `jupiter` (K-15);
@@ -104,7 +115,9 @@ RD1 has the full story of each, from "Release 1.0.0" on. In summary:
 **Changes users notice:** scenario files of 1.0.0 open unchanged. A file
 naming `mars` or `jupiter` is refused with the name to use (`mars
 barycenter`, `jupiter barycenter`). Degree-20 Earth gravity runs move by
-about 0.16 m a day (K-04). `pip` and `apt` upgrade 1.0.0 to 1.1.0 in place.
+about 0.16 m a day (K-04). The GUI looks different (M1); its layout, menus
+and shortcuts are the same, and a theme change applies at once (K-19).
+`pip` and `apt` upgrade 1.0.0 to 1.1.0 in place.
 
 ### 5.2 Known problems and limitations (G.2.1<5.2>)
 
@@ -130,6 +143,7 @@ about 0.16 m a day (K-04). `pip` and `apt` upgrade 1.0.0 to 1.1.0 in place.
 | K-16 | Fixed (2026-10-19): a thermal sensor's heat balance used the solar flux at Earth's distance from the Sun on the epoch, whatever the central body. Basilisk's `sensorThermal` assumes 1366 W/m^2 at any distance, and the tool's correction of it took Earth's flux. The flux is now the one at the spacecraft's own distance from the Sun when the run starts (SPICE), for every central body | Thermal sensors around the Sun, Mercury or Venus ran too cold, and around Mars, Jupiter or Eros too hot: around Mars on 2030-01-01 they absorbed 1408 W/m^2 instead of 713 W/m^2. Runs around Earth or the Moon are unchanged | `tests/test_sensor_thermal_flux.py`; HISTORY.md |
 | K-17 | Fixed (2026-10-19): coarse sun sensors read the Sun in the planet's shadow. Basilisk's `coarseSunSensor` takes the eclipse as an optional input and, with it unlinked, counts itself fully lit; the tool linked it for thermal sensors and solar panels but not for sun sensors. Both the per-sensor telemetry and the cluster behind the CSS sun-heading estimate now take the spacecraft's eclipse message | In eclipse, sun-sensor telemetry was as in sunlight (template 14: 0.73 in Earth's shadow, now 0.0), and the CSS sun-heading estimate kept the true Sun direction, which real sensors cannot see. Runs that never enter a shadow are unchanged | `tests/test_template_claims.py::test_14_css_estimate_settles_on_the_sun_axis_and_is_lost_in_the_shadow`; HISTORY.md |
 | K-18 | Fixed in 1.1.0 (2026-10-20, before its publication): a Monte Carlo batch started from the GUI with `thread_count` 1 (the default, and template 09) failed every run. Basilisk's `MonteCarlo.Controller` calls `signal.signal()` at the start of each case, which Python allows only on a process's main thread, and with one thread the controller runs the cases in the calling process: the GUI's worker `QThread`. The GUI now runs the batch in a spawned child process (`gui/monte_carlo_process.py`); Basilisk is unchanged | In 1.0.0 and the first 1.1.0 candidate, GUI batches with one thread produced no results ("N of N runs failed"). The command line runs batches on its main thread and is not affected; with more than one thread each case runs in a pool process, so GUI batches should not have been affected either (read from the controller, not re-run on 1.1.0). Found by the UI screenshot harness | `tests/gui/test_run_worker.py::test_monte_carlo_worker_runs_a_single_thread_batch`; HISTORY.md |
+| K-19 | Limitation (2026-10-20): applying a theme (View > Theme, or a change of the desktop's scheme with System) takes 0.51-0.55 s on a new main window with a scenario open and 2.4 s after every page has been visited, measured on one Linux container (before M1, on the same machine: 1.31-1.44 s and 6.1-6.5 s). The overhaul brief's target is 0.1 s. Qt re-polishes every widget, most of them on hidden pages; the overhaul's next milestone reduces the number of live widgets | The window does not respond for that time after a theme change | `docs/DECISIONS.md`; `docs/ui/UI_OVERHAUL_PLAN.md` section 7 |
 
 **Waivers and deviations:** D-01 to D-13 (RD4). D-08 to D-13 are signed; D-01 to D-07
 are not (decision 14, H08).

@@ -11701,3 +11701,28 @@ the live switch, no Qt style-sheet warnings); `test_design_rules.py`'s
 hard-coded-colour test became a hard-coded-style test over all of
 `gui/`. Every change to an existing test is in `docs/ui/TEST_CHANGES.md`.
 No non-GUI test and no output file changed.
+
+## 1.1.0 released from `develop`, with M1 (2026-10-20)
+
+After M1 was merged (#85), the user chose to publish 1.1.0 from
+`develop` instead of from the commit before M1 (`b064bb9ef`). A first
+tag `spacemissionstudio-v1.1.0` and release were made on `c931ccd4d`, the
+M1 merge, whose records still described M1 as unreleased 1.2.0 work.
+This change makes the records match what is released, so the tag can be
+set again on its merge:
+* CHANGELOG: M1's entry moves from "Unreleased (1.2.0)" into 1.1.0. Its
+  wording no longer says the tokens are shared with the suite's other
+  tools: no suite theme package exists (plan §9, Q6).
+* SRelD issue 8: the status, M1 among the features and the changes users
+  notice, the bundled fonts and icons in the reused-software row, and the
+  theme switch time as limitation K-19.
+* `docs/DECISIONS.md`, the plan (status, Q7), `docs/DESIGN.md`,
+  `docs/THIRD_PARTY_ASSETS.md`, `docs/ux-standard.md`, the SDP and the
+  release checklist: M1 is part of 1.1.0. Timings that compared M1 with
+  "1.1.0" now compare it with the code before M1, which is what was
+  measured.
+* The wheel, sdist and `.deb` are built again from this commit and the
+  install check over 1.0.0 is repeated (`packaging/README.md`, "Verified
+  for 1.1.0").
+
+The overhaul's later milestones and the version 1.2.0 (Q7) are unchanged.

@@ -125,7 +125,7 @@ GMAT or a Jupyter notebook for day-to-day work, without changing what Basilisk c
   both `QPalette` and the app QSS. No scattered `setStyleSheet` calls, no hard-coded colours.
 - Light and dark themes, following the OS by default, switchable in View.
 - Fonts: Inter for UI, JetBrains Mono for numbers/IDs/JSON, both shipped with the app
-  (1.2.0; IBM Plex before, superseded by `docs/ui/UI_OVERHAUL.md`). Tabular figures in all
+  (1.1.0; IBM Plex before, superseded by `docs/ui/UI_OVERHAUL.md`). Tabular figures in all
   numeric cells.
 - Type scale 12/13/16/20 px. Spacing scale 4/8/12/16/24/32 px.
 - Colour carries meaning only: status (nominal/caution/warning/critical/unknown), selection,
