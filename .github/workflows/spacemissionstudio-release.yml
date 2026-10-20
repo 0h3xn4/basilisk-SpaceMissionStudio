@@ -1,0 +1,371 @@
+# SpaceMissionStudio: builds the release files of a tag on Linux, Windows
+# and macOS, installs each one on its own platform and runs it, then
+# attaches them to the tag's GitHub release with their checksums
+# (SpaceMissionStudio/docs/developer/releasing.md, sections 5 and 6).
+#
+# Pushing a tag spacemissionstudio-vX.Y.Z starts it; "Run workflow" with
+# the tag runs it again for an existing tag. The build jobs only read the
+# repository and hand their files on as artifacts; the last job, the only
+# one with write access, attaches them. A release that does not exist yet
+# is created as a draft, so publishing stays a person's step. On an
+# existing release the files are replaced and its notes are written only
+# when they are empty. A pull request that changes this workflow runs the
+# build and install jobs for the version in its files, and attaches nothing.
+#
+#   Linux (x86_64):  the wheel, the sdist and the .deb (SHA256SUMS-linux);
+#                    the .deb is installed with apt and the tool run.
+#   Windows (x64):   the Inno Setup program bundling that wheel
+#                    (SHA256SUMS-windows, unsigned); installed silently
+#                    and the tool run.
+#   macOS (arm64):   no installer: the same wheel is installed with
+#                    packaging/install.sh and Basilisk's wheel from PyPI,
+#                    and the tool run (Basilisk has no Intel macOS wheel).
+name: "SpaceMissionStudio release"
+
+on:
+  push:
+    tags: ["spacemissionstudio-v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing tag to build and attach, for example spacemissionstudio-v1.2.0"
+        required: true
+        type: string
+  pull_request:
+    paths:
+      - ".github/workflows/spacemissionstudio-release.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: spacemissionstudio-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}
+  # What to build: the tag, or on a pull request its own commit.
+  SOURCE: ${{ github.event_name == 'pull_request' && github.sha || inputs.tag || github.ref_name }}
+  QT_QPA_PLATFORM: offscreen
+
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    defaults:
+      run:
+        working-directory: SpaceMissionStudio
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SOURCE }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: The tag matches the version files and the CHANGELOG
+        id: version
+        run: |
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            version=$(sed -n 's/^version = "\(.*\)"$/\1/p' pyproject.toml)
+          else
+            case "$TAG" in spacemissionstudio-v*) ;; *) echo "::error::$TAG is not a spacemissionstudio-vX.Y.Z tag"; exit 1 ;; esac
+            version="${TAG#spacemissionstudio-v}"
+          fi
+          grep -qx "version = \"$version\"" pyproject.toml || { echo "::error::pyproject.toml is not $version"; exit 1; }
+          grep -q "^__version__ = \"$version\"" spacemissionstudio/__init__.py || { echo "::error::__init__.py is not $version"; exit 1; }
+          grep -q "#define MyAppVersion \"$version\"" packaging/windows/spacemissionstudio.iss || { echo "::error::the .iss is not $version"; exit 1; }
+          grep -q "^## $version (" CHANGELOG.md || { echo "::error::CHANGELOG.md has no section $version"; exit 1; }
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Qt runtime libraries
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libegl1 libgl1 libxkbcommon0 libxkbcommon-x11-0 \
+            libdbus-1-3 libfontconfig1 libnss3 libxcomposite1 libxdamage1 libxrandr2 libxtst6 libasound2t64
+      - name: Build the wheel, the sdist and the .deb
+        run: |
+          python -m pip install --quiet build
+          packaging/build_wheel.sh dist
+          packaging/build_deb.sh dist
+          ls -l dist
+      - name: The wheel holds the bundled fonts and icons
+        run: |
+          python - "dist/spacemissionstudio-$VERSION-py3-none-any.whl" <<'EOF'
+          import sys, zipfile
+          names = zipfile.ZipFile(sys.argv[1]).namelist()
+          fonts = [n for n in names if n.endswith(".ttf")]
+          licences = [n for n in names if n.endswith("/OFL.txt")]
+          icons = [n for n in names if "/lucide/" in n and n.endswith(".svg")]
+          print(len(fonts), "fonts,", len(licences), "OFL texts,", len(icons), "icons")
+          assert len(fonts) == 5 and len(licences) == 2 and len(icons) >= 35, "assets missing from the wheel"
+          assert any(n.endswith("/lucide/LICENSE") for n in names), "Lucide's licence missing"
+          EOF
+      - name: Install the .deb
+        run: sudo apt-get install -y "./dist/spacemissionstudio_${VERSION}_all.deb"
+      # Outside the checkout, so that `python -c` imports the installed package,
+      # not the source tree in the working directory.
+      - name: Run the installed tool
+        working-directory: ${{ runner.temp }}
+        run: |
+          spacemissionstudio --version | tee version.txt
+          grep -q "SpaceMissionStudio $VERSION" version.txt
+          spacemissionstudio kernels-status
+          venv_python=/opt/spacemissionstudio/venv/bin/python
+          templates=$("$venv_python" -c "import pathlib, spacemissionstudio; print(pathlib.Path(spacemissionstudio.__file__).parent / 'scenarios' / 'templates')")
+          for f in "$templates"/*.json; do spacemissionstudio validate "$f" >/dev/null || { echo "::error::$f does not validate"; exit 1; }; done
+          spacemissionstudio run "$templates/01_two_body_circular_orbit.json" --out-dir "$RUNNER_TEMP/run01"
+          "$venv_python" - "$VERSION" <<'EOF'
+          import os, sys
+          from PySide6.QtWidgets import QApplication
+          app = QApplication(sys.argv[:1])
+          import spacemissionstudio
+          from spacemissionstudio.gui.main_window import MainWindow
+          assert spacemissionstudio.__version__ == sys.argv[1], spacemissionstudio.__version__
+          window = MainWindow()
+          window.show()
+          print("GUI started:", spacemissionstudio.__file__, "font", app.font().family(), flush=True)
+          os._exit(0)  # skip Qt WebEngine's teardown at exit
+          EOF
+      - name: SHA256SUMS-linux
+        run: |
+          cd dist
+          sha256sum "spacemissionstudio-$VERSION-py3-none-any.whl" "spacemissionstudio-$VERSION.tar.gz" \
+            "spacemissionstudio_${VERSION}_all.deb" > SHA256SUMS-linux
+          cat SHA256SUMS-linux
+      - uses: actions/upload-artifact@v6
+        with:
+          name: packages-linux
+          if-no-files-found: error
+          path: |
+            SpaceMissionStudio/dist/*.whl
+            SpaceMissionStudio/dist/*.tar.gz
+            SpaceMissionStudio/dist/*.deb
+            SpaceMissionStudio/dist/SHA256SUMS-linux
+
+  windows:
+    needs: linux
+    env:
+      VERSION: ${{ needs.linux.outputs.version }}
+    runs-on: windows-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: SpaceMissionStudio
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SOURCE }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@v6
+        with:
+          name: packages-linux
+          path: linux
+      - name: The wheel built for this release, checked against SHA256SUMS-linux
+        run: |
+          $wheel = Get-ChildItem ..\linux\spacemissionstudio-*.whl | Select-Object -First 1
+          $line = Select-String -Path ..\linux\SHA256SUMS-linux -SimpleMatch $wheel.Name | Select-Object -First 1
+          if (-not $line) { throw "SHA256SUMS-linux does not list $($wheel.Name)" }
+          $expected = $line.Line.Split(" ")[0]
+          $actual = (Get-FileHash $wheel.FullName -Algorithm SHA256).Hash.ToLower()
+          if ($actual -ne $expected) { throw "$($wheel.Name): SHA-256 $actual, SHA256SUMS-linux says $expected" }
+          New-Item -ItemType Directory -Force packaging\windows\dist | Out-Null
+          Copy-Item $wheel.FullName packaging\windows\dist\
+          Write-Host "Bundling $($wheel.Name) ($actual)"
+      - name: Inno Setup
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { choco install innosetup --no-progress -y }
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found at $iscc" }
+          "ISCC=$iscc" >> $env:GITHUB_ENV
+      - name: Build the setup program
+        run: |
+          & $env:ISCC packaging\windows\spacemissionstudio.iss
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
+          $exe = Get-ChildItem packaging\windows\Output\spacemissionstudio-*-setup.exe | Select-Object -First 1
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
+          # LF line ending, so sha256sum -c reads it on Linux.
+          [IO.File]::WriteAllText((Join-Path $PWD "packaging\windows\Output\SHA256SUMS-windows"), "$hash  $($exe.Name)`n")
+          Get-Content packaging\windows\Output\SHA256SUMS-windows
+      - name: Install it silently, as a user would
+        run: |
+          $exe = Get-ChildItem packaging\windows\Output\spacemissionstudio-*-setup.exe | Select-Object -First 1
+          $dir = Join-Path $env:RUNNER_TEMP "SpaceMissionStudio"
+          $log = Join-Path $PWD "packaging\windows\Output\install.log"
+          $p = Start-Process $exe.FullName -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CURRENTUSER", "/DIR=`"$dir`"", "/LOG=`"$log`"" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "setup exited with $($p.ExitCode)" }
+          $python = Join-Path $dir "venv\Scripts\python.exe"
+          if (-not (Test-Path $python)) { throw "no environment at $($python); the setup's Python step failed (see install.log)" }
+          "INSTALLED_PYTHON=$python" >> $env:GITHUB_ENV
+      - name: Run the installed tool
+        working-directory: ${{ runner.temp }}
+        run: |
+          $version = $env:VERSION
+          $out = & $env:INSTALLED_PYTHON -c "import spacemissionstudio, Basilisk; print('SpaceMissionStudio', spacemissionstudio.__version__)"
+          if ($LASTEXITCODE -ne 0) { throw "import failed" }
+          $out = $out | Select-Object -Last 1
+          if ($out -ne "SpaceMissionStudio $version") { throw "installed: $out, expected $version" }
+          & $env:INSTALLED_PYTHON -m spacemissionstudio.cli kernels-status
+          if ($LASTEXITCODE -ne 0) { throw "kernels-status failed" }
+          $templates = & $env:INSTALLED_PYTHON -c "import pathlib, spacemissionstudio; print(pathlib.Path(spacemissionstudio.__file__).parent / 'scenarios' / 'templates')"
+          $template = Join-Path $templates "01_two_body_circular_orbit.json"
+          & $env:INSTALLED_PYTHON -m spacemissionstudio.cli validate $template
+          if ($LASTEXITCODE -ne 0) { throw "validate failed" }
+          & $env:INSTALLED_PYTHON -m spacemissionstudio.cli run $template --out-dir (Join-Path $env:RUNNER_TEMP "run01")
+          if ($LASTEXITCODE -ne 0) { throw "run failed" }
+          @'
+          import os, sys
+          from PySide6.QtWidgets import QApplication
+          app = QApplication(sys.argv[:1])
+          import spacemissionstudio
+          from spacemissionstudio.gui.main_window import MainWindow
+          assert spacemissionstudio.__version__ == sys.argv[1], spacemissionstudio.__version__
+          window = MainWindow()
+          window.show()
+          print("GUI started:", spacemissionstudio.__file__, "font", app.font().family(), flush=True)
+          os._exit(0)  # skip Qt WebEngine's teardown at exit
+          '@ | Set-Content -Path smoke_gui.py -Encoding utf8
+          & $env:INSTALLED_PYTHON smoke_gui.py $version
+          if ($LASTEXITCODE -ne 0) { throw "GUI smoke test failed" }
+      - uses: actions/upload-artifact@v6
+        with:
+          name: packages-windows
+          if-no-files-found: error
+          path: |
+            SpaceMissionStudio/packaging/windows/Output/*.exe
+            SpaceMissionStudio/packaging/windows/Output/SHA256SUMS-windows
+      - uses: actions/upload-artifact@v6
+        if: always()
+        with:
+          name: windows-install-log
+          path: SpaceMissionStudio/packaging/windows/Output/install.log
+
+  macos:
+    needs: linux
+    env:
+      VERSION: ${{ needs.linux.outputs.version }}
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: SpaceMissionStudio
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SOURCE }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@v6
+        with:
+          name: packages-linux
+          path: linux
+      - name: The wheel built for this release, checked against SHA256SUMS-linux
+        run: |
+          cd ../linux
+          grep -- "-py3-none-any.whl" SHA256SUMS-linux | shasum -a 256 -c -
+      - name: Install with packaging/install.sh and Basilisk's wheel from PyPI
+        run: |
+          version="$VERSION"
+          bsk_version=$(grep -i '^bsk==' packaging/constraints.txt | cut -d= -f3)
+          python3 -m pip download --quiet --no-deps --only-binary=:all: -d "$RUNNER_TEMP/bsk" "bsk==$bsk_version"
+          bsk_wheels=("$RUNNER_TEMP"/bsk/bsk-*.whl)
+          bash packaging/install.sh --prefix "$RUNNER_TEMP/sms" --no-desktop-entry \
+            --spacemissionstudio-wheel "../linux/spacemissionstudio-$version-py3-none-any.whl" \
+            --basilisk-wheel "${bsk_wheels[0]}"
+      - name: Run the installed tool
+        working-directory: ${{ runner.temp }}
+        run: |
+          sms="$RUNNER_TEMP/sms/spacemissionstudio"
+          "$sms" --version | tee version.txt
+          grep -q "SpaceMissionStudio $VERSION" version.txt
+          "$sms" kernels-status
+          venv_python="$RUNNER_TEMP/sms/venv/bin/python"
+          templates=$("$venv_python" -c "import pathlib, spacemissionstudio; print(pathlib.Path(spacemissionstudio.__file__).parent / 'scenarios' / 'templates')")
+          for f in "$templates"/*.json; do "$sms" validate "$f" >/dev/null || { echo "::error::$f does not validate"; exit 1; }; done
+          "$sms" run "$templates/01_two_body_circular_orbit.json" --out-dir "$RUNNER_TEMP/run01"
+          "$venv_python" - "$VERSION" <<'EOF'
+          import os, sys
+          from PySide6.QtWidgets import QApplication
+          app = QApplication(sys.argv[:1])
+          import spacemissionstudio
+          from spacemissionstudio.gui.main_window import MainWindow
+          assert spacemissionstudio.__version__ == sys.argv[1], spacemissionstudio.__version__
+          window = MainWindow()
+          window.show()
+          print("GUI started:", spacemissionstudio.__file__, "font", app.font().family(), flush=True)
+          os._exit(0)  # skip Qt WebEngine's teardown at exit
+          EOF
+
+  # macOS produces no file: its result goes into the notes, and a macOS job
+  # that GitHub could not start (no runner) or that failed does not hold the
+  # Linux and Windows files back. The release is a draft for a person to read.
+  attach:
+    needs: [linux, windows, macos]
+    if: >-
+      !cancelled() && github.event_name != 'pull_request'
+      && needs.linux.result == 'success' && needs.windows.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      VERSION: ${{ needs.linux.outputs.version }}
+      MACOS_RESULT: ${{ needs.macos.result }}
+    defaults:
+      run:
+        working-directory: SpaceMissionStudio
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ env.SOURCE }}
+      - uses: actions/download-artifact@v6
+        with:
+          pattern: packages-*
+          path: release
+          merge-multiple: true
+      - name: Check every file against its checksum
+        run: |
+          cd ../release
+          ls -l
+          sha256sum -c SHA256SUMS-linux
+          sha256sum -c SHA256SUMS-windows
+          shopt -s nullglob
+          packages=(./*.whl ./*.tar.gz ./*.deb ./*-setup.exe)
+          test "${#packages[@]}" = 4
+      - name: Release notes from the CHANGELOG
+        run: |
+          version="$VERSION"
+          {
+            echo "**Files.** Linux (x86_64): \`spacemissionstudio_${version}_all.deb\` (\`sudo apt install ./spacemissionstudio_${version}_all.deb\`)."
+            echo "Windows (x64): \`spacemissionstudio-${version}-setup.exe\` (not signed, so Windows asks before running it)."
+            echo "macOS 11 or newer on Apple silicon: no installer yet; install the wheel \`spacemissionstudio-${version}-py3-none-any.whl\` with \`packaging/install.sh\` (docs/getting-started.md)."
+            case "$MACOS_RESULT" in
+              success) echo "On macOS the wheel was installed with \`packaging/install.sh\` and run by this workflow." ;;
+              failure) echo "**The macOS install check failed in this workflow run**; see the run below." ;;
+              *) echo "**The macOS install check did not run** (GitHub started no macOS runner: $MACOS_RESULT)." ;;
+            esac
+            echo "Checksums: \`SHA256SUMS-linux\`, \`SHA256SUMS-windows\`. Each package was installed on its platform and run by the workflow run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
+            echo
+            awk -v head="## $version (" 'index($0, head) == 1 { on = 1; next } on && /^## / { exit } on' CHANGELOG.md
+          } > "$RUNNER_TEMP/notes.md"
+          cat "$RUNNER_TEMP/notes.md"
+      - name: Attach to the release (a missing release is created as a draft)
+        run: |
+          version="$VERSION"
+          files=(../release/*.whl ../release/*.tar.gz ../release/*.deb ../release/*-setup.exe ../release/SHA256SUMS-linux ../release/SHA256SUMS-windows)
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "${files[@]}" --clobber
+            if [ -z "$(gh release view "$TAG" --json body --jq .body)" ]; then
+              gh release edit "$TAG" --notes-file "$RUNNER_TEMP/notes.md"
+            fi
+          else
+            gh release create "$TAG" --verify-tag --draft --title "SpaceMissionStudio $version" \
+              --notes-file "$RUNNER_TEMP/notes.md" "${files[@]}"
+          fi
+          gh release view "$TAG" --json isDraft,assets --jq '"draft: \(.isDraft)", (.assets[] | "\(.name)  \(.size) bytes")'

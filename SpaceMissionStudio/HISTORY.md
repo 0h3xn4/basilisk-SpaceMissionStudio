@@ -11726,3 +11726,44 @@ set again on its merge:
   for 1.1.0").
 
 The overhaul's later milestones and the version 1.2.0 (Q7) are unchanged.
+
+## Release files built in CI for Linux, Windows and macOS (2026-10-20)
+
+The user asked for a release workflow on Linux, Windows and macOS. In
+HarnessDesignStudio and SystemBudgetStudio, GitHub Actions workflows
+attach the release files with the workflow's own token. Here the files
+had been built and attached by hand: for 1.1.0 this session could not
+upload them (the session's checks refused to create or change a release
+from here).
+
+`.github/workflows/spacemissionstudio-release.yml` runs on a pushed tag
+`spacemissionstudio-vX.Y.Z`, or by hand with a tag:
+* **Linux:** builds the wheel, sdist and `.deb`, checks the wheel holds the
+  bundled fonts and icons, installs the `.deb` with `apt` and runs the
+  installed tool. It checks the version, the support data and every
+  template, runs template 01 and opens the main window offscreen.
+* **Windows:** builds the setup program around that wheel (checked against
+  `SHA256SUMS-linux`), installs it silently and runs it the same way.
+* **macOS (Apple silicon):** installs that wheel with
+  `packaging/install.sh` and Basilisk's wheel from PyPI, then runs it.
+  There is no macOS installer: a disk image would have to bundle
+  Basilisk.
+* **Attach:** the only job with write access. It checks every file
+  against `SHA256SUMS-linux` and `SHA256SUMS-windows` and attaches them.
+  It needs Linux and Windows to pass. The macOS result (passed, failed,
+  or not run) goes into the notes, because on the day the workflow was
+  written GitHub had no macOS arm64 runner for hours (every macOS job of
+  its pull request was cancelled before its first step, twice).
+  A release that does not exist yet is created as a draft, so publishing
+  stays a person's step. An existing release keeps its notes unless they
+  are empty.
+
+The checks run outside the source tree. `python -c` puts the working
+directory first on the import path, so run inside the checkout it would
+have tested the source, not the installed package. The Windows
+installer workflow ran its checks there; they now run in the runner's
+temporary folder too. A pull request that changes
+the workflow runs the build and install jobs for its own commit and
+attaches nothing, so the workflow is tested before it is merged.
+`docs/developer/releasing.md` (sections 5 and 6), `packaging/README.md`
+and the SDP describe it.

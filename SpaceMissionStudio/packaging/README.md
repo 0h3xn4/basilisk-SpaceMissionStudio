@@ -134,6 +134,26 @@ in `packaging/` needed to change for it.
 
 ## The real installers
 
+**Release files in CI.** `.github/workflows/spacemissionstudio-release.yml`
+builds the release files of a tag (`spacemissionstudio-vX.Y.Z`) on
+GitHub's runners and attaches them to its release, a draft when the
+release does not exist yet (`docs/developer/releasing.md`, sections 5
+and 6):
+
+| Platform | Files | Installed and run in the workflow |
+|---|---|---|
+| Linux (x86_64, `ubuntu-24.04`) | wheel, sdist, `.deb`, `SHA256SUMS-linux` | `apt install` of the `.deb`; `--version`, `kernels-status`, every template validated, template 01 run, the main window opened |
+| Windows (x64, `windows-latest`) | the setup program around that wheel, `SHA256SUMS-windows` | silent install (`/VERYSILENT /CURRENTUSER`); the same checks with one template |
+| macOS (Apple silicon, `macos-latest`) | none: the wheel is the package | `install.sh --no-desktop-entry` with that wheel and Basilisk's wheel from PyPI; the same checks as on Linux |
+
+The macOS row produces no file: its result (passed, failed, or not run
+when GitHub has no macOS runner) is written into the release notes and
+does not hold back the Linux and Windows files. The workflow's files are
+built on the runners, so their checksums differ
+from a local build of the same commit; the checksums on a release are
+those in its `SHA256SUMS-*` files. 1.0.0 and 1.1.0 were built locally
+before the workflow existed ("Verified for ..." below).
+
 ### The `.deb` package (Linux)
 
 `build_deb.sh` produces `spacemissionstudio_<version>_all.deb` -- a real
