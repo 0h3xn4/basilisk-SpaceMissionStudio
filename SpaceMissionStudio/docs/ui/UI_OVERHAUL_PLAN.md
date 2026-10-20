@@ -62,7 +62,7 @@ lists every file.
   - **Dialogs:** every dialog class (21) plus the message boxes, each grabbed
     while open. Modal ones are grabbed and then closed.
   - The run history goes to a temporary folder, not `~/.spacemissionstudio`.
-  - It wrote ⟨N⟩ PNGs per theme to `docs/ui/screenshots/before/`.
+  - It wrote 115 PNGs per theme to `docs/ui/screenshots/before/`.
 - **Performance probe.** [`scripts/measure_ui_baseline.py`](../../scripts/measure_ui_baseline.py)
   uses a 2 ms heartbeat timer on the GUI thread. Any gap between ticks is a
   stall: time in which the window can neither repaint nor take input.
@@ -172,7 +172,8 @@ There is no model/view anywhere: no `QTableView` and no
 
 This list comes from reading the code. The probe in §3 measures it.
 
-- **On every keystroke in any field:** `MainWindow._refresh_scenario_explainer`.
+- **On every keystroke in any field** (measured in §3 at 10–54 ms):
+  `MainWindow._refresh_scenario_explainer`.
   It runs synchronously through the `ScenarioEditorWidget.changed` signal,
   with no debounce, and does all of this:
   - builds the whole `Scenario` (`to_scenario()`, which validates);
@@ -194,21 +195,89 @@ This list comes from reading the code. The probe in §3 measures it.
   `run_store.load_index` / `load_result` read saved runs from disk.
 - **When a template or file is opened:**
   - parsing, migrating and validating the JSON;
-  - building every editor page (all spacecraft pages, eagerly);
+  - building the editor pages. Each spacecraft and station form is a full
+    `SpacecraftEditorDialog` or `GroundStationEditorDialog`, built when its
+    node is first shown (§3: 383 ms for a spacecraft);
   - the explainer refresh above.
 - **When a plot is shown or the layout changes:** a full HTML page and
-  `setHtml`/`load`, which reloads `plotly.min.js` (about 4.6 MB) for every
+  `setHtml`/`load`, which reloads `plotly.min.js` (4.8 MB) for every
   page.
-- **Startup:** every tab and all three `QWebEngineView`s (Plots, Compare, 3D
-  model) are created eagerly in `MainWindow.__init__`. Only one
-  `QWebEngineProfile` is used, which is the default.
+- **Startup:** every tab, and the two `QWebEngineView`s of the main window
+  (Plots, Compare), are created eagerly in `MainWindow.__init__`. The third
+  web view, the 3D model, is created only when the model editor opens. No
+  `QWebEngineProfile` is set, so all of them share the default profile.
 - **Already in workers, and kept there:** simulations (`run_worker`, a
   `QThread`), Monte Carlo batches, End of Life, budget sweeps, reference-data
   downloads, Vizard download and SIL runs.
 
 ## 3. Performance baseline
 
-⟨perf⟩
+Measured with [`scripts/measure_ui_baseline.py`](../../scripts/measure_ui_baseline.py).
+Conditions:
+
+- Linux container, 4 CPUs, offscreen, WebEngine in software rendering, a
+  1440×900 window and the light theme.
+- The raw results, with three startup runs, are in
+  [`perf_baseline.json`](perf_baseline.json).
+- The figures are this machine's. They are the before-values that M9 must
+  beat, re-measured on the same kind of machine.
+- WebEngine paints in its own process, so plot rendering time is not counted.
+  Only the GUI thread's time is.
+
+**Startup to the first interactive window: 1.69–1.97 s.**
+
+| Stage | ms |
+|---|---:|
+| Interpreter to script | 31–38 |
+| Import PySide6 | 61–74 |
+| Import the GUI package | 295–309 |
+| `QApplication` + theme | 11–13 |
+| **`MainWindow` constructor** | **1250–1504** |
+| `show()` + first event-loop turn | 38–42 |
+
+The constructor is about 75 % of startup: every tab, the scenario editor
+and both main-window web views are built before the window shows.
+
+**Interactions longer than the 50 ms budget** (the longest stall seen by the
+heartbeat):
+
+| Interaction | Longest stall [ms] |
+|---|---:|
+| Switching the theme on the open window (`apply_theme`), which the brief requires to be live | **3775–4019** |
+| First visit to a spacecraft page (the page is built then) | 383 |
+| Opening a template: template 09 first time; template 23; all 31 in a row | 376; 129–154; 65–216 |
+| Opening the spacecraft editor dialog | 318 |
+| The end of a run (results, events, run store), template 23 | 256 (2 stalls over budget during a 5 s run) |
+| Showing a plot (Results › Plots) | 31–155 (1 of 4 over budget) |
+| One keystroke in a field, worst templates (21, 26) | 53–54 (max); median 32–35 |
+
+**Within budget:**
+
+| Interaction | Range |
+|---|---|
+| Switching main, Results and side tabs, before and after a run | 3–15 ms |
+| Switching scenario pages other than the first visit to a spacecraft | 3–33 ms |
+| Searching the plot catalog | 10 ms |
+| One keystroke in most templates | median 10–39 ms, max ≤ 49 ms |
+
+**What this means for the plan.**
+
+- **Keystrokes.** The per-keystroke refresh is close to the limit rather
+  than far over it, and it grows with the number of spacecraft and with the
+  analyses enabled. A 250 ms debounce, plus building the explainer in a
+  worker (M4), gives headroom for larger scenarios.
+- **Biggest single problem.** It is the live theme switch at about 4 s,
+  because the whole application stylesheet is re-applied to every widget.
+  M1 generates one stylesheet and applies it once at the application level,
+  with no per-widget `setStyleSheet` (§2.3). Its acceptance criterion is a
+  switch in under 100 ms. If restyling every widget cannot meet that,
+  M1 records the measured value, keeping the switch fast at least for the
+  palette and the plot template.
+- **Startup.** Lazy areas (M2) and lazy web views (M6, M7) target the
+  constructor's 1.3–1.5 s.
+- **Debug timing log.** M2 adds an optional timing log: a heartbeat like
+  the probe's, enabled by `SMS_UI_TIMING=1`, that logs every stall over
+  50 ms with the action that caused it.
 
 ## 4. Findings per screen
 
@@ -407,7 +476,7 @@ what each finding is evidence of.
   - Flight Software mixes export, SIL and a report button.
   - Its status chip ("Not exported") is grey-on-grey ([L021]).
 
-### 4.12 Dialogs (`*_dialog_*`)
+### 4.12 Dialogs ([L081]–[L115])
 
 - **Convoluted.** Seven editors are modal dialogs: spacecraft, device, ground
   station, mission step, dispersion, 3D model and SIL options. In each case
@@ -417,9 +486,15 @@ what each finding is evidence of.
   again as tabs, several of them scrolling far past the window
   (`*_dialog_spacecraft_*_end`).
 - **Raw.**
-  - The About and discard confirmations are plain `QMessageBox`es.
-  - The command palette is a plain list without categories, shortcuts or
-    object search.
+  - The About and discard confirmations are plain `QMessageBox`es
+    ([L114], [L115]).
+  - The command palette ([L106]) is a flat list of "Menu > Item" with the
+    shortcut appended to the text, not aligned. It has no categories and
+    no search of scenario objects or settings.
+  - The device editor ([L093]) shows the raw kind ("star_tracker").
+    "Start from a real device" sits in an empty left column, with the
+    catalogue picker at the bottom ("-- none (custom values) --") and a
+    disabled "Apply device values"; most of the dialog is empty.
 
 ### 4.13 Window sizes (`*_window_1280x720_*`, `*_window_2560x1440_*`)
 
@@ -433,6 +508,11 @@ what each finding is evidence of.
   together (Carbon g100 #161616/#262626).
 - Plots use the same categorical order in both themes. The dark theme is not
   separately validated against its surface.
+- The selected "Suggested" chip is accent text on an accent-tinted fill. That
+  is low contrast in dark ([D059]) and at the edge in light ([L059]).
+- The eclipse band is a brown-orange wash over the whole plot area ([D059]).
+- The Monte Carlo failure chip ("3 runs failed") is dark red on near-black
+  ([D079]).
 
 ### 4.15 A defect found by the harness (not a UI issue)
 
@@ -653,15 +733,15 @@ Every milestone also has to meet all of these:
 
 | # | Milestone | Acceptance criteria |
 |---|---|---|
-| **M1** | **Foundation**: theme package, tokens, generated QSS, Inter + JetBrains Mono, Lucide, live theme switch, Plotly template, enforcement tests, Carbon removed | The token table matches the brief (or each change is recorded). Fonts register from the package on Linux, Windows and macOS (CI). The theme switches live in under 100 ms with every open view restyled, plots included. The hard-coded-style test passes over the whole GUI package (existing literals moved behind tokens). The contrast test passes in both themes. No IBM Plex file or Carbon name remains in code; the docs say "Carbon" only in history. `CLAUDE.md` holds the design rules. `docs/DECISIONS.md` and a licence report for the fonts and icons exist. The look changes; the layout does not. |
+| **M1** | **Foundation**: theme package, tokens, generated QSS, Inter + JetBrains Mono, Lucide, live theme switch, Plotly template, enforcement tests, Carbon removed | The token table matches the brief (or each change is recorded). Fonts register from the package on Linux, Windows and macOS (CI). The theme switches live in under 100 ms (today about 4 s), with every open view restyled, plots included. The hard-coded-style test passes over the whole GUI package (existing literals moved behind tokens). The contrast test passes in both themes. No IBM Plex file or Carbon name remains in code; the docs say "Carbon" only in history. `CLAUDE.md` holds the design rules. `docs/DECISIONS.md` and a licence report for the fonts and icons exist. The look changes; the layout does not. |
 | **M2** | **Shell**: nav rail, top bar, Ctrl+K palette (commands, objects, settings), inspector, Problems panel, status bar with jobs, action registry, layout persistence, shortcuts | Every row of §5.2 is reachable (an automated test walks the action registry and the §5.2 mapping). Menu and toolbar actions all exist in the registry with their shortcuts. Problems show severity, ID, object and message, sort by severity and jump to the field. The status bar shows running jobs with progress and Cancel. Layout (rail collapsed, splitter sizes, inspector and Problems visibility) is restored per project. Keyboard-only walk of the shell passes. Existing screens are hosted unchanged inside their areas. |
 | **M3** | **Home and templates** | Cards for all 31 templates with mission type, orbit summary and one line. All three come from the template files themselves: the description's first sentence, the orbit and the attitude mode. No new metadata is invented. Also: recent scenarios (QSettings, last 10, missing files marked); "New blank scenario"; Customize opens the wizard; a first-run card replaces the start-up download modal. Thumbnails only if you want them ([Q4](#9-questions-for-you)). |
-| **M4** | **Scenario editor** | Section list + focused form for every schema section. `NumberField` with unit suffixes everywhere: same values and same file output, round-trip tested. No boxes in boxes. Optional groups collapse their fields when off. The Power page fits 1280 px without horizontal scroll. A Form/JSON toggle that validates before applying. Device, ground-station, mission-step and dispersion editing is inline or in the inspector, with their modal dialogs removed. The unsaved-changes indicator works. Undo/redo through `QUndoStack` if it fits the existing `ScenarioHistory`, which otherwise stays. Explain becomes Scenario › Overview. The explainer refresh is debounced (250 ms) and moved off the GUI thread: no keystroke stalls more than 50 ms on template 23. |
-| **M5** | **Run and logs** | Run area: mode segmented control, Run (Ctrl+R), options inline (live plot, Vizard, SIL), and determinate progress where the worker knows sim time. History lists runs with a status badge, duration, mode and a provenance popover, loaded in a worker. The Log shows records for each run (start, end, warnings, saved path: logged by the GUI) in JetBrains Mono, with level filter, search and copy. Saving and pruning runs moves to a worker: the end of a run causes no stall over 50 ms. |
-| **M6** | **Results overview and analysis views** | Overview metric cards from `engine.run_summary`. A card is coloured only where a threshold exists in the scenario or config: link margin < 0 dB (the margin already includes `required_ebno_db`), and battery charge reaching 0. Everything else stays neutral. Plots, Output (a `DataTable`), Telemetry, Monte Carlo (a `DataTable`), Compare (a run switcher), End of Life and Budget are all rebuilt from components. Provenance moves to an info popover. Plot pages are persistent, with plotly.js loaded once, and switching plots stalls less than 50 ms. |
+| **M4** | **Scenario editor** | Section list + focused form for every schema section. `NumberField` with unit suffixes everywhere: same values and same file output, round-trip tested. No boxes in boxes. Optional groups collapse their fields when off. The Power page fits 1280 px without horizontal scroll. A Form/JSON toggle that validates before applying. Device, ground-station, mission-step and dispersion editing is inline or in the inspector, with their modal dialogs removed. The unsaved-changes indicator works. Undo/redo through `QUndoStack` if it fits the existing `ScenarioHistory`, which otherwise stays. Explain becomes Scenario › Overview. The explainer refresh is debounced (250 ms) and moved off the GUI thread: no keystroke stalls more than 50 ms on any template (today 54 ms max). |
+| **M5** | **Run and logs** | Run area: mode segmented control, Run (Ctrl+R), options inline (live plot, Vizard, SIL), and determinate progress where the worker knows sim time. History lists runs with a status badge, duration, mode and a provenance popover, loaded in a worker. The Log shows records for each run (start, end, warnings, saved path: logged by the GUI) in JetBrains Mono, with level filter, search and copy. Saving and pruning runs moves to a worker: the end of a run causes no stall over 50 ms (today 256 ms). |
+| **M6** | **Results overview and analysis views** | Overview metric cards from `engine.run_summary`. A card is coloured only where a threshold exists in the scenario or config: link margin < 0 dB (the margin already includes `required_ebno_db`), and battery charge reaching 0. Everything else stays neutral. Plots, Output (a `DataTable`), Telemetry, Monte Carlo (a `DataTable`), Compare (a run switcher), End of Life and Budget are all rebuilt from components. Provenance moves to an info popover. Plot pages are persistent, with plotly.js loaded once, and switching plots stalls less than 50 ms (today up to 155 ms). |
 | **M7** | **Timeline and plots** | Timeline rebuilt: UTC axis with `Z`; lanes per ground station and event type; zoom/pan (wheel, drag, keys); the time cursor linked to plots; the table as a `DataTable` that handles 10,000 events without a stall over 50 ms. Plots: the Plotly template, a linked time cursor across the grid, display decimation only (exports unchanged, tested). The 3D model view is lazy and opt-in, and the GUI stays fluid with `QTWEBENGINE_CHROMIUM_FLAGS=--disable-gpu`. |
 | **M8** | **Reports/Exports and Settings** | The Reports area lists every export of §5.3 with format, destination and provenance. Export files are byte-identical to 1.1.0 (tests compare them). Settings: appearance (theme follow-OS/dark/light, UI scale 90/100/110/125 %, reduce motion), reference data, Vizard location, layout reset, keyboard (generated) and About. |
-| **M9** | **Final**: performance pass, accessibility pass, after-screenshots, BEFORE_AFTER.md, user-guide screenshots, CHANGELOG, version 1.2.0 | Every interaction of §3 meets 50 ms, or the plan records why not with the measured value. Startup is not slower than the baseline. Keyboard-only walk of every area passes. `docs/ui/screenshots/after/` and `docs/ui/BEFORE_AFTER.md` exist. User-guide images are replaced. Compliance documents that cite screenshots or the Carbon restyle get their references updated (claims untouched). The version is 1.2.0 in all version files, with a CHANGELOG section describing the new UI. |
+| **M9** | **Final**: performance pass, accessibility pass, after-screenshots, BEFORE_AFTER.md, user-guide screenshots, CHANGELOG, version 1.2.0 | Every interaction of §3 meets 50 ms, or the plan records why not with the measured value. Startup to interactive is faster than the baseline (1.69–1.97 s), and the first visit to any page stalls less than 50 ms (today 383 ms for a spacecraft). Keyboard-only walk of every area passes. `docs/ui/screenshots/after/` and `docs/ui/BEFORE_AFTER.md` exist. User-guide images are replaced. Compliance documents that cite screenshots or the Carbon restyle get their references updated (claims untouched). The version is 1.2.0 in all version files, with a CHANGELOG section describing the new UI. |
 
 **Order and size.**
 
@@ -720,10 +800,9 @@ Every milestone also has to meet all of these:
    operations roadmap the Operations slot should be designed against?
 7. **Version.** The brief's example is 2.0.0 → 2.1.0, but the current
    release is 1.1.0, so the next minor is **1.2.0**. Confirm.
-8. **Screenshots in git.** The before-set is ⟨size⟩ in ⟨N⟩ PNGs (two
+8. **Screenshots in git.** The before-set is 28 MB in 230 PNGs (two
    themes). The after-set will be about the same. Keep both in the
    repository, or keep only the light theme, or store them as a release asset?
-
 9. **The Monte Carlo defect of §4.15.** It affects release 1.1.0. Fix it
    now as a separate bug-fix PR, before M1? My recommendation is a
    `QProcess` running the batch: it keeps the GUI responsive and can be
@@ -736,8 +815,10 @@ rationale.
 
 - **plotly.js.** Use the copy the `plotly` package already ships
   (`plotly/package_data/plotly.min.js`, offline). Do not copy it into
-  `spacemissionstudio`: it is already bundled with a pinned GUI dependency,
-  and a second copy would double 4.6 MB.
+  `spacemissionstudio`: it is already bundled with a GUI dependency
+  (`plotly>=5.0`, not pinned today), and a second copy would add 4.8 MB.
+  M1 asks whether to pin plotly and PySide6 in the GUI extra (see the
+  licence report).
 - **No new runtime dependencies.** Inter, JetBrains Mono and Lucide are
   assets, not packages. There is no SBOM in the repository today, so M1 adds
   `docs/THIRD_PARTY_ASSETS.md` as the licence report and records the plotly

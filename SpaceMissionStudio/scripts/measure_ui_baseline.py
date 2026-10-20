@@ -161,8 +161,7 @@ def interactions() -> list[dict]:
     tree = window.scenario_editor.page_tree
     window.show_view(window.scenario_editor)
     for path, item in tree.paths():
-        if "/" not in path:
-            measure(f"scenario page: {path}", lambda item=item: tree.tree.setCurrentItem(item), 1.0)
+        measure(f"scenario page: {path}", lambda item=item: tree.tree.setCurrentItem(item), 1.0)
 
     def type_name(text):
         window.scenario_editor.name_edit.setText(text)
@@ -231,6 +230,28 @@ def interactions() -> list[dict]:
 
     measure("apply the dark theme (live)", lambda: theme("dark"), 1.5)
     measure("apply the light theme (live)", lambda: theme("light"), 1.5)
+
+    # Typing in each template: one keystroke in the name field rebuilds the
+    # scenario, the explainer and the analyses (no debounce).
+    for path in sorted(TEMPLATES_DIR.glob("*.json")):
+        t0 = time.perf_counter()
+        window.open_path(path)
+        open_ms = (time.perf_counter() - t0) * 1e3
+        spin(0.5)  # [s]
+        base = window.scenario_editor.name_edit.text()
+        costs = []
+        for i in range(5):
+            t0 = time.perf_counter()
+            window.scenario_editor.name_edit.setText(base + "x" * (i + 1))
+            costs.append((time.perf_counter() - t0) * 1e3)
+            spin(0.05)  # [s]
+        costs.sort()
+        results.append({"interaction": f"template {path.stem}: open, then one keystroke (median, max)",
+                        "call_ms": round(open_ms, 1), "keystroke_median_ms": round(costs[2], 1),
+                        "keystroke_max_ms": round(costs[-1], 1)})
+        print(f"{path.stem:52s} open {open_ms:7.1f} ms  keystroke median {costs[2]:5.1f} ms  max {costs[-1]:5.1f} ms",
+              flush=True)
+        window._dirty = False
 
     window._dirty = False
     window.close()

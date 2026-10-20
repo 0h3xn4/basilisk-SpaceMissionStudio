@@ -1,0 +1,535 @@
+{
+  "machine": {
+    "platform": "Linux-6.18.44-fc-v139-x86_64-with-glibc2.39",
+    "python": "3.11.15",
+    "cpus": 4,
+    "qpa": "offscreen"
+  },
+  "budget_ms": 50.0,
+  "startup": [
+    {
+      "interpreter_to_script_ms": 31.25457807936982,
+      "import_qt_ms": 61.324144000082015,
+      "import_gui_ms": 295.218671999919,
+      "application_and_theme_ms": 11.753412999951252,
+      "main_window_constructor_ms": 1250.4237040002408,
+      "show_ms": 25.95980799969766,
+      "show_to_first_idle_ms": 16.2506060000851,
+      "spawn_to_interactive_ms": 1692.1918392181396
+    },
+    {
+      "interpreter_to_script_ms": 34.58387579939881,
+      "import_qt_ms": 64.65243599996029,
+      "import_gui_ms": 309.45138000015504,
+      "application_and_theme_ms": 13.187722999646212,
+      "main_window_constructor_ms": 1375.8877990003384,
+      "show_ms": 23.908465999738837,
+      "show_to_first_idle_ms": 13.752504999956727,
+      "spawn_to_interactive_ms": 1835.4284763336182
+    },
+    {
+      "interpreter_to_script_ms": 37.852538483548415,
+      "import_qt_ms": 74.09506800013332,
+      "import_gui_ms": 304.0954309999506,
+      "application_and_theme_ms": 11.21624300003532,
+      "main_window_constructor_ms": 1503.986581999925,
+      "show_ms": 24.446996999813564,
+      "show_to_first_idle_ms": 14.187483000114298,
+      "spawn_to_interactive_ms": 1969.8841571807861
+    }
+  ],
+  "interactions": [
+    {
+      "interaction": "open template 23 (complete small satellite)",
+      "call_ms": 132.6,
+      "longest_stall_ms": 154.0,
+      "stalls_over_budget": 1
+    },
+    {
+      "interaction": "open template 09 (Monte Carlo)",
+      "call_ms": 355.3,
+      "longest_stall_ms": 376.3,
+      "stalls_over_budget": 1
+    },
+    {
+      "interaction": "open template 23 again",
+      "call_ms": 107.0,
+      "longest_stall_ms": 128.9,
+      "stalls_over_budget": 1
+    },
+    {
+      "interaction": "scenario page: Templates",
+      "call_ms": 1.7,
+      "longest_stall_ms": 11.5,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Scenario",
+      "call_ms": 0.9,
+      "longest_stall_ms": 7.8,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Environment",
+      "call_ms": 2.6,
+      "longest_stall_ms": 14.3,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Spacecraft",
+      "call_ms": 1.8,
+      "longest_stall_ms": 7.3,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Spacecraft > smallsat-1",
+      "call_ms": 361.2,
+      "longest_stall_ms": 383.1,
+      "stalls_over_budget": 1
+    },
+    {
+      "interaction": "scenario page: Spacecraft > smallsat-1 > Orbit / mass",
+      "call_ms": 0.1,
+      "longest_stall_ms": 2.8,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Spacecraft > smallsat-1 > Sensors / actuators",
+      "call_ms": 2.3,
+      "longest_stall_ms": 8.6,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Spacecraft > smallsat-1 > Attitude control",
+      "call_ms": 3.7,
+      "longest_stall_ms": 10.1,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Spacecraft > smallsat-1 > Power / propulsion / link budget",
+      "call_ms": 8.2,
+      "longest_stall_ms": 20.6,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Spacecraft > smallsat-1 > 3D model",
+      "call_ms": 2.7,
+      "longest_stall_ms": 9.3,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Spacecraft > smallsat-1 > Vizard model",
+      "call_ms": 4.0,
+      "longest_stall_ms": 14.3,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Spacecraft > smallsat-1 > Budget (AD10)",
+      "call_ms": 3.6,
+      "longest_stall_ms": 13.7,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Ground stations",
+      "call_ms": 3.4,
+      "longest_stall_ms": 8.0,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Ground stations > berlin-gs",
+      "call_ms": 8.0,
+      "longest_stall_ms": 13.9,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Mission sequence",
+      "call_ms": 2.6,
+      "longest_stall_ms": 32.3,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Monte Carlo",
+      "call_ms": 2.7,
+      "longest_stall_ms": 7.1,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: JSON",
+      "call_ms": 7.6,
+      "longest_stall_ms": 18.5,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Analyses > End of Life",
+      "call_ms": 2.7,
+      "longest_stall_ms": 8.1,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Analyses > Budget",
+      "call_ms": 2.7,
+      "longest_stall_ms": 7.0,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "scenario page: Analyses > Flight Software",
+      "call_ms": 2.4,
+      "longest_stall_ms": 7.8,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "edit one field (scenario name), Explain open",
+      "call_ms": 23.4,
+      "longest_stall_ms": 32.9,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "edit one field, Explain shown",
+      "call_ms": 27.5,
+      "longest_stall_ms": 38.9,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "main tab (before a run): Scenario",
+      "call_ms": 0.0,
+      "longest_stall_ms": 5.4,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "main tab (before a run): Results",
+      "call_ms": 9.2,
+      "longest_stall_ms": 14.8,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "main tab (before a run): Events",
+      "call_ms": 4.2,
+      "longest_stall_ms": 9.8,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "main tab (before a run): Compare",
+      "call_ms": 3.5,
+      "longest_stall_ms": 6.4,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "main tab (before a run): Log",
+      "call_ms": 1.9,
+      "longest_stall_ms": 5.3,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "side tab: Inspector",
+      "call_ms": 1.5,
+      "longest_stall_ms": 3.4,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "side tab: Explain",
+      "call_ms": 0.8,
+      "longest_stall_ms": 3.6,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "side tab: Problems",
+      "call_ms": 2.2,
+      "longest_stall_ms": 6.0,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "run template 23 and show its results (whole run)",
+      "call_ms": 4973.9,
+      "longest_stall_ms": 255.9,
+      "stalls_over_budget": 2
+    },
+    {
+      "interaction": "settle after the run",
+      "call_ms": 0.0,
+      "longest_stall_ms": 12.1,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "results page: Plots",
+      "call_ms": 3.8,
+      "longest_stall_ms": 10.9,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "results page: Dashboard",
+      "call_ms": 1.5,
+      "longest_stall_ms": 6.3,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "results page: Output",
+      "call_ms": 1.7,
+      "longest_stall_ms": 9.8,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "main tab (after a run): Scenario",
+      "call_ms": 3.2,
+      "longest_stall_ms": 14.4,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "main tab (after a run): Results",
+      "call_ms": 4.4,
+      "longest_stall_ms": 13.9,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "main tab (after a run): Events",
+      "call_ms": 2.2,
+      "longest_stall_ms": 7.8,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "main tab (after a run): Compare",
+      "call_ms": 1.8,
+      "longest_stall_ms": 6.8,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "main tab (after a run): Log",
+      "call_ms": 1.7,
+      "longest_stall_ms": 5.6,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "results: show plot 1 (smallsat-1.position_N)",
+      "call_ms": 31.2,
+      "longest_stall_ms": 33.7,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "results: show plot 2 (smallsat-1.velocity_N)",
+      "call_ms": 30.6,
+      "longest_stall_ms": 33.2,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "results: show plot 3 (smallsat-1.orbit_elements.semi_major_axis)",
+      "call_ms": 152.4,
+      "longest_stall_ms": 154.8,
+      "stalls_over_budget": 1
+    },
+    {
+      "interaction": "results: show plot 4 (smallsat-1.orbit_elements.inclination)",
+      "call_ms": 28.0,
+      "longest_stall_ms": 30.8,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "results: search the plot catalog",
+      "call_ms": 0.7,
+      "longest_stall_ms": 10.3,
+      "stalls_over_budget": 0
+    },
+    {
+      "interaction": "open the spacecraft editor dialog",
+      "call_ms": 314.0,
+      "longest_stall_ms": 317.9,
+      "stalls_over_budget": 1
+    },
+    {
+      "interaction": "apply the dark theme (live)",
+      "call_ms": 3988.9,
+      "longest_stall_ms": 4019.2,
+      "stalls_over_budget": 1
+    },
+    {
+      "interaction": "apply the light theme (live)",
+      "call_ms": 3741.7,
+      "longest_stall_ms": 3775.2,
+      "stalls_over_budget": 1
+    },
+    {
+      "interaction": "template 01_two_body_circular_orbit: open, then one keystroke (median, max)",
+      "call_ms": 127.4,
+      "keystroke_median_ms": 11.9,
+      "keystroke_max_ms": 18.5
+    },
+    {
+      "interaction": "template 02_elliptical_orbit_with_perturbations: open, then one keystroke (median, max)",
+      "call_ms": 64.8,
+      "keystroke_median_ms": 17.7,
+      "keystroke_max_ms": 18.8
+    },
+    {
+      "interaction": "template 03_geo_station_keeping: open, then one keystroke (median, max)",
+      "call_ms": 76.3,
+      "keystroke_median_ms": 12.7,
+      "keystroke_max_ms": 14.7
+    },
+    {
+      "interaction": "template 04_walker_constellation: open, then one keystroke (median, max)",
+      "call_ms": 100.6,
+      "keystroke_median_ms": 35.7,
+      "keystroke_max_ms": 37.2
+    },
+    {
+      "interaction": "template 05_formation_flying_phasing: open, then one keystroke (median, max)",
+      "call_ms": 161.8,
+      "keystroke_median_ms": 28.1,
+      "keystroke_max_ms": 49.3
+    },
+    {
+      "interaction": "template 06_attitude_pointing_basic: open, then one keystroke (median, max)",
+      "call_ms": 149.6,
+      "keystroke_median_ms": 11.9,
+      "keystroke_max_ms": 15.8
+    },
+    {
+      "interaction": "template 07_attitude_pointing_with_adcs_hardware: open, then one keystroke (median, max)",
+      "call_ms": 81.9,
+      "keystroke_median_ms": 21.6,
+      "keystroke_max_ms": 24.0
+    },
+    {
+      "interaction": "template 08_mission_sequence_orbit_raise: open, then one keystroke (median, max)",
+      "call_ms": 123.1,
+      "keystroke_median_ms": 25.1,
+      "keystroke_max_ms": 29.2
+    },
+    {
+      "interaction": "template 09_monte_carlo_dispersion_analysis: open, then one keystroke (median, max)",
+      "call_ms": 137.2,
+      "keystroke_median_ms": 11.6,
+      "keystroke_max_ms": 12.4
+    },
+    {
+      "interaction": "template 10_gravity_gradient_torque: open, then one keystroke (median, max)",
+      "call_ms": 84.4,
+      "keystroke_median_ms": 10.9,
+      "keystroke_max_ms": 12.6
+    },
+    {
+      "interaction": "template 11_thruster_attitude_control: open, then one keystroke (median, max)",
+      "call_ms": 68.3,
+      "keystroke_median_ms": 12.6,
+      "keystroke_max_ms": 16.0
+    },
+    {
+      "interaction": "template 12_reaction_wheel_momentum_dumping: open, then one keystroke (median, max)",
+      "call_ms": 80.4,
+      "keystroke_median_ms": 12.0,
+      "keystroke_max_ms": 12.7
+    },
+    {
+      "interaction": "template 13_magnetic_torque_rod_momentum_management: open, then one keystroke (median, max)",
+      "call_ms": 72.6,
+      "keystroke_median_ms": 10.1,
+      "keystroke_max_ms": 11.5
+    },
+    {
+      "interaction": "template 14_css_sun_heading_estimation: open, then one keystroke (median, max)",
+      "call_ms": 76.3,
+      "keystroke_median_ms": 12.7,
+      "keystroke_max_ms": 16.5
+    },
+    {
+      "interaction": "template 15_celestial_body_pointing: open, then one keystroke (median, max)",
+      "call_ms": 78.2,
+      "keystroke_median_ms": 12.5,
+      "keystroke_max_ms": 14.5
+    },
+    {
+      "interaction": "template 16_lambert_transfer: open, then one keystroke (median, max)",
+      "call_ms": 74.4,
+      "keystroke_median_ms": 11.4,
+      "keystroke_max_ms": 14.5
+    },
+    {
+      "interaction": "template 17_fuel_tank_depletion: open, then one keystroke (median, max)",
+      "call_ms": 73.1,
+      "keystroke_median_ms": 11.7,
+      "keystroke_max_ms": 15.9
+    },
+    {
+      "interaction": "template 18_leo_station_keeping: open, then one keystroke (median, max)",
+      "call_ms": 86.9,
+      "keystroke_median_ms": 16.6,
+      "keystroke_max_ms": 33.3
+    },
+    {
+      "interaction": "template 19_sun_pointing_comms_link: open, then one keystroke (median, max)",
+      "call_ms": 127.5,
+      "keystroke_median_ms": 16.1,
+      "keystroke_max_ms": 28.9
+    },
+    {
+      "interaction": "template 20_thermal_simulation: open, then one keystroke (median, max)",
+      "call_ms": 93.2,
+      "keystroke_median_ms": 14.4,
+      "keystroke_max_ms": 17.0
+    },
+    {
+      "interaction": "template 21_disturbance_torques: open, then one keystroke (median, max)",
+      "call_ms": 108.2,
+      "keystroke_median_ms": 35.4,
+      "keystroke_max_ms": 52.8
+    },
+    {
+      "interaction": "template 22_starter_first_leo_satellite: open, then one keystroke (median, max)",
+      "call_ms": 216.4,
+      "keystroke_median_ms": 39.4,
+      "keystroke_max_ms": 43.2
+    },
+    {
+      "interaction": "template 23_starter_complete_small_satellite: open, then one keystroke (median, max)",
+      "call_ms": 142.9,
+      "keystroke_median_ms": 22.9,
+      "keystroke_max_ms": 39.1
+    },
+    {
+      "interaction": "template 24_formation_mean_element_control: open, then one keystroke (median, max)",
+      "call_ms": 147.5,
+      "keystroke_median_ms": 27.0,
+      "keystroke_max_ms": 32.0
+    },
+    {
+      "interaction": "template 25_monte_carlo_orbit_and_drag_dispersions: open, then one keystroke (median, max)",
+      "call_ms": 135.0,
+      "keystroke_median_ms": 15.7,
+      "keystroke_max_ms": 18.1
+    },
+    {
+      "interaction": "template 26_earth_observation_data_downlink: open, then one keystroke (median, max)",
+      "call_ms": 143.6,
+      "keystroke_median_ms": 32.0,
+      "keystroke_max_ms": 54.0
+    },
+    {
+      "interaction": "template 27_flexible_solar_arrays: open, then one keystroke (median, max)",
+      "call_ms": 130.6,
+      "keystroke_median_ms": 22.0,
+      "keystroke_max_ms": 23.8
+    },
+    {
+      "interaction": "template 28_octagonal_bus_3d_model: open, then one keystroke (median, max)",
+      "call_ms": 104.2,
+      "keystroke_median_ms": 26.7,
+      "keystroke_max_ms": 28.9
+    },
+    {
+      "interaction": "template 29_roe_formation_helix: open, then one keystroke (median, max)",
+      "call_ms": 133.7,
+      "keystroke_median_ms": 28.3,
+      "keystroke_max_ms": 38.3
+    },
+    {
+      "interaction": "template 30_mars_optical_navigation: open, then one keystroke (median, max)",
+      "call_ms": 113.8,
+      "keystroke_median_ms": 12.6,
+      "keystroke_max_ms": 13.1
+    },
+    {
+      "interaction": "template 31_eros_landmark_navigation: open, then one keystroke (median, max)",
+      "call_ms": 71.8,
+      "keystroke_median_ms": 12.2,
+      "keystroke_max_ms": 18.8
+    }
+  ]
+}
