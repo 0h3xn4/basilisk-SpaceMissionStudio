@@ -301,14 +301,12 @@ jobs:
           os._exit(0)  # skip Qt WebEngine's teardown at exit
           EOF
 
-  # macOS produces no file: its result goes into the notes, and a macOS job
-  # that GitHub could not start (no runner) or that failed does not hold the
-  # Linux and Windows files back. The release is a draft for a person to read.
+  # macOS produces no file, so attaching does not wait for it: GitHub can
+  # leave a macOS job queued for a long time without a runner. The macOS
+  # install check stays a job of the same run, which the notes link to.
   attach:
-    needs: [linux, windows, macos]
-    if: >-
-      !cancelled() && github.event_name != 'pull_request'
-      && needs.linux.result == 'success' && needs.windows.result == 'success'
+    needs: [linux, windows]
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -316,7 +314,6 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       VERSION: ${{ needs.linux.outputs.version }}
-      MACOS_RESULT: ${{ needs.macos.result }}
     defaults:
       run:
         working-directory: SpaceMissionStudio
@@ -345,11 +342,7 @@ jobs:
             echo "**Files.** Linux (x86_64): \`spacemissionstudio_${version}_all.deb\` (\`sudo apt install ./spacemissionstudio_${version}_all.deb\`)."
             echo "Windows (x64): \`spacemissionstudio-${version}-setup.exe\` (not signed, so Windows asks before running it)."
             echo "macOS 11 or newer on Apple silicon: no installer yet; install the wheel \`spacemissionstudio-${version}-py3-none-any.whl\` with \`packaging/install.sh\` (docs/getting-started.md)."
-            case "$MACOS_RESULT" in
-              success) echo "On macOS the wheel was installed with \`packaging/install.sh\` and run by this workflow." ;;
-              failure) echo "**The macOS install check failed in this workflow run**; see the run below." ;;
-              *) echo "**The macOS install check did not run** (GitHub started no macOS runner: $MACOS_RESULT)." ;;
-            esac
+            echo "The macOS install check of the wheel is the \`macos\` job of the workflow run below; it may finish after the files are attached."
             echo "Checksums: \`SHA256SUMS-linux\`, \`SHA256SUMS-windows\`. Each package was installed on its platform and run by the workflow run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
             echo
             awk -v head="## $version (" 'index($0, head) == 1 { on = 1; next } on && /^## / { exit } on' CHANGELOG.md

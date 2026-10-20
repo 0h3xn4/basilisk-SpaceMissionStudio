@@ -113,9 +113,9 @@ what has been verified where.
   The release workflow (section 5) builds, checks and attaches the files
   to a draft release titled "SpaceMissionStudio X.Y.Z". If the Linux or
   Windows job fails, nothing is attached; fix the cause and run the
-  workflow again for the tag. macOS produces no file, so a macOS check
-  that fails, or that GitHub cannot start for lack of a runner, does not
-  hold the release back: the notes say so.
+  workflow again for the tag. macOS produces no file, so attaching does
+  not wait for the macOS check; it is a job of the same run, which the
+  notes link to.
 - Read the draft on
   <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases>: the
   six files, and the notes, which say which platform has which file and
