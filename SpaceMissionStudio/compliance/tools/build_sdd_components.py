@@ -67,7 +67,7 @@ SRS_TO_COMPONENTS = {
     "SRS-F-11": ["schema/command", "engine/mission_engine"],
     "SRS-F-12": ["engine/results", "engine/series_names", "engine/frames"],
     "SRS-F-13": ["engine/lifetime", "engine/propellant_budget", "engine/monte_carlo", "engine/link_budget",
-                 "engine/constellation", "engine/formation", "engine/orbit_design"],
+                 "engine/constellation", "engine/formation", "engine/orbit_design", "gui/monte_carlo_process"],
     "SRS-F-14": ["engine/ccsds_odm", "engine/tle"],
     "SRS-F-15": ["gui/main_window", "gui/scenario_editor", "gui/results_widget", "gui/mission_dashboard_widget",
                  "gui/mission_output_widget", "gui/data_panel_widget", "gui/help_dialog", "gui/scenario_explainer_widget",
