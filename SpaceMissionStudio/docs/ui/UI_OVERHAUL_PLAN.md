@@ -434,7 +434,26 @@ what each finding is evidence of.
 - Plots use the same categorical order in both themes. The dark theme is not
   separately validated against its surface.
 
-### 4.15 Gaps against the brief that are not screens
+### 4.15 A defect found by the harness (not a UI issue)
+
+- **Monte Carlo from the GUI fails every run when `thread_count` is 1.**
+  Template 09 uses 1, which is also the schema default. The harness's batch
+  of template 09 ended "3 of 3 runs failed" ([L079], [D079]).
+- **Cause.** `gui/run_worker.MonteCarloWorker` runs the batch on a
+  `QThread`. With one thread, Basilisk's
+  `utilities/MonteCarlo/Controller.py:787` runs each case in-process and
+  calls `signal.signal(SIGINT, SIG_IGN)`. Python allows that only on the
+  main thread, so it raises `ValueError: signal only works in main thread of
+  the main interpreter`.
+- **Probably not affected (not tested here):** the CLI, which runs on the
+  main thread, and `thread_count` > 1, where each case runs in a pool
+  process.
+- **Not fixed in this overhaul.** The fix is in how the batch is started (for
+  example, a `QProcess` running the batch, or always using the process pool),
+  so it changes run behaviour. Basilisk must not be patched.
+  See [Q9](#9-questions-for-you).
+
+### 4.16 Gaps against the brief that are not screens
 
 - **No 3D orbit view and no ground-track map in the GUI.** Vizard provides 3D
   outside the app. The brief's "ground track map and 3D orbit view must stay
@@ -704,6 +723,11 @@ Every milestone also has to meet all of these:
 8. **Screenshots in git.** The before-set is ⟨size⟩ in ⟨N⟩ PNGs (two
    themes). The after-set will be about the same. Keep both in the
    repository, or keep only the light theme, or store them as a release asset?
+
+9. **The Monte Carlo defect of §4.15.** It affects release 1.1.0. Fix it
+   now as a separate bug-fix PR, before M1? My recommendation is a
+   `QProcess` running the batch: it keeps the GUI responsive and can be
+   cancelled. If not, the overhaul leaves it as it is.
 
 ## 10. Decisions taken without asking
 
