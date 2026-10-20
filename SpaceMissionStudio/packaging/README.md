@@ -415,9 +415,20 @@ its files is still 1.1.0):
 - Not done: an install by hand on a desktop, with the app opened from the
   menu; a Debian 12 or Ubuntu 22.04 machine.
 
-The Windows setup program is built and checked by the release workflow
-and `spacemissionstudio-windows-installer.yml` only (this sandbox has no
-Windows).
+**Verified on Windows (2026-10-20, `windows-latest`, the release
+workflow's pull-request run for this change,
+[run 39504407640](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/39504407640)):**
+`bundle_python.py --platform windows` built the bundle in the runner's
+short temporary folder; Inno Setup compiled it in 143 s into
+`spacemissionstudio-1.1.0-setup.exe` (about 395 MB); the silent install
+(`/VERYSILENT /CURRENTUSER`) took 72 s. With an empty support-data cache
+the installed tool reported 1.1.0, `kernels-status` found all nine files
+in `{app}\python\Lib\site-packages\supportData`, template 01 validated
+and ran from them, the Earth orientation files were found (the run's
+note: "high accuracy until 2026-12-28"), and the main window opened
+(offscreen) in Inter. The Windows installer workflow passed the same
+checks on the push. Not done: the wizard clicked through by hand, on a
+real Windows 10/11 machine (this sandbox has no Windows).
 
 ---
 
