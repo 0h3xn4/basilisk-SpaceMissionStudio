@@ -66,10 +66,12 @@ from pathlib import Path
 from PySide6.QtCore import QPointF, QRectF, Qt
 from PySide6.QtGui import QColor, QGuiApplication, QIcon, QPainter, QPen, QPixmap
 
-_ACCENT = "#0F62FE"  # solar panels -- theme.py's accent (Carbon interactive)
-_ACCENT_DARK = "#002D9C"  # antenna + panel grid lines (Carbon blue 80)
-_GOLD = "#CFB87C"  # satellite body -- see module docstring for why gold, not decorative
-_GOLD_DARK = "#A88F53"  # body centerline detail
+from .theme.palettes import APP_ICON
+
+_ACCENT = APP_ICON["panel"]  # solar panels
+_ACCENT_DARK = APP_ICON["panel_line"]  # antenna + panel grid lines
+_GOLD = APP_ICON["body"]  # satellite body -- see module docstring for why gold, not decorative
+_GOLD_DARK = APP_ICON["body_line"]  # body centerline detail
 
 # Below these sizes the corresponding detail is omitted entirely rather
 # than drawn illegibly thin -- confirmed by rendering both thresholds
@@ -199,26 +201,16 @@ def ensure_icon_file(path: "str | Path", size: int = 256) -> Path:
     return path
 
 
-_ASSETS_DIR = Path(__file__).resolve().parent / "assets"
-
-
 def toolbar_icon(name: str) -> QIcon:
-    """One of the app's own toolbar/menu line icons (``assets/tb-<name>.svg``).
+    """One of the app's toolbar and menu icons (a Lucide icon, ``theme.icons.ACTION_ICONS``),
+    tinted from the theme and following a theme change."""
+    from .theme import action_icon
 
-    Replaces the platform style's stock pixmaps, which mixed full-color
-    bitmaps (folder, floppy disk) with plain glyphs and left some actions
-    with no icon at all -- one consistent outline set reads as one app.
-    Qt derives the greyed disabled look from the same SVG automatically.
-    """
-    from .theme import themed_asset
-
-    return QIcon(str(themed_asset(_ASSETS_DIR / f"tb-{name}.svg")))
+    return action_icon(name)
 
 
 def step_icon(kind: str) -> QIcon:
-    """A Mission Sequence step kind's line icon (``assets/step-<kind>.svg``),
-    in the toolbar icons' style; an empty icon for an unknown kind."""
-    from .theme import themed_asset
+    """A Mission Sequence step kind's icon; an empty icon for an unknown kind."""
+    from .theme import step_icon as _step_icon
 
-    path = _ASSETS_DIR / f"step-{kind}.svg"
-    return QIcon(str(themed_asset(path))) if path.exists() else QIcon()
+    return _step_icon(kind)

@@ -9,9 +9,16 @@ over.
 
 - **Standard:** `docs/ux-standard.md` (the goals).
 - **Audit:** `docs/ux-audit.md` (the findings and each iteration's changes).
-- **Single source of truth:** `spacemissionstudio/gui/theme.py`. It builds
-  the QSS stylesheet and the `QPalette`. Widgets take colours from
-  `theme.PALETTE` and never pick their own.
+- **Brief:** `docs/ui/UI_OVERHAUL.md` (the design language this follows)
+  and `docs/ui/UI_OVERHAUL_PLAN.md` (its milestones).
+- **Single source of truth:** the theme package
+  `spacemissionstudio/gui/theme/`. Its tokens generate the application
+  style sheet, the `QPalette`, the Plotly template, the chart palette and
+  the icon tints. No widget picks a colour, a font or a size of its own.
+- **Decisions:** `docs/DECISIONS.md`; licences: `docs/THIRD_PARTY_ASSETS.md`.
+
+This replaces the Carbon-based system of 1.0 and 1.1 (IBM Carbon g10/g100
+colours and IBM Plex), which stays in git history.
 
 ## Contents
 
@@ -28,140 +35,159 @@ over.
 
 ### Colour
 
-The app follows IBM's Carbon design system:
+Calm, neutral surfaces with one accent; colour only where it means
+something. The tokens are the brief's table, the same in
+SpaceMissionStudio, SystemDesignStudio and HarnessDesignStudio
+(`theme/tokens.py`, `BRIEF`). Values changed to pass WCAG 2.2 AA are in
+`tokens.ADJUSTED` and in `docs/DECISIONS.md`; everything else is derived
+from the table (`tokens.tokens(mode)`).
 
-- **Light theme:** Carbon g10 (`theme.LIGHT`).
-- **Dark theme:** Carbon g100 (`theme.DARK`), under the same keys.
+- **Accent:** the primary action, the selection and the focus ring only.
+- **Surfaces, not lines:** areas differ by background (canvas, surface,
+  raised) and spacing; borders are 1 px and subtle, for inputs, table
+  headers, panels and splitters. Group boxes have no frame: their title
+  is a heading.
+- **Themes:** light and dark, following the system by default, switched
+  live (View > Theme).
 
-`theme.PALETTE` is one dict. `select_palette(theme)` fills it in place
-before the main window is built. Widgets read it when they are built, so
-a theme change applies at the next start.
-
-Where Carbon g100 has no token, the dark theme uses the hue's 90 step as
-the fill and its 30 step as the text on it. This applies to the
-notification backgrounds, which g100 makes one grey, and keeps a toast's
-or banner's colour readable.
-
-| Token | Light (g10) | Dark (g100) | Carbon token / use |
+| Token | Light | Dark | Use |
 |---|---|---|---|
-| `bg` | `#F4F4F4` | `#161616` | background |
-| `surface` | `#FFFFFF` | `#262626` | layer-01: tiles, group boxes, tab panes, popups |
-| `surface_alt` | `#F4F4F4` | `#393939` | layer-02 (on layer-01): status bar, recessed panels, disabled fields |
-| `field` | `#F4F4F4` | `#393939` | field-02: inputs on layer-01 |
-| `hover` | `#E8E8E8` | `#333333` | layer-hover-01 |
-| `selected` | `#E0E0E0` | `#393939` | layer-selected-01 (selected rows and list items) |
-| `border` | `#E0E0E0` | `#393939` | border-subtle-01 |
-| `border_strong` | `#8D8D8D` | `#6F6F6F` | border-strong-01 (field bottom rules, checkbox outlines) |
-| `field_edge` | `#C6C6C6` | `#525252` | gray 30: a field's other three edges (not Carbon; see the fields rule) |
-| `text` | `#161616` | `#F4F4F4` | text-primary (also icon-primary) |
-| `text_muted` | `#525252` | `#C6C6C6` | text-secondary |
-| `text_disabled` | `#C6C6C6` | `#6F6F6F` | text-disabled |
-| `disabled_fill` | `#C6C6C6` | `#525252` | button-disabled |
-| `on_disabled_fill` | `#8D8D8D` | `#8D8D8D` | text-on-color-disabled |
-| `accent` | `#0F62FE` | `#0F62FE` | interactive, button-primary, border-interactive (fills, indicators) |
-| `accent_text` | `#0F62FE` | `#78A9FF` | link-primary: blue text and the tertiary buttons' outline |
-| `focus` | `#0F62FE` | `#FFFFFF` | focus: the 2 px outline of the focused field or button |
-| `accent_hover` | `#0050E6` | `#0050E6` | button-primary-hover |
-| `accent_pressed` | `#002D9C` | `#002D9C` | button-primary-active |
-| `accent_soft` | `#D0E2FF` | `#002D9C` | highlight (text selection, soft accent) |
-| `on_accent` | `#FFFFFF` | `#FFFFFF` | text-on-color |
-| `inverse` | `#393939` | `#F4F4F4` | background-inverse (tooltips) |
-| `on_inverse` | `#FFFFFF` | `#161616` | text-inverse: tooltip text |
-| `icon_inverse` | `#FFFFFF` | `#161616` | icon-inverse: the tick on a ticked box (filled with icon-primary, "text") |
-| `danger` | `#DA1E28` | `#FA4D56` | support-error |
-| `success` | `#24A148` | `#42BE65` | support-success |
-| `warning` | `#8E6A00` | `#F1C21B` | yellow 60: warning TEXT (support-warning #F1C21B is too light for text) |
-| `warning_fill` | `#F1C21B` | `#F1C21B` | support-warning (fills, never text) |
-| `danger_soft` | `#FFF1F1` | `#520408` | notification-background-error |
-| `success_soft` | `#DEFBE6` | `#022D0D` | notification-background-success |
-| `warning_soft` | `#FCF4D6` | `#302400` | notification-background-warning |
-| `info_soft` | `#EDF5FF` | `#001D6C` | notification-background-info |
-| `success_text` | `#0E6027` | `#6FDC8C` | green 70: text on success_soft (support-success is a fill colour) |
-| `danger_text` | `#A2191F` | `#FFB3B8` | red 70: text on danger_soft |
-| `info_text` | `#0043CE` | `#A6C8FF` | blue 70 (support-info): text on info_soft |
-| `info` | `#0043CE` | `#4589FF` | support-info: the info toast's rule |
-| `tag_success_bg` | `#A7F0BA` | `#0E6027` | green tag (green 20 / 70) |
-| `tag_success_text` | `#0E6027` | `#A7F0BA` | green tag (green 20 / 70) |
-| `tag_danger_bg` | `#FFD7D9` | `#A2191F` | red tag (red 20 / 70) |
-| `tag_danger_text` | `#A2191F` | `#FFD7D9` | red tag (red 20 / 70) |
-| `tag_accent_bg` | `#D0E2FF` | `#0043CE` | blue tag (blue 20 / 70) |
-| `tag_accent_text` | `#0043CE` | `#D0E2FF` | blue tag (blue 20 / 70) |
+| `bg.canvas` | `#F7F7F8` | `#0B0D10` | window background (the brief) |
+| `bg.surface` | `#FFFFFF` | `#111418` | lists, tables, cards, plots (the brief) |
+| `bg.raised` | `#FFFFFF` | `#171B21` | menus, popups, tooltips (the brief; light: plus a border, Qt draws no shadows) |
+| `bg.hover` | `#F0F1F3` | `#1D222A` | hovered rows and controls (the brief) |
+| `border.subtle` | `#E4E5E9` | `#222832` | panel and table edges, splitters (the brief) |
+| `border.strong` | `#D0D3D9` | `#2E3540` | input borders, check boxes (the brief) |
+| `text.primary` | `#16181D` | `#E7E9EC` | body text (the brief) |
+| `text.secondary` | `#50565F` | `#A1A8B3` | hints, labels, axis text (the brief) |
+| `text.muted` | `#666D77` | `#868E9A` | placeholders, the off status (the brief; adjusted, see DECISIONS) |
+| `accent` | `#2563EB` | `#4C8DFF` | the primary action, selection and focus only (the brief) |
+| `bg.selected` | `#E9EFFD` | `#1A273D` | selected rows: the accent at 10 % (light) or 16 % (dark) over bg.surface |
+| `bg.field` | `#FFFFFF` | `#111418` | inputs: bg.surface |
+| `border.focus` | `#2563EB` | `#4C8DFF` | the 2 px focus ring: the accent |
+| `text.disabled` | `#A6A7A9` | `#626569` | disabled text: text.primary at 38 % |
+| `text.on_accent` | `#FFFFFF` | `#0B0D10` | text on the accent fill (dark: the canvas, white is 3.2:1) |
+| `text.link` | `#2563EB` | `#4C8DFF` | links: the accent |
+| `accent.hover` | `#2159D4` | `#5E98FF` | primary button hover |
+| `accent.pressed` | `#1E4FBC` | `#70A4FF` | primary button pressed |
+| `accent.soft` | `#CFDDFB` | `#253D67` | text selection in fields |
+| `status.critical` | `#FF4D4F` | `#FF4D4F` | critical: icons and indicators (3:1) |
+| `status.critical.text` | `#DA2331` | `#FF4D4F` | critical: words (4.5:1) |
+| `status.critical.soft` | `#FFF3F3` | `#371D21` | critical: tinted background |
+| `status.serious` | `#E16F18` | `#FF8A3D` | serious: icons and indicators (3:1) |
+| `status.serious.text` | `#BD4E00` | `#FF8A3D` | serious: words (4.5:1) |
+| `status.serious.soft` | `#FDF5EF` | `#37271E` | serious: tinted background |
+| `status.caution` | `#BE8400` | `#F5B83D` | caution: icons and indicators (3:1) |
+| `status.caution.text` | `#9E6500` | `#F5B83D` | caution: words (4.5:1) |
+| `status.caution.soft` | `#FAF6ED` | `#352E1E` | caution: tinted background |
+| `status.normal` | `#00A45D` | `#3DD68C` | normal: icons and indicators (3:1) |
+| `status.normal.text` | `#00833F` | `#3DD68C` | normal: words (4.5:1) |
+| `status.normal.soft` | `#EDF9F4` | `#18332B` | normal: tinted background |
+| `status.standby` | `#3496D5` | `#56B4F5` | standby: icons and indicators (3:1) |
+| `status.standby.text` | `#0077B4` | `#56B4F5` | standby: words (4.5:1) |
+| `status.standby.soft` | `#F1F8FC` | `#1C2E3B` | standby: tinted background |
+| `status.off` | `#666D77` | `#868E9A` | off: icons and indicators (3:1) |
+| `status.off.text` | `#666D77` | `#868E9A` | off: words (4.5:1) |
+| `status.off.soft` | `#F0F1F3` | `#1D222A` | off: tinted background |
+| `diff.added` | `#EDF9F4` | `#18332B` | diff background: normal tint |
+| `diff.removed` | `#FFF3F3` | `#371D21` | diff background: critical tint |
+| `diff.changed` | `#FAF6ED` | `#352E1E` | diff background: caution tint |
+| `shadow` | `#16181D` | `#000000` | floating elements' shadow colour |
 
-The table is checked against `theme.py` by
-`tests/gui/test_design_rules.py`. A token added, removed or changed
-there fails the test until this table says the same.
+The table is checked against the theme package by
+`tests/gui/test_design_rules.py::test_the_token_table_matches_the_theme`.
 
-**Contrast.** Every pair the stylesheet and the widgets draw is tested in
-both themes (`tests/gui/test_dark_theme.py::test_every_pair_the_app_draws_is_readable`):
+Widgets written before the token table read the role names in
+`theme.PALETTE` (`text_muted`, `danger_soft` ...). Each role stands for
+one token (`theme/state.py`, `ROLES`); new code uses the token names
+(`theme.TOKENS["text.secondary"]`).
 
-- text on its backgrounds: at least 4.5:1;
-- indicators and outlines (focus, accent, success): at least 3:1;
-- a field's bottom rule: at least 1.5:1.
+**Contrast.** Every pair the GUI draws is listed in
+`tokens.CONTRAST_PAIRS` and tested in both themes
+(`tests/gui/test_dark_theme.py::test_every_pair_the_app_draws_meets_wcag_aa`):
 
-These are WCAG 2.1 criteria 1.4.3 and 1.4.11.
+- text (primary, secondary, muted, links, status words) on every
+  background it is drawn on: at least 4.5:1;
+- icons, indicators and the focus ring: at least 3:1.
 
-**Other theme tests.**
-
-- Both themes have the same keys (`test_both_themes_have_the_same_keys`).
-- A dark window has no light-theme colour left in its stylesheets
-  (`test_a_dark_window_has_no_light_colour_left`).
+These are WCAG 2.2 criteria 1.4.3 and 1.4.11. Borders between surfaces
+are deliberately low-contrast (the brief's 1 px subtle borders); an input
+is also told apart by its fill and its hover and focus states.
 
 ### Status colours
 
-A status colour means one thing everywhere. It never decorates and never
-stands alone: a status is always written out as well (a tag's text, a
-problem's "Error:" or "Warning:", a toast's words).
+The Astro UXDS taxonomy: critical, serious, caution, normal, standby, off.
+A status colour means one thing everywhere, is the only coloured thing on
+a neutral screen, and never stands alone: a status is always written out
+as well (a badge's text, a problem's "Error:" or "Warning:", a toast's
+words).
 
-| Meaning | Text | Fill / tag | Where |
-|---|---|---|---|
-| Error, failed, blocks a run | `danger`, `danger_text` | `danger_soft`, `tag_danger_*` | Problems, field errors, error toasts, a failed run's chip, the red tree counts |
-| Warning, look at this | `warning` | `warning_soft`, `warning_fill` | Plausibility warnings, out-of-range values, warning toasts, the yellow tree counts |
-| Success, done | `success_text` | `success_soft`, `tag_success_*` | Success toasts, a finished run's chip, met rules |
-| Information, selection | `info_text`, `accent_text` | `info_soft`, `tag_accent_*` | Info toasts, Explain badges |
-| Neutral | `text` | `selected` | Muted tags |
+| Status | Means | Icon / indicator | Words | Tint |
+|---|---|---|---|---|
+| critical | error, failed, blocks a run | `status.critical` | `status.critical.text` | `status.critical.soft` |
+| serious | a serious condition | `status.serious` | `status.serious.text` | `status.serious.soft` |
+| caution | warning, look at this | `status.caution` | `status.caution.text` | `status.caution.soft` |
+| normal | success, done, met | `status.normal` | `status.normal.text` | `status.normal.soft` |
+| standby | information, in progress | `status.standby` | `status.standby.text` | `status.standby.soft` |
+| off | neutral, not known | `status.off` (text.muted) | `status.off.text` | `status.off.soft` |
 
-**Badges** (`gui/badges.py`) are pairs of token names:
-
-- `MUTED`, `SUCCESS`, `DANGER`, `ACCENT`, `WARNING`;
-- `badge_style(pair)` looks the pair up when the badge is styled, so it
-  takes the theme in use.
+**Badges** (`gui/badges.py`): `set_badge(label, kind)` with
+`MUTED` (off), `SUCCESS` (normal), `DANGER` (critical), `ACCENT`
+(standby) or `WARNING` (caution); the style sheet's `[badge=...]` rules
+draw them.
 
 **Problem counts in the scenario tree** (`PageTree.set_problem_count`):
-
-- yellow when every problem is a warning;
-- red when at least one is an error;
-- a tooltip counts each kind.
+caution when every problem is a warning, critical when at least one is an
+error; a tooltip counts each kind.
 
 ### Data colours
 
-`theme.SERIES_COLORS` holds eight categorical hues: Carbon's cyan 50,
-orange 50, purple 60, yellow 50, teal 50, orange 60, blue 50 and
-magenta 60.
+`theme.SERIES_COLORS` is the theme's 8-colour categorical palette
+(`theme/palettes.py`), stepped for each theme's surface:
 
 - **Order:** fixed, assigned in order and never cycled.
-- **Validated:** with the dataviz palette validator, on the white chart
-  surface and on the dark one (#262626), unchanged in both themes, so a
-  series keeps its colour.
-- **No red or green:** they mean error and success.
+- **Validated** with the data-visualisation palette validator for adjacent
+  pairs (lines, bars): worst colour-vision-deficiency Delta E 14.3 (light)
+  and 14.8 (dark), every colour at least 3:1 against its surface.
+- **Distinct from status and the accent:** every colour is at least
+  Delta E 8 from each status colour and from the accent
+  (`tests/gui/test_theme.py::test_the_categorical_palette_is_distinct_and_readable`).
+- **A legend always:** with all 28 pairs side by side (a scatter of eight
+  groups) two pairs fall below the floors, so colour is never the only cue.
 
-The 3D view's body axes use x red, y green, z blue. That is an identity
-convention, not a status, and is listed in the colour exceptions below.
+The 3D view's body axes use x red, y green, z blue
+(`palettes.AXIS_COLOURS`): an identity convention for geometry, not a
+status.
+
+**Plots** take the Plotly template from the tokens
+(`theme/plotly_template.py`): Inter, transparent backgrounds over
+`bg.surface`, gridlines in `border.subtle`, axis text in
+`text.secondary`, hover labels on `bg.raised`. Axis titles carry their
+units. The time cursor is drawn in the accent: it is a selection.
 
 ### Type
 
 | Use | Font | Size | Weight |
 |---|---|---|---|
-| Body, forms, tables | IBM Plex Sans | 14 px (10.5 pt at 96 dpi), 0.16 px tracking | 400 |
-| Headings, selected tabs, section titles | IBM Plex Sans | 14 px | 600 |
-| Top bar scenario name | IBM Plex Sans | 16 px | 600 |
-| A field's error or warning line | IBM Plex Sans | 12 px | 400 |
-| The Log | IBM Plex Mono | 14 px | 400 |
+| Caption | Inter | 11 px | 400 |
+| Small text, table cells, field messages, the status bar | Inter | 12 px | 400 |
+| Body (the base) | Inter | 13 px | 400 |
+| Buttons, tabs | Inter | 13 px | 500 |
+| Section title, scenario name | Inter | 15 px | 600 |
+| Page title | Inter | 18 px | 600 |
+| Display (rare) | Inter | 22 px | 600 |
+| Numbers in tables, IDs, code, logs | JetBrains Mono, or Inter with tabular figures | 12 px | 400 |
 
-- **Font files:** the WOFF files ship unmodified under the SIL Open Font
-  License (`gui/assets/fonts/`).
-- **Fallback:** where Qt cannot load them (PySide6 older than 6.7), the
-  platform font is used.
-- **Tests:** `tests/gui/test_theme.py::test_ibm_plex_is_loaded_and_set_as_the_application_font`.
+- **Weights:** 400, 500 and 600 only.
+- **Files:** Inter 4.1 and JetBrains Mono 2.304 as TTF, unmodified, under
+  the SIL Open Font License 1.1 (`gui/assets/fonts/<family>/`), registered
+  with `QFontDatabase` at start-up; the GUI never depends on a system font.
+- **Tabular figures:** `theme.numeric_font()` switches on Inter's `tnum`
+  where Qt supports font features (6.7 and later), and uses JetBrains
+  Mono otherwise.
+- **Roles:** a label's size and weight come from its role
+  (`theme.set_role(label, role="section-title")`), not from code.
+- **Tests:** `tests/gui/test_theme.py::test_the_bundled_fonts_register_and_are_the_application_font`.
 
 ### Layout
 
@@ -169,7 +195,7 @@ The app shell:
 
 - **Top bar:** the scenario name, its state (unsaved, from a template or
   a file), the last run and a run status chip.
-- **Toolbars:** Run is the one primary (filled blue) button.
+- **Toolbars:** Run is the one primary (accent) button.
 - **Workspace tabs:** Scenario, Results, Events, Compare, Log.
 - **Scenario tab:** the scenario tree on the left. Each spacecraft has a
   node per part of its editor.
@@ -181,6 +207,11 @@ The app shell:
 
 | Measure | Value | Where |
 |---|---|---|
+| Grid | 4 px: 4, 8, 12, 16, 24, 32 | `theme.SPACE` |
+| Control height | 32 px (28 px compact: toolbar buttons) | `theme.CONTROL_HEIGHT` |
+| Table rows | 26 px | `theme.ROW_HEIGHT` |
+| Corner radius | 6 px controls, 8 px panels, popovers and dialogs | `theme.RADIUS` |
+| Focus ring | 2 px, the accent | `theme/qss.py` |
 | Smallest window the views are checked at | 1280 x 720 px | `scripts/capture_screenshots.py --size` |
 | Widest a form, a list editor or the template list grows | 960 px (`theme.CONTENT_MAX_WIDTH_PX`) | `scenario_editor._page`, the embedded forms, End of Life, Templates |
 | Scenario tree | at least 170 px, 220 px to start | `gui/page_tree.py` |
@@ -191,26 +222,27 @@ The app shell:
 JSON view, Compare and the model editor. A form keeps the left edge, and
 the Scenario form sits at the top of its page.
 
-**Corners:** square (Carbon), except badges, which are rounded tags.
+**Fields:** a 1 px `border.strong` edge on `bg.field`, 6 px corners; hover
+darkens the edge, focus draws the 2 px accent ring; an error or warning
+draws a 2 px status ring (`tests/gui/test_input_borders.py`).
 
-**Fields:** filled, with a bottom rule and a 2 px focus outline.
-
-**Light edge on the other three sides of a field:** the one deviation
-from Carbon, so editable values read as boxes
-(`tests/gui/test_input_borders.py`).
+**Shadows:** Qt style sheets cannot draw them; floating elements (menus,
+popovers, tooltips) are `bg.raised` with a 1 px border instead.
 
 ### Icons
 
-- **Glyphs:** the stylesheet's arrows, ticks and radio dots are SVGs in
-  `gui/assets/`, drawn in the light theme's colours
-  (`tests/gui/test_theme.py::test_svg_asset_colors_match_the_palette`).
-- **Dark theme:** `theme.themed_asset` recolours them
-  (`test_glyphs_are_recoloured_for_the_dark_theme`).
+- **One set:** Lucide (ISC licence), only the icons the GUI uses, in
+  `gui/assets/icons/lucide/` with its licence.
+- **Tinted from the tokens when drawn:** `theme.icon(name, ink)` returns
+  a `QIcon` whose engine looks the colour up each time it paints, so an
+  icon follows a live theme change; a disabled icon takes
+  `text.disabled`. The style sheet's arrows and ticks are tinted copies
+  (`theme/icons.py`, `icon_file`).
+- **Sizes:** 16 px in the interface, 20 px in the navigation rail (M2).
 - **Toolbars:** every toolbar action has an icon
-  (`test_every_toolbar_action_has_an_icon`). The toolbars show its text
-  beside it (`ToolButtonTextBesideIcon`).
-- **App icon:** drawn in code (`gui/icons.py`) in its own brand colours,
-  listed among the colour exceptions.
+  (`tests/gui/test_theme.py::test_every_toolbar_action_has_an_icon`): Run
+  in the accent, Cancel in critical, the rest in `text.secondary`.
+- **App icon:** drawn in code (`gui/icons.py`) in `palettes.APP_ICON`.
 
 ## Components
 
@@ -221,7 +253,8 @@ from Carbon, so editable values read as boxes
 | Form fields | `widgets.SpinBox`, `DoubleSpinBox`, `PreciseDoubleSpinBox`, `ComboBox` | Numbers and choices: they ignore the mouse wheel unless focused, keep a value from a file that is outside their range (and mark it), and show full precision |
 | Field map | each form's `field_widget(path)`, `field_title(code)`, `problem_text(message)` | Where a field is, and what it is called, for Problems and for messages |
 | List editor | a list with Add / Edit / Remove at their own width, left-aligned | Spacecraft, stations, sensors, actuators, dispersions |
-| Badge / tag | `badges.badge_style(badges.SUCCESS)` and the other pairs | A state in a word: Explain, the dashboard, rule results |
+| Badge / tag | `badges.set_badge(label, badges.SUCCESS)` and the other kinds | A state in a word: Explain, the dashboard, rule results |
+| Role | `theme.set_role(widget, role=..., tone=..., badge=...)` | A label's or frame's look from the style sheet: caption, heading, section-title, mono, empty, hint, card; a status tone |
 | Toast | `feedback.report(widget, text, kind)` | Something finished or failed, not tied to a field |
 | Problem banner | `feedback.ProblemBanner` | Above a form: what is wrong in it |
 | Stale results banner | `feedback.StaleResultsBanner` | Above the run views: the results no longer match the scenario, with Re-run |
@@ -359,8 +392,16 @@ View > Theme offers System, Light and Dark:
 - **System** follows the desktop (`QStyleHints.colorScheme`).
 - **Storage:** `~/.spacemissionstudio/settings.ini`, key
   `appearance/theme`.
-- **When it applies:** the next start, because widgets read the palette
-  when they are built.
+- **When it applies:** at once. `theme.apply_theme(app, mode)` sets the
+  palette and the one application style sheet and emits
+  `theme.signals.changed`; plots, diagrams and item colours connect to it
+  and redraw (`theme.on_change`, `theme/items.py`). With System, a change
+  of the desktop's scheme applies while the app runs.
+- **Time:** about 0.5 s on a new main window with a scenario open, 2.4 s
+  after every page has been visited (1.1.0: 1.3 s and 6.1-6.5 s on the
+  same machine); Qt re-polishes every widget, most of them hidden. The
+  brief's 100 ms needs fewer live widgets, which the shell's lazy areas
+  (M2) bring (`docs/DECISIONS.md`).
 
 ### Long operations
 
@@ -394,9 +435,11 @@ An empty view says why it is empty and what fills it, for example:
 
 | Rule | Checked by |
 |---|---|
-| No colour literal in `gui/` outside `theme.py`; take colours from `theme.PALETTE` (the exceptions are listed in the test, each with its reason) | `tests/gui/test_design_rules.py::test_no_hard_coded_colour_outside_the_theme` |
-| A new colour token goes into both `LIGHT` and `DARK`, and into the table above | `test_both_themes_have_the_same_keys`, `tests/gui/test_design_rules.py` |
-| A colour pair a widget draws is added to the contrast test | `tests/gui/test_dark_theme.py` |
+| No colour, CSS size, font family or style sheet in `gui/` outside `gui/theme/`; take tokens, fonts and roles from the theme (the exceptions are listed in the test, each with its reason) | `tests/gui/test_design_rules.py::test_no_hard_coded_style_outside_the_theme` |
+| A new token is derived in `theme/tokens.py` for both themes, and is in the table above | `tests/gui/test_theme.py::test_both_themes_have_the_same_tokens_and_the_selected_tint`, `tests/gui/test_design_rules.py` |
+| A colour pair a widget draws is in `tokens.CONTRAST_PAIRS` | `tests/gui/test_dark_theme.py` |
+| Whatever paints a colour itself redraws on `theme.signals.changed` | `tests/gui/test_dark_theme.py::test_a_live_switch_restyles_every_open_view` |
+| The style sheet parses without a Qt warning | `tests/gui/test_theme.py::test_the_style_sheet_parses_without_qt_warnings` |
 | A new spacecraft number has a labelled widget in the spacecraft form's `field_widget` map | `tests/gui/test_field_text.py::test_every_numeric_spacecraft_field_has_a_title` |
 | A validation message starts with what it is about (`<spacecraft>: <field path> ...`, `sim_settings.<field> ...`) so the GUI can locate and label it | `tests/gui/test_field_text.py::test_no_template_message_shows_a_field_code` |
 | A form grows no wider than `CONTENT_MAX_WIDTH_PX` | `tests/gui/test_wide_screen.py` |
@@ -416,7 +459,7 @@ Each view is checked against the standard's list:
 - empty and error states;
 - 1280 x 720 and 2560 x 1440;
 - the tests;
-- no new colour literal.
+- no new colour, size or font literal.
 
 The screenshots come from an offscreen `QApplication`:
 
@@ -430,22 +473,22 @@ audit uses.
 
 ## Known gaps
 
-Where the app does not yet meet `docs/ux-standard.md`:
+Where the app does not yet meet `docs/ui/UI_OVERHAUL.md` (each is a later
+milestone of `docs/ui/UI_OVERHAUL_PLAN.md`):
 
+- **Live theme switch time:** 0.5-2.4 s, not the brief's 100 ms (M2:
+  lazy areas).
 - **Tables** (audit U-38) are `QTableWidget` in several views, not one
-  `QTableView` component.
-  - Their alignment and precision vary.
-  - Only the Events table copies as TSV.
-  - Numbers use Plex Sans without tabular figures.
-- **The JSON page** uses the platform's fixed-width font, not IBM Plex
-  Mono.
+  `QTableView` component (M6): alignment and precision vary, only the
+  Events table copies as TSV, and only cells built with
+  `theme.numeric_font()` use tabular figures.
 - **No dedicated shortcut sheet key.** The standard asks for `?` or
   Ctrl+/; Help > Keyboard Shortcuts has no shortcut of its own. Ctrl+K
   finds it.
-- **Spacing:** there is no single spacing scale. Paddings come from
-  Carbon's components (4/6/8/12/16 px and others), not from a 4/8 px
-  token set.
-- **Icons:** toolbar icons are the stylesheet's SVGs and Qt's, not one
-  icon set.
+- **Spacing:** the 4 px grid is in the style sheet; layouts built in code
+  still set their own margins (M2-M8 rebuild the screens from
+  components).
+- **Motion and UI scale** (the brief's 120-180 ms transitions, reduce
+  motion, 90-125 % scale) come with Settings (M8).
 - **Vizard** (audit U-37) still has two toolbar actions and no
   connection status chip.

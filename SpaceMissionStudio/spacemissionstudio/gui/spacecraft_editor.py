@@ -113,7 +113,7 @@ from .orbit_ic_widget import ANOMALY_LABELS, ORBIT_TYPE_LABELS, OrbitIcWidget
 from .param_form import ParamForm
 from .problem_location import SPACECRAFT, locate
 from .sensor_actuator_editor import SensorActuatorListWidget
-from .theme import PALETTE
+from .theme import set_role
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, TabWidget
 
 _FSW_MODE_NONE_LABEL = "(none -- no attitude control)"
@@ -569,7 +569,7 @@ class SpacecraftEditorDialog(QDialog):
 
         self.fsw_hint_label = QLabel(_fsw_hint_text(self.fsw_mode_combo.currentData()))
         self.fsw_hint_label.setWordWrap(True)
-        self.fsw_hint_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.fsw_hint_label, tone="secondary")
         fsw_form.addRow("", self.fsw_hint_label)
 
         # Guidance parameters for the selected mode: one labelled row each
@@ -579,7 +579,7 @@ class SpacecraftEditorDialog(QDialog):
         fsw_params_layout = QVBoxLayout(self.fsw_params_group)
         fsw_params_header = QHBoxLayout()
         fsw_params_legend = QLabel("Unticked parameters use the default. Hover a name for details.")
-        fsw_params_legend.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(fsw_params_legend, tone="secondary")
         fsw_params_header.addWidget(fsw_params_legend, 1)
         self.fsw_reset_template_button = QPushButton("Reset to template")
         self.fsw_reset_template_button.setToolTip("Put this mode's parameters back to a working example.")
@@ -598,7 +598,7 @@ class SpacecraftEditorDialog(QDialog):
         self.control_group = QGroupBox("Control gains (MRP feedback)")
         control_layout = QVBoxLayout(self.control_group)
         control_legend = QLabel("Unticked gains use the defaults (K 3.5, P 30, integral off).")
-        control_legend.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(control_legend, tone="secondary")
         control_layout.addWidget(control_legend)
         self.control_param_form = ParamForm()
         self.control_param_form.set_specs(_CONTROL_PARAM_SPECS, dict(config.control_params) if config else {})
@@ -638,7 +638,6 @@ class SpacecraftEditorDialog(QDialog):
         cp_outer = QVBoxLayout(self.comms_pointing_group)
         self._cp_body = QWidget()
         self._cp_body.setObjectName("cpBody")
-        self._cp_body.setStyleSheet("QWidget#cpBody { background: transparent; }")
         cp_outer.addWidget(self._cp_body)
         cp_form = QFormLayout(self._cp_body)
         cp_form.setContentsMargins(0, 0, 0, 0)
@@ -1531,7 +1530,7 @@ class SpacecraftEditorDialog(QDialog):
         rf_form.addRow(self.rf_boresight_check, self._rf_boresight_row)
         self.rf_pattern_hint = QLabel()
         self.rf_pattern_hint.setWordWrap(True)
-        self.rf_pattern_hint.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.rf_pattern_hint, tone="secondary")
         rf_form.addRow(self.rf_pattern_hint)
         self._rf_form = rf_form
         self.rf_pattern_combo.currentIndexChanged.connect(self._refresh_rf_pattern)
@@ -1570,7 +1569,7 @@ class SpacecraftEditorDialog(QDialog):
         dh_hint = QLabel("Rates are constant: for an instrument that does not run all the time, give its "
                          "orbit-average rate. See User Manual Sec. 6, data handling.")
         dh_hint.setWordWrap(True)
-        dh_hint.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(dh_hint, tone="secondary")
         dh_form.addRow(dh_hint)
         power_layout.addWidget(self.data_handling_group)
         power_layout.addStretch(1)
@@ -2255,7 +2254,7 @@ class SpacecraftEditorDialog(QDialog):
         grid = QGridLayout(self.navigation_error_group)
         header_step, header_bound = QLabel("Step per update (1-sigma)"), QLabel("Bound")
         for label in (header_step, header_bound):
-            label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+            set_role(label, tone="secondary")
         grid.addWidget(header_step, 0, 1)
         grid.addWidget(header_bound, 0, 2)
         self.nav_spins = {}

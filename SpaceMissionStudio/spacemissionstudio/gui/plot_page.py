@@ -39,7 +39,8 @@ import json
 import math
 from typing import List, Optional, Tuple
 
-from .theme import PALETTE
+from .theme import TOKENS
+from .theme.plotly_template import grid_css
 
 # name: (rows, columns), in the order the Layout box offers them
 LAYOUTS = {"1x1": (1, 1), "2x1": (2, 1), "1x2": (1, 2), "3x1": (3, 1), "1x3": (1, 3), "2x2": (2, 2), "3x2": (3, 2),
@@ -129,14 +130,7 @@ def build_page(figure_json: List[str], layout: str, focused: int, linked: List[b
     rows, columns = LAYOUTS.get(layout, (1, 1))
     cells = "".join(f'<div id="{div_id(i)}" class="cell{" focused" if i == focused else ""}"></div>'
                     for i in range(len(figure_json)))
-    accent, border = PALETTE["accent"], PALETTE["border"]
-    css = (f"<style>html, body {{ margin: 0; height: 100%; overflow: hidden; background: {PALETTE['surface']}; }}"
-           f".grid {{ display: grid; height: 100%; box-sizing: border-box; padding: 2px; gap: 4px; "
-           f"grid-template-columns: repeat({columns}, minmax(0, 1fr)); grid-template-rows: repeat({rows}, minmax(0, 1fr)); }}"
-           f".cell {{ min-width: 0; min-height: 0; border: 1px solid transparent; }}"
-           + (f".grid.many .cell {{ border-color: {border}; }} .grid.many .cell.focused {{ border-color: {accent}; }}"
-              if len(figure_json) > 1 else "")
-           + "</style>")
+    css = f"<style>{grid_css(TOKENS, columns, rows, len(figure_json) > 1)}</style>"
     script = f"""<script>
 var FIGS = [{", ".join(figure_json)}];
 var LINKED = {json.dumps(list(linked))};

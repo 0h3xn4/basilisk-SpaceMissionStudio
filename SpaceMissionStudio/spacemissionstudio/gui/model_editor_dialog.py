@@ -52,7 +52,8 @@ from ..schema.scenario import (MESH_UNITS, MODEL_SHAPE_DIMENSIONS, MODEL_SHAPE_F
                                name_error)
 from .feedback import report, show_dialog_error
 from .model_view_widget import ModelViewWidget
-from .theme import PALETTE
+from .theme import set_role
+from .theme.palettes import swatch_style
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, TabWidget
 
 _RECOMPUTE_DELAY_MS = 150  # [ms] after the last edit
@@ -200,7 +201,7 @@ class ModelEditorDialog(QDialog):
 
         self.messages = QLabel()
         self.messages.setWordWrap(True)
-        self.messages.setStyleSheet(f"color: {PALETTE['warning']};")
+        set_role(self.messages, tone="caution")
         outer.addWidget(self.messages)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self._on_ok)
@@ -557,8 +558,7 @@ class ModelEditorDialog(QDialog):
         r, g, b = (int(round(255 * c)) for c in color)
         button = self.part_widgets["color"]
         button.setText(f"#{r:02X}{g:02X}{b:02X}")
-        button.setStyleSheet(f"background-color: rgb({r},{g},{b}); color: "
-                             f"{'#000000' if (r * 299 + g * 587 + b * 114) > 128000 else '#FFFFFF'};")
+        button.setStyleSheet(swatch_style(f"#{r:02X}{g:02X}{b:02X}"))
 
     # -- bottom tabs -------------------------------------------------------------------------------------------
 
@@ -616,7 +616,7 @@ class ModelEditorDialog(QDialog):
         typed_form.addRow("Ixy, Ixz, Iyz [kg m^2]",
                           _row(self.typed_inertia["Ixy"], self.typed_inertia["Ixz"], self.typed_inertia["Iyz"]))
         products_note = QLabel("Products of inertia in tensor form: Ixy = -integral(x y dm).")
-        products_note.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(products_note, tone="secondary")
         typed_form.addRow(products_note)
         for box in [self.typed_mass, *self.typed_com, *self.typed_inertia.values()]:
             box.valueChanged.connect(self._on_typed_changed)

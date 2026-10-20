@@ -15,92 +15,57 @@
 #  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
-"""The dark theme (docs/ux-standard.md, "dark and light themes";
-iteration 7a): Carbon g100 under the light theme's keys, readable pairs in
-both themes, the View > Theme setting, recoloured glyphs, and no light
-colour left in a dark window."""
+"""Both themes and the live switch (docs/ui/UI_OVERHAUL.md, "Themes" and
+"Accessibility"): WCAG 2.2 AA contrast over every pair of tokens the GUI
+draws, the View > Theme setting, and a switch that restyles every open
+view at once, plots included."""
 
 import re
+from pathlib import Path
 
 import pytest
 
 pytestmark = pytest.mark.requires_gui
 
-# (text, background, minimum WCAG contrast): the pairs the stylesheet and
-# the widgets draw. 4.5:1 for text, 3:1 for indicators and outlines
-# (WCAG 2.1, 1.4.3 and 1.4.11).
-_PAIRS = [
-    ("text", "bg", 4.5), ("text", "surface", 4.5), ("text", "field", 4.5), ("text", "selected", 4.5),
-    ("text", "hover", 4.5), ("text_muted", "bg", 4.5), ("text_muted", "surface", 4.5),
-    ("text_muted", "field", 4.5), ("on_accent", "accent", 4.5), ("on_accent", "accent_hover", 4.5),
-    ("on_accent", "accent_pressed", 4.5), ("accent_text", "surface", 4.5), ("accent_text", "bg", 4.5),
-    ("on_inverse", "inverse", 4.5), ("danger_text", "danger_soft", 4.5), ("success_text", "success_soft", 4.5),
-    ("warning", "warning_soft", 4.5), ("info_text", "info_soft", 4.5), ("text", "danger_soft", 4.5),
-    ("text", "success_soft", 4.5), ("text", "warning_soft", 4.5), ("text", "info_soft", 4.5),
-    ("tag_success_text", "tag_success_bg", 4.5), ("tag_danger_text", "tag_danger_bg", 4.5),
-    ("tag_accent_text", "tag_accent_bg", 4.5), ("warning", "surface", 4.5), ("danger_text", "surface", 3.0),
-    ("focus", "field", 3.0), ("focus", "surface", 3.0), ("border_strong", "field", 1.5),
-    ("accent", "bg", 3.0), ("danger", "surface", 4.5), ("danger", "bg", 4.5), ("success", "surface", 3.0),  # danger is error text too
-    ("icon_inverse", "text", 3.0),  # the tick on a ticked box
-]
+_TEMPLATES = Path(__file__).resolve().parents[2] / "spacemissionstudio" / "scenarios" / "templates"
 
 
-def _luminance(hex_colour: str) -> float:
-    channels = [int(hex_colour[i:i + 2], 16) / 255.0 for i in (1, 3, 5)]
-    linear = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
-    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
+
+@pytest.mark.parametrize("mode", ["light", "dark"])
+def test_every_pair_the_app_draws_meets_wcag_aa(mode):
+    """Text on each of its backgrounds at 4.5:1, icons, indicators and the
+    focus ring at 3:1 (WCAG 2.2, 1.4.3 and 1.4.11), in each theme."""
+    from spacemissionstudio.gui.theme import tokens
+
+    values = tokens.tokens(mode)
+    low = [(fg, bg, round(tokens.contrast(values[fg], values[bg]), 2)) for fg, bg, need in tokens.CONTRAST_PAIRS
+           if tokens.contrast(values[fg], values[bg]) < need]
+    assert low == []
+    assert len(tokens.CONTRAST_PAIRS) >= 70
 
 
-def _contrast(a: str, b: str) -> float:
-    high, low = sorted((_luminance(a), _luminance(b)), reverse=True)
-    return (high + 0.05) / (low + 0.05)
+def test_the_contrast_formula_is_wcags():
+    """Black on white is 21:1, a colour on itself 1:1, and #767676 on white
+    the familiar 4.54:1."""
+    from spacemissionstudio.gui.theme.tokens import contrast
+
+    assert round(contrast("#000000", "#FFFFFF"), 2) == 21.0
+    assert contrast("#2563EB", "#2563EB") == 1.0
+    assert round(contrast("#767676", "#FFFFFF"), 2) == 4.54
 
 
-@pytest.fixture
-def dark_palette():
-    """The dark palette while the test runs; the light one after."""
+def test_both_role_palettes_have_the_same_keys_and_select_fills_one_dict(restored_theme):
+    """The role palette (PALETTE, the names widgets read) has the same keys
+    in both themes; selecting a theme fills the same dict, so a module
+    that imported it sees the theme in use."""
     from spacemissionstudio.gui import theme
 
+    assert set(theme.DARK) == set(theme.LIGHT)
+    palette = theme.PALETTE
     theme.select_palette("dark")
-    yield theme
-    theme.select_palette("light")
-
-
-def test_both_themes_have_the_same_keys():
-    """The dark and light themes define the same colors."""
-    from spacemissionstudio.gui.theme import DARK, LIGHT
-
-    assert set(DARK) == set(LIGHT)
-
-
-@pytest.mark.parametrize("name", ["light", "dark"])
-def test_every_pair_the_app_draws_is_readable(name):
-    """Text on its backgrounds at 4.5:1, outlines and indicators at 3:1,
-    in each theme (the field rule is a field's edge, at 1.5:1)."""
-    from spacemissionstudio.gui.theme import DARK, LIGHT
-
-    palette = DARK if name == "dark" else LIGHT
-    low = [(fg, bg, round(_contrast(palette[fg], palette[bg]), 2)) for fg, bg, need in _PAIRS
-           if _contrast(palette[fg], palette[bg]) < need]
-    assert low == []
-
-
-def test_the_light_palette_is_unchanged_by_the_new_keys():
-    """In the light theme the new keys are the colours their uses had."""
-    from spacemissionstudio.gui.theme import LIGHT
-
-    assert LIGHT["accent_text"] == LIGHT["focus"] == LIGHT["accent"]
-    assert LIGHT["on_inverse"] == LIGHT["icon_inverse"] == LIGHT["on_accent"]
-    assert (LIGHT["disabled_fill"], LIGHT["on_disabled_fill"]) == (LIGHT["text_disabled"], LIGHT["border_strong"])
-
-
-def test_select_palette_fills_the_same_dict(dark_palette):
-    """PALETTE is one dict: what imported it sees the theme selected."""
-    from spacemissionstudio.gui.theme import DARK, PALETTE
-
-    assert PALETTE == DARK and dark_palette.current_theme() == "dark"
+    assert palette is theme.PALETTE and palette == theme.DARK and theme.current_theme() == "dark"
     with pytest.raises(ValueError):
-        dark_palette.select_palette("sepia")
+        theme.select_palette("sepia")
 
 
 def test_the_theme_setting_is_kept_and_system_follows_the_platform(qapp, monkeypatch):
@@ -129,60 +94,116 @@ def test_the_theme_setting_is_kept_and_system_follows_the_platform(qapp, monkeyp
     assert theme.resolve_theme("system", qapp) == "light"
 
 
-def test_glyphs_are_recoloured_for_the_dark_theme(dark_palette):
-    """A dark copy of an SVG: each light glyph colour swapped for the dark
-    one of the same key, white kept; the light theme uses the file."""
-    from spacemissionstudio.gui.theme import _ASSETS_DIR, DARK, LIGHT
+def _light_only():
+    from spacemissionstudio.gui.theme import tokens
 
-    source = _ASSETS_DIR / "chevron-down.svg"
-    copy = dark_palette.themed_asset(source)
-    assert copy != source and copy.name == source.name
-    text = copy.read_text(encoding="utf-8").upper()
-    assert DARK["text_muted"] in text and LIGHT["text_muted"] not in text
-    assert "#FFFFFF" in dark_palette.themed_asset(_ASSETS_DIR / "tb-run.svg").read_text(encoding="utf-8").upper()
-    tick = dark_palette.themed_asset(_ASSETS_DIR / "check.svg").read_text(encoding="utf-8").upper()
-    assert DARK["icon_inverse"] in tick and "#FFFFFF" not in tick  # dark on the light fill of a ticked box
-    dark_palette.select_palette("light")
-    assert dark_palette.themed_asset(source) == source
+    light, dark = tokens.tokens("light"), tokens.tokens("dark")
+    return {v.upper() for v in light.values()} - {v.upper() for v in dark.values()}
 
 
-def test_a_dark_window_has_no_light_colour_left(qtbot, dark_palette):
-    """Built in the dark theme, no widget's stylesheet holds a colour only
-    the light theme has (a colour read at import, or typed in), and the
-    badges and a chart take the dark tokens."""
-    from spacemissionstudio.gui.badges import SUCCESS, badge_style
+def _colours(sheet):
+    return {c.upper() for c in re.findall(r"#[0-9A-Fa-f]{6}\b", sheet)}
+
+
+def test_a_live_switch_restyles_every_open_view(qtbot, restored_theme):
+    """Switched to dark with the window open: the one application sheet
+    holds no light-only colour, no widget keeps a sheet of its own, the
+    canvas, a field and a badge paint in the dark tokens, and the plots
+    and the explainer badges are rebuilt from the dark tokens."""
+    from PySide6.QtWidgets import QLabel
+
+    from spacemissionstudio.gui import results_widget
     from spacemissionstudio.gui.main_window import MainWindow
-    from spacemissionstudio.gui.theme import DARK, LIGHT
+    from spacemissionstudio.gui.theme import TOKENS, apply_theme, signals
 
-    light_only = {value.upper() for value in LIGHT.values()} - {value.upper() for value in DARK.values()}
-    from pathlib import Path
-
+    apply_theme(restored_theme, "light")
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
-    templates = Path(__file__).resolve().parents[2] / "spacemissionstudio" / "scenarios" / "templates"
-    assert window.open_path(templates / "22_starter_first_leo_satellite.json")  # badges, the top bar, a page
+    window.resize(1280, 800)
+    window.show()
+    assert window.open_path(_TEMPLATES.glob("22_*.json").__next__())  # badges, the top bar, a page
     window.scenario_editor.show_spacecraft(0)
-    found = set()
-    for widget in [window, *window.findChildren(object)]:
-        sheet = widget.styleSheet() if hasattr(widget, "styleSheet") else ""
-        found |= {colour.upper() for colour in re.findall(r"#[0-9A-Fa-f]{6}\b", sheet)} & light_only
-    assert found == set()
-    assert DARK["tag_success_bg"] in badge_style(SUCCESS)
-    from spacemissionstudio.gui.results_widget import _empty_state_html, _page_style
+    restored_theme.processEvents()
+    seen = []
+    signals.changed.connect(seen.append)
+    try:
+        apply_theme(restored_theme, "dark")
+    finally:
+        signals.changed.disconnect(seen.append)
+    restored_theme.processEvents()
+    assert seen == ["dark"]
+    assert _colours(restored_theme.styleSheet()) & _light_only() == set()
+    own = [type(w).__name__ for w in [window, *window.findChildren(object)]
+           if hasattr(w, "styleSheet") and w.styleSheet() and w.objectName() != "qt_scrollarea_viewport"]
+    assert own == []
+    image = window.grab().toImage()
+    assert image.pixelColor(2, image.height() // 2).name().upper() in {TOKENS["bg.canvas"], TOKENS["bg.surface"]}
+    badges = [w for w in window.findChildren(QLabel) if w.property("badge") and w.isVisible()]
+    assert badges, "the starter template's explainer shows badges"
+    badge = badges[0]
+    fill = badge.grab().toImage().pixelColor(badge.width() // 2, 1).name().upper()
+    assert fill == TOKENS[f"status.{badge.property('badge')}.soft"]
+    assert f"background: {TOKENS['bg.surface']}" in results_widget._empty_state_html()
+    assert TOKENS["bg.surface"] in results_widget._page_style()
 
-    assert f"background: {DARK['surface']}" in _empty_state_html() and DARK["surface"] in _page_style()
 
-
-def test_view_theme_remembers_the_choice_for_the_next_start(qtbot, reported):
-    """View > Theme > Dark stores the choice and says when it applies."""
+def test_view_theme_applies_the_choice_at_once(qtbot, reported, restored_theme):
+    """View > Theme > Dark stores the choice and applies it now; Light
+    brings the light theme back."""
     from spacemissionstudio.gui import theme
     from spacemissionstudio.gui.main_window import MainWindow
 
+    theme.apply_theme(restored_theme, "light")
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
     assert window.theme_actions["system"].isChecked()
     window.theme_actions["dark"].trigger()
-    assert theme.theme_setting() == "dark"
-    assert reported[-1] == ("Theme: dark. It applies when SpaceMissionStudio next starts.", "info")
+    assert theme.theme_setting() == "dark" and theme.current_theme() == "dark"
+    assert reported[-1] == ("Theme: dark. It is the theme shown now.", "info")
     window.theme_actions["light"].trigger()
+    assert theme.current_theme() == "light"
     assert reported[-1] == ("Theme: light. It is the theme shown now.", "info")
+
+
+def test_item_colours_follow_a_theme_change(qtbot, restored_theme):
+    """A list row coloured from a token takes the new theme's value when
+    the theme changes (theme/items.py)."""
+    from PySide6.QtWidgets import QListWidget, QListWidgetItem
+
+    from spacemissionstudio.gui.theme import TOKENS, apply_theme
+    from spacemissionstudio.gui.theme.items import retint, tint
+
+    apply_theme(restored_theme, "light")
+    view = QListWidget()
+    qtbot.addWidget(view)
+    item = QListWidgetItem("error row")
+    view.addItem(item)
+    tint(item, "status.critical.text")
+    light = item.foreground().color().name().upper()
+    apply_theme(restored_theme, "dark")
+    retint(view)
+    assert light == "#DA2331" and item.foreground().color().name().upper() == TOKENS["status.critical.text"] != light
+
+
+def test_a_deleted_view_is_not_called_on_a_theme_change(qtbot, restored_theme):
+    """A widget that redraws on theme changes and is then deleted by Qt is
+    dropped from the listeners, not called (its C++ object is gone)."""
+    from PySide6.QtWidgets import QWidget
+    from shiboken6 import delete
+
+    from spacemissionstudio.gui import theme
+
+    calls = []
+
+    class _View(QWidget):
+        def _restyle(self, mode):
+            calls.append((self.objectName(), mode))
+
+    kept, dropped = _View(), _View()
+    kept.setObjectName("kept")
+    qtbot.addWidget(kept)
+    theme.on_change(kept._restyle)
+    theme.on_change(dropped._restyle)
+    delete(dropped)  # Qt deletes the widget; the Python object stays
+    theme.apply_theme(restored_theme, "dark")
+    assert calls == [("kept", "dark")]

@@ -70,6 +70,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QListWidget,
+    QListView,
     QListWidgetItem,
     QPushButton,
     QScrollArea,
@@ -86,7 +87,8 @@ import spacemissionstudio
 from ..schema import load_scenario
 from .template_wizard import TemplateCustomizeWizard, get_wizard_spec
 from .feedback import report
-from .theme import CONTENT_MAX_WIDTH_PX, PALETTE
+from .theme import CONTENT_MAX_WIDTH_PX, set_role
+from .theme.richtext import css
 
 _logger = logging.getLogger(__name__)
 
@@ -112,13 +114,13 @@ def description_html(text: str) -> str:
         heading = lines[0] if lines and lines[0].endswith(":") and not lines[0].startswith("- ") else None
         body = lines[1:] if heading else lines
         if heading:
-            parts.append(f"<p style='margin: 10px 0 2px 0;'><b>{html.escape(heading[:-1])}</b></p>")
+            parts.append(f"<p style='{css('heading-p')}'><b>{html.escape(heading[:-1])}</b></p>")
         bullets = [line[2:] for line in body if line.startswith("- ")]
         prose = [line for line in body if not line.startswith("- ")]
         if prose:
-            parts.append(f"<p style='margin: 0 0 4px 0;'>{html.escape(' '.join(prose))}</p>")
+            parts.append(f"<p style='{css('prose-p')}'>{html.escape(' '.join(prose))}</p>")
         if bullets:
-            parts.append("<ul style='margin: 0; -qt-list-indent: 1;'>"
+            parts.append(f"<ul style='{css('list')}'>"
                          + "".join(f"<li>{html.escape(item)}</li>" for item in bullets) + "</ul>")
     return "".join(parts)
 
@@ -189,11 +191,10 @@ class _TemplateRow(QWidget):
         self.set_selected(False)
 
     def set_selected(self, selected: bool) -> None:
-        # Selected rows are Carbon's light layer-selected grey, not blue, so
-        # the title keeps the primary text colour (white on it was unreadable)
-        # and turns semibold.
-        weight = 600 if selected else 400
-        self.title_label.setStyleSheet(f"color: {PALETTE['text']}; font-weight: {weight};")
+        # Selected rows take the light bg.selected tint, so the title keeps
+        # the primary text colour (white on it was unreadable) and turns
+        # semibold.
+        set_role(self.title_label, role="strong" if selected else None)
 
 
 class LoadScenarioWidget(QWidget):
@@ -231,16 +232,21 @@ class LoadScenarioWidget(QWidget):
 
         hint = QLabel("Double-click to open. Customize... changes settings first.")
         hint.setWordWrap(True)
-        hint.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(hint, tone="secondary")
         layout.addWidget(hint)
 
         self.list_widget = QListWidget()
+        # Re-lay the rows out when the list narrows: with the default (Fixed)
+        # they kept the width they were first laid out at, wider than the
+        # list in the main window, and each row's Customize... button sat
+        # past its right edge.
+        self.list_widget.setResizeMode(QListView.ResizeMode.Adjust)
         self.list_widget.setItemDelegate(_BackgroundOnlyDelegate(self.list_widget))
         self.list_widget.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self._rows: Dict[str, _TemplateRow] = {}
 
         self.description_title = QLabel()
-        self.description_title.setStyleSheet("font-weight: 600; font-size: 115%;")
+        set_role(self.description_title, role="section-title")
         self.description_title.setWordWrap(True)
         self.description_label = QLabel()
         self.description_label.setWordWrap(True)

@@ -52,7 +52,7 @@ from PySide6.QtWidgets import (
 
 from .. import output_provenance
 from ..schema.scenario import SUPPORTED_DISPOSALS, PropellantBudgetConfig
-from .theme import PALETTE
+from .theme import set_role
 from .widgets import ComboBox, PreciseDoubleSpinBox
 
 _DISPOSAL_LABELS = {
@@ -337,7 +337,7 @@ class BudgetWidget(QWidget):
         self.status_label = QLabel("Inputs: the spacecraft editor's Budget (AD10) tab. The last run supplies "
                                    "orbit control and formation keeping.")
         self.status_label.setWordWrap(True)
-        self.status_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.status_label, tone="secondary")
         layout.addWidget(self.status_label)
         self.table = QTableWidget(0, len(_COLUMNS))
         self.table.setMinimumHeight(260)  # [px] a phase's rows stay readable when the result tables open below
@@ -350,11 +350,11 @@ class BudgetWidget(QWidget):
                                         else QHeaderView.ResizeMode.ResizeToContents)
         layout.addWidget(self.table, 1)
         self.totals_label = QLabel("")
-        self.totals_label.setStyleSheet("font-weight: 700;")
+        set_role(self.totals_label, role="strong")
         layout.addWidget(self.totals_label)
         self.notes_label = QLabel("")
         self.notes_label.setWordWrap(True)
-        self.notes_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.notes_label, tone="secondary")
         layout.addWidget(self.notes_label)
 
         self._trade = None
@@ -365,7 +365,7 @@ class BudgetWidget(QWidget):
         trade_layout.addWidget(self.trade_table)
         self.trade_notes_label = QLabel("")
         self.trade_notes_label.setWordWrap(True)
-        self.trade_notes_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.trade_notes_label, tone="secondary")
         trade_layout.addWidget(self.trade_notes_label)
         self.trade_group.setVisible(False)
         layout.addWidget(self.trade_group)
@@ -378,7 +378,7 @@ class BudgetWidget(QWidget):
         sweep_layout.addWidget(self.sweep_table)
         self.sweep_notes_label = QLabel("")
         self.sweep_notes_label.setWordWrap(True)
-        self.sweep_notes_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.sweep_notes_label, tone="secondary")
         sweep_layout.addWidget(self.sweep_notes_label)
         self.sweep_group.setVisible(False)
         layout.addWidget(self.sweep_group)

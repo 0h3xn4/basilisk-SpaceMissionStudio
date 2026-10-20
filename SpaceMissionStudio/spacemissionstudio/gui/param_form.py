@@ -55,7 +55,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .theme import PALETTE
+from .theme import set_role
 from .widgets import ComboBox, PreciseDoubleSpinBox
 
 
@@ -119,7 +119,6 @@ class ParamForm(QWidget):
         self.advanced_toggle.setCheckable(True)
         self.advanced_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.advanced_toggle.setArrowType(Qt.ArrowType.RightArrow)
-        self.advanced_toggle.setStyleSheet("QToolButton { border: none; }")
         self.advanced_toggle.toggled.connect(self._on_advanced_toggled)
         self.advanced_toggle.setVisible(show_advanced)
         layout.addWidget(self.advanced_toggle)
@@ -156,13 +155,13 @@ class ParamForm(QWidget):
                 continue
             if group_headings and required:
                 heading = QLabel(title)
-                heading.setStyleSheet(f"font-weight: 600; color: {PALETTE['text_muted']}; margin-top: 4px;")
+                set_role(heading, role="heading", tone="secondary")
                 self.form.addRow(heading)
             for spec in group:
                 self._add_row(spec, params, options.get(spec.key))
         if not specs:
             empty = QLabel(empty_text)
-            empty.setStyleSheet(f"color: {PALETTE['text_muted']};")
+            set_role(empty, tone="secondary")
             self.form.addRow(empty)
         known = {spec.key for spec in specs}
         extras = {k: v for k, v in params.items() if k not in known}
@@ -216,7 +215,6 @@ class ParamForm(QWidget):
             boxes = tuple(_component_box() for _ in range(3))
             holder = QWidget()
             holder.setObjectName("vectorRow")
-            holder.setStyleSheet("QWidget#vectorRow { background: transparent; }")
             row = QHBoxLayout(holder)
             row.setContentsMargins(0, 0, 0, 0)
             for axis, box in zip("xyz", boxes):

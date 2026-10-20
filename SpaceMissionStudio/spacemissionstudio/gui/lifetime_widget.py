@@ -39,9 +39,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .badges import MUTED, SUCCESS, WARNING, badge_style
+from .badges import MUTED, SUCCESS, WARNING, set_badge
 from .scenario_explainer_widget import _clear_layout, _stat_tile
-from .theme import CONTENT_MAX_WIDTH_PX, PALETTE
+from .theme import CONTENT_MAX_WIDTH_PX, PALETTE, set_role
 from .widgets import ComboBox, PreciseDoubleSpinBox
 
 _FROM_START = "Start of scenario"
@@ -245,7 +245,7 @@ class LifetimeWidget(QWidget):
         self.compute_button.clicked.connect(self.compute)
         button_row.addWidget(self.compute_button)
         self.status_label = QLabel("")
-        self.status_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.status_label, tone="secondary")
         self.status_label.setWordWrap(True)
         button_row.addWidget(self.status_label, 1)
         layout.addLayout(button_row)
@@ -256,14 +256,14 @@ class LifetimeWidget(QWidget):
         layout.addLayout(self.badges_row)
         self.notes_label = QLabel("")
         self.notes_label.setWordWrap(True)
-        self.notes_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.notes_label, tone="secondary")
         layout.addWidget(self.notes_label)
         self.chart = AltitudeChart()
         layout.addWidget(self.chart, 1)
         hint = QLabel("Orbit-averaged drag with the scenario's atmosphere and space weather. "
                       "See User Manual Sec. 11 and 12.")
         hint.setWordWrap(True)
-        hint.setStyleSheet(f"color: {PALETTE['text_muted']}; font-size: 11px;")
+        set_role(hint, role="caption")
         layout.addWidget(hint)
         self._update_from_choices()
 
@@ -363,7 +363,7 @@ class LifetimeWidget(QWidget):
             met = result.meets(years)
             text = f"{label}: {'not known' if unknown else 'met' if met else 'not met'}"
             badge = QLabel(text)
-            badge.setStyleSheet(badge_style(MUTED if unknown else SUCCESS if met else WARNING))
+            set_badge(badge, MUTED if unknown else SUCCESS if met else WARNING)
             self.badges_row.addWidget(badge)
         self.badges_row.addStretch(1)
 

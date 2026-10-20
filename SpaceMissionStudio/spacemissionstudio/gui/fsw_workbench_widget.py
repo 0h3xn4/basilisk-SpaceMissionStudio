@@ -43,10 +43,10 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QFileDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QMessageBox, QPushButton,
                                QSizePolicy, QVBoxLayout, QWidget)
 
-from .badges import ACCENT, DANGER, MUTED, SUCCESS, WARNING, badge_style
+from .badges import ACCENT, DANGER, MUTED, SUCCESS, WARNING, set_badge
 from .run_worker import failure_text
 from .sil_comparison_widget import SilComparisonWidget
-from .theme import PALETTE
+from .theme import set_role
 
 _STATE_BADGES = {
     "current": ("Up to date", SUCCESS),
@@ -95,19 +95,17 @@ class _SpacecraftCard(QFrame):
     def __init__(self, name: str, parent=None):
         super().__init__(parent)
         self.setObjectName("fswCard")
-        self.setStyleSheet(f"QFrame#fswCard {{ background-color: {PALETTE['surface']}; "
-                           f"border: 1px solid {PALETTE['border']}; border-radius: 0px; }}")
+        set_role(self, role="card")
         layout = QGridLayout(self)
         layout.setContentsMargins(12, 10, 12, 10)
         self.title = QLabel(name)
-        self.title.setStyleSheet("font-weight: 600; border: none;")
+        set_role(self.title, role="strong")
         self.badge = QLabel()
         self.badge.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
         self.detail = QLabel()
         self.detail.setWordWrap(True)
-        self.detail.setStyleSheet(f"color: {PALETTE['text_muted']}; border: none;")
+        set_role(self.detail, tone="secondary")
         self.folder = QLabel()  # the folder's name; the full path is its tooltip
-        self.folder.setStyleSheet("border: none;")
         self.export_button = QPushButton("Export...")
         self.open_button = QPushButton("Open folder")
         buttons = QHBoxLayout()
@@ -126,9 +124,9 @@ class _SpacecraftCard(QFrame):
         self.folder.setText(f"Folder: {Path(path).name}" if path else "")
         self.folder.setToolTip(path or "")
 
-    def set_badge(self, text: str, colors: tuple) -> None:
+    def set_badge(self, text: str, colors: str) -> None:
         self.badge.setText(text)
-        self.badge.setStyleSheet(badge_style(colors))
+        set_badge(self.badge, colors)
 
 
 class FlightSoftwareWidget(QWidget):
@@ -153,12 +151,12 @@ class FlightSoftwareWidget(QWidget):
         self.sil_hint = QLabel("To fly an exported program in the loop, choose SIL beside Run on the toolbar, "
                                "then press Run.")
         self.sil_hint.setWordWrap(True)
-        self.sil_hint.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.sil_hint, tone="secondary")
         outer.addWidget(self.sil_hint)
         self._list = QVBoxLayout()
         outer.addLayout(self._list)
         self._placeholder = QLabel("Fix the validation errors to see the flight software.")
-        self._placeholder.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self._placeholder, tone="secondary")
         outer.addWidget(self._placeholder)
         self.comparison = SilComparisonWidget()
         outer.addWidget(self.comparison, 1)

@@ -147,3 +147,17 @@ def reported(monkeypatch):
 
     monkeypatch.setattr(feedback, "show_toast", record)
     return shown
+
+
+@pytest.fixture
+def restored_theme(qapp):
+    """The application's font, palette and style sheet as before the test,
+    and the light tokens selected again, for a test that applies a theme."""
+    from spacemissionstudio.gui.theme import state
+
+    saved = (qapp.font(), qapp.palette(), qapp.styleSheet())
+    yield qapp
+    state.select("light")
+    qapp.setStyleSheet(saved[2])
+    qapp.setPalette(saved[1])
+    qapp.setFont(saved[0])

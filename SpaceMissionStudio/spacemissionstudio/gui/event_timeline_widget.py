@@ -51,11 +51,16 @@ from .. import output_provenance
 from ..engine import events as event_model
 from ..engine.results import ResultSet
 from .feedback import report
-from .theme import PALETTE, SERIES_COLORS
+from .theme import PALETTE, SERIES_COLORS, set_role
 from .time_cursor import TimeCursor, describe
 
-# Fixed categorical order, one colour per kind (the Results tab's series colours).
-KIND_COLOURS: Dict[str, str] = dict(zip(event_model.KINDS, SERIES_COLORS))
+# Fixed categorical order, one slot per kind (the Results tab's series colours).
+KIND_SLOTS: Dict[str, int] = {kind: index for index, kind in enumerate(event_model.KINDS)}
+
+
+def kind_colour(kind: str) -> str:
+    """The colour of an event kind in the theme in use."""
+    return SERIES_COLORS[KIND_SLOTS[kind]] if kind in KIND_SLOTS else PALETTE["accent"]
 _ALL_STATIONS = "All stations"
 _RIGHT = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 _ROW_HEIGHT = 22  # [px]
@@ -209,11 +214,11 @@ class GanttView(QWidget):
                 continue
             x0, x1 = self.x_of(max(event.start_s, start)), self.x_of(min(event.end_s, end))
             top = row_index[event.row] * _ROW_HEIGHT + 4
-            painter.setBrush(QColor(KIND_COLOURS.get(event.kind, PALETTE["accent"])))
+            painter.setBrush(QColor(kind_colour(event.kind)))
             painter.drawRoundedRect(QRectF(x0, top, max(x1 - x0, _MIN_BAR_PX), _ROW_HEIGHT - 8), 2, 2)
         if self.cursor_s is not None and start <= self.cursor_s <= end:
             x = self.x_of(self.cursor_s)
-            painter.setPen(QPen(QColor(PALETTE["danger"]), 2))
+            painter.setPen(QPen(QColor(PALETTE["accent"]), 2))  # the time cursor: a selection
             painter.drawLine(QPointF(x, 0), QPointF(x, rect.bottom()))
 
     def _paint_axis(self, painter: QPainter, rect: QRectF, muted: QColor, grid: QColor) -> None:
@@ -277,7 +282,7 @@ class EventTimelineWidget(QWidget):
         for kind in event_model.KINDS:
             box = QCheckBox(_plural(kind, 2)[2:].capitalize())
             box.setChecked(True)
-            box.setStyleSheet(f"QCheckBox {{ border-left: 10px solid {KIND_COLOURS[kind]}; padding-left: 4px; }}")
+            set_role(box, series=str(KIND_SLOTS[kind]))  # a swatch of the kind's colour
             box.toggled.connect(self._apply_filter)
             controls.addWidget(box)
             self.kind_boxes[kind] = box
@@ -305,7 +310,7 @@ class EventTimelineWidget(QWidget):
         self.station_combo.currentIndexChanged.connect(self._apply_filter)
         filters.addWidget(self.station_combo, 1)
         self.shown_label = QLabel("")
-        self.shown_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.shown_label, tone="secondary")
         filters.addWidget(self.shown_label)
         filters.addStretch(1)
         layout.addLayout(filters)

@@ -98,7 +98,8 @@ from .vizard_launcher import (
     remember_vizard_executable,
 )
 from .widgets import TabWidget
-from .theme import current_theme, resolve_theme, set_theme_setting, theme_setting
+from .theme import apply_theme, current_theme, follow_system, icon, resolve_theme, set_theme_setting, theme_setting
+from .theme.icons import keep_icon
 from .compare_widget import CompareWidget
 from .workspace_panels import InspectorWidget, LogViewWidget, ProblemsWidget, install_log_view
 from ..engine.vizard import playback_file as vizard_playback_file
@@ -694,8 +695,7 @@ class MainWindow(QMainWindow):
         cursor_menu = view_menu.addMenu("Time &Cursor")
         for action in self.results_widget.cursor_actions:
             cursor_menu.addAction(action)
-        # The theme: the palette is read when widgets are built, so a new
-        # choice applies at the next start (gui/theme.py).
+        # The theme: a choice applies at once, to every open view (gui/theme/).
         theme_menu = view_menu.addMenu("&Theme")
         self.theme_group = QActionGroup(self)
         self.theme_actions = {}
@@ -923,13 +923,15 @@ class MainWindow(QMainWindow):
         settings.sync()
 
     def _on_theme_chosen(self) -> None:
-        """View > Theme: remember the choice; it applies at the next start."""
+        """View > Theme: remember the choice and apply it now."""
         value = self.sender().data()
         set_theme_setting(value)
-        if resolve_theme(value) == current_theme():
-            report(self, f"Theme: {value}. It is the theme shown now.", kind="info")
-        else:
-            report(self, f"Theme: {value}. It applies when SpaceMissionStudio next starts.", kind="info")
+        app = QApplication.instance()
+        mode = resolve_theme(value, app)
+        if mode != current_theme():
+            apply_theme(app, mode)
+        follow_system(app)
+        report(self, f"Theme: {value}. It is the theme shown now.", kind="info")
 
     def reset_layout(self) -> None:
         """View > Reset Layout: the docks and toolbars where a new window has them."""
@@ -1076,12 +1078,13 @@ class MainWindow(QMainWindow):
         secondary.addAction(self.check_kernels_action)
 
         # "Run Simulation" is the app's primary call-to-action -- visually
-        # distinguished with the accent color (see theme.py's
+        # distinguished with the accent color (see theme/qss.py's
         # QToolButton#primaryToolButton rule), same idea as a web app's
         # primary button.
         run_button = primary.widgetForAction(self.run_action)
         if run_button is not None:
             run_button.setObjectName("primaryToolButton")
+            keep_icon(run_button, icon("play", "text.on_accent"))  # the action's accent icon would vanish on the fill
         self._on_run_mode_changed()
 
     def _update_window_title(self) -> None:

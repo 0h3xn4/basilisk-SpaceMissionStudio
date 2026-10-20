@@ -69,17 +69,11 @@ from PySide6.QtWidgets import (QBoxLayout, QDialogButtonBox, QFormLayout, QFrame
                                QPushButton, QScrollArea, QStackedWidget, QTabWidget, QWidget)
 from shiboken6 import isValid
 
-from .theme import PALETTE
+from .theme import set_role
 
-# Carbon toast notifications (low contrast): the status background, a 3 px
-# status-colour rule on the left, primary text. (background, rule) PALETTE
-# keys per kind, looked up when a toast is shown.
-_TOAST_KIND_COLORS = {
-    "success": ("success_soft", "success"),
-    "error": ("danger_soft", "danger"),
-    "info": ("info_soft", "info"),  # support-info
-    "warning": ("warning_soft", "warning_fill"),
-}
+# A toast's status tone per kind (theme/qss.py's QLabel[role="toast"]): the
+# status's tinted background and outline, primary text.
+_TOAST_KIND_TONES = {"success": "normal", "error": "critical", "info": "standby", "warning": "caution"}
 _logger = logging.getLogger("spacemissionstudio.gui")
 _REPORT_LOG_LEVELS = {"error": logging.ERROR, "warning": logging.WARNING, "info": logging.INFO,
                       "success": logging.INFO}
@@ -97,11 +91,7 @@ class _Toast(QLabel):
         # separator lets it wrap inside the toast's width (shown only; the
         # message itself is unchanged).
         super().__init__(re.sub(r"([/\\])", "\\1\u200b", message), parent)
-        bg, rule = (PALETTE[key] for key in _TOAST_KIND_COLORS.get(kind, _TOAST_KIND_COLORS["info"]))
-        self.setStyleSheet(
-            f"background-color: {bg}; color: {PALETTE['text']}; border: none; border-left: 3px solid {rule}; "
-            f"border-radius: 0px; padding: 10px 16px; font-weight: 600;"
-        )
+        set_role(self, role="toast", tone=_TOAST_KIND_TONES.get(kind, "standby"))
         self.setWordWrap(True)
         self.setMaximumWidth(360)
         self.adjustSize()
@@ -113,7 +103,7 @@ def show_toast(window: QWidget, message: str, kind: str = "success", duration_ms
     dialog), above its status bar, auto-dismissing after ``duration_ms``.
     ``kind`` is ``"success"`` (default), ``"error"``, ``"warning"`` or
     ``"info"`` -- picks the
-    toast's color from theme.py's own palette so it reads as part of the
+    toast's colour from the theme's status tokens so it reads as part of the
     same themed system, not a visually foreign popup.
 
     Multiple toasts shown in quick succession (e.g. several list rows
@@ -191,7 +181,7 @@ def show_dialog_error(dialog: QWidget, text: str) -> QLabel:
         label = QLabel(dialog)
         label.setObjectName(_DIALOG_ERROR_NAME)
         label.setWordWrap(True)
-        label.setStyleSheet(f"color: {PALETTE['danger']};")
+        set_role(label, tone="critical")
         layout = dialog.layout()
         if layout is not None:
             buttons = dialog.findChild(QDialogButtonBox)

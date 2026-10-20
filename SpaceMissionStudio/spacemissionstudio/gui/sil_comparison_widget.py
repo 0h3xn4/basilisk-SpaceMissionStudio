@@ -33,7 +33,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QFileDialog, QHBoxLayout, QHea
 
 from .scenario_explainer_widget import _stat_tile
 from .feedback import report
-from .theme import PALETTE
+from .theme import set_role
 from .widgets import TabWidget
 
 _COLUMNS = ("Signal", "Kind", "Max |residual|", "RMS", "At t [s]", "Max |reference|", "Not written [steps]")
@@ -68,7 +68,7 @@ class SilComparisonWidget(QWidget):
         layout.setContentsMargins(0, 8, 0, 0)
         header = QHBoxLayout()
         self.title_label = QLabel("No SIL run yet")
-        self.title_label.setStyleSheet(f"font-weight: 600; font-size: 15px; color: {PALETTE['text']};")
+        set_role(self.title_label, role="section-title")
         header.addWidget(self.title_label, 1)
         self.save_button = QPushButton("Save report...")
         self.save_button.setToolTip("The full report (JSON) and the sampled residuals (CSV).")
@@ -77,7 +77,7 @@ class SilComparisonWidget(QWidget):
         layout.addLayout(header)
         self.status_label = QLabel("A run in SIL mode shows its comparison here.")
         self.status_label.setWordWrap(True)
-        self.status_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.status_label, tone="secondary")
         layout.addWidget(self.status_label)
         self.tiles_row = QHBoxLayout()
         layout.addLayout(self.tiles_row)
@@ -132,7 +132,7 @@ class SilComparisonWidget(QWidget):
             lines.append(_sentence(f"Flight software \"{report.fsw_name}\""))
         lines += [_sentence(w) for w in report.warnings]
         self.status_label.setText(" ".join(lines))
-        self.status_label.setStyleSheet(f"color: {PALETTE['danger' if failure else 'text_muted']};")
+        set_role(self.status_label, tone="critical" if failure else "secondary")
         self.status_label.setToolTip(f"{report.binary}\nSHA-256 {report.binary_sha256}")
         missing = report.signals_missing
         self._set_tiles([

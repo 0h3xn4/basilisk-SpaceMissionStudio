@@ -224,7 +224,10 @@ def test_wizard_fits_without_sideways_scrolling_with_large_fonts(qtbot, filename
     app = QApplication.instance()
     original = app.font()
     large = app.font()
-    large.setPointSizeF(original.pointSizeF() * 1.5)
+    if original.pixelSize() > 0:  # the theme sets its font in pixels (13 px)
+        large.setPixelSize(round(original.pixelSize() * 1.5))
+    else:
+        large.setPointSizeF(original.pointSizeF() * 1.5)
     app.setFont(large)
     try:
         wizard = TemplateCustomizeWizard(load_scenario(TEMPLATES_DIR / filename), get_wizard_spec(filename))

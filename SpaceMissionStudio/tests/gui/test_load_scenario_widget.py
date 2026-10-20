@@ -357,14 +357,16 @@ def test_selected_templates_title_and_description_are_visible_without_scrolling_
     assert top_of_card < widget.height() - 100  # the card starts well inside the visible tab
 
 
-def test_the_selected_templates_title_stays_readable(qtbot):
-    """After the Carbon restyle, selected rows are light grey; the selected
-    title was still drawn white on it (contrast ~1.3:1). It must keep at
-    least WCAG AA's 4.5:1 against the selection colour."""
+def test_the_selected_templates_title_stays_readable(qtbot, restored_theme):
+    """Selected rows are a light tint; the selected title was once drawn
+    white on it (contrast ~1.3:1). It must keep at least WCAG AA's 4.5:1
+    against the selection colour."""
     from PySide6.QtGui import QColor
 
     from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
-    from spacemissionstudio.gui.theme import PALETTE
+    from spacemissionstudio.gui.theme import PALETTE, apply_theme
+
+    apply_theme(restored_theme, "light")
 
     def luminance(color):
         channels = []
@@ -381,4 +383,30 @@ def test_the_selected_templates_title_stays_readable(qtbot):
     text = row.title_label.palette().color(row.title_label.foregroundRole())
     lighter, darker = sorted((luminance(text), luminance(QColor(PALETTE["selected"]))), reverse=True)
     assert (lighter + 0.05) / (darker + 0.05) >= 4.5
-    assert row.title_label.styleSheet().endswith("font-weight: 600;")  # still marked as selected
+    assert row.title_label.property("role") == "strong"  # still marked as selected (semibold)
+    from PySide6.QtGui import QFont
+
+    assert row.title_label.font().weight() >= QFont.Weight.DemiBold
+
+
+def test_every_customize_button_is_inside_the_list(qtbot):
+    """In the main window the template list is narrower than when its rows
+    were first laid out; the rows follow it, so each row's Customize...
+    button stays inside the list instead of past its right edge."""
+    from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+    qtbot.addWidget(window)
+    window.resize(1440, 900)  # [px]
+    window.show()
+    qtbot.waitExposed(window)
+    widget = window.findChildren(LoadScenarioWidget)[0]
+    viewport = widget.list_widget.viewport()
+    buttons = [row.customize_button for row in widget._rows.values() if row.customize_button is not None]
+    assert buttons
+
+    def outside():
+        return [b.accessibleName() for b in buttons if b.mapTo(viewport, b.rect().topRight()).x() >= viewport.width()]
+
+    qtbot.waitUntil(lambda: outside() == [], timeout=3000)  # the list lays its rows out again on its own time

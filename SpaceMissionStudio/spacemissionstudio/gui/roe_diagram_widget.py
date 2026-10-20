@@ -36,12 +36,12 @@ import math
 from typing import List
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt
-from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPen, QPolygonF
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QPolygonF
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from ..engine.roe import min_radial_normal_separation
 from ..engine.scenario_explainer import RoeDiagram
-from .theme import PALETTE, SERIES_COLORS
+from .theme import PALETTE, SERIES_COLORS, ui_font
 
 _PANEL_MAX = 170  # panel side, px
 _TITLE_HEIGHT = 20  # px
@@ -110,9 +110,8 @@ class RoeDiagramWidget(QWidget):
 
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-        title_font = QFont(painter.font())
-        small = QFont(painter.font())
-        small.setPointSize(max(7, small.pointSize() - 2))
+        title_font = ui_font("body", "semibold")
+        small = ui_font("caption")
         top = 8 + _TITLE_HEIGHT
         panels = [QRectF(8 + k * (side + _GAP), top, side, side) for k in range(3)]
         titles = ("Eccentricity vector a·δe", "Inclination vector a·δi", "Path around the chief")

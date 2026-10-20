@@ -32,7 +32,7 @@ from typing import Optional
 from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QHBoxLayout, QLabel,
                                QLineEdit, QPushButton, QVBoxLayout, QWidget)
 
-from .theme import PALETTE
+from .theme import set_role
 from .widgets import ComboBox, DoubleSpinBox
 
 _TRANSPORTS = (("Automatic (Unix socket, TCP on Windows)", "auto"), ("Unix-domain socket", "unix"),
@@ -74,7 +74,7 @@ class SilRunDialog(QDialog):
         form.addRow("Program", path_row)
         self.hash_label = QLabel("")
         self.hash_label.setWordWrap(True)
-        self.hash_label.setStyleSheet(f"color: {PALETTE['text_muted']}; font-family: monospace;")
+        set_role(self.hash_label, role="mono", tone="secondary")
         form.addRow("SHA-256", self.hash_label)
         self.transport_combo = ComboBox()
         for text, value in _TRANSPORTS:
@@ -101,7 +101,7 @@ class SilRunDialog(QDialog):
         layout.addWidget(self.consent_check)
         self.problem_label = QLabel("")
         self.problem_label.setWordWrap(True)
-        self.problem_label.setStyleSheet(f"color: {PALETTE['danger']};")
+        set_role(self.problem_label, tone="critical")
         layout.addWidget(self.problem_label)
 
         self.buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Cancel)

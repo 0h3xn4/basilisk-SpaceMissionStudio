@@ -38,7 +38,7 @@ from PySide6.QtWidgets import QLabel, QPlainTextEdit, QTextEdit, QVBoxLayout, QW
 
 from ..schema.scenario import Scenario, ScenarioJSONError, ScenarioValidationError, parse_scenario_text, scenario_text
 from .feedback import ProblemBanner
-from .theme import PALETTE
+from .theme import TOKENS
 
 SOURCE = "JSON view"  # how this page's problems start
 
@@ -140,7 +140,7 @@ class ScenarioJsonView(QWidget):
         selections = []
         if line is not None:
             selection = QTextEdit.ExtraSelection()
-            selection.format.setBackground(QColor(PALETTE["danger_soft"]))
+            selection.format.setBackground(QColor(TOKENS["status.critical.soft"]))
             selection.format.setProperty(QTextFormat.Property.FullWidthSelection, True)
             selection.cursor = QTextCursor(self.edit.document().findBlockByNumber(line - 1))
             selections.append(selection)

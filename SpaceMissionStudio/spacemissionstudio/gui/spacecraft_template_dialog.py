@@ -46,6 +46,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..engine.spacecraft_templates import SPACECRAFT_TEMPLATES, SpacecraftTemplate
+from .theme import set_role
 
 
 class SpacecraftTemplateDialog(QDialog):
@@ -80,7 +81,7 @@ class SpacecraftTemplateDialog(QDialog):
         self.description_label = QLabel()
         self.description_label.setWordWrap(True)
         self.description_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.description_label.setStyleSheet("color: palette(mid);")
+        set_role(self.description_label, tone="secondary")
         body.addWidget(self.description_label, stretch=1)
         layout.addLayout(body)
 

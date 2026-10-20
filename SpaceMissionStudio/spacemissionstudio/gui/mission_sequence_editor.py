@@ -44,7 +44,7 @@ from __future__ import annotations
 import re
 
 from PySide6.QtCore import QSize, Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor, QKeySequence, QShortcut
+from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QDialog,
@@ -80,7 +80,8 @@ from ..schema.command import (
 from .feedback import ProblemBanner, show_dialog_error, show_toast
 from .icons import step_icon
 from .page_tree import embed_dialog, watch_edits
-from .theme import PALETTE
+from .theme import on_change, set_role
+from .theme.items import retint, tint
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox
 
 # Mirrors engine.mission_engine._ASSIGNMENT_CONTROLLERS/_ASSIGNMENT_ATTRIBUTES
@@ -422,7 +423,7 @@ class _CommandEditorDialog(QDialog):
             "Specific impulse only changes the propellant used, not the force."
         )
         hint.setWordWrap(True)
-        hint.setStyleSheet("color: palette(mid);")
+        set_role(hint, tone="secondary")
         form.addRow(hint)
 
         self.stack.addWidget(page)
@@ -471,7 +472,7 @@ class _CommandEditorDialog(QDialog):
         item.setFlags(item.flags() | Qt.ItemFlag.ItemIsUserCheckable)
         item.setCheckState(Qt.CheckState.Checked if checked else Qt.CheckState.Unchecked)
         if missing:
-            item.setForeground(QColor(PALETTE["danger"]))
+            tint(item, "status.critical.text")
             item.setToolTip("This scenario does not produce this series, so the run would stop here. "
                             "Untick it, or rename the spacecraft/device it refers to.")
         self.report_series_list.addItem(item)
@@ -527,9 +528,7 @@ class _CommandEditorDialog(QDialog):
         layout.addWidget(hint)
         self.script_code_edit = QPlainTextEdit(str(params.get("code", "")))
         self.script_code_edit.setTabChangesFocus(True)
-        font = self.script_code_edit.font()
-        font.setFamily("monospace")
-        self.script_code_edit.setFont(font)
+        set_role(self.script_code_edit, role="mono")
         layout.addWidget(self.script_code_edit)
         self.stack.addWidget(page)
 
@@ -788,6 +787,7 @@ class MissionSequenceEditorWidget(QWidget):
         steps_layout = QVBoxLayout(steps)
         steps_layout.setContentsMargins(0, 0, 0, 0)
         self.tree = _StepTree()
+        on_change(self._retint)
         self.tree.setToolTip("Drag a step to move it, or into an if/while step to nest it. Untick a step to "
                              "leave it out of the run.")
         steps_layout.addWidget(self.tree, 1)
@@ -933,6 +933,9 @@ class MissionSequenceEditorWidget(QWidget):
         finally:
             self._building = building
 
+    def _retint(self, _mode: str) -> None:
+        retint(self.tree)
+
     def _show_state(self, item: QTreeWidgetItem) -> None:
         """A disabled step is greyed (and so are the steps inside it); a
         step with a problem is in the error colour, the problem in its
@@ -940,12 +943,7 @@ class MissionSequenceEditorWidget(QWidget):
         command = self.command_of(item)
         errors = command.validate(self.path_of(item))
         off = not self._runs(item)
-        if errors:
-            item.setForeground(0, QBrush(QColor(PALETTE["danger_text"])))
-        elif off:
-            item.setForeground(0, QBrush(QColor(PALETTE["text_muted"])))
-        else:
-            item.setForeground(0, QBrush())
+        tint(item, "status.critical.text" if errors else "text.secondary" if off else None)
         font = item.font(0)
         font.setItalic(off)
         item.setFont(0, font)

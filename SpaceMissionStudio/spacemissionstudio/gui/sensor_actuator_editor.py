@@ -91,7 +91,8 @@ from ..engine.device_catalog import catalog_entries_for_kind
 from ..schema.scenario import RW_TYPES, THRUSTER_TYPES
 from .feedback import clear_invalid, mark_invalid, report, show_dialog_error, show_toast
 from .param_form import ParamForm
-from .theme import PALETTE
+from .theme import on_change, set_role
+from .theme.richtext import css, status_css
 from .widgets import ComboBox
 
 
@@ -407,8 +408,8 @@ def _hint_text(kind: str) -> str:
     return f"ℹ {note}" if note else ""
 
 
-_STATUS_COLORS = {"RFI priority": "success", "RFI": "warning", "Candidate": "text_muted",
-                  "Check": "danger", "Development": "warning"}
+_STATUS_TONES = {"RFI priority": "normal", "RFI": "caution", "Candidate": "off",
+                 "Check": "critical", "Development": "caution"}
 
 
 def _readable_param_names(kind: str, text: str) -> str:
@@ -427,26 +428,24 @@ def _device_card_html(entry) -> str:
     dump looked "unclear, confusing, all over the place and not
     professional")."""
     esc = html.escape
-    status_color = next((PALETTE[color] for prefix, color in _STATUS_COLORS.items()
-                         if entry.procurement_status.startswith(prefix)), PALETTE["text_muted"])
+    status_tone = next((tone for prefix, tone in _STATUS_TONES.items()
+                        if entry.procurement_status.startswith(prefix)), "off")
     rows = [
         ("Heritage", esc(entry.heritage)),
-        ("Procurement", f"<span style='color:{status_color}; font-weight:600;'>"
-                        f"{esc(entry.procurement_status)}</span>"),
+        ("Procurement", f"<span style='{status_css(status_tone)}'>{esc(entry.procurement_status)}</span>"),
         ("Export control", esc(entry.itar_free_note)),
         ("Source", f"<a href='{esc(entry.source_url)}'>{esc(entry.source_url)}</a>"),
     ]
     table = "".join(
-        f"<tr><td style='color:{PALETTE['text_muted']}; padding:2px 10px 2px 0; white-space:nowrap;'"
-        f" valign='top'>{label}</td><td style='padding:2px 0;'>{value}</td></tr>"
+        f"<tr><td style='{css('key-cell')}' valign='top'>{label}</td>"
+        f"<td style='{css('value-cell')}'>{value}</td></tr>"
         for label, value in rows if value)
-    notes = (f"<p style='color:{PALETTE['text_muted']}; margin-top:8px;'>"
+    notes = (f"<p style='{css('note')}'>"
              f"<b>How the values were set:</b> {esc(_readable_param_names(entry.kind, entry.notes))}</p>"
              if entry.notes else "")
-    return (f"<p style='font-size:115%; font-weight:600; margin:0;'>{esc(entry.manufacturer)} "
-            f"{esc(entry.product_name)}</p>"
-            f"<p style='color:{PALETTE['text_muted']}; margin:0 0 6px 0;'>{esc(entry.country)}</p>"
-            f"<p style='margin:0 0 6px 0;'>{esc(entry.description)}</p>"
+    return (f"<p style='{css('title')}'>{esc(entry.manufacturer)} {esc(entry.product_name)}</p>"
+            f"<p style='{css('meta')}'>{esc(entry.country)}</p>"
+            f"<p style='{css('para')}'>{esc(entry.description)}</p>"
             f"<table cellspacing='0'>{table}</table>{notes}")
 
 
@@ -495,7 +494,7 @@ class _ItemEditorDialog(QDialog):
 
         self.hint_label = QLabel()
         self.hint_label.setWordWrap(True)
-        self.hint_label.setStyleSheet(f"background: {PALETTE['info_soft']}; border-left: 3px solid {PALETTE['accent']}; padding: 6px 8px;")
+        set_role(self.hint_label, role="hint")
         layout.addWidget(self.hint_label)
 
         body = QHBoxLayout()
@@ -506,7 +505,7 @@ class _ItemEditorDialog(QDialog):
         catalog_layout = QVBoxLayout(self._catalog_container)
         catalog_layout.setContentsMargins(0, 0, 0, 0)
         catalog_title = QLabel("Start from a real device")
-        catalog_title.setStyleSheet("font-weight: 600;")
+        set_role(catalog_title, role="strong")
         catalog_layout.addWidget(catalog_title)
         self.catalog_combo = ComboBox()
         self.catalog_combo.setToolTip("A real, commercially available device for this kind. Its card "
@@ -522,12 +521,12 @@ class _ItemEditorDialog(QDialog):
         self.catalog_info_label.setWordWrap(True)
         self.catalog_info_label.setTextFormat(Qt.TextFormat.RichText)
         self.catalog_info_label.setOpenExternalLinks(True)
+        on_change(self._restyle)
         self.catalog_info_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
         self.catalog_info_label.setContentsMargins(10, 8, 10, 8)
         card = QFrame()
         card.setObjectName("deviceCard")
-        card.setStyleSheet(f"QFrame#deviceCard {{ background: {PALETTE['surface']}; "
-                           f"border: 1px solid {PALETTE['border']}; border-radius: 0px; }}")  # Carbon tile
+        set_role(card, role="card")
         card_layout = QVBoxLayout(card)
         card_layout.setContentsMargins(0, 0, 0, 0)
         card_layout.addWidget(self.catalog_info_label)
@@ -544,7 +543,7 @@ class _ItemEditorDialog(QDialog):
         params_column = QVBoxLayout()
         params_header = QHBoxLayout()
         params_title = QLabel("Parameters")
-        params_title.setStyleSheet("font-weight: 600;")
+        set_role(params_title, role="strong")
         params_header.addWidget(params_title)
         params_header.addStretch(1)
         self.reset_template_button = QPushButton("Reset to template")
@@ -555,7 +554,7 @@ class _ItemEditorDialog(QDialog):
         params_column.addLayout(params_header)
         legend = QLabel("Optional parameters use Basilisk's default unless ticked. Hover a name for details.")
         legend.setWordWrap(True)
-        legend.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(legend, tone="secondary")
         params_column.addWidget(legend)
         self.param_form = ParamForm()
         form_holder = QWidget()
@@ -646,6 +645,10 @@ class _ItemEditorDialog(QDialog):
         self._card_scroll.setVisible(True)
         self.apply_catalog_button.setEnabled(True)
         self.catalog_info_label.setText(_device_card_html(entry))
+
+    def _restyle(self, _mode: str = "") -> None:
+        """Rebuild the device card's rich text in the theme in use."""
+        self._on_catalog_selection_changed(self.catalog_combo.currentIndex())
 
     def _on_apply_catalog_entry(self) -> None:
         entries = getattr(self, "_current_catalog_entries", [])

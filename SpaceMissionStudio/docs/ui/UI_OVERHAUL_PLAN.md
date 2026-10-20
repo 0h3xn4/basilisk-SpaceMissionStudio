@@ -747,6 +747,14 @@ Every milestone also has to meet all of these:
 | **M8** | **Reports/Exports and Settings** | The Reports area lists every export of §5.3 with format, destination and provenance. Export files are byte-identical to 1.1.0 (tests compare them). Settings: appearance (theme follow-OS/dark/light, UI scale 90/100/110/125 %, reduce motion), reference data, Vizard location, layout reset, keyboard (generated) and About. |
 | **M9** | **Final**: performance pass, accessibility pass, after-screenshots, BEFORE_AFTER.md, user-guide screenshots, CHANGELOG, version 1.2.0 | Every interaction of §3 meets 50 ms, or the plan records why not with the measured value. Startup to interactive is faster than the baseline (1.69–1.97 s), and the first visit to any page stalls less than 50 ms (today 383 ms for a spacecraft). Keyboard-only walk of every area passes. `docs/ui/screenshots/after/` and `docs/ui/BEFORE_AFTER.md` exist. User-guide images are replaced. Compliance documents that cite screenshots or the Carbon restyle get their references updated (claims untouched). The version is 1.2.0 in all version files, with a CHANGELOG section describing the new UI. |
 
+**Status.**
+
+- **M1 (2026-10-20):** done except one criterion. Applying a theme live
+  takes 0.51-0.55 s on a new main window and 2.4 s after every page has
+  been visited (1.1.0: 1.31-1.44 s and 6.1-6.5 s), not under 100 ms: Qt
+  re-polishes every widget, most of them hidden. The criterion moves to M2
+  with these values (`docs/DECISIONS.md`).
+
 **Order and size.**
 
 - M1 and M2 are the largest. Each touches every screen's styling or hosting,

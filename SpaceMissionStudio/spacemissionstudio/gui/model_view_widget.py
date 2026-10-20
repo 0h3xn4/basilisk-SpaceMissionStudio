@@ -41,11 +41,13 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QVBoxLayout, QWidget
 
 from .results_widget import _plotlyjs_path
-from .theme import PALETTE
+from .theme import TOKENS, on_change
+from .theme.palettes import AXIS_COLOURS
+from .theme.plotly_template import scene_axis
 
 _DIV_ID = "model-view"
 # Body axes at B: x, y, z in the usual red, green, blue (identity, not state).
-_AXIS_COLORS = ("#d62728", "#2ca02c", "#1f77b4")
+_AXIS_COLORS = AXIS_COLOURS
 _OTHER_PARTS_OPACITY = 0.35  # [-] the parts not selected, while one is
 
 
@@ -81,12 +83,11 @@ def model_figure(derived, selected: Optional[str] = None) -> go.Figure:
     if derived.mass_properties is not None:
         com = derived.mass_properties.center_of_mass_m
         traces.append(go.Scatter3d(x=[com[0]], y=[com[1]], z=[com[2]], mode="markers", name="center of mass",
-                                   marker={"symbol": "diamond", "size": 6, "color": PALETTE["text"]},
+                                   marker={"symbol": "diamond", "size": 6, "color": TOKENS["text.primary"]},
                                    hovertemplate="center of mass<br>[%{x:.4g}, %{y:.4g}, %{z:.4g}] m<extra></extra>"))
-    axis_style = {"backgroundcolor": PALETTE["surface"], "gridcolor": PALETTE["border"],
-                  "zerolinecolor": PALETTE["border_strong"], "color": PALETTE["text_muted"]}
+    axis_style = scene_axis(TOKENS)
     layout = go.Layout(
-        showlegend=False, margin={"l": 0, "r": 0, "t": 0, "b": 0}, paper_bgcolor=PALETTE["surface"],
+        showlegend=False, margin={"l": 0, "r": 0, "t": 0, "b": 0}, paper_bgcolor=TOKENS["bg.surface"],
         uirevision="model",  # keeps the camera when the data change
         scene={"aspectmode": "data", "xaxis": {**axis_style, "title": "x [m]"},
                "yaxis": {**axis_style, "title": "y [m]"}, "zaxis": {**axis_style, "title": "z [m]"}})
@@ -110,11 +111,14 @@ class ModelViewWidget(QWidget):
         page.write_text(self._page_html(), encoding="utf-8")
         self.web_view.loadFinished.connect(self._on_loaded)
         self.web_view.load(QUrl.fromLocalFile(str(page)))
+        self._derived = None
+        self._selected: Optional[str] = None
+        on_change(self._on_theme_changed)
 
     @staticmethod
     def _page_html() -> str:
         plotly_js = QUrl.fromLocalFile(str(_plotlyjs_path())).toString()
-        background = PALETTE["surface"]
+        background = TOKENS["bg.surface"]
         return (f"<!doctype html><html><head><meta charset='utf-8'><script src='{plotly_js}'></script>"
                 f"<style>html,body,#{_DIV_ID}{{margin:0;height:100%;width:100%;background:{background};"
                 f"overflow:hidden}}</style></head><body><div id='{_DIV_ID}'></div><script>"
@@ -129,9 +133,19 @@ class ModelViewWidget(QWidget):
 
     def show_model(self, derived, selected: Optional[str] = None) -> None:
         """Draw ``derived`` (a DerivedModel), fading all but ``selected``."""
+        self._derived, self._selected = derived, selected
         self.figure = model_figure(derived, selected)
         script = f"window.smsShow({self.figure.to_json()});"
         if self._ready:
             self.web_view.page().runJavaScript(script)
         else:
             self._pending = script
+
+    def _on_theme_changed(self, _mode: str) -> None:
+        """The page's background and the shown model in the new theme."""
+        if self._ready:
+            self.web_view.page().runJavaScript(
+                f"document.body.style.background = '{TOKENS['bg.surface']}';"
+                f"document.getElementById('{_DIV_ID}').style.background = '{TOKENS['bg.surface']}';")
+        if self._derived is not None:
+            self.show_model(self._derived, self._selected)

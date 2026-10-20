@@ -60,7 +60,7 @@ from .monte_carlo_editor import MonteCarloGroupWidget
 from .problem_location import (GROUND_STATION, JSON_VIEW, MISSION_SEQUENCE, PROPAGATION, SCENARIO, SPACECRAFT,
                                locate)
 from .spacecraft_editor import SpacecraftEditorDialog, SpacecraftListWidget, tab_titles
-from .theme import CONTENT_MAX_WIDTH_PX, PALETTE
+from .theme import CONTENT_MAX_WIDTH_PX, set_role
 from .widgets import ComboBox, out_of_range_boxes
 from .workspace_panels import field_label
 
@@ -202,7 +202,7 @@ class ScenarioEditorWidget(QWidget):
         # cannot be flown, a run outside the installed reference data.
         self.plausibility_label = QLabel()
         self.plausibility_label.setWordWrap(True)
-        self.plausibility_label.setStyleSheet(f"color: {PALETTE['warning']};")
+        set_role(self.plausibility_label, tone="caution")
         self.plausibility_label.setVisible(False)
         outer_layout.addWidget(self.plausibility_label)
 
@@ -909,7 +909,7 @@ class ScenarioEditorWidget(QWidget):
             more = len(errors) - 1
             self.validation_label.setText(f"⚠ {self.problem_display(errors[0])}"
                                           + (f" (and {more} more: see Problems)" if more else ""))
-            self.validation_label.setStyleSheet(f"color: {PALETTE['danger']};")
+            set_role(self.validation_label, tone="critical")
             location_names = self._spacecraft_and_station_names()
             field_error = next((error for error in errors if (location := locate(error, *location_names)) is not None
                                 and location.area == SCENARIO), "")
@@ -917,7 +917,7 @@ class ScenarioEditorWidget(QWidget):
         else:
             self._show_field_problem("")
             self.validation_label.setText("✓ valid")
-            self.validation_label.setStyleSheet(f"color: {PALETTE['success']};")
+            set_role(self.validation_label, tone="normal")
             base_dir = self._base_dir_provider() if self._base_dir_provider else None
             warnings = plausibility_warnings(scenario, base_dir=base_dir)
         self.plausibility_label.setText("\n".join(f"⚠ {warning}" for warning in warnings))

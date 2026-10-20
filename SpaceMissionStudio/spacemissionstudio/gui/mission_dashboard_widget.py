@@ -65,9 +65,9 @@ from PySide6.QtWidgets import (
 from ..engine import link_budget
 from ..engine.results import ResultSet
 from ..schema.scenario import Scenario
-from .badges import ACCENT as _ACCENT_BADGE, badge_style as _badge_style
-from .badges import DANGER as _DANGER_BADGE, MUTED as _MUTED_BADGE, SUCCESS as _SUCCESS_BADGE
-from .theme import PALETTE
+from .badges import ACCENT as _ACCENT_BADGE, DANGER as _DANGER_BADGE, MUTED as _MUTED_BADGE
+from .badges import SUCCESS as _SUCCESS_BADGE, set_badge
+from .theme import set_role
 
 
 def _find_comms_pointing_spacecraft(result: Optional[ResultSet]) -> Optional[str]:
@@ -156,7 +156,7 @@ class MissionDashboardWidget(QWidget):
         )
         self._placeholder.setWordWrap(True)
         self._placeholder.setAlignment(Qt.AlignmentFlag.AlignCenter)  # same centered empty state as the Results tab
-        self._placeholder.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self._placeholder, tone="secondary")
         layout.addWidget(self._placeholder)
 
         # Cards sized to their content, in two columns (one when the pane
@@ -224,20 +224,20 @@ class MissionDashboardWidget(QWidget):
         self.margin_label = QLabel("--")
         # The answer first (status, margin, range), then the link budget as
         # a muted breakdown: ten equally weighted rows hid the margin.
-        self.margin_label.setStyleSheet("font-weight: 600;")
+        set_role(self.margin_label, role="strong")
         rf_form.addRow("Link status:", self.link_status_badge)
         rf_form.addRow("Link margin:", self.margin_label)
         rf_form.addRow("Slant range:", self.slant_range_label)
         budget_heading = QLabel("Link budget")
-        budget_heading.setStyleSheet(f"color: {PALETTE['text_muted']}; font-weight: 600; margin-top: 6px;")
+        set_role(budget_heading, role="heading", tone="secondary")
         rf_form.addRow(budget_heading)
         for text, value_label in (("EIRP", self.eirp_label), ("Free-space path loss", self.fspl_label),
                                   ("Antenna pointing loss", self.pointing_loss_label),
                                   ("Received power", self.received_power_label), ("Noise (N0)", self.noise_label),
                                   ("C/N0", self.cn0_label), ("Eb/N0", self.ebno_label)):
             row_label = QLabel(f"{text}:")
-            row_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
-            value_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+            set_role(row_label, tone="secondary")
+            set_role(value_label, tone="secondary")
             rf_form.addRow(row_label, value_label)
         self._arrange_cards(2)
 
@@ -331,13 +331,13 @@ class MissionDashboardWidget(QWidget):
         is_comms_mode = bool(active_mode is not None and active_mode > 0.5)
         if active_mode is None:
             self.mode_badge.setText("Unknown")
-            self.mode_badge.setStyleSheet(_badge_style(_MUTED_BADGE))
+            set_badge(self.mode_badge, _MUTED_BADGE)
         elif is_comms_mode:
             self.mode_badge.setText("Ground-station-pointing")
-            self.mode_badge.setStyleSheet(_badge_style(_ACCENT_BADGE))
+            set_badge(self.mode_badge, _ACCENT_BADGE)
         else:
             self.mode_badge.setText("Sun-pointing")
-            self.mode_badge.setStyleSheet(_badge_style(_SUCCESS_BADGE))
+            set_badge(self.mode_badge, _SUCCESS_BADGE)
 
         comms_target = sc_config.comms_pointing.target_ground_station \
             if sc_config is not None and sc_config.comms_pointing is not None else None
@@ -350,13 +350,13 @@ class MissionDashboardWidget(QWidget):
             slant_range_m = _latest(result, f"{gs_name}.access_to_{sc_name}.slant_range", at_s)
         if has_access is None:
             self.visibility_badge.setText("Unknown")
-            self.visibility_badge.setStyleSheet(_badge_style(_MUTED_BADGE))
+            set_badge(self.visibility_badge, _MUTED_BADGE)
         elif has_access:
             self.visibility_badge.setText(f"In view of {gs_name}")
-            self.visibility_badge.setStyleSheet(_badge_style(_ACCENT_BADGE))
+            set_badge(self.visibility_badge, _ACCENT_BADGE)
         else:
             self.visibility_badge.setText("No ground station in view")
-            self.visibility_badge.setStyleSheet(_badge_style(_MUTED_BADGE))
+            set_badge(self.visibility_badge, _MUTED_BADGE)
 
         # -- Attitude -----------------------------------------------------
         pointing_error_deg = _latest(result, f"{sc_name}.comms_pointing.pointing_error_deg", at_s)
@@ -365,13 +365,13 @@ class MissionDashboardWidget(QWidget):
         )
         if pointing_error_deg is None:
             self.tracking_badge.setText("Unknown")
-            self.tracking_badge.setStyleSheet(_badge_style(_MUTED_BADGE))
+            set_badge(self.tracking_badge, _MUTED_BADGE)
         elif pointing_error_deg < 5.0:
             self.tracking_badge.setText("Converged")
-            self.tracking_badge.setStyleSheet(_badge_style(_SUCCESS_BADGE))
+            set_badge(self.tracking_badge, _SUCCESS_BADGE)
         else:
             self.tracking_badge.setText("Slewing")
-            self.tracking_badge.setStyleSheet(_badge_style(_ACCENT_BADGE))
+            set_badge(self.tracking_badge, _ACCENT_BADGE)
 
         # -- Power ----------------------------------------------------------
         battery_charge_wh = _latest(result, f"{sc_name}.battery_charge", at_s)
@@ -391,12 +391,10 @@ class MissionDashboardWidget(QWidget):
         if net_power_w is not None:
             sign = "+" if net_power_w >= 0 else ""
             self.net_power_label.setText(f"{sign}{net_power_w:.2f} W")
-            self.net_power_label.setStyleSheet(
-                f"color: {PALETTE['success'] if net_power_w >= 0 else PALETTE['danger']};"
-            )
+            set_role(self.net_power_label, tone="normal" if net_power_w >= 0 else "critical")
         else:
             self.net_power_label.setText("--")
-            self.net_power_label.setStyleSheet("")
+            set_role(self.net_power_label, tone=None)
 
         # -- RF link --------------------------------------------------------
         self._refresh_rf_link(sc_config, gs_name, has_access, is_comms_mode, slant_range_m, pointing_error_deg)
@@ -432,20 +430,20 @@ class MissionDashboardWidget(QWidget):
                 label.setText("--")
             if has_access is None:
                 self.link_status_badge.setText("Unknown")
-                self.link_status_badge.setStyleSheet(_badge_style(_MUTED_BADGE))
+                set_badge(self.link_status_badge, _MUTED_BADGE)
             elif not has_access:
                 self.link_status_badge.setText("No access")
-                self.link_status_badge.setStyleSheet(_badge_style(_MUTED_BADGE))
+                set_badge(self.link_status_badge, _MUTED_BADGE)
             elif not is_comms_mode:
                 # Real access exists, but the spacecraft hasn't
                 # (mode-)switched its antenna to point at it yet -- the
                 # "geometric visibility vs. actual RF link availability"
                 # distinction this feature is built around.
                 self.link_status_badge.setText("Not yet comms-pointing")
-                self.link_status_badge.setStyleSheet(_badge_style(_MUTED_BADGE))
+                set_badge(self.link_status_badge, _MUTED_BADGE)
             else:
                 self.link_status_badge.setText("Link status unknown (no rf_link configured)")
-                self.link_status_badge.setStyleSheet(_badge_style(_MUTED_BADGE))
+                set_badge(self.link_status_badge, _MUTED_BADGE)
             return
 
         self.eirp_label.setText(f"{breakdown.eirp_dbw:.2f} dBW")
@@ -458,7 +456,7 @@ class MissionDashboardWidget(QWidget):
         self.margin_label.setText(f"{breakdown.margin_db:.2f} dB")
         if math.isnan(breakdown.margin_db) or breakdown.margin_db < 0:
             self.link_status_badge.setText("Link degraded")
-            self.link_status_badge.setStyleSheet(_badge_style(_DANGER_BADGE))
+            set_badge(self.link_status_badge, _DANGER_BADGE)
         else:
             self.link_status_badge.setText("Link OK")
-            self.link_status_badge.setStyleSheet(_badge_style(_SUCCESS_BADGE))
+            set_badge(self.link_status_badge, _SUCCESS_BADGE)

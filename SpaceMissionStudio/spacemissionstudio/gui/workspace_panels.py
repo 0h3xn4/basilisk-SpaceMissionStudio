@@ -36,14 +36,15 @@ from collections import deque
 from typing import Deque, List, Optional, Tuple
 
 from PySide6.QtCore import QObject, Qt, QUrl, Signal
-from PySide6.QtGui import QDesktopServices, QFont
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QAbstractSpinBox, QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QHBoxLayout,
                                QLabel, QLineEdit, QListWidget, QListWidgetItem, QPlainTextEdit, QPushButton,
                                QSpinBox, QTextEdit, QVBoxLayout, QWidget)
 
 from .feedback import row_label
 from .problem_location import SPACECRAFT, locate
-from .theme import MONO_FONT_FAMILY, PALETTE
+from .theme import mono_font, on_change, set_role
+from .theme.items import retint, tint
 from .widgets import ComboBox
 
 
@@ -52,7 +53,7 @@ def _empty_state(text: str) -> QLabel:
     label.setObjectName("emptyState")
     label.setWordWrap(True)
     label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    label.setStyleSheet(f"color: {PALETTE['text_muted']}; padding: 24px;")
+    set_role(label, role="empty")
     return label
 
 
@@ -177,6 +178,7 @@ class ProblemsWidget(QWidget):
         layout = QVBoxLayout(self)
         self.empty_label = _empty_state("No problems: the scenario is valid.")
         self.list = QListWidget()
+        on_change(self._retint)
         self.list.setWordWrap(True)
         # Wrapped lines, never a sideways scroll bar: items re-wrap when the panel resizes.
         self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -190,6 +192,9 @@ class ProblemsWidget(QWidget):
     def _on_item_activated(self, item) -> None:
         self.activated.emit(self.problems[self.list.row(item)][1])
 
+    def _retint(self, _mode: str) -> None:
+        retint(self.list)
+
     def set_problems(self, problems: List[Tuple[str, ...]]) -> None:
         """``problems``: ``(severity, text)`` or ``(severity, text, shown
         text)``, severity "error" or "warning". ``text`` is the message as
@@ -197,10 +202,10 @@ class ProblemsWidget(QWidget):
         self.problems = [(problem[0], problem[1]) for problem in problems]
         shown = [problem[2] if len(problem) > 2 else problem[1] for problem in problems]
         self.list.clear()
-        colours = {"error": PALETTE["danger_text"], "warning": PALETTE["warning"]}
+        tones = {"error": "status.critical.text", "warning": "status.caution.text"}
         for (severity, text), display in zip(self.problems, shown):
             item = QListWidgetItem(f"{'Error' if severity == 'error' else 'Warning'}: {display}")
-            item.setForeground(_brush(colours.get(severity, PALETTE["text"])))
+            tint(item, tones.get(severity, "text.primary"))
             item.setToolTip("Double-click to open the 3D model editor" if _MODEL_MARK in text
                             else "Double-click to go to where it is fixed")
             self.list.addItem(item)
@@ -220,11 +225,6 @@ def model_problem_spacecraft(text: str, names: List[str]) -> Optional[str]:
         return location.name
     return None
 
-
-def _brush(colour: str):
-    from PySide6.QtGui import QBrush, QColor
-
-    return QBrush(QColor(colour))
 
 
 # -- Log ----------------------------------------------------------------------
@@ -283,7 +283,7 @@ class LogViewWidget(QWidget):
         self.text = QPlainTextEdit()
         self.text.setReadOnly(True)
         self.text.setObjectName("logText")
-        self.text.setFont(QFont(MONO_FONT_FAMILY))
+        self.text.setFont(mono_font())
         self.text.setPlaceholderText("Nothing logged yet in this session.")
         layout.addWidget(self.text, 1)
         self.records: Deque[Tuple[float, int, str, str]] = deque(maxlen=MAX_LOG_RECORDS)
