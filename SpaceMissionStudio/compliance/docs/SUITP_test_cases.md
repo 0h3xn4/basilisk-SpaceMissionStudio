@@ -1839,7 +1839,7 @@ Levels: *unit* runs without Basilisk or Qt; *integration* runs a Basilisk simula
 |---|---|---|---|
 | `test_basilisk_check_accepts_only_the_qualified_version` | No note for the qualified version; a note naming both versions for another; a clear note when Basilisk is missing. | Q-ST-80C 6.2.4, Q-ST-80C 6.2.7 | unit |
 | `test_basilisk_check_reports_a_missing_basilisk` | Without Basilisk the check says simulations cannot run. | Q-ST-80C 6.2.4, Q-ST-80C 6.2.7 | unit |
-| `test_installers_pin_the_qualified_basilisk_version` (parametrized) | Every pip install of Basilisk in the installers pins exactly the qualified version, so changing one without the other fails here. | Q-ST-80C 6.2.4, Q-ST-80C 6.2.7 | unit |
+| `test_installers_pin_the_qualified_basilisk_version` | The Basilisk the .deb and the Windows setup bundle (packaging/bundle_python.py) is exactly the qualified version, so changing one without the other fails here. | Q-ST-80C 6.2.4, Q-ST-80C 6.2.7 | unit |
 | `test_file_record_hashes_small_files_and_flags_missing_ones` | A small file gets its size and SHA-256; a missing one is marked. | Q-ST-80C 6.2.4, Q-ST-80C 6.2.7 | unit |
 | `test_dependency_versions_lists_python_and_installed_packages` | Python, platform and numpy (a hard dependency) are always listed. | Q-ST-80C 6.2.4, Q-ST-80C 6.2.7 | unit |
 | `test_run_provenance_records_the_configuration` | A real run's provenance.json carries the Basilisk qualification, the dependency versions, the scenario hash and the SPICE kernels used. | Q-ST-80C 6.2.4, Q-ST-80C 6.2.7 | integration |

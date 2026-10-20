@@ -71,11 +71,14 @@ release"). On GitHub's runners it:
 
 - checks that the tag matches the version files and that the CHANGELOG
   has a section for the version;
-- builds the wheel, sdist and `.deb` on Linux, installs the `.deb` with
-  `apt` and runs the installed tool: version, support data, every
-  template validated, template 01 run and the main window opened;
-- builds the Windows setup program around that wheel, installs it
-  silently and runs it the same way;
+- builds the wheel, sdist and the self-contained `.deb` (the bundled
+  Python of `packaging/bundle_python.py`) on Linux, installs the `.deb`
+  with the network cut off and runs the installed tool offline: version,
+  support data, every template validated, template 01 run from the
+  bundled kernels, the Earth orientation files found and the main window
+  opened in Inter;
+- builds the bundled Python on Windows, then the setup program around
+  it, installs it silently and runs it the same way;
 - on an Apple-silicon Mac, installs that wheel with `packaging/install.sh`
   and Basilisk's wheel from PyPI, and runs it. macOS has no installer;
 - writes `SHA256SUMS-linux` and `SHA256SUMS-windows`, checks every file
@@ -94,8 +97,8 @@ folder:
 | Artifact | Command | Output |
 |---|---|---|
 | Wheel (any platform) | `packaging/build_wheel.sh` (Windows: `packaging\build_wheel.ps1`) | `dist/spacemissionstudio-X.Y.Z-py3-none-any.whl` |
-| Linux installer | `packaging/build_deb.sh` | `dist/spacemissionstudio_X.Y.Z_all.deb` |
-| Windows installer | Inno Setup on Windows only: the release workflow above, or Actions > "SpaceMissionStudio Windows installer" > Run workflow | `spacemissionstudio-X.Y.Z-setup.exe` |
+| Linux installer | `packaging/build_deb.sh` (about 8 minutes; downloads CPython, the packages and the support data) | `dist/spacemissionstudio_X.Y.Z_amd64.deb` |
+| Windows installer | Windows only (`bundle_python.py --platform windows`, then Inno Setup): the release workflow above, or Actions > "SpaceMissionStudio Windows installer" > Run workflow | `spacemissionstudio-X.Y.Z-setup.exe` |
 
 [`packaging/README.md`](../../packaging/README.md) explains each one and
 what has been verified where.

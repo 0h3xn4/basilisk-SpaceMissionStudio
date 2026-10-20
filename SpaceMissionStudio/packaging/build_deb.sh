@@ -17,34 +17,28 @@
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 #
-# Builds a real, installable Debian package (spacemissionstudio_<version>_all.deb):
-# a genuine "apt install ./spacemissionstudio_*.deb" / double-click-in-a-file
-# -manager experience -- no terminal, no pip commands typed by the end
-# user. The package itself only carries SpaceMissionStudio's own pure-Python
-# wheel (built via build_wheel.sh) plus a handful of maintainer scripts
-# (packaging/deb/DEBIAN/) and a desktop entry; Basilisk itself is NOT
-# bundled (~impractical to vendor a multi-hundred-MB compiled wheel with
-# mujoco/rust bits into a package built in this project's own development
-# sandbox -- see packaging/README.md's "The vendoring decision") --
-# instead, postinst creates a dedicated virtualenv at /opt/spacemissionstudio/venv
-# and pip installs "bsk[all]" from PyPI there the moment the package is
-# configured (dpkg/apt's normal "configure" step), which needs internet
-# access on the installing machine, same tradeoff install.sh's own
-# --basilisk-wheel-less path already has.
+# Builds the Debian package spacemissionstudio_<version>_amd64.deb. It is
+# self-contained: /opt/spacemissionstudio/python is a private CPython 3.11
+# (python-build-standalone) with Basilisk, SpaceMissionStudio and every
+# Python package installed, plus the support data and the Earth
+# orientation files (packaging/bundle_python.py). Installing it needs no
+# system Python and no internet; /usr/bin/spacemissionstudio runs that
+# Python.
 #
 # Usage:
 #   ./build_deb.sh [OUTPUT_DIR]
 #
-# Genuinely built AND test-installed (via `dpkg -i` as root, in a
-# throwaway environment with real network access to PyPI) in this
-# project's own development sandbox -- see packaging/README.md for what
-# exactly that confirmed.
+# Needs dpkg-deb, python3 (3.11.4 or later, to run bundle_python.py) and
+# internet access while it builds (the CPython archive, Basilisk and the
+# packages from PyPI, the support data). SMS_PYTHON_ARCHIVE=<file> uses a
+# CPython archive already downloaded (its SHA-256 is still checked).
 
 set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_dir="$(dirname "$script_dir")"
 output_dir="${1:-$project_dir/dist}"
+install_dir=/opt/spacemissionstudio
 
 if ! command -v dpkg-deb >/dev/null 2>&1; then
     echo "dpkg-deb not found -- this script only runs on Debian/Ubuntu-family systems" >&2
@@ -53,42 +47,48 @@ if ! command -v dpkg-deb >/dev/null 2>&1; then
 fi
 
 version=$(cd "$project_dir" && python3 -c "import spacemissionstudio; print(spacemissionstudio.__version__)")
-echo "Building spacemissionstudio_${version}_all.deb ..."
+echo "Building spacemissionstudio_${version}_amd64.deb ..."
 
-# Build the wheel this package bundles -- same script, same source of
-# truth, as the plain (non-.deb) wheel distribution.
+# The wheel the bundled Python installs: the same build as the plain wheel.
 wheel_build_dir=$(mktemp -d)
-trap 'rm -rf "$wheel_build_dir"' EXIT
-"$script_dir/build_wheel.sh" "$wheel_build_dir" >/dev/null
-wheel=$(ls -1t "$wheel_build_dir"/spacemissionstudio-*.whl | head -n1)
-
-# Assemble the package's staging directory from packaging/deb/ (the
-# checked-in skeleton: DEBIAN/ maintainer scripts + control.in, the
-# desktop entry, the copyright file) plus this build's freshly-built
-# wheel -- never mutate packaging/deb/ itself, so re-running this script
-# (or building at a different version) never leaves stray build output
-# in source control.
 staging=$(mktemp -d)
 trap 'rm -rf "$wheel_build_dir" "$staging"' EXIT
+"$script_dir/build_wheel.sh" "$wheel_build_dir" >/dev/null
+wheels=("$wheel_build_dir"/spacemissionstudio-*.whl)
+wheel=${wheels[0]}
+
+# The staging tree: the checked-in skeleton (packaging/deb/: maintainer
+# scripts, control.in, launcher, desktop entry, copyright) plus the bundled
+# Python. packaging/deb/ itself is never changed.
 chmod 755 "$staging"
 cp -r "$script_dir/deb/." "$staging/"
-mkdir -p "$staging/opt/spacemissionstudio/dist"
-cp "$wheel" "$staging/opt/spacemissionstudio/dist/"
-cp "$script_dir/constraints.txt" "$staging/opt/spacemissionstudio/"  # the tested versions postinst installs
+archive_args=()
+if [ -n "${SMS_PYTHON_ARCHIVE:-}" ]; then
+    archive_args=(--archive "$SMS_PYTHON_ARCHIVE")
+fi
+python3 "$script_dir/bundle_python.py" --platform linux --dest "$staging$install_dir/python" \
+    --wheel "$wheel" --prefix "$install_dir/python" "${archive_args[@]}"
+bundled_python="$staging$install_dir/python/bin/python3"
 
-sed "s/@VERSION@/${version}/" "$staging/DEBIAN/control.in" > "$staging/DEBIAN/control"
+# The menu icon (gui/icons.py draws it; no bitmap in the repository),
+# rendered now so it is a package file.
+QT_QPA_PLATFORM=offscreen "$bundled_python" -I -c "
+import sys
+from spacemissionstudio.gui.icons import ensure_icon_file
+ensure_icon_file(sys.argv[1])
+" "$staging/usr/share/icons/hicolor/256x256/apps/spacemissionstudio.png"
+
+installed_size=$(du -sk --exclude=DEBIAN "$staging" | cut -f1)
+sed -e "s/@VERSION@/${version}/" -e "s/@INSTALLED_SIZE@/${installed_size}/" \
+    "$staging/DEBIAN/control.in" > "$staging/DEBIAN/control"
 rm "$staging/DEBIAN/control.in"
-
-chmod 755 "$staging/DEBIAN/postinst" "$staging/DEBIAN/prerm" "$staging/DEBIAN/postrm"
+chmod 755 "$staging/DEBIAN/postinst" "$staging/DEBIAN/postrm" "$staging/usr/bin/spacemissionstudio"
 
 mkdir -p "$output_dir"
-output_deb="$output_dir/spacemissionstudio_${version}_all.deb"
-# --root-owner-group: every file dpkg-deb packs is owned by root:root in
-# the resulting .deb, regardless of who's actually running this script --
-# the correct, standard choice for a package meant to be installed
-# system-wide via apt/dpkg (which always runs as root), and avoids
-# baking this build machine's own uid/gid into the archive.
-dpkg-deb --build --root-owner-group "$staging" "$output_deb"
+output_deb="$output_dir/spacemissionstudio_${version}_amd64.deb"
+# --root-owner-group: every file in the package is owned by root:root,
+# whoever runs this script.
+dpkg-deb --build --root-owner-group -Zxz "$staging" "$output_deb"
 
 # Release checksum (security_analysis.md S-07), next to the package.
 (cd "$output_dir" && sha256sum "$(basename "$output_deb")" > "$(basename "$output_deb").sha256")
@@ -97,5 +97,3 @@ echo
 echo "Built: $output_deb"
 echo "SHA-256: $output_deb.sha256"
 echo "Install with: sudo apt install ./$(basename "$output_deb")"
-echo "(or: sudo dpkg -i $(basename "$output_deb")  -- apt install ./PATH is preferred, it also resolves"
-echo " python3/python3-venv/python3-pip if you don't already have them)"

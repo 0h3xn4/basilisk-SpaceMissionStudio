@@ -12,3 +12,9 @@ dist/
 # Coverage data (compliance/tools/metrics.py, CI)
 .coverage
 coverage.json
+
+# The .deb launcher (the repository root ignores every bin/ folder).
+!packaging/deb/usr/bin/
+# Built by packaging/bundle_python.py for the Windows setup, and its download cache.
+packaging/windows/python/
+packaging/.python-build-cache/

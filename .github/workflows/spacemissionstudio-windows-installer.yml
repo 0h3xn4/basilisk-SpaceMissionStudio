@@ -2,7 +2,9 @@
 # (SpaceMissionStudio/packaging/windows/spacemissionstudio.iss) on a Windows
 # runner, then installs it silently there and runs the installed tool. Inno
 # Setup is Windows-only, so this is the one place the installer is built
-# and run. Started by hand, the setup program bundles the wheel attached to
+# and run. The setup program is self-contained: packaging/bundle_python.py
+# builds the private Python (Basilisk, the wheel, every package, the
+# support data) it carries. Started by hand, the setup program bundles the wheel attached to
 # a published release (checked against that release's SHA256SUMS-linux), so
 # the program it builds belongs to that release. A push bundles a wheel
 # built from the pushed commit instead: it tests the installer script, and
@@ -16,13 +18,14 @@ on:
   push:
     paths:
       - "SpaceMissionStudio/packaging/windows/**"
+      - "SpaceMissionStudio/packaging/bundle_python.py"
       - "SpaceMissionStudio/packaging/constraints.txt"
       - ".github/workflows/spacemissionstudio-windows-installer.yml"
   workflow_dispatch:
     inputs:
       release:
         description: "Release tag whose wheel the setup program bundles"
-        default: "spacemissionstudio-v1.0.0"
+        default: "spacemissionstudio-v1.1.0"
       attach:
         description: "Attach the setup program and SHA256SUMS-windows to that release"
         type: boolean
@@ -34,13 +37,13 @@ permissions:
 jobs:
   installer:
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     defaults:
       run:
         shell: pwsh
         working-directory: SpaceMissionStudio
     env:
-      RELEASE: ${{ inputs.release || 'spacemissionstudio-v1.0.0' }}
+      RELEASE: ${{ inputs.release || 'spacemissionstudio-v1.1.0' }}
       GH_TOKEN: ${{ github.token }}
       QT_QPA_PLATFORM: offscreen
     steps:
@@ -74,6 +77,15 @@ jobs:
           New-Item -ItemType Directory -Force packaging\windows\dist | Out-Null
           Copy-Item $wheel.FullName packaging\windows\dist\
           Write-Host "Bundling $($wheel.Name) ($actual)"
+      - name: The bundled Python (Basilisk, the wheel, the packages, the support data)
+        run: |
+          $wheel = Get-ChildItem packaging\windows\dist\spacemissionstudio-*.whl | Select-Object -First 1
+          # A short folder: the checkout path plus Qt's deepest files would pass
+          # Windows' 260-character limit.
+          $dest = Join-Path $env:RUNNER_TEMP "py"
+          python packaging\bundle_python.py --platform windows --dest $dest --wheel $wheel.FullName
+          if ($LASTEXITCODE -ne 0) { throw "bundle_python.py failed" }
+          "PYTHON_DIR=$dest" >> $env:GITHUB_ENV
       - name: Inno Setup
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
@@ -82,7 +94,7 @@ jobs:
           "ISCC=$iscc" >> $env:GITHUB_ENV
       - name: Build the setup program
         run: |
-          & $env:ISCC packaging\windows\spacemissionstudio.iss
+          & $env:ISCC "/DPythonDir=$env:PYTHON_DIR" packaging\windows\spacemissionstudio.iss
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
           $exe = Get-ChildItem packaging\windows\Output\spacemissionstudio-*-setup.exe | Select-Object -First 1
           $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
@@ -96,25 +108,30 @@ jobs:
           $log = Join-Path $PWD "packaging\windows\Output\install.log"
           $p = Start-Process $exe.FullName -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CURRENTUSER", "/DIR=`"$dir`"", "/LOG=`"$log`"" -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "setup exited with $($p.ExitCode)" }
-          $python = Join-Path $dir "venv\Scripts\python.exe"
-          if (-not (Test-Path $python)) { throw "no environment at $($python); the setup's Python step failed (see install.log)" }
+          $python = Join-Path $dir "python\python.exe"
+          if (-not (Test-Path $python)) { throw "no Python at $($python); see install.log" }
           "INSTALLED_PYTHON=$python" >> $env:GITHUB_ENV
-      # Outside the checkout: `python -c` and `-m` put the working directory
-      # first on the import path, which would import the source tree instead
-      # of the installed package.
+      # Outside the checkout and isolated (-I), so the installed package is
+      # imported, not the source tree; an empty support-data cache, so the
+      # kernels must come from the setup.
       - name: Run the installed tool
         working-directory: ${{ runner.temp }}
         run: |
-          & $env:INSTALLED_PYTHON -c "import spacemissionstudio, Basilisk; print('SpaceMissionStudio', spacemissionstudio.__version__, spacemissionstudio.__file__)"
+          $env:BSK_SUPPORT_DATA_CACHE = Join-Path $env:RUNNER_TEMP "empty-support-data-cache"
+          & $env:INSTALLED_PYTHON -I -c "import spacemissionstudio, Basilisk; print('SpaceMissionStudio', spacemissionstudio.__version__, spacemissionstudio.__file__)"
           if ($LASTEXITCODE -ne 0) { throw "import failed" }
-          & $env:INSTALLED_PYTHON -m spacemissionstudio.cli kernels-status
+          & $env:INSTALLED_PYTHON -I -m spacemissionstudio.cli kernels-status
           if ($LASTEXITCODE -ne 0) { throw "kernels-status failed" }
-          $templates = & $env:INSTALLED_PYTHON -c "import pathlib, spacemissionstudio; print(pathlib.Path(spacemissionstudio.__file__).parent / 'scenarios' / 'templates')"
+          $templates = & $env:INSTALLED_PYTHON -I -c "import pathlib, spacemissionstudio; print(pathlib.Path(spacemissionstudio.__file__).parent / 'scenarios' / 'templates')"
           $template = Join-Path $templates "01_two_body_circular_orbit.json"
-          & $env:INSTALLED_PYTHON -m spacemissionstudio.cli validate $template
+          & $env:INSTALLED_PYTHON -I -m spacemissionstudio.cli validate $template
           if ($LASTEXITCODE -ne 0) { throw "validate failed" }
-          & $env:INSTALLED_PYTHON -m spacemissionstudio.cli run $template --out-dir (Join-Path $env:RUNNER_TEMP "run01")
+          $run = Join-Path $env:RUNNER_TEMP "run01"
+          & $env:INSTALLED_PYTHON -I -m spacemissionstudio.cli run $template --out-dir $run
           if ($LASTEXITCODE -ne 0) { throw "run failed" }
+          if (-not (Select-String -Path (Join-Path $run "*provenance.json") -SimpleMatch 'site-packages\\supportData' -Quiet)) { throw "the run did not use the bundled support data" }
+          & $env:INSTALLED_PYTHON -I -c "from spacemissionstudio.engine import earth_orientation as e; assert e.installed(), 'no Earth orientation files'"
+          if ($LASTEXITCODE -ne 0) { throw "the setup's Earth orientation files are not found" }
       - uses: actions/upload-artifact@v6
         if: always()
         with:
@@ -128,7 +145,7 @@ jobs:
     needs: installer
     if: github.event_name == 'workflow_dispatch' && inputs.attach
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     permissions:
       contents: write
     env:

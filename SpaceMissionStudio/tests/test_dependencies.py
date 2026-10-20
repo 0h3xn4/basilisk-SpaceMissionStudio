@@ -47,12 +47,12 @@ def test_basilisk_check_reports_a_missing_basilisk(monkeypatch):
     assert dependencies.basilisk_check() == "Basilisk is not installed: simulations cannot run"
 
 
-@pytest.mark.parametrize("installer", ["deb/DEBIAN/postinst", "windows/bootstrap_env.ps1"])
-def test_installers_pin_the_qualified_basilisk_version(installer):
-    """Every pip install of Basilisk in the installers pins exactly the
-    qualified version, so changing one without the other fails here."""
-    text = (_PACKAGING / installer).read_text(encoding="utf-8")
-    pins = re.findall(r'pip install --quiet (?:-c \S+ )?"bsk\[all\]([^"]*)"', text)  # -c: constraints.txt (M14)
+def test_installers_pin_the_qualified_basilisk_version():
+    """The Basilisk the .deb and the Windows setup bundle
+    (packaging/bundle_python.py) is exactly the qualified version, so
+    changing one without the other fails here."""
+    text = (_PACKAGING / "bundle_python.py").read_text(encoding="utf-8")
+    pins = re.findall(r'^BASILISK_REQUIREMENT = "bsk\[all\]([^"]*)"$', text, flags=re.MULTILINE)
     assert pins == [f"=={dependencies.QUALIFIED_BASILISK_VERSION}"]
 
 
@@ -118,8 +118,8 @@ def test_the_release_constraints_pin_every_dependency_the_installers_use():
         name = re.split(r"[<>=!~\[ ]", requirement, maxsplit=1)[0].lower().replace("_", "-")
         assert name in pins, f"{name} is not pinned in constraints.txt"
     assert pins["bsk"] == dependencies.QUALIFIED_BASILISK_VERSION
-    for installer in ("packaging/install.sh", "packaging/install.ps1", "packaging/deb/DEBIAN/postinst",
-                      "packaging/windows/bootstrap_env.ps1", "../.github/workflows/spacemissionstudio.yml"):
+    for installer in ("packaging/install.sh", "packaging/install.ps1", "packaging/bundle_python.py",
+                      "../.github/workflows/spacemissionstudio.yml"):
         assert "constraints.txt" in (root / installer).read_text(encoding="utf-8"), installer
 
 

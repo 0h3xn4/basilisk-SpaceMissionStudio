@@ -13,10 +13,13 @@
 # build and install jobs for the version in its files, and attaches nothing.
 #
 #   Linux (x86_64):  the wheel, the sdist and the .deb (SHA256SUMS-linux);
-#                    the .deb is installed with apt and the tool run.
-#   Windows (x64):   the Inno Setup program bundling that wheel
-#                    (SHA256SUMS-windows, unsigned); installed silently
-#                    and the tool run.
+#                    the .deb is installed with the network cut off and
+#                    the tool run offline.
+#   Windows (x64):   the Inno Setup program (SHA256SUMS-windows, unsigned);
+#                    installed silently and the tool run.
+#   Both installers are self-contained: a private Python with Basilisk,
+#   that wheel, every package and the support data
+#   (SpaceMissionStudio/packaging/bundle_python.py).
 #   macOS (arm64):   no installer: the same wheel is installed with
 #                    packaging/install.sh and Basilisk's wheel from PyPI,
 #                    and the tool run (Basilisk has no Intel macOS wheel).
@@ -102,37 +105,56 @@ jobs:
           assert len(fonts) == 5 and len(licences) == 2 and len(icons) >= 35, "assets missing from the wheel"
           assert any(n.endswith("/lucide/LICENSE") for n in names), "Lucide's licence missing"
           EOF
-      - name: Install the .deb
-        run: sudo apt-get install -y "./dist/spacemissionstudio_${VERSION}_all.deb"
-      # Outside the checkout, so that `python -c` imports the installed package,
-      # not the source tree in the working directory.
-      - name: Run the installed tool
+      # The system libraries it depends on come from apt (a desktop has
+      # them); the package itself is then installed with no network.
+      - name: Install the .deb with the network cut off
+        run: |
+          deb="./dist/spacemissionstudio_${VERSION}_amd64.deb"
+          dpkg-deb --info "$deb"
+          mapfile -t depends < <(dpkg-deb --field "$deb" Depends | tr ',' '\n' | sed 's/([^)]*)//; s/|.*//' | xargs -n1)
+          sudo apt-get install -y --no-install-recommends "${depends[@]}"
+          sudo unshare --net dpkg -i "$deb"
+      # Offline as well, and outside the checkout, so that Python imports the
+      # installed package, not the source tree in the working directory.
+      - name: Run the installed tool with no network
         working-directory: ${{ runner.temp }}
         run: |
+          cat > installed_check.sh <<'SCRIPT'
+          set -euo pipefail
+          python=/opt/spacemissionstudio/python/bin/python3
           spacemissionstudio --version | tee version.txt
           grep -q "SpaceMissionStudio $VERSION" version.txt
           spacemissionstudio kernels-status
-          venv_python=/opt/spacemissionstudio/venv/bin/python
-          templates=$("$venv_python" -c "import pathlib, spacemissionstudio; print(pathlib.Path(spacemissionstudio.__file__).parent / 'scenarios' / 'templates')")
+          templates=$("$python" -I -c "import pathlib, spacemissionstudio; print(pathlib.Path(spacemissionstudio.__file__).parent / 'scenarios' / 'templates')")
           for f in "$templates"/*.json; do spacemissionstudio validate "$f" >/dev/null || { echo "::error::$f does not validate"; exit 1; }; done
           spacemissionstudio run "$templates/01_two_body_circular_orbit.json" --out-dir "$RUNNER_TEMP/run01"
-          "$venv_python" - "$VERSION" <<'EOF'
+          grep -q "/opt/spacemissionstudio/python/lib/python3.11/site-packages/supportData/EphemerisData/de430.bsp" \
+            "$RUNNER_TEMP"/run01/*provenance.json
+          "$python" -I -c "from spacemissionstudio.engine import earth_orientation as e; assert e.installed(), 'no Earth orientation files'"
+          "$python" -I - "$VERSION" <<'EOF'
           import os, sys
           from PySide6.QtWidgets import QApplication
           app = QApplication(sys.argv[:1])
+          from spacemissionstudio.gui.theme import apply_theme
+          apply_theme(app)  # as gui/app.py does: registers the bundled fonts
           import spacemissionstudio
           from spacemissionstudio.gui.main_window import MainWindow
           assert spacemissionstudio.__version__ == sys.argv[1], spacemissionstudio.__version__
           window = MainWindow()
           window.show()
           print("GUI started:", spacemissionstudio.__file__, "font", app.font().family(), flush=True)
+          assert app.font().family() == "Inter", app.font().family()
           os._exit(0)  # skip Qt WebEngine's teardown at exit
           EOF
+          SCRIPT
+          # An empty support-data cache too: the kernels must come from the package.
+          sudo unshare --net sudo -u "$USER" env HOME="$HOME" RUNNER_TEMP="$RUNNER_TEMP" VERSION="$VERSION" \
+            BSK_SUPPORT_DATA_CACHE="$RUNNER_TEMP/empty-support-data-cache" QT_QPA_PLATFORM=offscreen bash installed_check.sh
       - name: SHA256SUMS-linux
         run: |
           cd dist
           sha256sum "spacemissionstudio-$VERSION-py3-none-any.whl" "spacemissionstudio-$VERSION.tar.gz" \
-            "spacemissionstudio_${VERSION}_all.deb" > SHA256SUMS-linux
+            "spacemissionstudio_${VERSION}_amd64.deb" > SHA256SUMS-linux
           cat SHA256SUMS-linux
       - uses: actions/upload-artifact@v6
         with:
@@ -149,7 +171,7 @@ jobs:
     env:
       VERSION: ${{ needs.linux.outputs.version }}
     runs-on: windows-latest
-    timeout-minutes: 60
+    timeout-minutes: 120
     defaults:
       run:
         shell: pwsh
@@ -176,6 +198,15 @@ jobs:
           New-Item -ItemType Directory -Force packaging\windows\dist | Out-Null
           Copy-Item $wheel.FullName packaging\windows\dist\
           Write-Host "Bundling $($wheel.Name) ($actual)"
+      - name: The bundled Python (Basilisk, the wheel, the packages, the support data)
+        run: |
+          $wheel = Get-ChildItem packaging\windows\dist\spacemissionstudio-*.whl | Select-Object -First 1
+          # A short folder: the checkout path plus Qt's deepest files would pass
+          # Windows' 260-character limit.
+          $dest = Join-Path $env:RUNNER_TEMP "py"
+          python packaging\bundle_python.py --platform windows --dest $dest --wheel $wheel.FullName
+          if ($LASTEXITCODE -ne 0) { throw "bundle_python.py failed" }
+          "PYTHON_DIR=$dest" >> $env:GITHUB_ENV
       - name: Inno Setup
         run: |
           $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
@@ -184,7 +215,7 @@ jobs:
           "ISCC=$iscc" >> $env:GITHUB_ENV
       - name: Build the setup program
         run: |
-          & $env:ISCC packaging\windows\spacemissionstudio.iss
+          & $env:ISCC "/DPythonDir=$env:PYTHON_DIR" packaging\windows\spacemissionstudio.iss
           if ($LASTEXITCODE -ne 0) { throw "ISCC failed ($LASTEXITCODE)" }
           $exe = Get-ChildItem packaging\windows\Output\spacemissionstudio-*-setup.exe | Select-Object -First 1
           $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLower()
@@ -198,38 +229,47 @@ jobs:
           $log = Join-Path $PWD "packaging\windows\Output\install.log"
           $p = Start-Process $exe.FullName -ArgumentList "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/CURRENTUSER", "/DIR=`"$dir`"", "/LOG=`"$log`"" -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "setup exited with $($p.ExitCode)" }
-          $python = Join-Path $dir "venv\Scripts\python.exe"
-          if (-not (Test-Path $python)) { throw "no environment at $($python); the setup's Python step failed (see install.log)" }
+          $python = Join-Path $dir "python\python.exe"
+          if (-not (Test-Path $python)) { throw "no Python at $($python); see install.log" }
           "INSTALLED_PYTHON=$python" >> $env:GITHUB_ENV
+      # An empty support-data cache: the kernels must come from the setup.
       - name: Run the installed tool
         working-directory: ${{ runner.temp }}
         run: |
           $version = $env:VERSION
-          $out = & $env:INSTALLED_PYTHON -c "import spacemissionstudio, Basilisk; print('SpaceMissionStudio', spacemissionstudio.__version__)"
+          $env:BSK_SUPPORT_DATA_CACHE = Join-Path $env:RUNNER_TEMP "empty-support-data-cache"
+          $out = & $env:INSTALLED_PYTHON -I -c "import spacemissionstudio, Basilisk; print('SpaceMissionStudio', spacemissionstudio.__version__)"
           if ($LASTEXITCODE -ne 0) { throw "import failed" }
           $out = $out | Select-Object -Last 1
           if ($out -ne "SpaceMissionStudio $version") { throw "installed: $out, expected $version" }
-          & $env:INSTALLED_PYTHON -m spacemissionstudio.cli kernels-status
+          & $env:INSTALLED_PYTHON -I -m spacemissionstudio.cli kernels-status
           if ($LASTEXITCODE -ne 0) { throw "kernels-status failed" }
-          $templates = & $env:INSTALLED_PYTHON -c "import pathlib, spacemissionstudio; print(pathlib.Path(spacemissionstudio.__file__).parent / 'scenarios' / 'templates')"
+          $templates = & $env:INSTALLED_PYTHON -I -c "import pathlib, spacemissionstudio; print(pathlib.Path(spacemissionstudio.__file__).parent / 'scenarios' / 'templates')"
           $template = Join-Path $templates "01_two_body_circular_orbit.json"
-          & $env:INSTALLED_PYTHON -m spacemissionstudio.cli validate $template
+          & $env:INSTALLED_PYTHON -I -m spacemissionstudio.cli validate $template
           if ($LASTEXITCODE -ne 0) { throw "validate failed" }
-          & $env:INSTALLED_PYTHON -m spacemissionstudio.cli run $template --out-dir (Join-Path $env:RUNNER_TEMP "run01")
+          $run = Join-Path $env:RUNNER_TEMP "run01"
+          & $env:INSTALLED_PYTHON -I -m spacemissionstudio.cli run $template --out-dir $run
           if ($LASTEXITCODE -ne 0) { throw "run failed" }
+          if (-not (Select-String -Path (Join-Path $run "*provenance.json") -SimpleMatch 'site-packages\\supportData' -Quiet)) { throw "the run did not use the bundled support data" }
+          & $env:INSTALLED_PYTHON -I -c "from spacemissionstudio.engine import earth_orientation as e; assert e.installed(), 'no Earth orientation files'"
+          if ($LASTEXITCODE -ne 0) { throw "the setup's Earth orientation files are not found" }
           @'
           import os, sys
           from PySide6.QtWidgets import QApplication
           app = QApplication(sys.argv[:1])
+          from spacemissionstudio.gui.theme import apply_theme
+          apply_theme(app)  # as gui/app.py does: registers the bundled fonts
           import spacemissionstudio
           from spacemissionstudio.gui.main_window import MainWindow
           assert spacemissionstudio.__version__ == sys.argv[1], spacemissionstudio.__version__
           window = MainWindow()
           window.show()
           print("GUI started:", spacemissionstudio.__file__, "font", app.font().family(), flush=True)
+          assert app.font().family() == "Inter", app.font().family()
           os._exit(0)  # skip Qt WebEngine's teardown at exit
           '@ | Set-Content -Path smoke_gui.py -Encoding utf8
-          & $env:INSTALLED_PYTHON smoke_gui.py $version
+          & $env:INSTALLED_PYTHON -I smoke_gui.py $version
           if ($LASTEXITCODE -ne 0) { throw "GUI smoke test failed" }
       - uses: actions/upload-artifact@v6
         with:
@@ -292,12 +332,15 @@ jobs:
           import os, sys
           from PySide6.QtWidgets import QApplication
           app = QApplication(sys.argv[:1])
+          from spacemissionstudio.gui.theme import apply_theme
+          apply_theme(app)  # as gui/app.py does: registers the bundled fonts
           import spacemissionstudio
           from spacemissionstudio.gui.main_window import MainWindow
           assert spacemissionstudio.__version__ == sys.argv[1], spacemissionstudio.__version__
           window = MainWindow()
           window.show()
           print("GUI started:", spacemissionstudio.__file__, "font", app.font().family(), flush=True)
+          assert app.font().family() == "Inter", app.font().family()
           os._exit(0)  # skip Qt WebEngine's teardown at exit
           EOF
 
@@ -308,7 +351,7 @@ jobs:
     needs: [linux, windows]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     permissions:
       contents: write
     env:
@@ -339,8 +382,9 @@ jobs:
         run: |
           version="$VERSION"
           {
-            echo "**Files.** Linux (x86_64): \`spacemissionstudio_${version}_all.deb\` (\`sudo apt install ./spacemissionstudio_${version}_all.deb\`)."
+            echo "**Files.** Linux (x86_64): \`spacemissionstudio_${version}_amd64.deb\` (\`sudo apt install ./spacemissionstudio_${version}_amd64.deb\`)."
             echo "Windows (x64): \`spacemissionstudio-${version}-setup.exe\` (not signed, so Windows asks before running it)."
+            echo "Both installers are self-contained: they bring their own Python, Basilisk and support data, and install with no internet."
             echo "macOS 11 or newer on Apple silicon: no installer yet; install the wheel \`spacemissionstudio-${version}-py3-none-any.whl\` with \`packaging/install.sh\` (docs/getting-started.md)."
             echo "The macOS install check of the wheel is the \`macos\` job of the workflow run below; it may finish after the files are attached."
             echo "Checksums: \`SHA256SUMS-linux\`, \`SHA256SUMS-windows\`. Each package was installed on its platform and run by the workflow run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."

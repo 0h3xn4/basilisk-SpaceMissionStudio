@@ -39,14 +39,16 @@ explains the terms. Python is optional: for scripting and batch runs.
 
 Linux (x86_64 and aarch64, glibc 2.28 or newer), Windows 10 and 11
 (x86_64), and macOS 11 or newer on Apple silicon (from source only). The
-test suite runs on all three in CI. Release 1.1.0 has an installer for
-Linux only; on Windows and macOS, install from source for now. Details:
+test suite runs on all three in CI. There are installers for Linux
+(x86_64) and Windows; on macOS, install from source for now. Details:
 [Getting started, section 1](getting-started.md#1-what-you-need).
 
 ## Does it need the internet?
 
-Only to install it and to fetch the reference data once. After that it
-runs offline:
+Not with the installers: from the next release they bring Python,
+Basilisk and the reference data with them. Installed from source, it
+needs the internet once, to install and fetch the reference data. Either
+way it then runs offline:
 
 - A run never downloads anything. If a file is missing, it stops and
   says which one.

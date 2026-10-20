@@ -28,9 +28,9 @@ or verify.
 **Closed-off/offline policy**: SpaceMissionStudio itself must never touch
 the network except during installation (real user requirement -- "the
 app must be completely closed off and offline, only exception is the
-installation process"). Every ``packaging/`` installer
-(``install.sh``/``install.ps1``/``deb/DEBIAN/postinst``/
-``windows/bootstrap_env.ps1``) now calls :func:`require_kernels` with NO
+installation process"). ``install.sh``/``install.ps1`` call
+:func:`require_kernels` (``bundle_python.py`` does, when the .deb and the
+Windows setup are built, and ships the files) with NO
 arguments right after installing Basilisk -- its default,
 :data:`ALL_SUPPORT_DATA_FILES`, covers every ``dataFetcher``-backed file
 ANY of this app's own code paths read (confirmed by grepping every

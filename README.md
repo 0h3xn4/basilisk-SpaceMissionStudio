@@ -33,9 +33,11 @@ battery, link margin, lifetime and propellant.
 
 ## Quick start
 
-**Linux:** the [1.0.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0)
-has a `.deb` installer (`sudo apt install ./spacemissionstudio_1.0.0_all.deb`)
-and the wheel. 1.0.0 has no Windows or macOS installer yet.
+**Linux and Windows:** the [releases page](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases)
+has a `.deb` (`sudo apt install ./spacemissionstudio_<version>_amd64.deb`),
+a Windows setup program and the wheel. From the next release both
+installers bring their own Python, Basilisk and reference data, and
+install with no internet. macOS has no installer yet.
 
 **From source**, on Linux or macOS with Python 3.11 or newer (Windows: see
 [Getting started](SpaceMissionStudio/docs/getting-started.md)):
@@ -103,24 +105,25 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 
 | | |
 |---|---|
-| System | Linux x86_64 or aarch64 (glibc 2.28 or newer); from source also Windows 10 or 11 x86_64 and macOS 11 or newer on Apple silicon |
-| Python | 3.11 or newer; CI tests 3.11 (Basilisk's wheels go up to 3.14) |
-| Basilisk | 2.12.0, from PyPI |
-| Disk | About 1.6 GB, including the reference data |
-| Internet | Once, to install and fetch the reference data |
+| System | Linux x86_64 or aarch64 (glibc 2.28 or newer), Windows 10 or 11 x86_64, macOS 11 or newer on Apple silicon (from source) |
+| Python | None for the installers (they bring Python 3.11); 3.11 or newer from source. CI tests 3.11 (Basilisk's wheels go up to 3.14) |
+| Basilisk | 2.12.0: in the installers, or from PyPI |
+| Disk | About 1.7 GB, including the reference data |
+| Internet | None for the installers; once from source, to install and fetch the reference data |
 
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE),
   [`SpaceMissionStudio/LICENSE`](SpaceMissionStudio/LICENSE)).
-- **Version:** 1.0.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0),
-  [changelog](SpaceMissionStudio/CHANGELOG.md)), the first release of the
-  renewed tool; the version numbers used before the renewal are withdrawn.
-- **Platforms:** 1.0.0 is a Linux release: the `.deb`, the wheel and
-  `install.sh` were built, installed and run end to end with Basilisk
-  2.12.0 ([`packaging/README.md`](SpaceMissionStudio/packaging/README.md)).
-  The test suite also runs in CI on Windows and macOS, where a few test
-  failures are not yet fixed; their installers follow in a later release.
+- **Version:** 1.1.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.0),
+  [changelog](SpaceMissionStudio/CHANGELOG.md)); 1.0.0 was the first
+  release of the renewed tool, and the version numbers used before the
+  renewal are withdrawn.
+- **Platforms:** the Linux `.deb` and the Windows setup program are
+  built, installed and run by the release workflow
+  ([`packaging/README.md`](SpaceMissionStudio/packaging/README.md)); the
+  test suite runs in CI on Linux, Windows and macOS. macOS has no
+  installer yet.
 - **Known gaps:** [Known limitations](SpaceMissionStudio/docs/reference/limitations.md).
 
 ## Related tools

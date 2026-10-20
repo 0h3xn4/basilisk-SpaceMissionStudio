@@ -20,11 +20,11 @@ works, run a first mission and know what you should see.
 | | |
 |---|---|
 | Linux | x86_64 or aarch64 with glibc 2.28 or newer (Ubuntu 20.04, Debian 10, RHEL 8 or later). Tested in CI on Ubuntu 24.04. |
-| Windows | Windows 10 or 11, x86_64. The test suite passes on Windows in CI (two tests that failed intermittently are fixed and under watch, SRelD K-14). 1.1.0 has no Windows installer: install from source (path C). |
+| Windows | Windows 10 or 11, x86_64. The test suite passes on Windows in CI (two tests that failed intermittently are fixed and under watch, SRelD K-14). |
 | macOS | macOS 11 or newer on Apple silicon (arm64), from source (path C) only. The test suite passes on macOS in CI. Intel Macs have no Basilisk wheel. |
-| Python | 3.11 or newer, for every path: the installers set up the app with the Python already on the computer (Windows: `python` on PATH, from [python.org](https://www.python.org/downloads/)). CI tests with 3.11; Basilisk 2.12.0 has wheels up to 3.14, and versions other than 3.11 and 3.12 have not been tested with the app. |
-| Disk | About 1.6 GB: 1.4 GB for the Python environment (Basilisk and Qt), 116 MB of reference data, 36 MB of Earth orientation files. |
-| Internet | Once, while installing. After that the app runs offline and downloads nothing without asking. |
+| Python | None for the installers (path A): they bring their own Python 3.11. Paths B and C need Python 3.11 or newer (Windows: from [python.org](https://www.python.org/downloads/), on PATH). CI tests with 3.11; Basilisk 2.12.0 has wheels up to 3.14, and versions other than 3.11 and 3.12 have not been tested with the app. |
+| Disk | About 1.7 GB: Python with Basilisk and Qt, 117 MB of reference data, 36 MB of Earth orientation files. |
+| Internet | None for the installers. Paths B and C: once, while installing. After that the app runs offline and downloads nothing without asking. |
 
 The app has two parts:
 
@@ -37,40 +37,51 @@ The app has two parts:
 
 | Path | For | You type |
 |---|---|---|
-| **A. Installer** (`.deb`, Linux) | Using the app | Nothing: double-click |
+| **A. Installer** (`.deb` on Linux, setup program on Windows) | Using the app | Nothing: double-click |
 | **B. Install script** (`packaging/install.sh` or `install.ps1`) | Using the app from a checkout of this repository | One command |
 | **C. From source** with `pip` | macOS; developing; scripting from Python; running the tests | About eight commands |
 
-All three install Basilisk 2.12.0, the version the app is verified
-against.
+All three give you Basilisk 2.12.0, the version the app is verified
+against. Linux on ARM (aarch64) and macOS have no installer: use path B
+or C.
 
 ## 3. Path A: the installer
 
-From the [1.1.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.0), download
-`spacemissionstudio_1.1.0_all.deb` and `SHA256SUMS-linux`, and check
-them with `sha256sum -c SHA256SUMS-linux --ignore-missing`. You can also
-build the `.deb` yourself with `packaging/build_deb.sh`.
+From the [releases page](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases),
+download the installer for your system with its checksum file, and check
+it (`sha256sum -c SHA256SUMS-linux --ignore-missing` on Linux;
+`Get-FileHash` in PowerShell on Windows). You can also build the
+installers yourself: `packaging/build_deb.sh`, and on Windows
+[Inno Setup](https://jrsoftware.org/isinfo.php) with
+`packaging/windows/spacemissionstudio.iss`
+([`packaging/README.md`](../packaging/README.md)).
 
-1.1.0 has the Linux installer only. The Windows setup program
-(`packaging/windows/spacemissionstudio.iss`, built with
-[Inno Setup](https://jrsoftware.org/isinfo.php)) follows in a later
-release; on Windows and macOS, use [path C](#5-path-c-from-source-step-by-step) until
-then.
+The installers are self-contained: they bring their own Python, Basilisk
+and the reference data, so they need no Python on the computer and no
+internet. (This holds for the installers built from the current source,
+the next release on. The 1.1.0 files still set up a Python environment
+while installing: the 1.1.0 `.deb` downloads Basilisk and the data, and
+the 1.1.0 Windows setup program also needs Python 3.11 on PATH.)
 
-**Linux:** double-click `spacemissionstudio_1.1.0_all.deb`, or:
+**Linux** (x86_64; Ubuntu 22.04, Debian 12 or later): double-click
+`spacemissionstudio_<version>_amd64.deb`, or:
 
 ```bash
-sudo apt install ./spacemissionstudio_1.1.0_all.deb
+sudo apt install ./spacemissionstudio_<version>_amd64.deb
 ```
 
 A closing `N: Download is performed unsandboxed as root ...` line is a
 harmless apt notice ([Troubleshooting](troubleshooting.md#messages-that-are-normal)).
 
-The installer downloads Basilisk and the reference data once. Then open
-**SpaceMissionStudio** from your application menu and go to
-[section 6](#6-check-that-it-works).
+**Windows 10/11** (x64): run `spacemissionstudio-<version>-setup.exe`.
+It is not signed, so Windows asks before running it (**More info**, then
+**Run anyway**). It installs for your user only, without administrator
+rights, under `%LOCALAPPDATA%\SpaceMissionStudio`.
 
-What was verified for the `.deb`, and how:
+Then open **SpaceMissionStudio** from your application menu or the Start
+Menu and go to [section 6](#6-check-that-it-works).
+
+What was verified for the installers, and how:
 [`packaging/README.md`](../packaging/README.md).
 
 ## 4. Path B: the install script
@@ -220,8 +231,8 @@ builds a scenario in code; [the examples](../examples/README.md) show more.
 | Bundled templates | `spacemissionstudio/scenarios/templates/` (the app never overwrites them) |
 | Autosave | `~/.spacemissionstudio/autosave/` |
 | Log files | `~/.spacemissionstudio/logs/`; error dialogs name the current one |
-| Support data (SPICE, gravity, magnetic model) | Basilisk's cache, for example `~/.cache/bsk_support_data/`; `kernels-status` prints it |
-| Earth orientation | `~/.cache/SpaceMissionStudio/earth_orientation/` |
+| Support data (SPICE, gravity, magnetic model) | Installers: inside the install folder (`.../site-packages/supportData/`). Otherwise Basilisk's cache, for example `~/.cache/bsk_support_data/`. `kernels-status` prints it |
+| Earth orientation | Installers: inside the install folder (`.../share/spacemissionstudio/earth_orientation/`). Files you download go to `~/.cache/SpaceMissionStudio/earth_orientation/` and are used first |
 | Space-weather downloads | `~/.cache/SpaceMissionStudio/spaceweather/` (only if you ask for newer data than the bundled copy) |
 | Vizard, if downloaded | `~/.cache/SpaceMissionStudio/vizard/` |
 

@@ -1,0 +1,4 @@
+#!/bin/sh
+# SpaceMissionStudio launcher: the Python this package ships, isolated (-I)
+# from any PYTHONPATH, user site-packages or current directory.
+exec /opt/spacemissionstudio/python/bin/python3 -I -m spacemissionstudio.cli "$@"
