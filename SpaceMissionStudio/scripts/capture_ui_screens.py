@@ -238,6 +238,12 @@ def capture(out: Path, theme: str) -> int:
     batch_path.write_text(json.dumps(batch, indent=2), encoding="utf-8")
     window.open_path(batch_path)
     spin(1.5)  # [s]
+    # A batch asks for its archive folder in a modal file dialog: answer it
+    # here (the harness only; the app is unchanged), or the capture waits.
+    from PySide6.QtWidgets import QFileDialog
+
+    archive = Path(tempfile.mkdtemp(prefix="sms-ui-archive-"))
+    QFileDialog.getExistingDirectory = staticmethod(lambda *args, **kwargs: str(archive))
     window.set_run_mode("monte_carlo")
     window.on_run()
     spin(2.0)  # [s]

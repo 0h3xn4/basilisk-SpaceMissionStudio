@@ -312,6 +312,12 @@ what each finding is evidence of.
     Configuration…, Launch Vizard, Check Reference Data, Open Monte Carlo
     Results… and Clear Time Cursor.
   - SIL runs are started from Flight Software › SIL dialog, not from Run.
+  - Every Monte Carlo run opens a modal folder picker for its archive
+    directory, then a second modal question when that folder already holds a
+    batch. The screenshot harness waited on the picker until it answered it
+    in code. The plan moves the archive folder into the Run area's Monte
+    Carlo options, as a remembered field with Browse…, and keeps the
+    overwrite question as the one destructive confirmation.
 - **Missing.**
   - There is no run history view. Runs exist only as the Compare tab's pick
     list.
@@ -494,6 +500,7 @@ what each finding is evidence of.
 | Run › Vizard Configuration… | Run area › Visualisation options (inline) |
 | Run › Launch Vizard | Run area › Visualisation; Results inspector for a run |
 | Run › Open Monte Carlo Results… | Run area › History (a batch row) → Results › Monte Carlo |
+| Monte Carlo archive-folder picker (modal, every batch) | Run area › Monte Carlo options: archive folder field with Browse…, remembered per scenario; the overwrite question stays modal |
 | Run › Clear Time Cursor | Results/Timeline toolbar; Alt+Backspace |
 | **Analyses** › End of Life, Budget | Run area › Analyses (each runs as a job) → results in Results › End of Life, Budget |
 | **Tools** › 3D Model… | Scenario › *spacecraft* › 3D model (inline page) |
