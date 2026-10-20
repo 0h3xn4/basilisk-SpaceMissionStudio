@@ -320,3 +320,73 @@ def test_a_basilisk_exit_during_a_run_is_reported_not_silent(qtbot, monkeypatch)
         worker.start()
     assert worker.wait(5000)
     assert "Basilisk stopped the run (exit status 1)" in blocker.args[0]
+
+
+def _short_batch(num_runs: int = 2):
+    """Template 09 as a short batch: the GUI's default single thread."""
+    import dataclasses
+    from pathlib import Path
+
+    from spacemissionstudio.schema import load_scenario
+
+    path = (Path(__file__).resolve().parent.parent.parent / "spacemissionstudio" / "scenarios" / "templates"
+            / "09_monte_carlo_dispersion_analysis.json")
+    scenario = load_scenario(path)
+    scenario.sim_settings.duration_days = 0.01  # [day]
+    mc_config = dataclasses.replace(scenario.monte_carlo, num_runs=num_runs, thread_count=1)
+    scenario.monte_carlo = mc_config
+    return scenario, mc_config
+
+
+@pytest.mark.requires_basilisk
+def test_monte_carlo_worker_runs_a_single_thread_batch(qtbot, tmp_path):
+    """A batch with one thread succeeds from the GUI's worker thread.
+    Basilisk's Monte Carlo controller sets a signal handler in each case,
+    which Python allows only on a process's main thread: run on the worker
+    QThread itself, every case failed ("signal only works in main thread")."""
+    from spacemissionstudio.gui.run_worker import MonteCarloWorker
+
+    scenario, mc_config = _short_batch()
+    worker = MonteCarloWorker(scenario, mc_config, tmp_path / "mc")
+    failed = []
+    worker.failed.connect(failed.append)
+    with qtbot.waitSignal(worker.finished_ok, timeout=600000) as blocker:  # [ms]
+        worker.start()
+    assert worker.wait(60000)  # [ms]
+    assert not failed
+    assert blocker.args[0] == []  # no failed run
+    assert (tmp_path / "mc" / "batch_results.json").is_file()
+
+
+@pytest.mark.requires_basilisk
+def test_monte_carlo_worker_reports_the_batch_error(qtbot, tmp_path):
+    """An error the batch raises (here: a folder holding other files)
+    reaches the worker's failed signal with its message."""
+    from spacemissionstudio.gui.run_worker import MonteCarloWorker
+
+    scenario, mc_config = _short_batch()
+    archive = tmp_path / "mc"
+    archive.mkdir()
+    (archive / "notes.txt").write_text("not a batch", encoding="utf-8")
+    worker = MonteCarloWorker(scenario, mc_config, archive)
+    with qtbot.waitSignal(worker.failed, timeout=120000) as blocker:  # [ms]
+        worker.start()
+    assert worker.wait(60000)  # [ms]
+    assert "is not empty" in blocker.args[0]
+
+
+@pytest.mark.requires_basilisk
+def test_monte_carlo_child_logs_reach_this_process(tmp_path, caplog):
+    """An unexpected error in the child process comes back as a
+    BatchProcessError, and the child's log record of it reaches this
+    process's loggers (the Log view and the log file listen there)."""
+    import logging
+
+    from spacemissionstudio.gui.monte_carlo_process import BatchProcessError, run_batch
+
+    scenario, _mc_config = _short_batch()
+    caplog.set_level(logging.INFO)
+    with pytest.raises(BatchProcessError):
+        run_batch(scenario, None, tmp_path / "mc")  # no config: run_monte_carlo raises AttributeError
+    assert any(record.name == "spacemissionstudio.gui.monte_carlo_process"
+               and "Monte Carlo batch failed" in record.getMessage() for record in caplog.records)

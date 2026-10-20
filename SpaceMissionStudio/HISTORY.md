@@ -11587,3 +11587,44 @@ which had nothing to do with the package.
 Not done: an install by hand on a desktop, and the Windows and macOS
 installers (not part of 1.1.0). Merging the release pull request,
 tagging `spacemissionstudio-v1.1.0` and publishing are the user's.
+
+## Monte Carlo from the GUI with one thread (2026-10-20)
+
+**What was wrong.** The UI overhaul's screenshot harness ran template 09
+as a Monte Carlo batch from the GUI, and all of its runs failed:
+"Monte Carlo finished in 4 s: 3 of 3 runs failed". Each run's traceback
+ended in Basilisk's `utilities/MonteCarlo/Controller.py`, line 787,
+`signal.signal(signal.SIGINT, signal.SIG_IGN)`, with "ValueError: signal
+only works in main thread of the main interpreter".
+
+**Why.** The controller sets that handler at the start of every case.
+With `thread_count` 1 (the schema's default and template 09's value) it
+runs the cases in the calling process, and the GUI called it from
+`MonteCarloWorker`, a `QThread`. Python lets only a process's main thread
+set signal handlers. The command line calls the same function on its
+main thread, so `spacemissionstudio monte-carlo` worked, and the 1.1.0
+install check ran template 09 that way.
+
+**Fix.** `gui/monte_carlo_process.py` runs `run_monte_carlo` in a child
+process started with `multiprocessing`'s spawn method, where it runs on
+that process's main thread. `MonteCarloWorker` keeps its thread and its
+signals and waits for the child; the batch's own errors come back with
+their message, an unexpected error or a child that ends without a result
+comes back as a failure, and the child's log records go to the GUI
+process's loggers (Log view and log file). With more than one thread the
+controller's process pool now starts from the child. Basilisk is
+unchanged, and so are the batch's files and results.
+
+**Tests.** `tests/gui/test_run_worker.py`:
+* `test_monte_carlo_worker_runs_a_single_thread_batch` runs template 09
+  (2 runs of 0.01 days, one thread) through the worker. It failed before
+  the fix with the traceback above, and passes after it.
+* `test_monte_carlo_worker_reports_the_batch_error`: a folder holding
+  other files gives the batch's own message.
+* `test_monte_carlo_child_logs_reach_this_process`: an unexpected error in
+  the child is reported, and the child's log record of it reaches this
+  process.
+
+A two-thread batch of template 09 (4 runs) also ran through the child
+process by hand: no failed runs, all files written. Recorded as SRelD
+K-18.
