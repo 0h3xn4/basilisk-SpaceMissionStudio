@@ -11628,3 +11628,15 @@ unchanged, and so are the batch's files and results.
 A two-thread batch of template 09 (4 runs) also ran through the child
 process by hand: no failed runs, all files written. Recorded as SRelD
 K-18.
+
+## 1.1.0 rebuilt with the GUI Monte Carlo fix (2026-10-20)
+
+1.1.0 was merged on 2026-10-19 but not yet published when the GUI Monte
+Carlo defect (K-18, previous entry) was found. By the user's decision the
+fix goes into 1.1.0 instead of waiting for 1.2.0:
+* The CHANGELOG entry moves from "Unreleased" into 1.1.0, now dated
+  2026-10-20.
+* SRelD issue 7 records the rebuild and K-18 as fixed in 1.1.0.
+* The SDP and the release checklist note the rebuild.
+* The wheel, sdist and `.deb` are rebuilt from this commit, and the
+  install check is repeated (`packaging/README.md`, "Verified for 1.1.0").
