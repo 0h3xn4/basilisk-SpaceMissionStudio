@@ -183,26 +183,25 @@ from .flow_layout import FlowLayout
 from .plot_catalog import ACCESS_TIMELINE, PlotCatalog
 from .readout_panel import ReadoutPanel, value_at
 from .feedback import report
-from .theme import FONTS_DIR, PALETTE, SERIES_COLORS
+from .theme import SERIES_COLORS, SIZE, TOKENS, WEB_FONT_STACK, on_change, set_role
+from .theme import plotly_template as pt
 from .widgets import ComboBox
 
-# Categorical series colours: Carbon's data-visualisation hues, stepped and
-# ordered so they pass the dataviz validator on this white chart surface
-# (gui/theme.py's SERIES_COLORS has the numbers). The first three are the
+# Categorical series colours: the theme's categorical palette (theme/
+# palettes.py has its validation), the same list object, so a figure built
+# after a theme change takes the new theme's steps. The first three are the
 # common case: every (x, y, z) series. A legend is shown for more than one
 # line, so colour is never the only way to tell lines apart.
-_SERIES_COLORS = list(SERIES_COLORS)
+_SERIES_COLORS = SERIES_COLORS
 
-# Chart chrome from the theme's Carbon tokens, so a chart reads as part of
-# the application: text-primary and text-secondary for its ink,
-# border-subtle for the grid, layer-01 for its surface. Read from PALETTE
-# where a figure is built, so a chart takes the theme in use.
-# IBM Plex Sans from the bundled file (an @font-face in _page_style()): the
-# chart page cannot see fonts loaded into Qt.
+# Chart chrome from the theme's Plotly template (theme/plotly_template.py),
+# read where a figure is built, so a chart takes the theme in use. The
+# bundled Inter is loaded into the chart page as an @font-face (the page
+# cannot see fonts loaded into Qt).
 _NOTE_MIN_WIDTH_PX = 360  # [px] the narrowest the wrapped notes under the toolbar get
 _CATALOG_WIDTH_PX = (250, 400)  # [px] the plot list's narrowest and widest width before a drag
 _CATALOG_WIDTH_SHARE = 0.16  # [-] its share of the pane until the user drags it (~350 px at 2560 px)
-_FONT_FAMILY = "'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif"
+_FONT_FAMILY = WEB_FONT_STACK
 
 # Fixed ids (rather than Plotly's own randomly-generated default) so
 # _on_save_plot_png's injected JS can reliably find the chart div to
@@ -349,13 +348,19 @@ def _short_utc(timestamp: str) -> str:
 # 100%-height plot, which put a scroll bar beside every plot.
 def _page_style() -> str:
     """The chart page's style: no margin, the theme's surface behind the
-    figure, and the bundled IBM Plex faces."""
-    return ("<style>html, body { margin: 0; height: 100%; overflow: hidden; background: "
-            + PALETTE["surface"] + "; } "
-            "@font-face { font-family: 'IBM Plex Sans'; font-weight: 400; src: url('"
-            + QUrl.fromLocalFile(str(FONTS_DIR / "IBMPlexSans-Regular.woff")).toString() + "'); } "
-            "@font-face { font-family: 'IBM Plex Sans'; font-weight: 600; src: url('"
-            + QUrl.fromLocalFile(str(FONTS_DIR / "IBMPlexSans-SemiBold.woff")).toString() + "'); }</style>")
+    figure, and the bundled fonts."""
+    return f"<style>{pt.page_css(TOKENS)} html, body {{ overflow: hidden; }}</style>"
+
+
+def _template_layout() -> dict:
+    """The theme's Plotly template: fonts, transparent backgrounds over the
+    page's surface, hover labels and the colourway (no axes: each figure
+    sets its own)."""
+    layout = pt.layout(TOKENS, SERIES_COLORS)
+    layout.pop("xaxis")
+    layout.pop("yaxis")
+    layout.pop("legend")
+    return layout
 
 
 def _plotlyjs_path() -> Path:
@@ -377,12 +382,7 @@ def _empty_state_html() -> str:
     to render.
     """
     return f"""<!doctype html>
-<html><head><meta charset="utf-8"><style>
-  html, body {{ margin: 0; height: 100%; background: {PALETTE['surface']};
-                font-family: {_FONT_FAMILY}; }}
-  .empty {{ display: flex; align-items: center; justify-content: center;
-            height: 100%; color: {PALETTE['text_muted']}; font-size: 14px; }}
-</style></head>
+<html><head><meta charset="utf-8"><style>{pt.page_css(TOKENS)}</style></head>
 <body><div class="empty">Run a simulation to see results here</div></body></html>"""
 
 
@@ -486,18 +486,11 @@ class ResultsWidget(QWidget):
         suggestion_layout = QHBoxLayout(self.suggestion_row)
         suggestion_layout.setContentsMargins(0, 0, 0, 0)
         suggestion_label = QLabel("Suggested:")
-        suggestion_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(suggestion_label, tone="secondary")
         suggestion_layout.addWidget(suggestion_label, 0, Qt.AlignmentFlag.AlignTop)
         self._suggestion_box = QWidget()
         self._suggestion_flow = FlowLayout(self._suggestion_box)
         suggestion_layout.addWidget(self._suggestion_box, 1)
-        self.suggestion_row.setStyleSheet(
-            f"QPushButton#suggestionChip {{ border: 1px solid {PALETTE['border']}; border-radius: 10px; "
-            f"padding: 2px 10px; background-color: {PALETTE['surface']}; color: {PALETTE['text']}; }}"
-            f"QPushButton#suggestionChip:hover {{ border-color: {PALETTE['accent']}; }}"
-            f"QPushButton#suggestionChip:checked {{ background-color: {PALETTE['accent_soft']}; "
-            f"border-color: {PALETTE['accent']}; color: {PALETTE['accent']}; }}"
-        )
         self.suggestion_row.setVisible(False)
         layout.addWidget(self.suggestion_row)
 
@@ -576,7 +569,7 @@ class ResultsWidget(QWidget):
         # One line, always visible once a result exists, naming exactly what
         # produced it; blank for a hand-built result without provenance.
         self.provenance_label = QLabel("")
-        self.provenance_label.setStyleSheet("color: palette(mid); font-size: 90%;")
+        set_role(self.provenance_label, role="small", tone="secondary")
         self.provenance_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.provenance_label.setWordWrap(True)  # never forces the pane wider
         # Fixed vertically: with Preferred, Qt gave this one-line label most
@@ -589,7 +582,7 @@ class ResultsWidget(QWidget):
         # conservation_drift_warnings); hidden when there are none.
         self.warnings_label = QLabel("")
         self.warnings_label.setWordWrap(True)
-        self.warnings_label.setStyleSheet(f"color: {PALETTE['warning']}; font-size: 90%;")
+        set_role(self.warnings_label, role="small", tone="caution")
         self.warnings_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.warnings_label.setVisible(False)
         self.warnings_label.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
@@ -597,7 +590,7 @@ class ResultsWidget(QWidget):
         # Event kinds left off a plot because there were too many bands.
         self.events_note = QLabel("")
         self.events_note.setWordWrap(True)
-        self.events_note.setStyleSheet(f"color: {PALETTE['text_muted']}; font-size: 90%;")
+        set_role(self.events_note, role="small", tone="secondary")
         self.events_note.setVisible(False)
         self.events_note.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
         layout.addWidget(self.events_note)
@@ -615,6 +608,7 @@ class ResultsWidget(QWidget):
         self.web_view.titleChanged.connect(self._on_page_title)
         self.web_view.loadFinished.connect(lambda _ok: self._on_page_loaded())
         self.web_view.setMinimumWidth(320)  # [px]
+        on_change(self._on_theme_changed)
         # Plot pages are written here and loaded from file -- see
         # _MAX_PLOT_POINTS_PER_LINE for why setHtml() can't be used.
         self._page_dir = tempfile.TemporaryDirectory(prefix="spacemissionstudio-plot-")
@@ -1022,10 +1016,7 @@ class ResultsWidget(QWidget):
 
     def _title(self, text: str) -> dict:
         subtitle = self._subtitle()
-        size, sub_size = (13, 11) if self._compact() else (16, 12)
-        full = text if not subtitle else (f"{text}<br><span style=\"font-size:{sub_size}px;color:{PALETTE['text_muted']}\">"
-                                          f"{subtitle}</span>")
-        return dict(text=full, font=dict(size=size, color=PALETTE['text'], family=_FONT_FAMILY))
+        return pt.title(TOKENS, text, subtitle, "body" if self._compact() else "section")
 
     def _margin(self, left: int = 70) -> dict:
         if self._compact():
@@ -1067,10 +1058,7 @@ class ResultsWidget(QWidget):
             ))
         self._add_comparison_traces(fig, name, display)
 
-        axis_common = dict(
-            gridcolor=PALETTE['border'], zerolinecolor=PALETTE['border'], linecolor=PALETTE['border'],
-            tickfont=dict(color=PALETTE['text_muted']), title_font=dict(color=PALETTE['text_muted']),
-        )
+        axis_common = pt.axis(TOKENS)
         y_title = f"{display.y_label} [{display.unit}]" if display.y_label else (f"[{display.unit}]" if display.unit else None)
         y_axis = dict(axis_common, title_text=y_title)
         x_axis = dict(axis_common, title_text=x_label)
@@ -1087,13 +1075,12 @@ class ResultsWidget(QWidget):
             title=self._title(_series_label(name, series)),
             xaxis=x_axis,
             yaxis=y_axis,
-            font=dict(family=_FONT_FAMILY, color=PALETTE['text']),
-            plot_bgcolor=PALETTE['surface'],
-            paper_bgcolor=PALETTE['surface'],
+            **_template_layout(),
             hovermode="x unified",
             # a single series names itself in the title -- no legend box needed, unless compared
             showlegend=len(series.columns) > 1 or self.comparison_run() is not None,
-            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color=PALETTE['text_muted'])),
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                        font=dict(color=TOKENS["text.secondary"])),
             margin=self._margin(),
         )
         if ensemble:  # one hover row per run would list them all; show the run under the pointer
@@ -1128,7 +1115,7 @@ class ResultsWidget(QWidget):
         """The run's events behind ``name``'s lines (U-27): a band from start
         to end of each, in the Events tab's colour; a mode change a dashed
         line at its start. Only the plot's own spacecraft's events."""
-        from .event_timeline_widget import KIND_COLOURS
+        from .event_timeline_widget import kind_colour
 
         parsed = _parse_access_pair(name)
         spacecraft = parsed[1] if parsed is not None else name.split(".", 1)[0]
@@ -1142,7 +1129,7 @@ class ResultsWidget(QWidget):
                 self._band_notes.append(f"{_EVENT_LABELS[kind]} of {spacecraft}: {len(of_kind):,}, too many to draw "
                                         f"(see the Events tab)")
                 continue
-            colour = KIND_COLOURS.get(kind, PALETTE["accent"])
+            colour = kind_colour(kind)
             starts = self._event_x([e.start_s for e in of_kind])
             ends = self._event_x([e.end_s for e in of_kind])
             for start, end in zip(starts, ends):
@@ -1218,10 +1205,10 @@ class ResultsWidget(QWidget):
             fig.update_layout(
                 annotations=[dict(
                     text="No ground-station access series in this result (no ground stations configured?)",
-                    showarrow=False, font=dict(color=PALETTE['text_muted'], size=14),
+                    showarrow=False, font=dict(color=TOKENS["text.secondary"], size=SIZE["body"]),
                     xref="paper", yref="paper", x=0.5, y=0.5,
                 )],
-                plot_bgcolor=PALETTE['surface'], paper_bgcolor=PALETTE['surface'],
+                **_template_layout(),
                 xaxis=dict(visible=False), yaxis=dict(visible=False),
             )
             return fig
@@ -1260,23 +1247,17 @@ class ResultsWidget(QWidget):
                     hoverinfo="skip",
                 ))
 
-        axis_common = dict(
-            gridcolor=PALETTE['border'], zerolinecolor=PALETTE['border'], linecolor=PALETTE['border'],
-            tickfont=dict(color=PALETTE['text_muted']), title_font=dict(color=PALETTE['text_muted']),
-        )
+        axis_common = pt.axis(TOKENS)
         subtitle = f"t0 = {_utc_text(self._epoch_utc)}" if self._epoch_utc else ""
         title = "Ground Station Access Timeline"
         fig.update_layout(
-            title=dict(text=title if not subtitle else (f"{title}<br><span style=\"font-size:12px;color:{PALETTE['text_muted']}\">"
-                                                        f"{subtitle}</span>"),
-                       font=dict(size=16, color=PALETTE['text'], family=_FONT_FAMILY)),
+            title=pt.title(TOKENS, title, subtitle),
             # Fixed to the run: the end-of-pass ticks would otherwise pad
             # the axis to before t = 0.
             xaxis=dict(axis_common, title_text="Elapsed time [hr]", exponentformat="none",
                        separatethousands=True, range=[0.0, t_end_hr]),
             yaxis=dict(axis_common, title_text=None, categoryorder="category descending"),
-            font=dict(family=_FONT_FAMILY, color=PALETTE['text']),
-            plot_bgcolor=PALETTE['surface'], paper_bgcolor=PALETTE['surface'],
+            **_template_layout(),
             showlegend=False,  # the y-axis category labels already name every pair -- a legend would be redundant
             margin=dict(l=160, r=30, t=78 if subtitle else 60, b=50),
         )
@@ -1578,7 +1559,7 @@ class ResultsWidget(QWidget):
         if not self.figures:
             return
         literals = [self.cursor_x_literal(i) for i in range(len(self.figures))]
-        self.web_view.page().runJavaScript(plot_page.cursor_script(literals, PALETTE['danger']))
+        self.web_view.page().runJavaScript(plot_page.cursor_script(literals, TOKENS['accent']))
 
     def readout_time_s(self) -> Optional[float]:
         """The time the readout shows: under the pointer, else the cursor's."""
@@ -1623,6 +1604,11 @@ class ResultsWidget(QWidget):
         self._update_figure()
         self._push_figure_to_webview()
         self._update_suggestion_states()
+
+    def _on_theme_changed(self, _mode: str) -> None:
+        """Redraw the shown plots (or the empty page) in the new theme, after
+        the switch itself has returned: the page reloads on its own time."""
+        QTimer.singleShot(0, self, self._redraw)
 
     # -- export -------------------------------------------------------------
 

@@ -80,7 +80,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..schema.scenario import Scenario, SimSettings
-from .theme import PALETTE
+from .theme import set_role
 from .widgets import PreciseDoubleSpinBox
 from .wizard_settings import build_all_settings_pages, setting_paths, get_setting
 
@@ -1847,8 +1847,7 @@ class _WizardFieldPage(QFrame):
     def __init__(self, page_spec: WizardPageSpec, scenario: Scenario, parent=None, heading_text: str = ""):
         super().__init__(parent)
         self.setObjectName("wizardSection")
-        self.setStyleSheet(f"QFrame#wizardSection {{ background: {PALETTE['surface']}; "
-                           f"border: 1px solid {PALETTE['border']}; border-radius: 0px; }}")  # Carbon tile
+        set_role(self, role="card")
         self._title = page_spec.title
         self._scenario = scenario
         self._fields = page_spec.fields
@@ -1861,12 +1860,12 @@ class _WizardFieldPage(QFrame):
         outer.setContentsMargins(12, 10, 12, 10)
         outer.setSpacing(4)
         heading = QLabel(heading_text or page_spec.title)
-        heading.setStyleSheet("font-weight: 600; font-size: 110%; border: none;")
+        set_role(heading, role="section-title")
         outer.addWidget(heading)
         if page_spec.intro:
             intro = QLabel(page_spec.intro)
             intro.setWordWrap(True)
-            intro.setStyleSheet(f"color: {PALETTE['text_muted']}; border: none;")
+            set_role(intro, tone="secondary")
             outer.addWidget(intro)
         self._form = QFormLayout()
         self._form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.ExpandingFieldsGrow)
@@ -1885,7 +1884,7 @@ class _WizardFieldPage(QFrame):
             if field_spec.group and field_spec.group != group:
                 group = field_spec.group
                 group_label = QLabel(group)
-                group_label.setStyleSheet("font-weight: 600; margin-top: 6px; border: none;")
+                set_role(group_label, role="heading")
                 self._group_rows.append((self._form.rowCount(), group))
                 self._form.addRow(group_label)
             value = field_spec.get(scenario)
@@ -1908,7 +1907,6 @@ class _WizardFieldPage(QFrame):
             box.setToolTip(field_spec.help_text)
             label = QLabel(field_spec.label)
             label.setToolTip(field_spec.help_text)
-            label.setStyleSheet("border: none;")
             # The form puts a label at the top of its row; with a box-tall
             # label and the box pinned to the top too, the label's text lines
             # up with the value instead of sitting above it.
@@ -1928,7 +1926,6 @@ class _WizardFieldPage(QFrame):
                 # the spin box inside and erased its border, so the values
                 # no longer looked editable (real user feedback).
                 holder.setObjectName("wizardRow")
-                holder.setStyleSheet("QWidget#wizardRow { background: transparent; border: none; }")
                 row_box_layout = QHBoxLayout(holder)
                 row_box_layout.setContentsMargins(0, 0, 0, 0)
                 row_box_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
@@ -1943,7 +1940,7 @@ class _WizardFieldPage(QFrame):
                     help_label.setToolTip(field_spec.help_text)
                     help_label.setMinimumHeight(box.sizeHint().height())
                     help_label.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
-                    help_label.setStyleSheet(f"color: {PALETTE['text_muted']}; border: none;")
+                    set_role(help_label, tone="secondary")
                     row_box_layout.addSpacing(12)
                     row_box_layout.addWidget(help_label, 1)
                 self._form.addRow(label, holder)
@@ -2059,8 +2056,7 @@ class TemplateCustomizeWizard(QDialog):
             item.setFont(font)
             self._sections.addItem(item)
             heading = QLabel(text)
-            heading.setStyleSheet(f"font-weight: 700; font-size: 120%; color: {PALETTE['text']}; "
-                                  "margin-top: 4px;")
+            set_role(heading, role="page-title")
             self._sections_layout.addWidget(heading)
             self._headings.append(heading)
 

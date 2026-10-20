@@ -52,10 +52,10 @@ from PySide6.QtWidgets import (
 from ..engine.scenario_explainer import ScenarioExplanation, explain
 from ..schema.scenario import Scenario
 from .flow_layout import FlowLayout
-from .badges import ACCENT, DANGER, MUTED, SUCCESS, WARNING, badge_style
+from .badges import ACCENT, DANGER, MUTED, SUCCESS, WARNING, set_badge
 from .formation_diagram_widget import FormationDiagramWidget
 from .roe_diagram_widget import RoeDiagramWidget
-from .theme import PALETTE
+from .theme import set_role
 
 _FORMATION_SECTION_TITLE = "Formation / orbit maintenance"
 
@@ -83,21 +83,15 @@ def _stat_tile(label: str, value: str) -> QFrame:
     frame = QFrame()
     frame.setObjectName("statTile")
     frame.setFrameShape(QFrame.Shape.NoFrame)
-    # "#statTile", not a bare "QFrame" selector: QLabel inherits QFrame,
-    # so an unscoped rule also drew a second bordered box around each
-    # tile's own value and caption labels.
-    frame.setStyleSheet(
-        f"QFrame#statTile {{ background-color: {PALETTE['surface']}; border: 1px solid {PALETTE['border']}; "
-        "border-radius: 0px; }"  # Carbon tile
-    )
+    set_role(frame, role="card")
     layout = QVBoxLayout(frame)
     layout.setContentsMargins(10, 6, 10, 6)
     layout.setSpacing(2)
     value_label = QLabel(value)
-    value_label.setStyleSheet(f"font-size: 15px; font-weight: 700; color: {PALETTE['text']};")
+    set_role(value_label, role="value")
     value_label.setWordWrap(True)
     label_label = QLabel(label)
-    label_label.setStyleSheet(f"color: {PALETTE['text_muted']}; font-size: 11px;")
+    set_role(label_label, role="caption")
     layout.addWidget(value_label)
     layout.addWidget(label_label)
     return frame
@@ -105,7 +99,7 @@ def _stat_tile(label: str, value: str) -> QFrame:
 
 def _badge_label(text: str, kind: str) -> QLabel:
     label = QLabel(text)
-    label.setStyleSheet(badge_style(_BADGE_KIND_COLORS.get(kind, MUTED)))
+    set_badge(label, _BADGE_KIND_COLORS.get(kind, MUTED))
     return label
 
 
@@ -115,8 +109,7 @@ def _badge_button(text: str, kind: str) -> QPushButton:
     button = QPushButton(text)
     button.setFlat(True)
     button.setCursor(Qt.CursorShape.PointingHandCursor)
-    button.setStyleSheet(f"QPushButton {{ {badge_style(_BADGE_KIND_COLORS.get(kind, MUTED))} "
-                         "text-decoration: underline; border: none; }")
+    set_badge(button, _BADGE_KIND_COLORS.get(kind, MUTED))
     return button
 
 
@@ -154,11 +147,11 @@ class ScenarioExplainerWidget(QWidget):
             "The scenario has a problem (see Problems): fix it to see its summary here."
         )
         self._placeholder_label.setWordWrap(True)
-        self._placeholder_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self._placeholder_label, tone="secondary")
         self._content_layout.addWidget(self._placeholder_label)
 
         self._headline_label = QLabel()
-        self._headline_label.setStyleSheet(f"font-size: 14px; font-weight: 700; color: {PALETTE['text']};")
+        set_role(self._headline_label, role="section-title")
         self._headline_label.setWordWrap(True)
         self._content_layout.addWidget(self._headline_label)
 
@@ -241,13 +234,12 @@ class ScenarioExplainerWidget(QWidget):
             # Transparent: the theme's base "QWidget" rule otherwise painted
             # each section as a grey band across this tab's white pane.
             section_widget.setObjectName("explainSection")
-            section_widget.setStyleSheet("QWidget#explainSection { background: transparent; }")
             section_layout = QVBoxLayout(section_widget)
             section_layout.setContentsMargins(0, 0, 0, 0)
             section_layout.setSpacing(4)
 
             title_label = QLabel(section.title)
-            title_label.setStyleSheet(f"font-weight: 600; color: {PALETTE['text']};")
+            set_role(title_label, role="heading")
             section_layout.addWidget(title_label)
 
             if section.badges:
@@ -268,7 +260,7 @@ class ScenarioExplainerWidget(QWidget):
             for note in section.notes:
                 note_label = QLabel(note)
                 note_label.setWordWrap(True)
-                note_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+                set_role(note_label, tone="secondary")
                 section_layout.addWidget(note_label)
 
             # The formation-geometry diagram(s) belong right alongside the

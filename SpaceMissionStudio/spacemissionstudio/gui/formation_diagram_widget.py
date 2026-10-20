@@ -37,11 +37,11 @@ otherwise only show as plain numbers in the spacecraft table.
 from __future__ import annotations
 
 from PySide6.QtCore import QRectF, QSize, Qt
-from PySide6.QtGui import QColor, QFont, QPainter, QPen
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
 from ..engine.scenario_explainer import FormationDiagram
-from .theme import PALETTE
+from .theme import PALETTE, ui_font
 
 _MARGIN_X = 48
 _TRACK_Y_FRACTION = 0.42
@@ -142,26 +142,19 @@ class FormationDiagramWidget(QWidget):
         # Labels: names below their markers, the measured distance above
         # the baseline between them, band legend below the track.
         painter.setPen(QColor(PALETTE["text"]))
-        name_font = QFont(painter.font())
-        name_font.setPointSize(max(8, name_font.pointSize() - 1))
-        painter.setFont(name_font)
+        painter.setFont(ui_font("small"))
         painter.drawText(QRectF(chief_x - 60, track_y + 10, 120, 16), Qt.AlignmentFlag.AlignHCenter,
                           diagram.chief_name)
         painter.drawText(QRectF(follower_x - 60, track_y + 10, 120, 16), Qt.AlignmentFlag.AlignHCenter,
                           diagram.follower_name)
 
-        distance_font = QFont(painter.font())
-        distance_font.setBold(True)
-        painter.setFont(distance_font)
+        painter.setFont(ui_font("small", "semibold"))
         painter.drawText(
             QRectF(chief_x, track_y - 32, track_span_px, 16), Qt.AlignmentFlag.AlignHCenter,
             f"{diagram.target_separation_km:g} km target separation",
         )
 
-        legend_font = QFont(painter.font())
-        legend_font.setBold(False)
-        legend_font.setPointSize(max(7, legend_font.pointSize() - 2))
-        painter.setFont(legend_font)
+        painter.setFont(ui_font("caption"))
         painter.setPen(QColor(PALETTE["text_muted"]))
         painter.drawText(
             QRectF(chief_x, track_y + 30, track_span_px, 16), Qt.AlignmentFlag.AlignHCenter,

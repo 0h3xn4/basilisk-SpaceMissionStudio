@@ -11640,3 +11640,64 @@ fix goes into 1.1.0 instead of waiting for 1.2.0:
 * The SDP and the release checklist note the rebuild.
 * The wheel, sdist and `.deb` are rebuilt from this commit, and the
   install check is repeated (`packaging/README.md`, "Verified for 1.1.0").
+
+## UI overhaul M1: the theme foundation (2026-10-20)
+
+The first milestone of the UI overhaul (`docs/ui/UI_OVERHAUL.md`, plan
+`docs/ui/UI_OVERHAUL_PLAN.md`): the look and its plumbing, not the
+layout.
+
+**What changed.**
+* `gui/theme.py` (970 lines, IBM Carbon g10/g100 and IBM Plex) became the
+  package `gui/theme/`: the brief's token table (`tokens.py`), type and
+  spacing (`typography.py`), the chart palette (`palettes.py`), the
+  bundled fonts (`fonts.py`, Inter and JetBrains Mono as TTF), Lucide
+  icons tinted from the tokens (`icons.py`), the generated style sheet
+  (`qss.py`), the Plotly template (`plotly_template.py`), rich-text CSS
+  (`richtext.py`), token colours on list rows (`items.py`) and
+  `apply_theme` with a `changed` signal (`apply.py`).
+* The 106 per-widget `setStyleSheet` calls became role, tone and badge
+  properties styled by the one application sheet; the one left paints a
+  colour the user picked. Hex colours, CSS sizes and font families no
+  longer appear in GUI code outside the package, and a test keeps it so.
+* The theme switches live. Plots, diagrams, list-row colours and the
+  device card's rich text redraw on `changed`. With View > Theme >
+  System it follows the desktop while the app runs.
+
+**Found on the way.**
+* Applying a theme by swapping one style sheet for another took about
+  1 s on the main window. Clearing it first and then setting the new one
+  took 0.2-0.3 s: Qt then builds the new rules once instead of diffing
+  every widget against the old ones.
+* A `QWidget { ... }` rule cost about 45 ms per switch for nothing (text
+  colour, selection and font come from the palette and application font).
+* The template list kept its rows at the width they were first laid out
+  at, wider than the list in the main window, so every row's
+  Customize... button sat past the list's right edge (the 1.1.0
+  screenshots show the rows without it). The list now re-lays its rows
+  out when it narrows (`QListView.ResizeMode.Adjust`); a test checks the
+  buttons are inside the list.
+* The primary Run button's accent icon vanished on its accent fill; it now
+  keeps an icon in `text.on_accent` across action changes.
+* The brief's light `text.muted` (3.83:1 on white) and dark `text.muted`
+  (3.86:1 on the selected row) fail WCAG AA for text, and the brief's
+  status colours are dark-background values (1.6-2.5:1 on white). Each
+  was moved in lightness only until it passed; `docs/DECISIONS.md` lists
+  the values.
+* A categorical palette that kept the status hue bands out entirely does
+  not exist for eight colours; the rule became Delta E >= 8 from every
+  status colour and the accent, checked with the palette validator.
+
+**Measured.** Same machine, same day, 1.1.0 and this change in turn:
+applying a theme on a new main window with template 19 takes 0.51-0.55 s
+(1.1.0: 1.31-1.44 s); after every page has been visited 2.4 s (1.1.0:
+6.1-6.5 s). The brief's 100 ms is not met: most of the 1,360 widgets are
+hidden pages that Qt re-polishes too. M2's lazy areas carry the
+criterion.
+
+**Tests.** `tests/gui/test_theme.py` and `tests/gui/test_dark_theme.py`
+were rewritten for the new system (77 WCAG pairs per theme, fonts, icons,
+the live switch, no Qt style-sheet warnings); `test_design_rules.py`'s
+hard-coded-colour test became a hard-coded-style test over all of
+`gui/`. Every change to an existing test is in `docs/ui/TEST_CHANGES.md`.
+No non-GUI test and no output file changed.

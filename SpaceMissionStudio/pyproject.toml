@@ -67,17 +67,18 @@ include = ["spacemissionstudio*"]
 # see that directory's own README) is a separate glob for the same reason:
 # setuptools package-data globs are not recursive, so "scenarios/*.json"
 # alone would silently drop everything one directory deeper.
-# gui/assets/*.svg are the theme's combo/spin arrow and check-mark glyphs
-# (see gui/theme.py) -- no __init__.py there either, same reason.
-# gui/assets/fonts/ holds IBM Plex (SIL OFL 1.1, the licence and the
-# provenance ship with the fonts).
+# gui/assets/icons/lucide/ holds the Lucide icons the GUI uses (ISC, the
+# licence ships with them) and gui/assets/fonts/ Inter and JetBrains Mono
+# (SIL OFL 1.1, a licence file per family) -- no __init__.py there either,
+# same reason (docs/THIRD_PARTY_ASSETS.md).
 # fsw_export/ ships the Basilisk sources the flight-software export
 # packages (a zip of Basilisk's own files, ISC licence included, and the
 # manifest of their git hashes) and the C/CMake templates it fills in.
 [tool.setuptools.package-data]
 spacemissionstudio = ["scenarios/*.json", "scenarios/templates/*.json", "scenarios/templates/README.md",
-                      "gui/assets/*.svg", "gui/assets/fonts/*.woff", "gui/assets/fonts/OFL.txt",
-                      "gui/assets/fonts/README.md", "data/spaceweather/SW-All.txt", "data/spaceweather/oct2026f10-prd.txt",
+                      "gui/assets/icons/lucide/*.svg", "gui/assets/icons/lucide/LICENSE",
+                      "gui/assets/fonts/*/*.ttf", "gui/assets/fonts/*/OFL.txt",
+                      "data/spaceweather/SW-All.txt", "data/spaceweather/oct2026f10-prd.txt",
                       "data/spaceweather/README.md", "help/USER_MANUAL.md", "help/docs/images/*.png",
                       "fsw_export/basilisk_fsw_sources.zip", "fsw_export/basilisk_fsw_sources.json",
                       "fsw_export/templates/*"]

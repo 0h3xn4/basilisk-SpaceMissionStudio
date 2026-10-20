@@ -39,12 +39,12 @@ from __future__ import annotations
 from typing import Callable, Dict, Iterator, List, Optional, Tuple
 
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
-from PySide6.QtGui import QBrush, QColor
 from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout,
                                QHBoxLayout, QLineEdit, QListWidget, QPlainTextEdit, QSplitter, QStackedWidget,
                                QTableWidget, QTreeWidget, QTreeWidgetItem, QWidget)
 
-from .theme import PALETTE
+from .theme import on_change
+from .theme.items import retint, tint
 
 _WIDGET_ROLE = Qt.ItemDataRole.UserRole
 _TITLE_ROLE = Qt.ItemDataRole.UserRole + 1
@@ -85,6 +85,7 @@ class PageTree(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.splitter = QSplitter(Qt.Orientation.Horizontal)
         self.tree = QTreeWidget()
+        on_change(self._retint)
         self.tree.setObjectName("pageTree")
         self.tree.setHeaderHidden(True)
         self.tree.setMinimumWidth(170)  # [px]
@@ -185,13 +186,15 @@ class PageTree(QWidget):
     def warning_count(self, item: QTreeWidgetItem) -> int:
         return item.data(0, _WARNINGS_ROLE) or 0
 
+    def _retint(self, _mode: str) -> None:
+        retint(self.tree)
+
     def _show_title(self, item: QTreeWidgetItem) -> None:
         title, count = item.data(0, _TITLE_ROLE), self.problem_count(item)
         warnings = self.warning_count(item)
         errors = count - warnings
         item.setText(0, f"{title} ({count})" if count else title)
-        colour = PALETTE["danger_text"] if errors else PALETTE["warning"]
-        item.setForeground(0, QBrush(QColor(colour)) if count else QBrush())
+        tint(item, ("status.critical.text" if errors else "status.caution.text") if count else None)
         parts = [f"{n} {word}{'s' if n != 1 else ''}" for n, word in ((errors, "error"), (warnings, "warning")) if n]
         tip = f"{' and '.join(parts)} here: see Problems" if count else ""
         if self.section_key(item) is not None:

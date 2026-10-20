@@ -168,10 +168,23 @@ def _summary(tree: ast.Module) -> str:
     return (match.group(1) if match else first)[:200].rstrip(":").replace("|", "/")
 
 
+def _source_path(module: str):
+    """The file of a component: ``module.py``, or a sub-package's
+    ``__init__.py`` (``gui/theme``, whose names its modules import)."""
+    path = PACKAGE / f"{module}.py"
+    return path if path.exists() else PACKAGE / module / "__init__.py"
+
+
+def _is_component(module: str) -> bool:
+    return (PACKAGE / f"{module}.py").exists() or (len(module.split("/")) >= 2
+                                                   and (PACKAGE / module / "__init__.py").exists())
+
+
 def _imports(tree: ast.Module, module: str) -> tuple:
     """(package modules, third-party top-level packages) a module imports."""
     internal, external = set(), set()
-    package = module.rsplit("/", 1)[0] if "/" in module else ""
+    package = module if _source_path(module).name == "__init__.py" else (
+        module.rsplit("/", 1)[0] if "/" in module else "")
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
@@ -194,7 +207,7 @@ def _imports(tree: ast.Module, module: str) -> tuple:
             elif node.module:
                 external.add(node.module.split(".")[0])
     stdlib = set(sys.stdlib_module_names) | {"__future__"}
-    internal = {m for m in internal if m and m != module and (PACKAGE / f"{m}.py").exists()}
+    internal = {m for m in internal if m and m != module and _is_component(m)}
     return sorted(internal), sorted(external - stdlib - {"spacemissionstudio"})
 
 
@@ -204,8 +217,12 @@ def _subordinates(tree: ast.Module) -> list:
 
 
 def build() -> int:
-    modules = sorted(str(p.relative_to(PACKAGE).with_suffix("")) for p in PACKAGE.rglob("*.py")
-                     if p.name != "__init__.py" and "__pycache__" not in p.parts)
+    # Modules, plus sub-packages (gui/theme) as components of their own:
+    # other modules import their names from the package.
+    modules = sorted([str(p.relative_to(PACKAGE).with_suffix("")).replace("\\", "/") for p in PACKAGE.rglob("*.py")
+                      if p.name != "__init__.py" and "__pycache__" not in p.parts]
+                     + [p.parent.relative_to(PACKAGE).as_posix() for p in PACKAGE.rglob("__init__.py")
+                        if len(p.parent.relative_to(PACKAGE).parts) >= 2 and "__pycache__" not in p.parts])
     srs = set(re.findall(r"^\| (SRS-[A-Z]+-\d+) \|", (ROOT / "docs" / "SRS.md").read_text(encoding="utf-8"),
                          re.MULTILINE))
     problems = [f"SRS requirement not mapped: {r}" for r in sorted(srs - SRS_TO_COMPONENTS.keys())]
@@ -233,7 +250,7 @@ def build() -> int:
              "| Identifier | Purpose | SRS | Subordinates (public classes, functions) | Uses (package) | Uses "
              "(third party) | Lines |", "|---|---|---|---|---|---|---|"]
     for module in modules:
-        path = PACKAGE / f"{module}.py"
+        path = _source_path(module)
         source = path.read_text(encoding="utf-8")
         tree = ast.parse(source)
         internal, external = _imports(tree, module)

@@ -37,7 +37,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QHeaderView, QLabel, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
 
 from ..engine.results import TimeSeries
-from .theme import PALETTE
+from .theme import set_role
 
 
 def _is_stepped(column: np.ndarray) -> bool:
@@ -83,7 +83,7 @@ class ReadoutPanel(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.time_label = QLabel("Readout: click a plot or point at it")
         self.time_label.setWordWrap(True)
-        self.time_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.time_label, tone="secondary")
         layout.addWidget(self.time_label)
         self.table = QTableWidget(0, 3)
         self.table.setHorizontalHeaderLabels(["Series", "Value", "Unit"])

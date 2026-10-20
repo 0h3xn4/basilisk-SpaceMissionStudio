@@ -188,7 +188,7 @@ def test_a_problem_names_the_form_label(qtbot):
 
 
 def test_the_power_tab_fits_a_1280_px_window_in_the_app_font(qtbot, qapp):
-    """With the app's theme (IBM Plex at its own size), the Power tab of a
+    """With the app's theme (its bundled font at its own size), the Power tab of a
     follower with an ROE formation fits a 1280 px dialog without sideways
     scrolling: the "Add safe formation" button no longer sits beside the
     four helper boxes, which made the tab 1256 px wide."""

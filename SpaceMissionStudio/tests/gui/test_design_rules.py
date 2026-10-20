@@ -15,10 +15,11 @@
 #  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
-"""docs/DESIGN.md against the code: its colour token table is
-theme.py's, its shortcut table the menus', and no GUI module but the
-theme writes a colour of its own (docs/ux-standard.md, "no new hard-coded
-colours")."""
+"""docs/DESIGN.md against the code: its colour token table is the theme
+package's, its shortcut table the menus', and no GUI module outside
+gui/theme/ writes a colour, a font family or a pixel size of its own
+(docs/ui/UI_OVERHAUL.md, "Tokens": "No hex colour, font family or pixel
+size appears anywhere else in GUI code; a test enforces this")."""
 
 import io
 import re
@@ -31,6 +32,12 @@ _ROOT = Path(__file__).resolve().parents[2]
 _DESIGN = _ROOT / "docs" / "DESIGN.md"
 _GUI = _ROOT / "spacemissionstudio" / "gui"
 _COLOUR = re.compile(r"#[0-9A-Fa-f]{6}\b|#[0-9A-Fa-f]{3}\b|\brgba?\(")
+# A CSS size or font in a string, and a font family by name.
+_SIZE = re.compile(r"\b\d+(?:\.\d+)?(?:px|pt)\b|font-size|font-weight|font-family")
+_FAMILY = re.compile(r"\b(?:Inter|JetBrains|Plex|monospace|sans-serif|Helvetica|Arial|Segoe|Consolas|Courier)\b")
+# Code that sets a font size or family, or a style sheet, itself.
+_CALLS = re.compile(r"\.(?:setPointSize|setPointSizeF|setPixelSize|setFamily|setFamilies|setStyleSheet)\(|"
+                    r"\bQFont\(\s*['\"]")
 _NAMED = re.compile(r"\bQt\.(?:GlobalColor\.)?(?!transparent\b)(?:red|green|blue|black|white|gray|darkGray|lightGray|"
                     r"yellow|cyan|magenta|darkRed|darkGreen|darkBlue)\b")
 
@@ -40,9 +47,11 @@ _NAMED = re.compile(r"\bQt\.(?:GlobalColor\.)?(?!transparent\b)(?:red|green|blue
 # literal parts.
 _TEXT_TOKENS = {tokenize.STRING} | ({tokenize.FSTRING_MIDDLE} if hasattr(tokenize, "FSTRING_MIDDLE") else set())
 _ALLOWED = {
-    "icons.py": {"#0F62FE", "#002D9C", "#CFB87C", "#A88F53"},  # the app icon's own colours, the same in both themes
-    "model_editor_dialog.py": {"#000000", "#FFFFFF", "rgb("},  # a user-picked part colour and the text readable on it
-    "model_view_widget.py": {"#d62728", "#2ca02c", "#1f77b4", "rgb("},  # body axes x/y/z (identity); part colours (data)
+    "model_view_widget.py": {"rgb("},  # a 3D part's own colour (data, picked by the user)
+}
+# Lines that may set a style sheet themselves, with why.
+_ALLOWED_CALLS = {
+    "model_editor_dialog.py": {"swatch_style("},  # the swatch of a user-picked colour (theme.palettes.swatch_style)
 }
 
 
@@ -54,13 +63,16 @@ def _section(text: str, heading: str) -> str:
 
 @pytest.mark.requires_gui
 def test_the_token_table_matches_the_theme():
-    """Each LIGHT/DARK key is one row of DESIGN.md's table, with both
-    values; no row names a key the theme does not have."""
-    from spacemissionstudio.gui.theme import DARK, LIGHT
+    """Each token of the theme is one row of DESIGN.md's token table, with
+    its light and dark values; no row names a token the theme does not
+    have."""
+    from spacemissionstudio.gui.theme import tokens
 
-    rows = re.findall(r"^\| `(\w+)` \| `(#[0-9A-F]{6})` \| `(#[0-9A-F]{6})` \|", _DESIGN.read_text(), re.MULTILINE)
-    assert {key: (light, dark) for key, light, dark in rows} == {key: (LIGHT[key], DARK[key]) for key in LIGHT}
-    assert len(rows) == len(LIGHT)
+    light, dark = tokens.tokens("light"), tokens.tokens("dark")
+    rows = re.findall(r"^\| `([a-z][a-z0-9_.]*)` \| `(#[0-9A-F]{6})` \| `(#[0-9A-F]{6})` \|", _DESIGN.read_text(),
+                      re.MULTILINE)
+    assert {key: (lt, dk) for key, lt, dk in rows} == {key: (light[key], dark[key]) for key in light}
+    assert len(rows) == len(light)
 
 
 @pytest.mark.requires_gui
@@ -105,20 +117,37 @@ def test_the_shortcut_table_matches_the_menus(qtbot, monkeypatch):
     assert {command for command, _keys, standard in rows if standard == "-"} <= set(found)
 
 
-def test_no_hard_coded_colour_outside_the_theme():
-    """No string in gui/ but theme.py holds a colour (#rrggbb, #rgb,
-    rgb()/rgba()) and no code names a Qt colour, beyond the listed
-    exceptions; widgets take PALETTE's."""
+def _docstring(previous_type) -> bool:
+    """A string token that is a statement of its own: a docstring."""
+    return previous_type in (None, tokenize.NEWLINE, tokenize.INDENT, tokenize.DEDENT)
+
+
+def test_no_hard_coded_style_outside_the_theme():
+    """No string in gui/ outside gui/theme/ holds a colour (#rrggbb, #rgb,
+    rgb()/rgba()), a CSS size, weight or font family, or a font family by
+    name; no code names a Qt colour or sets a font size, a font family or
+    a style sheet itself; beyond the listed exceptions. Widgets take the
+    theme's tokens, fonts and roles."""
     found = {}
-    for path in sorted(_GUI.glob("*.py")):
-        if path.name == "theme.py":
+    for path in sorted(_GUI.rglob("*.py")):
+        if path.relative_to(_GUI).parts[0] == "theme":
             continue
+        name = path.relative_to(_GUI).as_posix()
         source = path.read_text(encoding="utf-8")
+        previous = None
         for token in tokenize.generate_tokens(io.StringIO(source).readline):
-            hits = set(_COLOUR.findall(token.string)) if token.type in _TEXT_TOKENS else set()
-            extra = hits - _ALLOWED.get(path.name, set())
-            if extra:
-                found.setdefault(path.name, set()).update(extra)
+            if token.type in (tokenize.COMMENT, tokenize.NL):
+                continue
+            if token.type in _TEXT_TOKENS and not (token.type == tokenize.STRING and _docstring(previous)):
+                hits = {m for rx in (_COLOUR, _SIZE, _FAMILY) for m in rx.findall(token.string)}
+                extra = hits - _ALLOWED.get(name, set())
+                if extra:
+                    found.setdefault(name, set()).update(extra)
+            previous = token.type
         for match in _NAMED.finditer(source):
-            found.setdefault(path.name, set()).add(match.group(0))
+            found.setdefault(name, set()).add(match.group(0))
+        for line in source.splitlines():
+            code = line.split("#", 1)[0]
+            if _CALLS.search(code) and not any(ok in code for ok in _ALLOWED_CALLS.get(name, ())):
+                found.setdefault(name, set()).add(code.strip())
     assert found == {}

@@ -39,7 +39,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .theme import PALETTE
+from .theme import set_role
 from .widgets import PreciseDoubleSpinBox
 
 
@@ -70,7 +70,7 @@ class NumberListEditor(QWidget):
         layout.addLayout(self._form)
         self.empty_label = QLabel(empty_text)
         self.empty_label.setWordWrap(True)
-        self.empty_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.empty_label, tone="secondary")
         self.empty_label.setVisible(False)
         layout.addWidget(self.empty_label)
         self.add_button = QPushButton(f"Add {row_label.lower()}")

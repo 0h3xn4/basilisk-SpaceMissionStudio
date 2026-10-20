@@ -113,7 +113,7 @@ def test_re_run_on_the_banner_starts_a_run(qtbot, monkeypatch):
 @pytest.fixture
 def app_theme(qapp):
     """The app's own look, as ``gui/app.py`` sets it: the Fusion style and
-    the bundled IBM Plex font. Without it a test measures the platform's
+    the bundled Inter font. Without it a test measures the platform's
     native style and font instead (on Windows 11, 1562 px for the window
     this app shows at 1118 px), which no user of the app sees. Restored
     afterwards for the other tests in the process."""

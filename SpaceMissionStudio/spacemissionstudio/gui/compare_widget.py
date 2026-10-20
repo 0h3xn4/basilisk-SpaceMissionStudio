@@ -43,7 +43,7 @@ from typing import Dict, Optional
 
 import numpy as np
 import plotly.graph_objects as go
-from PySide6.QtCore import Qt, QUrl, Signal
+from PySide6.QtCore import QTimer, QUrl, Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QHeaderView, QLabel, QListWidget,
@@ -55,7 +55,8 @@ from ..engine import run_summary, scenario_diff
 from ..plot_categories import categorize as _categorize
 from ..plot_categories import legacy_display as _legacy_display
 from . import plot_page
-from .theme import PALETTE, SERIES_COLORS
+from .theme import SERIES_COLORS, TOKENS, on_change, set_role
+from .theme import plotly_template as pt
 from .widgets import ComboBox
 
 _RIGHT = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
@@ -67,7 +68,7 @@ def _empty_state(text: str) -> QLabel:
     label.setObjectName("emptyState")
     label.setWordWrap(True)
     label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-    label.setStyleSheet(f"color: {PALETTE['text_muted']}; padding: 24px;")
+    set_role(label, role="empty")
     return label
 
 
@@ -132,7 +133,7 @@ class CompareWidget(QWidget):
         side_layout.addLayout(buttons)
         self.store_label = QLabel("")
         self.store_label.setWordWrap(True)
-        self.store_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.store_label, tone="secondary")
         side_layout.addWidget(self.store_label)
         self.content.addWidget(side)
 
@@ -168,6 +169,7 @@ class CompareWidget(QWidget):
         plots_layout.addLayout(picks)
         self.web_view = QWebEngineView()
         plots_layout.addWidget(self.web_view, 1)
+        on_change(self._on_theme_changed)
         self.views.addTab(plots, "Plots")
         main_layout.addWidget(self.views, 1)
         self.content.addWidget(main)
@@ -297,6 +299,11 @@ class CompareWidget(QWidget):
             self._event_tables[record.number] = run_summary.event_table(found)
         return self._summaries[record.number]
 
+    def _on_theme_changed(self, _mode: str) -> None:
+        """Rebuild the tables' muted cells and the plot in the new theme,
+        after the switch itself has returned."""
+        QTimer.singleShot(0, self, self._refresh)
+
     def _refresh(self) -> None:
         runs = self.checked_runs()
         for table in (self.summary_table, self.inputs_table, self.events_table):
@@ -356,7 +363,7 @@ class CompareWidget(QWidget):
         table.setColumnCount(len(headings))
         table.setHorizontalHeaderLabels(headings)
         table.setRowCount(len(paths))
-        muted = QColor(PALETTE["text_muted"])
+        muted = QColor(TOKENS["text.secondary"])
         for row, path in enumerate(paths):
             base_value = next(diff[path][0] for diff in diffs if path in diff)
             table.setItem(row, 0, QTableWidgetItem(path))
@@ -442,15 +449,15 @@ class CompareWidget(QWidget):
         self._draw_plot()
 
     def _draw_plot(self, *_args) -> None:
-        from .results_widget import _FONT_FAMILY, _display_indices, _page_style, _plotlyjs_path
+        from .results_widget import _display_indices, _page_style, _plotlyjs_path, _template_layout
 
         name, column = self.series_combo.currentData(), self.column_combo.currentData()
         runs = [r for r in self.checked_runs() if r.result is not None and name in r.result.series] if name else []
         if len(runs) < 2 or column is None:
             self.figure = None
-            self.web_view.setHtml(f"<html><body style='background:{PALETTE['surface']};font-family:sans-serif;"
-                                  f"color:{PALETTE['text_muted']};padding:24px'>Tick two or more runs to overlay a "
-                                  f"series.</body></html>", QUrl())
+            self.web_view.setHtml(f"<html><head><style>{pt.page_css(TOKENS)}</style></head><body>"
+                                  "<div class='empty'>Tick two or more runs to overlay a series.</div></body></html>",
+                                  QUrl())
             return
         sample = runs[0].result.series[name]
         display = _categorize(name, sample) or _legacy_display(name, sample)
@@ -469,15 +476,12 @@ class CompareWidget(QWidget):
                           dash="solid" if index == 0 else "dash")))
         y_title = f"{display.y_label} [{display.unit}]" if display.y_label else (f"[{display.unit}]" if display.unit
                                                                                   else None)
-        axis = dict(gridcolor=PALETTE["border"], zerolinecolor=PALETTE["border"], linecolor=PALETTE["border"],
-                    tickfont=dict(color=PALETTE["text_muted"]), title_font=dict(color=PALETTE["text_muted"]),
-                    exponentformat="none", separatethousands=True)
+        axis = dict(pt.axis(TOKENS), exponentformat="none", separatethousands=True)
         fig.update_layout(
-            title=dict(text=self.series_combo.currentText(), font=dict(size=15, color=PALETTE["text"],
-                                                                        family=_FONT_FAMILY)),
+            **_template_layout(),
+            title=pt.title(TOKENS, self.series_combo.currentText()),
             xaxis=dict(axis, title_text="Elapsed time [h]"), yaxis=dict(axis, title_text=y_title),
-            paper_bgcolor=PALETTE["surface"], plot_bgcolor=PALETTE["surface"], showlegend=True,
-            legend=dict(orientation="h", y=-0.18), font=dict(family=_FONT_FAMILY, color=PALETTE["text"]),
+            showlegend=True, legend=dict(orientation="h", y=-0.18, font=dict(color=TOKENS["text.secondary"])),
             margin=dict(l=70, r=30, t=60, b=80))
         self.figure = fig
         html = plot_page.build_page([fig.to_json()], "1x1", 0, [True],

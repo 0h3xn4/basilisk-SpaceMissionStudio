@@ -42,7 +42,7 @@ from ..engine import monte_carlo_results as mcr
 from .results_widget import ResultsWidget
 from .scenario_explainer_widget import _stat_tile
 from .feedback import report
-from .theme import PALETTE
+from .theme import set_role
 from .widgets import ComboBox, TabWidget
 
 _EMPTY_HINT = ("A run in Monte Carlo mode (Run > Run mode > Monte Carlo) shows its batch here. Open results... "
@@ -75,7 +75,7 @@ class MonteCarloResultsWidget(QWidget):
         layout = QVBoxLayout(self)
         header = QHBoxLayout()
         self.title_label = QLabel("No Monte Carlo batch yet")
-        self.title_label.setStyleSheet(f"font-weight: 600; font-size: 15px; color: {PALETTE['text']};")
+        set_role(self.title_label, role="section-title")
         header.addWidget(self.title_label, 1)
         self.spacecraft_label = QLabel("Spacecraft:")
         self.spacecraft_combo = ComboBox()
@@ -90,7 +90,7 @@ class MonteCarloResultsWidget(QWidget):
 
         self.hint_label = QLabel(_EMPTY_HINT)
         self.hint_label.setWordWrap(True)
-        self.hint_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.hint_label, tone="secondary")
         layout.addWidget(self.hint_label)
 
         self.tiles_row = QHBoxLayout()
@@ -109,7 +109,7 @@ class MonteCarloResultsWidget(QWidget):
         runs_layout.setContentsMargins(0, 4, 0, 0)
         runs_hint = QLabel("What each run drew, and where it ended against the batch mean. Click a column to sort.")
         runs_hint.setWordWrap(True)
-        runs_hint.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(runs_hint, tone="secondary")
         runs_layout.addWidget(runs_hint)
         self.table = QTableWidget(0, 0)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)

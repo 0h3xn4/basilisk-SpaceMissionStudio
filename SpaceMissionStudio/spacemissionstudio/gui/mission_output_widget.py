@@ -39,7 +39,6 @@ from typing import Optional
 import numpy as np
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QFileDialog,
     QHBoxLayout,
@@ -57,7 +56,8 @@ from .. import output_provenance
 from ..engine.results import CommandSummary, ResultSet, TimeSeries
 from ..plot_categories import categorize, legacy_display
 from . import feedback
-from .theme import PALETTE
+from .theme import on_change, set_role
+from .theme.items import retint, tint
 
 _FILE_FILTER = "CSV files (*.csv)"
 _MISSING = "–"
@@ -161,10 +161,11 @@ class MissionOutputWidget(QWidget):
 
         self.summary_label = QLabel(_EMPTY_TEXT)
         self.summary_label.setWordWrap(True)
-        self.summary_label.setStyleSheet(f"color: {PALETTE['text_muted']};")
+        set_role(self.summary_label, tone="secondary")
         layout.addWidget(self.summary_label)
 
         self.table = QTableWidget()
+        on_change(self._retint)
         self.table.verticalHeader().setVisible(False)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
@@ -196,6 +197,9 @@ class MissionOutputWidget(QWidget):
         self._result = result
         self.export_button.setEnabled(bool(summary.reports))
         self._refresh_table()
+
+    def _retint(self, _mode: str) -> None:
+        retint(self.table)
 
     def set_time_cursor(self, cursor) -> None:
         """Mark the last report at or before ``cursor`` (a
@@ -289,8 +293,7 @@ class MissionOutputWidget(QWidget):
             item = QTableWidgetItem(label)
             if name is None:  # a group header row
                 item.setFont(group_font)
-                item.setForeground(QColor(PALETTE["text"]))
-                item.setBackground(QColor(PALETTE["accent_soft"]))
+                tint(item, "text.primary", "bg.selected")
                 table.setItem(row, 0, item)
                 table.setSpan(row, 0, 1, len(headers))
                 continue

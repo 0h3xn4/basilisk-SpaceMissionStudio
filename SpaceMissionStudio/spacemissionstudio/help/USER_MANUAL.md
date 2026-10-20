@@ -154,7 +154,7 @@ A few things to notice right away:
   Tools open the pages listed below; View shows or hides the side panel,
   puts the layout back with **Reset Layout**, and sets the **Theme**:
   **System** (light or dark as your desktop is; the default), **Light**
-  or **Dark**. A new theme applies when SpaceMissionStudio next starts.
+  or **Dark**. A new theme applies at once, to every open view.
 * A row of toolbar buttons just below the menus, mirroring the most
   common menu actions (New Scenario, Open, Save, Run, ...)
   so you don't have to open a menu every time. **3D Model...** at its

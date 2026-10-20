@@ -38,7 +38,8 @@ from PySide6.QtWidgets import (QFileDialog, QHBoxLayout, QHeaderView, QLabel, QM
                                QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
 
 from ..engine import reference_data
-from .theme import PALETTE
+from .theme import on_change
+from .theme.items import retint, tint
 
 _logger = logging.getLogger(__name__)
 _COLUMNS = ["Kind", "File", "Status", "Covers", "SHA-256", "Installed", "Source"]
@@ -130,6 +131,7 @@ class DataPanelWidget(QWidget):
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
         self.table = QTableWidget(0, len(_COLUMNS))
+        on_change(self._retint)
         self.table.setHorizontalHeaderLabels(_COLUMNS)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)
@@ -167,7 +169,7 @@ class DataPanelWidget(QWidget):
 
     def _menu_button(self, text: str, tooltip: str, items) -> QToolButton:
         button = QToolButton()
-        button.setProperty("tertiary", True)  # styled as a Carbon tertiary button (gui/theme.py)
+        button.setProperty("tertiary", True)  # styled as a secondary button (theme/qss.py)
         button.setText(text)
         button.setToolTip(tooltip)
         button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
@@ -179,12 +181,15 @@ class DataPanelWidget(QWidget):
 
     # -- table ------------------------------------------------------------
 
+    def _retint(self, _mode: str) -> None:
+        retint(self.table)
+
     def refresh(self) -> None:
         """Re-read the local files (no network)."""
         files = reference_data.inventory()
         self._files = files
         self.table.setRowCount(len(files))
-        colours = {"ok": PALETTE["success"], "missing": PALETTE["danger"], "out of date": PALETTE["warning"]}
+        tones = {"ok": "status.normal.text", "missing": "status.critical.text", "out of date": "status.caution.text"}
         for row, file in enumerate(files):
             values = [file.kind, file.name, file.status, file.covers,
                       file.sha256[:12] + ("..." if file.sha256 else ""), file.installed_utc[:10], file.source]
@@ -197,7 +202,7 @@ class DataPanelWidget(QWidget):
                 elif column == _COLUMNS.index("Source"):
                     item.setToolTip(file.source)
                 elif column == _COLUMNS.index("Status"):
-                    item.setForeground(_brush(colours.get(file.status, PALETTE["text"])))
+                    tint(item, tones.get(file.status, "text.primary"))
                     item.setToolTip(file.note)
                 self.table.setItem(row, column, item)
         problems = [f for f in files if f.status != "ok"]
@@ -295,9 +300,3 @@ class DataPanelWidget(QWidget):
     def wait_for_worker(self, timeout_ms: int = 60000) -> None:  # [ms]
         if self._worker is not None:
             self._worker.wait(timeout_ms)
-
-
-def _brush(colour: str):
-    from PySide6.QtGui import QBrush, QColor
-
-    return QBrush(QColor(colour))

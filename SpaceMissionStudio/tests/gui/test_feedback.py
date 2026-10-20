@@ -70,7 +70,9 @@ def test_toast_kind_selects_a_different_color(window):
     success = show_toast(window, "ok", kind="success", duration_ms=10_000)
     error = show_toast(window, "bad", kind="error", duration_ms=10_000)
 
-    assert success.styleSheet() != error.styleSheet()
+    # The look comes from the application style sheet's QLabel[role="toast"][tone=...] rules.
+    assert success.property("tone") != error.property("tone")
+    assert success.property("role") == error.property("role") == "toast"
 
 
 def test_mark_invalid_sets_error_state_and_tooltip(qapp):
