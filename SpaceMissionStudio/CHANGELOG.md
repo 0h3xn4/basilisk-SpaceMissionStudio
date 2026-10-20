@@ -8,17 +8,7 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
-
-- **Monte Carlo from the GUI works with one thread.** With `thread_count`
-  1, the default and template 09's setting, every run of a GUI batch
-  failed ("signal only works in main thread"). Basilisk's Monte Carlo
-  controller needs a main thread, and the GUI ran the batch on a worker
-  thread. The GUI now runs the batch in a child process. The command line
-  was not affected (it runs on its main thread), and batch results are
-  unchanged.
-
-## 1.1.0 (2026-10-19)
+## 1.1.0 (2026-10-20)
 
 Formations in relative orbital elements, navigation from a camera
 (around Mars, and around asteroid Eros from its landmarks), Eros itself,
@@ -28,6 +18,13 @@ fixes found along the way. Scenario files of 1.0.0 open unchanged, and
 31). Linux, like 1.0.0. Details below, newest first; the full story of
 each is in [`HISTORY.md`](HISTORY.md).
 
+- **Monte Carlo from the GUI works with one thread.** With `thread_count`
+  1, the default and template 09's setting, every run of a GUI batch
+  failed ("signal only works in main thread"). Basilisk's Monte Carlo
+  controller needs a main thread, and the GUI ran the batch on a worker
+  thread. The GUI now runs the batch in a child process. The command line
+  was not affected (it runs on its main thread), and batch results are
+  unchanged.
 - **Bundled space weather refreshed:** CelesTrak's observations to
   2026-10-18 and its daily forecast to 2026-12-02 (was: to 2026-10-11).
   Drag runs dated after 2026-10-11 change slightly.

@@ -147,6 +147,78 @@ and pip-installs `bsk[all]` there the moment the package is configured
 (`apt install`/`dpkg -i`'s normal "configure" step), which needs
 internet access on the installing machine.
 
+**Verified for 1.1.0** (2026-10-20, Ubuntu 24.04 container, Python
+3.11, as root), with the files built from a clean checkout of commit
+`6eef628e7` (the release records with the fix of SRelD K-18). This
+section was written after the build; this file is in neither the wheel
+nor the sdist, so the files match the commit that records them:
+
+- `build_wheel.sh` and `build_deb.sh` built
+  `spacemissionstudio-1.1.0-py3-none-any.whl`, the sdist and
+  `spacemissionstudio_1.1.0_all.deb`. Their SHA-256:
+
+  ```
+  bc9d58e32e44aa5d7195f85f86d219b7041d196eb270276bf0ef919f88e6ea9b  spacemissionstudio-1.1.0-py3-none-any.whl
+  550a287cf5833d3e82a9a2f05844d1c853afc090aa3613a4f745bda9a504dff7  spacemissionstudio-1.1.0.tar.gz
+  62392ece3d05639e5f43eb0368c0cee6b147aeb7da234b808e1c5485c8730255  spacemissionstudio_1.1.0_all.deb
+  ```
+- **Upgrade from 1.0.0:** the published 1.0.0 package, downloaded from
+  its GitHub release and checked against its `SHA256SUMS-linux`, was
+  installed first (it reported 1.0.0). Then `apt-get install -y
+  ./spacemissionstudio_1.1.0_all.deb` reported "Unpacking
+  spacemissionstudio (1.1.0) over (1.0.0)". `postinst` rebuilt
+  `/opt/spacemissionstudio/venv` with `bsk[all]==2.12.0` and the bundled
+  wheel.
+- The installed tool (`/usr/bin/spacemissionstudio`):
+  - `--version` gave SpaceMissionStudio 1.1.0 and Basilisk 2.12.0, and
+    `kernels-status` found all nine support files;
+  - all 31 templates validated;
+  - templates 01 and 22 ran, and 22's `provenance.json` records 1.1.0;
+  - the Monte Carlo template 09 (20 runs, one thread) ran through the
+    GUI's `MonteCarloWorker` from the installed package, offscreen: no
+    failed run, 20 run files (K-18; the first 1.1.0 candidate failed
+    every run here);
+  - the GUI started (offscreen) and stayed up for 20 s.
+- Not done for 1.1.0: an install by hand on a desktop, with the app
+  opened from the application menu.
+
+**Verified for 1.0.0**
+  (2026-10-14, Ubuntu 24.04 container, Python 3.11, a fresh `$HOME`):
+  `install.sh --basilisk-wheel "bsk[all]==2.12.0"` with the 1.0.0 wheel
+  installed every pinned version of `constraints.txt` (bsk 2.12.0, numpy,
+  PySide6, plotly, sgp4, pyerfa as listed), pre-fetched the support data
+  and the Earth orientation files, and wrote the launcher, the desktop
+  entry and the icon. The launcher reported 1.0.0 with Basilisk 2.12.0,
+  validated all 28 templates, ran templates 01, 16 and 28, and ran the
+  Monte Carlo template 09's 20 runs.
+
+* **`spacemissionstudio.desktop.in`** -- the desktop-entry template `install.sh`
+  fills in (`@INSTALL_PREFIX@` -> the venv's parent directory).
+  `Icon=spacemissionstudio` now resolves to a real icon: `install.sh` renders
+  `gui/icons.py`'s procedurally-drawn app icon (QPainter, no bitmap asset
+  in the repo -- see that module's docstring) to
+  `$XDG_DATA_HOME/icons/hicolor/256x256/apps/spacemissionstudio.png` (the
+  standard hicolor icon theme location) right after writing the desktop
+  entry, using the `offscreen` Qt platform plugin so no display is needed
+  even on a headless install. Non-fatal if it fails (e.g. no Qt platform
+  plugins present at all) -- the desktop entry still installs, just with
+  the icon theme's generic fallback.
+
+## The real installers
+
+### The `.deb` package (Linux)
+
+`build_deb.sh` produces `spacemissionstudio_<version>_all.deb` -- a real
+Debian/Ubuntu package. It bundles SpaceMissionStudio's own wheel (built the
+same way `build_wheel.sh` always has) plus a small set of maintainer
+scripts (`deb/DEBIAN/postinst`/`prerm`/`postrm`) and a desktop entry
+(`deb/usr/share/applications/spacemissionstudio.desktop`); it does NOT bundle
+Basilisk itself (see "The vendoring decision" below for why not) --
+`postinst` creates a dedicated virtualenv at `/opt/spacemissionstudio/venv`
+and pip-installs `bsk[all]` there the moment the package is configured
+(`apt install`/`dpkg -i`'s normal "configure" step), which needs
+internet access on the installing machine.
+
 **Verified for 1.1.0** (2026-10-19, Ubuntu 24.04 container, Python
 3.11, as root), with the files built from the release branch at commit
 `330941b03`:
