@@ -11750,6 +11750,10 @@ from here).
   Basilisk.
 * **Attach:** the only job with write access. It checks every file
   against `SHA256SUMS-linux` and `SHA256SUMS-windows` and attaches them.
+  It needs Linux and Windows to pass. The macOS result (passed, failed,
+  or not run) goes into the notes, because on the day the workflow was
+  written GitHub had no macOS arm64 runner for hours (every macOS job of
+  its pull request was cancelled before its first step, twice).
   A release that does not exist yet is created as a draft, so publishing
   stays a person's step. An existing release keeps its notes unless they
   are empty.

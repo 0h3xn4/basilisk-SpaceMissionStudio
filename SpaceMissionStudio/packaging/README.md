@@ -146,7 +146,10 @@ and 6):
 | Windows (x64, `windows-latest`) | the setup program around that wheel, `SHA256SUMS-windows` | silent install (`/VERYSILENT /CURRENTUSER`); the same checks with one template |
 | macOS (Apple silicon, `macos-latest`) | none: the wheel is the package | `install.sh --no-desktop-entry` with that wheel and Basilisk's wheel from PyPI; the same checks as on Linux |
 
-The workflow's files are built on the runners, so their checksums differ
+The macOS row produces no file: its result (passed, failed, or not run
+when GitHub has no macOS runner) is written into the release notes and
+does not hold back the Linux and Windows files. The workflow's files are
+built on the runners, so their checksums differ
 from a local build of the same commit; the checksums on a release are
 those in its `SHA256SUMS-*` files. 1.0.0 and 1.1.0 were built locally
 before the workflow existed ("Verified for ..." below).
