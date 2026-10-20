@@ -17,7 +17,8 @@
 #
 
 """RunWorker/MonteCarloWorker: run :class:`engine.service.SimulationService`/
-:func:`engine.monte_carlo.run_monte_carlo` on a background ``QThread`` so a
+:func:`engine.monte_carlo.run_monte_carlo` on a background ``QThread`` (the
+batch itself in a child process, see :mod:`gui.monte_carlo_process`) so a
 (potentially long) propagation or batch never freezes the GUI's event
 loop. Importing ``engine.service``/``engine.monte_carlo`` needs a
 Basilisk build; when it's missing, each worker reports that clearly via
@@ -72,19 +73,10 @@ from PySide6.QtCore import QThread, Signal
 
 from .. import output_provenance
 from ..schema.command import runs_sequence
+from .monte_carlo_process import failure_text, run_batch
 from ..schema.scenario import MonteCarloConfig, Scenario
 
 _logger = logging.getLogger(__name__)
-
-
-def failure_text(exc: BaseException) -> str:
-    """What a worker reports for ``exc``. Basilisk's device factories call
-    ``exit()`` (``SystemExit``) on settings they refuse, printing the reason
-    first; ``str()`` of that is only the exit status."""
-    if isinstance(exc, SystemExit):
-        return (f"Basilisk stopped the run (exit status {exc.code}) on a setting it refuses; its reason is "
-                "printed in the terminal and the log file")
-    return str(exc) or type(exc).__name__
 
 
 class RunWorker(QThread):
@@ -239,7 +231,7 @@ class MonteCarloWorker(QThread):
 
     def run(self) -> None:
         try:
-            from ..engine.monte_carlo import MonteCarloError, run_monte_carlo
+            from ..engine.monte_carlo import MonteCarloError
         except ImportError as exc:
             self.failed.emit(
                 f"Basilisk is not installed/built ({exc}) -- cannot run Monte Carlo until it is. "
@@ -247,8 +239,10 @@ class MonteCarloWorker(QThread):
             )
             return
         try:
-            failures = run_monte_carlo(self.scenario, self.mc_config, self.archive_dir,
-                                       allow_scripts=self.allow_scripts, overwrite=self.overwrite)
+            # In a child process: Basilisk's controller needs a main thread
+            # (gui.monte_carlo_process).
+            failures = run_batch(self.scenario, self.mc_config, self.archive_dir,
+                                 allow_scripts=self.allow_scripts, overwrite=self.overwrite)
             output_provenance.write_sidecar(Path(self.archive_dir) / "archive",
                                             output_provenance.scenario_record(self.scenario))
         except MonteCarloError as exc:

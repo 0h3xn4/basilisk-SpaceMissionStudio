@@ -528,17 +528,22 @@ what each finding is evidence of.
 - **Probably not affected (not tested here):** the CLI, which runs on the
   main thread, and `thread_count` > 1, where each case runs in a pool
   process.
-- **Not fixed in this overhaul.** The fix is in how the batch is started (for
-  example, a `QProcess` running the batch, or always using the process pool),
-  so it changes run behaviour. Basilisk must not be patched.
-  See [Q9](#9-questions-for-you).
+- **Fixed on 2026-10-20, before M1** ([Q9](#9-questions-for-you)), as
+  SRelD K-18.
+  - The GUI now runs the batch in a spawned child process
+    (`gui/monte_carlo_process.py`), where the controller runs on a main
+    thread.
+  - Its log records come back to the GUI's Log view.
+  - Basilisk and the batch's files are unchanged.
+  - The regression test, `tests/gui/test_run_worker.py::test_monte_carlo_worker_runs_a_single_thread_batch`,
+    failed before the fix.
 
 ### 4.16 Gaps against the brief that are not screens
 
 - **No 3D orbit view and no ground-track map in the GUI.** Vizard provides 3D
   outside the app. The brief's "ground track map and 3D orbit view must stay
   fluid" therefore applies only to the 3D *model* view, which uses WebGL
-  `Mesh3d`. See [Q5](#9-questions-for-you).
+  `Mesh3d`. Neither view is added in this overhaul ([Q5](#9-questions-for-you)).
 - **No recent-files list.**
 - **No UI-scale setting.**
 - **No reduce-motion setting.**
@@ -579,8 +584,7 @@ what each finding is evidence of.
     area and handler.
   - The command palette, menus, tooltips ("Run (Ctrl+R)") and the shortcut
     list are all generated from the registry, so they cannot disagree.
-  - See [Q2](#9-questions-for-you) for whether you want the menu bar kept on
-    Linux and Windows.
+  - Decided ([Q2](#9-questions-for-you)): no menu bar on Linux and Windows.
 
 ### 5.2 Every current element and its new place
 
@@ -735,7 +739,7 @@ Every milestone also has to meet all of these:
 |---|---|---|
 | **M1** | **Foundation**: theme package, tokens, generated QSS, Inter + JetBrains Mono, Lucide, live theme switch, Plotly template, enforcement tests, Carbon removed | The token table matches the brief (or each change is recorded). Fonts register from the package on Linux, Windows and macOS (CI). The theme switches live in under 100 ms (today about 4 s), with every open view restyled, plots included. The hard-coded-style test passes over the whole GUI package (existing literals moved behind tokens). The contrast test passes in both themes. No IBM Plex file or Carbon name remains in code; the docs say "Carbon" only in history. `CLAUDE.md` holds the design rules. `docs/DECISIONS.md` and a licence report for the fonts and icons exist. The look changes; the layout does not. |
 | **M2** | **Shell**: nav rail, top bar, Ctrl+K palette (commands, objects, settings), inspector, Problems panel, status bar with jobs, action registry, layout persistence, shortcuts | Every row of §5.2 is reachable (an automated test walks the action registry and the §5.2 mapping). Menu and toolbar actions all exist in the registry with their shortcuts. Problems show severity, ID, object and message, sort by severity and jump to the field. The status bar shows running jobs with progress and Cancel. Layout (rail collapsed, splitter sizes, inspector and Problems visibility) is restored per project. Keyboard-only walk of the shell passes. Existing screens are hosted unchanged inside their areas. |
-| **M3** | **Home and templates** | Cards for all 31 templates with mission type, orbit summary and one line. All three come from the template files themselves: the description's first sentence, the orbit and the attitude mode. No new metadata is invented. Also: recent scenarios (QSettings, last 10, missing files marked); "New blank scenario"; Customize opens the wizard; a first-run card replaces the start-up download modal. Thumbnails only if you want them ([Q4](#9-questions-for-you)). |
+| **M3** | **Home and templates** | Cards for all 31 templates with mission type, orbit summary and one line. All three come from the template files themselves: the description's first sentence, the orbit and the attitude mode. No new metadata is invented. Also: recent scenarios (QSettings, last 10, missing files marked); "New blank scenario"; Customize opens the wizard; a first-run card replaces the start-up download modal. No thumbnails ([Q4](#9-questions-for-you)). |
 | **M4** | **Scenario editor** | Section list + focused form for every schema section. `NumberField` with unit suffixes everywhere: same values and same file output, round-trip tested. No boxes in boxes. Optional groups collapse their fields when off. The Power page fits 1280 px without horizontal scroll. A Form/JSON toggle that validates before applying. Device, ground-station, mission-step and dispersion editing is inline or in the inspector, with their modal dialogs removed. The unsaved-changes indicator works. Undo/redo through `QUndoStack` if it fits the existing `ScenarioHistory`, which otherwise stays. Explain becomes Scenario › Overview. The explainer refresh is debounced (250 ms) and moved off the GUI thread: no keystroke stalls more than 50 ms on any template (today 54 ms max). |
 | **M5** | **Run and logs** | Run area: mode segmented control, Run (Ctrl+R), options inline (live plot, Vizard, SIL), and determinate progress where the worker knows sim time. History lists runs with a status badge, duration, mode and a provenance popover, loaded in a worker. The Log shows records for each run (start, end, warnings, saved path: logged by the GUI) in JetBrains Mono, with level filter, search and copy. Saving and pruning runs moves to a worker: the end of a run causes no stall over 50 ms (today 256 ms). |
 | **M6** | **Results overview and analysis views** | Overview metric cards from `engine.run_summary`. A card is coloured only where a threshold exists in the scenario or config: link margin < 0 dB (the margin already includes `required_ebno_db`), and battery charge reaching 0. Everything else stays neutral. Plots, Output (a `DataTable`), Telemetry, Monte Carlo (a `DataTable`), Compare (a run switcher), End of Life and Budget are all rebuilt from components. Provenance moves to an info popover. Plot pages are persistent, with plotly.js loaded once, and switching plots stalls less than 50 ms (today up to 155 ms). |
@@ -766,6 +770,21 @@ Every milestone also has to meet all of these:
 | Licence and supply of Inter, JetBrains Mono and Lucide | They must be fetched once at development time | Fetched from the projects' own release archives, with checksums and licences recorded in the licence report. Nothing is fetched at runtime. |
 
 ## 9. Questions for you
+
+**Answered on 2026-10-20.** The questions stay below as asked.
+
+| # | Decision |
+|---|---|
+| Q1 | Approved: GUI tests may change how they reach widgets, keeping every behavioural assertion. Each change is listed in `docs/ui/TEST_CHANGES.md`. Non-GUI tests and output tests stay unchanged. The Carbon tests are replaced by the token, contrast and font tests. |
+| Q2 | The menu bar is removed on Linux and Windows. macOS keeps its native menu, generated from the action registry. |
+| Q3 | End of Life and Budget inputs go in Run › Analyses, and their results in Results (§5.2). |
+| Q4 | Home cards are text only: mission type, orbit summary and one line, all read from the template files. No thumbnails. |
+| Q5 | No ground-track or 3D orbit view in this overhaul. Runs do not record the sub-satellite latitude and longitude, so a ground track would need new computation, which a UI-only overhaul excludes. It is proposed as a later feature. |
+| Q6 | No suite theme package was supplied, so M1 uses the brief's token table verbatim. The Operations slot is designed generically (§5.1: one registry entry, plus the shared Problems and jobs services), because no operations roadmap exists. |
+| Q7 | The version is 1.2.0. |
+| Q8 | Both themes' screenshots are kept in the repository, before and after. |
+| Q9 | Fixed before M1 (§4.15). |
+
 
 1. **Tests that touch widget internals.** "Every existing test must pass
    unchanged" conflicts with "remove Carbon" (`test_theme.py` asserts Carbon

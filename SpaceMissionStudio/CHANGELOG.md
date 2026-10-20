@@ -8,6 +8,16 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **Monte Carlo from the GUI works with one thread.** With `thread_count`
+  1, the default and template 09's setting, every run of a GUI batch
+  failed ("signal only works in main thread"). Basilisk's Monte Carlo
+  controller needs a main thread, and the GUI ran the batch on a worker
+  thread. The GUI now runs the batch in a child process. The command line
+  was not affected (it runs on its main thread), and batch results are
+  unchanged.
+
 ## 1.1.0 (2026-10-19)
 
 Formations in relative orbital elements, navigation from a camera
