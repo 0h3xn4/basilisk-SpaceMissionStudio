@@ -398,7 +398,7 @@ View > Theme offers System, Light and Dark:
   and redraw (`theme.on_change`, `theme/items.py`). With System, a change
   of the desktop's scheme applies while the app runs.
 - **Time:** about 0.5 s on a new main window with a scenario open, 2.4 s
-  after every page has been visited (1.1.0: 1.3 s and 6.1-6.5 s on the
+  after every page has been visited (before M1: 1.3 s and 6.1-6.5 s on the
   same machine); Qt re-polishes every widget, most of them hidden. The
   brief's 100 ms needs fewer live widgets, which the shell's lazy areas
   (M2) bring (`docs/DECISIONS.md`).

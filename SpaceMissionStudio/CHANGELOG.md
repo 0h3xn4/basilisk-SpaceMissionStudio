@@ -8,39 +8,35 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased (1.2.0)
-
-A new interface, milestone by milestone (`docs/ui/UI_OVERHAUL_PLAN.md`).
-What it computes, its files and its command line are unchanged.
-
-- **A new look, and the theme switches live (M1).** The IBM Carbon theme
-  and IBM Plex are replaced by one token set shared with the suite's
-  other tools: neutral surfaces with one blue accent, Inter for the
-  interface and JetBrains Mono for values and code (both bundled), Lucide
-  icons tinted from the theme, 6 and 8 px corners, frameless group boxes.
-  Status keeps one meaning (critical, serious, caution, normal, standby,
-  off) and is always written out. Every text and icon colour passes WCAG
-  2.2 AA in both themes, tested. View > Theme now applies at once to
-  every open view, plots included, instead of at the next start; with
-  System it follows the desktop while the app runs. Plots take a
-  template from the theme and a new eight-colour palette, checked for
-  colour-vision deficiency between neighbouring series and kept apart from
-  every status colour. Applying a theme takes 0.5 s on a new window and
-  2.4 s after every page has been visited (1.1.0's restyle: 1.3 s and
-  6.1-6.5 s on the same machine), not yet the brief's 0.1 s (the shell's
-  lazy areas come in M2). Decisions: `docs/DECISIONS.md`; licences:
-  `docs/THIRD_PARTY_ASSETS.md`.
-
 ## 1.1.0 (2026-10-20)
 
-Formations in relative orbital elements, navigation from a camera
-(around Mars, and around asteroid Eros from its landmarks), Eros itself,
-reflected sunlight on the sun sensors and Mars's gravity field, plus
-fixes found along the way. Scenario files of 1.0.0 open unchanged, and
-`apt` and `pip` upgrade 1.0.0 in place. 31 templates (three new: 29, 30,
-31). Linux, like 1.0.0. Details below, newest first; the full story of
-each is in [`HISTORY.md`](HISTORY.md).
+A new look whose theme switches live, formations in relative orbital
+elements, navigation from a camera (around Mars, and around asteroid Eros
+from its landmarks), Eros itself, reflected sunlight on the sun sensors
+and Mars's gravity field, plus fixes found along the way. Scenario files
+of 1.0.0 open unchanged, and `apt` and `pip` upgrade 1.0.0 in place. 31
+templates (three new: 29, 30, 31). Linux, like 1.0.0. Details below,
+newest first; the full story of each is in [`HISTORY.md`](HISTORY.md).
 
+- **A new look, and the theme switches live (UI overhaul M1).** The IBM
+  Carbon theme and IBM Plex are replaced by the token set of the overhaul
+  brief (`docs/ui/UI_OVERHAUL.md`): neutral surfaces with one blue
+  accent, Inter for the interface and JetBrains Mono for values and code
+  (both bundled), Lucide icons tinted from the theme, 6 and 8 px corners,
+  frameless group boxes. Status keeps one meaning (critical, serious,
+  caution, normal, standby, off) and is always written out. Every text
+  and icon colour passes WCAG 2.2 AA in both themes, tested. View > Theme
+  now applies at once to every open view, plots included, instead of at
+  the next start; with System it follows the desktop while the app runs.
+  Plots take a template from the theme and a new eight-colour palette,
+  checked for colour-vision deficiency between neighbouring series and
+  kept apart from every status colour. Applying a theme takes 0.5 s on a
+  new window and 2.4 s after every page has been visited (the earlier
+  restyle: 1.3 s and 6.1-6.5 s on the same machine), not yet the brief's
+  0.1 s; the overhaul's next steps reduce the number of live widgets
+  (`docs/ui/UI_OVERHAUL_PLAN.md`). The layout, what the tool computes,
+  its files and its command line are unchanged. Decisions:
+  `docs/DECISIONS.md`; licences: `docs/THIRD_PARTY_ASSETS.md`.
 - **Monte Carlo from the GUI works with one thread.** With `thread_count`
   1, the default and template 09's setting, every run of a GUI batch
   failed ("signal only works in main thread"). Basilisk's Monte Carlo

@@ -29,7 +29,7 @@ recorded here and in `docs/DECISIONS.md`.
   triangle-alert, variable, x. Of these, check, the chevrons, code, info,
   moon, search, x and the three alert icons (Feather's `alert-*`) are
   derived from Feather (MIT).
-- **Removed in 1.2.0:** IBM Plex Sans and Mono (`.woff`, SIL OFL 1.1) and
+- **Removed in 1.1.0:** IBM Plex Sans and Mono (`.woff`, SIL OFL 1.1) and
   the app's 23 hand-drawn SVG glyphs.
 
 ### Checksums (SHA-256)
@@ -61,6 +61,6 @@ Files in the package:
 | PySide6 (Qt for Python) | `>=6.6` | 6.11.2 (Qt 6.11.2) | LGPL-3.0 (Qt and PySide6, as installed from PyPI) | Widgets, `QtSvg` (icon rendering), Qt WebEngine (plots) |
 | plotly | `>=5.0` | 7.1.0 | MIT | Figures; `plotly.min.js` loaded from `plotly/package_data/` by local file URL |
 
-No new run-time dependency came with the 1.2.0 interface: the fonts and
+No new run-time dependency came with the new interface (1.1.0): the fonts and
 icons are files, not packages. `plotly.min.js` is not copied into the
 package (it already ships with plotly; a copy would add 4.8 MB).

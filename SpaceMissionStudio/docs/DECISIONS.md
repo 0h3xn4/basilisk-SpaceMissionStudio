@@ -5,7 +5,14 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
-## M1 Foundation (1.2.0)
+## M1 Foundation (released in 1.1.0)
+
+### Release
+
+- **M1 ships in 1.1.0.** The user chose on 2026-10-20 to publish 1.1.0
+  from `develop`, which holds M1, instead of from the commit before it
+  (`b064bb9ef`). The version stays 1.1.0; the overhaul's later milestones
+  and the version 1.2.0 (plan §9, Q7) follow.
 
 ### Carbon removed
 
@@ -13,8 +20,8 @@ Newest milestone first.
   corners, filled fields with a bottom rule) is replaced** by the brief's
   token table, Inter and JetBrains Mono, Lucide icons, 6 and 8 px radii
   and 1 px borders. The brief requires it. `gui/theme.py` became the
-  package `gui/theme/`. Carbon stays in git history and in the
-  CHANGELOG and HISTORY entries of 1.0.0 and 1.1.0.
+  package `gui/theme/`. Carbon stays in git history, in HISTORY
+  and in the CHANGELOG entry of 1.0.0.
 - **The older role names stay readable** (`theme.PALETTE["text_muted"]`
   and the rest), each mapped to one token (`theme/state.py`, `ROLES`):
   40 modules read them, and a rename alongside a restyle would hide real
@@ -124,12 +131,12 @@ Newest milestone first.
   the main window (1,216 widgets), clearing then setting took 210-290 ms
   where swapping one sheet for the other took about 1,000 ms; Qt builds
   the new rules once instead of diffing every widget against the old.
-- **Measured** (same machine, same day, 1.1.0 and this change run in
+- **Measured** (same machine, same day, the code before M1 (`b064bb9ef`) and this change run in
   turn; `scripts/measure_ui_baseline.py` and a paired script):
   - a fresh main window with template 19 open (1,360 widgets): 0.51-0.55 s,
-    against 1.31-1.44 s for 1.1.0;
+    against 1.31-1.44 s before M1;
   - in the baseline script's sequence (every page visited, a run done,
-    the spacecraft dialog opened): 2.4 s, against 6.1-6.5 s for 1.1.0 (the
+    the spacecraft dialog opened): 2.4 s, against 6.1-6.5 s before M1 (the
     plan's 3.8-4.0 s was measured on a faster day).
 - **The brief's 100 ms is not met in M1.** The time is Qt re-polishing
   every widget, and most of them are hidden (1,049 of the 1,216 of a new

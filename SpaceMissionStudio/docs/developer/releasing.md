@@ -121,7 +121,12 @@ the file built and installed for it (SRelD, status).
 and rebuilt on 2026-10-20 with the fix of SRelD K-18:
 the version set in the three files, the CHANGELOG section, the SRelD
 (issue 6), the build, and the `.deb` installed as an upgrade over 1.0.0
-(`packaging/README.md`). Merging, tagging (`spacemissionstudio-v1.1.0`)
+(`packaging/README.md`). On 2026-10-20 the user chose to release from
+`develop`, which by then held the first step of the UI overhaul (M1, the
+new look), so 1.1.0 includes it: its CHANGELOG section and SRelD issue 8
+say so, and the files were built and installed again. A first tag, made
+before those records on commit `c931ccd4d`, is replaced by one on the
+merge of that pull request. Merging, tagging (`spacemissionstudio-v1.1.0`)
 and publishing are the user's.
 
 ---

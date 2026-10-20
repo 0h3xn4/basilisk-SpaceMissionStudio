@@ -149,23 +149,25 @@ internet access on the installing machine.
 
 **Verified for 1.1.0** (2026-10-20, Ubuntu 24.04 container, Python
 3.11, as root), with the files built from a clean checkout of commit
-`6eef628e7` (the release records with the fix of SRelD K-18). This
-section was written after the build; this file is in neither the wheel
-nor the sdist, so the files match the commit that records them:
+`1db38b521` (the release records with UI overhaul M1, SRelD issue 8).
+This section was written after the build; this file is in neither the
+wheel nor the sdist, so the files match the commit that records them:
 
 - `build_wheel.sh` and `build_deb.sh` built
   `spacemissionstudio-1.1.0-py3-none-any.whl`, the sdist and
-  `spacemissionstudio_1.1.0_all.deb`. Their SHA-256:
+  `spacemissionstudio_1.1.0_all.deb`. The wheel holds the five font
+  files, their two OFL texts, the 35 Lucide icons and Lucide's licence,
+  and no IBM Plex file. Their SHA-256:
 
   ```
-  bc9d58e32e44aa5d7195f85f86d219b7041d196eb270276bf0ef919f88e6ea9b  spacemissionstudio-1.1.0-py3-none-any.whl
-  550a287cf5833d3e82a9a2f05844d1c853afc090aa3613a4f745bda9a504dff7  spacemissionstudio-1.1.0.tar.gz
-  62392ece3d05639e5f43eb0368c0cee6b147aeb7da234b808e1c5485c8730255  spacemissionstudio_1.1.0_all.deb
+  28de266c634df2578427900e13ebfb29108c29a835909c148cb9f72ea6d1f253  spacemissionstudio-1.1.0-py3-none-any.whl
+  48f726c51fff1bfafc64ad60317cdeca8b94f624d595911a55b98f932332eabe  spacemissionstudio-1.1.0.tar.gz
+  09dbc7d8454e42de2590ed172c3c641945dd0b38536fe6f417ef141478289bbe  spacemissionstudio_1.1.0_all.deb
   ```
 - **Upgrade from 1.0.0:** the published 1.0.0 package, downloaded from
   its GitHub release and checked against its `SHA256SUMS-linux`, was
-  installed first (it reported 1.0.0). Then `apt-get install -y
-  ./spacemissionstudio_1.1.0_all.deb` reported "Unpacking
+  installed first on a purged system (it reported 1.0.0). Then `apt-get
+  install -y ./spacemissionstudio_1.1.0_all.deb` reported "Unpacking
   spacemissionstudio (1.1.0) over (1.0.0)". `postinst` rebuilt
   `/opt/spacemissionstudio/venv` with `bsk[all]==2.12.0` and the bundled
   wheel.
@@ -176,9 +178,11 @@ nor the sdist, so the files match the commit that records them:
   - templates 01 and 22 ran, and 22's `provenance.json` records 1.1.0;
   - the Monte Carlo template 09 (20 runs, one thread) ran through the
     GUI's `MonteCarloWorker` from the installed package, offscreen: no
-    failed run, 20 run files (K-18; the first 1.1.0 candidate failed
-    every run here);
-  - the GUI started (offscreen) and stayed up for 20 s.
+    failed run, 20 run files (K-18);
+  - the GUI started (offscreen) with Inter at 13 px as its font, Inter and
+    JetBrains Mono registered and the Run icon drawn; with the start-up
+    data prompt skipped, the dark theme applied live in 0.37-0.42 s with
+    no style-sheet warning, and the window stayed up for 25 s.
 - Not done for 1.1.0: an install by hand on a desktop, with the app
   opened from the application menu.
 

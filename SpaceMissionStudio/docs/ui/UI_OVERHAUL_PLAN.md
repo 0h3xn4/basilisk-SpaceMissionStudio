@@ -749,9 +749,10 @@ Every milestone also has to meet all of these:
 
 **Status.**
 
-- **M1 (2026-10-20):** done except one criterion. Applying a theme live
+- **M1 (2026-10-20):** done except one criterion, and released in 1.1.0
+  (the user's decision of 2026-10-20; Q7 below). Applying a theme live
   takes 0.51-0.55 s on a new main window and 2.4 s after every page has
-  been visited (1.1.0: 1.31-1.44 s and 6.1-6.5 s), not under 100 ms: Qt
+  been visited (before M1: 1.31-1.44 s and 6.1-6.5 s), not under 100 ms: Qt
   re-polishes every widget, most of them hidden. The criterion moves to M2
   with these values (`docs/DECISIONS.md`).
 
@@ -789,7 +790,7 @@ Every milestone also has to meet all of these:
 | Q4 | Home cards are text only: mission type, orbit summary and one line, all read from the template files. No thumbnails. |
 | Q5 | No ground-track or 3D orbit view in this overhaul. Runs do not record the sub-satellite latitude and longitude, so a ground track would need new computation, which a UI-only overhaul excludes. It is proposed as a later feature. |
 | Q6 | No suite theme package was supplied, so M1 uses the brief's token table verbatim. The Operations slot is designed generically (§5.1: one registry entry, plus the shared Problems and jobs services), because no operations roadmap exists. |
-| Q7 | The version is 1.2.0. |
+| Q7 | The version is 1.2.0. On 2026-10-20 the user chose to publish 1.1.0 from `develop`, so M1 ships in 1.1.0; the later milestones go to 1.2.0. |
 | Q8 | Both themes' screenshots are kept in the repository, before and after. |
 | Q9 | Fixed before M1 (§4.15). |
 
