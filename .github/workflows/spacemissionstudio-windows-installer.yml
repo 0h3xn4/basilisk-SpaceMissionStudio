@@ -99,13 +99,18 @@ jobs:
           $python = Join-Path $dir "venv\Scripts\python.exe"
           if (-not (Test-Path $python)) { throw "no environment at $($python); the setup's Python step failed (see install.log)" }
           "INSTALLED_PYTHON=$python" >> $env:GITHUB_ENV
+      # Outside the checkout: `python -c` and `-m` put the working directory
+      # first on the import path, which would import the source tree instead
+      # of the installed package.
       - name: Run the installed tool
+        working-directory: ${{ runner.temp }}
         run: |
-          & $env:INSTALLED_PYTHON -c "import spacemissionstudio, Basilisk; print('SpaceMissionStudio', spacemissionstudio.__version__)"
+          & $env:INSTALLED_PYTHON -c "import spacemissionstudio, Basilisk; print('SpaceMissionStudio', spacemissionstudio.__version__, spacemissionstudio.__file__)"
           if ($LASTEXITCODE -ne 0) { throw "import failed" }
           & $env:INSTALLED_PYTHON -m spacemissionstudio.cli kernels-status
           if ($LASTEXITCODE -ne 0) { throw "kernels-status failed" }
-          $template = "spacemissionstudio\scenarios\templates\01_two_body_circular_orbit.json"
+          $templates = & $env:INSTALLED_PYTHON -c "import pathlib, spacemissionstudio; print(pathlib.Path(spacemissionstudio.__file__).parent / 'scenarios' / 'templates')"
+          $template = Join-Path $templates "01_two_body_circular_orbit.json"
           & $env:INSTALLED_PYTHON -m spacemissionstudio.cli validate $template
           if ($LASTEXITCODE -ne 0) { throw "validate failed" }
           & $env:INSTALLED_PYTHON -m spacemissionstudio.cli run $template --out-dir (Join-Path $env:RUNNER_TEMP "run01")

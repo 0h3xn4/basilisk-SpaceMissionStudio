@@ -43,7 +43,7 @@ It applies from the ECSS/CCSDS audit (2026-10-08) onwards.
 
 | Term | Meaning |
 |---|---|
-| CI | The GitHub Actions workflow `.github/workflows/spacemissionstudio.yml` |
+| CI | The GitHub Actions workflows `.github/workflows/spacemissionstudio.yml` (tests and checks on every change), `spacemissionstudio-windows-installer.yml` (the Windows setup program) and `spacemissionstudio-release.yml` (a tag's release files, built, installed and attached) |
 | Supplier | The developer: the user, assisted by an AI coding assistant that writes most of the code and documents |
 
 ## 4 Software project management approach
@@ -248,7 +248,7 @@ the category C tailoring (RD1) and its status. This SDP does not repeat it.
 
 | Item | In place |
 |---|---|
-| Configuration items | `SpaceMissionStudio/` (code, tests, data, documents), `.github/workflows/spacemissionstudio.yml` |
+| Configuration items | `SpaceMissionStudio/` (code, tests, data, documents), `.github/workflows/spacemissionstudio*.yml` |
 | Identification | git commits. Release versions are set in `__init__.py` and `pyproject.toml`. Releases are tagged `spacemissionstudio-vX.Y.Z` (decision 11; a `v*` tag would start Basilisk's own publish workflows). 1.0.0 is tagged `spacemissionstudio-v1.0.0` on `f288e0c73`. |
 | Baselines | A release commit. The reused baseline is recorded in the SRF (Basilisk 2.12.0 with its published SHA-256). |
 | Change control | Branches. CI must pass. Commit messages reference requirement IDs or findings. A change board does not exist: waived (decision 11, D-12). |

@@ -65,31 +65,59 @@ git diff --exit-code -- compliance/docs
 
 ## 5. Build
 
-From the `SpaceMissionStudio` folder:
+**The release files are built in CI.** Pushing the tag (section 6) starts
+the workflow `.github/workflows/spacemissionstudio-release.yml` ("SpaceMissionStudio
+release"). On GitHub's runners it:
+
+- checks that the tag matches the version files and that the CHANGELOG
+  has a section for the version;
+- builds the wheel, sdist and `.deb` on Linux, installs the `.deb` with
+  `apt` and runs the installed tool: version, support data, every
+  template validated, template 01 run and the main window opened;
+- builds the Windows setup program around that wheel, installs it
+  silently and runs it the same way;
+- on an Apple-silicon Mac, installs that wheel with `packaging/install.sh`
+  and Basilisk's wheel from PyPI, and runs it. macOS has no installer;
+- writes `SHA256SUMS-linux` and `SHA256SUMS-windows`, checks every file
+  against them and attaches all of them to the tag's release. A release
+  that does not exist yet is created as a draft with the CHANGELOG
+  section as its notes. An existing release keeps its notes unless they
+  are empty, and its files are replaced.
+
+Actions > "SpaceMissionStudio release" > Run workflow, with the tag, runs
+it again for an existing tag. A pull request that changes the workflow
+runs the build and install jobs for its own commit and attaches nothing.
+
+To check a build locally before tagging, from the `SpaceMissionStudio`
+folder:
 
 | Artifact | Command | Output |
 |---|---|---|
 | Wheel (any platform) | `packaging/build_wheel.sh` (Windows: `packaging\build_wheel.ps1`) | `dist/spacemissionstudio-X.Y.Z-py3-none-any.whl` |
 | Linux installer | `packaging/build_deb.sh` | `dist/spacemissionstudio_X.Y.Z_all.deb` |
-| Windows installer | After the release is published (it bundles the release's wheel): Actions > "SpaceMissionStudio Windows installer" > Run workflow, with the release tag and "attach" ticked. It builds, installs and runs the program on a Windows runner, then attaches it to the release | `spacemissionstudio-X.Y.Z-setup.exe` and `SHA256SUMS-windows` on the release (and in the run's artifact) |
+| Windows installer | Inno Setup on Windows only: the release workflow above, or Actions > "SpaceMissionStudio Windows installer" > Run workflow | `spacemissionstudio-X.Y.Z-setup.exe` |
 
 [`packaging/README.md`](../../packaging/README.md) explains each one and
-what has been verified where. Record a SHA-256 checksum of each artifact:
-
-```bash
-cd dist && sha256sum *.whl *.tar.gz *.deb > SHA256SUMS-linux
-```
+what has been verified where.
 
 ## 6. Publish
 
-- Create a GitHub release on <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/new>:
-  a new tag on the release commit (`develop` after the release pull
-  request is merged), the title "SpaceMissionStudio X.Y.Z", the
-  CHANGELOG section as the notes, and the wheel, sdist, `.deb` and
-  `SHA256SUMS-linux` attached. Say in the notes which platforms'
-  installers were not run.
-- Attach the Windows setup program with the installer workflow
-  (section 5); it adds `SHA256SUMS-windows`.
+- Tag the release commit (`develop` after the release pull request is
+  merged) and push the tag:
+
+  ```bash
+  git tag -a spacemissionstudio-vX.Y.Z <commit> -m "SpaceMissionStudio X.Y.Z"
+  git push origin spacemissionstudio-vX.Y.Z
+  ```
+
+  The release workflow (section 5) builds, checks and attaches the files
+  to a draft release titled "SpaceMissionStudio X.Y.Z". If any job fails,
+  nothing is attached; fix the cause and run the workflow again for the
+  tag.
+- Read the draft on
+  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases>: the
+  six files, and the notes, which say which platform has which file and
+  name the workflow run that installed them. Then publish it.
 - After publishing, download the assets from the release and run
   `sha256sum -c SHA256SUMS-linux` and `sha256sum -c SHA256SUMS-windows`.
 - Update the records that name the release: the Software Release
