@@ -27,7 +27,7 @@ and after it. Offscreen, in one theme per process::
 ``OUT/light`` and ``OUT/dark``. The example project is template 23 (the
 complete small satellite): every scenario page, a run of it (Results,
 Events, Log), a second run (Compare), the Monte Carlo template 09 run as a
-batch, an End of Life estimate, every menu, and every dialog, modal ones
+short batch, an End of Life estimate, every menu, and every dialog, modal ones
 included (grabbed while open, then closed). Needs Basilisk and the support
 data. The run history goes to a temporary folder, not ~/.spacemissionstudio.
 """
@@ -227,7 +227,16 @@ def capture(out: Path, theme: str) -> int:
     wait(lambda: window.lifetime_widget._worker is None, 600.0, "the lifetime estimate")  # [s]
     save(window, "end_of_life_computed")
 
-    window.open_path(TEMPLATES_DIR / MONTE_CARLO)
+    # Template 09 as a short batch (3 runs of 0.05 days instead of 20 of a
+    # day): the screens are the same, and the full batch takes over 20 min.
+    import json
+
+    batch = json.loads((TEMPLATES_DIR / MONTE_CARLO).read_text(encoding="utf-8"))
+    batch["monte_carlo"]["num_runs"] = 3
+    batch["sim_settings"]["duration_days"] = 0.05  # [day]
+    batch_path = Path(tempfile.mkdtemp(prefix="sms-ui-batch-")) / MONTE_CARLO
+    batch_path.write_text(json.dumps(batch, indent=2), encoding="utf-8")
+    window.open_path(batch_path)
     spin(1.5)  # [s]
     window.set_run_mode("monte_carlo")
     window.on_run()
