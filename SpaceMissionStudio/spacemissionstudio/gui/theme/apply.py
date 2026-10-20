@@ -170,4 +170,3 @@ def set_role(widget: QWidget, role: Optional[str] = None, tone: Optional[str] = 
         style.unpolish(widget)
         style.polish(widget)
     return widget
-

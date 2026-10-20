@@ -300,4 +300,3 @@ class DataPanelWidget(QWidget):
     def wait_for_worker(self, timeout_ms: int = 60000) -> None:  # [ms]
         if self._worker is not None:
             self._worker.wait(timeout_ms)
-
