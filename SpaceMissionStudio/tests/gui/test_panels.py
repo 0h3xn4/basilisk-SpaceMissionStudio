@@ -195,6 +195,9 @@ def test_the_status_bar_job_fits_a_1280_px_window(window, qapp):
     progress.refresh_time()
     qapp.processEvents()
     assert progress.time_label.text() == "80 % · 0:40 elapsed · about 0:09 left"
+    bar = window.statusBar()
+    # Room to spare, not a fit by a few pixels: the fonts differ by machine.
+    assert bar.minimumSizeHint().width() <= bar.width() - 60  # [px]
     assert progress.time_label.width() >= progress.time_label.sizeHint().width()
     assert progress.cancel_button.width() >= progress.cancel_button.sizeHint().width()
     assert progress.phase_label.width() >= 80  # [px]

@@ -89,15 +89,17 @@ The user: "start M2b here". M2b is the second half of M2 (above).
   batch goes, so the "job list" has one entry.
 - **The status bar fits 1280 px during a run:**
   - the job's phase elides (80 to 320 px) and its bar is 96 px wide;
-  - the Earth orientation and frames entries elide down to 120 px, their
+  - the Earth orientation and frames entries elide down to 48 px, their
     tooltips holding the whole text;
   - the job asks the status bar to lay it out again when its text grows
     (a `QStatusBar` does not notice on its own: the time was cut to
     "0:02 elap" in the harness's run-in-progress screen).
 
   Measured at 1280 px with the longest data text ("12 of 14 need
-  attention") and "80 % · 0:40 elapsed · about 0:09 left": nothing of the
-  job is cut.
+  attention") and "80 % · 0:40 elapsed · about 0:09 left": the status
+  bar's minimum is 1160 px, so nothing of the job is cut. At 120 px each
+  the minimum was 1304 px. That fitted here only by a few pixels, and on
+  CI, whose font renders the time 12 px wider, it cut 7 px.
 - **The inspector is two docks, Inspector over Explain,** not one dock
   with tabs. Each one is shown, hidden and sized on its own. Explain leaves
   for Scenario › Overview in M4.

@@ -361,10 +361,10 @@ class StatusBarItems:
         # their tooltips have all of it.
         self.earth_orientation_label = ElidedLabel(parent)
         self.earth_orientation_label.setObjectName("statusItem")
-        self.earth_orientation_label.setMinimumWidth(120)  # [px]
+        self.earth_orientation_label.setMinimumWidth(48)  # [px]
         self.frames_label = ElidedLabel(parent)
         self.frames_label.setObjectName("statusItem")
-        self.frames_label.setMinimumWidth(120)  # [px]
+        self.frames_label.setMinimumWidth(48)  # [px]
         items = (self.problems_button, self.basilisk_label, self.data_button, self.earth_orientation_label,
                  self.frames_label)
         # A thin rule between entries: side by side they read as one line.
