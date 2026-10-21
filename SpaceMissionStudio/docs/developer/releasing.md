@@ -193,7 +193,12 @@ from scratch (PR #92) and the end of macOS support (PR #92, #93), with
 no change to what the tool computes. The space weather is again the copy
 refreshed for 1.1.0 (observations to 2026-10-18, updated 2026-10-19), two
 days old. It is the first release whose notes the release workflow writes
-with `packaging/release_notes.py`.
+with `packaging/release_notes.py`. It was published on 2026-10-21: tag
+`spacemissionstudio-v1.2.0` on `c92f90040`, its six files built,
+installed and attached by the release workflow, which also wrote the
+notes because the release had none. The release had been published by
+hand before the workflow ran, so it was public without files for
+13 minutes: push the tag first and publish the draft the workflow makes.
 
 ---
 

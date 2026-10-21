@@ -12050,3 +12050,14 @@ before the push.
 Merging, tagging (`spacemissionstudio-v1.2.0`) and publishing are the
 user's; the release workflow builds, installs offline, writes the notes
 and attaches the files when the tag is pushed.
+
+**1.2.0 published (2026-10-21, 17:20 UTC).** The user tagged
+`spacemissionstudio-v1.2.0` (a lightweight tag) on the release merge
+`c92f90040` and published "Space Mission Studio 1.2.0" before the
+release workflow had run (run 39642864007, 17:20-17:33 UTC). The
+workflow attached the six files to the published release and, the notes
+being empty, wrote them with `packaging/release_notes.py`: the first
+release notes it wrote itself. The installers' SHA-256 in the notes equal
+GitHub's digests of the attached files (SRelD issue 12, with every
+digest). For the next release: push the tag and publish the draft the
+workflow creates, so the page is never public without its files.
