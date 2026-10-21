@@ -29,7 +29,9 @@ import struct
 import sys
 import threading
 import time
+import traceback
 import zlib
+from collections import deque
 from pathlib import Path
 
 import pytest
@@ -111,6 +113,7 @@ class _FakeFlightSoftware(threading.Thread):
         self.version = version
         self.received = []
         self.steps = 0
+        self.doing = ("connecting", time.perf_counter())  # what it was last doing and since when
 
     def _connect(self):
         if self.address.startswith("unix:"):
@@ -122,6 +125,7 @@ class _FakeFlightSoftware(threading.Thread):
         return sock
 
     def _read(self, sock):
+        self.doing = ("reading", time.perf_counter())
         header = b""
         while len(header) < c.HEADER_SIZE:
             chunk = sock.recv(c.HEADER_SIZE - len(header))
@@ -133,12 +137,15 @@ class _FakeFlightSoftware(threading.Thread):
         while len(payload) < length:
             payload += sock.recv(length - len(payload))
         self.received.append(kind)
+        self.doing = (f"read {kind.name} {seq}", time.perf_counter())
         return kind, seq, time_ns, payload
 
     def _send(self, sock, kind, seq, time_ns, payload=b""):
         data = bytearray(c.encode_frame(c.Frame(kind, seq, time_ns, payload)))
         data[4:6] = struct.pack("<H", self.version)
+        self.doing = (f"writing {kind.name} {seq}", time.perf_counter())
         sock.sendall(bytes(data))
+        self.doing = (f"wrote {kind.name} {seq}", time.perf_counter())
 
     def run(self):
         sock = self._connect()
@@ -331,12 +338,52 @@ def test_a_stall_of_this_process_is_not_the_peers_silence(monkeypatch):
         theirs.close()
 
 
+class _SelectLog:
+    """Stands in for the transport's ``select`` module and keeps its last
+    calls: how long each one waited, for how long, and what was ready."""
+
+    def __init__(self, real):
+        self._real = real
+        self.calls = deque(maxlen=12)
+
+    def select(self, readers, writers, errors, timeout=None):
+        start = time.perf_counter()
+        ready = self._real.select(readers, writers, errors, timeout)
+        self.calls.append((start, timeout, len(readers), len(ready[0]), len(ready[1]), time.perf_counter() - start))
+        return ready
+
+
+def _link_state(side, fake, selects):
+    """Where both ends of a stalled link were: kept with a failure that has
+    not been reproduced off Windows (SRelD K-14)."""
+    now = time.perf_counter()
+    sock = side.transport._sock
+    lines = [f"simulation: {side._seq} frames sent, {side.late_replies} dropped steps, "
+             f"{len(side.transport._pending)} bytes received and not yet read, peer closed: {side.transport._eof}",
+             f"socket buffers: send {sock.getsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF)} B, "
+             f"receive {sock.getsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF)} B",
+             f"fake flight software: {fake.steps} STEPs, \"{fake.doing[0]}\" {now - fake.doing[1]:.3f} s ago, "
+             f"alive: {fake.is_alive()}"]
+    frame = sys._current_frames().get(fake.ident)
+    if frame is not None:
+        lines.append("fake flight software stack:\n" + "".join(traceback.format_stack(frame)[-4:]))
+    for start, timeout, readers, readable, writable, took in selects.calls:
+        lines.append(f"select {now - start:.3f} s ago: timeout {timeout}, read {readers}, readable {readable}, "
+                     f"writable {writable}, took {took:.3f} s")
+    return "\n".join(lines)
+
+
 @pytest.mark.parametrize("kind", KINDS)
-def test_thousands_of_dropped_steps_never_block_the_link(kind):
+def test_thousands_of_dropped_steps_never_block_the_link(kind, monkeypatch):
     """With a deadline no answer can meet, every step is dropped and no
     OUTPUT is waited for; the late OUTPUTs (more than the socket buffers
     hold) are still read and skipped, the flight software never blocks
-    writing them, and the run ends with BYE."""
+    writing them, and the run ends with BYE. A stalled link fails with the
+    state of both ends (SRelD K-14)."""
+    import spacemissionstudio.sil.transport as transport_module
+
+    selects = _SelectLog(transport_module.select)
+    monkeypatch.setattr(transport_module, "select", selects)
     listener, fake, side = _session(kind, timeouts=Timeouts(handshake_s=5.0, step_s=10.0, deadline_s=1e-9))
     steps = 20000
 
@@ -350,6 +397,8 @@ def test_thousands_of_dropped_steps_never_block_the_link(kind):
 
     try:
         dropped, reply, said_bye = _finishes(run, 120.0)
+    except c.SilError as exc:
+        pytest.fail(f"{exc}\n{_link_state(side, fake, selects)}")
     finally:
         side.transport.close()
         listener.close()
