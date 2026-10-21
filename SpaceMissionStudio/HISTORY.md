@@ -12010,3 +12010,17 @@ here on Ubuntu 24.04 with apt's Doxygen 1.9.8, the version the runner
 gets: all 239 projects generated without a warning. The Sphinx stage
 needs a source build of Basilisk and is left to CI. The framework
 release-note snippet is `remove-macos-ci.rst`.
+
+**The docs build on Linux: eight links in the wrong case.** The first
+Linux run of the "Pull Request" `docs` job failed with "build finished
+with problems, 8 warnings (with warnings treated as errors)". All eight
+were "file not readable" warnings whose path differs from the file only
+in letter case: `Sunline_UKF.pdf` (file `Sunline_uKF.pdf`),
+`Basilisk-PixelLineBiasUKF-20190620.pdf` (`Basilisk-pixelLineBiasUKF-…`),
+`vizard-img2.jpg` and `vizard-imgCamera1/2.jpg` (`vizard-Img2.jpg`,
+`vizard-ImgCamera1/2.jpg`), and three scenario figures whose docstrings
+named `…DirectionConstraint.svg`, `…AttitudeConstraint.svg` and
+`scenario_ThermalSensor.svg` where the scenarios save
+`…directionConstraint`, `…attitudeConstraint` and
+`scenario_thermalSensor`. macOS's case-insensitive file system had hidden
+them. The references now match the files; no file or figure name changed.

@@ -16,7 +16,7 @@ Startup Panel
 
 When starting up the Vizard software a panel is presented where the user can select which simulation to visualize. To play back a previously recorded BSK simulation press the `Select` button and navigate to the binary BSK recording file. After a file has been selected press the `Start Visualization` button.
 
-.. image:: ../_images/static/vizard-img2.jpg
+.. image:: ../_images/static/vizard-Img2.jpg
    :align: center
    :width: 90 %
 
@@ -286,7 +286,7 @@ these can be added with the *Add Camera* menu option. Within a camera panel the 
 select from which object the camera is
 simulated, and where this camera is pointing.  Below the camera is selected to point camera along a body fixed vector.
 
-.. image:: ../_images/static/vizard-imgCamera1.jpg
+.. image:: ../_images/static/vizard-ImgCamera1.jpg
    :align: center
    :width: 90 %
 
@@ -294,7 +294,7 @@ In this second illustration the camera is chosen to point toward another simulat
 Here the user can select to point the camera at the target (nadir), along the velocity direction (along-track)
 or orbit-normal,.
 
-.. image:: ../_images/static/vizard-imgCamera2.jpg
+.. image:: ../_images/static/vizard-ImgCamera2.jpg
    :align: center
    :width: 90 %
 
