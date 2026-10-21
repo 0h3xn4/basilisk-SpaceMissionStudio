@@ -3,7 +3,7 @@
 Short, task-by-task pages: "How do I…?", with the clicks and the
 commands. Each page links to the section of the full
 [User Manual](../../USER_MANUAL.md) that explains the details. The same
-manual is in the app under **Help > User Manual** (`F1`).
+manual is in the app under **Help** (F1; the last button of the navigation rail) (`F1`).
 
 New to the app? Do [Getting started](../getting-started.md) first.
 

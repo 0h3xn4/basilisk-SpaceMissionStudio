@@ -15,12 +15,15 @@
 #  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
-"""The command palette (UX/UI guidelines, "a command palette"): every menu
-command and every tab, found by typing a few letters of its name.
+"""The command palette (UX/UI guidelines, "a command palette"; Ctrl+K):
+every command of the window's action registry, every area and page, the
+scenario's objects and the settings, found by typing a few letters of
+their name.
 
-Each word typed must appear in the entry ("save as", "vizard config");
-entries whose name starts with the first word come first. Enter runs the
-highlighted entry; a disabled command is listed, greyed, and not run.
+Each word typed must appear in the entry or its keywords (a command's
+older names: "events" finds the Timeline); entries whose name starts with
+the first word come first. Enter runs the highlighted entry; a disabled
+command is listed, greyed, and not run.
 """
 
 from __future__ import annotations
@@ -29,44 +32,33 @@ from dataclasses import dataclass
 from typing import Callable, List, Optional
 
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QAction
 from PySide6.QtWidgets import QDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem, QVBoxLayout, QWidget
 
 
 @dataclass
 class PaletteEntry:
-    label: str  # e.g. "Run > Run Simulation"
+    label: str  # e.g. "Run > Run"
     run: Callable[[], object]
     shortcut: str = ""
     enabled: bool = True
+    keywords: str = ""  # other names it is found by, not shown
 
 
-def menu_entries(menu_bar) -> List[PaletteEntry]:
-    """One entry per command in the menu bar, named "Menu > Command"."""
-    entries = []
-    for menu_action in menu_bar.actions():
-        menu = menu_action.menu()
-        if menu is None:
-            continue
-        for action in menu.actions():
-            if action.isSeparator() or action.menu() is not None or not action.text():
-                continue
-            entries.append(_action_entry(menu_action.text().replace("&", ""), action))
-    return entries
-
-
-def _action_entry(menu_name: str, action: QAction) -> PaletteEntry:
-    return PaletteEntry(f"{menu_name} > {action.text().replace('&', '')}", action.trigger,
-                        action.shortcut().toString(), action.isEnabled())
+def command_entries(registry) -> List[PaletteEntry]:
+    """One entry per command of ``registry`` (:class:`gui.actions.ActionRegistry`),
+    named "Category > Command"."""
+    return [PaletteEntry(f"{command.category} > {command.label}", command.action.trigger, command.keys,
+                         command.action.isEnabled(), " ".join(command.keywords)) for command in registry]
 
 
 def matches(query: str, entries: List[PaletteEntry]) -> List[PaletteEntry]:
-    """Entries containing every word of ``query`` (any case); those whose
-    command name starts with the first word first, then in order."""
+    """Entries containing every word of ``query`` (any case) in their name
+    or keywords; those whose command name starts with the first word first,
+    then in order."""
     words = query.lower().split()
     if not words:
         return list(entries)
-    found = [e for e in entries if all(w in e.label.lower() for w in words)]
+    found = [e for e in entries if all(w in f"{e.label} {e.keywords}".lower() for w in words)]
     return sorted(found, key=lambda e: not e.label.lower().rsplit("> ", 1)[-1].startswith(words[0]))
 
 
@@ -81,7 +73,7 @@ class CommandPalette(QDialog):
         self.ran: Optional[PaletteEntry] = None
         layout = QVBoxLayout(self)
         self.search = QLineEdit()
-        self.search.setPlaceholderText("Type a command or a tab, e.g. \"run\", \"save as\", \"events\"")
+        self.search.setPlaceholderText("Type a command, a page or an object, e.g. \"run\", \"save as\", \"sat-1\"")
         self.search.setClearButtonEnabled(True)
         self.search.textChanged.connect(self._fill)
         self.search.returnPressed.connect(self.run_current)

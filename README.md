@@ -15,7 +15,7 @@ satellite mission analysis added in [`SpaceMissionStudio/`](SpaceMissionStudio/)
 Basilisk itself is unchanged: its README follows below, under
 [Original Basilisk README](#original-basilisk-readme).
 
-![The Scenario tab with template 22 loaded; the Explain page on the right summarises the orbit, the environment and the predicted ground passes](SpaceMissionStudio/docs/images/scenario_editor_tab.png)
+![The Scenario area with template 22 loaded; the Explain page on the right summarises the orbit, the environment and the predicted ground passes](SpaceMissionStudio/docs/images/scenario_editor_tab.png)
 
 ## What it is
 
@@ -65,7 +65,7 @@ A few seconds later the **Results** tab shows the orbit and the
 |---|---|
 | Install it, step by step, on any system | [Getting started](SpaceMissionStudio/docs/getting-started.md) |
 | Do a specific task ("How do I…?") | [How-to guides](SpaceMissionStudio/docs/user-manual/README.md) |
-| Learn the app from the beginning | [User Manual](SpaceMissionStudio/USER_MANUAL.md), also in the app (**Help > User Manual**, `F1`) |
+| Learn the app from the beginning | [User Manual](SpaceMissionStudio/USER_MANUAL.md), also in the app (**Help** (F1; the last button of the navigation rail), `F1`) |
 | Learn by example | The [template catalog](SpaceMissionStudio/spacemissionstudio/scenarios/templates/README.md) and the [Python examples](SpaceMissionStudio/examples/README.md) |
 | Fix a problem | [Troubleshooting](SpaceMissionStudio/docs/troubleshooting.md) and the [FAQ](SpaceMissionStudio/docs/faq.md) |
 | Look up a term | [Glossary](SpaceMissionStudio/docs/glossary.md) |

@@ -12,7 +12,7 @@ without learning the whole Scenario Editor.
      `duration`.
 3. Change what you need, then click **Open in editor**. The changed
    mission opens in the **Scenario** tab, ready to run.
-4. **File > Save As...** to keep it under your own name.
+4. **Save As...** (Ctrl+Shift+S) to keep it under your own name.
 
 The template file on disk is never changed, so you can always start
 again from a clean copy.

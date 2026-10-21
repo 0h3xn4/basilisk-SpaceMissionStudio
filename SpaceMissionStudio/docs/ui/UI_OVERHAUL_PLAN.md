@@ -755,6 +755,44 @@ Every milestone also has to meet all of these:
   been visited (before M1: 1.31-1.44 s and 6.1-6.5 s), not under 100 ms: Qt
   re-polishes every widget, most of them hidden. The criterion moves to M2
   with these values (`docs/DECISIONS.md`).
+- **M2, split before starting (2026-10-21; §8, "Scope"):**
+  - **M2a, the shell:**
+    - the action registry;
+    - the navigation rail with its areas;
+    - the top bar (save state, undo and redo, Run with its mode, the
+      Ctrl+K field and breadcrumbs);
+    - the command palette, the shortcut list and the tooltips generated
+      from the registry;
+    - a Settings area;
+    - the menu bar and both toolbars removed;
+    - the §5.2 reachability test.
+  - **M2b, the panels:**
+    - the bottom Problems panel (severity, ID, object, message, sorted,
+      jump to the field);
+    - the status-bar job list with progress and Cancel;
+    - the right inspector without the side tabs;
+    - layout persistence per project;
+    - the keyboard-only walk test;
+    - the theme switch criterion carried over from M1.
+
+  M2a hosts the existing screens unchanged: a §5.2 row whose new form
+  needs a rebuilt screen (inline editors, Results › Overview, Run history)
+  stays where it is until its milestone, and the reachability test records
+  where each row is reached now.
+- **M2a (2026-10-21): done.** Of M2's criteria it meets these:
+  - every row of §5.2 is reachable
+    (`tests/gui/test_shell_reachability.py`, which reads the table from
+    this plan);
+  - every menu and toolbar command is in the registry with its shortcut
+    (`tests/gui/test_design_rules.py`, the shortcut table);
+  - the existing screens are hosted unchanged.
+
+  The rest is M2b's: the Problems panel, the status-bar jobs, layout
+  persistence per project, the keyboard-only walk and the theme switch
+  time. Not yet updated: two template descriptions still say "the Events
+  tab" (templates are M3), and `compare_tab.png` and `monte_carlo_tab.png`
+  in the documentation still show the toolbars (their capture needs runs
+  that `scripts/capture_screenshots.py` does not make).
 
 **Order and size.**
 

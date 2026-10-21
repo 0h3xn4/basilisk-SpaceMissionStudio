@@ -28,7 +28,7 @@ and plot styling (``docs/DESIGN.md``).
 * :mod:`.qss`: the application style sheet, generated from the tokens.
 * :mod:`.plotly_template`: the Plotly layout and plot-page CSS.
 * :mod:`.apply`: :func:`apply_theme` (live), the ``changed`` signal and
-  the View > Theme setting.
+  the theme setting.
 
 No colour, font family or pixel size appears in GUI code outside this
 package (``tests/gui/test_design_rules.py`` checks it): widgets read

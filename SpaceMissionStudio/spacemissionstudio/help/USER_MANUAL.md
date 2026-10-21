@@ -2,7 +2,7 @@
 
 A beginner-friendly, step-by-step guide to using the SpaceMissionStudio app --
 no programming and no prior spacecraft-engineering background assumed.
-Every screenshot and menu label below is taken directly from the real
+Every screenshot and command name below is taken directly from the real
 application.
 
 **Looking for something else?**
@@ -26,7 +26,7 @@ This manual only covers *using the app once it's installed*.
 4. [Your first simulation, in five minutes](#4-your-first-simulation-in-five-minutes)
 5. [Tweaking a template without the full editor](#5-tweaking-a-template-without-the-full-editor)
 6. [A tour of the Scenario Editor](#6-a-tour-of-the-scenario-editor)
-7. [Reading the Results tab](#7-reading-the-results-tab)
+7. [Reading the results](#7-reading-the-results)
 8. [Saving your work](#8-saving-your-work)
 9. [3D visualization with Vizard](#9-3d-visualization-with-vizard)
 10. [Monte Carlo: running many variations at once](#10-monte-carlo-running-many-variations-at-once)
@@ -79,7 +79,7 @@ Scenario (one .json file)
           |
           |  Run: Basilisk computes the physics
           v
-Results: a plot of every quantity, an Events timeline, mission reports,
+Results: a plot of every quantity, a timeline of events, mission reports,
          a dashboard, CSV export, a 3D replay in Vizard
 ```
 
@@ -97,7 +97,7 @@ Where each piece lives in the app, and which template shows it best:
 | Ground stations | Scenario tree > **Ground stations** > its name | 19, 22 |
 | Mission sequence | Scenario tree > **Mission sequence** | 08, 16, 23 |
 | Monte Carlo | Scenario tree > **Monte Carlo** | 09, 25 |
-| Results | the Results, Events and Compare tabs (Section 7) | any |
+| Results | the Results and Timeline areas, Results > Compare (Section 7) | any |
 
 **Orbit only or full attitude?** *Orbit only* simulates where each
 spacecraft goes: fast, and enough for orbits, drag, station keeping,
@@ -148,45 +148,53 @@ orientation). Tick what you want and press **Fetch now**, or press
 **Skip**: then nothing is downloaded. The window that opens looks like
 this:
 
-![Templates, in the scenario tree: Start from scratch above the list, template 22 selected and its description below the list](docs/images/load_scenario_tab.png)
+![Home: the navigation rail on the left, Start from scratch above the templates, template 22 selected and its description below the list](docs/images/load_scenario_tab.png)
 
 A few things to notice right away:
 
-* **File / Edit / Run / Analyses / Tools / View / Help** along the top.
-  File, Edit and Run hold almost everything you will use; Analyses and
-  Tools open the pages listed below; View shows or hides the side panel,
-  puts the layout back with **Reset Layout**, and sets the **Theme**:
-  **System** (light or dark as your desktop is; the default), **Light**
-  or **Dark**. A new theme applies at once, to every open view.
-* A row of toolbar buttons just below the menus, mirroring the most
-  common menu actions (New Scenario, Open, Save, Run, ...)
-  so you don't have to open a menu every time. **3D Model...** at its
-  end opens the 3D model editor for a spacecraft (Section 6).
-* Five main tabs:
+* The **navigation rail** on the left holds the app's areas, top to
+  bottom (`Ctrl+1` to `Ctrl+6`):
+  * **Home**: **Start from scratch** and the templates, where you start.
   * **Scenario**: the scenario tree on the left and the page of the node
-    you pick beside it. **Templates** (where you start), then the
-    scenario's own nodes -- **Scenario**, **Environment**,
-    **Spacecraft** with a node per spacecraft, and under each one a node
-    per part of its page (**Orbit / mass**, **Sensors / actuators**,
-    **Attitude control**, **Power / propulsion / link budget**, **3D
-    model**, **Vizard model**, **Budget (AD10)**; orbit-only scenarios
-    have no sensors or attitude control), **Ground stations** with a
-    node per station, **Mission sequence**, **Monte Carlo** and **JSON**
-    (Section 6) -- and **Analyses**: **End of Life** and **Budget** (re-entry and
-    delta-V estimates, Section 11) and **Flight Software** (export the
-    attitude flight software and run it in the loop, Section 6). A node
-    with problems shows how many after its name: in red when one of them
-    is an error, in yellow when they are all warnings. Hover over it to see
-    how many of each there are.
+    you pick beside it: **Scenario**, **Environment**, **Spacecraft** with
+    a node per spacecraft, and under each one a node per part of its page
+    (**Orbit / mass**, **Sensors / actuators**, **Attitude control**,
+    **Power / propulsion / link budget**, **3D model**, **Vizard model**,
+    **Budget (AD10)**; orbit-only scenarios have no sensors or attitude
+    control), **Ground stations** with a node per station, **Mission
+    sequence**, **Monte Carlo** and **JSON** (Section 6). A node with
+    problems shows how many after its name: in red when one of them is an
+    error, in yellow when they are all warnings. Hover over it to see how
+    many of each there are. **3D Model...** at the top opens the 3D model
+    editor for a spacecraft (Section 6).
+  * **Run**: Run and its mode, **Cancel Run**, **Live plot**, the Vizard
+    commands, **Open Monte Carlo Results...** and **Check Reference
+    Data** at the top; under them **End of Life** and **Budget** (re-entry
+    and delta-V estimates, Section 11) and the **Log** (what the app
+    logged in this session, filterable by level and text; a failed run
+    opens it at its warnings and errors).
   * **Results**, which fills in when you run something (Section 7), with
-    the **Plots**, the **Dashboard** and the mission **Output**, and a
-    **Monte Carlo** view when the scenario has Monte Carlo on (Section 10).
-  * **Events**: passes, eclipses, burns and mode changes (Section 7).
-  * **Compare**: your saved runs, of this session and earlier ones, side
-    by side: a summary with differences, the inputs that differ, the
-    events and overlaid plots (Section 7).
-  * **Log**: what the app logged in this session, filterable by level
-    and text; a failed run opens it at its warnings and errors.
+    the **Plots**, the **Dashboard**, the mission **Output**, a **Monte
+    Carlo** view when the scenario has Monte Carlo on (Section 10) and
+    **Compare**: your saved runs, of this session and earlier ones, side
+    by side (a summary with differences, the inputs that differ, the
+    events and overlaid plots).
+  * **Timeline**: passes, eclipses, burns and mode changes (Section 7).
+  * **Reports**: **Flight Software** (export the attitude flight
+    software and run it in the loop, Section 6).
+  * **Settings**, at the bottom: **Appearance** (the theme: **System**,
+    light or dark as your desktop is, the default; **Light** or **Dark**;
+    a new theme applies at once, to every open view), **Reference data**,
+    **Layout** (the rail as icons only, the side panel, **Reset Layout**),
+    **Keyboard** (every shortcut) and **About**.
+  * **Help**, at the bottom: this manual (`F1`). The rail's last button
+    shows the areas as icons only, or with their names.
+
+  In this manual, a path such as **Run > Budget** is an area of the rail
+  and its page.
+* Every command is also in the **command palette**: press `Ctrl+K`, or
+  click the search field in the top bar, and type part of its name
+  ("save as", "budget", or a spacecraft's name). There is no menu bar.
 * A **side panel** on the right, with three pages: **Inspector** (the
   field you are in: its value, the range it accepts and its help),
   **Explain** (a live summary of what the scenario does, end of
@@ -195,12 +203,15 @@ A few things to notice right away:
   Editor's field, or the spacecraft, ground station or propagation setup
   dialog opened at the field, with the problem named at the top and
   under the field). Drag it
-  to the left, close it, or put it back with **View > Reset Layout**;
+  to the left, close it, or put it back with **Settings > Layout > Reset Layout**;
   the app remembers where you left it.
-* A **top bar** above the tabs names the scenario and says whether it
+* A **top bar** above the area names the scenario and says whether it
   has unsaved changes, where it came from ("from template 22", or the
-  file's name) and when it last ran, how it ended and how long it took.
-  The tag on its right shows the run state: **No run yet**, **Running**
+  file's name) and when it last ran, how it ended and how long it took;
+  under that, where you are ("Scenario › Spacecraft › sat-1"). On its
+  right: **Undo** and **Redo**, the save button (it says "Saved", "Not
+  saved yet" or "Save"; a click saves), **Run** with its mode, the
+  search field of the command palette, and a tag with the run state: **No run yet**, **Running**
   (with the percentage, or the time so far), **Run 2: done in 6 s**,
   **Failed** or **Run 2: cancelled**. Runs are numbered in the session
   ("Run 2, 12:19"): the top bar, the plots' provenance line and the
@@ -219,11 +230,11 @@ A few things to notice right away:
   accuracy, and the frames runs use (EME2000 for orbits and results,
   ITRF93 or IAU_EARTH for ground stations, UTC for dates).
 
-The app opens on **Templates** deliberately: picking a
+The app opens on **Home** deliberately: picking a
 starting point is the natural first move for everyone, whether you end
 up using a template as-is or editing it into something new. Its first
 choice, **Start from scratch** (**New blank scenario**), does what
-**File > New Scenario** does: an empty mission, with a guide to it on
+**New Scenario** (Ctrl+N) does: an empty mission, with a guide to it on
 its Scenario page ("Building your own scenario, step by step", below).
 
 ## 4. Your first simulation, in five minutes
@@ -238,13 +249,13 @@ its Scenario page ("Building your own scenario, step by step", below).
    app shows the mission's **Scenario** page -- you don't need to look at
    or understand it yet, just confirm something loaded (its name appears
    in the "Name" field at the top).
-3. Click **Run** on the toolbar (or **Run > Run**, or press `Ctrl+R`).
+3. Click **Run** in the top bar (or press `Ctrl+R`).
    The mode beside it says what Run starts: **Single run** here. While it
    runs, a strip under the top bar shows what it is doing ("Propagating:
    day 0.40 of 1"), how far it is, the time so far and, once it can tell,
    about how long is left; **Cancel** (`Esc`) stops it. A short run like
    this one finishes in seconds.
-4. When it finishes, the app switches to the **Results** tab
+4. When it finishes, the app switches to the **Results** area
    automatically. Click a plot in the catalog on the left (e.g. a
    spacecraft's position) to see it, or tick several to see them side by
    side. Hover over a plot to read exact values at any point.
@@ -283,7 +294,7 @@ path, each step building on the one before:
 
 **Starting your own mission?** Open **22** (a realistic satellite, orbit
 only) or **23** (a complete small satellite with hardware, a radio link
-and a Mission Sequence), use **File > Save As...**, and change it step
+and a Mission Sequence), use **Save As...** (Ctrl+Shift+S), and change it step
 by step (Section 6).
 
 ## 5. Tweaking a template without the full editor
@@ -319,7 +330,7 @@ looking at.
 
 The scenario is a tree on the left of the **Scenario** tab, in roughly
 the order you'd fill it out for a brand-new scenario. Pick a node to edit
-its page; what you change there applies as you type (Edit > Undo takes
+its page; what you change there applies as you type (Undo, Ctrl+Z, takes
 it back), and a page whose values do not validate marks the field, lists
 it in **Problems**, and keeps the scenario from running until it is
 fixed:
@@ -411,8 +422,7 @@ spacecraft's fields are checked when its page is first opened.
 The quickest way to a mission of your own is a starter template (22 or
 23) and **Save As**. To start from an empty scenario instead:
 
-1. **File > New Scenario**, or **New blank scenario** on the Templates
-   page. The Scenario page opens with **Build your mission**: the steps
+1. **New Scenario** (Ctrl+N), or **New blank scenario** on **Home**. The Scenario page opens with **Build your mission**: the steps
    below, each with its state (*Needed*, *Optional*, *Done*, *Ready*) and
    a button to its page, and **There is more**: what else the tool does
    (Full attitude, the mission sequence, constellations and formations,
@@ -440,14 +450,14 @@ The quickest way to a mission of your own is a starter template (22 or
    drag** with its area (and **Enable solar radiation pressure**).
 4. **Ground stations**: **Add...**, with a name, latitude, longitude and the
    lowest usable elevation (10 deg is common).
-5. Look at the bottom of the tab: **✓ valid** means Run is available;
+5. Look at the bottom of the page: **✓ valid** means Run is available;
    otherwise the message names the field to fix, the field is marked in
    red with the message under it, and its node in the tree shows a count
    (the side panel's **Problems** page lists it too; double-click it to go
    to the field). **Explain**, in the side panel,
    already shows the orbit type, the ground passes and what the
    environment includes, before anything runs.
-6. **File > Save As...**, then **Run** (`Ctrl+R`).
+6. **Save As...** (Ctrl+Shift+S), then **Run** (`Ctrl+R`).
 7. Grow it one step at a time, running after each: switch to *Full
    attitude* and pick a pointing mode on **Attitude control**; add
    sensors and actuators; add station keeping on **Power / propulsion /
@@ -633,7 +643,7 @@ needs a directivity above 9 dB, which a patch does not have.
 The run records, per spacecraft, `<sc>.data_handling.stored` (in total and
 per instrument), `.downlink_rate`, `.data_generated`, `.data_downlinked`
 and `.data_lost`; and per station `<gs>.access_to_<sc>.link_margin_db`,
-`.antenna_off_boresight` and `.link_closed`. The Events tab lists each
+`.antenna_off_boresight` and `.link_closed`. The Timeline lists each
 downlink and how much it sent, and `spacemissionstudio run` prints the
 totals. Template 26 shows all of it.
 
@@ -644,7 +654,7 @@ which is assumed perfect.
 
 ### A 3D model of the spacecraft
 
-**3D Model...** on the toolbar (or **Tools > 3D Model...**) opens the
+**3D Model...** at the top of the Scenario area (or `Ctrl+K`, "3d model") opens the
 3D model editor; with several spacecraft it first asks which one. The
 **3D model** tab of a spacecraft's page opens it too. In the editor,
 build the spacecraft from boxes, prisms (an octagonal bus), cylinders,
@@ -735,8 +745,8 @@ navigation as the simulation's own modules.
 
 ### Exporting the flight software
 
-The **Flight Software** page (**Tools > Flight Software**, or Analyses in
-the scenario tree; `spacemissionstudio export-fsw` from a terminal) writes a
+The **Flight Software** page (**Reports** in the navigation rail;
+`spacemissionstudio export-fsw` from a terminal) writes a
 spacecraft's attitude flight software as a standalone C project: the same
 Basilisk C modules the simulation runs, with every parameter the scenario
 gives them, ready to build without Python or Basilisk.
@@ -863,9 +873,9 @@ gives: the true state, or the true state with the spacecraft's navigation
 error (above); one rate group, the dynamics step; payloads in the host's
 byte order.
 
-## 7. Reading the Results tab
+## 7. Reading the results
 
-After a run finishes, the **Results** tab opens on **Plots**: a catalog
+After a run finishes, the **Results** area opens on **Plots**: a catalog
 of the run's plots on the left, the plots in a grid beside it, and a
 readout under the catalog.
 
@@ -903,8 +913,8 @@ readout under the catalog.
   the one in progress at the epoch; an equatorial orbit counts from the
   inertial X axis).
 * **Events** -- eclipses, passes, burns, thruster firings, mode changes
-  and downlinks drawn behind each spacecraft's plots, in the Events
-  tab's colours; each button switches its kind on or off. A kind with
+  and downlinks drawn behind each spacecraft's plots, in the Timeline's
+  colours; each button switches its kind on or off. A kind with
   more than 400 events on one plot is not drawn, and a note says so.
 * **Export CSV...** -- saves every series (not just the shown ones) to
   `.csv` files in SI units, for a spreadsheet or another tool.
@@ -916,7 +926,7 @@ readout under the catalog.
   lists every scenario input that differs between the two runs, e.g.
   `spacecraft[sat-1].orbit.semi_major_axis_km`.
 
-**Compare** puts two or more runs side by side. Every run is saved as it
+**Compare** (a view of Results, after Output) puts two or more runs side by side. Every run is saved as it
 ends, in `~/.spacemissionstudio/runs`, so the runs of earlier sessions
 are listed too ("Run 7, 13 Oct 17:30"); runs are numbered on from the
 last one. The newest 20 runs are kept, at most 2 GB together; the oldest
@@ -945,8 +955,8 @@ A run whose files cannot be read back is named in the status line and
 the Log. If the folder cannot be written, the run is kept for this
 session only and a notice says so.
 
-If you change the scenario after a run, a yellow banner above Results,
-Events and Compare says the results are from a previous version of it, with **Re-run**. It
+If you change the scenario after a run, a yellow banner above Results
+and the Timeline says the results are from a previous version of it, with **Re-run**. It
 goes away if you undo back to the scenario that ran. While the scenario
 has a problem, the banner says so and Re-run waits until it is fixed.
 
@@ -958,15 +968,15 @@ dynamics step or a higher-order integrator.
 The plot is interactive: hover to see exact values, and use your
 scroll wheel/drag to zoom and pan.
 
-**Output** (a view of the Results tab, next to Plots) shows what each `report`
+**Output** (a view of Results, next to Plots) shows what each `report`
 command in a Mission Sequence run (Section 6) recorded: one row per
 quantity and one column per report, in the same units as the plots.
 With exactly two reports (e.g. "Before burn" / "After burn") a
 **Change** column shows the difference. Type in **Filter** to narrow it
 to a report or a quantity; **Export CSV...** always writes every report
-in SI units. Without a Mission Sequence you can ignore this tab.
+in SI units. Without a Mission Sequence you can ignore this view.
 
-**Events** lists what happened during the run: ground-station passes
+The **Timeline** area lists what happened during the run: ground-station passes
 (with each one's highest elevation), eclipses (umbra or penumbra),
 station-keeping, GEO and phasing burns (with the delta-V each added),
 thruster firings and mode changes (Sun or ground-station pointing,
@@ -986,24 +996,24 @@ measured value, with a `.provenance.json` file beside them.
 A kind the run could not produce is named with the reason, e.g. no
 eclipses when the Sun is not one of the third-body perturbers.
 
-**The time cursor** is shared by every view of a run. Click a plot on
-the Results tab, or click or drag on the Events timeline, to set it: a
-red line marks it on the plot and the timeline, the Events tab says
+**The time cursor** is shared by every view of a run. Click a plot in
+Results, or click or drag on the Timeline, to set it: a
+red line marks it on the plot and the timeline, the Timeline says
 which events are in progress, the Dashboard shows the values at
 that moment instead of the end of the run, and the Output marks the
 last report before it (click a report's column header to jump there). A
-table row on the Events tab (clicked, or reached with the arrow keys)
-moves the cursor to that event's start. From the keyboard, on the
-Results tab (**View > Time Cursor**): **Alt+Right** and **Alt+Left** move
+table row of the Timeline (clicked, or reached with the arrow keys)
+moves the cursor to that event's start. From the keyboard, in
+Results: **Alt+Right** and **Alt+Left** move
 it one sample, with **Shift** ten samples, **Alt+PgDown** and
 **Alt+PgUp** to the next or previous event, **Alt+Home** and **Alt+End**
 to the start and end of the run. The
-status bar shows the cursor's time; **Run > Clear Time Cursor**
-(**Alt+Backspace**, or Esc on the Events tab) clears it. A saved PNG or SVG includes the line if
+status bar shows the cursor's time; **Clear Time Cursor** (at the top of
+Results and the Timeline; **Alt+Backspace**, or Esc in the Timeline) clears it. A saved PNG or SVG includes the line if
 it is showing.
 
 The **Reference data** dialog (the status bar's reference data entry,
-**Tools > Reference Data...** or **Run > Check Reference Data**) lists every reference data file the app uses (SPICE kernels,
+**Settings > Reference data** or **Check Reference Data** (the Run area)) lists every reference data file the app uses (SPICE kernels,
 gravity field, magnetic model, space weather, Earth orientation) with
 its status, the dates it covers, where it came from and its SHA-256.
 Files that are missing or out of date are marked. This is the only place
@@ -1015,7 +1025,7 @@ back the version the last download or import replaced. See
 [Section 11](#11-common-questions-and-problems) if Run ever says a file
 is missing.
 
-**Explain** is different from the other tabs: it doesn't need a
+**Explain** is different from the other views: it doesn't need a
 run at all, and it updates live as you edit the Scenario Editor. It's a
 short, at-a-glance recipe of what the CURRENT scenario is actually
 configured to do -- a handful of stat tiles (spacecraft count,
@@ -1047,24 +1057,25 @@ Explain also checks the scenario before you run it:
 
 ## 8. Saving your work
 
-**File > Save** (or **Save As...** for a new file/location) writes your
-current scenario to a `.json` file you choose. **File > Open...** loads
-one back. **File > New Scenario** clears the editor and starts fresh.
+**Save** (Ctrl+S, or the top bar's save button) (or **Save As...** for a new file/location) writes your
+current scenario to a `.json` file you choose. **Open...** (Ctrl+O) loads
+one back. **New Scenario** (Ctrl+N) clears the editor and starts fresh.
 
 If you started from a template or its customize wizard, **use Save
 As...** to give your edited copy its own name/location -- the original
 template file is never overwritten automatically, so you can always
 start over from a clean copy.
 
-**Edit > Undo** (Ctrl+Z) and **Redo** (Ctrl+Shift+Z, or Ctrl+Y on
+**Undo** (Ctrl+Z) and **Redo** (Ctrl+Shift+Z, or Ctrl+Y on
 Windows) step through your scenario edits, one step for each edit once
 you pause typing. While the cursor is in a text field, Ctrl+Z first
-undoes that field's own typing; the menu always undoes the last
+undoes that field's own typing; the top bar's Undo always undoes the last
 scenario edit. New, Open and loading a template start a fresh history.
 
-**Help > Command Palette** (Ctrl+K) finds any menu command, tab,
-template or result series by a few letters of its name ("save as",
-"events", "05 formation", "velocity"). Arrows choose, Enter runs it.
+The command palette (Ctrl+K, or the top bar's search) finds any command, area,
+page, spacecraft, ground station, setting, template or result series by a
+few letters of its name ("save as", "events", "sat-1", "05 formation",
+"velocity"). Arrows choose, Enter runs it.
 
 ## 9. 3D visualization with Vizard
 
@@ -1072,19 +1083,19 @@ Vizard is AVS's separate 3D visualization application -- it shows your
 spacecraft, orbit, and attitude moving in real time (or played back
 afterward) instead of just plots of numbers.
 
-* **Run > Vizard Configuration...** decides how the *next* run feeds
+* **Vizard Configuration...** (the Run area) decides how the *next* run feeds
   Vizard -- live streaming while the simulation runs, or saving a
   playback file to watch afterward.
-* **Run > Launch Vizard** starts the separate Vizard application itself.
+* **Launch Vizard** (the Run area) starts the separate Vizard application itself.
   If SpaceMissionStudio can't find it already installed, it offers to
   download AVS's own pre-built copy for you (only when you click
   **Download Vizard**), or to **Browse...** for one you already have.
-* **Open in Vizard** appears on the Results tab after a run that saved a
+* **Open in Vizard** appears in Results after a run that saved a
   playback file, and starts Vizard on that file. Vizard cannot follow
   the time cursor (Section 7): it has no way for another program to set
   its playback time.
 
-Vizard is entirely optional -- plots in the Results tab already show
+Vizard is entirely optional -- the plots in Results already show
 everything numerically; Vizard is for *seeing* the mission.
 
 ## 10. Monte Carlo: running many variations at once
@@ -1102,7 +1113,7 @@ for a first mission. Templates 09 and 25 are ready-made batches.
 A Monte Carlo run asks for a folder, saves every run there (the
 progress strip counts the cases done; a batch cannot be cancelled part
 way, as Basilisk's Controller has no way to stop it), and opens the
-**Monte Carlo** view of the Results tab on the batch (the view is there
+**Monte Carlo** view of Results on the batch (the view is there
 whenever the scenario has Monte Carlo on, or a batch is open):
 
 ![The Monte Carlo view for template 25: tiles with the spread at the end, and every run's along-track offset from the batch mean](docs/images/monte_carlo_tab.png)
@@ -1119,7 +1130,7 @@ whenever the scenario has Monte Carlo on, or a batch is open):
   e.g. to see which drawn value goes with the largest offset; **Export
   table CSV...** saves it.
 
-**Run > Open Monte Carlo Results...** shows a batch you ran earlier, from
+**Open Monte Carlo Results...** (the Run area) shows a batch you ran earlier, from
 the folder you saved it in. It reads only the summary the batch wrote
 (`batch_results.npz` and `.json`), never Basilisk's own archive files.
 From Python, [`examples/monte_carlo_spread.py`](examples/monte_carlo_spread.py)
@@ -1160,7 +1171,7 @@ download anything. The installers bring the standard reference files
 fields and magnetic model, around 117 MB); the install script fetches
 them once. If they are missing (a development checkout, a cleared
 cache), open the **Reference data**
-dialog (**Run > Check Reference Data**) and choose **Download... > Support
+dialog (**Check Reference Data** (the Run area)) and choose **Download... > Support
 data**; it asks before fetching. `spacemissionstudio kernels-status`
 does the same from the command line.
 
@@ -1170,7 +1181,7 @@ you may need a few extra system libraries --
 [Troubleshooting](docs/troubleshooting.md#the-results-plot-stays-blank) has the exact package names.
 
 **A simulation is taking too long, or you started the wrong one.**
-**Cancel** on the progress strip (`Esc`, or **Run > Cancel Run**) stops it
+**Cancel** on the progress strip (`Esc`, or **Cancel Run**) stops it
 safely at the next checkpoint (not instantly) and keeps whatever partial results were already produced --
 it's always safe to use, never a forced/unsafe kill.
 
@@ -1183,7 +1194,7 @@ minutes and 450 MB. Mission sequences, phasing keeping, Monte Carlo and Vizard
 are limited to 100 days.
 
 **You want to know when the spacecraft comes down.** Open the **End of
-Life** page (**Analyses > End of Life**), pick the spacecraft and press
+Life** page (**Run > End of Life**), pick the spacecraft and press
 **Estimate lifetime**. It
 gives the re-entry date and whether the 5-year rule (ESA's Zero Debris
 approach, the FCC) and the 25-year guideline (IADC) are met. Choose
@@ -1200,7 +1211,7 @@ operations value.
 **You need a delta-V and propellant budget.** Fill in the spacecraft
 editor's **Budget (AD10)** tab, run the mission (ideally its whole
 length, with Solar activity at Conservative (95th) and Cd 3.0 for an ESA AD10
-budget), then press **Compute budget** on the **Budget** page (**Analyses >
+budget), then press **Compute budget** on the **Budget** page (**Run >
 Budget**). It lists
 each contributor per mission phase with its margin, the total, and notes
 on anything that departs from the guideline. **Copy as CSV** puts the
@@ -1232,7 +1243,7 @@ also explains, in plain language, exactly what's wrong if something
 doesn't validate.
 
 **You want to know SpaceMissionStudio's version** (e.g. to report a problem).
-**Help > About SpaceMissionStudio** shows it; in a terminal,
+**Settings > About** shows it; in a terminal,
 `spacemissionstudio --version` prints it with the Basilisk and Python versions.
 
 ## 12. A short glossary

@@ -40,10 +40,15 @@ Colours come from theme.py's ``QLabel#statusChip[state=...]`` and
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
-from PySide6.QtCore import QElapsedTimer, QTimer, Signal
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QLabel, QProgressBar, QPushButton, QToolButton, QWidget
+from PySide6.QtCore import QElapsedTimer, QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QAction, QPainter
+from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QProgressBar, QPushButton, QToolButton, QVBoxLayout,
+                               QWidget)
+
+from .theme import icon
+from .theme.icons import keep_icon
 
 CHIP_STATES = ("idle", "running", "done", "failed", "cancelled")
 
@@ -167,8 +172,29 @@ class RunProgressStrip(QFrame):
         self.time_label.setText(" · ".join(parts))
 
 
+class ElidedLabel(QLabel):
+    """One line that ends in "..." when there is no room for all of it,
+    instead of holding the window wider; the whole text is its tooltip."""
+
+    def setText(self, text: str) -> None:  # noqa: N802 -- Qt API name
+        super().setText(text)
+        self.setToolTip(text)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 -- Qt API name
+        return QSize(0, super().minimumSizeHint().height())
+
+    def paintEvent(self, event) -> None:  # noqa: N802 -- Qt API name
+        painter = QPainter(self)
+        painter.setPen(self.palette().color(self.foregroundRole()))
+        painter.setFont(self.font())
+        shown = self.fontMetrics().elidedText(self.text(), Qt.TextElideMode.ElideRight, self.width())
+        painter.drawText(self.rect(), int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft), shown)
+
+
 class TopBar(QWidget):
-    """Scenario name · saved or not · source · last run, and the status chip."""
+    """Scenario name · saved or not · source · last run, the breadcrumbs
+    under them; on the right the window's commands (:meth:`add_commands`)
+    and the status chip."""
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -176,17 +202,77 @@ class TopBar(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(12, 6, 12, 6)  # [px]
         layout.setSpacing(12)  # [px]
-        self.name_label = QLabel()
+        # Each gives way before the commands do: the window fits 1280 px.
+        self.name_label = ElidedLabel()
         self.name_label.setObjectName("topBarName")
-        self.detail_label = QLabel()
+        self.detail_label = ElidedLabel()
         self.detail_label.setObjectName("topBarDetail")
+        self.breadcrumb_label = ElidedLabel()
+        self.breadcrumb_label.setObjectName("topBarBreadcrumbs")
+        self.breadcrumb_label.setAccessibleName("Where you are")
         self.chip = StatusChip()
-        layout.addWidget(self.name_label)
-        layout.addWidget(self.detail_label, 1)
+        title_row = QHBoxLayout()
+        title_row.setSpacing(12)  # [px]
+        title_row.addWidget(self.name_label)
+        title_row.addWidget(self.detail_label, 1)
+        left = QVBoxLayout()
+        left.setSpacing(0)
+        left.addLayout(title_row)
+        left.addWidget(self.breadcrumb_label)
+        layout.addLayout(left, 1)
+        self.commands = QHBoxLayout()
+        self.commands.setSpacing(4)  # [px]
+        layout.addLayout(self.commands)
         layout.addWidget(self.chip)
+        self.save_button: Optional[QToolButton] = None
+        self.search_button: Optional[QToolButton] = None
         self._dirty = False
         self._source = ""
         self._last_run = ""
+
+    def add_commands(self, undo: QAction, redo: QAction, save: QAction, run: QAction, mode_button: QWidget,
+                     palette: QAction) -> None:
+        """Undo and redo as icons, Save showing the save state, Run with its
+        mode beside it, and the command palette's search field."""
+        for action, name in ((undo, "undo-2"), (redo, "redo-2")):
+            button = QToolButton()
+            button.setDefaultAction(action)
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+            keep_icon(button, icon(name, "text.secondary"))
+            button.setAccessibleName(action.text().replace("&", ""))
+            self.commands.addWidget(button)
+        # Not the action's own button: it shows the save state, not "Save".
+        self.save_button = QToolButton()
+        self.save_button.setObjectName("topBarSave")
+        self.save_button.setIcon(icon("save", "text.secondary"))
+        self.save_button.setToolTip(save.toolTip())
+        self.save_button.setAccessibleName("Save")
+        self.save_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.save_button.clicked.connect(save.trigger)
+        self.commands.addWidget(self.save_button)
+        self.commands.addSpacing(8)  # [px]
+        self.run_button = QToolButton()
+        self.run_button.setObjectName("primaryToolButton")
+        self.run_button.setDefaultAction(run)
+        self.run_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        keep_icon(self.run_button, icon("play", "text.on_accent"))  # the accent icon would vanish on the fill
+        self.commands.addWidget(self.run_button)
+        self.commands.addWidget(mode_button)
+        self.commands.addSpacing(8)  # [px]
+        self.search_button = QToolButton()
+        self.search_button.setObjectName("topBarSearch")
+        self.search_button.setText(f"Search...  {palette.shortcut().toString()}")
+        self.search_button.setToolTip(palette.toolTip())
+        self.search_button.setAccessibleName("Search commands")
+        self.search_button.setIcon(icon("search", "text.secondary"))
+        self.search_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+        self.search_button.clicked.connect(palette.trigger)
+        self.commands.addWidget(self.search_button)
+        self._refresh_detail()
+
+    def set_breadcrumbs(self, parts: List[str]) -> None:
+        """Where the window is: "Scenario › Spacecraft › sat-1"."""
+        self.breadcrumb_label.setText(" › ".join(part for part in parts if part))
 
     def set_scenario(self, name: str, dirty: bool, source: str) -> None:
         """``source``: "template 22", a file name, or "" for a new scenario."""
@@ -212,6 +298,9 @@ class TopBar(QWidget):
             parts.append(f"from {self._source}")
         parts.append(self._last_run or "not run yet")
         self.detail_label.setText(" · ".join(parts))
+        if self.save_button is not None:
+            # The save state on the Save button too: a click saves.
+            self.save_button.setText("Save" if self._dirty else state)
 
 
 def source_of(path: Optional[Path], templates_dir: Path) -> str:

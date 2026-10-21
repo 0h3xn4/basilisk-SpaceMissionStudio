@@ -72,21 +72,28 @@ def _finish_a_run(window, name=None):
     window._on_run_finished(ResultSet(scenario_name=window._last_run_scenario.name))
 
 
-def test_the_main_tabs_and_what_they_hold(window):
-    """Five main tabs as the standard lists them. The Scenario tab is the
-    scenario tree (U-01): Templates, the scenario's own nodes with one per
-    spacecraft (one under it per tab of its editor) and ground station, and
-    the Analyses; the run's plots,
-    dashboard and output are under Results; Explain is in the side panel."""
-    assert _tab_texts(window.main_tabs) == ["Scenario", "Results", "Events", "Compare", "Log"]
+def test_the_areas_and_what_they_hold(window):
+    """The rail's areas as the plan lists them (§5.1), each holding its
+    screens. Home is the Templates; Scenario the scenario tree (U-01) with
+    the scenario's own nodes, one per spacecraft (one under it per tab of
+    its editor) and ground station; Run the analyses and the log; Results
+    the run's plots, dashboard, output and Compare; Timeline the events;
+    Reports the flight software. Help opens the manual; Explain is in the
+    side panel."""
+    assert [area.label for area in window.shell.page_areas()] == [
+        "Home", "Scenario", "Run", "Results", "Timeline", "Reports", "Settings"]
+    assert window.shell.areas["help"].page is None and window.shell.areas["help"].action is window.manual_action
+    assert window.shell.page("home").content is window.load_scenario_widget
     assert [path for path, _page in window.scenario_editor.page_tree.paths()] == [
-        "Templates", "Scenario", "Environment", "Spacecraft", "Spacecraft > my-sat",
+        "Scenario", "Environment", "Spacecraft", "Spacecraft > my-sat",
         *(f"Spacecraft > my-sat > {tab}" for tab in ("Orbit / mass", "Power / propulsion / link budget", "3D model",
                                                      "Vizard model", "Budget (AD10)")),
         "Ground stations",
-        "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo", "JSON", "Analyses > End of Life",
-        "Analyses > Budget", "Analyses > Flight Software"]
-    assert _tab_texts(window.results_views) == ["Plots", "Dashboard", "Output"]
+        "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo", "JSON"]
+    assert _tab_texts(window.run_views) == ["End of Life", "Budget", "Log"]
+    assert _tab_texts(window.results_views) == ["Plots", "Dashboard", "Output", "Compare"]
+    assert window.shell.page("timeline").content is window.event_timeline_widget
+    assert window.shell.page("reports").content is window.flight_software_widget
     assert _tab_texts(window.side_tabs)[0:1] == ["Inspector"]
     assert window.side_dock.isAncestorOf(window.scenario_explainer_widget)
     assert window.current_view() is window.scenario_editor  # opening a template shows the editor
@@ -94,12 +101,12 @@ def test_the_main_tabs_and_what_they_hold(window):
 
 def test_show_view_selects_every_level(window):
     """show_view() reaches a page wherever it is: a page in a scroll area
-    in the scenario tree, a Results view, a side panel page."""
+    in the Run area, a Results view, a side panel page."""
     window.show_view(window.lifetime_widget)
-    assert window.main_tabs.currentWidget() is window.scenario_editor
+    assert window.shell.current_area() == "run"
     assert window.current_view() is window.lifetime_widget
     window.show_view(window.mission_output_widget)
-    assert window.main_tabs.currentWidget() is window.results_views
+    assert window.shell.current_area() == "results"
     assert window.current_view() is window.mission_output_widget
     window.show_view(window.problems_widget)
     assert window.side_tabs.currentWidget() is window.problems_widget and window.side_dock.isVisibleTo(window)
@@ -226,25 +233,26 @@ def test_the_layout_is_kept_and_reset(qtbot, monkeypatch):
     assert second.side_tabs.currentWidget() is second.scenario_explainer_widget
 
 
-def test_the_view_analyses_and_tools_menus(window):
-    """View shows and hides the side panel, opens each of its pages and
-    holds the Time Cursor moves and the Theme; Analyses and Tools open their pages; Tools >
-    Reference Data opens the dialog."""
-    menus = {action.text(): action.menu() for action in window.menuBar().actions() if action.menu()}
-    view = [a.text() for a in menus["&View"].actions() if a.text()]
-    assert view == ["&Side Panel", "&Inspector", "E&xplain", "&Problems", "&Reset Layout", "Time &Cursor", "&Theme"]
+def test_the_view_analyses_and_tools_commands(window):
+    """The View commands show and hide the side panel, open each of its
+    pages, reset the layout, collapse the rail and set the theme; the
+    Analyses and Tools commands open their pages; Tools > Reference Data
+    opens the dialog."""
+    view = [command.label for command in window.commands if command.category == "View"]
+    assert view == ["Side Panel", "Inspector", "Explain", "Problems", "Reset Layout", "Navigation: Icons Only",
+                    "Theme: System", "Theme: Light", "Theme: Dark"]
 
-    def trigger(menu, label):
-        next(a for a in menus[menu].actions() if a.text() == label).trigger()
+    def trigger(category, label):
+        next(c for c in window.commands if c.category == category and c.label == label).action.trigger()
 
-    trigger("&Analyses", "&Budget")
+    trigger("Analyses", "Budget")
     assert window.current_view() is window.budget_widget
-    trigger("&Tools", "&Flight Software")
+    trigger("Tools", "Flight Software")
     assert window.current_view() is window.flight_software_widget
-    trigger("&Tools", "&Reference Data...")
+    trigger("Tools", "Reference Data...")
     assert window.data_dialog.isVisible()
     window.data_dialog.close()
-    trigger("&View", "&Problems")
+    trigger("View", "Problems")
     assert window.side_tabs.currentWidget() is window.problems_widget
 
 
@@ -271,21 +279,15 @@ def _accept_the_model_editor(monkeypatch, model):
     return opened
 
 
-def test_the_3d_model_entry_is_on_the_main_toolbar(window, qtbot):
-    """3D Model... sits on the main toolbar after the run controls (Run, its
-    mode, Cancel, Live plot), visible at the window's own size, and in the
-    Tools menu, so the model editor is not only a tab of the spacecraft
-    editor."""
-    from PySide6.QtWidgets import QToolBar
-
+def test_the_3d_model_entry_is_in_the_scenario_header(window, qtbot):
+    """3D Model... is a button in the Scenario area's header, visible at the
+    window's own size, and a Tools command, so the model editor is not only
+    a tab of the spacecraft editor."""
     window.show()
     qtbot.waitExposed(window)
-    toolbar = window.findChild(QToolBar, "mainToolBar")
-    actions = [a for a in toolbar.actions() if not a.isSeparator()]
-    assert actions.index(window.model_3d_action) == actions.index(window.live_plot_action) + 1
-    assert toolbar.widgetForAction(window.model_3d_action).isVisibleTo(window)
-    tools = next(a.menu() for a in window.menuBar().actions() if a.text() == "&Tools")
-    assert window.model_3d_action in tools.actions()
+    window.show_view(window.scenario_editor)
+    assert window.shell.page("scenario").buttons[window.model_3d_action].isVisibleTo(window)
+    assert window.commands["tools.model_3d"].category == "Tools"
 
 
 def test_the_3d_model_entry_applies_the_model(window, monkeypatch):

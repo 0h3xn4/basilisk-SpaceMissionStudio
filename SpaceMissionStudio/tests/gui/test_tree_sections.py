@@ -141,12 +141,12 @@ def test_renaming_keeps_the_tab_shown(window):
 def test_the_palette_goes_to_a_tab(window):
     """The command palette lists each tab of a spacecraft and goes there."""
     entry = next(e for e in window.palette_entries()
-                 if e.label == "Go to tab > Scenario > Spacecraft > my-sat > Budget (AD10)")
+                 if e.label == "Go to > Scenario > Spacecraft > my-sat > Budget (AD10)")
     window.show_view(window.lifetime_widget)
     entry.run()
     editor = window.scenario_editor
     form = editor._spacecraft_nodes[0].form
-    assert window.main_tabs.currentWidget() is editor
+    assert window.shell.current_area() == "scenario" and window.current_view() is editor
     assert form.tabs.tabText(form.tabs.currentIndex()) == "Budget (AD10)"
 
 

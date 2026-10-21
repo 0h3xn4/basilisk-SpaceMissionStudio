@@ -89,17 +89,18 @@ def main(out: Path) -> int:
 
     def pages():
         """Every page of the workspace: the scenario tree's nodes, the other
-        main tabs' pages (the Results tab's own pages each), then the side
-        panel's."""
+        areas' pages (the Run and Results areas' own pages each), then the
+        side panel's."""
         for path, page in window.scenario_editor.page_tree.paths():
             yield page, "Scenario_" + path.replace(" > ", "_")
-        for main in range(1, window.main_tabs.count()):
-            page = window.main_tabs.widget(main)
-            inner = page if page is window.results_views else None
+        tabs_of = {"run": window.run_views, "results": window.results_views}
+        for area in window.shell.page_areas():
+            if area.id == "scenario":
+                continue
+            inner = tabs_of.get(area.id)
             for sub in range(inner.count() if inner is not None else 1):
-                widget = inner.widget(sub) if inner is not None else page
-                label = window.main_tabs.tabText(main) + ("_" + inner.tabText(sub) if inner is not None else "")
-                yield widget, label
+                widget = inner.widget(sub) if inner is not None else area.page.content
+                yield widget, area.label + ("_" + inner.tabText(sub) if inner is not None else "")
         for index in range(window.side_tabs.count()):
             yield window.side_tabs.widget(index), "side_" + window.side_tabs.tabText(index).split(" (")[0]
 
@@ -132,12 +133,12 @@ def main(out: Path) -> int:
         bar.setValue(0)
     tab_shots("04_before_run")
 
-    for title in ("&File", "&Edit", "&Run", "&Help"):
-        menu = next(a.menu() for a in window.menuBar().actions() if a.text() == title)
-        menu.popup(window.mapToGlobal(QPoint(40, 30)))
-        spin(0.8)  # [s]
-        save(menu, f"05_menu_{title.strip('&').lower()}.png")
-        menu.close()
+    # No menu bar since M2a: the run mode's menu is the one left.
+    menu = window.run_mode_menu
+    menu.popup(window.run_mode_button.mapToGlobal(QPoint(0, window.run_mode_button.height())))
+    spin(0.8)  # [s]
+    save(menu, "05_menu_run_mode.png")
+    menu.close()
 
     window.show_view(window.results_widget)
     window.on_run()
@@ -188,7 +189,7 @@ def main(out: Path) -> int:
     # Dialogs.
     from spacemissionstudio.gui.command_palette import CommandPalette
     from spacemissionstudio.gui.ground_station_editor import GroundStationEditorDialog
-    from spacemissionstudio.gui.help_dialog import ManualDialog, ShortcutsDialog
+    from spacemissionstudio.gui.help_dialog import ManualDialog
     from spacemissionstudio.gui.propagation_setup_dialog import PropagationSetupDialog
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
     from spacemissionstudio.schema import load_scenario
@@ -211,9 +212,9 @@ def main(out: Path) -> int:
     dialog_shot(GroundStationEditorDialog(scenario.ground_stations[0], parent=window), "14_ground_station.png",
                 size=(760, 620))
     dialog_shot(CommandPalette(window.palette_entries(), window), "15_command_palette.png", size=(720, 520))
-    actions = [action for menu_action in window.menuBar().actions() if menu_action.menu() is not None
-               for action in menu_action.menu().actions()]
-    dialog_shot(ShortcutsDialog(actions, window), "16_shortcuts.png", size=(720, 640))
+    window.on_keyboard_shortcuts()  # Settings > Keyboard since M2a
+    spin(0.8)  # [s]
+    save(window, "16_shortcuts.png")
     dialog_shot(ManualDialog(window), "17_manual.png")
 
     # Template 23's Mission Sequence in the editor.

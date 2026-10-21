@@ -15,17 +15,17 @@ writes, so you can move data to and from other tools.
 
 | Keys | Does |
 |---|---|
-| `Ctrl+K` | Command palette: find any menu command, tab, template or result series by a few letters ("save as", "events", "05 formation", "velocity") |
+| `Ctrl+K` | Command palette (also the top bar's search): find any command, area, page, spacecraft, setting, template or result series by a few letters ("save as", "events", "sat-1", "05 formation", "velocity") |
 | `Ctrl+R` | Run, in the mode beside it (Single run, Monte Carlo, SIL) |
 | `Esc` | Cancel the run |
 | `F1` | User Manual |
 | `Ctrl+Z` / `Ctrl+Shift+Z` (`Ctrl+Y` on Windows) | Undo / redo a scenario edit |
 | `Ctrl+N`, `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S` | New, Open, Save, Save As |
-| `Esc` on the Events tab, `Alt+Backspace` anywhere | Clear the time cursor |
-| `Alt+Right` / `Alt+Left` on the Results tab (with `Shift`: ten) | Move the time cursor a sample |
-| `Alt+PgDown` / `Alt+PgUp`, `Alt+Home` / `Alt+End` on the Results tab | The time cursor to the next or previous event, or the run's start or end |
+| `Esc` in the Timeline, `Alt+Backspace` anywhere | Clear the time cursor |
+| `Alt+Right` / `Alt+Left` in Results (with `Shift`: ten) | Move the time cursor a sample |
+| `Alt+PgDown` / `Alt+PgUp`, `Alt+Home` / `Alt+End` in Results | The time cursor to the next or previous event, or the run's start or end |
 
-**Help > Keyboard Shortcuts** lists them all in the app.
+**Settings > Keyboard** (Ctrl+/) lists them all in the app.
 
 ## Working habits
 
@@ -40,16 +40,16 @@ writes, so you can move data to and from other tools.
   know which change changed the result.
 - **Compare runs.** Run, change one thing, run again: the **Compare** tab
   shows what changed in the inputs and in the results, with the
-  differences, and **Compare with** on the Results tab overlays the
+  differences, and **Compare with** in Results overlays the
   earlier run. Runs are saved, so you can compare with yesterday's.
 - **Use orbit only while you design the orbit.** It is much faster than
   full attitude.
 - **Set Record every** for runs longer than a few weeks, or the results
   fill memory.
 - **Hover a field** for a short explanation; the message at the bottom of
-  the Scenario tab names the field to fix when something is invalid.
+  the Scenario area names the field to fix when something is invalid.
 - **Write series names in your scenario's description** under "What to
-  look at": they appear as **Suggested** buttons on the Results tab.
+  look at": they appear as **Suggested** buttons in Results.
 
 ## Scripting and batch runs
 
@@ -68,7 +68,7 @@ writes, so you can move data to and from other tools.
 
 | File | Format | Where in the app |
 |---|---|---|
-| Scenario | JSON (`.json`) | File > Open..., `spacemissionstudio` commands |
+| Scenario | JSON (`.json`) | Open... (Ctrl+O), `spacemissionstudio` commands |
 | TLE | Two text lines, pasted | Spacecraft page, Orbit / mass |
 | Orbit messages | CCSDS OPM, OMM (KVN text) | `ccsds-import`, `ccsds-validate` |
 | Space weather | CelesTrak CSV or TXT | Reference data > Import file..., Scenario tree > Environment |
@@ -82,7 +82,7 @@ writes, so you can move data to and from other tools.
 
 | File | Format | Where in the app |
 |---|---|---|
-| Scenario | JSON | File > Save, Save As... |
+| Scenario | JSON | Save (Ctrl+S), Save As... (Ctrl+Shift+S) |
 | Results | CSV, one per series, SI units, time in seconds | Results > Export CSV..., `run --out-dir` |
 | Events | CSV (seconds and UTC) | Events > Export CSV..., `run` (`events.csv`) |
 | Reports | CSV | Mission Output > Export CSV... |
@@ -92,10 +92,10 @@ writes, so you can move data to and from other tools.
 | Vizard playback | `.bin` | Vizard Configuration..., `run --vizard-save-file` |
 | Monte Carlo batch | `batch_results.npz` and `.json`, plus Basilisk's archive | Run in Monte Carlo mode, `monte-carlo --archive-dir` |
 | Monte Carlo table | CSV | Results > Monte Carlo > Export table CSV... |
-| Budget | CSV on the clipboard | Analyses > Budget > Copy as CSV |
+| Budget | CSV on the clipboard | Run > Budget > Copy as CSV |
 | 3D model | Wavefront OBJ and `.mtl` | 3D Model... > Export .obj..., `model --export-obj` |
-| Flight software | A C project with CMake, `ICD.md`, `TRACEABILITY.md`, `manifest.json` | Tools > Flight Software > Export..., `export-fsw` |
-| SIL report | JSON and CSV | Tools > Flight Software > Save report..., `sil --report` |
+| Flight software | A C project with CMake, `ICD.md`, `TRACEABILITY.md`, `manifest.json` | Reports > Flight Software > Export..., `export-fsw` |
+| SIL report | JSON and CSV | Reports > Flight Software > Save report..., `sil --report` |
 | Logs | Text | `~/.spacemissionstudio/logs/` |
 
 ## Other tools

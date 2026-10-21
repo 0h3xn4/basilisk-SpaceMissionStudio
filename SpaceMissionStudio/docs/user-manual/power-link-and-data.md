@@ -52,7 +52,7 @@ instrument). With the RF link on, the transmitter sends whenever the link
 closes. A full memory takes nothing more; the run counts what was lost.
 
 The run records `data_handling.stored`, `data_generated`,
-`data_downlinked` and `data_lost`, and the Events tab lists each
+`data_downlinked` and `data_lost`, and the Timeline lists each
 downlink. Template **26** fills a 3 Gbit memory from a camera and sends it
 to Berlin.
 

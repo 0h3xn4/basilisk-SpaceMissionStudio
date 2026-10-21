@@ -11,7 +11,7 @@ recorded here and in `docs/DECISIONS.md`.
 |---|---|---|---|---|
 | Inter | 4.1 | SIL Open Font License 1.1 | `gui/assets/fonts/inter/Inter-{Regular,Medium,SemiBold}.ttf`, `OFL.txt` | <https://github.com/rsms/inter/releases/tag/v4.1> (`Inter-4.1.zip`, `extras/ttf/`) |
 | JetBrains Mono | 2.304 | SIL Open Font License 1.1 | `gui/assets/fonts/jetbrains-mono/JetBrainsMono-{Regular,Medium}.ttf`, `OFL.txt` | <https://github.com/JetBrains/JetBrainsMono/releases/tag/v2.304> (`JetBrainsMono-2.304.zip`, `fonts/ttf/`) |
-| Lucide icons | 1.52.0 (`lucide-static`) | ISC; the icons derived from Feather also MIT (both texts in `LICENSE`) | 35 SVGs in `gui/assets/icons/lucide/`, `LICENSE` | npm `lucide-static@1.52.0` (`package/icons/`) |
+| Lucide icons | 1.52.0 (`lucide-static`) | ISC; the icons derived from Feather also MIT (both texts in `LICENSE`) | 45 SVGs in `gui/assets/icons/lucide/`, `LICENSE` | npm `lucide-static@1.52.0` (`package/icons/`) |
 
 - **Unmodified.** The font files are the release's own TTFs (the one
   change to a licence text: a trailing space on line 21 of JetBrains Mono's
@@ -29,6 +29,12 @@ recorded here and in `docs/DECISIONS.md`.
   triangle-alert, variable, x. Of these, check, the chevrons, code, info,
   moon, search, x and the three alert icons (Feather's `alert-*`) are
   derived from Feather (MIT).
+- **Added in M2a** (the navigation rail and the top bar), from the same
+  archive, checked again against the SHA-256 and npm integrity below:
+  chart-gantt, chart-line, circle-help, file-output, house,
+  panel-left-close, panel-left-open, redo-2, settings, undo-2. The ISC
+  and MIT texts in `LICENSE` cover them; which of these ten derive from
+  Feather was not checked.
 - **Removed in 1.1.0:** IBM Plex Sans and Mono (`.woff`, SIL OFL 1.1) and
   the app's 23 hand-drawn SVG glyphs.
 

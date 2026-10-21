@@ -99,7 +99,7 @@ def _short(record) -> str:
 
 
 class CompareWidget(QWidget):
-    """The Compare tab."""
+    """The Compare view of Results."""
 
     compare_chosen = Signal(object)  # the run Results draws dashed, or None
     delete_requested = Signal(object)  # a gui.run_history.RunRecord

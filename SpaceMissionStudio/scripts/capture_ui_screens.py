@@ -27,7 +27,7 @@ and after it. Offscreen, in one theme per process::
 ``OUT/light`` and ``OUT/dark``. The example project is template 23 (the
 complete small satellite): every scenario page, a run of it (Results,
 Events, Log), a second run (Compare), the Monte Carlo template 09 run as a
-short batch, an End of Life estimate, every menu, and every dialog, modal ones
+short batch, an End of Life estimate, the run mode menu, and every dialog, modal ones
 included (grabbed while open, then closed). Needs Basilisk and the support
 data. The run history goes to a temporary folder, not ~/.spacemissionstudio.
 """
@@ -134,26 +134,28 @@ def capture(out: Path, theme: str) -> int:
 
     def workspace(prefix: str) -> None:
         """Every scenario-tree node (pages and their sections), the other
-        main tabs and the Results tab's own pages, and the side panel's
-        tabs."""
+        areas of the rail with the pages of Run and Results, and the side
+        panel's tabs."""
         tree = window.scenario_editor.page_tree
         for path, item in tree.paths():
             window.show_view(window.scenario_editor)
             tree.tree.setCurrentItem(item)
             spin(0.8)  # [s]
             save(window, f"{prefix}_scenario_{path}")
-        for main in range(1, window.main_tabs.count()):
-            page = window.main_tabs.widget(main)
-            label = window.main_tabs.tabText(main)
-            if page is window.results_views:
-                for sub in range(window.results_views.count()):
-                    window.show_view(window.results_views.widget(sub))
+        tabs_of = {"run": window.run_views, "results": window.results_views}
+        for area in window.shell.page_areas():
+            if area.id == "scenario":
+                continue
+            tabs = tabs_of.get(area.id)
+            if tabs is not None:
+                for sub in range(tabs.count()):
+                    window.show_view(tabs.widget(sub))
                     spin(1.5)  # [s]
-                    save(window, f"{prefix}_{label}_{window.results_views.tabText(sub)}")
+                    save(window, f"{prefix}_{area.label}_{tabs.tabText(sub)}")
             else:
-                window.show_view(page)
+                window.shell.show_area(area.id)
                 spin(1.2)  # [s]
-                save(window, f"{prefix}_{label}")
+                save(window, f"{prefix}_{area.label}")
         for index in range(window.side_tabs.count()):
             window.show_view(window.side_tabs.widget(index))
             spin(0.8)  # [s]
@@ -163,14 +165,12 @@ def capture(out: Path, theme: str) -> int:
     spin(2.0)  # [s]
     workspace("before_run")
 
-    for action in window.menuBar().actions():
-        menu = action.menu()
-        if menu is None:
-            continue
-        menu.popup(window.mapToGlobal(QPoint(40, 30)))
-        spin(0.6)  # [s]
-        save(menu, f"menu_{action.text().strip('&')}")
-        menu.close()
+    # No menu bar since M2a: the one menu left is the run mode's.
+    menu = window.run_mode_menu
+    menu.popup(window.run_mode_button.mapToGlobal(QPoint(0, window.run_mode_button.height())))
+    spin(0.6)  # [s]
+    save(menu, "menu_run_mode")
+    menu.close()
 
     window.show_view(window.results_widget)
     window.on_run()
@@ -267,7 +267,7 @@ def capture(out: Path, theme: str) -> int:
     from spacemissionstudio.gui.command_palette import CommandPalette
     from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
     from spacemissionstudio.gui.ground_station_editor import GroundStationEditorDialog
-    from spacemissionstudio.gui.help_dialog import ManualDialog, ShortcutsDialog
+    from spacemissionstudio.gui.help_dialog import ManualDialog
     from spacemissionstudio.gui.mission_sequence_editor import _CommandEditorDialog
     from spacemissionstudio.gui.model_editor_dialog import ModelEditorDialog
     from spacemissionstudio.gui.monte_carlo_editor import _DispersionEditorDialog
@@ -329,8 +329,9 @@ def capture(out: Path, theme: str) -> int:
     dialog_shot(VizardDialog(parent=window), "dialog_vizard", size=(760, 560))
     dialog_shot(StartupFetchDialog(window), "dialog_startup_fetch", size=(760, 520))
     dialog_shot(CommandPalette(window.palette_entries(), window), "dialog_command_palette", size=(720, 520))
-    actions = [a for m in window.menuBar().actions() if m.menu() is not None for a in m.menu().actions()]
-    dialog_shot(ShortcutsDialog(actions, window), "dialog_keyboard_shortcuts", size=(720, 640))
+    window.on_keyboard_shortcuts()  # Settings > Keyboard since M2a, no longer a dialog
+    spin(0.8)  # [s]
+    save(window, "settings_keyboard_shortcuts")
     dialog_shot(ManualDialog(window), "dialog_user_manual")
     window.show_view(window.data_panel_widget)
     spin(1.5)  # [s]

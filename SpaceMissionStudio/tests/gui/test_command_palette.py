@@ -16,7 +16,7 @@
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 """The command palette (UX/UI guidelines, "a command palette"): every
-menu command and tab, found by typing part of its name."""
+command, area and page, found by typing part of its name."""
 
 from PySide6.QtCore import Qt
 
@@ -41,6 +41,16 @@ def test_every_word_must_match_and_name_prefixes_come_first():
     assert [e.label for e in matches("RUN SIM", entries)] == ["Run > Run Simulation", "Run > Abort Simulation"]
     assert matches("", entries) == entries
     assert matches("nothing like this", entries) == []
+
+
+def test_keywords_find_an_entry_by_another_name():
+    """An entry's keywords match like its name but are not shown: "events",
+    the old tab's name, finds the Timeline."""
+    timeline = PaletteEntry("Go to > Timeline", lambda: None, keywords="events")
+    entries = _entries([]) + [timeline]
+    assert timeline in matches("events", entries)
+    assert matches("timeline", entries) == [timeline]
+    assert "events" not in timeline.label
 
 
 def test_enter_runs_the_highlighted_command_and_skips_disabled_ones(qtbot):
@@ -68,18 +78,20 @@ def test_nothing_matching_says_so(qtbot):
     assert palette.ran is None
 
 
-def test_the_main_window_lists_its_menus_and_tabs_on_ctrl_k(qtbot):
-    """Ctrl+K opens the palette, which lists menu commands, tabs and templates
-    but not itself, and going to a tab shows it."""
+def test_the_main_window_lists_its_commands_and_areas_on_ctrl_k(qtbot):
+    """Ctrl+K opens the palette, which lists the registry's commands, the
+    areas and templates but not itself; "events", the old tab's name, finds
+    the Timeline, and going there shows it."""
+    from spacemissionstudio.gui.command_palette import matches
     from spacemissionstudio.gui.main_window import MainWindow
 
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
     assert window.palette_action.shortcut().toString() == "Ctrl+K"
     labels = [e.label for e in window.palette_entries()]
-    assert "Run > Run" in labels and "Go to tab > Events" in labels
+    assert "Run > Run" in labels and "Go to > Timeline" in labels
     assert not any(label.endswith("Command Palette...") for label in labels)
-    go_events = next(e for e in window.palette_entries() if e.label == "Go to tab > Events")
+    go_events = next(e for e in matches("events", window.palette_entries()) if e.label == "Go to > Timeline")
     go_events.run()
     assert window.current_view() is window.event_timeline_widget
     assert any(label.startswith("Open template > 05 formation flying") for label in labels)

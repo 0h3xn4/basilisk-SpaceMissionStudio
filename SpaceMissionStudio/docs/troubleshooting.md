@@ -98,7 +98,9 @@ from disk ([work offline](user-manual/reference-data.md#work-offline)).
 The full message continues: "SpaceMissionStudio does not download during
 a run: download it from the Reference data dialog (Tools > Reference
 Data..., Download... > Support data) or with `spacemissionstudio
-kernels-status`." Do one of those two, then run again.
+kernels-status`." Do one of those two, then run again. "Tools > Reference
+Data..." is the command palette's name (`Ctrl+K`) for **Settings >
+Reference data**; the app no longer has a Tools menu.
 
 ### `Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km); Tools > Reference Data downloads them`
 
@@ -106,7 +108,9 @@ The Explain page shows this, and a run reports `Earth orientation: IAU
 rotation model, no IERS data installed`. The measured Earth orientation
 files are missing, so the run uses the simpler IAU model. Run
 `spacemissionstudio earth-orientation --fetch`, or, in the **Reference
-data** dialog, **Download... > Earth orientation**.
+data** dialog, **Download... > Earth orientation**. (The message's "Tools >
+Reference Data" is the command palette's name for **Settings > Reference
+data**; the app no longer has a Tools menu.)
 
 ## Running a scenario
 
@@ -125,7 +129,7 @@ field to fix. **✓ valid** means you can run.
 
 ### A run takes too long, or you started the wrong one
 
-**Cancel** on the progress strip (`Esc`, or **Run > Cancel Run**) stops it
+**Cancel** on the progress strip (`Esc`, or **Cancel Run**) stops it
 safely at the next checkpoint and keeps the results so far. It is not
 instant. A Monte Carlo batch cannot be cancelled part way.
 
@@ -146,7 +150,7 @@ trust it, add `--allow-scripts` (the GUI asks instead).
 
 ## Scenario files
 
-`spacemissionstudio validate` (and **File > Open...**) name the problem:
+`spacemissionstudio validate` (and **Open...** (Ctrl+O)) name the problem:
 
 | Message | Means |
 |---|---|
@@ -176,7 +180,7 @@ ERROR: the OPM state is at 2030-01-01T08:30:00 UTC, the scenario epoch is 2030-0
 Include:
 
 - the log file named in the error dialog (in `~/.spacemissionstudio/logs/`);
-- the versions, from **Help > About SpaceMissionStudio** or
+- the versions, from **Settings > About** or
   `spacemissionstudio --version`;
 - the scenario file, if you can share it.
 

@@ -8,8 +8,8 @@ record, then NASA MSFC's prediction.
 
 ## Orbital lifetime
 
-1. Open the **End of Life** page (**Analyses > End of Life**, or under
-   **Analyses** in the scenario tree) and pick the spacecraft.
+1. Open the **End of Life** page (**Run > End of Life**: the Run area of
+   the navigation rail) and pick the spacecraft.
 2. Press **Estimate lifetime**. You get the re-entry date and whether two
    rules are met:
    - the **5-year rule** (ESA's Zero Debris approach, the FCC);
@@ -47,7 +47,7 @@ prints a table (400 km: 2.65 years, 550 km: 17.26 years).
 2. Run the mission, ideally for its whole length. For an ESA AD10 budget,
    set **Solar activity** (on the **Environment** page) to
    *Conservative: MSFC 95th percentile* and the drag coefficient to 3.0.
-3. On the **Budget** page (**Analyses > Budget**), press **Compute budget**. It lists each
+3. On the **Budget** page (**Run > Budget**), press **Compute budget**. It lists each
    contributor per mission phase with its margin, the total, and notes on
    anything that departs from the guideline. **Copy as CSV** puts the
    table on the clipboard.

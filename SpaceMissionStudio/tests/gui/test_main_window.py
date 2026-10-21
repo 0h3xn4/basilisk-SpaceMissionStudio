@@ -126,27 +126,32 @@ def test_toolbar_actions_are_all_visible(window, qtbot):
     Fusion-style rendering never reproduced. _build_toolbar() now uses
     two shorter, fixed rows instead of one wide one specifically so no
     single action's visibility depends on window width/platform toolbar
-    -overflow behavior -- assert every action this window exposes is
-    actually on one of the two toolbars and visible, not just present as
-    a QAction object somewhere.
+    -overflow behavior. The toolbars are gone (UI overhaul M2a): assert
+    every command they held is a visible button where it now lives -- the
+    top bar (Save, Run and its mode), the Run area's header (the run
+    controls, Vizard, the reference data check) and Home (New and Open,
+    as the page's own New blank scenario and Browse for a file...) --
+    not just present as a QAction object somewhere.
     """
-    from PySide6.QtWidgets import QToolBar
-
     window.show()
     qtbot.waitExposed(window)
 
-    toolbars = window.findChildren(QToolBar)
-    assert len(toolbars) == 2
-    toolbar_actions = [a for tb in toolbars for a in tb.actions() if not a.isSeparator()]
-
-    for action in (window.new_action, window.open_action, window.save_action, window.run_action,
-                   window.run_mode_button_action, window.abort_action, window.live_plot_action,
-                   window.vizard_action, window.vizard_launch_action, window.check_kernels_action):
-        assert action in toolbar_actions, f"{action.text()!r} is missing from every toolbar"
-        widget = next(tb.widgetForAction(action) for tb in toolbars if tb.widgetForAction(action) is not None)
-        assert widget.isVisibleTo(window), f"{action.text()!r}'s toolbar button is not visible"
-    # The run modes (Monte Carlo among them) are in the mode button's menu, beside Run (U-18).
+    top = window.top_bar
+    for widget in (top.save_button, top.run_button, window.run_mode_button):
+        assert widget.isVisibleTo(window), f"{widget.text()!r} is not visible in the top bar"
+    window.shell.show_area("run")
+    header = window.shell.page("run").buttons
+    for action in (window.run_action, window.abort_action, window.live_plot_action, window.vizard_action,
+                   window.vizard_launch_action, window.check_kernels_action):
+        assert action in header, f"{action.text()!r} is missing from the Run area"
+        assert header[action].isVisibleTo(window), f"{action.text()!r}'s button is not visible"
+    assert window.run_area_mode_button.isVisibleTo(window)
+    window.shell.show_area("home")
+    home = window.load_scenario_widget
+    assert home.start_from_scratch.button.isVisibleTo(window) and home.browse_button.isVisibleTo(window)
+    # The run modes (Monte Carlo among them) are in the mode buttons' menu, beside Run (U-18).
     assert window.run_mode_button.menu().actions() == window.run_mode_group.actions()
+    assert window.run_area_mode_button.menu() is window.run_mode_button.menu()
     assert window.monte_carlo_action in window.run_mode_group.actions()
 
 

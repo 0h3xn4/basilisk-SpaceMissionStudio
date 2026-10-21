@@ -5,6 +5,59 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## M2a Shell (2026-10-21)
+
+The user: "start M2 here". M2 is split into M2a and M2b, recorded in the
+plan before starting (§7 status; §8 allows a split).
+
+- **M2a first: the shell, then M2b the panels.** The shell changes every
+  path to every screen; the panels each change one widget. Two pull
+  requests keep each one reviewable.
+- **Areas host the existing screens unchanged:**
+  - Home: the Templates page.
+  - Scenario: the scenario editor, without Templates and Analyses in its
+    tree.
+  - Run: the run options, End of Life, Budget and the Log.
+  - Results: Plots, Dashboard, Output, Monte Carlo and Compare.
+  - Timeline: the Events view.
+  - Reports: Flight Software.
+  - Settings: appearance, reference data, layout, keyboard and about.
+  - Help: the manual.
+
+  Rebuilding the screens is M3 to M8.
+- **End of Life and Budget keep their inputs and results on one page, in
+  Run:** Q3 puts the inputs in Run › Analyses and the results in Results.
+  Splitting a page means rebuilding it (M6), so M2a moves each page whole
+  to the area that holds its inputs.
+- **Ctrl+1 to Ctrl+6 open the six areas:** the order of the rail, one key
+  each, shown in the rail's tooltips. Settings and Help have the palette
+  and F1.
+- **The 10 icons added for the rail and top bar come from the same
+  `lucide-static` 1.52.0 archive as the 35 bundled in M1,** checked
+  against the archive's recorded SHA-256 and npm integrity:
+  - chart-gantt, chart-line, circle-help, file-output, house;
+  - panel-left-close, panel-left-open, redo-2, settings, undo-2.
+
+- **The window opens on Home:** picking a template or a file is a new
+  user's first move, as when the window opened on the Templates node.
+- **Home's header has no buttons:** its page already has New blank
+  scenario and Browse for a file...; New and Open are also `Ctrl+N`,
+  `Ctrl+O` and palette commands.
+- **The top bar's search is a button that opens the palette,** not a
+  text field of its own: one palette, the one the shortcut opens.
+- **The shortcut list shows a command's first key:** a standard key binds
+  several on some platforms (Redo: Ctrl+Y, Ctrl+Shift+Z, ...); the first
+  is the one to learn, as the old shortcuts dialog showed.
+- **Settings > Keyboard is a `QTableWidget`,** as the dialog was; the
+  `DataTable` component comes with the tables' rebuild (M6).
+- **The saved layout's version is 2:** the toolbars are gone, so a layout
+  saved by an earlier version is ignored once; the side panel starts
+  where a new window has it.
+- **Engine messages keep "Tools > Reference Data":** the engine does not
+  change during the overhaul (`CLAUDE.md`). The palette lists that
+  command under that name, so the message still leads to it; the
+  troubleshooting page says where it now is.
+
 ## A mission from scratch (2026-10-21)
 
 The user: "why can't a user create a new blank project completely from

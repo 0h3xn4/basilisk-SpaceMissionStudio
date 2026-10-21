@@ -14,13 +14,13 @@ and the exported files.
 | **Events** | Passes, eclipses, burns and mode changes, as a timeline and a table | Yes |
 | **Compare** | Two or more saved runs: a summary with differences, the inputs that differ, events, plots | Two runs |
 | **Log** | What the app logged in this session, with every message a toast showed; a failed run opens it | No |
-| **Analyses > End of Life** | Orbital lifetime and deorbit check | No |
-| **Analyses > Budget** | Delta-V and propellant budget | No (better after a run) |
-| **Tools > Flight Software** | Export the flight software, or run it in the loop | No |
+| **Run > End of Life** | Orbital lifetime and deorbit check | No |
+| **Run > Budget** | Delta-V and propellant budget | No (better after a run) |
+| **Reports** (the navigation rail) | Export the flight software, or run it in the loop | No |
 | Side panel: **Inspector** | The field you are in: its value, accepted range and help | No |
 | Side panel: **Explain** | What the scenario is set up to do, and warnings before you run | No |
 | Side panel: **Problems** | What does not validate or looks implausible; double-click one to go to its field | No |
-| **Reference data** dialog (status bar, or **Tools > Reference Data...**) | Every reference data file, its status and where it came from | No |
+| **Reference data** dialog (status bar, or **Settings > Reference data**) | Every reference data file, its status and where it came from | No |
 
 ## Find a plot
 
@@ -55,7 +55,7 @@ you can compare with a run from an earlier session. **Delete run...**
 removes one. On **Results**, **Compare with** draws an earlier run's
 curves dashed, and **Input differences...** lists what differs.
 
-![The Compare tab with two runs of template 22, one day and two days long: the summary with a difference column](../images/compare_tab.png)
+![Results > Compare with two runs of template 22, one day and two days long: the summary with a difference column](../images/compare_tab.png)
 
 On the **Events** tab, the search box (**Ctrl+F**) and the station list
 narrow the timeline and the table. Each value has its own column with
@@ -63,18 +63,19 @@ its unit, such as "Max elevation [deg]". Select rows and press
 **Ctrl+C** to paste them into a spreadsheet; the arrow keys move the
 time cursor from event to event.
 
-![The Events tab after a run of template 22: a timeline of the Berlin passes and the eclipses, above a table of every event](../images/events_tab.png)
+![The Timeline after a run of template 22: a timeline of the Berlin passes and the eclipses, above a table of every event](../images/events_tab.png)
 
 ## Look at one moment
 
 Click a plot, or click on the **Events** timeline, to set the **time
-cursor**, or press **Alt+Right** on the Results tab. A red line marks it
-on every view; the Events tab says what is in progress then, and Mission
-Dashboard shows the values at that moment. On the Results tab
+cursor**, or press **Alt+Right** in Results. A red line marks it
+on every view; the Timeline says what is in progress then, and Mission
+Dashboard shows the values at that moment. In Results
 **Alt+Left**/**Alt+Right** move it a sample (with **Shift**, ten),
 **Alt+PgUp**/**Alt+PgDown** to the previous or next event, and
-**Alt+Home**/**Alt+End** to the run's start or end (**View > Time
-Cursor**). **Run > Clear Time Cursor** (**Alt+Backspace**) removes it.
+**Alt+Home**/**Alt+End** to the run's start or end (the Time Cursor
+commands). **Clear Time Cursor**, at the top of Results and the Timeline
+(**Alt+Backspace**), removes it.
 
 ## Save what you see
 
@@ -99,7 +100,7 @@ the CSV; PNG and SVG files carry it inside the image.
 files, `events.csv` and `provenance.json` into `out/`.
 
 **More detail:** User Manual section 7,
-[Reading the Results tab](../../USER_MANUAL.md#7-reading-the-results-tab).
+[Reading the results](../../USER_MANUAL.md#7-reading-the-results).
 
 ---
 

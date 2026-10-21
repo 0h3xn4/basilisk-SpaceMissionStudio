@@ -148,7 +148,7 @@ class FlightSoftwareWidget(QWidget):
                        "(User Manual, \"Exporting the flight software\").")
         intro.setWordWrap(True)
         outer.addWidget(intro)
-        self.sil_hint = QLabel("To fly an exported program in the loop, choose SIL beside Run on the toolbar, "
+        self.sil_hint = QLabel("To fly an exported program in the loop, choose SIL beside Run in the top bar, "
                                "then press Run.")
         self.sil_hint.setWordWrap(True)
         set_role(self.sil_hint, tone="secondary")

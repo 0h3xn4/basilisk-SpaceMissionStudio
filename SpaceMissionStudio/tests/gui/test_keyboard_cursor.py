@@ -117,23 +117,20 @@ def test_the_keys_work_where_results_has_the_focus(results, qtbot):
     assert cursor.time_s == 3600.0  # [s]
 
 
-def test_the_cursor_commands_are_in_the_view_menu_and_the_shortcut_list(qtbot, monkeypatch):
-    """View > Time Cursor holds the eight moves with their keys, Run >
-    Clear Time Cursor is Alt+Backspace, and Help > Keyboard Shortcuts
-    lists them (it looks into submenus)."""
-    from spacemissionstudio.gui import help_dialog
+def test_the_cursor_commands_are_in_the_registry_and_the_shortcut_list(qtbot):
+    """The Time Cursor commands are the eight moves with their keys, Run >
+    Clear Time Cursor is Alt+Backspace, and Keyboard Shortcuts (Settings >
+    Keyboard) lists them."""
     from spacemissionstudio.gui.main_window import MainWindow
 
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
-    view = next(a.menu() for a in window.menuBar().actions() if a.text() == "&View")
-    cursor_menu = next(a.menu() for a in view.actions() if a.text() == "Time &Cursor")
-    assert [(a.text(), a.shortcut().toString()) for a in cursor_menu.actions()][:2] == [
+    cursor = [command for command in window.commands if command.category == "Time Cursor"]
+    assert [(c.label, c.action.shortcut().toString()) for c in cursor][:2] == [
         ("Next Sample", "Alt+Right"), ("Previous Sample", "Alt+Left")]
-    assert len(cursor_menu.actions()) == 8
-    shown = []
-    monkeypatch.setattr(help_dialog.ShortcutsDialog, "exec", lambda self: shown.append(self) or 0)
+    assert len(cursor) == 8
     window.on_keyboard_shortcuts()
-    table = shown[0].table
-    rows = {table.item(r, 0).text(): table.item(r, 1).text() for r in range(table.rowCount())}
+    assert window.shell.current_area() == "settings"
+    table = window.settings_page.shortcuts_table
+    rows = {table.item(r, 1).text(): table.item(r, 2).text() for r in range(table.rowCount())}
     assert rows["Next Event"] == "Alt+PgDown" and rows["Clear Time Cursor"] == "Alt+Backspace"

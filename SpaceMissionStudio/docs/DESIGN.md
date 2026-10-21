@@ -48,7 +48,7 @@ from the table (`tokens.tokens(mode)`).
   headers, panels and splitters. Group boxes have no frame: their title
   is a heading.
 - **Themes:** light and dark, following the system by default, switched
-  live (View > Theme).
+  live (Settings > Appearance).
 
 | Token | Light | Dark | Use |
 |---|---|---|---|
@@ -191,24 +191,35 @@ units. The time cursor is drawn in the accent: it is a selection.
 
 ### Layout
 
-The app shell:
+The app shell (`gui/shell.py`, `gui/app_shell.py`; M2a), with no menu
+bar and no toolbar:
 
-- **Top bar:** the scenario name, its state (unsaved, from a template or
-  a file), the last run and a run status chip.
-- **Toolbars:** Run is the one primary (accent) button.
-- **Workspace tabs:** Scenario, Results, Events, Compare, Log.
-- **Scenario tab:** the scenario tree on the left. Each spacecraft has a
+- **Navigation rail:** Home, Scenario, Run, Results, Timeline and
+  Reports (Ctrl+1 to Ctrl+6), Settings and Help at the bottom; icon and
+  label, or icons only (its last button).
+- **Area header:** the area's title and its commands as buttons (Run's
+  run controls, Scenario's 3D Model...).
+- **Top bar:**
+  - the scenario name, its state (unsaved, from a template or a file)
+    and the last run, with the breadcrumbs (area › page) under them;
+  - Undo, Redo, Save (it shows the save state), Run (the one primary,
+    accent, button) with its mode, the command search (Ctrl+K) and the
+    run status chip.
+- **Scenario area:** the scenario tree on the left. Each spacecraft has a
   node per part of its editor.
 - **Side panel (a dock):** Inspector, Explain, Problems.
 - **Status bar:** Basilisk version, reference data, Earth orientation
   data, frames.
-- **Layout memory:** View > Reset Layout restores the docks; the layout
-  is kept between sessions.
+- **Layout memory:** Settings > Layout > Reset Layout restores the side
+  panel and the rail; the layout is kept between sessions.
+- **Commands:** every command is in one registry (`gui/actions.py`):
+  the command palette, the area headers, the top bar, the shortcut list
+  and every tooltip ("Save (Ctrl+S)", then what it does) come from it.
 
 | Measure | Value | Where |
 |---|---|---|
 | Grid | 4 px: 4, 8, 12, 16, 24, 32 | `theme.SPACE` |
-| Control height | 32 px (28 px compact: toolbar buttons) | `theme.CONTROL_HEIGHT` |
+| Control height | 32 px (28 px compact: header and top-bar buttons) | `theme.CONTROL_HEIGHT` |
 | Table rows | 26 px | `theme.ROW_HEIGHT` |
 | Corner radius | 6 px controls, 8 px panels, popovers and dialogs | `theme.RADIUS` |
 | Focus ring | 2 px, the accent | `theme/qss.py` |
@@ -238,9 +249,10 @@ popovers, tooltips) are `bg.raised` with a 1 px border instead.
   icon follows a live theme change; a disabled icon takes
   `text.disabled`. The style sheet's arrows and ticks are tinted copies
   (`theme/icons.py`, `icon_file`).
-- **Sizes:** 16 px in the interface, 20 px in the navigation rail (M2).
-- **Toolbars:** every toolbar action has an icon
-  (`tests/gui/test_theme.py::test_every_toolbar_action_has_an_icon`): Run
+- **Sizes:** 16 px in the interface, 20 px in the navigation rail.
+- **Command buttons:** every button of the top bar and the area headers
+  has an icon, the run-mode drop-downs aside
+  (`tests/gui/test_theme.py::test_every_command_button_has_an_icon`): Run
   in the accent, Cancel in critical, the rest in `text.secondary`.
 - **App icon:** drawn in code (`gui/icons.py`) in `palettes.APP_ICON`.
 
@@ -263,6 +275,9 @@ popovers, tooltips) are `bg.raised` with a 1 px border instead.
 | Problems | `workspace_panels.ProblemsWidget` | Every problem; double-click jumps to the field |
 | Inspector | `workspace_panels.InspectorWidget` | The focused field: label, value, range, help |
 | Time cursor | `time_cursor.TimeCursor`, `ResultsWidget.cursor_actions` | One time shared by the plots, the timeline, the dashboard and the output |
+| Command | `actions.ActionRegistry.add(id, text, handler, category=, area=, shortcut=, tip=)` | Every command of the window: its palette entry, header and top-bar buttons, tooltip ("Save (Ctrl+S)") and shortcut row come from it |
+| Area | `shell.Shell.register(id, icon, label, content, order)`, `AreaPage.add_command(action)` | A top-level area of the navigation rail, hosting a screen, with its commands in its header |
+| Elided label | `app_shell.ElidedLabel` | One line that ends in "..." rather than widening the window; the whole text is its tooltip |
 | Event table | `event_timeline_widget._EventTable` | Events, sortable; Ctrl+C copies the selection as TSV |
 
 ## Patterns
@@ -323,13 +338,15 @@ earlier export?"). They are the only message boxes the app uses.
 
 ### Keyboard
 
-Every command is in a menu, and every menu command with a shortcut shows
-it. Help > Keyboard Shortcuts lists them all, submenus included.
-Help > Command Palette (Ctrl+K) finds, by name:
+Every command is in the action registry, and every command with a
+shortcut shows it in its tooltip. Keyboard Shortcuts (Ctrl+/, Settings >
+Keyboard) lists them all. The command palette (Ctrl+K, the top bar's
+search) finds, by name or an older name ("events" finds the Timeline):
 
-- the menus' commands (not those in submenus);
-- the Scenario tree's pages;
-- the tabs and panels;
+- the registry's commands;
+- the areas and the pages of Run and Results;
+- the Scenario tree's pages, its spacecraft and ground stations;
+- the side panel's pages and the Settings sections;
 - the templates;
 - the plotted series.
 
@@ -351,19 +368,29 @@ GNOME and KDE.
 | Run > Run | Ctrl+R | - |
 | Run > Cancel Run | Esc | - |
 | Run > Clear Time Cursor | Alt+Backspace | - |
-| View > Time Cursor > Next Sample | Alt+Right | - |
-| View > Time Cursor > Previous Sample | Alt+Left | - |
-| View > Time Cursor > Ten Samples On | Alt+Shift+Right | - |
-| View > Time Cursor > Ten Samples Back | Alt+Shift+Left | - |
-| View > Time Cursor > Next Event | Alt+PgDown | - |
-| View > Time Cursor > Previous Event | Alt+PgUp | - |
-| View > Time Cursor > Start of the Run | Alt+Home | - |
-| View > Time Cursor > End of the Run | Alt+End | - |
+| View > Inspector | Ctrl+I | - |
+| View > Problems | Ctrl+J | - |
+| Time Cursor > Next Sample | Alt+Right | - |
+| Time Cursor > Previous Sample | Alt+Left | - |
+| Time Cursor > Ten Samples On | Alt+Shift+Right | - |
+| Time Cursor > Ten Samples Back | Alt+Shift+Left | - |
+| Time Cursor > Next Event | Alt+PgDown | - |
+| Time Cursor > Previous Event | Alt+PgUp | - |
+| Time Cursor > Start of the Run | Alt+Home | - |
+| Time Cursor > End of the Run | Alt+End | - |
 | Help > User Manual | F1 | - |
+| Help > Keyboard Shortcuts | Ctrl+/ | - |
 | Help > Command Palette... | Ctrl+K | - |
+| Go > Go to Home | Ctrl+1 | - |
+| Go > Go to Scenario | Ctrl+2 | - |
+| Go > Go to Run | Ctrl+3 | - |
+| Go > Go to Results | Ctrl+4 | - |
+| Go > Go to Timeline | Ctrl+5 | - |
+| Go > Go to Reports | Ctrl+6 | - |
 
-The table is checked against the menus by `tests/gui/test_design_rules.py`;
-a standard key is checked against the running platform's binding.
+The Time Cursor commands work while Results has the focus. The table is
+checked against the registry by `tests/gui/test_design_rules.py`; a
+standard key is checked against the running platform's binding.
 
 **Shortcuts inside a view:**
 
@@ -381,12 +408,13 @@ page, Results, Events, Log, End of Life and Budget at 1280 x 720
 (iteration 7b) found:
 
 - every visible field, button and list is in the chain, in reading order;
-- toolbar buttons are not in it (Qt's default), but each of their
-  commands is in a menu.
+- since M2a the toolbars are gone; the rail, the area headers and the top
+  bar are buttons in the chain, and every command has a shortcut or a
+  palette entry. The keyboard-only walk of the shell is M2b's.
 
 ### Themes
 
-View > Theme offers System, Light and Dark:
+Settings > Appearance offers System, Light and Dark:
 
 - **System** follows the desktop (`QStyleHints.colorScheme`).
 - **Storage:** `~/.spacemissionstudio/settings.ini`, key
@@ -443,7 +471,7 @@ An empty view says why it is empty and what fills it, for example:
 | A validation message starts with what it is about (`<spacecraft>: <field path> ...`, `sim_settings.<field> ...`) so the GUI can locate and label it | `tests/gui/test_field_text.py::test_no_template_message_shows_a_field_code` |
 | A form grows no wider than `CONTENT_MAX_WIDTH_PX` | `tests/gui/test_wide_screen.py` |
 | Validation is never a message box; a message box only confirms | `tests/gui/test_messages.py::test_no_information_warning_or_critical_message_box_is_left` |
-| A menu command with a shortcut is in the table above | `tests/gui/test_design_rules.py::test_the_shortcut_table_matches_the_menus` |
+| A command with a shortcut is in the table above | `tests/gui/test_design_rules.py::test_the_shortcut_table_matches_the_registry` |
 | A widget with a worker thread waits for it before it is destroyed | `tests/gui/test_lifetime_widget.py`, `test_budget_widget.py`, `test_data_panel_widget.py` |
 | Help text is short and plain | `tests/gui/test_label_text.py` |
 | Every input box has a visible border in both themes | `tests/gui/test_input_borders.py` |
@@ -481,13 +509,10 @@ milestone of `docs/ui/UI_OVERHAUL_PLAN.md`):
   `QTableView` component (M6): alignment and precision vary, only the
   Events table copies as TSV, and only cells built with
   `theme.numeric_font()` use tabular figures.
-- **No dedicated shortcut sheet key.** The standard asks for `?` or
-  Ctrl+/; Help > Keyboard Shortcuts has no shortcut of its own. Ctrl+K
-  finds it.
 - **Spacing:** the 4 px grid is in the style sheet; layouts built in code
   still set their own margins (M2-M8 rebuild the screens from
   components).
 - **Motion and UI scale** (the brief's 120-180 ms transitions, reduce
   motion, 90-125 % scale) come with Settings (M8).
-- **Vizard** (audit U-37) still has two toolbar actions and no
-  connection status chip.
+- **Vizard** (audit U-37) still has two commands in the Run area's
+  header and no connection status chip.

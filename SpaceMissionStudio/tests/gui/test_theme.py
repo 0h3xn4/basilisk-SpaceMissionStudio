@@ -146,19 +146,24 @@ def test_icons_follow_the_theme(restored_theme):
     assert ink(play) == TOKENS["accent"] != light
 
 
-def test_every_toolbar_action_has_an_icon(qtbot):
-    """Every toolbar action has an icon, except the run-mode drop-down."""
-    from PySide6.QtWidgets import QToolBar
+def test_every_command_button_has_an_icon(qtbot):
+    """Every command button of the top bar and of the area headers (where
+    the toolbars' commands now are) has an icon, except the run-mode
+    drop-downs."""
+    from PySide6.QtWidgets import QToolButton
 
     from spacemissionstudio.gui.main_window import MainWindow
 
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
-    for toolbar in window.findChildren(QToolBar):
-        for action in toolbar.actions():
-            if action.isSeparator() or action is window.run_mode_button_action:
-                continue  # the run mode picker beside Run: a text drop-down, like a combo box (U-18)
-            assert not action.icon().isNull(), action.text()
+    buttons = window.top_bar.findChildren(QToolButton)
+    for area in window.shell.page_areas():
+        buttons += list(area.page.buttons.values())
+    assert len(buttons) > 10  # the check covers the commands
+    for button in buttons:
+        if button in (window.run_mode_button, window.run_area_mode_button):
+            continue  # the run mode picker beside Run: a text drop-down, like a combo box (U-18)
+        assert not button.icon().isNull(), button.text()
 
 
 def test_apply_theme_sets_the_palette_and_one_sheet(restored_theme):
@@ -212,8 +217,8 @@ def test_the_style_sheet_parses_without_qt_warnings(qtbot, restored_theme):
             window.show()
             assert window.open_path(next(templates.glob("19_*.json")))
             window.scenario_editor.show_spacecraft(0)
-            for index in range(window.main_tabs.count()):
-                window.main_tabs.setCurrentIndex(index)
+            for area in window.shell.page_areas():
+                window.shell.show_area(area.id)
                 restored_theme.processEvents()
     finally:
         qInstallMessageHandler(previous)

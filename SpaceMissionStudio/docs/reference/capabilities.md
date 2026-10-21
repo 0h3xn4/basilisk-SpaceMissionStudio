@@ -107,7 +107,7 @@ exports it. See template 28 and
 
 ### Flight-software export
 
-The Flight Software page (**Tools > Flight Software**) and
+The Flight Software page (**Reports** (the navigation rail)) and
 `spacemissionstudio export-fsw` write a spacecraft's attitude flight
 software as a standalone C99 project (`spacemissionstudio.fsw_export`):
 the Basilisk C modules it runs, copied unchanged from Basilisk 2.12.0,
@@ -158,7 +158,7 @@ gain pattern applied to the real attitude; template 26, User Manual
 section 6), and
 Monte Carlo batch analysis (`Basilisk.utilities.MonteCarlo`: dry mass,
 attitude, orbital elements, inertia, body rate, drag and SRP
-coefficients), shown in the Results tab's Monte Carlo view (each run, the spread
+coefficients), shown in the Monte Carlo view of Results (each run, the spread
 along, across and out of the orbit, and a table of what each run drew).
 
 ### Automatic Sun-pointing / ground-station-pointing attitude switching
@@ -287,7 +287,7 @@ same layer from code.
 
 ### Safe cancellation
 
-**Cancel** (`Esc`; **Run > Cancel Run**) cooperatively cancels an
+**Cancel** (`Esc`; **Cancel Run**) cooperatively cancels an
 in-progress run (or Mission Sequence, or SIL run; not a Monte Carlo
 batch, which Basilisk's Controller cannot stop part way) between
 simulation chunks or commands, keeping whatever partial results were
@@ -298,14 +298,14 @@ state mid-mutation.
 
 Runs of up to about 10 years, chained
 past Basilisk's ~104-day limit, with a "Record every" setting to keep
-them in memory; and an **End of Life** page (**Analyses > End of Life**,
+them in memory; and an **End of Life** page (**Run > End of Life**,
 and `spacemissionstudio lifetime`) estimating when a spacecraft re-enters, with or without a
 deorbit burn, checked against the 5- and 25-year disposal rules. The
 estimate agrees with full Basilisk decay runs to within ~2% in seconds.
 
 ### Propellant budgets (ESA AD10 style)
 
-A **Budget** page (**Analyses > Budget**) and
+A **Budget** page (**Run > Budget**) and
 `spacemissionstudio budget`: delta-V and propellant per mission phase with
 the guideline's margins, residuals and iteration, simulated orbit control
 taken from the last run (or estimated from the drag), the disposal burn
@@ -318,8 +318,8 @@ drag coefficient, 3.0.
 ### GUI & CLI
 
 A full PySide6 desktop shell (scenario editor,
-Monte Carlo, live progress feedback, a real visual theme/icon/
-toolbar) and an equivalent headless CLI (19 commands; see
+Monte Carlo, live progress feedback, a real visual theme and icons, a
+navigation rail and a command palette) and an equivalent headless CLI (19 commands; see
 [Use the command line](../user-manual/command-line.md)), both built on
 the exact same `schema`/`engine` layer -- neither is a thin wrapper
 around the other. Result plots are Plotly figures (a validated,
@@ -329,12 +329,12 @@ rendered in an embedded `QWebEngineView`, with a shared
 x-axis (elapsed time, calendar date or orbit number) and per-series
 km-unit conversion; see `results_widget.py`'s own module docstring for
 why `QWebEngineView` over a static image, and "Verification status"
-below for its one packaging caveat. The Results tab's **Dashboard**
+below for its one packaging caveat. The Results area's **Dashboard**
 view (`mission_dashboard_widget.py`) shows the same live run
 as a set of grouped status readouts (operating state, attitude, power,
 RF link) instead of a plot, for a `comms_pointing`-configured
 spacecraft -- fed from the exact same `RunWorker.progress`/
-`finished_ok`/`cancelled` signals the Results tab already uses, so it
+`finished_ok`/`cancelled` signals the Results area already uses, so it
 updates live during a run with no extra plumbing.
 
 ## Verification status
@@ -351,7 +351,8 @@ compliance matrix.
     with no network at all, and the document and traceability checks;
   - on `windows-latest`: the full test suite.
 - **The GUI is tested for real**, headless, with `pytest-qt`: forms,
-  menus, dialogs and the plots in their embedded web view.
+  the shell's areas and commands, dialogs and the plots in their embedded
+  web view.
 - **Template claims are re-checked.** `tests/test_template_claims.py`
   runs templates 03, 07, 08, 10-14, 16, 17, 19-24 and 26-28 in Basilisk and
   checks the headline numbers their descriptions quote; template 25 runs

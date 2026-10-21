@@ -98,12 +98,22 @@ def _check(dialog, qtbot, qapp):
     tab_widgets = _expand_everything(dialog, qapp)
     checked = len(_input_widgets(dialog))
     bad = _borderless(dialog)
-    for tabs in tab_widgets:
-        for index in range(tabs.count()):
-            tabs.setCurrentIndex(index)
+    # The main window: every area of its rail, as its main tabs were walked.
+    areas = [area.id for area in dialog.shell.page_areas()] if hasattr(dialog, "shell") else [None]
+    for area in areas:
+        if area is not None:
+            dialog.shell.show_area(area)
             qapp.processEvents()
             checked += len(_input_widgets(dialog))
-            bad += [f"[{tabs.tabText(index)}] {item}" for item in _borderless(dialog)]
+            bad += [f"[{area}] {item}" for item in _borderless(dialog)]
+        for tabs in tab_widgets:
+            if not tabs.isVisible():
+                continue
+            for index in range(tabs.count()):
+                tabs.setCurrentIndex(index)
+                qapp.processEvents()
+                checked += len(_input_widgets(dialog))
+                bad += [f"[{tabs.tabText(index)}] {item}" for item in _borderless(dialog)]
     assert checked > 0, "no visible inputs found -- the check would pass vacuously"
     assert not sorted(set(bad)), "inputs with no visible border:\n" + "\n".join(sorted(set(bad)))
 

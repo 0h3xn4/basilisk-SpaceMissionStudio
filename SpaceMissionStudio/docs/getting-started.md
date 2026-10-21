@@ -170,9 +170,9 @@ Then start the GUI (installed apps: from the menu; from source:
 - The status bar at the bottom shows the Basilisk version. "(not
   qualified)" after it means a version other than 2.12.0 is installed:
   runs still work, but outside what the app was verified against.
-- **Run > Check Reference Data** opens the **Reference data** dialog: every file
+- **Check Reference Data** (the Run area) opens the **Reference data** dialog: every file
   should be `ok`.
-- **Help > About SpaceMissionStudio** shows the app's version
+- **Settings > About** shows the app's version
   (`spacemissionstudio --version` in a terminal).
 
 ## 7. Your first run
@@ -190,12 +190,12 @@ orbit for one day, with a ground station in Berlin.
 3. Click **Open Template**. The **Scenario** tab shows the mission; the
    **Explain** page of the side panel says what it switches on, and predicts
    `berlin-gs: 4 passes`.
-4. **Run** on the toolbar (`Ctrl+R`). It takes a few seconds.
+4. **Run** in the top bar (`Ctrl+R`). It takes a few seconds.
 5. The **Results** tab opens. Click "Inertial Position (ECI)" in the
    catalog on the left (search `position_N`) to see the orbit.
 6. Open the **Events** tab: four Berlin passes (the first about 10 to 18
    minutes in) and fifteen eclipses of about 35 minutes each.
-7. **File > Save As...** to keep your own copy before changing anything.
+7. **Save As...** (Ctrl+Shift+S) to keep your own copy before changing anything.
 
 **From the command line:**
 

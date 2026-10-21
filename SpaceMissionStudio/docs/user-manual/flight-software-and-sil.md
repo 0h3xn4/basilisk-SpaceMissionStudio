@@ -10,8 +10,8 @@ You need a spacecraft with an FSW mode ([Attitude and
 hardware](attitude-and-hardware.md)) and a C compiler with CMake to build
 the result.
 
-1. On the **Flight Software** page (**Tools > Flight Software**, or under
-   **Analyses** in the scenario tree), find the spacecraft's card and press
+1. On the **Flight Software** page (**Reports** in the navigation rail),
+   find the spacecraft's card and press
    **Export...**. Choose an empty folder.
 2. Build and test it:
 

@@ -267,7 +267,7 @@ class GanttView(QWidget):
 
 
 class EventTimelineWidget(QWidget):
-    """The Events tab."""
+    """The Timeline area (the run's events)."""
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
