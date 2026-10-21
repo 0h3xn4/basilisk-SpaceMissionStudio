@@ -1,5 +1,5 @@
-# SpaceMissionStudio: builds the release files of a tag on Linux, Windows
-# and macOS, installs each one on its own platform and runs it, then
+# SpaceMissionStudio: builds the release files of a tag on Linux and
+# Windows, installs each one on its own platform and runs it, then
 # attaches them to the tag's GitHub release with their checksums
 # (SpaceMissionStudio/docs/developer/releasing.md, sections 5 and 6).
 #
@@ -19,10 +19,8 @@
 #                    installed silently and the tool run.
 #   Both installers are self-contained: a private Python with Basilisk,
 #   that wheel, every package and the support data
-#   (SpaceMissionStudio/packaging/bundle_python.py).
-#   macOS (arm64):   no installer: the same wheel is installed with
-#                    packaging/install.sh and Basilisk's wheel from PyPI,
-#                    and the tool run (Basilisk has no Intel macOS wheel).
+#   (SpaceMissionStudio/packaging/bundle_python.py). macOS is not
+#   supported (removed on 2026-10-21 by the user's decision).
 name: "SpaceMissionStudio release"
 
 on:
@@ -280,78 +278,15 @@ jobs:
           name: windows-install-log
           path: SpaceMissionStudio/packaging/windows/Output/install.log
 
-  macos:
-    needs: linux
-    env:
-      VERSION: ${{ needs.linux.outputs.version }}
-    runs-on: macos-latest
-    timeout-minutes: 60
-    defaults:
-      run:
-        working-directory: SpaceMissionStudio
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${{ env.SOURCE }}
-      - uses: actions/setup-python@v6
-        with:
-          python-version: "3.11"
-      - uses: actions/download-artifact@v6
-        with:
-          name: packages-linux
-          path: linux
-      - name: The wheel built for this release, checked against SHA256SUMS-linux
-        run: |
-          cd ../linux
-          grep -- "-py3-none-any.whl" SHA256SUMS-linux | shasum -a 256 -c -
-      - name: Install with packaging/install.sh and Basilisk's wheel from PyPI
-        run: |
-          version="$VERSION"
-          bsk_version=$(grep -i '^bsk==' packaging/constraints.txt | cut -d= -f3)
-          python3 -m pip download --quiet --no-deps --only-binary=:all: -d "$RUNNER_TEMP/bsk" "bsk==$bsk_version"
-          bsk_wheels=("$RUNNER_TEMP"/bsk/bsk-*.whl)
-          bash packaging/install.sh --prefix "$RUNNER_TEMP/sms" --no-desktop-entry \
-            --spacemissionstudio-wheel "../linux/spacemissionstudio-$version-py3-none-any.whl" \
-            --basilisk-wheel "${bsk_wheels[0]}"
-      - name: Run the installed tool
-        working-directory: ${{ runner.temp }}
-        run: |
-          sms="$RUNNER_TEMP/sms/spacemissionstudio"
-          "$sms" --version | tee version.txt
-          grep -q "SpaceMissionStudio $VERSION" version.txt
-          "$sms" kernels-status
-          venv_python="$RUNNER_TEMP/sms/venv/bin/python"
-          templates=$("$venv_python" -c "import pathlib, spacemissionstudio; print(pathlib.Path(spacemissionstudio.__file__).parent / 'scenarios' / 'templates')")
-          for f in "$templates"/*.json; do "$sms" validate "$f" >/dev/null || { echo "::error::$f does not validate"; exit 1; }; done
-          "$sms" run "$templates/01_two_body_circular_orbit.json" --out-dir "$RUNNER_TEMP/run01"
-          "$venv_python" - "$VERSION" <<'EOF'
-          import os, sys
-          from PySide6.QtWidgets import QApplication
-          app = QApplication(sys.argv[:1])
-          from spacemissionstudio.gui.theme import apply_theme
-          apply_theme(app)  # as gui/app.py does: registers the bundled fonts
-          import spacemissionstudio
-          from spacemissionstudio.gui.main_window import MainWindow
-          assert spacemissionstudio.__version__ == sys.argv[1], spacemissionstudio.__version__
-          window = MainWindow()
-          window.show()
-          print("GUI started:", spacemissionstudio.__file__, "font", app.font().family(), flush=True)
-          assert app.font().family() == "Inter", app.font().family()
-          os._exit(0)  # skip Qt WebEngine's teardown at exit
-          EOF
-
-  # macOS produces no file, so attaching does not wait for it: GitHub can
-  # leave a macOS job queued for a long time without a runner. The macOS
-  # install check stays a job of the same run, which the notes link to.
   attach:
     needs: [linux, windows]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     # One attach per tag at a time. Only this job is queued per tag: when
-    # the whole run was, a macOS job waiting for a runner held back a
-    # second run for the same tag (2026-10-21, run 39575072165 waited on
-    # the macOS job of run 39573007055), although macOS attaches nothing.
+    # the whole run was, a job waiting for a runner held back a second run
+    # for the same tag (2026-10-21, run 39575072165 waited on the macOS job,
+    # since removed, of run 39573007055).
     concurrency:
       group: spacemissionstudio-release-attach-${{ inputs.tag || github.ref_name }}
       cancel-in-progress: false

@@ -2,8 +2,8 @@
 # Windows CI, many times over, to find its cause (SpaceMissionStudio/
 # compliance/docs/SRelD.md, K-14). test_thousands_of_dropped_steps_never_
 # block_the_link[tcp] has failed twice in the full suite on windows-latest,
-# with "the flight software took no STEP for 10 s", and never on Linux or
-# macOS. A failure now prints the state of both ends of the link.
+# with "the flight software took no STEP for 10 s", and never on Linux. A
+# failure now prints the state of both ends of the link.
 #
 # Job "stress": four workers run the test in fresh processes side by side,
 # while two more processes keep the CPU busy. It needs no Basilisk: the

@@ -114,7 +114,7 @@ def apply_theme(app: QApplication, theme: Optional[str] = None) -> str:
     setting) to ``app``, live. Returns the theme applied.
 
     "Fusion" is the base style: the one built-in Qt style that renders the
-    same on Linux, macOS and Windows and that style sheets restyle
+    same on Linux and Windows and that style sheets restyle
     predictably. The sheet is cleared before the new one is set: Qt then
     builds the new rules once instead of diffing every widget against the
     old ones, which measured about five times faster on the main window.

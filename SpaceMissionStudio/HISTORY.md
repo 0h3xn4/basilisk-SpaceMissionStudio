@@ -11910,3 +11910,30 @@ the list of changes, get sections of their own. The CHANGELOG is wrapped
 at 72 columns and a release page shows every line break, so wrapped lines
 are joined (lists, tables and code blocks are kept). A release without a
 CHANGELOG section, or missing one of its four packages, gets no notes.
+
+## macOS removed (2026-10-21)
+
+The user's decision: "please remove macOS completely and entirely, nobody
+needs it." The tool had no macOS installer; macOS ran the test suite in
+CI and, in the release workflow, installed the wheel with `install.sh`
+and ran it.
+
+Removed: the `macos-latest` row of the `platforms` CI job and its `cocoa`
+platform setting; the release workflow's `macos` job; macOS from the
+release notes; the Vizard launcher's macOS paths (the `.app` name, the
+Applications folders, the macOS download, starting a bundle through its
+`Contents/MacOS` binary); the `darwin` branch of the peak-memory readings
+in two compliance tools; and every current statement of macOS support in
+the READMEs, getting started, the FAQ, troubleshooting, tips, the User
+Manual, the packaging and developer guides, the overhaul plan and the
+compliance documents (SRS-PO-01 is now Linux and Windows).
+
+Kept: Basilisk's own workflows, which also build on macOS (the
+framework is not changed); plain POSIX code Linux uses as well (the
+Unix-domain SIL socket, hidden files such as `.DS_Store` ignored in a
+batch folder); the exported flight-software sources, which say "Linux,
+macOS" for where the exported C code can run and must stay
+byte-identical; and dated records (HISTORY, earlier CHANGELOG entries,
+the audits, the SVR's past runs, the SRelD's past known problems). The
+Vizard tests of the bundle handling now check that a `.app` path is
+started as given (`docs/ui/TEST_CHANGES.md`).

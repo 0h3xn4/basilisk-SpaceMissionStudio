@@ -98,8 +98,8 @@ def scenario_for(duration_days: float, record_interval_s: float) -> dict:
 
 
 def _peak_rss_mib(rusage) -> float:
-    """``ru_maxrss`` in MiB: kibibytes on Linux, bytes on macOS."""
-    divisor = 1024.0 * 1024.0 if sys.platform == "darwin" else 1024.0
+    """``ru_maxrss`` in MiB (Linux reports kibibytes)."""
+    divisor = 1024.0
     return rusage.ru_maxrss / divisor
 
 

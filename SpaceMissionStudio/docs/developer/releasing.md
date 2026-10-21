@@ -16,8 +16,8 @@ page is the checklist.
 
 ## 1. Before you start
 
-- The release branch has green CI on every job (`test` and both
-  `platforms` jobs).
+- The release branch has green CI on every job (`test` and the
+  `platforms` job).
 - The bundled space weather is current: download the latest CelesTrak
   `SW-All.txt` and NASA MSFC tables into
   `spacemissionstudio/data/spaceweather/` (see the `README.md` there),
@@ -52,7 +52,7 @@ The `.deb` reads `spacemissionstudio.__version__`, so it needs no change.
   - optionally, after the list, `### Who should update` and
     `### Known limits` (each runs to the next `###` heading): they get a
     section of their own, and the known limits follow the standing ones
-    (the unsigned Windows setup, no installer for ARM Linux or macOS).
+    (the unsigned Windows setup, no installer for ARM Linux).
 - [`HISTORY.md`](../../HISTORY.md): a short entry for the release.
 - The Software Release Document,
   [`compliance/docs/SRelD.md`](../../compliance/docs/SRelD.md): the
@@ -88,8 +88,6 @@ release"). On GitHub's runners it:
   opened in Inter;
 - builds the bundled Python on Windows, then the setup program around
   it, installs it silently and runs it the same way;
-- on an Apple-silicon Mac, installs that wheel with `packaging/install.sh`
-  and Basilisk's wheel from PyPI, and runs it. macOS has no installer;
 - writes `SHA256SUMS-linux` and `SHA256SUMS-windows`, checks every file
   against them and attaches all of them to the tag's release. A release
   that does not exist yet is created as a draft. An existing release
@@ -134,9 +132,7 @@ what has been verified where.
   The release workflow (section 5) builds, checks and attaches the files
   to a draft release titled "SpaceMissionStudio X.Y.Z". If the Linux or
   Windows job fails, nothing is attached; fix the cause and run the
-  workflow again for the tag. macOS produces no file, so attaching does
-  not wait for the macOS check; it is a job of the same run, which the
-  notes link to.
+  workflow again for the tag.
 - Read the draft on
   <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases>: the
   six files, and the notes, which say which platform has which file and

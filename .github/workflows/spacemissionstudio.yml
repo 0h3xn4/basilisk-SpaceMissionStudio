@@ -210,26 +210,24 @@ jobs:
           path: /tmp/cores/*.txt
           if-no-files-found: ignore
 
-  # SRS-PO-01 (Windows, macOS; H13, decision 19): the test suite on the
-  # other two platforms, against the same qualified Basilisk release. The
-  # Windows installer itself is tested by hand (SValP 9).
+  # SRS-PO-01 (Windows; H13, decision 19): the test suite on Windows,
+  # against the same qualified Basilisk release. macOS is not supported
+  # (removed on 2026-10-21 by the user's decision). The Windows installer
+  # itself is tested by hand (SValP 9).
   platforms:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [windows-latest]
     runs-on: ${{ matrix.os }}
     timeout-minutes: 90
     defaults:
       run:
         working-directory: SpaceMissionStudio
     env:
-      # macOS runners have a window server; Qt WebEngine (the plots) does not
-      # work on the offscreen plugin there (page loads never finished, a test
-      # worker crashed: CI run 20), so macOS uses Qt's normal cocoa plugin.
-      QT_QPA_PLATFORM: ${{ matrix.os == 'macos-latest' && 'cocoa' || 'offscreen' }}
+      QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6

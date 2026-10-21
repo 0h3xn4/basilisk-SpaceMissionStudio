@@ -5,6 +5,31 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## macOS removed (2026-10-21)
+
+The user's decision: "please remove macOS completely and entirely, nobody
+needs it." SpaceMissionStudio supports Linux and Windows only.
+
+- **CI and releases:** the macOS row of the `platforms` job and the
+  release workflow's macOS job are gone. Basilisk's own workflows, which
+  also run on macOS, are the framework's and stay as they are.
+- **The app:** the macOS-only code is gone: Vizard's macOS download and
+  its `.app` bundle handling. Code that is plain POSIX (the Unix-domain
+  SIL socket, skipping hidden files such as `.DS_Store` in a batch
+  folder) stays: Linux uses it, and it changes no result. The exported
+  flight-software sources keep "Linux, macOS" for their Unix-domain
+  socket: they describe where the exported C code can run, and the export
+  stays byte-identical.
+- **Tests:** the two tests of the removed `.app` bundle handling now
+  check that such a path is started as given, and the download test that
+  there is no macOS download (`docs/ui/TEST_CHANGES.md`). No test is
+  skipped or removed. No test had a macOS-only branch otherwise; comments
+  that explain a test's set-up by what the macOS CI runner did keep that
+  history, since the set-up still guards the other platforms.
+- **Documents:** current statements of platform support say Linux and
+  Windows. Dated records (HISTORY, earlier CHANGELOG entries, the audits
+  and the SRelD's past known problems) keep what was true then.
+
 ## Self-contained installers (unreleased)
 
 The user's request (2026-10-20), after the 1.1.0 setup program stopped

@@ -21,7 +21,7 @@
 :class:`Transport` is all :mod:`.session` uses: send bytes, receive an
 exact number of bytes within a time limit, close. :class:`Listener` makes
 the socket kind the contract names: a Unix-domain socket in a private
-folder on Linux and macOS, TCP on 127.0.0.1 on Windows (or when asked).
+folder on Linux, TCP on 127.0.0.1 on Windows (or when asked).
 A serial or UDP link would be another :class:`Transport`.
 """
 
@@ -40,7 +40,7 @@ from typing import Callable, Optional
 
 from .contract import SilError
 
-# sockaddr_un.sun_path holds 108 bytes on Linux, 104 on macOS.
+# sockaddr_un.sun_path holds 108 bytes on Linux; 100 leaves a margin.
 _MAX_UNIX_PATH = 100
 
 

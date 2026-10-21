@@ -10,6 +10,12 @@ fixes bugs.
 
 ## Unreleased
 
+- **macOS is no longer supported.** SpaceMissionStudio runs on Linux and
+  Windows. The macOS CI job and the release workflow's macOS check are
+  gone, and so is the app's macOS-only code: downloading Vizard for
+  macOS and starting it from its `.app` bundle. The documents now name
+  Linux and Windows only. This is the user's decision
+  (`docs/DECISIONS.md`).
 - **Clearer release notes.** A release draft now opens with what the
   release is for, then who should update, the downloads with their sizes,
   how to install or upgrade on each system, how to check a download (with

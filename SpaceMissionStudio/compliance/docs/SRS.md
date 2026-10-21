@@ -255,7 +255,7 @@ The security assurance level is low (UD-4, D8).
 
 | ID | Requirement |
 |---|---|
-| SRS-PO-01 | Linux and Windows. macOS where Basilisk and PySide6 install. |
+| SRS-PO-01 | Linux and Windows (macOS removed on 2026-10-21 by the user's decision). |
 
 ### 5.10 Software quality requirements (D.2.1<5.10>)
 
@@ -361,7 +361,7 @@ Methods: T = test, A = analysis, I = inspection, R = review of design.
 | SRS-RE-01, RE-02 | T | `tests/test_service_execution_errors.py`, `tests/test_lifetime.py::test_a_run_stops_cleanly_when_its_spacecraft_reenters`, `tests/test_autosave.py` |
 | SRS-M-01, M-02 | I | CI workflow; module structure |
 | SRS-D-01 to D-04 | I | coding standard checks (ruff); import tests |
-| SRS-PO-01 | T | CI (Linux, Windows, macOS); Windows installer test (manual, H13) |
+| SRS-PO-01 | T | CI (Linux, Windows); Windows installer test (manual, H13) |
 | SRS-DEL-01 | T, I | `tests/test_dependencies.py` (installer pins) |
 | SRS-DF-01 to DF-03 | T | as SRS-F-12, SRS-F-14 |
 | SRS-H-01 to H-03 | I, T | GUI tests; UX review (UD-5) |

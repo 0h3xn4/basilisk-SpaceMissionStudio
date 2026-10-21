@@ -12,8 +12,8 @@ request, tagging and publishing are the user's (decision of 2026-10-19,
 HISTORY "Towards release 1.1.0").
 - 1.1.1 ships the wheel, the sdist, the Linux `.deb` and the Windows
   setup program, each installer with its own Python, Basilisk and
-  reference data (`packaging/bundle_python.py`). macOS has no installer
-  (K-14, 7).
+  reference data (`packaging/bundle_python.py`). macOS is not supported
+  (removed on 2026-10-21 by the user's decision).
 - The installers of the candidate's source were built and installed:
   the `.deb` in a container (offline upgrade over a 1.1.0 package,
   purge, offline install, an offline run as an ordinary user), and both
@@ -172,8 +172,8 @@ are not (decision 14, H08).
 ## 7 Future evolutions (G.2.1<7>)
 
 Planned, in order:
-1. macOS: an installer; Windows and macOS: fix K-14 and run the
-   installers by hand (K-06, K-12).
+1. Windows: fix K-14 and K-22, and run the installers by hand (K-06,
+   K-12).
 2. The human actions of RD4: reviews, PA organisation, signatures.
 
 Dropping the two Basilisk workarounds also depends on Basilisk: they go

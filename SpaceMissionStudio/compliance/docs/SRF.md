@@ -232,8 +232,6 @@ The findings F-01 to F-08 and their analyses are in RD2.
       `4e1d27a830e11a24e6ba5eab49ef63382de135e5fbbadf37ee6ef2a3236615cd`;
     - `bsk-2.12.0-cp39-abi3-manylinux_2_28_aarch64.whl`:
       `370ab731d4c44066290adc84708d53748e18cb08b331bb2d09b7f5d1f3c8bf8e`;
-    - `bsk-2.12.0-cp39-abi3-macosx_11_0_arm64.whl`:
-      `b45f85e1f01f74c367b662a05b4bd7125f03006ddedb83fcb97e3da1d222418f`;
     - `bsk-2.12.0.tar.gz`:
       `d152f7177cfabcc780d63eaa5b316c70f821c98b781b670a8ec6ecccf9466bf1`.
   - The tool and CI install the release, not the Basilisk source tree

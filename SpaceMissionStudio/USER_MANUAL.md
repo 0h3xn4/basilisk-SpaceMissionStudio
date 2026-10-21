@@ -8,7 +8,7 @@ application.
 **Looking for something else?**
 
 * Installing SpaceMissionStudio: [Getting started](docs/getting-started.md),
-  step by step for Linux, Windows and macOS.
+  step by step for Linux and Windows.
 * Short task-by-task pages ("How do I…?"): [How-to guides](docs/user-manual/README.md).
 * Every document in one place: [Documentation index](docs/README.md).
 * Using it from Python scripts: [`examples/`](examples/README.md).
@@ -120,9 +120,6 @@ find **SpaceMissionStudio** in your application menu like any other program.
 **Windows 10/11:** run `spacemissionstudio-<version>-setup.exe` and click
 through it; it installs for your user only, with no administrator
 rights. Then start **SpaceMissionStudio** from the Start Menu.
-
-**macOS:** there is no installer yet. Install from source as the
-[Getting started guide](docs/getting-started.md) describes (path C).
 
 The installers bring everything with them: their own Python, the
 Basilisk simulation engine and its reference data (planet positions,
@@ -831,7 +828,7 @@ command was never written: a check for CI.
 **Options.** The **step deadline** (off by default) counts a late answer
 as a dropped step, and the previous commands stay in place. The **step
 timeout** (10 s) stops the run when the program does not answer at all.
-On Linux and macOS the link is a Unix-domain socket only you can open;
+On Linux the link is a Unix-domain socket only you can open;
 on Windows, TCP on 127.0.0.1.
 
 **It stops, with the reason,** when the program speaks another contract

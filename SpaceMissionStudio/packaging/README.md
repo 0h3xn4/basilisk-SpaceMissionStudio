@@ -16,7 +16,7 @@ platform:
    their `.ps1` counterparts): installs from a checkout into a virtual
    environment made with the computer's own Python, downloading Basilisk
    and the packages from PyPI. For anyone who would rather script an
-   install, and for macOS, which has no installer.
+   install, and for Linux on ARM (aarch64), which has no installer.
 
 **Basilisk version:** the installers bundle `bsk[all]==2.12.0`, the
 version SpaceMissionStudio is qualified with
@@ -137,10 +137,8 @@ and 6):
 |---|---|---|
 | Linux (x86_64, `ubuntu-24.04`) | wheel, sdist, `.deb`, `SHA256SUMS-linux` | `dpkg -i` of the `.deb` with the network cut off (`unshare --net`), then as the runner's user, still offline and with an empty support-data cache: `--version`, `kernels-status`, every template validated, template 01 run from the bundled kernels, the Earth orientation files found, the main window opened in Inter |
 | Windows (x64, `windows-latest`) | the setup program (the bundled Python with that wheel), `SHA256SUMS-windows` | silent install (`/VERYSILENT /CURRENTUSER`); with an empty support-data cache, the same checks with one template |
-| macOS (Apple silicon, `macos-latest`) | none: the wheel is the package | `install.sh --no-desktop-entry` with that wheel and Basilisk's wheel from PyPI; the same checks as on Linux |
 
-The macOS row produces no file, so attaching does not wait for it: it is
-a job of the same run, which the release notes link to. The workflow's files are
+macOS is not supported (removed on 2026-10-21 by the user's decision). The workflow's files are
 built on the runners, so their checksums differ
 from a local build of the same commit; the checksums on a release are
 those in its `SHA256SUMS-*` files. 1.0.0 was built locally, before the

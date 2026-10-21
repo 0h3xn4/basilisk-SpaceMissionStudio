@@ -62,7 +62,7 @@ OWN_SECTIONS = ("Who should update", "Known limits")
 #: Limits every release has until they are removed here.
 STANDING_LIMITS = [
     "**Windows SmartScreen:** the setup program is not code-signed, so Windows warns before running it.",
-    "**Linux on ARM (aarch64) and macOS:** no installer; use the wheel and `packaging/install.sh`.",
+    "**Linux on ARM (aarch64):** no installer; use the wheel and `packaging/install.sh`.",
 ]
 
 
@@ -240,7 +240,7 @@ def render(version: str, files: Path, run_url: str, changelog: str, root: Path =
     add("|---|---|---|")
     add(f"| Linux x86_64 (Ubuntu 22.04, Debian 12 or later) | `{deb}` | {deb_size} |")
     add(f"| Windows 10 or 11, x64 | `{setup}` | {_size(sizes['setup'])} |")
-    add(f"| macOS 11+ on Apple silicon, and developers | `{paths['wheel'].name}`, `{paths['sdist'].name}` "
+    add(f"| Python developers (Linux, Windows) | `{paths['wheel'].name}`, `{paths['sdist'].name}` "
         f"| {_size(sizes['wheel'])}, {_size(sizes['sdist'])} |")
     add("| Checksums | `SHA256SUMS-linux`, `SHA256SUMS-windows` | |")
     add("")
@@ -259,9 +259,6 @@ def render(version: str, files: Path, run_url: str, changelog: str, root: Path =
     add("- The program is not signed, so Windows asks first: choose **More info**, then **Run anyway**.")
     add("- It installs for your user only, under `%LOCALAPPDATA%\\SpaceMissionStudio`, without administrator "
         "rights.")
-    add("")
-    add("**macOS:** there is no installer yet. From a checkout of this repository, run `packaging/install.sh` with "
-        "the wheel (see `docs/getting-started.md`, path B).")
     add("")
     add("Then start **SpaceMissionStudio** from the application menu or the Start Menu.")
     add("")
@@ -318,8 +315,6 @@ def render(version: str, files: Path, run_url: str, changelog: str, root: Path =
     add("  - checked the reference data;")
     add("  - validated and ran template 01;")
     add("  - opened the main window.")
-    add("- **macOS:** it installs the wheel and runs the app. That job can finish after the files are attached; "
-        "its result is in the run above.")
     add("- **Checksums:** every attached file was checked against `SHA256SUMS-linux` and `SHA256SUMS-windows`.")
     add("")
 

@@ -99,8 +99,8 @@ class MonteCarloResultsWidget(QWidget):
         self.views = TabWidget()
         # The plot view (a second QWebEngineView next to the Results tab's)
         # is built only once a batch is shown: an idle one in every window
-        # costs a Chromium renderer, and the macOS CI runner's test worker
-        # crashed showing it on a plain tab switch.
+        # costs a Chromium renderer, and a CI test worker crashed showing
+        # it on a plain tab switch.
         self.plots: Optional[ResultsWidget] = None
         self._plots_placeholder = QWidget()
         self.views.addTab(self._plots_placeholder, "Plots")

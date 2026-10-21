@@ -33,7 +33,7 @@ battery, link margin, lifetime and propellant.
 
 ## Quick start
 
-On Linux or macOS (Windows: see [Getting started](docs/getting-started.md)):
+On Linux (Windows: see [Getting started](docs/getting-started.md)):
 
 ```bash
 git clone https://github.com/0h3xn4/basilisk-SpaceMissionStudio.git
@@ -101,7 +101,7 @@ Details, and the Basilisk module behind each feature:
 
 | | |
 |---|---|
-| System | Linux x86_64 or aarch64 (glibc 2.28 or newer), Windows 10 or 11 x86_64, macOS 11 or newer on Apple silicon |
+| System | Linux x86_64 or aarch64 (glibc 2.28 or newer), Windows 10 or 11 x86_64 |
 | Python | None for the installers (they bring Python 3.11); 3.11 or newer from source. CI tests 3.11 (Basilisk's wheels go up to 3.14) |
 | Basilisk | 2.12.0: in the installers, or from PyPI (`bsk`) |
 | Disk | About 1.7 GB, including the reference data |
@@ -126,8 +126,8 @@ internet needed.
   reference data; each was installed and run offline by the release
   workflow, the `.deb` also by hand in a container
   ([`packaging/README.md`](packaging/README.md)). The test suite
-  also passes in CI on Windows and macOS (failures seen there before are
-  fixed or under watch, SRelD K-14). macOS has no installer yet.
+  also passes in CI on Windows (failures seen there before are fixed or
+  under watch, SRelD K-14). macOS is not supported.
 - **Known gaps:** [Known limitations](docs/reference/limitations.md).
 - **Standards:** the project's ECSS and CCSDS records are in
   [`compliance/`](compliance/README.md). They are the project's own

@@ -308,7 +308,7 @@ class MainWindow(QMainWindow):
         self.results_views.addTab(self.mission_dashboard_widget, "Dashboard")
         self.results_views.addTab(self.mission_output_widget, "Output")
         # Added and removed as needed (_update_monte_carlo_tab), never kept
-        # as a hidden tab: selecting a hidden tab crashed the macOS test run.
+        # as a hidden tab: selecting a hidden tab crashed a CI test run.
         self.monte_carlo_results_widget = MonteCarloResultsWidget(self)
         self.monte_carlo_results_widget.hide()
 
@@ -714,7 +714,7 @@ class MainWindow(QMainWindow):
 
         help_menu = self.menuBar().addMenu("&Help")
         manual_action = QAction("&User Manual", self)
-        # F1 on every platform (macOS's HelpContents is Ctrl+?, CI run 48), plus the platform's own key
+        # F1 on every platform, plus the platform's own key
         manual_action.setShortcuts([QKeySequence("F1")] + [k for k in QKeySequence.keyBindings(
             QKeySequence.StandardKey.HelpContents) if k.toString() != "F1"])
         manual_action.setToolTip("Opens the user manual shipped with the app (works offline).")

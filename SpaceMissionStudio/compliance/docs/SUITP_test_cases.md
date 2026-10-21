@@ -1453,12 +1453,12 @@ Levels: *unit* runs without Basilisk or Qt; *integration* runs a Basilisk simula
 | `test_search_finds_executable_directly_in_a_candidate_root` | The search finds the executable directly in a search folder. | - | integration |
 | `test_search_finds_executable_one_level_down_in_a_candidate_root` | Covers "unzipped into its own subfolder" (e.g. | - | integration |
 | `test_search_skips_a_nonexistent_root_without_raising` | A missing search folder ahead of a real one is skipped without an error. | - | integration |
-| `test_launch_starts_the_given_executable_directly_on_non_macos` | On Linux, the executable is started directly, without arguments, and its process returned. | - | integration |
+| `test_launch_starts_the_given_executable_directly_on_linux` | On Linux, the executable is started directly, without arguments, and its process returned. | - | integration |
 | `test_launch_appends_direct_comm_flag_when_given` | See DEFAULT_LIVE_STREAM_ADDRESS's own comment: -directComm is what makes Vizard connect to a live-stream run automatically instead of sitting on its own manual launcher screen. | - | integration |
 | `test_launch_omits_direct_comm_flag_when_not_given` | Without a direct-communication address, Vizard is started without that flag. | - | integration |
-| `test_launch_resolves_macos_app_bundle_to_its_inner_binary` | On macOS, an app bundle is started through its Contents/MacOS binary. | - | integration |
-| `test_launch_raises_a_clear_error_for_an_empty_macos_bundle` | A macOS bundle without a binary is refused as not a valid app bundle. | - | integration |
-| `test_download_url_for_platform_covers_all_three` | Each platform gets its own Vizard download. | - | integration |
+| `test_launch_treats_an_app_bundle_path_like_any_other` | macOS is not supported (2026-10-21): a path ending in .app is no longer resolved to a binary inside it, but started as given, on every platform, even one that reports itself as macOS. | - | integration |
+| `test_launch_no_longer_inspects_an_empty_app_bundle` | An empty .app folder used to be refused as "not a valid macOS app bundle"; with macOS unsupported it is not inspected, and starting it is left to the operating system, as for any other path. | - | integration |
+| `test_download_url_for_platform_covers_windows_and_linux` | Windows and Linux each get their own Vizard download, and there is no macOS one (macOS is not supported, 2026-10-21). | - | integration |
 | `test_fetch_vizard_downloads_extracts_and_finds_the_executable` | fetch_vizard downloads the zip, extracts it and returns the executable inside (network mocked). | - | integration |
 | `test_fetch_vizard_sends_a_browser_like_user_agent` | Regression guard: urllib's own default User-Agent ("Python-urllib/<version>") got "HTTPError: 403 Forbidden" from a real host on a real user's machine -- asserts the actual outgoing urllib.request.Request carries a real  | - | integration |
 | `test_fetch_vizard_sets_the_executable_bit_on_non_windows` | fetch_vizard makes the extracted Linux executable executable by its owner. | - | integration |

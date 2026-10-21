@@ -336,9 +336,8 @@ Help > Command Palette (Ctrl+K) finds, by name:
 Commands with a **standard key** take the platform's own key for it
 (Qt's `QKeySequence.StandardKey`), so their keys differ between systems.
 The table gives them as Qt binds them without a desktop theme (the CI's
-offscreen platform). On macOS, Redo is Ctrl+Shift+Z and Quit is Ctrl+Q
-(seen in CI). Qt's documentation gives Ctrl+Shift+Z for Redo on GNOME
-and KDE too.
+offscreen platform). Qt's documentation gives Ctrl+Shift+Z for Redo on
+GNOME and KDE.
 
 | Command | Keys | Standard key |
 |---|---|---|
