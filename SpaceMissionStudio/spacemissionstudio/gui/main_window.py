@@ -32,6 +32,7 @@ with a different UI toolkit entirely without touching
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import logging
 import subprocess
 import time
@@ -280,7 +281,7 @@ class MainWindow(QMainWindow):
         self._shown_run_sha256: str | None = None  # the scenario hash of the run the views show
 
         # The workspace (UI overhaul plan §5.1): a navigation rail of areas
-        # (gui.shell), the top bar above them, the side panel on the right,
+        # (gui.shell), the top bar above them, the inspector on the right, Problems below,
         # and the reference data in a dialog opened from the status bar.
         # The Scenario area is the scenario tree with the editor's own
         # nodes; Templates is Home, the analyses are in Run and Reports.
@@ -959,19 +960,77 @@ class MainWindow(QMainWindow):
 
         return QSettings(str(Path.home() / ".spacemissionstudio" / "layout.ini"), QSettings.Format.IniFormat)
 
+    def _layout_splitters(self) -> dict:
+        """The splitters a layout keeps, by name."""
+        return {"scenario": self.scenario_editor.page_tree.splitter,
+                "sequence": self.scenario_editor.mission_sequence_editor.splitter,
+                "results": self.results_widget.splitter, "results_side": self.results_widget.side_splitter,
+                "timeline": self.event_timeline_widget.splitter, "compare": self.compare_widget.content}
+
+    def _layout_group(self) -> Optional[str]:
+        """The settings group of the open scenario's layout (M2b: the layout
+        is kept per project), or None for a scenario not saved yet."""
+        if self._current_path is None:
+            return None
+        key = hashlib.sha256(str(Path(self._current_path).resolve()).encode("utf-8")).hexdigest()[:16]
+        return f"project-{key}"
+
+    def _write_layout(self, settings, group: str) -> None:
+        settings.beginGroup(group)
+        settings.setValue("state", self.saveState(_LAYOUT_VERSION))
+        settings.setValue("rail_collapsed", self.shell.rail.collapsed)
+        for name, splitter in self._layout_splitters().items():
+            settings.setValue(f"splitter_{name}", splitter.saveState())
+        if group.startswith("project-"):
+            settings.setValue("path", str(self._current_path))  # for whoever reads the file
+        settings.endGroup()
+
+    def _read_layout(self, settings, group: str) -> bool:
+        """Apply the layout kept under ``group``; False when there is none."""
+        settings.beginGroup(group)
+        try:
+            state = settings.value("state")
+            if state is None:
+                return False
+            self.restoreState(state, _LAYOUT_VERSION)
+            self.rail_collapse_action.setChecked(settings.value("rail_collapsed", False, type=bool))
+            for name, splitter in self._layout_splitters().items():
+                saved = settings.value(f"splitter_{name}")
+                if saved is not None:
+                    splitter.restoreState(saved)
+            return True
+        finally:
+            settings.endGroup()
+
     def _restore_layout(self) -> None:
         settings = self._layout_settings()
-        geometry, state = settings.value("window/geometry"), settings.value("window/state")
+        geometry = settings.value("window/geometry")
         if geometry is not None:
             self.restoreGeometry(geometry)
-        if state is not None:
-            self.restoreState(state, _LAYOUT_VERSION)
+        self._read_layout(settings, "window")
 
     def _save_layout(self) -> None:
+        """The window's layout, and the open project's (M2b)."""
         settings = self._layout_settings()
         settings.setValue("window/geometry", self.saveGeometry())
-        settings.setValue("window/state", self.saveState(_LAYOUT_VERSION))
+        self._write_layout(settings, "window")
+        self._save_project_layout(settings)
         settings.sync()
+
+    def _save_project_layout(self, settings=None) -> None:
+        group = self._layout_group()
+        if group is None:
+            return
+        settings = settings or self._layout_settings()
+        self._write_layout(settings, group)
+        settings.sync()
+
+    def _restore_project_layout(self) -> None:
+        """The open project's layout, when it has one; otherwise the layout
+        stays as it is."""
+        group = self._layout_group()
+        if group is not None:
+            self._read_layout(self._layout_settings(), group)
 
     def _on_theme_chosen(self) -> None:
         """A theme command (Settings > Appearance): remember the choice and apply it now."""
@@ -1369,6 +1428,7 @@ class MainWindow(QMainWindow):
     def on_new(self) -> None:
         if not self._confirm_discard_unsaved():
             return
+        self._save_project_layout()
         self.scenario_editor.reset_to_default()
         self._reset_history()
         self._refresh_scenario_explainer()
@@ -1438,6 +1498,7 @@ class MainWindow(QMainWindow):
         through on_save_as() -- see that method -- rather than silently
         picking a path to write to.
         """
+        self._save_project_layout()
         self.scenario_editor.from_scenario(scenario)
         # The guide opens for a scenario still without spacecraft; an
         # opened mission keeps its description in view, the guide folded.
@@ -1445,6 +1506,7 @@ class MainWindow(QMainWindow):
         self._reset_history()
         self._refresh_scenario_explainer()
         self._current_path = current_path
+        self._restore_project_layout()
         self._clear_run_views()
         self._mark_clean()
         label = str(current_path) if current_path is not None else scenario.name
@@ -1480,6 +1542,7 @@ class MainWindow(QMainWindow):
                          "The previous file, if there was one, is unchanged.")
             return
         self._current_path = path
+        self._save_project_layout()
         self._mark_clean()
         self.statusBar().showMessage(f"Saved {path}")
         show_toast(self, f"Saved {path.name}")

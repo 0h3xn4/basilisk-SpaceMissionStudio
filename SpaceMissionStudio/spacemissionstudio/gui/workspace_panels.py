@@ -300,6 +300,7 @@ class ProblemsWidget(QWidget):
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.setWordWrap(False)
+        self.table.setTabKeyNavigation(False)  # Tab leaves the table; the arrows move in it
         self.table.verticalHeader().setVisible(False)
         self.table.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
         header = self.table.horizontalHeader()
@@ -308,6 +309,7 @@ class ProblemsWidget(QWidget):
         self.table.activated.connect(self._on_activated)
         layout.addWidget(self.empty_label)
         layout.addWidget(self.table, 1)
+        self.setFocusProxy(self.table)  # focusing the panel focuses its table
         self.problems: List[Tuple[str, str]] = []
         self.set_problems([])
 

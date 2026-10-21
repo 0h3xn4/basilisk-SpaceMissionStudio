@@ -17,7 +17,7 @@ instead of one run of a fixed length.
    (`"enabled": false`) and is still checked, so ticking it again cannot
    break the scenario. With every step unticked the run lasts the
    scenario's duration, as without a sequence.
-5. Run it as usual (**Run**, `Ctrl+R`). The progress strip shows the step
+5. Run it as usual (**Run**, `Ctrl+R`). The status bar shows the step
    it is on ("Step 2 of 5: ..."). The run follows the
    commands instead of the scenario's duration.
 

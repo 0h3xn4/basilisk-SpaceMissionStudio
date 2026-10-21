@@ -37,6 +37,24 @@ fixes bugs.
   file the app writes are the same. Two engine messages still name
   "Tools > Reference Data": the palette finds that command by that name.
 
+- **Problems at the bottom, the run in the status bar** (UI overhaul M2b):
+  - **The Problems panel** is a table at the bottom of the window
+    (`Ctrl+J`): severity, the field it is about, the object (scenario,
+    spacecraft, ground station, ...) and the message. Errors come first,
+    a column heading sorts by it, `Ctrl+C` copies the selected rows, and
+    `Enter` or a double-click goes to the field. The status bar always
+    counts the errors and warnings, and the top bar shows the count while
+    there are any; a click on either opens the panel.
+  - **The run** shows in the status bar: what it is doing, its progress,
+    the time so far and left, **Cancel (Esc)** and its state ("Run 2:
+    done in 6 s").
+  - **Inspector and Explain** are two panels on the right, one above the
+    other, instead of tabs. `Ctrl+I` shows and hides the Inspector.
+  - **The layout is kept for each scenario file:** the panels, the rail
+    and the dividers come back when you open the file again.
+
+  A layout saved by an earlier version is ignored once.
+
 ## 1.2.0 (2026-10-21)
 
 Starting a mission from an empty scenario is now a choice of its own: the

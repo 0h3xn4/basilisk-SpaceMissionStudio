@@ -17,9 +17,9 @@ and the exported files.
 | **Run > End of Life** | Orbital lifetime and deorbit check | No |
 | **Run > Budget** | Delta-V and propellant budget | No (better after a run) |
 | **Reports** (the navigation rail) | Export the flight software, or run it in the loop | No |
-| Side panel: **Inspector** | The field you are in: its value, accepted range and help | No |
-| Side panel: **Explain** | What the scenario is set up to do, and warnings before you run | No |
-| Side panel: **Problems** | What does not validate or looks implausible; double-click one to go to its field | No |
+| Right: **Inspector** | The field you are in: its value, accepted range and help | No |
+| Right: **Explain** | What the scenario is set up to do, and warnings before you run | No |
+| Bottom: **Problems** | What does not validate or looks implausible, by severity, field and object; double-click one to go to its field | No |
 | **Reference data** dialog (status bar, or **Settings > Reference data**) | Every reference data file, its status and where it came from | No |
 
 ## Find a plot

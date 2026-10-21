@@ -58,6 +58,83 @@ plan before starting (§7 status; §8 allows a split).
   command under that name, so the message still leads to it; the
   troubleshooting page says where it now is.
 
+## M2b Panels (2026-10-21)
+
+The user: "start M2b here". M2b is the second half of M2 (above).
+
+- **Problems is a bottom dock with a table:** a `QTableView` over
+  `ProblemsModel`, as `CLAUDE.md` sets for tables. Its columns:
+  - **Severity**: the word and an icon, colour never alone;
+  - **ID**: the field path the message is about (`epoch_utc`,
+    `dry_mass_kg`), "-" when it names none;
+  - **Object**: Scenario, Propagation setup, the spacecraft's or ground
+    station's name, Mission sequence or JSON;
+  - **Message**: the text the Problems list showed before.
+
+  The ID and the object come from `problem_location.locate`, which the
+  jump to the field already used: nothing new is parsed. Errors come first,
+  then the scenario's order; a heading sorts by its column.
+- **No filter field or column menu on the Problems table yet:** it has
+  four columns and a few rows. The `DataTable` component (M6) brings both
+  to every table.
+- **The counts:** on the panel's title ("Problems (2)"), always in the
+  status bar ("1 error · 1 warning", "No problems") and in the top bar
+  only while there are any; both buttons open the panel. Qt names a
+  dock's toggle after its title, so the command is named "Problems" again
+  after each count.
+- **The run job and the chip are in the status bar,** before its other
+  items, where §5.1 puts the jobs. The strip got compact for it: the phase
+  elides at 320 px and the bar is 120 px wide, so a long phase does not
+  widen the window. One job at a time: Run is disabled while a run or a
+  Monte Carlo batch goes, so the "job list" has one entry.
+- **The inspector is two docks, Inspector over Explain,** not one dock
+  with tabs. Each one is shown, hidden and sized on its own. Explain leaves
+  for Scenario › Overview in M4.
+- **`Ctrl+I` and `Ctrl+J` toggle the Inspector and Problems panels,** as
+  §5.2 sets; "Side Panel" is gone, its keyword finds the Inspector. A
+  panel shown from the keyboard takes the focus, so its table is usable at
+  once. Explain has its command and its palette entry, with no shortcut.
+- **The validation strip under the editor stays until M4.** §5.2 removes
+  it once Problems holds what it says. It is part of the scenario
+  editor, which M4 rebuilds, and seven tests read it. Problems already
+  lists the same problems.
+- **The layout is kept per scenario file:** `layout.ini` keeps one group
+  per file. The group is named by a SHA-256 of the file's resolved path,
+  and its `path` entry names the file for whoever reads it. Each group
+  holds:
+  - the dock state (visibility and sizes);
+  - whether the rail is collapsed;
+  - the six main splitters (scenario tree, mission sequence, plots and
+    their side, timeline, compare).
+
+  It is saved when another scenario opens, on Save and on close. A file
+  without a layout of its own keeps the layout shown: a new project starts
+  from the last one. The window-wide layout is kept as before, for a new
+  window.
+- **The saved layout's version is 3:** the docks changed (Problems at the
+  bottom, Explain its own dock), so a layout saved by M2a is ignored once.
+- **The keyboard walk:**
+  - Tab goes round the whole window and comes back to where it started
+    (47 stops with Home shown).
+  - The arrow keys move along the rail's areas, as in any group of
+    exclusive buttons, and Space or Enter opens one.
+  - The Problems table no longer holds Tab (`setTabKeyNavigation(False)`);
+    the walk found that trap.
+  - The Tab order follows the order the widgets were made in: rail,
+    status bar, panels, top bar, area. A deliberate order is M9's
+    accessibility pass.
+- **The theme switch is not under 100 ms; the criterion moves to M9.**
+  Measured on this branch, offscreen, on template 23:
+  - 0.42–0.47 s on a new window (1508 widgets);
+  - 0.73–0.84 s once every page has been visited (2529 widgets);
+  - M1 measured 0.51–0.55 s and 2.4 s.
+
+  Nearly all of it is Qt's `setStyleSheet`: 141 ms to clear the sheet,
+  245 ms to set it. Setting it without clearing first takes 2.8–3.0 s.
+  The Python redraw handlers take 1 ms. Under 100 ms needs fewer widgets
+  alive: pages built when first shown, which the rebuilds of M4–M8 bring.
+  M9's performance pass holds the criterion, with these values.
+
 ## A mission from scratch (2026-10-21)
 
 The user: "why can't a user create a new blank project completely from

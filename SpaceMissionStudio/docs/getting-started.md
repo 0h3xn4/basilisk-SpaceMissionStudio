@@ -188,7 +188,7 @@ orbit for one day, with a ground station in Berlin.
 2. The app opens on **Templates**. Click **22 - Starter: your first
    LEO satellite**; its description appears below the list.
 3. Click **Open Template**. The **Scenario** tab shows the mission; the
-   **Explain** page of the side panel says what it switches on, and predicts
+   **Explain** panel on the right says what it switches on, and predicts
    `berlin-gs: 4 passes`.
 4. **Run** in the top bar (`Ctrl+R`). It takes a few seconds.
 5. The **Results** tab opens. Click "Inertial Position (ECI)" in the

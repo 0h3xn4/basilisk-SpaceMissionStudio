@@ -37,7 +37,7 @@ from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import QWidget
 
 # The areas of the navigation rail (gui.shell), and "global" for commands
-# that belong to the whole window (the palette, undo, the side panel).
+# that belong to the whole window (the palette, undo, the panels).
 AREAS = ("home", "scenario", "run", "results", "timeline", "reports", "settings", "help", "global")
 
 Keys = Union[str, QKeySequence, QKeySequence.StandardKey]

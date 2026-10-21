@@ -154,7 +154,7 @@ back in line, and so does **OK** in the editor.
 
 Elsewhere in the app:
 
-- **Problems** in the side panel lists a model that cannot be built or
+- The **Problems** panel lists a model that cannot be built or
   whose values are out of date; double-click it to open that
   spacecraft's model editor.
 - **Explain** shows a "3D model, N parts" badge for each spacecraft with a
