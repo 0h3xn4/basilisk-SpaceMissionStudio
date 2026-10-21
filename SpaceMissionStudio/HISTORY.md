@@ -12145,3 +12145,65 @@ now.
   checked against the registry.
 - The documentation's screenshots were recaptured.
 - `docs/THIRD_PARTY_ASSETS.md` lists the new icons.
+
+## M2b: the panels (2026-10-21)
+
+The user: "start M2b here", the second half of M2 (see M2a above).
+
+**What changed.**
+- **Problems is a table at the bottom** (`gui/workspace_panels.py`): a
+  `QTableView` over `ProblemsModel` with Severity (icon and word), ID (the
+  field path), Object and Message. The ID and the object come from
+  `problem_location.locate`, which the jump to the field already used.
+  Errors come first, a heading sorts by its column, `Ctrl+C` copies the
+  selected rows as TSV, and `Enter` or a double-click goes to the field.
+  The counts are on the panel's title, always in the status bar and, while
+  there are any, in the top bar; both buttons open the panel.
+- **The run is a job in the status bar:** the progress strip (phase, bar,
+  time so far and left, Cancel) and the run chip moved there from under
+  and in the top bar. The strip got compact, its phase eliding, so a long
+  phase does not widen the window.
+- **The inspector is two docks,** Inspector over Explain, instead of one
+  dock with tabs. `Ctrl+I` and `Ctrl+J` toggle the Inspector and Problems;
+  "Side Panel" is gone, and its old name finds the Inspector in the
+  palette.
+- **The layout is kept per scenario file** (`layout.ini`, one group per
+  file): the docks, the rail and six splitters, saved when another
+  scenario opens, on Save and on close. The layout version is 3.
+
+**Found on the way.**
+- **Tab was held by the Problems table.** The keyboard walk pressed Tab
+  from the rail and never came back: a `QTableView` moves from cell to
+  cell on Tab by default. Tab now leaves the table; the arrows move in it.
+- **Ctrl+J showed the panel but left the focus where it was:** the panel
+  itself takes no focus. Focusing it now focuses its table.
+- **The status bar cut the run's time.** In the harness's run-in-progress
+  screen the phase had no width left and the time read "0:02 elap": a
+  `QStatusBar` does not lay out an entry again when its text grows, and
+  its entries' minimums added up to more than 1280 px. The job now asks
+  for a new layout when it needs more width. The chip hides while the job
+  shows, since both said "80 %". The Earth orientation and frames entries
+  elide, with their whole text as the tooltip.
+  `test_the_status_bar_job_fits_a_1280_px_window` checks it.
+- **A wheel test passed only by luck.** `test_mouse_wheel_changes_nothing`
+  for the main window found something to wheel over only in the side
+  tabs' bar. With the tabs gone, its "nothing to wheel over" guard failed.
+  It now walks the rail's areas, as the input-border test has since M2a.
+- **The count renamed the command.** Qt names a dock's toggle after the
+  dock's title, so "Problems (1)" became the command's name in the
+  palette and the shortcut list (`test_the_shortcut_table_matches_the_registry`).
+  The command is named "Problems" again after each count.
+
+**Tests.** 3689 passed and 12 skipped in the full suite (the usual 12:
+no-Basilisk premises, the vendored-sources check, a missing locale). Of
+the existing GUI tests, 26 changed only how they reach a widget, each in
+`docs/ui/TEST_CHANGES.md`. There is one new file, `test_panels.py`, with
+13 tests. Golden files and every output are unchanged.
+
+**Measured.** The theme switch takes 0.42–0.47 s on a new window and
+0.73–0.84 s once every page has been visited (M1: 0.51–0.55 s and 2.4 s),
+not under 100 ms. Nearly all of it is Qt's `setStyleSheet`; the criterion
+moves to M9 with these values (`docs/DECISIONS.md`).
+
+**Not done here.** The validation strip under the editor stays until M4
+rebuilds the editor; Problems already lists what it says.
