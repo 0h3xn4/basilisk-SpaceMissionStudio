@@ -197,7 +197,14 @@ def test_the_status_bar_job_fits_a_1280_px_window(window, qapp):
     assert progress.time_label.text() == "80 % · 0:40 elapsed · about 0:09 left"
     bar = window.statusBar()
     # Room to spare, not a fit by a few pixels: the fonts differ by machine.
-    assert bar.minimumSizeHint().width() <= bar.width() - 60  # [px]
+    # The message lists each entry's widths, so a failure says which is wide.
+    entries = "\n".join(
+        f"{type(child).__name__} {child.objectName()!r}: min {child.minimumSizeHint().width()}, "
+        f"min set {child.minimumWidth()}, hint {child.sizeHint().width()}, now {child.width()}, "
+        f"text {getattr(child, 'text', lambda: '')()!r}"
+        for child in bar.children() if child.isWidgetType() and child.isVisible())
+    assert bar.minimumSizeHint().width() <= bar.width() - 60, (  # [px]
+        f"window {window.width()} px, screen {window.screen().availableGeometry().width()} px:\n{entries}")
     assert progress.time_label.width() >= progress.time_label.sizeHint().width()
     assert progress.cancel_button.width() >= progress.cancel_button.sizeHint().width()
     assert progress.phase_label.width() >= 80  # [px]
@@ -246,7 +253,7 @@ def test_ctrl_i_shows_and_hides_the_inspector(shown, qtbot):
 
 # -- the layout, per project ----------------------------------------------------------
 
-def test_each_project_keeps_its_own_layout(window, tmp_path):
+def test_each_project_keeps_its_own_layout(window, tmp_path, qapp):
     """The rail, the panels and the splitters come back as they were for
     each scenario file; a scenario without a layout keeps the one shown."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
@@ -260,6 +267,7 @@ def test_each_project_keeps_its_own_layout(window, tmp_path):
     window.problems_dock.hide()
     window.rail_collapse_action.setChecked(True)
     splitter.setSizes([300, 700])  # [px]
+    qapp.processEvents()  # the sizes as laid out, not as asked: a narrower screen scales them
     first_sizes = splitter.sizes()
 
     assert window.open_path(second)  # no layout of its own yet: the one shown stays
@@ -268,6 +276,7 @@ def test_each_project_keeps_its_own_layout(window, tmp_path):
     window.side_dock.hide()
     window.rail_collapse_action.setChecked(False)
     splitter.setSizes([160, 840])  # [px]
+    qapp.processEvents()
     second_sizes = splitter.sizes()
 
     assert window.open_path(first)
