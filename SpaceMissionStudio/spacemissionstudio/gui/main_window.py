@@ -383,7 +383,7 @@ class MainWindow(QMainWindow):
         self._build_actions()
         self._build_areas()
         self.resizeDocks([self.side_dock], [380], Qt.Orientation.Horizontal)  # [px] room for Explain's tiles
-        self.resizeDocks([self.side_dock, self.explain_dock], [180, 460], Qt.Orientation.Vertical)  # [px]
+        self.resizeDocks([self.side_dock, self.explain_dock], [130, 610], Qt.Orientation.Vertical)  # [px] four rows
         self.resizeDocks([self.problems_dock], [140], Qt.Orientation.Vertical)  # [px] about four rows
         self._default_layout = self.saveState(_LAYOUT_VERSION)
         self._restore_layout()
@@ -1575,6 +1575,7 @@ class MainWindow(QMainWindow):
         self._busy_timer.start()
         self._run_started_s = time.monotonic()
         self.run_chip.set_state("running", "Running")
+        self.run_chip.hide()  # the job beside it says the same, with its bar
         self.statusBar().showMessage(message)
 
     def _stop_busy(self, message: str, chip_state: str = "idle", chip_text: str = "Ready",
@@ -1594,6 +1595,7 @@ class MainWindow(QMainWindow):
                                           f"{time.strftime('%H:%M')}, {chip_state}, {_duration_text(seconds)}")
             self._run_started_s = None
         self.run_chip.set_state(chip_state, chip_text)
+        self.run_chip.show()
         self._set_running(False)
         self.abort_action.setEnabled(False)
         self._busy_timer.stop()

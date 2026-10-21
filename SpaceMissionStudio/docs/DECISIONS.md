@@ -83,10 +83,21 @@ The user: "start M2b here". M2b is the second half of M2 (above).
   dock's toggle after its title, so the command is named "Problems" again
   after each count.
 - **The run job and the chip are in the status bar,** before its other
-  items, where §5.1 puts the jobs. The strip got compact for it: the phase
-  elides at 320 px and the bar is 120 px wide, so a long phase does not
-  widen the window. One job at a time: Run is disabled while a run or a
-  Monte Carlo batch goes, so the "job list" has one entry.
+  items, where §5.1 puts the jobs. The chip is hidden while the job is
+  shown, because both said "Running 80 %"; afterwards it says how the run
+  ended. One job at a time: Run is disabled while a run or a Monte Carlo
+  batch goes, so the "job list" has one entry.
+- **The status bar fits 1280 px during a run:**
+  - the job's phase elides (80 to 320 px) and its bar is 96 px wide;
+  - the Earth orientation and frames entries elide down to 120 px, their
+    tooltips holding the whole text;
+  - the job asks the status bar to lay it out again when its text grows
+    (a `QStatusBar` does not notice on its own: the time was cut to
+    "0:02 elap" in the harness's run-in-progress screen).
+
+  Measured at 1280 px with the longest data text ("12 of 14 need
+  attention") and "80 % · 0:40 elapsed · about 0:09 left": nothing of the
+  job is cut.
 - **The inspector is two docks, Inspector over Explain,** not one dock
   with tabs. Each one is shown, hidden and sized on its own. Explain leaves
   for Scenario › Overview in M4.

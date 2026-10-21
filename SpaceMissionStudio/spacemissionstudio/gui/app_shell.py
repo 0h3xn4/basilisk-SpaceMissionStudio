@@ -46,8 +46,8 @@ from typing import List, Optional
 
 from PySide6.QtCore import QElapsedTimer, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QPainter
-from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QProgressBar, QPushButton, QToolButton, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QProgressBar, QPushButton, QSizePolicy, QToolButton,
+                               QVBoxLayout, QWidget)
 
 from .theme import icon
 from .theme.icons import keep_icon
@@ -117,16 +117,19 @@ class RunProgressStrip(QFrame):
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         self.setObjectName("runProgressStrip")
+        # Its own width in the status bar: the entries that elide give way.
+        self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(4, 0, 4, 0)  # [px]
         layout.setSpacing(8)  # [px]
         # In the status bar beside its other items: the phase gives way first.
         self.phase_label = ElidedLabel()
         self.phase_label.setObjectName("runPhase")
+        self.phase_label.setMinimumWidth(80)  # [px] never squeezed out of sight
         self.phase_label.setMaximumWidth(320)  # [px]
         self.bar = QProgressBar()
         self.bar.setTextVisible(False)  # the percentage is in the time label and the status chip
-        self.bar.setFixedWidth(120)  # [px]
+        self.bar.setFixedWidth(96)  # [px]
         self.time_label = QLabel()
         self.time_label.setObjectName("runTime")
         self.cancel_button = QPushButton("Cancel (Esc)")
@@ -140,6 +143,7 @@ class RunProgressStrip(QFrame):
         self._timer = QTimer(self)
         self._timer.setInterval(500)  # [ms]
         self._timer.timeout.connect(self.refresh_time)
+        self._fitted_width = 0
         self.hide()
 
     def start(self, phase: str, cancellable: bool = True, cancel_note: str = "") -> None:
@@ -154,9 +158,11 @@ class RunProgressStrip(QFrame):
         self.refresh_time()
         self._timer.start()
         self.show()
+        self._fit()
 
     def set_phase(self, text: str) -> None:
         self.phase_label.setText(text)
+        self._fit()
 
     def set_fraction(self, fraction: float) -> None:
         fraction = min(max(float(fraction), 0.0), 1.0)
@@ -170,6 +176,7 @@ class RunProgressStrip(QFrame):
         """Cancel was asked for: it takes effect at the next checkpoint."""
         self.cancel_button.setEnabled(False)
         self.cancel_button.setText("Cancelling...")
+        self._fit()
 
     def finish(self) -> None:
         self._timer.stop()
@@ -193,6 +200,18 @@ class RunProgressStrip(QFrame):
         if remaining is not None and remaining >= 1.0:  # [s] under a second, "about 0:00 left" says nothing
             parts.append(f"about {clock_text(remaining)} left")
         self.time_label.setText(" · ".join(parts))
+        self._fit()
+
+    def _fit(self) -> None:
+        """Take the width the text needs now: the status bar lays its
+        entries out again only when asked."""
+        width = self.sizeHint().width()
+        if width != self._fitted_width and self.parentWidget() is not None:
+            self._fitted_width = width
+            self.updateGeometry()
+            layout = self.parentWidget().layout()
+            if layout is not None:
+                layout.invalidate()
 
 
 class TopBar(QWidget):
@@ -338,12 +357,14 @@ class StatusBarItems:
         self.data_button.setObjectName("statusDataButton")
         self.data_button.setAutoRaise(True)
         self.data_button.setToolTip("Reference data: open the Reference data dialog")
-        self.earth_orientation_label = QLabel(parent)
+        # The two longest entries give way while a run's job shares the bar;
+        # their tooltips have all of it.
+        self.earth_orientation_label = ElidedLabel(parent)
         self.earth_orientation_label.setObjectName("statusItem")
-        self.frames_label = QLabel(parent)
+        self.earth_orientation_label.setMinimumWidth(120)  # [px]
+        self.frames_label = ElidedLabel(parent)
         self.frames_label.setObjectName("statusItem")
-        self.frames_label.setToolTip("Inertial frame of orbits and results; Earth-fixed frame of ground "
-                                     "stations; the time system of every date shown")
+        self.frames_label.setMinimumWidth(120)  # [px]
         items = (self.problems_button, self.basilisk_label, self.data_button, self.earth_orientation_label,
                  self.frames_label)
         # A thin rule between entries: side by side they read as one line.
@@ -396,6 +417,11 @@ class StatusBarItems:
             self.earth_orientation_label.setText("Earth orientation: installed")
         earth_fixed = earth_orientation.EARTH_FIXED_FRAME if kernels else earth_orientation.FALLBACK_EARTH_FRAME
         self.frames_label.setText(f"Frames: EME2000 · {earth_fixed} · UTC")
+        self.frames_label.setToolTip(f"{self.frames_label.text()}\n{_FRAMES_TIP}")
+
+
+_FRAMES_TIP = ("Inertial frame of orbits and results; Earth-fixed frame of ground stations; the time system "
+               "of every date shown")
 
 
 def _problems_button(name: str, parent: Optional[QWidget] = None) -> QToolButton:

@@ -171,11 +171,36 @@ def test_a_run_is_a_job_in_the_status_bar_with_progress_and_cancel(window):
     assert progress.isVisibleTo(window) and progress.bar.value() == 43
     assert progress.phase_label.text() == "Propagating: day 0.4 of 1"
     assert window.run_chip.text() == "Running 43 %"
+    assert not window.run_chip.isVisibleTo(window)  # the job says the same, with its bar
     assert progress.cancel_button.isVisibleTo(window)
     progress.cancel_button.click()
     assert cancelled == [True]
     window._stop_busy("Done", "done", "Done")
     assert not progress.isVisibleTo(window) and window.run_chip.state == "done"
+    assert window.run_chip.isVisibleTo(window)
+
+
+def test_the_status_bar_job_fits_a_1280_px_window(window, qapp):
+    """At 1280 px, with the longest time text, the job's time and Cancel get
+    all the width they need: the long entries elide instead (their tooltips
+    keep the whole text). The status bar lays the job out again as its text
+    grows."""
+    window.resize(1280, 720)  # [px]
+    window.show()
+    window._start_busy("Running", determinate=True)
+    progress = window.run_progress
+    progress.set_phase("Propagating: day 0.4 of 1")
+    progress.set_fraction(0.8)
+    progress.elapsed_s = lambda: 40.0  # [s]
+    progress.refresh_time()
+    qapp.processEvents()
+    assert progress.time_label.text() == "80 % · 0:40 elapsed · about 0:09 left"
+    assert progress.time_label.width() >= progress.time_label.sizeHint().width()
+    assert progress.cancel_button.width() >= progress.cancel_button.sizeHint().width()
+    assert progress.phase_label.width() >= 80  # [px]
+    items = window.status_items
+    assert items.frames_label.toolTip().startswith(items.frames_label.text())
+    window._stop_busy("Done")
 
 
 def test_the_status_bar_job_does_not_widen_the_window(window):

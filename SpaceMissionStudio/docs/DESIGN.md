@@ -216,7 +216,7 @@ bar and no toolbar:
   double-click goes to the field. Its counts are on its title, in the
   status bar and the top bar.
 - **Status bar:** the run job (phase, progress, time so far and left,
-  Cancel) and the run state chip while a run goes; then the problem count
+  Cancel) while a run goes, the run state chip otherwise; then the problem count
   (it opens Problems), Basilisk version, reference data, Earth
   orientation data, frames.
 - **Layout memory:** Settings > Layout > Reset Layout restores the panels

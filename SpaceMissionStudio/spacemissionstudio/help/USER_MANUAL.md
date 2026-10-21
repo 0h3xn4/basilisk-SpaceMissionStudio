@@ -234,10 +234,9 @@ A few things to notice right away:
   kept for questions such as replacing a file.
 * The status bar at the bottom shows the run going on: what it is doing
   ("Propagating: day 0.4 of 1"), a progress bar, the time so far and an
-  estimate of the time left, and **Cancel (Esc)**. Beside it a tag with
-  the run state: **No run yet**, **Running** (with the percentage, or the
-  time so far), **Run 2: done in 6 s**, **Failed** or **Run 2:
-  cancelled**. It always shows the problems ("1 error · 2 warnings", or
+  estimate of the time left, and **Cancel (Esc)**. When no run is going,
+  a tag there says how the last one went: **No run yet**, **Run 2: done
+  in 6 s**, **Failed** or **Run 2: cancelled**. It always shows the problems ("1 error · 2 warnings", or
   "No problems"; click it to open **Problems**), the Basilisk
   version ("(not qualified)" when it is not the verified 2.12.0), the
   reference data ("all OK", or how many files need attention; click it
