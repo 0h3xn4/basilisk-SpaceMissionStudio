@@ -5,13 +5,13 @@ How to run one of the 28 ready-made missions and look at what it did.
 ## In the app
 
 1. Start the app: `spacemissionstudio gui` (or from your application
-   menu if you used an installer). It opens on **Templates**, in the scenario tree.
+   menu if you used an installer). It opens on **Home**: the templates.
 2. Click a template, for example **22 - Starter: your first LEO
    satellite**. Its description appears below the list: what it shows
    and what to look at.
 3. Click **Open Template**. The **Scenario** tab shows the
    mission; **Explain**, in the side panel on the right, summarises it.
-4. **Run** on the toolbar, or `Ctrl+R` (the mode beside it says
+4. **Run** in the top bar, or `Ctrl+R` (the mode beside it says
    **Single run**). A strip under the top bar shows what the run is
    doing, how far it is and the time left; **Cancel** (`Esc`) stops it.
    Template 22 takes a few seconds.
@@ -20,7 +20,7 @@ How to run one of the 28 ready-made missions and look at what it did.
    buttons. Tick several to see them side by side.
 6. Open the **Events** tab to see ground-station passes and eclipses.
 
-To keep a copy you can change, use **File > Save As...** first. The
+To keep a copy you can change, use **Save As...** (Ctrl+Shift+S) first. The
 template file itself is never changed.
 
 ## From the command line

@@ -2,7 +2,7 @@
 
 Every term and abbreviation the SpaceMissionStudio documentation uses,
 explained in plain words, in alphabetical order. The app's built-in manual
-(**Help > User Manual**, section 12) has a shorter version of this list.
+(**Help** (F1; the last button of the navigation rail), section 12) has a shorter version of this list.
 
 [A](#a) · [B](#b) · [C](#c) · [D](#d) · [E](#e) · [F](#f) · [G](#g) ·
 [H](#h) · [I](#i) · [J](#j) · [K](#k) · [L](#l) · [M](#m) · [N](#n) ·

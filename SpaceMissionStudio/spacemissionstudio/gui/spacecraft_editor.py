@@ -753,7 +753,7 @@ class SpacecraftEditorDialog(QDialog):
             "whose generation depends on the ACTUAL simulated panel-to-Sun angle and eclipse "
             "state each tick (not an estimate), feeding a battery that other loads (bus power, "
             "and comms power if comms_pointing is configured) draw down. Needed for the "
-            "Mission Dashboard/Results tab's battery-charge series to mean anything."
+            "Mission Dashboard's and Results' battery-charge series to mean anything."
         )
         self.power_group.setChecked(power0 is not None)
         power_form = QFormLayout(self.power_group)
@@ -791,7 +791,7 @@ class SpacecraftEditorDialog(QDialog):
         self.battery_capacity_wh.setToolTip(
             "Total energy the battery can hold. A smaller capacity means the state-of-charge "
             "swings faster and further during each eclipse -- watch for it hitting 0% in the "
-            "Results tab if this is set too small for the load."
+            "Results if this is set too small for the load."
         )
         self.battery_initial_soc = _spin(0.0, 1.0, decimals=4, step=0.05,
                                           value=power0.battery_initial_soc if power0
@@ -851,7 +851,7 @@ class SpacecraftEditorDialog(QDialog):
         self.sk_propellant_kg.setToolTip(
             "Propellant mass available at the epoch, burned down by the rocket equation as "
             "reboost burns fire. Once depleted, this controller stops firing and the orbit is "
-            "free to decay -- watch for that in the Results tab if the run is long enough."
+            "free to decay -- watch for that in Results if the run is long enough."
         )
         self.sk_eclipse_sunlit_threshold = _spin(0.001, 1.0, decimals=4, step=0.01,
                                                    value=sk0.eclipse_sunlit_threshold if sk0 else 0.99)

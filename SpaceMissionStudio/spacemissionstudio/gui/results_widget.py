@@ -1127,7 +1127,7 @@ class ResultsWidget(QWidget):
                 continue
             if len(of_kind) > _MAX_BANDS_PER_KIND:
                 self._band_notes.append(f"{_EVENT_LABELS[kind]} of {spacecraft}: {len(of_kind):,}, too many to draw "
-                                        f"(see the Events tab)")
+                                        f"(see the Timeline)")
                 continue
             colour = kind_colour(kind)
             starts = self._event_x([e.start_s for e in of_kind])
@@ -1420,11 +1420,11 @@ class ResultsWidget(QWidget):
         ("Previous Event", "Alt+PgUp", "cursor_to_event", -1),
         ("Start of the Run", "Alt+Home", "cursor_to_end", -1),
         ("End of the Run", "Alt+End", "cursor_to_end", 1),
-    )  # Run > Clear Time Cursor (Alt+Backspace, MainWindow) clears it
+    )  # Clear Time Cursor (Alt+Backspace, MainWindow) clears it
 
     def _build_cursor_actions(self) -> list:
         """The time cursor's keyboard commands: shortcuts while Results has
-        the focus (MainWindow lists them under View > Time Cursor)."""
+        the focus (MainWindow registers them as the Time Cursor commands)."""
         actions = []
         for text, keys, method, amount in self._CURSOR_KEYS:
             action = QAction(text, self)

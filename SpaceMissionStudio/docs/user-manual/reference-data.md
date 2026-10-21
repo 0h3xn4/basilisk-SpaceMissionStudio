@@ -19,7 +19,7 @@ observed record, then MSFC's prediction. There is no synthetic profile.
 
 ## Check what you have
 
-Open the **Reference data** dialog (**Run > Check Reference Data**, **Tools > Reference Data...**, or the reference data entry in the status bar). It lists every
+Open the **Reference data** dialog (**Check Reference Data** (the Run area), **Settings > Reference data**, or the reference data entry in the status bar). It lists every
 file with its status (ok, missing, out of date), the dates it covers,
 where it came from and its SHA-256. From the command line:
 
@@ -82,7 +82,7 @@ earth-orientation --rollback`.
 | Vizard download | `~/.cache/SpaceMissionStudio/vizard/` |
 
 **More detail:** User Manual section 7, the **Reference data** paragraph of
-[Reading the Results tab](../../USER_MANUAL.md#7-reading-the-results-tab).
+[Reading the results](../../USER_MANUAL.md#7-reading-the-results).
 
 ---
 

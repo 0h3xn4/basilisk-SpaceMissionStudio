@@ -57,6 +57,8 @@ ACTION_ICONS = {
     "vizard-config": "sliders-horizontal",
     "vizard-launch": "monitor-play",
     "model-3d": "box",
+    "open-monte-carlo": "folder-open",
+    "clear-cursor": "x",
 }
 STEP_ICONS = {
     "assignment": "variable",

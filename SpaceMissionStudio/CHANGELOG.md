@@ -8,6 +8,35 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **A new shell: a navigation rail instead of menus and toolbars** (UI
+  overhaul M2a). The window has no menu bar and no toolbar any more:
+  - **The rail** on the left holds the areas: **Home** (Start from
+    scratch and the templates), **Scenario** (the scenario tree),
+    **Run** (the run controls, End of Life, Budget and the Log),
+    **Results** (Plots, Dashboard, Output, Monte Carlo and Compare),
+    **Timeline** (the events), **Reports** (Flight Software), and at the
+    bottom **Settings** and **Help**. `Ctrl+1` to `Ctrl+6` open the six
+    areas; the rail's last button shows them as icons only.
+  - **The top bar** has the scenario's name and state, where you are
+    ("Scenario › Spacecraft › sat-1"), Undo and Redo, a save button that
+    shows the save state, **Run** with its mode, and the search field of
+    the command palette.
+  - **Every command** is in one registry: the command palette (`Ctrl+K`),
+    the area headers, the top bar, the shortcut list and every tooltip
+    ("Save (Ctrl+S)") come from it. The palette also finds a command by
+    its old name ("events" finds the Timeline), the spacecraft and
+    ground stations, and the Settings sections.
+  - **Settings** holds the theme, the reference data, the layout, the
+    keyboard shortcuts (`Ctrl+/`) and About; they were in the View and
+    Help menus.
+  - New shortcuts: `Ctrl+I` the Inspector, `Ctrl+J` Problems.
+
+  The screens themselves are unchanged; what a run computes and every
+  file the app writes are the same. Two engine messages still name
+  "Tools > Reference Data": the palette finds that command by that name.
+
 ## 1.2.0 (2026-10-21)
 
 Starting a mission from an empty scenario is now a choice of its own: the

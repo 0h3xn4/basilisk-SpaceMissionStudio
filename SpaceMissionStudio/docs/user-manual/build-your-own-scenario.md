@@ -8,13 +8,13 @@ or build one up from an empty scenario.
 1. On **Templates**, open **22 - Starter: your first LEO satellite**
    (one satellite, orbit only) or **23 - Starter: a complete small
    satellite** (sensors, wheels, power and a radio link).
-2. **File > Save As...** and give it your own name.
+2. **Save As...** (Ctrl+Shift+S) and give it your own name.
 3. Change what you need in the **Scenario** tab. Each template's
    description says what to change first.
 
 ## From an empty scenario
 
-1. **File > New Scenario.** Type a **Name** and set the **Epoch (UTC)**.
+1. **New Scenario** (Ctrl+N). Type a **Name** and set the **Epoch (UTC)**.
    The epoch matters: it decides where the Sun and Moon are, how dense the
    upper atmosphere is, and when ground stations see you. Leave
    **Simulation mode** on *Orbit only* for now.
@@ -39,7 +39,7 @@ or build one up from an empty scenario.
    the message names the field to fix, and **Problems** in the side panel
    takes you to it with a double-click. **Explain**, in the side panel, already shows
    the orbit type and the predicted ground passes.
-6. **File > Save As...**, then **Run** (`Ctrl+R`).
+6. **Save As...** (Ctrl+Shift+S), then **Run** (`Ctrl+R`).
 
 ## Then grow it, one step at a time
 

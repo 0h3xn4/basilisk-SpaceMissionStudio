@@ -12061,3 +12061,79 @@ release notes it wrote itself. The installers' SHA-256 in the notes equal
 GitHub's digests of the attached files (SRelD issue 12, with every
 digest). For the next release: push the tag and publish the draft the
 workflow creates, so the page is never public without its files.
+
+## M2a: the shell (2026-10-21)
+
+The user: "start M2 here". The plan's rule (§8: one milestone per
+session, a split recorded before starting) split M2 into M2a, the shell,
+and M2b, the panels; the split is in the plan (§7) and `docs/DECISIONS.md`
+before any code.
+
+**What changed.** The window has no menu bar and no toolbar.
+- `gui/actions.py` holds every command in one registry: id, label, icon,
+  shortcut, category and area. The window owns the actions, so their
+  shortcuts work in every area. The command palette, the area headers, the
+  top bar, Settings > Keyboard and every tooltip ("Save (Ctrl+S)", then
+  what it does) are generated from it.
+- `gui/shell.py` is the navigation rail and the areas:
+  - Home holds the Templates page.
+  - Scenario holds the scenario tree, without Templates and Analyses.
+  - Run holds the run controls in its header, then End of Life, Budget
+    and the Log.
+  - Results holds Plots, Dashboard, Output, Monte Carlo and Compare.
+  - Timeline holds the Events view, and Reports the Flight Software page.
+  - Settings and Help sit at the bottom.
+
+  `Ctrl+1` to `Ctrl+6` open the six top areas. `Shell.register` puts a
+  new area at its place (a test adds an "Operations" area between Timeline
+  and Reports).
+- The top bar (`gui/app_shell.py`) gained breadcrumbs, Undo and Redo, a
+  save button that shows the save state, Run with its mode, and the
+  palette's search button. Its labels elide.
+- `gui/settings_page.py` holds Appearance, Reference data, Layout,
+  Keyboard and About, each control a registry command. The shortcuts
+  dialog is removed with its code.
+- The palette lists the registry's commands, the areas, Run's and
+  Results' pages, the tree (spacecraft and stations), the side panel, the
+  Settings sections, the templates and the series. Keywords let "events"
+  find the Timeline.
+- 10 Lucide icons were added from the same `lucide-static` 1.52.0
+  archive. The download's SHA-256 and npm integrity equal the ones
+  recorded in M1.
+
+**Found on the way.**
+- **A closed window was kept alive.** The Settings page held the
+  registry, which holds the window. A child widget that refers to its
+  window is a cycle the garbage collector cannot see through Qt's
+  ownership, so `test_a_closed_window_is_freed` crashed while collecting.
+  The page now holds the registry weakly, and the test passes.
+- **The top bar widened the window.** Its labels and commands made the
+  window at least 1471 px wide after a comparison, against the 1280 px it
+  must fit (`test_stale_results_and_window_size.py`). The name, detail
+  and breadcrumb labels now elide, and the window's minimum is 1048 px.
+- **A vacuous test.** `test_every_toolbar_action_has_an_icon` passed
+  without checking anything once the toolbars were gone. It now checks
+  every command button of the top bar and the area headers; that found
+  two buttons without an icon (Open Monte Carlo Results, Clear Time
+  Cursor), which got one.
+
+**Tests.** 15 GUI tests changed only how they reach a widget, each in
+`docs/ui/TEST_CHANGES.md`. There are two new files:
+- `test_shell.py` (12 tests);
+- `test_shell_reachability.py`, which reads the plan's §5.2 and checks
+  all 74 rows reachable.
+
+The engine, the schema, the CLI and every output file are unchanged. Two
+engine messages still name "Tools > Reference Data"; the palette finds
+that command by that name, and the troubleshooting page says where it is
+now.
+
+**Documentation.**
+- The user manual (and its bundled copy), the topic guides, tips,
+  troubleshooting, getting started, capabilities and the READMEs name the
+  rail, the areas, the top bar and the palette instead of menus, tabs and
+  toolbars.
+- `docs/DESIGN.md` describes the shell and its shortcut table, which is
+  checked against the registry.
+- The documentation's screenshots were recaptured.
+- `docs/THIRD_PARTY_ASSETS.md` lists the new icons.

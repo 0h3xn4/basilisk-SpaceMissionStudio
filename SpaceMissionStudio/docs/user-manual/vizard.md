@@ -7,7 +7,7 @@ Vizard is optional. The plots already show everything as numbers.
 
 ## Get Vizard
 
-**Run > Launch Vizard.** If the app cannot find Vizard, a **Vizard not
+**Launch Vizard** (the Run area). If the app cannot find Vizard, a **Vizard not
 found** dialog offers:
 
 - **Download Vizard**: fetches AVS's own pre-built copy for your system
@@ -19,17 +19,17 @@ The app remembers where Vizard is.
 
 ## Watch a run
 
-1. **Run > Vizard Configuration...** and choose how the next run feeds
+1. **Vizard Configuration...** (the Run area) and choose how the next run feeds
    Vizard:
    - **Write a .bin playback file to open in Vizard afterward**, or
    - **Live-stream to a Vizard instance already running on this machine**
-     (start Vizard first with **Run > Launch Vizard**).
+     (start Vizard first with **Launch Vizard** (the Run area)).
 2. Choose what to show: **Camera starts locked on** (the central body by
    default, or a spacecraft), **Show each spacecraft's orbit**, **Show the
    flown path**, **Show ground tracks**.
 3. **Run** (`Ctrl+R`).
-4. After a run that wrote a playback file, **Open in Vizard** on the
-   Results tab opens it.
+4. After a run that wrote a playback file, **Open in Vizard** in
+   Results opens it.
 
 Vizard cannot follow the app's time cursor.
 

@@ -22,7 +22,7 @@ its one style sheet, and then emits :data:`signals`'s ``changed``. Widgets
 styled by the sheet restyle themselves; what paints colours itself (plots,
 diagrams, item colours in lists) connects to ``changed`` and redraws.
 
-The choice (View > Theme: System, Light or Dark) is kept in
+The choice (Settings > Appearance: System, Light or Dark) is kept in
 ``~/.spacemissionstudio/settings.ini``. With System, the theme follows the
 platform's colour scheme, also when it changes while the app runs.
 """
@@ -42,7 +42,7 @@ from .fonts import load_fonts, ui_font
 from .qss import stylesheet
 from .typography import UI_FONT_FAMILY
 
-THEMES = ("system", "light", "dark")  # the View > Theme choices
+THEMES = ("system", "light", "dark")  # the Settings > Appearance choices
 
 
 class _Signals(QObject):
@@ -61,13 +61,13 @@ def _settings():
 
 
 def theme_setting() -> str:
-    """The View > Theme choice: ``"system"`` (the default), ``"light"`` or ``"dark"``."""
+    """The theme choice: ``"system"`` (the default), ``"light"`` or ``"dark"``."""
     value = str(_settings().value("appearance/theme", "system"))
     return value if value in THEMES else "system"
 
 
 def set_theme_setting(value: str) -> None:
-    """Remember the View > Theme choice."""
+    """Remember the theme choice."""
     if value not in THEMES:
         raise ValueError(f"theme must be one of {THEMES}, not {value!r}")
     settings = _settings()
@@ -110,7 +110,7 @@ def _palette(app: QApplication) -> QPalette:
 
 
 def apply_theme(app: QApplication, theme: Optional[str] = None) -> str:
-    """Apply ``theme`` (``"light"`` or ``"dark"``; None: the View > Theme
+    """Apply ``theme`` (``"light"`` or ``"dark"``; None: the theme
     setting) to ``app``, live. Returns the theme applied.
 
     "Fusion" is the base style: the one built-in Qt style that renders the

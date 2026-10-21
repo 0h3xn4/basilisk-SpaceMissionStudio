@@ -67,3 +67,50 @@ is applied at once and that the message says it is shown now.
   scratch, the Orbit-only blank scenario, the guide's states, buttons and
   folding, and the Spacecraft page's empty state. No existing test
   changed.
+
+## M2a Shell
+
+No test outside `tests/gui/` changed. No golden or output file changed.
+The menu bar, the two toolbars and the main tabs are gone; each test below
+reaches the same behaviour through the action registry, the navigation
+rail's areas, the top bar or the Settings area.
+
+### Changed: how a test reaches the widget
+
+| Test | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_main_window.py::test_toolbar_actions_are_all_visible` | Each command on one of the two toolbars, its button visible | Save, Run and the run mode visible in the top bar; Run, Cancel, Live plot, the Vizard commands and Check Reference Data visible in the Run area's header; New and Open as Home's own buttons; the run modes in the mode buttons' menu | Every former toolbar command is a visible button; the modes, Monte Carlo among them, are beside Run |
+| `test_workspace.py::test_the_main_tabs_and_what_they_hold` | `test_the_areas_and_what_they_hold`: five main tab names, the tree with Templates and Analyses, Results' three tabs | The rail's areas; Home holds the Templates page; the tree without Templates and Analyses; Run holds End of Life, Budget and Log; Results also Compare; Timeline and Reports | Each screen is where the shell puts it; the tree's own nodes, per spacecraft and station; the side panel; a template opens the editor |
+| `test_workspace.py::test_show_view_selects_every_level` | `main_tabs.currentWidget()` | `shell.current_area()` | `show_view()` reaches a page in a scroll area, a Results view and a side panel page |
+| `test_workspace.py::test_the_view_analyses_and_tools_menus` | `test_the_view_analyses_and_tools_commands`: the View menu's texts; triggered menu entries | The View category's commands (plus Navigation: Icons Only and the three themes, which were a submenu); the same commands triggered from the registry | Budget, Flight Software and Reference Data open their pages; Problems opens its panel page |
+| `test_workspace.py::test_the_3d_model_entry_is_on_the_main_toolbar` | `test_the_3d_model_entry_is_in_the_scenario_header`: after Live plot on the toolbar, and in the Tools menu | A visible button in the Scenario area's header, and a Tools command | The model editor's entry is visible outside the spacecraft editor |
+| `test_command_palette.py::test_the_main_window_lists_its_menus_and_tabs_on_ctrl_k` | `test_the_main_window_lists_its_commands_and_areas_on_ctrl_k`: "Go to tab > Events" | "Go to > Timeline", found by typing "events" | Ctrl+K; "Run > Run" listed; the palette not listing itself; going there shows the events; templates listed |
+| `test_scenario_tree.py::test_the_palette_goes_to_every_node` | "Go to tab > Scenario > ..." and "Analyses > Budget" in the tree | "Go to > Scenario > Spacecraft > my-sat" and "Go to > Run > Budget" | Every node, and the analyses, are palette entries |
+| `test_tree_sections.py::test_the_palette_goes_to_a_tab` | `main_tabs.currentWidget() is editor` | The Scenario area is shown and the current view is the editor | The entry opens the spacecraft's Budget (AD10) tab |
+| `test_mission_guide.py::test_the_guide_buttons_open_the_analyses_and_the_templates` | The tree's End of Life and Templates nodes | The current view is End of Life (Run) and Templates (Home) | Analyses and Worked examples open those pages |
+| `test_keyboard_cursor.py::test_the_cursor_commands_are_in_the_view_menu_and_the_shortcut_list` | `test_the_cursor_commands_are_in_the_registry_and_the_shortcut_list`: View > Time Cursor's submenu; the shortcuts dialog | The Time Cursor category; Settings > Keyboard's table | Eight moves with their keys; Next Event Alt+PgDown and Clear Time Cursor Alt+Backspace listed |
+| `test_help.py::test_help_menu_offers_the_manual_on_f1_and_the_shortcuts` | `test_help_offers_the_manual_on_f1_and_the_shortcuts`: the shortcuts dialog built from the menus | Settings > Keyboard's table; also checks the rail's Help button is the manual command | F1 opens the manual; Ctrl+R and F1 are listed |
+| `test_design_rules.py::test_the_shortcut_table_matches_the_menus` | `test_the_shortcut_table_matches_the_registry`: every menu command with a shortcut | Every registry command with a shortcut ("Category > Command") | DESIGN.md's table equals the code's, standard keys per platform |
+| `test_theme.py::test_every_toolbar_action_has_an_icon` | `test_every_command_button_has_an_icon`: every toolbar action | Every command button of the top bar and the area headers, the run-mode drop-downs aside (it passed vacuously once the toolbars were gone) | Every command button has an icon |
+| `test_theme.py::test_the_style_sheet_parses_without_qt_warnings` | Walked the main tabs | Walks the rail's areas | No style sheet warning on every screen in both themes |
+| `test_input_borders.py` (`_check`) | Walked every tab widget | For the main window, also walks the rail's areas, then the tab widgets of the area shown (the main tabs were one of them) | Every input of the main window, and of every dialog, has a visible border |
+
+### Removed with the code it tested
+
+- `gui.help_dialog.ShortcutsDialog` and `shortcut_rows`: the shortcut list
+  is Settings > Keyboard, generated from the registry; the two tests that
+  built the dialog now read that table (rows above).
+
+### Added
+
+- `tests/gui/test_shell.py`: the registry (tooltips, ids and areas, a
+  view's own actions, the shortcut list's order), the rail (a later area
+  slotting into its place, the rail following the area shown, Ctrl+1 to
+  Ctrl+6, collapsing), Home at start and the Scenario area after opening a
+  template, the breadcrumbs, the save button, the top bar's commands and
+  search, a long name eliding instead of widening the window, and the
+  Settings area.
+- `tests/gui/test_shell_reachability.py`: every row of the plan's §5.2,
+  read from the plan, reachable in the shell (74 rows), and no menu bar,
+  no toolbar, every command on the window.
+- `tests/gui/test_command_palette.py::test_keywords_find_an_entry_by_another_name`.

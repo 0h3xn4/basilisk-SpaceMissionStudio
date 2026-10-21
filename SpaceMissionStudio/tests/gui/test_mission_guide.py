@@ -125,13 +125,14 @@ def test_the_guide_buttons_open_the_editor_pages(window, title, item):
 
 
 def test_the_guide_buttons_open_the_analyses_and_the_templates(window):
-    """Analyses opens End of Life, the first analysis; Worked examples the
-    Templates page. Both are pages of the main window, not the editor."""
+    """Analyses opens End of Life, the first analysis (the Run area);
+    Worked examples the Templates (Home). Both are pages of the main
+    window, not the editor."""
     guide = window.scenario_editor.mission_guide
     guide.more_buttons["Analyses"].click()
-    assert _current_item(window) is window.end_of_life_item
+    assert window.current_view() is window.lifetime_widget
     guide.more_buttons["Worked examples"].click()
-    assert _current_item(window) is window.templates_item
+    assert window.current_view() is window.load_scenario_widget
 
 
 @pytest.mark.parametrize("key, item", [("environment", "environment_item"), ("spacecraft", "spacecraft_item"),

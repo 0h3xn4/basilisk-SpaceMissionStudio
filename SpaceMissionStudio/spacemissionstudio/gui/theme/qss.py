@@ -567,6 +567,34 @@ QWidget#topBar {{
 }}
 QLabel#topBarName {{ font-size: {px(SIZE['section'])}; font-weight: {semibold}; }}
 QLabel#topBarDetail, QLabel#runTime {{ color: {t['text.secondary']}; }}
+QLabel#topBarBreadcrumbs {{ color: {t['text.secondary']}; font-size: {px(SIZE['small'])}; }}
+QToolButton#topBarSearch {{
+    background-color: {t['bg.field']};
+    border: {px(BORDER)} solid {t['border.subtle']};
+    color: {t['text.secondary']};
+    padding: {px(SPACE['xs'])} {px(SPACE['md'])} {px(SPACE['xs'])} {px(SPACE['sm'])};
+    min-width: {px(SPACE['xxl'] * 5)};
+}}
+QToolButton#topBarSearch:hover {{ border-color: {t['border.strong']}; }}
+QFrame#navRail {{
+    background-color: {t['bg.surface']};
+    border: none;
+    border-right: {px(BORDER)} solid {t['border.subtle']};
+}}
+QToolButton#railButton {{
+    color: {t['text.secondary']};
+    padding: {px(SPACE['xs'] + 2)} {px(SPACE['xs'])};
+    font-size: {px(SIZE['caption'])};
+}}
+QToolButton#railButton:checked {{
+    background-color: {t['bg.selected']};
+    color: {t['text.primary']};
+    font-weight: {medium};
+}}
+QFrame#areaHeader {{
+    background-color: {t['bg.canvas']};
+    border: none;
+}}
 QFrame#runProgressStrip {{
     background-color: {t['bg.selected']};
     border-bottom: {px(BORDER)} solid {t['border.subtle']};

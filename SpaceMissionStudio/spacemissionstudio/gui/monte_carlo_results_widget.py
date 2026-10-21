@@ -45,7 +45,7 @@ from .feedback import report
 from .theme import set_role
 from .widgets import ComboBox, TabWidget
 
-_EMPTY_HINT = ("A run in Monte Carlo mode (Run > Run mode > Monte Carlo) shows its batch here. Open results... "
+_EMPTY_HINT = ("A run in Monte Carlo mode (the run mode beside Run) shows its batch here. Open results... "
                "shows one an earlier batch saved (the folder you chose for it).")
 
 

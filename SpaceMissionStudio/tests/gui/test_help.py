@@ -64,16 +64,16 @@ def test_links_to_other_sites_are_not_opened(qtbot, monkeypatch):
     assert "not opened" in dialog.link_note.text() and "example.org" in dialog.link_note.text()
 
 
-def test_help_menu_offers_the_manual_on_f1_and_the_shortcuts(qtbot):
-    """F1 opens the manual; the shortcut list includes Run (Ctrl+R)."""
-    from spacemissionstudio.gui.help_dialog import ShortcutsDialog
+def test_help_offers_the_manual_on_f1_and_the_shortcuts(qtbot):
+    """F1, and the rail's Help button, open the manual; the shortcut list
+    includes Run (Ctrl+R)."""
     from spacemissionstudio.gui.main_window import MainWindow
 
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
     assert window.manual_action.shortcut().toString() == "F1"
-    actions = [a for m in window.menuBar().actions() if m.menu() for a in m.menu().actions()]
-    dialog = ShortcutsDialog(actions, window)
-    qtbot.addWidget(dialog)
-    shortcuts = {dialog.table.item(r, 1).text() for r in range(dialog.table.rowCount())}
+    assert window.shell.areas["help"].action is window.manual_action
+    window.on_keyboard_shortcuts()
+    table = window.settings_page.shortcuts_table
+    shortcuts = {table.item(r, 2).text() for r in range(table.rowCount())}
     assert "Ctrl+R" in shortcuts and "F1" in shortcuts

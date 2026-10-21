@@ -173,10 +173,9 @@ def interactions() -> list[dict]:
     measure("edit one field, Explain shown", lambda: type_name(base + " xy"), 1.5)
     type_name(base)
 
-    for main in range(window.main_tabs.count()):
-        page = window.main_tabs.widget(main)
-        measure(f"main tab (before a run): {window.main_tabs.tabText(main)}",
-                lambda page=page: window.main_tabs.setCurrentWidget(page), 1.0)
+    for area in window.shell.page_areas():
+        measure(f"area (before a run): {area.label}",
+                lambda area_id=area.id: window.shell.show_area(area_id), 1.0)
     for index in range(window.side_tabs.count()):
         page = window.side_tabs.widget(index)
         measure(f"side tab: {window.side_tabs.tabText(index).split(' (')[0]}",
@@ -199,10 +198,9 @@ def interactions() -> list[dict]:
     for sub in range(window.results_views.count()):
         page = window.results_views.widget(sub)
         measure(f"results page: {window.results_views.tabText(sub)}", lambda page=page: window.show_view(page), 2.0)
-    for main in range(window.main_tabs.count()):
-        page = window.main_tabs.widget(main)
-        measure(f"main tab (after a run): {window.main_tabs.tabText(main)}",
-                lambda page=page: window.main_tabs.setCurrentWidget(page), 1.5)
+    for area in window.shell.page_areas():
+        measure(f"area (after a run): {area.label}",
+                lambda area_id=area.id: window.shell.show_area(area_id), 1.5)
 
     results_widget = window.results_widget
     window.show_view(results_widget)

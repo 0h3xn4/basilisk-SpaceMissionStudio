@@ -182,5 +182,5 @@ def test_escape_does_not_close_an_embedded_form(window, qtbot):
 def test_the_palette_goes_to_every_node(window):
     """The command palette lists each node of the scenario tree."""
     labels = [entry.label for entry in window.palette_entries()]
-    assert "Go to tab > Scenario > Spacecraft > my-sat" in labels
-    assert "Go to tab > Scenario > Analyses > Budget" in labels
+    assert "Go to > Scenario > Spacecraft > my-sat" in labels
+    assert "Go to > Run > Budget" in labels  # the analyses are pages of the Run area

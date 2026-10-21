@@ -40,7 +40,7 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import QElapsedTimer, QEventLoop, Qt, QTimer
-from PySide6.QtGui import QAction, QActionGroup, QCloseEvent, QKeySequence
+from PySide6.QtGui import QActionGroup, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
     QToolButton,
@@ -49,13 +49,13 @@ from PySide6.QtWidgets import (
     QInputDialog,
     QLabel,
     QMainWindow,
+    QMenu,
     QMessageBox,
     QProgressDialog,
     QScrollArea,
     QDockWidget,
     QStackedWidget,
     QTabWidget,
-    QToolBar,
     QVBoxLayout,
     QWidget,
 )
@@ -67,6 +67,7 @@ from ..logging_setup import get_log_file_path
 from ..schema.command import runs_sequence, script_blocks
 from ..schema.scenario import Scenario, ScenarioValidationError, load_scenario
 from . import autosave
+from .actions import ActionRegistry
 from .app_shell import RunProgressStrip, StatusBarItems, TopBar, source_of
 from .feedback import StaleResultsBanner, report, show_toast
 from .icons import toolbar_icon
@@ -85,6 +86,8 @@ from .budget_widget import BudgetWidget
 from .fsw_workbench_widget import FlightSoftwareWidget
 from .lifetime_widget import LifetimeWidget
 from .scenario_explainer_widget import ScenarioExplainerWidget
+from .settings_page import SettingsPage
+from .shell import AreaPage, AreaStack, Shell
 from .startup_fetch_dialog import maybe_run_startup_fetch
 from .time_cursor import TimeCursor, describe as describe_time
 from .undo_history import ScenarioHistory
@@ -117,7 +120,7 @@ _HISTORY_SETTLE_MS = 400  # [ms] an edit is recorded for undo once typing pauses
 _AUTOSAVE_INTERVAL_MS = 30_000
 
 _logger = logging.getLogger(__name__)
-_LAYOUT_VERSION = 1  # [-] saveState() version: bump when the docks change, so an old layout is ignored
+_LAYOUT_VERSION = 2  # [-] saveState() version: bump when the docks change, so an old layout is ignored
 
 
 def _duration_text(seconds: float) -> str:
@@ -276,15 +279,11 @@ class MainWindow(QMainWindow):
         self.stale_results_banner.rerun_requested.connect(self.on_run)
         self._shown_run_sha256: str | None = None  # the scenario hash of the run the views show
 
-        # The workspace (UX/UI Standard, "Target layout"; docs/ux-audit.md
-        # U-02, U-05): five main tabs, three docks on the right, and the
-        # reference data in a dialog opened from the status bar.
-        # The Scenario tab is the scenario tree (docs/ux-audit.md U-01):
-        # Templates first, so a new window shows them (a new user's first
-        # move is picking a template or a file; open_path() goes on to the
-        # Scenario page), then the editor's own nodes, then the Analyses.
-        tree = self.scenario_editor.page_tree
-        self.templates_item = tree.add_page("Templates", self.load_scenario_widget, index=0)
+        # The workspace (UI overhaul plan §5.1): a navigation rail of areas
+        # (gui.shell), the top bar above them, the side panel on the right,
+        # and the reference data in a dialog opened from the status bar.
+        # The Scenario area is the scenario tree with the editor's own
+        # nodes; Templates is Home, the analyses are in Run and Reports.
         # In scroll areas: the End of Life form and its results need about
         # 560 px, which kept the window from fitting 720 px (U-03); the
         # budget, launch-delay and altitude tables together outgrow short
@@ -295,11 +294,6 @@ class MainWindow(QMainWindow):
         budget_scroll = QScrollArea()
         budget_scroll.setWidgetResizable(True)
         budget_scroll.setWidget(self.budget_widget)
-        analyses = tree.add_group("Analyses")
-        self.end_of_life_item = tree.add_page("End of Life", lifetime_scroll, analyses)
-        tree.add_page("Budget", budget_scroll, analyses)
-        tree.add_page("Flight Software", self.flight_software_widget, analyses)
-        tree.tree.setCurrentItem(self.templates_item)
         self.scenario_editor.navigate_requested.connect(self._on_guide_navigate)
 
         # Results: the plots, the dashboard, the mission output and, when
@@ -314,22 +308,24 @@ class MainWindow(QMainWindow):
         self.monte_carlo_results_widget = MonteCarloResultsWidget(self)
         self.monte_carlo_results_widget.hide()
 
+        # Compare is a view of the results (§5.2), after them.
         self.compare_widget = CompareWidget()
         self.compare_widget.compare_chosen.connect(self._on_compare_chosen)
         self.compare_widget.delete_requested.connect(self._on_delete_run)
         # a bound method, not a lambda holding the window (test_a_closed_window_is_freed)
         self.results_widget.compare_combo.currentIndexChanged.connect(self._on_results_compare_changed)
+        self.results_views.addTab(self.compare_widget, "Compare")
+        self.results_views.currentChanged.connect(self._apply_stale_banner)
         self.log_widget = LogViewWidget()
         install_log_view(self.log_widget)
 
-        self.main_tabs = TabWidget()
-        self.main_tabs.setObjectName("mainTabs")
-        self.main_tabs.addTab(self.scenario_editor, "Scenario")
-        self.main_tabs.addTab(self.results_views, "Results")
-        self.main_tabs.addTab(self.event_timeline_widget, "Events")
-        self.main_tabs.addTab(self.compare_widget, "Compare")
-        self.main_tabs.addTab(self.log_widget, "Log")
-        self.main_tabs.currentChanged.connect(self._apply_stale_banner)
+        # The Run area: the analyses that run on the scenario, each on its
+        # one page of inputs and results (decision of M2a), and the log.
+        self.run_views = TabWidget()
+        self.run_views.setObjectName("runViews")
+        self.run_views.addTab(lifetime_scroll, "End of Life")
+        self.run_views.addTab(budget_scroll, "Budget")
+        self.run_views.addTab(self.log_widget, "Log")
         self.results_widget.set_runs(self.run_history.runs, None)  # the saved runs of earlier sessions (U-33)
         self._refresh_compare_tab()
 
@@ -375,20 +371,19 @@ class MainWindow(QMainWindow):
         self.run_progress.cancel_requested.connect(self.on_abort_run)
         self._busy_label = self.run_progress.time_label
         self._busy_progress = self.run_progress.bar
-        central = QWidget()
-        central_layout = QVBoxLayout(central)
-        central_layout.setContentsMargins(0, 0, 0, 0)
-        central_layout.setSpacing(0)
-        central_layout.addWidget(self.top_bar)
-        central_layout.addWidget(self.run_progress)
-        # Above the run views: says when the results shown are from an
-        # earlier version of the scenario (U-20). Shown while a run view is.
-        central_layout.addWidget(self.stale_results_banner)
-        central_layout.addWidget(self.main_tabs, 1)
-        self.setCentralWidget(central)
+        # The rail and the areas (gui.shell). The top bar, the progress
+        # strip and, above the run views, the stale-results banner (U-20)
+        # sit over the area shown.
+        self.shell = Shell()
+        self.areas = self.shell.stack
+        self.shell.work_layout.insertWidget(0, self.top_bar)
+        self.shell.work_layout.insertWidget(1, self.run_progress)
+        self.shell.work_layout.insertWidget(2, self.stale_results_banner)
+        self.setCentralWidget(self.shell)
         self._run_started_s: float | None = None  # time.monotonic() when the current run started
 
-        self._build_menu()
+        self._build_actions()
+        self._build_areas()
         self.resizeDocks([self.side_dock], [380], Qt.Orientation.Horizontal)  # [px] room for Explain's tiles
         self._default_layout = self.saveState(_LAYOUT_VERSION)
         self._restore_layout()
@@ -423,8 +418,8 @@ class MainWindow(QMainWindow):
         self.data_panel_widget.refreshed.connect(self.status_items.refresh)
         self.status_items.refresh()
         self.time_cursor_label = QLabel()
-        self.time_cursor_label.setToolTip("The shared time cursor. Click a plot or the Events timeline to move it; "
-                                          "Run > Clear Time Cursor clears it.")
+        self.time_cursor_label.setToolTip("The shared time cursor. Click a plot or the Timeline to move it; "
+                                          "Clear Time Cursor (Alt+Backspace) clears it.")
         self.time_cursor_label.setVisible(False)
         self.statusBar().addPermanentWidget(self.time_cursor_label)
         self.time_cursor.changed.connect(self._on_time_cursor_changed)
@@ -473,105 +468,72 @@ class MainWindow(QMainWindow):
             # `window` fixture.
             QTimer.singleShot(0, lambda: maybe_run_startup_fetch(self))
 
-    # -- menu ---------------------------------------------------------------
-    def _build_menu(self) -> None:
-        file_menu = self.menuBar().addMenu("&File")
+    # -- commands: the action registry (gui.actions) ----------------------------
+    def _build_actions(self) -> None:
+        """Every command of the window, in one registry: the command
+        palette, the area headers, the top bar, the shortcut list and the
+        tooltips all come from it. The window owns the actions, so their
+        shortcuts work in every area; there is no menu bar."""
+        self.commands = registry = ActionRegistry(self)
+        add = registry.add
 
-        new_action = QAction(toolbar_icon("new"), "&New Scenario", self)
-        new_action.setShortcut(QKeySequence.StandardKey.New)
-        new_action.setToolTip(
-            "New Scenario (Ctrl+N) -- discards the scenario currently open (you'll be prompted "
-            "to save first if it has unsaved changes) and replaces it with a fresh, empty one."
-        )
-        new_action.triggered.connect(self.on_new)
-        file_menu.addAction(new_action)
-        self.new_action = new_action
+        self.new_action = add(
+            "file.new", "&New Scenario", self.on_new, category="File", area="home",
+            shortcut=QKeySequence.StandardKey.New, qicon=toolbar_icon("new"),
+            tip="Discards the scenario open (asking to save first if it has unsaved changes) and starts an "
+                "empty one.", keywords=("blank", "from scratch"))
+        self.open_action = add(
+            "file.open", "&Open...", self.on_open, category="File", area="home",
+            shortcut=QKeySequence.StandardKey.Open, qicon=toolbar_icon("open"),
+            tip="Loads a saved .json scenario, replacing the one open (asking to save first if it has unsaved "
+                "changes).")
+        self.save_action = add(
+            "file.save", "&Save", self.on_save, category="File", area="global",
+            shortcut=QKeySequence.StandardKey.Save, qicon=toolbar_icon("save"),
+            tip="Writes the scenario to its file; a scenario never saved asks where, as Save As does.")
+        self.save_as_action = add(
+            "file.save_as", "Save &As...", self.on_save_as, category="File", area="global",
+            shortcut=QKeySequence.StandardKey.SaveAs,
+            tip="Saves the scenario to a file you choose; later saves go there. Use it to branch off a variant.")
+        add("file.quit", "&Quit", self.close, category="File", area="global",
+            shortcut=QKeySequence.StandardKey.Quit,
+            tip="Closes SpaceMissionStudio, asking to save first if the scenario has unsaved changes.")
 
-        open_action = QAction(toolbar_icon("open"), "&Open...", self)
-        open_action.setShortcut(QKeySequence.StandardKey.Open)
-        open_action.setToolTip(
-            "Open a scenario file (Ctrl+O) -- loads a previously saved .json scenario, "
-            "replacing what's currently open (you'll be prompted to save first if it has "
-            "unsaved changes)."
-        )
-        open_action.triggered.connect(self.on_open)
-        file_menu.addAction(open_action)
-        self.open_action = open_action
-
-        save_action = QAction(toolbar_icon("save"), "&Save", self)
-        save_action.setShortcut(QKeySequence.StandardKey.Save)
-        save_action.setToolTip(
-            "Save (Ctrl+S) -- writes the current scenario to its file. If it has never been "
-            "saved before, this asks where to save it, same as Save As."
-        )
-        save_action.triggered.connect(self.on_save)
-        file_menu.addAction(save_action)
-        self.save_action = save_action
-
-        save_as_action = QAction("Save &As...", self)
-        save_as_action.setShortcut(QKeySequence.StandardKey.SaveAs)
-        save_as_action.setToolTip(
-            "Saves the current scenario to a file you choose -- future Saves go to that new "
-            "file. Use this to branch off a variant without overwriting the original."
-        )
-        save_as_action.triggered.connect(self.on_save_as)
-        file_menu.addAction(save_as_action)
-        self.save_as_action = save_as_action
-
-        file_menu.addSeparator()
-        quit_action = QAction("&Quit", self)
-        quit_action.setShortcut(QKeySequence.StandardKey.Quit)
-        quit_action.setToolTip(
-            "Closes SpaceMissionStudio -- you'll be prompted to save first if the current "
-            "scenario has unsaved changes."
-        )
-        quit_action.triggered.connect(self.close)
-        file_menu.addAction(quit_action)
-
-        edit_menu = self.menuBar().addMenu("&Edit")
-        self.undo_action = QAction("&Undo", self)
-        self.undo_action.setShortcut(QKeySequence.StandardKey.Undo)
-        self.undo_action.setToolTip("Undo the last scenario edit. A field being typed in undoes its own text first.")
-        self.undo_action.triggered.connect(self.on_undo)
-        edit_menu.addAction(self.undo_action)
-        self.redo_action = QAction("&Redo", self)
-        self.redo_action.setShortcut(QKeySequence.StandardKey.Redo)
-        self.redo_action.setToolTip("Redo the scenario edit just undone.")
-        self.redo_action.triggered.connect(self.on_redo)
-        edit_menu.addAction(self.redo_action)
+        self.undo_action = add("edit.undo", "&Undo", self.on_undo, category="Edit", area="global",
+                               shortcut=QKeySequence.StandardKey.Undo,
+                               tip="Undo the last scenario edit. A field being typed in undoes its own text first.")
+        self.redo_action = add("edit.redo", "&Redo", self.on_redo, category="Edit", area="global",
+                               shortcut=QKeySequence.StandardKey.Redo, tip="Redo the scenario edit just undone.")
         self._update_undo_actions()
 
-        run_menu = self.menuBar().addMenu("&Run")
         # One Run (docs/ux-audit.md U-18, decision 3): Run starts the run
         # mode picked beside it -- a single run, a Monte Carlo batch, or a
         # run with a spacecraft's flight software in the loop (SIL).
-        run_action = QAction(toolbar_icon("run"), "&Run", self)
-        run_action.setShortcut("Ctrl+R")
-        run_action.triggered.connect(self.on_run)
-        run_menu.addAction(run_action)
-        self.run_action = run_action
+        self.run_action = add("run.run", "&Run", self.on_run, category="Run", area="run", shortcut="Ctrl+R",
+                              qicon=toolbar_icon("run"))
         self.run_mode_group = QActionGroup(self)
         self.run_mode_group.setExclusive(True)
-        mode_menu = run_menu.addMenu("Run &mode")
-        self.run_mode_menu = mode_menu
-        self.single_run_action = QAction("&Single run", self)
-        self.single_run_action.setToolTip("Build the scenario in Basilisk and run it once (the Mission Sequence, "
-                                          "when it has one, or the set duration).")
-        monte_carlo_action = QAction(toolbar_icon("monte-carlo"), "&Monte Carlo", self)
-        monte_carlo_action.setToolTip("Run the scenario's Monte Carlo batch (Scenario > Monte Carlo): many runs "
-                                      "with dispersed inputs, saved to a folder you choose.")
-        self.sil_run_action = QAction("S&IL (flight software in the loop)", self)
-        self.sil_run_action.setToolTip("Run with a spacecraft's exported flight software as an external program "
-                                       "in the loop (Analyses > Flight Software).")
-        for mode, action in (("single", self.single_run_action), ("monte_carlo", monte_carlo_action),
-                             ("sil", self.sil_run_action)):
-            action.setCheckable(True)
+        self.run_mode_menu = QMenu("Run mode", self)
+        for mode, command_id, label, qicon, tip in (
+                ("single", "run.mode.single", "&Single run", None,
+                 "Build the scenario in Basilisk and run it once (the Mission Sequence, when it has one, or the "
+                 "set duration)."),
+                ("monte_carlo", "run.mode.monte_carlo", "&Monte Carlo", toolbar_icon("monte-carlo"),
+                 "Run the scenario's Monte Carlo batch (Scenario > Monte Carlo): many runs with dispersed inputs, "
+                 "saved to a folder you choose."),
+                ("sil", "run.mode.sil", "S&IL (flight software in the loop)", None,
+                 "Run with a spacecraft's exported flight software as an external program in the loop "
+                 "(Reports > Flight Software).")):
+            action = add(command_id, label, None, category="Run mode", area="run", qicon=qicon, checkable=True,
+                         tip=tip)
             action.setData(mode)
             self.run_mode_group.addAction(action)
-            mode_menu.addAction(action)
+            self.run_mode_menu.addAction(action)
+        self.single_run_action = registry.action("run.mode.single")
+        self.monte_carlo_action = registry.action("run.mode.monte_carlo")
+        self.sil_run_action = registry.action("run.mode.sil")
         self.single_run_action.setChecked(True)
         self.run_mode_group.triggered.connect(self._on_run_mode_changed)
-        self.monte_carlo_action = monte_carlo_action
 
         # "Abort a running simulation, if needed, without breaking the
         # tool" -- direct user feedback. Only ever enabled while a single
@@ -580,166 +542,196 @@ class MainWindow(QMainWindow):
         # only worker with a request_cancel() to call (see its module
         # docstring for the cooperative-cancellation design; Monte Carlo
         # batches have no equivalent hook and are out of scope here).
-        abort_action = QAction(toolbar_icon("abort"), "&Cancel Run", self)
-        abort_action.setShortcut(QKeySequence(Qt.Key.Key_Escape))  # enabled only while a run can be cancelled
-        abort_action.setToolTip("Cancel the run (Esc); it stops at the next checkpoint, keeping what was computed")
-        abort_action.setEnabled(False)
-        abort_action.triggered.connect(self.on_abort_run)
-        run_menu.addAction(abort_action)
-        self.abort_action = abort_action
-
+        self.abort_action = add("run.cancel", "&Cancel Run", self.on_abort_run, category="Run", area="run",
+                                shortcut=QKeySequence(Qt.Key.Key_Escape), qicon=toolbar_icon("abort"),
+                                tip="It stops at the next checkpoint, keeping what was computed.")
+        self.abort_action.setEnabled(False)  # enabled only while a run can be cancelled
         # A labelled toggle (U-46): it says its state, rather than looking
         # like a pressed tab.
-        live_plot_action = QAction(toolbar_icon("live-plot"), "Live plot: on", self)
-        live_plot_action.setCheckable(True)
-        live_plot_action.setChecked(True)
-        live_plot_action.setToolTip(
-            "Update the Results plot as the simulation runs, instead of only once it finishes"
-        )
-        live_plot_action.toggled.connect(self._on_live_plot_toggled)
-        run_menu.addAction(live_plot_action)
-        self.live_plot_action = live_plot_action
-
-        check_kernels_action = QAction(toolbar_icon("check-kernels"),
-                                        "&Check Reference Data", self)
-        check_kernels_action.setToolTip(
-            "Shows every reference data file (SPICE kernels, gravity field, magnetic model, space "
-            "weather, Earth orientation) with its source, dates and checksum. No network: downloads "
-            "start only from the Reference data dialog's Download... menu, after asking."
-        )
-        check_kernels_action.triggered.connect(self._show_data_panel)
-        run_menu.addAction(check_kernels_action)
-        self.check_kernels_action = check_kernels_action
-
-        vizard_action = QAction(toolbar_icon("vizard-config"),
-                                 "Vizard &Configuration...", self)
-        vizard_action.setToolTip("Configure Vizard visualization for the next run")
-        vizard_action.triggered.connect(self.on_configure_vizard)
-        run_menu.addAction(vizard_action)
-        self.vizard_action = vizard_action
-
+        self.live_plot_action = add(
+            "run.live_plot", "Live plot: on", self._on_live_plot_toggled, category="Run", area="run",
+            qicon=toolbar_icon("live-plot"), checkable=True, checked=True,
+            tip="Update the Results plot as the simulation runs, instead of only once it finishes.")
+        self.check_kernels_action = add(
+            "run.check_data", "&Check Reference Data", self._show_data_panel, category="Run", area="settings",
+            qicon=toolbar_icon("check-kernels"),
+            tip="Shows every reference data file (SPICE kernels, gravity field, magnetic model, space weather, "
+                "Earth orientation) with its source, dates and checksum. No network: downloads start only from "
+                "the Reference data dialog's Download... menu, after asking.")
+        self.vizard_action = add("run.vizard_config", "Vizard &Configuration...", self.on_configure_vizard,
+                                 category="Run", area="run", qicon=toolbar_icon("vizard-config"),
+                                 tip="Configure Vizard visualization for the next run.")
         # Distinct from "Vizard Configuration..." above (which only
         # decides how the NEXT run feeds Vizard, e.g. a live stream or a
         # playback file) -- this one actually starts the separate Vizard
         # application, so live-stream mode has something to connect to.
-        vizard_launch_action = QAction(toolbar_icon("vizard-launch"),
-                                        "&Launch Vizard", self)
-        vizard_launch_action.setToolTip("Start the external Vizard application")
-        vizard_launch_action.triggered.connect(self.on_launch_vizard)
-        run_menu.addAction(vizard_launch_action)
-        self.vizard_launch_action = vizard_launch_action
+        self.vizard_launch_action = add("run.vizard_launch", "&Launch Vizard", self.on_launch_vizard,
+                                        category="Run", area="run", qicon=toolbar_icon("vizard-launch"),
+                                        tip="Start the external Vizard application.")
+        self.open_monte_carlo_results_action = add(
+            "run.open_monte_carlo", "Open Monte Carlo &Results...", self.on_open_monte_carlo_results,
+            category="Run", area="run", qicon=toolbar_icon("open-monte-carlo"),
+            tip="Show the batch an earlier Monte Carlo run saved in a folder.")
+        self.clear_cursor_action = add(
+            "run.clear_cursor", "Clear &Time Cursor", self.time_cursor.clear, category="Run", area="results",
+            shortcut="Alt+Backspace", qicon=toolbar_icon("clear-cursor"), tip="Clears the shared time cursor; the views show the end of the run again.")
 
-        open_mc_action = QAction("Open Monte Carlo &Results...", self)
-        open_mc_action.setToolTip("Show the batch an earlier Monte Carlo run saved in a folder")
-        open_mc_action.triggered.connect(self.on_open_monte_carlo_results)
-        run_menu.addAction(open_mc_action)
-        self.open_monte_carlo_results_action = open_mc_action
-        run_menu.addSeparator()
-        clear_cursor_action = QAction("Clear &Time Cursor", self)
-        clear_cursor_action.setToolTip("Clears the shared time cursor; the views show the end of the run again.")
-        clear_cursor_action.setShortcut(QKeySequence("Alt+Backspace"))
-        clear_cursor_action.triggered.connect(self.time_cursor.clear)
-        run_menu.addAction(clear_cursor_action)
-        self.clear_cursor_action = clear_cursor_action
-
-        # Real gap, found while auditing the rest of the app for UX
-        # issues: spacemissionstudio.__version__ already exists (this is a
-        # packaged desktop app, shipping .deb/Windows installers -- see
-        # packaging/), but nothing in the GUI surfaced it anywhere --
-        # no Help menu, no About dialog, no version visible at all. A
-        # user filing a bug report or asking for support had no way to
-        # even state which version they were running from inside the
-        # app itself.
-        # Analyses and Tools (docs/ux-audit.md U-02): the pages under the
-        # Scenario tab, also reachable from the menu bar.
-        analyses_menu = self.menuBar().addMenu("&Analyses")
-        tools_menu = self.menuBar().addMenu("&Tools")
-        # The 3D model editor, on the main toolbar too: it gives a
-        # spacecraft its look, mass properties and surfaces, too much to
-        # sit only in a tab of the spacecraft editor.
-        self.model_3d_action = QAction(toolbar_icon("model-3d"), "3D &Model...", self)
-        self.model_3d_action.setToolTip("Build or edit a spacecraft's 3D model: its look in Vizard, its mass, "
-                                        "center of mass and inertia, and its drag and solar pressure surfaces")
-        self.model_3d_action.triggered.connect(self.on_open_3d_model)
-        tools_menu.addAction(self.model_3d_action)
-        for menu, label, widget, tip in (
-                (analyses_menu, "&End of Life", self.lifetime_widget, "Re-entry and deorbit estimates"),
-                (analyses_menu, "&Budget", self.budget_widget, "Delta-V and propellant budgets"),
-                (tools_menu, "&Flight Software", self.flight_software_widget, "Export the flight software, run SIL"),
-                (tools_menu, "&Reference Data...", self.data_panel_widget, "The data files, downloads and imports")):
-            action = QAction(label, self)
-            action.setToolTip(tip)
-            action.setData(widget)
+        # The analyses and tools, by their old menu names too (§5.2).
+        self.model_3d_action = add(
+            "tools.model_3d", "3D &Model...", self.on_open_3d_model, category="Tools", area="scenario",
+            qicon=toolbar_icon("model-3d"),
+            tip="Build or edit a spacecraft's 3D model: its look in Vizard, its mass, center of mass and inertia, "
+                "and its drag and solar pressure surfaces.")
+        for command_id, category, label, widget, area, tip in (
+                ("analyses.end_of_life", "Analyses", "&End of Life", self.lifetime_widget, "run",
+                 "Re-entry and deorbit estimates."),
+                ("analyses.budget", "Analyses", "&Budget", self.budget_widget, "run",
+                 "Delta-V and propellant budgets."),
+                ("tools.flight_software", "Tools", "&Flight Software", self.flight_software_widget, "reports",
+                 "Export the flight software, run SIL."),
+                ("tools.reference_data", "Tools", "&Reference Data...", self.data_panel_widget, "settings",
+                 "The data files, downloads and imports.")):
             # A bound method, not a lambda holding the window (see the status bar's).
-            action.triggered.connect(self._on_page_action)
-            menu.addAction(action)
-        # View: the docks, and the default layout back (U-05).
-        view_menu = self.menuBar().addMenu("&View")
+            add(command_id, label, self._on_page_action, category=category, area=area, tip=tip).setData(widget)
+
+        # The side panel and its pages, and the layout back (U-05).
         side_action = self.side_dock.toggleViewAction()
-        side_action.setText("&Side Panel")
-        side_action.setToolTip("Show or hide the Inspector, Explain and Problems panel")
-        view_menu.addAction(side_action)
-        for label, widget in (("&Inspector", self.inspector_widget), ("E&xplain", self.scenario_explainer_widget),
-                              ("&Problems", self.problems_widget)):
-            action = QAction(label, self)
-            action.setToolTip("Open it in the side panel")
-            action.setData(widget)
-            action.triggered.connect(self._on_page_action)
-            view_menu.addAction(action)
-        view_menu.addSeparator()
-        reset_layout_action = QAction("&Reset Layout", self)
-        reset_layout_action.setToolTip("Put the panels and toolbars back where they start")
-        reset_layout_action.triggered.connect(self.reset_layout)
-        view_menu.addAction(reset_layout_action)
-        self.reset_layout_action = reset_layout_action
-        # The Results time cursor from the keyboard (its shortcuts work
-        # while Results has the focus).
-        cursor_menu = view_menu.addMenu("Time &Cursor")
-        for action in self.results_widget.cursor_actions:
-            cursor_menu.addAction(action)
+        add("view.side_panel", "&Side Panel", None, category="View", area="global", action=side_action,
+            tip="Show or hide the Inspector, Explain and Problems panel.")
+        for command_id, label, widget, keys in (("view.inspector", "&Inspector", self.inspector_widget, "Ctrl+I"),
+                                                ("view.explain", "E&xplain", self.scenario_explainer_widget, None),
+                                                ("view.problems", "&Problems", self.problems_widget, "Ctrl+J")):
+            add(command_id, label, self._on_page_action, category="View", area="global", shortcut=keys,
+                tip="Open it in the side panel.").setData(widget)
+        self.reset_layout_action = add("view.reset_layout", "&Reset Layout", self.reset_layout, category="View",
+                                       area="settings", tip="Put the panels back where they start.")
+        self.rail_collapse_action = add(
+            "view.rail_icons", "Navigation: Icons Only", self._on_rail_icons_toggled, category="View",
+            area="global", checkable=True, tip="Show the navigation rail's areas as icons only, or with names.")
         # The theme: a choice applies at once, to every open view (gui/theme/).
-        theme_menu = view_menu.addMenu("&Theme")
         self.theme_group = QActionGroup(self)
         self.theme_actions = {}
         chosen = theme_setting()
         for value, label in (("system", "&System"), ("light", "&Light"), ("dark", "&Dark")):
-            action = QAction(label, self)
-            action.setCheckable(True)
-            action.setChecked(value == chosen)
+            action = add(f"view.theme.{value}", f"Theme: {label}", None, category="View", area="settings",
+                         checkable=True, checked=value == chosen,
+                         tip="Follow the system's light or dark setting." if value == "system"
+                         else f"The {value} theme.")
             action.setData(value)
-            action.setToolTip("Follow the system's light or dark setting" if value == "system"
-                              else f"The {value} theme")
             action.triggered.connect(self._on_theme_chosen)
             self.theme_group.addAction(action)
-            theme_menu.addAction(action)
             self.theme_actions[value] = action
+        # The Results time cursor from the keyboard: the views' own actions,
+        # whose shortcuts work while Results has the focus.
+        for action in self.results_widget.cursor_actions:
+            add(f"cursor.{action.text().lower().replace(' ', '_')}", action.text(), None, category="Time Cursor",
+                area="results", action=action, on_window=False, tip=action.toolTip())
 
-        help_menu = self.menuBar().addMenu("&Help")
-        manual_action = QAction("&User Manual", self)
-        # F1 on every platform, plus the platform's own key
-        manual_action.setShortcuts([QKeySequence("F1")] + [k for k in QKeySequence.keyBindings(
-            QKeySequence.StandardKey.HelpContents) if k.toString() != "F1"])
-        manual_action.setToolTip("Opens the user manual shipped with the app (works offline).")
-        manual_action.triggered.connect(self.on_user_manual)
-        help_menu.addAction(manual_action)
-        self.manual_action = manual_action
-        shortcuts_action = QAction("&Keyboard Shortcuts", self)
-        shortcuts_action.setToolTip("Lists the keyboard shortcuts.")
-        shortcuts_action.triggered.connect(self.on_keyboard_shortcuts)
-        help_menu.addAction(shortcuts_action)
-        palette_action = QAction("&Command Palette...", self)
-        palette_action.setShortcut(QKeySequence("Ctrl+K"))
-        palette_action.setToolTip("Find any command or tab by typing part of its name (Ctrl+K).")
-        palette_action.triggered.connect(self.on_command_palette)
-        help_menu.addAction(palette_action)
-        self.palette_action = palette_action
-        help_menu.addSeparator()
-        about_action = QAction("&About SpaceMissionStudio", self)
-        about_action.setToolTip("Shows the installed version and licensing information.")
-        about_action.triggered.connect(self.on_about)
-        help_menu.addAction(about_action)
+        self.manual_action = add(
+            "help.manual", "&User Manual", self.on_user_manual, category="Help", area="help",
+            # F1 on every platform, plus the platform's own key
+            shortcut=[QKeySequence("F1")] + [k for k in QKeySequence.keyBindings(
+                QKeySequence.StandardKey.HelpContents) if k.toString() != "F1"],
+            tip="Opens the user manual shipped with the app (works offline).")
+        self.shortcuts_action = add("help.shortcuts", "&Keyboard Shortcuts", self.on_keyboard_shortcuts,
+                                    category="Help", area="settings", shortcut="Ctrl+/",
+                                    tip="Lists the keyboard shortcuts (Settings > Keyboard).")
+        self.palette_action = add("help.palette", "&Command Palette...", self.on_command_palette, category="Help",
+                                  area="global", shortcut="Ctrl+K",
+                                  tip="Find any command, area, page or object by typing part of its name.")
+        self.about_action = add("help.about", "&About SpaceMissionStudio", self.on_about, category="Help",
+                                area="settings", tip="Shows the installed version and licensing information.")
 
-        self._build_toolbar()
+        # The run mode beside Run, in the top bar and the Run area: its
+        # menu holds the three modes.
+        self.run_mode_button = self._run_mode_button()
+        self.top_bar.add_commands(self.undo_action, self.redo_action, self.save_action, self.run_action,
+                                  self.run_mode_button, self.palette_action)
+        self._on_run_mode_changed()
+
+    def _run_mode_button(self) -> QToolButton:
+        button = QToolButton()
+        button.setObjectName("runModeButton")
+        button.setMenu(self.run_mode_menu)
+        button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
+        button.setToolTip("What Run starts: a single run, the Monte Carlo batch, or SIL")
+        return button
+
+    # -- areas: the navigation rail (gui.shell) ----------------------------------
+    _AREAS = (("home", "house", "Home"), ("scenario", "file-text", "Scenario"), ("run", "play", "Run"),
+              ("results", "chart-line", "Results"), ("timeline", "chart-gantt", "Timeline"),
+              ("reports", "file-output", "Reports"))
+
+    def _build_areas(self) -> None:
+        """The rail's areas, each hosting its screens unchanged (decision of
+        M2a), with the area's commands in its header; Ctrl+1 to Ctrl+6
+        open the six of the top."""
+        contents = {"home": self.load_scenario_widget, "scenario": self.scenario_editor, "run": self.run_views,
+                    "results": self.results_views, "timeline": self.event_timeline_widget,
+                    "reports": self.flight_software_widget}
+        for order, (area_id, icon_name, label) in enumerate(self._AREAS):
+            keys = f"Ctrl+{order + 1}"
+            self.shell.register(area_id, icon_name, label, contents[area_id], order, keys=keys)
+            action = self.commands.add(f"go.{area_id}", f"Go to {label}", None, category="Go", area=area_id,
+                                       shortcut=keys, tip=f"Show the {label} area.",
+                                       keywords=("events",) if area_id == "timeline" else ())
+            action.setData(area_id)
+            action.triggered.connect(self._on_go_to_area)
+        self.settings_page = SettingsPage(self.commands)
+        self.shell.register("settings", "settings", "Settings", self.settings_page, len(self._AREAS), bottom=True)
+        self.shell.register("help", "circle-help", "Help", None, len(self._AREAS) + 1, bottom=True,
+                            action=self.manual_action, keys="F1")
+
+        # Home's own page has New blank scenario and Browse for a file.
+        self.shell.page("scenario").add_command(self.model_3d_action)
+        run = self.shell.page("run")
+        self.run_area_run_button = run.add_command(self.run_action, primary=True)
+        keep_icon(self.run_area_run_button, icon("play", "text.on_accent"))  # the accent icon would vanish on the fill
+        self.run_area_mode_button = self._run_mode_button()
+        run.add_widget(self.run_area_mode_button)
+        for action in (self.abort_action, self.live_plot_action, self.vizard_action, self.vizard_launch_action,
+                       self.open_monte_carlo_results_action, self.check_kernels_action):
+            run.add_command(action)
+        for area_id in ("results", "timeline"):
+            self.shell.page(area_id).add_command(self.clear_cursor_action)
+
+        self.shell.area_changed.connect(self._on_area_changed)
+        self.shell.rail.collapsed_changed.connect(self.rail_collapse_action.setChecked)
+        self.scenario_editor.page_tree.tree.currentItemChanged.connect(self._refresh_breadcrumbs)
+        for tabs in (self.results_views, self.run_views):
+            tabs.currentChanged.connect(self._refresh_breadcrumbs)
+        self.shell.show_area("home")  # a new user's first move is picking a template or a file
+        self._refresh_breadcrumbs()
+        self._on_run_mode_changed()  # the Run area's mode button has its text too
+
+    def _on_go_to_area(self) -> None:
+        self.shell.show_area(self.sender().data())
+
+    def _on_area_changed(self, _area_id: str) -> None:
+        self._apply_stale_banner()
+        self._refresh_breadcrumbs()
+
+    def _on_rail_icons_toggled(self, checked: bool) -> None:
+        self.shell.rail.set_collapsed(checked)
+
+    def _refresh_breadcrumbs(self, *_args) -> None:
+        """The top bar's "Area › page": the Scenario tree's path, or the tab
+        of the area shown."""
+        area_id = self.shell.current_area()
+        if area_id is None:
+            return
+        parts = [self.shell.areas[area_id].label]
+        if area_id == "scenario":
+            item = self.scenario_editor.page_tree.tree.currentItem()
+            names = []
+            while item is not None:
+                names.insert(0, item.text(0))
+                item = item.parent()
+            parts += names
+        elif area_id in ("results", "run"):
+            tabs = self.results_views if area_id == "results" else self.run_views
+            parts.append(tabs.tabText(tabs.currentIndex()).replace("&", ""))
+        self.top_bar.set_breadcrumbs(parts)
 
     def _show_data_panel(self) -> None:
         self.data_panel_widget.refresh()
@@ -758,17 +750,18 @@ class MainWindow(QMainWindow):
         return (self.side_dock,)
 
     def _on_guide_navigate(self, target: str) -> None:
-        """The Scenario page's guide pointing at a page this window owns."""
+        """The Scenario page's guide pointing at a page this window owns:
+        the templates (Home) or the first analysis (Run > End of Life)."""
         from .mission_guide import ANALYSES, TEMPLATES
 
-        item = {TEMPLATES: self.templates_item, ANALYSES: self.end_of_life_item}.get(target)
-        if item is not None:
-            self.scenario_editor.page_tree.tree.setCurrentItem(item)
+        widget = {TEMPLATES: self.load_scenario_widget, ANALYSES: self.lifetime_widget}.get(target)
+        if widget is not None:
+            self.show_view(widget)
 
     def show_view(self, widget: QWidget) -> None:
-        """Bring ``widget`` into view: select the tabs that hold it at every
-        level, raise the dock that holds it, or open the reference data
-        dialog."""
+        """Bring ``widget`` into view: show its area, select the tabs that
+        hold it at every level, raise the dock that holds it, or open the
+        reference data dialog."""
         if widget is self.data_panel_widget:
             self.data_dialog.show()
             self.data_dialog.raise_()
@@ -784,17 +777,20 @@ class MainWindow(QMainWindow):
         node = widget
         while node is not None and node is not self:
             stack = node.parentWidget()
-            if isinstance(stack, QStackedWidget) and isinstance(stack.parentWidget(), QTabWidget):
+            if isinstance(stack, AreaStack):
+                stack.setCurrentWidget(node)  # an area's page: the rail follows
+            elif isinstance(stack, QStackedWidget) and isinstance(stack.parentWidget(), QTabWidget):
                 stack.parentWidget().setCurrentWidget(node)
             elif isinstance(stack, QStackedWidget) and getattr(stack, "page_tree", None) is not None:
                 stack.page_tree.show_page(node)  # a node of the scenario tree
             node = stack
 
     def current_view(self) -> QWidget:
-        """The innermost page the main tabs show (a scroll area's content).
-        In the Scenario tab that is the Scenario Editor on any of its own
-        nodes, or Templates or the analysis shown."""
-        widget = self.main_tabs.currentWidget()
+        """The innermost page the area shown holds (a scroll area's
+        content): in the Scenario area the Scenario Editor on any of its
+        own nodes, in Results and Run the tab shown."""
+        page = self.areas.currentWidget()
+        widget = page.content if isinstance(page, AreaPage) else page
         while True:
             if isinstance(widget, QTabWidget):
                 widget = widget.currentWidget()
@@ -818,7 +814,8 @@ class MainWindow(QMainWindow):
         self._show_page(self.sender().data())
 
     def on_open_3d_model(self) -> None:
-        """Toolbar / Tools > 3D Model...: the 3D model editor for one of the
+        """3D Model... (the Scenario area's header, Tools > 3D Model... in the
+        palette): the 3D model editor for one of the
         scenario's spacecraft, chosen from a list when there are several."""
         spacecraft_list = self.scenario_editor.spacecraft_list
         names = [config.name for config in spacecraft_list.to_list()]
@@ -896,7 +893,7 @@ class MainWindow(QMainWindow):
         combo.setCurrentIndex(max(combo.findData(number), 0) if number is not None else 0)
 
     def _on_results_compare_changed(self, _index: int) -> None:
-        """Results' Compare with changed: the Compare tab ticks the pair (U-33)."""
+        """Results' Compare with changed: the Compare view ticks the pair (U-33)."""
         self.compare_widget.follow_results_choice(self.results_widget.compare_combo.currentData())
 
     def _refresh_compare_tab(self, *_args) -> None:
@@ -934,7 +931,7 @@ class MainWindow(QMainWindow):
         settings.sync()
 
     def _on_theme_chosen(self) -> None:
-        """View > Theme: remember the choice and apply it now."""
+        """A theme command (Settings > Appearance): remember the choice and apply it now."""
         value = self.sender().data()
         set_theme_setting(value)
         app = QApplication.instance()
@@ -945,11 +942,12 @@ class MainWindow(QMainWindow):
         report(self, f"Theme: {value}. It is the theme shown now.", kind="info")
 
     def reset_layout(self) -> None:
-        """View > Reset Layout: the docks and toolbars where a new window has them."""
+        """Reset Layout: the side panel and the rail as a new window has them."""
         self.restoreState(self._default_layout, _LAYOUT_VERSION)
         for dock in self._docks():
             dock.show()
         self.side_tabs.setCurrentWidget(self.scenario_explainer_widget)
+        self.rail_collapse_action.setChecked(False)
 
     def on_user_manual(self) -> None:
         from .help_dialog import ManualDialog
@@ -960,25 +958,32 @@ class MainWindow(QMainWindow):
         self._manual_dialog = dialog  # keep it alive while it is open
 
     def palette_entries(self):
-        """For the command palette: every menu command, every tab, every
-        template, and every series of the result shown."""
-        from .command_palette import PaletteEntry, menu_entries
+        """For the command palette: every command of the registry (by its
+        category and, as keywords, its old names), every area and page,
+        the scenario's objects (its tree), the templates and every series
+        of the result shown."""
+        from .command_palette import PaletteEntry, command_entries
 
-        entries = [e for e in menu_entries(self.menuBar()) if not e.label.endswith("Command Palette...")]
+        entries = [e for e in command_entries(self.commands) if e.label != "Help > Command Palette..."]
+        for area in self.shell.page_areas():
+            if area.id == "scenario":
+                continue  # its tree's paths below
+            entries.append(PaletteEntry(f"Go to > {area.label}", lambda area_id=area.id: self.shell.show_area(area_id),
+                                        keywords="events" if area.id == "timeline" else ""))
         for path, item in self.scenario_editor.page_tree.paths():
-            entries.append(PaletteEntry(f"Go to tab > Scenario > {path}",
-                                        lambda item=item: self._show_tree_item(item)))
-        for tabs in (self.main_tabs, self.results_views):
+            entries.append(PaletteEntry(f"Go to > Scenario > {path}", lambda item=item: self._show_tree_item(item)))
+        for area_label, tabs in (("Results", self.results_views), ("Run", self.run_views)):
             for index in range(tabs.count()):
-                name = tabs.tabText(index).replace("&", "")
-                if tabs is not self.main_tabs:
-                    name = f"{self.main_tabs.tabText(self.main_tabs.indexOf(tabs))} > {name}"
                 page = tabs.widget(index)
-                entries.append(PaletteEntry(f"Go to tab > {name}", lambda page=page: self.show_view(page)))
+                entries.append(PaletteEntry(f"Go to > {area_label} > {tabs.tabText(index).replace('&', '')}",
+                                            lambda page=page: self.show_view(page)))
         for index in range(self.side_tabs.count()):
             panel = self.side_tabs.widget(index)
             entries.append(PaletteEntry(f"Go to panel > {self.side_tabs.tabText(index)}",
                                         lambda panel=panel: self.show_view(panel)))
+        for section, label in self.settings_page.sections():
+            entries.append(PaletteEntry(f"Settings > {label}",
+                                        lambda section=section: self.show_settings(section)))
         from .load_scenario_widget import TEMPLATES_DIR
 
         for path in sorted(TEMPLATES_DIR.glob("*.json")):
@@ -988,6 +993,12 @@ class MainWindow(QMainWindow):
         for name in sorted(result.series) if result is not None else []:
             entries.append(PaletteEntry(f"Show series > {name}", lambda name=name: self._show_series(name)))
         return entries
+
+    def show_settings(self, section: str = "") -> None:
+        """The Settings area, at ``section`` ("keyboard", "appearance", ...)."""
+        self.shell.show_area("settings")
+        if section:
+            self.settings_page.show_section(section)
 
     def _show_series(self, name: str) -> None:
         self.results_widget.show_series(name)
@@ -999,18 +1010,8 @@ class MainWindow(QMainWindow):
         CommandPalette(self.palette_entries(), self).exec()
 
     def on_keyboard_shortcuts(self) -> None:
-        from .help_dialog import ShortcutsDialog
-
-        def walk(menu):  # submenus too (View > Time Cursor)
-            for action in menu.actions():
-                if action.menu() is not None:
-                    yield from walk(action.menu())
-                else:
-                    yield action
-
-        actions = [action for menu_action in self.menuBar().actions() if menu_action.menu() is not None
-                   for action in walk(menu_action.menu())]
-        ShortcutsDialog(actions, self).exec()
+        """The shortcut list: Settings > Keyboard, generated from the registry."""
+        self.show_settings("keyboard")
 
     def on_about(self) -> None:
         import importlib.util
@@ -1028,75 +1029,6 @@ class MainWindow(QMainWindow):
             "astrodynamics framework (AVS Lab, University of Colorado Boulder).<br><br>"
             f"Basilisk: {basilisk_status}",
         )
-
-    def _build_toolbar(self) -> None:
-        """Puts the SAME QAction instances the menu bar uses onto two
-        QToolBars, one below the other -- one signal connection per
-        action, both surfaces always agree (enabled/disabled state
-        included, e.g. while a run is in flight -- see
-        :meth:`_set_running`).
-
-        Two rows, not one: direct user report (with a screenshot) that
-        one button ("Launch Vizard") simply wasn't visible on their
-        platform -- a single row of 9 text-beside-icon buttons plus 2
-        separators is wide enough that real-world font/DPI rendering
-        (this was never actually exercised outside this project's own
-        offscreen-Fusion-style screenshots, which render narrower than
-        at least one real desktop environment does) can run out of
-        horizontal room before the window's own natural width does, and
-        an un-movable single-row QToolBar's overflow handling in that
-        case is not reliably "show a chevron with everything still
-        reachable" across platforms/styles. Splitting into two fixed
-        rows removes the dependency on window width entirely -- both
-        rows fit comfortably at this window's own default size, and nothing
-        can silently drop off given how few actions are on each one, no
-        matter how any given platform handles toolbar overflow.
-        """
-        primary = QToolBar("Main", self)
-        primary.setObjectName("mainToolBar")  # saveState() finds toolbars by name
-        primary.setMovable(False)
-        primary.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.addToolBar(primary)
-
-        primary.addAction(self.new_action)
-        primary.addAction(self.open_action)
-        primary.addAction(self.save_action)
-        primary.addSeparator()
-        primary.addAction(self.run_action)
-        # The run mode beside Run: its menu holds the three modes.
-        self.run_mode_button = QToolButton()
-        self.run_mode_button.setObjectName("runModeButton")
-        self.run_mode_button.setMenu(self.run_mode_menu)
-        self.run_mode_button.setPopupMode(QToolButton.ToolButtonPopupMode.InstantPopup)
-        self.run_mode_button.setToolTip("What Run starts: a single run, the Monte Carlo batch, or SIL")
-        self.run_mode_button_action = primary.addWidget(self.run_mode_button)
-        primary.addAction(self.abort_action)
-        primary.addAction(self.live_plot_action)
-        primary.addSeparator()
-        primary.addAction(self.model_3d_action)
-
-        self.addToolBarBreak()
-
-        secondary = QToolBar("Vizard/Kernels", self)
-        secondary.setObjectName("vizardToolBar")
-        secondary.setMovable(False)
-        secondary.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.addToolBar(secondary)
-
-        secondary.addAction(self.vizard_action)
-        secondary.addAction(self.vizard_launch_action)
-        secondary.addSeparator()
-        secondary.addAction(self.check_kernels_action)
-
-        # "Run Simulation" is the app's primary call-to-action -- visually
-        # distinguished with the accent color (see theme/qss.py's
-        # QToolButton#primaryToolButton rule), same idea as a web app's
-        # primary button.
-        run_button = primary.widgetForAction(self.run_action)
-        if run_button is not None:
-            run_button.setObjectName("primaryToolButton")
-            keep_icon(run_button, icon("play", "text.on_accent"))  # the action's accent icon would vanish on the fill
-        self._on_run_mode_changed()
 
     def _update_window_title(self) -> None:
         name = self._current_path.name if self._current_path else "untitled"
@@ -1315,8 +1247,9 @@ class MainWindow(QMainWindow):
     def _apply_stale_banner(self, *_args) -> None:
         """The banner shows while a run view (Results, Events, Compare) is,
         not above the editor the change is being made in."""
-        run_views = (self.results_views, self.event_timeline_widget, self.compare_widget)
-        if getattr(self, "_stale_state", None) and self.main_tabs.currentWidget() in run_views:
+        run_views = (self.results_widget, self.mission_dashboard_widget, self.mission_output_widget,
+                     self.monte_carlo_results_widget, self.event_timeline_widget, self.compare_widget)
+        if getattr(self, "_stale_state", None) and hasattr(self, "shell") and self.current_view() in run_views:
             self.stale_results_banner.show_stale(scenario_valid=self._stale_state == "valid")
         else:
             self.stale_results_banner.hide()
@@ -1522,8 +1455,9 @@ class MainWindow(QMainWindow):
         for action in (self.run_action, self.live_plot_action, self.vizard_action,
                        self.vizard_launch_action, self.check_kernels_action, *self.run_mode_group.actions()):
             action.setEnabled(not running)
-        if hasattr(self, "run_mode_button"):
-            self.run_mode_button.setEnabled(not running)
+        for button in (getattr(self, "run_mode_button", None), getattr(self, "run_area_mode_button", None)):
+            if button is not None:
+                button.setEnabled(not running)
 
     def _start_busy(self, message: str, determinate: bool = False, cancellable: bool = True,
                     cancel_note: str = "") -> None:
@@ -1904,12 +1838,16 @@ class MainWindow(QMainWindow):
 
     def _on_run_mode_changed(self, _action=None) -> None:
         label, doing = self._RUN_MODE_TEXT[self.run_mode]
-        self.run_mode_button.setText(label)  # the button draws its own menu arrow
-        self.run_action.setToolTip(f"Run (Ctrl+R): {doing}. Pick another mode beside it. The scenario must be "
-                                   "valid first: Problems says what to fix.")
+        for button in (self.run_mode_button, getattr(self, "run_area_mode_button", None)):
+            if button is not None:
+                button.setText(label)  # the button draws its own menu arrow
+        self.commands.refresh_tooltip("run.run", tip=f"{doing}. Pick another mode beside it. The scenario must be "
+                                                     "valid first: Problems says what to fix.")
 
     def _on_live_plot_toggled(self, checked: bool) -> None:
         self.live_plot_action.setText(f"Live plot: {'on' if checked else 'off'}")
+        if hasattr(self, "commands"):
+            self.commands.refresh_tooltip("run.live_plot")
 
     def on_run(self) -> None:
         """Run: start the selected mode (U-18)."""
@@ -2170,7 +2108,7 @@ class MainWindow(QMainWindow):
             self._show_log_errors()
 
     def _show_log_errors(self) -> None:
-        """A failure opens the Log tab at its warnings and errors (U-23)."""
+        """A failure opens the Log (the Run area) at its warnings and errors (U-23)."""
         self.log_widget.show_errors()
         self.show_view(self.log_widget)
 

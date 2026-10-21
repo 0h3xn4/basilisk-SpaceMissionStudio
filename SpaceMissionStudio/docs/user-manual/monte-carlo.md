@@ -30,7 +30,7 @@ solar pressure on.
 
 ## Read the batch
 
-The **Monte Carlo** view of the Results tab opens on the batch:
+The **Monte Carlo** view of Results opens on the batch:
 
 - **Tiles:** how many runs succeeded, and the 1-sigma spread at the end
   along track, radially and across track.
@@ -40,7 +40,7 @@ The **Monte Carlo** view of the Results tab opens on the batch:
   which drawn value goes with the largest offset. **Export table CSV...**
   saves it.
 
-**Run > Open Monte Carlo Results...** opens a batch you ran earlier.
+**Open Monte Carlo Results...** (the Run area) opens a batch you ran earlier.
 
 ## From the command line or Python
 

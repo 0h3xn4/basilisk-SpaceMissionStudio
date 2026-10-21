@@ -76,12 +76,12 @@ def test_the_token_table_matches_the_theme():
 
 
 @pytest.mark.requires_gui
-def test_the_shortcut_table_matches_the_menus(qtbot, monkeypatch):
-    """Every menu command with a shortcut, submenus included, is a row of
-    DESIGN.md's shortcut table with its first shortcut; every row is such
-    a command. A row naming a standard key has that key's first binding on
-    the running platform (none: no shortcut), whatever its Keys column
-    says (Redo is Ctrl+Y offscreen, Ctrl+Shift+Z on macOS)."""
+def test_the_shortcut_table_matches_the_registry(qtbot, monkeypatch):
+    """Every command of the action registry with a shortcut is a row of
+    DESIGN.md's shortcut table ("Category > Command") with its first
+    shortcut; every row is such a command. A row naming a standard key has
+    that key's first binding on the running platform (none: no shortcut),
+    whatever its Keys column says (Redo is Ctrl+Y offscreen)."""
     from PySide6.QtGui import QKeySequence
     from PySide6.QtWidgets import QMessageBox
 
@@ -90,18 +90,8 @@ def test_the_shortcut_table_matches_the_menus(qtbot, monkeypatch):
     monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
-    found = {}
-
-    def walk(menu, path):
-        for action in menu.actions():
-            name = path + [action.text().replace("&", "")]
-            if action.menu() is not None:
-                walk(action.menu(), name)
-            elif not action.isSeparator() and action.shortcuts():
-                found[" > ".join(name)] = action.shortcuts()[0].toString()
-
-    for action in window.menuBar().actions():
-        walk(action.menu(), [action.text().replace("&", "")])
+    found = {f"{command.category} > {command.label}": command.action.shortcuts()[0].toString()
+             for command in window.commands if command.action.shortcuts()}
     table = _section(_DESIGN.read_text(), "| Command | Keys | Standard key |").split("\n\n")[0]  # this table only
     rows = re.findall(r"^\| ([^|]+?) \| ([^|]+?) \| ([^|]+?) \|$", table, re.MULTILINE)[1:]  # past the header
     expected = {}
