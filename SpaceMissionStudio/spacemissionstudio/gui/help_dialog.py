@@ -127,4 +127,3 @@ class ManualDialog(QDialog):
             self.link_note.setText("")
             return
         self.link_note.setText(f"Not found in the manual: {url.toString()}")
-
