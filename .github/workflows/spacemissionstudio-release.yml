@@ -381,19 +381,13 @@ jobs:
           shopt -s nullglob
           packages=(./*.whl ./*.tar.gz ./*.deb ./*-setup.exe)
           test "${#packages[@]}" = 4
-      - name: Release notes from the CHANGELOG
+      - name: Release notes from the CHANGELOG and the built files
+        # Summary, who should update, downloads with sizes, install, the
+        # installers' SHA-256, what is new, contents, checks and known
+        # limits (packaging/release_notes.py; docs/developer/releasing.md).
         run: |
-          version="$VERSION"
-          {
-            echo "**Files.** Linux (x86_64): \`spacemissionstudio_${version}_amd64.deb\` (\`sudo apt install ./spacemissionstudio_${version}_amd64.deb\`)."
-            echo "Windows (x64): \`spacemissionstudio-${version}-setup.exe\` (not signed, so Windows asks before running it)."
-            echo "Both installers are self-contained: they bring their own Python, Basilisk and support data, and install with no internet."
-            echo "macOS 11 or newer on Apple silicon: no installer yet; install the wheel \`spacemissionstudio-${version}-py3-none-any.whl\` with \`packaging/install.sh\` (docs/getting-started.md)."
-            echo "The macOS install check of the wheel is the \`macos\` job of the workflow run below; it may finish after the files are attached."
-            echo "Checksums: \`SHA256SUMS-linux\`, \`SHA256SUMS-windows\`. Each package was installed on its platform and run by the workflow run $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID."
-            echo
-            awk -v head="## $version (" 'index($0, head) == 1 { on = 1; next } on && /^## / { exit } on' CHANGELOG.md
-          } > "$RUNNER_TEMP/notes.md"
+          python3 packaging/release_notes.py --version "$VERSION" --files ../release \
+            --run-url "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > "$RUNNER_TEMP/notes.md"
           cat "$RUNNER_TEMP/notes.md"
       - name: Attach to the release (a missing release is created as a draft)
         run: |

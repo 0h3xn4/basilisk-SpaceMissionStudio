@@ -11887,3 +11887,26 @@ native code as the test returned, most likely when Python freed a Qt
 object Qt had already deleted. It was seen once in eight whole-suite
 Windows runs of that commit and not on Linux; the test and the wizard
 had not changed. Recorded as open.
+
+## Release notes that read like release notes (2026-10-21)
+
+The user asked for a better description of the 1.1.1 release: its draft
+was the CHANGELOG entry under five lines about files, written for
+developers. The notes were rewritten for someone deciding whether to
+download (summary, who should update, downloads with sizes, install or
+upgrade, checksums with the installers' SHA-256, contents, how the files
+were checked, known limits) and given to the user to paste: this session
+may not edit releases (GitHub answered "Creating, editing, or deleting
+releases is not permitted for this session type").
+
+The release workflow now writes that layout itself with
+`packaging/release_notes.py`, from the CHANGELOG section and the built
+files: their sizes, the installers' SHA-256, the `.deb`'s installed size
+(read with `dpkg-deb`), the bundled Python, Basilisk and PySide6 versions
+(from `bundle_python.py` and `constraints.txt`) and the last observed day
+of the bundled space weather. A CHANGELOG section's opening paragraphs
+become the summary; `### Who should update` and `### Known limits`, after
+the list of changes, get sections of their own. The CHANGELOG is wrapped
+at 72 columns and a release page shows every line break, so wrapped lines
+are joined (lists, tables and code blocks are kept). A release without a
+CHANGELOG section, or missing one of its four packages, gets no notes.

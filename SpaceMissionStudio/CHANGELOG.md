@@ -8,6 +8,16 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **Clearer release notes.** A release draft now opens with what the
+  release is for, then who should update, the downloads with their sizes,
+  how to install or upgrade on each system, how to check a download (with
+  the installers' SHA-256), what is new, what the installers contain, how
+  the files were checked, and the known limits. Before, it was the
+  CHANGELOG entry under a few file lines. Written by
+  `packaging/release_notes.py` (`docs/developer/releasing.md`).
+
 ## 1.1.1 (2026-10-21)
 
 The installers bring everything with them; the app itself is unchanged,

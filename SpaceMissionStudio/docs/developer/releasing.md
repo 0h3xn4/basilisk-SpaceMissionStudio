@@ -43,7 +43,16 @@ The `.deb` reads `spacemissionstudio.__version__`, so it needs no change.
 ## 3. Update the records
 
 - [`CHANGELOG.md`](../../CHANGELOG.md): move the "Unreleased" entries
-  under a new `## X.Y.Z (date)` heading.
+  under a new `## X.Y.Z (date)` heading. The release notes are built from
+  this section (section 5), so write it for someone deciding whether to
+  download:
+  - start with one or two paragraphs that say what the release is for:
+    they become the notes' summary;
+  - then the list of changes, which becomes "What's new";
+  - optionally, after the list, `### Who should update` and
+    `### Known limits` (each runs to the next `###` heading): they get a
+    section of their own, and the known limits follow the standing ones
+    (the unsigned Windows setup, no installer for ARM Linux or macOS).
 - [`HISTORY.md`](../../HISTORY.md): a short entry for the release.
 - The Software Release Document,
   [`compliance/docs/SRelD.md`](../../compliance/docs/SRelD.md): the
@@ -83,9 +92,18 @@ release"). On GitHub's runners it:
   and Basilisk's wheel from PyPI, and runs it. macOS has no installer;
 - writes `SHA256SUMS-linux` and `SHA256SUMS-windows`, checks every file
   against them and attaches all of them to the tag's release. A release
-  that does not exist yet is created as a draft with the CHANGELOG
-  section as its notes. An existing release keeps its notes unless they
-  are empty, and its files are replaced.
+  that does not exist yet is created as a draft. An existing release
+  keeps its notes unless they are empty, and its files are replaced.
+- writes the notes with `packaging/release_notes.py`, in a fixed layout:
+  summary, who should update, downloads with their sizes, install or
+  upgrade, how to check a download (with the installers' SHA-256), what's
+  new, what the installers contain (the Python, Basilisk and PySide6
+  versions and the bundled space weather, read from this checkout), how
+  the files were checked (linking the run), and the known limits. The
+  text comes from the CHANGELOG section (section 3); a release without
+  one gets no notes and the job fails. To see the notes before tagging:
+  `python3 packaging/release_notes.py --version X.Y.Z --files <folder
+  with the four packages> --run-url <any URL>`.
 
 Actions > "SpaceMissionStudio release" > Run workflow, with the tag, runs
 it again for an existing tag. A pull request that changes the workflow
