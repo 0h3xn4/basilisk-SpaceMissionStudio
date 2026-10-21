@@ -76,9 +76,9 @@ earth-orientation --rollback`.
 
 | What | Where |
 |---|---|
-| Support data | Basilisk's cache, for example `~/.cache/bsk_support_data/` |
+| Support data | Installed with the `.deb` or the Windows setup: inside the install folder (`.../site-packages/supportData/`). Otherwise Basilisk's cache, for example `~/.cache/bsk_support_data/` |
 | Space-weather downloads | `~/.cache/SpaceMissionStudio/spaceweather/` |
-| Earth orientation | `~/.cache/SpaceMissionStudio/earth_orientation/` |
+| Earth orientation | Downloads and imports: `~/.cache/SpaceMissionStudio/earth_orientation/`, used first. The installers also put a copy, as current as the installer, inside the install folder |
 | Vizard download | `~/.cache/SpaceMissionStudio/vizard/` |
 
 **More detail:** User Manual section 7, the **Reference data** paragraph of

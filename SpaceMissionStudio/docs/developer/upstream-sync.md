@@ -94,8 +94,9 @@ This is a requalification, described in
    `pip install "bsk[all]==X.Y.Z"`.
 2. Run the full suite and the validation cases against it.
 3. Only then change `QUALIFIED_BASILISK_VERSION`, the installers'
-   `bsk[all]==` pins (`packaging/deb/DEBIAN/postinst` and
-   `packaging/windows/bootstrap_env.ps1`), and the `bsk[all]==` commands
+   `bsk[all]==` pin (`BASILISK_REQUIREMENT` in
+   `packaging/bundle_python.py`), `bsk==` in `packaging/constraints.txt`,
+   and the `bsk[all]==` commands
    in the documentation (`grep -rn "bsk\[all\]==" --include=*.md .`).
 4. Re-vendor the flight-software sources the export uses
    (`spacemissionstudio/fsw_export/basilisk_fsw_sources.*`, from the new

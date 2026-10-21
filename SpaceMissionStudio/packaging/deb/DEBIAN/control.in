@@ -2,8 +2,12 @@ Package: spacemissionstudio
 Version: @VERSION@
 Section: science
 Priority: optional
-Architecture: all
-Depends: python3 (>= 3.11), python3-venv, python3-pip
+Architecture: amd64
+Installed-Size: @INSTALLED_SIZE@
+Depends: libc6 (>= 2.34), libgl1, libegl1, libfontconfig1, libfreetype6, libdbus-1-3, libxkbcommon0,
+ libxkbcommon-x11-0, libx11-xcb1, libxcb-cursor0, libxcb-icccm4, libxcb-image0, libxcb-keysyms1,
+ libxcb-randr0, libxcb-render-util0, libxcb-shape0, libxcb-xfixes0, libxcb-xkb1, libxkbfile1, libnss3,
+ libxcomposite1, libxdamage1, libxrandr2, libxtst6, libasound2t64 | libasound2
 Maintainer: SpaceMissionStudio contributors <spacemissionstudio@example.invalid>
 Homepage: https://github.com/AVSLab/basilisk
 Description: GUI mission-analysis application built on Basilisk
@@ -11,7 +15,9 @@ Description: GUI mission-analysis application built on Basilisk
  mission design, using the Basilisk astrodynamics framework (AVS Lab,
  University of Colorado Boulder) as its sole simulation/dynamics engine.
  .
- This package's own contents are pure Python and platform-independent
- (Architecture: all); Basilisk itself is downloaded from PyPI and
- installed into a dedicated virtual environment the first time this
- package is configured, which needs internet access.
+ Self-contained: the package carries its own Python 3.11 with Basilisk
+ 2.12.0, PySide6 and every other Python package the tool uses, plus the
+ SPICE kernels, gravity fields and Earth orientation files runs read. It
+ needs no system Python and no internet to install. The libraries it
+ depends on are the X11, OpenGL and font libraries of a desktop system,
+ which Qt loads from the system.

@@ -11769,3 +11769,59 @@ the workflow runs the build and install jobs for its own commit and
 attaches nothing, so the workflow is tested before it is merged.
 `docs/developer/releasing.md` (sections 5 and 6), `packaging/README.md`
 and the SDP describe it.
+
+## Self-contained installers (2026-10-20)
+
+The 1.1.0 Windows setup program stopped before its wizard: "SpaceMissionStudio
+needs Python 3.11 or later, which was not found on this system (or not on
+PATH)". It made a virtual environment with the computer's Python and
+downloaded Basilisk and the packages from PyPI while installing; the 1.1.0
+`.deb` did the same with the system's `python3`. The user asked for
+self-contained installers, Linux too.
+
+**What changed.** `packaging/bundle_python.py` builds one private Python
+folder: python-build-standalone's relocatable CPython 3.11.17 (archive
+pinned by SHA-256), Basilisk 2.12.0 and the wheel installed into it with
+`constraints.txt`, Basilisk's support data and the Earth orientation files
+fetched into it, an offline check with sockets refused, and a record
+(`SPACEMISSIONSTUDIO_RUNTIME.json`) of every package and data file. The
+`.deb` (now `amd64`) ships it at `/opt/spacemissionstudio/python` with a
+packaged launcher and icon; `postinst` only removes the old venv. The setup
+program ships it at `{app}\python`, has no Python check and no
+`bootstrap_env.ps1`, and compiles the bytecode for the folder chosen. Both
+install with no network.
+
+**Found while building it:**
+
+* **The old installers' kernel prefetch helped nobody but root.**
+  Basilisk's download cache is per user (`~/.cache/bsk_support_data`);
+  `postinst` ran as root, so every other user had no kernels until they
+  downloaded them. The bundle puts the files in `site-packages/supportData`,
+  the folder Basilisk's own `find_local_support_data()` reads before its
+  cache, so every user of the install finds them. No change to Basilisk.
+* **pooch writes 0600 files,** unreadable for other users under `/opt`;
+  the bundler makes the data world-readable.
+* **The Earth orientation manifest records absolute paths,** so the
+  bundled files were "not installed" once moved from the build folder
+  (the first offline run fell back to IAU_EARTH and said so). The bundler
+  points the paths at `--prefix`; the Windows setup rewrites them for its
+  folder. No engine change.
+* **The first package list was wrong:** `pip list` ran without `-I` and
+  listed the build machine's user site-packages (conan, pytest, an older
+  certifi) as if bundled. The installed files were right; every bundled
+  Python call now runs isolated.
+* **A PySide6 deployment template** (`*.tmpl.py`) is not Python and failed
+  `compileall`; it is left out.
+* **The smoke test's font check never applied the theme**, so it printed
+  "Sans Serif" from the source tree too. The workflow's check now calls
+  `apply_theme` as `gui/app.py` does, and asserts Inter.
+
+**Verified** on Linux: an offline upgrade over the venv-based 1.1.0
+package, purge, an offline fresh install, then as an ordinary user with no
+network and an empty support-data cache: the version, all nine support
+files from the bundle, 31 templates validated, templates 01 and 22 run
+(22 with GGM03S and ITRF93), the Earth orientation files found and the
+main window in Inter (`packaging/README.md`, "The bundled Python"). The
+release workflow now installs the `.deb` with `unshare --net` and runs
+these checks offline; the Windows setup is built and checked there and in
+the Windows installer workflow.

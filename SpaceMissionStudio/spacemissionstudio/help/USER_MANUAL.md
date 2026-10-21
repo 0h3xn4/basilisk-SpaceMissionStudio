@@ -113,18 +113,24 @@ If someone already installed SpaceMissionStudio for you, skip to
 [Section 3](#3-starting-the-app).
 
 **Linux:** double-click the `.deb` file you were given, or the one
-from the [1.1.0 release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.0) (or run
-`sudo apt install ./spacemissionstudio_1.1.0_all.deb` in a terminal), then
+from the [releases page](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases) (or run
+`sudo apt install ./spacemissionstudio_<version>_amd64.deb` in a terminal), then
 find **SpaceMissionStudio** in your application menu like any other program.
 
-**Windows 10/11 and macOS:** 1.1.0 has no installer for them yet. Install
-from source as the [Getting started guide](docs/getting-started.md)
-describes (path C).
+**Windows 10/11:** run `spacemissionstudio-<version>-setup.exe` and click
+through it; it installs for your user only, with no administrator
+rights. Then start **SpaceMissionStudio** from the Start Menu.
 
-The installer needs an internet connection once, to download the
+**macOS:** there is no installer yet. Install from source as the
+[Getting started guide](docs/getting-started.md) describes (path C).
+
+The installers bring everything with them: their own Python, the
 Basilisk simulation engine and its reference data (planet positions,
 leap seconds, Earth's and Mars's gravity fields, Earth's magnetic field,
-about 116 MB). After that the app works offline.
+Earth orientation). They need no Python on the computer and no internet,
+and the app works offline from the start. (The 1.1.0 installers were not
+like this yet: they downloaded Basilisk and the data while installing,
+and the 1.1.0 Windows setup also needed Python 3.11.)
 
 **No installer, or want to run it from source?**
 [Getting started](docs/getting-started.md) walks through every way to
@@ -133,7 +139,7 @@ and what to do when it doesn't.
 
 ## 3. Starting the app
 
-* **Installed with the `.deb` or the install script:** open
+* **Installed with an installer or the install script:** open
   **SpaceMissionStudio** from your application menu (the Start Menu on
   Windows), same as any other program.
 * **Running from source:** open a terminal in the project folder and run
@@ -1132,16 +1138,17 @@ carry their own coefficients).
 **Run says Basilisk isn't installed/built.**
 SpaceMissionStudio's graphical shell opens fine on its own, but actually
 *running* a simulation needs the separate Basilisk engine installed too.
-If you used the `.deb` or the install script, this should already be set up;
+If you used an installer or the install script, this should already be set up;
 if not, see [Getting started](docs/getting-started.md). The app
 always reports this clearly rather than crashing -- if you see a plain
 error message naming Basilisk, that's exactly what's going on, not a bug.
 
 **Run says a support-data file is not installed.** Runs never
-download anything. The installer fetches the standard reference files
+download anything. The installers bring the standard reference files
 (SPICE kernels -- leap seconds, planet positions -- plus the gravity
-fields and magnetic model, around 116 MB) once. If they are missing (a
-development checkout, a cleared cache), open the **Reference data**
+fields and magnetic model, around 117 MB); the install script fetches
+them once. If they are missing (a development checkout, a cleared
+cache), open the **Reference data**
 dialog (**Run > Check Reference Data**) and choose **Download... > Support
 data**; it asks before fetching. `spacemissionstudio kernels-status`
 does the same from the command line.

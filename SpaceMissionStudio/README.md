@@ -102,13 +102,15 @@ Details, and the Basilisk module behind each feature:
 | | |
 |---|---|
 | System | Linux x86_64 or aarch64 (glibc 2.28 or newer), Windows 10 or 11 x86_64, macOS 11 or newer on Apple silicon |
-| Python | 3.11 or newer; CI tests 3.11 (Basilisk's wheels go up to 3.14) |
-| Basilisk | 2.12.0, installed from PyPI (`bsk`) |
-| Disk | About 1.6 GB, including the reference data |
-| Internet | Once, to install and fetch the reference data |
+| Python | None for the installers (they bring Python 3.11); 3.11 or newer from source. CI tests 3.11 (Basilisk's wheels go up to 3.14) |
+| Basilisk | 2.12.0: in the installers, or from PyPI (`bsk`) |
+| Disk | About 1.7 GB, including the reference data |
+| Internet | None for the installers; once from source, to install and fetch the reference data |
 
-The Linux `.deb`, the install scripts and the Windows setup script
-(not yet released) are in [`packaging/`](packaging/README.md).
+The Linux `.deb`, the Windows setup program and the install scripts are
+in [`packaging/`](packaging/README.md). From the next release the two
+installers are self-contained: their own Python, Basilisk and reference
+data, no internet needed.
 
 ## Licence and status
 
@@ -118,12 +120,12 @@ The Linux `.deb`, the install scripts and the Windows setup script
   optical and landmark navigation, asteroid Eros, Mars's gravity field and
   albedo on the sun sensors, after 1.0.0, the first release of the renewed
   tool. Needs Python 3.11 or newer.
-- **Platforms:** 1.1.0 is a Linux release, like 1.0.0: the `.deb` and
-  the wheel were built, installed and run end to end with Basilisk
-  2.12.0 ([`packaging/README.md`](packaging/README.md)). The test suite
+- **Platforms:** 1.1.0 has the Linux `.deb` and the wheel, built,
+  installed and run end to end with Basilisk 2.12.0, and a Windows setup
+  program built, installed and run on a Windows runner by the release
+  workflow ([`packaging/README.md`](packaging/README.md)). The test suite
   also passes in CI on Windows and macOS (failures seen there before are
-  fixed or under watch, SRelD K-14); their installers follow in a later
-  release.
+  fixed or under watch, SRelD K-14). macOS has no installer yet.
 - **Known gaps:** [Known limitations](docs/reference/limitations.md).
 - **Standards:** the project's ECSS and CCSDS records are in
   [`compliance/`](compliance/README.md). They are the project's own

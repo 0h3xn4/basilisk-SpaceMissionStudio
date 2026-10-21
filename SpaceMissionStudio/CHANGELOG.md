@@ -8,6 +8,22 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **Self-contained installers.** The Linux `.deb` and the Windows setup
+  program now bring their own Python 3.11 with Basilisk 2.12.0, PySide6
+  and every other package, plus the support data (SPICE kernels, gravity
+  fields, magnetic field model, albedo maps) and the Earth orientation
+  files. Installing needs no Python on the computer and no internet: the
+  1.1.0 setup program stopped with "needs Python 3.11 or later" when
+  none was on `PATH`, and both 1.1.0 installers downloaded Basilisk and
+  the data while installing. The `.deb` is now
+  `spacemissionstudio_<version>_amd64.deb` (about 450 MB; 1.65 GB
+  installed) and needs glibc 2.34 or newer (Ubuntu 22.04, Debian 12 or
+  later). Built by `packaging/bundle_python.py`; the release workflow
+  installs the `.deb` with the network cut off and runs it offline. The
+  app itself is unchanged.
+
 ## 1.1.0 (2026-10-20)
 
 A new look whose theme switches live, formations in relative orbital

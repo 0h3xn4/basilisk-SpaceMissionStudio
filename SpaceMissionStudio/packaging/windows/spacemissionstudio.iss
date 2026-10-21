@@ -1,47 +1,43 @@
 ; SpaceMissionStudio Windows installer -- Inno Setup script.
 ;
-; A real installer wizard: no terminal, no typed pip/venv commands for the
-; end user. Double-click spacemissionstudio-setup.exe, click through Welcome ->
-; License -> install location -> Install, and get a Start Menu (and
-; optional Desktop) shortcut that launches the GUI directly.
+; A setup wizard: Welcome -> License -> install location -> Install, then a
+; Start Menu (and optional Desktop) shortcut that starts the GUI.
 ;
-; What it does NOT avoid: this still needs (1) a system Python 3.11+
-; already installed (checked before the wizard even starts -- see
-; InitializeSetup below -- with a guided prompt to python.org if missing,
-; not a silent failure) and (2) internet access during setup, to
-; pip-install Basilisk ("bsk[all]") from PyPI, the one dependency this
-; installer cannot practically bundle (a multi-hundred-MB compiled wheel
-; with mujoco/rust bits -- see ../README.md's "The vendoring decision").
-; SpaceMissionStudio itself IS bundled (its own wheel, pure Python, no network
-; needed for that part) -- see [Files] below.
+; Self-contained: the setup program carries a private CPython 3.11
+; (python-build-standalone) with Basilisk, SpaceMissionStudio and every
+; Python package installed, plus the support data (SPICE kernels, gravity
+; fields, magnetic field model, albedo maps) and the Earth orientation
+; files -- the folder packaging/bundle_python.py builds. Installing needs
+; no Python on the machine and no internet.
 ;
-; This mirrors ../install.ps1's own logic almost exactly (same venv
-; -under-the-install-dir approach, same "bsk[all]" + bundled-wheel[gui]
-; install sequence -- see packaging/windows/bootstrap_env.ps1, which IS
-; that logic, trimmed for a fixed non-interactive install directory), just
-; wrapped in a GUI wizard instead of a script the user runs from a
-; terminal.
+; Building this installer (on Windows, with Inno Setup 6,
+; https://jrsoftware.org/isinfo.php; ISCC.exe on PATH), from SpaceMissionStudio\:
 ;
-; Building this installer (on a real Windows machine, with Inno Setup
-; https://jrsoftware.org/isinfo.php installed -- ISCC.exe on PATH):
-;
-;   1. Build SpaceMissionStudio's own wheel into packaging\windows\dist\:
-;        cd SpaceMissionStudio
+;   1. Build SpaceMissionStudio's wheel:
 ;        powershell -File packaging\build_wheel.ps1 packaging\windows\dist
-;   2. Compile this script:
+;   2. Build the bundled Python into packaging\windows\python\ (needs
+;      Python 3.11.4 or later to run the script, and internet access):
+;        python packaging\bundle_python.py --platform windows --dest packaging\windows\python ^
+;            --wheel packaging\windows\dist\spacemissionstudio-1.1.0-py3-none-any.whl
+;   3. Compile this script:
 ;        ISCC packaging\windows\spacemissionstudio.iss
 ;      -> packaging\windows\Output\spacemissionstudio-1.1.0-setup.exe
 ;
-; Verification status: compiled, installed silently and the installed
-; tool run on a Windows runner by
-; .github/workflows/spacemissionstudio-windows-installer.yml (first passed
-; 2026-10-12). The wizard has not been clicked through by hand
-; on a real Windows 10/11 machine. See packaging/README.md.
+; Verification: .github/workflows/spacemissionstudio-release.yml and
+; spacemissionstudio-windows-installer.yml build it on a Windows runner,
+; install it silently and run the installed tool; packaging/README.md
+; records the results. The wizard has not been clicked through by hand on
+; a real Windows 10/11 machine.
 
 #define MyAppName "SpaceMissionStudio"
 #define MyAppVersion "1.1.0"
 #define MyAppPublisher "SpaceMissionStudio contributors"
 #define MyAppURL "https://github.com/AVSLab/basilisk"
+; The bundled Python folder; CI passes a short path (ISCC /DPythonDir=...)
+; to stay clear of Windows' 260-character path limit while building.
+#ifndef PythonDir
+  #define PythonDir "python"
+#endif
 
 [Setup]
 ; A fixed, random GUID identifying this application across upgrades --
@@ -69,8 +65,12 @@ PrivilegesRequired=lowest
 LicenseFile=..\..\LICENSE
 OutputDir=Output
 OutputBaseFilename=spacemissionstudio-{#MyAppVersion}-setup
-Compression=lzma
+; About 1.5 GB of files (Qt WebEngine, Basilisk, de430.bsp): LZMA2 in a
+; separate process with several block threads keeps the build time down.
+Compression=lzma2/max
 SolidCompression=yes
+LZMAUseSeparateProcess=yes
+LZMANumBlockThreads=4
 WizardStyle=modern
 ; Basilisk publishes wheels for Windows 10/11 (x86_64) specifically (see
 ; ../../docs/source/Install.rst's "Prebuilt wheel availability" table) --
@@ -84,61 +84,38 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
 
 [Files]
-; The wheel this installer bundles -- built separately, ahead of
-; compiling this script; see the header comment above. Wildcarded so a
-; version bump here needs no edit to this script.
-Source: "dist\spacemissionstudio-*.whl"; DestDir: "{app}\dist"; Flags: ignoreversion
-Source: "bootstrap_env.ps1"; DestDir: "{app}"; Flags: ignoreversion
-; The tested dependency versions bootstrap_env.ps1 installs (audit M14).
-Source: "..\constraints.txt"; DestDir: "{app}"; Flags: ignoreversion
+; The bundled Python (packaging\bundle_python.py), copied as it is.
+Source: "{#PythonDir}\*"; DestDir: "{app}\python"; Flags: ignoreversion recursesubdirs createallsubdirs
 
-[Icons]
-; spacemissionstudio.exe (the [project.scripts] console entry point pip
-; installs into the venv) is a CONSOLE-mode executable -- launching it
-; directly would flash a console window. pythonw.exe (the venv's own
-; windowless Python interpreter) running the same CLI module instead
-; gives a normal, console-free GUI launch, the same fix
-; packaging/install.ps1's own launcher note documents for the same
-; reason.
-Name: "{group}\SpaceMissionStudio"; Filename: "{app}\venv\Scripts\pythonw.exe"; Parameters: "-m spacemissionstudio.cli gui"; WorkingDir: "{app}"; IconFilename: "{app}\venv\Scripts\python.exe"
-Name: "{group}\Uninstall SpaceMissionStudio"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\SpaceMissionStudio"; Filename: "{app}\venv\Scripts\pythonw.exe"; Parameters: "-m spacemissionstudio.cli gui"; WorkingDir: "{app}"; IconFilename: "{app}\venv\Scripts\python.exe"; Tasks: desktopicon
-
-[Run]
-; The actual environment setup -- see bootstrap_env.ps1's own docstring.
-; Not "runhidden": left visible (a console window) so the user sees SOME
-; feedback during what can be several minutes of PyPI downloads, rather
-; than an installer that looks frozen. ExecutionPolicy Bypass is scoped
-; to this one process only (the -File invocation), not a system-wide
-; policy change.
-Filename: "powershell.exe"; Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\bootstrap_env.ps1"" -InstallDir ""{app}"""; StatusMsg: "Installing Python packages (needs internet access, can take a few minutes)..."; Flags: waituntilterminated
-Filename: "{app}\venv\Scripts\pythonw.exe"; Parameters: "-m spacemissionstudio.cli gui"; WorkingDir: "{app}"; Description: "Launch SpaceMissionStudio now"; Flags: postinstall skipifsilent nowait unchecked
-
-[UninstallDelete]
-; The venv (and everything pip installed into it, Basilisk included) is
-; created by bootstrap_env.ps1 at install time, not tracked in [Files],
-; so the uninstaller needs telling explicitly to remove it too -- same
-; reasoning as the .deb package's postrm script.
+[InstallDelete]
+; A fresh copy on every install or upgrade, and what setups up to 1.1.0
+; left: a virtual environment built at install time, the wheel, the
+; bootstrap script and the constraints file.
+Type: filesandordirs; Name: "{app}\python"
 Type: filesandordirs; Name: "{app}\venv"
 Type: filesandordirs; Name: "{app}\dist"
+Type: files; Name: "{app}\bootstrap_env.ps1"
+Type: files; Name: "{app}\constraints.txt"
 
-[Code]
-function InitializeSetup(): Boolean;
-var
-  ResultCode: Integer;
-begin
-  Result := True;
-  // Checks that the python.exe on PATH runs and is 3.11 or later -- the
-  // same python bootstrap_env.ps1 then uses (`python -m venv`). The
-  // version is checked by the interpreter itself, through its exit code,
-  // because Inno Setup's Exec() does not capture stdout.
-  if not Exec('cmd.exe', '/C python -c "import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)"', '',
-              SW_HIDE, ewWaitUntilTerminated, ResultCode) or (ResultCode <> 0) then
-  begin
-    if MsgBox('SpaceMissionStudio needs Python 3.11 or later, which was not found on this system (or not on PATH).' + #13#10 + #13#10 +
-              'Click OK to open the Python download page, then re-run this installer after installing it -- make sure to check "Add python.exe to PATH" during Python''s own setup.',
-              mbError, MB_OKCANCEL) = IDOK then
-      ShellExec('open', 'https://www.python.org/downloads/', '', '', SW_SHOWNORMAL, ewNoWait, ResultCode);
-    Result := False;
-  end;
-end;
+[Icons]
+; pythonw.exe, the windowless interpreter, so no console window opens;
+; -I isolates it from any PYTHONPATH or user site-packages.
+Name: "{group}\SpaceMissionStudio"; Filename: "{app}\python\pythonw.exe"; Parameters: "-I -m spacemissionstudio.cli gui"; WorkingDir: "{app}"; IconFilename: "{app}\python\python.exe"
+Name: "{group}\Uninstall SpaceMissionStudio"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\SpaceMissionStudio"; Filename: "{app}\python\pythonw.exe"; Parameters: "-I -m spacemissionstudio.cli gui"; WorkingDir: "{app}"; IconFilename: "{app}\python\python.exe"; Tasks: desktopicon
+
+[Run]
+; Bytecode for the folder chosen here, so tracebacks name the installed
+; files rather than the build machine's (the setup program does not know
+; the folder when it is built). Unchecked hashes: valid whatever times the
+; files get. Nothing is downloaded.
+Filename: "{app}\python\python.exe"; Parameters: "-I -m compileall -q -f -j 0 -x \.tmpl\.py$ --invalidation-mode unchecked-hash ""{app}\python"""; StatusMsg: "Preparing the Python files..."; Flags: runhidden waituntilterminated
+; The Earth orientation files' manifest records absolute paths; point
+; them at the folder chosen here (the .deb gets this at build time,
+; packaging\bundle_python.py's relocate_earth_orientation).
+Filename: "{app}\python\python.exe"; Parameters: "-I -c ""import json, pathlib, sys; d = pathlib.Path(sys.prefix, 'share', 'spacemissionstudio', 'earth_orientation'); m = d / 'manifest.json'; e = json.loads(m.read_text(encoding='utf-8')); m.write_text(json.dumps([dict(k, path=str(d / pathlib.Path(k['path']).name)) for k in e], indent=2), encoding='utf-8')"""; StatusMsg: "Preparing the Python files..."; Flags: runhidden waituntilterminated
+Filename: "{app}\python\pythonw.exe"; Parameters: "-I -m spacemissionstudio.cli gui"; WorkingDir: "{app}"; Description: "Launch SpaceMissionStudio now"; Flags: postinstall skipifsilent nowait unchecked
+
+[UninstallDelete]
+; Bytecode written by the step above is not in [Files].
+Type: filesandordirs; Name: "{app}\python"

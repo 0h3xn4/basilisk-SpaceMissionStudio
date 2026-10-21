@@ -64,3 +64,40 @@ Files in the package:
 No new run-time dependency came with the new interface (1.1.0): the fonts and
 icons are files, not packages. `plotly.min.js` is not copied into the
 package (it already ships with plotly; a copy would add 4.8 MB).
+
+## In the installers (the bundled Python)
+
+The `.deb` and the Windows setup program carry a whole Python
+environment (`packaging/bundle_python.py`), so they redistribute what is
+installed in it. The exact versions of each build are in its
+`SPACEMISSIONSTUDIO_RUNTIME.json` (in the bundled Python's folder:
+`/opt/spacemissionstudio/python` on Linux, `{app}\python` on Windows),
+which also lists every data file with its SHA-256.
+
+| Component | Version | Licence | Source |
+|---|---|---|---|
+| CPython | 3.11.17 | PSF-2.0 (text: `lib/python3.11/LICENSE.txt`, `Lib\LICENSE.txt` on Windows) | python-build-standalone 20261013, `install_only_stripped`, SHA-256 pinned in `bundle_python.py` |
+| Libraries CPython is built with (OpenSSL, SQLite, libffi, XZ, zlib, ...) | as in that build | as documented by python-build-standalone ("Licensing" in its `docs/running.rst`): it builds against libedit, not readline, and leaves out `_gdbm`, so no GPL library is linked | same archive |
+| Basilisk (`bsk`, `bsk-opnav`) | 2.12.0 | ISC | PyPI wheel |
+| PySide6, PySide6-Essentials, PySide6-Addons, shiboken6 (Qt 6.11.2) | 6.11.2 | LGPL-3.0-only (offered also under GPL-2.0/3.0) | PyPI wheels, unmodified; Qt stays in separate shared libraries in `site-packages/PySide6`, which a user can replace |
+| numpy | 2.4.6 | BSD-3-Clause (with 0BSD, MIT, Zlib, CC0-1.0 parts) | PyPI |
+| pandas, matplotlib, contourpy, kiwisolver, cycler, pyparsing, fonttools, pillow, python-dateutil, six, bokeh, Jinja2, MarkupSafe, tornado, xyzservices, narwhals, PyYAML | from `constraints.txt` or as resolved | BSD, MIT, PSF (matplotlib), MIT-CMU (pillow), Apache-2.0 (tornado; dateutil partly) | PyPI (dependencies of `bsk[all]`) |
+| plotly, sgp4, pyerfa, platformdirs | from `constraints.txt` or as resolved | MIT, MIT, BSD-3-Clause, MIT | PyPI (SpaceMissionStudio's own dependencies) |
+| pooch, requests, urllib3, idna, charset-normalizer, certifi, tqdm, protobuf, packaging, colorama | from `constraints.txt` or as resolved | BSD-3-Clause, Apache-2.0, MIT, BSD-3-Clause, MIT, MPL-2.0, MPL-2.0 and MIT, BSD-3-Clause, Apache-2.0 or BSD-2-Clause, BSD | PyPI |
+| pip, setuptools | as in the build | MIT | PyPI |
+
+The licences above are each package's own metadata in the bundle
+(`License-Expression`, else its licence classifiers), read on
+2026-10-20 from a Linux build. Each package's licence text is in its
+`*.dist-info` folder.
+
+**Data files in the installers** (fetched while building, with
+Basilisk's own registry checksums or, for the Earth orientation files,
+the tool's own check), the same files the install scripts and the
+Reference data dialog download:
+
+| Data | Files | Source |
+|---|---|---|
+| SPICE kernels | `naif0012.tls`, `de430.bsp`, `de-403-masses.tpc`, `pck00010.tpc` | NASA NAIF, `naif.jpl.nasa.gov/pub/naif/generic_kernels/` (the URLs Basilisk's registry gives) |
+| Gravity fields, magnetic field (WMM-2025), albedo maps | `GGM03S.txt`, `GGM2BData.txt`, `WMM2025.COF`, `Earth_ALB_2018_CERES_All_5x5.csv`, `Mars_ALB_TES_5x5.csv` | Basilisk's `supportData` folder (`raw.githubusercontent.com/AVSLab/basilisk/.../supportData/`), the files Basilisk itself downloads |
+| Earth orientation | the current `earth_*_combined.bpc` and `earth_latest_high_prec.bpc`, with their comment files | NASA NAIF, `naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/` |

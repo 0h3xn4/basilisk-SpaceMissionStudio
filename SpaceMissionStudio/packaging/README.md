@@ -5,30 +5,24 @@ out-of-the-box application for both Linux and Windows -- not just a
 `pip install` a developer runs from a terminal. Two tiers exist for each
 platform:
 
-1. **A real double-click installer** -- a `.deb` package on Linux
+1. **A double-click installer** -- a `.deb` package on Linux
    (`build_deb.sh`), an Inno Setup wizard on Windows
-   (`windows/spacemissionstudio.iss`). No terminal, no typed `pip`/`venv`
-   commands for the end user: install, get a menu entry, click it, done.
+   (`windows/spacemissionstudio.iss`). Both are self-contained: they carry
+   a private Python 3.11 with Basilisk, SpaceMissionStudio, every Python
+   package and the reference data (`bundle_python.py`, below). Installing
+   needs no Python on the computer, no terminal and no internet: install,
+   get a menu entry, click it.
 2. **The scriptable install path** (`build_wheel.sh`/`install.sh` and
-   their `.ps1` counterparts) these installers are themselves built on
-   top of -- still useful directly for anyone who'd rather script an
-   install or doesn't want a system-wide package manager entry.
+   their `.ps1` counterparts): installs from a checkout into a virtual
+   environment made with the computer's own Python, downloading Basilisk
+   and the packages from PyPI. For anyone who would rather script an
+   install, and for macOS, which has no installer.
 
-**Basilisk version:** the installers pin `bsk[all]==2.12.0`, the version
-SpaceMissionStudio is qualified with (`spacemissionstudio/dependencies.py`).
-Change both together.
-
-**A real update, made while building the `.deb` installer above:** this
-development sandbox's Basilisk story has changed since earlier sections
-of this file (and `../HISTORY.md`) were written. `pip install "bsk[all]"`
-(Basilisk's own published PyPI wheel) now genuinely installs here --
-confirmed directly, not assumed, by actually running it and then running
-a real Basilisk build's `printBuildInfo()`. What's STILL blocked in this
-sandbox specifically is network access to the NAIF SPICE kernel host
-(`naif.jpl.nasa.gov`) and its backup mirror, needed for an actual
-simulation RUN past kernel loading -- a narrower, later gap than "no
-Basilisk at all". See "The `.deb` package" below for exactly what this
-made possible to verify end-to-end for the first time.
+**Basilisk version:** the installers bundle `bsk[all]==2.12.0`, the
+version SpaceMissionStudio is qualified with
+(`spacemissionstudio/dependencies.py`; `bundle_python.py`'s
+`BASILISK_REQUIREMENT`). Change both together; `tests/test_dependencies.py`
+fails when they differ.
 
 ## Closed-off/offline policy -- the kernel pre-fetch step
 
@@ -40,29 +34,25 @@ Basilisk's SPICE/gravity-harmonics/magnetic-field support data, which
 `engine.kernels.require_kernels()` normally fetches (via Basilisk's own
 `pooch`-backed cache) the first time a scenario that needs a given file is
 run. Deferring that first fetch to the user's first real run would violate
-the offline policy, so all four installers below now call
-`engine.kernels.require_kernels()` (with its default, ALL_SUPPORT_DATA_FILES,
-covering every SPICE/gravity/magnetic-field file this app's code paths read)
-once, right after spacemissionstudio itself is installed into the venv:
+the offline policy, so:
 
-* **`install.sh`** / **`install.ps1`** -- only when a Basilisk wheel was
-  also given (`--basilisk-wheel`/`-BasiliskWheel`); non-fatal (a missing
-  Basilisk build already means Run/Monte Carlo won't work, so a failed
-  pre-fetch here doesn't change that) -- prints a status line either way so
-  the user knows whether a later `spacemissionstudio kernels-status` run
-  (WITH internet access) is still needed before their first real run.
-* **`deb/DEBIAN/postinst`** / **`windows/bootstrap_env.ps1`** -- always (both
-  always install a real Basilisk build into the venv they create), so a
-  failure here is FATAL, matching how both scripts already treat the
-  Basilisk/spacemissionstudio install steps themselves: a scenario that can
-  never actually run without its own kernels is exactly the kind of
-  "configured but broken" state these installers should refuse to ship,
-  not silently produce.
+* **The `.deb` and the Windows setup program** carry the data: every file
+  of ALL_SUPPORT_DATA_FILES (SPICE kernels, gravity fields, the magnetic
+  field model, albedo maps; 117 MB) and the Earth orientation files
+  (36 MB) are fetched when the installer is BUILT, by `bundle_python.py`,
+  and installed with it. The installing computer downloads nothing.
+* **`install.sh`** / **`install.ps1`** call `engine.kernels.require_kernels()`
+  once, right after SpaceMissionStudio is installed into the venv, and
+  only when a Basilisk wheel was also given
+  (`--basilisk-wheel`/`-BasiliskWheel`); non-fatal (a missing Basilisk
+  build already means Run/Monte Carlo won't work) -- they print a status
+  line either way, so the user knows whether a later `spacemissionstudio
+  kernels-status` run (WITH internet access) is still needed.
 
-Every later `get_path()` call for the rest of that install's lifetime then
-resolves from Basilisk's own local cache, with no network touched at all --
-this install-time pre-fetch is the first of two allowed exceptions to the
-offline policy.
+Every later lookup then resolves from the installed files (or, for the
+install scripts, Basilisk's own local cache), with no network touched at
+all -- the install-time fetch is the first of two allowed exceptions to
+the offline policy.
 
 The second, relaxed later by a real user decision ("a one time fetch during
 each startup of the app is also allowed, to store everything that is needed
@@ -77,6 +67,9 @@ network, same as before this existed. This is a GUI-only concern -- nothing
 in `packaging/` needed to change for it.
 
 ## What's here
+
+* **`bundle_python.py`** -- builds the private Python both installers
+  ship (see "The bundled Python" below).
 
 * **`build_wheel.sh`** -- builds `spacemissionstudio`'s own wheel + sdist
   (`python -m build`). Genuinely run here: `dist/spacemissionstudio-<version>-py3-none-any.whl`
@@ -142,8 +135,8 @@ and 6):
 
 | Platform | Files | Installed and run in the workflow |
 |---|---|---|
-| Linux (x86_64, `ubuntu-24.04`) | wheel, sdist, `.deb`, `SHA256SUMS-linux` | `apt install` of the `.deb`; `--version`, `kernels-status`, every template validated, template 01 run, the main window opened |
-| Windows (x64, `windows-latest`) | the setup program around that wheel, `SHA256SUMS-windows` | silent install (`/VERYSILENT /CURRENTUSER`); the same checks with one template |
+| Linux (x86_64, `ubuntu-24.04`) | wheel, sdist, `.deb`, `SHA256SUMS-linux` | `dpkg -i` of the `.deb` with the network cut off (`unshare --net`), then as the runner's user, still offline and with an empty support-data cache: `--version`, `kernels-status`, every template validated, template 01 run from the bundled kernels, the Earth orientation files found, the main window opened in Inter |
+| Windows (x64, `windows-latest`) | the setup program (the bundled Python with that wheel), `SHA256SUMS-windows` | silent install (`/VERYSILENT /CURRENTUSER`); with an empty support-data cache, the same checks with one template |
 | macOS (Apple silicon, `macos-latest`) | none: the wheel is the package | `install.sh --no-desktop-entry` with that wheel and Basilisk's wheel from PyPI; the same checks as on Linux |
 
 The macOS row produces no file, so attaching does not wait for it: it is
@@ -155,16 +148,30 @@ before the workflow existed ("Verified for ..." below).
 
 ### The `.deb` package (Linux)
 
-`build_deb.sh` produces `spacemissionstudio_<version>_all.deb` -- a real
-Debian/Ubuntu package. It bundles SpaceMissionStudio's own wheel (built the
-same way `build_wheel.sh` always has) plus a small set of maintainer
-scripts (`deb/DEBIAN/postinst`/`prerm`/`postrm`) and a desktop entry
-(`deb/usr/share/applications/spacemissionstudio.desktop`); it does NOT bundle
-Basilisk itself (see "The vendoring decision" below for why not) --
-`postinst` creates a dedicated virtualenv at `/opt/spacemissionstudio/venv`
-and pip-installs `bsk[all]` there the moment the package is configured
-(`apt install`/`dpkg -i`'s normal "configure" step), which needs
-internet access on the installing machine.
+`build_deb.sh` produces `spacemissionstudio_<version>_amd64.deb`, a
+self-contained Debian/Ubuntu package:
+
+- `/opt/spacemissionstudio/python`: the bundled Python (`bundle_python.py`
+  with `--prefix /opt/spacemissionstudio/python`), with Basilisk, the
+  wheel, every package, the support data and the Earth orientation files;
+- `/usr/bin/spacemissionstudio`: a launcher that runs that Python
+  isolated (`-I -m spacemissionstudio.cli`);
+- the desktop entry, and the menu icon, rendered from `gui/icons.py` when
+  the package is built.
+
+Every file is a package file, so dpkg removes them all. `postinst` only
+removes the virtual environment packages up to 1.1.0 created and updates
+the desktop and icon caches; it downloads nothing. `Depends` lists the
+X11, OpenGL, font and sound libraries Qt loads from the system (a desktop
+has them) and glibc 2.34 or newer (PySide6 6.11's wheels are
+`manylinux_2_34`): Ubuntu 22.04, Debian 12 or later.
+
+**Verified for the self-contained package:** see "The bundled Python"
+below for what was measured.
+
+The two sections below record the earlier, venv-based package (up to
+1.1.0), which needed a system Python 3.11 and internet access during
+`apt install`.
 
 **Verified for 1.1.0** (2026-10-20, Ubuntu 24.04 container, Python
 3.11, as root), with the files built from a clean checkout of commit
@@ -224,9 +231,10 @@ wheel nor the sdist, so the files match the commit that records them:
 - Not done for 1.0.0: an install by hand on a desktop, with the app
   opened from the application menu.
 
-Uninstalling (`apt remove`/`apt purge spacemissionstudio`) also removes
-the venv and the rendered icon (`postrm`): they are created at configure
-time and are not part of the package's tracked files.
+Uninstalling (`apt remove`/`apt purge spacemissionstudio`) removes
+everything: the package's own files, and whatever else is left under
+`/opt/spacemissionstudio` (`postrm`: bytecode Python wrote when the tool
+was run as root, or a venv left by a package up to 1.1.0).
 
 **Coming from 3.0.0** (the earlier numbering): apt sees 1.0.0 as older.
 Tried on 2026-10-14: over an installed 3.0.0 `.deb`, `apt-get install -y
@@ -246,23 +254,27 @@ GitHub's SHA-256 digest of each attached file equals the built file's
 ### The Windows installer (Inno Setup)
 
 `windows/spacemissionstudio.iss` is an [Inno Setup](https://jrsoftware.org/isinfo.php)
-script producing `spacemissionstudio-<version>-setup.exe`: a real wizard --
-Welcome, license, install-location, Install, an optional "launch now"
-checkbox on Finish -- built on the exact same idea as the `.deb` above
-(bundle SpaceMissionStudio's own wheel, create a venv, pip-install `bsk[all]`
-at install time) via a companion script (`windows/bootstrap_env.ps1`)
-the installer's `[Run]` step invokes. It checks for a working `python`
-on `PATH` before the wizard even starts, and guides the user to
-python.org (rather than failing silently) if none is found. Installs
-per-user (`{localappdata}`, no admin/UAC prompt needed), and creates a
-Start Menu entry (plus an optional desktop shortcut) that launches the
-GUI directly via `pythonw.exe` (no console-window flash).
+script producing `spacemissionstudio-<version>-setup.exe`: a wizard --
+Welcome, licence, install location, Install, an optional "launch now"
+checkbox on Finish. It is self-contained: it installs the bundled Python
+(`bundle_python.py`, with Basilisk, the wheel, every package, the support
+data and the Earth orientation files) to `{app}\python`, so the computer
+needs no Python and no internet. It installs per user (`{localappdata}`,
+no administrator rights) and creates a Start Menu entry (plus an optional
+desktop shortcut) that starts the GUI with `pythonw.exe -I` (no console
+window). Two hidden steps after copying the files: the bytecode is
+compiled for the folder chosen, and the Earth orientation manifest is
+pointed at it. An upgrade first removes the previous `python` folder and
+what setups up to 1.1.0 left (`venv`, `dist`, `bootstrap_env.ps1`,
+`constraints.txt`); uninstalling removes `{app}\python`.
 
-Building it (on a real Windows machine, with Inno Setup installed):
+Building it (on Windows, with Inno Setup 6 and Python 3.11.4 or later
+installed, and internet access):
 
 ```powershell
 cd SpaceMissionStudio
 powershell -File packaging\build_wheel.ps1 packaging\windows\dist
+python packaging\bundle_python.py --platform windows --dest packaging\windows\python --wheel (Get-ChildItem packaging\windows\dist\spacemissionstudio-*.whl).FullName
 ISCC packaging\windows\spacemissionstudio.iss
 ```
 
@@ -273,14 +285,16 @@ release, checked against that release's `SHA256SUMS-linux`; a push
 bundles a wheel built from the pushed commit, since the release it
 belongs to may not exist yet. It compiles the script with Inno
 Setup, then installs the program silently (`/VERYSILENT /CURRENTUSER`).
-It then runs the installed tool: import, `kernels-status`, `validate`,
-and a run of template 01. The setup program, its checksum
+It then runs the installed tool with an empty support-data cache:
+import, `kernels-status`, `validate`, a run of template 01 from the
+bundled kernels, and the Earth orientation files found. The setup program, its checksum
 (`SHA256SUMS-windows`) and the install log are the run's artifact. Run
 it from the Actions tab ("SpaceMissionStudio Windows installer", with the
 release tag); with "attach" ticked, a separate job, the only one with
 write access, also uploads the setup program and `SHA256SUMS-windows` to
-the release, replacing earlier copies. A push to `packaging/windows/`
-or `constraints.txt` builds and tests without attaching. It first passed on
+the release, replacing earlier copies. A push to `packaging/windows/`,
+`bundle_python.py` or `constraints.txt` builds and tests without
+attaching. It first passed on
 2026-10-12 ([run 38315713727](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/38315713727)). Not yet done: the wizard clicked
 through by hand, and the GUI opened from the Start Menu shortcut, on a
 real Windows 10/11 machine.
@@ -324,56 +338,97 @@ doesn't work as documented here.
 What *is* run on Windows: the application itself. CI installs it with
 `pip` on GitHub's `windows-latest` runner, with Basilisk 2.12.0 and the
 reference data, and runs the full test suite there on every change
-(`.github/workflows/spacemissionstudio.yml`, job `platforms`). Only the
-installer and these two scripts are unrun.
+(`.github/workflows/spacemissionstudio.yml`, job `platforms`), and the
+setup program is built, installed and run in CI (above). Only these two
+scripts are unrun.
 
-## The vendoring decision (why Basilisk isn't bundled inside the installers)
+## The bundled Python (`bundle_python.py`)
 
-Flagged since Phase 0's README: **vendor a prebuilt Basilisk wheel pinned
-to a specific release/commit** as the default install path for end users,
-keeping "build Basilisk from source" a documented, opt-in developer path
-only. Building from source in an automated/sandboxed context is fragile
--- this project hit exactly that failure mode (a Conan Center network
-block) before Phase 0 even started, and that specific block is STILL true
-of this development sandbox today.
+Both installers carry the same kind of folder, built by
+`bundle_python.py` on the platform the installer is for (pip installs
+that platform's binary wheels):
 
-That's no longer the whole picture, though (corrected here, since an
-earlier revision of this section conflated "can't build Basilisk from
-source" with "no Basilisk wheel available at all" -- they turned out to
-be two different things): AVS Lab already publishes Basilisk's wheel to
-PyPI (`pip install "bsk[all]"`), and PyPI IS reachable from this
-sandbox -- confirmed directly while building the `.deb` package above,
-not assumed. So "vendor a Basilisk wheel" no longer needs a from-source
-build at all; every installer in this directory (`install.sh`/`.ps1`,
-the `.deb`, the Inno Setup installer) gets Basilisk the same simple way:
-`pip install "bsk[all]"` at install time, needing only ordinary internet
-access, not a Basilisk build toolchain anywhere.
+1. **CPython 3.11.17** from python-build-standalone release 20261013,
+   the relocatable `install_only_stripped` build (`PYTHON_BUILDS`). The
+   archive is checked against its pinned SHA-256 before it is unpacked;
+   a mismatch stops the build.
+2. **Basilisk and the app:** `bsk[all]==2.12.0`, then the wheel with its
+   `gui` extra, both with `constraints.txt`, by the bundled Python's own
+   pip run isolated (`-I`), so nothing from the build machine's user
+   site-packages gets in.
+3. **The reference data:** Basilisk's own checked fetch of every file in
+   `engine.kernels.ALL_SUPPORT_DATA_FILES` into an empty cache, moved to
+   `site-packages/supportData`, the folder Basilisk's
+   `dataFetcher.find_local_support_data()` reads before its download
+   cache; then the Earth orientation files into
+   `earth_orientation.SYSTEM_DIR` (`share/spacemissionstudio/earth_orientation`).
+   Both made world-readable (pooch writes 0600).
+4. **An offline check:** with sockets refused and an empty download
+   cache, every support file must resolve to the bundle and the Earth
+   orientation files must be found; otherwise the build stops.
+5. **With `--prefix`** (the `.deb`): the bytecode is recompiled as if at
+   that folder (tracebacks name the installed files) and the Earth
+   orientation manifest's paths are pointed there. The Windows setup
+   program does both at install time, for the folder chosen.
+6. **`SPACEMISSIONSTUDIO_RUNTIME.json`** in the folder records the CPython
+   archive and its SHA-256, the Python, SpaceMissionStudio and PySide6
+   versions, every installed package (`pip list --format=freeze`) and
+   every data file with its size and SHA-256.
 
-What's genuinely still NOT done here: actually bundling a Basilisk
-`.whl` FILE inside an installer (so install works fully offline, with no
-PyPI access needed at all) -- `pip download "bsk[all]"` would produce
-one, but doing that for every dependency, embedding the result, and
-testing the fully-offline path is real, separate follow-on work, not
-attempted blind here. `install.sh`/`install.ps1`'s `--basilisk-wheel`/
-`-BasiliskWheel` flag already accepts a local `.whl` file for exactly
-this purpose whenever someone does produce one (a pinned/older release,
-a custom build, or an offline bundle) -- that RECEIVING end was already
-built and (on Linux) verified; only producing the bundled file itself is
-the open item.
+The data is as current as the build: the Earth orientation files carry
+data up to their last datum (`earth-orientation` status, the **Reference
+data** dialog). A user's own newer download goes to their cache and is
+used first; the installed copy is never changed.
 
-## Producing a full offline installable bundle
+Licences of everything the folder contains:
+[`docs/THIRD_PARTY_ASSETS.md`](../docs/THIRD_PARTY_ASSETS.md), "In the
+installers".
 
-Not built yet: the natural next step, now that "the vendored Basilisk
-wheel" is just `pip download "bsk[all]"` away (see above), is doing
-exactly that -- plus SpaceMissionStudio's own dependencies -- into a local
-directory (`--no-deps` per package, or a `requirements.txt` with hashes)
-so `install.sh`/the `.deb`/the Windows installer can all run fully
-offline, with no PyPI access needed at install time. Flagged here rather
-than attempted blind, per this project's "don't fabricate what can't be
-verified" discipline -- the pieces (a bundled SpaceMissionStudio wheel, a
-working `--basilisk-wheel`/`-BasiliskWheel` receiving end) are already
-in place; only the "download everything into one bundle" step is
-missing.
+**Verified on Linux (2026-10-20, Ubuntu 24.04 container, as root to
+install and as an ordinary user to run),** with the package built from
+the working tree of the commit that adds this section, before this
+section was written (this file is not in the package; the version in
+its files is still 1.1.0):
+
+- `build_deb.sh` took 6.6 minutes (CPython archive already downloaded)
+  and built `spacemissionstudio_1.1.0_amd64.deb`: 446,990,484 bytes,
+  `Installed-Size` 1,654,980 KiB, 41 packages and 14 data files in
+  `SPACEMISSIONSTUDIO_RUNTIME.json`.
+- **Upgrade over the venv-based package:** with the earlier 1.1.0 `_all`
+  package installed, `unshare --net dpkg -i` (no network) unpacked the
+  new package over it in 25 s. `postinst` removed
+  `/opt/spacemissionstudio/venv`; the old wheel and `constraints.txt` went
+  with the old package, and dpkg took over `/usr/bin/spacemissionstudio`
+  and the icon.
+- **Purge and fresh install:** `dpkg --purge` left no
+  `/opt/spacemissionstudio`, launcher or icon. `unshare --net dpkg -i`
+  then installed the package with no network.
+- **Run offline as an ordinary user** (`unshare --net su <user>`, an
+  empty `HOME` and `BSK_SUPPORT_DATA_CACHE` pointing at an empty folder):
+  `--version` gave SpaceMissionStudio 1.1.0, Basilisk 2.12.0, Python
+  3.11.17; `kernels-status` found all nine support files in the bundle;
+  all 31 templates validated; templates 01 and 22 ran, 22's
+  `provenance.json` naming the bundled SPICE kernels and `GGM03S.txt`
+  and the ITRF93 Earth frame; the Earth orientation files were found; the
+  main window opened (offscreen) in Inter. Nothing was downloaded: no
+  Basilisk cache was created.
+- Not done: an install by hand on a desktop, with the app opened from the
+  menu; a Debian 12 or Ubuntu 22.04 machine.
+
+**Verified on Windows (2026-10-20, `windows-latest`, the release
+workflow's pull-request run for this change,
+[run 39504407640](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/39504407640)):**
+`bundle_python.py --platform windows` built the bundle in the runner's
+short temporary folder; Inno Setup compiled it in 143 s into
+`spacemissionstudio-1.1.0-setup.exe` (about 395 MB); the silent install
+(`/VERYSILENT /CURRENTUSER`) took 72 s. With an empty support-data cache
+the installed tool reported 1.1.0, `kernels-status` found all nine files
+in `{app}\python\Lib\site-packages\supportData`, template 01 validated
+and ran from them, the Earth orientation files were found (the run's
+note: "high accuracy until 2026-12-28"), and the main window opened
+(offscreen) in Inter. The Windows installer workflow passed the same
+checks on the push. Not done: the wizard clicked through by hand, on a
+real Windows 10/11 machine (this sandbox has no Windows).
 
 ---
 

@@ -5,6 +5,48 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Self-contained installers (unreleased)
+
+The user's request (2026-10-20), after the 1.1.0 setup program stopped
+with "SpaceMissionStudio needs Python 3.11 or later, which was not found
+on this system": make the installers self-contained, Linux too. macOS
+has no installer, so it keeps the install script.
+
+- **One private Python for both installers** (`packaging/bundle_python.py`):
+  python-build-standalone's relocatable CPython, the same source on Linux
+  and Windows, pinned by release and SHA-256 (the digests published for
+  release 20261013). Python's own Windows "embeddable" package has no pip
+  and no Linux counterpart.
+- **CPython 3.11** (3.11.17): the version CI tests the app with.
+- **Built, not installed, with the network:** Basilisk, the wheel and
+  every package are installed into it when the installer is built, with
+  `constraints.txt`; the installers only copy files. `SPACEMISSIONSTUDIO_RUNTIME.json`
+  records what went in.
+- **The support data goes into `site-packages/supportData`,** the folder
+  Basilisk's own `dataFetcher.find_local_support_data()` reads before its
+  download cache. No environment variable, no launcher wrapper, and no
+  change to Basilisk (a data folder next to it, read by its own lookup).
+  A file a user later downloads still goes to the user's cache.
+- **The Earth orientation files** go into `earth_orientation.SYSTEM_DIR`
+  (the install-wide folder), as the old installers fetched them, but at
+  build time: they are as current as the build. A user's own newer files
+  (`DEFAULT_DIR`) take precedence, as before. Their manifest's absolute
+  paths are rewritten for the install folder (at build time for the
+  `.deb`, by the setup program on Windows), with no engine change.
+- **No downloads while installing:** `postinst` only removes the venv of
+  packages up to 1.1.0; the setup program's Python check is gone.
+- **The `.deb` is `amd64`,** with every file a package file (launcher and
+  icon included), and `Depends` on the desktop libraries Qt loads and
+  glibc 2.34 (PySide6 6.11 wheels are `manylinux_2_34`).
+- **Bytecode names the installed files:** compiled for
+  `/opt/spacemissionstudio/python` when the `.deb` is built, and for the
+  chosen folder when the Windows setup runs (that folder is not known when
+  it is built); hash-based and unchecked, so file times do not matter.
+- **xz for the `.deb`, LZMA2 for the setup program:** the smallest files
+  for a 1.6 GB install.
+- **`install.sh` and `install.ps1` stay as they are** (a venv with the
+  computer's Python): they install from a checkout and cover macOS.
+
 ## M1 Foundation (released in 1.1.0)
 
 ### Release
