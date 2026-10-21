@@ -10,6 +10,24 @@ fixes bugs.
 
 ## Unreleased
 
+- **Starting a mission from scratch, guided.** The Templates page now
+  opens with **Start from scratch** (**New blank scenario**), above the
+  templates; before, an empty scenario was only File > New Scenario. A
+  blank scenario starts in *Orbit only*, the simplest mode, and its
+  Scenario page has a **Build your mission** guide:
+  - the steps to a first run (Scenario, Environment, Spacecraft, Ground
+    stations, Run), each with its state (*Needed*, *Optional*, *Done*,
+    *Ready*) and a button to its page;
+  - **There is more**: Full attitude (with **Switch to Full attitude**),
+    the mission sequence, constellations and formations, Monte Carlo, the
+    analyses, other central bodies and the worked examples, each with a
+    button to where it is.
+
+  The guide is open for a scenario without spacecraft and folded (**Show
+  guide**) for an opened one. The Spacecraft page says what to do while
+  it has no spacecraft, with **Add...** as its primary button, and Edit
+  and Remove wait for a selection. A hint that pointed to a "Spacecraft >
+  Add..." menu, which does not exist, now names the Spacecraft page.
 - **macOS is no longer supported.** SpaceMissionStudio runs on Linux and
   Windows. The macOS CI job and the release workflow's macOS check are
   gone, and so is the app's macOS-only code: downloading Vizard for

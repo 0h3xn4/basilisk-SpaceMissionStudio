@@ -5,6 +5,33 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## A mission from scratch (2026-10-21)
+
+The user: "why can't a user create a new blank project completely from
+scratch in the tool? that is like one of the most important features to
+have." It could (File > New Scenario), but nothing pointed to it and an
+empty scenario showed only a red "needs at least one spacecraft". The
+user's decision on the mode: "start with orbit only first, but it should
+be clear to the user, that this is not the only option. The user shall
+understand the full capabilities of the tool and shall not feel
+completely lost."
+
+- **A blank scenario starts in Orbit only,** at start-up and after File >
+  New. The schema's default stays `full_attitude`: files without the
+  field open as before.
+- **"Start from scratch" is the Templates page's first choice:** the
+  page where the app opens, and where people look for a way in.
+- **The guide is on the Scenario page,** between the epoch and the
+  description: a blank scenario's description is empty, and the guide is
+  what to read there. It is open for a scenario without spacecraft and
+  folded for one opened from a file, which keeps a template's
+  description in view.
+- **State as text in a status pill** (*Needed* caution, *Done* normal,
+  *Optional* off): colour never alone (design rule 1).
+- **"There is more" lists areas, not every option,** each with a button
+  to where it is set, so the list stays short and each line leads
+  somewhere.
+
 ## macOS removed (2026-10-21)
 
 The user's decision: "please remove macOS completely and entirely, nobody

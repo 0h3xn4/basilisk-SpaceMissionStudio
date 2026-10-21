@@ -11937,3 +11937,41 @@ byte-identical; and dated records (HISTORY, earlier CHANGELOG entries,
 the audits, the SVR's past runs, the SRelD's past known problems). The
 Vizard tests of the bundle handling now check that a `.app` path is
 started as given (`docs/ui/TEST_CHANGES.md`).
+
+## A mission from scratch, guided (2026-10-21)
+
+The user asked why a blank project could not be made from scratch, "like
+one of the most important features to have". File > New Scenario did
+make one, but the app opened on Templates, which offered only templates;
+after New the Scenario page showed a name, a mode and an epoch, a red
+"scenario needs at least one spacecraft" and an Explain panel that only
+said there was a problem; the Spacecraft page was an empty box with its
+buttons at the bottom; and a toast pointed to a "Spacecraft > Add..."
+menu that does not exist. A blank scenario also started in Full
+attitude, the heaviest mode, although the manual said to start with
+Orbit only.
+
+The user decided: start in Orbit only, but make clear it is not the only
+option, so that the user understands the whole tool and does not feel
+lost. Now (`gui/mission_guide.py`):
+
+* the Templates page opens with **Start from scratch** (**New blank
+  scenario**);
+* a blank scenario, at start-up and after New, is in Orbit only;
+* its Scenario page has **Build your mission**: the five steps to a
+  first run with their state and a button to each page, and **There is
+  more**, seven areas of the tool (Full attitude, the mission sequence,
+  constellations and formations, Monte Carlo, the analyses, other
+  central bodies, the templates), each with a button there; **Switch to
+  Full attitude** changes the mode in place;
+* the guide folds (**Show guide**) for an opened scenario, so a
+  template's description stays in view;
+* the Spacecraft page has an empty state with Add... as its primary
+  button, and Edit and Remove wait for a selection;
+* the toast names the Spacecraft page.
+
+Each text was kept under the 160-character label limit
+(`tests/gui/test_label_text.py`), which the first version broke. The
+Templates and Scenario screenshots of the manual were captured again.
+`tests/gui/test_mission_guide.py` (15 tests) covers it; no existing test
+changed, and the GUI suite passed with the new default mode.

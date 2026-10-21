@@ -85,6 +85,7 @@ from PySide6.QtWidgets import (
 import spacemissionstudio
 
 from ..schema import load_scenario
+from .mission_guide import StartFromScratchCard
 from .template_wizard import TemplateCustomizeWizard, get_wizard_spec
 from .feedback import report
 from .theme import CONTENT_MAX_WIDTH_PX, set_role
@@ -200,6 +201,7 @@ class _TemplateRow(QWidget):
 class LoadScenarioWidget(QWidget):
     path_chosen = Signal(object)  # pathlib.Path
     scenario_customized = Signal(object)  # schema.scenario.Scenario, built by TemplateCustomizeWizard
+    blank_requested = Signal()  # "New blank scenario": MainWindow.on_new
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -214,7 +216,13 @@ class LoadScenarioWidget(QWidget):
         # being squeezed and painting over its neighbours (an earlier,
         # real overlapping-text bug).
         layout = QVBoxLayout(self)
-        intro = QLabel("Pick a built-in template mission, or open your own scenario file.")
+        # The first choice: a mission from scratch (the user: "one of the
+        # most important features to have"; it was File > New only).
+        self.start_from_scratch = StartFromScratchCard()
+        self.start_from_scratch.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
+        self.start_from_scratch.requested.connect(self.blank_requested)
+        layout.addWidget(self.start_from_scratch)
+        intro = QLabel("Or start from a built-in template mission, or open your own scenario file.")
         intro.setWordWrap(True)
         layout.addWidget(intro)
 
