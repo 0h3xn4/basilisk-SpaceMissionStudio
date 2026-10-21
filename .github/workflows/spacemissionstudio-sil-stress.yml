@@ -1,0 +1,131 @@
+# SpaceMissionStudio: runs the SIL link test that fails now and then on
+# Windows CI, many times over, to find its cause (SpaceMissionStudio/
+# compliance/docs/SRelD.md, K-14). test_thousands_of_dropped_steps_never_
+# block_the_link[tcp] has failed twice in the full suite on windows-latest,
+# with "the flight software took no STEP for 10 s", and never on Linux or
+# macOS. A failure now prints the state of both ends of the link.
+#
+# Job "stress": four workers run the test in fresh processes side by side,
+# while two more processes keep the CPU busy. It needs no Basilisk: the
+# test drives the link against a scripted flight software. 240 such runs
+# passed on 2026-10-21, so the test alone does not show the failure.
+# Job "suite": the whole suite on several Windows runners at once, as the
+# platforms job of spacemissionstudio.yml runs it, since both failures
+# came after other tests in the same worker process. Started by hand, or
+# by a pull request that changes this file.
+name: "SpaceMissionStudio SIL stress (Windows)"
+
+on:
+  workflow_dispatch:
+    inputs:
+      rounds:
+        description: "Runs of the test per worker"
+        default: "60"
+      suites:
+        description: "Whole-suite runs, one runner each (1 to 8)"
+        default: "6"
+  pull_request:
+    paths:
+      - ".github/workflows/spacemissionstudio-sil-stress.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  stress:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    defaults:
+      run:
+        shell: pwsh
+        working-directory: SpaceMissionStudio
+    env:
+      ROUNDS: ${{ inputs.rounds || '60' }}
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install the tool and the dev tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -c packaging/constraints.txt -e ".[dev,gui]"
+          if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
+      - name: Run the test many times under load
+        run: |
+          $burners = 1..2 | ForEach-Object {
+            Start-Process python -ArgumentList "-c", "while True: pass" -PassThru -WindowStyle Hidden
+          }
+          $here = $PWD.Path
+          $rounds = [int]$env:ROUNDS
+          try {
+            1..4 | ForEach-Object -ThrottleLimit 4 -Parallel {
+              Set-Location $using:here
+              $worker = $_
+              for ($round = 1; $round -le $using:rounds; $round++) {
+                $output = python -m pytest tests/test_sil_contract.py -q -p no:cacheprovider -k "thousands_of_dropped_steps" 2>&1 | Out-String
+                if ($LASTEXITCODE -ne 0) {
+                  "=== worker $worker, round $round ===`n$output" | Out-File -Append -Encoding utf8 "sil-stress-failures-$worker.txt"
+                }
+              }
+            }
+          } finally {
+            $burners | Stop-Process -Force -ErrorAction SilentlyContinue
+          }
+          $failures = Get-ChildItem sil-stress-failures-*.txt -ErrorAction SilentlyContinue
+          $count = 0
+          foreach ($file in $failures) {
+            Get-Content $file.FullName
+            $count += (Select-String -Path $file.FullName -SimpleMatch "=== worker").Count
+          }
+          $total = 4 * $rounds
+          Write-Host "$count of $total runs failed"
+          if ($count -gt 0) { throw "$count of $total runs failed" }
+
+  plan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      runs: ${{ steps.runs.outputs.runs }}
+    steps:
+      - id: runs
+        env:
+          SUITES: ${{ inputs.suites || '6' }}
+        run: |
+          n=$(( SUITES < 1 ? 1 : SUITES > 8 ? 8 : SUITES ))
+          echo "runs=$(seq -s, 1 "$n" | sed 's/^/[/; s/$/]/')" >> "$GITHUB_OUTPUT"
+
+  suite:
+    needs: plan
+    strategy:
+      fail-fast: false
+      matrix:
+        run: ${{ fromJSON(needs.plan.outputs.runs) }}
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: SpaceMissionStudio
+    env:
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install the tool, the qualified Basilisk release and the dev tools
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -c packaging/constraints.txt "bsk==2.12.0"
+          python -m pip install -c packaging/constraints.txt -e ".[dev,gui]"
+      - name: Support data, Earth orientation files and the 433 Eros files
+        run: |
+          spacemissionstudio kernels-status
+          if ($LASTEXITCODE -ne 0) { throw "kernels-status failed" }
+          spacemissionstudio earth-orientation --fetch
+          if ($LASTEXITCODE -ne 0) { throw "earth-orientation --fetch failed" }
+          spacemissionstudio small-bodies --fetch
+          if ($LASTEXITCODE -ne 0) { throw "small-bodies --fetch failed" }
+      - name: Tests (run ${{ matrix.run }})
+        run: python -m pytest tests -q -n auto -p no:cacheprovider -o faulthandler_timeout=600

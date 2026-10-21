@@ -41,10 +41,6 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: spacemissionstudio-release-${{ inputs.tag || github.ref_name }}
-  cancel-in-progress: false
-
 env:
   TAG: ${{ inputs.tag || github.ref_name }}
   # What to build: the tag, or on a pull request its own commit.
@@ -352,6 +348,13 @@ jobs:
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    # One attach per tag at a time. Only this job is queued per tag: when
+    # the whole run was, a macOS job waiting for a runner held back a
+    # second run for the same tag (2026-10-21, run 39575072165 waited on
+    # the macOS job of run 39573007055), although macOS attaches nothing.
+    concurrency:
+      group: spacemissionstudio-release-attach-${{ inputs.tag || github.ref_name }}
+      cancel-in-progress: false
     permissions:
       contents: write
     env:

@@ -11852,3 +11852,38 @@ the probe passes (the probe was not kept). Logged in
 Merging, tagging (`spacemissionstudio-v1.1.1`) and publishing are the
 user's; the release workflow builds, installs offline and attaches the
 files when the tag is pushed.
+
+## The Windows SIL stall, looked for (2026-10-21)
+
+`test_thousands_of_dropped_steps_never_block_the_link[tcp]` failed a
+second time on Windows CI, on the 1.1.1 release commit (SRelD K-14):
+"the flight software took no STEP for 10 s", at step 10907 of 20000. Its
+failure said where neither end of the link was, so the cause stayed a
+guess. Two were ruled out: the stall fix of #77, since the failure came
+back after it, and a Basilisk thread holding Python's interpreter lock
+(a Basilisk run in one thread let another run at least every 0.03 s).
+
+On a stall the test now fails with the state of both ends: frames sent
+and dropped, bytes received and not read, the socket buffer sizes, what
+the fake flight software last did, how long ago, its stack, and the last
+`select()` calls of the send. A new workflow, "SpaceMissionStudio SIL
+stress (Windows)", runs the test 240 times on `windows-latest` (four
+workers side by side, two processes keeping the CPU busy) and the whole
+suite on six runners. All of it passed, and so did the PR's own Windows
+job: the failure needs something these runs did not have, and the next
+recurrence will show what.
+
+**The release workflow queued whole runs per tag.** When the user
+deleted the first 1.1.1 tag and release and pushed the tag again, the
+new run waited behind the old one, whose macOS job was waiting for a
+runner although macOS attaches nothing. Only the attach job is now
+queued per tag.
+
+**A native crash on Windows CI (SRelD K-22).** On the PR's last commit
+one Windows test worker died with "Windows fatal exception: access
+violation" in a template-wizard sizing test. The Python stack ends in
+pytest's call of the test, with no frame inside it: the crash came in
+native code as the test returned, most likely when Python freed a Qt
+object Qt had already deleted. It was seen once in eight whole-suite
+Windows runs of that commit and not on Linux; the test and the wizard
+had not changed. Recorded as open.
