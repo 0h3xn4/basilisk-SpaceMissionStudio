@@ -1,0 +1,1 @@
+- Removed macOS from continuous integration: pull-request builds and tests run on Linux and Windows, the documentation, its deployment and the canary build run on Ubuntu 24.04 with Doxygen and Graphviz from apt, and the nightly, optional and publishing wheel workflows no longer build macOS wheels.

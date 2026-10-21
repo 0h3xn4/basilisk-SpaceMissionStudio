@@ -11995,3 +11995,18 @@ docs; the docs job stays on macOS (its action installs Doxygen with
 Homebrew). The framework's Python 3.9 test run on pull requests went with
 the macOS job. Checked with actionlint and the repo's pre-commit hooks;
 recorded in `docs/DECISIONS.md` (macOS removed).
+
+**No macOS workflow left (2026-10-21).** The user then asked for no
+macOS workflow at all. The `docs` job of the "Pull Request" workflow, the
+merge workflow's "Docs Deployment" and the canary build ("Linux Latest
+Dependencies") now run on `ubuntu-24.04`; `.github/actions/docs` installs
+Doxygen and Graphviz with apt. The Linux docs jobs no longer save the
+Conan cache, because each workflow's Linux build job already publishes
+it. The nightly, optional and publishing wheel matrices lost `macos-26`,
+and the publishing workflow lost its dead `macos-13` CA-bundle step.
+Before the push, the Doxygen stage of the docs build (conf.py's crawler,
+then `doxygen_cache.build_doxygen_projects` with `WARN_AS_ERROR`) ran
+here on Ubuntu 24.04 with apt's Doxygen 1.9.8, the version the runner
+gets: all 239 projects generated without a warning. The Sphinx stage
+needs a source build of Basilisk and is left to CI. The framework
+release-note snippet is `remove-macos-ci.rst`.

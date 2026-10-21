@@ -11,7 +11,6 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - macos-26
           - ubuntu-24.04
           - ubuntu-24.04-arm
           - windows-2025-vs2026
@@ -81,7 +80,6 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - macos-26
           - ubuntu-24.04
           - ubuntu-24.04-arm
           - windows-2025-vs2026
