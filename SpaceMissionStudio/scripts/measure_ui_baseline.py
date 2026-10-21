@@ -176,10 +176,9 @@ def interactions() -> list[dict]:
     for area in window.shell.page_areas():
         measure(f"area (before a run): {area.label}",
                 lambda area_id=area.id: window.shell.show_area(area_id), 1.0)
-    for index in range(window.side_tabs.count()):
-        page = window.side_tabs.widget(index)
-        measure(f"side tab: {window.side_tabs.tabText(index).split(' (')[0]}",
-                lambda page=page: window.show_view(page), 1.0)
+    for dock in window._docks():
+        measure(f"panel: {dock.windowTitle().split(' (')[0]}",
+                lambda dock=dock: window.show_view(dock.widget()), 1.0)
 
     window.show_view(window.results_widget)
     spin(0.5)  # [s]

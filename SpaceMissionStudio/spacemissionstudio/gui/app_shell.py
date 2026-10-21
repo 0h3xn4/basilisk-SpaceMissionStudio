@@ -19,19 +19,21 @@
 """The app shell's always-visible state (UX/UI Standard, "State is always
 visible" and "Target layout"; docs/ux-audit.md U-04, U-06, U-07):
 
-* :class:`TopBar` -- one line above the work area: the scenario's name,
-  whether it has unsaved changes, where it came from (a template, a file
-  or nothing yet), the last run, and a :class:`StatusChip` (idle,
-  running 43 %, done, failed, cancelled).
-* :class:`RunProgressStrip` -- under the top bar while a run is going
-  (U-19): what it is doing ("Step 2 of 5: ...", "Propagating: day 0.4
-  of 1"), a progress bar, the time elapsed and an estimate of the time
-  left, and **Cancel (Esc)**.
-* :class:`StatusBarItems` -- permanent status-bar entries: the Basilisk
-  version, the reference data (clicking it opens the Reference data
-  dialog), the
-  Earth orientation data and the frames runs use. They read local files
-  only, never the network.
+* :class:`TopBar` -- above the work area: the scenario's name, whether it
+  has unsaved changes, where it came from (a template, a file or nothing
+  yet), the last run, the breadcrumbs, the problem count and the window's
+  commands.
+* :class:`RunProgressStrip` -- the job in the status bar while a run is
+  going (U-19, UI overhaul M2b): what it is doing ("Step 2 of 5: ...",
+  "Propagating: day 0.4 of 1"), a progress bar, the time elapsed and an
+  estimate of the time left, and **Cancel (Esc)**.
+* :class:`StatusChip` -- the run state in the status bar (idle, running
+  43 %, done, failed, cancelled).
+* :class:`StatusBarItems` -- permanent status-bar entries: the problem
+  count (clicking it opens the Problems panel), the Basilisk version, the
+  reference data (clicking it opens the Reference data dialog), the Earth
+  orientation data and the frames runs use. They read local files only,
+  never the network.
 
 Colours come from theme.py's ``QLabel#statusChip[state=...]`` and
 ``QWidget#topBar`` rules.
@@ -83,6 +85,25 @@ def clock_text(seconds: float) -> str:
     return f"{hours}:{rest // 60:02d}:{rest % 60:02d}" if hours else f"{rest // 60}:{rest % 60:02d}"
 
 
+class ElidedLabel(QLabel):
+    """One line that ends in "..." when there is no room for all of it,
+    instead of holding the window wider; the whole text is its tooltip."""
+
+    def setText(self, text: str) -> None:  # noqa: N802 -- Qt API name
+        super().setText(text)
+        self.setToolTip(text)
+
+    def minimumSizeHint(self) -> QSize:  # noqa: N802 -- Qt API name
+        return QSize(0, super().minimumSizeHint().height())
+
+    def paintEvent(self, event) -> None:  # noqa: N802 -- Qt API name
+        painter = QPainter(self)
+        painter.setPen(self.palette().color(self.foregroundRole()))
+        painter.setFont(self.font())
+        shown = self.fontMetrics().elidedText(self.text(), Qt.TextElideMode.ElideRight, self.width())
+        painter.drawText(self.rect(), int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft), shown)
+
+
 class RunProgressStrip(QFrame):
     """A run in progress, under the top bar: phase, progress, elapsed time,
     the time left, and Cancel. Hidden while no run is going.
@@ -97,13 +118,15 @@ class RunProgressStrip(QFrame):
         super().__init__(parent)
         self.setObjectName("runProgressStrip")
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(12, 4, 12, 4)  # [px]
-        layout.setSpacing(12)  # [px]
-        self.phase_label = QLabel()
+        layout.setContentsMargins(4, 0, 4, 0)  # [px]
+        layout.setSpacing(8)  # [px]
+        # In the status bar beside its other items: the phase gives way first.
+        self.phase_label = ElidedLabel()
         self.phase_label.setObjectName("runPhase")
+        self.phase_label.setMaximumWidth(320)  # [px]
         self.bar = QProgressBar()
         self.bar.setTextVisible(False)  # the percentage is in the time label and the status chip
-        self.bar.setFixedWidth(200)  # [px]
+        self.bar.setFixedWidth(120)  # [px]
         self.time_label = QLabel()
         self.time_label.setObjectName("runTime")
         self.cancel_button = QPushButton("Cancel (Esc)")
@@ -172,29 +195,10 @@ class RunProgressStrip(QFrame):
         self.time_label.setText(" · ".join(parts))
 
 
-class ElidedLabel(QLabel):
-    """One line that ends in "..." when there is no room for all of it,
-    instead of holding the window wider; the whole text is its tooltip."""
-
-    def setText(self, text: str) -> None:  # noqa: N802 -- Qt API name
-        super().setText(text)
-        self.setToolTip(text)
-
-    def minimumSizeHint(self) -> QSize:  # noqa: N802 -- Qt API name
-        return QSize(0, super().minimumSizeHint().height())
-
-    def paintEvent(self, event) -> None:  # noqa: N802 -- Qt API name
-        painter = QPainter(self)
-        painter.setPen(self.palette().color(self.foregroundRole()))
-        painter.setFont(self.font())
-        shown = self.fontMetrics().elidedText(self.text(), Qt.TextElideMode.ElideRight, self.width())
-        painter.drawText(self.rect(), int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft), shown)
-
-
 class TopBar(QWidget):
     """Scenario name · saved or not · source · last run, the breadcrumbs
     under them; on the right the window's commands (:meth:`add_commands`)
-    and the status chip."""
+    and, while the scenario has any, its problem count."""
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
@@ -210,7 +214,6 @@ class TopBar(QWidget):
         self.breadcrumb_label = ElidedLabel()
         self.breadcrumb_label.setObjectName("topBarBreadcrumbs")
         self.breadcrumb_label.setAccessibleName("Where you are")
-        self.chip = StatusChip()
         title_row = QHBoxLayout()
         title_row.setSpacing(12)  # [px]
         title_row.addWidget(self.name_label)
@@ -223,7 +226,6 @@ class TopBar(QWidget):
         self.commands = QHBoxLayout()
         self.commands.setSpacing(4)  # [px]
         layout.addLayout(self.commands)
-        layout.addWidget(self.chip)
         self.save_button: Optional[QToolButton] = None
         self.search_button: Optional[QToolButton] = None
         self._dirty = False
@@ -268,7 +270,17 @@ class TopBar(QWidget):
         self.search_button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
         self.search_button.clicked.connect(palette.trigger)
         self.commands.addWidget(self.search_button)
+        self.problems_button = _problems_button("topBarProblems")
+        self.commands.addWidget(self.problems_button)
+        self.set_problem_counts(0, 0)
         self._refresh_detail()
+
+    def set_problem_counts(self, errors: int, warnings: int) -> None:
+        """The scenario's problem count, shown only while it has some."""
+        if self.search_button is None:
+            return
+        _show_problem_counts(self.problems_button, errors, warnings, short=True)
+        self.problems_button.setVisible(bool(errors or warnings))
 
     def set_breadcrumbs(self, parts: List[str]) -> None:
         """Where the window is: "Scenario › Spacecraft › sat-1"."""
@@ -319,6 +331,7 @@ class StatusBarItems:
     data panel changes something and when a run starts."""
 
     def __init__(self, parent: QWidget) -> None:
+        self.problems_button = _problems_button("statusProblems", parent)
         self.basilisk_label = QLabel(parent)
         self.basilisk_label.setObjectName("statusItem")
         self.data_button = QToolButton(parent)
@@ -331,7 +344,8 @@ class StatusBarItems:
         self.frames_label.setObjectName("statusItem")
         self.frames_label.setToolTip("Inertial frame of orbits and results; Earth-fixed frame of ground "
                                      "stations; the time system of every date shown")
-        items = (self.basilisk_label, self.data_button, self.earth_orientation_label, self.frames_label)
+        items = (self.problems_button, self.basilisk_label, self.data_button, self.earth_orientation_label,
+                 self.frames_label)
         # A thin rule between entries: side by side they read as one line.
         separated = [items[0]]
         for item in items[1:]:
@@ -341,6 +355,13 @@ class StatusBarItems:
     @property
     def data_clicked(self) -> Signal:
         return self.data_button.clicked
+
+    @property
+    def problems_clicked(self) -> Signal:
+        return self.problems_button.clicked
+
+    def set_problem_counts(self, errors: int, warnings: int) -> None:
+        _show_problem_counts(self.problems_button, errors, warnings)
 
     def refresh(self) -> None:
         from .. import dependencies
@@ -375,6 +396,33 @@ class StatusBarItems:
             self.earth_orientation_label.setText("Earth orientation: installed")
         earth_fixed = earth_orientation.EARTH_FIXED_FRAME if kernels else earth_orientation.FALLBACK_EARTH_FRAME
         self.frames_label.setText(f"Frames: EME2000 · {earth_fixed} · UTC")
+
+
+def _problems_button(name: str, parent: Optional[QWidget] = None) -> QToolButton:
+    button = QToolButton(parent)
+    button.setObjectName(name)
+    button.setAutoRaise(True)
+    button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
+    button.setToolTip("Open the Problems panel (Ctrl+J)")
+    return button
+
+
+def _show_problem_counts(button: QToolButton, errors: int, warnings: int, short: bool = False) -> None:
+    """ "1 error · 2 warnings" ("3", short) with the icon of the worst;
+    colour is never the only sign (design rule 1)."""
+    parts = [f"{errors} error{'s' if errors != 1 else ''}"] if errors else []
+    if warnings:
+        parts.append(f"{warnings} warning{'s' if warnings != 1 else ''}")
+    if short:
+        button.setText(str(errors + warnings) if parts else "")
+    else:
+        button.setText(" · ".join(parts) if parts else "No problems")
+    button.setAccessibleName(" · ".join(parts) if parts else "No problems")
+    name, ink = (("octagon-alert", "status.critical") if errors else
+                 ("triangle-alert", "status.caution") if warnings else ("circle-check", "text.secondary"))
+    button.setIcon(icon(name, ink))
+    button.setProperty("state", "error" if errors else "warning" if warnings else "")
+    _repolish(button)
 
 
 def _repolish(widget: QWidget) -> None:

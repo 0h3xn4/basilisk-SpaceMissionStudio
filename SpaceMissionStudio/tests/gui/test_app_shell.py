@@ -95,7 +95,7 @@ def test_the_chip_follows_a_finished_run(window):
     state and length (U-22)."""
     from spacemissionstudio.engine.results import ResultSet
 
-    chip = window.top_bar.chip
+    chip = window.run_chip
     assert (chip.state, chip.text()) == ("idle", "No run yet")
     window._start_busy("Running")
     assert chip.state == "running"
@@ -116,7 +116,7 @@ def test_the_chip_shows_a_live_run_percentage(window):
     window._start_busy("Running", determinate=True)
     window._busy_progress.setValue(43)
     window._update_busy_elapsed()
-    assert window.top_bar.chip.text() == "Running 43 %"
+    assert window.run_chip.text() == "Running 43 %"
 
 
 @pytest.mark.parametrize("handler, state, text", [
@@ -134,7 +134,7 @@ def test_the_chip_shows_failed_and_cancelled_runs(window, handler, state, text):
         window._on_run_failed("boom")
     else:
         window._on_run_cancelled(ResultSet(scenario_name=window._last_run_scenario.name))
-    assert (window.top_bar.chip.state, window.top_bar.chip.text()) == (state, text)
+    assert (window.run_chip.state, window.run_chip.text()) == (state, text)
     assert f", {state}, " in window.top_bar.detail_label.text()
 
 

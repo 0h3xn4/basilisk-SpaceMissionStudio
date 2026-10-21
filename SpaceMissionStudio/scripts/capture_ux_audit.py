@@ -101,8 +101,8 @@ def main(out: Path) -> int:
             for sub in range(inner.count() if inner is not None else 1):
                 widget = inner.widget(sub) if inner is not None else area.page.content
                 yield widget, area.label + ("_" + inner.tabText(sub) if inner is not None else "")
-        for index in range(window.side_tabs.count()):
-            yield window.side_tabs.widget(index), "side_" + window.side_tabs.tabText(index).split(" (")[0]
+        for dock in window._docks():
+            yield dock.widget(), "panel_" + dock.windowTitle().split(" (")[0]
 
     def tab_shots(prefix: str) -> None:
         for index, (widget, label) in enumerate(pages()):

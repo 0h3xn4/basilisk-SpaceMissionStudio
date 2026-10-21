@@ -107,7 +107,7 @@ def test_a_finished_run_says_its_name_length_and_events(window, toasts, monkeypa
     message, kind = toasts[-1]
     assert message.startswith("Run 1 complete in ") and message.endswith(": 4 passes, 15 eclipses")
     assert kind == "success"
-    assert window.top_bar.chip.text().startswith("Run 1: done in ")
+    assert window.run_chip.text().startswith("Run 1: done in ")
     assert window.statusBar().currentMessage().startswith("Run 1 complete")
     window._start_busy("Running")
     window._on_run_cancelled(_result(window._last_run_scenario.name))
@@ -160,7 +160,7 @@ def test_an_invalid_scenario_opens_problems_at_the_field(window, toasts, monkeyp
     monkeypatch.setattr(window.scenario_editor, "to_scenario", invalid)
     window.on_run()
     assert window._run_worker is None
-    assert window.side_tabs.currentWidget() is window.problems_widget
+    assert window.problems_dock.isVisibleTo(window)
     assert activated == ["duration_days must be > 0"]
     assert toasts[-1][0].startswith("Cannot run: ") and toasts[-1][1] == "warning"
     assert window.run_problems[-1].startswith("Cannot run: ")
@@ -182,4 +182,4 @@ def test_a_failed_run_opens_the_log_at_its_errors(window, toasts):
     window._on_run_failed("boom")
     assert toasts[-1] == ("Run failed: boom", "error")
     assert window.current_view() is window.log_widget
-    assert window.top_bar.chip.state == "failed"
+    assert window.run_chip.state == "failed"

@@ -41,8 +41,8 @@ _SECTIONS: Tuple[Tuple[str, str, str], ...] = (
     ("appearance", "Appearance", "The theme applies at once, to every open view."),
     ("reference_data", "Reference data", "The SPICE kernels, gravity fields, magnetic model, space weather and "
                                          "Earth orientation files, with their sources, dates and checksums."),
-    ("layout", "Layout", "The navigation rail and the side panel; Reset Layout puts them back as a new window "
-                         "has them."),
+    ("layout", "Layout", "The navigation rail, the inspector and the Problems panel; Reset Layout puts them "
+                         "back as a new window has them."),
     ("keyboard", "Keyboard", "Every command with a shortcut. Ctrl+K finds any command by name."),
     ("about", "About", ""),
 )
@@ -110,7 +110,7 @@ class SettingsPage(QScrollArea):
         self._row(("tools.reference_data",))
 
     def _build_layout(self) -> None:
-        self._row(("view.rail_icons", "view.side_panel", "view.reset_layout"))
+        self._row(("view.rail_icons", "view.inspector", "view.problems", "view.reset_layout"))
 
     def _build_keyboard(self) -> None:
         self.shortcuts_table = QTableWidget(0, 3)

@@ -144,7 +144,7 @@ def test_problems_open_the_json_page(window):
     window.show_view(window.results_widget)
     problems = window.problems_widget
     row = next(i for i, (_severity, text) in enumerate(problems.problems) if text.startswith("JSON view"))
-    problems.list.itemActivated.emit(problems.list.item(row))
+    problems.table.activated.emit(problems.index_of(row))
     assert window.current_view() is editor and editor.page_tree.current_page() is editor.json_page
 
 

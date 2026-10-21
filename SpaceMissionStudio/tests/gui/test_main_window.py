@@ -70,8 +70,8 @@ def test_explain_tab_exists_and_shows_the_default_scenario_on_startup(window):
     """The Explain tab exists and, on start-up, shows its placeholder for the
     default scenario (which has no spacecraft and so does not validate) instead
     of its blank constructor state."""
-    assert window.side_tabs.indexOf(window.scenario_explainer_widget) >= 0
-    assert window.side_tabs.tabText(window.side_tabs.indexOf(window.scenario_explainer_widget)) == "Explain"
+    assert window.explain_dock.widget() is window.scenario_explainer_widget
+    assert window.explain_dock.windowTitle() == "Explain"
     # reset_to_default()'s own scenario has zero spacecraft (invalid --
     # Scenario.validate() requires >= 1), so the placeholder is the
     # correct initial state here, not a crash -- this is the real
@@ -199,7 +199,7 @@ def test_save_with_invalid_scenario_shows_error_and_does_not_write(window, tmp_p
 
     assert not save_path.exists()
     assert len(reported) == 1 and reported[0][1] == "warning" and reported[0][0].startswith("Cannot save:")
-    assert window.side_tabs.currentWidget() is window.problems_widget
+    assert window.problems_dock.isVisibleTo(window)
 
 
 def test_a_save_that_cannot_be_written_is_reported(window, tmp_path, monkeypatch, reported):
@@ -374,7 +374,7 @@ def test_run_with_invalid_scenario_shows_error_without_starting_worker(window):
 
     assert len(window.run_problems) == 1 and window.run_problems[0].startswith("Cannot run: ")
     assert window.statusBar().currentMessage().startswith("Cannot run: ")
-    assert window.side_tabs.currentWidget() is window.problems_widget
+    assert window.problems_dock.isVisibleTo(window)
     assert window._run_worker is None
 
 
@@ -2048,16 +2048,15 @@ def test_explain_tab_title_counts_pre_run_warnings(window, qapp):
     from pathlib import Path
 
     templates = Path(__file__).resolve().parents[2] / "spacemissionstudio" / "scenarios" / "templates"
-    tab_index = window.side_tabs.indexOf(window.scenario_explainer_widget)
     from spacemissionstudio.schema import load_scenario
 
     assert window.open_path(next(templates.glob("19_*.json")))
-    assert window.side_tabs.tabText(tab_index) == "Explain"
+    assert window.explain_dock.windowTitle() == "Explain"
     late = load_scenario(next(templates.glob("19_*.json")))
     late.epoch_utc = "2030-01-01T00:00:00"  # the old epoch: no Berlin pass in the run
     window.scenario_editor.from_scenario(late)
     window.scenario_editor.changed.emit()
-    assert window.side_tabs.tabText(tab_index) == "Explain (1 to check)"
+    assert window.explain_dock.windowTitle() == "Explain (1 to check)"
 
 
 def test_a_run_hands_the_scenarios_featured_series_to_the_results_tab(window, monkeypatch):

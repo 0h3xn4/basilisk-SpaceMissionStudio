@@ -60,7 +60,7 @@ def window(qtbot, monkeypatch):
 def _activate_error(window):
     problems = window.problems_widget
     row = next(i for i, (severity, _text) in enumerate(problems.problems) if severity == "error")
-    problems.list.itemActivated.emit(problems.list.item(row))
+    problems.table.activated.emit(problems.index_of(row))
 
 
 def test_a_field_error_shows_under_its_row_and_clears(qtbot):
@@ -102,7 +102,7 @@ def test_an_invalid_epoch_is_marked_at_its_field(window):
     editor = window.scenario_editor
     editor.epoch_edit.setText("2030-13-45T99:00:00")
     assert field_error_text(editor.epoch_edit).startswith("Epoch (UTC) '2030-13-45T99:00:00' is not a valid ISO 8601")
-    assert window.problems_widget.list.item(0).text().startswith("Error: Epoch (UTC) '2030-13-45T99:00:00'")
+    assert window.problems_widget.row_text(0).startswith("Error: Epoch (UTC) '2030-13-45T99:00:00'")
     assert "scenario.epoch_utc" not in editor.validation_label.text()
 
     editor.epoch_edit.setText("2030-01-01T08:30:00")

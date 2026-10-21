@@ -22,7 +22,8 @@ docs/ux-audit.md U-02, U-05, U-23):
 * :class:`InspectorWidget` -- the focused field: its label, value, allowed
   range and help text (a right dock).
 * :class:`ProblemsWidget` -- the scenario's validation error and plausibility
-  warnings (a right dock); double-clicking one opens the Scenario Editor.
+  warnings as a table (severity, ID, object, message; the Problems panel at
+  the bottom); Enter or a double-click opens where one is fixed.
 * :class:`LogViewWidget` -- the session's log, filterable by level and text
   (the *Log* tab). :func:`install_log_view` attaches it to the root logger.
 """
@@ -33,18 +34,18 @@ import logging
 import re
 import time
 from collections import deque
-from typing import Deque, List, Optional, Tuple
+from dataclasses import dataclass
+from typing import Deque, List, Optional, Sequence, Tuple
 
-from PySide6.QtCore import QObject, Qt, QUrl, Signal
-from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import (QAbstractSpinBox, QCheckBox, QComboBox, QDoubleSpinBox, QFormLayout, QHBoxLayout,
-                               QLabel, QLineEdit, QListWidget, QListWidgetItem, QPlainTextEdit, QPushButton,
-                               QSpinBox, QTextEdit, QVBoxLayout, QWidget)
+from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QSortFilterProxyModel, Qt, QUrl, Signal
+from PySide6.QtGui import QColor, QDesktopServices, QKeySequence
+from PySide6.QtWidgets import (QAbstractItemView, QAbstractSpinBox, QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
+                               QFormLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
+                               QSpinBox, QTableView, QTextEdit, QVBoxLayout, QWidget)
 
 from .feedback import row_label
-from .problem_location import SPACECRAFT, locate
-from .theme import mono_font, on_change, set_role
-from .theme.items import retint, tint
+from .problem_location import JSON_VIEW, MISSION_SEQUENCE, PROPAGATION, SCENARIO, SPACECRAFT, locate
+from .theme import ROW_HEIGHT, SPACE, TOKENS, icon, mono_font, set_role
 from .widgets import ComboBox
 
 
@@ -167,51 +168,189 @@ class InspectorWidget(QWidget):
 
 # -- Problems -----------------------------------------------------------------
 
-class ProblemsWidget(QWidget):
-    """The scenario's validation error and plausibility warnings."""
+PROBLEM_COLUMNS = ("Severity", "ID", "Object", "Message")
+_SEVERITY = {"error": ("Error", "octagon-alert", "status.critical.text", 0),
+             "warning": ("Warning", "triangle-alert", "status.caution.text", 1)}
+_AREA_OBJECT = {SCENARIO: "Scenario", PROPAGATION: "Propagation setup", MISSION_SEQUENCE: "Mission sequence",
+                JSON_VIEW: "JSON"}
 
-    activated = Signal(str)  # a problem was double-clicked (its text): show where to fix it
+
+@dataclass(frozen=True)
+class Problem:
+    """One row of the Problems panel: ``text`` is the message as raised (it
+    says where it is fixed), ``shown`` the message in the user's terms;
+    ``field`` (the ID column) and ``obj`` come from where it is fixed."""
+
+    severity: str  # "error" or "warning"
+    text: str
+    shown: str
+    field: str
+    obj: str
+
+
+def problem_row(severity: str, text: str, shown: str, spacecraft: Sequence[str] = (),
+                stations: Sequence[str] = ()) -> Problem:
+    """A problem with its ID (the field path it is about, "-" when it names
+    none) and object (the scenario, the propagation setup, a spacecraft or
+    a ground station, the mission sequence or the JSON page)."""
+    location = locate(text, spacecraft, stations)
+    if location is None:
+        return Problem(severity, text, shown, "-", "Scenario")
+    obj = _AREA_OBJECT.get(location.area, location.name)
+    return Problem(severity, text, shown, location.path or "-", obj)
+
+
+class ProblemsModel(QAbstractTableModel):
+    """The problems as a table: severity (icon and word), ID, object,
+    message. The severity's colour is looked up when drawn, so it follows a
+    theme change."""
+
+    def __init__(self, parent: Optional[QObject] = None) -> None:
+        super().__init__(parent)
+        self.rows: List[Problem] = []
+
+    def set_rows(self, rows: List[Problem]) -> None:
+        self.beginResetModel()
+        self.rows = list(rows)
+        self.endResetModel()
+
+    def rowCount(self, parent: Optional[QModelIndex] = None) -> int:  # noqa: N802 -- Qt API name
+        return 0 if parent is not None and parent.isValid() else len(self.rows)
+
+    def columnCount(self, parent: Optional[QModelIndex] = None) -> int:  # noqa: N802 -- Qt API name
+        return 0 if parent is not None and parent.isValid() else len(PROBLEM_COLUMNS)
+
+    def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):  # noqa: N802 -- Qt API name
+        if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
+            return PROBLEM_COLUMNS[section]
+        return None
+
+    def data(self, index, role=Qt.ItemDataRole.DisplayRole):
+        if not index.isValid():
+            return None
+        problem, column = self.rows[index.row()], index.column()
+        word, icon_name, tone, rank = _SEVERITY.get(problem.severity, ("Note", "info", "text.primary", 2))
+        if role == Qt.ItemDataRole.DisplayRole:
+            return (word, problem.field, problem.obj, problem.shown)[column]
+        if role == Qt.ItemDataRole.DecorationRole and column == 0:
+            return icon(icon_name, tone.rsplit(".", 1)[0])
+        if role == Qt.ItemDataRole.ForegroundRole and column == 0:
+            return QColor(TOKENS[tone])
+        if role == Qt.ItemDataRole.FontRole and column == 1:
+            return mono_font()
+        if role == Qt.ItemDataRole.ToolTipRole:
+            return ("Double-click to open the 3D model editor" if _MODEL_MARK in problem.text
+                    else "Double-click to go to where it is fixed")
+        if role == SORT_ROLE:
+            # Errors first; within a severity, as the scenario lists them.
+            return (rank, index.row()) if column == 0 else (str(self.data(index)).lower(), index.row())
+        return None
+
+
+SORT_ROLE = Qt.ItemDataRole.UserRole + 1
+
+
+class _SortProxy(QSortFilterProxyModel):
+    def lessThan(self, left, right) -> bool:  # noqa: N802 -- Qt API name
+        return left.data(SORT_ROLE) < right.data(SORT_ROLE)
+
+
+class ProblemsTable(QTableView):
+    """The problems; Ctrl+C copies the selected rows as TSV."""
+
+    def keyPressEvent(self, event):  # noqa: N802 -- Qt API name
+        if event.matches(QKeySequence.StandardKey.Copy):
+            QApplication.clipboard().setText(self.selection_tsv())
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
+    def selection_tsv(self) -> str:
+        """The selected rows, in the order shown, under a line of headings."""
+        rows = sorted({index.row() for index in self.selectionModel().selectedIndexes()})
+        if not rows:
+            return ""
+        model = self.model()
+        columns = range(model.columnCount())
+        lines = ["\t".join(model.headerData(c, Qt.Orientation.Horizontal) for c in columns)]
+        lines += ["\t".join(str(model.index(row, c).data()) for c in columns) for row in rows]
+        return "\n".join(lines) + "\n"
+
+
+class ProblemsWidget(QWidget):
+    """The scenario's validation error and plausibility warnings: the
+    Problems panel at the bottom of the window (UI overhaul M2b)."""
+
+    activated = Signal(str)  # a problem was activated (its text): show where to fix it
     count_changed = Signal(int)
+    counts_changed = Signal(int, int)  # errors, warnings
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
         self.empty_label = _empty_state("No problems: the scenario is valid.")
-        self.list = QListWidget()
-        on_change(self._retint)
-        self.list.setWordWrap(True)
-        # Wrapped lines, never a sideways scroll bar: items re-wrap when the panel resizes.
-        self.list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.list.setResizeMode(QListWidget.ResizeMode.Adjust)
-        self.list.itemActivated.connect(self._on_item_activated)
+        self.model = ProblemsModel(self)
+        self.proxy = _SortProxy(self)
+        self.proxy.setSourceModel(self.model)
+        self.table = ProblemsTable()
+        self.table.setModel(self.proxy)
+        self.table.setSortingEnabled(True)
+        self.table.sortByColumn(0, Qt.SortOrder.AscendingOrder)
+        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
+        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setWordWrap(False)
+        self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(ROW_HEIGHT)
+        header = self.table.horizontalHeader()
+        header.setStretchLastSection(True)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        self.table.activated.connect(self._on_activated)
         layout.addWidget(self.empty_label)
-        layout.addWidget(self.list, 1)
+        layout.addWidget(self.table, 1)
         self.problems: List[Tuple[str, str]] = []
         self.set_problems([])
 
-    def _on_item_activated(self, item) -> None:
-        self.activated.emit(self.problems[self.list.row(item)][1])
+    def _on_activated(self, index) -> None:
+        self.activated.emit(self.problem_at(index.row()).text)
 
-    def _retint(self, _mode: str) -> None:
-        retint(self.list)
+    def problem_at(self, row: int) -> Problem:
+        """The problem shown in row ``row`` (the table's order)."""
+        return self.model.rows[self.proxy.mapToSource(self.proxy.index(row, 0)).row()]
 
-    def set_problems(self, problems: List[Tuple[str, ...]]) -> None:
+    def index_of(self, problem: int) -> QModelIndex:
+        """The table's index of ``problems[problem]`` (its first column)."""
+        return self.proxy.mapFromSource(self.model.index(problem, 0))
+
+    def row_text(self, row: int) -> str:
+        """Row ``row`` in words: "Error: <message>"."""
+        return f"{self.proxy.index(row, 0).data()}: {self.proxy.index(row, 3).data()}"
+
+    def shown_rows(self) -> List[Tuple[str, str, str, str]]:
+        """The table as shown: (severity, ID, object, message) per row."""
+        return [tuple(str(self.proxy.index(row, column).data()) for column in range(len(PROBLEM_COLUMNS)))
+                for row in range(self.proxy.rowCount())]
+
+    def set_problems(self, problems: List[Tuple[str, ...]], spacecraft: Sequence[str] = (),
+                     stations: Sequence[str] = ()) -> None:
         """``problems``: ``(severity, text)`` or ``(severity, text, shown
         text)``, severity "error" or "warning". ``text`` is the message as
-        raised, which says where it is fixed; the list shows the shown text."""
+        raised, which says where it is fixed; the table shows the shown text.
+        ``spacecraft`` and ``stations`` name the objects a message can be about."""
         self.problems = [(problem[0], problem[1]) for problem in problems]
-        shown = [problem[2] if len(problem) > 2 else problem[1] for problem in problems]
-        self.list.clear()
-        tones = {"error": "status.critical.text", "warning": "status.caution.text"}
-        for (severity, text), display in zip(self.problems, shown):
-            item = QListWidgetItem(f"{'Error' if severity == 'error' else 'Warning'}: {display}")
-            tint(item, tones.get(severity, "text.primary"))
-            item.setToolTip("Double-click to open the 3D model editor" if _MODEL_MARK in text
-                            else "Double-click to go to where it is fixed")
-            self.list.addItem(item)
-        self.empty_label.setVisible(not self.problems)
-        self.list.setVisible(bool(self.problems))
-        self.count_changed.emit(len(self.problems))
+        rows = [problem_row(problem[0], problem[1], problem[2] if len(problem) > 2 else problem[1],
+                            spacecraft, stations) for problem in problems]
+        self.model.set_rows(rows)
+        if rows:
+            self.table.resizeColumnToContents(0)
+            for column in (1, 2):
+                self.table.setColumnWidth(column, min(self.table.sizeHintForColumn(column) + SPACE["lg"],
+                                                      SPACE["xxl"] * 8))
+        self.empty_label.setVisible(not rows)
+        self.table.setVisible(bool(rows))
+        errors = sum(1 for problem in rows if problem.severity == "error")
+        self.count_changed.emit(len(rows))
+        self.counts_changed.emit(errors, len(rows) - errors)
 
 
 _MODEL_MARK = "3D model"  # in every 3D model problem (engine.scenario_checks)
