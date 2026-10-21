@@ -128,8 +128,8 @@ The installers bring everything with them: their own Python, the
 Basilisk simulation engine and its reference data (planet positions,
 leap seconds, Earth's and Mars's gravity fields, Earth's magnetic field,
 Earth orientation). They need no Python on the computer and no internet,
-and the app works offline from the start. (The 1.1.0 installers were not
-like this yet: they downloaded Basilisk and the data while installing,
+and the app works offline from the start. (This holds from 1.1.1; the
+1.1.0 installers were not like this yet: they downloaded Basilisk and the data while installing,
 and the 1.1.0 Windows setup also needed Python 3.11.)
 
 **No installer, or want to run it from source?**

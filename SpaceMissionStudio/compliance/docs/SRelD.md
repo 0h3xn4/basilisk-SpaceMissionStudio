@@ -1,49 +1,54 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 8, 2026-10-20. Remediation R14.
+Document: SMS-SRelD, issue 9, 2026-10-21. Remediation R14.
 
-**Status:** release **1.1.0**, a candidate prepared on 2026-10-19,
-rebuilt on 2026-10-20 with the fix of K-18 (GUI Monte Carlo batches), and
-rebuilt again the same day from `develop` with the first step of the UI
-overhaul (M1, the new look; the user's decision of 2026-10-20 to release
-from `develop`). Not yet published: a first `spacemissionstudio-v1.1.0`
-tag and release, made on 2026-10-20 on commit `c931ccd4d` before these
-records, are to be replaced by the user with a tag on the merge of this
-issue's pull request. Merging the release pull request, tagging and publishing
-are the user's (decision of 2026-10-19, HISTORY "Towards release
-1.1.0").
-- 1.1.0 is a Linux release, like 1.0.0: the wheel, the sdist, the `.deb`
-  and `SHA256SUMS-linux`. Windows and macOS installers follow in a later
-  release (the user's decision of 2026-10-14 for 1.0.0, unchanged; 5.2,
-  K-14). The test suite passes in CI on all three platforms.
-- The candidate's files were built from the release branch and the
-  `.deb` installed as an upgrade over the published 1.0.0
-  (`packaging/README.md`, "Verified for 1.1.0"). The baseline commit and
-  the tag (`spacemissionstudio-v1.1.0`) are recorded when the user
-  publishes.
+**Status:** release **1.1.1**, a candidate prepared on 2026-10-21: the
+self-contained installers (the user's request of 2026-10-20, after the
+1.1.0 setup program stopped for want of a Python on `PATH`). The app is
+unchanged from 1.1.0; only the packaging, the release workflow, one
+test's isolation and the documents changed. Merging the release pull
+request, tagging and publishing are the user's (decision of 2026-10-19,
+HISTORY "Towards release 1.1.0").
+- 1.1.1 ships the wheel, the sdist, the Linux `.deb` and the Windows
+  setup program, each installer with its own Python, Basilisk and
+  reference data (`packaging/bundle_python.py`). macOS has no installer
+  (K-14, 7).
+- The installers of the candidate's source were built and installed:
+  the `.deb` in a container (offline upgrade over a 1.1.0 package,
+  purge, offline install, an offline run as an ordinary user), and both
+  by the release workflow's pull-request run of PR #89
+  ([run 39504407640](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/39504407640);
+  `packaging/README.md`, "The bundled Python"). The release files are
+  built by the release workflow from the tag; their checksums are those
+  in the release's `SHA256SUMS-*` files. The baseline commit and the tag
+  (`spacemissionstudio-v1.1.1`) are recorded when the user publishes.
 
-**Previous release:** 1.0.0, published 2026-10-14 (21:06 UTC):
-- On 2026-10-14 the user chose to renew the tool and restart its
-  numbering at 1.0.0. The releases made before (1.0.0, 1.1.0, 2.0.0
-  and 3.0.0 of the earlier numbering) are withdrawn: on 2026-10-14 the
-  repository had no releases and no tags left.
-- Tagged `spacemissionstudio-v1.0.0` (not signed, D-13) on commit
-  `f288e0c73`, the merge of the release pull request (#68) into
-  `develop`. GitHub release "SpaceMissionStudio 1.0.0", published by
-  the user:
-  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0>.
-- Its four files (the wheel, the sdist, the `.deb` and
-  `SHA256SUMS-linux`) have the SHA-256 digests GitHub reports for them,
-  and these equal the files built and installed for the release
-  (`packaging/README.md`). The files were not downloaded back from the
-  release.
+**Previous release:** 1.1.0, published 2026-10-20 (16:57 UTC):
+- Tagged `spacemissionstudio-v1.1.0` (not signed, D-13) on commit
+  `1f8ad1663` (`1f8ad16630a594bfbd09f905ca329f1c4f86b54c`), the merge of
+  the release pull request (#86) into `develop`. GitHub release "Space
+  Mission Studio 1.1.0", published by the user:
+  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.0>.
+  The first tag on `c931ccd4d` was replaced as issue 8 planned.
+- Its six files were built and attached by the release workflow
+  (PR #87, #88), not by hand: the wheel, the sdist, the `.deb`
+  (`spacemissionstudio_1.1.0_all.deb`), the Windows setup program
+  (`spacemissionstudio-1.1.0-setup.exe`, the first release to carry one)
+  and `SHA256SUMS-linux` and `SHA256SUMS-windows`. GitHub's SHA-256
+  digest of each file equals its line in those files (wheel `f5dc2619...`,
+  sdist `722e9db4...`, `.deb` `6933b926...`, setup `099d61a0...`). These
+  are CI builds; they differ from the local 1.1.0 build recorded in
+  `packaging/README.md` ("Verified for 1.1.0").
+- The 1.1.0 installers set up a virtual environment while installing:
+  they need internet access, and the setup program needs Python 3.11 on
+  `PATH` (K-20).
 
 ## 1 Introduction (G.2.1<1>)
 
-This SRelD describes release 1.1.0 of SpaceMissionStudio in
-`0h3xn4/basilisk-SpaceMissionStudio`: what it contains, what changed since 1.0.0
-(commit `f288e0c73`), what is known to be wrong, and how to use it.
+This SRelD describes release 1.1.1 of SpaceMissionStudio in
+`0h3xn4/basilisk-SpaceMissionStudio`: what it contains, what changed since 1.1.0
+(commit `1f8ad1663`), what is known to be wrong, and how to use it.
 
 ## 2 Applicable and reference documents (G.2.1<2>)
 
@@ -67,57 +72,42 @@ This SRelD describes release 1.1.0 of SpaceMissionStudio in
 | Item | Value |
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
-| Baseline | The merge of the release pull request into `develop`, to be tagged `spacemissionstudio-v1.1.0` by the user. Previous release: 1.0.0, commit `f288e0c73` (`f288e0c7323b99fa26c2a5cb73d3f9c5bcfc9e5e`), tagged `spacemissionstudio-v1.0.0`. |
-| Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt`. Bundled with the GUI as files, not packages: Inter 4.1 and JetBrains Mono 2.304 (SIL OFL 1.1) and 35 Lucide icons from lucide-static 1.52.0 (ISC), with versions, sources and checksums in `docs/THIRD_PARTY_ASSETS.md` |
-| Platform | Python 3.11 or newer |
-| Delivery | Attached to the GitHub release: the wheel and sdist (`packaging/build_wheel.sh`), the Debian package (`packaging/build_deb.sh`) and `SHA256SUMS-linux`. GitHub's digest of each published file equals the SHA-256 of the file built and installed (status above). No Windows setup program in 1.1.0 (K-14) |
+| Baseline | The merge of the release pull request into `develop`, to be tagged `spacemissionstudio-v1.1.1` by the user. Previous release: 1.1.0, commit `1f8ad1663` (`1f8ad16630a594bfbd09f905ca329f1c4f86b54c`), tagged `spacemissionstudio-v1.1.0`. |
+| Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt`. Bundled with the GUI as files, not packages: Inter 4.1 and JetBrains Mono 2.304 (SIL OFL 1.1) and 35 Lucide icons from lucide-static 1.52.0 (ISC), with versions, sources and checksums in `docs/THIRD_PARTY_ASSETS.md`. The installers also carry CPython 3.11.17 (python-build-standalone 20261013, SHA-256 pinned) with every installed package and the reference data; each build lists them in its `SPACEMISSIONSTUDIO_RUNTIME.json`, and `docs/THIRD_PARTY_ASSETS.md` ("In the installers") gives their licences |
+| Platform | The installers: Linux x86_64 with glibc 2.34 or newer (`.deb`), Windows 10/11 x64; no Python needed. From source: Python 3.11 or newer |
+| Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_1.1.1_amd64.deb`, the Windows setup program `spacemissionstudio-1.1.1-setup.exe` (not signed, D-13), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
 | Documentation | SUM and `USER_MANUAL.md`; the documents in `compliance/docs/` |
-| Basilisk framework | Unchanged. Against `develop`, the branch changes only `SpaceMissionStudio/` and `.github/workflows/spacemissionstudio.yml` (`git diff --name-only origin/develop HEAD`). |
+| Basilisk framework | Unchanged. Since 1.1.0 the changes outside `SpaceMissionStudio/` are the SpaceMissionStudio workflows (`.github/workflows/spacemissionstudio-*.yml`) and the fork's `README.md` (`git diff --name-only 1f8ad1663 HEAD`). The installers add Basilisk's support data next to the installed Basilisk package, in the folder its own `dataFetcher` reads; no Basilisk file is changed |
 
 ## 5 Status of the software configuration item
 
 ### 5.1 Evolution since previous version (G.2.1<5.1>)
 
-`CHANGELOG.md` 1.1.0 lists the changes since 1.0.0 (commit `f288e0c73`);
-RD1 has the full story of each, from "Release 1.0.0" on. In summary:
+`CHANGELOG.md` 1.1.1 lists the changes since 1.1.0 (commit `1f8ad1663`);
+RD1 has the full story ("Self-contained installers"). In summary:
 
-**Features:**
-- formations in relative orbital elements: targets and a schedule, an
-  impulsive law planned with the J2 model (with differential-drag
-  compensation) and Basilisk's `meanOEFeedback`, a generator, the Explain
-  diagram, Vizard panels and template 29;
-- optical navigation from the central body's disk (Basilisk's
-  `pixelLineConverter` and `relativeODuKF`; template 30, Mars);
-- asteroid 433 Eros as a central body, with its shape's gravity
-  (Basilisk's `polyhedralGravityModel`) and landmark navigation (template
-  31);
-- albedo on the coarse sun sensors (Earth CERES, Mars TES maps);
-- Mars's GGM2B gravity field to degree 80;
-- a new look (UI overhaul M1): the brief's colour tokens in light and
-  dark, Inter and JetBrains Mono bundled, Lucide icons, every text and
-  icon colour at WCAG 2.2 AA (tested), and View > Theme applied at once
-  instead of at the next start. The layout, the outputs and the command
-  line are unchanged (`docs/DECISIONS.md`).
+**Packaging:** the `.deb` and the Windows setup program carry a private
+CPython 3.11.17 with Basilisk 2.12.0, SpaceMissionStudio and every
+package at the tested versions, the support data and the Earth
+orientation files. Installing needs no Python and no internet (K-20).
+The `.deb` is `amd64` and needs glibc 2.34 or newer; its files are all
+package files.
 
 **Fixed:**
-- runs around, or with, `mars` and `jupiter` (K-15);
-- thermal sensors away from Earth (K-16);
-- sun sensors in eclipse (K-17);
-- the field's reference radius (K-04, radius part);
-- altitude-trade errors that lost their message (K-14);
-- SIL runs stopped by a stall of the simulator itself;
-- NaN and infinity on the command line;
-- a sideways-scrolling Power tab at 1280 px.
+- the 1.1.0 setup program stopping when no Python 3.11 was on `PATH`
+  (K-20);
+- the 1.1.0 `.deb` fetching the SPICE kernels into root's cache, which no
+  other user reads (K-20);
+- an intermittent Windows CI failure of `test_autosave.py` (K-21).
 
-**Data:** the bundled CelesTrak space weather has observations to
-2026-10-18 (K-13).
+**Release workflow:** the `.deb` is installed and run with the network
+cut off; the Windows setup is checked with an empty support-data cache;
+the GUI check applies the theme and asserts Inter.
 
-**Changes users notice:** scenario files of 1.0.0 open unchanged. A file
-naming `mars` or `jupiter` is refused with the name to use (`mars
-barycenter`, `jupiter barycenter`). Degree-20 Earth gravity runs move by
-about 0.16 m a day (K-04). The GUI looks different (M1); its layout, menus
-and shortcuts are the same, and a theme change applies at once (K-19).
-`pip` and `apt` upgrade 1.0.0 to 1.1.0 in place.
+**Changes users notice:** none in the app. The installers are larger
+(about 450 MB and 395 MB; the `.deb` 1.65 GB installed) and need no
+network. The `.deb`'s file name ends in `_amd64` instead of `_all`.
+`apt` replaces a 1.1.0 package in place.
 
 ### 5.2 Known problems and limitations (G.2.1<5.2>)
 
@@ -130,13 +120,13 @@ and shortcuts are the same, and a theme change applies at once (K-19).
 | K-03 | The time argument is TDB, not TAI (F-05) | About 0.1 m/day in LEO | `phase3_log.md` |
 | K-04 | Radius part closed (2026-10-19): Basilisk put the body's radius in place of the field file's (F-03), which scaled Mars's GGM2B J2 by 4.8e-4 and Earth's by 1e-7. The tool now rescales the coefficients so that the file's field is applied (`engine/gravity_field.py`, `tests/test_gravity_field.py`). The field's GM is still the body's (D-07) | GM: 1.4e-8 (Earth) and 1.4e-6 (Mars) on the harmonic terms | `phase3_log.md` F-03 |
 | K-05 | During a live stream Vizard, a separate program, listens on port 5556; the tool opens no port. Earlier issues of the security analysis wrongly said Basilisk binds 5556 and 5570 on all interfaces | Exposure depends on Vizard's own binding, not checked | security analysis S-06 (corrected, decision 17) |
-| K-06 | The Windows installer was not run by hand; 1.0.0 and 1.1.0 do not ship it (K-14) | Unknown | SValP 9 |
+| K-06 | The Windows setup program has not been run by hand on a Windows machine; 1.1.0 and 1.1.1 ship it, built, installed silently and run on a GitHub Windows runner (K-12) | Unknown for interactive use | SValP 9 |
 | K-07 | Closed (decision 19): SRS-P-09 and SRS-R-02 measured and met on the reference PC | – | SVR; `compliance/performance.md` |
 | K-10 | Closed: the test suite failed on Windows (34 tests) and macOS (10 tests) in CI run 20. Four causes were tool defects (F-09 to F-12, fixed); the rest were tests that assumed Linux. Since commit `41b73b1c3` the suite passes on all three (2259 passed, 11 skipped, 0 failed; run 37854361784). The GUI has not been used by hand on Windows or macOS | – | SVR 4.6; `review_log.md` |
 | K-11 | F-09, fixed: parallel runs could read a half-written space-weather file. Altitude trades with more than one worker and Monte Carlo runs with NRLMSISE-00 drag, made before the fix, may have used wrong solar activity | Those results are to be re-run | `review_log.md` F-09 |
 | K-08 | Closed: the PNG/SVG export polled the page with overlapping asynchronous queries; a late timer tick read the cleared state (the CI tracebacks), and several answers could save the file twice. One query at a time now, late answers ignored (F-12) | – | `review_log.md` F-12 |
 | K-09 | Closed (2026-10-19): 1054 of the 2314 unit and integration test functions had no docstring. Every one now has a docstring stating what it checks, read from its body; no test code changed (each file's syntax tree without docstrings equals the one before) | – | `SUITP_test_cases.md`; HISTORY.md |
-| K-12 | The Windows setup program is built, installed silently and the installed tool run on a GitHub Windows runner, including the installer's Python version check; the wizard has not been clicked through by hand and the GUI not opened on a real Windows machine. The graceful SIL close (M15) has not run on Windows. 1.0.0 and 1.1.0 do not ship the setup program (K-14) | Unknown for interactive use on Windows | `AUDIT.md` sections 5 and 6; `packaging/README.md` |
+| K-12 | The Windows setup program is built, installed silently and the installed tool run on a GitHub Windows runner (1.1.1: with an empty support-data cache, the GUI opened offscreen); the wizard has not been clicked through by hand and the GUI not opened on a real Windows machine, and an upgrade over an installed 1.1.0 has not been tried. The graceful SIL close (M15) has not run on Windows | Unknown for interactive use on Windows | `AUDIT.md` sections 5 and 6; `packaging/README.md` |
 | K-13 | Closed: the bundled CelesTrak space weather (observations to 2025-07-20) was refreshed for this release: observations to 2026-10-11, updated 2026-10-12. Refreshed again on 2026-10-19 for the next release: observations to 2026-10-18, CelesTrak's daily forecast to 2026-12-02, updated 2026-10-19 20:34 UTC. Results of drag runs dated after 2025-07-20 change, because observed solar activity replaces the earlier forecasts | – | `spacemissionstudio/data/spaceweather/README.md` |
 | K-14 | Addressed, under watch: platform test failures. On Windows, two tests fail intermittently in CI (PR #64, 2026-10-14; each passed on the same commit in another run). `test_the_altitude_trade_runs_its_altitudes_in_parallel_processes`: a worker hit a Basilisk error whose exception cannot be pickled, so its message is lost (cause not yet known; suspected: the cached space-weather file opened by one worker while another replaces it). `test_a_step_without_deadline_waits_while_earlier_steps_are_still_answered`: its fake flight software went over the 0.3 s step timeout on a loaded runner (a test margin). On macOS (PR #65, 2026-10-14), `test_forms_stay_at_a_readable_width` and `test_a_template_row_keeps_its_customize_button_close` fail their own precondition: Qt's `cocoa` platform fits the 2560 x 1440 test window to the runner's screen, so the page is 618 px wide and there is no wide screen to check (a test set-up problem, not the layout). Fixed on the ROE branch (PR #73, commit `f601576c1`, 2026-10-18): the test window is laid out with `WA_DontShowOnScreen`, which the screen does not constrain, and the fixture asserts its 2560 x 1440 size; macOS CI then passed both (3347 passed, 0 failed, 11 skipped, run 39165811899). On the release commit `f288e0c73` (run 38633749308) Windows passed (3224 passed, 16 skipped) and macOS failed these two (3229 passed, 2 failed, 11 skipped). By the user's decision 1.0.0 is a Linux release; Windows and macOS are fixed and released later. Windows pair addressed on 2026-10-18 (after PR #73): the SIL test's step timeout is 1 s against 30 ms answers (it was 0.3 s against 20 ms), and the altitude trade's lost message is a confirmed bug, now fixed: Basilisk's `BasiliskError` cannot be pickled (its module `_bskLogging` does not import by that name), so any Basilisk error in a worker arrived as a pickling error. Workers now send such an error as a `BudgetError` with its type, message and traceback. The suspected cause is removed too: a complete space-weather file is no longer replaced by a second worker's copy, which on Windows could meet the first worker opening it. The Basilisk error behind the 2026-10-14 failure was never seen, so its cause is not confirmed; if it recurs, its message now shows. macOS, 2026-10-19 (PR #75, run 39218996167): `test_the_keys_work_where_results_has_the_focus` timed out waiting for its window to become active (passed on the PR's previous commit). On macOS activation is per application, and the parallel test workers are separate processes whose windows can keep it from this one; the test now sets Qt's active window itself (`QApplication.setActiveWindow`), which is what the shortcut map checks. Not reproducible on Linux (offscreen activates every shown window); confirmed only by the next macOS CI runs. Windows, 2026-10-19 (PR #76, job 118026573080): `test_thousands_of_dropped_steps_never_block_the_link[tcp]` failed with "the flight software took no STEP for 10 s" at step 16172 of 20000; the other Windows job on the same commit and the one re-run passed. The fake flight software was waiting to read when the link closed, so the simulation side's send found the socket not writable for 10 s, or did not run for that long. Cause not confirmed: not reproduced on Linux in 60 runs under CPU overload. A related defect was confirmed and fixed: `SocketTransport.send` gave up as soon as its time had run out, before trying the socket again, so a stall of the simulation's own process counted as the flight software's silence. The send now counts its time from the last bytes the peer took and tries once more without waiting before it gives up (`test_a_stall_of_this_process_is_not_the_peers_silence`, which fails on the previous code). Whether this was the Windows failure is confirmed only if it does not recur | Windows: an altitude trade with several workers may have failed with an unexplained error; a recurrence now names the error. macOS: the wide-screen layout was not checked in CI until PR #73 | PR #64 and #65 comments |
 | K-15 | Fixed (2026-10-19): a run around, or with a third body, `mars` or `jupiter` passed validation and then failed. The bundled DE430 ephemeris has the Mars and Jupiter system barycentres, not the planets: a `mars` run stopped the whole process with `SPICE(SPKINSUFFDATA)` (the GUI runs in its own process, so the app closed), and Basilisk has no body named `jupiter`. The schema now offers `mars barycenter` and `jupiter barycenter` (Basilisk gives them the planet's mass and radius) and refuses the two old names with the one to use; a test flies every offered body | A scenario with `mars` or `jupiter` could not be run, and in the GUI closed the app; no result was ever produced with them | `tests/test_central_bodies.py`; HISTORY.md |
@@ -144,22 +134,25 @@ and shortcuts are the same, and a theme change applies at once (K-19).
 | K-17 | Fixed (2026-10-19): coarse sun sensors read the Sun in the planet's shadow. Basilisk's `coarseSunSensor` takes the eclipse as an optional input and, with it unlinked, counts itself fully lit; the tool linked it for thermal sensors and solar panels but not for sun sensors. Both the per-sensor telemetry and the cluster behind the CSS sun-heading estimate now take the spacecraft's eclipse message | In eclipse, sun-sensor telemetry was as in sunlight (template 14: 0.73 in Earth's shadow, now 0.0), and the CSS sun-heading estimate kept the true Sun direction, which real sensors cannot see. Runs that never enter a shadow are unchanged | `tests/test_template_claims.py::test_14_css_estimate_settles_on_the_sun_axis_and_is_lost_in_the_shadow`; HISTORY.md |
 | K-18 | Fixed in 1.1.0 (2026-10-20, before its publication): a Monte Carlo batch started from the GUI with `thread_count` 1 (the default, and template 09) failed every run. Basilisk's `MonteCarlo.Controller` calls `signal.signal()` at the start of each case, which Python allows only on a process's main thread, and with one thread the controller runs the cases in the calling process: the GUI's worker `QThread`. The GUI now runs the batch in a spawned child process (`gui/monte_carlo_process.py`); Basilisk is unchanged | In 1.0.0 and the first 1.1.0 candidate, GUI batches with one thread produced no results ("N of N runs failed"). The command line runs batches on its main thread and is not affected; with more than one thread each case runs in a pool process, so GUI batches should not have been affected either (read from the controller, not re-run on 1.1.0). Found by the UI screenshot harness | `tests/gui/test_run_worker.py::test_monte_carlo_worker_runs_a_single_thread_batch`; HISTORY.md |
 | K-19 | Limitation (2026-10-20): applying a theme (View > Theme, or a change of the desktop's scheme with System) takes 0.51-0.55 s on a new main window with a scenario open and 2.4 s after every page has been visited, measured on one Linux container (before M1, on the same machine: 1.31-1.44 s and 6.1-6.5 s). The overhaul brief's target is 0.1 s. Qt re-polishes every widget, most of them on hidden pages; the overhaul's next milestone reduces the number of live widgets | The window does not respond for that time after a theme change | `docs/DECISIONS.md`; `docs/ui/UI_OVERHAUL_PLAN.md` section 7 |
+| K-20 | Fixed in 1.1.1 (2026-10-20): the 1.1.0 installers built a virtual environment while installing. The setup program stopped before its wizard when no Python 3.11 was on `PATH` ("SpaceMissionStudio needs Python 3.11 or later, which was not found"), and both needed internet access. The `.deb`'s `postinst` also fetched the SPICE kernels as root, into root's own cache (`~/.cache/bsk_support_data` of root), so every other user had no kernels until they downloaded them. The 1.1.1 installers carry their own Python and the data, in the folder Basilisk's `dataFetcher` reads for every user | 1.1.0: no install on a Windows machine without Python 3.11 on `PATH`; no offline install; Linux users other than root had to download the kernels | `packaging/README.md`, "The bundled Python"; HISTORY.md |
+| K-21 | Fixed (2026-10-21): `test_autosave.py::test_read_with_no_recovery_file_returns_none` failed now and then on Windows CI (PR #89). A main window an earlier GUI test had left open kept its 30 s autosave timer; pytest-qt processes Qt events after each test's set-up, so the overdue tick wrote that window's scenario into the recovery file the test had just pointed at its temporary folder. Reproduced with a window holding template 22, as in the failure; the test now stops such timers first. A test defect: the app writes its recovery file only where it should | None for users | `docs/ui/TEST_CHANGES.md`; HISTORY.md |
 
 **Waivers and deviations:** D-01 to D-13 (RD4). D-08 to D-13 are signed; D-01 to D-07
 are not (decision 14, H08).
 
 ## 6 Operational aspects (G.2.1<6>)
 
-- **Use Python 3.11 or newer and Basilisk 2.12.0.** Other Basilisk
-  versions run, but with a warning: their results are not covered by
-  the validation. The installers install the versions in
-  `packaging/constraints.txt`.
-- **Install the IERS-based Earth orientation files** for any run with a
-  gravity field:
+- **Use the installers, or Python 3.11 or newer with Basilisk 2.12.0.**
+  The installers carry Python 3.11.17, Basilisk 2.12.0 and the versions
+  in `packaging/constraints.txt`. Other Basilisk versions run, but with a
+  warning: their results are not covered by the validation.
+- **Earth orientation:** the installers carry the IERS-based files as
+  current as their build; for later runs, fetch newer ones:
   - start-up prompt, or
   - `spacemissionstudio earth-orientation --fetch`.
 
-  Without them, the Earth frame costs about 160 m/day at degree 20.
+  Installed from source, install them before any run with a gravity
+  field. Without them, the Earth frame costs about 160 m/day at degree 20.
 - **Re-run drag-dependent studies made with earlier versions.** F-07
   changes drag.
 - **Run script blocks only from scenarios you trust and have read**
@@ -171,7 +164,8 @@ are not (decision 14, H08).
 ## 7 Future evolutions (G.2.1<7>)
 
 Planned, in order:
-1. Windows and macOS: fix K-14, then release their installers.
+1. macOS: an installer; Windows and macOS: fix K-14 and run the
+   installers by hand (K-06, K-12).
 2. The human actions of RD4: reviews, PA organisation, signatures.
 
 Dropping the two Basilisk workarounds also depends on Basilisk: they go

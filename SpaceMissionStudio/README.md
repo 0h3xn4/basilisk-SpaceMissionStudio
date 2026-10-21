@@ -1,7 +1,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-![Version 1.1.0](https://img.shields.io/badge/version-1.1.0-blue)
+![Version 1.1.1](https://img.shields.io/badge/version-1.1.1-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -108,22 +108,24 @@ Details, and the Basilisk module behind each feature:
 | Internet | None for the installers; once from source, to install and fetch the reference data |
 
 The Linux `.deb`, the Windows setup program and the install scripts are
-in [`packaging/`](packaging/README.md). From the next release the two
-installers are self-contained: their own Python, Basilisk and reference
-data, no internet needed.
+in [`packaging/`](packaging/README.md). From 1.1.1 the two installers
+are self-contained: their own Python, Basilisk and reference data, no
+internet needed.
 
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
-- **Version:** 1.1.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.0),
-  [changelog](CHANGELOG.md)): relative-orbital-element formations,
-  optical and landmark navigation, asteroid Eros, Mars's gravity field and
-  albedo on the sun sensors, after 1.0.0, the first release of the renewed
-  tool. Needs Python 3.11 or newer.
-- **Platforms:** 1.1.0 has the Linux `.deb` and the wheel, built,
-  installed and run end to end with Basilisk 2.12.0, and a Windows setup
-  program built, installed and run on a Windows runner by the release
-  workflow ([`packaging/README.md`](packaging/README.md)). The test suite
+- **Version:** 1.1.1 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.1),
+  [changelog](CHANGELOG.md)): self-contained installers for Linux and
+  Windows. 1.1.0 added relative-orbital-element formations, optical and
+  landmark navigation, asteroid Eros, Mars's gravity field and albedo on
+  the sun sensors, after 1.0.0, the first release of the renewed tool.
+  From source it needs Python 3.11 or newer.
+- **Platforms:** 1.1.1 has the Linux `.deb`, the Windows setup program
+  and the wheel. Both installers carry their own Python, Basilisk and
+  reference data; each was installed and run offline by the release
+  workflow, the `.deb` also by hand in a container
+  ([`packaging/README.md`](packaging/README.md)). The test suite
   also passes in CI on Windows and macOS (failures seen there before are
   fixed or under watch, SRelD K-14). macOS has no installer yet.
 - **Known gaps:** [Known limitations](docs/reference/limitations.md).

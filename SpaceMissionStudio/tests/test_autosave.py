@@ -13,8 +13,27 @@ from spacemissionstudio.gui import autosave
 from spacemissionstudio.schema.scenario import OrbitIC, Scenario, SpacecraftConfig
 
 
+def _stop_leftover_autosave_timers():
+    """A main window an earlier GUI test left open in this worker keeps its
+    30 s autosave timer. pytest-qt processes Qt events after every test's
+    set-up, so an overdue tick would write that window's scenario into the
+    recovery file patched in below (seen on Windows CI)."""
+    try:
+        from PySide6.QtWidgets import QApplication
+    except ImportError:
+        return
+    app = QApplication.instance()
+    if app is None:
+        return
+    for widget in app.topLevelWidgets():
+        timer = getattr(widget, "_autosave_timer", None)
+        if timer is not None:
+            timer.stop()
+
+
 @pytest.fixture(autouse=True)
 def _isolated_recovery_file(tmp_path, monkeypatch):
+    _stop_leftover_autosave_timers()
     recovery_dir = tmp_path / "autosave"
     monkeypatch.setattr(autosave, "_AUTOSAVE_DIR", recovery_dir)
     monkeypatch.setattr(autosave, "_RECOVERY_FILE", recovery_dir / "recovery.json")

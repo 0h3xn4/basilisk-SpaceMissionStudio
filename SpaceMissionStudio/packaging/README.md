@@ -143,8 +143,10 @@ The macOS row produces no file, so attaching does not wait for it: it is
 a job of the same run, which the release notes link to. The workflow's files are
 built on the runners, so their checksums differ
 from a local build of the same commit; the checksums on a release are
-those in its `SHA256SUMS-*` files. 1.0.0 and 1.1.0 were built locally
-before the workflow existed ("Verified for ..." below).
+those in its `SHA256SUMS-*` files. 1.0.0 was built locally, before the
+workflow existed. 1.1.0 was built and checked locally ("Verified for
+1.1.0" below), but its published files are the workflow's builds from the
+tag, with the checksums of its `SHA256SUMS-*` files (SRelD).
 
 ### The `.deb` package (Linux)
 

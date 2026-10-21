@@ -8,7 +8,14 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 1.1.1 (2026-10-21)
+
+The installers bring everything with them; the app itself is unchanged,
+so scenario files and results are the same as with 1.1.0. On Linux,
+`apt install ./spacemissionstudio_1.1.1_amd64.deb` replaces the 1.1.0
+package (tested offline over it, in a container); on Windows, running the
+1.1.1 setup over 1.1.0 removes 1.1.0's environment first (not yet tried
+on a Windows machine).
 
 - **Self-contained installers.** The Linux `.deb` and the Windows setup
   program now bring their own Python 3.11 with Basilisk 2.12.0, PySide6
@@ -21,8 +28,13 @@ fixes bugs.
   `spacemissionstudio_<version>_amd64.deb` (about 450 MB; 1.65 GB
   installed) and needs glibc 2.34 or newer (Ubuntu 22.04, Debian 12 or
   later). Built by `packaging/bundle_python.py`; the release workflow
-  installs the `.deb` with the network cut off and runs it offline. The
-  app itself is unchanged.
+  installs the `.deb` with the network cut off and runs it offline, and
+  the Windows setup with an empty support-data cache.
+- **A test fixed:** `test_autosave.py` failed now and then on Windows CI
+  when an earlier GUI test had left a main window open: its autosave
+  timer wrote into the recovery file the test had just pointed at a
+  temporary folder. The test now stops such timers first
+  (`docs/ui/TEST_CHANGES.md`).
 
 ## 1.1.0 (2026-10-20)
 

@@ -35,9 +35,9 @@ battery, link margin, lifetime and propellant.
 
 **Linux and Windows:** the [releases page](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases)
 has a `.deb` (`sudo apt install ./spacemissionstudio_<version>_amd64.deb`),
-a Windows setup program and the wheel. From the next release both
-installers bring their own Python, Basilisk and reference data, and
-install with no internet. macOS has no installer yet.
+a Windows setup program and the wheel. From 1.1.1 both installers bring
+their own Python, Basilisk and reference data, and install with no
+internet. macOS has no installer yet.
 
 **From source**, on Linux or macOS with Python 3.11 or newer (Windows: see
 [Getting started](SpaceMissionStudio/docs/getting-started.md)):
@@ -115,8 +115,9 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE),
   [`SpaceMissionStudio/LICENSE`](SpaceMissionStudio/LICENSE)).
-- **Version:** 1.1.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.0),
-  [changelog](SpaceMissionStudio/CHANGELOG.md)); 1.0.0 was the first
+- **Version:** 1.1.1 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.1),
+  [changelog](SpaceMissionStudio/CHANGELOG.md)), self-contained
+  installers; 1.0.0 was the first
   release of the renewed tool, and the version numbers used before the
   renewal are withdrawn.
 - **Platforms:** the Linux `.deb` and the Windows setup program are

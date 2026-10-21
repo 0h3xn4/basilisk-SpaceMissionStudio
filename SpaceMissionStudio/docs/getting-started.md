@@ -58,10 +58,10 @@ installers yourself: `packaging/build_deb.sh`, and on Windows
 
 The installers are self-contained: they bring their own Python, Basilisk
 and the reference data, so they need no Python on the computer and no
-internet. (This holds for the installers built from the current source,
-the next release on. The 1.1.0 files still set up a Python environment
-while installing: the 1.1.0 `.deb` downloads Basilisk and the data, and
-the 1.1.0 Windows setup program also needs Python 3.11 on PATH.)
+internet. (This holds from 1.1.1 on. The 1.1.0 files still set up a
+Python environment while installing: the 1.1.0 `.deb` downloads
+Basilisk and the data, and the 1.1.0 Windows setup program also needs
+Python 3.11 on PATH.)
 
 **Linux** (x86_64; Ubuntu 22.04, Debian 12 or later): double-click
 `spacemissionstudio_<version>_amd64.deb`, or:
