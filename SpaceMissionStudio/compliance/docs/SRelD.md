@@ -1,27 +1,43 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 11, 2026-10-21. Remediation R14.
+Document: SMS-SRelD, issue 12, 2026-10-21. Remediation R14.
 
-**Status:** release **1.2.0**, prepared 2026-10-21, not yet tagged:
+**Status:** release **1.2.0**, published 2026-10-21 (17:20 UTC):
 starting a mission from scratch, guided (the user's request and decision
 of 2026-10-21, HISTORY "A mission from scratch, guided"), and the end of
 macOS support (the user's decision of the same day, `docs/DECISIONS.md`).
 What the tool computes is unchanged from 1.1.1: the changes to the engine,
 the schema and the SIL transport since then are in comments only, and
 the golden files are unchanged. Merging the release pull request, tagging
-and publishing are the user's (decision of 2026-10-19, HISTORY "Towards
+and publishing were the user's (decision of 2026-10-19, HISTORY "Towards
 release 1.1.0").
 - 1.2.0 ships the wheel, the sdist, the Linux `.deb` and the Windows
   setup program, built as 1.1.1's were (`packaging/` is unchanged but for
   `release_notes.py` and its README). macOS is not supported.
-- The release files are built, installed and checked by the release
-  workflow from the tag (`.github/workflows/spacemissionstudio-release.yml`);
-  their checksums are those in the release's `SHA256SUMS-*` files. This
-  is the first release whose notes the workflow writes
-  (`packaging/release_notes.py`, from `CHANGELOG.md` 1.2.0).
-- To be tagged `spacemissionstudio-v1.2.0` (annotated, not signed, D-13)
-  on the merge of the release pull request into `develop`.
+- Tagged `spacemissionstudio-v1.2.0` (a lightweight tag, not signed,
+  D-13) on commit `c92f90040` (`c92f9004075bb28bbad361d55408b827670c0e1a`),
+  the merge of the release pull request (#94) into `develop`. GitHub
+  release "Space Mission Studio 1.2.0", published by the user:
+  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.2.0>.
+  It was created at 17:17 UTC and published at 17:20, before the release
+  workflow had attached anything, so it was public without files or notes
+  until the workflow finished at 17:33.
+- Its six files were built, installed, checked and attached by the
+  release workflow
+  ([run 39642864007](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/39642864007),
+  on `c92f90040`; jobs linux, windows and attach passed). GitHub's SHA-256
+  digests: `.deb` (`spacemissionstudio_1.2.0_amd64.deb`, 446 730 028
+  bytes) `92760538...0809`, setup program
+  (`spacemissionstudio-1.2.0-setup.exe`, 394 968 402 bytes)
+  `747bdee3...f3bc`, wheel (4 066 610 bytes) `db73117d...3d23`, sdist
+  (4 177 942 bytes) `6b940d87...8a5d`, `SHA256SUMS-linux`
+  `50ec7c8c...c4ed`, `SHA256SUMS-windows` `fec5c2f8...46e0`. The attach
+  job checked every file against the two checksum files.
+- The release notes are the first the workflow wrote itself
+  (`packaging/release_notes.py`, from `CHANGELOG.md` 1.2.0; 6684
+  characters). The installers' SHA-256 in them equal GitHub's digests
+  above.
 
 **Previous release:** 1.1.1, published 2026-10-21 (11:44 UTC), the
 self-contained installers:
@@ -79,7 +95,7 @@ This SRelD describes release 1.2.0 of SpaceMissionStudio in
 | Item | Value |
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
-| Baseline | The merge of the release pull request into `develop`, to be tagged `spacemissionstudio-v1.2.0` by the user. Previous release: 1.1.1, commit `57a54ae92` (`57a54ae923a59be6301e1b5e5de8701598fd9996`), tagged `spacemissionstudio-v1.1.1`. |
+| Baseline | Commit `c92f90040` (`c92f9004075bb28bbad361d55408b827670c0e1a`), the merge of the release pull request (#94) into `develop`, tagged `spacemissionstudio-v1.2.0`. Previous release: 1.1.1, commit `57a54ae92` (`57a54ae923a59be6301e1b5e5de8701598fd9996`), tagged `spacemissionstudio-v1.1.1`. |
 | Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt`. Bundled with the GUI as files, not packages: Inter 4.1 and JetBrains Mono 2.304 (SIL OFL 1.1) and 35 Lucide icons from lucide-static 1.52.0 (ISC), with versions, sources and checksums in `docs/THIRD_PARTY_ASSETS.md`. The installers also carry CPython 3.11.17 (python-build-standalone 20261013, SHA-256 pinned) with every installed package and the reference data; each build lists them in its `SPACEMISSIONSTUDIO_RUNTIME.json`, and `docs/THIRD_PARTY_ASSETS.md` ("In the installers") gives their licences |
 | Platform | The installers: Linux x86_64 with glibc 2.34 or newer (`.deb`), Windows 10/11 x64; no Python needed. From source: Python 3.11 or newer |
 | Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_1.2.0_amd64.deb`, the Windows setup program `spacemissionstudio-1.2.0-setup.exe` (not signed, D-13), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
