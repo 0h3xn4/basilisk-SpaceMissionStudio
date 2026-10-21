@@ -3,7 +3,7 @@
 DRD: ECSS-E-ST-40C Annex E
 Document: SMS-ICD, issue 1 (draft), 2026-10-08. Remediation R14.
 
-**Status:** draft, derived from the implemented interfaces (version 1.1.1; the interfaces are those of 1.1.0).
+**Status:** draft, derived from the implemented interfaces (version 1.2.0; the interfaces are those of 1.1.0).
 It has not been reviewed (H01), and no IRD exists (waived, D-11).
 
 ## 1 Introduction (E.2.1<1>)

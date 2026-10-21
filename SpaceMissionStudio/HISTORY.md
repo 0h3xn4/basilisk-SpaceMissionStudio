@@ -12024,3 +12024,29 @@ named `…DirectionConstraint.svg`, `…AttitudeConstraint.svg` and
 `…directionConstraint`, `…attitudeConstraint` and
 `scenario_thermalSensor`. macOS's case-insensitive file system had hidden
 them. The references now match the files; no file or figure name changed.
+
+## Release 1.2.0 prepared (2026-10-21)
+
+1.1.1 was published on 2026-10-21 (tag `spacemissionstudio-v1.1.1` on
+`57a54ae92`). 1.2.0 carries to users what came after it: starting a
+mission from scratch with the Scenario page's guide (PR #92), the end of
+macOS support (PR #92 for the tool, PR #93 for Basilisk's CI) and the
+release notes the workflow now writes itself (PR #92). A minor version,
+because the start-from-scratch choice and the guide are new features.
+What the tool computes is unchanged: since 1.1.1 the engine, the schema
+and the SIL transport changed in comments only, no golden or template
+file changed, and the packaging is that of 1.1.1 (only
+`packaging/release_notes.py` and its README are new).
+
+The version is set in the three files; the CHANGELOG's Unreleased entries
+are now the 1.2.0 section, with a summary, "Who should update" and
+"Known limits" for the notes; the SRelD is at issue 11; the README
+badges, SDP, SDD, SRS, ICD, CSD, SUM, H05 and `releasing.md` name 1.2.0.
+The bundled space weather is the copy downloaded on 2026-10-19
+(observations to 2026-10-18), two days old, so it was not refreshed. The
+notes this section gives were rendered with `packaging/release_notes.py`
+before the push.
+
+Merging, tagging (`spacemissionstudio-v1.2.0`) and publishing are the
+user's; the release workflow builds, installs offline, writes the notes
+and attaches the files when the tag is pushed.

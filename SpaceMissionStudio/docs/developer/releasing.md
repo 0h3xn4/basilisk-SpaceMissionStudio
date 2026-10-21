@@ -188,6 +188,13 @@ pushed again; a release created by hand before the workflow has attached
 its files is public with none, so push the tag and let the workflow
 create the draft.
 
+1.2.0 was prepared on 2026-10-21 by this checklist: starting a mission
+from scratch (PR #92) and the end of macOS support (PR #92, #93), with
+no change to what the tool computes. The space weather is again the copy
+refreshed for 1.1.0 (observations to 2026-10-18, updated 2026-10-19), two
+days old. It is the first release whose notes the release workflow writes
+with `packaging/release_notes.py`.
+
 ---
 
 **Next:** [Syncing with upstream Basilisk](upstream-sync.md) ·

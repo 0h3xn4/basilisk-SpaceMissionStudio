@@ -1,27 +1,30 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 10, 2026-10-21. Remediation R14.
+Document: SMS-SRelD, issue 11, 2026-10-21. Remediation R14.
 
-**Status:** release **1.1.1**, published 2026-10-21 (11:44 UTC): the
-self-contained installers (the user's request of 2026-10-20, after the
-1.1.0 setup program stopped for want of a Python on `PATH`). The app is
-unchanged from 1.1.0; only the packaging, the release workflow, one
-test's isolation and the documents changed. Merging the release pull
-request, tagging and publishing are the user's (decision of 2026-10-19,
-HISTORY "Towards release 1.1.0").
-- 1.1.1 ships the wheel, the sdist, the Linux `.deb` and the Windows
-  setup program, each installer with its own Python, Basilisk and
-  reference data (`packaging/bundle_python.py`). macOS is not supported
-  (removed on 2026-10-21 by the user's decision).
-- The installers of the candidate's source were built and installed:
-  the `.deb` in a container (offline upgrade over a 1.1.0 package,
-  purge, offline install, an offline run as an ordinary user), and both
-  by the release workflow's pull-request run of PR #89
-  ([run 39504407640](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/39504407640);
-  `packaging/README.md`, "The bundled Python"). The release files are
-  built by the release workflow from the tag; their checksums are those
-  in the release's `SHA256SUMS-*` files.
+**Status:** release **1.2.0**, prepared 2026-10-21, not yet tagged:
+starting a mission from scratch, guided (the user's request and decision
+of 2026-10-21, HISTORY "A mission from scratch, guided"), and the end of
+macOS support (the user's decision of the same day, `docs/DECISIONS.md`).
+What the tool computes is unchanged from 1.1.1: the changes to the engine,
+the schema and the SIL transport since then are in comments only, and
+the golden files are unchanged. Merging the release pull request, tagging
+and publishing are the user's (decision of 2026-10-19, HISTORY "Towards
+release 1.1.0").
+- 1.2.0 ships the wheel, the sdist, the Linux `.deb` and the Windows
+  setup program, built as 1.1.1's were (`packaging/` is unchanged but for
+  `release_notes.py` and its README). macOS is not supported.
+- The release files are built, installed and checked by the release
+  workflow from the tag (`.github/workflows/spacemissionstudio-release.yml`);
+  their checksums are those in the release's `SHA256SUMS-*` files. This
+  is the first release whose notes the workflow writes
+  (`packaging/release_notes.py`, from `CHANGELOG.md` 1.2.0).
+- To be tagged `spacemissionstudio-v1.2.0` (annotated, not signed, D-13)
+  on the merge of the release pull request into `develop`.
+
+**Previous release:** 1.1.1, published 2026-10-21 (11:44 UTC), the
+self-contained installers:
 - Tagged `spacemissionstudio-v1.1.1` (annotated, not signed, D-13; tag
   object `40ddd47b1`) on commit `57a54ae92`
   (`57a54ae923a59be6301e1b5e5de8701598fd9996`), the merge of the release
@@ -39,36 +42,20 @@ HISTORY "Towards release 1.1.0").
   `bf56ae39...9714`, wheel `c420515e...b509`, sdist `ac2cff10...43ff`,
   `SHA256SUMS-linux` `c5bdb53f...1f56`, `SHA256SUMS-windows`
   `f5f0d80d...c6de7`. The attach job checked every file against the two
-  checksum files; they could not be downloaded from this environment to
-  check again here.
-- The release notes are those written for the user to paste
-  (HISTORY, "Release notes that read like release notes").
+  checksum files.
+- Its release notes are those written for the user to paste (HISTORY,
+  "Release notes that read like release notes").
 
-**Previous release:** 1.1.0, published 2026-10-20 (16:57 UTC):
-- Tagged `spacemissionstudio-v1.1.0` (not signed, D-13) on commit
-  `1f8ad1663` (`1f8ad16630a594bfbd09f905ca329f1c4f86b54c`), the merge of
-  the release pull request (#86) into `develop`. GitHub release "Space
-  Mission Studio 1.1.0", published by the user:
-  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.0>.
-  The first tag on `c931ccd4d` was replaced as issue 8 planned.
-- Its six files were built and attached by the release workflow
-  (PR #87, #88), not by hand: the wheel, the sdist, the `.deb`
-  (`spacemissionstudio_1.1.0_all.deb`), the Windows setup program
-  (`spacemissionstudio-1.1.0-setup.exe`, the first release to carry one)
-  and `SHA256SUMS-linux` and `SHA256SUMS-windows`. GitHub's SHA-256
-  digest of each file equals its line in those files (wheel `f5dc2619...`,
-  sdist `722e9db4...`, `.deb` `6933b926...`, setup `099d61a0...`). These
-  are CI builds; they differ from the local 1.1.0 build recorded in
-  `packaging/README.md` ("Verified for 1.1.0").
-- The 1.1.0 installers set up a virtual environment while installing:
-  they need internet access, and the setup program needs Python 3.11 on
-  `PATH` (K-20).
+Earlier: 1.1.0, published 2026-10-20 (tag `spacemissionstudio-v1.1.0` on
+`1f8ad1663`, PR #86); its installers set up a virtual environment while
+installing, needing internet access and, for the setup program, Python
+3.11 on `PATH` (K-20).
 
 ## 1 Introduction (G.2.1<1>)
 
-This SRelD describes release 1.1.1 of SpaceMissionStudio in
-`0h3xn4/basilisk-SpaceMissionStudio`: what it contains, what changed since 1.1.0
-(commit `1f8ad1663`), what is known to be wrong, and how to use it.
+This SRelD describes release 1.2.0 of SpaceMissionStudio in
+`0h3xn4/basilisk-SpaceMissionStudio`: what it contains, what changed since 1.1.1
+(commit `57a54ae92`), what is known to be wrong, and how to use it.
 
 ## 2 Applicable and reference documents (G.2.1<2>)
 
@@ -92,49 +79,45 @@ This SRelD describes release 1.1.1 of SpaceMissionStudio in
 | Item | Value |
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
-| Baseline | The merge of the release pull request into `develop`, to be tagged `spacemissionstudio-v1.1.1` by the user. Previous release: 1.1.0, commit `1f8ad1663` (`1f8ad16630a594bfbd09f905ca329f1c4f86b54c`), tagged `spacemissionstudio-v1.1.0`. |
+| Baseline | The merge of the release pull request into `develop`, to be tagged `spacemissionstudio-v1.2.0` by the user. Previous release: 1.1.1, commit `57a54ae92` (`57a54ae923a59be6301e1b5e5de8701598fd9996`), tagged `spacemissionstudio-v1.1.1`. |
 | Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt`. Bundled with the GUI as files, not packages: Inter 4.1 and JetBrains Mono 2.304 (SIL OFL 1.1) and 35 Lucide icons from lucide-static 1.52.0 (ISC), with versions, sources and checksums in `docs/THIRD_PARTY_ASSETS.md`. The installers also carry CPython 3.11.17 (python-build-standalone 20261013, SHA-256 pinned) with every installed package and the reference data; each build lists them in its `SPACEMISSIONSTUDIO_RUNTIME.json`, and `docs/THIRD_PARTY_ASSETS.md` ("In the installers") gives their licences |
 | Platform | The installers: Linux x86_64 with glibc 2.34 or newer (`.deb`), Windows 10/11 x64; no Python needed. From source: Python 3.11 or newer |
-| Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_1.1.1_amd64.deb`, the Windows setup program `spacemissionstudio-1.1.1-setup.exe` (not signed, D-13), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
+| Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_1.2.0_amd64.deb`, the Windows setup program `spacemissionstudio-1.2.0-setup.exe` (not signed, D-13), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
 | Documentation | SUM and `USER_MANUAL.md`; the documents in `compliance/docs/` |
-| Basilisk framework | Unchanged. Since 1.1.0 the changes outside `SpaceMissionStudio/` are the SpaceMissionStudio workflows (`.github/workflows/spacemissionstudio-*.yml`) and the fork's `README.md` (`git diff --name-only 1f8ad1663 HEAD`). The installers add Basilisk's support data next to the installed Basilisk package, in the folder its own `dataFetcher` reads; no Basilisk file is changed |
+| Basilisk framework | No Basilisk source, module or test changed. Since 1.1.1 the changes outside `SpaceMissionStudio/` (`git diff --name-only 57a54ae92 HEAD`) are the SpaceMissionStudio workflows (`.github/workflows/spacemissionstudio-*.yml`), the fork's `README.md` and, by the user's decisions of 2026-10-21 (PR #93), Basilisk's own CI: its workflows lost their macOS jobs (the docs, the docs deployment and the canary build run on Linux, the docs action installs Doxygen with apt), with a release-note snippet, and eight documentation paths whose letter case differed from their files (two module `.rst` files, the Vizard GUI page, two example scenarios' docstrings) were corrected so the docs build on Linux. The installers carry Basilisk 2.12.0 from PyPI, not this repository's framework, and add its support data next to the installed package, in the folder its own `dataFetcher` reads |
 
 ## 5 Status of the software configuration item
 
 ### 5.1 Evolution since previous version (G.2.1<5.1>)
 
-`CHANGELOG.md` 1.1.1 lists the changes since 1.1.0 (commit `1f8ad1663`);
-RD1 has the full story ("Self-contained installers"). In summary:
+`CHANGELOG.md` 1.2.0 lists the changes since 1.1.1 (commit `57a54ae92`);
+RD1 has the full story ("A mission from scratch, guided", "macOS
+removed", "Release notes that read like release notes"). In summary:
 
-**Packaging:** the `.deb` and the Windows setup program carry a private
-CPython 3.11.17 with Basilisk 2.12.0, SpaceMissionStudio and every
-package at the tested versions, the support data and the Earth
-orientation files. Installing needs no Python and no internet (K-20).
-The `.deb` is `amd64` and needs glibc 2.34 or newer; its files are all
-package files.
+**GUI:** the Templates page opens with **Start from scratch**; a blank
+scenario starts in *Orbit only*; its Scenario page has the **Build your
+mission** guide (the steps to a first run with their state, and the rest
+of the tool with a button to each page; `gui/mission_guide.py`,
+`tests/gui/test_mission_guide.py`). The Spacecraft page has an empty
+state, and Edit and Remove wait for a selection.
 
-**Fixed:**
-- the 1.1.0 setup program stopping when no Python 3.11 was on `PATH`
-  (K-20);
-- the 1.1.0 `.deb` fetching the SPICE kernels into root's cache, which no
-  other user reads (K-20);
-- an intermittent Windows CI failure of `test_autosave.py` (K-21).
+**Platforms:** macOS is no longer supported: the macOS CI job, the
+release workflow's macOS check and the app's macOS-only code (Vizard's
+macOS download and `.app` handling) are gone.
 
-**Still open:** the intermittent Windows CI failure of the SIL test
-`test_thousands_of_dropped_steps_never_block_the_link[tcp]` recurred on
-the release commit; its cause is not known (K-14).
+**Release workflow:** the notes are written by `packaging/release_notes.py`
+from the CHANGELOG section, with the files' sizes and the installers'
+SHA-256; the attach job alone waits for an earlier release run.
 
-A Windows CI test worker crashed once in a GUI test, after the release
-(K-22); its cause is not known either.
+**Fixed:** a hint that pointed to a "Spacecraft > Add..." menu, which
+does not exist, now names the Spacecraft page.
 
-**Release workflow:** the `.deb` is installed and run with the network
-cut off; the Windows setup is checked with an empty support-data cache;
-the GUI check applies the theme and asserts Inter.
+**Still open:** K-14 (PR #91 added the diagnostics a recurrence would
+show) and K-22.
 
-**Changes users notice:** none in the app. The installers are larger
-(about 450 MB and 395 MB; the `.deb` 1.65 GB installed) and need no
-network. The `.deb`'s file name ends in `_amd64` instead of `_all`.
-`apt` replaces a 1.1.0 package in place.
+**Changes users notice:** the start-from-scratch choice and the guide; a
+blank scenario (File > New Scenario included) now starts in *Orbit only*.
+Scenario files and their results are the same as with 1.1.1.
 
 ### 5.2 Known problems and limitations (G.2.1<5.2>)
 
@@ -147,7 +130,7 @@ network. The `.deb`'s file name ends in `_amd64` instead of `_all`.
 | K-03 | The time argument is TDB, not TAI (F-05) | About 0.1 m/day in LEO | `phase3_log.md` |
 | K-04 | Radius part closed (2026-10-19): Basilisk put the body's radius in place of the field file's (F-03), which scaled Mars's GGM2B J2 by 4.8e-4 and Earth's by 1e-7. The tool now rescales the coefficients so that the file's field is applied (`engine/gravity_field.py`, `tests/test_gravity_field.py`). The field's GM is still the body's (D-07) | GM: 1.4e-8 (Earth) and 1.4e-6 (Mars) on the harmonic terms | `phase3_log.md` F-03 |
 | K-05 | During a live stream Vizard, a separate program, listens on port 5556; the tool opens no port. Earlier issues of the security analysis wrongly said Basilisk binds 5556 and 5570 on all interfaces | Exposure depends on Vizard's own binding, not checked | security analysis S-06 (corrected, decision 17) |
-| K-06 | The Windows setup program has not been run by hand on a Windows machine; 1.1.0 and 1.1.1 ship it, built, installed silently and run on a GitHub Windows runner (K-12) | Unknown for interactive use | SValP 9 |
+| K-06 | The Windows setup program has not been run by hand on a Windows machine; 1.1.0 to 1.2.0 ship it, built, installed silently and run on a GitHub Windows runner (K-12) | Unknown for interactive use | SValP 9 |
 | K-07 | Closed (decision 19): SRS-P-09 and SRS-R-02 measured and met on the reference PC | – | SVR; `compliance/performance.md` |
 | K-10 | Closed: the test suite failed on Windows (34 tests) and macOS (10 tests) in CI run 20. Four causes were tool defects (F-09 to F-12, fixed); the rest were tests that assumed Linux. Since commit `41b73b1c3` the suite passes on all three (2259 passed, 11 skipped, 0 failed; run 37854361784). The GUI has not been used by hand on Windows or macOS | – | SVR 4.6; `review_log.md` |
 | K-11 | F-09, fixed: parallel runs could read a half-written space-weather file. Altitude trades with more than one worker and Monte Carlo runs with NRLMSISE-00 drag, made before the fix, may have used wrong solar activity | Those results are to be re-run | `review_log.md` F-09 |

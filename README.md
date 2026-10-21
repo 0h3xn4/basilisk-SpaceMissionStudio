@@ -115,9 +115,10 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE),
   [`SpaceMissionStudio/LICENSE`](SpaceMissionStudio/LICENSE)).
-- **Version:** 1.1.1 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.1),
-  [changelog](SpaceMissionStudio/CHANGELOG.md)), self-contained
-  installers; 1.0.0 was the first
+- **Version:** 1.2.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.2.0),
+  [changelog](SpaceMissionStudio/CHANGELOG.md)): starting a mission
+  from scratch, guided; 1.1.1 made the installers self-contained, and
+  1.0.0 was the first
   release of the renewed tool, and the version numbers used before the
   renewal are withdrawn.
 - **Platforms:** the Linux `.deb` and the Windows setup program are
