@@ -64,7 +64,8 @@ the user's requests. Releases are made when the user decides, tagged, not
 signed (decision 11). The current release is 1.1.1, the self-contained
 installers (published 2026-10-21); before it 1.1.0 (2026-10-20) and 1.0.0
 (2026-10-14), which followed the renewal that restarted the numbering
-(SRelD).
+(SRelD). 1.2.0, starting a mission from scratch, is prepared, to be
+tagged by the user.
 
 ### 4.3 Assumptions, dependencies and constraints (O.2.1<4.3>)
 
@@ -142,7 +143,7 @@ Incremental development on the `develop` line.
 - **Versioning:** semantic version (`MAJOR.MINOR.PATCH`) in
   `spacemissionstudio/__init__.py`, `pyproject.toml` and the Inno Setup
   script, set at release (`docs/developer/releasing.md`); the current
-  release is 1.1.1, and the code is at 1.1.1.
+  release is 1.1.1, and the code is at 1.2.0.
 - **Processes covered:**
   - requirements: SRS;
   - design: SDD;

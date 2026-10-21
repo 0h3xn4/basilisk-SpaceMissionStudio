@@ -8,7 +8,18 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 1.2.0 (2026-10-21)
+
+Starting a mission from an empty scenario is now a choice of its own: the
+Templates page opens with a blank scenario, and its Scenario page shows
+the steps to a first run and everything else the tool does, each with a
+button to where it is set. The calculations are unchanged, so scenario
+files and their results are the same as with 1.1.1. The installers are
+built as 1.1.1's were, with the same Python, Basilisk and space weather;
+the Earth orientation files in them are as current as their build.
+
+SpaceMissionStudio supports Linux and Windows. macOS, which never had an
+installer, is no longer supported.
 
 - **Starting a mission from scratch, guided.** The Templates page now
   opens with **Start from scratch** (**New blank scenario**), above the
@@ -32,8 +43,7 @@ fixes bugs.
   Windows. The macOS CI job and the release workflow's macOS check are
   gone, and so is the app's macOS-only code: downloading Vizard for
   macOS and starting it from its `.app` bundle. The documents now name
-  Linux and Windows only. This is the user's decision
-  (`docs/DECISIONS.md`).
+  Linux and Windows only (`docs/DECISIONS.md`, "macOS removed").
 - **Clearer release notes.** A release draft now opens with what the
   release is for, then who should update, the downloads with their sizes,
   how to install or upgrade on each system, how to check a download (with
@@ -41,6 +51,23 @@ fixes bugs.
   the files were checked, and the known limits. Before, it was the
   CHANGELOG entry under a few file lines. Written by
   `packaging/release_notes.py` (`docs/developer/releasing.md`).
+
+### Who should update
+
+- Anyone who builds missions from an empty scenario: the guide shows the
+  steps and the rest of the tool.
+- Everyone else when convenient: nothing 1.1.1 computes changes. On
+  Linux, `apt install ./spacemissionstudio_1.2.0_amd64.deb` replaces the
+  1.1.1 package (1.1.1 was tested offline the same way over 1.1.0). On
+  Windows, run the 1.2.0 setup over 1.1.1.
+
+### Known limits
+
+- On Windows, a software-in-the-loop session that drops thousands of
+  steps may stop with "the flight software took no STEP for 10 s". Seen
+  only in CI, cause not known (SRelD K-14).
+- A theme change takes about half a second, up to 2.4 s after every page
+  has been visited (SRelD K-19).
 
 ## 1.1.1 (2026-10-21)
 
