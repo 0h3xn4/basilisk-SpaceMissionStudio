@@ -51,7 +51,7 @@ import re
 from types import SimpleNamespace
 from typing import NamedTuple
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -2738,6 +2738,15 @@ class SpacecraftListWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.list_widget = QListWidget()
         layout.addWidget(self.list_widget)
+        # The empty state, in the list's place while there is no spacecraft:
+        # what to do first, not a blank box over the buttons.
+        self.empty_label = QLabel(
+            "No spacecraft yet: a run needs one. Add... builds one from scratch; New from template... starts "
+            "from a 100-500 kg preset.")
+        self.empty_label.setWordWrap(True)
+        self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        set_role(self.empty_label, role="empty")
+        layout.addWidget(self.empty_label, 1)
 
         # Two rows, not one: all 5 buttons in a single QHBoxLayout needed
         # ~700px to avoid truncating/hiding the last one or two -- more
@@ -2778,6 +2787,19 @@ class SpacecraftListWidget(QWidget):
         self.generate_phasing_formation_button.clicked.connect(self._on_generate_phasing_formation)
         self.generate_roe_formation_button.clicked.connect(self._on_generate_roe_formation)
         self.list_widget.itemDoubleClicked.connect(lambda _item: self._on_edit())
+        self.list_widget.currentRowChanged.connect(lambda _row: self._update_list_state())
+        self._update_list_state()
+
+    def _update_list_state(self) -> None:
+        """The empty state while there is no spacecraft; Edit and Remove only
+        with one selected."""
+        empty = not self._configs
+        self.list_widget.setVisible(not empty)
+        self.empty_label.setVisible(empty)
+        set_role(self.add_button, variant="primary" if empty else None)  # the empty state's action
+        selected = self.list_widget.currentRow() >= 0
+        self.edit_button.setEnabled(selected)
+        self.remove_button.setEnabled(selected)
 
     def set_central_body_provider(self, provider) -> None:
         """``provider`` is a zero-argument callable returning the
@@ -2825,6 +2847,7 @@ class SpacecraftListWidget(QWidget):
         self.list_widget.clear()
         for config in self._configs:
             self.list_widget.addItem(QListWidgetItem(config.name))
+        self._update_list_state()
 
     def _on_add(self) -> None:
         existing_names = {c.name for c in self._configs}

@@ -249,6 +249,7 @@ class MainWindow(QMainWindow):
         self.load_scenario_widget = LoadScenarioWidget()
         self.load_scenario_widget.path_chosen.connect(self._on_load_scenario_path_chosen)
         self.load_scenario_widget.scenario_customized.connect(self._on_load_scenario_customized)
+        self.load_scenario_widget.blank_requested.connect(self.on_new)
 
         self.results_widget = ResultsWidget()
         self.mission_dashboard_widget = MissionDashboardWidget()
@@ -295,10 +296,11 @@ class MainWindow(QMainWindow):
         budget_scroll.setWidgetResizable(True)
         budget_scroll.setWidget(self.budget_widget)
         analyses = tree.add_group("Analyses")
-        tree.add_page("End of Life", lifetime_scroll, analyses)
+        self.end_of_life_item = tree.add_page("End of Life", lifetime_scroll, analyses)
         tree.add_page("Budget", budget_scroll, analyses)
         tree.add_page("Flight Software", self.flight_software_widget, analyses)
         tree.tree.setCurrentItem(self.templates_item)
+        self.scenario_editor.navigate_requested.connect(self._on_guide_navigate)
 
         # Results: the plots, the dashboard, the mission output and, when
         # there is something to show, the Monte Carlo statistics.
@@ -308,7 +310,7 @@ class MainWindow(QMainWindow):
         self.results_views.addTab(self.mission_dashboard_widget, "Dashboard")
         self.results_views.addTab(self.mission_output_widget, "Output")
         # Added and removed as needed (_update_monte_carlo_tab), never kept
-        # as a hidden tab: selecting a hidden tab crashed the macOS test run.
+        # as a hidden tab: selecting a hidden tab crashed a CI test run.
         self.monte_carlo_results_widget = MonteCarloResultsWidget(self)
         self.monte_carlo_results_widget.hide()
 
@@ -714,7 +716,7 @@ class MainWindow(QMainWindow):
 
         help_menu = self.menuBar().addMenu("&Help")
         manual_action = QAction("&User Manual", self)
-        # F1 on every platform (macOS's HelpContents is Ctrl+?, CI run 48), plus the platform's own key
+        # F1 on every platform, plus the platform's own key
         manual_action.setShortcuts([QKeySequence("F1")] + [k for k in QKeySequence.keyBindings(
             QKeySequence.StandardKey.HelpContents) if k.toString() != "F1"])
         manual_action.setToolTip("Opens the user manual shipped with the app (works offline).")
@@ -754,6 +756,14 @@ class MainWindow(QMainWindow):
 
     def _docks(self) -> tuple:
         return (self.side_dock,)
+
+    def _on_guide_navigate(self, target: str) -> None:
+        """The Scenario page's guide pointing at a page this window owns."""
+        from .mission_guide import ANALYSES, TEMPLATES
+
+        item = {TEMPLATES: self.templates_item, ANALYSES: self.end_of_life_item}.get(target)
+        if item is not None:
+            self.scenario_editor.page_tree.tree.setCurrentItem(item)
 
     def show_view(self, widget: QWidget) -> None:
         """Bring ``widget`` into view: select the tabs that hold it at every
@@ -814,7 +824,8 @@ class MainWindow(QMainWindow):
         names = [config.name for config in spacecraft_list.to_list()]
         if not names:
             self.show_view(self.scenario_editor)
-            show_toast(self, "Add a spacecraft first (Spacecraft > Add...), then build its 3D model", kind="info")
+            show_toast(self, "Add a spacecraft first (the Spacecraft page, Add...), then build its 3D model",
+                       kind="info")
             return
         row = 0
         if len(names) > 1:
@@ -1391,8 +1402,9 @@ class MainWindow(QMainWindow):
         self._current_path = None
         self._clear_run_views()
         self._mark_clean()
-        self.statusBar().showMessage("New scenario.")
-        show_toast(self, "New scenario")
+        self.statusBar().showMessage("New blank scenario, in Orbit only: the Scenario page guides the next steps.")
+        show_toast(self, "New blank scenario")
+        self.scenario_editor.show_scenario_page()
         self.show_view(self.scenario_editor)
 
     def on_open(self) -> None:
@@ -1454,6 +1466,9 @@ class MainWindow(QMainWindow):
         picking a path to write to.
         """
         self.scenario_editor.from_scenario(scenario)
+        # The guide opens for a scenario still without spacecraft; an
+        # opened mission keeps its description in view, the guide folded.
+        self.scenario_editor.mission_guide.set_expanded(not scenario.spacecraft)
         self._reset_history()
         self._refresh_scenario_explainer()
         self._current_path = current_path

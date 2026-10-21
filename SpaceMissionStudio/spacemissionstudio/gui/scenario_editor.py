@@ -53,6 +53,8 @@ from ..schema.scenario import (
 )
 from .feedback import bring_into_view, clear_field_error, show_field_error
 from .json_view import ScenarioJsonView
+from . import mission_guide
+from .mission_guide import MissionGuide
 from .page_tree import PageTree, embed_dialog, watch_edits
 from .ground_station_editor import GroundStationListWidget
 from .mission_sequence_editor import MissionSequenceEditorWidget
@@ -141,6 +143,9 @@ class ScenarioEditorWidget(QWidget):
     changed = Signal()
     # (severity, text, shown text) after every revalidate(): the Problems dock lists them.
     problems_changed = Signal(list)
+    # A page the Scenario page's guide points to that MainWindow owns
+    # (mission_guide.TEMPLATES or mission_guide.ANALYSES).
+    navigate_requested = Signal(str)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -258,6 +263,13 @@ class ScenarioEditorWidget(QWidget):
         )
         self.epoch_edit.textChanged.connect(self.changed)
         form.addRow("Epoch (UTC)", self.epoch_edit)
+
+        # The guide to a first run and to everything else the tool does
+        # (mission_guide), before the description: on a blank scenario the
+        # description is empty, and the guide is what to read.
+        self.mission_guide = MissionGuide()
+        self.mission_guide.go_to.connect(self._on_guide_go_to)
+        form.addRow(self.mission_guide)
 
         self.description_edit = QPlainTextEdit()
         # Was 60px (~2 lines) -- nowhere near enough for the built-in
@@ -805,11 +817,29 @@ class ScenarioEditorWidget(QWidget):
         self.revalidate()
 
     def reset_to_default(self) -> None:
+        """A blank scenario: no spacecraft, in Orbit only (the user's decision
+        of 2026-10-21: the simplest mode first; the Scenario page's guide
+        shows that it is not the only one)."""
         self.from_scenario(Scenario(
             name="new scenario",
             epoch_utc="2030-01-01T00:00:00",
             spacecraft=[],
+            simulation_mode="orbit_only",
         ))
+        self.mission_guide.set_expanded(True)
+
+    def _on_guide_go_to(self, target: str) -> None:
+        """A button of the Scenario page's guide: its page, or the mode."""
+        items = {mission_guide.ENVIRONMENT: self.environment_item, mission_guide.SPACECRAFT: self.spacecraft_item,
+                 mission_guide.GROUND_STATIONS: self.ground_station_item,
+                 mission_guide.MISSION_SEQUENCE: self.mission_sequence_item,
+                 mission_guide.MONTE_CARLO: self.monte_carlo_item}
+        if target in items:
+            self.page_tree.tree.setCurrentItem(items[target])
+        elif target == mission_guide.FULL_ATTITUDE:
+            self.simulation_mode_combo.setCurrentIndex(self.simulation_mode_combo.findData("full_attitude"))
+        else:
+            self.navigate_requested.emit(target)
 
     # The scenario's own fields, by their path in Scenario, and the label
     # their messages use (docs/ux-audit.md U-12).
@@ -924,6 +954,8 @@ class ScenarioEditorWidget(QWidget):
         self.plausibility_label.setVisible(bool(warnings))
         warnings = self._range_warnings() + warnings
         self.problems = problems + [("warning", warning) for warning in warnings]
+        self.mission_guide.update_state(len(scenario.spacecraft), len(scenario.ground_stations), valid=not errors,
+                                        orbit_only=self.simulation_mode_combo.currentData() == "orbit_only")
         self._update_problem_counts()
         self.problems_changed.emit(self.problem_rows())
 

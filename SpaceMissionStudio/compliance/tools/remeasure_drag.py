@@ -268,7 +268,7 @@ def _peak_mib():
     except ImportError:  # Windows
         return None
     peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    return round(peak / (1024.0 * 1024.0 if sys.platform == "darwin" else 1024.0), 0)
+    return round(peak / 1024.0, 0)  # [MiB] Linux reports ru_maxrss in kibibytes
 
 
 def makeup_estimates() -> dict:

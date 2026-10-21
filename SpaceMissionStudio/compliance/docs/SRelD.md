@@ -1,9 +1,9 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 9, 2026-10-21. Remediation R14.
+Document: SMS-SRelD, issue 10, 2026-10-21. Remediation R14.
 
-**Status:** release **1.1.1**, a candidate prepared on 2026-10-21: the
+**Status:** release **1.1.1**, published 2026-10-21 (11:44 UTC): the
 self-contained installers (the user's request of 2026-10-20, after the
 1.1.0 setup program stopped for want of a Python on `PATH`). The app is
 unchanged from 1.1.0; only the packaging, the release workflow, one
@@ -12,8 +12,8 @@ request, tagging and publishing are the user's (decision of 2026-10-19,
 HISTORY "Towards release 1.1.0").
 - 1.1.1 ships the wheel, the sdist, the Linux `.deb` and the Windows
   setup program, each installer with its own Python, Basilisk and
-  reference data (`packaging/bundle_python.py`). macOS has no installer
-  (K-14, 7).
+  reference data (`packaging/bundle_python.py`). macOS is not supported
+  (removed on 2026-10-21 by the user's decision).
 - The installers of the candidate's source were built and installed:
   the `.deb` in a container (offline upgrade over a 1.1.0 package,
   purge, offline install, an offline run as an ordinary user), and both
@@ -21,8 +21,28 @@ HISTORY "Towards release 1.1.0").
   ([run 39504407640](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/39504407640);
   `packaging/README.md`, "The bundled Python"). The release files are
   built by the release workflow from the tag; their checksums are those
-  in the release's `SHA256SUMS-*` files. The baseline commit and the tag
-  (`spacemissionstudio-v1.1.1`) are recorded when the user publishes.
+  in the release's `SHA256SUMS-*` files.
+- Tagged `spacemissionstudio-v1.1.1` (annotated, not signed, D-13; tag
+  object `40ddd47b1`) on commit `57a54ae92`
+  (`57a54ae923a59be6301e1b5e5de8701598fd9996`), the merge of the release
+  pull request (#90) into `develop`. GitHub release "Space Mission Studio
+  1.1.1", published by the user:
+  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.1>.
+  A first tag and release, made before the release workflow had attached
+  anything, were deleted by the user and the tag pushed again.
+- Its six files were built, installed, checked and attached by the
+  release workflow
+  ([run 39575072165](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/39575072165)).
+  GitHub's SHA-256 digests: `.deb` (`spacemissionstudio_1.1.1_amd64.deb`,
+  446 895 932 bytes) `05f949f0...35a0`, setup program
+  (`spacemissionstudio-1.1.1-setup.exe`, 395 017 481 bytes)
+  `bf56ae39...9714`, wheel `c420515e...b509`, sdist `ac2cff10...43ff`,
+  `SHA256SUMS-linux` `c5bdb53f...1f56`, `SHA256SUMS-windows`
+  `f5f0d80d...c6de7`. The attach job checked every file against the two
+  checksum files; they could not be downloaded from this environment to
+  check again here.
+- The release notes are those written for the user to paste
+  (HISTORY, "Release notes that read like release notes").
 
 **Previous release:** 1.1.0, published 2026-10-20 (16:57 UTC):
 - Tagged `spacemissionstudio-v1.1.0` (not signed, D-13) on commit
@@ -172,8 +192,8 @@ are not (decision 14, H08).
 ## 7 Future evolutions (G.2.1<7>)
 
 Planned, in order:
-1. macOS: an installer; Windows and macOS: fix K-14 and run the
-   installers by hand (K-06, K-12).
+1. Windows: fix K-14 and K-22, and run the installers by hand (K-06,
+   K-12).
 2. The human actions of RD4: reviews, PA organisation, signatures.
 
 Dropping the two Basilisk workarounds also depends on Basilisk: they go

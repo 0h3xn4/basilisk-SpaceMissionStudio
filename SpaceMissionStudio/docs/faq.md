@@ -37,10 +37,9 @@ explains the terms. Python is optional: for scripting and batch runs.
 
 ## Which systems does it run on?
 
-Linux (x86_64 and aarch64, glibc 2.28 or newer), Windows 10 and 11
-(x86_64), and macOS 11 or newer on Apple silicon (from source only). The
-test suite runs on all three in CI. There are installers for Linux
-(x86_64) and Windows; on macOS, install from source for now. Details:
+Linux (x86_64 and aarch64, glibc 2.28 or newer) and Windows 10 and 11
+(x86_64). The test suite runs on both in CI. There are installers for
+Linux (x86_64) and Windows. macOS is not supported. Details:
 [Getting started, section 1](getting-started.md#1-what-you-need).
 
 ## Does it need the internet?

@@ -1832,7 +1832,7 @@ class ResultsWidget(QWidget):
                 # The result variable is gone: the page was reloaded since the
                 # render started (a redraw loads a new page), and the pending
                 # render went with it. Start it again on the new page; tryRender
-                # waits for that page's Plotly. Seen on macOS CI, where it was
+                # waits for that page's Plotly. Seen in CI, where it was
                 # reported as "Could not render the plot".
                 self.web_view.page().runJavaScript(state["kickoff"])
                 return

@@ -2709,7 +2709,7 @@ class Scenario:
         names = [sc.name for sc in self.spacecraft]
         _require(len(names) == len(set(names)), f"spacecraft names must be unique, got {names}")
         # Two names that differ only in case overwrite each other's files on
-        # Windows and macOS, and two that differ only in punctuation share one
+        # Windows, and two that differ only in punctuation share one
         # Monte Carlo accessor (engine.monte_carlo._accessor_name).
         folded: dict = {}
         for name in names:

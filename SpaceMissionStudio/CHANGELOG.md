@@ -8,6 +8,40 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **Starting a mission from scratch, guided.** The Templates page now
+  opens with **Start from scratch** (**New blank scenario**), above the
+  templates; before, an empty scenario was only File > New Scenario. A
+  blank scenario starts in *Orbit only*, the simplest mode, and its
+  Scenario page has a **Build your mission** guide:
+  - the steps to a first run (Scenario, Environment, Spacecraft, Ground
+    stations, Run), each with its state (*Needed*, *Optional*, *Done*,
+    *Ready*) and a button to its page;
+  - **There is more**: Full attitude (with **Switch to Full attitude**),
+    the mission sequence, constellations and formations, Monte Carlo, the
+    analyses, other central bodies and the worked examples, each with a
+    button to where it is.
+
+  The guide is open for a scenario without spacecraft and folded (**Show
+  guide**) for an opened one. The Spacecraft page says what to do while
+  it has no spacecraft, with **Add...** as its primary button, and Edit
+  and Remove wait for a selection. A hint that pointed to a "Spacecraft >
+  Add..." menu, which does not exist, now names the Spacecraft page.
+- **macOS is no longer supported.** SpaceMissionStudio runs on Linux and
+  Windows. The macOS CI job and the release workflow's macOS check are
+  gone, and so is the app's macOS-only code: downloading Vizard for
+  macOS and starting it from its `.app` bundle. The documents now name
+  Linux and Windows only. This is the user's decision
+  (`docs/DECISIONS.md`).
+- **Clearer release notes.** A release draft now opens with what the
+  release is for, then who should update, the downloads with their sizes,
+  how to install or upgrade on each system, how to check a download (with
+  the installers' SHA-256), what is new, what the installers contain, how
+  the files were checked, and the known limits. Before, it was the
+  CHANGELOG entry under a few file lines. Written by
+  `packaging/release_notes.py` (`docs/developer/releasing.md`).
+
 ## 1.1.1 (2026-10-21)
 
 The installers bring everything with them; the app itself is unchanged,

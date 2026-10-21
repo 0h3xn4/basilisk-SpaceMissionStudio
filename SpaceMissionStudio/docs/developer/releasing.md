@@ -16,8 +16,8 @@ page is the checklist.
 
 ## 1. Before you start
 
-- The release branch has green CI on every job (`test` and both
-  `platforms` jobs).
+- The release branch has green CI on every job (`test` and the
+  `platforms` job).
 - The bundled space weather is current: download the latest CelesTrak
   `SW-All.txt` and NASA MSFC tables into
   `spacemissionstudio/data/spaceweather/` (see the `README.md` there),
@@ -43,7 +43,16 @@ The `.deb` reads `spacemissionstudio.__version__`, so it needs no change.
 ## 3. Update the records
 
 - [`CHANGELOG.md`](../../CHANGELOG.md): move the "Unreleased" entries
-  under a new `## X.Y.Z (date)` heading.
+  under a new `## X.Y.Z (date)` heading. The release notes are built from
+  this section (section 5), so write it for someone deciding whether to
+  download:
+  - start with one or two paragraphs that say what the release is for:
+    they become the notes' summary;
+  - then the list of changes, which becomes "What's new";
+  - optionally, after the list, `### Who should update` and
+    `### Known limits` (each runs to the next `###` heading): they get a
+    section of their own, and the known limits follow the standing ones
+    (the unsigned Windows setup, no installer for ARM Linux).
 - [`HISTORY.md`](../../HISTORY.md): a short entry for the release.
 - The Software Release Document,
   [`compliance/docs/SRelD.md`](../../compliance/docs/SRelD.md): the
@@ -79,13 +88,20 @@ release"). On GitHub's runners it:
   opened in Inter;
 - builds the bundled Python on Windows, then the setup program around
   it, installs it silently and runs it the same way;
-- on an Apple-silicon Mac, installs that wheel with `packaging/install.sh`
-  and Basilisk's wheel from PyPI, and runs it. macOS has no installer;
 - writes `SHA256SUMS-linux` and `SHA256SUMS-windows`, checks every file
   against them and attaches all of them to the tag's release. A release
-  that does not exist yet is created as a draft with the CHANGELOG
-  section as its notes. An existing release keeps its notes unless they
-  are empty, and its files are replaced.
+  that does not exist yet is created as a draft. An existing release
+  keeps its notes unless they are empty, and its files are replaced.
+- writes the notes with `packaging/release_notes.py`, in a fixed layout:
+  summary, who should update, downloads with their sizes, install or
+  upgrade, how to check a download (with the installers' SHA-256), what's
+  new, what the installers contain (the Python, Basilisk and PySide6
+  versions and the bundled space weather, read from this checkout), how
+  the files were checked (linking the run), and the known limits. The
+  text comes from the CHANGELOG section (section 3); a release without
+  one gets no notes and the job fails. To see the notes before tagging:
+  `python3 packaging/release_notes.py --version X.Y.Z --files <folder
+  with the four packages> --run-url <any URL>`.
 
 Actions > "SpaceMissionStudio release" > Run workflow, with the tag, runs
 it again for an existing tag. A pull request that changes the workflow
@@ -116,9 +132,7 @@ what has been verified where.
   The release workflow (section 5) builds, checks and attaches the files
   to a draft release titled "SpaceMissionStudio X.Y.Z". If the Linux or
   Windows job fails, nothing is attached; fix the cause and run the
-  workflow again for the tag. macOS produces no file, so attaching does
-  not wait for the macOS check; it is a job of the same run, which the
-  notes link to.
+  workflow again for the tag.
 - Read the draft on
   <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases>: the
   six files, and the notes, which say which platform has which file and
@@ -165,10 +179,14 @@ and publishing are the user's. 1.1.0 was published on 2026-10-20: tag
 with a Windows setup program) built and attached by the release workflow.
 
 1.1.1 was prepared on 2026-10-21 by this checklist: the self-contained
-installers of PR #89 and no change to the app. Its files are built,
-installed and attached by the release workflow when the tag is pushed;
-the space weather is the copy refreshed for 1.1.0 (observations to
-2026-10-18), one release earlier.
+installers of PR #89 and no change to the app. The space weather is the
+copy refreshed for 1.1.0 (observations to 2026-10-18), one release
+earlier. It was published on 2026-10-21: tag `spacemissionstudio-v1.1.1`
+on `57a54ae92`, its six files built, installed and attached by the
+release workflow. A first tag and release were deleted and the tag
+pushed again; a release created by hand before the workflow has attached
+its files is public with none, so push the tag and let the workflow
+create the draft.
 
 ---
 

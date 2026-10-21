@@ -11887,3 +11887,97 @@ native code as the test returned, most likely when Python freed a Qt
 object Qt had already deleted. It was seen once in eight whole-suite
 Windows runs of that commit and not on Linux; the test and the wizard
 had not changed. Recorded as open.
+
+## Release notes that read like release notes (2026-10-21)
+
+The user asked for a better description of the 1.1.1 release: its draft
+was the CHANGELOG entry under five lines about files, written for
+developers. The notes were rewritten for someone deciding whether to
+download (summary, who should update, downloads with sizes, install or
+upgrade, checksums with the installers' SHA-256, contents, how the files
+were checked, known limits) and given to the user to paste: this session
+may not edit releases (GitHub answered "Creating, editing, or deleting
+releases is not permitted for this session type").
+
+The release workflow now writes that layout itself with
+`packaging/release_notes.py`, from the CHANGELOG section and the built
+files: their sizes, the installers' SHA-256, the `.deb`'s installed size
+(read with `dpkg-deb`), the bundled Python, Basilisk and PySide6 versions
+(from `bundle_python.py` and `constraints.txt`) and the last observed day
+of the bundled space weather. A CHANGELOG section's opening paragraphs
+become the summary; `### Who should update` and `### Known limits`, after
+the list of changes, get sections of their own. The CHANGELOG is wrapped
+at 72 columns and a release page shows every line break, so wrapped lines
+are joined (lists, tables and code blocks are kept). A release without a
+CHANGELOG section, or missing one of its four packages, gets no notes.
+
+## macOS removed (2026-10-21)
+
+The user's decision: "please remove macOS completely and entirely, nobody
+needs it." The tool had no macOS installer; macOS ran the test suite in
+CI and, in the release workflow, installed the wheel with `install.sh`
+and ran it.
+
+Removed: the `macos-latest` row of the `platforms` CI job and its `cocoa`
+platform setting; the release workflow's `macos` job; macOS from the
+release notes; the Vizard launcher's macOS paths (the `.app` name, the
+Applications folders, the macOS download, starting a bundle through its
+`Contents/MacOS` binary); the `darwin` branch of the peak-memory readings
+in two compliance tools; and every current statement of macOS support in
+the READMEs, getting started, the FAQ, troubleshooting, tips, the User
+Manual, the packaging and developer guides, the overhaul plan and the
+compliance documents (SRS-PO-01 is now Linux and Windows).
+
+Kept: Basilisk's own workflows, which also build on macOS (the
+framework is not changed); plain POSIX code Linux uses as well (the
+Unix-domain SIL socket, hidden files such as `.DS_Store` ignored in a
+batch folder); the exported flight-software sources, which say "Linux,
+macOS" for where the exported C code can run and must stay
+byte-identical; and dated records (HISTORY, earlier CHANGELOG entries,
+the audits, the SVR's past runs, the SRelD's past known problems). The
+Vizard tests of the bundle handling now check that a `.app` path is
+started as given (`docs/ui/TEST_CHANGES.md`).
+
+## A mission from scratch, guided (2026-10-21)
+
+The user asked why a blank project could not be made from scratch, "like
+one of the most important features to have". File > New Scenario did
+make one, but the app opened on Templates, which offered only templates;
+after New the Scenario page showed a name, a mode and an epoch, a red
+"scenario needs at least one spacecraft" and an Explain panel that only
+said there was a problem; the Spacecraft page was an empty box with its
+buttons at the bottom; and a toast pointed to a "Spacecraft > Add..."
+menu that does not exist. A blank scenario also started in Full
+attitude, the heaviest mode, although the manual said to start with
+Orbit only.
+
+The user decided: start in Orbit only, but make clear it is not the only
+option, so that the user understands the whole tool and does not feel
+lost. Now (`gui/mission_guide.py`):
+
+* the Templates page opens with **Start from scratch** (**New blank
+  scenario**);
+* a blank scenario, at start-up and after New, is in Orbit only;
+* its Scenario page has **Build your mission**: the five steps to a
+  first run with their state and a button to each page, and **There is
+  more**, seven areas of the tool (Full attitude, the mission sequence,
+  constellations and formations, Monte Carlo, the analyses, other
+  central bodies, the templates), each with a button there; **Switch to
+  Full attitude** changes the mode in place;
+* the guide folds (**Show guide**) for an opened scenario, so a
+  template's description stays in view;
+* the Spacecraft page has an empty state with Add... as its primary
+  button, and Edit and Remove wait for a selection;
+* the toast names the Spacecraft page.
+
+Each text was kept under the 160-character label limit
+(`tests/gui/test_label_text.py`), which the first version broke. The
+Templates and Scenario screenshots of the manual were captured again.
+`tests/gui/test_mission_guide.py` (15 tests) covers it; no existing test
+changed, and the GUI suite passed with the new default mode.
+
+**1.1.1 published (2026-10-21, 11:44 UTC).** The user published the
+draft the release workflow made from the re-pushed tag (run 39575072165),
+with the notes rewritten for downloaders. Tag
+`spacemissionstudio-v1.1.1` on `57a54ae92`; the six files are those the
+workflow built, installed and checked (digests in the SRelD, issue 10).

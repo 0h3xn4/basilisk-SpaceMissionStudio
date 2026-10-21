@@ -37,9 +37,9 @@ battery, link margin, lifetime and propellant.
 has a `.deb` (`sudo apt install ./spacemissionstudio_<version>_amd64.deb`),
 a Windows setup program and the wheel. From 1.1.1 both installers bring
 their own Python, Basilisk and reference data, and install with no
-internet. macOS has no installer yet.
+internet.
 
-**From source**, on Linux or macOS with Python 3.11 or newer (Windows: see
+**From source**, on Linux with Python 3.11 or newer (Windows: see
 [Getting started](SpaceMissionStudio/docs/getting-started.md)):
 
 ```bash
@@ -105,7 +105,7 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 
 | | |
 |---|---|
-| System | Linux x86_64 or aarch64 (glibc 2.28 or newer), Windows 10 or 11 x86_64, macOS 11 or newer on Apple silicon (from source) |
+| System | Linux x86_64 or aarch64 (glibc 2.28 or newer), Windows 10 or 11 x86_64 |
 | Python | None for the installers (they bring Python 3.11); 3.11 or newer from source. CI tests 3.11 (Basilisk's wheels go up to 3.14) |
 | Basilisk | 2.12.0: in the installers, or from PyPI |
 | Disk | About 1.7 GB, including the reference data |
@@ -123,8 +123,7 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 - **Platforms:** the Linux `.deb` and the Windows setup program are
   built, installed and run by the release workflow
   ([`packaging/README.md`](SpaceMissionStudio/packaging/README.md)); the
-  test suite runs in CI on Linux, Windows and macOS. macOS has no
-  installer yet.
+  test suite runs in CI on Linux and Windows. macOS is not supported.
 - **Known gaps:** [Known limitations](SpaceMissionStudio/docs/reference/limitations.md).
 
 ## Related tools
@@ -142,7 +141,7 @@ Everything else in the repository is upstream Basilisk, unchanged.
 | Path | What it is |
 |---|---|
 | [`SpaceMissionStudio/`](SpaceMissionStudio/) | The app: code, tests, documentation, packaging, compliance records |
-| [`.github/workflows/spacemissionstudio.yml`](.github/workflows/spacemissionstudio.yml) | CI for the app (Linux, Windows, macOS) |
+| [`.github/workflows/spacemissionstudio.yml`](.github/workflows/spacemissionstudio.yml) | CI for the app (Linux, Windows) |
 | [`.github/workflows/spacemissionstudio-windows-installer.yml`](.github/workflows/spacemissionstudio-windows-installer.yml) | Builds, installs and runs the Windows setup program on a Windows runner |
 | [`docs/upstream/`](docs/upstream/README.md) | An untouched copy of the upstream README, for syncing, and a note on it |
 | `README.md` (this file) | The part above this line; the upstream README follows unchanged |

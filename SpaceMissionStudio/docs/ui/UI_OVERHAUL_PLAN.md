@@ -578,8 +578,8 @@ what each finding is evidence of.
     Reports, with no change to the shell.
   - The Problems panel and the status-bar job list are shared services, so
     Operations alerts use the same severity model.
-- The **menu bar is removed**. On macOS the native menu is kept, because the
-  platform expects it, and it is generated from the same action registry.
+- The **menu bar is removed** (macOS, whose native menu this kept, is no
+  longer supported: the user's decision of 2026-10-21).
   - Every action lives in one `ActionRegistry`: id, label, icon, shortcut,
     area and handler.
   - The command palette, menus, tooltips ("Run (Ctrl+R)") and the shortcut
@@ -773,7 +773,7 @@ Every milestone also has to meet all of these:
 | Moving work off the GUI thread (explainer, run store) | Races: a stale explainer result arrives after a newer edit | Requests carry a generation number and late results are dropped. Workers get only an immutable `Scenario` copy. The engine code is unchanged. |
 | WebEngine in software rendering (WSL2) | The 3D model view (WebGL) is slow | It is created lazily, behind a "Show 3D view" action. Plots stay SVG `scatter`, which they already are. |
 | Font rendering differences across platforms | Layout tests measured with Plex fail | The width tests (1280 px, 2560 px) are re-measured with Inter in CI on all three platforms in M1. |
-| Removing the menu bar | Users who navigate by menus lose that path | Every item is in the palette and the rail; the macOS menu stays; [Q2](#9-questions-for-you). |
+| Removing the menu bar | Users who navigate by menus lose that path | Every item is in the palette and the rail; [Q2](#9-questions-for-you). |
 | Moving Analyses (End of Life, Budget) out of the Scenario tree | Users look for them where they were | The palette finds them by the old names; the CHANGELOG and manual explain; [Q3](#9-questions-for-you). |
 | Scope: 29k lines of GUI | Sessions overrun | One milestone per session. A milestone may split (M4a/M4b) and the split is recorded before starting. |
 | Licence and supply of Inter, JetBrains Mono and Lucide | They must be fetched once at development time | Fetched from the projects' own release archives, with checksums and licences recorded in the licence report. Nothing is fetched at runtime. |
@@ -785,7 +785,7 @@ Every milestone also has to meet all of these:
 | # | Decision |
 |---|---|
 | Q1 | Approved: GUI tests may change how they reach widgets, keeping every behavioural assertion. Each change is listed in `docs/ui/TEST_CHANGES.md`. Non-GUI tests and output tests stay unchanged. The Carbon tests are replaced by the token, contrast and font tests. |
-| Q2 | The menu bar is removed on Linux and Windows. macOS keeps its native menu, generated from the action registry. |
+| Q2 | The menu bar is removed on Linux and Windows. macOS keeps its native menu, generated from the action registry. (2026-10-21: macOS is no longer supported.) |
 | Q3 | End of Life and Budget inputs go in Run › Analyses, and their results in Results (§5.2). |
 | Q4 | Home cards are text only: mission type, orbit summary and one line, all read from the template files. No thumbnails. |
 | Q5 | No ground-track or 3D orbit view in this overhaul. Runs do not record the sub-satellite latitude and longitude, so a ground track would need new computation, which a UI-only overhaul excludes. It is proposed as a later feature. |

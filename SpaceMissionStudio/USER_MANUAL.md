@@ -8,7 +8,7 @@ application.
 **Looking for something else?**
 
 * Installing SpaceMissionStudio: [Getting started](docs/getting-started.md),
-  step by step for Linux, Windows and macOS.
+  step by step for Linux and Windows.
 * Short task-by-task pages ("How do I…?"): [How-to guides](docs/user-manual/README.md).
 * Every document in one place: [Documentation index](docs/README.md).
 * Using it from Python scripts: [`examples/`](examples/README.md).
@@ -121,9 +121,6 @@ find **SpaceMissionStudio** in your application menu like any other program.
 through it; it installs for your user only, with no administrator
 rights. Then start **SpaceMissionStudio** from the Start Menu.
 
-**macOS:** there is no installer yet. Install from source as the
-[Getting started guide](docs/getting-started.md) describes (path C).
-
 The installers bring everything with them: their own Python, the
 Basilisk simulation engine and its reference data (planet positions,
 leap seconds, Earth's and Mars's gravity fields, Earth's magnetic field,
@@ -151,7 +148,7 @@ orientation). Tick what you want and press **Fetch now**, or press
 **Skip**: then nothing is downloaded. The window that opens looks like
 this:
 
-![Templates, in the scenario tree, with template 22 selected and its description below the list](docs/images/load_scenario_tab.png)
+![Templates, in the scenario tree: Start from scratch above the list, template 22 selected and its description below the list](docs/images/load_scenario_tab.png)
 
 A few things to notice right away:
 
@@ -224,11 +221,14 @@ A few things to notice right away:
 
 The app opens on **Templates** deliberately: picking a
 starting point is the natural first move for everyone, whether you end
-up using a template as-is or editing it into something new.
+up using a template as-is or editing it into something new. Its first
+choice, **Start from scratch** (**New blank scenario**), does what
+**File > New Scenario** does: an empty mission, with a guide to it on
+its Scenario page ("Building your own scenario, step by step", below).
 
 ## 4. Your first simulation, in five minutes
 
-1. **Pick a template.** The list on the left shows all twenty-nine
+1. **Pick a template.** The list on the left shows all 31
    built-in example missions, numbered roughly from simplest to most
    advanced -- "01 - Two-body circular orbit" is the simplest possible
    case (one satellite, one orbit, nothing else going on) and a good
@@ -326,9 +326,11 @@ fixed:
 
 * **Scenario** -- the mission's name, its **Simulation mode**
   ("Full attitude" if you need sensors/actuators/pointing control, or
-  the simpler "Orbit only" if you just care about trajectories), the
-  **Epoch** (the real calendar date/time the simulation starts, in UTC),
-  and a free-text **Description**.
+  the simpler "Orbit only" if you just care about trajectories; a blank
+  scenario starts in Orbit only), the **Epoch** (the real calendar
+  date/time the simulation starts, in UTC), the **Build your mission**
+  guide (the steps to a first run, and what else the tool does) and a
+  free-text **Description**.
 * **Environment** -- which planet you're orbiting, how detailed its
   gravity model is (spherical harmonics for Earth, to degree 180, and
   Mars, to degree 80), which other bodies' gravity to include (Sun, Moon,
@@ -409,10 +411,19 @@ spacecraft's fields are checked when its page is first opened.
 The quickest way to a mission of your own is a starter template (22 or
 23) and **Save As**. To start from an empty scenario instead:
 
-1. **File > New Scenario.** Give it a **Name**. Choose **Simulation
-   mode** *Orbit only* to begin with (Section 1 explains the choice) and
-   set the **Epoch (UTC)**: the date decides where the Sun and Moon are,
-   how dense the upper atmosphere is and when ground stations see you.
+1. **File > New Scenario**, or **New blank scenario** on the Templates
+   page. The Scenario page opens with **Build your mission**: the steps
+   below, each with its state (*Needed*, *Optional*, *Done*, *Ready*) and
+   a button to its page, and **There is more**: what else the tool does
+   (Full attitude, the mission sequence, constellations and formations,
+   Monte Carlo, the analyses, other central bodies, the templates), each
+   with a button to where it is set. Give the scenario a **Name** and set
+   the **Epoch (UTC)**: the date decides where the Sun and Moon are, how
+   dense the upper atmosphere is and when ground stations see you. A blank
+   scenario starts in **Simulation mode** *Orbit only*, the simplest
+   (Section 1 explains the choice); switch to *Full attitude* (or press
+   **Switch to Full attitude** in the guide) when the mission needs
+   attitude, sensors, actuators or power.
 2. **Environment**: for a satellite around Earth, tick
    **Enable spherical-harmonics gravity** with degree 10, add **sun** and
    **moon** as third-body perturbers, start with a **Duration** of 1 day,
@@ -831,7 +842,7 @@ command was never written: a check for CI.
 **Options.** The **step deadline** (off by default) counts a late answer
 as a dropped step, and the previous commands stay in place. The **step
 timeout** (10 s) stops the run when the program does not answer at all.
-On Linux and macOS the link is a Unix-domain socket only you can open;
+On Linux the link is a Unix-domain socket only you can open;
 on Windows, TCP on 127.0.0.1.
 
 **It stops, with the reason,** when the program speaks another contract

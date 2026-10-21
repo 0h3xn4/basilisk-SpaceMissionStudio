@@ -7,7 +7,7 @@ to do. New here? Start with **Getting started**.
 
 | Page | What it is for |
 |---|---|
-| [Getting started](getting-started.md) | Install on Linux, Windows or macOS, check it works, run a first mission |
+| [Getting started](getting-started.md) | Install on Linux or Windows, check it works, run a first mission |
 | [FAQ](faq.md) | Short answers: systems, internet, accuracy, data exchange, licence |
 | [Troubleshooting](troubleshooting.md) | What to do about each error message |
 | [Glossary](glossary.md) | Every term and abbreviation, in plain language |

@@ -13,8 +13,6 @@ writes, so you can move data to and from other tools.
 
 ## Keyboard and palette
 
-On macOS, `Cmd` replaces `Ctrl`.
-
 | Keys | Does |
 |---|---|
 | `Ctrl+K` | Command palette: find any menu command, tab, template or result series by a few letters ("save as", "events", "05 formation", "velocity") |

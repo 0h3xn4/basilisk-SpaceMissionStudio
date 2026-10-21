@@ -249,7 +249,7 @@ in the CLI. An error never closes the application.
   listens on port 5556 while a run streams, and the simulation connects
   to it.
   - To see whether Vizard listens on all interfaces, run
-    `netstat -an | grep 5556` (Linux, macOS) or
+    `netstat -an | grep 5556` (Linux) or
     `netstat -an | findstr 5556` (Windows) during a live run.
   - On an untrusted network, block port 5556 in your firewall, or use a
     save file instead (AD3, S-06).

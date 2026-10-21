@@ -50,3 +50,20 @@ is applied at once and that the message says it is shown now.
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `tests/test_autosave.py` (autouse fixture `_isolated_recovery_file`) | Pointed the recovery file at the test's `tmp_path` | Also stops the autosave timer of every main window still open in the process, before pointing the file there | pytest-qt processes Qt events after each test's set-up, so the overdue 30 s tick of a window an earlier GUI test left open wrote its scenario into this test's recovery file (`test_read_with_no_recovery_file_returns_none` failed on Windows CI, PR #89). Reproduced with a window holding template 22, as in the CI failure; no assertion changed |
+
+## Between M1 and M2: macOS removed (2026-10-21)
+
+### Changed: a removed feature (the user's decision, `docs/DECISIONS.md`)
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_vizard_launcher.py::test_launch_resolves_macos_app_bundle_to_its_inner_binary` and `::test_launch_raises_a_clear_error_for_an_empty_macos_bundle` | A `.app` bundle was started through its `Contents/MacOS` binary; an empty one was refused | `test_launch_treats_an_app_bundle_path_like_any_other` and `test_launch_no_longer_inspects_an_empty_app_bundle`: either path is started as given, even with the platform reported as macOS | macOS support was removed, and with it the bundle handling: each test now checks the new behaviour for the same input |
+| `tests/gui/test_vizard_launcher.py::test_download_url_for_platform_covers_all_three` | Checked the macOS, Windows and Linux downloads | `test_download_url_for_platform_covers_windows_and_linux`: Windows and Linux, and that no download is for macOS | The macOS download was removed |
+| `tests/gui/test_vizard_launcher.py::test_launch_starts_the_given_executable_directly_on_non_macos` | Its name | `test_launch_starts_the_given_executable_directly_on_linux`; the body is unchanged | Name only |
+
+### Added: a mission from scratch (2026-10-21)
+
+- `tests/gui/test_mission_guide.py`: the Templates page's Start from
+  scratch, the Orbit-only blank scenario, the guide's states, buttons and
+  folding, and the Spacecraft page's empty state. No existing test
+  changed.

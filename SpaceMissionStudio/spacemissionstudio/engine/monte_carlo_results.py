@@ -141,8 +141,8 @@ def batch_files(folder: "str | Path") -> List[Path]:
     return sorted(found)
 
 
-# Entries the operating system or file manager adds by itself (macOS
-# .DS_Store, Windows Thumbs.db and desktop.ini, any hidden file): they do
+# Entries the operating system or file manager adds by itself (.DS_Store,
+# Windows Thumbs.db and desktop.ini, any hidden file): they do
 # not make a folder "hold other files".
 _SYSTEM_CLUTTER = {"thumbs.db", "desktop.ini"}
 

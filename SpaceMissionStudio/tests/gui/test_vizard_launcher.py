@@ -101,7 +101,7 @@ def test_search_skips_a_nonexistent_root_without_raising(tmp_path, monkeypatch):
     assert vizard_launcher.find_vizard_executable(settings=_settings(tmp_path)) == exe
 
 
-def test_launch_starts_the_given_executable_directly_on_non_macos(tmp_path, monkeypatch):
+def test_launch_starts_the_given_executable_directly_on_linux(tmp_path, monkeypatch):
     """On Linux, the executable is started directly, without arguments, and its
     process returned."""
     from spacemissionstudio.gui import vizard_launcher
@@ -165,48 +165,55 @@ def test_launch_omits_direct_comm_flag_when_not_given(tmp_path, monkeypatch):
     assert captured["args"] == [str(exe)]
 
 
-def test_launch_resolves_macos_app_bundle_to_its_inner_binary(tmp_path, monkeypatch):
-    """On macOS, an app bundle is started through its Contents/MacOS binary."""
+def test_launch_treats_an_app_bundle_path_like_any_other(tmp_path, monkeypatch):
+    """macOS is not supported (2026-10-21): a path ending in .app is no
+    longer resolved to a binary inside it, but started as given, on every
+    platform, even one that reports itself as macOS."""
     from spacemissionstudio.gui import vizard_launcher
 
     monkeypatch.setattr(vizard_launcher.sys, "platform", "darwin")
     bundle = tmp_path / "Vizard.app"
-    macos_dir = bundle / "Contents" / "MacOS"
-    macos_dir.mkdir(parents=True)
-    inner_binary = macos_dir / "Vizard"
-    inner_binary.write_bytes(b"")
+    (bundle / "Contents" / "MacOS").mkdir(parents=True)
+    (bundle / "Contents" / "MacOS" / "Vizard").write_bytes(b"")
 
     captured = {}
     monkeypatch.setattr(vizard_launcher.subprocess, "Popen", lambda args: captured.setdefault("args", args))
 
     vizard_launcher.launch_vizard(bundle)
-    assert captured["args"] == [str(inner_binary)]
+    assert captured["args"] == [str(bundle)]
 
 
-def test_launch_raises_a_clear_error_for_an_empty_macos_bundle(tmp_path, monkeypatch):
-    """A macOS bundle without a binary is refused as not a valid app bundle."""
+def test_launch_no_longer_inspects_an_empty_app_bundle(tmp_path, monkeypatch):
+    """An empty .app folder used to be refused as "not a valid macOS app
+    bundle"; with macOS unsupported it is not inspected, and starting it is
+    left to the operating system, as for any other path."""
     from spacemissionstudio.gui import vizard_launcher
 
     monkeypatch.setattr(vizard_launcher.sys, "platform", "darwin")
     bundle = tmp_path / "Vizard.app"
     (bundle / "Contents" / "MacOS").mkdir(parents=True)
 
-    with pytest.raises(FileNotFoundError, match="does not look like a valid macOS app bundle"):
-        vizard_launcher.launch_vizard(bundle)
+    captured = {}
+    monkeypatch.setattr(vizard_launcher.subprocess, "Popen", lambda args: captured.setdefault("args", args))
+
+    vizard_launcher.launch_vizard(bundle)
+    assert captured["args"] == [str(bundle)]
 
 
 # -- fetch_vizard() -- downloading and extracting a pre-built Vizard -------
 
-def test_download_url_for_platform_covers_all_three(monkeypatch):
-    """Each platform gets its own Vizard download. ``vizard_launcher.sys``
+def test_download_url_for_platform_covers_windows_and_linux(monkeypatch):
+    """Windows and Linux each get their own Vizard download, and there is no
+    macOS one (macOS is not supported, 2026-10-21). ``vizard_launcher.sys``
     is ``sys`` itself, so the platform is set through monkeypatch, which
     restores the real value (an earlier version of this test left
     ``sys.platform`` at "linux" for every later test in the process)."""
     from spacemissionstudio.gui import vizard_launcher
 
-    for platform_value, expected_substring in (("darwin", "macOS"), ("win32", "Windows"), ("linux", "Linux")):
+    for platform_value, expected_substring in (("win32", "Windows"), ("linux", "Linux")):
         monkeypatch.setattr(vizard_launcher.sys, "platform", platform_value)
         assert expected_substring in vizard_launcher._download_url_for_platform()
+    assert not any("macOS" in url for url in vizard_launcher._DOWNLOAD_URLS.values())
 
 
 def _as_linux_build(monkeypatch, vizard_launcher):

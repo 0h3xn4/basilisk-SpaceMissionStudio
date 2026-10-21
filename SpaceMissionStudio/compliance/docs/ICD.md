@@ -176,7 +176,7 @@ messages (`SimulationBaseClass`, `spacecraft`, `gravityEffector`,
 |---|---|
 | Service | `sil` (CLI) or Run in SIL mode (the run mode beside Run) runs the scenario with one spacecraft's flight software in an external program, one step at a time. |
 | Parties | The tool listens; the program, started as `<program> sil <address>` with the session token in `SMS_SIL_TOKEN`, connects. |
-| Transport | A Unix-domain stream socket in a folder only the user can open (Linux, macOS), or TCP on 127.0.0.1 (Windows, or on request). The protocol needs only a reliable ordered byte stream (`generated/fsw_transport.h`, `spacemissionstudio.sil.transport.Transport`). |
+| Transport | A Unix-domain stream socket in a folder only the user can open (Linux), or TCP on 127.0.0.1 (Windows, or on request). The protocol needs only a reliable ordered byte stream (`generated/fsw_transport.h`, `spacemissionstudio.sil.transport.Transport`). |
 | Format | Frames of a 28-byte little-endian header (magic `SMSL`, contract version 1, type, sequence number, payload length, simulation time in ns, CRC-32) and a payload. HELLO carries the token, name, configuration digest, step and every port (name, message type, size, 16-hex-digit layout hash); RESET and STEP carry a written flag and the raw payload per input port; OUTPUT the program's execution time and the same per output and telemetry port. Normative: `spacemissionstudio/fsw_export/templates/SIL_CONTRACT.md`. |
 | Errors | A wrong magic, version, type, length, CRC, token, step or port list; a frame out of order; no answer within the step timeout (10 s by default); a closed link; an exited program: ERROR with the reason, and the run stops. |
 | Frequency | Every flight-software step of the run. |

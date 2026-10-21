@@ -74,7 +74,7 @@ or a command was never written: a check you can use in CI.
 
 One rate group (the dynamics step); the mission sequence and Monte Carlo
 are not run in SIL; payloads are in the host's byte order. The link is a
-Unix-domain socket on Linux and macOS, and TCP on 127.0.0.1 on Windows.
+Unix-domain socket on Linux, and TCP on 127.0.0.1 on Windows.
 
 **More detail:** User Manual section 6,
 [Exporting the flight software](../../USER_MANUAL.md#exporting-the-flight-software) and

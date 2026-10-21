@@ -215,8 +215,9 @@ planned (4.1).
 None of the SRS requirements needs a real system beyond a PC.
 
 Three requirements need resources the validation environment lacks:
-- SRS-PO-01 (Windows, macOS): the test suite runs on both in CI (decision
-  19); the results are in the SVR.
+- SRS-PO-01 (Windows): the test suite runs on it in CI (decision 19); the
+  results are in the SVR. macOS was removed on 2026-10-21 by the user's
+  decision.
 - SRS-DEL-01 (installers): the Debian package was test-installed earlier
   in development; the Windows installer has not been tested in this
   audit.

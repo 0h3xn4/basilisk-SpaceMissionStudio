@@ -349,7 +349,7 @@ compliance matrix.
   - on Ubuntu 24.04: lint, the full test suite with coverage (at least
     90 % of statements and 80 % of branches, enforced), the offline tests
     with no network at all, and the document and traceability checks;
-  - on `windows-latest` and `macos-latest`: the full test suite.
+  - on `windows-latest`: the full test suite.
 - **The GUI is tested for real**, headless, with `pytest-qt`: forms,
   menus, dialogs and the plots in their embedded web view.
 - **Template claims are re-checked.** `tests/test_template_claims.py`

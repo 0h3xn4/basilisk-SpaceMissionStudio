@@ -109,9 +109,7 @@ DEFAULT_LIVE_STREAM_ADDRESS = "tcp://localhost:5556"
 # The actual launchable binary/bundle name Vizard's own Unity build
 # produces per platform (see VizardDownload.rst's Vizard_<platform>.zip
 # contents) -- used to search candidate directories.
-if sys.platform == "darwin":
-    _EXECUTABLE_NAME = "Vizard.app"
-elif sys.platform.startswith("win"):
+if sys.platform.startswith("win"):
     _EXECUTABLE_NAME = "Vizard.exe"
 else:
     _EXECUTABLE_NAME = "Vizard.x86_64"
@@ -124,8 +122,6 @@ def _candidate_roots() -> List[Path]:
     .zip the user extracts wherever they like.
     """
     home = Path.home()
-    if sys.platform == "darwin":
-        return [Path("/Applications"), home / "Applications", home / "Desktop", home / "Downloads"]
     if sys.platform.startswith("win"):
         return [
             Path("C:/Program Files"), Path("C:/Program Files (x86)"),
@@ -158,12 +154,11 @@ class VizardFetchError(Exception):
     """
 
 
-# The exact three links docs/source/Vizard/VizardDownload.rst in the
-# Basilisk checkout publishes -- AVS's own pre-built Vizard binaries, not
-# a third-party mirror. sys.platform branching matches _EXECUTABLE_NAME's
-# own above (darwin / win* / else-linux).
+# The links docs/source/Vizard/VizardDownload.rst in the Basilisk checkout
+# publishes for Windows and Linux -- AVS's own pre-built Vizard binaries,
+# not a third-party mirror. sys.platform branching matches
+# _EXECUTABLE_NAME's own above (win* / else-linux).
 _DOWNLOAD_URLS = {
-    "darwin": "https://hanspeterschaub.info/bskFiles/Vizard_macOS.zip",
     "win": "https://hanspeterschaub.info/bskFiles/Vizard_Windows64.zip",
     "linux": "https://hanspeterschaub.info/bskFiles/Vizard_Linux.zip",
 }
@@ -193,8 +188,6 @@ _DOWNLOAD_CHUNK_BYTES = 1024 * 1024  # [bytes] read size for cooperative cancell
 
 
 def _download_url_for_platform() -> str:
-    if sys.platform == "darwin":
-        return _DOWNLOAD_URLS["darwin"]
     if sys.platform.startswith("win"):
         return _DOWNLOAD_URLS["win"]
     return _DOWNLOAD_URLS["linux"]
@@ -333,9 +326,7 @@ def _install_download(url: str, zip_name: str, zip_path: Path, dest_dir: Path, s
         )
     if sys.platform != "win32" and executable.is_file():
         # zip extraction doesn't reliably preserve the executable bit --
-        # confirmed necessary for the Linux .x86_64 binary. A no-op on
-        # macOS, where launch_vizard() resolves the .app bundle's own
-        # Contents/MacOS/<binary> separately and chmods nothing itself.
+        # confirmed necessary for the Linux .x86_64 binary.
         mode = executable.stat().st_mode
         executable.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
     return executable
@@ -379,13 +370,7 @@ def launch_vizard(executable_path: Path, direct_comm_address: Optional[str] = No
                   load_file: Optional[Path] = None) -> "subprocess.Popen[bytes]":
     """Starts Vizard as a background process and returns the
     :class:`subprocess.Popen` handle so the caller can poll whether it's
-    still running (``.poll() is None``). On macOS this resolves an
-    ``.app`` bundle to its actual Mach-O binary inside
-    ``Contents/MacOS/`` first -- ``Popen`` can't launch a bundle
-    directory itself, only a real executable file, and using the ``open``
-    command instead would lose the process handle (``open`` exits
-    immediately after handing off to the app, so there would be nothing
-    left to poll).
+    still running (``.poll() is None``).
 
     Args:
         direct_comm_address: when given (typically
@@ -401,15 +386,6 @@ def launch_vizard(executable_path: Path, direct_comm_address: Optional[str] = No
             argument, ``vizardCommandLine.rst``): the Results tab's "Open in
             Vizard" for the last run's file.
     """
-    if sys.platform == "darwin" and executable_path.suffix == ".app":
-        macos_dir = executable_path / "Contents" / "MacOS"
-        binaries = [p for p in macos_dir.glob("*") if p.is_file()]
-        if not binaries:
-            raise FileNotFoundError(
-                f"{executable_path} does not look like a valid macOS app bundle "
-                f"(no executable found in {macos_dir})"
-            )
-        executable_path = binaries[0]
     args = [str(executable_path)]
     if direct_comm_address:
         args += ["-directComm", direct_comm_address]
