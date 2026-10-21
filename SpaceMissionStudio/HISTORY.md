@@ -11981,3 +11981,17 @@ draft the release workflow made from the re-pushed tag (run 39575072165),
 with the notes rewritten for downloaders. Tag
 `spacemissionstudio-v1.1.1` on `57a54ae92`; the six files are those the
 workflow built, installed and checked (digests in the SRelD, issue 10).
+
+## The framework's macOS pull-request jobs removed (2026-10-21)
+
+#92's checks went red on Basilisk's own "Pull Request" workflow: its two
+macOS jobs, "macOS (MIN Python)" and "macOS (MAX Python) --vizInterface
+False", were cancelled with "The job was not acquired by Runner of type
+hosted even after multiple attempts", and one re-run of them sat queued
+for the same reason. On the user's decision, `.github/workflows/pull-request.yml`
+loses its `build-macos` job; the comment about Corrosion builds now names
+Linux and Windows. The workflow keeps pre-commit, Linux, Windows and
+docs; the docs job stays on macOS (its action installs Doxygen with
+Homebrew). The framework's Python 3.9 test run on pull requests went with
+the macOS job. Checked with actionlint and the repo's pre-commit hooks;
+recorded in `docs/DECISIONS.md` (macOS removed).
