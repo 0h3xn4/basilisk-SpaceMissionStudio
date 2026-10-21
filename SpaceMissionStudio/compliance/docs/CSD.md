@@ -19,8 +19,8 @@ time scales that SpaceMissionStudio uses, as required by ECSS-E-ST-10-09C
 for the tool's inputs, results and exchanged data.
 
 It was prepared during the ECSS/CCSDS audit (remediation R02 implemented
-the frame and time layer; R14 wrote this document). It applies to version
-1.1.0 of the tool.
+the frame and time layer; R14 wrote this document). It applies to versions
+1.1.0 and 1.1.1 of the tool (1.1.1 changes only the packaging).
 
 ## 2 Applicable and reference documents (A.2.1<2>)
 

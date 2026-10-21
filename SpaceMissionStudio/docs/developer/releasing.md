@@ -160,7 +160,15 @@ new look), so 1.1.0 includes it: its CHANGELOG section and SRelD issue 8
 say so, and the files were built and installed again. A first tag, made
 before those records on commit `c931ccd4d`, is replaced by one on the
 merge of that pull request. Merging, tagging (`spacemissionstudio-v1.1.0`)
-and publishing are the user's.
+and publishing are the user's. 1.1.0 was published on 2026-10-20: tag
+`spacemissionstudio-v1.1.0` on `1f8ad1663`, its six files (the first
+with a Windows setup program) built and attached by the release workflow.
+
+1.1.1 was prepared on 2026-10-21 by this checklist: the self-contained
+installers of PR #89 and no change to the app. Its files are built,
+installed and attached by the release workflow when the tag is pushed;
+the space weather is the copy refreshed for 1.1.0 (observations to
+2026-10-18), one release earlier.
 
 ---
 

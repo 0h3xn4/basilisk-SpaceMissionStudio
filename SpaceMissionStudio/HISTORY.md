@@ -11825,3 +11825,30 @@ main window in Inter (`packaging/README.md`, "The bundled Python"). The
 release workflow now installs the `.deb` with `unshare --net` and runs
 these checks offline; the Windows setup is built and checked there and in
 the Windows installer workflow.
+
+## Release 1.1.1 prepared (2026-10-21)
+
+1.1.0 was published on 2026-10-20 (tag `spacemissionstudio-v1.1.0` on
+`1f8ad1663`), its six files built and attached by the release workflow.
+1.1.1 carries the self-contained installers of the previous entry to
+users; the app is unchanged, so results are the same as with 1.1.0. The
+version is set in the three files, the CHANGELOG section written, the
+SRelD at issue 9 (K-20 for the 1.1.0 installers, K-21 for the test
+below), and the documents that name the version updated. The space
+weather is the copy refreshed for 1.1.0 (observations to 2026-10-18),
+kept so that nothing but the packaging changes.
+
+**A flaky test, root-caused.** `test_autosave.py` failed once on Windows
+CI during the installer work: the recovery file it had just pointed at
+`tmp_path` held template 22. A main window that an earlier GUI test in
+the same worker had left open still ran its 30 s autosave timer, and
+pytest-qt processes Qt events after each test's set-up, so an overdue
+tick wrote that window's scenario into the patched path. A probe test
+leaving such a window open (template 22 loaded, interval 0) made the old
+fixture fail every time; the fixture now stops those timers first and
+the probe passes (the probe was not kept). Logged in
+`docs/ui/TEST_CHANGES.md`.
+
+Merging, tagging (`spacemissionstudio-v1.1.1`) and publishing are the
+user's; the release workflow builds, installs offline and attaches the
+files when the tag is pushed.

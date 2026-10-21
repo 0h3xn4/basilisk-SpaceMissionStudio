@@ -42,3 +42,11 @@ is applied at once and that the message says it is shown now.
 - `tests/gui/conftest.py`: the `restored_theme` fixture (restores the
   application's font, palette, sheet and the light tokens after a test
   that applies a theme).
+
+## Between M1 and M2 (release 1.1.1)
+
+### Changed: test isolation only
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/test_autosave.py` (autouse fixture `_isolated_recovery_file`) | Pointed the recovery file at the test's `tmp_path` | Also stops the autosave timer of every main window still open in the process, before pointing the file there | pytest-qt processes Qt events after each test's set-up, so the overdue 30 s tick of a window an earlier GUI test left open wrote its scenario into this test's recovery file (`test_read_with_no_recovery_file_returns_none` failed on Windows CI, PR #89). Reproduced with a window holding template 22, as in the CI failure; no assertion changed |

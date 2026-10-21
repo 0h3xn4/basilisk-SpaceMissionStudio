@@ -24,7 +24,7 @@ Document: SMS-SUM, issue 1 (draft), 2026-10-08; menu and window names updated 20
 ## 1 Introduction (H.2.1<1>)
 
 This SUM is the entry point to the user documentation of SpaceMissionStudio
-1.1.0. Users should read the UM; this document points to it section by
+1.1.1. Users should read the UM; this document points to it section by
 section and holds the information ECSS-E-ST-40C asks for that the UM does
 not.
 

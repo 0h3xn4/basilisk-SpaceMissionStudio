@@ -5,7 +5,7 @@ Document: SMS-SRS, issue 1 (draft), 2026-10-08. Remediation R14.
 
 **Status: draft, written by the supplier, not reviewed.**
 - No customer requirements baseline (SSS, IRD) exists for this tool, so
-  this SRS is derived from the software as implemented (version 1.1.0) and from the user's recorded
+  this SRS is derived from the software as implemented (version 1.1.1) and from the user's recorded
   decisions (`compliance/PROGRESS.md`).
 - No requirements baseline will be written: the user waived it
   (decision 9, deviation D-11), and reviews are waived too (D-08). The SRS

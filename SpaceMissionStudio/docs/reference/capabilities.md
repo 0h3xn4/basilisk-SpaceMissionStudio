@@ -360,10 +360,11 @@ compliance matrix.
   template 05 with live Vizard were run to completion.
 - **Packaging**: for 1.0.0 the Linux `.deb` and `install.sh`, and for
   1.1.0 the `.deb` (as an upgrade from 1.0.0), were built and installed
-  end to end with Basilisk 2.12.0 on Linux. Neither release has a Windows
-  installer; the Windows setup program is built,
-  installed and run in CI on a Windows runner, but not yet tried by
-  hand, and `install.ps1` has not been run;
+  end to end with Basilisk 2.12.0 on Linux. From 1.1.1 both installers
+  are self-contained; the `.deb` was installed and run offline in a
+  container (also over a 1.1.0 package), and both installers are built,
+  installed and run by the release workflow. The Windows setup program
+  has not yet been tried by hand, and `install.ps1` has not been run;
   [`packaging/README.md`](../../packaging/README.md) says exactly what was
   run where. On a minimal Linux install, the plots' web view needs extra
   system libraries ([Troubleshooting](../troubleshooting.md#the-results-plot-stays-blank)).

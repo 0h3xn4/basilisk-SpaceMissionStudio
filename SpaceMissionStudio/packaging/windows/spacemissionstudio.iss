@@ -18,10 +18,10 @@
 ;   2. Build the bundled Python into packaging\windows\python\ (needs
 ;      Python 3.11.4 or later to run the script, and internet access):
 ;        python packaging\bundle_python.py --platform windows --dest packaging\windows\python ^
-;            --wheel packaging\windows\dist\spacemissionstudio-1.1.0-py3-none-any.whl
+;            --wheel packaging\windows\dist\spacemissionstudio-1.1.1-py3-none-any.whl
 ;   3. Compile this script:
 ;        ISCC packaging\windows\spacemissionstudio.iss
-;      -> packaging\windows\Output\spacemissionstudio-1.1.0-setup.exe
+;      -> packaging\windows\Output\spacemissionstudio-1.1.1-setup.exe
 ;
 ; Verification: .github/workflows/spacemissionstudio-release.yml and
 ; spacemissionstudio-windows-installer.yml build it on a Windows runner,
@@ -30,7 +30,7 @@
 ; a real Windows 10/11 machine.
 
 #define MyAppName "SpaceMissionStudio"
-#define MyAppVersion "1.1.0"
+#define MyAppVersion "1.1.1"
 #define MyAppPublisher "SpaceMissionStudio contributors"
 #define MyAppURL "https://github.com/AVSLab/basilisk"
 ; The bundled Python folder; CI passes a short path (ISCC /DPythonDir=...)

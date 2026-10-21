@@ -45,7 +45,7 @@ test suite runs on all three in CI. There are installers for Linux
 
 ## Does it need the internet?
 
-Not with the installers: from the next release they bring Python,
+Not with the installers: from 1.1.1 they bring Python,
 Basilisk and the reference data with them. Installed from source, it
 needs the internet once, to install and fetch the reference data. Either
 way it then runs offline:
