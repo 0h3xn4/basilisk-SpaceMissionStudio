@@ -104,7 +104,8 @@ rail's areas, the top bar or the Settings area.
 ### Added
 
 - `tests/gui/test_shell.py`: the registry (tooltips, ids and areas, a
-  view's own actions, the shortcut list's order), the rail (a later area
+  view's own actions, the shortcut list's order, its window freed by
+  reference count), the rail (a later area
   slotting into its place, the rail following the area shown, Ctrl+1 to
   Ctrl+6, collapsing), Home at start and the Scenario area after opening a
   template, the breadcrumbs, the save button, the top bar's commands and

@@ -12111,6 +12111,14 @@ before any code.
   window at least 1471 px wide after a comparison, against the 1280 px it
   must fit (`test_stale_results_and_window_size.py`). The name, detail
   and breadcrumb labels now elide, and the window's minimum is 1048 px.
+- **A segfault at exit when one GUI test ran alone** (CI's docs job runs
+  `test_help.py` by itself; PR #96). The registry held its window, and the
+  window held the registry. The cycle left the window to the garbage
+  collector, which ran only at interpreter exit, after Qt WebEngine had
+  shut down; gdb showed a `QWebEngineView`'s `QQuickWidget` destroyed
+  then. The registry now holds the window weakly; the test file alone
+  exits cleanly, and `test_shell.py` checks the window is freed by
+  reference count.
 - **A vacuous test.** `test_every_toolbar_action_has_an_icon` passed
   without checking anything once the toolbars were gone. It now checks
   every command button of the top bar and the area headers; that found
@@ -12119,7 +12127,7 @@ before any code.
 
 **Tests.** 15 GUI tests changed only how they reach a widget, each in
 `docs/ui/TEST_CHANGES.md`. There are two new files:
-- `test_shell.py` (12 tests);
+- `test_shell.py` (13 tests);
 - `test_shell_reachability.py`, which reads the plan's §5.2 and checks
   all 74 rows reachable.
 

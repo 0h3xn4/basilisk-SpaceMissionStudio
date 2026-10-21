@@ -29,6 +29,7 @@ shortcuts work from every area, with no menu bar.
 
 from __future__ import annotations
 
+import weakref
 from dataclasses import dataclass, field
 from typing import Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
 
@@ -89,7 +90,10 @@ class ActionRegistry:
     """The window's commands, in the order they were added."""
 
     def __init__(self, owner: QWidget) -> None:
-        self._owner = owner
+        # Weakly: the window holds the registry, and a cycle through the
+        # window leaves it to the garbage collector, which may run only
+        # after Qt WebEngine has shut down (a segfault at exit).
+        self._owner = weakref.ref(owner)
         self._commands: Dict[str, Command] = {}
 
     def add(self, command_id: str, text: str, handler: Optional[Callable[..., object]] = None, *,
@@ -107,8 +111,9 @@ class ActionRegistry:
             raise ValueError(f"command {command_id!r} is registered twice")
         if area not in AREAS:
             raise ValueError(f"unknown area {area!r}")
+        owner = self._owner()
         if action is None:
-            action = QAction(text, self._owner)
+            action = QAction(text, owner)
         else:
             action.setText(text)
         if qicon is not None:
@@ -124,7 +129,7 @@ class ActionRegistry:
             (action.toggled if checkable else action.triggered).connect(handler)
         if on_window:
             # On the window, so the shortcut works in every area with no menu bar.
-            self._owner.addAction(action)
+            owner.addAction(action)
         command = Command(command_id, action, category, area, tip, tuple(keywords))
         self._commands[command_id] = command
         self.refresh_tooltip(command_id)

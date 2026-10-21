@@ -60,6 +60,24 @@ def test_a_command_gets_its_tooltip_from_its_label_shortcut_and_tip(qtbot):
         registry.add("x.y", "X", None, category="File", area="nowhere")
 
 
+def test_the_registry_does_not_keep_its_window_alive(qapp):
+    """The registry holds its window weakly: a cycle through the window left
+    it to the garbage collector, which ran only after Qt WebEngine had shut
+    down when one test ran alone (a segfault at exit, CI's docs job)."""
+    import weakref
+
+    from PySide6.QtWidgets import QWidget
+
+    from spacemissionstudio.gui.actions import ActionRegistry
+
+    owner = QWidget()
+    owner.commands = ActionRegistry(owner)
+    owner.commands.add("file.save", "Save", None, category="File", area="global")
+    ref = weakref.ref(owner)
+    del owner
+    assert ref() is None  # freed at once, by reference count, not by a later collection
+
+
 def test_a_views_own_action_stays_in_its_view(qtbot):
     """on_window=False registers an action without moving it onto the
     window, so its shortcut keeps working only where its view has it."""
