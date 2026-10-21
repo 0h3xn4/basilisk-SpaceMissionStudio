@@ -11878,3 +11878,12 @@ deleted the first 1.1.1 tag and release and pushed the tag again, the
 new run waited behind the old one, whose macOS job was waiting for a
 runner although macOS attaches nothing. Only the attach job is now
 queued per tag.
+
+**A native crash on Windows CI (SRelD K-22).** On the PR's last commit
+one Windows test worker died with "Windows fatal exception: access
+violation" in a template-wizard sizing test. The Python stack ends in
+pytest's call of the test, with no frame inside it: the crash came in
+native code as the test returned, most likely when Python freed a Qt
+object Qt had already deleted. It was seen once in eight whole-suite
+Windows runs of that commit and not on Linux; the test and the wizard
+had not changed. Recorded as open.

@@ -104,6 +104,9 @@ package files.
 `test_thousands_of_dropped_steps_never_block_the_link[tcp]` recurred on
 the release commit; its cause is not known (K-14).
 
+A Windows CI test worker crashed once in a GUI test, after the release
+(K-22); its cause is not known either.
+
 **Release workflow:** the `.deb` is installed and run with the network
 cut off; the Windows setup is checked with an empty support-data cache;
 the GUI check applies the theme and asserts Inter.
@@ -140,6 +143,7 @@ network. The `.deb`'s file name ends in `_amd64` instead of `_all`.
 | K-19 | Limitation (2026-10-20): applying a theme (View > Theme, or a change of the desktop's scheme with System) takes 0.51-0.55 s on a new main window with a scenario open and 2.4 s after every page has been visited, measured on one Linux container (before M1, on the same machine: 1.31-1.44 s and 6.1-6.5 s). The overhaul brief's target is 0.1 s. Qt re-polishes every widget, most of them on hidden pages; the overhaul's next milestone reduces the number of live widgets | The window does not respond for that time after a theme change | `docs/DECISIONS.md`; `docs/ui/UI_OVERHAUL_PLAN.md` section 7 |
 | K-20 | Fixed in 1.1.1 (2026-10-20): the 1.1.0 installers built a virtual environment while installing. The setup program stopped before its wizard when no Python 3.11 was on `PATH` ("SpaceMissionStudio needs Python 3.11 or later, which was not found"), and both needed internet access. The `.deb`'s `postinst` also fetched the SPICE kernels as root, into root's own cache (`~/.cache/bsk_support_data` of root), so every other user had no kernels until they downloaded them. The 1.1.1 installers carry their own Python and the data, in the folder Basilisk's `dataFetcher` reads for every user | 1.1.0: no install on a Windows machine without Python 3.11 on `PATH`; no offline install; Linux users other than root had to download the kernels | `packaging/README.md`, "The bundled Python"; HISTORY.md |
 | K-21 | Fixed (2026-10-21): `test_autosave.py::test_read_with_no_recovery_file_returns_none` failed now and then on Windows CI (PR #89). A main window an earlier GUI test had left open kept its 30 s autosave timer; pytest-qt processes Qt events after each test's set-up, so the overdue tick wrote that window's scenario into the recovery file the test had just pointed at its temporary folder. Reproduced with a window holding template 22, as in the failure; the test now stops such timers first. A test defect: the app writes its recovery file only where it should | None for users | `docs/ui/TEST_CHANGES.md`; HISTORY.md |
+| K-22 | Open (2026-10-21): on Windows CI a test worker crashed with "Windows fatal exception: access violation" in `tests/gui/test_template_wizard.py::test_wizard_is_sized_to_fit_its_own_busiest_page_not_a_flat_default[17_fuel_tank_depletion.json]` (PR #91, job 119157936897, commit `895ebcb96`); the other 3557 tests passed. The Python stack ends in pytest's call of the test, with no frame inside it, so the crash came in native code as the test returned, most likely when Python freed a Qt object whose C++ side Qt had already deleted. Seen once: the other seven whole-suite Windows runs of the same commit passed, and the file passed three times on Linux. The test and the wizard did not change in that PR. Cause not known | A crash of this kind could also end the app on Windows; none has been reported | PR #91 comment; HISTORY.md |
 
 **Waivers and deviations:** D-01 to D-13 (RD4). D-08 to D-13 are signed; D-01 to D-07
 are not (decision 14, H08).
