@@ -11981,3 +11981,46 @@ draft the release workflow made from the re-pushed tag (run 39575072165),
 with the notes rewritten for downloaders. Tag
 `spacemissionstudio-v1.1.1` on `57a54ae92`; the six files are those the
 workflow built, installed and checked (digests in the SRelD, issue 10).
+
+## The framework's macOS pull-request jobs removed (2026-10-21)
+
+#92's checks went red on Basilisk's own "Pull Request" workflow: its two
+macOS jobs, "macOS (MIN Python)" and "macOS (MAX Python) --vizInterface
+False", were cancelled with "The job was not acquired by Runner of type
+hosted even after multiple attempts", and one re-run of them sat queued
+for the same reason. On the user's decision, `.github/workflows/pull-request.yml`
+loses its `build-macos` job; the comment about Corrosion builds now names
+Linux and Windows. The workflow keeps pre-commit, Linux, Windows and
+docs; the docs job stays on macOS (its action installs Doxygen with
+Homebrew). The framework's Python 3.9 test run on pull requests went with
+the macOS job. Checked with actionlint and the repo's pre-commit hooks;
+recorded in `docs/DECISIONS.md` (macOS removed).
+
+**No macOS workflow left (2026-10-21).** The user then asked for no
+macOS workflow at all. The `docs` job of the "Pull Request" workflow, the
+merge workflow's "Docs Deployment" and the canary build ("Linux Latest
+Dependencies") now run on `ubuntu-24.04`; `.github/actions/docs` installs
+Doxygen and Graphviz with apt. The Linux docs jobs no longer save the
+Conan cache, because each workflow's Linux build job already publishes
+it. The nightly, optional and publishing wheel matrices lost `macos-26`,
+and the publishing workflow lost its dead `macos-13` CA-bundle step.
+Before the push, the Doxygen stage of the docs build (conf.py's crawler,
+then `doxygen_cache.build_doxygen_projects` with `WARN_AS_ERROR`) ran
+here on Ubuntu 24.04 with apt's Doxygen 1.9.8, the version the runner
+gets: all 239 projects generated without a warning. The Sphinx stage
+needs a source build of Basilisk and is left to CI. The framework
+release-note snippet is `remove-macos-ci.rst`.
+
+**The docs build on Linux: eight links in the wrong case.** The first
+Linux run of the "Pull Request" `docs` job failed with "build finished
+with problems, 8 warnings (with warnings treated as errors)". All eight
+were "file not readable" warnings whose path differs from the file only
+in letter case: `Sunline_UKF.pdf` (file `Sunline_uKF.pdf`),
+`Basilisk-PixelLineBiasUKF-20190620.pdf` (`Basilisk-pixelLineBiasUKF-…`),
+`vizard-img2.jpg` and `vizard-imgCamera1/2.jpg` (`vizard-Img2.jpg`,
+`vizard-ImgCamera1/2.jpg`), and three scenario figures whose docstrings
+named `…DirectionConstraint.svg`, `…AttitudeConstraint.svg` and
+`scenario_ThermalSensor.svg` where the scenarios save
+`…directionConstraint`, `…attitudeConstraint` and
+`scenario_thermalSensor`. macOS's case-insensitive file system had hidden
+them. The references now match the files; no file or figure name changed.

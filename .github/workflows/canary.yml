@@ -11,9 +11,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build-macOS-canary:
-    name: macOS Latest Dependencies
-    runs-on: macos-latest
+  build-linux-canary:
+    name: Linux Latest Dependencies
+    runs-on: ubuntu-24.04
     timeout-minutes: 75
     strategy:
       matrix:

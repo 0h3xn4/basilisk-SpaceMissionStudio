@@ -46,10 +46,10 @@ showing the order of magnitude of the violations. The initial transient rises fr
 settling to an equilibrium. This equilibrium is impacted by how dynamic the scenario is (rotation rate, gravity, thrusting),
 the mass and inertia of the respective vehicles, and how stiff the gains are driven by the alpha and beta tuning parameters.
 
-.. image:: /_images/Scenarios/scenarioConstrainedDynamicsDirectionConstraint.svg
+.. image:: /_images/Scenarios/scenarioConstrainedDynamicsdirectionConstraint.svg
    :align: center
 
-.. image:: /_images/Scenarios/scenarioConstrainedDynamicsAttitudeConstraint.svg
+.. image:: /_images/Scenarios/scenarioConstrainedDynamicsattitudeConstraint.svg
    :align: center
 
 """

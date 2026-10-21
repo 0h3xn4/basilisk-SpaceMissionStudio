@@ -38,8 +38,19 @@ The user's decision: "please remove macOS completely and entirely, nobody
 needs it." SpaceMissionStudio supports Linux and Windows only.
 
 - **CI and releases:** the macOS row of the `platforms` job and the
-  release workflow's macOS job are gone. Basilisk's own workflows, which
-  also run on macOS, are the framework's and stay as they are.
+  release workflow's macOS job are gone. Basilisk's own workflows lost
+  macOS too (the user's decisions of 2026-10-21, after #92's checks
+  waited on macOS runners that never came: "remove the macOS jobs from
+  the framework workflow too", then "I dont want any macOS workflows
+  left whatsoever"). The "Pull Request" workflow has no macOS
+  build-and-test jobs; its `docs` job, the merge workflow's docs
+  deployment and the canary build run on `ubuntu-24.04`, the docs action
+  installing Doxygen and Graphviz with apt instead of Homebrew; the
+  nightly, optional and publishing wheel workflows build no macOS
+  wheels. That drops the framework's only Python 3.9 (minimum version)
+  test run on pull requests; Linux and Windows test 3.14. The framework's
+  own documentation, which describes macOS installs and the PyPI wheels,
+  is unchanged.
 - **The app:** the macOS-only code is gone: Vizard's macOS download and
   its `.app` bundle handling. Code that is plain POSIX (the Unix-domain
   SIL socket, skipping hidden files such as `.DS_Store` in a batch

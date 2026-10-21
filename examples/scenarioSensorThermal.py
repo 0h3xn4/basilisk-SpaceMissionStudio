@@ -44,7 +44,7 @@ simulation.
 
 The following plots illustrate the temperature of the sensor.
 
-.. image:: /_images/Scenarios/scenario_ThermalSensor.svg
+.. image:: /_images/Scenarios/scenario_thermalSensor.svg
    :align: center
 
 """

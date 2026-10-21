@@ -165,7 +165,8 @@ crash. Before the tests, the job crashes one Python process on purpose
 to check that cores are written and readable, and warns if not.
 
 Basilisk's own workflows (in `.github/workflows/`, from upstream) also
-run; they build and test Basilisk itself.
+run; they build and test Basilisk itself, on Linux and Windows only
+(their macOS jobs were removed: `docs/DECISIONS.md`, macOS removed).
 
 ## 7. More developer pages
 

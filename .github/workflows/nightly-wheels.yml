@@ -13,7 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         os: # keep these platforms in sync with the pull-request.yml file
-          - macos-26
           - ubuntu-24.04
           - ubuntu-24.04-arm
           - windows-2025-vs2026
@@ -75,7 +74,6 @@ jobs:
       fail-fast: false
       matrix:
         os: # keep these platforms in sync with the pull-request.yml file
-          - macos-26
           - ubuntu-24.04
           - ubuntu-24.04-arm
           - windows-2025-vs2026

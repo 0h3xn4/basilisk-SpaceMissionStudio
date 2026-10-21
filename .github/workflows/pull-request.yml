@@ -30,8 +30,8 @@ jobs:
           rustup default stable
           rustc --version
           cargo --version
-      # Pull-request CI exercises Rust modules through Corrosion on Linux,
-      # Windows, and macOS.
+      # Pull-request CI exercises Rust modules through Corrosion on Linux
+      # and Windows.
       - uses: ./.github/actions/build
         with:
           python-version: 3.14
@@ -127,58 +127,8 @@ jobs:
           cargo test -p bsk-build --no-default-features --locked --manifest-path src/Cargo.toml
           if ($LastExitCode -ne 0) { exit $LastExitCode }
 
-  build-macos:
-    runs-on: macos-26
-    timeout-minutes: 90
-    needs: pre-commit
-    strategy:
-      fail-fast: false
-      matrix:
-        job_suffix: [""]
-        python_label: ["MIN Python"]
-        python: ["3.9"]
-        pytest_flags:
-          [
-            '-n auto -m "not ciSkip" -rs --error-for-skips --timeout=300 --timeout-method=thread --durations=25 -v',
-          ]
-        conan_args:
-          [
-            "--opNav True --mujoco True --rustModules True",
-          ]
-        include:
-          # An extra plain Basilisk build without optional opNav, MuJoCo, or visualization support
-          - python: "3.14"
-            python_label: "MAX Python"
-            pytest_flags: -n auto -m "not ciSkip" -rs --timeout=300 --timeout-method=thread --durations=25 -v
-            conan_args: --opNav False --mujoco False --vizInterface False
-            job_suffix: "--vizInterface False"
-
-    name: macOS (${{ matrix.python_label }}) ${{ matrix.job_suffix }}
-    steps:
-      - uses: actions/checkout@v5
-      - uses: ./.github/actions/data-cache
-      - uses: ./.github/actions/build
-        with:
-          python-version: ${{ matrix.python }}
-          conan-args: ${{ matrix.conan_args }}
-      - name: Verify Corrosion configuration
-        if: ${{ contains(matrix.conan_args, '--rustModules True') }}
-        shell: bash
-        run: |
-          grep -F "BUILD_RUST_MODULES:BOOL=ON" dist3/CMakeCache.txt
-          python -c "from Basilisk import getBuildInfo; assert getBuildInfo()['diagnostics']['tools']['corrosion']"
-      - name: Pytest
-        working-directory: src
-        run: |
-          pip install pytest-error-for-skips pytest-timeout
-          pytest ${{ matrix.pytest_flags }}
-      - name: CTest
-        if: ${{ always() && hashFiles('dist3/CTestTestfile.cmake') != '' }}
-        working-directory: dist3
-        run: ctest -C Release --output-on-failure
-
   docs:
-    runs-on: macos-26
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
       - uses: ./.github/actions/data-cache
@@ -187,6 +137,5 @@ jobs:
         with:
           python-version: 3.14
           conan-args: --opNav True --mujoco True --rustModules True
-          save-conan-cache: true
       - name: Build docs
         uses: ./.github/actions/docs

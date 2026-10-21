@@ -14,7 +14,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # The documentation job below is the macOS cache producer.
   warm_build_caches:
     name: ${{ matrix.name }} Build Cache
     timeout-minutes: 105
@@ -42,8 +41,8 @@ jobs:
           save-conan-cache: true
 
   build_documentation:
-    name: macOS Docs Deployment
-    runs-on: macos-latest
+    name: Docs Deployment
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v5
         with:
@@ -55,7 +54,6 @@ jobs:
         with:
           python-version: 3.14
           conan-args: --opNav True --mujoco True --rustModules True
-          save-conan-cache: true
       - name: Build docs
         uses: ./.github/actions/docs
       - name: Deploy non-develop branch merges to /
