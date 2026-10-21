@@ -11975,3 +11975,9 @@ Each text was kept under the 160-character label limit
 Templates and Scenario screenshots of the manual were captured again.
 `tests/gui/test_mission_guide.py` (15 tests) covers it; no existing test
 changed, and the GUI suite passed with the new default mode.
+
+**1.1.1 published (2026-10-21, 11:44 UTC).** The user published the
+draft the release workflow made from the re-pushed tag (run 39575072165),
+with the notes rewritten for downloaders. Tag
+`spacemissionstudio-v1.1.1` on `57a54ae92`; the six files are those the
+workflow built, installed and checked (digests in the SRelD, issue 10).

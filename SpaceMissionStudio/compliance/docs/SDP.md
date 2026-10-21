@@ -61,10 +61,10 @@ The objectives, in order:
 
 No project master schedule exists. Development is continuous and driven by
 the user's requests. Releases are made when the user decides, tagged, not
-signed (decision 11). The current release is 1.1.0 (published
-2026-10-20); 1.0.0 (2026-10-14) followed the renewal that restarted the
-numbering. 1.1.1, the self-contained installers, is prepared (2026-10-21),
-to be published by the user (SRelD).
+signed (decision 11). The current release is 1.1.1, the self-contained
+installers (published 2026-10-21); before it 1.1.0 (2026-10-20) and 1.0.0
+(2026-10-14), which followed the renewal that restarted the numbering
+(SRelD).
 
 ### 4.3 Assumptions, dependencies and constraints (O.2.1<4.3>)
 
@@ -142,7 +142,7 @@ Incremental development on the `develop` line.
 - **Versioning:** semantic version (`MAJOR.MINOR.PATCH`) in
   `spacemissionstudio/__init__.py`, `pyproject.toml` and the Inno Setup
   script, set at release (`docs/developer/releasing.md`); the current
-  release is 1.1.0, and the code is at 1.1.1, the prepared release.
+  release is 1.1.1, and the code is at 1.1.1.
 - **Processes covered:**
   - requirements: SRS;
   - design: SDD;

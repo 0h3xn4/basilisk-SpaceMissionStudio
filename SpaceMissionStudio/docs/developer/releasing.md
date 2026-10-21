@@ -179,10 +179,14 @@ and publishing are the user's. 1.1.0 was published on 2026-10-20: tag
 with a Windows setup program) built and attached by the release workflow.
 
 1.1.1 was prepared on 2026-10-21 by this checklist: the self-contained
-installers of PR #89 and no change to the app. Its files are built,
-installed and attached by the release workflow when the tag is pushed;
-the space weather is the copy refreshed for 1.1.0 (observations to
-2026-10-18), one release earlier.
+installers of PR #89 and no change to the app. The space weather is the
+copy refreshed for 1.1.0 (observations to 2026-10-18), one release
+earlier. It was published on 2026-10-21: tag `spacemissionstudio-v1.1.1`
+on `57a54ae92`, its six files built, installed and attached by the
+release workflow. A first tag and release were deleted and the tag
+pushed again; a release created by hand before the workflow has attached
+its files is public with none, so push the tag and let the workflow
+create the draft.
 
 ---
 
