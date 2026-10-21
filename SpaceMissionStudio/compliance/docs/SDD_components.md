@@ -94,7 +94,7 @@ Identifiers are module paths: `engine/service` is `spacemissionstudio/engine/ser
 | `gui/formation_diagram_widget` | FormationDiagramWidget | - | `FormationDiagramWidget` | engine/scenario_explainer, gui/theme | PySide6 | 166 |
 | `gui/fsw_workbench_widget` | The Flight Software page | SRS-F-18, SRS-F-19 | `exportable_reason`, `FlightSoftwareWidget` | fsw_export/generate, fsw_export/records, gui/badges, gui/run_worker, gui/sil_comparison_widget, gui/sil_dialog, gui/theme | PySide6 | 321 |
 | `gui/ground_station_editor` | Ground station list + per-station editor dialog. | SRS-F-15 | `GroundStationEditorDialog`, `GroundStationListWidget` | gui/feedback, gui/field_text, gui/problem_location, gui/widgets, schema/scenario | PySide6 | 337 |
-| `gui/help_dialog` | The user manual, shown from Help (the rail's last button, F1) without a network (UX/UI guidelines, "help and examples built in"). | SRS-F-15 | `heading_slug`, `ManualDialog` | - | PySide6 | 130 |
+| `gui/help_dialog` | The user manual, shown from Help (the rail's last button, F1) without a network (UX/UI guidelines, "help and examples built in"). | SRS-F-15 | `heading_slug`, `ManualDialog` | - | PySide6 | 129 |
 | `gui/icons` | The application icon -- drawn procedurally with :class:`QPainter` (a satellite glyph | - | `app_icon`, `ensure_icon_file`, `toolbar_icon`, `step_icon` | gui/theme, gui/theme/palettes | PySide6 | 216 |
 | `gui/json_view` | The scenario as JSON, editable (docs/ux-audit.md U-16) | - | `ScenarioJsonView` | gui/feedback, gui/theme, schema/scenario | PySide6 | 149 |
 | `gui/lifetime_widget` | The "End of life" tab | SRS-F-15 | `AltitudeChart`, `LifetimeWidget` | engine/lifetime, gui/badges, gui/scenario_explainer_widget, gui/theme, gui/widgets | PySide6 | 381 |
