@@ -12194,7 +12194,7 @@ The user: "start M2b here", the second half of M2 (see M2a above).
   palette and the shortcut list (`test_the_shortcut_table_matches_the_registry`).
   The command is named "Problems" again after each count.
 
-**Tests.** 3689 passed and 12 skipped in the full suite (the usual 12:
+**Tests.** 3690 passed and 12 skipped in the full suite (the usual 12:
 no-Basilisk premises, the vendored-sources check, a missing locale). Of
 the existing GUI tests, 26 changed only how they reach a widget, each in
 `docs/ui/TEST_CHANGES.md`. There is one new file, `test_panels.py`, with
