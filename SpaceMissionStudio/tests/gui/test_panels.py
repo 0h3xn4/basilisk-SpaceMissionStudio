@@ -48,6 +48,18 @@ def shown(window, qtbot):
     return window
 
 
+@pytest.fixture
+def themed(restored_theme):
+    """The app's theme applied, as at start-up: its fonts are the bundled
+    ones in pixels, so widths do not follow a machine's default font and
+    DPI (Qt's default point-size font measured twice as wide on the
+    Windows runner)."""
+    from spacemissionstudio.gui.theme import apply_theme
+
+    apply_theme(restored_theme, "light")
+    return restored_theme
+
+
 def _open(window, name=_TEMPLATE):
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
 
@@ -180,7 +192,7 @@ def test_a_run_is_a_job_in_the_status_bar_with_progress_and_cancel(window):
     assert window.run_chip.isVisibleTo(window)
 
 
-def test_the_status_bar_job_fits_a_1280_px_window(window, qapp):
+def test_the_status_bar_job_fits_a_1280_px_window(themed, window, qapp):
     """At 1280 px, with the longest time text, the job's time and Cancel get
     all the width they need: the long entries elide instead (their tooltips
     keep the whole text). The status bar lays the job out again as its text
@@ -253,7 +265,7 @@ def test_ctrl_i_shows_and_hides_the_inspector(shown, qtbot):
 
 # -- the layout, per project ----------------------------------------------------------
 
-def test_each_project_keeps_its_own_layout(window, tmp_path, qapp):
+def test_each_project_keeps_its_own_layout(themed, window, tmp_path, qapp):
     """The rail, the panels and the splitters come back as they were for
     each scenario file; a scenario without a layout keeps the one shown."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
@@ -261,6 +273,7 @@ def test_each_project_keeps_its_own_layout(window, tmp_path, qapp):
     first, second = tmp_path / "first.json", tmp_path / "second.json"
     first.write_bytes((TEMPLATES_DIR / _TEMPLATE).read_bytes())
     second.write_bytes((TEMPLATES_DIR / _TEMPLATE).read_bytes())
+    window.resize(1600, 900)  # [px] room for the tree whichever panels are shown
     window.show()
     splitter = window.scenario_editor.page_tree.splitter
     assert window.open_path(first)

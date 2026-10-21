@@ -12185,6 +12185,14 @@ The user: "start M2b here", the second half of M2 (see M2a above).
   shows, since both said "80 %". The Earth orientation and frames entries
   elide, with their whole text as the tooltip.
   `test_the_status_bar_job_fits_a_1280_px_window` checks it.
+  - On CI the first version of that test failed twice. On Linux, the time
+    was cut by 7 px. On Windows, the status bar needed 2046 px: the test
+    measured Qt's default point-size font, which the runner's 192 dpi
+    doubles.
+  - Measured with the app's theme applied, as at start-up, the minimum was
+    1266 px of 1280. **Cancel** now carries its key (Esc) in the tooltip,
+    and the bar is 72 px wide, which brings it to 1207 px.
+  - The test applies the theme, and checks for 60 px to spare.
 - **A wheel test passed only by luck.** `test_mouse_wheel_changes_nothing`
   for the main window found something to wheel over only in the side
   tabs' bar. With the tabs gone, its "nothing to wheel over" guard failed.

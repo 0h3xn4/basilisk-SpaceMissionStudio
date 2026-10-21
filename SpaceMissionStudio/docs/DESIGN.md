@@ -445,7 +445,7 @@ Settings > Appearance offers System, Light and Dark:
 Every slow job runs in a `QThread` worker, so the window never waits
 on it:
 
-- **Simulations:** a job in the status bar with progress and Cancel (Esc).
+- **Simulations:** a job in the status bar with progress and Cancel (Esc, in its tooltip).
 - **The AD10 budget's sweeps:** their button turns into Cancel while
   they run.
 - **Lifetime estimates and reference-data downloads:** run in workers

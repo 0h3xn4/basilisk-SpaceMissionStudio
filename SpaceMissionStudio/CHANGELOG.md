@@ -46,7 +46,7 @@ fixes bugs.
     counts the errors and warnings, and the top bar shows the count while
     there are any; a click on either opens the panel.
   - **The run** shows in the status bar: what it is doing, its progress,
-    the time so far and left, **Cancel (Esc)** and its state ("Run 2:
+    the time so far and left, **Cancel** (`Esc`) and its state ("Run 2:
     done in 6 s").
   - **Inspector and Explain** are two panels on the right, one above the
     other, instead of tabs. `Ctrl+I` shows and hides the Inspector.

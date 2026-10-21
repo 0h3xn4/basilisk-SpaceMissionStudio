@@ -88,7 +88,9 @@ The user: "start M2b here". M2b is the second half of M2 (above).
   ended. One job at a time: Run is disabled while a run or a Monte Carlo
   batch goes, so the "job list" has one entry.
 - **The status bar fits 1280 px during a run:**
-  - the job's phase elides (80 to 320 px) and its bar is 96 px wide;
+  - the job's phase elides (80 to 320 px) and its bar is 72 px wide;
+  - its button says **Cancel**, its key (Esc) in the tooltip, as
+    `CLAUDE.md` puts shortcuts;
   - the Earth orientation and frames entries elide down to 48 px, their
     tooltips holding the whole text;
   - the job asks the status bar to lay it out again when its text grows
@@ -96,10 +98,12 @@ The user: "start M2b here". M2b is the second half of M2 (above).
     "0:02 elap" in the harness's run-in-progress screen).
 
   Measured at 1280 px with the longest data text ("12 of 14 need
-  attention") and "80 % · 0:40 elapsed · about 0:09 left": the status
-  bar's minimum is 1160 px, so nothing of the job is cut. At 120 px each
-  the minimum was 1304 px. That fitted here only by a few pixels, and on
-  CI, whose font renders the time 12 px wider, it cut 7 px.
+  attention") and "80 % · 0:40 elapsed · about 0:09 left", with the theme
+  applied: the status bar's minimum is 1207 px. With the theme applied it
+  was 1266 px before Cancel and the bar shrank, which left 14 px.
+  The test measures with the theme applied: Qt's default point-size font
+  measured twice as wide on the Windows runner (192 dpi, an 800 px screen),
+  which says nothing about the app's own fonts.
 - **The inspector is two docks, Inspector over Explain,** not one dock
   with tabs. Each one is shown, hidden and sized on its own. Explain leaves
   for Scenario › Overview in M4.

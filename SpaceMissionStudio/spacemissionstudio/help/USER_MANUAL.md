@@ -234,7 +234,7 @@ A few things to notice right away:
   kept for questions such as replacing a file.
 * The status bar at the bottom shows the run going on: what it is doing
   ("Propagating: day 0.4 of 1"), a progress bar, the time so far and an
-  estimate of the time left, and **Cancel (Esc)**. When no run is going,
+  estimate of the time left, and **Cancel** (`Esc`). When no run is going,
   a tag there says how the last one went: **No run yet**, **Run 2: done
   in 6 s**, **Failed** or **Run 2: cancelled**. It always shows the problems ("1 error · 2 warnings", or
   "No problems"; click it to open **Problems**), the Basilisk

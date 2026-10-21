@@ -26,7 +26,7 @@ visible" and "Target layout"; docs/ux-audit.md U-04, U-06, U-07):
 * :class:`RunProgressStrip` -- the job in the status bar while a run is
   going (U-19, UI overhaul M2b): what it is doing ("Step 2 of 5: ...",
   "Propagating: day 0.4 of 1"), a progress bar, the time elapsed and an
-  estimate of the time left, and **Cancel (Esc)**.
+  estimate of the time left, and **Cancel** (Esc).
 * :class:`StatusChip` -- the run state in the status bar (idle, running
   43 %, done, failed, cancelled).
 * :class:`StatusBarItems` -- permanent status-bar entries: the problem
@@ -104,6 +104,9 @@ class ElidedLabel(QLabel):
         painter.drawText(self.rect(), int(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft), shown)
 
 
+_CANCEL_TIP = "Cancel (Esc): the run stops at its next checkpoint and keeps what it has"
+
+
 class RunProgressStrip(QFrame):
     """A run in progress, under the top bar: phase, progress, elapsed time,
     the time left, and Cancel. Hidden while no run is going.
@@ -129,10 +132,10 @@ class RunProgressStrip(QFrame):
         self.phase_label.setMaximumWidth(320)  # [px]
         self.bar = QProgressBar()
         self.bar.setTextVisible(False)  # the percentage is in the time label and the status chip
-        self.bar.setFixedWidth(96)  # [px]
+        self.bar.setFixedWidth(72)  # [px]
         self.time_label = QLabel()
         self.time_label.setObjectName("runTime")
-        self.cancel_button = QPushButton("Cancel (Esc)")
+        self.cancel_button = QPushButton("Cancel")  # its key, Esc, in the tooltip: the status bar is narrow
         self.cancel_button.clicked.connect(self.cancel_requested)
         layout.addWidget(self.phase_label, 1)
         layout.addWidget(self.bar)
@@ -153,8 +156,8 @@ class RunProgressStrip(QFrame):
         self.bar.setRange(0, 0)  # busy until a fraction arrives
         self.phase_label.setText(phase)
         self.cancel_button.setEnabled(cancellable)
-        self.cancel_button.setText("Cancel (Esc)")
-        self.cancel_button.setToolTip("" if cancellable else cancel_note)
+        self.cancel_button.setText("Cancel")
+        self.cancel_button.setToolTip(_CANCEL_TIP if cancellable else cancel_note)
         self.refresh_time()
         self._timer.start()
         self.show()
