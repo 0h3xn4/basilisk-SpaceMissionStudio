@@ -188,9 +188,9 @@ orbit for one day, with a ground station in Berlin.
    **Fetch now** downloads only what you tick.
 2. Click the card **22 - Starter: your first LEO satellite**; its
    description appears on the right.
-3. Click **Open template**. The **Scenario** area shows the mission; the
-   **Explain** panel on the right says what it switches on, and predicts
-   `berlin-gs: 4 passes`.
+3. Click **Open template**. The **Scenario** area shows the mission; its
+   **Overview** (Explain), first in the tree, says what it switches on,
+   and predicts `berlin-gs: 4 passes`.
 4. **Run** in the top bar (`Ctrl+R`). It takes a few seconds.
 5. The **Results** area opens. Click "Inertial Position (ECI)" in the
    catalog on the left (search `position_N`) to see the orbit.

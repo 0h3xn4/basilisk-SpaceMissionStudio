@@ -2742,7 +2742,7 @@ class SpacecraftListWidget(QWidget):
         # The empty state, in the list's place while there is no spacecraft:
         # what to do first, not a blank box over the buttons.
         self.empty_label = QLabel(
-            "No spacecraft yet: a run needs one. Add... builds one from scratch; New from template... starts "
+            "No spacecraft yet: a run needs one. Add builds one from scratch; New from template... starts "
             "from a 100-500 kg preset.")
         self.empty_label.setWordWrap(True)
         self.empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -2758,7 +2758,7 @@ class SpacecraftListWidget(QWidget):
         # Each row wraps when the page is narrower than it (M4a: the three
         # generators made the Spacecraft page scroll sideways at 1280 px).
         self.add_button = QPushButton("Add")
-        self.edit_button = QPushButton("Edit...")
+        self.edit_button = QPushButton("Edit")  # opens its page (U-01), not a dialog
         self.remove_button = QPushButton("Remove")
         self.new_from_template_button = QPushButton("New from template...")
         layout.addWidget(flow_row(self.add_button, self.new_from_template_button, self.edit_button,
@@ -2926,7 +2926,7 @@ class SpacecraftListWidget(QWidget):
             self.changed.emit()
 
     def set_edit_handler(self, handler) -> None:
-        """``handler(row)`` replaces the editor dialog that Edit... and a
+        """``handler(row)`` replaces the editor dialog that Edit and a
         double-click open: the Scenario Editor shows the spacecraft's page
         in its tree instead (docs/ux-audit.md U-01, U-11)."""
         self._edit_handler = handler

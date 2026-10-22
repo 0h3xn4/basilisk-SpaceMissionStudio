@@ -237,3 +237,64 @@ while off. Each test below reaches the same value, label or button there.
     with the inspector shown, and none with a framed panel or a scroll
     area inside it;
   - the unsaved-changes indicator after a number edit, until saved.
+
+## M4b Editing flow
+
+No test outside `tests/gui/` changed. No golden or output file changed.
+Explain moved from the inspector's dock to the Scenario tree's first node,
+Overview, and its explanation now comes 250 ms after an edit, from a
+worker. The tree's JSON node became the Form · JSON toggle. Devices and
+dispersions are edited in a form under their list instead of a dialog.
+
+### Changed: how a test reaches the widget
+
+| Test | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_main_window.py::test_explain_tab_exists_and_shows_the_default_scenario_on_startup` | `window.explain_dock.widget()` and its title | The tree node holding the explainer (`window.overview_item`) and its title | Explain exists, is titled "Explain"/"Overview" with nothing to check, and shows its placeholder at start-up |
+| `test_main_window.py::test_explain_tab_refreshes_on_edit`, `test_explain_tab_refreshes_on_new` | Read the explainer right after the edit | Wait for the explanation the edit asked for (`pending`), then read it | A headline and a stat tile after a valid spacecraft; the placeholder after New |
+| `test_main_window.py::test_explain_tab_title_counts_pre_run_warnings` | The dock's title | The Overview node's text, after the explanation arrives | "1 to check" for template 19 moved to 2030 |
+| `test_workspace.py::test_the_areas_and_what_they_hold` | `explain_dock.isAncestorOf(explainer)` | `page_tree.item_of(explainer) is overview_item` | Explain is in the window, in its own place |
+| `test_workspace.py::test_the_layout_is_kept_and_reset` | `explain_dock.isVisible()` after Reset Layout | The explainer still in the tree after Reset Layout (no dock to hide) | Reset Layout brings the inspector back |
+| `test_dark_theme.py::test_a_live_switch_restyles_every_open_view` | Read the explainer's badges after opening template 22, in its dock | Wait for its explanation; show Scenario › Overview before reading them | The badges are rebuilt from the dark tokens |
+| `test_workspace.py::test_the_explain_badge_opens_the_model_editor` | Read the badges after opening template 28 | Wait for its explanation, then read them | The "3D model" badge opens the spacecraft's model editor |
+| `test_panels.py::test_the_inspector_and_explain_are_panels_on_the_right_without_tabs` | The Explain dock on the right, without tabs | The explainer as the Overview node, without tabs | The inspector on the right, Problems at the bottom, no tabs, Ctrl+I and Ctrl+J |
+| `test_panels.py::test_a_project_layout_outlives_the_window` | Hid and showed the Explain dock | Hides and shows the Problems dock | A project's layout is kept for the next window that opens it |
+| `test_shell_reachability.py` rows "Side **Explain**" and "Scenario › JSON" | The Explain dock; the tree's JSON node | Scenario › Overview through View › Explain; the Form · JSON toggle in the Scenario area's header | Each row of the plan's table is reachable |
+| `test_json_view.py::test_an_edit_in_the_json_applies_everywhere`, `test_problems_open_the_json_page` | `page_tree.current_page() is json_page` | `editor.json_mode` | The edit applies everywhere; Problems opens the JSON |
+| `test_json_view.py::test_text_that_is_not_json_is_marked_and_blocks_the_run` | The JSON node's problem count | The toggle's JSON button, "JSON (1)" | The broken line is marked, Problems names it, the run is blocked, the fix clears it |
+| `test_sensor_actuator_editor.py::test_add_via_dialog`, `test_edit_and_remove` | Filled the dialog `exec()` opened | Fill the form under the list, then apply it (`inline.flush()`) | The wheel with its spin axis is listed; Edit renames; Remove deletes |
+| `test_monte_carlo_editor.py::test_dispersion_list_add_edit_remove` | Filled the dialog `exec()` opened | Fill the form under the list, then apply it | Add lists one, as one change; the edit keeps one; Remove deletes it |
+
+### Changed: what M4b changes on purpose
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_workspace.py::test_the_areas_and_what_they_hold` | The tree's paths ended with "JSON" | They start with "Overview" and have no "JSON"; the toggle is in the area's header | The plan's §5 table: Explain becomes Scenario › Overview; JSON a toggle |
+| `test_json_view.py::test_text_that_is_not_json_is_marked_and_blocks_the_run` | Leaving the JSON page kept the broken text | Leaving JSON mode is refused while the text does not apply; the text and its problem are kept | "A Form/JSON toggle that validates before applying" (M4's criterion) |
+| `test_sensor_actuator_editor.py::test_add_via_dialog` | One change (the dialog's OK) | Two: the Add, then the form's edit | Add no longer waits for a dialog |
+| `test_sensor_actuator_editor.py::test_rejects_duplicate_name_on_add` | A device added under a taken name was dropped, with a warning toast | Add gives a free name; renaming it to a taken one is not applied, and the form's banner says so; no toast, no box | The dialog it was dropped from is gone |
+| `test_sensor_actuator_editor.py::test_add_via_dialog_shows_a_toast_and_selects_the_row` | The toast named the dialog's name | It names the name Add gave ("star_tracker-1") | The same |
+
+### Wording only
+
+- `test_mission_guide.py::test_the_spacecraft_page_has_an_empty_state_and_selection_bound_buttons`:
+  the empty state says "Add builds one" (was "Add..."): Add opens no
+  dialog now. `test_scenario_tree.py`: "Edit" in two docstrings.
+
+### Added
+
+- `tests/gui/test_editing_flow.py` (16 tests):
+  - Overview first in the tree, View › Explain opening it, a file still
+    opening on its Scenario page;
+  - the explanation computed after the 250 ms wait in a worker thread,
+    once for a burst of keystrokes, an overtaken one dropped, the
+    placeholder at once for a scenario that does not validate, nothing
+    after the window closes and no autosave either;
+  - the toggle in the header, back to Form applying a waiting edit,
+    refused for text that does not apply, Discard, a form problem
+    leaving JSON mode;
+  - a device's new kind followed, Remove and a reload dropping an edit
+    not applied, a dispersion needing a spacecraft, a device edited
+    inline reaching the scenario and undone, Add opening a new
+    spacecraft's and station's page, with no dialog anywhere.
+- `tests/gui/test_forms.py::test_the_inline_device_and_dispersion_forms_fit`.

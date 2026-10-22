@@ -860,7 +860,7 @@ class MainWindow(QMainWindow):
         names = [config.name for config in spacecraft_list.to_list()]
         if not names:
             self.show_view(self.scenario_editor)
-            show_toast(self, "Add a spacecraft first (the Spacecraft page, Add...), then build its 3D model",
+            show_toast(self, "Add a spacecraft first (the Spacecraft page, Add), then build its 3D model",
                        kind="info")
             return
         row = 0

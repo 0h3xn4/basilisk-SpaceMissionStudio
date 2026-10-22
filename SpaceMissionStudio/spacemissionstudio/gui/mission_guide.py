@@ -67,7 +67,7 @@ _STEPS: Tuple[Tuple[str, str, str], ...] = (
      "dense the upper atmosphere is."),
     (ENVIRONMENT, "2. Environment", "Central body, gravity field, third bodies, drag and space weather, the "
      "integrator and the duration. The defaults: one day around Earth."),
-    (SPACECRAFT, "3. Spacecraft", "At least one: its orbit, mass and drag area. Add... builds one, New from "
+    (SPACECRAFT, "3. Spacecraft", "At least one: its orbit, mass and drag area. Add builds one, New from "
      "template... starts from a 100-500 kg preset."),
     (GROUND_STATIONS, "4. Ground stations", "Optional: where passes and contacts are computed."),
     ("run", "5. Run", "Run in the top bar (Ctrl+R). Results, the Timeline and Explain then show what happened."),

@@ -150,7 +150,7 @@ def test_the_spacecraft_page_has_an_empty_state_and_selection_bound_buttons(wind
     Remove wait for a selection."""
     spacecraft_list = window.scenario_editor.spacecraft_list
     assert not spacecraft_list.empty_label.isHidden() and spacecraft_list.list_widget.isHidden()
-    assert "Add..." in spacecraft_list.empty_label.text()
+    assert "Add builds one" in spacecraft_list.empty_label.text()  # Add, no dialog after it (M4b)
     assert not spacecraft_list.edit_button.isEnabled() and not spacecraft_list.remove_button.isEnabled()
     _add_spacecraft(window)
     assert spacecraft_list.empty_label.isHidden() and not spacecraft_list.list_widget.isHidden()

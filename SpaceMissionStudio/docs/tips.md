@@ -31,11 +31,11 @@ writes, so you can move data to and from other tools.
 
 - **Save As first.** Templates never change on disk, but your edits are
   only kept once you save them under your own name.
-- **Read the Explain tab before you run.** It predicts ground passes and
+- **Read Explain (Scenario › Overview) before you run.** It predicts ground passes and
   warns about things that cannot work (no sun sensor on the Sun-facing
   side, station keeping without drag, a formation law that needs more
   thrust than the thruster has). Its title shows how many warnings there
-  are: "Explain (1 to check)".
+  are: "Overview (1 to check)".
 - **Grow a scenario one step at a time** and run after each step, so you
   know which change changed the result.
 - **Compare runs.** Run, change one thing, run again: the **Compare** tab

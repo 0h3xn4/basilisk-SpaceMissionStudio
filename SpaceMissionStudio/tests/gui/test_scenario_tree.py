@@ -19,7 +19,7 @@
 """The Scenario Editor as a tree (docs/ux-audit.md U-01, U-10, U-11, U-17):
 one page per node; the spacecraft, ground stations and the environment
 edited in their pages as they are typed in, with Undo; a node counts the
-problems about it; the list's Edit... goes to the node; a page follows a
+problems about it; the list's Edit goes to the node; a page follows a
 change made elsewhere."""
 
 from pathlib import Path
@@ -120,7 +120,7 @@ def test_a_scenario_problem_counts_on_its_node(window):
 
 
 def test_edit_in_the_list_goes_to_the_node(window, monkeypatch):
-    """Edit... selects the spacecraft's node; no dialog opens."""
+    """Edit selects the spacecraft's node; no dialog opens."""
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
 
     monkeypatch.setattr(SpacecraftEditorDialog, "exec", lambda self: pytest.fail("a dialog opened"))

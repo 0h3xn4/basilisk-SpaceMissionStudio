@@ -702,7 +702,7 @@ class ScenarioEditorWidget(QWidget):
         return node
 
     def show_spacecraft(self, row: int) -> None:
-        """The page of spacecraft ``row``: Edit... and a double-click in the
+        """The page of spacecraft ``row``: Edit and a double-click in the
         Spacecraft list."""
         self._show_node(self._spacecraft_nodes, row)
 

@@ -236,7 +236,7 @@ class GroundStationListWidget(QWidget):
 
         button_row = QHBoxLayout()
         self.add_button = QPushButton("Add")
-        self.edit_button = QPushButton("Edit...")
+        self.edit_button = QPushButton("Edit")  # opens its page (U-01), not a dialog
         self.remove_button = QPushButton("Remove")
         button_row.addWidget(self.add_button)
         button_row.addWidget(self.edit_button)
@@ -287,7 +287,7 @@ class GroundStationListWidget(QWidget):
             self.changed.emit()
 
     def set_edit_handler(self, handler) -> None:
-        """``handler(row)`` replaces the editor dialog that Edit... and a
+        """``handler(row)`` replaces the editor dialog that Edit and a
         double-click open: the Scenario Editor shows the ground station's page
         in its tree instead (docs/ux-audit.md U-01, U-11)."""
         self._edit_handler = handler

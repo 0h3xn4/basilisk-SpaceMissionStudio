@@ -228,9 +228,17 @@ bar and no toolbar:
   its label. An optional (checkable) group shows only its title while
   off. Rows of buttons or boxes wrap (`flow_row`) instead of widening the
   page. No framed panel and no scroll area inside a page.
-- **Inspector, on the right:** two docks one above the other, Inspector
-  (Ctrl+I) and, until it becomes Scenario › Overview (M4), Explain. No
-  tabs.
+- **Inspector, on the right:** one dock, the focused field (Ctrl+I). No
+  tabs. Explain is the Scenario tree's first node, Overview (M4b): asked
+  for 250 ms after an edit and computed in a `QThread`, an overtaken
+  answer dropped.
+- **Form · JSON:** a segmented control in the Scenario area's header;
+  JSON mode shows the text in place of the tree. Back to Form applies a
+  waiting edit and is refused while the text does not apply (Discard).
+- **Lists edit inline:** a device's or dispersion's form is under its list
+  (`gui.inline_form.InlineForm`), applied 300 ms after the last edit once
+  it validates, the reason above the form when it does not. Add creates
+  the item and opens it; no modal dialog.
 - **Problems panel, at the bottom (Ctrl+J):** a `QTableView` over
   `ProblemsModel`: Severity (icon and word), ID (the field path), Object,
   Message; errors first, any column sorts, Ctrl+C copies TSV, Enter or a
@@ -378,7 +386,7 @@ search) finds, by name or an older name ("events" finds the Timeline):
 - the registry's commands;
 - the areas and the pages of Run and Results;
 - the Scenario tree's pages, its spacecraft and ground stations;
-- the panels (Inspector, Explain, Problems) and the Settings sections;
+- the panels (Inspector, Problems) and the Settings sections;
 - the templates;
 - the plotted series.
 
