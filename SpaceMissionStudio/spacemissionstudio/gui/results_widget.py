@@ -146,6 +146,7 @@ from . import webengine_setup  # noqa: F401 -- importing it sets the flags
 import json
 import tempfile
 import time
+import weakref
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -153,10 +154,12 @@ from typing import Optional
 import numpy as np
 
 import plotly.graph_objects as go
+import shiboken6
 from PySide6.QtCore import QElapsedTimer, QSettings, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
+    QApplication,
     QComboBox,
     QFileDialog,
     QHBoxLayout,
@@ -396,7 +399,22 @@ _BAND_OPACITY = 0.16
 # each zoom, and a year of LEO eclipses (~5,500) made zooming crawl.
 _MAX_BANDS_PER_KIND = 400
 _LAYOUT_SETTINGS_PREFIX = "results_layout"
+_LAYOUT_SAVE_DELAY_MS = 500  # [ms] after the last change to the layout or plots
 _EVENTS_REFRESH_S = 2.0  # [s] a live run's events are read again at most this often
+
+
+# Views with a layout save pending (M6a: saved after the click): every
+# read of a saved layout, and the application's quit, writes them first.
+_PENDING_SAVES: "weakref.WeakSet" = weakref.WeakSet()
+_SAVES_ON_QUIT = None  # the application whose quit writes them
+
+
+def _write_pending_saves() -> None:
+    for view in list(_PENDING_SAVES):
+        if shiboken6.isValid(view):
+            view._save_layout_now()
+        else:  # Qt deleted the view: it has nothing left to save
+            _PENDING_SAVES.discard(view)
 
 
 def _settings() -> QSettings:
@@ -414,6 +432,7 @@ def _utc_text(epoch_utc: str) -> str:
 
 class ResultsWidget(QWidget):
     open_in_vizard = Signal(str)  # the last run's playback file
+    plot_drawn = Signal(bool)  # the page drew the latest figures (M6a); False: Plotly reported an error
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -436,6 +455,20 @@ class ResultsWidget(QWidget):
         self._orbit_cache: tuple = (None, None, None)  # (result, spacecraft, (time_s, numbers) or None)
         self._hover_time_s: Optional[float] = None
         self._band_notes: list = []  # kinds left out of a plot for having too many bands
+        # M6a: each plot's figure, kept until what it shows changes (_cached_plot):
+        # name -> (key, go.Figure, its band notes)
+        self._figure_cache: dict = {}
+        self._cache_result = None  # the result the cached figures are of
+        self._theme_generation = 0  # counts theme switches: a figure's colours come from the theme
+        # The persistent page (plot_page.shell_page): loaded once, then sent each change.
+        self._page_ready = False
+        self._render_generation = 0  # the latest render sent; the page answers with it when drawn
+        self._page_cells: list = []  # the figure each cell of the page shows
+        self._page_json: dict = {}  # id(figure) -> (figure, its JSON), for the figures shown
+        self._save_timer = QTimer(self)  # the layout is saved after the click, not in it
+        self._save_timer.setSingleShot(True)
+        self._save_timer.setInterval(_LAYOUT_SAVE_DELAY_MS)
+        self._save_timer.timeout.connect(self._save_layout_now)
 
         layout = QVBoxLayout(self)
 
@@ -606,13 +639,13 @@ class ResultsWidget(QWidget):
         self.catalog.toggled.connect(self._on_catalog_toggled)
         self.web_view = QWebEngineView()
         self.web_view.titleChanged.connect(self._on_page_title)
-        self.web_view.loadFinished.connect(lambda _ok: self._on_page_loaded())
+        self.web_view.loadFinished.connect(self._on_shell_loaded)
         self.web_view.setMinimumWidth(320)  # [px]
         on_change(self._on_theme_changed)
-        # Plot pages are written here and loaded from file -- see
-        # _MAX_PLOT_POINTS_PER_LINE for why setHtml() can't be used.
+        # The page is written here and loaded from file: setHtml() cannot
+        # reach the bundled plotly.js (a file:// URL) from a data URL.
         self._page_dir = tempfile.TemporaryDirectory(prefix="spacemissionstudio-plot-")
-        self._page_counter = 0
+        self._load_shell()
         self.readout = ReadoutPanel()
         # The catalog over the readout, beside the grid: the plots keep the
         # width (at 1280 px with the side panel open the pane is ~880 px).
@@ -648,6 +681,11 @@ class ResultsWidget(QWidget):
             # At 2560 px a 250 px list cut most plot names short.
             wanted = min(max(int(total * _CATALOG_WIDTH_SHARE), _CATALOG_WIDTH_PX[0]), _CATALOG_WIDTH_PX[1])  # [px]
             self.splitter.setSizes([wanted, total - wanted])
+
+    def hideEvent(self, event):  # noqa: N802 -- Qt API name
+        if self in _PENDING_SAVES:
+            self._save_layout_now()  # another area shown, or the window closed: no save left behind
+        super().hideEvent(event)
 
     def _on_catalog_dragged(self, _pos: int, _index: int) -> None:
         self._catalog_dragged = True
@@ -722,9 +760,12 @@ class ResultsWidget(QWidget):
     def set_layout_key(self, key: Optional[str]) -> None:
         """The scenario whose layout and plots the grid keeps (its name);
         None keeps nothing."""
+        if self in _PENDING_SAVES:
+            self._save_layout_now()  # the previous scenario's, before the key changes
         self._layout_key = key or None
 
     def _saved_layout(self) -> tuple:
+        _write_pending_saves()  # a change still to be saved, by this view or another
         if not self._layout_key:
             return "1x1", []
         value = _settings().value(f"{_LAYOUT_SETTINGS_PREFIX}/{self._layout_key}")
@@ -737,6 +778,20 @@ class ResultsWidget(QWidget):
                 [p for p in plots if isinstance(p, str)] if isinstance(plots, list) else [])
 
     def _save_layout(self) -> None:
+        """Save the layout and plots shortly after the change (the QSettings
+        write took ~15 ms of the click, M6a); a pending save is written
+        before another scenario's layout is read."""
+        global _SAVES_ON_QUIT
+        app = QApplication.instance()
+        if app is not None and _SAVES_ON_QUIT is not app:
+            app.aboutToQuit.connect(_write_pending_saves)
+            _SAVES_ON_QUIT = app
+        _PENDING_SAVES.add(self)
+        self._save_timer.start()
+
+    def _save_layout_now(self) -> None:
+        self._save_timer.stop()
+        _PENDING_SAVES.discard(self)
         if self._layout_key and self._result is not None:
             settings = _settings()
             settings.setValue(f"{_LAYOUT_SETTINGS_PREFIX}/{self._layout_key}",
@@ -1030,7 +1085,7 @@ class ResultsWidget(QWidget):
         is_datetime_axis = self._x_mode() == "epoch" and x_label == "Epoch (UTC)"
         self._x_is_epoch = is_datetime_axis
 
-        fig = go.Figure()
+        traces = []
         column_labels = display.columns or {}
         x_array = np.asarray(x_values, dtype=object if isinstance(x_values, list) else None)
         # A Monte Carlo batch's per-run series (columns run_0, run_1, ...):
@@ -1047,7 +1102,7 @@ class ResultsWidget(QWidget):
             else:
                 keep = _display_indices(display_data[:, i])  # see _MAX_PLOT_POINTS_PER_LINE
                 x_shown, y_shown = x_array[keep], display_data[keep, i]
-            fig.add_trace(go.Scatter(
+            traces.append(go.Scatter(
                 x=list(x_shown) if x_array.dtype == object else x_shown, y=y_shown, mode="lines",
                 name=(f"Each run ({len(series.columns)})" if ensemble
                       else f"{column_labels.get(column, column)}{own_run}"),
@@ -1056,7 +1111,7 @@ class ResultsWidget(QWidget):
                 **(dict(opacity=0.45, legendgroup="runs", showlegend=i == 0,
                         hovertemplate=f"Run {str(column)[4:]}: %{{y:.4g}}<extra></extra>") if ensemble else {}),
             ))
-        self._add_comparison_traces(fig, name, display)
+        traces += self._comparison_traces(name, display)
 
         axis_common = pt.axis(TOKENS)
         y_title = f"{display.y_label} [{display.unit}]" if display.y_label else (f"[{display.unit}]" if display.unit else None)
@@ -1071,22 +1126,22 @@ class ResultsWidget(QWidget):
             x_axis["exponentformat"] = "none"
             x_axis["separatethousands"] = True
 
-        fig.update_layout(
+        # One validated construction, traces and layout together (M6a): each
+        # update_layout() parsed every key path again, ~60 ms a figure.
+        return go.Figure(data=traces, layout=dict(
             title=self._title(_series_label(name, series)),
             xaxis=x_axis,
             yaxis=y_axis,
             **_template_layout(),
-            hovermode="x unified",
+            # one hover row per run would list them all; show the run under the pointer
+            hovermode="closest" if ensemble else "x unified",
             # a single series names itself in the title -- no legend box needed, unless compared
             showlegend=len(series.columns) > 1 or self.comparison_run() is not None,
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
                         font=dict(color=TOKENS["text.secondary"])),
             margin=self._margin(),
-        )
-        if ensemble:  # one hover row per run would list them all; show the run under the pointer
-            fig.update_layout(hovermode="closest")
-        self._add_event_bands(fig, name)
-        return fig
+            shapes=self._event_shapes(name),
+        ))
 
     def _events(self) -> list:
         """The result's events (engine.events), cached. A live run sends a
@@ -1111,7 +1166,7 @@ class ResultsWidget(QWidget):
         x_values, _label = self._x_axis_values(np.asarray(times_s, dtype=float))
         return list(x_values) if isinstance(x_values, list) else [float(x) for x in x_values]
 
-    def _add_event_bands(self, fig: go.Figure, name: str) -> None:
+    def _event_shapes(self, name: str) -> list:
         """The run's events behind ``name``'s lines (U-27): a band from start
         to end of each, in the Events tab's colour; a mode change a dashed
         line at its start. Only the plot's own spacecraft's events."""
@@ -1120,7 +1175,7 @@ class ResultsWidget(QWidget):
         parsed = _parse_access_pair(name)
         spacecraft = parsed[1] if parsed is not None else name.split(".", 1)[0]
         events = [e for e in self._events() if e.spacecraft == spacecraft and e.kind not in self._hidden_kinds]
-        shapes = list(fig.layout.shapes or [])
+        shapes = []
         for kind in event_model.KINDS:
             of_kind = [e for e in events if e.kind == kind]
             if not of_kind:
@@ -1141,7 +1196,7 @@ class ResultsWidget(QWidget):
                     shapes.append(dict(type="rect", xref="x", yref="paper", x0=start, x1=end, y0=0, y1=1,
                                        layer="below", name=f"event-{kind}", fillcolor=colour,
                                        opacity=_BAND_OPACITY, line=dict(width=0)))
-        fig.update_layout(shapes=shapes)
+        return shapes
 
     def _update_event_buttons(self) -> None:
         """Offer the kinds this run has."""
@@ -1160,6 +1215,31 @@ class ResultsWidget(QWidget):
         series = self._result.series.get(name) if self._result is not None else None
         return self._build_figure(name, series) if series is not None else None
 
+    def _figure_key(self) -> tuple:
+        """What a figure shows besides its series: a figure built with
+        another key is built again (M6a)."""
+        mode = self._x_mode()
+        other = self.comparison_run()
+        return (mode, self._epoch_utc, self._compact(), self._orbit_reference()[0] if mode == "orbit" else None,
+                frozenset(self._hidden_kinds), None if other is None else other.number,
+                None if self._current_run is None else self._current_run.number, self._theme_generation)
+
+    def _cached_plot(self, name: str) -> Optional[go.Figure]:
+        """``name``'s figure: the one built before when nothing it shows has
+        changed, else a new one (M6a: showing another plot builds only that
+        plot)."""
+        if self._cache_result is not self._result:
+            self._figure_cache, self._cache_result = {}, self._result
+        key = self._figure_key()
+        cached = self._figure_cache.get(name)
+        if cached is not None and cached[0] == key:
+            self._band_notes.extend(cached[2])
+            return cached[1]
+        notes = len(self._band_notes)
+        fig = self._build_plot(name)
+        self._figure_cache[name] = (key, fig, list(self._band_notes[notes:]))
+        return fig
+
     def _update_figure(self) -> None:
         """Rebuilds :attr:`figures` from the current result and the shown
         plots -- cheap (no page reload), so it is kept fresh even on a chunk
@@ -1171,7 +1251,7 @@ class ResultsWidget(QWidget):
         self._x_is_epoch = False
         if self._result is None:
             return
-        built = [(name, self._build_plot(name)) for name in self._shown]
+        built = [(name, self._cached_plot(name)) for name in self._shown]
         self._shown = [name for name, fig in built if fig is not None]
         self.figures = [fig for _name, fig in built if fig is not None]
         self._x_is_epoch = self._x_mode() == "epoch" and any(name != ACCESS_TIMELINE for name in self._shown)
@@ -1263,37 +1343,55 @@ class ResultsWidget(QWidget):
         )
         return fig
 
-    def _empty_html(self) -> str:
-        if self._result is None:
-            return _empty_state_html()
-        return _empty_state_html().replace("Run a simulation to see results here",
-                                           "Tick a plot in the catalog to show it here")
+    def _empty_text(self) -> str:
+        return "Run a simulation to see results here" if self._result is None else \
+            "Tick a plot in the catalog to show it here"
+
+    def _load_shell(self) -> None:
+        """Load the persistent page (M6a): plotly.js once; every change is
+        then sent to it (:meth:`_push_figure_to_webview`). Loaded again only
+        for a theme switch (its fonts and surface)."""
+        self._page_ready = False
+        self._page_cells, self._page_json = [], {}
+        page = Path(self._page_dir.name) / "plots.html"
+        if not page.parent.is_dir():
+            return  # shutting down: Python removed the temporary directory first
+        page.write_text(plot_page.shell_page(QUrl.fromLocalFile(str(_plotlyjs_path())).toString(), _page_style()),
+                        encoding="utf-8")
+        self.web_view.load(QUrl.fromLocalFile(str(page)))
+
+    def _on_shell_loaded(self, _ok: bool) -> None:
+        self._page_ready = True
+        self._push_figure_to_webview()
+
+    def _figure_json(self, fig: go.Figure) -> str:
+        known = self._page_json.get(id(fig))
+        return known[1] if known is not None and known[0] is fig else fig.to_json()
 
     def _push_figure_to_webview(self) -> None:
-        """Pushes :attr:`figures` (already current -- see
-        :meth:`_update_figure`) to the ``QWebEngineView`` as one page. The
-        expensive, disruptive half of what used to be one ``_redraw()`` --
-        see :meth:`set_live_result`'s own throttling comment for why this
-        is split out separately.
+        """Sends :attr:`figures` (already current -- see
+        :meth:`_update_figure`) to the persistent page: only the figures a
+        cell does not show already (M6a; it used to load a new page with
+        plotly.js each time). The page answers when they are drawn
+        (:attr:`plot_drawn`). See :meth:`set_live_result`'s throttling
+        comment for why this is split from building the figures.
         """
-        if not self.figures:
-            self.web_view.setHtml(self._empty_html(), QUrl())  # small: setHtml's 2 MB limit is no issue
-        else:
-            html = plot_page.build_page(
-                [fig.to_json() for fig in self.figures], self._layout, self._focused,
-                [name != ACCESS_TIMELINE for name in self._shown],
-                QUrl.fromLocalFile(str(_plotlyjs_path())).toString(), _page_style())
-            # Alternating file names, so a new page never overwrites one
-            # that is still loading.
-            self._page_counter += 1
-            page = Path(self._page_dir.name) / f"plot-{self._page_counter % 2}.html"
-            if not page.parent.is_dir():
-                # Shutting down: Python removed the temporary directory
-                # before Qt destroyed this widget, and a late signal (the
-                # series box losing focus) asked for one more redraw.
-                return
-            page.write_text(html, encoding="utf-8")
-            self.web_view.load(QUrl.fromLocalFile(str(page)))
+        if self._page_ready:
+            self._render_generation += 1
+            if not self.figures:
+                script = plot_page.render_script([], self._layout, 0, [], self._render_generation,
+                                                 empty=self._empty_text())
+                self._page_cells, self._page_json = [], {}
+            else:
+                sent = [None if i < len(self._page_cells) and self._page_cells[i] is fig else self._figure_json(fig)
+                        for i, fig in enumerate(self.figures)]
+                self._page_json = {id(fig): (fig, self._figure_json(fig) if text is None else text)
+                                   for fig, text in zip(self.figures, sent)}
+                self._page_cells = list(self.figures)
+                script = plot_page.render_script(sent, self._layout, self._focused,
+                                                 [name != ACCESS_TIMELINE for name in self._shown],
+                                                 self._render_generation)
+            self.web_view.page().runJavaScript(script)
         # Never force-enable while a save-as-PNG poll is in flight (a live
         # run redraws repeatedly while the user's earlier click is still
         # being polled) -- see _on_save_plot_png's re-entrancy guard.
@@ -1372,18 +1470,19 @@ class ResultsWidget(QWidget):
         layout.addWidget(buttons)
         dialog.exec()
 
-    def _add_comparison_traces(self, fig: go.Figure, name: str, display) -> None:
+    def _comparison_traces(self, name: str, display) -> list:
         """The compared run's copy of ``name``, dashed, in the same colours."""
         other = self.comparison_run()
         series = other.result.series.get(name) if other is not None else None
         if series is None or series.data.shape[0] == 0:
-            return
+            return []
         if self._x_mode() == "epoch" and not other.epoch_utc:
-            return
+            return []
         x_values, _label = self._x_axis_values(series.time_s, other.result, other.epoch_utc or None)
         x_values = np.asarray(x_values, dtype=object if isinstance(x_values, list) else None)
         data = series.data * display.factor
         labels = display.columns or {}
+        traces = []
         for i, column in enumerate(series.columns):
             if display.wrap_period:  # broken at the 0/360 wraps, as the shown run
                 keep = _wrapping_display_indices(len(data))
@@ -1391,11 +1490,12 @@ class ResultsWidget(QWidget):
             else:
                 keep = _display_indices(data[:, i])
                 x_shown, y_shown = x_values[keep], data[keep, i]
-            fig.add_trace(go.Scatter(
+            traces.append(go.Scatter(
                 x=list(x_shown) if x_values.dtype == object else x_shown, y=y_shown, mode="lines",
                 name=f"{labels.get(column, column)} (Run {other.number})", opacity=0.75,
                 line=dict(color=_SERIES_COLORS[i % len(_SERIES_COLORS)], width=2, dash="dash"),
             ))
+        return traces
 
     def set_vizard_file(self, path: Optional[str]) -> None:
         """Offer "Open in Vizard" for ``path`` (the run's playback file), or hide it."""
@@ -1523,7 +1623,11 @@ class ResultsWidget(QWidget):
         if message is None:
             return
         kind, index, x = message
-        if kind == "focus":
+        if kind == "drawn":
+            if index == self._render_generation:  # not an earlier render, overtaken
+                self._on_page_loaded()
+                self.plot_drawn.emit(x == "ok")
+        elif kind == "focus":
             self.focus_plot(index)
         elif kind == "click" and x is not None:
             self.focus_plot(index)
@@ -1608,8 +1712,14 @@ class ResultsWidget(QWidget):
 
     def _on_theme_changed(self, _mode: str) -> None:
         """Redraw the shown plots (or the empty page) in the new theme, after
-        the switch itself has returned: the page reloads on its own time."""
-        QTimer.singleShot(0, self, self._redraw)
+        the switch itself has returned: the page (its fonts and surface) is
+        loaded again, and the figures built again in the theme's colours."""
+        self._theme_generation += 1
+        QTimer.singleShot(0, self, self._reload_in_theme)
+
+    def _reload_in_theme(self) -> None:
+        self._update_figure()
+        self._load_shell()  # its load sends the figures
 
     # -- export -------------------------------------------------------------
 
@@ -1639,9 +1749,9 @@ class ResultsWidget(QWidget):
         when the page answers (see :meth:`_on_save_plot_png`)."""
         if not self.figures or self._png_poll_state is not None:
             return
-        self._start_render(f"""Promise.all(IDS.map(function(id) {{
-                return Plotly.toImage(document.getElementById(id), {{format: {fmt!r}, scale: 2}});
-            }})).then(function(urls) {{ window.{_PNG_RESULT_JS_VAR} = JSON.stringify(urls); }})""",
+        self._start_render(f"""Promise.all(Array.prototype.map.call(document.getElementById('grid').children,
+                function(gd) {{ return Plotly.toImage(gd, {{format: {fmt!r}, scale: 2}}); }}
+            )).then(function(urls) {{ window.{_PNG_RESULT_JS_VAR} = JSON.stringify(urls); }})""",
                            str(folder), fmt, self._on_all_rendered)
 
     def _plot_file_stem(self, index: int) -> str:

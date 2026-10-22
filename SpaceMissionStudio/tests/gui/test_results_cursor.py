@@ -46,7 +46,7 @@ def plot(qtbot):
         widget.show()
     cursor = TimeCursor()
     widget.set_time_cursor(cursor)
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_result(), "2026-01-01T00:00:00")
     return widget, cursor
 
@@ -86,7 +86,7 @@ def test_on_a_utc_axis_the_cursor_round_trips_through_the_plotted_text(qtbot, pl
     """On a UTC axis the cursor's plotted text reads back as its elapsed time;
     text that is not a date gives none."""
     widget, cursor = plot
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.x_axis_combo.setCurrentIndex(widget.x_axis_combo.findData("epoch"))
     assert widget._x_is_epoch
     cursor.set_time(4321.5)  # [s]
