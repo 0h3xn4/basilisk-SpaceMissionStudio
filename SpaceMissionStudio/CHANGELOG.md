@@ -81,6 +81,23 @@ fixes bugs.
 
   What a run computes and every file the app writes are the same.
 
+- **Forms: units in the fields, optional groups that fold away** (UI
+  overhaul M4a):
+  - **Every number shows its unit after it**, right-aligned: "550.0 km",
+    "97.59°", "1.000 m²", "300.00 Wh". Labels are the name alone. Messages
+    still name a field with its unit, "Dry mass [kg]".
+  - **An optional group** (Station keeping, Power budget, ROE formation,
+    ...) **shows only its title while it is off**, instead of every field
+    greyed out; Monte Carlo off says what turning it on does.
+  - **No page of the Scenario editor scrolls sideways** in a 1280 px
+    window with the inspector open: long rows put their field under the
+    label, and rows of buttons wrap. The Power page and the Spacecraft
+    page did scroll.
+  - The Customize wizard shows its units the same way.
+
+  Every value and every file the app writes are the same: each template
+  is written back byte for byte after every page has been shown.
+
 ## 1.2.0 (2026-10-21)
 
 Starting a mission from an empty scenario is now a choice of its own: the

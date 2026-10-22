@@ -197,6 +197,13 @@ A few things to notice right away:
 
   In this manual, a path such as **Run > Budget** is an area of the rail
   and its page.
+* **Fields show their unit after the number**: "550.0 km", "97.59°",
+  "1.000 m²"; a field with no unit is a plain number (a coefficient, a
+  fraction). This manual and the app's messages name a field with its
+  unit in brackets, "Dry mass [kg]", as the scenario file does. Typing a
+  number replaces the number only; the unit stays. An optional group
+  (Station keeping, Power budget, Monte Carlo, ...) shows only its title
+  while it is off; tick it to see and set its fields.
 * Every command is also in the **command palette**: press `Ctrl+K`, or
   click the search field in the top bar, and type part of its name
   ("save as", "budget", or a spacecraft's name). There is no menu bar.

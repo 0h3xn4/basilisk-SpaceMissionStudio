@@ -50,7 +50,7 @@ from PySide6.QtWidgets import (
 from ..engine.roe import ROE_LABELS, min_radial_normal_separation, safe_formation
 from ..schema.scenario import SpacecraftConfig
 from .feedback import show_dialog_error
-from .widgets import ComboBox, PreciseDoubleSpinBox
+from .widgets import ComboBox, PreciseDoubleSpinBox, finish_form
 
 _ROE_TITLES = ("a·δa [m]", "a·δλ [m]", "a·δex [m]", "a·δey [m]", "a·δix [m]", "a·δiy [m]")
 _ROE_TIPS = (
@@ -190,6 +190,7 @@ class RoeFormationDialog(QDialog):
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
         self.resize(self.sizeHint())  # see phasing_formation_dialog.py: Qt can first show it smaller
 
     def _on_mode_changed(self) -> None:

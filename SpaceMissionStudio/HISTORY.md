@@ -12303,3 +12303,46 @@ as M2b recorded), with `-n auto` and Python 3.13 here; CI runs 3.11. Of the exis
 changed only how they reach a widget, each in `docs/ui/TEST_CHANGES.md`.
 `test_home.py` is new, with 32 tests. Golden files and every output are
 unchanged; the template files differ only in the description's words.
+
+## M4a: the forms (2026-10-22)
+
+The user, once M3's CI was green: "continue as per your recommendations".
+M4 (the scenario editor) is split before starting into M4a, the forms,
+and M4b, the editing flow (the plan's §7 status; `docs/DECISIONS.md`).
+
+**What changed.**
+- **Units in the fields.** Every number in every form shows its unit
+  after it, typeset ("550.0 km", "97.59°", "1.000 m²", "300.00 Wh"),
+  right-aligned in tabular figures, and no wider than a number needs.
+  The label is the name alone. One function, `finish_form`, does it for
+  every editor at the end of its constructor: 147 rows across eleven
+  editors had their unit in the label. Messages still name a field
+  "Dry mass [kg]", from the label's full text kept on it.
+- **Optional groups collapse.** A checkable group (Power budget, Station
+  keeping, ROE formation and 13 others) shows only its title while off.
+  Monte Carlo off shows its switch and one line on what it does.
+- **No sideways scrolling at 1280 px.** Long rows put their field under
+  their label; the Spacecraft page's buttons and the ROE helper row wrap.
+- **The Customize wizard** typesets its units, and splits the unit off a
+  label made from a field name ("Record interval s" became "Record
+  interval", in s).
+
+**Found on the way.**
+- **The Power page was 670 px wide in a 616 px column** (1280 px window,
+  inspector open). The cause was not the Power budget: it was the ROE
+  formation group, off on that spacecraft but showing its disabled fields
+  at full size, with a 628 px row. Collapsing optional groups removed it.
+  For template 29, where the group is on, the row wraps.
+- **Every template's Spacecraft page scrolled sideways** at 1280 px: the
+  three generator buttons in one row needed 653 px.
+- **Messages lost their units** when the labels did ("Reboost thrust must
+  be > 0"): 13 tests caught it. The label keeps its full text for them.
+- **Dialogs sized themselves before the labels shortened** (a ground
+  station dialog 426 px wide for a 406 px size hint); the forms are now
+  finished before the dialog takes its size.
+
+**Tests.** TEST_RESULTS_PLACEHOLDER Of the existing GUI tests, 2 changed
+only how they reach a value or a label, each in
+`docs/ui/TEST_CHANGES.md`. `test_forms.py` is new, with 38 tests; among
+them, every template is written back byte for byte after every page has
+been shown. Golden files and every output are unchanged.

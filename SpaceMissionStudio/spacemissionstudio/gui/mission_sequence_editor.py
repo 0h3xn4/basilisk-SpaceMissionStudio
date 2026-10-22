@@ -82,7 +82,7 @@ from .icons import step_icon
 from .page_tree import embed_dialog, watch_edits
 from .theme import on_change, set_role
 from .theme.items import retint, tint
-from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox
+from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, finish_form
 
 # Mirrors engine.mission_engine._ASSIGNMENT_CONTROLLERS/_ASSIGNMENT_ATTRIBUTES
 # -- duplicated here (not imported) because engine.mission_engine imports
@@ -180,6 +180,7 @@ class _CommandEditorDialog(QDialog):
         # needed: Qt can size a freshly-constructed QDialog smaller than
         # its own sizeHint() on first show() on a real desktop, a gap
         # this project's own offscreen test rendering doesn't reproduce.
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
         self.resize(self.sizeHint())
 
     def _on_kind_changed(self, kind: str) -> None:

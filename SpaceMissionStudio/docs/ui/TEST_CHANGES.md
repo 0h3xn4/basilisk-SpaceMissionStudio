@@ -207,3 +207,32 @@ reaches the same behaviour there.
     the height it needs;
   - the cards' text, which they paint themselves, in the new colours
     after a live theme switch.
+
+## M4a Forms
+
+No test outside `tests/gui/` changed. No golden or output file changed.
+A form's unit moved from its label ("Duration [days]") into its number
+field's suffix ("0.1000 days"). Each test below reaches the same value or
+label there.
+
+### Changed: how a test reaches the widget
+
+| Test | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_scenario_editor.py::_environment_labels` (used by `test_environment_form_has_labeled_rows`) | Each row's label text | Each row's label with its unit, as messages name it (the label's `sms_full_label` when the form moved the unit into the field, else its text) | Every Environment field has its own label: "Central body", "Integrator", "Dynamics task rate [s]", "Duration [days]", "Atmosphere model" |
+| `test_ground_station_editor.py::test_dialog_rejects_out_of_range_latitude` | `float(dialog.lat_deg.text())` | `float(dialog.lat_deg.cleanText())` (the text without the "°" suffix) | A latitude of 999 deg is kept by the box, shown as 90 and refused |
+
+### Added
+
+- `tests/gui/test_forms.py` (38 tests):
+  - every template written back byte for byte after every page is shown,
+    and every spacecraft through the spacecraft form unchanged;
+  - no form label left with a unit its field can show, number fields
+    right-aligned, examples of the units shown, messages still naming
+    "Dry mass [kg]", the unit spellings;
+  - an optional group collapsing and keeping its values, Monte Carlo off
+    showing only its switch;
+  - no Scenario page of any template scrolling sideways at 1280 x 720
+    with the inspector shown, and none with a framed panel or a scroll
+    area inside it;
+  - the unsaved-changes indicator after a number edit, until saved.

@@ -45,7 +45,7 @@ from ..engine import orbit_conversion, tle
 from ..engine.orbit_design import DEFAULT_LTAN_HOUR, raan_for_ltan_deg, sun_synchronous_inclination_deg
 from ..schema.scenario import ANOMALY_TYPES, ORBIT_IC_TYPES, OrbitIC
 from .feedback import report
-from .widgets import ComboBox, PreciseDoubleSpinBox
+from .widgets import ComboBox, PreciseDoubleSpinBox, finish_form
 
 _ANOMALY_TYPE_LABELS = {
     "true": "True anomaly [deg]",
@@ -148,6 +148,7 @@ class OrbitIcWidget(QWidget):
         self.type_combo.currentIndexChanged.connect(self._sync_type_buttons)
         self.type_combo.currentIndexChanged.connect(self.changed)
         self._sync_type_buttons()
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
 
     def set_central_body_provider(self, provider) -> None:
         """``provider`` returns the scenario's central body, for converting

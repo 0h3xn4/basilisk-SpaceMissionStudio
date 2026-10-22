@@ -47,7 +47,7 @@ from ..engine.orbit_design import sun_synchronous_inclination_deg
 from ..schema.scenario import ScenarioValidationError
 from .feedback import show_dialog_error
 from .field_text import attribute_title, labelled
-from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox
+from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, finish_form
 
 _PATTERN_LABELS = {
     "delta": "Walker-Delta (planes spread over 360°, e.g. GPS)",
@@ -159,6 +159,7 @@ class WalkerConstellationDialog(QDialog):
         # -convergence gap this project's own offscreen Qt backend does
         # not reproduce, so it can only be caught by explicitly forcing
         # the size rather than trusting Qt's default first-show sizing.
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
         self.resize(self.sizeHint())
 
     def _on_accept(self) -> None:
