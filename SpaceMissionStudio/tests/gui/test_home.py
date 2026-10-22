@@ -465,20 +465,34 @@ def test_the_reference_data_card_takes_only_the_height_it_needs(home, qtbot):
 
 def test_the_card_text_follows_a_live_theme_switch(home, restored_theme):
     """The cards paint their text themselves; after a switch to dark it is
-    drawn in the dark theme's colours (CLAUDE.md, "Live theme switch")."""
+    drawn in the dark theme's colours (CLAUDE.md, "Live theme switch").
+    Anti-aliasing blends thin strokes with the background (on CI no pixel of
+    13 px regular text was the token itself), so the text's ink is the pixel
+    farthest from the background, and it must be nearer this theme's token
+    than the other theme's."""
+    from collections import Counter
+
     from PySide6.QtGui import QColor
 
-    from spacemissionstudio.gui.theme import TOKENS, apply_theme
+    from spacemissionstudio.gui.theme import apply_theme, tokens
 
-    def inks(widget):
+    def distance(a, b):
+        return sum((x - y) ** 2 for x, y in zip(a, b))
+
+    def ink(widget):
         image = widget.grab().toImage()
-        return {image.pixelColor(x, y).name() for y in range(image.height()) for x in range(image.width())}
+        pixels = [image.pixelColor(x, y).getRgb()[:3] for y in range(image.height()) for x in range(image.width())]
+        background = Counter(pixels).most_common(1)[0][0]
+        return max(pixels, key=lambda pixel: distance(pixel, background))
+
+    def rgb(mode, token):
+        return QColor(tokens.tokens(mode)[token]).getRgb()[:3]
 
     home.resize(1400, 900)  # [px]
     home.show()
     card = home.cards[0]
-    apply_theme(restored_theme, "light")
-    assert QColor(TOKENS["text.primary"]).name() in inks(card.title_label)
-    apply_theme(restored_theme, "dark")
-    assert QColor(TOKENS["text.primary"]).name() in inks(card.title_label)
-    assert QColor(TOKENS["text.secondary"]).name() in inks(card.type_label)
+    for mode, other in (("light", "dark"), ("dark", "light")):
+        apply_theme(restored_theme, mode)
+        for widget, token in ((card.title_label, "text.primary"), (card.type_label, "text.secondary")):
+            seen = ink(widget)
+            assert distance(seen, rgb(mode, token)) < distance(seen, rgb(other, token)), (mode, token, seen)
