@@ -793,6 +793,23 @@ Every milestone also has to meet all of these:
   tab" (templates are M3), and `compare_tab.png` and `monte_carlo_tab.png`
   in the documentation still show the toolbars (their capture needs runs
   that `scripts/capture_screenshots.py` does not make).
+- **M2b (2026-10-21): done, except the theme switch time.** With M2a,
+  M2 meets these criteria (`tests/gui/test_panels.py`):
+  - Problems shows severity, ID, object and message, sorts by severity
+    (errors first, any column on its heading) and goes to the field
+    (Enter or a double-click);
+  - the status bar shows the running job with its progress and Cancel;
+  - the layout (rail collapsed, the main splitters, the inspector's and
+    Problems' visibility) is restored per project;
+  - a keyboard-only walk of the shell passes.
+
+  Not met: the theme switch takes 0.42–0.47 s on a new window and
+  0.73–0.84 s once every page has been visited, not under 100 ms. Nearly
+  all of it is Qt's `setStyleSheet` over every widget alive. The
+  criterion moves to M9's performance pass, after M4–M8 build their pages
+  when first shown (`docs/DECISIONS.md`, M2b). The validation strip under
+  the editor (§5.2: removed) stays until M4 rebuilds the editor; Problems
+  already lists what it says.
 
 **Order and size.**
 

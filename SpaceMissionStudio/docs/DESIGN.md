@@ -203,15 +203,25 @@ bar and no toolbar:
   - the scenario name, its state (unsaved, from a template or a file)
     and the last run, with the breadcrumbs (area › page) under them;
   - Undo, Redo, Save (it shows the save state), Run (the one primary,
-    accent, button) with its mode, the command search (Ctrl+K) and the
-    run status chip.
+    accent, button) with its mode, the command search (Ctrl+K) and,
+    while there are any, the problem count.
 - **Scenario area:** the scenario tree on the left. Each spacecraft has a
   node per part of its editor.
-- **Side panel (a dock):** Inspector, Explain, Problems.
-- **Status bar:** Basilisk version, reference data, Earth orientation
-  data, frames.
-- **Layout memory:** Settings > Layout > Reset Layout restores the side
-  panel and the rail; the layout is kept between sessions.
+- **Inspector, on the right:** two docks one above the other, Inspector
+  (Ctrl+I) and, until it becomes Scenario › Overview (M4), Explain. No
+  tabs.
+- **Problems panel, at the bottom (Ctrl+J):** a `QTableView` over
+  `ProblemsModel`: Severity (icon and word), ID (the field path), Object,
+  Message; errors first, any column sorts, Ctrl+C copies TSV, Enter or a
+  double-click goes to the field. Its counts are on its title, in the
+  status bar and the top bar.
+- **Status bar:** the run job (phase, progress, time so far and left,
+  Cancel) while a run goes, the run state chip otherwise; then the problem count
+  (it opens Problems), Basilisk version, reference data, Earth
+  orientation data, frames.
+- **Layout memory:** Settings > Layout > Reset Layout restores the panels
+  and the rail. The layout (docks, rail, the main splitters) is kept per
+  scenario file, and for the window between sessions (`layout.ini`).
 - **Commands:** every command is in one registry (`gui/actions.py`):
   the command palette, the area headers, the top bar, the shortcut list
   and every tooltip ("Save (Ctrl+S)", then what it does) come from it.
@@ -272,7 +282,7 @@ popovers, tooltips) are `bg.raised` with a 1 px border instead.
 | Stale results banner | `feedback.StaleResultsBanner` | Above the run views: the results no longer match the scenario, with Re-run |
 | Field error | `feedback.show_field_error(widget, message, warning=False)`, `clear_field_error`, `clear_on_edit` | Under the field the problem is about, and the field marked |
 | Dialog error | `feedback.show_dialog_error(dialog, text)` | A dialog's own problem, above its buttons |
-| Problems | `workspace_panels.ProblemsWidget` | Every problem; double-click jumps to the field |
+| Problems | `workspace_panels.ProblemsWidget` (`ProblemsModel`, `ProblemsTable`) | Every problem with severity, ID, object and message; Enter or double-click jumps to the field |
 | Inspector | `workspace_panels.InspectorWidget` | The focused field: label, value, range, help |
 | Time cursor | `time_cursor.TimeCursor`, `ResultsWidget.cursor_actions` | One time shared by the plots, the timeline, the dashboard and the output |
 | Command | `actions.ActionRegistry.add(id, text, handler, category=, area=, shortcut=, tip=)` | Every command of the window: its palette entry, header and top-bar buttons, tooltip ("Save (Ctrl+S)") and shortcut row come from it |
@@ -346,7 +356,7 @@ search) finds, by name or an older name ("events" finds the Timeline):
 - the registry's commands;
 - the areas and the pages of Run and Results;
 - the Scenario tree's pages, its spacecraft and ground stations;
-- the side panel's pages and the Settings sections;
+- the panels (Inspector, Explain, Problems) and the Settings sections;
 - the templates;
 - the plotted series.
 
@@ -435,7 +445,7 @@ Settings > Appearance offers System, Light and Dark:
 Every slow job runs in a `QThread` worker, so the window never waits
 on it:
 
-- **Simulations:** a progress strip and Cancel (Esc).
+- **Simulations:** a job in the status bar with progress and Cancel (Esc, in its tooltip).
 - **The AD10 budget's sweeps:** their button turns into Cancel while
   they run.
 - **Lifetime estimates and reference-data downloads:** run in workers

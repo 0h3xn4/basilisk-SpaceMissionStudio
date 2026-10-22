@@ -148,8 +148,9 @@ _ROWS = {
                                           _shown(w, w.flight_software_widget, "reports")),
     "Tools › Reference Data…": lambda w: (_command(w, "tools.reference_data"),
                                           _shown(w, w.settings_page.buttons["tools.reference_data"], "settings")),
-    "**View** › Side Panel, Inspector, Explain, Problems": lambda w: _command(
-        w, "view.side_panel", "view.inspector", "view.explain", "view.problems"),
+    "**View** › Side Panel, Inspector, Explain, Problems": lambda w: (
+        _command(w, "view.inspector", "view.explain", "view.problems"),
+        _toggles(w, "view.inspector", w.side_dock, "Ctrl+I"), _toggles(w, "view.problems", w.problems_dock, "Ctrl+J")),
     "View › Reset Layout": lambda w: (_command(w, "view.reset_layout"),
                                       _shown(w, w.settings_page.buttons["view.reset_layout"], "settings")),
     "View › Time Cursor ▸": lambda w: _command(w, *(c.id for c in w.commands if c.category == "Time Cursor")),
@@ -169,12 +170,12 @@ _ROWS = {
     "**Toolbar row 2**: Vizard Configuration, Launch Vizard, Check Reference Data": lambda w: (
         _command(w, "run.vizard_config", "run.vizard_launch", "run.check_data"), _no_toolbars(w)),
     "Title bar (name, save state, from template, run state chip)": lambda w: (
-        _shown(w, w.top_bar.name_label, w.shell.current_area()), _shown(w, w.top_bar.chip, w.shell.current_area()),
+        _shown(w, w.top_bar.name_label, w.shell.current_area()), _in_the_status_bar(w, w.run_chip),
         _top_bar_says(w, "from template 23")),
-    "Run progress strip": lambda w: _is_above_the_areas(w, w.run_progress),
+    "Run progress strip": lambda w: _in_the_status_bar(w, w.run_progress),
     "Stale-results banner": lambda w: _is_above_the_areas(w, w.stale_results_banner),
     "Status bar items": lambda w: _shown(w, w.status_items.basilisk_label, w.shell.current_area()),
-    # M2b moves it into the Problems panel.
+    # M4 removes it with the editor's rebuild; the Problems panel already lists the same problems.
     "Validation strip under the editor": lambda w: _shown(w, w.scenario_editor.validation_label, "scenario"),
     "**Scenario tab** › Templates": lambda w: _shown(w, w.load_scenario_widget, "home"),
     "Scenario › Scenario, Environment, Spacecraft…, Ground stations…, Mission sequence, Monte Carlo": lambda w: [
@@ -197,7 +198,8 @@ _ROWS = {
     "**Log** tab": lambda w: _shown(w, w.log_widget, "run"),
     "Side **Inspector**": lambda w: (_command(w, "view.inspector"), _side(w, w.inspector_widget)),
     "Side **Explain**": lambda w: (_command(w, "view.explain"), _side(w, w.scenario_explainer_widget)),
-    "Side **Problems**": lambda w: (_command(w, "view.problems"), _side(w, w.problems_widget)),
+    "Side **Problems**": lambda w: (_command(w, "view.problems"), _side(w, w.problems_widget),
+                                   _in_the_status_bar(w, w.status_items.problems_button)),
     # The dialogs M4 and M5 turn into inline pages or the inspector: opened from their screen as before.
     "`SpacecraftEditorDialog` (Add spacecraft)": lambda w: (
         _dialog("spacecraft_editor", "SpacecraftEditorDialog"),
@@ -276,8 +278,26 @@ def _monte_carlo_shown(window):
 
 
 def _side(window, widget):
+    """A panel: hidden, then shown by show_view()."""
+    dock = next(dock for dock in window._docks() if dock.widget() is widget)
+    dock.hide()
     window.show_view(widget)
-    assert window.side_dock.isVisible() and window.side_tabs.currentWidget() is widget
+    assert dock.isVisibleTo(window)
+
+
+def _toggles(window, command_id, dock, keys):
+    """A command that shows and hides ``dock``, with its shortcut."""
+    action = window.commands.action(command_id)
+    assert action is dock.toggleViewAction() and window.commands[command_id].keys == keys
+    shown = dock.isVisibleTo(window)
+    action.trigger()
+    assert dock.isVisibleTo(window) is not shown
+    action.trigger()
+    assert dock.isVisibleTo(window) is shown
+
+
+def _in_the_status_bar(window, widget):
+    assert window.statusBar().isAncestorOf(widget)
 
 
 def _reference_data_opens(window):

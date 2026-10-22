@@ -10,7 +10,7 @@ How to run one of the 28 ready-made missions and look at what it did.
    satellite**. Its description appears below the list: what it shows
    and what to look at.
 3. Click **Open Template**. The **Scenario** tab shows the
-   mission; **Explain**, in the side panel on the right, summarises it.
+   mission; **Explain**, in the panel on the right, summarises it.
 4. **Run** in the top bar, or `Ctrl+R` (the mode beside it says
    **Single run**). A strip under the top bar shows what the run is
    doing, how far it is and the time left; **Cancel** (`Esc`) stops it.

@@ -94,8 +94,8 @@ def test_the_areas_and_what_they_hold(window):
     assert _tab_texts(window.results_views) == ["Plots", "Dashboard", "Output", "Compare"]
     assert window.shell.page("timeline").content is window.event_timeline_widget
     assert window.shell.page("reports").content is window.flight_software_widget
-    assert _tab_texts(window.side_tabs)[0:1] == ["Inspector"]
-    assert window.side_dock.isAncestorOf(window.scenario_explainer_widget)
+    assert window.side_dock.widget() is window.inspector_widget
+    assert window.explain_dock.isAncestorOf(window.scenario_explainer_widget)
     assert window.current_view() is window.scenario_editor  # opening a template shows the editor
 
 
@@ -109,7 +109,7 @@ def test_show_view_selects_every_level(window):
     assert window.shell.current_area() == "results"
     assert window.current_view() is window.mission_output_widget
     window.show_view(window.problems_widget)
-    assert window.side_tabs.currentWidget() is window.problems_widget and window.side_dock.isVisibleTo(window)
+    assert window.problems_dock.isVisibleTo(window)
 
 
 def test_problems_list_the_validation_error_and_warnings(window):
@@ -120,12 +120,12 @@ def test_problems_list_the_validation_error_and_warnings(window):
     window.scenario_editor.epoch_edit.setText("2030-13-45T99:00:00")
     errors = [text for severity, text in problems.problems if severity == "error"]
     assert errors and "epoch" in errors[0].lower()
-    tab_text = window.side_tabs.tabText(window.side_tabs.indexOf(problems))
+    tab_text = window.problems_dock.windowTitle()
     assert tab_text == f"Problems ({len(problems.problems)})"
-    assert problems.list.count() == len(problems.problems) and problems.list.item(0).text().startswith("Error: ")
+    assert problems.proxy.rowCount() == len(problems.problems) and problems.row_text(0).startswith("Error: ")
 
     window.show_view(window.results_widget)
-    problems.list.itemActivated.emit(problems.list.item(0))
+    problems.table.activated.emit(problems.index_of(0))
     assert window.current_view() is window.scenario_editor
 
 
@@ -230,7 +230,7 @@ def test_the_layout_is_kept_and_reset(qtbot, monkeypatch):
     assert not second.side_dock.isVisible()
     second.reset_layout_action.trigger()
     assert second.side_dock.isVisible()
-    assert second.side_tabs.currentWidget() is second.scenario_explainer_widget
+    assert second.explain_dock.isVisible()
 
 
 def test_the_view_analyses_and_tools_commands(window):
@@ -239,7 +239,7 @@ def test_the_view_analyses_and_tools_commands(window):
     Analyses and Tools commands open their pages; Tools > Reference Data
     opens the dialog."""
     view = [command.label for command in window.commands if command.category == "View"]
-    assert view == ["Side Panel", "Inspector", "Explain", "Problems", "Reset Layout", "Navigation: Icons Only",
+    assert view == ["Inspector", "Explain", "Problems", "Reset Layout", "Navigation: Icons Only",
                     "Theme: System", "Theme: Light", "Theme: Dark"]
 
     def trigger(category, label):
@@ -252,8 +252,9 @@ def test_the_view_analyses_and_tools_commands(window):
     trigger("Tools", "Reference Data...")
     assert window.data_dialog.isVisible()
     window.data_dialog.close()
+    window.problems_dock.hide()
     trigger("View", "Problems")
-    assert window.side_tabs.currentWidget() is window.problems_widget
+    assert window.problems_dock.isVisibleTo(window)
 
 
 def _box_model():
@@ -394,6 +395,8 @@ def test_a_stale_model_problem_opens_the_model_editor(model_window, monkeypatch)
     applies the model again, which clears the problem."""
     import dataclasses
 
+    from PySide6.QtCore import Qt
+
     spacecraft_list = model_window.scenario_editor.spacecraft_list
     sc = spacecraft_list.to_list()[0]
     opened = _accept_the_model_editor(monkeypatch, sc.model)
@@ -401,9 +404,9 @@ def test_a_stale_model_problem_opens_the_model_editor(model_window, monkeypatch)
     model_window.scenario_editor.revalidate()
     problems = model_window.problems_widget
     row = next(i for i, (_severity, text) in enumerate(problems.problems) if "differ from the 3D model" in text)
-    assert problems.list.item(row).toolTip() == "Double-click to open the 3D model editor"
+    assert problems.index_of(row).data(Qt.ItemDataRole.ToolTipRole) == "Double-click to open the 3D model editor"
 
-    problems.list.itemActivated.emit(problems.list.item(row))
+    problems.table.activated.emit(problems.index_of(row))
     assert opened == [sc.name] and model_window.current_view() is model_window.scenario_editor
     assert spacecraft_list.to_list()[0].dry_mass_kg == pytest.approx(sc.dry_mass_kg)
     assert not [text for _severity, text in problems.problems if "differ from the 3D model" in text]

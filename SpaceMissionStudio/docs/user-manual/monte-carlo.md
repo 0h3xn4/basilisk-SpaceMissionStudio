@@ -11,7 +11,7 @@ far apart the results end up.
 3. Add one or more **dispersions**: which quantity varies, for which
    spacecraft, and by how much.
 4. Set the mode beside **Run** to **Monte Carlo**, press **Run**, and
-   choose a folder. Every run is saved there; the progress strip counts
+   choose a folder. Every run is saved there; the progress in the status bar counts
    the cases done. A batch runs to the end: it cannot be cancelled.
 
 What can vary:

@@ -129,7 +129,7 @@ field to fix. **✓ valid** means you can run.
 
 ### A run takes too long, or you started the wrong one
 
-**Cancel** on the progress strip (`Esc`, or **Cancel Run**) stops it
+**Cancel** in the status bar (`Esc`, or **Cancel Run**) stops it
 safely at the next checkpoint and keeps the results so far. It is not
 instant. A Monte Carlo batch cannot be cancelled part way.
 

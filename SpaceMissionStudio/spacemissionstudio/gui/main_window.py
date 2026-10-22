@@ -32,6 +32,7 @@ with a different UI toolkit entirely without touching
 from __future__ import annotations
 
 import dataclasses
+import hashlib
 import logging
 import subprocess
 import time
@@ -68,7 +69,7 @@ from ..schema.command import runs_sequence, script_blocks
 from ..schema.scenario import Scenario, ScenarioValidationError, load_scenario
 from . import autosave
 from .actions import ActionRegistry
-from .app_shell import RunProgressStrip, StatusBarItems, TopBar, source_of
+from .app_shell import RunProgressStrip, StatusBarItems, StatusChip, TopBar, source_of
 from .feedback import StaleResultsBanner, report, show_toast
 from .icons import toolbar_icon
 from .data_panel_widget import DataPanelWidget
@@ -120,7 +121,7 @@ _HISTORY_SETTLE_MS = 400  # [ms] an edit is recorded for undo once typing pauses
 _AUTOSAVE_INTERVAL_MS = 30_000
 
 _logger = logging.getLogger(__name__)
-_LAYOUT_VERSION = 2  # [-] saveState() version: bump when the docks change, so an old layout is ignored
+_LAYOUT_VERSION = 3  # [-] saveState() version: bump when the docks change, so an old layout is ignored
 
 
 def _duration_text(seconds: float) -> str:
@@ -280,7 +281,7 @@ class MainWindow(QMainWindow):
         self._shown_run_sha256: str | None = None  # the scenario hash of the run the views show
 
         # The workspace (UI overhaul plan §5.1): a navigation rail of areas
-        # (gui.shell), the top bar above them, the side panel on the right,
+        # (gui.shell), the top bar above them, the inspector on the right, Problems below,
         # and the reference data in a dialog opened from the status bar.
         # The Scenario area is the scenario tree with the editor's own
         # nodes; Templates is Home, the analyses are in Run and Reports.
@@ -329,24 +330,22 @@ class MainWindow(QMainWindow):
         self.results_widget.set_runs(self.run_history.runs, None)  # the saved runs of earlier sessions (U-33)
         self._refresh_compare_tab()
 
-        # The side panel, a dock on the right: Inspector (the focused field),
-        # Explain (what the scenario does) and Problems (what does not
-        # validate or looks implausible). One dock with its own tabs, not
-        # three tabbed docks: Qt's tab bar for tabbed docks would switch on
-        # the mouse wheel, which every tab bar here ignores.
+        # The inspector on the right (UI overhaul plan §5.1, M2b): the
+        # focused field, and under it, until it becomes Scenario > Overview
+        # (M4), Explain (what the scenario does). Two docks one above the
+        # other, not tabs: each shown, hidden and sized on its own.
         self.inspector_widget = InspectorWidget()
+        self.side_dock = self._make_dock("Inspector", "inspectorDock", self.inspector_widget)
+        self.explain_dock = self._make_dock("Explain", "explainDock", self.scenario_explainer_widget)
+        self.splitDockWidget(self.side_dock, self.explain_dock, Qt.Orientation.Vertical)
+        # The Problems panel, at the bottom (M2b): what does not validate or
+        # looks implausible, as a table; Enter or a double-click goes to the field.
         self.problems_widget = ProblemsWidget()
         self.problems_widget.activated.connect(self._on_problem_activated)
-        self.problems_widget.count_changed.connect(self._on_problem_count)
-        self.scenario_editor.problems_changed.connect(self.problems_widget.set_problems)
-        self.side_tabs = TabWidget()
-        self.side_tabs.setObjectName("sidePanelTabs")
-        self.side_tabs.addTab(self.inspector_widget, "Inspector")
-        self.side_tabs.addTab(self.scenario_explainer_widget, "Explain")
-        self.side_tabs.addTab(self.problems_widget, "Problems")
-        self.side_tabs.setCurrentWidget(self.scenario_explainer_widget)
-        self.side_dock = self._make_dock("Side Panel", "sidePanelDock", self.side_tabs)
-        self.problems_widget.set_problems(self.scenario_editor.problem_rows())  # validated before the connection
+        self.problems_widget.counts_changed.connect(self._on_problem_counts)
+        self.problems_dock = self._make_dock("Problems", "problemsDock", self.problems_widget,
+                                             area=Qt.DockWidgetArea.BottomDockWidgetArea)
+        self.scenario_editor.problems_changed.connect(self._on_problems_changed)
         app = QApplication.instance()
         if app is not None:
             app.focusChanged.connect(self._on_focus_changed)
@@ -362,34 +361,35 @@ class MainWindow(QMainWindow):
         self._refresh_scenario_explainer()  # initial paint for the default scenario reset_to_default() just set up
 
         # The top bar: the scenario's name, its state, the last run and the
-        # run status chip, always visible (gui.app_shell; docs/ux-audit.md U-04).
+        # problem count, always visible (gui.app_shell; docs/ux-audit.md U-04).
         self.top_bar = TopBar()
-        # The progress strip under the top bar (U-19): phase, bar, elapsed
-        # time, time left, Cancel. Its bar and time label are the busy
-        # indicator every run updates.
+        # The job in the status bar (U-19, M2b): phase, bar, elapsed time,
+        # time left, Cancel. Its bar and time label are the busy indicator
+        # every run updates; the chip beside it says the run's state.
         self.run_progress = RunProgressStrip()
         self.run_progress.cancel_requested.connect(self.on_abort_run)
         self._busy_label = self.run_progress.time_label
         self._busy_progress = self.run_progress.bar
-        # The rail and the areas (gui.shell). The top bar, the progress
-        # strip and, above the run views, the stale-results banner (U-20)
-        # sit over the area shown.
+        self.run_chip = StatusChip()
+        # The rail and the areas (gui.shell). The top bar and, above the run
+        # views, the stale-results banner (U-20) sit over the area shown.
         self.shell = Shell()
         self.areas = self.shell.stack
         self.shell.work_layout.insertWidget(0, self.top_bar)
-        self.shell.work_layout.insertWidget(1, self.run_progress)
-        self.shell.work_layout.insertWidget(2, self.stale_results_banner)
+        self.shell.work_layout.insertWidget(1, self.stale_results_banner)
         self.setCentralWidget(self.shell)
         self._run_started_s: float | None = None  # time.monotonic() when the current run started
 
         self._build_actions()
         self._build_areas()
         self.resizeDocks([self.side_dock], [380], Qt.Orientation.Horizontal)  # [px] room for Explain's tiles
+        self.resizeDocks([self.side_dock, self.explain_dock], [130, 610], Qt.Orientation.Vertical)  # [px] four rows
+        self.resizeDocks([self.problems_dock], [140], Qt.Orientation.Vertical)  # [px] about four rows
         self._default_layout = self.saveState(_LAYOUT_VERSION)
         self._restore_layout()
 
-        # Run-in-progress feedback: the progress strip (self.run_progress,
-        # under the top bar) and the status chip. A run reports its phase
+        # Run-in-progress feedback: the progress strip (self.run_progress)
+        # and the status chip, both in the status bar. A run reports its phase
         # and fraction (RunWorker.phase/fraction: chunks of the propagation,
         # or the Mission Sequence's steps); a Monte Carlo batch is counted
         # by its finished cases' files (_poll_monte_carlo), since Basilisk's
@@ -409,7 +409,7 @@ class MainWindow(QMainWindow):
         # the frames. Local files only.
         self.status_items = StatusBarItems(self)
         self.basilisk_version_label = self.status_items.basilisk_label
-        for widget in self.status_items.widgets:
+        for widget in (self.run_progress, self.run_chip, *self.status_items.widgets):
             self.statusBar().addPermanentWidget(widget)
         # A bound method, not a lambda: a lambda holding self on a child's
         # signal keeps the window alive until the interpreter exits, and its
@@ -417,6 +417,9 @@ class MainWindow(QMainWindow):
         self.status_items.data_clicked.connect(self._show_data_panel)
         self.data_panel_widget.refreshed.connect(self.status_items.refresh)
         self.status_items.refresh()
+        self.status_items.problems_clicked.connect(self.show_problems)
+        self.top_bar.problems_button.clicked.connect(self.show_problems)
+        self._on_problems_changed(self.scenario_editor.problem_rows())
         self.time_cursor_label = QLabel()
         self.time_cursor_label.setToolTip("The shared time cursor. Click a plot or the Timeline to move it; "
                                           "Clear Time Cursor (Alt+Backspace) clears it.")
@@ -594,15 +597,19 @@ class MainWindow(QMainWindow):
             # A bound method, not a lambda holding the window (see the status bar's).
             add(command_id, label, self._on_page_action, category=category, area=area, tip=tip).setData(widget)
 
-        # The side panel and its pages, and the layout back (U-05).
-        side_action = self.side_dock.toggleViewAction()
-        add("view.side_panel", "&Side Panel", None, category="View", area="global", action=side_action,
-            tip="Show or hide the Inspector, Explain and Problems panel.")
-        for command_id, label, widget, keys in (("view.inspector", "&Inspector", self.inspector_widget, "Ctrl+I"),
-                                                ("view.explain", "E&xplain", self.scenario_explainer_widget, None),
-                                                ("view.problems", "&Problems", self.problems_widget, "Ctrl+J")):
-            add(command_id, label, self._on_page_action, category="View", area="global", shortcut=keys,
-                tip="Open it in the side panel.").setData(widget)
+        # The inspector on the right, the Problems panel at the bottom, and
+        # the layout back (U-05, M2b). Showing a panel from the keyboard
+        # puts the focus in it.
+        add("view.inspector", "&Inspector", None, category="View", area="global",
+            action=self.side_dock.toggleViewAction(), shortcut="Ctrl+I", keywords=("side panel",),
+            tip="Show or hide the inspector: the focused field, and Explain.").triggered.connect(
+                self._on_dock_toggled)
+        add("view.explain", "E&xplain", self._on_page_action, category="View", area="global",
+            tip="What the scenario does, in the inspector.").setData(self.scenario_explainer_widget)
+        add("view.problems", "&Problems", None, category="View", area="global",
+            action=self.problems_dock.toggleViewAction(), shortcut="Ctrl+J",
+            tip="Show or hide the Problems panel: what does not validate.").triggered.connect(
+                self._on_dock_toggled)
         self.reset_layout_action = add("view.reset_layout", "&Reset Layout", self.reset_layout, category="View",
                                        area="settings", tip="Put the panels back where they start.")
         self.rail_collapse_action = add(
@@ -738,16 +745,39 @@ class MainWindow(QMainWindow):
         self.show_view(self.data_panel_widget)
 
     # -- workspace: tabs, docks and their layout ---------------------------------
-    def _make_dock(self, title: str, name: str, widget: QWidget) -> QDockWidget:
+    def _make_dock(self, title: str, name: str, widget: QWidget,
+                   area: Qt.DockWidgetArea = Qt.DockWidgetArea.RightDockWidgetArea) -> QDockWidget:
         dock = QDockWidget(title, self)
         dock.setObjectName(name)  # saveState()/restoreState() find docks by name
         dock.setWidget(widget)
-        dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, dock)
+        if area == Qt.DockWidgetArea.BottomDockWidgetArea:
+            dock.setAllowedAreas(Qt.DockWidgetArea.BottomDockWidgetArea | Qt.DockWidgetArea.TopDockWidgetArea)
+        else:
+            dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.addDockWidget(area, dock)
         return dock
 
     def _docks(self) -> tuple:
-        return (self.side_dock,)
+        return (self.side_dock, self.explain_dock, self.problems_dock)
+
+    def _on_dock_toggled(self, shown: bool) -> None:
+        """A panel shown by its command takes the focus, so the keyboard can
+        work in it at once; Escape or the command again hides it."""
+        dock = next(d for d in self._docks() if d.toggleViewAction() is self.sender())
+        if shown:
+            dock.raise_()
+            dock.widget().setFocus(Qt.FocusReason.ShortcutFocusReason)
+
+    def show_panel(self, dock: QDockWidget) -> None:
+        """A panel, shown and focused."""
+        dock.show()
+        dock.raise_()
+        dock.widget().setFocus(Qt.FocusReason.OtherFocusReason)
+
+    def show_problems(self) -> None:
+        """The Problems panel, shown and focused (the status bar's and the
+        top bar's problem count)."""
+        self.show_panel(self.problems_dock)
 
     def _on_guide_navigate(self, target: str) -> None:
         """The Scenario page's guide pointing at a page this window owns:
@@ -878,9 +908,23 @@ class MainWindow(QMainWindow):
     def _show_scenario_editor(self) -> None:
         self.show_view(self.scenario_editor)
 
-    def _on_problem_count(self, count: int) -> None:
-        self.side_tabs.setTabText(self.side_tabs.indexOf(self.problems_widget),
-                                  f"Problems ({count})" if count else "Problems")
+    def _on_problems_changed(self, rows: list) -> None:
+        """The editor's problems, with the names a message can be about."""
+        editor = self.scenario_editor
+        self.problems_widget.set_problems(rows, [c.name for c in editor.spacecraft_list.to_list()],
+                                          [g.name for g in editor.ground_station_list.to_list()])
+
+    def _on_problem_counts(self, errors: int, warnings: int) -> None:
+        """The counts on the panel's title, in the status bar and the top bar."""
+        count = errors + warnings
+        self.problems_dock.setWindowTitle(f"Problems ({count})" if count else "Problems")
+        if "view.problems" in getattr(self, "commands", ()):
+            # Qt names a dock's toggle after its title: the command keeps its name.
+            self.problems_dock.toggleViewAction().setText("&Problems")
+            self.commands.refresh_tooltip("view.problems")
+        if hasattr(self, "status_items"):
+            self.status_items.set_problem_counts(errors, warnings)
+        self.top_bar.set_problem_counts(errors, warnings)
 
     def _on_focus_changed(self, _old, new) -> None:
         """The Inspector follows the focused field in this window."""
@@ -916,19 +960,77 @@ class MainWindow(QMainWindow):
 
         return QSettings(str(Path.home() / ".spacemissionstudio" / "layout.ini"), QSettings.Format.IniFormat)
 
+    def _layout_splitters(self) -> dict:
+        """The splitters a layout keeps, by name."""
+        return {"scenario": self.scenario_editor.page_tree.splitter,
+                "sequence": self.scenario_editor.mission_sequence_editor.splitter,
+                "results": self.results_widget.splitter, "results_side": self.results_widget.side_splitter,
+                "timeline": self.event_timeline_widget.splitter, "compare": self.compare_widget.content}
+
+    def _layout_group(self) -> Optional[str]:
+        """The settings group of the open scenario's layout (M2b: the layout
+        is kept per project), or None for a scenario not saved yet."""
+        if self._current_path is None:
+            return None
+        key = hashlib.sha256(str(Path(self._current_path).resolve()).encode("utf-8")).hexdigest()[:16]
+        return f"project-{key}"
+
+    def _write_layout(self, settings, group: str) -> None:
+        settings.beginGroup(group)
+        settings.setValue("state", self.saveState(_LAYOUT_VERSION))
+        settings.setValue("rail_collapsed", self.shell.rail.collapsed)
+        for name, splitter in self._layout_splitters().items():
+            settings.setValue(f"splitter_{name}", splitter.saveState())
+        if group.startswith("project-"):
+            settings.setValue("path", str(self._current_path))  # for whoever reads the file
+        settings.endGroup()
+
+    def _read_layout(self, settings, group: str) -> bool:
+        """Apply the layout kept under ``group``; False when there is none."""
+        settings.beginGroup(group)
+        try:
+            state = settings.value("state")
+            if state is None:
+                return False
+            self.restoreState(state, _LAYOUT_VERSION)
+            self.rail_collapse_action.setChecked(settings.value("rail_collapsed", False, type=bool))
+            for name, splitter in self._layout_splitters().items():
+                saved = settings.value(f"splitter_{name}")
+                if saved is not None:
+                    splitter.restoreState(saved)
+            return True
+        finally:
+            settings.endGroup()
+
     def _restore_layout(self) -> None:
         settings = self._layout_settings()
-        geometry, state = settings.value("window/geometry"), settings.value("window/state")
+        geometry = settings.value("window/geometry")
         if geometry is not None:
             self.restoreGeometry(geometry)
-        if state is not None:
-            self.restoreState(state, _LAYOUT_VERSION)
+        self._read_layout(settings, "window")
 
     def _save_layout(self) -> None:
+        """The window's layout, and the open project's (M2b)."""
         settings = self._layout_settings()
         settings.setValue("window/geometry", self.saveGeometry())
-        settings.setValue("window/state", self.saveState(_LAYOUT_VERSION))
+        self._write_layout(settings, "window")
+        self._save_project_layout(settings)
         settings.sync()
+
+    def _save_project_layout(self, settings=None) -> None:
+        group = self._layout_group()
+        if group is None:
+            return
+        settings = settings or self._layout_settings()
+        self._write_layout(settings, group)
+        settings.sync()
+
+    def _restore_project_layout(self) -> None:
+        """The open project's layout, when it has one; otherwise the layout
+        stays as it is."""
+        group = self._layout_group()
+        if group is not None:
+            self._read_layout(self._layout_settings(), group)
 
     def _on_theme_chosen(self) -> None:
         """A theme command (Settings > Appearance): remember the choice and apply it now."""
@@ -942,11 +1044,10 @@ class MainWindow(QMainWindow):
         report(self, f"Theme: {value}. It is the theme shown now.", kind="info")
 
     def reset_layout(self) -> None:
-        """Reset Layout: the side panel and the rail as a new window has them."""
+        """Reset Layout: the panels and the rail as a new window has them."""
         self.restoreState(self._default_layout, _LAYOUT_VERSION)
         for dock in self._docks():
             dock.show()
-        self.side_tabs.setCurrentWidget(self.scenario_explainer_widget)
         self.rail_collapse_action.setChecked(False)
 
     def on_user_manual(self) -> None:
@@ -977,10 +1078,9 @@ class MainWindow(QMainWindow):
                 page = tabs.widget(index)
                 entries.append(PaletteEntry(f"Go to > {area_label} > {tabs.tabText(index).replace('&', '')}",
                                             lambda page=page: self.show_view(page)))
-        for index in range(self.side_tabs.count()):
-            panel = self.side_tabs.widget(index)
-            entries.append(PaletteEntry(f"Go to panel > {self.side_tabs.tabText(index)}",
-                                        lambda panel=panel: self.show_view(panel)))
+        for dock in self._docks():
+            entries.append(PaletteEntry(f"Go to panel > {dock.windowTitle().split(' (')[0]}",
+                                        lambda dock=dock: self.show_panel(dock)))
         for section, label in self.settings_page.sections():
             entries.append(PaletteEntry(f"Settings > {label}",
                                         lambda section=section: self.show_settings(section)))
@@ -1069,11 +1169,10 @@ class MainWindow(QMainWindow):
         self.budget_widget.set_scenario(scenario)
         self.flight_software_widget.set_base_dir(self._current_path.parent if self._current_path else None)
         self.flight_software_widget.set_scenario(scenario)
-        # The tab says when there's something to check, so it's seen even
-        # by someone who never opens it before pressing Run.
+        # The panel's title says when there's something to check, so it's
+        # seen even by someone who never reads it before pressing Run.
         count = self.scenario_explainer_widget.warning_count
-        self.side_tabs.setTabText(self.side_tabs.indexOf(self.scenario_explainer_widget),
-                                  f"Explain ({count} to check)" if count else "Explain")
+        self.explain_dock.setWindowTitle(f"Explain ({count} to check)" if count else "Explain")
         self._update_monte_carlo_tab(scenario)
 
     def _update_monte_carlo_tab(self, scenario=None) -> None:
@@ -1329,6 +1428,7 @@ class MainWindow(QMainWindow):
     def on_new(self) -> None:
         if not self._confirm_discard_unsaved():
             return
+        self._save_project_layout()
         self.scenario_editor.reset_to_default()
         self._reset_history()
         self._refresh_scenario_explainer()
@@ -1398,6 +1498,7 @@ class MainWindow(QMainWindow):
         through on_save_as() -- see that method -- rather than silently
         picking a path to write to.
         """
+        self._save_project_layout()
         self.scenario_editor.from_scenario(scenario)
         # The guide opens for a scenario still without spacecraft; an
         # opened mission keeps its description in view, the guide folded.
@@ -1405,6 +1506,7 @@ class MainWindow(QMainWindow):
         self._reset_history()
         self._refresh_scenario_explainer()
         self._current_path = current_path
+        self._restore_project_layout()
         self._clear_run_views()
         self._mark_clean()
         label = str(current_path) if current_path is not None else scenario.name
@@ -1440,6 +1542,7 @@ class MainWindow(QMainWindow):
                          "The previous file, if there was one, is unchanged.")
             return
         self._current_path = path
+        self._save_project_layout()
         self._mark_clean()
         self.statusBar().showMessage(f"Saved {path}")
         show_toast(self, f"Saved {path.name}")
@@ -1471,7 +1574,8 @@ class MainWindow(QMainWindow):
             self.run_progress.set_fraction(0.0)
         self._busy_timer.start()
         self._run_started_s = time.monotonic()
-        self.top_bar.chip.set_state("running", "Running")
+        self.run_chip.set_state("running", "Running")
+        self.run_chip.hide()  # the job beside it says the same, with its bar
         self.statusBar().showMessage(message)
 
     def _stop_busy(self, message: str, chip_state: str = "idle", chip_text: str = "Ready",
@@ -1490,7 +1594,8 @@ class MainWindow(QMainWindow):
                 self.top_bar.set_last_run(f"{run_name + ' at ' if run_name else 'last run '}"
                                           f"{time.strftime('%H:%M')}, {chip_state}, {_duration_text(seconds)}")
             self._run_started_s = None
-        self.top_bar.chip.set_state(chip_state, chip_text)
+        self.run_chip.set_state(chip_state, chip_text)
+        self.run_chip.show()
         self._set_running(False)
         self.abort_action.setEnabled(False)
         self._busy_timer.stop()
@@ -1526,8 +1631,7 @@ class MainWindow(QMainWindow):
         self._show_problem_at_field(problem)
 
     def _show_problem_at_field(self, problem: str) -> None:
-        self.side_dock.show()
-        self.side_tabs.setCurrentWidget(self.problems_widget)
+        self.problems_dock.show()
         self._on_problem_activated(problem)
 
     def _update_busy_elapsed(self) -> None:
@@ -1536,9 +1640,9 @@ class MainWindow(QMainWindow):
         seconds = self._busy_elapsed.elapsed() // 1000
         self.run_progress.refresh_time()
         if self._busy_progress.maximum() > 0:
-            self.top_bar.chip.set_state("running", f"Running {self._busy_progress.value()} %")
+            self.run_chip.set_state("running", f"Running {self._busy_progress.value()} %")
         else:
-            self.top_bar.chip.set_state("running", f"Running {seconds // 60}:{seconds % 60:02d}")
+            self.run_chip.set_state("running", f"Running {seconds // 60}:{seconds % 60:02d}")
 
     # -- Run --------------------------------------------------------------
     def on_configure_vizard(self) -> None:

@@ -185,7 +185,7 @@ A few things to notice right away:
   * **Settings**, at the bottom: **Appearance** (the theme: **System**,
     light or dark as your desktop is, the default; **Light** or **Dark**;
     a new theme applies at once, to every open view), **Reference data**,
-    **Layout** (the rail as icons only, the side panel, **Reset Layout**),
+    **Layout** (the rail as icons only, the **Inspector** and **Problems** panels, **Reset Layout**),
     **Keyboard** (every shortcut) and **About**.
   * **Help**, at the bottom: this manual (`F1`). The rail's last button
     shows the areas as icons only, or with their names.
@@ -195,25 +195,34 @@ A few things to notice right away:
 * Every command is also in the **command palette**: press `Ctrl+K`, or
   click the search field in the top bar, and type part of its name
   ("save as", "budget", or a spacecraft's name). There is no menu bar.
-* A **side panel** on the right, with three pages: **Inspector** (the
-  field you are in: its value, the range it accepts and its help),
-  **Explain** (a live summary of what the scenario does, end of
-  Section 7) and **Problems** (what does not validate, and what looks
-  implausible; double-click one to go where it is fixed: the Scenario
+* Two panels on the right, one above the other: **Inspector** (`Ctrl+I`;
+  the field you are in: its value, the range it accepts and its help) and
+  **Explain** (a live summary of what the scenario does, end of Section 7;
+  its title says how many things there are to check).
+* The **Problems** panel at the bottom (`Ctrl+J`): what does not validate,
+  and what looks implausible, as a table: **Severity** (an icon and the
+  word), **ID** (the field it is about), **Object** (the scenario, the
+  propagation setup, a spacecraft or ground station, the mission
+  sequence) and **Message**. Errors come first; click a column's heading
+  to sort by it, and `Ctrl+C` copies the selected rows. Double-click a row,
+  or select it and press `Enter`, to go where it is fixed: the Scenario
   Editor's field, or the spacecraft, ground station or propagation setup
-  dialog opened at the field, with the problem named at the top and
-  under the field). Drag it
-  to the left, close it, or put it back with **Settings > Layout > Reset Layout**;
-  the app remembers where you left it.
+  dialog opened at the field, with the problem named at the top and under
+  the field.
+* `Ctrl+I` and `Ctrl+J` show and hide their panel, and a panel they show
+  takes the keyboard. Drag a panel elsewhere, close it, or put them all
+  back with **Settings > Layout > Reset Layout**. The app remembers the
+  layout (the panels, the rail, the dividers' positions) for each
+  scenario file: open a file again and its layout comes back. A file
+  without one keeps the layout on screen.
 * A **top bar** above the area names the scenario and says whether it
   has unsaved changes, where it came from ("from template 22", or the
   file's name) and when it last ran, how it ended and how long it took;
   under that, where you are ("Scenario › Spacecraft › sat-1"). On its
   right: **Undo** and **Redo**, the save button (it says "Saved", "Not
   saved yet" or "Save"; a click saves), **Run** with its mode, the
-  search field of the command palette, and a tag with the run state: **No run yet**, **Running**
-  (with the percentage, or the time so far), **Run 2: done in 6 s**,
-  **Failed** or **Run 2: cancelled**. Runs are numbered in the session
+  search field of the command palette and, while the scenario has any,
+  the number of problems (a click opens **Problems**). Runs are numbered in the session
   ("Run 2, 12:19"): the top bar, the plots' provenance line and the
   traces of a comparison name them.
 * When a run ends, a note at the bottom right says so: "Run 2 complete
@@ -223,7 +232,12 @@ A few things to notice right away:
   dealt with: **Problems** at the field, the Monte Carlo page, or the
   **Log** at its errors. The message stays in the Log. Message boxes are
   kept for questions such as replacing a file.
-* The status bar at the bottom shows progress, and always: the Basilisk
+* The status bar at the bottom shows the run going on: what it is doing
+  ("Propagating: day 0.4 of 1"), a progress bar, the time so far and an
+  estimate of the time left, and **Cancel** (`Esc`). When no run is going,
+  a tag there says how the last one went: **No run yet**, **Run 2: done
+  in 6 s**, **Failed** or **Run 2: cancelled**. It always shows the problems ("1 error · 2 warnings", or
+  "No problems"; click it to open **Problems**), the Basilisk
   version ("(not qualified)" when it is not the verified 2.12.0), the
   reference data ("all OK", or how many files need attention; click it
   to open the **Reference data** dialog), how far the Earth orientation data is high
@@ -453,8 +467,8 @@ The quickest way to a mission of your own is a starter template (22 or
 5. Look at the bottom of the page: **✓ valid** means Run is available;
    otherwise the message names the field to fix, the field is marked in
    red with the message under it, and its node in the tree shows a count
-   (the side panel's **Problems** page lists it too; double-click it to go
-   to the field). **Explain**, in the side panel,
+   (the **Problems** panel lists it too; double-click it to go
+   to the field). **Explain**, on the right,
    already shows the orbit type, the ground passes and what the
    environment includes, before anything runs.
 6. **Save As...** (Ctrl+Shift+S), then **Run** (`Ctrl+R`).
@@ -825,7 +839,7 @@ they computed.
 2. Choose **SIL** beside **Run** and press **Run**. The dialog finds the export's `fsw_host`, or
    choose another program. It shows the program's SHA-256. Tick that you
    trust it (it runs with your user's rights) and press **Run SIL**.
-3. The run goes as any other run (progress strip, live plots, Cancel). At
+3. The run goes as any other run (progress in the status bar, live plots, Cancel). At
    the end the Flight Software page shows the comparison.
 
 | In the comparison | What it is |
@@ -1111,7 +1125,7 @@ then set the run mode beside **Run** to **Monte Carlo** and press
 for a first mission. Templates 09 and 25 are ready-made batches.
 
 A Monte Carlo run asks for a folder, saves every run there (the
-progress strip counts the cases done; a batch cannot be cancelled part
+progress in the status bar counts the cases done; a batch cannot be cancelled part
 way, as Basilisk's Controller has no way to stop it), and opens the
 **Monte Carlo** view of Results on the batch (the view is there
 whenever the scenario has Monte Carlo on, or a batch is open):
@@ -1181,7 +1195,7 @@ you may need a few extra system libraries --
 [Troubleshooting](docs/troubleshooting.md#the-results-plot-stays-blank) has the exact package names.
 
 **A simulation is taking too long, or you started the wrong one.**
-**Cancel** on the progress strip (`Esc`, or **Cancel Run**) stops it
+**Cancel** in the status bar (`Esc`, or **Cancel Run**) stops it
 safely at the next checkpoint (not instantly) and keeps whatever partial results were already produced --
 it's always safe to use, never a forced/unsafe kill.
 

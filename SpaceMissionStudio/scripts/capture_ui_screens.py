@@ -156,10 +156,10 @@ def capture(out: Path, theme: str) -> int:
                 window.shell.show_area(area.id)
                 spin(1.2)  # [s]
                 save(window, f"{prefix}_{area.label}")
-        for index in range(window.side_tabs.count()):
-            window.show_view(window.side_tabs.widget(index))
+        for dock in window._docks():
+            window.show_view(dock.widget())
             spin(0.8)  # [s]
-            save(window, f"{prefix}_side_{window.side_tabs.tabText(index).split(' (')[0]}")
+            save(window, f"{prefix}_panel_{dock.windowTitle().split(' (')[0]}")
 
     window.open_path(TEMPLATES_DIR / EXAMPLE)
     spin(2.0)  # [s]

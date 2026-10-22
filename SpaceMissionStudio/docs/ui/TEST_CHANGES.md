@@ -115,3 +115,50 @@ rail's areas, the top bar or the Settings area.
   read from the plan, reachable in the shell (74 rows), and no menu bar,
   no toolbar, every command on the window.
 - `tests/gui/test_command_palette.py::test_keywords_find_an_entry_by_another_name`.
+
+## M2b Panels
+
+No test outside `tests/gui/` changed. No golden or output file changed.
+Problems moved from a list in the side panel to a table at the bottom.
+Inspector and Explain are two docks instead of two tabs. The run progress
+and the run chip moved from the top bar into the status bar. Each test
+below reaches the same behaviour there.
+
+### Changed: how a test reaches the widget
+
+| Test | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_field_errors.py::_activate_error` (4 tests use it) | `problems.list.itemActivated.emit(problems.list.item(row))` | `problems.table.activated.emit(problems.index_of(row))` | The error's row opens its field |
+| `test_field_errors.py::test_an_invalid_epoch_is_marked_at_its_field` | `problems_widget.list.item(0).text()` | `problems_widget.row_text(0)` ("Error: " and the message, as the list item read) | The first row is the epoch's error |
+| `test_json_view.py::test_problems_open_the_json_page`, `test_mission_sequence_list.py::test_problems_open_the_step` | `problems.list.itemActivated.emit(problems.list.item(row))` | `problems.table.activated.emit(problems.index_of(row))` | The row opens the JSON page; the step |
+| `test_workspace.py::test_problems_list_the_validation_error_and_warnings` | The side tab's text; `list.count()`, `list.item(0).text()`, `list.itemActivated` | The dock's title; `proxy.rowCount()`, `row_text(0)`, `table.activated` | "Problems (n)"; one row per problem, the error first; it opens the editor |
+| `test_workspace.py::test_a_stale_model_problem_opens_the_model_editor` | `list.item(row).toolTip()`, `list.itemActivated` | `index_of(row).data(ToolTipRole)`, `table.activated` | The tooltip text; the row opens the model editor |
+| `test_workspace.py::test_show_view_selects_every_level` | Problems is the side tab shown and the side dock is visible | The Problems dock is visible | `show_view` reaches a panel |
+| `test_workspace.py::test_the_areas_and_what_they_hold` | The side tabs start with Inspector; the side dock holds Explain | The Inspector dock holds the inspector; the Explain dock holds Explain | Where each panel is |
+| `test_workspace.py::test_the_layout_is_kept_and_reset` | After Reset Layout, Explain is the side tab shown | After Reset Layout, the Explain dock is visible | A hidden panel stays hidden in the next window; Reset Layout brings it back |
+| `test_workspace.py::test_the_view_analyses_and_tools_commands` | The View commands start with "Side Panel"; View > Problems makes Problems the side tab | No "Side Panel" (the Inspector toggle replaces it, its keyword "side panel" finds it); the Problems dock is hidden, then View > Problems shows it | Every other View, Analyses and Tools command, in the same order, does what it did |
+| `test_main_window.py::test_explain_tab_exists_and_shows_the_default_scenario_on_startup`, `test_explain_tab_title_counts_pre_run_warnings` | The side tab's index and text | The Explain dock's widget and title | "Explain", then "Explain (1 to check)" |
+| `test_main_window.py::test_save_with_invalid_scenario_shows_error_and_does_not_write`, `test_run_with_invalid_scenario_shows_error_without_starting_worker`, `test_run_messages.py::test_an_invalid_scenario_opens_problems_at_the_field` | Problems is the side tab shown | The Problems dock is visible. It is shown in a new window, so `test_panels.py::test_a_refused_run_opens_a_hidden_problems_panel` checks that a hidden one opens | The problem is reported once and Problems opens |
+| `test_run_messages.py::test_a_finished_run_says_its_name_length_and_events`, `test_a_failed_run_opens_the_log_at_its_errors`; `test_app_shell.py::test_the_chip_follows_a_finished_run`, `test_the_chip_shows_a_live_run_percentage`, `test_the_chip_shows_failed_and_cancelled_runs` | `window.top_bar.chip` | `window.run_chip` (in the status bar) | Every state and text of the chip |
+| `test_shell_reachability.py`: the rows "View › Side Panel, Inspector, Explain, Problems", "Title bar (…, run state chip)", "Run progress strip", "Side **Problems**", and `_side` | The commands; the chip in the top bar; the strip above the areas; the side tab shown | The Inspector and Problems commands toggle their docks with `Ctrl+I` and `Ctrl+J`; the chip, the run job and the problem count are in the status bar; `_side` hides a panel and checks `show_view` shows it again | Every §5.2 row is reachable (74 rows) |
+| `test_wheel_in_dialogs.py::test_mouse_wheel_changes_nothing[main-window]` | Wheeled over the window as shown (Home), then every tab widget | Also walks the rail's areas, as `test_input_borders.py` does since M2a; tab widgets not shown are skipped | The wheel changes no box, drop-down or tab. Before, Home's only target was the side tabs' bar, so without it the test failed its "nothing to wheel over" guard |
+
+### Wording only
+
+- `test_shell_reachability.py`: the comment on the validation strip says
+  M4 removes it (`docs/DECISIONS.md`, M2b).
+
+### Added
+
+- `tests/gui/test_panels.py` (13 tests):
+  - the Problems table: its columns, errors first, a heading sorting,
+    the icon, Ctrl+C as TSV, the empty state;
+  - the counts in the status bar and the top bar, and both opening the
+    panel;
+  - a refused run opening a hidden Problems panel;
+  - Ctrl+J, the arrows and Enter reaching the field;
+  - the run job in the status bar, with progress and Cancel, not widening
+    the window and fitting a 1280 px window;
+  - the inspector's two docks and Ctrl+I;
+  - the layout kept per project, and after the window closes;
+  - a keyboard-only walk of the shell.

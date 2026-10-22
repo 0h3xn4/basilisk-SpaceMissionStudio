@@ -197,7 +197,7 @@ def test_problems_open_the_step(qtbot, tmp_path, monkeypatch):
     problems = window.problems_widget
     row = next(i for i, (_severity, text) in enumerate(problems.problems) if text.startswith("mission_sequence[2]"))
     window.show_view(window.results_widget)
-    problems.list.itemActivated.emit(problems.list.item(row))
+    problems.table.activated.emit(problems.index_of(row))
     assert editor.page_tree.current_page() is editor.mission_sequence_page
     assert sequence.tree.currentItem() is sequence.tree.topLevelItem(2)
     assert editor.page_tree.problem_count(editor.mission_sequence_item) >= 1

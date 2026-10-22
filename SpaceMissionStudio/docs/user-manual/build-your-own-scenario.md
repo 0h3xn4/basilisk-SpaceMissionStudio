@@ -36,8 +36,8 @@ or build one up from an empty scenario.
 4. **Ground stations > Add...**: a name, latitude, longitude and the lowest
    usable elevation (10 deg is common).
 5. Check the bottom of the tab. **✓ valid** means you can run; otherwise
-   the message names the field to fix, and **Problems** in the side panel
-   takes you to it with a double-click. **Explain**, in the side panel, already shows
+   the message names the field to fix, and the **Problems** panel
+   takes you to it with a double-click. **Explain**, on the right, already shows
    the orbit type and the predicted ground passes.
 6. **Save As...** (Ctrl+Shift+S), then **Run** (`Ctrl+R`).
 
