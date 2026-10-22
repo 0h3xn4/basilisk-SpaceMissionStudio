@@ -12493,3 +12493,44 @@ existing GUI tests changed how they reach Compare (it is refreshed when
 shown), and one expectation changed on purpose (the Run area's tabs now
 include History), each in `docs/ui/TEST_CHANGES.md`. Golden files and
 every output are unchanged.
+
+## M5b: the Run area's controls (2026-10-22)
+
+The second half of M5 (the plan's §7 status; `docs/DECISIONS.md`, M5b,
+written before the code).
+
+**What changed.**
+- **The run mode** is a segmented control, Single · Monte Carlo · SIL,
+  in the Run area's header beside Run (`gui/run_page.py`,
+  `RunModeControl`); it replaces the header's "Single run ▾" button. The
+  top bar keeps its mode menu; the two follow each other.
+- **Run › Run**, the Run area's first page (`RunPage`), shows what the
+  next run uses for the mode chosen, each change applied at once:
+  - Single: Live plot (one setting with the Live plot command) and the
+    Vizard options, the Vizard dialog's form embedded; the header's Live
+    plot and Vizard Configuration buttons are gone (both commands stay in
+    the palette; Vizard Configuration shows the form);
+  - Monte Carlo: the archive folder, a field with Browse..., remembered
+    for each scenario (a key from its file's path, or its name while it
+    is unsaved); left empty, Run asks for a folder as before; the
+    question before replacing an earlier batch stays;
+  - SIL: the spacecraft that can run it and the program's form (the SIL
+    dialog's, embedded); Run without a confirmed program says where to
+    choose it, and with no spacecraft that can run SIL it opens Flight
+    Software, as before.
+
+**Screenshots.** `scripts/capture_ui_screens.py --theme both`, this branch
+against M5a: 120 shots per theme (M5a: 116). New: Run › Run before and
+after a run (Single), and in Monte Carlo and SIL mode. The Run area's
+header shows the segmented control in place of the mode button, Live plot
+and Vizard Configuration. The first capture showed the Single page as
+tall as the SIL page (a stacked widget takes its tallest page's height):
+the pages not shown are now ignored in the layout.
+
+**Tests.** The full suite: 3794 passed and 12 skipped, none failed
+(Python 3.13 here; CI runs 3.11). `test_run_page.py` is new (6 tests).
+Five existing GUI tests and four rows of the shell reachability check
+changed how they reach the run controls (Run › Run, the segmented
+control), and one expectation changed on purpose (the Run area's tabs now
+begin with Run), each in `docs/ui/TEST_CHANGES.md`. Golden files and every
+output are unchanged.

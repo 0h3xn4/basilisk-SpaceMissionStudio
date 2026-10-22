@@ -189,6 +189,13 @@ def capture(out: Path, theme: str) -> int:
     spin(0.6)  # [s]
     save(menu, "menu_run_mode")
     menu.close()
+    # M5b: Run > Run in the other two modes (Single is in the workspace's shots).
+    for mode in ("monte_carlo", "sil"):
+        window.set_run_mode(mode)
+        window.show_view(window.run_page)
+        spin(1.0)  # [s]
+        save(window, f"run_page_{mode}")
+    window.set_run_mode("single")
 
     window.show_view(window.results_widget)
     window.on_run()

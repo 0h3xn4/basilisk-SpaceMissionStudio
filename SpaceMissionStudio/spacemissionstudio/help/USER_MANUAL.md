@@ -174,9 +174,13 @@ A few things to notice right away:
     many of each there are. At the top, **Form · JSON** switches between
     these pages and the scenario as text (Section 6), and **3D Model...**
     opens the 3D model editor for a spacecraft.
-  * **Run**: Run and its mode, **Cancel Run**, **Live plot**, the Vizard
-    commands, **Open Monte Carlo Results...** and **Check Reference
-    Data** at the top; under them **End of Life** and **Budget** (re-entry
+  * **Run**: Run, the run mode (**Single · Monte Carlo · SIL**),
+    **Cancel Run**, **Launch Vizard**, **Open Monte Carlo Results...** and
+    **Check Reference Data** at the top; under them the **Run** page
+    (what the next run uses, for the mode chosen: **Live plot** and the
+    Vizard options for a single run, the archive folder for a Monte
+    Carlo batch, the spacecraft and program for a SIL run; each applies
+    as you change it), **End of Life** and **Budget** (re-entry
     and delta-V estimates, Section 11), **History** (every run: its
     status, mode, start, how long it took and whether it is saved; see
     Section 7, Compare) and the **Log** (what the app logged in this
@@ -874,8 +878,9 @@ and are listed in the ICD as not exported.
 
 ### Running the flight software in the loop
 
-**Run** in **SIL** mode (choose **SIL** beside **Run**; it asks which
-spacecraft when more than one can), or `spacemissionstudio sil` runs
+**Run** in **SIL** mode (choose **SIL** in the Run area, or beside
+**Run** in the top bar; the **Run** page asks which spacecraft when more
+than one can), or `spacemissionstudio sil` runs
 the scenario with that spacecraft's flight software in a separate
 program: software in the loop (SIL). Each step the tool sends the
 program the spacecraft's inputs, waits for its commands, and gives them
@@ -887,9 +892,11 @@ they computed.
 1. Export the flight software and build it (above): the program is
    `<folder>/build/fsw_host`. For flight software of your own, build
    `fsw_adapter_host` from the export's `adapter/` (its `ADAPTER_GUIDE.md`).
-2. Choose **SIL** beside **Run** and press **Run**. The dialog finds the export's `fsw_host`, or
-   choose another program. It shows the program's SHA-256. Tick that you
-   trust it (it runs with your user's rights) and press **Run SIL**.
+2. Choose **SIL** (the Run area's run mode). The **Run** page finds the
+   export's `fsw_host`, or choose another program. It shows the
+   program's SHA-256. Tick that you trust it (it runs with your user's
+   rights) and press **Run**. Until the program is chosen and confirmed,
+   Run says so and does not start.
 3. The run goes as any other run (progress in the status bar, live plots, Cancel). At
    the end the Flight Software page shows the comparison.
 
@@ -1164,9 +1171,11 @@ Vizard is AVS's separate 3D visualization application -- it shows your
 spacecraft, orbit, and attitude moving in real time (or played back
 afterward) instead of just plots of numbers.
 
-* **Vizard Configuration...** (the Run area) decides how the *next* run feeds
-  Vizard -- live streaming while the simulation runs, or saving a
-  playback file to watch afterward.
+* The **Vizard** options on the Run area's **Run** page (or **Vizard
+  Configuration...** in the command palette, which shows them) decide how
+  the *next* run feeds Vizard -- live streaming while the simulation
+  runs, or saving a playback file to watch afterward. A change applies
+  at once; there is no OK.
 * **Launch Vizard** (the Run area) starts the separate Vizard application itself.
   If SpaceMissionStudio can't find it already installed, it offers to
   download AVS's own pre-built copy for you (only when you click
@@ -1192,7 +1201,9 @@ then set the run mode beside **Run** to **Monte Carlo** and press
 **Run**. This is a more advanced feature; most people won't need it
 for a first mission. Templates 09 and 25 are ready-made batches.
 
-A Monte Carlo run asks for a folder, saves every run there (the
+A Monte Carlo run saves every run in the archive folder on the Run
+area's **Run** page (with **Browse...**; remembered for each scenario;
+left empty, Run asks for one) (the
 progress in the status bar counts the cases done; a batch cannot be cancelled part
 way, as Basilisk's Controller has no way to stop it), and opens the
 **Monte Carlo** view of Results on the batch (the view is there

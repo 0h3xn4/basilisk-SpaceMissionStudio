@@ -924,6 +924,17 @@ Every milestone also has to meet all of these:
   **Not met** ("no stall over 50 ms"): what is left is the results view
   building its Plotly figure (about 110-130 ms of it), which M6 rebuilds
   (its plot pages persistent, plotly.js loaded once).
+- **M5b (2026-10-22): done.** It meets the rest of M5's criteria
+  (`tests/gui/test_run_page.py`):
+  - the run mode is a segmented control, Single · Monte Carlo · SIL, in
+    the Run area's header beside Run (Ctrl+R); the top bar keeps its menu;
+  - the options are inline, on Run › Run, the Run area's first page, for
+    the mode chosen: Live plot and the Vizard form (applied as edited)
+    for a single run; the Monte Carlo archive folder, a field with
+    Browse..., remembered per scenario (left empty, Run asks for one;
+    the overwrite question stays a modal confirmation); the SIL
+    spacecraft and program (they were two dialogs);
+  - determinate progress was already there (M2b).
 
 **Order and size.**
 

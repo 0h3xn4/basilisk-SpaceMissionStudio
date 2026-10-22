@@ -130,24 +130,23 @@ _ROWS = {
                                          _button(w, w.top_bar.run_button, w.shell.current_area(), lambda: None)),
     "Run › Run mode (Single, Monte Carlo, SIL)": lambda w: (
         _command(w, "run.mode.single", "run.mode.monte_carlo", "run.mode.sil"),
-        _button(w, w.run_area_mode_button, "run", lambda: w.shell.show_area("run"))),
+        _in_the_header(w, w.run_mode_control, "run"), _button(
+            w, w.run_mode_control.buttons["sil"], "run", lambda: w.shell.show_area("run"))),
     "Run › Cancel Run (Esc)": lambda w: (_command(w, "run.cancel"), _shown(w, w.shell.page("run").buttons[
         w.abort_action], "run")),
     "Run › Live plot": lambda w: (_command(w, "run.live_plot"),
-                                  _shown(w, w.shell.page("run").buttons[w.live_plot_action], "run")),
+                                  _shown(w, w.run_page.live_plot_check, "run")),
     "Run › Check Reference Data": lambda w: (_command(w, "run.check_data"),
                                              _shown(w, w.status_items.data_button, w.shell.current_area())),
     "Run › Vizard Configuration…": lambda w: (_command(w, "run.vizard_config"),
-                                             _shown(w, w.shell.page("run").buttons[w.vizard_action], "run")),
+                                             _shown(w, w.run_page.vizard_section, "run")),
     "Run › Launch Vizard": lambda w: (_command(w, "run.vizard_launch"),
                                      _shown(w, w.shell.page("run").buttons[w.vizard_launch_action], "run")),
     "Run › Open Monte Carlo Results…": lambda w: (_command(w, "run.open_monte_carlo"), _shown(
         w, w.shell.page("run").buttons[w.open_monte_carlo_results_action], "run")),
-    # M5 moves the folder into the Run area's options; it is still asked when a batch starts (Run in
-    # Monte Carlo mode, beside Run in the Run area).
+    # M5b: the folder is a field of Run > Run in Monte Carlo mode, remembered per scenario.
     "Monte Carlo archive-folder picker (modal, every batch)": lambda w: (
-        _command(w, "run.mode.monte_carlo"),
-        _button(w, w.run_area_mode_button, "run", lambda: w.shell.show_area("run"))),
+        _command(w, "run.mode.monte_carlo"), _archive_field(w)),
     "Run › Clear Time Cursor": lambda w: (_command(w, "run.clear_cursor"), _shown(
         w, w.shell.page("results").buttons[w.clear_cursor_action], "results")),
     "**Analyses** › End of Life, Budget": lambda w: (_command(w, "analyses.end_of_life", "analyses.budget"),
@@ -258,6 +257,15 @@ _ROWS = {
                                                              w._check_autosave_recovery),
     "Toasts (`feedback.py`)": lambda w: _toast_shows(w),
 }
+
+
+def _archive_field(window):
+    window.set_run_mode("monte_carlo")
+    try:
+        _shown(window, window.run_page.archive_edit, "run")
+        assert window.run_page.archive_browse.isVisibleTo(window)
+    finally:
+        window.set_run_mode("single")
 
 
 def _toast_shows(window):

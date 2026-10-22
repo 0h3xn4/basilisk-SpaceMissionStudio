@@ -95,7 +95,7 @@ from .time_cursor import TimeCursor, describe as describe_time
 from .undo_history import ScenarioHistory
 from .run_history import RunHistory
 from .run_history_view import HistoryEntry, RunHistoryView, run_entry, utc_text
-from .vizard_dialog import VizardDialog
+from .run_page import RunModeControl, RunPage
 from .vizard_launcher import (
     DEFAULT_LIVE_STREAM_ADDRESS,
     VizardFetchWorker,
@@ -342,6 +342,11 @@ class MainWindow(QMainWindow):
         # one page of inputs and results (decision of M2a), and the log.
         self.run_views = TabWidget()
         self.run_views.setObjectName("runViews")
+        # Run > Run (M5b): what the next run uses, for the mode chosen.
+        self.run_page = RunPage()
+        self.run_page.vizard_changed.connect(self._on_vizard_edited)
+        self.run_page.archive_changed.connect(self._remember_archive_dir)
+        self.run_views.addTab(self.run_page, "Run")
         self.run_views.addTab(lifetime_scroll, "End of Life")
         self.run_views.addTab(budget_scroll, "Budget")
         self.run_views.addTab(self.history_view, "History")
@@ -715,11 +720,19 @@ class MainWindow(QMainWindow):
         run = self.shell.page("run")
         self.run_area_run_button = run.add_command(self.run_action, primary=True)
         keep_icon(self.run_area_run_button, icon("play", "text.on_accent"))  # the accent icon would vanish on the fill
-        self.run_area_mode_button = self._run_mode_button()
-        run.add_widget(self.run_area_mode_button)
-        for action in (self.abort_action, self.live_plot_action, self.vizard_action, self.vizard_launch_action,
-                       self.open_monte_carlo_results_action, self.check_kernels_action):
+        # The mode as a segmented control (M5b); its options are on the Run page.
+        self.run_mode_control = RunModeControl()
+        self.run_mode_control.chosen.connect(self.set_run_mode)
+        run.add_widget(self.run_mode_control)
+        for action in (self.abort_action, self.vizard_launch_action, self.open_monte_carlo_results_action,
+                       self.check_kernels_action):
             run.add_command(action)
+        self.run_page.live_plot_check.setChecked(self.live_plot_action.isChecked())
+        self.run_page.live_plot_check.toggled.connect(self.live_plot_action.setChecked)
+        self.live_plot_action.toggled.connect(self.run_page.live_plot_check.setChecked)
+        self.run_page.set_vizard(self._vizard_request)
+        self.run_views.currentChanged.connect(self._refresh_run_page)
+        self.shell.area_changed.connect(self._refresh_run_page)
         for area_id in ("results", "timeline"):
             self.shell.page(area_id).add_command(self.clear_cursor_action)
 
@@ -1317,6 +1330,8 @@ class MainWindow(QMainWindow):
         self._reset_history()
         self._refresh_scenario_explainer()
         self._current_path = info.original_path
+        if hasattr(self, "run_page"):
+            self._recall_archive_dir()  # this scenario's Monte Carlo archive folder (M5b)
         self._clear_run_views()
         self._mark_dirty()
         self.statusBar().showMessage("Restored autosaved changes.")
@@ -1537,6 +1552,8 @@ class MainWindow(QMainWindow):
         self._reset_history()
         self._refresh_scenario_explainer()
         self._current_path = None
+        if hasattr(self, "run_page"):
+            self._recall_archive_dir()  # this scenario's Monte Carlo archive folder (M5b)
         self._clear_run_views()
         self._mark_clean()
         self.statusBar().showMessage("New blank scenario, in Orbit only: the Scenario page guides the next steps.")
@@ -1623,6 +1640,8 @@ class MainWindow(QMainWindow):
         self._reset_history()
         self._refresh_scenario_explainer()
         self._current_path = current_path
+        if hasattr(self, "run_page"):
+            self._recall_archive_dir()  # this scenario's Monte Carlo archive folder (M5b)
         self._restore_project_layout()
         self._clear_run_views()
         self._mark_clean()
@@ -1659,6 +1678,8 @@ class MainWindow(QMainWindow):
                          "The previous file, if there was one, is unchanged.")
             return
         self._current_path = path
+        if hasattr(self, "run_page"):
+            self._recall_archive_dir()  # this scenario's Monte Carlo archive folder (M5b)
         self._save_project_layout()
         self._mark_clean()
         self._remember_recent(path)
@@ -1676,7 +1697,7 @@ class MainWindow(QMainWindow):
         for action in (self.run_action, self.live_plot_action, self.vizard_action,
                        self.vizard_launch_action, self.check_kernels_action, *self.run_mode_group.actions()):
             action.setEnabled(not running)
-        for button in (getattr(self, "run_mode_button", None), getattr(self, "run_area_mode_button", None)):
+        for button in (getattr(self, "run_mode_button", None), getattr(self, "run_mode_control", None)):
             if button is not None:
                 button.setEnabled(not running)
 
@@ -1765,23 +1786,50 @@ class MainWindow(QMainWindow):
 
     # -- Run --------------------------------------------------------------
     def on_configure_vizard(self) -> None:
-        current_save_file = getattr(self._vizard_request, "save_file", None)
-        current_live_stream = getattr(self._vizard_request, "live_stream", False)
-        current_camera_target = getattr(self._vizard_request, "camera_target", None)
-        current_show_orbit_lines = getattr(self._vizard_request, "show_orbit_lines", True)
-        dialog = VizardDialog(current_save_file=current_save_file, current_live_stream=current_live_stream,
-                               current_camera_target=current_camera_target,
-                               current_show_orbit_lines=current_show_orbit_lines,
-                               current_show_trajectory_trail=getattr(self._vizard_request,
-                                                                     "show_trajectory_trail", False),
-                               current_show_ground_tracks=getattr(self._vizard_request, "show_ground_tracks", False),
-                               parent=self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            self._vizard_request = dialog.to_request()
-            if self._vizard_request is None:
-                self.statusBar().showMessage("Vizard disabled for the next run.")
-            else:
-                self.statusBar().showMessage("Vizard enabled for the next run.")
+        """Vizard Configuration: the Vizard options, on Run > Run (M5b)."""
+        self.show_view(self.run_page.vizard_section)
+        if self.run_page.vizard_form is not None:
+            self.run_page.vizard_form.setFocus()
+
+    def _on_vizard_edited(self, request) -> None:
+        """The Run page's Vizard form, applied as it is edited (M5b)."""
+        self._vizard_request = request
+        self.statusBar().showMessage("Vizard disabled for the next run." if request is None
+                                     else "Vizard enabled for the next run.")
+
+    # -- Run > Run: the Monte Carlo archive folder, the SIL spacecraft (M5b) ---------------
+    def _archive_key(self) -> str:
+        name = str(self._current_path.resolve()) if self._current_path is not None else \
+            f"unsaved:{self.scenario_editor.name_edit.text().strip()}"
+        return "monte_carlo_archive/" + hashlib.sha256(name.encode("utf-8")).hexdigest()
+
+    def _remember_archive_dir(self, folder: str) -> None:
+        """The Monte Carlo archive folder of this scenario, for next time."""
+        from .recent_files import _settings
+
+        settings = _settings()
+        if folder:
+            settings.setValue(self._archive_key(), folder)
+        else:
+            settings.remove(self._archive_key())
+
+    def _recall_archive_dir(self) -> None:
+        from .recent_files import _settings
+
+        self.run_page.set_archive_dir(str(_settings().value(self._archive_key(), "") or ""))
+
+    def _refresh_run_page(self, *_args) -> None:
+        """The SIL spacecraft, when the Run page is shown in SIL mode."""
+        if self.run_mode != "sil" or not self.run_page.isVisibleTo(self):
+            return
+        from .fsw_workbench_widget import exportable_reason
+
+        try:
+            scenario = self.scenario_editor.to_scenario()
+        except ScenarioValidationError:
+            return
+        names = [sc.name for sc in scenario.spacecraft if exportable_reason(scenario, sc) is None]
+        self.run_page.set_sil_spacecraft(names, self.flight_software_widget._folder_of)
 
     def _locate_vizard(self) -> Optional[Path]:
         """Called only when :func:`find_vizard_executable` came up empty.
@@ -2061,9 +2109,11 @@ class MainWindow(QMainWindow):
 
     def _on_run_mode_changed(self, _action=None) -> None:
         label, doing = self._RUN_MODE_TEXT[self.run_mode]
-        for button in (self.run_mode_button, getattr(self, "run_area_mode_button", None)):
-            if button is not None:
-                button.setText(label)  # the button draws its own menu arrow
+        self.run_mode_button.setText(label)  # the top bar's: the button draws its own menu arrow
+        if hasattr(self, "run_mode_control"):
+            self.run_mode_control.set_mode(self.run_mode)
+            self.run_page.show_mode(self.run_mode)
+            self._refresh_run_page()
         self.commands.refresh_tooltip("run.run", tip=f"{doing}. Pick another mode beside it. The scenario must be "
                                                      "valid first: Problems says what to fix.")
 
@@ -2083,31 +2133,22 @@ class MainWindow(QMainWindow):
             self._launch_run()
 
     def _run_sil_mode(self) -> None:
-        """Run in SIL mode: the spacecraft whose flight software runs in the
-        loop (asked when there is more than one that can), then the program
-        to run (SilRunDialog)."""
-        from .fsw_workbench_widget import exportable_reason
-
+        """Run in SIL mode: the spacecraft and the program chosen on Run > Run
+        (M5b; they were asked for in two dialogs)."""
         try:
-            scenario = self.scenario_editor.to_scenario()
+            self.scenario_editor.to_scenario()
         except ScenarioValidationError as exc:
             self._cannot_run(exc)
             return
-        names = [sc.name for sc in scenario.spacecraft if exportable_reason(scenario, sc) is None]
-        if not names:
-            show_toast(self, "SIL needs a spacecraft whose flight software can be exported: see Flight Software",
-                       kind="error")
-            self.show_view(self.flight_software_widget)
+        self.show_view(self.run_page)
+        self._refresh_run_page()
+        name, options = self.run_page.sil_choice()
+        if name is None:
+            if not self.run_page.sil_combo.count():
+                self.show_view(self.flight_software_widget)  # it says why none can be exported
+            show_toast(self, options, kind="error")
             return
-        name = names[0]
-        if len(names) > 1:
-            name, ok = QInputDialog.getItem(self, "Run SIL", "Spacecraft whose flight software runs in the loop:",
-                                            names, 0, False)
-            if not ok:
-                return
-        options = self.flight_software_widget.ask_sil_options(name)
-        if options is not None:
-            self.on_run_sil(name, options)
+        self.on_run_sil(name, options)
 
     def on_run_sil(self, spacecraft_name: str, options) -> None:
         """Run in SIL mode: the scenario with that spacecraft's flight
@@ -2383,9 +2424,14 @@ class MainWindow(QMainWindow):
         blocks = script_blocks(scenario.mission_sequence)
         if blocks and not self._confirm_script_blocks(blocks):
             return
-        archive_dir_str = QFileDialog.getExistingDirectory(self, "Monte Carlo archive directory")
+        # The folder on Run > Run (M5b), remembered for the scenario; asked for when it is empty.
+        archive_dir_str = self.run_page.archive_dir() or QFileDialog.getExistingDirectory(
+            self, "Monte Carlo archive directory")
         if not archive_dir_str:
             return
+        if archive_dir_str != self.run_page.archive_dir():
+            self.run_page.set_archive_dir(archive_dir_str)
+            self._remember_archive_dir(archive_dir_str)
         archive_dir = Path(archive_dir_str)
         state = monte_carlo_results.folder_state(archive_dir)
         if state == "other":

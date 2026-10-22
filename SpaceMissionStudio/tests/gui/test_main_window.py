@@ -148,17 +148,20 @@ def test_toolbar_actions_are_all_visible(window, qtbot):
         assert widget.isVisibleTo(window), f"{widget.text()!r} is not visible in the top bar"
     window.shell.show_area("run")
     header = window.shell.page("run").buttons
-    for action in (window.run_action, window.abort_action, window.live_plot_action, window.vizard_action,
-                   window.vizard_launch_action, window.check_kernels_action):
+    for action in (window.run_action, window.abort_action, window.vizard_launch_action, window.check_kernels_action):
         assert action in header, f"{action.text()!r} is missing from the Run area"
         assert header[action].isVisibleTo(window), f"{action.text()!r}'s button is not visible"
-    assert window.run_area_mode_button.isVisibleTo(window)
+    assert window.run_mode_control.isVisibleTo(window)
+    # M5b: Live plot and the Vizard options are on Run > Run
+    window.show_view(window.run_page)
+    assert window.run_page.live_plot_check.isVisibleTo(window)
+    assert window.run_page.vizard_section.isVisibleTo(window)
     window.shell.show_area("home")
     home = window.load_scenario_widget
     assert home.start_from_scratch.button.isVisibleTo(window) and home.browse_button.isVisibleTo(window)
     # The run modes (Monte Carlo among them) are in the mode buttons' menu, beside Run (U-18).
     assert window.run_mode_button.menu().actions() == window.run_mode_group.actions()
-    assert window.run_area_mode_button.menu() is window.run_mode_button.menu()
+    assert sorted(window.run_mode_control.buttons) == sorted(a.data() for a in window.run_mode_group.actions())  # M5b
     assert window.monte_carlo_action in window.run_mode_group.actions()
 
 
@@ -416,18 +419,10 @@ def test_close_with_unsaved_changes_discard_allows_close(window, monkeypatch):
 def test_configure_vizard_sets_request(window, monkeypatch):
     """Accepting the Vizard dialog with live streaming chosen stores a
     live-stream request."""
-    from PySide6.QtWidgets import QDialog
-
-    from spacemissionstudio.gui.vizard_dialog import VizardDialog
-
     assert window._vizard_request is None
 
-    def fake_exec(self):
-        self.live_stream_radio.setChecked(True)
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(VizardDialog, "exec", fake_exec)
-    window.on_configure_vizard()
+    window.on_configure_vizard()  # M5b: the Vizard form on Run > Run, applied as it is edited
+    window.run_page.vizard_form.live_stream_radio.setChecked(True)
 
     assert window._vizard_request is not None
     assert window._vizard_request.live_stream is True

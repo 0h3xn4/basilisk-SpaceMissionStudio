@@ -22,6 +22,7 @@ mode (single run, Monte Carlo, SIL), a progress strip with the phase, the
 time elapsed and left and Cancel (Esc), and a Live plot toggle that says
 its state."""
 
+import sys
 from pathlib import Path
 
 import pytest
@@ -79,24 +80,32 @@ def test_sil_mode_without_a_spacecraft_that_can_says_so(window, monkeypatch):
     """Template 22 is orbit only: no flight software to run in the loop.
     Run in SIL mode says so and opens the Flight Software page."""
     window.set_run_mode("sil")
-    asked = []
-    monkeypatch.setattr(window.flight_software_widget, "ask_sil_options", lambda name: asked.append(name))
+    runs = []
+    monkeypatch.setattr(window, "_launch_run", lambda sil=None: runs.append(sil))
     window.on_run()
-    assert asked == [] and window.current_view() is window.flight_software_widget
+    assert runs == [] and window.current_view() is window.flight_software_widget
 
 
-def test_sil_mode_asks_for_the_program_and_runs(window, monkeypatch):
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX executable bit")
+def test_sil_mode_asks_for_the_program_and_runs(window, monkeypatch, tmp_path):
     """With one spacecraft that can run SIL, Run asks for the program and
-    starts the run with it."""
+    starts the run with it (M5b: asked on Run > Run, not in a dialog)."""
     from spacemissionstudio.gui import fsw_workbench_widget
 
     monkeypatch.setattr(fsw_workbench_widget, "exportable_reason", lambda scenario, spacecraft: None)
-    monkeypatch.setattr(window.flight_software_widget, "ask_sil_options", lambda name: f"options for {name}")
     runs = []
     monkeypatch.setattr(window, "_launch_run", lambda sil=None: runs.append(sil))
     window.set_run_mode("sil")
     window.on_run()
-    assert runs == [("my-sat", "options for my-sat")]
+    assert runs == [] and window.current_view() is window.run_page  # the program is not chosen yet
+    program = tmp_path / "fsw_host"
+    program.write_bytes(b"#!/bin/sh\nexit 0\n")
+    program.chmod(0o755)
+    form = window.run_page.sil_form
+    form.path_edit.setText(str(program))
+    form.consent_check.setChecked(True)
+    window.on_run()
+    assert [(name, options.binary) for name, options in runs] == [("my-sat", str(program.resolve()))]
 
 
 def test_the_strip_shows_phase_time_and_cancel(window, qtbot):
