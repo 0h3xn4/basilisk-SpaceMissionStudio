@@ -1452,6 +1452,7 @@ class ResultsWidget(QWidget):
         dialog.setWindowTitle("Input differences")
         dialog.resize(760, 420)  # [px]
         table = QTableWidget(len(rows), 3, dialog)
+        table.setTabKeyNavigation(False)  # read-only: Tab leaves the table; the arrows move in it (M9)
         table.setHorizontalHeaderLabels(["Input", f"Run {self._current_run.number} (shown)",
                                          f"Run {other.number}" if other else "-"])
         table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)

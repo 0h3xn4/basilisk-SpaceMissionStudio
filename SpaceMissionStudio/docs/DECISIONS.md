@@ -37,10 +37,32 @@ measured on the same kind of machine").
   status bar does not import Basilisk on the GUI thread either. The status
   bar and the dialog fill in when it is done (about 1.5 s later); the
   dialog's Refresh and the refresh after a download stay synchronous, as
-  before. Closing the window ends the child (it only reads).
+  before. Closing the window ends the child (it only reads). Checking a
+  scenario's dates needs the space-weather file parsed in the window's
+  own process, which the old start-up did as a side effect: without it
+  the first scenario opened took 0.5 s longer. A worker thread parses it
+  once the child has answered; part of that parse holds the interpreter,
+  so it costs one stall of about 0.2 s, about 1.3 s after the window
+  appears, where it cost 0.5 s on the first open.
 - **The 50 ms first visit** is not reachable for the spacecraft page
   without building its tabs lazily, a rewrite of a 2,000-line editor whose
   tabs read each other's fields: not done; the measured value is recorded.
+- **Keyboard-only walk** (`tests/gui/test_keyboard_walk.py`, new): each
+  area by its shortcut, then Tab must reach every control in it that takes
+  the keyboard, and never land on a hidden widget. An exclusive group of
+  buttons (radio buttons, a segmented control) is one stop, chosen with the
+  arrows, as in Qt. It found a keyboard trap: Tab in the scenario's
+  description typed a tab instead of leaving it, so nothing after it (the
+  Form · JSON toggle, the area's commands, the rest of the page) could be
+  reached by Tab. Plain-text boxes now pass Tab on (as the JSON view and
+  the script and parameter boxes already did), and read-only tables do
+  too (the arrows move in them); tables that are edited (facets, data
+  handling) keep Tab from cell to cell, which leaves the table after the
+  last cell.
+- **The garbage collector after a run** (70-83 ms full collections, held
+  from M6b): not changed. Tuning the collector's thresholds would move the
+  pauses, not remove them, and freezing the run's objects would keep them
+  alive for the session; recorded with the end of a run's measurement.
 - **Version:** the plan says 1.2.0, written before 1.1.1 and 1.2.0 were
   released (2026-10-21). The UI overhaul's release is **1.3.0** in every
   version file. Tagging and releasing stay the user's.

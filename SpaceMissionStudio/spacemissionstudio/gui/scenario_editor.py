@@ -285,6 +285,7 @@ class ScenarioEditorWidget(QWidget):
         form.addRow(self.mission_guide)
 
         self.description_edit = QPlainTextEdit()
+        self.description_edit.setTabChangesFocus(True)  # Tab leaves it, not typed in it: no keyboard trap (M9)
         # Was 60px (~2 lines) -- nowhere near enough for the built-in
         # template missions' own multi-paragraph descriptions (see
         # spacemissionstudio/scenarios/templates/), which needed constant
@@ -962,13 +963,15 @@ class ScenarioEditorWidget(QWidget):
                 return node.form
         form = self._label_forms.get(area)
         if form is None:
+            # Built as a page's form, never shown: no window to size (M9).
             if area == SPACECRAFT:
-                form = SpacecraftEditorDialog(parent=self)
+                form = SpacecraftEditorDialog(parent=self, embedded=True)
                 form.other_titles = self._environment_title
             else:
                 from .ground_station_editor import GroundStationEditorDialog
 
-                form = GroundStationEditorDialog(parent=self)
+                form = GroundStationEditorDialog(parent=self, embedded=True)
+            form.hide()
             self._label_forms[area] = form
         return form
 

@@ -49,21 +49,50 @@ _COLUMNS = ["Kind", "File", "Status", "Covers", "SHA-256", "Installed", "Source"
 NOT_READ = object()  # DataPanelWidget.basilisk_version before a child process has read it
 
 
-_readers: set = set()  # the reads running (_InventoryWorker), until each ends
+_readers: set = set()  # the reads running (_InventoryWorker, _SpaceWeatherWarmUp), until each ends
 _start_up_read: Optional[tuple] = None  # (files, Basilisk version) of this process's first start-up read
 
 
 def _remember_start_up_read(files: list, basilisk_version) -> None:
+    """Keep this process's first start-up read, and parse the space-weather
+    file here now that the window is settled (:class:`_SpaceWeatherWarmUp`)."""
     global _start_up_read
     _start_up_read = (files, basilisk_version)
+    _start(_SpaceWeatherWarmUp())
+
+
+def _start(thread: QThread) -> None:
+    """Start ``thread``, kept in ``_readers`` until it ends: not a widget's
+    child, so a widget deleted mid-run does not destroy it (Qt aborts)."""
+    _readers.add(thread)
+    thread.finished.connect(lambda: _readers.discard(thread))
+    thread.start()
 
 
 @atexit.register
 def _stop_readers() -> None:
     """A read still running at exit is ended, not destroyed mid-run."""
     for reader in list(_readers):
-        reader.reader.stop()
+        reader.stop()
         reader.wait()
+
+
+class _SpaceWeatherWarmUp(QThread):
+    """Parses the bundled space-weather file once, in this process (M9):
+    checking a scenario's dates needs it, and the first scenario opened
+    paid 0.5 s for it once start-up no longer read it here. Plain Python
+    parsing lets the GUI thread run in between."""
+
+    def run(self) -> None:
+        from ..engine import spaceweather
+
+        try:
+            spaceweather.real_data_path("bundled")  # load_celestrak keeps what it parsed
+        except Exception:  # noqa: BLE001 -- a missing file is reported where it is used
+            _logger.debug("space-weather warm-up failed", exc_info=True)
+
+    def stop(self) -> None:
+        """It ends by itself in under a second."""
 
 
 class _InventoryWorker(QThread):
@@ -73,6 +102,9 @@ class _InventoryWorker(QThread):
     interpreter for most of that."""
 
     done = Signal(object, object)  # the inventory (reference_data files), the Basilisk version; not sent on failure
+
+    def stop(self) -> None:
+        self.reader.stop()
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
@@ -175,6 +207,7 @@ class DataPanelWidget(QWidget):
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
         self.table = QTableWidget(0, len(_COLUMNS))
+        self.table.setTabKeyNavigation(False)  # read-only: Tab leaves the table; the arrows move in it (M9)
         on_change(self._retint)
         self.table.setHorizontalHeaderLabels(_COLUMNS)
         self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
@@ -252,13 +285,11 @@ class DataPanelWidget(QWidget):
         # Not the panel's child: a panel deleted mid-read must not destroy
         # a running thread (Qt aborts the process); kept until it ends.
         reader = _InventoryWorker()
-        _readers.add(reader)
-        reader.finished.connect(lambda: _readers.discard(reader))
         if start_up:
             reader.done.connect(_remember_start_up_read)
         reader.done.connect(self._on_read)
         self._reader = reader
-        reader.start()
+        _start(reader)
 
     def read_at_start_up(self) -> None:
         """The window's first read of the files (:meth:`refresh_in_background`)."""
@@ -267,7 +298,7 @@ class DataPanelWidget(QWidget):
     def wait_for_reader(self) -> None:
         """End a background read (closing the window): it only reads files."""
         if self._reader is not None:
-            self._reader.reader.stop()
+            self._reader.stop()
             self._reader.wait()
 
     def show_files(self, files: list, basilisk_version: object = None) -> None:

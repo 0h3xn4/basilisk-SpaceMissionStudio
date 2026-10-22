@@ -426,6 +426,7 @@ class LogViewWidget(QWidget):
         row.addWidget(self.open_file_button)
         layout.addLayout(row)
         self.text = QPlainTextEdit()
+        self.text.setTabChangesFocus(True)  # Tab leaves it (M9)
         self.text.setReadOnly(True)
         self.text.setObjectName("logText")
         self.text.setFont(mono_font())

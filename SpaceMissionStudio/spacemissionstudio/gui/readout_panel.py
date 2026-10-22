@@ -86,6 +86,7 @@ class ReadoutPanel(QWidget):
         set_role(self.time_label, tone="secondary")
         layout.addWidget(self.time_label)
         self.table = QTableWidget(0, 3)
+        self.table.setTabKeyNavigation(False)  # read-only: Tab leaves the table; the arrows move in it (M9)
         self.table.setHorizontalHeaderLabels(["Series", "Value", "Unit"])
         self.table.setAccessibleName("Readout")
         self.table.verticalHeader().setVisible(False)
