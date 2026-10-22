@@ -322,3 +322,32 @@ dispersions are edited in a form under their list instead of a dialog.
   rows (a run, a failed run and a batch, earlier runs read in a worker),
   the provenance popover and Copy, and the Log's records of a run and its
   Copy.
+
+## M5b The Run area's controls
+
+### Changed: how a test reaches the widget
+
+| Test | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_main_window.py::test_toolbar_actions_are_all_visible` | Live plot and Vizard Configuration as buttons of the Run area's header; the header's "Single run ▾" button sharing the top bar's menu | Live plot and the Vizard options on Run › Run; the header's segmented control holding a segment per mode of the menu | Every run command is visible where it lives; the run modes are in the top bar's menu |
+| `test_main_window.py::test_configure_vizard_sets_request` | Patched `VizardDialog.exec` to tick Live stream and accept | Vizard Configuration shows Run › Run; the test ticks Live stream in its form (applied as edited, no OK) | The request is set, with live stream on |
+| `test_run_feedback.py::test_sil_mode_without_a_spacecraft_that_can_says_so` | Patched `ask_sil_options` (the program dialog) and checked it was not called | Patches `_launch_run` and checks no run starts | No run, and the Flight Software page is shown |
+| `test_run_feedback.py::test_sil_mode_asks_for_the_program_and_runs` | Patched `ask_sil_options` to return options | Run shows Run › Run, which asks for the program; the test chooses an executable and ticks the consent there, then Run again (POSIX only: the executable bit, as `test_sil_widgets.py`) | The run starts with that spacecraft and the program chosen |
+| `test_shell_reachability.py` rows "Run › Run mode", "Run › Live plot", "Run › Vizard Configuration…" | The header's mode button; the header's Live plot and Vizard buttons | The header's segmented control (its SIL segment); Run › Run's Live plot box and Vizard section | Each row's commands in the palette and its control shown in the Run area |
+| `test_shell_reachability.py` row "Monte Carlo archive-folder picker" | The header's mode button | Run › Run's archive folder field and Browse..., in Monte Carlo mode | The Monte Carlo mode command, and the folder reached in the Run area |
+| `test_theme.py::test_every_command_button_has_an_icon` | Exempted the top bar's and the header's mode buttons | Exempts the top bar's (the header's is gone; its segments are checkable buttons, not command buttons) | Every command button has an icon |
+
+### Changed: what M5b changes on purpose
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_workspace.py::test_the_areas_and_what_they_hold` | The Run area's tabs: End of Life, Budget, History, Log | Run, End of Life, Budget, History, Log | M5's criterion: the run options inline, on a page of the Run area |
+
+### Added
+
+- `tests/gui/test_run_page.py` (6 tests): the segmented control and the
+  run mode following each other (and the page its mode), Live plot as one
+  setting on the page and in the palette, the Vizard options applied as
+  edited, the Monte Carlo folder used without the picker and remembered
+  per scenario, an empty folder falling back to the picker, and a SIL run
+  without a confirmed program not starting and saying where to choose it.

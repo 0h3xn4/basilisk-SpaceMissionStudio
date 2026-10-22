@@ -161,7 +161,7 @@ def test_every_command_button_has_an_icon(qtbot):
         buttons += list(area.page.buttons.values())
     assert len(buttons) > 10  # the check covers the commands
     for button in buttons:
-        if button in (window.run_mode_button, window.run_area_mode_button):
+        if button is window.run_mode_button:
             continue  # the run mode picker beside Run: a text drop-down, like a combo box (U-18)
         assert not button.icon().isNull(), button.text()
 

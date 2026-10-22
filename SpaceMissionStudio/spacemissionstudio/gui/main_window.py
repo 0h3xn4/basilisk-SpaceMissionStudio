@@ -2144,6 +2144,8 @@ class MainWindow(QMainWindow):
         self._refresh_run_page()
         name, options = self.run_page.sil_choice()
         if name is None:
+            if not self.run_page.sil_combo.count():
+                self.show_view(self.flight_software_widget)  # it says why none can be exported
             show_toast(self, options, kind="error")
             return
         self.on_run_sil(name, options)

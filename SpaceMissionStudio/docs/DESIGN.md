@@ -249,6 +249,14 @@ bar and no toolbar:
   JetBrains Mono, with the level filter, the search and Copy.
 - **The end of a run (M5a):** saving and pruning in a worker; Compare
   refreshed when shown; the results drawn once.
+- **Run › Run (M5b):** the run mode as a segmented control in the Run
+  area's header (`gui.run_page.RunModeControl`, the same `segmentedControl`
+  look as Form · JSON); the Run page (`RunPage`) shows what the next run
+  uses for the mode chosen: Live plot and the Vizard form for a single
+  run, the archive folder (a field and Browse..., remembered per
+  scenario) for a Monte Carlo batch, the spacecraft and the program for
+  a SIL run. Forms that were dialogs are embedded (`embed_dialog`) and
+  applied as edited; no OK.
 - **Problems panel, at the bottom (Ctrl+J):** a `QTableView` over
   `ProblemsModel`: Severity (icon and word), ID (the field path), Object,
   Message; errors first, any column sorts, Ctrl+C copies TSV, Enter or a

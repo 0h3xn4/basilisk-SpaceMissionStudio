@@ -131,6 +131,20 @@ fixes bugs.
 
   What a run computes and every file the app writes are unchanged.
 
+- **The run options on one page** (UI overhaul M5b):
+  - **The run mode** is a segmented control in the Run area's header,
+    **Single · Monte Carlo · SIL**; the top bar keeps its menu beside Run.
+  - **Run › Run**, the Run area's first page, holds what the next run
+    uses, for the mode chosen, and applies each change at once:
+    **Live plot** and the **Vizard** options (they were a dialog) for a
+    single run and a SIL run; the **archive folder** of a Monte Carlo
+    batch, with Browse..., remembered for each scenario (left empty, Run
+    asks for one, as before); the **spacecraft and program** of a SIL run
+    (they were two dialogs). The overwrite question for an earlier batch
+    stays.
+
+  What a run computes and every file the app writes are unchanged.
+
 ## 1.2.0 (2026-10-21)
 
 Starting a mission from an empty scenario is now a choice of its own: the
