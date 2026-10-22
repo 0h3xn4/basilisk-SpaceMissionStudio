@@ -149,6 +149,8 @@ def test_runs_of_an_earlier_session_are_listed_and_read_back_when_ticked(qtbot, 
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(window)
     compare = window.compare_widget
+    window.show_view(compare)  # listed in a worker, Compare refreshed when shown (M5a)
+    qtbot.waitUntil(lambda: compare.run_list.count() == 2, timeout=10000)
     assert compare.run_list.count() == 2 and compare.run_list.item(0).text().startswith("Run 2, 13 Oct 17:30")
     assert not any(r.in_memory for r in window.run_history.runs)
     compare.set_checked([1, 2])

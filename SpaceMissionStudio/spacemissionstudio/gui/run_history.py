@@ -262,6 +262,10 @@ class RunHistory(QObject):
         for older in in_memory[:-self._max_runs]:
             older.forget_series()
 
+    def is_saving(self, record: RunRecord) -> bool:
+        """``record`` is being saved, or waits to be."""
+        return record in self._to_save or (self._saver is not None and self._saver.record is record)
+
     @property
     def saving(self) -> bool:
         """A run is being saved, or waits to be."""
