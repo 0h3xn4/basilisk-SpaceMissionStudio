@@ -12341,6 +12341,24 @@ and M4b, the editing flow (the plan's §7 status; `docs/DECISIONS.md`).
   station dialog 426 px wide for a 406 px size hint); the forms are now
   finished before the dialog takes its size.
 
+**Screenshots.** `scripts/capture_ui_screens.py --theme both`, run on this
+branch and on M3, gives 113 shots per theme (M3: 114).
+- **The missing one is expected:** "Budget (AD10), scrolled to the end".
+  The harness takes it only when the tab scrolls, and with its optional
+  group collapsed the tab fits.
+- **The forms and dialogs changed as designed:** units in the fields,
+  optional groups as titles, and Monte Carlo off as its switch and one
+  line. The phasing dialog is a different size because its chief
+  station-keeping group collapses.
+- **The other shots differ only by the environment:** run-specific paths
+  and times, the inspector's focused field, a few pixels of wrapping where
+  a saved splitter differs, and semibold anti-aliasing.
+- **Not changed here:** a row with its own stretches (the antenna
+  boresight's three boxes) spreads across a wide dialog. It is still
+  inside the page; M4b rebuilds these dialogs as inline editors.
+
+The manual's screenshots in `docs/images/` are captured again.
+
 **Tests.** The full suite: 3759 passed, 12 skipped and 1 failed (Python
 3.13 here; CI runs 3.11). The failure measured the Monte Carlo page's
 dispersion buttons, which Monte Carlo off now hides; the test turns it on
