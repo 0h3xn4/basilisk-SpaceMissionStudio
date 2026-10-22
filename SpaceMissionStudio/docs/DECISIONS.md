@@ -61,6 +61,18 @@ of each part on all 31 templates).
   lags an edit. The explanation is asked for 250 ms after the last edit,
   computed in a `QThread` from the scenario built at that moment, and
   shown only if no later edit is waiting (an older answer is dropped).
+- **Not met, recorded:** after this, one keystroke in 310 still left a
+  62.9 ms stall in the 600 ms after it (template 12; not reproduced in
+  40 more there, and M4a's code shows the same kind of outlier). The
+  keystroke itself is at most 29.3 ms (M4a: 136.3 ms). M9's
+  performance pass holds the stall.
+- **A closed window stops its autosave and its explanation:** a window
+  closed but not yet deleted autosaved its discarded scenario into
+  whatever home the next test had (a test failed on it), and a waiting
+  explanation could start a thread for a window going away.
+- **Inline forms follow fields added later:** a device's Kind rebuilds
+  its fields, which `watch_edits` had not connected; it now marks the
+  fields it follows and connects new ones after each edit.
 
 ## M4a Forms (2026-10-22)
 

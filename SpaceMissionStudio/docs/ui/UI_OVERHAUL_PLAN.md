@@ -866,6 +866,31 @@ Every milestone also has to meet all of these:
   - the Power page, and every other Scenario page of every template,
     fits 1280 x 720 with the inspector shown, with no horizontal scroll;
   - the unsaved-changes indicator follows an edit until it is saved.
+- **M4b (2026-10-22): done, with one target not met.** It meets the rest
+  of M4's criteria (`tests/gui/test_editing_flow.py`; the decisions in
+  `docs/DECISIONS.md`, M4b):
+  - a Form · JSON toggle in the Scenario area's header that applies the
+    text before showing the form, and refuses text that does not apply
+    (Discard puts the scenario's text back);
+  - devices and dispersions edited in a form under their list, ground
+    stations and mission steps in their pages, as before; Add creates a
+    spacecraft, station, device or dispersion and opens it. No modal
+    dialog is left in editing; the template picker and the generators
+    stay dialogs;
+  - undo and redo stay `ScenarioHistory`: `QUndoStack` does not fit (one
+    snapshot per settled edit, whatever made it);
+  - Explain is Scenario › Overview, asked for 250 ms after the last edit
+    and computed in a worker thread.
+
+  Measured with `scripts/measure_keystrokes.py`, all 31 templates, five
+  keystrokes each, twice (310 keystrokes; on M4a's code for comparison):
+  - the keystroke itself: at most 29.3 ms (M4a: 136.3 ms, over 50 ms on
+    20 of 62 template passes). Met.
+  - the longest stall in the 600 ms after a keystroke: over 50 ms once,
+    62.9 ms (template 12); 40 more keystrokes there stay at or under
+    26.1 ms. Its cause is not found; M4a's code shows the same kind of
+    outlier (77.7 ms, template 02). **Not met** as written ("no keystroke
+    stalls more than 50 ms"); M9 holds it.
 
 **Order and size.**
 
