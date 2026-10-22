@@ -65,6 +65,12 @@ def main(argv: list[str]) -> int:
     apply_theme(app)
     runs = Path(tempfile.mkdtemp(prefix="sms-plot-switch-"))
     run_store.default_root = lambda: runs  # keep this run out of the user's history
+    from PySide6.QtCore import QSettings
+
+    from spacemissionstudio.gui import results_widget
+
+    layout_ini = str(runs / "layout.ini")  # and the plots it shows out of the user's saved layouts
+    results_widget._settings = lambda: QSettings(layout_ini, QSettings.Format.IniFormat)
 
     gaps: list[tuple[float, float]] = []  # (when it ended, how long) [s], [ms]
     last = [time.perf_counter()]

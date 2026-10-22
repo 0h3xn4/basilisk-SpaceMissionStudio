@@ -53,8 +53,8 @@ writing the page and reloading it with plotly.js.
   fell, a plot switch or a keystroke. Freezing again after each run would
   keep a whole simulation's cyclic garbage for good, so it is done once.
 - **Measured after** (`scripts/measure_plot_switch.py`, which freezes as
-  the app does; three runs, 36 switches): a switch holds the window at
-  most 30.5 ms (median 19-22 ms), and the plot is drawn after about
+  the app does; four runs, 48 switches): a switch holds the window at
+  most 34.4 ms (median 19-22 ms), and the plot is drawn after about
   110 ms (median 106-126 ms; was about 415 ms). Met.
 - **The end of a run stays held, now for M6b** (`scripts/measure_run_end.py`):
   102-110 ms after the first run of a session (M5a: 152-163 ms; the first

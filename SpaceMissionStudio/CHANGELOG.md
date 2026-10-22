@@ -154,8 +154,8 @@ fixes bugs.
   - **Plots** stay in one page: plotly.js is loaded once, and showing
     another plot, changing the layout or the time axis redraws in place.
     A plot appears about four times sooner (about 110 ms, was about
-    415 ms on template 23), and the window is never held more than
-    31 ms by it (was up to 304 ms).
+    415 ms on template 23), and switching holds the window at most
+    35 ms (was up to 304 ms).
   - Shorter pauses now and then: Python's full garbage collections no
     longer walk everything start-up made (one took about 0.2 s; after a
     run, about 0.07 s is left).

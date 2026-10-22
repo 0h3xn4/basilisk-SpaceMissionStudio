@@ -77,6 +77,10 @@ def capture(out: Path, theme: str) -> int:
     recent_ini = str(Path(tempfile.mkdtemp(prefix="sms-ui-settings-")) / "settings.ini")
     # and the files it opens out of the user's recent scenarios (Home)
     recent_files._settings = lambda: QSettings(recent_ini, QSettings.Format.IniFormat)
+    from spacemissionstudio.gui import results_widget
+
+    layout_ini = str(Path(recent_ini).with_name("layout.ini"))  # and Results' saved layouts, both ways
+    results_widget._settings = lambda: QSettings(layout_ini, QSettings.Format.IniFormat)
 
     from spacemissionstudio.gui.main_window import MainWindow
     from spacemissionstudio.schema import load_scenario
