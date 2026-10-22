@@ -115,7 +115,7 @@ def main(out: Path, theme: str = "light", size: tuple = WINDOW_SIZE) -> int:
     save("load_scenario_tab.png")
 
     open_template("22_starter_first_leo_satellite.json")
-    window.show_view(window.scenario_explainer_widget)
+    window.show_view(window.scenario_editor.scenario_page)  # its Scenario page (Explain is the tree's Overview, M4b)
     spin(4.0)  # [s]
     save("scenario_editor_tab.png")
 
