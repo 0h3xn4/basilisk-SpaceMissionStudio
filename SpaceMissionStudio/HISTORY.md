@@ -12622,7 +12622,7 @@ against M6a: 122 shots per theme, the same screens. Output, Monte Carlo,
 Budget and Compare show their tables in the numeric font, right-aligned.
 
 **Tests.** The full suite: 3812 passed and 12 skipped, none failed (Python
-3.13 here; CI runs 3.11). `test_data_table.py` is new (6 tests). Twelve
-tests and three helpers read the tables through the `DataTable`, and
-eleven take the end of a run's steps with `finish_run_end()`, each in
-`docs/ui/TEST_CHANGES.md`. Golden files and every output are unchanged.
+3.13 here; CI runs 3.11). `test_data_table.py` is new (6 tests). Fifteen
+tests and two helpers read the tables through the `DataTable`, and four
+tests and three helpers (used by eight tests) take the end of a run's
+steps with `finish_run_end()`, each in `docs/ui/TEST_CHANGES.md`. Golden files and every output are unchanged.
