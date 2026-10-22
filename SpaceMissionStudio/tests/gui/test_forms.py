@@ -300,3 +300,32 @@ def test_an_edit_in_a_number_field_shows_unsaved_changes_until_saved(window, qtb
     window.on_save_as()
     assert not window.top_bar.detail_label.text().startswith("Unsaved changes")
     assert not window.windowTitle().endswith("*")
+
+
+def test_the_inline_device_and_dispersion_forms_fit(window):
+    """A selected device's and dispersion's form, under its list (M4b), fits
+    the page at 1280 x 720 with the inspector shown: no sideways scroll, no
+    boxes in boxes, the window no wider."""
+    from PySide6.QtWidgets import QApplication
+
+    assert window.open_path(_TEMPLATES / "07_attitude_pointing_with_adcs_hardware.json")
+    editor = window.scenario_editor
+    path, item = next((path, item) for path, item in editor.page_tree.paths() if path.endswith("Sensors / actuators"))
+    window._show_tree_item(item)
+    form = editor._spacecraft_nodes[0].form
+    for devices in (form.sensor_list, form.actuator_list):
+        assert devices.to_list(), path
+        devices.list_widget.setCurrentRow(0)
+        QApplication.processEvents()
+        assert devices.inline.form is not None and devices.inline.form.isVisible()
+        assert _sideways(window) == [] and _boxes_in_boxes(window) == [], path
+    assert window.width() == 1280  # [px]
+
+    assert window.open_path(_TEMPLATES / "09_monte_carlo_dispersion_analysis.json")
+    window._show_tree_item(editor.monte_carlo_item)
+    dispersions = editor.monte_carlo_group.dispersion_list
+    dispersions.list_widget.setCurrentRow(0)
+    QApplication.processEvents()
+    assert dispersions.inline.form is not None and dispersions.inline.form.isVisible()
+    assert _sideways(window) == [] and _boxes_in_boxes(window) == []
+    assert window.width() == 1280  # [px]

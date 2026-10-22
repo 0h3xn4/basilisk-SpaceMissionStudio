@@ -23,9 +23,10 @@ a raw bullet-point list (both were tried first and explicitly rejected
 by a real user). See that module's own docstring for the full design
 rationale and the "don't regress this" discipline.
 
-Wired into ``main_window.py`` as a new "Explain" tab, driven by
-``ScenarioEditorWidget.changed`` (already fires on every edit to drive
-``revalidate()`` -- zero new plumbing needed). Does NOT touch or replace
+Shown as the Scenario tree's Overview page (UI overhaul M4b), driven by
+``ScenarioEditorWidget.changed`` through :meth:`ScenarioExplainerWidget.request`:
+250 ms after the last edit, the explanation is computed in a worker
+thread and shown when it is still the latest. Does NOT touch or replace
 ``scenario_editor.py``'s own free-text ``description`` box -- that one is
 hand-written, narrative/pedagogical prose for the 20 bundled templates
 specifically; this is a terse, ALWAYS-CURRENT fact summary for any
@@ -34,9 +35,11 @@ scenario, built fresh from the scenario's actual current fields.
 
 from __future__ import annotations
 
+import copy
+import logging
 from typing import Optional
 
-from PySide6.QtCore import QEvent, Qt, Signal
+from PySide6.QtCore import QEvent, Qt, QThread, QTimer, Signal
 from PySide6.QtWidgets import (
     QFrame,
     QLabel,
@@ -57,7 +60,12 @@ from .formation_diagram_widget import FormationDiagramWidget
 from .roe_diagram_widget import RoeDiagramWidget
 from .theme import set_role
 
+_LOG = logging.getLogger(__name__)
+
 _FORMATION_SECTION_TITLE = "Formation / orbit maintenance"
+# How long after the last edit the explanation is asked for (design rule
+# 6: typing-triggered recomputation is debounced).
+EXPLAIN_SETTLE_MS = 250  # [ms]
 
 _BADGE_KIND_COLORS = {
     "neutral": MUTED,
@@ -113,6 +121,25 @@ def _badge_button(text: str, kind: str) -> QPushButton:
     return button
 
 
+class _ExplainWorker(QThread):
+    """``explain(scenario)`` off the GUI thread; ``done`` carries the
+    request's number and the explanation, or None when it failed (logged)."""
+
+    done = Signal(int, object)
+
+    def __init__(self, number: int, scenario: Scenario, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.number, self._scenario = number, scenario
+
+    def run(self) -> None:
+        try:
+            explanation = explain(self._scenario)
+        except Exception:  # noqa: BLE001 -- the page shows its placeholder, never a crashed thread
+            _LOG.exception("explaining the scenario failed")
+            explanation = None
+        self.done.emit(self.number, explanation)
+
+
 class ScenarioExplainerWidget(QWidget):
     """``set_scenario(Optional[Scenario])`` rebuilds the whole display
     from scratch (clear + repopulate -- mirrors
@@ -123,9 +150,19 @@ class ScenarioExplainerWidget(QWidget):
     """
 
     model_requested = Signal(str)  # a 3D model badge was clicked: the spacecraft's name
+    explained = Signal()  # what request() asked for is shown (its explanation or the placeholder)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
+        # request(): the latest scenario asked for, its number, the number
+        # shown, and the worker computing one (one at a time).
+        self._requested: Optional[Scenario] = None
+        self._number = self._shown = 0
+        self._worker: Optional[_ExplainWorker] = None
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.setInterval(EXPLAIN_SETTLE_MS)
+        self._timer.timeout.connect(self._start_worker)
         self.warning_count = 0  # pre-run warnings currently shown (see engine.scenario_checks)
         self.model_buttons: list = []  # the 3D model badges, as buttons
         outer_layout = QVBoxLayout(self)
@@ -210,10 +247,71 @@ class ScenarioExplainerWidget(QWidget):
             self._table.setColumnCount(0)
             return
 
+        self._show_explanation(explain(scenario))
+
+    # -- asked for after an edit, computed in a worker ---------------------------------
+    def request(self, scenario: Optional[Scenario]) -> None:
+        """Show ``scenario``'s explanation :data:`EXPLAIN_SETTLE_MS` after the
+        last request, computed off the GUI thread; an answer a later
+        request overtook is dropped. None shows the placeholder at once."""
+        self._number += 1
+        self._requested = scenario
+        if scenario is None:
+            self._timer.stop()
+            self._shown = self._number
+            self.set_scenario(None)
+            self.explained.emit()
+            return
+        self._timer.start()
+
+    @property
+    def pending(self) -> bool:
+        """A request not yet shown (waiting, or being computed)."""
+        return self._shown != self._number
+
+    def _start_worker(self) -> None:
+        if self._worker is not None or self._requested is None:
+            return  # one at a time: its end starts the latest
+        # A copy: the editor's lists hold the same config objects, and an
+        # edit replaces them while the worker reads.
+        worker = _ExplainWorker(self._number, copy.deepcopy(self._requested), self)
+        worker.done.connect(self._on_explained)
+        worker.finished.connect(self._on_worker_finished)
+        self._worker = worker
+        worker.start()
+
+    def _on_explained(self, number: int, explanation) -> None:
+        if number != self._number:
+            return  # a later request is waiting or being computed
+        self._shown = number
+        if explanation is None:
+            self.set_scenario(None)
+        else:
+            self._show_explanation(explanation)
+        self.explained.emit()
+
+    def _on_worker_finished(self) -> None:
+        worker, self._worker = self._worker, None
+        if worker is not None:
+            worker.deleteLater()
+        if self.pending and not self._timer.isActive():
+            self._start_worker()  # a request arrived while it ran, and its wait is over
+
+    def wait_for_worker(self, timeout_ms: int = 30000) -> None:
+        """Blocks until a running explanation finishes (shutdown, tests)."""
+        if self._worker is not None:
+            self._worker.wait(timeout_ms)
+
+    def shut_down(self) -> None:
+        """No further explanation (the window closes): a waiting request is
+        dropped and a running one waited for."""
+        self._timer.stop()
+        self._requested = None
+        self.wait_for_worker()
+
+    def _show_explanation(self, explanation: ScenarioExplanation) -> None:
         self._placeholder_label.setVisible(False)
         self._headline_label.setVisible(True)
-
-        explanation = explain(scenario)
         self._render(explanation)
 
     def _on_model_badge(self) -> None:

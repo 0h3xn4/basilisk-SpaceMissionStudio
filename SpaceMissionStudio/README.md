@@ -8,7 +8,7 @@
 A desktop app for planning and simulating satellite missions, built on
 the Basilisk astrodynamics framework.
 
-![The Scenario area with template 22 loaded; the Explain page on the right summarises the orbit, the environment and the predicted ground passes](docs/images/scenario_editor_tab.png)
+![The Scenario area with template 22 loaded and its Scenario page open](docs/images/scenario_editor_tab.png)
 
 ## What it is
 

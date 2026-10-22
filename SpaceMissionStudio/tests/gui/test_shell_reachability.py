@@ -192,7 +192,8 @@ _ROWS = {
     "Scenario › Scenario, Environment, Spacecraft…, Ground stations…, Mission sequence, Monte Carlo": lambda w: [
         _tree(w, path) for path in ("Scenario", "Environment", "Spacecraft", "Ground stations", "Mission sequence",
                                     "Monte Carlo")],
-    "Scenario › JSON": lambda w: _tree(w, "JSON"),
+    "Scenario › JSON": lambda w: (_in_the_header(w, w.scenario_editor.json_button, "scenario"),
+                                  _shown(w, w.scenario_editor.json_page, "scenario")),
     "Scenario › Analyses › End of Life, Budget": lambda w: (_shown(w, w.lifetime_widget, "run"),
                                                            _shown(w, w.budget_widget, "run")),
     "Scenario › Analyses › Flight Software": lambda w: _shown(w, w.flight_software_widget, "reports"),
@@ -208,7 +209,8 @@ _ROWS = {
     "**Compare** tab": lambda w: _shown(w, w.compare_widget, "results"),
     "**Log** tab": lambda w: _shown(w, w.log_widget, "run"),
     "Side **Inspector**": lambda w: (_command(w, "view.inspector"), _side(w, w.inspector_widget)),
-    "Side **Explain**": lambda w: (_command(w, "view.explain"), _side(w, w.scenario_explainer_widget)),
+    "Side **Explain**": lambda w: (_command(w, "view.explain"), _tree(w, "Overview"),
+                                  _shown(w, w.scenario_explainer_widget, "scenario")),
     "Side **Problems**": lambda w: (_command(w, "view.problems"), _side(w, w.problems_widget),
                                    _in_the_status_bar(w, w.status_items.problems_button)),
     # The dialogs M4 and M5 turn into inline pages or the inspector: opened from their screen as before.
@@ -309,6 +311,11 @@ def _toggles(window, command_id, dock, keys):
 
 def _in_the_status_bar(window, widget):
     assert window.statusBar().isAncestorOf(widget)
+
+
+def _in_the_header(window, widget, area):
+    """A control of ``area``'s header (the Scenario area's Form · JSON toggle)."""
+    assert window.shell.page(area).header.isAncestorOf(widget)
 
 
 def _reference_data_opens(window):

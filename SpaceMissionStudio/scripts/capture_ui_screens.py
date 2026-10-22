@@ -280,6 +280,35 @@ def capture(out: Path, theme: str) -> int:
     editor.show_json()
     spin(1.0)  # [s]
     save(window, "json_view")
+    # M4b: back to Form refused while the JSON does not apply, then Discard.
+    editor.json_view.edit.setPlainText("{")
+    editor.json_view.flush()
+    editor.form_button.click()
+    spin(0.5)  # [s]
+    save(window, "json_refused")
+    editor.json_view.discard_button.click()
+    editor.set_json_mode(False)
+
+    # M4b: Explain as Scenario > Overview; a device's and a dispersion's
+    # form under its list.
+    window.show_view(window.scenario_explainer_widget)
+    spin(1.5)  # [s] the explanation, 250 ms after the open, from its worker
+    save(window, "scenario_overview")
+    window.open_path(TEMPLATES_DIR / "07_attitude_pointing_with_adcs_hardware.json")
+    spin(1.0)  # [s]
+    item = next(item for path, item in editor.page_tree.paths() if path.endswith("Sensors / actuators"))
+    window._show_tree_item(item)
+    editor._spacecraft_nodes[0].form.sensor_list.list_widget.setCurrentRow(0)
+    spin(1.0)  # [s]
+    save(window, "inline_device_form")
+    window.open_path(TEMPLATES_DIR / MONTE_CARLO)
+    spin(1.0)  # [s]
+    window._show_tree_item(editor.monte_carlo_item)
+    editor.monte_carlo_group.dispersion_list.list_widget.setCurrentRow(0)
+    spin(1.0)  # [s]
+    save(window, "inline_dispersion_form")
+    window.open_path(TEMPLATES_DIR / EXAMPLE)
+    spin(1.0)  # [s]
 
     # Dialogs, each opened on the example project.
     from spacemissionstudio.gui.command_palette import CommandPalette

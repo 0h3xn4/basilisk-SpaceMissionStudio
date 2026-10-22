@@ -104,7 +104,7 @@ Reference data**; the app no longer has a Tools menu.
 
 ### `Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km); Tools > Reference Data downloads them`
 
-The Explain page shows this, and a run reports `Earth orientation: IAU
+Explain (Scenario › Overview) shows this, and a run reports `Earth orientation: IAU
 rotation model, no IERS data installed`. The measured Earth orientation
 files are missing, so the run uses the simpler IAU model. Run
 `spacemissionstudio earth-orientation --fetch`, or, in the **Reference

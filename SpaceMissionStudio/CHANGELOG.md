@@ -98,6 +98,25 @@ fixes bugs.
   Every value and every file the app writes are the same: each template
   is written back byte for byte after every page has been shown.
 
+- **Editing without dialogs; Explain as the scenario's Overview** (UI
+  overhaul M4b):
+  - **Explain is Scenario › Overview**, the first node of the scenario
+    tree, instead of a panel beside the inspector. It follows an edit a
+    quarter of a second after you stop typing and is worked out in the
+    background, so typing never waits for it. Its name says what there is
+    to check: "Overview (1 to check)". View › Explain opens it.
+  - **Form · JSON**, at the top of the Scenario area, replaces the tree's
+    JSON page. Back to Form applies the text, and is refused while it does
+    not parse or validate; **Discard** puts the scenario's text back.
+  - **Devices and dispersions are edited under their list**, as you type,
+    instead of in a dialog. A value that does not apply (a name already
+    taken) is not applied, and the form says why.
+  - **Add** adds a spacecraft, ground station, device or dispersion at
+    once and opens it. Remove or Undo take it back.
+  - A closed window no longer autosaves.
+
+  What a run computes and every file the app writes are unchanged.
+
 ## 1.2.0 (2026-10-21)
 
 Starting a mission from an empty scenario is now a choice of its own: the

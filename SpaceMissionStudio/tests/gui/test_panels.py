@@ -238,16 +238,19 @@ def test_the_status_bar_job_does_not_widen_the_window(window):
 # -- the inspector ---------------------------------------------------------------------
 
 def test_the_inspector_and_explain_are_panels_on_the_right_without_tabs(window):
-    """Inspector over Explain, each its own panel on the right; the Problems
-    panel at the bottom. Ctrl+I and Ctrl+J show and hide them."""
+    """The Inspector its own panel on the right (Explain, its neighbour until
+    M4b, is the Scenario tree's Overview); the Problems panel at the bottom.
+    Ctrl+I and Ctrl+J show and hide them."""
     from PySide6.QtCore import Qt
     from PySide6.QtWidgets import QTabWidget
 
     right = Qt.DockWidgetArea.RightDockWidgetArea
-    assert window.dockWidgetArea(window.side_dock) == window.dockWidgetArea(window.explain_dock) == right
+    assert window.dockWidgetArea(window.side_dock) == right
+    assert window.scenario_editor.page_tree.item_of(window.scenario_explainer_widget) is window.overview_item
     assert window.dockWidgetArea(window.problems_dock) == Qt.DockWidgetArea.BottomDockWidgetArea
     assert window.side_dock.widget() is window.inspector_widget
-    assert not window.side_dock.findChildren(QTabWidget) and not window.explain_dock.findChildren(QTabWidget)
+    assert not window.side_dock.findChildren(QTabWidget)
+    assert not window.scenario_explainer_widget.findChildren(QTabWidget)
     assert window.commands["view.inspector"].keys == "Ctrl+I" and window.commands["view.problems"].keys == "Ctrl+J"
 
 
@@ -316,16 +319,16 @@ def test_a_project_layout_outlives_the_window(qtbot, monkeypatch, tmp_path):
     qtbot.addWidget(first)
     first.show()
     assert first.open_path(path)
-    first.explain_dock.hide()
+    first.problems_dock.hide()
     first.close()
     first.open_path(TEMPLATES_DIR / _TEMPLATE)  # nothing kept from a closed window's later changes
 
     second = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     qtbot.addWidget(second)
     second.show()
-    second.explain_dock.show()
+    second.problems_dock.show()
     assert second.open_path(path)
-    assert not second.explain_dock.isVisible()
+    assert not second.problems_dock.isVisible()
 
 
 # -- a keyboard-only walk -----------------------------------------------------------

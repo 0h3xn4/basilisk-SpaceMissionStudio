@@ -122,6 +122,7 @@ def test_a_live_switch_restyles_every_open_view(qtbot, restored_theme):
     window.resize(1280, 800)
     window.show()
     assert window.open_path(_TEMPLATES.glob("22_*.json").__next__())  # badges, the top bar, a page
+    qtbot.waitUntil(lambda: not window.scenario_explainer_widget.pending, timeout=10000)  # its explanation (M4b)
     window.scenario_editor.show_spacecraft(0)
     restored_theme.processEvents()
     seen = []
@@ -138,6 +139,8 @@ def test_a_live_switch_restyles_every_open_view(qtbot, restored_theme):
     assert own == []
     image = window.grab().toImage()
     assert image.pixelColor(2, image.height() // 2).name().upper() in {TOKENS["bg.canvas"], TOKENS["bg.surface"]}
+    window.show_view(window.scenario_explainer_widget)  # Scenario > Overview, a page since M4b (was a dock)
+    restored_theme.processEvents()
     badges = [w for w in window.findChildren(QLabel) if w.property("badge") and w.isVisible()]
     assert badges, "the starter template's explainer shows badges"
     badge = badges[0]

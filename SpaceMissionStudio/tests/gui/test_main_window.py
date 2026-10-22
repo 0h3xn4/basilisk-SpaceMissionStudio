@@ -66,12 +66,17 @@ def test_initial_title_is_untitled(window):
     assert window.windowTitle() == "SpaceMissionStudio -- untitled"
 
 
+def _explained(window, qtbot) -> None:
+    """Wait for the explanation an edit asked for (250 ms later, from a worker; M4b)."""
+    qtbot.waitUntil(lambda: not window.scenario_explainer_widget.pending, timeout=10000)
+
+
 def test_explain_tab_exists_and_shows_the_default_scenario_on_startup(window):
     """The Explain tab exists and, on start-up, shows its placeholder for the
     default scenario (which has no spacecraft and so does not validate) instead
     of its blank constructor state."""
-    assert window.explain_dock.widget() is window.scenario_explainer_widget
-    assert window.explain_dock.windowTitle() == "Explain"
+    assert window.scenario_editor.page_tree.item_of(window.scenario_explainer_widget) is window.overview_item
+    assert window.overview_item.text(0) == "Overview"
     # reset_to_default()'s own scenario has zero spacecraft (invalid --
     # Scenario.validate() requires >= 1), so the placeholder is the
     # correct initial state here, not a crash -- this is the real
@@ -83,10 +88,11 @@ def test_explain_tab_exists_and_shows_the_default_scenario_on_startup(window):
     assert not window.scenario_explainer_widget._placeholder_label.isHidden()
 
 
-def test_explain_tab_refreshes_on_edit(window):
+def test_explain_tab_refreshes_on_edit(window, qtbot):
     """Adding a valid spacecraft makes the Explain tab show a headline and at
     least one stat tile."""
     _add_valid_spacecraft(window)
+    _explained(window, qtbot)
     assert window.scenario_explainer_widget._headline_label.isHidden() is False
     tile_labels = {
         window.scenario_explainer_widget._tiles_row.itemAt(i).widget()
@@ -104,10 +110,11 @@ def test_explain_tab_shows_placeholder_while_scenario_is_invalid(window):
     assert not window.scenario_explainer_widget._placeholder_label.isHidden()
 
 
-def test_explain_tab_refreshes_on_new(window):
+def test_explain_tab_refreshes_on_new(window, qtbot):
     """File > New replaces the explained scenario with the placeholder, not the
     previous headline."""
     _add_valid_spacecraft(window)
+    _explained(window, qtbot)
     assert not window.scenario_explainer_widget._headline_label.isHidden()
     window.on_new()
     # on_new() resets to reset_to_default()'s own zero-spacecraft scenario,
@@ -2042,7 +2049,7 @@ def test_join_finished_worker_waits_out_a_thread_that_already_signalled(qtbot):
     _join_finished_worker(None)  # no previous worker: a no-op
 
 
-def test_explain_tab_title_counts_pre_run_warnings(window, qapp):
+def test_explain_tab_title_counts_pre_run_warnings(window, qapp, qtbot):
     """Pre-run checks (engine.scenario_checks) only help if they're seen:
     the Explain tab's own title says when there's something to check."""
     from pathlib import Path
@@ -2051,12 +2058,14 @@ def test_explain_tab_title_counts_pre_run_warnings(window, qapp):
     from spacemissionstudio.schema import load_scenario
 
     assert window.open_path(next(templates.glob("19_*.json")))
-    assert window.explain_dock.windowTitle() == "Explain"
+    _explained(window, qtbot)
+    assert window.overview_item.text(0) == "Overview"
     late = load_scenario(next(templates.glob("19_*.json")))
     late.epoch_utc = "2030-01-01T00:00:00"  # the old epoch: no Berlin pass in the run
     window.scenario_editor.from_scenario(late)
     window.scenario_editor.changed.emit()
-    assert window.explain_dock.windowTitle() == "Explain (1 to check)"
+    _explained(window, qtbot)
+    assert window.overview_item.text(0) == "Overview (1 to check)"
 
 
 def test_a_run_hands_the_scenarios_featured_series_to_the_results_tab(window, monkeypatch):

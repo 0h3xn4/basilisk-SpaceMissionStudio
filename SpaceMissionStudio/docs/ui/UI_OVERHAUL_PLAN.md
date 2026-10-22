@@ -866,6 +866,36 @@ Every milestone also has to meet all of these:
   - the Power page, and every other Scenario page of every template,
     fits 1280 x 720 with the inspector shown, with no horizontal scroll;
   - the unsaved-changes indicator follows an edit until it is saved.
+- **M4b (2026-10-22): done, with one target not met.** It meets the rest
+  of M4's criteria (`tests/gui/test_editing_flow.py`; the decisions in
+  `docs/DECISIONS.md`, M4b):
+  - a Form · JSON toggle in the Scenario area's header that applies the
+    text before showing the form, and refuses text that does not apply
+    (Discard puts the scenario's text back);
+  - devices and dispersions edited in a form under their list, ground
+    stations and mission steps in their pages, as before; Add creates a
+    spacecraft, station, device or dispersion and opens it. No modal
+    dialog is left in editing; the template picker and the generators
+    stay dialogs;
+  - undo and redo stay `ScenarioHistory`: `QUndoStack` does not fit (one
+    snapshot per settled edit, whatever made it);
+  - Explain is Scenario › Overview, asked for 250 ms after the last edit
+    and computed in a worker thread.
+
+  Measured with `scripts/measure_keystrokes.py`: all 31 templates, five
+  keystrokes each, with the reference data installed; M4a's code measured
+  the same way, one run after the other:
+  - the keystroke itself: at most 47.2 ms (M4a: 86.4 ms, over 50 ms on
+    17 of 62 template passes). Met.
+  - the longest stall in the 600 ms after a keystroke: **not met** as
+    written ("no keystroke stalls more than 50 ms"). Over four sweeps
+    (155 template passes, 775 keystrokes) it went over 50 ms on four
+    passes: 73.4 and 75.9 ms (template 08), 77.3 ms (13) and 54.8 ms
+    (20); the fourth sweep stayed at or under 39.8 ms. Measured alone,
+    template 08 stays at or under 24.1 ms. M4a's code: 96.9 ms (09) and
+    140.5 ms (29). Not the garbage collector (no collection over 20 ms
+    during a sweep), not the autosave (2 ms), not the explanation's
+    rendering (under 11 ms). M9's performance pass holds it.
 
 **Order and size.**
 

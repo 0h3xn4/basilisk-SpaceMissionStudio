@@ -161,17 +161,19 @@ A few things to notice right away:
     scenarios** on the left; a card per template in the middle; the
     selected template's description on the right.
   * **Scenario**: the scenario tree on the left and the page of the node
-    you pick beside it: **Scenario**, **Environment**, **Spacecraft** with
+    you pick beside it: **Overview** (Explain: what the scenario does, end
+    of Section 7), **Scenario**, **Environment**, **Spacecraft** with
     a node per spacecraft, and under each one a node per part of its page
     (**Orbit / mass**, **Sensors / actuators**, **Attitude control**,
     **Power / propulsion / link budget**, **3D model**, **Vizard model**,
     **Budget (AD10)**; orbit-only scenarios have no sensors or attitude
     control), **Ground stations** with a node per station, **Mission
-    sequence**, **Monte Carlo** and **JSON** (Section 6). A node with
+    sequence** and **Monte Carlo** (Section 6). A node with
     problems shows how many after its name: in red when one of them is an
     error, in yellow when they are all warnings. Hover over it to see how
-    many of each there are. **3D Model...** at the top opens the 3D model
-    editor for a spacecraft (Section 6).
+    many of each there are. At the top, **Form · JSON** switches between
+    these pages and the scenario as text (Section 6), and **3D Model...**
+    opens the 3D model editor for a spacecraft.
   * **Run**: Run and its mode, **Cancel Run**, **Live plot**, the Vizard
     commands, **Open Monte Carlo Results...** and **Check Reference
     Data** at the top; under them **End of Life** and **Budget** (re-entry
@@ -207,10 +209,11 @@ A few things to notice right away:
 * Every command is also in the **command palette**: press `Ctrl+K`, or
   click the search field in the top bar, and type part of its name
   ("save as", "budget", or a spacecraft's name). There is no menu bar.
-* Two panels on the right, one above the other: **Inspector** (`Ctrl+I`;
-  the field you are in: its value, the range it accepts and its help) and
-  **Explain** (a live summary of what the scenario does, end of Section 7;
-  its title says how many things there are to check).
+* The **Inspector** panel on the right (`Ctrl+I`): the field you are in,
+  its value, the range it accepts and its help. **Explain**, a live
+  summary of what the scenario does, is the scenario tree's **Overview**
+  (end of Section 7); its name in the tree says how many things there are
+  to check.
 * The **Problems** panel at the bottom (`Ctrl+J`): what does not validate,
   and what looks implausible, as a table: **Severity** (an icon and the
   word), **ID** (the field it is about), **Object** (the scenario, the
@@ -373,7 +376,7 @@ most people start from a template (Section 4) or its customize wizard
 want to build something more specific, or just want to know what you're
 looking at.
 
-![The scenario tree with template 22 loaded, its Scenario page open, and the Explain summary on the right](docs/images/scenario_editor_tab.png)
+![The scenario tree with template 22 loaded and its Scenario page open](docs/images/scenario_editor_tab.png)
 
 The scenario is a tree on the left of the **Scenario** tab, in roughly
 the order you'd fill it out for a brand-new scenario. Pick a node to edit
@@ -399,9 +402,15 @@ fixed:
   mass**, **Sensors / actuators**, **Attitude control**, **Power /
   propulsion / link budget**, **3D model**, a cosmetic **Vizard model**
   tab (Section 9) and **Budget (AD10)** (Section 11). In the list,
-  **Edit...** (or a double-click) goes to the spacecraft's node, and
-  **Add...** opens a dialog to set a new one up. **New from template...** adds a complete
-  spacecraft from a 100-500 kg preset instead of a blank one. An orbit can be specified as classical orbital
+  **Edit** (or a double-click) goes to the spacecraft's node, and
+  **Add** adds one with the default values and opens its node, ready to
+  set up (Remove or Undo take it back). **New from template...** adds a complete
+  spacecraft from a 100-500 kg preset instead of a blank one, and opens
+  its node too. On **Sensors / actuators**, pick a device in a list to
+  edit it in the form under the list; **Add** adds one of the first kind
+  with its template's values, and changing its **Kind** shows that kind's
+  parameters. An edit applies as you type, once it is valid; one that is
+  not (a name already taken) is not applied, and the form says why. An orbit can be specified as classical orbital
   elements (semi-major axis, eccentricity, inclination, ...), Cartesian
   position/velocity, or a TLE (the format real tracked satellites are
   published in) -- pick whichever you have on hand. Switching between
@@ -419,7 +428,8 @@ fixed:
   plate adds a torque the wheels must absorb (template 21).
 * **Ground stations** -- optional stations on the ground to check
   visibility/communication with (each spacecraft's contact windows,
-  signal link margin, etc.), each a node with its own page.
+  signal link margin, etc.), each a node with its own page. **Add** adds
+  one and opens its page.
 * **Mission sequence** -- an optional, ordered list of commands (coast
   for a while, do a burn, take a snapshot, ...) for missions more
   complex than "just propagate forward for N days". Each step reads as a
@@ -436,18 +446,23 @@ fixed:
   after a duration, at an epoch, or at an event: periapsis, apoapsis, or
   the start or end of the next pass over a ground station
   (`pass_start`/`pass_end`). A `pass_start` issued during a pass waits
-  for the next one. The Explain tab lists each station's first pass and
+  for the next one. Explain (**Overview**) lists each station's first pass and
   how long it lasts. A `maneuver` or `lambert_transfer` burn is an
   instant change of velocity only: it uses no propellant and leaves the
   mass unchanged. For propellant, use the **Budget** page (Section 11)
   or a fuel tank with station-keeping or constant thrust.
 * **Monte Carlo** -- see Section 10.
-* **JSON** -- the scenario as it is saved, as text you can edit. An edit
-  there applies to the other pages half a second after you stop typing,
-  checked as when a file is opened; an edit on another page shows there.
-  Text that is not JSON (a missing comma) is not applied: its line is
-  marked, the page says where and what is wrong, and the scenario cannot
-  run or be saved until it is fixed or another scenario is opened.
+
+**Form · JSON**, at the top of the area, shows the scenario as it is
+saved, as text you can edit, in place of the tree. An edit there applies
+to the pages half a second after you stop typing, checked as when a file
+is opened; an edit on a page shows there. Text that is not JSON (a
+missing comma) is not applied: its line is marked, the banner says where
+and what is wrong (its count shows on **JSON**), and the scenario cannot
+run or be saved until it is fixed, discarded or another scenario is
+opened. Going back to **Form** applies an edit still waiting, and is
+refused while the text is not valid: fix it, or press **Discard** to put
+the scenario's own text back.
 
 A **validation message** at the very bottom of this tab updates live as
 you type, in plain language (e.g. naming exactly which field is missing
@@ -485,7 +500,7 @@ The quickest way to a mission of your own is a starter template (22 or
    **Enable spherical-harmonics gravity** with degree 10, add **sun** and
    **moon** as third-body perturbers, start with a **Duration** of 1 day,
    and leave the atmosphere on the bundled, real space-weather data.
-3. **Spacecraft**: **Add...**, or **New from template...** for a 100-500 kg
+3. **Spacecraft**: **Add**, or **New from template...** for a 100-500 kg
    preset (in *Orbit only* mode it keeps the preset's mass, inertia and
    drag areas and leaves its hardware out); the spacecraft then has its
    own node in the tree. On its **Orbit / mass** tab: the semi-major axis is Earth's
@@ -495,13 +510,13 @@ The quickest way to a mission of your own is a starter template (22 or
    local time). Have a real satellite's TLE? Choose the TLE orbit type
    and paste it. Then set the **Dry mass**, and tick **Enable atmospheric
    drag** with its area (and **Enable solar radiation pressure**).
-4. **Ground stations**: **Add...**, with a name, latitude, longitude and the
+4. **Ground stations**: **Add**, then its name, latitude, longitude and the
    lowest usable elevation (10 deg is common).
 5. Look at the bottom of the page: **✓ valid** means Run is available;
    otherwise the message names the field to fix, the field is marked in
    red with the message under it, and its node in the tree shows a count
    (the **Problems** panel lists it too; double-click it to go
-   to the field). **Explain**, on the right,
+   to the field). **Overview** (Explain), first in the tree,
    already shows the orbit type, the ground passes and what the
    environment includes, before anything runs.
 6. **Save As...** (Ctrl+Shift+S), then **Run** (`Ctrl+R`).
@@ -537,7 +552,7 @@ degree-10 gravity, Sun, Moon and drag):
 * Hill-frame PD cannot hold template 05's 50 km. Its straight-line
   feedforward needs 6.5e-4 m/s^2 there, five times what the thruster
   gives. When it asks for more than the thruster can give, it diverges;
-  the Explain tab warns before you run.
+  Explain (**Overview**) warns before you run.
 
 Neither Basilisk law was designed for a thrust limit. Their requests are
 cut to the thruster's thrust, and requests under half a minimum impulse
@@ -565,7 +580,7 @@ With the two vectors parallel the orbits never cross in the
 radial/cross-track plane, so a lost along-track spacing cannot bring the
 two together: the formation is *passively safe*. The app shows the
 closest radial/cross-track approach under the targets table, in the
-generator and on the Explain tab, which also draws the vectors.
+generator and in Explain (**Overview**), which also draws the vectors.
 
 **Targets** is a schedule: each row holds from its start day to the
 next, so a follower can approach and then move to a helix. **Generate ROE
@@ -745,7 +760,7 @@ attitude.
   solar cells at the panel's own deflected attitude. The power budget's
   panel stays as body-mounted cells.
 * **Integrator.** Flexible arrays need the rkf45 or rkf78 integrator; a
-  fixed-step integrator went unstable in trial runs. The Explain tab
+  fixed-step integrator went unstable in trial runs. Explain (**Overview**)
   warns when the recording interval is too long to show the flexing
   (more than half a period of the fastest first mode).
 * Long runs carry each panel's angle and rate from segment to segment.
@@ -785,7 +800,7 @@ segment, with a new seed: Basilisk keeps the error state inside its
 navigation module and clears it when a segment starts, so it cannot be
 carried over. They build up again within about 0.41 x (bound / step)^2
 steps of the slowest channel (measured with Basilisk's module); the
-Explain tab says how long that is for your run. In a Monte Carlo batch Basilisk gives every run
+Explain (**Overview**) says how long that is for your run. In a Monte Carlo batch Basilisk gives every run
 its own random seed (the scenario's seed is not used there), so the runs see
 different errors. Software in the loop gives the program the same noisy
 navigation as the simulation's own modules.
@@ -1072,8 +1087,10 @@ back the version the last download or import replaced. See
 [Section 11](#11-common-questions-and-problems) if Run ever says a file
 is missing.
 
-**Explain** is different from the other views: it doesn't need a
-run at all, and it updates live as you edit the Scenario Editor. It's a
+**Explain** (the scenario tree's **Overview**) is different from the
+other views: it doesn't need a run at all, and it follows your edits: a
+quarter of a second after you stop typing, worked out in the background
+so typing never waits for it. It's a
 short, at-a-glance recipe of what the CURRENT scenario is actually
 configured to do -- a handful of stat tiles (spacecraft count,
 duration, gravity model, ...), colored badges for what's turned on
@@ -1096,7 +1113,7 @@ Explain also checks the scenario before you run it:
   when the gravity model includes it), so maneuvers and drag aren't
   included.
 * **Check before running** appears at the top when something can't work
-  as configured, and the tab's title then reads "Explain (1 to check)":
+  as configured, and its name in the tree then reads "Overview (1 to check)":
   a station that is never in view during the run, or whose first pass
   comes late; a Sun-pointing spacecraft with no sun sensor on its
   Sun-facing side; or station-keeping with drag off, whose deadband may
@@ -1152,7 +1169,8 @@ Real spacecraft never have perfectly known mass, attitude, etc. --
 variations and reports the spread of outcomes, instead of one single
 result. On the scenario tree's **Monte Carlo** page, check
 **Enabled**, set how many runs and how many to run in parallel, and add
-one or more **dispersions** (which quantity varies, and by how much) --
+one or more **dispersions** (which quantity varies, and by how much;
+**Add** adds one, and the selected one's form is under the list) --
 then set the run mode beside **Run** to **Monte Carlo** and press
 **Run**. This is a more advanced feature; most people won't need it
 for a first mission. Templates 09 and 25 are ready-made batches.

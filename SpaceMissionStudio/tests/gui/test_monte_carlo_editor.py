@@ -203,22 +203,11 @@ def test_dispersion_dialog_rejects_when_no_spacecraft(qtbot):
 def test_dispersion_list_add_edit_remove(qtbot, monkeypatch):
     """Add lists a dispersion as one change; Edit keeps one; Remove deletes
     it."""
-    from PySide6.QtWidgets import QDialog
-
-    from spacemissionstudio.gui.monte_carlo_editor import DispersionListWidget, _DispersionEditorDialog
+    from spacemissionstudio.gui.monte_carlo_editor import DispersionListWidget
 
     widget = DispersionListWidget()
     qtbot.addWidget(widget)
     widget.set_spacecraft_names(["sat-1"])
-
-    def fake_exec(self):
-        self.quantity_combo.setCurrentText("dry_mass_kg")
-        self.kind_combo.setCurrentText("uniform")
-        self.bounds_lo_spin.setValue(1.0)
-        self.bounds_hi_spin.setValue(2.0)
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_DispersionEditorDialog, "exec", fake_exec)
     changed_count = []
     widget.changed.connect(lambda: changed_count.append(1))
 
@@ -227,8 +216,14 @@ def test_dispersion_list_add_edit_remove(qtbot, monkeypatch):
     assert changed_count == [1]
 
     widget.list_widget.setCurrentRow(0)
-    widget._on_edit()
+    form = widget.inline.form  # the selected dispersion's form, under the list (M4b)
+    form.quantity_combo.setCurrentText("dry_mass_kg")
+    form.kind_combo.setCurrentText("uniform")
+    form.bounds_lo_spin.setValue(1.0)
+    form.bounds_hi_spin.setValue(2.0)
+    widget.inline.flush()
     assert len(widget.to_list()) == 1
+    assert widget.to_list()[0].quantity == "dry_mass_kg" and widget.to_list()[0].bounds == [1.0, 2.0]
 
     widget.list_widget.setCurrentRow(0)
     widget._on_remove()

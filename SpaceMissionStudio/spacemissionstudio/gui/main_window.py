@@ -102,7 +102,8 @@ from .vizard_launcher import (
     remember_vizard_executable,
 )
 from .widgets import TabWidget
-from .theme import apply_theme, current_theme, follow_system, icon, resolve_theme, set_theme_setting, theme_setting
+from .theme import (CONTENT_MAX_WIDTH_PX, apply_theme, current_theme, follow_system, icon, resolve_theme,
+                    set_theme_setting, theme_setting)
 from .theme.icons import keep_icon
 from .compare_widget import CompareWidget
 from .workspace_panels import InspectorWidget, LogViewWidget, ProblemsWidget, install_log_view
@@ -121,7 +122,7 @@ _HISTORY_SETTLE_MS = 400  # [ms] an edit is recorded for undo once typing pauses
 _AUTOSAVE_INTERVAL_MS = 30_000
 
 _logger = logging.getLogger(__name__)
-_LAYOUT_VERSION = 3  # [-] saveState() version: bump when the docks change, so an old layout is ignored
+_LAYOUT_VERSION = 4  # [-] saveState() version: bump when the docks change, so an old layout is ignored
 
 
 def _duration_text(seconds: float) -> str:
@@ -331,13 +332,14 @@ class MainWindow(QMainWindow):
         self._refresh_compare_tab()
 
         # The inspector on the right (UI overhaul plan §5.1, M2b): the
-        # focused field, and under it, until it becomes Scenario > Overview
-        # (M4), Explain (what the scenario does). Two docks one above the
-        # other, not tabs: each shown, hidden and sized on its own.
+        # focused field. Explain (what the scenario does) is the Scenario
+        # tree's first node, Overview (M4b).
         self.inspector_widget = InspectorWidget()
         self.side_dock = self._make_dock("Inspector", "inspectorDock", self.inspector_widget)
-        self.explain_dock = self._make_dock("Explain", "explainDock", self.scenario_explainer_widget)
-        self.splitDockWidget(self.side_dock, self.explain_dock, Qt.Orientation.Vertical)
+        self.scenario_explainer_widget.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
+        self.overview_item = self.scenario_editor.page_tree.add_page("Overview", self.scenario_explainer_widget,
+                                                                     index=0)
+        self.scenario_explainer_widget.explained.connect(self._on_explained)
         # The Problems panel, at the bottom (M2b): what does not validate or
         # looks implausible, as a table; Enter or a double-click goes to the field.
         self.problems_widget = ProblemsWidget()
@@ -382,8 +384,7 @@ class MainWindow(QMainWindow):
 
         self._build_actions()
         self._build_areas()
-        self.resizeDocks([self.side_dock], [380], Qt.Orientation.Horizontal)  # [px] room for Explain's tiles
-        self.resizeDocks([self.side_dock, self.explain_dock], [130, 610], Qt.Orientation.Vertical)  # [px] four rows
+        self.resizeDocks([self.side_dock], [380], Qt.Orientation.Horizontal)  # [px]
         self.resizeDocks([self.problems_dock], [140], Qt.Orientation.Vertical)  # [px] about four rows
         self._default_layout = self.saveState(_LAYOUT_VERSION)
         self._restore_layout()
@@ -602,10 +603,10 @@ class MainWindow(QMainWindow):
         # puts the focus in it.
         add("view.inspector", "&Inspector", None, category="View", area="global",
             action=self.side_dock.toggleViewAction(), shortcut="Ctrl+I", keywords=("side panel",),
-            tip="Show or hide the inspector: the focused field, and Explain.").triggered.connect(
+            tip="Show or hide the inspector: the focused field.").triggered.connect(
                 self._on_dock_toggled)
         add("view.explain", "E&xplain", self._on_page_action, category="View", area="global",
-            tip="What the scenario does, in the inspector.").setData(self.scenario_explainer_widget)
+            tip="What the scenario does: Scenario › Overview.").setData(self.scenario_explainer_widget)
         add("view.problems", "&Problems", None, category="View", area="global",
             action=self.problems_dock.toggleViewAction(), shortcut="Ctrl+J",
             tip="Show or hide the Problems panel: what does not validate.").triggered.connect(
@@ -690,6 +691,8 @@ class MainWindow(QMainWindow):
                             action=self.manual_action, keys="F1")
 
         # Home's own page has New blank scenario and Browse for a file.
+        # The Scenario area's Form · JSON toggle (M4b), then its 3D model command.
+        self.shell.page("scenario").add_widget(self.scenario_editor.mode_toggle)
         self.shell.page("scenario").add_command(self.model_3d_action)
         run = self.shell.page("run")
         self.run_area_run_button = run.add_command(self.run_action, primary=True)
@@ -705,6 +708,7 @@ class MainWindow(QMainWindow):
         self.shell.area_changed.connect(self._on_area_changed)
         self.shell.rail.collapsed_changed.connect(self.rail_collapse_action.setChecked)
         self.scenario_editor.page_tree.tree.currentItemChanged.connect(self._refresh_breadcrumbs)
+        self.scenario_editor.mode_changed.connect(self._refresh_breadcrumbs)
         for tabs in (self.results_views, self.run_views):
             tabs.currentChanged.connect(self._refresh_breadcrumbs)
         self.shell.show_area("home")  # a new user's first move is picking a template or a file
@@ -728,7 +732,9 @@ class MainWindow(QMainWindow):
         if area_id is None:
             return
         parts = [self.shell.areas[area_id].label]
-        if area_id == "scenario":
+        if area_id == "scenario" and self.scenario_editor.json_mode:
+            parts.append("JSON")
+        elif area_id == "scenario":
             item = self.scenario_editor.page_tree.tree.currentItem()
             names = []
             while item is not None:
@@ -758,7 +764,7 @@ class MainWindow(QMainWindow):
         return dock
 
     def _docks(self) -> tuple:
-        return (self.side_dock, self.explain_dock, self.problems_dock)
+        return (self.side_dock, self.problems_dock)
 
     def _on_dock_toggled(self, shown: bool) -> None:
         """A panel shown by its command takes the focus, so the keyboard can
@@ -801,8 +807,9 @@ class MainWindow(QMainWindow):
             if dock.isAncestorOf(widget):
                 dock.show()
                 dock.raise_()
-        if widget is self.scenario_editor and not self.scenario_editor.is_editor_page(
-                self.scenario_editor.page_tree.current_page()):
+        current = self.scenario_editor.page_tree.current_page()
+        if widget is self.scenario_editor and current is not self.scenario_explainer_widget and \
+                not self.scenario_editor.is_editor_page(current):
             self.scenario_editor.show_scenario_page()
         node = widget
         while node is not None and node is not self:
@@ -813,6 +820,8 @@ class MainWindow(QMainWindow):
                 stack.parentWidget().setCurrentWidget(node)
             elif isinstance(stack, QStackedWidget) and getattr(stack, "page_tree", None) is not None:
                 stack.page_tree.show_page(node)  # a node of the scenario tree
+            elif stack is self.scenario_editor.mode_stack:
+                self.scenario_editor.set_json_mode(node is self.scenario_editor.json_page)  # Form or JSON
             node = stack
 
     def current_view(self) -> QWidget:
@@ -851,7 +860,7 @@ class MainWindow(QMainWindow):
         names = [config.name for config in spacecraft_list.to_list()]
         if not names:
             self.show_view(self.scenario_editor)
-            show_toast(self, "Add a spacecraft first (the Spacecraft page, Add...), then build its 3D model",
+            show_toast(self, "Add a spacecraft first (the Spacecraft page, Add), then build its 3D model",
                        kind="info")
             return
         row = 0
@@ -878,10 +887,12 @@ class MainWindow(QMainWindow):
         model's problem that spacecraft's model editor."""
         self._show_scenario_editor()
         editor = self.scenario_editor
-        if editor.show_range_problem(text):
-            return
         location = locate(text, [c.name for c in editor.spacecraft_list.to_list()],
                           [g.name for g in editor.ground_station_list.to_list()])
+        if editor.json_mode and (location is None or location.area != JSON_VIEW) and not editor.set_json_mode(False):
+            return  # a field of the form, but the JSON text does not apply: its banner says why (M4b)
+        if editor.show_range_problem(text):
+            return
         if location is None:
             return
         if location.area == SCENARIO:
@@ -1073,6 +1084,8 @@ class MainWindow(QMainWindow):
                                         keywords="events" if area.id == "timeline" else ""))
         for path, item in self.scenario_editor.page_tree.paths():
             entries.append(PaletteEntry(f"Go to > Scenario > {path}", lambda item=item: self._show_tree_item(item)))
+        entries.append(PaletteEntry("Go to > Scenario > JSON", lambda: self.show_view(self.scenario_editor.json_page),
+                                    keywords="form text"))
         for area_label, tabs in (("Results", self.results_views), ("Run", self.run_views)):
             for index in range(tabs.count()):
                 page = tabs.widget(index)
@@ -1162,18 +1175,21 @@ class MainWindow(QMainWindow):
             scenario = self.scenario_editor.to_scenario()
         except ScenarioValidationError:
             scenario = None
-        self.scenario_explainer_widget.set_scenario(scenario)
+        self.scenario_explainer_widget.request(scenario)  # 250 ms after the last edit, in a worker (M4b)
         self._refresh_stale_banner(scenario)
         self._refresh_top_bar()
         self.lifetime_widget.set_scenario(scenario)
         self.budget_widget.set_scenario(scenario)
         self.flight_software_widget.set_base_dir(self._current_path.parent if self._current_path else None)
         self.flight_software_widget.set_scenario(scenario)
-        # The panel's title says when there's something to check, so it's
-        # seen even by someone who never reads it before pressing Run.
-        count = self.scenario_explainer_widget.warning_count
-        self.explain_dock.setWindowTitle(f"Explain ({count} to check)" if count else "Explain")
         self._update_monte_carlo_tab(scenario)
+
+    def _on_explained(self) -> None:
+        # The Overview node's title says when there's something to check, so
+        # it's seen even by someone who never reads it before pressing Run.
+        count = self.scenario_explainer_widget.warning_count
+        self.scenario_editor.page_tree.set_title(self.overview_item,
+                                                 f"Overview ({count} to check)" if count else "Overview")
 
     def _update_monte_carlo_tab(self, scenario=None) -> None:
         """The Monte Carlo tab is shown while it has something to show or
@@ -2365,6 +2381,10 @@ class MainWindow(QMainWindow):
                 event.ignore()
                 return
         if self._confirm_discard_unsaved():
+            # Closed: nothing more to autosave (the scenario was saved or
+            # discarded), and no explanation is started for a window going away.
+            self._autosave_timer.stop()
+            self.scenario_explainer_widget.shut_down()
             self.lifetime_widget.wait_for_worker()  # a few seconds at most; its thread must not be destroyed mid-run
             self.budget_widget.wait_for_worker()
             self.flight_software_widget.wait_for_worker()
