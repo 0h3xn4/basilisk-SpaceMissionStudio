@@ -387,11 +387,14 @@ class StatusBarItems:
     def set_problem_counts(self, errors: int, warnings: int) -> None:
         _show_problem_counts(self.problems_button, errors, warnings)
 
-    def refresh(self) -> None:
+    def refresh(self, files: Optional[list] = None, basilisk_version: Optional[str] = None) -> None:
+        """Read Earth orientation again, and the reference data inventory
+        and the Basilisk version unless given (``files``; a version read
+        elsewhere, which spares importing Basilisk here)."""
         from .. import dependencies
         from ..engine import earth_orientation, reference_data
 
-        version = dependencies.basilisk_version()
+        version = dependencies.basilisk_version() if basilisk_version is None else basilisk_version
         note = dependencies.basilisk_check(version)
         if version is None:
             self.basilisk_label.setText("Basilisk not installed")
@@ -402,7 +405,7 @@ class StatusBarItems:
                                                f"{dependencies.QUALIFIED_BASILISK_VERSION}")
         _repolish(self.basilisk_label)
 
-        files = reference_data.inventory()
+        files = reference_data.inventory() if files is None else files
         problems = [f for f in files if f.status != "ok"]
         self.data_button.setText(f"Reference data: {len(problems)} of {len(files)} need attention" if problems
                                  else f"Reference data: all {len(files)} OK")

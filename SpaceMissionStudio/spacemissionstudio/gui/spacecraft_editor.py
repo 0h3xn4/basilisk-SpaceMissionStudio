@@ -248,6 +248,17 @@ def _scrollable(content: QWidget) -> QScrollArea:
     return scroll
 
 
+def _tab_page(tabs: TabWidget, title: str, index: int = -1) -> QWidget:
+    """A new tab ``title`` (at ``index``, else last): an empty page in its
+    scroll area (see :func:`_scrollable`), placed before it is filled. A
+    page filled first and placed after is restyled whole each time it
+    moves (into the scroll area, then into the tabs): 270 ms for this
+    dialog's pages (UI overhaul M9)."""
+    page = QWidget()
+    tabs.insertTab(index, _scrollable(page), title)
+    return page
+
+
 # Where SpacecraftEditorDialog.field_widget finds a field (docs/ux-audit.md
 # U-12). Sections' widgets carry these prefixes; the table lists the rest.
 _ORBIT_WIDGETS = {"type": "type_combo", "semi_major_axis_km": "sma_km", "eccentricity": "ecc",
@@ -303,8 +314,10 @@ class SpacecraftEditorDialog(QDialog):
     def __init__(self, config: SpacecraftConfig | None = None, parent: QWidget | None = None,
                  other_spacecraft_names: list[str] | None = None, simulation_mode: str = "full_attitude",
                  ground_station_names: list[str] | None = None, epoch_provider=None, base_dir_provider=None,
-                 central_body_provider=None):
+                 central_body_provider=None, embedded: bool = False):
         super().__init__(parent)
+        if embedded:  # a page's form (page_tree.embed_dialog): a widget before it has children, not after
+            self.setWindowFlags(Qt.WindowType.Widget)
         self.setWindowTitle("Spacecraft" if config is None else f"Spacecraft: {config.name}")
         # The scenario file's folder (for a 3D model's mesh paths), or None.
         self._base_dir_provider = base_dir_provider
@@ -338,7 +351,7 @@ class SpacecraftEditorDialog(QDialog):
         self.tabs = tabs
         outer_layout.addWidget(tabs)
 
-        orbit_tab = QWidget()
+        orbit_tab = _tab_page(tabs, "Orbit / mass")
         layout = QVBoxLayout(orbit_tab)
 
         top_form = QFormLayout()
@@ -527,10 +540,10 @@ class SpacecraftEditorDialog(QDialog):
         if config is not None:
             self.orbit_widget.from_dataclass(config.orbit)
 
-        tabs.addTab(_scrollable(orbit_tab), "Orbit / mass")
 
         # -- Sensors / actuators tab (Phase 2) --------------------------------
-        sensors_tab = QWidget()
+        sensors_tab = _tab_page(tabs, "Sensors / actuators")
+        self._sensors_tab_index = tabs.count() - 1
         sensors_layout = QVBoxLayout(sensors_tab)
         sensors_layout.addWidget(QLabel("Sensors"))
         self.sensor_list = SensorActuatorListWidget(SensorConfig, SUPPORTED_SENSOR_KINDS)
@@ -541,10 +554,10 @@ class SpacecraftEditorDialog(QDialog):
         if config is not None:
             self.sensor_list.from_list(config.sensors)
             self.actuator_list.from_list(config.actuators)
-        self._sensors_tab_index = tabs.addTab(_scrollable(sensors_tab), "Sensors / actuators")
 
         # -- Attitude control (FSW) tab (Phase 2) -----------------------------
-        fsw_tab = QWidget()
+        fsw_tab = _tab_page(tabs, "Attitude control")
+        self._fsw_tab_index = tabs.count() - 1
         fsw_layout = QVBoxLayout(fsw_tab)
         fsw_form = QFormLayout()
         self.fsw_mode_combo = ComboBox()
@@ -734,7 +747,6 @@ class SpacecraftEditorDialog(QDialog):
         self.comms_pointing_group.toggled.connect(self._refresh_fsw_hint)
         self._refresh_fsw_hint()
 
-        self._fsw_tab_index = tabs.addTab(_scrollable(fsw_tab), "Attitude control")
 
         # -- Power budget / RF link budget tab (Phase 4) ----------------------
         # Both are OFF by default (unchecked group box) -- turning one on is
@@ -742,7 +754,7 @@ class SpacecraftEditorDialog(QDialog):
         # (power) / engine.link_budget (RF) do the rest. See PowerConfig's
         # and RFLinkConfig's docstrings for exactly what each does and
         # doesn't affect.
-        power_tab = QWidget()
+        power_tab = _tab_page(tabs, "Power / propulsion / link budget")
         power_layout = QVBoxLayout(power_tab)
 
         power0 = config.power if config else None
@@ -1574,14 +1586,13 @@ class SpacecraftEditorDialog(QDialog):
         power_layout.addWidget(self.data_handling_group)
         power_layout.addStretch(1)
 
-        tabs.addTab(_scrollable(power_tab), "Power / propulsion / link budget")
 
         # -- Vizard 3D model tab (Phase 5) -------------------------------------
         # PURELY COSMETIC -- see SpacecraftConfig.vizard_model_path's
         # docstring. Deliberately its own tab, not folded into another one,
         # so it reads as clearly separate from anything that affects
         # simulated physics.
-        viz_model_tab = QWidget()
+        viz_model_tab = _tab_page(tabs, "Vizard model")
         viz_model_layout = QVBoxLayout(viz_model_tab)
         viz_model_description_label = QLabel(
             "A 3D model shown in Vizard instead of the default cube. Display only: it never "
@@ -1649,18 +1660,16 @@ class SpacecraftEditorDialog(QDialog):
 
         viz_model_layout.addWidget(self.viz_model_group)
         viz_model_layout.addStretch(1)
-        tabs.addTab(_scrollable(viz_model_tab), "Vizard model")
-        tabs.insertTab(tabs.count() - 1, _scrollable(self._build_model_tab()), "3D model")
+        self._build_model_tab(_tab_page(tabs, "3D model", tabs.count() - 1))  # before the Vizard model
 
         # -- Delta-V and propellant budget inputs (ESA AD10) --------------------
         from .budget_widget import BudgetInputsGroup
 
-        budget_tab = QWidget()
+        budget_tab = _tab_page(tabs, "Budget (AD10)")
         budget_layout = QVBoxLayout(budget_tab)
         self.budget_group = BudgetInputsGroup(config.propellant_budget if config else None)
         budget_layout.addWidget(self.budget_group)
         budget_layout.addStretch(1)
-        tabs.addTab(_scrollable(budget_tab), "Budget (AD10)")
 
         if self._orbit_only:
             tabs.setTabVisible(self._sensors_tab_index, False)
@@ -1717,6 +1726,9 @@ class SpacecraftEditorDialog(QDialog):
         # tab's own QScrollArea is deliberately there so a busy tab
         # scrolls independently rather than forcing every other tab's
         # dialog that tall (see _scrollable()'s own docstring).
+        if embedded:  # a page's form takes the page's size: measuring every tab took 90 ms (M9)
+            finish_form(self)  # units in the fields, optional groups collapse (M4a)
+            return
         widest_tab_content = max(tabs.widget(i).widget().sizeHint().width() for i in range(tabs.count()))
         # Also wide enough for the tab bar itself -- sized from content
         # alone, the last tab ("Vizard model") was clipped to a sliver.
@@ -2051,8 +2063,7 @@ class SpacecraftEditorDialog(QDialog):
     def _base_dir(self):
         return self._base_dir_provider() if self._base_dir_provider else None
 
-    def _build_model_tab(self) -> QWidget:
-        tab = QWidget()
+    def _build_model_tab(self, tab: QWidget) -> None:
         layout = QVBoxLayout(tab)
         intro = QLabel("Build the spacecraft from shapes or an .obj file: it gives the mass, center of mass, "
                        "inertia and facets, and Vizard shows it.")
@@ -2076,7 +2087,6 @@ class SpacecraftEditorDialog(QDialog):
         layout.addLayout(row)
         layout.addStretch(1)
         self._refresh_model_tab()
-        return tab
 
     def _model_target(self):
         """What model3d.applied_values needs of this spacecraft: its model

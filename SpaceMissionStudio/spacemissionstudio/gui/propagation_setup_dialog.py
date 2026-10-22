@@ -123,8 +123,10 @@ _CONTENT_WIDTH = 600
 
 class PropagationSetupDialog(QDialog):
     def __init__(self, gravity: GravityConfig, sim_settings: SimSettings, space_weather: SpaceWeatherConfig,
-                 parent=None):
+                 parent=None, embedded: bool = False):
         super().__init__(parent)
+        if embedded:  # a page's form (page_tree.embed_dialog): a widget before it has children, not after
+            self.setWindowFlags(Qt.WindowType.Widget)
         self.setWindowTitle("Propagation setup")
 
         layout = QVBoxLayout(self)

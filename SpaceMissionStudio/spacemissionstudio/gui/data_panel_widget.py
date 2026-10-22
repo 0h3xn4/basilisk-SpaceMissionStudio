@@ -30,6 +30,7 @@ back to the previous version.
 
 from __future__ import annotations
 
+import atexit
 import logging
 from typing import Callable, Dict, List, Optional
 
@@ -43,6 +44,46 @@ from .theme.items import retint, tint
 
 _logger = logging.getLogger(__name__)
 _COLUMNS = ["Kind", "File", "Status", "Covers", "SHA-256", "Installed", "Source"]
+
+
+NOT_READ = object()  # DataPanelWidget.basilisk_version before a child process has read it
+
+
+_readers: set = set()  # the reads running (_InventoryWorker), until each ends
+_start_up_read: Optional[tuple] = None  # (files, Basilisk version) of this process's first start-up read
+
+
+def _remember_start_up_read(files: list, basilisk_version) -> None:
+    global _start_up_read
+    _start_up_read = (files, basilisk_version)
+
+
+@atexit.register
+def _stop_readers() -> None:
+    """A read still running at exit is ended, not destroyed mid-run."""
+    for reader in list(_readers):
+        reader.reader.stop()
+        reader.wait()
+
+
+class _InventoryWorker(QThread):
+    """Waits for the reference data inventory read in a child process
+    (:mod:`gui.reference_data_process`, UI overhaul M9): on the GUI thread
+    it took 1.5 s of start-up, and on a worker thread it still held the
+    interpreter for most of that."""
+
+    done = Signal(object, object)  # the inventory (reference_data files), the Basilisk version; not sent on failure
+
+    def __init__(self, parent=None) -> None:
+        super().__init__(parent)
+        from .reference_data_process import InventoryReader
+
+        self.reader = InventoryReader()
+
+    def run(self) -> None:
+        read = self.reader.read()
+        if read is not None:
+            self.done.emit(*read)
 
 
 class _TaskWorker(QThread):
@@ -124,8 +165,11 @@ class DataPanelWidget(QWidget):
 
     refreshed = Signal()  # after every refresh(): the status bar re-reads its summary
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: Optional[QWidget] = None, load: bool = True):
         super().__init__(parent)
+        self.files: list = []  # the last inventory shown
+        self.basilisk_version: object = NOT_READ  # as the child read it with the files; NOT_READ: ask
+        self._reader: Optional[_InventoryWorker] = None
         layout = QVBoxLayout(self)
         self.status_label = QLabel("")
         self.status_label.setWordWrap(True)
@@ -165,7 +209,10 @@ class DataPanelWidget(QWidget):
         layout.addLayout(row)
         self._worker: Optional[_TaskWorker] = None
         self.last_changes: List[str] = []
-        self.refresh()
+        if load:
+            self.refresh()
+        else:
+            self.status_label.setText("Reading the reference data files...")
 
     def _menu_button(self, text: str, tooltip: str, items) -> QToolButton:
         button = QToolButton()
@@ -186,7 +233,48 @@ class DataPanelWidget(QWidget):
 
     def refresh(self) -> None:
         """Re-read the local files (no network)."""
-        files = reference_data.inventory()
+        self.show_files(reference_data.inventory())
+
+    def _on_read(self, files: list, basilisk_version) -> None:
+        self.show_files(files, basilisk_version)
+
+    def refresh_in_background(self, start_up: bool = False) -> None:
+        """Re-read the local files in a child process; the table (and the
+        status bar, through ``refreshed``) follows when it is done. At
+        ``start_up``, a window after this process's first one shows the
+        first one's read."""
+        global _start_up_read
+        if start_up and _start_up_read is not None:
+            self._on_read(*_start_up_read)
+            return
+        if self._reader is not None and self._reader.isRunning():
+            return
+        # Not the panel's child: a panel deleted mid-read must not destroy
+        # a running thread (Qt aborts the process); kept until it ends.
+        reader = _InventoryWorker()
+        _readers.add(reader)
+        reader.finished.connect(lambda: _readers.discard(reader))
+        if start_up:
+            reader.done.connect(_remember_start_up_read)
+        reader.done.connect(self._on_read)
+        self._reader = reader
+        reader.start()
+
+    def read_at_start_up(self) -> None:
+        """The window's first read of the files (:meth:`refresh_in_background`)."""
+        self.refresh_in_background(start_up=True)
+
+    def wait_for_reader(self) -> None:
+        """End a background read (closing the window): it only reads files."""
+        if self._reader is not None:
+            self._reader.reader.stop()
+            self._reader.wait()
+
+    def show_files(self, files: list, basilisk_version: object = None) -> None:
+        """Show ``files``, an inventory of the reference data files (and
+        keep the Basilisk version read with them, for the status bar)."""
+        self.files = files
+        self.basilisk_version = NOT_READ if basilisk_version is None else basilisk_version
         self._files = files
         self.table.setRowCount(len(files))
         tones = {"ok": "status.normal.text", "missing": "status.critical.text", "out of date": "status.caution.text"}

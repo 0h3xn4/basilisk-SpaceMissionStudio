@@ -326,7 +326,7 @@ class ScenarioEditorWidget(QWidget):
             self._environment_form.setParent(None)
             self._environment_form.deleteLater()
         form = PropagationSetupDialog(self._gravity, self._sim_settings, self._space_weather,
-                                      parent=self.environment_page)
+                                      parent=self.environment_page, embedded=True)
         embed_dialog(form)
         form.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
         _Debounce(form, "environment").settled.connect(self._on_form_settled)
@@ -489,14 +489,15 @@ class ScenarioEditorWidget(QWidget):
                 simulation_mode=self.simulation_mode_combo.currentData(),
                 ground_station_names=[gs.name for gs in self.ground_station_list.to_list()],
                 epoch_provider=spacecraft_list._epoch_provider, base_dir_provider=spacecraft_list._base_dir_provider,
-                central_body_provider=spacecraft_list._central_body_provider)
+                central_body_provider=spacecraft_list._central_body_provider, embedded=True)
             kind = "spacecraft"
         else:
             from .ground_station_editor import GroundStationEditorDialog
 
             row = self._station_nodes.index(node)
             others = sorted(c.name for i, c in enumerate(self.ground_station_list.to_list()) if i != row)
-            form = GroundStationEditorDialog(config=node.config, parent=node.holder, other_names=others)
+            form = GroundStationEditorDialog(config=node.config, parent=node.holder, other_names=others,
+                                             embedded=True)
             kind = "station"
         embed_dialog(form)
         form.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
