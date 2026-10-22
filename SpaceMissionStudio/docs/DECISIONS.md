@@ -24,12 +24,29 @@ filling Output's table 12-22 ms).
 - **Output and Monte Carlo move onto it.** Each keeps its text, its
   filter and its export as they are; a test that read a `QTableWidget`
   item reads the table's cell or header instead (TEST_CHANGES).
-- **Compare's run switcher, End of Life, Budget and the Dashboard
-  (Telemetry)** are rebuilt from the components (cards, sections, the
-  table) without group-box frames, keeping every value they show.
-- **The end of a run:** the views a run fills that are not shown are
-  filled when they are next shown (as Compare is since M5a), so the end
-  of a run fills only the view it opens on.
+- **Compare, End of Life, Budget and the Dashboard (Telemetry)**, as
+  built: Budget's three tables and Compare's three are a `DataTable`
+  (Budget's worst case a bold row, a row picked with `row_chosen`;
+  Compare's "(same)" cells muted). Compare's run switcher is its list of
+  runs to tick, as before. End of Life already shows its results as
+  tiles, and the Dashboard's group boxes are headings, not frames, since
+  M4a's style sheet: both are kept as they are.
+- **The end of a run, as built:** shown in steps, one an event-loop turn
+  4 ms apart (the results view; the dashboard, timeline, run record and
+  analyses; Output; the view shown), each 17-31 ms after the first run of
+  a session. The run's save starts 1 s later (its zip writing shares the
+  interpreter with the GUI thread and doubled the steps' time beside
+  them). A new run, clearing the views or closing takes the steps left.
+  Tables size their columns once when filled (ResizeToContents measured
+  every cell at every layout).
+- **Measured after** (`scripts/measure_run_end.py`, template 23, two
+  sessions of three runs): the run's own slot 21-36 ms after the first run
+  (was 102-110 ms); the longest stall in the 3 s after it 47-57 ms in most
+  runs, up to 151 ms when a full garbage collection (71-83 ms) fell in it.
+  **Not met** ("no stall over 50 ms"): the remainder is the collector and
+  the Overview's worker sharing the interpreter; M9's performance pass
+  holds it. The first run of a session: 197-268 ms (the first results
+  view and figure).
 
 ## M6 Results overview and analysis views (2026-10-22)
 
