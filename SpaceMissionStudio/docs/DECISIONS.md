@@ -35,6 +35,18 @@ session 978 ms).
   run ends, and M6 rebuilds that view. M5 moves it to its own step after
   the others, so it is the only one that can hold the window; what it
   costs is measured and written down.
+- **Measured after:** the end of a run holds the window 152-163 ms (was
+  301-323 ms; the first run of a session 519 ms, was 788 ms), nearly all
+  of it the results view's figure. Not met; M6 holds it.
+- **Compare is refreshed when it is shown,** not at the end of every run
+  (its plot cost 58-113 ms there); the results view redraws in
+  `set_runs` only when the run compared changes.
+- **History's double-click compares** the run with the one shown in
+  Results: Results shows one run at a time, and drawing another dashed
+  beside it is what it already does.
+- **The Log's run records come from the GUI** (`spacemissionstudio.run`):
+  the engine logs nothing at INFO during a normal run, and it is not
+  touched.
 
 ## M4b Editing flow (2026-10-22)
 

@@ -117,6 +117,20 @@ fixes bugs.
 
   What a run computes and every file the app writes are unchanged.
 
+- **Run › History and a record of every run** (UI overhaul M5a):
+  - **History**, in the Run area, lists every run, newest first: its
+    status (Done, Cancelled, Failed), mode, start (UTC), how long it took
+    and whether it is saved, with its provenance one click away. Failed
+    runs and Monte Carlo batches are listed for the session they ran in.
+  - **The Log records each run:** its start, its end and length, its
+    warnings, and where it is saved. **Copy** copies what it shows.
+  - **The end of a run waits less:** the run is saved, and old runs
+    pruned, in the background; the plots are drawn once, and Compare when
+    it is opened. On template 23 the window is held about half as long
+    (152-163 ms, was 301-323 ms).
+
+  What a run computes and every file the app writes are unchanged.
+
 ## 1.2.0 (2026-10-21)
 
 Starting a mission from an empty scenario is now a choice of its own: the

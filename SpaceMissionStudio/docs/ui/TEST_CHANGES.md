@@ -298,3 +298,27 @@ dispersions are edited in a form under their list instead of a dialog.
     inline reaching the scenario and undone, Add opening a new
     spacecraft's and station's page, with no dialog anywhere.
 - `tests/gui/test_forms.py::test_the_inline_device_and_dispersion_forms_fit`.
+
+## M5a The end of a run and its record
+
+### Changed: how a test reaches the widget
+
+| Test | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_compare_tab.py::test_runs_of_an_earlier_session_are_listed_and_read_back_when_ticked` | Read Compare right after the window was built | Shows Compare, then waits for its list (the runs are read in a worker, and Compare is refreshed when shown) | The two saved runs are listed, newest first, and read back only when ticked |
+| `test_workspace.py::test_the_compare_tab_lists_runs_and_their_input_differences` | Read Compare, hidden, right after two runs | Shows Compare, then waits for its list | Both runs ticked, their input differences, Results' choice followed |
+
+### Changed: what M5a changes on purpose
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_workspace.py::test_the_areas_and_what_they_hold` | The Run area's tabs: End of Life, Budget, Log | End of Life, Budget, History, Log | M5's criterion: a History of the runs |
+
+### Added
+
+- `tests/gui/test_run_record.py` (10 tests): a run saved in a worker and
+  listed at once ("Saving..." then "Saved"), closing waiting for a save,
+  Compare refreshed when shown and the results drawn once, History's
+  rows (a run, a failed run and a batch, earlier runs read in a worker),
+  the provenance popover and Copy, and the Log's records of a run and its
+  Copy.
