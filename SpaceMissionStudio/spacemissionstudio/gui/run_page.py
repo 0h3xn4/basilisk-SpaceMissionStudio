@@ -37,7 +37,7 @@ from typing import Callable, List, Optional
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit,
-                               QPushButton, QScrollArea, QStackedWidget, QVBoxLayout, QWidget)
+                               QPushButton, QScrollArea, QSizePolicy, QStackedWidget, QVBoxLayout, QWidget)
 
 from .page_tree import embed_dialog, watch_edits
 from .theme import CONTENT_MAX_WIDTH_PX, set_role
@@ -107,7 +107,7 @@ class RunPage(QWidget):
         # Vizard: for a single run and a SIL run (a Monte Carlo batch has none).
         self.vizard_section = QWidget()
         vizard_layout = QVBoxLayout(self.vizard_section)
-        vizard_layout.setContentsMargins(0, 0, 0, 0)
+        vizard_layout.setContentsMargins(0, 16, 0, 0)  # [px] a section's gap (the 4 px grid)
         _section("Vizard", vizard_layout)
         self.vizard_holder = QVBoxLayout()
         vizard_layout.addLayout(self.vizard_holder)
@@ -179,7 +179,12 @@ class RunPage(QWidget):
         self.pages["sil"] = page
 
     def show_mode(self, mode: str) -> None:
+        # The stack is as tall as the page shown, not its tallest page.
+        for name, page in self.pages.items():
+            policy = QSizePolicy.Policy.Preferred if name == mode else QSizePolicy.Policy.Ignored
+            page.setSizePolicy(policy, policy)
         self.stack.setCurrentWidget(self.pages[mode])
+        self.stack.adjustSize()
         self.vizard_section.setVisible(mode != "monte_carlo")
         self.mode_label.setText({
             "single": "Run builds the scenario in Basilisk and runs it once.",
@@ -202,6 +207,7 @@ class RunPage(QWidget):
                             current_show_trajectory_trail=getattr(request, "show_trajectory_trail", False),
                             current_show_ground_tracks=getattr(request, "show_ground_tracks", False), parent=self)
         embed_dialog(form)
+        form.layout().setContentsMargins(0, 0, 0, 0)  # aligned with the page's other fields
         watch_edits(form, self._on_vizard_edited)
         self.vizard_holder.addWidget(form)
         self.vizard_form = form
@@ -252,6 +258,7 @@ class RunPage(QWidget):
             return
         form = SilRunDialog(name, self._sil_folder(name), self)
         embed_dialog(form)
+        form.layout().setContentsMargins(0, 0, 0, 0)
         self.sil_holder.addWidget(form)
         self.sil_form = form
 
