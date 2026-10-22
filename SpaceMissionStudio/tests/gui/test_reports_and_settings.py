@@ -76,12 +76,12 @@ def test_every_export_is_listed_never_written_at_first(qtbot):
     table = page.table
     assert table.row_count() == len(EXPORTS) == 12
     assert [table.header_text(c) for c in range(table.column_count())] == [
-        "Export", "Format", "Made in", "Default destination", "Provenance", "Last written\n[UTC]"]
+        "Export", "Last written\n[UTC]", "Format", "Made in", "Default destination", "Provenance"]
     names = {table.cell(r, 0) for r in range(table.row_count())}
     assert names == {"Plot data", "Plot image", "Every shown plot", "Events", "Mission output", "Monte Carlo runs",
                      "Budget", "Flight software", "SIL report", "Vizard playback", "3D model"}
-    assert all(table.cell(r, 5) == "never" for r in range(table.row_count()))
-    assert all(table.cell(r, c) for r in range(table.row_count()) for c in range(5))
+    assert all(table.cell(r, 1) == "never" for r in range(table.row_count()))
+    assert all(table.cell(r, c) for r in range(table.row_count()) for c in range(6))
 
 
 def test_an_export_is_logged_and_shown_with_its_time_and_path(qtbot, tmp_path, monkeypatch):
@@ -109,7 +109,7 @@ def test_an_export_is_logged_and_shown_with_its_time_and_path(qtbot, tmp_path, m
     when = page.last_written("events_csv")
     assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", when)
     row = [export.key for export in EXPORTS].index("events_csv")
-    assert page.table.cell_tooltip(row, 5) == str(target)
+    assert page.table.cell_tooltip(row, 1) == str(target)
     assert page.last_written("output_csv") == "never"
 
 

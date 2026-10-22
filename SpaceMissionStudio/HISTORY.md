@@ -12661,3 +12661,45 @@ reads in UTC with Z ("08:30Z").
 Timeline tests and one helper read the table through the `DataTable`
 (and a row's event through `row_event`), each in
 `docs/ui/TEST_CHANGES.md`. Golden files and every output are unchanged.
+
+## M8: Reports, exports and Settings (2026-10-22)
+
+**What changed.**
+- **Reports › Exports**, the first tab of Reports (Flight Software is
+  the second): the twelve exports of plan §5.3 in a `DataTable`, each
+  with the time this machine last wrote it (UTC with Z; the path on
+  hover), its format, the view and button that make it, its default
+  destination and its provenance (in short; in full on hover). Enter or
+  a double-click opens the view that makes it. Each export records itself
+  in `gui/export_log.py` (the app's settings) once its files are written.
+- **Export files tested byte for byte:** `scripts/make_export_references.py`
+  writes each covered export from fixed inputs through the functions the
+  GUI calls. Run on 1.1.0's code (`1c7d76f`) it wrote
+  `tests/data/exports_1_1_0.zip`; `test_export_files.py` runs it on this
+  code and compares every byte; 1.2.0's code (`c92f900`) writes the same
+  bytes. Covered: the results CSVs and provenance, the events CSV, the
+  Mission Output CSV and provenance, the Monte Carlo table, the budget
+  CSV, the `.obj` and `.mtl`, the SIL report. Not covered: PNG and SVG
+  plots (the web engine draws them), the flight-software project (its own
+  test against Basilisk's files), the Vizard file (Basilisk writes it).
+- **Settings › Appearance:** the UI scale (90, 100, 110, 125 %), applied
+  as `QT_SCALE_FACTOR` at the next start unless the environment sets one;
+  reduce motion (toasts otherwise fade in and out over 150 ms, the app's
+  only motion). **Settings › Vizard:** the program, with Browse and
+  Clear.
+- Not done, recorded in DECISIONS: one Export button per view opening a
+  shared export sheet (the per-view buttons stay).
+
+**Screenshots.** `scripts/capture_ui_screens.py --theme both`, this branch
+against M7: 124 shots per theme against 122; Reports is two shots before
+and after a run (Exports, Flight Software) where it was one. Settings
+shows the UI scale, reduce motion and Vizard. At 1440 px with the
+inspector open, the Exports table scrolls sideways for its last column
+(Provenance); the time written is the second column.
+
+**Tests.** The full suite: 3827 passed and 12 skipped, none failed (Python
+3.13 here; CI runs 3.11). New: `test_export_files.py` (1) and
+`test_reports_and_settings.py` (6). One workspace assertion reaches the
+Flight Software page through the Reports tabs, and an autouse fixture
+keeps the export log out of the test's home; both in
+`docs/ui/TEST_CHANGES.md`. Golden files and every output are unchanged.

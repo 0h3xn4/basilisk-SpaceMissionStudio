@@ -89,7 +89,7 @@ Identifiers are module paths: `engine/service` is `spacemissionstudio/engine/ser
 | `gui/data_table` | DataTable (UI overhaul M6b) | - | `Row`, `LazyRows`, `DataModel`, `DataTable` | gui/theme | PySide6 | 495 |
 | `gui/event_timeline_widget` | The Events tab | SRS-F-15 | `kind_colour`, `GanttView`, `EventTimelineWidget` | engine/events, engine/results, engine/time_system, gui/data_table, gui/export_log, gui/feedback, gui/theme, gui/time_cursor, output_provenance | PySide6, numpy | 720 |
 | `gui/export_log` | When this machine last wrote each export (UI overhaul M8) | - | `record`, `last` | - | PySide6 | 58 |
-| `gui/exports_page` | Reports › Exports (UI overhaul M8, plan §5.3) | - | `Export`, `ExportsPage` | gui/data_table, gui/export_log, gui/theme | PySide6 | 126 |
+| `gui/exports_page` | Reports › Exports (UI overhaul M8, plan §5.3) | - | `Export`, `ExportsPage` | gui/data_table, gui/export_log, gui/theme | PySide6 | 131 |
 | `gui/facet_editor` | Editor for a spacecraft's facet model (:class:`schema.scenario.FacetConfig`) | SRS-F-15 | `BoxFacetDialog`, `FacetTableWidget` | engine/facets, gui/widgets, schema/scenario | PySide6 | 199 |
 | `gui/feedback` | Two small, reusable UX primitives, built once here and reused across gui/ rather than re-invented per widget -- real user feedback ("make the GUI more 'reactive'... | SRS-H-01 | `show_toast`, `report`, `show_dialog_error`, `dialog_error_text`, `clear_dialog_error`, `mark_invalid`, `clear_invalid`, `row_label`, `show_field_error`, `clear_field_error`, `clear_on_edit`, `field_error_text` (+3) | gui/theme | PySide6, shiboken6 | 497 |
 | `gui/field_text` | A validation message as a form shows it | - | `section_title`, `field_title`, `attribute_title`, `labelled` | gui/workspace_panels | PySide6 | 128 |

@@ -269,6 +269,17 @@ bar and no toolbar:
   pixel. The axis is UTC with `Z` when the run has an epoch. Zoom: the
   wheel, `+`/`-`; pan: Shift+wheel, a right or middle drag, the arrow keys;
   fit: `0` or Home.
+- **Reports › Exports (M8):** `gui.exports_page`, the first tab of
+  Reports: every export (`EXPORTS`) in a `DataTable` with its format,
+  view, destination, provenance and the last time written, which each
+  export records with `gui.export_log.record(key, path)` once its files
+  are written. A new export adds a row to `EXPORTS` and records itself.
+- **Motion and scale (M8):** toasts fade in and out over
+  `feedback.TOAST_FADE_MS` (150 ms, ease-out), the only motion; with
+  `theme.reduce_motion()` they appear and go at once. The UI scale
+  (`theme.ui_scale_setting()`, 90-125 %) is applied as `QT_SCALE_FACTOR`
+  by `app.main` before the application exists, so it takes effect at the
+  next start.
 - **DataTable (M6b):** `gui.data_table`, the table of a view: a
   `QTableView` over `DataModel` through a filter proxy; numeric columns
   right-aligned in the numeric font (units in the headers); group rows
@@ -600,7 +611,5 @@ milestone of `docs/ui/UI_OVERHAUL_PLAN.md`):
 - **Spacing:** the 4 px grid is in the style sheet; layouts built in code
   still set their own margins (M2-M8 rebuild the screens from
   components).
-- **Motion and UI scale** (the brief's 120-180 ms transitions, reduce
-  motion, 90-125 % scale) come with Settings (M8).
 - **Vizard** (audit U-37) still has two commands in the Run area's
   header and no connection status chip.

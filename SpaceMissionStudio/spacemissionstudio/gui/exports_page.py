@@ -42,36 +42,38 @@ class Export(NamedTuple):
     file_format: str
     made_in: str  # the view and its button
     destination: str  # the default destination
-    provenance: str  # what is written with it
+    provenance: str  # what is written with it, in short
+    provenance_detail: str = ""  # the cell's tooltip
 
 
 EXPORTS = (
-    Export("plot_csv", "Plot data", "CSV, a file a series", "Results › Plots › Export CSV...",
-           "A folder you choose", "provenance.json in the folder"),
-    Export("plot_png", "Plot image", "PNG", "Results › Plots › Save PNG...", "<series>.png",
-           "In the image (a PNG text chunk)"),
-    Export("plot_svg", "Plot image", "SVG", "Results › Plots › Save SVG...", "<series>.svg",
-           "In the image (SVG metadata)"),
-    Export("plots_all", "Every shown plot", "PNG or SVG, with CSV", "Results › Plots › Export all...",
-           "A folder you choose", "In each image, and provenance.json"),
-    Export("events_csv", "Events", "CSV", "Timeline › Export CSV...", "events.csv",
+    Export("plot_csv", "Plot data", "CSV, a file a series", "Results › Plots › Export CSV...", "Folder chosen",
+           "provenance.json", "provenance.json in the folder"),
+    Export("plot_png", "Plot image", "PNG", "Results › Plots › Save PNG...", "<series>.png", "In the file",
+           "In the image, as a PNG text chunk"),
+    Export("plot_svg", "Plot image", "SVG", "Results › Plots › Save SVG...", "<series>.svg", "In the file",
+           "In the image, as SVG metadata"),
+    Export("plots_all", "Every shown plot", "PNG or SVG, CSV", "Results › Plots › Export all...", "Folder chosen",
+           "In each image; provenance.json", "In each image, and provenance.json in the folder"),
+    Export("events_csv", "Events", "CSV", "Timeline › Export CSV...", "events.csv", "<file>.provenance.json",
            "<file>.provenance.json beside it"),
-    Export("output_csv", "Mission output", "CSV", "Results › Output › Export CSV...", "A file you choose",
-           "<file>.provenance.json beside it"),
+    Export("output_csv", "Mission output", "CSV", "Results › Output › Export CSV...", "File chosen",
+           "<file>.provenance.json", "<file>.provenance.json beside it"),
     Export("monte_carlo_csv", "Monte Carlo runs", "CSV", "Results › Monte Carlo › Export table CSV...",
-           "monte_carlo_runs.csv", "None (the batch folder keeps the batch's)"),
-    Export("budget_csv", "Budget", "CSV text", "Run › Budget › Copy as CSV", "The clipboard",
-           "Its last lines: versions, scenario SHA-256, time"),
+           "monte_carlo_runs.csv", "None", "None in the table; the batch folder keeps the batch's"),
+    Export("budget_csv", "Budget", "CSV text", "Run › Budget › Copy as CSV", "Clipboard", "Its last lines",
+           "Its last lines: the versions, the scenario's SHA-256 and the time"),
     Export("fsw_project", "Flight software", "C project (CMake)", "Reports › Flight Software › Export...",
-           "A folder you choose", "manifest.json in the folder"),
+           "Folder chosen", "manifest.json", "manifest.json in the folder"),
     Export("sil_report", "SIL report", "JSON, residuals CSV", "Reports › Flight Software › Save report...",
-           "A file you choose", "In the report: binary and configuration SHA-256"),
-    Export("vizard_file", "Vizard playback", "Vizard .bin", "Run › Run › Vizard save file (written by the run)",
-           "The file named there", "None"),
-    Export("model_obj", "3D model", "Wavefront OBJ and MTL", "Scenario › 3D Model... › Export .obj...",
-           "<spacecraft>.obj beside the scenario", "None"),
+           "File chosen", "In the report", "In the report: the binary's and the configurations' SHA-256"),
+    Export("vizard_file", "Vizard playback", "Vizard .bin", "Run › Run › Vizard save file", "Set on Run › Run",
+           "None", "None (Basilisk writes it during the run)"),
+    Export("model_obj", "3D model", "OBJ and MTL", "Scenario › 3D Model... › Export .obj...", "<spacecraft>.obj",
+           "None"),
 )
-_HEADERS = ("Export", "Format", "Made in", "Default destination", "Provenance", "Last written\n[UTC]")
+_HEADERS = ("Export", "Last written\n[UTC]", "Format", "Made in", "Default destination", "Provenance")
+_LAST = 1  # the column of the time last written
 
 
 class ExportsPage(QWidget):
@@ -101,14 +103,17 @@ class ExportsPage(QWidget):
         for export in EXPORTS:
             last = export_log.last(export.key)
             when, path = last if last is not None else ("never", "")
-            rows.append(Row((export.name, export.file_format, export.made_in, export.destination,
-                             export.provenance, when), tooltips={5: path} if path else {}))
-        self.table.set_table(_HEADERS, rows, stretch=4)
+            tooltips = {5: export.provenance_detail} if export.provenance_detail else {}
+            if path:
+                tooltips[_LAST] = path
+            rows.append(Row((export.name, when, export.file_format, export.made_in, export.destination,
+                             export.provenance), tooltips=tooltips))
+        self.table.set_table(_HEADERS, rows, stretch=-1)  # every column its content's width
         self._stale = False
 
     def last_written(self, key: str) -> str:
         """The "Last written" cell of export ``key``."""
-        return self.table.cell([export.key for export in EXPORTS].index(key), 5)
+        return self.table.cell([export.key for export in EXPORTS].index(key), _LAST)
 
     def _on_logged(self, _key: str) -> None:
         if self.isVisible():
