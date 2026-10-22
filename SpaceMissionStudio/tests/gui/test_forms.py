@@ -87,18 +87,20 @@ def _pages(window):
 
 
 def _form_labels(root):
-    """(label, field) of every shown form row under ``root``."""
+    """(label, field widget or layout) of every shown form row under
+    ``root``, read through QObjects (widgets.form_rows), never itemAt()."""
     from PySide6.QtWidgets import QFormLayout, QLabel
+
+    from spacemissionstudio.gui.widgets import form_rows
 
     rows = []
     for form in root.findChildren(QFormLayout):
         if form.parentWidget() is None or not form.parentWidget().isVisible():
             continue
-        for row in range(form.rowCount()):
-            label = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
-            field = form.itemAt(row, QFormLayout.ItemRole.FieldRole)
-            if label is not None and isinstance(label.widget(), QLabel) and label.widget().isVisible():
-                rows.append((label.widget(), field))
+        for _row, roles in sorted(form_rows(form).items()):
+            label = roles.get(QFormLayout.ItemRole.LabelRole)
+            if isinstance(label, QLabel) and label.isVisible():
+                rows.append((label, roles.get(QFormLayout.ItemRole.FieldRole)))
     return rows
 
 
@@ -234,13 +236,13 @@ def _units_left(window, page):
     """Labels on the page shown with a known unit in brackets and a number
     field; and number fields not right-aligned."""
     from PySide6.QtCore import Qt
-    from PySide6.QtWidgets import QAbstractSpinBox
+    from PySide6.QtWidgets import QAbstractSpinBox, QWidget
 
     from spacemissionstudio.gui import units
 
     found = []
     for label, field in _form_labels(window.scenario_editor):
-        widget = field.widget() if field is not None else None
+        widget = field if isinstance(field, QWidget) else None  # a layout field: its boxes are not read here
         boxes = ([widget] if isinstance(widget, QAbstractSpinBox)
                  else widget.findChildren(QAbstractSpinBox) if widget is not None else [])
         if units.split_label(label.text())[1] is not None and boxes:
