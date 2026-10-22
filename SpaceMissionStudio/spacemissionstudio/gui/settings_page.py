@@ -17,30 +17,40 @@
 #
 
 """The Settings area (UI overhaul plan §5.2): appearance, reference data,
-layout, the keyboard shortcuts and about, each a section of one page.
+Vizard, layout, the keyboard shortcuts and about, each a section of one
+page.
 
-Every control is a command of the window's action registry
-(:mod:`gui.actions`), shown here as a button, and the shortcut list is
-generated from the registry, so this page and the command palette agree.
+Every command is one of the window's action registry (:mod:`gui.actions`),
+shown here as a button, and the shortcut list is generated from the
+registry, so this page and the command palette agree. The UI scale, reduce
+motion (M8) and the Vizard location are preferences, not commands: they
+are set here only.
 """
 
 from __future__ import annotations
 
 import weakref
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QLabel, QScrollArea, QTableWidget, QTableWidgetItem,
-                               QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QFileDialog, QHBoxLayout, QLabel, QPushButton,
+                               QScrollArea, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
 
-from .theme import CONTENT_MAX_WIDTH_PX, SPACE, set_role
+from . import vizard_launcher
+from .widgets import ComboBox
+from .theme import (CONTENT_MAX_WIDTH_PX, SPACE, UI_SCALES, mono_font, reduce_motion, set_reduce_motion, set_role,
+                    set_ui_scale_setting, ui_scale_setting)
 
 # (key, title, what it is for)
 _SECTIONS: Tuple[Tuple[str, str, str], ...] = (
-    ("appearance", "Appearance", "The theme applies at once, to every open view."),
+    ("appearance", "Appearance", "The theme applies at once, to every open view; the UI scale at the next "
+                                 "start."),
     ("reference_data", "Reference data", "The SPICE kernels, gravity fields, magnetic model, space weather and "
                                          "Earth orientation files, with their sources, dates and checksums."),
+    ("vizard", "Vizard", "The Vizard program Launch Vizard and Open in Vizard start. When none is set, it is "
+                         "looked for where the download puts it."),
     ("layout", "Layout", "The navigation rail, the inspector and the Problems panel; Reset Layout puts them "
                          "back as a new window has them."),
     ("keyboard", "Keyboard", "Every command with a shortcut. Ctrl+K finds any command by name."),
@@ -77,6 +87,10 @@ class SettingsPage(QScrollArea):
             getattr(self, f"_build_{key}")()
         self._layout.addStretch(1)
 
+    def showEvent(self, event) -> None:
+        self.refresh_vizard()  # Launch Vizard may have remembered one since
+        super().showEvent(event)
+
     def sections(self) -> List[Tuple[str, str]]:
         """(key, title) of each section, in order."""
         return [(key, title) for key, title, _text in _SECTIONS]
@@ -105,6 +119,65 @@ class SettingsPage(QScrollArea):
 
     def _build_appearance(self) -> None:
         self._row(("view.theme.system", "view.theme.light", "view.theme.dark"))
+        row = QHBoxLayout()
+        row.setSpacing(SPACE["sm"])
+        row.addWidget(QLabel("UI scale"))
+        self.ui_scale = ComboBox()  # the wheel does not change it
+        for percent in UI_SCALES:
+            self.ui_scale.addItem(f"{percent} %", percent)
+        self.ui_scale.setCurrentIndex(UI_SCALES.index(ui_scale_setting()))
+        self.ui_scale.setToolTip("The size of text and controls, from the next start")
+        self.ui_scale.currentIndexChanged.connect(self._on_ui_scale)
+        row.addWidget(self.ui_scale)
+        self.ui_scale_note = set_role(QLabel(""), tone="secondary")
+        row.addWidget(self.ui_scale_note)
+        row.addStretch(1)
+        self._layout.addLayout(row)
+        self.reduce_motion = QCheckBox("Reduce motion")
+        self.reduce_motion.setToolTip("Notifications appear and go at once, without fading")
+        self.reduce_motion.setChecked(reduce_motion())
+        self.reduce_motion.toggled.connect(set_reduce_motion)
+        self._layout.addWidget(self.reduce_motion)
+
+    def _on_ui_scale(self, index: int) -> None:
+        set_ui_scale_setting(self.ui_scale.itemData(index))
+        self.ui_scale_note.setText("Applies at the next start.")
+
+    def _build_vizard(self) -> None:
+        row = QHBoxLayout()
+        row.setSpacing(SPACE["sm"])
+        self.vizard_path = QLabel()
+        self.vizard_path.setFont(mono_font())
+        self.vizard_path.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        row.addWidget(self.vizard_path, 1)
+        self.vizard_browse = QPushButton("Browse...")
+        self.vizard_browse.setToolTip("Choose the Vizard program")
+        self.vizard_browse.clicked.connect(self._on_vizard_browse)
+        row.addWidget(self.vizard_browse)
+        self.vizard_clear = QPushButton("Clear")
+        self.vizard_clear.setToolTip("Forget it: look for Vizard where the download puts it")
+        self.vizard_clear.clicked.connect(self._on_vizard_clear)
+        row.addWidget(self.vizard_clear)
+        self._layout.addLayout(row)
+        self.refresh_vizard()
+
+    def refresh_vizard(self) -> None:
+        """The Vizard location remembered, or that none is."""
+        path = vizard_launcher.remembered_vizard_executable()
+        self.vizard_path.setText(path or "Not set")
+        set_role(self.vizard_path, tone=None if path else "secondary")
+        self.vizard_clear.setEnabled(bool(path))
+
+    def _on_vizard_browse(self) -> None:
+        path, _filter = QFileDialog.getOpenFileName(self, "Locate the Vizard application",
+                                                    vizard_launcher.remembered_vizard_executable())
+        if path:
+            vizard_launcher.remember_vizard_executable(Path(path))
+            self.refresh_vizard()
+
+    def _on_vizard_clear(self) -> None:
+        vizard_launcher.forget_vizard_executable()
+        self.refresh_vizard()
 
     def _build_reference_data(self) -> None:
         self._row(("tools.reference_data",))

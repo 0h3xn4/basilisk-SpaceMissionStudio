@@ -141,6 +141,7 @@ import urllib.parse
 # (which now sets the flags for every web view) -- MUST happen before
 # PySide6.QtWebEngineWidgets is imported below (env var read at that
 # module's own native init time; setting it any later has no effect).
+from . import export_log
 from . import webengine_setup  # noqa: F401 -- importing it sets the flags
 
 import json
@@ -1735,6 +1736,7 @@ class ResultsWidget(QWidget):
             report(self, f"Could not export the results to {out_dir}: {exc}")
             return
         csv_count = sum(1 for key in paths if key != "provenance")
+        export_log.record("plot_csv", out_dir)
         report(self, f"Exported {csv_count} CSV file(s) to {out_dir}", kind="success")
 
     def _on_export_all(self, fmt: str) -> None:
@@ -1789,6 +1791,7 @@ class ResultsWidget(QWidget):
         except (OSError, ValueError) as exc:
             show_toast(self.window(), f"Export failed: {exc}", kind="error")
             return
+        export_log.record("plots_all", folder)
         show_toast(self.window(), f"Exported {len(urls)} plot(s) as {fmt.upper()} and {written} CSV file(s) "
                                   f"to {folder}")
 
@@ -1973,4 +1976,5 @@ class ResultsWidget(QWidget):
         except (OSError, ValueError) as exc:
             report(self, f"Could not save the plot to {path}: {exc}")
             return
+        export_log.record(f"plot_{fmt}", path)
         report(self, f"Saved the plot to {path}", kind="success")

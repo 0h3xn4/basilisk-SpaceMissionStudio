@@ -185,6 +185,25 @@ fixes bugs.
 
   What a run computes and every file the app writes are unchanged.
 
+- **Every export in one place; three new settings** (UI overhaul M8):
+  - **Reports › Exports** lists every file the app writes, with its
+    format, the view and button that make it, its default destination,
+    the provenance written with it and when this computer last wrote one
+    (UTC). A double-click opens the view that makes it.
+  - The exported files are the same as 1.1.0's, byte for byte: a new test
+    writes each of them (the results, events, mission output, Monte
+    Carlo and budget CSVs, the `.obj` model, the SIL report) and compares
+    them with the files 1.1.0 wrote. PNG and SVG plots, the
+    flight-software project and the Vizard file are not in it (the web
+    engine draws the plots; the project has its own test against
+    Basilisk; Basilisk writes the Vizard file).
+  - **Settings › Appearance:** the **UI scale** (90, 100, 110 or 125 %,
+    from the next start) and **Reduce motion** (notifications appear and
+    go without their 150 ms fade). **Settings › Vizard:** the Vizard
+    program, with **Browse...** and **Clear**.
+
+  What a run computes and every file the app writes are unchanged.
+
 ## 1.2.0 (2026-10-21)
 
 Starting a mission from an empty scenario is now a choice of its own: the

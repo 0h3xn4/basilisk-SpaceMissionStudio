@@ -95,7 +95,8 @@ def test_the_areas_and_what_they_hold(window):
     assert _tab_texts(window.run_views) == ["Run", "End of Life", "Budget", "History", "Log"]  # History: M5a; Run: M5b
     assert _tab_texts(window.results_views) == ["Overview", "Plots", "Dashboard", "Output", "Compare"]  # Overview: M6a
     assert window.shell.page("timeline").content is window.event_timeline_widget
-    assert window.shell.page("reports").content is window.flight_software_widget
+    assert window.shell.page("reports").content is window.reports_views  # M8: Exports, then Flight Software
+    assert _tab_texts(window.reports_views) == ["Exports", "Flight Software"]
     assert window.side_dock.widget() is window.inspector_widget
     assert window.scenario_editor.page_tree.item_of(window.scenario_explainer_widget) is window.overview_item
     assert window.current_view() is window.scenario_editor  # opening a template shows the editor

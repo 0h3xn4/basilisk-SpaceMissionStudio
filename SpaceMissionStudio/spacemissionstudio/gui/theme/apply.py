@@ -75,6 +75,38 @@ def set_theme_setting(value: str) -> None:
     settings.sync()
 
 
+UI_SCALES = (90, 100, 110, 125)  # [%] the Settings > Appearance choices, applied at the next start
+
+
+def ui_scale_setting() -> int:
+    """The UI scale chosen [%] (100 by default)."""
+    try:
+        value = int(_settings().value("appearance/ui_scale", 100))
+    except (TypeError, ValueError):
+        return 100
+    return value if value in UI_SCALES else 100
+
+
+def set_ui_scale_setting(percent: int) -> None:
+    """Remember the UI scale [%], for the next start (``QT_SCALE_FACTOR`` is read before the window exists)."""
+    if percent not in UI_SCALES:
+        raise ValueError(f"the UI scale must be one of {UI_SCALES} %, not {percent!r}")
+    settings = _settings()
+    settings.setValue("appearance/ui_scale", percent)
+    settings.sync()
+
+
+def reduce_motion() -> bool:
+    """Reduce motion: toasts appear and go without fading."""
+    return str(_settings().value("appearance/reduce_motion", "false")).lower() == "true"
+
+
+def set_reduce_motion(on: bool) -> None:
+    settings = _settings()
+    settings.setValue("appearance/reduce_motion", "true" if on else "false")
+    settings.sync()
+
+
 def resolve_theme(setting: str, app: Optional[QApplication] = None) -> str:
     """``"light"`` or ``"dark"`` for the setting: ``"system"`` follows the
     platform's colour scheme (light when it does not say)."""

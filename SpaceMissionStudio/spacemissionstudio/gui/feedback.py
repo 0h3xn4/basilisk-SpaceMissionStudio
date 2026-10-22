@@ -64,12 +64,13 @@ import logging
 import re
 from typing import List, Optional
 
-from PySide6.QtCore import Qt, QTimer, Signal
-from PySide6.QtWidgets import (QBoxLayout, QDialogButtonBox, QFormLayout, QFrame, QHBoxLayout, QLabel, QLayout,
-                               QMainWindow, QPushButton, QScrollArea, QStackedWidget, QTabWidget, QWidget)
+from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer, Signal
+from PySide6.QtWidgets import (QBoxLayout, QDialogButtonBox, QFormLayout, QFrame, QGraphicsOpacityEffect, QHBoxLayout,
+                               QLabel, QLayout, QMainWindow, QPushButton, QScrollArea, QStackedWidget, QTabWidget,
+                               QWidget)
 from shiboken6 import isValid
 
-from .theme import set_role
+from .theme import reduce_motion, set_role
 
 # A toast's status tone per kind (theme/qss.py's QLabel[role="toast"]): the
 # status's tinted background and outline, primary text.
@@ -81,6 +82,7 @@ _REPORT_TOAST_MS = {"error": 6000, "warning": 6000, "info": 4500, "success": 300
 _TOAST_MARGIN_PX = 16
 _TOAST_GAP_PX = 8
 _TOAST_STACK_ATTR = "_spacemissionstudio_active_toasts"
+TOAST_FADE_MS = 150  # [ms] in and out (the design's 120-180 ms); none with Settings > Reduce motion
 
 
 class _Toast(QLabel):
@@ -124,6 +126,13 @@ def show_toast(window: QWidget, message: str, kind: str = "success", duration_ms
     _reposition_toasts(window, stack)
     toast.show()
     toast.raise_()
+    fades = not reduce_motion() and duration_ms > 2 * TOAST_FADE_MS
+    if fades:
+        _fade(toast, 0.0, 1.0, keep=False)
+
+    def _fade_out() -> None:
+        if isValid(toast) and toast.isVisible():
+            _fade(toast, 1.0, 0.0, keep=True)
 
     def _dismiss() -> None:
         # The QTimer below can fire AFTER `window` (and so `toast`, its
@@ -148,8 +157,26 @@ def show_toast(window: QWidget, message: str, kind: str = "success", duration_ms
         if isValid(window):
             _reposition_toasts(window, stack)
 
+    if fades:  # faded out by the time it is dismissed
+        QTimer.singleShot(duration_ms - TOAST_FADE_MS, _fade_out)
     QTimer.singleShot(duration_ms, _dismiss)
     return toast
+
+
+def _fade(toast: QLabel, start: float, end: float, keep: bool) -> None:
+    """Fade ``toast``'s opacity from ``start`` to ``end``; ``keep`` the
+    effect after (a fade out), or drop it (drawn as before once in)."""
+    effect = QGraphicsOpacityEffect(toast)
+    effect.setOpacity(start)
+    toast.setGraphicsEffect(effect)
+    animation = QPropertyAnimation(effect, b"opacity", toast)
+    animation.setDuration(TOAST_FADE_MS)
+    animation.setStartValue(start)
+    animation.setEndValue(end)
+    animation.setEasingCurve(QEasingCurve.Type.OutCubic)
+    if not keep:
+        animation.finished.connect(lambda: toast.setGraphicsEffect(None) if isValid(toast) else None)
+    animation.start(QPropertyAnimation.DeletionPolicy.DeleteWhenStopped)
 
 
 def report(widget: Optional[QWidget], text: str, kind: str = "error") -> None:

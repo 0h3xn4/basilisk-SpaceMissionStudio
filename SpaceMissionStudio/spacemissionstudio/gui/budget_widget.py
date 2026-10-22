@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from . import export_log
 from .. import output_provenance
 from ..schema.scenario import SUPPORTED_DISPOSALS, PropellantBudgetConfig
 from .data_table import DataTable, Row
@@ -558,3 +559,4 @@ class BudgetWidget(QWidget):
         if self._scenario is not None:  # provenance on every output (UX/UI guidelines)
             lines += [f'"{line}"' for line in output_provenance.scenario_lines(self._scenario)]
         QApplication.clipboard().setText("\n".join(lines))
+        export_log.record("budget_csv", "clipboard")

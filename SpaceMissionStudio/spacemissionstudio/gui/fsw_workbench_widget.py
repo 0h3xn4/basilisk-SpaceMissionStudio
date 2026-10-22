@@ -43,6 +43,7 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (QFileDialog, QFrame, QGridLayout, QHBoxLayout, QLabel, QMessageBox, QPushButton,
                                QSizePolicy, QVBoxLayout, QWidget)
 
+from . import export_log
 from .badges import ACCENT, DANGER, MUTED, SUCCESS, WARNING, set_badge
 from .run_worker import failure_text
 from .sil_comparison_widget import SilComparisonWidget
@@ -297,6 +298,7 @@ class FlightSoftwareWidget(QWidget):
         from ..fsw_export.records import with_record
 
         self._busy = None
+        export_log.record("fsw_project", self._worker._folder if self._worker is not None else record.path)
         # The editor's scenario, or the one the export started from while the editor holds an invalid one
         # (set_scenario(None) during a half-typed edit): the record is never dropped.
         scenario = self._scenario if self._scenario is not None else self._export_scenario

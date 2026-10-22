@@ -195,12 +195,27 @@ A few things to notice right away:
     by side (a summary with differences, the inputs that differ, the
     events and overlaid plots).
   * **Timeline**: passes, eclipses, burns and mode changes (Section 7).
-  * **Reports**: **Flight Software** (export the attitude flight
-    software and run it in the loop, Section 6).
+  * **Reports**: **Exports** and **Flight Software** (export the
+    attitude flight software and run it in the loop, Section 6).
+    **Exports** lists every file the app writes: plot data (CSV), plot
+    images (PNG, SVG, **Export all**), events, mission output, the Monte
+    Carlo runs table, the budget, the flight-software project, the SIL
+    report, the Vizard playback file and the 3D model. Each row gives the
+    format, the view and button that make it, where it goes by default,
+    the provenance written with it (the versions, the run or the
+    scenario's SHA-256 and the time, in the file or beside it; the Monte
+    Carlo table, the Vizard file and the 3D model have none), and when this computer last
+    wrote one, in UTC (hover for the path). Double-click a row, or select
+    it and press `Enter`, to open the view that makes it. The files are
+    the same, byte for byte, as version 1.1.0 wrote.
   * **Settings**, at the bottom: **Appearance** (the theme: **System**,
     light or dark as your desktop is, the default; **Light** or **Dark**;
-    a new theme applies at once, to every open view), **Reference data**,
-    **Layout** (the rail as icons only, the **Inspector** and **Problems** panels, **Reset Layout**),
+    a new theme applies at once, to every open view; the **UI scale**,
+    90, 100, 110 or 125 %, from the next start, unless the
+    `QT_SCALE_FACTOR` environment variable sets one; **Reduce motion**:
+    notifications appear and go without fading), **Reference data**,
+    **Vizard** (the Vizard program **Launch Vizard** starts: **Browse...**
+    to choose it, **Clear** to have it looked for again), **Layout** (the rail as icons only, the **Inspector** and **Problems** panels, **Reset Layout**),
     **Keyboard** (every shortcut) and **About**.
   * **Help**, at the bottom: this manual (`F1`). The rail's last button
     shows the areas as icons only, or with their names.
