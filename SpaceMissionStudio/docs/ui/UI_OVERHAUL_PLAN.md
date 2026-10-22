@@ -896,6 +896,16 @@ Every milestone also has to meet all of these:
     140.5 ms (29). Not the garbage collector (no collection over 20 ms
     during a sweep), not the autosave (2 ms), not the explanation's
     rendering (under 11 ms). M9's performance pass holds it.
+- **M5, split before starting (2026-10-22; §8, "Scope"):**
+  - **M5a, the end of a run and its record:** saving and pruning in a
+    worker and no stall over 50 ms at the end of a run; History loaded in
+    a worker, with a status badge, duration, mode and provenance; the
+    Log's records of each run (start, end, warnings, saved path) in
+    JetBrains Mono, with level filter, search and copy.
+  - **M5b, the Run area's controls:** the mode segmented control, Run
+    (Ctrl+R), and the options inline (live plot, Vizard, SIL, the Monte
+    Carlo archive folder). Determinate progress is already there (M2b:
+    the run reports the fraction of its simulated time).
 
 **Order and size.**
 
