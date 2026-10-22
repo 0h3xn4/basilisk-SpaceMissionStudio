@@ -5,6 +5,63 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## M4b Editing flow (2026-10-22)
+
+Recorded before coding, after reading every editor and measuring the
+refresh an edit triggers (`scripts/measure_ui_baseline.py`; a profile
+of each part on all 31 templates).
+
+- **Inline, not the inspector, for devices and dispersions.** The
+  criterion allows either. The inspector already has one job (the
+  focused field: label, value, range; M2), and a form there would give it
+  two. The device and dispersion lists get their form under the list on
+  the same page, as the mission sequence's step form already is: select
+  a row and its form shows; an edit applies once it validates, after the
+  same 300 ms settle as a spacecraft's page; a value that does not
+  validate is marked at its field and not applied.
+- **Add creates the item and opens it:** a spacecraft (from its
+  template), a ground station, a device or a dispersion is added with
+  its defaults and a name not yet taken, and its page or form opens.
+  Nothing modal comes first; Remove and Undo take an unwanted one back.
+- **Mission steps need no change:** their form has been inline since
+  U-01. The plan's §5 table also suggests the inspector for them; the
+  inspector point above applies.
+- **Dialogs that make things stay dialogs:** the template picker, the
+  Walker, phasing and ROE generators and the 3D model editor create or
+  replace several values at once, from inputs that are not the
+  scenario's. The brief keeps modal dialogs for multi-step work. The 3D
+  model page is §5's, not M4's.
+- **The list widgets keep their dialog for a list used on its own:** the
+  app has no such use (each list lives in the Scenario editor, which
+  edits inline), but their tests build them alone. Removing the path
+  would remove those tests.
+- **Undo stays `ScenarioHistory`.** Every way of editing (a form, a list,
+  the JSON, a generator, Undo itself) ends in one scenario snapshot after
+  the edit settles. `QUndoStack` wants a command per kind of edit with
+  its own undo, which would re-implement what restoring a snapshot does
+  for each of them; wrapping snapshots in commands would add only a
+  `QUndoView`, which nothing shows. The criterion keeps
+  `ScenarioHistory` when `QUndoStack` does not fit.
+- **Form · JSON is a toggle in the Scenario area's header,** replacing
+  the JSON node of the tree (§5 table). JSON mode shows the text in
+  place of the tree and its page. Back to Form applies the text first,
+  through the same parsing as opening a file. Text that does not parse
+  or validate keeps JSON mode, with the problem in its banner and a
+  Discard button that restores the scenario's text.
+- **Explain is the tree's first node, "Overview",** and the Explain dock
+  goes. View › Explain opens it. Its title counts what to check, as the
+  dock's did. The plan's §5 also has the inspector show the summary when
+  nothing is selected; that is not part of M4's criterion and is left
+  out.
+- **Only the explanation moves off the GUI thread,** because it is the
+  cost: `engine.scenario_explainer.explain` takes up to 49 ms per edit
+  (26_earth_observation_data_downlink), and rendering it 4–10 ms. Building
+  the scenario, the stale-results check, the top bar and the analyses'
+  inputs take under 1 ms together and stay immediate, so nothing else
+  lags an edit. The explanation is asked for 250 ms after the last edit,
+  computed in a `QThread` from the scenario built at that moment, and
+  shown only if no later edit is waiting (an older answer is dropped).
+
 ## M4a Forms (2026-10-22)
 
 The user (2026-10-22): "once CI is green continue as per your

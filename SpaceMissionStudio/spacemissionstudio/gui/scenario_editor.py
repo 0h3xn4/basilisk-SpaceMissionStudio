@@ -32,12 +32,17 @@ from __future__ import annotations
 import shiboken6
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QFormLayout,
+    QFrame,
     QGroupBox,
+    QHBoxLayout,
     QLabel,
     QLineEdit,
     QPlainTextEdit,
+    QPushButton,
     QScrollArea,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -146,6 +151,8 @@ class ScenarioEditorWidget(QWidget):
     # A page the Scenario page's guide points to that MainWindow owns
     # (mission_guide.TEMPLATES or mission_guide.ANALYSES).
     navigate_requested = Signal(str)
+    # Form or JSON (the Form · JSON toggle, M4b): True in JSON mode.
+    mode_changed = Signal(bool)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -155,9 +162,13 @@ class ScenarioEditorWidget(QWidget):
         # The scenario as a tree of pages (docs/ux-audit.md U-01): one page
         # per node, the spacecraft and ground stations each a node of their
         # own whose form applies edits as they are made (U-11). MainWindow
-        # adds Templates and the Analyses to the same tree.
+        # adds Templates and the Analyses to the same tree. JSON mode shows
+        # the scenario's text in place of the tree (the Form · JSON toggle,
+        # M4b; MainWindow puts the toggle in the Scenario area's header).
         self.page_tree = PageTree()
-        outer_layout.addWidget(self.page_tree, 1)
+        self.mode_stack = QStackedWidget()
+        self.mode_stack.addWidget(self.page_tree)
+        outer_layout.addWidget(self.mode_stack, 1)
         self.problems: list = []
         self._form_errors: dict = {}  # a live form's problem, by form; the scenario is not valid while there is one
         self._applying = False  # a live form is writing its value: the lists need no rebuild
@@ -179,6 +190,9 @@ class ScenarioEditorWidget(QWidget):
         self._json_stale = True
         self.json_view.applied.connect(self._apply_json)
         self.json_view.failed.connect(self._on_json_failed)
+        self.json_view.discarded.connect(self._on_json_discarded)
+        self.mode_stack.addWidget(self.json_page)
+        self.mode_toggle = self._build_mode_toggle()
         tree = self.page_tree
         self.scenario_item = tree.add_page("Scenario", self.scenario_page)
         self.environment_item = tree.add_page("Environment", self.environment_page)
@@ -186,7 +200,6 @@ class ScenarioEditorWidget(QWidget):
         self.ground_station_item = tree.add_page("Ground stations", self.ground_station_page)
         self.mission_sequence_item = tree.add_page("Mission sequence", self.mission_sequence_page)
         self.monte_carlo_item = tree.add_page("Monte Carlo", self.monte_carlo_page)
-        self.json_item = tree.add_page("JSON", self.json_page)
         tree.page_shown.connect(self._on_page_shown)
         tree.section_shown.connect(self._on_section_shown)
         self.spacecraft_list.set_edit_handler(self.show_spacecraft)
@@ -445,10 +458,6 @@ class ScenarioEditorWidget(QWidget):
             self._drop_form(node)
 
     def _on_page_shown(self, page) -> None:
-        if page is self.json_page:
-            self._refresh_json()
-        else:
-            self.json_view.flush()  # leaving the JSON page applies its waiting edit
         node = self._node_of(page)
         if node is not None and node.form is None:
             self._build_form(node)
@@ -596,7 +605,7 @@ class ScenarioEditorWidget(QWidget):
         if self._applying_json:
             return
         self._json_stale = True
-        if self.page_tree.current_page() is self.json_page:
+        if self.json_mode:
             self._refresh_json()
 
     def _refresh_json(self) -> None:
@@ -621,7 +630,59 @@ class ScenarioEditorWidget(QWidget):
         self.revalidate()
 
     def show_json(self) -> None:
-        self.page_tree.tree.setCurrentItem(self.json_item)
+        self.set_json_mode(True)
+
+    # -- Form · JSON ------------------------------------------------------------
+    def _build_mode_toggle(self) -> QFrame:
+        """Form · JSON, a segmented control (as the orbit type's, U-14)."""
+        toggle = QFrame()
+        toggle.setObjectName("segmentedControl")
+        row = QHBoxLayout(toggle)
+        row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(0)
+        self.mode_group = QButtonGroup(self)
+        self.form_button = QPushButton("Form")
+        self.form_button.setToolTip("Edit the scenario page by page.")
+        self.json_button = QPushButton("JSON")
+        self.json_button.setToolTip("Edit the scenario as the text it is saved as. Back to Form applies it, "
+                                    "once it is valid.")
+        for button in (self.form_button, self.json_button):
+            button.setObjectName("segmentButton")
+            button.setCheckable(True)
+            self.mode_group.addButton(button)
+            row.addWidget(button)
+        self.form_button.setChecked(True)
+        self.mode_group.buttonClicked.connect(lambda button: self.set_json_mode(button is self.json_button))
+        return toggle
+
+    @property
+    def json_mode(self) -> bool:
+        """The JSON text is shown in place of the tree."""
+        return self.mode_stack.currentWidget() is self.json_page
+
+    def set_json_mode(self, on: bool) -> bool:
+        """Show the JSON text (``on``) or the form. Back to the form applies a
+        waiting edit first; text that does not apply keeps JSON mode, its
+        problem in the banner (False is returned)."""
+        if on != self.json_mode:
+            if on:
+                self._refresh_json()
+                self.mode_stack.setCurrentWidget(self.json_page)
+            else:
+                self.json_view.flush()
+                if self.json_view.dirty:  # still not applied: it does not parse or validate
+                    self.json_button.setChecked(True)
+                    self.json_view.edit.setFocus()
+                    return False
+                self.mode_stack.setCurrentWidget(self.page_tree)
+            self.mode_changed.emit(on)
+        (self.json_button if on else self.form_button).setChecked(True)
+        return True
+
+    def _on_json_discarded(self) -> None:
+        """The JSON's unapplied edit dropped: the scenario's own text again."""
+        self._json_stale = True
+        self._refresh_json()
 
     # -- going to a node ------------------------------------------------------
     def show_scenario_page(self) -> None:
@@ -687,6 +748,7 @@ class ScenarioEditorWidget(QWidget):
         stations = [node.config.name for node in self._station_nodes]
         counts: dict = {}
         warnings: dict = {}
+        json_problems = 0  # the JSON text's own, on the toggle's JSON button (it is no node)
 
         def count(item, severity) -> None:
             counts[id(item)] = counts.get(id(item), 0) + 1
@@ -724,7 +786,7 @@ class ScenarioEditorWidget(QWidget):
             elif location.area == MISSION_SEQUENCE:
                 item = self.mission_sequence_item
             elif location.area == JSON_VIEW:
-                item = self.json_item
+                json_problems += 1
             if item is not None:
                 count(item, severity)
         for item, _page_widget in self.page_tree.items():
@@ -733,6 +795,7 @@ class ScenarioEditorWidget(QWidget):
                                                                                 self._station_nodes)):
             self.page_tree.set_problem_count(parent, sum(counts.get(id(node.item), 0) for node in nodes),
                                              sum(warnings.get(id(node.item), 0) for node in nodes))
+        self.json_button.setText(f"JSON ({json_problems})" if json_problems else "JSON")
 
     # -- (dis)assembly -------------------------------------------------------
     def set_base_dir_provider(self, provider) -> None:
@@ -811,7 +874,7 @@ class ScenarioEditorWidget(QWidget):
             self.json_view.reset()
             self._form_errors.pop(id(self.json_view), None)
             self._json_stale = True
-            if self.page_tree.current_page() is self.json_page:
+            if self.json_mode:
                 self._refresh_json()
 
         self.revalidate()

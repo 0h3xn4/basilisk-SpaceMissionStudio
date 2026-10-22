@@ -78,7 +78,7 @@ def test_an_edit_in_the_json_applies_everywhere(window):
     _set(editor.json_view, json.dumps(data, indent=2))
     assert editor.name_edit.text() == "renamed in JSON"
     assert editor.to_scenario().spacecraft[0].dry_mass_kg == 175.0  # [kg]
-    assert editor.page_tree.current_page() is editor.json_page
+    assert editor.json_mode
     assert window.isWindowModified() or "Unsaved" in window.top_bar.detail_label.text()
 
 
@@ -105,9 +105,9 @@ def test_text_that_is_not_json_is_marked_and_blocks_the_run(window):
     assert editor.name_edit.text() == "22 - Starter: your first LEO satellite"  # not applied
     with pytest.raises(ScenarioValidationError, match="JSON view"):
         editor.to_scenario()
-    assert editor.page_tree.problem_count(editor.json_item) == 1
+    assert editor.json_button.text() == "JSON (1)"
 
-    editor.show_scenario_page()  # leaving keeps the broken text, and the problem
+    assert not editor.set_json_mode(False)  # leaving is refused (M4b), and keeps the broken text and the problem
     editor.show_json()
     assert view.dirty and view.error
 
@@ -145,7 +145,7 @@ def test_problems_open_the_json_page(window):
     problems = window.problems_widget
     row = next(i for i, (_severity, text) in enumerate(problems.problems) if text.startswith("JSON view"))
     problems.table.activated.emit(problems.index_of(row))
-    assert window.current_view() is editor and editor.page_tree.current_page() is editor.json_page
+    assert window.current_view() is editor and editor.json_mode
 
 
 def test_opening_another_scenario_drops_an_edit_not_applied(window):

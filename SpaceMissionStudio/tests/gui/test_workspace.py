@@ -78,24 +78,25 @@ def test_the_areas_and_what_they_hold(window):
     the scenario's own nodes, one per spacecraft (one under it per tab of
     its editor) and ground station; Run the analyses and the log; Results
     the run's plots, dashboard, output and Compare; Timeline the events;
-    Reports the flight software. Help opens the manual; Explain is in the
-    side panel."""
+    Reports the flight software. Help opens the manual; Explain is the
+    Scenario tree's first node, Overview (M4b)."""
     assert [area.label for area in window.shell.page_areas()] == [
         "Home", "Scenario", "Run", "Results", "Timeline", "Reports", "Settings"]
     assert window.shell.areas["help"].page is None and window.shell.areas["help"].action is window.manual_action
     assert window.shell.page("home").content is window.load_scenario_widget
     assert [path for path, _page in window.scenario_editor.page_tree.paths()] == [
-        "Scenario", "Environment", "Spacecraft", "Spacecraft > my-sat",
+        "Overview", "Scenario", "Environment", "Spacecraft", "Spacecraft > my-sat",
         *(f"Spacecraft > my-sat > {tab}" for tab in ("Orbit / mass", "Power / propulsion / link budget", "3D model",
                                                      "Vizard model", "Budget (AD10)")),
         "Ground stations",
-        "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo", "JSON"]
+        "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo"]
+    assert window.shell.page("scenario").header.isAncestorOf(window.scenario_editor.mode_toggle)  # Form · JSON
     assert _tab_texts(window.run_views) == ["End of Life", "Budget", "Log"]
     assert _tab_texts(window.results_views) == ["Plots", "Dashboard", "Output", "Compare"]
     assert window.shell.page("timeline").content is window.event_timeline_widget
     assert window.shell.page("reports").content is window.flight_software_widget
     assert window.side_dock.widget() is window.inspector_widget
-    assert window.explain_dock.isAncestorOf(window.scenario_explainer_widget)
+    assert window.scenario_editor.page_tree.item_of(window.scenario_explainer_widget) is window.overview_item
     assert window.current_view() is window.scenario_editor  # opening a template shows the editor
 
 
@@ -230,7 +231,7 @@ def test_the_layout_is_kept_and_reset(qtbot, monkeypatch):
     assert not second.side_dock.isVisible()
     second.reset_layout_action.trigger()
     assert second.side_dock.isVisible()
-    assert second.explain_dock.isVisible()
+    assert second.scenario_editor.page_tree.item_of(second.scenario_explainer_widget) is second.overview_item
 
 
 def test_the_view_analyses_and_tools_commands(window):
@@ -412,9 +413,10 @@ def test_a_stale_model_problem_opens_the_model_editor(model_window, monkeypatch)
     assert not [text for _severity, text in problems.problems if "differ from the 3D model" in text]
 
 
-def test_the_explain_badge_opens_the_model_editor(model_window, monkeypatch):
+def test_the_explain_badge_opens_the_model_editor(model_window, monkeypatch, qtbot):
     """The Explain panel's "3D model" badge is a button: it opens that
     spacecraft's model editor."""
+    qtbot.waitUntil(lambda: not model_window.scenario_explainer_widget.pending, timeout=10000)
     sc = model_window.scenario_editor.spacecraft_list.to_list()[0]
     opened = _accept_the_model_editor(monkeypatch, sc.model)
     buttons = model_window.scenario_explainer_widget.model_buttons

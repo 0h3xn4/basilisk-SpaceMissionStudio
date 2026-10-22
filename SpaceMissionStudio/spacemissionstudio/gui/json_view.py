@@ -17,15 +17,18 @@
 #
 
 
-"""The scenario as JSON, editable (docs/ux-audit.md U-16): a page of the
-scenario tree showing the text :meth:`Scenario.save` writes. Edits apply to
+"""The scenario as JSON, editable (docs/ux-audit.md U-16): the Scenario
+editor's JSON mode (its Form · JSON toggle, UI overhaul M4b), showing the
+text :meth:`Scenario.save` writes. Edits apply to
 the other pages 500 ms after the last keystroke, through the same parsing
 and migration as opening a file (``schema.scenario.parse_scenario_text``);
 the scenario's problems then show in Problems and at the fields, as for any
 edit. Text that is not JSON, or not a scenario, is not applied: the line is
 marked, the banner says what is wrong, and the scenario counts as invalid
-until it is fixed. An edit on another page shows here when the page is
-next shown, unless the text holds an edit not yet applied.
+until it is fixed or discarded (Discard puts the scenario's own text
+back). Back to Form applies a waiting edit first and is refused while
+the text does not apply. An edit on another page shows here when JSON
+mode is next shown, unless the text holds an edit not yet applied.
 """
 
 from __future__ import annotations
@@ -34,7 +37,7 @@ from typing import Optional
 
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QColor, QFontDatabase, QTextCursor, QTextFormat
-from PySide6.QtWidgets import QLabel, QPlainTextEdit, QTextEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QPlainTextEdit, QPushButton, QTextEdit, QVBoxLayout, QWidget
 
 from ..schema.scenario import Scenario, ScenarioJSONError, ScenarioValidationError, parse_scenario_text, scenario_text
 from .feedback import ProblemBanner
@@ -45,20 +48,26 @@ SOURCE = "JSON view"  # how this page's problems start
 
 class ScenarioJsonView(QWidget):
     """``applied`` carries the scenario parsed from an edit; ``failed`` the
-    problem with one that could not be applied ("" once it is fixed)."""
+    problem with one that could not be applied ("" once it is fixed);
+    ``discarded`` that the user dropped an edit that could not be applied."""
 
     applied = Signal(object)
     failed = Signal(str)
+    discarded = Signal()
 
     def __init__(self, parent: Optional[QWidget] = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        intro = QLabel("The scenario as it is saved. Edit it here and the other pages follow; an edit on "
-                       "another page shows here.")
+        intro = QLabel("The scenario as it is saved. Edit it here and the form follows; an edit in the "
+                       "form shows here.")
         intro.setWordWrap(True)
         layout.addWidget(intro)
         self.banner = ProblemBanner()
+        self.discard_button = QPushButton("Discard")
+        self.discard_button.setToolTip("Drop this edit: the text goes back to the scenario's.")
+        self.discard_button.clicked.connect(self._on_discard)
+        self.banner.layout().addWidget(self.discard_button)
         layout.addWidget(self.banner)
         self.edit = QPlainTextEdit()
         self.edit.setObjectName("jsonEdit")
@@ -105,6 +114,10 @@ class ScenarioJsonView(QWidget):
         self._dirty = False
         self._set_error("", None)
 
+    def _on_discard(self) -> None:
+        self.reset()
+        self.discarded.emit()
+
     def flush(self) -> None:
         """Apply a waiting edit now."""
         if self._timer.isActive():
@@ -134,7 +147,8 @@ class ScenarioJsonView(QWidget):
         changed = message != self.error
         self.error = message
         if message:
-            self.banner.show_problem(message + "\nNot applied: the other pages show the scenario without this edit.")
+            self.banner.show_problem(message + "\nNot applied: the form shows the scenario without this edit. Fix it, "
+                                     "or Discard it to go back to the form.")
         else:
             self.banner.hide()
         selections = []
