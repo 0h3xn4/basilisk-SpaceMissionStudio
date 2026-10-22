@@ -57,7 +57,7 @@ curves dashed, and **Input differences...** lists what differs.
 
 ![Results > Compare with two runs of template 22, one day and two days long: the summary with a difference column](../images/compare_tab.png)
 
-On the **Events** tab, the search box (**Ctrl+F**) and the station list
+On the **Timeline**, the search box (**Ctrl+F**) and the station list
 narrow the timeline and the table. Each value has its own column with
 its unit, such as "Max elevation [deg]". Select rows and press
 **Ctrl+C** to paste them into a spreadsheet; the arrow keys move the

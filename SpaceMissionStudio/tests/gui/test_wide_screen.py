@@ -125,19 +125,23 @@ def test_list_buttons_keep_their_own_width(qtbot, window):
 
 
 def test_a_template_row_keeps_its_customize_button_close(qtbot, window):
-    """The template list is no wider than the content width, so a row's
-    Customize... sits within it, next to the title."""
-    from spacemissionstudio.gui.theme import CONTENT_MAX_WIDTH_PX
+    """A template card is less than two least card widths wide (the wide
+    page holds more columns instead), so a card's Customize... sits within
+    it, next to its title."""
+    from spacemissionstudio.gui.load_scenario_widget import CARD_MIN_WIDTH_PX
+    from spacemissionstudio.gui.theme import CONTENT_MAX_WIDTH_PX, SPACE
 
     templates = window.load_scenario_widget
     window.show_view(templates)
     qtbot.waitUntil(templates.isVisible)
-    rows = [row for row in templates._rows.values() if row.customize_button is not None]
+    rows = [card for card in templates.cards if card.customize_button is not None]
     assert rows
     assert templates.width() > CONTENT_MAX_WIDTH_PX + 300  # [px]
-    assert templates.list_widget.width() <= CONTENT_MAX_WIDTH_PX
-    assert rows[0].customize_button.mapTo(templates, rows[0].customize_button.rect().topRight()).x() \
-        < CONTENT_MAX_WIDTH_PX + 40  # [px] the page's margin and the list's frame
+    qtbot.waitUntil(lambda: templates.grid.columns() >= 3)
+    assert rows[0].width() < 2 * CARD_MIN_WIDTH_PX + SPACE["md"]  # [px]
+    button = rows[0].customize_button
+    right = button.mapTo(rows[0], button.rect().topRight()).x()
+    assert right <= rows[0].width() and right < CARD_MIN_WIDTH_PX  # [px] beside Open, within the card
 
 
 @pytest.mark.parametrize("width_px, expected_px", [(1000, (250, 250)), (2200, (330, 400))])

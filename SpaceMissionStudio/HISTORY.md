@@ -12215,3 +12215,91 @@ moves to M9 with these values (`docs/DECISIONS.md`).
 
 **Not done here.** The validation strip under the editor stays until M4
 rebuilds the editor; Problems already lists what it says.
+
+## M3: Home and templates (2026-10-22)
+
+The user: "start M3 here". M3 rebuilds Home, the page the window opens
+on: template cards, recent scenarios, New blank scenario, Customize, and
+a card instead of the start-up dialog. `docs/DECISIONS.md` (M3) has each
+choice with its reason.
+
+**What changed.**
+- **Home has three columns** under the reference-data card:
+  - Start: New blank scenario, the recent scenarios and Open a scenario
+    file...;
+  - the template cards;
+  - the selected template's whole description, with Open template and
+    Customize....
+- **A card per template** with three lines read from its file: the
+  attitude mode with the pointing mode and the number of spacecraft; the
+  central body and the orbit (altitude, or periapsis and apoapsis, the
+  inclination, Sun-synchronous where Explain says so); and the
+  description's first sentence. Nothing is added to the templates for it.
+  - A filter narrows the cards.
+  - The cards are one Tab stop; the arrows, Home and End move between
+    them and Enter opens one.
+  - Each card keeps its own Open and Customize....
+- **Recent scenarios:** the last 10 files opened or saved, kept with
+  `QSettings` in `settings.ini`. A missing one is marked "(missing)" with
+  an icon. Delete takes one off; Clear empties the list. The built-in
+  templates are not listed.
+- **The start-up dialog is a card on Home:** the same question, with the
+  same items and defaults (one function builds both). Fetch now runs in
+  the background; Not now fetches nothing. It is asked at every start, as
+  the user decided.
+- **Left over from M2a:** templates 22, 26 and 29 named the Events tab or
+  "the side panel"; they name the Timeline and the panel on the right.
+  The template files are what the generator writes, byte for byte.
+  `compare_tab.png` and `monte_carlo_tab.png` in the manual are
+  re-captured: `scripts/capture_screenshots.py` now runs template 22
+  twice and template 25's batch.
+
+**Found on the way.**
+- **The reference-data card was stretched tall.** The harness's shot
+  showed its lines spread over 300 px: Home's layout gave the card a
+  share of the spare height. The columns now take all of it.
+  `test_the_reference_data_card_takes_only_the_height_it_needs` fails
+  without the fix.
+- **The harness wrote into the user's recent scenarios.** Its dark run
+  listed a file its light run had opened, from the real
+  `~/.spacemissionstudio/settings.ini`. It keeps its run history out of
+  there already. Now it keeps the recent list out too.
+- **The grid could not narrow.** A `QGridLayout` holds its widget at
+  least as wide as its present columns, so the cards never went down to
+  fewer columns. The grid's width is free now; its height follows the
+  width. `test_the_cards_fill_the_width_in_columns` checks it.
+- **A link-coloured button on a selected card was under 4.5:1** (light
+  theme, `text.link` on `bg.selected`). The contrast test caught it when
+  the pair was added. On a selected card the buttons are `text.primary`
+  instead, so no pair is added.
+- **The scroll areas took the keyboard focus:** the inspector named the
+  focused field "QScrollArea", and each column was an extra Tab stop.
+  Home's three scroll areas take no focus now. The inspector still says
+  "QScrollArea" or "_TabBar" in other places, on `develop` too; that is
+  for M4's inspector.
+
+**Measured.** Home's first show (offscreen, this machine):
+- with word-wrapped labels on the cards, 108–193 ms (`develop`'s list:
+  19–29 ms);
+- with the cards painting their own text, 64–135 ms over four sets of
+  runs; without the cards' buttons, in a trial, 64–68 ms.
+
+This is still over design rule 6's 50 ms. It is part of start-up (the
+window opens on Home), and M9's criterion holds it. Building Home took a
+median of 109–122 ms here and 81–109 ms on `develop` (two runs of seven
+each), most of it reading the 31 template files, which both do.
+
+**Screenshots.** `scripts/capture_ui_screens.py --theme both`, run on this
+branch and on `develop`, gives 114 shots per theme (`develop`: 112). Two
+are new: a template selected, and the reference-data card.
+- **Home's shots changed as designed:** the start page, Home before and
+  after a run.
+- **The other 106 differ only in run-specific text** (paths, clock
+  times), the inspector's focused field, and the anti-aliasing of
+  semibold text (zoomed side by side, the glyphs look the same).
+
+**Tests.** 3722 passed and 12 skipped in the full suite (as many skips
+as M2b recorded), with `-n auto` and Python 3.13 here; CI runs 3.11. Of the existing GUI tests, 16
+changed only how they reach a widget, each in `docs/ui/TEST_CHANGES.md`.
+`test_home.py` is new, with 32 tests. Golden files and every output are
+unchanged; the template files differ only in the description's words.

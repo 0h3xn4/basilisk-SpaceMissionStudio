@@ -25,13 +25,16 @@ separate user click). Real user decision this module exists to satisfy:
 store everything that is needed locally so it can be used later again.
 But the user always should be asked if they want to fetch/update."
 
-So: :func:`maybe_run_startup_fetch` is called once per
-``gui.main_window.MainWindow`` session (see that class's own
-``prompt_startup_fetch`` constructor parameter), and it ALWAYS shows
-:class:`StartupFetchDialog` first -- there is no "don't ask again"
-setting, no silent default, and nothing here ever fetches anything
-before the user clicks "Fetch now". Clicking "Skip" (or unchecking both
-items) touches no network at all, same as if this module didn't exist.
+So: once per ``gui.main_window.MainWindow`` session (see that class's
+own ``prompt_startup_fetch`` constructor parameter) Home shows
+:class:`ReferenceDataCard` (UI overhaul M3: a card on Home, not a modal
+dialog over the window), which asks the same question as
+:class:`StartupFetchDialog` with the same items (:func:`choice_boxes`)
+-- there is no "don't ask again" setting, no silent default, and nothing
+here ever fetches anything before the user clicks "Fetch now".
+:func:`maybe_run_startup_fetch` asks with the dialog instead. Clicking
+"Not now" or "Skip" (or unchecking every item) touches no network at
+all, same as if this module didn't exist.
 
 Two independent items, either/both selectable:
 
@@ -73,13 +76,18 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
     QDialogButtonBox,
+    QFrame,
+    QHBoxLayout,
     QLabel,
+    QProgressBar,
     QProgressDialog,
+    QPushButton,
     QVBoxLayout,
     QWidget,
 )
 
 from .feedback import report
+from .theme import SPACE, set_role
 
 _logger = logging.getLogger(__name__)
 
@@ -164,6 +172,45 @@ class StartupFetchWorker(QThread):
         return True, str(path)
 
 
+def choice_boxes() -> "tuple[QCheckBox, QCheckBox, QCheckBox]":
+    """The three things to fetch, as check boxes: support data, space
+    weather and Earth orientation. The dialog and Home's reference-data
+    card (:class:`ReferenceDataCard`) both ask with these, so they offer
+    the same items with the same defaults."""
+    from ..engine.reference_data import DOWNLOADS
+
+    support, weather = DOWNLOADS["support_data"], DOWNLOADS["space_weather"]
+    kernels = QCheckBox(f"Support data (SPICE, gravity, magnetic field) -- {support.approx_size}")
+    kernels.setChecked(True)
+    kernels.setToolTip(
+        f"From {support.source}: {', '.join(support.files)}. "
+        "Normally only needed once, ever (every packaging/ installer already pre-fetches these) -- "
+        "this is a safety net for a dev checkout or a corrupted/cleared cache, and a no-op (no "
+        "network touched) if everything is already cached."
+    )
+
+    space_weather = QCheckBox(f"Space weather from CelesTrak (SW-All.csv) -- {weather.approx_size}")
+    space_weather.setChecked(True)
+    space_weather.setToolTip(
+        f"From {weather.source}. The file is checked before it replaces the current one, which is kept "
+        "for rollback (Reference data dialog). Downloads a real F10.7/Ap CSV, refreshed every time you agree. The Propagation Setup "
+        "dialog's Local file field pre-fills with it automatically once fetched."
+    )
+
+    from ..engine import earth_orientation as eo
+
+    installed = eo.installed()
+    until = eo.high_accuracy_until(installed)
+    earth_orientation = QCheckBox("Earth orientation from NAIF (ITRF93 Earth PCKs) -- about 36 MB")
+    # Checked when nothing is installed or the high-accuracy span is over.
+    earth_orientation.setChecked(not installed or until is None or until < datetime.now(timezone.utc).replace(tzinfo=None))
+    earth_orientation.setToolTip(
+        f"From {eo.NAIF_PCK_URL}: the combined (1962-2126) and the high-precision Earth PCK with their "
+        "comment files. The previous files are kept for rollback.\n"
+        + (f"Installed: high accuracy until {until:%Y-%m-%d}." if until else "Not installed: runs use IAU_EARTH."))
+    return kernels, space_weather, earth_orientation
+
+
 class StartupFetchDialog(QDialog):
     """The consent prompt itself. Two independently selectable
     checkboxes (both checked by default, matching the "opt out of a
@@ -186,40 +233,9 @@ class StartupFetchDialog(QDialog):
         label.setMaximumWidth(420)
         layout.addWidget(label)
 
-        from ..engine.reference_data import DOWNLOADS
-
-        support, weather = DOWNLOADS["support_data"], DOWNLOADS["space_weather"]
-        self.kernels_checkbox = QCheckBox(f"Support data (SPICE, gravity, magnetic field) -- {support.approx_size}")
-        self.kernels_checkbox.setChecked(True)
-        self.kernels_checkbox.setToolTip(
-            f"From {support.source}: {', '.join(support.files)}. "
-            "Normally only needed once, ever (every packaging/ installer already pre-fetches these) -- "
-            "this is a safety net for a dev checkout or a corrupted/cleared cache, and a no-op (no "
-            "network touched) if everything is already cached."
-        )
-        layout.addWidget(self.kernels_checkbox)
-
-        self.space_weather_checkbox = QCheckBox(f"Space weather from CelesTrak (SW-All.csv) -- {weather.approx_size}")
-        self.space_weather_checkbox.setChecked(True)
-        self.space_weather_checkbox.setToolTip(
-            f"From {weather.source}. The file is checked before it replaces the current one, which is kept "
-            "for rollback (Reference data dialog). Downloads a real F10.7/Ap CSV, refreshed every time you agree. The Propagation Setup "
-            "dialog's Local file field pre-fills with it automatically once fetched."
-        )
-        layout.addWidget(self.space_weather_checkbox)
-
-        from ..engine import earth_orientation as eo
-
-        installed = eo.installed()
-        until = eo.high_accuracy_until(installed)
-        self.earth_orientation_checkbox = QCheckBox("Earth orientation from NAIF (ITRF93 Earth PCKs) -- about 36 MB")
-        # Checked when nothing is installed or the high-accuracy span is over.
-        self.earth_orientation_checkbox.setChecked(not installed or until is None or until < datetime.now(timezone.utc).replace(tzinfo=None))
-        self.earth_orientation_checkbox.setToolTip(
-            f"From {eo.NAIF_PCK_URL}: the combined (1962-2126) and the high-precision Earth PCK with their "
-            "comment files. The previous files are kept for rollback.\n"
-            + (f"Installed: high accuracy until {until:%Y-%m-%d}." if until else "Not installed: runs use IAU_EARTH."))
-        layout.addWidget(self.earth_orientation_checkbox)
+        self.kernels_checkbox, self.space_weather_checkbox, self.earth_orientation_checkbox = choice_boxes()
+        for checkbox in (self.kernels_checkbox, self.space_weather_checkbox, self.earth_orientation_checkbox):
+            layout.addWidget(checkbox)
 
         buttons = QDialogButtonBox()
         self.fetch_button = buttons.addButton("Fetch now", QDialogButtonBox.ButtonRole.AcceptRole)
@@ -284,6 +300,14 @@ def maybe_run_startup_fetch(parent: QWidget) -> None:
     progress.close()
     worker.wait()
 
+    result = summary(outcome)
+    if result is not None:
+        report(parent, *result)
+
+
+def summary(outcome: dict) -> "Optional[tuple[str, str]]":
+    """One line per item fetched, and the toast's kind: ``(text, kind)``,
+    or None when nothing was fetched."""
     lines = []
     if "kernels" in outcome:
         _ok, message = outcome["kernels"]
@@ -306,6 +330,110 @@ def maybe_run_startup_fetch(parent: QWidget) -> None:
         _ok, message = outcome["error"]
         lines.append(f"Fetch/update failed unexpectedly: {message}")
 
-    if lines:
-        failed = any("could not" in line or "failed" in line for line in lines)
-        report(parent, "Reference data: " + "\n".join(lines), kind="warning" if failed else "success")
+    if not lines:
+        return None
+    failed = any("could not" in line or "failed" in line for line in lines)
+    return "Reference data: " + "\n".join(lines), "warning" if failed else "success"
+
+
+class ReferenceDataCard(QFrame):
+    """The same question as :class:`StartupFetchDialog`, asked on Home
+    instead of in a modal dialog at start-up (UI overhaul plan §5.2, M3).
+    Nothing is fetched until Fetch now; Not now hides the card for this
+    session. The fetch runs in :class:`StartupFetchWorker`, the card
+    showing that it runs, and its summary is a toast."""
+
+    finished = Signal()  # the card is done: fetched or dismissed
+
+    def __init__(self, parent: Optional[QWidget] = None):
+        super().__init__(parent)
+        set_role(self, role="card")
+        self.setObjectName("referenceDataCard")
+        self._worker: Optional[StartupFetchWorker] = None
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(SPACE["md"], SPACE["md"], SPACE["md"], SPACE["md"])
+        self._layout.setSpacing(SPACE["sm"])
+        self._layout.addWidget(set_role(QLabel("Fetch or update reference data?"), role="heading"))
+        text = QLabel("SpaceMissionStudio runs offline. It can fetch the data it uses once now and keep it, "
+                      "so nothing else needs the network. This needs internet access.")
+        text.setWordWrap(True)
+        self._layout.addWidget(set_role(text, tone="secondary"))
+        self.checkboxes: tuple = ()
+        buttons = QHBoxLayout()
+        buttons.setSpacing(SPACE["xs"])
+        self.fetch_button = QPushButton("Fetch now")
+        set_role(self.fetch_button, variant="primary")
+        self.fetch_button.clicked.connect(self.start_fetch)
+        self.skip_button = QPushButton("Not now")
+        self.skip_button.setToolTip("Fetch later from Settings > Reference data.")
+        self.skip_button.clicked.connect(self.dismiss)
+        buttons.addWidget(self.fetch_button)
+        buttons.addWidget(self.skip_button)
+        buttons.addStretch(1)
+        self.progress_label = set_role(QLabel("Fetching... the summary follows when it is done."), tone="secondary")
+        self.progress = QProgressBar()
+        self.progress.setRange(0, 0)  # how long is not known: each item reports only when done
+        self.progress.setTextVisible(False)
+        self.progress.setMaximumWidth(160)  # [px]
+        progress_row = QHBoxLayout()
+        progress_row.addWidget(self.progress_label, 1)
+        progress_row.addWidget(self.progress)
+        self._buttons = buttons
+        self._progress_row = progress_row
+        self._built = False
+        self.setVisible(False)
+
+    def ask(self) -> None:
+        """Show the card with its choices (read when asked: the Earth
+        orientation default depends on the files installed now)."""
+        if not self._built:
+            self.checkboxes = choice_boxes()
+            for checkbox in self.checkboxes:
+                self._layout.addWidget(checkbox)
+            self._layout.addLayout(self._buttons)
+            self._layout.addLayout(self._progress_row)
+            self._built = True
+        self._show_running(False)
+        self.setVisible(True)
+
+    def selected(self) -> "tuple[bool, bool, bool]":
+        """``(support data, space weather, Earth orientation)``."""
+        return tuple(checkbox.isChecked() for checkbox in self.checkboxes)
+
+    def is_running(self) -> bool:
+        return self._worker is not None
+
+    def start_fetch(self) -> None:
+        kernels, space_weather, earth_orientation = self.selected()
+        if not (kernels or space_weather or earth_orientation):
+            self.dismiss()
+            return
+        self._worker = StartupFetchWorker(kernels, space_weather, parent=self,
+                                          fetch_earth_orientation=earth_orientation)
+        self._worker.finished_all.connect(self._on_finished)
+        self._show_running(True)
+        self._worker.start()
+
+    def dismiss(self) -> None:
+        self.setVisible(False)
+        self.finished.emit()
+
+    def wait(self) -> None:
+        """Wait for a fetch still running (the window is closing)."""
+        if self._worker is not None:
+            self._worker.wait()
+
+    def _show_running(self, running: bool) -> None:
+        for widget in (*self.checkboxes, self.fetch_button, self.skip_button):
+            widget.setEnabled(not running)
+        self.progress_label.setVisible(running)
+        self.progress.setVisible(running)
+
+    def _on_finished(self, outcome: dict) -> None:
+        worker, self._worker = self._worker, None
+        if worker is not None:
+            worker.wait()
+        result = summary(outcome)
+        if result is not None:
+            report(self.window(), *result)
+        self.dismiss()

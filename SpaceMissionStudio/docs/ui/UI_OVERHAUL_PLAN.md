@@ -811,6 +811,32 @@ Every milestone also has to meet all of these:
   the editor (§5.2: removed) stays until M4 rebuilds the editor; Problems
   already lists what it says.
 
+- **M3 (2026-10-22): done.** It meets every criterion of its row
+  (`tests/gui/test_home.py`):
+  - a card for each of the 31 templates with its mission type (the
+    attitude mode, with the pointing mode, and the number of
+    spacecraft), orbit summary (the central body and the first
+    spacecraft's orbit) and one line (the description's first sentence),
+    all read from the template file, with no metadata added;
+  - recent scenarios: `QSettings`, the last 10, a missing file marked
+    "(missing)" with an icon;
+  - New blank scenario; Customize... on each card and in the details
+    opens the wizard;
+  - the reference-data card on Home replaces the start-up dialog; it
+    still asks at every start, as the user decided;
+  - no thumbnails (Q4).
+
+  Not met, from the rules every milestone follows: Home's first show
+  takes 64–135 ms (`develop`'s list: 19–29 ms), over design rule 6's
+  50 ms. It is part of start-up, since the window opens on Home, and
+  M9's first-visit criterion holds it (`docs/DECISIONS.md`, M3).
+
+  Also done, left over from M2a:
+  - the template descriptions name the Timeline (templates 22, 26 and
+    29);
+  - `compare_tab.png` and `monte_carlo_tab.png` are captured by
+    `scripts/capture_screenshots.py`, which now makes those runs.
+
 **Order and size.**
 
 - M1 and M2 are the largest. Each touches every screen's styling or hosting,

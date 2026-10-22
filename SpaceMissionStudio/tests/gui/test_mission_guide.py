@@ -55,7 +55,8 @@ def test_the_templates_page_offers_a_blank_scenario_first(window, qtbot):
     templates; its button makes a blank scenario and shows its Scenario
     page, in Orbit only."""
     page = window.load_scenario_widget
-    layout = page.layout()
+    layout = page.start_scroll.widget().layout()  # Home's first column, Start (M3)
+    assert page.splitter.widget(0) is page.start_scroll
     assert layout.itemAt(0).widget() is page.start_from_scratch
     window.scenario_editor.simulation_mode_combo.setCurrentIndex(
         window.scenario_editor.simulation_mode_combo.findData("full_attitude"))

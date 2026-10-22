@@ -142,19 +142,24 @@ and what to do when it doesn't.
 * **Running from source:** open a terminal in the project folder and run
   `spacemissionstudio gui` (or `python3 -m spacemissionstudio.gui.app`).
 
-Each time it starts, a **Fetch/update data?** dialog first offers to
-check for newer reference data (support data, space weather, Earth
-orientation). Tick what you want and press **Fetch now**, or press
-**Skip**: then nothing is downloaded. The window that opens looks like
-this:
+The window opens on **Home**. Each time the app starts, a card at the
+top of Home, **Fetch or update reference data?**, offers to check for
+newer reference data (support data, space weather, Earth orientation).
+Tick what you want and press **Fetch now**: the download runs while you
+carry on, and a note at the bottom right sums it up when it is done.
+**Not now** hides the card, and nothing is downloaded (**Settings >
+Reference data** downloads later). Home looks like this:
 
-![Home: the navigation rail on the left, Start from scratch above the templates, template 22 selected and its description below the list](docs/images/load_scenario_tab.png)
+![Home: the navigation rail on the left; Start from scratch, Open and the recent scenarios; the template cards; template 22 selected and its description on the right](docs/images/load_scenario_tab.png)
 
 A few things to notice right away:
 
 * The **navigation rail** on the left holds the app's areas, top to
   bottom (`Ctrl+1` to `Ctrl+6`):
-  * **Home**: **Start from scratch** and the templates, where you start.
+  * **Home**: where you start. **Start from scratch** (**New blank
+    scenario**), **Open a scenario file...** and your **Recent
+    scenarios** on the left; a card per template in the middle; the
+    selected template's description on the right.
   * **Scenario**: the scenario tree on the left and the page of the node
     you pick beside it: **Scenario**, **Environment**, **Spacecraft** with
     a node per spacecraft, and under each one a node per part of its page
@@ -251,15 +256,36 @@ choice, **Start from scratch** (**New blank scenario**), does what
 **New Scenario** (Ctrl+N) does: an empty mission, with a guide to it on
 its Scenario page ("Building your own scenario, step by step", below).
 
+* **Recent scenarios** lists the last 10 scenario files you opened or
+  saved, newest first (the templates are not listed: they have their
+  cards). `Enter` or a double-click opens one; hover over it for its
+  folder. A file that was moved or deleted says **(missing)** with a
+  warning icon; `Delete` takes the selected entry off the list (the file
+  stays where it is) and **Clear** empties it.
+* Each **template card** says, all read from the template file itself:
+  the attitude mode (**Orbit only** or **Full attitude**, with its
+  pointing mode) and how many spacecraft; the central body and the
+  orbit (its altitude, or the altitudes of its lowest and highest points
+  when it is not circular, the inclination, and "Sun-synchronous" when
+  it is); and the first sentence of the template's description. The
+  **Filter templates** box narrows the cards to those with every word
+  you type ("monte carlo", "formation", "mars").
+* Click a card to select it: its whole description appears on the
+  right, with **Open template** and **Customize...**. The keyboard
+  reaches the cards with `Tab`; the arrow keys move between them and
+  `Enter` opens one. A card's own **Open** and **Customize...** act on
+  that card, whatever is selected.
+
 ## 4. Your first simulation, in five minutes
 
-1. **Pick a template.** The list on the left shows all 31
-   built-in example missions, numbered roughly from simplest to most
-   advanced -- "01 - Two-body circular orbit" is the simplest possible
-   case (one satellite, one orbit, nothing else going on) and a good
-   first choice. Click it once; its description appears below the list,
+1. **Pick a template.** Home shows all 31 built-in example missions as
+   cards, numbered roughly from simplest to most advanced -- "01 -
+   Two-body circular orbit" is the simplest possible case (one
+   satellite, one orbit, nothing else going on) and a good first choice.
+   Click its card once; its description appears on the right,
    explaining what it demonstrates and what to look for.
-2. Click **Open Template** (or just double-click the list entry). The
+2. Click **Open template** (or the card's **Open**, or double-click the
+   card). The
    app shows the mission's **Scenario** page -- you don't need to look at
    or understand it yet, just confirm something loaded (its name appears
    in the "Name" field at the top).
@@ -278,7 +304,7 @@ its Scenario page ("Building your own scenario, step by step", below).
 
 That's the whole loop: **pick -> open -> run -> look at Results.**
 Every other feature in the app builds on top of this one. Try a few
-more templates before moving on -- the list's own descriptions (and
+more templates before moving on -- the cards' descriptions (and
 [`spacemissionstudio/scenarios/templates/README.md`](spacemissionstudio/scenarios/templates/README.md))
 tell you what each one teaches, from simple circular orbits up through
 constellations, formation flying, attitude control, and propellant
@@ -315,10 +341,10 @@ by step (Section 6).
 
 Say "22 - Starter: your first LEO satellite" is close to what you
 want, but you'd like a lower orbit or a heavier satellite, without
-learning the full Scenario Editor. Every row in the Templates
-list has its own **Customize...** button on its right
--- click the one on that template's row (no need to select the row
-first):
+learning the full Scenario Editor. Every template card on Home has
+its own **Customize...** button -- click the one on that template's
+card (no need to select the card first; the description on the right
+has **Customize...** too, for the selected card):
 
 ![The Customize dialog for template 22: its key settings first, every other setting below, with a section list and a filter on the left](docs/images/customize_wizard.png)
 

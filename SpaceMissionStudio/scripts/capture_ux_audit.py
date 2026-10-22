@@ -110,10 +110,10 @@ def main(out: Path) -> int:
             spin(1.5)  # [s]
             save(window, f"{prefix}_{index:02d}_{label.lower().replace(' ', '_')}.png")
 
-    templates = window.load_scenario_widget.list_widget
-    row = next(i for i in range(templates.count()) if templates.item(i).text().startswith("22 "))
-    templates.setFocus()
-    templates.setCurrentRow(row)
+    home = window.load_scenario_widget
+    card = next(card for card in home.cards if card.name.startswith("22 "))
+    home.select(card.name)
+    card.setFocus()
     spin(1.0)  # [s]
     save(window, "02_load_scenario_22.png")
 

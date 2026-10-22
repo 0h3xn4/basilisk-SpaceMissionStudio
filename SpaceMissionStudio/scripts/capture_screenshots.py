@@ -22,10 +22,11 @@ Basilisk 2.12.0, the ``gui`` extra and the reference data installed::
 
     QT_QPA_PLATFORM=offscreen python scripts/capture_screenshots.py docs/images
 
-It opens templates 22, 18 and 07, runs template 22, estimates its lifetime
-and template 18's propellant budget, and saves each view at 1600 x 900
-pixels, and the 3D model editor with an octagonal bus. ``monte_carlo_tab.png``
-needs a Monte Carlo batch and is not captured here.
+It opens templates 22, 18 and 07, runs template 22 for one day and then
+two (Compare), runs template 25's Monte Carlo batch into a temporary
+folder, estimates template 22's lifetime and template 18's propellant
+budget, and saves each view at 1600 x 900 pixels, and the 3D model editor
+with an octagonal bus. The batch takes the longest (20 runs of 3 days).
 
 ``--theme light|dark`` captures in that theme (default: light, as the
 documentation shows) and ``--size WxH`` at another window size, e.g. for
@@ -105,12 +106,11 @@ def main(out: Path, theme: str = "light", size: tuple = WINDOW_SIZE) -> int:
     window.show()
     spin(1.5)  # [s]
 
-    templates = window.load_scenario_widget.list_widget
-    row = next(i for i in range(templates.count()) if templates.item(i).text().startswith("22 "))
+    home = window.load_scenario_widget
+    card = next(card for card in home.cards if card.name.startswith("22 "))
     window.activateWindow()
-    templates.setFocus()
-    templates.setCurrentRow(row)
-    templates.scrollToItem(templates.item(row))
+    home.select(card.name)
+    card.setFocus()
     spin(1.0)  # [s]
     save("load_scenario_tab.png")
 
@@ -125,6 +125,18 @@ def main(out: Path, theme: str = "light", size: tuple = WINDOW_SIZE) -> int:
     spin(2.0)  # [s]
     save("events_tab.png")
 
+    # Compare: the same template again, two days long (the manual's caption).
+    scenario = window.scenario_editor.to_scenario()
+    scenario.sim_settings.duration_days = 2.0  # [day]
+    window.scenario_editor.from_scenario(scenario)
+    runs_before = len(window.run_history.runs)
+    window.on_run()
+    wait(lambda: len(window.run_history.runs) > runs_before and not window._run_worker.isRunning(), 300.0,
+         "the two-day run of template 22")  # [s]
+    window.show_view(window.compare_widget)
+    spin(4.0)  # [s] the overlaid plot loads
+    save("compare_tab.png")
+
     window.show_view(window.lifetime_widget)
     window.lifetime_widget.compute()
     wait(lambda: window.lifetime_widget._worker is None, 300.0, "the lifetime estimate")  # [s]
@@ -135,6 +147,21 @@ def main(out: Path, theme: str = "light", size: tuple = WINDOW_SIZE) -> int:
     window.budget_widget.compute()
     wait(lambda: window.budget_widget._worker is None, 600.0, "the budget")  # [s]
     save("budget_tab.png")
+
+    # Monte Carlo: template 25's batch, in a temporary folder.
+    import tempfile
+
+    from PySide6.QtWidgets import QFileDialog
+
+    batch_dir = Path(tempfile.mkdtemp(prefix="sms_monte_carlo_"))
+    QFileDialog.getExistingDirectory = staticmethod(lambda *a, **k: str(batch_dir))
+    open_template("25_monte_carlo_orbit_and_drag_dispersions.json")
+    window.on_run_monte_carlo()
+    wait(lambda: window.monte_carlo_results_widget.batch is not None and not window._mc_worker.isRunning(),
+         3600.0, "the Monte Carlo batch of template 25")  # [s]
+    window.show_view(window.monte_carlo_results_widget)
+    spin(4.0)  # [s]
+    save("monte_carlo_tab.png")
 
     open_template("07_attitude_pointing_with_adcs_hardware.json")
     window.show_view(window.flight_software_widget)

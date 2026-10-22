@@ -47,10 +47,10 @@ spacemissionstudio earth-orientation --fetch
 spacemissionstudio gui
 ```
 
-The app opens on **Templates**. Click **22 - Starter: your first LEO
-satellite**, **Open Template**, then **Run** (`Ctrl+R`).
-A few seconds later the **Results** tab shows the orbit and the
-**Events** tab lists four ground passes over Berlin.
+The app opens on **Home**. Click the card **22 - Starter: your first LEO
+satellite**, **Open template**, then **Run** (`Ctrl+R`).
+A few seconds later the **Results** area shows the orbit and the
+**Timeline** lists four ground passes over Berlin.
 
 ## Where to go next
 

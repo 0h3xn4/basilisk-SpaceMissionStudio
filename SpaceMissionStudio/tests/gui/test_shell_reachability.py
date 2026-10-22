@@ -92,6 +92,17 @@ def _button(window, button, area, show):
     assert button.isVisibleTo(window) and button.isEnabled(), button.text()
 
 
+def _reference_card(window):
+    """The start-up question is Home's card (M3), not a modal dialog."""
+    card = window.load_scenario_widget.reference_card
+    card.ask()
+    try:
+        window.shell.show_area("home")
+        assert card.isVisibleTo(window) and card.fetch_button.isEnabled()
+    finally:
+        card.dismiss()
+
+
 def _dialog(module_name, class_name):
     """The dialog's class still exists (it is opened from its screen)."""
     import importlib
@@ -235,7 +246,7 @@ _ROWS = {
     "`SilRunDialog`": lambda w: (_dialog("sil_dialog", "SilRunDialog"), _command(w, "run.mode.sil")),
     "`VizardDialog`": lambda w: (_dialog("vizard_dialog", "VizardDialog"), _command(w, "run.vizard_config")),
     "`StartupFetchDialog`": lambda w: (_dialog("startup_fetch_dialog", "StartupFetchDialog"),
-                                      _command(w, "tools.reference_data")),
+                                      _command(w, "tools.reference_data"), _reference_card(w)),
     "Reference data dialog": lambda w: (_command(w, "tools.reference_data"), _reference_data_opens(w)),
     "`CommandPalette`": lambda w: (_dialog("command_palette", "CommandPalette"), _command(w, "help.palette")),
     "`ShortcutsDialog`": lambda w: (_command(w, "help.shortcuts"), _shortcuts_in_settings(w)),

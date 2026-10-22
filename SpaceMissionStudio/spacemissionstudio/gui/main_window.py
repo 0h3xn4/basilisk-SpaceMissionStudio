@@ -74,6 +74,7 @@ from .feedback import StaleResultsBanner, report, show_toast
 from .icons import toolbar_icon
 from .data_panel_widget import DataPanelWidget
 from .event_timeline_widget import EventTimelineWidget
+from . import recent_files
 from .load_scenario_widget import TEMPLATES_DIR, LoadScenarioWidget
 from .mission_dashboard_widget import MissionDashboardWidget
 from .mission_output_widget import MissionOutputWidget
@@ -89,7 +90,6 @@ from .lifetime_widget import LifetimeWidget
 from .scenario_explainer_widget import ScenarioExplainerWidget
 from .settings_page import SettingsPage
 from .shell import AreaPage, AreaStack, Shell
-from .startup_fetch_dialog import maybe_run_startup_fetch
 from .time_cursor import TimeCursor, describe as describe_time
 from .undo_history import ScenarioHistory
 from .run_history import RunHistory
@@ -466,10 +466,10 @@ class MainWindow(QMainWindow):
             # on top of it -- real user requirement: "a one time fetch
             # during each startup... the user always should be asked".
             # prompt_startup_fetch=False is how tests (and anything else
-            # constructing MainWindow headlessly) opt out of this blocking
-            # modal dialog -- see tests/gui/test_main_window.py's own
-            # `window` fixture.
-            QTimer.singleShot(0, lambda: maybe_run_startup_fetch(self))
+            # constructing MainWindow headlessly) opt out of it -- see
+            # tests/gui/test_main_window.py's own `window` fixture. Since
+            # M3 the question is a card on Home, not a modal dialog.
+            QTimer.singleShot(0, self.load_scenario_widget.reference_card.ask)
 
     # -- commands: the action registry (gui.actions) ----------------------------
     def _build_actions(self) -> None:
@@ -1487,7 +1487,20 @@ class MainWindow(QMainWindow):
             report(self, f"Could not open {path}: {exc}")
             return False
         self._open_scenario(scenario, current_path=path, verb="Opened")
+        self._remember_recent(path)
         return True
+
+    def _remember_recent(self, path: Path) -> None:
+        """Home's recent scenarios: a file opened or saved, except the
+        built-in templates (Home shows them as cards)."""
+        try:
+            if Path(path).resolve().parent == TEMPLATES_DIR:
+                return
+            recent_files.remember(path)
+        except OSError:  # the settings file could not be written: the list is a convenience
+            _logger.exception("Could not remember %s as a recent scenario", path)
+            return
+        self.load_scenario_widget.refresh_recent()
 
     def _open_scenario(self, scenario: Scenario, current_path: Optional[Path], verb: str) -> None:
         """Shared tail end of open_path()/_on_load_scenario_customized():
@@ -1544,6 +1557,7 @@ class MainWindow(QMainWindow):
         self._current_path = path
         self._save_project_layout()
         self._mark_clean()
+        self._remember_recent(path)
         self.statusBar().showMessage(f"Saved {path}")
         show_toast(self, f"Saved {path.name}")
 
@@ -2354,6 +2368,7 @@ class MainWindow(QMainWindow):
             self.lifetime_widget.wait_for_worker()  # a few seconds at most; its thread must not be destroyed mid-run
             self.budget_widget.wait_for_worker()
             self.flight_software_widget.wait_for_worker()
+            self.load_scenario_widget.reference_card.wait()  # a download must not be cut off mid-file
             self._save_layout()
             event.accept()
         else:
