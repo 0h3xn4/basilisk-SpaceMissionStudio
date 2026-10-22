@@ -12593,3 +12593,36 @@ fixtures now wait for the page's "drawn" instead of a page load, one
 reachability row checks the Overview, and one expectation changed on
 purpose (the Results tabs begin with Overview), each in
 `docs/ui/TEST_CHANGES.md`. Golden files and every output are unchanged.
+
+## M6b: the tables and analysis views (2026-10-22)
+
+**What changed.**
+- **A `DataTable` component** (`gui/data_table.py`): a `QTableView` over
+  a model with the table rules -- numbers right-aligned in the numeric
+  font with their unit in the header, Ctrl+C as TSV with the headings, a
+  column menu on the header, group rows across the table, bold and muted
+  cells, single-row picking, an empty state with its action. Output,
+  Monte Carlo, Budget and Compare moved onto it; each keeps its text, its
+  filter and its export.
+- **The end of a run is shown in steps**, one an event-loop turn, and the
+  run's save starts a second later (its zip writing shared the
+  interpreter with the GUI thread and doubled the steps' time beside
+  them). A new run, clearing the views or closing takes the steps left.
+- Tables size their columns once when filled; the model makes its fonts
+  once.
+
+**The end of a run** (`scripts/measure_run_end.py`, template 23, two
+sessions of three runs): each step 17-36 ms after the first run; the
+run's slot 21-36 ms (M6a: 102-110 ms); the longest stall in the 3 s after
+it 47-57 ms in most runs, up to 151 ms with a full garbage collection
+(71-83 ms) in it. Not met; M9 holds the rest.
+
+**Screenshots.** `scripts/capture_ui_screens.py --theme both`, this branch
+against M6a: 122 shots per theme, the same screens. Output, Monte Carlo,
+Budget and Compare show their tables in the numeric font, right-aligned.
+
+**Tests.** The full suite: 3812 passed and 12 skipped, none failed (Python
+3.13 here; CI runs 3.11). `test_data_table.py` is new (6 tests). Twelve
+tests and three helpers read the tables through the `DataTable`, and
+eleven take the end of a run's steps with `finish_run_end()`, each in
+`docs/ui/TEST_CHANGES.md`. Golden files and every output are unchanged.

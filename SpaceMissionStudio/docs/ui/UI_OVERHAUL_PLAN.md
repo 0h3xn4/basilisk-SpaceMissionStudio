@@ -960,6 +960,23 @@ Every milestone also has to meet all of these:
   **Met** ("under 50 ms"). The end of a run (M5's criterion, held for M6)
   is 102-110 ms after the first run of a session (was 152-163 ms):
   **not met**; about half of it is the Output page, which M6b rebuilds.
+- **M6b (2026-10-22): done, with the end of a run's stall not met.**
+  (`tests/gui/test_data_table.py`):
+  - one `DataTable` (a `QTableView` over a model, with the table rules:
+    numbers right-aligned in the numeric font, units in the headers, TSV
+    copy, a column menu, an empty state) for Output, Monte Carlo, Budget
+    and Compare;
+  - Compare's run switcher is its list of runs to tick; End of Life
+    already showed tiles and the Dashboard's group boxes are headings
+    (M4a): kept;
+  - the end of a run in steps, the run's save after them.
+
+  Measured with `scripts/measure_run_end.py` (template 23): each step
+  17-36 ms after the first run of a session; the run's slot 21-36 ms (was
+  102-110 ms); the longest stall in the 3 s after it 47-57 ms in most
+  runs, up to 151 ms with a full garbage collection (71-83 ms) in it.
+  **Not met** ("no stall over 50 ms"); M9's performance pass holds the
+  collector and the Overview worker's share of the interpreter.
 
 **Order and size.**
 
