@@ -61,11 +61,13 @@ of each part on all 31 templates).
   lags an edit. The explanation is asked for 250 ms after the last edit,
   computed in a `QThread` from the scenario built at that moment, and
   shown only if no later edit is waiting (an older answer is dropped).
-- **Not met, recorded:** after this, one keystroke in 310 still left a
-  62.9 ms stall in the 600 ms after it (template 12; not reproduced in
-  40 more there, and M4a's code shows the same kind of outlier). The
-  keystroke itself is at most 29.3 ms (M4a: 136.3 ms). M9's
-  performance pass holds the stall.
+- **Not met, recorded:** the keystroke itself is at most 47.2 ms (M4a:
+  86.4 ms), but a stall over 50 ms still follows a keystroke on about
+  one template pass in 40, at up to 77.3 ms, not on the same template
+  twice across sweeps (M4a's code: up to 140.5 ms). The garbage
+  collector, the autosave and the rendering are ruled out; the cause is
+  not found. M9's performance pass holds it (the plan's §7 status has
+  the numbers).
 - **A closed window stops its autosave and its explanation:** a window
   closed but not yet deleted autosaved its discarded scenario into
   whatever home the next test had (a test failed on it), and a waiting

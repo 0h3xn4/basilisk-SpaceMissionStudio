@@ -12367,3 +12367,84 @@ only how they reach a value, a label or a button, each in
 `docs/ui/TEST_CHANGES.md`. `test_forms.py` is new, with 38 tests; among
 them, every template is written back byte for byte after every page has
 been shown. Golden files and every output are unchanged.
+
+## M4b: the editing flow (2026-10-22)
+
+The second half of M4 (the scenario editor), started once M4a's CI was
+green and continued after it was merged (#99). The decisions were
+recorded before any code (`docs/DECISIONS.md`, M4b).
+
+**What changed.**
+- **Explain is Scenario › Overview,** the tree's first node, instead of a
+  dock under the inspector. View › Explain opens it; its name counts what
+  there is to check ("Overview (1 to check)"). Its explanation is asked
+  for 250 ms after the last edit and computed in a `QThread`; an answer a
+  later edit overtook is dropped.
+- **Form · JSON** replaces the tree's JSON node: a segmented control in
+  the Scenario area's header. Back to Form applies a waiting edit, and is
+  refused while the text does not parse or validate; **Discard** puts the
+  scenario's text back. JSON problems are counted on the toggle.
+- **Devices and dispersions are edited under their list**
+  (`gui.inline_form.InlineForm`), 300 ms after the last edit, once valid;
+  a value that is not is named above the form and not applied. The
+  device form, embedded, puts its card above the parameters and has no
+  scroll area of its own.
+- **Add opens what it adds:** a spacecraft (blank or from a template), a
+  ground station, a device or a dispersion is created with its defaults
+  and opened. No modal dialog is left in editing; the template picker and
+  the generators stay dialogs. "Add..." and "Edit..." lost their
+  ellipsis.
+- **Undo stays `ScenarioHistory`:** `QUndoStack` does not fit one snapshot
+  per settled edit, whatever made it.
+
+**Found on the way.**
+- **A device's new Kind lost its edits:** changing it rebuilds the
+  parameter fields, which the form did not follow. `watch_edits` now marks
+  the fields it follows and the inline form connects new ones after each
+  edit (a test changes the kind, then a new field).
+- **`QListWidget.clear()` reports rows already gone as current:** the
+  inline form was built for a row that no longer existed. The lists are
+  quiet while they rebuild their rows.
+- **A closed window kept autosaving:** a window closed but not yet deleted
+  wrote its discarded scenario into whatever home the next test had, and
+  a test failed on it. Closing stops the autosave and the explanation.
+- **M4a's Windows failure** (`QAction` returned as a `QWidgetItem`) was
+  traced to the form walker's `QLayoutItem` wrappers and fixed on #99
+  before it merged; this branch builds on it.
+- **The embedded device form scrolled sideways** at 1280 px and showed an
+  empty card; both fixed, and `test_forms` checks the inline forms fit.
+
+**Keystrokes.** `scripts/measure_keystrokes.py` (new): every template,
+five keystrokes, the call and the longest stall in the 600 ms after it,
+with the reference data installed; M4a's code measured the same way.
+- The keystroke itself: at most 47.2 ms (M4a: 86.4 ms, over 50 ms on 17
+  of 62 template passes).
+- The stall after it: **not met.** Over four sweeps it went over 50 ms on
+  four template passes (73.4, 75.9, 77.3 and 54.8 ms), never twice on one
+  template across sweeps; the fourth sweep's worst was 39.8 ms. M4a's
+  code: up to 140.5 ms. The garbage collector (no collection over 20 ms
+  in a sweep), the autosave (2 ms) and the rendering (under 11 ms) are
+  ruled out. A first measurement ran with a home directory without the
+  reference data, which made the explanation cheaper; it was discarded
+  and every figure here is from the measurement with the data.
+
+**Screenshots.** `scripts/capture_ui_screens.py --theme both`, this branch
+against M4a: 115 shots per theme (M4a: 113).
+- **Gone, as designed:** the JSON node's page (before and after a run)
+  and the Explain panel (before and after a run).
+- **New:** Scenario › Overview (before and after a run, and on its own),
+  JSON refusing to go back to Form with its banner and Discard, and the
+  inline device and dispersion forms.
+- **The tree's pages** shift by one number (Overview comes first); the
+  Overview's tiles fit its width, where the dock wrapped them.
+- **The dialog shots** of the device, ground station, mission step and
+  dispersion editors are those classes shown alone, as before; in the
+  app they are now inline (the new shots).
+- The manual's screenshots in `docs/images/` are captured again; the
+  Scenario area's shot shows its Scenario page.
+
+**Tests.** FULL_SUITE_RESULT. 19 existing GUI tests in 8 files changed how
+they reach Explain, the JSON or a list's item; 5 of their expectations
+changed with the behaviour on purpose (Add without a dialog, back to Form
+refused). Each is in `docs/ui/TEST_CHANGES.md`. `test_editing_flow.py` is new (17 tests);
+`test_forms.py` has one more. Golden files and every output are unchanged.

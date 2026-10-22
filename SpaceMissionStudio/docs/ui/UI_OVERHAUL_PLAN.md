@@ -882,15 +882,20 @@ Every milestone also has to meet all of these:
   - Explain is Scenario › Overview, asked for 250 ms after the last edit
     and computed in a worker thread.
 
-  Measured with `scripts/measure_keystrokes.py`, all 31 templates, five
-  keystrokes each, twice (310 keystrokes; on M4a's code for comparison):
-  - the keystroke itself: at most 29.3 ms (M4a: 136.3 ms, over 50 ms on
-    20 of 62 template passes). Met.
-  - the longest stall in the 600 ms after a keystroke: over 50 ms once,
-    62.9 ms (template 12); 40 more keystrokes there stay at or under
-    26.1 ms. Its cause is not found; M4a's code shows the same kind of
-    outlier (77.7 ms, template 02). **Not met** as written ("no keystroke
-    stalls more than 50 ms"); M9 holds it.
+  Measured with `scripts/measure_keystrokes.py`: all 31 templates, five
+  keystrokes each, with the reference data installed; M4a's code measured
+  the same way, one run after the other:
+  - the keystroke itself: at most 47.2 ms (M4a: 86.4 ms, over 50 ms on
+    17 of 62 template passes). Met.
+  - the longest stall in the 600 ms after a keystroke: **not met** as
+    written ("no keystroke stalls more than 50 ms"). Over four sweeps
+    (155 template passes, 775 keystrokes) it went over 50 ms on four
+    passes: 73.4 and 75.9 ms (template 08), 77.3 ms (13) and 54.8 ms
+    (20); the fourth sweep stayed at or under 39.8 ms. Measured alone,
+    template 08 stays at or under 24.1 ms. M4a's code: 96.9 ms (09) and
+    140.5 ms (29). Not the garbage collector (no collection over 20 ms
+    during a sweep), not the autosave (2 ms), not the explanation's
+    rendering (under 11 ms). M9's performance pass holds it.
 
 **Order and size.**
 
