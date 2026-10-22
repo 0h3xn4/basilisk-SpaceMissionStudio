@@ -27,47 +27,40 @@ def test_from_list_to_list_round_trip(qtbot):
 
 
 def test_add_via_dialog(qtbot, monkeypatch):
-    """Add opens the editor; the accepted wheel is listed with its spin axis,
-    as one change."""
+    """Add opens the editor (its form under the list, M4b); the wheel set
+    there is listed with its spin axis: the Add, then the form's edit."""
     from PySide6.QtCore import Qt
-    from PySide6.QtWidgets import QDialog
 
-    from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget, _ItemEditorDialog
+    from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget
     from spacemissionstudio.schema.scenario import SUPPORTED_ACTUATOR_KINDS, ActuatorConfig
 
     widget = SensorActuatorListWidget(ActuatorConfig, SUPPORTED_ACTUATOR_KINDS)
     qtbot.addWidget(widget)
-
-    def fake_exec(self):
-        self.name_edit.setText("rw-1")
-        index = self.kind_combo.findText("reaction_wheel")
-        self.kind_combo.setCurrentIndex(index)
-        x, y, z = self._vector_boxes["gsHat_B"]  # spin-box row, not the JSON params box -- see module docstring
-        x.setValue(1.0)
-        y.setValue(0.0)
-        z.setValue(0.0)
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_ItemEditorDialog, "exec", fake_exec)
     changed_count = []
     widget.changed.connect(lambda: changed_count.append(1))
 
     qtbot.mouseClick(widget.add_button, Qt.MouseButton.LeftButton)
+    form = widget.inline.form
+    form.name_edit.setText("rw-1")
+    form.kind_combo.setCurrentIndex(form.kind_combo.findText("reaction_wheel"))
+    x, y, z = form._vector_boxes["gsHat_B"]  # spin-box row, not the JSON params box -- see module docstring
+    x.setValue(1.0)
+    y.setValue(0.0)
+    z.setValue(0.0)
+    widget.inline.flush()
 
     assert widget.list_widget.count() == 1
     added = widget.to_list()[0]
     assert added.name == "rw-1"
     assert added.kind == "reaction_wheel"
     assert added.params["gsHat_B"] == [1.0, 0.0, 0.0]
-    assert changed_count == [1]
+    assert changed_count == [1, 1]
 
 
 def test_edit_and_remove(qtbot, monkeypatch):
     """Edit applies the editor's changes to the selected device; Remove deletes
     it."""
-    from PySide6.QtWidgets import QDialog
-
-    from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget, _ItemEditorDialog
+    from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget
     from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
 
     widget = SensorActuatorListWidget(SensorConfig, SUPPORTED_SENSOR_KINDS)
@@ -75,12 +68,8 @@ def test_edit_and_remove(qtbot, monkeypatch):
     widget.from_list([SensorConfig(kind="imu", name="orig", params={})])
     widget.list_widget.setCurrentRow(0)
 
-    def fake_exec(self):
-        self.name_edit.setText("renamed")
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_ItemEditorDialog, "exec", fake_exec)
-    widget._on_edit()
+    widget.inline.form.name_edit.setText("renamed")  # the selected device's form, under the list (M4b)
+    widget.inline.flush()
     assert widget.to_list()[0].name == "renamed"
 
     widget.list_widget.setCurrentRow(0)
@@ -89,26 +78,21 @@ def test_edit_and_remove(qtbot, monkeypatch):
 
 
 def test_rejects_duplicate_name_on_add(qtbot, monkeypatch, reported):
-    """A device with a name already listed is not saved, with a warning toast
-    naming it."""
-    from PySide6.QtWidgets import QDialog
-
-    from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget, _ItemEditorDialog
+    """A device given a name already listed is not saved: the form says so
+    above its fields (M4b: no dialog, so no toast after it), no box."""
+    from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget
     from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
 
     widget = SensorActuatorListWidget(SensorConfig, SUPPORTED_SENSOR_KINDS)
     qtbot.addWidget(widget)
     widget.from_list([SensorConfig(kind="imu", name="dup", params={})])
 
-    def fake_exec(self):
-        self.name_edit.setText("dup")
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_ItemEditorDialog, "exec", fake_exec)
-
     widget._on_add()
-    assert len(widget.to_list()) == 1
-    assert reported == [("Not saved: a device named 'dup' already exists", "warning")]  # a toast, no box
+    widget.inline.form.name_edit.setText("dup")
+    widget.inline.flush()
+    assert [item.name for item in widget.to_list()] == ["dup", "star_tracker-1"]  # the new one keeps its name
+    assert widget.inline.banner.label.text() == "Not applied: a device named 'dup' already exists"
+    assert reported == []  # no box
 
 
 def test_item_editor_dialog_rejects_invalid_json(qtbot):
@@ -173,24 +157,16 @@ def test_item_editor_dialog_accept_blocks_and_keeps_dialog_open_on_duplicate_nam
 
 def test_add_via_dialog_shows_a_toast_and_selects_the_row(qtbot, monkeypatch):
     """An added device is selected and shown in a toast."""
-    from PySide6.QtWidgets import QDialog
-
-    from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget, _ItemEditorDialog
+    from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget
     from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
 
     widget = SensorActuatorListWidget(SensorConfig, SUPPORTED_SENSOR_KINDS)
     qtbot.addWidget(widget)
-
-    def fake_exec(self):
-        self.name_edit.setText("st-toast")
-        return QDialog.DialogCode.Accepted
-
-    monkeypatch.setattr(_ItemEditorDialog, "exec", fake_exec)
-    widget._on_add()
+    widget._on_add()  # named before it is added (M4b): "star_tracker-1"
 
     assert widget.list_widget.currentRow() == 0
     toasts = getattr(widget.window(), "_spacemissionstudio_active_toasts", [])
-    assert any("st-toast" in t.text() for t in toasts)
+    assert any("star_tracker-1" in t.text() for t in toasts)
 
 
 def test_new_item_dialog_prefills_params_with_kind_template(qtbot):

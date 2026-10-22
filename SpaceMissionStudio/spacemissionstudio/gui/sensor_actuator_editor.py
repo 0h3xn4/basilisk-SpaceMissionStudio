@@ -71,6 +71,7 @@ from typing import NamedTuple
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtWidgets import (
+    QBoxLayout,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
@@ -89,7 +90,8 @@ from PySide6.QtWidgets import (
 
 from ..engine.device_catalog import catalog_entries_for_kind
 from ..schema.scenario import RW_TYPES, THRUSTER_TYPES
-from .feedback import clear_invalid, mark_invalid, report, show_dialog_error, show_toast
+from .feedback import clear_invalid, mark_invalid, show_dialog_error, show_toast
+from .inline_form import InlineForm
 from .param_form import ParamForm
 from .theme import on_change, set_role
 from .theme.richtext import css, status_css
@@ -449,6 +451,9 @@ def _device_card_html(entry) -> str:
             f"<table cellspacing='0'>{table}</table>{notes}")
 
 
+_NO_MAXIMUM_WIDTH_PX = 16777215  # [px] Qt's QWIDGETSIZE_MAX, which PySide6 does not export
+
+
 class _ItemEditorDialog(QDialog):
     """Edit one sensor or actuator: Kind and Name, an optional real device
     from the catalog (shown as a card beside the form), and a form with
@@ -535,6 +540,7 @@ class _ItemEditorDialog(QDialog):
         card_scroll.setFrameShape(QFrame.Shape.NoFrame)
         card_scroll.setWidget(card)
         self._card_scroll = card_scroll
+        self._card, self._catalog_layout = card, catalog_layout
         catalog_layout.addWidget(card_scroll, 1)
         self._catalog_container.setFixedWidth(340)
         body.addWidget(self._catalog_container)
@@ -567,6 +573,7 @@ class _ItemEditorDialog(QDialog):
         form_scroll.setFrameShape(QFrame.Shape.NoFrame)
         form_scroll.setWidget(form_holder)
         params_column.addWidget(form_scroll, 1)
+        self._body, self._params_column, self._form_scroll = body, params_column, form_scroll
         body.addLayout(params_column, 1)
         layout.addLayout(body, 1)
 
@@ -583,6 +590,23 @@ class _ItemEditorDialog(QDialog):
         self._update_hint(self._current_kind)
         self.kind_combo.currentTextChanged.connect(self._on_kind_changed)
         self.resize(self.sizeHint().expandedTo(QSize(980, 640)))  # [px]
+
+    def embed_in_page(self) -> None:
+        """Shown under the device list (UI overhaul M4b), in a page that
+        scrolls itself: the device card above the parameters, at the page's
+        width, and neither in a scroll area of its own (no boxes in boxes)."""
+        self._body.setDirection(QBoxLayout.Direction.TopToBottom)
+        self._catalog_container.setMinimumWidth(0)
+        self._catalog_container.setMaximumWidth(_NO_MAXIMUM_WIDTH_PX)
+        for scroll, layout in ((self._card_scroll, self._catalog_layout), (self._form_scroll, self._params_column)):
+            index = layout.indexOf(scroll)
+            inner = scroll.takeWidget()
+            layout.insertWidget(index, inner, 1)
+            layout.removeWidget(scroll)
+            scroll.hide()  # out of the layout, but shown until it is deleted
+            scroll.deleteLater()
+        self._card_scroll = self._card  # what the catalog shows and hides
+        self._form_scroll = None
 
     # -- form ----------------------------------------------------------
     @staticmethod
@@ -711,8 +735,9 @@ class _ItemEditorDialog(QDialog):
 
 class SensorActuatorListWidget(QWidget):
     """A list of :class:`SensorConfig` or :class:`ActuatorConfig` (pass the
-    class and its kind whitelist), with Add/Edit/Remove -- mirrors
-    :class:`gui.spacecraft_editor.SpacecraftListWidget`'s shape.
+    class and its kind whitelist), with Add and Remove; the selected
+    device's form is under the list and applies its edits as they are made
+    (UI overhaul M4b, :class:`gui.inline_form.InlineForm`).
     """
 
     changed = Signal()
@@ -729,63 +754,85 @@ class SensorActuatorListWidget(QWidget):
         layout.addWidget(self.list_widget)
 
         button_row = QHBoxLayout()
-        self.add_button = QPushButton("Add...")
-        self.edit_button = QPushButton("Edit...")
+        self.add_button = QPushButton("Add")
+        self.add_button.setToolTip("Add a device of the first kind, with its template's values: its form opens "
+                                   "below.")
         self.remove_button = QPushButton("Remove")
         button_row.addWidget(self.add_button)
-        button_row.addWidget(self.edit_button)
         button_row.addWidget(self.remove_button)
         button_row.addStretch(1)  # buttons at their own width, not a third of a wide page each
         layout.addLayout(button_row)
+        self.inline = InlineForm(self.list_widget, self._form_for, self._read_form)
+        self.inline.applied.connect(self._on_applied)
+        layout.addWidget(self.inline)
 
         self.add_button.clicked.connect(self._on_add)
-        self.edit_button.clicked.connect(self._on_edit)
         self.remove_button.clicked.connect(self._on_remove)
-        self.list_widget.itemDoubleClicked.connect(lambda _item: self._on_edit())
+        self.list_widget.itemDoubleClicked.connect(lambda _item: self._focus_form())
 
     def _refresh_list(self) -> None:
-        self.list_widget.clear()
-        for item in self._items:
-            self.list_widget.addItem(QListWidgetItem(f"{item.kind}: {item.name}"))
+        # Quiet while the rows are rebuilt: clear() reports rows already gone
+        # as current, and the inline form must not be built for one.
+        blocked = self.list_widget.blockSignals(True)
+        try:
+            self.list_widget.clear()
+            for item in self._items:
+                self.list_widget.addItem(QListWidgetItem(f"{item.kind}: {item.name}"))
+        finally:
+            self.list_widget.blockSignals(blocked)
 
     def _existing_names(self, exclude_row: int | None = None) -> set:
         return {item.name for i, item in enumerate(self._items) if i != exclude_row}
 
-    def _on_add(self) -> None:
-        dialog = _ItemEditorDialog(self._item_cls, self._kind_choices, parent=self,
-                                    other_names=sorted(self._existing_names()))
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            new_item = dialog.to_dataclass()
-            if new_item.name in self._existing_names():
-                report(self, f"Not saved: a device named {new_item.name!r} already exists", kind="warning")
-                return
-            self._items.append(new_item)
-            self._refresh_list()
-            self.list_widget.setCurrentRow(len(self._items) - 1)
-            show_toast(self.window(), f"Added {new_item.kind}: {new_item.name!r}")
-            self.changed.emit()
+    def _new_item(self):
+        """A device of the first kind with its template's parameters, and a
+        name not taken ("star_tracker-2" after "star_tracker-1")."""
+        kind = list(self._kind_choices)[0]
+        existing, n = self._existing_names(), 1
+        while f"{kind}-{n}" in existing:
+            n += 1
+        return self._item_cls(kind=kind, name=f"{kind}-{n}", params=_ItemEditorDialog._default_params(kind))
 
-    def _on_edit(self) -> None:
-        row = self.list_widget.currentRow()
-        if row < 0:
+    def _on_add(self) -> None:
+        """Add a device and open its form (no dialog first, M4b): Remove or
+        Undo take back one not wanted."""
+        self.inline.flush()
+        new_item = self._new_item()
+        self._items.append(new_item)
+        self._refresh_list()
+        self.list_widget.setCurrentRow(len(self._items) - 1)
+        show_toast(self.window(), f"Added {new_item.kind}: {new_item.name!r}")
+        self.changed.emit()
+        self._focus_form()
+
+    def _form_for(self, row: int) -> "_ItemEditorDialog":
+        form = _ItemEditorDialog(self._item_cls, self._kind_choices, item=self._items[row], parent=self,
+                                 other_names=sorted(self._existing_names(exclude_row=row)))
+        form.embed_in_page()
+        return form
+
+    def _read_form(self, form: "_ItemEditorDialog", row: int):
+        item = form.to_dataclass()
+        if item.name in self._existing_names(exclude_row=row):
+            raise ValueError(f"a device named {item.name!r} already exists")
+        return item
+
+    def _on_applied(self, row: int, item) -> None:
+        if not 0 <= row < len(self._items) or item == self._items[row]:
             return
-        dialog = _ItemEditorDialog(self._item_cls, self._kind_choices, item=self._items[row], parent=self,
-                                    other_names=sorted(self._existing_names(exclude_row=row)))
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            new_item = dialog.to_dataclass()
-            if new_item.name in self._existing_names(exclude_row=row):
-                report(self, f"Not saved: a device named {new_item.name!r} already exists", kind="warning")
-                return
-            self._items[row] = new_item
-            self._refresh_list()
-            self.list_widget.setCurrentRow(row)
-            show_toast(self.window(), f"Updated {new_item.kind}: {new_item.name!r}")
-            self.changed.emit()
+        self._items[row] = item
+        self.list_widget.item(row).setText(f"{item.kind}: {item.name}")
+        self.changed.emit()
+
+    def _focus_form(self) -> None:
+        if self.inline.form is not None:
+            self.inline.form.kind_combo.setFocus()
 
     def _on_remove(self) -> None:
         row = self.list_widget.currentRow()
         if row < 0:
             return
+        self.inline.discard()  # its row goes: an edit it holds goes with it
         item = self._items[row]
         del self._items[row]
         self._refresh_list()
@@ -796,5 +843,6 @@ class SensorActuatorListWidget(QWidget):
         return list(self._items)
 
     def from_list(self, items: list) -> None:
+        self.inline.discard()  # another spacecraft's devices: the form of one of these is gone
         self._items = list(items)
         self._refresh_list()

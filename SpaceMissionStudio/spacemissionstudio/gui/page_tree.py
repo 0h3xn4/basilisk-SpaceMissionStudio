@@ -297,23 +297,29 @@ _EDIT_SIGNALS = (
 )
 
 
-def watch_edits(root: QWidget, callback: Callable[[], None]) -> int:
+def watch_edits(root: QWidget, callback: Callable[[], None], mark: str = "") -> int:
     """Connect ``callback`` to every edit in ``root``'s form: its fields'
     change signals and its custom widgets' ``changed`` signals. Returns how
     many signals it connected. A spin box's own line edit is left out (its
-    value signal covers it)."""
+    value signal covers it). ``mark``: a property set on each widget
+    connected, whose widgets are skipped: called again, only the fields a
+    form added since are connected (a device's kind rebuilds its fields)."""
     connected = 0
     seen: Dict[int, bool] = {}
     for widget in [root, *root.findChildren(QWidget)]:
         if id(widget) in seen:
             continue
         seen[id(widget)] = True
+        if mark and widget.property(mark):
+            continue
         if isinstance(widget, QLineEdit) and isinstance(widget.parentWidget(), (QAbstractSpinBox, QComboBox)):
             continue
         custom = getattr(type(widget), "changed", None)
         if isinstance(custom, Signal) and widget is not root:
             widget.changed.connect(callback)
             connected += 1
+            if mark:
+                widget.setProperty(mark, True)
             continue
         for cls, name in _EDIT_SIGNALS:
             if isinstance(widget, cls):
@@ -324,6 +330,8 @@ def watch_edits(root: QWidget, callback: Callable[[], None]) -> int:
                     except TypeError:  # an overloaded signal (valueChanged[int]/[str] on some boxes)
                         continue
                     connected += 1
+                    if mark:
+                        widget.setProperty(mark, True)
                 break
     return connected
 

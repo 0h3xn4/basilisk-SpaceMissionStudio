@@ -235,7 +235,7 @@ class GroundStationListWidget(QWidget):
         layout.addWidget(self.list_widget)
 
         button_row = QHBoxLayout()
-        self.add_button = QPushButton("Add...")
+        self.add_button = QPushButton("Add")
         self.edit_button = QPushButton("Edit...")
         self.remove_button = QPushButton("Remove")
         button_row.addWidget(self.add_button)
@@ -263,6 +263,18 @@ class GroundStationListWidget(QWidget):
             n += 1
             candidate = f"{base_name}-{n}"
         dialog.name_edit.setText(candidate)
+        if getattr(self, "_edit_handler", None) is not None:
+            # The Scenario editor (M4b): the station is added with the form's
+            # defaults and its page opens; no dialog first.
+            config = dialog.to_dataclass()
+            dialog.deleteLater()
+            self._configs.append(config)
+            self._refresh_list()
+            self.list_widget.setCurrentRow(len(self._configs) - 1)
+            show_toast(self.window(), f"Added ground station {config.name!r}")
+            self.changed.emit()
+            self._edit_handler(len(self._configs) - 1)
+            return
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
             if config.name in existing_names:

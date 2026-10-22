@@ -228,3 +228,111 @@ def test_a_problem_in_the_form_leaves_json_mode(window):
     row = next(i for i, (_severity, text) in enumerate(problems.problems) if "name" in text)
     problems.table.activated.emit(problems.index_of(row))
     assert not editor.json_mode
+
+
+# -- inline editing: devices, dispersions, Add -------------------------------------------------------
+
+
+def _no_dialog(monkeypatch):
+    """Any modal dialog fails the test: M4b's editing opens none."""
+    from PySide6.QtWidgets import QDialog
+
+    monkeypatch.setattr(QDialog, "exec", lambda self: pytest.fail(f"a dialog opened: {type(self).__name__}"))
+
+
+def test_a_devices_new_kind_has_its_fields_followed(qtbot):
+    """A device's kind changed in its form rebuilds the fields: an edit in
+    one of the new ones is applied too."""
+    from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget
+    from spacemissionstudio.schema.scenario import SUPPORTED_ACTUATOR_KINDS, ActuatorConfig
+
+    widget = SensorActuatorListWidget(ActuatorConfig, SUPPORTED_ACTUATOR_KINDS)
+    qtbot.addWidget(widget)
+    widget._on_add()
+    form = widget.inline.form
+    form.kind_combo.setCurrentIndex(form.kind_combo.findText("reaction_wheel"))
+    qtbot.waitUntil(lambda: not widget.inline.pending, timeout=5000)
+    assert widget.to_list()[0].kind == "reaction_wheel"
+    x, _y, _z = form._vector_boxes["gsHat_B"]
+    x.setValue(0.5)  # a field the new kind built
+    assert widget.inline.pending
+    qtbot.waitUntil(lambda: not widget.inline.pending, timeout=5000)
+    assert widget.to_list()[0].params["gsHat_B"][0] == 0.5
+
+
+def test_remove_and_reload_drop_an_edit_not_applied(qtbot):
+    """An edit waiting in a device's form goes with its row (Remove) or its
+    list (another spacecraft's devices): it is never written to another row."""
+    from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget
+    from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
+
+    widget = SensorActuatorListWidget(SensorConfig, SUPPORTED_SENSOR_KINDS)
+    qtbot.addWidget(widget)
+    widget.from_list([SensorConfig(kind="imu", name="a", params={}), SensorConfig(kind="imu", name="b", params={})])
+    widget.list_widget.setCurrentRow(0)
+    widget.inline.form.name_edit.setText("a-renamed")
+    widget._on_remove()
+    assert [item.name for item in widget.to_list()] == ["b"]
+
+    widget.list_widget.setCurrentRow(0)
+    widget.inline.form.name_edit.setText("b-renamed")
+    widget.from_list([SensorConfig(kind="imu", name="c", params={})])
+    qtbot.wait(400)  # [ms] past the settle time
+    assert [item.name for item in widget.to_list()] == ["c"] and widget.inline.form is None
+
+
+def test_a_dispersion_needs_a_spacecraft_to_be_added(qtbot, monkeypatch, reported):
+    """With no spacecraft there is nothing to disperse: Add says so and adds nothing."""
+    from spacemissionstudio.gui.monte_carlo_editor import DispersionListWidget
+
+    _no_dialog(monkeypatch)
+    widget = DispersionListWidget()
+    qtbot.addWidget(widget)
+    widget._on_add()
+    assert widget.to_list() == []
+    assert reported and reported[0][1] == "warning" and "no spacecraft" in reported[0][0]
+
+
+def test_a_device_edited_in_a_spacecraft_page_reaches_the_scenario(window, qtbot, monkeypatch):
+    """A device added and edited inline on a spacecraft's page is in the
+    scenario, with no dialog, and Undo takes the edit back."""
+    _no_dialog(monkeypatch)
+    assert window.open_path(_TEMPLATES / "07_attitude_pointing_with_adcs_hardware.json")  # devices: full attitude
+    editor = window.scenario_editor
+    name = editor.spacecraft_list.to_list()[0].name
+    editor.show_spacecraft(0)
+    node = editor._spacecraft_nodes[0]
+    devices = node.form.sensor_list
+    before = len(editor.to_scenario().spacecraft[0].sensors)
+    devices._on_add()
+    devices.inline.form.name_edit.setText("st-inline")
+    devices.inline.flush()
+    qtbot.waitUntil(lambda: any(s.name == "st-inline" for s in editor.to_scenario().spacecraft[0].sensors),
+                    timeout=5000)
+    sensors = editor.to_scenario().spacecraft[0].sensors
+    assert len(sensors) == before + 1 and editor.to_scenario().spacecraft[0].name == name
+
+    window._history_timer.stop()
+    window._record_history()
+    window.undo_action.trigger()
+    assert [s.name for s in editor.to_scenario().spacecraft[0].sensors] != [s.name for s in sensors]
+
+
+def test_add_opens_a_new_spacecrafts_and_stations_page(window, monkeypatch):
+    """Add in the Scenario editor adds the spacecraft or ground station and
+    shows its page: no dialog first."""
+    _no_dialog(monkeypatch)
+    editor = window.scenario_editor
+    count = len(editor.spacecraft_list.to_list())
+    editor.spacecraft_list.add_button.click()
+    assert len(editor.spacecraft_list.to_list()) == count + 1
+    new = editor.spacecraft_list.to_list()[-1].name
+    assert editor.page_tree.current_page() is editor._spacecraft_nodes[-1].holder
+    assert editor._spacecraft_nodes[-1].config.name == new and new not in [
+        c.name for c in editor.spacecraft_list.to_list()[:-1]]
+
+    stations = len(editor.ground_station_list.to_list())
+    editor.ground_station_list.add_button.click()
+    assert len(editor.ground_station_list.to_list()) == stations + 1
+    assert editor.page_tree.current_page() is editor._station_nodes[-1].holder
+    editor.to_scenario()  # both validate

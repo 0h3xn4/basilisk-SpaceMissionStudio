@@ -58,10 +58,11 @@ from ..schema.scenario import (
     DispersionConfig,
     MonteCarloConfig,
 )
-from .feedback import show_dialog_error, show_toast
+from .feedback import report, show_dialog_error, show_toast
 from .field_text import field_title, labelled
 from .theme import set_role
-from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, finish_form
+from .inline_form import InlineForm
+from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, finish_form, layout_widgets
 
 
 def _spin(minimum: float, maximum: float, decimals: int = 4, step: float = 1.0, value: float = 0.0) -> QDoubleSpinBox:
@@ -264,10 +265,8 @@ class _DispersionEditorDialog(QDialog):
         if label is not None:
             label.setVisible(visible)
         if isinstance(field, QHBoxLayout):
-            for i in range(field.count()):
-                widget = field.itemAt(i).widget()
-                if widget is not None:
-                    widget.setVisible(visible)
+            for widget in layout_widgets(field):  # its widgets as QObjects (widgets.layout_widgets)
+                widget.setVisible(visible)
         else:
             field.setVisible(visible)
 
@@ -302,8 +301,10 @@ class _DispersionEditorDialog(QDialog):
 
 
 class DispersionListWidget(QWidget):
-    """A list of :class:`DispersionConfig`, with Add/Edit/Remove -- mirrors
-    :class:`gui.sensor_actuator_editor.SensorActuatorListWidget`'s shape.
+    """A list of :class:`DispersionConfig`, with Add and Remove; the
+    selected dispersion's form is under the list and applies its edits as
+    they are made (UI overhaul M4b) -- as
+    :class:`gui.sensor_actuator_editor.SensorActuatorListWidget`.
     """
 
     changed = Signal()
@@ -319,55 +320,81 @@ class DispersionListWidget(QWidget):
         layout.addWidget(self.list_widget)
 
         button_row = QHBoxLayout()
-        self.add_button = QPushButton("Add...")
-        self.edit_button = QPushButton("Edit...")
+        self.add_button = QPushButton("Add")
+        self.add_button.setToolTip("Add a dispersion of the first spacecraft's first quantity: its form opens below.")
         self.remove_button = QPushButton("Remove")
         button_row.addWidget(self.add_button)
-        button_row.addWidget(self.edit_button)
         button_row.addWidget(self.remove_button)
         button_row.addStretch(1)  # buttons at their own width, not a third of a wide page each
         layout.addLayout(button_row)
+        self.inline = InlineForm(self.list_widget, self._form_for, lambda form, _row: form.to_dataclass())
+        self.inline.applied.connect(self._on_applied)
+        layout.addWidget(self.inline)
 
         self.add_button.clicked.connect(self._on_add)
-        self.edit_button.clicked.connect(self._on_edit)
         self.remove_button.clicked.connect(self._on_remove)
-        self.list_widget.itemDoubleClicked.connect(lambda _item: self._on_edit())
+        self.list_widget.itemDoubleClicked.connect(lambda _item: self._focus_form())
 
     def set_spacecraft_names(self, names: list) -> None:
+        if list(names) == self._spacecraft_names:
+            return
+        self.inline.flush()
         self._spacecraft_names = list(names)
+        if self.inline.form is not None:
+            self.inline.show_row(self.inline.row)  # its spacecraft choice lists the new names
 
     def _refresh_list(self) -> None:
-        self.list_widget.clear()
-        for item in self._items:
-            self.list_widget.addItem(QListWidgetItem(f"{item.spacecraft}: {item.quantity} ({item.kind})"))
+        # Quiet while the rows are rebuilt (as the device list's).
+        blocked = self.list_widget.blockSignals(True)
+        try:
+            self.list_widget.clear()
+            for item in self._items:
+                self.list_widget.addItem(QListWidgetItem(self._text(item)))
+        finally:
+            self.list_widget.blockSignals(blocked)
+
+    @staticmethod
+    def _text(item: DispersionConfig) -> str:
+        return f"{item.spacecraft}: {item.quantity} ({item.kind})"
 
     def _on_add(self) -> None:
+        """Add a dispersion with the form's defaults and open its form (no
+        dialog first, M4b): Remove or Undo take back one not wanted."""
+        self.inline.flush()
         dialog = _DispersionEditorDialog(self._spacecraft_names, parent=self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
+        try:
             item = dialog.to_dataclass()
-            self._items.append(item)
-            self._refresh_list()
-            self.list_widget.setCurrentRow(len(self._items) - 1)
-            show_toast(self.window(), f"Added dispersion: {item.spacecraft}: {item.quantity}")
-            self.changed.emit()
-
-    def _on_edit(self) -> None:
-        row = self.list_widget.currentRow()
-        if row < 0:
+        except ValueError as exc:  # no spacecraft yet
+            report(self, f"Not added: {exc}", kind="warning")
             return
-        dialog = _DispersionEditorDialog(self._spacecraft_names, item=self._items[row], parent=self)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            item = dialog.to_dataclass()
-            self._items[row] = item
-            self._refresh_list()
-            self.list_widget.setCurrentRow(row)
-            show_toast(self.window(), f"Updated dispersion: {item.spacecraft}: {item.quantity}")
-            self.changed.emit()
+        finally:
+            dialog.deleteLater()
+        self._items.append(item)
+        self._refresh_list()
+        self.list_widget.setCurrentRow(len(self._items) - 1)
+        show_toast(self.window(), f"Added dispersion: {item.spacecraft}: {item.quantity}")
+        self.changed.emit()
+        self._focus_form()
+
+    def _form_for(self, row: int) -> "_DispersionEditorDialog":
+        return _DispersionEditorDialog(self._spacecraft_names, item=self._items[row], parent=self)
+
+    def _on_applied(self, row: int, item) -> None:
+        if not 0 <= row < len(self._items) or item == self._items[row]:
+            return
+        self._items[row] = item
+        self.list_widget.item(row).setText(self._text(item))
+        self.changed.emit()
+
+    def _focus_form(self) -> None:
+        if self.inline.form is not None:
+            self.inline.form.quantity_combo.setFocus()
 
     def _on_remove(self) -> None:
         row = self.list_widget.currentRow()
         if row < 0:
             return
+        self.inline.discard()  # its row goes: an edit it holds goes with it
         item = self._items[row]
         del self._items[row]
         self._refresh_list()
@@ -378,6 +405,7 @@ class DispersionListWidget(QWidget):
         return list(self._items)
 
     def from_list(self, items: list) -> None:
+        self.inline.discard()  # another scenario's dispersions
         self._items = list(items)
         self._refresh_list()
 

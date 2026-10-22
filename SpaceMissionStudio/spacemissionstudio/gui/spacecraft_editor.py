@@ -2757,7 +2757,7 @@ class SpacecraftListWidget(QWidget):
         # actions; row 2 is the one-off bulk-generation action.
         # Each row wraps when the page is narrower than it (M4a: the three
         # generators made the Spacecraft page scroll sideways at 1280 px).
-        self.add_button = QPushButton("Add...")
+        self.add_button = QPushButton("Add")
         self.edit_button = QPushButton("Edit...")
         self.remove_button = QPushButton("Remove")
         self.new_from_template_button = QPushButton("New from template...")
@@ -2858,6 +2858,8 @@ class SpacecraftListWidget(QWidget):
             n += 1
             candidate = f"{base_name}-{n}"
         dialog.name_edit.setText(candidate)
+        if self._add_inline(dialog, "Added spacecraft {!r}"):
+            return
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
             if config.name in existing_names:
@@ -2868,6 +2870,21 @@ class SpacecraftListWidget(QWidget):
             self.list_widget.setCurrentRow(len(self._configs) - 1)
             show_toast(self.window(), f"Added spacecraft {config.name!r}")
             self.changed.emit()
+
+    def _add_inline(self, dialog, message: str) -> bool:
+        """In the Scenario editor (M4b): add the spacecraft ``dialog`` holds
+        and open its page; no dialog is shown. False on a list used alone."""
+        if getattr(self, "_edit_handler", None) is None:
+            return False
+        config = dialog.to_dataclass()
+        dialog.deleteLater()
+        self._configs.append(config)
+        self._refresh_list()
+        self.list_widget.setCurrentRow(len(self._configs) - 1)
+        show_toast(self.window(), message.format(config.name))
+        self.changed.emit()
+        self._edit_handler(len(self._configs) - 1)
+        return True
 
     def _on_new_from_template(self) -> None:
         from .spacecraft_template_dialog import SpacecraftTemplateDialog
@@ -2895,6 +2912,8 @@ class SpacecraftListWidget(QWidget):
                                          epoch_provider=self._epoch_provider,
                                          central_body_provider=self._central_body_provider,
                                          base_dir_provider=self._base_dir_provider)
+        if self._add_inline(dialog, "Added spacecraft {!r} from template"):
+            return
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
             if config.name in existing_names:
