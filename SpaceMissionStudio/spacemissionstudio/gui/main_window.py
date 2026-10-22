@@ -40,7 +40,7 @@ import weakref
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import QElapsedTimer, QEventLoop, Qt, QTimer
+from PySide6.QtCore import QElapsedTimer, QEvent, QEventLoop, Qt, QTimer
 from PySide6.QtGui import QActionGroup, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
@@ -228,7 +228,11 @@ class MainWindow(QMainWindow):
         self._last_run_epoch_utc: str | None = None  # set in on_run(); see its own comment
         self._last_run_vizard_file: str | None = None  # the playback file the last run writes, if any
         # the runs kept for comparison, saved in ~/.spacemissionstudio/runs (U-33, decision 5)
-        self.run_history = RunHistory(store_root=run_store.default_root())
+        # Read and saved in a worker thread (M5a): the end of a run does not wait for the disk.
+        self.run_history = RunHistory(store_root=run_store.default_root(), background=True, parent=self)
+        self.run_history.loaded.connect(self._on_runs_loaded)
+        self.run_history.saved.connect(self._on_run_saved)
+        self._compare_stale = False  # Compare is refreshed when next shown (M5a)
         self._last_run_scenario: Scenario | None = None  # set in on_run(); fed to mission_dashboard_widget
 
         self.scenario_editor = ScenarioEditorWidget()
@@ -312,6 +316,7 @@ class MainWindow(QMainWindow):
 
         # Compare is a view of the results (§5.2), after them.
         self.compare_widget = CompareWidget()
+        self.compare_widget.installEventFilter(self)  # refreshed when shown, if stale (M5a)
         self.compare_widget.compare_chosen.connect(self._on_compare_chosen)
         self.compare_widget.delete_requested.connect(self._on_delete_run)
         # a bound method, not a lambda holding the window (test_a_closed_window_is_freed)
@@ -952,8 +957,19 @@ class MainWindow(QMainWindow):
         self.compare_widget.follow_results_choice(self.results_widget.compare_combo.currentData())
 
     def _refresh_compare_tab(self, *_args) -> None:
+        """Compare's runs; while it is hidden, refreshed when next shown (its
+        plot took 58-113 ms at the end of every run, M5a)."""
+        if not self.compare_widget.isVisible():
+            self._compare_stale = True
+            return
+        self._compare_stale = False
         self.compare_widget.set_runs(self.run_history.runs, self.results_widget._current_run,
                                      self.results_widget.compare_combo.currentData(), self.run_history.store_root)
+
+    def eventFilter(self, watched, event):  # noqa: N802 -- Qt API name
+        if watched is self.compare_widget and event.type() == QEvent.Type.Show and self._compare_stale:
+            QTimer.singleShot(0, self, self._refresh_compare_tab)
+        return super().eventFilter(watched, event)
 
     def _on_delete_run(self, record) -> None:
         """Compare's Delete: forget the run and remove it from disk."""
@@ -1393,10 +1409,20 @@ class MainWindow(QMainWindow):
         if self._last_run_scenario is None:
             return
         record = self.run_history.add(self._last_run_scenario.to_dict(), result, self._last_run_epoch_utc or "",
-                                      cancelled=cancelled)
-        if self.run_history.last_save_error:  # kept in memory for this session only
-            show_toast(self, f"{record.name} is not saved for later sessions: see the Log", kind="warning")
+                                      cancelled=cancelled)  # saved in a worker: _on_run_saved
         self.results_widget.set_runs(self.run_history.runs, record)
+        self._refresh_compare_tab()
+
+    def _on_runs_loaded(self) -> None:
+        """The earlier sessions' runs are listed (read in a worker, M5a)."""
+        self.results_widget.set_runs(self.run_history.runs, self.results_widget._current_run)
+        self._refresh_compare_tab()
+
+    def _on_run_saved(self, record) -> None:
+        """A run's save ended: a run that could not be saved stays for this
+        session only, and says so."""
+        if self.run_history.last_save_error:
+            show_toast(self, f"{record.name} is not saved for later sessions: see the Log", kind="warning")
         self._refresh_compare_tab()
 
     def _offer_vizard_playback(self) -> None:
@@ -2385,6 +2411,8 @@ class MainWindow(QMainWindow):
             # discarded), and no explanation is started for a window going away.
             self._autosave_timer.stop()
             self.scenario_explainer_widget.shut_down()
+            self.run_history.wait_loaded()
+            self.run_history.wait_for_saves()  # a run ended just before must be on disk
             self.lifetime_widget.wait_for_worker()  # a few seconds at most; its thread must not be destroyed mid-run
             self.budget_widget.wait_for_worker()
             self.flight_software_widget.wait_for_worker()
