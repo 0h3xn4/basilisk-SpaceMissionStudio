@@ -336,3 +336,24 @@ def test_add_opens_a_new_spacecrafts_and_stations_page(window, monkeypatch):
     assert len(editor.ground_station_list.to_list()) == stations + 1
     assert editor.page_tree.current_page() is editor._station_nodes[-1].holder
     editor.to_scenario()  # both validate
+
+
+def test_the_inline_device_form_shows_its_card_only_for_a_picked_device(qtbot):
+    """Embedded under the list, the device form has no scroll area of its
+    own, and its device card shows only once a real device is picked (an
+    empty card showed after the move)."""
+    from PySide6.QtWidgets import QScrollArea
+
+    from spacemissionstudio.gui.sensor_actuator_editor import SensorActuatorListWidget
+    from spacemissionstudio.schema.scenario import SUPPORTED_SENSOR_KINDS, SensorConfig
+
+    widget = SensorActuatorListWidget(SensorConfig, SUPPORTED_SENSOR_KINDS)
+    qtbot.addWidget(widget)
+    widget.show()
+    widget._on_add()  # a star tracker, which the catalog has
+    qtbot.waitUntil(lambda: not widget.inline.form.findChildren(QScrollArea), timeout=5000)  # the old ones deleted
+    form = widget.inline.form
+    assert form.catalog_combo.count() > 1 and form.catalog_combo.currentIndex() == 0
+    assert form._card.isHidden()
+    form.catalog_combo.setCurrentIndex(1)
+    assert not form._card.isHidden() and form.catalog_info_label.text()

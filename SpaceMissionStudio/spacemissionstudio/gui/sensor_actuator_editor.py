@@ -598,6 +598,7 @@ class _ItemEditorDialog(QDialog):
         self._body.setDirection(QBoxLayout.Direction.TopToBottom)
         self._catalog_container.setMinimumWidth(0)
         self._catalog_container.setMaximumWidth(_NO_MAXIMUM_WIDTH_PX)
+        card_shown = not self._card_scroll.isHidden()  # hidden while no device is picked
         for scroll, layout in ((self._card_scroll, self._catalog_layout), (self._form_scroll, self._params_column)):
             index = layout.indexOf(scroll)
             inner = scroll.takeWidget()
@@ -605,6 +606,7 @@ class _ItemEditorDialog(QDialog):
             layout.removeWidget(scroll)
             scroll.hide()  # out of the layout, but shown until it is deleted
             scroll.deleteLater()
+        self._card.setVisible(card_shown)
         self._card_scroll = self._card  # what the catalog shows and hides
         self._form_scroll = None
 
