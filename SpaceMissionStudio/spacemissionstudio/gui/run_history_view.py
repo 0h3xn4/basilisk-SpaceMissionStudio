@@ -291,9 +291,11 @@ class RunHistoryView(QWidget):
         self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.table.verticalHeader().setVisible(False)
-        self.table.horizontalHeader().setStretchLastSection(False)
-        self.table.horizontalHeader().setSectionResizeMode(HISTORY_COLUMNS.index("Scenario"),
-                                                           QHeaderView.ResizeMode.Stretch)
+        header = self.table.horizontalHeader()
+        header.setStretchLastSection(False)
+        for column, name in enumerate(HISTORY_COLUMNS):  # every column its text's width; Scenario takes the rest
+            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch if name == "Scenario"
+                                        else QHeaderView.ResizeMode.ResizeToContents)
         self.table.doubleClicked.connect(self._on_double_clicked)
         self.table.selectionModel().selectionChanged.connect(self._on_selection)
         layout.addWidget(self.table, 1)

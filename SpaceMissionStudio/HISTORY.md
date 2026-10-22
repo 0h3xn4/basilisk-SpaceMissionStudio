@@ -12448,3 +12448,48 @@ they reach Explain, the JSON or a list's item; 5 of their expectations
 changed with the behaviour on purpose (Add without a dialog, back to Form
 refused). Each is in `docs/ui/TEST_CHANGES.md`. `test_editing_flow.py` is new (17 tests);
 `test_forms.py` has one more. Golden files and every output are unchanged.
+
+## M5a: the end of a run and its record (2026-10-22)
+
+M5 (Run and logs) is split before starting into M5a, the end of a run and
+its record, and M5b, the Run area's controls (the plan's §7 status;
+`docs/DECISIONS.md`, M5).
+
+**What changed.**
+- **The end of a run waits less.** A run is saved, and the store pruned,
+  in a worker thread, one run at a time; the earlier sessions' runs are
+  read in one at start-up (a run that ends before they are listed waits
+  for them, so the numbering goes on from them). Closing waits for a run
+  still being saved. The results view no longer draws its plots a second
+  time when the run is kept, and Compare, whose plot cost 58-113 ms at the
+  end of every run, is refreshed when it is shown.
+- **Run › History** lists every run, newest first: status (an icon and a
+  word), run, scenario, mode, start (UTC), duration and whether it is
+  saved ("Saving..." while it is written), the provenance in a popover,
+  Copy and Ctrl+C. The duration and the start come from what a saved run
+  already holds (its provenance's start, its end): no file format
+  changed. Failed runs and Monte Carlo batches, which the run store does
+  not keep, are listed for the session.
+- **The Log records each run** from the GUI: its start and mode, its end
+  with its length and series, each of its warnings, and where it is
+  saved (or why it is not). Copy copies the selection or every record
+  shown.
+
+**The end of a run** (`scripts/measure_run_end.py`, new; template 23,
+three runs in one window, M4b's code first): it held the window 301-323 ms
+(the first run of a session 788 ms), then 50-81 ms again; now 152-163 ms
+(first run 519 ms), and nothing after. **Not met** ("no stall over
+50 ms"): what is left is the results view building its Plotly figure,
+which M6 rebuilds.
+
+**Screenshots.** `scripts/capture_ui_screens.py --theme both`, this branch
+against M4b: 117 shots per theme (M4b: 115). The new ones are History
+before a run (its empty state with Run) and after one. The Log after a
+run now shows the run's records. History's start column was cut off; it
+now takes its text's width and the scenario the rest.
+
+**Tests.** FULL_SUITE_RESULT. `test_run_record.py` is new (10 tests). Two
+existing GUI tests changed how they reach Compare (it is refreshed when
+shown), and one expectation changed on purpose (the Run area's tabs now
+include History), each in `docs/ui/TEST_CHANGES.md`. Golden files and
+every output are unchanged.
