@@ -12341,8 +12341,11 @@ and M4b, the editing flow (the plan's §7 status; `docs/DECISIONS.md`).
   station dialog 426 px wide for a 406 px size hint); the forms are now
   finished before the dialog takes its size.
 
-**Tests.** TEST_RESULTS_PLACEHOLDER Of the existing GUI tests, 2 changed
-only how they reach a value or a label, each in
+**Tests.** The full suite: 3759 passed, 12 skipped and 1 failed (Python
+3.13 here; CI runs 3.11). The failure measured the Monte Carlo page's
+dispersion buttons, which Monte Carlo off now hides; the test turns it on
+first and passes (`docs/ui/TEST_CHANGES.md`). Of the existing GUI tests, 3 changed
+only how they reach a value, a label or a button, each in
 `docs/ui/TEST_CHANGES.md`. `test_forms.py` is new, with 38 tests; among
 them, every template is written back byte for byte after every page has
 been shown. Golden files and every output are unchanged.

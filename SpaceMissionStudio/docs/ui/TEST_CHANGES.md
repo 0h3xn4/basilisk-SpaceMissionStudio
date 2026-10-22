@@ -212,14 +212,15 @@ reaches the same behaviour there.
 
 No test outside `tests/gui/` changed. No golden or output file changed.
 A form's unit moved from its label ("Duration [days]") into its number
-field's suffix ("0.1000 days"). Each test below reaches the same value or
-label there.
+field's suffix ("0.1000 days"), and an optional group shows only its title
+while off. Each test below reaches the same value, label or button there.
 
 ### Changed: how a test reaches the widget
 
 | Test | Before | Now | Assertions kept |
 |---|---|---|---|
 | `test_scenario_editor.py::_environment_labels` (used by `test_environment_form_has_labeled_rows`) | Each row's label text | Each row's label with its unit, as messages name it (the label's `sms_full_label` when the form moved the unit into the field, else its text) | Every Environment field has its own label: "Central body", "Integrator", "Dynamics task rate [s]", "Duration [days]", "Atmosphere model" |
+| `test_wide_screen.py::test_list_buttons_keep_their_own_width` | Measured the dispersion list's Add on the Monte Carlo page as shown | Turns Monte Carlo on first, then measures it once shown | Add, Edit and Remove under each list are about a button's width, not a third of a wide page. With Monte Carlo off its page shows only its switch, so the list's buttons were hidden and had never been laid out (640 px, Qt's default) |
 | `test_ground_station_editor.py::test_dialog_rejects_out_of_range_latitude` | `float(dialog.lat_deg.text())` | `float(dialog.lat_deg.cleanText())` (the text without the "°" suffix) | A latitude of 999 deg is kept by the box, shown as 90 and refused |
 
 ### Added
