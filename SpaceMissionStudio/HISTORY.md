@@ -12577,6 +12577,15 @@ first run of a session (M5a: 152-163 ms); the first run 311 ms (was
 519 ms). Not met; about half of it is the Output page (its command table,
 then showing it), which M6b rebuilds.
 
+**Screenshots.** `scripts/capture_ui_screens.py --theme both`, this branch
+against M5b: 122 shots per theme (M5b: 120). New: Results › Overview
+before a run (its empty state with Run) and after one (seven cards for
+template 23, all neutral). The Results header now begins with Overview;
+the plots are the same. A first capture opened Results on a plot the
+measurement script had left in this machine's saved layouts; the
+harness and `measure_plot_switch.py` now keep Results' layouts in a
+temporary file, as the harness already did for the recent scenarios.
+
 **Tests.** The full suite: 3806 passed and 12 skipped, none failed (Python
 3.13 here; CI runs 3.11). `test_plot_view.py` (5 tests) and
 `test_results_overview.py` (7) are new. Eighteen results tests and
