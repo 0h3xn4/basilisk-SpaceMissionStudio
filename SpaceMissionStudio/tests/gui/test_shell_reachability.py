@@ -202,8 +202,8 @@ _ROWS = {
     "Results › Dashboard": lambda w: _shown(w, w.mission_dashboard_widget, "results"),
     "Results › Output": lambda w: _shown(w, w.mission_output_widget, "results"),
     "Results › Monte Carlo": lambda w: (_monte_carlo_shown(w)),
-    # M6 adds Results > Overview; nothing is there to reach yet.
-    "(none)": lambda w: None,
+    # M6a: Results > Overview, the run's metric cards.
+    "(none)": lambda w: _shown(w, w.results_overview, "results"),
     "**Events** tab": lambda w: _shown(w, w.event_timeline_widget, "timeline"),
     "**Compare** tab": lambda w: _shown(w, w.compare_widget, "results"),
     "**Log** tab": lambda w: _shown(w, w.log_widget, "run"),

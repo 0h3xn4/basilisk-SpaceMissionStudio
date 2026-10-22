@@ -351,3 +351,36 @@ dispersions are edited in a form under their list instead of a dialog.
   edited, the Monte Carlo folder used without the picker and remembered
   per scenario, an empty folder falling back to the picker, and a SIL run
   without a confirmed program not starting and saying where to choose it.
+
+
+## M6a The Overview and the plot view
+
+### Changed: how a test reaches the widget
+
+The plot page is loaded once and then takes each change without a reload
+(M6a), so a test that waited for the page to load after a change
+(`web_view.loadFinished`) now waits for the page to say the plots are
+drawn (`plot_drawn`, carrying whether Plotly drew them without an error,
+as `loadFinished` carried whether the page loaded). The assertions after
+each wait are unchanged. The tests and fixtures (18):
+
+| Test or fixture |
+|---|
+| `test_results_widget.py::test_a_page_reload_during_a_save_still_saves` |
+| `test_results_widget.py::test_save_plot_as_png_writes_a_real_png_file` |
+| `test_results_widget.py::test_save_plot_as_png_appends_extension_if_missing` |
+| `test_results_widget.py::test_redraw_does_not_reenable_save_button_while_a_png_poll_is_in_flight` |
+| `test_results_widget.py::test_save_plot_as_png_is_a_no_op_while_a_poll_is_already_in_flight` |
+| `test_results_widget.py::test_save_plot_as_png_poll_state_resets_after_completion_allowing_a_later_save` |
+| `test_results_widget.py::test_save_plot_as_svg_writes_a_real_svg_file` |
+| `test_results_widget.py::test_save_plot_as_svg_appends_extension_if_missing` |
+| `test_results_widget.py::test_save_png_and_save_svg_share_the_same_re_entrancy_guard` |
+| `test_results_widget.py::test_redraw_does_not_reenable_save_svg_button_while_a_poll_is_in_flight` |
+| `test_results_widget.py::test_access_timeline_renders_in_the_real_webview` |
+| `test_results_widget.py::test_save_plot_default_name_is_access_timeline_in_that_view` |
+| `test_results_widget.py::test_a_large_series_still_shows_when_selected` |
+| `test_results_widget.py::test_plot_page_fills_the_view_without_a_scroll_bar` |
+| `test_plot_workspace.py::test_the_grid_links_its_x_axes_in_the_page` |
+| `test_plot_workspace.py::test_export_all_writes_every_plot_its_data_and_the_provenance` |
+| `test_results_cursor.py::plot` |
+| `test_results_cursor.py::test_on_a_utc_axis_the_cursor_round_trips_through_the_plotted_text` |

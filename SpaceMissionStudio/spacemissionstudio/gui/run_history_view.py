@@ -237,8 +237,13 @@ class ProvenancePopover(QFrame):
         layout.addWidget(self.body)
 
     def show_for(self, entry: HistoryEntry, at: QPoint) -> None:
-        self.title.setText(f"Run {entry.number}" if entry.number is not None else entry.scenario)
-        self.body.setText(provenance_text(entry.provenance))
+        self.show_text(f"Run {entry.number}" if entry.number is not None else entry.scenario,
+                       provenance_text(entry.provenance), at)
+
+    def show_text(self, title: str, text: str, at: QPoint) -> None:
+        """``text`` under ``title``, at ``at`` (Results › Overview's too, M6a)."""
+        self.title.setText(title)
+        self.body.setText(text)
         self.adjustSize()
         self.move(at)
         self.show()

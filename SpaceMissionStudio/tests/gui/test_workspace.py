@@ -92,7 +92,7 @@ def test_the_areas_and_what_they_hold(window):
         "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo"]
     assert window.shell.page("scenario").header.isAncestorOf(window.scenario_editor.mode_toggle)  # Form · JSON
     assert _tab_texts(window.run_views) == ["Run", "End of Life", "Budget", "History", "Log"]  # History: M5a; Run: M5b
-    assert _tab_texts(window.results_views) == ["Plots", "Dashboard", "Output", "Compare"]
+    assert _tab_texts(window.results_views) == ["Overview", "Plots", "Dashboard", "Output", "Compare"]  # Overview: M6a
     assert window.shell.page("timeline").content is window.event_timeline_widget
     assert window.shell.page("reports").content is window.flight_software_widget
     assert window.side_dock.widget() is window.inspector_widget
