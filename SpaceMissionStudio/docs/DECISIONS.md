@@ -5,6 +5,34 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## M5b The Run area's controls (2026-10-22)
+
+Recorded before coding, after reading the run mode menu, the Vizard
+dialog, the SIL prompts and the Monte Carlo folder picker.
+
+- **A Run page, first in the Run area,** holds what the next run uses,
+  for the mode chosen: the options that were menu entries and dialogs.
+  End of Life, Budget, History and the Log stay beside it.
+- **The mode is a segmented control, Single · Monte Carlo · SIL,** in the
+  Run area's header, replacing its "Single run ▾" menu button. The top
+  bar keeps its compact mode menu: it is on every area, where three
+  segments would take the room of the title.
+- **Single:** Live plot as a check box (the same command as before, with
+  its palette entry), and the Vizard options as a form on the page,
+  applied as they are edited (the dialog's form, embedded). Vizard
+  Configuration opens the page there; Launch Vizard stays a command.
+- **Monte Carlo:** the archive folder as a field with Browse...,
+  remembered per scenario (by its file, or its name when unsaved); Run
+  uses it without asking. An empty field still asks with the folder
+  picker (a chooser, not a question). Overwriting a folder that holds a
+  batch stays a confirmation, the one destructive question (§5).
+- **SIL:** the spacecraft whose flight software runs (those that can be
+  exported) and the run's options (the SIL dialog's form, embedded), on
+  the page; Run starts it without a prompt. With none that can be
+  exported, the page says why and where to fix it.
+- **The header's Live plot and Vizard Configuration buttons go:** they
+  are on the page. Their commands stay in the palette.
+
 ## M5 Run and logs (2026-10-22)
 
 Recorded before coding, after reading the run, the run store and the
