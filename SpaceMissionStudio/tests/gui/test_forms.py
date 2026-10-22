@@ -260,7 +260,8 @@ def test_every_page_of_the_template(window, path, tmp_path):
       has a framed panel or a scroll area inside it (no boxes in boxes);
     - nothing widens the window;
     - saved afterwards, the file is the template's byte for byte: units
-      moved into the fields change no value."""
+      moved into the fields change no value (the platform's line
+      endings aside: the checkout has LF, a save on Windows CRLF)."""
     assert window.side_dock.isVisible()
     assert window.open_path(path)
     problems = []
@@ -273,7 +274,7 @@ def test_every_page_of_the_template(window, path, tmp_path):
     assert window.width() == 1280  # [px]
     out = tmp_path / path.name
     window.scenario_editor.to_scenario().save(out)
-    assert out.read_bytes() == path.read_bytes()
+    assert out.read_bytes().replace(b"\r\n", b"\n") == path.read_bytes().replace(b"\r\n", b"\n")
 
 
 # -- the unsaved-changes indicator ------------------------------------------------------
