@@ -38,7 +38,7 @@ from dataclasses import dataclass
 from typing import Deque, List, Optional, Sequence, Tuple
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QSortFilterProxyModel, Qt, QUrl, Signal
-from PySide6.QtGui import QColor, QDesktopServices, QKeySequence
+from PySide6.QtGui import QColor, QDesktopServices, QGuiApplication, QKeySequence
 from PySide6.QtWidgets import (QAbstractItemView, QAbstractSpinBox, QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
                                QFormLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
                                QSpinBox, QTableView, QTextEdit, QVBoxLayout, QWidget)
@@ -416,9 +416,13 @@ class LogViewWidget(QWidget):
         self.open_file_button = QPushButton("Open log file")
         self.open_file_button.setToolTip("The full log, with debug records and every traceback")
         self.open_file_button.clicked.connect(self.open_log_file)
+        self.copy_button = QPushButton("Copy")
+        self.copy_button.setToolTip("Copy the selected text, or every record shown")
+        self.copy_button.clicked.connect(self.copy)
         row.addWidget(QLabel("Show:"))
         row.addWidget(self.level_combo)
         row.addWidget(self.filter_edit, 1)
+        row.addWidget(self.copy_button)
         row.addWidget(self.open_file_button)
         layout.addLayout(row)
         self.text = QPlainTextEdit()
@@ -455,6 +459,11 @@ class LogViewWidget(QWidget):
     def _render(self) -> None:
         self.text.setPlainText("\n".join(self._line(r) for r in self.records if self._matches(r)))
         self.text.moveCursor(self.text.textCursor().MoveOperation.End)
+
+    def copy(self) -> None:
+        """The selection, or every record shown, to the clipboard."""
+        selected = self.text.textCursor().selectedText().replace("\u2029", "\n")
+        QGuiApplication.clipboard().setText(selected or self.text.toPlainText())
 
     def show_errors(self) -> None:
         """Filter to warnings and errors and scroll to the last one."""
