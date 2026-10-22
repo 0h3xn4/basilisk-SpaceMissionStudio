@@ -53,6 +53,14 @@ before starting (§7 status; §8 allows a split).
   settings' suffixes are typeset. A setting it labels from its field
   name has the unit token split off ("record_interval_s" was "Record
   interval s", now "Record interval" with "s").
+- **Forms are walked through their widgets and layouts, never their
+  `QLayoutItem`s:** Qt deletes a layout item without telling PySide6, and
+  the item's Python wrapper can then be handed out for a new object at
+  that address. On CI's Windows job a `QMenu`'s new `QAction` came back
+  as a `QWidgetItem` after the walker had visited every row of every
+  form. `widgets.form_rows` and `layout_widgets` use
+  `getWidgetPosition`, `getLayoutPosition` and `indexOf` instead;
+  `feedback.row_label` uses `labelForField`.
 - **The third-body perturbers stay in lower case:** the list's text is
   the body's code, which tests read. Showing "Mercury" means a data role
   and ported tests, which is outside M4a's criteria.

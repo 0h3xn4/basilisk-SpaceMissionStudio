@@ -45,8 +45,8 @@ from decimal import Decimal
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QValidator
-from PySide6.QtWidgets import (QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox, QLabel, QSpinBox,
-                               QTabBar, QTabWidget, QWidget)
+from PySide6.QtWidgets import (QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox, QLabel, QLayout,
+                               QSpinBox, QTabBar, QTabWidget, QWidget)
 
 # Qt rounds every value to decimals() as it is set. 40 decimal places
 # keep a double's full 17 significant digits for magnitudes down to
@@ -269,6 +269,37 @@ class NumberField(PreciseDoubleSpinBox):
         style_number(self, unit)
 
 
+# Forms are walked through QObjects only (widgets and layouts), never their
+# QLayoutItems: Qt deletes an item without telling PySide6, whose wrapper
+# for it can then be handed out for a new object at that address (on CI, a
+# QMenu's new QAction came back as a QWidgetItem).
+_DIRECT = Qt.FindChildOption.FindDirectChildrenOnly
+
+
+def layout_widgets(layout: QLayout) -> list:
+    """The widgets ``layout`` holds, its nested layouts' too."""
+    parent = layout.parentWidget()
+    widgets = [w for w in parent.findChildren(QWidget, options=_DIRECT) if layout.indexOf(w) >= 0] if parent else []
+    for nested in layout.findChildren(QLayout, options=_DIRECT):
+        widgets += layout_widgets(nested)
+    return widgets
+
+
+def form_rows(form: QFormLayout) -> dict:
+    """``{row: {role: widget or layout}}`` of ``form``'s rows."""
+    rows: dict = {}
+    parent = form.parentWidget()
+    for widget in parent.findChildren(QWidget, options=_DIRECT) if parent else []:
+        row, role = form.getWidgetPosition(widget)
+        if row >= 0:
+            rows.setdefault(row, {})[role] = widget
+    for nested in form.findChildren(QLayout, options=_DIRECT):
+        row, role = form.getLayoutPosition(nested)
+        if row >= 0:
+            rows.setdefault(row, {})[role] = nested
+    return rows
+
+
 def _number_boxes(field) -> list:
     """The spin boxes a form row's field is or holds."""
     if isinstance(field, QAbstractSpinBox):
@@ -276,11 +307,7 @@ def _number_boxes(field) -> list:
     if isinstance(field, QWidget):
         return field.findChildren(QAbstractSpinBox)
     if field is not None:  # a layout: the boxes of its widgets
-        boxes = []
-        for index in range(field.count()):
-            item = field.itemAt(index)
-            boxes += _number_boxes(item.widget() if item.widget() is not None else item.layout())
-        return boxes
+        return [box for widget in layout_widgets(field) for box in _number_boxes(widget)]
     return []
 
 
@@ -297,16 +324,12 @@ def units_into_fields(root: QWidget) -> None:
         # A row too wide for the page puts its field under its label instead
         # of making the page scroll sideways (the Power page at 1280 px).
         form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
-        for row in range(form.rowCount()):
-            label_item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
-            field_item = form.itemAt(row, QFormLayout.ItemRole.FieldRole)
-            if field_item is None:
-                continue
-            field = field_item.widget() if field_item.widget() is not None else field_item.layout()
+        for _row, roles in sorted(form_rows(form).items()):
+            field = roles.get(QFormLayout.ItemRole.FieldRole)
             boxes = _number_boxes(field)
             if not boxes:
                 continue
-            label = label_item.widget() if label_item is not None else None
+            label = roles.get(QFormLayout.ItemRole.LabelRole)
             unit = None
             if isinstance(label, QLabel):
                 text, unit = units.split_label(label.text())
