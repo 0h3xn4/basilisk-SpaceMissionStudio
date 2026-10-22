@@ -12526,3 +12526,11 @@ header shows the segmented control in place of the mode button, Live plot
 and Vizard Configuration. The first capture showed the Single page as
 tall as the SIL page (a stacked widget takes its tallest page's height):
 the pages not shown are now ignored in the layout.
+
+**Tests.** The full suite: 3794 passed and 12 skipped, none failed
+(Python 3.13 here; CI runs 3.11). `test_run_page.py` is new (6 tests).
+Five existing GUI tests and four rows of the shell reachability check
+changed how they reach the run controls (Run › Run, the segmented
+control), and one expectation changed on purpose (the Run area's tabs now
+begin with Run), each in `docs/ui/TEST_CHANGES.md`. Golden files and every
+output are unchanged.
