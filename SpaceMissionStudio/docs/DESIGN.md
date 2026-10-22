@@ -249,6 +249,18 @@ bar and no toolbar:
   JetBrains Mono, with the level filter, the search and Copy.
 - **The end of a run (M5a):** saving and pruning in a worker; Compare
   refreshed when shown; the results drawn once.
+- **Results › Overview (M6a):** `gui.results_overview`: one metric card
+  (`role="card"`, 216 px wide, in a `FlowLayout`) per `run_summary`
+  figure: its label in the secondary tone, its value in the numeric font
+  (page size) and its unit; critical (an icon, the words, the critical
+  tone) only for a link margin below 0 dB and an empty battery. Worked out
+  in a `QThread`; the provenance in History's popover; an empty state with
+  Run.
+- **The plot page (M6a):** one persistent `QWebEngineView` page
+  (`plot_page.shell_page`): plotly.js loaded once, each change sent with
+  `Plotly.react` (`render_script`, only the cells whose figure changed);
+  the page reports "drawn" through its title (`plot_drawn`). Figures are
+  kept per plot until what they show changes.
 - **Run › Run (M5b):** the run mode as a segmented control in the Run
   area's header (`gui.run_page.RunModeControl`, the same `segmentedControl`
   look as Form · JSON); the Run page (`RunPage`) shows what the next run

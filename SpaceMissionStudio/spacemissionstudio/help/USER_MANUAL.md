@@ -188,7 +188,8 @@ A few things to notice right away:
     fixed-width font, filterable by level and text, with **Copy**; a
     failed run opens it at its warnings and errors).
   * **Results**, which fills in when you run something (Section 7), with
-    the **Plots**, the **Dashboard**, the mission **Output**, a **Monte
+    the run's **Overview** (its headline figures), the **Plots**, the
+    **Dashboard**, the mission **Output**, a **Monte
     Carlo** view when the scenario has Monte Carlo on (Section 10) and
     **Compare**: your saved runs, of this session and earlier ones, side
     by side (a summary with differences, the inputs that differ, the
@@ -950,6 +951,17 @@ byte order.
 After a run finishes, the **Results** area opens on **Plots**: a catalog
 of the run's plots on the left, the plots in a grid beside it, and a
 readout under the catalog.
+
+**Overview**, the first view of Results, shows the run's headline
+figures as cards, each with its unit: run length, delta-V and propellant
+used, the change of the mean semi-major axis, the lowest link margin and
+battery charge, passes and contact time, eclipses and eclipse time, and
+data downlinked (only those the run recorded; Compare's summary has the
+same figures). A card is red, with an icon and its reason, only where the
+scenario sets the limit: a link margin below 0 dB (the margin already
+includes the required Eb/N0) and a battery that ran empty. **Provenance**
+beside the run's name shows what produced it: the versions, the
+integrator and step, the data files.
 
 * **The catalog** lists every plot by group (Orbit, Attitude, Power,
   Link, Data, Thermal, Propellant, Sensors, Monte Carlo), by its title

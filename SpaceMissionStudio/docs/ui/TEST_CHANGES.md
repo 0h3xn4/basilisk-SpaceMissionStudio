@@ -384,3 +384,28 @@ each wait are unchanged. The tests and fixtures (18):
 | `test_plot_workspace.py::test_export_all_writes_every_plot_its_data_and_the_provenance` |
 | `test_results_cursor.py::plot` |
 | `test_results_cursor.py::test_on_a_utc_axis_the_cursor_round_trips_through_the_plotted_text` |
+
+| Test | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_shell_reachability.py` row "(none)" (Results › Overview) | No check: nothing to reach before M6 | Results › Overview is shown in the Results area | The row of §5.2 is reachable |
+
+### Changed: what M6a changes on purpose
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_workspace.py::test_the_areas_and_what_they_hold` | The Results area's tabs: Plots, Dashboard, Output, Compare | Overview, Plots, Dashboard, Output, Compare | M6's criterion: Overview metric cards from `engine.run_summary` |
+
+### Added
+
+- `tests/gui/test_plot_view.py` (5 tests): the page loaded once and each
+  change (another plot, a plot added, another x axis) drawn in it; a
+  figure built once until what it shows changes (the x axis, the theme);
+  one construction giving the figure the earlier steps gave; the layout
+  saved after the click and read back at once by another view; the
+  start-up objects frozen out of full collections.
+- `tests/gui/test_results_overview.py` (7 tests): the empty state's Run;
+  a card per figure with its value and unit; critical only below the
+  scenario's thresholds, with an icon and the words; the figures worked
+  out off the GUI thread; a run shown while another is worked out wins;
+  the provenance popover; a run ending shows its overview in the main
+  window.

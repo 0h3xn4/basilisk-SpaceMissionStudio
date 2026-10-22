@@ -33,15 +33,34 @@ writing the page and reloading it with plotly.js.
   neutral. The figures are computed off the GUI thread.
 - **One persistent plot page:** loaded once with plotly.js; a change of
   plots, layout or theme sends the figures' JSON to it (`Plotly.react`),
-  with no reload. The page tells the view when a plot is drawn. A page
-  larger than `runJavaScript` can carry is still loaded from a file.
+  with no reload. The page tells the view when a plot is drawn (and
+  whether Plotly drew it without an error). A theme switch loads the page
+  again (its fonts and surface).
 - **Figures are built once and kept** per plot until the result, the
   theme, the x axis, the comparison or the event bands change; showing
   another plot builds only that one. A figure is built in one validated
   construction (its traces and layout together), with the same JSON as
-  before, so exports and every saved image are unchanged.
+  before (checked on every plot of a template 23 run, three x axes, both
+  themes: the same objects; only the order of keys in the text differs,
+  and no file holds that text), so exports and every saved image are
+  unchanged.
 - **The layout is saved after the click,** not in it (a timer; the
-  QSettings write took about 15 ms).
+  QSettings write took about 15 ms). Reading a saved layout, hiding the
+  view and quitting write what is pending first.
+- **Start-up's objects leave the garbage collector's full collections**
+  (`gc.freeze()` once the window is up, after a collection). A full
+  collection walked them all: 190-234 ms on the GUI thread wherever it
+  fell, a plot switch or a keystroke. Freezing again after each run would
+  keep a whole simulation's cyclic garbage for good, so it is done once.
+- **Measured after** (`scripts/measure_plot_switch.py`, which freezes as
+  the app does; three runs, 36 switches): a switch holds the window at
+  most 30.5 ms (median 19-22 ms), and the plot is drawn after about
+  110 ms (median 106-126 ms; was about 415 ms). Met.
+- **The end of a run stays held, now for M6b** (`scripts/measure_run_end.py`):
+  102-110 ms after the first run of a session (M5a: 152-163 ms; the first
+  311 ms, was 519 ms). Of what is left, the Output page (filling its
+  command table and showing it) is about half; M6b rebuilds it as a
+  `DataTable`.
 
 ## M5b The Run area's controls (2026-10-22)
 
