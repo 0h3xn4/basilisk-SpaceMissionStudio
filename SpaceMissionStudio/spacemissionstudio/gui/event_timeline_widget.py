@@ -43,13 +43,13 @@ from typing import Dict, List, Optional
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QColor, QFontMetrics, QKeySequence, QPainter, QPen, QShortcut
-from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QComboBox, QFileDialog, QHBoxLayout,
-                               QHeaderView, QLabel, QLineEdit, QPushButton, QSplitter, QTableWidget,
-                               QTableWidgetItem, QToolTip, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton,
+                               QSplitter, QToolTip, QVBoxLayout, QWidget)
 
 from .. import output_provenance
 from ..engine import events as event_model
 from ..engine.results import ResultSet
+from .data_table import DataTable, LazyRows, Row
 from .feedback import report
 from .theme import PALETTE, SERIES_COLORS, set_role
 from .time_cursor import TimeCursor, describe
@@ -83,67 +83,175 @@ def _duration_text(seconds: float) -> str:
     return f"{seconds / 3600.0:.2f} h"
 
 
-class _SortItem(QTableWidgetItem):
-    """A cell that sorts by a number, not by its text."""
-
-    def __init__(self, text: str, key: float):
-        super().__init__(text)
-        self._key = key
-
-    def __lt__(self, other):  # noqa: D105 -- Qt sort hook
-        if isinstance(other, _SortItem):
-            return self._key < other._key
-        return super().__lt__(other)
+def _event_text(event: event_model.Event) -> str:
+    """What the search looks in: the event's text, any case."""
+    return " ".join((event.kind, event.spacecraft, event.other, event.label, event.detail)).lower()
 
 
 def _matches(event: event_model.Event, words: List[str]) -> bool:
     """Every search word appears in the event's text (any case)."""
-    text = " ".join((event.kind, event.spacecraft, event.other, event.label, event.detail)).lower()
+    text = _event_text(event)
     return all(word in text for word in words)
 
 
-class _EventTable(QTableWidget):
-    """The events table; Ctrl+C copies the selected rows as TSV (U-32)."""
+_UTC_BLOCK = 128  # events whose UTC times are worked out together, when a row of them is first shown
 
-    def keyPressEvent(self, event):  # noqa: N802 -- Qt API name
-        if event.matches(QKeySequence.StandardKey.Copy):
-            QApplication.clipboard().setText(self.selection_tsv())
-            event.accept()
+
+class _EventRows(LazyRows):
+    """The table's rows, made when the view shows them (UI overhaul M7: a
+    QTableWidgetItem a cell for 10,000 events held the window for seconds);
+    sorted by each column's values with NumPy."""
+
+    def __init__(self, events: List[event_model.Event], headings: List[str], keys: List[str],
+                 epoch_utc: Optional[str]) -> None:
+        super().__init__(len(events))
+        self.events, self.headings, self.keys, self.epoch_utc = events, headings, keys, epoch_utc
+        self.utc = headings[0] == "Start (UTC)"
+        self.order = np.arange(len(events))
+        self._utc_blocks: Dict[int, tuple] = {}
+
+    def event(self, index: int) -> event_model.Event:
+        """The event of row ``index`` in the order shown."""
+        return self.events[int(self.order[index])]
+
+    def _utc(self, position: int) -> tuple:
+        block = position // _UTC_BLOCK
+        texts = self._utc_blocks.get(block)
+        if texts is None:
+            from ..engine import time_system
+
+            chunk = self.events[block * _UTC_BLOCK:(block + 1) * _UTC_BLOCK]
+            moments = time_system.elapsed_to_utc(self.epoch_utc, [e.start_s for e in chunk]
+                                                 + [e.end_s for e in chunk])  # one call: each has a fixed cost
+            texts = [event_model.utc_text(m, "seconds") for m in moments]
+            texts = self._utc_blocks[block] = (texts[:len(chunk)], texts[len(chunk):])
+        return texts[0][position % _UTC_BLOCK], texts[1][position % _UTC_BLOCK]
+
+    def make(self, index: int) -> Row:
+        position = int(self.order[index])
+        event = self.events[position]
+        if self.utc:
+            cells = list(self._utc(position))
+        else:
+            cells = [f"{event.start_s / 3600.0:.4f}", f"{event.end_s / 3600.0:.4f}"]
+        cells += [f"{event.duration_s / 60.0:.2f}", event.label]
+        if "Spacecraft" in self.headings:
+            cells.append(event.spacecraft)
+        if "Station" in self.headings:
+            cells.append(event.other)
+        for key in self.keys:
+            value = event.quantity(key)
+            cells.append("" if value is None else format(value, event_model.QUANTITIES[key][2]))
+        tip = f"T+{event.start_s:.1f} s" + (f"\n{event.detail}" if event.detail else "")
+        tooltips = dict.fromkeys(range(len(cells)), tip)
+        if "Note" in self.headings:
+            tooltips[len(cells)] = event.note
+            cells.append(event.note)
+        return Row(cells, tooltips=tooltips)
+
+    def sort_keys(self, column: int) -> np.ndarray:
+        heading = self.headings[column]
+        events = self.events
+        if heading.startswith("Start"):
+            return np.array([e.start_s for e in events])
+        if heading.startswith("End"):
+            return np.array([e.end_s for e in events])
+        if heading.startswith("Duration"):
+            return np.array([e.duration_s for e in events])
+        texts = {"Event": lambda e: e.label, "Spacecraft": lambda e: e.spacecraft, "Station": lambda e: e.other,
+                 "Note": lambda e: e.note}.get(heading)
+        if texts is not None:
+            return np.array([texts(e) for e in events], dtype=object)
+        key = self.keys[column - (len(self.headings) - len(self.keys) - ("Note" in self.headings))]
+        return np.array([-np.inf if e.quantity(key) is None else e.quantity(key) for e in events])
+
+    def sort(self, column: int, descending: bool) -> None:
+        if not 0 <= column < len(self.headings):
             return
-        super().keyPressEvent(event)
+        order = np.argsort(self.sort_keys(column), kind="stable")
+        self.order = order[::-1] if descending else order
 
-    def selection_tsv(self) -> str:
-        """The selected rows, in the order shown, under a line of headings."""
-        rows = sorted({index.row() for index in self.selectedIndexes()})
-        if not rows:
-            return ""
-        columns = range(self.columnCount())
-        lines = ["\t".join(self.horizontalHeaderItem(c).text().replace("\n", " ") for c in columns)]
-        for row in rows:
-            cells = [self.item(row, c) for c in columns]
-            lines.append("\t".join(cell.text() if cell is not None else "" for cell in cells))
-        return "\n".join(lines) + "\n"
+
+class _Lane:
+    """One lane of the timeline: its events (``index`` into the timeline's
+    list) by start, and their ends' running maximum (to find those in view)."""
+
+    def __init__(self, index: np.ndarray, starts: np.ndarray, ends: np.ndarray, kind_codes: np.ndarray,
+                 kind_names: List[str]) -> None:
+        self.index = index
+        self.starts, self.ends = starts[index], ends[index]  # [s]
+        self.reach = np.maximum.accumulate(self.ends) if self.ends.size else self.ends  # [s]
+        codes = kind_codes[index]
+        present = np.unique(codes)
+        self.kinds = [kind_names[code] for code in present]
+        self.kind_of = np.searchsorted(present, codes)
+
+    def in_view(self, start: float, end: float) -> slice:
+        """The events that overlap ``start`` to ``end`` [s] are within this slice."""
+        return slice(int(np.searchsorted(self.reach, start, "left")), int(np.searchsorted(self.starts, end, "right")))
+
+
+# UTC tick steps [s]: minutes to years, round in UTC
+_UTC_STEPS_S = (60, 300, 600, 900, 1800, 3600, 2 * 3600, 3 * 3600, 6 * 3600, 12 * 3600, 86400, 2 * 86400,
+                7 * 86400, 14 * 86400, 30 * 86400, 91 * 86400, 182 * 86400, 365 * 86400)
+_PAN_STEP = 0.1  # [-] of the visible span, an arrow key
+_ZOOM_STEP = 0.8  # [-] the visible span after one zoom-in step
 
 
 class GanttView(QWidget):
-    """The timeline: one row per spacecraft and kind (per station for a pass)."""
+    """The timeline: one row per spacecraft and kind (per station for a
+    pass). The wheel zooms around the pointer; Shift+wheel, a horizontal
+    wheel and a right- or middle-button drag pan; +/- zoom, the arrow keys
+    pan, 0 or Home fits. A left click or drag sets the time cursor."""
 
     time_picked = Signal(float)  # [s]
 
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         self.setMouseTracking(True)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMinimumHeight(_AXIS_HEIGHT + 2 * _ROW_HEIGHT)
         self.events: List[event_model.Event] = []
         self.rows: List[str] = []
+        self.lanes: List[_Lane] = []
         self.cursor_s: Optional[float] = None
         self.run_end_s = 1.0  # [s]
         self.view = (0.0, 1.0)  # [s] the visible time span
+        self.epoch_utc: Optional[str] = None
+        self._utc_span: Optional[tuple] = None
+        self._utc_key: Optional[tuple] = None  # (epoch, run end) the span is of
+        self._pan_from: Optional[tuple] = None  # (x [px], view) while a drag pans
 
-    def set_events(self, events: List[event_model.Event], run_end_s: float) -> None:
+    def set_events(self, events: List[event_model.Event], run_end_s: float, epoch_utc: Optional[str] = None) -> None:
+        """Show ``events``: arrays and lanes made with NumPy (M7: 10,000 events
+        sorted and split in Python held the window 30-110 ms)."""
         self.events = events
-        self.rows = list(dict.fromkeys(e.row for e in sorted(events, key=lambda e: (e.kind, e.row))))
-        self.run_end_s = max(run_end_s, max((e.end_s for e in events), default=0.0), 1.0)  # [s]
+        self.epoch_utc = epoch_utc
+        count = len(events)
+        rows = [e.row for e in events]
+        kinds = [e.kind for e in events]
+        self.rows = list(dict.fromkeys(row for _kind, row in sorted(set(zip(kinds, rows)))))
+        row_code = {row: code for code, row in enumerate(self.rows)}
+        kind_names = sorted(set(kinds))
+        kind_code = {kind: code for code, kind in enumerate(kind_names)}
+        starts = np.fromiter((e.start_s for e in events), float, count)  # [s]
+        ends = np.fromiter((e.end_s for e in events), float, count)  # [s]
+        codes = np.fromiter((row_code[row] for row in rows), int, count)
+        kind_codes = np.fromiter((kind_code[kind] for kind in kinds), int, count)
+        order = np.lexsort((starts, codes))  # by lane, then start
+        bounds = np.searchsorted(codes[order], np.arange(len(self.rows) + 1))
+        self.lanes = [_Lane(order[bounds[lane]:bounds[lane + 1]], starts, ends, kind_codes, kind_names)
+                      for lane in range(len(self.rows))]
+        self.run_end_s = max(run_end_s, float(ends.max()) if count else 0.0, 1.0)  # [s]
+        if (epoch_utc, self.run_end_s) != self._utc_key:  # once a run, not at each filter (~10 ms a conversion)
+            self._utc_key, self._utc_span = (epoch_utc, self.run_end_s), None  # (UTC at 0, at the run's end)
+            if epoch_utc:
+                from ..engine import time_system
+
+                try:
+                    self._utc_span = tuple(time_system.elapsed_to_utc(epoch_utc, [0.0, self.run_end_s]))
+                except ValueError:
+                    pass
         self.fit()
         self.setMinimumHeight(_AXIS_HEIGHT + max(len(self.rows), 2) * _ROW_HEIGHT + 4)
 
@@ -154,6 +262,25 @@ class GanttView(QWidget):
     def set_cursor_time(self, time_s: Optional[float]) -> None:
         self.cursor_s = time_s
         self.update()
+
+    def _show(self, start: float, width: float) -> None:
+        """Show ``width`` [s] from ``start``, kept within the run."""
+        width = min(max(width, 1.0), self.run_end_s)  # [s] one second across at most
+        start = min(max(start, 0.0), self.run_end_s - width)
+        self.view = (start, start + width)
+        self.update()
+
+    def zoom(self, factor: float, centre_s: Optional[float] = None) -> None:
+        """Scale the visible span by ``factor`` (< 1 zooms in) around ``centre_s`` (default: its middle)."""
+        start, end = self.view
+        centre = (start + end) / 2.0 if centre_s is None else centre_s
+        width = (end - start) * factor
+        self._show(centre - (centre - start) * width / (end - start), width)
+
+    def pan(self, fraction: float) -> None:
+        """Move the visible span by ``fraction`` of its width (> 0: later)."""
+        start, end = self.view
+        self._show(start + fraction * (end - start), end - start)
 
     # -- geometry ---------------------------------------------------------
 
@@ -182,10 +309,10 @@ class GanttView(QWidget):
             return None
         time_s = self.time_at(point.x())
         tolerance_s = (self.view[1] - self.view[0]) / max(self._plot_rect().width(), 1.0) * 3  # [s] 3 px
-        for event in self.events:
-            if event.row == self.rows[row] and event.start_s - tolerance_s <= time_s <= event.end_s + tolerance_s:
-                return event
-        return None
+        lane = self.lanes[row]
+        near = lane.in_view(time_s - tolerance_s, time_s + tolerance_s)
+        return next((self.events[i] for i in lane.index[near]
+                     if self.events[i].start_s - tolerance_s <= time_s <= self.events[i].end_s + tolerance_s), None)
 
     # -- painting ---------------------------------------------------------
 
@@ -206,44 +333,95 @@ class GanttView(QWidget):
             painter.setPen(grid)
             painter.drawLine(QPointF(rect.left(), top + _ROW_HEIGHT), QPointF(rect.right(), top + _ROW_HEIGHT))
         self._paint_axis(painter, rect, muted, grid)
-        row_index = {row: i for i, row in enumerate(self.rows)}
         start, end = self.view
+        scale = rect.width() / (end - start)  # [px/s]
         painter.setPen(Qt.PenStyle.NoPen)
-        for event in self.events:
-            if event.end_s < start or event.start_s > end:
+        for index, lane in enumerate(self.lanes):
+            shown = lane.in_view(start, end)
+            if shown.start >= shown.stop:
                 continue
-            x0, x1 = self.x_of(max(event.start_s, start)), self.x_of(min(event.end_s, end))
-            top = row_index[event.row] * _ROW_HEIGHT + 4
-            painter.setBrush(QColor(kind_colour(event.kind)))
-            painter.drawRoundedRect(QRectF(x0, top, max(x1 - x0, _MIN_BAR_PX), _ROW_HEIGHT - 8), 2, 2)
+            top = index * _ROW_HEIGHT + 4
+            x0 = rect.left() + (np.maximum(lane.starts[shown], start) - start) * scale  # [px]
+            x1 = np.maximum(rect.left() + (np.minimum(lane.ends[shown], end) - start) * scale, x0 + _MIN_BAR_PX)
+            kinds = lane.kind_of[shown]
+            for kind_index, kind in enumerate(lane.kinds):
+                mine = kinds == kind_index
+                if not mine.any():
+                    continue
+                painter.setBrush(QColor(kind_colour(kind)))
+                for left, right in _merged(x0[mine], x1[mine]):
+                    painter.drawRoundedRect(QRectF(left, top, right - left, _ROW_HEIGHT - 8), 2, 2)
         if self.cursor_s is not None and start <= self.cursor_s <= end:
             x = self.x_of(self.cursor_s)
             painter.setPen(QPen(QColor(PALETTE["accent"]), 2))  # the time cursor: a selection
             painter.drawLine(QPointF(x, 0), QPointF(x, rect.bottom()))
 
-    def _paint_axis(self, painter: QPainter, rect: QRectF, muted: QColor, grid: QColor) -> None:
+    def _ticks(self) -> List[tuple]:
+        """``(time [s], label)`` of each tick in view: round UTC times with
+        Z when the run has an epoch (UI overhaul M7), else elapsed hours or days."""
         start, end = self.view
+        width_px = max(self._plot_rect().width(), 1.0)
+        if self._utc_span is not None:
+            from datetime import datetime, timedelta
+
+            # Between the run's two ends, UTC follows elapsed time to within
+            # milliseconds (TDB - UTC drifts that little): enough for ticks
+            # labelled to the minute, without a conversion at every paint.
+            zero, run_end = self._utc_span
+            per_s = (run_end - zero).total_seconds() / self.run_end_s  # [-] UTC seconds per elapsed second
+            first, last = zero + timedelta(seconds=start * per_s), zero + timedelta(seconds=end * per_s)
+            span_s = max((last - first).total_seconds(), 1.0)  # [s]
+            step_s = next((s for s in _UTC_STEPS_S if span_s / s <= width_px / 90.0), _UTC_STEPS_S[-1])
+            day = datetime(first.year, first.month, first.day)
+            tick = day + timedelta(seconds=np.ceil((first - day).total_seconds() / step_s) * step_s) \
+                if step_s < 86400 else day + timedelta(days=1 if first > day else 0)
+            ticks = []
+            while tick <= last and len(ticks) < 200:
+                time_s = start + (tick - first).total_seconds() * (end - start) / span_s
+                if step_s < 86400 and (tick.hour or tick.minute):
+                    label = f"{tick:%H:%M}Z"
+                else:
+                    label = f"{tick:%Y-%m-%d}"
+                ticks.append((time_s, label))
+                tick += timedelta(seconds=step_s) if step_s < 86400 else timedelta(days=step_s // 86400)
+            return ticks
         span_h = (end - start) / 3600.0  # [h]
         step_h = next((s for s in (0.01, 0.05, 0.1, 0.25, 0.5, 1, 2, 6, 12, 24, 48, 168, 720, 2160, 8760)
                        if span_h / s <= 8), 8760.0)  # [h]
-        tick = np.ceil(start / 3600.0 / step_h) * step_h  # [h]
-        while tick <= end / 3600.0:
-            x = self.x_of(tick * 3600.0)
+        tick_h = np.ceil(start / 3600.0 / step_h) * step_h  # [h]
+        ticks = []
+        while tick_h <= end / 3600.0:
+            ticks.append((tick_h * 3600.0, f"{tick_h / 24:g} d" if step_h >= 24 else f"{tick_h:g} h"))
+            tick_h += step_h
+        return ticks
+
+    def _paint_axis(self, painter: QPainter, rect: QRectF, muted: QColor, grid: QColor) -> None:
+        for time_s, label in self._ticks():
+            x = self.x_of(time_s)
             painter.setPen(grid)
             painter.drawLine(QPointF(x, 0), QPointF(x, rect.bottom()))
             painter.setPen(muted)
-            label = f"{tick / 24:g} d" if step_h >= 24 else f"{tick:g} h"
-            painter.drawText(QRectF(x - 40, rect.bottom() + 2, 80, _AXIS_HEIGHT - 4), Qt.AlignmentFlag.AlignCenter,
+            painter.drawText(QRectF(x - 45, rect.bottom() + 2, 90, _AXIS_HEIGHT - 4), Qt.AlignmentFlag.AlignCenter,
                              label)
-            tick += step_h
 
-    # -- mouse ------------------------------------------------------------
+    # -- mouse and keys ---------------------------------------------------
 
     def mousePressEvent(self, event):  # noqa: N802 -- Qt API name
-        if event.button() == Qt.MouseButton.LeftButton and event.position().x() >= self._plot_rect().left():
+        if event.button() in (Qt.MouseButton.RightButton, Qt.MouseButton.MiddleButton):
+            self._pan_from = (event.position().x(), self.view)
+        elif event.button() == Qt.MouseButton.LeftButton and event.position().x() >= self._plot_rect().left():
             self.time_picked.emit(self.time_at(event.position().x()))
 
+    def mouseReleaseEvent(self, event):  # noqa: N802 -- Qt API name
+        self._pan_from = None
+        super().mouseReleaseEvent(event)
+
     def mouseMoveEvent(self, event):  # noqa: N802 -- Qt API name
+        if self._pan_from is not None:
+            x, (start, end) = self._pan_from
+            moved_s = (x - event.position().x()) / max(self._plot_rect().width(), 1.0) * (end - start)  # [s]
+            self._show(start + moved_s, end - start)
+            return
         if event.buttons() & Qt.MouseButton.LeftButton:
             self.time_picked.emit(self.time_at(event.position().x()))
             return
@@ -256,14 +434,38 @@ class GanttView(QWidget):
         QToolTip.showText(event.globalPosition().toPoint(), text, self)
 
     def wheelEvent(self, event):  # noqa: N802 -- Qt API name
-        """Zoom around the pointer, in to one second across at most."""
-        centre = self.time_at(event.position().x())
-        factor = 0.8 if event.angleDelta().y() > 0 else 1.25
-        start, end = self.view
-        width = min(max((end - start) * factor, 1.0), self.run_end_s)  # [s]
-        new_start = min(max(centre - (centre - start) * width / (end - start), 0.0), self.run_end_s - width)
-        self.view = (new_start, new_start + width)
-        self.update()
+        """Zoom around the pointer, in to one second across at most;
+        Shift+wheel or a horizontal wheel pans."""
+        delta = event.angleDelta()
+        if delta.x() or event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
+            steps = (delta.x() or delta.y()) / 120.0
+            self.pan(-steps * _PAN_STEP)
+            return
+        self.zoom(_ZOOM_STEP if delta.y() > 0 else 1.0 / _ZOOM_STEP, self.time_at(event.position().x()))
+
+    def keyPressEvent(self, event):  # noqa: N802 -- Qt API name
+        key = event.key()
+        if key in (Qt.Key.Key_Plus, Qt.Key.Key_Equal):
+            self.zoom(_ZOOM_STEP)
+        elif key == Qt.Key.Key_Minus:
+            self.zoom(1.0 / _ZOOM_STEP)
+        elif key in (Qt.Key.Key_Left, Qt.Key.Key_Right):
+            self.pan(_PAN_STEP if key == Qt.Key.Key_Right else -_PAN_STEP)
+        elif key in (Qt.Key.Key_0, Qt.Key.Key_Home):
+            self.fit()
+        else:
+            super().keyPressEvent(event)
+
+
+def _merged(x0: np.ndarray, x1: np.ndarray) -> List[tuple]:
+    """The spans ``x0`` to ``x1`` [px] (by ``x0``) joined where they touch:
+    a year of passes is a few hundred rectangles, not thousands."""
+    if x0.size == 0:
+        return []
+    reach = np.maximum.accumulate(x1)
+    starts = np.flatnonzero(np.concatenate([[True], x0[1:] > reach[:-1] + 1.0]))
+    ends = np.concatenate([starts[1:], [x0.size]]) - 1
+    return list(zip(x0[starts].tolist(), reach[ends].tolist()))
 
 
 class EventTimelineWidget(QWidget):
@@ -288,7 +490,8 @@ class EventTimelineWidget(QWidget):
             self.kind_boxes[kind] = box
         controls.addStretch(1)
         self.fit_button = QPushButton("Fit")
-        self.fit_button.setToolTip("Show the whole run. The mouse wheel zooms the timeline.")
+        self.fit_button.setToolTip("Show the whole run (0). The wheel or +/- zooms the timeline; Shift+wheel, the "
+                                   "arrow keys or a right-button drag move it.")
         controls.addWidget(self.fit_button)
         self.export_button = QPushButton("Export CSV...")
         self.export_button.setToolTip("The events shown in the table, with a provenance file beside them.")
@@ -330,18 +533,15 @@ class EventTimelineWidget(QWidget):
         self.fit_button.clicked.connect(self.gantt.fit)
         self.gantt.time_picked.connect(self._pick_time)
         splitter.addWidget(self.gantt)
-        self.table = _EventTable(0, 0)
-        self.table.setAccessibleName("Events")
-        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table.verticalHeader().setVisible(False)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-        self.table.horizontalHeader().setStretchLastSection(False)  # values stay next to their event
-        self.table.cellClicked.connect(self._on_row_clicked)
+        # A DataTable whose rows are made when shown (UI overhaul M7): 10,000 events at once.
+        self.table = DataTable("No events in this run.", direct=True)  # filtered here, sorted by its rows
+        self.table.view.setAccessibleName("Events")
+        self.table.set_presorted()
+        self.table.view.horizontalHeader().setSortIndicator(0, Qt.SortOrder.AscendingOrder)  # earliest first
+        self.table.view.clicked.connect(lambda index: self._on_row_clicked(index.row()))
         self._filling = False
-        self.table.currentCellChanged.connect(self._on_current_cell_changed)
-        self._sorted_by_user = False
-        self.table.horizontalHeader().sectionClicked.connect(lambda _c: setattr(self, "_sorted_by_user", True))
+        self.table.view.selectionModel().currentRowChanged.connect(self._on_current_row_changed)
+        self._texts: List[str] = []  # each event's search text, made once a run
         splitter.addWidget(self.table)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
@@ -360,6 +560,7 @@ class EventTimelineWidget(QWidget):
     def set_result(self, result: Optional[ResultSet], epoch_utc: Optional[str] = None) -> None:
         self._result, self._epoch_utc = result, epoch_utc
         self.events = event_model.extract_events(result)
+        self._texts = [_event_text(event) for event in self.events]
         missing = event_model.missing_kinds(result) if result is not None else {}
         counts = {kind: sum(e.kind == kind for e in self.events) for kind in event_model.KINDS}
         if result is None:
@@ -390,8 +591,9 @@ class EventTimelineWidget(QWidget):
         shown = {kind for kind, box in self.kind_boxes.items() if box.isChecked()}
         station = self.station_combo.currentText()
         words = self.search.text().lower().split()
-        return [e for e in self.events if e.kind in shown and (station in ("", _ALL_STATIONS) or e.other == station)
-                and _matches(e, words)]
+        any_station = station in ("", _ALL_STATIONS)
+        return [e for e, text in zip(self.events, self._texts)
+                if e.kind in shown and (any_station or e.other == station) and all(w in text for w in words)]
 
     def _apply_filter(self) -> None:
         visible = self.visible_events()
@@ -399,7 +601,7 @@ class EventTimelineWidget(QWidget):
                                  if len(visible) != len(self.events) else "")
         run_end = max((float(s.time_s[-1]) for s in self._result.series.values() if s.time_s.size),
                       default=0.0) if self._result is not None else 0.0  # [s]
-        self.gantt.set_events(visible, run_end)
+        self.gantt.set_events(visible, run_end, self._epoch_utc)
         self._fill_table(visible)
         self._fit_timeline_height()
 
@@ -443,50 +645,22 @@ class EventTimelineWidget(QWidget):
     def _fill_table(self, visible: List[event_model.Event]) -> None:
         headings = self.columns(visible)
         keys = event_model.present_quantities(visible)
-        starts = self._utc_texts([e.start_s for e in visible])
-        ends = self._utc_texts([e.end_s for e in visible])
+        utc = headings[0] == "Start (UTC)"
+        numeric = [c for c, h in enumerate(headings)
+                   if (not utc and c < 2) or h.startswith("Duration") or h in self._quantity_headings(keys)]
         self._filling = True
-        self.table.setSortingEnabled(False)
-        self.table.clearContents()
-        self.table.setColumnCount(len(headings))
+        self.rows = _EventRows(visible, headings, keys, self._epoch_utc)
         # the unit under the name keeps the value columns narrow (Ctrl+C joins them again)
-        self.table.setHorizontalHeaderLabels([heading.replace(" [", "\n[") for heading in headings])
-        self.table.setRowCount(len(visible))
-        for row, event in enumerate(visible):
-            if starts is not None and ends is not None:
-                cells = [_SortItem(starts[row], event.start_s), _SortItem(ends[row], event.end_s)]
-            else:
-                cells = [_SortItem(f"{event.start_s / 3600.0:.4f}", event.start_s),
-                         _SortItem(f"{event.end_s / 3600.0:.4f}", event.end_s)]
-                for cell in cells:
-                    cell.setTextAlignment(_RIGHT)
-            cells.append(_SortItem(f"{event.duration_s / 60.0:.2f}", event.duration_s))
-            cells[-1].setTextAlignment(_RIGHT)
-            cells.append(QTableWidgetItem(event.label))
-            if "Spacecraft" in headings:
-                cells.append(QTableWidgetItem(event.spacecraft))
-            if "Station" in headings:
-                cells.append(QTableWidgetItem(event.other))
-            for key in keys:
-                value = event.quantity(key)
-                fmt = event_model.QUANTITIES[key][2]
-                cells.append(_SortItem("" if value is None else format(value, fmt),
-                                       float("-inf") if value is None else value))
-                cells[-1].setTextAlignment(_RIGHT)
-            if "Note" in headings:
-                cells.append(QTableWidgetItem(event.note))
-                cells[-1].setToolTip(event.note)
-            cells[0].setData(Qt.ItemDataRole.UserRole, event.start_s)
-            tip = f"T+{event.start_s:.1f} s" + (f"\n{event.detail}" if event.detail else "")
-            for column, item in enumerate(cells):
-                if not item.toolTip():
-                    item.setToolTip(tip)
-                self.table.setItem(row, column, item)
-        self.table.setSortingEnabled(True)
-        if self.table.horizontalHeader().sortIndicatorSection() == 0 and not self._sorted_by_user:
-            self.table.sortItems(0, Qt.SortOrder.AscendingOrder)  # earliest first until the user sorts
-        self.table.resizeColumnsToContents()
+        self.table.set_table([heading.replace(" [", "\n[") for heading in headings], self.rows, numeric=numeric,
+                             stretch=-1)
+        header = self.table.view.horizontalHeader()
+        self.table.sort_by(header.sortIndicatorSection() if header.sortIndicatorSection() < len(headings) else 0,
+                           header.sortIndicatorOrder())  # the order chosen, earliest first until one is
         self._filling = False
+
+    @staticmethod
+    def _quantity_headings(keys: List[str]) -> List[str]:
+        return [f"{event_model.QUANTITIES[key][0]} [{event_model.QUANTITIES[key][1]}]" for key in keys]
 
     # -- cursor -----------------------------------------------------------
 
@@ -496,16 +670,18 @@ class EventTimelineWidget(QWidget):
         else:
             self.on_cursor_changed(time_s)
 
-    def _on_row_clicked(self, row: int, _column: int) -> None:
-        item = self.table.item(row, 0)
-        start = item.data(Qt.ItemDataRole.UserRole) if item is not None else None
-        if start is not None:
-            self._pick_time(float(start))
+    def row_event(self, row: int) -> event_model.Event:
+        """The event of the table's shown row ``row``."""
+        return self.rows.event(self.table.shown_rows()[row])
 
-    def _on_current_cell_changed(self, row: int, _column: int, previous_row: int, _previous_column: int) -> None:
+    def _on_row_clicked(self, row: int) -> None:
+        if 0 <= row < self.table.row_count():
+            self._pick_time(float(self.row_event(row).start_s))
+
+    def _on_current_row_changed(self, current, previous) -> None:
         """The arrow keys move the cursor from row to row, as a click does."""
-        if not self._filling and row >= 0 and row != previous_row:
-            self._on_row_clicked(row, 0)
+        if not self._filling and current.isValid() and current.row() != previous.row():
+            self._on_row_clicked(current.row())
 
     def on_cursor_changed(self, time_s: Optional[float]) -> None:
         self.gantt.set_cursor_time(time_s)

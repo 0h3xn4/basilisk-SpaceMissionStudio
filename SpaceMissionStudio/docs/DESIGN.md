@@ -261,6 +261,14 @@ bar and no toolbar:
   `Plotly.react` (`render_script`, only the cells whose figure changed);
   the page reports "drawn" through its title (`plot_drawn`). Figures are
   kept per plot until what they show changes.
+- **The Timeline (M7):** its table is a `DataTable` over lazy rows
+  (`data_table.LazyRows`, `direct=True`): a row is formatted when shown,
+  sorted with NumPy by a header click; columns sized from the first rows.
+  The Gantt keeps each lane's starts, ends and their running maximum in
+  NumPy arrays: what is in view is found by bisection and drawn merged by
+  pixel. The axis is UTC with `Z` when the run has an epoch. Zoom: the
+  wheel, `+`/`-`; pan: Shift+wheel, a right or middle drag, the arrow keys;
+  fit: `0` or Home.
 - **DataTable (M6b):** `gui.data_table`, the table of a view: a
   `QTableView` over `DataModel` through a filter proxy; numeric columns
   right-aligned in the numeric font (units in the headers); group rows

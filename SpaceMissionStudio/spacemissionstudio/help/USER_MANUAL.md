@@ -1093,8 +1093,11 @@ sunlight [%]", "Delta-V [m/s]", "Data [Gbit]"); a column shows only when
 some event has a value for it. Untick a kind to hide it; type in the
 search box (**Ctrl+F**; every word must match) or pick a ground station
 to narrow the timeline and the table; hover a bar or a row for its
-details; the mouse wheel zooms the timeline and **Fit** shows the whole
-run again. **Ctrl+C** copies the selected rows, with the headings, as
+details. The timeline's axis is in UTC ("08:00Z", the date at midnight)
+when the run has an epoch. The mouse wheel (or `+` and `-`) zooms it;
+Shift+wheel, the arrow keys or dragging with the right mouse button moves
+it; **Fit** (or `0`) shows the whole run again. Ten thousand events (a
+year of passes) filter and sort without a pause. **Ctrl+C** copies the selected rows, with the headings, as
 tab-separated text that pastes into a spreadsheet as columns. **Export
 CSV...** writes the events shown, in seconds and UTC with one column per
 measured value, with a `.provenance.json` file beside them.
