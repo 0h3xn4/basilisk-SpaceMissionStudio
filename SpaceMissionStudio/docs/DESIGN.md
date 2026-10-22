@@ -239,6 +239,16 @@ bar and no toolbar:
   (`gui.inline_form.InlineForm`), applied 300 ms after the last edit once
   it validates, the reason above the form when it does not. Add creates
   the item and opens it; no modal dialog.
+- **Run › History (M5a):** a `QTableView` over `HistoryModel`: status (an
+  icon and a word), run, scenario, mode, start (ISO 8601 UTC with Z) and
+  duration in JetBrains Mono, right-aligned duration, and whether it is
+  saved; sortable, newest first, Ctrl+C copies TSV; an empty state with
+  Run as its primary action; the provenance in a popover (a card).
+- **The Log's record of a run (M5a):** the GUI logs each run's start,
+  end, warnings and where it is saved (`spacemissionstudio.run`), in
+  JetBrains Mono, with the level filter, the search and Copy.
+- **The end of a run (M5a):** saving and pruning in a worker; Compare
+  refreshed when shown; the results drawn once.
 - **Problems panel, at the bottom (Ctrl+J):** a `QTableView` over
   `ProblemsModel`: Severity (icon and word), ID (the field path), Object,
   Message; errors first, any column sorts, Ctrl+C copies TSV, Enter or a

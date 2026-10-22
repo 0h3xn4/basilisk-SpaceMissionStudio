@@ -1326,7 +1326,8 @@ class ResultsWidget(QWidget):
         for widget in (self.compare_label, self.compare_combo, self.diff_button):
             widget.setVisible(bool(others) and current is not None)
         self._update_provenance_label()
-        self._redraw()
+        if chosen is not None or self.compare_combo.currentData() is not None:
+            self._redraw()  # the comparison drawn changed; with none before or after, the plots are as they were (M5a)
 
     def comparison_run(self):
         number = self.compare_combo.currentData()

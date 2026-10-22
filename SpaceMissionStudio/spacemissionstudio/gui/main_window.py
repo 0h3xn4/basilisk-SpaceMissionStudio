@@ -34,13 +34,14 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import logging
+from datetime import datetime, timezone
 import subprocess
 import time
 import weakref
 from pathlib import Path
 from typing import Optional
 
-from PySide6.QtCore import QElapsedTimer, QEventLoop, Qt, QTimer
+from PySide6.QtCore import QElapsedTimer, QEvent, QEventLoop, Qt, QTimer
 from PySide6.QtGui import QActionGroup, QCloseEvent, QKeySequence
 from PySide6.QtWidgets import (
     QApplication,
@@ -93,6 +94,7 @@ from .shell import AreaPage, AreaStack, Shell
 from .time_cursor import TimeCursor, describe as describe_time
 from .undo_history import ScenarioHistory
 from .run_history import RunHistory
+from .run_history_view import HistoryEntry, RunHistoryView, run_entry, utc_text
 from .vizard_dialog import VizardDialog
 from .vizard_launcher import (
     DEFAULT_LIVE_STREAM_ADDRESS,
@@ -122,6 +124,8 @@ _HISTORY_SETTLE_MS = 400  # [ms] an edit is recorded for undo once typing pauses
 _AUTOSAVE_INTERVAL_MS = 30_000
 
 _logger = logging.getLogger(__name__)
+# The Log's record of each run (M5a): start, end, warnings, where it is saved.
+_run_logger = logging.getLogger("spacemissionstudio.run")
 _LAYOUT_VERSION = 4  # [-] saveState() version: bump when the docks change, so an old layout is ignored
 
 
@@ -228,7 +232,11 @@ class MainWindow(QMainWindow):
         self._last_run_epoch_utc: str | None = None  # set in on_run(); see its own comment
         self._last_run_vizard_file: str | None = None  # the playback file the last run writes, if any
         # the runs kept for comparison, saved in ~/.spacemissionstudio/runs (U-33, decision 5)
-        self.run_history = RunHistory(store_root=run_store.default_root())
+        # Read and saved in a worker thread (M5a): the end of a run does not wait for the disk.
+        self.run_history = RunHistory(store_root=run_store.default_root(), background=True, parent=self)
+        self.run_history.loaded.connect(self._on_runs_loaded)
+        self.run_history.saved.connect(self._on_run_saved)
+        self._compare_stale = False  # Compare is refreshed when next shown (M5a)
         self._last_run_scenario: Scenario | None = None  # set in on_run(); fed to mission_dashboard_widget
 
         self.scenario_editor = ScenarioEditorWidget()
@@ -312,6 +320,7 @@ class MainWindow(QMainWindow):
 
         # Compare is a view of the results (§5.2), after them.
         self.compare_widget = CompareWidget()
+        self.compare_widget.installEventFilter(self)  # refreshed when shown, if stale (M5a)
         self.compare_widget.compare_chosen.connect(self._on_compare_chosen)
         self.compare_widget.delete_requested.connect(self._on_delete_run)
         # a bound method, not a lambda holding the window (test_a_closed_window_is_freed)
@@ -319,6 +328,14 @@ class MainWindow(QMainWindow):
         self.results_views.addTab(self.compare_widget, "Compare")
         self.results_views.currentChanged.connect(self._apply_stale_banner)
         self.log_widget = LogViewWidget()
+        # Run > History (M5a): every run kept, and this session's failed runs and batches.
+        self.history_view = RunHistoryView()
+        self.history_view.run_requested.connect(self.on_run)
+        self.history_view.show_requested.connect(self._show_history_run)
+        self._run_modes: dict = {}  # run number -> "Single" or "SIL" (this session's runs)
+        self._run_seconds: dict = {}  # run number -> [s] how long it took (this session's runs)
+        self._history_extra: list = []  # HistoryEntry: failed runs and batches, this session only
+        self._run_started_at = None  # datetime (UTC) the current run started
         install_log_view(self.log_widget)
 
         # The Run area: the analyses that run on the scenario, each on its
@@ -327,6 +344,7 @@ class MainWindow(QMainWindow):
         self.run_views.setObjectName("runViews")
         self.run_views.addTab(lifetime_scroll, "End of Life")
         self.run_views.addTab(budget_scroll, "Budget")
+        self.run_views.addTab(self.history_view, "History")
         self.run_views.addTab(self.log_widget, "Log")
         self.results_widget.set_runs(self.run_history.runs, None)  # the saved runs of earlier sessions (U-33)
         self._refresh_compare_tab()
@@ -706,6 +724,9 @@ class MainWindow(QMainWindow):
             self.shell.page(area_id).add_command(self.clear_cursor_action)
 
         self.shell.area_changed.connect(self._on_area_changed)
+        # Compare, refreshed when shown (M5a): its tab, or the Results area, chosen.
+        self.shell.area_changed.connect(self._refresh_compare_if_shown)
+        self.results_views.currentChanged.connect(self._refresh_compare_if_shown)
         self.shell.rail.collapsed_changed.connect(self.rail_collapse_action.setChecked)
         self.scenario_editor.page_tree.tree.currentItemChanged.connect(self._refresh_breadcrumbs)
         self.scenario_editor.mode_changed.connect(self._refresh_breadcrumbs)
@@ -952,8 +973,23 @@ class MainWindow(QMainWindow):
         self.compare_widget.follow_results_choice(self.results_widget.compare_combo.currentData())
 
     def _refresh_compare_tab(self, *_args) -> None:
+        """Compare's runs; while it is hidden, refreshed when next shown (its
+        plot took 58-113 ms at the end of every run, M5a)."""
+        if not self.compare_widget.isVisibleTo(self):
+            self._compare_stale = True
+            return
+        self._compare_stale = False
         self.compare_widget.set_runs(self.run_history.runs, self.results_widget._current_run,
                                      self.results_widget.compare_combo.currentData(), self.run_history.store_root)
+
+    def _refresh_compare_if_shown(self, *_args) -> None:
+        if self._compare_stale and self.compare_widget.isVisibleTo(self):
+            self._refresh_compare_tab()
+
+    def eventFilter(self, watched, event):  # noqa: N802 -- Qt API name
+        if watched is self.compare_widget and event.type() == QEvent.Type.Show and self._compare_stale:
+            QTimer.singleShot(0, self, self._refresh_compare_if_shown)
+        return super().eventFilter(watched, event)
 
     def _on_delete_run(self, record) -> None:
         """Compare's Delete: forget the run and remove it from disk."""
@@ -964,6 +1000,7 @@ class MainWindow(QMainWindow):
             return
         self.results_widget.set_runs(self.run_history.runs, self.results_widget._current_run)
         self._refresh_compare_tab()
+        self._refresh_history()
         show_toast(self, f"Deleted {record.name}")
 
     def _layout_settings(self):
@@ -1393,11 +1430,62 @@ class MainWindow(QMainWindow):
         if self._last_run_scenario is None:
             return
         record = self.run_history.add(self._last_run_scenario.to_dict(), result, self._last_run_epoch_utc or "",
-                                      cancelled=cancelled)
-        if self.run_history.last_save_error:  # kept in memory for this session only
-            show_toast(self, f"{record.name} is not saved for later sessions: see the Log", kind="warning")
+                                      cancelled=cancelled)  # saved in a worker: _on_run_saved
         self.results_widget.set_runs(self.run_history.runs, record)
         self._refresh_compare_tab()
+        mode = "SIL" if getattr(self, "_last_run_sil", False) else "Single"
+        self._run_modes[record.number], self._run_seconds[record.number] = mode, self.last_run_seconds
+        took = f" in {_duration_text(self.last_run_seconds)}" if self.last_run_seconds is not None else ""
+        _run_logger.info("Run %d %s%s: %s, %d series", record.number, "cancelled" if cancelled else "done", took,
+                         record.scenario.get("name", ""), len(result.series))
+        for warning in getattr(result, "warnings", []) or []:
+            _run_logger.warning("Run %d: %s", record.number, warning)
+        self._refresh_history()
+
+    def _on_runs_loaded(self) -> None:
+        """The earlier sessions' runs are listed (read in a worker, M5a)."""
+        self.results_widget.set_runs(self.run_history.runs, self.results_widget._current_run)
+        self._refresh_compare_tab()
+        self._refresh_history()
+
+    def _on_run_saved(self, record) -> None:
+        """A run's save ended: a run that could not be saved stays for this
+        session only, and says so."""
+        if self.run_history.last_save_error:
+            show_toast(self, f"{record.name} is not saved for later sessions: see the Log", kind="warning")
+            _run_logger.warning("Run %d is not saved: %s", record.number, self.run_history.last_save_error)
+        elif record.saved is not None:
+            _run_logger.info("Run %d saved to %s", record.number, self.run_history.store_root / record.saved.run_id)
+        self._refresh_compare_tab()
+        self._refresh_history()
+
+    # -- Run > History (M5a) ---------------------------------------------------------
+    def _saved_text(self, record) -> str:
+        if record.saved is not None or record.earlier_session:
+            return "Saved"
+        return "Saving..." if self.run_history.is_saving(record) else "This session only"
+
+    def _refresh_history(self) -> None:
+        entries = [run_entry(record, self._saved_text(record), self._run_modes.get(record.number, ""),
+                             self._run_seconds.get(record.number)) for record in self.run_history.runs]
+        self.history_view.set_entries(entries + self._history_extra)
+
+    def _add_history_extra(self, status: str, mode: str, detail: str) -> None:
+        """A failed run or a batch: listed for this session (the run store keeps neither)."""
+        now = datetime.now(timezone.utc)
+        scenario = self._last_run_scenario.name if self._last_run_scenario is not None else ""
+        self._history_extra.append(HistoryEntry(
+            status=status, scenario=scenario, mode=mode, started_utc=utc_text(self._run_started_at),
+            duration_s=self.last_run_seconds, saved="Not kept" if status == "failed" else "",
+            detail=detail, order=now.timestamp()))
+        self._refresh_history()
+
+    def _show_history_run(self, record) -> None:
+        """A double-clicked run of History: drawn dashed beside the shown run
+        in Results (or Results, when it is the run shown)."""
+        if self.results_widget._current_run is None or record.number != self.results_widget._current_run.number:
+            self._on_compare_chosen(record.number)
+        self.show_view(self.results_widget)
 
     def _offer_vizard_playback(self) -> None:
         """Show "Open in Vizard" on Results when the run wrote a playback file."""
@@ -1599,6 +1687,7 @@ class MainWindow(QMainWindow):
         (``determinate``: it starts at 0 %)."""
         self._set_running(True)
         self._busy_elapsed.start()
+        self._run_started_at = datetime.now(timezone.utc)
         self.run_progress.start(message.rstrip("."), cancellable=cancellable, cancel_note=cancel_note)
         if determinate:
             self.run_progress.set_fraction(0.0)
@@ -2130,6 +2219,8 @@ class MainWindow(QMainWindow):
         self._run_worker = RunWorker(scenario, vizard_request=vizard_request, live=live,
                                      allow_scripts=bool(blocks), **extra)
         self._last_run_sil = sil is not None
+        _run_logger.info("Run %d started: %s (%s)", self.run_history.next_number, scenario.name,
+                         "SIL" if sil is not None else "Single")
         if sil is not None:
             self.flight_software_widget.set_sil_running(sil[0])
             self._run_worker.sil_report.connect(self.flight_software_widget.show_sil_report)
@@ -2235,6 +2326,7 @@ class MainWindow(QMainWindow):
         page, with its report), and a toast says what failed (U-23)."""
         self._stop_busy("Run failed.", "failed", "Failed")
         self._report_run_problem(_with_log_file_hint(f"Run failed: {message}"))
+        self._add_history_extra("failed", "SIL" if getattr(self, "_last_run_sil", False) else "Single", message)
         if getattr(self, "_last_run_sil", False):
             self.flight_software_widget.set_sil_running(None)
             self.show_view(self.flight_software_widget)
@@ -2314,6 +2406,8 @@ class MainWindow(QMainWindow):
         _join_finished_worker(self._mc_worker)
         self._mc_archive_dir = archive_dir
         self._mc_total = scenario.monte_carlo.num_runs
+        _run_logger.info("Monte Carlo batch started: %s, %d runs, saved in %s", scenario.name,
+                         scenario.monte_carlo.num_runs, archive_dir)
         self._mc_poll.start()
         self._mc_worker = MonteCarloWorker(scenario, scenario.monte_carlo, archive_dir,
                                            allow_scripts=bool(blocks), overwrite=overwrite)
@@ -2349,6 +2443,10 @@ class MainWindow(QMainWindow):
             else:
                 show_toast(self, f"Monte Carlo complete{took}: all {total} runs succeeded" if total
                            else f"Monte Carlo complete{took}: all runs succeeded")
+            _run_logger.info("Monte Carlo batch done%s: %d of %s runs failed; saved in %s", took, len(failures),
+                             total or "?", self._mc_archive_dir)
+            self._add_history_extra("partial" if failures else "done", "Monte Carlo",
+                                    f"{total or '?'} runs, {len(failures)} failed; saved in {self._mc_archive_dir}")
             if self.monte_carlo_results_widget.load_folder(self._mc_archive_dir):
                 self._show_monte_carlo_tab()
         except Exception:  # noqa: BLE001 -- the batch itself DID finish; never hide that behind a GUI bug
@@ -2357,6 +2455,7 @@ class MainWindow(QMainWindow):
     def _on_monte_carlo_failed(self, message: str) -> None:
         self._stop_busy("Monte Carlo run failed.", "failed", "Failed")
         self._report_run_problem(_with_log_file_hint(f"Monte Carlo failed: {message}"))
+        self._add_history_extra("failed", "Monte Carlo", message)
         self._show_log_errors()
 
     # -- window lifecycle ---------------------------------------------------
@@ -2385,6 +2484,8 @@ class MainWindow(QMainWindow):
             # discarded), and no explanation is started for a window going away.
             self._autosave_timer.stop()
             self.scenario_explainer_widget.shut_down()
+            self.run_history.wait_loaded()
+            self.run_history.wait_for_saves()  # a run ended just before must be on disk
             self.lifetime_widget.wait_for_worker()  # a few seconds at most; its thread must not be destroyed mid-run
             self.budget_widget.wait_for_worker()
             self.flight_software_widget.wait_for_worker()

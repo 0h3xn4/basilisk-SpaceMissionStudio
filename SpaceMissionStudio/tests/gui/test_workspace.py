@@ -91,7 +91,7 @@ def test_the_areas_and_what_they_hold(window):
         "Ground stations",
         "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo"]
     assert window.shell.page("scenario").header.isAncestorOf(window.scenario_editor.mode_toggle)  # Form · JSON
-    assert _tab_texts(window.run_views) == ["End of Life", "Budget", "Log"]
+    assert _tab_texts(window.run_views) == ["End of Life", "Budget", "History", "Log"]  # History: M5a
     assert _tab_texts(window.results_views) == ["Plots", "Dashboard", "Output", "Compare"]
     assert window.shell.page("timeline").content is window.event_timeline_widget
     assert window.shell.page("reports").content is window.flight_software_widget
@@ -183,7 +183,7 @@ def test_a_failed_run_opens_the_log(window, monkeypatch):
     assert window.log_widget.level_combo.currentData() == logging.WARNING
 
 
-def test_the_compare_tab_lists_runs_and_their_input_differences(window):
+def test_the_compare_tab_lists_runs_and_their_input_differences(window, qtbot):
     """With two runs, Compare ticks both and shows the inputs that differ;
     the shown run and one other ticked has Results draw that one dashed,
     and Results' choice ticks the pair here (U-33)."""
@@ -191,6 +191,8 @@ def test_the_compare_tab_lists_runs_and_their_input_differences(window):
     assert compare.empty_label.isVisibleTo(compare)
     _finish_a_run(window)
     _finish_a_run(window, name="22 - a second version")
+    window.show_view(compare)  # Compare is refreshed when shown (M5a)
+    qtbot.waitUntil(lambda: compare.run_list.count() == 2, timeout=10000)
     assert compare.content.isVisibleTo(compare) and compare.run_list.count() == 2
     assert [r.number for r in compare.checked_runs()] == [1, 2]  # the new run and the one before it
     inputs = [compare.inputs_table.item(row, 0).text() for row in range(compare.inputs_table.rowCount())]

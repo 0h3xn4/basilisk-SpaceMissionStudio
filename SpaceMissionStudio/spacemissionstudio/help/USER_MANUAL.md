@@ -177,9 +177,12 @@ A few things to notice right away:
   * **Run**: Run and its mode, **Cancel Run**, **Live plot**, the Vizard
     commands, **Open Monte Carlo Results...** and **Check Reference
     Data** at the top; under them **End of Life** and **Budget** (re-entry
-    and delta-V estimates, Section 11) and the **Log** (what the app
-    logged in this session, filterable by level and text; a failed run
-    opens it at its warnings and errors).
+    and delta-V estimates, Section 11), **History** (every run: its
+    status, mode, start, how long it took and whether it is saved; see
+    Section 7, Compare) and the **Log** (what the app logged in this
+    session: each run's start, end, warnings and where it is saved, in a
+    fixed-width font, filterable by level and text, with **Copy**; a
+    failed run opens it at its warnings and errors).
   * **Results**, which fills in when you run something (Section 7), with
     the **Plots**, the **Dashboard**, the mission **Output**, a **Monte
     Carlo** view when the scenario has Monte Carlo on (Section 10) and
@@ -1012,6 +1015,20 @@ run, it and the run before it are ticked. The oldest ticked run is the
 
 With the run shown and one other ticked, Results draws that other run
 dashed; choosing a run under **Compare with** ticks the pair here.
+
+**History** (the Run area) lists every run, newest first: its status
+(**Done**, **Cancelled**, **Failed**, or for a Monte Carlo batch with
+failed runs **Done, some failed**, each with its icon), the run, the
+scenario, the mode (**Single**, **SIL** or **Monte Carlo**; not recorded
+for a run of an earlier session), when it started (UTC) and how long it
+took, and whether it is saved (**Saving...** while it is written, then
+**Saved**). Failed runs and Monte Carlo batches are not kept with the
+saved runs; they are listed for the session they ran in. **Provenance**
+shows what produced the selected run (versions, integrator, step, data
+files); a double-click draws the run dashed beside the run shown in
+Results; **Copy** (or Ctrl+C) copies the rows as tab-separated text.
+A run is saved, and the oldest pruned, in the background: the window
+does not wait for the disk when a run ends.
 **Delete run...** removes the selected run from disk (not the run shown).
 A run whose files cannot be read back is named in the status line and
 the Log. If the folder cannot be written, the run is kept for this

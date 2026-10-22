@@ -5,6 +5,49 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## M5 Run and logs (2026-10-22)
+
+Recorded before coding, after reading the run, the run store and the
+Log, and timing the end of a run (template 23, a second run in the same
+window: 286 ms in one slot, of which the results view 75 ms, the run
+list 75 ms, Compare 58 ms, saving and pruning 22 ms; the first run of a
+session 978 ms).
+
+- **Split before starting, as M4 was (§8, "Scope"):**
+  - **M5a, the end of a run and its record:** saving and pruning in a
+    worker; the rest of the end of a run broken into steps, none of which
+    holds the window long; History (the runs, loaded in a worker); the
+    Log's records of each run, in JetBrains Mono, with its filter, search
+    and copy.
+  - **M5b, the Run area's controls:** the mode as a segmented control,
+    and the options inline (Live plot, Vizard, the Monte Carlo archive
+    folder, SIL) instead of menus and dialogs.
+
+  Each is one pull request a reviewer can follow; M5a carries M5's
+  performance criterion.
+- **History needs no new file field.** A saved run already has when it
+  started (its provenance's `run_started_utc`) and finished, whether it
+  was cancelled, and its provenance: the duration and the status come
+  from them. File formats stay as they are (the overhaul's rule). Runs
+  that failed, and Monte Carlo batches, are not in the run store; History
+  lists them for the session they ran in, from memory.
+- **The results view stays as it is in M5:** it rebuilds its plots when a
+  run ends, and M6 rebuilds that view. M5 moves it to its own step after
+  the others, so it is the only one that can hold the window; what it
+  costs is measured and written down.
+- **Measured after:** the end of a run holds the window 152-163 ms (was
+  301-323 ms; the first run of a session 519 ms, was 788 ms), nearly all
+  of it the results view's figure. Not met; M6 holds it.
+- **Compare is refreshed when it is shown,** not at the end of every run
+  (its plot cost 58-113 ms there); the results view redraws in
+  `set_runs` only when the run compared changes.
+- **History's double-click compares** the run with the one shown in
+  Results: Results shows one run at a time, and drawing another dashed
+  beside it is what it already does.
+- **The Log's run records come from the GUI** (`spacemissionstudio.run`):
+  the engine logs nothing at INFO during a normal run, and it is not
+  touched.
+
 ## M4b Editing flow (2026-10-22)
 
 Recorded before coding, after reading every editor and measuring the

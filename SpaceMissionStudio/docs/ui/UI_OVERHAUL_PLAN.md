@@ -896,6 +896,34 @@ Every milestone also has to meet all of these:
     140.5 ms (29). Not the garbage collector (no collection over 20 ms
     during a sweep), not the autosave (2 ms), not the explanation's
     rendering (under 11 ms). M9's performance pass holds it.
+- **M5, split before starting (2026-10-22; §8, "Scope"):**
+  - **M5a, the end of a run and its record:** saving and pruning in a
+    worker and no stall over 50 ms at the end of a run; History loaded in
+    a worker, with a status badge, duration, mode and provenance; the
+    Log's records of each run (start, end, warnings, saved path) in
+    JetBrains Mono, with level filter, search and copy.
+  - **M5b, the Run area's controls:** the mode segmented control, Run
+    (Ctrl+R), and the options inline (live plot, Vizard, SIL, the Monte
+    Carlo archive folder). Determinate progress is already there (M2b:
+    the run reports the fraction of its simulated time).
+- **M5a (2026-10-22): done, with its stall target not met.** It meets
+  the rest of its part of M5's criteria (`tests/gui/test_run_record.py`):
+  - saving and pruning runs in a worker, and the earlier sessions' runs
+    read in one; closing waits for a run being saved;
+  - Run › History: status badge (icon and word), mode, start (UTC),
+    duration and whether saved, the provenance in a popover; failed runs
+    and Monte Carlo batches for the session;
+  - the Log's records of each run (start, end with its length, warnings,
+    where it is saved), in JetBrains Mono, with level filter, search and
+    Copy.
+
+  Measured with `scripts/measure_run_end.py` (template 23, three runs in
+  one window, M4b's code first): the end of a run held the window
+  301-323 ms (the first run of a session 788 ms), with a second stall of
+  50-81 ms after it; now 152-163 ms (first run 519 ms), no second stall.
+  **Not met** ("no stall over 50 ms"): what is left is the results view
+  building its Plotly figure (about 110-130 ms of it), which M6 rebuilds
+  (its plot pages persistent, plotly.js loaded once).
 
 **Order and size.**
 
