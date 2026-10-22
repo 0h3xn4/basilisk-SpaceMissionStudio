@@ -212,7 +212,7 @@ def test_a_page_reload_during_a_save_still_saves(widget, tmp_path, monkeypatch, 
     save of a worker raced a second page load)."""
     from PySide6.QtWidgets import QFileDialog, QMessageBox
 
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
     out_path = tmp_path / "plot.png"
     monkeypatch.setattr(QFileDialog, "getSaveFileName",
@@ -223,7 +223,7 @@ def test_a_page_reload_during_a_save_still_saves(widget, tmp_path, monkeypatch, 
 
     _to_front(qtbot, widget)
     widget._on_save_plot_png()
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget._redraw()  # a new page while the first render is pending
     qtbot.waitUntil(lambda: out_path.exists() or bool(errors), timeout=_SAVE_TIMEOUT_MS)
     assert not errors
@@ -241,7 +241,7 @@ def test_save_plot_as_png_writes_a_real_png_file(widget, tmp_path, monkeypatch, 
     """
     from PySide6.QtWidgets import QFileDialog
 
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
     assert widget.save_png_button.isEnabled()
     out_path = tmp_path / "plot.png"
@@ -261,7 +261,7 @@ def test_save_plot_as_png_appends_extension_if_missing(widget, tmp_path, monkeyp
     """Saving a PNG under a name without an extension writes name.png."""
     from PySide6.QtWidgets import QFileDialog, QMessageBox
 
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
     out_path_no_ext = tmp_path / "plot"
     monkeypatch.setattr(QFileDialog, "getSaveFileName",
@@ -309,7 +309,7 @@ def test_redraw_does_not_reenable_save_button_while_a_png_poll_is_in_flight(widg
     kept firing forever, re-triggering a duplicate file write + a
     duplicate "Plot saved" dialog every poll interval.
     """
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
     assert widget.save_png_button.isEnabled()
 
@@ -328,7 +328,7 @@ def test_save_plot_as_png_is_a_no_op_while_a_poll_is_already_in_flight(widget, q
     from PySide6.QtCore import QTimer
     from PySide6.QtWidgets import QFileDialog
 
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
 
     calls = []
@@ -348,7 +348,7 @@ def test_save_plot_as_png_poll_state_resets_after_completion_allowing_a_later_sa
     """
     from PySide6.QtWidgets import QFileDialog, QMessageBox
 
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
     first_path = tmp_path / "first.png"
     monkeypatch.setattr(QFileDialog, "getSaveFileName",
@@ -380,7 +380,7 @@ def test_save_plot_as_svg_writes_a_real_svg_file(widget, tmp_path, monkeypatch, 
     """
     from PySide6.QtWidgets import QFileDialog
 
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
     assert widget.save_svg_button.isEnabled()
     out_path = tmp_path / "plot.svg"
@@ -400,7 +400,7 @@ def test_save_plot_as_svg_appends_extension_if_missing(widget, tmp_path, monkeyp
     """Saving an SVG under a name without an extension writes name.svg."""
     from PySide6.QtWidgets import QFileDialog, QMessageBox
 
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
     out_path_no_ext = tmp_path / "plot"
     monkeypatch.setattr(QFileDialog, "getSaveFileName",
@@ -435,7 +435,7 @@ def test_save_png_and_save_svg_share_the_same_re_entrancy_guard(widget, qtbot, m
     from PySide6.QtCore import QTimer
     from PySide6.QtWidgets import QFileDialog
 
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
 
     calls = []
@@ -452,7 +452,7 @@ def test_redraw_does_not_reenable_save_svg_button_while_a_poll_is_in_flight(widg
     save_svg_button must stay disabled across a live-update _redraw()
     too, for the same reason.
     """
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
     assert widget.save_svg_button.isEnabled()
 
@@ -598,7 +598,7 @@ def test_access_timeline_renders_in_the_real_webview(widget, qtbot):
     from spacemissionstudio.gui.plot_catalog import ACCESS_TIMELINE
 
     widget.set_result(_access_result_set())
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS) as blocker:
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS) as blocker:
         widget.show_series(ACCESS_TIMELINE)
     assert blocker.args == [True]
 
@@ -608,7 +608,7 @@ def test_save_plot_default_name_is_access_timeline_in_that_view(widget, tmp_path
 
     from PySide6.QtWidgets import QFileDialog
 
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_access_result_set())
     widget.show_series(ACCESS_TIMELINE)
 
@@ -1030,9 +1030,9 @@ def test_a_large_series_still_shows_when_selected(widget, qtbot):
     result.add(TimeSeries("sat-1.semi_major_axis", t, ("a",), np.full((len(t), 1), 6928e3), units="m"))
     position = np.column_stack([7e6 * np.cos(t / 900.0), 7e6 * np.sin(t / 900.0), np.zeros(len(t))])  # [m]
     result.add(TimeSeries("sat-1.position_N", t, ("x", "y", "z"), position, units="m"))
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(result)
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.show_series("sat-1.position_N")
 
     shown = {}
@@ -1131,7 +1131,7 @@ def test_plot_page_fills_the_view_without_a_scroll_bar(widget, qtbot):
     widget.resize(800, 600)  # [px]
     widget.show()
     qtbot.waitExposed(widget)
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         widget.set_result(_sample_result_set())
     sizes = {}
     widget.web_view.page().runJavaScript(

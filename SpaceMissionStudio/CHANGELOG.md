@@ -145,6 +145,23 @@ fixes bugs.
 
   What a run computes and every file the app writes are unchanged.
 
+- **Results › Overview, and plots that switch at once** (UI overhaul M6a):
+  - **Overview**, the first view of Results, shows the run's headline
+    figures as cards (delta-V, propellant, link margin, battery, passes,
+    eclipses, data downlinked, ...). A card turns red, with an icon and its
+    reason, only for a link margin below 0 dB or an empty battery.
+    **Provenance** shows what produced the run.
+  - **Plots** stay in one page: plotly.js is loaded once, and showing
+    another plot, changing the layout or the time axis redraws in place.
+    A plot appears about four times sooner (about 110 ms, was about
+    415 ms on template 23), and switching holds the window at most
+    35 ms (was up to 304 ms).
+  - Shorter pauses now and then: Python's full garbage collections no
+    longer walk everything start-up made (one took about 0.2 s; after a
+    run, about 0.07 s is left).
+
+  What a run computes and every file the app writes are unchanged.
+
 ## 1.2.0 (2026-10-21)
 
 Starting a mission from an empty scenario is now a choice of its own: the

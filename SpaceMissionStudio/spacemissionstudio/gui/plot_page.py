@@ -51,6 +51,7 @@ PLOT_DIV_ID = "spacemissionstudio-plot"
 CLICK_MESSAGE = "spacemissionstudio-cursor:"
 HOVER_MESSAGE = "spacemissionstudio-hover:"
 FOCUS_MESSAGE = "spacemissionstudio-focus:"
+DRAWN_MESSAGE = "spacemissionstudio-drawn:"
 CURSOR_SHAPE = "spacemissionstudio-cursor"
 _HOVER_INTERVAL_MS = 80  # [ms] at most one hover report this often
 
@@ -108,8 +109,11 @@ def div_id(index: int) -> str:
 def parse_message(title: str) -> Optional[Tuple[str, int, Optional[str]]]:
     """``(kind, plot index, x)`` from a page title the script set, kind
     "click", "hover" or "focus" (``x`` None for a focus, and for a hover
-    that left the plot), or None for any other title."""
-    for kind, prefix in (("click", CLICK_MESSAGE), ("hover", HOVER_MESSAGE), ("focus", FOCUS_MESSAGE)):
+    that left the plot), or "drawn" (the index is the render's number,
+    :func:`render_script`, ``x`` "ok" or "error"), or None for any other
+    title."""
+    for kind, prefix in (("click", CLICK_MESSAGE), ("hover", HOVER_MESSAGE), ("focus", FOCUS_MESSAGE),
+                         ("drawn", DRAWN_MESSAGE)):
         if title.startswith(prefix):
             body = title[len(prefix):].rsplit("|", 1)[0]
             index_text, _, x = body.partition("@")
@@ -188,6 +192,118 @@ IDS.forEach(function(id, i) {{
     grid_class = "grid many" if len(figure_json) > 1 else "grid"
     return (f'<!doctype html><html><head><meta charset="utf-8"><script src="{plotly_src}"></script>{style}{css}'
             f'</head><body><div class="{grid_class}">{cells}</div>{script}</body></html>')
+
+
+def shell_page(plotly_src: str, style: str) -> str:
+    """The persistent plot page (UI overhaul M6a): plotly.js, loaded once,
+    and ``SMS.render(state)``, which :func:`render_script` calls for each
+    change. ``style`` is the page's base CSS (fonts, surface)."""
+    script = f"""<script>
+var SMS = (function() {{
+    var CONFIG = {{displaylogo: false, responsive: true}};
+    var LINKED = [];
+    var sent = 0, lastHover = 0, pointClicked = false, syncing = false;
+    function send(message) {{ sent += 1; document.title = message + '|' + sent; }}
+    function cells() {{ return Array.prototype.slice.call(document.getElementById('grid').children); }}
+    function indexOf(gd) {{ return Number(gd.getAttribute('data-index')); }}
+    function others(gd) {{
+        return cells().filter(function(o, i) {{ return o !== gd && LINKED[i] && o.layout; }});
+    }}
+    function bind(gd) {{
+        gd.on('plotly_relayout', function(ev) {{
+            if (syncing || !LINKED[indexOf(gd)] || !ev) {{ return; }}
+            var update = null;
+            if (ev['xaxis.range[0]'] !== undefined) {{
+                update = {{'xaxis.range': [ev['xaxis.range[0]'], ev['xaxis.range[1]']]}};
+            }} else if (ev['xaxis.range']) {{
+                update = {{'xaxis.range': ev['xaxis.range']}};
+            }} else if (ev['xaxis.autorange']) {{
+                update = {{'xaxis.autorange': true}};
+            }}
+            if (!update) {{ return; }}
+            syncing = true;
+            Promise.all(others(gd).map(function(o) {{ return Plotly.relayout(o, update); }}))
+                .then(function() {{ syncing = false; }}, function() {{ syncing = false; }});
+        }});
+        gd.on('plotly_click', function(ev) {{
+            if (ev && ev.points && ev.points.length) {{
+                pointClicked = true;
+                send({CLICK_MESSAGE!r} + indexOf(gd) + '@' + ev.points[0].x);
+            }}
+        }});
+        gd.on('plotly_hover', function(ev) {{
+            var now = Date.now();
+            if (now - lastHover < {_HOVER_INTERVAL_MS} || !ev || !ev.points || !ev.points.length) {{ return; }}
+            lastHover = now;
+            send({HOVER_MESSAGE!r} + indexOf(gd) + '@' + ev.points[0].x);
+        }});
+        gd.on('plotly_unhover', function() {{ send({HOVER_MESSAGE!r} + indexOf(gd) + '@'); }});
+        gd.addEventListener('click', function() {{
+            setTimeout(function() {{
+                if (!pointClicked) {{ send({FOCUS_MESSAGE!r} + indexOf(gd)); }}
+                pointClicked = false;
+            }}, 30);
+        }});
+    }}
+    function render(state) {{
+        document.getElementById('grid-style').textContent = state.css;
+        var grid = document.getElementById('grid'), empty = document.getElementById('empty');
+        if (state.empty !== null) {{
+            cells().forEach(function(cell) {{ Plotly.purge(cell); grid.removeChild(cell); }});
+            grid.style.display = 'none';
+            empty.textContent = state.empty;
+            empty.style.display = '';
+            send({DRAWN_MESSAGE!r} + state.generation + '@ok');
+            return;
+        }}
+        empty.style.display = 'none';
+        grid.style.display = '';
+        grid.className = state.gridClass;
+        LINKED = state.linked;
+        var count = state.figs.length;
+        while (grid.children.length > count) {{
+            var last = grid.lastChild;
+            Plotly.purge(last);
+            grid.removeChild(last);
+        }}
+        while (grid.children.length < count) {{ grid.appendChild(document.createElement('div')); }}
+        cells().forEach(function(cell, i) {{
+            cell.id = {PLOT_DIV_ID!r} + (i === 0 ? '' : '-' + i);
+            cell.setAttribute('data-index', i);
+            cell.className = 'cell' + (i === state.focused ? ' focused' : '');
+        }});
+        var drawing = state.figs.map(function(fig, i) {{
+            var gd = grid.children[i];
+            if (fig === null) {{ return gd.layout ? Plotly.Plots.resize(gd) : null; }}
+            return Plotly.react(gd, fig.data, fig.layout, CONFIG).then(function(gd) {{
+                if (!gd.smsBound) {{ bind(gd); gd.smsBound = true; }}
+            }});
+        }});
+        Promise.all(drawing).then(function() {{ send({DRAWN_MESSAGE!r} + state.generation + '@ok'); }},
+                                  function() {{ send({DRAWN_MESSAGE!r} + state.generation + '@error'); }});
+    }}
+    return {{render: render}};
+}})();
+</script>"""
+    return (f'<!doctype html><html><head><meta charset="utf-8"><script src="{plotly_src}"></script>{style}'
+            f'<style id="grid-style"></style></head><body><div id="grid" class="grid"></div>'
+            f'<div id="empty" class="empty" style="display: none"></div>{script}</body></html>')
+
+
+def render_script(figure_json: List[Optional[str]], layout: str, focused: int, linked: List[bool],
+                  generation: int, empty: Optional[str] = None) -> str:
+    """Show ``figure_json`` on the persistent page (:func:`shell_page`):
+    ``go.Figure.to_json()`` of each plot in grid order, None for a plot
+    the page already shows in that cell; ``empty`` instead shows that
+    text, no plots. The page answers with a "drawn" message carrying
+    ``generation``."""
+    rows, columns = LAYOUTS.get(layout, (1, 1))
+    state = (f'{{"css": {json.dumps(grid_css(TOKENS, columns, rows, len(figure_json) > 1))}, '
+             f'"gridClass": {json.dumps("grid many" if len(figure_json) > 1 else "grid")}, '
+             f'"focused": {int(focused)}, "linked": {json.dumps(list(linked))}, '
+             f'"generation": {int(generation)}, "empty": {json.dumps(empty)}, '
+             f'"figs": [{", ".join("null" if fig is None else fig for fig in figure_json)}]}}')
+    return f"SMS.render({state});"
 
 
 def focus_script(focused: int) -> str:

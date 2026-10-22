@@ -195,7 +195,7 @@ def test_a_click_selects_the_plot_that_saves(widget, monkeypatch):
 def test_the_grid_links_its_x_axes_in_the_page(widget, qtbot):
     """Zooming one plot zooms the other (in the real web view)."""
     widget.set_result(_result())
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         _tick(widget, "sat-1.velocity_N")
     answer = {}
 
@@ -327,7 +327,7 @@ def test_export_all_writes_every_plot_its_data_and_the_provenance(widget, qtbot,
     result = _result()
     result.provenance = RunProvenance("test", "2.12.0", "2030-01-01T00:00:00+00:00", "rk4", 1.0)
     widget.set_result(result, _EPOCH)
-    with qtbot.waitSignal(widget.web_view.loadFinished, timeout=_PAGE_LOAD_TIMEOUT_MS):
+    with qtbot.waitSignal(widget.plot_drawn, timeout=_PAGE_LOAD_TIMEOUT_MS):
         _tick(widget, "sat-1.velocity_N")
     widget.raise_()
     widget.activateWindow()

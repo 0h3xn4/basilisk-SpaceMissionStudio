@@ -12534,3 +12534,62 @@ changed how they reach the run controls (Run › Run, the segmented
 control), and one expectation changed on purpose (the Run area's tabs now
 begin with Run), each in `docs/ui/TEST_CHANGES.md`. Golden files and every
 output are unchanged.
+
+## M6a: the Overview and the plot view (2026-10-22)
+
+M6 (Results overview and analysis views) is split before starting into
+M6a, the Overview and the plot view, and M6b, the tables and analysis
+views (the plan's §7 status; `docs/DECISIONS.md`, M6, written before the
+code with the measured cost of a plot switch).
+
+**What changed.**
+- **Results › Overview**, the first view of Results
+  (`gui/results_overview.py`): the run's headline figures from
+  `engine.run_summary`, one card each, worked out in a worker thread. A
+  card is critical (an icon, the words and the colour) only for a link
+  margin below 0 dB or an empty battery; the others stay neutral.
+  Provenance opens History's popover with what produced the run. Before a
+  run, an empty state with Run.
+- **One persistent plot page** (`gui/plot_page.py`, `shell_page`):
+  plotly.js is loaded once and each change (another plot, the layout, the
+  x axis, a live chunk) is drawn in place with `Plotly.react`, only the
+  cells whose figure changed. The page says when it has drawn
+  (`plot_drawn`).
+- **Each plot's figure is kept** until what it shows changes (the result,
+  the theme, the x axis, the comparison, the event bands), and built in
+  one construction instead of an `add_trace` per line and two
+  `update_layout` calls: 28.9 ms a figure, was 61.8 ms (all 396 figures of
+  a template 23 run, three x axes, both themes, give the same JSON).
+- **The layout is saved after the click**, not in it; reading a layout,
+  hiding the view and quitting write what is pending first.
+- **Start-up's objects leave Python's full garbage collections**
+  (`gc.freeze()` once the window is up): a full collection took
+  190-234 ms on the GUI thread wherever it fell.
+- `FlowLayout` keeps its heights per width until it is invalidated.
+
+**A plot switch** (`scripts/measure_plot_switch.py`, new): M5b's code held
+the window 59-97 ms a switch (the first 275-304 ms) and drew the plot
+after about 415 ms; now at most 34.4 ms over four runs of twelve switches
+(median 19-22 ms), drawn after about 110 ms. Met.
+
+**The end of a run** (`scripts/measure_run_end.py`): 102-110 ms after the
+first run of a session (M5a: 152-163 ms); the first run 311 ms (was
+519 ms). Not met; about half of it is the Output page (its command table,
+then showing it), which M6b rebuilds.
+
+**Screenshots.** `scripts/capture_ui_screens.py --theme both`, this branch
+against M5b: 122 shots per theme (M5b: 120). New: Results › Overview
+before a run (its empty state with Run) and after one (seven cards for
+template 23, all neutral). The Results header now begins with Overview;
+the plots are the same. A first capture opened Results on a plot the
+measurement script had left in this machine's saved layouts; the
+harness and `measure_plot_switch.py` now keep Results' layouts in a
+temporary file, as the harness already did for the recent scenarios.
+
+**Tests.** The full suite: 3806 passed and 12 skipped, none failed (Python
+3.13 here; CI runs 3.11). `test_plot_view.py` (5 tests) and
+`test_results_overview.py` (7) are new. Eighteen results tests and
+fixtures now wait for the page's "drawn" instead of a page load, one
+reachability row checks the Overview, and one expectation changed on
+purpose (the Results tabs begin with Overview), each in
+`docs/ui/TEST_CHANGES.md`. Golden files and every output are unchanged.

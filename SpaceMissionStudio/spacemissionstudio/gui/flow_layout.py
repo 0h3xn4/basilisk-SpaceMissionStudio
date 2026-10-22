@@ -31,9 +31,18 @@ class FlowLayout(QLayout):
         super().__init__(parent)
         self._items: list = []
         self._spacing = spacing  # [px]
+        # width -> height [px]: Qt asks again and again while it lays out a
+        # page (300 times as a run's results were shown, M6a); kept until
+        # the layout is invalidated (an item added, shown, hidden or resized).
+        self._heights: dict = {}
         self.setContentsMargins(0, 0, 0, 0)
 
+    def invalidate(self) -> None:
+        self._heights.clear()
+        super().invalidate()
+
     def addItem(self, item) -> None:  # noqa: N802 -- Qt API name
+        self._heights.clear()
         self._items.append(item)
 
     def addWidget(self, widget) -> None:  # noqa: N802 -- Qt API name
@@ -47,6 +56,7 @@ class FlowLayout(QLayout):
         return self._items[index] if 0 <= index < len(self._items) else None
 
     def takeAt(self, index: int):  # noqa: N802 -- Qt API name
+        self._heights.clear()
         return self._items.pop(index) if 0 <= index < len(self._items) else None
 
     def expandingDirections(self):  # noqa: N802 -- Qt API name
@@ -56,7 +66,10 @@ class FlowLayout(QLayout):
         return True
 
     def heightForWidth(self, width: int) -> int:  # noqa: N802 -- Qt API name
-        return self._do_layout(QRect(0, 0, width, 0), apply=False)
+        height = self._heights.get(width)
+        if height is None:
+            height = self._heights[width] = self._do_layout(QRect(0, 0, width, 0), apply=False)
+        return height
 
     def setGeometry(self, rect) -> None:  # noqa: N802 -- Qt API name
         super().setGeometry(rect)

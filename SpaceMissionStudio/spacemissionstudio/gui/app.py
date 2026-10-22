@@ -22,14 +22,26 @@ via ``spacemissionstudio gui`` (see ``../cli.py``).
 
 from __future__ import annotations
 
+import gc
 import sys
 
+from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
 from ..logging_setup import configure_logging
 from .icons import app_icon
 from .main_window import MainWindow
 from .theme import apply_theme
+
+
+def freeze_start_up_objects() -> None:
+    """Move what start-up made (modules, Qt wrappers, the window) out of
+    the garbage collector's full collections (UI overhaul M6a). They live as
+    long as the app, yet each full collection walked all of them: 190-234 ms
+    on the GUI thread, wherever it fell (a plot switch, a keystroke).
+    Collected first, so no garbage is kept."""
+    gc.collect()
+    gc.freeze()
 
 
 def main(argv: list | None = None) -> int:
@@ -70,6 +82,7 @@ def main(argv: list | None = None) -> int:
     window = MainWindow()
     window.setWindowIcon(icon)
     window.show()
+    QTimer.singleShot(0, freeze_start_up_objects)  # once the window is up
     return app.exec()
 
 

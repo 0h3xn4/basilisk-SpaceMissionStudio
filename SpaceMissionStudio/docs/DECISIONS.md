@@ -5,6 +5,63 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## M6 Results overview and analysis views (2026-10-22)
+
+Recorded before coding, after reading the Results views and timing a plot
+switch (`scripts/measure_plot_switch.py`, new; template 23, twelve plots
+shown one after the other in the selected cell, two runs on M5b's code):
+each switch held the window 59-97 ms (median 72-76 ms), the first one, a
+three-line plot, 275-304 ms; the plot was drawn about 400 ms after the
+click (354-692 ms). Nearly all of it is building the Plotly figure in
+Python (its two `update_layout` calls validate every property), then
+writing the page and reloading it with plotly.js.
+
+- **Split before starting, as M4 and M5 were (§8, "Scope"):**
+  - **M6a, the Overview and the plot view:** Results › Overview with the
+    run's metric cards and its provenance in a popover; the plot page
+    persistent, plotly.js loaded once; switching plots under 50 ms, which
+    is also what is left of the end of a run's stall (M5a).
+  - **M6b, the tables and analysis views:** Output and Monte Carlo as a
+    `DataTable` (a `QTableView` with the table rules), Compare's run
+    switcher, End of Life, Budget and Telemetry from the components.
+- **Overview cards come from `engine.run_summary.summarize`,** as
+  Compare's summary does: one card per figure, its label, value and unit
+  (in the header of no table: on the card). A card is coloured only where
+  the scenario sets the threshold: the lowest link margin below 0 dB (the
+  margin already includes the required Eb/N0) and the battery's lowest
+  charge at 0 are critical, with an icon and a word; every other card is
+  neutral. The figures are computed off the GUI thread.
+- **One persistent plot page:** loaded once with plotly.js; a change of
+  plots, layout or theme sends the figures' JSON to it (`Plotly.react`),
+  with no reload. The page tells the view when a plot is drawn (and
+  whether Plotly drew it without an error). A theme switch loads the page
+  again (its fonts and surface).
+- **Figures are built once and kept** per plot until the result, the
+  theme, the x axis, the comparison or the event bands change; showing
+  another plot builds only that one. A figure is built in one validated
+  construction (its traces and layout together), with the same JSON as
+  before (checked on every plot of a template 23 run, three x axes, both
+  themes: the same objects; only the order of keys in the text differs,
+  and no file holds that text), so exports and every saved image are
+  unchanged.
+- **The layout is saved after the click,** not in it (a timer; the
+  QSettings write took about 15 ms). Reading a saved layout, hiding the
+  view and quitting write what is pending first.
+- **Start-up's objects leave the garbage collector's full collections**
+  (`gc.freeze()` once the window is up, after a collection). A full
+  collection walked them all: 190-234 ms on the GUI thread wherever it
+  fell, a plot switch or a keystroke. Freezing again after each run would
+  keep a whole simulation's cyclic garbage for good, so it is done once.
+- **Measured after** (`scripts/measure_plot_switch.py`, which freezes as
+  the app does; four runs, 48 switches): a switch holds the window at
+  most 34.4 ms (median 19-22 ms), and the plot is drawn after about
+  110 ms (median 106-126 ms; was about 415 ms). Met.
+- **The end of a run stays held, now for M6b** (`scripts/measure_run_end.py`):
+  102-110 ms after the first run of a session (M5a: 152-163 ms; the first
+  311 ms, was 519 ms). Of what is left, the Output page (filling its
+  command table and showing it) is about half; M6b rebuilds it as a
+  `DataTable`.
+
 ## M5b The Run area's controls (2026-10-22)
 
 Recorded before coding, after reading the run mode menu, the Vizard

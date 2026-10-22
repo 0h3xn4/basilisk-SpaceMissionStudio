@@ -56,6 +56,7 @@ def main(argv: list[str]) -> int:
 
     app = QApplication(sys.argv[:1])
     from spacemissionstudio.engine import run_store
+    from spacemissionstudio.gui.app import freeze_start_up_objects
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
     from spacemissionstudio.gui.main_window import MainWindow
     from spacemissionstudio.gui.theme import apply_theme
@@ -86,6 +87,7 @@ def main(argv: list[str]) -> int:
     window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
     window.resize(1280, 720)  # [px]
     window.show()
+    freeze_start_up_objects()  # as the app does once its window is up (M6a)
     finished_at: list[float] = []
     slot_ms: list[float] = []
     real_finished = window._on_run_finished

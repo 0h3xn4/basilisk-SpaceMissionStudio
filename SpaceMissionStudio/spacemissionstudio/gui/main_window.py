@@ -95,6 +95,7 @@ from .time_cursor import TimeCursor, describe as describe_time
 from .undo_history import ScenarioHistory
 from .run_history import RunHistory
 from .run_history_view import HistoryEntry, RunHistoryView, run_entry, utc_text
+from .results_overview import ResultsOverview
 from .run_page import RunModeControl, RunPage
 from .vizard_launcher import (
     DEFAULT_LIVE_STREAM_ADDRESS,
@@ -306,10 +307,13 @@ class MainWindow(QMainWindow):
         budget_scroll.setWidget(self.budget_widget)
         self.scenario_editor.navigate_requested.connect(self._on_guide_navigate)
 
-        # Results: the plots, the dashboard, the mission output and, when
-        # there is something to show, the Monte Carlo statistics.
+        # Results: the run's overview, the plots, the dashboard, the mission
+        # output and, when there is something to show, the Monte Carlo statistics.
         self.results_views = TabWidget()
         self.results_views.setObjectName("resultsViews")
+        self.results_overview = ResultsOverview()  # M6a: the run's headline figures, its provenance
+        self.results_overview.run_requested.connect(self.on_run)
+        self.results_views.addTab(self.results_overview, "Overview")
         self.results_views.addTab(self.results_widget, "Plots")
         self.results_views.addTab(self.mission_dashboard_widget, "Dashboard")
         self.results_views.addTab(self.mission_output_widget, "Output")
@@ -1432,6 +1436,7 @@ class MainWindow(QMainWindow):
         self._shown_run_sha256 = None
         self.stale_results_banner.hide()
         self.results_widget.set_result(None)
+        self.results_overview.set_run(None)
         self.mission_dashboard_widget.set_result(None)
         self.mission_output_widget.clear()
         self.event_timeline_widget.set_result(None)
@@ -1447,6 +1452,8 @@ class MainWindow(QMainWindow):
         record = self.run_history.add(self._last_run_scenario.to_dict(), result, self._last_run_epoch_utc or "",
                                       cancelled=cancelled)  # saved in a worker: _on_run_saved
         self.results_widget.set_runs(self.run_history.runs, record)
+        self.results_overview.set_run(result, record.name,
+                                      result.provenance.to_dict() if result.provenance is not None else None)
         self._refresh_compare_tab()
         mode = "SIL" if getattr(self, "_last_run_sil", False) else "Single"
         self._run_modes[record.number], self._run_seconds[record.number] = mode, self.last_run_seconds
@@ -2532,6 +2539,7 @@ class MainWindow(QMainWindow):
             self.scenario_explainer_widget.shut_down()
             self.run_history.wait_loaded()
             self.run_history.wait_for_saves()  # a run ended just before must be on disk
+            self.results_overview.wait_for_worker()
             self.lifetime_widget.wait_for_worker()  # a few seconds at most; its thread must not be destroyed mid-run
             self.budget_widget.wait_for_worker()
             self.flight_software_widget.wait_for_worker()

@@ -935,6 +935,31 @@ Every milestone also has to meet all of these:
     the overwrite question stays a modal confirmation); the SIL
     spacecraft and program (they were two dialogs);
   - determinate progress was already there (M2b).
+- **M6, split before starting (2026-10-22; §8, "Scope"; `docs/DECISIONS.md`, M6):**
+  - **M6a, the Overview and the plot view:** Results › Overview with the
+    run's metric cards and its provenance in a popover; the plot page
+    persistent, plotly.js loaded once; switching plots under 50 ms.
+  - **M6b, the tables and analysis views:** Output and Monte Carlo as a
+    `DataTable`, Compare's run switcher, End of Life, Budget and Telemetry
+    from the components; the rest of the end of a run's stall.
+- **M6a (2026-10-22): done.** (`tests/gui/test_plot_view.py`,
+  `tests/gui/test_results_overview.py`):
+  - Results › Overview: a card per `run_summary` figure, worked out in a
+    worker thread; critical (icon, words, colour) only for a link margin
+    below 0 dB and an empty battery; the provenance in a popover; an
+    empty state with Run;
+  - one persistent plot page, plotly.js loaded once, each change drawn in
+    place; each plot's figure built once until what it shows changes, in
+    one construction with the same JSON;
+  - start-up's objects out of the garbage collector's full collections.
+
+  Measured with `scripts/measure_plot_switch.py` (template 23, twelve
+  switches a run): M5b's code held the window 59-97 ms a switch, 275-304 ms
+  for the first, and drew the plot after about 415 ms; now at most
+  34.4 ms over four runs (median 19-22 ms), drawn after about 110 ms.
+  **Met** ("under 50 ms"). The end of a run (M5's criterion, held for M6)
+  is 102-110 ms after the first run of a session (was 152-163 ms):
+  **not met**; about half of it is the Output page, which M6b rebuilds.
 
 **Order and size.**
 
