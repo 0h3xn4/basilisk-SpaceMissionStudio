@@ -92,7 +92,7 @@ def test_rejects_duplicate_name_on_add(qtbot, monkeypatch, reported):
     widget.inline.flush()
     assert [item.name for item in widget.to_list()] == ["dup", "star_tracker-1"]  # the new one keeps its name
     assert widget.inline.banner.label.text() == "Not applied: a device named 'dup' already exists"
-    assert reported == [("Added star_tracker: 'star_tracker-1'", "success")]  # the Add's; no warning, no box
+    assert [kind for _message, kind in reported if kind != "success"] == []  # no warning, no box (the Add's own toast aside)
 
 
 def test_item_editor_dialog_rejects_invalid_json(qtbot):

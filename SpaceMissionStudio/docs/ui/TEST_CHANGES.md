@@ -272,7 +272,7 @@ dispersions are edited in a form under their list instead of a dialog.
 | `test_workspace.py::test_the_areas_and_what_they_hold` | The tree's paths ended with "JSON" | They start with "Overview" and have no "JSON"; the toggle is in the area's header | The plan's §5 table: Explain becomes Scenario › Overview; JSON a toggle |
 | `test_json_view.py::test_text_that_is_not_json_is_marked_and_blocks_the_run` | Leaving the JSON page kept the broken text | Leaving JSON mode is refused while the text does not apply; the text and its problem are kept | "A Form/JSON toggle that validates before applying" (M4's criterion) |
 | `test_sensor_actuator_editor.py::test_add_via_dialog` | One change (the dialog's OK) | Two: the Add, then the form's edit | Add no longer waits for a dialog |
-| `test_sensor_actuator_editor.py::test_rejects_duplicate_name_on_add` | A device added under a taken name was dropped, with a warning toast | Add gives a free name; renaming it to a taken one is not applied, and the form's banner says so; the only toast is the Add's, no warning, no box | The dialog it was dropped from is gone |
+| `test_sensor_actuator_editor.py::test_rejects_duplicate_name_on_add` | A device added under a taken name was dropped, with a warning toast | Add gives a free name; renaming it to a taken one is not applied, and the form's banner says so; no warning toast (the Add's own aside), no box | The dialog it was dropped from is gone |
 | `test_sensor_actuator_editor.py::test_add_via_dialog_shows_a_toast_and_selects_the_row` | The toast named the dialog's name | It names the name Add gave ("star_tracker-1") | The same |
 
 ### Wording only

@@ -12443,7 +12443,7 @@ against M4a: 115 shots per theme (M4a: 113).
 - The manual's screenshots in `docs/images/` are captured again; the
   Scenario area's shot shows its Scenario page.
 
-**Tests.** FULL_SUITE_RESULT. 19 existing GUI tests in 8 files changed how
+**Tests.** The full suite: 3776 passed, 12 skipped and 2 failed (Python 3.13 here; CI runs 3.11). One was the bundled manual's images, captured again but not yet copied by `sync_help.py`; the other, the duplicate-name test, read every toast and so depended on which tests ran before it, and now asserts that no warning is shown. Both pass. 19 existing GUI tests in 8 files changed how
 they reach Explain, the JSON or a list's item; 5 of their expectations
 changed with the behaviour on purpose (Add without a dialog, back to Form
 refused). Each is in `docs/ui/TEST_CHANGES.md`. `test_editing_flow.py` is new (17 tests);
