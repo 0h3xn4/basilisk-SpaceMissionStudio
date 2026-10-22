@@ -5,6 +5,144 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## M3 Home and templates (2026-10-22)
+
+The user: "start M3 here". Home is rebuilt: template cards, recent
+scenarios, New blank scenario, Customize, and a card instead of the
+start-up dialog.
+
+- **Three columns, with the reference-data card across the top while it
+  asks:**
+  - **Start:** New blank scenario, the recent scenarios and Open;
+  - **Templates:** the cards, in as many columns as the width holds;
+  - **Details:** the selected template's whole description, with Open
+    template and Customize....
+
+  The details keep what the old page showed below its list (the
+  description with "What to look at" and "Try changing"). A card has
+  room for one sentence only.
+- **A card's three lines, all read from the template file** (no metadata
+  added, plan §7):
+  - **mission type:** the attitude mode (`simulation_mode`: Orbit only or
+    Full attitude) with the first spacecraft's pointing mode (its
+    `fsw_mode`, named as Explain names it), and the number of
+    spacecraft;
+  - **orbit:** the central body, then the first spacecraft's orbit;
+  - **one line:** the description's first sentence.
+- **The orbit line, in detail:**
+  - a circular orbit (e < 0.01) shows its altitude ("550 km circular");
+  - another shows its periapsis and apoapsis altitudes ("941 × 35095
+    km");
+  - a small body shows the distance from its centre, as Explain does,
+    since it has no single radius;
+  - then the inclination to 0.1 deg, and "Sun-synchronous" where Explain
+    calls the orbit so.
+
+  The body radii and the Sun-synchronous test are Explain's own
+  (`engine.scenario_explainer`), imported, not copied. Explain's own
+  orbit line ("SSO 97.59 deg, 550 km alt") gives the altitude from the
+  semi-major axis even for template 02 (e = 0.7). The card is new text,
+  so it gives the periapsis and apoapsis instead. The engine is
+  unchanged.
+- **Template 19 names no pointing mode:** it points by its comms link
+  (`comms_pointing`), not by an `fsw_mode`, and the card says only what
+  the file says.
+- **The first sentence ends at ".", "!" or "?" before a space,** not after
+  "e.g.", "i.e." or "vs.". Template 29's "Sun-synchronous. follower-1"
+  ends a sentence even though a lower-case name follows. The sentence
+  wraps to at most four lines on the card and then elides; the whole
+  sentence is the tooltip.
+- **No thumbnails** (Q4).
+- **A filter over the cards:** with 31 cards, typing ("monte carlo") is
+  quicker than scrolling. Every word must match the title, the two
+  summary lines or the description.
+- **The cards are one Tab stop:**
+  - the arrow keys, Home and End move between them, and Enter opens one;
+  - a card's own Open and Customize... are mouse targets;
+  - the details' Open template and Customize... are the next Tab stops.
+
+  31 cards with two buttons each would have been 93 Tab stops.
+- **Each card keeps its own Customize...:** users had missed one shared
+  button that needed a selection first (the old page's history). The
+  details have Customize... for the selected card too.
+- **One accent button on the page:** Open template, in the details. New
+  blank scenario, Open a scenario file... and the cards' buttons are not
+  accented (design rule 1).
+- **A selected card** is `bg.selected` with an accent edge; a focused card
+  has the 2 px ring. On a selected card its buttons use `text.primary`:
+  the link colour on `bg.selected` is under 4.5:1 in the light theme. No
+  contrast pair is added.
+- **Recent scenarios:**
+  - the last 10, newest first;
+  - kept with `QSettings` in the app's own `settings.ini`, where the
+    theme is kept: one settings file, already isolated per test by
+    `tests/conftest.py`. No scenario or project file changes;
+  - a file is recorded when it is opened (`open_path`) or saved;
+  - the built-in templates are not recorded: they have their cards;
+  - a file that is gone is marked "(missing)" with a caution icon (text
+    and icon, never colour alone), and opening it says so instead of
+    failing;
+  - `Delete` takes an entry off the list and **Clear** empties it; the
+    files stay where they are.
+- **The files are checked when Home is shown,** on the GUI thread: at most
+  10 `is_file` calls on local paths. A path on an unreachable network
+  share could stall it. A worker for 10 calls is more machinery than
+  that risk is worth, so it is not used.
+- **The empty state's action is Open a scenario file...**, directly under
+  it. There is one Open button on the page, not one in the empty state
+  and another above it.
+- **The reference-data card replaces the start-up dialog** (§5.2):
+  - it asks at every start: the user's standing decision says "the user
+    always should be asked", and the plan's "first-run card" names where
+    the question is asked, not how often;
+  - it offers the same three items with the same defaults, built by one
+    function (`choice_boxes`) for the card and the dialog;
+  - **Fetch now** runs the same worker in the background, with the
+    card's controls disabled and an indeterminate bar (each item reports
+    only when it is done), and its summary is a toast;
+  - **Not now** hides it and fetches nothing, as Skip did.
+
+  The dialog and `maybe_run_startup_fetch` stay, with their tests. The
+  window no longer shows them.
+- **A window opened on a file** (the command line, or a recovered
+  autosave) shows the Scenario area first. The card waits on Home, so the
+  question is still asked but is not in view until Home is opened.
+- **Closing the window during a fetch waits for it,** as it waits for the
+  End of Life and Budget workers, so a file is not cut off mid-download.
+- **Start from scratch stacks its button under its text:** the Start
+  column is 220–280 px wide, too narrow for the text and the button side
+  by side.
+- **A card paints its title and two summary lines itself** (`_CardText`:
+  the font, a colour token read at each paint, a height from the font
+  metrics), instead of using word-wrapped `QLabel`s:
+  - with the labels, Home's first show took 108–193 ms, measured offscreen
+    on this machine (`develop`'s list: 19–29 ms), mostly the labels'
+    height-for-width in the first layout;
+  - with `_CardText` it takes 64–135 ms over four sets of runs. The
+    cards' 62 buttons are a good part of the rest: 64–68 ms without them
+    in a trial.
+  - It is still over the 50 ms of design rule 6. Home is the page the
+    window opens on, so this time is part of start-up: the window's first
+    show took 184–246 ms against 98–121 ms on `develop`, with the
+    labels. It is not a stall after start-up: Home stays built, and
+    showing it again lays nothing out anew.
+  - M9's criterion (the first visit to any page under 50 ms, start-up
+    faster than the baseline) holds this value. Building the cards when
+    first scrolled into view, or painting them in one view with a
+    delegate, are the options there.
+- **The names stay:** `LoadScenarioWidget` (also `HomePage`) and
+  `MainWindow.load_scenario_widget`. Tests and scripts reach Home through
+  them, and a rename would hide the real changes in noise.
+- **Template descriptions** (left over from M2a): "the Events tab" is
+  "the Timeline" in templates 22 and 26, "Events:" is "Timeline:" in 29,
+  and "Explain, in the side panel" is "in the panel on the right" in 22.
+  The template files changed only in those words; they are regenerated
+  from `scripts/_template_descriptions.py`.
+- **`compare_tab.png` and `monte_carlo_tab.png`** (left over from M2a)
+  are now captured by `scripts/capture_screenshots.py`. It runs template
+  22 a second time, two days long, as the manual's caption says, and
+  template 25's batch into a temporary folder.
+
 ## M2a Shell (2026-10-21)
 
 The user: "start M2 here". M2 is split into M2a and M2b, recorded in the

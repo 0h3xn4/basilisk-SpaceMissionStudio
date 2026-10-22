@@ -162,3 +162,48 @@ below reaches the same behaviour there.
   - the inspector's two docks and Ctrl+I;
   - the layout kept per project, and after the window closes;
   - a keyboard-only walk of the shell.
+
+## M3 Home and templates
+
+No test outside `tests/gui/` changed. No golden or output file changed.
+The Templates page's list became Home's template cards with a details
+column, and the start-up dialog became a card on Home. Each test below
+reaches the same behaviour there.
+
+### Changed: how a test reaches the widget
+
+| Test | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_load_scenario_widget.py::test_populates_one_item_per_bundled_template`, `test_a_malformed_template_is_skipped_not_crashed_on` | `list_widget.count()` | `len(widget.cards)` | One entry per template file; none for a malformed file |
+| `test_load_scenario_widget.py::test_items_are_in_filename_order` | `list_widget.item(i).text()` | `card.name` | File-name order, from 01 |
+| `test_load_scenario_widget.py::test_customize_clicked_is_independent_of_the_lists_current_selection`, `test_selecting_an_item_enables_open_and_shows_its_description`, `test_open_template_button_emits_the_matching_path`, `test_description_label_is_never_squeezed_below_its_needed_height` | `list_widget.setCurrentRow(n)` | `widget.select(n)` | The card's Customize acts on its own template; Open enabled and a description shown; Open emits the template's path; the description keeps its full height |
+| `test_load_scenario_widget.py::test_double_click_opens_the_template` | `itemDoubleClicked.emit(item(2))`, first without a current row (nothing), then with one (opens) | `qtbot.mouseDClick(cards[2])` | A double-click opens that template, once; the double-clicked card is also selected (a card has no "double-click without a selection") |
+| `test_load_scenario_widget.py::test_content_is_wrapped_in_a_resizable_scroll_area` | The page's only `QScrollArea` holds the description | `widget.description_scroll`, one of Home's three column scroll areas, holds it | The description is inside a resizable scroll area |
+| `test_load_scenario_widget.py::test_selected_templates_title_and_description_are_visible_without_scrolling_the_tab` | `list_widget.setCurrentRow(4)`, `item(4).text()` | `select(4)`, `cards[4].name` | The selected title is in the details, near the top |
+| `test_load_scenario_widget.py::test_the_selected_templates_title_stays_readable` | The selected row's title has role `strong` | The selected card's title has role `heading` (a card's title is always semibold), and the card is marked selected | 4.5:1 against the selection colour; semibold |
+| `test_load_scenario_widget.py::test_left_pane_content_fits_a_default_window_without_horizontal_scrolling` | `minimumSizeHint().width() <= 560` (the Templates pane beside the old scenario tree, in a 1400 px window) | A 1280 x 720 main window with the inspector shown, the theme applied: the window keeps 1280 px and none of Home's three columns scrolls sideways | No horizontal scrolling at the default window. Home is the whole area since M2a, so the 560 px pane no longer exists |
+| `test_load_scenario_widget.py::test_every_customize_button_is_inside_the_list` | `list_widget.viewport()`, `_rows` | `grid_scroll.viewport()`, `cards` | Every Customize... is inside the visible width |
+| `test_wide_screen.py::test_a_template_row_keeps_its_customize_button_close` | The list at most `CONTENT_MAX_WIDTH_PX` wide; the row's Customize... within it | A card under two least card widths wide; its Customize... within the card, beside Open | On a 2560 px screen Customize... stays next to its template's title. The cards fill the width in columns instead of a 960 px column |
+| `test_mission_guide.py::test_the_templates_page_offers_a_blank_scenario_first` | `page.layout().itemAt(0)` is Start from scratch | The first item of Home's first column (`start_scroll`) is Start from scratch | Start from scratch is the first choice; its button makes the blank scenario |
+| `test_shell_reachability.py`, the row "`StartupFetchDialog`" | The dialog class exists; Reference Data is a command | Also: the reference-data card shows on Home with Fetch now enabled (`_reference_card`) | The row is reachable, where §5.2 puts it now |
+
+### Added
+
+- `tests/gui/test_home.py` (32 tests):
+  - a card per template, its three lines read from the file (attitude
+    mode and spacecraft count, central body and orbit, the description's
+    first sentence), with examples (LEO, an eccentric orbit, GEO, Mars,
+    Eros);
+  - the first-sentence rule; the filter and its count; the columns
+    following the width; the keyboard (one Tab stop, the arrows, Home,
+    End, Enter); a card's Open; Customize from the details and from the
+    window;
+  - recent scenarios: the empty state, opening and saving listing a file
+    first, templates not listed, the last 10, a list of one, a missing
+    file marked and not opened, Delete and Clear, opening from the list;
+  - the reference-data card: shown at start-up instead of a dialog, Not
+    now fetching nothing, the dialog's items and defaults, Fetch now in a
+    worker with its summary, nothing ticked, and the card taking only
+    the height it needs;
+  - the cards' text, which they paint themselves, in the new colours
+    after a live theme switch.

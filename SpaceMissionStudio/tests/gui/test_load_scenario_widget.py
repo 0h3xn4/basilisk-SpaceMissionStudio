@@ -19,7 +19,7 @@ def test_populates_one_item_per_bundled_template(qtbot):
 
     expected_count = len(list(TEMPLATES_DIR.glob("*.json")))
     assert expected_count >= 9
-    assert widget.list_widget.count() == expected_count
+    assert len(widget.cards) == expected_count
 
 
 def test_items_are_in_filename_order(qtbot):
@@ -34,7 +34,7 @@ def test_items_are_in_filename_order(qtbot):
     # e.g. "01 - Two-body circular orbit") sort the same way -- this
     # confirms the list wasn't accidentally reordered by e.g. an
     # unsorted glob() or dict iteration.
-    titles = [widget.list_widget.item(i).text() for i in range(widget.list_widget.count())]
+    titles = [card.name for card in widget.cards]
     assert titles == sorted(titles)
     assert titles[0].startswith("01")
 
@@ -64,19 +64,32 @@ def _customize_button(widget, name_substring: str):
     return matches[0]
 
 
-def test_left_pane_content_fits_a_default_window_without_horizontal_scrolling(qtbot):
+def test_left_pane_content_fits_a_default_window_without_horizontal_scrolling(qtbot, restored_theme):
     """Regression test for a real layout bug found by audit: a second,
     full-width "Customize: <whole template title>..." button per template
     demanded up to ~670 px, forcing the Load Scenario tab into a
     horizontal scrollbar at the default 1400x850 window size (left pane
     ~580 px) -- clipping the intro text mid-word and hiding this tab's own
-    buttons behind the scrollbar.
+    buttons behind the scrollbar. Home is the whole area since M2a: it
+    fits a 1280 px window with the inspector shown, without widening it.
     """
-    from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
+    from spacemissionstudio.gui.main_window import MainWindow
+    from spacemissionstudio.gui.theme import apply_theme
 
-    widget = LoadScenarioWidget()
-    qtbot.addWidget(widget)
-    assert widget.minimumSizeHint().width() <= 560
+    apply_theme(restored_theme, "light")  # widths measured with the app's fonts, not Qt's default
+    window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+    qtbot.addWidget(window)
+    window.resize(1280, 720)  # [px]
+    window.show()
+    qtbot.waitExposed(window)
+    window.shell.show_area("home")
+    assert window.side_dock.isVisible()
+    home = window.load_scenario_widget
+    qtbot.waitUntil(lambda: home.grid.columns() > 0)
+    assert window.width() == 1280  # [px]
+    assert home.width() >= home.minimumSizeHint().width()
+    assert all(not area.horizontalScrollBar().isVisible()
+               for area in (home.start_scroll, home.grid_scroll, home.description_scroll))
 
 
 def test_customize_button_exists_for_every_template_with_a_registered_wizard_spec(qtbot):
@@ -96,9 +109,9 @@ def test_customize_button_exists_for_every_template_with_a_registered_wizard_spe
     for scenario_name, path in widget._template_paths.items():
         if get_wizard_spec(path.name) is None:
             continue
-        # Has one, and it's enabled without any prior list selection --
+        # Has one, and it's enabled without any prior selection --
         # these buttons are standalone actions, not gated on
-        # widget.list_widget.currentItem().
+        # widget.selected_card().
         button = _customize_button(widget, scenario_name)
         assert button.isEnabled()
 
@@ -151,7 +164,7 @@ def test_customize_clicked_is_independent_of_the_lists_current_selection(qtbot, 
 
     widget = LoadScenarioWidget()
     qtbot.addWidget(widget)
-    widget.list_widget.setCurrentRow(0)  # "01 - Two-body circular orbit" -- unrelated to '18'
+    widget.select(0)  # "01 - Two-body circular orbit" -- unrelated to '18'
 
     monkeypatch.setattr(TemplateCustomizeWizard, "exec",
                          lambda self: TemplateCustomizeWizard.DialogCode.Accepted)
@@ -171,7 +184,7 @@ def test_selecting_an_item_enables_open_and_shows_its_description(qtbot):
     widget = LoadScenarioWidget()
     qtbot.addWidget(widget)
 
-    widget.list_widget.setCurrentRow(0)
+    widget.select(0)
 
     assert widget.open_template_button.isEnabled()
     assert len(widget.description_label.text()) > 50
@@ -183,7 +196,7 @@ def test_open_template_button_emits_the_matching_path(qtbot):
 
     widget = LoadScenarioWidget()
     qtbot.addWidget(widget)
-    widget.list_widget.setCurrentRow(0)
+    widget.select(0)
 
     emitted = []
     widget.path_chosen.connect(lambda path: emitted.append(path))
@@ -195,25 +208,22 @@ def test_open_template_button_emits_the_matching_path(qtbot):
 
 
 def test_double_click_opens_the_template(qtbot):
-    """Double-clicking the selected row opens that template, once."""
+    """Double-clicking a card opens that template, once."""
+    from PySide6.QtCore import Qt
+
     from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
 
     widget = LoadScenarioWidget()
     qtbot.addWidget(widget)
+    widget.show()
 
     emitted = []
     widget.path_chosen.connect(lambda path: emitted.append(path))
-    widget.list_widget.itemDoubleClicked.emit(widget.list_widget.item(2))
-
-    # itemDoubleClicked alone doesn't change currentItem() in a headless
-    # test (no real mouse click drove selection first) -- select it
-    # explicitly first, matching what a real double-click does in
-    # practice (it also selects the row), then fire the signal.
-    widget.list_widget.setCurrentRow(2)
-    widget.list_widget.itemDoubleClicked.emit(widget.list_widget.item(2))
+    qtbot.mouseDClick(widget.cards[2], Qt.MouseButton.LeftButton)
 
     assert len(emitted) == 1
     assert emitted[0].name.startswith("03_")
+    assert widget.selected_card() is widget.cards[2]  # a double-click also selects the card
 
 
 def test_browse_emits_the_picked_path(qtbot, monkeypatch, tmp_path):
@@ -268,19 +278,18 @@ def test_content_is_wrapped_in_a_resizable_scroll_area(qtbot):
     scenario_editor.ScenarioEditorWidget and spacecraft_editor.py's
     _scrollable() already use for this exact reason.
     """
-    from PySide6.QtWidgets import QScrollArea
-
     from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
 
     widget = LoadScenarioWidget()
     qtbot.addWidget(widget)
 
-    scroll_areas = widget.findChildren(QScrollArea)
-    assert len(scroll_areas) == 1
-    assert scroll_areas[0].widgetResizable()
+    # Each of Home's three columns scrolls on its own (M3); the details
+    # column holds the description.
+    scroll_area = widget.description_scroll
+    assert scroll_area.widgetResizable()
     # description_label must live inside the scroll area's own content
     # widget, not directly on widget's top-level layout.
-    content = scroll_areas[0].widget()
+    content = scroll_area.widget()
     assert widget.description_label in content.findChildren(type(widget.description_label))
 
 
@@ -300,7 +309,7 @@ def test_description_label_is_never_squeezed_below_its_needed_height(qtbot):
 
     widget = LoadScenarioWidget()
     qtbot.addWidget(widget)
-    widget.list_widget.setCurrentRow(0)  # gives description_label real, long text to wrap
+    widget.select(0)  # gives description_label real, long text to wrap
 
     widget.resize(500, 150)  # far shorter than this tab's natural content height
     widget.show()
@@ -324,7 +333,7 @@ def test_a_malformed_template_is_skipped_not_crashed_on(qtbot, monkeypatch, tmp_
     widget = load_scenario_widget.LoadScenarioWidget()
     qtbot.addWidget(widget)
 
-    assert widget.list_widget.count() == 0
+    assert len(widget.cards) == 0
 
 
 def test_description_renders_headings_and_bullets(qtbot):
@@ -349,10 +358,10 @@ def test_selected_templates_title_and_description_are_visible_without_scrolling_
     qtbot.addWidget(widget)
     widget.resize(560, 700)
     widget.show()
-    widget.list_widget.setCurrentRow(4)
+    widget.select(4)
     for _ in range(3):
         QApplication.processEvents()
-    assert widget.description_title.text() == widget.list_widget.item(4).text()
+    assert widget.description_title.text() == widget.cards[4].name
     top_of_card = widget.description_scroll.mapTo(widget, widget.description_scroll.rect().topLeft()).y()
     assert top_of_card < widget.height() - 100  # the card starts well inside the visible tab
 
@@ -377,22 +386,21 @@ def test_the_selected_templates_title_stays_readable(qtbot, restored_theme):
     widget = LoadScenarioWidget()
     qtbot.addWidget(widget)
     widget.show()
-    widget.list_widget.setCurrentRow(0)
-    row = widget._rows[widget.list_widget.item(0).text()]
+    row = widget.select(0)
     row.title_label.ensurePolished()
     text = row.title_label.palette().color(row.title_label.foregroundRole())
     lighter, darker = sorted((luminance(text), luminance(QColor(PALETTE["selected"]))), reverse=True)
     assert (lighter + 0.05) / (darker + 0.05) >= 4.5
-    assert row.title_label.property("role") == "strong"  # still marked as selected (semibold)
+    assert row.is_selected() and row.title_label.property("role") == "heading"  # a card's title is semibold
     from PySide6.QtGui import QFont
 
     assert row.title_label.font().weight() >= QFont.Weight.DemiBold
 
 
 def test_every_customize_button_is_inside_the_list(qtbot):
-    """In the main window the template list is narrower than when its rows
-    were first laid out; the rows follow it, so each row's Customize...
-    button stays inside the list instead of past its right edge."""
+    """In the main window the template grid is narrower than when its cards
+    were first laid out; the cards follow it, so each card's Customize...
+    button stays inside the grid instead of past its right edge."""
     from spacemissionstudio.gui.load_scenario_widget import LoadScenarioWidget
     from spacemissionstudio.gui.main_window import MainWindow
 
@@ -402,11 +410,11 @@ def test_every_customize_button_is_inside_the_list(qtbot):
     window.show()
     qtbot.waitExposed(window)
     widget = window.findChildren(LoadScenarioWidget)[0]
-    viewport = widget.list_widget.viewport()
-    buttons = [row.customize_button for row in widget._rows.values() if row.customize_button is not None]
+    viewport = widget.grid_scroll.viewport()
+    buttons = [card.customize_button for card in widget.cards if card.customize_button is not None]
     assert buttons
 
     def outside():
         return [b.accessibleName() for b in buttons if b.mapTo(viewport, b.rect().topRight()).x() >= viewport.width()]
 
-    qtbot.waitUntil(lambda: outside() == [], timeout=3000)  # the list lays its rows out again on its own time
+    qtbot.waitUntil(lambda: outside() == [], timeout=3000)  # the grid lays its cards out again on its own time

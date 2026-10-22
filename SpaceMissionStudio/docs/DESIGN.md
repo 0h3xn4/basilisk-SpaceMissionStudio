@@ -205,6 +205,17 @@ bar and no toolbar:
   - Undo, Redo, Save (it shows the save state), Run (the one primary,
     accent, button) with its mode, the command search (Ctrl+K) and,
     while there are any, the problem count.
+- **Home (M3, `gui/load_scenario_widget.py`):** while it asks, the
+  reference-data card across the top (it replaced the start-up dialog);
+  then three columns: Start (New blank scenario, the recent scenarios
+  with their empty state, Open), the template cards in as many columns
+  as fit (at least 264 px each) with a filter, and the selected card's
+  whole description with Open template (the page's one accent button)
+  and Customize. A card is a `card` surface: hover `bg.hover`, selected
+  `bg.selected` with an accent edge, focus the 2 px ring; its three
+  lines (attitude mode, orbit, the description's first sentence) are
+  read from the template file. The cards are one Tab stop; the arrow
+  keys, Home and End move between them, Enter opens.
 - **Scenario area:** the scenario tree on the left. Each spacecraft has a
   node per part of its editor.
 - **Inspector, on the right:** two docks one above the other, Inspector
@@ -234,7 +245,7 @@ bar and no toolbar:
 | Corner radius | 6 px controls, 8 px panels, popovers and dialogs | `theme.RADIUS` |
 | Focus ring | 2 px, the accent | `theme/qss.py` |
 | Smallest window the views are checked at | 1280 x 720 px | `scripts/capture_screenshots.py --size` |
-| Widest a form, a list editor or the template list grows | 960 px (`theme.CONTENT_MAX_WIDTH_PX`) | `scenario_editor._page`, the embedded forms, End of Life, Templates |
+| Widest a form or a list editor grows | 960 px (`theme.CONTENT_MAX_WIDTH_PX`) | `scenario_editor._page`, the embedded forms, End of Life |
 | Scenario tree | at least 170 px, 220 px to start | `gui/page_tree.py` |
 | Results plot list | 16 % of the pane, 250 to 400 px, until the user drags the divider | `gui/results_widget.py` |
 | Toast | at most 360 px wide, 16 px from the window's edge, 8 px apart | `gui/feedback.py` |
@@ -412,6 +423,9 @@ standard key is checked against the running platform's binding.
 | Mission Sequence list | Alt+Up, Alt+Down | Move the step |
 | Mission Sequence list | Delete | Remove the step |
 | Scenario tree | Up, Down | Pass through a group or a page's sections in the key's direction |
+| Home, template cards | Arrows, Home, End | Move between the cards |
+| Home, template cards | Enter | Open the card's template |
+| Home, recent scenarios | Delete | Take the scenario off the list |
 
 **Tab order.** A Tab walk of Templates, the Scenario page, a spacecraft's
 page, Results, Events, Log, End of Life and Budget at 1280 x 720

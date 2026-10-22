@@ -29,7 +29,8 @@ complete small satellite): every scenario page, a run of it (Results,
 Events, Log), a second run (Compare), the Monte Carlo template 09 run as a
 short batch, an End of Life estimate, the run mode menu, and every dialog, modal ones
 included (grabbed while open, then closed). Needs Basilisk and the support
-data. The run history goes to a temporary folder, not ~/.spacemissionstudio.
+data. The run history and Home's recent scenarios go to a temporary folder,
+not ~/.spacemissionstudio.
 """
 
 from __future__ import annotations
@@ -69,6 +70,13 @@ def capture(out: Path, theme: str) -> int:
     configure_logging(log_dir=Path(tempfile.mkdtemp(prefix="sms-ui-logs-")))  # not beside the screenshots
     runs = Path(tempfile.mkdtemp(prefix="sms-ui-runs-"))
     run_store.default_root = lambda: runs  # keep this capture's runs out of the user's history
+    from PySide6.QtCore import QSettings
+
+    from spacemissionstudio.gui import recent_files
+
+    recent_ini = str(Path(tempfile.mkdtemp(prefix="sms-ui-settings-")) / "settings.ini")
+    # and the files it opens out of the user's recent scenarios (Home)
+    recent_files._settings = lambda: QSettings(recent_ini, QSettings.Format.IniFormat)
 
     from spacemissionstudio.gui.main_window import MainWindow
     from spacemissionstudio.schema import load_scenario
@@ -131,6 +139,16 @@ def capture(out: Path, theme: str) -> int:
     window.show()
     spin(2.0)  # [s]
     save(window, "start_templates")
+    # Home (M3): a template selected, and the reference-data card that
+    # replaced the start-up dialog (asked here without fetching anything).
+    home = window.load_scenario_widget
+    home.select(next(card.name for card in home.cards if card.name.startswith("22 ")))
+    spin(0.5)  # [s]
+    save(window, "start_template_selected")
+    home.reference_card.ask()
+    spin(0.5)  # [s]
+    save(window, "start_reference_data")
+    home.reference_card.dismiss()
 
     def workspace(prefix: str) -> None:
         """Every scenario-tree node (pages and their sections), the other

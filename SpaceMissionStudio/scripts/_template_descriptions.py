@@ -358,9 +358,9 @@ environment every LEO mission needs -- detailed gravity, Sun and Moon, drag from
 solar pressure -- and the Berlin ground station. No attitude, so a day runs in seconds.
 
 What to look at:
-- The Events tab: four Berlin passes (the first 10-18 min in) and 15 eclipses of about 35 min.
+- The Timeline: four Berlin passes (the first 10-18 min in) and 15 eclipses of about 35 min.
 - my-sat.orbit_elements_mean.raan: the orbit plane turns about 1 deg a day, in step with the Sun.
-- Explain, in the side panel: everything this scenario switches on, in one view.
+- Explain, in the panel on the right: everything this scenario switches on, in one view.
 
 Make it your own (Save As first):
 - Spacecraft > Edit: your mass, drag area and orbit (a TLE works too).
@@ -438,7 +438,7 @@ What to look at:
 - eo-sat.data_handling.data_lost: 0.9 Gbit of the 14.5 Gbit generated; the memory is first full 12 h in.
 - berlin-gs.access_to_eo-sat.link_margin_db: 16 dB at the best pass, 3.7 dB at the 10 deg edge, where \
 Berlin is 65 deg off the patch's boresight (.antenna_off_boresight).
-- The Events tab: each downlink and how much it sent.
+- The Timeline: each downlink and how much it sent.
 
 Try changing:
 - Memory capacity 8 Gbit (Data handling, Power/propulsion tab): nothing is lost.
@@ -501,7 +501,7 @@ What to look at:
 day 1.2: passively safe.
 - follower-1.roe_formation.delta_v: 0.56 m/s for the move, then 0.026 m/s to hold it to day 4, within \
 13 m along-track.
-- Explain: the e/i-vector diagram. Events: each burn and drift.
+- Explain: the e/i-vector diagram. Timeline: each burn and drift.
 
 Try changing:
 - Control law Continuous (follower-1's ROE formation): on target by day 1.4, within 3 m from day 2, 1.85 m/s in all.

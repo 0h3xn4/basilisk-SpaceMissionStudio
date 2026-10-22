@@ -182,19 +182,20 @@ orbit for one day, with a ground station in Berlin.
 
 **In the GUI** (about a minute):
 
-1. Start the app. Each time it starts, a **Fetch/update data?** dialog
-   offers to check for newer reference data. **Skip** is fine once the
-   data is installed; **Fetch now** downloads only what you tick.
-2. The app opens on **Templates**. Click **22 - Starter: your first
-   LEO satellite**; its description appears below the list.
-3. Click **Open Template**. The **Scenario** tab shows the mission; the
+1. Start the app. It opens on **Home**. Each time it starts, a **Fetch
+   or update reference data?** card at the top offers to check for
+   newer reference data. **Not now** is fine once the data is installed;
+   **Fetch now** downloads only what you tick.
+2. Click the card **22 - Starter: your first LEO satellite**; its
+   description appears on the right.
+3. Click **Open template**. The **Scenario** area shows the mission; the
    **Explain** panel on the right says what it switches on, and predicts
    `berlin-gs: 4 passes`.
 4. **Run** in the top bar (`Ctrl+R`). It takes a few seconds.
-5. The **Results** tab opens. Click "Inertial Position (ECI)" in the
+5. The **Results** area opens. Click "Inertial Position (ECI)" in the
    catalog on the left (search `position_N`) to see the orbit.
-6. Open the **Events** tab: four Berlin passes (the first about 10 to 18
-   minutes in) and fifteen eclipses of about 35 minutes each.
+6. Open the **Timeline** (`Ctrl+5`): four Berlin passes (the first about
+   10 to 18 minutes in) and fifteen eclipses of about 35 minutes each.
 7. **Save As...** (Ctrl+Shift+S) to keep your own copy before changing anything.
 
 **From the command line:**

@@ -103,7 +103,7 @@ script; CI fails when a generated file is out of date.
 | A template, the schema, or `scripts/_template_descriptions.py` | `python scripts/_generate_templates.py` | `spacemissionstudio/scenarios/templates/*.json` |
 | Code, tests or the schema | the five commands below | `compliance/docs/` (ICD schema, component map, test specifications, traceability) |
 | A compliance assessment | `python compliance/tools/build_matrix.py` | `compliance/compliance_matrix.csv` |
-| What a screen looks like | `QT_QPA_PLATFORM=offscreen python scripts/capture_screenshots.py docs/images` (needs Basilisk and the reference data; a few minutes), then `python scripts/sync_help.py` | Eight of the screenshots in `docs/images/` (not `monte_carlo_tab.png` or `compare_tab.png`) |
+| What a screen looks like | `QT_QPA_PLATFORM=offscreen python scripts/capture_screenshots.py docs/images` (needs Basilisk and the reference data; the Monte Carlo batch takes the longest), then `python scripts/sync_help.py` | The screenshots in `docs/images/` |
 
 The compliance documents, as CI checks them:
 

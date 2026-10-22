@@ -183,6 +183,13 @@ QFrame[role="card"] {{
     border-radius: {r_panel};
 }}
 QFrame[role="card"] QLabel {{ border: none; }}
+/* A template card on Home: hover, selected (the accent edge) and focus
+   (the 2 px ring; the 1 px margin keeps its content from moving). */
+QFrame#templateCard {{ margin: {px(FOCUS_RING - BORDER)}; }}
+QFrame#templateCard:hover {{ background-color: {t['bg.hover']}; }}
+QFrame#templateCard[selected="true"] {{ background-color: {t['bg.selected']}; border-color: {t['accent']}; }}
+QFrame#templateCard:focus {{ border: {px(FOCUS_RING)} solid {t['border.focus']}; margin: 0px; }}
+QFrame#templateCard[selected="true"] QPushButton[variant="ghost"] {{ color: {t['text.primary']}; }}
 QFrame[role="recessed"], QScrollArea#paramReference {{
     background-color: {t['bg.canvas']};
     border: {px(BORDER)} solid {t['border.subtle']};

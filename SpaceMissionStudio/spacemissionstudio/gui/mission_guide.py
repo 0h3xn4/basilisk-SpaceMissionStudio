@@ -38,7 +38,7 @@ from typing import Dict, Optional, Tuple
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
-from .theme import SPACE, set_role
+from .theme import SPACE, icon, set_role
 
 # Where a guide button leads (MissionGuide.go_to's argument).
 ENVIRONMENT = "environment"
@@ -114,18 +114,20 @@ class StartFromScratchCard(QFrame):
     def __init__(self, parent: Optional[QWidget] = None):
         super().__init__(parent)
         set_role(self, role="card")
-        layout = QHBoxLayout(self)
-        text = QVBoxLayout()
-        text.addWidget(_label("Start from scratch", role="heading"))
-        text.addWidget(_label("An empty mission you build step by step, guided on its Scenario page.",
-                              tone="secondary"))
-        text.addWidget(_label("It starts in Orbit only, the simplest mode; Full attitude adds attitude, sensors, "
-                              "actuators and power.", tone="secondary"))
-        layout.addLayout(text, 1)
+        # Text over the button: the card sits in Home's narrow Start column.
+        layout = QVBoxLayout(self)
+        layout.setSpacing(SPACE["xs"])
+        layout.addWidget(_label("Start from scratch", role="heading"))
+        layout.addWidget(_label("An empty mission you build step by step, guided on its Scenario page.",
+                                tone="secondary"))
+        layout.addWidget(_label("It starts in Orbit only, the simplest mode; Full attitude adds attitude, sensors, "
+                                "actuators and power.", tone="secondary"))
+        layout.addSpacing(SPACE["xs"])
         self.button = QPushButton("New blank scenario")
+        self.button.setIcon(icon("file-plus", "text.secondary"))
         self.button.setToolTip("New Scenario (Ctrl+N)")
         self.button.clicked.connect(self.requested)
-        layout.addWidget(self.button, 0, Qt.AlignmentFlag.AlignVCenter)
+        layout.addWidget(self.button, 0, Qt.AlignmentFlag.AlignLeft)
 
 
 class MissionGuide(QFrame):

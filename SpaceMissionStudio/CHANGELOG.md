@@ -55,6 +55,32 @@ fixes bugs.
 
   A layout saved by an earlier version is ignored once.
 
+- **Home: template cards, recent scenarios, no start-up dialog** (UI
+  overhaul M3):
+  - **A card per template** says what the template is, all read from
+    the template file: Orbit only or Full attitude (with its pointing
+    mode) and how many spacecraft; the central body and the orbit
+    ("Earth · 550 km circular · i 97.6 deg · Sun-synchronous"); and the
+    first sentence of its description. A filter narrows the cards. Click
+    a card for its whole description, with **Open template** and
+    **Customize...**; each card has its own **Open** and
+    **Customize...** too. The keyboard reaches the cards with `Tab`, the
+    arrow keys move between them and `Enter` opens one.
+  - **Recent scenarios:** the last 10 scenario files you opened or saved,
+    newest first. A file that was moved or deleted is marked
+    "(missing)". `Delete` takes one off the list and **Clear** empties
+    it.
+  - **New blank scenario** and **Open a scenario file...** are beside
+    them.
+  - **No dialog at start-up:** the question whether to fetch or update
+    the reference data is a card at the top of Home, with the same
+    choices. **Fetch now** downloads while you carry on; **Not now**
+    downloads nothing.
+  - Templates 22, 26 and 29 named the Events tab in their descriptions;
+    they name the Timeline now.
+
+  What a run computes and every file the app writes are the same.
+
 ## 1.2.0 (2026-10-21)
 
 Starting a mission from an empty scenario is now a choice of its own: the
