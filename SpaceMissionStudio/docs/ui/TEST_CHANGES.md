@@ -426,3 +426,19 @@ member reads the same thing through the table.
 | `test_mission_output_widget.py::test_the_report_at_the_time_cursor_is_marked_and_a_header_click_moves_the_cursor` | `table.horizontalHeaderItem(n).font().bold()`, `table.horizontalHeader()` | `table.header_is_bold(n)`, `table.view.horizontalHeader()` | The report at the cursor in bold; a header click moves the cursor, the quantity column does not |
 | `test_monte_carlo_results_widget.py::test_a_saved_batch_shows_tiles_plots_and_a_sortable_run_table` | `rowCount()`, `horizontalHeaderItem(c).text()`, `sortItems(1, ...)`, `item(r, 0).text()` | `row_count()`, `header_text(c)`, `sort_by(1, ...)`, `cell(r, 0)` | Five rows, the headers, a numeric sort by Cd |
 | `test_monte_carlo_results_widget.py` (the spacecraft switch test) | `horizontalHeaderItem(columnCount() - 1).text()` | `header_text(column_count() - 1)` | The last column is the chosen spacecraft's |
+
+The end of a run is shown in steps, one an event-loop turn (M6b). A test
+that calls `_on_run_finished` or `_on_run_cancelled` directly and reads
+the views at once now takes the steps first with `window.finish_run_end()`
+(what a new run, clearing the views and closing do); the assertions after
+it are unchanged:
+
+| Test or helper |
+|---|
+| `test_main_window.py::test_run_finished_with_command_summary_shows_mission_output_tab` |
+| `test_main_window.py::test_run_finished_without_command_summary_shows_results_tab` |
+| `test_main_window.py::test_run_cancelled_updates_results_widget_and_status` |
+| `test_main_window.py::test_run_cancelled_with_command_summary_shows_mission_output_tab` |
+| `test_run_record.py::_finish_a_run` (five tests) |
+| `test_stale_results_and_window_size.py::_finish_a_run` |
+| `test_workspace.py::_finish_a_run` (two tests) |

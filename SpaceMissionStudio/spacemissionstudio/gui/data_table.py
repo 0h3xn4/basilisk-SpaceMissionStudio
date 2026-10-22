@@ -48,6 +48,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QHeaderView, QLabel, QMenu, QP
 from .theme import TOKENS, numeric_font, set_role, ui_font
 
 _SORT_ROLE = Qt.ItemDataRole.UserRole  # a cell's sort key (Row.keys)
+_SIZED_ROWS = 200  # rows a column's width is measured from
 
 
 @dataclass
@@ -72,6 +73,10 @@ class DataModel(QAbstractTableModel):
         self.bold_columns: set = set()
         self.numeric: set = set()  # columns of numbers
         self.rows: List[Row] = []
+        # Made once: data() is asked for every cell's font while the view sizes
+        # its columns, and a QFont with its features is slow to make.
+        self._numeric_font = numeric_font()
+        self._heading_font = ui_font("small", "semibold")
 
     def set_table(self, headers: Sequence[str], rows: Sequence[Row], numeric: Sequence[int] = ()) -> None:
         self.beginResetModel()
@@ -108,7 +113,7 @@ class DataModel(QAbstractTableModel):
                                                                                                          column)
         if row.group:
             if role == Qt.ItemDataRole.FontRole:
-                return ui_font("small", "semibold")
+                return self._heading_font
             if role == Qt.ItemDataRole.BackgroundRole:
                 return QColor(TOKENS["bg.selected"])  # looked up when drawn: it follows a theme change
             return None
@@ -116,7 +121,7 @@ class DataModel(QAbstractTableModel):
             if role == Qt.ItemDataRole.TextAlignmentRole:
                 return int(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             if role == Qt.ItemDataRole.FontRole:
-                return numeric_font()
+                return self._numeric_font
         return None
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):  # noqa: N802 -- Qt API name
@@ -127,7 +132,7 @@ class DataModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.ToolTipRole:
             return self.header_tooltips.get(section)
         if role == Qt.ItemDataRole.FontRole and section in self.bold_columns:
-            return ui_font("small", "semibold")
+            return self._heading_font
         if role == Qt.ItemDataRole.TextAlignmentRole and section in self.numeric:
             return int(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         return None
@@ -192,6 +197,7 @@ class DataTable(QWidget):
         self.view.setTextElideMode(Qt.TextElideMode.ElideMiddle)
         self.view.copy_requested.connect(lambda: QGuiApplication.clipboard().setText(self.copy_text()))
         header = self.view.horizontalHeader()
+        header.setResizeContentsPrecision(_SIZED_ROWS)
         header.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         header.customContextMenuRequested.connect(self._on_header_menu)
         self.stack.addWidget(self.view)
@@ -207,9 +213,12 @@ class DataTable(QWidget):
         self.model.set_table(headers, rows, numeric)
         header = self.view.horizontalHeader()
         for column in range(len(headers)):
+            # Sized to their content once, here, not on every layout of the view
+            # (that asked for every cell's text and font at each one, M6b).
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch if column == stretch
-                                        else QHeaderView.ResizeMode.ResizeToContents)
+                                        else QHeaderView.ResizeMode.Interactive)
             self.view.setColumnHidden(column, False)
+        self.view.resizeColumnsToContents()
         self._update_spans()
         self.view.setUpdatesEnabled(True)
         self.stack.setCurrentWidget(self.view if rows else self.empty)
@@ -252,6 +261,8 @@ class DataTable(QWidget):
     def _update_spans(self) -> None:
         self.view.clearSpans()
         columns = self.model.columnCount()
+        if not any(row.group for row in self.model.rows):
+            return
         for row in range(self.proxy.rowCount()):
             source = self.proxy.mapToSource(self.proxy.index(row, 0)).row()
             if self.model.rows[source].group and columns > 1:

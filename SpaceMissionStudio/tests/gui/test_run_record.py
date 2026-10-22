@@ -62,6 +62,7 @@ def _finish_a_run(window, warnings=()):
     window._last_run_scenario = window.scenario_editor.to_scenario()
     window._start_busy("Running")
     window._on_run_finished(ResultSet(scenario_name=window._last_run_scenario.name, warnings=list(warnings)))
+    window.finish_run_end()  # M6b: the end of a run is shown in steps; take them
 
 
 def _saved(window, qtbot):

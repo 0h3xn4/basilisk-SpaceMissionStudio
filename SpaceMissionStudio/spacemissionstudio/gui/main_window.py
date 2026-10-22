@@ -127,6 +127,7 @@ _AUTOSAVE_INTERVAL_MS = 30_000
 _logger = logging.getLogger(__name__)
 # The Log's record of each run (M5a): start, end, warnings, where it is saved.
 _run_logger = logging.getLogger("spacemissionstudio.run")
+_RUN_END_STEP_MS = 4  # [ms] between the steps that show a run's end (M6b)
 _LAYOUT_VERSION = 4  # [-] saveState() version: bump when the docks change, so an old layout is ignored
 
 
@@ -1433,6 +1434,7 @@ class MainWindow(QMainWindow):
 
     def _clear_run_views(self) -> None:
         """Clear every view of the previous run, and the time cursor."""
+        self.finish_run_end()
         self._shown_run_sha256 = None
         self.stale_results_banner.hide()
         self.results_widget.set_result(None)
@@ -1713,6 +1715,7 @@ class MainWindow(QMainWindow):
         """A run starts: the progress strip shows ``message`` until the run
         reports its phase; its bar is busy until the run reports a fraction
         (``determinate``: it starts at 0 %)."""
+        self.finish_run_end()  # the last run's views, before this one's
         self._set_running(True)
         self._busy_elapsed.start()
         self._run_started_at = datetime.now(timezone.utc)
@@ -2335,18 +2338,16 @@ class MainWindow(QMainWindow):
         took = f" in {_duration_text(self.last_run_seconds)}" if self.last_run_seconds is not None else ""
         summary = events_summary(result)
         show_toast(self, f"Run {number} complete{took}" + (f": {summary}" if summary else ""))
-        try:
-            # set_live_result(), not set_result(): a live run's final chunk
-            # and its "finished" result always share the same series names,
-            # so using set_result() here would rebuild series_combo and
-            # silently snap the user's current selection back to the first
-            # series the instant the run they were watching actually
-            # completes -- see ResultsWidget.set_live_result()'s docstring
-            # for why that rebuild is skipped when the series set hasn't
-            # changed. Also correct for a non-live run: set_live_result()
-            # still rebuilds normally whenever the series set differs from
-            # whatever was shown before.
-            self.results_widget.set_live_result(result, self._last_run_epoch_utc)
+
+        def failed(exc) -> None:  # the run itself DID succeed; never hide that behind a GUI bug
+            _logger.exception("Run completed, but displaying its results failed")
+            self._report_run_problem(
+                _with_log_file_hint(
+                    f"The run finished with {len(result.series)} result series, but showing them failed ({exc}). "
+                    "The run itself is not affected: run again to show its results."),
+                view=self.log_widget)
+
+        def views() -> None:
             self.mission_dashboard_widget.set_live_result(result, self._last_run_scenario)
             self.event_timeline_widget.set_result(result, self._last_run_epoch_utc)
             self._set_shown_run()
@@ -2354,20 +2355,29 @@ class MainWindow(QMainWindow):
             self._keep_run(result, cancelled=False)
             self.lifetime_widget.set_last_run(self._last_run_scenario, result)
             self.budget_widget.set_last_run(self._last_run_scenario, result)
+
+        def shown() -> None:
             if command_summary is not None:
-                self.mission_output_widget.set_command_summary(command_summary, result)
                 self.show_view(self.mission_output_widget)
             elif getattr(self, "_last_run_sil", False):
                 self.show_view(self.flight_software_widget)
             else:
                 self.show_view(self.results_widget)
-        except Exception as exc:  # noqa: BLE001 -- the run itself DID succeed; never hide that behind a GUI bug
-            _logger.exception("Run completed, but displaying its results failed")
-            self._report_run_problem(
-                _with_log_file_hint(
-                    f"The run finished with {len(result.series)} result series, but showing them failed ({exc}). "
-                    "The run itself is not affected: run again to show its results."),
-                view=self.log_widget)
+
+        # set_live_result(), not set_result(): a live run's final chunk
+        # and its "finished" result always share the same series names,
+        # so using set_result() here would rebuild series_combo and
+        # silently snap the user's current selection back to the first
+        # series the instant the run they were watching actually
+        # completes -- see ResultsWidget.set_live_result()'s docstring
+        # for why that rebuild is skipped when the series set hasn't
+        # changed. Also correct for a non-live run: set_live_result()
+        # still rebuilds normally whenever the series set differs from
+        # whatever was shown before.
+        self._show_run_end([lambda: self.results_widget.set_live_result(result, self._last_run_epoch_utc), views,
+                            lambda: (command_summary is not None
+                                     and self.mission_output_widget.set_command_summary(command_summary, result)),
+                            shown], failed)
 
     def _on_run_failed(self, message: str) -> None:
         """A failed run: the Log opens at its error (SIL: the Flight Software
@@ -2396,23 +2406,60 @@ class MainWindow(QMainWindow):
         number = self.run_history.next_number
         self._stop_busy(f"Run {number} cancelled.", "cancelled", "Cancelled", run_name=f"Run {number}")
         show_toast(self, f"Run {number} cancelled: what was computed is shown", kind="info")
-        try:
-            self.results_widget.set_live_result(partial_result, self._last_run_epoch_utc)
+
+        def failed(_exc) -> None:  # same reasoning as _on_run_finished's
+            _logger.exception("Run was cancelled, but displaying its partial results failed")
+            self._report_run_problem(
+                _with_log_file_hint("The run was cancelled, but showing what it computed failed."),
+                view=self.log_widget)
+
+        def views() -> None:
             self.mission_dashboard_widget.set_live_result(partial_result, self._last_run_scenario)
             self.event_timeline_widget.set_result(partial_result, self._last_run_epoch_utc)
             self._set_shown_run()
             self._offer_vizard_playback()
             self._keep_run(partial_result, cancelled=True)
-            if command_summary is not None:
-                self.mission_output_widget.set_command_summary(command_summary, partial_result)
-                self.show_view(self.mission_output_widget)
-            else:
-                self.show_view(self.results_widget)
-        except Exception:  # noqa: BLE001 -- same reasoning as _on_run_finished's own try/except
-            _logger.exception("Run was cancelled, but displaying its partial results failed")
-            self._report_run_problem(
-                _with_log_file_hint("The run was cancelled, but showing what it computed failed."),
-                view=self.log_widget)
+
+        self._show_run_end([
+            lambda: self.results_widget.set_live_result(partial_result, self._last_run_epoch_utc), views,
+            lambda: (command_summary is not None
+                     and self.mission_output_widget.set_command_summary(command_summary, partial_result)),
+            lambda: self.show_view(self.mission_output_widget if command_summary is not None
+                                   else self.results_widget)], failed)
+
+    # -- the end of a run, in steps (M6b) ------------------------------------------------------
+    def _show_run_end(self, steps: list, failed) -> None:
+        """Show a run's end in ``steps``, one an event-loop turn (each held
+        the window 20-40 ms; all at once, 120 ms). ``failed(exc)`` says so
+        when one raises; the rest are dropped."""
+        self.finish_run_end()  # an earlier run's, first
+        self._run_end_steps, self._run_end_failed = list(steps), failed
+        self._next_run_end_step()
+
+    @property
+    def run_end_pending(self) -> bool:
+        """A run's end is still being shown (its views filled in steps)."""
+        return bool(getattr(self, "_run_end_steps", None))
+
+    def _next_run_end_step(self) -> None:
+        if not self.run_end_pending:
+            return
+        step = self._run_end_steps.pop(0)
+        try:
+            step()
+        except Exception as exc:  # noqa: BLE001 -- the run's own result stands; say what could not be shown
+            self._run_end_steps = []
+            self._run_end_failed(exc)
+            return
+        if self._run_end_steps:
+            # A few ms apart: with 0 two steps could run in one pass of the event loop
+            QTimer.singleShot(_RUN_END_STEP_MS, self, self._next_run_end_step)
+
+    def finish_run_end(self) -> None:
+        """Take the steps of a run's end still waiting now (a new run,
+        cleared views, closing)."""
+        while self.run_end_pending:
+            self._next_run_end_step()
 
     def on_run_monte_carlo(self) -> None:
         try:
@@ -2537,6 +2584,7 @@ class MainWindow(QMainWindow):
             # discarded), and no explanation is started for a window going away.
             self._autosave_timer.stop()
             self.scenario_explainer_widget.shut_down()
+            self.finish_run_end()  # a run that just ended is kept (and saved, below)
             self.run_history.wait_loaded()
             self.run_history.wait_for_saves()  # a run ended just before must be on disk
             self.results_overview.wait_for_worker()

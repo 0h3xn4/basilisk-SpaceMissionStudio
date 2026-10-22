@@ -70,6 +70,7 @@ def _finish_a_run(window, name=None):
         window.scenario_editor.name_edit.setText(name)
     window._last_run_scenario = window.scenario_editor.to_scenario()
     window._on_run_finished(ResultSet(scenario_name=window._last_run_scenario.name))
+    window.finish_run_end()  # M6b: the end of a run is shown in steps; take them
 
 
 def test_the_areas_and_what_they_hold(window):

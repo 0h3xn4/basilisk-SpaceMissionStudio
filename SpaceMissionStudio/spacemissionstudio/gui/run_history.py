@@ -40,7 +40,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, List, Optional
 
-from PySide6.QtCore import QObject, QThread, Signal
+from PySide6.QtCore import QObject, QThread, QTimer, Signal
 
 from ..engine import run_store
 from ..engine.results import ResultSet
@@ -48,6 +48,7 @@ from ..engine.results import ResultSet
 logger = logging.getLogger(__name__)
 
 MAX_RUNS = 5  # runs whose series stay in memory (all of them without a store)
+SAVE_DELAY_MS = 1000  # [ms] after a run ends, its save starts (its views are shown by then)
 
 
 class RunRecord:
@@ -221,7 +222,10 @@ class RunHistory(QObject):
             return record
         if self._background:
             self._to_save.append(record)
-            self._save_next()
+            # Started once the run's views are shown (M6b): the save's zip
+            # writing shares the interpreter with the GUI thread, and doubled
+            # the end of a run's own time when it ran beside it.
+            QTimer.singleShot(SAVE_DELAY_MS, self, self._save_next)
             return record
         saved, error = None, ""
         try:
