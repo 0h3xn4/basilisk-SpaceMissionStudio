@@ -52,7 +52,7 @@ from ..engine.formation import PhasingFormationRequest
 from ..schema.scenario import ScenarioValidationError, SpacecraftConfig, StationKeepingConfig
 from .feedback import show_dialog_error
 from .field_text import attribute_title, labelled
-from .widgets import ComboBox, PreciseDoubleSpinBox
+from .widgets import ComboBox, PreciseDoubleSpinBox, finish_form
 
 
 def _form_group(title: str) -> tuple[QGroupBox, QFormLayout]:
@@ -306,6 +306,7 @@ class PhasingFormationDialog(QDialog):
         # this project's own offscreen test rendering doesn't reproduce
         # -- measured directly for THIS dialog, even: 497x545 vs its own
         # 497x601 sizeHint.
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
         self.resize(self.sizeHint())
 
     def _load_chief_station_keeping(self) -> None:

@@ -40,7 +40,7 @@ from PySide6.QtWidgets import (
 )
 
 from .theme import set_role
-from .widgets import PreciseDoubleSpinBox
+from .widgets import PreciseDoubleSpinBox, style_number
 
 
 class NumberListEditor(QWidget):
@@ -116,8 +116,7 @@ class NumberListEditor(QWidget):
             box = PreciseDoubleSpinBox()
             box.setRange(self._minimum, self._maximum)
             box.setDecimals(self._decimals)
-            if self._unit:
-                box.setSuffix(f" {self._unit}")
+            style_number(box, self._unit or None)  # the unit typeset as every form shows it (M4a)
             box.setFixedWidth(240)  # [px] room for a full-precision value plus its unit
             box.setValue(value)
             box.valueChanged.connect(self.changed)

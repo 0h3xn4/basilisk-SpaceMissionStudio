@@ -5,6 +5,66 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## M4a Forms (2026-10-22)
+
+The user (2026-10-22): "once CI is green continue as per your
+recommendations". M4 is split into M4a and M4b, recorded in the plan
+before starting (§7 status; §8 allows a split).
+
+- **M4a first: the forms; then M4b, the editing flow.** M4 is one of the
+  two heaviest milestones (§7): every field of the editor changes how it
+  shows its unit, and four dialogs become inline editors. Two pull
+  requests keep each reviewable, as M2's did.
+- **One walker, not 147 edited rows:** `finish_form(root)` runs at the
+  end of each editor's constructor. For every form row labelled "Name
+  [unit]" whose field holds numbers, it moves the unit into those fields'
+  suffix and leaves "Name" as the label. Adding a row needs nothing more,
+  and the rule cannot drift between forms. Only units listed in
+  `gui/units.py` move; a bracket holding something else stays in its
+  label (a JSON key, "lo, hi").
+- **Units typeset in the field, ASCII elsewhere:** the field shows "m²",
+  "kg·m²", "°", "Wh"; file names, field names, messages and exports keep
+  the code's spelling. "days" stays a word rather than "d".
+- **Messages keep "Name [unit]":** they name a field through its form
+  label (`feedback.row_label`, `gui.field_text`). The walker keeps the
+  label's full text on it (`sms_full_label`), so "Dry mass [kg] must be in
+  (0, 1e6]" reads as before. The inspector names the field the same way.
+- **`NumberField` is the existing full-precision spin box** with the number
+  look: `PreciseDoubleSpinBox` already keeps every value exactly (a plain
+  `QDoubleSpinBox` once rounded template values). The look is right
+  alignment, tabular figures and a width cap of 224 px, so a number sits
+  beside its label rather than across a 600 px field.
+- **A row too wide for its form wraps its field under its label**
+  (`QFormLayout.WrapLongRows`), and rows of buttons or boxes wrap
+  (`flow_row`). Without this the Power page, the Spacecraft page (the
+  three generator buttons) and template 29's ROE helper row scrolled
+  sideways at 1280 px.
+- **Boxes in a row of several are 128 px and may shrink to 72 px;** their
+  size hint follows the widest value the range allows (a million metres),
+  which made a row of four 530 px.
+- **Optional groups collapse:** every checkable group shows only its title
+  while off, and ticked again shows what it showed (rows another control
+  hid stay hidden). Monte Carlo's switch is a check box, not a group; its
+  page does the same, with one line on what turning it on does.
+- **"No boxes in boxes" needed no change:** M1 made group boxes headings.
+  An audit of every page of every template finds no framed panel and no
+  scroll area inside a page; the test keeps it so.
+- **The Customize wizard follows the same units:** its curated key
+  settings' suffixes are typeset. A setting it labels from its field
+  name has the unit token split off ("record_interval_s" was "Record
+  interval s", now "Record interval" with "s").
+- **Forms are walked through their widgets and layouts, never their
+  `QLayoutItem`s:** Qt deletes a layout item without telling PySide6, and
+  the item's Python wrapper can then be handed out for a new object at
+  that address. On CI's Windows job a `QMenu`'s new `QAction` came back
+  as a `QWidgetItem` after the walker had visited every row of every
+  form. `widgets.form_rows` and `layout_widgets` use
+  `getWidgetPosition`, `getLayoutPosition` and `indexOf` instead;
+  `feedback.row_label` uses `labelForField`.
+- **The third-body perturbers stay in lower case:** the list's text is
+  the body's code, which tests read. Showing "Mercury" means a data role
+  and ported tests, which is outside M4a's criteria.
+
 ## M3 Home and templates (2026-10-22)
 
 The user: "start M3 here". Home is rebuilt: template cards, recent

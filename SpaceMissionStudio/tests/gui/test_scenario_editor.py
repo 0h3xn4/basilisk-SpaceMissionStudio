@@ -20,7 +20,8 @@ def widget(qtbot):
 
 def _environment_labels(widget) -> list:
     """The field labels of the Environment page's form (the embedded
-    PropagationSetupDialog that replaced the read-only summary, U-17)."""
+    PropagationSetupDialog that replaced the read-only summary, U-17),
+    with the unit the form shows in the field ("Duration [days]")."""
     from PySide6.QtWidgets import QFormLayout, QLabel
 
     labels = []
@@ -28,7 +29,7 @@ def _environment_labels(widget) -> list:
         for row in range(form.rowCount()):
             item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
             if item is not None and isinstance(item.widget(), QLabel):
-                labels.append(item.widget().text())
+                labels.append(item.widget().property("sms_full_label") or item.widget().text())
     return labels
 
 

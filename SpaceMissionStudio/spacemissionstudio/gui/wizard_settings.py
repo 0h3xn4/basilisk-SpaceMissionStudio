@@ -40,6 +40,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Tuple, Union
 
 from ..schema.scenario import Scenario
+from . import units
 
 Path = Tuple[Union[str, int], ...]
 
@@ -300,7 +301,7 @@ def _page_and_label(path: Path, scenario: Scenario) -> Tuple[str, str, str, str,
     """(page title, group sub-heading, field label, unit suffix, help) for
     one setting. A spacecraft's page titles are "<spacecraft>: <section>"."""
     name = _setting_name(path)
-    meta = _META.get(name, SettingMeta(name.replace("_", " ").capitalize()))
+    meta = _META.get(name) or _meta_from_name(name)
     label, suffix, help_text = meta.label, meta.suffix, meta.help
     group = ""
     head = path[0]
@@ -350,7 +351,24 @@ def _page_and_label(path: Path, scenario: Scenario) -> Tuple[str, str, str, str,
             group = f"Dispersion: {dispersion.spacecraft} {dispersion.quantity}"
     else:
         page = "Environment & simulation"
-    return page, group, label, suffix, help_text
+    return page, group, label, units.suffix(suffix) if suffix.strip() else "", help_text
+
+
+# The unit tokens a schema field name ends with ("record_interval_s"), and
+# the unit each one is, longest first (M4a: such a name became the label
+# "Record interval s").
+_NAME_UNITS = (("_kg_m2", "kg*m^2"), ("_m2", "m^2"), ("_km_s", "km/s"), ("_m_s", "m/s"), ("_km", "km"),
+               ("_deg", "deg"), ("_kg", "kg"), ("_wh", "W*hr"), ("_w", "W"), ("_s", "s"), ("_m", "m"),
+               ("_days", "days"), ("_hours", "h"), ("_n", "N"), ("_db", "dB"), ("_hz", "Hz"))
+
+
+def _meta_from_name(name: str) -> SettingMeta:
+    """A label and unit for a setting with no entry in ``_META``, from its
+    field name: "record_interval_s" is "Record interval", in s."""
+    for token, unit in _NAME_UNITS:
+        if name.endswith(token) and len(name) > len(token):
+            return SettingMeta(name[:-len(token)].replace("_", " ").capitalize(), f" {unit}")
+    return SettingMeta(name.replace("_", " ").capitalize())
 
 
 def build_all_settings_pages(scenario: Scenario, exclude=frozenset()):

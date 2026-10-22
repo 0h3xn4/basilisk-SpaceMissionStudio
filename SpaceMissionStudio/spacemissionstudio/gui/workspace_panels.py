@@ -80,7 +80,7 @@ def field_label(widget: QWidget) -> str:
         if isinstance(layout, QFormLayout):
             label = layout.labelForField(node)
             if isinstance(label, QLabel):
-                return label.text().rstrip(":").strip()
+                return (label.property("sms_full_label") or label.text()).rstrip(":").strip()
         node = parent
     if widget.accessibleName():
         return widget.accessibleName()

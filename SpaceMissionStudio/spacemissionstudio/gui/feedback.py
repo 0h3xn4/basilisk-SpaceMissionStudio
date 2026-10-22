@@ -64,9 +64,9 @@ import logging
 import re
 from typing import List, Optional
 
-from PySide6.QtCore import QTimer, Signal
-from PySide6.QtWidgets import (QBoxLayout, QDialogButtonBox, QFormLayout, QFrame, QHBoxLayout, QLabel, QMainWindow,
-                               QPushButton, QScrollArea, QStackedWidget, QTabWidget, QWidget)
+from PySide6.QtCore import Qt, QTimer, Signal
+from PySide6.QtWidgets import (QBoxLayout, QDialogButtonBox, QFormLayout, QFrame, QHBoxLayout, QLabel, QLayout,
+                               QMainWindow, QPushButton, QScrollArea, QStackedWidget, QTabWidget, QWidget)
 from shiboken6 import isValid
 
 from .theme import set_role
@@ -282,9 +282,9 @@ def _find_in_forms(layout, widget: QWidget):
         row, _role = layout.getWidgetPosition(widget)
         if row >= 0:
             return layout, row
-    for index in range(layout.count() if layout is not None else 0):
-        child = layout.itemAt(index).layout()
-        found = _find_in_forms(child, widget) if child is not None else None
+    # Nested layouts as QObjects, not through itemAt(): see widgets.layout_widgets.
+    for child in layout.findChildren(QLayout, options=Qt.FindChildOption.FindDirectChildrenOnly) if layout else []:
+        found = _find_in_forms(child, widget)
         if found is not None:
             return found
     return None
@@ -307,14 +307,19 @@ def _form_row(widget: QWidget):
 
 def row_label(widget: QWidget) -> str:
     """The label of the form row holding ``widget``, also in a layout
-    nested in its form ("" when there is none)."""
+    nested in its form ("" when there is none), with the unit the form
+    moved into the field."""
     found = _form_row(widget)
     if found is None:
         return ""
-    form, row, _field = found
-    item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
-    label = item.widget() if item is not None else None
-    return label.text().rstrip(":").strip() if isinstance(label, QLabel) else ""
+    form, _row, field = found
+    label = form.labelForField(field)
+    if not isinstance(label, QLabel):
+        return ""
+    # With its unit, as the code names it ("Dry mass [kg]"): the form shows
+    # the unit in the field (widgets.units_into_fields, M4a).
+    text = label.property("sms_full_label") or label.text()
+    return text.rstrip(":").strip()
 
 
 def show_field_error(widget: QWidget, message: str, warning: bool = False) -> None:

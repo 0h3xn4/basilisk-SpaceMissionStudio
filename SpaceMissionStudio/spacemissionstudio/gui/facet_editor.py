@@ -41,7 +41,7 @@ from PySide6.QtWidgets import (
 
 from ..engine.facets import box_facets
 from ..schema.scenario import FacetConfig
-from .widgets import PreciseDoubleSpinBox
+from .widgets import PreciseDoubleSpinBox, finish_form
 
 # (header, FacetConfig attribute, vector index or None)
 _COLUMNS = [
@@ -89,6 +89,7 @@ class BoxFacetDialog(QDialog):
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
 
     def facets(self) -> List[FacetConfig]:
         normal = [self.normal_x.value(), self.normal_y.value(), self.normal_z.value()]

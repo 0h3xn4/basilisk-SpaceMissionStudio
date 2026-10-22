@@ -114,7 +114,7 @@ from .param_form import ParamForm
 from .problem_location import SPACECRAFT, locate
 from .sensor_actuator_editor import SensorActuatorListWidget
 from .theme import set_role
-from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, TabWidget
+from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, TabWidget, finish_form, flow_row
 
 _FSW_MODE_NONE_LABEL = "(none -- no attitude control)"
 
@@ -1725,6 +1725,7 @@ class SpacecraftEditorDialog(QDialog):
         # sizeHint() comes out ~100 px short, still scrolling the bar.
         tabs.tabBar().ensurePolished()
         tab_bar_width = tabs.tabBar().sizeHint().width()
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
         self.resize(max(650, widest_tab_content + 40, tab_bar_width + 40), 700)
 
     def _on_name_changed(self, text: str) -> None:
@@ -2754,30 +2755,23 @@ class SpacecraftListWidget(QWidget):
         # gives the left pane less width than the right (see that
         # change's own comment). Row 1 is the everyday list-editing
         # actions; row 2 is the one-off bulk-generation action.
-        button_row = QHBoxLayout()
+        # Each row wraps when the page is narrower than it (M4a: the three
+        # generators made the Spacecraft page scroll sideways at 1280 px).
         self.add_button = QPushButton("Add...")
         self.edit_button = QPushButton("Edit...")
         self.remove_button = QPushButton("Remove")
         self.new_from_template_button = QPushButton("New from template...")
-        button_row.addWidget(self.add_button)
-        button_row.addWidget(self.new_from_template_button)
-        button_row.addWidget(self.edit_button)
-        button_row.addWidget(self.remove_button)
-        button_row.addStretch(1)  # buttons at their own width, not a quarter of a wide page each
-        layout.addLayout(button_row)
+        layout.addWidget(flow_row(self.add_button, self.new_from_template_button, self.edit_button,
+                                  self.remove_button))
 
-        second_button_row = QHBoxLayout()
         self.generate_constellation_button = QPushButton("Generate Walker constellation...")
         self.generate_phasing_formation_button = QPushButton("Generate phasing formation...")
-        second_button_row.addWidget(self.generate_constellation_button)
-        second_button_row.addWidget(self.generate_phasing_formation_button)
         self.generate_roe_formation_button = QPushButton("Generate ROE formation...")
         self.generate_roe_formation_button.setToolTip(
             "Adds a follower flying in formation with a chosen spacecraft, set by relative orbital elements "
             "(for example a passively safe helix), held by impulsive burns or Basilisk's mean-element feedback.")
-        second_button_row.addWidget(self.generate_roe_formation_button)
-        second_button_row.addStretch(1)
-        layout.addLayout(second_button_row)
+        layout.addWidget(flow_row(self.generate_constellation_button, self.generate_phasing_formation_button,
+                                  self.generate_roe_formation_button))
 
         self.add_button.clicked.connect(self._on_add)
         self.new_from_template_button.clicked.connect(self._on_new_from_template)

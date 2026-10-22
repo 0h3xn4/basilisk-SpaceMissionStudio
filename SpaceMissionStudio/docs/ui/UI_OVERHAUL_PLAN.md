@@ -837,6 +837,36 @@ Every milestone also has to meet all of these:
   - `compare_tab.png` and `monte_carlo_tab.png` are captured by
     `scripts/capture_screenshots.py`, which now makes those runs.
 
+- **M4, split before starting (2026-10-22; §8, "Scope"):**
+  - **M4a, the forms:**
+    - `NumberField` with unit suffixes in every form, the same values
+      and the same file output, round-trip tested;
+    - no boxes in boxes;
+    - optional groups collapse their fields when off;
+    - the Power page fits 1280 px without horizontal scroll;
+    - the unsaved-changes indicator.
+  - **M4b, the editing flow:**
+    - the Form/JSON toggle that validates before applying;
+    - device, ground-station, mission-step and dispersion editing inline
+      or in the inspector, their modal dialogs removed;
+    - undo and redo (`QUndoStack` if it fits `ScenarioHistory`);
+    - Explain as Scenario › Overview, its refresh debounced (250 ms) and
+      off the GUI thread.
+
+  M4a changes how every field looks and reads; M4b changes how the
+  editor is driven. Each is one pull request a reviewer can follow.
+- **M4a (2026-10-22): done.** It meets its part of M4's criteria
+  (`tests/gui/test_forms.py`):
+  - number fields with unit suffixes in every form, the same values and
+    the same file: every template is written back byte for byte after
+    every page is shown;
+  - no boxes in boxes: no framed panel or nested scroll area on any page
+    of any template (already true after M1; now tested);
+  - optional groups collapse their fields when off;
+  - the Power page, and every other Scenario page of every template,
+    fits 1280 x 720 with the inspector shown, with no horizontal scroll;
+  - the unsaved-changes indicator follows an edit until it is saved.
+
 **Order and size.**
 
 - M1 and M2 are the largest. Each touches every screen's styling or hosting,

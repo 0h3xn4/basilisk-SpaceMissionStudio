@@ -81,7 +81,7 @@ from PySide6.QtWidgets import (
 
 from ..schema.scenario import Scenario, SimSettings
 from .theme import set_role
-from .widgets import PreciseDoubleSpinBox
+from .widgets import PreciseDoubleSpinBox, style_number
 from .wizard_settings import build_all_settings_pages, setting_paths, get_setting
 
 # SpacecraftConfig.orbit.semi_major_axis_km (OrbitIC, "classical_elements")
@@ -1896,7 +1896,8 @@ class _WizardFieldPage(QFrame):
                 box.setRange(field_spec.minimum, field_spec.maximum)
                 box.setDecimals(0 if field_spec.kind == "int" else field_spec.decimals)
                 box.setSingleStep(field_spec.step)
-                box.setSuffix(field_spec.suffix)
+                # The unit typeset as the forms show it (" m^2" -> " m²", M4a).
+                style_number(box, field_spec.suffix.strip() or None)
                 if field_spec.component:
                     box.setPrefix(f"{field_spec.component}  ")
                 box.setValue(value)

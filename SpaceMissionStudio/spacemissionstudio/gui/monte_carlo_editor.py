@@ -60,7 +60,8 @@ from ..schema.scenario import (
 )
 from .feedback import show_dialog_error, show_toast
 from .field_text import field_title, labelled
-from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox
+from .theme import set_role
+from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, finish_form
 
 
 def _spin(minimum: float, maximum: float, decimals: int = 4, step: float = 1.0, value: float = 0.0) -> QDoubleSpinBox:
@@ -222,6 +223,7 @@ class _DispersionEditorDialog(QDialog):
         # needed: Qt can size a freshly-constructed QDialog smaller than
         # its own sizeHint() on first show() on a real desktop, a gap
         # this project's own offscreen test rendering doesn't reproduce.
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
         self.resize(self.sizeHint())
 
     def _refresh_kind_choices(self, quantity: str) -> None:
@@ -400,7 +402,18 @@ class MonteCarloGroupWidget(QGroupBox):
             "sensitive the outcome is to real initial-condition uncertainty."
         )
         self.enabled_check.toggled.connect(self.changed)
-        form.addRow(self.enabled_check)
+        layout.addWidget(self.enabled_check)
+        # Off: only the switch and what it does; on: the batch's settings
+        # (M4a, optional groups collapse their fields when off).
+        self.off_label = QLabel("Off: Run makes one run. On: Run, in Monte Carlo mode, runs the scenario many times, "
+                                "each with a fresh draw of the dispersions.")
+        self.off_label.setWordWrap(True)
+        set_role(self.off_label, tone="secondary")
+        layout.addWidget(self.off_label)
+        self.body = QWidget()
+        body = QVBoxLayout(self.body)
+        body.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.body)
 
         self.num_runs_spin = SpinBox()
         self.num_runs_spin.setRange(1, 1_000_000)
@@ -426,12 +439,19 @@ class MonteCarloGroupWidget(QGroupBox):
         self.verbose_check = QCheckBox("Verbose")
         self.verbose_check.toggled.connect(self.changed)
         form.addRow(self.verbose_check)
-        layout.addLayout(form)
+        body.addLayout(form)
 
-        layout.addWidget(QLabel("Dispersions"))
+        body.addWidget(QLabel("Dispersions"))
         self.dispersion_list = DispersionListWidget()
         self.dispersion_list.changed.connect(self.changed)
-        layout.addWidget(self.dispersion_list)
+        body.addWidget(self.dispersion_list)
+        self.enabled_check.toggled.connect(self._show_enabled)
+        self._show_enabled(self.enabled_check.isChecked())
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
+
+    def _show_enabled(self, enabled: bool) -> None:
+        self.body.setVisible(enabled)
+        self.off_label.setVisible(not enabled)
 
 
     # Where a MonteCarloConfig field's widget is (a message's field).

@@ -31,7 +31,7 @@ from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 from ..engine.roe import min_radial_normal_separation, safe_formation
 from ..schema.scenario import RoeTargetConfig
 from .data_handling_editor import _TableEditor
-from .widgets import PreciseDoubleSpinBox
+from .widgets import PreciseDoubleSpinBox, flow_row
 
 ROE_TARGET_HEADERS = ("Start [day]", "a·δa [m]", "a·δλ [m]", "a·δex [m]", "a·δey [m]", "a·δix [m]", "a·δiy [m]")
 
@@ -63,14 +63,14 @@ class RoeTargetTableWidget(_TableEditor):
             "(radial motion) and inclination vector (cross-track motion).")
         self.remove_button.setText("Remove")
 
-        helper = QHBoxLayout()
-        helper.addWidget(QLabel("Passively safe:"))
         self.safe_along_m = _spin(-1.0e6, 1.0e6, 0.0, "m along")  # [m]
         self.safe_radial_m = _spin(0.0, 1.0e5, 300.0, "m radial")  # [m]
         self.safe_cross_m = _spin(0.0, 1.0e5, 300.0, "m cross")  # [m]
         self.safe_phase_deg = _spin(-360.0, 360.0, 90.0, "deg")  # [deg]
-        for box in (self.safe_along_m, self.safe_radial_m, self.safe_cross_m, self.safe_phase_deg):
-            helper.addWidget(box)
+        # Wraps on a narrow page (M4a: on one line it made the Power page
+        # 628 px wide, wider than the page beside the inspector at 1280 px).
+        self.layout().addWidget(flow_row(QLabel("Passively safe:"), self.safe_along_m, self.safe_radial_m,
+                                         self.safe_cross_m, self.safe_phase_deg))
         self.safe_add_button = QPushButton("Add safe formation")
         self.safe_add_button.setAutoDefault(False)
         self.safe_add_button.setToolTip(
@@ -79,8 +79,6 @@ class RoeTargetTableWidget(_TableEditor):
             "eccentricity and inclination vectors. The two spacecraft then never cross in the radial/cross-track "
             "plane, even when the along-track spacing is lost. A phase of 90 deg is the one J2 keeps.")
         self.safe_add_button.clicked.connect(self.add_safe_formation)
-        helper.addStretch(1)
-        self.layout().addLayout(helper)
         # On a line of its own: beside the four boxes it made the Power tab
         # wider than a 1280 px window (with the app's font).
         add_row = QHBoxLayout()

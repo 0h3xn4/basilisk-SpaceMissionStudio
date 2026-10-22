@@ -113,6 +113,8 @@ def test_list_buttons_keep_their_own_width(qtbot, window):
     _show(qtbot, window, editor.spacecraft_page)
     assert editor.spacecraft_list.add_button.width() < 200  # [px]
     _show(qtbot, window, editor.monte_carlo_page)
+    editor.monte_carlo_group.enabled_check.setChecked(True)  # the dispersions show only while Monte Carlo is on (M4a)
+    qtbot.waitUntil(lambda: editor.monte_carlo_group.dispersion_list.add_button.isVisible())
     assert editor.monte_carlo_group.dispersion_list.add_button.width() < 200  # [px]
     _show(qtbot, window, editor.ground_station_page)
     assert editor.ground_station_list.add_button.width() < 200  # [px]

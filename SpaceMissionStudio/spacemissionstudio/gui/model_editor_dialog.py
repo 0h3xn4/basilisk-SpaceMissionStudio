@@ -54,7 +54,7 @@ from .feedback import report, show_dialog_error
 from .model_view_widget import ModelViewWidget
 from .theme import set_role
 from .theme.palettes import swatch_style
-from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, TabWidget
+from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, TabWidget, finish_form
 
 _RECOMPUTE_DELAY_MS = 150  # [ms] after the last edit
 
@@ -216,6 +216,7 @@ class ModelEditorDialog(QDialog):
         else:
             self._show_part_form(None)
         self.recompute_now()
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
 
     # -- parts list -------------------------------------------------------------------------------------------
 
