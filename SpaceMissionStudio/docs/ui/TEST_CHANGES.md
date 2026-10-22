@@ -409,3 +409,20 @@ each wait are unchanged. The tests and fixtures (18):
   out off the GUI thread; a run shown while another is worked out wins;
   the provenance popover; a run ending shows its overview in the main
   window.
+
+## M6b The tables and analysis views
+
+### Changed: how a test reaches the widget
+
+Output's and Monte Carlo's tables are a `DataTable` (a `QTableView` over a
+model) instead of a `QTableWidget`; a test that read a `QTableWidget`
+member reads the same thing through the table.
+
+| Test | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_mission_output_widget.py::test_none_summary_clears_the_table` | `table.rowCount()` | `table.row_count()` | Rows before; none after, and the table hidden |
+| `test_mission_output_widget.py::test_summary_shows_one_column_per_report_and_one_row_per_value` | `table.item(0, 0).toolTip()` | `table.cell_tooltip(0, 0)` | The first row's code name in its tooltip |
+| `test_mission_output_widget.py::test_clear_empties_the_table` | `table.rowCount()` | `table.row_count()` | No rows after clear |
+| `test_mission_output_widget.py::test_the_report_at_the_time_cursor_is_marked_and_a_header_click_moves_the_cursor` | `table.horizontalHeaderItem(n).font().bold()`, `table.horizontalHeader()` | `table.header_is_bold(n)`, `table.view.horizontalHeader()` | The report at the cursor in bold; a header click moves the cursor, the quantity column does not |
+| `test_monte_carlo_results_widget.py::test_a_saved_batch_shows_tiles_plots_and_a_sortable_run_table` | `rowCount()`, `horizontalHeaderItem(c).text()`, `sortItems(1, ...)`, `item(r, 0).text()` | `row_count()`, `header_text(c)`, `sort_by(1, ...)`, `cell(r, 0)` | Five rows, the headers, a numeric sort by Cd |
+| `test_monte_carlo_results_widget.py` (the spacecraft switch test) | `horizontalHeaderItem(columnCount() - 1).text()` | `header_text(column_count() - 1)` | The last column is the chosen spacecraft's |

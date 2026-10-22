@@ -34,11 +34,10 @@ from pathlib import Path
 from typing import Optional
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (QAbstractItemView, QFileDialog, QHBoxLayout, QHeaderView, QLabel,
-                               QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout,
-                               QWidget)
+from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
 from ..engine import monte_carlo_results as mcr
+from .data_table import DataTable, Row
 from .results_widget import ResultsWidget
 from .scenario_explainer_widget import _stat_tile
 from .feedback import report
@@ -49,18 +48,9 @@ _EMPTY_HINT = ("A run in Monte Carlo mode (the run mode beside Run) shows its ba
                "shows one an earlier batch saved (the folder you chose for it).")
 
 
-class _NumberItem(QTableWidgetItem):
-    """A table cell shown to 6 significant figures and sorted by value."""
-
-    def __init__(self, value: float):
-        super().__init__("" if math.isnan(value) else f"{value:.6g}")
-        self._value = value
-        self.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-
-    def __lt__(self, other):  # noqa: D105 -- Qt sort hook
-        if isinstance(other, _NumberItem):
-            return self._value < other._value
-        return super().__lt__(other)
+def _number_text(value: float) -> str:
+    """A table cell: 6 significant figures (sorted by the value itself)."""
+    return "" if math.isnan(value) else f"{value:.6g}"
 
 
 _km = mcr.format_km
@@ -111,11 +101,7 @@ class MonteCarloResultsWidget(QWidget):
         runs_hint.setWordWrap(True)
         set_role(runs_hint, tone="secondary")
         runs_layout.addWidget(runs_hint)
-        self.table = QTableWidget(0, 0)
-        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        self.table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.table.verticalHeader().setVisible(False)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.table = DataTable("No runs in this batch.")  # UI overhaul M6b
         runs_layout.addWidget(self.table, 1)
         export_row = QHBoxLayout()
         export_row.addStretch(1)
@@ -168,8 +154,7 @@ class MonteCarloResultsWidget(QWidget):
             self._set_tiles([])
             if self.plots is not None:
                 self.plots.set_result(None)
-            self.table.setRowCount(0)
-            self.table.setColumnCount(0)
+            self.table.clear()
             return
         self.title_label.setText(batch.scenario_name)
         days = float(batch.time_s[-1]) / 86400.0 if batch.time_s.size else 0.0
@@ -224,18 +209,10 @@ class MonteCarloResultsWidget(QWidget):
         labels, rows = mcr.run_table(self.batch, spacecraft)
         if len(self.batch.spacecraft) == 1:  # the spacecraft's name on every column says nothing
             labels = [label.removeprefix(f"{spacecraft} ") for label in labels]
-        self.table.setSortingEnabled(False)
-        self.table.setColumnCount(len(labels))
-        self.table.setHorizontalHeaderLabels(labels)
-        self.table.setRowCount(len(rows))
-        for r, row in enumerate(rows):
-            for c, value in enumerate(row):
-                item = _NumberItem(value)
-                if c == 0:
-                    item.setText(str(int(value)))
-                self.table.setItem(r, c, item)
-        self.table.setSortingEnabled(True)
-        self.table.sortItems(0, Qt.SortOrder.AscendingOrder)
+        table_rows = [Row([str(int(row[0]))] + [_number_text(value) for value in row[1:]],
+                          keys=[float(value) for value in row]) for row in rows]
+        self.table.set_table(labels, table_rows, numeric=range(len(labels)), stretch=-1)
+        self.table.set_sortable(0, Qt.SortOrder.AscendingOrder)
 
     # -- export ------------------------------------------------------------
 

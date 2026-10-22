@@ -28,10 +28,10 @@ def _apogee_perigee():
 def test_none_summary_clears_the_table(qtbot):
     """Clearing the command summary empties and hides the table."""
     widget = _widget(qtbot, _apogee_perigee())
-    assert widget.table.rowCount() > 0
+    assert widget.table.row_count() > 0
 
     widget.set_command_summary(None)
-    assert widget.table.rowCount() == 0
+    assert widget.table.row_count() == 0
     assert not widget.table.isVisibleTo(widget)
 
 
@@ -54,7 +54,7 @@ def test_summary_shows_one_column_per_report_and_one_row_per_value(qtbot):
     assert "Inertial Position (ECI) X [m]\t1\t–\t–" in text  # named like its plot; absent in report 2
     assert "Inertial Position (ECI) Z [m]\t3\t–\t–" in text
     assert "sat-1.mass_kg\t–\t500\t–" in text  # an uncategorized series keeps its code name
-    assert widget.table.item(0, 0).toolTip() == "sat-1.position_N"
+    assert widget.table.cell_tooltip(0, 0) == "sat-1.position_N"
 
 
 def test_values_use_display_units_and_change_column_for_two_reports(qtbot):
@@ -216,7 +216,7 @@ def test_clear_empties_the_table(qtbot):
     says why it is empty, as before the first run."""
     widget = _widget(qtbot, _apogee_perigee())
     widget.clear()
-    assert widget.table.rowCount() == 0
+    assert widget.table.row_count() == 0
     assert widget.summary_label.text().startswith("No reports yet")
 
 
@@ -307,9 +307,9 @@ def test_the_report_at_the_time_cursor_is_marked_and_a_header_click_moves_the_cu
     assert widget.cursor_report_index is None
     cursor.set_time(150.0)  # [s] between the reports
     assert widget.cursor_report_index == 0
-    assert widget.table.horizontalHeaderItem(1).font().bold()
-    assert not widget.table.horizontalHeaderItem(2).font().bold()
-    widget.table.horizontalHeader().sectionClicked.emit(2)
+    assert widget.table.header_is_bold(1)
+    assert not widget.table.header_is_bold(2)
+    widget.table.view.horizontalHeader().sectionClicked.emit(2)
     assert cursor.time_s == 200.0 and widget.cursor_report_index == 1
-    widget.table.horizontalHeader().sectionClicked.emit(0)  # the quantity column: no change
+    widget.table.view.horizontalHeader().sectionClicked.emit(0)  # the quantity column: no change
     assert cursor.time_s == 200.0

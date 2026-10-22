@@ -77,13 +77,13 @@ def test_a_saved_batch_shows_tiles_plots_and_a_sortable_run_table(qtbot, tmp_pat
     assert tiles[2] == f"{along_km:.3g} km | Along-track spread, end"
     assert widget.plots.current_series_name() == "sat-1.monte_carlo.spread"
     table = widget.table
-    assert table.rowCount() == 5
-    headers = [table.horizontalHeaderItem(c).text() for c in range(table.columnCount())]
+    assert table.row_count() == 5
+    headers = [table.header_text(c) for c in range(table.column_count())]
     assert headers[:2] == ["Run", "drag coefficient [-]"]  # one spacecraft: its name is not repeated
     from PySide6.QtCore import Qt
 
-    table.sortItems(1, Qt.SortOrder.DescendingOrder)  # by Cd: a numeric sort, not text
-    assert [table.item(r, 0).text() for r in range(5)] == ["4", "3", "2", "1", "0"]
+    table.sort_by(1, Qt.SortOrder.DescendingOrder)  # by Cd: a numeric sort, not text
+    assert [table.cell(r, 0) for r in range(5)] == ["4", "3", "2", "1", "0"]
     assert not widget.spacecraft_combo.isVisible()
 
 
@@ -126,7 +126,7 @@ def test_several_spacecraft_choose_whose_spread_is_shown(qtbot, tmp_path):
     assert not widget.spacecraft_combo.isHidden()
     widget.spacecraft_combo.setCurrentText("follower")
     assert widget.plots.current_series_name() == "follower.monte_carlo.spread"
-    assert widget.table.horizontalHeaderItem(widget.table.columnCount() - 1).text().startswith("follower final")
+    assert widget.table.header_text(widget.table.column_count() - 1).startswith("follower final")
 
 
 def test_the_mouse_wheel_does_not_change_whose_spread_is_shown(qtbot, qapp, tmp_path):

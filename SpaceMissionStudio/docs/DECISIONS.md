@@ -5,6 +5,32 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## M6b The tables and analysis views (2026-10-22)
+
+Recorded before coding, after reading Output, Monte Carlo, Compare, End
+of Life, Budget and the Dashboard, and timing the end of a run (template
+23, the second and third runs of a session: 81-132 ms in one slot, of
+which showing the Output page 32-54 ms, the results view 20-33 ms and
+filling Output's table 12-22 ms).
+
+- **One `DataTable` component** (`gui/data_table.py`): a `QTableView`
+  over a `QAbstractTableModel` with the table rules (CLAUDE.md, Tables):
+  a sticky header, numeric columns right-aligned in the numeric font with
+  their unit in the header, Ctrl+C and Copy as TSV, a column-visibility
+  menu on the header, row hover, no zebra, and an empty state with its
+  primary action. Filtering is a predicate the view gives it (Output's
+  filter shows report columns or rows); sorting is on where rows have no
+  order of their own. Group rows span the table.
+- **Output and Monte Carlo move onto it.** Each keeps its text, its
+  filter and its export as they are; a test that read a `QTableWidget`
+  item reads the table's cell or header instead (TEST_CHANGES).
+- **Compare's run switcher, End of Life, Budget and the Dashboard
+  (Telemetry)** are rebuilt from the components (cards, sections, the
+  table) without group-box frames, keeping every value they show.
+- **The end of a run:** the views a run fills that are not shown are
+  filled when they are next shown (as Compare is since M5a), so the end
+  of a run fills only the view it opens on.
+
 ## M6 Results overview and analysis views (2026-10-22)
 
 Recorded before coding, after reading the Results views and timing a plot

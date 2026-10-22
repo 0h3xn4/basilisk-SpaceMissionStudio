@@ -38,26 +38,14 @@ from typing import Optional
 
 import numpy as np
 
-from PySide6.QtCore import Qt
-from PySide6.QtWidgets import (
-    QFileDialog,
-    QHBoxLayout,
-    QHeaderView,
-    QLabel,
-    QLineEdit,
-    QPushButton,
-    QTableWidget,
-    QTableWidgetItem,
-    QVBoxLayout,
-    QWidget,
-)
+from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
 
 from .. import output_provenance
 from ..engine.results import CommandSummary, ResultSet, TimeSeries
 from ..plot_categories import categorize, legacy_display
 from . import feedback
-from .theme import on_change, set_role
-from .theme.items import retint, tint
+from .data_table import DataTable, Row
+from .theme import set_role
 
 _FILE_FILTER = "CSV files (*.csv)"
 _MISSING = "–"
@@ -164,15 +152,11 @@ class MissionOutputWidget(QWidget):
         set_role(self.summary_label, tone="secondary")
         layout.addWidget(self.summary_label)
 
-        self.table = QTableWidget()
-        on_change(self._retint)
-        self.table.verticalHeader().setVisible(False)
-        self.table.setEditTriggers(QTableWidget.EditTrigger.NoEditTriggers)
-        self.table.setSelectionBehavior(QTableWidget.SelectionBehavior.SelectRows)
-        self.table.setWordWrap(False)
-        self.table.setTextElideMode(Qt.TextElideMode.ElideMiddle)
+        # A DataTable (UI overhaul M6b): the reports' values, a row a quantity.
+        self.table = DataTable(_EMPTY_TEXT)
+        self.table.view.horizontalHeader().sectionClicked.connect(self._on_header_clicked)
         self.table.setVisible(False)
-        self.table.horizontalHeader().sectionClicked.connect(self._on_header_clicked)
+        self._rows: list = []  # (label, code name or None for a group heading, unit, per-report values)
         layout.addWidget(self.table, stretch=1)
         layout.addStretch(0)
 
@@ -182,8 +166,8 @@ class MissionOutputWidget(QWidget):
         self._result = None
         self.export_button.setEnabled(False)
         self.filter_edit.clear()
-        self.table.setRowCount(0)
-        self.table.setColumnCount(0)
+        self._rows = []
+        self.table.clear()
         self.table.setVisible(False)
         self.summary_label.setText(_EMPTY_TEXT)  # say why the view is empty, as before a first run
 
@@ -197,9 +181,6 @@ class MissionOutputWidget(QWidget):
         self._result = result
         self.export_button.setEnabled(bool(summary.reports))
         self._refresh_table()
-
-    def _retint(self, _mode: str) -> None:
-        retint(self.table)
 
     def set_time_cursor(self, cursor) -> None:
         """Mark the last report at or before ``cursor`` (a
@@ -218,27 +199,17 @@ class MissionOutputWidget(QWidget):
         time_s = None if self._time_cursor is None else self._time_cursor.time_s
         at = [i for i, report in enumerate(reports) if time_s is not None and report.t_s <= time_s + 1e-9]
         self.cursor_report_index = max(at, key=lambda i: reports[i].t_s) if at else None
-        for index in range(len(reports)):
-            item = self.table.horizontalHeaderItem(index + 1)
-            if item is None:
-                continue
-            font = item.font()
-            font.setBold(index == self.cursor_report_index)
-            item.setFont(font)
-            item.setToolTip("The last report at or before the time cursor." if index == self.cursor_report_index
-                            else "Click to move the time cursor to this report.")
+        if self.table.model.columnCount() <= len(reports):
+            return  # the table is not filled with these reports (yet)
+        self.table.set_header_marks(
+            [] if self.cursor_report_index is None else [self.cursor_report_index + 1],
+            {index + 1: ("The last report at or before the time cursor." if index == self.cursor_report_index
+                         else "Click to move the time cursor to this report.") for index in range(len(reports))})
 
     def table_text(self) -> str:
         """The visible table as tab-separated text (headers first) -- what
         a user would copy; also what the tests read."""
-        table = self.table
-        visible_columns = [c for c in range(table.columnCount()) if not table.isColumnHidden(c)]
-        lines = ["\t".join(table.horizontalHeaderItem(c).text().replace("\n", " ") for c in visible_columns)]
-        for row in range(table.rowCount()):
-            if not table.isRowHidden(row):
-                lines.append("\t".join(table.item(row, c).text() if table.item(row, c) else ""
-                                        for c in visible_columns).rstrip("\t"))
-        return "\n".join(lines)
+        return self.table.text()
 
     # -- internals ---------------------------------------------------------
     def _refresh_table(self) -> None:
@@ -280,25 +251,11 @@ class MissionOutputWidget(QWidget):
                                   for i, report in enumerate(reports)]
         if show_change:
             headers.append("Change")
-        table = self.table
-        table.setUpdatesEnabled(False)
-        table.clear()
-        table.setColumnCount(len(headers))
-        table.setRowCount(len(rows))
-        table.setHorizontalHeaderLabels(headers)
-        number_alignment = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
-        group_font = table.font()
-        group_font.setBold(True)
-        for row, (label, name, unit, per_report) in enumerate(rows):
-            item = QTableWidgetItem(label)
-            if name is None:  # a group header row
-                item.setFont(group_font)
-                tint(item, "text.primary", "bg.selected")
-                table.setItem(row, 0, item)
-                table.setSpan(row, 0, 1, len(headers))
+        table_rows = []
+        for label, name, unit, per_report in rows:
+            if name is None:  # a group heading, across the table
+                table_rows.append(Row([label], group=True))
                 continue
-            item.setToolTip(name)
-            table.setItem(row, 0, item)
             cells = [_MISSING if v is None else _format_value(v) for v in per_report]
             if show_change:
                 before, after = per_report
@@ -309,54 +266,41 @@ class MissionOutputWidget(QWidget):
                     if unit == "deg":
                         change = (change + 180.0) % 360.0 - 180.0  # the short way round
                     cells.append(_format_change(change, cells))
-            for column, text in enumerate(cells, start=1):
-                cell = QTableWidgetItem(text)
-                cell.setTextAlignment(number_alignment)
-                table.setItem(row, column, cell)
-        header = table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
-        for column in range(1, len(headers)):
-            header.setSectionResizeMode(column, QHeaderView.ResizeMode.ResizeToContents)
-        table.setVisible(True)
+            table_rows.append(Row([label, *cells], tooltips={0: name}))
+        self._rows = rows
+        self.table.set_table(headers, table_rows, numeric=range(1, len(headers)), stretch=0)
+        self.table.setVisible(True)
         self._apply_filter(rows, reports, commands)
         self._mark_cursor_report()
-        table.setUpdatesEnabled(True)
 
     def _apply_filter(self, rows, reports, commands: str) -> None:
         table = self.table
         needle = self.filter_edit.text().strip().lower()
         report_text = f"{len(reports)} report{'s' if len(reports) != 1 else ''}"
         matching_reports = [i for i, report in enumerate(reports) if needle and needle in (report.label or "").lower()]
-        for column in range(1, table.columnCount()):
-            report_index = column - 1
-            if matching_reports:
-                table.setColumnHidden(column, report_index not in matching_reports)
-            else:
-                table.setColumnHidden(column, False)
-        shown_rows = 0
-        quantity_rows = 0
-        group_row = None
-        group_visible = False
+        table.set_hidden_columns([column for column in range(1, table.model.columnCount())
+                                  if matching_reports and column - 1 not in matching_reports])
+        visible = []
         for row, (label, name, _unit, per_report) in enumerate(rows):
-            if name is None:  # a header: shown when any of its rows is
-                if group_row is not None:
-                    table.setRowHidden(group_row, not group_visible)
-                group_row, group_visible = row, False
-                continue
-            quantity_rows += 1
-            if matching_reports:
-                visible = any(per_report[i] is not None for i in matching_reports)
+            if name is None:
+                visible.append(False)  # a heading: shown when any of its rows is, below
+            elif matching_reports:
+                visible.append(any(per_report[i] is not None for i in matching_reports))
             elif needle:
                 raw = [repr(v) for v in per_report if v is not None]
-                cells = [table.item(row, c).text() for c in range(1, table.columnCount())]
-                visible = any(needle in text.lower() for text in [label, name, *cells, *raw])
+                cells = table.model.rows[row].cells[1:]
+                visible.append(any(needle in text.lower() for text in [label, name, *cells, *raw]))
             else:
-                visible = True
-            table.setRowHidden(row, not visible)
-            shown_rows += visible
-            group_visible = group_visible or visible
-        if group_row is not None:
-            table.setRowHidden(group_row, not group_visible)
+                visible.append(True)
+        heading = None
+        for row, (_label, name, _unit, _values) in enumerate(rows):
+            if name is None:
+                heading = row
+            elif visible[row] and heading is not None:
+                visible[heading] = True
+        table.set_row_filter(None if all(visible) else visible.__getitem__)
+        quantity_rows = sum(1 for _label, name, _unit, _values in rows if name is not None)
+        shown_rows = sum(1 for row, (_label, name, _unit, _values) in enumerate(rows) if name is not None and visible[row])
         if matching_reports:
             status = f"{len(matching_reports)} of {report_text} match"
         elif needle:
