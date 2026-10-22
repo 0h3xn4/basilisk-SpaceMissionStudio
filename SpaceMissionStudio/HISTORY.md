@@ -12488,7 +12488,7 @@ before a run (its empty state with Run) and after one. The Log after a
 run now shows the run's records. History's start column was cut off; it
 now takes its text's width and the scenario the rest.
 
-**Tests.** FULL_SUITE_RESULT. `test_run_record.py` is new (10 tests). Two
+**Tests.** The full suite: 3788 passed and 12 skipped, none failed (Python 3.13 here; CI runs 3.11). `test_run_record.py` is new (10 tests). Two
 existing GUI tests changed how they reach Compare (it is refreshed when
 shown), and one expectation changed on purpose (the Run area's tabs now
 include History), each in `docs/ui/TEST_CHANGES.md`. Golden files and
