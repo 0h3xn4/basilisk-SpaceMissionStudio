@@ -72,9 +72,9 @@ def test_the_budget_tab_shows_the_table(qtbot):
     qtbot.addWidget(widget)
     widget.set_scenario(scenario)
     widget.compute()
-    qtbot.waitUntil(lambda: widget.table.rowCount() > 0, timeout=120000)
+    qtbot.waitUntil(lambda: widget.table.row_count() > 0, timeout=120000)
     widget.wait_for_worker()  # the table comes before the worker's thread ends: never tear down under it
-    contributors = [widget.table.item(r, 1).text() for r in range(widget.table.rowCount())]
+    contributors = [widget.table.cell(r, 1) for r in range(widget.table.row_count())]
     assert "In-plane orbit control" in contributors and "Residual" in contributors
     assert widget.totals_label.text().startswith("Total: ")
     assert "DRAMA" in widget.notes_label.text()
@@ -105,15 +105,15 @@ def test_the_sweep_table_marks_the_worst_launch_and_shows_its_budget(qtbot):
     assert not widget.sweep_group.isVisibleTo(widget)
     widget._show_sweep(_stub_sweep())
     assert widget.sweep_group.isVisibleTo(widget)
-    assert widget.sweep_table.rowCount() == 6
-    assert widget.sweep_table.item(1, 0).text() == "2031-01-01 (worst)" and widget.sweep_table.item(1, 0).font().bold()
-    assert not widget.sweep_table.item(0, 0).font().bold()
-    in_plane = next(r for r in range(widget.table.rowCount())
-                    if widget.table.item(r, 1).text() == "In-plane orbit control")
-    assert widget.table.item(in_plane, 2).text() == "300.00"
+    assert widget.sweep_table.row_count() == 6
+    assert widget.sweep_table.cell(1, 0) == "2031-01-01 (worst)" and widget.sweep_table.row_is_bold(1)
+    assert not widget.sweep_table.row_is_bold(0)
+    in_plane = next(r for r in range(widget.table.row_count())
+                    if widget.table.cell(r, 1) == "In-plane orbit control")
+    assert widget.table.cell(in_plane, 2) == "300.00"
     assert widget.status_label.text().startswith("Launch 2031-01-01 (1 year late)")
-    widget.sweep_table.selectRow(0)
-    assert widget.table.item(in_plane, 2).text() == "100.00"
+    widget.sweep_table.view.selectRow(0)
+    assert widget.table.cell(in_plane, 2) == "100.00"
     assert "worst case: launch 2031-01-01" in widget.sweep_notes_label.text()
 
 
@@ -133,7 +133,7 @@ def test_the_sweep_button_runs_in_the_background_and_reports_progress(qtbot, mon
     widget.set_scenario(load_scenario(_TEMPLATE_18))
     widget.sweep_button.click()
     assert widget.sweep_button.text() == "Cancel"
-    qtbot.waitUntil(lambda: widget.sweep_table.rowCount() == 6, timeout=30000)
+    qtbot.waitUntil(lambda: widget.sweep_table.row_count() == 6, timeout=30000)
     qtbot.waitUntil(lambda: widget._worker is None, timeout=30000)
     assert widget.sweep_button.text() == "Launch delays"
     assert "drag for the planned launch" in seen and seen[-1] == "done"
@@ -167,18 +167,18 @@ def test_the_trade_table_marks_the_lowest_fitting_altitude_and_drills_down(qtbot
     widget.set_scenario(load_scenario(_TEMPLATE_18))
     assert widget.altitudes_edit.placeholderText() == "300, 350, 400, 450, 500 (default)"
     widget._show_trade(_stub_trade())
-    assert widget.trade_group.isVisibleTo(widget) and widget.trade_table.rowCount() == 2
-    assert [widget.trade_table.item(r, 6).text() for r in range(2)] == ["no", "yes"]
-    assert widget.trade_table.item(1, 0).font().bold() and not widget.trade_table.item(0, 0).font().bold()
-    assert widget.sweep_table.item(3, 0).text() == "2033-01-01 (worst)"
-    assert widget.sweep_table.item(3, 2).text() == "45.0"  # 500 km's worst in-plane
+    assert widget.trade_group.isVisibleTo(widget) and widget.trade_table.row_count() == 2
+    assert [widget.trade_table.cell(r, 6) for r in range(2)] == ["no", "yes"]
+    assert widget.trade_table.row_is_bold(1) and not widget.trade_table.row_is_bold(0)
+    assert widget.sweep_table.cell(3, 0) == "2033-01-01 (worst)"
+    assert widget.sweep_table.cell(3, 2) == "45.0"  # 500 km's worst in-plane
     def main_in_plane():
-        return next(widget.table.item(r, 2).text() for r in range(widget.table.rowCount())
-                    if widget.table.item(r, 1).text() == "In-plane orbit control")
+        return next(widget.table.cell(r, 2) for r in range(widget.table.row_count())
+                    if widget.table.cell(r, 1) == "In-plane orbit control")
 
     assert main_in_plane() == "45.00"
-    widget.trade_table.selectRow(0)  # its worst launch is in the same row: the budget below must still change
-    assert widget.sweep_table.item(3, 2).text() == "450.0" and main_in_plane() == "450.00"
+    widget.trade_table.view.selectRow(0)  # its worst launch is in the same row: the budget below must still change
+    assert widget.sweep_table.cell(3, 2) == "450.0" and main_in_plane() == "450.00"
     assert widget.status_label.text().startswith("400 km, Launch 2033-01-01 (3 years late)")
 
 

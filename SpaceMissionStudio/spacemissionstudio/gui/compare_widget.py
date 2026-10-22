@@ -44,22 +44,20 @@ from typing import Dict, Optional
 import numpy as np
 import plotly.graph_objects as go
 from PySide6.QtCore import QTimer, QUrl, Qt, Signal
-from PySide6.QtGui import QColor
 from PySide6.QtWebEngineWidgets import QWebEngineView
-from PySide6.QtWidgets import (QAbstractItemView, QHBoxLayout, QHeaderView, QLabel, QListWidget,
-                               QListWidgetItem, QMessageBox, QPushButton, QSplitter, QTableWidget, QTableWidgetItem,
-                               QTabWidget, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
+                               QSplitter, QTabWidget, QVBoxLayout, QWidget)
 
 from ..engine import events as event_model
 from ..engine import run_summary, scenario_diff
 from ..plot_categories import categorize as _categorize
 from ..plot_categories import legacy_display as _legacy_display
 from . import plot_page
+from .data_table import DataTable, Row
 from .theme import SERIES_COLORS, TOKENS, on_change, set_role
 from .theme import plotly_template as pt
 from .widgets import ComboBox
 
-_RIGHT = Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter
 _S_PER_H = 3600.0  # [s/h]
 
 
@@ -72,13 +70,9 @@ def _empty_state(text: str) -> QLabel:
     return label
 
 
-def _table(columns: int = 0) -> QTableWidget:
-    table = QTableWidget(0, columns)
-    table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-    table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-    table.verticalHeader().setVisible(False)
-    table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
-    return table
+def _table() -> DataTable:
+    """A comparison table (UI overhaul M6b: a DataTable)."""
+    return DataTable("Tick two or more runs to compare them.")
 
 
 def _home_relative(path: Path) -> str:
@@ -307,8 +301,7 @@ class CompareWidget(QWidget):
     def _refresh(self) -> None:
         runs = self.checked_runs()
         for table in (self.summary_table, self.inputs_table, self.events_table):
-            table.setRowCount(0)
-            table.setColumnCount(0)
+            table.clear()
         if len(runs) < 2:
             self.status_label.setText("Tick two or more runs to compare them; the oldest ticked is the base.")
             self._fill_series([])
@@ -333,14 +326,9 @@ class CompareWidget(QWidget):
         headings = ["Figure", "Unit", f"{_short(base)} (base)"]
         for other in others:
             headings += [_short(other), f"Δ {_short(other)}"]
-        table = self.summary_table
-        table.setColumnCount(len(headings))
-        table.setHorizontalHeaderLabels(headings)
-        table.setRowCount(len(keys))
-        for row, key in enumerate(keys):
+        rows = []
+        for key in keys:
             sample = next(run[key] for run in figures if key in run)
-            table.setItem(row, 0, QTableWidgetItem(sample.label))
-            table.setItem(row, 1, QTableWidgetItem(sample.unit))
             base_figure = figures[0].get(key)
             cells = [base_figure.text() if base_figure else "-"]
             for run in figures[1:]:
@@ -348,41 +336,29 @@ class CompareWidget(QWidget):
                 cells.append(figure.text() if figure else "-")
                 cells.append(_signed(figure.value - base_figure.value, figure.decimals)
                              if figure and base_figure else "-")
-            for column, text in enumerate(cells, start=2):
-                item = QTableWidgetItem(text)
-                item.setTextAlignment(_RIGHT)
-                table.setItem(row, column, item)
-        table.resizeColumnsToContents()
+            rows.append(Row([sample.label, sample.unit, *cells]))
+        self.summary_table.set_table(headings, rows, numeric=range(2, len(headings)), stretch=-1)
 
     def _fill_inputs(self, base, others) -> None:
         diffs = [{path: (mine, theirs) for path, mine, theirs in scenario_diff.diff(base.scenario, other.scenario)}
                  for other in others]
         paths = list(dict.fromkeys(path for diff in diffs for path in diff))
-        table = self.inputs_table
         headings = ["Input", f"{_short(base)} (base)"] + [_short(other) for other in others]
-        table.setColumnCount(len(headings))
-        table.setHorizontalHeaderLabels(headings)
-        table.setRowCount(len(paths))
-        muted = QColor(TOKENS["text.secondary"])
-        for row, path in enumerate(paths):
+        rows = []
+        for path in paths:
             base_value = next(diff[path][0] for diff in diffs if path in diff)
-            table.setItem(row, 0, QTableWidgetItem(path))
-            table.setItem(row, 1, QTableWidgetItem(scenario_diff.short(base_value)))
-            table.item(row, 1).setToolTip(str(base_value))
+            cells, tooltips, muted = [path, scenario_diff.short(base_value)], {1: str(base_value)}, set()
             for column, diff in enumerate(diffs, start=2):
                 if path in diff:
-                    item = QTableWidgetItem(scenario_diff.short(diff[path][1]))
-                    item.setToolTip(str(diff[path][1]))
+                    cells.append(scenario_diff.short(diff[path][1]))
+                    tooltips[column] = str(diff[path][1])
                 else:
-                    item = QTableWidgetItem("(same)")
-                    item.setForeground(muted)
-                table.setItem(row, column, item)
-        table.resizeColumnsToContents()
+                    cells.append("(same)")
+                    muted.add(column)
+            rows.append(Row(cells, tooltips=tooltips, muted=frozenset(muted)))
         if not paths:
-            table.setColumnCount(1)
-            table.setHorizontalHeaderLabels(["Input"])
-            table.setRowCount(1)
-            table.setItem(0, 0, QTableWidgetItem("The inputs are the same."))
+            headings, rows = ["Input"], [Row(["The inputs are the same."])]
+        self.inputs_table.set_table(headings, rows, stretch=-1)
 
     def _fill_events(self, base, others) -> None:
         for record in [base] + others:
@@ -392,23 +368,16 @@ class CompareWidget(QWidget):
         headings = ["Event", f"{_short(base)} (base)"]
         for other in others:
             headings += [_short(other), f"Δ {_short(other)}"]
-        table = self.events_table
-        table.setColumnCount(len(headings))
-        table.setHorizontalHeaderLabels(headings)
-        table.setRowCount(len(labels))
-        for row, label in enumerate(labels):
-            table.setItem(row, 0, QTableWidgetItem(label))
+        rows = []
+        for label in labels:
             base_count, base_total = tables[0].get(label, (0, 0.0))
             cells = [f"{base_count} × {base_total:.1f} min"]
             for run in tables[1:]:
                 count, total = run.get(label, (0, 0.0))
                 cells.append(f"{count} × {total:.1f} min")
                 cells.append(f"{count - base_count:+d} × {_signed(total - base_total, 1)} min")
-            for column, text in enumerate(cells, start=1):
-                item = QTableWidgetItem(text)
-                item.setTextAlignment(_RIGHT)
-                table.setItem(row, column, item)
-        table.resizeColumnsToContents()
+            rows.append(Row([label, *cells]))
+        self.events_table.set_table(headings, rows, numeric=range(1, len(headings)), stretch=-1)
 
     # -- overlaid plots -----------------------------------------------------
 

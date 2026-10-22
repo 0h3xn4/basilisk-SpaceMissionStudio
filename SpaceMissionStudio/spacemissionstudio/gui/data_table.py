@@ -55,12 +55,16 @@ _SIZED_ROWS = 200  # rows a column's width is measured from
 class Row:
     """One row: a text per column; ``tooltips`` by column; ``keys`` the
     values a sortable table sorts by (default: the texts); ``group`` makes
-    it a heading row across the table (its first cell only)."""
+    it a heading row across the table (its first cell only); ``bold`` sets
+    the row in the heading weight (Budget's worst case); ``muted`` are
+    columns in the secondary colour (Compare's "(same)")."""
 
     cells: Sequence[str]
     tooltips: Dict[int, str] = field(default_factory=dict)
     keys: Optional[Sequence] = None
     group: bool = False
+    bold: bool = False
+    muted: frozenset = frozenset()
 
 
 class DataModel(QAbstractTableModel):
@@ -117,6 +121,10 @@ class DataModel(QAbstractTableModel):
             if role == Qt.ItemDataRole.BackgroundRole:
                 return QColor(TOKENS["bg.selected"])  # looked up when drawn: it follows a theme change
             return None
+        if role == Qt.ItemDataRole.FontRole and row.bold:
+            return self._heading_font
+        if role == Qt.ItemDataRole.ForegroundRole and column in row.muted:
+            return QColor(TOKENS["text.secondary"])  # looked up when drawn: it follows a theme change
         if column in self.numeric:
             if role == Qt.ItemDataRole.TextAlignmentRole:
                 return int(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
@@ -162,6 +170,7 @@ class DataTable(QWidget):
     the empty state's primary action."""
 
     action_requested = Signal()
+    row_chosen = Signal(int)  # the model row picked (set_single_pick)
 
     def __init__(self, empty_text: str = "Nothing to show.", action: Optional[str] = None,
                  parent: Optional[QWidget] = None) -> None:
@@ -244,6 +253,30 @@ class DataTable(QWidget):
         for column in range(self.model.columnCount()):
             self.view.setColumnHidden(column, column in hidden)
 
+    def set_single_pick(self) -> None:
+        """One row at a time is picked; ``row_chosen`` carries it (a model row)."""
+        self.view.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self.view.selectionModel().selectionChanged.connect(self._on_picked)
+
+    def _on_picked(self, *_args) -> None:
+        rows = self.view.selectionModel().selectedRows()
+        if rows:
+            self.row_chosen.emit(self.proxy.mapToSource(rows[0]).row())
+
+    def chosen_row(self) -> Optional[int]:
+        """The model row picked, or None."""
+        rows = self.view.selectionModel().selectedRows()
+        return self.proxy.mapToSource(rows[0]).row() if rows else None
+
+    def fit_rows(self) -> None:
+        """As tall as its rows: a short table under others needs no scroll bar of its own."""
+        header = self.view.horizontalHeader()
+        self.view.setFixedHeight(header.height() + sum(self.view.rowHeight(r) for r in range(self.row_count())) + 4)
+
+    def row_is_bold(self, row: int) -> bool:
+        """The shown row ``row`` is in the heading weight."""
+        return self.model.rows[self.shown_rows()[row]].bold
+
     def set_sortable(self, column: int = 0, order=Qt.SortOrder.AscendingOrder) -> None:
         """Sort by a header click, by the rows' keys; sorted by ``column`` first."""
         self.view.setSortingEnabled(True)
@@ -289,6 +322,11 @@ class DataTable(QWidget):
     def cell(self, row: int, column: int) -> str:
         """The text of the shown row ``row``, column ``column``."""
         return self.model.text(self.shown_rows()[row], column)
+
+    def cell_alignment(self, row: int, column: int) -> int:
+        """The alignment flags of the shown row ``row``'s cell (0: the default, left)."""
+        index = self.proxy.index(row, column)
+        return int(self.proxy.data(index, Qt.ItemDataRole.TextAlignmentRole) or 0)
 
     def cell_tooltip(self, row: int, column: int) -> Optional[str]:
         return self.model.rows[self.shown_rows()[row]].tooltips.get(column)

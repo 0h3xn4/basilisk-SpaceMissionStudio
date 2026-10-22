@@ -196,7 +196,7 @@ def test_the_compare_tab_lists_runs_and_their_input_differences(window, qtbot):
     qtbot.waitUntil(lambda: compare.run_list.count() == 2, timeout=10000)
     assert compare.content.isVisibleTo(compare) and compare.run_list.count() == 2
     assert [r.number for r in compare.checked_runs()] == [1, 2]  # the new run and the one before it
-    inputs = [compare.inputs_table.item(row, 0).text() for row in range(compare.inputs_table.rowCount())]
+    inputs = [compare.inputs_table.cell(row, 0) for row in range(compare.inputs_table.row_count())]
     assert "name" in inputs
     compare.set_checked([1, 2])
     assert window.results_widget.compare_combo.currentData() == 1

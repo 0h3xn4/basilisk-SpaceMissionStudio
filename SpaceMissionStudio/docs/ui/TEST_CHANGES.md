@@ -442,3 +442,12 @@ it are unchanged:
 | `test_run_record.py::_finish_a_run` (five tests) |
 | `test_stale_results_and_window_size.py::_finish_a_run` |
 | `test_workspace.py::_finish_a_run` (two tests) |
+
+Budget's three tables and Compare's three are a `DataTable` too (M6b); the
+same reads, through the table:
+
+| Test file | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_budget_widget.py` (four tests) | `rowCount()`, `item(r, c).text()`, `item(r, 0).font().bold()`, `selectRow(r)` | `row_count()`, `cell(r, c)`, `row_is_bold(r)`, `view.selectRow(r)` | The contributors, the worst case in bold, picking a launch date or an altitude shows its budget |
+| `test_compare_tab.py` (`_row`, `_column` and four tests) | `horizontalHeaderItem(c).text()`, `columnCount()`, `item(r, c).text()`, `rowCount()`, `item(r, c).textAlignment()` | `header_text(c)`, `column_count()`, `cell(r, c)`, `row_count()`, `cell_alignment(r, c)` | The summary's deltas against the base, the inputs that differ, the events counted, numbers right-aligned |
+| `test_workspace.py::test_the_compare_tab_lists_runs_and_their_input_differences` | `inputs_table.item(row, 0).text()`, `rowCount()` | `inputs_table.cell(row, 0)`, `row_count()` | The inputs that differ |
