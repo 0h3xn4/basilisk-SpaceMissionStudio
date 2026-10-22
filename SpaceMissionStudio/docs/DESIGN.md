@@ -218,6 +218,16 @@ bar and no toolbar:
   keys, Home and End move between them, Enter opens.
 - **Scenario area:** the scenario tree on the left. Each spacecraft has a
   node per part of its editor.
+- **Forms (M4a, `gui/widgets.py`, `gui/units.py`):** a number field
+  (`NumberField`, or any spin box `finish_form` styles) carries its unit as
+  a suffix, typeset ("550.0 km", "97.59°", "1.000 m²", "300.00 Wh"),
+  right-aligned in tabular figures, at most 224 px wide (128 px each in a
+  row of several, shrinking to 72 px on a narrow page). The label is the
+  name alone; messages still name the field "Name [unit]", the label's
+  full text kept on it. A row too wide for its form puts its field under
+  its label. An optional (checkable) group shows only its title while
+  off. Rows of buttons or boxes wrap (`flow_row`) instead of widening the
+  page. No framed panel and no scroll area inside a page.
 - **Inspector, on the right:** two docks one above the other, Inspector
   (Ctrl+I) and, until it becomes Scenario › Overview (M4), Explain. No
   tabs.
@@ -246,6 +256,7 @@ bar and no toolbar:
 | Focus ring | 2 px, the accent | `theme/qss.py` |
 | Smallest window the views are checked at | 1280 x 720 px | `scripts/capture_screenshots.py --size` |
 | Widest a form or a list editor grows | 960 px (`theme.CONTENT_MAX_WIDTH_PX`) | `scenario_editor._page`, the embedded forms, End of Life |
+| Number field | at most 224 px; 128 px each in a row of several, 72 px at least | `widgets.NUMBER_FIELD_MAX_WIDTH_PX`, `VECTOR_FIELD_MAX_WIDTH_PX`, `VECTOR_FIELD_MIN_WIDTH_PX` |
 | Scenario tree | at least 170 px, 220 px to start | `gui/page_tree.py` |
 | Results plot list | 16 % of the pane, 250 to 400 px, until the user drags the divider | `gui/results_widget.py` |
 | Toast | at most 360 px wide, 16 px from the window's edge, 8 px apart | `gui/feedback.py` |

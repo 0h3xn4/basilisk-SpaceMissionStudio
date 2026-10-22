@@ -107,7 +107,7 @@ from ..schema.scenario import (
 from .field_text import field_title, labelled
 from .feedback import ProblemBanner, bring_into_view, clear_field_error, clear_on_edit, show_field_error
 from .problem_location import PROPAGATION, locate
-from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox
+from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, finish_form
 
 # The minimum spherical-harmonics degree/order that's actually meaningful
 # ("spherical harmonics" starting below this is just point-mass again) --
@@ -182,6 +182,7 @@ class PropagationSetupDialog(QDialog):
         screen = self.screen() if self.screen() is not None else QApplication.primaryScreen()
         if screen is not None:
             height = min(height, int(screen.availableGeometry().height() * 0.9))
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
         self.resize(width, height)
 
     # -- construction ---------------------------------------------------------

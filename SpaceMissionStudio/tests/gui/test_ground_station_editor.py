@@ -45,7 +45,7 @@ def test_dialog_rejects_out_of_range_latitude(qtbot):
     # silently; gui/widgets.py) and shows 90; the dataclass refuses it, so
     # an out-of-range latitude never reaches the scenario.
     dialog.lat_deg.setValue(999.0)  # [deg]
-    assert dialog.lat_deg.out_of_range_value() == 999.0 and float(dialog.lat_deg.text()) == 90.0  # [deg]
+    assert dialog.lat_deg.out_of_range_value() == 999.0 and float(dialog.lat_deg.cleanText()) == 90.0  # [deg]
     with pytest.raises(ValueError, match="latitude_deg must be in"):
         dialog.to_dataclass()
 

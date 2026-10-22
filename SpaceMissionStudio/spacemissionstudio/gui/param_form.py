@@ -56,7 +56,8 @@ from PySide6.QtWidgets import (
 )
 
 from .theme import set_role
-from .widgets import ComboBox, PreciseDoubleSpinBox
+from . import units
+from .widgets import VECTOR_FIELD_MAX_WIDTH_PX, ComboBox, PreciseDoubleSpinBox, style_number
 
 
 def is_vector(spec) -> bool:
@@ -220,9 +221,10 @@ class ParamForm(QWidget):
             for axis, box in zip("xyz", boxes):
                 box.setPrefix(f"{axis}  ")
                 box.valueChanged.connect(self.changed)
+                style_number(box, max_width=VECTOR_FIELD_MAX_WIDTH_PX)
                 row.addWidget(box)
             if unit:
-                row.addWidget(QLabel(unit))
+                row.addWidget(QLabel(units.display(unit) or unit))  # typeset, as the fields' suffixes are
             if getattr(spec, "normalizable", True):
                 normalize = QPushButton("Normalize")
                 normalize.setAutoDefault(False)
@@ -235,8 +237,7 @@ class ParamForm(QWidget):
         box = PreciseDoubleSpinBox()
         box.setRange(-1.0e12, 1.0e12)
         box.setDecimals(0 if isinstance(example, int) else 3)
-        if unit:
-            box.setSuffix(f" {unit}")
+        style_number(box, unit or None)  # the unit typeset as every form shows it (M4a)
         box.setFixedWidth(200)
         box.valueChanged.connect(self.changed)
         return box

@@ -307,14 +307,20 @@ def _form_row(widget: QWidget):
 
 def row_label(widget: QWidget) -> str:
     """The label of the form row holding ``widget``, also in a layout
-    nested in its form ("" when there is none)."""
+    nested in its form ("" when there is none), with the unit the form
+    moved into the field."""
     found = _form_row(widget)
     if found is None:
         return ""
     form, row, _field = found
     item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
     label = item.widget() if item is not None else None
-    return label.text().rstrip(":").strip() if isinstance(label, QLabel) else ""
+    if not isinstance(label, QLabel):
+        return ""
+    # With its unit, as the code names it ("Dry mass [kg]"): the form shows
+    # the unit in the field (widgets.units_into_fields, M4a).
+    text = label.property("sms_full_label") or label.text()
+    return text.rstrip(":").strip()
 
 
 def show_field_error(widget: QWidget, message: str, warning: bool = False) -> None:

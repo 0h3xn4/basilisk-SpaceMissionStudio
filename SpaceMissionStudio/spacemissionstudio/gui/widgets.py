@@ -43,8 +43,10 @@ from __future__ import annotations
 import math
 from decimal import Decimal
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QValidator
-from PySide6.QtWidgets import QAbstractSpinBox, QComboBox, QDoubleSpinBox, QSpinBox, QTabBar, QTabWidget, QWidget
+from PySide6.QtWidgets import (QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox, QLabel, QSpinBox,
+                               QTabBar, QTabWidget, QWidget)
 
 # Qt rounds every value to decimals() as it is set. 40 decimal places
 # keep a double's full 17 significant digits for magnitudes down to
@@ -222,3 +224,148 @@ def exact_number_text(value: float) -> str:
     """
     text = repr(float(value))
     return text[:-2] if text.endswith(".0") else text
+
+
+# -- number fields with their unit (UI overhaul M4a) --------------------------------
+
+NUMBER_FIELD_MAX_WIDTH_PX = 224  # [px] a number sits beside its label, not across the page
+VECTOR_FIELD_MAX_WIDTH_PX = 128  # [px] each number of a row of several (x, y, z)
+VECTOR_FIELD_MIN_WIDTH_PX = 72  # [px] what one of them shrinks to on a narrow page
+FULL_LABEL = "sms_full_label"  # a label's text with its unit, kept when the unit moves into the field
+
+
+def style_number(box: QAbstractSpinBox, unit: str | None = None,
+                 max_width: int = NUMBER_FIELD_MAX_WIDTH_PX) -> QAbstractSpinBox:
+    """Give a spin box the number field's look: right-aligned, tabular
+    figures, at most ``max_width`` wide, and (with ``unit``) the unit as
+    its suffix. Returns ``box``."""
+    from . import units
+    from .theme import numeric_font
+
+    box.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+    box.setFont(numeric_font())
+    if box.maximumWidth() > max_width:
+        box.setMaximumWidth(max_width)
+    if unit is not None and hasattr(box, "setSuffix"):
+        box.setSuffix(units.suffix(unit))
+    return box
+
+
+class NumberField(PreciseDoubleSpinBox):
+    """A number and its unit: the value kept exactly (PreciseDoubleSpinBox),
+    the unit as a suffix ("550.0 km"), right-aligned in tabular figures.
+    ``cleanText()`` is the number alone."""
+
+    def __init__(self, unit: str = "", minimum: float = 0.0, maximum: float = 1e12, decimals: int = 2,
+                 step: float = 1.0, value: float = 0.0, parent: QWidget | None = None):
+        super().__init__(parent)
+        self.setRange(minimum, maximum)
+        self.setDecimals(decimals)
+        self.setSingleStep(step)
+        self.setValue(value)
+        style_number(self, unit)
+
+    def set_unit(self, unit: str) -> None:
+        style_number(self, unit)
+
+
+def _number_boxes(field) -> list:
+    """The spin boxes a form row's field is or holds."""
+    if isinstance(field, QAbstractSpinBox):
+        return [field]
+    if isinstance(field, QWidget):
+        return field.findChildren(QAbstractSpinBox)
+    if field is not None:  # a layout: the boxes of its widgets
+        boxes = []
+        for index in range(field.count()):
+            item = field.itemAt(index)
+            boxes += _number_boxes(item.widget() if item.widget() is not None else item.layout())
+        return boxes
+    return []
+
+
+def units_into_fields(root: QWidget) -> None:
+    """Every form under ``root``: a row labelled "Name [unit]" whose field
+    holds numbers gets the unit as those fields' suffix and the label
+    "Name"; its number fields get the number field's look. A label with
+    an unknown bracket, or a row without a number, is left as it is; a
+    box that already has a suffix keeps it. A row too wide for the form
+    wraps its field under its label."""
+    from . import units
+
+    for form in root.findChildren(QFormLayout):
+        # A row too wide for the page puts its field under its label instead
+        # of making the page scroll sideways (the Power page at 1280 px).
+        form.setRowWrapPolicy(QFormLayout.RowWrapPolicy.WrapLongRows)
+        for row in range(form.rowCount()):
+            label_item = form.itemAt(row, QFormLayout.ItemRole.LabelRole)
+            field_item = form.itemAt(row, QFormLayout.ItemRole.FieldRole)
+            if field_item is None:
+                continue
+            field = field_item.widget() if field_item.widget() is not None else field_item.layout()
+            boxes = _number_boxes(field)
+            if not boxes:
+                continue
+            label = label_item.widget() if label_item is not None else None
+            unit = None
+            if isinstance(label, QLabel):
+                text, unit = units.split_label(label.text())
+                if unit is not None:
+                    # Messages still name the field with its unit ("Dry mass
+                    # [kg] must be ..."): feedback.row_label reads this.
+                    label.setProperty(FULL_LABEL, label.text())
+                    label.setText(text)
+            width = NUMBER_FIELD_MAX_WIDTH_PX if len(boxes) == 1 else VECTOR_FIELD_MAX_WIDTH_PX
+            for box in boxes:
+                style_number(box, unit if unit is not None and not box.suffix() else None, width)
+                if len(boxes) > 1:  # several in a row may shrink below their widest value's width
+                    box.setMinimumWidth(min(box.minimumSizeHint().width(), VECTOR_FIELD_MIN_WIDTH_PX))
+
+
+# -- optional groups (UI overhaul M4a) --------------------------------------------
+
+def _set_collapsed(group: QGroupBox, collapsed: bool) -> None:
+    if collapsed:
+        hidden = [child for child in group.findChildren(QWidget, options=Qt.FindChildOption.FindDirectChildrenOnly)
+                  if not child.isWindow() and not child.isHidden()]
+        for child in hidden:
+            child.hide()
+        group._sms_collapsed = hidden
+    else:
+        for child in getattr(group, "_sms_collapsed", []):
+            child.show()
+        group._sms_collapsed = []
+
+
+def collapse_optional_groups(root: QWidget) -> None:
+    """Every checkable group under ``root`` shows only its title while it is
+    unticked, instead of every field greyed out at full size; ticked again,
+    what it showed comes back."""
+    for group in root.findChildren(QGroupBox):
+        if not group.isCheckable() or getattr(group, "_sms_collapses", False):
+            continue
+        group._sms_collapses = True
+        group.toggled.connect(lambda on, box=group: _set_collapsed(box, not on))
+        if not group.isChecked():
+            _set_collapsed(group, True)
+
+
+def finish_form(root: QWidget) -> None:
+    """The form rules of M4a for everything under ``root``: units as the
+    fields' suffixes (:func:`units_into_fields`) and optional groups that
+    collapse when off (:func:`collapse_optional_groups`)."""
+    units_into_fields(root)
+    collapse_optional_groups(root)
+
+
+def flow_row(*widgets: QWidget, spacing: int = 6) -> QWidget:
+    """``widgets`` side by side, wrapping onto the next line when the page is
+    narrower than the row (a row of buttons or boxes that once made a page
+    scroll sideways). ``spacing`` in px."""
+    from .flow_layout import FlowLayout
+
+    holder = QWidget()
+    flow = FlowLayout(holder, spacing=spacing)
+    for widget in widgets:
+        flow.addWidget(widget)
+    return holder

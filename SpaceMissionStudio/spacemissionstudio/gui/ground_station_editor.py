@@ -48,7 +48,7 @@ from .field_text import field_title, labelled
 from .feedback import (ProblemBanner, bring_into_view, clear_field_error, clear_invalid, clear_on_edit,
                        mark_invalid, report, show_field_error, show_toast)
 from .problem_location import GROUND_STATION, locate
-from .widgets import PreciseDoubleSpinBox
+from .widgets import PreciseDoubleSpinBox, finish_form
 
 
 def _spin(minimum: float, maximum: float, decimals: int = 4, step: float = 1.0, value: float = 0.0) -> QDoubleSpinBox:
@@ -127,6 +127,7 @@ class GroundStationEditorDialog(QDialog):
         # needed: Qt can size a freshly-constructed QDialog smaller than
         # its own sizeHint() on first show() on a real desktop, a gap
         # this project's own offscreen test rendering doesn't reproduce.
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
         self.resize(self.sizeHint())
 
     def _on_name_changed(self, text: str) -> None:
