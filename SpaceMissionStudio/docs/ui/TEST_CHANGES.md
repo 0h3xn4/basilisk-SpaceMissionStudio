@@ -451,3 +451,32 @@ same reads, through the table:
 | `test_budget_widget.py` (four tests) | `rowCount()`, `item(r, c).text()`, `item(r, 0).font().bold()`, `selectRow(r)` | `row_count()`, `cell(r, c)`, `row_is_bold(r)`, `view.selectRow(r)` | The contributors, the worst case in bold, picking a launch date or an altitude shows its budget |
 | `test_compare_tab.py` (`_row`, `_column` and four tests) | `horizontalHeaderItem(c).text()`, `columnCount()`, `item(r, c).text()`, `rowCount()`, `item(r, c).textAlignment()` | `header_text(c)`, `column_count()`, `cell(r, c)`, `row_count()`, `cell_alignment(r, c)` | The summary's deltas against the base, the inputs that differ, the events counted, numbers right-aligned |
 | `test_workspace.py::test_the_compare_tab_lists_runs_and_their_input_differences` | `inputs_table.item(row, 0).text()`, `rowCount()` | `inputs_table.cell(row, 0)`, `row_count()` | The inputs that differ |
+
+## M7 Timeline and plots
+
+### Changed: how a test reaches the widget
+
+The Timeline's table is a `DataTable` whose rows are made when shown and
+sort themselves (M7); the tests read it through the table, and a row's
+event through `row_event(row)` (it was the first cell's `UserRole`):
+
+| Test | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_event_timeline_widget.py::_column` | `horizontalHeaderItem(c).text()`, `columnCount()` | `header_text(c)`, `column_count()` | The column of a heading |
+| `test_event_timeline_widget.py::test_the_cursor_emits_only_when_it_moves` | `rowCount()`, `item(r, 0).data(UserRole)`, `item(1, 0).toolTip()`, `sortItems(2, ...)`, `item(0, 3).text()` | `row_count()`, `row_event(r).start_s`, `cell_tooltip(1, 0)`, `sort_by(2, ...)`, `cell(0, 3)` | Three rows earliest first, the detail on hover, durations sorted as numbers |
+| `test_event_timeline_widget.py::test_kind_filters_hide_rows_in_the_table_and_the_timeline` | `rowCount()` | `row_count()` | Two rows, one lane |
+| `test_event_timeline_widget.py::test_a_click_on_the_timeline_or_a_row_moves_the_shared_cursor` | `sortItems(0, ...)`, `_on_row_clicked(2, 0)` | `sort_by(0, ...)`, `_on_row_clicked(2)` | A row click moves the cursor to its event |
+| `test_event_timeline_widget.py::test_no_result_shows_a_hint_and_disables_export` | `rowCount()` | `row_count()` | No rows |
+| `test_event_timeline_widget.py::test_headings_carry_the_time_system_and_units_and_numbers_align_right` | `horizontalHeaderItem(2).text()`, `item(r, c).text()`, `item(r, c).textAlignment()` | `header_text(2)`, `cell(r, c)`, `cell_alignment(r, c)` | The headings, the UTC and hour texts, numbers right-aligned |
+| `test_event_timeline_widget.py::test_search_and_the_station_filter_narrow_the_timeline_table_and_export` | `rowCount()` | `row_count()` | The rows each filter leaves |
+| `test_event_timeline_widget.py::test_ctrl_c_copies_the_selected_rows_as_tsv_with_headings` | `table.selectRow(0)`, `setFocus()`, Ctrl+C on `table` | the same on `table.view` | The selected row as TSV with the headings |
+| `test_event_timeline_widget.py::test_arrow_keys_on_the_table_move_the_cursor_and_ctrl_f_finds` | `setCurrentCell(0, 0)`, Down on `table`, `sortItems(2, ...)` | `view.setCurrentIndex(...)`, Down on `table.view`, `sort_by(2, ...)` | The rows move the cursor; a sort does not; Ctrl+F |
+
+### Added
+
+- `tests/gui/test_timeline_scale.py` (8 tests): 10,000 events with only
+  the rows shown made; a header sorting them by value; the search
+  narrowing them; merged spans a pixel and the event under the pointer;
+  the UTC axis with Z, elapsed time without an epoch; zoom and pan by
+  keys, Shift+wheel and a right-button drag; and an export keeping every
+  sample of a line the plot thins.

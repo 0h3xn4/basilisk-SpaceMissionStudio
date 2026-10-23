@@ -977,6 +977,23 @@ Every milestone also has to meet all of these:
   runs, up to 151 ms with a full garbage collection (71-83 ms) in it.
   **Not met** ("no stall over 50 ms"); M9's performance pass holds the
   collector and the Overview worker's share of the interpreter.
+- **M7 (2026-10-22): done.** (`tests/gui/test_timeline_scale.py`):
+  - the Timeline's table a `DataTable` of rows made when shown, sorted by
+    value with NumPy; the timeline drawing only what is in view, merged
+    by pixel, the event under the pointer found by bisection;
+  - a UTC axis with Z; zoom and pan by wheel, Shift+wheel, a right or
+    middle drag and keys; the time cursor shared with the plots (as
+    before); lanes per spacecraft and kind, per station for a pass (as
+    before);
+  - plots: display decimation only, an export writing every sample
+    (tested); the time cursor linked across the grid (as before);
+  - the 3D model view: only in the 3D model editor, opened on request
+    (lazy and opt-in, as before); every measurement software rendered.
+
+  Measured with `scripts/measure_timeline.py` (10,000 synthetic events,
+  three runs): showing them 35-38 ms (was about 730 ms), a search
+  keystroke 37-39 ms (was 2.3-2.6 s), a zoom 5-8 ms (was 1.6-1.7 s); at
+  most 39.4 ms. **Met.**
 
 **Order and size.**
 

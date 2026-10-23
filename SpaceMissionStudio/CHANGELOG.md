@@ -174,6 +174,17 @@ fixes bugs.
 
   What a run computes and every file the app writes are unchanged.
 
+- **A Timeline for long runs** (UI overhaul M7):
+  - Ten thousand events (a year of passes) show, filter and sort without
+    a pause: about 40 ms at most (it was 0.7 s to show them and over 2 s a
+    search keystroke).
+  - The axis is in UTC with `Z` ("08:00Z", the date at midnight) when the
+    run has an epoch.
+  - Move along it with Shift+wheel, the arrow keys or a right-button
+    drag; zoom with the wheel or `+` and `-`; `0` fits the whole run.
+
+  What a run computes and every file the app writes are unchanged.
+
 ## 1.2.0 (2026-10-21)
 
 Starting a mission from an empty scenario is now a choice of its own: the

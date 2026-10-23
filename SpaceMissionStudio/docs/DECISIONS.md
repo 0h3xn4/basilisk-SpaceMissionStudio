@@ -5,6 +5,53 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## M7 Timeline and plots (2026-10-22)
+
+Recorded before coding, after reading the Timeline and timing it with
+10,000 events (`scripts/measure_timeline.py`, new; synthetic passes and
+eclipses over a year, given to the Timeline's own entry point): showing
+them held the window about 730 ms, a search keystroke 2.3-2.6 s, clearing
+it about 1.5 s, a zoom 1.6-1.7 s. The table builds a `QTableWidgetItem`
+per cell and sorts them in Python; the timeline draws every event on
+every paint and looks for the one under the pointer among all of them.
+
+- **The table is a `DataTable` whose rows are made when shown:** the
+  events in a sequence that formats a row when the view asks for it, and
+  sorts itself by each column's values with NumPy (a header click), so
+  neither filling nor sorting walks every cell. Its text, columns and
+  export stay as they are.
+- **The search** matches against each event's text made once per run, not
+  on every keystroke.
+- **The timeline draws what it can show:** per lane, the events in view
+  (found by bisection), merged where they fall on the same pixels; the
+  event under the pointer is found by bisection too.
+- **A UTC axis with `Z`** when the run has an epoch (ticks at round UTC
+  times: "08:00Z", the date at midnight), elapsed time without one.
+- **Zoom and pan:** the wheel zooms around the pointer (as now);
+  Shift+wheel, a horizontal wheel and a right- or middle-button drag pan;
+  `+`/`-` zoom, the arrow keys pan, `0` or Home fits. A left click or drag
+  still sets the time cursor, which the plots share (as now).
+- **Lanes** stay one per spacecraft and kind, a pass's per station and
+  spacecraft (as now).
+- **Plots:** the display decimation (`_MAX_PLOT_POINTS_PER_LINE`) and the
+  time cursor linked across the grid are already there and tested; M7
+  adds a test that an export writes every sample.
+- **Measured after** (`scripts/measure_timeline.py`, three runs): showing
+  10,000 events held the window 35-38 ms, a search keystroke 37-39 ms,
+  clearing it about 10 ms, a zoom 5-8 ms, a paint 7-13 ms; at most
+  39.4 ms. Met ("without a stall over 50 ms"). Besides the lazy rows and
+  the lanes, it took: column widths from font metrics over the first
+  rows (Qt's own sizing asked for every role of every sampled cell), no
+  filter proxy for a table its owner filters (the proxy called Python
+  once a row), one UTC conversion per 128 rows shown (each call costs
+  about 4 ms whatever its length), and the axis's UTC span converted once
+  a run, interpolated between its ends (TDB - UTC drifts milliseconds
+  over a run; the labels are to the minute).
+- **The 3D model view** is already created only in the 3D model editor,
+  opened on request: lazy and opt-in as asked. Every measurement in this
+  overhaul runs with software rendering (offscreen, no GPU), the case
+  `--disable-gpu` forces.
+
 ## M6b The tables and analysis views (2026-10-22)
 
 Recorded before coding, after reading Output, Monte Carlo, Compare, End

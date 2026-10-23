@@ -51,8 +51,7 @@ def _result(second_station=False):
 
 
 def _column(widget, heading):
-    headings = [widget.table.horizontalHeaderItem(c).text().replace("\n", " ")
-                for c in range(widget.table.columnCount())]
+    headings = [widget.table.header_text(c).replace("\n", " ") for c in range(widget.table.column_count())]
     return headings.index(heading)
 
 
@@ -77,14 +76,14 @@ def test_the_table_lists_every_event_and_sorts_by_time_not_text(qtbot):
     widget = EventTimelineWidget()
     qtbot.addWidget(widget)
     widget.set_result(_result())
-    assert widget.table.rowCount() == 3
+    assert widget.table.row_count() == 3
     assert "2 passes, 1 eclipse" in widget.summary_label.text()
     assert "No burns" in widget.summary_label.text()
-    starts = [widget.table.item(r, 0).data(Qt.ItemDataRole.UserRole) for r in range(3)]
+    starts = [widget.row_event(r).start_s for r in range(3)]
     assert starts == sorted(starts)  # earliest first until the user sorts
-    assert "lowest sunlight 0%" in widget.table.item(1, 0).toolTip()  # the full detail on hover
-    widget.table.sortItems(2, Qt.SortOrder.DescendingOrder)  # duration
-    assert widget.table.item(0, 3).text() == "eclipse (umbra)"  # 19 min sorts above 9 min and 4 min
+    assert "lowest sunlight 0%" in widget.table.cell_tooltip(1, 0)  # the full detail on hover
+    widget.table.sort_by(2, Qt.SortOrder.DescendingOrder)  # duration
+    assert widget.table.cell(0, 3) == "eclipse (umbra)"  # 19 min sorts above 9 min and 4 min
     assert set(widget.gantt.rows) == {"sat eclipse", "gs - sat"}
 
 
@@ -94,7 +93,7 @@ def test_kind_filters_hide_rows_in_the_table_and_the_timeline(qtbot):
     qtbot.addWidget(widget)
     widget.set_result(_result())
     widget.kind_boxes["eclipse"].setChecked(False)
-    assert widget.table.rowCount() == 2
+    assert widget.table.row_count() == 2
     assert widget.gantt.rows == ["gs - sat"]
 
 
@@ -114,8 +113,8 @@ def test_a_click_on_the_timeline_or_a_row_moves_the_shared_cursor(qtbot):
     qtbot.mouseClick(gantt, Qt.MouseButton.LeftButton, pos=QPointF(x, 5).toPoint())
     assert abs(cursor.time_s - 35 * 60.0) < (gantt.view[1] - gantt.view[0]) / 100  # within a pixel or so
     assert "eclipse (umbra) (sat)" in widget.cursor_label.text()
-    widget.table.sortItems(0, Qt.SortOrder.AscendingOrder)
-    widget._on_row_clicked(2, 0)  # the second pass
+    widget.table.sort_by(0, Qt.SortOrder.AscendingOrder)
+    widget._on_row_clicked(2)  # the second pass
     assert cursor.time_s == 60 * 60.0
     assert "pass over gs (sat)" in widget.cursor_label.text()
     cursor.clear()
@@ -160,7 +159,7 @@ def test_no_result_shows_a_hint_and_disables_export(qtbot):
     disabled."""
     widget = EventTimelineWidget()
     qtbot.addWidget(widget)
-    assert widget.table.rowCount() == 0
+    assert widget.table.row_count() == 0
     assert not widget.export_button.isEnabled()
     assert "Run a scenario" in widget.summary_label.text()
 
@@ -174,21 +173,22 @@ def test_headings_carry_the_time_system_and_units_and_numbers_align_right(qtbot)
     assert widget.columns(widget.visible_events()) == [
         "Start (UTC)", "End (UTC)", "Duration [min]", "Event", "Station",
         "Max elevation [deg]", "Lowest sunlight [%]"]  # one spacecraft: no Spacecraft column
-    assert widget.table.horizontalHeaderItem(2).text() == "Duration\n[min]"  # the unit under the name
-    assert widget.table.item(0, 0).text() == "2026-01-01 00:10:00"
-    duration = widget.table.item(0, _column(widget, "Duration [min]"))
-    assert duration.text() == "9.00" and duration.textAlignment() & Qt.AlignmentFlag.AlignRight
-    sunlight = widget.table.item(1, _column(widget, "Lowest sunlight [%]"))
-    assert sunlight.text() == "0" and sunlight.textAlignment() & Qt.AlignmentFlag.AlignRight
-    assert widget.table.item(3, _column(widget, "Max elevation [deg]")).text() == "30.0"
-    assert widget.table.item(0, _column(widget, "Max elevation [deg]")).text() == ""  # gs has no elevation
+    assert widget.table.header_text(2) == "Duration\n[min]"  # the unit under the name
+    assert widget.table.cell(0, 0) == "2026-01-01 00:10:00"
+    duration = _column(widget, "Duration [min]")
+    assert widget.table.cell(0, duration) == "9.00"
+    assert widget.table.cell_alignment(0, duration) & Qt.AlignmentFlag.AlignRight
+    sunlight = _column(widget, "Lowest sunlight [%]")
+    assert widget.table.cell(1, sunlight) == "0" and widget.table.cell_alignment(1, sunlight) & Qt.AlignmentFlag.AlignRight
+    assert widget.table.cell(3, _column(widget, "Max elevation [deg]")) == "30.0"
+    assert widget.table.cell(0, _column(widget, "Max elevation [deg]")) == ""  # gs has no elevation
     two = _result()
     two.add(TimeSeries("sat-2.eclipse.illumination_factor", _T, ("illumination_factor",), np.ones(100) * 0.5))
     widget.set_result(two)
     assert "Spacecraft" in widget.columns(widget.visible_events())
     widget.set_result(_result())  # no epoch: elapsed hours, and no column without a value
     assert widget.columns(widget.visible_events())[:2] == ["Start [h]", "End [h]"]
-    assert widget.table.item(0, 0).text() == "0.1667"
+    assert widget.table.cell(0, 0) == "0.1667"
     assert "Max elevation [deg]" not in widget.columns(widget.visible_events())
 
 
@@ -200,7 +200,7 @@ def test_search_and_the_station_filter_narrow_the_timeline_table_and_export(qtbo
     assert [widget.station_combo.itemText(i) for i in range(widget.station_combo.count())] == [
         "All stations", "gs", "kiruna"]
     widget.station_combo.setCurrentText("kiruna")
-    assert widget.table.rowCount() == 1 and widget.gantt.rows == ["kiruna - sat"]
+    assert widget.table.row_count() == 1 and widget.gantt.rows == ["kiruna - sat"]
     assert widget.shown_label.text() == "1 of 4 events shown"
     widget.station_combo.setCurrentText("All stations")
     widget.search.setText("UMBRA")
@@ -210,7 +210,7 @@ def test_search_and_the_station_filter_narrow_the_timeline_table_and_export(qtbo
     lines = widget.export_csv(tmp_path / "events.csv").read_text(encoding="utf-8").splitlines()
     assert len(lines) == 3
     widget.search.clear()
-    assert widget.table.rowCount() == 4 and widget.shown_label.text() == ""
+    assert widget.table.row_count() == 4 and widget.shown_label.text() == ""
     widget.set_result(_result())  # a station that has gone keeps nothing stale
     assert widget.station_combo.isEnabled()
     widget.set_result(ResultSet("empty"))
@@ -222,9 +222,9 @@ def test_ctrl_c_copies_the_selected_rows_as_tsv_with_headings(qtbot):
     widget = EventTimelineWidget()
     qtbot.addWidget(widget)
     widget.set_result(_result())
-    widget.table.selectRow(0)
-    widget.table.setFocus()
-    qtbot.keyClick(widget.table, Qt.Key.Key_C, Qt.KeyboardModifier.ControlModifier)
+    widget.table.view.selectRow(0)
+    widget.table.view.setFocus()
+    qtbot.keyClick(widget.table.view, Qt.Key.Key_C, Qt.KeyboardModifier.ControlModifier)
     lines = QApplication.clipboard().text().splitlines()
     assert lines[0].split("\t") == widget.columns(widget.visible_events())
     assert lines[1].split("\t")[:4] == ["0.1667", "0.3167", "9.00", "pass over gs"]
@@ -242,13 +242,13 @@ def test_arrow_keys_on_the_table_move_the_cursor_and_ctrl_f_finds(qtbot):
     widget.set_result(_result())
     widget.show()
     qtbot.waitExposed(widget)
-    widget.table.setFocus()
-    widget.table.setCurrentCell(0, 0)
+    widget.table.view.setFocus()
+    widget.table.view.setCurrentIndex(widget.table.view.model().index(0, 0))
     assert cursor.time_s == 10 * 60.0
-    qtbot.keyClick(widget.table, Qt.Key.Key_Down)
+    qtbot.keyClick(widget.table.view, Qt.Key.Key_Down)
     assert cursor.time_s == 30 * 60.0  # the eclipse
     widget._pick_time(5.0)  # [s] set on the timeline
-    widget.table.sortItems(2, Qt.SortOrder.DescendingOrder)  # the current row moves with its event
+    widget.table.sort_by(2, Qt.SortOrder.DescendingOrder)  # the current row moves with its event
     assert cursor.time_s == 5.0  # a sort does not move the cursor
     assert widget.find_shortcut.key().toString() == "Ctrl+F"
     widget.find_shortcut.activated.emit()

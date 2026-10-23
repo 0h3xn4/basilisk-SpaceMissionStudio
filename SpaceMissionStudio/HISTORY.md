@@ -12626,3 +12626,38 @@ Budget and Compare show their tables in the numeric font, right-aligned.
 tests and two helpers read the tables through the `DataTable`, and four
 tests and three helpers (used by eight tests) take the end of a run's
 steps with `finish_run_end()`, each in `docs/ui/TEST_CHANGES.md`. Golden files and every output are unchanged.
+
+## M7: Timeline and plots (2026-10-22)
+
+**What changed.**
+- **The Timeline's table** is a `DataTable` of rows made when the view
+  shows them (`data_table.LazyRows`), sorted by each column's values with
+  NumPy on a header click; UTC times are worked out 128 events at a time,
+  when a row of them is first shown. Its text, columns and export are as
+  before.
+- **The timeline** keeps each lane's starts, ends and their running
+  maximum in arrays: what is in view is found by bisection and drawn
+  merged by pixel; the event under the pointer is found the same way.
+- **A UTC axis with Z** when the run has an epoch; **zoom and pan** by
+  the wheel, `+`/`-`, Shift+wheel, a right or middle drag and the arrow
+  keys; `0` or Home fits.
+- `DataTable` takes rows made on demand, sorts them itself, sizes its
+  columns from font metrics over the first rows, and can do without the
+  filter proxy (`direct`).
+- Plots: a test that an export writes every sample of a line the plot
+  thins. The 3D model view was already lazy and opt-in.
+
+**10,000 events** (`scripts/measure_timeline.py`, new; three runs):
+showing them 35-38 ms (M6b: about 730 ms), a search keystroke 37-39 ms
+(2.3-2.6 s), clearing it about 10 ms (1.5 s), a zoom 5-8 ms (1.6-1.7 s);
+at most 39.4 ms. Met.
+
+**Screenshots.** `scripts/capture_ui_screens.py --theme both`, this branch
+against M6b: 122 shots per theme, the same screens. The Timeline's axis
+reads in UTC with Z ("08:30Z").
+
+**Tests.** The full suite: 3820 passed and 12 skipped, none failed (Python
+3.13 here; CI runs 3.11). `test_timeline_scale.py` is new (8 tests). Nine
+Timeline tests and one helper read the table through the `DataTable`
+(and a row's event through `row_event`), each in
+`docs/ui/TEST_CHANGES.md`. Golden files and every output are unchanged.

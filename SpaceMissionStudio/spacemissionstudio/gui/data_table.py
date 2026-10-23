@@ -29,6 +29,9 @@
 - the header's context menu shows and hides columns;
 - a group row (:class:`Row` ``group=True``) spans the table, in the
   heading weight on the selected-row surface;
+- the rows can be any sequence of :class:`Row` (a long table's are made
+  when the view asks for them, :class:`LazyRows`); such a table sorts
+  itself (:meth:`DataTable.set_presorted`) instead of through the proxy;
 - filtering is a predicate on the model's rows (:meth:`DataTable.set_row_filter`);
   columns can be hidden (:meth:`DataTable.set_hidden_columns`);
 - an empty state (its text, and a primary action when one is given)
@@ -39,9 +42,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Callable, Dict, List, Optional, Sequence
+from collections.abc import Sequence as SequenceABC
 
 from PySide6.QtCore import QAbstractTableModel, QObject, QSortFilterProxyModel, Qt, Signal
-from PySide6.QtGui import QColor, QGuiApplication, QKeySequence
+from PySide6.QtGui import QColor, QFontMetrics, QGuiApplication, QKeySequence
 from PySide6.QtWidgets import (QAbstractItemView, QHeaderView, QLabel, QMenu, QPushButton, QStackedWidget,
                                QTableView, QVBoxLayout, QWidget)
 
@@ -49,6 +53,9 @@ from .theme import TOKENS, numeric_font, set_role, ui_font
 
 _SORT_ROLE = Qt.ItemDataRole.UserRole  # a cell's sort key (Row.keys)
 _SIZED_ROWS = 200  # rows a column's width is measured from
+_CELL_PAD_PX = 16  # [px] beside a cell's text (the style sheet's padding and the grid)
+_HEADER_PAD_PX = 28  # [px] beside a heading (its padding and the sort indicator)
+_MAX_COLUMN_PX = 480  # [px] a long text is elided past this; the column can still be dragged wider
 
 
 @dataclass
@@ -67,6 +74,43 @@ class Row:
     muted: frozenset = frozenset()
 
 
+class LazyRows(SequenceABC):
+    """Rows made when asked for (a long table): :meth:`make` builds row
+    ``index`` of the current order, kept until the order changes;
+    :meth:`sort` reorders them by a column."""
+
+    has_groups = False
+
+    def __init__(self, count: int) -> None:
+        self.count = count
+        self._made: Dict[int, Row] = {}
+
+    def __len__(self) -> int:
+        return self.count
+
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return [self[i] for i in range(*index.indices(self.count))]
+        if index < 0:
+            index += self.count
+        if not 0 <= index < self.count:
+            raise IndexError(index)
+        row = self._made.get(index)
+        if row is None:
+            row = self._made[index] = self.make(index)
+        return row
+
+    def forget(self) -> None:
+        """Make the rows again (their order changed)."""
+        self._made = {}
+
+    def make(self, index: int) -> Row:
+        raise NotImplementedError
+
+    def sort(self, column: int, descending: bool) -> None:
+        raise NotImplementedError
+
+
 class DataModel(QAbstractTableModel):
     """The rows of a :class:`DataTable`."""
 
@@ -76,7 +120,8 @@ class DataModel(QAbstractTableModel):
         self.header_tooltips: Dict[int, str] = {}
         self.bold_columns: set = set()
         self.numeric: set = set()  # columns of numbers
-        self.rows: List[Row] = []
+        self.rows: Sequence[Row] = []
+        self.has_groups = False
         # Made once: data() is asked for every cell's font while the view sizes
         # its columns, and a QFont with its features is slow to make.
         self._numeric_font = numeric_font()
@@ -84,8 +129,17 @@ class DataModel(QAbstractTableModel):
 
     def set_table(self, headers: Sequence[str], rows: Sequence[Row], numeric: Sequence[int] = ()) -> None:
         self.beginResetModel()
-        self.headers, self.rows, self.numeric = list(headers), list(rows), set(numeric)
+        self.headers, self.numeric = list(headers), set(numeric)
+        self.rows = rows if isinstance(rows, LazyRows) else list(rows)
+        self.has_groups = bool(self.rows.has_groups) if isinstance(rows, LazyRows) else any(r.group for r in rows)
         self.header_tooltips, self.bold_columns = {}, set()
+        self.endResetModel()
+
+    def reorder(self, column: int, descending: bool) -> None:
+        """Sort lazy rows by ``column`` (they sort themselves)."""
+        self.beginResetModel()
+        self.rows.sort(column, descending)
+        self.rows.forget()
         self.endResetModel()
 
     def set_header_marks(self, bold: Sequence[int], tooltips: Dict[int, str]) -> None:
@@ -155,6 +209,33 @@ class _Filter(QSortFilterProxyModel):
         return self.predicate is None or self.predicate(source_row)
 
 
+class _Direct:
+    """The view on the model itself (a :class:`DataTable` with ``direct``):
+    what the filter proxy offers, for the model's own rows. A long lazy
+    table is filtered by its owner, and the proxy called Python once a row
+    on every change (10,000 calls)."""
+
+    predicate = None
+
+    def __init__(self, model: DataModel) -> None:
+        self.model = model
+
+    def mapToSource(self, index):  # noqa: N802 -- the proxy's name
+        return index
+
+    def index(self, row: int, column: int):
+        return self.model.index(row, column)
+
+    def rowCount(self) -> int:  # noqa: N802 -- the proxy's name
+        return self.model.rowCount()
+
+    def data(self, index, role):
+        return self.model.data(index, role)
+
+    def invalidate(self) -> None:
+        pass
+
+
 class _View(QTableView):
     copy_requested = Signal()
 
@@ -171,9 +252,10 @@ class DataTable(QWidget):
 
     action_requested = Signal()
     row_chosen = Signal(int)  # the model row picked (set_single_pick)
+    sorted = Signal(int)  # a presorted table was sorted by this column (set_presorted)
 
     def __init__(self, empty_text: str = "Nothing to show.", action: Optional[str] = None,
-                 parent: Optional[QWidget] = None) -> None:
+                 parent: Optional[QWidget] = None, direct: bool = False) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -194,11 +276,14 @@ class DataTable(QWidget):
         self.stack.addWidget(self.empty)
 
         self.model = DataModel(self)
-        self.proxy = _Filter(self)
-        self.proxy.setSourceModel(self.model)
-        self.proxy.setSortRole(_SORT_ROLE)
+        if direct:  # no filter proxy: the owner filters (a long lazy table)
+            self.proxy = _Direct(self.model)
+        else:
+            self.proxy = _Filter(self)
+            self.proxy.setSourceModel(self.model)
+            self.proxy.setSortRole(_SORT_ROLE)
         self.view = _View()
-        self.view.setModel(self.proxy)
+        self.view.setModel(self.model if direct else self.proxy)
         self.view.verticalHeader().setVisible(False)
         self.view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
@@ -227,10 +312,34 @@ class DataTable(QWidget):
             header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch if column == stretch
                                         else QHeaderView.ResizeMode.Interactive)
             self.view.setColumnHidden(column, False)
-        self.view.resizeColumnsToContents()
+        self._size_columns(stretch)
         self._update_spans()
         self.view.setUpdatesEnabled(True)
         self.stack.setCurrentWidget(self.view if rows else self.empty)
+
+    def _size_columns(self, stretch: int) -> None:
+        """Each column as wide as its heading and the text of a sample of
+        rows (M7: Qt's own sizing asked the model for every role of every
+        sampled cell, 200 ms for a 10,000-event table)."""
+        rows = self.model.rows
+        sample = range(min(len(rows), _SIZED_ROWS // 4))  # the first rows: a lazy table makes no others
+        header_metrics = QFontMetrics(self._header_font())
+        plain, numbers = QFontMetrics(self.view.font()), QFontMetrics(self.model._numeric_font)
+        bold = QFontMetrics(self.model._heading_font)
+        for column, heading in enumerate(self.model.headers):
+            if column == stretch:
+                continue
+            width = max(header_metrics.horizontalAdvance(line) for line in heading.split("\n")) + _HEADER_PAD_PX
+            metrics = numbers if column in self.model.numeric else plain
+            for index in sample:
+                row = rows[index]
+                if row.group or column >= len(row.cells):
+                    continue
+                width = max(width, (bold if row.bold else metrics).horizontalAdvance(row.cells[column]) + _CELL_PAD_PX)
+            self.view.setColumnWidth(column, min(width, _MAX_COLUMN_PX))
+
+    def _header_font(self):
+        return self.view.horizontalHeader().font()
 
     def clear(self, empty_text: Optional[str] = None) -> None:
         self.model.set_table([], [])
@@ -243,7 +352,7 @@ class DataTable(QWidget):
         self.empty_label.setText(text)
 
     def set_row_filter(self, predicate: Optional[Callable[[int], bool]]) -> None:
-        """Show the model rows ``predicate(row)`` accepts (None: every row)."""
+        """Show the model rows ``predicate(row)`` accepts (None: every row; not for a ``direct`` table)."""
         self.proxy.predicate = predicate
         self.proxy.invalidate()
         self._update_spans()
@@ -282,7 +391,30 @@ class DataTable(QWidget):
         self.view.setSortingEnabled(True)
         self.view.sortByColumn(column, order)
 
+    def set_presorted(self) -> None:
+        """A header click sorts the rows themselves (:class:`LazyRows`):
+        sorting through the proxy would ask every row's key, one call a
+        comparison."""
+        header = self.view.horizontalHeader()
+        header.setSectionsClickable(True)
+        header.setSortIndicatorShown(True)
+        header.sortIndicatorChanged.connect(self._on_presorted_click)
+        self._presorted = True
+
+    def _on_presorted_click(self, column: int, order) -> None:
+        if isinstance(self.model.rows, LazyRows):
+            self.model.reorder(column, order == Qt.SortOrder.DescendingOrder)
+            self._update_spans()
+        self.sorted.emit(column)
+
     def sort_by(self, column: int, order=Qt.SortOrder.AscendingOrder) -> None:
+        if getattr(self, "_presorted", False):
+            header = self.view.horizontalHeader()
+            if header.sortIndicatorSection() == column and header.sortIndicatorOrder() == order:
+                self._on_presorted_click(column, order)  # already shown: sort the (new) rows again
+            else:
+                header.setSortIndicator(column, order)  # sorts the rows (sortIndicatorChanged)
+            return
         self.view.sortByColumn(column, order)
 
     def column_count(self) -> int:
@@ -294,7 +426,7 @@ class DataTable(QWidget):
     def _update_spans(self) -> None:
         self.view.clearSpans()
         columns = self.model.columnCount()
-        if not any(row.group for row in self.model.rows):
+        if not self.model.has_groups:
             return
         for row in range(self.proxy.rowCount()):
             source = self.proxy.mapToSource(self.proxy.index(row, 0)).row()
