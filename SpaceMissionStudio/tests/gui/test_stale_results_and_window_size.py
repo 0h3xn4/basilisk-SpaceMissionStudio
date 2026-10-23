@@ -59,6 +59,7 @@ def _finish_a_run(window):
 
     window._last_run_scenario = window.scenario_editor.to_scenario()
     window._on_run_finished(ResultSet(scenario_name=window._last_run_scenario.name))
+    window.finish_run_end()  # M6b: the end of a run is shown in steps; take them
 
 
 def test_the_banner_says_when_results_are_from_an_earlier_scenario(window):

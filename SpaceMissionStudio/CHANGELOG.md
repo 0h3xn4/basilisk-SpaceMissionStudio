@@ -162,6 +162,18 @@ fixes bugs.
 
   What a run computes and every file the app writes are unchanged.
 
+- **One kind of table, and a shorter end of a run** (UI overhaul M6b):
+  - The tables of Output, Monte Carlo, Compare and Budget work alike:
+    `Ctrl+C` copies the rows as tab-separated text with the headings,
+    right-clicking a heading shows or hides its column, numbers are
+    right-aligned with their unit in the heading.
+  - The end of a run is shown in steps, and the run is saved a moment
+    after: each step holds the window 17-36 ms, where the whole end of a
+    run held it 100-130 ms on template 23 (the longest pause after a run
+    is now about 50 ms, more when Python collects garbage then).
+
+  What a run computes and every file the app writes are unchanged.
+
 ## 1.2.0 (2026-10-21)
 
 Starting a mission from an empty scenario is now a choice of its own: the

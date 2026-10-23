@@ -67,11 +67,11 @@ def compare(qtbot, tmp_path):
 
 
 def _column(table, heading):
-    return [table.horizontalHeaderItem(c).text() for c in range(table.columnCount())].index(heading)
+    return [table.header_text(c) for c in range(table.column_count())].index(heading)
 
 
 def _row(table, first_cell):
-    return [table.item(r, 0).text() for r in range(table.rowCount())].index(first_cell)
+    return [table.cell(r, 0) for r in range(table.row_count())].index(first_cell)
 
 
 def test_a_new_run_is_compared_with_the_one_before_it(compare):
@@ -89,13 +89,13 @@ def test_the_summary_has_a_delta_per_run_against_the_oldest_ticked(compare):
     widget, _history = compare
     widget.set_checked([1, 2, 3])
     table = widget.summary_table
-    headings = [table.horizontalHeaderItem(c).text() for c in range(table.columnCount())]
+    headings = [table.header_text(c) for c in range(table.column_count())]
     assert headings == ["Figure", "Unit", "Run 1 (base)", "Run 2", "Δ Run 2", "Run 3", "Δ Run 3"]
     row = _row(table, "Delta-V")
-    assert table.item(row, 1).text() == "m/s"
-    assert [table.item(row, c).text() for c in range(2, 7)] == ["1.000", "1.500", "+0.500", "0.500", "-0.500"]
-    assert table.item(_row(table, "Passes"), _column(table, "Δ Run 3")).text() == "+2"
-    assert table.item(row, 2).textAlignment() & 0x2  # right-aligned numbers (Qt.AlignRight)
+    assert table.cell(row, 1) == "m/s"
+    assert [table.cell(row, c) for c in range(2, 7)] == ["1.000", "1.500", "+0.500", "0.500", "-0.500"]
+    assert table.cell(_row(table, "Passes"), _column(table, "Δ Run 3")) == "+2"
+    assert table.cell_alignment(row, 2) & 0x2  # right-aligned numbers (Qt.AlignRight)
 
 
 def test_the_inputs_that_differ_from_the_base_old_to_new(compare):
@@ -105,10 +105,10 @@ def test_the_inputs_that_differ_from_the_base_old_to_new(compare):
     widget.set_checked([1, 2, 3])
     table = widget.inputs_table
     drag, duration = _row(table, "drag"), _row(table, "sim_settings.duration_days")
-    assert [table.item(drag, c).text() for c in range(1, 4)] == ["0.0", "2.2", "(same)"]
-    assert [table.item(duration, c).text() for c in range(1, 4)] == ["1.0", "(same)", "2.0"]
+    assert [table.cell(drag, c) for c in range(1, 4)] == ["0.0", "2.2", "(same)"]
+    assert [table.cell(duration, c) for c in range(1, 4)] == ["1.0", "(same)", "2.0"]
     widget.set_checked([1, 1])
-    assert "Tick two or more" in widget.status_label.text() and table.rowCount() == 0
+    assert "Tick two or more" in widget.status_label.text() and table.row_count() == 0
 
 
 def test_the_events_are_counted_with_their_total_time(compare):
@@ -117,9 +117,9 @@ def test_the_events_are_counted_with_their_total_time(compare):
     widget, _history = compare
     table = widget.events_table
     row = _row(table, "pass over gs")
-    assert table.item(row, 1).text() == "2 × 18.0 min"  # Run 2, the base here
-    assert table.item(row, 2).text() == "3 × 27.0 min"
-    assert table.item(row, 3).text() == "+1 × +9.0 min"
+    assert table.cell(row, 1) == "2 × 18.0 min"  # Run 2, the base here
+    assert table.cell(row, 2) == "3 × 27.0 min"
+    assert table.cell(row, 3) == "+1 × +9.0 min"
 
 
 def test_the_plots_overlay_one_series_of_every_ticked_run(compare):
@@ -156,7 +156,7 @@ def test_runs_of_an_earlier_session_are_listed_and_read_back_when_ticked(qtbot, 
     compare.set_checked([1, 2])
     assert all(r.in_memory for r in window.run_history.runs)
     table = compare.summary_table
-    assert table.item(_row(table, "Delta-V"), _column(table, "Δ Run 2")).text() == "+1.000"
+    assert table.cell(_row(table, "Delta-V"), _column(table, "Δ Run 2")) == "+1.000"
     compare.run_list.setCurrentRow(1)  # Run 1
     original_question = QMessageBox.question
     try:

@@ -261,6 +261,13 @@ bar and no toolbar:
   `Plotly.react` (`render_script`, only the cells whose figure changed);
   the page reports "drawn" through its title (`plot_drawn`). Figures are
   kept per plot until what they show changes.
+- **DataTable (M6b):** `gui.data_table`, the table of a view: a
+  `QTableView` over `DataModel` through a filter proxy; numeric columns
+  right-aligned in the numeric font (units in the headers); group rows
+  across the table; bold and muted cells by role; Ctrl+C copies TSV with
+  the header; the header's context menu shows and hides columns; columns
+  sized once when filled; an empty state with its action. Output, Monte
+  Carlo, Budget and Compare use it.
 - **Run › Run (M5b):** the run mode as a segmented control in the Run
   area's header (`gui.run_page.RunModeControl`, the same `segmentedControl`
   look as Form · JSON); the Run page (`RunPage`) shows what the next run

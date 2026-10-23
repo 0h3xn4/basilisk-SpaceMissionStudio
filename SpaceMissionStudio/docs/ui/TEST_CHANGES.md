@@ -409,3 +409,45 @@ each wait are unchanged. The tests and fixtures (18):
   out off the GUI thread; a run shown while another is worked out wins;
   the provenance popover; a run ending shows its overview in the main
   window.
+
+## M6b The tables and analysis views
+
+### Changed: how a test reaches the widget
+
+Output's and Monte Carlo's tables are a `DataTable` (a `QTableView` over a
+model) instead of a `QTableWidget`; a test that read a `QTableWidget`
+member reads the same thing through the table.
+
+| Test | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_mission_output_widget.py::test_none_summary_clears_the_table` | `table.rowCount()` | `table.row_count()` | Rows before; none after, and the table hidden |
+| `test_mission_output_widget.py::test_summary_shows_one_column_per_report_and_one_row_per_value` | `table.item(0, 0).toolTip()` | `table.cell_tooltip(0, 0)` | The first row's code name in its tooltip |
+| `test_mission_output_widget.py::test_clear_empties_the_table` | `table.rowCount()` | `table.row_count()` | No rows after clear |
+| `test_mission_output_widget.py::test_the_report_at_the_time_cursor_is_marked_and_a_header_click_moves_the_cursor` | `table.horizontalHeaderItem(n).font().bold()`, `table.horizontalHeader()` | `table.header_is_bold(n)`, `table.view.horizontalHeader()` | The report at the cursor in bold; a header click moves the cursor, the quantity column does not |
+| `test_monte_carlo_results_widget.py::test_a_saved_batch_shows_tiles_plots_and_a_sortable_run_table` | `rowCount()`, `horizontalHeaderItem(c).text()`, `sortItems(1, ...)`, `item(r, 0).text()` | `row_count()`, `header_text(c)`, `sort_by(1, ...)`, `cell(r, 0)` | Five rows, the headers, a numeric sort by Cd |
+| `test_monte_carlo_results_widget.py` (the spacecraft switch test) | `horizontalHeaderItem(columnCount() - 1).text()` | `header_text(column_count() - 1)` | The last column is the chosen spacecraft's |
+
+The end of a run is shown in steps, one an event-loop turn (M6b). A test
+that calls `_on_run_finished` or `_on_run_cancelled` directly and reads
+the views at once now takes the steps first with `window.finish_run_end()`
+(what a new run, clearing the views and closing do); the assertions after
+it are unchanged:
+
+| Test or helper |
+|---|
+| `test_main_window.py::test_run_finished_with_command_summary_shows_mission_output_tab` |
+| `test_main_window.py::test_run_finished_without_command_summary_shows_results_tab` |
+| `test_main_window.py::test_run_cancelled_updates_results_widget_and_status` |
+| `test_main_window.py::test_run_cancelled_with_command_summary_shows_mission_output_tab` |
+| `test_run_record.py::_finish_a_run` (five tests) |
+| `test_stale_results_and_window_size.py::_finish_a_run` |
+| `test_workspace.py::_finish_a_run` (two tests) |
+
+Budget's three tables and Compare's three are a `DataTable` too (M6b); the
+same reads, through the table:
+
+| Test file | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_budget_widget.py` (four tests) | `rowCount()`, `item(r, c).text()`, `item(r, 0).font().bold()`, `selectRow(r)` | `row_count()`, `cell(r, c)`, `row_is_bold(r)`, `view.selectRow(r)` | The contributors, the worst case in bold, picking a launch date or an altitude shows its budget |
+| `test_compare_tab.py` (`_row`, `_column` and four tests) | `horizontalHeaderItem(c).text()`, `columnCount()`, `item(r, c).text()`, `rowCount()`, `item(r, c).textAlignment()` | `header_text(c)`, `column_count()`, `cell(r, c)`, `row_count()`, `cell_alignment(r, c)` | The summary's deltas against the base, the inputs that differ, the events counted, numbers right-aligned |
+| `test_workspace.py::test_the_compare_tab_lists_runs_and_their_input_differences` | `inputs_table.item(row, 0).text()`, `rowCount()` | `inputs_table.cell(row, 0)`, `row_count()` | The inputs that differ |

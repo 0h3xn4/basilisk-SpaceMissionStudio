@@ -5,6 +5,49 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## M6b The tables and analysis views (2026-10-22)
+
+Recorded before coding, after reading Output, Monte Carlo, Compare, End
+of Life, Budget and the Dashboard, and timing the end of a run (template
+23, the second and third runs of a session: 81-132 ms in one slot, of
+which showing the Output page 32-54 ms, the results view 20-33 ms and
+filling Output's table 12-22 ms).
+
+- **One `DataTable` component** (`gui/data_table.py`): a `QTableView`
+  over a `QAbstractTableModel` with the table rules (CLAUDE.md, Tables):
+  a sticky header, numeric columns right-aligned in the numeric font with
+  their unit in the header, Ctrl+C and Copy as TSV, a column-visibility
+  menu on the header, row hover, no zebra, and an empty state with its
+  primary action. Filtering is a predicate the view gives it (Output's
+  filter shows report columns or rows); sorting is on where rows have no
+  order of their own. Group rows span the table.
+- **Output and Monte Carlo move onto it.** Each keeps its text, its
+  filter and its export as they are; a test that read a `QTableWidget`
+  item reads the table's cell or header instead (TEST_CHANGES).
+- **Compare, End of Life, Budget and the Dashboard (Telemetry)**, as
+  built: Budget's three tables and Compare's three are a `DataTable`
+  (Budget's worst case a bold row, a row picked with `row_chosen`;
+  Compare's "(same)" cells muted). Compare's run switcher is its list of
+  runs to tick, as before. End of Life already shows its results as
+  tiles, and the Dashboard's group boxes are headings, not frames, since
+  M4a's style sheet: both are kept as they are.
+- **The end of a run, as built:** shown in steps, one an event-loop turn
+  4 ms apart (the results view; the dashboard, timeline, run record and
+  analyses; Output; the view shown), each 17-31 ms after the first run of
+  a session. The run's save starts 1 s later (its zip writing shares the
+  interpreter with the GUI thread and doubled the steps' time beside
+  them). A new run, clearing the views or closing takes the steps left.
+  Tables size their columns once when filled (ResizeToContents measured
+  every cell at every layout).
+- **Measured after** (`scripts/measure_run_end.py`, template 23, two
+  sessions of three runs): the run's own slot 21-36 ms after the first run
+  (was 102-110 ms); the longest stall in the 3 s after it 47-57 ms in most
+  runs, up to 151 ms when a full garbage collection (71-83 ms) fell in it.
+  **Not met** ("no stall over 50 ms"): the remainder is the collector and
+  the Overview's worker sharing the interpreter; M9's performance pass
+  holds it. The first run of a session: 197-268 ms (the first results
+  view and figure).
+
 ## M6 Results overview and analysis views (2026-10-22)
 
 Recorded before coding, after reading the Results views and timing a plot

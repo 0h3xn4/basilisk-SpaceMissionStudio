@@ -31,27 +31,23 @@ from __future__ import annotations
 
 from typing import Optional
 
-from PySide6.QtCore import Qt, QThread, Signal
-from PySide6.QtGui import QFont
+from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
-    QAbstractItemView,
     QApplication,
     QCheckBox,
     QFormLayout,
     QGroupBox,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
     QPushButton,
-    QTableWidget,
-    QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
 
 from .. import output_provenance
 from ..schema.scenario import SUPPORTED_DISPOSALS, PropellantBudgetConfig
+from .data_table import DataTable, Row
 from .theme import set_role
 from .widgets import ComboBox, PreciseDoubleSpinBox
 
@@ -339,15 +335,9 @@ class BudgetWidget(QWidget):
         self.status_label.setWordWrap(True)
         set_role(self.status_label, tone="secondary")
         layout.addWidget(self.status_label)
-        self.table = QTableWidget(0, len(_COLUMNS))
+        # DataTables (UI overhaul M6b): the budget, and the two tables a row of which picks it.
+        self.table = DataTable("Compute budget shows the spacecraft's delta-V and propellant budget here.")
         self.table.setMinimumHeight(260)  # [px] a phase's rows stay readable when the result tables open below
-        self.table.setHorizontalHeaderLabels(_COLUMNS)
-        self.table.verticalHeader().setVisible(False)
-        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        header = self.table.horizontalHeader()
-        for column in range(len(_COLUMNS)):
-            header.setSectionResizeMode(column, QHeaderView.ResizeMode.Stretch if column == 1
-                                        else QHeaderView.ResizeMode.ResizeToContents)
         layout.addWidget(self.table, 1)
         self.totals_label = QLabel("")
         set_role(self.totals_label, role="strong")
@@ -360,8 +350,8 @@ class BudgetWidget(QWidget):
         self._trade = None
         self.trade_group = QGroupBox("Altitude trade -- pick a row for its launch dates")
         trade_layout = QVBoxLayout(self.trade_group)
-        self.trade_table = self._picker_table(_TRADE_COLUMNS)
-        self.trade_table.itemSelectionChanged.connect(self._trade_row_picked)
+        self.trade_table = self._picker_table()
+        self.trade_table.row_chosen.connect(self._trade_row_picked)
         trade_layout.addWidget(self.trade_table)
         self.trade_notes_label = QLabel("")
         self.trade_notes_label.setWordWrap(True)
@@ -373,8 +363,8 @@ class BudgetWidget(QWidget):
         self._sweep = None
         self.sweep_group = QGroupBox("Launch delays (AD10 Sec. 5.5) -- pick a row for its budget")
         sweep_layout = QVBoxLayout(self.sweep_group)
-        self.sweep_table = self._picker_table(_SWEEP_COLUMNS)
-        self.sweep_table.itemSelectionChanged.connect(self._sweep_row_picked)
+        self.sweep_table = self._picker_table()
+        self.sweep_table.row_chosen.connect(self._sweep_row_picked)
         sweep_layout.addWidget(self.sweep_table)
         self.sweep_notes_label = QLabel("")
         self.sweep_notes_label.setWordWrap(True)
@@ -385,35 +375,20 @@ class BudgetWidget(QWidget):
         self._update_enabled()
 
     @staticmethod
-    def _picker_table(columns) -> QTableWidget:
-        table = QTableWidget(0, len(columns))
-        table.setHorizontalHeaderLabels(columns)
-        table.verticalHeader().setVisible(False)
-        table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
-        table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
-        table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
+    def _picker_table() -> DataTable:
+        table = DataTable()
+        table.set_single_pick()
         return table
 
     @staticmethod
-    def _fill(table: QTableWidget, rows, bold_row: Optional[int]) -> None:
+    def _fill(table: DataTable, columns, rows, bold_row: Optional[int]) -> None:
         """``rows`` of cell texts into ``table`` (first column left-aligned,
         the rest right), ``bold_row`` in bold, sized to show every row."""
-        bold = QFont()
-        bold.setBold(True)
-        table.blockSignals(True)
-        table.setRowCount(len(rows))
-        for row, values in enumerate(rows):
-            for column, text in enumerate(values):
-                item = QTableWidgetItem(text)
-                if column > 0:
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-                if row == bold_row:
-                    item.setFont(bold)
-                table.setItem(row, column, item)
-        table.blockSignals(False)
-        table.setFixedHeight(table.horizontalHeader().height()
-                             + sum(table.rowHeight(r) for r in range(table.rowCount())) + 4)
+        table.view.selectionModel().blockSignals(True)
+        table.set_table(columns, [Row(values, bold=row == bold_row) for row, values in enumerate(rows)],
+                        numeric=range(1, len(columns)), stretch=0)
+        table.view.selectionModel().blockSignals(False)
+        table.fit_rows()
 
     def set_scenario(self, scenario) -> None:
         self._scenario = scenario
@@ -523,16 +498,15 @@ class BudgetWidget(QWidget):
                          f"{worst.delta_v_of('Operations', 'In-plane'):.1f}",
                          f"{worst.delta_v_of('End of life', ''):.1f}", f"{worst.budget.total_propellant_kg:.2f}",
                          fits))
-        self._fill(self.trade_table, rows, trade.altitudes.index(best) if best is not None else None)
+        self._fill(self.trade_table, _TRADE_COLUMNS, rows, trade.altitudes.index(best) if best is not None else None)
         self.trade_notes_label.setText("\n".join(f"- {n}" for n in trade.notes))
         self.trade_group.setVisible(True)
-        self.trade_table.clearSelection()
-        self.trade_table.selectRow(trade.altitudes.index(best) if best is not None else len(trade.altitudes) - 1)
+        self.trade_table.view.clearSelection()
+        self.trade_table.view.selectRow(trade.altitudes.index(best) if best is not None else len(trade.altitudes) - 1)
 
-    def _trade_row_picked(self) -> None:
-        rows = self.trade_table.selectionModel().selectedRows() if self._trade is not None else []
-        if rows:
-            case = self._trade.altitudes[rows[0].row()]
+    def _trade_row_picked(self, row: int) -> None:
+        if self._trade is not None:
+            case = self._trade.altitudes[row]
             self._show_sweep(case.sweep)
             self.status_label.setText(f"{case.altitude_km:g} km, " + self.status_label.text())
 
@@ -543,16 +517,15 @@ class BudgetWidget(QWidget):
                  f"{case.delta_v_of('Operations', 'In-plane'):.1f}", f"{case.delta_v_of('End of life', ''):.1f}",
                  f"{case.budget.total_delta_v_m_s:.1f}", f"{case.budget.total_propellant_kg:.2f}")
                 for case in sweep.cases]
-        self._fill(self.sweep_table, rows, sweep.cases.index(worst))
+        self._fill(self.sweep_table, _SWEEP_COLUMNS, rows, sweep.cases.index(worst))
         self.sweep_notes_label.setText("\n".join(f"- {n}" for n in sweep.notes))
         self.sweep_group.setVisible(True)
-        self.sweep_table.clearSelection()  # so re-selecting the same row still shows this sweep's budget
-        self.sweep_table.selectRow(sweep.cases.index(worst))  # shows the worst case's budget
+        self.sweep_table.view.clearSelection()  # so re-selecting the same row still shows this sweep's budget
+        self.sweep_table.view.selectRow(sweep.cases.index(worst))  # shows the worst case's budget
 
-    def _sweep_row_picked(self) -> None:
-        rows = self.sweep_table.selectionModel().selectedRows() if self._sweep is not None else []
-        if rows:
-            case = self._sweep.cases[rows[0].row()]
+    def _sweep_row_picked(self, row: int) -> None:
+        if self._sweep is not None:
+            case = self._sweep.cases[row]
             self._show(case.budget)
             from ..engine.propellant_budget import years_late
 
@@ -561,16 +534,12 @@ class BudgetWidget(QWidget):
 
     def _show(self, budget) -> None:
         self._budget = budget
-        self.table.setRowCount(len(budget.rows))
-        for row, entry in enumerate(budget.rows):
+        rows = []
+        for entry in budget.rows:
             dv = "" if entry.delta_v_m_s is None else f"{entry.delta_v_m_s:.2f}"
-            for column, text in enumerate((entry.phase, entry.contributor, dv, f"{entry.propellant_kg:.3f}",
-                                           entry.margin, entry.source)):
-                item = QTableWidgetItem(text)
-                item.setToolTip(text)
-                if column in (2, 3):
-                    item.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-                self.table.setItem(row, column, item)
+            cells = (entry.phase, entry.contributor, dv, f"{entry.propellant_kg:.3f}", entry.margin, entry.source)
+            rows.append(Row(cells, tooltips=dict(enumerate(cells))))
+        self.table.set_table(_COLUMNS, rows, numeric=(2, 3), stretch=1)
         self.status_label.setText(f"Dry mass {budget.dry_mass_kg:.1f} kg, Isp {budget.isp_s:g} s, "
                                   f"efficiency {budget.efficiency:.3f}; {budget.iterations} iteration(s)")
         self.totals_label.setText(f"Total: {budget.total_delta_v_m_s:.2f} m/s, {budget.total_propellant_kg:.3f} kg")

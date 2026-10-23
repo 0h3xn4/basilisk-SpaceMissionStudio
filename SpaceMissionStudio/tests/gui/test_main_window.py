@@ -1083,6 +1083,7 @@ def test_run_finished_with_command_summary_shows_mission_output_tab(window):
 
     summary = CommandSummary(reports=[ReportEntry(label="x", t_s=1.0, values={})], commands_executed=1)
     window._on_run_finished(ResultSet(scenario_name="test", series={}), summary)
+    window.finish_run_end()  # M6b: the end of a run is shown in steps; take them
 
     assert window.current_view() is window.mission_output_widget
     assert "1 command run" in window.mission_output_widget.summary_label.text()
@@ -1094,6 +1095,7 @@ def test_run_finished_without_command_summary_shows_results_tab(window):
 
     window.show_view(window.lifetime_widget)  # some page other than the run views
     window._on_run_finished(ResultSet(scenario_name="test", series={}))
+    window.finish_run_end()  # M6b: the end of a run is shown in steps; take them
     assert window.current_view() is window.results_widget
 
 
@@ -1794,6 +1796,7 @@ def test_run_cancelled_updates_results_widget_and_status(window):
                             [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0]], units="m"))
 
     window._on_run_cancelled(partial)
+    window.finish_run_end()  # M6b: the end of a run is shown in steps; take them
 
     assert not window._busy_timer.isActive()
     assert not window.abort_action.isEnabled()
@@ -1811,6 +1814,7 @@ def test_run_cancelled_with_command_summary_shows_mission_output_tab(window):
 
     summary = CommandSummary(reports=[ReportEntry(label="x", t_s=1.0, values={})], commands_executed=1)
     window._on_run_cancelled(ResultSet(scenario_name="test", series={}), summary)
+    window.finish_run_end()  # M6b: the end of a run is shown in steps; take them
 
     assert window.current_view() is window.mission_output_widget
     assert "1 command run" in window.mission_output_widget.summary_label.text()

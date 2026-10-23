@@ -1074,6 +1074,13 @@ With exactly two reports (e.g. "Before burn" / "After burn") a
 to a report or a quantity; **Export CSV...** always writes every report
 in SI units. Without a Mission Sequence you can ignore this view.
 
+The tables of Results (Output, the Monte Carlo runs, Compare's summary,
+inputs and events) and Budget work the same way: `Ctrl+C` copies the
+selected rows, or every row shown, as tab-separated text with the
+headings, ready to paste into a spreadsheet; right-click a heading to
+show or hide its column; numbers are right-aligned, each column's unit in
+its heading.
+
 The **Timeline** area lists what happened during the run: ground-station passes
 (with each one's highest elevation), eclipses (umbra or penumbra),
 station-keeping, GEO and phasing burns (with the delta-V each added),
