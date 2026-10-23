@@ -157,20 +157,24 @@ def test_the_ui_scale_is_kept_for_the_next_start(window, monkeypatch):
 def test_toasts_fade_unless_motion_is_reduced(window, qtbot):
     """A toast fades in over 150 ms and is gone at the same time as
     before; with reduce motion it appears without an effect."""
-    from spacemissionstudio.gui.feedback import TOAST_FADE_MS, show_toast
+    from spacemissionstudio.gui.feedback import show_toast
     from spacemissionstudio.gui.theme import reduce_motion
 
     window.show()
     qtbot.waitExposed(window)
-    toast = show_toast(window, "Saved", duration_ms=600)
+    # 3 s shown: the fade-in's end is seen before the fade-out starts even
+    # when a loaded test run stalls the event loop (a 600 ms toast left only
+    # 300 ms between them, and a longer stall skipped straight to the fade-out).
+    toast = show_toast(window, "Saved", duration_ms=3000)
     assert toast.graphicsEffect() is not None  # fading in
-    qtbot.waitUntil(lambda: toast.graphicsEffect() is None, timeout=TOAST_FADE_MS + 500)
-    qtbot.waitUntil(lambda: not toast.isVisible(), timeout=1500)
+    qtbot.waitUntil(lambda: toast.graphicsEffect() is None, timeout=2500)
+    qtbot.waitUntil(lambda: toast.graphicsEffect() is not None, timeout=10000)  # fading out
+    qtbot.waitUntil(lambda: not toast.isVisible(), timeout=10000)
     window.settings_page.reduce_motion.setChecked(True)
     assert reduce_motion()
     toast = show_toast(window, "Saved", duration_ms=600)
     assert toast.graphicsEffect() is None and toast.isVisible()
-    qtbot.waitUntil(lambda: not toast.isVisible(), timeout=1500)
+    qtbot.waitUntil(lambda: not toast.isVisible(), timeout=5000)
 
 
 def test_the_vizard_location_is_browsed_and_cleared(window, tmp_path, monkeypatch, vizard_settings):

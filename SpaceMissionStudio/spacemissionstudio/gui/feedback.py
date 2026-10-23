@@ -174,8 +174,10 @@ def _fade(toast: QLabel, start: float, end: float, keep: bool) -> None:
     animation.setStartValue(start)
     animation.setEndValue(end)
     animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-    if not keep:
-        animation.finished.connect(lambda: toast.setGraphicsEffect(None) if isValid(toast) else None)
+    if not keep:  # only its own effect: a stalled fade in can end after the fade out began
+        animation.finished.connect(
+            lambda: toast.setGraphicsEffect(None) if isValid(toast) and toast.graphicsEffect() is effect else None
+        )
     animation.start(QPropertyAnimation.DeletionPolicy.DeleteWhenStopped)
 
 

@@ -200,6 +200,14 @@ notes because the release had none. The release had been published by
 hand before the workflow ran, so it was public without files for
 13 minutes: push the tag first and publish the draft the workflow makes.
 
+1.3.0 was prepared on 2026-10-23 by this checklist: the UI overhaul (PRs
+#96 to #107), with no change to what the tool computes (the engine, the
+schema, the command line and the exported files are unchanged; the
+exports are tested byte for byte). The space weather is the copy
+refreshed for 1.1.0 (observations to 2026-10-18, updated 2026-10-19),
+four days old. Its notes come from `CHANGELOG.md` 1.3.0, which has a
+summary, "Who should update" and "Known limits".
+
 ---
 
 **Next:** [Syncing with upstream Basilisk](upstream-sync.md) ·

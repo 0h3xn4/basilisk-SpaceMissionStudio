@@ -12757,3 +12757,51 @@ existing test changed. Golden files and every output are unchanged. The capture 
 as it was before M7 (it now uses the table's own count), and waited
 forever, offscreen, on "Replace the earlier batch?" when a capture before
 it had left template 25's batch (it now answers Yes).
+
+## Release 1.3.0 prepared (2026-10-23)
+
+The UI overhaul (M2a to M9, PRs #96 to #107) is merged into `develop` at
+version 1.3.0. This prepares its release, by `docs/developer/releasing.md`;
+merging, tagging (`spacemissionstudio-v1.3.0`) and publishing are the
+user's.
+
+**What changed since 1.2.0, checked:** `git diff c92f90040 cb6c4ea` shows
+no change in `engine/`, `schema/`, `sil/`, `fsw_export/`, `model3d/`,
+`cli.py` or `output_provenance.py`; three templates changed their
+description text only ("the Events tab" became the Timeline); `packaging/`
+changed the version in the Inno Setup script only; outside
+`SpaceMissionStudio/`, the CI workflow (the Linux jobs drop the runner's
+Microsoft package source) and the fork's README. The suite went from 3599
+tests at 1.2.0 to 3847.
+
+**The documents:**
+- `CHANGELOG.md` 1.3.0: the summary no longer says "faster than 1.2.0"
+  (the measurements compare the interface before the overhaul, not 1.2.0
+  itself); an entry for M9; "Who should update" and "Known limits", which
+  `packaging/release_notes.py` takes into the notes.
+- SRelD issue 13: 1.3.0 prepared, 1.2.0 the previous release; the
+  evolution since 1.2.0; K-19 re-measured (about 2 s, from 6.1 s); K-23
+  new (the actions still over 50 ms); the plan's next steps. 45 Lucide
+  icons, not 35.
+- CSD, ICD, SDD, SDP, SRS, SUM, H05, `releasing.md` and the README name
+  1.3.0. The fork's own `README.md`, outside `SpaceMissionStudio/`, still
+  names 1.2.0: the user's to change, as it was for earlier releases.
+
+**Not refreshed:** the bundled space weather is the copy refreshed for
+1.1.0 (observations to 2026-10-18, updated 2026-10-19).
+
+**A test made robust:** the full run before this commit failed
+`test_toasts_fade_unless_motion_is_reduced` once: it gave a 150 ms fade
+650 ms to end, too little with four test workers loading the machine.
+Its waits are now 5 s, its assertions unchanged (`docs/ui/TEST_CHANGES.md`).
+
+**The toast test, and a fade bug it found:** CI on PR #108 failed the
+same test again with 5 s waits (job 120366999870). A 600 ms toast is
+fully shown only from 150 ms to 450 ms; a stall longer than that ran the
+fade-in's end and the fade-out's start in one pass. Running the test
+under three times as many busy processes as cores showed a real bug:
+when the fade-in ended after the fade-out had begun, it removed the
+fade-out's effect, and the toast went without fading. `feedback._fade`
+now removes only its own effect. The test shows its first toast for 3 s
+and waits for the fade-out as well; it passed 15 of 15 runs under that
+load. The fade is new in 1.3.0, so no released version had the bug.

@@ -1,7 +1,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-![Version 1.2.0](https://img.shields.io/badge/version-1.2.0-blue)
+![Version 1.3.0](https://img.shields.io/badge/version-1.3.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -115,14 +115,17 @@ internet needed.
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
-- **Version:** 1.2.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.2.0),
-  [changelog](CHANGELOG.md)): starting a mission from scratch, guided
-  from Home to a first run. 1.1.1 made the installers for
+- **Version:** 1.3.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.3.0),
+  [changelog](CHANGELOG.md)): a new interface (a navigation rail, the
+  command palette, units in the fields, a Timeline for long runs, every
+  export in Reports), with what the tool computes unchanged
+  ([before and after](docs/ui/BEFORE_AFTER.md)). 1.2.0 guided a mission
+  from scratch to a first run; 1.1.1 made the installers for
   Linux and Windows self-contained; 1.1.0 added relative-orbital-element formations, optical and
   landmark navigation, asteroid Eros, Mars's gravity field and albedo on
   the sun sensors, after 1.0.0, the first release of the renewed tool.
   From source it needs Python 3.11 or newer.
-- **Platforms:** 1.2.0 has the Linux `.deb`, the Windows setup program
+- **Platforms:** 1.3.0 has the Linux `.deb`, the Windows setup program
   and the wheel. Both installers carry their own Python, Basilisk and
   reference data; each was installed and run offline by the release
   workflow, the `.deb` also by hand in a container

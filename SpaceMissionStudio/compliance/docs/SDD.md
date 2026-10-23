@@ -3,7 +3,7 @@
 DRD: ECSS-E-ST-40C Annex F
 Document: SMS-SDD, issue 1 (draft), 2026-10-08. Remediation R14.
 
-**Status:** draft. It describes the design as implemented (version 1.2.0; the design is that of 1.1.0 with the GUI's mission guide, `gui/mission_guide.py`, and 1.1.1's self-contained packaging)
+**Status:** draft. It describes the design as implemented (version 1.3.0; the design is that of 1.1.0 with 1.1.1's self-contained packaging and the GUI of 1.3.0's UI overhaul, `docs/DESIGN.md` and `docs/ui/UI_OVERHAUL_PLAN.md`)
 after the fact; the design was not produced in this form before the code
 was written. It has not been reviewed (H01: PDR/CDR).
 
