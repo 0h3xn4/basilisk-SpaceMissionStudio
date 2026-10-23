@@ -120,7 +120,7 @@ def main(out: Path, theme: str = "light", size: tuple = WINDOW_SIZE) -> int:
     save("scenario_editor_tab.png")
 
     window.on_run()
-    wait(lambda: window.event_timeline_widget.table.rowCount() > 0, 300.0, "the run of template 22")  # [s]
+    wait(lambda: window.event_timeline_widget.table.row_count() > 0, 300.0, "the run of template 22")  # [s]
     window.show_view(window.event_timeline_widget)
     spin(2.0)  # [s]
     save("events_tab.png")
@@ -155,6 +155,10 @@ def main(out: Path, theme: str = "light", size: tuple = WINDOW_SIZE) -> int:
 
     batch_dir = Path(tempfile.mkdtemp(prefix="sms_monte_carlo_"))
     QFileDialog.getExistingDirectory = staticmethod(lambda *a, **k: str(batch_dir))
+    from PySide6.QtWidgets import QMessageBox
+
+    # A batch an earlier capture left in that folder is replaced, not asked about.
+    QMessageBox.question = staticmethod(lambda *a, **k: QMessageBox.StandardButton.Yes)
     open_template("25_monte_carlo_orbit_and_drag_dispersions.json")
     window.on_run_monte_carlo()
     wait(lambda: window.monte_carlo_results_widget.batch is not None and not window._mc_worker.isRunning(),

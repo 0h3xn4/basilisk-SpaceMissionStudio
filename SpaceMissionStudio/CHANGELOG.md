@@ -8,7 +8,19 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 1.3.0 (not yet released)
+
+A new interface. The window has a navigation rail in place of menus and
+toolbars, a command palette (`Ctrl+K`), a Problems panel and an inspector;
+forms show units in their fields and edit in place; Results opens on an
+overview of the run; tables copy, sort and filter alike; the Timeline
+takes a year of events; Reports lists every export; Settings adds the UI
+scale, reduce motion and the Vizard location. What the tool computes, its
+files, its command line and every file it writes are unchanged (the
+exports are tested byte for byte against 1.1.0). It starts faster than
+1.2.0 and switches theme, plots and pages with shorter pauses;
+`docs/ui/BEFORE_AFTER.md` has the measurements, including the ones that
+did not meet their target.
 
 - **A new shell: a navigation rail instead of menus and toolbars** (UI
   overhaul M2a). The window has no menu bar and no toolbar any more:

@@ -41,7 +41,7 @@ from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QSortFilte
 from PySide6.QtGui import QColor, QDesktopServices, QGuiApplication, QKeySequence
 from PySide6.QtWidgets import (QAbstractItemView, QAbstractSpinBox, QApplication, QCheckBox, QComboBox, QDoubleSpinBox,
                                QFormLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
-                               QSpinBox, QTableView, QTextEdit, QVBoxLayout, QWidget)
+                               QSpinBox, QTabBar, QTableView, QTextEdit, QVBoxLayout, QWidget)
 
 from .feedback import row_label
 from .problem_location import JSON_VIEW, MISSION_SEQUENCE, PROPAGATION, SCENARIO, SPACECRAFT, locate
@@ -156,7 +156,7 @@ class InspectorWidget(QWidget):
             self.empty_label.setVisible(True)
             self.form.setVisible(False)
             return
-        name = field_label(widget) or _plain(widget.toolTip()).split("\n")[0] or type(widget).__name__
+        name = field_label(widget) or _plain(widget.toolTip()).split("\n")[0] or _shown_name(widget)
         self.name_label.setText(name)
         self.value_label.setText(field_value(widget) or "-")
         allowed = field_range(widget)
@@ -164,6 +164,16 @@ class InspectorWidget(QWidget):
         self.help_label.setText(_plain(widget.toolTip()) or _plain(widget.whatsThis()) or "-")
         self.empty_label.setVisible(False)
         self.form.setVisible(True)
+
+
+def _shown_name(widget: QWidget) -> str:
+    """What a control without a label or tip shows of itself: a tab bar's
+    current tab, a button's text, its accessible name; never its class
+    name (the Inspector said "_TabBar")."""
+    if isinstance(widget, QTabBar):
+        return widget.tabText(widget.currentIndex()).replace("&", "")
+    text = widget.text() if callable(getattr(widget, "text", None)) else ""
+    return (text if isinstance(text, str) else "").replace("&", "") or widget.accessibleName() or "-"
 
 
 # -- Problems -----------------------------------------------------------------
@@ -426,6 +436,7 @@ class LogViewWidget(QWidget):
         row.addWidget(self.open_file_button)
         layout.addLayout(row)
         self.text = QPlainTextEdit()
+        self.text.setTabChangesFocus(True)  # Tab leaves it (M9)
         self.text.setReadOnly(True)
         self.text.setObjectName("logText")
         self.text.setFont(mono_font())

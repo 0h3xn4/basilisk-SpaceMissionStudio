@@ -345,7 +345,8 @@ class _EscapeFilter(QObject):
 
 def embed_dialog(dialog: QDialog) -> None:
     """Show ``dialog`` as a form inside a page: no window, no OK/Cancel."""
-    dialog.setWindowFlags(Qt.WindowType.Widget)
+    if dialog.windowType() != Qt.WindowType.Widget:
+        dialog.setWindowFlags(Qt.WindowType.Widget)
     for box in dialog.findChildren(QDialogButtonBox):
         if box.parentWidget() is dialog:
             box.hide()

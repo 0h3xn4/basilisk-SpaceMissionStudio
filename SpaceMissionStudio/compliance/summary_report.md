@@ -165,4 +165,6 @@ the time of writing.
 1. The whole-tool review and update: done (K-01 re-measured, K-08 closed,
    `review_log.md`).
 2. The UX/UI guidelines (decision 5): steps 1-3 done, step 4 and the Carbon
-   restyle next (`docs/ux_guidelines_gap.md`).
+   restyle next (`docs/ux_guidelines_gap.md`). The Carbon restyle was
+   later replaced by the UI overhaul (`docs/ui/UI_OVERHAUL_PLAN.md`,
+   released in 1.3.0).

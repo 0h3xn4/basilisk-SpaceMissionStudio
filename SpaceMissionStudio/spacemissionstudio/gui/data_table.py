@@ -288,6 +288,7 @@ class DataTable(QWidget):
         self.view.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
         self.view.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         self.view.setWordWrap(False)
+        self.view.setTabKeyNavigation(False)  # read-only: Tab leaves the table; the arrows move in it (M9)
         self.view.setTextElideMode(Qt.TextElideMode.ElideMiddle)
         self.view.copy_requested.connect(lambda: QGuiApplication.clipboard().setText(self.copy_text()))
         header = self.view.horizontalHeader()

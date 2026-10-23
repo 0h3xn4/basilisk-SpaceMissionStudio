@@ -520,3 +520,13 @@ The Flight Software page is reached through them:
   scale kept for the next start (and the environment's own winning);
   toasts fading unless motion is reduced; the Vizard location browsed
   and cleared.
+
+## M9 Final pass
+
+### Added
+
+- `tests/gui/test_keyboard_walk.py` (8 tests): for each area (7), the
+  area by its shortcut, then Tab reaches every control in it that takes
+  the keyboard and never lands on a hidden widget, an exclusive group of
+  buttons counting as one stop; and the Inspector names a focused control
+  by what it shows, not its class name. No existing test changed.

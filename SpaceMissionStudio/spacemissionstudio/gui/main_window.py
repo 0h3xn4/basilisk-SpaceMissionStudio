@@ -74,7 +74,7 @@ from .actions import ActionRegistry
 from .app_shell import RunProgressStrip, StatusBarItems, StatusChip, TopBar, source_of
 from .feedback import StaleResultsBanner, report, show_toast
 from .icons import toolbar_icon
-from .data_panel_widget import DataPanelWidget
+from .data_panel_widget import NOT_READ, DataPanelWidget
 from .event_timeline_widget import EventTimelineWidget
 from .exports_page import ExportsPage
 from . import recent_files
@@ -271,7 +271,7 @@ class MainWindow(QMainWindow):
         self.results_widget = ResultsWidget()
         self.mission_dashboard_widget = MissionDashboardWidget()
         self.mission_output_widget = MissionOutputWidget()
-        self.data_panel_widget = DataPanelWidget()
+        self.data_panel_widget = DataPanelWidget(load=False)  # read in a worker below (M9)
         self.event_timeline_widget = EventTimelineWidget()
         # One time cursor for every view of a run (UX/UI guidelines).
         self.time_cursor = TimeCursor(self)
@@ -453,8 +453,10 @@ class MainWindow(QMainWindow):
         # signal keeps the window alive until the interpreter exits, and its
         # web views are then torn down too late (exit segfault, as in #48).
         self.status_items.data_clicked.connect(self._show_data_panel)
-        self.data_panel_widget.refreshed.connect(self.status_items.refresh)
-        self.status_items.refresh()
+        self.data_panel_widget.refreshed.connect(self._on_reference_data_read)
+        # The files are read in a worker once the window is up (M9: 1.5 s
+        # of start-up); the status bar fills in when they are.
+        QTimer.singleShot(0, self.data_panel_widget, self.data_panel_widget.read_at_start_up)  # not once closed
         self.status_items.problems_clicked.connect(self.show_problems)
         self.top_bar.problems_button.clicked.connect(self.show_problems)
         self._on_problems_changed(self.scenario_editor.problem_rows())
@@ -795,8 +797,14 @@ class MainWindow(QMainWindow):
         self.top_bar.set_breadcrumbs(parts)
 
     def _show_data_panel(self) -> None:
-        self.data_panel_widget.refresh()
+        self.data_panel_widget.refresh_in_background()  # the dialog shows at once, the table follows
         self.show_view(self.data_panel_widget)
+
+    def _on_reference_data_read(self) -> None:
+        """The reference data panel read the files: the status bar's summary, from the same list."""
+        panel = self.data_panel_widget
+        version = None if panel.basilisk_version is NOT_READ else panel.basilisk_version
+        self.status_items.refresh(panel.files, version)
 
     # -- workspace: tabs, docks and their layout ---------------------------------
     def _make_dock(self, title: str, name: str, widget: QWidget,
@@ -2618,6 +2626,7 @@ class MainWindow(QMainWindow):
             self.lifetime_widget.wait_for_worker()  # a few seconds at most; its thread must not be destroyed mid-run
             self.budget_widget.wait_for_worker()
             self.flight_software_widget.wait_for_worker()
+            self.data_panel_widget.wait_for_reader()  # the start-up read of the reference data files
             self.load_scenario_widget.reference_card.wait()  # a download must not be cut off mid-file
             self._save_layout()
             event.accept()

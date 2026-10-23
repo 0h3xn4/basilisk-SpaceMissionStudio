@@ -28,7 +28,7 @@ though nothing reads ``scenario.ground_stations`` yet.
 
 from __future__ import annotations
 
-from PySide6.QtCore import Signal
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -62,8 +62,10 @@ def _spin(minimum: float, maximum: float, decimals: int = 4, step: float = 1.0, 
 
 class GroundStationEditorDialog(QDialog):
     def __init__(self, config: GroundStationConfig | None = None, parent: QWidget | None = None,
-                 other_names: list[str] | None = None):
+                 other_names: list[str] | None = None, embedded: bool = False):
         super().__init__(parent)
+        if embedded:  # a page's form (page_tree.embed_dialog): a widget before it has children, not after
+            self.setWindowFlags(Qt.WindowType.Widget)
         self._other_names = other_names or []
         self.setWindowTitle("Ground station" if config is None else f"Ground station: {config.name}")
 

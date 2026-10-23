@@ -187,6 +187,7 @@ class SettingsPage(QScrollArea):
 
     def _build_keyboard(self) -> None:
         self.shortcuts_table = QTableWidget(0, 3)
+        self.shortcuts_table.setTabKeyNavigation(False)  # read-only: Tab leaves the table; the arrows move in it (M9)
         self.shortcuts_table.setHorizontalHeaderLabels(["Category", "Command", "Shortcut"])
         self.shortcuts_table.verticalHeader().setVisible(False)
         self.shortcuts_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)

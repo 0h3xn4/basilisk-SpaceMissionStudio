@@ -12703,3 +12703,57 @@ inspector open, the Exports table scrolls sideways for its last column
 Flight Software page through the Reports tabs, and an autouse fixture
 keeps the export log out of the test's home; both in
 `docs/ui/TEST_CHANGES.md`. Golden files and every output are unchanged.
+
+## M9: the final pass (2026-10-22)
+
+**Measured first.** `scripts/measure_ui_baseline.py` was run on this machine
+for the baseline code (`66949b4`) and for M8: the machine is slower than
+when the plan was written (the baseline code now starts in 2.50-2.78 s,
+not 1.69-1.97 s), and M8 had made two things slower than the baseline:
+the first visit to a spacecraft page (671 against 541 ms) and the
+spacecraft editor dialog (554 against 415 ms). Start-up was no faster
+(2.7-3.6 s).
+
+**What changed.**
+- **Start-up:** the reference data inventory (1.5 s of the window's
+  constructor, computed twice: for the dialog and the status bar) is read
+  once, after the window is up, in a spawned child process
+  (`gui/reference_data_process.py`), which returns the Basilisk version
+  too. On a worker thread it had still stalled the new window for up to
+  0.7 s: importing Basilisk's compiled modules holds the interpreter. The
+  space-weather file, which checking a scenario's dates needs in this
+  process, is parsed in a worker after that (one stall of about 0.2 s,
+  where the first scenario opened would otherwise pay 0.5 s).
+- **The spacecraft forms:** each tab page is placed before it is filled,
+  and the forms embedded in the Scenario tree (spacecraft, ground station,
+  environment) are widgets from their first line: each move had restyled
+  the whole tree under the app's style sheet. An embedded spacecraft form
+  no longer measures its tabs for a window size. The form behind the
+  problem messages' labels is built the same way.
+- **Keyboard:** `tests/gui/test_keyboard_walk.py` walks every area by Tab.
+  It found a keyboard trap: Tab typed into the scenario's description,
+  so nothing after it could be reached. Plain-text boxes and read-only
+  tables now pass Tab on. The Inspector named a focused tab bar
+  "_TabBar"; it now shows what a control shows.
+- **Version 1.3.0** (1.2.0 was released before M9), with its CHANGELOG
+  section.
+- **Records:** `docs/ui/BEFORE_AFTER.md` (the measurements before and after
+  on one machine, and before/after screenshot pairs),
+  `docs/ui/perf_after.json`, `docs/ui/perf_baseline_rerun.json`,
+  `docs/ui/screenshots/after/` (124 shots per theme), the user guide's
+  images captured again, SUM §7.4 and the summary report pointing to the
+  new window, DESIGN's known gaps brought up to date.
+
+**After, on this machine:** start-up 1.85-1.87 s (met: faster than the
+baseline's 2.50-2.78 s); the live theme switch about 2 s (6.1 s before;
+not met); plots 13-26 ms and keystrokes at most 35 ms (met); opening a
+template 156-463 ms, the first visit to a spacecraft page 456 ms, the
+spacecraft editor dialog 381 ms and the end of a run 474 ms (not met;
+recorded in DECISIONS M9 and the plan's §7 status).
+
+**Tests.** The full suite: 3835 passed and 12 skipped, none failed (Python
+3.13 here; CI runs 3.11). `test_keyboard_walk.py` is new (8 tests); no
+existing test changed. Golden files and every output are unchanged. The capture script for the user guide read the Timeline's table
+as it was before M7 (it now uses the table's own count), and waited
+forever, offscreen, on "Replace the earlier batch?" when a capture before
+it had left template 25's batch (it now answers Yes).

@@ -201,6 +201,7 @@ class ScenarioExplainerWidget(QWidget):
         self._content_layout.addLayout(self._sections_layout)
 
         self._table = QTableWidget()
+        self._table.setTabKeyNavigation(False)  # read-only: Tab leaves the table; the arrows move in it (M9)
         self._table.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._table.verticalHeader().setVisible(False)  # the Spacecraft column already names each row
         self._table.horizontalHeader().setStretchLastSection(True)

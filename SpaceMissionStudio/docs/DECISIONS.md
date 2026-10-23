@@ -5,6 +5,68 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## M9 Final pass (2026-10-22)
+
+Recorded after measuring, before the changes. `scripts/measure_ui_baseline.py`
+was run on this machine for both the code the plan's baseline was taken on
+(`66949b4`) and M8: the machine is slower than when the plan was written
+(the same code now starts in 2.5-2.8 s, not 1.69-1.97 s), so M9 compares
+the two on this machine, in the same session, as the plan's §3 asks ("re-
+measured on the same kind of machine").
+
+- **Before and after on one machine:** `docs/ui/perf_after.json` holds the
+  M9 run and `docs/ui/perf_baseline_rerun.json` the baseline code's run
+  of the same day; BEFORE_AFTER.md compares those two, and quotes the
+  plan's original figures beside them.
+- **The spacecraft forms:** M8 made the first visit to a spacecraft page
+  and the editor dialog slower than before the overhaul (671 against 541
+  ms; 554 against 415 ms). Each tab page was built, then moved into its
+  scroll area, then into the tabs, and the embedded dialog turned into a
+  widget last: each move restyles the whole tree under the app's style
+  sheet. Pages are now placed before they are filled, and an embedded
+  form is a widget from its first line; an embedded form skips measuring
+  its tabs for a window size it never takes.
+- **Start-up:** the reference data inventory (1.5 s of the window's
+  constructor: importing Basilisk, parsing the space-weather file, hashing
+  files) was computed twice on the GUI thread, for the Reference data
+  dialog and the status bar. It is now read once, after the window is up,
+  in a spawned child process (`gui/reference_data_process.py`, as the
+  Monte Carlo batch runs): on a worker thread it still held the
+  interpreter for most of that time, stalling the new window for up to
+  0.7 s. The child returns the Basilisk version with the files, so the
+  status bar does not import Basilisk on the GUI thread either. The status
+  bar and the dialog fill in when it is done (about 1.5 s later); the
+  dialog's Refresh and the refresh after a download stay synchronous, as
+  before. Closing the window ends the child (it only reads). Checking a
+  scenario's dates needs the space-weather file parsed in the window's
+  own process, which the old start-up did as a side effect: without it
+  the first scenario opened took 0.5 s longer. A worker thread parses it
+  once the child has answered; part of that parse holds the interpreter,
+  so it costs one stall of about 0.2 s, about 1.3 s after the window
+  appears, where it cost 0.5 s on the first open.
+- **The 50 ms first visit** is not reachable for the spacecraft page
+  without building its tabs lazily, a rewrite of a 2,000-line editor whose
+  tabs read each other's fields: not done; the measured value is recorded.
+- **Keyboard-only walk** (`tests/gui/test_keyboard_walk.py`, new): each
+  area by its shortcut, then Tab must reach every control in it that takes
+  the keyboard, and never land on a hidden widget. An exclusive group of
+  buttons (radio buttons, a segmented control) is one stop, chosen with the
+  arrows, as in Qt. It found a keyboard trap: Tab in the scenario's
+  description typed a tab instead of leaving it, so nothing after it (the
+  Form · JSON toggle, the area's commands, the rest of the page) could be
+  reached by Tab. Plain-text boxes now pass Tab on (as the JSON view and
+  the script and parameter boxes already did), and read-only tables do
+  too (the arrows move in them); tables that are edited (facets, data
+  handling) keep Tab from cell to cell, which leaves the table after the
+  last cell.
+- **The garbage collector after a run** (70-83 ms full collections, held
+  from M6b): not changed. Tuning the collector's thresholds would move the
+  pauses, not remove them, and freezing the run's objects would keep them
+  alive for the session; recorded with the end of a run's measurement.
+- **Version:** the plan says 1.2.0, written before 1.1.1 and 1.2.0 were
+  released (2026-10-21). The UI overhaul's release is **1.3.0** in every
+  version file. Tagging and releasing stay the user's.
+
 ## M8 Reports, exports and Settings (2026-10-22)
 
 Recorded before coding, after reading the exports of §5.3, the Reports

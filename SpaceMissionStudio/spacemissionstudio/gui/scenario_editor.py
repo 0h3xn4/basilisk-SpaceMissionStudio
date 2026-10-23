@@ -285,6 +285,7 @@ class ScenarioEditorWidget(QWidget):
         form.addRow(self.mission_guide)
 
         self.description_edit = QPlainTextEdit()
+        self.description_edit.setTabChangesFocus(True)  # Tab leaves it, not typed in it: no keyboard trap (M9)
         # Was 60px (~2 lines) -- nowhere near enough for the built-in
         # template missions' own multi-paragraph descriptions (see
         # spacemissionstudio/scenarios/templates/), which needed constant
@@ -326,7 +327,7 @@ class ScenarioEditorWidget(QWidget):
             self._environment_form.setParent(None)
             self._environment_form.deleteLater()
         form = PropagationSetupDialog(self._gravity, self._sim_settings, self._space_weather,
-                                      parent=self.environment_page)
+                                      parent=self.environment_page, embedded=True)
         embed_dialog(form)
         form.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
         _Debounce(form, "environment").settled.connect(self._on_form_settled)
@@ -489,14 +490,15 @@ class ScenarioEditorWidget(QWidget):
                 simulation_mode=self.simulation_mode_combo.currentData(),
                 ground_station_names=[gs.name for gs in self.ground_station_list.to_list()],
                 epoch_provider=spacecraft_list._epoch_provider, base_dir_provider=spacecraft_list._base_dir_provider,
-                central_body_provider=spacecraft_list._central_body_provider)
+                central_body_provider=spacecraft_list._central_body_provider, embedded=True)
             kind = "spacecraft"
         else:
             from .ground_station_editor import GroundStationEditorDialog
 
             row = self._station_nodes.index(node)
             others = sorted(c.name for i, c in enumerate(self.ground_station_list.to_list()) if i != row)
-            form = GroundStationEditorDialog(config=node.config, parent=node.holder, other_names=others)
+            form = GroundStationEditorDialog(config=node.config, parent=node.holder, other_names=others,
+                                             embedded=True)
             kind = "station"
         embed_dialog(form)
         form.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
@@ -961,13 +963,15 @@ class ScenarioEditorWidget(QWidget):
                 return node.form
         form = self._label_forms.get(area)
         if form is None:
+            # Built as a page's form, never shown: no window to size (M9).
             if area == SPACECRAFT:
-                form = SpacecraftEditorDialog(parent=self)
+                form = SpacecraftEditorDialog(parent=self, embedded=True)
                 form.other_titles = self._environment_title
             else:
                 from .ground_station_editor import GroundStationEditorDialog
 
-                form = GroundStationEditorDialog(parent=self)
+                form = GroundStationEditorDialog(parent=self, embedded=True)
+            form.hide()
             self._label_forms[area] = form
         return form
 
