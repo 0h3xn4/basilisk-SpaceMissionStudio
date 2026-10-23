@@ -530,3 +530,12 @@ The Flight Software page is reached through them:
   the keyboard and never lands on a hidden widget, an exclusive group of
   buttons counting as one stop; and the Inspector names a focused control
   by what it shows, not its class name. No existing test changed.
+
+## Release 1.3.0 preparation
+
+- `test_reports_and_settings.py::test_toasts_fade_unless_motion_is_reduced`
+  (new in M8) waited at most 650 ms for a 150 ms fade to end and 1.5 s
+  for the toast to go; under a loaded full run (four workers) the fade
+  took longer and the test failed once. Both waits are now 5 s. The
+  assertions are unchanged: the toast fades in, the fade ends, the toast
+  goes, and with reduce motion there is no fade.

@@ -17,10 +17,11 @@ overview of the run; tables copy, sort and filter alike; the Timeline
 takes a year of events; Reports lists every export; Settings adds the UI
 scale, reduce motion and the Vizard location. What the tool computes, its
 files, its command line and every file it writes are unchanged (the
-exports are tested byte for byte against 1.1.0). It starts faster than
-1.2.0 and switches theme, plots and pages with shorter pauses;
-`docs/ui/BEFORE_AFTER.md` has the measurements, including the ones that
-did not meet their target.
+exports are tested byte for byte against 1.1.0 and 1.2.0). It starts
+faster than the interface before it and switches theme, plots and pages
+with shorter pauses; `docs/ui/BEFORE_AFTER.md` has the measurements,
+including the ones that did not meet their target. Scenario files and
+their results are the same as with 1.2.0.
 
 - **A new shell: a navigation rail instead of menus and toolbars** (UI
   overhaul M2a). The window has no menu bar and no toolbar any more:
@@ -215,6 +216,36 @@ did not meet their target.
     program, with **Browse...** and **Clear**.
 
   What a run computes and every file the app writes are unchanged.
+
+- **A faster start, and every area by keyboard** (UI overhaul M9):
+  - The window appears in about 1.9 s where it took 2.5-2.8 s on the
+    same machine before the overhaul: the reference data files are read
+    in the background, and the status bar fills in a moment later.
+  - Tab reaches every control of every area. It could not leave the
+    scenario's description before (Tab typed into it); now it moves on,
+    as it does from read-only tables.
+  - The spacecraft page and the spacecraft editor open faster (456 and
+    381 ms, from 541 and 415 ms), though still not at once.
+
+### Who should update
+
+- Everyone who uses the window: the interface is new throughout (the
+  User Manual shows it). Nothing 1.2.0 computes changes: scenario files,
+  results, the command line and every exported file are the same.
+- On Linux, `apt install ./spacemissionstudio_1.3.0_amd64.deb` replaces
+  the 1.2.0 package; on Windows, run the 1.3.0 setup over 1.2.0.
+- Scripts and pipelines that use only the command line gain nothing from
+  this release.
+
+### Known limits
+
+- Some actions still hold the window for longer than the 50 ms the
+  interface aims at: changing the theme (about 2 s), opening a template
+  (0.2-0.5 s), the first visit to a spacecraft page (0.5 s) and the end
+  of a run (0.5 s) (SRelD K-19, K-23).
+- On Windows, a software-in-the-loop session that drops thousands of
+  steps may stop with "the flight software took no STEP for 10 s". Seen
+  only in CI, cause not known (SRelD K-14).
 
 ## 1.2.0 (2026-10-21)
 
