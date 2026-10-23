@@ -12794,3 +12794,14 @@ tests at 1.2.0 to 3847.
 `test_toasts_fade_unless_motion_is_reduced` once: it gave a 150 ms fade
 650 ms to end, too little with four test workers loading the machine.
 Its waits are now 5 s, its assertions unchanged (`docs/ui/TEST_CHANGES.md`).
+
+**The toast test, and a fade bug it found:** CI on PR #108 failed the
+same test again with 5 s waits (job 120366999870). A 600 ms toast is
+fully shown only from 150 ms to 450 ms; a stall longer than that ran the
+fade-in's end and the fade-out's start in one pass. Running the test
+under three times as many busy processes as cores showed a real bug:
+when the fade-in ended after the fade-out had begun, it removed the
+fade-out's effect, and the toast went without fading. `feedback._fade`
+now removes only its own effect. The test shows its first toast for 3 s
+and waits for the fade-out as well; it passed 15 of 15 runs under that
+load. The fade is new in 1.3.0, so no released version had the bug.

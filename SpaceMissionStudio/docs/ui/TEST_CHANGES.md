@@ -536,6 +536,14 @@ The Flight Software page is reached through them:
 - `test_reports_and_settings.py::test_toasts_fade_unless_motion_is_reduced`
   (new in M8) waited at most 650 ms for a 150 ms fade to end and 1.5 s
   for the toast to go; under a loaded full run (four workers) the fade
-  took longer and the test failed once. Both waits are now 5 s. The
-  assertions are unchanged: the toast fades in, the fade ends, the toast
-  goes, and with reduce motion there is no fade.
+  took longer and the test failed once. Longer waits alone did not fix
+  it (it failed again in CI with 5 s): the 600 ms toast was fully shown
+  only from 150 ms to 450 ms, and a stall of more than 300 ms ran the
+  fade-in's end and the fade-out's start in one pass, so the test never
+  saw the toast without an effect. The first toast now shows for 3 s, the
+  test also waits for the fade-out, and the waits are 2.5 s and 10 s. The
+  assertions are unchanged except the added fade-out check: the toast
+  fades in, the fade ends, it fades out and goes, and with reduce motion
+  there is no fade. Under heavy load the test also found a bug in
+  `feedback._fade`: a fade-in that ended after the fade-out began removed
+  the fade-out's effect. It now removes only its own.

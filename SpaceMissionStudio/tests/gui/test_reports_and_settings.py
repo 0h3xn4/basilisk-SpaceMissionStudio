@@ -162,11 +162,14 @@ def test_toasts_fade_unless_motion_is_reduced(window, qtbot):
 
     window.show()
     qtbot.waitExposed(window)
-    toast = show_toast(window, "Saved", duration_ms=600)
+    # 3 s shown: the fade-in's end is seen before the fade-out starts even
+    # when a loaded test run stalls the event loop (a 600 ms toast left only
+    # 300 ms between them, and a longer stall skipped straight to the fade-out).
+    toast = show_toast(window, "Saved", duration_ms=3000)
     assert toast.graphicsEffect() is not None  # fading in
-    # Generous waits: under a loaded test run, 150 ms of animation can take far longer.
-    qtbot.waitUntil(lambda: toast.graphicsEffect() is None, timeout=5000)
-    qtbot.waitUntil(lambda: not toast.isVisible(), timeout=5000)
+    qtbot.waitUntil(lambda: toast.graphicsEffect() is None, timeout=2500)
+    qtbot.waitUntil(lambda: toast.graphicsEffect() is not None, timeout=10000)  # fading out
+    qtbot.waitUntil(lambda: not toast.isVisible(), timeout=10000)
     window.settings_page.reduce_motion.setChecked(True)
     assert reduce_motion()
     toast = show_toast(window, "Saved", duration_ms=600)
