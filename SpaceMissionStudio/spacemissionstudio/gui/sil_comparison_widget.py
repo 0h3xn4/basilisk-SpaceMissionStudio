@@ -31,6 +31,7 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QAbstractItemView, QFileDialog, QHBoxLayout, QHeaderView, QLabel, QPlainTextEdit, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout,
                                QWidget)
 
+from . import export_log
 from .scenario_explainer_widget import _stat_tile
 from .feedback import report
 from .theme import set_role
@@ -204,3 +205,5 @@ class SilComparisonWidget(QWidget):
             self.report.write_residuals_csv(path.with_suffix(".residuals.csv"))
         except OSError as exc:
             report(self, f"Could not save the SIL report to {path}: {exc}")
+            return
+        export_log.record("sil_report", path)

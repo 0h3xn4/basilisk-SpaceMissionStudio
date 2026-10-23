@@ -23,6 +23,7 @@ via ``spacemissionstudio gui`` (see ``../cli.py``).
 from __future__ import annotations
 
 import gc
+import os
 import sys
 
 from PySide6.QtCore import QTimer
@@ -31,7 +32,16 @@ from PySide6.QtWidgets import QApplication
 from ..logging_setup import configure_logging
 from .icons import app_icon
 from .main_window import MainWindow
-from .theme import apply_theme
+from .theme import apply_theme, ui_scale_setting
+
+
+def apply_ui_scale(environ=os.environ) -> None:
+    """Settings > Appearance > UI scale (M8) as ``QT_SCALE_FACTOR``, which
+    Qt reads once, before the application exists; a scale the user's own
+    environment sets wins."""
+    percent = ui_scale_setting()  # [%]
+    if percent != 100 and "QT_SCALE_FACTOR" not in environ:
+        environ["QT_SCALE_FACTOR"] = f"{percent / 100:g}"
 
 
 def freeze_start_up_objects() -> None:
@@ -49,6 +59,7 @@ def main(argv: list | None = None) -> int:
     # own module docstring for why (direct user feedback: a crash whose
     # only information anywhere was one bare line in a GUI error dialog).
     configure_logging()
+    apply_ui_scale()
     app = QApplication(argv if argv is not None else sys.argv)
     app.setApplicationName("SpaceMissionStudio")
     # Needed for QSettings() (used by gui.vizard_launcher to remember a

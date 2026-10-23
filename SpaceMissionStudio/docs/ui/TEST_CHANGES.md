@@ -480,3 +480,43 @@ event through `row_event(row)` (it was the first cell's `UserRole`):
   the UTC axis with Z, elapsed time without an epoch; zoom and pan by
   keys, Shift+wheel and a right-button drag; and an export keeping every
   sample of a line the plot thins.
+
+## M8 Reports, exports and Settings
+
+### Changed: how a test reaches the widget
+
+The Reports area holds tabs (M8): **Exports**, then **Flight Software**.
+The Flight Software page is reached through them:
+
+| Test | Before | Now | Assertions kept |
+|---|---|---|---|
+| `test_workspace.py::test_the_areas_and_what_they_hold` | `shell.page("reports").content is window.flight_software_widget` | `shell.page("reports").content is window.reports_views`, its tabs `["Exports", "Flight Software"]` | The Reports area holds the Flight Software page |
+
+### Changed: test isolation
+
+- `tests/gui/conftest.py` gains an autouse fixture, `_isolated_export_log`:
+  the export log (each export records when it was written, in the app's
+  settings under the home directory) goes to a file outside the test's
+  home. Two tests export into their home (`tmp_path`, which the root
+  conftest makes the home) and list it:
+  `test_plot_workspace.py::test_export_all_writes_every_plot_its_data_and_the_provenance`
+  and the new `test_export_files.py`. Without the fixture they would see
+  the app's settings file beside the exports. No assertion changes.
+
+### Added
+
+- `tests/gui/test_export_files.py` (1 test): every covered export (the
+  results CSVs and provenance, the events CSV, the Mission Output CSV and
+  provenance, the Monte Carlo table, the budget CSV, the `.obj` and
+  `.mtl`, the SIL report) written by `scripts/make_export_references.py`
+  and compared, byte for byte, with what 1.1.0 wrote
+  (`tests/data/exports_1_1_0.zip`, written on Linux). On Windows, where
+  files written in text mode end lines with CRLF (1.1.0's did too), the
+  comparison ignores line endings; the script writes the budget's
+  clipboard text as bytes, so no platform changes it.
+- `tests/gui/test_reports_and_settings.py` (6 tests): Reports › Exports
+  lists the twelve exports, never written at first; an export is logged
+  with its UTC time and path; a row opens the view that makes it; the UI
+  scale kept for the next start (and the environment's own winning);
+  toasts fading unless motion is reduced; the Vizard location browsed
+  and cleared.

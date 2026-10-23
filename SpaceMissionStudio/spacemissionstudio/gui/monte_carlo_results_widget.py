@@ -36,6 +36,7 @@ from typing import Optional
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
 
+from . import export_log
 from ..engine import monte_carlo_results as mcr
 from .data_table import DataTable, Row
 from .results_widget import ResultsWidget
@@ -240,4 +241,5 @@ class MonteCarloResultsWidget(QWidget):
         except OSError as exc:
             report(self, f"Could not export the Monte Carlo table to {path}: {exc}")
             return
+        export_log.record("monte_carlo_csv", path)
         report(self, f"Exported the Monte Carlo table to {path}", kind="success")

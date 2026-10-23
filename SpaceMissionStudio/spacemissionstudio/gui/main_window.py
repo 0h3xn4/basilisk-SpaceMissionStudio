@@ -69,12 +69,14 @@ from ..logging_setup import get_log_file_path
 from ..schema.command import runs_sequence, script_blocks
 from ..schema.scenario import Scenario, ScenarioValidationError, load_scenario
 from . import autosave
+from . import export_log
 from .actions import ActionRegistry
 from .app_shell import RunProgressStrip, StatusBarItems, StatusChip, TopBar, source_of
 from .feedback import StaleResultsBanner, report, show_toast
 from .icons import toolbar_icon
 from .data_panel_widget import DataPanelWidget
 from .event_timeline_widget import EventTimelineWidget
+from .exports_page import ExportsPage
 from . import recent_files
 from .load_scenario_widget import TEMPLATES_DIR, LoadScenarioWidget
 from .mission_dashboard_widget import MissionDashboardWidget
@@ -284,6 +286,13 @@ class MainWindow(QMainWindow):
         self.budget_widget = BudgetWidget()
         self.flight_software_widget = FlightSoftwareWidget()
         self.flight_software_widget.exports_changed.connect(self.scenario_editor.set_fsw_exports)
+        # Reports (M8): every export in one table, then the flight software.
+        self.exports_page = ExportsPage()
+        self.exports_page.open_requested.connect(self._on_export_open_requested)
+        self.reports_views = TabWidget()
+        self.reports_views.setObjectName("reportsViews")
+        self.reports_views.addTab(self.exports_page, "Exports")
+        self.reports_views.addTab(self.flight_software_widget, "Flight Software")
 
         # Above every run view: says when the results shown are from an
         # earlier version of the scenario (docs/ux-audit.md U-20).
@@ -704,7 +713,7 @@ class MainWindow(QMainWindow):
         open the six of the top."""
         contents = {"home": self.load_scenario_widget, "scenario": self.scenario_editor, "run": self.run_views,
                     "results": self.results_views, "timeline": self.event_timeline_widget,
-                    "reports": self.flight_software_widget}
+                    "reports": self.reports_views}
         for order, (area_id, icon_name, label) in enumerate(self._AREAS):
             keys = f"Ctrl+{order + 1}"
             self.shell.register(area_id, icon_name, label, contents[area_id], order, keys=keys)
@@ -890,6 +899,21 @@ class MainWindow(QMainWindow):
 
     def _on_page_action(self) -> None:
         self._show_page(self.sender().data())
+
+    def _on_export_open_requested(self, key: str) -> None:
+        """Reports › Exports: the view that makes export ``key``."""
+        if key == "model_obj":
+            self.on_open_3d_model()
+            return
+        if key == "monte_carlo_csv" and self.results_views.indexOf(self.monte_carlo_results_widget) < 0:
+            self.show_view(self.results_views)
+            show_toast(self, "No Monte Carlo batch is shown: run one, or Open Monte Carlo Results...", kind="info")
+            return
+        views = {"events_csv": self.event_timeline_widget, "output_csv": self.mission_output_widget,
+                 "monte_carlo_csv": self.monte_carlo_results_widget, "budget_csv": self.budget_widget,
+                 "fsw_project": self.flight_software_widget, "sil_report": self.flight_software_widget,
+                 "vizard_file": self.run_page}
+        self.show_view(views.get(key, self.results_widget))  # the plot exports: Results › Plots
 
     def on_open_3d_model(self) -> None:
         """3D Model... (the Scenario area's header, Tools > 3D Model... in the
@@ -1141,7 +1165,8 @@ class MainWindow(QMainWindow):
             entries.append(PaletteEntry(f"Go to > Scenario > {path}", lambda item=item: self._show_tree_item(item)))
         entries.append(PaletteEntry("Go to > Scenario > JSON", lambda: self.show_view(self.scenario_editor.json_page),
                                     keywords="form text"))
-        for area_label, tabs in (("Results", self.results_views), ("Run", self.run_views)):
+        for area_label, tabs in (("Results", self.results_views), ("Run", self.run_views),
+                                 ("Reports", self.reports_views)):
             for index in range(tabs.count()):
                 page = tabs.widget(index)
                 entries.append(PaletteEntry(f"Go to > {area_label} > {tabs.tabText(index).replace('&', '')}",
@@ -1514,6 +1539,8 @@ class MainWindow(QMainWindow):
     def _offer_vizard_playback(self) -> None:
         """Show "Open in Vizard" on Results when the run wrote a playback file."""
         path = self._last_run_vizard_file
+        if path and Path(path).is_file():
+            export_log.record("vizard_file", path)  # Reports › Exports
         self.results_widget.set_vizard_file(path if path and Path(path).is_file() else None)
 
     def open_vizard_playback(self, path: str) -> bool:

@@ -46,6 +46,7 @@ from PySide6.QtGui import QColor, QFontMetrics, QKeySequence, QPainter, QPen, QS
 from PySide6.QtWidgets import (QCheckBox, QComboBox, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton,
                                QSplitter, QToolTip, QVBoxLayout, QWidget)
 
+from . import export_log
 from .. import output_provenance
 from ..engine import events as event_model
 from ..engine.results import ResultSet
@@ -706,6 +707,7 @@ class EventTimelineWidget(QWidget):
         except OSError as exc:
             report(self, f"Could not export the events to {path}: {exc}")
             return
+        export_log.record("events_csv", path)
         report(self, f"Exported {len(self.visible_events())} events to {path}", kind="success")
 
     def export_csv(self, path: Path) -> Path:

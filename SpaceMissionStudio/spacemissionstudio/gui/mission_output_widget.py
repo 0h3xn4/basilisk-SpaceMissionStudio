@@ -40,6 +40,7 @@ import numpy as np
 
 from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout, QWidget
 
+from . import export_log
 from .. import output_provenance
 from ..engine.results import CommandSummary, ResultSet, TimeSeries
 from ..plot_categories import categorize, legacy_display
@@ -327,4 +328,5 @@ class MissionOutputWidget(QWidget):
         except OSError as exc:
             feedback.report(self, f"Could not export the mission output to {path}: {exc}")
             return
+        export_log.record("output_csv", path)
         feedback.report(self, f"Exported the mission output to {path}", kind="success")

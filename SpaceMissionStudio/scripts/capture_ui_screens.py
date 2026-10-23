@@ -81,6 +81,12 @@ def capture(out: Path, theme: str) -> int:
 
     layout_ini = str(Path(recent_ini).with_name("layout.ini"))  # and Results' saved layouts, both ways
     results_widget._settings = lambda: QSettings(layout_ini, QSettings.Format.IniFormat)
+    try:  # the export log (M8) too
+        from spacemissionstudio.gui import export_log
+
+        export_log._settings = lambda: QSettings(recent_ini, QSettings.Format.IniFormat)
+    except ImportError:
+        pass
 
     from spacemissionstudio.gui.main_window import MainWindow
     from spacemissionstudio.schema import load_scenario
@@ -165,6 +171,8 @@ def capture(out: Path, theme: str) -> int:
             spin(0.8)  # [s]
             save(window, f"{prefix}_scenario_{path}")
         tabs_of = {"run": window.run_views, "results": window.results_views}
+        if hasattr(window, "reports_views"):  # M8: Exports, then Flight Software
+            tabs_of["reports"] = window.reports_views
         for area in window.shell.page_areas():
             if area.id == "scenario":
                 continue

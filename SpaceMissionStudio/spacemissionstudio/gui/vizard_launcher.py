@@ -366,6 +366,18 @@ def remember_vizard_executable(path: Path, settings: Optional[QSettings] = None)
     settings.setValue(_SETTINGS_KEY, str(path))
 
 
+def remembered_vizard_executable(settings: Optional[QSettings] = None) -> str:
+    """The location remembered (Settings > Vizard), or "" when none is."""
+    settings = settings if settings is not None else QSettings()
+    return settings.value(_SETTINGS_KEY, "", type=str)
+
+
+def forget_vizard_executable(settings: Optional[QSettings] = None) -> None:
+    """Forget the remembered location: Vizard is looked for in the usual places again."""
+    settings = settings if settings is not None else QSettings()
+    settings.remove(_SETTINGS_KEY)
+
+
 def launch_vizard(executable_path: Path, direct_comm_address: Optional[str] = None,
                   load_file: Optional[Path] = None) -> "subprocess.Popen[bytes]":
     """Starts Vizard as a background process and returns the

@@ -5,6 +5,51 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## M8 Reports, exports and Settings (2026-10-22)
+
+Recorded before coding, after reading the exports of §5.3, the Reports
+area (Flight Software only) and the Settings page (appearance, reference
+data, layout, keyboard and About as commands).
+
+- **Reports › Exports**, the area's first page: every export of §5.3 in a
+  `DataTable`: what it writes, its format, where it is made (the view and
+  its button), the default destination, the provenance written beside
+  it, and when this machine last wrote one (UTC). Enter or a double-click
+  opens the view that makes it. The time is kept by a small export log
+  (`gui/export_log.py`, the app's settings, not any file it writes),
+  which each export records after it succeeds.
+- **The per-view Export buttons stay as they are.** The plan's "one
+  Export button per view opening the same export sheet" would move every
+  view's buttons for no new export; Reports › Exports is the one place
+  that lists them all. Recorded here as not done.
+- **Export files byte-identical to 1.1.0, tested:** a script
+  (`scripts/make_export_references.py`) writes each export the GUI makes
+  from fixed inputs, through the same engine and widget functions; run on
+  1.1.0's code (commit `1c7d76f`, the 1.1.0 release) it wrote the
+  references, kept in `tests/data/exports_1_1_0.zip` (a zip: the
+  repository's line-ending and end-of-file rules would change a CSV's
+  CRLF or a file that ends without a newline), and a test runs it on this
+  code and compares every byte. The `.obj` comes from a model of simple
+  shapes made in the script (no template has a model). Run on 1.2.0's code
+  (commit `c92f900`, the latest release) the script writes the same
+  bytes. Covered: the results CSVs (with their
+  provenance), the events CSV, the Mission Output CSV, the Monte Carlo
+  table, the budget CSV, the `.obj` model and the SIL report. Not
+  covered, with the reason: the PNG and SVG plots (drawn by the web
+  engine, not by this code), the flight-software project (already
+  checked byte for byte against Basilisk's files by `test_fsw_export.py`)
+  and the Vizard file (written by Basilisk during a run).
+- **Settings › Appearance** adds:
+  - **UI scale** 90, 100, 110 or 125 %, applied at the next start
+    (`QT_SCALE_FACTOR` is read once, before the window exists; a live
+    change would need every size in the theme recomputed and every page
+    laid out again). The page says so.
+  - **Reduce motion:** toasts fade in and out over 150 ms (the design's
+    120-180 ms); with reduce motion on they appear and go at once. It is
+    the only motion the app has.
+- **Settings › Vizard:** the Vizard program's location, with Browse and
+  Clear (the one `vizard_launcher` remembers).
+
 ## M7 Timeline and plots (2026-10-22)
 
 Recorded before coding, after reading the Timeline and timing it with

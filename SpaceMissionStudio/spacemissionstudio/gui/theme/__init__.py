@@ -44,8 +44,9 @@ from PySide6.QtCore import QObject
 from shiboken6 import isValid
 
 from . import palettes, plotly_template, tokens
-from .apply import (THEMES, apply_theme, follow_system, last_apply_ms, resolve_theme, set_role,
-                    set_theme_setting, signals, theme_setting)
+from .apply import (THEMES, UI_SCALES, apply_theme, follow_system, last_apply_ms, reduce_motion, resolve_theme,
+                    set_reduce_motion, set_role, set_theme_setting, set_ui_scale_setting, signals, theme_setting,
+                    ui_scale_setting)
 from .fonts import FONTS_DIR, load_fonts, mono_font, numeric_font, tabular_figures_supported, ui_font
 from .icons import action_icon, icon, step_icon
 from .qss import stylesheet
@@ -88,9 +89,10 @@ def colour(token: str) -> str:
 __all__ = [
     "CONTENT_MAX_WIDTH_PX", "CONTROL_HEIGHT", "DARK", "FONTS_DIR", "ICON_SIZE", "LIGHT", "MONO_FONT_FAMILY",
     "PALETTE", "RADIUS", "ROLES", "ROW_HEIGHT", "SERIES_COLORS", "SIZE", "SPACE", "THEMES", "TOKENS",
-    "UI_FONT_FAMILY", "WEB_FONT_STACK", "WEB_MONO_STACK", "WEIGHT", "action_icon", "apply_theme", "colour",
-    "current_theme", "follow_system", "icon", "last_apply_ms", "load_fonts", "mono_font", "numeric_font",
-    "on_change", "palettes", "plotly_template", "resolve_theme", "select_palette", "set_role",
-    "set_theme_setting", "signals", "step_icon", "stylesheet", "tabular_figures_supported", "theme_setting",
-    "tokens", "ui_font",
+    "UI_FONT_FAMILY", "UI_SCALES", "WEB_FONT_STACK", "WEB_MONO_STACK", "WEIGHT", "action_icon", "apply_theme",
+    "colour", "current_theme", "follow_system", "icon", "last_apply_ms", "load_fonts", "mono_font",
+    "numeric_font", "on_change", "palettes", "plotly_template", "reduce_motion", "resolve_theme",
+    "select_palette", "set_reduce_motion", "set_role", "set_theme_setting", "set_ui_scale_setting", "signals",
+    "step_icon", "stylesheet", "tabular_figures_supported", "theme_setting", "tokens", "ui_font",
+    "ui_scale_setting",
 ]

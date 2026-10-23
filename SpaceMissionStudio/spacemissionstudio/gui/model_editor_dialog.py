@@ -45,6 +45,7 @@ from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QColorDialog, QDialog, Q
                                QMenu, QMessageBox, QPushButton, QRadioButton, QScrollArea, QSplitter, QToolButton,
                                QVBoxLayout, QWidget)
 
+from . import export_log
 from ..model3d import mass_import, obj_io
 from ..model3d import model as model3d
 from ..schema.scenario import (MESH_UNITS, MODEL_SHAPE_DIMENSIONS, MODEL_SHAPE_FACES, ModelMassPropertiesConfig,
@@ -773,6 +774,7 @@ class ModelEditorDialog(QDialog):
             except OSError as exc:
                 report(self, f"Could not export the model to {name}: {exc}")
                 return
+            export_log.record("model_obj", name)
             report(self, f"Exported the model to {name}", kind="success")
 
     # -- recomputing -------------------------------------------------------------------------------------------

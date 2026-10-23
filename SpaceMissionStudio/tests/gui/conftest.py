@@ -132,6 +132,21 @@ def _join_qthreads_started_by_the_test(monkeypatch):
             pass
 
 
+@pytest.fixture(autouse=True)
+def _isolated_export_log(tmp_path_factory, monkeypatch):
+    """The export log (Reports › Exports, M8) in a file of the test's own,
+    outside its home (``tmp_path``): tests that export there and list the
+    folder see only what the export wrote."""
+    try:
+        from PySide6.QtCore import QSettings
+
+        from spacemissionstudio.gui import export_log
+    except ImportError:  # no GUI: nothing records an export
+        return
+    path = str(tmp_path_factory.mktemp("export_log") / "settings.ini")
+    monkeypatch.setattr(export_log, "_settings", lambda: QSettings(path, QSettings.Format.IniFormat))
+
+
 @pytest.fixture
 def reported(monkeypatch):
     """What :func:`gui.feedback.report` said, as ``(message, kind)``: the

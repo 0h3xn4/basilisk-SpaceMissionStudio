@@ -994,6 +994,20 @@ Every milestone also has to meet all of these:
   three runs): showing them 35-38 ms (was about 730 ms), a search
   keystroke 37-39 ms (was 2.3-2.6 s), a zoom 5-8 ms (was 1.6-1.7 s); at
   most 39.4 ms. **Met.**
+- **M8 (2026-10-22): done, except the export sheet.**
+  - Reports › Exports lists every export of §5.3 with format, view,
+    default destination, provenance and the last time written; a row
+    opens its view (`tests/gui/test_reports_and_settings.py`).
+  - Export files byte-identical to 1.1.0, tested
+    (`tests/gui/test_export_files.py` against
+    `tests/data/exports_1_1_0.zip`; 1.2.0 writes the same bytes). PNG,
+    SVG, the flight-software project and the Vizard file are not in that
+    comparison (DECISIONS M8 says why).
+  - Settings: theme, UI scale 90/100/110/125 % (next start), reduce
+    motion, reference data, Vizard location, layout reset, keyboard
+    (generated) and About.
+  - **Not done:** "one Export button per view that opens the same export
+    sheet". The per-view buttons stay as they were (DECISIONS M8).
 
 **Order and size.**
 
