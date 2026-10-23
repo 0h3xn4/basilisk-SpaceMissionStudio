@@ -599,17 +599,20 @@ audit uses.
 
 ## Known gaps
 
-Where the app does not yet meet `docs/ui/UI_OVERHAUL.md` (each is a later
-milestone of `docs/ui/UI_OVERHAUL_PLAN.md`):
+Where the app does not meet `docs/ui/UI_OVERHAUL.md` after the overhaul
+(measured in `docs/ui/BEFORE_AFTER.md`, the reasons in `docs/DECISIONS.md`):
 
-- **Live theme switch time:** 0.5-2.4 s, not the brief's 100 ms (M2:
-  lazy areas).
-- **Tables** (audit U-38) are `QTableWidget` in several views, not one
-  `QTableView` component (M6): alignment and precision vary, only the
-  Events table copies as TSV, and only cells built with
-  `theme.numeric_font()` use tabular figures.
-- **Spacing:** the 4 px grid is in the style sheet; layouts built in code
-  still set their own margins (M2-M8 rebuild the screens from
-  components).
+- **Live theme switch time:** about 2 s, not the brief's 100 ms: the
+  application style sheet is applied to every widget (6.1 s before).
+- **Stalls over 50 ms** remain when a template is opened (156-463 ms),
+  on the first visit to a spacecraft page (456 ms) and in the spacecraft
+  editor dialog (381 ms), and at the end of a run (474 ms).
+- **Tables:** Output, Monte Carlo, Budget, Compare, the Timeline and
+  Reports › Exports are `DataTable`s. The reference data list, the
+  readouts, the scenario overview's table, the SIL comparison, the
+  shortcut list, the facet and data-handling editors and the series
+  dialog are still `QTableWidget`s.
+- **Spacing:** the 4 px grid is in the style sheet and the theme's
+  `SPACE`; some layouts built in code still set their own margins.
 - **Vizard** (audit U-37) still has two commands in the Run area's
   header and no connection status chip.

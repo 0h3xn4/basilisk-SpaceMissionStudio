@@ -1008,6 +1008,26 @@ Every milestone also has to meet all of these:
     (generated) and About.
   - **Not done:** "one Export button per view that opens the same export
     sheet". The per-view buttons stay as they were (DECISIONS M8).
+- **M9 (2026-10-22): done, except two performance criteria** (measured
+  in `docs/ui/BEFORE_AFTER.md`; this machine is slower than when §3 was
+  written, so the baseline code was measured again beside M9):
+  - startup to interactive 1.85-1.87 s, against 2.50-2.78 s for the
+    baseline code on the same machine: **met**;
+  - every interaction of §3 under 50 ms: **not met** for the live theme
+    switch (about 2 s; 6.1 s before), opening a template (156-463 ms),
+    the spacecraft editor dialog (381 ms) and the end of a run (474 ms);
+    the rest is under 50 ms (plots 13-26 ms, keystrokes at most 35 ms);
+  - the first visit to any page under 50 ms: **not met** for a
+    spacecraft page (456 ms; 541 ms before); every other page 4-30 ms;
+  - keyboard-only walk of every area: **passes**
+    (`tests/gui/test_keyboard_walk.py`), after a keyboard trap it found
+    was fixed;
+  - `docs/ui/screenshots/after/` and `docs/ui/BEFORE_AFTER.md` exist; the
+    user guide's images are captured again; the compliance documents
+    that described the old window (SUM §7.4) or the Carbon restyle (the
+    summary report) point to the new one, their claims unchanged;
+  - the version is **1.3.0**, not 1.2.0, which was released on
+    2026-10-21 before M9 (DECISIONS M9); the CHANGELOG has its section.
 
 **Order and size.**
 

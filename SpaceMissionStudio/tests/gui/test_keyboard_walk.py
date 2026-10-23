@@ -124,3 +124,12 @@ def test_tab_reaches_every_control_of_the_area(window, qtbot, area):
     missing = sorted(_name(stop) for stop in wanted - reached)
     assert not missing, f"Tab never reaches {len(missing)} of {len(wanted)} controls in {area}: {missing[:15]}"
     assert ":focus" in stylesheet(TOKENS)  # the focus ring
+
+
+def test_the_inspector_names_a_focused_control_by_what_it_shows(window):
+    """A control without a label or a tip is named by what it shows (a tab
+    bar by its current tab), never by its class name ("_TabBar")."""
+    window.show_view(window.results_widget)
+    tab_bar = window.results_views.tabBar()
+    window.inspector_widget.inspect(tab_bar)
+    assert window.inspector_widget.name_label.text() == "Plots"

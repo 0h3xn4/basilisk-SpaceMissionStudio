@@ -117,15 +117,20 @@ The tool lets a mission analyst do the following without writing code:
 
 ### 7.4 Software organization and overview of operation (H.2.1<7.4>)
 
-- **Window layout:** UM section 3:
-  - main tabs **Scenario** (the scenario tree: **Templates**, the
-    scenario's pages, and the **Analyses** End of Life, Budget and
-    Flight Software), **Results** (**Plots**, **Dashboard**, **Output**,
-    and **Monte Carlo** when there is a batch), **Events**, **Compare**
-    and **Log**;
-  - a side panel with **Inspector**, **Explain** and **Problems**;
-  - the **Reference data** dialog, from the status bar or **Tools >
-    Reference Data...**.
+- **Window layout:** UM section 3 (since 1.3.0, the UI overhaul,
+  `docs/ui/BEFORE_AFTER.md`):
+  - a navigation rail with the areas **Home** (templates, recent
+    scenarios), **Scenario** (the scenario tree, with **Overview**, the
+    former Explain), **Run** (**Run**, **End of Life**, **Budget**,
+    **History**, **Log**), **Results** (**Overview**, **Plots**,
+    **Dashboard**, **Output**, **Monte Carlo** when there is a batch,
+    **Compare**), **Timeline** (the former Events), **Reports**
+    (**Exports**, **Flight Software**), **Settings** and **Help**;
+  - a top bar with Run and the command palette (`Ctrl+K`), which holds
+    every command (there is no menu bar); the **Inspector** panel on the
+    right and the **Problems** panel at the bottom;
+  - the **Reference data** dialog, from the status bar or **Settings >
+    Reference data**.
 - **States:**
   - **Editing:** everything available.
   - **Running:** the run controls are disabled and **Cancel Run**
