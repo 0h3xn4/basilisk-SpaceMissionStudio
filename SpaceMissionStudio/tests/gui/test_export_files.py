@@ -20,8 +20,11 @@
 """Every export the GUI writes stays byte-identical to 1.1.0's (UI
 overhaul M8): ``scripts/make_export_references.py`` writes them from fixed
 inputs through the functions the GUI calls, and this compares each file
-with the one 1.1.0 wrote (``tests/data/exports_1_1_0.zip``)."""
+with the one 1.1.0 wrote (``tests/data/exports_1_1_0.zip``, written on
+Linux). On Windows, files written in text mode end lines with CRLF, as
+1.1.0's did there, so the comparison there ignores line endings."""
 
+import os
 import sys
 import zipfile
 from pathlib import Path
@@ -45,4 +48,9 @@ def test_every_export_is_byte_identical_to_1_1_0(qtbot, tmp_path):
     with zipfile.ZipFile(_REFERENCES) as references:
         assert written == sorted(references.namelist())
         for name in written:
-            assert (tmp_path / name).read_bytes() == references.read(name), name
+            assert _same_lines((tmp_path / name).read_bytes()) == _same_lines(references.read(name)), name
+
+
+def _same_lines(content: bytes) -> bytes:
+    """``content`` as it is; on Windows, with CRLF read as LF (see above)."""
+    return content.replace(b"\r\n", b"\n") if os.name == "nt" else content

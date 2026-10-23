@@ -510,7 +510,10 @@ The Flight Software page is reached through them:
   provenance, the Monte Carlo table, the budget CSV, the `.obj` and
   `.mtl`, the SIL report) written by `scripts/make_export_references.py`
   and compared, byte for byte, with what 1.1.0 wrote
-  (`tests/data/exports_1_1_0.zip`).
+  (`tests/data/exports_1_1_0.zip`, written on Linux). On Windows, where
+  files written in text mode end lines with CRLF (1.1.0's did too), the
+  comparison ignores line endings; the script writes the budget's
+  clipboard text as bytes, so no platform changes it.
 - `tests/gui/test_reports_and_settings.py` (6 tests): Reports › Exports
   lists the twelve exports, never written at first; an export is logged
   with its UTC time and path; a row opens the view that makes it; the UI

@@ -189,7 +189,7 @@ def _write(out: Path, app) -> None:
     budget = BudgetWidget()
     budget._scenario, budget._budget = scenario, _budget()
     budget._copy()  # Budget > Copy as CSV
-    (out / "budget.csv").write_text(app.clipboard().text(), encoding="utf-8")
+    (out / "budget.csv").write_bytes(app.clipboard().text().encode("utf-8"))  # the clipboard's text, as it is
     budget.deleteLater()
 
     from spacemissionstudio.model3d import model as model3d
