@@ -360,7 +360,7 @@ solar pressure -- and the Berlin ground station. No attitude, so a day runs in s
 What to look at:
 - The Timeline: four Berlin passes (the first 10-18 min in) and 15 eclipses of about 35 min.
 - my-sat.orbit_elements_mean.raan: the orbit plane turns about 1 deg a day, in step with the Sun.
-- Explain, in the panel on the right: everything this scenario switches on, in one view.
+- Explain (Scenario › Overview): everything this scenario switches on, in one view.
 
 Make it your own (Save As first):
 - Spacecraft > Edit: your mass, drag area and orbit (a TLE works too).
