@@ -12842,3 +12842,26 @@ audits, `docs/ui/`, `docs/ux-standard.md`, the brief of the redesign)
 and the generated documents are unchanged; the flight-software templates
 (`ADAPTER_GUIDE.md`, `SIL_CONTRACT.md`) are copied into every export,
 whose bytes must not change, and are still correct.
+
+## Engine messages and the Alt+Backspace conflict (2026-10-25)
+
+The user: "fix the engine messages and the shortcut conflict". Branch
+`engine-messages-and-undo-shortcut`.
+
+**Engine messages:** the support-data error (`engine/kernels.py`) and the
+Earth orientation warning (`engine/scenario_checks.py`) said "Tools >
+Reference Data", a menu 1.3.0 does not have; they now say "Settings >
+Reference data". The M2a decision that kept them is superseded
+(`docs/DECISIONS.md`, "After the overhaul"). No test, golden file or
+output file carries either message (searched); `docs/troubleshooting.md`
+quotes the new text.
+
+**Alt+Backspace:** reproduced first. The window's commands, dumped, shared
+one key: `Alt+Backspace`, Clear Time Cursor's and one of Qt's standard
+Undo keys on Linux (and on Windows). With an edit to undo, pressing it
+logged "QAction::event: Ambiguous shortcut overload: Alt+Backspace" and
+the time cursor stayed. Two new tests in
+`tests/gui/test_keyboard_cursor.py` failed on that: no two commands share
+a key, and Alt+Backspace in the window clears the cursor after an edit.
+Undo now takes the standard keys without Alt+Backspace (`Ctrl+Z` here);
+both tests pass.

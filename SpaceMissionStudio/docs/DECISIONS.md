@@ -5,6 +5,24 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## After the overhaul (2026-10-25)
+
+The user: "fix the engine messages and the shortcut conflict".
+
+- **Engine messages name Settings > Reference data:** the M2a decision
+  kept "Tools > Reference Data" in two engine messages because the engine
+  did not change during the overhaul. The overhaul is done and the user
+  asked for it: the support-data error and the Earth orientation warning
+  now name where the dialog is. Text only; nothing the engine computes
+  changes, and no output file carries either message.
+- **Alt+Backspace is Clear Time Cursor's alone:** Qt's standard Undo keys
+  include Alt+Backspace on Linux and Windows, and a key bound to two
+  enabled actions fires neither ("Ambiguous shortcut overload"), so once
+  there was anything to undo, Alt+Backspace did nothing. Undo keeps its
+  other standard keys (`Ctrl+Z`); Clear Time Cursor keeps Alt+Backspace,
+  the key the manual, tips and DESIGN document. A test now checks that no
+  two commands share a key.
+
 ## M9 Final pass (2026-10-22)
 
 Recorded after measuring, before the changes. `scripts/measure_ui_baseline.py`

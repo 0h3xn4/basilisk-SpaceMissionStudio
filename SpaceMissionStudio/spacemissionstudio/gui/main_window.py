@@ -542,8 +542,12 @@ class MainWindow(QMainWindow):
             shortcut=QKeySequence.StandardKey.Quit,
             tip="Closes SpaceMissionStudio, asking to save first if the scenario has unsaved changes.")
 
+        # The platform's Undo keys, but Alt+Backspace (in them on Linux): it is
+        # Clear Time Cursor's, and a key bound twice fires neither.
+        undo_keys = [keys for keys in QKeySequence.keyBindings(QKeySequence.StandardKey.Undo)
+                     if keys != QKeySequence("Alt+Backspace")]
         self.undo_action = add("edit.undo", "&Undo", self.on_undo, category="Edit", area="global",
-                               shortcut=QKeySequence.StandardKey.Undo,
+                               shortcut=undo_keys,
                                tip="Undo the last scenario edit. A field being typed in undoes its own text first.")
         self.redo_action = add("edit.redo", "&Redo", self.on_redo, category="Edit", area="global",
                                shortcut=QKeySequence.StandardKey.Redo, tip="Redo the scenario edit just undone.")

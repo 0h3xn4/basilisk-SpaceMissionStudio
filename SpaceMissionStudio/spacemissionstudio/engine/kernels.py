@@ -187,7 +187,7 @@ def cached_path(kernel) -> Path:
     if not path.is_file():
         raise KernelError(
             f"support-data file {kernel.value} is not installed ({path}). SpaceMissionStudio does not download "
-            "during a run: download it from the Reference data dialog (Tools > Reference Data..., Download... > Support data) "
+            "during a run: download it from the Reference data dialog (Settings > Reference data, Download... > Support data) "
             "or with `spacemissionstudio kernels-status`.")
     expected = dataFetcher.POOCH.registry.get(rel)
     if expected:

@@ -47,8 +47,7 @@ their results are the same as with 1.2.0.
   - New shortcuts: `Ctrl+I` the Inspector, `Ctrl+J` Problems.
 
   The screens themselves are unchanged; what a run computes and every
-  file the app writes are the same. Two engine messages still name
-  "Tools > Reference Data": the palette finds that command by that name.
+  file the app writes are the same.
 
 - **Problems at the bottom, the run in the status bar** (UI overhaul M2b):
   - **The Problems panel** is a table at the bottom of the window
@@ -233,6 +232,11 @@ their results are the same as with 1.2.0.
   **Scenario > Overview**, a spacecraft's parts are pages of the
   scenario tree); 31 templates, not 28 or 29. Template 22's description
   and two notes in the window said the same.
+- **Fixed:** `Alt+Backspace` did nothing once there was an edit to undo:
+  it was both Clear Time Cursor's key and, on Linux and Windows, one of
+  Undo's. It is Clear Time Cursor's alone now; Undo keeps `Ctrl+Z`. The
+  support-data error and the Earth orientation warning name **Settings >
+  Reference data**, no longer a Tools menu.
 
 ### Who should update
 
