@@ -98,9 +98,11 @@ from disk ([work offline](user-manual/reference-data.md#work-offline)).
 The full message continues: "SpaceMissionStudio does not download during
 a run: download it from the Reference data dialog (Tools > Reference
 Data..., Download... > Support data) or with `spacemissionstudio
-kernels-status`." Do one of those two, then run again. "Tools > Reference
-Data..." is the command palette's name (`Ctrl+K`) for **Settings >
-Reference data**; the app no longer has a Tools menu.
+kernels-status`." Do one of those two, then run again. The app has no
+Tools menu: "Tools > Reference Data..." is the command palette's name
+(`Ctrl+K`) for the dialog, which also opens from **Settings > Reference
+data** > **Reference Data...** or by clicking the reference-data item in
+the status bar.
 
 ### `Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km); Tools > Reference Data downloads them`
 
@@ -108,9 +110,10 @@ Explain (Scenario › Overview) shows this, and a run reports `Earth orientation
 rotation model, no IERS data installed`. The measured Earth orientation
 files are missing, so the run uses the simpler IAU model. Run
 `spacemissionstudio earth-orientation --fetch`, or, in the **Reference
-data** dialog, **Download... > Earth orientation**. (The message's "Tools >
-Reference Data" is the command palette's name for **Settings > Reference
-data**; the app no longer has a Tools menu.)
+data** dialog, **Download... > Earth orientation**. (The message's
+"Tools > Reference Data" is the command palette's name for that dialog;
+it also opens from **Settings > Reference data** > **Reference Data...**
+or the reference-data item in the status bar.)
 
 ## Running a scenario
 
@@ -124,8 +127,8 @@ while connected to the internet.
 
 ### Run is not available
 
-Look at the message at the bottom of the **Scenario** tab: it names the
-field to fix. **✓ valid** means you can run.
+Look at the message at the bottom of the **Scenario** area: it names the
+field to fix; the **Problems** panel (`Ctrl+J`) lists every problem. **✓ valid** means you can run.
 
 ### A run takes too long, or you started the wrong one
 

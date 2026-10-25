@@ -3,23 +3,24 @@
 How to hold a satellite's altitude or GEO slot, keep one spacecraft at a
 set distance from another, and build a Walker constellation.
 
-All of these are on the spacecraft page's **Power / propulsion / link
-budget** tab, except the two generators, which are buttons under the
+All of these are on the spacecraft's **Power / propulsion / link
+budget** page, except the two generators, which are buttons under the
 **Spacecraft** list.
 
 ## Hold a LEO altitude against drag
 
-1. Open the spacecraft (**Edit...**) and tick **Station keeping (altitude
+1. Open the spacecraft (its node in the scenario tree, or **Edit** in
+   the list) and tick **Station keeping (altitude
    maintenance, delta-V + fuel tracking)**.
 2. Set **Target altitude [km]** and **Deadband below target [km]**: a
    reboost burn starts when the altitude falls below the target by more
    than the deadband.
 3. Set the thruster: **Reboost thrust [N]**, **Reboost thruster Isp [s]**,
    **Propellant available [kg]** and **Minimum thruster on-time [s]**.
-4. Make sure drag is on (**Orbit / mass** tab). Without drag the deadband
-   may never be crossed; the Explain tab warns you.
+4. Make sure drag is on (**Orbit / mass** page). Without drag the deadband
+   may never be crossed; **Scenario > Overview** warns you.
 
-Each burn appears on the **Events** tab with its delta-V. Template **18**
+Each burn appears on the **Timeline** with its delta-V. Template **18**
 does this at 400 km.
 
 ## Hold a GEO slot
@@ -48,7 +49,7 @@ spacecraft** and the **Target separation**, and pick a **Control law**:
 | Mean orbital elements (Basilisk `meanOEFeedback`) | Holding tens of metres, at much higher delta-V. Template 24. |
 | Hill-frame PD (Basilisk `hillFrameRelativeControl`) | Close formations, about 1 km, for short phases |
 
-None of them fires in eclipse. The Explain tab draws the formation and
+None of them fires in eclipse. **Scenario > Overview** draws the formation and
 warns when a law asks for more thrust than the thruster has.
 
 To hold a whole relative orbit (radial and cross-track motion too, for

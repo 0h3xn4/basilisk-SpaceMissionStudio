@@ -31,7 +31,7 @@ checks around it.
 
 ## Do I need to know programming, or spaceflight?
 
-No. Start from one of the 29 templates and change it in forms
+No. Start from one of the 31 templates and change it in forms
 ([Getting started](getting-started.md)). The [glossary](glossary.md)
 explains the terms. Python is optional: for scripting and batch runs.
 
@@ -56,8 +56,8 @@ way it then runs offline:
   for newer reference data; **Not now** touches no network. The **Reference data** dialog's downloads ask
   first, naming the source, the files and the size, and default to No.
   Vizard downloads only when you click **Download Vizard**. On the
-  command line, only `kernels-status` and `earth-orientation --fetch`
-  download.
+  command line, only `kernels-status`, `earth-orientation --fetch` and
+  `small-bodies --fetch` download.
 - Every file can also be installed from disk, for machines that never go
   online.
 

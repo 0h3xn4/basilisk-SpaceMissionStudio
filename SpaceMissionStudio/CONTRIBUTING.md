@@ -12,8 +12,8 @@ with:
 
 - what you did, what you expected and what happened;
 - the log file named in the error dialog (`~/.spacemissionstudio/logs/`);
-- the output of `spacemissionstudio --version` (or **Help > About
-  SpaceMissionStudio**) and your operating system;
+- the output of `spacemissionstudio --version` (or **Settings > About** >
+  **About SpaceMissionStudio**) and your operating system;
 - the scenario file, if you can share it.
 
 [Troubleshooting](docs/troubleshooting.md) may already have the answer.

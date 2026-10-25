@@ -57,19 +57,25 @@ the offline policy.
 The second, relaxed later by a real user decision ("a one time fetch during
 each startup of the app is also allowed, to store everything that is needed
 locally so it can be used later again. But the user always should be asked if
-they want to fetch/update"): the GUI's `gui.startup_fetch_dialog` shows a
-consent prompt once each time it starts, offering to re-check/refresh the
-same support-data kernels (a safety net for a dev checkout or a cleared
-cache -- normally a no-op, since the installer above already did this) and,
-separately, to fetch real space-weather history from CelesTrak. Neither ever
-runs without the user clicking "Fetch now" first; clicking "Skip" touches no
-network, same as before this existed. This is a GUI-only concern -- nothing
+they want to fetch/update"): each time the GUI starts, a **Fetch or
+update reference data?** card on Home (`gui.startup_fetch_dialog.ReferenceDataCard`)
+offers to re-check/refresh the same support-data kernels (a safety net
+for a dev checkout or a cleared cache -- normally a no-op, since the
+installer above already did this) and, separately, to fetch real
+space-weather history from CelesTrak and the Earth orientation files
+from NAIF.
+None of them ever runs without the user clicking **Fetch now** first;
+clicking **Not now** touches no network, same as before this existed. This is a GUI-only concern -- nothing
 in `packaging/` needed to change for it.
 
 ## What's here
 
 * **`bundle_python.py`** -- builds the private Python both installers
   ship (see "The bundled Python" below).
+
+* **`release_notes.py`** -- writes the notes of a release draft from its
+  CHANGELOG section and its built files; the release workflow runs it
+  (`docs/developer/releasing.md`).
 
 * **`build_wheel.sh`** -- builds `spacemissionstudio`'s own wheel + sdist
   (`python -m build`). Genuinely run here: `dist/spacemissionstudio-<version>-py3-none-any.whl`

@@ -17,8 +17,8 @@ to do. New here? Start with **Getting started**.
 | Page | What it is for |
 |---|---|
 | [How-to guides](user-manual/README.md) | One short page per task: run, customize, build, read results, and each feature |
-| [User Manual](../USER_MANUAL.md) | The full manual, also in the app under **Help** (F1; the last button of the navigation rail) (`F1`) |
-| [Template catalog](../spacemissionstudio/scenarios/templates/README.md) | The 29 template missions, what each teaches, and a learning path |
+| [User Manual](../USER_MANUAL.md) | The full manual, also in the app under **Help**, the last button of the navigation rail (`F1`) |
+| [Template catalog](../spacemissionstudio/scenarios/templates/README.md) | The 31 template missions, what each teaches, and a learning path |
 | [Tips](tips.md) | Shortcuts, good habits, and every file the app reads and writes |
 
 ## Reference
@@ -49,6 +49,9 @@ to do. New here? Start with **Getting started**.
 | [Architecture](developer/architecture.md) | The layers, how a run flows, where things live |
 | [Design system](DESIGN.md) | Colour tokens in both themes, type, layout, components, message and keyboard patterns, and the rules new GUI code follows |
 | [UX/UI standard](ux-standard.md) and [UX audit](ux-audit.md) | The goals for the interface, and the findings and changes made against them |
+| [UI overhaul brief](ui/UI_OVERHAUL.md), [plan](ui/UI_OVERHAUL_PLAN.md) and [before and after](ui/BEFORE_AFTER.md) | The 1.3.0 interface: what was asked, the milestones, and what changed, measured and pictured |
+| [Decisions](DECISIONS.md) | Choices made during the UI overhaul where the brief and the plan are silent, each with its rationale |
+| [Third-party assets](THIRD_PARTY_ASSETS.md) | The fonts, icons and libraries the GUI bundles or needs, with their licences |
 | [Releasing](developer/releasing.md) | Version numbers, checks, building the packages |
 | [Keeping up with upstream Basilisk](developer/upstream-sync.md) | Merging upstream, refreshing the root README's upstream part |
 | [Development log](../HISTORY.md) | Why everything is the way it is, change by change |

@@ -31,13 +31,14 @@ spacemissionstudio spaceweather-resolve scenario.json   # which space-weather da
 
 ## Update
 
-Each time the GUI starts, a **Fetch/update data?** dialog offers to fetch
+Each time the GUI starts, a **Fetch or update reference data?** card on
+**Home** offers to fetch
 the support data, CelesTrak's latest space weather and the Earth
 orientation files. Tick what you want and press **Fetch now**, or
-**Skip**: nothing is downloaded then.
+**Not now**: nothing is downloaded then.
 
-At any time, in the **Reference data** dialog, **Download...** offers three downloads: *Support
-data*, *Space weather* and *Earth orientation*. Each asks first, naming
+At any time, in the **Reference data** dialog, **Download...** offers four downloads: *Support
+data*, *Space weather*, *Earth orientation* and *Small bodies*. Each asks first, naming
 the source, the files and their size; the default is No. Afterwards it
 says what changed.
 

@@ -23,7 +23,7 @@ bus from a 3D model", is a worked example.
 Click **3D Model...** at the top of the Scenario area (or `Ctrl+K`, "3d model");
 with several spacecraft, pick the one to model. **OK** stores the model
 and applies it to the spacecraft, and **Undo** takes it back.
-On a spacecraft's page (scenario tree > **Spacecraft** > its name) it is on the **3D model** tab:
+On a spacecraft's **3D model** page (scenario tree > **Spacecraft** > its name > **3D model**):
 **Build a 3D model...** (**Open 3D model editor...** once it has one). On the left is the list
 of parts, in the middle the selected part's settings, on the right the
 model in 3D: drag to turn it, scroll to zoom. The red, green and blue
@@ -143,13 +143,13 @@ edit to the model marks the results as out of date, as any edit does.
 While the model provides them, those fields are shown but locked. The
 **Use** tab switches each off, and **Export .obj...** saves the model.
 **Show this model in Vizard** replaces Vizard's default model, unless the
-**Vizard model** tab names a file of its own.
+**Vizard model** page names a file of its own.
 
 The center of mass matters: facets, thrusters and sensors are placed from
 B, so a center of mass away from B gives drag, sunlight and thrust a
 torque. If the model and the spacecraft's values drift apart (after an
-edit in the file, say), the 3D model tab and the Scenario Editor's
-warnings say so; **Apply the model** on the **3D model** tab puts them
+edit in the file, say), the 3D model page and the Scenario Editor's
+warnings say so; **Apply the model** on the **3D model** page puts them
 back in line, and so does **OK** in the editor.
 
 Elsewhere in the app:
@@ -157,7 +157,7 @@ Elsewhere in the app:
 - The **Problems** panel lists a model that cannot be built or
   whose values are out of date; double-click it to open that
   spacecraft's model editor.
-- **Explain** shows a "3D model, N parts" badge for each spacecraft with a
+- **Scenario > Overview** shows a "3D model, N parts" badge for each spacecraft with a
   model, and the center of mass offset; click the badge to open the
   model editor.
 

@@ -19,7 +19,7 @@ Colorado Boulder); SpaceMissionStudio adds the windows, scenario files,
 plots, checks and analysis around it. Each feature maps to a Basilisk
 module, or is marked as the tool's own code.
 
-Start from one of 29 template missions (a single orbit, a GEO slot, a
+Start from one of 31 template missions (a single orbit, a GEO slot, a
 formation, a complete small satellite with power and a radio link), or
 build your own, then look at orbits, ground passes, eclipses, pointing,
 battery, link margin, lifetime and propellant.
@@ -58,7 +58,7 @@ A few seconds later the **Results** area shows the orbit and the
 |---|---|
 | Install it, step by step, on any system | [Getting started](docs/getting-started.md) |
 | Do a specific task ("How do I…?") | [How-to guides](docs/user-manual/README.md) |
-| Learn the app from the beginning | [User Manual](USER_MANUAL.md), also in the app (**Help** (F1; the last button of the navigation rail), `F1`) |
+| Learn the app from the beginning | [User Manual](USER_MANUAL.md), also in the app (**Help**, the last button of the navigation rail, `F1`) |
 | Learn by example | The [template catalog](spacemissionstudio/scenarios/templates/README.md) and the [Python examples](examples/README.md) |
 | Fix a problem | [Troubleshooting](docs/troubleshooting.md) and the [FAQ](docs/faq.md) |
 | Look up a term | [Glossary](docs/glossary.md) |

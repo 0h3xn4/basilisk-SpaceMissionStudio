@@ -5,11 +5,11 @@ or build one up from an empty scenario.
 
 ## The quick way: start from a starter
 
-1. On **Templates**, open **22 - Starter: your first LEO satellite**
+1. On **Home**, open **22 - Starter: your first LEO satellite**
    (one satellite, orbit only) or **23 - Starter: a complete small
    satellite** (sensors, wheels, power and a radio link).
 2. **Save As...** (Ctrl+Shift+S) and give it your own name.
-3. Change what you need in the **Scenario** tab. Each template's
+3. Change what you need in the **Scenario** area. Each template's
    description says what to change first.
 
 ## From an empty scenario
@@ -23,7 +23,7 @@ or build one up from an empty scenario.
    - add **sun** and **moon** as third-body perturbers;
    - set **Duration** to 1 day;
    - leave the atmosphere on the bundled, real space-weather data.
-3. **Spacecraft**: **Add...** (or **New from template...** for a 100 to
+3. **Spacecraft**: **Add** (or **New from template...** for a 100 to
    500 kg preset). On **Orbit / mass**:
    - semi-major axis = 6378 km + altitude, so 6928 km for 550 km;
    - for an Earth-observation orbit, press **Compute Sun-sync inclination
@@ -33,11 +33,11 @@ or build one up from an empty scenario.
      have or use the new page's values);
    - set **Dry mass**, and tick **Enable atmospheric drag** with its area
      (and **Enable solar radiation pressure**).
-4. **Ground stations > Add...**: a name, latitude, longitude and the lowest
+4. **Ground stations > Add**: a name, latitude, longitude and the lowest
    usable elevation (10 deg is common).
-5. Check the bottom of the tab. **✓ valid** means you can run; otherwise
+5. Check the bottom of the Scenario area. **✓ valid** means you can run; otherwise
    the message names the field to fix, and the **Problems** panel
-   takes you to it with a double-click. **Explain**, on the right, already shows
+   takes you to it with a double-click. **Scenario > Overview** already shows
    the orbit type and the predicted ground passes.
 6. **Save As...** (Ctrl+Shift+S), then **Run** (`Ctrl+R`).
 

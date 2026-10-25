@@ -3,15 +3,15 @@
 How to change a template's key settings (altitude, mass, duration, ...)
 without learning the whole Scenario Editor.
 
-1. On **Templates**, find the template's row and click its
-   **Customize...** button (you don't need to select the row first).
+1. On **Home**, find the template's card and click its
+   **Customize...** button (you don't need to select the card first).
 2. The dialog lists every setting of that template, with its current
    value. The most important ones are under **Key settings** at the top.
    - The list on the left jumps to a section.
    - The filter box finds a setting by name, for example `drag` or
      `duration`.
 3. Change what you need, then click **Open in editor**. The changed
-   mission opens in the **Scenario** tab, ready to run.
+   mission opens in the **Scenario** area, ready to run.
 4. **Save As...** (Ctrl+Shift+S) to keep it under your own name.
 
 The template file on disk is never changed, so you can always start

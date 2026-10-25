@@ -18,7 +18,8 @@ CelesTrak asks only that the URL above is given so others can find the
 data and its documentation; there are no other licensing requirements
 (Dr. T.S. Kelso, CelesTrak).
 
-A newer copy downloaded by the app's startup prompt (with your consent)
+A newer copy downloaded from the app's reference-data card on Home or
+the Reference data dialog (with your consent)
 replaces this one automatically; see `engine/spaceweather.py`.
 
 `oct2026f10-prd.txt` is NASA Marshall Space Flight Center's solar-cycle
@@ -36,7 +37,7 @@ ESA's guideline EOP-FM/2024-07-177 (AD10) Sec. 5.9 prescribes MSFC's
 prediction for future solar activity: the 95th percentile for operations
 budgets, the 50th for end of life, NRLMSISE-00, and the last 132 months
 repeated past the file's end. A study's own MSFC file can be set in
-Propagation setup instead.
+**MSFC prediction** on the Scenario area's **Environment** page instead.
 
 The two files differ from the published originals only in whitespace that
 this repository's pre-commit hooks remove: trailing spaces at the end of
