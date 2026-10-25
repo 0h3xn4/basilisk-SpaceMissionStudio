@@ -189,11 +189,11 @@ A few things to notice right away:
     failed run opens it at its warnings and errors).
   * **Results**, which fills in when you run something (Section 7), with
     the run's **Overview** (its headline figures), the **Plots**, the
-    **Dashboard**, the mission **Output**, a **Monte
-    Carlo** view when the scenario has Monte Carlo on (Section 10) and
-    **Compare**: your saved runs, of this session and earlier ones, side
-    by side (a summary with differences, the inputs that differ, the
-    events and overlaid plots).
+    **Dashboard**, the mission **Output**, **Compare**: your saved runs,
+    of this session and earlier ones, side by side (a summary with
+    differences, the inputs that differ, the events and overlaid plots),
+    and, last, a **Monte Carlo** view when the scenario has Monte Carlo
+    on or a batch is open (Section 10).
   * **Timeline**: passes, eclipses, burns and mode changes (Section 7).
   * **Reports**: **Exports** and **Flight Software** (export the
     attitude flight software and run it in the loop, Section 6).
@@ -243,10 +243,11 @@ A few things to notice right away:
   propagation setup, a spacecraft or ground station, the mission
   sequence) and **Message**. Errors come first; click a column's heading
   to sort by it, and `Ctrl+C` copies the selected rows. Double-click a row,
-  or select it and press `Enter`, to go where it is fixed: the Scenario
-  Editor's field, or the spacecraft, ground station or propagation setup
-  dialog opened at the field, with the problem named at the top and under
-  the field.
+  or select it and press `Enter`, to go where it is fixed: the field on
+  its page of the Scenario area (the **Scenario** or **Environment** page,
+  a spacecraft's or ground station's page, the mission sequence step), or
+  a spacecraft's 3D model editor, with the problem named at the top and
+  under the field.
 * `Ctrl+I` and `Ctrl+J` show and hide their panel, and a panel they show
   takes the keyboard. Drag a panel elsewhere, close it, or put them all
   back with **Settings > Layout > Reset Layout**. The app remembers the
@@ -324,7 +325,7 @@ its Scenario page ("Building your own scenario, step by step", below).
    in the "Name" field at the top).
 3. Click **Run** in the top bar (or press `Ctrl+R`).
    The mode beside it says what Run starts: **Single run** here. While it
-   runs, a strip under the top bar shows what it is doing ("Propagating:
+   runs, the status bar shows what it is doing ("Propagating:
    day 0.40 of 1"), how far it is, the time so far and, once it can tell,
    about how long is left; **Cancel** (`Esc`) stops it. A short run like
    this one finishes in seconds.
@@ -401,7 +402,7 @@ looking at.
 
 ![The scenario tree with template 22 loaded and its Scenario page open](docs/images/scenario_editor_tab.png)
 
-The scenario is a tree on the left of the **Scenario** tab, in roughly
+The scenario is a tree on the left of the **Scenario** area, in roughly
 the order you'd fill it out for a brand-new scenario. Pick a node to edit
 its page; what you change there applies as you type (Undo, Ctrl+Z, takes
 it back), and a page whose values do not validate marks the field, lists
@@ -421,10 +422,10 @@ fixed:
   ...), the numerical integrator, how long to simulate, and atmospheric
   drag/space-weather settings.
 * **Spacecraft** -- the list of spacecraft in the mission, and under it a
-  node for each one. A spacecraft's page has its own tabs: **Orbit /
+  node for each one. A spacecraft's page has a node per part: **Orbit /
   mass**, **Sensors / actuators**, **Attitude control**, **Power /
   propulsion / link budget**, **3D model**, a cosmetic **Vizard model**
-  tab (Section 9) and **Budget (AD10)** (Section 11). In the list,
+  page (Section 9) and **Budget (AD10)** (Section 11). In the list,
   **Edit** (or a double-click) goes to the spacecraft's node, and
   **Add** adds one with the default values and opens its node, ready to
   set up (Remove or Undo take it back). **New from template...** adds a complete
@@ -445,7 +446,7 @@ fixed:
   **Generate Walker constellation...** and **Generate phasing
   formation...** buttons here for building multi-satellite setups
   automatically instead of adding spacecraft one at a time.
-  On the orbit & mass tab, **Surface facets** describes the spacecraft as
+  On the **Orbit / mass** page, **Surface facets** describes the spacecraft as
   flat plates (**Box + solar array...** fills in a bus and an array).
   Drag and solar pressure then follow the attitude, and an off-centre
   plate adds a torque the wheels must absorb (template 21).
@@ -487,7 +488,7 @@ opened. Going back to **Form** applies an edit still waiting, and is
 refused while the text is not valid: fix it, or press **Discard** to put
 the scenario's own text back.
 
-A **validation message** at the very bottom of this tab updates live as
+A **validation message** at the very bottom of the Scenario area updates live as
 you type, in plain language (e.g. naming exactly which field is missing
 or invalid) -- you don't have to guess why Run is unavailable. It names
 the first problem and how many more there are; **Problems** lists them
@@ -526,7 +527,7 @@ The quickest way to a mission of your own is a starter template (22 or
 3. **Spacecraft**: **Add**, or **New from template...** for a 100-500 kg
    preset (in *Orbit only* mode it keeps the preset's mass, inertia and
    drag areas and leaves its hardware out); the spacecraft then has its
-   own node in the tree. On its **Orbit / mass** tab: the semi-major axis is Earth's
+   own node in the tree. On its **Orbit / mass** page: the semi-major axis is Earth's
    radius (6378 km) plus the altitude, so 6928 km for 550 km. For an
    Earth-observation orbit, press **Compute Sun-sync inclination for
    this altitude** and **Compute RAAN for LTAN...** (10:30 is the usual
@@ -551,8 +552,8 @@ The quickest way to a mission of your own is a starter template (22 or
 
 ### Formation control laws
 
-A follower's **Phasing keeping** (the spacecraft's page, power/propulsion
-tab) holds its distance ahead of the chief with one of three laws, set
+A follower's **Phasing keeping** (the spacecraft's **Power / propulsion /
+link budget** page) holds its distance ahead of the chief with one of three laws, set
 in **Control law**. All three use the follower's station-keeping
 thruster and tank, and none fires in eclipse.
 
@@ -586,8 +587,8 @@ chief's reboosts itself.
 
 ### Formations in relative orbital elements
 
-An **ROE formation (relative orbital elements)** (the follower's page,
-power/propulsion tab) holds a follower in a formation around a chief,
+An **ROE formation (relative orbital elements)** (the follower's **Power /
+propulsion / link budget** page) holds a follower in a formation around a chief,
 given as six numbers in metres: the chief's semi-major axis times each
 quasi-nonsingular relative orbital element (D'Amico).
 
@@ -641,7 +642,7 @@ against 27 m, 60 burns and 0.044 m/s without it. See
 ### Optical navigation
 
 **Optical navigation (camera on the central body)** (the spacecraft's
-page, power/propulsion tab) gives a spacecraft a camera that sees the
+**Power / propulsion / link budget** page) gives a spacecraft a camera that sees the
 central body's disk. Each image is reduced to where the disk's centre is
 and how large it is, computed from the true geometry with pixel noise (no
 image is rendered). Basilisk's `pixelLineConverter` turns that into a
@@ -666,7 +667,7 @@ the filter, started 68 km off, is within 2 km by day 1 and 1.6 km
 
 ### Small bodies and landmark navigation
 
-**433 Eros** can be the central body (Scenario Editor, gravity). It needs
+**433 Eros** can be the central body (the **Environment** page, **Gravity**). It needs
 two files from **Reference data** (**Download...**, **Small bodies**): its
 ephemeris, a JPL Horizons solution from NAIF (1900 to 2100), and Gaskell's
 NEAR shape model. **Gravity from the shape model** gives its gravity from
@@ -677,8 +678,8 @@ position in its frame (`{spacecraft}.position_P`), and a position inside
 the shape is reported as an impact. Runs around Eros are one simulation
 of at most 100 days.
 
-**Landmark navigation** (the spacecraft's page, power/propulsion tab)
-places landmarks on the shape. Basilisk's `pinholeCamera` reports the
+**Landmark navigation** (the spacecraft's **Power / propulsion / link
+budget** page) places landmarks on the shape. Basilisk's `pinholeCamera` reports the
 whole pixel of each one it sees (lit, facing the camera, on the
 detector), and the app's own Kalman filter estimates position and
 velocity from them, predicting with the shape's gravity. It needs the
@@ -693,8 +694,8 @@ stretches. See
 
 ### Data handling and the downlink
 
-**Data handling** (the spacecraft's page, **Power / propulsion / link budget**
-tab) gives a spacecraft instruments, an onboard memory and a transmitter,
+**Data handling** (the spacecraft's **Power / propulsion / link budget**
+page) gives a spacecraft instruments, an onboard memory and a transmitter,
 all Basilisk modules (`simpleInstrument`, `partitionedStorageUnit`,
 `spaceToGroundTransmitter`):
 
@@ -741,7 +742,7 @@ which is assumed perfect.
 
 **3D Model...** at the top of the Scenario area (or `Ctrl+K`, "3d model") opens the
 3D model editor; with several spacecraft it first asks which one. The
-**3D model** tab of a spacecraft's page opens it too. In the editor,
+**3D model** page of a spacecraft opens it too. In the editor,
 build the spacecraft from boxes, prisms (an octagonal bus), cylinders,
 cones, spheres and panels, or import an `.obj` from a CAD or modelling
 tool, and give each part its mass. The model then sets the spacecraft's
@@ -756,7 +757,7 @@ worked example.
 
 ### Flexible solar arrays
 
-**Flexible solar arrays** (the spacecraft's page, **Orbit / mass** tab) lists
+**Flexible solar arrays** (the spacecraft's **Orbit / mass** page) lists
 deployed arrays that flex. Each is a flat panel on a hinge with a spring
 and a damper (Basilisk's `hingedRigidBodyStateEffector`): when the
 spacecraft turns, the panel swings, and its swinging pushes back on the
@@ -798,7 +799,7 @@ deploy or are driven during the run.
 ### Navigation error
 
 By default the flight software is told the true state. To see how it copes
-with imperfect navigation, open the spacecraft, **Attitude control** tab,
+with imperfect navigation, open the spacecraft's **Attitude control** page
 and tick **Navigation error**. Basilisk's navigation model (`simpleNav`)
 then adds an error to what the flight software is told:
 
@@ -1063,7 +1064,7 @@ files); a double-click draws the run dashed beside the run shown in
 Results; **Copy** (or Ctrl+C) copies the rows as tab-separated text.
 A run is saved, and the oldest pruned, in the background: the window
 does not wait for the disk when a run ends.
-**Delete run...** removes the selected run from disk (not the run shown).
+**Delete run...** (on **Compare**) removes the selected run from disk (not the run shown).
 A run whose files cannot be read back is named in the status line and
 the Log. If the folder cannot be written, the run is kept for this
 session only and a notice says so.
@@ -1081,7 +1082,7 @@ dynamics step or a higher-order integrator.
 The plot is interactive: hover to see exact values, and use your
 scroll wheel/drag to zoom and pan.
 
-**Output** (a view of Results, next to Plots) shows what each `report`
+**Output** (a view of Results, after the Dashboard) shows what each `report`
 command in a Mission Sequence run (Section 6) recorded: one row per
 quantity and one column per report, in the same units as the plots.
 With exactly two reports (e.g. "Before burn" / "After burn") a
@@ -1338,8 +1339,8 @@ last solar cycle repeats past 2041. **Drag coefficient** defaults to
 2.2, ESA AD10's end-of-life value; the templates fly at 3.0, its
 operations value.
 
-**You need a delta-V and propellant budget.** Fill in the spacecraft
-editor's **Budget (AD10)** tab, run the mission (ideally its whole
+**You need a delta-V and propellant budget.** Fill in the spacecraft's
+**Budget (AD10)** page, run the mission (ideally its whole
 length, with Solar activity at Conservative (95th) and Cd 3.0 for an ESA AD10
 budget), then press **Compute budget** on the **Budget** page (**Run >
 Budget**). It lists
@@ -1486,7 +1487,7 @@ anyone who hasn't worked with spacecraft before:
 
 * **More templates to learn from:**
   [`spacemissionstudio/scenarios/templates/README.md`](spacemissionstudio/scenarios/templates/README.md)
-  describes what each of the twenty-nine built-in templates teaches, in
+  describes what each of the thirty-one built-in templates teaches, in
   more depth than the in-app description box.
 * **Scripting it from Python:** [`examples/`](examples/README.md) builds
   a scenario in code, runs templates, writes a Mission Sequence, sweeps a
