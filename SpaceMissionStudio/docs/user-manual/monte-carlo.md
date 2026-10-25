@@ -11,7 +11,8 @@ far apart the results end up.
 3. Add one or more **dispersions**: which quantity varies, for which
    spacecraft, and by how much.
 4. Set the mode beside **Run** to **Monte Carlo**, press **Run**, and
-   choose a folder. Every run is saved there; the progress in the status bar counts
+   choose a folder (or set it first under **Archive folder** on **Run >
+   Run**, where it is remembered for the scenario). Every run is saved there; the progress in the status bar counts
    the cases done. A batch runs to the end: it cannot be cancelled.
 
 What can vary:
@@ -30,7 +31,7 @@ solar pressure on.
 
 ## Read the batch
 
-The **Monte Carlo** view of Results opens on the batch:
+**Results > Monte Carlo** opens on the batch:
 
 - **Tiles:** how many runs succeeded, and the 1-sigma spread at the end
   along track, radially and across track.

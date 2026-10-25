@@ -30,8 +30,8 @@ does much better.
 
 1. The central body must be **earth**, **mars barycenter** or **jupiter
    barycenter** (the bodies Basilisk's two modules know), with **sun**
-   among the third bodies (Scenario Editor, gravity).
-2. On the spacecraft's **Power / propulsion / link budget** tab, tick
+   among the third bodies (the **Environment** page).
+2. On the spacecraft's **Power / propulsion / link budget** page, tick
    **Optical navigation (camera on the central body)**.
 3. Set the camera: **Field of view [deg]** (edge to edge along the
    image's height), **Resolution [px]**, and **Camera mounting** (an MRP;
@@ -47,7 +47,7 @@ does much better.
 **Pointing.** In an orbit-only run the camera points at the planet
 perfectly. With attitude, the spacecraft's attitude points it: use
 **locationPointing** on the central body, with the pointing axis
-(`pHat_B`) along the camera's boresight. The **Explain** tab warns when
+(`pHat_B`) along the camera's boresight. **Scenario > Overview** warns when
 either is missing, and gives the disk's size at periapsis and apoapsis.
 
 ## Read the results

@@ -150,7 +150,7 @@ def uses_note(simulation_mode: Optional[str]) -> str:
     """What the next run takes from an applied model in a scenario of this
     simulation mode; empty when the mode is not known."""
     if simulation_mode == "orbit_only":
-        return ("This scenario runs orbit only (Scenario Editor > Simulation mode): the next run uses the "
+        return ("This scenario runs orbit only (Simulation mode, on the Scenario page): the next run uses the "
                 "dry mass, for drag and solar pressure. The center of mass, inertia and facets take effect "
                 "in a full-attitude run.")
     if simulation_mode:

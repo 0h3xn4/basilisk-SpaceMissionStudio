@@ -51,7 +51,7 @@ radius: `engine.gravity_field`) plus third-body point-mass perturbers,
 atmospheric drag (Earth-only; a choice of NRLMSISE-00 or a simple
 exponential model -- see `SpaceWeatherConfig.atmosphere_model`'s own
 docstring for why not Jacchia-Roberts too: Basilisk has no such model)
-and SRP (per spacecraft, on that spacecraft's own "Orbit / mass" tab),
+and SRP (per spacecraft, on that spacecraft's own "Orbit / mass" page),
 a selectable integrator (`euler`/`rk2`/`rkf45`/`rkf78`), and osculating
 Keplerian elements computed and exported alongside inertial
 position/velocity at every sample -- plus, when a real J2 term is
@@ -107,7 +107,7 @@ exports it. See template 28 and
 
 ### Flight-software export
 
-The Flight Software page (**Reports** (the navigation rail)) and
+The Flight Software page (**Reports > Flight Software**) and
 `spacemissionstudio export-fsw` write a spacecraft's attitude flight
 software as a standalone C99 project (`spacemissionstudio.fsw_export`):
 the Basilisk C modules it runs, copied unchanged from Basilisk 2.12.0,
@@ -279,7 +279,7 @@ it.
 Four spacecraft "bus" templates
 (100 kg ESPA-class, 150 kg microsatellite, 300 kg and 500 kg small
 satellites) and
-twenty-nine complete example scenarios: most cover one concept each,
+thirty-one complete example scenarios: most cover one concept each,
 several integrate a whole system, and four are starting points for your
 own mission (the [template catalog](../../spacemissionstudio/scenarios/templates/README.md)).
 Five Python scripts in [`examples/`](../../examples/README.md) use the

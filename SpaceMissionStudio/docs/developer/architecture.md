@@ -28,7 +28,7 @@ Each layer uses only the layers below it.
 |---|---|---|
 | `schema/` | The scenario model (`Scenario`, `SpacecraftConfig`, `OrbitIC`, ...) as dataclasses, its validation, file migrations, the Mission Sequence commands and reference checks | No |
 | `engine/` | `service.SimulationService` builds and runs a Basilisk simulation; `long_run` chains runs past 100 days; `mission_engine` runs a Mission Sequence; analyses (lifetime, budgets, Monte Carlo, link budget, formations, constellations); data and exchange (space weather, Earth orientation, kernels, CCSDS, TLE, results, events) | Only the modules that build a simulation, and they import it inside functions |
-| `gui/` | The PySide6 application: editors, the Results and analysis tabs, the workers that run things in the background | No (it opens without Basilisk; runs need it) |
+| `gui/` | The PySide6 application: the shell (navigation rail, areas, top bar, status bar, command registry), the theme package (`gui/theme/`), the editors, the Run, Results, Timeline and Reports views, the workers that run things in the background | No (it opens without Basilisk; runs need it) |
 | `cli.py` | The `spacemissionstudio` command, over the same `engine` calls as the GUI | Only for commands that run something |
 | `fsw_export/` | Exports a spacecraft's attitude flight software as a standalone C project | Only to record a run |
 | `sil/` | Software in the loop: the transport contract, the session, the runner, the comparison report | Only to run |
@@ -51,7 +51,7 @@ Nothing is duplicated between the GUI and the CLI: both call `schema` and
 4. The recorded messages become a `ResultSet` of `TimeSeries`
    (`engine/results.py`), plus events and warnings.
 5. The CLI writes them as CSV files with `provenance.json`; the GUI shows
-   them in the Results, Events and other tabs.
+   them in the Results, Timeline and other areas.
 
 Runs longer than about 100 days are split into segments, each a fresh
 simulation started from the previous one's final state, because

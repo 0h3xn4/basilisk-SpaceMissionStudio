@@ -5,10 +5,10 @@ your orbits to other tools as standard CCSDS files.
 
 ## Start from a TLE
 
-On the spacecraft's page, **Orbit / mass** tab, choose the TLE orbit type
+On the spacecraft's **Orbit / mass** page, choose the TLE orbit type
 and paste the two lines (from [CelesTrak](https://celestrak.org), for
 example). The app propagates the TLE with SGP4 to the scenario's epoch and
-converts it to the simulation's frame. The Explain tab warns when the
+converts it to the simulation's frame. **Scenario > Overview** warns when the
 TLE's epoch is more than 3 days from the scenario's: SGP4 grows less
 accurate the further it propagates.
 
@@ -23,7 +23,7 @@ tools, GMAT among them, read and write:
 | OMM (Orbit Mean-elements Message) | Mean elements, for example a TLE | read, check |
 | OEM (Orbit Ephemeris Message) | A trajectory: many states over time | write, check |
 
-These are command-line features; the GUI has no CCSDS menu yet.
+These are command-line features; the GUI has no CCSDS command yet.
 
 ### Write
 

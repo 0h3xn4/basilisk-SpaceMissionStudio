@@ -1,24 +1,25 @@
 # Run a template
 
-How to run one of the 28 ready-made missions and look at what it did.
+How to run one of the 31 ready-made missions and look at what it did.
 
 ## In the app
 
 1. Start the app: `spacemissionstudio gui` (or from your application
    menu if you used an installer). It opens on **Home**: the templates.
 2. Click a template, for example **22 - Starter: your first LEO
-   satellite**. Its description appears below the list: what it shows
+   satellite**. Its description appears on the right: what it shows
    and what to look at.
-3. Click **Open Template**. The **Scenario** tab shows the
-   mission; **Explain**, in the panel on the right, summarises it.
+3. Click **Open template**. The **Scenario** area shows the
+   mission; **Scenario > Overview** (the first node of its tree)
+   summarises it.
 4. **Run** in the top bar, or `Ctrl+R` (the mode beside it says
-   **Single run**). A strip under the top bar shows what the run is
+   **Single run**). The status bar shows what the run is
    doing, how far it is and the time left; **Cancel** (`Esc`) stops it.
    Template 22 takes a few seconds.
-5. The **Results** tab opens. Click a plot in the catalog on the left,
+5. **Results > Plots** opens. Click a plot in the catalog on the left,
    for example "Inertial Position (ECI)", or one of the **Suggested**
    buttons. Tick several to see them side by side.
-6. Open the **Events** tab to see ground-station passes and eclipses.
+6. Open the **Timeline** (`Ctrl+5`) to see ground-station passes and eclipses.
 
 To keep a copy you can change, use **Save As...** (Ctrl+Shift+S) first. The
 template file itself is never changed.
@@ -37,7 +38,7 @@ You should see `Wrote 20 result file(s) to out:` followed by the files.
 ## Which template?
 
 The [template catalog](../../spacemissionstudio/scenarios/templates/README.md)
-lists all 28 with what each one teaches and a suggested order. Start with
+lists all 31 with what each one teaches and a suggested order. Start with
 01 (the simplest orbit), then 22.
 
 **More detail:** User Manual section 4,

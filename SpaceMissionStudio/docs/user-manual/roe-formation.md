@@ -60,7 +60,7 @@ spacemissionstudio generate-roe-formation in.json --out roe.json \
 
 ## By hand, and moving between formations
 
-On the follower's **Power / propulsion / link budget** tab, tick
+On the follower's **Power / propulsion / link budget** page, tick
 **ROE formation (relative orbital elements)**, pick the **Chief
 spacecraft** and fill **Targets**. Each row is a formation, held from its
 **Start [day]** to the next row's; the first starts at day 0. Below the
@@ -104,7 +104,7 @@ day), holding a 200 m helix 500 m behind for 3 days:
 | Delta-V | 0.036 m/s | 0.044 m/s |
 
 Twin spacecraft see a decay too small to compensate (under 0.1 m a day),
-and fly as without the setting. The **Explain** tab says when a
+and fly as without the setting. **Scenario > Overview** says when a
 follower's drag coefficient × area / dry mass differs from its chief's.
 
 Neither fires in eclipse. Both fire the follower's station-keeping
@@ -122,9 +122,9 @@ reboosts included.
   the estimated decay of a·δa and the part the guidance compensates
   [m/day]; empty until four orbits of data are in, and 0 compensated
   while the decay is too small to matter.
-* **Events**: each burn ("ROE burn (in-plane)", "ROE burn
+* **Timeline**: each burn ("ROE burn (in-plane)", "ROE burn
   (out-of-plane)", "ROE control firing") and each drift.
-* **Explain**: the e/i-vector diagram, one colour per target: the two
+* **Scenario > Overview**: the e/i-vector diagram, one colour per target: the two
   vectors and the path around the chief in the radial/cross-track plane.
 * **Vizard**: the follower's panels show **ROE Delta-V**, the
   separation from the chief (**R**, **T** and **N vs** the chief, in km)

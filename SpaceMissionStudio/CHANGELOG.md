@@ -226,6 +226,13 @@ their results are the same as with 1.2.0.
     as it does from read-only tables.
   - The spacecraft page and the spacecraft editor open faster (456 and
     381 ms, from 541 and 415 ms), though still not at once.
+- **The documentation follows the new interface:** the User Manual, the
+  how-to guides, the READMEs, the FAQ, troubleshooting, tips, the
+  glossary, the template catalog and the user manual of the compliance
+  set name the areas and pages of 1.3.0 (no more menus, Explain is
+  **Scenario > Overview**, a spacecraft's parts are pages of the
+  scenario tree); 31 templates, not 28 or 29. Template 22's description
+  and two notes in the window said the same.
 
 ### Who should update
 

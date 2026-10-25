@@ -3,8 +3,8 @@
 How to add a solar panel and battery, a downlink to a ground station, and
 instruments that fill an onboard memory.
 
-All three are groups on the spacecraft page's **Power / propulsion /
-link budget** tab. The power budget, and any antenna pattern other than
+All three are groups on the spacecraft's **Power / propulsion /
+link budget** page. The power budget, and any antenna pattern other than
 *Fixed gain*, need *Full attitude*: they depend on where the spacecraft
 points.
 
@@ -25,7 +25,7 @@ their own cells (template **27**).
 
 ## Radio link to the ground
 
-1. Add a ground station (**Ground stations > Add...**).
+1. Add a ground station (**Ground stations > Add**).
 2. Tick **Downlink RF link budget** and set **TX power [W]**, **Carrier
    frequency [GHz]**, **Data rate [Mbit/s]**, **TX antenna gain [dBi]**,
    the losses and **Required Eb/N0 [dB]**.
@@ -41,7 +41,7 @@ The run records, per station, `link_margin_db` and `link_closed`. The link
 closes when the station is in view and the margin is 0 dB or more.
 
 To point the antenna at the station during passes, use **Comms
-pointing** on the **Attitude control** tab (template **19**).
+pointing** on the **Attitude control** page (template **19**).
 
 ## Instruments and memory
 
@@ -58,7 +58,7 @@ to Berlin.
 
 ## Thermal
 
-A `thermal` sensor (**Sensors / actuators** tab) models a component on an
+A `thermal` sensor (**Sensors / actuators** page) models a component on an
 outside face that heats in sunlight and cools in eclipse. Template **20**.
 
 ## Templates to learn from

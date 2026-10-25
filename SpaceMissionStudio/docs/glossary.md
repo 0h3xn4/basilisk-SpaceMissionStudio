@@ -2,7 +2,8 @@
 
 Every term and abbreviation the SpaceMissionStudio documentation uses,
 explained in plain words, in alphabetical order. The app's built-in manual
-(**Help** (F1; the last button of the navigation rail), section 12) has a shorter version of this list.
+(**Help**, the last button of the navigation rail, `F1`; section 12) has a
+shorter version of this list.
 
 [A](#a) · [B](#b) · [C](#c) · [D](#d) · [E](#e) · [F](#f) · [G](#g) ·
 [H](#h) · [I](#i) · [J](#j) · [K](#k) · [L](#l) · [M](#m) · [N](#n) ·
@@ -101,7 +102,7 @@ cross-track motion. Parallel vectors make the formation
 atmospheric density and where the ground is all depend on it.
 
 **Events** -- things that happen at a time during a run: ground-station
-passes, eclipses, burns and attitude-mode changes. The **Events** tab
+passes, eclipses, burns and attitude-mode changes. The **Timeline** area
 lists and draws them.
 
 ## F
@@ -376,7 +377,7 @@ TAI plus 32.184 s. **TDB**: the time scale of planet positions, within
 2 ms of TT. **UT1**: time by Earth's actual rotation. [UTC](#u) follows
 TAI with leap seconds and stays within 0.9 s of UT1.
 
-**Template** -- one of the 27 ready-made scenarios that come with the
+**Template** -- one of the 31 ready-made scenarios that come with the
 app, each showing one idea or a complete mission. See the
 [template catalog](../spacemissionstudio/scenarios/templates/README.md).
 

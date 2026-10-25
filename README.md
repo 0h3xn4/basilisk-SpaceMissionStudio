@@ -5,7 +5,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-[![Version 1.0.0](https://img.shields.io/badge/version-1.0.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.0.0)
+[![Version 1.3.0](https://img.shields.io/badge/version-1.3.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.3.0)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -15,14 +15,14 @@ satellite mission analysis added in [`SpaceMissionStudio/`](SpaceMissionStudio/)
 Basilisk itself is unchanged: its README follows below, under
 [Original Basilisk README](#original-basilisk-readme).
 
-![The Scenario area with template 22 loaded; the Explain page on the right summarises the orbit, the environment and the predicted ground passes](SpaceMissionStudio/docs/images/scenario_editor_tab.png)
+![The Scenario area with template 22 loaded: the navigation rail on the left, the scenario tree and its Scenario page, the Inspector on the right and the Problems panel below](SpaceMissionStudio/docs/images/scenario_editor_tab.png)
 
 ## What it is
 
 SpaceMissionStudio lets you design a satellite mission in forms, run it,
 and read the results, without writing code. Every number comes from
 Basilisk; SpaceMissionStudio adds the windows, scenario files, plots,
-checks and analysis around it. Start from one of 28 template missions, or
+checks and analysis around it. Start from one of 31 template missions, or
 build your own, then look at orbits, ground passes, eclipses, pointing,
 battery, link margin, lifetime and propellant.
 
@@ -54,10 +54,10 @@ spacemissionstudio earth-orientation --fetch
 spacemissionstudio gui
 ```
 
-The app opens on **Templates**. Click **22 - Starter: your first LEO
-satellite**, **Open Template**, then **Run** (`Ctrl+R`).
-A few seconds later the **Results** tab shows the orbit and the
-**Events** tab lists four ground passes over Berlin.
+The app opens on **Home**. On the card **22 - Starter: your first LEO
+satellite**, click **Open**, then **Run** (`Ctrl+R`).
+A few seconds later **Results > Plots** shows the orbit and the
+**Timeline** lists four ground passes over Berlin.
 
 ## Where to go next
 
@@ -65,7 +65,7 @@ A few seconds later the **Results** tab shows the orbit and the
 |---|---|
 | Install it, step by step, on any system | [Getting started](SpaceMissionStudio/docs/getting-started.md) |
 | Do a specific task ("How do I…?") | [How-to guides](SpaceMissionStudio/docs/user-manual/README.md) |
-| Learn the app from the beginning | [User Manual](SpaceMissionStudio/USER_MANUAL.md), also in the app (**Help** (F1; the last button of the navigation rail), `F1`) |
+| Learn the app from the beginning | [User Manual](SpaceMissionStudio/USER_MANUAL.md), also in the app (**Help** at the bottom of the navigation rail, or `F1`) |
 | Learn by example | The [template catalog](SpaceMissionStudio/spacemissionstudio/scenarios/templates/README.md) and the [Python examples](SpaceMissionStudio/examples/README.md) |
 | Fix a problem | [Troubleshooting](SpaceMissionStudio/docs/troubleshooting.md) and the [FAQ](SpaceMissionStudio/docs/faq.md) |
 | Look up a term | [Glossary](SpaceMissionStudio/docs/glossary.md) |
@@ -115,10 +115,11 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE),
   [`SpaceMissionStudio/LICENSE`](SpaceMissionStudio/LICENSE)).
-- **Version:** 1.2.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.2.0),
-  [changelog](SpaceMissionStudio/CHANGELOG.md)): starting a mission
-  from scratch, guided; 1.1.1 made the installers self-contained, and
-  1.0.0 was the first
+- **Version:** 1.3.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.3.0),
+  [changelog](SpaceMissionStudio/CHANGELOG.md)): the new interface (a
+  navigation rail, a command palette, Results › Overview, the Timeline,
+  Reports › Exports); 1.2.0 guided a mission from scratch, 1.1.1 made
+  the installers self-contained, and 1.0.0 was the first
   release of the renewed tool, and the version numbers used before the
   renewal are withdrawn.
 - **Platforms:** the Linux `.deb` and the Windows setup program are

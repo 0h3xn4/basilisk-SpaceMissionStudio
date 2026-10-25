@@ -184,7 +184,8 @@ are not (decision 14, H08).
   warning: their results are not covered by the validation.
 - **Earth orientation:** the installers carry the IERS-based files as
   current as their build; for later runs, fetch newer ones:
-  - start-up prompt, or
+  - the reference-data card on Home at start-up, or **Settings >
+    Reference data**, or
   - `spacemissionstudio earth-orientation --fetch`.
 
   Installed from source, install them before any run with a gravity

@@ -25,7 +25,8 @@ writes, so you can move data to and from other tools.
 | `Alt+Right` / `Alt+Left` in Results (with `Shift`: ten) | Move the time cursor a sample |
 | `Alt+PgDown` / `Alt+PgUp`, `Alt+Home` / `Alt+End` in Results | The time cursor to the next or previous event, or the run's start or end |
 
-**Settings > Keyboard** (Ctrl+/) lists them all in the app.
+**Settings > Keyboard** (`Ctrl+/`) lists them all in the app, and
+**Reports > Exports** lists the exports and where each is made.
 
 ## Working habits
 
@@ -38,7 +39,7 @@ writes, so you can move data to and from other tools.
   are: "Overview (1 to check)".
 - **Grow a scenario one step at a time** and run after each step, so you
   know which change changed the result.
-- **Compare runs.** Run, change one thing, run again: the **Compare** tab
+- **Compare runs.** Run, change one thing, run again: **Results > Compare**
   shows what changed in the inputs and in the results, with the
   differences, and **Compare with** in Results overlays the
   earlier run. Runs are saved, so you can compare with yesterday's.
@@ -83,13 +84,13 @@ writes, so you can move data to and from other tools.
 | File | Format | Where in the app |
 |---|---|---|
 | Scenario | JSON | Save (Ctrl+S), Save As... (Ctrl+Shift+S) |
-| Results | CSV, one per series, SI units, time in seconds | Results > Export CSV..., `run --out-dir` |
-| Events | CSV (seconds and UTC) | Events > Export CSV..., `run` (`events.csv`) |
-| Reports | CSV | Mission Output > Export CSV... |
+| Results | CSV, one per series, SI units, time in seconds | Results > Plots > Export CSV..., `run --out-dir` |
+| Events | CSV (seconds and UTC) | Timeline > Export CSV..., `run` (`events.csv`) |
+| Reports | CSV | Results > Output > Export CSV... |
 | Provenance | JSON (versions and checksums of every input) | Beside every export |
-| Plots | PNG, SVG | Results > Save PNG... / Save SVG... (the selected plot), Export all... (every shown plot, with CSV) |
+| Plots | PNG, SVG | Results > Plots > Save PNG... / Save SVG... (the selected plot), Export all... (every shown plot, with CSV) |
 | Orbit messages | CCSDS OPM, OEM (KVN text) | `ccsds-export`, `run --oem` |
-| Vizard playback | `.bin` | Vizard Configuration..., `run --vizard-save-file` |
+| Vizard playback | `.bin` | Run > Run (the Vizard save file), `run --vizard-save-file` |
 | Monte Carlo batch | `batch_results.npz` and `.json`, plus Basilisk's archive | Run in Monte Carlo mode, `monte-carlo --archive-dir` |
 | Monte Carlo table | CSV | Results > Monte Carlo > Export table CSV... |
 | Budget | CSV on the clipboard | Run > Budget > Copy as CSV |

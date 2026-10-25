@@ -40,7 +40,7 @@ prints a table (400 km: 2.65 years, 550 km: 17.26 years).
 
 ## Propellant budget
 
-1. Fill in the spacecraft page's **Budget (AD10)** tab: mission
+1. Fill in the spacecraft's **Budget (AD10)** page: mission
    duration, dry-mass margin, tank capacity, specific impulse, injection
    errors, and the delta-V of each manoeuvre class (orbit acquisition,
    orbit control, formation keeping, collision avoidance, disposal).

@@ -21,7 +21,7 @@ Download them in **Reference data** (**Download...**, **Small bodies**;
 it asks first and names the sources), or run
 `spacemissionstudio small-bodies --fetch`. Without internet, copy
 `eros_1900_2100.bsp` from another computer and use **Import file...**
-or `spacemissionstudio small-bodies --import FILE`. The **Explain** tab
+or `spacemissionstudio small-bodies --import FILE`. **Scenario > Overview**
 lists either file when it is missing.
 
 ## What it models
@@ -30,8 +30,8 @@ lists either file when it is missing.
 planets, and the centre of the run's frame. It turns once every 5.27 h
 about its pole (pck00010's rotation model, frame `IAU_EROS`).
 
-**Its gravity.** With **Gravity from the shape model** (Scenario Editor,
-gravity), Basilisk's `polyhedralGravityModel` computes the pull of the
+**Its gravity.** With **Gravity from the shape model** (the **Environment**
+page), Basilisk's `polyhedralGravityModel` computes the pull of the
 shape at constant density, with Eros's GM of 4.463e-4 km³/s² (from the
 kernel's Horizons header). Close to an elongated body this differs from a
 point mass by tens of percent: in template 31 the shape alone moves the
@@ -42,7 +42,7 @@ point mass.
 time; the run integrates on through the body, so later results are not
 physical.
 
-**Landmark navigation** (the spacecraft's page, power/propulsion tab,
+**Landmark navigation** (the spacecraft's **Power / propulsion / link budget** page,
 **Landmark navigation**):
 
 * Landmarks are placed on facets of the shape, spread evenly by area.
@@ -56,14 +56,14 @@ physical.
 
 ## Set it up
 
-1. Scenario Editor, gravity: **Central body** `eros`, tick **Gravity from
+1. On the **Environment** page: **Central body** `eros`, tick **Gravity from
    the shape model**, and tick `sun` among the third bodies (the camera
    needs the light).
 2. Give the spacecraft an orbit around Eros: classical elements with a
    semi-major axis of a few tens of kilometres. Eros's pole is at RA
    11.35 deg, Dec 17.22 deg, so inclination 90 deg and RAAN 11.35 deg give
    an orbit over its poles (template 31).
-3. On the spacecraft's **Power / propulsion / link budget** tab, tick
+3. On the spacecraft's **Power / propulsion / link budget** page, tick
    **Landmark navigation** and set the **Landmarks**, the camera (**Field
    of view** across the image's width, **Resolution**, **Camera
    mounting**), **Image every [s]**, the noise and the filter's start.
@@ -71,7 +71,7 @@ physical.
 **Pointing.** In an orbit-only run the camera points at Eros's centre.
 With attitude, the spacecraft's attitude points it: use
 **locationPointing** on Eros with the pointing axis along the camera's
-boresight. The **Explain** tab warns when it is missing, and gives the
+boresight. **Scenario > Overview** warns when it is missing, and gives the
 orbit period in turns of Eros and the metres per pixel on the surface.
 
 ## Read the results

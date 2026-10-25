@@ -49,7 +49,8 @@ UM section 12 (glossary) and the SRS terms.
 
 ## 4 Conventions (H.2.1<4>)
 
-- **Menus and buttons:** in bold (**Run > Cancel Run**).
+- **Areas, pages and buttons:** in bold (**Cancel Run**). A path such as
+  **Run > Budget** is an area of the navigation rail and its page.
 - **Typed text and commands:** in `code`.
 - **CLI syntax:** `spacemissionstudio <command> [arguments]`. Optional
   arguments are in brackets; AD1 lists every argument.
@@ -73,7 +74,7 @@ The tool lets a mission analyst do the following without writing code:
 | File | Location | Notes |
 |---|---|---|
 | Basilisk 2.12.0 and its data (SPICE kernels) | Python environment; Basilisk's data cache | Installed by the installer; runs never download. The **Reference data** dialog lists every file (source, dates, SHA-256) and downloads only after asking |
-| Space weather (CelesTrak SW-All, NASA MSFC prediction) | Bundled in the package; optional newer copy in `~/.cache/SpaceMissionStudio/` | Downloaded only when you agree (start-up prompt) |
+| Space weather (CelesTrak SW-All, NASA MSFC prediction) | Bundled in the package; optional newer copy in `~/.cache/SpaceMissionStudio/` | Downloaded only when you agree (the **Fetch or update reference data?** card on Home at start-up, or **Settings > Reference data**) |
 | IERS-based Earth orientation files (NAIF PCKs) | `~/.cache/SpaceMissionStudio/earth_orientation/` or the installation's `share/` | Optional. Without them the Earth frame is less accurate and runs say so. `spacemissionstudio earth-orientation --fetch` |
 | Vizard (optional) | Downloaded on request, or your own installation | 3-D view only |
 | Scenario files (`.json`) | Where you save them | Your data |
@@ -147,7 +148,7 @@ The tool lets a mission analyst do the following without writing code:
 - A typical session:
   1. Open a template or a scenario.
   2. Edit it.
-  3. Check the **Explain** tab and the validation messages.
+  3. Check Explain (**Scenario › Overview**) and the validation messages.
   4. Run.
   5. Inspect the results.
   6. Export, and run analyses.
@@ -186,8 +187,8 @@ and 7 (checking the installation, a first run in the GUI, the CLI and
 Python).
 
 **Check-list when something does not start:**
-- Is Basilisk installed? **Help > About** or `spacemissionstudio --version`
-  shows the versions.
+- Is Basilisk installed? **Settings > About** (**About SpaceMissionStudio**),
+  the status bar or `spacemissionstudio --version` shows it.
 - Is a display available (GUI)?
 - Read the log file (section 6).
 - GS section 9 and TS list the installation problems seen so far and
@@ -216,14 +217,14 @@ operating-system rights. See 9.9.
 
 - **Close the window:** the tool refuses to close while a run is in
   progress. Cancel the run first.
-- **Run > Cancel Run** (`Esc`): stops a run at the next checkpoint and keeps the
+- **Cancel Run** (`Esc`; in the Run area's header and the status bar): stops a run at the next checkpoint and keeps the
   results so far. The status says "cancelled".
 - **CLI:** a finished command prints its result and returns 0 (AD1).
 
 ### 9.7 Error conditions (H.2.1<9.7>)
 
-The common error conditions are in 10.5. An error is reported in a dialog
-or at the field in the GUI, and on standard error with a non-zero exit code
+The common error conditions are in 10.5. An error is reported at the field,
+or in a note (toast) with the full text in the Log, in the GUI, and on standard error with a non-zero exit code
 in the CLI. An error never closes the application.
 
 ### 9.8 Recover runs (H.2.1<9.8>)
@@ -248,7 +249,7 @@ in the CLI. An error never closes the application.
   - Conditions (`if`/`while`) cannot run code (AD3, S-02).
 - **Monte Carlo archives:** Basilisk writes them as pickle files. Do not
   load archives you did not create with Basilisk's own tools (AD3, S-04).
-  The Results tab's Monte Carlo view and **Open Monte Carlo Results...** read only the
+  **Results > Monte Carlo** and **Open Monte Carlo Results...** read only the
   pickle-free summary next to them (`batch_results.npz`, `.json`).
 - **Vizard live streaming:** the tool opens no network port. Vizard
   listens on port 5556 while a run streams, and the simulation connects
@@ -271,24 +272,24 @@ in the CLI. An error never closes the application.
 | Action | GUI | CLI |
 |---|---|---|
 | Validate | automatic while editing | `spacemissionstudio validate FILE` |
-| Run | **Run > Run** (`Ctrl+R`), in the run mode beside it | `spacemissionstudio run FILE --out-dir DIR [--oem] [--allow-scripts]` |
-| Cancel | **Run > Cancel Run** (`Esc`) | Ctrl+C |
-| Lifetime | **Analyses > End of Life** | `spacemissionstudio lifetime FILE` |
-| Budget | **Analyses > Budget** | `spacemissionstudio budget FILE` |
-| Earth orientation files | start-up prompt | `spacemissionstudio earth-orientation [--fetch \| --import FILES \| --rollback]` |
+| Run | **Run** (`Ctrl+R`; the top bar or the Run area's header), in the run mode beside it | `spacemissionstudio run FILE --out-dir DIR [--oem] [--allow-scripts]` |
+| Cancel | **Cancel Run** (`Esc`) | Ctrl+C |
+| Lifetime | **Run > End of Life** | `spacemissionstudio lifetime FILE` |
+| Budget | **Run > Budget** | `spacemissionstudio budget FILE` |
+| Earth orientation files | the reference-data card on Home; **Settings > Reference data** | `spacemissionstudio earth-orientation [--fetch \| --import FILES \| --rollback]` |
 | CCSDS | – | `ccsds-validate`, `ccsds-export`, `ccsds-import` |
 
 ### 10.2 Help method (H.2.1<10.2>)
 
 - Every field has a tooltip: meaning, unit, range.
 - Validation messages name the field.
-- The **Explain** tab summarises what the scenario models.
+- Explain (**Scenario › Overview**) summarises what the scenario models.
 - `spacemissionstudio <command> --help` lists the arguments.
 - UM section 11 answers common questions.
 
 ### 10.3 Screen definitions and formats (H.2.1<10.3>)
 
-- The window opens at 1400 × 850 and is resizable; the tabs and panels
+- The window opens at 1400 × 850 and is resizable; the pages and panels
   scroll.
 - No minimum screen size has been specified or tested.
 - Screen layout: UM section 3, with screenshots in `docs/images/`.

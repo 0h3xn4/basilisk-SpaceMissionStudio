@@ -208,7 +208,7 @@ bar and no toolbar:
 - **Home (M3, `gui/load_scenario_widget.py`):** while it asks, the
   reference-data card across the top (it replaced the start-up dialog);
   then three columns: Start (New blank scenario, the recent scenarios
-  with their empty state, Open), the template cards in as many columns
+  with their empty state, Open a scenario file...), the template cards in as many columns
   as fit (at least 264 px each) with a filter, and the selected card's
   whole description with Open template (the page's one accent button)
   and Customize. A card is a `card` surface: hover `bg.hover`, selected
@@ -269,7 +269,7 @@ bar and no toolbar:
   pixel. The axis is UTC with `Z` when the run has an epoch. Zoom: the
   wheel, `+`/`-`; pan: Shift+wheel, a right or middle drag, the arrow keys;
   fit: `0` or Home.
-- **Reports › Exports (M8):** `gui.exports_page`, the first tab of
+- **Reports › Exports (M8):** `gui.exports_page`, the first page of
   Reports: every export (`EXPORTS`) in a `DataTable` with its format,
   view, destination, provenance and the last time written, which each
   export records with `gui.export_log.record(key, path)` once its files
@@ -374,7 +374,7 @@ popovers, tooltips) are `bg.raised` with a 1 px border instead.
 | Command | `actions.ActionRegistry.add(id, text, handler, category=, area=, shortcut=, tip=)` | Every command of the window: its palette entry, header and top-bar buttons, tooltip ("Save (Ctrl+S)") and shortcut row come from it |
 | Area | `shell.Shell.register(id, icon, label, content, order)`, `AreaPage.add_command(action)` | A top-level area of the navigation rail, hosting a screen, with its commands in its header |
 | Elided label | `app_shell.ElidedLabel` | One line that ends in "..." rather than widening the window; the whole text is its tooltip |
-| Event table | `event_timeline_widget._EventTable` | Events, sortable; Ctrl+C copies the selection as TSV |
+| Event table | `EventTimelineWidget.table`, a `DataTable` over `event_timeline_widget._EventRows` | Events, sortable; Ctrl+C copies the selection as TSV |
 
 ## Patterns
 
@@ -450,7 +450,8 @@ Commands with a **standard key** take the platform's own key for it
 (Qt's `QKeySequence.StandardKey`), so their keys differ between systems.
 The table gives them as Qt binds them without a desktop theme (the CI's
 offscreen platform). Qt's documentation gives Ctrl+Shift+Z for Redo on
-GNOME and KDE.
+GNOME and KDE. A command is named by its palette category and its
+label (there are no menus).
 
 | Command | Keys | Standard key |
 |---|---|---|
@@ -492,9 +493,9 @@ standard key is checked against the running platform's binding.
 
 | Where | Keys | Does |
 |---|---|---|
-| Events | Ctrl+F | Search the events |
-| Events | Esc | Clear the search |
-| Events table | Ctrl+C | Copy the selected rows as TSV |
+| Timeline | Ctrl+F | Search the events |
+| Timeline | Esc | Clear the search |
+| Timeline's event table | Ctrl+C | Copy the selected rows as TSV |
 | Mission Sequence list | Alt+Up, Alt+Down | Move the step |
 | Mission Sequence list | Delete | Remove the step |
 | Scenario tree | Up, Down | Pass through a group or a page's sections in the key's direction |

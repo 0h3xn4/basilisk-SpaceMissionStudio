@@ -7,24 +7,27 @@ and the exported files.
 
 | Where | What it shows | Needs a run? |
 |---|---|---|
+| **Results > Overview** | The shown run's headline figures, and its provenance | Yes |
 | **Results > Plots** | A catalog of the run's plots and a grid of up to six, with a readout | Yes |
 | **Results > Dashboard** | Pointing mode, power and link at a glance (for a comms-pointing spacecraft) | Yes |
 | **Results > Output** | What each `report` command in a Mission Sequence recorded | Yes |
-| **Results > Monte Carlo** | The spread of a batch (only when Monte Carlo is on) | A batch |
-| **Events** | Passes, eclipses, burns and mode changes, as a timeline and a table | Yes |
-| **Compare** | Two or more saved runs: a summary with differences, the inputs that differ, events, plots | Two runs |
-| **Log** | What the app logged in this session, with every message a toast showed; a failed run opens it | No |
+| **Results > Monte Carlo** | The spread of a batch (shown when the scenario has Monte Carlo on or a batch is open) | A batch |
+| **Timeline** | Passes, eclipses, burns and mode changes, as a timeline and a table | Yes |
+| **Results > Compare** | Two or more saved runs: a summary with differences, the inputs that differ, events, plots | Two runs |
+| **Run > History** | Every run kept, newest first, with its status, start and duration | Yes |
+| **Run > Log** | What the app logged in this session, with every message a toast showed; a failed run opens it | No |
 | **Run > End of Life** | Orbital lifetime and deorbit check | No |
 | **Run > Budget** | Delta-V and propellant budget | No (better after a run) |
-| **Reports** (the navigation rail) | Export the flight software, or run it in the loop | No |
+| **Reports > Exports** | Every export the app makes, where it is made, and when this machine last wrote one | No |
+| **Reports > Flight Software** | Export the flight software, or run it in the loop | No |
 | Right: **Inspector** | The field you are in: its value, accepted range and help | No |
-| Right: **Explain** | What the scenario is set up to do, and warnings before you run | No |
+| **Scenario > Overview** | What the scenario is set up to do, and warnings before you run | No |
 | Bottom: **Problems** | What does not validate or looks implausible, by severity, field and object; double-click one to go to its field | No |
 | **Reference data** dialog (status bar, or **Settings > Reference data**) | Every reference data file, its status and where it came from | No |
 
 ## Find a plot
 
-1. On **Results**, type a few letters in **Search plots**, for example
+1. On **Results > Plots**, type a few letters in **Search plots**, for example
    `altitude` or `rw_speeds`, and press Enter, or click a plot in the
    catalog. Hover an entry to see its code name (for example
    `sat-1.position_N`), which is also its CSV file name.
@@ -40,7 +43,7 @@ and the exported files.
 
 ## Compare two runs
 
-Run again after a change, then open **Compare**. The run and the one
+Run again after a change, then open **Results > Compare**. The run and the one
 before it are ticked; tick others to add them. The oldest ticked run is
 the base:
 
@@ -52,7 +55,7 @@ the base:
 
 Every run is saved in `~/.spacemissionstudio/runs` (the newest 20), so
 you can compare with a run from an earlier session. **Delete run...**
-removes one. On **Results**, **Compare with** draws an earlier run's
+removes one. On **Results > Plots**, **Compare with** draws an earlier run's
 curves dashed, and **Input differences...** lists what differs.
 
 ![Results > Compare with two runs of template 22, one day and two days long: the summary with a difference column](../images/compare_tab.png)
@@ -67,10 +70,10 @@ time cursor from event to event.
 
 ## Look at one moment
 
-Click a plot, or click on the **Events** timeline, to set the **time
+Click a plot, or click on the **Timeline**, to set the **time
 cursor**, or press **Alt+Right** in Results. A red line marks it
-on every view; the Timeline says what is in progress then, and Mission
-Dashboard shows the values at that moment. In Results
+on every view; the Timeline says what is in progress then, and
+**Results > Dashboard** shows the values at that moment. In Results
 **Alt+Left**/**Alt+Right** move it a sample (with **Shift**, ten),
 **Alt+PgUp**/**Alt+PgDown** to the previous or next event, and
 **Alt+Home**/**Alt+End** to the run's start or end (the Time Cursor
@@ -84,14 +87,14 @@ commands). **Clear Time Cursor**, at the top of Results and the Timeline
 | Results: **Export CSV...** | Every series, in SI units, one `.csv` per series |
 | Results: **Save PNG...** / **Save SVG...** | The selected plot (click a plot to select it) |
 | Results: **Export all...** | Every shown plot as PNG or SVG, with its data as CSV and `provenance.json` |
-| Events: **Export CSV...** | The events shown, in seconds and UTC, one column per measured value |
-| Events: **Ctrl+C** | The selected rows, as tab-separated text |
-| Mission Output: **Export CSV...** | Every report, in SI units |
+| Timeline: **Export CSV...** | The events shown, in seconds and UTC, one column per measured value |
+| Timeline: **Ctrl+C** | The selected rows, as tab-separated text |
+| Results > Output: **Export CSV...** | Every report, in SI units |
 
 Every export records its provenance: the software versions and the
 checksum of every input, so you can tell later exactly what produced it.
 The Results export writes a `provenance.json` into its folder; the
-Events and Mission Output exports write `<file>.provenance.json` beside
+Timeline and Output exports write `<file>.provenance.json` beside
 the CSV; PNG and SVG files carry it inside the image.
 
 ## From the command line

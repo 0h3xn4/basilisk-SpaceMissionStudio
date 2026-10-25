@@ -9,7 +9,7 @@ orientation.
 
 ## Choose where it points
 
-On the spacecraft's **Attitude control** tab, pick an **FSW mode**:
+On the spacecraft's **Attitude control** page, pick an **FSW mode**:
 
 | FSW mode | Points |
 |---|---|
@@ -25,24 +25,24 @@ The mode's settings appear under **Pointing parameters**; **Control gains
 spacecraft's inertia. **Initial attitude / body rate** sets how it starts.
 
 For a spacecraft that points at the Sun and turns to a ground station
-during each pass, tick **Comms pointing** on the same tab instead of
+during each pass, tick **Comms pointing** on the same page instead of
 choosing an FSW mode (template **19**).
 
 ## Add sensors and actuators
 
-On **Sensors / actuators**, **Add...** a device:
+On **Sensors / actuators**, **Add** a device:
 
 - **Sensors:** star tracker, IMU, coarse sun sensor, magnetometer,
   thermal. Coarse sun sensors read zero in a planet's shadow. To include
   the sunlight Earth or Mars reflects onto them, tick **Reflected sunlight
-  on the sun sensors** in the Scenario Editor's gravity settings: an
+  on the sun sensors** on the **Environment** page: an
   Earth-facing sensor can see a quarter of the direct sunlight, which
   pulls a sun heading estimated from the sensors off the Sun (template 14,
   "Try changing"). Each sensor's share is plotted as
   `{spacecraft}.sensor.{sensor}.albedo`.
 - **Actuators:** reaction wheel, thruster, magnetic torque rod.
 
-In the dialog, **Start from a real device** lists commercially available
+In the device's form, under the list, **Start from a real device** lists commercially available
 devices; **Apply device values** fills in that device's numbers. You can
 also type your own. Without actuators, the controller's torque is applied
 directly (an ideal actuator).
@@ -63,8 +63,8 @@ Wheels slowly fill up with momentum. Two ways to unload them, both on
 
 ## Add disturbances
 
-- **Enable gravity gradient torque** (Orbit / mass tab, template **10**).
-- **Surface facets** (Orbit / mass tab): drag and solar pressure that
+- **Enable gravity gradient torque** (Orbit / mass page, template **10**).
+- **Surface facets** (Orbit / mass page): drag and solar pressure that
   depend on the attitude and can twist the spacecraft (template **21**).
   A spacecraft's 3D model can generate them, with its mass, center of
   mass and inertia ([`model`](command-line.md#3d-models)).

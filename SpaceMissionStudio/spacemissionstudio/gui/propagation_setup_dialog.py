@@ -228,7 +228,7 @@ class PropagationSetupDialog(QDialog):
             "a common practical choice for most mission-design work.\n"
             "ECSS-E-ST-10-04C 4.2.2a: Earth orbits need degree and order 70 or more (GGM03S goes to 180; "
             "Mars's GGM2B to 80). "
-            "The Explain tab notes when the degree leaves out more than the SRP acceleration (4.2.1b)."
+            "Explain (Scenario › Overview) notes when the degree leaves out more than the SRP acceleration (4.2.1b)."
         )
         form.addRow("Degree/order", self.central_body_degree_spin)
 

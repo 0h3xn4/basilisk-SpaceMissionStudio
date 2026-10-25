@@ -19,7 +19,8 @@ The app remembers where Vizard is.
 
 ## Watch a run
 
-1. **Vizard Configuration...** (the Run area) and choose how the next run feeds
+1. On **Run > Run** (the command palette's **Vizard Configuration...**
+   goes there), in the **Vizard** section, choose how the next run feeds
    Vizard:
    - **Write a .bin playback file to open in Vizard afterward**, or
    - **Live-stream to a Vizard instance already running on this machine**
@@ -48,7 +49,7 @@ comms-pointing spacecraft (template 19), and a formation follower's
 delta-V and separation from its chief (templates 05 and 29; an ROE
 formation also shows its closest radial/cross-track approach). A spacecraft's own look comes
 from its [3D model](3d-model.md), or from a model file set on the
-spacecraft page's **Vizard model** tab.
+spacecraft's **Vizard model** page.
 
 **More detail:** User Manual section 9,
 [3D visualization with Vizard](../../USER_MANUAL.md#9-3d-visualization-with-vizard).
