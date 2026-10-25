@@ -80,11 +80,11 @@ is **ITRF93** (precession, nutation with IERS corrections, UT1, polar
 motion); without them it is SPICE's `IAU_EARTH` rotation model (about
 1.5 mrad, roughly 10 km at the surface, away from ITRF93 in 2026) and every
 Earth run says so. The files (about 36 MB from naif.jpl.nasa.gov) are
-fetched by the installers, by the startup prompt when you agree, or with
+fetched by the installers, by the reference-data card on Home when you agree, or with
 `spacemissionstudio earth-orientation --fetch`; `--import FILE` installs
 them from disk and `--rollback` restores the previous set. After the files'
 last measured data plus about ten weeks the orientation is NAIF's
-long-term prediction, which the Explain tab notes.
+long-term prediction, which Explain (**Scenario › Overview**) notes.
 
 ## Space weather
 
@@ -92,7 +92,7 @@ long-term prediction, which the Explain tab notes.
 while a scenario runs -- never touches the network. Space weather is real
 data only: `source` is `"bundled"` (the default: CelesTrak's SW-All file
 shipped in `spacemissionstudio/data/spaceweather/`, or a newer copy the
-startup prompt downloaded) or `"local_file"` (your own CelesTrak file).
+reference-data card on Home downloaded) or `"local_file"` (your own CelesTrak file).
 The shipped file (updated 2026-10-12; <https://celestrak.org/SpaceData/>)
 holds observed daily F10.7 and Ap from 1957-10-01 and CelesTrak's 45-day
 forecast. Beyond that, solar activity comes from NASA MSFC's October 2026
@@ -116,8 +116,8 @@ access happens only in these places, each started by you:
 | Where | What it fetches | How it asks |
 |---|---|---|
 | Installation | Basilisk and the Python packages (PyPI), then the support data once | You run the installer or `pip` |
-| The **Fetch/update data?** dialog at each GUI start (`gui.startup_fetch_dialog`) | Support data, CelesTrak space weather, Earth orientation files: what you tick | Shown every time; **Skip** touches no network; no "don't ask again" |
-| The **Reference data** dialog's **Download...** | Support data, space weather or Earth orientation | Names the source, the files and the size; default No |
+| The **Fetch or update reference data?** card on Home at each GUI start (`gui.startup_fetch_dialog.ReferenceDataCard`) | Support data, CelesTrak space weather, Earth orientation files: what you tick | Shown every time; **Not now** touches no network; no "don't ask again" |
+| The **Reference data** dialog's **Download...** (**Settings > Reference data**, or the status bar) | Support data, space weather or Earth orientation | Names the source, the files and the size; default No |
 | **Download Vizard** in the "Vizard not found" dialog | AVS's pre-built Vizard | Only on that click; **Browse...** is the alternative |
 | Commands you type | `kernels-status` (missing support data), `earth-orientation --fetch` | Running the command is the request |
 

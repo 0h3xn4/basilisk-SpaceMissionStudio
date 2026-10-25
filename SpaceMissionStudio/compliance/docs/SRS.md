@@ -307,7 +307,7 @@ There is no database.
 |---|---|
 | SRS-H-01 | Every input shall show its unit and, where relevant, its frame or epoch. Errors shall point to the field. |
 | SRS-H-02 | Templates shall show worked examples. |
-| SRS-H-03 | The Explain tab shall summarise what a scenario models. |
+| SRS-H-03 | Explain (Scenario › Overview) shall summarise what a scenario models. |
 
 The UX/UI guidelines applied after this audit (UD-5) will refine these
 requirements.

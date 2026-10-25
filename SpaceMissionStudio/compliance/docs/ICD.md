@@ -132,7 +132,7 @@ codes are those of ICD-02.
 | Bundled | CelesTrak SW-All (observed daily Kp/Ap and F10.7, then CelesTrak's forecast), shipped in `spacemissionstudio/data/spaceweather/`, together with NASA MSFC's prediction (13-month smoothed F10.7 and Ap at the 5th, 50th and 95th percentiles). |
 | Local file | The user's CelesTrak `.txt` or `.csv` (RD4). |
 | Use | `engine.spaceweather.resolve()` assembles the records for the run's span. It refuses a span outside the data, naming the range. It never accesses the network. |
-| Download | `engine.spaceweather.fetch()`, only on explicit user action (GUI start-up prompt or menu). |
+| Download | `engine.spaceweather.fetch()`, only on explicit user action (GUI: the reference-data card on Home at start-up, or the Reference data dialog). |
 
 #### 5.3.6 SPICE and Earth orientation kernels (ICD-06)
 
@@ -164,7 +164,7 @@ messages (`SimulationBaseClass`, `spacecraft`, `gravityEffector`,
 
 | Item | Definition |
 |---|---|
-| Service | `export-fsw` (CLI) or the Flight Software page (Tools > Flight Software) writes one spacecraft's attitude flight software as a C project; `fsw-status` and the page check a recorded export against the scenario. |
+| Service | `export-fsw` (CLI) or the Flight Software page (Reports > Flight Software) writes one spacecraft's attitude flight software as a C project; `fsw-status` and the page check a recorded export against the scenario. |
 | Format | A folder: `CMakeLists.txt`; `basilisk/` (the Basilisk 2.12.0 C sources the modules need, unchanged, with Basilisk's licence); `generated/` (C message interface, `fsw_config.[ch]`, scheduler, port tables, layout checks); `host/fsw_host.c`; `tests/` (one C unit test per module, replay traces); `ICD.md`; `TRACEABILITY.md`; `README.md`; `capture.json`; `manifest.json`. |
 | Key items | `manifest.json`: `format` (1), `config_digest` (64 hex digits), `basilisk_revision`, `rate_ns`, `ports` (name, message type, size in bytes, 16-hex-digit layout hash), `files` (path to SHA-256). Trace files: magic `SMSFTRC1`, little-endian, one record per step of time in ns, written flags and raw payloads (`generated/fsw_trace.h`). |
 | Record in the scenario | `Scenario.fsw_exports[]`: spacecraft, folder, `config_digest`, per-group hashes (`parts`), export time, Basilisk revision (RD1). |

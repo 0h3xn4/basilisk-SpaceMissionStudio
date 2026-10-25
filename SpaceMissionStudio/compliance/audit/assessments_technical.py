@@ -128,7 +128,7 @@ TECHNICAL_RULES = [
     ("E-ST-10-09C", "5.4.9f", "C", "R04 (Phase 2): engine/earth_orientation.py; with the NAIF Earth PCKs "
      "installed the Earth-fixed frame is SPICE ITRF93 (IAU 1976/1980 + IERS nutation corrections, UT1, polar "
      "motion; NAIF: 'several microradians' within the high-accuracy span) instead of IAU_EARTH (measured 1.5 "
-     "mrad apart in 2026); planet frame set through spiceInterface.planetFrames; Explain tab and results state "
+     "mrad apart in 2026); planet frame set through spiceInterface.planetFrames; Explain (Scenario › Overview) and results state "
      "the frame and accuracy; tests/test_earth_orientation.py (run frame == SPICE ITRF93 to 1e-12)",
      "Past the files' last datum + 10 weeks the orientation is NAIF's long-term prediction (NAIF: 5-6 mrad); "
      "without the files IAU_EARTH is used and every Earth run warns. Precision needs of users are stated in "
@@ -144,7 +144,7 @@ TECHNICAL_RULES = [
      "tests/test_gravity_gradient.py", "-", "-", "S", "yes", ""),
     ("E-ST-10-04C", "4.2.1b", "P", "R06 (Phase 2): engine/environment_models.py gravity_truncation_acceleration "
      "(Kaula's rule, actual J2) and srp_acceleration; scenario_checks warns when drag is modelled around a "
-     "point-mass Earth and the Explain tab notes when the field's truncation leaves out more than SRP, with "
+     "point-mass Earth and Explain (Scenario › Overview) notes when the field's truncation leaves out more than SRP, with "
      "the degree that matches it; tests/test_environment_models.py",
      "Relating truncation to the orbit/attitude accuracy REQUIREMENTS stays the analyst's task (the tool has "
      "no accuracy requirement input); drag is only compared for the point-mass case. Five bundled templates "
