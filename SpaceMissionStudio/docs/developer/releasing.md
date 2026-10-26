@@ -208,7 +208,13 @@ it on 2026-10-26 (observations to 2026-10-24, updated 2026-10-25); NASA
 MSFC's October 2026 prediction is still the latest issue (checked on
 2026-10-26: the shipped copy matches the published file but for
 whitespace). Its notes come from `CHANGELOG.md` 1.3.0, which has a
-summary, "Who should update" and "Known limits".
+summary, "Who should update" and "Known limits". It was published on
+2026-10-26: tag `spacemissionstudio-v1.3.0` on `7bdfa21ac`, its six files
+built, installed and attached by the release workflow, which wrote the
+notes. As with 1.2.0, the release was published by hand before the
+workflow ran, so it was public without files for 12 minutes, and the
+CHANGELOG heading was dated after the tag: date the heading, then push
+the tag, then publish the draft the workflow makes.
 
 ---
 

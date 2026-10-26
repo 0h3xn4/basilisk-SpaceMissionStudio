@@ -12981,3 +12981,20 @@ stall 403 ms (`develop`, earlier the same day) -> 168 and 157 ms (two
 runs), two stretches over 50 ms each. One run's template run took 14 s
 with 28 stalls; a second took 7.0 s with 3 (the container had just
 restarted), as `develop` (8.3 s, 7). The theme switch did not change.
+
+## Release 1.3.0 published (2026-10-26)
+
+The user tagged `spacemissionstudio-v1.3.0` (lightweight, not signed) on
+`7bdfa21ac`, the merge of #114 into `develop`, and published the GitHub
+release "Space Mission Studio 1.3.0" at 11:55 UTC. The release workflow
+(run 40318662400) built, installed and checked the six files and
+attached them at 12:07, and wrote the notes, since the release had none:
+<https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.3.0>.
+For 12 minutes the public release had no files or notes, as with 1.2.0.
+
+The tagged `CHANGELOG.md` still reads "1.3.0 (not yet released)": the
+heading is dated 2026-10-26 on `develop` now. SRelD issue 14 records the
+publication (tag, run, the files' sizes and SHA-256 digests); SDP, H05
+and `releasing.md` name 1.3.0 as the current release, and `releasing.md`
+gives the order that avoids both gaps next time: date the heading, push
+the tag, publish the workflow's draft.
