@@ -49,16 +49,18 @@ _COLUMNS = ["Kind", "File", "Status", "Covers", "SHA-256", "Installed", "Source"
 NOT_READ = object()  # DataPanelWidget.basilisk_version before a child process has read it
 
 
-_readers: set = set()  # the reads running (_InventoryWorker, _SpaceWeatherWarmUp), until each ends
+_readers: set = set()  # the reads running (_InventoryWorker, _SpaceWeatherWarmUp, _FigureWarmUp), until each ends
 _start_up_read: Optional[tuple] = None  # (files, Basilisk version) of this process's first start-up read
 
 
 def _remember_start_up_read(files: list, basilisk_version) -> None:
     """Keep this process's first start-up read, and parse the space-weather
-    file here now that the window is settled (:class:`_SpaceWeatherWarmUp`)."""
+    file and load plotly's figure classes here now that the window is
+    settled (:class:`_SpaceWeatherWarmUp`, :class:`_FigureWarmUp`)."""
     global _start_up_read
     _start_up_read = (files, basilisk_version)
     _start(_SpaceWeatherWarmUp())
+    _start(_FigureWarmUp())
 
 
 def _start(thread: QThread) -> None:
@@ -93,6 +95,23 @@ class _SpaceWeatherWarmUp(QThread):
 
     def stop(self) -> None:
         """It ends by itself in under a second."""
+
+
+class _FigureWarmUp(QThread):
+    """Builds one small figure (``results_widget.warm_up_figures``): plotly
+    loads its figure classes and validators on first use, which held the
+    first run's end 0.3 s on the GUI thread. Plain Python, as above."""
+
+    def run(self) -> None:
+        from .results_widget import warm_up_figures
+
+        try:
+            warm_up_figures()
+        except Exception:  # noqa: BLE001 -- the first plot then loads them itself, as before
+            _logger.debug("figure warm-up failed", exc_info=True)
+
+    def stop(self) -> None:
+        """It ends by itself in about 0.1 s."""
 
 
 class _InventoryWorker(QThread):

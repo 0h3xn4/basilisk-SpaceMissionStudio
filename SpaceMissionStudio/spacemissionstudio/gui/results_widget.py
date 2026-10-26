@@ -367,6 +367,29 @@ def _template_layout() -> dict:
     return layout
 
 
+def warm_up_figures() -> None:
+    """Load what a session's first plot needs: plotly builds its figure
+    classes and their validators on first use, and the first run's end
+    paid 0.35 s for it on the GUI thread. A small figure laid out as
+    :meth:`ResultsWidget._build_figure` lays one out, built and
+    serialised. Plain Python, nothing of Qt: the start-up warm-ups run it
+    in a worker (``data_panel_widget``)."""
+    axis = pt.axis(TOKENS)
+    values = np.array([0.0, 1.0])  # arrays, as a run's series: plotly hands them to narwhals, which loads its plugins
+    go.Figure(data=[go.Scatter(x=values, y=values, mode="lines", name="x", line=dict(width=2),
+                               hovertemplate="%{y:.4g}<extra></extra>")],
+              layout=dict(title=pt.title(TOKENS, "x", "y"), xaxis=dict(axis, title_text="t [s]", exponentformat="none"),
+                          yaxis=dict(axis, title_text="[m]", separatethousands=True), **_template_layout(),
+                          hovermode="x unified", showlegend=True,
+                          legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1,
+                                      font=dict(color=TOKENS["text.secondary"])),
+                          margin=dict(l=70, r=30, t=60, b=50),
+                          shapes=[dict(type="rect", xref="x", yref="paper", x0=0.0, x1=1.0, y0=0, y1=1, line_width=0,
+                                       layer="below", opacity=0.2),
+                                  dict(type="line", xref="x", yref="paper", x0=0.5, x1=0.5, y0=0, y1=1,
+                                       line=dict(dash="dash", width=1))])).to_json()
+
+
 def _plotlyjs_path() -> Path:
     """Absolute filesystem path to the ``plotly.min.js`` bundle already
     installed as part of the ``plotly`` PyPI package -- see module

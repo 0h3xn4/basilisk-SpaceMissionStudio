@@ -24,6 +24,11 @@ fixes bugs.
   moment, instead of all at once (0.4 s) when the first such message
   appeared (template 08); the check of the space-weather data's dates no
   longer looks through all 25,000 days on every edit.
+- **The first run's end no longer pauses:** the first run of a session
+  held the window 0.2-0.3 s while its first plot was drawn, the time
+  plotly takes to load its figure classes on first use. They are now
+  loaded in the background once start-up has settled; the longest pause
+  at the end of a run is 27-38 ms, first run or not.
 
 ## 1.3.0 (2026-10-26)
 
