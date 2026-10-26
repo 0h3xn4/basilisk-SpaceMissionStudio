@@ -48,6 +48,7 @@ import copy
 import dataclasses
 import math
 import re
+import typing
 from types import SimpleNamespace
 from typing import NamedTuple
 
@@ -1899,15 +1900,12 @@ class SpacecraftEditorDialog(QDialog):
         Reboost thrust [N]" for "station_keeping.thrust_n"), or "". An
         orbit message names its fields bare ("semi_major_axis_km") and its
         type by code ("classical_elements")."""
-        if code in ORBIT_TYPE_LABELS:
-            return ORBIT_TYPE_LABELS[code]
-        if code.removeprefix("orbit.") in ANOMALY_LABELS:  # its row's label is the anomaly-type list
-            return ANOMALY_LABELS[code.removeprefix("orbit.")]
+        known = _title_without_form(code)
+        if known is not None:
+            return known
+        if code.split(".")[0] in _ORBIT_WIDGETS and "." not in code:
+            code = f"orbit.{code}"
         top = code.split(".")[0]
-        if top in _ORBIT_WIDGETS and "." not in code:
-            code, top = f"orbit.{code}", "orbit"
-        if top not in _TOP_FIELDS or (top == "orbit" and code.split(".")[-1] not in _ORBIT_WIDGETS):
-            return ""
         widget = self.field_widget(code)
         if isinstance(widget, QGroupBox) and "." in code:  # a field of a section without its own widget
             return ""
@@ -1920,11 +1918,7 @@ class SpacecraftEditorDialog(QDialog):
         scenario's codes it names ("sim_settings.duration_days") as
         :attr:`other_titles` gives them. "orbit: classical_elements orbit:
         ..." reads "Orbit (Classical elements): ..."."""
-        message = re.sub(r"^([^:]*: )?orbit: (\w+) orbit\b",  # after the spacecraft's name, when it has one
-                         lambda m: f"{m.group(1) or ''}Orbit ({ORBIT_TYPE_LABELS.get(m.group(2), m.group(2))})",
-                         message)
-        other = self.other_titles
-        return labelled(message, lambda code: self.field_title(code) or (other(code) if other else ""))
+        return _problem_text(message, self.field_title, self.other_titles)
 
     def tab_page(self, title: str) -> QWidget | None:
         """The page of the tab named ``title``, or None."""
@@ -2778,6 +2772,80 @@ def applied_summary(name: str, values: dict) -> str:
     if not parts:
         return f"Stored the 3D model of {name!r} (nothing applied: see its Use tab)"
     return f"Applied the 3D model of {name!r}: {', '.join(parts)}"
+
+
+def _title_without_form(code: str) -> str | None:
+    """The title :meth:`SpacecraftEditorDialog.field_title` gives ``code``
+    when it needs no form: an orbit type or anomaly's, or "" for a code
+    that names no spacecraft field (most words of a message). None when
+    the form's widget for it is needed."""
+    if code in ORBIT_TYPE_LABELS:
+        return ORBIT_TYPE_LABELS[code]
+    if code.removeprefix("orbit.") in ANOMALY_LABELS:  # its row's label is the anomaly-type list
+        return ANOMALY_LABELS[code.removeprefix("orbit.")]
+    top = code.split(".")[0]
+    if top in _ORBIT_WIDGETS and "." not in code:
+        code, top = f"orbit.{code}", "orbit"
+    if top not in _TOP_FIELDS or (top == "orbit" and code.split(".")[-1] not in _ORBIT_WIDGETS):
+        return ""
+    return None
+
+
+def _problem_text(message: str, title_for, other_titles=None) -> str:
+    """``message`` with its field codes as ``title_for`` gives them, and
+    the scenario's codes as ``other_titles`` does. "orbit: classical_elements
+    orbit: ..." reads "Orbit (Classical elements): ..."."""
+    message = re.sub(r"^([^:]*: )?orbit: (\w+) orbit\b",  # after the spacecraft's name, when it has one
+                     lambda m: f"{m.group(1) or ''}Orbit ({ORBIT_TYPE_LABELS.get(m.group(2), m.group(2))})",
+                     message)
+    return labelled(message, lambda code: title_for(code) or (other_titles(code) if other_titles else ""))
+
+
+def _spacecraft_field_codes() -> list:
+    """Every code a spacecraft's field can have: its fields, the fields of
+    each of its sections ("station_keeping.thrust_n", and of a list's
+    items), and the orbit's ("orbit.eccentricity")."""
+    hints = typing.get_type_hints(SpacecraftConfig)
+    codes = [f"orbit.{name}" for name in _ORBIT_WIDGETS]
+    for top in dataclasses.fields(SpacecraftConfig):
+        codes.append(top.name)
+        for kind in (hints[top.name], *typing.get_args(hints[top.name])):
+            for inner in (kind, *typing.get_args(kind)):
+                if dataclasses.is_dataclass(inner) and top.name != "orbit":
+                    codes += [f"{top.name}.{f.name}" for f in dataclasses.fields(inner)]
+    return list(dict.fromkeys(codes))
+
+
+class SpacecraftLabels:
+    """The titles a spacecraft form gives its fields, for messages about a
+    spacecraft whose page has no form yet, without keeping a form: one is
+    built for every code of the schema at the first title asked for, read
+    and deleted (it was 1,000 hidden widgets every theme switch restyled).
+    A code outside the schema ("fsw_params.k") gets its own form once.
+    The titles are those of a new spacecraft's form, as before."""
+
+    def __init__(self, other_titles=None) -> None:
+        self.other_titles = other_titles  # the scenario's titles, as SpacecraftEditorDialog.other_titles
+        self._titles: dict = {}
+
+    def field_title(self, code: str) -> str:
+        known = _title_without_form(code)
+        if known is not None:
+            return known
+        if code not in self._titles:
+            self._read(code)
+        return self._titles[code]
+
+    def problem_text(self, message: str) -> str:
+        return _problem_text(message, self.field_title, self.other_titles)
+
+    def _read(self, code: str) -> None:
+        form = SpacecraftEditorDialog(embedded=True)  # never shown: a page's form has no window to size
+        try:
+            for each in [*([] if self._titles else _spacecraft_field_codes()), code]:
+                self._titles[each] = form.field_title(each)
+        finally:
+            form.deleteLater()
 
 
 class SpacecraftListWidget(QWidget):

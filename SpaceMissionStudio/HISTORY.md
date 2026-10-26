@@ -12998,3 +12998,31 @@ publication (tag, run, the files' sizes and SHA-256 digests); SDP, H05
 and `releasing.md` name 1.3.0 as the current release, and `releasing.md`
 gives the order that avoids both gaps next time: date the heading, push
 the tag, publish the workflow's draft.
+
+## The messages' titles without a hidden form (2026-10-26)
+
+The user: "yes, remove the hidden label form". Branch `label-form-free`.
+
+**Measured first.** `ScenarioEditorWidget._labels_form` built a
+spacecraft form, never shown, to word messages about a spacecraft whose
+page had no form yet, and kept it for the session. Opening each template
+in turn, the first to build it was 08; from then on it was always there:
+975 of the window's 2,663 widgets. A theme switch with it took 419 ms,
+without it 348 (template 23 open, its page not visited).
+
+**The change.** `SpacecraftLabels` (`gui/spacecraft_editor.py`) builds a
+form at the first title asked for, reads the title of every code of the
+spacecraft schema (197) and of the code asked, keeps them and deletes the
+form; a code outside the schema builds a form once for it. The part of
+`field_title` that needs no form (orbit types and anomalies, and "" for a
+word that names no field) and `problem_text` are now functions the form
+and `SpacecraftLabels` share. The ground station's label form stays.
+
+**Test:** `test_the_spacecraft_labels_are_the_forms_without_keeping_one`
+compares the titles with a form's for every schema code and a code
+outside it, and the messages validate() gives for six bad values of
+template 18's spacecraft; no spacecraft form is left afterwards.
+
+**Result** (every template opened in turn, then template 23, five
+switches each): `develop` 1 hidden spacecraft form, 2,663 widgets, theme
+switch median 532 ms; this branch none, 1,688 widgets, 359 ms.
