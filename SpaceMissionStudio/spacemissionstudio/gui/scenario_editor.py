@@ -66,7 +66,7 @@ from .mission_sequence_editor import MissionSequenceEditorWidget
 from .monte_carlo_editor import MonteCarloGroupWidget
 from .problem_location import (GROUND_STATION, JSON_VIEW, MISSION_SEQUENCE, PROPAGATION, SCENARIO, SPACECRAFT,
                                locate)
-from .spacecraft_editor import SpacecraftEditorDialog, SpacecraftListWidget, tab_titles
+from .spacecraft_editor import SpacecraftEditorDialog, SpacecraftLabels, SpacecraftListWidget, tab_titles
 from .theme import CONTENT_MAX_WIDTH_PX, set_role
 from .widgets import ComboBox, out_of_range_boxes
 from .workspace_panels import field_label
@@ -175,7 +175,7 @@ class ScenarioEditorWidget(QWidget):
         self._spacecraft_nodes: list = []
         self._station_nodes: list = []
         self._environment_form = None
-        self._label_forms: dict = {}  # area -> a form never shown, for its labels (problem_display)
+        self._label_forms: dict = {}  # area -> its titles (problem_display): SpacecraftLabels, a station form
 
         self.scenario_page = _page(self._build_identity_group(), top=True)
         self.environment_page = self._build_propagation_group()
@@ -975,15 +975,13 @@ class ScenarioEditorWidget(QWidget):
                 return node.form
         form = self._label_forms.get(area)
         if form is None:
-            # Built as a page's form, never shown: no window to size (M9).
-            if area == SPACECRAFT:
-                form = SpacecraftEditorDialog(parent=self, embedded=True)
-                form.other_titles = self._environment_title
+            if area == SPACECRAFT:  # its titles only: no form kept (1,000 hidden widgets every theme switch restyled)
+                form = SpacecraftLabels(other_titles=self._environment_title)
             else:
                 from .ground_station_editor import GroundStationEditorDialog
 
-                form = GroundStationEditorDialog(parent=self, embedded=True)
-            form.hide()
+                form = GroundStationEditorDialog(parent=self, embedded=True)  # never shown: no window to size (M9)
+                form.hide()
             self._label_forms[area] = form
         return form
 

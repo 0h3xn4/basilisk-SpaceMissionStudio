@@ -8,6 +8,16 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **A faster theme switch, again:** a message about a spacecraft whose
+  page had not been opened was worded from a hidden spacecraft form, kept
+  for the session once any template from 08 on was opened: about 1,000
+  widgets that every theme switch restyled. The titles are now read from
+  such a form once, kept as text, and the form deleted. A switch takes
+  about 0.36 s where it took 0.53 s (all templates opened, then template
+  23); the messages read as before.
+
 ## 1.3.0 (2026-10-26)
 
 A new interface. The window has a navigation rail in place of menus and

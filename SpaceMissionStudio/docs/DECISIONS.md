@@ -5,6 +5,24 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The messages' titles without a hidden form (2026-10-26)
+
+The user: "yes, remove the hidden label form" (K-19).
+
+- **Titles kept as text, the form deleted:** a message about a spacecraft
+  whose page has no form was worded from a new spacecraft form built
+  for that and kept hidden. `SpacecraftLabels` builds one at the first
+  title asked for, reads the title of every code of the schema (197:
+  the spacecraft's fields, its sections' fields, the orbit's), keeps
+  them and deletes the form. The titles are the same (a test compares
+  them with a form's for every code and for template 18's messages).
+- **A code outside the schema** (a key of `fsw_params`, a list item's
+  field) builds a form once for it; its title is kept too.
+- **Most words need no form:** `field_title` answers "" at once for a
+  word that names no spacecraft field; that part is now a function both
+  use, as is `problem_text`, so the two cannot drift apart.
+- **The ground station's label form stays:** it is small.
+
 ## The spacecraft page, a section at a time (2026-10-26)
 
 The user: "yes, build the spacecraft page a section at a time" (K-23).

@@ -218,3 +218,41 @@ def test_a_generator_dialog_names_its_own_fields(qtbot):
     text = dialog_error_text(dialog)
     assert "Total satellites" in text and "Number of planes" in text
     assert "total_satellites" not in text and "num_planes" not in text
+
+
+def test_the_spacecraft_labels_are_the_forms_without_keeping_one(qtbot):
+    """SpacecraftLabels gives every code of the schema, and every message
+    validate() gives for template 18's spacecraft, the titles a new
+    spacecraft's form gives them; afterwards no spacecraft form is left
+    (it was 1,000 hidden widgets every theme switch restyled)."""
+    from PySide6.QtCore import QCoreApplication, QEvent
+    from PySide6.QtWidgets import QApplication
+
+    from spacemissionstudio.gui.spacecraft_editor import (SpacecraftEditorDialog, SpacecraftLabels,
+                                                          _spacecraft_field_codes)
+    from spacemissionstudio.schema.scenario import ScenarioValidationError, load_scenario
+
+    labels = SpacecraftLabels()
+    base = load_scenario(_TEMPLATES / "18_leo_station_keeping.json")
+    messages = []
+    for path in ("dry_mass_kg", "drag_area_m2", "station_keeping.thrust_n", "station_keeping.deadband_km",
+                 "drag_coeff", "inertia_kg_m2"):
+        scenario = copy.deepcopy(base)
+        obj, *parents, leaf = [scenario.spacecraft[0], *path.split(".")]
+        for part in parents:
+            obj = getattr(obj, part)
+        setattr(obj, leaf, -1.0 if leaf != "inertia_kg_m2" else [-1.0] * 9)
+        try:
+            scenario.validate()
+        except ScenarioValidationError as exc:
+            messages.append(str(exc))
+    assert len(messages) >= 4
+    shown = {message: labels.problem_text(message) for message in messages}
+    titles = {code: labels.field_title(code) for code in _spacecraft_field_codes() + ["fsw_params.k_p"]}
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    assert not [w for w in QApplication.allWidgets() if isinstance(w, SpacecraftEditorDialog)]
+
+    form = SpacecraftEditorDialog(embedded=True)
+    qtbot.addWidget(form)
+    assert shown == {message: form.problem_text(message) for message in messages}
+    assert titles == {code: form.field_title(code) for code in titles}
