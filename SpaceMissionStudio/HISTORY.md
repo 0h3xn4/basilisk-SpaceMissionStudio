@@ -12896,3 +12896,40 @@ normally appears in early November).
 **What changes:** drag on dates from 2026-09-09 to 2026-12-07 and in
 2027-01 and 2027-02. Every template starts in 2030; CHANGELOG 1.3.0 says
 so, and its summary no longer says results are all the same as 1.2.0.
+
+## The theme switch, halved (2026-10-26)
+
+The user: "yes, start on the theme switch". Branch `theme-switch-speed`.
+
+**Measured first.** A script broke a live switch into its parts on a
+window with template 23 open and every page visited (2,889 widgets, 97
+of them shown): the palette and the sheet's text about 2 ms, clearing the
+sheet about 200 ms, setting the new one 270-390 ms, our own theme
+callbacks about 1 ms, the repaint after 25-50 ms. Python takes about
+30 ms of a switch (cProfile); the rest is Qt restyling widgets.
+
+**The bug.** `apply_theme` called `app.setStyle("Fusion")` whenever
+`app.style().name()` was not "fusion"; with a style sheet set, that is
+Qt's style-sheet style, whose name is empty, so every switch set Fusion
+again: a full restyle of every widget before the sheet's own. Fusion is
+now set only while no sheet is set. A new test
+(`test_a_live_switch_restyles_once`) failed before the fix (Fusion set on
+both switches) and passes after it.
+
+**Results**, the plan's probe (`scripts/measure_ui_baseline.py
+--interactions-only`), `develop` and this branch run one after the other
+on this machine: dark 1970 -> 1206 ms, light 2191 -> 996 ms. The probe
+keeps the spacecraft editor dialog it opened (about 1,000 widgets) and
+spins `processEvents()` without an event loop, so deferred deletes wait;
+without the dialog, a switch takes about 0.5 s (was about 1 s).
+
+**Tried and not kept:** setting the new sheet without clearing the old
+one (3.5-4.1 s). **Looked at and not a problem:** two parentless
+propagation setup forms in the counts were the old Environment forms
+waiting for `deleteLater` in the script (gone once deferred deletes run);
+the spacecraft list's Add builds its dialog only for its defaults and
+deletes it.
+
+**Still not met:** 0.1 s (SRelD K-19). The rest is per widget: even a
+one-rule sheet costs about 0.3 s. Next: fewer hidden widgets, the
+spacecraft page built a section at a time (also K-23's first visit).
