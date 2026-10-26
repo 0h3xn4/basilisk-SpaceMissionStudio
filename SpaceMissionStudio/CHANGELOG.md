@@ -8,7 +8,7 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## 1.3.0 (not yet released)
+## 1.3.0 (2026-10-26)
 
 A new interface. The window has a navigation rail in place of menus and
 toolbars, a command palette (`Ctrl+K`), a Problems panel and an inspector;
