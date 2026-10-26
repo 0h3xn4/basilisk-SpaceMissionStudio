@@ -172,6 +172,7 @@ class ScenarioEditorWidget(QWidget):
         self.problems: list = []
         self._form_errors: dict = {}  # a live form's problem, by form; the scenario is not valid while there is one
         self._applying = False  # a live form is writing its value: the lists need no rebuild
+        self._loading = False  # from_scenario() is filling the form: it validates once, at the end
         self._spacecraft_nodes: list = []
         self._station_nodes: list = []
         self._environment_form = None
@@ -865,6 +866,16 @@ class ScenarioEditorWidget(QWidget):
             return []
 
     def from_scenario(self, scenario: Scenario) -> None:
+        # Each field set below is an edit that validated the whole scenario
+        # (four times per file opened, 55 ms): once, when every field is in.
+        loading, self._loading = self._loading, True
+        try:
+            self._fill_from(scenario)
+        finally:
+            self._loading = loading
+        self.revalidate()
+
+    def _fill_from(self, scenario: Scenario) -> None:
         self.name_edit.setText(scenario.name)
         self.name_edit.setCursorPosition(0)  # a long name otherwise opens scrolled to its END
         self.epoch_edit.setText(scenario.epoch_utc)
@@ -890,8 +901,6 @@ class ScenarioEditorWidget(QWidget):
             self._json_stale = True
             if self.json_mode:
                 self._refresh_json()
-
-        self.revalidate()
 
     def reset_to_default(self) -> None:
         """A blank scenario: no spacecraft, in Orbit only (the user's decision
@@ -1002,6 +1011,8 @@ class ScenarioEditorWidget(QWidget):
         """Validate the scenario and list every problem: each live form's,
         and the scenario's own as the forms last applied it, so an edit
         waiting to be fixed in one form never hides a problem elsewhere."""
+        if self._loading:
+            return
         warnings = []
         self.flush_forms()
         errors = list(self._form_errors.values())

@@ -2816,36 +2816,63 @@ def _spacecraft_field_codes() -> list:
     return list(dict.fromkeys(codes))
 
 
+_label_titles: dict = {}  # code -> a new spacecraft's form's title for it: the same for every SpacecraftLabels
+_label_form: list = []  # the form prepare_labels() builds a section per turn, until its titles are read
+
+
+def prepare_labels(parent: QWidget) -> None:
+    """Build the form the labels are read from a section per event-loop
+    turn, and read it when complete, so the first message about a
+    spacecraft does not build all of it at once (0.4 s once per process).
+    The main window calls it when start-up has settled; the form is its
+    hidden child, so a window closed first takes it along."""
+    if _label_titles or _label_form:
+        return
+    form = SpacecraftEditorDialog(parent=parent, embedded=True)
+    form.hide()
+    _label_form.append(form)
+    form.section_built.connect(_on_label_section_built)
+    form.destroyed.connect(_label_form.clear)
+
+
+def _on_label_section_built() -> None:
+    if _label_form and not _label_form[0]._pending_sections:
+        _read_labels()
+
+
+def _read_labels(*codes: str) -> None:
+    """The titles of every code of the schema, and of ``codes``, from the
+    prepared form (finished at once) or a new one; the form is deleted."""
+    form = _label_form.pop() if _label_form else SpacecraftEditorDialog(embedded=True)
+    try:
+        for each in [*([] if _label_titles else _spacecraft_field_codes()), *codes]:
+            _label_titles[each] = form.field_title(each)
+    finally:
+        form.deleteLater()  # its sections built while it was read call _on_label_section_built: no form left, nothing
+
+
 class SpacecraftLabels:
     """The titles a spacecraft form gives its fields, for messages about a
     spacecraft whose page has no form yet, without keeping a form: one is
-    built for every code of the schema at the first title asked for, read
-    and deleted (it was 1,000 hidden widgets every theme switch restyled).
-    A code outside the schema ("fsw_params.k") gets its own form once.
-    The titles are those of a new spacecraft's form, as before."""
+    built for every code of the schema (:func:`prepare_labels`, or at the
+    first title asked for), read and deleted (it was 1,000 hidden widgets
+    every theme switch restyled). A code outside the schema
+    ("fsw_params.k") gets its own form once. The titles are those of a new
+    spacecraft's form, as before."""
 
     def __init__(self, other_titles=None) -> None:
         self.other_titles = other_titles  # the scenario's titles, as SpacecraftEditorDialog.other_titles
-        self._titles: dict = {}
 
     def field_title(self, code: str) -> str:
         known = _title_without_form(code)
         if known is not None:
             return known
-        if code not in self._titles:
-            self._read(code)
-        return self._titles[code]
+        if code not in _label_titles:
+            _read_labels(code)
+        return _label_titles[code]
 
     def problem_text(self, message: str) -> str:
         return _problem_text(message, self.field_title, self.other_titles)
-
-    def _read(self, code: str) -> None:
-        form = SpacecraftEditorDialog(embedded=True)  # never shown: a page's form has no window to size
-        try:
-            for each in [*([] if self._titles else _spacecraft_field_codes()), code]:
-                self._titles[each] = form.field_title(each)
-        finally:
-            form.deleteLater()
 
 
 class SpacecraftListWidget(QWidget):

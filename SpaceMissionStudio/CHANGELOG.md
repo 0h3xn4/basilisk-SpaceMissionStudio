@@ -17,6 +17,13 @@ fixes bugs.
   such a form once, kept as text, and the form deleted. A switch takes
   about 0.36 s where it took 0.53 s (all templates opened, then template
   23); the messages read as before.
+- **Opening a template is faster:** 72-134 ms where it took 82-459 ms
+  (the median of the 31 templates 94 ms, was 111). A scenario loaded is
+  checked once instead of four times; the titles for messages about a
+  spacecraft are read once start-up has settled, a part of the form per
+  moment, instead of all at once (0.4 s) when the first such message
+  appeared (template 08); the check of the space-weather data's dates no
+  longer looks through all 25,000 days on every edit.
 
 ## 1.3.0 (2026-10-26)
 

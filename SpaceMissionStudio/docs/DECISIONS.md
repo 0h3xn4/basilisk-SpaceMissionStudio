@@ -5,6 +5,35 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Opening a template faster (2026-10-26)
+
+The user: "Continue" (the next item offered: opening a template, K-23).
+
+- **One check per scenario loaded:** `from_scenario` sets each field, and
+  each set was an edit that validated the whole scenario; it now fills
+  every field, then validates once (`ScenarioEditorWidget._loading`).
+  The problems shown are those the last of the four checks gave.
+- **The labels prepared at idle:** the titles for messages about a
+  spacecraft are the same for every editor, so they are kept per process
+  (`spacecraft_editor._label_titles`). When start-up has settled (the
+  reference data read), the main window starts their form as its hidden
+  child; it builds a section per event-loop turn, as a page's form does,
+  and is read and deleted when complete. A title asked for first still
+  finishes the form at once. Its longest turn is the Power section,
+  about 0.1 s, once per process, while nothing else happens.
+- **The last observed day kept on the data:** `real_data_path` looked
+  through every day of each space-weather file for its last observed
+  day on every edit-time check (10 ms); `CelestrakData.last_observed`
+  finds it once. The engine's result is the same day; nothing computed
+  changes.
+- **No window size for an embedded Environment form:** like a page's
+  spacecraft form, it takes the page's size, so the content is no longer
+  measured for a window (8 ms per open).
+- **Kept:** the Environment form is still rebuilt on each load (about
+  30 ms, with 12 ms of it taking the old form out of the window); loading
+  new values into the same form would need a second way to fill it,
+  kept in step with the constructor.
+
 ## The messages' titles without a hidden form (2026-10-26)
 
 The user: "yes, remove the hidden label form" (K-19).

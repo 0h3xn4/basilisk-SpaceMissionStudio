@@ -93,6 +93,7 @@ from .lifetime_widget import LifetimeWidget
 from .scenario_explainer_widget import ScenarioExplainerWidget
 from .settings_page import SettingsPage
 from .shell import AreaPage, AreaStack, Shell
+from .spacecraft_editor import prepare_labels
 from .time_cursor import TimeCursor, describe as describe_time
 from .undo_history import ScenarioHistory
 from .run_history import RunHistory
@@ -809,6 +810,7 @@ class MainWindow(QMainWindow):
         panel = self.data_panel_widget
         version = None if panel.basilisk_version is NOT_READ else panel.basilisk_version
         self.status_items.refresh(panel.files, version)
+        prepare_labels(self)  # start-up has settled: the messages' titles, a section per turn (once per process)
 
     # -- workspace: tabs, docks and their layout ---------------------------------
     def _make_dock(self, title: str, name: str, widget: QWidget,

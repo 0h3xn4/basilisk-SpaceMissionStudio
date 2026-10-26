@@ -58,6 +58,14 @@ def test_the_shipped_record_parses_as_published():
     assert data.long_term_ap == pytest.approx(np.mean(observed)) == pytest.approx(12.83, abs=0.01)
 
 
+def test_the_last_observed_day_is_found_once():
+    """CelestrakData.last_observed is the last observed day, kept on the
+    data: the checks while a scenario is edited ask on every edit."""
+    data = sw.load_celestrak(sw.BUNDLED_DATA_PATH)
+    assert data.last_observed == max(d for d, r in data.days.items() if r.kind == "observed") == date(2026, 10, 24)
+    assert "last_observed" in vars(data)
+
+
 @pytest.mark.requirement("E-ST-10-04C 6.2.3b")
 def test_a_past_run_gets_the_observed_days_unchanged(tmp_path):
     """The 2003 Halloween storms, as observed."""

@@ -95,6 +95,7 @@ import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
+from functools import cached_property
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
@@ -435,6 +436,12 @@ class CelestrakData:
     def last_date(self):
         return max(self.days)
 
+    @cached_property
+    def last_observed(self):
+        """The last observed day, or None. Found once: the checks while a
+        scenario is edited ask on every edit (10 ms over 25,000 days)."""
+        return max((d for d, r in self.days.items() if r.kind == "observed"), default=None)
+
 
 # CSSI text format, FORMAT(I4,I3,I3,I5,I3,8I3,I4,8I4,I4,F4.1,I2,I4,F6.1,I2,5F6.1)
 # (https://celestrak.org/SpaceData/SpaceWx-format.php): column slices.
@@ -636,7 +643,7 @@ def real_data_path(source: str, local_file_path: Optional[str] = None, cache_dir
             data = load_celestrak(candidate)
         except SpaceWeatherError:
             continue
-        last_observed = max((d for d, r in data.days.items() if r.kind == "observed"), default=None)
+        last_observed = data.last_observed
         if last_observed is not None and (best_last is None or last_observed > best_last):
             best, best_last = candidate, last_observed
     return best

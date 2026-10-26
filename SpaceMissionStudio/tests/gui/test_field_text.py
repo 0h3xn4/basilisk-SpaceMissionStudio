@@ -256,3 +256,57 @@ def test_the_spacecraft_labels_are_the_forms_without_keeping_one(qtbot):
     qtbot.addWidget(form)
     assert shown == {message: form.problem_text(message) for message in messages}
     assert titles == {code: form.field_title(code) for code in titles}
+
+
+def test_the_labels_are_prepared_a_section_per_turn_once_start_up_has_settled(qtbot, monkeypatch):
+    """prepare_labels() (the main window, when start-up has settled) builds
+    the form the titles come from a section per event-loop turn and reads
+    it when complete: the first message about a spacecraft no longer
+    builds it all at once (0.4 s). The titles are a new form's; no form is
+    left."""
+    from PySide6.QtWidgets import QWidget
+
+    from spacemissionstudio.gui import spacecraft_editor as se
+
+    monkeypatch.setattr(se, "_label_titles", {})
+    monkeypatch.setattr(se, "_label_form", [])
+    window = QWidget()
+    qtbot.addWidget(window)
+    se.prepare_labels(window)
+    form = se._label_form[0]
+    assert form.isHidden() and form._pending_sections  # the first section only, so far
+    built = []
+    form.section_built.connect(built.append)
+    qtbot.waitUntil(lambda: bool(se._label_titles), timeout=20000)
+    assert len(built) == len(se.TAB_TITLES) - 1 and not se._label_form
+    assert set(se._spacecraft_field_codes()) <= set(se._label_titles)
+    se.prepare_labels(window)  # read: nothing more to prepare
+    assert not se._label_form
+
+    fresh = se.SpacecraftEditorDialog(embedded=True)
+    qtbot.addWidget(fresh)
+    assert se._label_titles == {code: fresh.field_title(code) for code in se._label_titles}
+
+
+def test_a_window_closed_while_the_labels_are_prepared_takes_their_form_along(qtbot, monkeypatch):
+    """The form being prepared is the window's hidden child: a window closed
+    first deletes it (no form outlives the application), and a title is
+    then read from a new form, as before."""
+    from PySide6.QtCore import QCoreApplication, QEvent
+    from PySide6.QtWidgets import QWidget
+
+    from spacemissionstudio.gui import spacecraft_editor as se
+
+    monkeypatch.setattr(se, "_label_titles", {})
+    monkeypatch.setattr(se, "_label_form", [])
+    window = QWidget()
+    se.prepare_labels(window)
+    assert se._label_form
+    window.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    assert not se._label_form
+    qtbot.wait(50)  # [ms] its next section's turn finds no form
+
+    fresh = se.SpacecraftEditorDialog(embedded=True)
+    qtbot.addWidget(fresh)
+    assert se.SpacecraftLabels().field_title("drag_area_m2") == fresh.field_title("drag_area_m2") != ""
