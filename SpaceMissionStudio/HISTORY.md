@@ -12896,3 +12896,12 @@ normally appears in early November).
 **What changes:** drag on dates from 2026-09-09 to 2026-12-07 and in
 2027-01 and 2027-02. Every template starts in 2030; CHANGELOG 1.3.0 says
 so, and its summary no longer says results are all the same as 1.2.0.
+
+## NASA MSFC prediction checked (2026-10-26)
+
+With www.nasa.gov allowed, <https://www.nasa.gov/solar-cycle-progression-and-forecast/>
+lists the October 2026 issue as the latest (`oct2026f10-prd.txt`). The
+published file, downloaded again, matches the shipped copy except for
+whitespace (line endings and trailing spaces), so nothing changes. The
+note in `docs/developer/releasing.md` that this could not be checked is
+replaced by the result.
