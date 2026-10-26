@@ -32,6 +32,22 @@ The user: "yes, build the spacecraft page a section at a time" (K-23).
 - **No gain for the theme switch:** every section is built a second
   later and Qt restyles them all (K-19 stays).
 
+## The theme switch (2026-10-26)
+
+The user: "yes, start on the theme switch" (K-19).
+
+- **Set Fusion only while no sheet is set:** with a style sheet set,
+  `app.style()` is Qt's style-sheet style and its `name()` is empty, so
+  the check for Fusion failed on every switch and set it again, a full
+  restyle before the sheet's. The sheet only ever goes on top of Fusion.
+- **The sheet is still cleared before the new one:** measured again, a
+  switch without clearing took 3.5-4.1 s, against about 0.5 s with it.
+- **What is left is per widget, not per rule:** a one-rule sheet costs
+  about 0.3 s of the 0.5 s; the full 195-rule sheet adds 0.1-0.15 s. Only
+  97 of about 2,700 widgets are shown, but Qt restyles every one. Fewer
+  hidden widgets (the spacecraft page built a section at a time) is the
+  next step; trimming the sheet would gain little.
+
 ## After the overhaul (2026-10-25)
 
 The user: "fix the engine messages and the shortcut conflict".

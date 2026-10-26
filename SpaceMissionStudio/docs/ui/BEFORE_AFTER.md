@@ -65,6 +65,14 @@ moving between areas came out slower than before in this run; the areas
 host more than the old tabs did (Results' overview, the Timeline's table).
 `docs/DECISIONS.md` (M1-M9) records each of these.
 
+**The theme switch after M9 (2026-10-26).** Every switch set the Fusion
+style again before the new sheet (a second restyle of every widget);
+fixed. The same probe, run on this machine in one session: dark 1970 ms
+before the fix, 1206 ms after; light 2191 ms, 996 ms. The probe keeps
+the spacecraft editor dialog it opened, about 1,000 widgets; without it
+a switch takes about 0.5 s. What is left is Qt restyling every widget,
+shown or not: still not met.
+
 **The spacecraft page after M9 (2026-10-26).** The page builds its
 Orbit / mass section when first shown and the other six one per
 event-loop turn after it, or when shown or read. The same probe on this

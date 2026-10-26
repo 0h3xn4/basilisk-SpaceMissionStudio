@@ -154,7 +154,10 @@ def apply_theme(app: QApplication, theme: Optional[str] = None) -> str:
     started = time.perf_counter()
     mode = theme or resolve_theme(theme_setting(), app)
     state.select(mode)
-    if app.style().name().lower() != "fusion":
+    # Once a sheet is set, app.style() is Qt's style-sheet style, whose
+    # name() is empty: checked then, every switch set Fusion again, a second
+    # restyle of every widget. The sheet only ever goes on top of Fusion.
+    if not app.styleSheet() and app.style().name().lower() != "fusion":
         app.setStyle("Fusion")
     if UI_FONT_FAMILY in load_fonts() and app.font().family() != UI_FONT_FAMILY:
         app.setFont(ui_font())
