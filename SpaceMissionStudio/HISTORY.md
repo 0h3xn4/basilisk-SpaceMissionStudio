@@ -12865,3 +12865,34 @@ the time cursor stayed. Two new tests in
 a key, and Alt+Backspace in the window clears the cursor after an edit.
 Undo now takes the standard keys without Alt+Backspace (`Ctrl+Z` here);
 both tests pass.
+
+## Space weather refreshed for 1.3.0 (2026-10-26)
+
+The user: "refresh the space weather data". Branch `space-weather-refresh`.
+
+**CelesTrak `SW-All.txt`** downloaded from
+<https://celestrak.org/SpaceData/SW-All.txt> on 2026-10-26: updated
+2026-10-25 23:32:13 UTC, observations to 2026-10-24 (were 2026-10-18),
+CelesTrak's daily forecast to 2026-12-07 (2026-12-02), NOAA's monthly
+forecast 2027-01 to 2041-10 (unchanged span). As before, only CRLF line
+endings and one comment line's trailing spaces were changed (checked: the
+file without whitespace is identical to the download). Against the copy
+it replaces, CelesTrak revised every observed row from 2026-09-09 on
+(the usual finalisation of recent values and their 81-day averages) and
+the monthly rows of 2027-01 and 2027-02; the rest is identical.
+
+**Tests:** the two that pin the shipped file's raw lines failed and now
+read the new ones: `test_the_shipped_record_parses_as_published` (the
+updated line; the last observed day 2026-10-24, Ap 5, F10.7 92.5 sfu,
+from the raw line; the first forecast day 2026-10-25; the long-term Ap,
+12.83, unchanged) and the CSV test's forecast day (2026-10-20 is now
+observed; 2026-10-26 is a forecast day).
+
+**NASA MSFC:** not checked. This session's network policy refuses
+www.nasa.gov, so whether an issue newer than October 2026 exists could
+not be looked up; the October 2026 prediction stays (the November issue
+normally appears in early November).
+
+**What changes:** drag on dates from 2026-09-09 to 2026-12-07 and in
+2027-01 and 2027-02. Every template starts in 2030; CHANGELOG 1.3.0 says
+so, and its summary no longer says results are all the same as 1.2.0.
