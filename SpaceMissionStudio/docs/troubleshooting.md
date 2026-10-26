@@ -96,24 +96,21 @@ from disk ([work offline](user-manual/reference-data.md#work-offline)).
 ### `ERROR: run failed: support-data file GGM03S.txt is not installed (...)`
 
 The full message continues: "SpaceMissionStudio does not download during
-a run: download it from the Reference data dialog (Tools > Reference
-Data..., Download... > Support data) or with `spacemissionstudio
-kernels-status`." Do one of those two, then run again. The app has no
-Tools menu: "Tools > Reference Data..." is the command palette's name
-(`Ctrl+K`) for the dialog, which also opens from **Settings > Reference
-data** > **Reference Data...** or by clicking the reference-data item in
-the status bar.
+a run: download it from the Reference data dialog (Settings > Reference
+data, Download... > Support data) or with `spacemissionstudio
+kernels-status`." Do one of those two, then run again. The dialog opens
+from **Settings > Reference data** > **Reference Data...**, by clicking
+the reference-data item in the status bar, or with **Reference Data...**
+in the command palette (`Ctrl+K`).
 
-### `Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km); Tools > Reference Data downloads them`
+### `Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km); Settings > Reference data downloads them`
 
 Explain (Scenario › Overview) shows this, and a run reports `Earth orientation: IAU
 rotation model, no IERS data installed`. The measured Earth orientation
 files are missing, so the run uses the simpler IAU model. Run
 `spacemissionstudio earth-orientation --fetch`, or, in the **Reference
-data** dialog, **Download... > Earth orientation**. (The message's
-"Tools > Reference Data" is the command palette's name for that dialog;
-it also opens from **Settings > Reference data** > **Reference Data...**
-or the reference-data item in the status bar.)
+data** dialog (**Settings > Reference data** > **Reference Data...**),
+**Download... > Earth orientation**.
 
 ## Running a scenario
 

@@ -134,3 +134,44 @@ def test_the_cursor_commands_are_in_the_registry_and_the_shortcut_list(qtbot):
     table = window.settings_page.shortcuts_table
     rows = {table.item(r, 1).text(): table.item(r, 2).text() for r in range(table.rowCount())}
     assert rows["Next Event"] == "Alt+PgDown" and rows["Clear Time Cursor"] == "Alt+Backspace"
+
+
+def test_no_two_commands_share_a_key(qtbot):
+    """Every shortcut belongs to one command: Qt fires neither of two
+    actions bound to the same key. Undo's standard keys include
+    Alt+Backspace on some platforms; it is Clear Time Cursor's."""
+    from collections import defaultdict
+
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+    qtbot.addWidget(window)
+    owners = defaultdict(list)
+    for command in window.commands:
+        for sequence in command.action.shortcuts():
+            owners[sequence.toString()].append(command.id)
+    assert {keys: ids for keys, ids in owners.items() if len(ids) > 1} == {}
+
+
+def test_alt_backspace_clears_the_time_cursor_in_the_window(qtbot):
+    """Alt+Backspace pressed in the window clears the time cursor, where an
+    ambiguous binding (Undo's too) did nothing."""
+    from PySide6.QtWidgets import QApplication
+
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+    qtbot.addWidget(window)
+    with qtbot.waitExposed(window):
+        window.show()
+    with warnings.catch_warnings():  # Qt's own active window, as in the test above
+        warnings.simplefilter("ignore", DeprecationWarning)
+        QApplication.setActiveWindow(window)
+    window.scenario_editor.name_edit.setText("an edit to undo")  # Undo enabled: a disabled action competes for no key
+    window._history_timer.stop()
+    window._record_history()
+    assert window.undo_action.isEnabled()
+    window.show_view(window.results_widget)
+    window.time_cursor.set_time(600.0)  # [s]
+    qtbot.keyClick(window.results_widget, Qt.Key.Key_Backspace, Qt.KeyboardModifier.AltModifier)
+    assert window.time_cursor.time_s is None
