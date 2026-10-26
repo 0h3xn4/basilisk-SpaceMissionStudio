@@ -238,6 +238,9 @@ the refreshed space weather changed (below).
   Undo's. It is Clear Time Cursor's alone now; Undo keeps `Ctrl+Z`. The
   support-data error and the Earth orientation warning name **Settings >
   Reference data**, no longer a Tools menu.
+- **A spacecraft's page opens faster:** it builds its Orbit / mass section
+  first and the others just after, one at a time, so the first visit
+  pauses for about 0.16 s where it took 0.4 s.
 - **Bundled space weather refreshed:** CelesTrak's `SW-All.txt` updated
   2026-10-25 23:32 UTC, observations to 2026-10-24 and its daily forecast
   to 2026-12-07 (it was 2026-10-18 and 2026-12-02). CelesTrak revised its
@@ -262,7 +265,7 @@ the refreshed space weather changed (below).
 
 - Some actions still hold the window for longer than the 50 ms the
   interface aims at: changing the theme (about 2 s), opening a template
-  (0.2-0.5 s), the first visit to a spacecraft page (0.5 s) and the end
+  (0.2-0.5 s), the first visit to a spacecraft page (0.15-0.2 s) and the end
   of a run (0.5 s) (SRelD K-19, K-23).
 - On Windows, a software-in-the-loop session that drops thousands of
   steps may stop with "the flight software took no STEP for 10 s". Seen

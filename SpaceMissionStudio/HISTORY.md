@@ -12896,3 +12896,42 @@ normally appears in early November).
 **What changes:** drag on dates from 2026-09-09 to 2026-12-07 and in
 2027-01 and 2027-02. Every template starts in 2030; CHANGELOG 1.3.0 says
 so, and its summary no longer says results are all the same as 1.2.0.
+
+## The spacecraft page, a section at a time (2026-10-26)
+
+The user: "yes, build the spacecraft page a section at a time". Branch
+`spacecraft-page-lazy`.
+
+**Measured first** (template 23's spacecraft, built as the Scenario
+editor builds it, warm): 355 ms to construct its 1,000 widgets and
+190 ms to show them. By section: Orbit / mass 70 ms (194 widgets),
+Sensors / actuators 10 (33), Attitude control 43 (133), Power /
+propulsion / link budget 136 (480), Vizard model 15 (36), 3D model 7
+(12), Budget (AD10) 72 (104).
+
+**The change.** `SpacecraftEditorDialog.__init__` built all seven
+sections in one function. A script cut it at its section headers into
+seven methods, the code inside unchanged (the only locals shared were
+the tab widget and the outer layout; the sections read only `config`
+and, for Orbit / mass, two providers, now kept on the dialog). The pages
+are made first, in their tab order. A page's form builds Orbit / mass at
+once and the rest one per event-loop turn, in the order they were always
+built; showing a section builds it (and the ones before it) at once; a
+read of any field of a section not built yet builds the rest first
+(`__getattr__`). The orbit-only code at the end of the constructor
+became a table applied per section. The Scenario editor connects each
+new section's fields to its debounce and checks their ranges
+(`section_built`). The dialog used on its own builds every section at
+once, as before.
+
+**Tests:** three new ones in `tests/gui/test_tree_sections.py`: the page
+builds Orbit / mass first and the rest after (orbit-only groups hidden in
+them); reading the form early returns the scenario's spacecraft; an edit
+in a section built later reaches the scenario. The last failed with the
+`section_built` connection removed.
+
+**Results**, the plan's probe on this machine: the first visit's longest
+stall 403 ms (`develop`, earlier the same day) -> 168 and 157 ms (two
+runs), two stretches over 50 ms each. One run's template run took 14 s
+with 28 stalls; a second took 7.0 s with 3 (the container had just
+restarted), as `develop` (8.3 s, 7). The theme switch did not change.

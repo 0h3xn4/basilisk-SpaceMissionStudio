@@ -65,6 +65,15 @@ moving between areas came out slower than before in this run; the areas
 host more than the old tabs did (Results' overview, the Timeline's table).
 `docs/DECISIONS.md` (M1-M9) records each of these.
 
+**The spacecraft page after M9 (2026-10-26).** The page builds its
+Orbit / mass section when first shown and the other six one per
+event-loop turn after it, or when shown or read. The same probe on this
+machine: the first visit's longest stall 403 ms before the change, 168
+and 157 ms after it (two runs), two stretches over 50 ms each (the first
+section, then the largest, Power / propulsion / link budget, about 0.1 s).
+Still not met. The theme switch does not change: every section is built
+a second later, and Qt restyles them all.
+
 ## Other targets of the plan
 
 | Target | Result |
@@ -75,7 +84,7 @@ host more than the old tabs did (Results' overview, the Timeline's table).
 | Keyboard-only walk of every area (M9) | Met and tested (`tests/gui/test_keyboard_walk.py`); it found one keyboard trap (the scenario description), now fixed |
 | Every text/background pair WCAG 2.2 AA in both themes (M1) | Met and tested (`tests/gui/test_dark_theme.py`) |
 | Startup faster than the baseline (M9) | Met: 1.85-1.87 s against 2.50-2.78 s |
-| First visit to any page under 50 ms (M9) | Not met: 456 ms for a spacecraft page; every other page 4-30 ms |
+| First visit to any page under 50 ms (M9) | Not met: 456 ms for a spacecraft page (157-168 ms after M9, below); every other page 4-30 ms |
 
 ## Screens
 

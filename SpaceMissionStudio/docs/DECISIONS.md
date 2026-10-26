@@ -5,6 +5,33 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The spacecraft page, a section at a time (2026-10-26)
+
+The user: "yes, build the spacecraft page a section at a time" (K-23).
+
+- **The code of each section moved unchanged** into its own method; the
+  pages are made first, in their tab order. A script cut the constructor
+  at its section headers, so no line inside a section was retyped.
+- **Built in the order they always were:** a section's code may use the
+  widgets of the sections before it (it ran after them before). So
+  showing a later section builds every section before it too.
+- **Orbit / mass at once, the rest one per event-loop turn:** the page
+  is complete about a second after it is shown, so a run, an undo or a
+  save never meets a half-built form in practice. When something does
+  read a field of a section not built yet (`to_dataclass()`,
+  `field_widget()`, a handler), `__getattr__` builds the rest first: no
+  reader needs to know.
+- **Not left unbuilt until visited:** `to_dataclass()` reads every
+  section after every edit; keeping a section unbuilt would mean
+  reading its fields from the config instead, field by field, where a
+  field put in the wrong section would quietly lose an edit.
+- **The orbit-only adjustments apply per section**, each group once,
+  as its section is built; `finish_form` runs per section.
+- **The dialog used on its own builds every section at once:** it sizes
+  itself from all of them.
+- **No gain for the theme switch:** every section is built a second
+  later and Qt restyles them all (K-19 stays).
+
 ## After the overhaul (2026-10-25)
 
 The user: "fix the engine messages and the shortcut conflict".
