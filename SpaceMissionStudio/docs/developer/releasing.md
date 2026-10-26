@@ -205,8 +205,9 @@ hand before the workflow ran, so it was public without files for
 schema, the command line and the exported files are unchanged; the
 exports are tested byte for byte). The space weather was refreshed for
 it on 2026-10-26 (observations to 2026-10-24, updated 2026-10-25); NASA
-MSFC's October 2026 prediction is still the one shipped (this session's
-network could not reach nasa.gov to look for a newer issue). Its notes come from `CHANGELOG.md` 1.3.0, which has a
+MSFC's October 2026 prediction is still the latest issue (checked on
+2026-10-26: the shipped copy matches the published file but for
+whitespace). Its notes come from `CHANGELOG.md` 1.3.0, which has a
 summary, "Who should update" and "Known limits".
 
 ---
