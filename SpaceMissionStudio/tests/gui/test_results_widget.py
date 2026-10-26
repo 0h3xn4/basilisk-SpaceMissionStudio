@@ -1321,3 +1321,52 @@ def test_an_answer_that_never_comes_does_not_stall_the_save(widget, monkeypatch,
     assert len(page.pending) == 1
     page.pending.pop()("data:image/png;base64,AAAA")
     assert len(rendered) == 1 and widget._png_poll_state is None
+
+
+_WARM_UP_CHECK = """
+import sys
+import numpy as np
+from PySide6.QtWidgets import QApplication
+app = QApplication([])
+from spacemissionstudio.gui.theme import apply_theme
+apply_theme(app)
+from spacemissionstudio.engine.results import ResultSet, TimeSeries
+from spacemissionstudio.gui.results_widget import ResultsWidget, warm_up_figures
+warm_up_figures()
+loaded = set(sys.modules)
+t = np.linspace(0, 3600 * 3, 50)
+rs = ResultSet(scenario_name="demo")
+rs.add(TimeSeries("sat-1.position_N", t, ("x", "y", "z"), np.column_stack([t, t, t]), units="m"))
+widget = ResultsWidget()
+widget._result = rs
+widget._build_figure("sat-1.position_N", rs.series["sat-1.position_N"]).to_json()
+print(sorted(m for m in set(sys.modules) - loaded if m.split(".")[0] in ("plotly", "_plotly_utils", "narwhals")))
+"""
+
+
+def test_the_figure_warm_up_loads_what_the_first_plot_needs():
+    """warm_up_figures() (run in a worker after start-up) loads every plotly
+    and narwhals module a run's first plot uses: in a fresh process, the
+    Results page's first figure then loads none of its own (it held the
+    first run's end 0.3 s on the GUI thread)."""
+    import os
+    import subprocess
+    import sys
+
+    env = dict(os.environ, QT_QPA_PLATFORM="offscreen")
+    done = subprocess.run([sys.executable, "-c", _WARM_UP_CHECK], capture_output=True, text=True,  # noqa: S603
+                          cwd=Path(__file__).resolve().parents[2], env=env, timeout=120)  # [s]
+    assert done.returncode == 0, done.stderr[-2000:]
+    assert done.stdout.strip().splitlines()[-1] == "[]"
+
+
+def test_the_figure_warm_up_starts_after_the_start_up_read(monkeypatch):
+    """The start-up read's end starts the figure warm-up with the
+    space-weather one, in workers kept until they end."""
+    from spacemissionstudio.gui import data_panel_widget
+
+    started = []
+    monkeypatch.setattr(data_panel_widget, "_start", started.append)
+    monkeypatch.setattr(data_panel_widget, "_start_up_read", None)
+    data_panel_widget._remember_start_up_read([], None)
+    assert [type(thread).__name__ for thread in started] == ["_SpaceWeatherWarmUp", "_FigureWarmUp"]

@@ -13075,3 +13075,36 @@ section), once per process after start-up. Still over the brief's 50 ms:
 every template. What is left is building the Environment form again
 (about 30 ms), the layout saved and restored per scenario (about 18 ms)
 and the spacecraft list and page tree.
+
+## The first run's end without plotly's first-use cost (2026-10-26)
+
+The user: "Continue", after the next items were offered (the end of a
+run, about 0.4 s, K-23). Branch `run-end-faster`.
+
+**Measured first.** A probe ran template 23 twice per session after the
+start-up reads, timing each step of the run's end (M6b) and every stall
+of a 2 ms heartbeat over the next 3 s. Later runs: steps of 4-25 ms,
+stalls up to 55 ms. The first run of a session: step 1 (the Results page
+taking the result) 186-384 ms. Profiled: 0.35 s of it was plotly loading
+`go.Scatter`, its validators (a `json.load`) and narwhals' plugins (64
+files opened) for the first figure.
+
+**The change.** `results_widget.warm_up_figures` builds and serialises one
+small figure laid out as `_build_figure` lays one out (numpy arrays, a
+title, both axes, the template's layout, a legend with its font, a band
+and a line among the shapes). `data_panel_widget._FigureWarmUp` runs it
+in a worker when the start-up read has finished, next to the
+space-weather warm-up. Two parts were found only by listing the modules
+the first run's step 1 still imported: narwhals' plugins (the warm-up
+first used lists, not arrays) and the legend's font.
+
+**Tests:** `test_the_figure_warm_up_loads_what_the_first_plot_needs` (in a
+fresh process, the Results page's first figure after the warm-up loads
+no plotly or narwhals module; without the warm-up it loads dozens) and
+`test_the_figure_warm_up_starts_after_the_start_up_read`.
+
+**Result** (template 23, three sessions each, alternating, same session):
+the first run's longest stall `develop` 191-244 ms, this branch 27-38 ms;
+the second run's `develop` 34-52 ms, this branch 31-35 ms. What is left
+after the last step is Qt's own event processing while the workers save
+and summarise the run.

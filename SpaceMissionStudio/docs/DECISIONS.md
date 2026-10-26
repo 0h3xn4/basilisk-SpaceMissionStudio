@@ -5,6 +5,24 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The first run's end without plotly's first-use cost (2026-10-26)
+
+The user: "Continue" (the next item offered: the end of a run, K-23).
+
+- **Plotly warmed in a worker:** plotly builds its figure classes, their
+  validators and narwhals' plugins on first use; the first run's first
+  plot paid 0.2-0.3 s for it on the GUI thread. When the start-up read has
+  finished, `_FigureWarmUp` (beside `_SpaceWeatherWarmUp`, kept and
+  stopped the same way) builds and serialises one small figure laid out
+  as the Results page lays one out (`results_widget.warm_up_figures`):
+  plain Python, nothing of Qt, its figure thrown away. A run that ends
+  before the warm-up has (a few seconds after start-up) still pays for
+  what is not loaded yet, as before.
+- **Kept:** the pauses after the last step of a run's end (25-55 ms on
+  `develop`, 25-38 ms here) are Qt's own event processing while the
+  workers save the run, summarise it for Overview and explain it; no
+  Python on the GUI thread stands out in them.
+
 ## Opening a template faster (2026-10-26)
 
 The user: "Continue" (the next item offered: opening a template, K-23).
