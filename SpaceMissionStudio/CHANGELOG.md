@@ -20,8 +20,9 @@ files, its command line and every file it writes are unchanged (the
 exports are tested byte for byte against 1.1.0 and 1.2.0). It starts
 faster than the interface before it and switches theme, plots and pages
 with shorter pauses; `docs/ui/BEFORE_AFTER.md` has the measurements,
-including the ones that did not meet their target. Scenario files and
-their results are the same as with 1.2.0.
+including the ones that did not meet their target. Scenario files are
+the same as with 1.2.0, and so are their results, except drag on dates
+the refreshed space weather changed (below).
 
 - **A new shell: a navigation rail instead of menus and toolbars** (UI
   overhaul M2a). The window has no menu bar and no toolbar any more:
@@ -237,12 +238,21 @@ their results are the same as with 1.2.0.
   Undo's. It is Clear Time Cursor's alone now; Undo keeps `Ctrl+Z`. The
   support-data error and the Earth orientation warning name **Settings >
   Reference data**, no longer a Tools menu.
+- **Bundled space weather refreshed:** CelesTrak's `SW-All.txt` updated
+  2026-10-25 23:32 UTC, observations to 2026-10-24 and its daily forecast
+  to 2026-12-07 (it was 2026-10-18 and 2026-12-02). CelesTrak revised its
+  values from 2026-09-09 on and the first two months of the monthly
+  forecast (2027-01, 2027-02), so drag on those dates changes; runs that
+  start later, such as every template (2030), do not. NASA MSFC's
+  October 2026 prediction is unchanged.
 
 ### Who should update
 
 - Everyone who uses the window: the interface is new throughout (the
   User Manual shows it). Nothing 1.2.0 computes changes: scenario files,
-  results, the command line and every exported file are the same.
+  the command line and every exported file are the same, and so are
+  results, except drag on dates the refreshed space weather changed
+  (2026-09-09 to 2026-12-07, and 2027-01 to 2027-02).
 - On Linux, `apt install ./spacemissionstudio_1.3.0_amd64.deb` replaces
   the 1.2.0 package; on Windows, run the 1.3.0 setup over 1.2.0.
 - Scripts and pipelines that use only the command line gain nothing from
