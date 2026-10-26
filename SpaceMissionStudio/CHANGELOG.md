@@ -8,7 +8,12 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 1.3.1 (2026-10-26)
+
+A faster window. Changing the theme, opening a template and the end of
+the first run each held the window noticeably; this release shortens all
+three. Nothing the tool computes changes: scenario files, the command
+line, every exported file and every result are the same as with 1.3.0.
 
 - **A faster theme switch, again:** a message about a spacecraft whose
   page had not been opened was worded from a hidden spacecraft form, kept
@@ -29,6 +34,25 @@ fixes bugs.
   plotly takes to load its figure classes on first use. They are now
   loaded in the background once start-up has settled; the longest pause
   at the end of a run is 27-38 ms, first run or not.
+
+### Who should update
+
+- Everyone who uses the window: it pauses less. On Linux,
+  `apt install ./spacemissionstudio_1.3.1_amd64.deb` replaces the 1.3.0
+  package; on Windows, run the 1.3.1 setup over 1.3.0.
+- Scripts and pipelines that use only the command line gain nothing from
+  this release.
+
+### Known limits
+
+- Some actions still hold the window for longer than the 50 ms the
+  interface aims at: changing the theme (about 0.4 s), the first visit to
+  a spacecraft page (0.15-0.2 s) and opening a template (0.07-0.13 s)
+  (SRelD K-19, K-23). A run that ends in the first seconds after start-up
+  can still pause for up to 0.3 s.
+- On Windows, a software-in-the-loop session that drops thousands of
+  steps may stop with "the flight software took no STEP for 10 s". Seen
+  only in CI, cause not known (SRelD K-14).
 
 ## 1.3.0 (2026-10-26)
 

@@ -13108,3 +13108,28 @@ the first run's longest stall `develop` 191-244 ms, this branch 27-38 ms;
 the second run's `develop` 34-52 ms, this branch 31-35 ms. What is left
 after the last step is Qt's own event processing while the workers save
 and summarise the run.
+
+## Release 1.3.1 prepared (2026-10-26)
+
+The user: "Continue as per your recommendations" (the recommendation:
+prepare 1.3.1 from the three changes merged since 1.3.0). Branch
+`release-1.3.1`.
+
+By `docs/developer/releasing.md`: the version 1.3.1 in `pyproject.toml`,
+`spacemissionstudio/__init__.py` and the Inno Setup script; the
+CHANGELOG's "Unreleased" entries under `## 1.3.1 (2026-10-26)` with a
+summary, "Who should update" and "Known limits" (the limits re-measured:
+the theme switch about 0.4 s, the first visit to a spacecraft page
+0.15-0.2 s, opening a template 0.07-0.13 s; the end of a run no longer
+among them); SRelD issue 15 (1.3.1 prepared, 1.3.0 the previous release,
+what changed since `7bdfa21ac`); SDP, SRS, ICD, CSD, SUM, the README and
+`releasing.md` name 1.3.1.
+
+**Checked:** since the 1.3.0 tag, the only change in `engine/`, `schema/`,
+`sil/`, `fsw_export/`, `model3d/`, `cli.py` and `output_provenance.py` is
+`CelestrakData.last_observed` (#117, the same day found once); no
+template, data or golden file changed, packaging only in the version,
+and nothing outside `SpaceMissionStudio/`. The fork's top-level
+`README.md` still names 1.3.0: it is outside `SpaceMissionStudio/`, and
+changing it is the user's call. The space weather is 1.3.0's, two days
+old. Merging, tagging and publishing are the user's.
