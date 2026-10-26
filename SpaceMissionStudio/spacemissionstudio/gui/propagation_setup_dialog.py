@@ -172,6 +172,9 @@ class PropagationSetupDialog(QDialog):
         buttons.accepted.connect(self._on_accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
+        if embedded:  # a page's form takes the page's size: measuring the content for a window took 8 ms per open
+            finish_form(self)  # units in the fields, optional groups collapse (M4a)
+            return
 
         # A QScrollArea's own sizeHint() is a small arbitrary default, not
         # its content's real size, so size the window from the CONTENT

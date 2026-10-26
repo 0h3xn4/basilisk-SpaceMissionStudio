@@ -13026,3 +13026,52 @@ template 18's spacecraft; no spacecraft form is left afterwards.
 **Result** (every template opened in turn, then template 23, five
 switches each): `develop` 1 hidden spacecraft form, 2,663 widgets, theme
 switch median 532 ms; this branch none, 1,688 widgets, 359 ms.
+
+## Opening a template faster (2026-10-26)
+
+The user: "Continue", after the next items were offered (opening a
+template 0.2-0.5 s, K-23). Branch `template-open-faster`.
+
+**Measured first.** A probe opened all 31 templates in turn in a main
+window, after the start-up reads had finished, and profiled each
+`open_path`. Most took 75-180 ms; template 08 took 389-459 ms. Three
+causes:
+
+- `from_scenario` validated the whole scenario about four times per
+  open (each field set is an edit): about 55 ms.
+- The first message about a spacecraft whose page had no form (template
+  08's `fsw_mode`) built a whole spacecraft form for the titles, once
+  per process: 0.25-0.4 s.
+- `real_data_path`, called by the edit-time check of the space-weather
+  data's dates, found each file's last observed day by looking through
+  its 25,000 days: 10 ms per check.
+
+An early probe also showed 0.6 s for template 04: the space-weather file
+parsed on the GUI thread. That was the probe stopping the start-up read
+that starts the existing warm-up thread; with the read left to finish,
+the file is parsed off the GUI thread as before.
+
+**The changes.** `from_scenario` fills every field, then validates once.
+The spacecraft titles are kept per process, and the main window starts
+their form when the reference data read has finished: it builds a
+section per event-loop turn and is read and deleted when complete; the
+form is the window's hidden child, so a window closed first deletes it.
+`CelestrakData.last_observed` is found once. The embedded Environment
+form no longer measures its content for a window size.
+
+**Tests:** `test_a_scenario_loaded_is_validated_once_with_every_field_in`
+(the scenario validated once, valid, and its problems the same as a
+second check's); `test_the_labels_are_prepared_a_section_per_turn_once_start_up_has_settled`
+(six sections in later turns, every schema code read, the titles a new
+form's, no form left); `test_a_window_closed_while_the_labels_are_prepared_takes_their_form_along`;
+`test_the_last_observed_day_is_found_once`.
+
+**Result** (every template opened in turn, three runs each, alternating,
+per-template medians): `develop` 82-459 ms, median 111 ms, template 08
+459 ms, template 23 139 ms, all 31 in 4.06-4.32 s; this branch 72-134 ms,
+median 94 ms, template 08 76 ms, template 23 94 ms, all 31 in
+2.74-3.15 s. Preparing the labels takes a 109-130 ms turn (the Power
+section), once per process after start-up. Still over the brief's 50 ms:
+every template. What is left is building the Environment form again
+(about 30 ms), the layout saved and restored per scenario (about 18 ms)
+and the spacecraft list and page tree.
