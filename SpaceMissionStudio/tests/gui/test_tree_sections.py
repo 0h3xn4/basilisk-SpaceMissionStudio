@@ -166,3 +166,39 @@ def test_a_warning_only_count_is_yellow(window):
     for node in (item, group):
         assert node.foreground(0).color().name().upper() == PALETTE["warning"]
     assert item.toolTip(0) == "1 warning here: see Problems"
+
+
+def test_a_spacecraft_page_builds_its_first_section_then_the_rest(window, qtbot):
+    """The spacecraft's page builds Orbit / mass when first shown and the
+    other sections one per event-loop turn after it; orbit-only still hides
+    the groups it has no use for, in the sections built later."""
+    editor = window.scenario_editor
+    editor.page_tree.tree.setCurrentItem(editor._spacecraft_nodes[0].item)
+    form = editor._spacecraft_nodes[0].form
+    assert [title for title, _build in form._pending_sections][0] == "Sensors / actuators"
+    assert form.tab_page("Orbit / mass").widget().layout() is not None
+    assert form.tab_page("Budget (AD10)").widget().layout() is None
+    qtbot.waitUntil(lambda: not form._pending_sections, timeout=5000)
+    assert form.power_group.isHidden() and form.facet_group.isHidden()  # orbit only (template 22)
+
+
+def test_reading_the_form_early_reads_every_section(window):
+    """Reading the form before its other sections are built builds them
+    first: the spacecraft read back is the one the scenario has."""
+    editor = window.scenario_editor
+    editor.page_tree.tree.setCurrentItem(editor._spacecraft_nodes[0].item)
+    form = editor._spacecraft_nodes[0].form
+    assert form._pending_sections
+    assert form.to_dataclass() == editor.spacecraft_list.to_list()[0]
+    assert not form._pending_sections
+
+
+def test_an_edit_in_a_section_built_later_reaches_the_scenario(window, qtbot):
+    """A field of a section built after the page was shown is watched like
+    the others: its edit settles the form into the scenario."""
+    editor = window.scenario_editor
+    editor.page_tree.tree.setCurrentItem(editor._spacecraft_nodes[0].item)
+    form = editor._spacecraft_nodes[0].form
+    qtbot.waitUntil(lambda: not form._pending_sections, timeout=5000)
+    form.viz_offset_x.setValue(0.5)  # [m] the Vizard model section, built after Orbit / mass
+    qtbot.waitUntil(lambda: editor.spacecraft_list.to_list()[0].vizard_model_offset_m[0] == 0.5, timeout=5000)

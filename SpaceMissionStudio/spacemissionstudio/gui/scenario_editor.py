@@ -515,7 +515,19 @@ class ScenarioEditorWidget(QWidget):
             form.tabs.currentChanged.connect(self._on_spacecraft_tab_changed)
         node.debounce = _Debounce(form, kind, node)
         node.debounce.settled.connect(self._on_form_settled)
+        if kind == "spacecraft":  # its sections are built in turn: watch each one's fields as it comes
+            form.section_built.connect(self._on_section_built)
         if out_of_range_boxes(form):  # a value from the file outside its box's range: say so now
+            self.revalidate()
+
+    def _on_section_built(self, page: QWidget) -> None:
+        """A spacecraft form built another section: its edits settle the
+        form like the others', and a value out of its box's range is said."""
+        node = next((n for n in self._spacecraft_nodes if n.form is self.sender()), None)
+        if node is None or node.debounce is None:
+            return
+        watch_edits(page, node.debounce.poke)
+        if out_of_range_boxes(page):
             self.revalidate()
 
     def _on_form_settled(self) -> None:
