@@ -185,6 +185,24 @@ def test_apply_theme_sets_the_palette_and_one_sheet(restored_theme):
         assert restored_theme.styleSheet() == sheet != ""
 
 
+def test_a_live_switch_restyles_once(restored_theme, monkeypatch):
+    """A theme switch does not set the Fusion style again: with a sheet set,
+    app.style() is Qt's style-sheet style, whose name() is empty, and
+    setting Fusion on every switch restyled every widget a second time."""
+    from PySide6.QtWidgets import QApplication
+
+    from spacemissionstudio.gui.theme import apply_theme
+
+    apply_theme(restored_theme, "light")
+    assert restored_theme.styleSheet()
+    calls = []
+    original = QApplication.setStyle
+    monkeypatch.setattr(QApplication, "setStyle", staticmethod(lambda style: calls.append(style) or original(style)))
+    apply_theme(restored_theme, "dark")
+    apply_theme(restored_theme, "light")
+    assert calls == []
+
+
 def test_every_file_the_style_sheet_references_exists(restored_theme):
     """The combo and spin arrows and the tick are tinted icon files: a
     missing one would silently bring back arrow-less combo boxes."""

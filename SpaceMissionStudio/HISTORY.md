@@ -12905,3 +12905,79 @@ published file, downloaded again, matches the shipped copy except for
 whitespace (line endings and trailing spaces), so nothing changes. The
 note in `docs/developer/releasing.md` that this could not be checked is
 replaced by the result.
+
+## The theme switch, halved (2026-10-26)
+
+The user: "yes, start on the theme switch". Branch `theme-switch-speed`.
+
+**Measured first.** A script broke a live switch into its parts on a
+window with template 23 open and every page visited (2,889 widgets, 97
+of them shown): the palette and the sheet's text about 2 ms, clearing the
+sheet about 200 ms, setting the new one 270-390 ms, our own theme
+callbacks about 1 ms, the repaint after 25-50 ms. Python takes about
+30 ms of a switch (cProfile); the rest is Qt restyling widgets.
+
+**The bug.** `apply_theme` called `app.setStyle("Fusion")` whenever
+`app.style().name()` was not "fusion"; with a style sheet set, that is
+Qt's style-sheet style, whose name is empty, so every switch set Fusion
+again: a full restyle of every widget before the sheet's own. Fusion is
+now set only while no sheet is set. A new test
+(`test_a_live_switch_restyles_once`) failed before the fix (Fusion set on
+both switches) and passes after it.
+
+**Results**, the plan's probe (`scripts/measure_ui_baseline.py
+--interactions-only`), `develop` and this branch run one after the other
+on this machine: dark 1970 -> 1206 ms, light 2191 -> 996 ms. The probe
+keeps the spacecraft editor dialog it opened (about 1,000 widgets) and
+spins `processEvents()` without an event loop, so deferred deletes wait;
+without the dialog, a switch takes about 0.5 s (was about 1 s).
+
+**Tried and not kept:** setting the new sheet without clearing the old
+one (3.5-4.1 s). **Looked at and not a problem:** two parentless
+propagation setup forms in the counts were the old Environment forms
+waiting for `deleteLater` in the script (gone once deferred deletes run);
+the spacecraft list's Add builds its dialog only for its defaults and
+deletes it.
+
+**Still not met:** 0.1 s (SRelD K-19). The rest is per widget: even a
+one-rule sheet costs about 0.3 s. Next: fewer hidden widgets, the
+spacecraft page built a section at a time (also K-23's first visit).
+
+## The spacecraft page, a section at a time (2026-10-26)
+
+The user: "yes, build the spacecraft page a section at a time". Branch
+`spacecraft-page-lazy`.
+
+**Measured first** (template 23's spacecraft, built as the Scenario
+editor builds it, warm): 355 ms to construct its 1,000 widgets and
+190 ms to show them. By section: Orbit / mass 70 ms (194 widgets),
+Sensors / actuators 10 (33), Attitude control 43 (133), Power /
+propulsion / link budget 136 (480), Vizard model 15 (36), 3D model 7
+(12), Budget (AD10) 72 (104).
+
+**The change.** `SpacecraftEditorDialog.__init__` built all seven
+sections in one function. A script cut it at its section headers into
+seven methods, the code inside unchanged (the only locals shared were
+the tab widget and the outer layout; the sections read only `config`
+and, for Orbit / mass, two providers, now kept on the dialog). The pages
+are made first, in their tab order. A page's form builds Orbit / mass at
+once and the rest one per event-loop turn, in the order they were always
+built; showing a section builds it (and the ones before it) at once; a
+read of any field of a section not built yet builds the rest first
+(`__getattr__`). The orbit-only code at the end of the constructor
+became a table applied per section. The Scenario editor connects each
+new section's fields to its debounce and checks their ranges
+(`section_built`). The dialog used on its own builds every section at
+once, as before.
+
+**Tests:** three new ones in `tests/gui/test_tree_sections.py`: the page
+builds Orbit / mass first and the rest after (orbit-only groups hidden in
+them); reading the form early returns the scenario's spacecraft; an edit
+in a section built later reaches the scenario. The last failed with the
+`section_built` connection removed.
+
+**Results**, the plan's probe on this machine: the first visit's longest
+stall 403 ms (`develop`, earlier the same day) -> 168 and 157 ms (two
+runs), two stretches over 50 ms each. One run's template run took 14 s
+with 28 stalls; a second took 7.0 s with 3 (the container had just
+restarted), as `develop` (8.3 s, 7). The theme switch did not change.

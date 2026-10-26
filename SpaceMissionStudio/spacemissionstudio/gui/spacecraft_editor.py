@@ -51,7 +51,7 @@ import re
 from types import SimpleNamespace
 from typing import NamedTuple
 
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import (
     QCheckBox,
     QDialog,
@@ -311,6 +311,8 @@ class SpacecraftEditorDialog(QDialog):
     existing config to edit it, or ``None`` for a fresh default.
     """
 
+    section_built = Signal(object)  # a section's page, once its fields exist (a page's form builds them in turn)
+
     def __init__(self, config: SpacecraftConfig | None = None, parent: QWidget | None = None,
                  other_spacecraft_names: list[str] | None = None, simulation_mode: str = "full_attitude",
                  ground_station_names: list[str] | None = None, epoch_provider=None, base_dir_provider=None,
@@ -351,7 +353,76 @@ class SpacecraftEditorDialog(QDialog):
         self.tabs = tabs
         outer_layout.addWidget(tabs)
 
-        orbit_tab = _tab_page(tabs, "Orbit / mass")
+        # The sections, a page each, in their tab order. A page's form (the
+        # Scenario Editor's) builds them a section at a time: Orbit / mass
+        # now, the others one per event-loop turn after it, or as soon as a
+        # section is shown or one of its fields is read (__getattr__). The
+        # whole form at once took 0.35-0.45 s (K-23).
+        self._init_config = config
+        self._init_providers = (epoch_provider, central_body_provider)
+        self._section_pages = {title: _tab_page(tabs, title) for title in TAB_TITLES}
+        self._sensors_tab_index = TAB_TITLES.index("Sensors / actuators")
+        self._fsw_tab_index = TAB_TITLES.index("Attitude control")
+        self._orbit_only_done: set = set()
+        self._finish_each_section = embedded
+        self._building_section = False
+        self._pending_sections = [  # the order the form was always built in: each may use the ones before
+            ("Orbit / mass", self._build_orbit_section), ("Sensors / actuators", self._build_sensors_section),
+            ("Attitude control", self._build_attitude_section),
+            ("Power / propulsion / link budget", self._build_power_section),
+            ("Vizard model", self._build_vizard_section), ("3D model", self._build_model_tab),
+            ("Budget (AD10)", self._build_budget_section)]
+        if self._orbit_only:
+            tabs.setTabVisible(self._sensors_tab_index, False)
+            tabs.setTabVisible(self._fsw_tab_index, False)
+
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(self._on_accept)
+        buttons.rejected.connect(self.reject)
+        outer_layout.addWidget(buttons)
+
+        # Real bug, found from a user screenshot: with no explicit size,
+        # this dialog opened absurdly small -- even its own first tab's
+        # Name/Dry mass rows were clipped behind scrollbars. Unlike
+        # propagation_setup_dialog.py's similar (much milder) case,
+        # resizing to self.sizeHint() alone would NOT fix this here:
+        # every tab is wrapped in its own QScrollArea (see _scrollable()'s
+        # own docstring for why), and a QScrollArea's sizeHint() is a
+        # small, mostly-arbitrary default -- NOT the wrapped content's
+        # real size -- so QDialog's own sizeHint() stays tiny regardless
+        # of how much is actually in each tab (confirmed directly: this
+        # dialog's sizeHint() measured 530x416 while its own "Orbit /
+        # mass" tab content alone needs 572x789, and the widest tab
+        # ("Power / propulsion / link budget") needs 715).
+        #
+        # Picks a width wide enough for every tab's content (so nothing
+        # wraps/clips horizontally) and a fixed, generous height -- NOT
+        # tall enough to fit the busiest tab without scrolling (that tab
+        # alone wants ~1485px, far taller than most screens) -- each
+        # tab's own QScrollArea is deliberately there so a busy tab
+        # scrolls independently rather than forcing every other tab's
+        # dialog that tall (see _scrollable()'s own docstring).
+        if embedded:  # a page's form takes the page's size: measuring every tab took 90 ms (M9)
+            self.build_sections("Orbit / mass")
+            tabs.currentChanged.connect(self._on_section_shown)
+            QTimer.singleShot(0, self, self._build_next_section)
+            return
+        self.build_sections()
+        widest_tab_content = max(tabs.widget(i).widget().sizeHint().width() for i in range(tabs.count()))
+        # Also wide enough for the tab bar itself -- sized from content
+        # alone, the last tab ("Vizard model") was clipped to a sliver.
+        # ensurePolished() first: the theme's bold tab font only applies
+        # once the stylesheet polishes the bar, and the unpolished
+        # sizeHint() comes out ~100 px short, still scrolling the bar.
+        tabs.tabBar().ensurePolished()
+        tab_bar_width = tabs.tabBar().sizeHint().width()
+        finish_form(self)  # units in the fields, optional groups collapse (M4a)
+        self.resize(max(650, widest_tab_content + 40, tab_bar_width + 40), 700)
+
+    def _build_orbit_section(self, orbit_tab: QWidget) -> None:
+        """The Orbit / mass section, on ``orbit_tab``."""
+        config = self._init_config
+        epoch_provider, central_body_provider = self._init_providers
         layout = QVBoxLayout(orbit_tab)
 
         top_form = QFormLayout()
@@ -540,10 +611,10 @@ class SpacecraftEditorDialog(QDialog):
         if config is not None:
             self.orbit_widget.from_dataclass(config.orbit)
 
-
+    def _build_sensors_section(self, sensors_tab: QWidget) -> None:
+        """The Sensors / actuators section."""
+        config = self._init_config
         # -- Sensors / actuators tab (Phase 2) --------------------------------
-        sensors_tab = _tab_page(tabs, "Sensors / actuators")
-        self._sensors_tab_index = tabs.count() - 1
         sensors_layout = QVBoxLayout(sensors_tab)
         sensors_layout.addWidget(QLabel("Sensors"))
         self.sensor_list = SensorActuatorListWidget(SensorConfig, SUPPORTED_SENSOR_KINDS)
@@ -555,9 +626,10 @@ class SpacecraftEditorDialog(QDialog):
             self.sensor_list.from_list(config.sensors)
             self.actuator_list.from_list(config.actuators)
 
+    def _build_attitude_section(self, fsw_tab: QWidget) -> None:
+        """The Attitude control section."""
+        config = self._init_config
         # -- Attitude control (FSW) tab (Phase 2) -----------------------------
-        fsw_tab = _tab_page(tabs, "Attitude control")
-        self._fsw_tab_index = tabs.count() - 1
         fsw_layout = QVBoxLayout(fsw_tab)
         fsw_form = QFormLayout()
         self.fsw_mode_combo = ComboBox()
@@ -747,14 +819,15 @@ class SpacecraftEditorDialog(QDialog):
         self.comms_pointing_group.toggled.connect(self._refresh_fsw_hint)
         self._refresh_fsw_hint()
 
-
+    def _build_power_section(self, power_tab: QWidget) -> None:
+        """The Power / propulsion / link budget section."""
+        config = self._init_config
         # -- Power budget / RF link budget tab (Phase 4) ----------------------
         # Both are OFF by default (unchecked group box) -- turning one on is
         # the only input needed beyond the numbers themselves; engine.service
         # (power) / engine.link_budget (RF) do the rest. See PowerConfig's
         # and RFLinkConfig's docstrings for exactly what each does and
         # doesn't affect.
-        power_tab = _tab_page(tabs, "Power / propulsion / link budget")
         power_layout = QVBoxLayout(power_tab)
 
         power0 = config.power if config else None
@@ -1586,13 +1659,14 @@ class SpacecraftEditorDialog(QDialog):
         power_layout.addWidget(self.data_handling_group)
         power_layout.addStretch(1)
 
-
+    def _build_vizard_section(self, viz_model_tab: QWidget) -> None:
+        """The Vizard model section."""
+        config = self._init_config
         # -- Vizard 3D model tab (Phase 5) -------------------------------------
         # PURELY COSMETIC -- see SpacecraftConfig.vizard_model_path's
         # docstring. Deliberately its own tab, not folded into another one,
         # so it reads as clearly separate from anything that affects
         # simulated physics.
-        viz_model_tab = _tab_page(tabs, "Vizard model")
         viz_model_layout = QVBoxLayout(viz_model_tab)
         viz_model_description_label = QLabel(
             "A 3D model shown in Vizard instead of the default cube. Display only: it never "
@@ -1660,85 +1734,88 @@ class SpacecraftEditorDialog(QDialog):
 
         viz_model_layout.addWidget(self.viz_model_group)
         viz_model_layout.addStretch(1)
-        self._build_model_tab(_tab_page(tabs, "3D model", tabs.count() - 1))  # before the Vizard model
 
+    def _build_budget_section(self, budget_tab: QWidget) -> None:
+        """The Budget (AD10) section."""
+        config = self._init_config
         # -- Delta-V and propellant budget inputs (ESA AD10) --------------------
         from .budget_widget import BudgetInputsGroup
 
-        budget_tab = _tab_page(tabs, "Budget (AD10)")
         budget_layout = QVBoxLayout(budget_tab)
         self.budget_group = BudgetInputsGroup(config.propellant_budget if config else None)
         budget_layout.addWidget(self.budget_group)
         budget_layout.addStretch(1)
 
-        if self._orbit_only:
-            tabs.setTabVisible(self._sensors_tab_index, False)
-            tabs.setTabVisible(self._fsw_tab_index, False)
-            self.power_group.setChecked(False)
-            self.power_group.setVisible(False)
-            # momentum_dumping/magnetic_momentum_management/fuel_tank all
-            # require specific actuator kinds (SpacecraftConfig.validate())
-            # that can only be added on the now-hidden Sensors/actuators
-            # tab -- leaving these checkable would be a dead end (checking
-            # one and clicking OK always fails validation with no way back
-            # to fix it from this dialog), same reasoning as power_group
-            # just above.
-            self.momentum_dumping_group.setChecked(False)
-            self.momentum_dumping_group.setVisible(False)
-            self.magnetic_momentum_management_group.setChecked(False)
-            self.magnetic_momentum_management_group.setVisible(False)
-            self.fuel_tank_group.setChecked(False)
-            self.fuel_tank_group.setVisible(False)
-            # comms_pointing lives on the now-hidden FSW tab and needs
-            # attitude control to mean anything -- same reasoning as
-            # fsw_mode/power above (to_dataclass() also force-clears it to
-            # None in the _orbit_only branch, not just hiding this widget).
-            self.comms_pointing_group.setChecked(False)
-            self.solar_array_group.setVisible(False)  # flexing moves the attitude, which orbit_only does not simulate
-            # Facets follow the attitude, which orbit_only does not
-            # simulate (Scenario.validate() rejects them); a spacecraft
-            # preset (New from template...) brings a facet model along.
-            self.facet_group.setVisible(False)
+    # Groups orbit_only turns off and hides, each once its section is built:
+    # (attribute, turn off, hide). momentum_dumping, magnetic_momentum_
+    # management and fuel_tank all require actuator kinds that can only be
+    # added on the hidden Sensors/actuators tab -- leaving them checkable
+    # would be a dead end (OK always fails validation with no way back to
+    # fix it here), as for power_group. comms_pointing lives on the hidden
+    # FSW tab and needs attitude control to mean anything (to_dataclass()
+    # also force-clears it to None in the _orbit_only branch). Solar array
+    # flexing moves the attitude, which orbit_only does not simulate;
+    # facets follow the attitude too (Scenario.validate() rejects them),
+    # and a spacecraft preset (New from template...) brings a facet model
+    # along.
+    _ORBIT_ONLY_GROUPS = (("power_group", True, True), ("momentum_dumping_group", True, True),
+                          ("magnetic_momentum_management_group", True, True), ("fuel_tank_group", True, True),
+                          ("comms_pointing_group", True, False), ("solar_array_group", False, True),
+                          ("facet_group", False, True))
 
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
-        buttons.accepted.connect(self._on_accept)
-        buttons.rejected.connect(self.reject)
-        outer_layout.addWidget(buttons)
+    def _apply_orbit_only(self) -> None:
+        """Turn off and hide the groups orbit_only has no use for, in the
+        sections built so far."""
+        built = self.__dict__
+        for name, turn_off, hide in self._ORBIT_ONLY_GROUPS:
+            if name in built and name not in self._orbit_only_done:
+                self._orbit_only_done.add(name)
+                if turn_off:
+                    built[name].setChecked(False)
+                if hide:
+                    built[name].setVisible(False)
 
-        # Real bug, found from a user screenshot: with no explicit size,
-        # this dialog opened absurdly small -- even its own first tab's
-        # Name/Dry mass rows were clipped behind scrollbars. Unlike
-        # propagation_setup_dialog.py's similar (much milder) case,
-        # resizing to self.sizeHint() alone would NOT fix this here:
-        # every tab is wrapped in its own QScrollArea (see _scrollable()'s
-        # own docstring for why), and a QScrollArea's sizeHint() is a
-        # small, mostly-arbitrary default -- NOT the wrapped content's
-        # real size -- so QDialog's own sizeHint() stays tiny regardless
-        # of how much is actually in each tab (confirmed directly: this
-        # dialog's sizeHint() measured 530x416 while its own "Orbit /
-        # mass" tab content alone needs 572x789, and the widest tab
-        # ("Power / propulsion / link budget") needs 715).
-        #
-        # Picks a width wide enough for every tab's content (so nothing
-        # wraps/clips horizontally) and a fixed, generous height -- NOT
-        # tall enough to fit the busiest tab without scrolling (that tab
-        # alone wants ~1485px, far taller than most screens) -- each
-        # tab's own QScrollArea is deliberately there so a busy tab
-        # scrolls independently rather than forcing every other tab's
-        # dialog that tall (see _scrollable()'s own docstring).
-        if embedded:  # a page's form takes the page's size: measuring every tab took 90 ms (M9)
-            finish_form(self)  # units in the fields, optional groups collapse (M4a)
-            return
-        widest_tab_content = max(tabs.widget(i).widget().sizeHint().width() for i in range(tabs.count()))
-        # Also wide enough for the tab bar itself -- sized from content
-        # alone, the last tab ("Vizard model") was clipped to a sliver.
-        # ensurePolished() first: the theme's bold tab font only applies
-        # once the stylesheet polishes the bar, and the unpolished
-        # sizeHint() comes out ~100 px short, still scrolling the bar.
-        tabs.tabBar().ensurePolished()
-        tab_bar_width = tabs.tabBar().sizeHint().width()
-        finish_form(self)  # units in the fields, optional groups collapse (M4a)
-        self.resize(max(650, widest_tab_content + 40, tab_bar_width + 40), 700)
+    def build_sections(self, through: str | None = None) -> None:
+        """Build the sections not built yet, in the order the form always
+        built them, up to and including ``through`` (None: all of them)."""
+        while self._pending_sections and not self._building_section:
+            title, build = self._pending_sections.pop(0)
+            page = self._section_pages[title]
+            self._building_section = True
+            try:
+                build(page)
+            finally:
+                self._building_section = False
+            if self._orbit_only:
+                self._apply_orbit_only()
+            if self._finish_each_section:
+                finish_form(page)  # units in the fields, optional groups collapse (M4a)
+            self.section_built.emit(page)
+            if title == through:
+                break
+
+    def _build_next_section(self) -> None:
+        """One more section, then the next on the following turn."""
+        if self._pending_sections:
+            self.build_sections(self._pending_sections[0][0])
+        if self._pending_sections:
+            QTimer.singleShot(0, self, self._build_next_section)
+
+    def _on_section_shown(self, index: int) -> None:
+        if self._pending_sections:
+            self.build_sections(self.tabs.tabText(index))
+
+    def __getattr__(self, name: str):
+        # A field of a section not built yet (a page's form builds them one
+        # at a time): build the rest, then look again. Every reader --
+        # to_dataclass(), field_widget(), a signal handler -- sees the whole
+        # form, as when it was built at once.
+        state = self.__dict__
+        if state.get("_pending_sections") and not state.get("_building_section"):
+            self.build_sections()
+            return getattr(self, name)
+        raise AttributeError(f"{type(self).__name__!r} object has no attribute {name!r}")
+
 
     def _on_name_changed(self, text: str) -> None:
         """Live, per-keystroke feedback (theme.py's ``[state="error"]``
