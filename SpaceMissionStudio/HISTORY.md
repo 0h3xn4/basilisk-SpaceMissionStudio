@@ -13489,3 +13489,43 @@ passed and 11 skipped in 643 s; after, 3870 tests, all passed, none
 skipped, in 609 s; `-m "not slow"`, 3860 in 315 s. No type checker is
 configured; adding one is a separate change (it would start with many
 findings in code that predates it).
+
+## The restyle crash on Python 3.14 (2026-10-27)
+
+Found while verifying the Python 3.14 branch (the user's Phase 4: "run
+the full suite ... on 3.14 and fix breakage"). After develop was merged
+in, one full run in five crashed a worker "while running
+`test_label_text.py::test_help_text_is_short_and_plain[spacecraft-07]`".
+That case is the first of its file, so it runs right after
+`test_keyboard_walk.py`; the two together crashed eight runs in eight,
+with and without xdist, and faulthandler named the line:
+`apply_theme`'s `app.setStyleSheet(sheet)`, called by the label test's
+fixture.
+
+**Cause:** pytest-qt closes a test's widgets and calls `deleteLater()`,
+then only processes events, which does not run deferred deletes. The
+keyboard walk's main window, its web views included, was still alive
+(closed) when the next test restyled every widget in the application,
+and restyling its web views crashed. On Python 3.13, with the same
+PySide6 and pytest-qt, it did not crash.
+
+**Change (tests only):** an autouse fixture in `tests/gui/conftest.py`
+runs the deferred deletes after each GUI test, once pytest-qt has closed
+its widgets. The pair: five runs in five pass. #129's end-of-session hook
+stays for widgets no test registered.
+
+**A second order dependence, found the same way.** With the deletes
+flushed the GUI tests ran faster (`test_label_text.py` 10 s, was 37 s)
+and landed on other workers, and the label test's main-window case
+failed two full runs in two with "Internal C++ object (TabWidget)
+already deleted". Replaying the worker's 92 tests in order reproduced
+it, and halving them found the pair: it fails after
+`test_keyboard_cursor.py::test_alt_backspace_clears_the_time_cursor_in_the_window`,
+on `develop` with Python 3.13 too. The deleted tab widget was the main
+window's hidden label form (`spacecraft_editor.prepare_labels`, built a
+section per event-loop turn and deleted once read; built only while the
+process has no titles cached, which is why it depends on the test before).
+The walk collected it with the dialog's tab widgets and met it deleted.
+The two walks (`test_label_text.py`, `test_input_borders.py`) skip a tab
+widget deleted meanwhile; the form is hidden, so none of its labels or
+inputs was ever checked.

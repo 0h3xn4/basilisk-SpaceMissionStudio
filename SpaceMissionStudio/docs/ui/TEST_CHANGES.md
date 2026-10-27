@@ -624,3 +624,25 @@ is the only test that an empty `.app` is not refused.
   the old `strftime("%b")` it fails ("2030 MÄR 01").
 - Ten tests of about a minute or more carry the new `slow` marker; CI
   runs them all.
+- `tests/gui/conftest.py` gained `_closed_widgets_deleted_after_the_test`,
+  an autouse fixture that runs Qt's deferred deletes after each GUI test.
+  pytest-qt closes the widgets a test registered and calls
+  `deleteLater()`, then only processes events, which does not delete
+  them: the keyboard-walk tests' main window, web views included, lived
+  on into the next test. On Python 3.14 the next test,
+  `test_label_text.py`'s first case (`spacecraft-07`), crashed in its
+  fixture's app-wide restyle (`apply_theme` → `setStyleSheet`), eight
+  runs in eight; with the fixture, five in five pass. The same code on
+  Python 3.13 (same PySide6 6.11.2, pytest-qt 4.5.0) did not crash. No
+  test changed.
+- `test_label_text.py::test_help_text_is_short_and_plain` and
+  `test_input_borders.py::test_every_input_box_has_a_visible_border` skip
+  a tab widget deleted while the dialog's tabs are walked. The main
+  window's hidden label form (`spacecraft_editor.prepare_labels`, built a
+  section per event-loop turn and deleted once read) was among the tab
+  widgets collected first, and was deleted during the walk:
+  "Internal C++ object (TabWidget) already deleted" for the main-window
+  case run right after
+  `test_keyboard_cursor.py::test_alt_backspace_clears_the_time_cursor_in_the_window`
+  (also on `develop`, Python 3.13). The form is hidden, so no label or
+  input of it was ever checked; nothing checked is left out.

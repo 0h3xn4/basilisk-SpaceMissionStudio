@@ -76,6 +76,29 @@ def _dialog_text(args, kwargs):
 
 
 @pytest.fixture(autouse=True)
+def _closed_widgets_deleted_after_the_test():
+    """Deletes the widgets the test registered with ``qtbot.addWidget``
+    before the next test starts.
+
+    pytest-qt closes them and calls ``deleteLater()`` after the test, but
+    then only processes events, which does not run deferred deletes: a
+    closed main window, web views and all, lived on into the next test.
+    There the next app-wide restyle (``apply_theme`` in
+    ``test_label_text.py``'s fixture) reached its web views and the process
+    crashed (a segmentation fault, every time after
+    ``test_keyboard_walk.py``). This fixture's teardown runs after
+    pytest-qt has closed them.
+    """
+    yield
+    try:
+        from PySide6.QtCore import QCoreApplication, QEvent
+    except ImportError:  # no PySide6: these tests are skipped via requires_gui anyway
+        return
+    if QCoreApplication.instance() is not None:
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+@pytest.fixture(autouse=True)
 def _no_blocking_dialogs(monkeypatch):
     """Under the offscreen platform a modal dialog nobody answers blocks for
     ever: a GUI test that opened one hung the whole suite instead of
