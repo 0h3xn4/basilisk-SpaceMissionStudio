@@ -200,7 +200,8 @@ class PhasingFormationRequest:
 
 
 def generate_phasing_follower(request: PhasingFormationRequest, chief: SpacecraftConfig,
-                               template: SpacecraftConfig, central_body: str) -> SpacecraftConfig:
+                               template: SpacecraftConfig, central_body: str,
+                               j2: float = 0.0) -> SpacecraftConfig:
     """Returns a new follower :class:`SpacecraftConfig`, cloned from
     ``template`` (mass/sensors/actuators/FSW/power/... unchanged, same
     "you only supply what's needed" pattern as
@@ -223,6 +224,13 @@ def generate_phasing_follower(request: PhasingFormationRequest, chief: Spacecraf
       in which case the difference simply becomes the follower's real
       initial phasing error for the controller to correct with a small
       burn once the run starts, same as any other starting mismatch.
+
+    With ``j2`` [-] (the run's, ``engine.constellation.simulated_j2``) the
+    along-track offset is applied to the chief's J2 mean elements and the
+    result mapped back to osculating ones, so the follower has the chief's
+    mean semi-major axis: with equal osculating ones a 50 km follower
+    drifted to 37.6 km in a day (audit of 2026-10-27), and the controller
+    paid for it in delta-V.
 
     Raises :class:`~spacemissionstudio.schema.scenario.ScenarioValidationError`
     if ``request`` is invalid or ``chief.orbit.type`` is not
@@ -280,6 +288,22 @@ def generate_phasing_follower(request: PhasingFormationRequest, chief: Spacecraf
     follower_oe.Omega, follower_oe.omega = chief_oe.Omega, chief_oe.omega
     follower_eccentric_anomaly = orbitalMotion.M2E(chief_mean_anomaly + along_track_rad, chief_oe.e)
     follower_oe.f = orbitalMotion.E2f(follower_eccentric_anomaly, chief_oe.e)
+    if j2 > 0.0:
+        # The same shift on the chief's mean elements, then back to
+        # osculating: the follower gets the chief's mean semi-major axis.
+        from .mean_elements import cl_mean_osc_map, osculating_from_mean
+
+        req_m = r_equator_km * 1000.0  # [m]
+        chief_mean = orbitalMotion.ClassicElements()
+        cl_mean_osc_map(req_m, j2, chief_oe, chief_mean, -1)
+        follower_mean = orbitalMotion.ClassicElements()
+        follower_mean.a, follower_mean.e, follower_mean.i = chief_mean.a, chief_mean.e, chief_mean.i
+        follower_mean.Omega, follower_mean.omega = chief_mean.Omega, chief_mean.omega
+        mean_anomaly = orbitalMotion.E2M(orbitalMotion.f2E(chief_mean.f, chief_mean.e), chief_mean.e)
+        follower_mean.f = orbitalMotion.E2f(
+            orbitalMotion.M2E(mean_anomaly + request.along_track_km * 1000.0 / chief_mean.a, chief_mean.e),
+            chief_mean.e)
+        follower_oe = osculating_from_mean(req_m, j2, follower_mean)
     r_follower_n, v_follower_n = orbitalMotion.elem2rv(mu, follower_oe)
 
     # Radial/cross-track (R, N): layered on AFTERWARD as a Hill-frame

@@ -898,7 +898,7 @@ def cmd_generate_constellation(args: argparse.Namespace) -> int:
               "--template-spacecraft NAME to say which one to clone into the constellation", file=sys.stderr)
         return 1
 
-    from .engine.constellation import WalkerConstellationRequest, generate_walker_constellation
+    from .engine.constellation import WalkerConstellationRequest, generate_walker_constellation, simulated_j2
 
     # central_body always comes from the scenario itself, never an
     # independent flag -- see gui.constellation_dialog's docstring for why
@@ -912,7 +912,8 @@ def cmd_generate_constellation(args: argparse.Namespace) -> int:
         raan_offset_deg=args.raan_offset_deg, name_prefix=args.name_prefix,
     )
     try:
-        generated = generate_walker_constellation(request, template)
+        generated = generate_walker_constellation(
+            request, template, j2=simulated_j2(scenario.gravity.central_body, scenario.gravity.central_body_degree))
     except ScenarioValidationError as exc:
         print(f"INVALID: {exc}", file=sys.stderr)
         return 1
@@ -954,6 +955,7 @@ def cmd_generate_phasing_formation(args: argparse.Namespace) -> int:
     # its own docstring) -- the real Basilisk import is lazy, INSIDE
     # generate_phasing_follower() below, so the ImportError this needs to
     # catch can only happen around that call, not this one.
+    from .engine.constellation import simulated_j2
     from .engine.formation import PhasingFormationRequest, generate_phasing_follower
 
     request = PhasingFormationRequest(
@@ -972,7 +974,9 @@ def cmd_generate_phasing_formation(args: argparse.Namespace) -> int:
         control_law=args.control_law,
     )
     try:
-        follower = generate_phasing_follower(request, chief, template, scenario.gravity.central_body)
+        follower = generate_phasing_follower(
+            request, chief, template, scenario.gravity.central_body,
+            j2=simulated_j2(scenario.gravity.central_body, scenario.gravity.central_body_degree))
     except ImportError as exc:
         print(f"ERROR: Basilisk is not installed/built ({exc}) -- generating a phasing formation needs a real "
               f"Basilisk build (it computes the follower's orbit via a real Hill-frame state-vector transform) "

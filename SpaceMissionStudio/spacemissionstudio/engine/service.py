@@ -386,11 +386,11 @@ def _mean_elements(oe: Dict[str, np.ndarray], req: float, j2: float) -> Dict[str
     Space Systems") has a singularity at the critical inclination (~63.4
     deg / ~116.6 deg, where ``1 - 5*cos(i)^2 == 0``): its long-period
     terms grow without bound there. :func:`.mean_elements.cl_mean_osc_map`
-    evaluates the map at the edge of a 1 deg band around it, so a sample
-    at or near that inclination gets finite mean elements (audit of
-    2026-10-27); elsewhere it is Basilisk's map unchanged. It still
-    degrades near i = 0/180 deg, the same caveat STK's own
-    Brouwer-Lyddane-based "Mean" elements carry.
+    blends the map's values at the edges of a 1 deg band around it, so a
+    sample at or near that inclination gets finite mean elements (audit of
+    2026-10-27), and evaluates it at 1 deg for an orbit within 1 deg of
+    i = 0 (or 180) deg, where it divides by ``tan i``; elsewhere it is
+    Basilisk's map unchanged.
     """
     n = oe["a"].shape[0]
     a = np.empty(n)
