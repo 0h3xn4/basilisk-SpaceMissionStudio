@@ -13133,3 +13133,25 @@ and nothing outside `SpaceMissionStudio/`. The fork's top-level
 `README.md` still names 1.3.0: it is outside `SpaceMissionStudio/`, and
 changing it is the user's call. The space weather is 1.3.0's, two days
 old. Merging, tagging and publishing are the user's.
+
+## A closed window lets go of its explanation worker (2026-10-27)
+
+The user: "Continue as per your recommendations". Branch
+`explainer-shut-down-drops-worker`, found when CI on PR #122 failed.
+
+**The failure:** `test_a_closed_window_starts_no_explanation_and_stops_autosaving`
+failed on a loaded CI runner (and twice in local full suites run under
+load): after `window.close()`, `scenario_explainer_widget._worker` was
+still set. An earlier edit's explanation was still being computed at
+close. `shut_down()` waited for its thread but left the reference, which
+only the worker's `finished` signal clears, and that signal is queued for
+an event loop a closing window may not run again.
+
+**The change:** after waiting, `shut_down()` releases a worker that has
+finished (`_on_worker_finished()`, which starts nothing more since the
+request was dropped). A worker still running after the 30 s wait is left
+alone, as before.
+
+**Tests:** `test_a_running_explanation_is_let_go_when_the_window_closes`
+starts a worker and closes the window at once: it failed every time
+before the change and passes after it.
