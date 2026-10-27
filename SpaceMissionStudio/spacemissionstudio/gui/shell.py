@@ -35,7 +35,6 @@ holds (``MainWindow``).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Optional
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QAction
@@ -54,16 +53,16 @@ class Area:
     label: str
     icon: str  # a bundled Lucide icon
     order: int
-    page: Optional["AreaPage"]  # None: a button that runs ``action`` instead of showing a page (Help)
+    page: AreaPage | None  # None: a button that runs ``action`` instead of showing a page (Help)
     bottom: bool = False  # pinned at the rail's bottom (Settings, Help)
-    action: Optional[QAction] = None
+    action: QAction | None = None
 
 
 class AreaPage(QWidget):
     """An area's page: a header with the title and the area's commands,
     over ``content``, the screen it hosts unchanged."""
 
-    def __init__(self, area_id: str, title: str, content: QWidget, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, area_id: str, title: str, content: QWidget, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.area_id = area_id
         self.content = content
@@ -80,7 +79,7 @@ class AreaPage(QWidget):
         self._buttons = QWidget()
         self._buttons_layout = FlowLayout(self._buttons, spacing=SPACE["xs"])
         header_layout.addWidget(self._buttons, 1)
-        self.buttons: Dict[QAction, QToolButton] = {}
+        self.buttons: dict[QAction, QToolButton] = {}
         self.header.setVisible(False)  # shown once it has a command
         layout.addWidget(self.header)
         layout.addWidget(content, 1)
@@ -114,7 +113,7 @@ class NavRail(QFrame):
     area_chosen = Signal(str)
     collapsed_changed = Signal(bool)
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("navRail")
         self.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Preferred)
@@ -130,9 +129,9 @@ class NavRail(QFrame):
         self._layout.addLayout(self._bottom)
         self.group = QButtonGroup(self)
         self.group.setExclusive(True)
-        self.buttons: Dict[str, QToolButton] = {}
-        self._labels: Dict[str, str] = {}
-        self._keys: Dict[str, str] = {}
+        self.buttons: dict[str, QToolButton] = {}
+        self._labels: dict[str, str] = {}
+        self._keys: dict[str, str] = {}
         self.collapse_button = QToolButton()
         self.collapse_button.setObjectName("railCollapseButton")
         self.collapse_button.setAutoRaise(True)
@@ -167,7 +166,7 @@ class NavRail(QFrame):
         if button is not None and button.isCheckable():
             button.setChecked(True)
 
-    def current(self) -> Optional[str]:
+    def current(self) -> str | None:
         return next((area_id for area_id, button in self.buttons.items() if button.isChecked()), None)
 
     def set_collapsed(self, collapsed: bool) -> None:
@@ -201,7 +200,7 @@ class Shell(QWidget):
 
     area_changed = Signal(str)
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -215,12 +214,12 @@ class Shell(QWidget):
         self.work_layout.setSpacing(0)
         self.work_layout.addWidget(self.stack, 1)
         layout.addWidget(self.work, 1)
-        self.areas: Dict[str, Area] = {}
+        self.areas: dict[str, Area] = {}
         self.rail.area_chosen.connect(self.show_area)
         self.stack.currentChanged.connect(self._on_current_changed)
 
-    def register(self, area_id: str, icon_name: str, label: str, content: Optional[QWidget], order: int,
-                 bottom: bool = False, action: Optional[QAction] = None, keys: str = "") -> Area:
+    def register(self, area_id: str, icon_name: str, label: str, content: QWidget | None, order: int,
+                 bottom: bool = False, action: QAction | None = None, keys: str = "") -> Area:
         """Add an area: ``content`` is the screen it hosts (None for a
         button that triggers ``action``); ``order`` places it on the rail;
         ``keys`` is the shortcut shown in its tooltip."""
@@ -246,16 +245,16 @@ class Shell(QWidget):
     def show_area(self, area_id: str) -> None:
         self.stack.setCurrentWidget(self.page(area_id))
 
-    def current_area(self) -> Optional[str]:
+    def current_area(self) -> str | None:
         page = self.stack.currentWidget()
         return page.area_id if isinstance(page, AreaPage) else None
 
-    def area_of(self, widget: QWidget) -> Optional[str]:
+    def area_of(self, widget: QWidget) -> str | None:
         """The area whose page holds ``widget``, or None."""
         return next((area.id for area in self.areas.values()
                      if area.page is not None and (area.page is widget or area.page.isAncestorOf(widget))), None)
 
-    def page_areas(self) -> List[Area]:
+    def page_areas(self) -> list[Area]:
         """The areas with a page, in rail order."""
         return [area for area in sorted(self.areas.values(), key=lambda a: a.order) if area.page is not None]
 

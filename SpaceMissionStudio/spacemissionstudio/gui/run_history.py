@@ -38,7 +38,7 @@ from __future__ import annotations
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
 from PySide6.QtCore import QObject, QThread, QTimer, Signal
 
@@ -54,9 +54,9 @@ SAVE_DELAY_MS = 1000  # [ms] after a run ends, its save starts (its views are sh
 class RunRecord:
     """One run: what it ran, when, and its series (read from disk on first use)."""
 
-    def __init__(self, number: int, scenario: dict, result: Optional[ResultSet], epoch_utc: str,
-                 finished: datetime, cancelled: bool = False, saved: Optional[run_store.SavedRun] = None,
-                 earlier_session: bool = False, loader: Optional[Callable[["RunRecord"], ResultSet]] = None):
+    def __init__(self, number: int, scenario: dict, result: ResultSet | None, epoch_utc: str,
+                 finished: datetime, cancelled: bool = False, saved: run_store.SavedRun | None = None,
+                 earlier_session: bool = False, loader: Callable[[RunRecord], ResultSet] | None = None):
         self.number = number  # 1 for the first run kept
         self.scenario = scenario  # Scenario.to_dict() as it ran
         self.epoch_utc = epoch_utc
@@ -68,7 +68,7 @@ class RunRecord:
         self._loader = loader
 
     @property
-    def result(self) -> Optional[ResultSet]:
+    def result(self) -> ResultSet | None:
         """The run's series, read from disk if they are not in memory (None
         when they cannot be read back; the log says why)."""
         if self._result is None and self._loader is not None:
@@ -106,7 +106,7 @@ class _LoadWorker(QThread):
 
     done = Signal(list)  # [run_store.SavedRun]
 
-    def __init__(self, root: Path, parent: Optional[QObject] = None) -> None:
+    def __init__(self, root: Path, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._root = root
         self.index: list = []  # what it read (also for a wait that does not wait for done)
@@ -124,7 +124,7 @@ class _SaveWorker(QThread):
 
     done = Signal(object, object, str, list)  # record, SavedRun or None, the error ("" if saved), pruned run ids
 
-    def __init__(self, root: Path, record: RunRecord, parent: Optional[QObject] = None) -> None:
+    def __init__(self, root: Path, record: RunRecord, parent: QObject | None = None) -> None:
         super().__init__(parent)
         self._root, self.record = root, record
         # What it did (also for a wait that does not wait for done).
@@ -156,18 +156,18 @@ class RunHistory(QObject):
     loaded = Signal()  # the earlier sessions' runs are listed
     saved = Signal(object)  # a run's save ended (its ``saved`` is set, or ``last_save_error`` says why not)
 
-    def __init__(self, max_runs: int = MAX_RUNS, store_root: "Optional[str | Path]" = None,
-                 background: bool = False, parent: Optional[QObject] = None):
+    def __init__(self, max_runs: int = MAX_RUNS, store_root: str | Path | None = None,
+                 background: bool = False, parent: QObject | None = None):
         super().__init__(parent)
-        self.runs: List[RunRecord] = []
+        self.runs: list[RunRecord] = []
         self._count = 0
         self._max_runs = max_runs
         self.store_root = Path(store_root) if store_root is not None else None
         self.last_save_error = ""  # why the last run could not be saved, if it could not
         self._background = background
-        self._loader: Optional[_LoadWorker] = None
-        self._saver: Optional[_SaveWorker] = None
-        self._to_save: List[RunRecord] = []
+        self._loader: _LoadWorker | None = None
+        self._saver: _SaveWorker | None = None
+        self._to_save: list[RunRecord] = []
         if self.store_root is None:
             return
         if background:
@@ -210,7 +210,7 @@ class RunHistory(QObject):
         return run_store.load_result(self.store_root, record.saved)
 
     def add(self, scenario: dict, result: ResultSet, epoch_utc: str, cancelled: bool = False,
-            finished: Optional[datetime] = None) -> RunRecord:
+            finished: datetime | None = None) -> RunRecord:
         self.wait_loaded()
         self._count += 1
         finished = (finished or datetime.now()).replace(microsecond=0)
@@ -307,8 +307,8 @@ class RunHistory(QObject):
         """The number the next run kept will get: "Run 3" (U-22)."""
         return self._count + 1
 
-    def latest(self) -> Optional[RunRecord]:
+    def latest(self) -> RunRecord | None:
         return self.runs[-1] if self.runs else None
 
-    def find(self, number: int) -> Optional[RunRecord]:
+    def find(self, number: int) -> RunRecord | None:
         return next((r for r in self.runs if r.number == number), None)

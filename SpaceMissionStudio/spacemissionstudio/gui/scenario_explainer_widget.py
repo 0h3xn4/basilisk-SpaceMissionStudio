@@ -37,7 +37,6 @@ from __future__ import annotations
 
 import copy
 import logging
-from typing import Optional
 
 from PySide6.QtCore import QEvent, Qt, QThread, QTimer, Signal
 from PySide6.QtWidgets import (
@@ -156,9 +155,9 @@ class ScenarioExplainerWidget(QWidget):
         super().__init__(parent)
         # request(): the latest scenario asked for, its number, the number
         # shown, and the worker computing one (one at a time).
-        self._requested: Optional[Scenario] = None
+        self._requested: Scenario | None = None
         self._number = self._shown = 0
-        self._worker: Optional[_ExplainWorker] = None
+        self._worker: _ExplainWorker | None = None
         self._timer = QTimer(self)
         self._timer.setSingleShot(True)
         self._timer.setInterval(EXPLAIN_SETTLE_MS)
@@ -235,7 +234,7 @@ class ScenarioExplainerWidget(QWidget):
             self._fit_table_height()
         return super().eventFilter(watched, event)
 
-    def set_scenario(self, scenario: Optional[Scenario]) -> None:
+    def set_scenario(self, scenario: Scenario | None) -> None:
         self.warning_count = 0  # pre-run warnings shown (see engine.scenario_checks)
         if scenario is None:
             self.model_buttons = []
@@ -251,7 +250,7 @@ class ScenarioExplainerWidget(QWidget):
         self._show_explanation(explain(scenario))
 
     # -- asked for after an edit, computed in a worker ---------------------------------
-    def request(self, scenario: Optional[Scenario]) -> None:
+    def request(self, scenario: Scenario | None) -> None:
         """Show ``scenario``'s explanation :data:`EXPLAIN_SETTLE_MS` after the
         last request, computed off the GUI thread; an answer a later
         request overtook is dropped. None shows the placeholder at once."""

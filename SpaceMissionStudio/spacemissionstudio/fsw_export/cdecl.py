@@ -35,7 +35,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import List, Optional
 
 _FIELD = re.compile(
     r"^\s*(?P<type>(?:unsigned\s+|signed\s+|const\s+|struct\s+)*[A-Za-z_]\w*)\s*(?P<pointer>\*?)\s*"
@@ -58,7 +57,7 @@ class Field:
         return self.c_type.endswith("Msg_C")
 
     @property
-    def message_type(self) -> Optional[str]:
+    def message_type(self) -> str | None:
         """``AttGuid`` for ``AttGuidMsg_C``."""
         return self.c_type[: -len("Msg_C")] if self.is_message else None
 
@@ -80,7 +79,7 @@ def integer_macros(header_text: str) -> dict:
     return {name: int(value) for name, value in re.findall(r"^\s*#\s*define\s+(\w+)\s+(\d+)\s*$", header_text, re.M)}
 
 
-def array_shape(dims: str, macros: dict) -> List[int]:
+def array_shape(dims: str, macros: dict) -> list[int]:
     """``"[MAX_EFF_CNT]"`` -> ``[36]``; ``"[3*3]"`` -> ``[9]``; ``"[3][3]"`` -> ``[3, 3]``. Only integers,
     known macros and ``*``/``+``/``-`` are accepted."""
     shape = []
@@ -108,7 +107,7 @@ def _strip_block_comments(text: str) -> str:
     return re.sub(r"/\*(?![!*]<).*?\*/", keep_lines, text, flags=re.S)
 
 
-def parse_struct(header_text: str, struct_name: str) -> List[Field]:
+def parse_struct(header_text: str, struct_name: str) -> list[Field]:
     """The fields of ``typedef struct {...} <struct_name>;`` in order."""
     text = _strip_block_comments(header_text)
     pattern = re.compile(r"typedef\s+struct\s*\w*\s*\{(?P<body>.*?)\}\s*" + re.escape(struct_name) + r"\s*;", re.S)

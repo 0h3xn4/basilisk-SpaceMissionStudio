@@ -41,7 +41,7 @@ import struct
 import zlib
 from dataclasses import dataclass, field
 from enum import IntEnum
-from typing import List, Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 CONTRACT_VERSION = 1
 MAGIC = b"SMSL"
@@ -88,7 +88,7 @@ def encode_frame(frame: Frame) -> bytes:
                        frame.time_ns, zlib.crc32(frame.payload)) + frame.payload
 
 
-def decode_header(data: bytes) -> Tuple[FrameType, int, int, int, int]:
+def decode_header(data: bytes) -> tuple[FrameType, int, int, int, int]:
     """``(type, seq, length, time_ns, crc)``; raises :class:`ContractError`
     for a wrong magic, contract version, type or length."""
     magic, version, kind, seq, length, time_ns, crc = HEADER.unpack(data)
@@ -129,9 +129,9 @@ class Hello:
     name: str  # the flight software's own name
     config_digest: str  # 64 hex digits, or UNKNOWN_DIGEST
     rate_ns: int  # the step the flight software expects
-    inputs: List[PortSpec] = field(default_factory=list)
-    outputs: List[PortSpec] = field(default_factory=list)
-    telemetry: List[PortSpec] = field(default_factory=list)
+    inputs: list[PortSpec] = field(default_factory=list)
+    outputs: list[PortSpec] = field(default_factory=list)
+    telemetry: list[PortSpec] = field(default_factory=list)
 
 
 def _short_text(text: str, what: str) -> bytes:
@@ -207,7 +207,7 @@ def decode_hello(data: bytes) -> Hello:
     return Hello(token, name, digest, rate_ns, ports[:n_in], ports[n_in:n_in + n_out], ports[n_in + n_out:])
 
 
-def port_mismatches(expected: Sequence[PortSpec], actual: Sequence[PortSpec], kind: str) -> List[str]:
+def port_mismatches(expected: Sequence[PortSpec], actual: Sequence[PortSpec], kind: str) -> list[str]:
     """Each way ``actual`` differs from ``expected`` (names, order, types,
     sizes, layout hashes), as sentences; empty when they match."""
     problems = []
@@ -227,7 +227,7 @@ def port_mismatches(expected: Sequence[PortSpec], actual: Sequence[PortSpec], ki
 # ----------------------------------------------------------------------------- RESET, STEP, OUTPUT
 
 
-def encode_payloads(ports: Sequence[PortSpec], payloads: Sequence[Optional[bytes]]) -> bytes:
+def encode_payloads(ports: Sequence[PortSpec], payloads: Sequence[bytes | None]) -> bytes:
     """Per port, in order: a written flag (0 or 1), then the payload's
     bytes (zeros when not written)."""
     out = bytearray()
@@ -241,7 +241,7 @@ def encode_payloads(ports: Sequence[PortSpec], payloads: Sequence[Optional[bytes
     return bytes(out)
 
 
-def decode_payloads(ports: Sequence[PortSpec], data: bytes, what: str) -> List[Optional[bytes]]:
+def decode_payloads(ports: Sequence[PortSpec], data: bytes, what: str) -> list[bytes | None]:
     expected = sum(1 + p.size for p in ports)
     if len(data) != expected:
         raise ContractError(f"{what} carries {len(data)} bytes of payloads, the ports need {expected}")
@@ -258,11 +258,11 @@ def decode_payloads(ports: Sequence[PortSpec], data: bytes, what: str) -> List[O
 OUTPUT_PREFIX = struct.Struct("<Q")  # the flight software's own step execution time [ns]
 
 
-def encode_output(execution_ns: int, ports: Sequence[PortSpec], payloads: Sequence[Optional[bytes]]) -> bytes:
+def encode_output(execution_ns: int, ports: Sequence[PortSpec], payloads: Sequence[bytes | None]) -> bytes:
     return OUTPUT_PREFIX.pack(execution_ns) + encode_payloads(ports, payloads)
 
 
-def decode_output(ports: Sequence[PortSpec], data: bytes) -> Tuple[int, List[Optional[bytes]]]:
+def decode_output(ports: Sequence[PortSpec], data: bytes) -> tuple[int, list[bytes | None]]:
     if len(data) < OUTPUT_PREFIX.size:
         raise ContractError("OUTPUT is shorter than its execution-time field")
     (execution_ns,) = OUTPUT_PREFIX.unpack_from(data)

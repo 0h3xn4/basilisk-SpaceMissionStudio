@@ -35,12 +35,11 @@ tint) and ``status.<name>.soft`` for a tinted background.
 
 from __future__ import annotations
 
-from typing import Dict
 
 MODES = ("light", "dark")
 
 # The brief's token table, verbatim.
-BRIEF: Dict[str, Dict[str, str]] = {
+BRIEF: dict[str, dict[str, str]] = {
     "dark": {
         "bg.canvas": "#0B0D10",
         "bg.surface": "#111418",
@@ -83,7 +82,7 @@ STATUSES = ("critical", "serious", "caution", "normal", "standby", "off")
 # lightness (OKLab L) was moved in 0.005 steps, hue and chroma kept, until
 # the value passed against every background it is drawn on: the canvas,
 # the surface, the raised surface, the hover row and the selected row.
-ADJUSTED: Dict[str, Dict[str, str]] = {
+ADJUSTED: dict[str, dict[str, str]] = {
     "light": {
         # 3.83:1 on bg.surface (needs 4.5:1 for text).
         "text.muted": "#666D77",
@@ -132,7 +131,7 @@ def mix(colour: str, base: str, share: float) -> str:
     return "#%02X%02X%02X" % tuple(round(x * share + y * (1.0 - share)) for x, y in zip(a, b))
 
 
-def _build(mode: str) -> Dict[str, str]:
+def _build(mode: str) -> dict[str, str]:
     t = dict(BRIEF[mode])
     t.update({key: value for key, value in ADJUSTED[mode].items() if not key.startswith("status.")})
     surface, accent = t["bg.surface"], t["accent"]
@@ -165,7 +164,7 @@ def _build(mode: str) -> Dict[str, str]:
 _TOKENS = {mode: _build(mode) for mode in MODES}
 
 
-def tokens(mode: str) -> Dict[str, str]:
+def tokens(mode: str) -> dict[str, str]:
     """Every token of ``mode`` (``"light"`` or ``"dark"``): a copy."""
     if mode not in MODES:
         raise ValueError(f"mode must be one of {MODES}, not {mode!r}")

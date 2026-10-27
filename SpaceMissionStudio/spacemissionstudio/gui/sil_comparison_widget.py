@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (QAbstractItemView, QFileDialog, QHBoxLayout, QHeaderView, QLabel, QPlainTextEdit, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout,
@@ -41,7 +40,7 @@ _COLUMNS = ("Signal", "Kind", "Max |residual|", "RMS", "At t [s]", "Max |referen
 
 
 class _NumberItem(QTableWidgetItem):
-    def __init__(self, value: float, text: Optional[str] = None):
+    def __init__(self, value: float, text: str | None = None):
         super().__init__(text if text is not None else ("" if math.isnan(value) else f"{value:.6g}"))
         self._value = value
         self.setTextAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
@@ -62,7 +61,7 @@ def _sentence(text: str) -> str:
 
 
 class SilComparisonWidget(QWidget):
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.report = None
         layout = QVBoxLayout(self)
@@ -190,7 +189,7 @@ class SilComparisonWidget(QWidget):
             self.views.insertTab(index, self.plots, "Residuals")
         return self.plots
 
-    def choose_report_path(self) -> Optional[Path]:
+    def choose_report_path(self) -> Path | None:
         """Asks where to save (tests replace this)."""
         name = f"sil_{self.report.spacecraft}.json" if self.report else "sil.json"
         chosen, _ = QFileDialog.getSaveFileName(self, "Save the SIL report", name, "JSON (*.json)")

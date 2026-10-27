@@ -148,9 +148,8 @@ import json
 import tempfile
 import time
 import weakref
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -268,7 +267,7 @@ _CURSOR_MESSAGE = plot_page.CLICK_MESSAGE
 _CURSOR_SHAPE = plot_page.CURSOR_SHAPE
 
 
-def _clicked_x(title: str) -> Optional[str]:
+def _clicked_x(title: str) -> str | None:
     """The x value a plot click put in the page title, or None."""
     message = plot_page.parse_message(title)
     return message[2] if message is not None and message[0] == "click" else None
@@ -323,7 +322,7 @@ def _series_label(name: str, series: TimeSeries) -> str:
     return display.title if display.standalone_title else f"{subject}: {display.title}"
 
 
-def _has_access_series(result: Optional[ResultSet]) -> bool:
+def _has_access_series(result: ResultSet | None) -> bool:
     return result is not None and any(
         (parsed := _parse_access_pair(name)) is not None and parsed[2] == "has_access" for name in result.series
     )
@@ -344,7 +343,7 @@ def _short_utc(timestamp: str) -> str:
     except ValueError:
         return timestamp
     if parsed.tzinfo is not None:
-        parsed = parsed.astimezone(timezone.utc)
+        parsed = parsed.astimezone(UTC)
     return parsed.strftime("%Y-%m-%d %H:%M UTC")
 
 
@@ -429,7 +428,7 @@ _EVENTS_REFRESH_S = 2.0  # [s] a live run's events are read again at most this o
 
 # Views with a layout save pending (M6a: saved after the click): every
 # read of a saved layout, and the application's quit, writes them first.
-_PENDING_SAVES: "weakref.WeakSet" = weakref.WeakSet()
+_PENDING_SAVES: weakref.WeakSet = weakref.WeakSet()
 _SAVES_ON_QUIT = None  # the application whose quit writes them
 
 
@@ -461,23 +460,23 @@ class ResultsWidget(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self._result: ResultSet | None = None
-        self._epoch_utc: Optional[str] = None
+        self._epoch_utc: str | None = None
         self.figures: list = []  # the plotted go.Figure of each grid cell, in order
         self._time_cursor = None  # gui.time_cursor.TimeCursor, set by set_time_cursor()
         self.cursor_actions = self._build_cursor_actions()
         self._x_is_epoch = False  # the shown figures' x axis is UTC (else elapsed hours or orbit number)
-        self._png_poll_state: Optional[dict] = None  # set by _on_save_plot_png, read by _poll_plot_png
+        self._png_poll_state: dict | None = None  # set by _on_save_plot_png, read by _poll_plot_png
         self._live_redraw_elapsed = QElapsedTimer()  # throttles set_live_result()'s own redraws -- see
         # _LIVE_REDRAW_MIN_INTERVAL_MS's own comment
         self._shown: list = []  # the plots in the grid, in order (series names or ACCESS_TIMELINE)
         self._focused = 0  # the selected grid cell
         self._layout = "1x1"
-        self._layout_key: Optional[str] = None  # the scenario, for the saved layout
+        self._layout_key: str | None = None  # the scenario, for the saved layout
         self._hidden_kinds: set = set()  # event kinds switched off
         self._events_cache: tuple = (None, [], None, 0.0)  # (result, its events, its series names, when [s])
         self._allow_stale_events = False  # set while a live chunk that is not drawn rebuilds the figures
         self._orbit_cache: tuple = (None, None, None)  # (result, spacecraft, (time_s, numbers) or None)
-        self._hover_time_s: Optional[float] = None
+        self._hover_time_s: float | None = None
         self._band_notes: list = []  # kinds left out of a plot for having too many bands
         # M6a: each plot's figure, kept until what it shows changes (_cached_plot):
         # name -> (key, go.Figure, its band notes)
@@ -593,7 +592,7 @@ class ResultsWidget(QWidget):
                                       "the time cursor.")
         self.vizard_button.clicked.connect(lambda: self.open_in_vizard.emit(self._vizard_file or ""))
         self.vizard_button.setVisible(False)
-        self._vizard_file: Optional[str] = None
+        self._vizard_file: str | None = None
         button_row.addWidget(self.vizard_button)
         button_row.addStretch(1)
         # Run comparison (UX/UI guidelines): the same series from an earlier
@@ -716,7 +715,7 @@ class ResultsWidget(QWidget):
 
     # -- the result ---------------------------------------------------------
 
-    def set_result(self, result: ResultSet | None, epoch_utc: Optional[str] = None) -> None:
+    def set_result(self, result: ResultSet | None, epoch_utc: str | None = None) -> None:
         self._result = result
         self._epoch_utc = epoch_utc
         self._fill_catalog(result)
@@ -727,7 +726,7 @@ class ResultsWidget(QWidget):
         self._redraw()
 
     @property
-    def figure(self) -> Optional[go.Figure]:
+    def figure(self) -> go.Figure | None:
         """The selected plot's go.Figure, or None (empty state)."""
         return self.figures[self._focused] if 0 <= self._focused < len(self.figures) else None
 
@@ -744,7 +743,7 @@ class ResultsWidget(QWidget):
             entries.append((ACCESS_TIMELINE, "Ground Station Access Timeline", "Link"))
         return entries
 
-    def _fill_catalog(self, result: Optional[ResultSet]) -> None:
+    def _fill_catalog(self, result: ResultSet | None) -> None:
         """New result: the catalog lists its plots, and the grid opens on the
         layout saved for this scenario, else the first suggested series,
         else the first series."""
@@ -781,7 +780,7 @@ class ResultsWidget(QWidget):
         self._featured = list(names)
         self._refresh_suggestions()
 
-    def set_layout_key(self, key: Optional[str]) -> None:
+    def set_layout_key(self, key: str | None) -> None:
         """The scenario whose layout and plots the grid keeps (its name);
         None keeps nothing."""
         if self in _PENDING_SAVES:
@@ -975,7 +974,7 @@ class ResultsWidget(QWidget):
         )
         self.provenance_label.setToolTip(provenance.rng_seed_note)
 
-    def set_live_result(self, result: ResultSet, epoch_utc: Optional[str] = None) -> None:
+    def set_live_result(self, result: ResultSet, epoch_utc: str | None = None) -> None:
         """Updates the plots with one chunk's worth of a still-running
         simulation (see ``gui.run_worker.RunWorker``'s ``progress`` signal /
         :meth:`engine.service.SimulationService.run_live`). Unlike
@@ -1053,7 +1052,7 @@ class ResultsWidget(QWidget):
             return "orbit"
         return "elapsed"
 
-    def _x_axis_values(self, time_s, result: Optional[ResultSet] = None, epoch_utc: Optional[str] = None):
+    def _x_axis_values(self, time_s, result: ResultSet | None = None, epoch_utc: str | None = None):
         """Returns ``(x_values, axis_label)`` for ``time_s`` [s] of ``result``
         (default: the shown one). "Epoch (UTC)" needs a real epoch and
         "Orbit number" a spacecraft's position and velocity; without them
@@ -1233,7 +1232,7 @@ class ResultsWidget(QWidget):
         (self._hidden_kinds.discard if on else self._hidden_kinds.add)(kind)
         self._redraw()
 
-    def _build_plot(self, name: str) -> Optional[go.Figure]:
+    def _build_plot(self, name: str) -> go.Figure | None:
         if name == ACCESS_TIMELINE:
             return self._build_access_timeline_figure()
         series = self._result.series.get(name) if self._result is not None else None
@@ -1248,7 +1247,7 @@ class ResultsWidget(QWidget):
                 frozenset(self._hidden_kinds), None if other is None else other.number,
                 None if self._current_run is None else self._current_run.number, self._theme_generation)
 
-    def _cached_plot(self, name: str) -> Optional[go.Figure]:
+    def _cached_plot(self, name: str) -> go.Figure | None:
         """``name``'s figure: the one built before when nothing it shows has
         changed, else a new one (M6a: showing another plot builds only that
         plot)."""
@@ -1283,7 +1282,7 @@ class ResultsWidget(QWidget):
         self.events_note.setText("\n".join(self._band_notes))
         self.events_note.setVisible(bool(self._band_notes))
 
-    def _build_access_timeline_figure(self) -> Optional[go.Figure]:
+    def _build_access_timeline_figure(self) -> go.Figure | None:
         """One Gantt-style chart of every
         ``{station}.access_to_{spacecraft}.has_access`` series in the result
         (roadmap item M5).
@@ -1522,7 +1521,7 @@ class ResultsWidget(QWidget):
             ))
         return traces
 
-    def set_vizard_file(self, path: Optional[str]) -> None:
+    def set_vizard_file(self, path: str | None) -> None:
         """Offer "Open in Vizard" for ``path`` (the run's playback file), or hide it."""
         self._vizard_file = path
         self.vizard_button.setVisible(bool(path))
@@ -1621,7 +1620,7 @@ class ResultsWidget(QWidget):
         names = self._shown
         return (0 <= index < len(names) and names[index] == ACCESS_TIMELINE) or self._x_mode() == "elapsed"
 
-    def plot_x_to_elapsed_s(self, x: str, index: Optional[int] = None) -> Optional[float]:
+    def plot_x_to_elapsed_s(self, x: str, index: int | None = None) -> float | None:
         """Elapsed (TDB) seconds of an x value of plot ``index`` (default:
         the selected one): hours, an orbit number, or UTC text on an epoch
         axis."""
@@ -1661,12 +1660,12 @@ class ResultsWidget(QWidget):
             self._hover_time_s = self.plot_x_to_elapsed_s(x, index) if x is not None else None
             self._update_readout()
 
-    def _on_plot_clicked(self, x: str, index: Optional[int] = None) -> None:
+    def _on_plot_clicked(self, x: str, index: int | None = None) -> None:
         time_s = self.plot_x_to_elapsed_s(x, index)
         if time_s is not None and self._time_cursor is not None:
             self._time_cursor.set_time(time_s)
 
-    def cursor_x_literal(self, index: Optional[int] = None) -> str:
+    def cursor_x_literal(self, index: int | None = None) -> str:
         """The cursor as a JavaScript x value for plot ``index`` (default:
         the selected one), or ``null``."""
         index = self._focused if index is None else index
@@ -1691,7 +1690,7 @@ class ResultsWidget(QWidget):
         literals = [self.cursor_x_literal(i) for i in range(len(self.figures))]
         self.web_view.page().runJavaScript(plot_page.cursor_script(literals, TOKENS['accent']))
 
-    def readout_time_s(self) -> Optional[float]:
+    def readout_time_s(self) -> float | None:
         """The time the readout shows: under the pointer, else the cursor's."""
         if self._hover_time_s is not None:
             return self._hover_time_s

@@ -35,7 +35,7 @@ import re
 import time
 from collections import deque
 from dataclasses import dataclass
-from typing import Deque, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QSortFilterProxyModel, Qt, QUrl, Signal
 from PySide6.QtGui import QColor, QDesktopServices, QGuiApplication, QKeySequence
@@ -115,7 +115,7 @@ def field_range(widget: QWidget) -> str:
 class InspectorWidget(QWidget):
     """The focused field's details: label, value, allowed range and help."""
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         self.empty_label = _empty_state("Select a field to see its value, allowed range and help here.")
@@ -138,9 +138,9 @@ class InspectorWidget(QWidget):
         layout.addWidget(self.form)
         layout.addStretch(1)
         self.form.setVisible(False)
-        self._widget: Optional[QWidget] = None
+        self._widget: QWidget | None = None
 
-    def inspect(self, widget: Optional[QWidget]) -> None:
+    def inspect(self, widget: QWidget | None) -> None:
         """Show ``widget``'s details, or the empty state for None."""
         self._widget = widget
         self.refresh()
@@ -215,19 +215,19 @@ class ProblemsModel(QAbstractTableModel):
     message. The severity's colour is looked up when drawn, so it follows a
     theme change."""
 
-    def __init__(self, parent: Optional[QObject] = None) -> None:
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
-        self.rows: List[Problem] = []
+        self.rows: list[Problem] = []
 
-    def set_rows(self, rows: List[Problem]) -> None:
+    def set_rows(self, rows: list[Problem]) -> None:
         self.beginResetModel()
         self.rows = list(rows)
         self.endResetModel()
 
-    def rowCount(self, parent: Optional[QModelIndex] = None) -> int:  # noqa: N802 -- Qt API name
+    def rowCount(self, parent: QModelIndex | None = None) -> int:  # noqa: N802 -- Qt API name
         return 0 if parent is not None and parent.isValid() else len(self.rows)
 
-    def columnCount(self, parent: Optional[QModelIndex] = None) -> int:  # noqa: N802 -- Qt API name
+    def columnCount(self, parent: QModelIndex | None = None) -> int:  # noqa: N802 -- Qt API name
         return 0 if parent is not None and parent.isValid() else len(PROBLEM_COLUMNS)
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):  # noqa: N802 -- Qt API name
@@ -295,7 +295,7 @@ class ProblemsWidget(QWidget):
     count_changed = Signal(int)
     counts_changed = Signal(int, int)  # errors, warnings
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -320,7 +320,7 @@ class ProblemsWidget(QWidget):
         layout.addWidget(self.empty_label)
         layout.addWidget(self.table, 1)
         self.setFocusProxy(self.table)  # focusing the panel focuses its table
-        self.problems: List[Tuple[str, str]] = []
+        self.problems: list[tuple[str, str]] = []
         self.set_problems([])
 
     def _on_activated(self, index) -> None:
@@ -338,12 +338,12 @@ class ProblemsWidget(QWidget):
         """Row ``row`` in words: "Error: <message>"."""
         return f"{self.proxy.index(row, 0).data()}: {self.proxy.index(row, 3).data()}"
 
-    def shown_rows(self) -> List[Tuple[str, str, str, str]]:
+    def shown_rows(self) -> list[tuple[str, str, str, str]]:
         """The table as shown: (severity, ID, object, message) per row."""
         return [tuple(str(self.proxy.index(row, column).data()) for column in range(len(PROBLEM_COLUMNS)))
                 for row in range(self.proxy.rowCount())]
 
-    def set_problems(self, problems: List[Tuple[str, ...]], spacecraft: Sequence[str] = (),
+    def set_problems(self, problems: list[tuple[str, ...]], spacecraft: Sequence[str] = (),
                      stations: Sequence[str] = ()) -> None:
         """``problems``: ``(severity, text)`` or ``(severity, text, shown
         text)``, severity "error" or "warning". ``text`` is the message as
@@ -368,7 +368,7 @@ class ProblemsWidget(QWidget):
 _MODEL_MARK = "3D model"  # in every 3D model problem (engine.scenario_checks)
 
 
-def model_problem_spacecraft(text: str, names: List[str]) -> Optional[str]:
+def model_problem_spacecraft(text: str, names: list[str]) -> str | None:
     """The spacecraft whose 3D model problem ``text`` is about, or None when
     it is not about a 3D model (see :mod:`problem_location`)."""
     location = locate(text, names)
@@ -412,7 +412,7 @@ class LogViewWidget(QWidget):
     """The session's log, filterable by level and text. Records reach it
     through :func:`install_log_view`; the log file keeps everything."""
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         row = QHBoxLayout()
@@ -442,14 +442,14 @@ class LogViewWidget(QWidget):
         self.text.setFont(mono_font())
         self.text.setPlaceholderText("Nothing logged yet in this session.")
         layout.addWidget(self.text, 1)
-        self.records: Deque[Tuple[float, int, str, str]] = deque(maxlen=MAX_LOG_RECORDS)
+        self.records: deque[tuple[float, int, str, str]] = deque(maxlen=MAX_LOG_RECORDS)
         self.level_combo.currentIndexChanged.connect(self._render)
         self.filter_edit.textChanged.connect(self._render)
         self.bridge = _LogBridge(self)
         self.bridge.record.connect(self.add_record)
         self._update_file_button()
 
-    def _matches(self, record: Tuple[float, int, str, str]) -> bool:
+    def _matches(self, record: tuple[float, int, str, str]) -> bool:
         _created, level, name, message = record
         if level < self.level_combo.currentData():
             return False
@@ -457,12 +457,12 @@ class LogViewWidget(QWidget):
         return not needle or needle in message.lower() or needle in name.lower()
 
     @staticmethod
-    def _line(record: Tuple[float, int, str, str]) -> str:
+    def _line(record: tuple[float, int, str, str]) -> str:
         created, level, name, message = record
         return f"{time.strftime('%H:%M:%S', time.localtime(created))}  {logging.getLevelName(level):<7}  " \
                f"{name}: {message}"
 
-    def add_record(self, record: Tuple[float, int, str, str]) -> None:
+    def add_record(self, record: tuple[float, int, str, str]) -> None:
         self.records.append(record)
         if self._matches(record):
             self.text.appendPlainText(self._line(record))

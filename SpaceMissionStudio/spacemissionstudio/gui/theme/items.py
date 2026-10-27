@@ -26,7 +26,6 @@ theme's ``changed`` signal through a method of its own.
 
 from __future__ import annotations
 
-from typing import Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QBrush, QColor
@@ -43,7 +42,7 @@ def _value(token: str) -> str:
     return TOKENS[token] if token in TOKENS else PALETTE[token]
 
 
-def tint(item, foreground: Optional[str] = None, background: Optional[str] = None, column: int = 0) -> None:
+def tint(item, foreground: str | None = None, background: str | None = None, column: int = 0) -> None:
     """Colour ``item``'s text (and background) with tokens (or role names);
     None leaves that colour unset. ``column`` is a tree item's column."""
     tree = isinstance(item, QTreeWidgetItem)
@@ -57,7 +56,7 @@ def tint(item, foreground: Optional[str] = None, background: Optional[str] = Non
             getattr(item, setter)(QBrush(QColor(_value(token))) if token else QBrush())
 
 
-def _retint_item(item, column: Optional[int] = None) -> None:
+def _retint_item(item, column: int | None = None) -> None:
     for role, setter in ((FOREGROUND_ROLE, "setForeground"), (BACKGROUND_ROLE, "setBackground")):
         token = item.data(column, role) if column is not None else item.data(role)
         if token:
@@ -83,6 +82,6 @@ def retint(view) -> None:
     elif isinstance(view, QTableWidget):
         for row in range(view.rowCount()):
             for column in range(view.columnCount()):
-                cell: Optional[QTableWidgetItem] = view.item(row, column)
+                cell: QTableWidgetItem | None = view.item(row, column)
                 if cell is not None:
                     _retint_item(cell)

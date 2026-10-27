@@ -33,7 +33,6 @@ state (:meth:`MissionGuide.update_state`) and acts on :attr:`MissionGuide.go_to`
 
 from __future__ import annotations
 
-from typing import Dict, Optional, Tuple
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import QFrame, QGridLayout, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
@@ -62,7 +61,7 @@ FULL_ATTITUDE_SUMMARY = (
     "Orbit only (Simulation mode, above) makes each spacecraft a point mass, for orbit questions alone.")
 
 # (key, title, what it is for); the state and the button follow.
-_STEPS: Tuple[Tuple[str, str, str], ...] = (
+_STEPS: tuple[tuple[str, str, str], ...] = (
     ("scenario", "1. Scenario", "Name it and set the epoch (UTC): the date fixes where the Sun and Moon are and how "
      "dense the upper atmosphere is."),
     (ENVIRONMENT, "2. Environment", "Central body, gravity field, third bodies, drag and space weather, the "
@@ -74,7 +73,7 @@ _STEPS: Tuple[Tuple[str, str, str], ...] = (
 )
 
 # (title, what it does, button text, where the button leads).
-_MORE: Tuple[Tuple[str, str, str, str], ...] = (
+_MORE: tuple[tuple[str, str, str, str], ...] = (
     ("Full attitude", "Sensors, actuators, attitude control and flight software, solar-panel power, faceted "
      "drag and flexible solar arrays.", "Switch to Full attitude", FULL_ATTITUDE),
     ("Manoeuvres and a mission timeline", "Burns, Lambert transfers, coasts to an event, conditions and loops, "
@@ -92,7 +91,7 @@ _MORE: Tuple[Tuple[str, str, str, str], ...] = (
 )
 
 
-def _label(text: str = "", role: Optional[str] = None, tone: Optional[str] = None) -> QLabel:
+def _label(text: str = "", role: str | None = None, tone: str | None = None) -> QLabel:
     label = QLabel(text)
     label.setWordWrap(True)
     set_role(label, role=role, tone=tone)
@@ -111,7 +110,7 @@ class StartFromScratchCard(QFrame):
 
     requested = Signal()
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         set_role(self, role="card")
         # Text over the button: the card sits in Home's narrow Start column.
@@ -135,7 +134,7 @@ class MissionGuide(QFrame):
 
     go_to = Signal(str)  # one of this module's page keys, or FULL_ATTITUDE
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         set_role(self, role="card")
         self.setObjectName("missionGuide")
@@ -157,8 +156,8 @@ class MissionGuide(QFrame):
 
         steps = QGridLayout()
         steps.setColumnStretch(1, 1)
-        self.step_badges: Dict[str, QLabel] = {}
-        self.step_buttons: Dict[str, QPushButton] = {}
+        self.step_badges: dict[str, QLabel] = {}
+        self.step_buttons: dict[str, QPushButton] = {}
         for row, (key, title, text) in enumerate(_STEPS):
             steps.addWidget(_label(title, role="heading"), row, 0, Qt.AlignmentFlag.AlignTop)
             steps.addWidget(_label(text), row, 1, Qt.AlignmentFlag.AlignTop)
@@ -180,7 +179,7 @@ class MissionGuide(QFrame):
         more = QGridLayout()
         more.setColumnStretch(1, 1)
         more.setHorizontalSpacing(SPACE["md"])
-        self.more_buttons: Dict[str, QPushButton] = {}
+        self.more_buttons: dict[str, QPushButton] = {}
         for row, (title, text, button_text, target) in enumerate(_MORE):
             more.addWidget(_label(title, role="strong"), row, 0, Qt.AlignmentFlag.AlignTop)
             more.addWidget(_label(text), row, 1, Qt.AlignmentFlag.AlignTop)

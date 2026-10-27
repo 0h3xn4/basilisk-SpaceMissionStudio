@@ -31,7 +31,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
 
 DATA = Path(__file__).resolve().parent.parent / "data" / "validation"
 GMAT_DATA = DATA / "gmat"
@@ -51,11 +50,11 @@ class PropagationCase:
 
     name: str
     epoch_utc: str
-    r_km: List[float]
-    v_km_s: List[float]
+    r_km: list[float]
+    v_km_s: list[float]
     days: float
     degree: int = 0
-    third_bodies: List[str] = field(default_factory=list)  # "sun", "moon"
+    third_bodies: list[str] = field(default_factory=list)  # "sun", "moon"
     srp: bool = False
     drag: bool = False
     mass_kg: float = 500.0  # [kg]
@@ -143,6 +142,6 @@ def tool_scenario(case: PropagationCase, station: bool = False):
     return scenario
 
 
-def gmat_reference(name: str) -> Optional[Path]:
+def gmat_reference(name: str) -> Path | None:
     path = GMAT_DATA / f"{name}.txt"
     return path if path.exists() else None

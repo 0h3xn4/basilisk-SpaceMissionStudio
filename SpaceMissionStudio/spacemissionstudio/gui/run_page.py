@@ -33,7 +33,7 @@ choices it reads.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QFileDialog, QFrame, QHBoxLayout, QLabel, QLineEdit,
@@ -52,7 +52,7 @@ class RunModeControl(QFrame):
 
     chosen = Signal(str)
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("segmentedControl")
         row = QHBoxLayout(self)
@@ -87,7 +87,7 @@ class RunPage(QWidget):
     vizard_changed = Signal(object)
     archive_changed = Signal(str)
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
@@ -119,8 +119,8 @@ class RunPage(QWidget):
         self._build_sil()
         self.vizard_form = None
         self.sil_form = None
-        self._sil_names: List[str] = []
-        self._sil_folder: Callable[[str], Optional[Path]] = lambda _name: None
+        self._sil_names: list[str] = []
+        self._sil_folder: Callable[[str], Path | None] = lambda _name: None
         self.show_mode("single")
 
     # -- the pages ----------------------------------------------------------------------------
@@ -230,7 +230,7 @@ class RunPage(QWidget):
             self.archive_changed.emit(chosen)
 
     # -- SIL ----------------------------------------------------------------------------------------
-    def set_sil_spacecraft(self, names: List[str], folder_of: Callable[[str], Optional[Path]]) -> None:
+    def set_sil_spacecraft(self, names: list[str], folder_of: Callable[[str], Path | None]) -> None:
         """The spacecraft that can run SIL; ``folder_of(name)`` their export folder."""
         self._sil_folder = folder_of
         if names == self._sil_names and self.sil_form is not None:

@@ -54,7 +54,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import List
 
 import numpy as np
 
@@ -113,7 +112,7 @@ def hub_mass_kg(sc_config) -> float:
     return sc_config.dry_mass_kg + hub_mass_offset_kg(sc_config)
 
 
-def fsw_inertia_kg_m2(sc_config) -> List[float]:
+def fsw_inertia_kg_m2(sc_config) -> list[float]:
     """The hub's inertia plus each undeflected array's, about the body
     origin, row-major -- the inertia the flight software uses."""
     total = np.asarray(sc_config.inertia_kg_m2, dtype=float).reshape(3, 3)
@@ -129,7 +128,7 @@ def fsw_inertia_kg_m2(sc_config) -> List[float]:
 class SolarArrayHandle:
     """What :func:`build_solar_arrays` built, per array, in order."""
 
-    names: List[str] = field(default_factory=list)
+    names: list[str] = field(default_factory=list)
     effectors: list = field(default_factory=list)
     state_recorders: list = field(default_factory=list)
     power_recorders: list = field(default_factory=list)  # None where an array generates no power

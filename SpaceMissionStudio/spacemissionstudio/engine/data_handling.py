@@ -64,7 +64,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional
 
 import numpy as np
 from Basilisk.architecture import messaging, sysModel
@@ -84,7 +83,7 @@ PACKET_SIZE_BITS = 1.0e6  # [bit] scenarioGroundDownlink.py's packet size
 _PRIORITY_SINKS = 50
 
 
-def antenna_boresight_b(sc_config) -> Optional[np.ndarray]:
+def antenna_boresight_b(sc_config) -> np.ndarray | None:
     """The downlink antenna's body-frame boresight (unit vector), from
     ``rf_link`` or else ``comms_pointing``; None if neither gives one."""
     vector = None
@@ -101,8 +100,8 @@ def antenna_boresight_b(sc_config) -> Optional[np.ndarray]:
 class _DownlinkGate(sysModel.SysModel):
     """One spacecraft's link to every ground station; see the module docstring."""
 
-    def __init__(self, rf_link: RFLinkConfig, stations: List[GroundStationConfig],
-                 boresight_b: Optional[np.ndarray], record_interval_s: float):
+    def __init__(self, rf_link: RFLinkConfig, stations: list[GroundStationConfig],
+                 boresight_b: np.ndarray | None, record_interval_s: float):
         super().__init__()
         self.rfLink = rf_link
         self.stations = stations
@@ -115,9 +114,9 @@ class _DownlinkGate(sysModel.SysModel):
                                    for station in stations]  # [dB]
         self.logThinner = LogThinner(record_interval_s)
         self.tLog: list = []
-        self.marginDbLog: List[list] = [[] for _ in stations]  # [dB] NaN outside access
-        self.offBoresightDegLog: List[list] = [[] for _ in stations]  # [deg] NaN outside access
-        self.linkClosedLog: List[list] = [[] for _ in stations]  # 1 while the link closes
+        self.marginDbLog: list[list] = [[] for _ in stations]  # [dB] NaN outside access
+        self.offBoresightDegLog: list[list] = [[] for _ in stations]  # [deg] NaN outside access
+        self.linkClosedLog: list[list] = [[] for _ in stations]  # 1 while the link closes
 
     def off_boresight_deg(self, sc_state, ground_state) -> float:
         if self.boresightB is None:
@@ -172,7 +171,7 @@ class _DataLedger(sysModel.SysModel):
         self.transmitterInMsg = messaging.DataNodeUsageMsgReader()
         self.transmitterSink = transmitter_sink
         self.transmitterPowerW = transmitter_power_w  # [W]
-        self.previousT: Optional[float] = None  # [s]
+        self.previousT: float | None = None  # [s]
         self.previousLevel = float(initial_bits)  # [bit]
         self.generated = 0.0  # [bit] everything the instruments produced
         self.lost = 0.0  # [bit] refused by a full memory
@@ -223,17 +222,17 @@ class DataHandlingHandle:
     """What :func:`build_data_handling` built, for recording and for
     carrying the memory's contents into the next segment of a long run."""
 
-    storage: Optional[object] = None
-    storage_recorder: Optional[object] = None
-    instrument_names: List[str] = field(default_factory=list)
-    ledger: Optional[_DataLedger] = None
-    gate: Optional[_DownlinkGate] = None
-    station_names: List[str] = field(default_factory=list)
+    storage: object | None = None
+    storage_recorder: object | None = None
+    instrument_names: list[str] = field(default_factory=list)
+    ledger: _DataLedger | None = None
+    gate: _DownlinkGate | None = None
+    station_names: list[str] = field(default_factory=list)
     keep_alive: list = field(default_factory=list)  # Basilisk objects Python must not free
 
 
-def build_link_gate(scSim, task_name: str, tag: str, sc_config, sc_object, stations: List[GroundStationConfig],
-                    access_out_msgs: Dict[str, object], ground_state_msgs: Dict[str, object],
+def build_link_gate(scSim, task_name: str, tag: str, sc_config, sc_object, stations: list[GroundStationConfig],
+                    access_out_msgs: dict[str, object], ground_state_msgs: dict[str, object],
                     record_interval_s: float) -> _DownlinkGate:
     """The live link gate of one spacecraft (see ``engine.link_budget.needs_link_gate``)."""
     gate = _DownlinkGate(sc_config.rf_link, stations, antenna_boresight_b(sc_config), record_interval_s)
@@ -247,7 +246,7 @@ def build_link_gate(scSim, task_name: str, tag: str, sc_config, sc_object, stati
 
 
 def build_data_handling(scSim, task_name: str, tag: str, config: DataHandlingConfig,
-                        gate: Optional[_DownlinkGate], downlink_rate_bps: float, battery,
+                        gate: _DownlinkGate | None, downlink_rate_bps: float, battery,
                         record, record_interval_s: float) -> DataHandlingHandle:
     """Builds one spacecraft's instruments, storage and (with ``gate``)
     transmitter. ``battery`` (or None) receives the instruments' and the
@@ -323,7 +322,7 @@ def build_data_handling(scSim, task_name: str, tag: str, config: DataHandlingCon
     return handle
 
 
-def stored_bits_by_instrument(storage, names: List[str]) -> Dict[str, int]:
+def stored_bits_by_instrument(storage, names: list[str]) -> dict[str, int]:
     """What each instrument's partition holds now [bit], for carrying a
     long run's memory into its next segment."""
     status = storage.storageUnitDataOutMsg.read()

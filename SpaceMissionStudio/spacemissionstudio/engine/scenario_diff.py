@@ -28,7 +28,7 @@ changed. Basilisk-free.
 
 from __future__ import annotations
 
-from typing import Any, List, Tuple
+from typing import Any
 
 _MISSING = "(none)"
 
@@ -39,7 +39,7 @@ def _key(item: Any, index: int) -> str:
     return str(index)
 
 
-def _walk(path: str, a: Any, b: Any, out: List[Tuple[str, Any, Any]]) -> None:
+def _walk(path: str, a: Any, b: Any, out: list[tuple[str, Any, Any]]) -> None:
     if isinstance(a, dict) and isinstance(b, dict):
         for name in list(a) + [k for k in b if k not in a]:
             _walk(f"{path}.{name}" if path else name, a.get(name, _MISSING), b.get(name, _MISSING), out)
@@ -56,10 +56,10 @@ def _walk(path: str, a: Any, b: Any, out: List[Tuple[str, Any, Any]]) -> None:
         out.append((path, a, b))
 
 
-def diff(a: dict, b: dict) -> List[Tuple[str, Any, Any]]:
+def diff(a: dict, b: dict) -> list[tuple[str, Any, Any]]:
     """``(path, value in a, value in b)`` for every input that differs;
     ``"(none)"`` where one side does not have it."""
-    out: List[Tuple[str, Any, Any]] = []
+    out: list[tuple[str, Any, Any]] = []
     _walk("", a, b, out)
     return out
 

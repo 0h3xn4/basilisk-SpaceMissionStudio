@@ -30,9 +30,8 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass, field
-from datetime import date, datetime, timezone
+from datetime import date, datetime, UTC
 from pathlib import Path
-from typing import Dict, List, Optional
 
 SPACE_WEATHER_STALE_DAYS = 60  # [day] observed data older than this is flagged
 
@@ -44,7 +43,7 @@ class ReferenceFile:
     status: str  # "ok", "missing", "out of date"
     source: str = ""
     path: str = ""
-    size_bytes: Optional[int] = None
+    size_bytes: int | None = None
     sha256: str = ""
     installed_utc: str = ""
     covers: str = ""  # the dates the data covers, where it has any
@@ -58,11 +57,11 @@ class Download:
     key: str
     title: str
     source: str
-    files: List[str] = field(default_factory=list)
+    files: list[str] = field(default_factory=list)
     approx_size: str = ""
 
 
-DOWNLOADS: Dict[str, Download] = {
+DOWNLOADS: dict[str, Download] = {
     "support_data": Download(
         "support_data", "Support data (SPICE kernels, gravity fields, magnetic model, albedo maps)",
         "NAIF (naif.jpl.nasa.gov) and the Basilisk repository (raw.githubusercontent.com/AVSLab)",
@@ -99,12 +98,12 @@ def _sha256(path: Path, limit_bytes: int = 32 * 1024 * 1024) -> str:
 
 def _mtime_utc(path: Path) -> str:
     try:
-        return datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat(timespec="seconds")
+        return datetime.fromtimestamp(path.stat().st_mtime, tz=UTC).isoformat(timespec="seconds")
     except OSError:
         return ""
 
 
-def _support_files() -> List[ReferenceFile]:
+def _support_files() -> list[ReferenceFile]:
     try:
         from Basilisk.utilities.supportDataTools import dataFetcher
 
@@ -128,7 +127,7 @@ def _support_files() -> List[ReferenceFile]:
     return files
 
 
-def _space_weather_files(today: date) -> List[ReferenceFile]:
+def _space_weather_files(today: date) -> list[ReferenceFile]:
     from . import spaceweather
 
     files = []
@@ -159,7 +158,7 @@ def _space_weather_files(today: date) -> List[ReferenceFile]:
     return files
 
 
-def _earth_orientation_files(now: datetime) -> List[ReferenceFile]:
+def _earth_orientation_files(now: datetime) -> list[ReferenceFile]:
     from . import earth_orientation
 
     kernels = earth_orientation.installed()
@@ -178,7 +177,7 @@ def _earth_orientation_files(now: datetime) -> List[ReferenceFile]:
     return files
 
 
-def _small_body_files() -> List[ReferenceFile]:
+def _small_body_files() -> list[ReferenceFile]:
     from . import small_bodies
 
     files = []
@@ -207,11 +206,11 @@ def _small_body_files() -> List[ReferenceFile]:
     return files
 
 
-def inventory(now: Optional[datetime] = None) -> List[ReferenceFile]:
+def inventory(now: datetime | None = None) -> list[ReferenceFile]:
     """Every reference data file, local reads only. Never raises: a part
     that cannot be read is listed as missing with the reason."""
-    now = now or datetime.now(timezone.utc).replace(tzinfo=None)
-    files: List[ReferenceFile] = []
+    now = now or datetime.now(UTC).replace(tzinfo=None)
+    files: list[ReferenceFile] = []
     for part, args in ((_support_files, ()), (_space_weather_files, (now.date(),)), (_earth_orientation_files, (now,)),
                        (_small_body_files, ())):
         try:

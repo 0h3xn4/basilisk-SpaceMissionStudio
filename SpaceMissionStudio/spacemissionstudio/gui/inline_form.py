@@ -29,7 +29,7 @@ at its field as it is typed).
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtWidgets import QDialog, QListWidget, QVBoxLayout, QWidget
@@ -50,10 +50,10 @@ class InlineForm(QWidget):
     applied = Signal(int, object)
 
     def __init__(self, list_widget: QListWidget, build: Callable[[int], QDialog],
-                 read: Callable[[QDialog, int], object], parent: Optional[QWidget] = None) -> None:
+                 read: Callable[[QDialog, int], object], parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._list, self._build, self._read = list_widget, build, read
-        self.form: Optional[QDialog] = None
+        self.form: QDialog | None = None
         self.row = -1
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

@@ -37,7 +37,6 @@ from __future__ import annotations
 
 import json
 import math
-from typing import List, Optional, Tuple
 
 from .theme import TOKENS
 from .theme.plotly_template import grid_css
@@ -106,7 +105,7 @@ def div_id(index: int) -> str:
     return PLOT_DIV_ID if index == 0 else f"{PLOT_DIV_ID}-{index}"
 
 
-def parse_message(title: str) -> Optional[Tuple[str, int, Optional[str]]]:
+def parse_message(title: str) -> tuple[str, int, str | None] | None:
     """``(kind, plot index, x)`` from a page title the script set, kind
     "click", "hover" or "focus" (``x`` None for a focus, and for a hover
     that left the plot), or "drawn" (the index is the render's number,
@@ -125,7 +124,7 @@ def parse_message(title: str) -> Optional[Tuple[str, int, Optional[str]]]:
     return None
 
 
-def build_page(figure_json: List[str], layout: str, focused: int, linked: List[bool], plotly_src: str,
+def build_page(figure_json: list[str], layout: str, focused: int, linked: list[bool], plotly_src: str,
                style: str) -> str:
     """The page for ``figure_json`` (``go.Figure.to_json()`` of each plot,
     in grid order); ``linked[i]`` links plot ``i``'s x axis with the
@@ -290,8 +289,8 @@ var SMS = (function() {{
             f'<div id="empty" class="empty" style="display: none"></div>{script}</body></html>')
 
 
-def render_script(figure_json: List[Optional[str]], layout: str, focused: int, linked: List[bool],
-                  generation: int, empty: Optional[str] = None) -> str:
+def render_script(figure_json: list[str | None], layout: str, focused: int, linked: list[bool],
+                  generation: int, empty: str | None = None) -> str:
     """Show ``figure_json`` on the persistent page (:func:`shell_page`):
     ``go.Figure.to_json()`` of each plot in grid order, None for a plot
     the page already shows in that cell; ``empty`` instead shows that
@@ -315,7 +314,7 @@ def focus_script(focused: int) -> str:
 }})();"""
 
 
-def cursor_script(x_literals: List[str], color: str) -> str:
+def cursor_script(x_literals: list[str], color: str) -> str:
     """Draw the cursor line at ``x_literals[i]`` (a JavaScript value, or
     ``null`` for none) on plot ``i``, without a reload."""
     return f"""(function() {{

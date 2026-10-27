@@ -36,7 +36,7 @@ import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable, Dict, Iterable, List, Optional, Tuple
+from collections.abc import Callable, Iterable
 
 import numpy as np
 
@@ -53,7 +53,7 @@ KINDS = (ACCESS, ECLIPSE, BURN, THRUSTER, MODE, DOWNLINK)
 # The measured values an event can carry (Event.quantities): key -> (column
 # heading, unit, format). The Events table gives each its own column and the
 # CSV export a ``<key>_<unit>`` column (docs/ux-audit.md U-31).
-QUANTITIES: Dict[str, Tuple[str, str, str]] = {
+QUANTITIES: dict[str, tuple[str, str, str]] = {
     "max_elevation": ("Max elevation", "deg", ".1f"),
     "lowest_sunlight": ("Lowest sunlight", "%", ".0f"),
     "delta_v": ("Delta-V", "m/s", ".3f"),
@@ -80,14 +80,14 @@ class Event:
     label: str
     detail: str = ""
     other: str = ""  # the ground station of a pass
-    quantities: Tuple[Tuple[str, float], ...] = ()  # (QUANTITIES key, value in its unit)
+    quantities: tuple[tuple[str, float], ...] = ()  # (QUANTITIES key, value in its unit)
     note: str = ""  # what the detail says that is not a quantity (the thrusters that fired, the mode)
 
     @property
     def duration_s(self) -> float:
         return self.end_s - self.start_s  # [s]
 
-    def quantity(self, key: str) -> Optional[float]:
+    def quantity(self, key: str) -> float | None:
         """The value of quantity ``key`` (in its :data:`QUANTITIES` unit), or None."""
         return dict(self.quantities).get(key)
 
@@ -97,7 +97,7 @@ class Event:
         return f"{self.other} - {self.spacecraft}" if self.other else f"{self.spacecraft} {self.kind}"
 
 
-def intervals(time_s: np.ndarray, on: np.ndarray) -> List[Tuple[int, int]]:
+def intervals(time_s: np.ndarray, on: np.ndarray) -> list[tuple[int, int]]:
     """``(first, last)`` sample indices of every contiguous run of ``on``."""
     on = np.asarray(on, dtype=bool)
     if on.size == 0:
@@ -110,11 +110,11 @@ def _column(series: TimeSeries, index: int = 0) -> np.ndarray:
     return series.data[:, index] if series.data.shape[0] else np.zeros(0)
 
 
-def _spans(series: TimeSeries, on: np.ndarray, make: Callable[[int, int], Event]) -> List[Event]:
+def _spans(series: TimeSeries, on: np.ndarray, make: Callable[[int, int], Event]) -> list[Event]:
     return [make(first, last) for first, last in intervals(series.time_s, on)]
 
 
-def _delta_v_between(result: ResultSet, name: str, start_s: float, end_s: float) -> Optional[float]:
+def _delta_v_between(result: ResultSet, name: str, start_s: float, end_s: float) -> float | None:
     """Cumulative delta-V [m/s] gained between two times, from ``name``."""
     series = result.series.get(name)
     if series is None or series.time_s.size == 0:
@@ -125,7 +125,7 @@ def _delta_v_between(result: ResultSet, name: str, start_s: float, end_s: float)
     return float(after - before)  # [m/s]
 
 
-def _passes(result: ResultSet) -> List[Event]:
+def _passes(result: ResultSet) -> list[Event]:
     events = []
     for name, series in result.series.items():
         prefix, _, part = name.rpartition(".")
@@ -146,7 +146,7 @@ def _passes(result: ResultSet) -> List[Event]:
     return events
 
 
-def _eclipses(result: ResultSet) -> List[Event]:
+def _eclipses(result: ResultSet) -> list[Event]:
     events = []
     for name, series in result.series.items():
         if not name.endswith(".eclipse.illumination_factor"):
@@ -165,7 +165,7 @@ def _eclipses(result: ResultSet) -> List[Event]:
     return events
 
 
-def _burns(result: ResultSet) -> List[Event]:
+def _burns(result: ResultSet) -> list[Event]:
     events = []
     for name, series in result.series.items():
         if name.endswith(".station_keeping.burn_on"):
@@ -218,7 +218,7 @@ def _burn_maker(result, series, spacecraft, label, delta_v_name):
     return make
 
 
-def _thruster_firings(result: ResultSet) -> List[Event]:
+def _thruster_firings(result: ResultSet) -> list[Event]:
     events = []
     for name, series in result.series.items():
         if not name.endswith(".thruster_on_time") or series.data.shape[0] == 0:
@@ -235,7 +235,7 @@ def _thruster_firings(result: ResultSet) -> List[Event]:
     return events
 
 
-def _modes(result: ResultSet) -> List[Event]:
+def _modes(result: ResultSet) -> list[Event]:
     events = []
     for name, series in result.series.items():
         if name.endswith(".comms_pointing.active_mode"):
@@ -262,7 +262,7 @@ def _modes(result: ResultSet) -> List[Event]:
     return events
 
 
-def _downlinks(result: ResultSet) -> List[Event]:
+def _downlinks(result: ResultSet) -> list[Event]:
     """Each window in which a spacecraft's link to a station closes and data
     went down (engine.data_handling), with how much. A pass that empties
     the memory early still counts as one downlink; two stations whose
@@ -289,12 +289,12 @@ def _downlinks(result: ResultSet) -> List[Event]:
 _EXTRACTORS = (_passes, _eclipses, _burns, _thruster_firings, _modes, _downlinks)
 
 
-def extract_events(result: Optional[ResultSet]) -> List[Event]:
+def extract_events(result: ResultSet | None) -> list[Event]:
     """Every event in ``result``, sorted by start time. Never raises: a
     series that cannot be read is skipped (the rest still show)."""
     if result is None:
         return []
-    events: List[Event] = []
+    events: list[Event] = []
     for extractor in _EXTRACTORS:
         try:
             events += extractor(result)
@@ -303,7 +303,7 @@ def extract_events(result: Optional[ResultSet]) -> List[Event]:
     return sorted(events, key=lambda e: (e.start_s, e.kind, e.spacecraft, e.label))
 
 
-def missing_kinds(result: Optional[ResultSet]) -> Dict[str, str]:
+def missing_kinds(result: ResultSet | None) -> dict[str, str]:
     """Kinds this run could not show, and why (the series was not recorded)."""
     names = list(result.series) if result is not None else []
     reasons = {
@@ -320,7 +320,7 @@ def missing_kinds(result: Optional[ResultSet]) -> Dict[str, str]:
     return {kind: why for kind, (why, has) in reasons.items() if not any(has(n) for n in names)}
 
 
-def write_csv(events: Iterable[Event], path: "str | Path", epoch_utc: Optional[str] = None) -> Path:
+def write_csv(events: Iterable[Event], path: str | Path, epoch_utc: str | None = None) -> Path:
     """The events as CSV. With an epoch, UTC start and end columns are added;
     then one ``<quantity>_<unit>`` column per :data:`QUANTITIES` entry any
     event carries (empty where an event has none)."""
@@ -342,17 +342,17 @@ def write_csv(events: Iterable[Event], path: "str | Path", epoch_utc: Optional[s
     return path
 
 
-def present_quantities(events: Iterable[Event]) -> List[str]:
+def present_quantities(events: Iterable[Event]) -> list[str]:
     """The :data:`QUANTITIES` keys any of ``events`` carries, in table order."""
     carried = {key for event in events for key, _value in event.quantities}
     return [key for key in QUANTITIES if key in carried]
 
 
-def _csv_number(value: Optional[float]) -> str:
+def _csv_number(value: float | None) -> str:
     return "" if value is None else repr(float(value))
 
 
-def _utc_columns(events: List[Event], epoch_utc: Optional[str]) -> List[Tuple[str, str]]:
+def _utc_columns(events: list[Event], epoch_utc: str | None) -> list[tuple[str, str]]:
     if not epoch_utc or not events:
         return []
     from . import time_system

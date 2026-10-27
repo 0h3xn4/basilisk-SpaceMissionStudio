@@ -41,7 +41,7 @@ reduced by 1 px so the text does not move.
 
 from __future__ import annotations
 
-from typing import Dict, Sequence
+from collections.abc import Sequence
 
 from . import icons
 from .typography import BORDER, CONTROL_HEIGHT, FOCUS_RING, MONO_FONT_FAMILY, RADIUS, SIZE, SPACE, WEIGHT
@@ -54,7 +54,7 @@ def _url(name: str, colour: str, stroke_width: float | None = None) -> str:
     return icons.icon_file(name, colour, stroke_width).as_posix()
 
 
-def stylesheet(t: Dict[str, str], series: Sequence[str] = ()) -> str:
+def stylesheet(t: dict[str, str], series: Sequence[str] = ()) -> str:
     """The style sheet for the tokens ``t`` (one theme's tokens) and its
     categorical palette ``series``."""
     px = lambda value: f"{value}px"  # noqa: E731 -- a short local formatter

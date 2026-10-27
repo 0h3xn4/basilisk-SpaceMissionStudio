@@ -99,7 +99,7 @@ class SpacecraftTemplateDialog(QDialog):
         else:
             self.description_label.setText("")
 
-    def selected_template(self) -> "SpacecraftTemplate | None":
+    def selected_template(self) -> SpacecraftTemplate | None:
         row = self.list_widget.currentRow()
         if 0 <= row < len(SPACECRAFT_TEMPLATES):
             return SPACECRAFT_TEMPLATES[row]

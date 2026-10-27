@@ -64,7 +64,6 @@ from __future__ import annotations
 
 import math
 from collections import deque
-from typing import Optional
 
 import numpy as np
 from Basilisk.architecture import messaging, sysModel
@@ -120,13 +119,13 @@ class GeoStationKeepingController(sysModel.SysModel):
         self.g0 = g0_mps2  # [m/s^2]
         self.dryMass = dry_mass_kg  # [kg]
         self.propellant = config.propellant_kg  # [kg]
-        self.depletedAtS: Optional[float] = None  # [s] first burn wanted with the tank empty
+        self.depletedAtS: float | None = None  # [s] first burn wanted with the tank empty
 
-        self._lastT: Optional[float] = None  # [s]
+        self._lastT: float | None = None  # [s]
         # (t [s], unwrapped longitude error [rad]) over the last sidereal day; a deque, as the
         # oldest sample leaves on every step (list.pop(0) copied the whole day each time; L17)
         self._history: deque = deque()
-        self._historyStartT: Optional[float] = None  # [s]
+        self._historyStartT: float | None = None  # [s]
         self._ewRemainingDv = 0.0  # [m/s] signed: + prograde
         self._nsActive = False
         # [frozen node direction, half arc [rad], thrust direction, needed dv

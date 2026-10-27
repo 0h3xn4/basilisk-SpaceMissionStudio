@@ -34,12 +34,11 @@ from __future__ import annotations
 import dataclasses
 import hashlib
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 import subprocess
 import time
 import weakref
 from pathlib import Path
-from typing import Optional
 
 from PySide6.QtCore import QElapsedTimer, QEvent, QEventLoop, Qt, QTimer
 from PySide6.QtGui import QActionGroup, QCloseEvent, QKeySequence
@@ -118,7 +117,7 @@ from ..engine.vizard import playback_file as vizard_playback_file
 _FILE_FILTER = "SpaceMissionStudio scenario (*.json)"
 
 
-def _is_template(path: Optional[Path]) -> bool:
+def _is_template(path: Path | None) -> bool:
     """Whether ``path`` is in the built-in templates folder."""
     try:
         return path is not None and Path(path).resolve().parent == TEMPLATES_DIR.resolve()
@@ -1079,7 +1078,7 @@ class MainWindow(QMainWindow):
                 "results": self.results_widget.splitter, "results_side": self.results_widget.side_splitter,
                 "timeline": self.event_timeline_widget.splitter, "compare": self.compare_widget.content}
 
-    def _layout_group(self) -> Optional[str]:
+    def _layout_group(self) -> str | None:
         """The settings group of the open scenario's layout (M2b: the layout
         is kept per project), or None for a scenario not saved yet."""
         if self._current_path is None:
@@ -1543,7 +1542,7 @@ class MainWindow(QMainWindow):
 
     def _add_history_extra(self, status: str, mode: str, detail: str) -> None:
         """A failed run or a batch: listed for this session (the run store keeps neither)."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         scenario = self._last_run_scenario.name if self._last_run_scenario is not None else ""
         self._history_extra.append(HistoryEntry(
             status=status, scenario=scenario, mode=mode, started_utc=utc_text(self._run_started_at),
@@ -1681,7 +1680,7 @@ class MainWindow(QMainWindow):
             return
         self.load_scenario_widget.refresh_recent()
 
-    def _open_scenario(self, scenario: Scenario, current_path: Optional[Path], verb: str) -> None:
+    def _open_scenario(self, scenario: Scenario, current_path: Path | None, verb: str) -> None:
         """Shared tail end of open_path()/_on_load_scenario_customized():
         loads ``scenario`` into the editor and resets every piece of
         per-scenario state (results, mission output, dirty flag, current
@@ -1776,7 +1775,7 @@ class MainWindow(QMainWindow):
         self.finish_run_end()  # the last run's views, before this one's
         self._set_running(True)
         self._busy_elapsed.start()
-        self._run_started_at = datetime.now(timezone.utc)
+        self._run_started_at = datetime.now(UTC)
         self.run_progress.start(message.rstrip("."), cancellable=cancellable, cancel_note=cancel_note)
         if determinate:
             self.run_progress.set_fraction(0.0)
@@ -1899,7 +1898,7 @@ class MainWindow(QMainWindow):
         names = [sc.name for sc in scenario.spacecraft if exportable_reason(scenario, sc) is None]
         self.run_page.set_sil_spacecraft(names, self.flight_software_widget._folder_of)
 
-    def _locate_vizard(self) -> Optional[Path]:
+    def _locate_vizard(self) -> Path | None:
         """Called only when :func:`find_vizard_executable` came up empty.
         Offers "Download Vizard" (automatic -- an explicit click, never
         automatic on its own; see ``gui.vizard_launcher``'s own module
@@ -1936,7 +1935,7 @@ class MainWindow(QMainWindow):
 
         return None
 
-    def _fetch_vizard_with_progress(self) -> Optional[Path]:
+    def _fetch_vizard_with_progress(self) -> Path | None:
         """Runs :class:`~.vizard_launcher.VizardFetchWorker` on a
         background thread while blocking THIS method (not the whole
         event loop -- see below) behind a modal, cancellable progress

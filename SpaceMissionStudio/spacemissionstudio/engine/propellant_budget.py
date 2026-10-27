@@ -76,8 +76,8 @@ import math
 import pickle
 import traceback
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta
-from typing import Callable, List, Optional
+from datetime import datetime, timedelta, UTC
+from collections.abc import Callable
 
 from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import PropellantBudgetConfig
@@ -110,7 +110,7 @@ class BudgetError(Exception):
 class BudgetRow:
     phase: str  # "Beginning of life", "Operations", "End of life", "Propellant"
     contributor: str
-    delta_v_m_s: Optional[float]  # [m/s] None for propellant-only rows
+    delta_v_m_s: float | None  # [m/s] None for propellant-only rows
     propellant_kg: float  # [kg]
     margin: str = "-"
     source: str = "input"  # "input", "computed", "last run", "last run, scaled"
@@ -118,12 +118,12 @@ class BudgetRow:
 
 @dataclass
 class Budget:
-    rows: List[BudgetRow]
+    rows: list[BudgetRow]
     dry_mass_kg: float  # [kg] including the system margin
     isp_s: float  # [s]
     efficiency: float  # [-]
     iterations: int
-    notes: List[str] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)
 
     @property
     def total_delta_v_m_s(self) -> float:
@@ -183,7 +183,7 @@ def graveyard_delta_v(a_m: float, srp_coeff: float, srp_area_m2: float, dry_mass
     return dv1 + dv2, raise_m
 
 
-def _orbit_thruster_isp(spacecraft) -> Optional[float]:
+def _orbit_thruster_isp(spacecraft) -> float | None:
     for block in (spacecraft.station_keeping, spacecraft.geo_station_keeping, spacecraft.constant_thrust):
         if block is not None:
             return block.isp_s
@@ -196,22 +196,22 @@ class RunContributors:
 
     run_days: float  # [day]
     scale: float  # [-] mission duration / run duration (>= 1 means scaled up)
-    in_plane: Optional[tuple] = None  # (delta-V [m/s], propellant [kg]) over the mission
-    out_of_plane: Optional[tuple] = None
-    formation: Optional[tuple] = None
+    in_plane: tuple | None = None  # (delta-V [m/s], propellant [kg]) over the mission
+    out_of_plane: tuple | None = None
+    formation: tuple | None = None
 
 
-def _final(result, name: str) -> Optional[float]:
+def _final(result, name: str) -> float | None:
     series = result.series.get(name)
     return float(series.data[-1, 0]) if series is not None and len(series.data) else None
 
 
-def _used(result, name: str) -> Optional[float]:
+def _used(result, name: str) -> float | None:
     series = result.series.get(name)
     return float(series.data[0, 0] - series.data[-1, 0]) if series is not None and len(series.data) else None
 
 
-def run_contributors(result, spacecraft_name: str, mission_years: float) -> Optional[RunContributors]:
+def run_contributors(result, spacecraft_name: str, mission_years: float) -> RunContributors | None:
     """Orbit control and formation keeping as flown in ``result``, scaled
     to ``mission_years`` when the run is shorter."""
     position = result.series.get(f"{spacecraft_name}.position_N")
@@ -309,8 +309,8 @@ def _estimates_in_plane(spacecraft) -> bool:
 
 
 def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=None,
-                   reentry_solver=uncontrolled_reentry_delta_v, in_plane: Optional[tuple] = None,
-                   makeup=_drag_makeup, flown: Optional["RunContributors"] = None) -> Budget:
+                   reentry_solver=uncontrolled_reentry_delta_v, in_plane: tuple | None = None,
+                   makeup=_drag_makeup, flown: RunContributors | None = None) -> Budget:
     """The budget of one spacecraft (see this module's docstring).
     ``result``/``run_scenario``: the last run and the scenario it ran,
     for the simulated contributors; ``in_plane``: (delta-V [m/s],
@@ -330,7 +330,7 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
     exhaust_m_s = efficiency * isp_s * G0_M_S2  # [m/s]
     dry_kg = spacecraft.dry_mass_kg * (1.0 if config.dry_mass_includes_margin else 1.0 + config.system_margin_fraction)
     a_m = _operational_sma_m(spacecraft)
-    notes: List[str] = []
+    notes: list[str] = []
 
     if flown is None and result is not None:
         flown = run_contributors(result, spacecraft_name, config.mission_years)
@@ -393,7 +393,7 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
     eol_utc = _parse_epoch(scenario.epoch_utc) + timedelta(days=config.mission_years * 365.25)
     reentry = None  # computed once: (delta-V, perigee, lifetime)
     propellant_kg = config.tank_capacity_kg  # [kg] initial guess (Sec. 6)
-    rows: List[BudgetRow] = []
+    rows: list[BudgetRow] = []
     for iteration in range(1, _MAX_ITERATIONS + 1):
         rows = []
         mass = dry_kg + propellant_kg  # beginning of life
@@ -478,7 +478,7 @@ class DelayCase:
     delay_years: float  # [year]
     launch_utc: datetime
     budget: Budget
-    drag_ratio: Optional[float] = None  # [-] drag make-up against the planned launch, when used
+    drag_ratio: float | None = None  # [-] drag make-up against the planned launch, when used
 
     def delta_v_of(self, phase: str, contributor_start: str) -> float:
         return sum(r.delta_v_m_s or 0.0 for r in self.budget.rows
@@ -488,8 +488,8 @@ class DelayCase:
 @dataclass
 class LaunchDelaySweep:
     spacecraft_name: str
-    cases: List[DelayCase]
-    notes: List[str] = field(default_factory=list)
+    cases: list[DelayCase]
+    notes: list[str] = field(default_factory=list)
 
     @property
     def worst(self) -> DelayCase:
@@ -526,9 +526,9 @@ def _launched_later(scenario, years: float):
 
 def launch_delay_sweep(scenario, spacecraft_name: str, result=None, run_scenario=None,
                        delays_years=LAUNCH_DELAYS_YEARS, reentry_solver=uncontrolled_reentry_delta_v,
-                       makeup=_drag_makeup, progress: Optional[Callable[[float, str], None]] = None,
-                       should_cancel: Optional[Callable[[], bool]] = None, flown: Optional[RunContributors] = None,
-                       reference_drag_m_s: Optional[float] = None) -> LaunchDelaySweep:
+                       makeup=_drag_makeup, progress: Callable[[float, str], None] | None = None,
+                       should_cancel: Callable[[], bool] | None = None, flown: RunContributors | None = None,
+                       reference_drag_m_s: float | None = None) -> LaunchDelaySweep:
     """The budget for the planned launch and for launches ``delays_years``
     later (Sec. 5.5: up to 5 years), the mission keeping its length.
 
@@ -549,7 +549,7 @@ def launch_delay_sweep(scenario, spacecraft_name: str, result=None, run_scenario
         raise BudgetError(f"no spacecraft named {spacecraft_name!r}")
     config = spacecraft.propellant_budget or PropellantBudgetConfig()
     delays = sorted(set(float(d) for d in delays_years) | {0.0})
-    notes: List[str] = []
+    notes: list[str] = []
     steps = len(delays) * 2  # a drag estimate and a budget per launch date
     done = [0]
 
@@ -578,7 +578,7 @@ def launch_delay_sweep(scenario, spacecraft_name: str, result=None, run_scenario
         notes.append("no drag-driven station keeping: in-plane control is the same for every launch date")
 
     base_drag = reference_drag_m_s  # [m/s]
-    cases: List[DelayCase] = []
+    cases: list[DelayCase] = []
     for delay in delays:
         later = _launched_later(scenario, delay)
         launch_utc = _parse_epoch(later.epoch_utc)
@@ -639,21 +639,21 @@ class AltitudeCase:
 @dataclass
 class AltitudeTrade:
     spacecraft_name: str
-    tank_kg: Optional[float]  # [kg] what the worst case is held against
-    altitudes: List[AltitudeCase]
-    notes: List[str] = field(default_factory=list)
+    tank_kg: float | None  # [kg] what the worst case is held against
+    altitudes: list[AltitudeCase]
+    notes: list[str] = field(default_factory=list)
 
-    def fits(self, case: AltitudeCase) -> Optional[bool]:
+    def fits(self, case: AltitudeCase) -> bool | None:
         """Whether the worst launch date's propellant fits the tank."""
         return None if not self.tank_kg else case.worst.budget.total_propellant_kg <= self.tank_kg
 
     @property
-    def lowest_fitting(self) -> Optional[AltitudeCase]:
+    def lowest_fitting(self) -> AltitudeCase | None:
         fitting = [case for case in self.altitudes if self.fits(case)]
         return min(fitting, key=lambda case: case.altitude_km) if fitting else None
 
 
-def default_altitudes_km(altitude_km: float) -> List[float]:
+def default_altitudes_km(altitude_km: float) -> list[float]:
     """Five altitudes around ``altitude_km`` [km], ``ALTITUDE_STEP_KM`` apart, from 250 km up."""
     centre = ALTITUDE_STEP_KM * round(altitude_km / ALTITUDE_STEP_KM)
     low = max(250.0, centre - 2.0 * ALTITUDE_STEP_KM)  # [km]
@@ -713,10 +713,10 @@ def _sweep_in_worker(job):
 
 
 def altitude_trade(scenario, spacecraft_name: str, altitudes_km=None, result=None, run_scenario=None,
-                   delays_years=LAUNCH_DELAYS_YEARS, workers: Optional[int] = None,
+                   delays_years=LAUNCH_DELAYS_YEARS, workers: int | None = None,
                    reentry_solver=uncontrolled_reentry_delta_v, makeup=_drag_makeup,
-                   progress: Optional[Callable[[float, str], None]] = None,
-                   should_cancel: Optional[Callable[[], bool]] = None) -> AltitudeTrade:
+                   progress: Callable[[float, str], None] | None = None,
+                   should_cancel: Callable[[], bool] | None = None) -> AltitudeTrade:
     """The launch-delay sweep (:func:`launch_delay_sweep`) at each of
     ``altitudes_km`` [km] (default: :func:`default_altitudes_km` around
     the spacecraft's own): the worst launch date's propellant per
@@ -751,7 +751,7 @@ def altitude_trade(scenario, spacecraft_name: str, altitudes_km=None, result=Non
         {"reentry_solver": reentry_solver, "makeup": makeup}
     jobs = [(scenario, spacecraft_name, a, run_scenario, delays_years, flown, reference_drag, solvers)
             for a in altitudes]
-    cases: List[AltitudeCase] = []
+    cases: list[AltitudeCase] = []
 
     def report(case):
         cases.append(case)
@@ -806,7 +806,6 @@ def altitude_trade(scenario, spacecraft_name: str, altitudes_km=None, result=Non
 
 
 def _parse_epoch(epoch_utc: str):
-    from datetime import timezone
 
     when = parse_epoch_utc(epoch_utc)
-    return when.astimezone(timezone.utc).replace(tzinfo=None) if when.tzinfo is not None else when
+    return when.astimezone(UTC).replace(tzinfo=None) if when.tzinfo is not None else when

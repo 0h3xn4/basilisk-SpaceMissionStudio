@@ -61,7 +61,6 @@ import ctypes
 import platform
 import sys
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
 
 from .. import __version__ as _tool_version
 from . import cdecl, sources
@@ -100,7 +99,7 @@ def _execution_order(task) -> list:
     return [models[i] for i in indexed]
 
 
-def _message_attributes(model, suffixes: Tuple[str, ...]):
+def _message_attributes(model, suffixes: tuple[str, ...]):
     """``(attribute label, message object)`` for each message-like
     attribute whose name ends with one of ``suffixes``; vectors expanded."""
     for name in dir(model):
@@ -180,21 +179,21 @@ class FswGraph:
     what :func:`capture` records and what the SIL bridge drives."""
     rate_ns: int
     fsw_models: list  # the Basilisk modules, in execution order
-    names: Dict[int, str]  # id(module) -> its name in the export
-    modules: List[ModuleInstance]
-    message_types: Dict[str, MessageType]
-    inputs: List[Port]
-    outputs: List[Port]
-    telemetry: List[Port]
-    constants: Dict[int, Constant]  # payload address -> constant
-    reads: List[Tuple[str, int, int]]  # ("<module>.<field>", local payload address, size)
-    input_source: Dict[str, Tuple[int, int]]  # port -> (the producer's payload address, size)
-    input_read_from: Dict[str, Tuple[int, int]]  # port -> (first consumer's local copy address, size)
-    input_container: Dict[str, tuple]  # port -> (first consumer's input container, source address, size)
-    output_sizes: Dict[str, Tuple[int, int]]  # "<module>.<field>" -> (payload address, size)
-    output_container: Dict[str, object]  # "<module>.<field>" -> the output container
-    not_exported: List[str]
-    priming: List[str]
+    names: dict[int, str]  # id(module) -> its name in the export
+    modules: list[ModuleInstance]
+    message_types: dict[str, MessageType]
+    inputs: list[Port]
+    outputs: list[Port]
+    telemetry: list[Port]
+    constants: dict[int, Constant]  # payload address -> constant
+    reads: list[tuple[str, int, int]]  # ("<module>.<field>", local payload address, size)
+    input_source: dict[str, tuple[int, int]]  # port -> (the producer's payload address, size)
+    input_read_from: dict[str, tuple[int, int]]  # port -> (first consumer's local copy address, size)
+    input_container: dict[str, tuple]  # port -> (first consumer's input container, source address, size)
+    output_sizes: dict[str, tuple[int, int]]  # "<module>.<field>" -> (payload address, size)
+    output_container: dict[str, object]  # "<module>.<field>" -> the output container
+    not_exported: list[str]
+    priming: list[str]
 
     @property
     def last_tag(self) -> str:
@@ -252,7 +251,7 @@ def read_graph(service, spacecraft_name: str) -> FswGraph:
                            for m in sim_models if type(m).__name__ in NOT_EXPORTED
                            and spacecraft_name in str(getattr(m, "ModelTag", ""))})
 
-    message_types: Dict[str, MessageType] = {}
+    message_types: dict[str, MessageType] = {}
 
     def message_type(name: str) -> MessageType:
         if name not in message_types:
@@ -274,8 +273,8 @@ def read_graph(service, spacecraft_name: str) -> FswGraph:
         names[id(m)] = name
 
     # Module outputs, by payload address.
-    struct_fields: Dict[int, List[cdecl.Field]] = {}
-    output_at: Dict[int, Tuple[object, str, str]] = {}
+    struct_fields: dict[int, list[cdecl.Field]] = {}
+    output_at: dict[int, tuple[object, str, str]] = {}
     for m in fsw_models:
         entry = MODULES[type(m).__module__.rsplit(".", 1)[1]]
         struct_fields[id(m)] = cdecl.parse_struct(sources.read_text(entry.header), entry.config_struct)
@@ -284,19 +283,19 @@ def read_graph(service, spacecraft_name: str) -> FswGraph:
                 output_at[int(getattr(m, f.name).payload.this)] = (m, f.name, f.message_type)
 
     # Messages of every other model, by payload address.
-    sim_message_at: Dict[int, Tuple[object, str]] = {}
+    sim_message_at: dict[int, tuple[object, str]] = {}
     for m in sim_models:
         for label, msg in _message_attributes(m, ("OutMsg", "OutMsgs", "Msg")):
             if hasattr(msg, "getPayloadAddress"):
                 sim_message_at[int(msg.getPayloadAddress())] = (m, label)
 
-    modules: List[ModuleInstance] = []
-    inputs: Dict[int, Port] = {}
-    input_read_from: Dict[str, Tuple[int, int]] = {}  # port -> (consumer local payload address, size)
-    input_source: Dict[str, Tuple[int, int]] = {}  # port -> (producer payload address, size)
-    input_container: Dict[str, object] = {}  # port -> its first consumer's input container
-    constants: Dict[int, Constant] = {}
-    reads: List[Tuple[str, int, int]] = []  # ("<module>.<field>", local payload address, size)
+    modules: list[ModuleInstance] = []
+    inputs: dict[int, Port] = {}
+    input_read_from: dict[str, tuple[int, int]] = {}  # port -> (consumer local payload address, size)
+    input_source: dict[str, tuple[int, int]] = {}  # port -> (producer payload address, size)
+    input_container: dict[str, object] = {}  # port -> its first consumer's input container
+    constants: dict[int, Constant] = {}
+    reads: list[tuple[str, int, int]] = []  # ("<module>.<field>", local payload address, size)
     for m in fsw_models:
         python_name = type(m).__module__.rsplit(".", 1)[1]
         instance = ModuleInstance(tag=m.ModelTag, name=names[id(m)], python_name=python_name,
@@ -359,7 +358,7 @@ def read_graph(service, spacecraft_name: str) -> FswGraph:
         modules.append(instance)
 
     # Outputs read by the simulation, and the timing-equivalence check.
-    outputs: Dict[str, Port] = {}
+    outputs: dict[str, Port] = {}
     first, last = position[id(fsw_models[0])], position[id(fsw_models[-1])]
     problems = []
     for m in sim_models:
@@ -392,7 +391,7 @@ def read_graph(service, spacecraft_name: str) -> FswGraph:
                  for p, fname, mtype in output_at.values() if f"{names[id(p)]}.{fname}" not in outputs]
     # Port names become C symbols (write_<port>, read_<port>, struct fields): two sources made into the same
     # identifier would not compile.
-    seen: Dict[str, str] = {}
+    seen: dict[str, str] = {}
     for port in list(inputs.values()) + list(outputs.values()) + telemetry:
         if port.name in seen:
             raise CaptureError(f"{seen[port.name]} and {port.producer} would both be called {port.name} in the export")

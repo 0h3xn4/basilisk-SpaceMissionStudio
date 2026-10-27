@@ -78,9 +78,9 @@ import threading
 import urllib.error
 import urllib.request
 import zipfile
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
 from PySide6.QtCore import QSettings, QThread, Signal
 
@@ -115,7 +115,7 @@ else:
     _EXECUTABLE_NAME = "Vizard.x86_64"
 
 
-def _candidate_roots() -> List[Path]:
+def _candidate_roots() -> list[Path]:
     """Best-effort per-OS locations to search, per VizardDownload.rst's
     own "install in the typical Applications folder or Desktop" guidance
     -- there's no single guaranteed location since Vizard ships as a
@@ -130,7 +130,7 @@ def _candidate_roots() -> List[Path]:
     return [home / "Desktop", home / "Downloads", home]
 
 
-def _search_candidate_roots() -> Optional[Path]:
+def _search_candidate_roots() -> Path | None:
     for root in _candidate_roots():
         if not root.is_dir():
             continue
@@ -211,9 +211,9 @@ def _safe_extract(zip_path: Path, extract_dir: Path) -> None:
         zf.extractall(extract_dir)
 
 
-def fetch_vizard(dest_dir: Optional[Path] = None, timeout_s: float = 30.0,
-                  should_cancel: Optional[Callable[[], bool]] = None,
-                  on_status: Optional[Callable[[str], None]] = None) -> Path:
+def fetch_vizard(dest_dir: Path | None = None, timeout_s: float = 30.0,
+                  should_cancel: Callable[[], bool] | None = None,
+                  on_status: Callable[[str], None] | None = None) -> Path:
     """Downloads and extracts AVS's own pre-built Vizard binary for this
     platform (see this module's own docstring -- the same links
     ``docs/source/Vizard/VizardDownload.rst`` already publishes for a
@@ -283,14 +283,14 @@ def fetch_vizard(dest_dir: Optional[Path] = None, timeout_s: float = 30.0,
 
 
 def _install_download(url: str, zip_name: str, zip_path: Path, dest_dir: Path, size_bytes: int, sha256: str,
-                      on_status: Optional[Callable[[str], None]]) -> Path:
+                      on_status: Callable[[str], None] | None) -> Path:
     """Records, extracts and finds the executable in a completed download
     (the second half of :func:`fetch_vizard`)."""
     # AVS publishes no checksum to verify against, so the download is at
     # least recorded: source, size and SHA-256 (security_analysis.md S-05).
     (dest_dir / "download.json").write_text(json.dumps({
         "url": url, "file": zip_name, "size_bytes": size_bytes, "sha256": sha256,
-        "downloaded_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "downloaded_utc": datetime.now(UTC).isoformat(timespec="seconds"),
     }, indent=2), encoding="utf-8")
     if on_status:
         on_status(f"Downloaded {zip_name}: {size_bytes} bytes, SHA-256 {sha256}")
@@ -332,7 +332,7 @@ def _install_download(url: str, zip_name: str, zip_path: Path, dest_dir: Path, s
     return executable
 
 
-def _search_one_root(root: Path) -> Optional[Path]:
+def _search_one_root(root: Path) -> Path | None:
     """Same shallow-search idiom as :func:`_search_candidate_roots` (the
     root itself, plus one level of subdirectories) -- Vizard's published
     .zip layout (a bare binary vs. nested inside its own folder) isn't
@@ -344,7 +344,7 @@ def _search_one_root(root: Path) -> Optional[Path]:
     return None
 
 
-def find_vizard_executable(settings: Optional[QSettings] = None) -> Optional[Path]:
+def find_vizard_executable(settings: QSettings | None = None) -> Path | None:
     """Returns a path to the Vizard executable/app bundle, or ``None`` if
     it can't be found automatically.
     """
@@ -357,7 +357,7 @@ def find_vizard_executable(settings: Optional[QSettings] = None) -> Optional[Pat
     return _search_candidate_roots()
 
 
-def remember_vizard_executable(path: Path, settings: Optional[QSettings] = None) -> None:
+def remember_vizard_executable(path: Path, settings: QSettings | None = None) -> None:
     """Persists ``path`` so the next :func:`find_vizard_executable` call
     (in this run or a future one) returns it directly, without needing to
     guess or ask the user again.
@@ -366,20 +366,20 @@ def remember_vizard_executable(path: Path, settings: Optional[QSettings] = None)
     settings.setValue(_SETTINGS_KEY, str(path))
 
 
-def remembered_vizard_executable(settings: Optional[QSettings] = None) -> str:
+def remembered_vizard_executable(settings: QSettings | None = None) -> str:
     """The location remembered (Settings > Vizard), or "" when none is."""
     settings = settings if settings is not None else QSettings()
     return settings.value(_SETTINGS_KEY, "", type=str)
 
 
-def forget_vizard_executable(settings: Optional[QSettings] = None) -> None:
+def forget_vizard_executable(settings: QSettings | None = None) -> None:
     """Forget the remembered location: Vizard is looked for in the usual places again."""
     settings = settings if settings is not None else QSettings()
     settings.remove(_SETTINGS_KEY)
 
 
-def launch_vizard(executable_path: Path, direct_comm_address: Optional[str] = None,
-                  load_file: Optional[Path] = None) -> "subprocess.Popen[bytes]":
+def launch_vizard(executable_path: Path, direct_comm_address: str | None = None,
+                  load_file: Path | None = None) -> subprocess.Popen[bytes]:
     """Starts Vizard as a background process and returns the
     :class:`subprocess.Popen` handle so the caller can poll whether it's
     still running (``.poll() is None``).
@@ -427,7 +427,7 @@ class VizardFetchWorker(QThread):
     failed = Signal(str)
     status = Signal(str)  # human-readable progress text (download vs. extract phase)
 
-    def __init__(self, dest_dir: Optional[Path] = None, parent=None):
+    def __init__(self, dest_dir: Path | None = None, parent=None):
         super().__init__(parent)
         self.dest_dir = dest_dir
         self._cancel_requested = threading.Event()

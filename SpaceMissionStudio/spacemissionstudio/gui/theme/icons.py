@@ -32,7 +32,6 @@ import atexit
 import shutil
 import tempfile
 from pathlib import Path
-from typing import Dict, Optional, Tuple
 
 from PySide6.QtCore import QByteArray, QEvent, QObject, QRect, QRectF, QSize, Qt, QTimer
 from PySide6.QtGui import QIcon, QIconEngine, QPainter, QPixmap
@@ -74,10 +73,10 @@ STEP_ICONS = {
 # critical, the rest in text.secondary.
 ACTION_TOKENS = {"run": "accent", "abort": "status.critical"}
 
-_svg_cache: Dict[str, bytes] = {}
-_renderers: Dict[Tuple[str, str], QSvgRenderer] = {}
-_pixmaps: Dict[Tuple[str, str, int, int, float], QPixmap] = {}
-_files_dir: Optional[Path] = None
+_svg_cache: dict[str, bytes] = {}
+_renderers: dict[tuple[str, str], QSvgRenderer] = {}
+_pixmaps: dict[tuple[str, str, int, int, float], QPixmap] = {}
+_files_dir: Path | None = None
 
 
 def available(name: str) -> bool:
@@ -91,7 +90,7 @@ def _svg(name: str) -> bytes:
     return _svg_cache[name]
 
 
-def tinted_svg(name: str, colour: str, stroke_width: Optional[float] = None) -> bytes:
+def tinted_svg(name: str, colour: str, stroke_width: float | None = None) -> bytes:
     """The SVG of ``name`` drawn in ``colour`` (``#RRGGBB``)."""
     data = _svg(name).replace(b"currentColor", colour.encode("ascii"))
     if stroke_width is not None:
@@ -138,7 +137,7 @@ class _TokenIconEngine(QIconEngine):
             _pixmaps[key] = pixmap
         return pixmap
 
-    def clone(self) -> "QIconEngine":
+    def clone(self) -> QIconEngine:
         return _TokenIconEngine(self._name, self._token)
 
     def key(self) -> str:
@@ -163,7 +162,7 @@ def step_icon(kind: str) -> QIcon:
     return icon(STEP_ICONS[kind]) if kind in STEP_ICONS else QIcon()
 
 
-def icon_file(name: str, colour: str, stroke_width: Optional[float] = None) -> Path:
+def icon_file(name: str, colour: str, stroke_width: float | None = None) -> Path:
     """A tinted copy of ``name`` on disk, for a style sheet's ``url()``:
     written once per process to a temporary folder."""
     global _files_dir

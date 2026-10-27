@@ -41,7 +41,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable, Dict, List, Optional, Sequence
+from collections.abc import Callable, Sequence
 from collections.abc import Sequence as SequenceABC
 
 from PySide6.QtCore import QAbstractTableModel, QObject, QSortFilterProxyModel, Qt, Signal
@@ -67,8 +67,8 @@ class Row:
     columns in the secondary colour (Compare's "(same)")."""
 
     cells: Sequence[str]
-    tooltips: Dict[int, str] = field(default_factory=dict)
-    keys: Optional[Sequence] = None
+    tooltips: dict[int, str] = field(default_factory=dict)
+    keys: Sequence | None = None
     group: bool = False
     bold: bool = False
     muted: frozenset = frozenset()
@@ -83,7 +83,7 @@ class LazyRows(SequenceABC):
 
     def __init__(self, count: int) -> None:
         self.count = count
-        self._made: Dict[int, Row] = {}
+        self._made: dict[int, Row] = {}
 
     def __len__(self) -> int:
         return self.count
@@ -114,10 +114,10 @@ class LazyRows(SequenceABC):
 class DataModel(QAbstractTableModel):
     """The rows of a :class:`DataTable`."""
 
-    def __init__(self, parent: Optional[QObject] = None) -> None:
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
-        self.headers: List[str] = []
-        self.header_tooltips: Dict[int, str] = {}
+        self.headers: list[str] = []
+        self.header_tooltips: dict[int, str] = {}
         self.bold_columns: set = set()
         self.numeric: set = set()  # columns of numbers
         self.rows: Sequence[Row] = []
@@ -142,7 +142,7 @@ class DataModel(QAbstractTableModel):
         self.rows.forget()
         self.endResetModel()
 
-    def set_header_marks(self, bold: Sequence[int], tooltips: Dict[int, str]) -> None:
+    def set_header_marks(self, bold: Sequence[int], tooltips: dict[int, str]) -> None:
         """Columns whose header is in bold (Output's report at the time cursor), and header tooltips."""
         self.bold_columns, self.header_tooltips = set(bold), dict(tooltips)
         if self.headers:
@@ -201,9 +201,9 @@ class DataModel(QAbstractTableModel):
 
 
 class _Filter(QSortFilterProxyModel):
-    def __init__(self, parent: Optional[QObject] = None) -> None:
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
-        self.predicate: Optional[Callable[[int], bool]] = None
+        self.predicate: Callable[[int], bool] | None = None
 
     def filterAcceptsRow(self, source_row, source_parent) -> bool:  # noqa: N802 -- Qt API name
         return self.predicate is None or self.predicate(source_row)
@@ -254,8 +254,8 @@ class DataTable(QWidget):
     row_chosen = Signal(int)  # the model row picked (set_single_pick)
     sorted = Signal(int)  # a presorted table was sorted by this column (set_presorted)
 
-    def __init__(self, empty_text: str = "Nothing to show.", action: Optional[str] = None,
-                 parent: Optional[QWidget] = None, direct: bool = False) -> None:
+    def __init__(self, empty_text: str = "Nothing to show.", action: str | None = None,
+                 parent: QWidget | None = None, direct: bool = False) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -342,7 +342,7 @@ class DataTable(QWidget):
     def _header_font(self):
         return self.view.horizontalHeader().font()
 
-    def clear(self, empty_text: Optional[str] = None) -> None:
+    def clear(self, empty_text: str | None = None) -> None:
         self.model.set_table([], [])
         self.view.clearSpans()
         if empty_text is not None:
@@ -352,7 +352,7 @@ class DataTable(QWidget):
     def set_empty_text(self, text: str) -> None:
         self.empty_label.setText(text)
 
-    def set_row_filter(self, predicate: Optional[Callable[[int], bool]]) -> None:
+    def set_row_filter(self, predicate: Callable[[int], bool] | None) -> None:
         """Show the model rows ``predicate(row)`` accepts (None: every row; not for a ``direct`` table)."""
         self.proxy.predicate = predicate
         self.proxy.invalidate()
@@ -373,7 +373,7 @@ class DataTable(QWidget):
         if rows:
             self.row_chosen.emit(self.proxy.mapToSource(rows[0]).row())
 
-    def chosen_row(self) -> Optional[int]:
+    def chosen_row(self) -> int | None:
         """The model row picked, or None."""
         rows = self.view.selectionModel().selectedRows()
         return self.proxy.mapToSource(rows[0]).row() if rows else None
@@ -421,7 +421,7 @@ class DataTable(QWidget):
     def column_count(self) -> int:
         return self.model.columnCount()
 
-    def set_header_marks(self, bold: Sequence[int] = (), tooltips: Optional[Dict[int, str]] = None) -> None:
+    def set_header_marks(self, bold: Sequence[int] = (), tooltips: dict[int, str] | None = None) -> None:
         self.model.set_header_marks(bold, tooltips or {})
 
     def _update_spans(self) -> None:
@@ -439,11 +439,11 @@ class DataTable(QWidget):
         """The rows shown."""
         return self.proxy.rowCount()
 
-    def shown_rows(self) -> List[int]:
+    def shown_rows(self) -> list[int]:
         """The model rows shown, in their order."""
         return [self.proxy.mapToSource(self.proxy.index(row, 0)).row() for row in range(self.proxy.rowCount())]
 
-    def shown_columns(self) -> List[int]:
+    def shown_columns(self) -> list[int]:
         return [c for c in range(self.model.columnCount()) if not self.view.isColumnHidden(c)]
 
     def header_text(self, column: int) -> str:
@@ -461,10 +461,10 @@ class DataTable(QWidget):
         index = self.proxy.index(row, column)
         return int(self.proxy.data(index, Qt.ItemDataRole.TextAlignmentRole) or 0)
 
-    def cell_tooltip(self, row: int, column: int) -> Optional[str]:
+    def cell_tooltip(self, row: int, column: int) -> str | None:
         return self.model.rows[self.shown_rows()[row]].tooltips.get(column)
 
-    def _tsv(self, rows: List[int]) -> str:
+    def _tsv(self, rows: list[int]) -> str:
         columns = self.shown_columns()
         lines = ["\t".join(self.model.headers[c].replace("\n", " ") for c in columns)]
         for row in rows:

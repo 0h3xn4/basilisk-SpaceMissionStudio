@@ -96,7 +96,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Callable, List, Optional, Sequence, Tuple
+from collections.abc import Callable, Sequence
 
 import numpy as np
 
@@ -157,7 +157,7 @@ def deputy_elements_from_roe(chief: MeanElements, roe: Sequence[float]) -> MeanE
                         mean_anomaly=wrap_pi(u - argp))
 
 
-def roe_to_rtn(roe: Sequence[float], u: float, a: float, n: float) -> Tuple[np.ndarray, np.ndarray]:
+def roe_to_rtn(roe: Sequence[float], u: float, a: float, n: float) -> tuple[np.ndarray, np.ndarray]:
     """First-order RTN position [m] and velocity [m/s] of the deputy
     relative to a near-circular chief at mean argument of latitude ``u``
     [rad], semi-major axis ``a`` [m] and mean motion ``n`` [rad/s]."""
@@ -172,7 +172,7 @@ def roe_to_rtn(roe: Sequence[float], u: float, a: float, n: float) -> Tuple[np.n
     return position, velocity
 
 
-def secular_j2_rates(elements: MeanElements, j2: float, r_eq: float, mu: float) -> Tuple[float, float, float]:
+def secular_j2_rates(elements: MeanElements, j2: float, r_eq: float, mu: float) -> tuple[float, float, float]:
     """Secular J2 rates [rad/s] of ``(Omega, omega, M)`` for mean elements."""
     eta = math.sqrt(1.0 - elements.e ** 2)
     kappa = _kappa(elements.a, eta, j2, r_eq, mu)
@@ -272,9 +272,9 @@ class DifferentialDragEstimator:
         self.min_span_s = min_span_s  # [s]
         self.jump_da = jump_da  # [-]
         self.sample_interval_s = sample_interval_s  # [s]
-        self._t: List[float] = []  # [s]
-        self._da: List[float] = []  # [-]
-        self._segment: List[int] = []
+        self._t: list[float] = []  # [s]
+        self._da: list[float] = []  # [-]
+        self._segment: list[int] = []
         self._next_segment = False
 
     def break_segment(self) -> None:
@@ -304,7 +304,7 @@ class DifferentialDragEstimator:
         if drop:
             del self._t[:drop], self._da[:drop], self._segment[:drop]
 
-    def rate(self) -> Optional[float]:
+    def rate(self) -> float | None:
         """The fitted ``da_dot`` [1/s], or ``None`` without enough data."""
         if not self._t:
             return None
@@ -379,7 +379,7 @@ class Burn:
     an RTN delta-V [m/s]."""
 
     u: float  # [rad] where on the orbit to fire (chief's mean argument of latitude)
-    dv_rtn: Tuple[float, float, float]  # [m/s] radial, along-track, cross-track
+    dv_rtn: tuple[float, float, float]  # [m/s] radial, along-track, cross-track
     kind: str  # "in-plane" or "out-of-plane"
 
     @property
@@ -401,7 +401,7 @@ def burn_effect(burn: Burn, a: float, n: float) -> np.ndarray:
                      su * dv_n]) / (n * a)
 
 
-def in_plane_pair(d_da: float, d_dex: float, d_dey: float, a: float, n: float) -> List[Burn]:
+def in_plane_pair(d_da: float, d_dex: float, d_dey: float, a: float, n: float) -> list[Burn]:
     """The two along-track burns, half an orbit apart, that change ``da``
     by ``d_da`` and the eccentricity vector by ``(d_dex, d_dey)`` at the
     least delta-V. The first burn is at the eccentricity change's angle;
@@ -416,7 +416,7 @@ def in_plane_pair(d_da: float, d_dex: float, d_dey: float, a: float, n: float) -
 
 
 def in_plane_at(d_da: float, d_dex: float, d_dey: float, locations_u: Sequence[float], a: float,
-                n: float) -> List[Burn]:
+                n: float) -> list[Burn]:
     """Along-track burns at the given arguments of latitude [rad] that
     make the same change as :func:`in_plane_pair`: for when the optimal
     pair's locations cannot be used, e.g. in eclipse. Any three distinct
@@ -431,7 +431,7 @@ def in_plane_at(d_da: float, d_dex: float, d_dey: float, locations_u: Sequence[f
             for u, v in zip(locations_u, dv) if abs(v) > 0.0]
 
 
-def out_of_plane(d_dix: float, d_diy: float, a: float, n: float, opposite: bool = False) -> Optional[Burn]:
+def out_of_plane(d_dix: float, d_diy: float, a: float, n: float, opposite: bool = False) -> Burn | None:
     """The cross-track burn that changes the inclination vector by
     ``(d_dix, d_diy)``: at the change's angle, or half an orbit later with
     the opposite sign (``opposite``). ``None`` for no change."""
@@ -491,14 +491,14 @@ class Correction:
     """What :func:`plan_correction` decided: the burns to fire, and the
     drift's ``da`` from then on (``None``: no drift)."""
 
-    burns: Tuple[Burn, ...]
-    drift_da: Optional[float]  # [-]
-    drift_s: Optional[float]  # [s] a new drift's planned duration (None otherwise)
+    burns: tuple[Burn, ...]
+    drift_da: float | None  # [-]
+    drift_s: float | None  # [s] a new drift's planned duration (None otherwise)
 
 
 def plan_correction(roe_now: Sequence[float], target: Sequence[float], chief: MeanElements,
                     tolerance: Sequence[float], window_s: float, max_drift_da: float,
-                    drift_da: Optional[float], stop_drift: bool, sunlit: Optional[Callable[[float], bool]],
+                    drift_da: float | None, stop_drift: bool, sunlit: Callable[[float], bool] | None,
                     j2: float, r_eq: float, mu: float) -> Correction:
     """The impulsive guidance's decision, from the mean ROE now (all
     dimensionless).
@@ -540,7 +540,7 @@ def plan_correction(roe_now: Sequence[float], target: Sequence[float], chief: Me
     d_da = desired_da - float(roe_now[0])
     d_de = target[2:4] - roe_now[2:4]
     d_di = target[4:6] - roe_now[4:6]
-    burns: List[Burn] = []
+    burns: list[Burn] = []
     da_threshold = tolerance[0] if drift_da is None and new_drift_da is None else 0.5 * fine_da
     if abs(d_da) > da_threshold or math.hypot(*d_de) > tolerance[2]:
         pair = in_plane_pair(d_da, float(d_de[0]), float(d_de[1]), a, n)
@@ -558,7 +558,7 @@ def plan_correction(roe_now: Sequence[float], target: Sequence[float], chief: Me
 
 def in_plane_sequence(d_da: float, d_dex: float, d_dey: float, d_dl: float, da_now: float,
                       times_s: Sequence[float], locations_u: Sequence[float], a: float,
-                      n: float, da_dot: float = 0.0) -> List[Tuple[float, Burn]]:
+                      n: float, da_dot: float = 0.0) -> list[tuple[float, Burn]]:
     """Along-track burns at the given times [s from now] and arguments of
     latitude [rad] that change ``da`` by ``d_da`` and the eccentricity
     vector by ``(d_dex, d_dey)`` and move ``dl`` by ``d_dl`` by the last
@@ -585,7 +585,7 @@ def in_plane_sequence(d_da: float, d_dex: float, d_dey: float, d_dl: float, da_n
                    for t, u, v in zip(times_s, locations_u, dv) if abs(v) > 1e-12), key=lambda p: p[0])
 
 
-def sequence_dl_shift(scheduled: Sequence[Tuple[float, Burn]], a: float, n: float) -> float:
+def sequence_dl_shift(scheduled: Sequence[tuple[float, Burn]], a: float, n: float) -> float:
     """How much further [-] ``dl`` moves by the end of a burn sequence
     (:func:`schedule_burns` output) than if its total change of ``da`` were
     made now: each along-track burn's ``d(da)`` acts only from its time
@@ -597,7 +597,7 @@ def sequence_dl_shift(scheduled: Sequence[Tuple[float, Burn]], a: float, n: floa
 
 def sunlit_locations(sunlit: Callable[[float], bool], preferred: Sequence[float], count: int = 3,
                      step_rad: float = math.radians(5.0), min_separation_rad: float = math.radians(20.0)
-                     ) -> List[float]:
+                     ) -> list[float]:
     """``count`` distinct sunlit arguments of latitude [rad] for
     :func:`in_plane_at`: the sunlit one nearest each ``preferred``
     location first, then the sunlit ones farthest from those chosen. The
@@ -610,7 +610,7 @@ def sunlit_locations(sunlit: Callable[[float], bool], preferred: Sequence[float]
     def separation(u1: float, u2: float) -> float:
         return abs(wrap_pi(u1 - u2))
 
-    chosen: List[float] = []
+    chosen: list[float] = []
     for u in preferred:
         nearest = min(lit, key=lambda candidate: separation(candidate, u))
         if all(separation(nearest, c) >= min_separation_rad for c in chosen):
@@ -624,7 +624,7 @@ def sunlit_locations(sunlit: Callable[[float], bool], preferred: Sequence[float]
 
 
 def schedule_burns(burns: Sequence[Burn], u_now: float, n: float, max_dv_per_burn: float,
-                   min_lead_s: float, min_separation_s: float) -> List[Tuple[float, Burn]]:
+                   min_lead_s: float, min_separation_s: float) -> list[tuple[float, Burn]]:
     """When to fire each burn, as ``(seconds from now, burn)`` in time
     order: the next time the spacecraft passes the burn's argument of
     latitude, at least ``min_lead_s`` ahead. A burn larger than
@@ -632,7 +632,7 @@ def schedule_burns(burns: Sequence[Burn], u_now: float, n: float, max_dv_per_bur
     location on consecutive orbits; a part closer than
     ``min_separation_s`` to one already scheduled waits an orbit."""
     period_s = 2.0 * math.pi / n
-    pieces: List[Tuple[float, Burn]] = []
+    pieces: list[tuple[float, Burn]] = []
     for burn in burns:
         parts = max(1, math.ceil(burn.magnitude / max_dv_per_burn)) if max_dv_per_burn > 0.0 else 1
         part = Burn(u=burn.u, dv_rtn=tuple(x / parts for x in burn.dv_rtn), kind=burn.kind)
@@ -640,7 +640,7 @@ def schedule_burns(burns: Sequence[Burn], u_now: float, n: float, max_dv_per_bur
         if lead_s < min_lead_s:
             lead_s += period_s
         pieces += [(lead_s + k * period_s, part) for k in range(parts)]
-    scheduled: List[Tuple[float, Burn]] = []
+    scheduled: list[tuple[float, Burn]] = []
     for when, part in sorted(pieces, key=lambda p: p[0]):
         while any(abs(when - other) < min_separation_s for other, _ in scheduled):
             when += period_s

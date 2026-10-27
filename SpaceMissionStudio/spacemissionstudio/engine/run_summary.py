@@ -57,7 +57,6 @@ from __future__ import annotations
 import math
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -88,19 +87,19 @@ class Figure:
         return f"{self.value:.{self.decimals}f}"
 
 
-def _last(series: TimeSeries, column: int = 0) -> Optional[float]:
+def _last(series: TimeSeries, column: int = 0) -> float | None:
     values = series.data[:, column] if series.data.shape[0] else np.zeros(0)
     finite = values[np.isfinite(values)]
     return float(finite[-1]) if finite.size else None
 
 
-def _first(series: TimeSeries, column: int = 0) -> Optional[float]:
+def _first(series: TimeSeries, column: int = 0) -> float | None:
     values = series.data[:, column] if series.data.shape[0] else np.zeros(0)
     finite = values[np.isfinite(values)]
     return float(finite[0]) if finite.size else None
 
 
-def _orbit_averaged_change(series: TimeSeries) -> Optional[float]:
+def _orbit_averaged_change(series: TimeSeries) -> float | None:
     """Mean semi-major axis [m] averaged over the last orbit minus over the
     first; None for a run shorter than two orbits."""
     time_s, values = np.asarray(series.time_s, dtype=float), series.data[:, 0] if series.data.shape[0] else np.zeros(0)
@@ -116,7 +115,7 @@ def _orbit_averaged_change(series: TimeSeries) -> Optional[float]:
     return float(np.mean(last) - np.mean(first))  # [m]
 
 
-def summarize(result: Optional[ResultSet], events: Optional[List[event_model.Event]] = None) -> List[Figure]:
+def summarize(result: ResultSet | None, events: list[event_model.Event] | None = None) -> list[Figure]:
     """The headline figures of ``result`` (``events`` from
     :func:`engine.events.extract_events`, read here when not given)."""
     if result is None:
@@ -125,9 +124,9 @@ def summarize(result: Optional[ResultSet], events: Optional[List[event_model.Eve
     spacecraft = sorted({e.spacecraft for e in events} | {
         name[:-len(".position_N")] for name in result.series if name.endswith(".position_N")})
     several = len(spacecraft) > 1
-    figures: List[Figure] = []
+    figures: list[Figure] = []
 
-    def add(sc: str, key: str, label: str, unit: str, value: Optional[float], decimals: int) -> None:
+    def add(sc: str, key: str, label: str, unit: str, value: float | None, decimals: int) -> None:
         if value is not None and math.isfinite(value):
             figures.append(Figure(f"{sc}.{key}" if sc else key, f"{sc}: {label}" if several and sc else label,
                                   unit, float(value), decimals))
@@ -173,11 +172,11 @@ def summarize(result: Optional[ResultSet], events: Optional[List[event_model.Eve
     return figures
 
 
-def event_table(events: List[event_model.Event]) -> "OrderedDict[str, Tuple[int, float]]":
+def event_table(events: list[event_model.Event]) -> OrderedDict[str, tuple[int, float]]:
     """``{event label (with the spacecraft when there are several):
     (count, total duration [min])}``, in the order the events come."""
     several = len({e.spacecraft for e in events}) > 1
-    table: "OrderedDict[str, Tuple[int, float]]" = OrderedDict()
+    table: OrderedDict[str, tuple[int, float]] = OrderedDict()
     for event in sorted(events, key=lambda e: (e.kind, e.spacecraft, e.label)):
         key = f"{event.spacecraft}: {event.label}" if several else event.label
         count, total = table.get(key, (0, 0.0))
@@ -185,5 +184,5 @@ def event_table(events: List[event_model.Event]) -> "OrderedDict[str, Tuple[int,
     return table
 
 
-def by_key(figures: List[Figure]) -> Dict[str, Figure]:
+def by_key(figures: list[Figure]) -> dict[str, Figure]:
     return {figure.key: figure for figure in figures}

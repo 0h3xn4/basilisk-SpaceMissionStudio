@@ -53,8 +53,7 @@ from __future__ import annotations
 import math
 import warnings
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Tuple
+from datetime import datetime, timedelta, UTC
 
 import erfa
 import numpy as np
@@ -92,7 +91,7 @@ def tle_epoch_utc(satrec: Satrec) -> datetime:
     return datetime(2000, 1, 1, 12) + timedelta(days=(satrec.jdsatepoch - 2451545.0) + satrec.jdsatepochF)
 
 
-def _utc_to_tt_jd(epoch: datetime) -> Tuple[float, float]:
+def _utc_to_tt_jd(epoch: datetime) -> tuple[float, float]:
     """Two-part TT Julian date of a naive UTC datetime (ERFA's leap seconds)."""
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", erfa.ErfaWarning)  # "dubious year" for future epochs
@@ -116,7 +115,7 @@ def teme_to_eme2000_matrix(epoch_utc: datetime) -> np.ndarray:
 def _naive_utc(epoch_utc: str) -> datetime:
     epoch = parse_epoch_utc(epoch_utc)
     if epoch.tzinfo is not None:
-        epoch = epoch.astimezone(timezone.utc).replace(tzinfo=None)
+        epoch = epoch.astimezone(UTC).replace(tzinfo=None)
     return epoch
 
 

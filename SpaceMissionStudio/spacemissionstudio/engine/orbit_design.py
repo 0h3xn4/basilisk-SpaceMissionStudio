@@ -37,7 +37,7 @@ the bundled templates and whatever the GUI computes.
 from __future__ import annotations
 
 import math
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 from ..schema.epochs import parse_epoch_utc
 
@@ -142,7 +142,7 @@ def geostationary_elements_deg(epoch_utc: str, east_longitude_deg: float):
     """
     epoch = parse_epoch_utc(epoch_utc)
     if epoch.tzinfo is not None:
-        epoch = epoch.astimezone(timezone.utc).replace(tzinfo=None)
+        epoch = epoch.astimezone(UTC).replace(tzinfo=None)
     days = ((epoch - datetime(2000, 1, 1, 12)).total_seconds() + _TT_MINUS_UTC_S) / 86400.0  # [day] TDB
     centuries = days / 36525.0
     alpha0 = -0.641 * centuries  # [deg]

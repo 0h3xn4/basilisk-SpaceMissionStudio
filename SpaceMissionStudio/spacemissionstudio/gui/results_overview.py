@@ -32,7 +32,6 @@ The status is an icon and a word as well as a colour.
 
 from __future__ import annotations
 
-from typing import List, Optional
 
 from PySide6.QtCore import QPoint, Qt, QThread, Signal
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QStackedWidget,
@@ -47,7 +46,7 @@ CARD_WIDTH_PX = 216  # [px] a card, on the 4 px grid: four in a row at 1280 px w
 _CRITICAL_ICON_PX = 16  # [px]
 
 
-def card_status(figure: run_summary.Figure) -> Optional[str]:
+def card_status(figure: run_summary.Figure) -> str | None:
     """The critical status of ``figure`` (its words), or None: only the
     thresholds a scenario sets colour a card."""
     key = figure.key.rsplit(".", 1)[-1]
@@ -62,7 +61,7 @@ class MetricCard(QFrame):
     """One figure: its label, its value with the unit, and its status when
     it has one."""
 
-    def __init__(self, figure: run_summary.Figure, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, figure: run_summary.Figure, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         set_role(self, role="card")
         self.setFixedWidth(CARD_WIDTH_PX)
@@ -102,10 +101,10 @@ class MetricCard(QFrame):
 class _SummaryWorker(QThread):
     """:func:`run_summary.summarize` of one result, off the GUI thread."""
 
-    def __init__(self, result, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, result, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.result = result
-        self.figures: List[run_summary.Figure] = []
+        self.figures: list[run_summary.Figure] = []
 
     def run(self) -> None:
         self.figures = run_summary.summarize(self.result)
@@ -118,13 +117,13 @@ class ResultsOverview(QWidget):
     run_requested = Signal()
     summarized = Signal()
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self._result = None
         self._title = ""
-        self._provenance: Optional[dict] = None
-        self._worker: Optional[_SummaryWorker] = None
-        self.cards: List[MetricCard] = []
+        self._provenance: dict | None = None
+        self._worker: _SummaryWorker | None = None
+        self.cards: list[MetricCard] = []
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
         self.stack = QStackedWidget()
@@ -173,7 +172,7 @@ class ResultsOverview(QWidget):
         self.popover = ProvenancePopover(self)
 
     # -- the run ------------------------------------------------------------------------------
-    def set_run(self, result, title: str = "", provenance: Optional[dict] = None) -> None:
+    def set_run(self, result, title: str = "", provenance: dict | None = None) -> None:
         """Show ``result``'s figures (None: the empty state); ``title``
         names the run, ``provenance`` is its provenance as a dict."""
         self._result, self._title, self._provenance = result, title, provenance
@@ -213,7 +212,7 @@ class ResultsOverview(QWidget):
         self.note.setVisible(not worker.figures)
         self.summarized.emit()
 
-    def _show_cards(self, figures: List[run_summary.Figure]) -> None:
+    def _show_cards(self, figures: list[run_summary.Figure]) -> None:
         for card in self.cards:
             self.cards_layout.removeWidget(card)
             card.deleteLater()

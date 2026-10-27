@@ -25,7 +25,7 @@ from __future__ import annotations
 import hmac
 import time
 from dataclasses import dataclass, field
-from typing import List, Optional, Sequence
+from collections.abc import Sequence
 
 from .contract import (HEADER_SIZE, ContractError, Frame, FrameType, Hello, PortSpec, SilError, check_crc,
                        decode_header, decode_hello, decode_output, encode_frame, encode_payloads, error_text,
@@ -37,7 +37,7 @@ from .transport import SilLinkClosed, SilTimeout, Transport
 class Timeouts:
     handshake_s: float = 30.0  # [s] to connect and send HELLO
     step_s: float = 10.0  # [s] without any answer: the run fails
-    deadline_s: Optional[float] = None  # [s] an OUTPUT later than this is a dropped step; None: no deadline
+    deadline_s: float | None = None  # [s] an OUTPUT later than this is a dropped step; None: no deadline
     bye_s: float = 5.0  # [s] for the BYE answer, then the program is stopped
 
 
@@ -45,16 +45,16 @@ class Timeouts:
 class StepReply:
     execution_ns: int  # the flight software's own step time [ns]
     round_trip_ns: int  # STEP sent to OUTPUT received, on this side [ns]
-    outputs: List[Optional[bytes]] = field(default_factory=list)
-    telemetry: List[Optional[bytes]] = field(default_factory=list)
+    outputs: list[bytes | None] = field(default_factory=list)
+    telemetry: list[bytes | None] = field(default_factory=list)
 
 
 @dataclass
 class Expected:
     """The flight software this simulation needs."""
-    inputs: List[PortSpec]
-    outputs: List[PortSpec]
-    telemetry: List[PortSpec]
+    inputs: list[PortSpec]
+    outputs: list[PortSpec]
+    telemetry: list[PortSpec]
     rate_ns: int
 
 
@@ -68,7 +68,7 @@ class SimulationSide:
         self.token = token
         self.expected = expected
         self.timeouts = timeouts
-        self.hello: Optional[Hello] = None
+        self.hello: Hello | None = None
         self.late_replies = 0  # OUTPUTs that arrived after their step's deadline
         self._seq = 0
         self._last_heard = time.perf_counter()
@@ -77,7 +77,7 @@ class SimulationSide:
 
     # ------------------------------------------------------------------ frames
 
-    def _send(self, kind: FrameType, time_ns: int, payload: bytes = b"", seq: Optional[int] = None) -> int:
+    def _send(self, kind: FrameType, time_ns: int, payload: bytes = b"", seq: int | None = None) -> int:
         if seq is None:
             seq, self._seq = self._seq, self._seq + 1
         try:
@@ -96,7 +96,7 @@ class SimulationSide:
         detail = self._describe_exit()
         return SilError(f"{exc}{': ' + detail if detail else ''}")
 
-    def _receive(self, timeout_s: Optional[float]) -> Frame:
+    def _receive(self, timeout_s: float | None) -> Frame:
         """One frame; a broken frame is answered with ERROR and raised."""
         start = time.perf_counter()
         try:
@@ -180,14 +180,14 @@ class SimulationSide:
                                            f"expected {time_ns} ns")
             return frame
 
-    def reset(self, time_ns: int, inputs: Sequence[Optional[bytes]]) -> None:
+    def reset(self, time_ns: int, inputs: Sequence[bytes | None]) -> None:
         seq = self._send(FrameType.RESET, time_ns, encode_payloads(self.expected.inputs, inputs))
         try:
             self._await_reply(FrameType.RESET_ACK, seq, time_ns, self.timeouts.step_s)
         except SilTimeout:
             raise SilError(f"the flight software did not answer RESET within {self.timeouts.step_s:.3g} s") from None
 
-    def step(self, time_ns: int, inputs: Sequence[Optional[bytes]]) -> Optional[StepReply]:
+    def step(self, time_ns: int, inputs: Sequence[bytes | None]) -> StepReply | None:
         """The step's outputs, or ``None`` when they missed the deadline
         (a dropped step). Raises :class:`SilError` after ``step_s`` with no
         answer at all."""

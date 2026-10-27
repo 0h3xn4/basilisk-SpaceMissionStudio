@@ -36,7 +36,6 @@ provenance so results carry their frames (5.4.1a, 5.4.1h).
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Dict, List
 
 
 @dataclass(frozen=True)
@@ -52,12 +51,12 @@ class Frame:
     realisation: str = "-"
 
 
-def definitions(central_body: str = "earth", earth_frame: str = "IAU_EARTH") -> Dict[str, Dict[str, str]]:
+def definitions(central_body: str = "earth", earth_frame: str = "IAU_EARTH") -> dict[str, dict[str, str]]:
     """The frames of a run, ``{mnemonic: fields}``."""
     body = central_body.capitalize()
     planet_axes = (f"{earth_frame}: Earth-fixed, z = rotation pole, x = prime meridian"
                    if central_body == "earth" else f"IAU_{central_body.upper()}: IAU body-fixed rotation model")
-    frames: List[Frame] = [
+    frames: list[Frame] = [
         Frame("N", "Inertial (EME2000 / SPICE J2000)", f"{body} centre of mass",
               "Earth mean equator and equinox of J2000 (SPICE J2000, treated as ICRF-aligned by SPICE)",
               epoch="J2000.0 = 2000-01-01T12:00:00 TT", time_scale="TDB (ephemerides, propagation)",
@@ -85,7 +84,7 @@ TRANSFORMATIONS = {
 }
 
 
-def series_frames(series_names) -> Dict[str, str]:
+def series_frames(series_names) -> dict[str, str]:
     """Frame mnemonic of each result series that has one, from its name."""
     frames = {}
     for name in series_names:

@@ -51,7 +51,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -80,7 +79,7 @@ def cosine_exponent(peak_gain_dbi: float) -> float:
     return max(0.0, 10.0 ** (peak_gain_dbi / 10.0) / 2.0 - 1.0)
 
 
-def half_power_beamwidth_deg(rf_link: RFLinkConfig) -> Optional[float]:
+def half_power_beamwidth_deg(rf_link: RFLinkConfig) -> float | None:
     """Full angle [deg] within which the gain stays within 3 dB of the
     peak, for the "cosine" and "table" patterns (None for "fixed")."""
     if rf_link.antenna_pattern == "cosine":
@@ -205,7 +204,7 @@ def link_margin_db(range_m: float, rf_link: RFLinkConfig, ground_station: Ground
 
 def link_margin_series(result: ResultSet, ground_station_name: str, spacecraft_name: str,
                         rf_link: RFLinkConfig, ground_station: GroundStationConfig,
-                        comms_pointing_target_ground_station: Optional[str] = None) -> TimeSeries:
+                        comms_pointing_target_ground_station: str | None = None) -> TimeSeries:
     """Builds a ``"<gs>.access_to_<sc>.link_margin_db"`` :class:`TimeSeries`
     from that pair's already-recorded ``slant_range``/``has_access`` series
     (see ``engine.service.SimulationService.run()``'s access-analysis

@@ -127,25 +127,25 @@ CATALOG: list[DeviceCatalogEntry] = [
         country="Germany",
         source_url="https://www.jena-optronik.de/products/star-sensors/astro-aps.html",
         itar_free_note=(
-            (
+
             'Built in Germany by Jena-Optronik (OHB group). No ITAR statement found; verify the '
             'export classification with the manufacturer.'
-        )
+
         ),
         description=(
-            (
+
             'High-accuracy APS star tracker: 20 deg field of view, 1024 x 1024 detector, 10 Hz, about '
             '2 kg.'
-        )
+
         ),
         params={
             "noise_arcsec": 8.0,
         },
         notes=(
-            (
+
             'The datasheet gives <1 arcsec (1-sigma) across the boresight and <8 arcsec about it. The '
             'form has one isotropic value, so the worse figure, 8 arcsec, is used.'
-        )
+
         ),
         heritage="Flight-proven (e.g. Alphasat), per the supplier database.",
         procurement_status="Candidate - ITAR status unknown",
@@ -157,27 +157,27 @@ CATALOG: list[DeviceCatalogEntry] = [
         country="Ireland",
         source_url="https://www.innalabs.com/arietis-ns",
         itar_free_note=(
-            (
+
             'InnaLabs states "ITAR free... Built in Europe" (manufacturer\'s own claim). Verify the '
             'export classification with the manufacturer.'
-        )
+
         ),
         description=(
-            (
+
             'Radiation-tolerant 3-axis Coriolis vibratory gyroscope for LEO to GEO missions of any '
             'size.'
-        )
+
         ),
         params={
             "gyro_noise_rad_s": 1.5e-6,
         },
         notes=(
-            (
+
             'The datasheet gives an angular random walk of <=0.005 deg/sqrt(h), a noise density. Gyro '
             'noise is per time step, so it is converted for a 1 s step: about 1.5e-6 rad/s. For '
             'another step dt, multiply by 1/sqrt(dt). Bias instability (<=0.1 deg/h) is not modelled. '
             'Accelerometer noise is left at the default: no matching figure was found.'
-        )
+
         ),
         heritage="InnaLabs gyros flying since 2016 (>2.5 M h on 19 satellites); ARIETIS-NS flown on CO3D (2025).",
         procurement_status="RFI priority (ITAR-free stated)",
@@ -189,16 +189,16 @@ CATALOG: list[DeviceCatalogEntry] = [
         country="Netherlands",
         source_url="https://www.aac-clyde.space/what-we-do/space-products-components/adcs/ss200",
         itar_free_note=(
-            (
+
             'Built in the Netherlands by Hyperion Technologies (AAC Clyde Space). Only a '
             'company-level ITAR-free claim was found, not one for this product; get written '
             'confirmation.'
-        )        ),
+                ),
         description=(
-            (
+
             'Small, low-power digital sun sensor: 110 deg field of view, calibrated before delivery. '
             "Sun sensors don't scale with bus size, so it also suits a 200-500 kg bus."
-        )
+
         ),
         params={
             "nHat_B": [1.0, 0.0, 0.0],
@@ -206,11 +206,11 @@ CATALOG: list[DeviceCatalogEntry] = [
             "noise_std": 0.004,
         },
         notes=(
-            (
+
             'Field of view is the datasheet value. Output noise is derived from the 0.3 deg (1-sigma) '
             'accuracy at a 45 deg sun angle: 0.707 x 0.3 deg in rad = 0.0037, rounded to 0.004. The '
             'boresight direction is a placeholder: set your own mounting.'
-        )
+
         ),
         heritage="TRL 9, flying since 2018.",
         procurement_status="RFI - confirm ITAR in writing",
@@ -222,25 +222,25 @@ CATALOG: list[DeviceCatalogEntry] = [
         country="Netherlands",
         source_url="https://www.aac-clyde.space/what-we-do/space-products-components/adcs/mm200",
         itar_free_note=(
-            (
+
             'Built in the Netherlands by Hyperion Technologies (AAC Clyde Space), which states it is '
             'ITAR free. Verify the export classification with the manufacturer.'
-        )
+
         ),
         description=(
-            (
+
             "Fluxgate magnetometer: +/-800 uT range, 4 cm^2 footprint, 12 g. Magnetometers don't "
             'scale with bus size, so it also suits a 200-500 kg bus.'
-        )
+
         ),
         params={
             "noise_std_tesla": [1.18e-9, 1.18e-9, 1.18e-9],
         },
         notes=(
-            (
+
             'The datasheet gives 1.18 nT/sqrt(Hz), a noise density. The same number is used as a '
             'per-sample noise placeholder; rescale for your sample rate if precision matters.'
-        )
+
         ),
         heritage="CubeSat flight heritage per the manufacturer.",
         procurement_status="Not in the supplier database",
@@ -252,15 +252,15 @@ CATALOG: list[DeviceCatalogEntry] = [
         country="Germany",
         source_url="https://www.satcatalog.com/component/rsi-04-33-60a/",
         itar_free_note=(
-            (
+
             'Built in Heidelberg, Germany, but the parent company (Collins Aerospace) is US-based. '
             "The supplier database flags it 'Check / export risk'; it is kept for existing scenarios."
-        )        ),
+                ),
         description=(
-            (
+
             'Mid-size reaction wheel from the RSI family (0.04 to 68 N*m*s): 0.4 N*m*s and 33 mN*m, '
             'suited to a 200-500 kg bus. Dry mass <1.75 kg.'
-        )
+
         ),
         params={
             "gsHat_B": [0.0, 0.0, 1.0],
@@ -270,11 +270,11 @@ CATALOG: list[DeviceCatalogEntry] = [
             "Js": 6.366e-4,
         },
         notes=(
-            (
+
             'Max wheel speed (6,000 RPM) and max torque (33 mN*m) are datasheet values. Rotor inertia '
             'is derived: 0.4 N*m*s / 628.3 rad/s = 6.366e-4 kg*m^2. The spin axis is a placeholder: '
             'set your own mounting.'
-        )
+
         ),
         heritage="RSI family: ~850 units on 300+ satellites.",
         procurement_status="Check / export risk",
@@ -286,15 +286,15 @@ CATALOG: list[DeviceCatalogEntry] = [
         country="Austria",
         source_url="https://www.enpulsion.com/products/micro-r3/",
         itar_free_note=(
-            (
+
             'Built in Wiener Neustadt, Austria by ENPULSION. No ITAR statement found. The supplier '
             'database notes it is sized for 10-200 kg; a 200-500 kg bus needs a cluster.'
-        )        ),
+                ),
         description=(
-            (
+
             'Integrated indium FEEP electric thruster for larger small satellites: 2.6 kg dry, 3.9 kg '
             'wet (1.3 kg propellant).'
-        )
+
         ),
         params={
             "r_B": [1.0, 0.0, 0.0],
@@ -304,13 +304,13 @@ CATALOG: list[DeviceCatalogEntry] = [
             "steadyIsp": 3000.0,
         },
         notes=(
-            (
+
             'Max thrust 1 mN is the datasheet value (range 300 uN to 1 mN). Specific impulse is '
             'adjustable from 1,500 to 4,500 s with power (30-120 W); 3,000 s is used. Total impulse '
             'is up to 50 kN*s. Basilisk has no FEEP preset, so a blank thruster model with these '
             'values is used. Location and direction are placeholders. Minimum on-time is left at the '
             'default: no figure was found.'
-        )
+
         ),
         heritage="TRL 9 per the manufacturer; >280 FEEP units in orbit (family).",
         procurement_status="Candidate - ITAR status unknown",
@@ -322,27 +322,27 @@ CATALOG: list[DeviceCatalogEntry] = [
         country="Sweden/United Kingdom",
         source_url="https://www.aac-clyde.space/what-we-do/space-products-components/adcs/mtq800-10",
         itar_free_note=(
-            (
+
             'Built by AAC Clyde Space in Sweden and Scotland. No ITAR-free statement was found for '
             'this product; get written confirmation.'
-        )        ),
+                ),
         description=(
-            (
+
             'Magnetorquer set for 50-200 kg satellites: 15 A*m^2 continuous, 30 A*m^2 boost, 489 g '
             'for three rods and electronics. Check the torque budget at the top of the 200-500 kg '
             'range.'
-        )
+
         ),
         params={
             "gtHat_B": [1.0, 0.0, 0.0],
             "max_dipole_a_m2": 15.0,
         },
         notes=(
-            (
+
             'Max dipole is the 15 A*m^2 continuous value; the 30 A*m^2 boost mode is not modelled. '
             'The dipole axis is a placeholder. The set has three rods: add one actuator per axis, '
             'each with this value.'
-        )
+
         ),
         heritage="TRL 9, in flight since 2020.",
         procurement_status="RFI - confirm ITAR in writing",
@@ -558,11 +558,11 @@ CATALOG: list[DeviceCatalogEntry] = [
         params={"gsHat_B": [0.0, 0.0, 1.0], "rw_type": "custom", "Omega_max": 6000.0, "u_max": 0.050,
                 "Js": 9.56e-3},
         notes=(
-            (
+
             'All values are from the datasheet: 6,000 RPM, 50 mN*m (use 0.090 N*m for the high-torque '
             'variant) and rotor inertia 9.56e-3 kg*m^2, which gives the stated 6.0 N*m*s. Power: <1.4 '
             'W idle, <14 W at full speed, <110 W at full speed and torque.'
-        )
+
         ),
         heritage="VRW series: over 100 years of combined in-orbit operation (manufacturer).",
         procurement_status="RFI - confirm ITAR in writing",

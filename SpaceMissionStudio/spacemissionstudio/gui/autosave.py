@@ -61,9 +61,8 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Optional
 
 from ..schema.scenario import Scenario, ScenarioValidationError
 
@@ -86,11 +85,11 @@ class RecoveryInfo:
     """
 
     scenario: Scenario
-    original_path: Optional[Path]
+    original_path: Path | None
     saved_at_utc: str
 
 
-def write_recovery_file(scenario: Scenario, original_path: Optional[Path]) -> None:
+def write_recovery_file(scenario: Scenario, original_path: Path | None) -> None:
     """Best-effort -- see module docstring. Called on every autosave
     timer tick while the editor is dirty (``gui.main_window.MainWindow``),
     only once the in-memory scenario has already been confirmed valid
@@ -101,7 +100,7 @@ def write_recovery_file(scenario: Scenario, original_path: Optional[Path]) -> No
     """
     envelope = {
         "original_path": str(original_path) if original_path is not None else None,
-        "saved_at_utc": datetime.now(timezone.utc).isoformat(),
+        "saved_at_utc": datetime.now(UTC).isoformat(),
         "scenario": scenario.to_dict(),
     }
     try:
@@ -129,7 +128,7 @@ def clear_recovery_file() -> None:
         _logger.warning("Could not remove autosave recovery file %s", _RECOVERY_FILE, exc_info=True)
 
 
-def read_recovery_file() -> Optional[RecoveryInfo]:
+def read_recovery_file() -> RecoveryInfo | None:
     """Returns the pending recovery info, or ``None`` if there isn't
     one. Missing, unreadable, or corrupt (a partially-written file from
     a crash mid-write, or a hand-edited one) are all treated the same

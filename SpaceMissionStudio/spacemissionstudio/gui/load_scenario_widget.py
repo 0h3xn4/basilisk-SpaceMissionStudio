@@ -51,7 +51,6 @@ import html
 import logging
 import re
 from pathlib import Path
-from typing import Dict, List, Optional
 
 from PySide6.QtCore import QEvent, QRect, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QTextLayout
@@ -189,7 +188,7 @@ class _ClampedLabel(QWidget):
     """Wrapped text cut to ``lines`` lines, the last one elided with "...";
     the whole text is the tooltip."""
 
-    def __init__(self, text: str, lines: int, parent: Optional[QWidget] = None):
+    def __init__(self, text: str, lines: int, parent: QWidget | None = None):
         super().__init__(parent)
         self._text = text
         self._lines = lines
@@ -235,11 +234,11 @@ class _CardText(QWidget):
     height-for-width made Home's first show take 108-193 ms
     (``docs/DECISIONS.md``, M3)."""
 
-    def __init__(self, text: str, token: str, font, parent: Optional[QWidget] = None):
+    def __init__(self, text: str, token: str, font, parent: QWidget | None = None):
         super().__init__(parent)
         self._text = text
         self._token = token
-        self._heights: Dict[int, int] = {}
+        self._heights: dict[int, int] = {}
         self.setFont(font)
         policy = QSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Preferred)
         policy.setHeightForWidth(True)
@@ -284,7 +283,7 @@ class TemplateCard(QFrame):
     open_requested = Signal(object)  # Path
     customize_requested = Signal(object)  # Path
 
-    def __init__(self, scenario, path: Path, customizable: bool, parent: Optional[QWidget] = None):
+    def __init__(self, scenario, path: Path, customizable: bool, parent: QWidget | None = None):
         super().__init__(parent)
         self.setObjectName("templateCard")
         set_role(self, role="card")
@@ -321,7 +320,7 @@ class TemplateCard(QFrame):
         self.open_button.setToolTip(f"Open '{scenario.name}' in the Scenario area (Enter)")
         self.open_button.clicked.connect(lambda: self.open_requested.emit(self.path))
         buttons.addWidget(self.open_button)
-        self.customize_button: Optional[QPushButton] = None
+        self.customize_button: QPushButton | None = None
         if customizable:
             button = QPushButton("Customize...")
             button.setObjectName("rowCustomizeButton")
@@ -375,7 +374,7 @@ class TemplateGrid(QWidget):
     """The cards in as many columns as the width holds. One Tab stop: the
     current card; the arrow keys, Home and End move between cards."""
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self._grid = QGridLayout(self)
         # The layout must not hold the grid at its present columns' width
@@ -384,9 +383,9 @@ class TemplateGrid(QWidget):
         self._grid.setSizeConstraint(QLayout.SizeConstraint.SetNoConstraint)
         self._grid.setContentsMargins(0, 0, 0, 0)
         self._grid.setSpacing(SPACE["md"])
-        self.cards: List[TemplateCard] = []
+        self.cards: list[TemplateCard] = []
         self._columns = 0
-        self._current: Optional[TemplateCard] = None
+        self._current: TemplateCard | None = None
         self.empty_label = set_role(QLabel("No template matches the filter."), role="empty")
         self.empty_label.setVisible(False)
 
@@ -397,19 +396,19 @@ class TemplateGrid(QWidget):
         if self._current is None:
             self.set_current(card)
 
-    def visible_cards(self) -> List[TemplateCard]:
+    def visible_cards(self) -> list[TemplateCard]:
         return [card for card in self.cards if not card.isHidden()]
 
     def columns(self) -> int:
         return self._columns
 
-    def set_current(self, card: Optional[TemplateCard]) -> None:
+    def set_current(self, card: TemplateCard | None) -> None:
         """The card Tab reaches (roving focus)."""
         for other in self.cards:
             other.setFocusPolicy(Qt.FocusPolicy.StrongFocus if other is card else Qt.FocusPolicy.ClickFocus)
         self._current = card
 
-    def current(self) -> Optional[TemplateCard]:
+    def current(self) -> TemplateCard | None:
         return self._current
 
     def apply_filter(self, text: str) -> None:
@@ -460,7 +459,7 @@ class TemplateGrid(QWidget):
         super().showEvent(event)
         self.relayout()
 
-    def move(self, card: TemplateCard, key: int) -> Optional[TemplateCard]:
+    def move(self, card: TemplateCard, key: int) -> TemplateCard | None:
         """The card ``key`` (an arrow, Home or End) leads to from ``card``."""
         shown = self.visible_cards()
         if card not in shown:
@@ -494,10 +493,10 @@ class LoadScenarioWidget(QWidget):
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self._template_paths: Dict[str, Path] = {}
-        self._specs: Dict[str, object] = {}
-        self.cards: List[TemplateCard] = []
-        self._selected: Optional[TemplateCard] = None
+        self._template_paths: dict[str, Path] = {}
+        self._specs: dict[str, object] = {}
+        self.cards: list[TemplateCard] = []
+        self._selected: TemplateCard | None = None
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -602,7 +601,7 @@ class LoadScenarioWidget(QWidget):
             rows = self.recent_list.sizeHintForRow(0) * count + 2 * self.recent_list.frameWidth()
             self.recent_list.setFixedHeight(rows)
 
-    def recent_paths(self) -> List[Path]:
+    def recent_paths(self) -> list[Path]:
         return [Path(self.recent_list.item(row).data(Qt.ItemDataRole.UserRole))
                 for row in range(self.recent_list.count())]
 
@@ -715,7 +714,7 @@ class LoadScenarioWidget(QWidget):
         self._select_card(card)
         return card
 
-    def selected_card(self) -> Optional[TemplateCard]:
+    def selected_card(self) -> TemplateCard | None:
         return self._selected
 
     def _select_card(self, card: TemplateCard) -> None:
@@ -778,7 +777,7 @@ class LoadScenarioWidget(QWidget):
         self.description_scroll.setMinimumWidth(240)  # [px]
         return self.description_scroll
 
-    def _show_details(self, card: Optional[TemplateCard]) -> None:
+    def _show_details(self, card: TemplateCard | None) -> None:
         self.details_empty.setVisible(card is None)
         self.description_title.setText(card.name if card is not None else "")
         self.description_meta.setText(

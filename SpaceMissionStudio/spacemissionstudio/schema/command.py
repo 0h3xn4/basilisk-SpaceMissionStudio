@@ -82,7 +82,7 @@ import ast
 import copy
 import operator
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 from .epochs import parse_epoch_utc
 
@@ -118,7 +118,7 @@ PASS_EVENT_KINDS = ("pass_start", "pass_end")
 SUPPORTED_MANEUVER_FRAMES = ("inertial", "vnb", "rtn")
 
 
-def _collect(errors: List[str], path: str, condition: bool, message: str) -> None:
+def _collect(errors: list[str], path: str, condition: bool, message: str) -> None:
     if not condition:
         errors.append(f"{path}: {message}")
 
@@ -147,19 +147,19 @@ class Command:
     """
 
     kind: str
-    label: Optional[str] = None
+    label: str | None = None
     params: dict = field(default_factory=dict)
-    children: List["Command"] = field(default_factory=list)
+    children: list[Command] = field(default_factory=list)
     enabled: bool = True
 
-    def validate(self, path: str) -> List[str]:
+    def validate(self, path: str) -> list[str]:
         """Returns every problem found in this command (and, for
         ``if``/``while``, its ``children`` subtree), each a complete
         ``f"{item_path}: {message}"`` string -- never raises, so a caller
         walking a whole ``mission_sequence`` can collect everything wrong
         with it in one pass rather than fixing one error at a time.
         """
-        errors: List[str] = []
+        errors: list[str] = []
         label_suffix = f" ({self.label!r})" if self.label else ""
         full_path = f"{path}{label_suffix}"
 
@@ -193,7 +193,7 @@ class Command:
 
         return errors
 
-    def _validate_propagate(self, path: str, errors: List[str]) -> None:
+    def _validate_propagate(self, path: str, errors: list[str]) -> None:
         stop_condition = self.params.get("stop_condition", "duration")
         _collect(errors, path, stop_condition in SUPPORTED_STOP_CONDITIONS,
                   f"propagate.stop_condition {stop_condition!r} must be one of {SUPPORTED_STOP_CONDITIONS}")
@@ -226,7 +226,7 @@ class Command:
                           f"propagate.ground_station must name the station whose pass ends this propagate "
                           f"when event_kind is {event_kind!r}")
 
-    def _validate_maneuver(self, path: str, errors: List[str]) -> None:
+    def _validate_maneuver(self, path: str, errors: list[str]) -> None:
         spacecraft = self.params.get("spacecraft")
         _collect(errors, path, isinstance(spacecraft, str) and bool(spacecraft),
                   "maneuver.spacecraft must be a non-empty spacecraft name")
@@ -238,7 +238,7 @@ class Command:
         _collect(errors, path, frame in SUPPORTED_MANEUVER_FRAMES,
                   f"maneuver.frame {frame!r} must be one of {SUPPORTED_MANEUVER_FRAMES}")
 
-    def _validate_lambert_transfer(self, path: str, errors: List[str]) -> None:
+    def _validate_lambert_transfer(self, path: str, errors: list[str]) -> None:
         spacecraft = self.params.get("spacecraft")
         _collect(errors, path, isinstance(spacecraft, str) and bool(spacecraft),
                   "lambert_transfer.spacecraft must be a non-empty spacecraft name")
@@ -267,18 +267,18 @@ class Command:
                   "disables the check; set it to the central body's own radius to avoid a transfer that "
                   "clips the surface)")
 
-    def _validate_assignment(self, path: str, errors: List[str]) -> None:
+    def _validate_assignment(self, path: str, errors: list[str]) -> None:
         target = self.params.get("target")
         _collect(errors, path, isinstance(target, str) and "." in target,
                   "assignment.target must be a dotted path string, e.g. 'sat-1.station_keeping.thrust_n'")
         _collect(errors, path, "value" in self.params, "assignment.value is required")
 
-    def _validate_report(self, path: str, errors: List[str]) -> None:
+    def _validate_report(self, path: str, errors: list[str]) -> None:
         series = self.params.get("series", [])
         _collect(errors, path, isinstance(series, list) and all(isinstance(s, str) for s in series),
                   "report.series must be a list of series-name strings (empty list means 'snapshot everything')")
 
-    def _validate_conditional(self, path: str, errors: List[str]) -> None:
+    def _validate_conditional(self, path: str, errors: list[str]) -> None:
         condition = self.params.get("condition")
         _collect(errors, path, isinstance(condition, str) and bool(condition.strip()),
                   f"{self.kind}.condition must be a non-empty expression string")
@@ -288,7 +288,7 @@ class Command:
             except ConditionError as exc:
                 errors.append(f"{path}: {self.kind}.condition: {exc}")
 
-    def _validate_script_block(self, path: str, errors: List[str]) -> None:
+    def _validate_script_block(self, path: str, errors: list[str]) -> None:
         code = self.params.get("code")
         _collect(errors, path, isinstance(code, str) and bool(code.strip()),
                   "script_block.code must be a non-empty string")
@@ -302,7 +302,7 @@ class Command:
     # Scenario.from_dict() -- plain dict->dataclass reconstruction isn't
     # automatic in either direction for a self-referential type.
     @staticmethod
-    def from_dict(data: dict) -> "Command":
+    def from_dict(data: dict) -> Command:
         return Command(
             kind=data["kind"],
             label=data.get("label"),
@@ -322,14 +322,14 @@ def command_dict(command: Command) -> dict:
     return data
 
 
-def runs_sequence(commands: List[Command]) -> bool:
+def runs_sequence(commands: list[Command]) -> bool:
     """True when the run executes a mission sequence: at least one
     top-level command is enabled. A sequence whose commands are all
     disabled runs like an empty one (``sim_settings.duration_days``)."""
     return any(command.enabled for command in commands)
 
 
-def report_before_propagate_errors(commands: List[Command], path: str = "mission_sequence") -> List[str]:
+def report_before_propagate_errors(commands: list[Command], path: str = "mission_sequence") -> list[str]:
     """A top-level ``report`` that runs before any ``propagate`` has nothing
     recorded to snapshot: the engine fails on it at run time ("no recorded
     samples yet"). Flagged here instead, so the editor shows it before the
@@ -353,7 +353,7 @@ def report_before_propagate_errors(commands: List[Command], path: str = "mission
     return []
 
 
-def script_blocks(commands: List[Command], path: str = "mission_sequence") -> List[Tuple[str, Command]]:
+def script_blocks(commands: list[Command], path: str = "mission_sequence") -> list[tuple[str, Command]]:
     """Every ``script_block`` in ``commands`` and their children, as
     ``(item path, command)`` in execution order. A ``script_block`` runs
     unrestricted Python, so the engine runs one only with the user's
@@ -361,7 +361,7 @@ def script_blocks(commands: List[Command], path: str = "mission_sequence") -> Li
     the CLI's ``--allow-scripts``, or the GUI's confirmation, which shows
     the code this function finds. Disabled commands are left out: they do
     not run."""
-    found: List[Tuple[str, Command]] = []
+    found: list[tuple[str, Command]] = []
     for i, command in enumerate(commands):
         item = f"{path}[{i}]"
         if not command.enabled:
@@ -438,7 +438,7 @@ def parse_condition(expression: str) -> ast.Expression:
     return tree
 
 
-def evaluate_condition(expression: str, context: Dict[str, Any]) -> Any:
+def evaluate_condition(expression: str, context: dict[str, Any]) -> Any:
     """Value of ``expression`` with the names in ``context``."""
     return _evaluate(parse_condition(expression).body, context)
 
@@ -530,7 +530,7 @@ _EVALUATORS = {
 }
 
 
-def _evaluate(node: ast.AST, context: Dict[str, Any]) -> Any:
+def _evaluate(node: ast.AST, context: dict[str, Any]) -> Any:
     evaluator = _EVALUATORS.get(type(node))
     if evaluator is None:  # unreachable after parse_condition
         raise ConditionError(f"{type(node).__name__} is not allowed in a condition")

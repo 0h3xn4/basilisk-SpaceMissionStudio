@@ -32,7 +32,7 @@ from __future__ import annotations
 
 import atexit
 import logging
-from typing import Callable, Dict, List, Optional
+from collections.abc import Callable
 
 from PySide6.QtCore import Qt, QThread, Signal
 from PySide6.QtWidgets import (QFileDialog, QHBoxLayout, QHeaderView, QLabel, QMenu, QMessageBox, QPushButton,
@@ -50,7 +50,7 @@ NOT_READ = object()  # DataPanelWidget.basilisk_version before a child process h
 
 
 _readers: set = set()  # the reads running (_InventoryWorker, _SpaceWeatherWarmUp, _FigureWarmUp), until each ends
-_start_up_read: Optional[tuple] = None  # (files, Basilisk version) of this process's first start-up read
+_start_up_read: tuple | None = None  # (files, Basilisk version) of this process's first start-up read
 
 
 def _remember_start_up_read(files: list, basilisk_version) -> None:
@@ -185,7 +185,7 @@ def _fetch_small_bodies():
         small_bodies.fetch_shape(body)
 
 
-_DOWNLOAD_TASKS: Dict[str, Callable[[], object]] = {
+_DOWNLOAD_TASKS: dict[str, Callable[[], object]] = {
     "support_data": _fetch_support_data,
     "space_weather": _fetch_space_weather,
     "earth_orientation": _fetch_earth_orientation,
@@ -193,7 +193,7 @@ _DOWNLOAD_TASKS: Dict[str, Callable[[], object]] = {
 }
 
 
-def changes(before: List[reference_data.ReferenceFile], after: List[reference_data.ReferenceFile]) -> List[str]:
+def changes(before: list[reference_data.ReferenceFile], after: list[reference_data.ReferenceFile]) -> list[str]:
     """Short lines on what a download, import or rollback changed."""
     old = {(f.kind, f.name): f for f in before}
     lines = []
@@ -216,11 +216,11 @@ class DataPanelWidget(QWidget):
 
     refreshed = Signal()  # after every refresh(): the status bar re-reads its summary
 
-    def __init__(self, parent: Optional[QWidget] = None, load: bool = True):
+    def __init__(self, parent: QWidget | None = None, load: bool = True):
         super().__init__(parent)
         self.files: list = []  # the last inventory shown
         self.basilisk_version: object = NOT_READ  # as the child read it with the files; NOT_READ: ask
-        self._reader: Optional[_InventoryWorker] = None
+        self._reader: _InventoryWorker | None = None
         layout = QVBoxLayout(self)
         self.status_label = QLabel("")
         self.status_label.setWordWrap(True)
@@ -259,8 +259,8 @@ class DataPanelWidget(QWidget):
             row.addWidget(button)
         row.addStretch(1)
         layout.addLayout(row)
-        self._worker: Optional[_TaskWorker] = None
-        self.last_changes: List[str] = []
+        self._worker: _TaskWorker | None = None
+        self.last_changes: list[str] = []
         if load:
             self.refresh()
         else:

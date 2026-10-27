@@ -76,7 +76,8 @@ narrowly as the Phase 6 part 1 schema module's own docstring describes.
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any
+from collections.abc import Callable
 
 import numpy as np
 
@@ -204,9 +205,9 @@ class MissionEngine:
     :meth:`run`.
     """
 
-    def __init__(self, scenario: Scenario, service: Optional[SimulationService] = None,
-                 should_cancel: Optional[Callable[[], bool]] = None, allow_scripts: bool = False,
-                 on_step: Optional[Callable[[int, int, Command], None]] = None):
+    def __init__(self, scenario: Scenario, service: SimulationService | None = None,
+                 should_cancel: Callable[[], bool] | None = None, allow_scripts: bool = False,
+                 on_step: Callable[[int, int, Command], None] | None = None):
         self.scenario = scenario
         # Called before each enabled top-level command with (its number from
         # 1, how many enabled top-level commands there are, the command): the
@@ -238,7 +239,7 @@ class MissionEngine:
         # it re-syncs this to the ACTUAL (grid-snapped) firing time instead.
         self._elapsed_ns = 0
 
-    def run(self) -> Tuple[ResultSet, CommandSummary]:
+    def run(self) -> tuple[ResultSet, CommandSummary]:
         """Builds (if not already built) the underlying
         :class:`SimulationService` and executes ``scenario.mission_sequence``
         in order, returning ``(result, summary)``. An empty
@@ -283,7 +284,7 @@ class MissionEngine:
 
     # -- command tree walking ------------------------------------------------
 
-    def _run_commands(self, commands: List[Command], summary: CommandSummary, path: str) -> None:
+    def _run_commands(self, commands: list[Command], summary: CommandSummary, path: str) -> None:
         top_level = path == "mission_sequence"
         total = sum(1 for command in commands if command.enabled)
         step = 0
@@ -444,7 +445,7 @@ class MissionEngine:
         # name -- see SimulationBaseClass.py -- rather than replacing the
         # existing event) never accidentally reuses a previous invocation's
         # already-fired, now-permanently-inactive event.
-        detector_state: Dict[str, Optional[float]] = {"prev_radial_velocity": None, "prev_access": None}
+        detector_state: dict[str, float | None] = {"prev_radial_velocity": None, "prev_access": None}
         access_msg = None
         if event_kind in PASS_EVENT_KINDS:
             station = command.params["ground_station"]
@@ -831,7 +832,7 @@ class MissionEngine:
         except Exception as exc:
             raise MissionEngineError(f"{path}: condition {expression!r} failed to evaluate: {exc}") from exc
 
-    def _script_context(self) -> Dict[str, Any]:
+    def _script_context(self) -> dict[str, Any]:
         """Read-only-by-convention namespace exposed to ``if``/``while``
         conditions and ``script_block`` code: ``t_s`` (elapsed mission
         time [s]) and ``spacecraft`` (``{name: {"r_BN_N", "v_BN_N",
@@ -848,7 +849,7 @@ class MissionEngine:
         central_body_name = self.scenario.gravity.central_body
         central_body_radius_m = self.service.grav_factory.gravBodies[central_body_name].radEquator  # [m]
 
-        spacecraft: Dict[str, Dict[str, Any]] = {}
+        spacecraft: dict[str, dict[str, Any]] = {}
         for name, handle in self.service.spacecraft_handles.items():
             payload = handle.sc_object.scStateOutMsg.read()
             r_bn_n = np.array(payload.r_BN_N)
@@ -887,7 +888,7 @@ class MissionEngine:
         # One namespace, used as globals: with separate globals and locals, a
         # function in the script cannot see spacecraft, t_s and the rest
         # (audit L1).
-        context: Dict[str, Any] = {"__builtins__": __builtins__, **self._script_context()}
+        context: dict[str, Any] = {"__builtins__": __builtins__, **self._script_context()}
         context["service"] = self.service
         context["scenario"] = self.scenario
         context["summary"] = summary

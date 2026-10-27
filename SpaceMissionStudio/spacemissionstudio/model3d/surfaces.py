@@ -37,7 +37,7 @@ part (``excluded_faces``).
 
 from __future__ import annotations
 
-from typing import List, Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -49,14 +49,14 @@ PLANE_STEP_M = 1.0e-3  # [m]
 MAX_FACETS = 200
 
 
-def placed_faces(local_faces: Sequence[Face], rotation: np.ndarray, position_m) -> List[Face]:
+def placed_faces(local_faces: Sequence[Face], rotation: np.ndarray, position_m) -> list[Face]:
     """Local faces moved into the body frame."""
     r = np.asarray(rotation, dtype=float)
     p = np.asarray(position_m, dtype=float)
     return [Face(f.name, f.group, f.area_m2, r @ f.normal, r @ f.centroid_m + p) for f in local_faces]
 
 
-def mesh_faces(mesh: Mesh) -> List[Face]:
+def mesh_faces(mesh: Mesh) -> list[Face]:
     """A mesh's triangles grouped into plane faces (see the module
     docstring), largest first."""
     areas, normals, centroids = triangle_areas_and_normals(mesh)

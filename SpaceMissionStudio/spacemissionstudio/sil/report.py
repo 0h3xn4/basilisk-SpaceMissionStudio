@@ -28,7 +28,7 @@ import json
 import math
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -51,7 +51,7 @@ class SignalStats:
     steps_missing: int = 0  # steps the flight software did not write this port
 
 
-def timing_summary(values: Sequence[int]) -> Dict[str, float]:
+def timing_summary(values: Sequence[int]) -> dict[str, float]:
     """Mean, median, 99th percentile, maximum and standard deviation [s]."""
     if not len(values):
         return {"mean_s": 0.0, "p50_s": 0.0, "p99_s": 0.0, "max_s": 0.0, "jitter_s": 0.0}
@@ -73,16 +73,16 @@ class SilReport:
     address_kind: str  # "unix" or "tcp"
     steps: int = 0
     dropped_steps: int = 0
-    first_dropped_times_s: List[float] = field(default_factory=list)  # [s], at most 20
+    first_dropped_times_s: list[float] = field(default_factory=list)  # [s], at most 20
     late_replies: int = 0
-    round_trip: Dict[str, float] = field(default_factory=dict)  # the simulation's STEP-to-OUTPUT time
-    execution: Dict[str, float] = field(default_factory=dict)  # the flight software's own step time
-    signals: List[SignalStats] = field(default_factory=list)
-    sample_times_s: List[float] = field(default_factory=list)  # [s]
+    round_trip: dict[str, float] = field(default_factory=dict)  # the simulation's STEP-to-OUTPUT time
+    execution: dict[str, float] = field(default_factory=dict)  # the flight software's own step time
+    signals: list[SignalStats] = field(default_factory=list)
+    sample_times_s: list[float] = field(default_factory=list)  # [s]
     # signal -> residual at each sample time; only signals that are not zero on both sides for the whole
     # run (unused array slots such as motorTorque[4..35] keep their statistics, not a series)
-    residuals: Dict[str, List[float]] = field(default_factory=dict)
-    warnings: List[str] = field(default_factory=list)
+    residuals: dict[str, list[float]] = field(default_factory=dict)
+    warnings: list[str] = field(default_factory=list)
     log_tail: str = ""  # the end of what the program wrote to stdout and stderr
     completed: bool = False
 
@@ -96,10 +96,10 @@ class SilReport:
         """Signals the flight software never wrote."""
         return sum(1 for s in self.signals if self.steps and s.steps_missing >= self.steps - self.dropped_steps)
 
-    def worst_signals(self, count: int = 10) -> List[SignalStats]:
+    def worst_signals(self, count: int = 10) -> list[SignalStats]:
         return sorted(self.signals, key=lambda s: (-(s.steps_missing > 0), -s.max_abs_error))[:count]
 
-    def summary_lines(self) -> List[str]:
+    def summary_lines(self) -> list[str]:
         lines = [f"SIL run of {self.spacecraft} against {self.fsw_name} ({self.binary})",
                  f"  {self.steps} steps, {self.dropped_steps} dropped, contract v{self.contract_version} over "
                  f"{self.address_kind}",
@@ -123,7 +123,7 @@ class SilReport:
         return json.dumps(_json_safe(asdict(self)), indent=1, sort_keys=True, allow_nan=False)
 
     @classmethod
-    def from_json(cls, text: str) -> "SilReport":
+    def from_json(cls, text: str) -> SilReport:
         data = json.loads(text)
         data["signals"] = [SignalStats(**{k: _number(v) if k in _STATS_NUMBERS else v for k, v in s.items()})
                            for s in data["signals"]]
@@ -138,7 +138,7 @@ class SilReport:
         from ..engine.results import ResultSet, TimeSeries
 
         result = ResultSet(scenario_name=f"{self.spacecraft} SIL residuals")
-        by_port: Dict[str, List[str]] = {}
+        by_port: dict[str, list[str]] = {}
         for stats in self.signals:
             if stats.name in self.residuals:
                 by_port.setdefault(stats.port, []).append(stats.name)
@@ -200,7 +200,7 @@ class Comparator:
     """Accumulates residual = external - reference for every scalar of the
     output and telemetry ports, step by step."""
 
-    def __init__(self, outputs: List[PortSpec], telemetry: List[PortSpec], layouts: Dict[str, dict],
+    def __init__(self, outputs: list[PortSpec], telemetry: list[PortSpec], layouts: dict[str, dict],
                  expected_steps: int):
         self.readers = [(_PortReader(p, layouts[p.message_type]), "output") for p in outputs]
         self.readers += [(_PortReader(p, layouts[p.message_type]), "telemetry") for p in telemetry]
@@ -211,11 +211,11 @@ class Comparator:
         self._time_of_max = [np.zeros(len(r.names)) for r, _ in self.readers]
         self._max_ref = [np.zeros(len(r.names)) for r, _ in self.readers]
         self.sample_every = max(1, math.ceil(expected_steps / MAX_SAMPLES))
-        self.sample_times: List[float] = []
-        self._samples: List[List[np.ndarray]] = [[] for _ in self.readers]
+        self.sample_times: list[float] = []
+        self._samples: list[list[np.ndarray]] = [[] for _ in self.readers]
         self.steps = 0
 
-    def add(self, time_s: float, external: Sequence[Optional[bytes]], reference: Sequence[bytes]) -> None:
+    def add(self, time_s: float, external: Sequence[bytes | None], reference: Sequence[bytes]) -> None:
         """One step: ``external`` (None where the flight software did not
         write the port) against ``reference``, port by port."""
         sample = self.steps % self.sample_every == 0 and len(self.sample_times) < MAX_SAMPLES

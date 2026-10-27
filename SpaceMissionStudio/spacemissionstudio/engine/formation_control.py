@@ -84,7 +84,6 @@ fires, :data:`COASTING` otherwise.
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 import numpy as np
 
@@ -143,7 +142,7 @@ class FormationControlBridge(sysModel.SysModel):
         # Wired by build_formation_control.
         self.extForceEffectorB = None
         self.scObjectB = None
-        self.altitudeControllerB: Optional[StationKeepingController] = None
+        self.altitudeControllerB: StationKeepingController | None = None
         self.thruster = None  # the follower's shared ThrusterOnTimeModel
         self.lawModule = None  # meanOEFeedback config or HillFrameRelativeControl
         self.vehicleConfigMsg = None  # "hill_pd": the follower's current mass, for the law
@@ -162,12 +161,12 @@ class FormationControlBridge(sysModel.SysModel):
         self.suspendedDueToNonConvergence = False  # never set: no suspension logic in this controller
 
         self.state = COASTING
-        self._lastT: Optional[float] = None  # [s]
-        self._targetRad: Optional[float] = None  # [rad] the target last given to the law
+        self._lastT: float | None = None  # [s]
+        self._targetRad: float | None = None  # [rad] the target last given to the law
         self._direction = np.zeros(3)  # [-] direction of the firing in progress
         self._errorHistory: list = []  # (t [s], error [rad])
         self._relAHistory: list = []  # (t [s], aB - aA [m])
-        self._lastInSun: Optional[bool] = None
+        self._lastInSun: bool | None = None
         self._cumulativeDv = 0.0  # [m/s]
         self._firedSinceLog = False
         self._peakCommandSinceLog = 0.0  # [N]
@@ -334,7 +333,7 @@ def build_formation_control(scSim, task_name: str, tag: str, mu: float, chief_sc
                             follower_station_keeping_controller: StationKeepingController,
                             follower_eclipse_out_msg, chief_semi_major_axis_km: float,
                             config: PhasingKeepingConfig, central_radius_m: float,
-                            j2: Optional[float] = None) -> FormationControlBridge:
+                            j2: float | None = None) -> FormationControlBridge:
     """Builds one follower's Basilisk formation law (``config.control_law``
     ``"mean_oe"`` or ``"hill_pd"``), truth navigation for both spacecraft
     (``simpleNav``, no noise) and the :class:`FormationControlBridge`, in

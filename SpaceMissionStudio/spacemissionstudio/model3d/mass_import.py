@@ -67,7 +67,6 @@ import io
 import json
 import math
 from pathlib import Path
-from typing import List, Tuple
 
 import numpy as np
 
@@ -155,7 +154,7 @@ def check_inertia(inertia: np.ndarray) -> None:
                               "triangle inequality: no moment can exceed the sum of the other two")
 
 
-def read_mass_properties(path) -> Tuple[ModelMassPropertiesConfig, List[str]]:
+def read_mass_properties(path) -> tuple[ModelMassPropertiesConfig, list[str]]:
     """Read ``path`` (``.json`` or ``.csv``, see the module docstring).
     Returns the values about the center of mass, with the file's name and
     SHA-256 recorded, and notes on any conversion made."""
@@ -171,7 +170,7 @@ def read_mass_properties(path) -> Tuple[ModelMassPropertiesConfig, List[str]]:
         raw = _from_json(text) if path.suffix.lower() == ".json" else _from_csv(text)
     except MassImportError as exc:
         raise MassImportError(f"{path.name}: {exc}") from None
-    notes: List[str] = []
+    notes: list[str] = []
     try:
         mass = _number(raw["mass_kg"], "mass_kg")
         com = np.array([_number(v, "center of mass") for v in raw["com"]])

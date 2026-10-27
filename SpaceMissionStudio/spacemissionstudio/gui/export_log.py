@@ -24,9 +24,8 @@ the time and the path go in the app's settings, never in an export file.
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Optional, Tuple
 
 from PySide6.QtCore import QObject, QSettings, Signal
 
@@ -45,13 +44,13 @@ def _settings() -> QSettings:
 def record(kind: str, path) -> None:
     """``kind`` (a key of ``exports_page.EXPORTS``) was written to ``path`` now."""
     settings = _settings()
-    settings.setValue(f"exports/{kind}/time", datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
+    settings.setValue(f"exports/{kind}/time", datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"))
     settings.setValue(f"exports/{kind}/path", str(path))
     settings.sync()
     signals.changed.emit(kind)
 
 
-def last(kind: str) -> Optional[Tuple[str, str]]:
+def last(kind: str) -> tuple[str, str] | None:
     """(UTC time with Z, path) of the last ``kind`` written, or None."""
     settings = _settings()
     when = settings.value(f"exports/{kind}/time", "")

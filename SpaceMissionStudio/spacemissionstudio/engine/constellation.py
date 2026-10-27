@@ -76,7 +76,6 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass
-from typing import List
 
 from ..schema.scenario import OrbitIC, ScenarioValidationError, SpacecraftConfig
 
@@ -137,7 +136,7 @@ class WalkerConstellationRequest:
 
 
 def generate_walker_constellation(request: WalkerConstellationRequest,
-                                   template: SpacecraftConfig) -> List[SpacecraftConfig]:
+                                   template: SpacecraftConfig) -> list[SpacecraftConfig]:
     """Returns ``request.total_satellites`` :class:`SpacecraftConfig`
     copies of ``template``, each with ``name``/``orbit`` replaced per the
     Walker pattern (see module docstring) -- every other field (mass,
@@ -158,7 +157,7 @@ def generate_walker_constellation(request: WalkerConstellationRequest,
     delta_raan_deg = raan_spread_deg / request.num_planes
     delta_mean_anomaly_deg = 360.0 / sats_per_plane
 
-    spacecraft: List[SpacecraftConfig] = []
+    spacecraft: list[SpacecraftConfig] = []
     for plane in range(request.num_planes):
         raan_deg = (request.raan_offset_deg + plane * delta_raan_deg) % 360.0
         for slot in range(sats_per_plane):

@@ -49,7 +49,7 @@ import math
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -73,13 +73,13 @@ class ObjGroup:
 
     name: str
     mesh: Mesh
-    color: Optional[Tuple[float, float, float]] = None
+    color: tuple[float, float, float] | None = None
 
 
 @dataclass
 class ObjFile:
-    groups: List[ObjGroup] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    groups: list[ObjGroup] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     def group(self, name: str) -> ObjGroup:
         for group in self.groups:
@@ -102,9 +102,9 @@ def _read_text(path: Path) -> str:
         return data.decode("latin-1")
 
 
-def _read_mtl(path: Path) -> Dict[str, Tuple[float, float, float]]:
-    colors: Dict[str, Tuple[float, float, float]] = {}
-    current: Optional[str] = None
+def _read_mtl(path: Path) -> dict[str, tuple[float, float, float]]:
+    colors: dict[str, tuple[float, float, float]] = {}
+    current: str | None = None
     for number, line in enumerate(_read_text(path).splitlines(), start=1):
         parts = line.split("#", 1)[0].split()
         if not parts:
@@ -149,13 +149,13 @@ def read_obj(path, units: str = "m", up_axis: str = "z") -> ObjFile:
     only the vertices its faces use."""
     path = Path(path)
     text = _read_text(path)
-    vertices: List[Tuple[float, float, float]] = []
-    group_triangles: Dict[str, List[Tuple[int, int, int]]] = {}
-    group_material: Dict[str, str] = {}
-    materials: Dict[str, Tuple[float, float, float]] = {}
-    warnings: List[str] = []
+    vertices: list[tuple[float, float, float]] = []
+    group_triangles: dict[str, list[tuple[int, int, int]]] = {}
+    group_material: dict[str, str] = {}
+    materials: dict[str, tuple[float, float, float]] = {}
+    warnings: list[str] = []
     current = "default"
-    material: Optional[str] = None
+    material: str | None = None
     triangle_count = 0
     for number, line in enumerate(text.splitlines(), start=1):
         parts = line.split("#", 1)[0].split()

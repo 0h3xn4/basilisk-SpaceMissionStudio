@@ -47,7 +47,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Tuple
 
 import numpy as np
 
@@ -100,7 +99,7 @@ def geodetic_to_pcpf(latitude_rad: float, longitude_rad: float, altitude_m: floa
                      (n * (1.0 - e2) + altitude_m) * s])
 
 
-def pcpf_to_geodetic(r_m, ellipsoid: Ellipsoid = WGS84) -> Tuple[float, float, float]:
+def pcpf_to_geodetic(r_m, ellipsoid: Ellipsoid = WGS84) -> tuple[float, float, float]:
     """Geodetic latitude [rad], longitude [rad] and altitude [m] of a
     body-fixed position (fixed-point iteration, converged to below 1e-12 rad)."""
     x, y, z = (float(v) for v in r_m)
@@ -131,7 +130,7 @@ def geocentric_latitude(r_m) -> float:
 
 
 def geodetic_elevation_azimuth(r_BL_L_m, geocentric_latitude_rad: float,
-                               geodetic_latitude_rad: float) -> Tuple[np.ndarray, np.ndarray]:
+                               geodetic_latitude_rad: float) -> tuple[np.ndarray, np.ndarray]:
     """Geodetic elevation and azimuth [rad] from Basilisk's
     ``AccessMsgPayload.r_BL_L`` (spacecraft relative to the site in the
     site's geocentric South-East-Zenith frame).

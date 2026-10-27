@@ -42,7 +42,6 @@ Colours come from theme.py's ``QLabel#statusChip[state=...]`` and
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional
 
 from PySide6.QtCore import QElapsedTimer, QSize, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QPainter
@@ -59,7 +58,7 @@ class StatusChip(QLabel):
     """The run state as a small tag; ``state`` is one of :data:`CHIP_STATES`
     and picks its colours from the theme."""
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("statusChip")
         self.set_state("idle", "No run yet")
@@ -117,7 +116,7 @@ class RunProgressStrip(QFrame):
 
     cancel_requested = Signal()
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("runProgressStrip")
         # Its own width in the status bar: the entries that elide give way.
@@ -142,7 +141,7 @@ class RunProgressStrip(QFrame):
         layout.addWidget(self.time_label)
         layout.addWidget(self.cancel_button)
         self._elapsed = QElapsedTimer()
-        self._fraction: Optional[float] = None
+        self._fraction: float | None = None
         self._timer = QTimer(self)
         self._timer.setInterval(500)  # [ms]
         self._timer.timeout.connect(self.refresh_time)
@@ -188,7 +187,7 @@ class RunProgressStrip(QFrame):
     def elapsed_s(self) -> float:
         return self._elapsed.elapsed() / 1000.0 if self._elapsed.isValid() else 0.0
 
-    def remaining_s(self) -> Optional[float]:
+    def remaining_s(self) -> float | None:
         """The estimated time left [s], or None when there is too little to go on."""
         elapsed, fraction = self.elapsed_s(), self._fraction
         if fraction is None or fraction < 0.02 or elapsed < 3.0 or fraction >= 1.0:
@@ -222,7 +221,7 @@ class TopBar(QWidget):
     under them; on the right the window's commands (:meth:`add_commands`)
     and, while the scenario has any, its problem count."""
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         self.setObjectName("topBar")
         layout = QHBoxLayout(self)
@@ -248,8 +247,8 @@ class TopBar(QWidget):
         self.commands = QHBoxLayout()
         self.commands.setSpacing(4)  # [px]
         layout.addLayout(self.commands)
-        self.save_button: Optional[QToolButton] = None
-        self.search_button: Optional[QToolButton] = None
+        self.save_button: QToolButton | None = None
+        self.search_button: QToolButton | None = None
         self._dirty = False
         self._source = ""
         self._last_run = ""
@@ -304,7 +303,7 @@ class TopBar(QWidget):
         _show_problem_counts(self.problems_button, errors, warnings, short=True)
         self.problems_button.setVisible(bool(errors or warnings))
 
-    def set_breadcrumbs(self, parts: List[str]) -> None:
+    def set_breadcrumbs(self, parts: list[str]) -> None:
         """Where the window is: "Scenario › Spacecraft › sat-1"."""
         self.breadcrumb_label.setText(" › ".join(part for part in parts if part))
 
@@ -337,7 +336,7 @@ class TopBar(QWidget):
             self.save_button.setText("Save" if self._dirty else state)
 
 
-def source_of(path: Optional[Path], templates_dir: Path) -> str:
+def source_of(path: Path | None, templates_dir: Path) -> str:
     """How the top bar names where a scenario came from."""
     if path is None:
         return ""
@@ -387,7 +386,7 @@ class StatusBarItems:
     def set_problem_counts(self, errors: int, warnings: int) -> None:
         _show_problem_counts(self.problems_button, errors, warnings)
 
-    def refresh(self, files: Optional[list] = None, basilisk_version: Optional[str] = None) -> None:
+    def refresh(self, files: list | None = None, basilisk_version: str | None = None) -> None:
         """Read Earth orientation again, and the reference data inventory
         and the Basilisk version unless given (``files``; a version read
         elsewhere, which spares importing Basilisk here)."""
@@ -430,7 +429,7 @@ _FRAMES_TIP = ("Inertial frame of orbits and results; Earth-fixed frame of groun
                "of every date shown")
 
 
-def _problems_button(name: str, parent: Optional[QWidget] = None) -> QToolButton:
+def _problems_button(name: str, parent: QWidget | None = None) -> QToolButton:
     button = QToolButton(parent)
     button.setObjectName(name)
     button.setAutoRaise(True)

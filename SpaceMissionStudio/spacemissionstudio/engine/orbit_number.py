@@ -42,7 +42,6 @@ Basilisk-free: numpy and :class:`engine.results.ResultSet` only.
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 import numpy as np
 
@@ -98,7 +97,7 @@ def orbit_numbers(time_s: np.ndarray, r: np.ndarray, v: np.ndarray, mu: float = 
     return np.concatenate([[u[0]], u[0] + np.cumsum(steps)]) / _TURN
 
 
-def reference_spacecraft(result: Optional[ResultSet], preferred: Optional[str] = None) -> Optional[str]:
+def reference_spacecraft(result: ResultSet | None, preferred: str | None = None) -> str | None:
     """The spacecraft whose orbit numbers the axis: ``preferred`` when it
     recorded its position and velocity, else the first that did."""
     if result is None:
@@ -110,7 +109,7 @@ def reference_spacecraft(result: Optional[ResultSet], preferred: Optional[str] =
     return names[0] if names else None
 
 
-def for_result(result: Optional[ResultSet], spacecraft: Optional[str]):
+def for_result(result: ResultSet | None, spacecraft: str | None):
     """``(time_s, orbit_number)`` of ``spacecraft`` in ``result``, or None
     when it did not record its position and velocity (or recorded fewer
     than two samples)."""
@@ -125,7 +124,7 @@ def for_result(result: Optional[ResultSet], spacecraft: Optional[str]):
     return time_s, orbit_numbers(time_s, position.data[:count, :3], velocity.data[:count, :3])
 
 
-def reference_note(result: Optional[ResultSet], spacecraft: Optional[str]) -> str:
+def reference_note(result: ResultSet | None, spacecraft: str | None) -> str:
     """How the axis counts, for its title: "from the ascending node", or
     "from the X axis" for an equatorial orbit."""
     if result is None or spacecraft is None:

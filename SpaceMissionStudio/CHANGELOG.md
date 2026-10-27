@@ -10,6 +10,17 @@ fixes bugs.
 
 ## Unreleased
 
+**Breaking (2.0.0): Python 3.14 only.** SpaceMissionStudio now needs
+Python 3.14; 3.11 to 3.13 are no longer supported (`requires-python =
+">=3.14"`). The `.deb` and the Windows setup program bring their own
+Python, now 3.14.8, so their users need do nothing. Installing from
+source or with `install.sh`/`install.ps1` needs Python 3.14 on the
+computer: Ubuntu 24.04 ships 3.12 and Debian 12 ships 3.11, so use the
+`.deb` or a Python from python.org or `uv`. CI tests 3.14 only. Basilisk
+2.12.0 and PySide6 6.11 do not install on 3.15 yet. The code was
+modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
+`datetime.UTC`); nothing it computes changes.
+
 - **The propellant budget no longer overestimates propellant:** each
   contributor took the phase's starting mass times `exp(dV / Ve) - 1`,
   the rocket equation's form for the mass *after* a burn. Each now takes

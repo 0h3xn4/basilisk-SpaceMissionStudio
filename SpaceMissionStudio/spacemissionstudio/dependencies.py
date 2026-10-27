@@ -33,7 +33,6 @@ import platform
 import sys
 from importlib import metadata
 from pathlib import Path
-from typing import Dict, Optional
 
 QUALIFIED_BASILISK_VERSION = "2.12.0"
 
@@ -45,7 +44,7 @@ _DEPENDENCIES = ("bsk", "numpy", "sgp4", "pyerfa", "PySide6", "plotly")
 _HASH_LIMIT_BYTES = 32 * 1024 * 1024  # [byte]
 
 
-def basilisk_version() -> Optional[str]:
+def basilisk_version() -> str | None:
     """Installed Basilisk version, or ``None`` when Basilisk is missing."""
     try:
         import Basilisk
@@ -54,7 +53,7 @@ def basilisk_version() -> Optional[str]:
     return str(getattr(Basilisk, "__version__", "unknown"))
 
 
-def basilisk_check(version: Optional[str] = None) -> Optional[str]:
+def basilisk_check(version: str | None = None) -> str | None:
     """``None`` when the installed Basilisk is the qualified version,
     otherwise one line saying what differs."""
     version = basilisk_version() if version is None else version
@@ -66,7 +65,7 @@ def basilisk_check(version: Optional[str] = None) -> Optional[str]:
     return None
 
 
-def dependency_versions() -> Dict[str, str]:
+def dependency_versions() -> dict[str, str]:
     """``{distribution: version}`` of the runtime dependencies that are
     installed, plus the Python version and platform."""
     versions = {"python": platform.python_version(), "platform": f"{sys.platform} {platform.machine()}"}
@@ -78,10 +77,10 @@ def dependency_versions() -> Dict[str, str]:
     return versions
 
 
-def file_record(path) -> Dict[str, object]:
+def file_record(path) -> dict[str, object]:
     """Path, size and (below 32 MB) SHA-256 of a reference data file."""
     path = Path(path)
-    record: Dict[str, object] = {"path": str(path)}
+    record: dict[str, object] = {"path": str(path)}
     try:
         size = path.stat().st_size
     except OSError:

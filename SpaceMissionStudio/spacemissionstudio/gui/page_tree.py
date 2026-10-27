@@ -36,7 +36,7 @@ change signals, and the ``changed`` signal of custom widgets.
 
 from __future__ import annotations
 
-from typing import Callable, Dict, Iterator, List, Optional, Tuple
+from collections.abc import Callable, Iterator
 
 from PySide6.QtCore import QEvent, QObject, Qt, QTimer, Signal
 from PySide6.QtWidgets import (QAbstractButton, QAbstractSpinBox, QComboBox, QDialog, QDialogButtonBox, QFormLayout,
@@ -79,7 +79,7 @@ class PageTree(QWidget):
     page_shown = Signal(object)  # the page's widget
     section_shown = Signal(object, str)  # the page's widget and the section's key, after page_shown
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -102,8 +102,8 @@ class PageTree(QWidget):
 
     # -- building --------------------------------------------------------------------------------------------
 
-    def add_page(self, title: str, widget: QWidget, parent: Optional[QTreeWidgetItem] = None,
-                 index: Optional[int] = None) -> QTreeWidgetItem:
+    def add_page(self, title: str, widget: QWidget, parent: QTreeWidgetItem | None = None,
+                 index: int | None = None) -> QTreeWidgetItem:
         """A node showing ``widget``, under ``parent`` (the top level when
         None), at ``index`` among its siblings (last when None)."""
         item = self._new_item(title, parent, index)
@@ -123,16 +123,16 @@ class PageTree(QWidget):
         item.setToolTip(0, title)  # a long title is cut at the tree's width
         return item
 
-    def set_section_widget(self, item: QTreeWidgetItem, widget: Optional[QWidget]) -> None:
+    def set_section_widget(self, item: QTreeWidgetItem, widget: QWidget | None) -> None:
         """The widget that holds section ``item``'s part of the page, for
         :meth:`item_of`; None while the page has no such widget yet."""
         item.setData(0, _SECTION_WIDGET_ROLE, widget)
 
     @staticmethod
-    def section_key(item: QTreeWidgetItem) -> Optional[str]:
+    def section_key(item: QTreeWidgetItem) -> str | None:
         return item.data(0, _SECTION_ROLE)
 
-    def sections(self, item: QTreeWidgetItem) -> List[QTreeWidgetItem]:
+    def sections(self, item: QTreeWidgetItem) -> list[QTreeWidgetItem]:
         """``item``'s section nodes, in order."""
         return [item.child(i) for i in range(item.childCount()) if self.section_key(item.child(i)) is not None]
 
@@ -143,7 +143,7 @@ class PageTree(QWidget):
             self.tree.setCurrentItem(section)
         return section is not None
 
-    def add_group(self, title: str, parent: Optional[QTreeWidgetItem] = None) -> QTreeWidgetItem:
+    def add_group(self, title: str, parent: QTreeWidgetItem | None = None) -> QTreeWidgetItem:
         """A node without a page: selecting it shows its first child."""
         return self._new_item(title, parent, None)
 
@@ -203,7 +203,7 @@ class PageTree(QWidget):
 
     # -- showing -----------------------------------------------------------------------------------------------
 
-    def _on_current_item(self, item: Optional[QTreeWidgetItem], previous: Optional[QTreeWidgetItem]) -> None:
+    def _on_current_item(self, item: QTreeWidgetItem | None, previous: QTreeWidgetItem | None) -> None:
         if item is None:
             return
         widget = item.data(0, _WIDGET_ROLE)
@@ -229,7 +229,7 @@ class PageTree(QWidget):
             if key is not None:
                 self.section_shown.emit(widget, key)
 
-    def item_of(self, widget: QWidget) -> Optional[QTreeWidgetItem]:
+    def item_of(self, widget: QWidget) -> QTreeWidgetItem | None:
         """The node whose page is ``widget`` or holds it: the section whose
         widget holds it, when there is one."""
         for item, page in self.items():
@@ -249,14 +249,14 @@ class PageTree(QWidget):
         return item is not None
 
     @staticmethod
-    def page_of(item: QTreeWidgetItem) -> Optional[QWidget]:
+    def page_of(item: QTreeWidgetItem) -> QWidget | None:
         """The page node ``item`` shows (its parent's, for a section)."""
         return item.data(0, _WIDGET_ROLE)
 
-    def current_page(self) -> Optional[QWidget]:
+    def current_page(self) -> QWidget | None:
         return self.stack.currentWidget()
 
-    def items(self) -> Iterator[Tuple[QTreeWidgetItem, QWidget]]:
+    def items(self) -> Iterator[tuple[QTreeWidgetItem, QWidget]]:
         """Every node with a page, and its page, in tree order."""
         def walk(item):
             for index in range(item.childCount()):
@@ -267,7 +267,7 @@ class PageTree(QWidget):
                 yield from walk(child)
         yield from walk(self.tree.invisibleRootItem())
 
-    def paths(self) -> List[Tuple[str, QTreeWidgetItem]]:
+    def paths(self) -> list[tuple[str, QTreeWidgetItem]]:
         """``("Spacecraft > my-sat > Orbit / mass", node)`` for every node
         with a page, in tree order (select one with ``tree.setCurrentItem``)."""
         result = []
@@ -280,7 +280,7 @@ class PageTree(QWidget):
         return result
 
 
-def _within(item: Optional[QTreeWidgetItem], ancestor: QTreeWidgetItem) -> bool:
+def _within(item: QTreeWidgetItem | None, ancestor: QTreeWidgetItem) -> bool:
     """Whether ``item`` is below ``ancestor`` in the tree."""
     node = item.parent() if item is not None else None
     while node is not None:
@@ -305,7 +305,7 @@ def watch_edits(root: QWidget, callback: Callable[[], None], mark: str = "") -> 
     connected, whose widgets are skipped: called again, only the fields a
     form added since are connected (a device's kind rebuilds its fields)."""
     connected = 0
-    seen: Dict[int, bool] = {}
+    seen: dict[int, bool] = {}
     for widget in [root, *root.findChildren(QWidget)]:
         if id(widget) in seen:
             continue

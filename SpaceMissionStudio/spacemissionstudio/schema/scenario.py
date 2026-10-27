@@ -63,10 +63,10 @@ import math
 import os
 import tempfile
 from dataclasses import dataclass, field, asdict
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 import typing
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from .epochs import parse_epoch_utc
 from .tle_format import TLEError, check_lines
@@ -321,7 +321,7 @@ _NAME_FORBIDDEN = set('/\\:*?"<>|.')
 _WINDOWS_RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
 
 
-def name_error(what: str, name) -> "str | None":
+def name_error(what: str, name) -> str | None:
     """Why ``name`` cannot name a ``what`` (a spacecraft, ground station,
     sensor or actuator), or None when it can."""
     if not isinstance(name, str) or not name:
@@ -370,22 +370,22 @@ class OrbitIC:
     # design spec (e.g. "M0 at epoch"), true anomaly for a specific
     # geometric snapshot; engine.service converts mean -> true via Kepler's
     # equation before calling elem2rv (which only accepts true anomaly).
-    semi_major_axis_km: Optional[float] = None
-    eccentricity: Optional[float] = None
-    inclination_deg: Optional[float] = None
-    raan_deg: Optional[float] = None
-    arg_periapsis_deg: Optional[float] = None
+    semi_major_axis_km: float | None = None
+    eccentricity: float | None = None
+    inclination_deg: float | None = None
+    raan_deg: float | None = None
+    arg_periapsis_deg: float | None = None
     anomaly_type: str = "true"  # one of ANOMALY_TYPES
-    true_anomaly_deg: Optional[float] = None
-    mean_anomaly_deg: Optional[float] = None
+    true_anomaly_deg: float | None = None
+    mean_anomaly_deg: float | None = None
 
     # type == "cartesian" (inertial frame of the scenario's central body)
-    position_km: Optional[list] = None  # [x, y, z]
-    velocity_km_s: Optional[list] = None  # [vx, vy, vz]
+    position_km: list | None = None  # [x, y, z]
+    velocity_km_s: list | None = None  # [vx, vy, vz]
 
     # type == "tle"
-    tle_line1: Optional[str] = None
-    tle_line2: Optional[str] = None
+    tle_line1: str | None = None
+    tle_line2: str | None = None
 
     def validate(self) -> None:
         _require(self.type in ORBIT_IC_TYPES,
@@ -547,7 +547,7 @@ class RFLinkConfig:
     # approximation this applies: L_point_dB = 12*(pointing_error_deg /
     # antenna_beamwidth_deg)^2, the standard textbook falloff for a
     # Gaussian/parabolic-reflector main lobe).
-    antenna_beamwidth_deg: Optional[float] = None
+    antenna_beamwidth_deg: float | None = None
     # How the spacecraft antenna's gain falls off away from boresight, used
     # wherever the downlink is evaluated live (engine.data_handling's link
     # gate: a DataHandlingConfig, or any pattern other than "fixed"):
@@ -566,7 +566,7 @@ class RFLinkConfig:
     # Body-frame boresight of the downlink antenna. None falls back to
     # comms_pointing.antenna_boresight_b; "cosine" and "table" need one of
     # the two, since the gain then depends on the real attitude.
-    antenna_boresight_b: Optional[list] = None
+    antenna_boresight_b: list | None = None
 
     def validate(self, spacecraft_name: str) -> None:
         # Generous plausibility ceiling (docs/ux_audit.md, "units
@@ -651,7 +651,7 @@ class CommsPointingConfig:
     # a power budget is also configured); with no power budget, falls
     # back to [0, 0, 1]. Set explicitly to point a DIFFERENT body axis
     # at the sun than the panel normal.
-    sun_pointing_axis_b: Optional[list] = None
+    sun_pointing_axis_b: list | None = None
     comms_power_w: float = 0.0  # [W] additional transmitter draw while ground-station-pointing is active
 
     def validate(self, spacecraft_name: str) -> None:
@@ -1415,7 +1415,7 @@ class NavigationErrorConfig:
     position_bound_m: float = 0.0  # [m]
     velocity_step_m_s: float = 0.0  # [m/s]
     velocity_bound_m_s: float = 0.0  # [m/s]
-    seed: Optional[int] = None
+    seed: int | None = None
 
     def channel(self, prefix: str) -> tuple:
         """``(step, bound)`` of one channel, in this config's units."""
@@ -1505,7 +1505,7 @@ class PropellantBudgetConfig:
     dry_mass_includes_margin: bool = False  # else the system margin below is added (Sec. 5.10)
     system_margin_fraction: float = 0.15  # [-] Sec. 5.10 default
     tank_capacity_kg: float = 0.0  # [kg] maximum propellant load (Sec. 5.8); 0 = the budget's own total
-    isp_s: Optional[float] = None  # [s] None = the orbit thruster's (station keeping etc.)
+    isp_s: float | None = None  # [s] None = the orbit thruster's (station keeping etc.)
     thrust_angle_deg: float = 0.0  # [deg] thruster axis vs wanted thrust direction (Sec. 5.11)
     misalignment_deg: float = 0.0  # [deg] incl. attitude error while thrusting
     plume_efficiency: float = 1.0  # [-]
@@ -1518,9 +1518,9 @@ class PropellantBudgetConfig:
     orbit_acquisition_delta_v_m_s: float = 0.0  # [m/s]
     # Mission operations (Sec. 6.2); None = from the last run
     transfer_delta_v_m_s: float = 0.0  # [m/s]
-    in_plane_control_delta_v_m_s: Optional[float] = None  # [m/s]
-    out_of_plane_control_delta_v_m_s: Optional[float] = None  # [m/s]
-    formation_delta_v_m_s: Optional[float] = None  # [m/s]
+    in_plane_control_delta_v_m_s: float | None = None  # [m/s]
+    out_of_plane_control_delta_v_m_s: float | None = None  # [m/s]
+    formation_delta_v_m_s: float | None = None  # [m/s]
     collision_avoidance_count: float = 0.0  # [-] e.g. from ESA DRAMA, before the x4 margin
     attitude_thruster_propellant_kg: float = 0.0  # [kg] before the 100% margin
     # End of life (Sec. 6.3)
@@ -1661,7 +1661,7 @@ class ModelPartConfig:
     dimensions_m: dict = field(default_factory=dict)  # [m] the keys MODEL_SHAPE_DIMENSIONS gives for the shape
     sides: int = 8  # prism only: an octagon by default
     segments: int = 16  # cylinder, cone, sphere: sides they are drawn and faceted with
-    mesh_index: Optional[int] = None  # mesh parts: index into SpacecraftModelConfig.meshes
+    mesh_index: int | None = None  # mesh parts: index into SpacecraftModelConfig.meshes
     mesh_group: str = ""  # mesh parts: the group (o/g name) in that file
     position_b_m: list = field(default_factory=lambda: [0.0, 0.0, 0.0])  # [m]
     rotation_deg: list = field(default_factory=lambda: [0.0, 0.0, 0.0])  # [deg] roll, pitch, yaw (3-2-1)
@@ -1746,7 +1746,7 @@ class SpacecraftModelConfig:
     parts: list = field(default_factory=list)  # list[ModelPartConfig]
     meshes: list = field(default_factory=list)  # list[ModelMeshConfig]
     mass_properties_source: str = "computed"  # one of MASS_PROPERTIES_SOURCES
-    mass_properties: Optional[ModelMassPropertiesConfig] = None  # for "typed" and "imported"
+    mass_properties: ModelMassPropertiesConfig | None = None  # for "typed" and "imported"
     apply_mass_properties: bool = True
     apply_facets: bool = True
     use_for_vizard: bool = True
@@ -1826,7 +1826,7 @@ class SpacecraftConfig:
     actuators: list = field(default_factory=list)  # list[ActuatorConfig]
     # One of SUPPORTED_FSW_MODES, or None for no attitude control (attitude
     # still integrates -- see engine.service -- it just isn't commanded).
-    fsw_mode: Optional[str] = None
+    fsw_mode: str | None = None
     # Mode-specific settings engine.fsw needs to build the guidance chain,
     # e.g. {"sigma_R0N": [...]} for "inertial3D" or
     # {"target_ground_station": "dsn-goldstone", "pHat_B": [0, 0, 1]} for
@@ -1837,24 +1837,24 @@ class SpacecraftConfig:
     # engine.fsw.DEFAULT_MRP_GAINS for the defaults used when a key is absent.
     control_params: dict = field(default_factory=dict)
 
-    power: Optional[PowerConfig] = None
-    rf_link: Optional[RFLinkConfig] = None
-    comms_pointing: Optional[CommsPointingConfig] = None
-    data_handling: Optional[DataHandlingConfig] = None
+    power: PowerConfig | None = None
+    rf_link: RFLinkConfig | None = None
+    comms_pointing: CommsPointingConfig | None = None
+    data_handling: DataHandlingConfig | None = None
     solar_arrays: list = field(default_factory=list)  # SolarArrayConfig: flexible, hinged arrays
-    station_keeping: Optional[StationKeepingConfig] = None
-    geo_station_keeping: Optional[GeoStationKeepingConfig] = None
-    phasing_keeping: Optional[PhasingKeepingConfig] = None
-    roe_formation: Optional[RoeFormationConfig] = None  # formation in relative orbital elements
-    optical_navigation: Optional[OpticalNavigationConfig] = None  # camera navigation from the central body's disk
-    landmark_navigation: Optional[LandmarkNavigationConfig] = None  # camera navigation from a small body's landmarks
-    constant_thrust: Optional[ConstantThrustConfig] = None
-    momentum_dumping: Optional[MomentumDumpingConfig] = None
-    magnetic_momentum_management: Optional[MagneticMomentumManagementConfig] = None
+    station_keeping: StationKeepingConfig | None = None
+    geo_station_keeping: GeoStationKeepingConfig | None = None
+    phasing_keeping: PhasingKeepingConfig | None = None
+    roe_formation: RoeFormationConfig | None = None  # formation in relative orbital elements
+    optical_navigation: OpticalNavigationConfig | None = None  # camera navigation from the central body's disk
+    landmark_navigation: LandmarkNavigationConfig | None = None  # camera navigation from a small body's landmarks
+    constant_thrust: ConstantThrustConfig | None = None
+    momentum_dumping: MomentumDumpingConfig | None = None
+    magnetic_momentum_management: MagneticMomentumManagementConfig | None = None
     # What simpleNav tells the flight software; None: the true state.
-    navigation_error: Optional[NavigationErrorConfig] = None
-    fuel_tank: Optional[FuelTankConfig] = None
-    propellant_budget: Optional[PropellantBudgetConfig] = None  # see engine/propellant_budget.py
+    navigation_error: NavigationErrorConfig | None = None
+    fuel_tank: FuelTankConfig | None = None
+    propellant_budget: PropellantBudgetConfig | None = None  # see engine/propellant_budget.py
 
     # Phase 5: PURELY COSMETIC Vizard display -- replaces this spacecraft's
     # default cube icon with a custom CAD model
@@ -1863,13 +1863,13 @@ class SpacecraftConfig:
     # from dry_mass_kg/inertia_kg_m2/drag_area_m2/srp_area_m2 above, same
     # as when this is unset. None (the default) leaves Vizard's own
     # default icon in place.
-    vizard_model_path: Optional[str] = None  # path to a .obj file, or "CUBE"/"CYLINDER"/"SPHERE"
+    vizard_model_path: str | None = None  # path to a .obj file, or "CUBE"/"CYLINDER"/"SPHERE"
     vizard_model_offset_m: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
     vizard_model_rotation_deg: list = field(default_factory=lambda: [0.0, 0.0, 0.0])  # 3-2-1 Euler (z,y,x)
     vizard_model_scale: list = field(default_factory=lambda: [1.0, 1.0, 1.0])
     # The spacecraft's 3D model, if one was built or imported in the model
     # editor; see SpacecraftModelConfig.
-    model: Optional[SpacecraftModelConfig] = None
+    model: SpacecraftModelConfig | None = None
 
     def validate(self) -> None:
         _require(name_error("spacecraft", self.name) is None, name_error("spacecraft", self.name) or "")
@@ -2428,14 +2428,14 @@ class SpaceWeatherConfig:
     """
 
     source: str = "bundled"  # "bundled" | "local_file"
-    local_file_path: Optional[str] = None
-    cache_dir: Optional[str] = None  # defaults to engine.spaceweather's own cache dir when None
+    local_file_path: str | None = None
+    cache_dir: str | None = None  # defaults to engine.spaceweather's own cache dir when None
     atmosphere_model: str = "nrlmsise00"  # "nrlmsise00" | "exponential"
     # [%] which of MSFC's predicted percentiles drives the days past the
     # observations: 95 conservative (ESA AD10 Sec. 5.9, operations), 50
     # nominal (AD10, end of life), 5 low
     forecast_percentile: float = 50.0
-    msfc_file_path: Optional[str] = None  # your own MSFC prediction table; None = the one shipped with the app
+    msfc_file_path: str | None = None  # your own MSFC prediction table; None = the one shipped with the app
 
     def validate(self) -> None:
         _require(self.source in SUPPORTED_SPACE_WEATHER_SOURCES,
@@ -2467,15 +2467,15 @@ class DispersionConfig:
     # unit: kg, rad (Euler angles), [-] (coefficients), deg/s added to the
     # nominal rate ("angular_rate_bn_b"); for "inertia_kg_m2" an optional
     # clip [kg*m^2] on each diagonal offset.
-    bounds: Optional[list] = None  # [lo, hi] in the quantity's unit (User Manual section 10)
-    mean: Optional[float] = None  # required for "normal" on dry_mass_kg, drag_coeff, srp_coeff
+    bounds: list | None = None  # [lo, hi] in the quantity's unit (User Manual section 10)
+    mean: float | None = None  # required for "normal" on dry_mass_kg, drag_coeff, srp_coeff
     # required for "normal": kg, [-], kg*m^2 (each diagonal element of the
     # inertia), deg/s (each axis of the initial rate)
-    std_deviation: Optional[float] = None  # 1-sigma in the quantity's unit (User Manual section 10)
+    std_deviation: float | None = None  # 1-sigma in the quantity's unit (User Manual section 10)
     # "orbit_elements": {key in ORBIT_ELEMENT_SPREAD_KEYS: spread}, in km,
     # [-] or deg; elements left out are not dispersed
-    element_spread: Optional[dict] = None  # "orbit_elements": {element key: spread}
-    angle_std_deg: Optional[float] = None  # [deg] "inertia_kg_m2": 1-sigma rotation that mixes in off-diagonal terms
+    element_spread: dict | None = None  # "orbit_elements": {element key: spread}
+    angle_std_deg: float | None = None  # [deg] "inertia_kg_m2": 1-sigma rotation that mixes in off-diagonal terms
 
     def validate(self) -> None:
         where = f"dispersion on {self.spacecraft}.{self.quantity}"
@@ -2701,7 +2701,7 @@ class Scenario:
         first, last = (datetime.fromisoformat(part) for part in SMALL_BODY_EPHEMERIS_SPAN[body])
         start = parse_epoch_utc(self.epoch_utc)
         if start.tzinfo is not None:
-            start = start.astimezone(timezone.utc).replace(tzinfo=None)
+            start = start.astimezone(UTC).replace(tzinfo=None)
         end = start + timedelta(days=self.sim_settings.duration_days)
         _require(first <= start and end <= last,
                   f"gravity.central_body {body!r}: its ephemeris covers {first:%Y-%m-%d} to {last:%Y-%m-%d}; "
@@ -3033,7 +3033,7 @@ class Scenario:
         return data
 
     @staticmethod
-    def from_dict(data: dict) -> "Scenario":
+    def from_dict(data: dict) -> Scenario:
         data = dict(data)  # shallow copy, don't mutate the caller's dict
         gravity = GravityConfig(**data.pop("gravity", {}))
         sim_settings = SimSettings(**data.pop("sim_settings", {}))
@@ -3134,7 +3134,7 @@ class Scenario:
             mission_sequence=mission_sequence, fsw_exports=fsw_exports, **data,
         )
 
-    def save(self, path: "str | Path") -> None:
+    def save(self, path: str | Path) -> None:
         """Validate, then write the scenario as JSON. The text goes to a
         temporary file in the same folder, which then replaces ``path`` in
         one step, so a failed or interrupted save leaves the previous file
@@ -3160,7 +3160,7 @@ class Scenario:
             raise
 
 
-_TYPE_HINTS: Dict[type, Dict[str, Any]] = {}
+_TYPE_HINTS: dict[type, dict[str, Any]] = {}
 
 
 def _describe(value) -> str:
@@ -3179,7 +3179,7 @@ def _describe(value) -> str:
     return type(value).__name__
 
 
-def _type_problem(value, annotation) -> Optional[str]:
+def _type_problem(value, annotation) -> str | None:
     """Why ``value`` (as read from JSON) does not fit ``annotation``, or None.
     Only the shapes JSON can get wrong are checked; anything else passes."""
     origin, args = typing.get_origin(annotation), typing.get_args(annotation)
@@ -3217,7 +3217,7 @@ def _type_problem(value, annotation) -> Optional[str]:
     return None
 
 
-def _check_types(obj, path: str, errors: List[str]) -> None:
+def _check_types(obj, path: str, errors: list[str]) -> None:
     """Every field of ``obj`` (a loaded dataclass) and of the dataclasses in
     it against its declared type, so a hand-edited file with, say, a list
     where a number belongs is refused naming the field, before validate()
@@ -3277,14 +3277,14 @@ def parse_scenario_text(text: str, source: str) -> Scenario:
         raise
     except (TypeError, KeyError, ValueError, AttributeError) as exc:
         raise ScenarioValidationError(f"{source}: malformed scenario structure ({exc})") from exc
-    errors: List[str] = []
+    errors: list[str] = []
     _check_types(scenario, "", errors)
     if errors:
         raise ScenarioValidationError(f"{source}: " + "; ".join(errors[:10]))
     return scenario
 
 
-def load_scenario(path: "str | Path") -> Scenario:
+def load_scenario(path: str | Path) -> Scenario:
     """Load, migrate (if needed), and validate a scenario file. Raises
     :class:`ScenarioValidationError` with a specific message on anything
     malformed -- never returns a partially-populated or silently-defaulted

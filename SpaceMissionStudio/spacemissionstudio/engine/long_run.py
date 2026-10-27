@@ -52,8 +52,8 @@ from __future__ import annotations
 
 import copy
 import math
-from datetime import datetime, timedelta, timezone
-from typing import Callable, Dict, List, Optional
+from datetime import datetime, timedelta, UTC
+from collections.abc import Callable
 
 import numpy as np
 
@@ -76,7 +76,7 @@ def needs_segments(scenario: Scenario) -> bool:
     return scenario.sim_settings.duration_days > SimSettings._MAX_SINGLE_RUN_DAYS
 
 
-def segment_lengths_s(scenario: Scenario) -> List[float]:
+def segment_lengths_s(scenario: Scenario) -> list[float]:
     """Segment durations [s]: whole dynamics steps of at most SEGMENT_DAYS,
     the last one taking the remainder."""
     step_s = scenario.sim_settings.dynamics_task_rate_s
@@ -112,7 +112,7 @@ def check_segmentable(scenario: Scenario, vizard_request=None) -> None:
 def _parse_epoch(epoch_utc: str) -> datetime:
     epoch = parse_epoch_utc(epoch_utc)
     if epoch.tzinfo is not None:
-        epoch = epoch.astimezone(timezone.utc).replace(tzinfo=None)
+        epoch = epoch.astimezone(UTC).replace(tzinfo=None)
     return epoch
 
 
@@ -134,7 +134,7 @@ def _whole_span_space_weather(scenario: Scenario):
         list(resolved.warnings)
 
 
-def _carry_state(segment: Scenario, service, result: ResultSet) -> Dict[str, float]:
+def _carry_state(segment: Scenario, service, result: ResultSet) -> dict[str, float]:
     """Moves each spacecraft in ``segment`` (in place) to where ``service``
     ended. Returns each delta-V series' final value, to offset the next
     segment's."""
@@ -194,8 +194,8 @@ def _is_cumulative(name: str) -> bool:
     return name.endswith(_CUMULATIVE_SUFFIXES)
 
 
-def _append(merged: Optional[ResultSet], part: ResultSet, offset_s: float,
-            dv_offsets: Dict[str, float]) -> ResultSet:
+def _append(merged: ResultSet | None, part: ResultSet, offset_s: float,
+            dv_offsets: dict[str, float]) -> ResultSet:
     """``part`` shifted by ``offset_s`` [s] and appended to ``merged``.
     A sample at a segment's t = 0 repeats the previous segment's last one
     and is dropped."""
@@ -233,8 +233,8 @@ def _seed_navigation_errors(scenario: Scenario, segment: Scenario, index: int) -
             copied.navigation_error.seed = (base + index) % 2 ** 32
 
 
-def run_segmented(scenario: Scenario, on_progress: Optional[Callable[[ResultSet, float], None]] = None,
-                  should_cancel: Optional[Callable[[], bool]] = None, vizard_request=None) -> ResultSet:
+def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], None] | None = None,
+                  should_cancel: Callable[[], bool] | None = None, vizard_request=None) -> ResultSet:
     """Runs ``scenario`` as a chain of segments (see this module's
     docstring). ``on_progress(partial, fraction)`` and ``should_cancel``
     behave as for :meth:`SimulationService.run_live`, over the whole run."""
@@ -246,8 +246,8 @@ def run_segmented(scenario: Scenario, on_progress: Optional[Callable[[ResultSet,
     epoch = _parse_epoch(scenario.epoch_utc)
     segment = copy.deepcopy(scenario)
     segment.space_weather, weather_warnings = _whole_span_space_weather(scenario)
-    merged: Optional[ResultSet] = None
-    dv_offsets: Dict[str, float] = {}
+    merged: ResultSet | None = None
+    dv_offsets: dict[str, float] = {}
     offset_s = 0.0  # [s]
     for index, length_s in enumerate(lengths):
         # The simulation counts TDB seconds (engine.time_system): the next

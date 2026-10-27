@@ -39,7 +39,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Iterable, Tuple
+from collections.abc import Iterable
 
 import numpy as np
 
@@ -69,7 +69,7 @@ class MassProperties:
         d = self.center_of_mass_m - np.asarray(point_m, dtype=float)
         return self.inertia_kg_m2 + self.mass_kg * (np.dot(d, d) * np.eye(3) - np.outer(d, d))
 
-    def principal(self) -> Tuple[np.ndarray, np.ndarray]:
+    def principal(self) -> tuple[np.ndarray, np.ndarray]:
         """``(moments (3,), axes (3, 3))``: the principal moments in
         ascending order and, as columns, their unit axes."""
         moments, axes = np.linalg.eigh(0.5 * (self.inertia_kg_m2 + self.inertia_kg_m2.T))

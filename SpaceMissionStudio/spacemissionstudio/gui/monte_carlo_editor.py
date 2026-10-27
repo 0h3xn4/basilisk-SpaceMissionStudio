@@ -380,7 +380,7 @@ class DispersionListWidget(QWidget):
         self.changed.emit()
         self._focus_form()
 
-    def _form_for(self, row: int) -> "_DispersionEditorDialog":
+    def _form_for(self, row: int) -> _DispersionEditorDialog:
         return _DispersionEditorDialog(self._spacecraft_names, item=self._items[row], parent=self)
 
     def _on_applied(self, row: int, item) -> None:

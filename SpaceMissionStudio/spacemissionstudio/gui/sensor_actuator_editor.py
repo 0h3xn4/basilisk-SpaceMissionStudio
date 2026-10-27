@@ -807,13 +807,13 @@ class SensorActuatorListWidget(QWidget):
         self.changed.emit()
         self._focus_form()
 
-    def _form_for(self, row: int) -> "_ItemEditorDialog":
+    def _form_for(self, row: int) -> _ItemEditorDialog:
         form = _ItemEditorDialog(self._item_cls, self._kind_choices, item=self._items[row], parent=self,
                                  other_names=sorted(self._existing_names(exclude_row=row)))
         form.embed_in_page()
         return form
 
-    def _read_form(self, form: "_ItemEditorDialog", row: int):
+    def _read_form(self, form: _ItemEditorDialog, row: int):
         item = form.to_dataclass()
         if item.name in self._existing_names(exclude_row=row):
             raise ValueError(f"a device named {item.name!r} already exists")

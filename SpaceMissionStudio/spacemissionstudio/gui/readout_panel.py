@@ -30,7 +30,6 @@ the plot's display units (km, deg, ...), as the plot shows them.
 
 from __future__ import annotations
 
-from typing import List, Optional, Tuple
 
 import numpy as np
 from PySide6.QtCore import Qt
@@ -50,7 +49,7 @@ def _is_stepped(column: np.ndarray) -> bool:
 
 
 def value_at(series: TimeSeries, column: int, time_s: float, factor: float = 1.0,
-             wraps: bool = False) -> Optional[float]:
+             wraps: bool = False) -> float | None:
     """Column ``column`` of ``series`` at ``time_s`` [s], times ``factor``,
     or None outside the recorded span."""
     times = np.asarray(series.time_s, dtype=float)
@@ -65,7 +64,7 @@ def value_at(series: TimeSeries, column: int, time_s: float, factor: float = 1.0
     return None if not np.isfinite(value) else float(value) * factor
 
 
-def format_value(value: Optional[float]) -> str:
+def format_value(value: float | None) -> str:
     """Six significant digits, without an exponent for everyday sizes."""
     if value is None:
         return "-"
@@ -77,7 +76,7 @@ def format_value(value: Optional[float]) -> str:
 class ReadoutPanel(QWidget):
     """A table of (series, value, unit) rows, one block per shown plot."""
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -99,7 +98,7 @@ class ReadoutPanel(QWidget):
         header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
         layout.addWidget(self.table, 1)
 
-    def show_rows(self, heading: str, blocks: List[Tuple[str, List[Tuple[str, Optional[float], str]]]]) -> None:
+    def show_rows(self, heading: str, blocks: list[tuple[str, list[tuple[str, float | None, str]]]]) -> None:
         """``heading`` the time; ``blocks`` ``(plot title, [(label, value, unit), ...])``."""
         self.time_label.setText(heading)
         rows = sum(1 + len(lines) for _title, lines in blocks)
@@ -123,7 +122,7 @@ class ReadoutPanel(QWidget):
                 self.table.setItem(row, 2, QTableWidgetItem(unit))
                 row += 1
 
-    def rows(self) -> List[Tuple[str, str, str]]:
+    def rows(self) -> list[tuple[str, str, str]]:
         """The table's text, row by row (for tests and copying)."""
         out = []
         for row in range(self.table.rowCount()):

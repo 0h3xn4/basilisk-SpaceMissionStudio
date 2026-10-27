@@ -38,17 +38,16 @@ chart keeps a legend: colour is never the only cue.
 
 from __future__ import annotations
 
-from typing import Dict, List
 
 # Hue order (OKLCH h): orchid 325, brown 65, purple 305, green 135, teal
 # 185, blue 265, crimson 10, ocean 225.
-CATEGORICAL: Dict[str, List[str]] = {
+CATEGORICAL: dict[str, list[str]] = {
     "light": ["#AE59B4", "#8A3600", "#6C25A4", "#236400", "#00A596", "#5283FE", "#B80040", "#005F93"],
     "dark": ["#CA4ED3", "#B36C0D", "#8B63B6", "#458604", "#00A794", "#3163F1", "#DA185B", "#007CB1"],
 }
 
 
-def categorical(mode: str) -> List[str]:
+def categorical(mode: str) -> list[str]:
     """The categorical palette of ``mode``: a copy."""
     return list(CATEGORICAL[mode])
 

@@ -56,8 +56,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass, field
-from datetime import timedelta, timezone
-from typing import Dict, List, Tuple
+from datetime import timedelta, UTC
 
 from ..schema.epochs import parse_epoch_utc
 from . import earth_orientation, landmarks, opnav, small_bodies
@@ -97,14 +96,14 @@ class Badge:
 @dataclass
 class SpacecraftFactRow:
     name: str
-    facts: Dict[str, str] = field(default_factory=dict)  # short column_label -> value
+    facts: dict[str, str] = field(default_factory=dict)  # short column_label -> value
 
 
 @dataclass
 class ExplanationSection:
     title: str
-    badges: List[Badge] = field(default_factory=list)
-    notes: List[str] = field(default_factory=list)  # short relational one-liners only, rare
+    badges: list[Badge] = field(default_factory=list)
+    notes: list[str] = field(default_factory=list)  # short relational one-liners only, rare
 
 
 @dataclass
@@ -137,17 +136,17 @@ class RoeDiagram:
 
     chief_name: str
     follower_name: str
-    targets: List[Tuple[float, List[float]]]  # (start day, a times the ROE [m])
+    targets: list[tuple[float, list[float]]]  # (start day, a times the ROE [m])
 
 
 @dataclass
 class ScenarioExplanation:
     headline: str
-    stat_tiles: List[StatTile] = field(default_factory=list)
-    sections: List[ExplanationSection] = field(default_factory=list)
-    spacecraft_table: List[SpacecraftFactRow] = field(default_factory=list)  # empty if < 2 spacecraft
-    formation_diagrams: List[FormationDiagram] = field(default_factory=list)  # one per phasing_keeping spacecraft
-    roe_diagrams: List[RoeDiagram] = field(default_factory=list)  # one per roe_formation spacecraft
+    stat_tiles: list[StatTile] = field(default_factory=list)
+    sections: list[ExplanationSection] = field(default_factory=list)
+    spacecraft_table: list[SpacecraftFactRow] = field(default_factory=list)  # empty if < 2 spacecraft
+    formation_diagrams: list[FormationDiagram] = field(default_factory=list)  # one per phasing_keeping spacecraft
+    roe_diagrams: list[RoeDiagram] = field(default_factory=list)  # one per roe_formation spacecraft
 
 
 def _models_oblateness(gravity) -> bool:
@@ -259,7 +258,7 @@ def _spacecraft_propellant_kg(sc) -> float:
     return total
 
 
-def _roe_notes(scenario) -> List[str]:
+def _roe_notes(scenario) -> list[str]:
     """Each ROE target in words: where the follower sits and how close the
     two can come in the radial/cross-track plane (passive safety)."""
     notes = []
@@ -308,7 +307,7 @@ def _differential_drag_note(follower, chief) -> str | None:
 
 
 def _formation_section(scenario) -> ExplanationSection | None:
-    badges: List[Badge] = []
+    badges: list[Badge] = []
     if any(sc.station_keeping is not None for sc in scenario.spacecraft):
         badges.append(Badge("Station-keeping", "accent"))
     if any(sc.geo_station_keeping is not None for sc in scenario.spacecraft):
@@ -351,7 +350,7 @@ def _attitude_section(scenario) -> ExplanationSection | None:
 
 
 def _environment_section(scenario) -> ExplanationSection | None:
-    badges: List[Badge] = []
+    badges: list[Badge] = []
     if any(_is_sun_synchronous(sc.orbit, scenario.gravity) for sc in scenario.spacecraft):
         badges.append(Badge("Sun-synchronous", "accent"))
     if any(sc.enable_drag for sc in scenario.spacecraft):
@@ -377,13 +376,13 @@ def _environment_section(scenario) -> ExplanationSection | None:
     return ExplanationSection(title="Environment", badges=badges, notes=notes)
 
 
-def _earth_frame_notes(scenario) -> List[str]:
+def _earth_frame_notes(scenario) -> list[str]:
     """The Earth-fixed frame a run will use and its accuracy
     (engine.earth_orientation, ECSS-E-ST-10-09C 5.4.9f)."""
     try:
         start = parse_epoch_utc(scenario.epoch_utc)
         if start.tzinfo is not None:
-            start = start.astimezone(timezone.utc).replace(tzinfo=None)
+            start = start.astimezone(UTC).replace(tzinfo=None)
         kernels = earth_orientation.installed()
         notes = earth_orientation.notes(start, start + timedelta(days=scenario.sim_settings.duration_days), kernels)
     except Exception:  # noqa: BLE001 -- a half-edited scenario must never break the Explain tab
@@ -392,7 +391,7 @@ def _earth_frame_notes(scenario) -> List[str]:
 
 
 def _power_comms_section(scenario) -> ExplanationSection | None:
-    badges: List[Badge] = []
+    badges: list[Badge] = []
     if any(sc.power is not None for sc in scenario.spacecraft):
         badges.append(Badge("Power budget", "accent"))
     if any(sc.rf_link is not None for sc in scenario.spacecraft):
@@ -574,7 +573,7 @@ def _checks_section(scenario) -> ExplanationSection | None:
     )
 
 
-def _formation_diagrams(scenario) -> List[FormationDiagram]:
+def _formation_diagrams(scenario) -> list[FormationDiagram]:
     diagrams = []
     for sc in scenario.spacecraft:
         pk = sc.phasing_keeping
@@ -592,7 +591,7 @@ def _formation_diagrams(scenario) -> List[FormationDiagram]:
     return diagrams
 
 
-def _roe_diagrams(scenario) -> List[RoeDiagram]:
+def _roe_diagrams(scenario) -> list[RoeDiagram]:
     return [RoeDiagram(chief_name=sc.roe_formation.chief_spacecraft, follower_name=sc.name,
                        targets=[(t.start_day, list(t.roe_m)) for t in sc.roe_formation.targets])
             for sc in scenario.spacecraft if sc.roe_formation is not None and sc.roe_formation.targets]
@@ -657,7 +656,7 @@ def _explain(scenario) -> ScenarioExplanation:
         if section is not None:
             sections.append(section)
 
-    spacecraft_table: List[SpacecraftFactRow] = []
+    spacecraft_table: list[SpacecraftFactRow] = []
     if len(spacecraft) >= 2:
         # Spacecraft with identical facts share one row (a 6-satellite
         # constellation used to repeat the same row six times).

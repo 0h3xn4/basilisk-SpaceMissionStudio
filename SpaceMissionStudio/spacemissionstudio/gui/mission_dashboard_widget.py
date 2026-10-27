@@ -46,7 +46,6 @@ change to this module's own per-spacecraft logic.
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 import numpy as np
 
@@ -70,7 +69,7 @@ from .badges import SUCCESS as _SUCCESS_BADGE, set_badge
 from .theme import set_role
 
 
-def _find_comms_pointing_spacecraft(result: Optional[ResultSet]) -> Optional[str]:
+def _find_comms_pointing_spacecraft(result: ResultSet | None) -> str | None:
     """The first spacecraft name with a recorded
     ``{name}.comms_pointing.active_mode`` series, or ``None`` if the
     given result has none (e.g. no run yet, or a scenario with no
@@ -86,7 +85,7 @@ def _find_comms_pointing_spacecraft(result: Optional[ResultSet]) -> Optional[str
 
 
 def _find_ground_station(result: ResultSet, spacecraft_name: str,
-                          comms_pointing_target_ground_station: Optional[str] = None) -> Optional[str]:
+                          comms_pointing_target_ground_station: str | None = None) -> str | None:
     """The ground station this panel should show for ``spacecraft_name``.
 
     When ``comms_pointing_target_ground_station`` is given (the
@@ -117,14 +116,14 @@ def _find_ground_station(result: ResultSet, spacecraft_name: str,
     return None
 
 
-def _sample_index(series, at_s: Optional[float]) -> int:
+def _sample_index(series, at_s: float | None) -> int:
     """The last sample at or before ``at_s`` [s] (the time cursor), else the last one."""
     if at_s is None:
         return series.data.shape[0] - 1
     return max(int(np.searchsorted(series.time_s, at_s, side="right")) - 1, 0)
 
 
-def _latest(result: ResultSet, series_name: str, at_s: Optional[float] = None) -> Optional[float]:
+def _latest(result: ResultSet, series_name: str, at_s: float | None = None) -> float | None:
     series = result.series.get(series_name)
     if series is None or series.data.shape[0] == 0:
         return None
@@ -145,9 +144,9 @@ def _card_form(box: QGroupBox) -> QFormLayout:
 class MissionDashboardWidget(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self._result: Optional[ResultSet] = None
-        self._scenario: Optional[Scenario] = None
-        self._cursor_s: Optional[float] = None  # [s] the shared time cursor, or None (the latest sample)
+        self._result: ResultSet | None = None
+        self._scenario: Scenario | None = None
+        self._cursor_s: float | None = None  # [s] the shared time cursor, or None (the latest sample)
 
         layout = QVBoxLayout(self)
 
@@ -287,16 +286,16 @@ class MissionDashboardWidget(QWidget):
         cursor.changed.connect(self._on_cursor_changed)
         self._on_cursor_changed(cursor.time_s)
 
-    def _on_cursor_changed(self, time_s: Optional[float]) -> None:
+    def _on_cursor_changed(self, time_s: float | None) -> None:
         self._cursor_s = time_s
         self._refresh()
 
-    def set_result(self, result: Optional[ResultSet], scenario: Optional[Scenario] = None) -> None:
+    def set_result(self, result: ResultSet | None, scenario: Scenario | None = None) -> None:
         self._result = result
         self._scenario = scenario
         self._refresh()
 
-    def set_live_result(self, result: ResultSet, scenario: Optional[Scenario] = None) -> None:
+    def set_live_result(self, result: ResultSet, scenario: Scenario | None = None) -> None:
         """Updates the dashboard with one chunk's worth of a still
         -running simulation -- see ``ResultsWidget.set_live_result()``'s
         own docstring for the live-update story this mirrors. Unlike that
@@ -399,9 +398,9 @@ class MissionDashboardWidget(QWidget):
         # -- RF link --------------------------------------------------------
         self._refresh_rf_link(sc_config, gs_name, has_access, is_comms_mode, slant_range_m, pointing_error_deg)
 
-    def _refresh_rf_link(self, sc_config, gs_name: Optional[str], has_access: Optional[bool],
-                          is_comms_mode: bool, slant_range_m: Optional[float],
-                          pointing_error_deg: Optional[float]) -> None:
+    def _refresh_rf_link(self, sc_config, gs_name: str | None, has_access: bool | None,
+                          is_comms_mode: bool, slant_range_m: float | None,
+                          pointing_error_deg: float | None) -> None:
         self.slant_range_label.setText(f"{slant_range_m / 1000.0:,.1f} km" if slant_range_m is not None else "--")
 
         rf_link = sc_config.rf_link if sc_config is not None else None

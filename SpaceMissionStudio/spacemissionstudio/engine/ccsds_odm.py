@@ -42,8 +42,8 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional, Sequence, Tuple
+from datetime import datetime, timedelta, UTC
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -129,7 +129,7 @@ _TEXT = {"OBJECT_NAME", "OBJECT_ID", "CLASSIFICATION", "ORIGINATOR", "MESSAGE_ID
 class OdmError(ValueError):
     """A message that cannot be read or does not conform; ``issues`` lists why."""
 
-    def __init__(self, message: str, issues: Optional[List["Issue"]] = None):
+    def __init__(self, message: str, issues: list[Issue] | None = None):
         super().__init__(message)
         self.issues = issues or []
 
@@ -150,38 +150,38 @@ class Issue:
 class Entry:
     keyword: str
     value: str
-    units: Optional[str] = None
+    units: str | None = None
     line: int = 0
 
 
 @dataclass
 class OemSegment:
-    metadata: List[Entry] = field(default_factory=list)
-    comments: List[str] = field(default_factory=list)
-    epochs: List[str] = field(default_factory=list)
-    states: List[List[float]] = field(default_factory=list)  # [km, km/s, (km/s**2)] per line
-    covariances: List[Dict[str, object]] = field(default_factory=list)  # epoch, frame, matrix (6x6)
-    lines: List[int] = field(default_factory=list)
+    metadata: list[Entry] = field(default_factory=list)
+    comments: list[str] = field(default_factory=list)
+    epochs: list[str] = field(default_factory=list)
+    states: list[list[float]] = field(default_factory=list)  # [km, km/s, (km/s**2)] per line
+    covariances: list[dict[str, object]] = field(default_factory=list)  # epoch, frame, matrix (6x6)
+    lines: list[int] = field(default_factory=list)
 
-    def get(self, keyword: str, default: Optional[str] = None) -> Optional[str]:
+    def get(self, keyword: str, default: str | None = None) -> str | None:
         return next((e.value for e in self.metadata if e.keyword == keyword), default)
 
 
 @dataclass
 class OdmMessage:
     kind: str  # "OPM", "OMM" or "OEM"
-    header: List[Entry] = field(default_factory=list)
-    metadata: List[Entry] = field(default_factory=list)  # OPM/OMM
-    data: List[Entry] = field(default_factory=list)  # OPM/OMM, comments included as COMMENT entries
-    segments: List[OemSegment] = field(default_factory=list)  # OEM
+    header: list[Entry] = field(default_factory=list)
+    metadata: list[Entry] = field(default_factory=list)  # OPM/OMM
+    data: list[Entry] = field(default_factory=list)  # OPM/OMM, comments included as COMMENT entries
+    segments: list[OemSegment] = field(default_factory=list)  # OEM
 
-    def get(self, keyword: str, default: Optional[str] = None) -> Optional[str]:
+    def get(self, keyword: str, default: str | None = None) -> str | None:
         for entry in self.header + self.metadata + self.data:
             if entry.keyword == keyword:
                 return entry.value
         return default
 
-    def number(self, keyword: str) -> Optional[float]:
+    def number(self, keyword: str) -> float | None:
         value = self.get(keyword)
         return None if value is None else float(value)
 
@@ -189,7 +189,7 @@ class OdmMessage:
 # --- Reading -------------------------------------------------------------------------------------------
 
 
-def _split_units(value: str) -> Tuple[str, Optional[str]]:
+def _split_units(value: str) -> tuple[str, str | None]:
     match = _UNITS.match(value)
     return (match.group(1).strip(), match.group(2)) if match else (value, None)
 
@@ -214,7 +214,7 @@ def read(text: str) -> OdmMessage:
     if kind != "OEM":
         meta_keys = {k for _b, ks, _s, _u in (OPM_METADATA if kind == "OPM" else OMM_METADATA) for k in ks.split("|")}
         section = "header"
-        pending: List[Entry] = []  # comments belong to the section of the keyword after them
+        pending: list[Entry] = []  # comments belong to the section of the keyword after them
         targets = {"header": message.header, "metadata": message.metadata, "data": message.data}
         for number, raw in enumerate(lines, 1):
             if not raw.strip():
@@ -235,9 +235,9 @@ def read(text: str) -> OdmMessage:
             pending = []
         targets[section].extend(pending)
         return message
-    segment: Optional[OemSegment] = None
+    segment: OemSegment | None = None
     state = "header"
-    covariance: Optional[Dict[str, object]] = None
+    covariance: dict[str, object] | None = None
     for number, raw in enumerate(lines, 1):
         stripped = raw.strip()
         if not stripped:
@@ -324,7 +324,7 @@ def _digits(value: str) -> int:
     return sum(c.isdigit() for c in mantissa)
 
 
-def _check_value(entry: Entry, units: Optional[str], issues: List[Issue]) -> None:
+def _check_value(entry: Entry, units: str | None, issues: list[Issue]) -> None:
     keyword, value = entry.keyword, entry.value
     if not value:
         issues.append(Issue("error", entry.line, "7.5.1", f"{keyword} has an empty value"))
@@ -352,7 +352,7 @@ def _check_value(entry: Entry, units: Optional[str], issues: List[Issue]) -> Non
                                 f"the table ({units or 'none'})"))
 
 
-def _check_lines(text: str, issues: List[Issue]) -> None:
+def _check_lines(text: str, issues: list[Issue]) -> None:
     for number, line in enumerate(text.splitlines(), 1):
         if len(line) > MAX_LINE_LENGTH:
             issues.append(Issue("error", number, "7.3.2", f"line has {len(line)} characters (max {MAX_LINE_LENGTH})"))
@@ -360,7 +360,7 @@ def _check_lines(text: str, issues: List[Issue]) -> None:
             issues.append(Issue("error", number, "7.3.4", "line contains a non-printable or non-ASCII character"))
 
 
-def _check_header(message: OdmMessage, issues: List[Issue]) -> None:
+def _check_header(message: OdmMessage, issues: list[Issue]) -> None:
     table = f"Table {dict(OPM='3-1', OMM='4-1', OEM='5-2')[message.kind]}"
     order = [f"CCSDS_{message.kind}_VERS", *_HEADER]
     seen = [e.keyword for e in message.header]
@@ -390,8 +390,8 @@ def _check_header(message: OdmMessage, issues: List[Issue]) -> None:
             _check_value(entry, None, issues)
 
 
-def _check_keyword_table(entries: List[Entry], table: list, table_name: str, issues: List[Issue],
-                         comment_clause: str, repeat_block: Optional[str] = None) -> Dict[str, List[Entry]]:
+def _check_keyword_table(entries: list[Entry], table: list, table_name: str, issues: list[Issue],
+                         comment_clause: str, repeat_block: str | None = None) -> dict[str, list[Entry]]:
     """Order, allowed keywords, comment placement and values for one
     section; returns the entries by block."""
     order = []  # (block, keyword, status, units)
@@ -399,9 +399,9 @@ def _check_keyword_table(entries: List[Entry], table: list, table_name: str, iss
         for index, keyword in enumerate(keywords.split("|")):
             unit = units.split("|")[index] if units and "|" in units else units
             order.append((block, keyword, status, unit))
-    by_block: Dict[str, List[Entry]] = {}
+    by_block: dict[str, list[Entry]] = {}
     last_position, last_block = -1, None
-    pending_comment: Optional[Entry] = None
+    pending_comment: Entry | None = None
     for entry in entries:
         if entry.keyword == "COMMENT":
             pending_comment = pending_comment or entry
@@ -433,11 +433,11 @@ def _check_keyword_table(entries: List[Entry], table: list, table_name: str, iss
     return by_block
 
 
-def _keys(entries: List[Entry]) -> List[str]:
+def _keys(entries: list[Entry]) -> list[str]:
     return [e.keyword for e in entries]
 
 
-def _require(entries: List[Entry], keywords: Sequence[str], clause: str, issues: List[Issue], what: str) -> None:
+def _require(entries: list[Entry], keywords: Sequence[str], clause: str, issues: list[Issue], what: str) -> None:
     present = _keys(entries)
     for keyword in keywords:
         options = keyword.split("|")
@@ -445,13 +445,13 @@ def _require(entries: List[Entry], keywords: Sequence[str], clause: str, issues:
             issues.append(Issue("error", 0, clause, f"{what}: mandatory {' or '.join(options)} is missing"))
 
 
-def text_value(value: Optional[str]) -> str:
+def text_value(value: str | None) -> str:
     """A text value as compared (7.5.9: underscore = blank, runs of blanks
     = one blank), upper case."""
     return re.sub(" +", " ", (value or "").replace("_", " ")).strip().upper()
 
 
-def _check_frames(metadata: List[Entry], kind: str, issues: List[Issue]) -> None:
+def _check_frames(metadata: list[Entry], kind: str, issues: list[Issue]) -> None:
     values = {e.keyword: e for e in metadata}
     frame, time_system = values.get("REF_FRAME"), values.get("TIME_SYSTEM")
     if time_system is not None and text_value(time_system.value) not in TIME_SYSTEMS:
@@ -465,14 +465,14 @@ def _check_frames(metadata: List[Entry], kind: str, issues: List[Issue]) -> None
             issues.append(Issue("warning", frame.line, "3.2.3.3, 4.2.4.9", "TEME is meant only for TLE-based OMMs"))
 
 
-def _all_or_none(entries: List[Entry], keywords: Sequence[str], clause: str, issues: List[Issue], what: str) -> None:
+def _all_or_none(entries: list[Entry], keywords: Sequence[str], clause: str, issues: list[Issue], what: str) -> None:
     present = [k for k in keywords if any(option in _keys(entries) for option in k.split("|"))]
     if present and len(present) != len(keywords):
         missing = [k for k in keywords if k not in present]
         issues.append(Issue("error", 0, clause, f"{what}: all or none must be given; missing {', '.join(missing)}"))
 
 
-def _check_opm_omm(message: OdmMessage, issues: List[Issue]) -> None:
+def _check_opm_omm(message: OdmMessage, issues: list[Issue]) -> None:
     opm = message.kind == "OPM"
     meta_table, data_table = (OPM_METADATA, OPM_DATA) if opm else (OMM_METADATA, OMM_DATA)
     names = ("Table 3-2", "Table 3-3") if opm else ("Table 4-2", "Table 4-3")
@@ -519,7 +519,7 @@ def _check_opm_omm(message: OdmMessage, issues: List[Issue]) -> None:
                  "covariance matrix")
 
 
-def _check_oem(message: OdmMessage, text: str, issues: List[Issue]) -> None:
+def _check_oem(message: OdmMessage, text: str, issues: list[Issue]) -> None:
     if not message.segments:
         issues.append(Issue("error", 0, "Table 5-1", "an OEM needs at least one metadata and ephemeris data block"))
         return
@@ -585,9 +585,9 @@ def _check_oem(message: OdmMessage, text: str, issues: List[Issue]) -> None:
         issues.append(Issue("error", 0, "5.1.3", "an OEM holds orbit data for a single object"))
 
 
-def validate(text: str) -> List[Issue]:
+def validate(text: str) -> list[Issue]:
     """All conformance issues of a KVN message (empty when it conforms)."""
-    issues: List[Issue] = []
+    issues: list[Issue] = []
     try:
         message = read(text)
     except OdmError as exc:
@@ -601,7 +601,7 @@ def validate(text: str) -> List[Issue]:
     return sorted(issues, key=lambda issue: (issue.level != "error", issue.line))
 
 
-def read_checked(text: str) -> Tuple[OdmMessage, List[Issue]]:
+def read_checked(text: str) -> tuple[OdmMessage, list[Issue]]:
     """Parse and validate; raises :class:`OdmError` when there are errors."""
     issues = validate(text)
     errors = [i for i in issues if i.level == "error"]
@@ -650,15 +650,15 @@ def _number(value: float) -> str:
 # --- Writing -------------------------------------------------------------------------------------------
 
 
-def _line(keyword: str, value: str, units: Optional[str] = None) -> str:
+def _line(keyword: str, value: str, units: str | None = None) -> str:
     return f"{keyword:<20s} = {value}" + (f" [{units}]" if units else "")
 
 
-def _header(kind: str, originator: str, creation: Optional[datetime], comments: Sequence[str],
-            message_id: Optional[str]) -> List[str]:
+def _header(kind: str, originator: str, creation: datetime | None, comments: Sequence[str],
+            message_id: str | None) -> list[str]:
     lines = [_line(f"CCSDS_{kind}_VERS", VERSION)]
     lines += [f"COMMENT {c}" for c in comments]
-    lines.append(_line("CREATION_DATE", format_time(creation or datetime.now(timezone.utc).replace(tzinfo=None, microsecond=0))))
+    lines.append(_line("CREATION_DATE", format_time(creation or datetime.now(UTC).replace(tzinfo=None, microsecond=0))))
     lines.append(_line("ORIGINATOR", originator))
     if message_id:
         lines.append(_line("MESSAGE_ID", message_id))
@@ -673,11 +673,11 @@ def _finish(text: str) -> str:
 
 
 def write_opm(*, object_name: str, object_id: str, center_name: str, ref_frame: str, time_system: str,
-              epoch: datetime, r_km: Sequence[float], v_km_s: Sequence[float], gm_km3_s2: Optional[float] = None,
-              mass_kg: Optional[float] = None, srp_area_m2: Optional[float] = None,
-              srp_coeff: Optional[float] = None, drag_area_m2: Optional[float] = None,
-              drag_coeff: Optional[float] = None, originator: str = "SPACEMISSIONSTUDIO",
-              comments: Sequence[str] = (), creation: Optional[datetime] = None) -> str:
+              epoch: datetime, r_km: Sequence[float], v_km_s: Sequence[float], gm_km3_s2: float | None = None,
+              mass_kg: float | None = None, srp_area_m2: float | None = None,
+              srp_coeff: float | None = None, drag_area_m2: float | None = None,
+              drag_coeff: float | None = None, originator: str = "SPACEMISSIONSTUDIO",
+              comments: Sequence[str] = (), creation: datetime | None = None) -> str:
     """An OPM with a state vector, osculating elements (when ``gm_km3_s2``
     is given) and spacecraft parameters."""
     lines = _header("OPM", originator, creation, comments, None)
@@ -728,7 +728,7 @@ def write_omm(*, object_name: str, object_id: str, epoch: datetime, mean_motion_
               norad_cat_id: int, bstar: float, mean_motion_dot: float, mean_motion_ddot: float,
               element_set_no: int = 999, rev_at_epoch: int = 0, classification: str = "U",
               originator: str = "SPACEMISSIONSTUDIO", comments: Sequence[str] = (),
-              creation: Optional[datetime] = None) -> str:
+              creation: datetime | None = None) -> str:
     """A TLE-based OMM (4.2.4.6: EARTH, TEME, UTC, MEAN_MOTION, SGP4)."""
     lines = _header("OMM", originator, creation, comments, None)
     lines += ["", _line("OBJECT_NAME", object_name), _line("OBJECT_ID", object_id), _line("CENTER_NAME", "EARTH"),
@@ -746,8 +746,8 @@ def write_omm(*, object_name: str, object_id: str, epoch: datetime, mean_motion_
     return _finish("\n".join(lines) + "\n")
 
 
-def write_oem(segments: Sequence[Dict[str, object]], *, originator: str = "SPACEMISSIONSTUDIO",
-              comments: Sequence[str] = (), creation: Optional[datetime] = None) -> str:
+def write_oem(segments: Sequence[dict[str, object]], *, originator: str = "SPACEMISSIONSTUDIO",
+              comments: Sequence[str] = (), creation: datetime | None = None) -> str:
     """An OEM. Each segment: ``object_name``, ``object_id``, ``center_name``,
     ``ref_frame``, ``time_system``, ``epochs`` (datetimes), ``r_km`` (N x 3),
     ``v_km_s`` (N x 3), optional ``comments``, ``interpolation``,
@@ -802,7 +802,7 @@ def _to_utc(moment: datetime, time_system: str) -> datetime:
     return guess
 
 
-def state_from_opm(message: OdmMessage) -> Tuple[datetime, np.ndarray, np.ndarray, List[str]]:
+def state_from_opm(message: OdmMessage) -> tuple[datetime, np.ndarray, np.ndarray, list[str]]:
     """(UTC epoch, r [m], v [m/s], notes) of an OPM in a frame the tool
     uses directly (EME2000/ICRF/GCRF)."""
     if message.kind != "OPM":
@@ -820,7 +820,7 @@ def state_from_opm(message: OdmMessage) -> Tuple[datetime, np.ndarray, np.ndarra
     return epoch, r, v, notes
 
 
-def tle_from_omm(message: OdmMessage) -> Tuple[str, str]:
+def tle_from_omm(message: OdmMessage) -> tuple[str, str]:
     """TLE lines of a TLE-based OMM (4.1.2), via the sgp4 package."""
     from sgp4.api import WGS72, Satrec
     from sgp4.exporter import export_tle
@@ -876,8 +876,8 @@ def omm_from_tle(line1: str, line2: str, object_name: str, **kwargs) -> str:
 
 
 def oem_from_result(result, epoch_utc: str, central_body: str, spacecraft: Sequence[str],
-                    object_ids: Optional[Dict[str, str]] = None, stride: int = 1, interpolation: str = "HERMITE",
-                    **kwargs) -> Dict[str, str]:
+                    object_ids: dict[str, str] | None = None, stride: int = 1, interpolation: str = "HERMITE",
+                    **kwargs) -> dict[str, str]:
     """One OEM per spacecraft from a run's ``position_N``/``velocity_N``
     series: EME2000, centre = central body, UTC epochs converted from the
     run's TDB time (engine.time_system), suggested interpolation
@@ -912,7 +912,7 @@ def oem_from_result(result, epoch_utc: str, central_body: str, spacecraft: Seque
     return messages
 
 
-def orbit_ic_from_odm(text: str, central_body: Optional[str] = None):
+def orbit_ic_from_odm(text: str, central_body: str | None = None):
     """(schema OrbitIC, UTC epoch of the state or None, notes) from an OPM
     (cartesian state at its epoch) or a TLE-based OMM (TLE orbit, propagated
     by SGP4 to the scenario epoch like any TLE). With ``central_body`` (the

@@ -41,9 +41,8 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
-from typing import List, Optional
 
 import numpy as np
 
@@ -70,7 +69,7 @@ class GroundPass:
     peak_elevation_deg: float  # [deg]
 
 
-def _initial_elements(orbit, epoch_utc: Optional[str] = None):
+def _initial_elements(orbit, epoch_utc: str | None = None):
     """(a [m], e, i, raan, argp, mean anomaly) [rad] -- or None if the
     orbit type isn't supported here. A TLE needs ``epoch_utc``."""
     kind = getattr(orbit, "type", None)
@@ -152,12 +151,12 @@ def _earth_rotation_angle(epoch_utc: str, t):
     (IAU_EARTH: the equator's node sits at alpha0 + 90 deg = 90 deg)."""
     epoch = parse_epoch_utc(epoch_utc)
     if epoch.tzinfo is not None:
-        epoch = epoch.astimezone(timezone.utc).replace(tzinfo=None)
+        epoch = epoch.astimezone(UTC).replace(tzinfo=None)
     days_tdb = ((epoch - datetime(2000, 1, 1, 12)).total_seconds() + _TT_MINUS_UTC_S) / 86400.0  # [day] from J2000
     return np.radians(90.0 + 190.147 + 360.9856235 * (days_tdb + t / 86400.0))
 
 
-def predict_passes(scenario, horizon_s: Optional[float] = None) -> Optional[List[GroundPass]]:
+def predict_passes(scenario, horizon_s: float | None = None) -> list[GroundPass] | None:
     """Passes above each station's minimum elevation, for every
     station/spacecraft pair, from t = 0 to ``horizon_s`` (default: the run,
     capped at a week). ``None`` when this can't be predicted (non-Earth
@@ -171,7 +170,7 @@ def predict_passes(scenario, horizon_s: Optional[float] = None) -> Optional[List
     t = np.arange(0.0, horizon_s + _STEP_S, _STEP_S)
     rotation = _earth_rotation_angle(scenario.epoch_utc, t)
     with_j2 = (gravity.central_body_degree or 0) >= 2
-    passes: List[GroundPass] = []
+    passes: list[GroundPass] = []
     for sc in scenario.spacecraft:
         try:
             elements = _initial_elements(sc.orbit, scenario.epoch_utc)
@@ -208,7 +207,7 @@ def format_elapsed(seconds: float) -> str:
     return f"{seconds / 86400:.1f} d"
 
 
-def pass_summary(scenario) -> List[str]:
+def pass_summary(scenario) -> list[str]:
     """One short line per station, e.g. "berlin-gs: 2 passes, first at
     10 min for 8 min (peak 61 deg)". Empty when passes can't be predicted."""
     passes = predict_passes(scenario)
@@ -242,10 +241,10 @@ def _sun_axis(sc):
     return None
 
 
-def scenario_warnings(scenario) -> List[str]:
+def scenario_warnings(scenario) -> list[str]:
     """Short warnings for setups that can't do what they're configured
     for. Never raises."""
-    warnings: List[str] = []
+    warnings: list[str] = []
     for check in (_pass_warnings, _recording_warnings, _tle_warnings, _gravity_warnings,
                   _formation_law_warnings, _navigation_restart_warnings, _small_body_data_warnings,
                   _monte_carlo_warnings):
@@ -261,7 +260,7 @@ def scenario_warnings(scenario) -> List[str]:
     return warnings
 
 
-def _small_body_data_warnings(scenario) -> List[str]:
+def _small_body_data_warnings(scenario) -> list[str]:
     """A run around a small body needs its ephemeris kernel (and, with
     polyhedral gravity, its shape); without them it stops at once."""
     body = small_bodies.body(getattr(scenario.gravity, "central_body", ""))
@@ -291,7 +290,7 @@ _REENTRY_PERIGEE_KM = 120.0  # [km] perigee counted as re-entry, as engine.lifet
 _EARTH_RADIUS_M = geodesy.WGS84_SEMI_MAJOR_AXIS_M  # [m]
 
 
-def _orbit_warnings(scenario) -> List[str]:
+def _orbit_warnings(scenario) -> list[str]:
     """Initial orbits that cannot be flown: a perigee below the surface or
     so low the spacecraft re-enters at once, a position inside Earth, a
     state that escapes (Earth only)."""
@@ -344,11 +343,11 @@ def _space_weather_coverage(source, local_file_path, msfc_file_path):
 def _run_span(scenario):
     start = parse_epoch_utc(scenario.epoch_utc)
     if start.tzinfo is not None:
-        start = start.astimezone(timezone.utc).replace(tzinfo=None)
+        start = start.astimezone(UTC).replace(tzinfo=None)
     return start, start + timedelta(days=float(scenario.sim_settings.duration_days))
 
 
-def _data_coverage_warnings(scenario) -> List[str]:
+def _data_coverage_warnings(scenario) -> list[str]:
     """A run outside the installed reference data: the space-weather data
     (drag with NRLMSISE-00) and the IERS Earth orientation files."""
     from . import earth_orientation
@@ -385,14 +384,14 @@ def _data_coverage_warnings(scenario) -> List[str]:
     return warnings
 
 
-def plausibility_warnings(scenario, base_dir=None) -> List[str]:
+def plausibility_warnings(scenario, base_dir=None) -> list[str]:
     """Checks to show while the scenario is edited (UX/UI guidelines,
     "plausibility checks while typing"): initial orbits that cannot be
     flown, a run outside the installed reference data, and 3D models whose
     applied values are out of date. Short lines, deterministic rules. Never
     raises. ``base_dir`` (the scenario file's folder) resolves relative
     model mesh paths."""
-    warnings: List[str] = []
+    warnings: list[str] = []
     for check in (_orbit_warnings, _data_coverage_warnings, lambda s: _model_warnings(s, base_dir)):
         try:
             warnings += check(scenario)
@@ -405,7 +404,7 @@ def plausibility_warnings(scenario, base_dir=None) -> List[str]:
 _MODEL_CACHE = None
 
 
-def _model_warnings(scenario, base_dir) -> List[str]:
+def _model_warnings(scenario, base_dir) -> list[str]:
     """A spacecraft's 3D model that cannot be built, or whose mass
     properties or facets differ from the stored ones."""
     global _MODEL_CACHE
@@ -416,7 +415,7 @@ def _model_warnings(scenario, base_dir) -> List[str]:
     if _MODEL_CACHE is None:
         _MODEL_CACHE = model3d.MeshCache()
     orbit_only = scenario.simulation_mode == "orbit_only"
-    warnings: List[str] = []
+    warnings: list[str] = []
     for sc in scenario.spacecraft:
         if sc.model is None:
             continue
@@ -430,7 +429,7 @@ def _model_warnings(scenario, base_dir) -> List[str]:
     return warnings
 
 
-def _tle_warnings(scenario) -> List[str]:
+def _tle_warnings(scenario) -> list[str]:
     """A TLE that can't be propagated, or whose epoch is far from the
     scenario epoch (ECSS-E-ST-10-09C 5.3.1b: the TLE is propagated by SGP4
     to the scenario epoch, so its age is the propagation span)."""
@@ -450,7 +449,7 @@ def _tle_warnings(scenario) -> List[str]:
     return warnings
 
 
-def _gravity_warnings(scenario) -> List[str]:
+def _gravity_warnings(scenario) -> list[str]:
     """Drag modelled around a point-mass Earth: J2 (~1e-2 m/s^2 in LEO) is
     left out while a far smaller acceleration is modelled."""
     gravity = scenario.gravity
@@ -460,7 +459,7 @@ def _gravity_warnings(scenario) -> List[str]:
             "degree to 2 or more" for sc in scenario.spacecraft if sc.enable_drag]
 
 
-def gravity_fidelity_notes(scenario) -> List[str]:
+def gravity_fidelity_notes(scenario) -> list[str]:
     """ECSS-E-ST-10-04C 4.2.1b: the gravity field's truncation should leave
     out no more than the non-gravitational accelerations modelled. One line
     when the field leaves out more than SRP (Earth only; Kaula's-rule
@@ -496,7 +495,7 @@ def gravity_fidelity_notes(scenario) -> List[str]:
             "(ECSS-E-ST-10-04C 4.2.1b)"]
 
 
-def _recording_warnings(scenario) -> List[str]:
+def _recording_warnings(scenario) -> list[str]:
     """Recording every step of a long run fills memory; passes shorter than
     the recording interval can fall between samples."""
     settings = scenario.sim_settings
@@ -517,7 +516,7 @@ def _recording_warnings(scenario) -> List[str]:
             f"{format_elapsed(interval_s)} -- some may show coarsely or not at all"]
 
 
-def _monte_carlo_warnings(scenario) -> List[str]:
+def _monte_carlo_warnings(scenario) -> list[str]:
     """A batch asking for more processes than there are CPUs gets one per
     CPU (schema.scenario.usable_thread_count)."""
     config = scenario.monte_carlo
@@ -527,7 +526,7 @@ def _monte_carlo_warnings(scenario) -> List[str]:
             f"{usable_thread_count(config.thread_count)} CPUs, so it runs that many at once"]
 
 
-def _pass_warnings(scenario) -> List[str]:
+def _pass_warnings(scenario) -> list[str]:
     if runs_sequence(scenario.mission_sequence):
         return []  # the run's length comes from its commands, not sim_settings
     run_s = scenario.sim_settings.duration_days * 86400.0
@@ -551,13 +550,13 @@ def _pass_warnings(scenario) -> List[str]:
     return warnings
 
 
-def _formation_law_warnings(scenario) -> List[str]:
+def _formation_law_warnings(scenario) -> list[str]:
     """Hill-frame PD followers (``phasing_keeping.control_law`` "hill_pd")
     whose thruster cannot keep the law below its limit: holding the
     separation (the law's feedforward at the reference point, 3 n^2 x),
     or the PD command K * error at the start. A saturated PD law in orbit
     diverges (engine.formation_control)."""
-    warnings: List[str] = []
+    warnings: list[str] = []
     by_name = {sc.name: sc for sc in scenario.spacecraft}
     for sc in scenario.spacecraft:
         pk = sc.phasing_keeping
@@ -600,7 +599,7 @@ _NAV_BUILD_UP_STEPS = 0.41
 _NAV_PREFIXES = ("attitude", "rate", "sun", "position", "velocity")
 
 
-def _navigation_restart_warnings(scenario) -> List[str]:
+def _navigation_restart_warnings(scenario) -> list[str]:
     """A run split into segments restarts each segment's navigation
     errors at zero: Basilisk keeps simpleNav's error state private and
     clears it at every Reset, so it cannot be carried over."""
@@ -623,7 +622,7 @@ def _navigation_restart_warnings(scenario) -> List[str]:
     return warnings
 
 
-def _spacecraft_warnings(sc) -> List[str]:
+def _spacecraft_warnings(sc) -> list[str]:
     warnings = []
     axis = _sun_axis(sc)
     css = [s for s in sc.sensors if s.kind == "coarse_sun_sensor"]

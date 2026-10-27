@@ -31,7 +31,6 @@ import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
 
 from ..schema.scenario import FswExportRecord
 from .catalog import BASILISK_REVISION
@@ -48,10 +47,10 @@ UNKNOWN_SPACECRAFT = "unknown spacecraft"
 class ExportStatus:
     state: str  # one of the constants above
     message: str
-    changed: List[str] = field(default_factory=list)  # setting groups changed since the export
+    changed: list[str] = field(default_factory=list)  # setting groups changed since the export
 
 
-def export_flight_software(scenario, spacecraft_name: str, out_dir, steps: Optional[int] = None,
+def export_flight_software(scenario, spacecraft_name: str, out_dir, steps: int | None = None,
                            overwrite: bool = False):
     """Captures and writes the export; returns ``(ExportResult, FswExportRecord)``.
     Raises ``capture.CaptureError`` or ``generate.ExportError`` with the reason."""

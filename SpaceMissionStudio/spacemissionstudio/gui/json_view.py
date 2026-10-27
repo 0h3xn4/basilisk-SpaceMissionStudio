@@ -33,7 +33,6 @@ mode is next shown, unless the text holds an edit not yet applied.
 
 from __future__ import annotations
 
-from typing import Optional
 
 from PySide6.QtCore import QTimer, Signal
 from PySide6.QtGui import QColor, QFontDatabase, QTextCursor, QTextFormat
@@ -55,7 +54,7 @@ class ScenarioJsonView(QWidget):
     failed = Signal(str)
     discarded = Signal()
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -143,7 +142,7 @@ class ScenarioJsonView(QWidget):
         self._set_error("", None)
         self.applied.emit(scenario)
 
-    def _set_error(self, message: str, line: Optional[int]) -> None:
+    def _set_error(self, message: str, line: int | None) -> None:
         changed = message != self.error
         self.error = message
         if message:

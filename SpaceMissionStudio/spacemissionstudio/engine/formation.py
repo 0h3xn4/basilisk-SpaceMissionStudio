@@ -97,7 +97,6 @@ from __future__ import annotations
 
 import copy
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
@@ -151,7 +150,7 @@ class PhasingFormationRequest:
     # (the default) derives target_altitude_km from the CHIEF's own
     # altitude at generation time rather than asking for a value that, in
     # the common case, is just "the same altitude the chief is already at".
-    station_keeping_target_altitude_km: Optional[float] = None  # [km]
+    station_keeping_target_altitude_km: float | None = None  # [km]
     station_keeping_deadband_km: float = 2.0  # [km]
     thrust_n: float = 0.05  # [N]
     isp_s: float = 1500.0  # [s]

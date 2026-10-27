@@ -13329,3 +13329,23 @@ longer says it is unverified above 1 (the suite runs batches with 3).
 `test_monte_carlo_counts_have_an_upper_limit` and
 `test_a_batch_runs_at_most_one_process_per_cpu`; the two lower-bound
 tests now match the new message.
+
+## Python 3.14 only (2026-10-27)
+
+The user: "Drop support for every Python version older than 3.14." Phase
+1 was an audit (no edits); the user chose SpaceMissionStudio only, after
+the open PRs merged, released as 2.0.0. Branch `python-3.14-only`.
+
+**Found:** `requires-python = ">=3.11"`, ruff `py311`, every
+SpaceMissionStudio workflow on 3.11, the installers' bundled CPython
+3.11.17, one pre-3.12 branch in a test helper (`tokenize.FSTRING_MIDDLE`),
+no `sys.version_info` checks and no backport packages. Every pinned
+dependency installs on 3.14 (Basilisk and PySide6 as abi3 wheels); sgp4
+only as pure Python. The full suite on 3.14.6, before any change: 3852
+passed, 11 skipped, 638 s.
+
+**Changed:** `requires-python = ">=3.14"` with classifiers; ruff
+`py314`; the four workflows on 3.14; the bundled CPython 3.14.8 with its
+published digests; the `tokenize` branch removed; ruff's upgrade rules
+applied (1717 fixes, then the imports they left unused); the user docs
+and the requirement and plan documents say 3.14.

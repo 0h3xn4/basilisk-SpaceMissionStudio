@@ -28,7 +28,7 @@ about the new x (a 3-2-1 sequence), so ``R = Rz(yaw) @ Ry(pitch) @ Rx(roll)``.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -52,7 +52,7 @@ class Mesh:
         return v[t[:, 0]], v[t[:, 1]], v[t[:, 2]]
 
     def transformed(self, rotation: np.ndarray, position: Sequence[float],
-                    scale: Optional[Sequence[float]] = None) -> "Mesh":
+                    scale: Sequence[float] | None = None) -> Mesh:
         """This mesh scaled (per axis, in its own frame), rotated and moved.
         A mirroring scale (negative determinant) reverses the winding so the
         normals still point outward."""
@@ -66,7 +66,7 @@ class Mesh:
         vertices = vertices @ np.asarray(rotation, dtype=float).T + np.asarray(position, dtype=float)
         return Mesh(vertices, triangles.copy())
 
-    def welded(self, tolerance_m: float = 1.0e-7) -> "Mesh":
+    def welded(self, tolerance_m: float = 1.0e-7) -> Mesh:
         """This mesh with vertices closer than ``tolerance_m`` merged, and
         triangles that collapse to a line or point dropped. Exporters often
         repeat a corner once per face (for per-face normals or texture

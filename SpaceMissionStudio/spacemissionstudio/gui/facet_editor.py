@@ -23,7 +23,6 @@ the usual starting point."""
 
 from __future__ import annotations
 
-from typing import List
 
 from PySide6.QtWidgets import (
     QDialog,
@@ -91,7 +90,7 @@ class BoxFacetDialog(QDialog):
         layout.addWidget(buttons)
         finish_form(self)  # units in the fields, optional groups collapse (M4a)
 
-    def facets(self) -> List[FacetConfig]:
+    def facets(self) -> list[FacetConfig]:
         normal = [self.normal_x.value(), self.normal_y.value(), self.normal_z.value()]
         if self.array_area.value() > 0.0 and not any(normal):
             raise ValueError("The array normal must not be zero")
@@ -142,12 +141,12 @@ class FacetTableWidget(QWidget):
         self.remove_button.clicked.connect(self._on_remove)
         self.box_button.clicked.connect(self._on_box)
 
-    def from_list(self, facets: List[FacetConfig]) -> None:
+    def from_list(self, facets: list[FacetConfig]) -> None:
         self.table.setRowCount(0)
         for facet in facets:
             self._append(facet)
 
-    def to_list(self) -> List[FacetConfig]:
+    def to_list(self) -> list[FacetConfig]:
         """Raises ValueError naming the cell when a number doesn't parse."""
         facets = []
         for row in range(self.table.rowCount()):

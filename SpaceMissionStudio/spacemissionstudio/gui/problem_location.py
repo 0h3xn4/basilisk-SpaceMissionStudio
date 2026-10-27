@@ -37,7 +37,7 @@ from __future__ import annotations
 import dataclasses
 import re
 from dataclasses import dataclass
-from typing import Iterable, Optional
+from collections.abc import Iterable
 
 from ..schema.scenario import GroundStationConfig, OrbitIC, SpacecraftConfig
 
@@ -85,8 +85,7 @@ class ProblemLocation:
         return f"{where}, {self.path}" if self.path else where
 
 
-def locate(text: str, spacecraft_names: Iterable[str] = (), station_names: Iterable[str] = ()) -> Optional[
-        ProblemLocation]:
+def locate(text: str, spacecraft_names: Iterable[str] = (), station_names: Iterable[str] = ()) -> ProblemLocation | None:
     """The location ``text`` is about, or None when it names none of the
     above. The longest matching name wins, so "sat-10" is not taken for
     "sat-1"."""

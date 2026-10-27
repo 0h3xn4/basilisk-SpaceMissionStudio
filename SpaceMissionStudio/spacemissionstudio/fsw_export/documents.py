@@ -28,14 +28,13 @@ the export or the document conforms to the standard.
 
 from __future__ import annotations
 
-from typing import Dict, List
 
 from . import cdecl, sources
 from .catalog import MODULES
 from .model import FswCapture, Port
 
 
-def _payload_fields(message_type: str) -> List[cdecl.Field]:
+def _payload_fields(message_type: str) -> list[cdecl.Field]:
     path = f"architecture/msgPayloadDefC/{message_type}MsgPayload.h"
     try:
         return cdecl.parse_struct(sources.read_text(path), f"{message_type}MsgPayload")
@@ -51,7 +50,7 @@ def _rate_text(rate_ns: int) -> str:
     return f"{rate_ns * 1e-9:g} s ({1e9 / rate_ns:g} Hz)"
 
 
-def _port_section(cap: FswCapture, port: Port, heading: str, producer_label: str, consumer_label: str) -> List[str]:
+def _port_section(cap: FswCapture, port: Port, heading: str, producer_label: str, consumer_label: str) -> list[str]:
     mtype = cap.message_types[port.message_type]
     lines = [f"#### {heading} `{port.name}`", "",
              "| Item | Value |", "|---|---|",
@@ -72,7 +71,7 @@ def _port_section(cap: FswCapture, port: Port, heading: str, producer_label: str
     return lines
 
 
-def _flow_diagram(cap: FswCapture) -> List[str]:
+def _flow_diagram(cap: FswCapture) -> list[str]:
     lines = ["```mermaid", "flowchart LR"]
     for p in cap.inputs:
         lines.append(f'    in_{p.name}(["{p.name}"])')
@@ -174,7 +173,7 @@ def icd_markdown(cap: FswCapture) -> str:
     return "\n".join(lines)
 
 
-def traceability_markdown(cap: FswCapture, config_lines: Dict[str, int]) -> str:
+def traceability_markdown(cap: FswCapture, config_lines: dict[str, int]) -> str:
     lines = [f"# Traceability: flight software of {cap.spacecraft}", "",
              "Where each exported value comes from: the GUI control, the scenario field, the symbol in "
              "`generated/fsw_config.c` that holds it (with its line), and the Basilisk source that uses it. "

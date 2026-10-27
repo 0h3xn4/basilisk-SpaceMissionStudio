@@ -28,7 +28,6 @@ shows around the figures, with the bundled fonts as ``@font-face`` rules
 
 from __future__ import annotations
 
-from typing import Dict, List
 
 from .fonts import FONTS_DIR
 from .typography import SIZE, WEB_FONT_STACK, WEB_MONO_STACK, WEIGHT
@@ -50,7 +49,7 @@ def font_faces() -> str:
         for family, weight, path in _FACES)
 
 
-def axis(t: Dict[str, str]) -> dict:
+def axis(t: dict[str, str]) -> dict:
     """The style of one cartesian axis."""
     return dict(
         gridcolor=t["border.subtle"], zerolinecolor=t["border.strong"], linecolor=t["border.subtle"],
@@ -59,14 +58,14 @@ def axis(t: Dict[str, str]) -> dict:
     )
 
 
-def title(t: Dict[str, str], text: str, subtitle: str = "", size: str = "section") -> dict:
+def title(t: dict[str, str], text: str, subtitle: str = "", size: str = "section") -> dict:
     """A figure or subplot title, with an optional secondary line."""
     full = text if not subtitle else (
         f"{text}<br><span style=\"font-size:{SIZE['small']}px;color:{t['text.secondary']}\">{subtitle}</span>")
     return dict(text=full, font=dict(size=SIZE[size], color=t["text.primary"], family=WEB_FONT_STACK))
 
 
-def layout(t: Dict[str, str], colourway: List[str]) -> dict:
+def layout(t: dict[str, str], colourway: list[str]) -> dict:
     """The template layout: fonts, colours, hover labels and legend."""
     return dict(
         font=dict(family=WEB_FONT_STACK, color=t["text.primary"], size=SIZE["small"]),
@@ -81,13 +80,13 @@ def layout(t: Dict[str, str], colourway: List[str]) -> dict:
     )
 
 
-def scene_axis(t: Dict[str, str]) -> dict:
+def scene_axis(t: dict[str, str]) -> dict:
     """The style of one axis of a 3D scene."""
     return {"backgroundcolor": t["bg.surface"], "gridcolor": t["border.subtle"],
             "zerolinecolor": t["border.strong"], "color": t["text.secondary"]}
 
 
-def page_css(t: Dict[str, str]) -> str:
+def page_css(t: dict[str, str]) -> str:
     """The CSS of a plot page: the surface, the bundled fonts, the empty
     state's text."""
     return (f"{font_faces()} html, body {{ margin: 0; height: 100%; background: {t['bg.surface']}; "
@@ -97,7 +96,7 @@ def page_css(t: Dict[str, str]) -> str:
             f"code, pre {{ font-family: {WEB_MONO_STACK}; }}")
 
 
-def grid_css(t: Dict[str, str], columns: int, rows: int, many: bool) -> str:
+def grid_css(t: dict[str, str], columns: int, rows: int, many: bool) -> str:
     """The CSS of the plot grid page: cells in a grid with a 4 px gap, the
     focused cell outlined in the accent when there are several."""
     css = (f"html, body {{ margin: 0; height: 100%; overflow: hidden; background: {t['bg.surface']}; }}"

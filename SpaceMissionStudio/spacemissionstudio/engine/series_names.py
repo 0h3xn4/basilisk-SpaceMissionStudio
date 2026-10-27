@@ -32,7 +32,6 @@ from __future__ import annotations
 
 import re
 
-from typing import List
 
 from ..schema.scenario import SMALL_BODY_CENTRAL_BODIES, Scenario
 from . import link_budget
@@ -40,7 +39,7 @@ from . import link_budget
 _ELEMENTS = ("semi_major_axis", "eccentricity", "inclination", "raan", "arg_periapsis", "true_anomaly")
 
 
-def _spacecraft_series(scenario: Scenario, sc) -> List[str]:
+def _spacecraft_series(scenario: Scenario, sc) -> list[str]:
     name = sc.name
     names = [f"{name}.position_N", f"{name}.velocity_N"]
     names += [f"{name}.orbit_elements.{element}" for element in _ELEMENTS]
@@ -138,13 +137,13 @@ def _spacecraft_series(scenario: Scenario, sc) -> List[str]:
     return names
 
 
-def expected_series_names(scenario: Scenario) -> List[str]:
+def expected_series_names(scenario: Scenario) -> list[str]:
     """Every series name a run of ``scenario`` produces, sorted.
 
     Never raises on a half-edited scenario: a spacecraft whose settings
     can't be read is skipped rather than failing the whole list.
     """
-    names: List[str] = []
+    names: list[str] = []
     for sc in scenario.spacecraft:
         try:
             names += _spacecraft_series(scenario, sc)
@@ -165,7 +164,7 @@ _SERIES_TOKEN = re.compile(r"(?<![\w.-])[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+")
 _SIBLING_TOKEN = re.compile(r"(?<![\w.-])\.([A-Za-z_][A-Za-z0-9_-]*)")
 
 
-def featured_series(scenario: Scenario) -> List[str]:
+def featured_series(scenario: Scenario) -> list[str]:
     """The series a scenario's description points the user at, in order:
     every name in its "What to look at" section that a run will actually
     produce. Shorthand siblings resolve against the name before them
@@ -177,7 +176,7 @@ def featured_series(scenario: Scenario) -> List[str]:
     if not section:
         return []
     known = set(expected_series_names(scenario))
-    found: List[str] = []
+    found: list[str] = []
     for line in section:
         tokens = sorted([(m.start(), m.group(0), False) for m in _SERIES_TOKEN.finditer(line)]
                         + [(m.start(), m.group(1), True) for m in _SIBLING_TOKEN.finditer(line)])
@@ -191,7 +190,7 @@ def featured_series(scenario: Scenario) -> List[str]:
     return found
 
 
-def _what_to_look_at(description: str) -> List[str]:
+def _what_to_look_at(description: str) -> list[str]:
     """Lines of the "What to look at..." section, up to the next heading."""
     lines = description.splitlines()
     for i, line in enumerate(lines):

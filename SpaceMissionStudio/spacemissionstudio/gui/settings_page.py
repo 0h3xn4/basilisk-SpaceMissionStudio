@@ -31,7 +31,6 @@ from __future__ import annotations
 
 import weakref
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
@@ -44,7 +43,7 @@ from .theme import (CONTENT_MAX_WIDTH_PX, SPACE, UI_SCALES, mono_font, reduce_mo
                     set_ui_scale_setting, ui_scale_setting)
 
 # (key, title, what it is for)
-_SECTIONS: Tuple[Tuple[str, str, str], ...] = (
+_SECTIONS: tuple[tuple[str, str, str], ...] = (
     ("appearance", "Appearance", "The theme applies at once, to every open view; the UI scale at the next "
                                  "start."),
     ("reference_data", "Reference data", "The SPICE kernels, gravity fields, magnetic model, space weather and "
@@ -61,7 +60,7 @@ _SECTIONS: Tuple[Tuple[str, str, str], ...] = (
 class SettingsPage(QScrollArea):
     """The settings, one section under the other."""
 
-    def __init__(self, commands, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, commands, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         # Weakly: the registry holds the window, and a child holding the
         # window would keep it alive once closed (test_a_closed_window_is_freed).
@@ -73,8 +72,8 @@ class SettingsPage(QScrollArea):
         self._layout = QVBoxLayout(body)
         self._layout.setContentsMargins(SPACE["xl"], SPACE["lg"], SPACE["xl"], SPACE["lg"])
         self._layout.setSpacing(SPACE["sm"])
-        self.section_titles: Dict[str, QLabel] = {}
-        self.buttons: Dict[str, QToolButton] = {}
+        self.section_titles: dict[str, QLabel] = {}
+        self.buttons: dict[str, QToolButton] = {}
         for key, title, text in _SECTIONS:
             if self.section_titles:
                 self._layout.addSpacing(SPACE["lg"])
@@ -91,7 +90,7 @@ class SettingsPage(QScrollArea):
         self.refresh_vizard()  # Launch Vizard may have remembered one since
         super().showEvent(event)
 
-    def sections(self) -> List[Tuple[str, str]]:
+    def sections(self) -> list[tuple[str, str]]:
         """(key, title) of each section, in order."""
         return [(key, title) for key, title, _text in _SECTIONS]
 
@@ -102,7 +101,7 @@ class SettingsPage(QScrollArea):
         heading = self.section_titles[key]
         self.verticalScrollBar().setValue(heading.y() - SPACE["sm"])
 
-    def _row(self, command_ids: Tuple[str, ...]) -> None:
+    def _row(self, command_ids: tuple[str, ...]) -> None:
         row = QHBoxLayout()
         row.setSpacing(SPACE["xs"])
         for command_id in command_ids:

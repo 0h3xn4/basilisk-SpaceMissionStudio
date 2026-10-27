@@ -29,7 +29,7 @@ array whose cell side reflects less than its back.
 
 from __future__ import annotations
 
-from typing import List, Optional, Sequence
+from collections.abc import Sequence
 
 from ..schema.scenario import FacetConfig
 
@@ -43,8 +43,8 @@ DRAG_COEFF = 2.2  # [-] free-molecular flat plate, the usual LEO value
 
 def box_facets(size_m: Sequence[float], array_area_m2: float = 0.0,
                array_normal_b: Sequence[float] = (0.0, 0.0, 1.0),
-               array_location_b: Optional[Sequence[float]] = None,
-               drag_coeff: float = DRAG_COEFF) -> List[FacetConfig]:
+               array_location_b: Sequence[float] | None = None,
+               drag_coeff: float = DRAG_COEFF) -> list[FacetConfig]:
     """The six faces of a ``size_m`` = (x, y, z) [m] box centred on B,
     plus, if ``array_area_m2`` > 0, a solar array at ``array_location_b``
     [m] facing ``array_normal_b`` (default: centred on the +Z face, so it

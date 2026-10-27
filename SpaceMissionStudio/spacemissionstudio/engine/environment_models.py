@@ -40,7 +40,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 from ..schema.epochs import parse_epoch_utc
 
@@ -63,7 +63,7 @@ _KAULA_MAX_DEGREE = 2000
 def _days_from_j2000(epoch_utc: str) -> float:
     epoch = parse_epoch_utc(epoch_utc)
     if epoch.tzinfo is not None:
-        epoch = epoch.astimezone(timezone.utc).replace(tzinfo=None)
+        epoch = epoch.astimezone(UTC).replace(tzinfo=None)
     return (epoch - datetime(2000, 1, 1, 12)).total_seconds() / 86400.0  # [day]
 
 
@@ -166,7 +166,7 @@ def wmm_validity_warnings(epoch_utc: str, duration_days: float, cof_path) -> lis
         return []
     start = parse_epoch_utc(epoch_utc)
     if start.tzinfo is not None:
-        start = start.astimezone(timezone.utc).replace(tzinfo=None)
+        start = start.astimezone(UTC).replace(tzinfo=None)
     first = _decimal_year(start)
     last = first + duration_days / 365.25  # [yr]
     valid_until = model_epoch + WMM_VALIDITY_YEARS

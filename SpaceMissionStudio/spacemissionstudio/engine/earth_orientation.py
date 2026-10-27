@@ -56,9 +56,9 @@ import sys
 import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
-from typing import Iterable, List, Optional, Tuple
+from collections.abc import Iterable
 
 NAIF_PCK_URL = "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/"
 HIGH_PRECISION_NAME = "earth_latest_high_prec.bpc"
@@ -92,10 +92,10 @@ class EOPKernel:
     size_bytes: int
     sha256: str
     installed_utc: str
-    last_datum_utc: Optional[str]  # from the NAIF comment file, ISO 8601
+    last_datum_utc: str | None  # from the NAIF comment file, ISO 8601
 
     @property
-    def high_accuracy_until(self) -> Optional[datetime]:
+    def high_accuracy_until(self) -> datetime | None:
         if not self.last_datum_utc:
             return None
         return datetime.fromisoformat(self.last_datum_utc) + HIGH_ACCURACY_AFTER_LAST_DATUM
@@ -105,7 +105,7 @@ def _role(filename: str) -> str:
     return "combined" if "combined" in filename else "high_precision"
 
 
-def parse_last_datum(comment: str) -> Optional[datetime]:
+def parse_last_datum(comment: str) -> datetime | None:
     """'UTC Epoch of last datum:   2026 OCT 07 00:00:00.000 UTC' -> datetime."""
     match = re.search(r"UTC Epoch of last datum:\s+(\d{4} [A-Z]{3} \d{2} \d{2}:\d{2}:\d{2})", comment)
     if not match:
@@ -131,7 +131,7 @@ def _manifest_path(directory: Path) -> Path:
     return directory / _MANIFEST
 
 
-def installed(directory: Optional[Path] = None) -> List[EOPKernel]:
+def installed(directory: Path | None = None) -> list[EOPKernel]:
     """Installed kernels in load order (combined first); files that are
     missing or changed size since installation are left out. Without
     ``directory``: the user's files, else the install-wide ones."""
@@ -140,7 +140,7 @@ def installed(directory: Optional[Path] = None) -> List[EOPKernel]:
     return _installed_in(Path(directory))
 
 
-def _installed_in(directory: Path) -> List[EOPKernel]:
+def _installed_in(directory: Path) -> list[EOPKernel]:
     try:
         entries = json.loads(_manifest_path(directory).read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -161,7 +161,7 @@ def _installed_in(directory: Path) -> List[EOPKernel]:
     return sorted(kernels, key=lambda k: 0 if k.role == "combined" else 1)
 
 
-def _install(directory: Path, sources: Iterable[tuple]) -> List[EOPKernel]:
+def _install(directory: Path, sources: Iterable[tuple]) -> list[EOPKernel]:
     """``sources``: (filename, bpc_bytes_path, comment_text, source). Moves
     the current files to ``previous/`` and installs the new ones."""
     directory.mkdir(parents=True, exist_ok=True)
@@ -176,7 +176,7 @@ def _install(directory: Path, sources: Iterable[tuple]) -> List[EOPKernel]:
         for item in list(directory.glob("*.bpc")) + list(directory.glob("*.cmt")) + [_manifest_path(directory)]:
             if item.exists():
                 shutil.move(str(item), str(previous / item.name))
-    now = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    now = datetime.now(UTC).replace(microsecond=0).isoformat()
     kernels = []
     for name, staged_path, comment, source in staged:
         dest = directory / name
@@ -203,7 +203,7 @@ def _get(url: str, timeout_s: float) -> bytes:
     return data
 
 
-def available_files(timeout_s: float = 60.0) -> List[str]:
+def available_files(timeout_s: float = 60.0) -> list[str]:
     """Names of the current NAIF files this module would download."""
     listing = _get(NAIF_PCK_URL, timeout_s).decode("utf-8", "replace")
     combined = sorted(set(_COMBINED_PATTERN.findall(listing)))
@@ -213,7 +213,7 @@ def available_files(timeout_s: float = 60.0) -> List[str]:
     return names
 
 
-def fetch(directory: Optional[Path] = None, timeout_s: float = 300.0) -> List[EOPKernel]:
+def fetch(directory: Path | None = None, timeout_s: float = 300.0) -> list[EOPKernel]:
     """Download the current NAIF Earth PCKs (with their comment files) and
     install them. **Network access: only call after the user agreed.**"""
     directory = Path(directory) if directory else DEFAULT_DIR
@@ -236,7 +236,7 @@ def fetch(directory: Optional[Path] = None, timeout_s: float = 300.0) -> List[EO
                 part.unlink()
 
 
-def import_files(paths: Iterable, directory: Optional[Path] = None) -> List[EOPKernel]:
+def import_files(paths: Iterable, directory: Path | None = None) -> list[EOPKernel]:
     """Install Earth PCKs from disk (e.g. removable media); a ``.cmt`` next
     to a ``.bpc`` is read for the last datum."""
     directory = Path(directory) if directory else DEFAULT_DIR
@@ -263,7 +263,7 @@ def import_files(paths: Iterable, directory: Optional[Path] = None) -> List[EOPK
                 part.unlink()
 
 
-def rollback(directory: Optional[Path] = None) -> List[EOPKernel]:
+def rollback(directory: Path | None = None) -> list[EOPKernel]:
     """Restore the files the last install replaced."""
     directory = Path(directory) if directory else DEFAULT_DIR
     previous = directory / "previous"
@@ -286,7 +286,7 @@ _DAF_RECORD_BYTES = 1024  # [byte]
 _J2000_UTC = datetime(2000, 1, 1, 11, 58, 55, 816000)  # 2000-01-01 12:00 TDB in UTC (TDB - UTC = 64.184 s then)
 
 
-def pck_coverage(path) -> Optional[Tuple[datetime, datetime]]:
+def pck_coverage(path) -> tuple[datetime, datetime] | None:
     """The first and last time [naive UTC] a binary PCK's segments cover,
     read from its DAF summary records; None when the file is not a
     readable DAF/PCK (too short, a summary pointing past the end of the
@@ -301,7 +301,7 @@ def pck_coverage(path) -> Optional[Tuple[datetime, datetime]]:
 
 
 @functools.lru_cache(maxsize=16)
-def _pck_coverage(path: str, size_bytes: int, _mtime_ns: int) -> Optional[Tuple[datetime, datetime]]:
+def _pck_coverage(path: str, size_bytes: int, _mtime_ns: int) -> tuple[datetime, datetime] | None:
     try:
         with open(path, "rb") as f:
             head = f.read(_DAF_RECORD_BYTES)
@@ -340,7 +340,7 @@ def _pck_coverage(path: str, size_bytes: int, _mtime_ns: int) -> Optional[Tuple[
     return _J2000_UTC + timedelta(seconds=min(starts)), _J2000_UTC + timedelta(seconds=max(ends))
 
 
-def covered_until(kernels: List[EOPKernel], start_utc: datetime) -> Optional[datetime]:
+def covered_until(kernels: list[EOPKernel], start_utc: datetime) -> datetime | None:
     """How far [naive UTC] ``kernels`` cover without a gap from
     ``start_utc``; None when they do not cover ``start_utc`` or one of
     them cannot be read."""
@@ -358,7 +358,7 @@ def covered_until(kernels: List[EOPKernel], start_utc: datetime) -> Optional[dat
     return reached
 
 
-def covering(kernels: List[EOPKernel], start_utc: datetime, end_utc: datetime) -> List[EOPKernel]:
+def covering(kernels: list[EOPKernel], start_utc: datetime, end_utc: datetime) -> list[EOPKernel]:
     """``kernels`` if together they cover ``start_utc`` to ``end_utc``
     (naive UTC) and each can be read, else []: a run outside every
     loaded Earth PCK made SPICE stop the whole process (audit of
@@ -367,7 +367,7 @@ def covering(kernels: List[EOPKernel], start_utc: datetime, end_utc: datetime) -
     return list(kernels) if until is not None and until >= end_utc else []
 
 
-def coverage_text(kernels: List[EOPKernel]) -> str:
+def coverage_text(kernels: list[EOPKernel]) -> str:
     """'1962-01-20 to 2126-08-06', the span the kernels cover, or why not."""
     spans = [pck_coverage(k.path) for k in kernels]
     if not spans or any(span is None for span in spans):
@@ -375,13 +375,13 @@ def coverage_text(kernels: List[EOPKernel]) -> str:
     return f"{min(s[0] for s in spans):%Y-%m-%d} to {max(s[1] for s in spans):%Y-%m-%d}"
 
 
-def high_accuracy_until(kernels: List[EOPKernel]) -> Optional[datetime]:
+def high_accuracy_until(kernels: list[EOPKernel]) -> datetime | None:
     """End of the high-accuracy span of the installed files."""
     dates = [k.high_accuracy_until for k in kernels if k.high_accuracy_until is not None]
     return max(dates) if dates else None
 
 
-def notes(start_utc: datetime, end_utc: datetime, kernels: Optional[List[EOPKernel]] = None) -> List[str]:
+def notes(start_utc: datetime, end_utc: datetime, kernels: list[EOPKernel] | None = None) -> list[str]:
     """Short lines on the Earth orientation a run from ``start_utc`` to
     ``end_utc`` gets (naive UTC datetimes)."""
     kernels = installed() if kernels is None else kernels

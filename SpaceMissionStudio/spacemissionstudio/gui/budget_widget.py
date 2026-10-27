@@ -29,7 +29,6 @@
 
 from __future__ import annotations
 
-from typing import Optional
 
 from PySide6.QtCore import QThread, Signal
 from PySide6.QtWidgets import (
@@ -73,7 +72,7 @@ def _spin(minimum, maximum, value, decimals=2, suffix=""):
 class _OptionalValue(QWidget):
     """A value that can instead come "from the last run"."""
 
-    def __init__(self, value: Optional[float], suffix: str, parent=None):
+    def __init__(self, value: float | None, suffix: str, parent=None):
         super().__init__(parent)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -85,7 +84,7 @@ class _OptionalValue(QWidget):
         self.from_run.setChecked(value is None)
         self.spin.setEnabled(value is not None)
 
-    def value(self) -> Optional[float]:
+    def value(self) -> float | None:
         return None if self.from_run.isChecked() else self.spin.value()
 
 
@@ -93,7 +92,7 @@ class BudgetInputsGroup(QGroupBox):
     """The budget inputs of one spacecraft. Checked: the spacecraft keeps
     a ``propellant_budget``; unchecked: none (the defaults are used)."""
 
-    def __init__(self, config: Optional[PropellantBudgetConfig], parent=None):
+    def __init__(self, config: PropellantBudgetConfig | None, parent=None):
         super().__init__("Delta-V and propellant budget (ESA AD10)", parent)
         self.setCheckable(True)
         self.setChecked(config is not None)
@@ -191,12 +190,12 @@ class BudgetInputsGroup(QGroupBox):
                       "controlled_reentry_last_burn_m_s": "controlled_last",
                       "hall_thruster_ignition_kg": "hall_kg"}
 
-    def field_widget(self, name: str) -> Optional[QWidget]:
+    def field_widget(self, name: str) -> QWidget | None:
         """The widget for the budget field ``name`` ("mission_years"), or None."""
         attribute = self._FIELD_WIDGETS.get(name)
         return getattr(self, attribute, None) if attribute else None
 
-    def to_config(self) -> Optional[PropellantBudgetConfig]:
+    def to_config(self) -> PropellantBudgetConfig | None:
         if not self.isChecked():
             return None
         return PropellantBudgetConfig(
@@ -298,7 +297,7 @@ class BudgetWidget(QWidget):
         super().__init__(parent)
         self._scenario = None
         self._last_run = None  # (scenario, ResultSet)
-        self._worker: Optional[_BudgetWorker] = None
+        self._worker: _BudgetWorker | None = None
         self._budget = None
         layout = QVBoxLayout(self)
         top = QHBoxLayout()
@@ -382,7 +381,7 @@ class BudgetWidget(QWidget):
         return table
 
     @staticmethod
-    def _fill(table: DataTable, columns, rows, bold_row: Optional[int]) -> None:
+    def _fill(table: DataTable, columns, rows, bold_row: int | None) -> None:
         """``rows`` of cell texts into ``table`` (first column left-aligned,
         the rest right), ``bold_row`` in bold, sized to show every row."""
         table.view.selectionModel().blockSignals(True)
@@ -444,7 +443,7 @@ class BudgetWidget(QWidget):
         else:
             self._start(mode)
 
-    def _altitudes(self) -> Optional[list]:
+    def _altitudes(self) -> list | None:
         """The altitudes typed in [km], [] for the default, None if unreadable."""
         text = self.altitudes_edit.text().strip()
         try:
