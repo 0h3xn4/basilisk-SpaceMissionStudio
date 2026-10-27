@@ -13194,3 +13194,42 @@ the mass after; `test_each_burn_takes_the_rocket_equation_from_the_mass_before_i
 (1 km/s, within the 0.1 kg the iteration settles to) and
 `test_a_large_delta_v_still_gives_a_budget` (3 km/s settles), both
 failing on the previous code.
+
+## Mean elements at the critical inclination (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's first
+fixes). Branch `lifetime-critical-inclination`.
+
+**Found by the audit:** `lifetime 600 km, e 0.01, i 63.435 deg` printed
+"re-entry 2030-01-01, 0.00 years ... 5-year rule: met"; at 60 deg the
+same orbit is still in orbit after 30 years. A Molniya orbit (a 26600 km,
+e 0.74) at 63.435 deg stopped with `M2E() received e = 1.92`.
+`mean_orbit_from_state` and `ring_states` use Basilisk's first-order
+`clMeanOscMap`, whose long-period terms divide by `1 - 5 cos^2 i`; the
+same function feeds End of Life, the drag make-up estimate and the
+budget's uncontrolled re-entry. `service._mean_elements` documented the
+singularity as a plot artefact.
+
+**Measured first:** the mean perigee from the map against the one from
+the elements averaged over one orbit of the J2 motion (RK4, 720 steps):
+outside about 1 deg of the critical inclination within 0.1 km (600 km
+orbit) and 0.5 km (Molniya); 600 km orbit at 63.435 deg -1159 km against
+528.5 km; Molniya at 63.4 deg 520.8 km against 537.2 km, at 63.435 deg
+an error.
+
+**The change:** `engine/mean_elements.py`, `cl_mean_osc_map`: within
+1 deg of 63.435 or 116.565 deg the map is evaluated at the nearer edge
+and the inclination difference carried across; elsewhere it calls
+`clMeanOscMap` unchanged. Used by `mean_orbit_from_state`, `ring_states`
+and the run's mean-element series.
+
+**Tests** (`tests/test_mean_elements.py`): the mean perigee across both
+bands within 0.5 km (600 km orbit) and 1 km (Molniya) of the orbit
+average (measured 0.4 and 0.7 km); outside the band the elements are
+Basilisk's, bit for bit, both ways; the density ring finite at both
+critical values; template 18's spacecraft from 300 km at 63.435 deg
+re-enters in the estimate within 3% of where a full Basilisk run stops
+(34.46 against 34.82 days).
+
+**Result:** the 600 km orbit at 63.435 deg is "still in orbit after
+30.0 years"; the Molniya case runs.
