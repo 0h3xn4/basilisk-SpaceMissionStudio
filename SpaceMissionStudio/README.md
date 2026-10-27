@@ -102,7 +102,7 @@ Details, and the Basilisk module behind each feature:
 | | |
 |---|---|
 | System | Linux x86_64 or aarch64 (glibc 2.28 or newer), Windows 10 or 11 x86_64 |
-| Python | None for the installers (they bring Python 3.11); 3.11 or newer from source. CI tests 3.11 (Basilisk's wheels go up to 3.14) |
+| Python | None for the installers (they bring Python 3.14); 3.14 from source (older versions are not supported). CI tests 3.14 |
 | Basilisk | 2.12.0: in the installers, or from PyPI (`bsk`) |
 | Disk | About 1.7 GB, including the reference data |
 | Internet | None for the installers; once from source, to install and fetch the reference data |
@@ -126,7 +126,7 @@ internet needed.
   Linux and Windows self-contained; 1.1.0 added relative-orbital-element formations, optical and
   landmark navigation, asteroid Eros, Mars's gravity field and albedo on
   the sun sensors, after 1.0.0, the first release of the renewed tool.
-  From source it needs Python 3.11 or newer.
+  From source it needs Python 3.14.
 - **Platforms:** 1.3.1 has the Linux `.deb`, the Windows setup program
   and the wheel. Both installers carry their own Python, Basilisk and
   reference data; each was installed and run offline by the release

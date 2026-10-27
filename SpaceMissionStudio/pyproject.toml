@@ -3,7 +3,12 @@ name = "spacemissionstudio"
 version = "1.3.1"
 description = "Standalone GUI mission-analysis application built on the Basilisk astrodynamics framework"
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.14"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.14",
+]
 license = { text = "ISC" }
 authors = [
     { name = "SpaceMissionStudio contributors" },
@@ -99,13 +104,12 @@ addopts = "--no-qt-log"
 # existing lines). B023: the progress/add closures in long_run.py and
 # propellant_budget.py are called inside the iteration that defines them,
 # so late binding is intended. B007: loop counters kept for readability.
-# B905 (zip() without strict=) applies from py310, which the 3.11 minimum
-# turned on: the existing zips pair sequences built to the same length, and
-# adding strict= to all of them would change behaviour in 70 places without
-# a finding to fix.
+# B905 (zip() without strict=): the existing zips pair sequences built to
+# the same length, and adding strict= to all of them would change behaviour
+# in 70 places without a finding to fix.
 [tool.ruff]
 line-length = 120
-target-version = "py311"
+target-version = "py314"
 
 [tool.ruff.lint]
 # S (flake8-bandit): security rules, added by the R15 security analysis

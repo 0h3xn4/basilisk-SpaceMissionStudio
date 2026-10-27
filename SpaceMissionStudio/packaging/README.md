@@ -8,7 +8,7 @@ platform:
 1. **A double-click installer** -- a `.deb` package on Linux
    (`build_deb.sh`), an Inno Setup wizard on Windows
    (`windows/spacemissionstudio.iss`). Both are self-contained: they carry
-   a private Python 3.11 with Basilisk, SpaceMissionStudio, every Python
+   a private Python 3.14 with Basilisk, SpaceMissionStudio, every Python
    package and the reference data (`bundle_python.py`, below). Installing
    needs no Python on the computer, no terminal and no internet: install,
    get a menu entry, click it.
@@ -274,7 +274,7 @@ pointed at it. An upgrade first removes the previous `python` folder and
 what setups up to 1.1.0 left (`venv`, `dist`, `bootstrap_env.ps1`,
 `constraints.txt`); uninstalling removes `{app}\python`.
 
-Building it (on Windows, with Inno Setup 6 and Python 3.11.4 or later
+Building it (on Windows, with Inno Setup 6 and Python 3.14 or later
 installed, and internet access):
 
 ```powershell
@@ -354,7 +354,7 @@ Both installers carry the same kind of folder, built by
 `bundle_python.py` on the platform the installer is for (pip installs
 that platform's binary wheels):
 
-1. **CPython 3.11.17** from python-build-standalone release 20261013,
+1. **CPython 3.14.8** from python-build-standalone release 20261013,
    the relocatable `install_only_stripped` build (`PYTHON_BUILDS`). The
    archive is checked against its pinned SHA-256 before it is unpacked;
    a mismatch stops the build.

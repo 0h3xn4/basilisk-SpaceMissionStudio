@@ -885,8 +885,8 @@ class MissionEngine:
         knowing (SRS-S-03).
         """
         # One namespace, used as globals: with separate globals and locals, a
-        # function or (before Python 3.12) a comprehension in the script
-        # cannot see spacecraft, t_s and the rest (audit L1).
+        # function in the script cannot see spacecraft, t_s and the rest
+        # (audit L1).
         context: Dict[str, Any] = {"__builtins__": __builtins__, **self._script_context()}
         context["service"] = self.service
         context["scenario"] = self.scenario

@@ -1,7 +1,7 @@
 # SpaceMissionStudio: Software Validation Plan (SValP)
 
 DRD: ECSS-E-ST-40C Annex J
-Document: SMS-SValP, issue 1 (draft), 2026-10-08. Remediation R14.
+Document: SMS-SValP, issue 1 (draft), 2026-10-08; Python 3.14 only from 2026-10-27. Remediation R14.
 
 **Status:** draft.
 - The validation it plans was carried out in Phase 3 of the audit
@@ -88,7 +88,7 @@ Validation is done by comparing the tool with independent references:
 | IERS 20 C04 excerpt (`tests/data/validation/eopc04_excerpt.txt`) | V-02 |
 | NAIF IERS-based Earth PCKs | V-02, V-04 field cases, V-05 |
 | Basilisk 2.12.0 source tree tests (`../src`), sgp4's tests | V-07, V-08 |
-| A Linux PC (the audit used a cloud container: 4 cores, Python 3.11) | Running the tool |
+| A Linux PC with Python 3.14 (the audit used a cloud container: 4 cores, then Python 3.11) | Running the tool |
 
 ### 4.5 Responsibilities (J.2.1<4.5>)
 
@@ -188,7 +188,7 @@ them I (inspection), A (analysis) or R (review):
 
 | Item | Configuration |
 |---|---|
-| Software | SpaceMissionStudio at the commit under validation; Basilisk 2.12.0 (PyPI); Python 3.11; the packages of `pyproject.toml`; GMAT R2026a (references only) |
+| Software | SpaceMissionStudio at the commit under validation; Basilisk 2.12.0 (PyPI); Python 3.14; the packages of `pyproject.toml`; GMAT R2026a (references only) |
 | Hardware | x86-64 PC or CI runner, Linux |
 | Test data | `tests/data/validation/` (GMAT reports, IERS excerpt, OEMs); NAIF Earth PCKs (fetched); Basilisk's SPICE kernels |
 | Communications | None during a run. Network only to fetch data beforehand. |

@@ -1,7 +1,7 @@
 # SpaceMissionStudio: Software Validation Specification (SVS) with respect to the technical specification
 
 DRD: ECSS-E-ST-40C Annex L
-Document: SMS-SVS, issue 1 (draft), 2026-10-08. Remediation R14.
+Document: SMS-SVS, issue 1 (draft), 2026-10-08; Python 3.14 only from 2026-10-27. Remediation R14.
 
 **Status:** draft.
 - It specifies the validation cases run in Phase 3 (`phase3_log.md`).
@@ -294,7 +294,7 @@ section 6 describes:
 | Need | Capability |
 |---|---|
 | Host | x86-64 Linux, 4 cores, 15 GB of memory (the audit's container) |
-| Software | Python 3.11, Basilisk 2.12.0, the packages of `pyproject.toml` |
+| Software | Python 3.14, Basilisk 2.12.0, the packages of `pyproject.toml` |
 | Data | The NAIF Earth PCKs; Basilisk's SPICE kernels (Basilisk's data fetcher) |
 | References | GMAT R2026a (only for VP-0) |
 

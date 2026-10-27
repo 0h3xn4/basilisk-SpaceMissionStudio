@@ -21,7 +21,7 @@ works, run a first mission and know what you should see.
 |---|---|
 | Linux | x86_64 or aarch64 with glibc 2.28 or newer (Ubuntu 20.04, Debian 10, RHEL 8 or later). Tested in CI on Ubuntu 24.04. |
 | Windows | Windows 10 or 11, x86_64. The test suite passes on Windows in CI (two tests that failed intermittently are fixed and under watch, SRelD K-14). |
-| Python | None for the installers (path A): they bring their own Python 3.11. Paths B and C need Python 3.11 or newer (Windows: from [python.org](https://www.python.org/downloads/), on PATH). CI tests with 3.11; Basilisk 2.12.0 has wheels up to 3.14, and versions other than 3.11 and 3.12 have not been tested with the app. |
+| Python | None for the installers (path A): they bring their own Python 3.14. Paths B and C need Python 3.14 (Windows: from [python.org](https://www.python.org/downloads/), on PATH); older versions are not supported. CI tests with 3.14. Basilisk 2.12.0 and PySide6 6.11 do not install on 3.15 yet. |
 | Disk | About 1.7 GB: Python with Basilisk and Qt, 117 MB of reference data, 36 MB of Earth orientation files. |
 | Internet | None for the installers. Paths B and C: once, while installing. After that the app runs offline and downloads nothing without asking. |
 

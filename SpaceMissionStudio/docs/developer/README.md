@@ -15,7 +15,7 @@ checks, and keep its generated files current.
 
 ## 1. Set up
 
-You need Python 3.11 to 3.14 (CI uses 3.11), git, and on Linux glibc 2.28
+You need Python 3.14 (CI uses 3.14), git, and on Linux glibc 2.28
 or newer. From a terminal:
 
 ```bash
@@ -150,7 +150,7 @@ request that touches `SpaceMissionStudio/`:
 | Job | Runs on | What |
 |---|---|---|
 | `docs` | Ubuntu, when only documentation changed | Whitespace hooks, the compliance-document checks, `tests/gui/test_help.py` |
-| `test` | Ubuntu, Python 3.11 | Lint; compliance-document checks; reference data download; the full suite with coverage; the offline tests; metrics (statement coverage at least 90 %, branch at least 80 %); traceability and compliance matrix |
+| `test` | Ubuntu, Python 3.14 | Lint; compliance-document checks; reference data download; the full suite with coverage; the offline tests; metrics (statement coverage at least 90 %, branch at least 80 %); traceability and compliance matrix |
 | `platforms` | `windows-latest` | Reference data download and the full suite |
 
 If a process in the `test` job crashes in native code (Qt, numpy,

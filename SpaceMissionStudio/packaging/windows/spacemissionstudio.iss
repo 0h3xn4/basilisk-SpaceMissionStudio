@@ -3,7 +3,7 @@
 ; A setup wizard: Welcome -> License -> install location -> Install, then a
 ; Start Menu (and optional Desktop) shortcut that starts the GUI.
 ;
-; Self-contained: the setup program carries a private CPython 3.11
+; Self-contained: the setup program carries a private CPython 3.14
 ; (python-build-standalone) with Basilisk, SpaceMissionStudio and every
 ; Python package installed, plus the support data (SPICE kernels, gravity
 ; fields, magnetic field model, albedo maps) and the Earth orientation
@@ -16,7 +16,7 @@
 ;   1. Build SpaceMissionStudio's wheel:
 ;        powershell -File packaging\build_wheel.ps1 packaging\windows\dist
 ;   2. Build the bundled Python into packaging\windows\python\ (needs
-;      Python 3.11.4 or later to run the script, and internet access):
+;      Python 3.14 or later to run the script, and internet access):
 ;        python packaging\bundle_python.py --platform windows --dest packaging\windows\python ^
 ;            --wheel packaging\windows\dist\spacemissionstudio-1.3.1-py3-none-any.whl
 ;   3. Compile this script:

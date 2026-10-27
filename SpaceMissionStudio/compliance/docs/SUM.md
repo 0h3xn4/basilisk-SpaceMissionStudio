@@ -1,7 +1,7 @@
 # SpaceMissionStudio: Software User Manual (SUM)
 
 DRD: ECSS-E-ST-40C Annex H
-Document: SMS-SUM, issue 1 (draft), 2026-10-08; menu and window names updated 2026-10-14. Remediation R14.
+Document: SMS-SUM, issue 1 (draft), 2026-10-08; menu and window names updated 2026-10-14; Python 3.14 only from 2026-10-27. Remediation R14.
 
 **Status:** draft.
 - The user documentation already exists:
@@ -111,7 +111,7 @@ The tool lets a mission analyst do the following without writing code:
 
 ```
   Operating system (Linux, Windows)
-    Python 3.11+ virtual environment
+    Python 3.14 virtual environment
       SpaceMissionStudio  --uses-->  Basilisk 2.12.0, numpy, sgp4, pyerfa, PySide6, plotly
       Vizard (optional, separate program)
 ```

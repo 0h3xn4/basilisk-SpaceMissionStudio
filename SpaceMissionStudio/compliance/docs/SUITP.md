@@ -1,7 +1,7 @@
 # SpaceMissionStudio: Software Unit and Integration Test Plan (SUITP)
 
 DRD: ECSS-E-ST-40C Annex K
-Document: SMS-SUITP, issue 1 (draft), 2026-10-08. Remediation R14.
+Document: SMS-SUITP, issue 1 (draft), 2026-10-08; Python 3.14 only from 2026-10-27. Remediation R14.
 
 **Status:** draft.
 - The tests exist and run in CI. This plan describes them after the fact.
@@ -45,7 +45,7 @@ The software under test is the `spacemissionstudio` package (SDD 4.1):
 - `engine`, simulation, analyses and exchange, built on Basilisk 2.12.0;
 - `gui` and `cli`, the front ends.
 
-It runs on a PC with Python 3.11. It is configured by scenario files and
+It runs on a PC with Python 3.14. It is configured by scenario files and
 by the data files of SDD 4.1.
 
 ## 5 Software unit testing and integration testing
@@ -73,7 +73,7 @@ by the data files of SDD 4.1.
 - **Staff:** the supplier.
 - **Hardware:** the GitHub Actions Ubuntu 24.04 runner, or a Linux PC.
 - **Software:**
-  - Python 3.11;
+  - Python 3.14;
   - pytest 8 or later, pytest-qt, pytest-cov, pytest-xdist;
   - Basilisk 2.12.0;
   - PySide6 with the offscreen platform plugin.

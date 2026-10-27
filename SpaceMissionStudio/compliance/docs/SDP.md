@@ -1,7 +1,7 @@
 # SpaceMissionStudio: Software Development Plan (SDP), with the configuration management description
 
 DRD: ECSS-E-ST-40C Annex O
-Document: SMS-SDP, issue 1 (draft), 2026-10-08; release lines updated 2026-10-14. Remediation R14.
+Document: SMS-SDP, issue 1 (draft), 2026-10-08; release lines updated 2026-10-14; Python 3.14 only from 2026-10-27. Remediation R14.
 
 **Status:** draft.
 - It describes how the tool is developed now, after the audit introduced
@@ -184,7 +184,7 @@ D-08, decision 7).
 
 | Item | Tool |
 |---|---|
-| Language and interpreter | Python 3.11+ (CI: 3.11) |
+| Language and interpreter | Python 3.14 (CI: 3.14) |
 | Requirements analysis | Markdown documents, `compliance/tools/*.py` (CSV extraction, traceability) |
 | Design | Markdown; `build_sdd_components.py` |
 | Configuration management | git, GitHub |

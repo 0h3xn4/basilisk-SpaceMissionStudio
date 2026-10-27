@@ -123,7 +123,7 @@ def test_the_notes_name_the_bundled_versions_and_space_weather_of_this_checkout(
     built from, and the space weather from the bundled CelesTrak file."""
     versions = release_notes.bundled_versions()
     assert versions["basilisk"] == "2.12.0"
-    assert versions["python"].startswith("3.11.")
+    assert versions["python"].startswith("3.14.")
     end = release_notes.space_weather_end()
     assert len(end) == 10 and end[4] == "-" and end[7] == "-"
     _files(tmp_path)
