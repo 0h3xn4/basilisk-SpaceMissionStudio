@@ -45,6 +45,31 @@ pytest_runtest_call = _phase_wrapper("call")
 pytest_runtest_teardown = _phase_wrapper("teardown")
 
 
+def pytest_sessionfinish(session, exitstatus):
+    """Deletes every widget left over, and with them their web pages, while
+    the application and its web profile still exist.
+
+    Widgets a test kept a reference to outlive it, and Python destroys
+    what is left in no set order at exit: the default web profile could
+    go before a ``QWebEngineView``'s page ("Release of profile requested
+    but WebEnginePage still not deleted") and the process crashed with a
+    segmentation fault after every test had passed. Under xdist that
+    showed as a worker "crashed while running" the last test it was given.
+    """
+    import sys
+
+    if "PySide6.QtWidgets" not in sys.modules:
+        return
+    from PySide6.QtCore import QCoreApplication, QEvent
+    from PySide6.QtWidgets import QApplication
+
+    if QApplication.instance() is None:
+        return
+    for widget in QApplication.topLevelWidgets():
+        widget.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
 def _dialog_text(args, kwargs):
     words = [a for a in args if isinstance(a, str)] + [v for v in kwargs.values() if isinstance(v, str)]
     return " / ".join(repr(w[:80]) for w in words[:2]) or "(no title)"
