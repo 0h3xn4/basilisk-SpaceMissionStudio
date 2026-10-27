@@ -13357,3 +13357,49 @@ do. A flight software that neither reads nor answers still times out
 **Tests:** `test_a_peer_that_keeps_answering_is_not_silent`: the peer
 takes nothing for three times the limit while sending, then reads; it
 fails on the previous code ("took nothing for 0.5 s") and passes now.
+
+## Generated satellites placed by their mean elements (2026-10-27)
+
+The user: "Merge them all, continue as per your recommendations". The
+audit's E4. Branch `generators-equal-mean-elements`, on top of #122's
+`engine/mean_elements.py`.
+
+**Found by the audit:** the Walker generator gave every slot the same
+osculating semi-major axis, and the phasing generator gave the follower
+the chief's. Under J2 the mean semi-major axis varies by about +-6 km
+with the argument of latitude, so the slots drift: two slots 90 deg apart
+at 550 km and 53 deg were 75.8 deg apart after a day; a 50 km follower
+was at 37.6 km.
+
+**The change:** with the run's J2 (`constellation.simulated_j2`: the
+body's J2 when `gravity.central_body_degree >= 2`, else 0, which leaves
+the pattern as before), each slot's mean elements go through
+`mean_elements.osculating_from_mean` (the map, then corrections until
+mapping back gives the mean elements, in equinoctial elements) and are
+stored with their true anomaly. The follower gets the chief's mean
+elements with the along-track shift. The CLI and the GUI pass the
+scenario's gravity.
+
+**Two things the probes found in the map itself:** at the critical
+inclination the follower drifted more than before (21 km in a day): the
+nearer-edge rule jumped by 224 m of semi-major axis at 63.435 deg, and
+the chief and the follower's mean elements fell on either side. The map
+is now a distance-weighted blend of the two edges' maps, continuous
+(under 2 m across the critical value), and closer to the orbit average
+(0.014 km of perigee for the 600 km orbit, was 0.4; the 300 km lifetime
+at 63.435 deg is now 34.82 days, the full run's 34.82). And at 0 deg it
+divided by zero: an equatorial band evaluates it at 1 deg.
+
+**Measured with the reviewer's J2 RK4 propagator, after one day:** Walker
+slots 90.003 deg (53 deg), 89.985 (63.435), 90.007 (0); followers 50.08 km
+(97.6 deg), 50.02 and 50.33 (63.435 deg, e = 0 and 0.01).
+
+**Tests:** `test_walker_slots_keep_their_spacing_under_j2`,
+`test_a_phasing_follower_keeps_its_distance_under_j2`,
+`test_the_map_is_continuous_across_the_critical_inclination`,
+`test_equatorial_orbits_map_both_ways`,
+`test_generate_constellation_places_mean_elements_when_the_run_models_j2`,
+`test_the_generators_use_j2_only_when_the_run_models_it`,
+`test_without_j2_the_pattern_is_written_as_it_is`. The band test's 0.5 deg
+case moved to 1.5 deg (0.5 is in the new equatorial band), and the CLI
+test's stand-in generator takes `j2`. Templates 04 and 05 are unchanged.

@@ -7,9 +7,11 @@ import pytest
 
 from spacemissionstudio.engine.constellation import (
     CENTRAL_BODY_EQUATORIAL_RADIUS_KM,
+    CENTRAL_BODY_J2,
     SeparationSchedule,
     WalkerConstellationRequest,
     generate_walker_constellation,
+    simulated_j2,
 )
 from spacemissionstudio.schema.scenario import OrbitIC, PowerConfig, ScenarioValidationError, SpacecraftConfig
 
@@ -207,3 +209,22 @@ def test_separation_schedule_zero_interval_holds_first_entry():
     schedule = SeparationSchedule(distances_km=[1000.0, 500.0], interval_days=0.0, semi_major_axis_m=7.0e6)
     assert schedule.value_at(0.0) == pytest.approx(1000.0 * 1000.0 / 7.0e6)
     assert schedule.value_at(1.0e9) == pytest.approx(1000.0 * 1000.0 / 7.0e6)
+
+
+def test_the_generators_use_j2_only_when_the_run_models_it():
+    """Audit E4: mean elements matter only with spherical-harmonics gravity
+    (degree 2 or more); with a point mass, or a body without a gravity
+    field, osculating and mean elements are the same."""
+    assert simulated_j2("earth", 10) == CENTRAL_BODY_J2["earth"] == pytest.approx(1.082616e-3)
+    assert simulated_j2("earth", 2) == CENTRAL_BODY_J2["earth"]
+    assert simulated_j2("earth", 1) == simulated_j2("earth", 0) == 0.0
+    assert simulated_j2("mars barycenter", 4) == pytest.approx(1.96045e-3)
+    assert simulated_j2("moon", 10) == 0.0
+
+
+def test_without_j2_the_pattern_is_written_as_it_is():
+    """With no J2 the generator needs no Basilisk and writes the pattern's
+    elements unchanged, with their mean anomaly."""
+    for sc in generate_walker_constellation(_request(), _template()):
+        assert sc.orbit.anomaly_type == "mean"
+        assert sc.orbit.semi_major_axis_km == pytest.approx(CENTRAL_BODY_EQUATORIAL_RADIUS_KM["earth"] + 780.0)

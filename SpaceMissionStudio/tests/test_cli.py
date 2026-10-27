@@ -119,6 +119,32 @@ def test_generate_constellation_writes_new_scenario(tmp_path, capsys):
     assert all(sc.orbit.type == "classical_elements" for sc in generated.spacecraft)
 
 
+
+@pytest.mark.skipif(not _BASILISK_AVAILABLE, reason="needs Basilisk (mean to osculating elements)")
+def test_generate_constellation_places_mean_elements_when_the_run_models_j2(tmp_path):
+    """Audit E4: with spherical-harmonics gravity (degree >= 2) the slots
+    get equal mean semi-major axes, so their osculating ones differ and
+    they are written with their true anomaly; with a point mass the
+    pattern is written as it is."""
+    from spacemissionstudio.schema import GravityConfig, load_scenario
+
+    for degree, expected_anomaly in ((10, "true"), (0, "mean")):
+        path = tmp_path / f"template_{degree}.json"
+        _write_scenario(path)
+        scenario = load_scenario(path)
+        scenario.gravity = GravityConfig(central_body="earth", central_body_degree=degree)
+        scenario.save(path)
+        out_path = tmp_path / f"constellation_{degree}.json"
+        assert cli.main([
+            "generate-constellation", str(path), "--out", str(out_path),
+            "--total-satellites", "4", "--planes", "1", "--phasing-factor", "0",
+            "--altitude-km", "550", "--inclination-deg", "53.0",
+        ]) == 0
+        orbits = [sc.orbit for sc in load_scenario(out_path).spacecraft]
+        assert {orbit.anomaly_type for orbit in orbits} == {expected_anomaly}
+        spread_m = (max(o.semi_major_axis_km for o in orbits) - min(o.semi_major_axis_km for o in orbits)) * 1e3
+        assert (spread_m > 1000.0) if degree else (spread_m == 0.0)  # [m] equal mean, unequal osculating
+
 def test_generate_constellation_append_keeps_existing_spacecraft(tmp_path, capsys):
     """generate-constellation --append keeps the original spacecraft beside the
     generated ones."""
@@ -625,7 +651,7 @@ def test_generate_phasing_formation_passes_every_request_field_through(tmp_path,
     class _Captured(Exception):
         pass
 
-    def fake_generate(request, chief, template, central_body):
+    def fake_generate(request, chief, template, central_body, j2=0.0):
         captured["request"] = request
         raise _Captured
 
