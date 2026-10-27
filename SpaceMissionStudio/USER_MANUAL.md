@@ -1232,7 +1232,8 @@ Real spacecraft never have perfectly known mass, attitude, etc. --
 **Monte Carlo** mode runs your scenario many times with small, randomized
 variations and reports the spread of outcomes, instead of one single
 result. On the scenario tree's **Monte Carlo** page, check
-**Enabled**, set how many runs and how many to run in parallel, and add
+**Enabled**, set how many runs (up to 100 000) and how many to run in
+parallel (each in its own process; at most one per CPU is used), and add
 one or more **dispersions** (which quantity varies, and by how much;
 **Add** adds one, and the selected one's form is under the list) --
 then set the run mode beside **Run** to **Monte Carlo** and press

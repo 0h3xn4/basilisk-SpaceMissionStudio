@@ -8,6 +8,19 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **Limits a shared scenario cannot get round:** an `if` or `while`
+  condition can no longer format a text with `%` (a field width built a
+  text of any length, up to gigabytes); `%` on numbers is still the
+  remainder. A Monte Carlo batch is limited to 100 000 runs and 256
+  processes, and uses at most one process per CPU (the Overview says so
+  when it asks for more). Found by the audit of 2026-10-27.
+- **The script-block consent shows all of the code:** **Run script
+  blocks?** listed only the first 600 characters of each block, with no
+  sign of the cut, and Yes ran all of it. **Show Details...** now lists
+  every block in full, with its length and SHA-256.
+
 ## 1.3.1 (2026-10-26)
 
 A faster window. Changing the theme, opening a template and the end of
