@@ -58,10 +58,10 @@ class Transport(ABC):
     @abstractmethod
     def send(self, data: bytes, timeout_s: float | None = None) -> None:
         """Sends every byte, or raises :class:`SilLinkClosed`. Raises
-        :class:`SilTimeout` when the other side takes nothing for
-        ``timeout_s`` (``None``: wait for ever). Whatever arrives while
-        sending is kept for :meth:`receive`, so a peer that is itself
-        blocked writing can never hold up a send."""
+        :class:`SilTimeout` when the other side neither takes nor sends
+        anything for ``timeout_s`` (``None``: wait for ever). Whatever
+        arrives while sending is kept for :meth:`receive`, so a peer that
+        is itself blocked writing can never hold up a send."""
 
     @abstractmethod
     def receive(self, size: int, timeout_s: float | None) -> bytes:
@@ -90,10 +90,13 @@ class SocketTransport(Transport):
         # while nobody reads them (steps past their deadline), both socket
         # buffers fill and each side waits for the other for ever. Reading
         # while sending breaks that cycle.
-        # The time limit counts from the last bytes the peer took, and once
-        # it has run out the socket is tried once more without waiting: a
-        # stall of this process (a loaded machine, a debugger) is not the
-        # flight software's silence.
+        # The time limit counts from the last bytes the peer took or sent, and
+        # once it has run out the socket is tried once more without waiting:
+        # a stall of this process (a loaded machine, a debugger) is not the
+        # flight software's silence. Bytes it sends count: a peer answering a
+        # backlog of steps is working, though the socket may take nothing
+        # for longer than the limit (Windows reopens a full receive window
+        # only once the reader has freed much of it; SRelD K-14).
         view = memoryview(data)
         end = None if timeout_s is None else time.perf_counter() + max(0.0, timeout_s)
         try:
@@ -102,8 +105,7 @@ class SocketTransport(Transport):
                 remaining = None if end is None else max(0.0, end - time.perf_counter())
                 readable, writable, _ = select.select([] if self._eof else [self._sock], [self._sock], [],
                                                       remaining)
-                if readable:
-                    self._read_available()
+                heard = bool(readable) and self._read_available()
                 sent = 0
                 if writable:
                     try:
@@ -111,7 +113,7 @@ class SocketTransport(Transport):
                     except (BlockingIOError, InterruptedError):
                         pass
                     view = view[sent:]
-                if sent and end is not None:
+                if (sent or heard) and end is not None:
                     end = time.perf_counter() + max(0.0, timeout_s)
                 elif remaining == 0.0:
                     raise SilTimeout(f"the flight software took nothing for {timeout_s:.3g} s")
@@ -123,16 +125,17 @@ class SocketTransport(Transport):
             except OSError:
                 pass
 
-    def _read_available(self) -> None:
-        """Keeps what has already arrived, without waiting."""
+    def _read_available(self) -> bool:
+        """Keeps what has already arrived, without waiting; whether any had."""
         try:
             chunk = self._sock.recv(65536)
         except (BlockingIOError, InterruptedError):
-            return
+            return False
         if chunk:
             self._pending += chunk
         else:
             self._eof = True
+        return bool(chunk)
 
     def receive(self, size: int, timeout_s: float | None) -> bytes:
         end = None if timeout_s is None else time.perf_counter() + max(0.0, timeout_s)

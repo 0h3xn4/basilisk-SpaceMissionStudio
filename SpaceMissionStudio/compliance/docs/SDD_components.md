@@ -189,7 +189,7 @@ Identifiers are module paths: `engine/service` is `spacemissionstudio/engine/ser
 | `sil/report` | What a SIL run measured | SRS-F-19 | `SignalStats`, `timing_summary`, `SilReport`, `Comparator` | engine/results, fsw_export/model, sil/contract | numpy | 263 |
 | `sil/runner` | Runs a spacecraft's flight software as an external program, software-in-the-loop, against the Basilisk dynamics (SRS-F-19). | SRS-F-19 | `SilOptions`, `SilCancelled`, `SilRunError`, `file_sha256`, `check_binary`, `check_runnable`, `run_sil` | engine/long_run, engine/service, fsw_export/capture, fsw_export/digest, schema/command, sil/contract, sil/report, sil/session, sil/transport | Basilisk | 401 |
 | `sil/session` | The simulation side of the SIL contract | SRS-F-19 | `Timeouts`, `StepReply`, `Expected`, `SimulationSide` | sil/contract, sil/transport | - | 233 |
-| `sil/transport` | The byte stream under the SIL contract (``SIL_CONTRACT.md`` section 2). | SRS-F-19 | `SilTimeout`, `SilLinkClosed`, `Transport`, `SocketTransport`, `Listener` | sil/contract | - | 233 |
+| `sil/transport` | The byte stream under the SIL contract (``SIL_CONTRACT.md`` section 2). | SRS-F-19 | `SilTimeout`, `SilLinkClosed`, `Transport`, `SocketTransport`, `Listener` | sil/contract | - | 236 |
 
 ## Forward traceability (requirement -> components)
 

@@ -13330,6 +13330,34 @@ longer says it is unverified above 1 (the suite runs batches with 3).
 `test_a_batch_runs_at_most_one_process_per_cpu`; the two lower-bound
 tests now match the new message.
 
+## The Windows SIL stall, found (2026-10-27)
+
+The user: "Fix the SIL stall as a PR". Branch `sil-send-waits-while-answered`.
+
+`test_thousands_of_dropped_steps_never_block_the_link[tcp]` failed three
+times on Windows CI today: on `develop` (#123's merge, run 40526819275)
+and twice on #127 (run 40543074495, the second a re-run). Each time the
+stall report added on 2026-10-21 said the same: about 12 460 frames sent,
+the fake flight software alive and reading (4568 STEPs read, the last
+0.03 s before), and every `select()` of the send in its last 0.1 s
+seeing the socket readable but not writable.
+
+**The cause:** `SocketTransport.send` reads what arrives while it waits
+to write, but its time limit restarted only when the peer took bytes.
+With both 128 KiB buffers full, Windows reopens the receive window only
+once the reader has freed much of it; the fake read frame by frame, so
+the socket took nothing for over 10 s while the fake kept answering, and
+the send declared it silent. Linux updates the window sooner, which is
+why the test passed there (also with its buffers fixed at 128 KiB).
+
+**The change:** bytes the peer sends restart the limit as bytes it takes
+do. A flight software that neither reads nor answers still times out
+(`test_a_send_never_waits_for_a_peer_that_is_itself_sending`).
+
+**Tests:** `test_a_peer_that_keeps_answering_is_not_silent`: the peer
+takes nothing for three times the limit while sending, then reads; it
+fails on the previous code ("took nothing for 0.5 s") and passes now.
+
 ## Python 3.14 only (2026-10-27)
 
 The user: "Drop support for every Python version older than 3.14." Phase

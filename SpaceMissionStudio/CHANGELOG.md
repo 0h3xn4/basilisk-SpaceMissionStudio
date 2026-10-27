@@ -21,6 +21,14 @@ computer: Ubuntu 24.04 ships 3.12 and Debian 12 ships 3.11, so use the
 modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
 `datetime.UTC`); nothing it computes changes.
 
+- **A software-in-the-loop run on Windows no longer stops while the
+  flight software is still answering:** when the flight software fell
+  thousands of steps behind (steps past their deadline), the run could
+  stop with "the flight software took no STEP for 10 s" although it was
+  answering all the while: the send's time limit counted only bytes the
+  program took, and Windows lets a full socket take nothing for longer.
+  Bytes it sends now count too; a program that neither reads nor answers
+  still stops the run after the step timeout.
 - **The propellant budget no longer overestimates propellant:** each
   contributor took the phase's starting mass times `exp(dV / Ve) - 1`,
   the rocket equation's form for the mass *after* a burn. Each now takes
