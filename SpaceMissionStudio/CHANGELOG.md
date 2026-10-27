@@ -8,6 +8,18 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **The propellant budget no longer overestimates propellant:** each
+  contributor took the phase's starting mass times `exp(dV / Ve) - 1`,
+  the rocket equation's form for the mass *after* a burn. Each now takes
+  the mass before it, `m * (1 - exp(-dV / Ve))`, in order. For 150 kg
+  dry at Isp 220 s, a 100 m/s transfer was budgeted 5 % too high and a
+  1 km/s transfer 2.5 times too high (232 kg, now 93 kg); from about
+  1.4 km/s there was no total at all ("did not settle"). Every budget
+  with a burn comes out lower; the larger the delta-V, the larger the
+  change (5 % at 100 m/s). Found by the audit of 2026-10-27.
+
 ## 1.3.1 (2026-10-26)
 
 A faster window. Changing the theme, opening a template and the end of
