@@ -338,6 +338,41 @@ def test_a_stall_of_this_process_is_not_the_peers_silence(monkeypatch):
         theirs.close()
 
 
+
+def test_a_peer_that_keeps_answering_is_not_silent():
+    """The Windows stall (SRelD K-14): with both buffers full, the socket took
+    nothing for more than the step timeout while the flight software was
+    reading its backlog and sending OUTPUTs, and the send gave up ("the
+    flight software took no STEP for 10 s"). Bytes the peer sends count as
+    much as bytes it takes: here it takes nothing for three times the
+    timeout but keeps sending, then reads, and the send completes."""
+    ours, theirs = socket.socketpair()
+    transport = SocketTransport(ours)
+    mine = bytes(range(256)) * 16384  # 4 MiB: more than both buffers hold
+    sent_by_peer, received = bytearray(), bytearray()
+    timeout_s = 0.5  # [s]
+
+    def peer():
+        until = time.perf_counter() + 3 * timeout_s  # [s] taking nothing, answering all the while
+        while time.perf_counter() < until:
+            chunk = bytes(64)
+            theirs.sendall(chunk)
+            sent_by_peer.extend(chunk)
+            time.sleep(0.05)  # [s]
+        while len(received) < len(mine):
+            received.extend(theirs.recv(65536))
+
+    thread = threading.Thread(target=peer, daemon=True)
+    thread.start()
+    try:
+        _finishes(lambda: transport.send(mine, timeout_s))
+        thread.join(30.0)
+        assert bytes(received) == mine
+        assert _finishes(lambda: transport.receive(len(sent_by_peer), 1.0)) == bytes(sent_by_peer)
+    finally:
+        transport.close()
+        theirs.close()
+
 class _SelectLog:
     """Stands in for the transport's ``select`` module and keeps its last
     calls: how long each one waited, for how long, and what was ready."""
