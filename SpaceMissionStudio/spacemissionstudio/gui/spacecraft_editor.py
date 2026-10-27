@@ -2893,6 +2893,7 @@ class SpacecraftListWidget(QWidget):
         # that could silently drift out of sync with it. Falls back to
         # "earth" when unset (e.g. this widget used standalone in a test).
         self._central_body_provider = None
+        self._gravity_degree_provider = None  # the scenario's gravity degree: J2 for the generators
         # Set by the owning ScenarioEditorWidget (see
         # set_simulation_mode_provider) so every SpacecraftEditorDialog
         # this widget opens reflects the scenario's CURRENT simulation
@@ -2983,6 +2984,18 @@ class SpacecraftListWidget(QWidget):
         ``lambda: self._gravity.central_body`` from ``ScenarioEditorWidget``.
         """
         self._central_body_provider = provider
+
+    def set_gravity_degree_provider(self, provider) -> None:
+        """``provider`` is a zero-argument callable returning the scenario's
+        ``gravity.central_body_degree``: with 2 or more the run models J2,
+        and the generators place satellites by their mean elements."""
+        self._gravity_degree_provider = provider
+
+    def _simulated_j2(self, central_body: str) -> float:
+        from ..engine.constellation import simulated_j2
+
+        degree = self._gravity_degree_provider() if self._gravity_degree_provider else 0
+        return simulated_j2(central_body, degree)
 
     def set_simulation_mode_provider(self, provider) -> None:
         """``provider`` is a zero-argument callable returning the
@@ -3217,7 +3230,7 @@ class SpacecraftListWidget(QWidget):
             ))
 
         try:
-            generated = generate_walker_constellation(request, template)
+            generated = generate_walker_constellation(request, template, j2=self._simulated_j2(central_body))
         except ScenarioValidationError as exc:
             report(self, f"Could not make the constellation: {exc}")
             return
@@ -3262,7 +3275,8 @@ class SpacecraftListWidget(QWidget):
         from ..engine.formation import generate_phasing_follower
 
         try:
-            follower = generate_phasing_follower(request, chief, template, central_body)
+            follower = generate_phasing_follower(request, chief, template, central_body,
+                                                 j2=self._simulated_j2(central_body))
         except ImportError as exc:
             report(self, f"Could not make the phasing formation: Basilisk is not installed ({exc}).\n"
                          "The follower's orbit comes from Basilisk's Hill-frame transform; see "

@@ -548,6 +548,20 @@ The Flight Software page is reached through them:
   `feedback._fade`: a fade-in that ended after the fade-out began removed
   the fade-out's effect. It now removes only its own.
 
+## After 1.3.1
+
+- `tests/gui/conftest.py` gained a `pytest_sessionfinish` hook that
+  deletes every top-level widget left over, with its web pages, before
+  the test process exits. Without it, a run of the GUI tests ended in a
+  segmentation fault after every test had passed: at exit the default
+  web profile could go before a `QWebEngineView`'s page ("Release of
+  profile requested but WebEnginePage still not deleted").
+  `tests/gui/test_results_widget.py` alone crashed three runs in three
+  (exit 139) and passes three in three with the hook (exit 0). Under
+  xdist the crash showed as a worker that "crashed while running" its
+  last test (`test_label_text.py::test_help_text_is_short_and_plain[spacecraft-07]`,
+  two full runs in two on #127's branch). No test changed.
+
 ## Python 3.14 only: test cleanup (2026-10-27)
 
 Approved by the user ("As per your recommendation") after the Phase 3

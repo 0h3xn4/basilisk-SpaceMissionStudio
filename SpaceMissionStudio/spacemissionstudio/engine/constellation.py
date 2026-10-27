@@ -54,7 +54,19 @@ feature's "you only supply what's needed" design goal. Orbits use MEAN
 anomaly (``schema.scenario.OrbitIC.anomaly_type == "mean"``), the natural
 choice for a phased pattern.
 
-This module has NO Basilisk import and is fully unit-testable here (pure
+The pattern is one of **mean** elements. When the simulation models the
+central body's J2 (``gravity.central_body_degree >= 2``, see
+:func:`simulated_j2`), equal osculating semi-major axes are not equal
+mean ones: they differ by up to about 6 km with the argument of latitude,
+and the slots drift apart (two slots 90 deg apart at 550 km and 53 deg
+closed to 75.8 deg in a day, audit of 2026-10-27). So with ``j2`` each
+slot's mean elements are mapped to the osculating elements the run
+starts from (:func:`engine.mean_elements.osculating_from_mean`, which
+needs Basilisk) and written with their true anomaly. Without it (a point
+mass), the mean elements are written as they are.
+
+This module has NO Basilisk import at module level (only
+:func:`generate_walker_constellation` with ``j2``) and is unit-testable (pure
 orbital mechanics, no simulation) -- central-body equatorial radii (needed
 to convert altitude to semi-major axis) are hardcoded from Basilisk's own
 ``astroConstants.h`` ``REQ_*`` values (as consumed by
@@ -75,6 +87,7 @@ constellations it maintains.
 from __future__ import annotations
 
 import copy
+import math
 from dataclasses import dataclass
 
 from ..schema.scenario import OrbitIC, ScenarioValidationError, SpacecraftConfig
@@ -92,7 +105,22 @@ CENTRAL_BODY_EQUATORIAL_RADIUS_KM = {
     "jupiter barycenter": 71492.0,
 }
 
+# J2 [-] of the central bodies a run can give spherical-harmonics gravity
+# (schema.scenario.GRAVITY_FIELDS), from Basilisk's astroConstants.h J2_*
+# values, as the radii above.
+CENTRAL_BODY_J2 = {
+    "earth": 1082.616e-6,
+    "mars barycenter": 1960.45e-6,
+}
+
 WALKER_PATTERNS = ("delta", "star")
+
+
+def simulated_j2(central_body: str, central_body_degree: int) -> float:
+    """The central body's J2 [-] when the run models it (spherical-harmonics
+    gravity of degree 2 or more), else 0 (a point mass, where osculating and
+    mean elements are the same)."""
+    return CENTRAL_BODY_J2.get(central_body, 0.0) if central_body_degree >= 2 else 0.0
 
 
 def _require(condition: bool, message: str) -> None:
@@ -136,10 +164,12 @@ class WalkerConstellationRequest:
 
 
 def generate_walker_constellation(request: WalkerConstellationRequest,
-                                   template: SpacecraftConfig) -> list[SpacecraftConfig]:
+                                   template: SpacecraftConfig, j2: float = 0.0) -> list[SpacecraftConfig]:
     """Returns ``request.total_satellites`` :class:`SpacecraftConfig`
     copies of ``template``, each with ``name``/``orbit`` replaced per the
-    Walker pattern (see module docstring) -- every other field (mass,
+    Walker pattern (see module docstring); with ``j2`` [-] (the run's,
+    :func:`simulated_j2`) the pattern's mean elements are mapped to
+    osculating ones, so the slots keep their spacing -- every other field (mass,
     sensors, actuators, FSW, power, station-keeping, RF link, ...) is
     carried through unchanged from ``template``. Raises
     :class:`~spacemissionstudio.schema.scenario.ScenarioValidationError` if
@@ -177,8 +207,37 @@ def generate_walker_constellation(request: WalkerConstellationRequest,
                 anomaly_type="mean",
                 mean_anomaly_deg=mean_anomaly_deg,
             )
+            if j2 > 0.0:
+                sc.orbit = osculating_orbit(sc.orbit, radius_km * 1000.0, j2)
             spacecraft.append(sc)
     return spacecraft
+
+
+def osculating_orbit(mean_orbit: OrbitIC, req_m: float, j2: float) -> OrbitIC:
+    """The osculating classical elements (true anomaly) whose J2 mean
+    elements are ``mean_orbit``'s (classical elements, mean anomaly)."""
+    from Basilisk.utilities import orbitalMotion
+
+    from .mean_elements import osculating_from_mean
+
+    mean = orbitalMotion.ClassicElements()
+    mean.a = mean_orbit.semi_major_axis_km * 1000.0  # [m]
+    mean.e = mean_orbit.eccentricity
+    mean.i = math.radians(mean_orbit.inclination_deg)
+    mean.Omega = math.radians(mean_orbit.raan_deg)
+    mean.omega = math.radians(mean_orbit.arg_periapsis_deg)
+    mean.f = orbitalMotion.E2f(orbitalMotion.M2E(math.radians(mean_orbit.mean_anomaly_deg), mean.e), mean.e)
+    osculating = osculating_from_mean(req_m, j2, mean)
+    return OrbitIC(
+        type="classical_elements",
+        semi_major_axis_km=float(osculating.a / 1000.0),
+        eccentricity=float(osculating.e),
+        inclination_deg=float(math.degrees(osculating.i)),
+        raan_deg=float(math.degrees(osculating.Omega) % 360.0),
+        arg_periapsis_deg=float(math.degrees(osculating.omega) % 360.0),
+        anomaly_type="true",
+        true_anomaly_deg=float(math.degrees(osculating.f) % 360.0),
+    )
 
 
 class SeparationSchedule:

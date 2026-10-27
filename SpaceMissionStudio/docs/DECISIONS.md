@@ -32,6 +32,39 @@ framework's), after the open PRs merged, released as 2.0.0.
   verification records (SVR, measurements, SRelD of 1.3.1) keep what was
   tested then.
 
+## Generators by mean elements; a continuous map (2026-10-27)
+
+The user: "Merge them all, continue as per your recommendations" (the
+audit's E4). It changes the orbits the Walker and phasing generators
+write, when the run models J2.
+
+- **Mean elements only when the run has J2:** with point-mass gravity
+  (the default) osculating and mean elements are the same, and mapping
+  with J2 would put the satellites off by the short-period terms. So the
+  generators take `j2` from `constellation.simulated_j2(central_body,
+  degree)`: the body's J2 for degree 2 or more, else 0 (the pattern is
+  written as before).
+- **Placed like the ROE follower:** `mean_elements.osculating_from_mean`
+  maps mean to osculating and corrects until mapping back gives the mean
+  elements, as `roe_formation.follower_orbit` does, but in equinoctial
+  elements (with the retrograde factor), which stay defined for circular
+  and equatorial orbits.
+- **A blend, not the nearer edge:** placing two satellites needs the map
+  to be consistent on both sides of 63.435 deg. With the nearer edge the
+  chief (just above) and the follower's mean elements (just below) used
+  different edges: 224 m of semi-major axis, a follower 30 km off in a
+  day. Blending the two edges' maps by distance keeps it continuous, and
+  is closer to the orbit average (0.014 km of perigee for the 600 km
+  orbit, was 0.4; the 300 km lifetime 34.82 days against the run's 34.82,
+  was 34.46). It costs two Basilisk map calls in the band.
+- **An equatorial band:** `clMeanOscMap` divides by `tan i` (an error at
+  0 deg). Below 1 deg (above 179) it is evaluated at 1 deg (179) and the
+  inclination carried across, turning node and perigee by 180 deg when
+  that crosses 0.
+- **Templates 04 and 05 unchanged:** regenerating them changes their
+  stored orbits and documented results (template 05 holds 50 km within
+  5 km); that is a separate change.
+
 ## Earth orientation files only for the runs they cover (2026-10-27)
 
 The user: "Continue as per your recommendations" (the audit's critical
