@@ -13403,3 +13403,35 @@ slots 90.003 deg (53 deg), 89.985 (63.435), 90.007 (0); followers 50.08 km
 `test_without_j2_the_pattern_is_written_as_it_is`. The band test's 0.5 deg
 case moved to 1.5 deg (0.5 is in the new equatorial band), and the CLI
 test's stand-in generator takes `j2`. Templates 04 and 05 are unchanged.
+
+## A GUI test worker that crashed after its tests passed (2026-10-27)
+
+Found while checking #127 (the user: "Merge them all, continue as per
+your recommendations"). Branch `web-pages-before-profile`.
+
+**Found:** #127's full suite failed two runs in two (and a help-text
+test once before, case not recorded) with "worker
+'gw1' crashed while running
+`test_label_text.py::test_help_text_is_short_and_plain[spacecraft-07]`",
+although that test passed alone, twelve times under CPU load, and #127
+does not touch the dialog it renders. Run in one process, the GUI tests
+all passed (1674 passed, 6 skipped) and the process then crashed (a
+segmentation fault, no Python frame) after Qt's "Release of profile
+requested but WebEnginePage still not deleted". `develop` crashed the
+same way (exit 139). Under xdist a session's teardown runs inside its
+last test, so whichever test a worker got last was reported; #127's
+added tests changed which one that was.
+
+This is the crash an earlier entry (PNG export) noted for
+`test_results_widget.py` run alone and called a sandbox artifact "not
+seen running the suite normally". It is the same crash, and it is seen.
+That file alone crashed three runs in three.
+
+**Cause:** widgets a test still referenced outlived it, and at exit
+Python destroyed what was left in no set order, so the default web
+profile could be released before a web view's page.
+
+**Change (tests only):** `tests/gui/conftest.py` deletes every top-level
+widget left over when the session finishes, while the application and
+its profile still exist. `test_results_widget.py` alone: exit 0 three
+runs in three. Logged in `docs/ui/TEST_CHANGES.md`.
