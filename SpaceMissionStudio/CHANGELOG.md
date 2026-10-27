@@ -8,6 +8,18 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **A run outside the Earth orientation files no longer ends the
+  program:** a run whose dates the installed IERS files do not cover
+  (an epoch before 1962, or after 2027 with only the high-precision file)
+  stopped inside SPICE, taking the window and any unsaved edits with it.
+  The files are now used only for a run they cover; otherwise the run
+  uses the IAU model, and both **validate** and the run say so ("the
+  installed IERS files cover 1962-01-19 to 2126-11-03, not this run"). A
+  Mission Sequence that would propagate past the files' end stops with a
+  message instead. Found by the audit of 2026-10-27.
+
 ## 1.3.1 (2026-10-26)
 
 A faster window. Changing the theme, opening a template and the end of

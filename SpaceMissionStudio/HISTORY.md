@@ -13133,3 +13133,41 @@ and nothing outside `SpaceMissionStudio/`. The fork's top-level
 `README.md` still names 1.3.0: it is outside `SpaceMissionStudio/`, and
 changing it is the user's call. The space weather is 1.3.0's, two days
 old. Merging, tagging and publishing are the user's.
+
+## Earth orientation files only for the runs they cover (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's first
+fixes). Branch `earth-orientation-coverage`.
+
+**Found by the audit:** template 02 at a 1955 epoch: `validate` said OK,
+`run` printed SPICE's "SPICE(FRAMEDATANOTFOUND) ... ITRF93" and its
+abort banner and exited 1 (reproduced). `service.py` loaded every
+installed Earth PCK and switched to ITRF93 whatever the run's dates;
+past every loaded PCK, CSPICE's default error action ends the process,
+in the GUI the whole window. The same with only the high-precision file
+(2000 to 2027-01-16) and a 2030 epoch.
+
+**The change:**
+- `earth_orientation.pck_coverage` reads each file's segment times from
+  its DAF summary records (the installed files: combined 1962-01-19 to
+  2126-11-03, high precision 1999-12-31 to 2027-01-16); `covering` and
+  `covered_until` check a run's span against them.
+- The service loads the files only when they cover the whole run;
+  otherwise the frame stays IAU_EARTH and the run's warnings say "the
+  IERS files do not cover this run".
+- `check_stop_time` refuses a stop time past the files' end, before each
+  `ConfigureStopTime` (6 places in the service and the mission engine).
+- The plausibility checks (`validate`, the editor's warnings) say when
+  the installed files do not cover the run.
+
+**Tests** (`tests/test_earth_orientation.py`, with synthetic DAF/PCK
+files): coverage read from the summaries, none for header-only,
+truncated, text or missing files; `covering` with a gap, a run before
+all files and an unreadable file; template 02 at 1955 with files for
+2000-2010 runs in IAU_EARTH, loads no orientation file and warns, in
+`validate` and in the run; a stop time past the files' end is refused.
+
+**Result:** the 1955 run of template 02 completes (exit 0) with the
+warning "Earth gravity field oriented by the IAU model (the IERS files do
+not cover this run)"; `validate` warns that the files "cover 1962-01-19
+to 2126-11-03, not this run".

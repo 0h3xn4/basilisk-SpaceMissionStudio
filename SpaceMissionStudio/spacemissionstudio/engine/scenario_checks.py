@@ -367,10 +367,14 @@ def _data_coverage_warnings(scenario) -> List[str]:
                 warnings.append(f"space weather: the data end {last}, before the run ends -- the run is refused")
     if getattr(scenario.gravity, "central_body", "earth") == "earth":
         needs_frame = (scenario.gravity.central_body_degree or 0) >= 2 or bool(scenario.ground_stations)
-        kernels = earth_orientation.installed()
-        if needs_frame and not kernels:
+        installed = earth_orientation.installed()
+        kernels = earth_orientation.covering(installed, start, end)
+        if needs_frame and not installed:
             warnings.append("Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH "
                             "(about 160 m/day of error at 400 km); Settings > Reference data downloads them")
+        elif needs_frame and not kernels:
+            warnings.append(f"Earth orientation: the installed IERS files cover {earth_orientation.coverage_text(installed)}, "
+                            "not this run -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km)")
         for kernel in kernels:
             until = kernel.high_accuracy_until
             if kernel.role == "high_precision" and until is not None and end > until:
