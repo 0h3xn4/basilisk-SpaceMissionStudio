@@ -158,6 +158,20 @@ def test_a_closed_window_starts_no_explanation_and_stops_autosaving(window, qtbo
     assert not window._autosave_timer.isActive()
 
 
+def test_a_running_explanation_is_let_go_when_the_window_closes(window):
+    """A worker still computing at close is waited for and released at
+    once, not left for its queued finished signal (it failed on a loaded
+    CI runner, where an earlier edit's worker was still running)."""
+    explainer = window.scenario_explainer_widget
+    explainer.request(_scenario())
+    explainer._timer.stop()
+    explainer._start_worker()
+    assert explainer._worker is not None
+    window._mark_clean()
+    assert window.close()
+    assert explainer._worker is None and not explainer._timer.isActive()
+
+
 # -- Form · JSON -----------------------------------------------------------------------------------
 
 

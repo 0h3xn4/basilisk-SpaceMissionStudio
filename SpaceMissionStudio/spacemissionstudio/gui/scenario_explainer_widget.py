@@ -309,6 +309,10 @@ class ScenarioExplainerWidget(QWidget):
         self._timer.stop()
         self._requested = None
         self.wait_for_worker()
+        if self._worker is not None and self._worker.isFinished():
+            # Its finished signal is still queued for the event loop, which
+            # a closing window may not run again: let it go now.
+            self._on_worker_finished()
 
     def _show_explanation(self, explanation: ScenarioExplanation) -> None:
         self._placeholder_label.setVisible(False)
