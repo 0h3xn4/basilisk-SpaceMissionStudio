@@ -216,6 +216,13 @@ workflow ran, so it was public without files for 12 minutes, and the
 CHANGELOG heading was dated after the tag: date the heading, then push
 the tag, then publish the draft the workflow makes.
 
+1.3.1 was prepared on 2026-10-26 by this checklist: three changes that
+shorten the window's pauses (PRs #116 to #118), with no change to what
+the tool computes. The space weather is 1.3.0's (observations to
+2026-10-24, updated 2026-10-25). The CHANGELOG heading is dated
+2026-10-26, the day it was prepared: if the tag is pushed on another
+day, correct the date first.
+
 ---
 
 **Next:** [Syncing with upstream Basilisk](upstream-sync.md) ·

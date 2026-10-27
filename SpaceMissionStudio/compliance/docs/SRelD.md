@@ -1,9 +1,24 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 14, 2026-10-26. Remediation R14.
+Document: SMS-SRelD, issue 15, 2026-10-26. Remediation R14.
 
-**Status:** release **1.3.0**, published 2026-10-26 (11:55 UTC): the
+**Status:** release **1.3.1**, prepared 2026-10-26, not yet tagged: a
+faster window (#116, #117, #118). What the tool computes is unchanged
+from 1.3.0: since commit `7bdfa21ac` the only change in `engine/`,
+`schema/`, `sil/`, `fsw_export/`, `model3d/`, `cli.py` or
+`output_provenance.py` is in `engine/spaceweather.py`, where
+`real_data_path` takes each file's last observed day from a value found
+once per file (`CelestrakData.last_observed`), the same day as before
+(`test_the_last_observed_day_is_found_once`). No template, data file or
+golden file changed, packaging only in the version, and nothing outside
+`SpaceMissionStudio/`. The export files are still tested byte for byte
+against those 1.1.0 wrote (`tests/gui/test_export_files.py`). The
+bundled space weather is 1.3.0's (observations to 2026-10-24, updated
+2026-10-25). Merging the release pull request, tagging and publishing
+are the user's.
+
+**Previous release:** 1.3.0, published 2026-10-26 (11:55 UTC), the
 UI overhaul (`docs/ui/UI_OVERHAUL_PLAN.md`, milestones M2a to M9, PRs #96
 to #107; the user's brief, `docs/ui/UI_OVERHAUL.md`). What the tool
 computes is unchanged from 1.2.0: since commit `c92f90040` nothing changed
@@ -39,7 +54,7 @@ spacecraft page built a section at a time (#114).
   (4 300 623 bytes) `f0aaa103...9fd7`, `SHA256SUMS-linux`
   `cbaef561...bc7c`, `SHA256SUMS-windows` `e95391ec...7964`.
 
-**Previous release:** 1.2.0, published 2026-10-21 (17:20 UTC), starting a
+Before it: 1.2.0, published 2026-10-21 (17:20 UTC), starting a
 mission from scratch, guided, and the end of macOS support:
 - Tagged `spacemissionstudio-v1.2.0` (a lightweight tag, not signed,
   D-13) on commit `c92f90040` (`c92f9004075bb28bbad361d55408b827670c0e1a`),
@@ -61,39 +76,18 @@ mission from scratch, guided, and the end of macOS support:
 - Its release notes were the first the workflow wrote itself
   (`packaging/release_notes.py`, from `CHANGELOG.md` 1.2.0).
 
-Before it: 1.1.1, published 2026-10-21 (11:44 UTC), the
-self-contained installers:
-- Tagged `spacemissionstudio-v1.1.1` (annotated, not signed, D-13; tag
-  object `40ddd47b1`) on commit `57a54ae92`
-  (`57a54ae923a59be6301e1b5e5de8701598fd9996`), the merge of the release
-  pull request (#90) into `develop`. GitHub release "Space Mission Studio
-  1.1.1", published by the user:
-  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.1.1>.
-  A first tag and release, made before the release workflow had attached
-  anything, were deleted by the user and the tag pushed again.
-- Its six files were built, installed, checked and attached by the
-  release workflow
-  ([run 39575072165](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/39575072165)).
-  GitHub's SHA-256 digests: `.deb` (`spacemissionstudio_1.1.1_amd64.deb`,
-  446 895 932 bytes) `05f949f0...35a0`, setup program
-  (`spacemissionstudio-1.1.1-setup.exe`, 395 017 481 bytes)
-  `bf56ae39...9714`, wheel `c420515e...b509`, sdist `ac2cff10...43ff`,
-  `SHA256SUMS-linux` `c5bdb53f...1f56`, `SHA256SUMS-windows`
-  `f5f0d80d...c6de7`. The attach job checked every file against the two
-  checksum files.
-- Its release notes are those written for the user to paste (HISTORY,
-  "Release notes that read like release notes").
-
-Earlier: 1.1.0, published 2026-10-20 (tag `spacemissionstudio-v1.1.0` on
-`1f8ad1663`, PR #86); its installers set up a virtual environment while
-installing, needing internet access and, for the setup program, Python
-3.11 on `PATH` (K-20).
+Earlier: 1.1.1, published 2026-10-21 (tag `spacemissionstudio-v1.1.1` on
+`57a54ae92`, PR #90), the self-contained installers; 1.1.0, published
+2026-10-20 (tag `spacemissionstudio-v1.1.0` on `1f8ad1663`, PR #86),
+whose installers set up a virtual environment while installing, needing
+internet access and, for the setup program, Python 3.11 on `PATH`
+(K-20).
 
 ## 1 Introduction (G.2.1<1>)
 
-This SRelD describes release 1.3.0 of SpaceMissionStudio in
-`0h3xn4/basilisk-SpaceMissionStudio`: what it contains, what changed since 1.2.0
-(commit `c92f90040`), what is known to be wrong, and how to use it.
+This SRelD describes release 1.3.1 of SpaceMissionStudio in
+`0h3xn4/basilisk-SpaceMissionStudio`: what it contains, what changed since 1.3.0
+(commit `7bdfa21ac`), what is known to be wrong, and how to use it.
 
 ## 2 Applicable and reference documents (G.2.1<2>)
 
@@ -117,52 +111,47 @@ This SRelD describes release 1.3.0 of SpaceMissionStudio in
 | Item | Value |
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
-| Baseline | Commit `7bdfa21ac` (`7bdfa21ac8262e358e18ae040972ed95944c4246`), tagged `spacemissionstudio-v1.3.0`: `develop` after the 1.3.0 release pull request (#108) and #109 to #114. Previous release: 1.2.0, commit `c92f90040` (`c92f9004075bb28bbad361d55408b827670c0e1a`), tagged `spacemissionstudio-v1.2.0`. |
+| Baseline | `develop` after the 1.3.1 release pull request (#116 to #118 and the release's records); the commit tagged `spacemissionstudio-v1.3.1` is recorded here when the release is published. Previous release: 1.3.0, commit `7bdfa21ac` (`7bdfa21ac8262e358e18ae040972ed95944c4246`), tagged `spacemissionstudio-v1.3.0`. |
 | Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt`. Bundled with the GUI as files, not packages: Inter 4.1 and JetBrains Mono 2.304 (SIL OFL 1.1) and 45 Lucide icons from lucide-static 1.52.0 (ISC), with versions, sources and checksums in `docs/THIRD_PARTY_ASSETS.md`. The installers also carry CPython 3.11.17 (python-build-standalone 20261013, SHA-256 pinned) with every installed package and the reference data; each build lists them in its `SPACEMISSIONSTUDIO_RUNTIME.json`, and `docs/THIRD_PARTY_ASSETS.md` ("In the installers") gives their licences |
 | Platform | The installers: Linux x86_64 with glibc 2.34 or newer (`.deb`), Windows 10/11 x64; no Python needed. From source: Python 3.11 or newer |
-| Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_1.3.0_amd64.deb`, the Windows setup program `spacemissionstudio-1.3.0-setup.exe` (not signed, D-13), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
+| Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_1.3.1_amd64.deb`, the Windows setup program `spacemissionstudio-1.3.1-setup.exe` (not signed, D-13), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
 | Documentation | SUM and `USER_MANUAL.md`; the documents in `compliance/docs/` |
-| Basilisk framework | No Basilisk source, module or test changed. Since 1.2.0 the changes outside `SpaceMissionStudio/` (`git diff --name-only c92f90040 cb6c4ea`) are the SpaceMissionStudio CI workflow (`.github/workflows/spacemissionstudio.yml`: the Linux jobs drop the runner image's Microsoft package source, whose `apt-get update` failed with 403) and the fork's `README.md` (the new window's names). The installers carry Basilisk 2.12.0 from PyPI, not this repository's framework, and add its support data next to the installed package, in the folder its own `dataFetcher` reads |
+| Basilisk framework | No Basilisk source, module or test changed. Since 1.3.0 nothing outside `SpaceMissionStudio/` changed (`git diff --name-only 7bdfa21ac 260bdc0`). The installers carry Basilisk 2.12.0 from PyPI, not this repository's framework, and add its support data next to the installed package, in the folder its own `dataFetcher` reads |
 
 ## 5 Status of the software configuration item
 
 ### 5.1 Evolution since previous version (G.2.1<5.1>)
 
-`CHANGELOG.md` 1.3.0 lists the changes since 1.2.0 (commit `c92f90040`);
-RD1 has the full story, one entry per milestone (M2a to M9), and
-`docs/ui/BEFORE_AFTER.md` the measurements before and after. In summary:
+`CHANGELOG.md` 1.3.1 lists the changes since 1.3.0 (commit `7bdfa21ac`);
+RD1 has the full story, one entry per change, with the measurements
+(each on one Linux container, the code before and after in the same
+session). In summary:
 
-**GUI, rebuilt in place** (PySide6, offline, no new dependency):
-- the shell: a navigation rail (Home, Scenario, Run, Results, Timeline,
-  Reports, Settings, Help), a top bar with Run and the command palette
-  (`Ctrl+K`), no menu bar; an Inspector and a Problems panel; the layout
-  kept per scenario file;
-- Home with template cards and recent scenarios; forms with units in the
-  fields, optional groups that fold, inline editing, a Form · JSON
-  toggle and undo; Explain as the scenario's Overview;
-- Run › Run (the options of the mode chosen), History and Log; Results ›
-  Overview with the run's headline figures; one plot page switched in
-  place; tables of one kind (`DataTable`); a Timeline for 10,000 events
-  with a UTC axis; Reports › Exports; Settings with the UI scale, reduce
-  motion and the Vizard location;
-- one theme package (`gui/theme/`): tokens, Inter and JetBrains Mono,
-  Lucide icons, light and dark, every text pair WCAG 2.2 AA.
+- **The theme switch** (#116): messages about a spacecraft whose page has
+  no form were worded from a hidden spacecraft form kept for the
+  session, about 1,000 widgets every switch restyled. The titles are read
+  once and the form deleted: 359 ms against 532 ms with every template
+  opened, then template 23 (K-19).
+- **Opening a template** (#117): a scenario loaded is validated once
+  instead of four times; the titles above are prepared a section per
+  event-loop turn once start-up has settled (one turn of up to 0.13 s,
+  once per process); the space-weather date check no longer scans every
+  day on each edit. Every template opened in turn: 72-134 ms against
+  82-459 ms (K-23).
+- **The end of a run** (#118): plotly's figure classes are loaded in a
+  worker after start-up instead of by the first plot. The first run's
+  longest stall 27-38 ms against 191-244 ms; later runs 31-35 ms against
+  34-52 ms (K-23).
 
 **Unchanged:** what runs compute, the scenario and project formats, the
-command line and every file the tool writes (tested, see Status).
+command line and every file the tool writes (see Status).
 
-**Tests:** the suite grew from 3599 tests at 1.2.0 to 3847 (collected;
-3835 passed and 12 skipped on Linux); GUI tests changed only how they
-reach a widget, each change logged in `docs/ui/TEST_CHANGES.md`.
+**Tests:** 3860 collected, 3848 passed and 12 skipped on Linux (3847
+collected at 1.3.0); no existing test changed.
 
-**Fixed on the way:** a keyboard trap (Tab could not leave the
-scenario's description); the Inspector naming a control by its class.
+**Still open:** K-14, K-19 (about 0.4 s), K-22 and K-23 (smaller).
 
-**Still open:** K-14 (seen once more, on PR #106's first Windows run;
-the next run passed), K-19 (now about 1 s), K-22, and K-23 (new).
-
-**Changes users notice:** everything in the window; scenario files and
-results are the same as with 1.2.0.
+**Changes users notice:** shorter pauses in the window; nothing else.
 
 ### 5.2 Known problems and limitations (G.2.1<5.2>)
 
