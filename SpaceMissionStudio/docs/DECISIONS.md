@@ -5,6 +5,21 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## A template is a source, not a file to save over (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's critical
+findings first).
+
+- **Guarded at the save, not at the open:** a template opened from Home
+  stays the scenario's current path, so the top bar's "template 22", the
+  layout kept per scenario, the Monte Carlo archive folder and the folder
+  relative mesh paths resolve against all stay as they are. **Save** on
+  a template goes to **Save As** instead, and **Save As** refuses the
+  templates folder (`_is_template` in `gui/main_window.py`).
+- **Where Save As starts:** the home folder under the template's file
+  name, so the user's copy keeps the template's recognisable name until
+  they change it.
+
 ## The first run's end without plotly's first-use cost (2026-10-26)
 
 The user: "Continue" (the next item offered: the end of a run, K-23).

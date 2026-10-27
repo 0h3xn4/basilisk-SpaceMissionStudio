@@ -8,6 +8,16 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **Save no longer writes over a built-in template:** after opening a
+  template from Home, **Save** (Ctrl+S) wrote to the template's own file
+  (where the folder is writable: a Windows install, or from source). It
+  now opens **Save As**, starting in the home folder under the
+  template's name, and a save into the templates folder is refused. The
+  User Manual already said a template is never overwritten. Found by the
+  audit of 2026-10-27.
+
 ## 1.3.1 (2026-10-26)
 
 A faster window. Changing the theme, opening a template and the end of
