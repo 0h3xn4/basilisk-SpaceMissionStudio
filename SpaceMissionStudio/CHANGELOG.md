@@ -10,6 +10,25 @@ fixes bugs.
 
 ## Unreleased
 
+- **The propellant budget no longer overestimates propellant:** each
+  contributor took the phase's starting mass times `exp(dV / Ve) - 1`,
+  the rocket equation's form for the mass *after* a burn. Each now takes
+  the mass before it, `m * (1 - exp(-dV / Ve))`, in order. For 150 kg
+  dry at Isp 220 s, a 100 m/s transfer was budgeted 5 % too high and a
+  1 km/s transfer 2.5 times too high (232 kg, now 93 kg); from about
+  1.4 km/s there was no total at all ("did not settle"). Every budget
+  with a burn comes out lower; the larger the delta-V, the larger the
+  change (5 % at 100 m/s). Found by the audit of 2026-10-27.
+- **Lifetime, End of Life and the budget's disposal are right at the
+  critical inclination:** the J2 mean elements they start from came from
+  a first-order map that is singular at 63.435 deg and 116.565 deg. A
+  600 km orbit there was reported to re-enter at once ("0.00 years,
+  5-year rule: met"), and a Molniya orbit stopped with an error. The map
+  is now blended from its values at the edges of a 1 deg band around
+  those values: the same orbit stays up for over 30 years, as at 60 deg,
+  and a 300 km decay at 63.435 deg is estimated at 34.8 days, as a full
+  Basilisk run finds. The mean-element plots there are finite too. Results elsewhere are
+  unchanged. Found by the audit of 2026-10-27.
 - **Generated constellations and formations keep their spacing:** when
   the scenario's gravity includes J2 (degree 2 or more), **Generate
   Walker constellation...**, **Generate phasing formation...** and their
@@ -22,19 +41,8 @@ fixes bugs.
 - **Mean elements for equatorial orbits:** the J2 mean-element map no
   longer divides by zero at 0 deg inclination, and is continuous across
   the critical inclination.
-- **Lifetime, End of Life and the budget's disposal are right at the
-  critical inclination:** the J2 mean elements they start from came from
-  a first-order map that is singular at 63.435 deg and 116.565 deg. A
-  600 km orbit there was reported to re-enter at once ("0.00 years,
-  5-year rule: met"), and a Molniya orbit stopped with an error. The map
-  is now blended from its values at the edges of a 1 deg band around
-  those values: the same orbit stays up for over 30 years, as at 60 deg,
-  and a 300 km decay
-  at 63.435 deg is estimated at 34.8 days, as a full Basilisk run
-  finds. The mean-element plots there are finite too. Results elsewhere are
-  unchanged. Found by the audit of 2026-10-27.
 
-## 1.3.1 (2026-10-26)
+## 1.3.1 (2026-10-27)
 
 A faster window. Changing the theme, opening a template and the end of
 the first run each held the window noticeably; this release shortens all
