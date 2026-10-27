@@ -58,8 +58,13 @@ QT_QPA_PLATFORM=offscreen python -m pytest tests -q -n auto
   - `requires_gui`: needs PySide6 (the `gui` extra);
   - `requires_c_toolchain`: builds the exported C code; needs CMake and a
     C compiler.
-- About ten tests always skip, even with Basilisk installed: they check
-  behaviour when Basilisk or a platform feature is missing.
+- Tests whose data is not installed skip: the Eros files, the IERS Earth
+  orientation files, the GMAT references, a German locale. The tests of
+  what happens without Basilisk run with Basilisk hidden (the
+  `basilisk_unavailable` fixture in `tests/conftest.py`).
+- `slow` marks the tests that take about a minute or more (each a full
+  Basilisk run). CI runs them; `-m "not slow"` leaves them out of a quick
+  local run.
 - One file at a time: `python -m pytest tests/test_cli.py -q`.
 
 **Offline tests.** `tests/test_offline.py` checks that nothing touches the

@@ -148,23 +148,6 @@ def test_launch_appends_direct_comm_flag_when_given(tmp_path, monkeypatch):
     assert captured["args"] == [str(exe), "-directComm", "tcp://localhost:5556"]
 
 
-def test_launch_omits_direct_comm_flag_when_not_given(tmp_path, monkeypatch):
-    """Without a direct-communication address, Vizard is started without that
-    flag."""
-    from spacemissionstudio.gui import vizard_launcher
-
-    monkeypatch.setattr(vizard_launcher.sys, "platform", "linux")
-    exe = tmp_path / "Vizard.x86_64"
-    exe.write_bytes(b"")
-
-    captured = {}
-    monkeypatch.setattr(vizard_launcher.subprocess, "Popen", lambda args: captured.setdefault("args", args))
-
-    vizard_launcher.launch_vizard(exe)
-
-    assert captured["args"] == [str(exe)]
-
-
 def test_launch_treats_an_app_bundle_path_like_any_other(tmp_path, monkeypatch):
     """macOS is not supported (2026-10-21): a path ending in .app is no
     longer resolved to a binary inside it, but started as given, on every
@@ -388,18 +371,6 @@ def test_fetch_vizard_honors_cooperative_cancellation(tmp_path, monkeypatch):
 
     with pytest.raises(vizard_launcher.VizardFetchError, match="cancelled"):
         vizard_launcher.fetch_vizard(dest_dir=tmp_path, should_cancel=lambda: True)
-
-
-def test_fetch_vizard_rejects_a_response_over_the_size_cap(tmp_path, monkeypatch):
-    """A download larger than the size limit is refused."""
-    from spacemissionstudio.gui import vizard_launcher
-
-    monkeypatch.setattr(vizard_launcher, "_MAX_DOWNLOAD_BYTES", 10)
-    monkeypatch.setattr(vizard_launcher.urllib.request, "urlopen",
-                         lambda *a, **k: _FakeUrlResponse(b"x" * 100))
-
-    with pytest.raises(vizard_launcher.VizardFetchError, match="exceeded"):
-        vizard_launcher.fetch_vizard(dest_dir=tmp_path)
 
 
 def test_a_cancelled_or_oversized_download_leaves_no_partial_file(tmp_path, monkeypatch):

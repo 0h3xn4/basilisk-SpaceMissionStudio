@@ -129,6 +129,7 @@ def test_density_matches_the_simulations_own_atmosphere():
         assert mine == pytest.approx(density.neutralDensity[k], rel=0.02)
 
 
+@pytest.mark.slow
 @pytest.mark.requires_basilisk
 def test_reentry_date_matches_a_basilisk_decay_run():
     """Template 18's spacecraft from 300 km with no station keeping: the
@@ -194,6 +195,7 @@ def test_the_exponential_atmosphere_is_flagged_as_too_thin():
     assert density(0.0, np.array([[lifetime.REQ_EARTH_M + 400e3, 0.0, 0.0]]))[0] < 1e-20  # [kg/m^3]
 
 
+@pytest.mark.slow
 @pytest.mark.requires_basilisk
 def test_a_run_stops_cleanly_when_its_spacecraft_reenters(monkeypatch):
     """Template 18's spacecraft from 300 km asked to fly 60 days, split

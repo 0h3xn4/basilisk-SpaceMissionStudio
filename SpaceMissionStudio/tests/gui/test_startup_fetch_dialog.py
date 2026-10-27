@@ -179,17 +179,11 @@ def test_maybe_run_reports_an_unexpected_worker_error(qtbot, monkeypatch):
     assert shown[0][0] == "warning"
 
 
-@pytest.mark.skipif(
-    __import__("importlib.util", fromlist=["util"]).find_spec("Basilisk") is not None,
-    reason="this test's premise is specifically that Basilisk is unavailable",
-)
+@pytest.mark.usefixtures("basilisk_unavailable")
 def test_worker_fetch_kernels_reports_missing_basilisk():
-    """This sandbox genuinely has no Basilisk build -- ``engine.kernels``
-    itself raises ``ImportError`` on import (same real path
-    ``test_kernel_status_widget.py``'s own
-    ``test_refresh_without_basilisk_reports_clear_status`` exercises), so
-    no mocking is needed to hit this branch here.
-    """
+    """Without Basilisk, ``engine.kernels`` raises ``ImportError`` on import
+    and the kernel fetch reports that Basilisk is not installed. Basilisk is
+    hidden for the test (``basilisk_unavailable``)."""
     from spacemissionstudio.gui.startup_fetch_dialog import StartupFetchWorker
 
     ok, message = StartupFetchWorker._fetch_kernels()

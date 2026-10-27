@@ -104,12 +104,6 @@ def test_maneuver_valid():
     assert cmd.validate("m") == []
 
 
-def test_maneuver_defaults_to_inertial_frame():
-    """A maneuver without a frame validates: the frame defaults to inertial."""
-    cmd = Command(kind="maneuver", params={"spacecraft": "sat-1", "delta_v_m_s": [1.0, 0.0, 0.0]})
-    assert cmd.validate("m") == []  # frame omitted -> "inertial" default is valid
-
-
 def test_maneuver_missing_spacecraft_is_rejected():
     """A maneuver without a spacecraft is refused."""
     errors = Command(kind="maneuver", params={"delta_v_m_s": [1.0, 0.0, 0.0]}).validate("m")
@@ -146,15 +140,6 @@ def test_lambert_transfer_valid():
         "spacecraft": "sat-1", "target_position_m": [1.0, 0.0, 0.0], "time_of_flight_s": 3600.0,
     })
     assert cmd.validate("l") == []
-
-
-def test_lambert_transfer_defaults_num_revolutions_and_constraints():
-    """A Lambert transfer validates without revolutions, target distance or
-    minimum radius: all are optional."""
-    cmd = Command(kind="lambert_transfer", params={
-        "spacecraft": "sat-1", "target_position_m": [1.0, 0.0, 0.0], "time_of_flight_s": 3600.0,
-    })
-    assert cmd.validate("l") == []  # num_revolutions/max_distance_target_m/min_orbit_radius_m all optional
 
 
 def test_lambert_transfer_missing_spacecraft_is_rejected():

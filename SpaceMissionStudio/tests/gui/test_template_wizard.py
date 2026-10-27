@@ -69,24 +69,6 @@ def test_wizard_pages_are_prefilled_with_the_templates_own_current_values(qtbot,
             assert box.value() == pytest.approx(field_spec.get(scenario))
 
 
-def test_finishing_without_changes_reproduces_the_original_scenario(qtbot):
-    """Finishing the wizard unchanged gives back the template exactly."""
-    from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
-    from spacemissionstudio.gui.template_wizard import TemplateCustomizeWizard, get_wizard_spec
-    from spacemissionstudio.schema import load_scenario
-
-    path = TEMPLATES_DIR / "03_geo_station_keeping.json"
-    scenario = load_scenario(path)
-    wizard = TemplateCustomizeWizard(scenario, get_wizard_spec(path.name))
-    qtbot.addWidget(wizard)
-
-    wizard.accept()
-
-    result = wizard.result_scenario()
-    result.validate()
-    assert result.to_dict() == scenario.to_dict()
-
-
 def test_finishing_applies_edited_values_and_leaves_the_original_scenario_untouched(qtbot):
     """Edited GEO slot, box and duration are applied, the satellite moves with
     its slot, and neither the scenario passed in nor the template file

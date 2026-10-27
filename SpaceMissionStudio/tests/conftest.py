@@ -51,6 +51,10 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "requirement(*ids): ECSS/CCSDS requirement IDs the test verifies (compliance/ traceability)"
     )
+    config.addinivalue_line(
+        "markers", "slow: takes about a minute or more (a full Basilisk run); CI runs it, "
+                   "`pytest -m 'not slow'` leaves it out of a quick local run"
+    )
 
 
 @pytest.fixture(autouse=True)
@@ -160,6 +164,29 @@ def eros_files_if_installed(monkeypatch) -> bool:
     if installed:
         monkeypatch.setattr(small_bodies, "DEFAULT_DIR", Path(REAL_SMALL_BODIES_DIR))
     return installed
+
+
+@pytest.fixture
+def basilisk_unavailable(monkeypatch):
+    """Basilisk cannot be imported for this test, as on a machine without
+    it, though it is installed here.
+
+    Every ``Basilisk`` module is replaced by None in ``sys.modules`` (an
+    import of it raises ImportError, and ``importlib.util.find_spec``
+    returns None), and the engine modules already imported are taken out,
+    so the app's own ``from .engine... import`` runs again and meets the
+    missing Basilisk. All of it is put back after the test.
+    """
+    monkeypatch.setitem(sys.modules, "Basilisk", None)
+    for name in list(sys.modules):
+        if name.startswith("Basilisk."):
+            monkeypatch.setitem(sys.modules, name, None)
+    for name in sorted((n for n in sys.modules if n.startswith("spacemissionstudio.engine.")),
+                       key=lambda n: n.count("."), reverse=True):
+        parent, _, child = name.rpartition(".")
+        if parent in sys.modules:
+            monkeypatch.delattr(sys.modules[parent], child, raising=False)
+        monkeypatch.delitem(sys.modules, name)
 
 
 def pytest_collection_modifyitems(config, items):

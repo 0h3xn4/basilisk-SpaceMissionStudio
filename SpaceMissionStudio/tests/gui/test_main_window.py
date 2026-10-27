@@ -4,15 +4,12 @@ modal dialog. The "Run" test below genuinely exercises the no-Basilisk
 error path in this development sandbox (see test_run_worker.py).
 """
 
-import importlib.util
 from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QObject, Signal
 
 pytestmark = pytest.mark.requires_gui
-
-_BASILISK_AVAILABLE = importlib.util.find_spec("Basilisk") is not None
 
 
 @pytest.fixture(autouse=True)
@@ -403,22 +400,19 @@ def test_open_path_returns_true_on_success_false_on_failure(window, tmp_path, mo
     assert window.open_path(missing) is False
 
 
-@pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
-def test_run_without_basilisk_shows_error_and_reenables_action(window, qtbot, monkeypatch):
-    """Without Basilisk, Run shows one error saying Basilisk is not installed
-    and enables Run again."""
-    from PySide6.QtWidgets import QMessageBox
-
+@pytest.mark.usefixtures("basilisk_unavailable")
+def test_run_without_basilisk_shows_error_and_reenables_action(window, qtbot):
+    """Without Basilisk, Run reports one problem saying Basilisk is not
+    installed (in the Log, a toast and the status bar: U-39) and enables
+    Run again."""
     _add_valid_spacecraft(window)
-    critical_calls = []
-    monkeypatch.setattr(QMessageBox, "critical", staticmethod(lambda *a, **k: critical_calls.append(a)))
 
     window.on_run()
     assert not window.run_action.isEnabled()
     qtbot.waitUntil(lambda: window.run_action.isEnabled(), timeout=5000)
 
-    assert len(critical_calls) == 1
-    assert "Basilisk is not installed" in critical_calls[0][2]
+    assert len(window.run_problems) == 1
+    assert "Basilisk is not installed" in window.run_problems[0]
 
 
 def test_run_with_invalid_scenario_shows_error_without_starting_worker(window):

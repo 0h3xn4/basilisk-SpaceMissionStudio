@@ -64,10 +64,16 @@ def test_month_abbreviation_ignores_the_process_locale():
     from spacemissionstudio.engine.time_system import utc_iso_to_spice_string
 
     previous = locale.setlocale(locale.LC_TIME)
-    try:
-        locale.setlocale(locale.LC_TIME, "de_DE.UTF-8")
-    except locale.Error:
-        pytest.skip("de_DE.UTF-8 locale not installed on this machine")
+    # Linux and Windows name the German locale differently; CI generates
+    # it on Linux (.github/workflows/spacemissionstudio.yml).
+    for name in ("de_DE.UTF-8", "de_DE.utf8", "de-DE", "German_Germany.1252"):
+        try:
+            locale.setlocale(locale.LC_TIME, name)
+            break
+        except locale.Error:
+            continue
+    else:
+        pytest.skip("no German locale installed on this machine")
     try:
         assert utc_iso_to_spice_string("2030-03-01T00:00:00") == "2030 MAR 01 00:00:00.000 (UTC)"
         assert utc_iso_to_spice_string("2030-10-01T00:00:00") == "2030 OCT 01 00:00:00.000 (UTC)"

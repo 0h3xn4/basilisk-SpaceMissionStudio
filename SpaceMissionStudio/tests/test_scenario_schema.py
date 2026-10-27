@@ -993,16 +993,6 @@ def test_unsupported_fsw_mode_rejected():
         sc.validate()
 
 
-def test_none_fsw_mode_is_valid():
-    """A spacecraft without an FSW mode (the default) validates."""
-    _minimal_scenario().validate()  # fsw_mode defaults to None -- must not raise
-
-
-def test_none_vizard_model_path_is_valid():
-    """A spacecraft without a Vizard model path (the default) validates."""
-    _minimal_scenario().validate()  # vizard_model_path defaults to None -- must not raise
-
-
 def test_blank_vizard_model_path_rejected():
     """A Vizard model path of only spaces is refused."""
     sc = _minimal_scenario()
@@ -1110,12 +1100,6 @@ def test_location_pointing_target_body_can_be_the_central_body():
 
 
 # -- Phase 3: Monte Carlo validation ------------------------------------------
-
-def test_monte_carlo_defaults_to_disabled_and_validates():
-    """Monte Carlo is off by default, without dispersions, and the default
-    validates."""
-    _minimal_scenario().validate()  # monte_carlo defaults to enabled=False, no dispersions
-
 
 def test_monte_carlo_num_runs_must_be_positive():
     """Monte Carlo with zero runs is refused."""
@@ -1531,17 +1515,6 @@ def test_thermal_sensor_rejects_implausibly_large_mass_when_set():
                                                        "emissivity": 0.34, "mass_kg": 1.0e9})]
     with pytest.raises(ScenarioValidationError, match="mass_kg"):
         sc.validate()
-
-
-def test_thermal_sensor_with_no_mass_kg_set_still_validates():
-    """A thermal sensor without a mass validates: the mass is optional and its
-    bound applies only when it is set."""
-    # mass_kg stays genuinely optional -- this bound only applies when set.
-    sc = _minimal_scenario(gravity=GravityConfig(third_body_perturbers=["sun"]))  # sensorThermal needs the Sun
-    sc.spacecraft[0].sensors = [SensorConfig(kind="thermal", name="therm-1",
-                                               params={"nHat_B": [0, 0, 1], "area_m2": 1.0, "absorptivity": 0.25,
-                                                       "emissivity": 0.34})]
-    sc.validate()  # must not raise
 
 
 def test_ground_station_rejects_non_positive_system_noise_temp():
@@ -2134,14 +2107,6 @@ def test_phasing_keeping_full_scenario_validates():
 def test_mission_sequence_defaults_to_empty_list():
     """The mission sequence is empty by default."""
     assert _minimal_scenario().mission_sequence == []
-
-
-def test_mission_sequence_empty_does_not_affect_existing_validation():
-    """An empty mission_sequence (every scenario written before this field
-    existed) must validate exactly as before -- this is the whole point of
-    it being additive/opt-in.
-    """
-    _minimal_scenario().validate()  # must not raise
 
 
 def test_mission_sequence_round_trips_through_save_load(tmp_path):

@@ -13377,3 +13377,37 @@ passed, 11 skipped, 638 s.
 published digests; the `tokenize` branch removed; ruff's upgrade rules
 applied (1717 fixes, then the imports they left unused); the user docs
 and the requirement and plan documents say 3.14.
+
+## Python 3.14 only: the test cleanup (2026-10-27)
+
+The user's Phases 3 and 4 ("Test cleanup proposal (STOP for approval)",
+then "Verify"), approved "As per your recommendation". Details per test in
+`docs/ui/TEST_CHANGES.md`.
+
+**Deleted, 12 tests**, each repeating another exactly (the same call and
+assertion, or one case of a parametrized test). The audit's coverage data
+named 16 candidates; four stayed: one is the only check that an empty
+`.app` is not refused, the others were rewritten, not deleted.
+
+**Tests that never ran now run.** Eleven tests skipped on every machine
+with Basilisk, so in CI always:
+
+* ten checks of what happens without Basilisk run with Basilisk hidden
+  (`basilisk_unavailable` in `tests/conftest.py`: the Basilisk modules
+  are None in `sys.modules` and the imported engine modules are taken
+  out for the test). Running them found one stale: the main window's Run
+  test waited for a message box that U-39 replaced with the run's problem
+  report;
+* the month-name test needed a German locale, which no CI runner had. CI
+  generates it; with the old `strftime("%b")` the test fails ("MÄR").
+
+**A test that could not fail**, the fuel-tank panel label check (two
+string literals), now builds both panels on one spacecraft.
+
+**`slow`** marks the ten tests of about a minute or more; CI runs them.
+
+**Measured on Python 3.14.6, four workers:** before, 3882 tests, 3871
+passed and 11 skipped in 643 s; after, 3870 tests, all passed, none
+skipped, in 609 s; `-m "not slow"`, 3860 in 315 s. No type checker is
+configured; adding one is a separate change (it would start with many
+findings in code that predates it).

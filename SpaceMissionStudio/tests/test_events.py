@@ -180,6 +180,7 @@ def test_csv_export_adds_one_column_per_measured_value(tmp_path):
     assert math.isclose(float(rows[1]["lowest_sunlight_percent"]), 40.0)
 
 
+@pytest.mark.slow
 @pytest.mark.requires_basilisk
 def test_a_real_leo_run_writes_eclipses_that_match_the_orbit(tmp_path):
     """Template 06 (550 km Sun-synchronous orbit) for 0.15 day through the
