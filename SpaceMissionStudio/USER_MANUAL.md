@@ -1187,10 +1187,11 @@ Explain also checks the scenario before you run it:
 current scenario to a `.json` file you choose. **Open...** (Ctrl+O) loads
 one back. **New Scenario** (Ctrl+N) clears the editor and starts fresh.
 
-If you started from a template or its customize wizard, **use Save
-As...** to give your edited copy its own name/location -- the original
-template file is never overwritten automatically, so you can always
-start over from a clean copy.
+If you started from a template or its customize wizard, **Save** asks
+where to keep your copy: the dialog starts in your home folder under the
+template's file name. The built-in templates are never written to (a
+save into their folder is refused), so you can always start over from a
+clean copy.
 
 **Undo** (Ctrl+Z) and **Redo** (Ctrl+Shift+Z, or Ctrl+Y on
 Windows) step through your scenario edits, one step for each edit once

@@ -1,9 +1,9 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 15, 2026-10-26. Remediation R14.
+Document: SMS-SRelD, issue 16, 2026-10-27. Remediation R14.
 
-**Status:** release **1.3.1**, prepared 2026-10-26, not yet tagged: a
+**Status:** release **1.3.1**, published 2026-10-27 (06:05 UTC): a
 faster window (#116, #117, #118). What the tool computes is unchanged
 from 1.3.0: since commit `7bdfa21ac` the only change in `engine/`,
 `schema/`, `sil/`, `fsw_export/`, `model3d/`, `cli.py` or
@@ -15,8 +15,28 @@ golden file changed, packaging only in the version, and nothing outside
 `SpaceMissionStudio/`. The export files are still tested byte for byte
 against those 1.1.0 wrote (`tests/gui/test_export_files.py`). The
 bundled space weather is 1.3.0's (observations to 2026-10-24, updated
-2026-10-25). Merging the release pull request, tagging and publishing
-are the user's.
+2026-10-25). Merging the release pull request (#119), tagging and
+publishing were the user's.
+- Tagged `spacemissionstudio-v1.3.1` (not signed, D-13) on commit
+  `081f74079` (`081f7407938d97abf8bcff3aae402b8235ea7c86`), the merge of
+  #119 into `develop`. GitHub release "Space Mission Studio 1.3.1",
+  published by the user:
+  <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.3.1>.
+  It was published at 06:05:53 UTC, before the release workflow had
+  started, so it was public without files or notes until the workflow
+  attached them at 06:18. The tagged `CHANGELOG.md` heading reads
+  "1.3.1 (2026-10-26)", the day the release was prepared; `develop` has
+  2026-10-27, the day it was published.
+- Its six files were built, installed, checked and attached by the
+  release workflow
+  ([run 40459074482](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/40459074482)),
+  which also wrote the notes because the release had none. GitHub's
+  SHA-256 digests: `.deb` (`spacemissionstudio_1.3.1_amd64.deb`,
+  447 262 520 bytes) `09d9a34c...4f44`, setup program
+  (`spacemissionstudio-1.3.1-setup.exe`, 395 406 016 bytes)
+  `486abd52...0a7e`, wheel (4 210 164 bytes) `a5b687ae...5593`, sdist
+  (4 303 416 bytes) `8ffad3c5...1154`, `SHA256SUMS-linux`
+  `71ab4063...1f3f`, `SHA256SUMS-windows` `2b4dbc8e...e1a9`.
 
 **Previous release:** 1.3.0, published 2026-10-26 (11:55 UTC), the
 UI overhaul (`docs/ui/UI_OVERHAUL_PLAN.md`, milestones M2a to M9, PRs #96
@@ -111,12 +131,12 @@ This SRelD describes release 1.3.1 of SpaceMissionStudio in
 | Item | Value |
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
-| Baseline | `develop` after the 1.3.1 release pull request (#116 to #118 and the release's records); the commit tagged `spacemissionstudio-v1.3.1` is recorded here when the release is published. Previous release: 1.3.0, commit `7bdfa21ac` (`7bdfa21ac8262e358e18ae040972ed95944c4246`), tagged `spacemissionstudio-v1.3.0`. |
+| Baseline | Commit `081f74079` (`081f7407938d97abf8bcff3aae402b8235ea7c86`), tagged `spacemissionstudio-v1.3.1`: `develop` after the 1.3.1 release pull request (#119). Previous release: 1.3.0, commit `7bdfa21ac` (`7bdfa21ac8262e358e18ae040972ed95944c4246`), tagged `spacemissionstudio-v1.3.0`. |
 | Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt`. Bundled with the GUI as files, not packages: Inter 4.1 and JetBrains Mono 2.304 (SIL OFL 1.1) and 45 Lucide icons from lucide-static 1.52.0 (ISC), with versions, sources and checksums in `docs/THIRD_PARTY_ASSETS.md`. The installers also carry CPython 3.11.17 (python-build-standalone 20261013, SHA-256 pinned) with every installed package and the reference data; each build lists them in its `SPACEMISSIONSTUDIO_RUNTIME.json`, and `docs/THIRD_PARTY_ASSETS.md` ("In the installers") gives their licences |
 | Platform | The installers: Linux x86_64 with glibc 2.34 or newer (`.deb`), Windows 10/11 x64; no Python needed. From source: Python 3.11 or newer |
 | Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_1.3.1_amd64.deb`, the Windows setup program `spacemissionstudio-1.3.1-setup.exe` (not signed, D-13), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
 | Documentation | SUM and `USER_MANUAL.md`; the documents in `compliance/docs/` |
-| Basilisk framework | No Basilisk source, module or test changed. Since 1.3.0 nothing outside `SpaceMissionStudio/` changed (`git diff --name-only 7bdfa21ac 260bdc0`). The installers carry Basilisk 2.12.0 from PyPI, not this repository's framework, and add its support data next to the installed package, in the folder its own `dataFetcher` reads |
+| Basilisk framework | No Basilisk source, module or test changed. Since 1.3.0 nothing outside `SpaceMissionStudio/` changed (`git diff --name-only 7bdfa21ac 081f74079`). The installers carry Basilisk 2.12.0 from PyPI, not this repository's framework, and add its support data next to the installed package, in the folder its own `dataFetcher` reads |
 
 ## 5 Status of the software configuration item
 

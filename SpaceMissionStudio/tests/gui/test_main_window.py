@@ -5,6 +5,7 @@ error path in this development sandbox (see test_run_worker.py).
 """
 
 import importlib.util
+from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QObject, Signal
@@ -195,6 +196,49 @@ def test_save_as_then_open_round_trip(window, tmp_path, monkeypatch):
     window.on_open()
     assert window._current_path == save_path
     assert window.scenario_editor.spacecraft_list.to_list()[0].name == "sat-1"
+
+
+def test_save_after_opening_a_template_asks_where_and_keeps_the_template(window, tmp_path, monkeypatch):
+    """Audit of 2026-10-27 (G1): Save after opening a built-in template
+    wrote over the template file. It now goes to Save As, which starts in
+    the home folder under the template's name; the template is unchanged
+    and the saved file becomes the scenario's."""
+    from PySide6.QtWidgets import QFileDialog
+
+    from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
+
+    template = TEMPLATES_DIR / "22_starter_first_leo_satellite.json"
+    shipped = template.read_bytes()
+    assert window.open_path(template)
+    window.scenario_editor.name_edit.setText("my first satellite")
+    asked = []
+    save_path = tmp_path / "mine.json"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName",
+                        staticmethod(lambda *a, **k: (asked.append(a[2]), (str(save_path), ""))[1]))
+    window.on_save()
+
+    assert asked == [str(Path.home() / template.name)]
+    assert template.read_bytes() == shipped
+    assert save_path.exists() and window._current_path == save_path and not window._dirty
+
+
+def test_save_as_refuses_the_templates_folder(window, monkeypatch, reported):
+    """Save As into the built-in templates folder is refused with a
+    warning; the template is unchanged and the scenario stays unsaved."""
+    from PySide6.QtWidgets import QFileDialog
+
+    from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
+
+    template = TEMPLATES_DIR / "22_starter_first_leo_satellite.json"
+    shipped = template.read_bytes()
+    assert window.open_path(template)
+    window.scenario_editor.name_edit.setText("my first satellite")
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: (str(template), "")))
+    window.on_save_as()
+
+    assert template.read_bytes() == shipped
+    assert reported and reported[-1][1] == "warning" and "built-in templates folder" in reported[-1][0]
+    assert window._dirty
 
 
 def test_save_with_invalid_scenario_shows_error_and_does_not_write(window, tmp_path, monkeypatch, reported):

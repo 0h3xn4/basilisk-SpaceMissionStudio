@@ -10,6 +10,32 @@ fixes bugs.
 
 ## Unreleased
 
+- **The propellant budget no longer overestimates propellant:** each
+  contributor took the phase's starting mass times `exp(dV / Ve) - 1`,
+  the rocket equation's form for the mass *after* a burn. Each now takes
+  the mass before it, `m * (1 - exp(-dV / Ve))`, in order. For 150 kg
+  dry at Isp 220 s, a 100 m/s transfer was budgeted 5 % too high and a
+  1 km/s transfer 2.5 times too high (232 kg, now 93 kg); from about
+  1.4 km/s there was no total at all ("did not settle"). Every budget
+  with a burn comes out lower; the larger the delta-V, the larger the
+  change (5 % at 100 m/s). Found by the audit of 2026-10-27.
+- **Lifetime, End of Life and the budget's disposal are right at the
+  critical inclination:** the J2 mean elements they start from came from
+  a first-order map that is singular at 63.435 deg and 116.565 deg. A
+  600 km orbit there was reported to re-enter at once ("0.00 years,
+  5-year rule: met"), and a Molniya orbit stopped with an error. The map
+  is now evaluated at the edge of a 1 deg band around those values: the
+  same orbit stays up for over 30 years, as at 60 deg, and a 300 km decay
+  at 63.435 deg is estimated at 34.5 days against 34.8 for a full Basilisk
+  run. The mean-element plots there are finite too. Results elsewhere are
+  unchanged. Found by the audit of 2026-10-27.
+- **Save no longer writes over a built-in template:** after opening a
+  template from Home, **Save** (Ctrl+S) wrote to the template's own file
+  (where the folder is writable: a Windows install, or from source). It
+  now opens **Save As**, starting in the home folder under the
+  template's name, and a save into the templates folder is refused. The
+  User Manual already said a template is never overwritten. Found by the
+  audit of 2026-10-27.
 - **A run outside the Earth orientation files no longer ends the
   program:** a run whose dates the installed IERS files do not cover
   (an epoch before 1962, or after 2027 with only the high-precision file)
@@ -20,7 +46,7 @@ fixes bugs.
   Mission Sequence that would propagate past the files' end stops with a
   message instead. Found by the audit of 2026-10-27.
 
-## 1.3.1 (2026-10-26)
+## 1.3.1 (2026-10-27)
 
 A faster window. Changing the theme, opening a template and the end of
 the first run each held the window noticeably; this release shortens all

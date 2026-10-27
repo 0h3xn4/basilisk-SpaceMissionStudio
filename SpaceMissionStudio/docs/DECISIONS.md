@@ -32,6 +32,65 @@ findings first).
   import could refuse it. Its tests use header-only fake files, so this
   waits for a change of its own.
 
+## A template is a source, not a file to save over (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's critical
+findings first).
+
+- **Guarded at the save, not at the open:** a template opened from Home
+  stays the scenario's current path, so the top bar's "template 22", the
+  layout kept per scenario, the Monte Carlo archive folder and the folder
+  relative mesh paths resolve against all stay as they are. **Save** on
+  a template goes to **Save As** instead, and **Save As** refuses the
+  templates folder (`_is_template` in `gui/main_window.py`).
+- **Where Save As starts:** the home folder under the template's file
+  name, so the user's copy keeps the template's recognisable name until
+  they change it.
+
+## Mean elements at the critical inclination (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's critical
+findings first). It changes what the tool computes, near the critical
+inclination only; the overhaul's "UI only" rule covered the overhaul,
+which has ended.
+
+- **Basilisk's map, evaluated at the band's edge:** within 1 deg of
+  63.435 or 116.565 deg, `clMeanOscMap` is called at the nearer edge and
+  the inclination difference carried across (`engine/mean_elements.py`),
+  both ways (osculating to mean for the lifetime's start, mean to
+  osculating for its density ring) and for the mean-element series of a
+  run. Outside the band it is Basilisk's map, bit for bit, so nothing
+  else changes.
+- **Not an orbit-averaged map everywhere:** averaging the J2 motion over
+  an orbit has no singular terms and is the test's reference, but it
+  would change every lifetime slightly and cost a propagation per state;
+  the edge evaluation agrees with it within 0.4 km of perigee (600 km
+  orbit) and 0.7 km (Molniya) across the band.
+- **1 deg:** at the edges (62.4 and 64.4 deg) the plain map is within
+  about 1 km of the average for a Molniya orbit (0.5 km at 62 deg, 1.1 km
+  at 63.9 deg); nearer the critical value it grows (17 km at 63.4 deg).
+  Narrower bands were not tried.
+
+## The propellant budget's rocket equation (2026-10-27)
+
+The user: "Continue as per your recommendations", after the audit of
+2026-10-27 recommended fixing its critical findings first. This is the
+first change since the UI overhaul (1.3.0) to what the tool computes; the
+overhaul's "UI only" rule covered the overhaul, which has ended.
+
+- **The mass before each burn:** the budget applied `m * (exp(dV / Ve) - 1)`
+  with `m` the phase's starting mass. That form is the rocket equation
+  only for the mass after the burn; from the mass before it the
+  propellant is `m * (1 - exp(-dV / Ve))`. With the total propellant in
+  the starting mass, the old form gave `P = (D + P)(e^x - 1)`, which has
+  no solution from `e^x = 2`. The guideline's own text was not consulted
+  (it is not in the repository); the physics decides, and the module
+  docstring says what changed.
+- **In order:** each contributor burns from the mass the ones before it
+  left, so the total is the rocket equation for the whole mission
+  whatever the order of the rows; a row with a given propellant (from a
+  run, attitude control, ignitions) lowers the mass too.
+
 ## The first run's end without plotly's first-use cost (2026-10-26)
 
 The user: "Continue" (the next item offered: the end of a run, K-23).
