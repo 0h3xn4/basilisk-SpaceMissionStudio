@@ -13233,3 +13233,27 @@ re-enters in the estimate within 3% of where a full Basilisk run stops
 
 **Result:** the 600 km orbit at 63.435 deg is "still in orbit after
 30.0 years"; the Molniya case runs.
+
+## A template is a source, not a file to save over (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's first
+fixes). Branch `templates-open-untitled`.
+
+**Found by the audit:** `open_path` makes the opened file the current
+path, a built-in template included; `on_save` then writes there without
+a check. A probe with `Scenario.save` stubbed showed the call with the
+template's path and the folder writable. On Linux the `.deb` installs
+the templates root-owned, so Save failed there instead; on a Windows
+install (under `%LOCALAPPDATA%`) and from source it would overwrite the
+template. The User Manual (section 8) already said a template is "never
+overwritten automatically".
+
+**The change:** `on_save` goes to `on_save_as` when the current path is
+a built-in template; `on_save_as` starts in the home folder under the
+template's name and refuses a path in the templates folder with a
+warning. The manual says what Save does now.
+
+**Tests:** `test_save_after_opening_a_template_asks_where_and_keeps_the_template`
+(the dialog starts at home under the template's name, the template's
+bytes are unchanged, the saved file becomes the scenario's) and
+`test_save_as_refuses_the_templates_folder`.

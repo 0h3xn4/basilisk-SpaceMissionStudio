@@ -29,6 +29,13 @@ fixes bugs.
   at 63.435 deg is estimated at 34.5 days against 34.8 for a full Basilisk
   run. The mean-element plots there are finite too. Results elsewhere are
   unchanged. Found by the audit of 2026-10-27.
+- **Save no longer writes over a built-in template:** after opening a
+  template from Home, **Save** (Ctrl+S) wrote to the template's own file
+  (where the folder is writable: a Windows install, or from source). It
+  now opens **Save As**, starting in the home folder under the
+  template's name, and a save into the templates folder is refused. The
+  User Manual already said a template is never overwritten. Found by the
+  audit of 2026-10-27.
 
 ## 1.3.1 (2026-10-27)
 
