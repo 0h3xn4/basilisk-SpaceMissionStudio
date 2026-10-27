@@ -221,7 +221,16 @@ shorten the window's pauses (PRs #116 to #118), with no change to what
 the tool computes. The space weather is 1.3.0's (observations to
 2026-10-24, updated 2026-10-25). The CHANGELOG heading is dated
 2026-10-26, the day it was prepared: if the tag is pushed on another
-day, correct the date first.
+day, correct the date first. It was published on 2026-10-27: tag
+`spacemissionstudio-v1.3.1` on `081f74079`, its six files built,
+installed and attached by the release workflow, which wrote the notes.
+The tag was pushed the day after the heading's date, so `develop`'s
+heading was corrected to 2026-10-27 afterwards (the tagged CHANGELOG
+reads 2026-10-26). For the third release running, the release was
+published four seconds after the tag was pushed, before the workflow
+started, so it was public without files or notes for 12 minutes: push
+the tag, wait for the workflow's draft (about 13 minutes), read it, then
+publish it.
 
 ---
 

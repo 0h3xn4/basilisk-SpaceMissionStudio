@@ -20,7 +20,7 @@ fixes bugs.
   with a burn comes out lower; the larger the delta-V, the larger the
   change (5 % at 100 m/s). Found by the audit of 2026-10-27.
 
-## 1.3.1 (2026-10-26)
+## 1.3.1 (2026-10-27)
 
 A faster window. Changing the theme, opening a template and the end of
 the first run each held the window noticeably; this release shortens all
