@@ -2524,6 +2524,19 @@ class DispersionConfig:
                       f"{where}: angle_std_deg must be a finite number >= 0")
 
 
+# A shared scenario must not start a billion runs or a million processes
+# (audit R4): validate refuses more. The run itself uses at most one
+# process per CPU (usable_thread_count).
+MAX_MONTE_CARLO_RUNS = 100_000
+MAX_MONTE_CARLO_THREADS = 256
+
+
+def usable_thread_count(requested: int) -> int:
+    """Processes a Monte Carlo batch runs in: ``requested``, but at most
+    one per CPU (audit R4: more only compete for the same cores)."""
+    return max(1, min(requested, os.cpu_count() or 1))
+
+
 @dataclass
 class MonteCarloConfig:
     """Batch execution settings -- see ``engine/monte_carlo.py``.
@@ -2545,8 +2558,11 @@ class MonteCarloConfig:
             value = getattr(self, key)
             _require(isinstance(value, int) and not isinstance(value, bool),
                       f"monte_carlo.{key} must be a whole number, got {value!r}")
-        _require(self.num_runs >= 1, "monte_carlo.num_runs must be >= 1")
-        _require(self.thread_count >= 1, "monte_carlo.thread_count must be >= 1")
+        _require(1 <= self.num_runs <= MAX_MONTE_CARLO_RUNS,
+                 f"monte_carlo.num_runs must be between 1 and {MAX_MONTE_CARLO_RUNS}, got {self.num_runs}")
+        _require(1 <= self.thread_count <= MAX_MONTE_CARLO_THREADS,
+                 f"monte_carlo.thread_count must be between 1 and {MAX_MONTE_CARLO_THREADS}, "
+                 f"got {self.thread_count}")
         for dispersion in self.dispersions:
             dispersion.validate()
 

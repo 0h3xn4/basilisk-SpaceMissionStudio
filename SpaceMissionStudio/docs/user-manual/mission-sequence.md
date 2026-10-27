@@ -52,14 +52,16 @@ t_s < 86400
 The names available are `t_s` (elapsed time [s]), `duration_days`, and
 `spacecraft`, where each spacecraft has `r_BN_N`, `v_BN_N`, `altitude_m`
 and `mass_kg`. Conditions are checked by a small expression reader, not
-by Python's `eval()`, so they cannot run code. A `while` stops with an
-error after 10 000 rounds.
+by Python's `eval()`, so they cannot run code. `%` is the remainder of
+numbers (`t_s % 600 < 10`); formatting a text with `%` is refused. A
+`while` stops with an error after 10 000 rounds.
 
 ## Script blocks ask first
 
 A `script_block` is unrestricted Python. Before a run with script blocks,
-the app shows the code in a **Run script blocks?** dialog; the default is
-**No**. From the command line, `spacemissionstudio run` refuses to start
+the app asks in a **Run script blocks?** dialog; the default is **No**.
+**Show Details...** lists all of each block's code, with its length and
+SHA-256, so you can check you read all of it. From the command line, `spacemissionstudio run` refuses to start
 a scenario with script blocks unless you add `--allow-scripts`. Only allow scripts from files you trust and
 have read.
 

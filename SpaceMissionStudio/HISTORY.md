@@ -13295,3 +13295,37 @@ all files and an unreadable file; template 02 at 1955 with files for
 warning "Earth gravity field oriented by the IAU model (the IERS files do
 not cover this run)"; `validate` warns that the files "cover 1962-01-19
 to 2126-11-03, not this run".
+
+## Limits on conditions, script consent and Monte Carlo (2026-10-27)
+
+The user: "Merge them all, continue as per your recommendations". The
+audit's next "now" row, R2, R3 and R4. Branch
+`condition-and-consent-limits`.
+
+**R2, `%` in conditions:** `_check_result_size` bounded `*`, `**` and
+`+`, but `%` with a text on the left is formatting, and a field width
+(`'%01000000000d' % 0`) built a text of any length: the reviewer reached
+1.9 GB. If/while conditions run without consent. `%` with a `str` or
+`bytes` on the left is now refused before it is computed; `%` on numbers
+is unchanged. A condition never needs formatting.
+
+**R3, the consent dialog:** `_confirm_script_blocks` cut each block's
+code at 600 characters with no sign, and Yes ran all of it. The detailed
+text (already a scrollable read-only view) now holds every block in
+full, headed by its length and SHA-256.
+
+**R4, Monte Carlo counts:** only `>= 1` was checked, so
+`num_runs = 10**9, thread_count = 10**6` passed `validate`. The schema
+now refuses more than 100 000 runs or 256 processes (the GUI's own
+spin-box ranges, which now come from the same constants; its runs box
+allowed 1 000 000). Refusing more processes than CPUs would make a
+file's validity depend on the machine it is opened on, so instead the
+batch uses `usable_thread_count`: at most one process per CPU, logged,
+and a pre-run warning on the Overview. The thread count's tooltip no
+longer says it is unverified above 1 (the suite runs batches with 3).
+
+**Tests:** `test_text_formatting_cannot_build_a_huge_value`,
+`test_script_block_confirmation_shows_all_of_a_long_block`,
+`test_monte_carlo_counts_have_an_upper_limit` and
+`test_a_batch_runs_at_most_one_process_per_cpu`; the two lower-bound
+tests now match the new message.

@@ -177,7 +177,7 @@ from Basilisk.utilities.MonteCarlo.Dispersions import (
 from Basilisk.utilities.MonteCarlo.RetentionPolicy import RetentionPolicy
 
 from ..schema.command import runs_sequence, script_blocks
-from ..schema.scenario import DispersionConfig, MonteCarloConfig, Scenario, SimSettings
+from ..schema.scenario import DispersionConfig, MonteCarloConfig, Scenario, SimSettings, usable_thread_count
 from . import monte_carlo_results
 from .solar_arrays import hub_mass_offset_kg
 from .service import SimulationService, _orbit_ic_to_rv
@@ -516,7 +516,10 @@ def run_monte_carlo(scenario: Scenario, mc_config: MonteCarloConfig, archive_dir
     controller.setExecutionFunction(functools.partial(_execute_sim, allow_scripts=allow_scripts))
     controller.setExecutionCount(mc_config.num_runs)
     controller.setShouldDisperseSeeds(True)
-    controller.setThreadCount(mc_config.thread_count)
+    threads = usable_thread_count(mc_config.thread_count)
+    if threads < mc_config.thread_count:
+        _logger.warning("Monte Carlo: %d processes asked for, %d used (one per CPU)", mc_config.thread_count, threads)
+    controller.setThreadCount(threads)
     controller.setVerbose(mc_config.verbose)
     controller.setArchiveDir(str(archive_dir))
 

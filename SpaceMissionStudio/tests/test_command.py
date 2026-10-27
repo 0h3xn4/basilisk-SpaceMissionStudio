@@ -474,6 +474,26 @@ def test_chained_operations_cannot_build_a_huge_value(expression):
     assert evaluate_condition("2 ** 64 * 3", _CONTEXT) == 3 * 2 ** 64
 
 
+@pytest.mark.parametrize("expression", [
+    "('%01000000000d' % 0) == ('%01000000000d' % 1)",
+    "b'%010000000d' % 0",
+    "'%s' % t_s",
+], ids=["width", "bytes", "plain"])
+def test_text_formatting_cannot_build_a_huge_value(expression):
+    """Audit R2: ``%`` on a text formats it, and a field width builds a
+    text of any length (the reviewer reached 1.9 GB). It is refused at
+    once; ``%`` on numbers is still the remainder."""
+    import time
+
+    from spacemissionstudio.schema.command import ConditionError, evaluate_condition
+
+    started = time.perf_counter()
+    with pytest.raises(ConditionError, match="% formatting of text"):
+        evaluate_condition(expression, _CONTEXT)
+    assert time.perf_counter() - started < 1.0  # [s]
+    assert evaluate_condition("t_s % 50 == 20", _CONTEXT) is True
+
+
 def test_validation_reports_a_condition_outside_the_allowed_set():
     """The editor shows a disallowed condition before the run, with the
     command's path."""
