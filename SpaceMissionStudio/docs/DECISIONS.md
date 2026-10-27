@@ -29,6 +29,26 @@ which has ended.
   at 63.9 deg); nearer the critical value it grows (17 km at 63.4 deg).
   Narrower bands were not tried.
 
+## The propellant budget's rocket equation (2026-10-27)
+
+The user: "Continue as per your recommendations", after the audit of
+2026-10-27 recommended fixing its critical findings first. This is the
+first change since the UI overhaul (1.3.0) to what the tool computes; the
+overhaul's "UI only" rule covered the overhaul, which has ended.
+
+- **The mass before each burn:** the budget applied `m * (exp(dV / Ve) - 1)`
+  with `m` the phase's starting mass. That form is the rocket equation
+  only for the mass after the burn; from the mass before it the
+  propellant is `m * (1 - exp(-dV / Ve))`. With the total propellant in
+  the starting mass, the old form gave `P = (D + P)(e^x - 1)`, which has
+  no solution from `e^x = 2`. The guideline's own text was not consulted
+  (it is not in the repository); the physics decides, and the module
+  docstring says what changed.
+- **In order:** each contributor burns from the mass the ones before it
+  left, so the total is the rocket equation for the whole mission
+  whatever the order of the rows; a row with a given propellant (from a
+  run, attitude control, ignitions) lowers the mass too.
+
 ## The first run's end without plotly's first-use cost (2026-10-26)
 
 The user: "Continue" (the next item offered: the end of a run, K-23).
