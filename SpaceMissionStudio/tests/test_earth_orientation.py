@@ -231,3 +231,112 @@ def test_a_fetch_that_fails_part_way_leaves_no_part_files(tmp_path, monkeypatch)
     with pytest.raises(eo.EarthOrientationError, match="could not download"):
         eo.fetch(tmp_path / "eop")
     assert not list((tmp_path / "eop").glob("*.part"))
+
+
+def _daf_pck(path: Path, spans, truncate: bool = False) -> Path:
+    """A minimal little-endian DAF/PCK whose segments cover ``spans``
+    ((start, end) naive UTC): a file record, one summary record, a name
+    record, then 10 doubles of data per segment (or one double short of
+    the last segment's data when ``truncate``)."""
+    import struct
+
+    record = 1024  # [byte]
+    head = bytearray(record)
+    head[0:8] = b"DAF/PCK "
+    head[8:16] = struct.pack("<ii", 2, 5)
+    head[76:88] = struct.pack("<iii", 2, 2, 0)
+    head[88:96] = b"LTL-IEEE"
+    summaries = bytearray(record)
+    summaries[0:24] = struct.pack("<3d", 0.0, 0.0, float(len(spans)))
+    first = 3 * 128 + 1  # [double] data after the file, summary and name records
+    for k, (start, end) in enumerate(spans):
+        at = 24 + 40 * k
+        summaries[at:at + 16] = struct.pack("<2d", (start - eo._J2000_UTC).total_seconds(),
+                                            (end - eo._J2000_UTC).total_seconds())
+        summaries[at + 16:at + 36] = struct.pack("<5i", 3000, 17, 2, first + 10 * k, first + 10 * k + 9)
+    data = bytes(8 * (10 * len(spans) - (1 if truncate else 0)))
+    path.write_bytes(bytes(head) + bytes(summaries) + bytes(record) + data)
+    return path
+
+
+def _kernel(path: Path) -> "eo.EOPKernel":
+    return eo.EOPKernel(role="combined", path=str(path), source="test", size_bytes=path.stat().st_size, sha256="0",
+                        installed_utc="", last_datum_utc=None)
+
+
+def test_a_pcks_coverage_is_read_from_its_summary_records(tmp_path):
+    """The span a binary PCK covers comes from its DAF summaries (to the
+    second here); a header-only, truncated or text file has none."""
+    path = _daf_pck(tmp_path / "a.bpc", [(datetime(2000, 1, 1), datetime(2005, 1, 1)),
+                                         (datetime(2005, 1, 1), datetime(2010, 6, 1))])
+    first, last = eo.pck_coverage(path)
+    assert abs((first - datetime(2000, 1, 1)).total_seconds()) < 1.0 and abs((last - datetime(2010, 6, 1)).total_seconds()) < 1.0
+    assert eo.pck_coverage(_fake_pck(tmp_path / "header_only.bpc")) is None
+    assert eo.pck_coverage(_daf_pck(tmp_path / "cut.bpc", [(datetime(2000, 1, 1), datetime(2010, 1, 1))],
+                                    truncate=True)) is None
+    (tmp_path / "text.bpc").write_text("not a kernel")
+    assert eo.pck_coverage(tmp_path / "text.bpc") is None
+    assert eo.pck_coverage(tmp_path / "missing.bpc") is None
+
+
+def test_kernels_are_used_only_when_they_cover_the_whole_run(tmp_path):
+    """Audit of 2026-10-27 (R1): a run outside every loaded Earth PCK made
+    SPICE stop the process. The kernels are used only when together they
+    cover the run without a gap, and every one can be read."""
+    early = _kernel(_daf_pck(tmp_path / "early.bpc", [(datetime(2000, 1, 1), datetime(2010, 1, 1))]))
+    late = _kernel(_daf_pck(tmp_path / "late.bpc", [(datetime(2010, 1, 1), datetime(2040, 1, 1))]))
+    apart = _kernel(_daf_pck(tmp_path / "apart.bpc", [(datetime(2015, 1, 1), datetime(2040, 1, 1))]))
+    unreadable = _kernel(_fake_pck(tmp_path / "x.bpc"))
+    assert eo.covering([early, late], datetime(2005, 1, 1), datetime(2030, 1, 1)) == [early, late]
+    assert eo.covering([early], datetime(2005, 1, 1), datetime(2030, 1, 1)) == []  # ends inside the run
+    assert eo.covering([early, apart], datetime(2005, 1, 1), datetime(2030, 1, 1)) == []  # a gap
+    assert eo.covering([early, apart], datetime(2020, 1, 1), datetime(2030, 1, 1)) == [early, apart]
+    assert eo.covering([early, late], datetime(1955, 1, 1), datetime(1955, 2, 1)) == []  # before them all
+    assert eo.covering([early, unreadable], datetime(2005, 1, 1), datetime(2006, 1, 1)) == []
+    assert eo.covered_until([early, late], datetime(2005, 1, 1)).year == 2040
+    assert eo.coverage_text([early, late]) == "2000-01-01 to 2040-01-01"
+
+
+@pytest.mark.requires_basilisk
+def test_a_run_the_files_do_not_cover_uses_iau_earth_and_says_so(tmp_path, monkeypatch):
+    """Template 02 at a 1955 epoch with Earth orientation files covering
+    2000 to 2010: the run used to end inside SPICE; now it runs in
+    IAU_EARTH, and both validate and the run say why."""
+    from spacemissionstudio.engine import scenario_checks
+    from spacemissionstudio.engine.service import SimulationService
+    from spacemissionstudio.schema import load_scenario
+
+    kernel = _kernel(_daf_pck(tmp_path / "earth.bpc", [(datetime(2000, 1, 1), datetime(2010, 1, 1))]))
+    monkeypatch.setattr(eo, "installed", lambda directory=None: [kernel])
+    scenario = load_scenario(Path(__file__).resolve().parent.parent / "spacemissionstudio" / "scenarios"
+                             / "templates" / "02_elliptical_orbit_with_perturbations.json")
+    scenario.epoch_utc = "1955-01-01T00:00:00"
+    scenario.sim_settings.duration_days = 0.01  # [day]
+    assert any("cover 2000-01-01 to 2010-01-01, not this run" in w
+               for w in scenario_checks.plausibility_warnings(scenario))
+    service = SimulationService(scenario)
+    result = service.run()
+    assert service.earth_frame == eo.FALLBACK_EARTH_FRAME
+    assert result.series["sat-1.position_N"].time_s[-1] > 0.0
+    assert not {name for name in result.provenance.data_files if name.startswith("earth_orientation:")}
+    assert any("the IERS files do not cover this run" in w for w in result.warnings)
+
+
+@pytest.mark.requires_basilisk
+def test_a_run_may_not_go_past_the_end_of_the_files():
+    """A Mission Sequence can run past the span checked when the run was
+    built: each stop time is checked, and one past the files' end is
+    refused with a message instead of ending the process in SPICE."""
+    from Basilisk.utilities import macros
+
+    from spacemissionstudio.engine.service import SimulationService, SimulationServiceError
+    from spacemissionstudio.schema import load_scenario
+
+    scenario = load_scenario(Path(__file__).resolve().parent.parent / "spacemissionstudio" / "scenarios"
+                             / "templates" / "02_elliptical_orbit_with_perturbations.json")
+    service = SimulationService(scenario)
+    service.check_stop_time(macros.sec2nano(10 * 86400.0))  # no files in use: nothing to check
+    service._earth_orientation_span = (datetime(2026, 12, 1), datetime(2027, 1, 16))
+    service.check_stop_time(macros.sec2nano(45 * 86400.0))  # [ns] 2027-01-15: inside
+    with pytest.raises(SimulationServiceError, match="2027-01-16 00:00 UTC, where the installed Earth orientation"):
+        service.check_stop_time(macros.sec2nano(47 * 86400.0))  # [ns] 2027-01-17
