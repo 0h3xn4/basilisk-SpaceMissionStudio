@@ -75,12 +75,49 @@ class _StubMakeup:
 
 
 def test_propellant_follows_ad10s_formula():
-    """m * (exp(dV / Ve) - 1), Ve = eta * Isp * g0."""
-    assert pb.propellant_for(140.0, 100.0, 1500.0 * 9.80665) == pytest.approx(140.0 * (math.exp(100.0 / 14709.975) - 1))
+    """The rocket equation from the mass before the burn,
+    m * (1 - exp(-dV / Ve)), Ve = eta * Isp * g0: the same propellant as
+    m_after * (exp(dV / Ve) - 1) from the mass after it."""
+    ve = 1500.0 * 9.80665  # [m/s]
+    used = pb.propellant_for(140.0, 100.0, ve)  # [kg]
+    assert used == pytest.approx(140.0 * (1.0 - math.exp(-100.0 / ve)))
+    assert used == pytest.approx((140.0 - used) * (math.exp(100.0 / ve) - 1.0))
     config = PropellantBudgetConfig(thrust_angle_deg=10.0, misalignment_deg=1.0, plume_efficiency=0.98,
                                     modulation_efficiency=0.95)
     expected = math.cos(math.radians(10.0)) * math.cos(math.radians(1.0)) * 0.98 * 0.95
     assert pb.thruster_efficiency(config) == pytest.approx(expected)
+
+
+def _transfer_and_mass_before(budget):
+    """The budget's transfer row and the mass left before it: beginning of
+    life (dry plus every row) less the rows before it [kg]."""
+    names = [r.contributor for r in budget.rows]
+    at = names.index("Orbit transfers")
+    before = budget.dry_mass_kg + budget.total_propellant_kg - sum(r.propellant_kg for r in budget.rows[:at])
+    return budget.rows[at], before
+
+
+def test_each_burn_takes_the_rocket_equation_from_the_mass_before_it():
+    """A transfer of 1 km/s at Isp 220 s from 138 kg dry: its propellant
+    is the rocket equation from the mass left before it, within the 0.1 kg
+    the iteration settles to. The budget used to take the beginning-of-
+    life mass times exp(dV / Ve) - 1, about 2.5 times too much here."""
+    budget = pb.compute_budget(_scenario(PropellantBudgetConfig(isp_s=220.0, transfer_delta_v_m_s=1000.0)), "sat-1")
+    ve = budget.efficiency * budget.isp_s * pb.G0_M_S2  # [m/s]
+    transfer, before = _transfer_and_mass_before(budget)
+    assert transfer.propellant_kg == pytest.approx(before * (1.0 - math.exp(-1000.0 / ve)), abs=0.1)
+    assert transfer.propellant_kg < before - budget.dry_mass_kg  # it never takes more than is on board
+
+
+def test_a_large_delta_v_still_gives_a_budget():
+    """3 km/s at Isp 220 s, beyond Ve * ln 2, where the old form had no
+    total: the iteration settles, and the transfer is still the rocket
+    equation from the mass before it."""
+    budget = pb.compute_budget(_scenario(PropellantBudgetConfig(isp_s=220.0, transfer_delta_v_m_s=3000.0)), "sat-1")
+    ve = budget.efficiency * budget.isp_s * pb.G0_M_S2  # [m/s]
+    assert not any("did not settle" in n for n in budget.notes)
+    transfer, before = _transfer_and_mass_before(budget)
+    assert transfer.propellant_kg == pytest.approx(before * (1.0 - math.exp(-3000.0 / ve)), abs=0.1)
 
 
 def test_collision_avoidance_clearance_and_injection_delta_v():

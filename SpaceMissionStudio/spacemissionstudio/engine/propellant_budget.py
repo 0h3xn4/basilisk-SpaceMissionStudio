@@ -28,9 +28,14 @@ thruster attitude control) and end of life (clearance, disposal) -- then
 adds the propellant residual and loading uncertainty, and iterates the
 total propellant until it changes by less than 0.1 kg (Sec. 6.5).
 
-* **Propellant per contributor** (Secs. 6.1.3, 6.2.7, 6.3.4): the phase's
-  starting mass times ``exp(dV / Ve) - 1``, with ``Ve = eta * Isp * g0``
-  and the thruster efficiency ``eta`` of Sec. 5.11.
+* **Propellant per contributor** (Secs. 6.1.3, 6.2.7, 6.3.4): the rocket
+  equation from the mass before the burn, ``m * (1 - exp(-dV / Ve))``,
+  with ``Ve = eta * Isp * g0`` and the thruster efficiency ``eta`` of
+  Sec. 5.11; the contributors are taken in order, each from the mass the
+  ones before it left. (Until 1.3.1 each took the phase's starting mass
+  times ``exp(dV / Ve) - 1``, the form for the mass *after* a burn: too
+  much propellant, 5 % at 100 m/s and 2.5 times at 1 km/s (150 kg dry, Isp 220 s),
+  and no total at all from about ``Ve * ln 2``.)
 * **From simulation** (Sec. 6.2.7: in-plane control "via simulation"):
   in- and out-of-plane control and formation keeping are taken from the
   spacecraft's last run -- delta-V and propellant as flown, so the mass
@@ -136,8 +141,11 @@ def thruster_efficiency(config: PropellantBudgetConfig) -> float:
 
 
 def propellant_for(mass_kg: float, delta_v_m_s: float, exhaust_m_s: float) -> float:
-    """``m * (exp(dV / Ve) - 1)`` (Secs. 6.1.3, 6.2.7, 6.3.4)."""
-    return mass_kg * (math.exp(delta_v_m_s / exhaust_m_s) - 1.0)
+    """The propellant [kg] a burn of ``delta_v_m_s`` uses from ``mass_kg``,
+    the mass before it: ``m * (1 - exp(-dV / Ve))`` (Secs. 6.1.3, 6.2.7,
+    6.3.4). From the mass after the burn the same amount is
+    ``m * (exp(dV / Ve) - 1)``."""
+    return mass_kg * -math.expm1(-delta_v_m_s / exhaust_m_s)
 
 
 def _circular_speed(a_m: float) -> float:
@@ -391,8 +399,10 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
         mass = dry_kg + propellant_kg  # beginning of life
 
         def add(phase, contributor, delta_v, kg=None, margin="-", source="computed"):
-            rows.append(BudgetRow(phase, contributor, delta_v,
-                                  propellant_for(mass, delta_v, exhaust_m_s) if kg is None else kg, margin, source))
+            nonlocal mass  # each contributor burns from what the ones before it left
+            kg = propellant_for(mass, delta_v, exhaust_m_s) if kg is None else kg
+            rows.append(BudgetRow(phase, contributor, delta_v, kg, margin, source))
+            mass -= kg
 
         phase = "Beginning of life"
         add(phase, "Launcher injection errors, in-plane", lie_ip)
@@ -400,10 +410,8 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
         if config.injection_raan_delta_v_m_s:
             add(phase, "Launcher injection errors, RAAN", config.injection_raan_delta_v_m_s, source="input")
         add(phase, "Orbit acquisition", config.orbit_acquisition_delta_v_m_s, source="input")
-        mass -= sum(r.propellant_kg for r in rows)  # operations
 
         phase = "Operations"
-        start = len(rows)
         add(phase, "Orbit transfers", config.transfer_delta_v_m_s, source="input")
         add(phase, "In-plane orbit control", ip_dv, ip_kg, source=ip_source)
         add(phase, "Out-of-plane orbit control", oop_dv, oop_kg, source=oop_source)
@@ -415,7 +423,6 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
             source="input")
         if config.hall_thruster_ignition_kg:
             add(phase, "Hall thruster ignitions", None, config.hall_thruster_ignition_kg, source="input")
-        mass -= sum(r.propellant_kg for r in rows[start:])  # end of life
 
         phase = "End of life"
         if config.clearance_sma_drop_km:

@@ -13134,6 +13134,106 @@ and nothing outside `SpaceMissionStudio/`. The fork's top-level
 changing it is the user's call. The space weather is 1.3.0's, two days
 old. Merging, tagging and publishing are the user's.
 
+## Release 1.3.1 published (2026-10-27)
+
+The user merged #119, pushed the tag `spacemissionstudio-v1.3.1` on
+`081f74079` and published the release at 06:05:53 UTC, four seconds
+before the release workflow started; the workflow (run 40459074482)
+attached the six files at 06:18 and wrote the notes, so the release was
+public without them for 12 minutes, as with 1.2.0 and 1.3.0. The tagged
+CHANGELOG heading reads 2026-10-26, the day it was prepared; `develop`'s
+now reads 2026-10-27. SRelD issue 16 records the tag, the run and the
+files' digests (from the release's assets); SDP, H05 and `releasing.md`
+name 1.3.1 as the current release, and `releasing.md` says again to wait
+for the workflow's draft before publishing.
+
+## A closed window lets go of its explanation worker (2026-10-27)
+
+The user: "Continue as per your recommendations". Branch
+`explainer-shut-down-drops-worker`, found when CI on PR #122 failed.
+
+**The failure:** `test_a_closed_window_starts_no_explanation_and_stops_autosaving`
+failed on a loaded CI runner (and twice in local full suites run under
+load): after `window.close()`, `scenario_explainer_widget._worker` was
+still set. An earlier edit's explanation was still being computed at
+close. `shut_down()` waited for its thread but left the reference, which
+only the worker's `finished` signal clears, and that signal is queued for
+an event loop a closing window may not run again.
+
+**The change:** after waiting, `shut_down()` releases a worker that has
+finished (`_on_worker_finished()`, which starts nothing more since the
+request was dropped). A worker still running after the 30 s wait is left
+alone, as before.
+
+**Tests:** `test_a_running_explanation_is_let_go_when_the_window_closes`
+starts a worker and closes the window at once: it failed every time
+before the change and passes after it.
+
+## The propellant budget's rocket equation (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's first
+fixes). Branch `budget-rocket-equation`.
+
+**Found by the audit:** 150 kg dry, Isp 220 s, one transfer row. The
+budget gave 7.7 kg for 100 m/s, 55 kg for 500 m/s, 232 kg for 1 km/s and
+2291 kg ("did not settle within 50 iterations") for 1.4 km/s; the rocket
+equation gives about 7.1, 39, 88 and 137 kg for the transfer alone.
+`propellant_for` was `m * (exp(dV / Ve) - 1)` with `m` the phase's
+starting wet mass; the test of the formula only re-stated it.
+
+**The change:** `propellant_for(m, dV, Ve)` is `m * (1 - exp(-dV / Ve))`
+from the mass before the burn, and each contributor lowers the mass for
+the next (`mass` is taken down in `add`, instead of once per phase).
+Same case now: 7.3, 40.6, 92.8 and 145.3 kg in total (the transfer plus
+the residual, uncertainty and the other default rows), settling in 3 to
+11 iterations.
+
+**Tests:** `test_propellant_follows_ad10s_formula` now asserts the rocket
+equation from the mass before the burn and that it equals the form from
+the mass after; `test_each_burn_takes_the_rocket_equation_from_the_mass_before_it`
+(1 km/s, within the 0.1 kg the iteration settles to) and
+`test_a_large_delta_v_still_gives_a_budget` (3 km/s settles), both
+failing on the previous code.
+
+## Mean elements at the critical inclination (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's first
+fixes). Branch `lifetime-critical-inclination`.
+
+**Found by the audit:** `lifetime 600 km, e 0.01, i 63.435 deg` printed
+"re-entry 2030-01-01, 0.00 years ... 5-year rule: met"; at 60 deg the
+same orbit is still in orbit after 30 years. A Molniya orbit (a 26600 km,
+e 0.74) at 63.435 deg stopped with `M2E() received e = 1.92`.
+`mean_orbit_from_state` and `ring_states` use Basilisk's first-order
+`clMeanOscMap`, whose long-period terms divide by `1 - 5 cos^2 i`; the
+same function feeds End of Life, the drag make-up estimate and the
+budget's uncontrolled re-entry. `service._mean_elements` documented the
+singularity as a plot artefact.
+
+**Measured first:** the mean perigee from the map against the one from
+the elements averaged over one orbit of the J2 motion (RK4, 720 steps):
+outside about 1 deg of the critical inclination within 0.1 km (600 km
+orbit) and 0.5 km (Molniya); 600 km orbit at 63.435 deg -1159 km against
+528.5 km; Molniya at 63.4 deg 520.8 km against 537.2 km, at 63.435 deg
+an error.
+
+**The change:** `engine/mean_elements.py`, `cl_mean_osc_map`: within
+1 deg of 63.435 or 116.565 deg the map is evaluated at the nearer edge
+and the inclination difference carried across; elsewhere it calls
+`clMeanOscMap` unchanged. Used by `mean_orbit_from_state`, `ring_states`
+and the run's mean-element series.
+
+**Tests** (`tests/test_mean_elements.py`): the mean perigee across both
+bands within 0.5 km (600 km orbit) and 1 km (Molniya) of the orbit
+average (measured 0.4 and 0.7 km); outside the band the elements are
+Basilisk's, bit for bit, both ways; the density ring finite at both
+critical values; template 18's spacecraft from 300 km at 63.435 deg
+re-enters in the estimate within 3% of where a full Basilisk run stops
+(34.46 against 34.82 days).
+
+**Result:** the 600 km orbit at 63.435 deg is "still in orbit after
+30.0 years"; the Molniya case runs.
+
 ## A template is a source, not a file to save over (2026-10-27)
 
 The user: "Continue as per your recommendations" (the audit's first
