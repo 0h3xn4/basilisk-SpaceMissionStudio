@@ -13134,6 +13134,19 @@ and nothing outside `SpaceMissionStudio/`. The fork's top-level
 changing it is the user's call. The space weather is 1.3.0's, two days
 old. Merging, tagging and publishing are the user's.
 
+## Release 1.3.1 published (2026-10-27)
+
+The user merged #119, pushed the tag `spacemissionstudio-v1.3.1` on
+`081f74079` and published the release at 06:05:53 UTC, four seconds
+before the release workflow started; the workflow (run 40459074482)
+attached the six files at 06:18 and wrote the notes, so the release was
+public without them for 12 minutes, as with 1.2.0 and 1.3.0. The tagged
+CHANGELOG heading reads 2026-10-26, the day it was prepared; `develop`'s
+now reads 2026-10-27. SRelD issue 16 records the tag, the run and the
+files' digests (from the release's assets); SDP, H05 and `releasing.md`
+name 1.3.1 as the current release, and `releasing.md` says again to wait
+for the workflow's draft before publishing.
+
 ## A closed window lets go of its explanation worker (2026-10-27)
 
 The user: "Continue as per your recommendations". Branch
@@ -13155,6 +13168,133 @@ alone, as before.
 **Tests:** `test_a_running_explanation_is_let_go_when_the_window_closes`
 starts a worker and closes the window at once: it failed every time
 before the change and passes after it.
+
+## The propellant budget's rocket equation (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's first
+fixes). Branch `budget-rocket-equation`.
+
+**Found by the audit:** 150 kg dry, Isp 220 s, one transfer row. The
+budget gave 7.7 kg for 100 m/s, 55 kg for 500 m/s, 232 kg for 1 km/s and
+2291 kg ("did not settle within 50 iterations") for 1.4 km/s; the rocket
+equation gives about 7.1, 39, 88 and 137 kg for the transfer alone.
+`propellant_for` was `m * (exp(dV / Ve) - 1)` with `m` the phase's
+starting wet mass; the test of the formula only re-stated it.
+
+**The change:** `propellant_for(m, dV, Ve)` is `m * (1 - exp(-dV / Ve))`
+from the mass before the burn, and each contributor lowers the mass for
+the next (`mass` is taken down in `add`, instead of once per phase).
+Same case now: 7.3, 40.6, 92.8 and 145.3 kg in total (the transfer plus
+the residual, uncertainty and the other default rows), settling in 3 to
+11 iterations.
+
+**Tests:** `test_propellant_follows_ad10s_formula` now asserts the rocket
+equation from the mass before the burn and that it equals the form from
+the mass after; `test_each_burn_takes_the_rocket_equation_from_the_mass_before_it`
+(1 km/s, within the 0.1 kg the iteration settles to) and
+`test_a_large_delta_v_still_gives_a_budget` (3 km/s settles), both
+failing on the previous code.
+
+## Mean elements at the critical inclination (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's first
+fixes). Branch `lifetime-critical-inclination`.
+
+**Found by the audit:** `lifetime 600 km, e 0.01, i 63.435 deg` printed
+"re-entry 2030-01-01, 0.00 years ... 5-year rule: met"; at 60 deg the
+same orbit is still in orbit after 30 years. A Molniya orbit (a 26600 km,
+e 0.74) at 63.435 deg stopped with `M2E() received e = 1.92`.
+`mean_orbit_from_state` and `ring_states` use Basilisk's first-order
+`clMeanOscMap`, whose long-period terms divide by `1 - 5 cos^2 i`; the
+same function feeds End of Life, the drag make-up estimate and the
+budget's uncontrolled re-entry. `service._mean_elements` documented the
+singularity as a plot artefact.
+
+**Measured first:** the mean perigee from the map against the one from
+the elements averaged over one orbit of the J2 motion (RK4, 720 steps):
+outside about 1 deg of the critical inclination within 0.1 km (600 km
+orbit) and 0.5 km (Molniya); 600 km orbit at 63.435 deg -1159 km against
+528.5 km; Molniya at 63.4 deg 520.8 km against 537.2 km, at 63.435 deg
+an error.
+
+**The change:** `engine/mean_elements.py`, `cl_mean_osc_map`: within
+1 deg of 63.435 or 116.565 deg the map is evaluated at the nearer edge
+and the inclination difference carried across; elsewhere it calls
+`clMeanOscMap` unchanged. Used by `mean_orbit_from_state`, `ring_states`
+and the run's mean-element series.
+
+**Tests** (`tests/test_mean_elements.py`): the mean perigee across both
+bands within 0.5 km (600 km orbit) and 1 km (Molniya) of the orbit
+average (measured 0.4 and 0.7 km); outside the band the elements are
+Basilisk's, bit for bit, both ways; the density ring finite at both
+critical values; template 18's spacecraft from 300 km at 63.435 deg
+re-enters in the estimate within 3% of where a full Basilisk run stops
+(34.46 against 34.82 days).
+
+**Result:** the 600 km orbit at 63.435 deg is "still in orbit after
+30.0 years"; the Molniya case runs.
+
+## A template is a source, not a file to save over (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's first
+fixes). Branch `templates-open-untitled`.
+
+**Found by the audit:** `open_path` makes the opened file the current
+path, a built-in template included; `on_save` then writes there without
+a check. A probe with `Scenario.save` stubbed showed the call with the
+template's path and the folder writable. On Linux the `.deb` installs
+the templates root-owned, so Save failed there instead; on a Windows
+install (under `%LOCALAPPDATA%`) and from source it would overwrite the
+template. The User Manual (section 8) already said a template is "never
+overwritten automatically".
+
+**The change:** `on_save` goes to `on_save_as` when the current path is
+a built-in template; `on_save_as` starts in the home folder under the
+template's name and refuses a path in the templates folder with a
+warning. The manual says what Save does now.
+
+**Tests:** `test_save_after_opening_a_template_asks_where_and_keeps_the_template`
+(the dialog starts at home under the template's name, the template's
+bytes are unchanged, the saved file becomes the scenario's) and
+`test_save_as_refuses_the_templates_folder`.
+
+## Earth orientation files only for the runs they cover (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's first
+fixes). Branch `earth-orientation-coverage`.
+
+**Found by the audit:** template 02 at a 1955 epoch: `validate` said OK,
+`run` printed SPICE's "SPICE(FRAMEDATANOTFOUND) ... ITRF93" and its
+abort banner and exited 1 (reproduced). `service.py` loaded every
+installed Earth PCK and switched to ITRF93 whatever the run's dates;
+past every loaded PCK, CSPICE's default error action ends the process,
+in the GUI the whole window. The same with only the high-precision file
+(2000 to 2027-01-16) and a 2030 epoch.
+
+**The change:**
+- `earth_orientation.pck_coverage` reads each file's segment times from
+  its DAF summary records (the installed files: combined 1962-01-19 to
+  2126-11-03, high precision 1999-12-31 to 2027-01-16); `covering` and
+  `covered_until` check a run's span against them.
+- The service loads the files only when they cover the whole run;
+  otherwise the frame stays IAU_EARTH and the run's warnings say "the
+  IERS files do not cover this run".
+- `check_stop_time` refuses a stop time past the files' end, before each
+  `ConfigureStopTime` (6 places in the service and the mission engine).
+- The plausibility checks (`validate`, the editor's warnings) say when
+  the installed files do not cover the run.
+
+**Tests** (`tests/test_earth_orientation.py`, with synthetic DAF/PCK
+files): coverage read from the summaries, none for header-only,
+truncated, text or missing files; `covering` with a gap, a run before
+all files and an unreadable file; template 02 at 1955 with files for
+2000-2010 runs in IAU_EARTH, loads no orientation file and warns, in
+`validate` and in the run; a stop time past the files' end is refused.
+
+**Result:** the 1955 run of template 02 completes (exit 0) with the
+warning "Earth gravity field oriented by the IAU model (the IERS files do
+not cover this run)"; `validate` warns that the files "cover 1962-01-19
+to 2126-11-03, not this run".
 
 ## Limits on conditions, script consent and Monte Carlo (2026-10-27)
 

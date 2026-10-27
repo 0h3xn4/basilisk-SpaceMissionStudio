@@ -59,6 +59,7 @@ import numpy as np
 
 from ..schema.epochs import parse_epoch_utc
 from . import geodesy
+from .mean_elements import cl_mean_osc_map
 
 # Basilisk's own Earth constants (architecture/utilities/astroConstants.h)
 MU_EARTH_M3_S2 = 398600.436e9  # [m^3/s^2]
@@ -159,20 +160,21 @@ def ring_states(orbit: MeanOrbit, points: int = RING_POINTS):
         mean.Omega, mean.omega = orbit.raan_rad, orbit.arg_periapsis_rad
         mean.f = orbitalMotion.E2f(orbitalMotion.M2E(2.0 * math.pi * k / points, eccentricity), eccentricity)
         osculating = orbitalMotion.ClassicElements()
-        orbitalMotion.clMeanOscMap(REQ_EARTH_M, J2_EARTH, mean, osculating, 1)
+        cl_mean_osc_map(REQ_EARTH_M, J2_EARTH, mean, osculating, 1)
         r[k], v[k] = orbitalMotion.elem2rv(MU_EARTH_M3_S2, osculating)
     return r, v
 
 
 def mean_orbit_from_state(r_m, v_m_s) -> MeanOrbit:
     """Mean elements (Basilisk's ``clMeanOscMap``, J2 short-period terms
-    removed) from an inertial position and velocity [m, m/s]."""
+    removed; finite at the critical inclination, :mod:`.mean_elements`)
+    from an inertial position and velocity [m, m/s]."""
     from Basilisk.utilities import orbitalMotion
 
     osculating = orbitalMotion.rv2elem(MU_EARTH_M3_S2, np.asarray(r_m, dtype=float), np.asarray(v_m_s, dtype=float))
     osculating.i = min(max(osculating.i, 1e-9), math.pi - 1e-9)  # clMeanOscMap divides by tan(i)
     mean = orbitalMotion.ClassicElements()
-    orbitalMotion.clMeanOscMap(REQ_EARTH_M, J2_EARTH, osculating, mean, -1)
+    cl_mean_osc_map(REQ_EARTH_M, J2_EARTH, osculating, mean, -1)
     return MeanOrbit(mean.a, max(mean.e, 0.0), mean.i, mean.Omega, mean.omega)
 
 

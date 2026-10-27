@@ -116,6 +116,14 @@ from .workspace_panels import InspectorWidget, LogViewWidget, ProblemsWidget, in
 from ..engine.vizard import playback_file as vizard_playback_file
 
 _FILE_FILTER = "SpaceMissionStudio scenario (*.json)"
+
+
+def _is_template(path: Optional[Path]) -> bool:
+    """Whether ``path`` is in the built-in templates folder."""
+    try:
+        return path is not None and Path(path).resolve().parent == TEMPLATES_DIR.resolve()
+    except OSError:
+        return False
 _HISTORY_SETTLE_MS = 400  # [ms] an edit is recorded for undo once typing pauses this long
 
 # [ms] Design-philosophy roadmap item M4 (docs/ux_roadmap.md) -- how
@@ -1701,18 +1709,27 @@ class MainWindow(QMainWindow):
         self.show_view(self.scenario_editor)
 
     def on_save(self) -> None:
-        if self._current_path is None:
+        # A built-in template is where the scenario came from, not a file
+        # to save over: Save goes to Save As (audit of 2026-10-27, G1).
+        if self._current_path is None or _is_template(self._current_path):
             self.on_save_as()
             return
         self._save_to(self._current_path)
 
     def on_save_as(self) -> None:
-        path_str, _selected_filter = QFileDialog.getSaveFileName(self, "Save scenario as", "", _FILE_FILTER)
+        # From a template, the dialog starts in the home folder under the
+        # template's file name; otherwise where the dialog last was.
+        start = str(Path.home() / self._current_path.name) if _is_template(self._current_path) else ""
+        path_str, _selected_filter = QFileDialog.getSaveFileName(self, "Save scenario as", start, _FILE_FILTER)
         if not path_str:
             return
         path = Path(path_str)
         if path.suffix != ".json":
             path = path.with_suffix(".json")
+        if _is_template(path):
+            report(self, f"{path.name} is in the built-in templates folder, which the app keeps as shipped. "
+                         "Save the scenario in another folder.", kind="warning")
+            return
         self._save_to(path)
 
     def _save_to(self, path: Path) -> None:

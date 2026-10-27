@@ -89,6 +89,7 @@ from . import (data_handling, earth_orientation, environment_models, formation_c
                geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
                optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, small_bodies,
                solar_arrays, time_system, tle, vizard)
+from .mean_elements import cl_mean_osc_map
 from .results import ResultSet, RunProvenance, TimeSeries, conservation_drift_warnings
 from .vizard import VizardRequest
 
@@ -381,16 +382,15 @@ def _mean_elements(oe: Dict[str, np.ndarray], req: float, j2: float) -> Dict[str
     ``SimulationService``'s own gating below for when ``req``/``j2`` are
     even set (only once a real J2 term is actually being modeled).
 
-    Known limitation, inherited directly from the underlying first-order
-    J2 theory (documented in ``clMeanOscMap``'s own reference, Schaub &
-    Junkins' "Analytical Mechanics of Space Systems"), not introduced
-    here: this mapping has a genuine mathematical singularity at the
-    critical inclination (~63.4 deg / ~116.6 deg, where ``1 - 5*cos(i)^2
-    == 0``) and degrades near i=0/180 deg -- the same well-known caveat
-    STK's own Brouwer-Lyddane-based "Mean" elements carry. A scenario
-    whose inclination sits at/near either value can show NaN/spiky mean
-    -element samples; Plotly simply leaves a gap for a NaN sample rather
-    than erroring, so this is a visible plot artifact, not a crash.
+    The first-order J2 theory (Schaub & Junkins, "Analytical Mechanics of
+    Space Systems") has a singularity at the critical inclination (~63.4
+    deg / ~116.6 deg, where ``1 - 5*cos(i)^2 == 0``): its long-period
+    terms grow without bound there. :func:`.mean_elements.cl_mean_osc_map`
+    evaluates the map at the edge of a 1 deg band around it, so a sample
+    at or near that inclination gets finite mean elements (audit of
+    2026-10-27); elsewhere it is Basilisk's map unchanged. It still
+    degrades near i = 0/180 deg, the same caveat STK's own
+    Brouwer-Lyddane-based "Mean" elements carry.
     """
     n = oe["a"].shape[0]
     a = np.empty(n)
@@ -416,7 +416,7 @@ def _mean_elements(oe: Dict[str, np.ndarray], req: float, j2: float) -> Dict[str
         try:
             if not (0.0 <= osc.e < 1.0 and osc.a > 0.0):
                 raise ValueError("not a closed orbit")
-            orbitalMotion.clMeanOscMap(req, j2, osc, mean, -1)
+            cl_mean_osc_map(req, j2, osc, mean, -1)
         except ValueError:
             # a spacecraft past re-entry, inside the Earth: no closed
             # orbit, or none once J2's terms are removed (clMeanOscMap's
@@ -553,6 +553,9 @@ class SimulationService:
         # (spacecraft name, t [s]) once a spacecraft with drag re-entered;
         # the run stopped there rather than integrate it through the Earth
         self.reentry: Optional[tuple] = None
+        # (run start, end of the Earth orientation files' coverage) [naive
+        # UTC] while ITRF93 is used: check_stop_time() keeps a run inside it
+        self._earth_orientation_span: Optional[tuple] = None
         self._space_weather_warnings: List[str] = []  # what the resolved space weather is built from
         self._model_warnings: List[str] = []  # environment models used outside their validity
         self._data_files: Dict[str, Dict[str, object]] = {}  # reference data used, for RunProvenance
@@ -816,7 +819,14 @@ class SimulationService:
         # high-precision one, loaded last, takes precedence.
         self.earth_frame = earth_orientation.FALLBACK_EARTH_FRAME
         if "earth" in body_names:
-            eop_kernels = earth_orientation.installed()
+            start_utc = parse_epoch_utc(scenario.epoch_utc)
+            if start_utc.tzinfo is not None:
+                start_utc = start_utc.astimezone(timezone.utc).replace(tzinfo=None)
+            end_utc = start_utc + timedelta(days=sim_settings.duration_days)
+            installed_eop = earth_orientation.installed()
+            # Only files that cover the whole run: outside every loaded
+            # Earth PCK, SPICE stops the process (audit of 2026-10-27, R1)
+            eop_kernels = earth_orientation.covering(installed_eop, start_utc, end_utc)
             for eop in eop_kernels:
                 eop_path = Path(eop.path)
                 self.spice_object.loadSpiceKernel(eop_path.name, str(eop_path.parent) + os.sep)
@@ -824,17 +834,20 @@ class SimulationService:
                     "path": eop.path, "size_bytes": eop.size_bytes, "sha256": eop.sha256, "source": eop.source,
                     "last_datum_utc": eop.last_datum_utc}
             if eop_kernels:
+                self._earth_orientation_span = (start_utc, earth_orientation.covered_until(eop_kernels, start_utc))
                 self.earth_frame = earth_orientation.EARTH_FIXED_FRAME
                 self.spice_object.planetFrames = [self.earth_frame if name == "earth" else "" for name in body_names]
-            start_utc = parse_epoch_utc(scenario.epoch_utc)
-            if start_utc.tzinfo is not None:
-                start_utc = start_utc.astimezone(timezone.utc).replace(tzinfo=None)
-            self._earth_orientation_notes = earth_orientation.notes(
-                start_utc, start_utc + timedelta(days=sim_settings.duration_days), eop_kernels)
+            if installed_eop and not eop_kernels:
+                self._earth_orientation_notes = [
+                    f"Earth orientation: IAU rotation model; the installed IERS files cover "
+                    f"{earth_orientation.coverage_text(installed_eop)}, not this run"]
+            else:
+                self._earth_orientation_notes = earth_orientation.notes(start_utc, end_utc, eop_kernels)
             if not eop_kernels and gravity.central_body == "earth" and gravity.central_body_degree > 0:
                 # Phase 3 V-04: degree 20 at 400 km is ~160 m from GMAT after a day with IAU_EARTH
+                why = "the IERS files do not cover this run" if installed_eop else "no IERS data"
                 self._earth_orientation_notes.append(
-                    "Earth gravity field oriented by the IAU model (no IERS data): ~160 m/day "
+                    f"Earth gravity field oriented by the IAU model ({why}): ~160 m/day "
                     "position error at degree 20, 400 km")
         # Re-zero every SPICE ephemeris output on the central body (SPICE's
         # own observer/"zeroBase" concept -- see spiceInterface.cpp's
@@ -1922,11 +1935,28 @@ class SimulationService:
             # for the actual numbers this was confirmed against.
             priming_time_s = min(sim_settings.dynamics_task_rate_s, stop_time_s)
             priming_time_ns = macros.sec2nano(priming_time_s)
+            self.check_stop_time(priming_time_ns)
             self.scSim.ConfigureStopTime(priming_time_ns)
             self.scSim.ExecuteSimulation()
             for desat_control in self._desat_controls:
                 desat_control.Reset(priming_time_ns)
+        self.check_stop_time(macros.sec2nano(stop_time_s))
         self.scSim.ConfigureStopTime(macros.sec2nano(stop_time_s))
+
+    def check_stop_time(self, stop_ns: int) -> None:
+        """Refuse to run past the end of the Earth orientation files'
+        coverage while the Earth-fixed frame is ITRF93: past every loaded
+        Earth PCK, SPICE stops the whole process (audit of 2026-10-27, R1).
+        A run's own span is checked when it is built; this catches a
+        Mission Sequence that propagates beyond it."""
+        if self._earth_orientation_span is None:
+            return
+        start_utc, until_utc = self._earth_orientation_span
+        if stop_ns * macros.NANO2SEC > (until_utc - start_utc).total_seconds():
+            raise SimulationServiceError(
+                f"the run would go past {until_utc:%Y-%m-%d %H:%M} UTC, where the installed Earth orientation files "
+                f"({earth_orientation.EARTH_FIXED_FRAME}) end -- shorten it, or install newer files in Settings > "
+                "Reference data")
 
     def _record(self, msg):
         """A recorder for ``msg`` sampling every
@@ -2097,6 +2127,7 @@ class SimulationService:
         if not watched:
             if self.reentry is not None:
                 return False
+            self.check_stop_time(stop_ns)
             self.scSim.ConfigureStopTime(stop_ns)
             self.scSim.ExecuteSimulation()
             return True
@@ -2119,6 +2150,7 @@ class SimulationService:
                     if a_m * (1.0 - e) - self.central_radius_m < _REENTRY_NEAR_PERIGEE_M:
                         step_s = _REENTRY_NEAR_CHECK_S
             next_ns = min(stop_ns, now_ns + macros.sec2nano(step_s))
+            self.check_stop_time(next_ns)
             self.scSim.ConfigureStopTime(next_ns)
             self.scSim.ExecuteSimulation()
             now_ns = next_ns
@@ -2205,7 +2237,8 @@ class SimulationService:
                 if depleted_at_s is not None:
                     result.warnings.append(f"{name}: {what} ran out of propellant at t = {depleted_at_s / 86400.0:.2f} "
                                            "days; no further burns were made")
-        result.warnings.extend(note for note in self._earth_orientation_notes if "no IERS data" in note)
+        result.warnings.extend(note for note in self._earth_orientation_notes
+                               if any(why in note for why in ("no IERS data", "not this run", "do not cover this run")))
         spacecraft_by_name = {sc_config.name: sc_config for sc_config in self.scenario.spacecraft}
         for name, handle in self._handles.items():
             t_s = handle.recorder.times() * macros.NANO2SEC

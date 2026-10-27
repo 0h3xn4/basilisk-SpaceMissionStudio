@@ -45,17 +45,20 @@ source, size, SHA-256 and the EOP's last datum.
 from __future__ import annotations
 
 import dataclasses
+import functools
 import hashlib
 import json
+import os
 import re
 import shutil
+import struct
 import sys
 import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Iterable, List, Optional
+from typing import Iterable, List, Optional, Tuple
 
 NAIF_PCK_URL = "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/"
 HIGH_PRECISION_NAME = "earth_latest_high_prec.bpc"
@@ -277,6 +280,99 @@ def rollback(directory: Optional[Path] = None) -> List[EOPKernel]:
     _manifest_path(directory).write_text(json.dumps(entries, indent=2), encoding="utf-8")
     previous.rmdir()
     return installed(directory)
+
+
+_DAF_RECORD_BYTES = 1024  # [byte]
+_J2000_UTC = datetime(2000, 1, 1, 11, 58, 55, 816000)  # 2000-01-01 12:00 TDB in UTC (TDB - UTC = 64.184 s then)
+
+
+def pck_coverage(path) -> Optional[Tuple[datetime, datetime]]:
+    """The first and last time [naive UTC] a binary PCK's segments cover,
+    read from its DAF summary records; None when the file is not a
+    readable DAF/PCK (too short, a summary pointing past the end of the
+    file). Times are to within a minute (TDB taken as UTC + 64.184 s,
+    as at J2000), plenty for checking a run's span. Reads only the file
+    and summary records, once per file version."""
+    try:
+        stat = os.stat(path)
+    except OSError:
+        return None
+    return _pck_coverage(str(path), stat.st_size, stat.st_mtime_ns)
+
+
+@functools.lru_cache(maxsize=16)
+def _pck_coverage(path: str, size_bytes: int, _mtime_ns: int) -> Optional[Tuple[datetime, datetime]]:
+    try:
+        with open(path, "rb") as f:
+            head = f.read(_DAF_RECORD_BYTES)
+            if len(head) < _DAF_RECORD_BYTES or not head.startswith(_DAF_PCK_MAGIC):
+                return None
+            endian = {b"LTL-IEEE": "<", b"BIG-IEEE": ">"}.get(head[88:96])
+            if endian is None:
+                return None
+            nd, ni = struct.unpack(endian + "ii", head[8:16])
+            (record,) = struct.unpack(endian + "i", head[76:80])
+            if nd != 2 or ni != 5:  # a PCK's summaries: two times, five integers
+                return None
+            starts, ends, seen = [], [], set()
+            while record > 0 and record not in seen:
+                seen.add(record)
+                f.seek((record - 1) * _DAF_RECORD_BYTES)
+                block = f.read(_DAF_RECORD_BYTES)
+                if len(block) < _DAF_RECORD_BYTES:
+                    return None
+                following, _previous, count = struct.unpack(endian + "3d", block[:24])
+                if not 0 <= count <= (_DAF_RECORD_BYTES - 24) // 40:
+                    return None
+                for k in range(int(count)):
+                    at = 24 + k * 40  # 5 doubles per summary: 2 times, then 5 integers in 3 doubles
+                    begin_et, end_et = struct.unpack(endian + "2d", block[at:at + 16])
+                    _body, _frame, _kind, first, last = struct.unpack(endian + "5i", block[at + 16:at + 36])
+                    if not 0 < first <= last <= size_bytes // 8:
+                        return None  # the segment's data lies past the end of the file (a truncated download)
+                    starts.append(begin_et)
+                    ends.append(end_et)
+                record = int(following)
+    except (OSError, struct.error, ValueError, OverflowError):
+        return None
+    if not starts:
+        return None
+    return _J2000_UTC + timedelta(seconds=min(starts)), _J2000_UTC + timedelta(seconds=max(ends))
+
+
+def covered_until(kernels: List[EOPKernel], start_utc: datetime) -> Optional[datetime]:
+    """How far [naive UTC] ``kernels`` cover without a gap from
+    ``start_utc``; None when they do not cover ``start_utc`` or one of
+    them cannot be read."""
+    spans = []
+    for kernel in kernels:
+        span = pck_coverage(kernel.path)
+        if span is None:
+            return None
+        spans.append(span)
+    reached = None  # [UTC] how far the spans reach, once one covers start_utc
+    for first, last in sorted(span for span in spans if span[1] >= start_utc):
+        if first > (start_utc if reached is None else reached):
+            break  # start_utc itself not covered, or a gap
+        reached = last if reached is None else max(reached, last)
+    return reached
+
+
+def covering(kernels: List[EOPKernel], start_utc: datetime, end_utc: datetime) -> List[EOPKernel]:
+    """``kernels`` if together they cover ``start_utc`` to ``end_utc``
+    (naive UTC) and each can be read, else []: a run outside every
+    loaded Earth PCK made SPICE stop the whole process (audit of
+    2026-10-27, R1)."""
+    until = covered_until(kernels, start_utc)
+    return list(kernels) if until is not None and until >= end_utc else []
+
+
+def coverage_text(kernels: List[EOPKernel]) -> str:
+    """'1962-01-20 to 2126-08-06', the span the kernels cover, or why not."""
+    spans = [pck_coverage(k.path) for k in kernels]
+    if not spans or any(span is None for span in spans):
+        return "a file that cannot be read"
+    return f"{min(s[0] for s in spans):%Y-%m-%d} to {max(s[1] for s in spans):%Y-%m-%d}"
 
 
 def high_accuracy_until(kernels: List[EOPKernel]) -> Optional[datetime]:
