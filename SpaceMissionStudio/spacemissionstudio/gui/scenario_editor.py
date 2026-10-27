@@ -340,6 +340,7 @@ class ScenarioEditorWidget(QWidget):
         layout = QVBoxLayout(group)
         self.spacecraft_list = SpacecraftListWidget()
         self.spacecraft_list.set_central_body_provider(lambda: self._gravity.central_body)
+        self.spacecraft_list.set_gravity_degree_provider(lambda: self._gravity.central_body_degree)
         self.spacecraft_list.set_simulation_mode_provider(lambda: self.simulation_mode_combo.currentData())
         self.spacecraft_list.set_ground_station_names_provider(
             lambda: [gs.name for gs in self.ground_station_list.to_list()]

@@ -16,23 +16,32 @@
 #  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
 """J2 mean <-> osculating classical elements that stay finite at the
-critical inclination.
+critical inclination and for equatorial orbits.
 
 Basilisk's ``orbitalMotion.clMeanOscMap`` (first-order Brouwer-Lyddane,
 Schaub & Junkins) has long-period terms divided by ``1 - 5 cos^2 i``,
 which is zero at the critical inclination, 63.435 deg and 116.565 deg. A
 600 km orbit at 63.435 deg came back with a mean perigee of -1159 km; a
 Molniya orbit there with an eccentricity above 1 (audit of 2026-10-27).
+It also divides by ``tan i``: at 0 deg exactly it raises
+ZeroDivisionError.
 
 :func:`cl_mean_osc_map` calls ``clMeanOscMap`` unchanged everywhere else.
 Within :data:`CRITICAL_BAND_RAD` of either critical value it evaluates the
-map at the nearer edge of the band and carries the inclination difference
-across: the other elements' corrections are those at the edge. Checked
-against the elements averaged over one orbit of the J2 motion (no
-singular terms): within 0.4 km of mean perigee for a 600 km orbit and
-0.7 km for a Molniya orbit across the band, where the plain map was off
-by up to 1700 km and failed (``tests/test_mean_elements.py``, which
-allows 0.5 and 1 km).
+map at both edges of the band, carries the inclination difference across,
+and blends the two by distance (in equinoctial elements): the map stays
+continuous, so two satellites on either side of the critical value get
+consistent mean elements (with the nearer edge alone, a jump at the
+critical value put a follower 200 m off in semi-major axis). Within
+:data:`EQUATORIAL_BAND_RAD` of 0 or 180 deg it evaluates the map at the
+band's edge. Checked against the elements averaged over one orbit of the
+J2 motion (no singular terms): within 0.02 km of mean perigee for a
+600 km orbit and 0.7 km for a Molniya orbit across the band, where the
+plain map was off by up to 1700 km and failed (``tests/test_mean_elements.py``,
+which allows 0.5 and 1 km).
+
+:func:`osculating_from_mean` inverts the map, for placing satellites by
+their mean elements (the Walker and phasing generators).
 """
 
 from __future__ import annotations
@@ -42,33 +51,118 @@ import math
 #: The critical inclination [rad]: ``1 - 5 cos^2 i = 0`` (63.435 deg).
 CRITICAL_INCLINATION_RAD = math.acos(math.sqrt(0.2))
 #: Half-width of the band around it (and around 180 deg minus it) where
-#: the map is evaluated at the band's edge [rad].
+#: the map is blended from its values at the band's edges [rad].
 CRITICAL_BAND_RAD = math.radians(1.0)
+#: Below this inclination (and above 180 deg minus it) the map is
+#: evaluated at the band's edge [rad].
+EQUATORIAL_BAND_RAD = math.radians(1.0)
+#: Correction steps in :func:`osculating_from_mean` (below a millimetre of
+#: semi-major axis in two, as in ``roe_formation.follower_orbit``).
+_PLACEMENT_ITERATIONS = 6
 
 
-def mapping_inclination(inclination_rad: float) -> float:
-    """The inclination [rad] to evaluate ``clMeanOscMap`` at: the given
-    one, or the nearer edge of the critical band it lies in."""
+def _critical_band(inclination_rad: float):
+    """``(lower edge, upper edge)`` [rad] of the critical band holding the
+    inclination, or None."""
     for critical in (CRITICAL_INCLINATION_RAD, math.pi - CRITICAL_INCLINATION_RAD):
-        offset = inclination_rad - critical
-        if abs(offset) < CRITICAL_BAND_RAD:
-            return critical + math.copysign(CRITICAL_BAND_RAD, offset if offset else -1.0)
-    return inclination_rad
+        if abs(inclination_rad - critical) < CRITICAL_BAND_RAD:
+            return critical - CRITICAL_BAND_RAD, critical + CRITICAL_BAND_RAD
+    return None
+
+
+def _map_at(req_m: float, j2: float, source, target, sign: int, used_rad: float) -> None:
+    """``clMeanOscMap`` evaluated at inclination ``used_rad``, with the
+    inclination difference carried across."""
+    from Basilisk.utilities import orbitalMotion
+
+    moved = orbitalMotion.ClassicElements()
+    moved.a, moved.e, moved.i = source.a, source.e, used_rad
+    moved.Omega, moved.omega, moved.f = source.Omega, source.omega, source.f
+    orbitalMotion.clMeanOscMap(req_m, j2, moved, target, sign)
+    target.i += source.i - used_rad
+    if not 0.0 <= target.i <= math.pi:
+        # Carried past the end of the inclination range (an equatorial
+        # orbit): the same orbit, with the node and perigee turned by 180 deg.
+        target.i = -target.i if target.i < 0.0 else 2.0 * math.pi - target.i
+        target.Omega = (target.Omega + math.pi) % (2.0 * math.pi)
+        target.omega = (target.omega + math.pi) % (2.0 * math.pi)
 
 
 def cl_mean_osc_map(req_m: float, j2: float, source, target, sign: int) -> None:
     """``clMeanOscMap(req, j2, source, target, sign)`` (sign -1: osculating
-    to mean, +1: mean to osculating), finite at the critical inclination.
-    ``source`` is left unchanged."""
+    to mean, +1: mean to osculating), finite and continuous at the critical
+    inclination and at 0 and 180 deg. ``source`` is left unchanged."""
     from Basilisk.utilities import orbitalMotion
 
     inclination = source.i
-    used = mapping_inclination(inclination)
-    if used == inclination:
+    band = _critical_band(inclination)
+    if band is not None:
+        lower, upper = band
+        retrograde = inclination > math.pi / 2.0
+        at_lower, at_upper = orbitalMotion.ClassicElements(), orbitalMotion.ClassicElements()
+        _map_at(req_m, j2, source, at_lower, sign, lower)
+        _map_at(req_m, j2, source, at_upper, sign, upper)
+        weight = (upper - inclination) / (upper - lower)  # 1 at the lower edge, 0 at the upper
+        low, high = _equinoctial(at_lower, retrograde), _equinoctial(at_upper, retrograde)
+        blended = [h + weight * (lo - h) for lo, h in zip(low[:5], high[:5])]
+        blended.append(high[5] + weight * _wrap_pi(low[5] - high[5]))
+        _set_equinoctial(target, blended, retrograde)
+    elif inclination < EQUATORIAL_BAND_RAD:
+        _map_at(req_m, j2, source, target, sign, EQUATORIAL_BAND_RAD)
+    elif inclination > math.pi - EQUATORIAL_BAND_RAD:
+        _map_at(req_m, j2, source, target, sign, math.pi - EQUATORIAL_BAND_RAD)
+    else:
         orbitalMotion.clMeanOscMap(req_m, j2, source, target, sign)
-        return
-    moved = orbitalMotion.ClassicElements()
-    moved.a, moved.e, moved.i = source.a, source.e, used
-    moved.Omega, moved.omega, moved.f = source.Omega, source.omega, source.f
-    orbitalMotion.clMeanOscMap(req_m, j2, moved, target, sign)
-    target.i += inclination - used
+
+
+def _equinoctial(elements, retrograde: bool):
+    """Equinoctial elements (Broucke and Cefola, with the retrograde
+    factor), well defined at e = 0 and at i = 0 (prograde) or 180 deg
+    (retrograde): a, h, k, p, q and the true longitude L."""
+    factor = -1.0 if retrograde else 1.0
+    perigee_longitude = elements.omega + factor * elements.Omega
+    # tan(i/2), or for a retrograde orbit cot(i/2) = tan((180 deg - i)/2)
+    half = math.tan(((math.pi - elements.i) if retrograde else elements.i) / 2.0)
+    return [elements.a, elements.e * math.sin(perigee_longitude), elements.e * math.cos(perigee_longitude),
+            half * math.sin(elements.Omega), half * math.cos(elements.Omega), perigee_longitude + elements.f]
+
+
+def _set_equinoctial(elements, values, retrograde: bool) -> None:
+    factor = -1.0 if retrograde else 1.0
+    a, h, k, p, q, true_longitude = values
+    elements.a = a
+    elements.e = math.hypot(h, k)
+    elements.Omega = math.atan2(p, q) % (2.0 * math.pi)
+    tilt = 2.0 * math.atan(math.hypot(p, q))
+    elements.i = math.pi - tilt if retrograde else tilt
+    perigee_longitude = math.atan2(h, k)
+    elements.omega = (perigee_longitude - factor * elements.Omega) % (2.0 * math.pi)
+    elements.f = (true_longitude - perigee_longitude) % (2.0 * math.pi)
+
+
+def _wrap_pi(angle: float) -> float:
+    return (angle + math.pi) % (2.0 * math.pi) - math.pi
+
+
+def osculating_from_mean(req_m: float, j2: float, mean):
+    """The osculating classical elements whose J2 mean elements are
+    ``mean`` (``ClassicElements``, true anomaly in ``f``). The first-order
+    map is not its own inverse (second order in J2: a few metres of
+    semi-major axis, enough to drift satellites apart), so the osculating
+    elements are corrected until mapping them back gives ``mean``, as
+    ``roe_formation.follower_orbit`` does, in equinoctial elements (well
+    defined for circular and equatorial orbits)."""
+    from Basilisk.utilities import orbitalMotion
+
+    osculating = orbitalMotion.ClassicElements()
+    cl_mean_osc_map(req_m, j2, mean, osculating, 1)
+    retrograde = mean.i > math.pi / 2.0
+    wanted = _equinoctial(mean, retrograde)
+    for _ in range(_PLACEMENT_ITERATIONS):
+        back = orbitalMotion.ClassicElements()
+        cl_mean_osc_map(req_m, j2, osculating, back, -1)
+        step = [w - b for w, b in zip(wanted, _equinoctial(back, retrograde))]
+        step[5] = _wrap_pi(step[5])
+        _set_equinoctial(osculating, [x + d for x, d in zip(_equinoctial(osculating, retrograde), step)],
+                         retrograde)
+    return osculating
