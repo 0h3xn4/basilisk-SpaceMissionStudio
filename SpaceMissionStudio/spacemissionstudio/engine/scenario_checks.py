@@ -49,6 +49,7 @@ import numpy as np
 
 from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
+from ..schema.scenario import usable_thread_count
 from . import environment_models, geodesy, small_bodies, tle
 
 _MU_M3_S2 = 3.986004415e14  # [m^3/s^2] Earth, as Basilisk's simIncludeGravBody uses
@@ -246,7 +247,8 @@ def scenario_warnings(scenario) -> List[str]:
     for. Never raises."""
     warnings: List[str] = []
     for check in (_pass_warnings, _recording_warnings, _tle_warnings, _gravity_warnings,
-                  _formation_law_warnings, _navigation_restart_warnings, _small_body_data_warnings):
+                  _formation_law_warnings, _navigation_restart_warnings, _small_body_data_warnings,
+                  _monte_carlo_warnings):
         try:
             warnings += check(scenario)
         except Exception:  # noqa: BLE001, S110 -- a half-edited scenario must never break the Explain tab
@@ -367,10 +369,14 @@ def _data_coverage_warnings(scenario) -> List[str]:
                 warnings.append(f"space weather: the data end {last}, before the run ends -- the run is refused")
     if getattr(scenario.gravity, "central_body", "earth") == "earth":
         needs_frame = (scenario.gravity.central_body_degree or 0) >= 2 or bool(scenario.ground_stations)
-        kernels = earth_orientation.installed()
-        if needs_frame and not kernels:
+        installed = earth_orientation.installed()
+        kernels = earth_orientation.covering(installed, start, end)
+        if needs_frame and not installed:
             warnings.append("Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH "
                             "(about 160 m/day of error at 400 km); Settings > Reference data downloads them")
+        elif needs_frame and not kernels:
+            warnings.append(f"Earth orientation: the installed IERS files cover {earth_orientation.coverage_text(installed)}, "
+                            "not this run -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km)")
         for kernel in kernels:
             until = kernel.high_accuracy_until
             if kernel.role == "high_precision" and until is not None and end > until:
@@ -509,6 +515,16 @@ def _recording_warnings(scenario) -> List[str]:
         return []
     return [f"passes last as little as {format_elapsed(shortest)} but results are recorded every "
             f"{format_elapsed(interval_s)} -- some may show coarsely or not at all"]
+
+
+def _monte_carlo_warnings(scenario) -> List[str]:
+    """A batch asking for more processes than there are CPUs gets one per
+    CPU (schema.scenario.usable_thread_count)."""
+    config = scenario.monte_carlo
+    if not config.enabled or usable_thread_count(config.thread_count) >= config.thread_count:
+        return []
+    return [f"Monte Carlo asks for {config.thread_count} processes; this computer has "
+            f"{usable_thread_count(config.thread_count)} CPUs, so it runs that many at once"]
 
 
 def _pass_warnings(scenario) -> List[str]:

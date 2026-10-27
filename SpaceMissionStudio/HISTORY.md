@@ -13234,6 +13234,102 @@ re-enters in the estimate within 3% of where a full Basilisk run stops
 **Result:** the 600 km orbit at 63.435 deg is "still in orbit after
 30.0 years"; the Molniya case runs.
 
+## A template is a source, not a file to save over (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's first
+fixes). Branch `templates-open-untitled`.
+
+**Found by the audit:** `open_path` makes the opened file the current
+path, a built-in template included; `on_save` then writes there without
+a check. A probe with `Scenario.save` stubbed showed the call with the
+template's path and the folder writable. On Linux the `.deb` installs
+the templates root-owned, so Save failed there instead; on a Windows
+install (under `%LOCALAPPDATA%`) and from source it would overwrite the
+template. The User Manual (section 8) already said a template is "never
+overwritten automatically".
+
+**The change:** `on_save` goes to `on_save_as` when the current path is
+a built-in template; `on_save_as` starts in the home folder under the
+template's name and refuses a path in the templates folder with a
+warning. The manual says what Save does now.
+
+**Tests:** `test_save_after_opening_a_template_asks_where_and_keeps_the_template`
+(the dialog starts at home under the template's name, the template's
+bytes are unchanged, the saved file becomes the scenario's) and
+`test_save_as_refuses_the_templates_folder`.
+
+## Earth orientation files only for the runs they cover (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's first
+fixes). Branch `earth-orientation-coverage`.
+
+**Found by the audit:** template 02 at a 1955 epoch: `validate` said OK,
+`run` printed SPICE's "SPICE(FRAMEDATANOTFOUND) ... ITRF93" and its
+abort banner and exited 1 (reproduced). `service.py` loaded every
+installed Earth PCK and switched to ITRF93 whatever the run's dates;
+past every loaded PCK, CSPICE's default error action ends the process,
+in the GUI the whole window. The same with only the high-precision file
+(2000 to 2027-01-16) and a 2030 epoch.
+
+**The change:**
+- `earth_orientation.pck_coverage` reads each file's segment times from
+  its DAF summary records (the installed files: combined 1962-01-19 to
+  2126-11-03, high precision 1999-12-31 to 2027-01-16); `covering` and
+  `covered_until` check a run's span against them.
+- The service loads the files only when they cover the whole run;
+  otherwise the frame stays IAU_EARTH and the run's warnings say "the
+  IERS files do not cover this run".
+- `check_stop_time` refuses a stop time past the files' end, before each
+  `ConfigureStopTime` (6 places in the service and the mission engine).
+- The plausibility checks (`validate`, the editor's warnings) say when
+  the installed files do not cover the run.
+
+**Tests** (`tests/test_earth_orientation.py`, with synthetic DAF/PCK
+files): coverage read from the summaries, none for header-only,
+truncated, text or missing files; `covering` with a gap, a run before
+all files and an unreadable file; template 02 at 1955 with files for
+2000-2010 runs in IAU_EARTH, loads no orientation file and warns, in
+`validate` and in the run; a stop time past the files' end is refused.
+
+**Result:** the 1955 run of template 02 completes (exit 0) with the
+warning "Earth gravity field oriented by the IAU model (the IERS files do
+not cover this run)"; `validate` warns that the files "cover 1962-01-19
+to 2126-11-03, not this run".
+
+## Limits on conditions, script consent and Monte Carlo (2026-10-27)
+
+The user: "Merge them all, continue as per your recommendations". The
+audit's next "now" row, R2, R3 and R4. Branch
+`condition-and-consent-limits`.
+
+**R2, `%` in conditions:** `_check_result_size` bounded `*`, `**` and
+`+`, but `%` with a text on the left is formatting, and a field width
+(`'%01000000000d' % 0`) built a text of any length: the reviewer reached
+1.9 GB. If/while conditions run without consent. `%` with a `str` or
+`bytes` on the left is now refused before it is computed; `%` on numbers
+is unchanged. A condition never needs formatting.
+
+**R3, the consent dialog:** `_confirm_script_blocks` cut each block's
+code at 600 characters with no sign, and Yes ran all of it. The detailed
+text (already a scrollable read-only view) now holds every block in
+full, headed by its length and SHA-256.
+
+**R4, Monte Carlo counts:** only `>= 1` was checked, so
+`num_runs = 10**9, thread_count = 10**6` passed `validate`. The schema
+now refuses more than 100 000 runs or 256 processes (the GUI's own
+spin-box ranges, which now come from the same constants; its runs box
+allowed 1 000 000). Refusing more processes than CPUs would make a
+file's validity depend on the machine it is opened on, so instead the
+batch uses `usable_thread_count`: at most one process per CPU, logged,
+and a pre-run warning on the Overview. The thread count's tooltip no
+longer says it is unverified above 1 (the suite runs batches with 3).
+
+**Tests:** `test_text_formatting_cannot_build_a_huge_value`,
+`test_script_block_confirmation_shows_all_of_a_long_block`,
+`test_monte_carlo_counts_have_an_upper_limit` and
+`test_a_batch_runs_at_most_one_process_per_cpu`; the two lower-bound
+tests now match the new message.
+
 ## Generated satellites placed by their mean elements (2026-10-27)
 
 The user: "Merge them all, continue as per your recommendations". The

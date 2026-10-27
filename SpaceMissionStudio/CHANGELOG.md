@@ -29,6 +29,32 @@ fixes bugs.
   and a 300 km decay at 63.435 deg is estimated at 34.8 days, as a full
   Basilisk run finds. The mean-element plots there are finite too. Results elsewhere are
   unchanged. Found by the audit of 2026-10-27.
+- **Save no longer writes over a built-in template:** after opening a
+  template from Home, **Save** (Ctrl+S) wrote to the template's own file
+  (where the folder is writable: a Windows install, or from source). It
+  now opens **Save As**, starting in the home folder under the
+  template's name, and a save into the templates folder is refused. The
+  User Manual already said a template is never overwritten. Found by the
+  audit of 2026-10-27.
+- **A run outside the Earth orientation files no longer ends the
+  program:** a run whose dates the installed IERS files do not cover
+  (an epoch before 1962, or after 2027 with only the high-precision file)
+  stopped inside SPICE, taking the window and any unsaved edits with it.
+  The files are now used only for a run they cover; otherwise the run
+  uses the IAU model, and both **validate** and the run say so ("the
+  installed IERS files cover 1962-01-19 to 2126-11-03, not this run"). A
+  Mission Sequence that would propagate past the files' end stops with a
+  message instead. Found by the audit of 2026-10-27.
+- **Limits a shared scenario cannot get round:** an `if` or `while`
+  condition can no longer format a text with `%` (a field width built a
+  text of any length, up to gigabytes); `%` on numbers is still the
+  remainder. A Monte Carlo batch is limited to 100 000 runs and 256
+  processes, and uses at most one process per CPU (the Overview says so
+  when it asks for more). Found by the audit of 2026-10-27.
+- **The script-block consent shows all of the code:** **Run script
+  blocks?** listed only the first 600 characters of each block, with no
+  sign of the cut, and Yes ran all of it. **Show Details...** now lists
+  every block in full, with its length and SHA-256.
 - **Generated constellations and formations keep their spacing:** when
   the scenario's gravity includes J2 (degree 2 or more), **Generate
   Walker constellation...**, **Generate phasing formation...** and their

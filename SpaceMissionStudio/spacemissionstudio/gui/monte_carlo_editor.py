@@ -33,6 +33,8 @@ spacecraft list changes, same live-refresh pattern as the third-body
 
 from __future__ import annotations
 
+import os
+
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -54,6 +56,8 @@ from ..schema.scenario import (
     SPREAD_ONLY_DISPERSION_QUANTITIES,
     DISPERSION_KINDS_BY_QUANTITY,
     DISPERSION_QUANTITIES,
+    MAX_MONTE_CARLO_RUNS,
+    MAX_MONTE_CARLO_THREADS,
     ORBIT_ELEMENT_SPREAD_KEYS,
     DispersionConfig,
     MonteCarloConfig,
@@ -444,7 +448,7 @@ class MonteCarloGroupWidget(QGroupBox):
         layout.addWidget(self.body)
 
         self.num_runs_spin = SpinBox()
-        self.num_runs_spin.setRange(1, 1_000_000)
+        self.num_runs_spin.setRange(1, MAX_MONTE_CARLO_RUNS)
         self.num_runs_spin.setValue(10)
         self.num_runs_spin.setToolTip(
             "How many independent randomized runs to execute. More runs give a statistically "
@@ -455,11 +459,11 @@ class MonteCarloGroupWidget(QGroupBox):
         form.addRow("Number of runs", self.num_runs_spin)
 
         self.thread_count_spin = SpinBox()
-        self.thread_count_spin.setRange(1, 256)
+        self.thread_count_spin.setRange(1, MAX_MONTE_CARLO_THREADS)
         self.thread_count_spin.setValue(1)
         self.thread_count_spin.setToolTip(
-            "Unverified above 1 in this project's development sandbox (no Basilisk build there) -- see "
-            "engine/monte_carlo.py's module docstring."
+            "How many runs go at once, each in its own process. The batch uses at most one "
+            f"process per CPU ({os.cpu_count() or 1} here)."
         )
         self.thread_count_spin.valueChanged.connect(self.changed)
         form.addRow("Thread count", self.thread_count_spin)

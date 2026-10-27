@@ -38,6 +38,48 @@ write, when the run models J2.
   stored orbits and documented results (template 05 holds 50 km within
   5 km); that is a separate change.
 
+## Earth orientation files only for the runs they cover (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's critical
+findings first).
+
+- **The coverage from the file itself:** `pck_coverage` reads the DAF
+  summary records of a binary PCK (the start and end time of each
+  segment) without SPICE; a file it cannot read, or whose segments point
+  past its end (a truncated download), counts as covering nothing. Read
+  once per file version (0.15 ms; the checks while editing ask on every
+  edit).
+- **All or nothing per run:** the files are loaded when together they
+  cover the whole run (`covering`); otherwise none is, and the run uses
+  IAU_EARTH, as with no files installed, saying why. Loading them for
+  part of a run would end it in SPICE at the first uncovered step.
+- **A Mission Sequence's end is not known in advance:** every stop time
+  is checked against the end of the files' coverage
+  (`SimulationService.check_stop_time`, called before each
+  `ConfigureStopTime` in the service and the mission engine) and refused
+  with a message past it.
+- **Not SPICE's RETURN error action:** with it a lookup outside the files
+  would give a run silently wrong frames, which is worse than stopping.
+- **Kept for later:** `earth-orientation --import` still checks only the
+  header; such a file is now never loaded (it covers nothing), but the
+  import could refuse it. Its tests use header-only fake files, so this
+  waits for a change of its own.
+
+## A template is a source, not a file to save over (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's critical
+findings first).
+
+- **Guarded at the save, not at the open:** a template opened from Home
+  stays the scenario's current path, so the top bar's "template 22", the
+  layout kept per scenario, the Monte Carlo archive folder and the folder
+  relative mesh paths resolve against all stay as they are. **Save** on
+  a template goes to **Save As** instead, and **Save As** refuses the
+  templates folder (`_is_template` in `gui/main_window.py`).
+- **Where Save As starts:** the home folder under the template's file
+  name, so the user's copy keeps the template's recognisable name until
+  they change it.
+
 ## Mean elements at the critical inclination (2026-10-27)
 
 The user: "Continue as per your recommendations" (the audit's critical

@@ -474,6 +474,10 @@ def _check_result_size(op, left, right) -> None:
         for sequence, count in ((left, right), (right, left)):
             if isinstance(sequence, (str, list, tuple)) and _is_integer(count) and len(sequence) * count > _MAX_RESULT_LENGTH:
                 raise ConditionError(f"the result would be longer than {_MAX_RESULT_LENGTH} characters or items")
+    if isinstance(op, ast.Mod) and isinstance(left, (str, bytes)):
+        # Formatting, not a remainder: a field width ('%01000000000d' % 0)
+        # builds any length, and a condition never needs it.
+        raise ConditionError("% formatting of text is not allowed in a condition (% is the remainder of numbers)")
     if isinstance(op, ast.Add) and isinstance(left, (str, list, tuple)) and isinstance(right, (str, list, tuple)):
         if len(left) + len(right) > _MAX_RESULT_LENGTH:
             raise ConditionError(f"the result would be longer than {_MAX_RESULT_LENGTH} characters or items")

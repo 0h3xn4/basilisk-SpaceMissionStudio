@@ -1187,10 +1187,11 @@ Explain also checks the scenario before you run it:
 current scenario to a `.json` file you choose. **Open...** (Ctrl+O) loads
 one back. **New Scenario** (Ctrl+N) clears the editor and starts fresh.
 
-If you started from a template or its customize wizard, **use Save
-As...** to give your edited copy its own name/location -- the original
-template file is never overwritten automatically, so you can always
-start over from a clean copy.
+If you started from a template or its customize wizard, **Save** asks
+where to keep your copy: the dialog starts in your home folder under the
+template's file name. The built-in templates are never written to (a
+save into their folder is refused), so you can always start over from a
+clean copy.
 
 **Undo** (Ctrl+Z) and **Redo** (Ctrl+Shift+Z, or Ctrl+Y on
 Windows) step through your scenario edits, one step for each edit once
@@ -1232,7 +1233,8 @@ Real spacecraft never have perfectly known mass, attitude, etc. --
 **Monte Carlo** mode runs your scenario many times with small, randomized
 variations and reports the spread of outcomes, instead of one single
 result. On the scenario tree's **Monte Carlo** page, check
-**Enabled**, set how many runs and how many to run in parallel, and add
+**Enabled**, set how many runs (up to 100 000) and how many to run in
+parallel (each in its own process; at most one per CPU is used), and add
 one or more **dispersions** (which quantity varies, and by how much;
 **Add** adds one, and the selected one's form is under the list) --
 then set the run mode beside **Run** to **Monte Carlo** and press

@@ -367,6 +367,7 @@ class MissionEngine:
         if target_ns > _mission_time_limit_ns():
             raise MissionEngineError(_MISSION_TIME_LIMIT_MESSAGE)
         if self._should_cancel is None:
+            self.service.check_stop_time(target_ns)
             self.service.scSim.ConfigureStopTime(target_ns)
             try:
                 self.service.scSim.ExecuteSimulation()
@@ -389,6 +390,7 @@ class MissionEngine:
         )
         next_stop_ns = min(self._elapsed_ns + step_ns, target_ns)
         while True:
+            self.service.check_stop_time(next_stop_ns)
             self.service.scSim.ConfigureStopTime(next_stop_ns)
             try:
                 self.service.scSim.ExecuteSimulation()
@@ -496,6 +498,7 @@ class MissionEngine:
             raise MissionEngineError(_MISSION_TIME_LIMIT_MESSAGE)
         cap_days = (cap_ns - self._elapsed_ns) * macros.NANO2SEC / 86400.0  # [d] what is actually searched
         if self._should_cancel is None:
+            self.service.check_stop_time(cap_ns)
             self.service.scSim.ConfigureStopTime(cap_ns)
             try:
                 self.service.scSim.ExecuteSimulation()
@@ -530,6 +533,7 @@ class MissionEngine:
             )
             next_stop_ns = min(self._elapsed_ns + step_ns, cap_ns)
             while True:
+                self.service.check_stop_time(next_stop_ns)
                 self.service.scSim.ConfigureStopTime(next_stop_ns)
                 try:
                     self.service.scSim.ExecuteSimulation()
