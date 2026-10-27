@@ -8,6 +8,19 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **Lifetime, End of Life and the budget's disposal are right at the
+  critical inclination:** the J2 mean elements they start from came from
+  a first-order map that is singular at 63.435 deg and 116.565 deg. A
+  600 km orbit there was reported to re-enter at once ("0.00 years,
+  5-year rule: met"), and a Molniya orbit stopped with an error. The map
+  is now evaluated at the edge of a 1 deg band around those values: the
+  same orbit stays up for over 30 years, as at 60 deg, and a 300 km decay
+  at 63.435 deg is estimated at 34.5 days against 34.8 for a full Basilisk
+  run. The mean-element plots there are finite too. Results elsewhere are
+  unchanged. Found by the audit of 2026-10-27.
+
 ## 1.3.1 (2026-10-26)
 
 A faster window. Changing the theme, opening a template and the end of

@@ -5,6 +5,30 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Mean elements at the critical inclination (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's critical
+findings first). It changes what the tool computes, near the critical
+inclination only; the overhaul's "UI only" rule covered the overhaul,
+which has ended.
+
+- **Basilisk's map, evaluated at the band's edge:** within 1 deg of
+  63.435 or 116.565 deg, `clMeanOscMap` is called at the nearer edge and
+  the inclination difference carried across (`engine/mean_elements.py`),
+  both ways (osculating to mean for the lifetime's start, mean to
+  osculating for its density ring) and for the mean-element series of a
+  run. Outside the band it is Basilisk's map, bit for bit, so nothing
+  else changes.
+- **Not an orbit-averaged map everywhere:** averaging the J2 motion over
+  an orbit has no singular terms and is the test's reference, but it
+  would change every lifetime slightly and cost a propagation per state;
+  the edge evaluation agrees with it within 0.4 km of perigee (600 km
+  orbit) and 0.7 km (Molniya) across the band.
+- **1 deg:** at the edges (62.4 and 64.4 deg) the plain map is within
+  about 1 km of the average for a Molniya orbit (0.5 km at 62 deg, 1.1 km
+  at 63.9 deg); nearer the critical value it grows (17 km at 63.4 deg).
+  Narrower bands were not tried.
+
 ## The first run's end without plotly's first-use cost (2026-10-26)
 
 The user: "Continue" (the next item offered: the end of a run, K-23).

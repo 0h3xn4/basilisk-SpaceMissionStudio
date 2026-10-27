@@ -89,6 +89,7 @@ from . import (data_handling, earth_orientation, environment_models, formation_c
                geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
                optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, small_bodies,
                solar_arrays, time_system, tle, vizard)
+from .mean_elements import cl_mean_osc_map
 from .results import ResultSet, RunProvenance, TimeSeries, conservation_drift_warnings
 from .vizard import VizardRequest
 
@@ -381,16 +382,15 @@ def _mean_elements(oe: Dict[str, np.ndarray], req: float, j2: float) -> Dict[str
     ``SimulationService``'s own gating below for when ``req``/``j2`` are
     even set (only once a real J2 term is actually being modeled).
 
-    Known limitation, inherited directly from the underlying first-order
-    J2 theory (documented in ``clMeanOscMap``'s own reference, Schaub &
-    Junkins' "Analytical Mechanics of Space Systems"), not introduced
-    here: this mapping has a genuine mathematical singularity at the
-    critical inclination (~63.4 deg / ~116.6 deg, where ``1 - 5*cos(i)^2
-    == 0``) and degrades near i=0/180 deg -- the same well-known caveat
-    STK's own Brouwer-Lyddane-based "Mean" elements carry. A scenario
-    whose inclination sits at/near either value can show NaN/spiky mean
-    -element samples; Plotly simply leaves a gap for a NaN sample rather
-    than erroring, so this is a visible plot artifact, not a crash.
+    The first-order J2 theory (Schaub & Junkins, "Analytical Mechanics of
+    Space Systems") has a singularity at the critical inclination (~63.4
+    deg / ~116.6 deg, where ``1 - 5*cos(i)^2 == 0``): its long-period
+    terms grow without bound there. :func:`.mean_elements.cl_mean_osc_map`
+    evaluates the map at the edge of a 1 deg band around it, so a sample
+    at or near that inclination gets finite mean elements (audit of
+    2026-10-27); elsewhere it is Basilisk's map unchanged. It still
+    degrades near i = 0/180 deg, the same caveat STK's own
+    Brouwer-Lyddane-based "Mean" elements carry.
     """
     n = oe["a"].shape[0]
     a = np.empty(n)
@@ -416,7 +416,7 @@ def _mean_elements(oe: Dict[str, np.ndarray], req: float, j2: float) -> Dict[str
         try:
             if not (0.0 <= osc.e < 1.0 and osc.a > 0.0):
                 raise ValueError("not a closed orbit")
-            orbitalMotion.clMeanOscMap(req, j2, osc, mean, -1)
+            cl_mean_osc_map(req, j2, osc, mean, -1)
         except ValueError:
             # a spacecraft past re-entry, inside the Earth: no closed
             # orbit, or none once J2's terms are removed (clMeanOscMap's
