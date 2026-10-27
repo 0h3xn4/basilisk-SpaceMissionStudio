@@ -2146,14 +2146,20 @@ class MainWindow(QMainWindow):
 
     def _confirm_script_blocks(self, blocks) -> bool:
         """Ask before running ``script_block`` code (SRS-S-03): it is
-        unrestricted Python from the scenario file. Shows the code; the
-        default answer is No."""
-        listing = "\n\n".join(f"{path}" + (f" ({command.label})" if command.label else "") + ":\n"
-                               + str(command.params.get("code", ""))[:600] for path, command in blocks)
+        unrestricted Python from the scenario file. Shows all of each
+        block's code (a scrollable view), with its length and SHA-256;
+        the default answer is No."""
+        def entry(path, command) -> str:
+            code = str(command.params.get("code", ""))
+            digest = hashlib.sha256(code.encode("utf-8")).hexdigest()
+            return (f"{path}" + (f" ({command.label})" if command.label else "")
+                    + f": {len(code)} characters, SHA-256 {digest}\n{code}")
+
+        listing = "\n\n".join(entry(path, command) for path, command in blocks)
         box = QMessageBox(QMessageBox.Icon.Warning, "Run script blocks?",
                           f"This scenario has {len(blocks)} script block(s). They run as unrestricted Python, "
                           "with your user's access to files and the network. Run them only if you trust the "
-                          "scenario and have read the code.",
+                          "scenario and have read all of the code (Show Details).",
                           QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No, self)
         box.setDetailedText(listing)
         box.setDefaultButton(QMessageBox.StandardButton.No)

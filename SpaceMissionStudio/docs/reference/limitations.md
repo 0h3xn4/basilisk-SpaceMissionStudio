@@ -114,7 +114,8 @@ Each item was checked against Basilisk's own source.
   only (attitude, wheel speeds and other series are not kept per run).
 * **`monte_carlo.thread_count > 1`** has been run in this project's Linux
   environment (template 25 and three-run batches with 3 threads, Basilisk
-  2.12.0); the schema default stays `1`.
+  2.12.0); the schema default stays `1`. A batch uses at most one process
+  per CPU, and validation refuses more than 256 processes or 100 000 runs.
 * **Monte Carlo retains a fixed set of data per run** (each spacecraft's
   position/velocity) -- there is no per-run custom retention-policy
   selection in the schema yet.

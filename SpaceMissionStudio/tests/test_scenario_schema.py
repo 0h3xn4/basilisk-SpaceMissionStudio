@@ -1121,7 +1121,7 @@ def test_monte_carlo_num_runs_must_be_positive():
     """Monte Carlo with zero runs is refused."""
     sc = _minimal_scenario()
     sc.monte_carlo = MonteCarloConfig(enabled=True, num_runs=0)
-    with pytest.raises(ScenarioValidationError, match="num_runs must be >= 1"):
+    with pytest.raises(ScenarioValidationError, match="num_runs must be between 1 and 100000, got 0"):
         sc.validate()
 
 
@@ -1129,9 +1129,46 @@ def test_monte_carlo_thread_count_must_be_positive():
     """Monte Carlo with zero threads is refused."""
     sc = _minimal_scenario()
     sc.monte_carlo = MonteCarloConfig(enabled=True, thread_count=0)
-    with pytest.raises(ScenarioValidationError, match="thread_count must be >= 1"):
+    with pytest.raises(ScenarioValidationError, match="thread_count must be between 1 and 256, got 0"):
         sc.validate()
 
+
+
+@pytest.mark.parametrize("key, value, limit", [
+    ("num_runs", 10 ** 9, 100_000),
+    ("thread_count", 10 ** 6, 256),
+])
+def test_monte_carlo_counts_have_an_upper_limit(key, value, limit):
+    """Audit R4: a shared scenario with a billion runs or a million
+    processes passed validate. Each count now has a limit; the limit
+    itself is accepted."""
+    sc = _minimal_scenario()
+    sc.monte_carlo = MonteCarloConfig(enabled=True, **{key: value})
+    with pytest.raises(ScenarioValidationError, match=f"{key} must be between 1 and {limit}, got {value}"):
+        sc.validate()
+    sc.monte_carlo = MonteCarloConfig(enabled=True, **{key: limit})
+    sc.validate()
+
+
+def test_a_batch_runs_at_most_one_process_per_cpu(monkeypatch):
+    """Audit R4: more processes than CPUs only compete for the same
+    cores. The batch uses one per CPU, and the Overview says so."""
+    import os
+
+    from spacemissionstudio.engine.scenario_checks import scenario_warnings
+    from spacemissionstudio.schema.scenario import usable_thread_count
+
+    monkeypatch.setattr(os, "cpu_count", lambda: 4)
+    assert [usable_thread_count(n) for n in (1, 4, 5, 256)] == [1, 4, 4, 4]
+    monkeypatch.setattr(os, "cpu_count", lambda: None)  # unknown: one at a time
+    assert usable_thread_count(8) == 1
+    monkeypatch.setattr(os, "cpu_count", lambda: 4)
+    sc = _minimal_scenario()
+    sc.monte_carlo = MonteCarloConfig(enabled=True, thread_count=16)
+    assert "Monte Carlo asks for 16 processes; this computer has 4 CPUs, so it runs that many at once" \
+        in scenario_warnings(sc)
+    sc.monte_carlo = MonteCarloConfig(enabled=True, thread_count=4)
+    assert not [w for w in scenario_warnings(sc) if w.startswith("Monte Carlo")]
 
 def test_dispersion_unsupported_quantity_rejected():
     """A dispersion of a quantity the tool does not offer is refused."""

@@ -1116,8 +1116,29 @@ def test_script_block_confirmation_shows_the_code_and_defaults_to_no(window, mon
     monkeypatch.setattr(QMessageBox, "exec", fake_exec)
     block = Command(kind="script_block", label="mine", params={"code": "print('hello')"})
     assert window._confirm_script_blocks([("mission_sequence[0]", block)]) is False
-    assert "mission_sequence[0] (mine):" in seen["details"] and "print('hello')" in seen["details"]
+    assert "mission_sequence[0] (mine): 14 characters, SHA-256 " in seen["details"]
+    assert "print('hello')" in seen["details"]
     assert seen["default"]
+
+
+def test_script_block_confirmation_shows_all_of_a_long_block(window, monkeypatch):
+    """Audit R3: only the first 600 characters were shown, with no sign of
+    the cut, and Yes ran all of it. The whole code is shown now, with its
+    length and SHA-256, so a payload after harmless lines is seen."""
+    import hashlib
+
+    from PySide6.QtWidgets import QMessageBox
+
+    from spacemissionstudio.schema.command import Command
+
+    seen = {}
+    monkeypatch.setattr(QMessageBox, "exec", lambda box: seen.setdefault("details", box.detailedText())
+                        and QMessageBox.StandardButton.No)
+    code = "x = 1\n" * 200 + "import shutil; shutil.rmtree('/')\n"  # the payload after 1200 harmless characters
+    block = Command(kind="script_block", params={"code": code})
+    assert window._confirm_script_blocks([("mission_sequence[2]", block)]) is False
+    assert code in seen["details"]
+    assert f"{len(code)} characters, SHA-256 {hashlib.sha256(code.encode()).hexdigest()}" in seen["details"]
 
 
 def test_run_finished_with_command_summary_shows_mission_output_tab(window):
