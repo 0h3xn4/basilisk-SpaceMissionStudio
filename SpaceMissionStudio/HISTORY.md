@@ -13168,3 +13168,29 @@ alone, as before.
 **Tests:** `test_a_running_explanation_is_let_go_when_the_window_closes`
 starts a worker and closes the window at once: it failed every time
 before the change and passes after it.
+
+## The propellant budget's rocket equation (2026-10-27)
+
+The user: "Continue as per your recommendations" (the audit's first
+fixes). Branch `budget-rocket-equation`.
+
+**Found by the audit:** 150 kg dry, Isp 220 s, one transfer row. The
+budget gave 7.7 kg for 100 m/s, 55 kg for 500 m/s, 232 kg for 1 km/s and
+2291 kg ("did not settle within 50 iterations") for 1.4 km/s; the rocket
+equation gives about 7.1, 39, 88 and 137 kg for the transfer alone.
+`propellant_for` was `m * (exp(dV / Ve) - 1)` with `m` the phase's
+starting wet mass; the test of the formula only re-stated it.
+
+**The change:** `propellant_for(m, dV, Ve)` is `m * (1 - exp(-dV / Ve))`
+from the mass before the burn, and each contributor lowers the mass for
+the next (`mass` is taken down in `add`, instead of once per phase).
+Same case now: 7.3, 40.6, 92.8 and 145.3 kg in total (the transfer plus
+the residual, uncertainty and the other default rows), settling in 3 to
+11 iterations.
+
+**Tests:** `test_propellant_follows_ad10s_formula` now asserts the rocket
+equation from the mass before the burn and that it equals the form from
+the mass after; `test_each_burn_takes_the_rocket_equation_from_the_mass_before_it`
+(1 km/s, within the 0.1 kg the iteration settles to) and
+`test_a_large_delta_v_still_gives_a_budget` (3 km/s settles), both
+failing on the previous code.
