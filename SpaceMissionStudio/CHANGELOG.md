@@ -8,7 +8,7 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## 1.3.1 (2026-10-26)
+## 1.3.1 (2026-10-27)
 
 A faster window. Changing the theme, opening a template and the end of
 the first run each held the window noticeably; this release shortens all
