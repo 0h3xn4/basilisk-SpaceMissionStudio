@@ -13134,6 +13134,19 @@ and nothing outside `SpaceMissionStudio/`. The fork's top-level
 changing it is the user's call. The space weather is 1.3.0's, two days
 old. Merging, tagging and publishing are the user's.
 
+## Release 1.3.1 published (2026-10-27)
+
+The user merged #119, pushed the tag `spacemissionstudio-v1.3.1` on
+`081f74079` and published the release at 06:05:53 UTC, four seconds
+before the release workflow started; the workflow (run 40459074482)
+attached the six files at 06:18 and wrote the notes, so the release was
+public without them for 12 minutes, as with 1.2.0 and 1.3.0. The tagged
+CHANGELOG heading reads 2026-10-26, the day it was prepared; `develop`'s
+now reads 2026-10-27. SRelD issue 16 records the tag, the run and the
+files' digests (from the release's assets); SDP, H05 and `releasing.md`
+name 1.3.1 as the current release, and `releasing.md` says again to wait
+for the workflow's draft before publishing.
+
 ## A closed window lets go of its explanation worker (2026-10-27)
 
 The user: "Continue as per your recommendations". Branch
