@@ -654,3 +654,10 @@ is the only test that an empty `.app` is not refused.
   The two provenance files are compared without those two keys, which
   must be present; the rest of them, and every other file, is still
   1.1.0's byte for byte. The reference zip is unchanged.
+
+## Random seeds (2026-10-28)
+
+- `test_export_files.py`: the provenance files are also compared without
+  the new `rng_seed` and `rng_seeds` keys (audit E5); the helper is
+  renamed `_without_new_keys`. Every other byte is still 1.1.0's.
+- Added `test_propagation_setup_dialog.py::test_the_random_seed_round_trips`.

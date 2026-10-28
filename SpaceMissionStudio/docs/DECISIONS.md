@@ -5,6 +5,26 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Random seeds (2026-10-28)
+
+The audit's E5: "Derive one seed per sensor from scenario, spacecraft,
+sensor and segment; record the seeds in provenance."
+
+- **One scenario seed, `sim_settings.seed` (default 0):** a user can ask
+  for another realisation of the noise; the same file still gives the
+  same run. Optional with a default, so older files load unchanged.
+- **Every model, by name, after the build:** the seeds are set on every
+  model still on Basilisk's default, by its ModelTag (the spacecraft and
+  sensor names), not in each sensor builder, so a noisy module added
+  later is covered too. Seeds set on purpose (a navigation error's own,
+  Monte Carlo's) are kept.
+- **SHA-256 of the scenario seed and the name:** independent of the order
+  the models are built in, and the same on every platform.
+- **0 to 2**31 - 1:** what the GUI's spin box holds; Basilisk's RNGSeed is
+  32-bit.
+- **Monte Carlo batches not changed (K-24):** Basilisk's controller seeds
+  each run from its run number; changing that means changing Basilisk.
+
 ## The integrator's tolerances (2026-10-28)
 
 The audit's E3: "Set tolerances (about 1e-10 relative) or expose them;

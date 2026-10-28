@@ -91,6 +91,7 @@ from . import (data_handling, earth_orientation, environment_models, formation_c
                solar_arrays, time_system, tle, vizard)
 from .mean_elements import cl_mean_osc_map
 from .results import ResultSet, RunProvenance, TimeSeries, conservation_drift_warnings
+from .seeds import RNG_SEED_NOTE, assign_rng_seeds
 from .vizard import VizardRequest
 
 # Maps schema.SimSettings.integrator -> the svIntegrator* class it selects.
@@ -589,6 +590,7 @@ class SimulationService:
         self._space_weather_warnings: list[str] = []  # what the resolved space weather is built from
         self._model_warnings: list[str] = []  # environment models used outside their validity
         self._data_files: dict[str, dict[str, object]] = {}  # reference data used, for RunProvenance
+        self._rng_seeds: dict[str, int] = {}  # each model's derived RNGSeed, for RunProvenance
         self._earth_orientation_notes: list[str] = []
         self._geodetic_proxies: list = []
         self.earth_frame = "IAU_EARTH"
@@ -1936,6 +1938,7 @@ class SimulationService:
         can be added to the task in between (``fsw_export.capture`` adds
         its recorder this way)."""
         sim_settings = self.scenario.sim_settings
+        self._rng_seeds = assign_rng_seeds(self.scSim, sim_settings.seed)
         self.scSim.InitializeSimulation()
         for sc_object, thermal_models in self._sensor_thermal_models:
             if not thermal_models:
@@ -2251,6 +2254,9 @@ class SimulationService:
                 dynamics_task_rate_s=self.scenario.sim_settings.dynamics_task_rate_s,
                 integrator_relative_tolerance=integrator_tolerances(self.scenario.sim_settings.integrator)[0],
                 integrator_absolute_tolerance=integrator_tolerances(self.scenario.sim_settings.integrator)[1],
+                rng_seed=self.scenario.sim_settings.seed,
+                rng_seeds=dict(self._rng_seeds),
+                rng_seed_note=RNG_SEED_NOTE,
                 qualified_basilisk_version=dependencies.QUALIFIED_BASILISK_VERSION,
                 basilisk_qualified=Basilisk.__version__ == dependencies.QUALIFIED_BASILISK_VERSION,
                 dependency_versions=self._dependency_versions,

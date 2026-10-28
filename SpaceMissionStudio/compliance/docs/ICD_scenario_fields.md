@@ -466,6 +466,7 @@ One sensor instance. ``kind`` is one of :data:`SUPPORTED_SENSOR_KINDS` (see the 
 | `dynamics_task_rate_s` | float | `10.0` |  |
 | `integrator` | str | `'rkf78'` | see SUPPORTED_INTEGRATORS |
 | `record_interval_s` | float | `0.0` |  |
+| `seed` | int | `0` |  |
 
 ## SolarArrayConfig
 

@@ -62,6 +62,7 @@ from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import SMALL_BODY_CENTRAL_BODIES, OrbitIC, Scenario, SimSettings, SpaceWeatherConfig
 from . import time_system
 from .results import ResultSet, TimeSeries
+from .seeds import derived_seed
 
 SEGMENT_DAYS = 90.0  # [day] safely under Basilisk's ~104.25-day nanoToSec() limit
 _RAD_S_TO_RPM = 30.0 / math.pi
@@ -218,19 +219,19 @@ def _append(merged: ResultSet | None, part: ResultSet, offset_s: float,
     return merged
 
 
-_BASILISK_DEFAULT_SEED = 0x1badcad1  # GaussMarkov's RNGSeed when none is set (gauss_markov.cpp)
-
-
-def _seed_navigation_errors(scenario: Scenario, segment: Scenario, index: int) -> None:
-    """Each segment is a new simulation, so its navigation-error random
-    walk starts again from zero; a seed per segment (the scenario's, or
-    Basilisk's default, plus the segment number) keeps it from repeating
-    the same sequence every segment."""
+def _seed_segment(scenario: Scenario, segment: Scenario, index: int) -> None:
+    """Each segment is a new simulation: its random generators would start
+    again from the same seeds. Segment 0 runs with the scenario's seed,
+    each later one with a seed derived from it and the segment number
+    (engine.seeds), so sensor noise does not repeat itself. A navigation
+    error with its own seed gets that seed plus the segment number, as
+    before; one without draws from the segment's seed like every model."""
+    segment.sim_settings.seed = (scenario.sim_settings.seed if index == 0 else
+                                 derived_seed(scenario.sim_settings.seed, f"segment {index}") % 2 ** 31)
     for original, copied in zip(scenario.spacecraft, segment.spacecraft):
         if original.navigation_error is not None:
-            base = original.navigation_error.seed if original.navigation_error.seed is not None else \
-                _BASILISK_DEFAULT_SEED
-            copied.navigation_error.seed = (base + index) % 2 ** 32
+            seed = original.navigation_error.seed
+            copied.navigation_error.seed = None if seed is None else (seed + index) % 2 ** 32
 
 
 def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], None] | None = None,
@@ -254,7 +255,7 @@ def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], 
         # segment starts at the UTC of ET(epoch) + offset, not epoch + offset.
         segment.epoch_utc = time_system.elapsed_to_utc(epoch, [offset_s])[0].isoformat()
         segment.sim_settings.duration_days = length_s / 86400.0  # [day]
-        _seed_navigation_errors(scenario, segment, index)
+        _seed_segment(scenario, segment, index)
         service = SimulationService(segment)
         if on_progress is None and should_cancel is None:
             part = service.run()

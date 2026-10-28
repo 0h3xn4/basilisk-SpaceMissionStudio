@@ -425,7 +425,12 @@ fixed:
   (recorded in the run's provenance); Euler and RK2 take fixed steps.
   Keep the dynamics step at 60 s or less: above that the orbit loses
   accuracy whatever the integrator (a one-day test orbit was 11 m off at
-  300 s and 8.6 km at 1800 s), and Explain says so.
+  300 s and 8.6 km at 1800 s), and Explain says so. **Random seed**
+  (default 0): each sensor's noise, the navigation error and random
+  faults draw from a seed of their own, derived from this one and the
+  device's name, so no two devices draw the same noise. The same seed
+  gives the same run; change it for another realisation of the noise. The
+  run's provenance lists every seed.
 * **Spacecraft** -- the list of spacecraft in the mission, and under it a
   node for each one. A spacecraft's page has a node per part: **Orbit /
   mass**, **Sensors / actuators**, **Attitude control**, **Power /
