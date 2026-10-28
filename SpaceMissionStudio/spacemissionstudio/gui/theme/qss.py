@@ -308,7 +308,7 @@ QFrame#segmentedControl QPushButton#segmentButton:checked {{
 /* ---- fields ------------------------------------------------------------ */
 QLineEdit, QPlainTextEdit, QTextEdit, QSpinBox, QDoubleSpinBox, QComboBox, QDateTimeEdit {{
     background-color: {t['bg.field']};
-    border: {px(BORDER)} solid {t['border.strong']};
+    border: {px(BORDER)} solid {t['border.control']};
     border-radius: {r_ctl};
     padding: {px(pad_y)} {px(pad_x)};
 }}
@@ -626,7 +626,7 @@ QCheckBox::indicator, QGroupBox::indicator, QRadioButton::indicator, QListWidget
 QTreeWidget::indicator, QListView::indicator, QTreeView::indicator, QTableView::indicator {{
     width: {px(SIZE['body'] + 1)};
     height: {px(SIZE['body'] + 1)};
-    border: {px(BORDER)} solid {t['border.strong']};
+    border: {px(BORDER)} solid {t['border.control']};
     border-radius: {px(SPACE['xs'])};
     background-color: {t['bg.field']};
 }}

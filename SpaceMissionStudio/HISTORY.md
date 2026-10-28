@@ -13817,3 +13817,32 @@ refusal, a run inside the span, the event search's checks): three fail
 on the code before (checked), the fourth passes on both.
 
 Full suite on Python 3.14: 3895 passed.
+
+## Control borders at 3:1 (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G7. Branch
+`control-borders`.
+
+**Found, measured:** fields (QLineEdit, spin boxes, combo boxes, text
+edits) and check box and radio indicators had `border.strong`: light
+1.50:1 on bg.field, bg.surface and bg.raised, 1.40 on bg.canvas; dark
+1.49 on bg.field and bg.surface, 1.40 on bg.raised, 1.57 on bg.canvas.
+WCAG 1.4.11 asks 3:1; `CONTRAST_PAIRS` had no border.
+
+**Change:** `border.control` = text.primary over bg.surface at 51 % (light,
+#88898C) and 42 % (dark, #6B6D71), the least shares giving 3:1 against
+bg.canvas, bg.surface, bg.raised, bg.field and bg.hover: light 3.27, 3.50,
+3.50, 3.50, 3.09; dark 3.75, 3.56, 3.33, 3.56, 3.08. In `CONTRAST_PAIRS`
+for those five; `qss.py` draws fields and indicators with it. Hover,
+focus, error and disabled borders are unchanged. `docs/DESIGN.md` lists
+the token.
+
+**Seen:** the Environment page in both themes, before and after
+(screenshots in the session, not committed): the fields and check boxes
+are outlined where they were barely visible; lists and disabled fields as
+before.
+
+**Tests:** `test_fields_and_check_boxes_have_a_border_of_three_to_one`
+(both themes: the style sheet's field and indicator rules use the token,
+and it is 3:1 against the five backgrounds): fails on the code before
+(checked).

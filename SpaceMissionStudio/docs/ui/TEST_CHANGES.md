@@ -673,3 +673,9 @@ is the only test that an empty `.app` is not refused.
   and, in `test_data_panel_widget.py`,
   `test_a_failed_read_in_the_child_comes_back_as_its_message` and
   `test_a_failed_read_is_shown_with_retry_and_retry_reads_again` (G10).
+
+## Control borders at 3:1 (2026-10-28)
+
+- Added `test_dark_theme.py::test_fields_and_check_boxes_have_a_border_of_three_to_one`
+  (audit G7). No existing test changed; `test_design_rules.py`'s token
+  table check reads the new row of `docs/DESIGN.md`.
