@@ -149,6 +149,30 @@ def test_ci_installs_pinned_development_tools():
     assert all("constraints-dev.txt" in line for line in installs), installs
 
 
+
+def test_each_accepted_advisory_names_the_pinned_version_it_applies_to():
+    """Audit R10: CI's pip-audit accepts only the advisories
+    packaging/audit-exceptions.txt lists (pillow 12.2.0, which the qualified
+    Basilisk caps). Each line names the package and version it was accepted
+    for, and that must be the version pinned now: moving the pin without
+    revisiting the list fails here."""
+    root = Path(__file__).resolve().parents[1]
+    pins = {}
+    for line in (root / "packaging" / "constraints.txt").read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line:
+            name, _, version = line.partition("==")
+            pins[name.lower()] = version
+    ids = []
+    for line in (root / "packaging" / "audit-exceptions.txt").read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line:
+            advisory, requirement = line.split()
+            name, _, version = requirement.partition("==")
+            assert pins.get(name.lower()) == version, f"{advisory} was accepted for {requirement}"
+            ids.append(advisory)
+    assert ids and len(ids) == len(set(ids))
+
 def test_the_debian_copyright_file_names_each_bundled_part_and_its_licence():
     """Audit R12: the .deb's copyright file said ISC for every file, though
     the package bundles CPython, Qt, fonts and icons under other licences,

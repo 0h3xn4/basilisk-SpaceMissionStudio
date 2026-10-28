@@ -211,10 +211,14 @@ jobs:
         run: python compliance/tools/metrics.py --coverage coverage.json --junit test-report.xml --fail-under 90 --fail-under-branch 80
       # Every package the installers ship (constraints.txt) and every tool CI
       # runs (constraints-dev.txt) against the Python packaging advisory
-      # databases; a known vulnerability fails the job (audit R10).
+      # databases; a known vulnerability fails the job (audit R10), except
+      # the ones packaging/audit-exceptions.txt lists with their reason.
       - name: Known vulnerabilities in the pinned packages (pip-audit)
         if: always()
-        run: python -m pip_audit --no-deps --disable-pip --progress-spinner off -r packaging/constraints.txt -r packaging/constraints-dev.txt
+        run: |
+          ignores=$(sed 's/#.*//' packaging/audit-exceptions.txt | awk 'NF { printf "--ignore-vuln %s ", $1 }')
+          python -m pip_audit --no-deps --disable-pip --progress-spinner off \
+            -r packaging/constraints.txt -r packaging/constraints-dev.txt $ignores
       - name: Traceability, ICS and compliance matrix
         if: always()
         run: |
@@ -267,9 +271,13 @@ jobs:
           python-version: "3.14"
       - name: Install the tool, the qualified Basilisk release and the dev tools
         run: |
+          # PowerShell fails a step only on its last command's exit code.
           python -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
           python -m pip install -c packaging/constraints.txt "bsk==2.12.0"
+          if ($LASTEXITCODE -ne 0) { throw "Basilisk install failed" }
           python -m pip install -c packaging/constraints.txt -c packaging/constraints-dev.txt -e ".[dev,gui]"
+          if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
       - name: Support data (SPICE kernels, gravity field, magnetic model), fetched once as the installers do
         run: spacemissionstudio kernels-status
       - name: IERS-based Earth orientation files for the validation cases (SVS VP-1)

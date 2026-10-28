@@ -1,0 +1,65 @@
+# Known advisories CI's pip-audit step accepts (packaging/constraints.txt).
+#
+# pillow 12.2.0: the qualified Basilisk, bsk 2.12.0, requires
+# pillow<=12.2.0 (its own metadata), so no fixed pillow can be installed
+# with it. Every advisory below is about decoding a crafted image file.
+# Neither SpaceMissionStudio nor the Basilisk modules it uses decodes an
+# image with pillow (no Image.open, imread or imsave in either); pillow
+# is loaded only because Basilisk imports matplotlib for its plots.
+# Remove these lines with the Basilisk upgrade that allows pillow >= 13.0.0;
+# tests/test_dependencies.py fails if pillow is moved and they are not.
+#
+# One advisory ID per line, then the package==version it applies to.
+
+CVE-2026-112390  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112391  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112393  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112395  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112399  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112400  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112401  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112404  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112406  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112891  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112892  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112893  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112894  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112895  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112897  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112899  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-112900  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-96638  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-96640  pillow==12.2.0  # fixed in 13.0.0
+CVE-2026-96778  pillow==12.2.0  # fixed in 13.0.0
+GHSA-78g4-xqwv-q3g8  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-2253  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-2254  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-2255  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-2256  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-2257  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-3451  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-3452  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-3453  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-3454  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-3493  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-3494  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-3495  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-3496  pillow==12.2.0  # fixed in 12.3.0
+PYSEC-2026-4326  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4327  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4328  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4329  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4330  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4331  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4332  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4333  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4334  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4335  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4336  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4337  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4338  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4339  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4340  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4341  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4342  pillow==12.2.0  # fixed in 13.0.0
+PYSEC-2026-4343  pillow==12.2.0  # fixed in 13.0.0

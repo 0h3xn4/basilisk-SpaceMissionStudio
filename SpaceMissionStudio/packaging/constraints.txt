@@ -12,9 +12,11 @@
 # test suite ran against on Linux x86_64 (Python 3.14 since 2.0.0). To
 # update: install the new versions, run the full suite, then regenerate
 # this list. CI checks every pin against the advisory databases
-# (pip-audit); pillow 13.0.0 and certifi 2026.10.23 replaced versions with
-# known vulnerabilities on 2026-10-28 (audit R10). The development tools
-# are pinned in constraints-dev.txt.
+# (pip-audit); certifi 2026.10.23 replaced a version with a known
+# vulnerability on 2026-10-28 (audit R10). pillow stays at 12.2.0, the
+# latest bsk 2.12.0 allows; its advisories, and why they are accepted, are
+# in audit-exceptions.txt. The development tools are pinned in
+# constraints-dev.txt.
 bokeh==3.9.0
 bsk==2.12.0
 bsk-opnav==2.12.0
@@ -33,7 +35,7 @@ narwhals==2.26.0
 numpy==2.4.6
 packaging==26.3
 pandas==3.0.3
-pillow==13.0.0
+pillow==12.2.0
 platformdirs==4.12.2
 plotly==7.1.0
 pooch==1.9.0

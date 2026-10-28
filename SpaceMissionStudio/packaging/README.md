@@ -123,7 +123,10 @@ in `packaging/` needed to change for it.
   installers ship; **`constraints-dev.txt`** -- the exact versions of the
   tools CI runs (pytest and its plugins, ruff, pip-audit, pre-commit).
   CI's `test` job checks both against the advisory databases
-  (`pip-audit --no-deps`) and fails on a known vulnerability.
+  (`pip-audit --no-deps`) and fails on a known vulnerability, except the
+  ones **`audit-exceptions.txt`** lists, each by ID, for the version it was
+  accepted for, with the reason (pillow 12.2.0, which the qualified
+  Basilisk caps; known issue K-25).
 
 * **`spacemissionstudio.desktop.in`** -- the desktop-entry template `install.sh`
   fills in (`@INSTALL_PREFIX@` -> the venv's parent directory).

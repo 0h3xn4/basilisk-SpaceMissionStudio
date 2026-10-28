@@ -13672,9 +13672,8 @@ AVSLab/basilisk.
 
 **Change:**
 
-* `constraints.txt`: pillow 13.0.0, certifi 2026.10.23 (pip-audit: none
-  found). matplotlib asks only for pillow >= 8. Its header now says
-  Python 3.14.
+* `constraints.txt`: certifi 2026.10.23. Its header now says Python
+  3.14. (pillow: see "CI's first run" below.)
 * `constraints-dev.txt` (new): pytest 9.2.0, pytest-qt 4.5.0, pytest-cov
   7.1.0, pytest-xdist 3.8.0, ruff 0.17.3, pip-audit 2.10.1, pre-commit
   4.7.0 and what they need, resolved against `constraints.txt` (`uv pip
@@ -13707,3 +13706,34 @@ installs the dev extra without `constraints-dev.txt`: checked by taking
 it out of one) and
 `test_the_debian_copyright_file_names_each_bundled_part_and_its_licence`
 (fails on the old file: checked).
+
+**CI's first run (on `6590bd8e6`), pillow 13.0.0:** red. The release
+build and every CI install of Basilisk stopped at `pip install -c
+constraints.txt "bsk[all]==2.12.0"`: ResolutionImpossible. bsk 2.12.0's
+own metadata requires `pillow<=12.2.0,>=10.4.0`. The local suite had
+passed (3888) because `uv pip install` put pillow 13.0.0 in next to
+bsk without enforcing that. The Windows jobs failed later, at
+`kernels-status` ("No module named 'Basilisk'"): their PowerShell steps
+fail only on the last command's exit code, so the failed Basilisk
+install went unnoticed.
+
+**Then:** pillow back to 12.2.0, the latest bsk 2.12.0 allows. Every one
+of its 52 advisories is about decoding a crafted image file; a search of
+SpaceMissionStudio and of the Basilisk package finds no `Image.open`,
+`imread` or `imsave`, and SpaceMissionStudio imports neither pillow nor
+matplotlib (pillow is loaded because Basilisk imports matplotlib for its
+plots). They are listed in `packaging/audit-exceptions.txt`, each by ID
+and for pillow 12.2.0, and CI's pip-audit step passes them with
+`--ignore-vuln`: locally, "No known vulnerabilities found, 64 ignored"
+(64 rows for 52 IDs), and exit 1 without the list. Known issue K-25.
+`test_each_accepted_advisory_names_the_pinned_version_it_applies_to`
+fails when pillow is moved and the list is not (checked with 12.3.0).
+The Windows install steps now throw on a failed pip, as the repository's
+other PowerShell steps do. `pip install --dry-run` of the whole CI set
+(Basilisk, the GUI extra, the tools) with both pin files resolves on
+Linux and Windows for Python 3.14: 75 packages, pillow 12.2.0, certifi
+2026.10.23.
+
+
+Full suite on Python 3.14 after this, with develop merged in (random
+seeds): 3894 passed.

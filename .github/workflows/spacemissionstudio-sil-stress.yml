@@ -116,9 +116,13 @@ jobs:
           python-version: "3.14"
       - name: Install the tool, the qualified Basilisk release and the dev tools
         run: |
+          # PowerShell fails a step only on its last command's exit code.
           python -m pip install --upgrade pip
+          if ($LASTEXITCODE -ne 0) { throw "pip upgrade failed" }
           python -m pip install -c packaging/constraints.txt "bsk==2.12.0"
+          if ($LASTEXITCODE -ne 0) { throw "Basilisk install failed" }
           python -m pip install -c packaging/constraints.txt -c packaging/constraints-dev.txt -e ".[dev,gui]"
+          if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
       - name: Support data, Earth orientation files and the 433 Eros files
         run: |
           spacemissionstudio kernels-status

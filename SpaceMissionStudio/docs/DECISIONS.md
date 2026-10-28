@@ -12,9 +12,13 @@ pip-audit in CI; pin CI tools; tests required on the release tag; fix
 Debian copyright" (testing 3.11 and 3.13 no longer applies: 2.0.0 needs
 3.14).
 
-- **pillow 13.0.0, not 12.3.0:** 12.3.0 still has 39 of the 52
-  advisories; 13.0.0 is the first with none. matplotlib asks only for
-  pillow >= 8.
+- **pillow kept at 12.2.0, its advisories listed:** bsk 2.12.0 requires
+  pillow <= 12.2.0, so pip cannot install 13.0.0 (the first without them)
+  with the qualified Basilisk, and installing it against Basilisk's own
+  requirement is not this project's to do. The 52 advisories are in
+  `packaging/audit-exceptions.txt`, each by ID and for pillow 12.2.0
+  only; any other advisory still fails CI, and a test fails if pillow
+  moves while the list stays (K-25).
 - **pip-audit on the pin files, `--no-deps`:** they list every package
   exactly, so the audit sees what the installers ship, not what a runner
   happens to resolve. In the `test` job (required), after the tests and run
