@@ -2221,3 +2221,45 @@ def test_finished_runs_are_kept_for_comparison(window):
     assert window.results_widget.compare_combo.findData(1) >= 0
     window._clear_run_views()
     assert not window.results_widget.compare_combo.isVisibleTo(window.results_widget)
+
+
+def test_a_running_monte_carlo_batch_can_be_cancelled_and_the_window_closed(window, monkeypatch, tmp_path):
+    """Audit G3: the window would not close while a batch ran, and Esc did
+    not stop it. Esc now cancels it; closing asks Cancel and close (the
+    batch is cancelled and waited for, the runs finished kept) or Keep
+    running (the default: the window stays)."""
+    from PySide6.QtGui import QCloseEvent
+    from PySide6.QtWidgets import QMessageBox
+
+    calls = []
+
+    class Batch:
+        def isRunning(self):
+            return True
+
+        def request_cancel(self):
+            calls.append("cancel")
+
+        def wait(self):
+            calls.append("wait")
+
+    window._mc_worker, window._mc_total, window._mc_archive_dir = Batch(), 4, tmp_path
+    window.on_abort_run()
+    assert calls == ["cancel"]
+
+    answers = []
+    monkeypatch.setattr(QMessageBox, "exec", lambda self: answers.append(self.text()) or 0)
+    choice = {"text": "Keep running"}
+    monkeypatch.setattr(QMessageBox, "clickedButton",
+                        lambda self: next(b for b in self.buttons() if b.text() == choice["text"]))
+    event = QCloseEvent()
+    window.closeEvent(event)
+    assert not event.isAccepted() and calls == ["cancel"]
+    assert answers[0].startswith("A Monte Carlo batch is running (0 of 4 runs finished). Cancel it and close?")
+
+    choice["text"] = "Cancel and close"
+    window._mark_clean()
+    event = QCloseEvent()
+    window.closeEvent(event)
+    assert event.isAccepted() and calls == ["cancel", "cancel", "wait"]
+    window._mc_worker = None

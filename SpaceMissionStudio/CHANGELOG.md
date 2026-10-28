@@ -149,6 +149,12 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   it goes there, with a message to set the Duration to cover the
   sequence. Runs inside the loaded days, and every template, are
   unchanged.
+- **A Monte Carlo batch can be cancelled:** a batch ran to the end, and
+  the window would not close while it ran. **Cancel** (or Esc) now stops
+  it: the processes running it end, the runs finished stay in the archive
+  folder, and the Monte Carlo view opens on them. Closing the window
+  during a batch asks **Cancel and close** or **Keep running**. Found by
+  the audit of 2026-10-27 (G3).
 
 ## 1.3.1 (2026-10-27)
 

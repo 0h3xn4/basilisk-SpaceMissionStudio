@@ -673,3 +673,11 @@ is the only test that an empty `.app` is not refused.
   and, in `test_data_panel_widget.py`,
   `test_a_failed_read_in_the_child_comes_back_as_its_message` and
   `test_a_failed_read_is_shown_with_retry_and_retry_reads_again` (G10).
+
+## A Monte Carlo batch can be cancelled (2026-10-28)
+
+- Added `test_main_window.py::test_a_running_monte_carlo_batch_can_be_cancelled_and_the_window_closed`
+  and, in `test_run_worker.py`,
+  `test_a_monte_carlo_batch_can_be_cancelled_keeping_the_runs_finished` (1
+  and 2 threads) and `test_cancel_ends_the_processes_the_batch_started_too`
+  (audit G3). No existing test changed.

@@ -626,8 +626,11 @@ def collect_batch(scenario: Scenario, archive_dir: str | Path, num_runs: int,
         data_path = archive_dir / f"run{run}.data"
         if run in failures or not data_path.is_file():
             continue
-        with gzip.open(data_path) as handle:
-            messages = pickle.load(handle)["messages"]  # noqa: S301 -- written by this call (see docstring)
+        try:
+            with gzip.open(data_path) as handle:
+                messages = pickle.load(handle)["messages"]  # noqa: S301 -- written by this call (see docstring)
+        except (OSError, EOFError, pickle.UnpicklingError, KeyError):
+            continue  # cut short by a cancelled batch (audit G3): counted as not finished
         raw.append({name: (np.asarray(messages[f"{name}.scState.r_BN_N"], dtype=float),
                            np.asarray(messages[f"{name}.scState.v_BN_N"], dtype=float)) for name in names})
         params_path = archive_dir / f"run{run}.json"

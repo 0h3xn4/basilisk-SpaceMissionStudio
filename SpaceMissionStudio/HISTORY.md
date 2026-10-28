@@ -13817,3 +13817,39 @@ refusal, a run inside the span, the event search's checks): three fail
 on the code before (checked), the fourth passes on both.
 
 Full suite on Python 3.14: 3895 passed.
+
+## A Monte Carlo batch can be cancelled (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G3. Branch
+`monte-carlo-cancel`.
+
+**Found:** the batch ran with `cancellable=False` ("Basilisk's Controller
+has no way to stop it part way") and `closeEvent` refused to close while
+it ran. The batch already runs in its own spawned child
+(`gui/monte_carlo_process.py`), from which the Controller starts its
+Manager, its DataWriter and (with more than one thread) its Pool
+(`Basilisk/utilities/MonteCarlo/Controller.py`, read, not changed).
+
+**Change:** `run_batch(..., should_cancel)` sets a cancel event; a thread
+in the child (`_stop_on`) then terminates every
+`multiprocessing.active_children()` and exits (code 3); the GUI terminates
+the child itself only if that takes over 15 s. A second spawned child
+(`_summary_child`) summarizes the cases finished (`collect_batch`, which
+now skips a run file cut short) with no run listed as failed, and
+`BatchCancelled(finished)` carries how many. `MonteCarloWorker` has
+`request_cancel()` and `cancelled`; the progress strip's Cancel and Esc
+cancel a batch; the Monte Carlo view opens on the runs finished; History
+lists it as cancelled. Closing during a batch asks "Cancel and close" or
+"Keep running" (the default); Cancel and close cancels the batch and
+waits for it, once the unsaved-changes question (if any) is answered.
+
+**Tests:** a real batch (template 09, 12 runs, 0.01 day) cancelled once
+its first case has finished, with 1 and 2 threads: `BatchCancelled` with
+1 to 11 finished, the summary holding exactly those runs, none failed;
+a child that started a grandchild, cancelled: the child exits with code 3
+and the grandchild is gone (`os.kill(pid, 0)`; on Windows
+`GetExitCodeProcess`, since `os.kill` would end it there); the window:
+Esc cancels, Keep running keeps the window, Cancel and close cancels and
+waits. All four fail on the code before (checked).
+
+Full suite on Python 3.14: 3905 passed.
