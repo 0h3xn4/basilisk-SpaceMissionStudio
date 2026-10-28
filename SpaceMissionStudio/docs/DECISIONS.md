@@ -5,6 +5,19 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Monte Carlo off, said before Run (2026-10-28)
+
+The audit's G5: "Let the mode decide, or show an inline 'Enable' banner
+before the click."
+
+- **The banner, not the mode deciding:** Scenario > Monte Carlo > Enabled
+  is saved in the scenario (a file can carry its dispersions, off, for a
+  later batch), and the run mode is not; letting the mode switch it would
+  change the file by picking a mode. Enable stays one click, on the Run
+  page, and goes to the page where the batch still needs its dispersions.
+- **Run is not disabled:** it still says why, as before, for a click made
+  anyway (from the toolbar or Ctrl+R, where the note is not seen).
+
 ## The run's length with a Mission Sequence (2026-10-28)
 
 The audit's G4: "Say so on the Duration field; make Overview reflect the

@@ -1255,7 +1255,8 @@ parallel (each in its own process; at most one per CPU is used), and add
 one or more **dispersions** (which quantity varies, and by how much;
 **Add** adds one, and the selected one's form is under the list) --
 then set the run mode beside **Run** to **Monte Carlo** and press
-**Run**. This is a more advanced feature; most people won't need it
+**Run**. While Monte Carlo is off, the Run page says so, with **Enable
+Monte Carlo**, which turns it on and opens this page. This is a more advanced feature; most people won't need it
 for a first mission. Templates 09 and 25 are ready-made batches.
 
 A Monte Carlo run saves every run in the archive folder on the Run
