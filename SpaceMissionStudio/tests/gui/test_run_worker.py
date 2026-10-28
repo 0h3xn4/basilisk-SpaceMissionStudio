@@ -335,6 +335,30 @@ def _short_batch(num_runs: int = 2):
     return scenario, mc_config
 
 
+def test_a_monte_carlo_worker_imports_pandas_on_the_thread_that_makes_it():
+    """The batch's thread imports pandas through Basilisk's Monte Carlo
+    controller; plotly, drawing a plot on the GUI thread meanwhile, read the
+    half-imported module ("partially initialized module 'pandas'", Windows
+    CI). Making the worker now imports it on the GUI thread first. Checked
+    in a fresh interpreter, since this one has pandas already."""
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    pytest.importorskip("pandas")
+    code = ("import sys\n"
+            "from spacemissionstudio.gui.run_worker import MonteCarloWorker\n"
+            "assert 'pandas' not in sys.modules, 'pandas was loaded before the worker'\n"
+            "MonteCarloWorker(None, None, None)\n"
+            "print('pandas' in sys.modules and hasattr(sys.modules['pandas'], 'Series'))\n")
+    root = Path(__file__).resolve().parents[2]
+    done = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True, timeout=120,
+                          env={**os.environ, "QT_QPA_PLATFORM": "offscreen", "PYTHONPATH": str(root)})
+    assert done.returncode == 0, done.stderr
+    assert done.stdout.strip() == "True"
+
+
 @pytest.mark.requires_basilisk
 def test_monte_carlo_worker_runs_a_single_thread_batch(qtbot, tmp_path):
     """A batch with one thread succeeds from the GUI's worker thread.
