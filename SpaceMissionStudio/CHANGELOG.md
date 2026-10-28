@@ -195,6 +195,10 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   for the import. The window now imports pandas itself when it makes the
   batch's worker, once, about 0.25 s. Found when CI failed on it
   (Windows).
+- **tornado 6.6:** three advisories published against tornado 6.5.10
+  (CVE-2026-116577, CVE-2026-115927, CVE-2026-116578; fixed in 6.6) made
+  CI's dependency audit fail. tornado comes with bokeh, which needs 6.2 or
+  later; the pin is now 6.6.
 
 ## 1.3.1 (2026-10-27)
 
