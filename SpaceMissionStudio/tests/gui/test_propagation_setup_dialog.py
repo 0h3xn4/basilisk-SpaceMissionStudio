@@ -417,3 +417,15 @@ def test_albedo_is_offered_for_bodies_with_an_albedo_map(qtbot):
     d.central_body_combo.setCurrentText("moon")
     assert not d.albedo_check.isEnabled() and not d.albedo_check.isChecked()
     assert d.to_gravity().albedo is False
+
+
+def test_the_random_seed_round_trips(qtbot):
+    """The scenario's random seed comes back from the dialog, and an edit
+    is applied."""
+    from spacemissionstudio.schema.scenario import SimSettings
+
+    dialog = _dialog(sim_settings=SimSettings(seed=12345))
+    qtbot.addWidget(dialog)
+    assert dialog.to_sim_settings().seed == 12345
+    dialog.seed_spin.setValue(7)
+    assert dialog.to_sim_settings().seed == 7

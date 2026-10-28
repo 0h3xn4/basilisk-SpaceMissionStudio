@@ -2589,6 +2589,12 @@ class SimSettings:
     # snapshots, so anything shorter than this (e.g. a ground-station
     # pass) can fall between two samples.
     record_interval_s: float = 0.0
+    # The run's random seed. Every model with a random generator (sensor
+    # noise, navigation error, faults) gets its own seed derived from this
+    # one and its name (engine.seeds.assign_rng_seeds), so two sensors
+    # never draw the same noise, and the same scenario gives the same run.
+    # Change it for another realisation of the noise.
+    seed: int = 0
 
     # NOTE: gravity-field degree/order lives on GravityConfig.central_body_degree,
     # not here -- an earlier draft of this schema had a second,
@@ -2622,6 +2628,8 @@ class SimSettings:
                   "sim_settings.record_interval_s must be in [0, 86400] s (0 = every dynamics step)")
         _require(self.integrator in SUPPORTED_INTEGRATORS,
                   f"sim_settings.integrator {self.integrator!r} must be one of {SUPPORTED_INTEGRATORS}")
+        _require(isinstance(self.seed, int) and not isinstance(self.seed, bool) and 0 <= self.seed < 2 ** 31,
+                  "sim_settings.seed must be a whole number from 0 to 2147483647")
 
 
 @dataclass
