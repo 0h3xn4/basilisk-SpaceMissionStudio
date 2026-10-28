@@ -13989,3 +13989,21 @@ before.
 (both themes: the style sheet's field and indicator rules use the token,
 and it is 3:1 against the five backgrounds): fails on the code before
 (checked).
+
+## The export test's race (2026-10-28)
+
+Found by the full suite of `control-borders` after develop (with #138)
+was merged in: `test_an_export_runs_off_the_gui_thread_with_progress_and_cancel`
+read "Exporting..." where it expected "Exporting 1 of 2", and
+`test_run_record.py::test_a_run_is_saved_in_a_worker_and_listed_at_once`
+then failed with that export's `_end_export` on a deleted widget.
+
+**Cause:** the worker emits its progress, a queued signal, before it
+writes the file; the test checked the label as soon as the write began.
+Its gate (10 s) opened only after the asserts, so a failed assert left
+the export running into the next test. Reproduced: the test run 64 times
+on 8 workers, 6 failed.
+
+**Change (the test only):** it waits for the label, and opens the gate
+in a `finally`. 0 of 128 failed (two runs of 64). Ported into this PR
+because it would fail its CI the same way.
