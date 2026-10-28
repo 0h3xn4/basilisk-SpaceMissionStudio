@@ -168,6 +168,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   The Run page's Monte Carlo options now say it is off, with **Enable
   Monte Carlo**, which turns it on and opens Scenario > Monte Carlo for
   its runs and dispersions. Found by the audit of 2026-10-27 (G5).
+- **Exports no longer hold the window:** Results' **Export CSV** and
+  **Export all** wrote their files in the click handler, about a second
+  per long series, with no progress and no way to stop. They are written
+  in the background now; beside the buttons the export says how far it is
+  ("Exporting 3 of 40 files...") with **Cancel**, which stops before the
+  next file and keeps the ones written. The files are the same, byte for
+  byte. Found by the audit of 2026-10-27 (G2).
 
 ## 1.3.1 (2026-10-27)
 

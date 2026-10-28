@@ -5,6 +5,24 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Exports off the GUI thread (2026-10-28)
+
+The audit's G2: "Move them to a worker, as the flight software export
+already does."
+
+- **A worker per export, the files only:** the folder dialog and the
+  plots' rendering (in the page) stay where they are; what took the time
+  was decoding the images and writing the files.
+- **Cancel between files, not inside one:** a file is never left half
+  written; the ones written stay, and the message says how many.
+- **What the files hold is taken when the export starts:** the shown
+  plots, their series and the run's provenance, so a new run arriving
+  meanwhile does not mix into it.
+- **Progress beside the buttons, not in the status bar:** the status bar's
+  job strip is the run's; an export is the Results page's own.
+- **The window waits for an export when it closes** (seconds at most),
+  as it does for the reference data read.
+
 ## Monte Carlo off, said before Run (2026-10-28)
 
 The audit's G5: "Let the mode decide, or show an inline 'Enable' banner

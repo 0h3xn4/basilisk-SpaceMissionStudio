@@ -13888,3 +13888,39 @@ and opens Scenario > Monte Carlo. Run still says why when pressed anyway.
 on the code before (no such note), passes after.
 
 Full suite on Python 3.14: 3895 passed.
+
+## Exports off the GUI thread (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G2. Branch
+`export-worker`.
+
+**Found:** `ResultsWidget._on_export` called `ResultSet.export_csv` in the
+click handler, and `_on_all_rendered` decoded every plot's image and wrote
+the images, the CSVs and `provenance.json` there too: the window held
+for the whole export, with no progress and no cancel.
+
+**Change:** `_ExportWorker` (a QThread) runs the writing; `export_csv`
+takes an optional `progress(written, total)`, called before each file and
+at the end, which may raise to stop (Cancel). The Results page shows
+"Exporting N of M files..." and **Cancel** beside the buttons; Export
+CSV and Export all are off while it runs and the PNG re-enable paths
+leave them so. Export all takes the plots' file names, the series and the
+provenance when it starts; the images are decoded in the worker with
+that provenance. The main window waits for an export when it closes.
+Cancel reports "Export cancelled: N file(s) were written to ...".
+
+**Tests:** the new GUI test holds the first file's write on a gate:
+the write happens off the main thread, the row reads "Exporting 1 of 2
+files...", Export is off, Cancel leaves exactly one CSV and says so. The
+engine test checks the calls `(0, 3) (1, 3) (2, 3) (3, 3)`, that the
+files equal those written without progress byte for byte, and that
+raising stops after the first file. Both fail on the code before
+(checked). `test_export_files.py` (1.1.0's exports byte for byte) passes
+unchanged.
+
+**First full suite:** 3898 passed, 1 failed:
+`test_timeline_scale.py::test_an_export_keeps_every_sample_the_plot_thins`
+read the CSV right after `_on_export()`, before the worker had written it.
+It now waits for the export (`docs/ui/TEST_CHANGES.md`).
+
+Full suite on Python 3.14 after that: 3899 passed.

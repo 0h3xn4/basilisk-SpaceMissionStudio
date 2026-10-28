@@ -283,21 +283,32 @@ class ResultSet:
             raise ResultsError(f"a TimeSeries named {series.name!r} was already added to this ResultSet")
         self.series[series.name] = series
 
-    def export_csv(self, out_dir: str | Path) -> dict[str, Path]:
+    def export_csv(self, out_dir: str | Path, progress=None) -> dict[str, Path]:
         """Write one CSV per series into ``out_dir`` (created if needed),
         plus a ``provenance.json`` sidecar when :attr:`provenance` is set
         -- a separate file, not an extra header/row in each CSV, so the
         existing per-series CSV format (and anything already parsing it)
         is completely unchanged. Returns ``{series_name: written_path}``
         (``"provenance"`` included as a key when that file was written).
+        ``progress(written, total)``, when given, is called before each
+        file and once at the end; it may raise to stop (the GUI's Cancel).
         """
         out_dir = Path(out_dir)
         out_dir.mkdir(parents=True, exist_ok=True)
-        paths = {name: ts.to_csv(output_path(out_dir, f"{name}.csv")) for name, ts in self.series.items()}
+        total = len(self.series) + (self.provenance is not None)
+        paths = {}
+        for index, (name, ts) in enumerate(self.series.items()):
+            if progress is not None:
+                progress(index, total)
+            paths[name] = ts.to_csv(output_path(out_dir, f"{name}.csv"))
         if self.provenance is not None:
+            if progress is not None:
+                progress(len(self.series), total)
             provenance_path = out_dir / "provenance.json"
             provenance_path.write_text(json.dumps(self.provenance.to_dict(), indent=2))
             paths["provenance"] = provenance_path
+        if progress is not None:
+            progress(total, total)
         return paths
 
 

@@ -180,15 +180,17 @@ def test_set_result_none_clears_everything(widget):
     assert not widget.export_button.isEnabled()
     assert widget.figure is None
 
-def test_export_writes_csv_files(widget, tmp_path, monkeypatch, reported):
+def test_export_writes_csv_files(widget, tmp_path, monkeypatch, reported, qtbot):
     """Export writes one CSV file per series to the chosen folder and reports
-    the count and folder."""
+    the count and folder (from a worker thread, audit G2: the test waits
+    for its report)."""
     from PySide6.QtWidgets import QFileDialog
 
     widget.set_result(_sample_result_set())
     monkeypatch.setattr(QFileDialog, "getExistingDirectory", staticmethod(lambda *a, **k: str(tmp_path)))
 
     widget._on_export()
+    qtbot.waitUntil(lambda: bool(reported), timeout=10000)
 
     written = sorted(p.name for p in Path(tmp_path).glob("*.csv"))
     assert written == ["sat-1.position_N.csv", "sat-1.velocity_N.csv"]
@@ -1370,3 +1372,41 @@ def test_the_figure_warm_up_starts_after_the_start_up_read(monkeypatch):
     monkeypatch.setattr(data_panel_widget, "_start_up_read", None)
     data_panel_widget._remember_start_up_read([], None)
     assert [type(thread).__name__ for thread in started] == ["_SpaceWeatherWarmUp", "_FigureWarmUp"]
+
+
+def test_an_export_runs_off_the_gui_thread_with_progress_and_cancel(widget, tmp_path, monkeypatch, reported,
+                                                                     qtbot):
+    """Audit G2: Export CSV and Export all wrote their files in the click
+    handler, about 1 s per long series, with no progress and no cancel.
+    They are written by a worker; the row beside the buttons says how far
+    it is, Cancel stops it before its next file (the files written stay),
+    and the buttons are off until it ends."""
+    import threading
+
+    from PySide6.QtWidgets import QFileDialog
+
+    from spacemissionstudio.gui import results_widget as rw
+
+    widget.set_result(_sample_result_set())
+    monkeypatch.setattr(QFileDialog, "getExistingDirectory", staticmethod(lambda *a, **k: str(tmp_path)))
+    threads, gate = [], threading.Event()
+    writes = rw.TimeSeries.to_csv
+
+    def slow_write(self, path):
+        threads.append(threading.current_thread())
+        gate.wait(10.0)
+        return writes(self, path)
+
+    monkeypatch.setattr(rw.TimeSeries, "to_csv", slow_write)
+    widget.show()
+    widget._on_export()
+    qtbot.waitUntil(lambda: bool(threads), timeout=10000)
+    assert threads[0] is not threading.main_thread()  # the GUI thread is free while it writes
+    assert widget.export_cancel_button.isVisible() and widget.export_progress_label.text().startswith("Exporting 1 of 2")
+    assert not widget.export_button.isEnabled()
+    widget.export_cancel_button.click()
+    gate.set()
+    qtbot.waitUntil(lambda: bool(reported), timeout=10000)
+    assert reported[-1][:2] == (f"Export cancelled: 1 file(s) were written to {tmp_path}", "warning")
+    assert sorted(p.name for p in tmp_path.glob("*.csv")) == ["sat-1.position_N.csv"]
+    assert not widget.export_cancel_button.isVisible() and widget.export_button.isEnabled()
