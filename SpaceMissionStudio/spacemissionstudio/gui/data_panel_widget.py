@@ -120,7 +120,8 @@ class _InventoryWorker(QThread):
     it took 1.5 s of start-up, and on a worker thread it still held the
     interpreter for most of that."""
 
-    done = Signal(object, object)  # the inventory (reference_data files), the Basilisk version; not sent on failure
+    done = Signal(object, object)  # the inventory (reference_data files), the Basilisk version
+    failed = Signal(str)  # why the read failed (audit G10); neither is sent when the window stops it
 
     def stop(self) -> None:
         self.reader.stop()
@@ -132,7 +133,14 @@ class _InventoryWorker(QThread):
         self.reader = InventoryReader()
 
     def run(self) -> None:
-        read = self.reader.read()
+        from .reference_data_process import InventoryReadError
+
+        try:
+            read = self.reader.read()
+        except InventoryReadError as exc:
+            _logger.warning("Could not read the reference data files: %s", exc)
+            self.failed.emit(str(exc))
+            return
         if read is not None:
             self.done.emit(*read)
 
@@ -215,6 +223,7 @@ class DataPanelWidget(QWidget):
     """Reference data files, with consented downloads, import and rollback."""
 
     refreshed = Signal()  # after every refresh(): the status bar re-reads its summary
+    read_failed = Signal(str)  # a background read failed (audit G10): the status bar says so
 
     def __init__(self, parent: QWidget | None = None, load: bool = True):
         super().__init__(parent)
@@ -224,7 +233,14 @@ class DataPanelWidget(QWidget):
         layout = QVBoxLayout(self)
         self.status_label = QLabel("")
         self.status_label.setWordWrap(True)
-        layout.addWidget(self.status_label)
+        self.retry_button = QPushButton("Retry")
+        self.retry_button.setToolTip("Reads the files on this computer again, in the background. No network.")
+        self.retry_button.clicked.connect(self.retry_read)
+        self.retry_button.hide()  # shown when a read fails
+        status_row = QHBoxLayout()
+        status_row.addWidget(self.status_label, 1)
+        status_row.addWidget(self.retry_button, 0, Qt.AlignmentFlag.AlignTop)
+        layout.addLayout(status_row)
         self.table = QTableWidget(0, len(_COLUMNS))
         self.table.setTabKeyNavigation(False)  # read-only: Tab leaves the table; the arrows move in it (M9)
         on_change(self._retint)
@@ -307,8 +323,21 @@ class DataPanelWidget(QWidget):
         if start_up:
             reader.done.connect(_remember_start_up_read)
         reader.done.connect(self._on_read)
+        reader.failed.connect(self._on_read_failed)
         self._reader = reader
         _start(reader)
+
+    def retry_read(self) -> None:
+        """Retry: read the files again after a failed read."""
+        self.retry_button.hide()
+        self.status_label.setText("Reading the reference data files...")
+        self.refresh_in_background()
+
+    def _on_read_failed(self, message: str) -> None:
+        """The read failed: say so, with Retry (audit G10)."""
+        self.status_label.setText(f"Could not read the reference data files: {message}")
+        self.retry_button.show()
+        self.read_failed.emit(message)
 
     def read_at_start_up(self) -> None:
         """The window's first read of the files (:meth:`refresh_in_background`)."""
@@ -325,6 +354,7 @@ class DataPanelWidget(QWidget):
         keep the Basilisk version read with them, for the status bar)."""
         self.files = files
         self.basilisk_version = NOT_READ if basilisk_version is None else basilisk_version
+        self.retry_button.hide()
         self._files = files
         self.table.setRowCount(len(files))
         tones = {"ok": "status.normal.text", "missing": "status.critical.text", "out of date": "status.caution.text"}

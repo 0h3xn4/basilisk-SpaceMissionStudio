@@ -131,6 +131,15 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   names each part it bundles with its own licence (CPython, Qt, the
   fonts, the icons, the reference data) and this repository as the
   source. Found by the audit of 2026-10-27.
+- **Save from the unsaved-changes question:** closing, opening or
+  starting a scenario with unsaved changes offered only Discard and
+  Cancel; it now offers Save too (the default), which saves the scenario
+  (asking where for one with no file) and then goes ahead. A cancelled
+  Save As keeps the window and the changes.
+- **A failed read of the reference data is reported:** if the start-up
+  read of the reference data files failed, the Reference data panel kept
+  "Reading the reference data files..." for good. It now says why, with a
+  Retry button, and the status bar shows "Reference data: not read".
 
 ## 1.3.1 (2026-10-27)
 

@@ -5,6 +5,19 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## GUI fixes from the audit, batch 1 (2026-10-28)
+
+- **G6, Save as the default button:** what most editors do; Enter keeps
+  the work. Qt's standard buttons, so the platform names them (Save,
+  Discard, Cancel; "Don't Save" on macOS styles).
+- **G10, Retry in the panel, a note in the status bar:** the status bar
+  button already opens the panel; a second Retry there would be one more
+  control for a rare failure.
+- **G9, not changed:** Spacecraft › Edit in the main window already opens
+  the spacecraft's page in the tree (set since U-01); the modal dialog
+  the review cited is the list's fallback when it has no page to open,
+  used only by its own tests.
+
 ## Dependency security (2026-10-28)
 
 The audit's "next" row for R10 to R12: "Update Pillow and certifi;

@@ -661,3 +661,15 @@ is the only test that an empty `.app` is not refused.
   the new `rng_seed` and `rng_seeds` keys (audit E5); the helper is
   renamed `_without_new_keys`. Every other byte is still 1.1.0's.
 - Added `test_propagation_setup_dialog.py::test_the_random_seed_round_trips`.
+
+## GUI fixes from the audit, batch 1 (2026-10-28)
+
+- `test_messages.py::test_confirmations_name_the_object_and_the_consequence`:
+  the unsaved-changes question's expected text is now "Save the changes
+  to my mission first? Changes not saved cannot be recovered." (it offers
+  Save, audit G6); the test still checks that it names the scenario and
+  the consequence.
+- Added `test_main_window.py::test_save_in_the_unsaved_changes_question_saves_then_goes_ahead`
+  and, in `test_data_panel_widget.py`,
+  `test_a_failed_read_in_the_child_comes_back_as_its_message` and
+  `test_a_failed_read_is_shown_with_retry_and_retry_reads_again` (G10).

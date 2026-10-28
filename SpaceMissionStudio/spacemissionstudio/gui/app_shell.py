@@ -346,6 +346,9 @@ def source_of(path: Path | None, templates_dir: Path) -> str:
     return path.name
 
 
+_DATA_BUTTON_TIP = "Reference data: open the Reference data dialog"
+
+
 class StatusBarItems:
     """The permanent status-bar entries. :meth:`refresh` re-reads local
     files only; the window calls it at start-up, after the reference
@@ -358,7 +361,7 @@ class StatusBarItems:
         self.data_button = QToolButton(parent)
         self.data_button.setObjectName("statusDataButton")
         self.data_button.setAutoRaise(True)
-        self.data_button.setToolTip("Reference data: open the Reference data dialog")
+        self.data_button.setToolTip(_DATA_BUTTON_TIP)
         # The two longest entries give way while a run's job shares the bar;
         # their tooltips have all of it.
         self.earth_orientation_label = ElidedLabel(parent)
@@ -386,6 +389,15 @@ class StatusBarItems:
     def set_problem_counts(self, errors: int, warnings: int) -> None:
         _show_problem_counts(self.problems_button, errors, warnings)
 
+    def show_data_read_failure(self, message: str) -> None:
+        """The reference data files could not be read (audit G10): the
+        button says so and opens the panel, which has Retry."""
+        self.data_button.setText("Reference data: not read")
+        self.data_button.setToolTip(f"Could not read the reference data files: {message}. "
+                                    "Open Reference data to retry.")
+        self.data_button.setProperty("state", "warning")
+        _repolish(self.data_button)
+
     def refresh(self, files: list | None = None, basilisk_version: str | None = None) -> None:
         """Read Earth orientation again, and the reference data inventory
         and the Basilisk version unless given (``files``; a version read
@@ -409,6 +421,7 @@ class StatusBarItems:
         self.data_button.setText(f"Reference data: {len(problems)} of {len(files)} need attention" if problems
                                  else f"Reference data: all {len(files)} OK")
         self.data_button.setProperty("state", "warning" if problems else "")
+        self.data_button.setToolTip(_DATA_BUTTON_TIP)
         _repolish(self.data_button)
 
         kernels = earth_orientation.installed()
