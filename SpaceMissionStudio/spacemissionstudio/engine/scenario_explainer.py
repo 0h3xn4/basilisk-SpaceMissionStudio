@@ -62,7 +62,8 @@ from ..schema.epochs import parse_epoch_utc
 from . import earth_orientation, landmarks, opnav, small_bodies
 from .orbit_design import sun_synchronous_inclination_deg
 from .roe import min_radial_normal_separation
-from .scenario_checks import gravity_fidelity_notes, pass_summary, scenario_warnings
+from .scenario_checks import (gravity_fidelity_notes, pass_summary, scenario_warnings, sequence_length_text,
+                              sequence_span)
 
 _logger = logging.getLogger(__name__)
 
@@ -617,6 +618,15 @@ def _duration_label(days: float) -> str:
     return f"{round(days, 2):g} d"
 
 
+def _run_length(scenario) -> str:
+    """The Duration, or with a Mission Sequence how long its steps run
+    (audit G4: Overview said 2.4 h for template 23, whose run lasts 1.26 h)."""
+    span = sequence_span(scenario)
+    if span is None:
+        return _duration_label(scenario.sim_settings.duration_days)
+    return f"{sequence_length_text(span)} (sequence)"
+
+
 def explain(scenario) -> ScenarioExplanation:
     """Never raises -- called on every keystroke in the GUI, often
     against a mid-edit/invalid scenario.
@@ -633,7 +643,7 @@ def _explain(scenario) -> ScenarioExplanation:
 
     stat_tiles = [
         StatTile("Spacecraft", str(len(spacecraft))),
-        StatTile("Duration", _duration_label(scenario.sim_settings.duration_days)),
+        StatTile("Duration", _run_length(scenario)),
         StatTile("Gravity", _gravity_summary(scenario.gravity)),
     ]
     if len(spacecraft) == 1:

@@ -13817,3 +13817,32 @@ refusal, a run inside the span, the event search's checks): three fail
 on the code before (checked), the fourth passes on both.
 
 Full suite on Python 3.14: 3895 passed.
+
+## The run's length with a Mission Sequence (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G4. Branch
+`sequence-duration`.
+
+**Found, reproduced:** Overview's Duration tile showed
+`sim_settings.duration_days` and the pass lines counted passes over it,
+though a Mission Sequence decides the run's length. Template 23 (Duration
+0.1 day): "2.4 h", "berlin-gs: 2 passes"; its run lasts 1.26 h (the last
+sample of `berlin-gs.access_to_smallsat-1.azimuth.csv`) with one pass.
+Templates 08 and 16 (Duration 1 day and 0.2 day) run 14.4 h and 83 min.
+
+**Change:** `scenario_checks.sequence_span` reads the length from the
+steps (durations add, an epoch stop ends at its epoch, unticked steps do
+not run, an event stop or an if/while with a propagate is counted as
+open) and `sequence_length_text` says it. Overview's Duration tile shows
+it ("58 min + 2 event or condition stops (sequence)"; "14.4 h
+(sequence)"; "83 min (sequence)"); the pass lines count over the
+sequence when it is all fixed, else over the Duration and say "in the
+Duration". Under the Duration field a note (only with a sequence) says
+how long the sequence runs and that the Duration must still cover it.
+
+**Tests:** `test_a_mission_sequence_sets_the_run_length_overview_reports`,
+`test_an_epoch_stop_and_disabled_or_nested_steps_count_as_they_run`,
+`test_the_duration_says_when_the_mission_sequence_decides` (GUI): fail
+on the code before (checked), pass after.
+
+Full suite on Python 3.14: 3897 passed.

@@ -5,6 +5,20 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The run's length with a Mission Sequence (2026-10-28)
+
+The audit's G4: "Say so on the Duration field; make Overview reflect the
+sequence."
+
+- **From the steps, without running:** durations add up, an epoch stop
+  ends at its epoch; an event stop, or an if/while with a propagate in
+  it, ends only when it runs, so it is counted ("+ 2 event or condition
+  stops") rather than guessed.
+- **Passes over the sequence when it is known,** else over the Duration,
+  said so: predicting where an event stop ends would need the run.
+- **The Duration field is kept:** it still sets how far the space
+  weather and the checks reach, which the note says.
+
 ## Space weather past the Duration (2026-10-28)
 
 Found while checking the audit's G4 (the Duration does not limit a run
