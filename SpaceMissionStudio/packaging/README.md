@@ -119,6 +119,12 @@ in `packaging/` needed to change for it.
   validated all 28 templates, ran templates 01, 16 and 28, and ran the
   Monte Carlo template 09's 20 runs.
 
+* **`constraints.txt`** -- the exact version of every package the
+  installers ship; **`constraints-dev.txt`** -- the exact versions of the
+  tools CI runs (pytest and its plugins, ruff, pip-audit, pre-commit).
+  CI's `test` job checks both against the advisory databases
+  (`pip-audit --no-deps`) and fails on a known vulnerability.
+
 * **`spacemissionstudio.desktop.in`** -- the desktop-entry template `install.sh`
   fills in (`@INSTALL_PREFIX@` -> the venv's parent directory).
   `Icon=spacemissionstudio` now resolves to a real icon: `install.sh` renders

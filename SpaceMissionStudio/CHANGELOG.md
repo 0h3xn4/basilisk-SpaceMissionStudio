@@ -101,6 +101,18 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   0.3 g where it drains about 14 g (13.6 g at 1e-12), and its description
   now says so. 12's wheel speeds and 17's attitude are now closer to a run
   at 1e-12; 11 is as close as before.
+- **Packages with known vulnerabilities replaced:** the installers
+  shipped pillow 12.2.0 and certifi 2026.7.22, which pip-audit matched to
+  52 and 1 published advisories; they now ship pillow 13.0.0 and certifi
+  2026.10.23, with none. CI now checks every pinned package, and every
+  tool it runs, against those advisory databases and fails on a match;
+  the tools themselves (pytest and its plugins, ruff, pip-audit,
+  pre-commit) are pinned in `packaging/constraints-dev.txt`, and the main
+  workflow is read-only. The release workflow runs the whole test suite
+  on the tag before it attaches anything. The `.deb`'s copyright file now
+  names each part it bundles with its own licence (CPython, Qt, the
+  fonts, the icons, the reference data) and this repository as the
+  source. Found by the audit of 2026-10-27.
 
 ## 1.3.1 (2026-10-27)
 

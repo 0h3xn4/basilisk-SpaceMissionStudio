@@ -80,6 +80,10 @@ release"). On GitHub's runners it:
 
 - checks that the tag matches the version files and that the CHANGELOG
   has a section for the version;
+- runs the SpaceMissionStudio workflow on the tagged commit (job
+  `tests`): lint, the document checks, the whole test suite on Linux and
+  Windows and pip-audit on every pinned package. Nothing is attached
+  unless it passes;
 - builds the wheel, sdist and the self-contained `.deb` (the bundled
   Python of `packaging/bundle_python.py`) on Linux, installs the `.deb`
   with the network cut off and runs the installed tool offline: version,
@@ -105,7 +109,8 @@ release"). On GitHub's runners it:
 
 Actions > "SpaceMissionStudio release" > Run workflow, with the tag, runs
 it again for an existing tag. A pull request that changes the workflow
-runs the build and install jobs for its own commit and attaches nothing.
+runs the tests, the build and the install jobs for its own commit and
+attaches nothing.
 
 To check a build locally before tagging, from the `SpaceMissionStudio`
 folder:
@@ -130,8 +135,8 @@ what has been verified where.
   ```
 
   The release workflow (section 5) builds, checks and attaches the files
-  to a draft release titled "SpaceMissionStudio X.Y.Z". If the Linux or
-  Windows job fails, nothing is attached; fix the cause and run the
+  to a draft release titled "SpaceMissionStudio X.Y.Z". If the tests, the
+  Linux or the Windows job fail, nothing is attached; fix the cause and run the
   workflow again for the tag.
 - Read the draft on
   <https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases>: the

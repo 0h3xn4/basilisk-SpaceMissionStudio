@@ -15,6 +15,19 @@ on:
       - "SpaceMissionStudio/**"
       - ".github/workflows/spacemissionstudio.yml"
   workflow_dispatch:
+  # The release workflow runs the same checks on the tag before it attaches
+  # anything (spacemissionstudio-release.yml, job "tests").
+  workflow_call:
+    inputs:
+      ref:
+        description: "The commit or tag to test (empty: the event's own)"
+        required: false
+        type: string
+        default: ""
+
+# Read-only: no job here writes to the repository (audit R11).
+permissions:
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -36,6 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.ref }}
           fetch-depth: 0
       - id: classify
         env:
@@ -70,6 +84,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.ref }}
           fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
@@ -87,7 +102,7 @@ jobs:
         working-directory: SpaceMissionStudio
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -c packaging/constraints.txt -e ".[dev,gui]" pre-commit
+          python -m pip install -c packaging/constraints.txt -c packaging/constraints-dev.txt -e ".[dev,gui]" pre-commit
       - name: Whitespace and end-of-file hooks on the changed files
         env:
           BASE: ${{ needs.changes.outputs.base }}
@@ -120,6 +135,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
+          ref: ${{ inputs.ref }}
           fetch-depth: 0  # metrics.py counts corrective commits
       - uses: actions/setup-python@v6
         with:
@@ -139,7 +155,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -c packaging/constraints.txt "bsk==2.12.0"
-          python -m pip install -c packaging/constraints.txt -e ".[dev,gui]"
+          python -m pip install -c packaging/constraints.txt -c packaging/constraints-dev.txt -e ".[dev,gui]" pip-audit
       - name: Lint (coding standard C-8)
         run: python -m ruff check spacemissionstudio tests scripts compliance/tools
       - name: Documents complete against their DRDs and generated parts current (R14)
@@ -193,6 +209,12 @@ jobs:
       - name: Metrics and statement coverage >= 90 % (C-7, C-10)
         if: always()
         run: python compliance/tools/metrics.py --coverage coverage.json --junit test-report.xml --fail-under 90 --fail-under-branch 80
+      # Every package the installers ship (constraints.txt) and every tool CI
+      # runs (constraints-dev.txt) against the Python packaging advisory
+      # databases; a known vulnerability fails the job (audit R10).
+      - name: Known vulnerabilities in the pinned packages (pip-audit)
+        if: always()
+        run: python -m pip_audit --no-deps --disable-pip --progress-spinner off -r packaging/constraints.txt -r packaging/constraints-dev.txt
       - name: Traceability, ICS and compliance matrix
         if: always()
         run: |
@@ -238,6 +260,8 @@ jobs:
       QT_QPA_PLATFORM: offscreen
     steps:
       - uses: actions/checkout@v5
+        with:
+          ref: ${{ inputs.ref }}
       - uses: actions/setup-python@v6
         with:
           python-version: "3.14"
@@ -245,7 +269,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -c packaging/constraints.txt "bsk==2.12.0"
-          python -m pip install -c packaging/constraints.txt -e ".[dev,gui]"
+          python -m pip install -c packaging/constraints.txt -c packaging/constraints-dev.txt -e ".[dev,gui]"
       - name: Support data (SPICE kernels, gravity field, magnetic model), fetched once as the installers do
         run: spacemissionstudio kernels-status
       - name: IERS-based Earth orientation files for the validation cases (SVS VP-1)

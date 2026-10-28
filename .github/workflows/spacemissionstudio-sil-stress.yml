@@ -50,7 +50,7 @@ jobs:
       - name: Install the tool and the dev tools
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -c packaging/constraints.txt -e ".[dev,gui]"
+          python -m pip install -c packaging/constraints.txt -c packaging/constraints-dev.txt -e ".[dev,gui]"
           if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
       - name: Run the test many times under load
         run: |
@@ -118,7 +118,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install -c packaging/constraints.txt "bsk==2.12.0"
-          python -m pip install -c packaging/constraints.txt -e ".[dev,gui]"
+          python -m pip install -c packaging/constraints.txt -c packaging/constraints-dev.txt -e ".[dev,gui]"
       - name: Support data, Earth orientation files and the 433 Eros files
         run: |
           spacemissionstudio kernels-status

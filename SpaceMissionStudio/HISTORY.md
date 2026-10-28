@@ -13593,3 +13593,57 @@ not installed here and the validation references are generated with it.
 **Tests:** `test_a_long_step_stays_close_to_kepler_and_records_its_tolerances`
 (300 s, within 50 m; 384.1 m before the change) and
 `test_a_long_dynamics_step_is_flagged` (120 s flagged, 60 s not).
+
+## Dependency security (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's "next" row
+for R10 to R12. Branch `dependency-security`.
+
+**Found, reproduced:** `pip-audit --no-deps -r packaging/constraints.txt`
+(pip-audit 2.10.1): 52 advisories against pillow 12.2.0 (13 fixed in
+12.3.0, the other 39 only in 13.0.0) and one against certifi 2026.7.22
+(fixed in 2026.10.19); exit code 1. CI's install of `.[dev]` took the
+newest ruff and pytest each run (ruff 0.17.3 and pytest 9.2.0 on this
+day, against 0.17.1 and 9.1.1 in this container). The main workflow had no
+`permissions:` block; the release workflow attached files without
+running a test. The `.deb`'s copyright file had one stanza, ISC for
+`*`, and `Source:` and the control file's `Homepage:` pointed to
+AVSLab/basilisk.
+
+**Change:**
+
+* `constraints.txt`: pillow 13.0.0, certifi 2026.10.23 (pip-audit: none
+  found). matplotlib asks only for pillow >= 8. Its header now says
+  Python 3.14.
+* `constraints-dev.txt` (new): pytest 9.2.0, pytest-qt 4.5.0, pytest-cov
+  7.1.0, pytest-xdist 3.8.0, ruff 0.17.3, pip-audit 2.10.1, pre-commit
+  4.7.0 and what they need, resolved against `constraints.txt` (`uv pip
+  compile`). The main and SIL stress workflows install with it.
+* `spacemissionstudio.yml`: `permissions: contents: read`; a pip-audit
+  step in `test` on both pin files (`if: always()`, after the tests);
+  callable (`workflow_call`, with a `ref`).
+* `spacemissionstudio-release.yml`: a `tests` job calls it on the tagged
+  commit; `attach` needs it. The release notes and
+  `docs/developer/releasing.md` say so.
+* The copyright file: a stanza per part, general to specific (the
+  format's last match wins): ISC for SpaceMissionStudio and Basilisk,
+  PSF-2.0 for CPython (pointing to its `LICENSE.txt`, which the pinned
+  archive has; SHA-256 checked), LGPL-3.0 for PySide6 and shiboken6,
+  OFL-1.1 for the two fonts, ISC and MIT for Lucide, the providers'
+  terms for the reference data, and each other package's licence as its
+  metadata gives it. `Source:` and `Homepage:` are this repository.
+
+**Not checked here:** the libraries built into CPython were not listed
+from the binary (running it was refused in this session); the file
+names them as `docs/THIRD_PARTY_ASSETS.md` does, from
+python-build-standalone's own licensing notes. The release workflow's
+`tests` job runs on this pull request (with its own commit); the tag and
+manual-run paths run first at the next tag.
+
+**Tests:** full suite on Python 3.14 with the new pins and tools: 3888
+passed (the one warning is the one develop has). New:
+`test_ci_installs_pinned_development_tools` (fails when a workflow
+installs the dev extra without `constraints-dev.txt`: checked by taking
+it out of one) and
+`test_the_debian_copyright_file_names_each_bundled_part_and_its_licence`
+(fails on the old file: checked).

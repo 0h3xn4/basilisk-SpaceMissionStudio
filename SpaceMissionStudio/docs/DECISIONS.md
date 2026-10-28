@@ -5,6 +5,30 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Dependency security (2026-10-28)
+
+The audit's "next" row for R10 to R12: "Update Pillow and certifi;
+pip-audit in CI; pin CI tools; tests required on the release tag; fix
+Debian copyright" (testing 3.11 and 3.13 no longer applies: 2.0.0 needs
+3.14).
+
+- **pillow 13.0.0, not 12.3.0:** 12.3.0 still has 39 of the 52
+  advisories; 13.0.0 is the first with none. matplotlib asks only for
+  pillow >= 8.
+- **pip-audit on the pin files, `--no-deps`:** they list every package
+  exactly, so the audit sees what the installers ship, not what a runner
+  happens to resolve. In the `test` job (required), after the tests and run
+  whatever happened before them (`if: always()`), so a new advisory fails
+  the job without hiding the test results.
+- **The dev tools in their own file:** `constraints.txt` stays the set
+  the installers ship; `constraints-dev.txt` holds the tools and what
+  they need, resolved against it.
+- **Tests on the tag by calling the main workflow** (`workflow_call`,
+  with the tag as `ref`): the same jobs as every pull request, with
+  nothing to keep in step; `attach` needs them.
+- **Copyright by part, last match wins:** the format's own rule; a test
+  resolves sample paths of each part to their licence.
+
 ## The integrator's tolerances (2026-10-28)
 
 The audit's E3: "Set tolerances (about 1e-10 relative) or expose them;
