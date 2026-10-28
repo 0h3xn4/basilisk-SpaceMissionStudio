@@ -135,11 +135,17 @@ def test_12_thrusters_dump_wheel_momentum():
 
 
 def test_17_fuel_tank_drains_about_as_described():
-    """On an earlier 10 kg*m^2 bus the thrusters' on-times stayed under their
-    20 ms minimum: no propellant used at all."""
+    """About 12 g drains while the attitude settles in the first 3 minutes,
+    about 14 g in all. On an earlier 10 kg*m^2 bus the thrusters' on-times
+    stayed under their 20 ms minimum: no propellant used at all. With the
+    integrator's default tolerance (until 2026-10-28) a 0.5 s step skipped
+    most of the 20-40 ms pulses and only 0.3 g drained; a run at 1e-12
+    drains 13.6 g."""
     result = _run(_template("17"))
-    fuel = result.series["sat-1.fuel_mass_remaining"].data[:, 0]
-    assert 0.1e-3 <= fuel[0] - fuel[-1] <= 1.0e-3  # [kg] "about 0.3 g of the 0.5 kg"
+    fuel = result.series["sat-1.fuel_mass_remaining"]
+    drained = fuel.data[0, 0] - fuel.data[:, 0]  # [kg]
+    assert 10e-3 <= drained[-1] <= 20e-3  # [kg] "about 12 g ... about 2 g more"
+    assert drained[np.searchsorted(fuel.time_s, 180.0)] >= 0.75 * drained[-1]  # most of it while settling
 
 
 def test_11_thrusters_settle_the_attitude_within_a_few_minutes():

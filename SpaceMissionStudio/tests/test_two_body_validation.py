@@ -185,3 +185,37 @@ def test_two_body_orbit_elements_match_input_classical_elements():
     assert np.ptp(a.data[:, 0]) / a.data[0, 0] < 1e-4, "semi-major axis should stay ~constant (unperturbed two-body)"
     assert np.ptp(i.data[:, 0]) < 1e-6, "inclination should stay ~constant (unperturbed two-body)"
     assert np.ptp(raan.data[:, 0]) < 1e-6, "RAAN should stay ~constant (unperturbed two-body)"
+
+
+def test_a_long_step_stays_close_to_kepler_and_records_its_tolerances():
+    """A one-day run at a 300 s step stays within 50 m of the analytical
+    Kepler solution (audit E3: 384 m with Basilisk's default tolerance of
+    1e-4; 11 m with 1e-10), and the run's provenance records the
+    tolerances it used."""
+    from Basilisk.utilities import orbitalMotion as om
+    from Basilisk.utilities import simIncludeGravBody
+
+    from spacemissionstudio.engine.service import (INTEGRATOR_ABSOLUTE_TOLERANCE, INTEGRATOR_RELATIVE_TOLERANCE,
+                                                   SimulationService)
+
+    scenario = load_scenario(SCENARIO_PATH)
+    scenario.sim_settings.duration_days = 1.0  # [day]
+    scenario.sim_settings.dynamics_task_rate_s = 300.0  # [s]
+    result = SimulationService(scenario).run()
+
+    pos = result.series[f"{scenario.spacecraft[0].name}.position_N"]
+    mu = simIncludeGravBody.gravBodyFactory().createEarth().mu  # [m^3/s^2]
+    orbit = scenario.spacecraft[0].orbit
+    oe0 = om.ClassicElements()
+    oe0.a = orbit.semi_major_axis_km * 1000.0  # [m]
+    oe0.e = orbit.eccentricity
+    oe0.i = np.radians(orbit.inclination_deg)
+    oe0.Omega = np.radians(orbit.raan_deg)
+    oe0.omega = np.radians(orbit.arg_periapsis_deg)
+    oe0.f = np.radians(orbit.true_anomaly_deg)
+    r_analytical, _ = _analytical_state_at(mu, oe0, float(pos.time_s[-1]))
+    error_m = np.linalg.norm(pos.data[-1] - np.array(r_analytical))  # [m]
+    assert error_m < 50.0, f"{error_m:.1f} m off Kepler after one day at a 300 s step"
+
+    assert result.provenance.integrator_relative_tolerance == INTEGRATOR_RELATIVE_TOLERANCE
+    assert result.provenance.integrator_absolute_tolerance == INTEGRATOR_ABSOLUTE_TOLERANCE

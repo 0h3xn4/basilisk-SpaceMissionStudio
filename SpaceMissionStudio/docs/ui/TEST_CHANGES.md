@@ -646,3 +646,11 @@ is the only test that an empty `.app` is not refused.
   `test_keyboard_cursor.py::test_alt_backspace_clears_the_time_cursor_in_the_window`
   (also on `develop`, Python 3.13). The form is hidden, so no label or
   input of it was ever checked; nothing checked is left out.
+
+## The integrator's tolerances (2026-10-28)
+
+- `test_export_files.py::test_every_export_is_byte_identical_to_1_1_0`:
+  a provenance record now holds the integrator's tolerances (audit E3).
+  The two provenance files are compared without those two keys, which
+  must be present; the rest of them, and every other file, is still
+  1.1.0's byte for byte. The reference zip is unchanged.
