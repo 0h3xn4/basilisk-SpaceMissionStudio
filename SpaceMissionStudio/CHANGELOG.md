@@ -140,6 +140,15 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   read of the reference data files failed, the Reference data panel kept
   "Reading the reference data files..." for good. It now says why, with a
   Retry button, and the status bar shows "Reference data: not read".
+- **No held space weather after the Duration:** a Mission Sequence can
+  run longer than the scenario's Duration, but the space weather its drag
+  reads was loaded only for the Duration and 10 days either side. Past
+  that, Basilisk held the last day's values, for as long as the run went
+  on, with nothing in the results to say so (a 15-day sequence in a
+  0.1-day Duration: 5 days on held values). Such a run now stops before
+  it goes there, with a message to set the Duration to cover the
+  sequence. Runs inside the loaded days, and every template, are
+  unchanged.
 
 ## 1.3.1 (2026-10-27)
 

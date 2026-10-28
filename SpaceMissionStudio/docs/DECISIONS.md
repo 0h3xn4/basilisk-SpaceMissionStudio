@@ -5,6 +5,22 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Space weather past the Duration (2026-10-28)
+
+Found while checking the audit's G4 (the Duration does not limit a run
+with a Mission Sequence).
+
+- **Refuse, not extend:** the length of a sequence with event stops or
+  loops is not known before it runs, so the loaded span cannot be sized
+  to it; a run that would leave it stops, as one past the Earth
+  orientation files already does (R1). The message says what to set.
+- **An event search is checked where it stopped:** checked at its bound
+  (10 x the Duration, at least 10 days), almost every search with drag
+  would be refused though it stops long before; where it stopped is what
+  used the data. In the CLI's unchunked search that is after the step, so
+  its results are not kept; the GUI's search runs in chunks, each checked
+  before it runs.
+
 ## GUI fixes from the audit, batch 1 (2026-10-28)
 
 - **G6, Save as the default button:** what most editors do; Enter keeps
