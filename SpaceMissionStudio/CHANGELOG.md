@@ -188,6 +188,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   #6B6D71 dark), gives at least 3.08:1 against every background a control
   sits on, and the contrast test now covers it. Found by the audit of
   2026-10-27 (G7).
+- **No plot error when a Monte Carlo batch starts:** the batch's thread
+  imports pandas (through Basilisk's Monte Carlo controller), and a plot
+  drawn on the window's thread at that moment could fail with "partially
+  initialized module 'pandas'": plotly takes the module without waiting
+  for the import. The window now imports pandas itself when it makes the
+  batch's worker, once, about 0.25 s. Found when CI failed on it
+  (Windows).
 
 ## 1.3.1 (2026-10-27)
 

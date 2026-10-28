@@ -229,6 +229,16 @@ class MonteCarloWorker(QThread):
         self.allow_scripts = allow_scripts  # the user agreed to the Mission Sequence's script blocks
         self.overwrite = overwrite  # the user agreed to replace an earlier batch in archive_dir
         self._cancel = False
+        # pandas, on the GUI thread, before run() imports Basilisk's Monte
+        # Carlo controller (which imports it) on the worker's: plotly, drawing
+        # a plot on the GUI thread meanwhile, takes sys.modules["pandas"]
+        # without waiting for that import and failed on the half-made module
+        # ("partially initialized module 'pandas'", Windows CI). Once, about
+        # 0.25 s.
+        try:
+            import pandas  # noqa: F401
+        except ImportError:  # no Basilisk, so no pandas: run() reports it
+            pass
 
     def request_cancel(self) -> None:
         """Stop the batch: its child ends the controller's processes; the
