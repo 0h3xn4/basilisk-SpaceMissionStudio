@@ -1410,4 +1410,3 @@ def test_an_export_runs_off_the_gui_thread_with_progress_and_cancel(widget, tmp_
     assert reported[-1][:2] == (f"Export cancelled: 1 file(s) were written to {tmp_path}", "warning")
     assert sorted(p.name for p in tmp_path.glob("*.csv")) == ["sat-1.position_N.csv"]
     assert not widget.export_cancel_button.isVisible() and widget.export_button.isEnabled()
-
