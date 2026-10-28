@@ -14007,3 +14007,29 @@ on 8 workers, 6 failed.
 **Change (the test only):** it waits for the label, and opens the gate
 in a `finally`. 0 of 128 failed (two runs of 64). Ported into this PR
 because it would fail its CI the same way.
+
+## A Monte Carlo batch and pandas (2026-10-28)
+
+Found by CI on PR #140 (`platforms (windows-latest)`):
+`test_run_worker.py::test_monte_carlo_worker_runs_a_single_thread_batch`
+failed with "partially initialized module 'pandas' has no attribute
+'Series'", raised in the window's event loop by plotly's `fig.to_json()`
+(`ResultsWidget._push_figure_to_webview`). Branch `mc-pandas-import`.
+
+**Cause:** `MonteCarloWorker.run` imports `engine.monte_carlo` on its
+thread, and with it Basilisk's Monte Carlo `Controller`, which imports
+pandas. Plotly checks for pandas with `sys.modules.get` and does not wait
+for an import in progress. Reproduced outside the tests: one thread
+importing pandas while the main thread asks plotly's `get_module` for it;
+plotly returned a module without `Series` on every check of the import
+(three runs). A single run does not load pandas (template 22, checked),
+so only a batch started while a plot is drawn is exposed.
+
+**Change:** `MonteCarloWorker.__init__`, on the GUI thread, imports
+pandas (once, about 0.25 s measured with `-X importtime`); without
+pandas (no Basilisk) the worker reports Basilisk missing, as before.
+
+**Tests:** `test_a_monte_carlo_worker_imports_pandas_on_the_thread_that_makes_it`
+(in a fresh interpreter): fails on the code before (checked), passes now.
+
+Full suite on Python 3.14: 3915 passed.
