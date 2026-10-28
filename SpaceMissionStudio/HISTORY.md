@@ -13690,4 +13690,5 @@ cited (`spacecraft_editor.py:3140`) is the fallback for a list with no
 handler, which only the list's own tests create. Not changed.
 
 **Tests:** the four new or changed tests fail on the code before the
-change (checked) and pass after; full suite on Python 3.14: 3889 passed.
+change (checked) and pass after; full suite on Python 3.14: 3889 passed,
+and 3894 with develop (random seeds) merged in.
