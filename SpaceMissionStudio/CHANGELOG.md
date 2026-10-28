@@ -181,6 +181,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   folder, and the Monte Carlo view opens on them. Closing the window
   during a batch asks **Cancel and close** or **Keep running**. Found by
   the audit of 2026-10-27 (G3).
+- **Field and check box borders meet WCAG 1.4.11:** the borders of
+  input fields, check boxes and radio buttons were 1.4 to 1.6:1 against
+  their backgrounds, under the 3:1 WCAG asks for the boundary that
+  identifies a control. A new token, `border.control` (#88898C light,
+  #6B6D71 dark), gives at least 3.08:1 against every background a control
+  sits on, and the contrast test now covers it. Found by the audit of
+  2026-10-27 (G7).
 
 ## 1.3.1 (2026-10-27)
 

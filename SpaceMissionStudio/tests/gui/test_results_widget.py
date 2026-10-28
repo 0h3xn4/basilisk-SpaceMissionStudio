@@ -1400,12 +1400,16 @@ def test_an_export_runs_off_the_gui_thread_with_progress_and_cancel(widget, tmp_
     monkeypatch.setattr(rw.TimeSeries, "to_csv", slow_write)
     widget.show()
     widget._on_export()
-    qtbot.waitUntil(lambda: bool(threads), timeout=10000)
-    assert threads[0] is not threading.main_thread()  # the GUI thread is free while it writes
-    assert widget.export_cancel_button.isVisible() and widget.export_progress_label.text().startswith("Exporting 1 of 2")
-    assert not widget.export_button.isEnabled()
-    widget.export_cancel_button.click()
-    gate.set()
+    try:
+        qtbot.waitUntil(lambda: bool(threads), timeout=10000)
+        assert threads[0] is not threading.main_thread()  # the GUI thread is free while it writes
+        # The progress signal crosses threads: it is shown when the event loop
+        # takes it, not when the worker starts writing (CI read "Exporting...").
+        qtbot.waitUntil(lambda: widget.export_progress_label.text().startswith("Exporting 1 of 2"), timeout=10000)
+        assert widget.export_cancel_button.isVisible() and not widget.export_button.isEnabled()
+        widget.export_cancel_button.click()
+    finally:
+        gate.set()  # never left writing into the next test's event loop
     qtbot.waitUntil(lambda: bool(reported), timeout=10000)
     assert reported[-1][:2] == (f"Export cancelled: 1 file(s) were written to {tmp_path}", "warning")
     assert sorted(p.name for p in tmp_path.glob("*.csv")) == ["sat-1.position_N.csv"]

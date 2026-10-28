@@ -13960,3 +13960,50 @@ Esc cancels, Keep running keeps the window, Cancel and close cancels and
 waits. All four fail on the code before (checked).
 
 Full suite on Python 3.14: 3905 passed.
+
+## Control borders at 3:1 (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G7. Branch
+`control-borders`.
+
+**Found, measured:** fields (QLineEdit, spin boxes, combo boxes, text
+edits) and check box and radio indicators had `border.strong`: light
+1.50:1 on bg.field, bg.surface and bg.raised, 1.40 on bg.canvas; dark
+1.49 on bg.field and bg.surface, 1.40 on bg.raised, 1.57 on bg.canvas.
+WCAG 1.4.11 asks 3:1; `CONTRAST_PAIRS` had no border.
+
+**Change:** `border.control` = text.primary over bg.surface at 51 % (light,
+#88898C) and 42 % (dark, #6B6D71), the least shares giving 3:1 against
+bg.canvas, bg.surface, bg.raised, bg.field and bg.hover: light 3.27, 3.50,
+3.50, 3.50, 3.09; dark 3.75, 3.56, 3.33, 3.56, 3.08. In `CONTRAST_PAIRS`
+for those five; `qss.py` draws fields and indicators with it. Hover,
+focus, error and disabled borders are unchanged. `docs/DESIGN.md` lists
+the token.
+
+**Seen:** the Environment page in both themes, before and after
+(screenshots in the session, not committed): the fields and check boxes
+are outlined where they were barely visible; lists and disabled fields as
+before.
+
+**Tests:** `test_fields_and_check_boxes_have_a_border_of_three_to_one`
+(both themes: the style sheet's field and indicator rules use the token,
+and it is 3:1 against the five backgrounds): fails on the code before
+(checked).
+
+## The export test's race (2026-10-28)
+
+Found by the full suite of `control-borders` after develop (with #138)
+was merged in: `test_an_export_runs_off_the_gui_thread_with_progress_and_cancel`
+read "Exporting..." where it expected "Exporting 1 of 2", and
+`test_run_record.py::test_a_run_is_saved_in_a_worker_and_listed_at_once`
+then failed with that export's `_end_export` on a deleted widget.
+
+**Cause:** the worker emits its progress, a queued signal, before it
+writes the file; the test checked the label as soon as the write began.
+Its gate (10 s) opened only after the asserts, so a failed assert left
+the export running into the next test. Reproduced: the test run 64 times
+on 8 workers, 6 failed.
+
+**Change (the test only):** it waits for the label, and opens the gate
+in a `finally`. 0 of 128 failed (two runs of 64). Ported into this PR
+because it would fail its CI the same way.

@@ -158,7 +158,7 @@ Identifiers are module paths: `engine/service` is `spacemissionstudio/engine/ser
 | `gui/theme/qss` | The application style sheet, generated from the tokens. | - | `stylesheet` | gui/theme/icons, gui/theme/typography | - | 667 |
 | `gui/theme/richtext` | Inline CSS for Qt rich text (labels showing HTML), from the tokens. | - | `css`, `status_css` | gui/theme/state, gui/theme/typography | - | 53 |
 | `gui/theme/state` | The theme in use | - | `role_palette`, `select`, `current` | gui/theme/palettes, gui/theme/tokens | - | 109 |
-| `gui/theme/tokens` | The colour tokens | - | `mix`, `tokens`, `luminance`, `contrast` | - | - | 201 |
+| `gui/theme/tokens` | The colour tokens | - | `mix`, `tokens`, `luminance`, `contrast` | - | - | 208 |
 | `gui/theme/typography` | Type, spacing and shape | - | - | - | - | 59 |
 | `gui/time_cursor` | One time cursor shared by every view of a run (UX/UI guidelines, "one shared time cursor across views"). | SRS-F-15 | `TimeCursor`, `describe` | engine/events, engine/time_system | PySide6 | 71 |
 | `gui/undo_history` | Undo and redo of scenario edits (UX/UI guidelines, "undo and redo"). | SRS-F-15 | `ScenarioHistory` | - | - | 83 |

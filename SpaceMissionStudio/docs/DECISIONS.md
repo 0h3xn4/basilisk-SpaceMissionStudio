@@ -5,6 +5,22 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Control borders at 3:1 (2026-10-28)
+
+The audit's G7: "A control-border token of at least 3:1, added to
+CONTRAST_PAIRS."
+
+- **A new token, not a darker border.strong:** border.strong also draws
+  panels, toasts and buttons, where it separates surfaces (the design
+  rules' "very few lines"); a field or a check box is identified by its
+  border, a button by its label.
+- **text.primary over the surface, the least share that passes:** the
+  same derivation as the other tokens; 51 % light and 42 % dark give
+  3.08:1 at worst (on bg.hover), so the borders stay as quiet as the rule
+  allows.
+- **Disabled controls keep border.subtle:** WCAG 1.4.11 exempts inactive
+  components, and the fainter border says that they are.
+
 ## A Monte Carlo batch can be cancelled (2026-10-28)
 
 The audit's G3: "Terminate the child process, keep finished cases, offer

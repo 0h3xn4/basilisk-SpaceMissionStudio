@@ -210,3 +210,26 @@ def test_a_deleted_view_is_not_called_on_a_theme_change(qtbot, restored_theme):
     delete(dropped)  # Qt deletes the widget; the Python object stays
     theme.apply_theme(restored_theme, "dark")
     assert calls == [("kept", "dark")]
+
+
+@pytest.mark.parametrize("mode", ["light", "dark"])
+def test_fields_and_check_boxes_have_a_border_of_three_to_one(mode):
+    """Audit G7: input and check box borders were border.strong, 1.40 to
+    1.57:1 against their backgrounds; WCAG 1.4.11 asks 3:1 of the
+    boundary that identifies a control. They now use border.control, in
+    CONTRAST_PAIRS at 3:1 against every background a control sits on."""
+    import re
+
+    from spacemissionstudio.gui.theme import tokens
+    from spacemissionstudio.gui.theme.qss import stylesheet
+
+    values = tokens.tokens(mode)
+    sheet = stylesheet(values)
+    for selector in ("QLineEdit, QPlainTextEdit", "QCheckBox::indicator, QGroupBox::indicator"):
+        block = sheet[sheet.index(selector):]
+        block = block[:block.index("}")]
+        border = re.search(r"\bborder: 1px solid (#[0-9A-Fa-f]{6})", block).group(1)
+        assert border == values["border.control"], selector
+    for bg in ("bg.canvas", "bg.surface", "bg.raised", "bg.field", "bg.hover"):
+        assert ("border.control", bg, 3.0) in tokens.CONTRAST_PAIRS
+        assert tokens.contrast(values["border.control"], values[bg]) >= 3.0

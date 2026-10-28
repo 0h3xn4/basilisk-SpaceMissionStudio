@@ -116,6 +116,11 @@ TEXT_SELECTION_SHARE = {"light": 0.22, "dark": 0.34}  # [-]
 # Disabled text: text.primary at this share over the surface. WCAG 1.4.3
 # exempts inactive controls; it is kept readable all the same.
 DISABLED_SHARE = 0.38  # [-]
+# The border of a field, a check box or a radio button: text.primary over
+# the surface at this share, the least that gives 3:1 against every
+# background a control sits on (WCAG 1.4.11; border.strong is 1.4-1.6:1,
+# audit G7). Light #88898C, dark #6B6D71.
+CONTROL_BORDER_SHARE = {"light": 0.51, "dark": 0.42}  # [-]
 # The accent's hover and pressed steps: mixed towards black (light) or
 # white (dark) by these shares.
 ACCENT_STEP = {"hover": 0.10, "pressed": 0.20}  # [-]
@@ -138,6 +143,7 @@ def _build(mode: str) -> dict[str, str]:
     t["bg.selected"] = mix(accent, surface, SELECTED_SHARE[mode])
     t["bg.field"] = surface
     t["border.focus"] = accent
+    t["border.control"] = mix(t["text.primary"], surface, CONTROL_BORDER_SHARE[mode])
     t["text.disabled"] = mix(t["text.primary"], surface, DISABLED_SHARE)
     t["text.on_accent"] = ON_ACCENT[mode]
     t["text.link"] = accent
@@ -184,6 +190,7 @@ CONTRAST_PAIRS = (
     + [("text.primary", f"status.{name}.soft", 4.5) for name in STATUSES]
     + [(f"status.{name}", bg, 3.0) for name in STATUSES for bg in ("bg.canvas", "bg.surface", "bg.raised")]
     + [("border.focus", bg, 3.0) for bg in ("bg.canvas", "bg.surface", "bg.raised", "bg.field")]
+    + [("border.control", bg, 3.0) for bg in ("bg.canvas", "bg.surface", "bg.raised", "bg.field", "bg.hover")]
     + [("accent", bg, 3.0) for bg in ("bg.canvas", "bg.surface")]
 )
 
