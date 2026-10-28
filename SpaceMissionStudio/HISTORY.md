@@ -13846,3 +13846,25 @@ how long the sequence runs and that the Duration must still cover it.
 on the code before (checked), pass after.
 
 Full suite on Python 3.14: 3897 passed.
+
+## Toasts fade out every time (2026-10-28)
+
+Found while driving PR #136 (the audit's G4) to green: one of its two
+`test` runs failed in `test_reports_and_settings.py::test_toasts_fade_unless_motion_is_reduced`
+(waited 10 s for the fade-out), the other passed on the same commit.
+Branch `toast-fade-order`.
+
+**Cause:** `show_toast` set two `QTimer.singleShot` timers, the fade-out
+at the duration less 150 ms and the dismissal at the duration. Qt makes a
+single-shot of 2 s or more a coarse timer, accurate to 5 %: for a 3 s
+toast, 2707 to 2992 ms and 2850 to 3150 ms overlap. When the dismissal
+came first the toast was hidden, and the fade-out, which only fades a
+visible toast, was skipped.
+
+**Change:** the fade-out starts the dismissal 150 ms later; a toast that
+does not fade keeps its one timer.
+
+**Tests:** `test_feedback.py::test_a_toast_fades_out_before_it_is_dismissed_whatever_order_its_timers_fire`
+fires the toast's timers latest deadline first, as a coarse timer may:
+it fails on the code before (checked; the toast hid with the fade-in's
+effect) and passes now, with `test_toasts_fade_unless_motion_is_reduced`.

@@ -158,6 +158,11 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   said to be counted "in the Duration" when event stops leave it open,
   and a note under the Duration field says the same. Found by the audit
   of 2026-10-27 (G4).
+- **Toasts fade out every time:** a toast shown for 2 s or more could
+  vanish without its fade-out. Its two timers (the fade-out, then the
+  dismissal 150 ms later) are coarse at that length, accurate to 5 %, and
+  could fire the wrong way round. The fade-out now starts the dismissal.
+  Found when a GUI test failed on CI.
 
 ## 1.3.1 (2026-10-27)
 
