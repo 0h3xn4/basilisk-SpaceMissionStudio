@@ -115,6 +115,31 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   last digit. Two Monte Carlo batches still draw the same samples: that
   seeding is in Basilisk (known issue K-24). Found by the audit of
   2026-10-27.
+- **Known vulnerabilities checked in CI:** the installers shipped
+  certifi 2026.7.22 and pillow 12.2.0, which pip-audit matched to 1 and 52
+  published advisories. certifi is now 2026.10.23, with none. pillow stays
+  at 12.2.0: the qualified Basilisk (2.12.0) allows no later version. Its
+  52 advisories are all about decoding a crafted image, and nothing in
+  SpaceMissionStudio or the Basilisk modules it uses decodes an image
+  with pillow (known issue K-25). CI now checks every pinned package, and
+  every tool it runs, against those advisory databases and fails on any
+  match not listed, with its reason, in `packaging/audit-exceptions.txt`;
+  the tools themselves (pytest and its plugins, ruff, pip-audit,
+  pre-commit) are pinned in `packaging/constraints-dev.txt`, and the main
+  workflow is read-only. The release workflow runs the whole test suite
+  on the tag before it attaches anything. The `.deb`'s copyright file now
+  names each part it bundles with its own licence (CPython, Qt, the
+  fonts, the icons, the reference data) and this repository as the
+  source. Found by the audit of 2026-10-27.
+- **Save from the unsaved-changes question:** closing, opening or
+  starting a scenario with unsaved changes offered only Discard and
+  Cancel; it now offers Save too (the default), which saves the scenario
+  (asking where for one with no file) and then goes ahead. A cancelled
+  Save As keeps the window and the changes.
+- **A failed read of the reference data is reported:** if the start-up
+  read of the reference data files failed, the Reference data panel kept
+  "Reading the reference data files..." for good. It now says why, with a
+  Retry button, and the status bar shows "Reference data: not read".
 - **No held space weather after the Duration:** a Mission Sequence can
   run longer than the scenario's Duration, but the space weather its drag
   reads was loaded only for the Duration and 10 days either side. Past

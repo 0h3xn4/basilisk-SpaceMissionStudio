@@ -21,6 +21,47 @@ with a Mission Sequence).
   its results are not kept; the GUI's search runs in chunks, each checked
   before it runs.
 
+## GUI fixes from the audit, batch 1 (2026-10-28)
+
+- **G6, Save as the default button:** what most editors do; Enter keeps
+  the work. Qt's standard buttons, so the platform names them (Save,
+  Discard, Cancel; "Don't Save" on macOS styles).
+- **G10, Retry in the panel, a note in the status bar:** the status bar
+  button already opens the panel; a second Retry there would be one more
+  control for a rare failure.
+- **G9, not changed:** Spacecraft › Edit in the main window already opens
+  the spacecraft's page in the tree (set since U-01); the modal dialog
+  the review cited is the list's fallback when it has no page to open,
+  used only by its own tests.
+
+## Dependency security (2026-10-28)
+
+The audit's "next" row for R10 to R12: "Update Pillow and certifi;
+pip-audit in CI; pin CI tools; tests required on the release tag; fix
+Debian copyright" (testing 3.11 and 3.13 no longer applies: 2.0.0 needs
+3.14).
+
+- **pillow kept at 12.2.0, its advisories listed:** bsk 2.12.0 requires
+  pillow <= 12.2.0, so pip cannot install 13.0.0 (the first without them)
+  with the qualified Basilisk, and installing it against Basilisk's own
+  requirement is not this project's to do. The 52 advisories are in
+  `packaging/audit-exceptions.txt`, each by ID and for pillow 12.2.0
+  only; any other advisory still fails CI, and a test fails if pillow
+  moves while the list stays (K-25).
+- **pip-audit on the pin files, `--no-deps`:** they list every package
+  exactly, so the audit sees what the installers ship, not what a runner
+  happens to resolve. In the `test` job (required), after the tests and run
+  whatever happened before them (`if: always()`), so a new advisory fails
+  the job without hiding the test results.
+- **The dev tools in their own file:** `constraints.txt` stays the set
+  the installers ship; `constraints-dev.txt` holds the tools and what
+  they need, resolved against it.
+- **Tests on the tag by calling the main workflow** (`workflow_call`,
+  with the tag as `ref`): the same jobs as every pull request, with
+  nothing to keep in step; `attach` needs them.
+- **Copyright by part, last match wins:** the format's own rule; a test
+  resolves sample paths of each part to their licence.
+
 ## Random seeds (2026-10-28)
 
 The audit's E5: "Derive one seed per sensor from scenario, spacecraft,

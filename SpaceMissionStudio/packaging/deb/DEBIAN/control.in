@@ -9,7 +9,7 @@ Depends: libc6 (>= 2.34), libgl1, libegl1, libfontconfig1, libfreetype6, libdbus
  libxcb-randr0, libxcb-render-util0, libxcb-shape0, libxcb-xfixes0, libxcb-xkb1, libxkbfile1, libnss3,
  libxcomposite1, libxdamage1, libxrandr2, libxtst6, libasound2t64 | libasound2
 Maintainer: SpaceMissionStudio contributors <spacemissionstudio@example.invalid>
-Homepage: https://github.com/AVSLab/basilisk
+Homepage: https://github.com/0h3xn4/basilisk-SpaceMissionStudio
 Description: GUI mission-analysis application built on Basilisk
  A standalone, GUI-based mission-analysis application for spacecraft
  mission design, using the Basilisk astrodynamics framework (AVS Lab,
