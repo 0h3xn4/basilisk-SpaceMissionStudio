@@ -19,6 +19,35 @@ sequence."
 - **The Duration field is kept:** it still sets how far the space
   weather and the checks reach, which the note says.
 
+## Space weather past the Duration (2026-10-28)
+
+Found while checking the audit's G4 (the Duration does not limit a run
+with a Mission Sequence).
+
+- **Refuse, not extend:** the length of a sequence with event stops or
+  loops is not known before it runs, so the loaded span cannot be sized
+  to it; a run that would leave it stops, as one past the Earth
+  orientation files already does (R1). The message says what to set.
+- **An event search is checked where it stopped:** checked at its bound
+  (10 x the Duration, at least 10 days), almost every search with drag
+  would be refused though it stops long before; where it stopped is what
+  used the data. In the CLI's unchunked search that is after the step, so
+  its results are not kept; the GUI's search runs in chunks, each checked
+  before it runs.
+
+## GUI fixes from the audit, batch 1 (2026-10-28)
+
+- **G6, Save as the default button:** what most editors do; Enter keeps
+  the work. Qt's standard buttons, so the platform names them (Save,
+  Discard, Cancel; "Don't Save" on macOS styles).
+- **G10, Retry in the panel, a note in the status bar:** the status bar
+  button already opens the panel; a second Retry there would be one more
+  control for a rare failure.
+- **G9, not changed:** Spacecraft › Edit in the main window already opens
+  the spacecraft's page in the tree (set since U-01); the modal dialog
+  the review cited is the list's fallback when it has no page to open,
+  used only by its own tests.
+
 ## Dependency security (2026-10-28)
 
 The audit's "next" row for R10 to R12: "Update Pillow and certifi;

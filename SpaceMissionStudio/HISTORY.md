@@ -13738,6 +13738,86 @@ Linux and Windows for Python 3.14: 75 packages, pillow 12.2.0, certifi
 Full suite on Python 3.14 after this, with develop merged in (random
 seeds): 3894 passed.
 
+## GUI fixes from the audit, batch 1 (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G6, G9 and
+G10. Branch `gui-fixes-1`.
+
+**G6, found:** `_confirm_discard_unsaved` asked "Discard the unsaved
+changes to ...?" with Discard and Cancel only. **Change:** Save, Discard,
+Cancel, Save the default; Save is File > Save (Save As for a scenario
+with no file, or from a template) and goes ahead only when the file was
+written. `test_save_in_the_unsaved_changes_question_saves_then_goes_ahead`:
+with no file and Save As cancelled the window stays open and the
+changes unsaved; with a file chosen, the file is written and the action
+goes ahead. Every existing test that answers Discard passes unchanged;
+the one that checks the question's text now expects the new one
+(`docs/ui/TEST_CHANGES.md`).
+
+**G10, found:** the start-up read of the reference data runs in a child
+process (`gui/reference_data_process.py`); when the child failed, it sent
+nothing, `InventoryReader.read()` returned None, the worker emitted
+nothing and the panel kept "Reading the reference data files..." for
+good. **Change:** the child sends its failure, `read()` raises
+`InventoryReadError` (also when the child ends without a result, with its
+exit code), the worker emits `failed`, the panel shows "Could not read
+the reference data files: ..." with **Retry**, and the status bar button
+reads "Reference data: not read" (its tooltip has the reason). A read
+stopped by closing the window still reports nothing.
+
+**G9, not reproduced:** in the main window, Spacecraft › Edit with a
+spacecraft selected (template 07, 1280 x 720) opened the spacecraft's
+"Orbit / mass" page in the tree in 88 ms; no dialog opened (a probe
+listed the visible dialogs: none). The scenario editor sets the list's
+edit handler to `show_spacecraft` (U-01); the modal dialog the review
+cited (`spacecraft_editor.py:3140`) is the fallback for a list with no
+handler, which only the list's own tests create. Not changed.
+
+**Tests:** the four new or changed tests fail on the code before the
+change (checked) and pass after; full suite on Python 3.14: 3889 passed,
+and 3894 with develop (random seeds) merged in.
+
+## Space weather past the Duration (2026-10-28)
+
+The user: "Continue as per your recommendations". Found while reading
+for the audit's G4 (a Mission Sequence decides how long a run is, not
+the Duration). Branch `sequence-space-weather`.
+
+**Found, reproduced:** `SimulationService` loads the Earth orientation
+files and the space weather for `[start, start + Duration]`. The Earth
+orientation files are guarded per step (`check_stop_time`, R1): a
+sequence past them stops with a message (checked: epoch
+2126-11-02, Duration 0.1 day, one 3-day propagate: "the run would go past
+2126-11-03 00:00 UTC, where the installed Earth orientation files ...").
+The space weather is not: it is resolved for the Duration plus 10 days
+either side (`spaceweather._PAD_DAYS`; at 2041-10-30 with Duration 0.1
+day, the CSV has 2041-10-20 to 2041-11-09). Template 18 (drag, NRLMSISE-00)
+at 2041-10-30, Duration 0.1 day, one 15-day propagate: exit 0, "ran to 15
+days", 11,521 console lines "Failed to retrieve a state. Publishing the
+last available data." -- the last loaded day held for 5 days, and nothing
+in the results' warnings or provenance said so. The same with a 3-day
+propagate: no such line.
+
+**Change:** `ResolvedSpaceWeather.last_day`; `SimulationService` keeps the
+span it covers (to the end of that day) and `check_stop_time` refuses a
+stop past it ("the run would go past 2041-11-10 00:00 UTC, the end of the
+space weather loaded for its drag (the Duration and 10 days after it) --
+set the Duration to cover the whole Mission Sequence"). An event search
+checks the Earth orientation at its bound as before, but the space
+weather where it stopped (`check_space_weather`, after the step in the
+CLI's unchunked search; before each chunk in the GUI's).
+
+**After:** the 15-day case stops before it runs (no held-data line); the
+3-day case and a 15-day sequence in a 15-day Duration run, with none. The
+three templates with a sequence (08, 16, 23) run and give develop's
+outputs file for file (provenance aside).
+
+**Tests:** `tests/test_sequence_space_weather.py` (the last day, the
+refusal, a run inside the span, the event search's checks): three fail
+on the code before (checked), the fourth passes on both.
+
+Full suite on Python 3.14: 3895 passed.
+
 ## The run's length with a Mission Sequence (2026-10-28)
 
 The user: "Continue as per your recommendations". The audit's G4. Branch

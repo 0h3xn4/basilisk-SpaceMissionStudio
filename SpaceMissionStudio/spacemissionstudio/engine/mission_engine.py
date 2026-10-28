@@ -499,13 +499,16 @@ class MissionEngine:
             raise MissionEngineError(_MISSION_TIME_LIMIT_MESSAGE)
         cap_days = (cap_ns - self._elapsed_ns) * macros.NANO2SEC / 86400.0  # [d] what is actually searched
         if self._should_cancel is None:
-            self.service.check_stop_time(cap_ns)
+            # The space weather is checked where the search stopped: the cap
+            # is a bound, rarely reached, not where the run goes.
+            self.service.check_stop_time(cap_ns, space_weather=False)
             self.service.scSim.ConfigureStopTime(cap_ns)
             try:
                 self.service.scSim.ExecuteSimulation()
             except RuntimeError as exc:
                 self.service.log_last_known_state()
                 raise_clear_execution_error(exc)
+            self.service.check_space_weather(self.service.scSim.TotalSim.CurrentNanos)
         else:
             # Same reasoning as _advance_to() -- the safety cap above can
             # be many days of simulated (and possibly minutes of real

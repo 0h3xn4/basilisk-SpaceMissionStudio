@@ -483,7 +483,12 @@ fixed:
   the start or end of the next pass over a ground station
   (`pass_start`/`pass_end`). A `pass_start` issued during a pass waits
   for the next one. Explain (**Overview**) lists each station's first pass and
-  how long it lasts. A `maneuver` or `lambert_transfer` burn is an
+  how long it lasts. The steps decide how long the run is, but the space
+  weather for drag is loaded for the **Duration** and 10 days after it,
+  and the Earth orientation files are checked for the run: a sequence
+  that would go further stops with a message saying where, rather than
+  run on held values. Set the Duration to cover the whole sequence.
+  A `maneuver` or `lambert_transfer` burn is an
   instant change of velocity only: it uses no propellant and leaves the
   mass unchanged. For propellant, use the **Budget** page (Section 11)
   or a fuel tank with station-keeping or constant thrust.
