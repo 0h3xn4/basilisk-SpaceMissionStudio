@@ -14057,3 +14057,22 @@ the callers' handlers are kept in `_export_ends`.
 with the CI's error (checked), passes now.
 
 Full suite on Python 3.14: 3915 passed.
+
+## tornado 6.6 (2026-10-28)
+
+Found by CI on PR #144: its tests passed (3915), then the pip-audit step
+failed: "Found 3 known vulnerabilities", tornado 6.5.10,
+CVE-2026-116577, CVE-2026-115927 and CVE-2026-116578, each fixed in 6.6.
+The same step passed on #143 earlier in the day: the advisories were new.
+Every branch fails it until the pin moves. Branch `tornado-6-6`.
+
+**Checked:** the audit as CI runs it fails on the old pins (the three
+advisories) and passes with tornado 6.6 ("No known vulnerabilities found,
+64 ignored"). Only bokeh requires tornado (`>=6.2`). `pip install
+--dry-run` of Basilisk 2.12.0 with every extra, PySide6, bokeh and tornado
+under both pin files resolves for Python 3.14 on Linux (manylinux 2_17 to
+2_39) and Windows, with tornado 6.6 (wheel cp311-abi3).
+
+**Change:** `packaging/constraints.txt`: tornado 6.6.
+
+Full suite on Python 3.14 with tornado 6.6: 3915 passed.
