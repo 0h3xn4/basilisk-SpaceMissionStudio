@@ -172,3 +172,51 @@ def test_a_long_dynamics_step_is_flagged():
     flagged = [w for w in scenario_warnings(scenario) if "dynamics step" in w]
     assert len(flagged) == 1
     assert "120 s" in flagged[0] and "8.6 km at 1800 s" in flagged[0]
+
+
+def test_a_mission_sequence_sets_the_run_length_overview_reports():
+    """Audit G4: with a Mission Sequence its steps, not the Duration, decide
+    how long the run is; Overview said 2.4 h and 2 passes for template 23,
+    whose run lasts 1.26 h with 1 pass. Fixed steps add up (08: 14.4 h and
+    16: 83 min, as their runs last); event stops are counted, and passes
+    are then counted in the Duration, said so."""
+    from spacemissionstudio.engine.scenario_checks import SequenceSpan, sequence_length_text, sequence_span
+    from spacemissionstudio.engine.scenario_explainer import explain
+
+    assert sequence_span(_template("19")) is None  # no sequence: the Duration
+    assert sequence_span(_template("08")) == SequenceSpan(14.4 * 3600.0, 0)
+    assert sequence_span(_template("16")) == SequenceSpan(4980.0, 0)
+    assert sequence_span(_template("23")) == SequenceSpan(0.04 * 86400.0, 2)
+    assert sequence_length_text(sequence_span(_template("23"))) == "58 min + 2 event or condition stops"
+    assert sequence_length_text(SequenceSpan(0.0, 1)) == "1 event or condition stop"
+    tiles = {t.label: t.value for t in explain(_template("23")).stat_tiles}
+    assert tiles["Duration"] == "58 min + 2 event or condition stops (sequence)"
+    assert {t.label: t.value for t in explain(_template("19")).stat_tiles}["Duration"] == "2.25 h"
+    assert pass_summary(_template("23")) == ["berlin-gs: 2 passes in the Duration, first at 10 min for 8 min (peak 60 deg)"]
+
+
+def test_an_epoch_stop_and_disabled_or_nested_steps_count_as_they_run():
+    """An epoch stop ends at that epoch, counted from the scenario's; an
+    unticked step does not run; an if/while with a propagate in it ends
+    only when it runs."""
+    from spacemissionstudio.engine.scenario_checks import SequenceSpan, sequence_span
+    from spacemissionstudio.schema.command import Command
+
+    scenario = _template("19")
+    scenario.mission_sequence = [
+        Command(kind="propagate", params={"duration_days": 0.5}),
+        Command(kind="propagate", params={"duration_days": 9.0}, enabled=False),
+        Command(kind="propagate", params={"stop_condition": "epoch",
+                                          "stop_epoch_utc": (datetime_of(scenario.epoch_utc, days=1.0))}),
+        Command(kind="while", params={"condition": "False"},
+                children=[Command(kind="propagate", params={"duration_days": 0.1})]),
+    ]
+    assert sequence_span(scenario) == SequenceSpan(86400.0, 1)
+
+
+def datetime_of(epoch_utc: str, days: float) -> str:
+    from datetime import timedelta
+
+    from spacemissionstudio.schema.epochs import parse_epoch_utc
+
+    return (parse_epoch_utc(epoch_utc) + timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")

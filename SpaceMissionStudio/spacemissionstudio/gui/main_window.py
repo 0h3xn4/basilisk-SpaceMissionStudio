@@ -368,6 +368,11 @@ class MainWindow(QMainWindow):
         self.run_page = RunPage()
         self.run_page.vizard_changed.connect(self._on_vizard_edited)
         self.run_page.archive_changed.connect(self._remember_archive_dir)
+        # The Run page says Monte Carlo is off before Run is pressed (audit G5).
+        monte_carlo_enabled = self.scenario_editor.monte_carlo_group.enabled_check
+        monte_carlo_enabled.toggled.connect(self.run_page.set_monte_carlo_enabled)
+        self.run_page.set_monte_carlo_enabled(monte_carlo_enabled.isChecked())
+        self.run_page.enable_monte_carlo.connect(self._enable_monte_carlo)
         self.run_views.addTab(self.run_page, "Run")
         self.run_views.addTab(lifetime_scroll, "End of Life")
         self.run_views.addTab(budget_scroll, "Budget")
@@ -2370,6 +2375,11 @@ class MainWindow(QMainWindow):
             self.abort_action.setEnabled(False)
             self.run_progress.cancelling()
             self.statusBar().showMessage("Cancelling... the run stops at its next checkpoint.")
+        elif self._mc_worker is not None and self._mc_worker.isRunning():
+            self._mc_worker.request_cancel()  # audit G3: the cases finished stay
+            self.abort_action.setEnabled(False)
+            self.run_progress.cancelling()
+            self.statusBar().showMessage("Cancelling... the cases finished are kept.")
 
     def _on_run_progress(self, partial_result, fraction: float) -> None:
         # Real user feedback ("the app really should be robust and
@@ -2531,6 +2541,12 @@ class MainWindow(QMainWindow):
         while self.run_end_pending:
             self._next_run_end_step()
 
+    def _enable_monte_carlo(self) -> None:
+        """Enable Monte Carlo on the Run page: on, and on to its page to set
+        the runs and dispersions."""
+        self.scenario_editor.monte_carlo_group.enabled_check.setChecked(True)
+        self.show_view(self.scenario_editor.monte_carlo_page)
+
     def on_run_monte_carlo(self) -> None:
         try:
             scenario = self.scenario_editor.to_scenario()
@@ -2570,9 +2586,7 @@ class MainWindow(QMainWindow):
                 QMessageBox.StandardButton.No) != QMessageBox.StandardButton.Yes:
             return
 
-        self._start_busy(f"Monte Carlo: 0 of {scenario.monte_carlo.num_runs} cases done", cancellable=False,
-                         cancel_note="A Monte Carlo batch runs to the end: Basilisk's Controller has no way to stop "
-                                     "it part way.")
+        self._start_busy(f"Monte Carlo: 0 of {scenario.monte_carlo.num_runs} cases done")
         _join_finished_worker(self._mc_worker)
         self._mc_archive_dir = archive_dir
         self._mc_total = scenario.monte_carlo.num_runs
@@ -2583,6 +2597,7 @@ class MainWindow(QMainWindow):
                                            allow_scripts=bool(blocks), overwrite=overwrite)
         self._mc_worker.finished_ok.connect(self._on_monte_carlo_finished)
         self._mc_worker.failed.connect(self._on_monte_carlo_failed)
+        self._mc_worker.cancelled.connect(self._on_monte_carlo_cancelled)
         self._mc_worker.start()
 
     def _poll_monte_carlo(self) -> None:
@@ -2622,6 +2637,21 @@ class MainWindow(QMainWindow):
         except Exception:  # noqa: BLE001 -- the batch itself DID finish; never hide that behind a GUI bug
             _logger.exception("Monte Carlo batch finished, but reporting its outcome failed")
 
+    def _on_monte_carlo_cancelled(self, finished: int) -> None:
+        """Cancelled (audit G3): the cases finished are in the archive folder,
+        summarized; the Monte Carlo view opens on them."""
+        total = getattr(self, "_mc_total", 0)
+        self._stop_busy("Monte Carlo cancelled.", "cancelled", "Cancelled")
+        message = (f"Monte Carlo cancelled after {finished} of {total or '?'} runs; "
+                   + (f"the finished runs are in {self._mc_archive_dir}" if finished else "no run had finished"))
+        self._report_run_problem(message, level=logging.INFO)
+        self._add_history_extra("cancelled", "Monte Carlo", message)
+        try:
+            if finished and self.monte_carlo_results_widget.load_folder(self._mc_archive_dir):
+                self._show_monte_carlo_tab()
+        except Exception:  # noqa: BLE001 -- the cancel itself worked; never hide that behind a GUI bug
+            _logger.exception("Monte Carlo batch cancelled, but showing its finished runs failed")
+
     def _on_monte_carlo_failed(self, message: str) -> None:
         self._stop_busy("Monte Carlo run failed.", "failed", "Failed")
         self._report_run_problem(_with_log_file_hint(f"Monte Carlo failed: {message}"))
@@ -2629,27 +2659,47 @@ class MainWindow(QMainWindow):
         self._show_log_errors()
 
     # -- window lifecycle ---------------------------------------------------
+    def _confirm_cancel_batch(self) -> bool:
+        """Closing during a Monte Carlo batch: Cancel and close, or Keep
+        running (the default)."""
+        total = getattr(self, "_mc_total", 0)
+        done = min(monte_carlo_results.finished_cases(self._mc_archive_dir), total) if total else 0
+        box = QMessageBox(QMessageBox.Icon.Question, "Monte Carlo is running",
+                          f"A Monte Carlo batch is running ({done} of {total} runs finished). Cancel it and close? "
+                          "The runs finished are kept in the archive folder.", parent=self)
+        cancel_and_close = box.addButton("Cancel and close", QMessageBox.ButtonRole.AcceptRole)
+        keep = box.addButton("Keep running", QMessageBox.ButtonRole.RejectRole)
+        box.setDefaultButton(keep)
+        box.exec()
+        return box.clickedButton() is cancel_and_close
+
     def closeEvent(self, event: QCloseEvent) -> None:
         # Refuse to close while a background run/Monte Carlo QThread is
         # still alive -- starting a run doesn't mark the scenario dirty, so
         # _confirm_discard_unsaved() alone would let the window (and, with
         # it, the whole process, since Qt tears down QApplication.exec()
         # once the last window closes) close right out from under a still
-        # -running worker. Neither worker is parented. RunWorker DOES now
-        # have a cooperative-cancellation hook (request_cancel(), see its
-        # own module docstring / on_abort_run() above), but it only takes
-        # effect at the next chunk/command checkpoint, not instantly, and
-        # MonteCarloWorker/run_monte_carlo() still has no such hook at
-        # all -- so closing must simply wait either way, same as it would
-        # for any other in-progress, no-undo operation, rather than firing
-        # an implicit abort the user never asked for.
-        for worker, label in ((self._run_worker, "A simulation"), (self._mc_worker, "A Monte Carlo run")):
-            if worker is not None and worker.isRunning():
-                self._report_run_problem(f"{label} is still running: wait for it to finish, or cancel it (Esc), "
-                                         "before closing SpaceMissionStudio.", level=logging.INFO)
-                event.ignore()
-                return
+        # -running worker. Neither worker is parented. RunWorker has a
+        # cooperative-cancellation hook (request_cancel(), see its own
+        # module docstring / on_abort_run() above), but it only takes
+        # effect at the next chunk/command checkpoint, not instantly -- so
+        # closing waits for a single run, rather than firing an implicit
+        # abort the user never asked for. A Monte Carlo batch asks first.
+        if self._run_worker is not None and self._run_worker.isRunning():
+            self._report_run_problem("A simulation is still running: wait for it to finish, or cancel it (Esc), "
+                                     "before closing SpaceMissionStudio.", level=logging.INFO)
+            event.ignore()
+            return
+        # A Monte Carlo batch can be cancelled (audit G3): Cancel and close
+        # keeps the cases finished; Keep running leaves the window open.
+        batch = self._mc_worker if self._mc_worker is not None and self._mc_worker.isRunning() else None
+        if batch is not None and not self._confirm_cancel_batch():
+            event.ignore()
+            return
         if self._confirm_discard_unsaved():
+            if batch is not None:
+                batch.request_cancel()
+                batch.wait()  # its child ends the batch's processes; seconds at most
             # Closed: nothing more to autosave (the scenario was saved or
             # discarded), and no explanation is started for a window going away.
             self._autosave_timer.stop()
@@ -2662,6 +2712,7 @@ class MainWindow(QMainWindow):
             self.budget_widget.wait_for_worker()
             self.flight_software_widget.wait_for_worker()
             self.data_panel_widget.wait_for_reader()  # the start-up read of the reference data files
+            self.results_widget.wait_for_export()  # an export's files are finished, not cut off
             self.load_scenario_widget.reference_card.wait()  # a download must not be cut off mid-file
             self._save_layout()
             event.accept()
