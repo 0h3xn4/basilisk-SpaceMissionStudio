@@ -25,8 +25,8 @@ Linux). On Windows, files written in text mode end lines with CRLF, as
 1.1.0's did there, so the comparison there ignores line endings.
 
 Since 2026-10-28 a provenance record also holds the integrator's
-tolerances (audit E3). The two provenance files are compared without
-those keys, which must be there; everything else in them, and every
+tolerances (audit E3) and the run's seeds (E5). The two provenance files
+are compared without those keys, which must be there; everything else in them, and every
 other file, is still 1.1.0's byte for byte."""
 
 import json
@@ -56,15 +56,15 @@ def test_every_export_is_byte_identical_to_1_1_0(qtbot, tmp_path):
         for name in written:
             content = (tmp_path / name).read_bytes()
             if name.endswith("provenance.json"):
-                content = _without_tolerances(content, name)
+                content = _without_new_keys(content, name)
             assert _same_lines(content) == _same_lines(references.read(name)), name
 
 
 # Keys a provenance record gained after 1.1.0, removed before comparing.
-_NEW_PROVENANCE_KEYS = ("integrator_relative_tolerance", "integrator_absolute_tolerance")
+_NEW_PROVENANCE_KEYS = ("integrator_relative_tolerance", "integrator_absolute_tolerance", "rng_seed", "rng_seeds")
 
 
-def _without_tolerances(content: bytes, name: str) -> bytes:
+def _without_new_keys(content: bytes, name: str) -> bytes:
     """``content``, a provenance file, without the keys added since 1.1.0,
     written as the record is written (``json.dumps(..., indent=2)``)."""
     record = json.loads(content)

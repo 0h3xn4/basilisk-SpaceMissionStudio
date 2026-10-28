@@ -383,6 +383,16 @@ class PropagationSetupDialog(QDialog):
         )
         form.addRow("Integrator", self.integrator_combo)
 
+        self.seed_spin = SpinBox()
+        self.seed_spin.setRange(0, 2 ** 31 - 1)
+        self.seed_spin.setValue(sim_settings.seed)
+        self.seed_spin.setToolTip(
+            "Each sensor's noise, the navigation error and random faults draw from their own seed, "
+            "derived from this one: the same seed gives the same run; another gives another "
+            "realisation of the noise."
+        )
+        form.addRow("Random seed", self.seed_spin)
+
         return group
 
     def _build_space_weather_group(self, space_weather: SpaceWeatherConfig) -> QGroupBox:
@@ -590,6 +600,7 @@ class PropagationSetupDialog(QDialog):
             dynamics_task_rate_s=self.task_rate_spin.value(),
             integrator=self.integrator_combo.currentText(),
             record_interval_s=self.record_interval_spin.value(),
+            seed=self.seed_spin.value(),
         )
 
     def to_space_weather(self) -> SpaceWeatherConfig:
@@ -622,6 +633,7 @@ class PropagationSetupDialog(QDialog):
                       "sim_settings.dynamics_task_rate_s": "task_rate_spin",
                       "sim_settings.record_interval_s": "record_interval_spin",
                       "sim_settings.integrator": "integrator_combo",
+                      "sim_settings.seed": "seed_spin",
                       "space_weather.source": "space_weather_source_combo",
                       "space_weather.local_file_path": "local_file_edit",
                       "space_weather.cache_dir": "cache_dir_edit",

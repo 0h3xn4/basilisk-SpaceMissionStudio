@@ -13594,6 +13594,66 @@ not installed here and the validation references are generated with it.
 (300 s, within 50 m; 384.1 m before the change) and
 `test_a_long_dynamics_step_is_flagged` (120 s flagged, 60 s not).
 
+
+## Random seeds (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's E5. Branch
+`sensor-seeds`.
+
+**Found by the audit, reproduced:** every Basilisk SysModel's `RNGSeed`
+is 0x1badcad1 until set (`sys_model.h`), and only a navigation error with
+its own seed set one (`fsw.py`). Template 14 for 0.01 day, with a noisy
+`css-1` (noise 0.05) and an identical twin `css-1b`: the two read the
+same to the last digit (max difference 0.0); their noise against a
+noise-free run correlated at 1.0.
+
+**Change:**
+
+* `sim_settings.seed` (default 0, 0 to 2**31 - 1), in the propagation
+  settings as **Random seed**.
+* `engine/seeds.py` (Basilisk-free): `SimulationService.initialize()`
+  gives every model in the simulation's tasks still on the default seed
+  its own, the first four bytes of SHA-256 of the scenario seed and its
+  ModelTag (a second model with the same tag is "tag#2"; one without is
+  named by its place in the task list). Seeds set on purpose stay: a
+  navigation error's own, and a Monte Carlo run's, which Basilisk
+  disperses before `initialize()` runs.
+* Long runs: segment 0 uses the scenario's seed, segment k one derived
+  from it and k. A navigation error with its own seed still gets the
+  segment number added; one without no longer gets Basilisk's default
+  plus the segment number but draws from the segment's seed.
+* `RunProvenance` records `rng_seed` and `rng_seeds` (every model's), and
+  a new `rng_seed_note`.
+* The 31 templates gain `"seed": 0` (`scripts/_generate_templates.py`),
+  so a template saved unchanged is still its file byte for byte; a
+  problem with the seed names the dialog's **Random seed**.
+
+**First full suite:** 33 failures, all from this change: the templates
+saved with the new key, and the seed's message showed its field code.
+Both fixed as above.
+
+**After:** the twins differ (max 0.20); their noise correlates at 0.028
+(537 of 865 samples lit), standard deviations 0.047 and 0.051 for the
+0.05 set. The same scenario twice gives identical readings; seed 7 gives
+other ones.
+
+**Every template** against develop's outputs (the E3 sweep's, from the
+same code): 25 of 31 identical except `provenance.json`. 07, 20, 23, 26,
+27 and 28 differ only in their noisy sensors' readings (IMU gyro and star
+tracker; 20's thermal sensor too) and, in 23, the mission-sequence report
+that prints them; no attitude, orbit or other series changes.
+
+**Not done (K-24):** two Monte Carlo batches still draw the same samples.
+Basilisk's controller seeds Python's and NumPy's generators with the run
+number times 10 and disperses every model's seed itself, so
+`sim_settings.seed` cannot reach a batch without changing Basilisk.
+
+**Tests:** `tests/test_seeds.py` (the seed rules, the scenario seed's
+range, and the twin sensors end to end: noise correlation under 0.2,
+repeatable, another seed other noise, the provenance);
+`test_the_random_seed_round_trips` (GUI); the long-run segment test now
+checks the new rule.
+
 ## GUI fixes from the audit, batch 1 (2026-10-28)
 
 The user: "Continue as per your recommendations". The audit's G6, G9 and
