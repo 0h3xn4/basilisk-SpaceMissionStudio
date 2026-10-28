@@ -587,6 +587,10 @@ class SimulationService:
         # (run start, end of the Earth orientation files' coverage) [naive
         # UTC] while ITRF93 is used: check_stop_time() keeps a run inside it
         self._earth_orientation_span: tuple | None = None
+        # (run start, end of the space weather loaded for drag) [naive UTC]:
+        # past it Basilisk holds the last day's values, so check_stop_time()
+        # keeps a run inside it too
+        self._space_weather_span: tuple | None = None
         self._space_weather_warnings: list[str] = []  # what the resolved space weather is built from
         self._model_warnings: list[str] = []  # environment models used outside their validity
         self._data_files: dict[str, dict[str, object]] = {}  # reference data used, for RunProvenance
@@ -1090,6 +1094,11 @@ class SimulationService:
                 try:
                     resolved_sw = sw.resolve_for(scenario.space_weather, start_utc, end_utc)
                     self._space_weather_warnings = list(resolved_sw.warnings)
+                    if resolved_sw.last_day is not None:
+                        naive_start = start_utc.astimezone(UTC).replace(tzinfo=None) if start_utc.tzinfo else start_utc
+                        until = datetime(resolved_sw.last_day.year, resolved_sw.last_day.month,
+                                         resolved_sw.last_day.day) + timedelta(days=1)
+                        self._space_weather_span = (naive_start, until)
                     self._data_files["space_weather"] = dependencies.file_record(resolved_sw.data_file)
                 except sw.SpaceWeatherError as exc:
                     raise SimulationServiceError(
@@ -1976,20 +1985,39 @@ class SimulationService:
         self.check_stop_time(macros.sec2nano(stop_time_s))
         self.scSim.ConfigureStopTime(macros.sec2nano(stop_time_s))
 
-    def check_stop_time(self, stop_ns: int) -> None:
+    def check_stop_time(self, stop_ns: int, space_weather: bool = True) -> None:
         """Refuse to run past the end of the Earth orientation files'
         coverage while the Earth-fixed frame is ITRF93: past every loaded
         Earth PCK, SPICE stops the whole process (audit of 2026-10-27, R1).
         A run's own span is checked when it is built; this catches a
-        Mission Sequence that propagates beyond it."""
-        if self._earth_orientation_span is None:
+        Mission Sequence that propagates beyond it. The same for the space
+        weather loaded for drag (unless ``space_weather`` is False: an event
+        search checks where it stopped instead, :meth:`check_space_weather`)."""
+        if self._earth_orientation_span is not None:
+            start_utc, until_utc = self._earth_orientation_span
+            if stop_ns * macros.NANO2SEC > (until_utc - start_utc).total_seconds():
+                raise SimulationServiceError(
+                    f"the run would go past {until_utc:%Y-%m-%d %H:%M} UTC, where the installed Earth orientation "
+                    f"files ({earth_orientation.EARTH_FIXED_FRAME}) end -- shorten it, or install newer files in "
+                    "Settings > Reference data")
+        if space_weather:
+            self.check_space_weather(stop_ns, ahead=True)
+
+    def check_space_weather(self, stop_ns: int, ahead: bool = False) -> None:
+        """Refuse a run that reaches past the space weather loaded for it
+        (the Duration and 10 days either side): Basilisk's spaceWeatherData
+        then holds the last day's values, data no one measured or forecast.
+        A Mission Sequence can run longer than the Duration. ``ahead``: the
+        run is about to go there (else it went there, and its results are
+        not kept)."""
+        if self._space_weather_span is None:
             return
-        start_utc, until_utc = self._earth_orientation_span
+        start_utc, until_utc = self._space_weather_span
         if stop_ns * macros.NANO2SEC > (until_utc - start_utc).total_seconds():
             raise SimulationServiceError(
-                f"the run would go past {until_utc:%Y-%m-%d %H:%M} UTC, where the installed Earth orientation files "
-                f"({earth_orientation.EARTH_FIXED_FRAME}) end -- shorten it, or install newer files in Settings > "
-                "Reference data")
+                f"the run {'would go' if ahead else 'went'} past {until_utc:%Y-%m-%d %H:%M} UTC, the end of the space "
+                "weather loaded for its drag (the Duration and 10 days after it) -- set the Duration to cover the "
+                "whole Mission Sequence")
 
     def _record(self, msg):
         """A recorder for ``msg`` sampling every

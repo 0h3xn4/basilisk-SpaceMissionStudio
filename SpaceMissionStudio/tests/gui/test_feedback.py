@@ -52,6 +52,34 @@ def test_show_toast_auto_dismisses_after_duration(window, qtbot):
     assert not toast.isVisible()
 
 
+def test_a_toast_fades_out_before_it_is_dismissed_whatever_order_its_timers_fire(window, monkeypatch):
+    """A toast's timers of 2 s or more are coarse (Qt's singleShot, 5 %): a
+    3 s toast's fade-out at 2850 ms and its dismissal at 3000 ms can fire
+    either way round. Fired latest-deadline first, as a coarse timer may,
+    the fade-out still comes before the toast hides (CI failed when the
+    dismissal came first and the fade-out was skipped)."""
+    from spacemissionstudio.gui import feedback
+
+    pending = []
+
+    class _Timers:
+        @staticmethod
+        def singleShot(ms, callback):  # noqa: N802 -- Qt API name
+            pending.append((ms, callback))
+
+    monkeypatch.setattr(feedback, "QTimer", _Timers)
+    monkeypatch.setattr(feedback, "reduce_motion", lambda: False)
+    toast = feedback.show_toast(window, "Saved", duration_ms=3000)
+    fade_in = toast.graphicsEffect()
+    effect_when_hidden = []
+    toast.hide = lambda: (effect_when_hidden.append(toast.graphicsEffect()), type(toast).hide(toast))
+    while pending:
+        pending.sort(key=lambda timer: timer[0])
+        pending.pop()[1]()  # the latest deadline first
+    assert len(effect_when_hidden) == 1
+    assert effect_when_hidden[0] is not None and effect_when_hidden[0] is not fade_in  # the fade-out's
+
+
 def test_multiple_toasts_stack_without_overlapping(window):
     """Two toasts stack without overlapping."""
     from spacemissionstudio.gui.feedback import show_toast

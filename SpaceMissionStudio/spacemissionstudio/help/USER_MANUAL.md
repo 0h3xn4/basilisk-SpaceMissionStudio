@@ -420,7 +420,9 @@ fixed:
   gravity model is (spherical harmonics for Earth, to degree 180, and
   Mars, to degree 80), which other bodies' gravity to include (Sun, Moon,
   ...), the numerical integrator, how long to simulate, and atmospheric
-  drag/space-weather settings. The rkf45 and rkf78 integrators adapt
+  drag/space-weather settings. With a Mission Sequence its steps decide
+  how long the run is; a note under **Duration** then says how long
+  ("58 min + 2 event or condition stops"), and Overview shows the same. The rkf45 and rkf78 integrators adapt
   their steps inside each dynamics step to a relative error of 1e-10
   (recorded in the run's provenance); Euler and RK2 take fixed steps.
   Keep the dynamics step at 60 s or less: above that the orbit loses
@@ -481,7 +483,12 @@ fixed:
   the start or end of the next pass over a ground station
   (`pass_start`/`pass_end`). A `pass_start` issued during a pass waits
   for the next one. Explain (**Overview**) lists each station's first pass and
-  how long it lasts. A `maneuver` or `lambert_transfer` burn is an
+  how long it lasts. The steps decide how long the run is, but the space
+  weather for drag is loaded for the **Duration** and 10 days after it,
+  and the Earth orientation files are checked for the run: a sequence
+  that would go further stops with a message saying where, rather than
+  run on held values. Set the Duration to cover the whole sequence.
+  A `maneuver` or `lambert_transfer` burn is an
   instant change of velocity only: it uses no propellant and leaves the
   mass unchanged. For propellant, use the **Budget** page (Section 11)
   or a fuel tank with station-keeping or constant thrust.
@@ -1248,7 +1255,8 @@ parallel (each in its own process; at most one per CPU is used), and add
 one or more **dispersions** (which quantity varies, and by how much;
 **Add** adds one, and the selected one's form is under the list) --
 then set the run mode beside **Run** to **Monte Carlo** and press
-**Run**. This is a more advanced feature; most people won't need it
+**Run**. While Monte Carlo is off, the Run page says so, with **Enable
+Monte Carlo**, which turns it on and opens this page. This is a more advanced feature; most people won't need it
 for a first mission. Templates 09 and 25 are ready-made batches.
 
 A Monte Carlo run saves every run in the archive folder on the Run

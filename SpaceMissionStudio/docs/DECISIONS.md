@@ -23,6 +23,49 @@ already does."
 - **The window waits for an export when it closes** (seconds at most),
   as it does for the reference data read.
 
+## Monte Carlo off, said before Run (2026-10-28)
+
+The audit's G5: "Let the mode decide, or show an inline 'Enable' banner
+before the click."
+
+- **The banner, not the mode deciding:** Scenario > Monte Carlo > Enabled
+  is saved in the scenario (a file can carry its dispersions, off, for a
+  later batch), and the run mode is not; letting the mode switch it would
+  change the file by picking a mode. Enable stays one click, on the Run
+  page, and goes to the page where the batch still needs its dispersions.
+- **Run is not disabled:** it still says why, as before, for a click made
+  anyway (from the toolbar or Ctrl+R, where the note is not seen).
+
+## The run's length with a Mission Sequence (2026-10-28)
+
+The audit's G4: "Say so on the Duration field; make Overview reflect the
+sequence."
+
+- **From the steps, without running:** durations add up, an epoch stop
+  ends at its epoch; an event stop, or an if/while with a propagate in
+  it, ends only when it runs, so it is counted ("+ 2 event or condition
+  stops") rather than guessed.
+- **Passes over the sequence when it is known,** else over the Duration,
+  said so: predicting where an event stop ends would need the run.
+- **The Duration field is kept:** it still sets how far the space
+  weather and the checks reach, which the note says.
+
+## Space weather past the Duration (2026-10-28)
+
+Found while checking the audit's G4 (the Duration does not limit a run
+with a Mission Sequence).
+
+- **Refuse, not extend:** the length of a sequence with event stops or
+  loops is not known before it runs, so the loaded span cannot be sized
+  to it; a run that would leave it stops, as one past the Earth
+  orientation files already does (R1). The message says what to set.
+- **An event search is checked where it stopped:** checked at its bound
+  (10 x the Duration, at least 10 days), almost every search with drag
+  would be refused though it stops long before; where it stopped is what
+  used the data. In the CLI's unchunked search that is after the step, so
+  its results are not kept; the GUI's search runs in chunks, each checked
+  before it runs.
+
 ## GUI fixes from the audit, batch 1 (2026-10-28)
 
 - **G6, Save as the default button:** what most editors do; Enter keeps

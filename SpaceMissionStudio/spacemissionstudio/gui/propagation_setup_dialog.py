@@ -107,6 +107,7 @@ from ..schema.scenario import (
 from .field_text import field_title, labelled
 from .feedback import ProblemBanner, bring_into_view, clear_field_error, clear_on_edit, show_field_error
 from .problem_location import PROPAGATION, locate
+from .theme import set_role
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, finish_form
 
 # The minimum spherical-harmonics degree/order that's actually meaningful
@@ -345,6 +346,12 @@ class PropagationSetupDialog(QDialog):
             "Over 100 days runs as several shorter simulations, chained."
         )
         form.addRow("Duration [days]", self.duration_days_spin)
+        # With a Mission Sequence its steps decide how long the run is (audit G4).
+        self.duration_note = QLabel("")
+        self.duration_note.setWordWrap(True)
+        set_role(self.duration_note, tone="secondary")
+        self.duration_note.hide()
+        form.addRow("", self.duration_note)
 
         self.task_rate_spin = PreciseDoubleSpinBox()
         self.task_rate_spin.setRange(0.001, 1.0e6)
@@ -593,6 +600,16 @@ class PropagationSetupDialog(QDialog):
             polyhedral_gravity=self.polyhedral_gravity_check.isChecked(),
             albedo=self.albedo_check.isChecked(),
         )
+
+    def set_sequence_length(self, text: str | None) -> None:
+        """Under Duration, with a Mission Sequence: that its steps decide how
+        long the run is (``text``, e.g. "58 min + 2 event or condition
+        stops"), and what the Duration still sets. None hides it."""
+        self.duration_note.setVisible(text is not None)
+        if text is not None:
+            self.duration_note.setText(
+                f"The Mission Sequence decides how long the run is: {text}. The Duration must still cover it: "
+                "the space weather for drag is loaded for the Duration and 10 days after it.")
 
     def to_sim_settings(self) -> SimSettings:
         return SimSettings(

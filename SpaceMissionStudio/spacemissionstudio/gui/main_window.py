@@ -368,6 +368,11 @@ class MainWindow(QMainWindow):
         self.run_page = RunPage()
         self.run_page.vizard_changed.connect(self._on_vizard_edited)
         self.run_page.archive_changed.connect(self._remember_archive_dir)
+        # The Run page says Monte Carlo is off before Run is pressed (audit G5).
+        monte_carlo_enabled = self.scenario_editor.monte_carlo_group.enabled_check
+        monte_carlo_enabled.toggled.connect(self.run_page.set_monte_carlo_enabled)
+        self.run_page.set_monte_carlo_enabled(monte_carlo_enabled.isChecked())
+        self.run_page.enable_monte_carlo.connect(self._enable_monte_carlo)
         self.run_views.addTab(self.run_page, "Run")
         self.run_views.addTab(lifetime_scroll, "End of Life")
         self.run_views.addTab(budget_scroll, "Budget")
@@ -2530,6 +2535,12 @@ class MainWindow(QMainWindow):
         cleared views, closing)."""
         while self.run_end_pending:
             self._next_run_end_step()
+
+    def _enable_monte_carlo(self) -> None:
+        """Enable Monte Carlo on the Run page: on, and on to its page to set
+        the runs and dispersions."""
+        self.scenario_editor.monte_carlo_group.enabled_check.setChecked(True)
+        self.show_view(self.scenario_editor.monte_carlo_page)
 
     def on_run_monte_carlo(self) -> None:
         try:

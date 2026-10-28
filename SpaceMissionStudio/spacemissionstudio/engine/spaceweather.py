@@ -167,6 +167,10 @@ class ResolvedSpaceWeather:
     path: Path  # the CSV handed to Basilisk
     data_file: Path  # the real data it was built from
     warnings: list = field(default_factory=list)
+    # The last day the CSV has: past it Basilisk's spaceWeatherData holds
+    # the last day's values (SimulationService.check_stop_time stops a run
+    # there).
+    last_day: date | None = None
 
 
 def validate_file(path, start_utc: datetime, end_utc: datetime) -> ValidationResult:
@@ -801,7 +805,7 @@ def _resolve_real(source: str, start_utc: datetime, end_utc: datetime, local_fil
                         f"{first:%Y%m%d}_{last:%Y%m%d}.csv")
     if not _has_rows(dest, len(days) + 1):  # missing, or cut short by a write before F-09's fix
         _write_basilisk_csv(days, dest)
-    return ResolvedSpaceWeather(dest, path, warnings)
+    return ResolvedSpaceWeather(dest, path, warnings, last)
 
 
 def resolve(source: str, start_utc: datetime, end_utc: datetime,
