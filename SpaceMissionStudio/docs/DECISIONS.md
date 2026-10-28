@@ -5,6 +5,25 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## A Monte Carlo batch can be cancelled (2026-10-28)
+
+The audit's G3: "Terminate the child process, keep finished cases, offer
+'Cancel and close'."
+
+- **The child ends its own processes, then itself:** Basilisk's
+  Controller has no way to stop part way, and it starts a pool, a data
+  writer and a manager from the batch's child; terminating the child
+  alone would leave them running (on Windows, nothing would end them).
+  A thread in the child waits for a cancel event and ends every process
+  it started; the GUI terminates the child only if that takes over 15 s.
+- **The runs finished are summarized by a second, short child:** the run
+  files are pickles, read only by the kind of process that had them
+  written (security analysis S-04), as the batch does at its end. A file
+  cut short by the cancel is skipped. Runs not finished are not listed as
+  failed: they were stopped.
+- **Closing asks, Keep running the default:** a batch can be hours of
+  work; closing by accident must not end it.
+
 ## Exports off the GUI thread (2026-10-28)
 
 The audit's G2: "Move them to a worker, as the flight software export

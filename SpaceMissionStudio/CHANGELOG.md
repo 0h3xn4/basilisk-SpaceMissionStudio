@@ -175,6 +175,12 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   ("Exporting 3 of 40 files...") with **Cancel**, which stops before the
   next file and keeps the ones written. The files are the same, byte for
   byte. Found by the audit of 2026-10-27 (G2).
+- **A Monte Carlo batch can be cancelled:** a batch ran to the end, and
+  the window would not close while it ran. **Cancel** (or Esc) now stops
+  it: the processes running it end, the runs finished stay in the archive
+  folder, and the Monte Carlo view opens on them. Closing the window
+  during a batch asks **Cancel and close** or **Keep running**. Found by
+  the audit of 2026-10-27 (G3).
 
 ## 1.3.1 (2026-10-27)
 

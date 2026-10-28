@@ -1262,8 +1262,10 @@ for a first mission. Templates 09 and 25 are ready-made batches.
 A Monte Carlo run saves every run in the archive folder on the Run
 area's **Run** page (with **Browse...**; remembered for each scenario;
 left empty, Run asks for one) (the
-progress in the status bar counts the cases done; a batch cannot be cancelled part
-way, as Basilisk's Controller has no way to stop it), and opens the
+progress in the status bar counts the cases done; **Cancel** (or Esc)
+stops the batch and keeps the runs finished, which the Monte Carlo view
+then shows; closing the window during a batch asks **Cancel and close**
+or **Keep running**), and opens the
 **Monte Carlo** view of Results on the batch (the view is there
 whenever the scenario has Monte Carlo on, or a batch is open):
 

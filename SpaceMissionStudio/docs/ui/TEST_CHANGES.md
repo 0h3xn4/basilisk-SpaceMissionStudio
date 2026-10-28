@@ -700,3 +700,11 @@ is the only test that an empty `.app` is not refused.
   the CSV.
 - Added `test_results_widget.py::test_an_export_runs_off_the_gui_thread_with_progress_and_cancel`
   and `test_results.py::test_result_set_export_csv_reports_progress_and_can_be_stopped`.
+
+## A Monte Carlo batch can be cancelled (2026-10-28)
+
+- Added `test_main_window.py::test_a_running_monte_carlo_batch_can_be_cancelled_and_the_window_closed`
+  and, in `test_run_worker.py`,
+  `test_a_monte_carlo_batch_can_be_cancelled_keeping_the_runs_finished` (1
+  and 2 threads) and `test_cancel_ends_the_processes_the_batch_started_too`
+  (audit G3). No existing test changed.
