@@ -85,16 +85,15 @@ class RunProvenance:
     # INTEGRATOR_*_TOLERANCE); None for the fixed-step Euler and RK2.
     integrator_relative_tolerance: float | None = None  # [-]
     integrator_absolute_tolerance: float | None = None  # [state units]
-    # Every Basilisk SysModel (every sensor/fault/noise model this app
-    # builds) keeps its own class's fixed default RNGSeed
-    # (architecture/_GeneralModuleFiles/sys_model.h: 0x1badcad1) unless a
-    # Monte Carlo batch explicitly disperses seeds -- confirmed directly
-    # against that header and against engine.monte_carlo.py's own
-    # setShouldDisperseSeeds(True) call, which is the ONE place seeds are
-    # ever varied. So an ordinary run (this field is only ever populated
-    # for one) is always bit-for-bit deterministic against the same
-    # scenario -- recorded explicitly here rather than left implicit, so
-    # that fact is visible without reading this comment.
+    # The scenario's seed (schema SimSettings.seed) and each model's
+    # RNGSeed derived from it (engine.seeds.assign_rng_seeds); None and
+    # empty in a record made before 2.0.0, whose rng_seed_note says why.
+    rng_seed: int | None = None
+    rng_seeds: dict[str, int] = field(default_factory=dict)
+    # How the run's random generators were seeded. engine.service writes
+    # its own note (seeds derived from sim_settings.seed, audit E5); this
+    # default is what runs before 2.0.0 did, when every model kept
+    # Basilisk's default RNGSeed (sys_model.h) and drew the same noise.
     rng_seed_note: str = (
         "deterministic: every sensor/fault/noise model used Basilisk's own default "
         "SysModel RNGSeed (0x1badcad1) -- seeds are only ever dispersed during a Monte Carlo batch, "

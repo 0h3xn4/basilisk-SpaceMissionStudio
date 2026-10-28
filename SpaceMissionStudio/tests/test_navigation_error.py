@@ -80,18 +80,23 @@ def test_navigation_error_needs_attitude_flight_software_and_round_trips(tmp_pat
 
 
 def test_each_long_run_segment_gets_its_own_seed():
-    """A segmented run rebuilds the simulation per segment: the scenario's
-    seed (or Basilisk's default) plus the segment number, so the random
-    walk does not repeat itself."""
+    """A segmented run rebuilds the simulation per segment. A navigation
+    error's own seed gets the segment number added, so the random walk does
+    not repeat itself; without one it draws from the segment's seed, which
+    is the scenario's for segment 0 and derived from it after (audit E5;
+    it was Basilisk's default seed plus the segment number)."""
     from spacemissionstudio.engine import long_run
+    from spacemissionstudio.engine.seeds import derived_seed
 
     scenario = _template("07", 1, seed=41, **_ERRORS)
+    scenario.sim_settings.seed = 5
     second = copy.deepcopy(scenario)
-    long_run._seed_navigation_errors(scenario, second, 3)
+    long_run._seed_segment(scenario, second, 3)
     assert second.spacecraft[0].navigation_error.seed == 44 and scenario.spacecraft[0].navigation_error.seed == 41
+    assert second.sim_settings.seed == derived_seed(5, "segment 3") % 2 ** 31
     scenario.spacecraft[0].navigation_error.seed = None
-    long_run._seed_navigation_errors(scenario, second, 0)
-    assert second.spacecraft[0].navigation_error.seed == 0x1badcad1
+    long_run._seed_segment(scenario, second, 0)
+    assert second.spacecraft[0].navigation_error.seed is None and second.sim_settings.seed == 5
 
 
 def test_a_segmented_run_warns_that_navigation_errors_restart():

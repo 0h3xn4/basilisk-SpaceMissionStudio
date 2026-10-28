@@ -410,7 +410,8 @@
     "duration_days": 0.1,
     "dynamics_task_rate_s": 1.0,
     "integrator": "rkf78",
-    "record_interval_s": 0.0
+    "record_interval_s": 0.0,
+    "seed": 0
   },
   "monte_carlo": {
     "enabled": false,

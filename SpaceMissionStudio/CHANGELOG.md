@@ -101,6 +101,20 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   0.3 g where it drains about 14 g (13.6 g at 1e-12), and its description
   now says so. 12's wheel speeds and 17's attitude are now closer to a run
   at 1e-12; 11 is as close as before.
+- **Each sensor draws its own noise:** every sensor noise model kept
+  Basilisk's default seed, so they all drew the same random sequence: two
+  identical noisy sun sensors on one spacecraft gave identical readings
+  (their noise correlated at 1.0), and the noise repeated across sensors,
+  spacecraft and the segments of a long run. Each model now gets its own
+  seed, derived from a new scenario setting, **Random seed**
+  (`sim_settings.seed`, default 0), and its name; the twin sensors' noise
+  now correlates at 0.03. The same scenario still gives the same run; a
+  navigation error's own seed is kept. The run's provenance lists every
+  seed. In the templates only noisy sensor readings change (07, 20, 23,
+  26, 27, 28); everything else, the attitude included, is the same to the
+  last digit. Two Monte Carlo batches still draw the same samples: that
+  seeding is in Basilisk (known issue K-24). Found by the audit of
+  2026-10-27.
 
 ## 1.3.1 (2026-10-27)
 
