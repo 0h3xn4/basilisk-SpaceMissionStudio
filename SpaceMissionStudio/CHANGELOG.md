@@ -131,6 +131,15 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   names each part it bundles with its own licence (CPython, Qt, the
   fonts, the icons, the reference data) and this repository as the
   source. Found by the audit of 2026-10-27.
+- **The run's length with a Mission Sequence:** a sequence's steps, not
+  the Duration, decide how long a run is, but Overview showed the
+  Duration: template 23 said 2.4 h and 2 passes, and its run lasts 1.26
+  h with one. Overview's Duration now shows the sequence's own length
+  ("58 min + 2 event or condition stops (sequence)"; 14.4 h for template
+  08, 83 min for 16, as their runs last), passes are counted over it, or
+  said to be counted "in the Duration" when event stops leave it open,
+  and a note under the Duration field says the same. Found by the audit
+  of 2026-10-27 (G4).
 
 ## 1.3.1 (2026-10-27)
 

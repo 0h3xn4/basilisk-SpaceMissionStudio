@@ -207,13 +207,64 @@ def format_elapsed(seconds: float) -> str:
     return f"{seconds / 86400:.1f} d"
 
 
+@dataclass(frozen=True)
+class SequenceSpan:
+    """How long a Mission Sequence runs, as far as its steps say before it
+    runs (audit G4: the sequence, not the Duration, decides)."""
+    fixed_s: float  # [s] where the steps that stop at a duration or an epoch end
+    open_steps: int  # steps whose end is known only when they run: event stops, if/while with a propagate
+
+
+def _has_propagate(command) -> bool:
+    return command.enabled and (command.kind == "propagate" or any(_has_propagate(c) for c in command.children))
+
+
+def sequence_span(scenario) -> SequenceSpan | None:
+    """The run's length from its Mission Sequence, None without one (the
+    run then lasts the Duration). An epoch stop counts from the scenario's
+    epoch; ``open_steps`` stops end later than ``fixed_s`` says."""
+    if not runs_sequence(scenario.mission_sequence):
+        return None
+    start = parse_epoch_utc(scenario.epoch_utc)
+    elapsed_s, open_steps = 0.0, 0  # [s]
+    for command in scenario.mission_sequence:
+        if not command.enabled:
+            continue
+        if command.kind == "propagate":
+            stop = command.params.get("stop_condition", "duration")
+            if stop == "duration":
+                elapsed_s += float(command.params["duration_days"]) * 86400.0
+            elif stop == "epoch":
+                target_s = (parse_epoch_utc(command.params["stop_epoch_utc"]) - start).total_seconds()  # [s]
+                elapsed_s = max(elapsed_s, target_s)
+            else:
+                open_steps += 1
+        elif command.kind in ("if", "while") and _has_propagate(command):
+            open_steps += 1
+    return SequenceSpan(elapsed_s, open_steps)
+
+
+def sequence_length_text(span: SequenceSpan) -> str:
+    """"1.5 h", "58 min + 2 event or condition stops", or "2 event or
+    condition stops"."""
+    stops = f"{span.open_steps} event or condition stop{'s' if span.open_steps != 1 else ''}"
+    if span.open_steps == 0:
+        return format_elapsed(span.fixed_s)
+    return f"{format_elapsed(span.fixed_s)} + {stops}" if span.fixed_s > 0.0 else stops
+
+
 def pass_summary(scenario) -> list[str]:
     """One short line per station, e.g. "berlin-gs: 2 passes, first at
-    10 min for 8 min (peak 61 deg)". Empty when passes can't be predicted."""
+    10 min for 8 min (peak 61 deg)". Empty when passes can't be predicted.
+    With a Mission Sequence, over the sequence's length when its steps
+    give it, else over the Duration and said so (audit G4)."""
     passes = predict_passes(scenario)
     if passes is None:
         return []
     run_s = scenario.sim_settings.duration_days * 86400.0
+    span = sequence_span(scenario)
+    if span is not None and span.open_steps == 0:
+        run_s = span.fixed_s
     lines = []
     for gs in scenario.ground_stations:
         mine = [p for p in passes if p.station == gs.name and p.start_s <= run_s]
@@ -223,6 +274,8 @@ def pass_summary(scenario) -> list[str]:
         counted = f"{len(mine)} pass{'es' if len(mine) != 1 else ''}"
         if run_s > _MAX_HORIZON_S:
             counted += " in the first week"
+        elif span is not None and span.open_steps:
+            counted += " in the Duration"
         lines.append(f"{gs.name}: {counted}, first at {format_elapsed(first.start_s)} for "
                      f"{format_elapsed(first.end_s - first.start_s)} (peak {first.peak_elevation_deg:.0f} deg)")
     return lines

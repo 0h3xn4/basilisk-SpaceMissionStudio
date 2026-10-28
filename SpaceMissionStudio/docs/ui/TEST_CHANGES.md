@@ -661,3 +661,8 @@ is the only test that an empty `.app` is not refused.
   the new `rng_seed` and `rng_seeds` keys (audit E5); the helper is
   renamed `_without_new_keys`. Every other byte is still 1.1.0's.
 - Added `test_propagation_setup_dialog.py::test_the_random_seed_round_trips`.
+
+## The run's length with a Mission Sequence (2026-10-28)
+
+- Added `test_scenario_editor.py::test_the_duration_says_when_the_mission_sequence_decides`
+  (audit G4). No existing test changed.
