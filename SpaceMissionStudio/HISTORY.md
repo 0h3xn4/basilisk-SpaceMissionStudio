@@ -13653,3 +13653,44 @@ range, and the twin sensors end to end: noise correlation under 0.2,
 repeatable, another seed other noise, the provenance);
 `test_the_random_seed_round_trips` (GUI); the long-run segment test now
 checks the new rule.
+
+## Space weather past the Duration (2026-10-28)
+
+The user: "Continue as per your recommendations". Found while reading
+for the audit's G4 (a Mission Sequence decides how long a run is, not
+the Duration). Branch `sequence-space-weather`.
+
+**Found, reproduced:** `SimulationService` loads the Earth orientation
+files and the space weather for `[start, start + Duration]`. The Earth
+orientation files are guarded per step (`check_stop_time`, R1): a
+sequence past them stops with a message (checked: epoch
+2126-11-02, Duration 0.1 day, one 3-day propagate: "the run would go past
+2126-11-03 00:00 UTC, where the installed Earth orientation files ...").
+The space weather is not: it is resolved for the Duration plus 10 days
+either side (`spaceweather._PAD_DAYS`; at 2041-10-30 with Duration 0.1
+day, the CSV has 2041-10-20 to 2041-11-09). Template 18 (drag, NRLMSISE-00)
+at 2041-10-30, Duration 0.1 day, one 15-day propagate: exit 0, "ran to 15
+days", 11,521 console lines "Failed to retrieve a state. Publishing the
+last available data." -- the last loaded day held for 5 days, and nothing
+in the results' warnings or provenance said so. The same with a 3-day
+propagate: no such line.
+
+**Change:** `ResolvedSpaceWeather.last_day`; `SimulationService` keeps the
+span it covers (to the end of that day) and `check_stop_time` refuses a
+stop past it ("the run would go past 2041-11-10 00:00 UTC, the end of the
+space weather loaded for its drag (the Duration and 10 days after it) --
+set the Duration to cover the whole Mission Sequence"). An event search
+checks the Earth orientation at its bound as before, but the space
+weather where it stopped (`check_space_weather`, after the step in the
+CLI's unchunked search; before each chunk in the GUI's).
+
+**After:** the 15-day case stops before it runs (no held-data line); the
+3-day case and a 15-day sequence in a 15-day Duration run, with none. The
+three templates with a sequence (08, 16, 23) run and give develop's
+outputs file for file (provenance aside).
+
+**Tests:** `tests/test_sequence_space_weather.py` (the last day, the
+refusal, a run inside the span, the event search's checks): three fail
+on the code before (checked), the fourth passes on both.
+
+Full suite on Python 3.14: 3895 passed.
