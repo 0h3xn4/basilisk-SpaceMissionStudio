@@ -26,13 +26,12 @@ new code: ``TOKENS["text.secondary"]``.
 
 from __future__ import annotations
 
-from typing import Dict, List
 
 from . import palettes, tokens
 
 # Role -> token. The roles are the names widgets have read since before
 # the token table; each now stands for one token.
-ROLES: Dict[str, str] = {
+ROLES: dict[str, str] = {
     "bg": "bg.canvas",
     "surface": "bg.surface",
     "surface_alt": "bg.canvas",
@@ -77,7 +76,7 @@ ROLES: Dict[str, str] = {
 }
 
 
-def role_palette(mode: str) -> Dict[str, str]:
+def role_palette(mode: str) -> dict[str, str]:
     """The role palette of ``mode``."""
     values = tokens.tokens(mode)
     return {role: values[token] for role, token in ROLES.items()}
@@ -86,9 +85,9 @@ def role_palette(mode: str) -> Dict[str, str]:
 LIGHT = role_palette("light")
 DARK = role_palette("dark")
 
-TOKENS: Dict[str, str] = tokens.tokens("light")
-PALETTE: Dict[str, str] = dict(LIGHT)
-SERIES_COLORS: List[str] = palettes.categorical("light")
+TOKENS: dict[str, str] = tokens.tokens("light")
+PALETTE: dict[str, str] = dict(LIGHT)
+SERIES_COLORS: list[str] = palettes.categorical("light")
 _current = ["light"]
 
 

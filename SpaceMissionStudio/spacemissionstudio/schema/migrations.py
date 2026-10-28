@@ -39,7 +39,7 @@ version the file declares up to ``CURRENT_SCHEMA_VERSION``, so a very old
 file still loads even after several schema versions have shipped.
 """
 
-from typing import Callable, Dict
+from collections.abc import Callable
 
 from .scenario import CURRENT_SCHEMA_VERSION, ScenarioValidationError
 
@@ -100,7 +100,7 @@ def _migrate_3_to_4(data: dict) -> dict:
 
 
 # {old_version: migration_function}.
-MIGRATIONS: Dict[int, Callable[[dict], dict]] = {
+MIGRATIONS: dict[int, Callable[[dict], dict]] = {
     1: _migrate_1_to_2,
     2: _migrate_2_to_3,
     3: _migrate_3_to_4,

@@ -28,7 +28,7 @@ title; a code it does not know stays as it is.
 from __future__ import annotations
 
 import re
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from PySide6.QtWidgets import QGroupBox, QWidget
 
@@ -41,7 +41,7 @@ from .workspace_panels import field_label
 _CODE = re.compile(r"(?<![\w.\-/\\'\"])[a-z][a-z0-9]*(?:[_.][a-z][a-z0-9]*|_[0-9]+)*(?![\w\-/\\'\"(\[]|\.\w)")
 
 
-def section_title(widget: Optional[QWidget]) -> str:
+def section_title(widget: QWidget | None) -> str:
     """The title of the nearest group box around ``widget``, up to its
     first " (" or ":": "Station keeping" for "Station keeping (altitude
     maintenance, delta-V + fuel tracking)"."""
@@ -53,7 +53,7 @@ def section_title(widget: Optional[QWidget]) -> str:
     return ""
 
 
-def field_title(widget: Optional[QWidget]) -> str:
+def field_title(widget: QWidget | None) -> str:
     """The field's label after its section's title ("Station keeping:
     Reboost thrust [N]"), its label alone when it has no section or the
     label already names it, or the section alone for a section's own box;
@@ -71,7 +71,7 @@ def field_title(widget: Optional[QWidget]) -> str:
     return label
 
 
-def attribute_title(owner: QWidget, code: str, section: str, aliases: Optional[dict] = None) -> str:
+def attribute_title(owner: QWidget, code: str, section: str, aliases: dict | None = None) -> str:
     """The title of ``owner``'s widget for a field of ``section``
     ("constellation.num_planes" or "num_planes": ``owner.num_planes``,
     or the attribute ``aliases`` names for it), or ""."""

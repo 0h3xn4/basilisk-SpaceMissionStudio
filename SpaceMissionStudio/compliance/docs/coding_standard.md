@@ -1,6 +1,6 @@
 # SpaceMissionStudio coding standard
 
-Document: SMS-CS, issue 1 (draft), 2026-10-08. Remediation R10.
+Document: SMS-CS, issue 1 (draft), 2026-10-08; Python 3.14 only from 2026-10-27. Remediation R10.
 
 Addresses ECSS-Q-ST-80C 6.3.4.1a-6.3.4.8a (coding standards, their tools,
 code evaluation) and ECSS-E-ST-40C 5.5.3.1a, 5.8.3.5a/b/f (coding, code
@@ -40,7 +40,7 @@ Each rule names how it is checked:
 
 | # | Rule | Checked by |
 |---|---|---|
-| C-1 | **Language.** Python >= 3.11 (`requires-python`). No low-level language is used (Q-ST-80C 6.3.4.5a). C/C++ exists only inside Basilisk, which is reused, not developed here. | review |
+| C-1 | **Language.** Python >= 3.14 (`requires-python`). No low-level language is used (Q-ST-80C 6.3.4.5a). C/C++ exists only inside Basilisk, which is reused, not developed here. | review |
 | C-2 | **Layout.** PEP 8. Lines are at most 120 characters in new or changed code (E501 is not enforced on existing lines). Imports are grouped stdlib / third party / local. Exception: binary operators have spaces as PEP 8 recommends; Basilisk's "no spaces around math operators" exception is not adopted. | ruff E4, E7, E9, W; review |
 | C-3 | **Naming.** `snake_case` for functions, variables and modules; `CapWords` for classes. Names of Basilisk objects and message fields keep Basilisk's spelling. A physical quantity's name ends in its unit (`_m`, `_km`, `_s`, `_deg`, `_rad`, `_kg`, `_n`, `_w_m2`, `_km3_s2`). A vector carries its frame as in `engine/frames.py` (`r_BN_N`, `sigma_BN`, `dcm_PN`). No single-letter names except loop indices and established symbols (`r`, `v`, `t`, `mu`). | review |
 | C-4 | **Units on literals.** Every numeric literal with physical meaning has a unit comment, e.g. `1361.0  # [W/m^2]` (`AGENTS.md` rule 1). SI is used internally. Conversion happens only at the boundaries (GUI, CCSDS km, files). | review |

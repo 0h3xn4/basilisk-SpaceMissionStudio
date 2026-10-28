@@ -34,12 +34,12 @@ import csv
 import json
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Sequence
+from collections.abc import Sequence
 
 import numpy as np
 
 
-def output_path(out_dir: "str | Path", file_name: str) -> Path:
+def output_path(out_dir: str | Path, file_name: str) -> Path:
     """``out_dir / file_name`` for a file name built from a scenario's names,
     or :class:`ResultsError` if it would land anywhere but directly inside
     ``out_dir``. Scenario.validate already refuses names that could do so
@@ -103,22 +103,22 @@ class RunProvenance:
     # magnetic model, space weather) with their sizes and SHA-256.
     qualified_basilisk_version: str = ""
     basilisk_qualified: bool = False
-    dependency_versions: Dict[str, str] = field(default_factory=dict)
+    dependency_versions: dict[str, str] = field(default_factory=dict)
     scenario_sha256: str = ""
-    data_files: Dict[str, Dict[str, object]] = field(default_factory=dict)
+    data_files: dict[str, dict[str, object]] = field(default_factory=dict)
     # Frames and time scales (ECSS-E-ST-10-09C 5.4.1, 5.4.2a, 5.4.4;
     # remediation R02): engine.time_system.time_scales(),
     # engine.frames.definitions()/TRANSFORMATIONS and the frame of each
     # series that has one.
-    time_system: Dict[str, object] = field(default_factory=dict)
-    frames: Dict[str, Dict[str, str]] = field(default_factory=dict)
-    transformations: Dict[str, str] = field(default_factory=dict)
-    series_frames: Dict[str, str] = field(default_factory=dict)
+    time_system: dict[str, object] = field(default_factory=dict)
+    frames: dict[str, dict[str, str]] = field(default_factory=dict)
+    transformations: dict[str, str] = field(default_factory=dict)
+    series_frames: dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return asdict(self)
 
-    def summary_lines(self) -> List[str]:
+    def summary_lines(self) -> list[str]:
         """Short ASCII lines to embed in an output (a CCSDS COMMENT, a plot's
         metadata, a report footer): what produced it, from what input and
         reference data (UX/UI guidelines, "provenance on every output").
@@ -177,7 +177,7 @@ class TimeSeries:
                 f"{len(self.columns)} column names were given ({list(self.columns)})"
             )
 
-    def to_csv(self, path: "str | Path") -> Path:
+    def to_csv(self, path: str | Path) -> Path:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", newline="", encoding="utf-8") as f:
@@ -207,7 +207,7 @@ _DEFAULT_CONSERVATION_TOLERANCE = 0.01  # [-] 1% -- see module comment above
 
 def conservation_drift_warnings(name: str, mu: float, r_m: np.ndarray, v_m: np.ndarray,
                                  energy_tol: float = _DEFAULT_CONSERVATION_TOLERANCE,
-                                 momentum_tol: float = _DEFAULT_CONSERVATION_TOLERANCE) -> List[str]:
+                                 momentum_tol: float = _DEFAULT_CONSERVATION_TOLERANCE) -> list[str]:
     """Checks specific orbital energy (``v^2/2 - mu/r``) and orbital
     angular momentum magnitude (``|r x v|``) for drift away from their
     own first-sample value, over the recorded ``r_m``/``v_m`` time
@@ -225,7 +225,7 @@ def conservation_drift_warnings(name: str, mu: float, r_m: np.ndarray, v_m: np.n
     docstring for why a caller should never treat a non-empty result as
     fatal.
     """
-    warnings: List[str] = []
+    warnings: list[str] = []
     if r_m.shape[0] < 2:
         return warnings
     r_mag = np.linalg.norm(r_m, axis=1)
@@ -260,12 +260,12 @@ class ResultSet:
     """
 
     scenario_name: str
-    series: Dict[str, TimeSeries] = field(default_factory=dict)
+    series: dict[str, TimeSeries] = field(default_factory=dict)
     # None unless a real SimulationService.run()/run_live() populated it
     # (see RunProvenance's own docstring for why Monte Carlo batches never
     # set this) -- every ResultSet built by hand in a test, or by
     # mission_engine's own propagate-free paths, is unaffected.
-    provenance: Optional[RunProvenance] = None
+    provenance: RunProvenance | None = None
     # Informational only -- NEVER raised as an exception, never blocks a
     # run (see conservation_drift_warnings's own docstring for exactly
     # when/why this can be non-empty). Populated by
@@ -273,14 +273,14 @@ class ResultSet:
     # spacecraft its own two-body-only gate applies to; empty for every
     # other spacecraft/scenario shape, and always empty for a hand-built
     # ResultSet (e.g. in a test).
-    warnings: List[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
     def add(self, series: TimeSeries) -> None:
         if series.name in self.series:
             raise ResultsError(f"a TimeSeries named {series.name!r} was already added to this ResultSet")
         self.series[series.name] = series
 
-    def export_csv(self, out_dir: "str | Path") -> Dict[str, Path]:
+    def export_csv(self, out_dir: str | Path) -> dict[str, Path]:
         """Write one CSV per series into ``out_dir`` (created if needed),
         plus a ``provenance.json`` sidecar when :attr:`provenance` is set
         -- a separate file, not an extra header/row in each CSV, so the
@@ -310,9 +310,9 @@ class ReportEntry:
     :class:`ResultSet` already are.
     """
 
-    label: Optional[str]
+    label: str | None
     t_s: float  # [s] elapsed mission time when this report ran
-    values: Dict[str, np.ndarray]
+    values: dict[str, np.ndarray]
 
 
 @dataclass
@@ -327,10 +327,10 @@ class CommandSummary:
     ``engine.mission_engine.MissionEngine.run()``.
     """
 
-    reports: List[ReportEntry] = field(default_factory=list)
+    reports: list[ReportEntry] = field(default_factory=list)
     commands_executed: int = 0
 
-    def export_csv(self, path: "str | Path") -> Path:
+    def export_csv(self, path: str | Path) -> Path:
         """Writes every :class:`ReportEntry` to one CSV at ``path``, long
         format (one row per scalar component of every requested series in
         every report -- ``report_index, t_s, label, series, component,

@@ -48,7 +48,7 @@ import pytest
 pytestmark = pytest.mark.requires_basilisk
 
 
-def _build_vizard_with_fuel_tank(tmp_path):
+def _build_vizard_with_fuel_tank(tmp_path, station_keeping=None):
     from Basilisk.simulation import fuelTank, spacecraft
     from Basilisk.utilities import SimulationBaseClass, macros, simHelpers
 
@@ -81,6 +81,7 @@ def _build_vizard_with_fuel_tank(tmp_path):
     request = vizard.VizardRequest(save_file=save_file)
     viz, bridges, storage_list, sensor_list = vizard.enable_vizard(
         scSim, task_name, [sc_object], request, fuel_tank_by_spacecraft={"sat": tank},
+        station_keeping_by_spacecraft={"sat": station_keeping} if station_keeping is not None else None,
     )
     return scSim, storage_list
 
@@ -100,19 +101,23 @@ def test_fuel_tank_gets_its_own_generic_storage_panel(tmp_path):
     assert fuel_panel.units == "kg"
 
 
-def test_fuel_tank_panel_label_is_distinct_from_station_keepings_own_propellant_panel():
-    """StationKeepingController's own hand-rolled "Propellant" panel and
-    this real fuelTank effector's panel track physically independent
-    propellant pools and can coexist on one spacecraft -- their labels
-    must never collide (see engine.vizard's module docstring).
-    """
-    from spacemissionstudio.engine import orbit_maintenance, vizard
+def test_fuel_tank_panel_label_is_distinct_from_station_keepings_own_propellant_panel(tmp_path):
+    """Station keeping's own "Propellant" panel and the fuel tank's panel
+    track independent propellant pools and can be on one spacecraft: both
+    are shown, under different labels."""
+    from types import SimpleNamespace
 
-    assert "Fuel Tank" != "Propellant"  # fuelTank panel's own label
-    # orbit_maintenance's own station-keeping panel label, confirmed by
-    # direct source reference rather than re-deriving it here.
-    assert "station_keeping_by_spacecraft" in vizard.enable_vizard.__doc__
-    assert orbit_maintenance.StationKeepingController is not None  # import sanity
+    from Basilisk.architecture import messaging
+
+    # Stands in for engine.orbit_maintenance.StationKeepingController: the
+    # panels read only these two messages, of the same Basilisk types.
+    controller = SimpleNamespace(fuelTankOutMsg=messaging.FuelTankMsg(),
+                                 deltaVOutMsg=messaging.DataStorageStatusMsg())
+    _, storage_list = _build_vizard_with_fuel_tank(tmp_path, station_keeping=controller)
+
+    labels = [p.label for p in storage_list[0]]
+    assert "Fuel Tank" in labels and "Propellant" in labels, labels
+    assert len(labels) == len(set(labels)), f"two panels share a label: {labels}"
 
 
 def test_simulation_runs_without_crashing_with_the_new_fuel_tank_panel(tmp_path):

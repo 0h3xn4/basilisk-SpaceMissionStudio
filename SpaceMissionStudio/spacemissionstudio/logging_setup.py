@@ -55,14 +55,13 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Optional
 
 # Set once by configure_logging(), read back by get_log_file_path() --
 # e.g. so gui.main_window's error dialogs can point the user at exactly
 # where the full traceback for what they just saw actually landed.
-_log_file_path: Optional[Path] = None
+_log_file_path: Path | None = None
 _configured = False  # set once configure_logging has run, with or without a log file
 
 
@@ -77,7 +76,7 @@ def default_log_dir() -> Path:
     return Path.home() / ".spacemissionstudio" / "logs"
 
 
-def configure_logging(log_dir: Optional[Path] = None, console_level: int = logging.INFO) -> Optional[Path]:
+def configure_logging(log_dir: Path | None = None, console_level: int = logging.INFO) -> Path | None:
     """Call once, at the very start of both entry points (``gui.app.main``,
     ``cli.main``) -- before anything else runs, so nothing that happens
     afterward (including import-time errors from lazily-imported modules)
@@ -117,7 +116,7 @@ def configure_logging(log_dir: Optional[Path] = None, console_level: int = loggi
     # when several are kept around. The process id keeps two launches in
     # the same second apart, and only the newest KEEP_LOG_FILES of this
     # tool's own log files are kept (audit L25: they were never pruned).
-    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     log_file = log_dir / f"spacemissionstudio_{timestamp}_{os.getpid()}.log"
 
     formatter = logging.Formatter(
@@ -129,7 +128,7 @@ def configure_logging(log_dir: Optional[Path] = None, console_level: int = loggi
     # then logs to the terminal only, and says so once (audit M11).
     try:
         log_dir.mkdir(parents=True, exist_ok=True)
-        file_handler: Optional[logging.Handler] = logging.FileHandler(log_file, encoding="utf-8")
+        file_handler: logging.Handler | None = logging.FileHandler(log_file, encoding="utf-8")
     except OSError as exc:
         file_handler, file_error = None, exc
     if file_handler is not None:
@@ -189,7 +188,7 @@ def _prune_old_logs(log_dir: Path, keep: Path) -> None:
         pass
 
 
-def get_log_file_path() -> Optional[Path]:
+def get_log_file_path() -> Path | None:
     """The path :func:`configure_logging` last created, or ``None`` if it
     was never called this process (e.g. a unit test that imports
     ``gui``/``cli`` modules directly without going through either real

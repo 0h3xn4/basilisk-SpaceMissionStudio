@@ -48,7 +48,6 @@ same times the camera logs the truth.
 from __future__ import annotations
 
 import math
-from typing import List
 
 import numpy as np
 
@@ -228,7 +227,7 @@ def build_optical_navigation(scSim, process, tag: str, sc_object, sun_state_msg,
     return chain
 
 
-def result_series(name: str, chain: OpticalNavigation) -> List[TimeSeries]:
+def result_series(name: str, chain: OpticalNavigation) -> list[TimeSeries]:
     """The chain's telemetry as ``{name}.optical_navigation.*`` series."""
     camera = chain.camera
     t_s = np.asarray(camera.tLog)

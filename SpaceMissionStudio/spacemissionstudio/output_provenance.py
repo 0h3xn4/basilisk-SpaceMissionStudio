@@ -31,9 +31,9 @@ import hashlib
 import json
 import struct
 import zlib
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import List, Sequence
+from collections.abc import Sequence
 from xml.sax.saxutils import escape
 
 PNG_KEYWORD = "SpaceMissionStudio provenance"
@@ -92,10 +92,10 @@ def scenario_record(scenario) -> dict:
             "qualified_basilisk_version": dependencies.QUALIFIED_BASILISK_VERSION,
             "dependency_versions": dependencies.dependency_versions(),
             "scenario_name": scenario.name, "scenario_sha256": scenario_sha256(scenario),
-            "created_utc": datetime.now(timezone.utc).isoformat(timespec="seconds")}
+            "created_utc": datetime.now(UTC).isoformat(timespec="seconds")}
 
 
-def scenario_lines(scenario) -> List[str]:
+def scenario_lines(scenario) -> list[str]:
     """Short ASCII lines of :func:`scenario_record`."""
     record = scenario_record(scenario)
     lines = [f"SpaceMissionStudio {record['spacemissionstudio_version']}, Basilisk {record['basilisk_version']}",

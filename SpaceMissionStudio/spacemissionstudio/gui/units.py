@@ -27,7 +27,6 @@ their spelling.
 from __future__ import annotations
 
 import re
-from typing import Optional, Tuple
 
 # The units a form label may carry, and how a field shows each. A unit
 # not listed here is left in its label: a bracket can hold other things
@@ -53,7 +52,7 @@ _DISPLAY = {
 _LABEL_UNIT = re.compile(r"^(?P<name>.*?)\s*\[(?P<unit>[^\[\]]+)\]\s*(?P<rest>.*)$")
 
 
-def display(unit: str) -> Optional[str]:
+def display(unit: str) -> str | None:
     """How a field shows ``unit`` ("" for a dimensionless one), or None
     for a unit not known here."""
     return _DISPLAY.get(unit.strip())
@@ -70,7 +69,7 @@ def suffix(unit: str) -> str:
     return shown if shown in ("°", "°/s", "%") else f" {shown}"
 
 
-def split_label(text: str) -> Tuple[str, Optional[str]]:
+def split_label(text: str) -> tuple[str, str | None]:
     """("Name (more)", "unit") for a label "Name [unit] (more)" with a known
     unit, else (text, None)."""
     match = _LABEL_UNIT.match(text)

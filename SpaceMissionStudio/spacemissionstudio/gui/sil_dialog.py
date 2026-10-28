@@ -27,7 +27,6 @@ again just before it starts the program.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QHBoxLayout, QLabel,
                                QLineEdit, QPushButton, QVBoxLayout, QWidget)
@@ -39,7 +38,7 @@ _TRANSPORTS = (("Automatic (Unix socket, TCP on Windows)", "auto"), ("Unix-domai
                ("TCP on 127.0.0.1", "tcp"))
 
 
-def default_program(export_folder: Optional[Path]) -> Optional[Path]:
+def default_program(export_folder: Path | None) -> Path | None:
     """The export's built ``fsw_host`` when there is one."""
     if export_folder is None:
         return None
@@ -51,11 +50,11 @@ def default_program(export_folder: Optional[Path]) -> Optional[Path]:
 
 
 class SilRunDialog(QDialog):
-    def __init__(self, spacecraft_name: str, export_folder: Optional[Path] = None, parent: Optional[QWidget] = None):
+    def __init__(self, spacecraft_name: str, export_folder: Path | None = None, parent: QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle(f"Run {spacecraft_name}'s flight software in the loop")
         self._export_folder = export_folder
-        self._sha256: Optional[str] = None
+        self._sha256: str | None = None
         layout = QVBoxLayout(self)
         intro = QLabel("The program flies the spacecraft step by step. Its commands are compared with the "
                        "simulation's own flight software.")

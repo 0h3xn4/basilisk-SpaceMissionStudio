@@ -31,7 +31,6 @@ from __future__ import annotations
 
 import time
 from pathlib import Path
-from typing import Optional
 
 from PySide6.QtCore import QObject, Qt, Signal
 from PySide6.QtGui import QColor, QPalette
@@ -107,7 +106,7 @@ def set_reduce_motion(on: bool) -> None:
     settings.sync()
 
 
-def resolve_theme(setting: str, app: Optional[QApplication] = None) -> str:
+def resolve_theme(setting: str, app: QApplication | None = None) -> str:
     """``"light"`` or ``"dark"`` for the setting: ``"system"`` follows the
     platform's colour scheme (light when it does not say)."""
     if setting in ("light", "dark"):
@@ -141,7 +140,7 @@ def _palette(app: QApplication) -> QPalette:
     return palette
 
 
-def apply_theme(app: QApplication, theme: Optional[str] = None) -> str:
+def apply_theme(app: QApplication, theme: str | None = None) -> str:
     """Apply ``theme`` (``"light"`` or ``"dark"``; None: the theme
     setting) to ``app``, live. Returns the theme applied.
 
@@ -187,8 +186,8 @@ def follow_system(app: QApplication) -> None:
     app.styleHints().colorSchemeChanged.connect(changed)
 
 
-def set_role(widget: QWidget, role: Optional[str] = None, tone: Optional[str] = None,
-             badge: Optional[str] = None, **properties) -> QWidget:
+def set_role(widget: QWidget, role: str | None = None, tone: str | None = None,
+             badge: str | None = None, **properties) -> QWidget:
     """Give ``widget`` its look from the style sheet: a ``role``, a text
     ``tone``, a status ``badge`` or other style properties (``variant``,
     ``state``). None clears one. A widget already shown is re-polished, so

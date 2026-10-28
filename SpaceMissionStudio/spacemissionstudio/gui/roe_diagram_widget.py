@@ -33,7 +33,6 @@ Drawn with :class:`QPainter`, like ``formation_diagram_widget.py``.
 from __future__ import annotations
 
 import math
-from typing import List
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen, QPolygonF
@@ -50,7 +49,7 @@ _GAP = 24  # px between panels
 _PATH_STEPS = 72  # points on the relative-motion path
 
 
-def target_summary(roe_m: List[float]) -> str:
+def target_summary(roe_m: list[float]) -> str:
     """A target in words: where the follower's centre of motion sits and
     the closest radial/cross-track approach."""
     dl = roe_m[1]

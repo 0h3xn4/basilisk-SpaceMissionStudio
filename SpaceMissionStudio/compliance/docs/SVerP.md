@@ -1,7 +1,7 @@
 # SpaceMissionStudio: Software Verification Plan (SVerP)
 
 DRD: ECSS-E-ST-40C Annex I
-Document: SMS-SVerP, issue 1 (draft), 2026-10-08. Remediation R14.
+Document: SMS-SVerP, issue 1 (draft), 2026-10-08; Python 3.14 only from 2026-10-27. Remediation R14.
 
 **Status:** draft. This plan describes the verification set up during the
 audit, and what it still needs from people.
@@ -89,7 +89,7 @@ What cannot be computed is a human action:
 
 | Resource | Use |
 |---|---|
-| GitHub Actions runner, Ubuntu 24.04, Python 3.11 | CI (RD4) |
+| GitHub Actions runner, Ubuntu 24.04, Python 3.14 | CI (RD4) |
 | A developer PC with Basilisk 2.12.0, GMAT R2026a and the IERS-based Earth files | Validation references (SValP) |
 | ruff, pytest, pytest-cov, pytest-xdist, pytest-qt | Lint, tests, coverage |
 | `compliance/tools/*.py` | Metrics, traceability, ICS, matrix, DRD checks, generated documents |

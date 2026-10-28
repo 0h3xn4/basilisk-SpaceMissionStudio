@@ -47,9 +47,8 @@ import sys
 import urllib.error
 import urllib.request
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Dict, List, Optional
 
 _DAF_SPK_MAGIC = b"DAF/SPK "
 _MANIFEST = "manifest.json"
@@ -100,7 +99,7 @@ EROS = SmallBody(
              "shape: Gaskell NEAR model eros007790.tab (Basilisk support data); GM: Horizons"),
 )
 
-BODIES: Dict[str, SmallBody] = {EROS.name: EROS}
+BODIES: dict[str, SmallBody] = {EROS.name: EROS}
 
 
 @dataclass
@@ -113,7 +112,7 @@ class InstalledKernel:
     installed_utc: str
 
 
-def body(name: str) -> Optional[SmallBody]:
+def body(name: str) -> SmallBody | None:
     return BODIES.get(name)
 
 
@@ -143,7 +142,7 @@ def _check(small_body: SmallBody, path: Path) -> None:
         raise SmallBodyError(f"{path.name} is not NAIF's {small_body.spk_name} (its SHA-256 differs)")
 
 
-def _entries(directory: Path) -> List[dict]:
+def _entries(directory: Path) -> list[dict]:
     try:
         entries = json.loads((directory / _MANIFEST).read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -151,7 +150,7 @@ def _entries(directory: Path) -> List[dict]:
     return entries if isinstance(entries, list) else []
 
 
-def installed(name: str, directory: Optional[Path] = None) -> Optional[InstalledKernel]:
+def installed(name: str, directory: Path | None = None) -> InstalledKernel | None:
     """The installed kernel of body ``name``, if its file is still there
     with the size it was installed with. Without ``directory``: the user's
     files, else the install-wide ones."""
@@ -174,13 +173,13 @@ def _install(small_body: SmallBody, staged: Path, source: str, directory: Path) 
     shutil.move(str(staged), str(destination))
     kernel = InstalledKernel(small_body.name, str(destination), source, destination.stat().st_size,
                              _sha256(destination),
-                             datetime.now(timezone.utc).replace(microsecond=0).isoformat())
+                             datetime.now(UTC).replace(microsecond=0).isoformat())
     entries = [entry for entry in _entries(directory) if entry.get("body") != small_body.name]
     (directory / _MANIFEST).write_text(json.dumps(entries + [asdict(kernel)], indent=2), encoding="utf-8")
     return kernel
 
 
-def fetch(name: str = EROS.name, directory: Optional[Path] = None, timeout_s: float = 300.0) -> InstalledKernel:
+def fetch(name: str = EROS.name, directory: Path | None = None, timeout_s: float = 300.0) -> InstalledKernel:
     """Download body ``name``'s SPK from NAIF, check it and install it.
     **Network access: only call after the user agreed.** The shape file
     comes with Basilisk's support data (:func:`fetch_shape`)."""
@@ -204,7 +203,7 @@ def fetch(name: str = EROS.name, directory: Optional[Path] = None, timeout_s: fl
             part.unlink()
 
 
-def import_file(path, name: str = EROS.name, directory: Optional[Path] = None) -> InstalledKernel:
+def import_file(path, name: str = EROS.name, directory: Path | None = None) -> InstalledKernel:
     """Install body ``name``'s SPK from a copy on disk (e.g. removable media)."""
     small_body = BODIES[name]
     source = Path(path)
@@ -239,7 +238,7 @@ def fetch_shape(small_body: SmallBody = EROS) -> Path:
     return Path(statuses[0].path)
 
 
-def shape_path(small_body: SmallBody) -> Optional[Path]:
+def shape_path(small_body: SmallBody) -> Path | None:
     """The cached shape file, or None (never downloads)."""
     from . import kernels
 

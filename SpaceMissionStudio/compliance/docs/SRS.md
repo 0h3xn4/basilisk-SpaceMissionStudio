@@ -1,7 +1,7 @@
 # SpaceMissionStudio – Software Requirements Specification (SRS)
 
 DRD: ECSS-E-ST-40C Annex D
-Document: SMS-SRS, issue 1 (draft), 2026-10-08. Remediation R14.
+Document: SMS-SRS, issue 1 (draft), 2026-10-08; Python 3.14 only from 2026-10-27. Remediation R14.
 
 **Status: draft, written by the supplier, not reviewed.**
 - No customer requirements baseline (SSS, IRD) exists for this tool, so
@@ -82,7 +82,7 @@ software.
   runs), and about 2 GB of disk for Basilisk and its data files.
 - **Operating environment:**
   - Linux (Ubuntu 22.04/24.04 tested) or Windows 10/11;
-  - Python >= 3.11 (3.11 tested);
+  - Python >= 3.14 (3.14 tested; older versions are not supported);
   - Basilisk 2.12.0, pinned;
   - Qt (PySide6) for the GUI.
 - **Network:** none is needed at run time. Downloads happen only on explicit

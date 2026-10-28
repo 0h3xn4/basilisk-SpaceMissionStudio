@@ -29,7 +29,6 @@ says.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
 
 _EDITOR = "Spacecraft editor"
 _POINTING = f"{_EDITOR} > Attitude control > Pointing parameters"
@@ -40,12 +39,12 @@ _MTB = f"{_EDITOR} > Sensors / actuators > Magnetic momentum management"
 
 @dataclass(frozen=True)
 class Source:
-    scenario_path: Optional[str]  # under spacecraft[<name>]; None for the tool's own constant
+    scenario_path: str | None  # under spacecraft[<name>]; None for the tool's own constant
     gui: str  # where the user edits it, or "-"
     note: str = ""
 
 
-MODULE_FIELDS: Dict[Tuple[str, str], Source] = {
+MODULE_FIELDS: dict[tuple[str, str], Source] = {
     ("inertial3D", "sigma_R0N"): Source("fsw_params.sigma_R0N", f"{_POINTING}: Target attitude (MRP)"),
     ("velocityPoint", "mu"): Source(None, "-", "gravitational parameter of gravity.central_body (Basilisk)"),
     ("sunSafePoint", "sHatBdyCmd"): Source("fsw_params.sHatBdyCmd", f"{_POINTING}: Axis to point at the Sun"),
@@ -79,7 +78,7 @@ MODULE_FIELDS: Dict[Tuple[str, str], Source] = {
 }
 
 # The fixed configuration messages, by payload type.
-CONSTANT_MESSAGES: Dict[str, Source] = {
+CONSTANT_MESSAGES: dict[str, Source] = {
     "VehicleConfig": Source("inertia_kg_m2", f"{_EDITOR} > Orbit / mass > Principal moments of inertia",
                             "plus each flexible solar array's undeflected inertia (engine.solar_arrays)"),
     "RWArrayConfig": Source("actuators[kind=reaction_wheel].params", f"{_EDITOR} > Sensors / actuators",
@@ -91,5 +90,5 @@ CONSTANT_MESSAGES: Dict[str, Source] = {
 }
 
 
-def module_field_source(python_name: str, field: str) -> Optional[Source]:
+def module_field_source(python_name: str, field: str) -> Source | None:
     return MODULE_FIELDS.get((python_name, field))

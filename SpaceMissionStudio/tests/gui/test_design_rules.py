@@ -43,9 +43,8 @@ _NAMED = re.compile(r"\bQt\.(?:GlobalColor\.)?(?!transparent\b)(?:red|green|blue
 
 # The colours a GUI module may write itself, with why: data or an image,
 # never the UI's own chrome.
-# A string's text: a STRING token, or from Python 3.12 an f-string's
-# literal parts.
-_TEXT_TOKENS = {tokenize.STRING} | ({tokenize.FSTRING_MIDDLE} if hasattr(tokenize, "FSTRING_MIDDLE") else set())
+# A string's text: a STRING token, or an f-string's literal parts.
+_TEXT_TOKENS = {tokenize.STRING, tokenize.FSTRING_MIDDLE}
 _ALLOWED = {
     "model_view_widget.py": {"rgb("},  # a 3D part's own colour (data, picked by the user)
 }

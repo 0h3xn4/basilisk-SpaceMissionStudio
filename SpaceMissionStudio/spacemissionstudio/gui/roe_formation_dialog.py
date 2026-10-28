@@ -31,7 +31,6 @@ when Generate is clicked.
 
 from __future__ import annotations
 
-from typing import List
 
 from PySide6.QtWidgets import (
     QDialog,
@@ -165,7 +164,7 @@ class RoeFormationDialog(QDialog):
         roe_page = QWidget()
         roe_form = QFormLayout(roe_page)
         roe_form.setContentsMargins(0, 0, 0, 0)
-        self.roe_spins: List[QDoubleSpinBox] = []
+        self.roe_spins: list[QDoubleSpinBox] = []
         for label, title, tip in zip(ROE_LABELS, _ROE_TITLES, _ROE_TIPS):
             box = _double_spin(-1.0e6, 1.0e6, 3, 10.0, 0.0)  # [m]
             box.setToolTip(tip)
@@ -213,12 +212,12 @@ class RoeFormationDialog(QDialog):
         self._pages.adjustSize()
         self.adjustSize()
 
-    def _safe_roe_m(self) -> List[float]:
+    def _safe_roe_m(self) -> list[float]:
         roe_m = safe_formation(self.safe_along_m.value(), self.safe_radial_m.value(), self.safe_cross_m.value(),
                                self.safe_phase_deg.value(), 1.0)
         return [round(float(x), 9) + 0.0 for x in roe_m]  # cos(90 deg) as 0, not 6e-17; + 0.0 drops -0.0
 
-    def roe_m(self) -> List[float]:
+    def roe_m(self) -> list[float]:
         """The formation's six relative orbital elements [m], in
         ``engine.roe.ROE_LABELS`` order."""
         if self.mode_combo.currentData() == "safe":

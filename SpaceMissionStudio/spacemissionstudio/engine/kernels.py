@@ -75,9 +75,9 @@ succeeding) remains unverified.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
-from typing import Iterable, List, Optional
+from collections.abc import Iterable
 
 from Basilisk.utilities.supportDataTools import dataFetcher
 from Basilisk.utilities.supportDataTools.dataFetcher import DataFile, get_path
@@ -126,17 +126,17 @@ class KernelError(Exception):
 class KernelStatus:
     name: str  # enum member name, e.g. "naif0012"
     filename: str  # e.g. "naif0012.tls"
-    path: Optional[Path]
+    path: Path | None
     available: bool
-    error: Optional[str]
-    modified_utc: Optional[str]  # local cached file's mtime, ISO 8601 -- a
+    error: str | None
+    modified_utc: str | None  # local cached file's mtime, ISO 8601 -- a
     # proxy for "how current is this cached copy". Surfaced explicitly
     # rather than trusted forever: a leap-second kernel in particular needs
     # periodic refresh as new leap seconds are announced (roughly every
     # few years), and this app must not hide that from the user.
 
 
-def ensure_kernels(kernels: Iterable = ALL_SUPPORT_DATA_FILES) -> List[KernelStatus]:
+def ensure_kernels(kernels: Iterable = ALL_SUPPORT_DATA_FILES) -> list[KernelStatus]:
     """Ensure every kernel in ``kernels`` is fetched/cached (triggering a
     download through Basilisk's own ``pooch``-backed fetch if not already
     cached) and return a status report for each. The GUI/CLI call this to
@@ -155,7 +155,7 @@ def ensure_kernels(kernels: Iterable = ALL_SUPPORT_DATA_FILES) -> List[KernelSta
         try:
             path = get_path(kernel)
             modified_utc = (
-                datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat()
+                datetime.fromtimestamp(path.stat().st_mtime, tz=UTC).isoformat()
                 if path.exists() else None
             )
             statuses.append(KernelStatus(kernel.name, kernel.value, path, True, None, modified_utc))
@@ -208,20 +208,20 @@ def cached_path(kernel) -> Path:
 _VERIFIED: set = set()  # (path, size, mtime_ns, registry checksum) of files whose checksum matched
 
 
-def cached_statuses(kernels: Iterable = ALL_SUPPORT_DATA_FILES) -> List[KernelStatus]:
+def cached_statuses(kernels: Iterable = ALL_SUPPORT_DATA_FILES) -> list[KernelStatus]:
     """Like :func:`ensure_kernels`, but only looks at the local cache: no download."""
     statuses = []
     for kernel in kernels:
         try:
             path = cached_path(kernel)
-            modified_utc = datetime.fromtimestamp(path.stat().st_mtime, tz=timezone.utc).isoformat()
+            modified_utc = datetime.fromtimestamp(path.stat().st_mtime, tz=UTC).isoformat()
             statuses.append(KernelStatus(kernel.name, kernel.value, path, True, None, modified_utc))
         except KernelError as exc:
             statuses.append(KernelStatus(kernel.name, kernel.value, None, False, str(exc), None))
     return statuses
 
 
-def require_cached(kernels: Iterable = ALL_SUPPORT_DATA_FILES) -> List[KernelStatus]:
+def require_cached(kernels: Iterable = ALL_SUPPORT_DATA_FILES) -> list[KernelStatus]:
     """:func:`cached_statuses`, raising :class:`KernelError` naming every missing file."""
     statuses = cached_statuses(kernels)
     failed = [s for s in statuses if not s.available]
@@ -230,7 +230,7 @@ def require_cached(kernels: Iterable = ALL_SUPPORT_DATA_FILES) -> List[KernelSta
     return statuses
 
 
-def require_kernels(kernels: Iterable = ALL_SUPPORT_DATA_FILES) -> List[KernelStatus]:
+def require_kernels(kernels: Iterable = ALL_SUPPORT_DATA_FILES) -> list[KernelStatus]:
     """Like :func:`ensure_kernels`, but raises :class:`KernelError` naming
     every kernel that failed, instead of returning a status list with
     ``available=False`` entries for the caller to notice on its own.

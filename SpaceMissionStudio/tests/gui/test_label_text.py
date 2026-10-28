@@ -29,6 +29,7 @@ description) are structured, scrollable content and are not checked here.
 import re
 
 import pytest
+import shiboken6
 
 from test_input_borders import _CASES, _expand_everything
 
@@ -79,6 +80,8 @@ def test_help_text_is_short_and_plain(qtbot, qapp, themed, factory):
     qtbot.waitExposed(dialog)
     problems = _problems(dialog)
     for tabs in _expand_everything(dialog, qapp):
+        if not shiboken6.isValid(tabs):  # the main window's hidden label form, deleted once read
+            continue
         for index in range(tabs.count()):
             tabs.setCurrentIndex(index)
             qapp.processEvents()

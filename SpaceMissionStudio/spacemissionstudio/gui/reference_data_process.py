@@ -31,7 +31,6 @@ from __future__ import annotations
 
 import multiprocessing
 import queue
-from typing import Optional
 
 _POLL_S = 0.1  # [s] how often the waiting thread checks for a result or a stop
 
@@ -55,7 +54,7 @@ class InventoryReader:
         self._process = None
         self._stopped = False
 
-    def read(self) -> Optional[tuple]:
+    def read(self) -> tuple | None:
         result_queue = self._context.Queue()
         self._process = self._context.Process(target=_child, name="spacemissionstudio-reference-data",
                                               args=(result_queue,), daemon=True)

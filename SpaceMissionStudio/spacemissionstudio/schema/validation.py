@@ -51,7 +51,7 @@ unless separately requested.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 from .command import report_before_propagate_errors
 from .scenario import ScenarioValidationError
@@ -60,12 +60,12 @@ if TYPE_CHECKING:
     from .scenario import Scenario
 
 
-def validate_all(scenario: "Scenario") -> List[str]:
+def validate_all(scenario: Scenario) -> list[str]:
     """Returns every problem found, as complete ``f"{path}: {message}"``
     strings -- an empty list means the scenario is fully valid. Never
     raises.
     """
-    errors: List[str] = []
+    errors: list[str] = []
 
     try:
         scenario.validate()
@@ -100,7 +100,7 @@ def validate_all(scenario: "Scenario") -> List[str]:
     return errors
 
 
-def _dangling_command_references(scenario: "Scenario", spacecraft_names: set, ground_station_names: set) -> List[str]:
+def _dangling_command_references(scenario: Scenario, spacecraft_names: set, ground_station_names: set) -> list[str]:
     """Cross-references every command's resource-name params against the
     scenario's actual spacecraft/ground stations -- the mission-sequence
     equivalent of ``Scenario.validate()``'s own
@@ -109,7 +109,7 @@ def _dangling_command_references(scenario: "Scenario", spacecraft_names: set, gr
     """
     from .references import _PLURAL, _command_references  # local: internal helpers, not part of the public API
 
-    errors: List[str] = []
+    errors: list[str] = []
     for ref in _command_references(scenario.mission_sequence, "mission_sequence"):
         known = spacecraft_names if ref.resource_kind == "spacecraft" else ground_station_names
         if ref.name not in known:

@@ -5,13 +5,10 @@ through a real background QThread (see test_kernel_status_widget.py's
 docstring for the same point about kernel status).
 """
 
-import importlib.util
 
 import pytest
 
 pytestmark = pytest.mark.requires_gui
-
-_BASILISK_AVAILABLE = importlib.util.find_spec("Basilisk") is not None
 
 
 def _load_two_body_scenario():
@@ -23,7 +20,7 @@ def _load_two_body_scenario():
     return load_scenario(path)
 
 
-@pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
+@pytest.mark.usefixtures("basilisk_unavailable")
 def test_run_without_basilisk_emits_failed(qtbot):
     """Without Basilisk, the run worker fails saying Basilisk is not
     installed."""
@@ -36,7 +33,7 @@ def test_run_without_basilisk_emits_failed(qtbot):
     assert "Basilisk is not installed" in blocker.args[0]
 
 
-@pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
+@pytest.mark.usefixtures("basilisk_unavailable")
 def test_live_run_without_basilisk_emits_failed(qtbot):
     """The live=True path fails the same way as live=False -- the
     ImportError happens before either run()/run_live() is ever reached
@@ -51,7 +48,7 @@ def test_live_run_without_basilisk_emits_failed(qtbot):
     assert "Basilisk is not installed" in blocker.args[0]
 
 
-@pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
+@pytest.mark.usefixtures("basilisk_unavailable")
 def test_monte_carlo_worker_without_basilisk_emits_failed(qtbot, tmp_path):
     """Without Basilisk, the Monte Carlo worker fails saying Basilisk is not
     installed."""

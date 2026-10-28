@@ -25,7 +25,6 @@ the licence text sits next to each family's files
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 from PySide6.QtGui import QFont, QFontDatabase
 
@@ -33,12 +32,12 @@ from .typography import MONO_FONT_FAMILY, SIZE, UI_FONT_FAMILY, WEIGHT
 
 ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
 FONTS_DIR = ASSETS_DIR / "fonts"
-_loaded_families: List[str] = []
+_loaded_families: list[str] = []
 
 _QT_WEIGHT = {400: QFont.Weight.Normal, 500: QFont.Weight.Medium, 600: QFont.Weight.DemiBold}
 
 
-def load_fonts() -> List[str]:
+def load_fonts() -> list[str]:
     """Register the bundled faces with Qt (once); the families that loaded.
     A face Qt cannot read is skipped, not fatal."""
     if not _loaded_families:

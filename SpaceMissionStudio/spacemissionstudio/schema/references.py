@@ -60,7 +60,7 @@ are assumed spacecraft-scoped; nothing else parses a dotted target yet).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .command import Command
@@ -84,12 +84,12 @@ class ReferenceError(ValueError):
     """
 
 
-def _command_references(commands: List["Command"], path_prefix: str) -> List[Reference]:
+def _command_references(commands: list[Command], path_prefix: str) -> list[Reference]:
     """Recursively scans a command list (and every ``if``/``while``
     subtree) for spacecraft- and ground-station-name references (a
     propagate that stops at a pass names its station).
     """
-    refs: List[Reference] = []
+    refs: list[Reference] = []
     for i, command in enumerate(commands):
         label_suffix = f" ({command.label!r})" if command.label else ""
         path = f"{path_prefix}[{i}]{label_suffix}"
@@ -145,12 +145,12 @@ def _command_references(commands: List["Command"], path_prefix: str) -> List[Ref
 _PLURAL = {"spacecraft": "spacecraft", "ground_station": "ground stations"}
 
 
-def find_spacecraft_references(scenario: "Scenario", name: str) -> List[Reference]:
+def find_spacecraft_references(scenario: Scenario, name: str) -> list[Reference]:
     """Every place ``name`` is referenced from, EXCLUDING the
     ``SpacecraftConfig`` itself (i.e. this never reports a spacecraft as
     referencing its own name) -- an empty list means it's safe to delete.
     """
-    refs: List[Reference] = []
+    refs: list[Reference] = []
     for i, sc in enumerate(scenario.spacecraft):
         if sc.phasing_keeping is not None and sc.phasing_keeping.chief_spacecraft == name:
             refs.append(Reference(
@@ -175,11 +175,11 @@ def find_spacecraft_references(scenario: "Scenario", name: str) -> List[Referenc
     return refs
 
 
-def find_ground_station_references(scenario: "Scenario", name: str) -> List[Reference]:
+def find_ground_station_references(scenario: Scenario, name: str) -> list[Reference]:
     """Every place ``name`` is referenced from -- an empty list means it's
     safe to delete.
     """
-    refs: List[Reference] = []
+    refs: list[Reference] = []
     for i, sc in enumerate(scenario.spacecraft):
         if sc.fsw_mode == "locationPointing" and sc.fsw_params.get("target_ground_station") == name:
             refs.append(Reference(
@@ -196,7 +196,7 @@ def find_ground_station_references(scenario: "Scenario", name: str) -> List[Refe
     return refs
 
 
-def rename_spacecraft(scenario: "Scenario", old_name: str, new_name: str) -> int:
+def rename_spacecraft(scenario: Scenario, old_name: str, new_name: str) -> int:
     """Renames a spacecraft AND updates every reference to it, atomically
     -- either the whole rename succeeds (including every reference), or
     nothing changes (raises :class:`ReferenceError` first). Returns the
@@ -233,7 +233,7 @@ def rename_spacecraft(scenario: "Scenario", old_name: str, new_name: str) -> int
     return updated
 
 
-def rename_ground_station(scenario: "Scenario", old_name: str, new_name: str) -> int:
+def rename_ground_station(scenario: Scenario, old_name: str, new_name: str) -> int:
     """Same contract as :func:`rename_spacecraft`, for ground stations."""
     if not new_name:
         raise ReferenceError("new ground station name must not be empty")
@@ -257,7 +257,7 @@ def rename_ground_station(scenario: "Scenario", old_name: str, new_name: str) ->
     return updated
 
 
-def _rename_in_commands(commands: List["Command"], resource_kind: str, old_name: str, new_name: str) -> int:
+def _rename_in_commands(commands: list[Command], resource_kind: str, old_name: str, new_name: str) -> int:
     updated = 0
     for command in commands:
         if resource_kind == "spacecraft":

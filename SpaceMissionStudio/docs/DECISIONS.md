@@ -5,6 +5,33 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Python 3.14 only (2026-10-27)
+
+The user: "Drop support for every Python version older than 3.14. The
+project should target Python 3.14+ only, everywhere", with three answers:
+SpaceMissionStudio only (Basilisk's own packaging and workflows are the
+framework's), after the open PRs merged, released as 2.0.0.
+
+- **3.14, not "3.14 and newer" in CI:** Basilisk 2.12.0 and PySide6 6.11
+  declare `<3.15`; there is no newer Python the tool installs on.
+- **The installers' Python:** CPython 3.14.8 from the same
+  python-build-standalone release (20261013) as 3.11.17 was, with the
+  digests from that release's `SHA256SUMS` (whose 3.11.17 lines match the
+  digests pinned before).
+- **sgp4 without its C extension:** no sgp4 release has a 3.14 wheel, so
+  pip installs its pure-Python form: the same SGP4 algorithm, slower; the
+  TLE tests pass.
+- **`from __future__ import annotations` kept:** removing it changes when
+  annotations are evaluated (PEP 649), which `schema.scenario`'s type
+  check reads; it is not an old-version shim.
+- **ruff's upgrade rules once, not in the lint set:** `ruff check --select
+  UP --fix` rewrote 1717 places; the leftovers it cannot fix safely stay
+  (two `%` formats, one is a JavaScript string; a `Union` alias of Qt
+  classes). UP is not added to the configured rules.
+- **Records:** requirement and plan documents say 3.14 from today; the
+  verification records (SVR, measurements, SRelD of 1.3.1) keep what was
+  tested then.
+
 ## Generators by mean elements; a continuous map (2026-10-27)
 
 The user: "Merge them all, continue as per your recommendations" (the

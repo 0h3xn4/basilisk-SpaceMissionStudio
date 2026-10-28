@@ -36,7 +36,6 @@ flight software in the loop").
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Optional
 
 from PySide6.QtCore import QThread, QTimer, QUrl, Signal
 from PySide6.QtGui import QDesktopServices
@@ -58,7 +57,7 @@ _STATE_BADGES = {
 }
 
 
-def exportable_reason(scenario, spacecraft) -> Optional[str]:
+def exportable_reason(scenario, spacecraft) -> str | None:
     """Why ``spacecraft``'s flight software cannot be exported, or ``None``."""
     if spacecraft.comms_pointing is not None:
         return "comms pointing switches modes in Python, which is not exported"
@@ -120,7 +119,7 @@ class _SpacecraftCard(QFrame):
         layout.addLayout(buttons, 3, 0, 1, 2)
         layout.setColumnStretch(0, 1)
 
-    def set_folder(self, path: Optional[str]) -> None:
+    def set_folder(self, path: str | None) -> None:
         self.folder.setVisible(bool(path))
         self.folder.setText(f"Folder: {Path(path).name}" if path else "")
         self.folder.setToolTip(path or "")
@@ -135,15 +134,15 @@ class FlightSoftwareWidget(QWidget):
 
     exports_changed = Signal(list)  # the scenario's new fsw_exports list
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self._scenario = None
-        self._base_dir: Optional[Path] = None
-        self._cards: Dict[str, _SpacecraftCard] = {}
-        self._worker: Optional[_ExportWorker] = None
-        self._busy: Optional[str] = None
+        self._base_dir: Path | None = None
+        self._cards: dict[str, _SpacecraftCard] = {}
+        self._worker: _ExportWorker | None = None
+        self._busy: str | None = None
         self._export_scenario = None  # the scenario an export in progress started from
-        self._sil_running: Optional[str] = None
+        self._sil_running: str | None = None
         outer = QVBoxLayout(self)
         intro = QLabel("Export each spacecraft's attitude flight software as a standalone C project "
                        "(User Manual, \"Exporting the flight software\").")
@@ -177,7 +176,7 @@ class FlightSoftwareWidget(QWidget):
         self._base_dir = Path(base_dir) if base_dir else None
         self._refresh_timer.start()
 
-    def card(self, name: str) -> Optional[_SpacecraftCard]:
+    def card(self, name: str) -> _SpacecraftCard | None:
         return self._cards.get(name)
 
     def wait_for_worker(self) -> None:
@@ -229,7 +228,7 @@ class FlightSoftwareWidget(QWidget):
 
     # ------------------------------------------------------------------ actions
 
-    def _folder_of(self, name: str) -> Optional[Path]:
+    def _folder_of(self, name: str) -> Path | None:
         record = next((r for r in self._scenario.fsw_exports if r.spacecraft == name), None) if self._scenario else None
         if record is None:
             return None
@@ -245,7 +244,7 @@ class FlightSoftwareWidget(QWidget):
             return None
         return dialog.to_options()
 
-    def set_sil_running(self, name: Optional[str]) -> None:
+    def set_sil_running(self, name: str | None) -> None:
         """The spacecraft whose SIL run is in progress, or None."""
         self._sil_running = name
         self._refresh()
@@ -260,7 +259,7 @@ class FlightSoftwareWidget(QWidget):
         if folder is not None:
             QDesktopServices.openUrl(QUrl.fromLocalFile(str(folder)))
 
-    def choose_folder(self, name: str) -> Optional[Path]:
+    def choose_folder(self, name: str) -> Path | None:
         """Asks for the export folder (tests replace this)."""
         start = self._folder_of(name) or ((self._base_dir or Path.home()) / f"fsw_{name}")
         chosen = QFileDialog.getExistingDirectory(self, f"Export the flight software of {name} into", str(start))

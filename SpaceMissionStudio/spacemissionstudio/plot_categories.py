@@ -45,7 +45,6 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass
-from typing import Dict, Optional
 
 from .engine.results import TimeSeries
 
@@ -80,12 +79,12 @@ class SeriesDisplay:
     y_label: str
     unit: str
     factor: float = 1.0
-    columns: Optional[Dict[str, str]] = None
+    columns: dict[str, str] | None = None
     standalone_title: bool = False
-    wrap_period: Optional[float] = None
+    wrap_period: float | None = None
 
 
-def _vector_display(name: str) -> Optional[SeriesDisplay]:
+def _vector_display(name: str) -> SeriesDisplay | None:
     """State-vector and attitude/actuator vector series -- every one of
     these already has ("x","y","z") or equivalent columns in
     ``engine.service``. Position/velocity display in raw meters/m-s (NOT
@@ -144,7 +143,7 @@ def _vector_display(name: str) -> Optional[SeriesDisplay]:
     return None
 
 
-def _orbit_element_display(name: str) -> Optional[SeriesDisplay]:
+def _orbit_element_display(name: str) -> SeriesDisplay | None:
     """The 6 osculating + 6 mean (first-order-J2) Keplerian element
     series ``engine.service._extract_results`` produces --
     ``.orbit_elements.*`` (per-sample ``orbitalMotion.rv2elem``) and
@@ -186,7 +185,7 @@ _CONTROLLER_TITLES = {
 }
 
 
-def _controller_display(name: str) -> Optional[SeriesDisplay]:
+def _controller_display(name: str) -> SeriesDisplay | None:
     """``"{sc}.<controller>.<field>"`` series from
     ``engine.orbit_maintenance``'s three controllers. ``.delta_v`` is
     handled identically across all three (one shared branch below) and
@@ -266,7 +265,7 @@ _LANDMARK_SERIES = {
 }
 
 
-def _landmark_navigation_display(name: str) -> Optional[SeriesDisplay]:
+def _landmark_navigation_display(name: str) -> SeriesDisplay | None:
     """``"{sc}.landmark_navigation.<field>"`` series (``engine.landmark_navigation``)."""
     head, _, field = name.rpartition(".")
     if not head.endswith(".landmark_navigation") or field not in _LANDMARK_SERIES:
@@ -275,7 +274,7 @@ def _landmark_navigation_display(name: str) -> Optional[SeriesDisplay]:
     return SeriesDisplay(title, y_label, unit, factor, columns)
 
 
-def _optical_navigation_display(name: str) -> Optional[SeriesDisplay]:
+def _optical_navigation_display(name: str) -> SeriesDisplay | None:
     """``"{sc}.optical_navigation.<field>"`` series (``engine.optical_navigation``)."""
     head, _, field = name.rpartition(".")
     if not head.endswith(".optical_navigation") or field not in _OPNAV_SERIES:
@@ -284,7 +283,7 @@ def _optical_navigation_display(name: str) -> Optional[SeriesDisplay]:
     return SeriesDisplay(title, y_label, unit, factor, columns)
 
 
-def _comms_and_thermal_display(name: str) -> Optional[SeriesDisplay]:
+def _comms_and_thermal_display(name: str) -> SeriesDisplay | None:
     """Template 19's comms-pointing series and the reaction-wheel motor
     thermal model -- both featured in template descriptions, and both
     used to show as raw code names."""
@@ -313,7 +312,7 @@ _DATA_HANDLING_DISPLAYS = {
 }
 
 
-def _solar_array_display(name: str) -> Optional[SeriesDisplay]:
+def _solar_array_display(name: str) -> SeriesDisplay | None:
     """``"{sc}.solar_array.{array}.<field>"`` series (``engine.solar_arrays``)."""
     if ".solar_array." not in name:
         return None
@@ -329,7 +328,7 @@ def _solar_array_display(name: str) -> Optional[SeriesDisplay]:
     return None
 
 
-def _data_handling_display(name: str) -> Optional[SeriesDisplay]:
+def _data_handling_display(name: str) -> SeriesDisplay | None:
     """``"{sc}.data_handling.<field>"`` series (``engine.data_handling``):
     bits shown in Gbit, rates in Mbit/s."""
     prefix, _, field_name = name.rpartition(".")
@@ -341,7 +340,7 @@ def _data_handling_display(name: str) -> Optional[SeriesDisplay]:
 _MONTE_CARLO_OFFSETS = {"radial": "Radial", "along_track": "Along-track", "cross_track": "Cross-track"}
 
 
-def _monte_carlo_display(name: str) -> Optional[SeriesDisplay]:
+def _monte_carlo_display(name: str) -> SeriesDisplay | None:
     """A Monte Carlo batch's series (``engine.monte_carlo_results.to_result_set``),
     one column per run (``run_N``) except the spread. Shown in km."""
     if ".monte_carlo." not in name:
@@ -359,7 +358,7 @@ def _monte_carlo_display(name: str) -> Optional[SeriesDisplay]:
     return None
 
 
-def parse_access_pair(name: str) -> Optional[tuple]:
+def parse_access_pair(name: str) -> tuple | None:
     """Recovers ``(gs, sc, field)`` from a ``"{gs}.access_to_{sc}.<field>"``
     series name (``engine.service``'s access-analysis loop, plus
     ``engine.link_budget.link_margin_series``) -- the literal
@@ -379,7 +378,7 @@ def parse_access_pair(name: str) -> Optional[tuple]:
     return gs, sc, field
 
 
-def _access_pair_display(name: str) -> Optional[SeriesDisplay]:
+def _access_pair_display(name: str) -> SeriesDisplay | None:
     """``"{gs}.access_to_{sc}.<field>"`` series -- see
     :func:`parse_access_pair`. Slant range displays in km,
     elevation/azimuth in degrees -- same length/angle display policy as
@@ -410,7 +409,7 @@ def _access_pair_display(name: str) -> Optional[SeriesDisplay]:
     return None
 
 
-def _sensor_display(name: str, series: TimeSeries) -> Optional[SeriesDisplay]:
+def _sensor_display(name: str, series: TimeSeries) -> SeriesDisplay | None:
     """``"{sc}.sensor.{sensor_name}[.accel|.gyro]"`` series -- the sensor
     NAME is user-chosen (``schema.scenario``'s sensor config), so unlike
     every other category here the series name alone can't say which
@@ -445,7 +444,7 @@ def _sensor_display(name: str, series: TimeSeries) -> Optional[SeriesDisplay]:
     return None
 
 
-def categorize(name: str, series: TimeSeries) -> Optional[SeriesDisplay]:
+def categorize(name: str, series: TimeSeries) -> SeriesDisplay | None:
     """Display metadata for every series ``engine.service``/
     ``engine.link_budget`` are known to produce -- ``None`` for anything
     else, which :func:`legacy_display` falls back on: raw series name as

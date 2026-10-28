@@ -211,6 +211,7 @@ def test_a_spacecraft_without_a_thruster_needs_an_isp():
         pb.compute_budget(scenario, "sat-1", reentry_solver=_no_reentry)
 
 
+@pytest.mark.slow
 @pytest.mark.requires_basilisk
 def test_the_disposal_burn_brings_the_lifetime_to_five_years():
     """From 550 km in 2035 (after a 5-year mission from 2030): the

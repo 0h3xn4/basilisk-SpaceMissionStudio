@@ -33,7 +33,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Tuple
 
 import numpy as np
 
@@ -50,7 +49,7 @@ class Polyhedron:
 
     vertices: np.ndarray  # (n, 3) [m]
     facets: np.ndarray  # (m, 3) int
-    _edges: Tuple[np.ndarray, ...] = field(default=(), init=False, repr=False)
+    _edges: tuple[np.ndarray, ...] = field(default=(), init=False, repr=False)
 
     @property
     def volume(self) -> float:
@@ -132,7 +131,7 @@ class Polyhedron:
         self._edges = (unique[:, 0], unique[:, 1], summed)
         return self._edges
 
-    def field(self, point: np.ndarray, mu: float) -> Tuple[float, np.ndarray]:
+    def field(self, point: np.ndarray, mu: float) -> tuple[float, np.ndarray]:
         """Potential [m^2/s^2] (positive, mu/r far away) and acceleration
         [m/s^2] at ``point`` [m] of the body with gravitational parameter
         ``mu`` [m^3/s^2] at constant density (Werner and Scheeres 1997,
@@ -140,7 +139,7 @@ class Polyhedron:
         potential, acceleration, _ = self._evaluate(point, mu, gradient=False)
         return potential, acceleration
 
-    def field_and_gradient(self, point: np.ndarray, mu: float) -> Tuple[np.ndarray, np.ndarray]:
+    def field_and_gradient(self, point: np.ndarray, mu: float) -> tuple[np.ndarray, np.ndarray]:
         """Acceleration [m/s^2] and its gradient d a / d r [1/s^2] (Werner
         and Scheeres 1997, eq. 17) at ``point`` [m]."""
         _, acceleration, gradient = self._evaluate(point, mu, gradient=True)

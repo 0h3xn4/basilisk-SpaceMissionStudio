@@ -29,6 +29,7 @@ drop-down and text area draws an edge distinct from its interior.
 from pathlib import Path
 
 import pytest
+import shiboken6
 
 pytestmark = pytest.mark.requires_gui
 
@@ -107,7 +108,9 @@ def _check(dialog, qtbot, qapp):
             checked += len(_input_widgets(dialog))
             bad += [f"[{area}] {item}" for item in _borderless(dialog)]
         for tabs in tab_widgets:
-            if not tabs.isVisible():
+            # isValid: the main window's hidden label form (prepare_labels)
+            # is deleted once read, possibly while the tabs are walked.
+            if not shiboken6.isValid(tabs) or not tabs.isVisible():
                 continue
             for index in range(tabs.count()):
                 tabs.setCurrentIndex(index)

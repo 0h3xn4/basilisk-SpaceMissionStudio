@@ -24,7 +24,6 @@ deorbit burn -- computed on a background thread (a few seconds)."""
 from __future__ import annotations
 
 from datetime import timedelta
-from typing import Optional
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QThread, Signal
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
@@ -190,7 +189,7 @@ class LifetimeWidget(QWidget):
         super().__init__(parent)
         self._scenario = None
         self._last_run = None  # (scenario, ResultSet) of the last completed run
-        self._worker: Optional[_LifetimeWorker] = None
+        self._worker: _LifetimeWorker | None = None
 
         layout = QVBoxLayout(self)
         form = QFormLayout()

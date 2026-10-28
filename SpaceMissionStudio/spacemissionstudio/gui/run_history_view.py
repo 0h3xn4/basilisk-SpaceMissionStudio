@@ -30,8 +30,7 @@ double-click shows the run in Results; Ctrl+C copies the selected rows.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from datetime import datetime, UTC
 
 from PySide6.QtCore import QAbstractTableModel, QModelIndex, QObject, QPoint, QSortFilterProxyModel, Qt, Signal
 from PySide6.QtGui import QColor, QGuiApplication, QKeySequence
@@ -59,35 +58,35 @@ class HistoryEntry:
 
     status: str  # a key of _STATUS
     scenario: str
-    number: Optional[int] = None  # "Run 3"; None for what the store does not keep
+    number: int | None = None  # "Run 3"; None for what the store does not keep
     mode: str = ""  # "Single", "SIL", "Monte Carlo"; "" when not recorded (a run of an earlier session)
     started_utc: str = ""  # ISO 8601 with Z; "" when not known
-    duration_s: Optional[float] = None  # [s]
+    duration_s: float | None = None  # [s]
     saved: str = ""  # "Saved", "Saving...", "This session only"
-    provenance: Optional[dict] = None
+    provenance: dict | None = None
     detail: str = ""  # a failed run's message, a batch's folder
     record: object = None  # its gui.run_history.RunRecord, when it is one
     order: float = 0.0  # [s] epoch seconds of its end: newest first
-    extra: Dict[str, str] = field(default_factory=dict)
+    extra: dict[str, str] = field(default_factory=dict)
 
 
-def utc_text(moment: Optional[datetime]) -> str:
+def utc_text(moment: datetime | None) -> str:
     """``moment`` as ISO 8601 UTC with Z, to the second ("" for None)."""
     if moment is None:
         return ""
-    return moment.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return moment.astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def parse_utc(text: str) -> Optional[datetime]:
+def parse_utc(text: str) -> datetime | None:
     """An ISO 8601 time (naive taken as UTC), or None."""
     try:
         moment = datetime.fromisoformat(str(text).replace("Z", "+00:00"))
     except (TypeError, ValueError):
         return None
-    return moment if moment.tzinfo is not None else moment.replace(tzinfo=timezone.utc)
+    return moment if moment.tzinfo is not None else moment.replace(tzinfo=UTC)
 
 
-def duration_text(seconds: Optional[float]) -> str:
+def duration_text(seconds: float | None) -> str:
     """ "4.2 s", "3 min 05 s", "1 h 02 min" ("" when not known)."""
     if seconds is None or seconds < 0:
         return ""
@@ -100,7 +99,7 @@ def duration_text(seconds: Optional[float]) -> str:
     return f"{hours} h {minutes:02d} min"
 
 
-def run_entry(record, saved: str, mode: str = "", seconds: Optional[float] = None) -> HistoryEntry:
+def run_entry(record, saved: str, mode: str = "", seconds: float | None = None) -> HistoryEntry:
     """The row of a kept run (``gui.run_history.RunRecord``). ``mode`` and
     ``seconds`` when this session knows them; else the duration is its end
     less its provenance's start."""
@@ -109,7 +108,7 @@ def run_entry(record, saved: str, mode: str = "", seconds: Optional[float] = Non
     if provenance is None and result is not None and getattr(result, "provenance", None) is not None:
         provenance = result.provenance.to_dict()
     started = parse_utc((provenance or {}).get("run_started_utc", ""))
-    finished = record.finished.astimezone(timezone.utc)  # naive: local time, as the run store writes it
+    finished = record.finished.astimezone(UTC)  # naive: local time, as the run store writes it
     if seconds is None and started is not None:
         seconds = (finished - started).total_seconds()
     return HistoryEntry(status="cancelled" if record.cancelled else "done",
@@ -118,7 +117,7 @@ def run_entry(record, saved: str, mode: str = "", seconds: Optional[float] = Non
                         record=record, order=finished.timestamp())
 
 
-def provenance_text(provenance: Optional[dict]) -> str:
+def provenance_text(provenance: dict | None) -> str:
     """The provenance, one "key: value" a line (data files by name)."""
     if not provenance:
         return "No provenance: this run did not record one."
@@ -136,19 +135,19 @@ def provenance_text(provenance: Optional[dict]) -> str:
 
 
 class HistoryModel(QAbstractTableModel):
-    def __init__(self, parent: Optional[QObject] = None) -> None:
+    def __init__(self, parent: QObject | None = None) -> None:
         super().__init__(parent)
-        self.entries: List[HistoryEntry] = []
+        self.entries: list[HistoryEntry] = []
 
-    def set_entries(self, entries: List[HistoryEntry]) -> None:
+    def set_entries(self, entries: list[HistoryEntry]) -> None:
         self.beginResetModel()
         self.entries = list(entries)
         self.endResetModel()
 
-    def rowCount(self, parent: Optional[QModelIndex] = None) -> int:  # noqa: N802 -- Qt API name
+    def rowCount(self, parent: QModelIndex | None = None) -> int:  # noqa: N802 -- Qt API name
         return 0 if parent is not None and parent.isValid() else len(self.entries)
 
-    def columnCount(self, parent: Optional[QModelIndex] = None) -> int:  # noqa: N802 -- Qt API name
+    def columnCount(self, parent: QModelIndex | None = None) -> int:  # noqa: N802 -- Qt API name
         return 0 if parent is not None and parent.isValid() else len(HISTORY_COLUMNS)
 
     def headerData(self, section, orientation, role=Qt.ItemDataRole.DisplayRole):  # noqa: N802 -- Qt API name
@@ -224,7 +223,7 @@ class ProvenancePopover(QFrame):
     """A run's provenance, in a popup beside the History (design: shadows
     only on floating elements)."""
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent, Qt.WindowType.Popup)
         set_role(self, role="card")  # a raised surface with its border
         layout = QVBoxLayout(self)
@@ -256,7 +255,7 @@ class RunHistoryView(QWidget):
     run_requested = Signal()
     show_requested = Signal(object)
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         row = QHBoxLayout()
@@ -307,18 +306,18 @@ class RunHistoryView(QWidget):
         self.popover = ProvenancePopover(self)
         self.set_entries([])
 
-    def set_entries(self, entries: List[HistoryEntry]) -> None:
+    def set_entries(self, entries: list[HistoryEntry]) -> None:
         self.model.set_entries(entries)
         self.table.setVisible(bool(entries))
         self.empty.setVisible(not entries)
         self.copy_button.setEnabled(bool(entries))
         self._on_selection()
 
-    def entries(self) -> List[HistoryEntry]:
+    def entries(self) -> list[HistoryEntry]:
         """The rows as shown, top to bottom."""
         return [self.proxy.index(row, 0).data(ENTRY_ROLE) for row in range(self.proxy.rowCount())]
 
-    def selected(self) -> Optional[HistoryEntry]:
+    def selected(self) -> HistoryEntry | None:
         rows = self.table.selectionModel().selectedRows()
         return rows[0].data(ENTRY_ROLE) if rows else None
 

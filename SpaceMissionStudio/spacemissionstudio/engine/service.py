@@ -69,9 +69,9 @@ import logging
 import math
 import os
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
-from typing import Callable, Dict, List, Optional
+from collections.abc import Callable
 
 import numpy as np
 
@@ -210,7 +210,7 @@ class SimulationCancelled(Exception):
         self.partial_result = partial_result
 
 
-def _unit_vector(values) -> List[float]:
+def _unit_vector(values) -> list[float]:
     """``values`` normalized (schema validation guarantees non-zero and finite)."""
     vector = np.asarray(values, dtype=float)
     return list(vector / np.linalg.norm(vector))
@@ -255,7 +255,7 @@ def _is_two_body_only(scenario: Scenario, sc_config) -> bool:
     return True
 
 
-def _orbit_ic_to_rv(mu: float, orbit: OrbitIC, epoch_utc: Optional[str] = None):
+def _orbit_ic_to_rv(mu: float, orbit: OrbitIC, epoch_utc: str | None = None):
     """(r_N, v_N) [m], [m/s] from a schema.OrbitIC, for any of its three
     forms. ``orbit.validate()`` is assumed to have already been called
     (Scenario.validate() does this) -- this function trusts the fields for
@@ -302,7 +302,7 @@ def _orbit_ic_to_rv(mu: float, orbit: OrbitIC, epoch_utc: Optional[str] = None):
 
 
 def _osculating_elements(mu: float, r_bn_n: np.ndarray, v_bn_n: np.ndarray,
-                         first_sample_index: int = 0) -> Dict[str, np.ndarray]:
+                         first_sample_index: int = 0) -> dict[str, np.ndarray]:
     """Osculating classical orbital elements (a [m], e [-], i/raan/argp/
     true_anomaly [rad]) at every recorded (r, v) sample, via
     ``orbitalMotion.rv2elem`` -- the exact inverse of ``_orbit_ic_to_rv``'s
@@ -367,7 +367,7 @@ def _osculating_elements(mu: float, r_bn_n: np.ndarray, v_bn_n: np.ndarray,
 _MEAN_ELEMENTS_MIN_INCLINATION_RAD = 1.0e-9  # [rad]
 
 
-def _mean_elements(oe: Dict[str, np.ndarray], req: float, j2: float) -> Dict[str, np.ndarray]:
+def _mean_elements(oe: dict[str, np.ndarray], req: float, j2: float) -> dict[str, np.ndarray]:
     """First-order J2 MEAN classical orbital elements, mapped pointwise
     from the already-computed OSCULATING elements (``_osculating_elements``
     above) via Basilisk's own ``orbitalMotion.clMeanOscMap`` (sign=-1:
@@ -437,7 +437,7 @@ def _mrp_to_quaternion(sigma: np.ndarray) -> np.ndarray:
     return np.hstack([(1.0 - s2) / (1.0 + s2), 2.0 * sigma / (1.0 + s2)])
 
 
-def _navigation_error_series(name: str, handle) -> List[TimeSeries]:
+def _navigation_error_series(name: str, handle) -> list[TimeSeries]:
     """What the flight software is told minus the truth, as magnitudes:
     ``<sc>.navigation_error.attitude`` [deg] (the rotation between the two
     attitudes), ``.rate`` [deg/s], ``.sun_heading`` [deg] (the angle between
@@ -473,45 +473,45 @@ class _SpacecraftHandle:
     sc_object: object
     recorder: object
     # Phase 2: all None/empty unless sc_config.fsw_mode/sensors were set.
-    nav_recorder: Optional[object] = None
+    nav_recorder: object | None = None
     # With navigation_error: the error-free simpleNav and its recorders, and the
     # navigated position/velocity (see SimulationService._build_truth_nav).
-    truth_nav: Optional[object] = None
-    truth_nav_recorder: Optional[object] = None
-    truth_trans_recorder: Optional[object] = None
-    nav_trans_recorder: Optional[object] = None
-    control_torque_recorder: Optional[object] = None
-    rw_speed_recorder: Optional[object] = None
-    rw_speed_out_msg: Optional[object] = None  # the wheels' own speed message, read for segmented runs
+    truth_nav: object | None = None
+    truth_nav_recorder: object | None = None
+    truth_trans_recorder: object | None = None
+    nav_trans_recorder: object | None = None
+    control_torque_recorder: object | None = None
+    rw_speed_recorder: object | None = None
+    rw_speed_out_msg: object | None = None  # the wheels' own speed message, read for segmented runs
     num_rw: int = 0
-    thruster_on_time_recorder: Optional[object] = None
+    thruster_on_time_recorder: object | None = None
     num_thrusters: int = 0
-    css_sun_estimate_recorder: Optional[object] = None
-    fuel_tank_recorder: Optional[object] = None
-    fuel_tank_effector: Optional[object] = None  # Phase 2: the fuelTank.FuelTank() itself, for engine.vizard's propellant panel
-    mtb_dipole_recorder: Optional[object] = None  # Phase 2: only set if sc_config.magnetic_momentum_management was configured
+    css_sun_estimate_recorder: object | None = None
+    fuel_tank_recorder: object | None = None
+    fuel_tank_effector: object | None = None  # Phase 2: the fuelTank.FuelTank() itself, for engine.vizard's propellant panel
+    mtb_dipole_recorder: object | None = None  # Phase 2: only set if sc_config.magnetic_momentum_management was configured
     num_mtb: int = 0
-    sensor_recorders: Dict[str, object] = field(default_factory=dict)  # sensor.name -> (kind, recorder)
+    sensor_recorders: dict[str, object] = field(default_factory=dict)  # sensor.name -> (kind, recorder)
     # Thermal simulation: actuator.name -> recorder, only for reaction_wheel
     # actuators whose own params set the motor_thermal_* group -- most
     # wheels have none, so this is usually empty.
-    rw_motor_thermal_recorders: Dict[str, object] = field(default_factory=dict)
+    rw_motor_thermal_recorders: dict[str, object] = field(default_factory=dict)
     # coarse sun sensor name -> recorder of its albedo (gravity.albedo)
-    albedo_recorders: Dict[str, object] = field(default_factory=dict)
-    albedo_msgs: Dict[str, object] = field(default_factory=dict)
-    battery_recorder: Optional[object] = None  # Phase 4: only set if sc_config.power was configured
-    battery_module: Optional[object] = None  # Phase 4: the simpleBattery.SimpleBattery itself, for engine.vizard
-    station_keeping_controller: Optional[object] = None  # Phase 4: only set if sc_config.station_keeping was configured
-    geo_station_keeping_controller: Optional[object] = None  # only set if sc_config.geo_station_keeping is
-    eclipse_out_msg: Optional[object] = None  # Phase 4: only set if power or station_keeping was configured
-    eclipse_recorder: Optional[object] = None  # set with eclipse_out_msg (the Events tab's eclipses)
-    phasing_keeping_controller: Optional[object] = None  # Phase 4: only set if sc_config.phasing_keeping was configured
-    roe_formation_controller: Optional[object] = None  # engine.roe_formation, if sc_config.roe_formation is set
-    optical_navigation: Optional[object] = None  # engine.optical_navigation chain, if sc_config.optical_navigation
-    landmark_navigation: Optional[object] = None  # engine.landmark_navigation chain, if sc_config.landmark_navigation
-    constant_thrust_controller: Optional[object] = None  # Phase 5: only set if sc_config.constant_thrust was configured
-    drag_effector: Optional[object] = None  # only set if sc_config.enable_drag
-    srp_effector: Optional[object] = None  # only set if sc_config.enable_srp
+    albedo_recorders: dict[str, object] = field(default_factory=dict)
+    albedo_msgs: dict[str, object] = field(default_factory=dict)
+    battery_recorder: object | None = None  # Phase 4: only set if sc_config.power was configured
+    battery_module: object | None = None  # Phase 4: the simpleBattery.SimpleBattery itself, for engine.vizard
+    station_keeping_controller: object | None = None  # Phase 4: only set if sc_config.station_keeping was configured
+    geo_station_keeping_controller: object | None = None  # only set if sc_config.geo_station_keeping is
+    eclipse_out_msg: object | None = None  # Phase 4: only set if power or station_keeping was configured
+    eclipse_recorder: object | None = None  # set with eclipse_out_msg (the Events tab's eclipses)
+    phasing_keeping_controller: object | None = None  # Phase 4: only set if sc_config.phasing_keeping was configured
+    roe_formation_controller: object | None = None  # engine.roe_formation, if sc_config.roe_formation is set
+    optical_navigation: object | None = None  # engine.optical_navigation chain, if sc_config.optical_navigation
+    landmark_navigation: object | None = None  # engine.landmark_navigation chain, if sc_config.landmark_navigation
+    constant_thrust_controller: object | None = None  # Phase 5: only set if sc_config.constant_thrust was configured
+    drag_effector: object | None = None  # only set if sc_config.enable_drag
+    srp_effector: object | None = None  # only set if sc_config.enable_srp
     # comms_pointing (schema.scenario.CommsPointingConfig): the two
     # guidance chains + power sink are built in the main per-spacecraft
     # loop, but the arbitrator itself (needs accessOutMsg, which doesn't
@@ -519,18 +519,18 @@ class _SpacecraftHandle:
     # is built in a deferred second pass, same reasoning as
     # phasing_keeping_controller above. These four are only ever read
     # back within build() itself, between those two passes.
-    comms_sun_guid_msg: Optional[object] = None
-    comms_station_guid_msg: Optional[object] = None
-    comms_nav: Optional[object] = None
-    comms_veh_config_msg: Optional[object] = None
-    comms_power_sink: Optional[object] = None  # the simplePowerSink.SimplePowerSink() itself, or None
-    comms_pointing_arbitrator: Optional[object] = None  # set once the deferred pass runs; owns tLog/modeLog/pointingErrorDegLog
+    comms_sun_guid_msg: object | None = None
+    comms_station_guid_msg: object | None = None
+    comms_nav: object | None = None
+    comms_veh_config_msg: object | None = None
+    comms_power_sink: object | None = None  # the simplePowerSink.SimplePowerSink() itself, or None
+    comms_pointing_arbitrator: object | None = None  # set once the deferred pass runs; owns tLog/modeLog/pointingErrorDegLog
     # engine.data_handling: the live link gate (rf_link with data_handling or
     # an antenna pattern) and the data chain (data_handling), both built in
     # a deferred pass once the access messages exist.
-    link_gate: Optional[object] = None
-    data_handling: Optional[object] = None  # data_handling.DataHandlingHandle
-    solar_arrays: Optional[object] = None  # solar_arrays.SolarArrayHandle, only with flexible arrays
+    link_gate: object | None = None
+    data_handling: object | None = None  # data_handling.DataHandlingHandle
+    solar_arrays: object | None = None  # solar_arrays.SolarArrayHandle, only with flexible arrays
 
 
 class SimulationService:
@@ -540,46 +540,46 @@ class SimulationService:
     ``SimBaseClass``, which is not designed to be reset and rebuilt).
     """
 
-    def __init__(self, scenario: Scenario, vizard_request: Optional[VizardRequest] = None,
-                 simulation_class: Optional[type] = None):
+    def __init__(self, scenario: Scenario, vizard_request: VizardRequest | None = None,
+                 simulation_class: type | None = None):
         self.scenario = scenario
         self.vizard_request = vizard_request
         # A SimBaseClass subclass to build with instead (sil.runner adds its
         # bridge right after the spacecraft's last flight-software module
         # this way); None: SimBaseClass itself.
         self._simulation_class = simulation_class
-        self.scSim: Optional[SimulationBaseClass.SimBaseClass] = None
-        self.mu: Optional[float] = None
+        self.scSim: SimulationBaseClass.SimBaseClass | None = None
+        self.mu: float | None = None
         # (spacecraft name, t [s]) once a spacecraft with drag re-entered;
         # the run stopped there rather than integrate it through the Earth
-        self.reentry: Optional[tuple] = None
+        self.reentry: tuple | None = None
         # (run start, end of the Earth orientation files' coverage) [naive
         # UTC] while ITRF93 is used: check_stop_time() keeps a run inside it
-        self._earth_orientation_span: Optional[tuple] = None
-        self._space_weather_warnings: List[str] = []  # what the resolved space weather is built from
-        self._model_warnings: List[str] = []  # environment models used outside their validity
-        self._data_files: Dict[str, Dict[str, object]] = {}  # reference data used, for RunProvenance
-        self._earth_orientation_notes: List[str] = []
-        self._geodetic_proxies: List = []
+        self._earth_orientation_span: tuple | None = None
+        self._space_weather_warnings: list[str] = []  # what the resolved space weather is built from
+        self._model_warnings: list[str] = []  # environment models used outside their validity
+        self._data_files: dict[str, dict[str, object]] = {}  # reference data used, for RunProvenance
+        self._earth_orientation_notes: list[str] = []
+        self._geodetic_proxies: list = []
         self.earth_frame = "IAU_EARTH"
-        self._run_started_utc: Optional[str] = None  # set by build() -- see RunProvenance
+        self._run_started_utc: str | None = None  # set by build() -- see RunProvenance
         # Set below, during gravity setup, only when a real J2 term is
         # actually being modeled for the central body -- see that
         # assignment's own comment and _mean_elements()'s docstring for
         # why mean-element series are skipped entirely otherwise (None
         # here means "don't compute/publish .orbit_elements_mean.* for
         # this run").
-        self.mean_elements_req: Optional[float] = None
-        self.mean_elements_j2: Optional[float] = None
-        self._handles: Dict[str, _SpacecraftHandle] = {}
+        self.mean_elements_req: float | None = None
+        self.mean_elements_j2: float | None = None
+        self._handles: dict[str, _SpacecraftHandle] = {}
         # Per-spacecraft (sample count, osculating elements, mean elements)
         # already computed -- see _orbit_elements.
-        self._element_cache: Dict[str, tuple] = {}
+        self._element_cache: dict[str, tuple] = {}
         # thrMomentumManagement modules (one per spacecraft with
         # momentum_dumping configured) that build() must re-Reset() after
         # priming one real dynamics tick -- see build()'s own comment and
         # engine.fsw.build_momentum_dumping's docstring for why.
-        self._desat_controls: List = []
+        self._desat_controls: list = []
         # Real, reproduced-against-a-real-build requirement: CSSConstellation
         # does not own the CoarseSunSensor Python objects assigned to its
         # sensorList, only a reference -- if nothing keeps them alive past
@@ -587,7 +587,7 @@ class SimulationService:
         # dangling reference (see engine.fsw.build_css_sun_estimation's own
         # docstring). Same lifetime-retention pattern as Vizard's
         # access_indicator_bridges/generic_storage_list/generic_sensor_list.
-        self._css_estimation_devices: List = []
+        self._css_estimation_devices: list = []
         self._sun_state_out_msg = None
         # (spacecraft, [(sensorThermal module, raw inputs)]): the sensors'
         # solar flux is set in initialize(), once the Sun's distance is known
@@ -597,11 +597,11 @@ class SimulationService:
         self.small_body_shape = None
         self._central_body_recorder = None
         self._shadow_copy = None
-        self._ground_locations: Dict[str, object] = {}
+        self._ground_locations: dict[str, object] = {}
         self._mag_field_model = None
-        self._access_recorders: Dict[tuple, object] = {}  # (ground_station_name, spacecraft_name) -> recorder
-        self._ground_station_latitudes: Dict[str, tuple] = {}  # name -> (geocentric, geodetic) [rad]
-        self._access_out_msgs: Dict[tuple, object] = {}  # (ground_station_name, spacecraft_name) -> accessOutMsg, for engine.vizard
+        self._access_recorders: dict[tuple, object] = {}  # (ground_station_name, spacecraft_name) -> recorder
+        self._ground_station_latitudes: dict[str, tuple] = {}  # name -> (geocentric, geodetic) [rad]
+        self._access_out_msgs: dict[tuple, object] = {}  # (ground_station_name, spacecraft_name) -> accessOutMsg, for engine.vizard
         self._eclipse_object = None  # Phase 4: only built if some spacecraft has power or station_keeping configured
         self._record_eclipses = False  # built anyway when the Sun is tracked: every spacecraft's eclipses are recorded
         # Phase 4: retains the vizInterface module enable_vizard() returns,
@@ -626,7 +626,7 @@ class SimulationService:
         self._viz_generic_sensor_list = None
 
     @property
-    def spacecraft_handles(self) -> Dict[str, "_SpacecraftHandle"]:
+    def spacecraft_handles(self) -> dict[str, _SpacecraftHandle]:
         """Read-only view of this run's per-spacecraft handles (``sc_object``,
         recorders, ...), keyed by spacecraft name. Only populated after
         :meth:`build`. ``engine.monte_carlo`` uses this to attach dispersion
@@ -636,7 +636,7 @@ class SimulationService:
         """
         return dict(self._handles)
 
-    def _vizard_models_from_3d_models(self, scenario: Scenario) -> Dict[str, dict]:
+    def _vizard_models_from_3d_models(self, scenario: Scenario) -> dict[str, dict]:
         """``.obj`` files written from each spacecraft's 3D model, for
         Vizard, where ``use_for_vizard`` is on and no ``vizard_model_path``
         is set. Next to a Vizard save file (it needs them when it plays the
@@ -696,7 +696,7 @@ class SimulationService:
         # immediately before ExecuteSimulation() in every call path --
         # run()/run_live()/MissionEngine.run() -- see RunProvenance's own
         # docstring for why this matters).
-        self._run_started_utc = datetime.now(timezone.utc).isoformat()
+        self._run_started_utc = datetime.now(UTC).isoformat()
         self._dependency_versions = dependencies.dependency_versions()
         self._scenario_sha256 = output_provenance.scenario_sha256(self.scenario)
         version_note = dependencies.basilisk_check(Basilisk.__version__)
@@ -821,7 +821,7 @@ class SimulationService:
         if "earth" in body_names:
             start_utc = parse_epoch_utc(scenario.epoch_utc)
             if start_utc.tzinfo is not None:
-                start_utc = start_utc.astimezone(timezone.utc).replace(tzinfo=None)
+                start_utc = start_utc.astimezone(UTC).replace(tzinfo=None)
             end_utc = start_utc + timedelta(days=sim_settings.duration_days)
             installed_eop = earth_orientation.installed()
             # Only files that cover the whole run: outside every loaded
@@ -896,7 +896,7 @@ class SimulationService:
         # fsw.build_ephemeris_converter() for direct celestial-body
         # pointing. Scenario.validate() already guarantees target_body is
         # one of body_names whenever it's set.
-        self._planet_state_out_msgs: Dict[str, object] = {
+        self._planet_state_out_msgs: dict[str, object] = {
             name: self.spice_object.planetStateOutMsgs[idx] for idx, name in enumerate(body_names)
         }
 
@@ -1081,9 +1081,9 @@ class SimulationService:
                     f"unknown space_weather.atmosphere_model {scenario.space_weather.atmosphere_model!r}"
                 )
 
-        sc_objects_in_order: List = []
-        rw_effectors_in_order: List = []
-        thr_effectors_in_order: List = []
+        sc_objects_in_order: list = []
+        rw_effectors_in_order: list = []
+        thr_effectors_in_order: list = []
         eclipse_index = 0  # only incremented for spacecraft added to the eclipse model (all of them when the Sun is tracked)
         drag_index = 0  # only incremented for spacecraft that actually have enable_drag
 
@@ -2001,8 +2001,8 @@ class SimulationService:
         return self._extract_results()
 
     def run_live(self, on_progress: Callable[[ResultSet, float], None],
-                 live_step_s: Optional[float] = None,
-                 should_cancel: Optional[Callable[[], bool]] = None) -> ResultSet:
+                 live_step_s: float | None = None,
+                 should_cancel: Callable[[], bool] | None = None) -> ResultSet:
         """Same as :meth:`run`, except the simulation is executed in small
         time chunks and ``on_progress(partial_result, fraction_complete)``
         is called after each one, so a caller (SpaceMissionStudio's GUI) can

@@ -41,7 +41,6 @@ import logging.handlers
 import multiprocessing
 import queue
 from pathlib import Path
-from typing import List
 
 _logger = logging.getLogger(__name__)
 
@@ -91,8 +90,8 @@ def _child(scenario, mc_config, archive_dir: str, allow_scripts: bool, overwrite
         result_queue.put(("ok", [int(index) for index in failures]))
 
 
-def run_batch(scenario, mc_config, archive_dir: "str | Path", allow_scripts: bool = False,
-              overwrite: bool = False) -> List[int]:
+def run_batch(scenario, mc_config, archive_dir: str | Path, allow_scripts: bool = False,
+              overwrite: bool = False) -> list[int]:
     """:func:`engine.monte_carlo.run_monte_carlo` in a child process: the
     indices of the failed runs. Raises ``MonteCarloError`` with the batch's
     own message, or :class:`BatchProcessError`. Blocks until the batch ends,

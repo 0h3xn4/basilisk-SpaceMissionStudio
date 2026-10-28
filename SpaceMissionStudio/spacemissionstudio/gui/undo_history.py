@@ -27,7 +27,6 @@ text. Loading or starting a scenario starts a new history.
 from __future__ import annotations
 
 import copy
-from typing import List, Optional
 
 MAX_STEPS = 100  # undo steps kept
 
@@ -36,11 +35,11 @@ class ScenarioHistory:
     """A linear undo history of scenario snapshots."""
 
     def __init__(self, max_steps: int = MAX_STEPS):
-        self._states: List[dict] = []
+        self._states: list[dict] = []
         self._index = -1
         self._max_steps = max_steps
 
-    def reset(self, state: Optional[dict]) -> None:
+    def reset(self, state: dict | None) -> None:
         """Start again from ``state`` (or from nothing)."""
         self._states = [copy.deepcopy(state)] if state is not None else []
         self._index = len(self._states) - 1
@@ -71,13 +70,13 @@ class ScenarioHistory:
     def can_redo(self) -> bool:
         return self._index < len(self._states) - 1
 
-    def undo(self) -> Optional[dict]:
+    def undo(self) -> dict | None:
         if not self.can_undo():
             return None
         self._index -= 1
         return copy.deepcopy(self._states[self._index])
 
-    def redo(self) -> Optional[dict]:
+    def redo(self) -> dict | None:
         if not self.can_redo():
             return None
         self._index += 1

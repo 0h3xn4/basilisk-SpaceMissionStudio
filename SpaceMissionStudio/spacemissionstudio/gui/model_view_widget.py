@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 import plotly.graph_objects as go
@@ -56,7 +55,7 @@ def _rgb(color) -> str:
     return f"rgb({r},{g},{b})"
 
 
-def model_figure(derived, selected: Optional[str] = None) -> go.Figure:
+def model_figure(derived, selected: str | None = None) -> go.Figure:
     """The figure for a :class:`~spacemissionstudio.model3d.model.DerivedModel`:
     one ``Mesh3d`` per visible part (named after it), the body axes at B and
     the center of mass. With a part ``selected``, the others are faded."""
@@ -97,22 +96,22 @@ def model_figure(derived, selected: Optional[str] = None) -> go.Figure:
 class ModelViewWidget(QWidget):
     """A ``QWebEngineView`` showing :func:`model_figure`; call :meth:`show_model`."""
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.web_view = QWebEngineView()
         layout.addWidget(self.web_view)
         self._ready = False
-        self._pending: Optional[str] = None
-        self.figure: Optional[go.Figure] = None
+        self._pending: str | None = None
+        self.figure: go.Figure | None = None
         self._page_dir = tempfile.TemporaryDirectory(prefix="spacemissionstudio_model_view_")
         page = Path(self._page_dir.name) / "model.html"
         page.write_text(self._page_html(), encoding="utf-8")
         self.web_view.loadFinished.connect(self._on_loaded)
         self.web_view.load(QUrl.fromLocalFile(str(page)))
         self._derived = None
-        self._selected: Optional[str] = None
+        self._selected: str | None = None
         on_change(self._on_theme_changed)
 
     @staticmethod
@@ -131,7 +130,7 @@ class ModelViewWidget(QWidget):
             self.web_view.page().runJavaScript(self._pending)
             self._pending = None
 
-    def show_model(self, derived, selected: Optional[str] = None) -> None:
+    def show_model(self, derived, selected: str | None = None) -> None:
         """Draw ``derived`` (a DerivedModel), fading all but ``selected``."""
         self._derived, self._selected = derived, selected
         self.figure = model_figure(derived, selected)

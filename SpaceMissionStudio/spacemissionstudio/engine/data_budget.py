@@ -23,7 +23,6 @@ from its series: Basilisk-free, for the CLI and any other summary."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
 from .results import ResultSet
 
@@ -40,7 +39,7 @@ class DataBudget:
     capacity_full: bool  # the memory was full at some point
 
 
-def budgets(result: ResultSet) -> List[DataBudget]:
+def budgets(result: ResultSet) -> list[DataBudget]:
     """The data totals of every spacecraft that has data handling."""
     found = []
     for name in sorted(result.series):
@@ -55,7 +54,7 @@ def budgets(result: ResultSet) -> List[DataBudget]:
     return found
 
 
-def summary_lines(result: ResultSet) -> List[str]:
+def summary_lines(result: ResultSet) -> list[str]:
     """One line per spacecraft: generated, downlinked, lost, left on board."""
     return [f"{b.spacecraft}: generated {b.generated / 1e9:.4g} Gbit, downlinked {b.downlinked / 1e9:.4g}, "
             f"lost to a full memory {b.lost / 1e9:.4g}, on board at the end {b.stored_end / 1e9:.4g}"

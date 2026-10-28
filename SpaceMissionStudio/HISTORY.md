@@ -13435,3 +13435,97 @@ profile could be released before a web view's page.
 widget left over when the session finishes, while the application and
 its profile still exist. `test_results_widget.py` alone: exit 0 three
 runs in three. Logged in `docs/ui/TEST_CHANGES.md`.
+
+## Python 3.14 only (2026-10-27)
+
+The user: "Drop support for every Python version older than 3.14." Phase
+1 was an audit (no edits); the user chose SpaceMissionStudio only, after
+the open PRs merged, released as 2.0.0. Branch `python-3.14-only`.
+
+**Found:** `requires-python = ">=3.11"`, ruff `py311`, every
+SpaceMissionStudio workflow on 3.11, the installers' bundled CPython
+3.11.17, one pre-3.12 branch in a test helper (`tokenize.FSTRING_MIDDLE`),
+no `sys.version_info` checks and no backport packages. Every pinned
+dependency installs on 3.14 (Basilisk and PySide6 as abi3 wheels); sgp4
+only as pure Python. The full suite on 3.14.6, before any change: 3852
+passed, 11 skipped, 638 s.
+
+**Changed:** `requires-python = ">=3.14"` with classifiers; ruff
+`py314`; the four workflows on 3.14; the bundled CPython 3.14.8 with its
+published digests; the `tokenize` branch removed; ruff's upgrade rules
+applied (1717 fixes, then the imports they left unused); the user docs
+and the requirement and plan documents say 3.14.
+
+## Python 3.14 only: the test cleanup (2026-10-27)
+
+The user's Phases 3 and 4 ("Test cleanup proposal (STOP for approval)",
+then "Verify"), approved "As per your recommendation". Details per test in
+`docs/ui/TEST_CHANGES.md`.
+
+**Deleted, 12 tests**, each repeating another exactly (the same call and
+assertion, or one case of a parametrized test). The audit's coverage data
+named 16 candidates; four stayed: one is the only check that an empty
+`.app` is not refused, the others were rewritten, not deleted.
+
+**Tests that never ran now run.** Eleven tests skipped on every machine
+with Basilisk, so in CI always:
+
+* ten checks of what happens without Basilisk run with Basilisk hidden
+  (`basilisk_unavailable` in `tests/conftest.py`: the Basilisk modules
+  are None in `sys.modules` and the imported engine modules are taken
+  out for the test). Running them found one stale: the main window's Run
+  test waited for a message box that U-39 replaced with the run's problem
+  report;
+* the month-name test needed a German locale, which no CI runner had. CI
+  generates it; with the old `strftime("%b")` the test fails ("MÄR").
+
+**A test that could not fail**, the fuel-tank panel label check (two
+string literals), now builds both panels on one spacecraft.
+
+**`slow`** marks the ten tests of about a minute or more; CI runs them.
+
+**Measured on Python 3.14.6, four workers:** before, 3882 tests, 3871
+passed and 11 skipped in 643 s; after, 3870 tests, all passed, none
+skipped, in 609 s; `-m "not slow"`, 3860 in 315 s. No type checker is
+configured; adding one is a separate change (it would start with many
+findings in code that predates it).
+
+## The restyle crash on Python 3.14 (2026-10-27)
+
+Found while verifying the Python 3.14 branch (the user's Phase 4: "run
+the full suite ... on 3.14 and fix breakage"). After develop was merged
+in, one full run in five crashed a worker "while running
+`test_label_text.py::test_help_text_is_short_and_plain[spacecraft-07]`".
+That case is the first of its file, so it runs right after
+`test_keyboard_walk.py`; the two together crashed eight runs in eight,
+with and without xdist, and faulthandler named the line:
+`apply_theme`'s `app.setStyleSheet(sheet)`, called by the label test's
+fixture.
+
+**Cause:** pytest-qt closes a test's widgets and calls `deleteLater()`,
+then only processes events, which does not run deferred deletes. The
+keyboard walk's main window, its web views included, was still alive
+(closed) when the next test restyled every widget in the application,
+and restyling its web views crashed. On Python 3.13, with the same
+PySide6 and pytest-qt, it did not crash.
+
+**Change (tests only):** an autouse fixture in `tests/gui/conftest.py`
+runs the deferred deletes after each GUI test, once pytest-qt has closed
+its widgets. The pair: five runs in five pass. #129's end-of-session hook
+stays for widgets no test registered.
+
+**A second order dependence, found the same way.** With the deletes
+flushed the GUI tests ran faster (`test_label_text.py` 10 s, was 37 s)
+and landed on other workers, and the label test's main-window case
+failed two full runs in two with "Internal C++ object (TabWidget)
+already deleted". Replaying the worker's 92 tests in order reproduced
+it, and halving them found the pair: it fails after
+`test_keyboard_cursor.py::test_alt_backspace_clears_the_time_cursor_in_the_window`,
+on `develop` with Python 3.13 too. The deleted tab widget was the main
+window's hidden label form (`spacecraft_editor.prepare_labels`, built a
+section per event-loop turn and deleted once read; built only while the
+process has no titles cached, which is why it depends on the test before).
+The walk collected it with the dialog's tab widgets and met it deleted.
+The two walks (`test_label_text.py`, `test_input_borders.py`) skip a tab
+widget deleted meanwhile; the form is hidden, so none of its labels or
+inputs was ever checked.

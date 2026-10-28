@@ -68,8 +68,7 @@ adding cancellation machinery for a rare case.
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timezone
-from typing import Optional
+from datetime import datetime, UTC
 
 from PySide6.QtCore import QEventLoop, Qt, QThread, Signal
 from PySide6.QtWidgets import (
@@ -101,7 +100,7 @@ class StartupFetchWorker(QThread):
 
     finished_all = Signal(dict)  # {"kernels": (ok, message), "space_weather": (ok, message)}
 
-    def __init__(self, fetch_kernels: bool, fetch_space_weather: bool, parent: Optional[QWidget] = None,
+    def __init__(self, fetch_kernels: bool, fetch_space_weather: bool, parent: QWidget | None = None,
                  fetch_earth_orientation: bool = False):
         super().__init__(parent)
         self.fetch_kernels = fetch_kernels
@@ -133,7 +132,7 @@ class StartupFetchWorker(QThread):
         self.finished_all.emit(result)
 
     @staticmethod
-    def _fetch_kernels() -> "tuple[bool, str]":
+    def _fetch_kernels() -> tuple[bool, str]:
         try:
             from ..engine import kernels
         except ImportError as exc:
@@ -152,7 +151,7 @@ class StartupFetchWorker(QThread):
         return False, f"{ok_count}/{len(statuses)} support-data file(s) available -- failed: {failed}"
 
     @staticmethod
-    def _fetch_earth_orientation() -> "tuple[bool, str]":
+    def _fetch_earth_orientation() -> tuple[bool, str]:
         from ..engine import earth_orientation as eo
         try:
             kernels = eo.fetch()
@@ -163,7 +162,7 @@ class StartupFetchWorker(QThread):
                       else f"{len(kernels)} file(s), ITRF93")
 
     @staticmethod
-    def _fetch_space_weather() -> "tuple[bool, str]":
+    def _fetch_space_weather() -> tuple[bool, str]:
         from ..engine import spaceweather as sw
         try:
             path = sw.fetch(dataset="SW-All", force=True)
@@ -172,7 +171,7 @@ class StartupFetchWorker(QThread):
         return True, str(path)
 
 
-def choice_boxes() -> "tuple[QCheckBox, QCheckBox, QCheckBox]":
+def choice_boxes() -> tuple[QCheckBox, QCheckBox, QCheckBox]:
     """The three things to fetch, as check boxes: support data, space
     weather and Earth orientation. The dialog and Home's reference-data
     card (:class:`ReferenceDataCard`) both ask with these, so they offer
@@ -203,7 +202,7 @@ def choice_boxes() -> "tuple[QCheckBox, QCheckBox, QCheckBox]":
     until = eo.high_accuracy_until(installed)
     earth_orientation = QCheckBox("Earth orientation from NAIF (ITRF93 Earth PCKs) -- about 36 MB")
     # Checked when nothing is installed or the high-accuracy span is over.
-    earth_orientation.setChecked(not installed or until is None or until < datetime.now(timezone.utc).replace(tzinfo=None))
+    earth_orientation.setChecked(not installed or until is None or until < datetime.now(UTC).replace(tzinfo=None))
     earth_orientation.setToolTip(
         f"From {eo.NAIF_PCK_URL}: the combined (1962-2126) and the high-precision Earth PCK with their "
         "comment files. The previous files are kept for rollback.\n"
@@ -219,7 +218,7 @@ class StartupFetchDialog(QDialog):
     auto-accepts -- the user must click one or the other.
     """
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle("Fetch/update data?")
         layout = QVBoxLayout(self)
@@ -247,7 +246,7 @@ class StartupFetchDialog(QDialog):
     def selected_earth_orientation(self) -> bool:
         return self.earth_orientation_checkbox.isChecked()
 
-    def selected(self) -> "tuple[bool, bool]":
+    def selected(self) -> tuple[bool, bool]:
         """``(fetch_kernels, fetch_space_weather)``."""
         return self.kernels_checkbox.isChecked(), self.space_weather_checkbox.isChecked()
 
@@ -305,7 +304,7 @@ def maybe_run_startup_fetch(parent: QWidget) -> None:
         report(parent, *result)
 
 
-def summary(outcome: dict) -> "Optional[tuple[str, str]]":
+def summary(outcome: dict) -> tuple[str, str] | None:
     """One line per item fetched, and the toast's kind: ``(text, kind)``,
     or None when nothing was fetched."""
     lines = []
@@ -345,11 +344,11 @@ class ReferenceDataCard(QFrame):
 
     finished = Signal()  # the card is done: fetched or dismissed
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         set_role(self, role="card")
         self.setObjectName("referenceDataCard")
-        self._worker: Optional[StartupFetchWorker] = None
+        self._worker: StartupFetchWorker | None = None
         self._layout = QVBoxLayout(self)
         self._layout.setContentsMargins(SPACE["md"], SPACE["md"], SPACE["md"], SPACE["md"])
         self._layout.setSpacing(SPACE["sm"])
@@ -396,7 +395,7 @@ class ReferenceDataCard(QFrame):
         self._show_running(False)
         self.setVisible(True)
 
-    def selected(self) -> "tuple[bool, bool, bool]":
+    def selected(self) -> tuple[bool, bool, bool]:
         """``(support data, space weather, Earth orientation)``."""
         return tuple(checkbox.isChecked() for checkbox in self.checkboxes)
 

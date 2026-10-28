@@ -33,7 +33,6 @@ passes.
 
 from __future__ import annotations
 
-from typing import Dict, List, Optional
 
 from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtWidgets import QLineEdit, QTreeWidget, QTreeWidgetItem, QVBoxLayout, QWidget
@@ -50,7 +49,7 @@ class PlotCatalog(QWidget):
     activated = Signal(str)  # a plot's name was clicked: show it in the selected cell
     toggled = Signal(str, bool)  # a plot's tick changed (by the user)
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -71,20 +70,20 @@ class PlotCatalog(QWidget):
         self.tree.itemActivated.connect(self._on_item_activated)
         self.tree.itemClicked.connect(self._on_item_clicked)
         layout.addWidget(self.tree, 1)
-        self._items: Dict[str, QTreeWidgetItem] = {}
+        self._items: dict[str, QTreeWidgetItem] = {}
         self._filling = False
-        self._just_toggled: Optional[QTreeWidgetItem] = None  # the tick box this click changed
+        self._just_toggled: QTreeWidgetItem | None = None  # the tick box this click changed
 
     # -- contents ----------------------------------------------------------
 
-    def set_entries(self, entries: List[tuple], shown: List[str]) -> None:
+    def set_entries(self, entries: list[tuple], shown: list[str]) -> None:
         """``entries``: ``(name, label, group)`` in the order to list them
         within a group; ``shown``: the names ticked."""
         self._filling = True
         try:
             self.tree.clear()
             self._items = {}
-            groups: Dict[str, QTreeWidgetItem] = {}
+            groups: dict[str, QTreeWidgetItem] = {}
             order = {group: index for index, group in enumerate(PLOT_GROUPS)}
             for name, label, group in sorted(entries, key=lambda entry: order.get(entry[2], len(order))):
                 parent = groups.get(group)
@@ -108,7 +107,7 @@ class PlotCatalog(QWidget):
             self._filling = False
         self._filter(self.search.text())
 
-    def names(self) -> List[str]:
+    def names(self) -> list[str]:
         """Every entry's name, in catalog order."""
         return list(self._items)
 
@@ -116,7 +115,7 @@ class PlotCatalog(QWidget):
         item = self._items.get(name)
         return item.text(0) if item is not None else name
 
-    def set_shown(self, shown: List[str]) -> None:
+    def set_shown(self, shown: list[str]) -> None:
         """Tick exactly ``shown`` (no :attr:`toggled` signals)."""
         self._filling = True
         try:
@@ -154,7 +153,7 @@ class PlotCatalog(QWidget):
         if visible:
             self.activated.emit((exact or visible)[0])
 
-    def visible_names(self) -> List[str]:
+    def visible_names(self) -> list[str]:
         """The entries the search leaves shown."""
         return [name for name, item in self._items.items() if not item.isHidden() and not item.parent().isHidden()]
 

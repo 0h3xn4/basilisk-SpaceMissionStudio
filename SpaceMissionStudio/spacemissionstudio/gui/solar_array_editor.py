@@ -22,7 +22,6 @@
 
 from __future__ import annotations
 
-from typing import List
 
 from PySide6.QtWidgets import QWidget
 
@@ -57,7 +56,7 @@ class SolarArrayTableWidget(_TableEditor):
             "frequency with the spacecraft held fixed, from the array's structural analysis. Mass is part of "
             "the dry mass; the inertia above is the body's without the arrays.")
 
-    def from_list(self, arrays: List[SolarArrayConfig]) -> None:
+    def from_list(self, arrays: list[SolarArrayConfig]) -> None:
         self.table.setRowCount(0)
         for array in arrays:
             texts = []
@@ -73,7 +72,7 @@ class SolarArrayTableWidget(_TableEditor):
                     texts.append(value)
             self._append_row(texts)
 
-    def to_list(self) -> List[SolarArrayConfig]:
+    def to_list(self) -> list[SolarArrayConfig]:
         """Raises ValueError naming the cell when a value doesn't parse."""
         arrays = []
         for row in range(self.table.rowCount()):

@@ -82,7 +82,7 @@ which also lists every data file with its SHA-256.
 
 | Component | Version | Licence | Source |
 |---|---|---|---|
-| CPython | 3.11.17 | PSF-2.0 (text: `lib/python3.11/LICENSE.txt`, `Lib\LICENSE.txt` on Windows) | python-build-standalone 20261013, `install_only_stripped`, SHA-256 pinned in `bundle_python.py` |
+| CPython | 3.14.8 | PSF-2.0 (text: `lib/python3.14/LICENSE.txt`, `Lib\LICENSE.txt` on Windows) | python-build-standalone 20261013, `install_only_stripped`, SHA-256 pinned in `bundle_python.py` |
 | Libraries CPython is built with (OpenSSL, SQLite, libffi, XZ, zlib, ...) | as in that build | as documented by python-build-standalone ("Licensing" in its `docs/running.rst`): it builds against libedit, not readline, and leaves out `_gdbm`, so no GPL library is linked | same archive |
 | Basilisk (`bsk`, `bsk-opnav`) | 2.12.0 | ISC | PyPI wheel |
 | PySide6, PySide6-Essentials, PySide6-Addons, shiboken6 (Qt 6.11.2) | 6.11.2 | LGPL-3.0-only (offered also under GPL-2.0/3.0) | PyPI wheels, unmodified; Qt stays in separate shared libraries in `site-packages/PySide6`, which a user can replace |

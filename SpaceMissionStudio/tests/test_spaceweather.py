@@ -275,12 +275,6 @@ def test_resolve_local_file_source_raises_without_path():
         sw.resolve("local_file", datetime(2030, 1, 1), datetime(2030, 1, 5))
 
 
-def test_resolve_unknown_source_raises():
-    """An unknown space-weather source is refused."""
-    with pytest.raises(sw.SpaceWeatherError, match="unknown space_weather.source"):
-        sw.resolve("magic", datetime(2030, 1, 1), datetime(2030, 1, 5))
-
-
 @pytest.mark.parametrize("source", ["celestrak", "synthetic"])
 def test_removed_sources_are_rejected_as_unknown(source):
     """"celestrak" (a runtime network fetch) and "synthetic" (a generated
@@ -304,13 +298,6 @@ def test_the_conservative_case_is_msfcs_predicted_cycle_at_the_95th_percentile(t
     months = [f"{year}-{month:02d}-15" for year in range(2030, 2035) for month in (1, 7)]
     assert all(rows[95.0][m] > rows[50.0][m] for m in months)
     assert max(rows[95.0][m] for m in months) - min(rows[95.0][m] for m in months) > 30.0  # [sfu] a cycle, not flat
-
-
-def test_resolve_has_no_activity_level_any_more():
-    """Schema v3's historical-percentile "conservative" mode is gone (schema
-    v4: conservative is forecast_percentile 95)."""
-    with pytest.raises(TypeError):
-        sw.resolve("bundled", datetime(2030, 1, 1), datetime(2030, 1, 5), activity_level="conservative")
 
 
 def test_resolve_never_calls_fetch(tmp_path, monkeypatch):

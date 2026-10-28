@@ -144,7 +144,6 @@ from __future__ import annotations
 
 import math
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -191,7 +190,7 @@ from ..schema.scenario import SUPPORTED_FSW_MODES, GroundStationConfig, RFLinkCo
 from . import environment_models, geodesy, link_budget
 from .orbit_maintenance import LogThinner
 
-DEFAULT_MRP_GAINS: Dict[str, float] = {"K": 3.5, "P": 30.0}
+DEFAULT_MRP_GAINS: dict[str, float] = {"K": 3.5, "P": 30.0}
 
 # DEFAULT_MRP_GAINS is lifted directly from Basilisk's own examples/BskSim
 # reference (BSK_Fsw.py's mrpFeedbackRWs), tuned for THAT example's
@@ -206,7 +205,7 @@ DEFAULT_MRP_GAINS: Dict[str, float] = {"K": 3.5, "P": 30.0}
 _MRP_GAIN_REFERENCE_INERTIA_KG_M2 = 900.0
 
 
-def _default_mrp_gains_for_inertia(inertia_kg_m2: Optional[List[float]]) -> Dict[str, float]:
+def _default_mrp_gains_for_inertia(inertia_kg_m2: list[float] | None) -> dict[str, float]:
     """``DEFAULT_MRP_GAINS`` scaled by a spacecraft's own (isotropic-
     equivalent) inertia relative to the 900 kg*m^2 reference it was tuned
     for -- confirmed in HISTORY.md to converge cleanly where the unscaled
@@ -323,8 +322,8 @@ def _wrap_with_att_tracking_error(scSim, task_name: str, tag: str, att_ref_out_m
     return err.attGuidOutMsg
 
 
-def build_albedo(scSim, task_name: str, tag: str, sc_object, css_sensor_configs: List, sun_state_out_msg,
-                 planet_state_msg, map_path: str) -> Dict[str, object]:
+def build_albedo(scSim, task_name: str, tag: str, sc_object, css_sensor_configs: list, sun_state_out_msg,
+                 planet_state_msg, map_path: str) -> dict[str, object]:
     """Basilisk's ``albedo`` module for one spacecraft: the sunlight the
     planet reflects onto each coarse sun sensor, from the planet's
     measured albedo map (``map_path``, a ``DataFile.AlbedoData`` file),
@@ -352,7 +351,7 @@ def build_albedo(scSim, task_name: str, tag: str, sc_object, css_sensor_configs:
     return out_msgs
 
 
-def build_css_sun_estimation(scSim, task_name: str, tag: str, sc_object, css_sensor_configs: List,
+def build_css_sun_estimation(scSim, task_name: str, tag: str, sc_object, css_sensor_configs: list,
                               sun_state_out_msg, sun_eclipse_in_msg=None, albedo_msgs=None):
     """Real sun-heading ESTIMATION (not truth) from a spacecraft's own
     ``coarse_sun_sensor`` hardware: a dedicated ``CSSConstellation`` (one
@@ -465,7 +464,7 @@ def build_ephemeris_converter(scSim, task_name: str, tag: str, body_name: str, p
 
 
 def build_guidance(scSim, task_name: str, tag: str, fsw_mode: str, fsw_params: dict, nav, mu: float,
-                    ground_locations: Dict[str, object], sun_direction_override_msg=None,
+                    ground_locations: dict[str, object], sun_direction_override_msg=None,
                     target_body_eph_msg=None):
     """Builds the guidance mode named by ``fsw_mode`` (one of
     :data:`schema.scenario.SUPPORTED_FSW_MODES`) and returns its
@@ -595,8 +594,8 @@ class _CommsPointingArbitrator(sysModel.SysModel):
     """
 
     def __init__(self, name: str, comms_power_w: float,
-                 rf_link: Optional[RFLinkConfig] = None,
-                 ground_station_config: Optional[GroundStationConfig] = None):
+                 rf_link: RFLinkConfig | None = None,
+                 ground_station_config: GroundStationConfig | None = None):
         super().__init__()
         self.ModelTag = name
 
@@ -707,8 +706,8 @@ class _CommsPointingArbitrator(sysModel.SysModel):
 
 
 def build_comms_pointing(scSim, task_name: str, tag: str, comms_config, sun_guid_msg, comms_guid_msg,
-                          access_out_msg, comms_power_sink=None, rf_link: Optional[RFLinkConfig] = None,
-                          ground_station_config: Optional[GroundStationConfig] = None) -> _CommsPointingArbitrator:
+                          access_out_msg, comms_power_sink=None, rf_link: RFLinkConfig | None = None,
+                          ground_station_config: GroundStationConfig | None = None) -> _CommsPointingArbitrator:
     """Builds and wires one spacecraft's :class:`_CommsPointingArbitrator`.
 
     Args:
@@ -781,7 +780,7 @@ def build_comms_pointing(scSim, task_name: str, tag: str, comms_config, sun_guid
     return arbitrator
 
 
-def build_vehicle_config_msg(inertia_kg_m2: List[float]):
+def build_vehicle_config_msg(inertia_kg_m2: list[float]):
     """The ``VehicleConfigMsg`` ``mrpFeedback`` needs for its gyroscopic
     RW-coupling term -- built with the SAME inertia as the simulated
     spacecraft hub (``sc_object.hub.IHubPntBc_B``), matching
@@ -794,7 +793,7 @@ def build_vehicle_config_msg(inertia_kg_m2: List[float]):
 
 
 def build_mrp_feedback(scSim, task_name: str, tag: str, guid_out_msg, veh_config_msg, control_params: dict,
-                        rw_config_msg=None, rw_speed_out_msg=None, inertia_kg_m2: Optional[List[float]] = None):
+                        rw_config_msg=None, rw_speed_out_msg=None, inertia_kg_m2: list[float] | None = None):
     """``mrpFeedback``'s "simple mode" control law (Ki < 0 disables the
     integral feedback term, matching every example's default). RW
     gyroscopic compensation is enabled automatically whenever
@@ -851,7 +850,7 @@ def _coerce_rw_kwargs(params: dict) -> dict:
     return kwargs
 
 
-def build_reaction_wheels(scSim, task_name: str, tag: str, sc_object, actuator_configs: List):
+def build_reaction_wheels(scSim, task_name: str, tag: str, sc_object, actuator_configs: list):
     """Builds one reaction wheel per ``ActuatorConfig(kind="reaction_wheel")``
     entry via ``simIncludeRW.rwFactory()`` (see that module for every
     accepted ``params`` key -- ``gsHat_B`` is required by schema validation,
@@ -894,7 +893,7 @@ def build_reaction_wheels(scSim, task_name: str, tag: str, sc_object, actuator_c
 
 
 def build_reaction_wheel_motor_thermal(scSim, task_name: str, tag: str, rw_state_effector,
-                                        actuator_configs: List) -> Dict[str, object]:
+                                        actuator_configs: list) -> dict[str, object]:
     """Builds one ``motorThermal.MotorThermal()`` for each
     ``ActuatorConfig(kind="reaction_wheel")`` entry in ``actuator_configs``
     whose own params set the ``motor_thermal_*`` group (see
@@ -916,7 +915,7 @@ def build_reaction_wheel_motor_thermal(scSim, task_name: str, tag: str, rw_state
     :class:`~spacemissionstudio.engine.results.ResultSet` recording, only
     for the wheels that actually have a motor-thermal model.
     """
-    out_msgs: Dict[str, object] = {}
+    out_msgs: dict[str, object] = {}
     for idx, actuator in enumerate(actuator_configs):
         params = actuator.params
         if "motor_thermal_initial_temp_c" not in params:
@@ -946,7 +945,7 @@ def _coerce_thruster_kwargs(params: dict) -> dict:
     return kwargs
 
 
-def build_thrusters(scSim, task_name: str, tag: str, sc_object, actuator_configs: List):
+def build_thrusters(scSim, task_name: str, tag: str, sc_object, actuator_configs: list):
     """Builds one thruster per ``ActuatorConfig(kind="thruster")`` entry via
     ``simIncludeThruster.thrusterFactory()`` (see that module for every
     accepted ``params`` key -- ``r_B``/``tHat_B``/``MaxThrust`` are required
@@ -1131,7 +1130,7 @@ def build_momentum_dumping(scSim, task_name: str, tag: str, rw_config_msg, rw_sp
     return desat_control, force_mapping, dumping
 
 
-def build_mtb_desaturation(scSim, task_name: str, tag: str, sc_object, actuator_configs: List,
+def build_mtb_desaturation(scSim, task_name: str, tag: str, sc_object, actuator_configs: list,
                             rw_motor_torque_module, rw_config_msg, rw_state_effector, mag_field_model, config):
     """Continuous reaction-wheel momentum management via magnetic torque
     bars: a dedicated magnetometer ("TAM") + ``tamComm`` (raw sensor-frame
@@ -1237,7 +1236,7 @@ def build_rw_motor_torque(scSim, task_name: str, tag: str, mrp_feedback_module, 
 
 
 def build_ground_location(scSim, task_name: str, gs_config, central_body_radius_m: float, planet_state_out_msg,
-                           sc_state_out_msgs: List, central_body: str = "earth"):
+                           sc_state_out_msgs: list, central_body: str = "earth"):
     """One ``groundLocation.GroundLocation`` per
     :class:`schema.scenario.GroundStationConfig`. Matches
     ``examples/scenarioAttLocPoint.py``. Its ``currentGroundStateOutMsg`` is
@@ -1270,7 +1269,7 @@ def build_ground_location(scSim, task_name: str, gs_config, central_body_radius_
     return gl
 
 
-def add_access_analysis(ground_location, sc_objects: List) -> None:
+def add_access_analysis(ground_location, sc_objects: list) -> None:
     """Phase 3: calls ``addSpacecraftToModel`` on ``ground_location`` for
     every spacecraft in ``sc_objects``, in order -- populates
     ``ground_location.accessOutMsgs[i]`` (index == this call's position in
@@ -1315,7 +1314,7 @@ def build_magnetic_field_wmm(scSim, task_name: str, planet_state_out_msg, centra
     return mod
 
 
-def set_sensor_thermal_flux(thermal_models: List, solar_flux_w_m2: float) -> None:
+def set_sensor_thermal_flux(thermal_models: list, solar_flux_w_m2: float) -> None:
     """Scales each ``(sensorThermal module, raw inputs)`` from
     :func:`attach_sensors` so its heat balance uses ``solar_flux_w_m2``
     (see :func:`engine.environment_models.sensor_thermal_inputs`)."""
@@ -1328,10 +1327,10 @@ def set_sensor_thermal_flux(thermal_models: List, solar_flux_w_m2: float) -> Non
         mod.sensorMass = corrected.mass_kg
 
 
-def attach_sensors(scSim, task_name: str, tag: str, sc_object, sensor_configs: List,
+def attach_sensors(scSim, task_name: str, tag: str, sc_object, sensor_configs: list,
                     sun_state_out_msg=None, mag_field_model=None, sun_eclipse_in_msg=None,
                     solar_flux_w_m2: float = environment_models.TOTAL_SOLAR_IRRADIANCE_W_M2,
-                    thermal_models: Optional[List] = None, albedo_msgs: Optional[Dict] = None) -> Dict[str, object]:
+                    thermal_models: list | None = None, albedo_msgs: dict | None = None) -> dict[str, object]:
     """Builds every :class:`schema.scenario.SensorConfig` entry for one
     spacecraft and returns ``{sensor.name: output_message}`` for
     :class:`~spacemissionstudio.engine.results.ResultSet` recording.
@@ -1348,7 +1347,7 @@ def attach_sensors(scSim, task_name: str, tag: str, sc_object, sensor_configs: L
     ``thermal_models`` (when given) as ``(module, raw inputs)``, so
     :func:`set_sensor_thermal_flux` can apply another solar flux later.
     """
-    out_msgs: Dict[str, object] = {}
+    out_msgs: dict[str, object] = {}
     for sensor in sensor_configs:
         params = sensor.params
         if sensor.kind == "star_tracker":

@@ -62,7 +62,6 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import List, Optional
 
 from PySide6.QtCore import QEasingCurve, QPropertyAnimation, Qt, QTimer, Signal
 from PySide6.QtWidgets import (QBoxLayout, QDialogButtonBox, QFormLayout, QFrame, QGraphicsOpacityEffect, QHBoxLayout,
@@ -116,7 +115,7 @@ def show_toast(window: QWidget, message: str, kind: str = "success", duration_ms
     a shared base class). Returns the created ``QLabel`` -- mainly useful
     for tests; normal callers can ignore the return value.
     """
-    stack: List[QLabel] = getattr(window, _TOAST_STACK_ATTR, None)
+    stack: list[QLabel] = getattr(window, _TOAST_STACK_ATTR, None)
     if stack is None:
         stack = []
         setattr(window, _TOAST_STACK_ATTR, stack)
@@ -181,7 +180,7 @@ def _fade(toast: QLabel, start: float, end: float, keep: bool) -> None:
     animation.start(QPropertyAnimation.DeletionPolicy.DeleteWhenStopped)
 
 
-def report(widget: Optional[QWidget], text: str, kind: str = "error") -> None:
+def report(widget: QWidget | None, text: str, kind: str = "error") -> None:
     """Say ``text`` without a message box (U-39). The first line goes in a
     toast on ``widget``'s window (``kind`` "error", "warning", "info" or
     "success") and in its status bar; the whole text goes in the Log (an
@@ -240,7 +239,7 @@ def clear_dialog_error(dialog: QWidget) -> None:
         label.hide()
 
 
-def _reposition_toasts(window: QWidget, stack: List[QLabel]) -> None:
+def _reposition_toasts(window: QWidget, stack: list[QLabel]) -> None:
     y = window.height() - _TOAST_MARGIN_PX
     status_bar = window.statusBar() if isinstance(window, QMainWindow) else None
     if status_bar is not None and status_bar.isVisible():

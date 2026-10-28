@@ -58,7 +58,7 @@ via the normal orbit editor, same as always.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, List
+from collections.abc import Callable
 
 from .facets import box_facets
 from ..schema.scenario import (
@@ -91,7 +91,7 @@ def _placeholder_orbit() -> OrbitIC:
     )
 
 
-def _three_reaction_wheels() -> List[ActuatorConfig]:
+def _three_reaction_wheels() -> list[ActuatorConfig]:
     return [
         ActuatorConfig(kind="reaction_wheel", name="rw-x", params={"gsHat_B": [1.0, 0.0, 0.0], **_RW_EXAMPLE_PARAMS}),
         ActuatorConfig(kind="reaction_wheel", name="rw-y", params={"gsHat_B": [0.0, 1.0, 0.0], **_RW_EXAMPLE_PARAMS}),
@@ -99,7 +99,7 @@ def _three_reaction_wheels() -> List[ActuatorConfig]:
     ]
 
 
-def _box_inertia(mass_kg: float, x_m: float, y_m: float, z_m: float) -> List[float]:
+def _box_inertia(mass_kg: float, x_m: float, y_m: float, z_m: float) -> list[float]:
     """Row-major principal inertia [kg*m^2] of a uniform box: I_xx =
     m (y^2 + z^2) / 12, and so on."""
     return [round(mass_kg * (y_m ** 2 + z_m ** 2) / 12.0, 1), 0.0, 0.0,
@@ -225,7 +225,7 @@ class SpacecraftTemplate:
     build: Callable[[], SpacecraftConfig]
 
 
-SPACECRAFT_TEMPLATES: List[SpacecraftTemplate] = [
+SPACECRAFT_TEMPLATES: list[SpacecraftTemplate] = [
     SpacecraftTemplate(
         "ESPA-class smallsat (100 kg)",
         "100 kg, star tracker + coarse sun sensor + 3 reaction wheels + inertial3D attitude control + a "

@@ -52,8 +52,8 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
-from typing import Callable, List, Optional
+from datetime import datetime, timedelta, UTC
+from collections.abc import Callable
 
 import numpy as np
 
@@ -112,15 +112,15 @@ class LifetimeResult:
     perigee_altitude_km: np.ndarray  # [km]
     apogee_altitude_km: np.ndarray  # [km]
     start_utc: datetime
-    warnings: List[str] = field(default_factory=list)
-    horizon_years: Optional[float] = None  # [year] how far it looked (less than asked where the data ends)
+    warnings: list[str] = field(default_factory=list)
+    horizon_years: float | None = None  # [year] how far it looked (less than asked where the data ends)
 
     @property
     def lifetime_years(self) -> float:
         return self.lifetime_s / (365.25 * 86400.0)
 
     @property
-    def reentry_utc(self) -> Optional[datetime]:
+    def reentry_utc(self) -> datetime | None:
         return self.start_utc + timedelta(seconds=self.lifetime_s) if self.reentered else None
 
     def meets(self, years: float) -> bool:
@@ -295,7 +295,7 @@ def _perigee_drop_rate(orbit: MeanOrbit, da_dt: float, de_vec_dt: np.ndarray) ->
 
 def propagate_decay(orbit: MeanOrbit, start_utc: datetime, ballistic_m2_kg: float, density: DensityModel,
                     max_years: float = 30.0,
-                    should_cancel: Optional[Callable[[], bool]] = None) -> LifetimeResult:
+                    should_cancel: Callable[[], bool] | None = None) -> LifetimeResult:
     """Follows ``orbit`` down until re-entry or ``max_years``, one midpoint
     step at a time (rates taken half-way through each step: a plain step
     from the start lags the rising density and decays ~2% slow)."""
@@ -345,7 +345,7 @@ def deorbit_burn(orbit: MeanOrbit, target_perigee_km: float, mass_kg: float, isp
 
 def _parse_utc(epoch_utc: str) -> datetime:
     when = parse_epoch_utc(epoch_utc)
-    return when.astimezone(timezone.utc).replace(tzinfo=None) if when.tzinfo is not None else when
+    return when.astimezone(UTC).replace(tzinfo=None) if when.tzinfo is not None else when
 
 
 def drag_properties(spacecraft) -> tuple:
@@ -409,7 +409,7 @@ class DragMakeup:
     cumulative_m_s: np.ndarray  # [m/s] delta-V up to each time
     altitude_km: float  # [km] mean orbit radius held, above the equatorial radius
     years: float  # [year] window covered (less than asked where the data ends)
-    warnings: List[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
 
 def held_orbit(spacecraft) -> MeanOrbit:
@@ -428,8 +428,8 @@ def held_orbit(spacecraft) -> MeanOrbit:
 
 
 def drag_makeup(scenario, spacecraft, start_utc: datetime, years: float, forecast_percentile: float = 50.0,
-                drag_coeff: Optional[float] = None, step_s: float = MAKEUP_STEP_S,
-                should_cancel: Optional[Callable[[], bool]] = None) -> DragMakeup:
+                drag_coeff: float | None = None, step_s: float = MAKEUP_STEP_S,
+                should_cancel: Callable[[], bool] | None = None) -> DragMakeup:
     """Delta-V [m/s] that holds the spacecraft's orbit (:func:`held_orbit`)
     against drag for ``years`` from ``start_utc``: the orbit-averaged
     along-track drag, integrated over the window, with J2 turning the node
@@ -480,8 +480,8 @@ def drag_makeup(scenario, spacecraft, start_utc: datetime, years: float, forecas
 
 
 def spacecraft_lifetime(scenario, spacecraft_name: str, max_years: float = 30.0,
-                        should_cancel: Optional[Callable[[], bool]] = None,
-                        forecast_percentile: float = 50.0, drag_coeff: Optional[float] = None) -> LifetimeResult:
+                        should_cancel: Callable[[], bool] | None = None,
+                        forecast_percentile: float = 50.0, drag_coeff: float | None = None) -> LifetimeResult:
     """Natural lifetime of one spacecraft from the scenario's start (see
     :func:`end_of_life` for after a run, or with a deorbit burn)."""
     return end_of_life(scenario, spacecraft_name, max_years=max_years, should_cancel=should_cancel,
@@ -508,7 +508,7 @@ class EndOfLife:
     lifetime: LifetimeResult
     from_end_of_run: bool
     mass_kg: float  # [kg] at the start of the decay
-    deorbit: Optional[DeorbitPlan] = None
+    deorbit: DeorbitPlan | None = None
 
 
 def _propulsion(spacecraft):
@@ -527,9 +527,9 @@ def _remaining_propellant(result, name: str, initial_kg: float) -> float:
     return initial_kg
 
 
-def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km: Optional[float] = None,
-                max_years: float = 30.0, should_cancel: Optional[Callable[[], bool]] = None,
-                forecast_percentile: float = 50.0, drag_coeff: Optional[float] = None) -> EndOfLife:
+def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km: float | None = None,
+                max_years: float = 30.0, should_cancel: Callable[[], bool] | None = None,
+                forecast_percentile: float = 50.0, drag_coeff: float | None = None) -> EndOfLife:
     """Lifetime of one spacecraft after the run in ``result`` (from its
     last state, with the propellant left), or from the scenario's start
     when ``result`` is None. With ``deorbit_perigee_km``, an apogee burn

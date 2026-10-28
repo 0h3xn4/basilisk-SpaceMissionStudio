@@ -37,12 +37,11 @@ need the full editor, which validates them in context.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Tuple, Union
 
 from ..schema.scenario import Scenario
 from . import units
 
-Path = Tuple[Union[str, int], ...]
+Path = tuple[str | int, ...]
 
 
 @dataclass(frozen=True)
@@ -54,7 +53,7 @@ class SettingMeta:
 
 # Keyed by the setting's own name (the last path element). Units follow
 # the schema's own field comments.
-_META: Dict[str, SettingMeta] = {
+_META: dict[str, SettingMeta] = {
     # Orbit
     "semi_major_axis_km": SettingMeta("Semi-major axis", " km", "Measured from the central body's centre."),
     "eccentricity": SettingMeta("Eccentricity"),
@@ -212,10 +211,10 @@ def _is_number(value) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
-def _leaf_settings(obj, path: Path = ()) -> List[Tuple[Path, object]]:
+def _leaf_settings(obj, path: Path = ()) -> list[tuple[Path, object]]:
     """Every numeric or bool leaf under ``obj`` (an ``asdict`` tree), with
     numeric vectors expanded into one entry per component."""
-    out: List[Tuple[Path, object]] = []
+    out: list[tuple[Path, object]] = []
     if isinstance(obj, dict):
         for key, value in obj.items():
             if not path and key in _SKIPPED_TOP_LEVEL:
@@ -229,7 +228,7 @@ def _leaf_settings(obj, path: Path = ()) -> List[Tuple[Path, object]]:
     return out
 
 
-def setting_paths(scenario: Scenario) -> List[Path]:
+def setting_paths(scenario: Scenario) -> list[Path]:
     """Every adjustable numeric/bool setting in ``scenario``."""
     return [path for path, _ in _leaf_settings(scenario.to_dict())]
 
@@ -260,7 +259,7 @@ def _setting_name(path: Path) -> str:
     return next(key for key in reversed(path) if isinstance(key, str))
 
 
-def _component(path: Path, scenario: Scenario) -> Tuple[str, bool]:
+def _component(path: Path, scenario: Scenario) -> tuple[str, bool]:
     """(component name, shares a row with its siblings) for a numeric
     vector component, ('', False) for a scalar: 'x'/'y'/'z' for a
     3-vector (one row), 'Ixy' etc. for an inertia tensor, '[2]' otherwise."""
@@ -277,7 +276,7 @@ def _component(path: Path, scenario: Scenario) -> Tuple[str, bool]:
     return f"[{index + 1}]", False
 
 
-def _device_param_label(kind: str, key: str) -> Tuple[str, str]:
+def _device_param_label(kind: str, key: str) -> tuple[str, str]:
     """(label, help) for a sensor/actuator params key, preferring the
     editor's own per-kind description."""
     from .sensor_actuator_editor import _KIND_PARAM_SPECS
@@ -297,7 +296,7 @@ def _device_param_label(kind: str, key: str) -> Tuple[str, str]:
     return (meta.label if meta else key), (meta.suffix if meta else ""), (meta.help if meta else "")
 
 
-def _page_and_label(path: Path, scenario: Scenario) -> Tuple[str, str, str, str, str]:
+def _page_and_label(path: Path, scenario: Scenario) -> tuple[str, str, str, str, str]:
     """(page title, group sub-heading, field label, unit suffix, help) for
     one setting. A spacecraft's page titles are "<spacecraft>: <section>"."""
     name = _setting_name(path)
@@ -378,7 +377,7 @@ def build_all_settings_pages(scenario: Scenario, exclude=frozenset()):
     sequence, Monte Carlo and the environment/simulation settings."""
     from .template_wizard import WizardField, WizardPageSpec
 
-    pages: Dict[str, List[WizardField]] = {}
+    pages: dict[str, list[WizardField]] = {}
     for path, value in _leaf_settings(scenario.to_dict()):
         if path in exclude or path[:-1] in exclude:
             continue
@@ -415,7 +414,7 @@ def build_all_settings_pages(scenario: Scenario, exclude=frozenset()):
     return [WizardPageSpec(title=title, intro="", fields=pages[title]) for title in titles]
 
 
-def vizard_model_settings_hidden(scenario: Scenario) -> List[Path]:
+def vizard_model_settings_hidden(scenario: Scenario) -> list[Path]:
     """Vizard model offset/rotation/scale paths left off the generated
     pages because that spacecraft has no Vizard model (they'd do nothing)."""
     return [path for path in setting_paths(scenario)

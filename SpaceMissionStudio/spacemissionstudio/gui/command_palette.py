@@ -29,7 +29,7 @@ command is listed, greyed, and not run.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QDialog, QLabel, QLineEdit, QListWidget, QListWidgetItem, QVBoxLayout, QWidget
@@ -44,14 +44,14 @@ class PaletteEntry:
     keywords: str = ""  # other names it is found by, not shown
 
 
-def command_entries(registry) -> List[PaletteEntry]:
+def command_entries(registry) -> list[PaletteEntry]:
     """One entry per command of ``registry`` (:class:`gui.actions.ActionRegistry`),
     named "Category > Command"."""
     return [PaletteEntry(f"{command.category} > {command.label}", command.action.trigger, command.keys,
                          command.action.isEnabled(), " ".join(command.keywords)) for command in registry]
 
 
-def matches(query: str, entries: List[PaletteEntry]) -> List[PaletteEntry]:
+def matches(query: str, entries: list[PaletteEntry]) -> list[PaletteEntry]:
     """Entries containing every word of ``query`` (any case) in their name
     or keywords; those whose command name starts with the first word first,
     then in order."""
@@ -65,12 +65,12 @@ def matches(query: str, entries: List[PaletteEntry]) -> List[PaletteEntry]:
 class CommandPalette(QDialog):
     """Type to filter, arrows to choose, Enter to run, Esc to close."""
 
-    def __init__(self, entries: List[PaletteEntry], parent: Optional[QWidget] = None):
+    def __init__(self, entries: list[PaletteEntry], parent: QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle("Command Palette")
         self.resize(520, 420)  # [px]
         self._entries = entries
-        self.ran: Optional[PaletteEntry] = None
+        self.ran: PaletteEntry | None = None
         layout = QVBoxLayout(self)
         self.search = QLineEdit()
         self.search.setPlaceholderText("Type a command, a page or an object, e.g. \"run\", \"save as\", \"sat-1\"")

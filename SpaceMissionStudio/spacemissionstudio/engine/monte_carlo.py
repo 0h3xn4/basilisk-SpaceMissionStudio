@@ -157,7 +157,6 @@ import logging
 import pickle  # noqa: S403 -- reads back only the archive this same call wrote (security analysis S-04)
 import re
 from pathlib import Path
-from typing import Dict, List
 
 import math
 
@@ -445,8 +444,8 @@ def _default_retention_policy(scenario: Scenario) -> RetentionPolicy:
     return policy
 
 
-def run_monte_carlo(scenario: Scenario, mc_config: MonteCarloConfig, archive_dir: "str | Path",
-                    allow_scripts: bool = False, overwrite: bool = False) -> List[int]:
+def run_monte_carlo(scenario: Scenario, mc_config: MonteCarloConfig, archive_dir: str | Path,
+                    allow_scripts: bool = False, overwrite: bool = False) -> list[int]:
     """Runs ``mc_config.num_runs`` dispersed executions of ``scenario`` via
     ``Basilisk.utilities.MonteCarlo.Controller``, archiving retained
     position/velocity data (JSON per-run parameter files plus the
@@ -559,20 +558,20 @@ _ELEMENT_LABELS = {
 }
 
 
-def _elements_deg(oe) -> Dict[str, float]:
+def _elements_deg(oe) -> dict[str, float]:
     """Basilisk ``ClassicElements`` in the element_spread keys' units."""
     return {"semi_major_axis_km": oe.a / 1e3, "eccentricity": oe.e,
             "inclination_deg": math.degrees(oe.i), "raan_deg": math.degrees(oe.Omega),
             "arg_periapsis_deg": math.degrees(oe.omega), "true_anomaly_deg": math.degrees(oe.f)}
 
 
-def _drawn_values(params: Dict[str, str], scenario: Scenario, mu: float) -> Dict[str, float]:
+def _drawn_values(params: dict[str, str], scenario: Scenario, mu: float) -> dict[str, float]:
     """One run's drawn values (``runN.json``: Controller parameter name ->
     value as text), keyed by readable labels."""
     by_accessor = {_accessor_name(sc.name): sc for sc in scenario.spacecraft}
     spread_keys = {d.spacecraft: list(d.element_spread or {}) for d in scenario.monte_carlo.dispersions
                    if d.quantity == "orbit_elements"}
-    drawn: Dict[str, float] = {}
+    drawn: dict[str, float] = {}
     for key, text in params.items():
         accessor, _, path = key.partition("().")
         for prefix in _EFFECTOR_ACCESSORS.values():
@@ -612,8 +611,8 @@ def _drawn_values(params: Dict[str, str], scenario: Scenario, mu: float) -> Dict
     return drawn
 
 
-def collect_batch(scenario: Scenario, archive_dir: "str | Path", num_runs: int,
-                  failures: List[int]) -> monte_carlo_results.MonteCarloBatch:
+def collect_batch(scenario: Scenario, archive_dir: str | Path, num_runs: int,
+                  failures: list[int]) -> monte_carlo_results.MonteCarloBatch:
     """Every successful run's retained position and velocity, on a shared,
     strided time grid, and the values it drew -- read back from the files
     :func:`run_monte_carlo` has just had the Controller write into

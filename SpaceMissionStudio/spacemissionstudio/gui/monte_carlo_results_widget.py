@@ -31,7 +31,6 @@ from __future__ import annotations
 import csv
 import math
 from pathlib import Path
-from typing import Optional
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QFileDialog, QHBoxLayout, QLabel, QPushButton, QVBoxLayout, QWidget
@@ -58,10 +57,10 @@ _km = mcr.format_km
 
 
 class MonteCarloResultsWidget(QWidget):
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self.batch: Optional[mcr.MonteCarloBatch] = None
-        self.folder: Optional[Path] = None
+        self.batch: mcr.MonteCarloBatch | None = None
+        self.folder: Path | None = None
 
         layout = QVBoxLayout(self)
         header = QHBoxLayout()
@@ -92,7 +91,7 @@ class MonteCarloResultsWidget(QWidget):
         # is built only once a batch is shown: an idle one in every window
         # costs a Chromium renderer, and a CI test worker crashed showing
         # it on a plain tab switch.
-        self.plots: Optional[ResultsWidget] = None
+        self.plots: ResultsWidget | None = None
         self._plots_placeholder = QWidget()
         self.views.addTab(self._plots_placeholder, "Plots")
         runs_page = QWidget()
@@ -117,7 +116,7 @@ class MonteCarloResultsWidget(QWidget):
 
     # -- loading -----------------------------------------------------------
 
-    def load_folder(self, folder: "str | Path") -> bool:
+    def load_folder(self, folder: str | Path) -> bool:
         """Show the batch summarized in ``folder``. On a problem, says so in
         the hint line and returns False."""
         folder = Path(folder)
@@ -136,7 +135,7 @@ class MonteCarloResultsWidget(QWidget):
         if folder and not self.load_folder(folder):
             report(self, f"No Monte Carlo results in {folder}: {self.hint_label.text()}", kind="warning")
 
-    def _show(self, batch: Optional[mcr.MonteCarloBatch]) -> None:
+    def _show(self, batch: mcr.MonteCarloBatch | None) -> None:
         self.batch = batch
         has_batch = batch is not None and bool(batch.runs)
         self.views.setVisible(has_batch)
@@ -217,7 +216,7 @@ class MonteCarloResultsWidget(QWidget):
 
     # -- export ------------------------------------------------------------
 
-    def export_table_csv(self, path: "str | Path") -> Path:
+    def export_table_csv(self, path: str | Path) -> Path:
         """The Runs table, for the shown spacecraft, as CSV."""
         path = Path(path)
         labels, rows = mcr.run_table(self.batch, self.spacecraft_combo.currentText() or None)

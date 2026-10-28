@@ -71,7 +71,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Callable, Dict, List, Optional
+from collections.abc import Callable
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
@@ -153,13 +153,13 @@ _MAX_HINT_CHARS = 60
 class WizardPageSpec:
     title: str
     intro: str
-    fields: List[WizardField]
+    fields: list[WizardField]
 
 
 @dataclass(frozen=True)
 class TemplateWizardSpec:
     template_filename: str
-    pages: List[WizardPageSpec]
+    pages: list[WizardPageSpec]
 
 
 def _sc(scenario: Scenario):
@@ -473,7 +473,7 @@ def _final_coast_command(scenario: Scenario):
     return scenario.mission_sequence[-1]
 
 
-def _sun_synchronous_orbit_page(intro: str) -> "WizardPageSpec":
+def _sun_synchronous_orbit_page(intro: str) -> WizardPageSpec:
     return WizardPageSpec(
         title="Orbit",
         intro=intro,
@@ -509,7 +509,7 @@ def _landmark_camera(scenario: Scenario):
     return next(sc for sc in scenario.spacecraft if sc.landmark_navigation is not None).landmark_navigation
 
 
-def _duration_page(intro: str, maximum_days: float) -> "WizardPageSpec":
+def _duration_page(intro: str, maximum_days: float) -> WizardPageSpec:
     return WizardPageSpec(
         title="Simulation length",
         intro=intro,
@@ -524,7 +524,7 @@ def _duration_page(intro: str, maximum_days: float) -> "WizardPageSpec":
     )
 
 
-_SPECS: Dict[str, TemplateWizardSpec] = {
+_SPECS: dict[str, TemplateWizardSpec] = {
     "03_geo_station_keeping.json": TemplateWizardSpec(
         template_filename="03_geo_station_keeping.json",
         pages=[
@@ -1832,7 +1832,7 @@ _SPECS: Dict[str, TemplateWizardSpec] = {
 }
 
 
-def get_wizard_spec(template_filename: str) -> Optional[TemplateWizardSpec]:
+def get_wizard_spec(template_filename: str) -> TemplateWizardSpec | None:
     """``None`` means this template has no curated wizard yet -- callers
     (``LoadScenarioWidget``) fall back to the plain "Open Template" flow,
     exactly as they did before this feature existed.
@@ -2033,15 +2033,15 @@ class TemplateCustomizeWizard(QDialog):
         super().__init__(parent)
         self.setWindowTitle(f"Customize: {base_scenario.name}")
         self._scenario = Scenario.from_dict(base_scenario.to_dict())
-        self._field_pages: List[_WizardFieldPage] = []
+        self._field_pages: list[_WizardFieldPage] = []
         self._current_index = 0
 
         generated = build_all_settings_pages(self._scenario, exclude=_paths_set_by(spec, self._scenario))
         self._sections = QListWidget()
         self._sections.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self._list_rows: List[int] = []  # list row of each section, in section order
-        self._groups: List[tuple] = []  # (heading row, [section indices]) for each heading
-        self._headings: List[QLabel] = []  # heading label above each group's first card
+        self._list_rows: list[int] = []  # list row of each section, in section order
+        self._groups: list[tuple] = []  # (heading row, [section indices]) for each heading
+        self._headings: list[QLabel] = []  # heading label above each group's first card
 
         sections_widget = QWidget()
         self._sections_layout = QVBoxLayout(sections_widget)
@@ -2123,7 +2123,7 @@ class TemplateCustomizeWizard(QDialog):
         self.resize(min(max(760, list_width + widest + 70), 1100), 680)
 
     # -- section access (kept small and explicit for callers/tests) ------
-    def pageIds(self) -> List[int]:  # noqa: N802 -- mirrors the old QWizard API
+    def pageIds(self) -> list[int]:  # noqa: N802 -- mirrors the old QWizard API
         return list(range(len(self._field_pages)))
 
     def page(self, page_id: int) -> _WizardFieldPage:

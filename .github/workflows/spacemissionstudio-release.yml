@@ -60,7 +60,7 @@ jobs:
           ref: ${{ env.SOURCE }}
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.14"
       - name: The tag matches the version files and the CHANGELOG
         id: version
         run: |
@@ -122,7 +122,7 @@ jobs:
           templates=$("$python" -I -c "import pathlib, spacemissionstudio; print(pathlib.Path(spacemissionstudio.__file__).parent / 'scenarios' / 'templates')")
           for f in "$templates"/*.json; do spacemissionstudio validate "$f" >/dev/null || { echo "::error::$f does not validate"; exit 1; }; done
           spacemissionstudio run "$templates/01_two_body_circular_orbit.json" --out-dir "$RUNNER_TEMP/run01"
-          grep -q "/opt/spacemissionstudio/python/lib/python3.11/site-packages/supportData/EphemerisData/de430.bsp" \
+          grep -q "/opt/spacemissionstudio/python/lib/python3.14/site-packages/supportData/EphemerisData/de430.bsp" \
             "$RUNNER_TEMP"/run01/*provenance.json
           "$python" -I -c "from spacemissionstudio.engine import earth_orientation as e; assert e.installed(), 'no Earth orientation files'"
           "$python" -I - "$VERSION" <<'EOF'
@@ -176,7 +176,7 @@ jobs:
           ref: ${{ env.SOURCE }}
       - uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.14"
       - uses: actions/download-artifact@v6
         with:
           name: packages-linux

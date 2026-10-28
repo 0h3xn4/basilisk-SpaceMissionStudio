@@ -30,9 +30,8 @@ from __future__ import annotations
 import hashlib
 import json
 import zipfile
-from functools import lru_cache
+from functools import lru_cache, cache
 from pathlib import Path
-from typing import Dict, List
 
 _HERE = Path(__file__).resolve().parent
 ARCHIVE = _HERE / "basilisk_fsw_sources.zip"
@@ -53,7 +52,7 @@ def manifest() -> dict:
     return json.loads(MANIFEST.read_text())
 
 
-@lru_cache(maxsize=None)
+@cache
 def read(path: str) -> bytes:
     """The vendored file at ``path`` (relative to Basilisk's ``src/``, or
     ``LICENSE``), after checking it against the manifest."""
@@ -76,11 +75,11 @@ def read_text(path: str) -> str:
     return read(path).decode("utf-8")
 
 
-def paths() -> List[str]:
+def paths() -> list[str]:
     return sorted(manifest()["files"])
 
 
-def verify_all() -> Dict[str, str]:
+def verify_all() -> dict[str, str]:
     """Reads (and so checks) every file; returns ``{path: blob hash}``.
     Also refuses entries the manifest does not list."""
     with zipfile.ZipFile(ARCHIVE) as archive:

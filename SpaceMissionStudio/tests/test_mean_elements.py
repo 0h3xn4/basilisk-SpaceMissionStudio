@@ -123,6 +123,7 @@ def test_the_density_ring_is_finite_at_the_critical_inclination():
         assert np.max(np.abs(np.linalg.norm(r, axis=1) - np.linalg.norm(r_near, axis=1))) < 10e3  # [m]
 
 
+@pytest.mark.slow
 def test_a_lifetime_at_the_critical_inclination_matches_a_basilisk_decay_run():
     """Template 18's spacecraft from 300 km at 63.435 deg: the estimate's
     re-entry within 3% of where a full Basilisk run stops (below 100 km),

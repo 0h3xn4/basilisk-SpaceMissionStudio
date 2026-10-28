@@ -29,7 +29,6 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import asdict, dataclass, field
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -66,7 +65,7 @@ def layout_hash(message_type: str, layout: dict) -> str:
     return hashlib.sha256(text.encode()).hexdigest()[:16]
 
 
-def leaves(layout: dict, base: int = 0, prefix: str = "") -> List[Tuple[int, int, str, str]]:
+def leaves(layout: dict, base: int = 0, prefix: str = "") -> list[tuple[int, int, str, str]]:
     """``(offset, count, kind, name)`` runs of scalars, nested structs
     flattened; padding is in no run. The generated ``fsw_leaves.c`` and the
     SIL comparison both read payloads this way."""
@@ -106,7 +105,7 @@ def _decode_fields(layout: dict, data: bytes, base: int) -> dict:
     return out
 
 
-def _reshape(items: list, shape: List[int]):
+def _reshape(items: list, shape: list[int]):
     if len(shape) <= 1:
         return list(items)
     step = int(np.prod(shape[1:]))
@@ -137,7 +136,7 @@ class Param:
     unit: str
     description: str
     value: object  # number, (nested) list of numbers, or {"bytes": hex} for a struct-typed field
-    scenario_path: Optional[str] = None
+    scenario_path: str | None = None
     gui: str = "-"
     note: str = ""
 
@@ -156,9 +155,9 @@ class ModuleInstance:
     name: str  # C identifier used in the export, e.g. "mrpFeedback"
     python_name: str  # catalog key
     module_id: int
-    params: List[Param] = field(default_factory=list)
-    inputs: List[InputLink] = field(default_factory=list)
-    outputs: List[Dict[str, str]] = field(default_factory=list)  # [{"field", "message_type"}]
+    params: list[Param] = field(default_factory=list)
+    inputs: list[InputLink] = field(default_factory=list)
+    outputs: list[dict[str, str]] = field(default_factory=list)  # [{"field", "message_type"}]
 
 
 @dataclass
@@ -167,7 +166,7 @@ class Port:
     name: str  # C identifier, e.g. "simpleNav_attOutMsg"
     message_type: str
     producer: str  # "sat-1_simpleNav.attOutMsg (simpleNav)" for inputs; "<module>.<field>" for outputs
-    consumers: List[str] = field(default_factory=list)
+    consumers: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -175,8 +174,8 @@ class Constant:
     name: str
     message_type: str
     value_hex: str
-    consumers: List[str] = field(default_factory=list)
-    scenario_path: Optional[str] = None
+    consumers: list[str] = field(default_factory=list)
+    scenario_path: str | None = None
     gui: str = "-"
     note: str = ""
 
@@ -188,33 +187,33 @@ class FswCapture:
     basilisk_version: str
     basilisk_revision: str
     rate_ns: int
-    modules: List[ModuleInstance]  # in execution order
-    message_types: Dict[str, MessageType]
-    inputs: List[Port]
-    outputs: List[Port]  # actuator commands: read by the simulation
-    telemetry: List[Port]  # every other module output
-    constants: List[Constant]
-    priming_resets: List[str]  # module names re-Reset after the step at priming_time_ns
+    modules: list[ModuleInstance]  # in execution order
+    message_types: dict[str, MessageType]
+    inputs: list[Port]
+    outputs: list[Port]  # actuator commands: read by the simulation
+    telemetry: list[Port]  # every other module output
+    constants: list[Constant]
+    priming_resets: list[str]  # module names re-Reset after the step at priming_time_ns
     priming_time_ns: int
-    not_exported: List[str]
+    not_exported: list[str]
     config_digest: str
     # Recorded run: one entry per step, payloads as hex.
-    times_ns: List[int] = field(default_factory=list)
-    input_trace: List[Dict[str, str]] = field(default_factory=list)  # {port: hex}
-    output_trace: List[Dict[str, str]] = field(default_factory=list)  # {"<module>.<field>": hex}
+    times_ns: list[int] = field(default_factory=list)
+    input_trace: list[dict[str, str]] = field(default_factory=list)  # {port: hex}
+    output_trace: list[dict[str, str]] = field(default_factory=list)  # {"<module>.<field>": hex}
     # What each module read at step 0 ({"<module>.<field>": hex}), for its unit test.
-    step0_reads: Dict[str, str] = field(default_factory=dict)
+    step0_reads: dict[str, str] = field(default_factory=dict)
     # State when InitializeSimulation() had run every Reset(): each input
     # port and module output, hex if it had been written, else None.
-    reset_inputs: Dict[str, Optional[str]] = field(default_factory=dict)
-    reset_outputs: Dict[str, Optional[str]] = field(default_factory=dict)
-    exported_with: Dict[str, str] = field(default_factory=dict)  # tool and Python versions
+    reset_inputs: dict[str, str | None] = field(default_factory=dict)
+    reset_outputs: dict[str, str | None] = field(default_factory=dict)
+    exported_with: dict[str, str] = field(default_factory=dict)  # tool and Python versions
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), indent=1, sort_keys=True)
 
     @classmethod
-    def from_json(cls, text: str) -> "FswCapture":
+    def from_json(cls, text: str) -> FswCapture:
         data = json.loads(text)
         data["modules"] = [ModuleInstance(**{**m, "params": [Param(**p) for p in m["params"]],
                                              "inputs": [InputLink(**i) for i in m["inputs"]]})

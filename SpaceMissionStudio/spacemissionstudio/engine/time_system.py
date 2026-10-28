@@ -54,8 +54,8 @@ live function un-importable without a Basilisk build.
 from __future__ import annotations
 
 import warnings
-from datetime import datetime, timezone
-from typing import Dict, Sequence
+from datetime import datetime, UTC
+from collections.abc import Sequence
 
 import erfa
 import numpy as np
@@ -87,7 +87,7 @@ def utc_iso_to_spice_string(epoch_utc: str) -> str:
         # tz-aware value must be CONVERTED to UTC here, not have its offset
         # silently dropped (which would format the original wall-clock time
         # under a UTC label, off by the offset amount).
-        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        dt = dt.astimezone(UTC).replace(tzinfo=None)
     millis = dt.microsecond // 1000
     month = _MONTH_ABBREVIATIONS[dt.month - 1]
     return f"{dt.year:04d} {month} {dt.day:02d} {dt.hour:02d}:{dt.minute:02d}:{dt.second:02d}.{millis:03d} (UTC)"
@@ -101,7 +101,7 @@ _J2000_JD = 2451545.0  # [day]
 def _naive_utc(epoch_utc) -> datetime:
     epoch = parse_epoch_utc(epoch_utc) if isinstance(epoch_utc, str) else epoch_utc
     if epoch.tzinfo is not None:
-        epoch = epoch.astimezone(timezone.utc).replace(tzinfo=None)
+        epoch = epoch.astimezone(UTC).replace(tzinfo=None)
     return epoch
 
 
@@ -165,7 +165,7 @@ def elapsed_to_utc(epoch_utc, elapsed_tdb_s: Sequence[float]):
     return (approx - correction).astype(object)
 
 
-def time_scales(epoch_utc) -> Dict[str, object]:
+def time_scales(epoch_utc) -> dict[str, object]:
     """The scenario epoch on every scale and the offsets between them, for
     output metadata."""
     epoch = _naive_utc(epoch_utc)

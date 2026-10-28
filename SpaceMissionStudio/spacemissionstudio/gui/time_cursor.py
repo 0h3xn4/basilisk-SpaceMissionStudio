@@ -26,7 +26,6 @@ table). ``None`` means "no cursor": the views show the end of the run.
 
 from __future__ import annotations
 
-from typing import Optional
 
 from PySide6.QtCore import QObject, Signal
 
@@ -36,15 +35,15 @@ class TimeCursor(QObject):
 
     changed = Signal(object)  # the new time [s], or None
 
-    def __init__(self, parent: Optional[QObject] = None):
+    def __init__(self, parent: QObject | None = None):
         super().__init__(parent)
-        self._time_s: Optional[float] = None
+        self._time_s: float | None = None
 
     @property
-    def time_s(self) -> Optional[float]:
+    def time_s(self) -> float | None:
         return self._time_s
 
-    def set_time(self, time_s: Optional[float]) -> None:
+    def set_time(self, time_s: float | None) -> None:
         """Move the cursor; emits :attr:`changed` only when it moves."""
         time_s = None if time_s is None else float(time_s)  # [s]
         if time_s == self._time_s:
@@ -56,7 +55,7 @@ class TimeCursor(QObject):
         self.set_time(None)
 
 
-def describe(time_s: Optional[float], epoch_utc: Optional[str] = None) -> str:
+def describe(time_s: float | None, epoch_utc: str | None = None) -> str:
     """``T+1.250 h (2026-01-01 01:15:00 UTC)``; elapsed only without an epoch."""
     if time_s is None:
         return "No time cursor: the views show the end of the run."

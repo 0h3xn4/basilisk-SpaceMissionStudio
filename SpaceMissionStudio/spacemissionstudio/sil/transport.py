@@ -36,7 +36,7 @@ import tempfile
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from .contract import SilError
 
@@ -56,7 +56,7 @@ class Transport(ABC):
     """A reliable, ordered byte stream."""
 
     @abstractmethod
-    def send(self, data: bytes, timeout_s: Optional[float] = None) -> None:
+    def send(self, data: bytes, timeout_s: float | None = None) -> None:
         """Sends every byte, or raises :class:`SilLinkClosed`. Raises
         :class:`SilTimeout` when the other side neither takes nor sends
         anything for ``timeout_s`` (``None``: wait for ever). Whatever
@@ -64,7 +64,7 @@ class Transport(ABC):
         is itself blocked writing can never hold up a send."""
 
     @abstractmethod
-    def receive(self, size: int, timeout_s: Optional[float]) -> bytes:
+    def receive(self, size: int, timeout_s: float | None) -> bytes:
         """Exactly ``size`` bytes. Raises :class:`SilTimeout` when they have
         not all arrived within ``timeout_s`` (``None``: wait for ever); the
         bytes that did arrive are kept for the next call. Raises
@@ -85,7 +85,7 @@ class SocketTransport(Transport):
         if sock.family == socket.AF_INET:
             sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
-    def send(self, data: bytes, timeout_s: Optional[float] = None) -> None:
+    def send(self, data: bytes, timeout_s: float | None = None) -> None:
         # Not sendall: the flight software writes one OUTPUT per STEP and,
         # while nobody reads them (steps past their deadline), both socket
         # buffers fill and each side waits for the other for ever. Reading
@@ -137,7 +137,7 @@ class SocketTransport(Transport):
             self._eof = True
         return bool(chunk)
 
-    def receive(self, size: int, timeout_s: Optional[float]) -> bytes:
+    def receive(self, size: int, timeout_s: float | None) -> bytes:
         end = None if timeout_s is None else time.perf_counter() + max(0.0, timeout_s)
         while len(self._pending) < size:
             if self._eof:
@@ -162,7 +162,7 @@ class SocketTransport(Transport):
             try:
                 self._sock.settimeout(remaining)
                 chunk = self._sock.recv(max(65536, size - len(self._pending)))
-            except socket.timeout:
+            except TimeoutError:
                 raise SilTimeout(f"waited {timeout_s:.3g} s") from None
             except OSError as exc:
                 raise SilLinkClosed(f"the link to the flight software failed ({exc})") from None
@@ -188,7 +188,7 @@ class Listener:
         if kind == "auto":
             kind = "tcp" if sys.platform == "win32" or not hasattr(socket, "AF_UNIX") else "unix"
         self.kind = kind
-        self._folder: Optional[Path] = None
+        self._folder: Path | None = None
         if kind == "unix":
             self._folder = Path(tempfile.mkdtemp(prefix="sms-sil-"))  # mode 0700
             path = self._folder / "fsw.sock"
@@ -208,7 +208,7 @@ class Listener:
             raise ValueError(f"unknown transport kind {kind!r}")
         self._sock.listen(1)
 
-    def accept(self, timeout_s: float, gone: Callable[[], Optional[str]] = lambda: None) -> SocketTransport:
+    def accept(self, timeout_s: float, gone: Callable[[], str | None] = lambda: None) -> SocketTransport:
         """The first connection within ``timeout_s``. ``gone()`` is asked
         between waits; a reason from it (the program exited) ends the wait."""
         end = time.perf_counter() + timeout_s
@@ -222,7 +222,7 @@ class Listener:
             self._sock.settimeout(min(0.1, remaining))
             try:
                 connection, _ = self._sock.accept()
-            except socket.timeout:
+            except TimeoutError:
                 continue
             return SocketTransport(connection)
 

@@ -15,7 +15,7 @@ checks, and keep its generated files current.
 
 ## 1. Set up
 
-You need Python 3.11 to 3.14 (CI uses 3.11), git, and on Linux glibc 2.28
+You need Python 3.14 (CI uses 3.14), git, and on Linux glibc 2.28
 or newer. From a terminal:
 
 ```bash
@@ -58,8 +58,13 @@ QT_QPA_PLATFORM=offscreen python -m pytest tests -q -n auto
   - `requires_gui`: needs PySide6 (the `gui` extra);
   - `requires_c_toolchain`: builds the exported C code; needs CMake and a
     C compiler.
-- About ten tests always skip, even with Basilisk installed: they check
-  behaviour when Basilisk or a platform feature is missing.
+- Tests whose data is not installed skip: the Eros files, the IERS Earth
+  orientation files, the GMAT references, a German locale. The tests of
+  what happens without Basilisk run with Basilisk hidden (the
+  `basilisk_unavailable` fixture in `tests/conftest.py`).
+- `slow` marks the tests that take about a minute or more (each a full
+  Basilisk run). CI runs them; `-m "not slow"` leaves them out of a quick
+  local run.
 - One file at a time: `python -m pytest tests/test_cli.py -q`.
 
 **Offline tests.** `tests/test_offline.py` checks that nothing touches the
@@ -150,7 +155,7 @@ request that touches `SpaceMissionStudio/`:
 | Job | Runs on | What |
 |---|---|---|
 | `docs` | Ubuntu, when only documentation changed | Whitespace hooks, the compliance-document checks, `tests/gui/test_help.py` |
-| `test` | Ubuntu, Python 3.11 | Lint; compliance-document checks; reference data download; the full suite with coverage; the offline tests; metrics (statement coverage at least 90 %, branch at least 80 %); traceability and compliance matrix |
+| `test` | Ubuntu, Python 3.14 | Lint; compliance-document checks; reference data download; the full suite with coverage; the offline tests; metrics (statement coverage at least 90 %, branch at least 80 %); traceability and compliance matrix |
 | `platforms` | `windows-latest` | Reference data download and the full suite |
 
 If a process in the `test` job crashes in native code (Qt, numpy,

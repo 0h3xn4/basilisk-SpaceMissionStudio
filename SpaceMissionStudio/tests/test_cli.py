@@ -249,7 +249,7 @@ def test_generate_constellation_rejects_invalid_walker_parameters(tmp_path, caps
     assert "INVALID" in capsys.readouterr().err
 
 
-@pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
+@pytest.mark.usefixtures("basilisk_unavailable")
 def test_run_without_basilisk_reports_clear_error(tmp_path, capsys):
     """Without Basilisk, run exits 2 saying Basilisk is not installed."""
     path = tmp_path / "scenario.json"
@@ -259,7 +259,7 @@ def test_run_without_basilisk_reports_clear_error(tmp_path, capsys):
     assert "Basilisk is not installed" in capsys.readouterr().err
 
 
-@pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
+@pytest.mark.usefixtures("basilisk_unavailable")
 def test_kernels_status_without_basilisk_reports_clear_error(capsys):
     """Without Basilisk, kernels-status exits 2 saying Basilisk is not
     installed."""
@@ -504,7 +504,7 @@ def test_monte_carlo_rejects_scenario_without_enabled_flag(tmp_path, capsys):
     assert "monte_carlo.enabled is false" in capsys.readouterr().err
 
 
-@pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
+@pytest.mark.usefixtures("basilisk_unavailable")
 def test_monte_carlo_without_basilisk_reports_clear_error(tmp_path, capsys):
     """Without Basilisk, monte-carlo exits 2 saying Basilisk is not
     installed."""
@@ -620,7 +620,7 @@ def test_generate_phasing_formation_rejects_unknown_chief_name(tmp_path, capsys)
     assert "ERROR" in capsys.readouterr().err
 
 
-@pytest.mark.skipif(_BASILISK_AVAILABLE, reason="this test's premise is specifically that Basilisk is unavailable")
+@pytest.mark.usefixtures("basilisk_unavailable")
 def test_generate_phasing_formation_without_basilisk_reports_clear_error(tmp_path, capsys):
     """Without Basilisk, generate-phasing-formation exits 2 saying Basilisk is
     not installed."""

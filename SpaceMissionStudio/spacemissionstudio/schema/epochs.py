@@ -27,7 +27,7 @@ could not subtract and others compared hours apart (audit M7)."""
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 
 
 def parse_epoch_utc(text: str) -> datetime:
@@ -41,5 +41,5 @@ def parse_epoch_utc(text: str) -> datetime:
         value = value[:-1] + "+00:00"
     moment = datetime.fromisoformat(value)
     if moment.tzinfo is not None:
-        moment = moment.astimezone(timezone.utc).replace(tzinfo=None)
+        moment = moment.astimezone(UTC).replace(tzinfo=None)
     return moment

@@ -39,9 +39,9 @@ One node in a scenario's ``mission_sequence`` tree.
 | Field | Type | Default | Unit / note |
 |---|---|---|---|
 | `kind` | str | `required` |  |
-| `label` | Optional[str] | `None` |  |
+| `label` | str / None | `None` |  |
 | `params` | dict | `{}` |  |
-| `children` | List['Command'] | `[]` |  |
+| `children` | list[Command] | `[]` |  |
 | `enabled` | bool | `True` |  |
 
 ## CommsPointingConfig
@@ -52,7 +52,7 @@ Automatic, geometry-driven attitude mode switching between Sun -pointing (the sp
 |---|---|---|---|
 | `target_ground_station` | str | `required` |  |
 | `antenna_boresight_b` | list | `[0.0, 0.0, 1.0]` | body-frame unit vector |
-| `sun_pointing_axis_b` | Optional[list] | `None` |  |
+| `sun_pointing_axis_b` | list / None | `None` |  |
 | `comms_power_w` | float | `0.0` | [W] additional transmitter draw while ground-station-pointing is active |
 
 ## ConstantThrustConfig
@@ -86,11 +86,11 @@ One dispersed quantity for one spacecraft in a Monte Carlo batch -- see :data:`D
 | `spacecraft` | str | `required` | must match a SpacecraftConfig.name in this scenario |
 | `quantity` | str | `required` | one of DISPERSION_QUANTITIES |
 | `kind` | str | `required` | one of DISPERSION_KINDS_BY_QUANTITY[quantity] |
-| `bounds` | Optional[list] | `None` | [lo, hi] in the quantity's unit (User Manual section 10) |
-| `mean` | Optional[float] | `None` | required for "normal" on dry_mass_kg, drag_coeff, srp_coeff |
-| `std_deviation` | Optional[float] | `None` | 1-sigma in the quantity's unit (User Manual section 10) |
-| `element_spread` | Optional[dict] | `None` | "orbit_elements": {element key: spread} |
-| `angle_std_deg` | Optional[float] | `None` | [deg] "inertia_kg_m2": 1-sigma rotation that mixes in off-diagonal terms |
+| `bounds` | list / None | `None` | [lo, hi] in the quantity's unit (User Manual section 10) |
+| `mean` | float / None | `None` | required for "normal" on dry_mass_kg, drag_coeff, srp_coeff |
+| `std_deviation` | float / None | `None` | 1-sigma in the quantity's unit (User Manual section 10) |
+| `element_spread` | dict / None | `None` | "orbit_elements": {element key: spread} |
+| `angle_std_deg` | float / None | `None` | [deg] "inertia_kg_m2": 1-sigma rotation that mixes in off-diagonal terms |
 
 ## FacetConfig
 
@@ -240,7 +240,7 @@ One part of a 3D model: a simple shape, or a group of an imported mesh, placed i
 | `dimensions_m` | dict | `{}` | [m] the keys MODEL_SHAPE_DIMENSIONS gives for the shape |
 | `sides` | int | `8` | prism only: an octagon by default |
 | `segments` | int | `16` | cylinder, cone, sphere: sides they are drawn and faceted with |
-| `mesh_index` | Optional[int] | `None` | mesh parts: index into SpacecraftModelConfig.meshes |
+| `mesh_index` | int / None | `None` | mesh parts: index into SpacecraftModelConfig.meshes |
 | `mesh_group` | str | `''` | mesh parts: the group (o/g name) in that file |
 | `position_b_m` | list | `[0.0, 0.0, 0.0]` | [m] |
 | `rotation_deg` | list | `[0.0, 0.0, 0.0]` | [deg] roll, pitch, yaw (3-2-1) |
@@ -294,7 +294,7 @@ Errors on what the flight software is told, by Basilisk's ``simpleNav`` (its Gau
 | `position_bound_m` | float | `0.0` | [m] |
 | `velocity_step_m_s` | float | `0.0` | [m/s] |
 | `velocity_bound_m_s` | float | `0.0` | [m/s] |
-| `seed` | Optional[int] | `None` |  |
+| `seed` | int / None | `None` |  |
 
 ## OpticalNavigationConfig
 
@@ -323,18 +323,18 @@ One spacecraft's orbit initial condition, in exactly one of three forms. Only th
 | Field | Type | Default | Unit / note |
 |---|---|---|---|
 | `type` | str | `required` | one of ORBIT_IC_TYPES |
-| `semi_major_axis_km` | Optional[float] | `None` |  |
-| `eccentricity` | Optional[float] | `None` |  |
-| `inclination_deg` | Optional[float] | `None` |  |
-| `raan_deg` | Optional[float] | `None` |  |
-| `arg_periapsis_deg` | Optional[float] | `None` |  |
+| `semi_major_axis_km` | float / None | `None` |  |
+| `eccentricity` | float / None | `None` |  |
+| `inclination_deg` | float / None | `None` |  |
+| `raan_deg` | float / None | `None` |  |
+| `arg_periapsis_deg` | float / None | `None` |  |
 | `anomaly_type` | str | `'true'` | one of ANOMALY_TYPES |
-| `true_anomaly_deg` | Optional[float] | `None` |  |
-| `mean_anomaly_deg` | Optional[float] | `None` |  |
-| `position_km` | Optional[list] | `None` | [x, y, z] |
-| `velocity_km_s` | Optional[list] | `None` | [vx, vy, vz] |
-| `tle_line1` | Optional[str] | `None` |  |
-| `tle_line2` | Optional[str] | `None` |  |
+| `true_anomaly_deg` | float / None | `None` |  |
+| `mean_anomaly_deg` | float / None | `None` |  |
+| `position_km` | list / None | `None` | [x, y, z] |
+| `velocity_km_s` | list / None | `None` | [vx, vy, vz] |
+| `tle_line1` | str / None | `None` |  |
+| `tle_line2` | str / None | `None` |  |
 
 ## PhasingKeepingConfig
 
@@ -378,7 +378,7 @@ Inputs for a delta-V and propellant budget in the manner of ESA's AD10 guideline
 | `dry_mass_includes_margin` | bool | `False` | else the system margin below is added (Sec. 5.10) |
 | `system_margin_fraction` | float | `0.15` | [-] Sec. 5.10 default |
 | `tank_capacity_kg` | float | `0.0` | [kg] maximum propellant load (Sec. 5.8); 0 = the budget's own total |
-| `isp_s` | Optional[float] | `None` | [s] None = the orbit thruster's (station keeping etc.) |
+| `isp_s` | float / None | `None` | [s] None = the orbit thruster's (station keeping etc.) |
 | `thrust_angle_deg` | float | `0.0` | [deg] thruster axis vs wanted thrust direction (Sec. 5.11) |
 | `misalignment_deg` | float | `0.0` | [deg] incl. attitude error while thrusting |
 | `plume_efficiency` | float | `1.0` | [-] |
@@ -389,9 +389,9 @@ Inputs for a delta-V and propellant budget in the manner of ESA's AD10 guideline
 | `injection_raan_delta_v_m_s` | float | `0.0` | [m/s] RAAN/MLST correction, strategy-specific |
 | `orbit_acquisition_delta_v_m_s` | float | `0.0` | [m/s] |
 | `transfer_delta_v_m_s` | float | `0.0` | [m/s] |
-| `in_plane_control_delta_v_m_s` | Optional[float] | `None` | [m/s] |
-| `out_of_plane_control_delta_v_m_s` | Optional[float] | `None` | [m/s] |
-| `formation_delta_v_m_s` | Optional[float] | `None` | [m/s] |
+| `in_plane_control_delta_v_m_s` | float / None | `None` | [m/s] |
+| `out_of_plane_control_delta_v_m_s` | float / None | `None` | [m/s] |
+| `formation_delta_v_m_s` | float / None | `None` | [m/s] |
 | `collision_avoidance_count` | float | `0.0` | [-] e.g. from ESA DRAMA, before the x4 margin |
 | `attitude_thruster_propellant_kg` | float | `0.0` | [kg] before the 100% margin |
 | `disposal` | str | `'uncontrolled_reentry'` | see SUPPORTED_DISPOSALS |
@@ -413,11 +413,11 @@ A spacecraft's downlink transmitter, for a reported link-margin ESTIMATE only (`
 | `tx_antenna_gain_dbi` | float | `0.0` | [dBi] spacecraft downlink antenna gain |
 | `implementation_loss_db` | float | `2.0` | [dB] combined pointing/polarization/implementation loss |
 | `required_ebno_db` | float | `6.0` | [dB] required Eb/N0 for the assumed modulation/coding |
-| `antenna_beamwidth_deg` | Optional[float] | `None` |  |
+| `antenna_beamwidth_deg` | float / None | `None` |  |
 | `antenna_pattern` | str | `'fixed'` |  |
 | `antenna_gain_table` | list | `[]` |  |
 | `antenna_front_to_back_db` | float | `15.0` | [dB] "cosine" only: gain behind the ground plane, below the peak |
-| `antenna_boresight_b` | Optional[list] | `None` |  |
+| `antenna_boresight_b` | list / None | `None` |  |
 
 ## RoeFormationConfig
 
@@ -493,11 +493,11 @@ See engine/spaceweather.py and engine/service.py. Real data only (user requireme
 | Field | Type | Default | Unit / note |
 |---|---|---|---|
 | `source` | str | `'bundled'` | "bundled" / "local_file" |
-| `local_file_path` | Optional[str] | `None` |  |
-| `cache_dir` | Optional[str] | `None` | defaults to engine.spaceweather's own cache dir when None |
+| `local_file_path` | str / None | `None` |  |
+| `cache_dir` | str / None | `None` | defaults to engine.spaceweather's own cache dir when None |
 | `atmosphere_model` | str | `'nrlmsise00'` | "nrlmsise00" / "exponential" |
 | `forecast_percentile` | float | `50.0` |  |
-| `msfc_file_path` | Optional[str] | `None` | your own MSFC prediction table; None = the one shipped with the app |
+| `msfc_file_path` | str / None | `None` | your own MSFC prediction table; None = the one shipped with the app |
 
 ## SpacecraftConfig
 
@@ -522,31 +522,31 @@ See engine/spaceweather.py and engine/service.py. Real data only (user requireme
 | `enable_gravity_gradient` | bool | `False` |  |
 | `sensors` | list | `[]` | list[SensorConfig] |
 | `actuators` | list | `[]` | list[ActuatorConfig] |
-| `fsw_mode` | Optional[str] | `None` |  |
+| `fsw_mode` | str / None | `None` |  |
 | `fsw_params` | dict | `{}` |  |
 | `control_params` | dict | `{}` |  |
-| `power` | Optional[PowerConfig] | `None` |  |
-| `rf_link` | Optional[RFLinkConfig] | `None` |  |
-| `comms_pointing` | Optional[CommsPointingConfig] | `None` |  |
-| `data_handling` | Optional[DataHandlingConfig] | `None` |  |
+| `power` | PowerConfig / None | `None` |  |
+| `rf_link` | RFLinkConfig / None | `None` |  |
+| `comms_pointing` | CommsPointingConfig / None | `None` |  |
+| `data_handling` | DataHandlingConfig / None | `None` |  |
 | `solar_arrays` | list | `[]` | SolarArrayConfig: flexible, hinged arrays |
-| `station_keeping` | Optional[StationKeepingConfig] | `None` |  |
-| `geo_station_keeping` | Optional[GeoStationKeepingConfig] | `None` |  |
-| `phasing_keeping` | Optional[PhasingKeepingConfig] | `None` |  |
-| `roe_formation` | Optional[RoeFormationConfig] | `None` | formation in relative orbital elements |
-| `optical_navigation` | Optional[OpticalNavigationConfig] | `None` | camera navigation from the central body's disk |
-| `landmark_navigation` | Optional[LandmarkNavigationConfig] | `None` | camera navigation from a small body's landmarks |
-| `constant_thrust` | Optional[ConstantThrustConfig] | `None` |  |
-| `momentum_dumping` | Optional[MomentumDumpingConfig] | `None` |  |
-| `magnetic_momentum_management` | Optional[MagneticMomentumManagementConfig] | `None` |  |
-| `navigation_error` | Optional[NavigationErrorConfig] | `None` |  |
-| `fuel_tank` | Optional[FuelTankConfig] | `None` |  |
-| `propellant_budget` | Optional[PropellantBudgetConfig] | `None` | see engine/propellant_budget.py |
-| `vizard_model_path` | Optional[str] | `None` | path to a .obj file, or "CUBE"/"CYLINDER"/"SPHERE" |
+| `station_keeping` | StationKeepingConfig / None | `None` |  |
+| `geo_station_keeping` | GeoStationKeepingConfig / None | `None` |  |
+| `phasing_keeping` | PhasingKeepingConfig / None | `None` |  |
+| `roe_formation` | RoeFormationConfig / None | `None` | formation in relative orbital elements |
+| `optical_navigation` | OpticalNavigationConfig / None | `None` | camera navigation from the central body's disk |
+| `landmark_navigation` | LandmarkNavigationConfig / None | `None` | camera navigation from a small body's landmarks |
+| `constant_thrust` | ConstantThrustConfig / None | `None` |  |
+| `momentum_dumping` | MomentumDumpingConfig / None | `None` |  |
+| `magnetic_momentum_management` | MagneticMomentumManagementConfig / None | `None` |  |
+| `navigation_error` | NavigationErrorConfig / None | `None` |  |
+| `fuel_tank` | FuelTankConfig / None | `None` |  |
+| `propellant_budget` | PropellantBudgetConfig / None | `None` | see engine/propellant_budget.py |
+| `vizard_model_path` | str / None | `None` | path to a .obj file, or "CUBE"/"CYLINDER"/"SPHERE" |
 | `vizard_model_offset_m` | list | `[0.0, 0.0, 0.0]` |  |
 | `vizard_model_rotation_deg` | list | `[0.0, 0.0, 0.0]` | 3-2-1 Euler (z,y,x) |
 | `vizard_model_scale` | list | `[1.0, 1.0, 1.0]` |  |
-| `model` | Optional[SpacecraftModelConfig] | `None` |  |
+| `model` | SpacecraftModelConfig / None | `None` |  |
 
 ## SpacecraftModelConfig
 
@@ -557,7 +557,7 @@ A spacecraft's 3D model (see ``spacemissionstudio.model3d``): parts built from s
 | `parts` | list | `[]` | list[ModelPartConfig] |
 | `meshes` | list | `[]` | list[ModelMeshConfig] |
 | `mass_properties_source` | str | `'computed'` | one of MASS_PROPERTIES_SOURCES |
-| `mass_properties` | Optional[ModelMassPropertiesConfig] | `None` | for "typed" and "imported" |
+| `mass_properties` | ModelMassPropertiesConfig / None | `None` | for "typed" and "imported" |
 | `apply_mass_properties` | bool | `True` |  |
 | `apply_facets` | bool | `True` |  |
 | `use_for_vizard` | bool | `True` |  |

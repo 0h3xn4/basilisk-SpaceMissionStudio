@@ -25,7 +25,6 @@ theme choice is kept), not in any scenario or project file.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 MAX_RECENT = 10  # the plan's "last 10"
 _KEY = "recent/scenarios"
@@ -43,7 +42,7 @@ def _key(path: Path) -> str:
     return resolved.casefold() if Path("A") == Path("a") else resolved
 
 
-def recent() -> List[Path]:
+def recent() -> list[Path]:
     """The recent scenario files, newest first (a missing one included)."""
     value = _settings().value(_KEY, [])
     if isinstance(value, str):  # an INI list of one reads back as a string
@@ -51,23 +50,23 @@ def recent() -> List[Path]:
     return [Path(text) for text in (value or []) if text][:MAX_RECENT]
 
 
-def _store(paths: List[Path]) -> List[Path]:
+def _store(paths: list[Path]) -> list[Path]:
     settings = _settings()
     settings.setValue(_KEY, [str(path) for path in paths[:MAX_RECENT]])
     settings.sync()
     return paths[:MAX_RECENT]
 
 
-def remember(path: Path) -> List[Path]:
+def remember(path: Path) -> list[Path]:
     """Put ``path`` first; the oldest past :data:`MAX_RECENT` drops off."""
     path = Path(path).expanduser().resolve()
     return _store([path] + [other for other in recent() if _key(other) != _key(path)])
 
 
-def forget(path: Path) -> List[Path]:
+def forget(path: Path) -> list[Path]:
     """Take ``path`` off the list."""
     return _store([other for other in recent() if _key(other) != _key(path)])
 
 
-def clear() -> List[Path]:
+def clear() -> list[Path]:
     return _store([])

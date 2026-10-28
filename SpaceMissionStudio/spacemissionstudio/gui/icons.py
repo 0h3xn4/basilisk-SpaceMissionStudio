@@ -181,7 +181,7 @@ def app_icon() -> QIcon:
     return icon
 
 
-def ensure_icon_file(path: "str | Path", size: int = 256) -> Path:
+def ensure_icon_file(path: str | Path, size: int = 256) -> Path:
     """Renders the icon to a PNG at ``path`` (creating parent directories
     as needed) if it doesn't already exist, and returns the path. Used by
     ``packaging/`` for the ``.desktop`` entry's ``Icon=`` target, which

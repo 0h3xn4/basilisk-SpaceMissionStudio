@@ -110,7 +110,6 @@ from __future__ import annotations
 
 import copy
 import math
-from typing import List, Optional
 
 import numpy as np
 
@@ -156,7 +155,7 @@ _DRAG_LOOKAHEAD_ORBITS = 2.0
 _DRAG_TRIGGER_FRACTION = 0.7
 
 
-def mean_elements(r_m, v_mps, mu: float, req: float, j2: float) -> Optional[roe.MeanElements]:
+def mean_elements(r_m, v_mps, mu: float, req: float, j2: float) -> roe.MeanElements | None:
     """Mean classical elements from an osculating state (``clMeanOscMap``,
     sign -1); ``None`` when the state is not a closed orbit."""
     try:
@@ -174,7 +173,7 @@ def mean_elements(r_m, v_mps, mu: float, req: float, j2: float) -> Optional[roe.
     return roe.MeanElements(*values)
 
 
-def equinoctial_target(chief: roe.MeanElements, target_roe) -> List[float]:
+def equinoctial_target(chief: roe.MeanElements, target_roe) -> list[float]:
     """``meanOEFeedback``'s ``targetDiffOeMean`` for oeType 1 (``[da/a,
     dP1, dP2, dQ1, dQ2, dl]``, deputy minus chief) that puts the deputy
     at ``target_roe`` (dimensionless) from ``chief``."""
@@ -329,7 +328,7 @@ class RoeFormationController(sysModel.SysModel):
         # Wired by build_roe_formation.
         self.extForceEffectorB = None
         self.scObjectB = None
-        self.altitudeControllerB: Optional[StationKeepingController] = None
+        self.altitudeControllerB: StationKeepingController | None = None
         self.thruster = None  # the follower's shared ThrusterOnTimeModel
         self.lawModule = None  # "continuous": the meanOEFeedback module
         self.chiefName = ""
@@ -344,15 +343,15 @@ class RoeFormationController(sysModel.SysModel):
         self.separationCapacityKm, self.marginCapacityM = gauge_scales(config)  # [km], [m]
 
         self.state = HOLDING
-        self._lastT: Optional[float] = None  # [s]
-        self._targetIndex: Optional[int] = None
+        self._lastT: float | None = None  # [s]
+        self._targetIndex: int | None = None
         self._nextDecisionT = 0.0  # [s]
-        self._driftDa: Optional[float] = None  # [-] the da a drift in progress holds
-        self._pending: List[_Pending] = []
-        self._firing: Optional[_Pending] = None
+        self._driftDa: float | None = None  # [-] the da a drift in progress holds
+        self._pending: list[_Pending] = []
+        self._firing: _Pending | None = None
         self._sunlit = np.ones(_SUNLIT_BINS, dtype=bool)  # by argument of latitude, from the last orbit
-        self._lastInSun: Optional[bool] = None
-        self._lastRefreshT: Optional[float] = None  # [s] "continuous": when the target was last set
+        self._lastInSun: bool | None = None
+        self._lastRefreshT: float | None = None  # [s] "continuous": when the target was last set
         self._cumulativeDv = 0.0  # [m/s]
         self._loggedState = HOLDING
         self._peakCommandSinceLog = 0.0  # [N]
@@ -362,9 +361,9 @@ class RoeFormationController(sysModel.SysModel):
         self.lastRoeM = np.full(6, np.nan)  # [m]
         self.lastErrorM = np.full(6, np.nan)  # [m]
         self.estimateDrag = self.controlLaw == "impulsive" and config.differential_drag
-        self.dragEstimator: Optional[roe.DifferentialDragEstimator] = None  # made on the first measurement
-        self._dragEstimate: Optional[float] = None  # [1/s] the latest fit of da_dot
-        self._dragRate: Optional[float] = None  # [1/s] the da_dot the guidance plans with (None: none)
+        self.dragEstimator: roe.DifferentialDragEstimator | None = None  # made on the first measurement
+        self._dragEstimate: float | None = None  # [1/s] the latest fit of da_dot
+        self._dragRate: float | None = None  # [1/s] the da_dot the guidance plans with (None: none)
         self._thrustLastTick = False
         self._chiefA = math.nan  # [m] the chief's mean semi-major axis at the last measurement
 
@@ -434,7 +433,7 @@ class RoeFormationController(sysModel.SysModel):
         if rank[state] >= rank[self._loggedState]:
             self._loggedState = state
 
-    def _fire(self, force_direction, want_n: float, remaining_dv: Optional[float], mass_kg: float, dt: float,
+    def _fire(self, force_direction, want_n: float, remaining_dv: float | None, mass_kg: float, dt: float,
               in_sun: bool, u: float, v: float, n: float) -> float:
         """Fires the shared thruster this tick; returns the thrust [N]."""
         tracker = self.altitudeControllerB
@@ -457,7 +456,7 @@ class RoeFormationController(sysModel.SysModel):
         longest_s = period_s * self.config.max_burn_fraction_of_orbit  # [s] the longest burn part
         max_dv = longest_s * self.thrustN / mass_kg  # [m/s]
 
-        def plan(roe_used, stop_drift: bool, drift_da: Optional[float] = None, tolerance=tolerance):
+        def plan(roe_used, stop_drift: bool, drift_da: float | None = None, tolerance=tolerance):
             correction = roe.plan_correction(
                 roe_used, target, chief, tolerance, self.config.correction_window_days * _DAY_S,
                 self.config.max_drift_m / a, self._driftDa if drift_da is None else drift_da, stop_drift,
@@ -807,7 +806,7 @@ def build_roe_formation(scSim, task_name: str, tag: str, mu: float, chief_sc_obj
 ROE_COLUMNS = tuple(f"a_{label}" for label in roe.ROE_LABELS)  # each ROE times the chief's semi-major axis
 
 
-def result_series(name: str, controller: RoeFormationController) -> List[TimeSeries]:
+def result_series(name: str, controller: RoeFormationController) -> list[TimeSeries]:
     """The controller's telemetry as ``{name}.roe_formation.*`` series."""
     t_s = np.asarray(controller.tLog)
     prefix = f"{name}.roe_formation"

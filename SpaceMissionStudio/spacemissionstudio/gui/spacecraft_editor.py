@@ -199,13 +199,13 @@ _CONTROL_PARAM_SPECS: list[_FswParamSpec] = [
 ]
 
 
-def _fsw_template_params(fsw_mode: "str | None") -> dict:
+def _fsw_template_params(fsw_mode: str | None) -> dict:
     if fsw_mode is None:
         return {}
     return {spec.key: spec.example for spec in _FSW_MODE_PARAM_SPECS.get(fsw_mode, []) if spec.fill_on_reset}
 
 
-def _fsw_missing_required_keys(fsw_mode: "str | None", params: dict) -> list[str]:
+def _fsw_missing_required_keys(fsw_mode: str | None, params: dict) -> list[str]:
     if fsw_mode is None:
         return []
     if fsw_mode == "locationPointing":
@@ -216,7 +216,7 @@ def _fsw_missing_required_keys(fsw_mode: "str | None", params: dict) -> list[str
     return [spec.key for spec in _FSW_MODE_PARAM_SPECS.get(fsw_mode, []) if spec.required and spec.key not in params]
 
 
-def _fsw_hint_text(fsw_mode: "str | None") -> str:
+def _fsw_hint_text(fsw_mode: str | None) -> str:
     return _FSW_MODE_SUMMARIES.get(fsw_mode, "")
 
 

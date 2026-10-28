@@ -67,7 +67,6 @@ from __future__ import annotations
 import logging
 import threading
 from pathlib import Path
-from typing import Optional
 
 from PySide6.QtCore import QThread, Signal
 
@@ -90,8 +89,8 @@ class RunWorker(QThread):
     phase = Signal(str)
     fraction = Signal(float)
 
-    def __init__(self, scenario: Scenario, vizard_request: Optional[object] = None, live: bool = False,
-                 parent=None, allow_scripts: bool = False, sil: Optional[tuple] = None):
+    def __init__(self, scenario: Scenario, vizard_request: object | None = None, live: bool = False,
+                 parent=None, allow_scripts: bool = False, sil: tuple | None = None):
         super().__init__(parent)
         self.scenario = scenario
         # (spacecraft name, sil.runner.SilOptions): run that spacecraft's

@@ -96,9 +96,8 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from functools import cached_property
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, UTC
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -158,8 +157,8 @@ class ValidationResult:
     missing_columns: list
     duplicate_dates: list
     unsorted: bool
-    first_date: Optional[str]
-    last_date: Optional[str]
+    first_date: str | None
+    last_date: str | None
     message: str
 
 
@@ -247,7 +246,7 @@ def validate_file(path, start_utc: datetime, end_utc: datetime) -> ValidationRes
                              "OK" if ok else "; ".join(reasons))
 
 
-def fetch(dataset: str = "SW-All", cache_dir: Optional[Path] = None, force: bool = False,
+def fetch(dataset: str = "SW-All", cache_dir: Path | None = None, force: bool = False,
           timeout_s: float = 30.0) -> Path:
     """Download a CelesTrak space-weather CSV to a local cache and return
     its path. Raises :class:`SpaceWeatherError` (never returns a partial/
@@ -331,7 +330,7 @@ def _install(dest: Path, data: bytes, source: str) -> Path:
         observed = [d for d, r in parsed.days.items() if r.kind == "observed"]
         _manifest_of(dest).write_text(json.dumps({
             "source": source, "sha256": hashlib.sha256(data).hexdigest(), "size_bytes": len(data),
-            "installed_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+            "installed_utc": datetime.now(UTC).isoformat(timespec="seconds"),
             "first_date": parsed.first_date.isoformat(), "last_date": parsed.last_date.isoformat(),
             "last_observed": max(observed).isoformat() if observed else None,
         }, indent=2) + "\n", encoding="utf-8")
@@ -348,7 +347,7 @@ def _install(dest: Path, data: bytes, source: str) -> Path:
     return dest
 
 
-def import_file(path: "str | Path", dataset: str = "SW-All", cache_dir: Optional[Path] = None) -> Path:
+def import_file(path: str | Path, dataset: str = "SW-All", cache_dir: Path | None = None) -> Path:
     """Install a CelesTrak file the user has (for example from removable
     media) as the downloaded data, the way :func:`fetch` would; the
     previous file is kept for :func:`rollback`."""
@@ -362,7 +361,7 @@ def import_file(path: "str | Path", dataset: str = "SW-All", cache_dir: Optional
     return _install(cache_dir / f"{dataset}.csv", data, f"imported from {path}")
 
 
-def rollback(dataset: str = "SW-All", cache_dir: Optional[Path] = None) -> Path:
+def rollback(dataset: str = "SW-All", cache_dir: Path | None = None) -> Path:
     """Put the previous downloaded or imported file back."""
     cache_dir = Path(cache_dir) if cache_dir else DEFAULT_CACHE_DIR
     dest = cache_dir / f"{dataset}.csv"
@@ -377,7 +376,7 @@ def rollback(dataset: str = "SW-All", cache_dir: Optional[Path] = None) -> Path:
     return dest
 
 
-def installed_record(dataset: str = "SW-All", cache_dir: Optional[Path] = None) -> Optional[dict]:
+def installed_record(dataset: str = "SW-All", cache_dir: Path | None = None) -> dict | None:
     """The manifest of the downloaded or imported file (source, SHA-256,
     dates), or None when there is none; ``previous`` holds the kept one's."""
     cache_dir = Path(cache_dir) if cache_dir else DEFAULT_CACHE_DIR
@@ -398,7 +397,7 @@ def installed_record(dataset: str = "SW-All", cache_dir: Optional[Path] = None) 
     return record
 
 
-def cached_fetch_path(dataset: str = "SW-All", cache_dir: Optional[Path] = None) -> Optional[Path]:
+def cached_fetch_path(dataset: str = "SW-All", cache_dir: Path | None = None) -> Path | None:
     """Returns the path :func:`fetch` would already have written for
     ``dataset``, if it's actually there -- a pure, no-network check so
     GUI code (e.g. pre-filling the Propagation Setup dialog's local-file
@@ -451,7 +450,7 @@ _TXT_F107_OBS = (112, 118)
 _TXT_CTR81_OBS = (118, 124)
 
 
-def _number(text: str) -> Optional[float]:
+def _number(text: str) -> float | None:
     try:
         return float(text)
     except ValueError:
@@ -625,7 +624,7 @@ def load_msfc(path) -> MsfcForecast:
     return MsfcForecast(path, months)
 
 
-def real_data_path(source: str, local_file_path: Optional[str] = None, cache_dir: Optional[Path] = None) -> Path:
+def real_data_path(source: str, local_file_path: str | None = None, cache_dir: Path | None = None) -> Path:
     """The real data file a ``source`` uses: the user's own file, or for
     ``"bundled"`` the newer of the file shipped with the app and one the
     startup prompt downloaded (newer = later last observed day)."""
@@ -649,8 +648,8 @@ def real_data_path(source: str, local_file_path: Optional[str] = None, cache_dir
     return best
 
 
-def data_coverage(source: str, local_file_path: Optional[str] = None, cache_dir: Optional[Path] = None,
-                  msfc_file_path: Optional[str] = None):
+def data_coverage(source: str, local_file_path: str | None = None, cache_dir: Path | None = None,
+                  msfc_file_path: str | None = None):
     """(first, last) calendar dates the real data covers; ``last`` is
     None when an MSFC prediction extends it without end (its last 132
     months repeat, AD10 Sec. 5.9)."""
@@ -659,14 +658,14 @@ def data_coverage(source: str, local_file_path: Optional[str] = None, cache_dir:
     return data.first_date, None if msfc is not None else data.last_date
 
 
-def _msfc_or_none(msfc_file_path: Optional[str]) -> Optional[MsfcForecast]:
+def _msfc_or_none(msfc_file_path: str | None) -> MsfcForecast | None:
     """The MSFC prediction: the user's file, else the shipped one."""
     if msfc_file_path:
         return load_msfc(msfc_file_path)
     return load_msfc(MSFC_BUNDLED_PATH) if MSFC_BUNDLED_PATH.exists() else None
 
 
-def _span_days(data: "CelestrakData", msfc: Optional[MsfcForecast], percentile: float, first, last):
+def _span_days(data: CelestrakData, msfc: MsfcForecast | None, percentile: float, first, last):
     """Day -> record over ``first``..``last``: observed days and the
     45-day forecast from CelesTrak first, then MSFC's prediction (at
     ``percentile``, 13-month smoothed F10.7 and Ap used for the day and
@@ -768,9 +767,9 @@ def _replace_or_keep_complete(tmp_path: Path, dest_path: Path, rows: int) -> Non
             time.sleep(_REPLACE_RETRY_S)
 
 
-def _resolve_real(source: str, start_utc: datetime, end_utc: datetime, local_file_path: Optional[str],
-                  cache_dir: Optional[Path], warnings: list, forecast_percentile: float = 50.0,
-                  msfc_file_path: Optional[str] = None) -> "ResolvedSpaceWeather":
+def _resolve_real(source: str, start_utc: datetime, end_utc: datetime, local_file_path: str | None,
+                  cache_dir: Path | None, warnings: list, forecast_percentile: float = 50.0,
+                  msfc_file_path: str | None = None) -> ResolvedSpaceWeather:
     if float(forecast_percentile) not in MSFC_PERCENTILES:
         raise SpaceWeatherError(f"forecast_percentile {forecast_percentile!r} must be one of {MSFC_PERCENTILES}")
     path = real_data_path(source, local_file_path, cache_dir)
@@ -806,8 +805,8 @@ def _resolve_real(source: str, start_utc: datetime, end_utc: datetime, local_fil
 
 
 def resolve(source: str, start_utc: datetime, end_utc: datetime,
-            local_file_path: Optional[str] = None, cache_dir: Optional[Path] = None,
-            forecast_percentile: float = 50.0, msfc_file_path: Optional[str] = None) -> ResolvedSpaceWeather:
+            local_file_path: str | None = None, cache_dir: Path | None = None,
+            forecast_percentile: float = 50.0, msfc_file_path: str | None = None) -> ResolvedSpaceWeather:
     """Resolve a ``SpaceWeatherConfig`` (see ``schema.scenario``) into a
     CSV Basilisk's ``spaceWeatherData.loadSpaceWeatherFile()`` loads.
     Real data only -- no network here (see this module's docstring):
@@ -830,7 +829,7 @@ def resolve(source: str, start_utc: datetime, end_utc: datetime,
 
 
 def resolve_for(config, start_utc: datetime, end_utc: datetime,
-                forecast_percentile: Optional[float] = None) -> ResolvedSpaceWeather:
+                forecast_percentile: float | None = None) -> ResolvedSpaceWeather:
     """:func:`resolve` for a ``schema.scenario.SpaceWeatherConfig``;
     ``forecast_percentile`` overrides the config's (e.g. 50 for an
     end-of-life estimate, AD10 Sec. 5.9)."""

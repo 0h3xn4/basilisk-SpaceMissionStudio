@@ -485,7 +485,6 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -605,14 +604,14 @@ class VizardRequest:
     should be set -- see :func:`enable_vizard`.
     """
 
-    save_file: Optional[str] = None  # path for a .bin playback file Vizard opens after the run
+    save_file: str | None = None  # path for a .bin playback file Vizard opens after the run
     live_stream: bool = False  # stream live to a Vizard instance already running on this machine
     # Name of the spacecraft or celestial body Vizard's main camera starts
     # targeted at. None (the default) targets the scenario's central body --
     # an Earth-centered view with the orbit tracing around it, matching
     # STK/GMAT/FreeFlyer's default framing, rather than a spacecraft-locked
     # close-up. Set this to a spacecraft name to start zoomed in on it instead.
-    camera_target: Optional[str] = None
+    camera_target: str | None = None
     # Draw each spacecraft's current (osculating) orbit as one ring, so the
     # orbit is visible, not just a moving dot. On by default for the same
     # "understandable at a glance" reason as camera_target.
@@ -625,7 +624,7 @@ class VizardRequest:
     show_ground_tracks: bool = False
     # The scenario file's folder: resolves the relative mesh paths of a
     # spacecraft's 3D model (SpacecraftConfig.model) for its Vizard copy.
-    model_base_dir: Optional[str] = None
+    model_base_dir: str | None = None
 
 
 # Body frame -> the coordinates to write so Vizard shows the model as
@@ -637,7 +636,7 @@ class VizardRequest:
 _BODY_TO_VIZARD_OBJ = [[0.0, -1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, 0.0]]
 
 
-def write_model_for_vizard(sc_config, directory, base_dir=None) -> Optional[Path]:
+def write_model_for_vizard(sc_config, directory, base_dir=None) -> Path | None:
     """Write a spacecraft's 3D model (``sc_config.model``) as ``<name>.obj``
     (+ ``.mtl``) in ``directory`` for Vizard, in the axes Vizard expects
     (see ``_BODY_TO_VIZARD_OBJ``). Hidden parts and parts that cannot be
@@ -657,7 +656,7 @@ def write_model_for_vizard(sc_config, directory, base_dir=None) -> Optional[Path
     return write_obj(directory / f"{sc_config.name}.obj", turned)
 
 
-def _highest_initial_orbit_radius_m(sc_objects) -> Optional[float]:
+def _highest_initial_orbit_radius_m(sc_objects) -> float | None:
     """Largest starting distance from the central body among
     ``sc_objects`` [m], or None when none is known."""
     from Basilisk.utilities import simHelpers
@@ -674,7 +673,7 @@ def _highest_initial_orbit_radius_m(sc_objects) -> Optional[float]:
     return max(radii) if radii else None
 
 
-def _slant_range_m(planet_radius_m: float, orbit_radius_m: Optional[float], min_elevation_rad: float):
+def _slant_range_m(planet_radius_m: float, orbit_radius_m: float | None, min_elevation_rad: float):
     """Distance from a station on the surface to a point at
     ``orbit_radius_m`` seen at ``min_elevation_rad`` above the horizon [m]
     (None -- Vizard's default -- when the orbit radius is unknown or not
@@ -685,19 +684,19 @@ def _slant_range_m(planet_radius_m: float, orbit_radius_m: Optional[float], min_
     return -planet_radius_m * sin_e + math.sqrt(orbit_radius_m ** 2 - (planet_radius_m * cos_e) ** 2)
 
 
-def enable_vizard(scSim, task_name: str, sc_objects: List, request: VizardRequest,
-                   rw_effectors_by_spacecraft: Optional[List] = None,
-                   thr_effectors_by_spacecraft: Optional[List] = None,
-                   ground_stations: Optional[Dict[str, object]] = None,
+def enable_vizard(scSim, task_name: str, sc_objects: list, request: VizardRequest,
+                   rw_effectors_by_spacecraft: list | None = None,
+                   thr_effectors_by_spacecraft: list | None = None,
+                   ground_stations: dict[str, object] | None = None,
                    central_body_name: str = "earth",
-                   battery_by_spacecraft: Optional[Dict[str, object]] = None,
-                   station_keeping_by_spacecraft: Optional[Dict[str, object]] = None,
-                   phasing_keeping_by_spacecraft: Optional[Dict[str, object]] = None,
-                   roe_formation_by_spacecraft: Optional[Dict[str, object]] = None,
-                   fuel_tank_by_spacecraft: Optional[Dict[str, object]] = None,
-                   comms_pointing_by_spacecraft: Optional[Dict[str, object]] = None,
-                   access_out_msgs: Optional[Dict[tuple, object]] = None,
-                   custom_models_by_spacecraft: Optional[Dict[str, dict]] = None):
+                   battery_by_spacecraft: dict[str, object] | None = None,
+                   station_keeping_by_spacecraft: dict[str, object] | None = None,
+                   phasing_keeping_by_spacecraft: dict[str, object] | None = None,
+                   roe_formation_by_spacecraft: dict[str, object] | None = None,
+                   fuel_tank_by_spacecraft: dict[str, object] | None = None,
+                   comms_pointing_by_spacecraft: dict[str, object] | None = None,
+                   access_out_msgs: dict[tuple, object] | None = None,
+                   custom_models_by_spacecraft: dict[str, dict] | None = None):
     """Call once, after every spacecraft/sensor/actuator/FSW module for
     this run has been added to ``scSim`` and BEFORE ``InitializeSimulation()``
     (matches every ``vizSupport.enableUnityVisualization`` call site in
@@ -818,10 +817,10 @@ def enable_vizard(scSim, task_name: str, sc_objects: List, request: VizardReques
             payload.deviceCmd = self._ACCESS_CMD if has_access else self._NO_ACCESS_CMD
             self.cmdOutMsg.write(payload, CurrentSimNanos, self.moduleID)
 
-    generic_storage_list: List[Optional[list]] = []
-    generic_sensor_list: List[Optional[list]] = []
-    spacecraft_with_storage_panel: List[str] = []
-    spacecraft_with_sensor_labels: List[str] = []
+    generic_storage_list: list[list | None] = []
+    generic_sensor_list: list[list | None] = []
+    spacecraft_with_storage_panel: list[str] = []
+    spacecraft_with_sensor_labels: list[str] = []
     # _AccessIndicatorBridge instances MUST be kept alive by a persistent
     # Python reference for as long as they're registered on scSim's task --
     # they have virtual UpdateState/Reset methods Basilisk calls back into
@@ -832,7 +831,7 @@ def enable_vizard(scSim, task_name: str, sc_objects: List, request: VizardReques
     # counterpart is still task-registered is undefined behavior -- see
     # where this list is attached to ``viz`` below, and
     # ``engine.service``'s own retention of the returned ``viz``.
-    access_indicator_bridges: List[object] = []
+    access_indicator_bridges: list[object] = []
     for sc_object in sc_objects:
         sc_name = sc_object.ModelTag
         storages = []

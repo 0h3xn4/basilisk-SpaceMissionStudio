@@ -18,7 +18,7 @@
 #
 #
 # Builds the Debian package spacemissionstudio_<version>_amd64.deb. It is
-# self-contained: /opt/spacemissionstudio/python is a private CPython 3.11
+# self-contained: /opt/spacemissionstudio/python is a private CPython 3.14
 # (python-build-standalone) with Basilisk, SpaceMissionStudio and every
 # Python package installed, plus the support data and the Earth
 # orientation files (packaging/bundle_python.py). Installing it needs no
@@ -28,7 +28,7 @@
 # Usage:
 #   ./build_deb.sh [OUTPUT_DIR]
 #
-# Needs dpkg-deb, python3 (3.11.4 or later, to run bundle_python.py) and
+# Needs dpkg-deb, python3 (3.14 or later, to run bundle_python.py) and
 # internet access while it builds (the CPython archive, Basilisk and the
 # packages from PyPI, the support data). SMS_PYTHON_ARCHIVE=<file> uses a
 # CPython archive already downloaded (its SHA-256 is still checked).

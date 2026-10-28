@@ -48,7 +48,6 @@ import hashlib
 import math
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -68,28 +67,28 @@ class DerivedPart:
     could not be built."""
 
     name: str
-    mesh: Optional[Mesh]
-    color: Tuple[float, float, float]
+    mesh: Mesh | None
+    color: tuple[float, float, float]
     visible: bool
-    error: Optional[str] = None
+    error: str | None = None
 
 
 @dataclass
 class DerivedModel:
-    parts: List[DerivedPart] = field(default_factory=list)
+    parts: list[DerivedPart] = field(default_factory=list)
     computed: mp.MassProperties = field(default_factory=mp.zero)  # from the parts that count toward mass
-    mass_properties: Optional[mp.MassProperties] = None  # per mass_properties_source; None when there is no mass
-    faces: List[shapes.Face] = field(default_factory=list)  # body frame, with "part: face" names
-    facets: Optional[List[FacetConfig]] = None  # None when there are none or too many
-    errors: List[str] = field(default_factory=list)
-    warnings: List[str] = field(default_factory=list)
+    mass_properties: mp.MassProperties | None = None  # per mass_properties_source; None when there is no mass
+    faces: list[shapes.Face] = field(default_factory=list)  # body frame, with "part: face" names
+    facets: list[FacetConfig] | None = None  # None when there are none or too many
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
 
-    def projected_areas_m2(self) -> Dict[str, float]:
+    def projected_areas_m2(self) -> dict[str, float]:
         """Area seen from +x, -x, +y, -y, +z and -z [m^2]."""
         axes = {"+x": [1, 0, 0], "-x": [-1, 0, 0], "+y": [0, 1, 0], "-y": [0, -1, 0], "+z": [0, 0, 1], "-z": [0, 0, -1]}
         return {name: surfaces.projected_area_m2(self.faces, d) for name, d in axes.items()}
 
-    def bounds(self) -> Optional[Tuple[np.ndarray, np.ndarray]]:
+    def bounds(self) -> tuple[np.ndarray, np.ndarray] | None:
         meshes = [p.mesh for p in self.parts if p.mesh is not None and len(p.mesh.vertices)]
         if not meshes:
             return None
@@ -121,8 +120,8 @@ class MeshCache:
     lifetime; :func:`derive` makes a fresh one when given none."""
 
     def __init__(self) -> None:
-        self._files: Dict[tuple, obj_io.ObjFile] = {}
-        self._parts: Dict[tuple, tuple] = {}
+        self._files: dict[tuple, obj_io.ObjFile] = {}
+        self._parts: dict[tuple, tuple] = {}
 
     def read(self, path: Path, units: str, up_axis: str) -> obj_io.ObjFile:
         stat = path.stat()
@@ -148,18 +147,18 @@ def _scaled(unit: mp.MassProperties, mass_kg: float) -> mp.MassProperties:
     return mp.MassProperties(mass_kg, unit.center_of_mass_m, unit.inertia_kg_m2 * mass_kg)
 
 
-def _typed(model) -> Optional[mp.MassProperties]:
+def _typed(model) -> mp.MassProperties | None:
     typed = model.mass_properties
     if typed is None:
         return None
     return mp.MassProperties(typed.mass_kg, typed.center_of_mass_b_m, np.reshape(typed.inertia_kg_m2, (3, 3)))
 
 
-def derive(model, base_dir=None, cache: Optional[MeshCache] = None) -> DerivedModel:
+def derive(model, base_dir=None, cache: MeshCache | None = None) -> DerivedModel:
     """See the module docstring. ``base_dir`` resolves relative mesh paths."""
     cache = cache or MeshCache()
     result = DerivedModel()
-    files: Dict[int, Tuple[tuple, obj_io.ObjFile]] = {}
+    files: dict[int, tuple[tuple, obj_io.ObjFile]] = {}
     for index, mesh_config in enumerate(model.meshes):
         path = mesh_path(mesh_config, base_dir)
         try:
@@ -171,7 +170,7 @@ def derive(model, base_dir=None, cache: Optional[MeshCache] = None) -> DerivedMo
         if mesh_config.sha256 and file_sha256(path) != mesh_config.sha256:
             result.warnings.append(f"mesh file {mesh_config.path} changed since it was imported (SHA-256 differs)")
 
-    bodies: List[mp.MassProperties] = []
+    bodies: list[mp.MassProperties] = []
     for part in model.parts:
         color = tuple(float(c) for c in part.color)
         try:
@@ -292,7 +291,7 @@ def applied_values(sc_config, derived: DerivedModel, orbit_only: bool = False) -
     return values
 
 
-def apply(sc_config, derived: DerivedModel, orbit_only: bool = False) -> List[str]:
+def apply(sc_config, derived: DerivedModel, orbit_only: bool = False) -> list[str]:
     """Write :func:`applied_values` into ``sc_config``; returns the names of
     the fields written."""
     values = applied_values(sc_config, derived, orbit_only=orbit_only)
@@ -307,7 +306,7 @@ def _differs(a, b) -> bool:
     return a.shape != b.shape or float(np.max(np.abs(a - b))) > _STALE_RELATIVE * scale
 
 
-def stale_fields(sc_config, derived: DerivedModel, orbit_only: bool = False) -> List[str]:
+def stale_fields(sc_config, derived: DerivedModel, orbit_only: bool = False) -> list[str]:
     """The fields whose stored values no longer match what the model
     gives (the model was edited, or the fields were edited by hand)."""
     stale = []
@@ -326,14 +325,14 @@ def stale_fields(sc_config, derived: DerivedModel, orbit_only: bool = False) -> 
     return stale
 
 
-def obj_groups(derived: DerivedModel, visible_only: bool = True) -> List[obj_io.ObjGroup]:
+def obj_groups(derived: DerivedModel, visible_only: bool = True) -> list[obj_io.ObjGroup]:
     """The built parts as ``.obj`` groups (body frame), for Vizard or an
     export."""
     return [obj_io.ObjGroup(p.name, p.mesh, p.color) for p in derived.parts
             if p.mesh is not None and (p.visible or not visible_only)]
 
 
-def principal_summary(props: mp.MassProperties) -> List[str]:
+def principal_summary(props: mp.MassProperties) -> list[str]:
     """Short lines describing mass properties, for the CLI and the editor."""
     props = tidy(props)
     moments, axes = props.principal()

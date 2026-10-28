@@ -31,7 +31,8 @@ from __future__ import annotations
 
 import weakref
 from dataclasses import dataclass, field
-from typing import Callable, Dict, Iterable, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Union
+from collections.abc import Callable, Iterable, Iterator, Sequence
 
 from PySide6.QtGui import QAction, QIcon, QKeySequence
 from PySide6.QtWidgets import QWidget
@@ -52,7 +53,7 @@ class Command:
     category: str  # the palette's group: "File", "Run", "View", ...
     area: str  # one of AREAS
     tip: str = ""  # what it does, without the shortcut
-    keywords: Tuple[str, ...] = field(default_factory=tuple)  # older names the palette also matches
+    keywords: tuple[str, ...] = field(default_factory=tuple)  # older names the palette also matches
 
     @property
     def label(self) -> str:
@@ -72,12 +73,12 @@ def tooltip_text(label: str, keys: str, tip: str) -> str:
     return f"{title}\n{tip}" if tip else title
 
 
-def _sequences(keys: Union[Keys, Sequence[Keys], None]) -> List[QKeySequence]:
+def _sequences(keys: Keys | Sequence[Keys] | None) -> list[QKeySequence]:
     if keys is None:
         return []
     if isinstance(keys, (str, QKeySequence, QKeySequence.StandardKey)):
         keys = [keys]
-    sequences: List[QKeySequence] = []
+    sequences: list[QKeySequence] = []
     for key in keys:
         if isinstance(key, QKeySequence.StandardKey):
             sequences.extend(QKeySequence.keyBindings(key))
@@ -94,12 +95,12 @@ class ActionRegistry:
         # window leaves it to the garbage collector, which may run only
         # after Qt WebEngine has shut down (a segfault at exit).
         self._owner = weakref.ref(owner)
-        self._commands: Dict[str, Command] = {}
+        self._commands: dict[str, Command] = {}
 
-    def add(self, command_id: str, text: str, handler: Optional[Callable[..., object]] = None, *,
-            category: str, area: str, tip: str = "", shortcut: Union[Keys, Sequence[Keys], None] = None,
-            qicon: Optional[QIcon] = None, checkable: bool = False, checked: bool = False,
-            keywords: Iterable[str] = (), action: Optional[QAction] = None,
+    def add(self, command_id: str, text: str, handler: Callable[..., object] | None = None, *,
+            category: str, area: str, tip: str = "", shortcut: Keys | Sequence[Keys] | None = None,
+            qicon: QIcon | None = None, checkable: bool = False, checked: bool = False,
+            keywords: Iterable[str] = (), action: QAction | None = None,
             on_window: bool = True) -> QAction:
         """Register a command and return its action: a new :class:`QAction`
         owned by the window, or ``action`` (for one Qt makes, such as a
@@ -135,7 +136,7 @@ class ActionRegistry:
         self.refresh_tooltip(command_id)
         return action
 
-    def refresh_tooltip(self, command_id: str, tip: Optional[str] = None) -> None:
+    def refresh_tooltip(self, command_id: str, tip: str | None = None) -> None:
         """Write the tooltip again from the label, shortcut and ``tip`` (the
         stored one when None), e.g. after the text changed."""
         command = self._commands[command_id]
@@ -155,13 +156,13 @@ class ActionRegistry:
     def action(self, command_id: str) -> QAction:
         return self._commands[command_id].action
 
-    def command_of(self, action: QAction) -> Optional[Command]:
+    def command_of(self, action: QAction) -> Command | None:
         return next((command for command in self if command.action is action), None)
 
-    def in_area(self, area: str) -> List[Command]:
+    def in_area(self, area: str) -> list[Command]:
         return [command for command in self if command.area == area]
 
-    def shortcut_rows(self) -> List[Tuple[str, str, str]]:
+    def shortcut_rows(self) -> list[tuple[str, str, str]]:
         """(category, command, shortcut) of every command with a shortcut,
         by category, each category's commands in the order they were added:
         the Keyboard list in Settings."""

@@ -38,7 +38,6 @@ run where the original would have. Without Basilisk it raises
 from __future__ import annotations
 
 import math
-from typing import Optional
 
 import numpy as np
 
@@ -73,7 +72,7 @@ def _degrees(angle_rad: float) -> float:
     return 0.0 if math.isclose(value, 360.0) else value
 
 
-def state_km(orbit: OrbitIC, central_body: str = "earth", epoch_utc: Optional[str] = None):
+def state_km(orbit: OrbitIC, central_body: str = "earth", epoch_utc: str | None = None):
     """``(position_km, velocity_km_s)`` lists for ``orbit``, in the frame the
     run starts it in (EME2000 for Earth). A TLE needs ``epoch_utc``."""
     if orbit.type == "cartesian":
@@ -106,13 +105,13 @@ def state_km(orbit: OrbitIC, central_body: str = "earth", epoch_utc: Optional[st
     return [float(v) / 1e3 for v in r_m], [float(v) / 1e3 for v in v_m_s]
 
 
-def to_cartesian(orbit: OrbitIC, central_body: str = "earth", epoch_utc: Optional[str] = None) -> OrbitIC:
+def to_cartesian(orbit: OrbitIC, central_body: str = "earth", epoch_utc: str | None = None) -> OrbitIC:
     """``orbit`` as a Cartesian state."""
     position_km, velocity_km_s = state_km(orbit, central_body, epoch_utc)
     return OrbitIC(type="cartesian", position_km=position_km, velocity_km_s=velocity_km_s)
 
 
-def to_classical(orbit: OrbitIC, central_body: str = "earth", epoch_utc: Optional[str] = None,
+def to_classical(orbit: OrbitIC, central_body: str = "earth", epoch_utc: str | None = None,
                  anomaly_type: str = "true") -> OrbitIC:
     """``orbit`` as osculating classical elements, its anomaly as
     ``anomaly_type`` ("true" or "mean"). For a circular orbit Basilisk puts
@@ -137,7 +136,7 @@ def to_classical(orbit: OrbitIC, central_body: str = "earth", epoch_utc: Optiona
                    arg_periapsis_deg=_degrees(oe.omega), anomaly_type=anomaly_type, **anomaly)
 
 
-def convert(orbit: OrbitIC, to_type: str, central_body: str = "earth", epoch_utc: Optional[str] = None,
+def convert(orbit: OrbitIC, to_type: str, central_body: str = "earth", epoch_utc: str | None = None,
             anomaly_type: str = "true") -> OrbitIC:
     """``orbit`` as ``to_type``; :class:`OrbitConversionError` when it cannot
     be (to a TLE, always)."""

@@ -40,7 +40,6 @@ after the dynamics.
 from __future__ import annotations
 
 import math
-from typing import List
 
 import numpy as np
 
@@ -72,9 +71,9 @@ class LandmarkCameraInputs(sysModel.SysModel):
         self.scStateOutMsg = messaging.SCStatesMsg()
         self.idealPointing = ideal_pointing
         self.dcmCB = rbk.MRP2C(np.asarray(config.camera_mrp_cb, dtype=float))
-        self.tLog: List[float] = []
-        self.truthPositionLog: List[np.ndarray] = []
-        self.truthVelocityLog: List[np.ndarray] = []
+        self.tLog: list[float] = []
+        self.truthPositionLog: list[np.ndarray] = []
+        self.truthVelocityLog: list[np.ndarray] = []
 
     def UpdateState(self, CurrentSimNanos):
         state = self.scStateInMsg()
@@ -112,7 +111,7 @@ class LandmarkNavigationFilter(sysModel.SysModel):
         self.ModelTag = name
         self.attitudeInMsg = messaging.SCStatesMsgReader()
         self.bodyStateInMsg = messaging.SpicePlanetStateMsgReader()
-        self.landmarkInMsgs: List[messaging.LandmarkMsgReader] = []
+        self.landmarkInMsgs: list[messaging.LandmarkMsgReader] = []
         self.dcmCB = rbk.MRP2C(np.asarray(config.camera_mrp_cb, dtype=float))
         self.pixelNoise = config.pixel_noise_px
         self.rng = np.random.default_rng([config.seed, 3])
@@ -126,11 +125,11 @@ class LandmarkNavigationFilter(sysModel.SysModel):
                                                config.process_noise_mps2_per_sqrt_hz, pixel_sigma, f_over_w)
         self.lastNanos = None
         self.lastDcmPN = None
-        self.tLog: List[float] = []
-        self.estimateLog: List[np.ndarray] = []
-        self.sigmaLog: List[np.ndarray] = []
-        self.seenLog: List[int] = []
-        self.residualLog: List[float] = []
+        self.tLog: list[float] = []
+        self.estimateLog: list[np.ndarray] = []
+        self.sigmaLog: list[np.ndarray] = []
+        self.seenLog: list[int] = []
+        self.residualLog: list[float] = []
 
     def Reset(self, CurrentSimNanos):
         self.lastNanos = None
@@ -219,7 +218,7 @@ def build_landmark_navigation(scSim, process, tag: str, sc_object, sun_state_msg
     return chain
 
 
-def result_series(name: str, chain: LandmarkNavigation) -> List[TimeSeries]:
+def result_series(name: str, chain: LandmarkNavigation) -> list[TimeSeries]:
     """The chain's telemetry as ``{name}.landmark_navigation.*`` series."""
     inputs, nav = chain.inputs, chain.filter
     count = len(nav.tLog)

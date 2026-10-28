@@ -45,7 +45,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Dict, List, Tuple
 
 import numpy as np
 
@@ -56,8 +55,8 @@ from .geometry import Mesh
 # The shape names, their dimensions and their face names are the schema's
 # (no numpy there), so validation and geometry cannot disagree.
 SHAPES = tuple(s for s in MODEL_SHAPES if s != "mesh")
-DIMENSIONS: Dict[str, Tuple[str, ...]] = MODEL_SHAPE_DIMENSIONS
-FACE_NAMES: Dict[str, Tuple[str, ...]] = MODEL_SHAPE_FACES
+DIMENSIONS: dict[str, tuple[str, ...]] = MODEL_SHAPE_DIMENSIONS
+FACE_NAMES: dict[str, tuple[str, ...]] = MODEL_SHAPE_FACES
 
 DEFAULT_SIDES = 8
 DEFAULT_SEGMENTS = 16
@@ -162,7 +161,7 @@ def _face(name: str, group: str, area: float, normal, centroid) -> Face:
     return Face(name, group, float(area), np.asarray(normal, dtype=float), np.asarray(centroid, dtype=float))
 
 
-def mesh(shape: str, dims: Dict[str, float], sides: int = DEFAULT_SIDES,
+def mesh(shape: str, dims: dict[str, float], sides: int = DEFAULT_SIDES,
          segments: int = DEFAULT_SEGMENTS) -> Mesh:
     """The closed local-frame triangle mesh of a shape."""
     if shape == "box":
@@ -181,8 +180,8 @@ def mesh(shape: str, dims: Dict[str, float], sides: int = DEFAULT_SIDES,
     raise ValueError(f"unknown shape {shape!r}")
 
 
-def faces(shape: str, dims: Dict[str, float], sides: int = DEFAULT_SIDES,
-          segments: int = DEFAULT_SEGMENTS) -> List[Face]:
+def faces(shape: str, dims: dict[str, float], sides: int = DEFAULT_SIDES,
+          segments: int = DEFAULT_SEGMENTS) -> list[Face]:
     """The local-frame outer faces of a shape (see the module docstring)."""
     if shape == "box":
         x, y, z = dims["x"], dims["y"], dims["z"]
@@ -233,7 +232,7 @@ def faces(shape: str, dims: Dict[str, float], sides: int = DEFAULT_SIDES,
     raise ValueError(f"unknown shape {shape!r}")
 
 
-def mass_properties(shape: str, dims: Dict[str, float], mass_kg: float, shell: bool,
+def mass_properties(shape: str, dims: dict[str, float], mass_kg: float, shell: bool,
                     sides: int = DEFAULT_SIDES) -> mp.MassProperties:
     """Local-frame mass properties of ``mass_kg`` spread through the shape
     (``shell`` False) or over its surface (True). Flat-sided shapes use the

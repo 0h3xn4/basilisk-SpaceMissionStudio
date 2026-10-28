@@ -52,7 +52,7 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, List, Optional
+from collections.abc import Callable
 
 from .contract import CONTRACT_VERSION, SESSION_VARIABLE, UNKNOWN_DIGEST, PortSpec, SilError
 from .report import Comparator, SilReport, timing_summary
@@ -67,7 +67,7 @@ class SilOptions:
     binary: str
     timeouts: Timeouts = field(default_factory=Timeouts)
     transport: str = "auto"  # "auto", "unix" or "tcp"
-    expected_sha256: Optional[str] = None  # what the user agreed to run; checked again before launch
+    expected_sha256: str | None = None  # what the user agreed to run; checked again before launch
 
 
 class SilCancelled(Exception):
@@ -82,7 +82,7 @@ class SilCancelled(Exception):
 class SilRunError(SilError):
     """The run failed; ``report`` holds what was measured and the program's output."""
 
-    def __init__(self, message: str, report: Optional[SilReport]):
+    def __init__(self, message: str, report: SilReport | None):
         super().__init__(message)
         self.report = report
 
@@ -124,7 +124,7 @@ def _bytes_at(address: int, size: int) -> bytes:
     return ctypes.string_at(address, size)
 
 
-def _port_specs(graph, ports) -> List[PortSpec]:
+def _port_specs(graph, ports) -> list[PortSpec]:
     return [PortSpec(p.name, p.message_type, graph.message_types[p.message_type].size,
                      graph.message_types[p.message_type].hash) for p in ports]
 
@@ -139,8 +139,8 @@ def _make_classes():
             super().__init__()
             self.ModelTag = "silBridge"
             self.pending = True  # not yet in the task
-            self.failure: Optional[BaseException] = None
-            self.session: Optional[SimulationSide] = None
+            self.failure: BaseException | None = None
+            self.session: SimulationSide | None = None
 
         def configure(self, graph, session, comparator, reset_tap, report):
             self.session, self.comparator, self.reset_tap, self.report = session, comparator, reset_tap, report
@@ -156,8 +156,8 @@ def _make_classes():
                                      int(producer.moduleID)))
             self.held = [bytes(size) for _, _, _, size, _ in self.writers]
             self.reset_sent = False
-            self.round_trips: List[int] = []
-            self.executions: List[int] = []
+            self.round_trips: list[int] = []
+            self.executions: list[int] = []
 
         def UpdateState(self, CurrentSimNanos):  # noqa: N802,N803 -- Basilisk's names
             if self.session is None or self.failure is not None:
@@ -196,7 +196,7 @@ def _make_classes():
             super().__init__()
             self.ModelTag = "silBridgeResetTap"
             self.graph = graph
-            self.payloads: List[Optional[bytes]] = []
+            self.payloads: list[bytes | None] = []
             self.time_ns = 0
             self.done = False
 
@@ -240,7 +240,7 @@ class _Program:
             [str(binary), "sil", address], cwd=str(binary.parent), env=env, stdin=subprocess.DEVNULL,
             stdout=self._log, stderr=subprocess.STDOUT)
 
-    def exit_reason(self) -> Optional[str]:
+    def exit_reason(self) -> str | None:
         code = self.process.poll()
         if code is None:
             return None
@@ -269,7 +269,7 @@ class _Program:
 
 
 def run_sil(scenario, spacecraft_name: str, options: SilOptions, vizard_request=None,
-            on_progress: Optional[Callable] = None, should_cancel: Optional[Callable[[], bool]] = None):
+            on_progress: Callable | None = None, should_cancel: Callable[[], bool] | None = None):
     """Runs ``scenario`` with ``spacecraft_name``'s flight software in
     ``options.binary``. Returns ``(ResultSet, SilReport)``; raises
     :class:`SilRunError` (with the report so far) when the run fails, and

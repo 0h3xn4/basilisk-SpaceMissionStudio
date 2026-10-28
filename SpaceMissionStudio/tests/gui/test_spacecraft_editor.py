@@ -1714,7 +1714,8 @@ def test_list_widget_generate_phasing_formation_reports_missing_basilisk(qtbot, 
     assert "Basilisk is not installed" in reported[0][0] and "(more in the Log)" in reported[0][0]
 
 
-def test_list_widget_generate_phasing_formation_without_basilisk_reports_clear_error(qtbot, monkeypatch, reported):
+def test_list_widget_generate_phasing_formation_without_basilisk_reports_clear_error(qtbot, monkeypatch, reported,
+                                                                                      basilisk_unavailable):
     """Same as the test above, but against the REAL no-Basilisk import
     path (no mocking of generate_phasing_follower itself) -- regression
     test for a real bug found while writing this feature: the ImportError
@@ -1723,19 +1724,13 @@ def test_list_widget_generate_phasing_formation_without_basilisk_reports_clear_e
     itself (engine.formation has no Basilisk import at module level) --
     wrapping the wrong statement in try/except ImportError (as this
     file's cli.py sibling command originally did) lets it propagate
-    uncaught. Skipped on a machine that DOES have Basilisk, where this
-    test's premise doesn't hold.
+    uncaught. Basilisk is hidden for the test (``basilisk_unavailable``).
     """
-    import importlib.util
-
     from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui.phasing_formation_dialog import PhasingFormationDialog
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftListWidget
     from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig
-
-    if importlib.util.find_spec("Basilisk") is not None:
-        pytest.skip("this test's premise is specifically that Basilisk is unavailable")
 
     lw = SpacecraftListWidget()
     qtbot.addWidget(lw)

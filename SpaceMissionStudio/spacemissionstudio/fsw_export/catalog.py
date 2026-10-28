@@ -33,7 +33,6 @@ the tests can all use it.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict
 
 BASILISK_VERSION = "2.12.0"
 BASILISK_REVISION = "611665f742999951453d4e128c8540c761de8a4f"  # the v2.12.0 tag
@@ -86,7 +85,7 @@ _MODULES = (
             "thrMomentumDumpingConfig", "thrMomentumDumping"),
 )
 
-MODULES: Dict[str, CModule] = {m.python_name: m for m in _MODULES}
+MODULES: dict[str, CModule] = {m.python_name: m for m in _MODULES}
 
 # Files the generator needs besides the modules' include closures: the
 # templates Basilisk's CMake fills in for the C message interface

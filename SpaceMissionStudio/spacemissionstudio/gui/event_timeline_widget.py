@@ -38,7 +38,6 @@ CSV with a provenance file beside it.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import numpy as np
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
@@ -56,7 +55,7 @@ from .theme import PALETTE, SERIES_COLORS, set_role
 from .time_cursor import TimeCursor, describe
 
 # Fixed categorical order, one slot per kind (the Results tab's series colours).
-KIND_SLOTS: Dict[str, int] = {kind: index for index, kind in enumerate(event_model.KINDS)}
+KIND_SLOTS: dict[str, int] = {kind: index for index, kind in enumerate(event_model.KINDS)}
 
 
 def kind_colour(kind: str) -> str:
@@ -89,7 +88,7 @@ def _event_text(event: event_model.Event) -> str:
     return " ".join((event.kind, event.spacecraft, event.other, event.label, event.detail)).lower()
 
 
-def _matches(event: event_model.Event, words: List[str]) -> bool:
+def _matches(event: event_model.Event, words: list[str]) -> bool:
     """Every search word appears in the event's text (any case)."""
     text = _event_text(event)
     return all(word in text for word in words)
@@ -103,13 +102,13 @@ class _EventRows(LazyRows):
     QTableWidgetItem a cell for 10,000 events held the window for seconds);
     sorted by each column's values with NumPy."""
 
-    def __init__(self, events: List[event_model.Event], headings: List[str], keys: List[str],
-                 epoch_utc: Optional[str]) -> None:
+    def __init__(self, events: list[event_model.Event], headings: list[str], keys: list[str],
+                 epoch_utc: str | None) -> None:
         super().__init__(len(events))
         self.events, self.headings, self.keys, self.epoch_utc = events, headings, keys, epoch_utc
         self.utc = headings[0] == "Start (UTC)"
         self.order = np.arange(len(events))
-        self._utc_blocks: Dict[int, tuple] = {}
+        self._utc_blocks: dict[int, tuple] = {}
 
     def event(self, index: int) -> event_model.Event:
         """The event of row ``index`` in the order shown."""
@@ -178,7 +177,7 @@ class _Lane:
     list) by start, and their ends' running maximum (to find those in view)."""
 
     def __init__(self, index: np.ndarray, starts: np.ndarray, ends: np.ndarray, kind_codes: np.ndarray,
-                 kind_names: List[str]) -> None:
+                 kind_names: list[str]) -> None:
         self.index = index
         self.starts, self.ends = starts[index], ends[index]  # [s]
         self.reach = np.maximum.accumulate(self.ends) if self.ends.size else self.ends  # [s]
@@ -207,23 +206,23 @@ class GanttView(QWidget):
 
     time_picked = Signal(float)  # [s]
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self.setMouseTracking(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setMinimumHeight(_AXIS_HEIGHT + 2 * _ROW_HEIGHT)
-        self.events: List[event_model.Event] = []
-        self.rows: List[str] = []
-        self.lanes: List[_Lane] = []
-        self.cursor_s: Optional[float] = None
+        self.events: list[event_model.Event] = []
+        self.rows: list[str] = []
+        self.lanes: list[_Lane] = []
+        self.cursor_s: float | None = None
         self.run_end_s = 1.0  # [s]
         self.view = (0.0, 1.0)  # [s] the visible time span
-        self.epoch_utc: Optional[str] = None
-        self._utc_span: Optional[tuple] = None
-        self._utc_key: Optional[tuple] = None  # (epoch, run end) the span is of
-        self._pan_from: Optional[tuple] = None  # (x [px], view) while a drag pans
+        self.epoch_utc: str | None = None
+        self._utc_span: tuple | None = None
+        self._utc_key: tuple | None = None  # (epoch, run end) the span is of
+        self._pan_from: tuple | None = None  # (x [px], view) while a drag pans
 
-    def set_events(self, events: List[event_model.Event], run_end_s: float, epoch_utc: Optional[str] = None) -> None:
+    def set_events(self, events: list[event_model.Event], run_end_s: float, epoch_utc: str | None = None) -> None:
         """Show ``events``: arrays and lanes made with NumPy (M7: 10,000 events
         sorted and split in Python held the window 30-110 ms)."""
         self.events = events
@@ -260,7 +259,7 @@ class GanttView(QWidget):
         self.view = (0.0, self.run_end_s)
         self.update()
 
-    def set_cursor_time(self, time_s: Optional[float]) -> None:
+    def set_cursor_time(self, time_s: float | None) -> None:
         self.cursor_s = time_s
         self.update()
 
@@ -271,7 +270,7 @@ class GanttView(QWidget):
         self.view = (start, start + width)
         self.update()
 
-    def zoom(self, factor: float, centre_s: Optional[float] = None) -> None:
+    def zoom(self, factor: float, centre_s: float | None = None) -> None:
         """Scale the visible span by ``factor`` (< 1 zooms in) around ``centre_s`` (default: its middle)."""
         start, end = self.view
         centre = (start + end) / 2.0 if centre_s is None else centre_s
@@ -304,7 +303,7 @@ class GanttView(QWidget):
         fraction = min(max((x - rect.left()) / rect.width(), 0.0), 1.0)
         return start + fraction * (end - start)  # [s]
 
-    def event_at(self, point: QPointF) -> Optional[event_model.Event]:
+    def event_at(self, point: QPointF) -> event_model.Event | None:
         row = int(point.y() // _ROW_HEIGHT)
         if not 0 <= row < len(self.rows):
             return None
@@ -357,7 +356,7 @@ class GanttView(QWidget):
             painter.setPen(QPen(QColor(PALETTE["accent"]), 2))  # the time cursor: a selection
             painter.drawLine(QPointF(x, 0), QPointF(x, rect.bottom()))
 
-    def _ticks(self) -> List[tuple]:
+    def _ticks(self) -> list[tuple]:
         """``(time [s], label)`` of each tick in view: round UTC times with
         Z when the run has an epoch (UI overhaul M7), else elapsed hours or days."""
         start, end = self.view
@@ -458,7 +457,7 @@ class GanttView(QWidget):
             super().keyPressEvent(event)
 
 
-def _merged(x0: np.ndarray, x1: np.ndarray) -> List[tuple]:
+def _merged(x0: np.ndarray, x1: np.ndarray) -> list[tuple]:
     """The spans ``x0`` to ``x1`` [px] (by ``x0``) joined where they touch:
     a year of passes is a few hundred rectangles, not thousands."""
     if x0.size == 0:
@@ -472,16 +471,16 @@ def _merged(x0: np.ndarray, x1: np.ndarray) -> List[tuple]:
 class EventTimelineWidget(QWidget):
     """The Timeline area (the run's events)."""
 
-    def __init__(self, parent: Optional[QWidget] = None):
+    def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self._cursor: Optional[TimeCursor] = None
-        self._result: Optional[ResultSet] = None
-        self._epoch_utc: Optional[str] = None
-        self.events: List[event_model.Event] = []
+        self._cursor: TimeCursor | None = None
+        self._result: ResultSet | None = None
+        self._epoch_utc: str | None = None
+        self.events: list[event_model.Event] = []
         layout = QVBoxLayout(self)
 
         controls = QHBoxLayout()
-        self.kind_boxes: Dict[str, QCheckBox] = {}
+        self.kind_boxes: dict[str, QCheckBox] = {}
         for kind in event_model.KINDS:
             box = QCheckBox(_plural(kind, 2)[2:].capitalize())
             box.setChecked(True)
@@ -542,7 +541,7 @@ class EventTimelineWidget(QWidget):
         self.table.view.clicked.connect(lambda index: self._on_row_clicked(index.row()))
         self._filling = False
         self.table.view.selectionModel().currentRowChanged.connect(self._on_current_row_changed)
-        self._texts: List[str] = []  # each event's search text, made once a run
+        self._texts: list[str] = []  # each event's search text, made once a run
         splitter.addWidget(self.table)
         splitter.setStretchFactor(0, 0)
         splitter.setStretchFactor(1, 1)
@@ -558,7 +557,7 @@ class EventTimelineWidget(QWidget):
         cursor.changed.connect(self.on_cursor_changed)
         self.on_cursor_changed(cursor.time_s)
 
-    def set_result(self, result: Optional[ResultSet], epoch_utc: Optional[str] = None) -> None:
+    def set_result(self, result: ResultSet | None, epoch_utc: str | None = None) -> None:
         self._result, self._epoch_utc = result, epoch_utc
         self.events = event_model.extract_events(result)
         self._texts = [_event_text(event) for event in self.events]
@@ -586,7 +585,7 @@ class EventTimelineWidget(QWidget):
         self.station_combo.setToolTip("Show the passes and downlinks of one ground station only." if stations
                                       else "This run has no ground stations.")
 
-    def visible_events(self) -> List[event_model.Event]:
+    def visible_events(self) -> list[event_model.Event]:
         """The events the kind boxes, the station filter and the search let
         through: what the timeline, the table and the export show."""
         shown = {kind for kind, box in self.kind_boxes.items() if box.isChecked()}
@@ -617,7 +616,7 @@ class EventTimelineWidget(QWidget):
             wanted = min(self.gantt.minimumHeight() + 8, total // 2)  # [px]
             self.splitter.setSizes([wanted, total - wanted])
 
-    def _utc_texts(self, times_s: List[float]) -> Optional[List[str]]:
+    def _utc_texts(self, times_s: list[float]) -> list[str] | None:
         """UTC text for each elapsed time, or None without a usable epoch."""
         if not self._epoch_utc or not times_s:
             return None
@@ -629,7 +628,7 @@ class EventTimelineWidget(QWidget):
         except ValueError:
             return None
 
-    def columns(self, visible: List[event_model.Event]) -> List[str]:
+    def columns(self, visible: list[event_model.Event]) -> list[str]:
         """The table's headings for ``visible``: a spacecraft column only
         for a run with several, and a station, measured-value or note column
         only when some event has one (so 1280 px holds the table)."""
@@ -643,7 +642,7 @@ class EventTimelineWidget(QWidget):
         headings += ["Note"] if any(e.note for e in visible) else []
         return headings
 
-    def _fill_table(self, visible: List[event_model.Event]) -> None:
+    def _fill_table(self, visible: list[event_model.Event]) -> None:
         headings = self.columns(visible)
         keys = event_model.present_quantities(visible)
         utc = headings[0] == "Start (UTC)"
@@ -660,12 +659,12 @@ class EventTimelineWidget(QWidget):
         self._filling = False
 
     @staticmethod
-    def _quantity_headings(keys: List[str]) -> List[str]:
+    def _quantity_headings(keys: list[str]) -> list[str]:
         return [f"{event_model.QUANTITIES[key][0]} [{event_model.QUANTITIES[key][1]}]" for key in keys]
 
     # -- cursor -----------------------------------------------------------
 
-    def _pick_time(self, time_s: Optional[float]) -> None:
+    def _pick_time(self, time_s: float | None) -> None:
         if self._cursor is not None:
             self._cursor.set_time(time_s)
         else:
@@ -684,7 +683,7 @@ class EventTimelineWidget(QWidget):
         if not self._filling and current.isValid() and current.row() != previous.row():
             self._on_row_clicked(current.row())
 
-    def on_cursor_changed(self, time_s: Optional[float]) -> None:
+    def on_cursor_changed(self, time_s: float | None) -> None:
         self.gantt.set_cursor_time(time_s)
         if time_s is None:
             self.cursor_label.setText(describe(None))

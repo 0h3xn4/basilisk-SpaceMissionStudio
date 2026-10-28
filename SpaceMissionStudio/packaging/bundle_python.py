@@ -53,20 +53,20 @@ import tempfile
 import urllib.request
 from pathlib import Path
 
-#: python-build-standalone release 20261013, CPython 3.11.17, the
+#: python-build-standalone release 20261013, CPython 3.14.8, the
 #: "install_only_stripped" builds (relocatable, debug symbols removed). The
-#: digests are those the project publishes for these files, as listed by
-#: pbs-installer 2026.10.13 on PyPI.
+#: digests are those the project publishes for these files, in the
+#: release's SHA256SUMS.
 PYTHON_BUILDS = {
     "linux": (
         "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/"
-        "cpython-3.11.17%2B20261013-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
-        "3b8e5a248bcc351265ffe68f5e457668a2e09c99a47f81f658988c7d3d107522",
+        "cpython-3.14.8%2B20261013-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz",
+        "d8faa1b588506b9e3e5a3f57807bb056d534a1641a6b10d15b6ea3f0b413b960",
     ),
     "windows": (
         "https://github.com/astral-sh/python-build-standalone/releases/download/20261013/"
-        "cpython-3.11.17%2B20261013-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
-        "54a38c5e7cc1a5fd2b0182b495f29606dc1455d18ebfd3b5bf0a3c09253b5031",
+        "cpython-3.14.8%2B20261013-x86_64-pc-windows-msvc-install_only_stripped.tar.gz",
+        "dce851f280b986764037bd952d40819e94ccceb08ac914004123f43ce17f4095",
     ),
 }
 

@@ -100,6 +100,7 @@ def test_07_battery_charges_in_sunlight_and_drains_in_eclipse():
     assert sun.data[-1, 2] > 0.99  # +Z settled on the Sun
 
 
+@pytest.mark.slow
 def test_03_geo_slot_is_held_in_longitude_and_inclination():
     """A real 45-day run: east-west burns at days 12.5, 21.4, 31.1, 36.9, north-
     south burns at days 16.4 and 30.4. 32 days covers three and two of them."""
@@ -274,6 +275,7 @@ def test_24_mean_element_control_holds_tens_of_metres():
     assert force[:, 0].max() < 0.01  # requests of a few mN, under the 50 mN thruster
 
 
+@pytest.mark.slow
 def test_26_the_memory_overflows_between_berlin_pass_groups_and_the_patch_link_holds():
     """The first day: the 3 Gbit memory is full by about 12 h in and data
     is lost; Berlin's link closes throughout its passes, with ~16 dB at the
@@ -385,6 +387,7 @@ def test_29_the_follower_moves_to_a_passively_safe_helix_and_holds_it():
     assert dv[-1] - _dv_at(day, dv, 2.5) == pytest.approx(0.026, abs=0.01)  # [m/s]
 
 
+@pytest.mark.slow
 def test_29_continuous_law_and_a_zero_phase_helix():
     """Continuous: on target by day 1.4, within 3 m from day 2 (still
     converging at 1.4: 7 to 9 m there, by platform), 1.85 m/s in
@@ -450,6 +453,7 @@ def _landmark_flight(result):
             result.series["probe-1.small_body.distance"].data[:, 0])
 
 
+@pytest.mark.slow
 def test_31_the_filter_finds_the_orbit_from_eros_landmarks(real_small_body_files):
     """5.5 m after the first image, 0.35 m median after, up to 4.8 m just
     after the night-side stretches, inside the filter's 3-sigma; about 18
@@ -465,6 +469,7 @@ def test_31_the_filter_finds_the_orbit_from_eros_landmarks(real_small_body_files
     assert distance.min() == pytest.approx(35.0e3, rel=1e-3) and distance.max() == pytest.approx(38.0e3, abs=100.0)
 
 
+@pytest.mark.slow
 def test_31_one_pixel_of_noise_shows_in_the_residuals_and_the_error(real_small_body_files):
     """Added pixel noise 1 px: residuals of about 1 px (hypot(0.29, 1)) and
     a median error of about 5 m over the first half day (5.1 m seen)."""

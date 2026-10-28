@@ -61,7 +61,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -111,7 +111,7 @@ def dcm_to_mrp(dcm: np.ndarray) -> np.ndarray:
     return q[1:] / (1.0 + q[0])
 
 
-def pixel_scales(fov_rad: float, resolution: Sequence[int]) -> Tuple[float, float]:
+def pixel_scales(fov_rad: float, resolution: Sequence[int]) -> tuple[float, float]:
     """``(X, Y)``: one pixel's size on the image plane at unit distance, in
     x and y (module docstring)."""
     width, height = resolution
@@ -222,6 +222,6 @@ def noisy(measurement: CircleMeasurement, center_sigma_px: float, radius_sigma_p
                              max(measurement.radius_px + float(dr), 1e-6), True)
 
 
-def body_id(central_body: str) -> Optional[int]:
+def body_id(central_body: str) -> int | None:
     """``pixelLineConverter``'s number for a central body, or None."""
     return BODY_IDS.get(central_body)

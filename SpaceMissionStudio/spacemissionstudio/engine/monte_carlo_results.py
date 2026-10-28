@@ -44,7 +44,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -80,15 +79,15 @@ class MonteCarloBatch:
     scenario_name: str
     central_body: str
     time_s: np.ndarray
-    runs: List[int]
-    failed: List[int]
-    positions: Dict[str, np.ndarray]
-    velocities: Dict[str, np.ndarray]
-    drawn: List[Dict[str, float]] = field(default_factory=list)
+    runs: list[int]
+    failed: list[int]
+    positions: dict[str, np.ndarray]
+    velocities: dict[str, np.ndarray]
+    drawn: list[dict[str, float]] = field(default_factory=list)
     epoch_utc: str = ""  # the scenario's epoch, so plots can show dates
 
     @property
-    def spacecraft(self) -> List[str]:
+    def spacecraft(self) -> list[str]:
         return list(self.positions)
 
 
@@ -97,7 +96,7 @@ def _require(condition: bool, message: str) -> None:
         raise MonteCarloResultsError(message)
 
 
-def save(batch: MonteCarloBatch, folder: "str | Path") -> Path:
+def save(batch: MonteCarloBatch, folder: str | Path) -> Path:
     """Write the summary into ``folder``; returns the JSON file's path."""
     folder = Path(folder)
     folder.mkdir(parents=True, exist_ok=True)
@@ -121,7 +120,7 @@ def save(batch: MonteCarloBatch, folder: "str | Path") -> Path:
     return path
 
 
-def has_summary(folder: "str | Path") -> bool:
+def has_summary(folder: str | Path) -> bool:
     folder = Path(folder)
     return (folder / SUMMARY_JSON).is_file() and (folder / SUMMARY_NPZ).is_file()
 
@@ -132,7 +131,7 @@ BATCH_FILE_PATTERNS = ("MonteCarlo.data", "archive.provenance.json", SUMMARY_JSO
                        "run*.data", "run*.json", "*.scState.*.data")
 
 
-def batch_files(folder: "str | Path") -> List[Path]:
+def batch_files(folder: str | Path) -> list[Path]:
     """The files of an earlier batch in ``folder`` (none when it holds none)."""
     folder = Path(folder)
     if not folder.is_dir():
@@ -151,7 +150,7 @@ def _is_clutter(path: Path) -> bool:
     return path.name.startswith(".") or path.name.casefold() in _SYSTEM_CLUTTER
 
 
-def finished_cases(folder: "str | Path") -> int:
+def finished_cases(folder: str | Path) -> int:
     """How many of a running batch's cases have finished: Basilisk's
     Controller writes a case's ``run<i>.data`` when the case ends (the
     earlier batch's files are removed before a batch starts), so the GUI can
@@ -160,7 +159,7 @@ def finished_cases(folder: "str | Path") -> int:
     return sum(1 for _ in folder.glob("run*.data")) if folder.is_dir() else 0
 
 
-def folder_state(folder: "str | Path") -> str:
+def folder_state(folder: str | Path) -> str:
     """``"empty"`` (or missing), ``"batch"`` (only an earlier batch's files)
     or ``"other"`` (anything else: not a folder, or other files in it).
     Hidden files and the operating system's own clutter are ignored."""
@@ -175,7 +174,7 @@ def folder_state(folder: "str | Path") -> str:
     return "batch" if (folder / "MonteCarlo.data").is_file() and entries <= set(batch_files(folder)) else "other"
 
 
-def load(folder: "str | Path") -> MonteCarloBatch:
+def load(folder: str | Path) -> MonteCarloBatch:
     """Read a summary written by :func:`save`. Never unpickles anything."""
     folder = Path(folder)
     _require(has_summary(folder), f"{folder} has no Monte Carlo results ({SUMMARY_JSON} and {SUMMARY_NPZ}); "
@@ -284,12 +283,12 @@ def final_spread(batch: MonteCarloBatch, spacecraft: str) -> SpreadSummary:
                          float(altitude.min()), float(altitude.max()))
 
 
-def run_table(batch: MonteCarloBatch, spacecraft: Optional[str] = None):
+def run_table(batch: MonteCarloBatch, spacecraft: str | None = None):
     """(column labels, rows): per run its index, every drawn value, and
     where it ended against the batch mean [km] (for ``spacecraft``, by
     default the first)."""
     spacecraft = spacecraft or batch.spacecraft[0]
-    drawn_labels: List[str] = []
+    drawn_labels: list[str] = []
     for row in batch.drawn:
         drawn_labels += [label for label in row if label not in drawn_labels]
     final = offsets(batch.positions[spacecraft], batch.velocities[spacecraft])[:, -1, :] / 1e3  # [km]
@@ -308,7 +307,7 @@ def format_km(value_m: float) -> str:
     return "0 km" if abs(value_m) < 1e-3 else f"{value_m / 1e3:.3g} km"
 
 
-def summary_lines(batch: MonteCarloBatch) -> List[str]:
+def summary_lines(batch: MonteCarloBatch) -> list[str]:
     """A few lines for the CLI and the log."""
     days = float(batch.time_s[-1]) / 86400.0 if batch.time_s.size else 0.0
     lines = [f"{len(batch.runs)} run(s) summarized over {days:.3g} day(s); failed: {batch.failed or 'none'}"]

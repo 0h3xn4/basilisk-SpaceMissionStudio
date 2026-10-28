@@ -39,7 +39,6 @@ from __future__ import annotations
 
 import tempfile
 from pathlib import Path
-from typing import Dict, Optional
 
 import numpy as np
 import plotly.graph_objects as go
@@ -98,7 +97,7 @@ class CompareWidget(QWidget):
     compare_chosen = Signal(object)  # the run Results draws dashed, or None
     delete_requested = Signal(object)  # a gui.run_history.RunRecord
 
-    def __init__(self, parent: Optional[QWidget] = None) -> None:
+    def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         self.empty_label = _empty_state("Run the scenario twice (or two versions of it) to compare the runs here. "
@@ -175,16 +174,16 @@ class CompareWidget(QWidget):
         self._runs: list = []
         self._current = None
         self._checked: set = set()
-        self._seen_current: Optional[int] = None
+        self._seen_current: int | None = None
         self._updating = False
-        self._summaries: Dict[int, dict] = {}
-        self._event_tables: Dict[int, dict] = {}
-        self.figure: Optional[go.Figure] = None
+        self._summaries: dict[int, dict] = {}
+        self._event_tables: dict[int, dict] = {}
+        self.figure: go.Figure | None = None
         self.set_runs([], None)
 
     # -- the run list -------------------------------------------------------
 
-    def set_runs(self, runs: list, current, chosen_number=None, store_root: Optional[Path] = None) -> None:
+    def set_runs(self, runs: list, current, chosen_number=None, store_root: Path | None = None) -> None:
         """``runs``: ``gui.run_history.RunRecord`` objects, oldest first;
         ``current``: the one the run views show; ``chosen_number``: the run
         Results compares with it, if any."""
@@ -385,7 +384,7 @@ class CompareWidget(QWidget):
         from .results_widget import _series_label
 
         current = self.series_combo.currentData()
-        names: Dict[str, str] = {}
+        names: dict[str, str] = {}
         for record in runs:
             for name, series in record.result.series.items():
                 names.setdefault(name, _series_label(name, series))

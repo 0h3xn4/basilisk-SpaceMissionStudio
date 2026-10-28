@@ -22,7 +22,6 @@ against the angle off its boresight, as read off its datasheet."""
 
 from __future__ import annotations
 
-from typing import List
 
 from PySide6.QtWidgets import QHBoxLayout, QHeaderView, QPushButton, QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget
 
@@ -40,7 +39,7 @@ _INSTRUMENT_COLUMNS = (
 class _TableEditor(QWidget):
     """A table of text cells with Add and Remove buttons."""
 
-    def __init__(self, headers: List[str], parent: QWidget | None = None):
+    def __init__(self, headers: list[str], parent: QWidget | None = None):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -60,7 +59,7 @@ class _TableEditor(QWidget):
         self.add_button.clicked.connect(self._on_add)
         self.remove_button.clicked.connect(self._on_remove)
 
-    def _append_row(self, texts: List[str]) -> None:
+    def _append_row(self, texts: list[str]) -> None:
         row = self.table.rowCount()
         self.table.insertRow(row)
         for column, text in enumerate(texts):
@@ -96,13 +95,13 @@ class InstrumentTableWidget(_TableEditor):
         self.table.setToolTip("Each instrument writes at its data rate into its own memory partition. Give an "
                               "orbit-average rate for an instrument that does not run all the time.")
 
-    def from_list(self, instruments: List[InstrumentConfig]) -> None:
+    def from_list(self, instruments: list[InstrumentConfig]) -> None:
         self.table.setRowCount(0)
         for instrument in instruments:
             self._append_row([instrument.name if factor is None else f"{getattr(instrument, attribute) * factor:g}"
                               for _, attribute, factor in _INSTRUMENT_COLUMNS])
 
-    def to_list(self) -> List[InstrumentConfig]:
+    def to_list(self) -> list[InstrumentConfig]:
         """Raises ValueError naming the cell when a number doesn't parse."""
         instruments = []
         for row in range(self.table.rowCount()):

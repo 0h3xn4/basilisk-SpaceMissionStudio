@@ -259,7 +259,7 @@ def _daf_pck(path: Path, spans, truncate: bool = False) -> Path:
     return path
 
 
-def _kernel(path: Path) -> "eo.EOPKernel":
+def _kernel(path: Path) -> eo.EOPKernel:
     return eo.EOPKernel(role="combined", path=str(path), source="test", size_bytes=path.stat().st_size, sha256="0",
                         installed_utc="", last_datum_utc=None)
 

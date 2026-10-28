@@ -34,7 +34,6 @@ values match. "Export CSV..." always writes every report
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -93,7 +92,7 @@ def _group_and_title(title: str):
     return "", title
 
 
-def _series_rows(name: str, values: np.ndarray, result: Optional[ResultSet], multi_spacecraft: bool):
+def _series_rows(name: str, values: np.ndarray, result: ResultSet | None, multi_spacecraft: bool):
     """(group, row label, unit, display factor) for each component of one
     reported series, named like its Results-tab plot."""
     values = np.atleast_1d(values)
@@ -123,10 +122,10 @@ _EMPTY_TEXT = "No reports yet: add a Report step under Mission sequence, then Ru
 class MissionOutputWidget(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        self._summary: Optional[CommandSummary] = None
-        self._result: Optional[ResultSet] = None
+        self._summary: CommandSummary | None = None
+        self._result: ResultSet | None = None
         self._time_cursor = None  # gui.time_cursor.TimeCursor, set by set_time_cursor()
-        self.cursor_report_index: Optional[int] = None  # the report shown as "at the cursor"
+        self.cursor_report_index: int | None = None  # the report shown as "at the cursor"
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -172,7 +171,7 @@ class MissionOutputWidget(QWidget):
         self.table.setVisible(False)
         self.summary_label.setText(_EMPTY_TEXT)  # say why the view is empty, as before a first run
 
-    def set_command_summary(self, summary: Optional[CommandSummary], result: Optional[ResultSet] = None) -> None:
+    def set_command_summary(self, summary: CommandSummary | None, result: ResultSet | None = None) -> None:
         """``result`` (the same run's ResultSet) supplies each series'
         units and component names; without it values are shown unconverted."""
         if summary is None:

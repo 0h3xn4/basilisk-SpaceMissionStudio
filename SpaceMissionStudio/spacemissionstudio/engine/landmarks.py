@@ -46,7 +46,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 import numpy as np
 
@@ -57,7 +57,7 @@ FOCAL_LENGTH_M = 0.025  # [m] the camera model's focal length; the pixel pitch f
 _MAX_STEP_S = 60.0  # [s] the filter's integration step
 
 
-def place_landmarks(shape: Polyhedron, count: int, seed: int) -> Tuple[np.ndarray, np.ndarray]:
+def place_landmarks(shape: Polyhedron, count: int, seed: int) -> tuple[np.ndarray, np.ndarray]:
     """``count`` surface landmarks [m] and their outward normals: centres
     of distinct facets drawn with probability proportional to area, so
     they spread over the surface evenly."""
@@ -86,7 +86,7 @@ def body_dcm(dcm_PN0: np.ndarray, spin_rad_s: float, dt_s: float) -> np.ndarray:
 
 
 def project(landmarks_P: np.ndarray, r_N: np.ndarray, dcm_PN: np.ndarray, dcm_CN: np.ndarray,
-            f_over_w: float) -> Tuple[np.ndarray, np.ndarray]:
+            f_over_w: float) -> tuple[np.ndarray, np.ndarray]:
     """Unrounded pixels ``(n, 2)`` of landmarks [m, body frame] seen from
     ``r_N`` [m], and their camera-frame vectors ``d_C`` ``(n, 3)``."""
     d_N = landmarks_P @ dcm_PN - np.asarray(r_N, float)
@@ -228,7 +228,7 @@ def nadir_dcm_CN(r_N: np.ndarray, v_N: np.ndarray) -> np.ndarray:
 
 
 def landmark_count_in_view(landmarks_P: np.ndarray, normals_P: np.ndarray, r_N: np.ndarray, v_N: np.ndarray,
-                           dcm_PN: np.ndarray, sun_N: Optional[np.ndarray], fov_x_rad: float,
+                           dcm_PN: np.ndarray, sun_N: np.ndarray | None, fov_x_rad: float,
                            resolution: Sequence[int], sun_mask_rad: float) -> int:
     """How many landmarks a nadir-pointed camera sees from ``r_N``; with
     ``sun_N`` None the Sun is straight behind the spacecraft."""

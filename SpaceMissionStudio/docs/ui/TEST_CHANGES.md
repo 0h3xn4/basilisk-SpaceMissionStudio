@@ -561,3 +561,88 @@ The Flight Software page is reached through them:
   xdist the crash showed as a worker that "crashed while running" its
   last test (`test_label_text.py::test_help_text_is_short_and_plain[spacecraft-07]`,
   two full runs in two on #127's branch). No test changed.
+
+## Python 3.14 only: test cleanup (2026-10-27)
+
+Approved by the user ("As per your recommendation") after the Phase 3
+proposal. Each deleted test repeats another one exactly.
+
+### Deleted (12)
+
+- `test_scenario_schema.py`: `test_none_fsw_mode_is_valid`,
+  `test_none_vizard_model_path_is_valid`,
+  `test_monte_carlo_defaults_to_disabled_and_validates` and
+  `test_mission_sequence_empty_does_not_affect_existing_validation`
+  (each only `_minimal_scenario().validate()`, as
+  `test_minimal_scenario_validates`);
+  `test_thermal_sensor_with_no_mass_kg_set_still_validates` (as
+  `test_thermal_sensor_with_required_params_validates`, which has no mass
+  either).
+- `test_command.py`: `test_maneuver_defaults_to_inertial_frame` and
+  `test_lambert_transfer_defaults_num_revolutions_and_constraints` (the
+  same command and assertion as `test_maneuver_valid` and
+  `test_lambert_transfer_valid`).
+- `gui/test_template_wizard.py`:
+  `test_finishing_without_changes_reproduces_the_original_scenario`
+  (template 03, one case of `test_every_spec_round_trips_with_no_edits`).
+- `gui/test_vizard_launcher.py`:
+  `test_fetch_vizard_rejects_a_response_over_the_size_cap` (contained in
+  `test_a_cancelled_or_oversized_download_leaves_no_partial_file`, now
+  cited by S-05 in `security_analysis.md`);
+  `test_launch_omits_direct_comm_flag_when_not_given` (the app-bundle test
+  asserts the same argument list).
+- `test_spaceweather.py`: `test_resolve_unknown_source_raises` (the same
+  path as `test_removed_sources_are_rejected_as_unknown`);
+  `test_resolve_has_no_activity_level_any_more` (only that Python refuses
+  an unknown keyword).
+
+Kept although proposed: `test_launch_no_longer_inspects_an_empty_app_bundle`
+is the only test that an empty `.app` is not refused.
+
+### Changed
+
+- `test_vizard_fuel_tank_panel.py::test_fuel_tank_panel_label_is_distinct_from_station_keepings_own_propellant_panel`
+  asserted `"Fuel Tank" != "Propellant"`, two literals. It now builds the
+  Vizard panels of one spacecraft with a fuel tank and station keeping,
+  and checks both are there under different labels; renaming the
+  station-keeping panel "Fuel Tank" makes it fail.
+- The ten tests of what happens without Basilisk
+  (`test_cli.py`: run, kernels-status, monte-carlo,
+  generate-phasing-formation; `gui/test_main_window.py`: Run;
+  `gui/test_run_worker.py`: run, live run, Monte Carlo;
+  `gui/test_spacecraft_editor.py`: the phasing generator;
+  `gui/test_startup_fetch_dialog.py`: the kernel fetch) were skipped
+  wherever Basilisk is installed, so in CI always. They now run with
+  Basilisk hidden (the `basilisk_unavailable` fixture). Running found the
+  main-window test stale: it waited for a message box that U-39 replaced
+  with the run's problem report; it now checks `window.run_problems`, as
+  the other failed-run tests do. Same behaviour checked: one problem
+  saying Basilisk is not installed, Run enabled again.
+- `test_time_system.py::test_month_abbreviation_ignores_the_process_locale`
+  skipped without `de_DE.UTF-8`, which no CI runner had. It tries the
+  Windows names too, and CI's Linux test job generates the locale. With
+  the old `strftime("%b")` it fails ("2030 MÄR 01").
+- Ten tests of about a minute or more carry the new `slow` marker; CI
+  runs them all.
+- `tests/gui/conftest.py` gained `_closed_widgets_deleted_after_the_test`,
+  an autouse fixture that runs Qt's deferred deletes after each GUI test.
+  pytest-qt closes the widgets a test registered and calls
+  `deleteLater()`, then only processes events, which does not delete
+  them: the keyboard-walk tests' main window, web views included, lived
+  on into the next test. On Python 3.14 the next test,
+  `test_label_text.py`'s first case (`spacecraft-07`), crashed in its
+  fixture's app-wide restyle (`apply_theme` → `setStyleSheet`), eight
+  runs in eight; with the fixture, five in five pass. The same code on
+  Python 3.13 (same PySide6 6.11.2, pytest-qt 4.5.0) did not crash. No
+  test changed.
+- `test_label_text.py::test_help_text_is_short_and_plain` and
+  `test_input_borders.py::test_every_input_box_has_a_visible_border` skip
+  a tab widget deleted while the dialog's tabs are walked. The main
+  window's hidden label form (`spacecraft_editor.prepare_labels`, built a
+  section per event-loop turn and deleted once read) was among the tab
+  widgets collected first, and was deleted during the walk:
+  "Internal C++ object (TabWidget) already deleted" for the main-window
+  case run right after
+  `test_keyboard_cursor.py::test_alt_backspace_clears_the_time_cursor_in_the_window`
+  (also on `develop`, Python 3.13). The form is hidden, so no label or
+  input of it was ever checked; nothing checked is left out.

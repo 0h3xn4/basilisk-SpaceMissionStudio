@@ -24,7 +24,6 @@ the selected row."""
 
 from __future__ import annotations
 
-from typing import List
 
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
 
@@ -92,13 +91,13 @@ class RoeTargetTableWidget(_TableEditor):
         self.table.itemSelectionChanged.connect(self._show_margin)
         self.table.itemChanged.connect(self._show_margin)
 
-    def from_list(self, targets: List[RoeTargetConfig]) -> None:
+    def from_list(self, targets: list[RoeTargetConfig]) -> None:
         self.table.setRowCount(0)
         for target in targets:
             self._append_row([_text(target.start_day)] + [_text(value) for value in target.roe_m])
         self._show_margin()
 
-    def to_list(self) -> List[RoeTargetConfig]:
+    def to_list(self) -> list[RoeTargetConfig]:
         """Raises ValueError naming the cell when a number doesn't parse."""
         return [RoeTargetConfig(start_day=self._number(row, 0, "ROE target"),
                                 roe_m=[self._number(row, column, "ROE target") for column in range(1, 7)])

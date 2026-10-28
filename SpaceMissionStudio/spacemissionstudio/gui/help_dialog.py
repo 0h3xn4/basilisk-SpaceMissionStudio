@@ -30,7 +30,6 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Dict, Optional
 
 from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QImage, QTextCursor
@@ -50,7 +49,7 @@ def heading_slug(text: str) -> str:
 class ManualDialog(QDialog):
     """The bundled user manual."""
 
-    def __init__(self, parent: Optional[QWidget] = None, manual: Path = MANUAL):
+    def __init__(self, parent: QWidget | None = None, manual: Path = MANUAL):
         super().__init__(parent)
         self.setWindowTitle("SpaceMissionStudio User Manual")
         self.resize(900, 760)  # [px]
@@ -97,7 +96,7 @@ class ManualDialog(QDialog):
                 iterator += 1
             block = block.next()
 
-    def _heading_positions(self) -> Dict[str, int]:
+    def _heading_positions(self) -> dict[str, int]:
         positions = {}
         block = self.browser.document().begin()
         while block.isValid():

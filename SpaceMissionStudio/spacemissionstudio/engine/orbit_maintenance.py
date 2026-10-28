@@ -138,7 +138,6 @@ development sandbox.
 from __future__ import annotations
 
 import logging
-from typing import Optional
 
 import numpy as np
 
@@ -173,7 +172,7 @@ _RELATIVE_SMA_TRIM_TOLERANCE_M = 25.0
 
 
 def _log_sunlit_transition(tag: str, t_s: float, illumination: float, in_sun: bool,
-                           previous_in_sun: Optional[bool]) -> bool:
+                           previous_in_sun: bool | None) -> bool:
     """DEBUG-logs an eclipse reading only when the sunlit/eclipsed verdict
     CHANGES (and on the first tick), returning ``in_sun`` for the caller to
     store. Real bug: these controllers logged every single tick, three
@@ -194,7 +193,7 @@ class LogThinner:
 
     def __init__(self, interval_s: float = 0.0):
         self.intervalS = interval_s  # [s]
-        self._lastT: Optional[float] = None  # [s]
+        self._lastT: float | None = None  # [s]
 
     def due(self, t: float) -> bool:
         if self.intervalS <= 0.0 or self._lastT is None or t - self._lastT >= self.intervalS - 1e-6:
@@ -281,7 +280,7 @@ class ThrusterOnTimeModel:
         after = self.eccVector + self._ecc_step(sign, accel * on_time_s, u_rad, v_mps)
         return float(np.linalg.norm(after)) <= max(float(np.linalg.norm(self.eccVector)), tolerance)
 
-    def command(self, *, owner, want_firing: bool, remaining_dv: Optional[float], sign: float, thrust_n: float,
+    def command(self, *, owner, want_firing: bool, remaining_dv: float | None, sign: float, thrust_n: float,
                 mass_kg: float, dt_s: float, in_sun: bool, u_rad: float, v_mps: float, mean_motion: float):
         """This tick's average thrust [N], plus the committed delta-V [m/s]
         a newly started firing adds beyond ``remaining_dv`` (non-zero only
@@ -506,17 +505,17 @@ class StationKeepingController(sysModel.SysModel):
         self.burnOn = False
         # [s] when a reboost was first wanted with the tank empty; None while
         # propellant lasts. Logged once and reported as a run warning (audit M4).
-        self.depletedAtS: Optional[float] = None
+        self.depletedAtS: float | None = None
         # Formation-follower mode -- see this class's own docstring. Set by
         # build_phasing_keeping, never by build_station_keeping itself.
         self.formationFollower = False
-        self.formationReference: Optional["StationKeepingController"] = None
+        self.formationReference: StationKeepingController | None = None
         self._floorBurn = False  # formation follower: the current burn is a safety-floor burn, not a mirror
         # Latest smoothed altitude (None before the first tick) -- read by
         # a formation follower's controller to compare against this one.
-        self.lastSmoothAlt: Optional[float] = None  # [m]
-        self._lastInSun: Optional[bool] = None  # for _log_sunlit_transition
-        self._lastT: Optional[float] = None  # [s]
+        self.lastSmoothAlt: float | None = None  # [m]
+        self._lastInSun: bool | None = None  # for _log_sunlit_transition
+        self._lastT: float | None = None  # [s]
         self._altHistory: list = []  # list of (t [s], alt [m]) for the smoothing window
         # [s] When the FIRST sample since Reset() was recorded -- tracked
         # separately from _altHistory[0][0] because the pruning loop
@@ -525,7 +524,7 @@ class StationKeepingController(sysModel.SysModel):
         # or exceed smoothingWindowS; this is the real "has a full
         # orbital period of history actually accumulated yet" clock (see
         # UpdateState's own cold-start-guard comment).
-        self._historyStartT: Optional[float] = None  # [s]
+        self._historyStartT: float | None = None  # [s]
 
         # Python-side telemetry (cheap; avoids extra BSK messages/recorders
         # for what is ultimately just a handful of scalars per tick).
@@ -1023,7 +1022,7 @@ class PhasingKeepingController(sysModel.SysModel):
         self._errorHistory: list = []  # list of (t [s], rawError [rad])
 
         self.state = self.IDLE
-        self._lastT: Optional[float] = None  # [s]
+        self._lastT: float | None = None  # [s]
         self._targetDv = 0.0  # [m/s]
         self._accumDv = 0.0  # [m/s]
         self._burnSign = 1.0  # [-] direction of the CURRENT burn: +1 prograde (raise a), -1 retrograde
@@ -1036,8 +1035,8 @@ class PhasingKeepingController(sysModel.SysModel):
         # ended, so a measurement is only trusted once a full window of
         # unthrusted samples has accumulated.
         self._relAHistory: list = []  # list of (t [s], aB - aA [m])
-        self._relAStartT: Optional[float] = None  # [s]
-        self._quietSinceT: Optional[float] = None  # [s]
+        self._relAStartT: float | None = None  # [s]
+        self._quietSinceT: float | None = None  # [s]
         self._plannedDeltaA = 0.0  # [m]
         self._trimOnly = False  # current BURN_RESTORE is a disturbance trim, not a phasing cycle's restore
         # Firing model of the shared physical thruster -- replaced by the
@@ -1045,7 +1044,7 @@ class PhasingKeepingController(sysModel.SysModel):
         # build_phasing_keeping (one thruster, one firing state).
         self.thruster = ThrusterOnTimeModel()
         self.lastRelativeSmaM = 0.0  # [m] latest one-orbit-mean relative SMA (telemetry)
-        self._lastInSun: Optional[bool] = None  # for _log_sunlit_transition
+        self._lastInSun: bool | None = None  # for _log_sunlit_transition
         # Divergence guard -- see UpdateState's own comment at the
         # BURN_RESTORE -> IDLE transition.
         self._errorAtCycleStartRad = 0.0  # [rad] error when the ACTIVE cycle started
@@ -1617,7 +1616,7 @@ def build_phasing_keeping(scSim, task_name: str, tag: str, mu: float, chief_sc_o
                            follower_station_keeping_controller: StationKeepingController,
                            follower_eclipse_out_msg, chief_semi_major_axis_km: float,
                            config: PhasingKeepingConfig,
-                           chief_station_keeping_controller: Optional[StationKeepingController] = None,
+                           chief_station_keeping_controller: StationKeepingController | None = None,
                            ) -> PhasingKeepingController:
     """Builds and wires one follower spacecraft's :class:`PhasingKeepingController`.
 
@@ -1754,7 +1753,7 @@ class ConstantFrameThrustController(sysModel.SysModel):
         self.propellant = propellant_kg  # [kg]
         self._initialPropellantKg = propellant_kg  # [kg] fixed tank capacity, for fuelTankOutMsg.maxFuelMass
 
-        self._lastT: Optional[float] = None  # [s]
+        self._lastT: float | None = None  # [s]
         self.logThinner = LogThinner()  # see sim_settings.record_interval_s
         self.tLog: list = []
         self.propellantLog: list = []

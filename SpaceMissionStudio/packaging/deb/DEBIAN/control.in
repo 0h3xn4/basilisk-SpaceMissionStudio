@@ -15,7 +15,7 @@ Description: GUI mission-analysis application built on Basilisk
  mission design, using the Basilisk astrodynamics framework (AVS Lab,
  University of Colorado Boulder) as its sole simulation/dynamics engine.
  .
- Self-contained: the package carries its own Python 3.11 with Basilisk
+ Self-contained: the package carries its own Python 3.14 with Basilisk
  2.12.0, PySide6 and every other Python package the tool uses, plus the
  SPICE kernels, gravity fields and Earth orientation files runs read. It
  needs no system Python and no internet to install. The libraries it

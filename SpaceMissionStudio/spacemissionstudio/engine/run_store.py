@@ -52,7 +52,6 @@ import zipfile
 from dataclasses import dataclass, field, fields
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, List, Optional
 
 import numpy as np
 
@@ -87,9 +86,9 @@ class SavedRun:
     epoch_utc: str
     finished: datetime
     cancelled: bool = False
-    series: List[dict] = field(default_factory=list)  # {"name", "columns", "units"} in order
-    provenance: Optional[dict] = None
-    warnings: List[str] = field(default_factory=list)
+    series: list[dict] = field(default_factory=list)  # {"name", "columns", "units"} in order
+    provenance: dict | None = None
+    warnings: list[str] = field(default_factory=list)
     size_bytes: int = 0  # [byte] the folder on disk
 
     @property
@@ -113,7 +112,7 @@ def _folder_size(folder: Path) -> int:
     return sum(p.stat().st_size for p in folder.iterdir() if p.is_file())  # [byte]
 
 
-def save(root: "str | Path", number: int, scenario: dict, result: ResultSet, epoch_utc: str,
+def save(root: str | Path, number: int, scenario: dict, result: ResultSet, epoch_utc: str,
          finished: datetime, cancelled: bool = False) -> SavedRun:
     """Write ``result`` and what produced it as run ``number``. Raises
     :class:`RunStoreError` (the folder is left out) when it cannot."""
@@ -134,7 +133,7 @@ def save(root: "str | Path", number: int, scenario: dict, result: ResultSet, epo
         "provenance": result.provenance.to_dict() if result.provenance is not None else None,
         "warnings": list(result.warnings),
     }
-    arrays: Dict[str, np.ndarray] = {}
+    arrays: dict[str, np.ndarray] = {}
     for index, name in enumerate(names):
         arrays[f"t{index}"] = np.asarray(result.series[name].time_s, dtype=float)
         arrays[f"d{index}"] = np.asarray(result.series[name].data, dtype=float)
@@ -185,7 +184,7 @@ def _read_record(folder: Path) -> SavedRun:
     return _saved_run(folder.name, record, _folder_size(folder))
 
 
-def load_index(root: "str | Path") -> List[SavedRun]:
+def load_index(root: str | Path) -> list[SavedRun]:
     """Every saved run under ``root``, oldest first; unreadable ones are
     skipped and logged."""
     root = Path(root)
@@ -202,7 +201,7 @@ def load_index(root: "str | Path") -> List[SavedRun]:
     return sorted(runs, key=lambda run: (run.number, run.finished))
 
 
-def _provenance(record: Optional[dict]) -> Optional[RunProvenance]:
+def _provenance(record: dict | None) -> RunProvenance | None:
     if not isinstance(record, dict):
         return None
     known = {f.name for f in fields(RunProvenance)}
@@ -212,7 +211,7 @@ def _provenance(record: Optional[dict]) -> Optional[RunProvenance]:
         return None
 
 
-def load_result(root: "str | Path", saved: SavedRun) -> ResultSet:
+def load_result(root: str | Path, saved: SavedRun) -> ResultSet:
     """The :class:`ResultSet` of ``saved``, read from its folder."""
     folder = _folder(Path(root), saved.run_id)
     result = ResultSet(saved.scenario_name, provenance=_provenance(saved.provenance), warnings=list(saved.warnings))
@@ -226,14 +225,14 @@ def load_result(root: "str | Path", saved: SavedRun) -> ResultSet:
     return result
 
 
-def delete(root: "str | Path", run_id: str) -> None:
+def delete(root: str | Path, run_id: str) -> None:
     """Remove one saved run (nothing else: the name must be a run's)."""
     folder = _folder(Path(root), run_id)
     if folder.is_dir():
         shutil.rmtree(folder)
 
 
-def prune(root: "str | Path", keep: int = MAX_SAVED_RUNS, max_bytes: int = MAX_STORE_BYTES) -> List[str]:
+def prune(root: str | Path, keep: int = MAX_SAVED_RUNS, max_bytes: int = MAX_STORE_BYTES) -> list[str]:
     """Delete the oldest runs until at most ``keep`` remain and they take
     at most ``max_bytes``; the newest run always stays. Returns the
     deleted runs' names."""

@@ -36,7 +36,6 @@ from __future__ import annotations
 import copy
 import shutil
 from pathlib import Path
-from typing import List, Optional
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
@@ -100,7 +99,7 @@ def _row(*widgets) -> QWidget:
     return holder
 
 
-def unique_name(base: str, taken: List[str]) -> str:
+def unique_name(base: str, taken: list[str]) -> str:
     """``base``, or ``base 2``, ``base 3``... -- the first not in ``taken``.
     Characters a part name cannot hold become ``_``."""
     cleaned = "".join("_" if (c in '/\\:*?"<>|.' or ord(c) < 32) else c for c in base).strip() or "part"
@@ -117,7 +116,7 @@ def unique_name(base: str, taken: List[str]) -> str:
 class _ImportOptionsDialog(QDialog):
     """Units, up axis and whether to copy an ``.obj`` beside the scenario."""
 
-    def __init__(self, path: Path, can_copy: bool, parent: Optional[QWidget] = None):
+    def __init__(self, path: Path, can_copy: bool, parent: QWidget | None = None):
         super().__init__(parent)
         self.setWindowTitle(f"Import {path.name}")
         layout = QVBoxLayout(self)
@@ -146,7 +145,7 @@ class _ImportOptionsDialog(QDialog):
         layout.addWidget(buttons)
 
 
-def uses_note(simulation_mode: Optional[str]) -> str:
+def uses_note(simulation_mode: str | None) -> str:
     """What the next run takes from an applied model in a scenario of this
     simulation mode; empty when the mode is not known."""
     if simulation_mode == "orbit_only":
@@ -165,8 +164,8 @@ class ModelEditorDialog(QDialog):
     docstring). ``base_dir`` is the scenario file's folder: mesh paths are
     stored relative to it, and imports can be copied into it."""
 
-    def __init__(self, model: Optional[SpacecraftModelConfig], spacecraft_name: str = "sat-1",
-                 base_dir=None, parent: Optional[QWidget] = None, simulation_mode: Optional[str] = None):
+    def __init__(self, model: SpacecraftModelConfig | None, spacecraft_name: str = "sat-1",
+                 base_dir=None, parent: QWidget | None = None, simulation_mode: str | None = None):
         super().__init__(parent)
         self._simulation_mode = simulation_mode
         self.setWindowTitle(f"3D model: {spacecraft_name}")
@@ -263,7 +262,7 @@ class ModelEditorDialog(QDialog):
         if self._model.parts:
             self.parts_list.setCurrentRow(min(max(row, 0), len(self._model.parts) - 1))
 
-    def selected_part(self) -> Optional[ModelPartConfig]:
+    def selected_part(self) -> ModelPartConfig | None:
         row = self.parts_list.currentRow()
         return self._model.parts[row] if 0 <= row < len(self._model.parts) else None
 
@@ -329,7 +328,7 @@ class ModelEditorDialog(QDialog):
         except (OSError, obj_io.ObjError) as exc:
             report(self, f"Could not import {name}: {exc}")
 
-    def import_obj(self, path, units: str = "m", up_axis: str = "z", copy_to_scenario: bool = False) -> List[str]:
+    def import_obj(self, path, units: str = "m", up_axis: str = "z", copy_to_scenario: bool = False) -> list[str]:
         """Add every group of the ``.obj`` at ``path`` as a mesh part (mass
         0 until set); returns their names. Raises ObjError or OSError."""
         source = Path(path)
@@ -360,7 +359,7 @@ class ModelEditorDialog(QDialog):
         return names
 
     @staticmethod
-    def _mtl_files(obj_path: Path) -> List[Path]:
+    def _mtl_files(obj_path: Path) -> list[Path]:
         files = []
         for line in obj_path.read_text(encoding="utf-8", errors="replace").splitlines():
             parts = line.split("#", 1)[0].split()
@@ -383,7 +382,7 @@ class ModelEditorDialog(QDialog):
 
     # -- part form ---------------------------------------------------------------------------------------------
 
-    def _show_part_form(self, part: Optional[ModelPartConfig]) -> None:
+    def _show_part_form(self, part: ModelPartConfig | None) -> None:
         self._loading_form = True
         form_widget = QWidget()
         form = QFormLayout(form_widget)
@@ -716,7 +715,7 @@ class ModelEditorDialog(QDialog):
             if notes:
                 self.messages.setText("; ".join(notes))
 
-    def import_mass_properties(self, path) -> List[str]:
+    def import_mass_properties(self, path) -> list[str]:
         """Read a mass-properties file and use it (source "imported")."""
         config, notes = mass_import.read_mass_properties(path)
         self._model.mass_properties = config

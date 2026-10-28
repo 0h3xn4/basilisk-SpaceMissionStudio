@@ -51,7 +51,6 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional
 
 ROOT = Path(__file__).resolve().parent.parent
 REPOSITORY_URL = "https://github.com/0h3xn4/basilisk-SpaceMissionStudio"
@@ -70,7 +69,7 @@ class NotesError(RuntimeError):
     """A file or CHANGELOG section the notes need is missing."""
 
 
-def changelog_section(changelog: str, version: str) -> Dict[str, str]:
+def changelog_section(changelog: str, version: str) -> dict[str, str]:
     """The parts of the ``## version (date)`` section: ``summary``,
     ``new`` and one entry per name of :data:`OWN_SECTIONS` present."""
     lines = changelog.splitlines()
@@ -84,9 +83,9 @@ def changelog_section(changelog: str, version: str) -> Dict[str, str]:
 
     first_item = next((i for i, line in enumerate(body) if line.startswith(("- ", "* ", "### "))), len(body))
     parts = {"summary": unwrap("\n".join(body[:first_item]).strip())}
-    new: List[str] = []
-    current: Optional[str] = None
-    own: Dict[str, List[str]] = {}
+    new: list[str] = []
+    current: str | None = None
+    own: dict[str, list[str]] = {}
     for line in body[first_item:]:
         if line.startswith("### "):
             title = line[4:].strip()
@@ -110,7 +109,7 @@ def unwrap(text: str) -> str:
     """Joins the hard-wrapped lines of each paragraph and list item: a
     release page shows every line break. Blank lines, headings, table rows,
     code blocks and the start of each (nested) list item stay as they are."""
-    out: List[str] = []
+    out: list[str] = []
     joinable = False  # the last line is prose a continuation may join
     fenced = False
     for line in text.splitlines():
@@ -155,7 +154,7 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _installed_size(deb: Path) -> Optional[int]:
+def _installed_size(deb: Path) -> int | None:
     """The .deb's Installed-Size in bytes, when dpkg-deb is there to read it."""
     dpkg_deb = shutil.which("dpkg-deb")
     if dpkg_deb is None:
@@ -166,7 +165,7 @@ def _installed_size(deb: Path) -> Optional[int]:
     return int(value) * 1024 if result.returncode == 0 and value.isdigit() else None
 
 
-def _release_files(files: Path, version: str) -> Dict[str, Path]:
+def _release_files(files: Path, version: str) -> dict[str, Path]:
     names = {
         "deb": f"spacemissionstudio_{version}_amd64.deb",
         "setup": f"spacemissionstudio-{version}-setup.exe",
@@ -180,7 +179,7 @@ def _release_files(files: Path, version: str) -> Dict[str, Path]:
     return found
 
 
-def bundled_versions(root: Path = ROOT) -> Dict[str, str]:
+def bundled_versions(root: Path = ROOT) -> dict[str, str]:
     """CPython, Basilisk and PySide6 as the installers ship them, read from
     ``packaging/bundle_python.py`` and ``packaging/constraints.txt``."""
     bundle = (root / "packaging" / "bundle_python.py").read_text(encoding="utf-8")
@@ -222,7 +221,7 @@ def render(version: str, files: Path, run_url: str, changelog: str, root: Path =
     versions = bundled_versions(root)
     deb, setup = paths["deb"].name, paths["setup"].name
 
-    out: List[str] = []
+    out: list[str] = []
     add = out.append
     if section["summary"]:
         add(section["summary"])
@@ -332,7 +331,7 @@ def render(version: str, files: Path, run_url: str, changelog: str, root: Path =
     return "\n".join(out) + "\n"
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--version", required=True, help="the release version, for example 1.2.0")
     parser.add_argument("--files", required=True, type=Path, help="the folder with the built release files")
