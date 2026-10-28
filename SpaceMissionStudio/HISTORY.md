@@ -14007,3 +14007,29 @@ on 8 workers, 6 failed.
 **Change (the test only):** it waits for the label, and opens the gate
 in a `finally`. 0 of 128 failed (two runs of 64). Ported into this PR
 because it would fail its CI the same way.
+
+## An export that outlives its view (2026-10-28)
+
+Found by CI on PR #143: `test` raised, at the teardown of
+`test_plot_workspace.py::test_export_all_writes_every_plot_its_data_and_the_provenance`,
+"Internal C++ object (PySide6.QtWidgets.QLabel) already deleted" from
+`ResultsWidget._end_export`. Branch `export-worker-receiver`.
+
+**Cause:** `_start_export` (G2, #138) connected the worker's
+`finished_ok`, `failed` and `cancelled` to lambdas calling the widget.
+Qt drops a connection when its receiver is destroyed only for the
+receiver's own slots; a lambda has none, so the end of an export that
+outlived its widget ran on a deleted one. The test ends when
+`provenance.json` exists, before the worker's `finished_ok`. In the app
+the window waits for an export when it closes, so only a view deleted
+while exporting is exposed.
+
+**Change:** the three signals go to `_on_export_done`,
+`_on_export_failed` and `_on_export_cancelled`, methods of the widget;
+the callers' handlers are kept in `_export_ends`.
+
+**Tests:** `test_results_widget.py::test_an_export_that_ends_after_its_widget_is_gone_touches_nothing`
+(an export gated until its widget is deleted): fails on the code before
+with the CI's error (checked), passes now.
+
+Full suite on Python 3.14: 3915 passed.

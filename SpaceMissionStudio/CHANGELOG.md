@@ -188,6 +188,12 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   #6B6D71 dark), gives at least 3.08:1 against every background a control
   sits on, and the contrast test now covers it. Found by the audit of
   2026-10-27 (G7).
+- **An export that ends after its view is gone does nothing:** the end
+  of an export (written off the window's thread since G2) called the
+  results view through lambdas, which Qt does not disconnect when the view
+  is deleted: the end of an export that outlived its view raised
+  "Internal C++ object already deleted". It now reaches the view's own
+  methods, which Qt disconnects with it. Found when CI failed on it.
 
 ## 1.3.1 (2026-10-27)
 

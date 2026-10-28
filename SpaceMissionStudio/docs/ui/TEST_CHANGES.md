@@ -720,3 +720,8 @@ is the only test that an empty `.app` is not refused.
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `test_results_widget.py::test_an_export_runs_off_the_gui_thread_with_progress_and_cancel` | Read "Exporting 1 of 2" as soon as the worker began its first file; opened the worker's gate only after its asserts | Waits for the label to say it (up to 10 s), then checks the same things; the gate opens in a `finally` | The progress signal is queued across threads, so the label can still say "Exporting..." when the file is begun: 6 of 64 runs failed under load (8 workers), 0 of 128 now. A failed assert also left the worker writing into the next test's event loop (`test_run_record.py` failed with the export's "already deleted" error). Same assertions |
+
+## An export that outlives its view (2026-10-28)
+
+- Added `test_results_widget.py::test_an_export_that_ends_after_its_widget_is_gone_touches_nothing`.
+  No existing test changed.
