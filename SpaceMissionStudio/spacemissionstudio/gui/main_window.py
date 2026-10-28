@@ -368,6 +368,11 @@ class MainWindow(QMainWindow):
         self.run_page = RunPage()
         self.run_page.vizard_changed.connect(self._on_vizard_edited)
         self.run_page.archive_changed.connect(self._remember_archive_dir)
+        # The Run page says Monte Carlo is off before Run is pressed (audit G5).
+        monte_carlo_enabled = self.scenario_editor.monte_carlo_group.enabled_check
+        monte_carlo_enabled.toggled.connect(self.run_page.set_monte_carlo_enabled)
+        self.run_page.set_monte_carlo_enabled(monte_carlo_enabled.isChecked())
+        self.run_page.enable_monte_carlo.connect(self._enable_monte_carlo)
         self.run_views.addTab(self.run_page, "Run")
         self.run_views.addTab(lifetime_scroll, "End of Life")
         self.run_views.addTab(budget_scroll, "Budget")
@@ -2536,6 +2541,12 @@ class MainWindow(QMainWindow):
         while self.run_end_pending:
             self._next_run_end_step()
 
+    def _enable_monte_carlo(self) -> None:
+        """Enable Monte Carlo on the Run page: on, and on to its page to set
+        the runs and dispersions."""
+        self.scenario_editor.monte_carlo_group.enabled_check.setChecked(True)
+        self.show_view(self.scenario_editor.monte_carlo_page)
+
     def on_run_monte_carlo(self) -> None:
         try:
             scenario = self.scenario_editor.to_scenario()
@@ -2668,14 +2679,12 @@ class MainWindow(QMainWindow):
         # _confirm_discard_unsaved() alone would let the window (and, with
         # it, the whole process, since Qt tears down QApplication.exec()
         # once the last window closes) close right out from under a still
-        # -running worker. Neither worker is parented. RunWorker DOES now
-        # have a cooperative-cancellation hook (request_cancel(), see its
-        # own module docstring / on_abort_run() above), but it only takes
-        # effect at the next chunk/command checkpoint, not instantly, and
-        # MonteCarloWorker/run_monte_carlo() still has no such hook at
-        # all -- so closing must simply wait either way, same as it would
-        # for any other in-progress, no-undo operation, rather than firing
-        # an implicit abort the user never asked for.
+        # -running worker. Neither worker is parented. RunWorker has a
+        # cooperative-cancellation hook (request_cancel(), see its own
+        # module docstring / on_abort_run() above), but it only takes
+        # effect at the next chunk/command checkpoint, not instantly -- so
+        # closing waits for a single run, rather than firing an implicit
+        # abort the user never asked for. A Monte Carlo batch asks first.
         if self._run_worker is not None and self._run_worker.isRunning():
             self._report_run_problem("A simulation is still running: wait for it to finish, or cancel it (Esc), "
                                      "before closing SpaceMissionStudio.", level=logging.INFO)
@@ -2703,6 +2712,7 @@ class MainWindow(QMainWindow):
             self.budget_widget.wait_for_worker()
             self.flight_software_widget.wait_for_worker()
             self.data_panel_widget.wait_for_reader()  # the start-up read of the reference data files
+            self.results_widget.wait_for_export()  # an export's files are finished, not cut off
             self.load_scenario_widget.reference_card.wait()  # a download must not be cut off mid-file
             self._save_layout()
             event.accept()

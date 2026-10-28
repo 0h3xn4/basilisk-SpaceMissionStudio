@@ -13818,6 +13818,113 @@ on the code before (checked), the fourth passes on both.
 
 Full suite on Python 3.14: 3895 passed.
 
+## The run's length with a Mission Sequence (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G4. Branch
+`sequence-duration`.
+
+**Found, reproduced:** Overview's Duration tile showed
+`sim_settings.duration_days` and the pass lines counted passes over it,
+though a Mission Sequence decides the run's length. Template 23 (Duration
+0.1 day): "2.4 h", "berlin-gs: 2 passes"; its run lasts 1.26 h (the last
+sample of `berlin-gs.access_to_smallsat-1.azimuth.csv`) with one pass.
+Templates 08 and 16 (Duration 1 day and 0.2 day) run 14.4 h and 83 min.
+
+**Change:** `scenario_checks.sequence_span` reads the length from the
+steps (durations add, an epoch stop ends at its epoch, unticked steps do
+not run, an event stop or an if/while with a propagate is counted as
+open) and `sequence_length_text` says it. Overview's Duration tile shows
+it ("58 min + 2 event or condition stops (sequence)"; "14.4 h
+(sequence)"; "83 min (sequence)"); the pass lines count over the
+sequence when it is all fixed, else over the Duration and say "in the
+Duration". Under the Duration field a note (only with a sequence) says
+how long the sequence runs and that the Duration must still cover it.
+
+**Tests:** `test_a_mission_sequence_sets_the_run_length_overview_reports`,
+`test_an_epoch_stop_and_disabled_or_nested_steps_count_as_they_run`,
+`test_the_duration_says_when_the_mission_sequence_decides` (GUI): fail
+on the code before (checked), pass after.
+
+Full suite on Python 3.14: 3897 passed.
+
+## Toasts fade out every time (2026-10-28)
+
+Found while driving PR #136 (the audit's G4) to green: one of its two
+`test` runs failed in `test_reports_and_settings.py::test_toasts_fade_unless_motion_is_reduced`
+(waited 10 s for the fade-out), the other passed on the same commit.
+Branch `toast-fade-order`.
+
+**Cause:** `show_toast` set two `QTimer.singleShot` timers, the fade-out
+at the duration less 150 ms and the dismissal at the duration. Qt makes a
+single-shot of 2 s or more a coarse timer, accurate to 5 %: for a 3 s
+toast, 2707 to 2992 ms and 2850 to 3150 ms overlap. When the dismissal
+came first the toast was hidden, and the fade-out, which only fades a
+visible toast, was skipped.
+
+**Change:** the fade-out starts the dismissal 150 ms later; a toast that
+does not fade keeps its one timer.
+
+**Tests:** `test_feedback.py::test_a_toast_fades_out_before_it_is_dismissed_whatever_order_its_timers_fire`
+fires the toast's timers latest deadline first, as a coarse timer may:
+it fails on the code before (checked; the toast hid with the fade-in's
+effect) and passes now, with `test_toasts_fade_unless_motion_is_reduced`.
+
+## Monte Carlo off, said before Run (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G5. Branch
+`monte-carlo-switch`.
+
+**Found:** the run mode (Single, Monte Carlo, SIL) and Scenario > Monte
+Carlo > Enabled are two switches; with the mode on Monte Carlo and
+Enabled off, `on_run_monte_carlo` said "Monte Carlo is off for this
+scenario ..." only once Run was pressed.
+
+**Change:** the Run page's Monte Carlo options show "Monte Carlo is off
+for this scenario, so Run has no batch to run." with **Enable Monte
+Carlo** while Enabled is off; it follows the checkbox. Enable ticks it
+and opens Scenario > Monte Carlo. Run still says why when pressed anyway.
+
+**Tests:** `test_the_run_page_says_monte_carlo_is_off_before_run`: fails
+on the code before (no such note), passes after.
+
+Full suite on Python 3.14: 3895 passed.
+
+## Exports off the GUI thread (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G2. Branch
+`export-worker`.
+
+**Found:** `ResultsWidget._on_export` called `ResultSet.export_csv` in the
+click handler, and `_on_all_rendered` decoded every plot's image and wrote
+the images, the CSVs and `provenance.json` there too: the window held
+for the whole export, with no progress and no cancel.
+
+**Change:** `_ExportWorker` (a QThread) runs the writing; `export_csv`
+takes an optional `progress(written, total)`, called before each file and
+at the end, which may raise to stop (Cancel). The Results page shows
+"Exporting N of M files..." and **Cancel** beside the buttons; Export
+CSV and Export all are off while it runs and the PNG re-enable paths
+leave them so. Export all takes the plots' file names, the series and the
+provenance when it starts; the images are decoded in the worker with
+that provenance. The main window waits for an export when it closes.
+Cancel reports "Export cancelled: N file(s) were written to ...".
+
+**Tests:** the new GUI test holds the first file's write on a gate:
+the write happens off the main thread, the row reads "Exporting 1 of 2
+files...", Export is off, Cancel leaves exactly one CSV and says so. The
+engine test checks the calls `(0, 3) (1, 3) (2, 3) (3, 3)`, that the
+files equal those written without progress byte for byte, and that
+raising stops after the first file. Both fail on the code before
+(checked). `test_export_files.py` (1.1.0's exports byte for byte) passes
+unchanged.
+
+**First full suite:** 3898 passed, 1 failed:
+`test_timeline_scale.py::test_an_export_keeps_every_sample_the_plot_thins`
+read the CSV right after `_on_export()`, before the worker had written it.
+It now waits for the export (`docs/ui/TEST_CHANGES.md`).
+
+Full suite on Python 3.14 after that: 3899 passed.
+
 ## A Monte Carlo batch can be cancelled (2026-10-28)
 
 The user: "Continue as per your recommendations". The audit's G3. Branch

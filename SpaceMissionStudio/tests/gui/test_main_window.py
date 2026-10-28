@@ -2223,6 +2223,25 @@ def test_finished_runs_are_kept_for_comparison(window):
     assert not window.results_widget.compare_combo.isVisibleTo(window.results_widget)
 
 
+def test_the_run_page_says_monte_carlo_is_off_before_run(window):
+    """Audit G5: the run mode could be Monte Carlo while the scenario's
+    Monte Carlo was off, and Run said so only after the click. The Run
+    page's Monte Carlo options now say it is off, with Enable Monte Carlo,
+    which turns it on and opens Scenario > Monte Carlo; the note goes when
+    Monte Carlo is on."""
+    group = window.scenario_editor.monte_carlo_group
+    group.enabled_check.setChecked(False)
+    window.set_run_mode("monte_carlo")
+    window.show_view(window.run_page)
+    note = window.run_page.monte_carlo_off
+    assert note.isVisibleTo(window.run_page)
+    window.run_page.enable_monte_carlo_button.click()
+    assert group.enabled_check.isChecked()
+    assert not note.isVisibleTo(window.run_page)
+    assert window.current_view() is window.scenario_editor
+    assert window.scenario_editor.page_tree.current_page() is window.scenario_editor.monte_carlo_page
+
+
 def test_a_running_monte_carlo_batch_can_be_cancelled_and_the_window_closed(window, monkeypatch, tmp_path):
     """Audit G3: the window would not close while a batch ran, and Esc did
     not stop it. Esc now cancels it; closing asks Cancel and close (the

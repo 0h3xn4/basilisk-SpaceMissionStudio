@@ -316,3 +316,26 @@ def test_a_scenario_loaded_is_validated_once_with_every_field_in(widget, monkeyp
     rows = widget.problems
     widget.revalidate()
     assert widget.problems == rows
+
+
+_TEMPLATES_DIR = Path(__file__).resolve().parents[2] / "spacemissionstudio" / "scenarios" / "templates"
+
+
+def test_the_duration_says_when_the_mission_sequence_decides(widget):
+    """Audit G4: Duration was shown as the run's length though a Mission
+    Sequence decides it. Under the Duration a note says how long the
+    sequence runs and what the Duration still sets; it follows the
+    sequence, and a scenario without one shows none."""
+    from spacemissionstudio.schema import load_scenario
+    from spacemissionstudio.schema.command import Command
+
+    widget.from_scenario(load_scenario(next(_TEMPLATES_DIR.glob("23_*.json"))))
+    note = widget._environment_form.duration_note
+    assert not note.isHidden()
+    assert note.text().startswith("The Mission Sequence decides how long the run is: 58 min + 2 event or condition "
+                                  "stops. The Duration must still cover it")
+    widget.mission_sequence_editor.from_command_list([Command(kind="propagate", params={"duration_days": 0.5})])
+    widget.mission_sequence_editor.changed.emit()
+    assert "is: 12.0 h." in note.text()
+    widget.from_scenario(load_scenario(next(_TEMPLATES_DIR.glob("19_*.json"))))
+    assert widget._environment_form.duration_note.isHidden()

@@ -334,6 +334,22 @@ class ScenarioEditorWidget(QWidget):
         _Debounce(form, "environment").settled.connect(self._on_form_settled)
         self.environment_page.layout().addWidget(form)
         self._environment_form = form
+        self._show_sequence_length()
+
+    def _show_sequence_length(self) -> None:
+        """The note under Duration: how long the Mission Sequence runs (audit G4)."""
+        if self._environment_form is None:
+            return
+        from types import SimpleNamespace
+
+        from ..engine.scenario_checks import sequence_length_text, sequence_span
+
+        try:
+            span = sequence_span(SimpleNamespace(mission_sequence=self.mission_sequence_editor.to_command_list(),
+                                                 epoch_utc=self.epoch_edit.text().strip()))
+        except Exception:  # noqa: BLE001 -- a step or the epoch not valid yet: Problems says why
+            span = None
+        self._environment_form.set_sequence_length(None if span is None else sequence_length_text(span))
 
     def _build_spacecraft_group(self) -> QGroupBox:
         group = QGroupBox("Spacecraft")
@@ -372,6 +388,8 @@ class ScenarioEditorWidget(QWidget):
         )
         self.mission_sequence_editor.set_series_names_provider(self._expected_series_names)
         self.mission_sequence_editor.changed.connect(self.changed)
+        self.mission_sequence_editor.changed.connect(self._show_sequence_length)
+        self.epoch_edit.textChanged.connect(self._show_sequence_length)  # an epoch stop counts from it
         self.mission_sequence_editor.form_shown.connect(self._on_step_form_shown)
         layout.addWidget(self.mission_sequence_editor)
         return group
@@ -895,6 +913,7 @@ class ScenarioEditorWidget(QWidget):
         self._refresh_monte_carlo_spacecraft_names()
         self.monte_carlo_group.from_dataclass(scenario.monte_carlo)
         self.mission_sequence_editor.from_command_list(scenario.mission_sequence)
+        self._show_sequence_length()  # the Environment form was built before the sequence was filled
         self._fsw_exports = list(scenario.fsw_exports)
         if not self._applying_json:  # another scenario: the JSON page forgets an edit it held
             self.json_view.reset()

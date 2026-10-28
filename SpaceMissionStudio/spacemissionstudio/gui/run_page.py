@@ -86,6 +86,7 @@ class RunPage(QWidget):
 
     vizard_changed = Signal(object)
     archive_changed = Signal(str)
+    enable_monte_carlo = Signal()  # Enable Monte Carlo, from the note shown while it is off (audit G5)
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -139,6 +140,21 @@ class RunPage(QWidget):
         page = QWidget()
         layout = QVBoxLayout(page)
         layout.setContentsMargins(0, 0, 0, 0)
+        # Before the click, not after it: the mode is Monte Carlo but the
+        # scenario's Monte Carlo is off (audit G5).
+        self.monte_carlo_off = QWidget()
+        off_row = QHBoxLayout(self.monte_carlo_off)
+        off_row.setContentsMargins(0, 0, 0, 0)
+        off_label = set_role(QLabel("Monte Carlo is off for this scenario, so Run has no batch to run."),
+                             tone="secondary")
+        off_label.setWordWrap(True)
+        off_row.addWidget(off_label, 1)
+        self.enable_monte_carlo_button = QPushButton("Enable Monte Carlo")
+        self.enable_monte_carlo_button.setToolTip("Turns Monte Carlo on and opens Scenario > Monte Carlo, where its "
+                                                  "runs and dispersions are set.")
+        self.enable_monte_carlo_button.clicked.connect(self.enable_monte_carlo)
+        off_row.addWidget(self.enable_monte_carlo_button)
+        layout.addWidget(self.monte_carlo_off)
         _section("Archive folder", layout)
         note = set_role(QLabel("Every run of the batch is saved here; the Monte Carlo view of Results opens on it. "
                                "Remembered for this scenario. Its runs and dispersions are on Scenario > Monte "
@@ -177,6 +193,10 @@ class RunPage(QWidget):
         layout.addLayout(self.sil_holder)
         self.stack.addWidget(page)
         self.pages["sil"] = page
+
+    def set_monte_carlo_enabled(self, enabled: bool) -> None:
+        """Show the "Monte Carlo is off" note with Enable while it is off."""
+        self.monte_carlo_off.setVisible(not enabled)
 
     def show_mode(self, mode: str) -> None:
         # The stack is as tall as the page shown, not its tallest page.
