@@ -233,7 +233,9 @@ A few things to notice right away:
   click the search field in the top bar, and type part of its name
   ("save as", "budget", or a spacecraft's name). There is no menu bar.
 * The **Inspector** panel on the right (`Ctrl+I`): the field you are in,
-  its value, the range it accepts and its help. **Explain**, a live
+  its value, the range it accepts and its help (a button or tab shows
+  nothing there). On a screen narrower than 1600 pixels a new window
+  starts without it, to leave the room to the page. **Explain**, a live
   summary of what the scenario does, is the scenario tree's **Overview**
   (end of Section 7); its name in the tree says how many things there are
   to check.
@@ -247,13 +249,16 @@ A few things to notice right away:
   its page of the Scenario area (the **Scenario** or **Environment** page,
   a spacecraft's or ground station's page, the mission sequence step), or
   a spacecraft's 3D model editor, with the problem named at the top and
-  under the field.
+  under the field. A new window starts without it: an edit that makes the
+  scenario invalid opens it, and so does a run that cannot start.
+  Warnings, and the problems of a file just opened, only add to the count
+  in the status bar and the top bar; click the count to open the panel.
 * `Ctrl+I` and `Ctrl+J` show and hide their panel, and a panel they show
   takes the keyboard. Drag a panel elsewhere, close it, or put them all
-  back with **Settings > Layout > Reset Layout**. The app remembers the
-  layout (the panels, the rail, the dividers' positions) for each
-  scenario file: open a file again and its layout comes back. A file
-  without one keeps the layout on screen.
+  back as a new window has them with **Settings > Layout > Reset
+  Layout**. The app remembers the layout (the panels, the rail, the
+  dividers' positions) for each scenario file: open a file again and its
+  layout comes back. A file without one keeps the layout on screen.
 * A **top bar** above the area names the scenario and says whether it
   has unsaved changes, where it came from ("from template 22", or the
   file's name) and when it last ran, how it ended and how long it took;

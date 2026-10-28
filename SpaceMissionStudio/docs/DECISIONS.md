@@ -5,6 +5,28 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Room for results at 1280 x 720 (2026-10-28)
+
+The audit's G8: "Inspect fields only; collapse the Inspector on small
+windows; open Problems on errors only."
+
+- **By the screen, not the window:** the window opens at 1400 x 850, so a
+  rule on the window's own width would hide the Inspector on every
+  screen. A screen narrower than 1600 px is where the window cannot be
+  wider; there the Inspector starts hidden.
+- **Only for a new layout:** a layout the app kept (the window's or a
+  project's) is applied as it was, so nobody loses a panel they chose to
+  keep. Reset Layout gives the new window's panels.
+- **An edit's first error opens Problems, nothing else:** the blank
+  scenario opens with an error (no spacecraft yet), and opening the panel
+  for it, or for a file opened with one, would undo the room it gives. A second error,
+  or a warning, only adds to the counts in the status bar and the top
+  bar; a panel the user closed stays closed until the scenario is valid
+  again. A run that cannot start still opens it.
+- **Fields only, and a box's own line edit is its box:** the Inspector
+  describes a value: its range and help. A button or a tab has neither,
+  so it shows the empty state rather than dashes.
+
 ## Space weather past the Duration (2026-10-28)
 
 Found while checking the audit's G4 (the Duration does not limit a run

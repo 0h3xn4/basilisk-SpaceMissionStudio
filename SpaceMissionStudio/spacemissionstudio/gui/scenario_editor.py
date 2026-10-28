@@ -173,6 +173,7 @@ class ScenarioEditorWidget(QWidget):
         self._form_errors: dict = {}  # a live form's problem, by form; the scenario is not valid while there is one
         self._applying = False  # a live form is writing its value: the lists need no rebuild
         self._loading = False  # from_scenario() is filling the form: it validates once, at the end
+        self.opening = False  # from_scenario() is validating what it filled: the problems are not an edit's
         self._spacecraft_nodes: list = []
         self._station_nodes: list = []
         self._environment_form = None
@@ -874,7 +875,11 @@ class ScenarioEditorWidget(QWidget):
             self._fill_from(scenario)
         finally:
             self._loading = loading
-        self.revalidate()
+        opening, self.opening = self.opening, True
+        try:
+            self.revalidate()
+        finally:
+            self.opening = opening
 
     def _fill_from(self, scenario: Scenario) -> None:
         self.name_edit.setText(scenario.name)

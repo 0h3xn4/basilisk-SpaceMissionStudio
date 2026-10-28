@@ -64,7 +64,7 @@ def _customize_button(widget, name_substring: str):
     return matches[0]
 
 
-def test_left_pane_content_fits_a_default_window_without_horizontal_scrolling(qtbot, restored_theme):
+def test_left_pane_content_fits_a_default_window_without_horizontal_scrolling(wide_screen, qtbot, restored_theme):
     """Regression test for a real layout bug found by audit: a second,
     full-width "Customize: <whole template title>..." button per template
     demanded up to ~670 px, forcing the Load Scenario tab into a

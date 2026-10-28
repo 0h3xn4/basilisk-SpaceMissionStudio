@@ -13817,3 +13817,40 @@ refusal, a run inside the span, the event search's checks): three fail
 on the code before (checked), the fourth passes on both.
 
 Full suite on Python 3.14: 3895 passed.
+
+## Room for results at 1280 x 720 (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G8. Branch
+`inspector-room`.
+
+**Found, measured** (offscreen, 1280 x 720, template 22, Results > Plots,
+no layout kept): the Inspector 380 px wide, the Problems panel 140 px
+tall, the plot 545 x 339 px. The Inspector inspected any focused widget:
+a rail button showed "Field Home, Value -, Allowed -, Help -". The blank
+scenario has one error (no spacecraft), template 22 one warning.
+
+**Change:**
+
+- `workspace_panels.inspected_field`: a value box, text field, choice,
+  check box or text edit, or the box holding a box's own line edit; the
+  Inspector shows the empty state for anything else.
+- `MainWindow._hide_default_panels`, in the default layout and Reset
+  Layout: Problems hidden; the Inspector hidden when the screen is
+  narrower than `_INSPECTOR_MIN_SCREEN_PX` (1600 px). A kept layout is
+  applied as before.
+- `_on_problem_counts` opens Problems when the errors go from none to
+  some, unless the scenario is being opened (`ScenarioEditor.opening`,
+  set while `from_scenario` validates what it filled). A refused run
+  still opens it.
+- USER_MANUAL: the panels' start and when Problems opens.
+
+**Measured after:** the plot 931 x 485 px (screenshots before and after
+in the session, not committed).
+
+**Tests:** three added in `test_panels.py` (an edit's first error opens
+Problems, the small-screen start and Reset Layout, fields only); with the
+changed tab-bar test, all four fail on the code before (checked). Four
+tests take the new `wide_screen` fixture and the keyboard walk presses
+`Ctrl+J` once more; no assertion removed (`docs/ui/TEST_CHANGES.md`).
+
+Full suite on Python 3.14: 3904 passed.

@@ -149,6 +149,16 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   it goes there, with a message to set the Duration to cover the
   sequence. Runs inside the loaded days, and every template, are
   unchanged.
+- **More room for results on a small screen:** at 1280 x 720 the
+  Inspector (380 px wide) and the Problems panel (140 px tall) left the
+  plot 545 x 339 px. A new window now starts without the Problems panel,
+  which opens when an edit makes the scenario invalid (and, as before,
+  when a run cannot start), and, on a screen narrower than 1600 px,
+  without the Inspector: the plot is 931 x 485 px. `Ctrl+J` and `Ctrl+I`
+  show them; a layout kept from before is unchanged. The Inspector shows
+  fields only: a focused button, tab or rail entry showed "Value -,
+  Allowed -, Help -", and now shows its empty state. Found by the audit
+  of 2026-10-27 (G8).
 
 ## 1.3.1 (2026-10-27)
 

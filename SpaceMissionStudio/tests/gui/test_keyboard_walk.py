@@ -127,9 +127,12 @@ def test_tab_reaches_every_control_of_the_area(window, qtbot, area):
 
 
 def test_the_inspector_names_a_focused_control_by_what_it_shows(window):
-    """A control without a label or a tip is named by what it shows (a tab
-    bar by its current tab), never by its class name ("_TabBar")."""
+    """A focused tab bar is never named by its class name ("_TabBar"): it
+    is not a field, so the Inspector shows its empty state (G8; until then
+    it named the bar by its current tab)."""
+    inspector = window.inspector_widget
     window.show_view(window.results_widget)
     tab_bar = window.results_views.tabBar()
-    window.inspector_widget.inspect(tab_bar)
-    assert window.inspector_widget.name_label.text() == "Plots"
+    inspector.inspect(tab_bar)
+    assert inspector.empty_label.isVisibleTo(inspector) and not inspector.form.isVisibleTo(inspector)
+    assert inspector.name_label.text() != "_TabBar"

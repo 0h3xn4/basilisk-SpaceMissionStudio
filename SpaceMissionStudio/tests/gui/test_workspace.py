@@ -220,7 +220,7 @@ def test_the_stale_banner_shows_only_over_run_views(window):
         assert banner.isVisibleTo(window)
 
 
-def test_the_layout_is_kept_and_reset(qtbot, monkeypatch):
+def test_the_layout_is_kept_and_reset(wide_screen, qtbot, monkeypatch):
     """A hidden side panel stays hidden in the next window (the layout file
     is under the home folder, a temporary one in tests); View > Reset
     Layout brings it back."""
