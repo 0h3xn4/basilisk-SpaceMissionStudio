@@ -13854,3 +13854,15 @@ tests take the new `wide_screen` fixture and the keyboard walk presses
 `Ctrl+J` once more; no assertion removed (`docs/ui/TEST_CHANGES.md`).
 
 Full suite on Python 3.14: 3904 passed.
+
+**CI on the first push:** `test` failed all 31 cases of
+`test_forms.py::test_every_page_of_the_template` ("the Inspector is
+shown"), which passed here. Its module-scoped window is made before the
+tests' home patch, so it used the real `~/.spacemissionstudio/layout.ini`:
+here a kept layout with the Inspector shown, on CI none. Reproduced with
+an empty `HOME` (31 failed); the fixture now has a home of its own and
+shows the Inspector (39 passed, with an empty home and with the real
+one, and the real file unchanged). `test_shell_reachability.py`'s module
+window had the same leak (it wrote a layout into the home) and gets the
+same fix.
+Full suite with a home holding the reference data cache but no kept layout (as on CI): 3904 passed.
