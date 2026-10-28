@@ -101,6 +101,15 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   0.3 g where it drains about 14 g (13.6 g at 1e-12), and its description
   now says so. 12's wheel speeds and 17's attitude are now closer to a run
   at 1e-12; 11 is as close as before.
+- **Save from the unsaved-changes question:** closing, opening or
+  starting a scenario with unsaved changes offered only Discard and
+  Cancel; it now offers Save too (the default), which saves the scenario
+  (asking where for one with no file) and then goes ahead. A cancelled
+  Save As keeps the window and the changes.
+- **A failed read of the reference data is reported:** if the start-up
+  read of the reference data files failed, the Reference data panel kept
+  "Reading the reference data files..." for good. It now says why, with a
+  Retry button, and the status bar shows "Reference data: not read".
 
 ## 1.3.1 (2026-10-27)
 

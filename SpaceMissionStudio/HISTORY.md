@@ -13593,3 +13593,41 @@ not installed here and the validation references are generated with it.
 **Tests:** `test_a_long_step_stays_close_to_kepler_and_records_its_tolerances`
 (300 s, within 50 m; 384.1 m before the change) and
 `test_a_long_dynamics_step_is_flagged` (120 s flagged, 60 s not).
+
+## GUI fixes from the audit, batch 1 (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G6, G9 and
+G10. Branch `gui-fixes-1`.
+
+**G6, found:** `_confirm_discard_unsaved` asked "Discard the unsaved
+changes to ...?" with Discard and Cancel only. **Change:** Save, Discard,
+Cancel, Save the default; Save is File > Save (Save As for a scenario
+with no file, or from a template) and goes ahead only when the file was
+written. `test_save_in_the_unsaved_changes_question_saves_then_goes_ahead`:
+with no file and Save As cancelled the window stays open and the
+changes unsaved; with a file chosen, the file is written and the action
+goes ahead. Every existing test that answers Discard passes unchanged;
+the one that checks the question's text now expects the new one
+(`docs/ui/TEST_CHANGES.md`).
+
+**G10, found:** the start-up read of the reference data runs in a child
+process (`gui/reference_data_process.py`); when the child failed, it sent
+nothing, `InventoryReader.read()` returned None, the worker emitted
+nothing and the panel kept "Reading the reference data files..." for
+good. **Change:** the child sends its failure, `read()` raises
+`InventoryReadError` (also when the child ends without a result, with its
+exit code), the worker emits `failed`, the panel shows "Could not read
+the reference data files: ..." with **Retry**, and the status bar button
+reads "Reference data: not read" (its tooltip has the reason). A read
+stopped by closing the window still reports nothing.
+
+**G9, not reproduced:** in the main window, Spacecraft › Edit with a
+spacecraft selected (template 07, 1280 x 720) opened the spacecraft's
+"Orbit / mass" page in the tree in 88 ms; no dialog opened (a probe
+listed the visible dialogs: none). The scenario editor sets the list's
+edit handler to `show_spacecraft` (U-01); the modal dialog the review
+cited (`spacecraft_editor.py:3140`) is the fallback for a list with no
+handler, which only the list's own tests create. Not changed.
+
+**Tests:** the four new or changed tests fail on the code before the
+change (checked) and pass after; full suite on Python 3.14: 3889 passed.
