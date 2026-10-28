@@ -1,0 +1,46 @@
+# Tested versions of the development tools CI installs (audit R11): the
+# test runner and its plugins, ruff, pip-audit and pre-commit, with what
+# they depend on. Used together with constraints.txt:
+#
+#   pip install -c packaging/constraints.txt -c packaging/constraints-dev.txt -e ".[dev,gui]"
+#
+# None of these ship in the installers. To update: resolve the same set
+# again (uv pip compile -c packaging/constraints.txt with pytest,
+# pytest-qt, pytest-cov, pytest-xdist, ruff, pip-audit and pre-commit),
+# run the full suite and ruff with the new versions, then replace the list.
+boolean-py==5.0
+cachecontrol==0.14.4
+cfgv==3.5.0
+coverage==7.17.0
+cyclonedx-python-lib==11.12.0
+defusedxml==0.7.1
+distlib==0.4.4
+execnet==2.1.2
+filelock==4.2.4
+identify==2.6.20
+iniconfig==2.3.1
+license-expression==30.4.4
+markdown-it-py==4.2.0
+mdurl==0.1.2
+msgpack==1.2.4
+nodeenv==1.11.0
+packageurl-python==0.17.6
+pip-api==0.0.35
+pip-audit==2.10.1
+pip-requirements-parser==32.0.1
+pluggy==1.7.0
+pre-commit==4.7.0
+py-serializable==2.1.0
+pygments==2.21.0
+pytest==9.2.0
+pytest-cov==7.1.0
+pytest-qt==4.5.0
+pytest-xdist==3.8.0
+python-discovery==1.6.7
+rich==15.0.0
+ruff==0.17.3
+sortedcontainers==2.4.0
+tomli==2.5.0
+tomli-w==1.2.0
+typing-extensions==4.16.0
+virtualenv==21.15.1

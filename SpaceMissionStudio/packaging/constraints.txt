@@ -9,12 +9,18 @@
 #
 # The set is what a clean install of bsk[all]==2.12.0 and
 # spacemissionstudio[gui] resolves to; the versions are the ones the full
-# test suite ran against on Linux x86_64, Python 3.11. To update: install
-# the new versions, run the full suite, then regenerate this list.
+# test suite ran against on Linux x86_64 (Python 3.14 since 2.0.0). To
+# update: install the new versions, run the full suite, then regenerate
+# this list. CI checks every pin against the advisory databases
+# (pip-audit); certifi 2026.10.23 replaced a version with a known
+# vulnerability on 2026-10-28 (audit R10). pillow stays at 12.2.0, the
+# latest bsk 2.12.0 allows; its advisories, and why they are accepted, are
+# in audit-exceptions.txt. The development tools are pinned in
+# constraints-dev.txt.
 bokeh==3.9.0
 bsk==2.12.0
 bsk-opnav==2.12.0
-certifi==2026.7.22
+certifi==2026.10.23
 charset-normalizer==3.5.2
 colorama==0.4.6
 contourpy==1.3.3

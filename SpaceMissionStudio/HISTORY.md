@@ -13653,3 +13653,87 @@ range, and the twin sensors end to end: noise correlation under 0.2,
 repeatable, another seed other noise, the provenance);
 `test_the_random_seed_round_trips` (GUI); the long-run segment test now
 checks the new rule.
+
+## Dependency security (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's "next" row
+for R10 to R12. Branch `dependency-security`.
+
+**Found, reproduced:** `pip-audit --no-deps -r packaging/constraints.txt`
+(pip-audit 2.10.1): 52 advisories against pillow 12.2.0 (13 fixed in
+12.3.0, the other 39 only in 13.0.0) and one against certifi 2026.7.22
+(fixed in 2026.10.19); exit code 1. CI's install of `.[dev]` took the
+newest ruff and pytest each run (ruff 0.17.3 and pytest 9.2.0 on this
+day, against 0.17.1 and 9.1.1 in this container). The main workflow had no
+`permissions:` block; the release workflow attached files without
+running a test. The `.deb`'s copyright file had one stanza, ISC for
+`*`, and `Source:` and the control file's `Homepage:` pointed to
+AVSLab/basilisk.
+
+**Change:**
+
+* `constraints.txt`: certifi 2026.10.23. Its header now says Python
+  3.14. (pillow: see "CI's first run" below.)
+* `constraints-dev.txt` (new): pytest 9.2.0, pytest-qt 4.5.0, pytest-cov
+  7.1.0, pytest-xdist 3.8.0, ruff 0.17.3, pip-audit 2.10.1, pre-commit
+  4.7.0 and what they need, resolved against `constraints.txt` (`uv pip
+  compile`). The main and SIL stress workflows install with it.
+* `spacemissionstudio.yml`: `permissions: contents: read`; a pip-audit
+  step in `test` on both pin files (`if: always()`, after the tests);
+  callable (`workflow_call`, with a `ref`).
+* `spacemissionstudio-release.yml`: a `tests` job calls it on the tagged
+  commit; `attach` needs it. The release notes and
+  `docs/developer/releasing.md` say so.
+* The copyright file: a stanza per part, general to specific (the
+  format's last match wins): ISC for SpaceMissionStudio and Basilisk,
+  PSF-2.0 for CPython (pointing to its `LICENSE.txt`, which the pinned
+  archive has; SHA-256 checked), LGPL-3.0 for PySide6 and shiboken6,
+  OFL-1.1 for the two fonts, ISC and MIT for Lucide, the providers'
+  terms for the reference data, and each other package's licence as its
+  metadata gives it. `Source:` and `Homepage:` are this repository.
+
+**Not checked here:** the libraries built into CPython were not listed
+from the binary (running it was refused in this session); the file
+names them as `docs/THIRD_PARTY_ASSETS.md` does, from
+python-build-standalone's own licensing notes. The release workflow's
+`tests` job runs on this pull request (with its own commit); the tag and
+manual-run paths run first at the next tag.
+
+**Tests:** full suite on Python 3.14 with the new pins and tools: 3888
+passed (the one warning is the one develop has). New:
+`test_ci_installs_pinned_development_tools` (fails when a workflow
+installs the dev extra without `constraints-dev.txt`: checked by taking
+it out of one) and
+`test_the_debian_copyright_file_names_each_bundled_part_and_its_licence`
+(fails on the old file: checked).
+
+**CI's first run (on `6590bd8e6`), pillow 13.0.0:** red. The release
+build and every CI install of Basilisk stopped at `pip install -c
+constraints.txt "bsk[all]==2.12.0"`: ResolutionImpossible. bsk 2.12.0's
+own metadata requires `pillow<=12.2.0,>=10.4.0`. The local suite had
+passed (3888) because `uv pip install` put pillow 13.0.0 in next to
+bsk without enforcing that. The Windows jobs failed later, at
+`kernels-status` ("No module named 'Basilisk'"): their PowerShell steps
+fail only on the last command's exit code, so the failed Basilisk
+install went unnoticed.
+
+**Then:** pillow back to 12.2.0, the latest bsk 2.12.0 allows. Every one
+of its 52 advisories is about decoding a crafted image file; a search of
+SpaceMissionStudio and of the Basilisk package finds no `Image.open`,
+`imread` or `imsave`, and SpaceMissionStudio imports neither pillow nor
+matplotlib (pillow is loaded because Basilisk imports matplotlib for its
+plots). They are listed in `packaging/audit-exceptions.txt`, each by ID
+and for pillow 12.2.0, and CI's pip-audit step passes them with
+`--ignore-vuln`: locally, "No known vulnerabilities found, 64 ignored"
+(64 rows for 52 IDs), and exit 1 without the list. Known issue K-25.
+`test_each_accepted_advisory_names_the_pinned_version_it_applies_to`
+fails when pillow is moved and the list is not (checked with 12.3.0).
+The Windows install steps now throw on a failed pip, as the repository's
+other PowerShell steps do. `pip install --dry-run` of the whole CI set
+(Basilisk, the GUI extra, the tools) with both pin files resolves on
+Linux and Windows for Python 3.14: 75 packages, pillow 12.2.0, certifi
+2026.10.23.
+
+
+Full suite on Python 3.14 after this, with develop merged in (random
+seeds): 3894 passed.

@@ -1,10 +1,94 @@
 Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
 Upstream-Name: spacemissionstudio
-Source: https://github.com/AVSLab/basilisk
+Upstream-Contact: https://github.com/0h3xn4/basilisk-SpaceMissionStudio/issues
+Source: https://github.com/0h3xn4/basilisk-SpaceMissionStudio
+Comment:
+ The package is self-contained: /opt/spacemissionstudio/python is a
+ private CPython with Basilisk, SpaceMissionStudio, the packages they use
+ and the reference data runs read (packaging/bundle_python.py). Each
+ Python package keeps its own licence files in its .dist-info folder under
+ /opt/spacemissionstudio/python/lib/python3.14/site-packages; the stanzas
+ below say which licence applies to which part (a later stanza is more
+ specific and wins).
 
 Files: *
 Copyright: 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
 License: ISC
+
+Files: opt/spacemissionstudio/python/*
+Copyright: 2001-2026, Python Software Foundation
+License: PSF-2.0
+ CPython 3.14, as built by python-build-standalone
+ (https://github.com/astral-sh/python-build-standalone). The full text, with
+ the licences of earlier versions, is in
+ /opt/spacemissionstudio/python/lib/python3.14/LICENSE.txt.
+ python-build-standalone builds CPython with libraries of its own (OpenSSL,
+ SQLite, libffi, XZ, zlib and others), each under its own licence as that
+ project documents them ("Licensing" in its docs/running.rst); it links
+ libedit, not readline, so no GPL library is linked.
+
+Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/*
+Copyright: The authors of each package
+License: various
+ The other packages, each under its own licence, whose text is in the
+ package's .dist-info folder: bokeh, contourpy, cycler, colorama, idna,
+ Jinja2, kiwisolver, MarkupSafe, numpy, pandas, pooch, protobuf, pyerfa,
+ xyzservices (BSD); charset-normalizer, fonttools, narwhals, platformdirs,
+ plotly, pyparsing, PyYAML, sgp4, six, urllib3 (MIT); pillow (MIT-CMU);
+ matplotlib (PSF-based matplotlib licence); packaging (Apache-2.0 or
+ BSD-2-Clause); requests, tornado (Apache-2.0); certifi (MPL-2.0); tqdm
+ (MPL-2.0 and MIT); python-dateutil (Apache-2.0 and BSD-3-Clause); pip,
+ setuptools (MIT).
+
+Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio/*
+       opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio-*
+Copyright: 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
+License: ISC
+
+Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/Basilisk/*
+       opt/spacemissionstudio/python/lib/python3.14/site-packages/bsk*
+Copyright: Autonomous Vehicle Systems Lab, University of Colorado at Boulder
+License: ISC
+
+Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/supportData/*
+       opt/spacemissionstudio/python/share/spacemissionstudio/earth_orientation/*
+Copyright: NASA/JPL Navigation and Ancillary Information Facility (SPICE kernels)
+           The University of Texas Center for Space Research (GGM03S gravity field)
+           NOAA National Centers for Environmental Information and the British Geological Survey (WMM)
+           NASA CERES and the Mars Global Surveyor TES team (albedo maps)
+License: other
+ Reference data fetched at build time by Basilisk's dataFetcher and
+ SpaceMissionStudio's earth-orientation command, distributed as their
+ providers publish them; see each provider's terms of use.
+
+Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/PySide6/*
+       opt/spacemissionstudio/python/lib/python3.14/site-packages/shiboken6/*
+       opt/spacemissionstudio/python/lib/python3.14/site-packages/PySide6*
+       opt/spacemissionstudio/python/lib/python3.14/site-packages/shiboken6*
+Copyright: The Qt Company Ltd.
+License: LGPL-3.0-only
+ PySide6, shiboken6 and the Qt libraries they bundle, used under the GNU
+ Lesser General Public License version 3 (they are also offered under
+ GPL-2.0 and GPL-3.0). The licence texts are in the packages' .dist-info
+ folders; on Debian systems the LGPL-3 is also in
+ /usr/share/common-licenses/LGPL-3.
+
+Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio/gui/assets/fonts/inter/*
+Copyright: 2016, The Inter Project Authors (https://github.com/rsms/inter)
+License: OFL-1.1
+ The full text is in the OFL.txt file next to the fonts.
+
+Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio/gui/assets/fonts/jetbrains-mono/*
+Copyright: 2020, The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+License: OFL-1.1
+ The full text is in the OFL.txt file next to the fonts.
+
+Files: opt/spacemissionstudio/python/lib/python3.14/site-packages/spacemissionstudio/gui/assets/icons/lucide/*
+Copyright: 2026, Lucide Icons and Contributors
+           2013-present, Cole Bemis (the icons derived from Feather)
+License: ISC and MIT
+ The full texts, and the list of icons derived from Feather, are in the
+ LICENSE file next to the icons.
 
 License: ISC
  Permission to use, copy, modify, and/or distribute this software for any

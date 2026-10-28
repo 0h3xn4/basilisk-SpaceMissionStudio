@@ -314,6 +314,9 @@ def render(version: str, files: Path, run_url: str, changelog: str, root: Path =
     add("  - checked the reference data;")
     add("  - validated and ran template 01;")
     add("  - opened the main window.")
+    add("- **Tests:** the whole test suite passed on the tagged commit on Linux and Windows, with lint, the "
+        "document checks and a check of every pinned package against the known-vulnerability databases "
+        "(pip-audit).")
     add("- **Checksums:** every attached file was checked against `SHA256SUMS-linux` and `SHA256SUMS-windows`.")
     add("")
 
