@@ -86,6 +86,21 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
 - **Mean elements for equatorial orbits:** the J2 mean-element map no
   longer divides by zero at 0 deg inclination, and is continuous across
   the critical inclination.
+- **Long dynamics steps are more accurate, and flagged:** the rkf45 and
+  rkf78 integrators kept Basilisk's default error tolerance (relative
+  1e-4), which let a long step through unchecked: a one-day two-body
+  orbit was 384 m off Kepler's solution at a 300 s step and 173 km at
+  1800 s. They now work to a relative error of 1e-10 (11 m and 8.6 km),
+  and the run's provenance records both tolerances. Above a 60 s step the
+  rest of the error comes from what is refreshed only once per step, so
+  Explain and `validate` now warn there. Found by the audit of
+  2026-10-27. 28 of the 31 templates give the same results to the last
+  digit; the three that fire attitude thrusters (11, 12, 17) change.
+  Their 20-40 ms pulses fall inside a 0.5-1 s step, and the default
+  tolerance stepped over most of them: template 17's fuel tank drained
+  0.3 g where it drains about 14 g (13.6 g at 1e-12), and its description
+  now says so. 12's wheel speeds and 17's attitude are now closer to a run
+  at 1e-12; 11 is as close as before.
 
 ## 1.3.1 (2026-10-27)
 

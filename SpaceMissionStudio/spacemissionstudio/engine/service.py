@@ -104,6 +104,36 @@ _INTEGRATORS = {
     "rkf78": svIntegrators.svIntegratorRKF78,
 }
 
+# Error tolerances of the adaptive integrators (rkf45, rkf78). Basilisk's
+# defaults (relative 1e-4, absolute 1e-8) let a long dynamics step pass in
+# one step: a one-day two-body run was 384 m off Kepler's solution at a
+# 300 s step and 173 km at 1800 s (audit E3, 2026-10-27). A relative
+# tolerance of 1e-10 brings those to 11 m and 8.6 km; the rest comes from
+# what is refreshed only once per step, which is why the checks warn
+# above 60 s (engine.scenario_checks). At 30 s or less, the steps every
+# template uses, the default was met in one step already and results are
+# unchanged.
+INTEGRATOR_RELATIVE_TOLERANCE = 1e-10  # [-]
+INTEGRATOR_ABSOLUTE_TOLERANCE = 1e-8  # [state units: m, m/s, rad, ...] Basilisk's default
+
+
+def _integrator(integrator_cls, sc_object):
+    """``integrator_cls`` for ``sc_object``, with the tolerances above when
+    it is adaptive (Euler and RK2 take fixed steps and have none)."""
+    integrator = integrator_cls(sc_object)
+    if hasattr(integrator, "setRelativeTolerance"):
+        integrator.setRelativeTolerance(INTEGRATOR_RELATIVE_TOLERANCE)
+        integrator.setAbsoluteTolerance(INTEGRATOR_ABSOLUTE_TOLERANCE)
+    return integrator
+
+
+def integrator_tolerances(integrator: str) -> tuple[float | None, float | None]:
+    """``(relative, absolute)`` tolerance a run with ``integrator`` uses;
+    ``(None, None)`` for the fixed-step ones."""
+    if integrator in ("rkf45", "rkf78"):
+        return INTEGRATOR_RELATIVE_TOLERANCE, INTEGRATOR_ABSOLUTE_TOLERANCE
+    return None, None
+
 
 # SimulationService.run_live()'s default chunk count when live_step_s isn't
 # given -- about this many on_progress callbacks over the whole run,
@@ -1116,7 +1146,7 @@ class SimulationService:
             sc_object.hub.r_CN_NInit = r_N
             sc_object.hub.v_CN_NInit = v_N
 
-            sc_object.setIntegrator(integrator_cls(sc_object))
+            sc_object.setIntegrator(_integrator(integrator_cls, sc_object))
             grav_factory.addBodiesTo(sc_object)
             self.scSim.AddModelToTask(dyn_task_name, sc_object, 10)
 
@@ -2219,6 +2249,8 @@ class SimulationService:
                 run_started_utc=self._run_started_utc,
                 integrator=self.scenario.sim_settings.integrator,
                 dynamics_task_rate_s=self.scenario.sim_settings.dynamics_task_rate_s,
+                integrator_relative_tolerance=integrator_tolerances(self.scenario.sim_settings.integrator)[0],
+                integrator_absolute_tolerance=integrator_tolerances(self.scenario.sim_settings.integrator)[1],
                 qualified_basilisk_version=dependencies.QUALIFIED_BASILISK_VERSION,
                 basilisk_qualified=Basilisk.__version__ == dependencies.QUALIFIED_BASILISK_VERSION,
                 dependency_versions=self._dependency_versions,

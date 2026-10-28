@@ -160,3 +160,15 @@ def test_a_half_edited_scenario_never_raises():
     scenario.spacecraft[0].orbit.semi_major_axis_km = None
     scenario.spacecraft[0].sensors = None
     assert isinstance(scenario_warnings(scenario), list)
+
+
+def test_a_long_dynamics_step_is_flagged():
+    """Above 60 s the orbit loses accuracy whatever the integrator tolerance
+    (audit E3): 120 s is flagged with the measured errors, 60 s is not."""
+    scenario = _template("01")
+    scenario.sim_settings.dynamics_task_rate_s = 60.0  # [s]
+    assert not [w for w in scenario_warnings(scenario) if "dynamics step" in w]
+    scenario.sim_settings.dynamics_task_rate_s = 120.0  # [s]
+    flagged = [w for w in scenario_warnings(scenario) if "dynamics step" in w]
+    assert len(flagged) == 1
+    assert "120 s" in flagged[0] and "8.6 km at 1800 s" in flagged[0]

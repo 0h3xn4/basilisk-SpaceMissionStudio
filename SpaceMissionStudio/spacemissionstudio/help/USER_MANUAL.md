@@ -420,7 +420,12 @@ fixed:
   gravity model is (spherical harmonics for Earth, to degree 180, and
   Mars, to degree 80), which other bodies' gravity to include (Sun, Moon,
   ...), the numerical integrator, how long to simulate, and atmospheric
-  drag/space-weather settings.
+  drag/space-weather settings. The rkf45 and rkf78 integrators adapt
+  their steps inside each dynamics step to a relative error of 1e-10
+  (recorded in the run's provenance); Euler and RK2 take fixed steps.
+  Keep the dynamics step at 60 s or less: above that the orbit loses
+  accuracy whatever the integrator (a one-day test orbit was 11 m off at
+  300 s and 8.6 km at 1800 s), and Explain says so.
 * **Spacecraft** -- the list of spacecraft in the mission, and under it a
   node for each one. A spacecraft's page has a node per part: **Orbit /
   mass**, **Sensors / actuators**, **Attitude control**, **Power /

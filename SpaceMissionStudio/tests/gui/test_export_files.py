@@ -22,8 +22,14 @@ overhaul M8): ``scripts/make_export_references.py`` writes them from fixed
 inputs through the functions the GUI calls, and this compares each file
 with the one 1.1.0 wrote (``tests/data/exports_1_1_0.zip``, written on
 Linux). On Windows, files written in text mode end lines with CRLF, as
-1.1.0's did there, so the comparison there ignores line endings."""
+1.1.0's did there, so the comparison there ignores line endings.
 
+Since 2026-10-28 a provenance record also holds the integrator's
+tolerances (audit E3). The two provenance files are compared without
+those keys, which must be there; everything else in them, and every
+other file, is still 1.1.0's byte for byte."""
+
+import json
 import os
 import sys
 import zipfile
@@ -48,7 +54,24 @@ def test_every_export_is_byte_identical_to_1_1_0(qtbot, tmp_path):
     with zipfile.ZipFile(_REFERENCES) as references:
         assert written == sorted(references.namelist())
         for name in written:
-            assert _same_lines((tmp_path / name).read_bytes()) == _same_lines(references.read(name)), name
+            content = (tmp_path / name).read_bytes()
+            if name.endswith("provenance.json"):
+                content = _without_tolerances(content, name)
+            assert _same_lines(content) == _same_lines(references.read(name)), name
+
+
+# Keys a provenance record gained after 1.1.0, removed before comparing.
+_NEW_PROVENANCE_KEYS = ("integrator_relative_tolerance", "integrator_absolute_tolerance")
+
+
+def _without_tolerances(content: bytes, name: str) -> bytes:
+    """``content``, a provenance file, without the keys added since 1.1.0,
+    written as the record is written (``json.dumps(..., indent=2)``)."""
+    record = json.loads(content)
+    assert all(key in record for key in _NEW_PROVENANCE_KEYS), name
+    for key in _NEW_PROVENANCE_KEYS:
+        del record[key]
+    return (json.dumps(record, indent=2) + ("\n" if content.endswith(b"\n") else "")).encode()
 
 
 def _same_lines(content: bytes) -> bytes:

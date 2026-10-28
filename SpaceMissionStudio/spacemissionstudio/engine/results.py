@@ -81,6 +81,10 @@ class RunProvenance:
     run_started_utc: str  # ISO 8601, when SimulationService.build() started
     integrator: str  # schema.scenario.SimSettings.integrator
     dynamics_task_rate_s: float  # [s] schema.scenario.SimSettings.dynamics_task_rate_s
+    # The adaptive integrator's error tolerances (engine.service
+    # INTEGRATOR_*_TOLERANCE); None for the fixed-step Euler and RK2.
+    integrator_relative_tolerance: float | None = None  # [-]
+    integrator_absolute_tolerance: float | None = None  # [state units]
     # Every Basilisk SysModel (every sensor/fault/noise model this app
     # builds) keeps its own class's fixed default RNGSeed
     # (architecture/_GeneralModuleFiles/sys_model.h: 0x1badcad1) unless a

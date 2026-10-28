@@ -245,7 +245,7 @@ def scenario_warnings(scenario) -> list[str]:
     """Short warnings for setups that can't do what they're configured
     for. Never raises."""
     warnings: list[str] = []
-    for check in (_pass_warnings, _recording_warnings, _tle_warnings, _gravity_warnings,
+    for check in (_pass_warnings, _recording_warnings, _step_warnings, _tle_warnings, _gravity_warnings,
                   _formation_law_warnings, _navigation_restart_warnings, _small_body_data_warnings,
                   _monte_carlo_warnings):
         try:
@@ -514,6 +514,24 @@ def _recording_warnings(scenario) -> list[str]:
         return []
     return [f"passes last as little as {format_elapsed(shortest)} but results are recorded every "
             f"{format_elapsed(interval_s)} -- some may show coarsely or not at all"]
+
+
+# Above this dynamics step the position error grows quickly, whatever the
+# integrator tolerance: in a one-day two-body run (7000 km, Kepler as the
+# reference) it was under 2 cm at 60 s, 0.9 m at 120 s, 11 m at 300 s and
+# 8.6 km at 1800 s (audit E3, 2026-10-27).
+_LONG_STEP_S = 60.0  # [s]
+
+
+def _step_warnings(scenario) -> list[str]:
+    """A long dynamics step loses accuracy (and the integrator cannot make
+    up for it)."""
+    step_s = scenario.sim_settings.dynamics_task_rate_s  # [s]
+    if step_s <= _LONG_STEP_S:
+        return []
+    return [f"the dynamics step is {step_s:g} s: above {_LONG_STEP_S:g} s the orbit loses accuracy "
+            "(a one-day two-body test was 11 m off at 300 s and 8.6 km at 1800 s) -- "
+            f"use {_LONG_STEP_S:g} s or less, and 'Record every' to keep fewer samples"]
 
 
 def _monte_carlo_warnings(scenario) -> list[str]:

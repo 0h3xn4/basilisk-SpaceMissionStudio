@@ -266,11 +266,11 @@ Template 11's eight-thruster attitude control with a real fuel tank: propellant 
 thrusters fire, and the centre of mass shifts with it.
 
 What to look at:
-- sat-1.fuel_mass_remaining with sat-1.thruster_on_time: about 0.3 g of the 0.5 kg drains while the \
-attitude settles; after ~3 minutes only occasional short pulses fire and it barely moves.
+- sat-1.fuel_mass_remaining with sat-1.thruster_on_time: about 12 g of the 0.5 kg drains while the \
+attitude settles (the first 3 minutes); after that short pulses use about 2 g more.
 
 Try changing:
-- Propellant below ~0.0003 kg, to run dry mid-manoeuvre.
+- Propellant below ~0.01 kg, to run dry mid-manoeuvre.
 - Thruster specific impulse: lower uses more propellant for the same correction.""",
 
     "18": """\

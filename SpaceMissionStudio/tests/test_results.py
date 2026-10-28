@@ -125,6 +125,9 @@ def test_result_set_export_csv_with_provenance_writes_sidecar_json(tmp_path):
         "run_started_utc": "2030-01-01T00:00:00+00:00",
         "integrator": "rkf78",
         "dynamics_task_rate_s": 10.0,
+        # the integrator's tolerances (E3), None when not filled by engine.service
+        "integrator_relative_tolerance": None,
+        "integrator_absolute_tolerance": None,
         "rng_seed_note": RunProvenance.__dataclass_fields__["rng_seed_note"].default,
         # configuration record (R01), empty when not filled by engine.service
         "qualified_basilisk_version": "",

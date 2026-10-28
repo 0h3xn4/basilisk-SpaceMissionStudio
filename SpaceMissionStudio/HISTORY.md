@@ -13529,3 +13529,67 @@ The walk collected it with the dialog's tab widgets and met it deleted.
 The two walks (`test_label_text.py`, `test_input_borders.py`) skip a tab
 widget deleted meanwhile; the form is hidden, so none of its labels or
 inputs was ever checked.
+
+## The integrator's tolerances (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's E3. Branch
+`integrator-tolerances`.
+
+**Found by the audit:** `engine/service.py` never set the adaptive
+integrators' tolerances, so Basilisk's defaults applied (relative 1e-4,
+absolute 1e-8, `svIntegratorAdaptiveRungeKutta.h`), and the dynamics step
+had no upper bound.
+
+**Measured** (one day, two-body, 7000 km, against Kepler's equation as
+`tests/test_two_body_validation.py` solves it; rkf78):
+
+| Step | Default 1e-4 / 1e-8 | 1e-10 / 1e-8 | 1e-10 / 1e-10 | 1e-12 / 1e-12 |
+|---|---|---|---|---|
+| 10 s | 0.0000 m | – | 0.0000 m | 0.0000 m |
+| 30 s | 0.0007 m | 0.0007 m | 0.0007 m | 0.0007 m |
+| 60 s | 0.017 m | – | 0.017 m | 0.017 m |
+| 120 s | 0.91 m | 0.91 m | 0.91 m | 0.28 m |
+| 300 s | 384 m | 11.4 m | 11.3 m | 6.8 m |
+| 1800 s | 173 km | – | 8.6 km | 8.6 km |
+
+The tolerance makes most of the difference at 300 s; at 1800 s 8.6 km is
+left even at 1e-12, so the rest is not the integrator but what is
+refreshed only once per dynamics step. Hence both changes:
+
+* **Tolerances:** relative 1e-10, absolute Basilisk's 1e-8
+  (`INTEGRATOR_RELATIVE_TOLERANCE`, `INTEGRATOR_ABSOLUTE_TOLERANCE`), on
+  rkf45 and rkf78; Euler and RK2 take fixed steps. `RunProvenance` records
+  both (None for a fixed-step integrator); `run_store` reads older records
+  without them.
+* **Warning above 60 s** (`scenario_checks._step_warnings`), with the
+  measured errors, in Explain and `validate`.
+
+**Every template, before and after** (`spacemissionstudio run`, outputs
+compared byte for byte except `provenance.json`): 28 of 31 identical,
+2246 s in all before and 2160 s after. The three that differ fire attitude
+thrusters, 20-40 ms pulses inside a 0.5-1 s step, which the default
+tolerance stepped over; against the same runs at 1e-12 / 1e-12:
+
+| Template | What | Before - 1e-12 run | After - 1e-12 run |
+|---|---|---|---|
+| 17 | fuel remaining, max | 0.0133 kg | 0.0005 kg |
+| 17 | attitude (MRP), max | 0.046 | 0.018 |
+| 17 | events (1e-12 run: 6) | 14 | 7 |
+| 12 | wheel speeds, max | 6.7 rad/s | 2.7 rad/s |
+| 12 | attitude, max | 0.0022 | 0.0007 |
+| 11 | position / attitude, max | 1.96 m / 0.067 | 2.17 m / 0.068 |
+
+Template 17 drained 0.3 g (the figure its description and the catalog
+README gave since the 300 kg bus) where it drains 14.0 g, 13.6 g at
+1e-12: about 12 g while the attitude settles, 2 g in later pulses.
+Description, README and
+`test_17_fuel_tank_drains_about_as_described` give the new figures; with
+8 g of propellant the tank runs dry at 97.5 s, so the description's
+"run dry" hint is now "below ~0.01 kg". 11 and 12's claims still hold.
+
+**Not done:** a GMAT comparison at 60 s (the audit's follow-up): GMAT is
+not installed here and the validation references are generated with it.
+
+**Tests:** `test_a_long_step_stays_close_to_kepler_and_records_its_tolerances`
+(300 s, within 50 m; 384.1 m before the change) and
+`test_a_long_dynamics_step_is_flagged` (120 s flagged, 60 s not).

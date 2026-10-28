@@ -5,6 +5,22 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The integrator's tolerances (2026-10-28)
+
+The audit's E3: "Set tolerances (about 1e-10 relative) or expose them;
+warn above about 60 s; record both in provenance."
+
+- **Fixed values, not a scenario field:** relative 1e-10, absolute 1e-8
+  (Basilisk's default). One measured setting serves every template, and
+  a new field would change the scenario format for a value nobody has
+  needed to change. Provenance records both.
+- **Absolute 1e-8 kept:** 1e-10 changed nothing measurable (300 s: 11.3
+  against 11.4 m).
+- **A warning above 60 s, not a refusal:** under 2 cm after a day at
+  60 s, 0.9 m at 120 s; a long step can be a deliberate quick look.
+- **Template 17's description corrected, not its scenario:** its fuel
+  use was the integrator's error; the scenario was right.
+
 ## Python 3.14 only (2026-10-27)
 
 The user: "Drop support for every Python version older than 3.14. The
