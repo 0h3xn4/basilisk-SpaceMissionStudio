@@ -13737,3 +13737,23 @@ Linux and Windows for Python 3.14: 75 packages, pillow 12.2.0, certifi
 
 Full suite on Python 3.14 after this, with develop merged in (random
 seeds): 3894 passed.
+
+## Monte Carlo off, said before Run (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G5. Branch
+`monte-carlo-switch`.
+
+**Found:** the run mode (Single, Monte Carlo, SIL) and Scenario > Monte
+Carlo > Enabled are two switches; with the mode on Monte Carlo and
+Enabled off, `on_run_monte_carlo` said "Monte Carlo is off for this
+scenario ..." only once Run was pressed.
+
+**Change:** the Run page's Monte Carlo options show "Monte Carlo is off
+for this scenario, so Run has no batch to run." with **Enable Monte
+Carlo** while Enabled is off; it follows the checkbox. Enable ticks it
+and opens Scenario > Monte Carlo. Run still says why when pressed anyway.
+
+**Tests:** `test_the_run_page_says_monte_carlo_is_off_before_run`: fails
+on the code before (no such note), passes after.
+
+Full suite on Python 3.14: 3895 passed.

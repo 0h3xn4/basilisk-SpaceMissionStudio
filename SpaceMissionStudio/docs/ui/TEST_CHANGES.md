@@ -661,3 +661,8 @@ is the only test that an empty `.app` is not refused.
   the new `rng_seed` and `rng_seeds` keys (audit E5); the helper is
   renamed `_without_new_keys`. Every other byte is still 1.1.0's.
 - Added `test_propagation_setup_dialog.py::test_the_random_seed_round_trips`.
+
+## Monte Carlo off, said before Run (2026-10-28)
+
+- Added `test_main_window.py::test_the_run_page_says_monte_carlo_is_off_before_run`
+  (audit G5). No existing test changed.

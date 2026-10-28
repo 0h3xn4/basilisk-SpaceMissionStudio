@@ -131,6 +131,11 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   names each part it bundles with its own licence (CPython, Qt, the
   fonts, the icons, the reference data) and this repository as the
   source. Found by the audit of 2026-10-27.
+- **Monte Carlo off, said before Run:** with Monte Carlo as the run mode
+  but the scenario's Monte Carlo off, Run said so only after the click.
+  The Run page's Monte Carlo options now say it is off, with **Enable
+  Monte Carlo**, which turns it on and opens Scenario > Monte Carlo for
+  its runs and dispersions. Found by the audit of 2026-10-27 (G5).
 
 ## 1.3.1 (2026-10-27)
 
