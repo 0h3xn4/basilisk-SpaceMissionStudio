@@ -123,6 +123,102 @@ def test_the_release_constraints_pin_every_dependency_the_installers_use():
         assert "constraints.txt" in (root / installer).read_text(encoding="utf-8"), installer
 
 
+
+def test_ci_installs_pinned_development_tools():
+    """Audit R11: CI took the newest ruff, pytest and its plugins on every
+    run. packaging/constraints-dev.txt pins every dev extra and pip-audit,
+    exactly, and every workflow that installs the dev extra uses it."""
+    import tomllib
+
+    root = Path(__file__).resolve().parents[1]
+    pins = {}
+    for line in (root / "packaging" / "constraints-dev.txt").read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line:
+            name, _, version = line.partition("==")
+            assert version, f"not an exact pin: {line!r}"
+            pins[name.lower().replace("_", "-")] = version
+    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    for requirement in project["optional-dependencies"]["dev"] + ["pip-audit", "pre-commit"]:
+        name = re.split(r"[<>=!~\[ ]", requirement, maxsplit=1)[0].lower().replace("_", "-")
+        assert name in pins, f"{name} is not pinned in constraints-dev.txt"
+    workflows = sorted((root.parent / ".github" / "workflows").glob("spacemissionstudio*.yml"))
+    installs = [line for path in workflows for line in path.read_text(encoding="utf-8").splitlines()
+                if "pip install" in line and ".[dev" in line]
+    assert installs
+    assert all("constraints-dev.txt" in line for line in installs), installs
+
+
+
+def test_each_accepted_advisory_names_the_pinned_version_it_applies_to():
+    """Audit R10: CI's pip-audit accepts only the advisories
+    packaging/audit-exceptions.txt lists (pillow 12.2.0, which the qualified
+    Basilisk caps). Each line names the package and version it was accepted
+    for, and that must be the version pinned now: moving the pin without
+    revisiting the list fails here."""
+    root = Path(__file__).resolve().parents[1]
+    pins = {}
+    for line in (root / "packaging" / "constraints.txt").read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line:
+            name, _, version = line.partition("==")
+            pins[name.lower()] = version
+    ids = []
+    for line in (root / "packaging" / "audit-exceptions.txt").read_text(encoding="utf-8").splitlines():
+        line = line.split("#", 1)[0].strip()
+        if line:
+            advisory, requirement = line.split()
+            name, _, version = requirement.partition("==")
+            assert pins.get(name.lower()) == version, f"{advisory} was accepted for {requirement}"
+            ids.append(advisory)
+    assert ids and len(ids) == len(set(ids))
+
+def test_the_debian_copyright_file_names_each_bundled_part_and_its_licence():
+    """Audit R12: the .deb's copyright file said ISC for every file, though
+    the package bundles CPython, Qt, fonts and icons under other licences,
+    and named AVSLab/basilisk as the source. In the machine-readable format
+    the last stanza whose Files pattern matches a path applies; each part
+    must resolve to its own licence, and the source is this fork."""
+    import fnmatch
+
+    root = Path(__file__).resolve().parents[1]
+    text = (root / "packaging/deb/usr/share/doc/spacemissionstudio/copyright").read_text(encoding="utf-8")
+    header, *paragraphs = text.split("\n\n")
+    assert "Source: https://github.com/0h3xn4/basilisk-SpaceMissionStudio\n" in header
+    stanzas = []
+    for paragraph in paragraphs:
+        if paragraph.startswith("Files:"):
+            fields = re.split(r"\n(?=[A-Z][\w-]*:)", paragraph)
+            patterns = fields[0].removeprefix("Files:").split()
+            licence = next(f for f in fields if f.startswith("License:")).splitlines()[0].removeprefix("License:")
+            stanzas.append((patterns, licence.strip()))
+
+    def licence_of(path):
+        return [licence for patterns, licence in stanzas
+                if any(fnmatch.fnmatchcase(path, pattern) for pattern in patterns)][-1]
+
+    site = "opt/spacemissionstudio/python/lib/python3.14/site-packages/"
+    expected = {
+        "usr/bin/spacemissionstudio": "ISC",
+        site + "spacemissionstudio/cli.py": "ISC",
+        site + "spacemissionstudio/gui/assets/fonts/inter/Inter-Regular.ttf": "OFL-1.1",
+        site + "spacemissionstudio/gui/assets/fonts/jetbrains-mono/JetBrainsMono-Regular.ttf": "OFL-1.1",
+        site + "spacemissionstudio/gui/assets/icons/lucide/x.svg": "ISC and MIT",
+        site + "Basilisk/__init__.py": "ISC",
+        site + "PySide6/QtCore.abi3.so": "LGPL-3.0-only",
+        site + "shiboken6/__init__.py": "LGPL-3.0-only",
+        site + "numpy/__init__.py": "various",
+        site + "supportData/EphemerisData/de430.bsp": "other",
+        "opt/spacemissionstudio/python/bin/python3": "PSF-2.0",
+    }
+    assert {path: licence_of(path) for path in expected} == expected
+    # The licence texts it points to are in the package.
+    for folder in ("fonts/inter", "fonts/jetbrains-mono"):
+        assert (root / "spacemissionstudio/gui/assets" / folder / "OFL.txt").is_file()
+    assert (root / "spacemissionstudio/gui/assets/icons/lucide/LICENSE").is_file()
+    control = (root / "packaging/deb/DEBIAN/control.in").read_text(encoding="utf-8")
+    assert "Homepage: https://github.com/0h3xn4/basilisk-SpaceMissionStudio\n" in control
+
 def test_file_record_of_an_unreadable_file_is_marked_not_raised(tmp_path):
     """Audit L26: a file that could be stat()ed but not read (permissions, or
     a folder) raised in the middle of a run's provenance record."""

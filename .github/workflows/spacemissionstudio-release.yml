@@ -278,8 +278,16 @@ jobs:
           name: windows-install-log
           path: SpaceMissionStudio/packaging/windows/Output/install.log
 
+  # The whole test suite, lint, the document checks and pip-audit, on the
+  # tag's own commit, on Linux and Windows (the SpaceMissionStudio
+  # workflow); nothing is attached unless they pass (audit R11).
+  tests:
+    uses: ./.github/workflows/spacemissionstudio.yml
+    with:
+      ref: ${{ github.event_name == 'pull_request' && github.sha || inputs.tag || github.ref_name }}
+
   attach:
-    needs: [linux, windows]
+    needs: [linux, windows, tests]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-24.04
     timeout-minutes: 30
