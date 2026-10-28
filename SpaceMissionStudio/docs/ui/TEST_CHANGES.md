@@ -673,3 +673,8 @@ is the only test that an empty `.app` is not refused.
   and, in `test_data_panel_widget.py`,
   `test_a_failed_read_in_the_child_comes_back_as_its_message` and
   `test_a_failed_read_is_shown_with_retry_and_retry_reads_again` (G10).
+
+## Toasts fade out every time (2026-10-28)
+
+- Added `test_feedback.py::test_a_toast_fades_out_before_it_is_dismissed_whatever_order_its_timers_fire`.
+  No existing test changed.

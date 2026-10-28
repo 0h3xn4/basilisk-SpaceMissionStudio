@@ -149,6 +149,11 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   it goes there, with a message to set the Duration to cover the
   sequence. Runs inside the loaded days, and every template, are
   unchanged.
+- **Toasts fade out every time:** a toast shown for 2 s or more could
+  vanish without its fade-out. Its two timers (the fade-out, then the
+  dismissal 150 ms later) are coarse at that length, accurate to 5 %, and
+  could fire the wrong way round. The fade-out now starts the dismissal.
+  Found when a GUI test failed on CI.
 
 ## 1.3.1 (2026-10-27)
 
