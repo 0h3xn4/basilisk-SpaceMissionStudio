@@ -132,6 +132,7 @@ def show_toast(window: QWidget, message: str, kind: str = "success", duration_ms
     def _fade_out() -> None:
         if isValid(toast) and toast.isVisible():
             _fade(toast, 1.0, 0.0, keep=True)
+        QTimer.singleShot(TOAST_FADE_MS, _dismiss)
 
     def _dismiss() -> None:
         # The QTimer below can fire AFTER `window` (and so `toast`, its
@@ -156,9 +157,12 @@ def show_toast(window: QWidget, message: str, kind: str = "success", duration_ms
         if isValid(window):
             _reposition_toasts(window, stack)
 
+    # The fade-out starts the dismissal: two timers of 2 s or more are
+    # coarse (5 %), so a dismissal of its own could come first and skip it.
     if fades:  # faded out by the time it is dismissed
         QTimer.singleShot(duration_ms - TOAST_FADE_MS, _fade_out)
-    QTimer.singleShot(duration_ms, _dismiss)
+    else:
+        QTimer.singleShot(duration_ms, _dismiss)
     return toast
 
 

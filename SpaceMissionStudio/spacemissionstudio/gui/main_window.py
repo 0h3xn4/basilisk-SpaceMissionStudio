@@ -467,6 +467,7 @@ class MainWindow(QMainWindow):
         # web views are then torn down too late (exit segfault, as in #48).
         self.status_items.data_clicked.connect(self._show_data_panel)
         self.data_panel_widget.refreshed.connect(self._on_reference_data_read)
+        self.data_panel_widget.read_failed.connect(self.status_items.show_data_read_failure)
         # The files are read in a worker once the window is up (M9: 1.5 s
         # of start-up); the status bar fills in when they are.
         QTimer.singleShot(0, self.data_panel_widget, self.data_panel_widget.read_at_start_up)  # not once closed
@@ -1591,18 +1592,24 @@ class MainWindow(QMainWindow):
             self.time_cursor_label.setText("Cursor " + describe_time(time_s, self._last_run_epoch_utc))
 
     def _confirm_discard_unsaved(self) -> bool:
-        """Returns True if it's OK to proceed (no unsaved changes, or the
-        user explicitly said to discard them) -- never silently discards.
+        """Returns True if it's OK to proceed (no unsaved changes, the user
+        saved them, or the user explicitly said to discard them) -- never
+        silently discards. Save, Discard or Cancel (audit G6): Save is
+        File > Save (Save As for a scenario with no file), and goes ahead
+        only once the file is written.
         """
         if not self._dirty:
             return True
         response = QMessageBox.question(
             self, "Unsaved changes",
-            f"Discard the unsaved changes to {self.scenario_editor.name_edit.text() or 'this scenario'}? "
-            "They cannot be recovered.",
-            QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
-            QMessageBox.StandardButton.Cancel,
+            f"Save the changes to {self.scenario_editor.name_edit.text() or 'this scenario'} first? "
+            "Changes not saved cannot be recovered.",
+            QMessageBox.StandardButton.Save | QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Save,
         )
+        if response == QMessageBox.StandardButton.Save:
+            self.on_save()
+            return not self._dirty  # a cancelled Save As, or a save that failed, leaves it unsaved
         return response == QMessageBox.StandardButton.Discard
 
     # -- File actions ---------------------------------------------------------

@@ -110,8 +110,8 @@ def test_editor_dialogs_say_why_ok_did_nothing_in_the_dialog(qtbot):
 
 
 def test_confirmations_name_the_object_and_the_consequence(qtbot, monkeypatch):
-    """The questions left (U-39): Discard says which scenario and that the
-    changes cannot be recovered."""
+    """The questions left (U-39): the unsaved-changes question says which
+    scenario and that changes not saved cannot be recovered."""
     from PySide6.QtWidgets import QMessageBox
 
     from spacemissionstudio.gui.main_window import MainWindow
@@ -125,7 +125,7 @@ def test_confirmations_name_the_object_and_the_consequence(qtbot, monkeypatch):
     window.scenario_editor.name_edit.setText("my mission")
     window._mark_dirty()
     assert window._confirm_discard_unsaved() is False
-    assert asked == ["Discard the unsaved changes to my mission? They cannot be recovered."]
+    assert asked == ["Save the changes to my mission first? Changes not saved cannot be recovered."]
     window._mark_clean()
 
 

@@ -191,3 +191,62 @@ def test_inventory_never_raises_and_names_what_it_could_not_read(monkeypatch):
     files = reference_data.inventory()
     assert any(f.status == "missing" and "manifest unreadable" in f.note for f in files)
     assert any(f.kind == "space weather" for f in files)
+
+
+def test_a_failed_read_in_the_child_comes_back_as_its_message(monkeypatch):
+    """Audit G10: when the child process failed it sent nothing, and the
+    panel kept "Reading the reference data files..." for good. The child
+    now sends its failure, and read() raises it."""
+    from spacemissionstudio import dependencies
+    from spacemissionstudio.gui import reference_data_process as rdp
+
+    def broken():
+        raise OSError("disk unreadable")
+
+    monkeypatch.setattr(dependencies, "basilisk_version", broken)
+    sent = []
+    rdp._child(type("Queue", (), {"put": staticmethod(sent.append)})())
+    assert isinstance(sent[0], rdp.InventoryReadError) and str(sent[0]) == "OSError: disk unreadable"
+    with pytest.raises(rdp.InventoryReadError, match="disk unreadable"):
+        rdp._result(sent[0])
+    assert rdp._result(("files", "2.12.0")) == ("files", "2.12.0")
+
+
+def test_a_failed_read_is_shown_with_retry_and_retry_reads_again(panel, monkeypatch):
+    """Audit G10: the worker reports the failure, the panel shows it with a
+    Retry button, the status bar says the files were not read, and Retry
+    starts another read; a read that succeeds hides Retry again."""
+    from spacemissionstudio.gui.app_shell import StatusBarItems
+    from spacemissionstudio.gui.reference_data_process import InventoryReadError
+
+    worker = dp._InventoryWorker()
+
+    def fail():
+        raise InventoryReadError("the reading process ended without a result (exit code -9)")
+
+    monkeypatch.setattr(worker.reader, "read", fail)
+    messages = []
+    worker.failed.connect(messages.append)
+    worker.run()  # on this thread: the signal arrives at once
+    assert messages == ["the reading process ended without a result (exit code -9)"]
+
+    items = StatusBarItems(panel)
+    panel.read_failed.connect(items.show_data_read_failure)
+    panel.show()
+    panel._on_read_failed(messages[0])
+    assert "Could not read the reference data files" in panel.status_label.text()
+    assert "exit code -9" in panel.status_label.text()
+    assert panel.retry_button.isVisible()
+    assert items.data_button.text() == "Reference data: not read"
+    assert "exit code -9" in items.data_button.toolTip()
+
+    reads = []
+    monkeypatch.setattr(panel, "refresh_in_background", lambda start_up=False: reads.append(start_up))
+    panel.retry_button.click()
+    assert reads == [False] and not panel.retry_button.isVisible()
+    assert panel.status_label.text() == "Reading the reference data files..."
+    panel._on_read_failed(messages[0])
+    panel.show_files(list(_FILES), "2.12.0")
+    assert not panel.retry_button.isVisible()
+    items.refresh(list(_FILES), "2.12.0")
+    assert items.data_button.toolTip() == "Reference data: open the Reference data dialog"

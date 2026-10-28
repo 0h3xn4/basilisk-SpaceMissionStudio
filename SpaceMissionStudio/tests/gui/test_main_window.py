@@ -454,6 +454,35 @@ def test_close_with_unsaved_changes_discard_allows_close(window, monkeypatch):
     assert event.isAccepted()
 
 
+
+def test_save_in_the_unsaved_changes_question_saves_then_goes_ahead(window, monkeypatch, tmp_path):
+    """Audit G6: the question offered only Discard and Cancel. Save writes
+    the scenario (Save As for one with no file) and then goes ahead; a
+    Save As cancelled keeps the window open and the changes unsaved."""
+    from PySide6.QtGui import QCloseEvent
+    from PySide6.QtWidgets import QFileDialog, QMessageBox
+
+    asked = []
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(
+        lambda parent, title, text, buttons, default: asked.append((buttons, default))
+        or QMessageBox.StandardButton.Save))
+    _add_valid_spacecraft(window)
+    assert window._dirty and window._current_path is None
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: ("", "")))
+    event = QCloseEvent()
+    window.closeEvent(event)
+    assert not event.isAccepted() and window._dirty  # Save As cancelled: nothing lost, nothing closed
+    buttons, default = asked[0]
+    for button in (QMessageBox.StandardButton.Save, QMessageBox.StandardButton.Discard,
+                   QMessageBox.StandardButton.Cancel):
+        assert buttons & button
+    assert default == QMessageBox.StandardButton.Save
+
+    target = tmp_path / "saved.json"
+    monkeypatch.setattr(QFileDialog, "getSaveFileName", staticmethod(lambda *a, **k: (str(target), "")))
+    assert window._confirm_discard_unsaved() is True
+    assert target.is_file() and not window._dirty and window._current_path == target
+
 def test_configure_vizard_sets_request(window, monkeypatch):
     """Accepting the Vizard dialog with live streaming chosen stores a
     live-stream request."""

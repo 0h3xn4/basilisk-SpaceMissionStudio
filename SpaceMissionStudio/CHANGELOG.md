@@ -131,6 +131,38 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   names each part it bundles with its own licence (CPython, Qt, the
   fonts, the icons, the reference data) and this repository as the
   source. Found by the audit of 2026-10-27.
+- **Save from the unsaved-changes question:** closing, opening or
+  starting a scenario with unsaved changes offered only Discard and
+  Cancel; it now offers Save too (the default), which saves the scenario
+  (asking where for one with no file) and then goes ahead. A cancelled
+  Save As keeps the window and the changes.
+- **A failed read of the reference data is reported:** if the start-up
+  read of the reference data files failed, the Reference data panel kept
+  "Reading the reference data files..." for good. It now says why, with a
+  Retry button, and the status bar shows "Reference data: not read".
+- **No held space weather after the Duration:** a Mission Sequence can
+  run longer than the scenario's Duration, but the space weather its drag
+  reads was loaded only for the Duration and 10 days either side. Past
+  that, Basilisk held the last day's values, for as long as the run went
+  on, with nothing in the results to say so (a 15-day sequence in a
+  0.1-day Duration: 5 days on held values). Such a run now stops before
+  it goes there, with a message to set the Duration to cover the
+  sequence. Runs inside the loaded days, and every template, are
+  unchanged.
+- **The run's length with a Mission Sequence:** a sequence's steps, not
+  the Duration, decide how long a run is, but Overview showed the
+  Duration: template 23 said 2.4 h and 2 passes, and its run lasts 1.26
+  h with one. Overview's Duration now shows the sequence's own length
+  ("58 min + 2 event or condition stops (sequence)"; 14.4 h for template
+  08, 83 min for 16, as their runs last), passes are counted over it, or
+  said to be counted "in the Duration" when event stops leave it open,
+  and a note under the Duration field says the same. Found by the audit
+  of 2026-10-27 (G4).
+- **Toasts fade out every time:** a toast shown for 2 s or more could
+  vanish without its fade-out. Its two timers (the fade-out, then the
+  dismissal 150 ms later) are coarse at that length, accurate to 5 %, and
+  could fire the wrong way round. The fade-out now starts the dismissal.
+  Found when a GUI test failed on CI.
 - **Monte Carlo off, said before Run:** with Monte Carlo as the run mode
   but the scenario's Monte Carlo off, Run said so only after the click.
   The Run page's Monte Carlo options now say it is off, with **Enable
