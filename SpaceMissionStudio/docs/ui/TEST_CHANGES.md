@@ -673,3 +673,15 @@ is the only test that an empty `.app` is not refused.
   and, in `test_data_panel_widget.py`,
   `test_a_failed_read_in_the_child_comes_back_as_its_message` and
   `test_a_failed_read_is_shown_with_retry_and_retry_reads_again` (G10).
+
+## Exports off the GUI thread (2026-10-28)
+
+- `test_results_widget.py::test_export_writes_csv_files`: the export is
+  written by a worker now (audit G2), so the test waits for its report
+  (`qtbot.waitUntil`) before it reads the folder; what it checks is
+  unchanged.
+- `test_timeline_scale.py::test_an_export_keeps_every_sample_the_plot_thins`:
+  the same; it waits for the export (`wait_for_export()`) before it reads
+  the CSV.
+- Added `test_results_widget.py::test_an_export_runs_off_the_gui_thread_with_progress_and_cancel`
+  and `test_results.py::test_result_set_export_csv_reports_progress_and_can_be_stopped`.

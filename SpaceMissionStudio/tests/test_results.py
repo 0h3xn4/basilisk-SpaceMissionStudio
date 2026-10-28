@@ -307,3 +307,30 @@ def test_output_path_accepts_a_plain_file_name(tmp_path):
     """A plain file name, spaces and non-ASCII letters included, is joined
     onto the output folder unchanged."""
     assert output_path(tmp_path, "Satellit Ü.csv") == tmp_path / "Satellit Ü.csv"
+
+
+def test_result_set_export_csv_reports_progress_and_can_be_stopped(tmp_path):
+    """Audit G2: the GUI writes an export in a worker with progress and
+    Cancel. ``progress(written, total)`` comes before each file and once at
+    the end; raising from it stops the export before the next file. The
+    files are those written without it, byte for byte."""
+    rs = ResultSet(scenario_name="test", provenance=_sample_provenance())
+    rs.add(_sample_series("sat-1.position_N"))
+    rs.add(_sample_series("sat-1.velocity_N"))
+    calls = []
+    paths = rs.export_csv(tmp_path / "with", progress=lambda written, total: calls.append((written, total)))
+    assert calls == [(0, 3), (1, 3), (2, 3), (3, 3)]
+    plain = rs.export_csv(tmp_path / "plain")
+    for key, path in paths.items():
+        assert path.read_bytes() == plain[key].read_bytes()
+
+    class Stop(Exception):
+        pass
+
+    def stop_after_one(written, total):
+        if written == 1:
+            raise Stop
+
+    with pytest.raises(Stop):
+        rs.export_csv(tmp_path / "stopped", progress=stop_after_one)
+    assert sorted(p.name for p in (tmp_path / "stopped").iterdir()) == ["sat-1.position_N.csv"]

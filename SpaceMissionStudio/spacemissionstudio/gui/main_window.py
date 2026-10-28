@@ -2662,6 +2662,7 @@ class MainWindow(QMainWindow):
             self.budget_widget.wait_for_worker()
             self.flight_software_widget.wait_for_worker()
             self.data_panel_widget.wait_for_reader()  # the start-up read of the reference data files
+            self.results_widget.wait_for_export()  # an export's files are finished, not cut off
             self.load_scenario_widget.reference_card.wait()  # a download must not be cut off mid-file
             self._save_layout()
             event.accept()
