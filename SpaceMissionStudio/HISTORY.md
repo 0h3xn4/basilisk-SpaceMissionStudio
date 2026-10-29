@@ -14252,3 +14252,4 @@ the unwritable folder (nothing simulated), the used folder (the warning
 names only the old file) and the oversized CCSDS files. All 9 fail on
 the code before (checked). No existing test changed.
 Full suite on Python 3.14 (a home holding only the reference data cache): 3928 passed.
+Full suite after merging develop (#146): 3940 passed.
