@@ -27,9 +27,10 @@ Linux). On Windows, files written in text mode end lines with CRLF, as
 Since 2026-10-28 a provenance record also holds the integrator's
 tolerances (audit E3) and the run's seeds (E5), and since 2026-10-29 the
 central body and its GM (transparency audit 3.1), the scenario file and
-its hash, and the run's warnings (Phase 2b, 2f). The two provenance files
-are compared without those keys, which must be there; everything else in them, and every
-other file, is still 1.1.0's byte for byte."""
+its hash, and the run's warnings (Phase 2b, 2f); and the SIL report its
+provenance (Phase 2g). The two provenance files and the SIL report are
+compared without those keys, which must be there; everything else in them,
+and every other file, is still 1.1.0's byte for byte."""
 
 import json
 import os
@@ -59,6 +60,8 @@ def test_every_export_is_byte_identical_to_1_1_0(qtbot, tmp_path):
             content = (tmp_path / name).read_bytes()
             if name.endswith("provenance.json"):
                 content = _without_new_keys(content, name)
+            elif name == "sil_report.json":
+                content = _without_sil_provenance(content)
             assert _same_lines(content) == _same_lines(references.read(name)), name
 
 
@@ -76,6 +79,15 @@ def _without_new_keys(content: bytes, name: str) -> bytes:
     for key in _NEW_PROVENANCE_KEYS:
         del record[key]
     return (json.dumps(record, indent=2) + ("\n" if content.endswith(b"\n") else "")).encode()
+
+
+def _without_sil_provenance(content: bytes) -> bytes:
+    """``content``, the SIL report, without its ``provenance`` (added since
+    1.1.0), written as the report is written (``SilReport.to_json``)."""
+    report = json.loads(content)
+    del report["provenance"]
+    return (json.dumps(report, indent=1, sort_keys=True, allow_nan=False)
+            + ("\n" if content.endswith(b"\n") else "")).encode()
 
 
 def _same_lines(content: bytes) -> bytes:

@@ -102,7 +102,7 @@ class _ToLocalLoggers(logging.Handler):
 
 
 def _child(scenario, mc_config, archive_dir: str, allow_scripts: bool, overwrite: bool, log_queue,
-           result_queue, cancel_event=None) -> None:
+           result_queue, cancel_event=None, scenario_file: tuple[str, str] | None = None) -> None:
     """The child process: the batch, then one ``(kind, value)`` result."""
     root = logging.getLogger()
     root.handlers[:] = [logging.handlers.QueueHandler(log_queue)]
@@ -113,7 +113,7 @@ def _child(scenario, mc_config, archive_dir: str, allow_scripts: bool, overwrite
         from ..engine.monte_carlo import MonteCarloError, run_monte_carlo
 
         failures = run_monte_carlo(scenario, mc_config, archive_dir, allow_scripts=allow_scripts,
-                                   overwrite=overwrite)
+                                   overwrite=overwrite, scenario_file=scenario_file)
     except MonteCarloError as exc:
         result_queue.put(("error", str(exc)))
     except (Exception, SystemExit) as exc:  # noqa: BLE001 -- report ANY failure (Basilisk's exit() too) to the GUI
@@ -147,10 +147,11 @@ def _summarized_runs(archive_dir) -> int:
 
 
 def run_batch(scenario, mc_config, archive_dir: str | Path, allow_scripts: bool = False,
-              overwrite: bool = False, should_cancel=None) -> list[int]:
+              overwrite: bool = False, should_cancel=None, scenario_file: tuple[str, str] | None = None) -> list[int]:
     """:func:`engine.monte_carlo.run_monte_carlo` in a child process: the
-    indices of the failed runs. Raises ``MonteCarloError`` with the batch's
-    own message, or :class:`BatchProcessError`; :class:`BatchCancelled` when
+    indices of the failed runs (``scenario_file`` as there). Raises
+    ``MonteCarloError`` with the batch's own message, or
+    :class:`BatchProcessError`; :class:`BatchCancelled` when
     ``should_cancel()`` turned True (checked every 0.2 s). Blocks until the
     batch ends, so call it from a worker thread."""
     from ..engine.monte_carlo import MonteCarloError
@@ -163,7 +164,7 @@ def run_batch(scenario, mc_config, archive_dir: str | Path, allow_scripts: bool 
     listener.start()
     process = context.Process(target=_child, name="spacemissionstudio-monte-carlo",
                               args=(scenario, mc_config, str(archive_dir), allow_scripts, overwrite, log_queue,
-                                    result_queue, cancel_event))
+                                    result_queue, cancel_event, scenario_file))
     result = None
     cancelled = False
     try:

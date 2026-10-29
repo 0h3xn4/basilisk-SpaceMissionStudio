@@ -202,16 +202,26 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
               "not this run's results; use an empty --out-dir to keep runs apart.", file=sys.stderr)
 
 
-def cmd_run(args: argparse.Namespace) -> int:
+def _load_hashed(path: Path) -> tuple | int:
+    """(scenario, SHA-256 of the file's bytes) from ``path``, for the
+    provenance of what is made from it (transparency audit, Phase 2b); or
+    exit status 1, the reason printed, when the file is invalid or cannot
+    be read."""
     try:
-        scenario = load_scenario(args.scenario)
-        file_sha256 = hashlib.sha256(Path(args.scenario).read_bytes()).hexdigest()
+        return load_scenario(path), hashlib.sha256(Path(path).read_bytes()).hexdigest()
     except ScenarioValidationError as exc:
         print(f"INVALID: {exc}", file=sys.stderr)
         return 1
     except OSError as exc:  # removed or unreadable between the load and the hash
-        print(f"INVALID: {args.scenario}: could not read file ({exc.strerror or exc})", file=sys.stderr)
+        print(f"INVALID: {path}: could not read file ({exc.strerror or exc})", file=sys.stderr)
         return 1
+
+
+def cmd_run(args: argparse.Namespace) -> int:
+    loaded = _load_hashed(args.scenario)
+    if isinstance(loaded, int):
+        return loaded
+    scenario, file_sha256 = loaded
 
     argument_error = _run_argument_error(scenario, args)
     if argument_error:
@@ -350,11 +360,10 @@ def _print_constant_thrust_summary(scenario, result) -> None:
 
 
 def cmd_monte_carlo(args: argparse.Namespace) -> int:
-    try:
-        scenario = load_scenario(args.scenario)
-    except ScenarioValidationError as exc:
-        print(f"INVALID: {exc}", file=sys.stderr)
-        return 1
+    loaded = _load_hashed(args.scenario)
+    if isinstance(loaded, int):
+        return loaded
+    scenario, file_sha256 = loaded
 
     if not scenario.monte_carlo.enabled:
         print("ERROR: scenario.monte_carlo.enabled is false in this scenario file -- "
@@ -371,8 +380,8 @@ def cmd_monte_carlo(args: argparse.Namespace) -> int:
           f"({len(scenario.monte_carlo.dispersions)} dispersion(s), {scenario.monte_carlo.thread_count} thread(s))...")
     try:
         failures = run_monte_carlo(scenario, scenario.monte_carlo, args.archive_dir,
-                                   allow_scripts=args.allow_scripts, overwrite=args.overwrite)
-        output_provenance.write_sidecar(Path(args.archive_dir) / "archive", output_provenance.scenario_record(scenario))
+                                   allow_scripts=args.allow_scripts, overwrite=args.overwrite,
+                                   scenario_file=(Path(args.scenario).name, file_sha256))
     except MonteCarloError as exc:
         print(f"ERROR: Monte Carlo run failed: {exc}", file=sys.stderr)
         return 3
@@ -465,11 +474,10 @@ def cmd_model(args: argparse.Namespace) -> int:
 
 
 def cmd_lifetime(args: argparse.Namespace) -> int:
-    try:
-        scenario = load_scenario(args.scenario)
-    except ScenarioValidationError as exc:
-        print(f"INVALID: {exc}", file=sys.stderr)
-        return 1
+    loaded = _load_hashed(args.scenario)
+    if isinstance(loaded, int):
+        return loaded
+    scenario, file_sha256 = loaded
     name = args.spacecraft or scenario.spacecraft[0].name
     try:
         from .engine import lifetime
@@ -499,6 +507,27 @@ def cmd_lifetime(args: argparse.Namespace) -> int:
         print(f"  {label}: {verdict}")
     for warning in result.warnings:
         print(f"WARNING: {warning}", file=sys.stderr)
+    if args.out is not None:
+        from .engine import analysis_records
+
+        record = analysis_records.lifetime_record(scenario, name, end, args.max_years, args.forecast_percentile,
+                                                  drag_coeff, args.deorbit_perigee_km)
+        return _write_record(args, record, file_sha256)
+    return 0
+
+
+def _write_record(args: argparse.Namespace, record: dict, file_sha256: str) -> int:
+    """A lifetime's or a budget's ``--out`` file (engine.analysis_records),
+    naming the scenario file and the SHA-256 of its bytes as ``run`` does."""
+    from .engine import analysis_records
+
+    record["provenance"].update(scenario_file=Path(args.scenario).name, scenario_file_sha256=file_sha256)
+    try:
+        analysis_records.write(args.out, record)
+    except OSError as exc:
+        print(f"ERROR: could not write {args.out}: {exc}", file=sys.stderr)
+        return 3
+    print(f"wrote {args.out}")
     return 0
 
 
@@ -577,12 +606,15 @@ def _drag_coeff_arg(text: str) -> str:
 
 
 def cmd_budget(args: argparse.Namespace) -> int:
-    try:
-        scenario = load_scenario(args.scenario)
-    except ScenarioValidationError as exc:
-        print(f"INVALID: {exc}", file=sys.stderr)
-        return 1
+    loaded = _load_hashed(args.scenario)
+    if isinstance(loaded, int):
+        return loaded
+    scenario, file_sha256 = loaded
     name = args.spacecraft or scenario.spacecraft[0].name
+    if args.out is not None and (args.launch_delays or args.altitudes is not None):
+        print("ERROR: --out writes the budget itself; it does not go with --launch-delays or --altitudes",
+              file=sys.stderr)
+        return 2
     try:
         from .engine import propellant_budget as pb
         from .engine.service import SimulationService
@@ -614,6 +646,10 @@ def cmd_budget(args: argparse.Namespace) -> int:
     print(f"{'Total':<71} {budget.total_delta_v_m_s:>9.2f} {budget.total_propellant_kg:>10.3f}")
     for note in budget.notes:
         print(f"NOTE: {note}")
+    if args.out is not None:
+        from .engine import analysis_records
+
+        return _write_record(args, analysis_records.budget_record(scenario, name, budget, result), file_sha256)
     return 0
 
 
@@ -1271,6 +1307,8 @@ def build_parser() -> argparse.ArgumentParser:
                         help="MSFC solar-activity percentile (ESA AD10: 50 for end of life)")
     p_life.add_argument("--drag-coeff", default="2.2", type=_drag_coeff_arg,
                         help="drag coefficient, or 'own' for the spacecraft's (default 2.2: ESA AD10 end of life)")
+    p_life.add_argument("--out", type=Path, metavar="FILE.json", default=None,
+                        help="also write the lifetime as JSON: inputs, the drag used, the decay, the provenance")
     p_life.set_defaults(func=cmd_lifetime)
 
     p_model = subparsers.add_parser("model", help="report a spacecraft's 3D model: mass properties and facets")
@@ -1296,6 +1334,8 @@ def build_parser() -> argparse.ArgumentParser:
                               metavar="KM,KM,...",
                               help="launch-delay sweep at each altitude [km] (default: five around the "
                                    "spacecraft's own), against the tank")
+    p_budget.add_argument("--out", type=Path, metavar="FILE.json", default=None,
+                          help="also write the budget as JSON: inputs, rules, rows, notes, the provenance")
     p_budget.set_defaults(func=cmd_budget)
 
     p_kernels = subparsers.add_parser("kernels-status", help="fetch/check SPICE kernel cache status")

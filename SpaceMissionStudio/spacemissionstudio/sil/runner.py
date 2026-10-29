@@ -54,6 +54,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from collections.abc import Callable
 
+from .. import output_provenance
 from .contract import CONTRACT_VERSION, SESSION_VARIABLE, UNKNOWN_DIGEST, PortSpec, SilError
 from .report import Comparator, SilReport, timing_summary
 from .session import Expected, SimulationSide, Timeouts
@@ -316,7 +317,8 @@ def run_sil(scenario, spacecraft_name: str, options: SilOptions, vizard_request=
     scenario_digest = fsw_config_digest(scenario, spacecraft_name)
     report = SilReport(spacecraft=spacecraft_name, binary=str(binary), binary_sha256=sha256, fsw_name="",
                        fsw_config_digest="", scenario_config_digest=scenario_digest,
-                       contract_version=CONTRACT_VERSION, rate_ns=graph.rate_ns, address_kind="", warnings=notes)
+                       contract_version=CONTRACT_VERSION, rate_ns=graph.rate_ns, address_kind="", warnings=notes,
+                       provenance=output_provenance.scenario_record(scenario))
     layouts = {name: mtype.layout for name, mtype in graph.message_types.items()}
     duration_s = run.sim_settings.duration_days * 86400.0  # [s]
     comparator = Comparator(expected.outputs, expected.telemetry, layouts,
@@ -368,6 +370,8 @@ def run_sil(scenario, spacecraft_name: str, options: SilOptions, vizard_request=
             raise SilError(f"the simulation failed: {exc}") from None
         _finish(report, bridge, comparator)
         report.completed = True
+        if result.provenance is not None:  # the run flown: the SIL copy, without its sequence or Monte Carlo
+            report.provenance["run"] = result.provenance_record()
         session.bye()
         # Our end closes first: the program then sees the link end and exits
         # at once (fsw_transport_socket.c reads to the end before it closes,

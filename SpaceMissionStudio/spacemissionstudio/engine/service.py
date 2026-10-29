@@ -2268,6 +2268,45 @@ class SimulationService:
                        if self.mean_elements_req is not None else None)
         return oe, mean_oe
 
+    def _run_provenance(self) -> RunProvenance:
+        """The record of how this run was made (:class:`RunProvenance`), as
+        of its build."""
+        return RunProvenance(
+            spacemissionstudio_version=_SPACEMISSIONSTUDIO_VERSION,
+            basilisk_version=Basilisk.__version__,
+            run_started_utc=self._run_started_utc,
+            integrator=self.scenario.sim_settings.integrator,
+            dynamics_task_rate_s=self.scenario.sim_settings.dynamics_task_rate_s,
+            integrator_relative_tolerance=integrator_tolerances(self.scenario.sim_settings.integrator)[0],
+            integrator_absolute_tolerance=integrator_tolerances(self.scenario.sim_settings.integrator)[1],
+            rng_seed=self.scenario.sim_settings.seed,
+            rng_seeds=dict(self._rng_seeds),
+            rng_seed_note=RNG_SEED_NOTE,
+            qualified_basilisk_version=dependencies.QUALIFIED_BASILISK_VERSION,
+            basilisk_qualified=Basilisk.__version__ == dependencies.QUALIFIED_BASILISK_VERSION,
+            dependency_versions=self._dependency_versions,
+            scenario_sha256=self._scenario_sha256,
+            data_files=dict(self._data_files),
+            time_system=time_system.time_scales(self.scenario.epoch_utc),
+            frames=frames.definitions(self.scenario.gravity.central_body, self.earth_frame),
+            transformations=dict(frames.TRANSFORMATIONS),
+            central_body=self.scenario.gravity.central_body,
+            central_body_mu_m3_s2=float(self.mu) if self.mu is not None else 0.0,
+        )
+
+    def nominal_provenance(self) -> RunProvenance:
+        """The record a run of this scenario would carry, from a build that
+        is not run: the integrator, the seeds, the reference data files.
+        A Monte Carlo archive keeps what its runs share from it, without the
+        seeds, which each run draws (``monte_carlo.archive_record``);
+        building once costs about what a run's set-up does (transparency
+        audit, Phase 2g)."""
+        if self.scSim is None:
+            self.build(initialize=False)
+        if not self._rng_seeds:  # initialize() assigns them; this build is never initialised or run
+            self._rng_seeds = assign_rng_seeds(self.scSim, self.scenario.sim_settings.seed)
+        return self._run_provenance()
+
     def _extract_results(self) -> ResultSet:
         """Reads every recorder currently attached in ``self._handles``
         into a fresh :class:`~spacemissionstudio.engine.results.ResultSet` --
@@ -2275,28 +2314,7 @@ class SimulationService:
         (:meth:`run`) or one chunk's worth mid-run (:meth:`run_live`)."""
         result = ResultSet(scenario_name=self.scenario.name)
         if self._run_started_utc is not None:  # always true once build() has run; guards a hand-built test double
-            result.provenance = RunProvenance(
-                spacemissionstudio_version=_SPACEMISSIONSTUDIO_VERSION,
-                basilisk_version=Basilisk.__version__,
-                run_started_utc=self._run_started_utc,
-                integrator=self.scenario.sim_settings.integrator,
-                dynamics_task_rate_s=self.scenario.sim_settings.dynamics_task_rate_s,
-                integrator_relative_tolerance=integrator_tolerances(self.scenario.sim_settings.integrator)[0],
-                integrator_absolute_tolerance=integrator_tolerances(self.scenario.sim_settings.integrator)[1],
-                rng_seed=self.scenario.sim_settings.seed,
-                rng_seeds=dict(self._rng_seeds),
-                rng_seed_note=RNG_SEED_NOTE,
-                qualified_basilisk_version=dependencies.QUALIFIED_BASILISK_VERSION,
-                basilisk_qualified=Basilisk.__version__ == dependencies.QUALIFIED_BASILISK_VERSION,
-                dependency_versions=self._dependency_versions,
-                scenario_sha256=self._scenario_sha256,
-                data_files=dict(self._data_files),
-                time_system=time_system.time_scales(self.scenario.epoch_utc),
-                frames=frames.definitions(self.scenario.gravity.central_body, self.earth_frame),
-                transformations=dict(frames.TRANSFORMATIONS),
-                central_body=self.scenario.gravity.central_body,
-                central_body_mu_m3_s2=float(self.mu) if self.mu is not None else 0.0,
-            )
+            result.provenance = self._run_provenance()
         result.warnings.extend(self._space_weather_warnings)
         result.warnings.extend(self._model_warnings)
         result.warnings.extend(dependencies.changed_since_install(self._data_files))

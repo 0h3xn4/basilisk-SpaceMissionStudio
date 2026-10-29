@@ -256,6 +256,29 @@ def test_the_cli_runs_sil_writes_the_report_and_gates_on_the_error(built_07, tmp
     assert "never written" in capsys.readouterr().err
 
 
+def test_the_report_records_the_tool_the_scenario_and_the_run(built_07, tmp_path):
+    """Transparency audit, Phase 2g: a SIL report gave the program's digests
+    but not the tool's version, the scenario or the time. It now carries
+    the scenario's record and the run's own: its integrator, seeds and data
+    files."""
+    import json
+
+    from spacemissionstudio import __version__, cli, output_provenance
+
+    scenario_path = tmp_path / "s.json"
+    scenario = _template("07", 1)
+    scenario.save(scenario_path)
+    report_path = tmp_path / "sil.json"
+    assert cli.main(["sil", str(scenario_path), "--spacecraft", "sat-1", "--binary", str(_program(built_07, "fsw_host")),
+                     "--report", str(report_path)]) == 0
+    provenance = json.loads(report_path.read_text())["provenance"]
+    assert provenance["spacemissionstudio_version"] == __version__
+    assert provenance["scenario_sha256"] == output_provenance.scenario_sha256(load_scenario(scenario_path))
+    assert provenance["created_utc"]
+    run = provenance["run"]
+    assert run["integrator"] and run["rng_seeds"] and "spice:naif0012.tls" in run["data_files"]
+
+
 @pytest.mark.requires_gui
 def test_the_gui_worker_reports_the_comparison_then_the_result(built_07, qapp):
     """RunWorker with a SIL request: sil_report (the comparison) before

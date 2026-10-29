@@ -220,12 +220,12 @@ def test_the_disposal_burn_brings_the_lifetime_to_five_years():
     from datetime import datetime
 
     low = _scenario(None, altitude_km=400.0)
-    dv, _perigee, years, _notes = pb.uncontrolled_reentry_delta_v(low, low.spacecraft[0], datetime(2035, 1, 1),
-                                                                  125.0, 5.0)
+    dv, _perigee, years, _notes, _files = pb.uncontrolled_reentry_delta_v(low, low.spacecraft[0],
+                                                                         datetime(2035, 1, 1), 125.0, 5.0)
     assert dv == 0.0 and years < 5.0
     high = _scenario(None, altitude_km=550.0)
-    dv, perigee_km, years, _notes = pb.uncontrolled_reentry_delta_v(high, high.spacecraft[0],
-                                                                    datetime(2035, 1, 1), 125.0, 5.0)
+    dv, perigee_km, years, _notes, _files = pb.uncontrolled_reentry_delta_v(high, high.spacecraft[0],
+                                                                           datetime(2035, 1, 1), 125.0, 5.0)
     assert 0.0 < dv < 60.0  # [m/s]
     assert perigee_km < 550.0
     assert 4.5 < years <= 5.05  # [year]
@@ -469,3 +469,20 @@ def test_basilisks_own_error_is_the_one_that_does_not_pickle(monkeypatch):
     monkeypatch.setattr(pb, "_sweep_at", basilisk_fails)
     with pytest.raises(pb.BudgetError, match="BasiliskError: Atmosphere model has no spacecraft"):
         pb._sweep_in_worker((None, "sat-1", 400.0, None, (0.0,), None, None, {}))
+
+
+def test_a_budget_records_the_space_weather_files_its_drag_estimates_read():
+    """Transparency audit, Phase 2g: a budget did not say which space-weather
+    files its drag estimates read. They are the in-plane make-up's and the
+    uncontrolled re-entry's; a replacement solver that names none adds none."""
+    observed = {"space_weather": {"path": "SW-All.txt", "sha256": "1" * 64}}
+    forecast = {"space_weather_forecast": {"path": "oct2026f10-prd.txt", "sha256": "2" * 64}}
+
+    def makeup(*_args, **_kwargs):
+        return SimpleNamespace(delta_v_m_s=100.0, altitude_km=400.0, warnings=[], data_files=forecast)
+
+    scenario = _scenario(PropellantBudgetConfig(mission_years=5.0))
+    budget = pb.compute_budget(scenario, "sat-1", reentry_solver=lambda *_a: (0.0, 400.0, 0.5, [], observed),
+                               makeup=makeup)
+    assert budget.data_files == {**observed, **forecast}
+    assert pb.compute_budget(scenario, "sat-1", reentry_solver=_no_reentry, makeup=_StubMakeup()).data_files == {}

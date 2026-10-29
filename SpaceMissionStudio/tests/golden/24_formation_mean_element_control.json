@@ -322,7 +322,9 @@
  },
  "lifetime": {
   "chief-1/cd_2.2": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 2.2,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -399,7 +401,9 @@
    "mass_kg": 405.0
   },
   "chief-1/own_cd": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 3.0,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -476,7 +480,9 @@
    "mass_kg": 405.0
   },
   "follower-1/cd_2.2": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 2.2,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -553,7 +559,9 @@
    "mass_kg": 405.0
   },
   "follower-1/own_cd": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 3.0,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {

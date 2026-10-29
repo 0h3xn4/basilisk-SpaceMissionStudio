@@ -766,6 +766,52 @@ def test_budget_launch_delays_prints_one_row_per_launch_date(capsys, monkeypatch
     assert "NOTE: worst case: launch 2031-01-01" in out
 
 
+@pytest.mark.requires_basilisk
+def test_lifetime_and_budget_write_what_they_were_computed_from(tmp_path, capsys, monkeypatch):
+    """Transparency audit, Phase 2g: ``lifetime`` and ``budget`` printed with
+    no provenance, and a lifetime could not be exported at all. ``--out``
+    writes the inputs, the drag and rules used, the results and the
+    provenance: the scenario file's SHA-256 and the data files read. With a
+    sweep, ``--out`` is refused before anything runs."""
+    import hashlib
+    import json
+    import shutil
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from spacemissionstudio.engine import propellant_budget as pb
+
+    path = tmp_path / "18.json"
+    shutil.copy(Path(__file__).resolve().parent.parent / "spacemissionstudio" / "scenarios" / "templates"
+                / "18_leo_station_keeping.json", path)
+    file_sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+    assert cli.main(["lifetime", str(path), "--max-years", "2", "--out", str(tmp_path / "life.json")]) == 0
+    life = json.loads((tmp_path / "life.json").read_text(encoding="utf-8"))
+    assert life["kind"] == "lifetime" and life["inputs"]["drag_coeff"] == 2.2
+    assert life["model"]["drag_coeff"] == 2.2 and life["model"]["REENTRY_ALTITUDE_KM"] == 120.0  # [km]
+    assert life["results"]["reentered"] and life["results"]["rules"]["zero_debris_5_year_rule"] == "met"
+    assert len(life["decay"]["time_s"]) == len(life["decay"]["perigee_altitude_km"]) > 100
+    assert (life["provenance"]["scenario_file"], life["provenance"]["scenario_file_sha256"]) == ("18.json",
+                                                                                                 file_sha256)
+    assert "space_weather" in life["provenance"]["data_files"]
+
+    original = pb.compute_budget
+    files = {"space_weather": {"path": "SW-All.txt", "sha256": "1" * 64}}
+    monkeypatch.setattr(pb, "compute_budget", lambda scenario, name, result=None: original(
+        scenario, name, result, reentry_solver=lambda *_a: (0.0, 400.0, 0.5, [], files),
+        makeup=lambda *_a, **_k: SimpleNamespace(delta_v_m_s=100.0, altitude_km=400.0, warnings=[])))
+    assert cli.main(["budget", str(path), "--out", str(tmp_path / "budget.json")]) == 0
+    budget = json.loads((tmp_path / "budget.json").read_text(encoding="utf-8"))
+    assert budget["kind"] == "propellant_budget" and budget["inputs"]["from_run"] is False
+    assert budget["model"]["rules"]["CAM_COUNT_FACTOR"] == 4.0
+    out = capsys.readouterr().out
+    assert budget["results"]["rows"] and all(row["contributor"] in out for row in budget["results"]["rows"])
+    assert budget["provenance"]["data_files"] == files and budget["provenance"]["scenario_file_sha256"] == file_sha256
+    assert cli.main(["budget", str(path), "--launch-delays", "--out", str(tmp_path / "sweep.json")]) == 2
+    assert "does not go with --launch-delays" in capsys.readouterr().err
+    assert not (tmp_path / "sweep.json").exists()
+
+
 def test_lifetime_drag_coefficient_defaults_to_ad10s_end_of_life_value():
     """lifetime's drag coefficient defaults to 2.2 (AD10's end-of-life value),
     takes 'own', and refuses a negative value."""

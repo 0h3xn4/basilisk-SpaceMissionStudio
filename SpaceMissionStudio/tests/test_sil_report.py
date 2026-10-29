@@ -145,3 +145,17 @@ def test_the_report_is_strict_json_even_with_nan_and_infinite_residuals():
     assert math.isinf(again.signals[0].max_abs_error) and again.signals[1].max_abs_reference == math.inf
     assert np.isnan(again.residuals["guid_out.torque[0]"][0])
     assert again.residuals["rw_torqueOutMsg.count"] == report.residuals["rw_torqueOutMsg.count"]
+
+
+def test_a_report_keeps_its_provenance_and_an_earlier_one_still_reads():
+    """Transparency audit, Phase 2g: a SIL report recorded the program's
+    digests but not the tool's version, the scenario or the time. Its
+    provenance goes through JSON and back; a report written before has
+    none, and still reads."""
+    provenance = {"spacemissionstudio_version": "1.3.1", "scenario_sha256": "ab" * 32,
+                  "created_utc": "2026-10-29T00:00:00+00:00", "run": {"integrator": "rkf78"}}
+    report = _report(provenance=provenance)
+    assert SilReport.from_json(report.to_json()).provenance == provenance
+    earlier = json.loads(_report().to_json())
+    del earlier["provenance"]
+    assert SilReport.from_json(json.dumps(earlier)).provenance == {}

@@ -124,6 +124,9 @@ class Budget:
     efficiency: float  # [-]
     iterations: int
     notes: list[str] = field(default_factory=list)
+    # The space-weather files the drag estimates read (transparency audit,
+    # Phase 2g): the in-plane make-up and the uncontrolled re-entry.
+    data_files: dict = field(default_factory=dict)
 
     @property
     def total_delta_v_m_s(self) -> float:
@@ -258,11 +261,13 @@ def _operational_sma_m(spacecraft) -> float:
 
 
 def uncontrolled_reentry_delta_v(scenario, spacecraft, eol_utc, mass_kg: float, target_years: float):
-    """(delta-V [m/s], perigee [km], lifetime [year], notes) of one apogee
-    burn lowering the perigee until the orbit lifetime from ``eol_utc`` is
-    ``target_years`` (Sec. 6.3.3), at MSFC's 50th percentile, Cd 2.2 and
-    the tumbling average area (Secs. 5.9, 5.2, 5.3). Zero when the orbit
-    already decays in time."""
+    """(delta-V [m/s], perigee [km], lifetime [year], notes, data files) of
+    one apogee burn lowering the perigee until the orbit lifetime from
+    ``eol_utc`` is ``target_years`` (Sec. 6.3.3), at MSFC's 50th
+    percentile, Cd 2.2 and the tumbling average area (Secs. 5.9, 5.2,
+    5.3). Zero when the orbit already decays in time. The data files are
+    the space-weather files read (:func:`.lifetime.space_weather_files`);
+    a replacement solver may return the first four only."""
     from . import lifetime as lt
     from .service import _orbit_ic_to_rv
 
@@ -273,6 +278,7 @@ def uncontrolled_reentry_delta_v(scenario, spacecraft, eol_utc, mass_kg: float, 
     horizon_years = target_years * 1.5 + 1.0
     density, horizon_years, notes = lt.density_for_scenario(scenario, eol_utc, horizon_years,
                                                             forecast_percentile=EOL_PERCENTILE)
+    files = getattr(density, "data_files", {})
 
     def years_from(start_orbit, horizon=horizon_years):
         result = lt.propagate_decay(start_orbit, eol_utc, ballistic, density, horizon)
@@ -282,7 +288,7 @@ def uncontrolled_reentry_delta_v(scenario, spacecraft, eol_utc, mass_kg: float, 
         return years_from(start_orbit, min(horizon_years, target_years * 1.001)) <= target_years
 
     if in_time(orbit):
-        return 0.0, orbit.perigee_altitude_km, years_from(orbit), notes
+        return 0.0, orbit.perigee_altitude_km, years_from(orbit), notes, files
     low_km, high_km = lt.REENTRY_ALTITUDE_KM + 20.0, orbit.perigee_altitude_km  # [km]
     while high_km - low_km > 2.0:  # [km]
         middle_km = 0.5 * (low_km + high_km)
@@ -292,7 +298,7 @@ def uncontrolled_reentry_delta_v(scenario, spacecraft, eol_utc, mass_kg: float, 
         else:
             high_km = middle_km
     delta_v, _kg, lowered = lt.deorbit_burn(orbit, low_km, mass_kg, 1.0e9)
-    return delta_v, low_km, years_from(lowered), notes
+    return delta_v, low_km, years_from(lowered), notes, files
 
 
 def _drag_makeup(scenario, spacecraft, start_utc, years, forecast_percentile, drag_coeff=None,
@@ -331,6 +337,7 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
     dry_kg = spacecraft.dry_mass_kg * (1.0 if config.dry_mass_includes_margin else 1.0 + config.system_margin_fraction)
     a_m = _operational_sma_m(spacecraft)
     notes: list[str] = []
+    data_files: dict = {}
 
     if flown is None and result is not None:
         flown = run_contributors(result, spacecraft_name, config.mission_years)
@@ -366,6 +373,7 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
         estimate = makeup(scenario, spacecraft, _parse_epoch(scenario.epoch_utc), config.mission_years,
                           OPERATIONS_PERCENTILE)
         ip_dv, ip_kg, ip_source = estimate.delta_v_m_s, None, "estimated"
+        data_files.update(getattr(estimate, "data_files", {}))
         notes.append(f"in-plane control estimated from the drag at {estimate.altitude_km:.0f} km (NRLMSISE-00, "
                      f"MSFC {OPERATIONS_PERCENTILE:g}th percentile, Cd {lifetime_cd(spacecraft):g}); full runs "
                      "spent ~5% more -- run the mission for the simulated figure")
@@ -431,9 +439,11 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
         if config.disposal == "uncontrolled_reentry":
             if reentry is None:
                 left_kg = dry_kg + (RESIDUAL_FRACTION + UNCERTAINTY_FRACTION) * max(propellant_kg, 0.0)
-                dv, perigee_km, years, reentry_notes = reentry_solver(scenario, spacecraft, eol_utc, left_kg,
-                                                                      config.disposal_lifetime_years)
+                dv, perigee_km, years, reentry_notes, *read = reentry_solver(scenario, spacecraft, eol_utc, left_kg,
+                                                                             config.disposal_lifetime_years)
                 reentry = (dv, perigee_km, years)
+                for files in read:  # the data files, when the solver names them
+                    data_files.update(files)
                 notes.extend(f"disposal: {n}" for n in reentry_notes)
             label = (f"Uncontrolled re-entry (no burn: re-enters in {reentry[2]:.1f} y)" if reentry[0] == 0.0
                      else f"Uncontrolled re-entry (perigee to {reentry[1]:.0f} km: {reentry[2]:.1f} y)")
@@ -459,7 +469,7 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
         notes.append(f"the propellant total did not settle within {_MAX_ITERATIONS} iterations")
     if config.tank_capacity_kg and propellant_kg > config.tank_capacity_kg:
         notes.append(f"the budget ({propellant_kg:.2f} kg) exceeds the tank ({config.tank_capacity_kg:g} kg)")
-    return Budget(rows, dry_kg, isp_s, efficiency, iteration, notes)
+    return Budget(rows, dry_kg, isp_s, efficiency, iteration, notes, data_files)
 
 
 def lifetime_cd(spacecraft) -> float:

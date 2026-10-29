@@ -5,6 +5,45 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The records of a lifetime, a budget, a batch and a SIL run (2026-10-29)
+
+The transparency plan's Phase 2g (`docs/transparency_audit.md` 9.2, gap 8):
+the outputs that are not a run's.
+
+- **A file on request, the printout unchanged:** `lifetime` and `budget`
+  print as before, and `--out FILE.json` writes the record. Scripts that
+  read the printout keep working, and the record has room for what a
+  table cannot hold: the decay curve, the rules, the data files.
+- **What the code used, named as in the code:** a record's `model` gives
+  the values that are not in the scenario file under their names in the
+  code (`REENTRY_ALTITUDE_KM`, `CAM_COUNT_FACTOR`, ...), so a reader can
+  find each one. They stay constants for now; the parameter registry
+  (Phase 3) is where they become editable.
+- **What the decay used, kept on the result:** `EndOfLife` keeps the area,
+  drag coefficient and space-weather files it used, and `Budget` the files
+  its drag estimates read. Working them out again for the export would be
+  a second copy of the rule, free to drift from the first.
+- **The baseline leaves the data files out:** they are paths, sizes and
+  hashes of this computer's files, as the run provenance's `data_files`
+  already were. The area and drag coefficient are numbers of the result
+  and are compared.
+- **A batch's record is built after the batch:** the nominal run is built
+  but not run (`SimulationService.nominal_provenance`, 0.2 s for template
+  25), after `executeSimulations`, because the Controller forks its
+  workers from this process, and a Basilisk simulation left over before
+  that can hang them. It is written by `run_monte_carlo` itself, so the
+  CLI and the GUI's child process write the same record.
+- **No seeds in a batch's record:** Basilisk's Controller draws each run's
+  seeds and writes them to its `run<N>.json`, and those are the ones used
+  (`assign_rng_seeds` keeps a seed already set). The nominal run's seeds
+  would be seeds no run used, so the record says where the real ones are.
+- **The SIL report records its run:** the run flown in SIL is a copy of the
+  scenario without its Mission Sequence or Monte Carlo, so the report keeps
+  both hashes: the scenario's at the top and the run's under `run`.
+- **Not yet in the GUI:** the End of Life page has no export, and the
+  Budget page copies its table with the scenario lines. Their exports
+  belong to Phase 9a (open data), which will reuse these records.
+
 ## The run record (2026-10-29)
 
 The transparency plan's Phase 2a, 2b, 2d and 2f (`docs/transparency_audit.md`

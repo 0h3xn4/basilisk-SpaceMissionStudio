@@ -14514,6 +14514,42 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The records of a lifetime, a budget, a batch and a SIL run (2026-10-29)
+
+The transparency plan, Phase 2g of `docs/transparency_audit.md` 9.2 (gap
+8: `lifetime` and `budget` printed with no provenance, a lifetime could not
+be exported, a SIL report had no tool version or time). Branch
+`more-records`, on `run-record`.
+
+- **Lifetime:** `MsisDensity.data_files` and `lifetime.space_weather_files`
+  name the observed data and, when used, the MSFC table, as a run's
+  provenance does. `EndOfLife` keeps `area_m2`, `drag_coeff`, `data_files`
+  and gives `ballistic_coefficient_m2_kg`; `DragMakeup` keeps `data_files`.
+- **Budget:** `Budget.data_files`, from the in-plane make-up and from
+  `uncontrolled_reentry_delta_v`, which returns the files as a fifth value
+  (a replacement solver may return four).
+- **Exports:** `engine.analysis_records` builds the lifetime and budget
+  records; `lifetime --out` and `budget --out` write them, with the
+  scenario file's SHA-256 (`cli._load_hashed`, now shared by `run`,
+  `monte-carlo`, `lifetime` and `budget`). `budget --out` with a sweep
+  exits 2.
+- **Monte Carlo:** `run_monte_carlo` writes `archive.provenance.json`
+  (`monte_carlo.archive_record`) after the batch: the CLI and the GUI no
+  longer write it themselves. `SimulationService.nominal_provenance` builds
+  a scenario without running it and gives the record a run would carry
+  (0.18 s for template 25). A 2-run batch of a 0.01-day scenario: 4.3 s in
+  all, with the record.
+- **SIL:** `SilReport.provenance`, set by the runner; `from_json` reads a
+  report without it.
+
+Tried by hand: template 18's lifetime over 3 years (3.6 s) and budget
+(9.0 s) with `--out`; both name `SW-All.txt` and `oct2026f10-prd.txt` with
+their SHA-256, and the lifetime's decay holds 519 samples.
+
+Each new test fails on the code before (6 failed). The regression baseline
+differs only in the 46 new `area_m2` and 46 `drag_coeff` fields.
+Full suite on Python 3.14, after merging develop with #153: 4022 passed in 13 min 26 s.
+
 ## The run record (2026-10-29)
 
 The transparency plan, Phase 2 ("Reproducibility"), first part: 2a, 2b,

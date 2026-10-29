@@ -17,6 +17,15 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-29: the records of a lifetime, a budget, a batch and a SIL run (Phase 2g)
+
+**No number changes.** The regression baseline of all 31 templates differs
+only in two new fields of each lifetime, `area_m2` and `drag_coeff`: the
+area and drag coefficient the decay already used, now kept on the result
+(14 templates have a spacecraft with drag). Every lifetime, re-entry date,
+budget row and total is as before. The space-weather files a lifetime or
+budget read (`data_files`) are left out of the baseline, as the run's are.
+
 ## 2026-10-29: the run record (Phase 2a, 2b, 2d, 2f)
 
 **No number changes.** The regression baseline of all 31 templates differs
