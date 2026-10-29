@@ -5,6 +5,31 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Regression baseline (2026-10-29)
+
+The transparency plan's Phase 1a (`docs/transparency_audit.md` 9.2).
+
+- **Fingerprints, not whole outputs:** each column of each series is kept
+  as its first, last, least, greatest and mean value and 11 evenly spaced
+  samples. 1.4 MB for 31 templates, where the full CSVs are hundreds of MB,
+  and a change anywhere in a column moves at least its mean.
+- **Runs capped at 6 hours of simulated time:** the full templates take
+  about 20 minutes one after another; capped, the baseline takes 8 min 57 s
+  here, 2 min 54 s on 8 test workers. A Mission Sequence runs in full
+  (at most 14.4 h), since its steps set the length.
+- **Compared within 1e-9 of each quantity's own scale** (its column's
+  largest magnitude): a value near zero is held to its column's size, not to
+  itself. Two runs here gave identical fingerprints. The tolerance is
+  checked against CI's Linux and Windows runners, not assumed.
+- **Isolated as every test is:** the capture runs in a home of its own (no
+  downloaded space weather, no installed Earth orientation files), so the
+  update script and the test compute the same thing.
+- **Budgets with an Isp of 220 s on templates 22 and 26** as well:
+  26 of the 31 templates have no orbit thruster, so their budget is
+  refused; the refusal is recorded, and these two also exercise the
+  drag-driven budget.
+- **`docs/changes.md` starts empty:** the baseline changes no number.
+
 ## Temporary folders and refusals of the wrong shape (2026-10-29)
 
 The audit's R14 and a note under R5.

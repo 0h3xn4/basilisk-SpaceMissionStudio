@@ -1,0 +1,3263 @@
+{
+ "budget": {
+  "eo-sat": {
+   "refused": "BudgetError: eo-sat: set propellant_budget.isp_s, or give it an orbit thruster"
+  }
+ },
+ "budget_with_isp": {
+  "eo-sat": {
+   "dry_mass_kg": 172.5,
+   "efficiency": 1.0,
+   "isp_s": 220.0,
+   "iterations": 2,
+   "notes": [
+    "the last run covered 0 days; its orbit control is scaled x7305.0 to 5 years -- run the whole mission for an AD10 budget",
+    "the last run used MSFC's 50th percentile; AD10 Sec. 5.9 asks for the 95th for operations",
+    "no collision avoidances entered -- AD10 Sec. 6.2.4 takes their number from ESA's DRAMA",
+    "residual and uncertainty are 1% and 2% of the tank load (AD10 Secs. 5.8, 6.4; its summary table prints 10% and 20%)",
+    "disposal: space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap",
+    "disposal: past 2041-10 MSFC's last 132 months repeat (ESA AD10 Sec. 5.9)"
+   ],
+   "rows": [
+    {
+     "contributor": "Launcher injection errors, in-plane",
+     "delta_v_m_s": 0.0,
+     "margin": "-",
+     "phase": "Beginning of life",
+     "propellant_kg": 0.0,
+     "source": "computed"
+    },
+    {
+     "contributor": "Launcher injection errors, out-of-plane",
+     "delta_v_m_s": 0.0,
+     "margin": "-",
+     "phase": "Beginning of life",
+     "propellant_kg": 0.0,
+     "source": "computed"
+    },
+    {
+     "contributor": "Orbit acquisition",
+     "delta_v_m_s": 0.0,
+     "margin": "-",
+     "phase": "Beginning of life",
+     "propellant_kg": 0.0,
+     "source": "input"
+    },
+    {
+     "contributor": "Orbit transfers",
+     "delta_v_m_s": 0.0,
+     "margin": "-",
+     "phase": "Operations",
+     "propellant_kg": 0.0,
+     "source": "input"
+    },
+    {
+     "contributor": "In-plane orbit control",
+     "delta_v_m_s": 0.0,
+     "margin": "-",
+     "phase": "Operations",
+     "propellant_kg": 0.0,
+     "source": "input"
+    },
+    {
+     "contributor": "Out-of-plane orbit control",
+     "delta_v_m_s": 0.0,
+     "margin": "-",
+     "phase": "Operations",
+     "propellant_kg": 0.0,
+     "source": "input"
+    },
+    {
+     "contributor": "Collision avoidance (0 x 4)",
+     "delta_v_m_s": 0.0,
+     "margin": "x4 count",
+     "phase": "Operations",
+     "propellant_kg": 0.0,
+     "source": "computed"
+    },
+    {
+     "contributor": "Constellation/formation keeping",
+     "delta_v_m_s": 0.0,
+     "margin": "-",
+     "phase": "Operations",
+     "propellant_kg": 0.0,
+     "source": "input"
+    },
+    {
+     "contributor": "Attitude control by thrusters",
+     "delta_v_m_s": null,
+     "margin": "+100% propellant",
+     "phase": "Operations",
+     "propellant_kg": 0.0,
+     "source": "input"
+    },
+    {
+     "contributor": "Uncontrolled re-entry (perigee to 488 km: 4.9 y)",
+     "delta_v_m_s": 13.68570764137985,
+     "margin": "-",
+     "phase": "End of life",
+     "propellant_kg": 1.0976751221311871,
+     "source": "computed"
+    },
+    {
+     "contributor": "Residual",
+     "delta_v_m_s": null,
+     "margin": "1% of tank",
+     "phase": "Propellant",
+     "propellant_kg": 0.0109077775339323,
+     "source": "computed"
+    },
+    {
+     "contributor": "Loading uncertainty and gauging",
+     "delta_v_m_s": null,
+     "margin": "2% of tank",
+     "phase": "Propellant",
+     "propellant_kg": 0.0218155550678646,
+     "source": "computed"
+    }
+   ]
+  }
+ },
+ "explain": {
+  "explanation": {
+   "formation_diagrams": [],
+   "headline": "26 - Earth observation: data and its downlink",
+   "roe_diagrams": [],
+   "sections": [
+    {
+     "badges": [
+      {
+       "kind": "accent",
+       "label": "Orbit-frame (nadir) pointing",
+       "spacecraft": ""
+      }
+     ],
+     "notes": [],
+     "title": "Attitude control"
+    },
+    {
+     "badges": [
+      {
+       "kind": "accent",
+       "label": "Sun-synchronous",
+       "spacecraft": ""
+      },
+      {
+       "kind": "accent",
+       "label": "Drag",
+       "spacecraft": ""
+      },
+      {
+       "kind": "accent",
+       "label": "Solar radiation pressure",
+       "spacecraft": ""
+      },
+      {
+       "kind": "accent",
+       "label": "Facet model (drag/SRP torques)",
+       "spacecraft": ""
+      }
+     ],
+     "notes": [
+      "eo-sat: gravity degree 10 leaves out ~3e-05 m/s^2, more than SRP (6e-08 m/s^2); degree 76 matches it (ECSS-E-ST-10-04C 4.2.1b)",
+      "Earth orientation: IAU rotation model, no IERS data installed"
+     ],
+     "title": "Environment"
+    },
+    {
+     "badges": [
+      {
+       "kind": "accent",
+       "label": "Power budget",
+       "spacecraft": ""
+      },
+      {
+       "kind": "accent",
+       "label": "RF link budget",
+       "spacecraft": ""
+      }
+     ],
+     "notes": [],
+     "title": "Power & comms"
+    },
+    {
+     "badges": [
+      {
+       "kind": "accent",
+       "label": "Data handling",
+       "spacecraft": ""
+      },
+      {
+       "kind": "neutral",
+       "label": "Patch antenna",
+       "spacecraft": ""
+      }
+     ],
+     "notes": [
+      "eo-sat: 7.26 Gbit/day; memory full in 9.92 h",
+      "eo-sat: 5 Mbit/s, 3 Gbit per 10-min pass"
+     ],
+     "title": "Data handling"
+    },
+    {
+     "badges": [
+      {
+       "kind": "neutral",
+       "label": "berlin-gs",
+       "spacecraft": ""
+      }
+     ],
+     "notes": [
+      "berlin-gs: 8 passes, first at 10 min for 8 min (peak 60 deg)"
+     ],
+     "title": "Ground stations"
+    }
+   ],
+   "spacecraft_table": [],
+   "stat_tiles": [
+    {
+     "label": "Spacecraft",
+     "value": "1"
+    },
+    {
+     "label": "Duration",
+     "value": "2 d"
+    },
+    {
+     "label": "Gravity",
+     "value": "Degree-10 Earth + Sun/Moon"
+    },
+    {
+     "label": "Orbit",
+     "value": "SSO 97.59 deg, 550 km alt"
+    }
+   ]
+  },
+  "passes": [
+   "berlin-gs: 8 passes, first at 10 min for 8 min (peak 60 deg)"
+  ],
+  "plausibility": [
+   "Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km); Settings > Reference data downloads them"
+  ],
+  "warnings": []
+ },
+ "lifetime": {
+  "eo-sat/cd_2.2": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 543.779184635845,
+     "last": 542.1252232274795,
+     "max": 543.779184635845,
+     "mean": 542.943449689629,
+     "min": 542.1252232274795,
+     "non_finite": 0,
+     "samples": [
+      543.779184635845,
+      543.6224581786627,
+      543.4243953974108,
+      543.2591071017133,
+      543.0697848997814,
+      542.8925311546595,
+      542.792803895737,
+      542.6586293614525,
+      542.4636561593665,
+      542.2989301070367,
+      542.1252232274795
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 537.2092428671522,
+     "last": 535.5762651249124,
+     "max": 537.2092428671522,
+     "mean": 536.3814403558385,
+     "min": 535.5762651249124,
+     "non_finite": 0,
+     "samples": [
+      537.2092428671522,
+      537.013693950967,
+      536.8743836341296,
+      536.6528293028883,
+      536.4726265320089,
+      536.3559281481654,
+      536.2269164440678,
+      536.1144364466704,
+      535.9686649420709,
+      535.7511559574567,
+      535.5762651249124
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T08:30:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 150.0
+  },
+  "eo-sat/own_cd": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 543.779184635845,
+     "last": 541.5124383447925,
+     "max": 543.779184635845,
+     "mean": 542.6357107675722,
+     "min": 541.5124383447925,
+     "non_finite": 0,
+     "samples": [
+      543.779184635845,
+      543.5653609082103,
+      543.294823080156,
+      543.0688248090297,
+      542.809671523504,
+      542.5668289270234,
+      542.4301409998126,
+      542.2459570503812,
+      541.9780206087726,
+      541.7515407691337,
+      541.5124383447925
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 537.2092428671522,
+     "last": 534.9711971934614,
+     "max": 537.2092428671522,
+     "mean": 536.0767758591636,
+     "min": 534.9711971934614,
+     "non_finite": 0,
+     "samples": [
+      537.2092428671522,
+      536.9424390773298,
+      536.7521726717595,
+      536.449234362511,
+      536.2026185678616,
+      536.0427661468163,
+      535.8658269144893,
+      535.7114667061735,
+      535.511215157357,
+      535.2120032120533,
+      534.9711971934614
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T08:30:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 150.0
+  }
+ },
+ "mission_output": null,
+ "run": {
+  "events": [
+   {
+    "detail": "0.0905 Gbit",
+    "end_s": 1090.0,
+    "kind": "downlink",
+    "label": "downlink to berlin-gs",
+    "note": "",
+    "other": "berlin-gs",
+    "quantities": [
+     [
+      "data",
+      0.090492
+     ]
+    ],
+    "spacecraft": "eo-sat",
+    "start_s": 630.0
+   },
+   {
+    "detail": "max elevation 61.5 deg",
+    "end_s": 1090.0,
+    "kind": "pass",
+    "label": "pass over berlin-gs",
+    "note": "",
+    "other": "berlin-gs",
+    "quantities": [
+     [
+      "max_elevation",
+      61.50891846607211
+     ]
+    ],
+    "spacecraft": "eo-sat",
+    "start_s": 630.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 3490.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "eo-sat",
+    "start_s": 1390.0
+   },
+   {
+    "detail": "0.471 Gbit",
+    "end_s": 6700.0,
+    "kind": "downlink",
+    "label": "downlink to berlin-gs",
+    "note": "",
+    "other": "berlin-gs",
+    "quantities": [
+     [
+      "data",
+      0.470688
+     ]
+    ],
+    "spacecraft": "eo-sat",
+    "start_s": 6410.0
+   },
+   {
+    "detail": "max elevation 16.1 deg",
+    "end_s": 6700.0,
+    "kind": "pass",
+    "label": "pass over berlin-gs",
+    "note": "",
+    "other": "berlin-gs",
+    "quantities": [
+     [
+      "max_elevation",
+      16.135136353021696
+     ]
+    ],
+    "spacecraft": "eo-sat",
+    "start_s": 6410.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 9230.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "eo-sat",
+    "start_s": 7120.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 14960.000000000002,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "eo-sat",
+    "start_s": 12860.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 20690.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "eo-sat",
+    "start_s": 18590.0
+   }
+  ],
+  "provenance": {
+   "basilisk_qualified": true,
+   "dynamics_task_rate_s": 1.0,
+   "frames": {
+    "B": {
+     "axes": "fixed to the spacecraft structure, as given by inertia_kg_m2 and device axes",
+     "epoch": "-",
+     "mnemonic": "B",
+     "name": "Spacecraft body",
+     "origin": "spacecraft body point B (Basilisk hub frame origin)",
+     "realisation": "-",
+     "time_scale": "-"
+    },
+    "H": {
+     "axes": "x radial out, z orbit normal, y completes (along-track)",
+     "epoch": "-",
+     "mnemonic": "H",
+     "name": "Hill (orbit)",
+     "origin": "spacecraft",
+     "realisation": "-",
+     "time_scale": "-"
+    },
+    "L": {
+     "axes": "South-East-Zenith; elevation/azimuth from the geodetic horizon, azimuth from North to East",
+     "epoch": "-",
+     "mnemonic": "L",
+     "name": "Topocentric (ground station)",
+     "origin": "ground station site (WGS-84 geodetic, engine.geodesy)",
+     "realisation": "-",
+     "time_scale": "-"
+    },
+    "N": {
+     "axes": "Earth mean equator and equinox of J2000 (SPICE J2000, treated as ICRF-aligned by SPICE)",
+     "epoch": "J2000.0 = 2000-01-01T12:00:00 TT",
+     "mnemonic": "N",
+     "name": "Inertial (EME2000 / SPICE J2000)",
+     "origin": "Earth centre of mass",
+     "realisation": "SPICE with DE430",
+     "time_scale": "TDB (ephemerides, propagation)"
+    },
+    "P": {
+     "axes": "IAU_EARTH: Earth-fixed, z = rotation pole, x = prime meridian",
+     "epoch": "-",
+     "mnemonic": "P",
+     "name": "Earth-fixed",
+     "origin": "Earth centre of mass",
+     "realisation": "SPICE PCK (engine.earth_orientation for Earth)",
+     "time_scale": "TDB"
+    },
+    "TEME": {
+     "axes": "SGP4 output frame, converted to N at the scenario epoch (engine.tle)",
+     "epoch": "-",
+     "mnemonic": "TEME",
+     "name": "True equator, mean equinox of date (TLE input only)",
+     "origin": "Earth centre of mass",
+     "realisation": "-",
+     "time_scale": "UTC"
+    }
+   },
+   "integrator": "rkf78",
+   "integrator_absolute_tolerance": 1e-08,
+   "integrator_relative_tolerance": 1e-10,
+   "rng_seed": 0,
+   "rng_seed_note": "each model's RNGSeed is derived from the scenario's seed (sim_settings.seed) and the model's name (SHA-256); a navigation error's own seed is kept, and a Monte Carlo run disperses them per run",
+   "rng_seeds": {
+    "Rec:AccessMsg": 3250102459,
+    "Rec:CSSRawDataMsg": 3335757366,
+    "Rec:CmdTorqueBodyMsg": 4214472608,
+    "Rec:DataStorageStatusMsg": 2361713189,
+    "Rec:EclipseMsg": 139054789,
+    "Rec:IMUSensorMsg": 705316174,
+    "Rec:MTBCmdMsg": 405266180,
+    "Rec:NavAttMsg": 371790668,
+    "Rec:PowerStorageStatusMsg": 3769895843,
+    "Rec:RWSpeedMsg": 3665585116,
+    "Rec:SCStatesMsg": 455511093,
+    "Rec:STSensorMsg": 2669411928,
+    "SpiceInterfaceData": 193139944,
+    "eclipse": 3106495040,
+    "eo-sat": 2607888585,
+    "eo-satBattery": 110011139,
+    "eo-satBusPowerSink": 4016377455,
+    "eo-satDataLedger": 2312570822,
+    "eo-satDataStorage": 3753281694,
+    "eo-satDownlinkGate": 4032181116,
+    "eo-satDrag": 744946412,
+    "eo-satInstrument_camera": 27237394,
+    "eo-satInstrument_housekeeping": 839905567,
+    "eo-satInstrumentsPowerSink": 3001153606,
+    "eo-satSolarPanel": 1990996398,
+    "eo-satSrp": 3583620607,
+    "eo-satTransmitter": 2067831653,
+    "eo-satTransmitterPowerSink": 1367961169,
+    "eo-sat_attTrackingError": 1931854665,
+    "eo-sat_css-1": 3165266237,
+    "eo-sat_desatTAM": 4069768174,
+    "eo-sat_hillPoint": 1275475268,
+    "eo-sat_imu-1": 2273746429,
+    "eo-sat_mrpFeedback": 1922596916,
+    "eo-sat_mtbEffector": 4233803300,
+    "eo-sat_mtbMomentumManagement": 353011444,
+    "eo-sat_reactionWheels": 1731202993,
+    "eo-sat_rwMotorTorque": 2184788741,
+    "eo-sat_simpleNav": 547214534,
+    "eo-sat_st-1": 2951830326,
+    "eo-sat_tamComm": 2148213931,
+    "geodeticProxy_eo-sat": 2227417476,
+    "groundStation_berlin-gs": 1154662275,
+    "magneticFieldWMM": 569455582,
+    "midStepOrientation_earth": 2740032469,
+    "midStepOrientation_moon": 3302786954,
+    "midStepOrientation_sun": 896524486,
+    "msisAtmosphere": 177801070,
+    "spaceWeatherData": 3328266330,
+    "zeroWind": 507670478
+   },
+   "series_frames": {
+    "berlin-gs.access_to_eo-sat.azimuth": "L",
+    "berlin-gs.access_to_eo-sat.elevation": "L",
+    "eo-sat.attitude_sigma_BN": "B relative to N",
+    "eo-sat.body_rate_omega_BN_B": "B",
+    "eo-sat.orbit_elements.arg_periapsis": "N",
+    "eo-sat.orbit_elements.eccentricity": "N",
+    "eo-sat.orbit_elements.inclination": "N",
+    "eo-sat.orbit_elements.raan": "N",
+    "eo-sat.orbit_elements.semi_major_axis": "N",
+    "eo-sat.orbit_elements.true_anomaly": "N",
+    "eo-sat.orbit_elements_mean.arg_periapsis": "N",
+    "eo-sat.orbit_elements_mean.eccentricity": "N",
+    "eo-sat.orbit_elements_mean.inclination": "N",
+    "eo-sat.orbit_elements_mean.raan": "N",
+    "eo-sat.orbit_elements_mean.semi_major_axis": "N",
+    "eo-sat.orbit_elements_mean.true_anomaly": "N",
+    "eo-sat.position_N": "N",
+    "eo-sat.sun_heading_body": "B",
+    "eo-sat.velocity_N": "N"
+   },
+   "time_system": {
+    "conversions": "ERFA (SOFA): dat, utctai, taitt, dtdb",
+    "epoch_tdb_seconds_past_j2000": 946758669.1839365,
+    "epoch_utc": "2030-01-01T08:30:00",
+    "last_leap_second_utc": "2017-01-01",
+    "tai_minus_utc_s": 37.0,
+    "tdb_minus_tt_s": -6.343412076977751e-05,
+    "time_variable": "TDB seconds since the scenario epoch",
+    "tt_minus_tai_s": 32.184
+   },
+   "transformations": {
+    "N -> B": "dcm_BN from the spacecraft MRP sigma_BN (integrated by Basilisk)",
+    "N -> H": "dcm_HN from r_BN_N, v_BN_N (Basilisk hillFrame convention)",
+    "N -> P": "dcm_PN = J20002Pfix from SPICE pxform(J2000, P frame, ET) each step; time dependent; SPICE evaluates the PCK Chebyshev/rotation model at ET (no further interpolation)",
+    "P -> L": "dcm_LP from the site's geodetic latitude and longitude (engine.geodesy)",
+    "TEME -> N": "P^T N^T R3(-Eq) at the scenario epoch, IAU 1976/1980 (engine.tle)"
+   }
+  },
+  "series": {
+   "berlin-gs.access_to_eo-sat.antenna_off_boresight": {
+    "columns": [
+     "antenna_off_boresight"
+    ],
+    "data": [
+     {
+      "first": "nan",
+      "last": "nan",
+      "max": 64.77340231962116,
+      "mean": 55.419002481292914,
+      "min": 26.068005861238184,
+      "non_finite": 2084,
+      "samples": [
+       "nan",
+       "nan",
+       "nan",
+       62.95968552368033,
+       "nan",
+       "nan",
+       "nan",
+       "nan",
+       "nan",
+       "nan",
+       "nan"
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "deg"
+   },
+   "berlin-gs.access_to_eo-sat.azimuth": {
+    "columns": [
+     "azimuth"
+    ],
+    "data": [
+     {
+      "first": 2.7527195313495123,
+      "last": -3.0608520964498713,
+      "max": 3.141526741935755,
+      "mean": 0.11426806421675981,
+      "min": -3.140582661322142,
+      "non_finite": 0,
+      "samples": [
+       2.7527195313495123,
+       -0.20716166960047697,
+       2.9260062735304437,
+       -1.9547524135675454,
+       0.4070032926050117,
+       -2.879175482771966,
+       -0.10281043542051108,
+       1.835608743427579,
+       -2.0318378641667936,
+       0.7281563894395469,
+       -3.0608520964498713
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "berlin-gs.access_to_eo-sat.elevation": {
+    "columns": [
+     "elevation"
+    ],
+    "data": [
+     {
+      "first": -0.3963814481697287,
+      "last": -1.1457090023024403,
+      "max": 1.0735331465736984,
+      "mean": -0.6929090208236645,
+      "min": -1.5285045653366387,
+      "non_finite": 0,
+      "samples": [
+       -0.3963814481697287,
+       -0.6706085163099704,
+       -1.2137088790400614,
+       0.24787431807546667,
+       -1.09114340620235,
+       -0.7978417343571566,
+       -0.29146947661889017,
+       -1.26462874061389,
+       -0.5056680646841744,
+       -0.608123487082121,
+       -1.1457090023024403
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "berlin-gs.access_to_eo-sat.has_access": {
+    "columns": [
+     "has_access"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 0.0,
+      "max": 1.0,
+      "mean": 0.03563165201295696,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "berlin-gs.access_to_eo-sat.link_closed": {
+    "columns": [
+     "link_closed"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 0.0,
+      "max": 1.0,
+      "mean": 0.03563165201295696,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.0,
+       0.0,
+       1.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "berlin-gs.access_to_eo-sat.link_margin_db": {
+    "columns": [
+     "link_margin_db"
+    ],
+    "data": [
+     {
+      "first": "nan",
+      "last": "nan",
+      "max": 16.11563880027805,
+      "mean": 8.020728735281327,
+      "min": 3.7080259699750275,
+      "non_finite": 2084,
+      "samples": [
+       "nan",
+       "nan",
+       "nan",
+       5.2034586482031635,
+       "nan",
+       "nan",
+       "nan",
+       "nan",
+       "nan",
+       "nan",
+       "nan"
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "dB"
+   },
+   "berlin-gs.access_to_eo-sat.slant_range": {
+    "columns": [
+     "slant_range"
+    ],
+    "data": [
+     {
+      "first": 6105619.806618254,
+      "last": 12187208.132148787,
+      "max": 13274786.88274943,
+      "mean": 8577345.201346394,
+      "min": 629963.3097677199,
+      "non_finite": 0,
+      "samples": [
+       6105619.806618254,
+       8783571.299463747,
+       12504125.879507788,
+       1579219.9577207894,
+       11930248.805795513,
+       9842316.127006957,
+       5136560.922640111,
+       12715125.943273969,
+       7191448.357974323,
+       8198789.020250291,
+       12187208.132148787
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "eo-sat.attitude_sigma_BN": {
+    "columns": [
+     "s1",
+     "s2",
+     "s3"
+    ],
+    "data": [
+     {
+      "first": 0.1,
+      "last": -0.7268871450395327,
+      "max": 0.7389799487290487,
+      "mean": -0.09074730532797524,
+      "min": -0.7396840452763561,
+      "non_finite": 0,
+      "samples": [
+       0.1,
+       -0.2173196886927134,
+       -0.7105879206123167,
+       0.1335053031376125,
+       -0.3929030114662269,
+       0.5415753901767032,
+       -0.05522369227842341,
+       -0.5654036534619974,
+       0.3168324498695765,
+       -0.23485956493756585,
+       -0.7268871450395327
+      ]
+     },
+     {
+      "first": 0.2,
+      "last": 0.10469345872929776,
+      "max": 0.2,
+      "mean": -0.3151431966123344,
+      "min": -0.5531707010482748,
+      "non_finite": 0,
+      "samples": [
+       0.2,
+       -0.40780516138691353,
+       0.07335143502034307,
+       -0.45473114349824423,
+       -0.3131643908083692,
+       -0.3032209804572441,
+       -0.4505828384651572,
+       -0.15325215453286947,
+       -0.41427260867876886,
+       -0.4010165656648667,
+       0.10469345872929776
+      ]
+     },
+     {
+      "first": -0.15,
+      "last": 0.6424895466705074,
+      "max": 0.6584179432271016,
+      "mean": 0.02792498344659701,
+      "min": -0.658167510405585,
+      "non_finite": 0,
+      "samples": [
+       -0.15,
+       0.12167777269576907,
+       0.623329659940788,
+       -0.18754856214800317,
+       0.28840544395265805,
+       -0.5144748740011726,
+       -0.02384874277067293,
+       0.4626051887768214,
+       -0.3382606534974014,
+       0.1392100131332385,
+       0.6424895466705074
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "eo-sat.battery_charge": {
+    "columns": [
+     "charge"
+    ],
+    "data": [
+     {
+      "first": 270.0,
+      "last": 243.45037018649546,
+      "max": 300.0,
+      "mean": 273.2041792209206,
+      "min": 236.56569400182593,
+      "non_finite": 0,
+      "samples": [
+       270.0,
+       274.0566172642881,
+       240.76420206571086,
+       300.0,
+       258.55697303977735,
+       286.8403093598212,
+       288.06354014291526,
+       243.06354014291523,
+       300.0,
+       272.5338104833845,
+       243.45037018649546
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "W*hr"
+   },
+   "eo-sat.battery_net_power": {
+    "columns": [
+     "net_power"
+    ],
+    "data": [
+     {
+      "first": 213.77021552672517,
+      "last": 137.14997647750124,
+      "max": 315.5358649534502,
+      "mean": 35.67968976526432,
+      "min": -87.0,
+      "non_finite": 0,
+      "samples": [
+       213.77021552672517,
+       -75.0,
+       109.02444039774062,
+       23.08072208276556,
+       -75.0,
+       302.02237741947766,
+       -75.0,
+       -75.0,
+       257.41851785499546,
+       -75.0,
+       137.14997647750124
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "W"
+   },
+   "eo-sat.body_rate_omega_BN_B": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 0.001,
+      "last": -3.208373190283734e-07,
+      "max": 0.029644321728070817,
+      "mean": 8.039090723729791e-05,
+      "min": -0.0044970133852083646,
+      "non_finite": 0,
+      "samples": [
+       0.001,
+       2.837167914103514e-07,
+       -3.066981363183296e-07,
+       3.9321628971742003e-07,
+       -1.0510964563870218e-08,
+       -2.2310739345050563e-07,
+       5.443254795071077e-07,
+       -5.348913765028804e-07,
+       7.593358419709443e-08,
+       2.7350751660752454e-07,
+       -3.208373190283734e-07
+      ]
+     },
+     {
+      "first": -0.001,
+      "last": -8.00123467208131e-08,
+      "max": 0.004428295585789754,
+      "mean": -7.312942813297731e-05,
+      "min": -0.027666037750191212,
+      "non_finite": 0,
+      "samples": [
+       -0.001,
+       -1.0671785595054443e-08,
+       -7.243269933696125e-08,
+       6.053538751959445e-08,
+       1.9890182338504366e-11,
+       -4.6629537271562465e-08,
+       -1.4621408252455606e-07,
+       -1.838285323474069e-07,
+       8.810523975414705e-08,
+       -1.0645894525113818e-08,
+       -8.00123467208131e-08
+      ]
+     },
+     {
+      "first": 0.0005,
+      "last": 0.0010952535612877988,
+      "max": 0.0018109294346831315,
+      "mean": 0.0010909215782014866,
+      "min": -0.0011974843769170045,
+      "non_finite": 0,
+      "samples": [
+       0.0005,
+       0.0010964117836369022,
+       0.0010953637653686292,
+       0.0010949331762067317,
+       0.001096994265805037,
+       0.0010948465127775344,
+       0.0010955326031328902,
+       0.001096299627650115,
+       0.001094785310213489,
+       0.0010965832366773948,
+       0.0010952535612877988
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad/s"
+   },
+   "eo-sat.control_torque": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 0.03582484991688153,
+      "last": -6.780141290127319e-07,
+      "max": 0.03582484991688153,
+      "mean": 9.025153577853076e-06,
+      "min": -0.009998903486869517,
+      "non_finite": 0,
+      "samples": [
+       0.03582484991688153,
+       2.317243597381556e-06,
+       -5.527098441801559e-07,
+       1.0085365989586058e-06,
+       -4.83527154065142e-08,
+       3.1219029638069335e-07,
+       -5.071406042580202e-07,
+       -6.011894601176422e-07,
+       2.651401171068991e-06,
+       -8.650150501420762e-08,
+       -6.780141290127319e-07
+      ]
+     },
+     {
+      "first": -0.03279880077200997,
+      "last": 1.2354465043026862e-06,
+      "max": 0.00948830210284984,
+      "mean": -4.734908079442801e-06,
+      "min": -0.03279880077200997,
+      "non_finite": 0,
+      "samples": [
+       -0.03279880077200997,
+       3.6848019651671375e-06,
+       1.014506055726946e-06,
+       -4.421772675912414e-07,
+       -6.660615239969767e-08,
+       2.6989777297340573e-06,
+       -6.20098344480918e-07,
+       -2.2128202431542254e-07,
+       8.766755699278067e-07,
+       -4.1210428534804427e-07,
+       1.2354465043026862e-06
+      ]
+     },
+     {
+      "first": -0.0025538093031898215,
+      "last": -1.770670287003155e-08,
+      "max": 0.0011954877742381043,
+      "mean": 1.311686954526817e-06,
+      "min": -0.0025538093031898215,
+      "non_finite": 0,
+      "samples": [
+       -0.0025538093031898215,
+       2.102594081586902e-08,
+       -1.7994208101873485e-08,
+       5.027590957546936e-09,
+       -2.076978145356033e-09,
+       -3.5101555101000784e-09,
+       2.0420691600055688e-08,
+       -2.4262248258542972e-08,
+       1.146338114874324e-09,
+       2.0861253797178165e-08,
+       -1.770670287003155e-08
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "N*m"
+   },
+   "eo-sat.data_handling.data_downlinked": {
+    "columns": [
+     "data_downlinked"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 562300000.0,
+      "max": 562300000.0,
+      "mean": 418219098.5654789,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       90492000.0,
+       90492000.0,
+       475492000.0,
+       562300000.0,
+       562300000.0,
+       562300000.0,
+       562300000.0,
+       562300000.0,
+       562300000.0,
+       562300000.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "bit"
+   },
+   "eo-sat.data_handling.data_generated": {
+    "columns": [
+     "data_generated"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 1814400000.0,
+      "max": 1814400000.0,
+      "mean": 907200000.0,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       181440000.0,
+       362880000.0,
+       544320000.0,
+       725760000.0,
+       907200000.0,
+       1088640000.0,
+       1270080000.0,
+       1451520000.0,
+       1632960000.0,
+       1814400000.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "bit"
+   },
+   "eo-sat.data_handling.data_lost": {
+    "columns": [
+     "data_lost"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 0.0,
+      "max": 0.0,
+      "mean": 0.0,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "bit"
+   },
+   "eo-sat.data_handling.downlink_rate": {
+    "columns": [
+     "downlink_rate"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 0.0,
+      "max": 5000000.0,
+      "mean": 24692.272096251734,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.0,
+       0.0,
+       5000000.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "bit/s"
+   },
+   "eo-sat.data_handling.stored": {
+    "columns": [
+     "total",
+     "camera",
+     "housekeeping"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 1252100000.0,
+      "max": 1252100000.0,
+      "mean": 488980901.4345211,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       90948000.0,
+       272388000.0,
+       68828000.0,
+       163460000.0,
+       344900000.0,
+       526340000.0,
+       707780000.0,
+       889220000.0,
+       1070660000.0,
+       1252100000.0
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": 1191680000.0,
+      "max": 1191680000.0,
+      "mean": 464899565.0161962,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       85840000.0,
+       258640000.0,
+       46440000.0,
+       154880000.0,
+       327680000.0,
+       500480000.0,
+       673280000.0,
+       846080000.0,
+       1018880000.0,
+       1191680000.0
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": 60420000.0,
+      "max": 60420000.0,
+      "mean": 24081336.41832485,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       5108000.0,
+       13748000.0,
+       22388000.0,
+       8580000.0,
+       17220000.0,
+       25860000.0,
+       34500000.0,
+       43140000.0,
+       51780000.0,
+       60420000.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "bit"
+   },
+   "eo-sat.eclipse.illumination_factor": {
+    "columns": [
+     "illumination_factor"
+    ],
+    "data": [
+     {
+      "first": 1.0,
+      "last": 1.0,
+      "max": 1.0,
+      "mean": 0.6107474877995085,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       1.0,
+       0.0,
+       1.0,
+       1.0,
+       0.0,
+       1.0,
+       0.0,
+       1.0,
+       1.0,
+       0.0,
+       1.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "eo-sat.mtb_dipole_commanded": {
+    "columns": [
+     "mtb_0",
+     "mtb_1",
+     "mtb_2"
+    ],
+    "data": [
+     {
+      "first": -0.0,
+      "last": 0.0028956447703117946,
+      "max": 15.0,
+      "mean": 0.08788332495166339,
+      "min": -4.729054876761624,
+      "non_finite": 0,
+      "samples": [
+       -0.0,
+       0.007318268757100726,
+       -0.0025463462307738095,
+       0.0017350805700814275,
+       -0.0005811426295976098,
+       -0.00795744496225064,
+       -0.0008895989227487305,
+       8.678272553609714e-05,
+       -0.00579972476012262,
+       -0.003592217270028706,
+       0.0028956447703117946
+      ]
+     },
+     {
+      "first": -0.0,
+      "last": 0.0034528023248010502,
+      "max": 15.0,
+      "mean": 0.059090344916258274,
+      "min": -6.186528107684737,
+      "non_finite": 0,
+      "samples": [
+       -0.0,
+       -0.017292688789086883,
+       -0.0005605272165729478,
+       -0.008272602899010155,
+       6.013596053045382e-05,
+       -0.0005455885480808005,
+       -0.0007906593046145577,
+       0.0002587677743692775,
+       0.021162086320011975,
+       -0.0012899664504357334,
+       0.0034528023248010502
+      ]
+     },
+     {
+      "first": -0.0,
+      "last": 0.019660511502620263,
+      "max": 15.0,
+      "mean": -0.05985156633845139,
+      "min": -15.0,
+      "non_finite": 0,
+      "samples": [
+       -0.0,
+       -0.287586968236123,
+       0.01682739076452466,
+       -0.058449237005207946,
+       0.005643503256187052,
+       0.10132134992841843,
+       0.020660356609509024,
+       -0.006455999217071907,
+       -0.14235618963423477,
+       0.020968503132201666,
+       0.019660511502620263
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "A*m^2"
+   },
+   "eo-sat.orbit_elements.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 1.9987970221537057,
+      "max": 6.245545226513031,
+      "mean": 3.1117063596334877,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       5.886922384743176,
+       1.8682397737128058,
+       3.290587689543052,
+       3.1808930851294486,
+       3.1101170364238437,
+       4.5164023964611495,
+       0.768973360437937,
+       2.0073793007613134,
+       0.6379570302615336,
+       1.9987970221537057
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "eo-sat.orbit_elements.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 3.6685461209537963e-16,
+      "last": 0.0019177970109989847,
+      "max": 0.0019348843618570268,
+      "mean": 0.0010267105005704674,
+      "min": 3.6685461209537963e-16,
+      "non_finite": 0,
+      "samples": [
+       3.6685461209537963e-16,
+       0.00030971283020462804,
+       0.0018664495544829616,
+       0.0013134978428717236,
+       0.0009791081890654927,
+       0.001190836366793826,
+       0.0017668965993819714,
+       0.0005118706275102054,
+       0.00014674958573842337,
+       0.00013485754993311567,
+       0.0019177970109989847
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "eo-sat.orbit_elements.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 1.7032668170212664,
+      "last": 1.7034358687150066,
+      "max": 1.703483872326805,
+      "mean": 1.7033758986272283,
+      "min": 1.7032576895921379,
+      "non_finite": 0,
+      "samples": [
+       1.7032668170212664,
+       1.7033671396198438,
+       1.7034734201756023,
+       1.7033889852313948,
+       1.7032951764775197,
+       1.7033805455462503,
+       1.70346935712793,
+       1.7033967732703226,
+       1.7032873943700304,
+       1.7033382506081076,
+       1.7034358687150066
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "eo-sat.orbit_elements.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 4.5277331455236896,
+      "last": 4.532160218386965,
+      "max": 4.532160218386965,
+      "mean": 4.529939218603072,
+      "min": 4.5277331455236896,
+      "non_finite": 0,
+      "samples": [
+       4.5277331455236896,
+       4.52826895235576,
+       4.528626083259602,
+       4.528975008769146,
+       4.529498049966766,
+       4.530050013520842,
+       4.53039587796344,
+       4.530726647187786,
+       4.531257084459732,
+       4.531780471952388,
+       4.532160218386965
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "eo-sat.orbit_elements.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 6927999.999999996,
+      "last": 6909541.88534212,
+      "max": 6928156.53726823,
+      "mean": 6918629.674685954,
+      "min": 6909274.301104378,
+      "non_finite": 0,
+      "samples": [
+       6927999.999999996,
+       6918789.733442818,
+       6909289.989876012,
+       6918157.901013748,
+       6928048.705772078,
+       6919645.803015452,
+       6909385.531696694,
+       6917213.7543381825,
+       6927843.498494489,
+       6920428.328700492,
+       6909541.88534212
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "eo-sat.orbit_elements.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 2.8194013049517217,
+      "max": 6.282930258973984,
+      "mean": 3.159538031102515,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       2.7621754552035642,
+       2.8660633285355948,
+       3.8088084419578183,
+       0.0027225518704373296,
+       2.440627745189024,
+       3.3994839224301594,
+       3.2323294935615765,
+       4.3595654467239555,
+       1.8118448027297336,
+       2.8194013049517217
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "eo-sat.orbit_elements_mean.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 3.141592653589793,
+      "last": 9.409375289905562,
+      "max": 15.708939629553507,
+      "mean": 12.694868795968864,
+      "min": 3.141592653589793,
+      "non_finite": 0,
+      "samples": [
+       3.141592653589793,
+       15.708720509497432,
+       9.415561745581499,
+       15.659801719272423,
+       9.386929157471862,
+       9.396176218098388,
+       15.642342019529096,
+       9.372671725004452,
+       15.669530529469466,
+       9.384487141941964,
+       9.409375289905562
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "eo-sat.orbit_elements_mean.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 0.0004748007189249764,
+      "last": 0.0005164337079581773,
+      "max": 0.0005315201032200958,
+      "mean": 0.0004984491711183316,
+      "min": 0.00046604159517515535,
+      "non_finite": 0,
+      "samples": [
+       0.0004748007189249764,
+       0.00048163668321317415,
+       0.0004886427139753427,
+       0.00047608816808760595,
+       0.0005081705345051284,
+       0.0004932994361528954,
+       0.0005111985511666243,
+       0.0005073572808735208,
+       0.000513488982832155,
+       0.0005166628999355939,
+       0.0005164337079581773
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "eo-sat.orbit_elements_mean.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 1.7033569212479187,
+      "last": 1.7033474045347867,
+      "max": 1.7033933598206,
+      "mean": 1.7033753967632983,
+      "min": 1.7033422863109298,
+      "non_finite": 0,
+      "samples": [
+       1.7033569212479187,
+       1.7033688986201625,
+       1.7033829962524667,
+       1.7033833836432468,
+       1.7033850976409264,
+       1.7033900537824995,
+       1.7033795386380532,
+       1.7033833924231747,
+       1.7033762476126693,
+       1.703355066993204,
+       1.7033474045347867
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "eo-sat.orbit_elements_mean.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": -1.755452161655897,
+      "last": -1.7510445593087878,
+      "max": -1.7510445593087878,
+      "mean": -1.75324226768255,
+      "min": -1.755452161655897,
+      "non_finite": 0,
+      "samples": [
+       -1.755452161655897,
+       -1.7550075745689275,
+       -1.7545634729370632,
+       -1.7541189135628832,
+       -1.7536796169952582,
+       -1.753226293518592,
+       -1.7528004867409521,
+       -1.752368431063589,
+       -1.751912981894623,
+       -1.7514944573356714,
+       -1.7510445593087878
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "eo-sat.orbit_elements_mean.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 6918630.813751498,
+      "last": 6918659.758908485,
+      "max": 6918768.372071087,
+      "mean": 6918656.673277268,
+      "min": 6918549.02500426,
+      "non_finite": 0,
+      "samples": [
+       6918630.813751498,
+       6918604.962616454,
+       6918608.402771267,
+       6918724.614146616,
+       6918694.110844534,
+       6918648.63331879,
+       6918644.497581051,
+       6918596.502999194,
+       6918606.255427896,
+       6918682.510574407,
+       6918659.758908485
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "eo-sat.orbit_elements_mean.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 3.141592653589793,
+      "last": 1.6920293652010492,
+      "max": 3.141592653589793,
+      "mean": -0.14044332002243182,
+      "min": -3.140142970512764,
+      "non_finite": 0,
+      "samples": [
+       3.141592653589793,
+       -0.7763370619192533,
+       1.6019312224202742,
+       -2.277321133418502,
+       0.07986327248740713,
+       2.437854633952186,
+       -1.4432584211686563,
+       0.9117175753715859,
+       -3.019417710365277,
+       -0.6514011393764942,
+       1.6920293652010492
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "eo-sat.position_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": -1272037.8191664102,
+      "last": 764545.2337819325,
+      "max": 1553330.6869703955,
+      "mean": 17054.899161642606,
+      "min": -1557679.240327526,
+      "non_finite": 0,
+      "samples": [
+       -1272037.8191664102,
+       274892.32925768767,
+       872310.8651355248,
+       -1521040.9011029236,
+       1295453.2647923948,
+       -331716.83549840556,
+       -821221.7423482323,
+       1497889.3065076184,
+       -1319008.589852251,
+       383406.4409705017,
+       764545.2337819325
+      ]
+     },
+     {
+      "first": -6810220.538764538,
+      "last": -882398.6371360617,
+      "max": 6810615.6474264255,
+      "mean": 285589.81597419514,
+      "min": -6816884.157318672,
+      "non_finite": 0,
+      "samples": [
+       -6810220.538764538,
+       4974814.090249074,
+       -316395.6329878108,
+       -4542506.891136118,
+       6792837.864317738,
+       -5175391.057930545,
+       586499.5066245325,
+       4317296.187880274,
+       -6777167.364421453,
+       5347739.606689294,
+       -882398.6371360617
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -6822934.15110859,
+      "max": 6860684.591136675,
+      "mean": 257685.0179753521,
+      "min": -6860916.723381228,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       4803421.273758072,
+       -6859217.569957545,
+       5001172.788842485,
+       -288218.0157965413,
+       -4590634.229845953,
+       6847223.117132718,
+       -5197491.886348874,
+       574543.5310609657,
+       4376081.681767732,
+       -6822934.15110859
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "eo-sat.rw_speeds": {
+    "columns": [
+     "wheel_0",
+     "wheel_1",
+     "wheel_2"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 0.03485299734796981,
+      "max": 15.42311288986193,
+      "mean": -0.011250690907250359,
+      "min": -58.96801974302477,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.352437630917619,
+       0.032961308486058716,
+       -0.06746557550512859,
+       -0.00640536785557687,
+       0.012240622181229927,
+       -0.0741238753330541,
+       0.009034560123671912,
+       -0.10943823873512834,
+       -0.039559161025808046,
+       0.03485299734796981
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -0.014503105836337416,
+      "max": 56.786441917046616,
+      "mean": -0.09813026879711495,
+      "min": -13.010172768697988,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       -0.2226902530936939,
+       -0.019709864394913425,
+       -0.04943932335110857,
+       0.0037128556631116686,
+       -0.07302861862264534,
+       0.030761690072608993,
+       0.009516954766007151,
+       -0.1750976002297386,
+       0.007681471716413497,
+       -0.014503105836337416
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -0.0025861759468985175,
+      "max": 3.259376306566488,
+      "mean": -0.009743238696197578,
+      "min": -4.225200377961402,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.022358963570991135,
+       0.004331211488247408,
+       0.0049946534023217245,
+       -0.0006991594195354398,
+       0.0005680984249502315,
+       -0.002014413591753474,
+       0.0005029004567626459,
+       -0.021570673361531685,
+       -0.0063045158630133154,
+       -0.0025861759468985175
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad/s"
+   },
+   "eo-sat.sensor.css-1": {
+    "columns": [
+     "output"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 0.0,
+      "max": 0.0,
+      "mean": 0.0,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0,
+       0.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "eo-sat.sensor.imu-1.accel": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": -3.1000864184762195e-08,
+      "max": 2.1982461966767456e-08,
+      "mean": -1.7293034944053665e-08,
+      "min": -7.423851195103517e-08,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       -9.56322522533135e-12,
+       -2.5037741543823616e-08,
+       -1.1760194296126692e-08,
+       -8.304733433491934e-12,
+       -7.258624995611911e-08,
+       -1.997560398180222e-12,
+       1.1053500093129916e-08,
+       -6.110573077176623e-08,
+       -9.333533489257324e-12,
+       -3.1000864184762195e-08
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -7.818227531970832e-08,
+      "max": 2.969528329264932e-08,
+      "mean": -2.4065132379567094e-08,
+      "min": -8.974270924042767e-08,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       -1.4498587454420201e-08,
+       -8.937676785169994e-08,
+       2.459571745674703e-08,
+       -1.4929644654539467e-08,
+       -4.9960024927439376e-08,
+       -1.9137589229053575e-08,
+       -7.523552341300934e-08,
+       -8.402637693152034e-11,
+       -1.2953460500516998e-08,
+       -7.818227531970832e-08
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": 1.3044458176089562e-08,
+      "max": 2.474933011234249e-08,
+      "mean": 7.3466690017755456e-09,
+      "min": -6.221478584517013e-08,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       6.746763088225331e-10,
+       1.2528446879469733e-08,
+       9.76264455155916e-09,
+       9.73807363981208e-10,
+       1.3864722183754735e-08,
+       7.522879368833036e-11,
+       1.1850373013622692e-08,
+       1.3587516738178687e-08,
+       6.502147116084193e-10,
+       1.3044458176089562e-08
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m/s^2"
+   },
+   "eo-sat.sensor.imu-1.gyro": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 6.14849793623887e-06,
+      "max": 0.029648427112192087,
+      "mean": 8.022915891788395e-05,
+      "min": -0.0044812721668099215,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       -9.390214749202722e-06,
+       2.4774391029347156e-06,
+       -1.2891203430536789e-06,
+       1.6095413331251113e-05,
+       -9.556435040626192e-06,
+       1.0699850454700792e-05,
+       -7.990436623097911e-06,
+       5.243112260239817e-06,
+       3.5131902206495593e-06,
+       6.14849793623887e-06
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -1.1785629651703039e-05,
+      "max": 0.004438502630798044,
+      "mean": -7.276443463942453e-05,
+      "min": -0.027666572123635803,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       -4.928886087928283e-06,
+       -1.2472848207761913e-05,
+       -3.579353362204728e-06,
+       -5.824443687582151e-07,
+       -4.241603688761451e-06,
+       -6.021047636468538e-06,
+       7.873060458157034e-07,
+       -1.1657340956143961e-05,
+       -2.5741447069334873e-06,
+       -1.1785629651703039e-05
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": 0.001092114470675525,
+      "max": 0.0018188323788150512,
+      "mean": 0.0010907088566546438,
+      "min": -0.0011951900418621718,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.001109555223110525,
+       0.001091193973904998,
+       0.0010719947017029956,
+       0.001085360337667828,
+       0.0011112343581326273,
+       0.0010850041675353338,
+       0.0010925735129165414,
+       0.0011147730519719067,
+       0.0010906159519587114,
+       0.001092114470675525
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad/s"
+   },
+   "eo-sat.sensor.st-1": {
+    "columns": [
+     "q0",
+     "q1",
+     "q2",
+     "q3"
+    ],
+    "data": [
+     {
+      "first": 0.8648056211835207,
+      "last": 0.024535535871352036,
+      "max": 0.8700782381007793,
+      "mean": 0.4329432960893618,
+      "min": 0.0003966939988159,
+      "non_finite": 0,
+      "samples": [
+       0.8648056211835207,
+       0.6282150288048444,
+       0.05324793600475524,
+       0.5875697170641323,
+       0.49741910046376925,
+       0.21218839749132543,
+       0.6574691415085044,
+       0.28438499907888465,
+       0.4425665421225647,
+       0.6189750272767752,
+       0.024535535871352036
+      ]
+     },
+     {
+      "first": 0.18648309424894668,
+      "last": -0.7447192713815789,
+      "max": 0.739648510128798,
+      "mean": -0.12753700147468622,
+      "min": -0.7524328491180243,
+      "non_finite": 0,
+      "samples": [
+       0.18648309424894668,
+       -0.35383720738092617,
+       -0.7484391627528797,
+       0.2119654733043903,
+       -0.5883570769567776,
+       0.6564835992144251,
+       -0.09155083031750665,
+       -0.7261993674798768,
+       0.4570706933074902,
+       -0.38023702068853893,
+       -0.7447192713815789
+      ]
+     },
+     {
+      "first": 0.3729527173827296,
+      "last": 0.10726339843160958,
+      "max": 0.3729527173827296,
+      "mean": -0.4770112755308458,
+      "min": -0.7524285360741599,
+      "non_finite": 0,
+      "samples": [
+       0.3729527173827296,
+       -0.6639961250621954,
+       0.07727429584835943,
+       -0.721922905840032,
+       -0.4689452233456236,
+       -0.3675750258580385,
+       -0.7468524468591005,
+       -0.19683754823379476,
+       -0.5975875913115167,
+       -0.6492295493815797,
+       0.10726339843160958
+      ]
+     },
+     {
+      "first": -0.27971693499958367,
+      "last": 0.6582444664934886,
+      "max": 0.6587025110496421,
+      "mean": 0.03372007006545928,
+      "min": -0.6586996902061019,
+      "non_finite": 0,
+      "samples": [
+       -0.27971693499958367,
+       0.19812686379939873,
+       0.656530395465543,
+       -0.2977579280884154,
+       0.43185711293206025,
+       -0.6236136370365865,
+       -0.03954991849321091,
+       0.5941503434115291,
+       -0.4879654781063783,
+       0.2253679567183619,
+       0.6582444664934886
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "eo-sat.sun_heading_body": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 0.707419840355238,
+      "last": 0.5206118679803071,
+      "max": 0.9567070708177928,
+      "mean": -0.05165765330193369,
+      "min": -0.9567837414973266,
+      "non_finite": 0,
+      "samples": [
+       0.707419840355238,
+       -0.912407402801018,
+       0.45175789378576153,
+       0.26868146007877225,
+       -0.8341361305779332,
+       0.9238818083073335,
+       -0.48508809613359893,
+       -0.2286583726064677,
+       0.8137985692790157,
+       -0.933179698615168,
+       0.5206118679803071
+      ]
+     },
+     {
+      "first": -0.628639340614064,
+      "last": 0.8025725923576047,
+      "max": 0.9567441309600148,
+      "mean": -0.01441014252506831,
+      "min": -0.9567495755675286,
+      "non_finite": 0,
+      "samples": [
+       -0.628639340614064,
+       -0.2880501992029558,
+       0.8433810104785239,
+       -0.9182086259470237,
+       0.46854807344999044,
+       0.24843599511013814,
+       -0.8246239336041966,
+       0.9289272815762628,
+       -0.5028576726353896,
+       -0.21075247910309264,
+       0.8025725923576047
+      ]
+     },
+     {
+      "first": 0.3230630726407534,
+      "last": -0.2912739550911641,
+      "max": 0.3230630726407534,
+      "mean": -0.28976124204038434,
+      "min": -0.32804089754546656,
+      "non_finite": 0,
+      "samples": [
+       0.3230630726407534,
+       -0.29075731126325716,
+       -0.2909008019350873,
+       -0.2910381285096816,
+       -0.29099762633185766,
+       -0.2910703705505027,
+       -0.29100671318136523,
+       -0.29122062801301735,
+       -0.29131778131646285,
+       -0.2911340630094742,
+       -0.2912739550911641
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "eo-sat.velocity_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": -984.8417341325176,
+      "last": -1455.084192059297,
+      "max": 1703.5755580847492,
+      "mean": 93.6771441516967,
+      "min": -1699.107217942395,
+      "non_finite": 0,
+      "samples": [
+       -984.8417341325176,
+       1676.7623412725832,
+       -1406.213972969287,
+       333.7815577343833,
+       927.4575720319207,
+       -1652.7109271753707,
+       1431.1465784474058,
+       -394.7019404690755,
+       -867.6312127116533,
+       1629.4670634076494,
+       -1455.084192059297
+      ]
+     },
+     {
+      "first": 183.95232938187036,
+      "last": -7398.578764444635,
+      "max": 7460.409302752946,
+      "mean": 272.6371789446901,
+      "min": -7461.205031120578,
+      "non_finite": 0,
+      "samples": [
+       183.95232938187036,
+       5092.868821250276,
+       -7448.514336808413,
+       5561.066669430574,
+       -495.89833587088566,
+       -4855.684464672016,
+       7431.380309652476,
+       -5772.380285486547,
+       805.070697696085,
+       4624.484028950878,
+       -7398.578764444635
+      ]
+     },
+     {
+      "first": 7518.706887795521,
+      "last": 789.1166583048864,
+      "max": 7518.706887795521,
+      "mean": -313.8050383001028,
+      "min": -7526.211095809703,
+      "non_finite": 0,
+      "samples": [
+       7518.706887795521,
+       -5369.293553143284,
+       160.8530434238958,
+       5144.024035123564,
+       -7519.373802827898,
+       5584.832949763275,
+       -468.3506755372399,
+       -4908.109347053804,
+       7491.945622641473,
+       -5792.489281126403,
+       789.1166583048864
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m/s"
+   }
+  },
+  "summary": [
+   {
+    "decimals": 2,
+    "key": "run_length",
+    "label": "Run length",
+    "unit": "h",
+    "value": 6.0
+   },
+   {
+    "decimals": 3,
+    "key": "eo-sat.mean_sma_change",
+    "label": "Mean semi-major axis change",
+    "unit": "km",
+    "value": 0.004616303578950464
+   },
+   {
+    "decimals": 2,
+    "key": "eo-sat.lowest_link_margin",
+    "label": "Lowest link margin",
+    "unit": "dB",
+    "value": 3.7080259699750275
+   },
+   {
+    "decimals": 2,
+    "key": "eo-sat.lowest_battery_charge",
+    "label": "Lowest battery charge",
+    "unit": "W*h",
+    "value": 236.56569400182593
+   },
+   {
+    "decimals": 0,
+    "key": "eo-sat.passes",
+    "label": "Passes",
+    "unit": "-",
+    "value": 2.0
+   },
+   {
+    "decimals": 1,
+    "key": "eo-sat.contact_time",
+    "label": "Contact time",
+    "unit": "min",
+    "value": 12.5
+   },
+   {
+    "decimals": 0,
+    "key": "eo-sat.eclipses",
+    "label": "Eclipses",
+    "unit": "-",
+    "value": 4.0
+   },
+   {
+    "decimals": 1,
+    "key": "eo-sat.eclipse_time",
+    "label": "Eclipse time",
+    "unit": "min",
+    "value": 140.16666666666669
+   },
+   {
+    "decimals": 3,
+    "key": "eo-sat.data_downlinked",
+    "label": "Data downlinked",
+    "unit": "Gbit",
+    "value": 0.5623
+   }
+  ],
+  "warnings": [
+   "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap",
+   "the magnetic field model (WMM, epoch 2025.0) is valid from 2025.0 to 2030.0; outside those years magnetometer readings and torque-rod control use an extrapolated field",
+   "Earth orientation: IAU rotation model, no IERS data installed",
+   "Earth gravity field oriented by the IAU model (no IERS data): ~160 m/day position error at degree 20, 400 km"
+  ]
+ },
+ "span_days": 0.25,
+ "template": "26_earth_observation_data_downlink.json"
+}

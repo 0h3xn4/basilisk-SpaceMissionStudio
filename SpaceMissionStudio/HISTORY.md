@@ -14336,3 +14336,41 @@ fails on the code before (checked).
 `test_load_scenario_rejects_an_unknown_field_naming_it` matched Python's
 wording and now matches the new one (TEST_CHANGES).
 Full suite on Python 3.14 with coverage, as CI runs it (a home holding only the reference data cache): 3953 passed, 92.67 % covered, no data file left behind.
+
+## Regression baseline (2026-10-29)
+
+The transparency plan, Phase 1a: before any refactor, a baseline that
+captures what every template gives today. The user answered the audit's
+decisions ("As per your recommendation" to 1-5, "Yes" to 6). Branch
+`golden-baseline`.
+
+**What is captured** (`tests/golden_capture.py`), per template:
+- the run as `spacemissionstudio run` does it, capped at 6 hours of
+  simulated time (a Mission Sequence runs in full): every series as
+  per-column first, last, min, max, mean and 11 samples; events; run
+  warnings; run-summary figures; Mission Output rows; seeds and
+  integrator settings;
+- the Explain text, the pre-run checks and the predicted passes;
+- the lifetime of every drag spacecraft over 1 year, with Cd 2.2 and with
+  its own;
+- every spacecraft's budget after the run, or its refusal (26 templates
+  have no orbit thruster), and with an Isp of 220 s on 22 and 26;
+- for the two Monte Carlo templates, a batch of 2 runs of 0.05 days.
+
+**Measured:** 31 fingerprints, 1.4 MB. Writing them took 8 min 57 s here;
+the test took 2 min 54 s on 8 workers (33 passed). A second capture gave 0
+differences on every template checked (01-04 before the isolation was
+added; the isolated write and the test then agreed on all 31). The
+slowest are 03, 05, 24 and 29 (60-76 s, their budgets solve the re-entry),
+marked `slow`.
+
+**Isolation.** Outside pytest the capture first saw this machine's
+downloaded files (Earth orientation, space-weather cache), while every test
+runs in a home of its own (`tests/conftest.py`); the capture now isolates
+itself the same way, with the installed Eros files as
+`real_small_body_files` gives them.
+
+`docs/changes.md` is started: every later change of a number is entered
+there with its before and after values before the baseline is rewritten
+(`scripts/update_golden_outputs.py --write`).
+Full suite on Python 3.14 (a home holding only the reference data cache): 3986 passed in 13 min 4 s (10 min 18 s before the baseline).

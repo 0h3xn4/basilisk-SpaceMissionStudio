@@ -801,3 +801,12 @@ never named "_TabBar".
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `test_scenario_schema.py::test_load_scenario_rejects_an_unknown_field_naming_it` | Matched Python's `unexpected keyword argument 'bogus_field'` | Matches `unexpected field 'bogus_field'` | The refusal now names the field in its own words and says where (`spacecraft[0]: unexpected field 'bogus_field', not one this version knows`); the test still checks that the field is named |
+
+## Regression baseline (2026-10-29)
+
+- Added `test_golden_outputs.py`: `::test_every_template_gives_its_recorded_outputs`
+  (31 cases, one per template; 03, 05, 24 and 29 marked `slow`),
+  `::test_every_template_has_a_recorded_fingerprint` and
+  `::test_the_comparison_holds_each_number_to_its_own_scale`, with the
+  helper `tests/golden_capture.py` and the data in `tests/golden/`. No
+  existing test changed.
