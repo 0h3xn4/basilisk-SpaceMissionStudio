@@ -34,6 +34,18 @@ run a scenario headlessly and export results to CSV
 | `--vizard-trail` | also draw the flown path in Vizard (builds up into a band over long runs) |
 | `--vizard-ground-tracks` | also draw ground tracks in Vizard |
 | `--allow-scripts` | run the scenario's script_block commands (unrestricted Python: only for files you trust and have read) |
+| `--bundle` | also make --out-dir a reproduction bundle: copies of the files the scenario refers to and the space-weather files read, listed in bundle.json |
+
+## `reproduce`
+
+run a reproduction bundle again and compare its results
+
+| Argument | Help |
+|---|---|
+| `bundle` | a folder written by 'run --bundle' |
+| `--out-dir` | where the new run's results go |
+| `--rtol` | largest difference allowed, as a fraction of each column's largest value (default 1e-6) |
+| `--allow-scripts` | run the scenario's script_block commands (unrestricted Python: only for bundles you trust and have read) |
 
 ## `monte-carlo`
 

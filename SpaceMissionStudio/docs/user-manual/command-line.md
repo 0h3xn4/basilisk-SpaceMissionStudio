@@ -40,6 +40,7 @@ Useful `run` options:
 | `--vizard-save-file run.bin` | Writes a Vizard playback file |
 | `--vizard-live-stream` | Streams to a Vizard that is already running |
 | `--allow-scripts` | Runs the scenario's `script_block` commands. They are unrestricted Python: use it only for files you trust and have read. |
+| `--bundle` | Also makes `--out-dir` a reproduction bundle that `reproduce` can run again (see below) |
 
 `scenario_as_run.json` is the scenario exactly as it was run, after an
 older file was brought up to date: running it again runs the same
@@ -88,6 +89,41 @@ station) longer than 64 characters, or a dynamics time step below 0.001 s. `life
 than 0 and at most 100 years, and a CCSDS file larger than 500 MB is not
 read. These limits sit far above any real scenario; they stop a mistyped
 or damaged file from filling the memory or the disk.
+
+### Reproduce a result
+
+`run --bundle` makes the output folder a reproduction bundle. Beside the
+results and `scenario_as_run.json` it holds:
+
+- `inputs/`: copies of the files the scenario refers to (a model's meshes,
+  a Vizard model, your own space-weather or MSFC file) and of the
+  space-weather files the run read;
+- `bundle.json`: each copy, with the path it stands for and its SHA-256.
+
+Send the folder to a colleague. `reproduce` runs it again and compares:
+
+```console
+$ spacemissionstudio run scenario.json --out-dir out --bundle
+$ spacemissionstudio reproduce out --out-dir again
+REPRODUCED: 19 series within 1e-06 of their scale
+  largest difference: leo-sat-1.eclipse.illumination_factor [time_s]: 0 of scale (0)
+```
+
+A series agrees when every value is within `--rtol` (default 1e-6) of
+the largest value in its column. `reproduce` also says:
+
+- which copies it used (`USED:`): your files, or the bundle's space weather
+  when this computer's differs;
+- what differs (`DIFFERS:`): the versions, the platform, and any
+  reference-data file whose SHA-256 is not the one recorded.
+
+The reference data itself (SPICE kernels, gravity fields, Earth
+orientation) is not copied: `de430.bsp` alone is 114 MB. A noisy sensor's
+output can differ between Windows and Linux, as Basilisk draws its noise
+from the C++ standard library. The exit code is 0 when every series agrees,
+5 when one does not, and 1 when a file in the bundle is not the one it was
+made with. The GUI writes the same bundle from Results › Plots ›
+**Export all...** › **Reproduction bundle...**.
 
 ## Analyse
 
@@ -213,7 +249,7 @@ A script can tell from the exit code what happened:
 | 2 | A component is missing (Basilisk, a SPICE kernel for `kernels-status`, PySide6 for `gui`), or the command line is wrong |
 | 3 | The run or analysis failed, including a Monte Carlo batch in which a run failed |
 | 4 | An internal error of SpaceMissionStudio; report it with the log file it names |
-| 5 | The command ran, but its check did not pass: `fsw-status` found an export that is not up to date, or `sil --max-error` found a residual over the limit |
+| 5 | The command ran, but its check did not pass: `fsw-status` found an export that is not up to date, `sil --max-error` found a residual over the limit, or `reproduce` found a series that differs |
 
 ## From Python
 

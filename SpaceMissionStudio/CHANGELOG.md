@@ -365,6 +365,17 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   older version is no longer brought up to date silently: `validate` lists
   each value its migration changed (`MIGRATED:`), and the run records them
   (`scenario_file_migrations`) (transparency plan, Phase 2c).
+- **Reproduce a result from its folder:** `run --bundle` (and, in the GUI,
+  Results › Plots › **Export all...** › **Reproduction bundle...**) writes a
+  folder that holds the results, the provenance, the scenario as run and
+  copies of the files it refers to, with the space-weather files the run
+  read. `spacemissionstudio reproduce FOLDER --out-dir DIR` runs it again
+  and compares every series, within 1e-6 of each column's scale by
+  default (`--rtol`). It names what differs (series, versions, platform,
+  reference-data files) and exits 5 when a series does not agree
+  (transparency plan, Phase 2h).
+- The user manual said `sil --max-error` exits 2 over its limit; it exits 5
+  since the exit codes were made consistent with ICD-02.
 
 ## 1.3.1 (2026-10-27)
 

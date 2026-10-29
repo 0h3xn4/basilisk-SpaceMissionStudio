@@ -5,6 +5,38 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Reproduction bundles (2026-10-29)
+
+The transparency plan's Phase 2h (`docs/transparency_audit.md` 9.2;
+definition of done: "reproduce a colleague's result from an exported
+file").
+
+- **A run folder, extended:** a bundle is the folder `run --out-dir`
+  already writes (results, provenance, scenario as run), with `inputs/` and
+  `bundle.json`. Copying the files at once is what makes a folder that
+  can travel. `--bundle` is opt-in, as a model's meshes can be large.
+- **What is copied:** the files the scenario refers to, and the
+  space-weather files the run read, because for the `"bundled"` source they
+  depend on the computer (the shipped file or a newer download). The
+  installed reference data is not: `de430.bsp` is 114 MB, and its hash in
+  `provenance.json` is enough to say whether a computer has the same.
+- **The scenario's hash is checked before its paths are changed:** the
+  scenario as run is checked against `scenario_sha256`; only then are its
+  references pointed at the bundle's copies, and each substitution is
+  reported. The copies' SHA-256 are checked against the manifest. So the
+  new run is the same scenario on the same file contents, at other paths.
+- **Compared as written:** both runs' series are compared from their CSV
+  files, 9 significant digits each, column by column, as a fraction of the
+  column's largest magnitude. The default 1e-6 is the regression
+  baseline's general rule, found to hold for well-conditioned outputs
+  across computers (3.8e-7 measured). Like that rule, it does not hold for
+  a noisy sensor across C++ standard libraries, and the report says when
+  the platform differs.
+- **A verdict and the reasons:** the exit code is 0 or 5 on the series
+  alone, and the report lists the versions, platform, reference-data files
+  and event counts that differ, for the reader to judge. A different
+  Basilisk version is reported, not refused.
+
 ## The effective configuration (2026-10-29)
 
 The transparency plan's Phase 2c (`docs/transparency_audit.md` 9.2; gaps C

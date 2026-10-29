@@ -637,6 +637,17 @@ class ResultsWidget(QWidget):
             action = QAction(text, export_menu)
             action.triggered.connect(lambda _checked=False, f=fmt: self._on_export_all(f))
             export_menu.addAction(action)
+        export_menu.addSeparator()
+        # The run's folder that runs itself again (transparency audit, Phase 2h).
+        self.export_bundle_action = QAction("Reproduction bundle...", export_menu)
+        self.export_bundle_action.setToolTip("Every series as CSV, the provenance, the scenario as run and copies of "
+                                             "the files it refers to: 'spacemissionstudio reproduce' runs it again "
+                                             "and compares")
+        self.export_bundle_action.triggered.connect(self._on_export_bundle)
+        export_menu.addAction(self.export_bundle_action)
+        # The scenario file's folder at the last run start (gui.main_window):
+        # a model's relative mesh paths are read from it.
+        self.scenario_folder: Path | None = None
         self.export_all_button.setMenu(export_menu)
         self.export_all_button.setEnabled(False)
         button_row.addWidget(self.export_all_button)
@@ -1888,6 +1899,44 @@ class ResultsWidget(QWidget):
         """Let an export finish (the window is closing; tests)."""
         if self._export_worker is not None:
             self._export_worker.wait()
+
+    def _on_export_bundle(self) -> None:
+        """Results › Plots › Export all... › Reproduction bundle...: the shown
+        run as a reproduction bundle (``reproduction.export_bundle``), into
+        an empty folder."""
+        if self._result is None or self._current_run is None or self._export_worker is not None:
+            return
+        folder = QFileDialog.getExistingDirectory(self, "Export a reproduction bundle (choose an empty folder)")
+        if folder:
+            self.export_bundle(Path(folder))
+
+    def export_bundle(self, folder: Path) -> None:
+        """The shown run (its kept record's scenario and result) as a
+        reproduction bundle in ``folder``, which must be empty, off the GUI
+        thread."""
+        from .. import reproduction
+        from ..schema.scenario import Scenario
+
+        if any(folder.iterdir()):
+            report(self, f"{folder} is not empty: choose an empty folder for the bundle, so that it holds only this "
+                         "run's files")
+            return
+        result, scenario = self._result, Scenario.from_dict(self._current_run.scenario)
+        base_dir, epoch_utc = self.scenario_folder, self._epoch_utc
+
+        def done(manifest) -> None:
+            export_log.record("bundle", folder)
+            missing = reproduction.missing_inputs(manifest)
+            if missing:
+                report(self, f"Exported the bundle to {folder}, without {len(missing)} file(s) the scenario refers "
+                             f"to and that could not be found: {', '.join(missing[:3])}", kind="warning")
+            else:
+                report(self, f"Exported a reproduction bundle to {folder}", kind="success")
+
+        self._start_export(lambda step: reproduction.export_bundle(folder, scenario, result, base_dir, epoch_utc,
+                                                                   progress=step), done,
+                           lambda message: report(self, f"Could not export the bundle to {folder}: {message}"),
+                           str(folder))
 
     def _on_export_all(self, fmt: str) -> None:
         folder = QFileDialog.getExistingDirectory(self, f"Export the shown plots ({fmt.upper()}) and their data")

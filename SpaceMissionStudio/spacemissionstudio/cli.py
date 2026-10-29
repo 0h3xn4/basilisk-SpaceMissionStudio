@@ -285,6 +285,12 @@ def cmd_run(args: argparse.Namespace) -> int:
 
     try:
         _write_run_outputs(args, scenario, result, command_summary)
+        if args.bundle:
+            from . import reproduction
+
+            manifest = reproduction.write_bundle(args.out_dir, scenario, result, args.scenario.resolve().parent)
+            print(f"  reproduction bundle: {manifest} (check it with 'spacemissionstudio reproduce "
+                  f"{args.out_dir} --out-dir DIR')")
     except (OSError, ValueError) as exc:  # a write that failed, or a path refused by results.output_path
         print(f"ERROR: could not write the results to {args.out_dir}: {exc}", file=sys.stderr)
         return 3
@@ -360,6 +366,35 @@ def _print_constant_thrust_summary(scenario, result) -> None:
         propellant_used_kg = sc.constant_thrust.propellant_kg - propellant_remaining_kg
         print(f"  {sc.name}: {delta_v_m_s:.3f} m/s delta-V ({sc.constant_thrust.frame} frame), "
               f"{propellant_used_kg:.3f} kg propellant used ({propellant_remaining_kg:.3f} kg remaining)")
+
+
+def cmd_reproduce(args: argparse.Namespace) -> int:
+    """Run a reproduction bundle again and compare (transparency audit,
+    Phase 2h): 0 when every series agrees within --rtol, 5 when one does
+    not (the check did not pass, ICD-02), 1 for a folder that is not a
+    bundle or does not match itself, 3 when the run fails."""
+    from . import reproduction
+
+    try:
+        from .engine import service  # noqa: F401 -- Basilisk, before anything is read
+    except ImportError as exc:
+        print(f"ERROR: Basilisk is not installed/built ({exc}) -- see SpaceMissionStudio/README.md", file=sys.stderr)
+        return 2
+    print(f"Reproducing {args.bundle} into {args.out_dir}...")
+    try:
+        report = reproduction.reproduce(args.bundle, args.out_dir, rtol=args.rtol, allow_scripts=args.allow_scripts)
+    except (reproduction.BundleError, ScenarioValidationError) as exc:
+        print(f"INVALID: {exc}", file=sys.stderr)
+        return 1
+    except OSError as exc:
+        print(f"ERROR: could not read the bundle or write {args.out_dir}: {exc}", file=sys.stderr)
+        return 3
+    except Exception as exc:  # noqa: BLE001 -- report ANY run failure with a specific message, as run does
+        print(f"ERROR: run failed: {exc}", file=sys.stderr)
+        return 3
+    for line in report.lines():
+        print(line)
+    return 0 if report.reproduced else EXIT_CHECK_FAILED
 
 
 def cmd_monte_carlo(args: argparse.Namespace) -> int:
@@ -573,6 +608,14 @@ def _max_years_arg(text: str) -> float:
     value = _finite_float_arg(text)
     if not 0.0 < value <= 100.0:  # [year] engine.lifetime.MAX_HORIZON_YEARS, without importing Basilisk here
         raise argparse.ArgumentTypeError(f"{text!r}: more than 0 and at most 100 years")
+    return value
+
+
+def _rtol_arg(text: str) -> float:
+    """A comparison tolerance: a finite number of 0 or more."""
+    value = _finite_float_arg(text)
+    if value < 0.0:
+        raise argparse.ArgumentTypeError(f"{text!r}: 0 or more")
     return value
 
 
@@ -1285,7 +1328,21 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--allow-scripts", action="store_true",
                        help="run the scenario's script_block commands (unrestricted Python: only for files you "
                             "trust and have read)")
+    p_run.add_argument("--bundle", action="store_true",
+                       help="also make --out-dir a reproduction bundle: copies of the files the scenario refers to "
+                            "and the space-weather files read, listed in bundle.json")
     p_run.set_defaults(func=cmd_run)
+
+    p_reproduce = subparsers.add_parser("reproduce", help="run a reproduction bundle again and compare its results")
+    p_reproduce.add_argument("bundle", type=Path, help="a folder written by 'run --bundle'")
+    p_reproduce.add_argument("--out-dir", type=Path, required=True, help="where the new run's results go")
+    p_reproduce.add_argument("--rtol", type=_rtol_arg, default=1e-6,
+                             help="largest difference allowed, as a fraction of each column's largest value "
+                                  "(default 1e-6)")
+    p_reproduce.add_argument("--allow-scripts", action="store_true",
+                             help="run the scenario's script_block commands (unrestricted Python: only for "
+                                  "bundles you trust and have read)")
+    p_reproduce.set_defaults(func=cmd_reproduce)
 
     p_mc = subparsers.add_parser("monte-carlo", help="run a Monte Carlo batch and archive retained results")
     p_mc.add_argument("scenario", type=Path)
