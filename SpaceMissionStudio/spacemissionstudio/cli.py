@@ -60,17 +60,23 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import logging
 import math
 import sys
+import traceback
 from datetime import timedelta
 from pathlib import Path
 
 from .schema.epochs import parse_epoch_utc
 from . import __version__, dependencies, output_provenance
-from .logging_setup import configure_logging
+from .logging_setup import configure_logging, get_log_file_path
 from .schema import ScenarioValidationError, load_scenario
 from .schema.command import runs_sequence, script_blocks
 from .schema.scenario import PHASING_CONTROL_LAWS, ROE_CONTROL_LAWS
+
+# The exit status of a fault in SpaceMissionStudio itself, as opposed to the
+# input (1), a missing component or usage (2) or a failed run (3): ICD-02.
+EXIT_INTERNAL_ERROR = 4
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
@@ -501,6 +507,15 @@ def _finite_float_arg(text: str) -> float:
         raise argparse.ArgumentTypeError(f"{text!r}: not a number") from None
     if not math.isfinite(value):
         raise argparse.ArgumentTypeError(f"{text!r}: a finite number")
+    return value
+
+
+def _max_years_arg(text: str) -> float:
+    """A lifetime's look-ahead: more than 0 and at most 100 years, the
+    GUI's limit (1e6 overflowed the date; -5 exited 3; audit R6)."""
+    value = _finite_float_arg(text)
+    if not 0.0 < value <= 100.0:  # [year] engine.lifetime.MAX_HORIZON_YEARS, without importing Basilisk here
+        raise argparse.ArgumentTypeError(f"{text!r}: more than 0 and at most 100 years")
     return value
 
 
@@ -1225,7 +1240,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_life.add_argument("--spacecraft", help="spacecraft name (default: the first)")
     p_life.add_argument("--deorbit-perigee-km", type=_finite_float_arg, default=None,
                         help="first lower the perigee to this altitude [km] with the orbit thruster")
-    p_life.add_argument("--max-years", type=_finite_float_arg, default=30.0, help="how far ahead to look [years]")
+    p_life.add_argument("--max-years", type=_max_years_arg, default=30.0,
+                        help="how far ahead to look [years], more than 0 and at most 100")
     p_life.add_argument("--forecast-percentile", type=_finite_float_arg, choices=(95.0, 50.0, 5.0), default=50.0,
                         help="MSFC solar-activity percentile (ESA AD10: 50 for end of life)")
     p_life.add_argument("--drag-coeff", default="2.2", type=_drag_coeff_arg,
@@ -1456,6 +1472,17 @@ def main(argv: list | None = None) -> int:
         # audit L9): one line and status 3, not a traceback.
         print(f"ERROR: {exc}", file=sys.stderr)
         return 3
+    except Exception as exc:  # noqa: BLE001 -- a fault, not the input: its own status, the traceback in the log
+        # Status 1 said "invalid input" (ICD-02), so scripts could not tell a
+        # bug from a bad file (audit R13).
+        log = get_log_file_path()
+        if log is None:  # no log file to hold the traceback: it is the only record left
+            traceback.print_exc()
+        else:  # DEBUG: the log file's level, below the terminal's
+            logging.getLogger(__name__).debug("Internal error in %r", args.command, exc_info=True)
+        where = f"; the details are in {log}" if log else ""
+        print(f"INTERNAL ERROR: {type(exc).__name__}: {exc}{where}. Please report it.", file=sys.stderr)
+        return EXIT_INTERNAL_ERROR
 
 
 if __name__ == "__main__":

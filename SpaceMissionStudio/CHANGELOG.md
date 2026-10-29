@@ -215,6 +215,22 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   fields only: a focused button, tab or rail entry showed "Value -,
   Allowed -, Help -", and now shows its empty state. Found by the audit
   of 2026-10-27 (G8).
+- **No traceback for JSON Python cannot read:** a scenario nested deeper
+  than Python's JSON parser goes, or holding an integer of more than 4300
+  digits, gave a RecursionError or ValueError traceback; it is now a
+  refusal naming the file (exit 1). A recovery copy of that kind, or with
+  a null scenario or a spacecraft that is not an object, raised at every
+  start and recovery was never offered; it is now ignored. A fuzz test
+  mangles every template 20 ways and checks that the loader only ever
+  refuses (audit R5).
+- **`lifetime --max-years` up to 100 years:** 1e6 overflowed the date (a
+  traceback) and -5 exited 3; out-of-range values are now a usage error
+  (exit 2) naming the range, the GUI's limit of 100 years (audit R6).
+- **Exit status 4 for an internal error:** an unexpected exception
+  printed a traceback and exited 1, the status of an invalid input, so a
+  script could not tell a fault from a bad file. It is now one line,
+  `INTERNAL ERROR: ...`, naming the log file that holds the traceback,
+  and status 4 (ICD-02; audit R13).
 - **`run` checks its output folder first:** a folder it cannot write
   (`--out-dir /etc/passwd/x`) was found only after the whole simulation;
   it is now refused before the run starts (exit 3). A folder holding

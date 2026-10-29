@@ -61,6 +61,7 @@ import dataclasses
 import json
 import math
 import os
+import sys
 import tempfile
 from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, UTC
@@ -3295,6 +3296,11 @@ def parse_scenario_text(text: str, source: str) -> Scenario:
         raw = json.loads(text)
     except json.JSONDecodeError as exc:
         raise ScenarioJSONError(f"{source}: not valid JSON ({exc})", exc.lineno, exc.colno, exc.msg) from exc
+    except RecursionError as exc:  # valid JSON the parser cannot read: a refusal, not a traceback (audit R5)
+        raise ScenarioValidationError(f"{source}: not a scenario file (nested more deeply than can be read)") from exc
+    except ValueError as exc:  # Python's 4300-digit limit on integers
+        raise ScenarioValidationError(f"{source}: not a scenario file (a number with more digits than can be read: "
+                                      f"{sys.get_int_max_str_digits()} at most)") from exc
 
     if not isinstance(raw, dict) or "schema_version" not in raw:
         raise ScenarioValidationError(f"{source}: missing required top-level 'schema_version' field")

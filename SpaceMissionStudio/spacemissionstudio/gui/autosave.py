@@ -150,7 +150,7 @@ def read_recovery_file() -> RecoveryInfo | None:
         return None
     try:
         envelope = json.loads(text)
-    except json.JSONDecodeError:
+    except (ValueError, RecursionError):  # not JSON, or JSON too deep or a number too long to read (audit R5)
         _logger.warning("Autosave recovery file %s is corrupt -- ignoring", _RECOVERY_FILE)
         return None
     if not isinstance(envelope, dict):
@@ -162,7 +162,8 @@ def read_recovery_file() -> RecoveryInfo | None:
         scenario_dict = migrations.migrate(envelope["scenario"])
         scenario = Scenario.from_dict(scenario_dict)
         scenario.validate()
-    except (KeyError, TypeError, ScenarioValidationError):
+    except (KeyError, TypeError, ValueError, AttributeError, OverflowError, RecursionError, ScenarioValidationError):
+        # Whatever load_scenario turns into a refusal: a malformed copy is ignored, never raised at every start (R5).
         _logger.warning("Autosave recovery file %s is malformed -- ignoring", _RECOVERY_FILE, exc_info=True)
         return None
     original_path_str = envelope.get("original_path")

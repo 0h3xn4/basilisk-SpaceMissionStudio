@@ -30,6 +30,22 @@ The audit's R7, R8 and R9.
 - **500 MB for a CCSDS message:** a long, finely sampled OEM is
   legitimately large, so the limit is far above a scenario's.
 
+## Parser, look-ahead and exit codes (2026-10-29)
+
+The audit's R5, R6 and R13.
+
+- **A new exit status, 4, for an internal error:** 1 means invalid input
+  in ICD-02 and 3 a failed run; a fault in the tool itself is neither,
+  and a script deciding whether to retry or fix its file needs to tell
+  them apart. The traceback goes to the log file only (its DEBUG level),
+  so the terminal shows one line; without a log file it is printed.
+- **`--max-years` refused by argparse (status 2):** the same as every
+  other bounded option (`--oem-stride 0`, `--altitudes`); the audit asked
+  for 1, but ICD-02 gives 2 to a usage error, which this is.
+- **100 years, the GUI's limit:** the engine and the CLI now share it;
+  the 25-year guideline needs far less, and past 100 years the solar
+  cycle forecast only repeats.
+
 ## Room for results at 1280 x 720 (2026-10-28)
 
 The audit's G8: "Inspect fields only; collapse the Inspector on small

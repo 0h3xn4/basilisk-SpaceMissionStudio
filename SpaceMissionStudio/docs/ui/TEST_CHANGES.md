@@ -765,6 +765,21 @@ never named "_TabBar".
   `::test_the_inspector_shows_fields_only`: each fails on the code before
   (checked).
 
+## Parser, look-ahead and exit codes (2026-10-29)
+
+- Added `test_scenario_schema.py::test_json_nested_too_deeply_for_the_parser_is_a_refusal`,
+  `::test_json_with_a_number_too_long_for_python_is_a_refusal`
+  and `::test_no_template_however_mangled_gets_past_the_loader_as_anything_but_a_refusal`,
+  `test_autosave.py::test_a_recovery_file_the_loader_would_refuse_is_ignored_not_raised`,
+  and `test_cli.py::test_an_internal_error_has_its_own_status_and_names_the_log`
+  and `::test_lifetime_refuses_a_look_ahead_outside_one_hundred_years` (audit R5,
+  R6, R13). The engine's refusal keeps the words
+  `test_lifetime.py::test_a_lookahead_that_is_not_positive_is_refused` matches.
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_cli.py::test_generate_phasing_formation_passes_every_request_field_through` | Its stand-in generator raised `_Captured` to stop the command, and the test expected it to leave `main` | Expects `main` to return `EXIT_INTERNAL_ERROR` (4) | `main` now reports any unexpected exception as an internal error (R13); the stand-in still stops the command, and the same request fields are asserted |
+
 ## Output folder and input limits (2026-10-29)
 
 - Added `test_scenario_schema.py::test_a_name_longer_than_sixty_four_characters_is_refused_at_validation`,

@@ -375,6 +375,101 @@ def test_a_scenario_file_larger_than_the_limit_is_refused_unread(tmp_path, monke
         load_scenario(path)
 
 
+def test_json_nested_too_deeply_for_the_parser_is_a_refusal(tmp_path, monkeypatch):
+    """Audit R5: JSON nested deeper than Python's parser goes gave a
+    RecursionError traceback; it is now a refusal naming the file.
+
+    How deep the parser goes depends on the Python build and the stack:
+    100 000 levels fail here but parse on CI's Linux runner, so the
+    parser's RecursionError is raised for the refusal's wording, and a
+    real 100 000-level file is checked to be refused for one reason or
+    another."""
+    path = tmp_path / "odd.json"
+    path.write_text("[" * 100000 + "]" * 100000, encoding="utf-8")
+    with pytest.raises(ScenarioValidationError):
+        load_scenario(path)
+
+    def too_deep(*args, **kwargs):
+        raise RecursionError("maximum recursion depth exceeded while decoding a JSON array")
+
+    monkeypatch.setattr(json, "loads", too_deep)
+    with pytest.raises(ScenarioValidationError, match="nested more deeply than can be read"):
+        load_scenario(path)
+
+
+def test_json_with_a_number_too_long_for_python_is_a_refusal(tmp_path):
+    """Audit R5: an integer of more than 4300 digits gave a ValueError
+    traceback; it is now a refusal naming the file."""
+    path = tmp_path / "odd.json"
+    path.write_text('{"schema_version": ' + "9" * 5000 + "}", encoding="utf-8")
+    with pytest.raises(ScenarioValidationError, match="a number with more digits than can be read"):
+        load_scenario(path)
+
+
+def _mutated(document, rng):
+    """``document`` with one value replaced, removed or wrapped."""
+    document = copy.deepcopy(document)
+    paths, stack = [], [((), document)]
+    while stack:
+        path, node = stack.pop()
+        children = node.items() if isinstance(node, dict) else enumerate(node) if isinstance(node, list) else ()
+        for key, child in children:
+            paths.append(path + (key,))
+            stack.append((path + (key,), child))
+    path = rng.choice(paths)
+    parent = document
+    for part in path[:-1]:
+        parent = parent[part]
+    key = path[-1]
+    odd = [None, True, 0, -1, 1e308, -1e308, 10**30, "", "x" * 300, [], {}, [1, "a"], {"a": 1}, "2030-13-45"]
+    kind = rng.randrange(3)
+    if kind == 0 and isinstance(parent, dict):
+        del parent[key]
+    elif kind == 1:
+        parent[key] = [parent[key]] if rng.random() < 0.5 else {"x": parent[key]}
+    else:
+        parent[key] = copy.deepcopy(rng.choice(odd))
+    return document
+
+
+def test_no_template_however_mangled_gets_past_the_loader_as_anything_but_a_refusal(tmp_path):
+    """Audit R5's fuzz test: every template, mangled 20 ways each (a value
+    removed, wrapped or replaced by another type, an extreme number or a
+    long string; the text cut short, deeply nested or given a huge
+    integer), either loads or is refused with ScenarioValidationError:
+    never another exception, which is a traceback for the user. Seeded,
+    so a failure repeats."""
+    import random
+    from pathlib import Path
+
+    templates = sorted((Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios"
+                        / "templates").glob("*.json"))
+    assert templates
+    rng = random.Random(20261029)
+    path = tmp_path / "mangled.json"
+    outcomes = {"loaded": 0, "refused": 0}
+    for template in templates:
+        base = json.loads(template.read_text(encoding="utf-8"))
+        for _ in range(20):
+            text = json.dumps(_mutated(base, rng))
+            roll = rng.random()
+            if roll < 0.1:
+                text = text[: rng.randrange(len(text))]
+            elif roll < 0.15:
+                cut = rng.randrange(len(text))
+                text = text[:cut] + "[" * 100000 + "]" * 100000 + text[cut:]
+            elif roll < 0.2:
+                text = text.replace(": 0", ": " + "9" * 5000, 1)
+            path.write_text(text, encoding="utf-8")
+            try:
+                load_scenario(path)
+            except ScenarioValidationError:
+                outcomes["refused"] += 1
+            else:
+                outcomes["loaded"] += 1
+    assert outcomes["refused"] and outcomes["loaded"]  # the mutations reach both outcomes
+
+
 def test_load_scenario_missing_schema_version_gives_clear_error(tmp_path):
     """Loading a file without schema_version names the missing field."""
     path = tmp_path / "bad.json"
