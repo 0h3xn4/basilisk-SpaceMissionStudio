@@ -779,3 +779,14 @@ never named "_TabBar".
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `test_cli.py::test_generate_phasing_formation_passes_every_request_field_through` | Its stand-in generator raised `_Captured` to stop the command, and the test expected it to leave `main` | Expects `main` to return `EXIT_INTERNAL_ERROR` (4) | `main` now reports any unexpected exception as an internal error (R13); the stand-in still stops the command, and the same request fields are asserted |
+
+## Output folder and input limits (2026-10-29)
+
+- Added `test_scenario_schema.py::test_a_name_longer_than_sixty_four_characters_is_refused_at_validation`,
+  `::test_a_scenario_that_asks_for_too_much_is_refused` and
+  `::test_a_scenario_file_larger_than_the_limit_is_refused_unread`,
+  `test_constellation.py::test_more_satellites_than_a_scenario_holds_are_refused_before_any_is_made`,
+  and `test_cli.py::test_run_refuses_an_output_folder_it_cannot_write_before_the_simulation`,
+  `::test_a_run_into_a_used_folder_names_the_files_it_did_not_write` and
+  `::test_ccsds_messages_larger_than_the_limit_are_refused_unread` (audit
+  R7, R8, R9). No existing test changed.

@@ -231,6 +231,21 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   script could not tell a fault from a bad file. It is now one line,
   `INTERNAL ERROR: ...`, naming the log file that holds the traceback,
   and status 4 (ICD-02; audit R13).
+- **`run` checks its output folder first:** a folder it cannot write
+  (`--out-dir /etc/passwd/x`) was found only after the whole simulation;
+  it is now refused before the run starts (exit 3). A folder holding
+  files from an earlier run kept them next to the new results with no
+  word; `run` now names them in a `WARNING` (audit R7, R8).
+- **Names of at most 64 characters:** a 300-character spacecraft name
+  validated, ran, and then failed to become a file name (exit 3); names of
+  spacecraft, parts, sensors, actuators and ground stations longer than
+  64 characters are now refused by `validate` (audit R8).
+- **Size limits on inputs:** a scenario file over 20 MB, more than 1000
+  spacecraft (also in `generate-constellation`, where 10 million ran for
+  over a minute), a description over 100 000 characters and a dynamics
+  step below 0.001 s are refused (exit 1); `ccsds-validate` and
+  `ccsds-import` read at most 500 MB, where `/dev/zero` was killed for
+  memory (exit 137) (audit R9).
 
 ## 1.3.1 (2026-10-27)
 

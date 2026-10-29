@@ -828,6 +828,55 @@ def test_run_reports_an_output_folder_it_cannot_write(tmp_path, capsys):
     assert "ERROR: could not write the results" in capsys.readouterr().err
 
 
+def test_run_refuses_an_output_folder_it_cannot_write_before_the_simulation(tmp_path, capsys, monkeypatch):
+    """Audit R8: an --out-dir under a file, or without write access, failed
+    only after the whole simulation; it is now found first, and nothing is
+    simulated."""
+    from spacemissionstudio.engine import service
+
+    def no_simulation(*args, **kwargs):
+        raise AssertionError("the run started")
+
+    monkeypatch.setattr(service, "SimulationService", no_simulation)
+    path, blocker = tmp_path / "scenario.json", tmp_path / "a_file"
+    _write_scenario(path)
+    blocker.write_text("not a folder")
+    assert cli.main(["run", str(path), "--out-dir", str(blocker / "out")]) == 3
+    captured = capsys.readouterr()
+    assert "ERROR: could not write the results" in captured.err and "Running" not in captured.out
+
+
+def test_a_run_into_a_used_folder_names_the_files_it_did_not_write(tmp_path, capsys):
+    """Audit R7: a run into a folder another run had used left that run's
+    files beside its own with no word; it now names them in a WARNING
+    (the files are left: they may be the user's)."""
+    from spacemissionstudio.schema import SimSettings
+
+    path, out = tmp_path / "scenario.json", tmp_path / "out"
+    _write_scenario(path, sim_settings=SimSettings(duration_days=0.01))  # [d]
+    out.mkdir()
+    (out / "old-sat.position_N.csv").write_text("an earlier run's\n")
+    assert cli.main(["run", str(path), "--out-dir", str(out)]) == 0
+    err = capsys.readouterr().err
+    assert "also holds 1 file(s) this run did not write: old-sat.position_N.csv" in err
+    assert cli.main(["run", str(path), "--out-dir", str(out)]) == 0  # its own files again: still only the one
+    assert "also holds 1 file(s)" in capsys.readouterr().err
+
+
+def test_ccsds_messages_larger_than_the_limit_are_refused_unread(tmp_path, capsys, monkeypatch):
+    """Audit R9: ccsds-validate read a file whole; /dev/zero ran until the
+    process was killed. A message larger than MAX_CCSDS_MESSAGE_BYTES
+    (500 MB; 1 kB here) is refused, for import too."""
+    monkeypatch.setattr(cli, "MAX_CCSDS_MESSAGE_BYTES", 1000)
+    message, path = tmp_path / "big.oem", tmp_path / "scenario.json"
+    message.write_text("COMMENT x\n" * 200, encoding="ascii")
+    _write_scenario(path)
+    assert cli.main(["ccsds-validate", str(message)]) == 1
+    assert "larger than 0 MB: not a CCSDS message" in capsys.readouterr().err
+    assert cli.main(["ccsds-import", str(message), str(path), "--spacecraft", "sat-1"]) == 1
+    assert "larger than 0 MB" in capsys.readouterr().err
+
+
 @pytest.mark.parametrize("message", ["missing.opm", "."])
 def test_ccsds_import_reports_a_message_it_cannot_read(tmp_path, capsys, message):
     """Audit M12: a missing message file, or a folder, gave a traceback."""

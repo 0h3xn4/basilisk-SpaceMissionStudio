@@ -41,6 +41,19 @@ Useful `run` options:
 | `--vizard-live-stream` | Streams to a Vizard that is already running |
 | `--allow-scripts` | Runs the scenario's `script_block` commands. They are unrestricted Python: use it only for files you trust and have read. |
 
+`run` checks that it can write to `--out-dir` before it starts, and stops
+with exit code 3 if it cannot. Give each run its own empty folder: if the
+folder already holds files this run did not write, `run` names them in a
+`WARNING` at the end, because they are not this run's results.
+
+A scenario file is refused (`INVALID:`, exit code 1) if it is larger than
+20 MB, has more than 1000 spacecraft, a description longer than 100 000
+characters, a name (of a spacecraft, part, sensor, actuator or ground
+station) longer than 64 characters, or a dynamics time step below 0.001 s. `lifetime --max-years` takes more
+than 0 and at most 100 years, and a CCSDS file larger than 500 MB is not
+read. These limits sit far above any real scenario; they stop a mistyped
+or damaged file from filling the memory or the disk.
+
 ## Analyse
 
 | Command | What it does |

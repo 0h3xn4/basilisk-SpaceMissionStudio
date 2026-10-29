@@ -14194,3 +14194,62 @@ by the test) must give "nested more deeply than can be read". The
 big-integer case is a test of its own. Both fail on the code before, with
 an 8 MiB and an unlimited stack (checked).
 Full suite on Python 3.14 after the change: 3931 passed.
+
+## Output folder and input limits (2026-10-29)
+
+The user: "Continue as per your recommendation". The audit's plan, "next":
+R5 to R9 and R13; this is R7, R8 and R9 (R5, R6 and R13 went in with
+#146). Branch `run-limits`.
+
+**Reproduced on develop** (template 01, from the CLI, in a home without
+layouts):
+
+- R7: a second run into a folder holding `old-sat.position_N.csv` wrote
+  its 9 files next to it and said nothing.
+- R8: a 300-character spacecraft name: `validate` OK, then `run`
+  simulated and failed with `[Errno 36] File name too long` (exit 3);
+  `--out-dir /etc/passwd/x` printed "Running..." and simulated before
+  `[Errno 20] Not a directory` (exit 3).
+- R9: a 50 MB description, 2000 spacecraft and a step of 1e-9 s: all
+  `validate` OK; `generate-constellation --total-satellites 10000000`:
+  still running when stopped at 60 s; `ccsds-validate /dev/zero`: a
+  MemoryError traceback here (the audit's machine killed it, exit 137).
+
+**Change:**
+
+- `run`: `_output_folder_error` creates `--out-dir` and writes and
+  removes a temporary file in it before "Running..."; a failure is
+  `ERROR: could not write the results to ...`, exit 3, with nothing
+  simulated. `_write_run_outputs` notes the folder's files before it
+  writes and ends with `WARNING: <folder> also holds N file(s) this run did
+  not write: ...` when any are left.
+- `schema.scenario`: `MAX_NAME_CHARS` (64) in `name_error`, so every
+  name the schema checks; `MAX_SPACECRAFT` (1000) and
+  `MAX_DESCRIPTION_CHARS` (100 000) in `Scenario.validate`;
+  `MIN_DYNAMICS_TASK_RATE_S` (0.001 s) in `SimSettings`;
+  `load_scenario` reads at most `MAX_SCENARIO_FILE_BYTES` (20 MB) plus one
+  byte and refuses a longer file.
+- `engine.constellation`: `total_satellites` at most `MAX_SPACECRAFT`,
+  checked before any satellite is made.
+- `cli`: `ccsds-validate` and `ccsds-import` read at most 500 MB plus one
+  byte (`_read_ccsds_message`).
+- The command-line guide states the checks and the limits; the SUM's
+  message table has the three new messages.
+
+**Measured after:** the used folder: the run's 9 files and `WARNING: ...
+also holds 1 file(s) this run did not write: old-sat.position_N.csv`;
+`/etc/passwd/x`: the error with no "Running..." line, exit 3; the long
+name: `INVALID: spacecraft name 'ssssssssssssssssssss'... is 300
+characters: names become file names, so at most 64`, exit 1; the 50 MB
+file, 2000 spacecraft and 1e-9 s: `INVALID:`, exit 1; 10 million
+satellites: refused in 0.1 s; `/dev/zero`: `cannot be read (larger than
+500 MB: not a CCSDS message)`.
+
+**Tests:** in `test_scenario_schema.py`, the long name, the three
+oversized requests and an oversized file (the limit lowered for the
+test); in `test_constellation.py`, 1001 satellites; in `test_cli.py`,
+the unwritable folder (nothing simulated), the used folder (the warning
+names only the old file) and the oversized CCSDS files. All 9 fail on
+the code before (checked). No existing test changed.
+Full suite on Python 3.14 (a home holding only the reference data cache): 3928 passed.
+Full suite after merging develop (#146): 3940 passed.
