@@ -318,6 +318,7 @@ itself). The mission-sequence commands are in UM section 6 and HT
 | `while loop exceeded ... iterations` | The condition never became false | Fix the condition |
 | `re-entered: below 100 km` | The spacecraft re-entered; the run stopped | Expected for a decaying orbit; the results so far are kept |
 | `run failed: ...` (exit code 3) | Basilisk or the engine failed | Read the message and the log; report it with the log if unclear |
+| `INTERNAL ERROR: ...` (exit code 4) | A fault in SpaceMissionStudio itself, not in the input | Report it with the log file the message names |
 | CCSDS `error: ... (CCSDS 502.0-B-3 <clause>)` / `warning: ...` | The message breaks a 502.0-B-3 rule | Fix the message; warnings can be accepted |
 
 Other messages explain themselves and name what to change. A full

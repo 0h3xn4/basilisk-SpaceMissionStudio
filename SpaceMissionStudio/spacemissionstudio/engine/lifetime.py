@@ -75,6 +75,9 @@ _MAX_PERIGEE_DROP = 0.01  # [-] largest fraction of the remaining perigee height
 # Disposal rules a lifetime is checked against [year]
 ZERO_DEBRIS_YEARS = 5.0  # [year] ESA Zero Debris approach (and the FCC's 5-year rule)
 IADC_YEARS = 25.0  # [year] IADC / ISO 24113 guideline
+# The farthest a lifetime looks ahead: the GUI's limit, now the CLI's and
+# this module's too (1e6 years overflowed the date, audit R6).
+MAX_HORIZON_YEARS = 100.0  # [year]
 
 
 class LifetimeError(Exception):
@@ -538,9 +541,10 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
     50 for end of life, whatever the scenario's operations setting);
     ``drag_coeff`` replaces the spacecraft's own (AD10 Sec. 5.2: 2.2 at
     end of life, against 3.0 in operations)."""
-    if not (math.isfinite(max_years) and max_years > 0.0):
-        # -5 used to reach Basilisk as an end before the start (audit M12).
-        raise LifetimeError(f"max_years must be a positive number of years, got {max_years:g}")
+    if not (math.isfinite(max_years) and 0.0 < max_years <= MAX_HORIZON_YEARS):
+        # -5 used to reach Basilisk as an end before the start (audit M12); 1e6 overflowed the date (R6).
+        raise LifetimeError(f"max_years must be a positive number of years, at most {MAX_HORIZON_YEARS:g}, "
+                            f"got {max_years:g}")
     spacecraft = next((sc for sc in scenario.spacecraft if sc.name == spacecraft_name), None)
     if spacecraft is None:
         raise LifetimeError(f"no spacecraft named {spacecraft_name!r}")

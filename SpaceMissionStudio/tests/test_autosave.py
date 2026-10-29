@@ -166,3 +166,25 @@ def test_read_a_recovery_file_that_is_not_text_returns_none():
     autosave._RECOVERY_FILE.parent.mkdir(parents=True, exist_ok=True)
     autosave._RECOVERY_FILE.write_bytes(b"\xff\xfe\x00not text")
     assert autosave.read_recovery_file() is None
+
+
+@pytest.mark.parametrize("case", ["spacecraft of strings", "scenario null", "too deep", "huge number"])
+def test_a_recovery_file_the_loader_would_refuse_is_ignored_not_raised(case):
+    """Audit R5: these raised ValueError, AttributeError or RecursionError
+    inside the start-up slot, at every start, and recovery was never
+    offered; each is now ignored like any malformed recovery file."""
+    import json
+
+    scenario = _sample_scenario().to_dict()
+    if case == "spacecraft of strings":
+        scenario["spacecraft"] = ["hi"]
+        text = json.dumps({"scenario": scenario})
+    elif case == "scenario null":
+        text = json.dumps({"scenario": None})
+    elif case == "too deep":
+        text = "[" * 100000 + "]" * 100000
+    else:
+        text = '{"scenario": ' + "9" * 5000 + "}"
+    autosave._RECOVERY_FILE.parent.mkdir(parents=True, exist_ok=True)
+    autosave._RECOVERY_FILE.write_text(text, encoding="utf-8")
+    assert autosave.read_recovery_file() is None

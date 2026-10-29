@@ -50,7 +50,7 @@ See SRS section 4 for the software overview.
 | ID | Requirement | SRS |
 |---|---|---|
 | ICD-01 | Scenario files are UTF-8 JSON with the fields of RD1. Files of an older `schema_version` are migrated on load. An unknown field is refused with an error naming it. | SRS-I-01 |
-| ICD-02 | The command-line interface is `spacemissionstudio <command> [arguments]`. Commands and arguments are those of RD5. The exit code is 0 on success; 1 on an input or validation error; 2 when a required component is missing (Basilisk, or PySide6 and plotly for `gui`) or on a usage error (argparse); 3 when a run or analysis fails. | SRS-I-02 |
+| ICD-02 | The command-line interface is `spacemissionstudio <command> [arguments]`. Commands and arguments are those of RD5. The exit code is 0 on success; 1 on an input or validation error; 2 when a required component is missing (Basilisk, or PySide6 and plotly for `gui`) or on a usage error (argparse); 3 when a run or analysis fails; 4 on an internal error (a fault in SpaceMissionStudio itself, whose traceback is written to the log file). | SRS-I-02 |
 | ICD-03 | Each result series is one CSV file. The first column is `time_s`. Columns are named `<column>_<unit>`. A run writes a `provenance.json` alongside its results. | SRS-I-03 |
 | ICD-04 | CCSDS OPM, OMM and OEM are read and written in KVN per AD2. The items supported are those in RD3. | SRS-I-04 |
 | ICD-05 | Space weather is read from CelesTrak SW-All files (CSV or legacy text, RD4) and from NASA MSFC prediction tables. Files are validated for coverage before use. | SRS-I-05 |
