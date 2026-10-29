@@ -14545,6 +14545,10 @@ Tried by hand:
   - three wheels with Js 0.00955 kg*m^2 and `u_max` 0.05 N*m.
 - A v1 file with a `"celestrak"` source and a `"conservative"` activity level lists four changes, across the three steps.
 
+Each new test fails on the code before. The regression baseline differs only in
+the four new provenance fields of each of the 31 templates.
+Full suite on Python 3.14, after merging develop with #154: 4028 passed in 13 min 28 s.
+
 ## The records of a lifetime, a budget, a batch and a SIL run (2026-10-29)
 
 The transparency plan, Phase 2g of `docs/transparency_audit.md` 9.2 (gap
