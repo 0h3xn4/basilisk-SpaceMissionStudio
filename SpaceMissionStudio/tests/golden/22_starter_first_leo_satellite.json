@@ -351,6 +351,7 @@
   }
  },
  "mission_output": null,
+ "rng_library": "libstdc++",
  "run": {
   "events": [
    {

@@ -14416,6 +14416,23 @@ there with its before and after values before the baseline is rewritten
 (`scripts/update_golden_outputs.py --write`).
 Full suite on Python 3.14 (a home holding only the reference data cache): 3986 passed in 13 min 4 s (10 min 18 s before the baseline).
 
+**CI disagreed.** The first CI run (PR #150) failed 22 templates on Linux
+and all 31 on Windows at the 1e-9 tolerance. Its two Linux runs agreed
+byte for byte, so CI is repeatable; the differences are between computers.
+A subagent read the three job logs and listed every difference; each was
+traced (DECISIONS "Regression baseline"): last bits amplified in
+ill-conditioned quantities (circular-orbit angles 0 or 2^-26 rad, the
+initial relative orbit elements of template 29 -2000.10 m here and
+-2000.00 m on CI), angles wrapping at 2*pi, sensor noise drawn by another
+C++ standard library on Windows, and recorder seed keys spelled by the
+compiler. The comparison became rule by rule (1e-6 of scale, floors by
+unit, angles modulo 2*pi, sensor outputs by count on another library),
+and the seed keys the same on every platform (`engine.seeds.model_key`).
+Replaying the 304 Linux and 1450 Windows numeric differences through the
+new rules left none (26 lines of template 23 on Windows were cut from the
+log, so CI decides those).
+Full suite on Python 3.14 (a home holding only the reference data cache): 3989 passed in 13 min 29 s.
+
 ## Engine and command-line defects (2026-10-29)
 
 The transparency plan, Phase 1b: the defects of `docs/transparency_audit.md`

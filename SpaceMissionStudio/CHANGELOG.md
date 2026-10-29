@@ -271,7 +271,14 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   run capped at 6 hours, the Explain text, the lifetime of each drag
   spacecraft, every budget or its refusal, and a Monte Carlo batch. A
   number may now change only with an entry in the new `docs/changes.md`
-  (transparency plan, Phase 1a).
+  (transparency plan, Phase 1a). Numbers are compared within what two
+  computers disagree on: 1e-6 of each quantity's scale, with floors for
+  ill-conditioned values, angles modulo 2*pi, and sensor noise (another
+  random draw on Windows) by its count only there.
+- **The provenance names recorder seeds the same on Windows:** they were
+  keyed by the compiler's spelling of the message type
+  (`Rec:class <struct SCStatesMsg` on Windows, `Rec:SCStatesMsg` on Linux).
+  Recorders use no random numbers, so no result changes.
 - **The orbit number and the mean semi-major axis change use the run's
   own central body:** both took Earth's GM for every body. Template 31
   (Eros) showed 220 582.58 orbits over its 2 days, now 2.58; a 400 km

@@ -807,6 +807,13 @@ never named "_TabBar".
 - Added `test_golden_outputs.py`: `::test_every_template_gives_its_recorded_outputs`
   (31 cases, one per template; 03, 05, 24 and 29 marked `slow`),
   `::test_every_template_has_a_recorded_fingerprint` and
+  `::test_the_comparison_holds_each_number_to_its_own_scale`,
+  `::test_an_ill_conditioned_angle_is_held_to_its_floor_and_compares_modulo_two_pi`
+  and `::test_sensor_noise_compares_value_by_value_only_on_the_library_that_recorded_it`,
+  with the helper `tests/golden_capture.py` and the data in
+  `tests/golden/`; and `test_seeds.py::test_a_recorders_seed_key_reads_the_same_on_every_platform`.
+  No existing test changed.
+
   `::test_the_comparison_holds_each_number_to_its_own_scale`, with the
   helper `tests/golden_capture.py` and the data in `tests/golden/`. No
   existing test changed.
