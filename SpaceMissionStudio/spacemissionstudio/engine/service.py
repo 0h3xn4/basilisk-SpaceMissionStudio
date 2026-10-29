@@ -85,8 +85,8 @@ from ..schema.epochs import parse_epoch_utc
 from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import dependencies, output_provenance
 from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario
-from . import (data_handling, earth_orientation, environment_models, formation_control, frames, fsw, geodesy,
-               geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
+from . import (data_handling, earth_orientation, effective_config, environment_models, formation_control, frames, fsw,
+               geodesy, geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
                optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, small_bodies,
                solar_arrays, time_system, tle, vizard)
 from .mean_elements import cl_mean_osc_map
@@ -591,6 +591,8 @@ class SimulationService:
         # past it Basilisk holds the last day's values, so check_stop_time()
         # keeps a run inside it too
         self._space_weather_span: tuple | None = None
+        self._recorded_params: list = []  # effective_config.RecordedParams of this build
+        self._device_parameters: dict = {}  # Basilisk factory values of its wheels and thrusters
         self._space_weather_warnings: list[str] = []  # what the resolved space weather is built from
         self._model_warnings: list[str] = []  # environment models used outside their validity
         self._data_files: dict[str, dict[str, object]] = {}  # reference data used, for RunProvenance
@@ -741,6 +743,9 @@ class SimulationService:
 
         scenario = self.scenario
         scenario.validate()  # re-validate: the scenario object may have been mutated after load
+        # From here on the engine's reads of the open params are noted: the
+        # defaults it applies are the run's effective configuration (Phase 2c).
+        self._recorded_params = effective_config.record(scenario)
         gravity = scenario.gravity
         sim_settings = scenario.sim_settings
 
@@ -1499,9 +1504,12 @@ class SimulationService:
 
                 rw_actuators = [a for a in sc_config.actuators if a.kind == "reaction_wheel"]
                 if rw_actuators:
-                    _, rw_state_effector, rw_config_msg = fsw.build_reaction_wheels(
+                    rw_factory, rw_state_effector, rw_config_msg = fsw.build_reaction_wheels(
                         self.scSim, dyn_task_name, sc_config.name, sc_object, rw_actuators
                     )
+                    self._device_parameters.update(effective_config.factory_devices(
+                        rw_factory.rwList, rw_actuators, f"spacecraft[{sc_config.name}].actuators",
+                        effective_config.RW_ATTRIBUTES))
                     handle.num_rw = len(rw_actuators)
                     mrp = fsw.build_mrp_feedback(
                         self.scSim, dyn_task_name, sc_config.name, guid_msg, veh_config_msg, sc_config.control_params,
@@ -1541,9 +1549,12 @@ class SimulationService:
                     # momentum_dumping is set.
                     if sc_config.momentum_dumping is not None:
                         desat_thruster_actuators = [a for a in sc_config.actuators if a.kind == "thruster"]
-                        _, desat_thruster_effector, desat_thr_config_msg = fsw.build_thrusters(
+                        desat_factory, desat_thruster_effector, desat_thr_config_msg = fsw.build_thrusters(
                             self.scSim, dyn_task_name, f"{sc_config.name}_desat", sc_object, desat_thruster_actuators
                         )
+                        self._device_parameters.update(effective_config.factory_devices(
+                            desat_factory.thrusterList, desat_thruster_actuators,
+                            f"spacecraft[{sc_config.name}].actuators", effective_config.THRUSTER_ATTRIBUTES))
                         desat_control, _, desat_dumping = fsw.build_momentum_dumping(
                             self.scSim, dyn_task_name, sc_config.name, rw_config_msg,
                             rw_state_effector.rwSpeedOutMsg, desat_thr_config_msg, veh_config_msg,
@@ -1587,9 +1598,12 @@ class SimulationService:
                             self.scSim, dyn_task_name, sc_config.name, guid_msg, veh_config_msg,
                             sc_config.control_params, inertia_kg_m2=fsw_inertia,
                         )
-                        _, thruster_effector, thr_config_msg = fsw.build_thrusters(
+                        thr_factory, thruster_effector, thr_config_msg = fsw.build_thrusters(
                             self.scSim, dyn_task_name, sc_config.name, sc_object, thruster_actuators
                         )
+                        self._device_parameters.update(effective_config.factory_devices(
+                            thr_factory.thrusterList, thruster_actuators, f"spacecraft[{sc_config.name}].actuators",
+                            effective_config.THRUSTER_ATTRIBUTES))
                         handle.num_thrusters = len(thruster_actuators)
                         _, firing_logic = fsw.build_thruster_force_mapping(
                             self.scSim, dyn_task_name, sc_config.name, mrp, thr_config_msg, veh_config_msg,
@@ -2292,6 +2306,9 @@ class SimulationService:
             transformations=dict(frames.TRANSFORMATIONS),
             central_body=self.scenario.gravity.central_body,
             central_body_mu_m3_s2=float(self.mu) if self.mu is not None else 0.0,
+            effective_defaults=effective_config.defaults_used(self._recorded_params),
+            effective_config_note=effective_config.NOTE,
+            device_parameters=dict(self._device_parameters),
         )
 
     def nominal_provenance(self) -> RunProvenance:

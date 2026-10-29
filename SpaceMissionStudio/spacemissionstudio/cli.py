@@ -61,7 +61,6 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
-import hashlib
 import logging
 import math
 import sys
@@ -86,13 +85,18 @@ EXIT_CHECK_FAILED = 5
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
-    try:
-        scenario = load_scenario(args.scenario)
-    except ScenarioValidationError as exc:
-        print(f"INVALID: {exc}", file=sys.stderr)
-        return 1
+    loaded = _load_hashed(args.scenario)
+    if isinstance(loaded, int):
+        return loaded
+    scenario, file_record = loaded
     print(f"OK: {scenario.name!r} -- {len(scenario.spacecraft)} spacecraft, "
           f"schema version {scenario.schema_version}, epoch {scenario.epoch_utc}")
+    # An older file is brought up to date as it loads; say what that changed
+    # (transparency audit, Phase 2c: the migrations were silent).
+    for change in file_record["scenario_file_migrations"]:
+        before = repr(change["before"]) if "before" in change else "(not set)"
+        after = repr(change["after"]) if "after" in change else "(removed)"
+        print(f"MIGRATED: schema {change['step']}: {change['path']} {before} -> {after}")
     blocks = script_blocks(scenario.mission_sequence)
     if blocks:
         print(f"NOTE: {len(blocks)} script_block(s) ({', '.join(path for path, _ in blocks)}) run unrestricted "
@@ -203,12 +207,12 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
 
 
 def _load_hashed(path: Path) -> tuple | int:
-    """(scenario, SHA-256 of the file's bytes) from ``path``, for the
-    provenance of what is made from it (transparency audit, Phase 2b); or
-    exit status 1, the reason printed, when the file is invalid or cannot
-    be read."""
+    """(scenario, the file's record: ``output_provenance.scenario_file_record``)
+    from ``path``, for the provenance of what is made from it (transparency
+    audit, Phase 2b, 2c); or exit status 1, the reason printed, when the
+    file is invalid or cannot be read."""
     try:
-        return load_scenario(path), hashlib.sha256(Path(path).read_bytes()).hexdigest()
+        return load_scenario(path), output_provenance.scenario_file_record(path)
     except ScenarioValidationError as exc:
         print(f"INVALID: {exc}", file=sys.stderr)
         return 1
@@ -221,7 +225,7 @@ def cmd_run(args: argparse.Namespace) -> int:
     loaded = _load_hashed(args.scenario)
     if isinstance(loaded, int):
         return loaded
-    scenario, file_sha256 = loaded
+    scenario, file_record = loaded
 
     argument_error = _run_argument_error(scenario, args)
     if argument_error:
@@ -277,8 +281,7 @@ def cmd_run(args: argparse.Namespace) -> int:
         print(f"ERROR: run failed: {exc}", file=sys.stderr)
         return 3
     if result.provenance is not None:  # the file as read, before migration (transparency audit, Phase 2b)
-        result.provenance = dataclasses.replace(result.provenance, scenario_file=Path(args.scenario).name,
-                                                scenario_file_sha256=file_sha256)
+        result.provenance = dataclasses.replace(result.provenance, **file_record)
 
     try:
         _write_run_outputs(args, scenario, result, command_summary)
@@ -363,7 +366,7 @@ def cmd_monte_carlo(args: argparse.Namespace) -> int:
     loaded = _load_hashed(args.scenario)
     if isinstance(loaded, int):
         return loaded
-    scenario, file_sha256 = loaded
+    scenario, file_record = loaded
 
     if not scenario.monte_carlo.enabled:
         print("ERROR: scenario.monte_carlo.enabled is false in this scenario file -- "
@@ -381,7 +384,7 @@ def cmd_monte_carlo(args: argparse.Namespace) -> int:
     try:
         failures = run_monte_carlo(scenario, scenario.monte_carlo, args.archive_dir,
                                    allow_scripts=args.allow_scripts, overwrite=args.overwrite,
-                                   scenario_file=(Path(args.scenario).name, file_sha256))
+                                   scenario_file=file_record)
     except MonteCarloError as exc:
         print(f"ERROR: Monte Carlo run failed: {exc}", file=sys.stderr)
         return 3
@@ -477,7 +480,7 @@ def cmd_lifetime(args: argparse.Namespace) -> int:
     loaded = _load_hashed(args.scenario)
     if isinstance(loaded, int):
         return loaded
-    scenario, file_sha256 = loaded
+    scenario, file_record = loaded
     name = args.spacecraft or scenario.spacecraft[0].name
     try:
         from .engine import lifetime
@@ -512,16 +515,16 @@ def cmd_lifetime(args: argparse.Namespace) -> int:
 
         record = analysis_records.lifetime_record(scenario, name, end, args.max_years, args.forecast_percentile,
                                                   drag_coeff, args.deorbit_perigee_km)
-        return _write_record(args, record, file_sha256)
+        return _write_record(args, record, file_record)
     return 0
 
 
-def _write_record(args: argparse.Namespace, record: dict, file_sha256: str) -> int:
+def _write_record(args: argparse.Namespace, record: dict, file_record: dict) -> int:
     """A lifetime's or a budget's ``--out`` file (engine.analysis_records),
-    naming the scenario file and the SHA-256 of its bytes as ``run`` does."""
+    naming the scenario file as ``run`` does (``file_record``)."""
     from .engine import analysis_records
 
-    record["provenance"].update(scenario_file=Path(args.scenario).name, scenario_file_sha256=file_sha256)
+    record["provenance"].update(file_record)
     try:
         analysis_records.write(args.out, record)
     except OSError as exc:
@@ -609,7 +612,7 @@ def cmd_budget(args: argparse.Namespace) -> int:
     loaded = _load_hashed(args.scenario)
     if isinstance(loaded, int):
         return loaded
-    scenario, file_sha256 = loaded
+    scenario, file_record = loaded
     name = args.spacecraft or scenario.spacecraft[0].name
     if args.out is not None and (args.launch_delays or args.altitudes is not None):
         print("ERROR: --out writes the budget itself; it does not go with --launch-delays or --altitudes",
@@ -649,7 +652,7 @@ def cmd_budget(args: argparse.Namespace) -> int:
     if args.out is not None:
         from .engine import analysis_records
 
-        return _write_record(args, analysis_records.budget_record(scenario, name, budget, result), file_sha256)
+        return _write_record(args, analysis_records.budget_record(scenario, name, budget, result), file_record)
     return 0
 
 

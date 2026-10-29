@@ -221,7 +221,17 @@
    "basilisk_qualified": true,
    "central_body": "earth",
    "central_body_mu_m3_s2": 398600436000000.0,
+   "device_parameters": {},
    "dynamics_task_rate_s": 0.1,
+   "effective_config_note": "effective_defaults: each key the engine read that the file does not give, with the value it used; null: the engine set nothing, so the Basilisk module keeps its own value or the option is off. device_parameters: the values Basilisk's factories gave each wheel and thruster, in Basilisk's SI units (kg, kg*m^2, rad/s, N*m, N, s, W)",
+   "effective_defaults": {
+    "spacecraft[leo-comms-1].control_params": {
+     "K": 0.07388888888888889,
+     "Ki": -1.0,
+     "P": 0.6333333333333333,
+     "integral_limit": 0.0
+    }
+   },
    "frames": {
     "B": {
      "axes": "fixed to the spacecraft structure, as given by inertia_kg_m2 and device axes",
@@ -309,6 +319,7 @@
     "midStepOrientation_sun": 896524486
    },
    "scenario_file": "",
+   "scenario_file_migrations": [],
    "scenario_file_sha256": "",
    "series_frames": {
     "berlin-gs.access_to_leo-comms-1.azimuth": "L",

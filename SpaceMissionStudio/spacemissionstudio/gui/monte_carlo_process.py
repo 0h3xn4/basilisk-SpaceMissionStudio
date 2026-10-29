@@ -102,7 +102,7 @@ class _ToLocalLoggers(logging.Handler):
 
 
 def _child(scenario, mc_config, archive_dir: str, allow_scripts: bool, overwrite: bool, log_queue,
-           result_queue, cancel_event=None, scenario_file: tuple[str, str] | None = None) -> None:
+           result_queue, cancel_event=None, scenario_file: dict | None = None) -> None:
     """The child process: the batch, then one ``(kind, value)`` result."""
     root = logging.getLogger()
     root.handlers[:] = [logging.handlers.QueueHandler(log_queue)]
@@ -147,7 +147,7 @@ def _summarized_runs(archive_dir) -> int:
 
 
 def run_batch(scenario, mc_config, archive_dir: str | Path, allow_scripts: bool = False,
-              overwrite: bool = False, should_cancel=None, scenario_file: tuple[str, str] | None = None) -> list[int]:
+              overwrite: bool = False, should_cancel=None, scenario_file: dict | None = None) -> list[int]:
     """:func:`engine.monte_carlo.run_monte_carlo` in a child process: the
     indices of the failed runs (``scenario_file`` as there). Raises
     ``MonteCarloError`` with the batch's own message, or

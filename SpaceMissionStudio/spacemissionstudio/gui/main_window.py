@@ -253,7 +253,7 @@ class MainWindow(QMainWindow):
         self.run_history.saved.connect(self._on_run_saved)
         self._compare_stale = False  # Compare is refreshed when next shown (M5a)
         self._last_run_scenario: Scenario | None = None  # set in on_run(); fed to mission_dashboard_widget
-        self._last_run_file: tuple[str, str] | None = None  # the unchanged file run, its name and SHA-256
+        self._last_run_file: dict | None = None  # the unchanged file run (output_provenance.scenario_file_record)
 
         self.scenario_editor = ScenarioEditorWidget()
         # Through a weak reference: a lambda holding the window would make a
@@ -2434,23 +2434,23 @@ class MainWindow(QMainWindow):
                         "catch up when it ends. (Said once per run.)"),
                     level=logging.WARNING)
 
-    def _unchanged_file_record(self) -> tuple[str, str] | None:
-        """The open file's name and the SHA-256 of its bytes, when the run
-        starts from it unchanged (saved, no edits since); None otherwise,
+    def _unchanged_file_record(self) -> dict | None:
+        """The open file's record (``output_provenance.scenario_file_record``:
+        its name, the SHA-256 of its bytes, what loading it changed), when the
+        run starts from it unchanged (saved, no edits since); None otherwise,
         since the file is then not the scenario run (transparency audit,
-        Phase 2b)."""
+        Phase 2b, 2c)."""
         if self._current_path is None or self._dirty:
             return None
         try:
-            return self._current_path.name, hashlib.sha256(self._current_path.read_bytes()).hexdigest()
+            return output_provenance.scenario_file_record(self._current_path)
         except OSError:
             return None
 
     def _on_run_finished(self, result, command_summary=None) -> None:
         file_record = self._last_run_file
         if file_record is not None and result.provenance is not None:
-            result.provenance = dataclasses.replace(result.provenance, scenario_file=file_record[0],
-                                                    scenario_file_sha256=file_record[1])
+            result.provenance = dataclasses.replace(result.provenance, **file_record)
         number = self.run_history.next_number
         self._stop_busy(f"Run {number} complete: {len(result.series)} result series.", "done", "Done",
                         run_name=f"Run {number}")

@@ -95,6 +95,27 @@ def scenario_record(scenario) -> dict:
             "created_utc": datetime.now(UTC).isoformat(timespec="seconds")}
 
 
+def scenario_file_record(path) -> dict:
+    """The scenario file at ``path`` as the provenance names it: its name,
+    the SHA-256 of its bytes (transparency audit, Phase 2b) and what loading
+    it changes (``scenario_file_migrations``, Phase 2c:
+    ``schema.migrations.migrate``'s changes, empty for a current file).
+    Raises ``OSError`` when it cannot be read."""
+    from .schema import migrations
+
+    path = Path(path)
+    data = path.read_bytes()
+    changes: list = []
+    try:
+        raw = json.loads(data)
+        if isinstance(raw, dict):
+            migrations.migrate(raw, changes)
+    except Exception:  # noqa: BLE001 -- the load reports a file it cannot read; the record of it is then empty
+        changes = []
+    return {"scenario_file": path.name, "scenario_file_sha256": hashlib.sha256(data).hexdigest(),
+            "scenario_file_migrations": changes}
+
+
 def scenario_lines(scenario) -> list[str]:
     """Short ASCII lines of :func:`scenario_record`."""
     record = scenario_record(scenario)

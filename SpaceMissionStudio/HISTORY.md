@@ -14514,6 +14514,37 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The effective configuration (2026-10-29)
+
+The transparency plan, Phase 2c of `docs/transparency_audit.md` 9.2: every
+value a run used that its file does not give. Branch `effective-config`,
+on `more-records`.
+
+- **Open params:** `engine.effective_config.RecordedParams`, a `dict` that
+  notes each key read with `.get()` and missing, with the reader's default.
+  `effective_config.record(scenario)` wraps every sensor's, actuator's and
+  command's `params` (nested commands too) and each spacecraft's
+  `fsw_params` and `control_params`, in `SimulationService.build()` right
+  after `validate()`. `RunProvenance.effective_defaults` is
+  `{place: {key: value used}}`.
+- **Devices:** `effective_config.factory_devices` reads 15 attributes of
+  each wheel (`rwFactory.rwList`) and 7 of each thruster
+  (`thrusterFactory.thrusterList`) back from the devices made:
+  `RunProvenance.device_parameters`.
+- **Migrations:** `migrations.migrate(data, changes)` appends each value a
+  step changed, added or removed (`_diff`, the version number left out).
+  `output_provenance.scenario_file_record(path)` gives the file's name,
+  hash and changes; the CLI (`_load_hashed`) and the GUI
+  (`_unchanged_file_record`) both use it, and Monte Carlo takes the same
+  record. `validate` prints a `MIGRATED:` line per change.
+
+Tried by hand:
+- Template 07 records:
+  - its attitude gains as applied: K 0.0739 and P 0.633 (3.5 and 30 scaled to its inertia);
+  - a sun sensor's `fov_deg` 90 and the star tracker's unset `bias_walk_bound_arcsec`;
+  - three wheels with Js 0.00955 kg*m^2 and `u_max` 0.05 N*m.
+- A v1 file with a `"celestrak"` source and a `"conservative"` activity level lists four changes, across the three steps.
+
 ## The records of a lifetime, a budget, a batch and a SIL run (2026-10-29)
 
 The transparency plan, Phase 2g of `docs/transparency_audit.md` 9.2 (gap
