@@ -7,7 +7,9 @@ each changed number in ``docs/changes.md`` (before and after) and rewrite the
 baseline with ``python scripts/update_golden_outputs.py --write``.
 """
 
+import copy
 import json
+import math
 
 import pytest
 
@@ -43,11 +45,50 @@ def test_every_template_has_a_recorded_fingerprint():
     assert templates == recorded
 
 
+def _fingerprint(series: dict, library: str = "libstdc++") -> dict:
+    return {"template": "t.json", "rng_library": library, "run": {"series": series}}
+
+
+def _series(units: str, column: str, values: list[float]) -> dict:
+    return {"units": units, "columns": [column], "time_s": {"n": len(values)},
+            "data": [{"first": values[0], "last": values[-1], "min": min(values), "max": max(values),
+                      "mean": sum(values) / len(values), "samples": values, "non_finite": 0}]}
+
+
+def _changed(golden: dict, name: str, values: list[float], library: str | None = None) -> list[str]:
+    actual = copy.deepcopy(golden)
+    actual["run"]["series"][name] = _series(golden["run"]["series"][name]["units"],
+                                            golden["run"]["series"][name]["columns"][0], values)
+    return golden_capture.compare(golden, actual)
+
+
 def test_the_comparison_holds_each_number_to_its_own_scale():
-    """A change of one part in 1e8 of a column's size is caught; one part in
-    1e12 is not; text and counts must match exactly."""
-    golden = {"min": -7.0e6, "max": 7.0e6, "first": 1.0, "samples": [1.0, 2.0], "label": "a"}
-    assert golden_capture.compare(golden, dict(golden, first=1.0 + 7.0e6 * 1e-12)) == []
-    assert golden_capture.compare(golden, dict(golden, first=1.0 + 7.0e6 * 1e-8))
-    assert golden_capture.compare(golden, dict(golden, label="b"))
-    assert golden_capture.compare(golden, dict(golden, samples=[1.0]))
+    """A change of 1e-5 of a column's size is caught; 1e-8 is not (what two
+    computers disagree on); text and counts must match exactly."""
+    golden = _fingerprint({"sat.position_N": _series("m", "x", [-7.0e6, 1.0, 7.0e6])})
+    assert _changed(golden, "sat.position_N", [-7.0e6, 1.0 + 7.0e6 * 1e-8, 7.0e6]) == []
+    assert _changed(golden, "sat.position_N", [-7.0e6, 1.0 + 7.0e6 * 1e-5, 7.0e6])
+    assert _changed(golden, "sat.position_N", [-7.0e6, 7.0e6])
+    assert golden_capture.compare({"label": "a"}, {"label": "b"})
+
+
+def test_an_ill_conditioned_angle_is_held_to_its_floor_and_compares_modulo_two_pi():
+    """The angles of a circular orbit differ by 1.5e-8 rad between computers
+    and a RAAN of 0 is one of 2*pi: both pass. A change of 1e-5 rad does
+    not."""
+    golden = _fingerprint({"sat.orbit_elements.raan": _series("rad", "raan", [0.0, 1.0e-8, 3.0])})
+    assert _changed(golden, "sat.orbit_elements.raan", [2.0 * math.pi, 2.5e-8, 3.0]) == []
+    assert _changed(golden, "sat.orbit_elements.raan", [0.0, 1.0e-5, 3.0])
+
+
+def test_sensor_noise_compares_value_by_value_only_on_the_library_that_recorded_it():
+    """A sensor's noise from another C++ standard library is another draw:
+    only its count is compared there. On the recording library every value
+    is."""
+    golden = _fingerprint({"sat.sensor.imu-1.gyro": _series("rad/s", "x", [1.0e-5, -2.0e-5, 3.0e-5])})
+    other = copy.deepcopy(golden)
+    other["rng_library"] = "msvc"
+    noise = [-4.0e-5, 1.0e-5, 2.0e-5]  # [rad/s]
+    assert _changed(golden, "sat.sensor.imu-1.gyro", noise)
+    assert _changed(other, "sat.sensor.imu-1.gyro", noise) == []
+    assert _changed(other, "sat.sensor.imu-1.gyro", noise[:2])

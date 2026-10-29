@@ -277,6 +277,7 @@
    "sat-1: 1-sigma at the end -- along-track 3.09 km, radial 0.216 km, cross-track 2.95 km"
   ]
  },
+ "rng_library": "libstdc++",
  "run": {
   "events": [
    {

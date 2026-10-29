@@ -17,10 +17,40 @@ The transparency plan's Phase 1a (`docs/transparency_audit.md` 9.2).
   about 20 minutes one after another; capped, the baseline takes 8 min 57 s
   here, 2 min 54 s on 8 test workers. A Mission Sequence runs in full
   (at most 14.4 h), since its steps set the length.
-- **Compared within 1e-9 of each quantity's own scale** (its column's
-  largest magnitude): a value near zero is held to its column's size, not to
-  itself. Two runs here gave identical fingerprints. The tolerance is
-  checked against CI's Linux and Windows runners, not assumed.
+- **Compared within what two computers disagree on, rule by rule**
+  (`tests/golden_capture.py`, "How numbers are compared"). A first
+  tolerance of 1e-9 of each quantity's scale held here (two runs gave
+  identical fingerprints) but failed on CI: 22 templates on Linux, all 31
+  on Windows. CI's two Linux runs agreed with each other byte for byte;
+  every difference was traced:
+  - last bits amplified by ill-conditioned quantities: the angles of a
+    circular orbit (an arccos near 1 gives 0 or 2^-26 = 1.5e-8 rad), the
+    eccentricity of a circular orbit (2e-15), a mean semi-major axis
+    change (a difference of two means of 7000 km), the relative orbit
+    elements made from those angles (0.1 m);
+  - angles wrapping at 2*pi (a RAAN of 0 against 6.283185);
+  - sensor noise: Basilisk's GaussMarkov draws from
+    `std::normal_distribution`, whose algorithm each C++ standard library
+    chooses, so Windows (MSVC) and Linux draw different noise from the same
+    seed, and a spacecraft that closes its attitude loop through its
+    sensors carries it into its wheels (4.8e-6 of scale);
+  - recorder seed keys spelled by the compiler (a defect, fixed below).
+
+  The rules: 1e-6 of the quantity's scale (well-conditioned outputs
+  differed by at most 3.8e-7); absolute floors by unit, about ten times the
+  largest difference measured (1e-6 rad, 1e-12 for eccentricity, 1 m for
+  relative orbit elements); wrapping angles modulo 2*pi, first, last and
+  samples only; a sensor output from another standard library by its
+  count only, and its template at 1e-4. Every CI difference was replayed
+  through these rules: none is reported. **What this costs:** a change
+  smaller than 1e-6 of a quantity's scale is not caught (a 1.5e-8 change
+  of Earth's GM moves a 6-hour LEO position by about 2e-7 of its scale), and
+  on Windows the sensor-driven templates are held to 1e-4.
+- **Recorder seed keys the same on every platform** (`engine.seeds.model_key`):
+  Basilisk names a recorder after the message type as the compiler spells
+  it ("Rec:SCStatesMsg" with GCC, "Rec:class <struct SCStatesMsg" with
+  MSVC), so the provenance listed different keys on Windows. Recorders draw
+  no random numbers: no result changes.
 - **Isolated as every test is:** the capture runs in a home of its own (no
   downloaded space weather, no installed Earth orientation files), so the
   update script and the test compute the same thing.

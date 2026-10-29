@@ -93,6 +93,7 @@
    "sat-1: 1-sigma at the end -- along-track 0 km, radial 0 km, cross-track 0 km"
   ]
  },
+ "rng_library": "libstdc++",
  "run": {
   "events": [],
   "provenance": {

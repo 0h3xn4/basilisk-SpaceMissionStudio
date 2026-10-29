@@ -576,6 +576,7 @@
    }
   ]
  },
+ "rng_library": "libstdc++",
  "run": {
   "events": [
    {
