@@ -327,6 +327,54 @@ def test_load_scenario_malformed_json_gives_clear_error(tmp_path):
         load_scenario(path)
 
 
+def _one_spacecraft_scenario(**fields):
+    return Scenario(name="limits", epoch_utc="2030-01-01T00:00:00", gravity=GravityConfig(central_body="earth"),
+                    spacecraft=[SpacecraftConfig(name="sat-1", orbit=OrbitIC(
+                        type="cartesian", position_km=[7000.0, 0.0, 0.0], velocity_km_s=[0.0, 7.5, 0.0]))],
+                    **fields)
+
+
+def test_a_name_longer_than_sixty_four_characters_is_refused_at_validation():
+    """Audit R8: a 300-character spacecraft name validated, the whole run
+    went by, and the results failed to write ("File name too long"). A
+    name becomes a file name, so validation refuses more than 64."""
+    scenario = _one_spacecraft_scenario()
+    scenario.spacecraft[0].name = "s" * 64
+    scenario.validate()
+    scenario.spacecraft[0].name = "s" * 65
+    with pytest.raises(ScenarioValidationError, match="65 characters.*at most 64"):
+        scenario.validate()
+
+
+@pytest.mark.parametrize("change, message", [
+    (lambda s: setattr(s, "spacecraft", [copy.replace(s.spacecraft[0], name=f"sat-{i}") for i in range(1001)]),
+     "1001 spacecraft; at most 1000"),
+    (lambda s: setattr(s, "description", "x" * 100_001), "description is 100001 characters; at most 100000"),
+    (lambda s: setattr(s.sim_settings, "dynamics_task_rate_s", 1e-9), "dynamics_task_rate_s must be at least 0.001"),
+])
+def test_a_scenario_that_asks_for_too_much_is_refused(change, message):
+    """Audit R9: 2000 spacecraft, a 50 MB description and a 1e-9 s step
+    (86 400 billion steps a day) all validated; each is now refused,
+    far above any template and at the editor's own least step."""
+    scenario = _one_spacecraft_scenario()
+    change(scenario)
+    with pytest.raises(ScenarioValidationError, match=message):
+        scenario.validate()
+
+
+def test_a_scenario_file_larger_than_the_limit_is_refused_unread(tmp_path, monkeypatch):
+    """Audit R9: files were read whole, whatever their size; one larger
+    than MAX_SCENARIO_FILE_BYTES (20 MB; 1 kB here) is refused, and only
+    the limit and one more byte are read."""
+    from spacemissionstudio.schema import scenario as scenario_module
+
+    monkeypatch.setattr(scenario_module, "MAX_SCENARIO_FILE_BYTES", 1000)
+    path = tmp_path / "big.json"
+    _one_spacecraft_scenario(description="x" * 2000).save(path)
+    with pytest.raises(ScenarioValidationError, match="larger than 0 MB: not a scenario file"):
+        load_scenario(path)
+
+
 def test_load_scenario_missing_schema_version_gives_clear_error(tmp_path):
     """Loading a file without schema_version names the missing field."""
     path = tmp_path / "bad.json"

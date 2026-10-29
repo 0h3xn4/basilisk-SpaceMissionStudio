@@ -90,7 +90,7 @@ import copy
 import math
 from dataclasses import dataclass
 
-from ..schema.scenario import OrbitIC, ScenarioValidationError, SpacecraftConfig
+from ..schema.scenario import MAX_SPACECRAFT, OrbitIC, ScenarioValidationError, SpacecraftConfig
 
 # [km] equatorial radius -- see module docstring for provenance. Kept in
 # sync manually with astroConstants.h's REQ_* values; only bodies
@@ -146,6 +146,9 @@ class WalkerConstellationRequest:
 
     def validate(self) -> None:
         _require(self.total_satellites > 0, "constellation.total_satellites must be > 0")
+        # Checked before anything is made: 10 million ran for over a minute (audit R9).
+        _require(self.total_satellites <= MAX_SPACECRAFT,
+                  f"constellation.total_satellites must be at most {MAX_SPACECRAFT}, a scenario's limit")
         _require(self.num_planes > 0, "constellation.num_planes must be > 0")
         _require(self.total_satellites % self.num_planes == 0,
                   f"constellation.total_satellites ({self.total_satellites}) must be evenly divisible by "

@@ -110,12 +110,29 @@ def _run_argument_error(scenario, args: argparse.Namespace):
     return None
 
 
+def _output_folder_error(out_dir: Path) -> str | None:
+    """Why a run's results could not be written to ``out_dir``, found before
+    the run: a folder under a file, or one without write access, used to
+    fail only after the whole simulation (audit R8)."""
+    import tempfile
+
+    try:
+        out_dir.mkdir(parents=True, exist_ok=True)
+        with tempfile.TemporaryFile(dir=out_dir):
+            pass
+    except OSError as exc:
+        return f"could not write the results to {out_dir}: {exc}"
+    return None
+
+
 def _write_run_outputs(args, scenario, result, command_summary) -> None:
     """The CSV files, OEMs, events and Mission Sequence summary of a run."""
     from .engine import ccsds_odm, data_budget, events
     from .engine.results import output_path
 
+    before = {entry.name for entry in Path(args.out_dir).iterdir()} if Path(args.out_dir).is_dir() else set()
     paths = result.export_csv(args.out_dir)
+    written = {Path(path).name for path in paths.values()}
     print(f"Wrote {len(paths)} result file(s) to {args.out_dir}:")
     for name, path in sorted(paths.items()):
         print(f"  {name}: {path}")
@@ -127,6 +144,7 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
                                                     interpolation=args.oem_interpolation).items():
             oem_path = output_path(args.out_dir, f"{name}.oem")
             oem_path.write_text(text, encoding="ascii")
+            written.add(oem_path.name)
             print(f"  CCSDS OEM: {oem_path}")
 
     for line in data_budget.summary_lines(result):
@@ -134,6 +152,7 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
     found = events.extract_events(result)  # the GUI's Events tab, headless (provenance.json covers it)
     if found:
         events_path = events.write_csv(found, args.out_dir / "events.csv", scenario.epoch_utc)
+        written.add(Path(events_path).name)
         print(f"  events ({len(found)}): {events_path}")
 
     # Informational only -- never affects the exit code (see
@@ -147,7 +166,16 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
               f"{len(command_summary.reports)} report(s).")
         if command_summary.reports:
             summary_path = command_summary.export_csv(args.out_dir / "command_summary.csv")
+            written.add(Path(summary_path).name)
             print(f"  command_summary: {summary_path}")
+
+    # Files an earlier run left: not this run's, though they sit beside it
+    # (a stale events.csv and another spacecraft's series, audit R7).
+    stale = sorted(before - written)
+    if stale:
+        shown = ", ".join(stale[:5]) + (f" and {len(stale) - 5} more" if len(stale) > 5 else "")
+        print(f"WARNING: {args.out_dir} also holds {len(stale)} file(s) this run did not write: {shown}. They are "
+              "not this run's results; use an empty --out-dir to keep runs apart.", file=sys.stderr)
 
 
 def cmd_run(args: argparse.Namespace) -> int:
@@ -181,6 +209,11 @@ def cmd_run(args: argparse.Namespace) -> int:
             show_trajectory_trail=args.vizard_trail, show_ground_tracks=args.vizard_ground_tracks,
             model_base_dir=str(args.scenario.resolve().parent),
         )
+
+    folder_error = _output_folder_error(args.out_dir)
+    if folder_error:
+        print(f"ERROR: {folder_error}", file=sys.stderr)
+        return 3
 
     print(f"Running {scenario.name!r} ({len(scenario.spacecraft)} spacecraft, "
           f"{scenario.sim_settings.duration_days} day(s), {scenario.sim_settings.integrator})...")
@@ -641,6 +674,21 @@ def cmd_small_bodies(args: argparse.Namespace) -> int:
     return 0
 
 
+# A CCSDS message is read whole; a long OEM is large, an endless file
+# (/dev/zero) was read until the process was killed (exit 137, audit R9).
+MAX_CCSDS_MESSAGE_BYTES = 500_000_000  # [byte]
+
+
+def _read_ccsds_message(path) -> str:
+    """``path``'s text (ASCII, other bytes replaced); OSError when it cannot
+    be read or is larger than MAX_CCSDS_MESSAGE_BYTES."""
+    with Path(path).open("rb") as stream:
+        data = stream.read(MAX_CCSDS_MESSAGE_BYTES + 1)
+    if len(data) > MAX_CCSDS_MESSAGE_BYTES:
+        raise OSError(f"larger than {MAX_CCSDS_MESSAGE_BYTES // 1_000_000} MB: not a CCSDS message")
+    return data.decode("ascii", errors="replace")
+
+
 def cmd_ccsds_validate(args: argparse.Namespace) -> int:
     """Check KVN OPM/OMM/OEM files against CCSDS 502.0-B-3."""
     from .engine import ccsds_odm
@@ -648,7 +696,7 @@ def cmd_ccsds_validate(args: argparse.Namespace) -> int:
     failed = False
     for path in args.files:
         try:
-            text = Path(path).read_text(encoding="ascii", errors="replace")
+            text = _read_ccsds_message(path)
         except OSError as exc:
             print(f"{path}: cannot be read ({exc.strerror or exc})", file=sys.stderr)
             failed = True
@@ -735,7 +783,7 @@ def cmd_ccsds_import(args: argparse.Namespace) -> int:
 
     try:
         scenario = load_scenario(args.scenario)
-        orbit, epoch, notes = ccsds_odm.orbit_ic_from_odm(args.message.read_text(encoding="ascii", errors="replace"),
+        orbit, epoch, notes = ccsds_odm.orbit_ic_from_odm(_read_ccsds_message(args.message),
                                                           central_body=scenario.gravity.central_body)
     except OSError as exc:  # a missing message, or a folder (audit M12)
         print(f"ERROR: could not read {args.message}: {exc}", file=sys.stderr)

@@ -5,6 +5,31 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Output folder and input limits (2026-10-29)
+
+The audit's R7, R8 and R9.
+
+- **A used output folder is named, not refused:** the audit offered
+  refusing a non-empty folder unless `--overwrite` is given, or removing
+  the files of the previous `provenance.json`. `--out-dir` defaults to
+  `results`, so refusing would break every second run of a script that
+  never set it; and `provenance.json` does not list the files a run wrote,
+  so nothing says which old files are safe to delete. `run` therefore
+  writes as before and ends with a `WARNING` naming the files it did not
+  write.
+- **The output folder is probed, not only created:** `mkdir` succeeds on
+  a folder that exists but is read-only; a temporary file written and
+  removed in it is the check that matches what the run will do.
+- **Limits far above any real scenario:** the templates have at most 6
+  spacecraft, files of at most 27 KB, steps of at least 0.1 s and names of
+  at most 11 characters. The limits (1000 spacecraft, 20 MB, 0.001 s, 64
+  characters, a description of 100 000 characters) only stop a mistyped
+  or damaged input; 0.001 s is the GUI's own least step. A file over the
+  limit is refused after reading one byte more than the limit, never
+  whole.
+- **500 MB for a CCSDS message:** a long, finely sampled OEM is
+  legitimately large, so the limit is far above a scenario's.
+
 ## Room for results at 1280 x 720 (2026-10-28)
 
 The audit's G8: "Inspect fields only; collapse the Inspector on small

@@ -764,3 +764,14 @@ never named "_TabBar".
   `::test_a_new_window_on_a_small_screen_starts_without_the_inspector` and
   `::test_the_inspector_shows_fields_only`: each fails on the code before
   (checked).
+
+## Output folder and input limits (2026-10-29)
+
+- Added `test_scenario_schema.py::test_a_name_longer_than_sixty_four_characters_is_refused_at_validation`,
+  `::test_a_scenario_that_asks_for_too_much_is_refused` and
+  `::test_a_scenario_file_larger_than_the_limit_is_refused_unread`,
+  `test_constellation.py::test_more_satellites_than_a_scenario_holds_are_refused_before_any_is_made`,
+  and `test_cli.py::test_run_refuses_an_output_folder_it_cannot_write_before_the_simulation`,
+  `::test_a_run_into_a_used_folder_names_the_files_it_did_not_write` and
+  `::test_ccsds_messages_larger_than_the_limit_are_refused_unread` (audit
+  R7, R8, R9). No existing test changed.

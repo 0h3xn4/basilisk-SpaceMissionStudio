@@ -38,6 +38,17 @@ def test_generates_total_satellites_count():
     assert len({s.name for s in sats}) == 12  # every name unique
 
 
+def test_more_satellites_than_a_scenario_holds_are_refused_before_any_is_made():
+    """Audit R9: --total-satellites 10000000 ran for more than a minute; the
+    request is refused first, at a scenario's limit of 1000."""
+    from spacemissionstudio.schema.scenario import MAX_SPACECRAFT
+
+    assert len(generate_walker_constellation(_request(total_satellites=MAX_SPACECRAFT, num_planes=10),
+                                             _template())) == MAX_SPACECRAFT
+    with pytest.raises(ScenarioValidationError, match="total_satellites must be at most 1000"):
+        generate_walker_constellation(_request(total_satellites=10_000_000, num_planes=1000), _template())
+
+
 def test_semi_major_axis_matches_altitude_plus_earth_radius():
     """Every satellite's semi-major axis is Earth's equatorial radius plus the
     500 km altitude."""

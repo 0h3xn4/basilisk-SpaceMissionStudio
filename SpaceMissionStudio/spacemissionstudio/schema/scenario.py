@@ -74,6 +74,14 @@ from .command import Command, command_dict, report_before_propagate_errors, runs
 
 CURRENT_SCHEMA_VERSION = 4
 
+# Limits on what a scenario may ask for (audit R9): far above any template
+# (at most 6 spacecraft, 27 kB) and the editor's own ranges, so that a shared
+# file cannot fill the memory or run for ever before it is refused.
+MAX_SPACECRAFT = 1000
+MAX_DESCRIPTION_CHARS = 100_000
+MAX_SCENARIO_FILE_BYTES = 20_000_000  # [byte]
+MIN_DYNAMICS_TASK_RATE_S = 0.001  # [s] the editor's least
+
 # Central bodies (and third bodies) a run can use: Basilisk's
 # simIncludeGravBody.gravBodyFactory names whose SPICE states the bundled
 # planetary ephemeris (DE430, engine.kernels) holds -- see engine/service.py
@@ -318,6 +326,10 @@ def _is_finite_number(value) -> bool:
 # names, no '.', no control characters, no leading/trailing spaces, and not a
 # name Windows reserves for devices (audit H3).
 _NAME_FORBIDDEN = set('/\\:*?"<>|.')
+# A name and the longest series after it stay far inside a file name's 255
+# characters: a 300-character name ran the whole simulation, then failed
+# to write ("File name too long", audit R8).
+MAX_NAME_CHARS = 64
 _WINDOWS_RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{i}" for i in range(1, 10)), *(f"LPT{i}" for i in range(1, 10))}
 
 
@@ -331,6 +343,9 @@ def name_error(what: str, name) -> str | None:
         shown = ", ".join(repr(ch) for ch in bad)
         return (f"{what} name {name!r} contains {shown}: names become file names, so they cannot contain "
                 "/ \\ : * ? \" < > | . or control characters")
+    if len(name) > MAX_NAME_CHARS:
+        return (f"{what} name {name[:20]!r}... is {len(name)} characters: names become file names, "
+                f"so at most {MAX_NAME_CHARS}")
     if name != name.strip():
         return f"{what} name {name!r} must not start or end with a space"
     if name.upper() in _WINDOWS_RESERVED:
@@ -2623,7 +2638,9 @@ class SimSettings:
         _require(self.duration_days > 0, "sim_settings.duration_days must be > 0")
         _require(self.duration_days <= self._MAX_DURATION_DAYS,
                   f"sim_settings.duration_days must be <= {self._MAX_DURATION_DAYS:g} days (about 10 years)")
-        _require(self.dynamics_task_rate_s > 0, "sim_settings.dynamics_task_rate_s must be > 0")
+        # 1 ms, the editor's least: 1e-9 s validated and asked for 86 400 billion steps a day (audit R9).
+        _require(self.dynamics_task_rate_s >= MIN_DYNAMICS_TASK_RATE_S,
+                  f"sim_settings.dynamics_task_rate_s must be at least {MIN_DYNAMICS_TASK_RATE_S:g} s")
         _require(0.0 <= self.record_interval_s <= 86400.0,
                   "sim_settings.record_interval_s must be in [0, 86400] s (0 = every dynamics step)")
         _require(self.integrator in SUPPORTED_INTEGRATORS,
@@ -2730,6 +2747,10 @@ class Scenario:
                   f"scenario.simulation_mode {self.simulation_mode!r} must be one of {SUPPORTED_SIMULATION_MODES}")
         self.gravity.validate()
         _require(len(self.spacecraft) >= 1, "scenario needs at least one spacecraft")
+        _require(len(self.spacecraft) <= MAX_SPACECRAFT,
+                  f"scenario has {len(self.spacecraft)} spacecraft; at most {MAX_SPACECRAFT}")
+        _require(len(self.description) <= MAX_DESCRIPTION_CHARS,
+                  f"scenario.description is {len(self.description)} characters; at most {MAX_DESCRIPTION_CHARS}")
         names = [sc.name for sc in self.spacecraft]
         _require(len(names) == len(set(names)), f"spacecraft names must be unique, got {names}")
         # Two names that differ only in case overwrite each other's files on
@@ -3300,7 +3321,12 @@ def load_scenario(path: str | Path) -> Scenario:
     """
     path = Path(path)
     try:
-        text = path.read_text(encoding="utf-8")  # as save() writes it, on every platform
+        with path.open("rb") as stream:  # bounded: a 50 MB file, or /dev/zero, is refused, not read (audit R9)
+            data = stream.read(MAX_SCENARIO_FILE_BYTES + 1)
+        if len(data) > MAX_SCENARIO_FILE_BYTES:
+            raise ScenarioValidationError(f"{path}: larger than {MAX_SCENARIO_FILE_BYTES // 1_000_000} MB: not a "
+                                          "scenario file")
+        text = data.decode("utf-8")  # as save() writes it, on every platform
     except OSError as exc:
         # Covers a missing file, a directory given by mistake, a
         # permissions error, etc. -- all "can't read this path" failures,
