@@ -14125,3 +14125,58 @@ one, and the real file unchanged). `test_shell_reachability.py`'s module
 window had the same leak (it wrote a layout into the home) and gets the
 same fix.
 Full suite with a home holding the reference data cache but no kept layout (as on CI): 3904 passed.
+
+## Parser, look-ahead and exit codes (2026-10-29)
+
+The user: "Continue as per your recommendation". The audit's plan, "next":
+R5 to R9 and R13; this is R5, R6 and R13 (R7 to R9 follow). Branch
+`robust-inputs`.
+
+**Reproduced on develop:**
+
+- R5: `validate` of 100 000 nested brackets: RecursionError traceback,
+  exit 1; of a 5-million-digit number: ValueError traceback, exit 1. The
+  audit's autosave probe: a spacecraft list of strings (ValueError), a
+  null scenario (AttributeError) and a deep file (RecursionError) raised
+  from `read_recovery_file`.
+- R6: `lifetime --max-years 1e6`: `OverflowError: date value out of
+  range`, exit 1; `-5`: exit 3.
+- R13: `main` caught only KeyboardInterrupt and OSError.
+
+**Fuzzing:** every template (31) mangled 40 ways each (a value removed,
+wrapped, or replaced by another type, an extreme number or a long
+string): no exception but ScenarioValidationError. With text mutations
+added (cut short, 100 000 brackets, a 100 000-digit integer): 23, all
+from `json.loads` (21 ValueError, 2 RecursionError): R5's two causes and
+no other.
+
+**Change:**
+
+- `parse_scenario_text`: RecursionError and ValueError from the JSON
+  step are refusals ("nested more deeply than can be read", "a number
+  with more digits than can be read: 4300 at most").
+- `autosave.read_recovery_file`: ignores what `load_scenario` would
+  refuse (ValueError, AttributeError, OverflowError, RecursionError too).
+- `--max-years`: `_max_years_arg`, more than 0 and at most 100;
+  `engine.lifetime.MAX_HORIZON_YEARS` (100) bounds `end_of_life` too.
+- `main`: any other exception prints `INTERNAL ERROR: <type>: <message>;
+  the details are in <log>. Please report it.` and returns
+  `EXIT_INTERNAL_ERROR` (4); the traceback goes to the log file. ICD-02
+  and the SUM's message table say so.
+
+**Measured after:** the fuzzer with text mutations: 0 exceptions but
+refusals; the two files: `INVALID: ... not a scenario file (...)`, exit
+1; the autosave probe: None for all four; `--max-years 1e6` and `-5`:
+exit 2 with the range, `100`: exit 0.
+
+**Tests:** in `test_scenario_schema.py`, the two unreadable files and the
+fuzz test (every template, 20 mutations each, seeded; under a second); in
+`test_autosave.py`, the four recovery files; in `test_cli.py`, the
+internal error (status 4, one line, the traceback in the log file) and
+the look-ahead bounds. All but the look-ahead's `nan` case (refused
+before too) fail on the code before (checked).
+`test_generate_phasing_formation_passes_every_request_field_through`
+stopped the command with an exception of its own and expected it to leave
+`main`; it now expects status 4, with the same assertions on the request
+(the first full run found it: 1 failed, 3930 passed).
+Full suite on Python 3.14 (a home holding only the reference data cache): 3931 passed.

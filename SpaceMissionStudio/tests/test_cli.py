@@ -656,12 +656,12 @@ def test_generate_phasing_formation_passes_every_request_field_through(tmp_path,
         raise _Captured
 
     monkeypatch.setattr(formation, "generate_phasing_follower", fake_generate)
-    with pytest.raises(_Captured):
-        cli.main([
-            "generate-phasing-formation", str(path), "--out", str(tmp_path / "out.json"),
-            "--chief", "chief-1", "--follower-name", "follower-1", "--along-track-km", "50",
-            "--eclipse-sunlit-threshold", "0.5", "--station-keeping-target-altitude-km", "540",
-        ])
+    # The capture stops the command: main reports it as an internal error (audit R13).
+    assert cli.main([
+        "generate-phasing-formation", str(path), "--out", str(tmp_path / "out.json"),
+        "--chief", "chief-1", "--follower-name", "follower-1", "--along-track-km", "50",
+        "--eclipse-sunlit-threshold", "0.5", "--station-keeping-target-altitude-km", "540",
+    ]) == cli.EXIT_INTERNAL_ERROR
     request = captured["request"]
     assert request.eclipse_sunlit_threshold == 0.5  # [-]
     assert request.station_keeping_target_altitude_km == 540.0  # [km]
@@ -884,6 +884,41 @@ def test_ctrl_c_and_unreported_file_errors_end_with_a_message(monkeypatch, capsy
         monkeypatch.setattr(cli, "cmd_validate", func)
         assert cli.main(["validate", "whatever.json"]) == status
         assert text in capsys.readouterr().err
+
+
+def test_an_internal_error_has_its_own_status_and_names_the_log(monkeypatch, capsys):
+    """Audit R13: an unexpected exception printed a traceback and exited 1,
+    the status of an invalid input (ICD-02), so a script could not tell a
+    bug from a bad file. It is now one INTERNAL ERROR line naming the log
+    file, which holds the traceback, and status 4."""
+    import logging
+
+    from spacemissionstudio.logging_setup import get_log_file_path
+
+    def broken(args):
+        raise RuntimeError("an engine fault")
+
+    monkeypatch.setattr(cli, "cmd_validate", broken)
+    assert cli.main(["validate", "whatever.json"]) == cli.EXIT_INTERNAL_ERROR == 4
+    log = get_log_file_path()  # the test's own home (tests/conftest.py)
+    err = capsys.readouterr().err
+    assert "INTERNAL ERROR: RuntimeError: an engine fault" in err and str(log) in err
+    assert "Traceback" not in err
+    for handler in logging.getLogger().handlers:
+        handler.flush()
+    written = log.read_text(encoding="utf-8")
+    assert "Traceback" in written and "RuntimeError: an engine fault" in written
+
+
+@pytest.mark.parametrize("years", ["1e6", "-5", "0", "nan"])
+def test_lifetime_refuses_a_look_ahead_outside_one_hundred_years(capsys, years):
+    """Audit R6: --max-years 1e6 overflowed the date (a traceback, exit 1)
+    and -5 exited 3. Like the other bounded options it is now a usage
+    error (status 2) saying the range, before anything is loaded."""
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["lifetime", "whatever.json", "--max-years", years])
+    assert exc.value.code == 2
+    assert "--max-years" in capsys.readouterr().err
 
 
 def test_validate_prints_the_plausibility_warnings(tmp_path, capsys):
