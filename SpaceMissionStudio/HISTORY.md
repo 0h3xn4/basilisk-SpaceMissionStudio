@@ -14376,3 +14376,4 @@ exports and a documented API; `docs/models/`. Six decisions are asked
 of the user (Section 10).
 
 Full suite on Python 3.14 (a home holding only the reference data cache): 3953 passed.
+The user answered the six decisions (Section 10.1 records them).

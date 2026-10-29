@@ -481,6 +481,29 @@ requirements of the brief it serves.
    the GUI shows or what the engine applies. I suggest showing the applied, scaled gains rather
    than changing the physics.
 
+### 10.1 Answers (2026-10-29)
+
+The user: "1. As per your recommendation 2. As per your recommendation 3. As per your
+recommendation 4. As per your recommendation 5. As per your recommendation 6. Yes".
+
+1. **YAML** configuration files with comments and units; PyYAML becomes a declared dependency.
+2. **One set of constants**, chosen explicitly (Phase 3c). Every number that changes is recorded in
+   `docs/changes.md` with its before and after values.
+3. **A sidecar history file** next to the scenario; the scenario file stays clean for version
+   control.
+4. **A name set in Settings**, defaulting to the operating-system user name until one is set.
+   (Section 10 gave no recommendation here; this is the reading taken.)
+5. **The first selectable models are the ones in Phase 6b:**
+   - re-entry criterion and debris rules;
+   - margin policy profiles;
+   - shadowing bodies;
+   - atmosphere (adding the tabular model);
+   - link losses with a required margin;
+   - power degradation;
+   - Monte Carlo statistics.
+6. **All 13 defects are fixed in Phase 1.** For 3.4, the GUI will show the gains the engine
+   applies; the physics stays as it is.
+
 ---
 
 ## Appendix A: Orbital dynamics, environment, time and frames
