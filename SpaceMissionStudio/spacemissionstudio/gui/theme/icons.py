@@ -28,9 +28,6 @@ names below are the app's, mapped to Lucide's.
 
 from __future__ import annotations
 
-import atexit
-import shutil
-import tempfile
 from pathlib import Path
 
 from PySide6.QtCore import QByteArray, QEvent, QObject, QRect, QRectF, QSize, Qt, QTimer
@@ -38,6 +35,7 @@ from PySide6.QtGui import QIcon, QIconEngine, QPainter, QPixmap
 from PySide6.QtSvg import QSvgRenderer
 from shiboken6 import isValid
 
+from ... import temp_folders
 from . import state
 from .fonts import ASSETS_DIR
 
@@ -167,8 +165,7 @@ def icon_file(name: str, colour: str, stroke_width: float | None = None) -> Path
     written once per process to a temporary folder."""
     global _files_dir
     if _files_dir is None:
-        _files_dir = Path(tempfile.mkdtemp(prefix="spacemissionstudio-icons-"))
-        atexit.register(shutil.rmtree, _files_dir, True)
+        _files_dir = temp_folders.folder_removed_at_exit(temp_folders.ICONS)
     suffix = "" if stroke_width is None else f"-w{stroke_width:g}"
     target = _files_dir / f"{name}-{colour.lstrip('#').upper()}{suffix}.svg"
     if not target.exists():

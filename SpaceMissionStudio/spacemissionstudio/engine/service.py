@@ -684,10 +684,10 @@ class SimulationService:
         if self.vizard_request.save_file:
             save = Path(self.vizard_request.save_file)
             directory = save.with_name(f"{save.stem}_models")
-        else:
-            import tempfile
+        else:  # removed at exit: Vizard reads the files while it streams (audit R14)
+            from ..temp_folders import VIZARD_MODELS, folder_removed_at_exit
 
-            directory = Path(tempfile.mkdtemp(prefix="spacemissionstudio_vizard_models_"))
+            directory = folder_removed_at_exit(VIZARD_MODELS)
         from ..model3d.model import mesh_path
 
         models = {}

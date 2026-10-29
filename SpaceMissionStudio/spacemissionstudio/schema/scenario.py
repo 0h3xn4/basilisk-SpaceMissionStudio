@@ -3064,105 +3064,58 @@ class Scenario:
 
     @staticmethod
     def from_dict(data: dict) -> Scenario:
-        data = dict(data)  # shallow copy, don't mutate the caller's dict
-        gravity = GravityConfig(**data.pop("gravity", {}))
-        sim_settings = SimSettings(**data.pop("sim_settings", {}))
-        space_weather = SpaceWeatherConfig(**data.pop("space_weather", {}))
-        ground_stations = [GroundStationConfig(**gs) for gs in data.pop("ground_stations", [])]
+        data = _fields_of(data, "the scenario")  # a copy: the caller's dict is not changed
+        gravity = _record(GravityConfig, data.pop("gravity", {}), "gravity")
+        sim_settings = _record(SimSettings, data.pop("sim_settings", {}), "sim_settings")
+        space_weather = _record(SpaceWeatherConfig, data.pop("space_weather", {}), "space_weather")
+        ground_stations = _records(GroundStationConfig, data.pop("ground_stations", []), "ground_stations")
 
-        mc_data = dict(data.pop("monte_carlo", {}))
-        dispersions = [DispersionConfig(**d) for d in mc_data.pop("dispersions", [])]
-        monte_carlo = MonteCarloConfig(dispersions=dispersions, **mc_data)
+        mc_data = _fields_of(data.pop("monte_carlo", {}), "monte_carlo")
+        mc_data["dispersions"] = _records(DispersionConfig, mc_data.pop("dispersions", []), "monte_carlo.dispersions")
+        monte_carlo = _record(MonteCarloConfig, mc_data, "monte_carlo")
 
         spacecraft = []
-        for sc in data.pop("spacecraft", []):
-            sc = dict(sc)
-            orbit = OrbitIC(**sc.pop("orbit"))
-            sensors = [SensorConfig(**s) for s in sc.pop("sensors", [])]
-            facets = [FacetConfig(**f) for f in sc.pop("facets", [])]
-            model_data = sc.pop("model", None)
-            model = None
-            if model_data is not None:
-                model_data = dict(model_data)
-                parts = [ModelPartConfig(**part) for part in model_data.pop("parts", [])]
-                meshes = [ModelMeshConfig(**mesh) for mesh in model_data.pop("meshes", [])]
-                mass_data = model_data.pop("mass_properties", None)
-                mass_properties = ModelMassPropertiesConfig(**mass_data) if mass_data is not None else None
-                model = SpacecraftModelConfig(parts=parts, meshes=meshes, mass_properties=mass_properties,
-                                              **model_data)
-            actuators = [ActuatorConfig(**a) for a in sc.pop("actuators", [])]
-            power_data = sc.pop("power", None)
-            power = PowerConfig(**power_data) if power_data is not None else None
-            rf_link_data = sc.pop("rf_link", None)
-            rf_link = RFLinkConfig(**rf_link_data) if rf_link_data is not None else None
-            comms_pointing_data = sc.pop("comms_pointing", None)
-            comms_pointing = CommsPointingConfig(**comms_pointing_data) if comms_pointing_data is not None else None
-            solar_arrays = [SolarArrayConfig(**a) for a in sc.pop("solar_arrays", [])]
-            data_handling_data = sc.pop("data_handling", None)
-            data_handling = None
-            if data_handling_data is not None:
-                data_handling_data = dict(data_handling_data)
-                instruments = [InstrumentConfig(**i) for i in data_handling_data.pop("instruments", [])]
-                data_handling = DataHandlingConfig(instruments=instruments, **data_handling_data)
-            station_keeping_data = sc.pop("station_keeping", None)
-            station_keeping = StationKeepingConfig(**station_keeping_data) if station_keeping_data is not None else None
-            geo_data = sc.pop("geo_station_keeping", None)
-            geo_station_keeping = GeoStationKeepingConfig(**geo_data) if geo_data is not None else None
-            phasing_keeping_data = sc.pop("phasing_keeping", None)
-            phasing_keeping = PhasingKeepingConfig(**phasing_keeping_data) if phasing_keeping_data is not None else None
-            roe_formation_data = sc.pop("roe_formation", None)
-            roe_formation = None
-            if roe_formation_data is not None:
-                roe_formation_data = dict(roe_formation_data)
-                targets = [RoeTargetConfig(**target) for target in roe_formation_data.pop("targets", [])]
-                roe_formation = RoeFormationConfig(targets=targets, **roe_formation_data)
-            optical_navigation_data = sc.pop("optical_navigation", None)
-            optical_navigation = (OpticalNavigationConfig(**optical_navigation_data)
-                                  if optical_navigation_data is not None else None)
-            landmark_navigation_data = sc.pop("landmark_navigation", None)
-            landmark_navigation = (LandmarkNavigationConfig(**landmark_navigation_data)
-                                   if landmark_navigation_data is not None else None)
-            constant_thrust_data = sc.pop("constant_thrust", None)
-            constant_thrust = ConstantThrustConfig(**constant_thrust_data) if constant_thrust_data is not None else None
-            momentum_dumping_data = sc.pop("momentum_dumping", None)
-            momentum_dumping = (
-                MomentumDumpingConfig(**momentum_dumping_data) if momentum_dumping_data is not None else None
-            )
-            magnetic_momentum_management_data = sc.pop("magnetic_momentum_management", None)
-            magnetic_momentum_management = (
-                MagneticMomentumManagementConfig(**magnetic_momentum_management_data)
-                if magnetic_momentum_management_data is not None else None
-            )
-            navigation_error_data = sc.pop("navigation_error", None)
-            navigation_error = (NavigationErrorConfig(**navigation_error_data)
-                                if navigation_error_data is not None else None)
-            fuel_tank_data = sc.pop("fuel_tank", None)
-            fuel_tank = FuelTankConfig(**fuel_tank_data) if fuel_tank_data is not None else None
-            budget_data = sc.pop("propellant_budget", None)
-            propellant_budget = PropellantBudgetConfig(**budget_data) if budget_data is not None else None
-            spacecraft.append(SpacecraftConfig(propellant_budget=propellant_budget, orbit=orbit, sensors=sensors, actuators=actuators,
-                                                power=power, rf_link=rf_link, comms_pointing=comms_pointing,
-                                                data_handling=data_handling, solar_arrays=solar_arrays,
-                                                station_keeping=station_keeping,
-                                                geo_station_keeping=geo_station_keeping,
-                                                phasing_keeping=phasing_keeping, roe_formation=roe_formation,
-                                                optical_navigation=optical_navigation,
-                                                landmark_navigation=landmark_navigation,
-                                                constant_thrust=constant_thrust,
-                                                momentum_dumping=momentum_dumping,
-                                                magnetic_momentum_management=magnetic_momentum_management,
-                                                navigation_error=navigation_error,
-                                                fuel_tank=fuel_tank, facets=facets, model=model,
-                                                **sc))
+        for index, sc in enumerate(_items(data.pop("spacecraft", []), "spacecraft")):
+            where = f"spacecraft[{index}]"
+            sc = _fields_of(sc, where)
+            if "orbit" not in sc:
+                raise _StructureError(f"{where}: missing field 'orbit'")
+            sc["orbit"] = _record(OrbitIC, sc["orbit"], f"{where}.orbit")
+            for name, cls in (("sensors", SensorConfig), ("facets", FacetConfig), ("actuators", ActuatorConfig),
+                              ("solar_arrays", SolarArrayConfig)):
+                sc[name] = _records(cls, sc.pop(name, []), f"{where}.{name}")
+            if sc.get("model") is not None:
+                model_data = _fields_of(sc["model"], f"{where}.model")
+                model_data["parts"] = _records(ModelPartConfig, model_data.pop("parts", []), f"{where}.model.parts")
+                model_data["meshes"] = _records(ModelMeshConfig, model_data.pop("meshes", []),
+                                                f"{where}.model.meshes")
+                if model_data.get("mass_properties") is not None:
+                    model_data["mass_properties"] = _record(ModelMassPropertiesConfig, model_data["mass_properties"],
+                                                            f"{where}.model.mass_properties")
+                sc["model"] = _record(SpacecraftModelConfig, model_data, f"{where}.model")
+            if sc.get("data_handling") is not None:
+                handling = _fields_of(sc["data_handling"], f"{where}.data_handling")
+                handling["instruments"] = _records(InstrumentConfig, handling.pop("instruments", []),
+                                                   f"{where}.data_handling.instruments")
+                sc["data_handling"] = _record(DataHandlingConfig, handling, f"{where}.data_handling")
+            if sc.get("roe_formation") is not None:
+                formation = _fields_of(sc["roe_formation"], f"{where}.roe_formation")
+                formation["targets"] = _records(RoeTargetConfig, formation.pop("targets", []),
+                                                f"{where}.roe_formation.targets")
+                sc["roe_formation"] = _record(RoeFormationConfig, formation, f"{where}.roe_formation")
+            for name, cls in _SPACECRAFT_RECORDS:
+                if sc.get(name) is not None:
+                    sc[name] = _record(cls, sc[name], f"{where}.{name}")
+            spacecraft.append(_record(SpacecraftConfig, sc, where))
 
-        mission_sequence = [Command.from_dict(c) for c in data.pop("mission_sequence", [])]
-        fsw_exports = [FswExportRecord(**r) for r in data.pop("fsw_exports", [])]
+        mission_sequence = [Command.from_dict(_fields_of(c, f"mission_sequence[{index}]"))
+                            for index, c in enumerate(_items(data.pop("mission_sequence", []), "mission_sequence"))]
+        fsw_exports = _records(FswExportRecord, data.pop("fsw_exports", []), "fsw_exports")
 
-        return Scenario(
-            gravity=gravity, sim_settings=sim_settings, space_weather=space_weather,
-            ground_stations=ground_stations, spacecraft=spacecraft, monte_carlo=monte_carlo,
-            mission_sequence=mission_sequence, fsw_exports=fsw_exports, **data,
-        )
+        data.update(gravity=gravity, sim_settings=sim_settings, space_weather=space_weather,
+                    ground_stations=ground_stations, spacecraft=spacecraft, monte_carlo=monte_carlo,
+                    mission_sequence=mission_sequence, fsw_exports=fsw_exports)
+        return _record(Scenario, data, "the scenario")
 
     def save(self, path: str | Path) -> None:
         """Validate, then write the scenario as JSON. The text goes to a
@@ -3188,6 +3141,61 @@ class Scenario:
         except BaseException:
             Path(temporary).unlink(missing_ok=True)
             raise
+
+
+class _StructureError(ValueError):
+    """A scenario's JSON has the wrong shape where a record or a list of
+    them belongs; :func:`parse_scenario_text` refuses it as malformed,
+    naming where (audit R5's notes: "dictionary update sequence element #0
+    has length 1; 2 is required" said neither where nor what)."""
+
+
+def _fields_of(data, where: str) -> dict:
+    """A copy of ``data``, which must be a JSON object."""
+    if not isinstance(data, dict):
+        raise _StructureError(f"{where} must be an object ({{...}}), not {_describe(data)}")
+    return dict(data)
+
+
+def _items(data, where: str) -> list:
+    """``data``, which must be a JSON list."""
+    if not isinstance(data, list):
+        raise _StructureError(f"{where} must be a list ([...]), not {_describe(data)}")
+    return data
+
+
+def _record(cls, data, where: str):
+    """``cls(**data)``: ``data`` must be an object with only fields of
+    ``cls`` and every field that has no default."""
+    data = _fields_of(data, where)
+    fields = [f for f in dataclasses.fields(cls) if f.init]
+    names = {f.name for f in fields}
+    unknown = [name for name in data if name not in names]
+    if unknown:
+        raise _StructureError(f"{where}: unexpected field {unknown[0]!r}, not one this version knows")
+    missing = [f.name for f in fields if f.name not in data
+               and f.default is dataclasses.MISSING and f.default_factory is dataclasses.MISSING]
+    if missing:
+        raise _StructureError(f"{where}: missing field {missing[0]!r}")
+    return cls(**data)
+
+
+def _records(cls, data, where: str) -> list:
+    """``data``, a list of objects, as records of ``cls``."""
+    return [_record(cls, item, f"{where}[{index}]") for index, item in enumerate(_items(data, where))]
+
+
+#: The spacecraft's optional single records, as (field, class).
+_SPACECRAFT_RECORDS = (
+    ("power", PowerConfig), ("rf_link", RFLinkConfig), ("comms_pointing", CommsPointingConfig),
+    ("station_keeping", StationKeepingConfig), ("geo_station_keeping", GeoStationKeepingConfig),
+    ("phasing_keeping", PhasingKeepingConfig), ("optical_navigation", OpticalNavigationConfig),
+    ("landmark_navigation", LandmarkNavigationConfig), ("constant_thrust", ConstantThrustConfig),
+    ("momentum_dumping", MomentumDumpingConfig),
+    ("magnetic_momentum_management", MagneticMomentumManagementConfig),
+    ("navigation_error", NavigationErrorConfig), ("fuel_tank", FuelTankConfig),
+    ("propellant_budget", PropellantBudgetConfig),
+)
 
 
 _TYPE_HINTS: dict[type, dict[str, Any]] = {}

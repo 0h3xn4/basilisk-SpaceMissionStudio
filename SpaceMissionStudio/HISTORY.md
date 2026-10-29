@@ -14253,3 +14253,86 @@ names only the old file) and the oversized CCSDS files. All 9 fail on
 the code before (checked). No existing test changed.
 Full suite on Python 3.14 (a home holding only the reference data cache): 3928 passed.
 Full suite after merging develop (#146): 3940 passed.
+
+## Temporary folders, refusals of the wrong shape, coverage (2026-10-29)
+
+The user: "Continue as per your recommendation", after R5 to R9 and R13:
+the three small items left, R14, R11's coverage and the refusals the
+audit's notes quote. Branch `cleanup-tmp`.
+
+**Temporary folders (R14), measured here:** 548 `spacemissionstudio-plot-`,
+446 `sms-compare-`, 53 `spacemissionstudio-icons-` and 4
+`spacemissionstudio_model_view_` folders in /tmp, in bursts by the hour.
+None came from today's five full suites: the page folders are
+`TemporaryDirectory`s and go at a normal exit. The icons' folder, removed
+by `atexit`, leaked in the same bursts, so the cause is processes that
+were killed or crashed, which run no exit code; the audit's `atexit`
+would not have helped. Vizard's models folder for a live stream
+(`mkdtemp`) was never removed at all.
+
+**Change:**
+
+- `temp_folders`: every folder named `<kind><pid>-<random>`;
+  `temporary_directory` and `folder_removed_at_exit` make them;
+  `remove_left_behind` removes those whose process has ended (on POSIX
+  `os.kill(pid, 0)`; on Windows `OpenProcess` and `GetExitCodeProcess`; a
+  process that cannot be checked counts as running) and those named the
+  old way that have not changed for a day, the current user's only.
+- The plot, Compare and model pages, the icons and Vizard's models use
+  it; Vizard's folder is now removed at exit.
+- `gui.app.main` runs the removal at start on a daemon thread.
+
+Measured: the removal took 1014 of this machine's folders in 10.4 s
+(10 ms each here) and found none on a second call (0.9 ms); 37 folders
+younger than a day stayed.
+
+**Refusals of the wrong shape:** `Scenario.from_dict` built records with
+`cls(**data)`, so a part in the wrong shape gave Python's own message.
+On develop:
+
+| Change to template 01 | Refusal on develop |
+|---|---|
+| `spacecraft: {"a": 1}` | `dictionary update sequence element #0 has length 1; 2 is required` |
+| `sensors: "star tracker"` | `...SensorConfig() argument after ** must be a mapping, not str` |
+| `sensors: [7]` | `...SensorConfig() argument after ** must be a mapping, not int` |
+| no `orbit` | `('orbit')` |
+| `orbit.warp: 9` | `OrbitIC.__init__() got an unexpected keyword argument 'warp'` |
+| `gravity: []` | `...GravityConfig() argument after ** must be a mapping, not list` |
+| `mission_sequence: ["propagate"]` | `string indices must be integers, not 'str'` |
+
+`_record`, `_records`, `_fields_of` and `_items` now check each part
+first and name its place: `spacecraft must be a list ([...]), not an
+object`, `spacecraft[0].sensors must be a list ([...]), not text`,
+`spacecraft[0].sensors[0] must be an object ({...}), not a number`,
+`spacecraft[0]: missing field 'orbit'`, `spacecraft[0].orbit: unexpected
+field 'warp', not one this version knows`, `gravity must be an object
+({...}), not a list`, `mission_sequence[0] must be an object ({...}),
+not text`, each after `malformed scenario structure`. The SUM's message
+table says so.
+
+**Coverage (R11):** the full suite with coverage on develop: 92.63 %
+(statements 94.31 %), `cli.py` 75.7 %. Measuring started processes:
+
+| `[tool.coverage.run]` | Total | Lines missing | Run |
+|---|---|---|---|
+| none (develop) | 92.63 % | 2093 | 10 min 18 s |
+| `patch = ["subprocess"]`, no `branch`/`source` | - (coverage's `DataError`: statement and branch data mixed) | - | 9 min 34 s |
+| `patch = ["subprocess"]`, `concurrency`, `branch`, `source` | 92.72 % | 2061 | 9 min 38 s |
+| `concurrency = ["thread", "multiprocessing"]`, `branch`, `source` | 92.71 % | 2064 | 9 min 41 s |
+
+The last is kept: Monte Carlo's worker process 64.7 % to 82.4 %,
+`engine/reference_data` 80.9 % to 88.7 %. With `patch = ["subprocess"]`
+coverage also ran in pytest-xdist's workers and 6 data files stayed after
+the run (written 7 s after the combine, one half-written), for 3 lines
+more. `cli.py` is unchanged in every row: its tests call `cli.main` in
+the test process. Its least covered commands: `earth-orientation` 0 %,
+`monte-carlo` 29 %, `ccsds-import` 49 %, `small-bodies` 59 %,
+`ccsds-export` 60 %, `sil` 64 %.
+
+**Tests:** `test_temp_folders.py` (names, removal at exit, what is and is
+not removed, the process check, the GUI's call) and
+`test_a_file_of_the_wrong_shape_is_refused_naming_where` (8 cases): each
+fails on the code before (checked).
+`test_load_scenario_rejects_an_unknown_field_naming_it` matched Python's
+wording and now matches the new one (TEST_CHANGES).
+Full suite on Python 3.14 with coverage, as CI runs it (a home holding only the reference data cache): 3953 passed, 92.67 % covered, no data file left behind.

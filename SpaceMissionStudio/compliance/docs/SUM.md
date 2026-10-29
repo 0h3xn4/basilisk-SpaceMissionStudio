@@ -308,7 +308,8 @@ itself). The mission-sequence commands are in UM section 6 and HT
 | Message (beginning) | Meaning | Action |
 |---|---|---|
 | `INVALID: ... <field> ...` / a red field | A value is out of range or inconsistent | Correct the named field |
-| `malformed scenario structure (... unexpected keyword argument 'x')` | The file has a field this version does not know | Remove the field, or use the version that wrote it |
+| `malformed scenario structure (<where>: unexpected field 'x', ...)` | The file has a field this version does not know | Remove the field, or use the version that wrote it |
+| `malformed scenario structure (<where> must be a list ([...]) / an object ({...}), not ...)` or `(<where>: missing field 'x')` | A part of the file has the wrong shape, or lacks a field it needs; `<where>` is its place, e.g. `spacecraft[0].sensors` | Correct that part, comparing with a template or a file the app saved |
 | `Basilisk is not installed/built` | No simulation engine (exit code 2) | Install Basilisk 2.12.0 (UM section 2) |
 | `Basilisk <v> ... results are not covered by its verification` | A Basilisk version other than 2.12.0 | Install 2.12.0, or accept unverified results |
 | `Earth orientation: IAU rotation model, no IERS data installed` / `~160 m/day position error` | No IERS-based Earth files | `spacemissionstudio earth-orientation --fetch` |

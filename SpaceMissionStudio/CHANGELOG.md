@@ -246,6 +246,25 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   step below 0.001 s are refused (exit 1); `ccsds-validate` and
   `ccsds-import` read at most 500 MB, where `/dev/zero` was killed for
   memory (exit 137) (audit R9).
+- **Temporary folders are cleaned up:** a live Vizard stream's folder of
+  3D models was never removed; it now goes when the app exits. The plot,
+  Compare and 3D-model pages' folders went at a normal exit but stayed
+  when the app was killed or crashed (the audit found hundreds). Each
+  folder's name now carries its process id, and the GUI removes, in the
+  background as it starts, those whose process has ended, and those
+  named the old way that have not changed for a day (audit R14).
+- **A file of the wrong shape says where:** `spacecraft: {"a": 1}` was
+  refused as "dictionary update sequence element #0 has length 1; 2 is
+  required". A part in the wrong shape, a missing field or an unknown one
+  is now refused naming its place and what was expected, e.g.
+  `spacecraft[0].sensors must be a list ([...]), not text` or
+  `spacecraft[0].orbit: unexpected field 'warp'` (audit R5, notes).
+- **Coverage counts Monte Carlo's worker processes:** they were not
+  measured; they are now (`[tool.coverage.run]` in `pyproject.toml`): 29
+  more lines covered, Monte Carlo's worker process 64.7 % to 82.4 %. `cli.py` stays at
+  75.7 %: its tests already run in the test process, so what it lacks is
+  tests, of `earth-orientation`, `monte-carlo` and `ccsds-import` above
+  all (audit R11).
 
 ## 1.3.1 (2026-10-27)
 
