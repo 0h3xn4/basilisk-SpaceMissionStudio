@@ -149,6 +149,11 @@ def test_result_set_export_csv_with_provenance_writes_sidecar_json(tmp_path):
         # the file the run was loaded from (transparency audit 2b), empty when not filled by the CLI
         "scenario_file": "",
         "scenario_file_sha256": "",
+        # the effective configuration (transparency audit 2c), empty when not filled by engine.service
+        "effective_defaults": {},
+        "effective_config_note": "",
+        "device_parameters": {},
+        "scenario_file_migrations": [],
         # the run's warnings (transparency audit 2f)
         "run_warnings": [],
     }

@@ -129,6 +129,18 @@ class RunProvenance:
     # did not start from an unchanged file (a scenario edited in the GUI).
     scenario_file: str = ""
     scenario_file_sha256: str = ""
+    # The effective configuration (transparency audit, Phase 2c;
+    # engine.effective_config): the values used that the file does not
+    # give. effective_defaults: {place of an open params dictionary: {key:
+    # value used}}; device_parameters: {actuator: {Basilisk attribute:
+    # value}} of the wheels and thrusters Basilisk's factories made;
+    # scenario_file_migrations: what loading changed in an older file
+    # (schema.migrations.changes), with scenario_file. Empty in a record
+    # from 1.3.1 or earlier.
+    effective_defaults: dict[str, dict[str, object]] = field(default_factory=dict)
+    effective_config_note: str = ""
+    device_parameters: dict[str, dict[str, object]] = field(default_factory=dict)
+    scenario_file_migrations: list[dict[str, object]] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         return asdict(self)

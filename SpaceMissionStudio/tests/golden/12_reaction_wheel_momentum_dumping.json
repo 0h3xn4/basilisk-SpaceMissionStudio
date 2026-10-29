@@ -89,7 +89,161 @@
    "basilisk_qualified": true,
    "central_body": "earth",
    "central_body_mu_m3_s2": 398600436000000.0,
+   "device_parameters": {
+    "spacecraft[sat-1].actuators[desat-1]": {
+     "MaxSwirlTorque": 0.0,
+     "MaxThrust": 1.0,
+     "MinOnTime": 0.0,
+     "areaNozzle": 7.9e-05,
+     "cutoffFrequency": 10.0,
+     "steadyIsp": 227.5,
+     "thrusterMagDisp": 0.0
+    },
+    "spacecraft[sat-1].actuators[desat-2]": {
+     "MaxSwirlTorque": 0.0,
+     "MaxThrust": 1.0,
+     "MinOnTime": 0.0,
+     "areaNozzle": 7.9e-05,
+     "cutoffFrequency": 10.0,
+     "steadyIsp": 227.5,
+     "thrusterMagDisp": 0.0
+    },
+    "spacecraft[sat-1].actuators[desat-3]": {
+     "MaxSwirlTorque": 0.0,
+     "MaxThrust": 1.0,
+     "MinOnTime": 0.0,
+     "areaNozzle": 7.9e-05,
+     "cutoffFrequency": 10.0,
+     "steadyIsp": 227.5,
+     "thrusterMagDisp": 0.0
+    },
+    "spacecraft[sat-1].actuators[desat-4]": {
+     "MaxSwirlTorque": 0.0,
+     "MaxThrust": 1.0,
+     "MinOnTime": 0.0,
+     "areaNozzle": 7.9e-05,
+     "cutoffFrequency": 10.0,
+     "steadyIsp": 227.5,
+     "thrusterMagDisp": 0.0
+    },
+    "spacecraft[sat-1].actuators[desat-5]": {
+     "MaxSwirlTorque": 0.0,
+     "MaxThrust": 1.0,
+     "MinOnTime": 0.0,
+     "areaNozzle": 7.9e-05,
+     "cutoffFrequency": 10.0,
+     "steadyIsp": 227.5,
+     "thrusterMagDisp": 0.0
+    },
+    "spacecraft[sat-1].actuators[desat-6]": {
+     "MaxSwirlTorque": 0.0,
+     "MaxThrust": 1.0,
+     "MinOnTime": 0.0,
+     "areaNozzle": 7.9e-05,
+     "cutoffFrequency": 10.0,
+     "steadyIsp": 227.5,
+     "thrusterMagDisp": 0.0
+    },
+    "spacecraft[sat-1].actuators[desat-7]": {
+     "MaxSwirlTorque": 0.0,
+     "MaxThrust": 1.0,
+     "MinOnTime": 0.0,
+     "areaNozzle": 7.9e-05,
+     "cutoffFrequency": 10.0,
+     "steadyIsp": 227.5,
+     "thrusterMagDisp": 0.0
+    },
+    "spacecraft[sat-1].actuators[desat-8]": {
+     "MaxSwirlTorque": 0.0,
+     "MaxThrust": 1.0,
+     "MinOnTime": 0.0,
+     "areaNozzle": 7.9e-05,
+     "cutoffFrequency": 10.0,
+     "steadyIsp": 227.5,
+     "thrusterMagDisp": 0.0
+    },
+    "spacecraft[sat-1].actuators[rw-1]": {
+     "Jg": 0.00954929658551372,
+     "Js": 0.01909859317102744,
+     "Jt": 0.00954929658551372,
+     "Omega_max": 628.3185307179587,
+     "P_max": -1.0,
+     "RWModel": 0,
+     "U_d": 2.2e-07,
+     "U_s": 1.5e-06,
+     "betaStatic": -1.0,
+     "cViscous": 0.0,
+     "fCoulomb": 0.0,
+     "fStatic": 0.0,
+     "mass": 6.0,
+     "u_max": 0.2,
+     "u_min": 0.0
+    },
+    "spacecraft[sat-1].actuators[rw-2]": {
+     "Jg": 0.00954929658551372,
+     "Js": 0.01909859317102744,
+     "Jt": 0.00954929658551372,
+     "Omega_max": 628.3185307179587,
+     "P_max": -1.0,
+     "RWModel": 0,
+     "U_d": 2.2e-07,
+     "U_s": 1.5e-06,
+     "betaStatic": -1.0,
+     "cViscous": 0.0,
+     "fCoulomb": 0.0,
+     "fStatic": 0.0,
+     "mass": 6.0,
+     "u_max": 0.2,
+     "u_min": 0.0
+    },
+    "spacecraft[sat-1].actuators[rw-3]": {
+     "Jg": 0.00954929658551372,
+     "Js": 0.01909859317102744,
+     "Jt": 0.00954929658551372,
+     "Omega_max": 628.3185307179587,
+     "P_max": -1.0,
+     "RWModel": 0,
+     "U_d": 2.2e-07,
+     "U_s": 1.5e-06,
+     "betaStatic": -1.0,
+     "cViscous": 0.0,
+     "fCoulomb": 0.0,
+     "fStatic": 0.0,
+     "mass": 6.0,
+     "u_max": 0.2,
+     "u_min": 0.0
+    },
+    "spacecraft[sat-1].actuators[rw-4]": {
+     "Jg": 0.00954929658551372,
+     "Js": 0.01909859317102744,
+     "Jt": 0.00954929658551372,
+     "Omega_max": 628.3185307179587,
+     "P_max": -1.0,
+     "RWModel": 0,
+     "U_d": 2.2e-07,
+     "U_s": 1.5e-06,
+     "betaStatic": -1.0,
+     "cViscous": 0.0,
+     "fCoulomb": 0.0,
+     "fStatic": 0.0,
+     "mass": 6.0,
+     "u_max": 0.2,
+     "u_min": 0.0
+    }
+   },
    "dynamics_task_rate_s": 1.0,
+   "effective_config_note": "effective_defaults: each key the engine read that the file does not give, with the value it used; null: the engine set nothing, so the Basilisk module keeps its own value or the option is off. device_parameters: the values Basilisk's factories gave each wheel and thruster, in Basilisk's SI units (kg, kg*m^2, rad/s, N*m, N, s, W)",
+   "effective_defaults": {
+    "spacecraft[sat-1].control_params": {
+     "K": 0.5877407407407407,
+     "Ki": -1.0,
+     "P": 5.0377777777777775,
+     "integral_limit": 0.0
+    },
+    "spacecraft[sat-1].fsw_params": {
+     "target_body": null
+    }
+   },
    "frames": {
     "B": {
      "axes": "fixed to the spacecraft structure, as given by inertia_kg_m2 and device axes",
@@ -172,6 +326,7 @@
     "sat-1_thrMomentumManagement": 3863100428
    },
    "scenario_file": "",
+   "scenario_file_migrations": [],
    "scenario_file_sha256": "",
    "series_frames": {
     "sat-1.attitude_sigma_BN": "B relative to N",

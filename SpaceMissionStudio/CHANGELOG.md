@@ -355,6 +355,16 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   what every run shares (integrator, tolerances, time step, frames, data
   files); each run's seeds stay in its `run<N>.json`. A SIL report now has
   the versions, the scenario's SHA-256, the time and the run's own record.
+- **A run records the values it used that the file does not give:**
+  `provenance.json` gains `effective_defaults`: each key a sensor's,
+  actuator's, command's, `fsw_params` or `control_params` dictionary
+  leaves out, with the value the engine applied (the inertia-scaled
+  attitude gains, a sun sensor's 90 deg field of view, ...). It also gains
+  `device_parameters`, each reaction wheel's and thruster's values from
+  Basilisk's factory (inertia, torque, thrust, Isp, ...). A file written by an
+  older version is no longer brought up to date silently: `validate` lists
+  each value its migration changed (`MIGRATED:`), and the run records them
+  (`scenario_file_migrations`) (transparency plan, Phase 2c).
 
 ## 1.3.1 (2026-10-27)
 

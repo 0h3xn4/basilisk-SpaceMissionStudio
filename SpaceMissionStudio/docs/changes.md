@@ -17,6 +17,16 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-29: the effective configuration (Phase 2c)
+
+**No number changes.** In the regression baseline, each of the 31
+templates differs only in the four new provenance fields:
+`effective_defaults`, `device_parameters`, `effective_config_note` and
+`scenario_file_migrations`, the last empty because the baseline runs the
+service directly. The record notes the defaults the engine already applied
+and reads back the values Basilisk's factories already gave. It changes
+none of them, and every series, event, figure and other record is as before.
+
 ## 2026-10-29: the records of a lifetime, a budget, a batch and a SIL run (Phase 2g)
 
 **No number changes.** The regression baseline of all 31 templates differs

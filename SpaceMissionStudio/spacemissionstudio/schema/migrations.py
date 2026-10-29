@@ -39,6 +39,7 @@ version the file declares up to ``CURRENT_SCHEMA_VERSION``, so a very old
 file still loads even after several schema versions have shipped.
 """
 
+import copy
 from collections.abc import Callable
 
 from .scenario import CURRENT_SCHEMA_VERSION, ScenarioValidationError
@@ -107,7 +108,32 @@ MIGRATIONS: dict[int, Callable[[dict], dict]] = {
 }
 
 
-def migrate(data: dict) -> dict:
+def _diff(before, after, path: str, step: str, out: list) -> None:
+    """The values that differ between ``before`` and ``after``, as
+    ``{"step", "path", "before", "after"}`` entries in ``out``; a value
+    added has no ``before``, one removed no ``after``."""
+    if isinstance(before, dict) and isinstance(after, dict):
+        for key in sorted(set(before) | set(after), key=str):
+            inner = f"{path}.{key}" if path else str(key)
+            if key not in after:
+                out.append({"step": step, "path": inner, "before": before[key]})
+            elif key not in before:
+                out.append({"step": step, "path": inner, "after": after[key]})
+            else:
+                _diff(before[key], after[key], inner, step, out)
+    elif isinstance(before, list) and isinstance(after, list) and len(before) == len(after):
+        for index, (old, new) in enumerate(zip(before, after)):
+            _diff(old, new, f"{path}[{index}]", step, out)
+    elif before != after:
+        out.append({"step": step, "path": path, "before": before, "after": after})
+
+
+def migrate(data: dict, changes: list | None = None) -> dict:
+    """``data``, a scenario file's JSON, brought up to
+    ``CURRENT_SCHEMA_VERSION`` one step at a time. With ``changes``, each
+    value a step changed, added or removed is appended to it (``_diff``;
+    the version number itself left out): what loading the file changed,
+    for the run's provenance (transparency audit, Phase 2c)."""
     version = data.get("schema_version")
     # bool is a subclass of int in Python (isinstance(True, int) is True),
     # so a malformed file with "schema_version": true/false would
@@ -137,7 +163,12 @@ def migrate(data: dict) -> dict:
                 f"no migration registered from schema_version {version} to "
                 f"{version + 1} -- this indicates a bug in SpaceMissionStudio, not a bad file."
             )
+        before = copy.deepcopy(data) if changes is not None else None
         data = step(data)
+        if changes is not None:
+            found: list = []
+            _diff(before, data, "", f"{version} -> {version + 1}", found)
+            changes.extend(entry for entry in found if entry["path"] != "schema_version")
         new_version = data.get("schema_version")
         if new_version != version + 1:
             raise ScenarioValidationError(

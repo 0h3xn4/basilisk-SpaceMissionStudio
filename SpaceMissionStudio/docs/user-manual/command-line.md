@@ -45,7 +45,29 @@ Useful `run` options:
 older file was brought up to date: running it again runs the same
 scenario. `provenance.json` names the file you gave and the SHA-256 of
 its bytes, the SHA-256 of the scenario as run, every data file used with
-its SHA-256, and the run's warnings (`run_warnings`).
+its SHA-256, and the run's warnings (`run_warnings`). It also gives the
+values used that your file does not give: the engine's defaults for the
+keys a device's `params` leave out, with the value applied
+(`effective_defaults`), and each wheel's and thruster's values from
+Basilisk's catalogue (`device_parameters`).
+
+A file written by an older version is brought up to date as it loads.
+`validate` lists each value that changed in a `MIGRATED:` line, and the
+run records them (`scenario_file_migrations`):
+
+```console
+$ spacemissionstudio validate old.json
+OK: 'old' -- 1 spacecraft, schema version 4, epoch 2030-01-01T00:00:00
+MIGRATED: schema 1 -> 2: space_weather.source 'celestrak' -> 'synthetic'
+MIGRATED: schema 2 -> 3: space_weather.source 'synthetic' -> 'bundled'
+```
+
+`archive.provenance.json` in a Monte Carlo folder names the file you gave
+and the SHA-256 of its bytes and of the scenario. Under `nominal_run` it
+gives what every run shares: the integrator and its tolerances, the time
+step, the central body, the frames and every data file with its SHA-256.
+It gives no seeds: each run draws its own, and they are in its
+`run<N>.json`.
 
 `archive.provenance.json` in a Monte Carlo folder names the file you gave
 and the SHA-256 of its bytes and of the scenario. Under `nominal_run` it

@@ -357,7 +357,8 @@ def test_a_batch_records_what_its_runs_share_and_where_their_seeds_are(tmp_path)
     from spacemissionstudio.engine.monte_carlo import ARCHIVE_SEEDS_NOTE, run_monte_carlo
 
     scenario = _short(_scenario())
-    assert run_monte_carlo(scenario, scenario.monte_carlo, tmp_path, scenario_file=("s.json", "cd" * 32)) == []
+    file_record = {"scenario_file": "s.json", "scenario_file_sha256": "cd" * 32, "scenario_file_migrations": []}
+    assert run_monte_carlo(scenario, scenario.monte_carlo, tmp_path, scenario_file=file_record) == []
     record = json.loads((tmp_path / "archive.provenance.json").read_text(encoding="utf-8"))
     assert (record["scenario_file"], record["scenario_file_sha256"]) == ("s.json", "cd" * 32)
     nominal = record["nominal_run"]

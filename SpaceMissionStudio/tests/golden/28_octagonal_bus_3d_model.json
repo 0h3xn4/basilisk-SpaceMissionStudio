@@ -311,7 +311,91 @@
    "basilisk_qualified": true,
    "central_body": "earth",
    "central_body_mu_m3_s2": 398600436000000.0,
+   "device_parameters": {
+    "spacecraft[octa-sat].actuators[rw-x]": {
+     "Jg": 0.00954929658551372,
+     "Js": 0.01909859317102744,
+     "Jt": 0.00954929658551372,
+     "Omega_max": 628.3185307179587,
+     "P_max": -1.0,
+     "RWModel": 0,
+     "U_d": 2.2e-07,
+     "U_s": 1.5e-06,
+     "betaStatic": -1.0,
+     "cViscous": 0.0,
+     "fCoulomb": 0.0,
+     "fStatic": 0.0,
+     "mass": 6.0,
+     "u_max": 0.2,
+     "u_min": 0.0
+    },
+    "spacecraft[octa-sat].actuators[rw-y]": {
+     "Jg": 0.00954929658551372,
+     "Js": 0.01909859317102744,
+     "Jt": 0.00954929658551372,
+     "Omega_max": 628.3185307179587,
+     "P_max": -1.0,
+     "RWModel": 0,
+     "U_d": 2.2e-07,
+     "U_s": 1.5e-06,
+     "betaStatic": -1.0,
+     "cViscous": 0.0,
+     "fCoulomb": 0.0,
+     "fStatic": 0.0,
+     "mass": 6.0,
+     "u_max": 0.2,
+     "u_min": 0.0
+    },
+    "spacecraft[octa-sat].actuators[rw-z]": {
+     "Jg": 0.00954929658551372,
+     "Js": 0.01909859317102744,
+     "Jt": 0.00954929658551372,
+     "Omega_max": 628.3185307179587,
+     "P_max": -1.0,
+     "RWModel": 0,
+     "U_d": 2.2e-07,
+     "U_s": 1.5e-06,
+     "betaStatic": -1.0,
+     "cViscous": 0.0,
+     "fCoulomb": 0.0,
+     "fStatic": 0.0,
+     "mass": 6.0,
+     "u_max": 0.2,
+     "u_min": 0.0
+    }
+   },
    "dynamics_task_rate_s": 1.0,
+   "effective_config_note": "effective_defaults: each key the engine read that the file does not give, with the value it used; null: the engine set nothing, so the Basilisk module keeps its own value or the option is off. device_parameters: the values Basilisk's factories gave each wheel and thruster, in Basilisk's SI units (kg, kg*m^2, rad/s, N*m, N, s, W)",
+   "effective_defaults": {
+    "spacecraft[octa-sat].control_params": {
+     "K": 0.42609316398703706,
+     "Ki": -1.0,
+     "P": 3.6522271198888894,
+     "integral_limit": 0.0
+    },
+    "spacecraft[octa-sat].fsw_params": {
+     "min_unit_mag": 0.1,
+     "sun_axis_spin_rate_rad_s": 0.0,
+     "target_body": null,
+     "use_css_estimation": null
+    },
+    "spacecraft[octa-sat].sensors[css-1].params": {
+     "bias": 0.0,
+     "fault_mode": "none",
+     "fov_deg": 90.0,
+     "noise_std": 0.0
+    },
+    "spacecraft[octa-sat].sensors[imu-1].params": {
+     "accel_bias_m_s2": null,
+     "accel_lsb_m_s2": 0.0,
+     "accel_noise_m_s2": 0.0,
+     "gyro_bias_rad_s": null,
+     "gyro_lsb_rad_s": 0.0
+    },
+    "spacecraft[octa-sat].sensors[st-1].params": {
+     "bias_walk_bound_arcsec": null
+    }
+   },
    "frames": {
     "B": {
      "axes": "fixed to the spacecraft structure, as given by inertia_kg_m2 and device axes",
@@ -408,6 +492,7 @@
     "zeroWind": 507670478
    },
    "scenario_file": "",
+   "scenario_file_migrations": [],
    "scenario_file_sha256": "",
    "series_frames": {
     "octa-sat.attitude_sigma_BN": "B relative to N",

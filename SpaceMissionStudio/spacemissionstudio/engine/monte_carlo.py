@@ -447,7 +447,7 @@ def _default_retention_policy(scenario: Scenario) -> RetentionPolicy:
 
 def run_monte_carlo(scenario: Scenario, mc_config: MonteCarloConfig, archive_dir: str | Path,
                     allow_scripts: bool = False, overwrite: bool = False,
-                    scenario_file: tuple[str, str] | None = None) -> list[int]:
+                    scenario_file: dict | None = None) -> list[int]:
     """Runs ``mc_config.num_runs`` dispersed executions of ``scenario`` via
     ``Basilisk.utilities.MonteCarlo.Controller``, archiving retained
     position/velocity data (JSON per-run parameter files plus the
@@ -461,8 +461,9 @@ def run_monte_carlo(scenario: Scenario, mc_config: MonteCarloConfig, archive_dir
     Carlo tab and ``spacemissionstudio monte-carlo`` show. A failure there
     is logged and does not fail the batch. Last, it writes the batch's
     provenance, ``archive.provenance.json`` (:func:`archive_record`), with
-    ``scenario_file``: the name of the file the scenario was loaded from and
-    the SHA-256 of its bytes, when it is that file unchanged.
+    ``scenario_file``: the record of the file the scenario was loaded from
+    (``output_provenance.scenario_file_record``), when it is that file
+    unchanged.
 
     ``scenario`` must already be valid (``scenario.validate()`` -- this
     function does not re-validate it, since :func:`SimulationService.build`
@@ -564,14 +565,16 @@ ARCHIVE_SEEDS_NOTE = ("each run's own: Basilisk's Monte Carlo Controller draws t
 # start time, its seeds; a batch's are each run's own).
 _NOT_NOMINAL = {"spacemissionstudio_version", "basilisk_version", "qualified_basilisk_version",
                 "basilisk_qualified", "dependency_versions", "scenario_sha256", "scenario_file",
-                "scenario_file_sha256", "run_started_utc", "rng_seed", "rng_seed_note", "rng_seeds"}
+                "scenario_file_sha256", "scenario_file_migrations", "run_started_utc", "rng_seed", "rng_seed_note",
+                "rng_seeds"}
 
 
-def archive_record(scenario: Scenario, scenario_file: tuple[str, str] | None = None) -> dict:
+def archive_record(scenario: Scenario, scenario_file: dict | None = None) -> dict:
     """The provenance of a batch of ``scenario`` (transparency audit,
     Phase 2g): the tool and Basilisk versions, the scenario's hash (its
-    dispersions included), the file it came from (``scenario_file``: name
-    and SHA-256 of its bytes, else empty) and the time; and as
+    dispersions included), the file it came from (``scenario_file``: its
+    name, the SHA-256 of its bytes and what loading it changed, else empty)
+    and the time; and as
     ``nominal_run`` what every run shares, from the record a run of it
     would carry (:meth:`.SimulationService.nominal_provenance`: integrator,
     tolerances, task rates, central body, frames, time system, data files).
@@ -581,8 +584,9 @@ def archive_record(scenario: Scenario, scenario_file: tuple[str, str] | None = N
     workers from this process, where a Basilisk simulation left over can
     hang them (see :func:`run_monte_carlo`). A nominal build that fails is
     recorded as its error."""
-    name, file_sha256 = scenario_file or ("", "")
-    record = dict(output_provenance.scenario_record(scenario), scenario_file=name, scenario_file_sha256=file_sha256)
+    record = dict(output_provenance.scenario_record(scenario), scenario_file="", scenario_file_sha256="",
+                  scenario_file_migrations=[])
+    record.update(scenario_file or {})
     try:
         nominal = SimulationService(scenario).nominal_provenance().to_dict()
     except Exception as exc:  # noqa: BLE001 -- the batch ran; its record says what could not be built

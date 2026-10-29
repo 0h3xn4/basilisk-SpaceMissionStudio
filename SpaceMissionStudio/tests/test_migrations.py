@@ -148,3 +148,27 @@ def test_a_version_below_one_is_named_as_a_bad_file(version):
     with pytest.raises(ScenarioValidationError, match="scenario versions start at 1") as raised:
         migrate(data)
     assert "bug" not in str(raised.value)
+
+
+def test_what_loading_an_older_file_changes_is_recorded(tmp_path):
+    """Transparency audit, Phase 2c: an older file was brought up to date
+    silently. ``migrate`` now lists each value a step changed, added or
+    removed, and the file's record (``output_provenance.scenario_file_record``)
+    carries them; a current file has none."""
+    from spacemissionstudio import output_provenance
+
+    changes: list = []
+    migrate(_v1_scenario({"source": "celestrak", "activity_level": "conservative"}), changes)
+    assert changes == [
+        {"step": "1 -> 2", "path": "space_weather.activity_level", "before": "conservative", "after": "nominal"},
+        {"step": "1 -> 2", "path": "space_weather.source", "before": "celestrak", "after": "synthetic"},
+        {"step": "2 -> 3", "path": "space_weather.source", "before": "synthetic", "after": "bundled"},
+        {"step": "3 -> 4", "path": "space_weather.activity_level", "before": "nominal"},
+    ]
+    path = tmp_path / "old.json"
+    path.write_text(json.dumps(_v1_scenario({"source": "celestrak"})))
+    record = output_provenance.scenario_file_record(path)
+    assert record["scenario_file"] == "old.json" and len(record["scenario_file_sha256"]) == 64
+    assert [c["path"] for c in record["scenario_file_migrations"]] == ["space_weather.source"] * 2
+    load_scenario(path).save(path)
+    assert output_provenance.scenario_file_record(path)["scenario_file_migrations"] == []

@@ -95,7 +95,15 @@ Every export records its provenance: the software versions, the
 checksum of every input, and the run's warnings, so you can tell later
 exactly what produced it and what it was warned of. A run started from a
 saved file with no unsaved edits also records the file's name and the
-checksum of its bytes.
+checksum of its bytes, and what loading it changed if it was written by
+an older version.
+
+It also records the values the run used that your file does not give
+(`effective_defaults` in `provenance.json`). For example, the attitude
+gains worked out from the spacecraft's inertia, a sun sensor's 90 deg
+field of view, or a wheel's inertia from Basilisk's catalogue
+(`device_parameters`). A `null` there means the engine set nothing and
+Basilisk's own value applies.
 The Results export writes a `provenance.json` into its folder; the
 Timeline and Output exports write `<file>.provenance.json` beside
 the CSV; PNG and SVG files carry it inside the image.

@@ -1065,6 +1065,30 @@ def test_kernels_status_with_a_missing_kernel_exits_2(capsys, monkeypatch):
 
 
 @pytest.mark.requires_basilisk
+@pytest.mark.requires_basilisk
+def test_validate_and_run_say_what_loading_an_older_file_changed(tmp_path, capsys):
+    """Transparency audit, Phase 2c: an older file was brought up to date
+    silently. ``validate`` lists each value its migration changed, and the
+    run's provenance records them (``scenario_file_migrations``); the
+    run's effective configuration names the defaults it applied."""
+    from spacemissionstudio.schema import SimSettings
+
+    path = tmp_path / "old.json"
+    data = _write_scenario(path, sim_settings=SimSettings(duration_days=0.01)).to_dict()  # [day]
+    data["schema_version"] = 1
+    data["space_weather"]["source"] = "celestrak"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    assert cli.main(["validate", str(path)]) == 0
+    out = capsys.readouterr().out
+    assert "MIGRATED: schema 1 -> 2: space_weather.source 'celestrak' -> 'synthetic'" in out
+    assert "MIGRATED: schema 2 -> 3: space_weather.source 'synthetic' -> 'bundled'" in out
+    assert cli.main(["run", str(path), "--out-dir", str(tmp_path / "out")]) == 0
+    record = json.loads((tmp_path / "out" / "provenance.json").read_text())
+    assert [(c["step"], c["path"]) for c in record["scenario_file_migrations"]] == [
+        ("1 -> 2", "space_weather.source"), ("2 -> 3", "space_weather.source")]
+    assert "effective_defaults" in record and record["effective_config_note"]
+
+
 def test_run_keeps_the_scenario_as_run_and_the_file_it_came_from(tmp_path, capsys):
     """Transparency audit 2a, 2b, 2f: the output folder holds the scenario
     as run (scenario_as_run.json), whose canonical hash is the provenance's

@@ -884,3 +884,20 @@ never named "_TabBar".
 | `tests/golden_capture.py` (`_plain`) | Captured every field of a lifetime's and a budget's result | Leaves out `data_files` | They are this computer's paths, sizes and hashes, as the run provenance's `data_files` already left out; every other field is still captured and compared |
 | `tests/golden/*.json` (regression baseline) | A lifetime held no `area_m2` or `drag_coeff` | Rewritten: each lifetime gains `area_m2` and `drag_coeff` | The two new fields of `EndOfLife`; the comparison before the rewrite found no other difference |
 | `tests/gui/test_export_files.py::test_every_export_is_byte_identical_to_1_1_0` | Compared the SIL report with 1.1.0's byte for byte | Removes its `provenance`, which must be there, then compares the rest byte for byte | The SIL report now records its provenance; every other byte is still 1.1.0's, as for the provenance files' new keys |
+
+## The effective configuration (2026-10-29)
+
+- Added `test_effective_config.py` (4 tests: the recording dictionary, the
+  places recorded, a factory's values read back, and a real build of
+  template 07), `test_migrations.py::test_what_loading_an_older_file_changes_is_recorded`
+  and `test_cli.py::test_validate_and_run_say_what_loading_an_older_file_changed`
+  (Phase 2c). Each fails on the code before (checked: 2 failed, and
+  `test_effective_config.py` cannot import the module that does not exist
+  there).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_monte_carlo.py::test_a_batch_records_what_its_runs_share_and_where_their_seeds_are` | Passed the scenario file as a (name, SHA-256) pair | Passes the file's record, a dictionary that also holds its migrations | The file record now carries what loading changed; the same fields are asserted |
+| `tests/golden/*.json` (regression baseline) | The run provenance had no effective configuration | Rewritten: each run provenance gains `effective_defaults`, `device_parameters`, `effective_config_note` and an empty `scenario_file_migrations` | The new provenance fields; the comparison found no other difference |
+| `test_results.py::test_result_set_export_csv_with_provenance_writes_sidecar_json` | Expected the record's fields up to `run_warnings` | Also expects `effective_defaults`, `effective_config_note`, `device_parameters` and `scenario_file_migrations` (empty) | The new provenance fields; the test still checks every field the file holds |
+| `tests/gui/test_export_files.py::test_every_export_is_byte_identical_to_1_1_0` | Removed the nine provenance keys added since 1.1.0 before comparing | Also removes the four of the effective configuration, which must be there | As above; every other byte is still compared with 1.1.0's |

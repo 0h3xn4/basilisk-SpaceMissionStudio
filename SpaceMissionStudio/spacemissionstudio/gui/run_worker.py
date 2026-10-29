@@ -220,12 +220,12 @@ class MonteCarloWorker(QThread):
     cancelled = Signal(int)  # the cases finished before Cancel (audit G3)
 
     def __init__(self, scenario: Scenario, mc_config: MonteCarloConfig, archive_dir: Path, parent=None,
-                 allow_scripts: bool = False, overwrite: bool = False, scenario_file: tuple[str, str] | None = None):
+                 allow_scripts: bool = False, overwrite: bool = False, scenario_file: dict | None = None):
         super().__init__(parent)
         self.scenario = scenario
         self.mc_config = mc_config
         self.archive_dir = archive_dir
-        self.scenario_file = scenario_file  # the unchanged file the batch is of: name and SHA-256 of its bytes
+        self.scenario_file = scenario_file  # the unchanged file the batch is of (output_provenance.scenario_file_record)
         self.allow_scripts = allow_scripts  # the user agreed to the Mission Sequence's script blocks
         self.overwrite = overwrite  # the user agreed to replace an earlier batch in archive_dir
         self._cancel = False

@@ -5,6 +5,40 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The effective configuration (2026-10-29)
+
+The transparency plan's Phase 2c (`docs/transparency_audit.md` 9.2; gaps C
+(a) and (h), 4.2 "Engine defaults behind open `params`", 5 "Silent
+migrations").
+
+- **Noted where the engine reads, not listed beside it:** each open
+  `params` dictionary is wrapped at build time in a `RecordedParams` that
+  notes the keys read and missing, with the default the reader passed. A
+  separate list of the 36 defaults would be a second copy free to drift
+  from the code. The note is of what this run read: a key that only one
+  mode reads appears only when that mode runs.
+- **In place, after validation:** the dictionaries are wrapped in the
+  scenario being run, after `validate()`, so only the engine's reads are
+  noted. The service does not copy its scenario: the mission engine and
+  Monte Carlo share it. Every caller hands the service a scenario of its
+  own (the GUI's `to_scenario()`, a loaded file, a segment's copy), so no
+  editor holds the dictionaries replaced. A `RecordedParams` is still a
+  `dict` with the same items: equal to one, saved and pickled as one.
+- **`None` kept, and explained:** a default of `None` means the engine
+  sets nothing and the Basilisk module keeps its own value. The record
+  says so (`effective_config_note`) rather than leaving the key out. The
+  Basilisk value itself is not read back; for the devices it is.
+- **Devices read back from Basilisk:** a named wheel or thruster takes its
+  values from Basilisk's factory. They are read from the devices the
+  factory made, in Basilisk's SI units, not looked up in its source, so
+  the record is what the simulation flew.
+- **Migrations from the file, beside its hash:** loading an older file
+  changes values (a v1 `"celestrak"` source becomes `"bundled"`). The
+  changes are worked out from the file's bytes with the file's hash
+  (`output_provenance.scenario_file_record`), so they are recorded exactly
+  when the file is: by `run`, and by the GUI for a run of an unchanged
+  file. `validate` prints them.
+
 ## The records of a lifetime, a budget, a batch and a SIL run (2026-10-29)
 
 The transparency plan's Phase 2g (`docs/transparency_audit.md` 9.2, gap 8):
