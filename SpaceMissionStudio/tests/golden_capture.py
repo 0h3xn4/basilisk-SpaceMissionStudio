@@ -72,13 +72,13 @@ computer that wrote the baseline disagreed on 22 templates, Windows on all
   on Linux), every number is held to :data:`CROSS_LIBRARY_RELATIVE_TOLERANCE`
   only. A spacecraft whose attitude loop closes through noisy sensors
   carries the other noise into its wheels (4.8e-6 of their scale on
-  Windows), and a controller that switches (template 21's magnetorquer
-  momentum dumping) turns last-bit differences of the platform's math
-  library, which picks its routines by CPU, into shifted switching times:
-  7.6e-4 of scale on one Windows run, 1e-9 on another of the same
-  outputs. No small bound exists for that, so the fine check is the
-  recording platform's; elsewhere texts, counts, events and warnings
-  still match exactly and numbers within 1 %.
+  Windows), and template 21's switching magnetorquer controller moved by
+  up to 7.6e-4 of scale between two commits on Windows whose only engine
+  change (recorder seed names) changes nothing on Linux, bit for bit. The
+  cause was not found (HISTORY.md); a switching controller amplifies any
+  last-bit difference, so no small bound can be given. The fine check is
+  therefore the recording platform's; elsewhere texts, counts, events and
+  warnings still match exactly and numbers within 1 %.
 
 Anything else must match exactly: texts, counts, events, warnings, keys.
 A change smaller than these tolerances is not caught; it is still a change,

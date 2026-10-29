@@ -14437,10 +14437,12 @@ Full suite on Python 3.14 (a home holding only the reference data cache): 3989 p
 the sensor-noise rule's own test assumed it ran on Linux (its fixture is
 now recorded on the running platform), and template 21's `rods-on`
 magnetorquer dipole and wheel speeds were up to 7.6e-4 of scale away,
-where the first Windows run had matched them within 1e-9. Only the
-recorder seed names had changed between the two, and recorders draw no
-random numbers, so the cause is taken to be the runner: Windows' C
-runtime picks its math routines by CPU, and the momentum-dumping
-controller switches. Off the recording platform the check is now 1 % of
-scale for every number (texts, counts, events and warnings still exact);
-the 1e-6 check is Linux's.
+where the first Windows run had matched them within 1e-9. Both Windows
+runs of each commit gave the same values, and the only engine change
+between the commits was the recorder seed names. Checked on Linux: with
+every recorder seed changed, and with all 30 other templates run first in
+the same process, template 21 is bit-identical. The cause was not found;
+the momentum-dumping controller switches, so any last-bit difference can
+move it. Off the recording platform the check is now 1 % of scale for
+every number (texts, counts, events and warnings still exact); the 1e-6
+check is Linux's.
