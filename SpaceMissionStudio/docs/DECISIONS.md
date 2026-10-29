@@ -30,6 +30,20 @@ The transparency plan's Phase 1a (`docs/transparency_audit.md` 9.2).
   drag-driven budget.
 - **`docs/changes.md` starts empty:** the baseline changes no number.
 
+## Transparency plan (2026-10-29)
+
+The user's answers to `docs/transparency_audit.md` Section 10, recorded there in 10.1.
+
+- **YAML for configuration:** comments and units can sit next to each value; PyYAML already
+  ships in the installers.
+- **One set of constants, with each changed number recorded:** today three sets of Earth
+  constants and two solar fluxes give slightly different numbers in different views.
+- **Change history in a sidecar file:** the scenario stays a clean input for version control.
+- **Author from Settings, defaulting to the operating-system user name:** the audit gave no
+  recommendation here. This reading works without setup and can be corrected by the user.
+- **Defect 3.4:** the GUI shows the gains applied after inertia scaling. The scaling is kept,
+  because the unscaled gains diverge for small spacecraft (HISTORY.md).
+
 ## Temporary folders and refusals of the wrong shape (2026-10-29)
 
 The audit's R14 and a note under R5.
