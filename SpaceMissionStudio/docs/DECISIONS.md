@@ -5,6 +5,77 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Regression baseline (2026-10-29)
+
+The transparency plan's Phase 1a (`docs/transparency_audit.md` 9.2).
+
+- **Fingerprints, not whole outputs:** each column of each series is kept
+  as its first, last, least, greatest and mean value and 11 evenly spaced
+  samples. 1.4 MB for 31 templates, where the full CSVs are hundreds of MB,
+  and a change anywhere in a column moves at least its mean.
+- **Runs capped at 6 hours of simulated time:** the full templates take
+  about 20 minutes one after another; capped, the baseline takes 8 min 57 s
+  here, 2 min 54 s on 8 test workers. A Mission Sequence runs in full
+  (at most 14.4 h), since its steps set the length.
+- **Compared within what two computers disagree on, rule by rule**
+  (`tests/golden_capture.py`, "How numbers are compared"). A first
+  tolerance of 1e-9 of each quantity's scale held here (two runs gave
+  identical fingerprints) but failed on CI: 22 templates on Linux, all 31
+  on Windows. CI's two Linux runs agreed with each other byte for byte;
+  every difference was traced:
+  - last bits amplified by ill-conditioned quantities: the angles of a
+    circular orbit (an arccos near 1 gives 0 or 2^-26 = 1.5e-8 rad), the
+    eccentricity of a circular orbit (2e-15), a mean semi-major axis
+    change (a difference of two means of 7000 km), the relative orbit
+    elements made from those angles (0.1 m);
+  - angles wrapping at 2*pi (a RAAN of 0 against 6.283185);
+  - sensor noise: Basilisk's GaussMarkov draws from
+    `std::normal_distribution`, whose algorithm each C++ standard library
+    chooses, so Windows (MSVC) and Linux draw different noise from the same
+    seed, and a spacecraft that closes its attitude loop through its
+    sensors carries it into its wheels (4.8e-6 of scale);
+  - recorder seed keys spelled by the compiler (a defect, fixed below).
+
+  The rules: 1e-6 of the quantity's scale (well-conditioned outputs
+  differed by at most 3.8e-7); absolute floors by unit, about ten times the
+  largest difference measured (1e-6 rad, 1e-12 for eccentricity, 1 m for
+  relative orbit elements); wrapping angles modulo 2*pi, first, last and
+  samples only; a sensor output from another standard library by its
+  count only. Every CI difference was replayed through these rules: none
+  is reported, and CI's Linux jobs passed.
+- **Off the recording platform, a coarse check (1 %):** the second Windows
+  run found template 21's magnetorquer and wheel outputs 7.6e-4 of scale
+  away, where the first Windows run had matched them within 1e-9. Each
+  commit gave the same values on both of its Windows runs, so Windows
+  repeats itself per commit; the only engine change between the two
+  commits was the recorder seed names, and on Linux changing every
+  recorder seed, or running all 30 other templates first in the same
+  process, leaves template 21 bit-identical. **The cause was not found.**
+  A switching controller (momentum dumping) amplifies any last-bit
+  difference, so no small bound can be given. On another C++ standard
+  library every number is therefore held to 1e-2 of its scale; texts,
+  counts, events and warnings still match exactly. The fine check is
+  Linux's, where the baseline is written and the developers and CI run it.
+- **What this costs:** a change smaller than 1e-6 of a quantity's scale is
+  not caught on Linux (a 1.5e-8 change of Earth's GM moves a 6-hour LEO
+  position by about 2e-7 of its scale), nor one under 1 % on Windows. A
+  Linux computer whose math library rounds differently could in principle
+  also shift template 21's switches; none has so far (this computer and
+  CI's Linux runners).
+- **Recorder seed keys the same on every platform** (`engine.seeds.model_key`):
+  Basilisk names a recorder after the message type as the compiler spells
+  it ("Rec:SCStatesMsg" with GCC, "Rec:class <struct SCStatesMsg" with
+  MSVC), so the provenance listed different keys on Windows. Recorders draw
+  no random numbers: no result changes.
+- **Isolated as every test is:** the capture runs in a home of its own (no
+  downloaded space weather, no installed Earth orientation files), so the
+  update script and the test compute the same thing.
+- **Budgets with an Isp of 220 s on templates 22 and 26** as well:
+  26 of the 31 templates have no orbit thruster, so their budget is
+  refused; the refusal is recorded, and these two also exercise the
+  drag-driven budget.
+- **`docs/changes.md` starts empty:** the baseline changes no number.
+
 ## Transparency plan (2026-10-29)
 
 The user's answers to `docs/transparency_audit.md` Section 10, recorded there in 10.1.

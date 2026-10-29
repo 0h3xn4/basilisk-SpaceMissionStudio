@@ -14377,3 +14377,72 @@ of the user (Section 10).
 
 Full suite on Python 3.14 (a home holding only the reference data cache): 3953 passed.
 The user answered the six decisions (Section 10.1 records them).
+
+## Regression baseline (2026-10-29)
+
+The transparency plan, Phase 1a: before any refactor, a baseline that
+captures what every template gives today. The user answered the audit's
+decisions ("As per your recommendation" to 1-5, "Yes" to 6). Branch
+`golden-baseline`.
+
+**What is captured** (`tests/golden_capture.py`), per template:
+- the run as `spacemissionstudio run` does it, capped at 6 hours of
+  simulated time (a Mission Sequence runs in full): every series as
+  per-column first, last, min, max, mean and 11 samples; events; run
+  warnings; run-summary figures; Mission Output rows; seeds and
+  integrator settings;
+- the Explain text, the pre-run checks and the predicted passes;
+- the lifetime of every drag spacecraft over 1 year, with Cd 2.2 and with
+  its own;
+- every spacecraft's budget after the run, or its refusal (26 templates
+  have no orbit thruster), and with an Isp of 220 s on 22 and 26;
+- for the two Monte Carlo templates, a batch of 2 runs of 0.05 days.
+
+**Measured:** 31 fingerprints, 1.4 MB. Writing them took 8 min 57 s here;
+the test took 2 min 54 s on 8 workers (33 passed). A second capture gave 0
+differences on every template checked (01-04 before the isolation was
+added; the isolated write and the test then agreed on all 31). The
+slowest are 03, 05, 24 and 29 (60-76 s, their budgets solve the re-entry),
+marked `slow`.
+
+**Isolation.** Outside pytest the capture first saw this machine's
+downloaded files (Earth orientation, space-weather cache), while every test
+runs in a home of its own (`tests/conftest.py`); the capture now isolates
+itself the same way, with the installed Eros files as
+`real_small_body_files` gives them.
+
+`docs/changes.md` is started: every later change of a number is entered
+there with its before and after values before the baseline is rewritten
+(`scripts/update_golden_outputs.py --write`).
+Full suite on Python 3.14 (a home holding only the reference data cache): 3986 passed in 13 min 4 s (10 min 18 s before the baseline).
+
+**CI disagreed.** The first CI run (PR #150) failed 22 templates on Linux
+and all 31 on Windows at the 1e-9 tolerance. Its two Linux runs agreed
+byte for byte, so CI is repeatable; the differences are between computers.
+A subagent read the three job logs and listed every difference; each was
+traced (DECISIONS "Regression baseline"): last bits amplified in
+ill-conditioned quantities (circular-orbit angles 0 or 2^-26 rad, the
+initial relative orbit elements of template 29 -2000.10 m here and
+-2000.00 m on CI), angles wrapping at 2*pi, sensor noise drawn by another
+C++ standard library on Windows, and recorder seed keys spelled by the
+compiler. The comparison became rule by rule (1e-6 of scale, floors by
+unit, angles modulo 2*pi, sensor outputs by count on another library),
+and the seed keys the same on every platform (`engine.seeds.model_key`).
+Replaying the 304 Linux and 1450 Windows numeric differences through the
+new rules left none (26 lines of template 23 on Windows were cut from the
+log, so CI decides those).
+Full suite on Python 3.14 (a home holding only the reference data cache): 3989 passed in 13 min 29 s.
+
+**The second CI run** passed on Linux. On Windows, two tests failed:
+the sensor-noise rule's own test assumed it ran on Linux (its fixture is
+now recorded on the running platform), and template 21's `rods-on`
+magnetorquer dipole and wheel speeds were up to 7.6e-4 of scale away,
+where the first Windows run had matched them within 1e-9. Both Windows
+runs of each commit gave the same values, and the only engine change
+between the commits was the recorder seed names. Checked on Linux: with
+every recorder seed changed, and with all 30 other templates run first in
+the same process, template 21 is bit-identical. The cause was not found;
+the momentum-dumping controller switches, so any last-bit difference can
+move it. Off the recording platform the check is now 1 % of scale for
+every number (texts, counts, events and warnings still exact); the 1e-6
+check is Linux's.

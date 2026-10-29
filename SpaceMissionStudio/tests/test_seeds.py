@@ -27,7 +27,7 @@ from types import SimpleNamespace
 import numpy as np
 import pytest
 
-from spacemissionstudio.engine.seeds import BASILISK_DEFAULT_RNG_SEED, assign_rng_seeds, derived_seed
+from spacemissionstudio.engine.seeds import BASILISK_DEFAULT_RNG_SEED, assign_rng_seeds, derived_seed, model_key
 from spacemissionstudio.schema import ScenarioValidationError, load_scenario
 from spacemissionstudio.schema.scenario import SimSettings
 
@@ -110,3 +110,13 @@ def test_two_identical_sensors_draw_independent_noise_that_repeats_with_the_seed
 
     assert provenance.rng_seed == 0
     assert provenance.rng_seeds["sat-1_css-1"] != provenance.rng_seeds["sat-1_css-1b"]
+
+
+def test_a_recorders_seed_key_reads_the_same_on_every_platform():
+    """Basilisk names a recorder after its message type as the C++ compiler
+    spells it: "Rec:SCStatesMsg" with GCC, "Rec:class <struct SCStatesMsg"
+    with MSVC (CI's Windows run, PR #150). The provenance keys its seed by the
+    type's own name on both; other tags are kept as they are."""
+    assert model_key("Rec:SCStatesMsg") == model_key("Rec:class <struct SCStatesMsg") == "Rec:SCStatesMsg"
+    assert model_key("Rec:SpicePlanetStateMsg") == "Rec:SpicePlanetStateMsg"
+    assert model_key("sat-1Drag") == "sat-1Drag"

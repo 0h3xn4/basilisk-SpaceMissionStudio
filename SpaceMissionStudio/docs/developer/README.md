@@ -67,6 +67,19 @@ QT_QPA_PLATFORM=offscreen python -m pytest tests -q -n auto
   local run.
 - One file at a time: `python -m pytest tests/test_cli.py -q`.
 
+**The regression baseline.** `tests/test_golden_outputs.py` checks that
+every template still gives the outputs stored in `tests/golden/` (one JSON
+fingerprint per template; `tests/golden_capture.py` says what is captured
+and how it is compared). When a change of a number is meant, record it in
+[`docs/changes.md`](../changes.md) with its before and after values, then
+rewrite the baseline:
+
+```bash
+python scripts/update_golden_outputs.py           # list the differences, write nothing
+python scripts/update_golden_outputs.py --write   # rewrite every fingerprint
+python scripts/update_golden_outputs.py 22_ 26_   # only these templates
+```
+
 **Offline tests.** `tests/test_offline.py` checks that nothing touches the
 network. CI runs it inside a network namespace with no network at all:
 

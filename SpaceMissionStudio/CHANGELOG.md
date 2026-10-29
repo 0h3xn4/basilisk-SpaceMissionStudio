@@ -265,6 +265,21 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   75.7 %: its tests already run in the test process, so what it lacks is
   tests, of `earth-orientation`, `monte-carlo` and `ccsds-import` above
   all (audit R11).
+- **A regression baseline of every template:** `tests/test_golden_outputs.py`
+  checks that all 31 templates still give the outputs recorded in
+  `tests/golden/`: every series, event, warning and summary figure of a
+  run capped at 6 hours, the Explain text, the lifetime of each drag
+  spacecraft, every budget or its refusal, and a Monte Carlo batch. A
+  number may now change only with an entry in the new `docs/changes.md`
+  (transparency plan, Phase 1a). Numbers are compared within what two
+  computers disagree on: on Linux, where it is written, 1e-6 of each
+  quantity's scale, with floors for ill-conditioned values and angles
+  modulo 2*pi; on Windows 1 %, with sensor noise (another random draw
+  there) compared by its count only.
+- **The provenance names recorder seeds the same on Windows:** they were
+  keyed by the compiler's spelling of the message type
+  (`Rec:class <struct SCStatesMsg` on Windows, `Rec:SCStatesMsg` on Linux).
+  Recorders use no random numbers, so no result changes.
 
 ## 1.3.1 (2026-10-27)
 

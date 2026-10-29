@@ -1,0 +1,3576 @@
+{
+ "budget": {
+  "rods-off": {
+   "refused": "BudgetError: rods-off: set propellant_budget.isp_s, or give it an orbit thruster"
+  },
+  "rods-on": {
+   "refused": "BudgetError: rods-on: set propellant_budget.isp_s, or give it an orbit thruster"
+  }
+ },
+ "explain": {
+  "explanation": {
+   "formation_diagrams": [],
+   "headline": "21 - Disturbance torques from a facet model",
+   "roe_diagrams": [],
+   "sections": [
+    {
+     "badges": [
+      {
+       "kind": "accent",
+       "label": "Sun pointing",
+       "spacecraft": ""
+      }
+     ],
+     "notes": [],
+     "title": "Attitude control"
+    },
+    {
+     "badges": [
+      {
+       "kind": "accent",
+       "label": "Sun-synchronous",
+       "spacecraft": ""
+      },
+      {
+       "kind": "accent",
+       "label": "Drag",
+       "spacecraft": ""
+      },
+      {
+       "kind": "accent",
+       "label": "Solar radiation pressure",
+       "spacecraft": ""
+      },
+      {
+       "kind": "accent",
+       "label": "Facet model (drag/SRP torques)",
+       "spacecraft": ""
+      }
+     ],
+     "notes": [
+      "2 spacecraft: gravity degree 2 leaves out ~1e-04 m/s^2, more than SRP (2e-08 m/s^2); degree 108 matches it (ECSS-E-ST-10-04C 4.2.1b)",
+      "Earth orientation: IAU rotation model, no IERS data installed"
+     ],
+     "title": "Environment"
+    }
+   ],
+   "spacecraft_table": [
+    {
+     "facts": {
+      "Control": "Sun pointing",
+      "Orbit": "SSO 97.21 deg, 450 km alt",
+      "Propellant": "-"
+     },
+     "name": "rods-off"
+    },
+    {
+     "facts": {
+      "Control": "Sun pointing, RW desat (torque rods)",
+      "Orbit": "SSO 97.21 deg, 450 km alt",
+      "Propellant": "-"
+     },
+     "name": "rods-on"
+    }
+   ],
+   "stat_tiles": [
+    {
+     "label": "Spacecraft",
+     "value": "2"
+    },
+    {
+     "label": "Duration",
+     "value": "24 h"
+    },
+    {
+     "label": "Gravity",
+     "value": "Degree-2 Earth + Sun"
+    }
+   ]
+  },
+  "passes": [],
+  "plausibility": [
+   "Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km); Settings > Reference data downloads them"
+  ],
+  "warnings": []
+ },
+ "lifetime": {
+  "rods-off/cd_2.2": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 443.6626328255087,
+     "last": 428.37568427851795,
+     "max": 443.6626328255087,
+     "mean": 436.3991463527147,
+     "min": 428.37568427851795,
+     "non_finite": 0,
+     "samples": [
+      443.6626328255087,
+      442.4734351562839,
+      440.79139330735615,
+      439.2480853580069,
+      437.5741041159779,
+      436.2125273498809,
+      435.2787833267823,
+      433.8633888733387,
+      432.0654111686125,
+      430.4340778859453,
+      428.37568427851795
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 437.0185775809167,
+     "last": 422.4418922124021,
+     "max": 437.0185775809167,
+     "mean": 429.9024351510048,
+     "min": 422.4418922124021,
+     "non_finite": 0,
+     "samples": [
+      437.0185775809167,
+      435.39410820761697,
+      434.1793972312268,
+      432.4089504184006,
+      431.0106727319332,
+      429.9056308997832,
+      428.7530550102191,
+      427.71617055202273,
+      426.0730907264929,
+      423.91423368191255,
+      422.4418922124021
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 300.0
+  },
+  "rods-off/own_cd": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 443.6626328255087,
+     "last": 421.3799173348406,
+     "max": 443.6626328255087,
+     "mean": 433.3421947759464,
+     "min": 421.3799173348406,
+     "non_finite": 0,
+     "samples": [
+      443.6626328255087,
+      442.03163014324383,
+      439.70031570732874,
+      437.53393437697366,
+      435.1554058617186,
+      433.19431476972534,
+      431.83224380105736,
+      429.74552862010614,
+      427.06823221304825,
+      424.57590099588504,
+      421.3799173348406
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 437.0185775809167,
+     "last": 415.80256005297883,
+     "max": 437.0185775809167,
+     "mean": 426.9188640764995,
+     "min": 415.80256005297883,
+     "non_finite": 0,
+     "samples": [
+      437.0185775809167,
+      434.7933285431191,
+      433.10971216634755,
+      430.6262563160118,
+      428.636558810154,
+      427.0443631998543,
+      425.36342750123515,
+      423.8319735841118,
+      421.3626462733392,
+      418.08541764930914,
+      415.80256005297883
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 300.0
+  },
+  "rods-on/cd_2.2": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 443.6626328255087,
+     "last": 428.37568427851795,
+     "max": 443.6626328255087,
+     "mean": 436.3991463527147,
+     "min": 428.37568427851795,
+     "non_finite": 0,
+     "samples": [
+      443.6626328255087,
+      442.4734351562839,
+      440.79139330735615,
+      439.2480853580069,
+      437.5741041159779,
+      436.2125273498809,
+      435.2787833267823,
+      433.8633888733387,
+      432.0654111686125,
+      430.4340778859453,
+      428.37568427851795
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 437.0185775809167,
+     "last": 422.4418922124021,
+     "max": 437.0185775809167,
+     "mean": 429.9024351510048,
+     "min": 422.4418922124021,
+     "non_finite": 0,
+     "samples": [
+      437.0185775809167,
+      435.39410820761697,
+      434.1793972312268,
+      432.4089504184006,
+      431.0106727319332,
+      429.9056308997832,
+      428.7530550102191,
+      427.71617055202273,
+      426.0730907264929,
+      423.91423368191255,
+      422.4418922124021
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 300.0
+  },
+  "rods-on/own_cd": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 443.6626328255087,
+     "last": 421.3799173348406,
+     "max": 443.6626328255087,
+     "mean": 433.3421947759464,
+     "min": 421.3799173348406,
+     "non_finite": 0,
+     "samples": [
+      443.6626328255087,
+      442.03163014324383,
+      439.70031570732874,
+      437.53393437697366,
+      435.1554058617186,
+      433.19431476972534,
+      431.83224380105736,
+      429.74552862010614,
+      427.06823221304825,
+      424.57590099588504,
+      421.3799173348406
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 437.0185775809167,
+     "last": 415.80256005297883,
+     "max": 437.0185775809167,
+     "mean": 426.9188640764995,
+     "min": 415.80256005297883,
+     "non_finite": 0,
+     "samples": [
+      437.0185775809167,
+      434.7933285431191,
+      433.10971216634755,
+      430.6262563160118,
+      428.636558810154,
+      427.0443631998543,
+      425.36342750123515,
+      423.8319735841118,
+      421.3626462733392,
+      418.08541764930914,
+      415.80256005297883
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 300.0
+  }
+ },
+ "mission_output": null,
+ "rng_library": "libstdc++",
+ "run": {
+  "events": [
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 3460.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "rods-off",
+    "start_s": 1340.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 3460.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "rods-on",
+    "start_s": 1340.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 9070.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "rods-off",
+    "start_s": 6950.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 9070.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "rods-on",
+    "start_s": 6950.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 14680.000000000002,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "rods-off",
+    "start_s": 12560.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 14680.000000000002,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "rods-on",
+    "start_s": 12560.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 20290.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "rods-off",
+    "start_s": 18170.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 20290.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "rods-on",
+    "start_s": 18170.0
+   }
+  ],
+  "provenance": {
+   "basilisk_qualified": true,
+   "dynamics_task_rate_s": 10.0,
+   "frames": {
+    "B": {
+     "axes": "fixed to the spacecraft structure, as given by inertia_kg_m2 and device axes",
+     "epoch": "-",
+     "mnemonic": "B",
+     "name": "Spacecraft body",
+     "origin": "spacecraft body point B (Basilisk hub frame origin)",
+     "realisation": "-",
+     "time_scale": "-"
+    },
+    "H": {
+     "axes": "x radial out, z orbit normal, y completes (along-track)",
+     "epoch": "-",
+     "mnemonic": "H",
+     "name": "Hill (orbit)",
+     "origin": "spacecraft",
+     "realisation": "-",
+     "time_scale": "-"
+    },
+    "L": {
+     "axes": "South-East-Zenith; elevation/azimuth from the geodetic horizon, azimuth from North to East",
+     "epoch": "-",
+     "mnemonic": "L",
+     "name": "Topocentric (ground station)",
+     "origin": "ground station site (WGS-84 geodetic, engine.geodesy)",
+     "realisation": "-",
+     "time_scale": "-"
+    },
+    "N": {
+     "axes": "Earth mean equator and equinox of J2000 (SPICE J2000, treated as ICRF-aligned by SPICE)",
+     "epoch": "J2000.0 = 2000-01-01T12:00:00 TT",
+     "mnemonic": "N",
+     "name": "Inertial (EME2000 / SPICE J2000)",
+     "origin": "Earth centre of mass",
+     "realisation": "SPICE with DE430",
+     "time_scale": "TDB (ephemerides, propagation)"
+    },
+    "P": {
+     "axes": "IAU_EARTH: Earth-fixed, z = rotation pole, x = prime meridian",
+     "epoch": "-",
+     "mnemonic": "P",
+     "name": "Earth-fixed",
+     "origin": "Earth centre of mass",
+     "realisation": "SPICE PCK (engine.earth_orientation for Earth)",
+     "time_scale": "TDB"
+    },
+    "TEME": {
+     "axes": "SGP4 output frame, converted to N at the scenario epoch (engine.tle)",
+     "epoch": "-",
+     "mnemonic": "TEME",
+     "name": "True equator, mean equinox of date (TLE input only)",
+     "origin": "Earth centre of mass",
+     "realisation": "-",
+     "time_scale": "UTC"
+    }
+   },
+   "integrator": "rkf78",
+   "integrator_absolute_tolerance": 1e-08,
+   "integrator_relative_tolerance": 1e-10,
+   "rng_seed": 0,
+   "rng_seed_note": "each model's RNGSeed is derived from the scenario's seed (sim_settings.seed) and the model's name (SHA-256); a navigation error's own seed is kept, and a Monte Carlo run disperses them per run",
+   "rng_seeds": {
+    "Rec:CSSRawDataMsg": 3335757366,
+    "Rec:CSSRawDataMsg#2": 685972359,
+    "Rec:CmdTorqueBodyMsg": 4214472608,
+    "Rec:CmdTorqueBodyMsg#2": 3499089187,
+    "Rec:EclipseMsg": 139054789,
+    "Rec:EclipseMsg#2": 550394223,
+    "Rec:MTBCmdMsg": 405266180,
+    "Rec:NavAttMsg": 371790668,
+    "Rec:NavAttMsg#2": 3133543517,
+    "Rec:RWSpeedMsg": 3665585116,
+    "Rec:RWSpeedMsg#2": 184843997,
+    "Rec:SCStatesMsg": 455511093,
+    "Rec:SCStatesMsg#2": 1115533435,
+    "SpiceInterfaceData": 193139944,
+    "eclipse": 3106495040,
+    "geodeticProxy_rods-off": 300273172,
+    "geodeticProxy_rods-on": 3842220701,
+    "magneticFieldWMM": 569455582,
+    "midStepOrientation_earth": 2740032469,
+    "midStepOrientation_sun": 896524486,
+    "msisAtmosphere": 177801070,
+    "rods-off": 2587931511,
+    "rods-offDrag": 1916966239,
+    "rods-offSrp": 3653976391,
+    "rods-off_css-1": 2467109002,
+    "rods-off_mrpFeedback": 287021975,
+    "rods-off_reactionWheels": 2878187989,
+    "rods-off_rwMotorTorque": 2902730904,
+    "rods-off_simpleNav": 480035909,
+    "rods-off_sunSafePoint": 2889892957,
+    "rods-on": 1569947595,
+    "rods-onDrag": 1151717078,
+    "rods-onSrp": 1228841494,
+    "rods-on_css-1": 595914488,
+    "rods-on_desatTAM": 2426913167,
+    "rods-on_mrpFeedback": 755244255,
+    "rods-on_mtbEffector": 4050674518,
+    "rods-on_mtbMomentumManagement": 3260670791,
+    "rods-on_reactionWheels": 1111535490,
+    "rods-on_rwMotorTorque": 3774142414,
+    "rods-on_simpleNav": 1721113391,
+    "rods-on_sunSafePoint": 1950380627,
+    "rods-on_tamComm": 710072199,
+    "spaceWeatherData": 3328266330,
+    "zeroWind": 507670478
+   },
+   "series_frames": {
+    "rods-off.attitude_sigma_BN": "B relative to N",
+    "rods-off.body_rate_omega_BN_B": "B",
+    "rods-off.orbit_elements.arg_periapsis": "N",
+    "rods-off.orbit_elements.eccentricity": "N",
+    "rods-off.orbit_elements.inclination": "N",
+    "rods-off.orbit_elements.raan": "N",
+    "rods-off.orbit_elements.semi_major_axis": "N",
+    "rods-off.orbit_elements.true_anomaly": "N",
+    "rods-off.orbit_elements_mean.arg_periapsis": "N",
+    "rods-off.orbit_elements_mean.eccentricity": "N",
+    "rods-off.orbit_elements_mean.inclination": "N",
+    "rods-off.orbit_elements_mean.raan": "N",
+    "rods-off.orbit_elements_mean.semi_major_axis": "N",
+    "rods-off.orbit_elements_mean.true_anomaly": "N",
+    "rods-off.position_N": "N",
+    "rods-off.sun_heading_body": "B",
+    "rods-off.velocity_N": "N",
+    "rods-on.attitude_sigma_BN": "B relative to N",
+    "rods-on.body_rate_omega_BN_B": "B",
+    "rods-on.orbit_elements.arg_periapsis": "N",
+    "rods-on.orbit_elements.eccentricity": "N",
+    "rods-on.orbit_elements.inclination": "N",
+    "rods-on.orbit_elements.raan": "N",
+    "rods-on.orbit_elements.semi_major_axis": "N",
+    "rods-on.orbit_elements.true_anomaly": "N",
+    "rods-on.orbit_elements_mean.arg_periapsis": "N",
+    "rods-on.orbit_elements_mean.eccentricity": "N",
+    "rods-on.orbit_elements_mean.inclination": "N",
+    "rods-on.orbit_elements_mean.raan": "N",
+    "rods-on.orbit_elements_mean.semi_major_axis": "N",
+    "rods-on.orbit_elements_mean.true_anomaly": "N",
+    "rods-on.position_N": "N",
+    "rods-on.sun_heading_body": "B",
+    "rods-on.velocity_N": "N"
+   },
+   "time_system": {
+    "conversions": "ERFA (SOFA): dat, utctai, taitt, dtdb",
+    "epoch_tdb_seconds_past_j2000": 946728069.1839262,
+    "epoch_utc": "2030-01-01T00:00:00",
+    "last_leap_second_utc": "2017-01-01",
+    "tai_minus_utc_s": 37.0,
+    "tdb_minus_tt_s": -7.380966890522468e-05,
+    "time_variable": "TDB seconds since the scenario epoch",
+    "tt_minus_tai_s": 32.184
+   },
+   "transformations": {
+    "N -> B": "dcm_BN from the spacecraft MRP sigma_BN (integrated by Basilisk)",
+    "N -> H": "dcm_HN from r_BN_N, v_BN_N (Basilisk hillFrame convention)",
+    "N -> P": "dcm_PN = J20002Pfix from SPICE pxform(J2000, P frame, ET) each step; time dependent; SPICE evaluates the PCK Chebyshev/rotation model at ET (no further interpolation)",
+    "P -> L": "dcm_LP from the site's geodetic latitude and longitude (engine.geodesy)",
+    "TEME -> N": "P^T N^T R3(-Eq) at the scenario epoch, IAU 1976/1980 (engine.tle)"
+   }
+  },
+  "series": {
+   "rods-off.attitude_sigma_BN": {
+    "columns": [
+     "s1",
+     "s2",
+     "s3"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 0.5247237938164593,
+      "max": 0.6575903428184048,
+      "mean": 0.5258299207070944,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.5279192620871795,
+       0.5273030234999759,
+       0.5269624385389673,
+       0.5271958176907986,
+       0.5262464205600413,
+       0.5265097012292524,
+       0.5260442076048015,
+       0.5254757683155579,
+       0.5257435597899496,
+       0.5247237938164593
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": 0.11593588996946605,
+      "max": 0.12879005483421344,
+      "mean": 0.10735615156271787,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.10132279741413,
+       0.10275851952961858,
+       0.10698099572785061,
+       0.10382172297095103,
+       0.10913118810093736,
+       0.1085640883006184,
+       0.1077376716089432,
+       0.1142171848065053,
+       0.11151287098733957,
+       0.11593588996946605
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -0.006753216282626047,
+      "max": 0.0021856503116932545,
+      "mean": -0.001975927457093375,
+      "min": -0.006753216282626047,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.0014709221896068128,
+       0.000834843995940898,
+       -0.002010539841793349,
+       0.000305062905203856,
+       -0.0030749506790413313,
+       -0.0026040980355961463,
+       -0.0016926561022336322,
+       -0.006021792671648337,
+       -0.004037886205270236,
+       -0.006753216282626047
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "rods-off.body_rate_omega_BN_B": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 1.4021794231919994e-06,
+      "max": 0.0369979026600747,
+      "mean": 8.952250499868114e-05,
+      "min": -0.0069939434791451704,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       -2.1468816319506907e-07,
+       1.2431427496174993e-06,
+       -3.1453503064859365e-07,
+       -1.2443105447046844e-06,
+       -7.550479569466905e-07,
+       -1.1947146476826743e-06,
+       2.54389448006624e-07,
+       -2.1501315246023262e-07,
+       -9.563314323670128e-07,
+       1.4021794231919994e-06
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -1.3866669777420743e-07,
+      "max": 0.007246224781154913,
+      "mean": 1.7771415665958362e-05,
+      "min": -0.0013614443195103174,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       4.2643854948709617e-07,
+       4.2758900516342767e-07,
+       -1.8785943245188217e-08,
+       2.672085654851162e-07,
+       -2.115898907449385e-07,
+       3.439349636932227e-07,
+       6.057970687033107e-07,
+       -4.047318236326143e-08,
+       2.071280449201234e-08,
+       -1.3866669777420743e-07
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -1.5809729879829417e-05,
+      "max": 1.0621398790407107e-05,
+      "mean": -2.1019667464534153e-06,
+      "min": -2.132050151271536e-05,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       2.9682181459066635e-06,
+       -1.6987681028792796e-05,
+       3.2502607351581804e-06,
+       4.1978342346876046e-06,
+       -4.508475648248842e-07,
+       9.468481347312234e-06,
+       -1.1991556745368453e-05,
+       -3.1817279753074703e-06,
+       2.776922751405121e-06,
+       -1.5809729879829417e-05
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad/s"
+   },
+   "rods-off.control_torque": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 0.17534451940619683,
+      "last": 2.828659584920141e-05,
+      "max": 0.17534451940619683,
+      "mean": 1.9941209202758714e-05,
+      "min": -0.06309747582173177,
+      "non_finite": 0,
+      "samples": [
+       0.17534451940619683,
+       2.7902341845740036e-06,
+       8.345238493639786e-05,
+       -4.139686529933514e-05,
+       5.4101785630571716e-05,
+       2.3008423392624272e-05,
+       -1.657023198057209e-05,
+       0.0001386149291311057,
+       -5.806662775384679e-05,
+       1.2953389592745652e-05,
+       2.828659584920141e-05
+      ]
+     },
+     {
+      "first": 0.03433504370550431,
+      "last": -1.4549336296478104e-05,
+      "max": 0.03433504370550431,
+      "mean": -2.1488346121116638e-06,
+      "min": -0.012317839345709559,
+      "non_finite": 0,
+      "samples": [
+       0.03433504370550431,
+       3.919343373969141e-06,
+       -2.34818338890321e-05,
+       4.865972278923354e-06,
+       5.6895384990854795e-06,
+       6.185131793865206e-07,
+       1.1837856812287929e-05,
+       -1.5157420180966876e-05,
+       -3.0074038785988223e-06,
+       3.5951789830375566e-06,
+       -1.4549336296478104e-05
+      ]
+     },
+     {
+      "first": -0.0,
+      "last": 4.5040163790980686e-05,
+      "max": 6.073973986511353e-05,
+      "mean": 5.988269708785061e-06,
+      "min": -3.0259184998448685e-05,
+      "non_finite": 0,
+      "samples": [
+       -0.0,
+       -8.456123695671871e-06,
+       4.8396015730916355e-05,
+       -9.25963169438397e-06,
+       -1.1959163308598907e-05,
+       1.2844146180122255e-06,
+       -2.6974651305009514e-05,
+       3.416261277236079e-05,
+       9.064389476320391e-06,
+       -7.91114437178081e-06,
+       4.5040163790980686e-05
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "N*m"
+   },
+   "rods-off.eclipse.illumination_factor": {
+    "columns": [
+     "illumination_factor"
+    ],
+    "data": [
+     {
+      "first": 1.0,
+      "last": 1.0,
+      "max": 1.0,
+      "mean": 0.6064817528574947,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       1.0,
+       0.0,
+       1.0,
+       1.0,
+       0.0,
+       1.0,
+       0.0,
+       1.0,
+       1.0,
+       0.0,
+       1.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "rods-off.orbit_elements.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 2.7562452823648664,
+      "max": 6.276306844263984,
+      "mean": 3.1114233651124796,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.006956835638013921,
+       2.0134064574816612,
+       3.5633856597441316,
+       3.508293130773377,
+       3.606644123901826,
+       4.9814624162168855,
+       1.3483374728160562,
+       2.7290886744435126,
+       2.8057804998325415,
+       2.7562452823648664
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-off.orbit_elements.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 1.8073687925885712e-16,
+      "last": 0.0015821302619391689,
+      "max": 0.001975641465458476,
+      "mean": 0.0010722266772690457,
+      "min": 1.8073687925885712e-16,
+      "non_finite": 0,
+      "samples": [
+       1.8073687925885712e-16,
+       0.00020347537583332488,
+       0.0019614324047648943,
+       0.0016146666439730423,
+       0.0008325628590718546,
+       0.0007431805923666825,
+       0.0013484644637621727,
+       0.0014226905227526516,
+       0.000802839841694766,
+       0.0008581022416944952,
+       0.0015821302619391689
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "rods-off.orbit_elements.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 1.6966345658636877,
+      "last": 1.6966786879550562,
+      "max": 1.6968125887650305,
+      "mean": 1.6966846543885592,
+      "min": 1.6965599823554078,
+      "non_finite": 0,
+      "samples": [
+       1.6966345658636877,
+       1.6967103058613724,
+       1.6968007466232777,
+       1.6967339427044261,
+       1.696611238107128,
+       1.696628819818759,
+       1.6967367700849123,
+       1.6967288593260592,
+       1.6966042152018477,
+       1.6965689247022173,
+       1.6966786879550562
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-off.orbit_elements.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 4.520926361440911,
+      "last": 4.525428918051807,
+      "max": 4.525428918051807,
+      "mean": 4.52312860501436,
+      "min": 4.520926361440911,
+      "non_finite": 0,
+      "samples": [
+       4.520926361440911,
+       4.52145647462832,
+       4.521827622465077,
+       4.522161016186032,
+       4.522646298094046,
+       4.523204886475911,
+       4.523632053987205,
+       4.5239543347617,
+       4.524379618330111,
+       4.524938248065517,
+       4.525428918051807
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-off.orbit_elements.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 6828000.000000002,
+      "last": 6815499.298243356,
+      "max": 6828012.273949725,
+      "mean": 6818270.141928622,
+      "min": 6808923.75132247,
+      "non_finite": 0,
+      "samples": [
+       6828000.000000002,
+       6819628.341021622,
+       6809233.453390683,
+       6814977.38841696,
+       6826808.081509937,
+       6824031.388588084,
+       6811501.699426685,
+       6811140.204127241,
+       6823556.556082447,
+       6827022.141503972,
+       6815499.298243356
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "rods-off.orbit_elements.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 1.4901161193847656e-08,
+      "last": 2.5838356784341068,
+      "max": 6.281107946736825,
+      "mean": 3.165116971997939,
+      "min": 1.4901161193847656e-08,
+      "non_finite": 0,
+      "samples": [
+       1.4901161193847656e-08,
+       2.411211469748079,
+       2.825404128337579,
+       3.6926529695100196,
+       6.1676848659728964,
+       2.205098156428356,
+       3.247815358921038,
+       3.018632078348872,
+       4.055343413299975,
+       0.11449031372745536,
+       2.5838356784341068
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-off.orbit_elements_mean.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 3.1415926968971233,
+      "last": 9.394115912657247,
+      "max": 15.71408319027747,
+      "mean": 12.65629528888767,
+      "min": 3.1415926968971233,
+      "non_finite": 0,
+      "samples": [
+       3.1415926968971233,
+       9.411251578518954,
+       9.428218864467917,
+       15.695838511144935,
+       15.699154360120346,
+       9.414237106907724,
+       15.69874478088217,
+       9.409049150627634,
+       15.703655022621989,
+       9.413366308790946,
+       9.394115912657247
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-off.orbit_elements_mean.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 0.0004872096103453711,
+      "last": 0.0004987535878610261,
+      "max": 0.000508088968395501,
+      "mean": 0.0004973159344477156,
+      "min": 0.0004860321341259842,
+      "non_finite": 0,
+      "samples": [
+       0.0004872096103453711,
+       0.00050181680585219,
+       0.0004973068416636577,
+       0.0004942886847618212,
+       0.0004987918719404487,
+       0.0004998249600721462,
+       0.0004982622011365695,
+       0.0004993676551134535,
+       0.0005032418303487086,
+       0.0004865084092327871,
+       0.0004987535878610261
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "rods-off.orbit_elements_mean.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 1.6967227855103304,
+      "last": 1.696651222710508,
+      "max": 1.696723975149538,
+      "mean": 1.696682828364493,
+      "min": 1.6966482341004931,
+      "non_finite": 0,
+      "samples": [
+       1.6967227855103304,
+       1.6967212442383983,
+       1.6967149583303454,
+       1.6967015108562824,
+       1.6966886538760082,
+       1.6966806493281121,
+       1.6966720204842651,
+       1.6966606219997027,
+       1.6966516891867378,
+       1.6966487137778943,
+       1.696651222710508
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-off.orbit_elements_mean.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": -1.7622589457360254,
+      "last": -1.757841545867499,
+      "max": -1.757841545867499,
+      "mean": -1.7600542993960249,
+      "min": -1.7622589457360254,
+      "non_finite": 0,
+      "samples": [
+       -1.7622589457360254,
+       -1.7618173960068342,
+       -1.7613803188117705,
+       -1.7609408810569134,
+       -1.760496082143021,
+       -1.7600527575632943,
+       -1.7596140691051518,
+       -1.7591741814805566,
+       -1.7587303561694438,
+       -1.75828523705326,
+       -1.757841545867499
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-off.orbit_elements_mean.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 6818477.205203212,
+      "last": 6818434.487878338,
+      "max": 6818479.429817131,
+      "mean": 6818440.044772547,
+      "min": 6818399.66225895,
+      "non_finite": 0,
+      "samples": [
+       6818477.205203212,
+       6818448.747772478,
+       6818409.812563987,
+       6818444.061618776,
+       6818447.407118711,
+       6818437.239803871,
+       6818441.894896787,
+       6818453.430967977,
+       6818431.001424469,
+       6818401.576443626,
+       6818434.487878338
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "rods-off.orbit_elements_mean.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 3.1415926251804764,
+      "last": 2.229250112141454,
+      "max": 3.1415926251804764,
+      "mean": -0.09657249862644293,
+      "min": -3.138539511692568,
+      "non_finite": 0,
+      "samples": [
+       3.1415926251804764,
+       -0.7097938928923384,
+       1.6938030961597959,
+       -2.1567121225020776,
+       0.25995776506628127,
+       2.680776867396278,
+       -1.1862113211612524,
+       1.241040026787674,
+       -2.636127536974932,
+       -0.20986460735965473,
+       2.229250112141454
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-off.position_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": -1299334.1948130785,
+      "last": -63547.25201840633,
+      "max": 1543170.0925461862,
+      "mean": 26800.11056691073,
+      "min": -1547643.0512609151,
+      "non_finite": 0,
+      "samples": [
+       -1299334.1948130785,
+       413506.3430021087,
+       672162.7965913255,
+       -1422072.555362617,
+       1455076.02761718,
+       -761631.8453063444,
+       -313826.08348787733,
+       1224425.8662178987,
+       -1523374.0807199136,
+       1055614.6699558336,
+       -63547.25201840633
+      ]
+     },
+     {
+      "first": -6703231.657207549,
+      "last": -4067025.582317545,
+      "max": 6703628.14558575,
+      "mean": 219718.40180377587,
+      "min": -6709635.944582767,
+      "non_finite": 0,
+      "samples": [
+       -6703231.657207549,
+       5127079.723230934,
+       -1005662.0639912002,
+       -3638466.8861086858,
+       6448372.6869741585,
+       -6046958.545513215,
+       2605250.1103489837,
+       2117571.9861587263,
+       -5804646.683457794,
+       6573248.232103427,
+       -4067025.582317545
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -5480056.639350192,
+      "max": 6767328.192231007,
+      "mean": 114251.00297152824,
+      "min": -6767539.223447236,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       4479229.239738342,
+       -6713828.816615411,
+       5595622.162171006,
+       -1682110.6984892224,
+       -3076135.197254536,
+       6295652.858690216,
+       -6367055.516550416,
+       3254530.5343681923,
+       1485558.5039013184,
+       -5480056.639350192
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "rods-off.rw_speeds": {
+    "columns": [
+     "wheel_0",
+     "wheel_1",
+     "wheel_2"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": -22.548608048579624,
+      "max": 33.93933339121223,
+      "mean": -7.7650135329032555,
+      "min": -178.75925929764526,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       3.9777477267634844,
+       -3.6455170856926737,
+       -3.0444035626748644,
+       -2.0962962754080094,
+       -10.866776492339653,
+       -6.914684768657725,
+       -12.271150960286462,
+       -15.498462033302117,
+       -12.769231948378456,
+       -22.548608048579624
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": 2.423781942396175,
+      "max": 6.528489472683358,
+      "mean": 0.6542776613453783,
+      "min": -35.00338677082319,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       -0.682421423271516,
+       -0.305464957585533,
+       0.7638850291621763,
+       -0.11930618157903095,
+       1.1766396265624117,
+       0.9816480946512366,
+       0.7742091978589964,
+       2.176831455021011,
+       1.5334944056484223,
+       2.423781942396175
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -6.752110151283919,
+      "max": 1.590400352389564,
+      "mean": -2.2084019686334773,
+      "min": -6.752110151283919,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       1.1086557697024337,
+       0.37081993185633905,
+       -1.994661925557001,
+       -0.19016085272265792,
+       -3.1318163955126903,
+       -2.7839881019127914,
+       -2.2590271582997583,
+       -5.865250401349181,
+       -4.319833209626651,
+       -6.752110151283919
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad/s"
+   },
+   "rods-off.sensor.css-1": {
+    "columns": [
+     "output"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 1.0342312109800635,
+      "max": 1.0342404266857304,
+      "mean": 0.6245553741816329,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.0,
+       1.0341969861948717,
+       1.0341583554371716,
+       0.0,
+       1.0342392873838127,
+       0.0,
+       1.034158223359092,
+       1.0342005103820853,
+       0.0,
+       1.0342312109800635
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "rods-off.sun_heading_body": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 0.17682905523800388,
+      "last": -0.0001798521544416759,
+      "max": 0.19200886266919262,
+      "mean": 0.00027183373087543447,
+      "min": -0.07247341056807013,
+      "non_finite": 0,
+      "samples": [
+       0.17682905523800388,
+       6.178913530431596e-05,
+       -0.0002679381489305993,
+       5.79167508166778e-05,
+       7.763370184646345e-05,
+       1.8915152315279737e-07,
+       0.00015425790348183588,
+       -0.00016164575055771513,
+       -3.758105371275133e-05,
+       4.397729513989923e-05,
+       -0.0001798521544416759
+      ]
+     },
+     {
+      "first": -0.9030425583174371,
+      "last": -0.0003884973029276706,
+      "max": 0.37174087481637025,
+      "mean": -0.0017186102544901184,
+      "min": -0.9801044755349978,
+      "non_finite": 0,
+      "samples": [
+       -0.9030425583174371,
+       -2.6219081694200952e-05,
+       -0.0010469518249881515,
+       0.0005089856661930625,
+       -0.0006084402714503501,
+       -0.00025101365541729814,
+       0.00024038052443703384,
+       -0.001676919420924572,
+       0.0007061901548907623,
+       -0.00012310252094416274,
+       -0.0003884973029276706
+      ]
+     },
+     {
+      "first": -0.3914659922536484,
+      "last": 0.9999999083615201,
+      "max": 0.9999999999776227,
+      "mean": 0.9975050609747147,
+      "min": -0.3914659922536484,
+      "non_finite": 0,
+      "samples": [
+       -0.3914659922536484,
+       0.9999999977473315,
+       0.9999994160503417,
+       0.9999998687896123,
+       0.9999998118867046,
+       0.9999999684960542,
+       0.9999999592108506,
+       0.9999985809049466,
+       0.9999997499415332,
+       0.9999999914558835,
+       0.9999999083615201
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "rods-off.velocity_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": -941.409716985162,
+      "last": -1702.332240516064,
+      "max": 1729.878880094656,
+      "mean": 56.57359175532303,
+      "min": -1725.3514796388217,
+      "non_finite": 0,
+      "samples": [
+       -941.409716985162,
+       1666.7724039047755,
+       -1553.2961631728933,
+       664.5926516674385,
+       554.1520638542569,
+       -1491.9124201415905,
+       1679.226814479129,
+       -1027.096341768105,
+       -138.6434421033528,
+       1232.4928916706153,
+       -1702.332240516064
+      ]
+     },
+     {
+      "first": 182.4800184688366,
+      "last": -5972.90820198682,
+      "max": 7504.916506686817,
+      "mean": 120.64906315185263,
+      "min": -7505.844927045868,
+      "non_finite": 0,
+      "samples": [
+       182.4800184688366,
+       4832.290328341734,
+       -7416.46415428542,
+       6303.877636718344,
+       -2042.8003827221935,
+       -3251.1046356393094,
+       6915.124156547582,
+       -7121.149251119178,
+       3767.367804070675,
+       1475.690181163785,
+       -5972.90820198682
+      ]
+     },
+     {
+      "first": 7580.09120702264,
+      "last": 4444.560616302153,
+      "max": 7580.09120702264,
+      "mean": -250.80407831114192,
+      "min": -7587.556975963407,
+      "non_finite": 0,
+      "samples": [
+       7580.09120702264,
+       -5683.495679703363,
+       950.6580064705125,
+       4260.013359134736,
+       -7348.745752757702,
+       6750.141741852715,
+       -2779.07672767186,
+       -2567.3177046103738,
+       6644.23456116449,
+       -7401.934011739397,
+       4444.560616302153
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m/s"
+   },
+   "rods-on.attitude_sigma_BN": {
+    "columns": [
+     "s1",
+     "s2",
+     "s3"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 0.5247608744253297,
+      "max": 0.6578644630934917,
+      "mean": 0.5258569622508668,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.5279446542069213,
+       0.5273238247439935,
+       0.5269875615183082,
+       0.5272204082334951,
+       0.5262716414051192,
+       0.5265335713345554,
+       0.5260717920499094,
+       0.5255075773192877,
+       0.5257738132183464,
+       0.5247608744253297
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": 0.11579098535751545,
+      "max": 0.12724412616325007,
+      "mean": 0.10722108685709628,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.1011921971769007,
+       0.10263188128286248,
+       0.10685373997694318,
+       0.10369652196233474,
+       0.10900867594128957,
+       0.10843087376963186,
+       0.10760819144109415,
+       0.11407358302681363,
+       0.11136321200916044,
+       0.11579098535751545
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -0.006623045753260547,
+      "max": 0.0022724426234154,
+      "mean": -0.0018913293144918162,
+      "min": -0.006623045753260547,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.001560023879805163,
+       0.0009204313615338121,
+       -0.0019258187078529563,
+       0.00038878709977057784,
+       -0.0029910615459450307,
+       -0.0025214836085852756,
+       -0.0015958736520261289,
+       -0.00591932063937426,
+       -0.0039398990504672165,
+       -0.006623045753260547
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "rods-on.body_rate_omega_BN_B": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 1.4133869971256548e-06,
+      "max": 0.037014662433566235,
+      "mean": 8.949727795190483e-05,
+      "min": -0.007024744064335998,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       -2.1165208189457878e-07,
+       1.2277804143931986e-06,
+       -3.1928714361649955e-07,
+       -1.245439697565454e-06,
+       -7.546661792691692e-07,
+       -1.1877389079506614e-06,
+       2.4740926763225224e-07,
+       -2.21537772252786e-07,
+       -9.612158245008919e-07,
+       1.4133869971256548e-06
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -2.6073517261992293e-07,
+      "max": 0.007188735351691952,
+      "mean": 1.790262192678324e-05,
+      "min": -0.001191455103581511,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       4.157363725990886e-07,
+       4.492852701549674e-07,
+       -3.0030646012721746e-08,
+       2.678945009801488e-07,
+       -2.97175792355457e-07,
+       3.6767885551714733e-07,
+       6.838888984963522e-07,
+       -1.1621427759320503e-07,
+       -9.604226308486248e-09,
+       -2.6073517261992293e-07
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -1.5815966033675217e-05,
+      "max": 2.373215428862621e-05,
+      "mean": -2.322051562840678e-06,
+      "min": -0.00014525498644729474,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       2.954980525324956e-06,
+       -1.700813607998137e-05,
+       3.2494893997044546e-06,
+       4.195077831357096e-06,
+       -4.7187796629555875e-07,
+       9.461165615695674e-06,
+       -1.1954977118779998e-05,
+       -3.178838746966896e-06,
+       2.7664360423196863e-06,
+       -1.5815966033675217e-05
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad/s"
+   },
+   "rods-on.control_torque": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 0.17534451940619683,
+      "last": 2.8237017849871386e-05,
+      "max": 0.17534451940619683,
+      "mean": 1.9828030979002618e-05,
+      "min": -0.06324971293057279,
+      "non_finite": 0,
+      "samples": [
+       0.17534451940619683,
+       2.7944586620315357e-06,
+       8.450064311986724e-05,
+       -4.1317230008291165e-05,
+       5.4101584760124345e-05,
+       2.300386217551616e-05,
+       -1.6087145555534697e-05,
+       0.0001386981923985512,
+       -5.817575729989567e-05,
+       1.3040176629857906e-05,
+       2.8237017849871386e-05
+      ]
+     },
+     {
+      "first": 0.03433504370550431,
+      "last": -2.1118892976681145e-05,
+      "max": 0.03433504370550431,
+      "mean": -1.2236805926469243e-06,
+      "min": -0.011386861859080421,
+      "non_finite": 0,
+      "samples": [
+       0.03433504370550431,
+       3.7076263912493153e-06,
+       -2.353223902685623e-05,
+       5.155243770505596e-06,
+       5.821745335282988e-06,
+       6.027396472315829e-07,
+       1.3390465826326657e-05,
+       -1.742495447305812e-05,
+       -3.946674157123271e-06,
+       4.358368873143151e-06,
+       -2.1118892976681145e-05
+      ]
+     },
+     {
+      "first": -0.0,
+      "last": 4.5057929900381387e-05,
+      "max": 0.00041381531694540405,
+      "mean": 6.615266896803885e-06,
+      "min": -6.761027066226399e-05,
+      "non_finite": 0,
+      "samples": [
+       -0.0,
+       -8.418411185481319e-06,
+       4.8454289898969136e-05,
+       -9.257434245380244e-06,
+       -1.1951310621777324e-05,
+       1.3443278950909026e-06,
+       -2.6953809598493003e-05,
+       3.405840148061323e-05,
+       9.056158385803467e-06,
+       -7.881268902786305e-06,
+       4.5057929900381387e-05
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "N*m"
+   },
+   "rods-on.eclipse.illumination_factor": {
+    "columns": [
+     "illumination_factor"
+    ],
+    "data": [
+     {
+      "first": 1.0,
+      "last": 1.0,
+      "max": 1.0,
+      "mean": 0.6064817528431782,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       1.0,
+       0.0,
+       1.0,
+       1.0,
+       0.0,
+       1.0,
+       0.0,
+       1.0,
+       1.0,
+       0.0,
+       1.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "rods-on.mtb_dipole_commanded": {
+    "columns": [
+     "mtb_0",
+     "mtb_1",
+     "mtb_2"
+    ],
+    "data": [
+     {
+      "first": -0.0,
+      "last": 1.0792981119863396,
+      "max": 16.954665229896765,
+      "mean": -0.09175533833777072,
+      "min": -30.0,
+      "non_finite": 0,
+      "samples": [
+       -0.0,
+       -1.6381614299336598,
+       0.8561965713951559,
+       -0.706586146246914,
+       -0.9964425089849813,
+       2.2391749627937605,
+       -0.6243485952287184,
+       0.3593495195004924,
+       -0.5021516016843067,
+       -1.789011222107931,
+       1.0792981119863396
+      ]
+     },
+     {
+      "first": -0.0,
+      "last": 2.08664756448839,
+      "max": 30.0,
+      "mean": 0.015965113823444448,
+      "min": -30.0,
+      "non_finite": 0,
+      "samples": [
+       -0.0,
+       -0.9727917481432089,
+       1.3777641697598841,
+       -0.003538498011109392,
+       -0.5971537664009188,
+       1.6245507644691444,
+       -0.9484768316189671,
+       -0.7417062507769896,
+       0.5114176304601472,
+       -0.9176891488674601,
+       2.08664756448839
+      ]
+     },
+     {
+      "first": -0.0,
+      "last": 1.5145747067070123,
+      "max": 30.0,
+      "mean": 0.3115698988849508,
+      "min": -30.0,
+      "non_finite": 0,
+      "samples": [
+       -0.0,
+       -0.21341916757301246,
+       2.2099093458848267,
+       -0.9479446813082375,
+       -1.113772802406113,
+       0.3801029138527062,
+       -0.5356060316871769,
+       2.7292491840173687,
+       -0.22742282757406057,
+       -0.47948648664112425,
+       1.5145747067070123
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "A*m^2"
+   },
+   "rods-on.orbit_elements.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 2.756245280935981,
+      "max": 6.276306837009342,
+      "mean": 3.1114233656432377,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.006956834961294193,
+       2.013406463082454,
+       3.5633856604457588,
+       3.5082931291001245,
+       3.6066441248279926,
+       4.981462420188372,
+       1.348337471998183,
+       2.7290886712137805,
+       2.8057804984595944,
+       2.756245280935981
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-on.orbit_elements.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 1.8073687925885712e-16,
+      "last": 0.0015821302541342375,
+      "max": 0.0019756414595484364,
+      "mean": 0.0010722266771423003,
+      "min": 1.8073687925885712e-16,
+      "non_finite": 0,
+      "samples": [
+       1.8073687925885712e-16,
+       0.00020347537037623074,
+       0.0019614324116727228,
+       0.00161466664384374,
+       0.0008325628640754863,
+       0.0007431805965488143,
+       0.0013484644695219159,
+       0.001422690518705773,
+       0.0008028398254349079,
+       0.0008581022272275009,
+       0.0015821302541342375
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "rods-on.orbit_elements.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 1.6966345658636877,
+      "last": 1.6966786879559679,
+      "max": 1.6968125887632688,
+      "mean": 1.6966846543879508,
+      "min": 1.6965599823559767,
+      "non_finite": 0,
+      "samples": [
+       1.6966345658636877,
+       1.6967103058596207,
+       1.6968007466217554,
+       1.6967339427033412,
+       1.69661123810621,
+       1.6966288198180568,
+       1.696736770084573,
+       1.6967288593258543,
+       1.6966042152021896,
+       1.6965689247027977,
+       1.6966786879559679
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-on.orbit_elements.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 4.520926361440911,
+      "last": 4.525428918050084,
+      "max": 4.525428918050084,
+      "mean": 4.523128605013762,
+      "min": 4.520926361440911,
+      "non_finite": 0,
+      "samples": [
+       4.520926361440911,
+       4.521456474628177,
+       4.521827622464935,
+       4.522161016185768,
+       4.522646298093723,
+       4.523204886475358,
+       4.523632053986541,
+       4.523954334760931,
+       4.524379618329083,
+       4.524938248064407,
+       4.525428918050084
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-on.orbit_elements.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 6828000.000000002,
+      "last": 6815499.298667955,
+      "max": 6828012.273943114,
+      "mean": 6818270.1421251325,
+      "min": 6808923.751284485,
+      "non_finite": 0,
+      "samples": [
+       6828000.000000002,
+       6819628.340988487,
+       6809233.45340086,
+       6814977.388526699,
+       6826808.081655594,
+       6824031.388764584,
+       6811501.69966706,
+       6811140.204432154,
+       6823556.556488705,
+       6827022.141908145,
+       6815499.298667955
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "rods-on.orbit_elements.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 1.4901161193847656e-08,
+      "last": 2.5838356788114822,
+      "max": 6.2811079464903425,
+      "mean": 3.16511697118876,
+      "min": 1.4901161193847656e-08,
+      "non_finite": 0,
+      "samples": [
+       1.4901161193847656e-08,
+       2.411211470435823,
+       2.825404122778037,
+       3.692652968795875,
+       6.167684867572649,
+       2.2050981553525117,
+       3.2478153546778987,
+       3.018632078737828,
+       4.055343415954448,
+       0.11449031428695977,
+       2.5838356788114822
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-on.orbit_elements_mean.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 3.1415926968971233,
+      "last": 9.39411591983933,
+      "max": 15.71408319091986,
+      "mean": 12.656295292884373,
+      "min": 3.1415926968971233,
+      "non_finite": 0,
+      "samples": [
+       3.1415926968971233,
+       9.411251579071106,
+       9.428218861181119,
+       15.695838513236335,
+       15.699154361333127,
+       9.414237112156702,
+       15.698744787834347,
+       9.409049156726164,
+       15.70365503152562,
+       9.413366317460344,
+       9.39411591983933
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-on.orbit_elements_mean.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 0.0004872096103453711,
+      "last": 0.0004987535792642648,
+      "max": 0.0005080889596606031,
+      "mean": 0.0004973159337730033,
+      "min": 0.00048603212225452477,
+      "non_finite": 0,
+      "samples": [
+       0.0004872096103453711,
+       0.000501816811294853,
+       0.0004973068544511818,
+       0.0004942886842029551,
+       0.0004987918769937404,
+       0.0004998249631399909,
+       0.0004982621939678136,
+       0.0004993676554233076,
+       0.000503241815742418,
+       0.0004865083963621863,
+       0.0004987535792642648
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "rods-on.orbit_elements_mean.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 1.6967227855103304,
+      "last": 1.6966512227112467,
+      "max": 1.6967239751477765,
+      "mean": 1.696682828363886,
+      "min": 1.6966482341010698,
+      "non_finite": 0,
+      "samples": [
+       1.6967227855103304,
+       1.696721244236649,
+       1.6967149583288261,
+       1.6967015108552006,
+       1.6966886538750932,
+       1.6966806493273852,
+       1.6966720204838985,
+       1.6966606219995524,
+       1.6966516891871608,
+       1.6966487137784025,
+       1.6966512227112467
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-on.orbit_elements_mean.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": -1.7622589457360254,
+      "last": -1.757841545869152,
+      "max": -1.757841545869152,
+      "mean": -1.7600542993966208,
+      "min": -1.7622589457360254,
+      "non_finite": 0,
+      "samples": [
+       -1.7622589457360254,
+       -1.761817396006975,
+       -1.7613803188119252,
+       -1.7609408810571803,
+       -1.760496082143358,
+       -1.7600527575638611,
+       -1.7596140691057782,
+       -1.7591741814812711,
+       -1.7587303561705414,
+       -1.7582852370544955,
+       -1.757841545869152
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-on.orbit_elements_mean.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 6818477.205203212,
+      "last": 6818434.488321864,
+      "max": 6818479.429765509,
+      "mean": 6818440.044968935,
+      "min": 6818399.662676985,
+      "non_finite": 0,
+      "samples": [
+       6818477.205203212,
+       6818448.747739151,
+       6818409.812573842,
+       6818444.061728229,
+       6818447.4072637865,
+       6818437.239982834,
+       6818441.895140249,
+       6818453.431267491,
+       6818431.001821735,
+       6818401.576855204,
+       6818434.488321864
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "rods-on.orbit_elements_mean.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 3.1415926251804764,
+      "last": 2.229250103907771,
+      "max": 3.1415926251804764,
+      "mean": -0.09657250290156928,
+      "min": -3.1385395161906566,
+      "non_finite": 0,
+      "samples": [
+       3.1415926251804764,
+       -0.7097938934334698,
+       1.693803099487859,
+       -2.156712124605991,
+       0.2599577637800148,
+       2.6807768619976438,
+       -1.186211328385127,
+       1.241040020260162,
+       -2.6361275464537237,
+       -0.20986461684235144,
+       2.229250103907771
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "rods-on.position_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": -1299334.1948130785,
+      "last": -63547.250424557205,
+      "max": 1543170.0925293271,
+      "mean": 26800.110578115895,
+      "min": -1547643.0512540098,
+      "non_finite": 0,
+      "samples": [
+       -1299334.1948130785,
+       413506.34302330634,
+       672162.7965270155,
+       -1422072.5553886371,
+       1455076.027604991,
+       -761631.845133414,
+       -313826.0839043662,
+       1224425.8666616667,
+       -1523374.0807281754,
+       1055614.6691458733,
+       -63547.250424557205
+      ]
+     },
+     {
+      "first": -6703231.657207549,
+      "last": -4067025.57693743,
+      "max": 6703628.146098777,
+      "mean": 219718.4020204947,
+      "min": -6709635.944868436,
+      "non_finite": 0,
+      "samples": [
+       -6703231.657207549,
+       5127079.7232316965,
+       -1005662.0642673019,
+       -3638466.8862403147,
+       6448372.687212373,
+       -6046958.545245519,
+       2605250.1087799664,
+       2117571.988971791,
+       -5804646.685668919,
+       6573248.231516322,
+       -4067025.57693743
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -5480056.643837557,
+      "max": 6767328.192682967,
+      "mean": 114251.00320689318,
+      "min": -6767539.223861367,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       4479229.239643816,
+       -6713828.81661271,
+       5595622.16221694,
+       -1682110.6980348984,
+       -3076135.198243181,
+       6295652.859626262,
+       -6367055.515827794,
+       3254530.531107172,
+       1485558.5093811732,
+       -5480056.643837557
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "rods-on.rw_speeds": {
+    "columns": [
+     "wheel_0",
+     "wheel_1",
+     "wheel_2"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": -1.0947653553396675,
+      "max": 38.19398658659951,
+      "mean": -0.7232480663277068,
+      "min": -177.10211486700405,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.17892392342381502,
+       -3.4340394165503327,
+       1.4018248441952545,
+       -0.5526884311698692,
+       -0.15115327349957414,
+       1.1545236447787963,
+       -2.6056212204040428,
+       0.9758790723195218,
+       -0.38480309035032495,
+       -1.0947653553396675
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": 2.355804566826049,
+      "max": 5.997792217374965,
+      "mean": 0.17221470274409673,
+      "min": -33.73202428698927,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       -0.6885688904755515,
+       2.9348887562122283,
+       -0.45994309136761014,
+       -0.02956436080807942,
+       0.8797187054824817,
+       -1.5032123598903497,
+       1.0248384899202283,
+       0.41522827825049285,
+       0.11257550470075751,
+       2.355804566826049
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -2.4654813421589763,
+      "max": 1.932828497746662,
+      "mean": -0.1817556239317972,
+      "min": -3.493614950927748,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       1.7652016392040408,
+       -0.4992837367328112,
+       -1.0431858801025644,
+       0.5103165701494763,
+       -2.869457271162779,
+       1.316148136649457,
+       0.6215840816213162,
+       -1.2210039775453134,
+       1.2202799122560244,
+       -2.4654813421589763
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad/s"
+   },
+   "rods-on.sensor.css-1": {
+    "columns": [
+     "output"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 1.0342311919966782,
+      "max": 1.0342404267664556,
+      "mean": 0.6245553247718771,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.0,
+       1.0341969730680851,
+       1.034158355665178,
+       0.0,
+       1.0342392873902304,
+       0.0,
+       1.0341582176085078,
+       1.0342005086181474,
+       0.0,
+       1.0342311919966782
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "rods-on.sun_heading_body": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 0.17682905523800388,
+      "last": -0.00026310043936442207,
+      "max": 0.19208485343657766,
+      "mean": 0.00028669213463676003,
+      "min": -0.06518902037514449,
+      "non_finite": 0,
+      "samples": [
+       0.17682905523800388,
+       5.8874239124567795e-05,
+       -0.0002678008898232692,
+       6.1012532988430346e-05,
+       7.924829797809063e-05,
+       -2.935052997296572e-06,
+       0.00017375726724502827,
+       -0.00018625755001329403,
+       -5.1481788975793474e-05,
+       5.212266653452369e-05,
+       -0.00026310043936442207
+      ]
+     },
+     {
+      "first": -0.9030425583174371,
+      "last": -0.0003882849004448463,
+      "max": 0.3730982332196552,
+      "mean": -0.0017164859619320401,
+      "min": -0.9800881747088315,
+      "non_finite": 0,
+      "samples": [
+       -0.9030425583174371,
+       -2.6374016600216876e-05,
+       -0.0010590406517101414,
+       0.0005081902032827434,
+       -0.0006083991400073763,
+       -0.00025097185200012584,
+       0.00023432752349439312,
+       -0.0016776821505609107,
+       0.0007077272041856597,
+       -0.00012397951749820724,
+       -0.0003882849004448463
+      ]
+     },
+     {
+      "first": -0.3914659922536484,
+      "last": 0.9999998900064911,
+      "max": 0.9999999999754853,
+      "mean": 0.9975049662566499,
+      "min": -0.3914659922536484,
+      "non_finite": 0,
+      "samples": [
+       -0.3914659922536484,
+       0.9999999979191179,
+       0.9999994033576127,
+       0.9999998690100859,
+       0.999999811785079,
+       0.9999999685022567,
+       0.9999999574495108,
+       0.9999985753443486,
+       0.9999997482358832,
+       0.9999999909561532,
+       0.9999998900064911
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "rods-on.velocity_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": -941.409716985162,
+      "last": -1702.3322405609797,
+      "max": 1729.8788800967498,
+      "mean": 56.57359182906683,
+      "min": -1725.35147961864,
+      "non_finite": 0,
+      "samples": [
+       -941.409716985162,
+       1666.7724038995127,
+       -1553.2961631880953,
+       664.5926516463755,
+       554.1520639650242,
+       -1491.9124202474143,
+       1679.2268143453186,
+       -1027.096341168332,
+       -138.6434430996051,
+       1232.4928925834322,
+       -1702.3322405609797
+      ]
+     },
+     {
+      "first": 182.4800184688366,
+      "last": -5972.908206594022,
+      "max": 7504.916506409656,
+      "mean": 120.64906339974895,
+      "min": -7505.844926843781,
+      "non_finite": 0,
+      "samples": [
+       182.4800184688366,
+       4832.290328289384,
+       -7416.464154224304,
+       6303.877636608241,
+       -2042.8003821730204,
+       -3251.1046366298874,
+       6915.124157188615,
+       -7121.14924997172,
+       3767.367800192449,
+       1475.690187082619,
+       -5972.908206594022
+      ]
+     },
+     {
+      "first": 7580.09120702264,
+      "last": 4444.560609767341,
+      "max": 7580.09120702264,
+      "mean": -250.80407852030538,
+      "min": -7587.556975661406,
+      "non_finite": 0,
+      "samples": [
+       7580.09120702264,
+       -5683.495679815214,
+       950.6580066828042,
+       4260.013359183928,
+       -7348.745752857883,
+       6750.141741224601,
+       -2779.0767256540485,
+       -2567.3177076140632,
+       6644.234563183158,
+       -7401.934010059508,
+       4444.560609767341
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m/s"
+   }
+  },
+  "summary": [
+   {
+    "decimals": 2,
+    "key": "run_length",
+    "label": "Run length",
+    "unit": "h",
+    "value": 6.0
+   },
+   {
+    "decimals": 3,
+    "key": "rods-off.mean_sma_change",
+    "label": "rods-off: Mean semi-major axis change",
+    "unit": "km",
+    "value": -0.010413950859569013
+   },
+   {
+    "decimals": 0,
+    "key": "rods-off.eclipses",
+    "label": "rods-off: Eclipses",
+    "unit": "-",
+    "value": 4.0
+   },
+   {
+    "decimals": 1,
+    "key": "rods-off.eclipse_time",
+    "label": "rods-off: Eclipse time",
+    "unit": "min",
+    "value": 141.33333333333337
+   },
+   {
+    "decimals": 3,
+    "key": "rods-on.mean_sma_change",
+    "label": "rods-on: Mean semi-major axis change",
+    "unit": "km",
+    "value": -0.010413543181493878
+   },
+   {
+    "decimals": 0,
+    "key": "rods-on.eclipses",
+    "label": "rods-on: Eclipses",
+    "unit": "-",
+    "value": 4.0
+   },
+   {
+    "decimals": 1,
+    "key": "rods-on.eclipse_time",
+    "label": "rods-on: Eclipse time",
+    "unit": "min",
+    "value": 141.33333333333337
+   }
+  ],
+  "warnings": [
+   "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap",
+   "the magnetic field model (WMM, epoch 2025.0) is valid from 2025.0 to 2030.0; outside those years magnetometer readings and torque-rod control use an extrapolated field",
+   "Earth orientation: IAU rotation model, no IERS data installed",
+   "Earth gravity field oriented by the IAU model (no IERS data): ~160 m/day position error at degree 20, 400 km"
+  ]
+ },
+ "span_days": 0.25,
+ "template": "21_disturbance_torques.json"
+}
