@@ -2633,7 +2633,8 @@ class MainWindow(QMainWindow):
                          scenario.monte_carlo.num_runs, archive_dir)
         self._mc_poll.start()
         self._mc_worker = MonteCarloWorker(scenario, scenario.monte_carlo, archive_dir,
-                                           allow_scripts=bool(blocks), overwrite=overwrite)
+                                           allow_scripts=bool(blocks), overwrite=overwrite,
+                                           scenario_file=self._unchanged_file_record())
         self._mc_worker.finished_ok.connect(self._on_monte_carlo_finished)
         self._mc_worker.failed.connect(self._on_monte_carlo_failed)
         self._mc_worker.cancelled.connect(self._on_monte_carlo_cancelled)

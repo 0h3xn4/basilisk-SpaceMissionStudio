@@ -70,7 +70,6 @@ from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
 
-from .. import output_provenance
 from ..schema.command import runs_sequence
 from .monte_carlo_process import BatchCancelled, failure_text, run_batch
 from ..schema.scenario import MonteCarloConfig, Scenario
@@ -221,11 +220,12 @@ class MonteCarloWorker(QThread):
     cancelled = Signal(int)  # the cases finished before Cancel (audit G3)
 
     def __init__(self, scenario: Scenario, mc_config: MonteCarloConfig, archive_dir: Path, parent=None,
-                 allow_scripts: bool = False, overwrite: bool = False):
+                 allow_scripts: bool = False, overwrite: bool = False, scenario_file: tuple[str, str] | None = None):
         super().__init__(parent)
         self.scenario = scenario
         self.mc_config = mc_config
         self.archive_dir = archive_dir
+        self.scenario_file = scenario_file  # the unchanged file the batch is of: name and SHA-256 of its bytes
         self.allow_scripts = allow_scripts  # the user agreed to the Mission Sequence's script blocks
         self.overwrite = overwrite  # the user agreed to replace an earlier batch in archive_dir
         self._cancel = False
@@ -257,11 +257,11 @@ class MonteCarloWorker(QThread):
         try:
             # In a child process: Basilisk's controller needs a main thread
             # (gui.monte_carlo_process).
+            # The batch's provenance, archive.provenance.json, is written by
+            # run_monte_carlo in the child (engine.monte_carlo.archive_record).
             failures = run_batch(self.scenario, self.mc_config, self.archive_dir,
                                  allow_scripts=self.allow_scripts, overwrite=self.overwrite,
-                                 should_cancel=lambda: self._cancel)
-            output_provenance.write_sidecar(Path(self.archive_dir) / "archive",
-                                            output_provenance.scenario_record(self.scenario))
+                                 should_cancel=lambda: self._cancel, scenario_file=self.scenario_file)
         except BatchCancelled as exc:
             self.cancelled.emit(exc.finished)
             return

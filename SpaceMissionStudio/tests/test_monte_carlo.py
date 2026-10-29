@@ -346,6 +346,28 @@ def test_a_batch_flies_the_mission_sequence_burns(tmp_path):
     assert radius_km.min() > 6900.0  # [km] the maneuver was flown in every run
 
 
+def test_a_batch_records_what_its_runs_share_and_where_their_seeds_are(tmp_path):
+    """Transparency audit, Phase 2g: a batch's provenance had the versions
+    and the scenario's hash only. It now names the file the scenario came
+    from and, as ``nominal_run``, what every run shares (integrator,
+    tolerances, data files); the seeds are each run's own, in its
+    run<N>.json, so the nominal run's are not given."""
+    import json
+
+    from spacemissionstudio.engine.monte_carlo import ARCHIVE_SEEDS_NOTE, run_monte_carlo
+
+    scenario = _short(_scenario())
+    assert run_monte_carlo(scenario, scenario.monte_carlo, tmp_path, scenario_file=("s.json", "cd" * 32)) == []
+    record = json.loads((tmp_path / "archive.provenance.json").read_text(encoding="utf-8"))
+    assert (record["scenario_file"], record["scenario_file_sha256"]) == ("s.json", "cd" * 32)
+    nominal = record["nominal_run"]
+    assert nominal["integrator"] and nominal["integrator_relative_tolerance"] > 0.0
+    assert "spice:naif0012.tls" in nominal["data_files"]
+    assert not {"rng_seeds", "rng_seed", "run_started_utc", "scenario_sha256"} & set(nominal)
+    assert record["rng_seeds"] == ARCHIVE_SEEDS_NOTE
+    assert "RNGSeed" in next(iter(json.loads((tmp_path / "run0.json").read_text())))
+
+
 def test_script_blocks_in_a_batch_need_consent(tmp_path):
     """A batch with script blocks is refused without explicit consent and
     creates no folder."""

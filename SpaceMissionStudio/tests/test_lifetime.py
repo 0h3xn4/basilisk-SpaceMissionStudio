@@ -305,3 +305,25 @@ def test_lifetime_after_a_run_uses_the_fuel_left_in_the_tank():
     result.add(TimeSeries("sat-1.fuel_mass_remaining", t, ("fuel_mass_remaining",), np.array([[0.5], [0.1]])))
     end = lifetime.end_of_life(scenario, "sat-1", result=result, max_years=0.01)
     assert end.mass_kg == pytest.approx(300.1)  # [kg]
+
+
+@pytest.mark.requires_basilisk
+def test_a_lifetime_records_the_drag_it_used_and_the_space_weather_files_it_read():
+    """Transparency audit, Phase 2g: a lifetime named neither the area and
+    drag coefficient it decayed with nor the space-weather files it read.
+    Template 18's spacecraft at 400 km from 2030: past the observations
+    MSFC's prediction table is read too. The exponential atmosphere reads
+    no file."""
+    import hashlib
+
+    scenario = _template_18(400.0)
+    area_m2, own_cd = lifetime.drag_properties(scenario.spacecraft[0])
+    end = lifetime.end_of_life(scenario, "leo-sat-1", max_years=0.5)
+    assert (end.area_m2, end.drag_coeff) == (area_m2, own_cd)
+    assert end.ballistic_coefficient_m2_kg == pytest.approx(own_cd * area_m2 / end.mass_kg)  # [m^2/kg]
+    assert lifetime.end_of_life(scenario, "leo-sat-1", max_years=0.5, drag_coeff=3.0).drag_coeff == 3.0
+    assert set(end.data_files) == {"space_weather", "space_weather_forecast"}
+    for record in end.data_files.values():
+        assert record["sha256"] == hashlib.sha256(Path(record["path"]).read_bytes()).hexdigest()
+    scenario.space_weather.atmosphere_model = "exponential"
+    assert lifetime.end_of_life(scenario, "leo-sat-1", max_years=0.5).data_files == {}

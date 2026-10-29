@@ -24,7 +24,7 @@ with a non-zero status and prints `ERROR:` or `INVALID:` with the reason.
 |---|---|
 | `validate scenario.json` | Checks the file without running it. Does not need Basilisk. |
 | `run scenario.json --out-dir out` | Runs it and writes one CSV per quantity, `events.csv`, `provenance.json` and `scenario_as_run.json` |
-| `monte-carlo scenario.json --archive-dir mc` | Runs the scenario's Monte Carlo batch |
+| `monte-carlo scenario.json --archive-dir mc` | Runs the scenario's Monte Carlo batch and writes its provenance, `archive.provenance.json` |
 | `gui` | Starts the app |
 
 ```console
@@ -47,6 +47,13 @@ scenario. `provenance.json` names the file you gave and the SHA-256 of
 its bytes, the SHA-256 of the scenario as run, every data file used with
 its SHA-256, and the run's warnings (`run_warnings`).
 
+`archive.provenance.json` in a Monte Carlo folder names the file you gave
+and the SHA-256 of its bytes and of the scenario. Under `nominal_run` it
+gives what every run shares: the integrator and its tolerances, the time
+step, the central body, the frames and every data file with its SHA-256.
+It gives no seeds: each run draws its own, and they are in its
+`run<N>.json`.
+
 `run` checks that it can write to `--out-dir` before it starts, and stops
 with exit code 3 if it cannot. Give each run its own empty folder: if the
 folder already holds files this run did not write, `run` names them in a
@@ -68,6 +75,8 @@ or damaged file from filling the memory or the disk.
 | `budget scenario.json` | Delta-V and propellant budget (ESA AD10 style) |
 | `budget scenario.json --launch-delays` | The same, for launches 1 to 5 years late |
 | `budget scenario.json --altitudes 400,450,500` | Which altitude fits the tank |
+| `lifetime scenario.json --out life.json` | Also writes the lifetime as JSON |
+| `budget scenario.json --out budget.json` | Also writes the budget as JSON |
 | `spaceweather-resolve scenario.json` | Which space-weather file a run would use |
 
 ```console
@@ -81,6 +90,24 @@ WARNING: past 2041-10 MSFC's last 132 months repeat (ESA AD10 Sec. 5.9)
 
 The two `WARNING` lines are normal: they say which space-weather data was
 used. This took about 40 s.
+
+With `--out`, `lifetime` and `budget` also write what they computed and
+what from:
+
+- `inputs`: the options you gave.
+- `model`: the values used that are not in the scenario file. For a
+  lifetime, the drag area and coefficient, the mass, the ballistic
+  coefficient and the 120 km re-entry perigee. For a budget, its rules
+  and margins, such as `CAM_COUNT_FACTOR` (4).
+- `results`: the figures printed. A lifetime adds the perigee and apogee
+  height over time (`decay`).
+- `warnings` or `notes`: as printed.
+- `provenance`: the tool and Basilisk versions, the file you gave and the
+  SHA-256 of its bytes, the scenario's SHA-256, and each space-weather file
+  read with its SHA-256. After `budget --run`, also the run's own record.
+
+`--out` writes the budget itself. It does not go with `--launch-delays` or
+`--altitudes` (exit code 2).
 
 ## Build scenarios
 
@@ -137,6 +164,10 @@ See [Orbit files](orbit-files.md).
 | `export-fsw scenario.json --spacecraft sat-1 --out dir` | Writes the attitude flight software as a C project |
 | `fsw-status scenario.json` | Says whether recorded exports are up to date |
 | `sil scenario.json --spacecraft sat-1 --binary prog` | Runs an external flight-software program in the loop |
+
+The `sil --report` file also has a `provenance` section: the tool and
+Basilisk versions, the scenario's SHA-256, the time, and the run's own
+record under `run`.
 
 See [Flight software and SIL](flight-software-and-sil.md).
 

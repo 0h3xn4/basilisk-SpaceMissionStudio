@@ -194,14 +194,18 @@ class MsisDensity:
     """NRLMSISE-00 density from Basilisk's ``msisAtmosphere``, driven by
     ``spaceWeatherData`` reading ``space_weather_path``. Times are seconds
     after ``start_utc``; both modules take elapsed nanoseconds directly,
-    so decades are fine (no ``nanoToSec()`` involved)."""
+    so decades are fine (no ``nanoToSec()`` involved). ``data_files``: the
+    records (:func:`..dependencies.file_record`) of the real data that file
+    was built from, for the provenance of what uses it."""
 
-    def __init__(self, space_weather_path, start_utc: datetime, points: int = RING_POINTS):
+    def __init__(self, space_weather_path, start_utc: datetime, points: int = RING_POINTS,
+                 data_files: dict | None = None):
         from Basilisk.architecture import messaging
         from Basilisk.simulation import msisAtmosphere, spaceWeatherData
 
         self.start_utc = start_utc
         self.points = points
+        self.data_files = dict(data_files or {})
         self._messaging = messaging
         self._epoch_msg = messaging.EpochMsg()
         epoch = messaging.EpochMsgPayload()
@@ -397,7 +401,22 @@ def density_for_scenario(scenario, start_utc: datetime, max_years: float, points
         resolved = spaceweather.resolve_for(sw_config, start_utc, end_utc, forecast_percentile=forecast_percentile)
     except spaceweather.SpaceWeatherError as exc:
         raise LifetimeError(str(exc)) from None
-    return MsisDensity(resolved.path, start_utc, points), max_years, warnings + list(resolved.warnings)
+    return (MsisDensity(resolved.path, start_utc, points, space_weather_files(resolved)), max_years,
+            warnings + list(resolved.warnings))
+
+
+def space_weather_files(resolved) -> dict:
+    """The data files a resolved space weather (``spaceweather.resolve_for``)
+    was built from, named as a run's provenance names them: the observed
+    data as ``space_weather``, the MSFC prediction table as
+    ``space_weather_forecast`` when it was needed (transparency audit,
+    Phase 2g)."""
+    from .. import dependencies
+
+    files = {"space_weather": dependencies.file_record(resolved.data_file)}
+    if resolved.forecast_file is not None:
+        files["space_weather_forecast"] = dependencies.file_record(resolved.forecast_file)
+    return files
 
 
 MAKEUP_STEP_S = 21600.0  # [s] drag make-up sampling step
@@ -413,6 +432,7 @@ class DragMakeup:
     altitude_km: float  # [km] mean orbit radius held, above the equatorial radius
     years: float  # [year] window covered (less than asked where the data ends)
     warnings: list[str] = field(default_factory=list)
+    data_files: dict = field(default_factory=dict)  # the space-weather files read (:func:`space_weather_files`)
 
 
 def held_orbit(spacecraft) -> MeanOrbit:
@@ -479,7 +499,7 @@ def drag_makeup(scenario, spacecraft, start_utc: datetime, years: float, forecas
         times[k], cumulative[k] = (k + 1) * step_s, total
     radius_r, _v = ring_states(orbit)
     altitude_km = (float(np.linalg.norm(radius_r, axis=1).mean()) - REQ_EARTH_M) / 1e3
-    return DragMakeup(total, times, cumulative, altitude_km, years, warnings)
+    return DragMakeup(total, times, cumulative, altitude_km, years, warnings, getattr(density, "data_files", {}))
 
 
 def spacecraft_lifetime(scenario, spacecraft_name: str, max_years: float = 30.0,
@@ -512,6 +532,19 @@ class EndOfLife:
     from_end_of_run: bool
     mass_kg: float  # [kg] at the start of the decay
     deorbit: DeorbitPlan | None = None
+    # What the decay used (transparency audit, Phase 2g): the area and drag
+    # coefficient (:func:`drag_properties`, or the coefficient asked for)
+    # and the space-weather files read (:func:`space_weather_files`).
+    area_m2: float | None = None  # [m^2]
+    drag_coeff: float | None = None  # [-]
+    data_files: dict = field(default_factory=dict)
+
+    @property
+    def ballistic_coefficient_m2_kg(self) -> float | None:
+        """Cd * A / m [m^2/kg], the drag the decay was computed with."""
+        if self.area_m2 is None or self.drag_coeff is None:
+            return None
+        return self.drag_coeff * self.area_m2 / self.mass_kg
 
 
 def _propulsion(spacecraft):
@@ -595,7 +628,8 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
                                should_cancel)
     lifetime.horizon_years = horizon_years
     lifetime.warnings.extend(warnings)
-    return EndOfLife(lifetime, result is not None, mass_kg, plan)
+    return EndOfLife(lifetime, result is not None, mass_kg, plan, area_m2, drag_coeff,
+                     getattr(density, "data_files", {}))
 
 
 def _orbit_after_retro_burn(orbit: MeanOrbit, delta_v_m_s: float) -> MeanOrbit:

@@ -95,7 +95,9 @@
  },
  "lifetime": {
   "rods-off/cd_2.2": {
+   "area_m2": 3.77,
    "deorbit": null,
+   "drag_coeff": 2.2,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -172,7 +174,9 @@
    "mass_kg": 300.0
   },
   "rods-off/own_cd": {
+   "area_m2": 3.77,
    "deorbit": null,
+   "drag_coeff": 3.0,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -249,7 +253,9 @@
    "mass_kg": 300.0
   },
   "rods-on/cd_2.2": {
+   "area_m2": 3.77,
    "deorbit": null,
+   "drag_coeff": 2.2,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -326,7 +332,9 @@
    "mass_kg": 300.0
   },
   "rods-on/own_cd": {
+   "area_m2": 3.77,
    "deorbit": null,
+   "drag_coeff": 3.0,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {

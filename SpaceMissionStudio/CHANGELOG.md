@@ -343,6 +343,19 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   while its path, size and modification time stay the same. Installed
   Earth orientation and small-body kernels are hashed at every run and
   compared with their install: a changed one gives a run warning.
+- **A lifetime and a budget can be exported, with what they came from:**
+  `lifetime --out FILE.json` and `budget --out FILE.json` write the
+  inputs, the values used that are not in the scenario file (the drag
+  area and coefficient, the re-entry perigee, the budget's rules and
+  margins), the results (a lifetime with its decay), the notes and the
+  provenance: versions, the file given and its SHA-256, and each
+  space-weather file read with its SHA-256 (transparency plan, Phase 2g).
+- **A Monte Carlo batch and a SIL report record their provenance:** a
+  batch's `archive.provenance.json` now names the file given and gives
+  what every run shares (integrator, tolerances, time step, frames, data
+  files); each run's seeds stay in its `run<N>.json`. A SIL report now has
+  the versions, the scenario's SHA-256, the time and the run's own record.
+
 ## 1.3.1 (2026-10-27)
 
 A faster window. Changing the theme, opening a template and the end of

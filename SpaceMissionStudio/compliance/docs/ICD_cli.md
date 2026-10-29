@@ -58,6 +58,7 @@ estimate when a spacecraft re-enters (orbit-averaged drag)
 | `--max-years` | how far ahead to look [years], more than 0 and at most 100 |
 | `--forecast-percentile {95.0,50.0,5.0}` | MSFC solar-activity percentile (ESA AD10: 50 for end of life) |
 | `--drag-coeff` | drag coefficient, or 'own' for the spacecraft's (default 2.2: ESA AD10 end of life) |
+| `--out` | also write the lifetime as JSON: inputs, the drag used, the decay, the provenance |
 
 ## `model`
 
@@ -81,6 +82,7 @@ delta-V and propellant budget (ESA AD10 style)
 | `--run` | run the scenario first, for orbit control and formation keeping |
 | `--launch-delays` | repeat the budget for launches 1-5 years late (ESA AD10 Sec. 5.5) |
 | `--altitudes` | launch-delay sweep at each altitude [km] (default: five around the spacecraft's own), against the tank |
+| `--out` | also write the budget as JSON: inputs, rules, rows, notes, the provenance |
 
 ## `kernels-status`
 

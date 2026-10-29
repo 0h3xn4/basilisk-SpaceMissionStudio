@@ -327,7 +327,7 @@ def disposal_estimate() -> dict:
     scenario, _inclination = propellant_budget._at_altitude(_template("18"), SPACECRAFT, DISPOSAL_ALTITUDE_KM)
     spacecraft = scenario.spacecraft[0]
     mass_kg = spacecraft.dry_mass_kg + spacecraft.station_keeping.propellant_kg  # [kg]
-    delta_v, perigee_km, years, _notes = propellant_budget.uncontrolled_reentry_delta_v(
+    delta_v, perigee_km, years, _notes, _files = propellant_budget.uncontrolled_reentry_delta_v(
         scenario, spacecraft, DISPOSAL_EOL_UTC, mass_kg, DISPOSAL_TARGET_YEARS)
     return {"delta_v_m_s": round(float(delta_v), 1), "perigee_km": round(float(perigee_km), 0),
             "lifetime_years": round(float(years), 2),

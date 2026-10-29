@@ -85,6 +85,11 @@ class SilReport:
     warnings: list[str] = field(default_factory=list)
     log_tail: str = ""  # the end of what the program wrote to stdout and stderr
     completed: bool = False
+    # The tool and Basilisk versions, the scenario's hash and the time
+    # (output_provenance.scenario_record), and as "run" the record of the
+    # run flown, once it ended (transparency audit, Phase 2g). Empty in a
+    # report written by 1.3.1 or earlier.
+    provenance: dict = field(default_factory=dict)
 
     @property
     def max_abs_error(self) -> float:

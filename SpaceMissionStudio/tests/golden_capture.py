@@ -146,6 +146,9 @@ def rng_library() -> str:
 _VOLATILE_PROVENANCE = {"run_started_utc", "dependency_versions", "data_files", "spacemissionstudio_version",
                         "basilisk_version", "qualified_basilisk_version", "basilisk_is_qualified",
                         "scenario_sha256"}
+# Fields of a result that name this machine's files (paths, sizes and
+# hashes): a lifetime's and a budget's data files, as the run's above.
+_MACHINE_FIELDS = {"data_files"}
 
 
 def template_paths() -> list[Path]:
@@ -173,7 +176,8 @@ def _column(values) -> dict:
 def _plain(value):
     """``value`` as JSON: dataclasses, arrays, dates and tuples made plain."""
     if dataclasses.is_dataclass(value) and not isinstance(value, type):
-        return {f.name: _plain(getattr(value, f.name)) for f in dataclasses.fields(value)}
+        return {f.name: _plain(getattr(value, f.name)) for f in dataclasses.fields(value)
+                if f.name not in _MACHINE_FIELDS}
     if isinstance(value, np.ndarray):
         return _column(value) if value.ndim <= 1 else [_column(column) for column in value.T]
     if isinstance(value, (datetime, date)):

@@ -82,7 +82,9 @@
  },
  "lifetime": {
   "leo-01-01/cd_2.2": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 2.2,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -159,7 +161,9 @@
    "mass_kg": 180.0
   },
   "leo-01-01/own_cd": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 3.0,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -236,7 +240,9 @@
    "mass_kg": 180.0
   },
   "leo-01-02/cd_2.2": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 2.2,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -313,7 +319,9 @@
    "mass_kg": 180.0
   },
   "leo-01-02/own_cd": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 3.0,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -390,7 +398,9 @@
    "mass_kg": 180.0
   },
   "leo-01-03/cd_2.2": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 2.2,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -467,7 +477,9 @@
    "mass_kg": 180.0
   },
   "leo-01-03/own_cd": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 3.0,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -544,7 +556,9 @@
    "mass_kg": 180.0
   },
   "leo-02-01/cd_2.2": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 2.2,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -621,7 +635,9 @@
    "mass_kg": 180.0
   },
   "leo-02-01/own_cd": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 3.0,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -698,7 +714,9 @@
    "mass_kg": 180.0
   },
   "leo-02-02/cd_2.2": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 2.2,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -775,7 +793,9 @@
    "mass_kg": 180.0
   },
   "leo-02-02/own_cd": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 3.0,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -852,7 +872,9 @@
    "mass_kg": 180.0
   },
   "leo-02-03/cd_2.2": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 2.2,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {
@@ -929,7 +951,9 @@
    "mass_kg": 180.0
   },
   "leo-02-03/own_cd": {
+   "area_m2": 1.0,
    "deorbit": null,
+   "drag_coeff": 3.0,
    "from_end_of_run": false,
    "lifetime": {
     "apogee_altitude_km": {

@@ -867,3 +867,20 @@ never named "_TabBar".
 |---|---|---|---|
 | `test_results.py::test_result_set_export_csv_with_provenance_writes_sidecar_json` | Expected the record's fields up to `central_body_mu_m3_s2` | Also expects `scenario_file`, `scenario_file_sha256` ("") and `run_warnings` ([]) | The record names the file run and the export lists the warnings; the test still checks every field the file holds |
 | `tests/gui/test_export_files.py::test_every_export_is_byte_identical_to_1_1_0` | Removed the six provenance keys added since 1.1.0 before comparing | Also removes `scenario_file`, `scenario_file_sha256` and `run_warnings`, which must be there | As above; every other byte is still compared with 1.1.0's |
+
+## The records of a lifetime, a budget, a batch and a SIL run (2026-10-29)
+
+- Added `test_lifetime.py::test_a_lifetime_records_the_drag_it_used_and_the_space_weather_files_it_read`,
+  `test_propellant_budget.py::test_a_budget_records_the_space_weather_files_its_drag_estimates_read`,
+  `test_cli.py::test_lifetime_and_budget_write_what_they_were_computed_from`,
+  `test_monte_carlo.py::test_a_batch_records_what_its_runs_share_and_where_their_seeds_are`,
+  `test_sil_report.py::test_a_report_keeps_its_provenance_and_an_earlier_one_still_reads`
+  and `test_sil.py::test_the_report_records_the_tool_the_scenario_and_the_run`
+  (Phase 2g). Each fails on the code before (checked: 6 failed).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_propellant_budget.py::test_the_disposal_burn_brings_the_lifetime_to_five_years` | Unpacked four values from `uncontrolled_reentry_delta_v` | Unpacks five; the fifth, the space-weather files read, is not checked here | The solver now also returns the files it read; the delta-V, perigee and lifetime are asserted as before |
+| `tests/golden_capture.py` (`_plain`) | Captured every field of a lifetime's and a budget's result | Leaves out `data_files` | They are this computer's paths, sizes and hashes, as the run provenance's `data_files` already left out; every other field is still captured and compared |
+| `tests/golden/*.json` (regression baseline) | A lifetime held no `area_m2` or `drag_coeff` | Rewritten: each lifetime gains `area_m2` and `drag_coeff` | The two new fields of `EndOfLife`; the comparison before the rewrite found no other difference |
+| `tests/gui/test_export_files.py::test_every_export_is_byte_identical_to_1_1_0` | Compared the SIL report with 1.1.0's byte for byte | Removes its `provenance`, which must be there, then compares the rest byte for byte | The SIL report now records its provenance; every other byte is still 1.1.0's, as for the provenance files' new keys |
