@@ -2054,3 +2054,30 @@ def test_dialog_round_trips_navigation_error(qtbot):
     assert dialog.to_dataclass().navigation_error.seed is None  # "Basilisk default"
     dialog.navigation_error_group.setChecked(False)
     assert dialog.to_dataclass().navigation_error is None
+
+
+def test_unticked_control_gains_show_the_gains_the_engine_applies(qtbot):
+    """Transparency audit 3.4: the form showed K 3.5 and P 30 for unticked
+    gains, while the engine applies them scaled by the mean moment of
+    inertia / 900 kg*m^2 (0.0389 and 0.333 for the default 10 kg*m^2). The
+    form now shows the applied gains, and follows an inertia edit; a ticked
+    gain is the user's and is left alone, and unticked gains still stay out
+    of the file."""
+    from spacemissionstudio.engine import control_gains
+    from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
+
+    dialog = SpacecraftEditorDialog()
+    qtbot.addWidget(dialog)
+    form = dialog.control_param_form
+    assert form.widget("K").value() == pytest.approx(3.5 * 10.0 / 900.0, rel=1e-3)
+    assert form.widget("P").value() == pytest.approx(30.0 * 10.0 / 900.0, rel=1e-3)
+    assert "K 0.03889, P 0.3333" in dialog.control_legend.text()
+    assert len(dialog.control_legend.text()) <= 160  # the GUI's help-label limit (test_label_text)
+    form.set_value("P", 2.0)  # ticked: the user's own
+    for box in (dialog.ixx, dialog.iyy, dialog.izz):
+        box.setValue(40.0)  # [kg*m^2]
+    applied = control_gains.default_mrp_gains_for_inertia(dialog.to_dataclass().inertia_kg_m2)
+    assert form.widget("K").value() == pytest.approx(applied["K"], rel=1e-3)
+    assert applied["K"] == pytest.approx(3.5 * 40.0 / 900.0)
+    assert form.widget("P").value() == 2.0
+    assert dialog.to_dataclass().control_params == {"P": 2.0}

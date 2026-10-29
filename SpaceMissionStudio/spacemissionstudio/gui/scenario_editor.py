@@ -63,7 +63,7 @@ from .mission_guide import MissionGuide
 from .page_tree import PageTree, embed_dialog, watch_edits
 from .ground_station_editor import GroundStationListWidget
 from .mission_sequence_editor import MissionSequenceEditorWidget
-from .monte_carlo_editor import MonteCarloGroupWidget
+from .monte_carlo_editor import SCALAR_DISPERSION_QUANTITIES, MonteCarloGroupWidget
 from .problem_location import (GROUND_STATION, JSON_VIEW, MISSION_SEQUENCE, PROPAGATION, SCENARIO, SPACECRAFT,
                                locate)
 from .spacecraft_editor import SpacecraftEditorDialog, SpacecraftLabels, SpacecraftListWidget, tab_titles
@@ -402,7 +402,10 @@ class ScenarioEditorWidget(QWidget):
         return self.monte_carlo_group
 
     def _refresh_monte_carlo_spacecraft_names(self) -> None:
-        self.monte_carlo_group.set_spacecraft_names([sc.name for sc in self.spacecraft_list.to_list()])
+        spacecraft = self.spacecraft_list.to_list()
+        self.monte_carlo_group.set_spacecraft_names(
+            [sc.name for sc in spacecraft],
+            {sc.name: {q: getattr(sc, q) for q in SCALAR_DISPERSION_QUANTITIES} for sc in spacecraft})
 
     # -- the tree's spacecraft and ground station nodes ---------------------
     def _rebuild_nodes(self, nodes: list, configs: list, parent_item, kind: str) -> None:

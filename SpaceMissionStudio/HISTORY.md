@@ -14377,3 +14377,30 @@ of the user (Section 10).
 
 Full suite on Python 3.14 (a home holding only the reference data cache): 3953 passed.
 The user answered the six decisions (Section 10.1 records them).
+
+## GUI defects of the transparency audit (2026-10-29)
+
+The transparency plan, Phase 1b: the defects of `docs/transparency_audit.md`
+Section 3 in the GUI, its defaults and its documentation (3.4, 3.7, 3.8,
+3.9, 3.10, 3.12). Branch `gui-defects`.
+
+- 3.4: `engine.control_gains` (new, no Basilisk) holds `DEFAULT_MRP_GAINS`,
+  the 900 kg*m^2 reference and the scaling `engine.fsw` used; `engine.fsw`
+  now takes them from there. The spacecraft editor fills an unticked K or
+  P with the scaled value and writes the derivation above the gains, again
+  whenever Ixx, Iyy or Izz change; a ticked gain is left alone, and
+  unticked gains still stay out of the file.
+- 3.7: `DispersionListWidget.set_spacecraft_names` also takes each
+  spacecraft's dry mass and drag and radiation-pressure coefficients; Add
+  starts a dispersion of one of them at that value, zero width.
+- 3.8: the tooltip's numbers checked against Kepler's third law in a test.
+- 3.9: the ground-station editor takes every default from
+  `GroundStationConfig`.
+- 3.10: `RFLinkConfig`'s docstring describes the pointing loss, the
+  antenna patterns and the downlink gate.
+- 3.12: `results_widget.warnings_tooltip` gives the drift explanation only
+  when a drift warning is shown.
+
+No result of a saved scenario changes: the gains applied are the same, and
+the new defaults apply only to a dispersion or station made after this
+change. Each new test fails on the code before.

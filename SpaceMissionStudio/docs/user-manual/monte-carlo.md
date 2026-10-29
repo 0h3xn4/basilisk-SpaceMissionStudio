@@ -9,7 +9,10 @@ far apart the results end up.
    **Enabled**.
 2. Set how many runs, and how many run in parallel.
 3. Add one or more **dispersions**: which quantity varies, for which
-   spacecraft, and by how much.
+   spacecraft, and by how much. A new dispersion starts at the
+   spacecraft's own value (dry mass, drag or radiation-pressure
+   coefficient) with no spread: widen its bounds, or give it a standard
+   deviation, for it to vary.
 4. Set the mode beside **Run** to **Monte Carlo**, press **Run**, and
    choose a folder (or set it first under **Archive folder** on **Run >
    Run**, where it is remembered for the scenario). Every run is saved there; the progress in the status bar counts

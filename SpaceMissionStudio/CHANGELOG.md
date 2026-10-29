@@ -265,6 +265,28 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   75.7 %: its tests already run in the test process, so what it lacks is
   tests, of `earth-orientation`, `monte-carlo` and `ccsds-import` above
   all (audit R11).
+- **The control gains shown are the gains applied:** an unticked K or P
+  showed 3.5 and 30, while the controller uses them scaled by the
+  spacecraft's mean moment of inertia / 900 kg*m^2 (0.039 and 0.33 for the
+  default 10 kg*m^2 spacecraft, 90 times less). The form now shows the
+  applied values, follows an inertia edit, and says how they are worked
+  out. Nothing the controller does changes (transparency audit 3.4).
+- **A new dispersion starts at the spacecraft's own value:** an untouched
+  **Add** gave dry mass uniform in [0, 1] kg, written as the mass itself,
+  so every run flew a spacecraft of under 1 kg. It now starts at the
+  spacecraft's own dry mass (or drag or radiation-pressure coefficient)
+  with no spread, and the note says to widen it (audit 3.7).
+- **A new ground station's receive gain is the schema's, 0 dBi:** the
+  editor started at 45 dBi, so a station made in the GUI and one written in
+  a file without the field closed a link 45 dB apart. Stations already in
+  a scenario keep their value (audit 3.9).
+- **Corrected help:** the semi-major axis tooltip said ~6778 km was a
+  ~500 km orbit of ~95 min; it is 400 km and 92.6 min (audit 3.8). The
+  `RFLinkConfig` documentation said the link budget had no pointing loss
+  and no effect on the simulation; both exist (audit 3.10).
+- **A run warning's tooltip fits the warning:** every warning had the
+  tooltip blaming numerical drift, a re-entry or space-weather one too;
+  only a conservation-drift warning has it now (audit 3.12).
 
 ## 1.3.1 (2026-10-27)
 

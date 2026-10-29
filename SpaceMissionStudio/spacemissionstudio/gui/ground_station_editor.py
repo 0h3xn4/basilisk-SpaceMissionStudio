@@ -28,6 +28,8 @@ though nothing reads ``scenario.ground_stations`` yet.
 
 from __future__ import annotations
 
+import dataclasses
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QDialog,
@@ -49,6 +51,13 @@ from .feedback import (ProblemBanner, bring_into_view, clear_field_error, clear_
                        mark_invalid, report, show_field_error, show_toast)
 from .problem_location import GROUND_STATION, locate
 from .widgets import PreciseDoubleSpinBox, finish_form
+
+# A new station starts from the schema's defaults, so a station made here and
+# one written in a file without these fields are the same station.
+# Transparency audit 3.9: the receive gain started at 45 dBi here, 0 dBi in
+# the schema, so the two closed a link 45 dB apart.
+_DEFAULTS = {f.name: f.default for f in dataclasses.fields(GroundStationConfig)
+             if f.default is not dataclasses.MISSING}
 
 
 def _spin(minimum: float, maximum: float, decimals: int = 4, step: float = 1.0, value: float = 0.0) -> QDoubleSpinBox:
@@ -85,11 +94,11 @@ class GroundStationEditorDialog(QDialog):
         self.lon_deg = _spin(-180.0, 180.0, decimals=6, step=1.0, value=config.longitude_deg if config else 0.0)
         self.lon_deg.setToolTip("Longitude, east positive from the prime meridian of the body-fixed frame.")
         form.addRow("Longitude [deg] (WGS-84, east positive)", self.lon_deg)
-        self.alt_m = _spin(-500.0, 9000.0, decimals=1, step=10.0, value=config.altitude_m if config else 0.0)
+        self.alt_m = _spin(-500.0, 9000.0, decimals=1, step=10.0, value=config.altitude_m if config else _DEFAULTS["altitude_m"])
         self.alt_m.setToolTip("Height above the WGS-84 ellipsoid (not above sea level: they differ by up to ~100 m).")
         form.addRow("Height [m] (above the WGS-84 ellipsoid)", self.alt_m)
         self.min_elev_deg = _spin(0.0, 89.9, decimals=2, step=1.0,
-                                   value=config.min_elevation_deg if config else 10.0)
+                                   value=config.min_elevation_deg if config else _DEFAULTS["min_elevation_deg"])
         self.min_elev_deg.setToolTip(
             "The lowest elevation angle above the local horizon counted as real, usable "
             "access -- real terrain/buildings/RF-noise near the horizon mean a satellite just "
@@ -103,7 +112,7 @@ class GroundStationEditorDialog(QDialog):
         # configured (see spacecraft_editor.py's "Power / link budget" tab
         # and schema.scenario.RFLinkConfig) -- harmless, unused otherwise.
         self.rx_antenna_gain_dbi = _spin(-50.0, 100.0, decimals=2, step=1.0,
-                                          value=config.rx_antenna_gain_dbi if config else 45.0)
+                                          value=config.rx_antenna_gain_dbi if config else _DEFAULTS["rx_antenna_gain_dbi"])
         self.rx_antenna_gain_dbi.setToolTip(
             "This ground station's receive antenna gain -- only used if a spacecraft also has "
             "an RF link budget configured (Spacecraft editor's Power tab). Higher gain "
@@ -111,7 +120,7 @@ class GroundStationEditorDialog(QDialog):
         )
         form.addRow("RX antenna gain [dBi] (for a link budget)", self.rx_antenna_gain_dbi)
         self.system_noise_temp_k = _spin(0.1, 1.0e5, decimals=2, step=10.0,
-                                          value=config.system_noise_temp_k if config else 290.0)
+                                          value=config.system_noise_temp_k if config else _DEFAULTS["system_noise_temp_k"])
         self.system_noise_temp_k.setToolTip(
             "This ground station's receiver system noise temperature -- same link-budget-only "
             "scope as the antenna gain above. Lower (a quieter, better receiver) improves the "

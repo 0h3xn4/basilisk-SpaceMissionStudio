@@ -536,16 +536,31 @@ class PowerConfig:
 
 @dataclass
 class RFLinkConfig:
-    """A spacecraft's downlink transmitter, for a reported link-margin
-    ESTIMATE only (``engine.link_budget``) -- a simplified free-space-path
-    -loss Eb/N0 budget (no atmosphere/rain/pointing-loss/coding-gain
-    terms), ported directly from ``../missionAnalysis``'s
-    ``run_constellation_mission.py::_rf_link_margin_db()``. It is evaluated
-    against the real simulated slant range from ``engine.service``'s
-    ground-station access analysis, but it does NOT feed back into the
-    simulated physics anywhere (no data-rate/duty-cycle simulation) --
-    see :class:`PowerConfig` for what IS actually simulated. ``None`` (the
-    default) means no link margin is computed for that spacecraft.
+    """A spacecraft's downlink transmitter and antenna, for the link margin
+    (``engine.link_budget``): a free-space-path-loss Eb/N0 budget, first
+    ported from ``../missionAnalysis``'s
+    ``run_constellation_mission.py::_rf_link_margin_db()``, evaluated at the
+    real simulated slant range of ``engine.service``'s ground-station access
+    analysis. No atmospheric, rain or coding-gain term is modelled;
+    ``implementation_loss_db`` is a fixed allowance.
+
+    The margin is not only reported:
+
+    * **Pointing loss:** with ``antenna_beamwidth_deg`` set (and
+      :class:`CommsPointingConfig`), the antenna's simulated pointing error
+      costs ``12 * (error / beamwidth)^2`` dB, capped (``engine.link_budget``);
+      with an ``antenna_pattern``
+      other than ``"fixed"``, the gain toward the station follows the
+      simulated attitude through that pattern.
+    * **Downlink:** with a :class:`DataHandlingConfig`, data leaves the
+      onboard storage at ``data_rate_bps`` only while the margin toward a
+      station in view is at least 0 dB (``engine.data_handling``).
+
+    ``None`` (the default) means no link margin is computed and no data is
+    downlinked for that spacecraft.
+
+    (Transparency audit 3.10: this docstring said there was no pointing loss
+    and no effect on the simulation; both have been added since.)
     """
 
     tx_power_w: float  # [W] downlink transmitter RF output power

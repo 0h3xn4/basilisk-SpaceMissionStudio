@@ -21,8 +21,11 @@ On the spacecraft's **Attitude control** page, pick an **FSW mode**:
 | `locationPointing` | A body axis at a ground station or a celestial body |
 
 The mode's settings appear under **Pointing parameters**; **Control gains
-(MRP feedback)** has the controller's gains, which already scale to the
-spacecraft's inertia. **Initial attitude / body rate** sets how it starts.
+(MRP feedback)** has the controller's gains. An unticked gain shows the
+value the controller uses: Basilisk's reference K 3.5 and P 30, tuned for
+a 900 kg*m^2 spacecraft, scaled by this spacecraft's mean moment of
+inertia (K 0.039 and P 0.33 for 10 kg*m^2); the line above the gains
+says how it was worked out. A gain you tick is used as you enter it. **Initial attitude / body rate** sets how it starts.
 
 For a spacecraft that points at the Sun and turns to a ground station
 during each pass, tick **Comms pointing** on the same page instead of
