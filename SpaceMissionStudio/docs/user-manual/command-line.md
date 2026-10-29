@@ -69,6 +69,13 @@ step, the central body, the frames and every data file with its SHA-256.
 It gives no seeds: each run draws its own, and they are in its
 `run<N>.json`.
 
+`archive.provenance.json` in a Monte Carlo folder names the file you gave
+and the SHA-256 of its bytes and of the scenario. Under `nominal_run` it
+gives what every run shares: the integrator and its tolerances, the time
+step, the central body, the frames and every data file with its SHA-256.
+It gives no seeds: each run draws its own, and they are in its
+`run<N>.json`.
+
 `run` checks that it can write to `--out-dir` before it starts, and stops
 with exit code 3 if it cannot. Give each run its own empty folder: if the
 folder already holds files this run did not write, `run` names them in a
