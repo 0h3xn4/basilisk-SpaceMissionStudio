@@ -14415,3 +14415,41 @@ itself the same way, with the installed Eros files as
 there with its before and after values before the baseline is rewritten
 (`scripts/update_golden_outputs.py --write`).
 Full suite on Python 3.14 (a home holding only the reference data cache): 3986 passed in 13 min 4 s (10 min 18 s before the baseline).
+
+## Engine and command-line defects (2026-10-29)
+
+The transparency plan, Phase 1b: the defects of `docs/transparency_audit.md`
+Section 3 in the engine and the command line (3.1, 3.2, 3.3, 3.5, 3.6,
+3.11, 3.13, and 3.14, found while fixing 3.1). The GUI and default
+defects (3.4, 3.7-3.10, 3.12) follow separately. Branch `engine-defects`,
+on top of `golden-baseline`.
+
+**The fixes.**
+- 3.1, 3.14: `RunProvenance` gains `central_body` and
+  `central_body_mu_m3_s2`, written by the service from the GM Basilisk
+  used. `orbit_number.central_body_mu(result)` reads it; for a record
+  from before, it takes the body the inertial frame names (Basilisk's GM
+  for it) and Earth's when that is Earth or unknown. The orbit-number axis
+  and the run summary's mean semi-major axis change both use it.
+- 3.5: `roe_formation` added to the run summary's delta-V controllers.
+- 3.2: `EXIT_CHECK_FAILED = 5`; `monte-carlo` failures 3; `kernels-status`
+  missing 2. ICD-02, the SUM's message table and the command-line guide
+  updated.
+- 3.3: `long_run._whole_run_provenance`: the original scenario's hash,
+  every segment's seeds (`"<model> (segment N)"`), the real space-weather
+  file with the whole-span file as `space_weather_resolved`.
+- 3.6: every Earth orientation note goes into the run's warnings.
+- 3.11: `scenario_checks._checked` turns a failing check into
+  `check not run: <name> (<error>)`, traceback at debug level.
+- 3.13: `time_system.tdb_seconds_between`, the two-part Julian dates
+  subtracted part by part. A first version took the difference of
+  `tdb_seconds_past_j2000`, which keeps only about 1e-7 s: the target
+  came out about 6e-8 s short of 121 s and the run, with its 1 s step,
+  stopped at 120 s.
+
+**Measured** (`docs/changes.md`): the baseline comparison found no
+recorded number changed in any of the 31 templates, only the two new
+provenance fields. On full runs: template 31's orbit number at the end
+220582.58 before, 2.58 after; template 30's 2.40 both (its 20 h orbit);
+template 29's follower delta-V 0.000 before, 0.588 m/s after. Each new
+test fails on the code before (13 failed).

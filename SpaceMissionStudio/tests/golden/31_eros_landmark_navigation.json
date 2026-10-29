@@ -62,6 +62,8 @@
   "events": [],
   "provenance": {
    "basilisk_qualified": true,
+   "central_body": "eros",
+   "central_body_mu_m3_s2": 446300.0,
    "dynamics_task_rate_s": 10.0,
    "frames": {
     "B": {

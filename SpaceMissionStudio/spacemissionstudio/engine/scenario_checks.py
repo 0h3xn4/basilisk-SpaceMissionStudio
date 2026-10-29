@@ -39,6 +39,7 @@ edit) and must never raise for a half-edited scenario: unsupported cases
 
 from __future__ import annotations
 
+import logging
 import math
 from dataclasses import dataclass
 from datetime import datetime, timedelta, UTC
@@ -294,22 +295,31 @@ def _sun_axis(sc):
     return None
 
 
+def _checked(name: str, check, *args) -> list[str]:
+    """``check(*args)``'s warnings; when the check itself fails, one line
+    saying it could not run and why, the traceback in the log. In 1.3.1 and earlier
+    a failing check was dropped without a word, so it looked passed
+    (audit 3.11). Never raises: a half-edited scenario must not break the
+    editor or the Explain tab."""
+    try:
+        return list(check(*args))
+    except Exception as exc:  # noqa: BLE001 -- reported, not raised
+        logging.getLogger(__name__).debug("check %s could not run", name, exc_info=True)
+        return [f"check not run: {name} ({type(exc).__name__}: {exc})"]
+
+
 def scenario_warnings(scenario) -> list[str]:
     """Short warnings for setups that can't do what they're configured
     for. Never raises."""
     warnings: list[str] = []
-    for check in (_pass_warnings, _recording_warnings, _step_warnings, _tle_warnings, _gravity_warnings,
-                  _formation_law_warnings, _navigation_restart_warnings, _small_body_data_warnings,
-                  _monte_carlo_warnings):
-        try:
-            warnings += check(scenario)
-        except Exception:  # noqa: BLE001, S110 -- a half-edited scenario must never break the Explain tab
-            pass
+    for name, check in (("passes", _pass_warnings), ("recording", _recording_warnings), ("step", _step_warnings),
+                        ("TLE", _tle_warnings), ("gravity", _gravity_warnings),
+                        ("formation law", _formation_law_warnings),
+                        ("navigation restarts", _navigation_restart_warnings),
+                        ("small-body data", _small_body_data_warnings), ("Monte Carlo", _monte_carlo_warnings)):
+        warnings += _checked(name, check, scenario)
     for sc in scenario.spacecraft:
-        try:
-            warnings += _spacecraft_warnings(sc)
-        except Exception:  # noqa: BLE001, S110 -- same reason
-            pass
+        warnings += _checked(f"{sc.name} devices", _spacecraft_warnings, sc)
     return warnings
 
 
@@ -445,11 +455,9 @@ def plausibility_warnings(scenario, base_dir=None) -> list[str]:
     raises. ``base_dir`` (the scenario file's folder) resolves relative
     model mesh paths."""
     warnings: list[str] = []
-    for check in (_orbit_warnings, _data_coverage_warnings, lambda s: _model_warnings(s, base_dir)):
-        try:
-            warnings += check(scenario)
-        except Exception:  # noqa: BLE001, S110 -- a half-edited scenario must never break the editor
-            pass
+    for name, check in (("orbits", _orbit_warnings), ("data coverage", _data_coverage_warnings),
+                        ("3D models", lambda s: _model_warnings(s, base_dir))):
+        warnings += _checked(name, check, scenario)
     return warnings
 
 

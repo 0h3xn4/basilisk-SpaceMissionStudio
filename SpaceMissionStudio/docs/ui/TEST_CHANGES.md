@@ -810,3 +810,26 @@ never named "_TabBar".
   `::test_the_comparison_holds_each_number_to_its_own_scale`, with the
   helper `tests/golden_capture.py` and the data in `tests/golden/`. No
   existing test changed.
+
+## Engine and command-line defects (2026-10-29)
+
+- Added `test_orbit_number.py::test_a_mars_orbit_counts_its_own_turns_however_sparsely_recorded`
+  (3 cases), `::test_a_run_recorded_before_the_gm_was_kept_uses_earths_for_an_earth_run`
+  and `::test_a_mars_run_recorded_before_the_gm_was_kept_takes_mars_from_its_frames`
+  (audit 3.1), `test_run_summary.py::test_the_delta_v_includes_the_roe_formation_controller`
+  (3.5) and `::test_the_semi_major_axis_change_averages_over_the_central_bodys_own_orbit`
+  (3.14), `test_long_run.py::test_a_split_run_records_the_whole_runs_provenance` (3.3),
+  `test_earth_orientation.py::test_a_run_on_predicted_earth_orientation_says_so_in_its_warnings`
+  (3.6), `test_scenario_checks.py::test_a_check_that_fails_says_so_instead_of_passing_silently`
+  (3.11), `test_mission_engine.py::test_a_stop_epoch_across_a_leap_second_counts_it` (3.13),
+  and `test_cli.py::test_a_monte_carlo_batch_with_a_failed_run_exits_3` and
+  `::test_kernels_status_with_a_missing_kernel_exits_2` (3.2). Each fails on
+  the code before (checked: 13 failed).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_sil.py::test_the_cli_runs_sil_writes_the_report_and_gates_on_the_error` | `sil --max-error` over the limit expected exit 2 | Expects `cli.EXIT_CHECK_FAILED` (5) | 2 is a missing component or a usage error in ICD-02; a check that ran and did not pass now has its own status (audit 3.2). The same failure is asserted |
+| `test_fsw_export.py::test_the_cli_exports_and_records` | `fsw-status` on a stale export expected exit 2 | Expects `cli.EXIT_CHECK_FAILED` (5) | As above |
+| `test_offline.py::test_validate_and_export_a_template_offline` | `kernels-status` accepted 0 or 1 | Accepts 0 or 2 | A missing kernel is a missing component, 2 in ICD-02, not an input error (audit 3.2) |
+| `test_results.py::test_result_set_export_csv_with_provenance_writes_sidecar_json` | Expected the provenance record's fields up to `series_frames` | Also expects `central_body` ("") and `central_body_mu_m3_s2` (0.0) | The record now keeps the run's central body and GM (audit 3.1); the test still checks every field the file holds |
+| `tests/gui/test_export_files.py::test_every_export_is_byte_identical_to_1_1_0` | Removed the four provenance keys added since 1.1.0 before comparing | Also removes `central_body` and `central_body_mu_m3_s2`, which must be there | As above; every other byte is still compared with 1.1.0's, as for the earlier keys |

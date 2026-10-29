@@ -220,3 +220,19 @@ def datetime_of(epoch_utc: str, days: float) -> str:
     from spacemissionstudio.schema.epochs import parse_epoch_utc
 
     return (parse_epoch_utc(epoch_utc) + timedelta(days=days)).strftime("%Y-%m-%dT%H:%M:%S")
+
+
+def test_a_check_that_fails_says_so_instead_of_passing_silently(monkeypatch):
+    """Audit 3.11: a check that raised was dropped, so it looked passed. It
+    now gives one line naming the check and the error; the other checks
+    still run, and nothing raises."""
+    from spacemissionstudio.engine import scenario_checks
+
+    def broken(_scenario):
+        raise ValueError("half-edited")
+
+    monkeypatch.setattr(scenario_checks, "_step_warnings", broken)
+    monkeypatch.setattr(scenario_checks, "_orbit_warnings", broken)
+    scenario = _template("22")
+    assert "check not run: step (ValueError: half-edited)" in scenario_warnings(scenario)
+    assert "check not run: orbits (ValueError: half-edited)" in scenario_checks.plausibility_warnings(scenario)

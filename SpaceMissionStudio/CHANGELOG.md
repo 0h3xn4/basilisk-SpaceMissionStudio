@@ -272,6 +272,33 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   spacecraft, every budget or its refusal, and a Monte Carlo batch. A
   number may now change only with an entry in the new `docs/changes.md`
   (transparency plan, Phase 1a).
+- **The orbit number and the mean semi-major axis change use the run's
+  own central body:** both took Earth's GM for every body. Template 31
+  (Eros) showed 220 582.58 orbits over its 2 days, now 2.58; a 400 km
+  Mars orbit recorded every 600 s counted 312.41 orbits for 24.41. Earth
+  runs are unchanged. The run's provenance now records `central_body` and
+  `central_body_mu_m3_s2` (audit 3.1, 3.14; `docs/changes.md`).
+- **The ROE formation controller's delta-V is in the run's delta-V
+  figure:** it was left out; template 29's follower over 4 days showed
+  0.000 m/s, now 0.588 m/s (audit 3.5).
+- **Exit statuses as ICD-02 gives them:** `fsw-status` with an export no
+  longer up to date and `sil --max-error` over the limit exit 5 (new: the
+  command ran, its check did not pass), not 2, the status of a missing
+  component; `monte-carlo` with a failed run exits 3, not 4 (an internal
+  error); `kernels-status` with a kernel missing exits 2, not 1. A script
+  that tested for 2 after `fsw-status` or `sil` must now test for 5 (audit
+  3.2).
+- **A run on predicted Earth orientation says so in its warnings:** the
+  note was in the Explain tab only (audit 3.6).
+- **A check that cannot run says so:** a pre-run or plausibility check
+  that failed was dropped without a word and looked passed; it now shows
+  `check not run: <name> (<error>)` (audit 3.11).
+- **A stop epoch across a leap second counts it:** `propagate` to a stop
+  epoch ran the UTC difference, a second short across a leap second; it
+  now runs the TDB time the simulation counts (audit 3.13).
+- **A run over 100 days records the whole run's provenance:** it kept the
+  first segment's, with the hash of a modified copy of the scenario and
+  the first segment's seeds only (audit 3.3).
 
 ## 1.3.1 (2026-10-27)
 

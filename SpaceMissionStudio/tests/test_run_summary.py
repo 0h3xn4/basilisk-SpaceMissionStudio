@@ -110,3 +110,34 @@ def test_the_event_table_counts_each_kind_with_its_total_time():
     table = run_summary.event_table(events.extract_events(_run()))
     assert table["pass over gs"] == (2, 18.0)  # [min]
     assert table["eclipse (umbra)"] == (1, 34.0)  # [min]
+
+
+def test_the_delta_v_includes_the_roe_formation_controller():
+    """Audit 3.5: the ROE formation controller's delta-V was left out of the
+    run's figure (its propellant was counted, from the shared tank)."""
+    result = _run()
+    _add(result, "sat.roe_formation.delta_v", ("cumulative_delta_v",), np.linspace(0.0, 0.5, _N), "m/s")
+    figures = run_summary.by_key(run_summary.summarize(result))
+    assert math.isclose(figures["sat.delta_v"].value, 2.25)  # [m/s] 1.5 + 0.25 + 0.5
+
+
+def test_the_semi_major_axis_change_averages_over_the_central_bodys_own_orbit():
+    """Audit 3.14: the averaging window was an orbit period from Earth's mu
+    for every body. For a Mars orbit (period 7083 s) with a wobble at that
+    period, Earth's mu gave a window of 0.33 periods, which did not average
+    the wobble out; the run's own mu does."""
+    from spacemissionstudio.engine.results import RunProvenance
+
+    mu_mars, a = 4.282837e13, 3789.5e3  # [m^3/s^2], [m]
+    period = 2.0 * math.pi * math.sqrt(a ** 3 / mu_mars)  # [s]
+    t = np.arange(0.0, 3.0 * period, 30.0)  # [s] three orbits
+    wobble = 2000.0 * np.sin(2.0 * np.pi * t / period)  # [m]
+    provenance = RunProvenance(spacemissionstudio_version="test", basilisk_version="test", run_started_utc="-",
+                               integrator="rkf78", dynamics_task_rate_s=30.0, central_body="mars barycenter",
+                               central_body_mu_m3_s2=mu_mars)
+    result = ResultSet("mars", provenance=provenance)
+    result.add(TimeSeries("probe.position_N", t, ("x", "y", "z"), np.zeros((t.size, 3)), "m"))
+    result.add(TimeSeries("probe.orbit_elements_mean.semi_major_axis", t, ("semi_major_axis",),
+                          a - 300.0 * t / t[-1] + wobble, "m"))
+    figures = run_summary.by_key(run_summary.summarize(result))
+    assert math.isclose(figures["probe.mean_sma_change"].value, -0.3 * 2.0 / 3.0, rel_tol=0.05)  # [km]

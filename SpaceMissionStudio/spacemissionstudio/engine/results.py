@@ -117,6 +117,12 @@ class RunProvenance:
     frames: dict[str, dict[str, str]] = field(default_factory=dict)
     transformations: dict[str, str] = field(default_factory=dict)
     series_frames: dict[str, str] = field(default_factory=dict)
+    # The central body and the gravitational parameter the run used for it
+    # (audit 3.1, 3.14: views that derive orbits from the recorded states,
+    # such as the orbit-number axis, need the run's own GM). Empty and 0.0
+    # in a record from before they were kept (1.3.1 and earlier).
+    central_body: str = ""
+    central_body_mu_m3_s2: float = 0.0  # [m^3/s^2]
 
     def to_dict(self) -> dict:
         return asdict(self)

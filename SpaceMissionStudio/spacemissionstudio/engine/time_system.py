@@ -139,6 +139,17 @@ def tdb_seconds_past_j2000(epoch_utc) -> float:
     return ((d1 - _J2000_JD) + d2) * 86400.0
 
 
+def tdb_seconds_between(start_utc, end_utc) -> float:
+    """TDB seconds from the UTC epoch ``start_utc`` to ``end_utc``: the
+    simulation time of ``end_utc`` in a run starting at ``start_utc``, leap
+    seconds between them included. The two-part dates are subtracted part by
+    part, which keeps about 1e-11 s; the difference of
+    :func:`tdb_seconds_past_j2000` keeps only about 1e-7 s."""
+    start_1, start_2 = utc_to_tdb_jd(start_utc)
+    end_1, end_2 = utc_to_tdb_jd(end_utc)
+    return ((end_1 - start_1) + (end_2 - start_2)) * 86400.0
+
+
 def elapsed_to_utc(epoch_utc, elapsed_tdb_s: Sequence[float]):
     """UTC datetimes of simulation times (TDB seconds since ``epoch_utc``):
     epoch + t minus the change of (TDB - UTC) since the epoch, i.e. of the
