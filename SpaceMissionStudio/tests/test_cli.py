@@ -982,3 +982,37 @@ def test_validate_prints_the_plausibility_warnings(tmp_path, capsys):
                  raan_deg=0.0, arg_periapsis_deg=0.0, true_anomaly_deg=0.0))]).save(path)  # [km], [deg]
     assert cli.main(["validate", str(path)]) == 0
     assert "WARNING:" in capsys.readouterr().out
+
+
+@pytest.mark.requires_basilisk
+def test_a_monte_carlo_batch_with_a_failed_run_exits_3(tmp_path, capsys, monkeypatch):
+    """Audit 3.2: a batch with a failed run exited 4, which ICD-02 gives an
+    internal error; a failed run is 3, as for ``run``."""
+    from pathlib import Path
+
+    from spacemissionstudio.engine import monte_carlo
+    from spacemissionstudio.schema import MonteCarloConfig
+
+    def one_run_fails(scenario, mc_config, archive_dir, **kwargs):
+        Path(archive_dir).mkdir(parents=True)
+        return [1]
+
+    monkeypatch.setattr(monte_carlo, "run_monte_carlo", one_run_fails)
+    path = tmp_path / "scenario.json"
+    _write_scenario(path, monte_carlo=MonteCarloConfig(enabled=True, num_runs=2))
+    assert cli.main(["monte-carlo", str(path), "--archive-dir", str(tmp_path / "mc")]) == 3
+    assert "FAILED runs: [1]" in capsys.readouterr().err
+
+
+@pytest.mark.requires_basilisk
+def test_kernels_status_with_a_missing_kernel_exits_2(capsys, monkeypatch):
+    """Audit 3.2: a missing support-data file is a missing component (2 in
+    ICD-02), not an input error (1, as in 1.3.1 and earlier)."""
+    from types import SimpleNamespace
+
+    from spacemissionstudio.engine import kernels
+
+    monkeypatch.setattr(kernels, "ensure_kernels", lambda: [
+        SimpleNamespace(filename="de430.bsp", available=False, error="not downloaded", path=None, modified_utc=None)])
+    assert cli.main(["kernels-status"]) == 2
+    assert "FAIL  de430.bsp: not downloaded" in capsys.readouterr().out

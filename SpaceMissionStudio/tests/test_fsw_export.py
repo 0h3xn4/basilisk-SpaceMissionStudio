@@ -238,7 +238,7 @@ def test_names_from_a_shared_scenario_cannot_put_code_into_the_export(tmp_path):
 def test_the_cli_exports_and_records(tmp_path, capsys):
     """``export-fsw --record`` writes the export and its record into the
     scenario; ``fsw-status`` then reports it current (exit 0), and stale
-    after a gain change (exit 2)."""
+    after a gain change (exit 5, its check did not pass)."""
     from spacemissionstudio import cli
 
     scenario_path = tmp_path / "s.json"
@@ -252,7 +252,7 @@ def test_the_cli_exports_and_records(tmp_path, capsys):
     data = json.loads(scenario_path.read_text())
     data["spacecraft"][0]["control_params"]["P"] = 12.0
     scenario_path.write_text(json.dumps(data))
-    assert cli.main(["fsw-status", str(scenario_path)]) == 2
+    assert cli.main(["fsw-status", str(scenario_path)]) == cli.EXIT_CHECK_FAILED
     assert "STALE -- changed since the export: control_params" in capsys.readouterr().out
 
 

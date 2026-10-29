@@ -236,7 +236,8 @@ def test_the_c_harness_refuses_frames_that_break_the_contract(built_07):
 
 def test_the_cli_runs_sil_writes_the_report_and_gates_on_the_error(built_07, tmp_path, capsys):
     """``sil`` prints the summary and writes the JSON report and residual
-    CSV; with --max-error it exits 2 when an output was never written."""
+    CSV; with --max-error it exits 5 (its check did not pass, ICD-02) when an
+    output was never written."""
     from spacemissionstudio import cli
     from spacemissionstudio.sil.report import SilReport
 
@@ -251,7 +252,7 @@ def test_the_cli_runs_sil_writes_the_report_and_gates_on_the_error(built_07, tmp
     assert "61 steps, 0 dropped" in out and "largest |residual| 0 " in out
     assert SilReport.from_json(report_path.read_text()).completed and (tmp_path / "r.csv").is_file()
     assert cli.main(["sil", str(scenario_path), "--spacecraft", "sat-1", "--binary",
-                     str(_program(built_07, "fsw_adapter_host")), "--max-error", "1"]) == 2
+                     str(_program(built_07, "fsw_adapter_host")), "--max-error", "1"]) == cli.EXIT_CHECK_FAILED
     assert "never written" in capsys.readouterr().err
 
 

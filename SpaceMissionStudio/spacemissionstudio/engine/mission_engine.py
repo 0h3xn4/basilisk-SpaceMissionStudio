@@ -84,6 +84,7 @@ import numpy as np
 from ..schema.epochs import parse_epoch_utc
 from ..schema.command import PASS_EVENT_KINDS, Command, evaluate_condition, script_blocks
 from ..schema.scenario import Scenario, SimSettings
+from . import time_system
 from .orbit_maintenance import _rtn_basis, _vnb_basis
 from .results import CommandSummary, ReportEntry, ResultSet
 from .service import SimulationService, raise_clear_execution_error
@@ -340,9 +341,12 @@ class MissionEngine:
             self._advance_to(target_ns, summary)
         elif stop_condition == "epoch":
             stop_epoch_utc = command.params["stop_epoch_utc"]
-            stop_epoch = parse_epoch_utc(stop_epoch_utc)
-            start_epoch = parse_epoch_utc(self.scenario.epoch_utc)
-            target_ns = macros.sec2nano((stop_epoch - start_epoch).total_seconds())
+            # The simulation counts TDB seconds since the epoch (engine.time_system):
+            # the target is the TDB time between the two UTC epochs, leap seconds
+            # between them included. In 1.3.1 and earlier it was their UTC calendar
+            # difference, short by any leap second in between (audit 3.13).
+            target_ns = macros.sec2nano(time_system.tdb_seconds_between(parse_epoch_utc(self.scenario.epoch_utc),
+                                                                        parse_epoch_utc(stop_epoch_utc)))
             if target_ns <= self._elapsed_ns:
                 raise MissionEngineError(
                     f"{path}: propagate.stop_epoch_utc {stop_epoch_utc!r} is not after the current mission "

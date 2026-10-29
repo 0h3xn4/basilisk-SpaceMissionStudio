@@ -181,6 +181,8 @@
   "events": [],
   "provenance": {
    "basilisk_qualified": true,
+   "central_body": "earth",
+   "central_body_mu_m3_s2": 398600436000000.0,
    "dynamics_task_rate_s": 30.0,
    "frames": {
     "B": {

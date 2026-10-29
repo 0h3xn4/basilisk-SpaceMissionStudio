@@ -51,6 +51,7 @@ batches and the live Vizard view are refused for segmented runs.
 from __future__ import annotations
 
 import copy
+import dataclasses
 import math
 from datetime import datetime, timedelta, UTC
 from collections.abc import Callable
@@ -121,10 +122,11 @@ def _whole_span_space_weather(scenario: Scenario):
     """One resolved file for the whole run (only matters with drag on an
     NRLMSISE atmosphere), handed to every segment as a local file: the
     whole span is checked against the data's dates up front. Returns the
-    segments' config and the resolver's warnings (what the data is)."""
+    segments' config, the resolver's warnings (what the data is) and the
+    real data file it was built from (None when nothing was resolved)."""
     sw_config = scenario.space_weather
     if sw_config.atmosphere_model != "nrlmsise00" or not any(sc.enable_drag for sc in scenario.spacecraft):
-        return sw_config, []
+        return sw_config, [], None
     from . import spaceweather
 
     start = _parse_epoch(scenario.epoch_utc)
@@ -132,7 +134,7 @@ def _whole_span_space_weather(scenario: Scenario):
     resolved = spaceweather.resolve_for(sw_config, start, end)
     return SpaceWeatherConfig(source="local_file", local_file_path=str(resolved.path), cache_dir=sw_config.cache_dir,
                               atmosphere_model=sw_config.atmosphere_model), \
-        list(resolved.warnings)
+        list(resolved.warnings), resolved.data_file
 
 
 def _carry_state(segment: Scenario, service, result: ResultSet) -> dict[str, float]:
@@ -246,7 +248,8 @@ def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], 
     total_s = sum(lengths)  # [s]
     epoch = _parse_epoch(scenario.epoch_utc)
     segment = copy.deepcopy(scenario)
-    segment.space_weather, weather_warnings = _whole_span_space_weather(scenario)
+    segment.space_weather, weather_warnings, weather_file = _whole_span_space_weather(scenario)
+    provenances = []
     merged: ResultSet | None = None
     dv_offsets: dict[str, float] = {}
     offset_s = 0.0  # [s]
@@ -274,6 +277,7 @@ def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], 
                 part = service.run_live(progress, live_step_s=live_step_s, should_cancel=should_cancel)
             except SimulationCancelled as exc:
                 raise SimulationCancelled(_append(merged, exc.partial_result, offset_s, dv_offsets)) from None
+        provenances.append(part.provenance)
         merged = _append(merged, part, offset_s, dv_offsets)
         if service.reentry is not None:
             name, t_s = service.reentry
@@ -288,7 +292,31 @@ def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], 
     for warning in weather_warnings:
         if warning not in merged.warnings:
             merged.warnings.insert(0, warning)
+    merged.provenance = _whole_run_provenance(scenario, provenances, weather_file)
     return merged
+
+
+def _whole_run_provenance(scenario: Scenario, provenances: list, weather_file):
+    """The provenance of the whole run, from its segments' (audit 3.3: it
+    was segment 0's alone): the hash of the scenario as given, not of
+    segment 0's modified copy; every segment's seeds, later segments' as
+    "<model> (segment N)"; and the real space-weather file the run used,
+    with the whole-span file built from it as ``space_weather_resolved``."""
+    first = provenances[0] if provenances else None
+    if first is None:
+        return None
+    from .. import dependencies, output_provenance
+
+    seeds = dict(first.rng_seeds)
+    for index, provenance in enumerate(provenances[1:], start=1):
+        if provenance is not None:
+            seeds.update({f"{model} (segment {index})": seed for model, seed in provenance.rng_seeds.items()})
+    data_files = dict(first.data_files)
+    if weather_file is not None and "space_weather" in data_files:
+        data_files["space_weather_resolved"] = data_files["space_weather"]
+        data_files["space_weather"] = dependencies.file_record(weather_file)
+    return dataclasses.replace(first, scenario_sha256=output_provenance.scenario_sha256(scenario),
+                               rng_seeds=seeds, data_files=data_files)
 
 
 def _shallow(result: ResultSet) -> ResultSet:

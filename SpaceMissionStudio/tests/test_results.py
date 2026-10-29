@@ -143,6 +143,9 @@ def test_result_set_export_csv_with_provenance_writes_sidecar_json(tmp_path):
         "frames": {},
         "transformations": {},
         "series_frames": {},
+        # the central body and its GM (audit 3.1), empty and 0 when not filled by engine.service
+        "central_body": "",
+        "central_body_mu_m3_s2": 0.0,
     }
 
 

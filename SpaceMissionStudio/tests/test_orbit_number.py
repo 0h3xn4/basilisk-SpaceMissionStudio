@@ -144,3 +144,60 @@ def test_optical_navigation_series_have_their_own_titles_and_units():
         name = f"sat.optical_navigation.{field}"
         display = categorize(name, TimeSeries(name, [0.0, 1.0], columns, np.zeros((2, len(columns)))))
         assert display is not None and display.title.startswith("Optical Navigation") and display.unit == unit
+
+
+def _mars_result(sample_s: float, provenance) -> tuple:
+    """A circular 400 km Mars orbit over two days, sampled every ``sample_s``, and its true orbit count."""
+    mu_mars, radius = 4.282837e13, 3389.5e3 + 400e3  # [m^3/s^2], [m]
+    n = math.sqrt(mu_mars / radius ** 3)  # [rad/s]
+    time_s = np.arange(0.0, 2 * 86400.0 + 1.0, sample_s)  # [s]
+    u = n * time_s + 0.1
+    r = np.stack([radius * np.cos(u), radius * np.sin(u) * math.cos(0.5), radius * np.sin(u) * math.sin(0.5)], 1)
+    v = np.stack([-radius * n * np.sin(u), radius * n * np.cos(u) * math.cos(0.5),
+                  radius * n * np.cos(u) * math.sin(0.5)], 1)
+    result = ResultSet("mars", provenance=provenance)
+    result.add(TimeSeries("probe.position_N", time_s, ("x", "y", "z"), r, units="m"))
+    result.add(TimeSeries("probe.velocity_N", time_s, ("x", "y", "z"), v, units="m/s"))
+    return result, (u[-1]) / (2.0 * math.pi)
+
+
+def _provenance(**fields):
+    from spacemissionstudio.engine.results import RunProvenance
+
+    return RunProvenance(spacemissionstudio_version="test", basilisk_version="test", run_started_utc="-",
+                         integrator="rkf78", dynamics_task_rate_s=10.0, **fields)
+
+
+@pytest.mark.parametrize("sample_s", [60.0, 600.0, 1800.0])
+def test_a_mars_orbit_counts_its_own_turns_however_sparsely_recorded(sample_s):
+    """Audit 3.1: the orbit number used Earth's mu for every central body.
+    A 400 km Mars orbit over two days (24.41 orbits) sampled every 600 s
+    read 312.41, every 1800 s 216.41. With the run's own mu, recorded in its
+    provenance, every sampling counts 24.41."""
+    result, true_count = _mars_result(sample_s, _provenance(central_body="mars barycenter",
+                                                            central_body_mu_m3_s2=4.282837e13))
+    _times, numbers = orbit_number.for_result(result, "probe")
+    assert numbers[-1] == pytest.approx(true_count, abs=1e-6)
+
+
+def test_a_run_recorded_before_the_gm_was_kept_uses_earths_for_an_earth_run():
+    """A provenance record from 1.3.1 or earlier has no GM: an Earth run (or
+    a result with no provenance) is counted with Earth's, as before."""
+    time_s = np.linspace(0.0, 3.0 * _PERIOD, 60)  # [s]
+    r, v = _circular(time_s)
+    earth_frames = {"N": {"origin": "Earth centre of mass"}}
+    for provenance in (None, _provenance(frames=earth_frames)):
+        result = ResultSet("old", provenance=provenance)
+        result.add(TimeSeries("sat.position_N", time_s, ("x", "y", "z"), r, units="m"))
+        result.add(TimeSeries("sat.velocity_N", time_s, ("x", "y", "z"), v, units="m/s"))
+        assert orbit_number.central_body_mu(result) == MU_EARTH_M3_S2
+        assert orbit_number.for_result(result, "sat")[1][-1] == pytest.approx(3.0, abs=1e-9)
+
+
+@pytest.mark.requires_basilisk
+def test_a_mars_run_recorded_before_the_gm_was_kept_takes_mars_from_its_frames():
+    """An older Mars record names its body only in the inertial frame's
+    origin; the GM is then Basilisk's for that body, so it counts right."""
+    result, true_count = _mars_result(600.0, _provenance(frames={"N": {"origin": "Mars barycenter centre of mass"}}))
+    assert orbit_number.central_body_mu(result) == pytest.approx(4.2828e13, rel=1e-3)
+    assert orbit_number.for_result(result, "probe")[1][-1] == pytest.approx(true_count, abs=1e-3)

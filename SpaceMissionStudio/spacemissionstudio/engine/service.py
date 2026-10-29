@@ -2293,6 +2293,8 @@ class SimulationService:
                 time_system=time_system.time_scales(self.scenario.epoch_utc),
                 frames=frames.definitions(self.scenario.gravity.central_body, self.earth_frame),
                 transformations=dict(frames.TRANSFORMATIONS),
+                central_body=self.scenario.gravity.central_body,
+                central_body_mu_m3_s2=float(self.mu) if self.mu is not None else 0.0,
             )
         result.warnings.extend(self._space_weather_warnings)
         result.warnings.extend(self._model_warnings)
@@ -2303,8 +2305,10 @@ class SimulationService:
                 if depleted_at_s is not None:
                     result.warnings.append(f"{name}: {what} ran out of propellant at t = {depleted_at_s / 86400.0:.2f} "
                                            "days; no further burns were made")
-        result.warnings.extend(note for note in self._earth_orientation_notes
-                               if any(why in note for why in ("no IERS data", "not this run", "do not cover this run")))
+        # Every note, the predicted (low-accuracy) Earth orientation too: in
+        # 1.3.1 and earlier that one reached only the Explain tab, never the
+        # run (audit 3.6).
+        result.warnings.extend(self._earth_orientation_notes)
         spacecraft_by_name = {sc_config.name: sc_config for sc_config in self.scenario.spacecraft}
         for name, handle in self._handles.items():
             t_s = handle.recorder.times() * macros.NANO2SEC

@@ -68,7 +68,7 @@ def test_validate_and_export_a_template_offline(no_network, tmp_path):
     template = sorted(_templates().glob("18_*.json"))[0]
     assert cli.main(["validate", str(template)]) == 0
     assert cli.main(["ccsds-export", str(template), "--out", str(tmp_path / "odm")]) == 0
-    assert cli.main(["kernels-status"]) in (0, 1)  # 1 = a kernel is missing, which is reported, not fetched
+    assert cli.main(["kernels-status"]) in (0, 2)  # 2 = a kernel is missing (ICD-02), which is reported, not fetched
     assert no_network == []
 
 

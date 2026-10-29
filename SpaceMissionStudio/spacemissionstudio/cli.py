@@ -77,6 +77,10 @@ from .schema.scenario import PHASING_CONTROL_LAWS, ROE_CONTROL_LAWS
 # The exit status of a fault in SpaceMissionStudio itself, as opposed to the
 # input (1), a missing component or usage (2) or a failed run (3): ICD-02.
 EXIT_INTERNAL_ERROR = 4
+# The command ran and its check did not pass (a flight-software export no
+# longer current, SIL residuals over --max-error): ICD-02. In 1.3.1 and earlier these
+# returned 2, the status of a missing component or a usage error (audit 3.2).
+EXIT_CHECK_FAILED = 5
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
@@ -363,7 +367,7 @@ def cmd_monte_carlo(args: argparse.Namespace) -> int:
             print(f"  {line}")
     if failures:
         print(f"FAILED runs: {failures}", file=sys.stderr)
-        return 4
+        return 3  # runs failed (ICD-02); 4 in 1.3.1 and earlier, the status of an internal error (audit 3.2)
     print(f"All {scenario.monte_carlo.num_runs} run(s) succeeded.")
     return 0
 
@@ -626,7 +630,7 @@ def cmd_kernels_status(args: argparse.Namespace) -> int:
             print(f"  OK    {status.filename}: {status.path}{cached_note}")
         else:
             print(f"  FAIL  {status.filename}: {status.error}")
-    return 0 if all(s.available for s in statuses) else 1
+    return 0 if all(s.available for s in statuses) else 2  # a missing component (ICD-02); 1 in 1.3.1 and earlier
 
 
 def cmd_earth_orientation(args: argparse.Namespace) -> int:
@@ -876,7 +880,7 @@ def cmd_fsw_status(args: argparse.Namespace) -> int:
         status = export_status(scenario, record, base_dir=args.scenario.resolve().parent)
         print(f"{record.spacecraft}: {status.state.upper()} -- {status.message} ({record.path})")
         if status.state != CURRENT:
-            worst = 2
+            worst = EXIT_CHECK_FAILED
     return worst
 
 
@@ -914,7 +918,7 @@ def cmd_sil(args: argparse.Namespace) -> int:
     if args.max_error is not None and (report.max_abs_error > args.max_error or report.signals_missing):
         print(f"FAIL: largest residual {report.max_abs_error:.6g} is over {args.max_error:g}"
               if report.max_abs_error > args.max_error else "FAIL: some outputs were never written", file=sys.stderr)
-        return 2
+        return EXIT_CHECK_FAILED
     return 0
 
 
