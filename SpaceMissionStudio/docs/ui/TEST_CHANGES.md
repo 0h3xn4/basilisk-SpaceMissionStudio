@@ -802,6 +802,19 @@ never named "_TabBar".
 |---|---|---|---|
 | `test_scenario_schema.py::test_load_scenario_rejects_an_unknown_field_naming_it` | Matched Python's `unexpected keyword argument 'bogus_field'` | Matches `unexpected field 'bogus_field'` | The refusal now names the field in its own words and says where (`spacecraft[0]: unexpected field 'bogus_field', not one this version knows`); the test still checks that the field is named |
 
+## Regression baseline (2026-10-29)
+
+- Added `test_golden_outputs.py`: `::test_every_template_gives_its_recorded_outputs`
+  (31 cases, one per template; 03, 05, 24 and 29 marked `slow`),
+  `::test_every_template_has_a_recorded_fingerprint` and
+  `::test_the_comparison_holds_each_number_to_its_own_scale`,
+  `::test_an_ill_conditioned_angle_is_held_to_its_floor_and_compares_modulo_two_pi`
+  `::test_sensor_noise_compares_value_by_value_only_on_the_library_that_recorded_it`
+  and `::test_on_another_library_numbers_are_held_to_one_percent`,
+  with the helper `tests/golden_capture.py` and the data in
+  `tests/golden/`; and `test_seeds.py::test_a_recorders_seed_key_reads_the_same_on_every_platform`.
+  No existing test changed.
+
 ## GUI defects of the transparency audit (2026-10-29)
 
 - Added `tests/gui/test_spacecraft_editor.py::test_unticked_control_gains_show_the_gains_the_engine_applies`

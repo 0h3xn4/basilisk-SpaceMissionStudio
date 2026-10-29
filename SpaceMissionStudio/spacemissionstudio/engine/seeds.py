@@ -31,6 +31,7 @@ the same run. Basilisk-free (it reads and sets attributes only), so
 from __future__ import annotations
 
 import hashlib
+import re
 
 # Every Basilisk SysModel's RNGSeed until set (sys_model.h).
 BASILISK_DEFAULT_RNG_SEED = 0x1badcad1
@@ -48,6 +49,21 @@ def derived_seed(base: int, key: str) -> int:
     return int.from_bytes(hashlib.sha256(f"{base}:{key}".encode()).digest()[:4], "big")
 
 
+def model_key(tag: str) -> str:
+    """The name a model's seed is derived from: its ModelTag, except that a
+    recorder's ("Rec:" and the message type as the C++ compiler spells it:
+    "Rec:SCStatesMsg" with GCC, "Rec:class <struct SCStatesMsg" with MSVC)
+    is "Rec:" and the type's own name on every platform. The provenance then
+    lists the same keys on Windows and Linux (found by the regression
+    baseline, PR #150). Recorders draw no random numbers, so their seeds
+    change nothing a run computes."""
+    if tag.startswith("Rec:"):
+        names = re.findall(r"[A-Za-z_]\w*", tag[len("Rec:"):])
+        if names:
+            return "Rec:" + names[-1]
+    return tag
+
+
 def assign_rng_seeds(sim, base: int) -> dict[str, int]:
     """Give every model in ``sim``'s tasks that still has Basilisk's default
     RNGSeed its own seed, derived from ``base`` and its ModelTag (or its
@@ -59,7 +75,7 @@ def assign_rng_seeds(sim, base: int) -> dict[str, int]:
         for j, model in enumerate(task.TaskModels):
             if getattr(model, "RNGSeed", None) != BASILISK_DEFAULT_RNG_SEED:
                 continue
-            key = getattr(model, "ModelTag", "") or f"TaskList[{i}].TaskModels[{j}]"
+            key = model_key(getattr(model, "ModelTag", "")) or f"TaskList[{i}].TaskModels[{j}]"
             name, count = key, 1
             while name in seeds:  # two models with one tag: the second is "tag#2"
                 count += 1

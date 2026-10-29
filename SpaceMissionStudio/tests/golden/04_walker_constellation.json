@@ -1,0 +1,6593 @@
+{
+ "budget": {
+  "leo-01-01": {
+   "refused": "BudgetError: leo-01-01: set propellant_budget.isp_s, or give it an orbit thruster"
+  },
+  "leo-01-02": {
+   "refused": "BudgetError: leo-01-02: set propellant_budget.isp_s, or give it an orbit thruster"
+  },
+  "leo-01-03": {
+   "refused": "BudgetError: leo-01-03: set propellant_budget.isp_s, or give it an orbit thruster"
+  },
+  "leo-02-01": {
+   "refused": "BudgetError: leo-02-01: set propellant_budget.isp_s, or give it an orbit thruster"
+  },
+  "leo-02-02": {
+   "refused": "BudgetError: leo-02-02: set propellant_budget.isp_s, or give it an orbit thruster"
+  },
+  "leo-02-03": {
+   "refused": "BudgetError: leo-02-03: set propellant_budget.isp_s, or give it an orbit thruster"
+  }
+ },
+ "explain": {
+  "explanation": {
+   "formation_diagrams": [],
+   "headline": "04 - Walker delta constellation",
+   "roe_diagrams": [],
+   "sections": [
+    {
+     "badges": [
+      {
+       "kind": "accent",
+       "label": "Drag",
+       "spacecraft": ""
+      },
+      {
+       "kind": "accent",
+       "label": "Solar radiation pressure",
+       "spacecraft": ""
+      }
+     ],
+     "notes": [
+      "6 spacecraft: gravity degree 10 leaves out ~2e-05 m/s^2, more than SRP (3e-08 m/s^2); degree 65 matches it (ECSS-E-ST-10-04C 4.2.1b)",
+      "Earth orientation: IAU rotation model, no IERS data installed"
+     ],
+     "title": "Environment"
+    }
+   ],
+   "spacecraft_table": [
+    {
+     "facts": {
+      "Control": "none",
+      "Orbit": "Classical 53 deg, 700 km alt",
+      "Propellant": "-"
+     },
+     "name": "leo-01-01 ... leo-02-03 (6)"
+    }
+   ],
+   "stat_tiles": [
+    {
+     "label": "Spacecraft",
+     "value": "6"
+    },
+    {
+     "label": "Duration",
+     "value": "24 h"
+    },
+    {
+     "label": "Gravity",
+     "value": "Degree-10 Earth + Sun/Moon"
+    },
+    {
+     "label": "Mode",
+     "value": "Orbit only"
+    }
+   ]
+  },
+  "passes": [],
+  "plausibility": [
+   "Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km); Settings > Reference data downloads them"
+  ],
+  "warnings": []
+ },
+ "lifetime": {
+  "leo-01-01/cd_2.2": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 699.4072008358334,
+     "last": 699.2768013570542,
+     "max": 699.4072008358334,
+     "mean": 699.341978035586,
+     "min": 699.2768013570542,
+     "non_finite": 0,
+     "samples": [
+      699.4072008358334,
+      699.3978438837156,
+      699.3850782467266,
+      699.3665904573761,
+      699.3502962246872,
+      699.3371279270043,
+      699.3288861534828,
+      699.3180322366096,
+      699.3038100279449,
+      699.2905317171691,
+      699.2768013570542
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 688.6869158543618,
+     "last": 688.5583677275703,
+     "max": 688.6869158543618,
+     "mean": 688.6220195885679,
+     "min": 688.5583677275703,
+     "non_finite": 0,
+     "samples": [
+      688.6869158543618,
+      688.6719080417193,
+      688.6578889875775,
+      688.644713269352,
+      688.6313780323593,
+      688.6207321497025,
+      688.6103776799962,
+      688.6011199782687,
+      688.5885428897692,
+      688.5711267118985,
+      688.5583677275703
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 180.0
+  },
+  "leo-01-01/own_cd": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 699.4072008358334,
+     "last": 699.2293473044093,
+     "max": 699.4072008358334,
+     "mean": 699.3182477485327,
+     "min": 699.2293473044093,
+     "non_finite": 0,
+     "samples": [
+      699.4072008358334,
+      699.3944410511087,
+      699.37703209084,
+      699.3518182601351,
+      699.329595378248,
+      699.3116359173972,
+      699.3003944152529,
+      699.28558881005,
+      699.2661891026199,
+      699.2480771967527,
+      699.2293473044093
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 688.6869158543618,
+     "last": 688.5115852935203,
+     "max": 688.6869158543618,
+     "mean": 688.5984092813068,
+     "min": 688.5115852935203,
+     "non_finite": 0,
+     "samples": [
+      688.6869158543618,
+      688.6664503173921,
+      688.6473323477115,
+      688.6293637114559,
+      688.6111765176337,
+      688.5966558019388,
+      688.5825331724491,
+      688.56990638356,
+      688.5527505525201,
+      688.5289914982635,
+      688.5115852935203
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 180.0
+  },
+  "leo-01-02/cd_2.2": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 705.6729841855457,
+     "last": 705.5552860405361,
+     "max": 705.6729841855457,
+     "mean": 705.613813117219,
+     "min": 705.5552860405361,
+     "non_finite": 0,
+     "samples": [
+      705.6729841855457,
+      705.6642122212733,
+      705.6522201627037,
+      705.6355654076077,
+      705.6221300096195,
+      705.6099749299493,
+      705.6013018848076,
+      705.5916270921762,
+      705.5791856769351,
+      705.568150183375,
+      705.5552860405361
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 700.2799574693553,
+     "last": 700.1581271396959,
+     "max": 700.2799574693553,
+     "mean": 700.2189366341752,
+     "min": 700.1581271396959,
+     "non_finite": 0,
+     "samples": [
+      700.2799574693553,
+      700.2661399662234,
+      700.2534302671925,
+      700.241082383601,
+      700.2271902037319,
+      700.217191917792,
+      700.2085136403554,
+      700.1997035808685,
+      700.1874146714313,
+      700.170039122547,
+      700.1581271396959
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 180.0
+  },
+  "leo-01-02/own_cd": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 705.6729841855457,
+     "last": 705.5124573204387,
+     "max": 705.6729841855457,
+     "mean": 705.5922862340577,
+     "min": 705.5124573204387,
+     "non_finite": 0,
+     "samples": [
+      705.6729841855457,
+      705.6610222921763,
+      705.6446688277367,
+      705.621955160615,
+      705.6036312249518,
+      705.5870539577445,
+      705.575224465427,
+      705.562027841446,
+      705.545058049893,
+      705.530005634727,
+      705.5124573204387
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 700.2799574693553,
+     "last": 700.1137940982654,
+     "max": 700.2799574693553,
+     "mean": 700.1967373221033,
+     "min": 700.1137940982654,
+     "non_finite": 0,
+     "samples": [
+      700.2799574693553,
+      700.261115020399,
+      700.2437823616639,
+      700.226942990913,
+      700.2079969493989,
+      700.1943598769298,
+      700.1825238486911,
+      700.1705078439079,
+      700.1537454527057,
+      700.1300433406681,
+      700.1137940982654
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 180.0
+  },
+  "leo-01-03/cd_2.2": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 705.6729841855457,
+     "last": 705.5526432949267,
+     "max": 705.6729841855457,
+     "mean": 705.6133960363251,
+     "min": 705.5526432949267,
+     "non_finite": 0,
+     "samples": [
+      705.6729841855457,
+      705.6643297182303,
+      705.6532331441193,
+      705.6369481096342,
+      705.6208485203217,
+      705.6085194193228,
+      705.6017538844952,
+      705.5921374592436,
+      705.5786310216589,
+      705.5652705223803,
+      705.5526432949267
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 700.2799574693553,
+     "last": 700.1607636838406,
+     "max": 700.2799574693553,
+     "mean": 700.2193680242137,
+     "min": 700.1607636838406,
+     "non_finite": 0,
+     "samples": [
+      700.2799574693553,
+      700.2660046837805,
+      700.252504471751,
+      700.2397994950488,
+      700.2284669693131,
+      700.2186249391036,
+      700.2081150729125,
+      700.1992605968844,
+      700.1879461036054,
+      700.1728347845087,
+      700.1607636838406
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 180.0
+  },
+  "leo-01-03/own_cd": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 705.6729841855457,
+     "last": 705.5088548437274,
+     "max": 705.6729841855457,
+     "mean": 705.5917173800119,
+     "min": 705.5088548437274,
+     "non_finite": 0,
+     "samples": [
+      705.6729841855457,
+      705.6611824669288,
+      705.6460496843717,
+      705.6238403154481,
+      705.6018836356504,
+      705.5850688967201,
+      705.5758409734732,
+      705.5627239121841,
+      705.5443009675126,
+      705.5260789090488,
+      705.5088548437274
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 700.2799574693553,
+     "last": 700.1173881762987,
+     "max": 700.2799574693553,
+     "mean": 700.1973256934684,
+     "min": 700.1173881762987,
+     "non_finite": 0,
+     "samples": [
+      700.2799574693553,
+      700.2609305925406,
+      700.2425204088679,
+      700.2251939598992,
+      700.2097381000984,
+      700.1963142716876,
+      700.1819802227607,
+      700.1699036844866,
+      700.1544708336247,
+      700.1338554972419,
+      700.1173881762987
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 180.0
+  },
+  "leo-02-01/cd_2.2": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 705.6729841855495,
+     "last": 705.5529951919355,
+     "max": 705.6729841855495,
+     "mean": 705.6115007878092,
+     "min": 705.5529951919355,
+     "non_finite": 0,
+     "samples": [
+      705.6729841855495,
+      705.6606530921971,
+      705.6500669957446,
+      705.6333785371855,
+      705.6185712244613,
+      705.6105951697873,
+      705.6013099436527,
+      705.5904731394033,
+      705.5753650671384,
+      705.5618544211397,
+      705.5529951919355
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 700.2799574693562,
+     "last": 700.1586219789423,
+     "max": 700.2799574693562,
+     "mean": 700.219416355859,
+     "min": 700.1586219789423,
+     "non_finite": 0,
+     "samples": [
+      700.2799574693562,
+      700.2665050716307,
+      700.2541037790719,
+      700.2418107542014,
+      700.2285440024501,
+      700.2148725735619,
+      700.2066744667878,
+      700.1992552259788,
+      700.1887389314734,
+      700.1744292705432,
+      700.1586219789423
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 180.0
+  },
+  "leo-02-01/own_cd": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 705.6729841855495,
+     "last": 705.5093331749067,
+     "max": 705.6729841855495,
+     "mean": 705.5891329212784,
+     "min": 705.5093331749067,
+     "non_finite": 0,
+     "samples": [
+      705.6729841855495,
+      705.6561689911391,
+      705.6417323696604,
+      705.6189735360452,
+      705.5987789544138,
+      705.5878997246883,
+      705.5752355131013,
+      705.5604547630548,
+      705.5398469879506,
+      705.5214190668371,
+      705.5093331749067
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 700.2799574693562,
+     "last": 700.1144679467845,
+     "max": 700.2799574693562,
+     "mean": 700.1973911717515,
+     "min": 700.1144679467845,
+     "non_finite": 0,
+     "samples": [
+      700.2799574693562,
+      700.2616126102787,
+      700.2447009507595,
+      700.2279356448548,
+      700.2098418743024,
+      700.191196738502,
+      700.1800151811512,
+      700.1698955595558,
+      700.1555513238245,
+      700.1360306049231,
+      700.1144679467845
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 180.0
+  },
+  "leo-02-02/cd_2.2": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 699.4072008358334,
+     "last": 699.2755752583341,
+     "max": 699.4072008358334,
+     "mean": 699.3396609430413,
+     "min": 699.2755752583341,
+     "non_finite": 0,
+     "samples": [
+      699.4072008358334,
+      699.3944407038242,
+      699.3818069967003,
+      699.3628372390195,
+      699.3466678661155,
+      699.3385738445129,
+      699.3286100984626,
+      699.3161790119364,
+      699.3002134206732,
+      699.2859266679231,
+      699.2755752583341
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 688.6869158543618,
+     "last": 688.5575260791825,
+     "max": 688.6869158543618,
+     "mean": 688.622419147879,
+     "min": 688.5575260791825,
+     "non_finite": 0,
+     "samples": [
+      688.6869158543618,
+      688.6718251019083,
+      688.6595074951063,
+      688.6468741250736,
+      688.6326836866559,
+      688.6176287063201,
+      688.6087348223151,
+      688.6013121493822,
+      688.5894932466028,
+      688.5740100845425,
+      688.5575260791825
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 180.0
+  },
+  "leo-02-02/own_cd": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 699.4072008358334,
+     "last": 699.2276749316324,
+     "max": 699.4072008358334,
+     "mean": 699.3150882545804,
+     "min": 699.2276749316324,
+     "non_finite": 0,
+     "samples": [
+      699.4072008358334,
+      699.3898003466409,
+      699.3725714144521,
+      699.3467007184755,
+      699.3246481462243,
+      699.3136082961131,
+      699.3000180766359,
+      699.2830621106643,
+      699.2612842745763,
+      699.2417974255485,
+      699.2276749316324
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 688.6869158543618,
+     "last": 688.5104363822425,
+     "max": 688.6869158543618,
+     "mean": 688.5989534583786,
+     "min": 688.5104363822425,
+     "non_finite": 0,
+     "samples": [
+      688.6869158543618,
+      688.666336961627,
+      688.6495391070358,
+      688.6323097545113,
+      688.6129558145832,
+      688.5924227115838,
+      688.5802920325892,
+      688.5701675963551,
+      688.5540456235847,
+      688.5329229160519,
+      688.5104363822425
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 180.0
+  },
+  "leo-02-03/cd_2.2": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 705.6729841855475,
+     "last": 705.5516455636732,
+     "max": 705.6729841855475,
+     "mean": 705.6107983535067,
+     "min": 705.5516455636732,
+     "non_finite": 0,
+     "samples": [
+      705.6729841855475,
+      705.661488588742,
+      705.649000851485,
+      705.6316421923917,
+      705.6168221472064,
+      705.6095941620683,
+      705.6007864822373,
+      705.5892411217903,
+      705.5754036261318,
+      705.5617445803825,
+      705.5516455636732
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 700.2799574693544,
+     "last": 700.1599585063663,
+     "max": 700.2799574693544,
+     "mean": 700.220078791082,
+     "min": 700.1599585063663,
+     "non_finite": 0,
+     "samples": [
+      700.2799574693544,
+      700.2656521353471,
+      700.2550481620244,
+      700.2434059990132,
+      700.2302377859867,
+      700.2158500268478,
+      700.2071413892088,
+      700.2004104563063,
+      700.1887253897917,
+      700.1746054862784,
+      700.1599585063663
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 180.0
+  },
+  "leo-02-03/own_cd": {
+   "deorbit": null,
+   "from_end_of_run": false,
+   "lifetime": {
+    "apogee_altitude_km": {
+     "first": 705.6729841855475,
+     "last": 705.5074935696441,
+     "max": 705.6729841855475,
+     "mean": 705.5881753268824,
+     "min": 705.5074935696441,
+     "non_finite": 0,
+     "samples": [
+      705.6729841855475,
+      705.6573080811874,
+      705.6402785509871,
+      705.6166052786587,
+      705.5963935715398,
+      705.5865355242099,
+      705.5745220692894,
+      705.55877473626,
+      705.5399005949563,
+      705.5212704384085,
+      705.5074935696441
+     ]
+    },
+    "horizon_years": 1.0,
+    "lifetime_s": 31557600.0,
+    "perigee_altitude_km": {
+     "first": 700.2799574693544,
+     "last": 700.116289717393,
+     "max": 700.2799574693544,
+     "mean": 700.1982942358933,
+     "min": 700.116289717393,
+     "non_finite": 0,
+     "samples": [
+      700.2799574693544,
+      700.2604497350808,
+      700.2459887151765,
+      700.2301114738611,
+      700.2121518734758,
+      700.1925288415532,
+      700.1806515140394,
+      700.1714708656724,
+      700.15553188409,
+      700.1362698350512,
+      700.116289717393
+     ]
+    },
+    "reentered": "np.False_",
+    "start_utc": "2030-01-01T00:00:00",
+    "time_s": {
+     "first": 0.0,
+     "last": 31557600.0,
+     "max": 31557600.0,
+     "mean": 15811023.433242507,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      3196800.0,
+      6307200.0,
+      9504000.0,
+      12614400.0,
+      15811200.0,
+      19008000.0,
+      22118400.0,
+      25315200.0,
+      28425600.0,
+      31557600.0
+     ]
+    },
+    "warnings": [
+     "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap"
+    ]
+   },
+   "mass_kg": 180.0
+  }
+ },
+ "mission_output": null,
+ "rng_library": "libstdc++",
+ "run": {
+  "events": [
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 720.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "leo-01-02",
+    "start_s": 0.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 2700.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "leo-01-01",
+    "start_s": 720.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 4680.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "leo-01-03",
+    "start_s": 2700.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 6630.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "leo-01-02",
+    "start_s": 4680.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 8610.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "leo-01-01",
+    "start_s": 6630.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 10590.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "leo-01-03",
+    "start_s": 8640.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 12570.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "leo-01-02",
+    "start_s": 10620.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 14520.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "leo-01-01",
+    "start_s": 12570.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 16530.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "leo-01-03",
+    "start_s": 14580.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 18510.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "leo-01-02",
+    "start_s": 16530.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 20460.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "leo-01-01",
+    "start_s": 18480.0
+   },
+   {
+    "detail": "lowest sunlight 0%",
+    "end_s": 21600.0,
+    "kind": "eclipse",
+    "label": "eclipse (umbra)",
+    "note": "",
+    "other": "",
+    "quantities": [
+     [
+      "lowest_sunlight",
+      0.0
+     ]
+    ],
+    "spacecraft": "leo-01-03",
+    "start_s": 20490.0
+   }
+  ],
+  "provenance": {
+   "basilisk_qualified": true,
+   "dynamics_task_rate_s": 30.0,
+   "frames": {
+    "B": {
+     "axes": "fixed to the spacecraft structure, as given by inertia_kg_m2 and device axes",
+     "epoch": "-",
+     "mnemonic": "B",
+     "name": "Spacecraft body",
+     "origin": "spacecraft body point B (Basilisk hub frame origin)",
+     "realisation": "-",
+     "time_scale": "-"
+    },
+    "H": {
+     "axes": "x radial out, z orbit normal, y completes (along-track)",
+     "epoch": "-",
+     "mnemonic": "H",
+     "name": "Hill (orbit)",
+     "origin": "spacecraft",
+     "realisation": "-",
+     "time_scale": "-"
+    },
+    "L": {
+     "axes": "South-East-Zenith; elevation/azimuth from the geodetic horizon, azimuth from North to East",
+     "epoch": "-",
+     "mnemonic": "L",
+     "name": "Topocentric (ground station)",
+     "origin": "ground station site (WGS-84 geodetic, engine.geodesy)",
+     "realisation": "-",
+     "time_scale": "-"
+    },
+    "N": {
+     "axes": "Earth mean equator and equinox of J2000 (SPICE J2000, treated as ICRF-aligned by SPICE)",
+     "epoch": "J2000.0 = 2000-01-01T12:00:00 TT",
+     "mnemonic": "N",
+     "name": "Inertial (EME2000 / SPICE J2000)",
+     "origin": "Earth centre of mass",
+     "realisation": "SPICE with DE430",
+     "time_scale": "TDB (ephemerides, propagation)"
+    },
+    "P": {
+     "axes": "IAU_EARTH: Earth-fixed, z = rotation pole, x = prime meridian",
+     "epoch": "-",
+     "mnemonic": "P",
+     "name": "Earth-fixed",
+     "origin": "Earth centre of mass",
+     "realisation": "SPICE PCK (engine.earth_orientation for Earth)",
+     "time_scale": "TDB"
+    },
+    "TEME": {
+     "axes": "SGP4 output frame, converted to N at the scenario epoch (engine.tle)",
+     "epoch": "-",
+     "mnemonic": "TEME",
+     "name": "True equator, mean equinox of date (TLE input only)",
+     "origin": "Earth centre of mass",
+     "realisation": "-",
+     "time_scale": "UTC"
+    }
+   },
+   "integrator": "rkf78",
+   "integrator_absolute_tolerance": 1e-08,
+   "integrator_relative_tolerance": 1e-10,
+   "rng_seed": 0,
+   "rng_seed_note": "each model's RNGSeed is derived from the scenario's seed (sim_settings.seed) and the model's name (SHA-256); a navigation error's own seed is kept, and a Monte Carlo run disperses them per run",
+   "rng_seeds": {
+    "Rec:EclipseMsg": 139054789,
+    "Rec:EclipseMsg#2": 550394223,
+    "Rec:EclipseMsg#3": 4155704615,
+    "Rec:EclipseMsg#4": 3248392479,
+    "Rec:EclipseMsg#5": 1891313159,
+    "Rec:EclipseMsg#6": 1835376699,
+    "Rec:SCStatesMsg": 455511093,
+    "Rec:SCStatesMsg#2": 1115533435,
+    "Rec:SCStatesMsg#3": 742660393,
+    "Rec:SCStatesMsg#4": 2415717172,
+    "Rec:SCStatesMsg#5": 3587780701,
+    "Rec:SCStatesMsg#6": 1067548059,
+    "SpiceInterfaceData": 193139944,
+    "eclipse": 3106495040,
+    "geodeticProxy_leo-01-01": 4070883545,
+    "geodeticProxy_leo-01-02": 3240869664,
+    "geodeticProxy_leo-01-03": 4197514591,
+    "geodeticProxy_leo-02-01": 3330675476,
+    "geodeticProxy_leo-02-02": 40042111,
+    "geodeticProxy_leo-02-03": 2134026102,
+    "leo-01-01": 3565768653,
+    "leo-01-01Drag": 2968763328,
+    "leo-01-01Srp": 143513314,
+    "leo-01-02": 3502235593,
+    "leo-01-02Drag": 3542108854,
+    "leo-01-02Srp": 223241301,
+    "leo-01-03": 225058634,
+    "leo-01-03Drag": 3978863910,
+    "leo-01-03Srp": 2806457199,
+    "leo-02-01": 2794930210,
+    "leo-02-01Drag": 738552192,
+    "leo-02-01Srp": 2183781940,
+    "leo-02-02": 2914198222,
+    "leo-02-02Drag": 3739818011,
+    "leo-02-02Srp": 3808869960,
+    "leo-02-03": 3151162280,
+    "leo-02-03Drag": 214881003,
+    "leo-02-03Srp": 787839009,
+    "midStepOrientation_earth": 2740032469,
+    "midStepOrientation_moon": 3302786954,
+    "midStepOrientation_sun": 896524486,
+    "msisAtmosphere": 177801070,
+    "spaceWeatherData": 3328266330,
+    "zeroWind": 507670478
+   },
+   "series_frames": {
+    "leo-01-01.orbit_elements.arg_periapsis": "N",
+    "leo-01-01.orbit_elements.eccentricity": "N",
+    "leo-01-01.orbit_elements.inclination": "N",
+    "leo-01-01.orbit_elements.raan": "N",
+    "leo-01-01.orbit_elements.semi_major_axis": "N",
+    "leo-01-01.orbit_elements.true_anomaly": "N",
+    "leo-01-01.orbit_elements_mean.arg_periapsis": "N",
+    "leo-01-01.orbit_elements_mean.eccentricity": "N",
+    "leo-01-01.orbit_elements_mean.inclination": "N",
+    "leo-01-01.orbit_elements_mean.raan": "N",
+    "leo-01-01.orbit_elements_mean.semi_major_axis": "N",
+    "leo-01-01.orbit_elements_mean.true_anomaly": "N",
+    "leo-01-01.position_N": "N",
+    "leo-01-01.velocity_N": "N",
+    "leo-01-02.orbit_elements.arg_periapsis": "N",
+    "leo-01-02.orbit_elements.eccentricity": "N",
+    "leo-01-02.orbit_elements.inclination": "N",
+    "leo-01-02.orbit_elements.raan": "N",
+    "leo-01-02.orbit_elements.semi_major_axis": "N",
+    "leo-01-02.orbit_elements.true_anomaly": "N",
+    "leo-01-02.orbit_elements_mean.arg_periapsis": "N",
+    "leo-01-02.orbit_elements_mean.eccentricity": "N",
+    "leo-01-02.orbit_elements_mean.inclination": "N",
+    "leo-01-02.orbit_elements_mean.raan": "N",
+    "leo-01-02.orbit_elements_mean.semi_major_axis": "N",
+    "leo-01-02.orbit_elements_mean.true_anomaly": "N",
+    "leo-01-02.position_N": "N",
+    "leo-01-02.velocity_N": "N",
+    "leo-01-03.orbit_elements.arg_periapsis": "N",
+    "leo-01-03.orbit_elements.eccentricity": "N",
+    "leo-01-03.orbit_elements.inclination": "N",
+    "leo-01-03.orbit_elements.raan": "N",
+    "leo-01-03.orbit_elements.semi_major_axis": "N",
+    "leo-01-03.orbit_elements.true_anomaly": "N",
+    "leo-01-03.orbit_elements_mean.arg_periapsis": "N",
+    "leo-01-03.orbit_elements_mean.eccentricity": "N",
+    "leo-01-03.orbit_elements_mean.inclination": "N",
+    "leo-01-03.orbit_elements_mean.raan": "N",
+    "leo-01-03.orbit_elements_mean.semi_major_axis": "N",
+    "leo-01-03.orbit_elements_mean.true_anomaly": "N",
+    "leo-01-03.position_N": "N",
+    "leo-01-03.velocity_N": "N",
+    "leo-02-01.orbit_elements.arg_periapsis": "N",
+    "leo-02-01.orbit_elements.eccentricity": "N",
+    "leo-02-01.orbit_elements.inclination": "N",
+    "leo-02-01.orbit_elements.raan": "N",
+    "leo-02-01.orbit_elements.semi_major_axis": "N",
+    "leo-02-01.orbit_elements.true_anomaly": "N",
+    "leo-02-01.orbit_elements_mean.arg_periapsis": "N",
+    "leo-02-01.orbit_elements_mean.eccentricity": "N",
+    "leo-02-01.orbit_elements_mean.inclination": "N",
+    "leo-02-01.orbit_elements_mean.raan": "N",
+    "leo-02-01.orbit_elements_mean.semi_major_axis": "N",
+    "leo-02-01.orbit_elements_mean.true_anomaly": "N",
+    "leo-02-01.position_N": "N",
+    "leo-02-01.velocity_N": "N",
+    "leo-02-02.orbit_elements.arg_periapsis": "N",
+    "leo-02-02.orbit_elements.eccentricity": "N",
+    "leo-02-02.orbit_elements.inclination": "N",
+    "leo-02-02.orbit_elements.raan": "N",
+    "leo-02-02.orbit_elements.semi_major_axis": "N",
+    "leo-02-02.orbit_elements.true_anomaly": "N",
+    "leo-02-02.orbit_elements_mean.arg_periapsis": "N",
+    "leo-02-02.orbit_elements_mean.eccentricity": "N",
+    "leo-02-02.orbit_elements_mean.inclination": "N",
+    "leo-02-02.orbit_elements_mean.raan": "N",
+    "leo-02-02.orbit_elements_mean.semi_major_axis": "N",
+    "leo-02-02.orbit_elements_mean.true_anomaly": "N",
+    "leo-02-02.position_N": "N",
+    "leo-02-02.velocity_N": "N",
+    "leo-02-03.orbit_elements.arg_periapsis": "N",
+    "leo-02-03.orbit_elements.eccentricity": "N",
+    "leo-02-03.orbit_elements.inclination": "N",
+    "leo-02-03.orbit_elements.raan": "N",
+    "leo-02-03.orbit_elements.semi_major_axis": "N",
+    "leo-02-03.orbit_elements.true_anomaly": "N",
+    "leo-02-03.orbit_elements_mean.arg_periapsis": "N",
+    "leo-02-03.orbit_elements_mean.eccentricity": "N",
+    "leo-02-03.orbit_elements_mean.inclination": "N",
+    "leo-02-03.orbit_elements_mean.raan": "N",
+    "leo-02-03.orbit_elements_mean.semi_major_axis": "N",
+    "leo-02-03.orbit_elements_mean.true_anomaly": "N",
+    "leo-02-03.position_N": "N",
+    "leo-02-03.velocity_N": "N"
+   },
+   "time_system": {
+    "conversions": "ERFA (SOFA): dat, utctai, taitt, dtdb",
+    "epoch_tdb_seconds_past_j2000": 946728069.1839262,
+    "epoch_utc": "2030-01-01T00:00:00",
+    "last_leap_second_utc": "2017-01-01",
+    "tai_minus_utc_s": 37.0,
+    "tdb_minus_tt_s": -7.380966890522468e-05,
+    "time_variable": "TDB seconds since the scenario epoch",
+    "tt_minus_tai_s": 32.184
+   },
+   "transformations": {
+    "N -> B": "dcm_BN from the spacecraft MRP sigma_BN (integrated by Basilisk)",
+    "N -> H": "dcm_HN from r_BN_N, v_BN_N (Basilisk hillFrame convention)",
+    "N -> P": "dcm_PN = J20002Pfix from SPICE pxform(J2000, P frame, ET) each step; time dependent; SPICE evaluates the PCK Chebyshev/rotation model at ET (no further interpolation)",
+    "P -> L": "dcm_LP from the site's geodetic latitude and longitude (engine.geodesy)",
+    "TEME -> N": "P^T N^T R3(-Eq) at the scenario epoch, IAU 1976/1980 (engine.tle)"
+   }
+  },
+  "series": {
+   "leo-01-01.eclipse.illumination_factor": {
+    "columns": [
+     "illumination_factor"
+    ],
+    "data": [
+     {
+      "first": 1.0,
+      "last": 1.0,
+      "max": 1.0,
+      "mean": 0.6319489738680709,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       1.0,
+       0.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       0.0,
+       1.0,
+       1.0,
+       0.0,
+       1.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-01-01.orbit_elements.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 3.218293945485131,
+      "max": 4.641743590264117,
+      "mean": 3.1418265147193414,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       2.848694787822534,
+       2.3559507688479626,
+       2.617216719755848,
+       2.938000630768538,
+       2.9730487086615023,
+       3.465667670101847,
+       3.4397503381255636,
+       3.888520168119811,
+       3.964901860683136,
+       3.218293945485131
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-01.orbit_elements.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 0.00044784210158796536,
+      "max": 0.0015358986167679422,
+      "mean": 0.0008707378175940574,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.0005619074182930382,
+       0.0008823867544735578,
+       0.0007731070367819567,
+       0.001428794202755293,
+       0.0011532165008119465,
+       0.0011783901530289713,
+       0.001321781965982479,
+       0.0006455840255629717,
+       0.0007478330205129178,
+       0.00044784210158796536
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-01-01.orbit_elements.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 0.9250245035569945,
+      "last": 0.9246034183869248,
+      "max": 0.9250454022931124,
+      "mean": 0.9247230204986162,
+      "min": 0.924382332974017,
+      "non_finite": 0,
+      "samples": [
+       0.9250245035569945,
+       0.9246605017899358,
+       0.9244064943486096,
+       0.9248278290680679,
+       0.9249880723906465,
+       0.9245352769565874,
+       0.9244908114999122,
+       0.9249635295262814,
+       0.9249027270239545,
+       0.9244415569828126,
+       0.9246034183869248
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-01.orbit_elements.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 6.265345660771749,
+      "max": 6.2831852813700175,
+      "mean": 6.265359518096511,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       6.280961711425546,
+       6.279630125438246,
+       6.278066869256585,
+       6.275686115217274,
+       6.273732669956033,
+       6.272498092634792,
+       6.270673956018456,
+       6.268265935677366,
+       6.2666062123330155,
+       6.265345660771749
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-01.orbit_elements.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 7078136.6,
+      "last": 7070216.820592348,
+      "max": 7078181.919252905,
+      "mean": 7072305.34845463,
+      "min": 7066142.766841146,
+      "non_finite": 0,
+      "samples": [
+       7078136.6,
+       7071526.9515361935,
+       7066365.611118954,
+       7074262.957763509,
+       7077456.089119889,
+       7068770.977081056,
+       7067712.3850274505,
+       7076693.9232063005,
+       7075554.664595558,
+       7066775.14667721,
+       7070216.820592348
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-01-01.orbit_elements.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 0.8762160657566334,
+      "max": 6.282780705965949,
+      "mean": 3.301239028323773,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       5.727811106092164,
+       2.2340840256225456,
+       4.26459309796585,
+       6.2388392894399525,
+       2.2167278518970477,
+       4.015350744580168,
+       0.054341805904869686,
+       1.9003903205695103,
+       4.115999905531659,
+       0.8762160657566334
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-01.orbit_elements_mean.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": -3.141592653589793,
+      "last": 9.452796375058357,
+      "max": 15.739690774834425,
+      "mean": 12.918351247051215,
+      "min": -3.141592653589793,
+      "non_finite": 0,
+      "samples": [
+       -3.141592653589793,
+       15.707354170862985,
+       9.405316643975237,
+       15.714334638595595,
+       15.716176702637558,
+       9.437309074700824,
+       15.732719514870551,
+       9.441563402512788,
+       9.454711337430835,
+       15.732658645633839,
+       9.452796375058357
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-01.orbit_elements_mean.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 0.0007579190176164232,
+      "last": 0.000763127705111714,
+      "max": 0.0007855751448652342,
+      "mean": 0.0007679173498330381,
+      "min": 0.0007422493504048064,
+      "non_finite": 0,
+      "samples": [
+       0.0007579190176164232,
+       0.0007667725558524214,
+       0.0007676062027000433,
+       0.0007806063965627813,
+       0.0007765373441629656,
+       0.0007738523222593663,
+       0.0007733299102341553,
+       0.0007695673625319268,
+       0.0007524856706843493,
+       0.0007575379180757159,
+       0.000763127705111714
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-01-01.orbit_elements_mean.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 0.9247076344148448,
+      "last": 0.9247079121763833,
+      "max": 0.9247290349386947,
+      "mean": 0.9247165197244933,
+      "min": 0.9246999978509812,
+      "non_finite": 0,
+      "samples": [
+       0.9247076344148448,
+       0.9247003674606645,
+       0.9247148272413058,
+       0.9247123120350182,
+       0.9247087887520072,
+       0.9247189529633307,
+       0.9247242454786733,
+       0.9247216867310931,
+       0.9247285492825632,
+       0.9247271804158503,
+       0.9247079121763833
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-01.orbit_elements_mean.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": -0.018214726303307064,
+      "max": 0.0,
+      "mean": -0.00912314987725393,
+      "min": -0.018214726303307064,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       -0.0018294845148243135,
+       -0.003650128110531944,
+       -0.005489963153615131,
+       -0.0073101109618890405,
+       -0.009126024422584436,
+       -0.010959123198009416,
+       -0.012768932850161448,
+       -0.014586163834564727,
+       -0.016405922679648303,
+       -0.018214726303307064
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-01.orbit_elements_mean.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 7072183.658345098,
+      "last": 7072176.579427296,
+      "max": 7072315.151678885,
+      "mean": 7072173.895429434,
+      "min": 7072050.75348066,
+      "non_finite": 0,
+      "samples": [
+       7072183.658345098,
+       7072274.517505319,
+       7072136.480572499,
+       7072092.512108295,
+       7072196.307018559,
+       7072205.979456795,
+       7072078.224227526,
+       7072140.510748066,
+       7072282.754786106,
+       7072122.976576602,
+       7072176.579427296
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-01-01.orbit_elements_mean.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 3.141592653589793,
+      "last": 0.9250582953581729,
+      "max": 3.141592653589793,
+      "mean": -0.20080981623899977,
+      "min": -3.139566186553667,
+      "non_finite": 0,
+      "samples": [
+       3.141592653589793,
+       -0.8478303280170948,
+       1.4679430002030658,
+       -2.5491813526402707,
+       -0.2562314078842718,
+       2.0355122721149153,
+       -1.9683984381610062,
+       0.33582299761786927,
+       2.6172428641137215,
+       -1.368644669266703,
+       0.9250582953581729
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-01.position_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 7078136.6,
+      "last": -4155890.2363523836,
+      "max": 7078136.6,
+      "mean": -238706.4027946497,
+      "min": -7067138.953807425,
+      "non_finite": 0,
+      "samples": [
+       7078136.6,
+       -4666918.3058993695,
+       -877932.7844175168,
+       5858293.541529601,
+       -6843217.243171276,
+       3214162.911115634,
+       2619501.0087269717,
+       -6650655.067840561,
+       6199160.380806814,
+       -1521534.9406464642,
+       -4155890.2363523836
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -3395605.7253391477,
+      "max": 4259530.646000868,
+      "mean": 295424.59906221717,
+      "min": -4259472.0002981005,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       3202806.268177371,
+       -4223511.782299234,
+       2370546.220805264,
+       1095168.1096687089,
+       -3814103.893831872,
+       3939068.060215209,
+       -1385429.1514499555,
+       -2113517.310993245,
+       4174607.466928968,
+       -3395605.7253391477
+      ]
+     },
+     {
+      "first": 0.0,
+      "last": -4599754.173011193,
+      "max": 5644358.8497356055,
+      "mean": 385015.0514888458,
+      "min": -5644296.022953542,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       4233278.863525815,
+       -5601689.823533552,
+       3184268.3600470815,
+       1385089.868086303,
+       -5015835.177337882,
+       5258330.293282973,
+       -1948554.2458101516,
+       -2681010.1079687364,
+       5498983.282158744,
+       -4599754.173011193
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-01-01.velocity_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 6072.762042758282,
+      "max": 7505.619007165475,
+      "mean": -515.1172714261311,
+      "min": -7505.41844862674,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       -5639.744767609705,
+       7447.681646999884,
+       -4213.633795183491,
+       -1876.6827668219269,
+       6687.553425691202,
+       -6972.761195782415,
+       2540.6833475086414,
+       3622.8302347317363,
+       -7329.568359215732,
+       6072.762042758282
+      ]
+     },
+     {
+      "first": 4516.192442722187,
+      "last": -2729.9757316849696,
+      "max": 4516.70943783914,
+      "mean": -155.73395420838648,
+      "min": -4524.271900156347,
+      "non_finite": 0,
+      "samples": [
+       4516.192442722187,
+       -2979.206901344019,
+       -581.4120807493347,
+       3751.4671365259946,
+       -4370.885630639131,
+       2009.4695385245545,
+       1717.5388213918084,
+       -4277.111111208203,
+       3921.279385750664,
+       -898.5566851793634,
+       -2729.9757316849696
+      ]
+     },
+     {
+      "first": 5993.189794555707,
+      "last": -3475.4188700508935,
+      "max": 5993.189794555707,
+      "mean": -210.892174527639,
+      "min": -6002.441395016057,
+      "non_finite": 0,
+      "samples": [
+       5993.189794555707,
+       -3967.1677996043054,
+       -735.4716479135947,
+       4947.654394025108,
+       -5818.433130028006,
+       2747.627122937931,
+       2177.81292675782,
+       -5632.577145376026,
+       5273.522683802513,
+       -1351.8726700214102,
+       -3475.4188700508935
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m/s"
+   },
+   "leo-01-02.eclipse.illumination_factor": {
+    "columns": [
+     "illumination_factor"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 1.0,
+      "max": 1.0,
+      "mean": 0.6911583292274963,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       1.0,
+       1.0,
+       0.0,
+       1.0,
+       0.0,
+       1.0,
+       1.0,
+       0.0,
+       1.0,
+       1.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-01-02.orbit_elements.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 6.1362786206787865,
+      "max": 6.2649204628500925,
+      "mean": 2.8966385186232557,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       1.6339962892605102,
+       1.4554241436950075,
+       2.481443885827393,
+       2.3694615291390604,
+       3.0061589457498927,
+       3.1744532721329946,
+       3.537751232193575,
+       4.097302702301194,
+       3.7044233810483513,
+       6.1362786206787865
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-02.orbit_elements.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 2.69599697133879e-17,
+      "last": 0.0003734469682984932,
+      "max": 0.001142183814144848,
+      "mean": 0.0006099899002612013,
+      "min": 2.69599697133879e-17,
+      "non_finite": 0,
+      "samples": [
+       2.69599697133879e-17,
+       0.0005721523971754472,
+       0.0005356584097818087,
+       0.0008962893068616777,
+       0.000907018855871232,
+       0.0007135051462512366,
+       0.0010910261807925837,
+       0.00047591226308134007,
+       0.0006406743055156037,
+       0.00035724618187974616,
+       0.0003734469682984932
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-01-02.orbit_elements.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 0.9250245035569945,
+      "last": 0.9254953576455103,
+      "max": 0.9255195482182086,
+      "mean": 0.9251948898735656,
+      "min": 0.9248608530501228,
+      "non_finite": 0,
+      "samples": [
+       0.9250245035569945,
+       0.9249348302044449,
+       0.9254052220758747,
+       0.9253685459069032,
+       0.9249152836956664,
+       0.9250763699877514,
+       0.9254988501850647,
+       0.9252397192052625,
+       0.9248858479031138,
+       0.9252348198576489,
+       0.9254953576455103
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-02.orbit_elements.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 6.283185307179586,
+      "last": 6.265290513236799,
+      "max": 6.283185307179586,
+      "mean": 6.274435407097945,
+      "min": 6.265290513236799,
+      "non_finite": 0,
+      "samples": [
+       6.283185307179586,
+       6.281952305873293,
+       6.280162525407247,
+       6.2777511905616485,
+       6.276063579999411,
+       6.27480229033684,
+       6.2727281152927326,
+       6.2704268131632235,
+       6.269011931607044,
+       6.267601403283879,
+       6.265290513236799
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-02.orbit_elements.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 7078136.6,
+      "last": 7086836.155560742,
+      "max": 7087005.796336549,
+      "mean": 7081094.966634309,
+      "min": 7074983.525733594,
+      "non_finite": 0,
+      "samples": [
+       7078136.6,
+       7076246.35306992,
+       7085181.7795280805,
+       7084686.27144424,
+       7075851.970086701,
+       7078688.093880501,
+       7086758.450692232,
+       7081821.343061075,
+       7074983.525733594,
+       7081847.104843899,
+       7086836.155560742
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-01-02.orbit_elements.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 2.0943951023931953,
+      "last": 0.008781256534141104,
+      "max": 6.265314540056392,
+      "mean": 2.177551401500417,
+      "min": 0.008781256534141104,
+      "non_finite": 0,
+      "samples": [
+       2.0943951023931953,
+       2.751345389145879,
+       5.218569258907497,
+       0.20007667838173082,
+       2.6027261450784622,
+       4.2543759394019185,
+       0.09413007923628822,
+       2.021000105584497,
+       3.7502567817870407,
+       0.15119802013190664,
+       0.008781256534141104
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-02.orbit_elements_mean.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 9.069246763611135,
+      "last": 15.367829092624817,
+      "max": 21.639459382008667,
+      "mean": 11.186734916103594,
+      "min": 9.012816636217932,
+      "non_finite": 0,
+      "samples": [
+       9.069246763611135,
+       9.018516507373603,
+       15.352625070450564,
+       9.076693258616572,
+       9.074127753271044,
+       15.395999937126758,
+       9.094111297067057,
+       9.10783506305908,
+       15.388688611603149,
+       9.104014477664457,
+       15.367829092624817
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-02.orbit_elements_mean.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 0.00038080360123103434,
+      "last": 0.0003638124104499789,
+      "max": 0.0004081402818944913,
+      "mean": 0.0003892923812982321,
+      "min": 0.0003553699632918889,
+      "non_finite": 0,
+      "samples": [
+       0.00038080360123103434,
+       0.0003896068389156515,
+       0.00039968585053091446,
+       0.0003996043650382086,
+       0.0003981391971749888,
+       0.00039563943424012697,
+       0.00039113396799559617,
+       0.00037975615553518025,
+       0.0003812962505098316,
+       0.0003851157660687978,
+       0.0003638124104499789
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-01-02.orbit_elements_mean.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 0.9251830063773395,
+      "last": 0.9251911870063245,
+      "max": 0.9252037539340205,
+      "mean": 0.9251908631385704,
+      "min": 0.9251768451493291,
+      "non_finite": 0,
+      "samples": [
+       0.9251830063773395,
+       0.9251862859298102,
+       0.9251808403381103,
+       0.9251768611305224,
+       0.9251903304922309,
+       0.9251951787661973,
+       0.9251925310333617,
+       0.9252014009258794,
+       0.9252028026106142,
+       0.9251898391909918,
+       0.9251911870063245
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-02.orbit_elements_mean.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 0.0003435659353012704,
+      "last": -0.017786810027829076,
+      "max": 0.0003435659353012704,
+      "mean": -0.008736869356779932,
+      "min": -0.017786810027829076,
+      "non_finite": 0,
+      "samples": [
+       0.0003435659353012704,
+       -0.0014738716122071646,
+       -0.0033029469734482445,
+       -0.005118250338729485,
+       -0.006923815402203039,
+       -0.008752093281876702,
+       -0.010556486531500165,
+       -0.012364243568925834,
+       -0.014179247889144144,
+       -0.01597619906841901,
+       -0.017786810027829076
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-02.orbit_elements_mean.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 7081113.070827451,
+      "last": 7081105.178522726,
+      "max": 7081154.653394995,
+      "mean": 7081009.875409884,
+      "min": 7080884.286564302,
+      "non_finite": 0,
+      "samples": [
+       7081113.070827451,
+       7080964.162467385,
+       7080954.80205426,
+       7081071.791240832,
+       7081008.637780694,
+       7080915.869331693,
+       7080979.706147741,
+       7081098.0646173945,
+       7080928.434891437,
+       7080999.2658472685,
+       7081105.178522726
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-01-02.orbit_elements_mean.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": -0.6918125772669517,
+      "last": -2.9396295892119024,
+      "max": 3.1371492081834296,
+      "mean": 0.1706347509028853,
+      "min": -3.1413581037085603,
+      "non_finite": 0,
+      "samples": [
+       -0.6918125772669517,
+       1.6501129450685774,
+       -2.395327753086851,
+       -0.11212100699163173,
+       2.1811600727997056,
+       -1.8521220207535125,
+       0.45769932750028935,
+       2.733933876808125,
+       -1.2579407536457028,
+       1.0349586472105223,
+       -2.9396295892119024
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-02.position_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": -3539068.2999999984,
+      "last": 7005098.025101834,
+      "max": 7083970.03776764,
+      "mean": -306963.0105215962,
+      "min": -7079111.498775572,
+      "non_finite": 0,
+      "samples": [
+       -3539068.2999999984,
+       -2279408.4639625773,
+       6554143.341588895,
+       -6332080.387027949,
+       1789719.9410184706,
+       3989277.4793055607,
+       -7027311.439543541,
+       5268030.320036107,
+       105842.99938310139,
+       -5392888.871080761,
+       7005098.025101834
+      ]
+     },
+     {
+      "first": 3689033.4768366497,
+      "last": -712104.5965105966,
+      "max": 4261554.079519693,
+      "mean": -275508.35513332934,
+      "min": -4262984.278940893,
+      "non_finite": 0,
+      "samples": [
+       3689033.4768366497,
+       -4032671.2526969546,
+       1603250.837627745,
+       1925034.7584967543,
+       -4132101.3775548986,
+       3499218.341497585,
+       -465764.77880138636,
+       -2891664.8015406253,
+       4259692.490379857,
+       -2705614.679211419,
+       -712104.5965105966
+      ]
+     },
+     {
+      "first": 4895512.772220411,
+      "last": -779264.0172448074,
+      "max": 5652594.923756489,
+      "mean": -365765.8030566033,
+      "min": -5654089.58015827,
+      "non_finite": 0,
+      "samples": [
+       4895512.772220411,
+       -5354262.076750188,
+       2155574.0244391016,
+       2510704.011264732,
+       -5465188.417343393,
+       4688341.082333417,
+       -716280.9705645497,
+       -3749544.078461968,
+       5652594.923756489,
+       -3703179.499713549,
+       -779264.0172448074
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-01-02.velocity_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": -6498.902874328155,
+      "last": 1112.823330831617,
+      "max": 7499.920988411645,
+      "mean": 483.7026128145019,
+      "min": -7501.997901472697,
+      "non_finite": 0,
+      "samples": [
+       -6498.902874328155,
+       7101.3918358692945,
+       -2848.597148554027,
+       -3356.519622338987,
+       7256.939881482514,
+       -6200.310608406927,
+       903.2153852940821,
+       5015.957892192318,
+       -7500.7368405162515,
+       4860.802686123497,
+       1112.823330831617
+      ]
+     },
+     {
+      "first": -2258.0962213610924,
+      "last": 4450.105728212534,
+      "max": 4512.341777677966,
+      "mean": -201.93654875829577,
+      "min": -4516.202331160204,
+      "non_finite": 0,
+      "samples": [
+       -2258.0962213610924,
+       -1460.105921878555,
+       4180.401512825616,
+       -4027.899034589089,
+       1105.9135292725143,
+       2574.1561727827593,
+       -4488.89272542456,
+       3314.510392469158,
+       133.66563746159113,
+       -3488.7087640741142,
+       4450.105728212534
+      ]
+     },
+     {
+      "first": -2996.594897277852,
+      "last": 5936.783227142868,
+      "max": 5993.913478546119,
+      "mean": -260.29566079451746,
+      "min": -5998.415055436755,
+      "non_finite": 0,
+      "samples": [
+       -2996.594897277852,
+       -1925.6455943203105,
+       5540.515592950565,
+       -5373.173637596568,
+       1535.7942570823554,
+       3347.286381965427,
+       -5949.972384597623,
+       4485.077203376139,
+       36.277588574909544,
+       -4530.572975117342,
+       5936.783227142868
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m/s"
+   },
+   "leo-01-03.eclipse.illumination_factor": {
+    "columns": [
+     "illumination_factor"
+    ],
+    "data": [
+     {
+      "first": 1.0,
+      "last": 0.0,
+      "max": 1.0,
+      "mean": 0.6730967523089486,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       1.0,
+       1.0,
+       0.0,
+       1.0,
+       0.0,
+       1.0,
+       1.0,
+       0.0,
+       1.0,
+       1.0,
+       0.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-01-03.orbit_elements.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 4.69119812332792,
+      "max": 6.249716696977466,
+      "mean": 3.4002138381540674,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       0.3227869763554889,
+       2.650655060049381,
+       2.312246396708369,
+       2.984260956946686,
+       3.197476672738288,
+       3.4587115429616384,
+       4.013697541838095,
+       3.891345068820048,
+       5.0138400401035375,
+       4.69119812332792
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-03.orbit_elements.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 2.9713870403354854e-17,
+      "last": 0.0005040031037304638,
+      "max": 0.0011526340761549867,
+      "mean": 0.0006060573431321287,
+      "min": 2.9713870403354854e-17,
+      "non_finite": 0,
+      "samples": [
+       2.9713870403354854e-17,
+       0.0003116687492567855,
+       0.0004533857042805484,
+       0.0006726592119623866,
+       0.0005459291143856779,
+       0.0011274205755140367,
+       0.0007037622423185093,
+       0.0009331230690142079,
+       0.0008415357271541997,
+       0.0005527515029128246,
+       0.0005040031037304638
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-01-03.orbit_elements.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 0.9250245035569945,
+      "last": 0.9249657055497481,
+      "max": 0.9255162545823916,
+      "mean": 0.9251780260479021,
+      "min": 0.924854614148294,
+      "non_finite": 0,
+      "samples": [
+       0.9250245035569945,
+       0.9254692388338848,
+       0.9252517717413933,
+       0.9248738487081056,
+       0.925192603749727,
+       0.9255000798494082,
+       0.9251110299863611,
+       0.9249086847014611,
+       0.9253552872827813,
+       0.9254451817363798,
+       0.9249657055497481
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-03.orbit_elements.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 6.264433295387141,
+      "max": 6.28314655212966,
+      "mean": 6.265045641704857,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       6.281164417333466,
+       6.278811841594257,
+       6.277337209828251,
+       6.275954985295891,
+       6.273695202347871,
+       6.271559291963255,
+       6.27028118546807,
+       6.268666922843434,
+       6.266270277867867,
+       6.264433295387141
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-03.orbit_elements.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 7078136.6,
+      "last": 7076847.1878940165,
+      "max": 7087161.803912597,
+      "mean": 7080963.064887408,
+      "min": 7075144.379463655,
+      "non_finite": 0,
+      "samples": [
+       7078136.6,
+       7086651.586151835,
+       7082765.608233603,
+       7075243.054819552,
+       7081121.345462412,
+       7087067.363201519,
+       7079633.341224228,
+       7075614.602331821,
+       7084197.949910096,
+       7085948.392339756,
+       7076847.1878940165
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-01-03.orbit_elements.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 4.18879020478639,
+      "last": 3.5462721495469647,
+      "max": 6.272383283872161,
+      "mean": 3.6801777161146054,
+      "min": 0.014805630371641522,
+      "non_finite": 0,
+      "samples": [
+       4.18879020478639,
+       6.155643613878568,
+       6.117104177712247,
+       2.463537425268674,
+       4.080158582600209,
+       6.157031325297555,
+       1.9038189646517327,
+       3.63707996600255,
+       6.050059600050776,
+       0.9350314437139787,
+       3.5462721495469647
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-03.orbit_elements_mean.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 3.4971238507480367,
+      "last": 16.133239423373006,
+      "max": 16.144735750791266,
+      "mean": 13.31953338860671,
+      "min": 3.495835111767237,
+      "non_finite": 0,
+      "samples": [
+       3.4971238507480367,
+       9.787792737363304,
+       16.07099552382724,
+       9.773754025724289,
+       16.094597108399558,
+       16.095274860090665,
+       9.828129634904206,
+       16.120259839747096,
+       16.11066155221967,
+       9.864678659527534,
+       16.133239423373006
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-03.orbit_elements_mean.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 0.0003808036012310307,
+      "last": 0.0003934676699316331,
+      "max": 0.00041961997353631475,
+      "mean": 0.0004027485446407003,
+      "min": 0.0003808036012310307,
+      "non_finite": 0,
+      "samples": [
+       0.0003808036012310307,
+       0.0004001046815536469,
+       0.0004058475472772321,
+       0.0004028567884748799,
+       0.00041700621069970187,
+       0.0004097174934619799,
+       0.0004073862401958785,
+       0.00040764313744843497,
+       0.0004058064076354016,
+       0.00038797211636960324,
+       0.0003934676699316331
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-01-03.orbit_elements_mean.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 0.9251830063773395,
+      "last": 0.9251938289895343,
+      "max": 0.9252004055860193,
+      "mean": 0.925189229591157,
+      "min": 0.9251712685784235,
+      "non_finite": 0,
+      "samples": [
+       0.9251830063773395,
+       0.925176894352641,
+       0.9251714270494752,
+       0.9251882764906285,
+       0.9251901401186279,
+       0.9251867406137625,
+       0.9251958527861058,
+       0.9251997238341697,
+       0.9251932630813837,
+       0.9251971284577349,
+       0.9251938289895343
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-03.orbit_elements_mean.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": -0.000343565935301516,
+      "last": -0.018477208333809815,
+      "max": -0.000343565935301516,
+      "mean": -0.009427045652912525,
+      "min": -0.018477208333809815,
+      "non_finite": 0,
+      "samples": [
+       -0.000343565935301516,
+       -0.002171678907470096,
+       -0.003990234742701818,
+       -0.005797029878973903,
+       -0.007627543370820763,
+       -0.009434973273567671,
+       -0.011242484831810633,
+       -0.013061841029104173,
+       -0.014859387560021588,
+       -0.01666842482074388,
+       -0.018477208333809815
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-03.orbit_elements_mean.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 7081113.070827451,
+      "last": 7081128.19896894,
+      "max": 7081309.957027657,
+      "mean": 7081164.301233491,
+      "min": 7081040.715112036,
+      "non_finite": 0,
+      "samples": [
+       7081113.070827451,
+       7081144.345444783,
+       7081251.959451925,
+       7081140.441277392,
+       7081072.085830204,
+       7081155.622537675,
+       7081223.083346432,
+       7081070.872478395,
+       7081142.821801681,
+       7081274.606204298,
+       7081128.19896894
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-01-03.orbit_elements_mean.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 0.6918125772669527,
+      "last": -1.612700773924012,
+      "max": 3.1360555095915923,
+      "mean": 0.03532975013358391,
+      "min": -3.1359623112934885,
+      "non_finite": 0,
+      "samples": [
+       0.6918125772669527,
+       2.973886959352748,
+       -1.0202134560685994,
+       1.2851926617957379,
+       -2.7468231193468804,
+       -0.45760488681030315,
+       1.8174224439978037,
+       -2.186229022503415,
+       0.11407275634295724,
+       2.3672738184216557,
+       -1.612700773924012
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-01-03.position_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": -3539068.300000003,
+      "last": -2574520.978556448,
+      "max": 7084345.413688462,
+      "mean": 554855.3334706905,
+      "min": -7078829.68011846,
+      "non_finite": 0,
+      "samples": [
+       -3539068.300000003,
+       6951513.279968774,
+       -5594312.765089594,
+       423591.65342134895,
+       5051102.915998139,
+       -7058514.967128841,
+       4246557.042230187,
+       1482841.3935599015,
+       -6184484.295297581,
+       6666837.893718884,
+       -2574520.978556448
+      ]
+     },
+     {
+      "first": -3689033.476836648,
+      "last": 4000719.805533798,
+      "max": 4263381.477961323,
+      "mean": -27630.948354756492,
+      "min": -4261800.492427429,
+      "non_finite": 0,
+      "samples": [
+       -3689033.476836648,
+       812621.4938367829,
+       2625911.59761065,
+       -4255059.487630358,
+       2964634.449753698,
+       365939.840013055,
+       -3441444.537459723,
+       4155874.5251469393,
+       -2013673.1167528233,
+       -1510989.3448138249,
+       4000719.805533798
+      ]
+     },
+     {
+      "first": -4895512.7722204095,
+      "last": 5243497.007069318,
+      "max": 5654409.9492439395,
+      "mean": -29447.273137819462,
+      "min": -5652702.662991982,
+      "non_finite": 0,
+      "samples": [
+       -4895512.7722204095,
+       1098041.2727040956,
+       3453833.8564720876,
+       -5641502.214229318,
+       3983957.8831390534,
+       397097.3300209774,
+       -4501937.488836583,
+       5538629.815541312,
+       -2793024.0845544264,
+       -1856845.0616174748,
+       5243497.007069318
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-01-03.velocity_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 6498.902874328152,
+      "last": -6986.53381226048,
+      "max": 7501.910955525237,
+      "mean": 44.25110488923492,
+      "min": -7499.749998065728,
+      "non_finite": 0,
+      "samples": [
+       6498.902874328152,
+       -1446.8036564228116,
+       -4599.009886479747,
+       7488.555506860252,
+       -5260.423886724044,
+       -568.8113888463268,
+       6005.7497499264855,
+       -7333.495122328217,
+       3652.0680794878053,
+       2536.6545791991757,
+       -6986.53381226048
+      ]
+     },
+     {
+      "first": -2258.0962213610956,
+      "last": -1559.3739636342248,
+      "max": 4512.926601649158,
+      "mean": 352.8360880962334,
+      "min": -4515.874470953189,
+      "non_finite": 0,
+      "samples": [
+       -2258.0962213610956,
+       4429.375577321929,
+       -3555.474528540648,
+       240.38543181614367,
+       3240.9940796308624,
+       -4499.250294338532,
+       2660.384145957842,
+       1003.7109491208114,
+       -3979.6024360282777,
+       4219.8627532935725,
+       -1559.3739636342248
+      ]
+     },
+     {
+      "first": -2996.594897277856,
+      "last": -2242.5689936314634,
+      "max": 5993.898712535964,
+      "mean": 465.07477872206067,
+      "min": -5998.226901376912,
+      "non_finite": 0,
+      "samples": [
+       -2996.594897277856,
+       5879.526464118944,
+       -4747.164847958238,
+       376.9946106749148,
+       4251.845756715718,
+       -5983.519798853103,
+       3623.5187807652055,
+       1205.9900491603757,
+       -5213.78133813123,
+       5661.036809255946,
+       -2242.5689936314634
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m/s"
+   },
+   "leo-02-01.eclipse.illumination_factor": {
+    "columns": [
+     "illumination_factor"
+    ],
+    "data": [
+     {
+      "first": 1.0,
+      "last": 1.0,
+      "max": 1.0,
+      "mean": 1.0,
+      "min": 1.0,
+      "non_finite": 0,
+      "samples": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-02-01.orbit_elements.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 1.5048843712459876,
+      "max": 6.281494263039642,
+      "mean": 2.865647940717479,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       3.460181891336752,
+       5.757659938745242,
+       5.425435487972448,
+       6.060626239984739,
+       0.031241670156428775,
+       0.26183014422670325,
+       0.8461199575370311,
+       0.7194042459365234,
+       1.8482631481072012,
+       1.5048843712459876
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-01.orbit_elements.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 2.0589949538880348e-16,
+      "last": 0.0004731315119283817,
+      "max": 0.0011474182062972446,
+      "mean": 0.0005990399628267927,
+      "min": 2.0589949538880348e-16,
+      "non_finite": 0,
+      "samples": [
+       2.0589949538880348e-16,
+       0.00032961290868050623,
+       0.00043908355750137015,
+       0.0006695234217295896,
+       0.0005322613574101109,
+       0.0011131388581969532,
+       0.000694320933642173,
+       0.000908310580559621,
+       0.0008280709167741334,
+       0.0005136443403216006,
+       0.0004731315119283817
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-02-01.orbit_elements.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 0.9250245035569947,
+      "last": 0.9250557974678033,
+      "max": 0.9255907912027916,
+      "mean": 0.9252141227375514,
+      "min": 0.9248656775749013,
+      "non_finite": 0,
+      "samples": [
+       0.9250245035569947,
+       0.9254799165691839,
+       0.9252685510075678,
+       0.924885924019248,
+       0.9252179846889224,
+       0.9255316028085777,
+       0.9251510795261196,
+       0.9249562661713674,
+       0.9254160700939343,
+       0.925517179823699,
+       0.9250557974678033
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-01.orbit_elements.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 3.141592653589793,
+      "last": 3.122844591424752,
+      "max": 3.141592653589793,
+      "mean": 3.1321813626142676,
+      "min": 3.122844591424752,
+      "non_finite": 0,
+      "samples": [
+       3.141592653589793,
+       3.1395846942451553,
+       3.1372375874620313,
+       3.1357558423377196,
+       3.134383115187969,
+       3.1321161278257126,
+       3.129983350800373,
+       3.1287050820020523,
+       3.127077846303654,
+       3.12468560820374,
+       3.122844591424752
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-01.orbit_elements.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 7078136.6000000015,
+      "last": 7076728.215151286,
+      "max": 7087046.5249555325,
+      "mean": 7080843.558682861,
+      "min": 7075019.625026399,
+      "non_finite": 0,
+      "samples": [
+       7078136.6000000015,
+       7086571.286953946,
+       7082573.252757267,
+       7075182.321583555,
+       7081129.541172733,
+       7086940.883930269,
+       7079413.10585805,
+       7075586.259155491,
+       7084156.121547301,
+       7085727.399201288,
+       7076728.215151286
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-02-01.orbit_elements.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 1.0471975511965976,
+      "last": 3.5914761829632345,
+      "max": 6.273467133907591,
+      "mean": 3.7139012269100977,
+      "min": 0.022523558115126973,
+      "non_finite": 0,
+      "samples": [
+       1.0471975511965976,
+       6.15988324004137,
+       6.15183092558077,
+       2.492069050315144,
+       4.1455820261640115,
+       6.1819908151972465,
+       1.959369661210558,
+       3.663400610600725,
+       6.0808532691041846,
+       0.9593765983171726,
+       3.5914761829632345
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-01.orbit_elements_mean.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 0.35553119715803305,
+      "last": 6.615708601046338,
+      "max": 12.94065874552119,
+      "mean": 6.5301610026168,
+      "min": 0.30755968789101207,
+      "non_finite": 0,
+      "samples": [
+       0.35553119715803305,
+       6.651845815470297,
+       12.932402798032955,
+       6.621532790957142,
+       12.895703848301196,
+       6.614917057941772,
+       0.30788632482108724,
+       6.612652699165812,
+       6.614906449569746,
+       0.33770762519008235,
+       6.615708601046338
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-01.orbit_elements_mean.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 0.0003808036012312526,
+      "last": 0.00040119725487288967,
+      "max": 0.0004032273627765672,
+      "mean": 0.0003894267323537556,
+      "min": 0.00036806574490115925,
+      "non_finite": 0,
+      "samples": [
+       0.0003808036012312526,
+       0.000382260748059635,
+       0.0003847041649124992,
+       0.00038385674966258604,
+       0.00038666076659795324,
+       0.000387343190825996,
+       0.00039540795248986526,
+       0.00039701815199352563,
+       0.0004030960592633087,
+       0.0003972869093811769,
+       0.00040119725487288967
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-02-01.orbit_elements_mean.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 0.9251830063773397,
+      "last": 0.9252837146122773,
+      "max": 0.9252837798409697,
+      "mean": 0.9252253306774446,
+      "min": 0.9251816861846778,
+      "non_finite": 0,
+      "samples": [
+       0.9251830063773397,
+       0.9251875704118635,
+       0.9251881224462453,
+       0.9252003404000043,
+       0.9252156468934888,
+       0.9252182355072325,
+       0.9252357374927027,
+       0.925247397370955,
+       0.925254288645768,
+       0.9252689876981052,
+       0.9252837146122773
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-01.orbit_elements_mean.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 3.1412490876544914,
+      "last": 3.1231196446467,
+      "max": 3.1412490876544914,
+      "mean": 3.1321794449776714,
+      "min": 3.1231196446467,
+      "non_finite": 0,
+      "samples": [
+       3.1412490876544914,
+       3.139433867283182,
+       3.1376208391796596,
+       3.1358069739892733,
+       3.133985866877524,
+       3.1321710867640715,
+       3.13036687139698,
+       3.128547589609809,
+       3.1267367597349196,
+       3.1249319069769563,
+       3.1231196446467
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-01.orbit_elements_mean.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 7081113.0708274525,
+      "last": 7081006.338500285,
+      "max": 7081126.097954538,
+      "mean": 7081044.899345606,
+      "min": 7080953.543232306,
+      "non_finite": 0,
+      "samples": [
+       7081113.0708274525,
+       7081063.773990094,
+       7081057.986158108,
+       7081079.515525819,
+       7081082.5765402755,
+       7081028.433426549,
+       7080999.858961964,
+       7081045.037455101,
+       7081105.340084202,
+       7081050.792122988,
+       7081006.338500285
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-02-01.orbit_elements_mean.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 0.6918125772671642,
+      "last": -1.5194650316699392,
+      "max": 3.1415743381788523,
+      "mean": 0.049388982156231886,
+      "min": -3.1367866590149793,
+      "non_finite": 0,
+      "samples": [
+       0.6918125772671642,
+       2.9682831259054416,
+       -1.0230744217552663,
+       1.2959493044699246,
+       -2.6893264522553095,
+       -0.401707818582383,
+       1.9131497741432244,
+       -2.1030642277375526,
+       0.18549540741477452,
+       2.4698279476105522,
+       -1.5194650316699392
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-01.position_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": -3539068.300000001,
+      "last": -2577590.8026575665,
+      "max": 7084139.3734645,
+      "mean": 554712.1403955976,
+      "min": -7078797.533517307,
+      "non_finite": 0,
+      "samples": [
+       -3539068.300000001,
+       6951241.777320364,
+       -5594878.592781396,
+       424545.30445066595,
+       5049886.714339469,
+       -7058642.018143847,
+       4248108.887345879,
+       1480389.1766409816,
+       -6182951.020892293,
+       6667729.865498986,
+       -2577590.8026575665
+      ]
+     },
+     {
+      "first": -3689033.476836648,
+      "last": 3999310.4072709954,
+      "max": 4262656.862109474,
+      "mean": -27699.9518082945,
+      "min": -4261502.8851491455,
+      "non_finite": 0,
+      "samples": [
+       -3689033.476836648,
+       812851.035107471,
+       2625244.438658806,
+       -4254960.46041219,
+       2965132.883393834,
+       364483.6440844303,
+       -3440541.30700456,
+       4155798.381417737,
+       -2015200.3964512604,
+       -1509367.616577423,
+       3999310.4072709954
+      ]
+     },
+     {
+      "first": 4895512.77222041,
+      "last": -5242547.341108431,
+      "max": 5652949.712357491,
+      "mean": 29522.56379118814,
+      "min": -5654505.242817857,
+      "non_finite": 0,
+      "samples": [
+       4895512.77222041,
+       -1098250.4808392073,
+       -3453202.332355117,
+       5641511.897195072,
+       -3984679.5716732275,
+       -395314.778269072,
+       4501184.9707750175,
+       -5539003.78862309,
+       2795346.810186381,
+       1855020.2400413142,
+       -5242547.341108431
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-02-01.velocity_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 6498.902874328154,
+      "last": -6985.5039627382175,
+      "max": 7501.877233415362,
+      "mean": 44.109908346866774,
+      "min": -7499.967136191946,
+      "non_finite": 0,
+      "samples": [
+       6498.902874328154,
+       -1447.2101975641197,
+       -4598.231200508585,
+       7488.450204748083,
+       -5261.776858536284,
+       -566.5929639687404,
+       6004.319812480773,
+       -7334.312568102964,
+       3654.8078563020454,
+       2533.8501696321114,
+       -6985.5039627382175
+      ]
+     },
+     {
+      "first": -2258.0962213610946,
+      "last": -1561.348265394124,
+      "max": 4512.475082637761,
+      "mean": 352.7695624080801,
+      "min": -4515.535201583836,
+      "non_finite": 0,
+      "samples": [
+       -2258.0962213610946,
+       4429.361962099917,
+       -3555.8239027619356,
+       241.11839030885062,
+       3240.251424141073,
+       -4499.171237357775,
+       2661.3303598612542,
+       1002.0501381141905,
+       -3978.3617082522014,
+       4220.016921515264,
+       -1561.348265394124
+      ]
+     },
+     {
+      "first": 2996.594897277854,
+      "last": 2245.5470016637146,
+      "max": 5998.4856603911285,
+      "mean": -465.0288078907519,
+      "min": -5994.143322307847,
+      "non_finite": 0,
+      "samples": [
+       2996.594897277854,
+       -5879.662952937014,
+       4747.677994450926,
+       -377.86353597099196,
+       -4251.217243663775,
+       5983.769925113309,
+       -3624.9220913848276,
+       -1204.053298389117,
+       5212.758014335685,
+       -5662.000757247822,
+       2245.5470016637146
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m/s"
+   },
+   "leo-02-02.eclipse.illumination_factor": {
+    "columns": [
+     "illumination_factor"
+    ],
+    "data": [
+     {
+      "first": 1.0,
+      "last": 1.0,
+      "max": 1.0,
+      "mean": 1.0,
+      "min": 1.0,
+      "non_finite": 0,
+      "samples": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-02-02.orbit_elements.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 0.03453932173840656,
+      "max": 6.282099670458784,
+      "mean": 3.118367126839281,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       5.984247040528304,
+       5.498484363277894,
+       5.731440409628742,
+       6.068011981212522,
+       6.091082037205415,
+       0.29718664105185877,
+       0.2781658057089778,
+       0.6770124466369309,
+       0.7759874394544523,
+       0.03453932173840656
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-02.orbit_elements.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 4.0554473313007667e-32,
+      "last": 0.0004681579057924689,
+      "max": 0.0015480170330835277,
+      "mean": 0.0008741096675617592,
+      "min": 4.0554473313007667e-32,
+      "non_finite": 0,
+      "samples": [
+       4.0554473313007667e-32,
+       0.0005560141957722533,
+       0.0008763204775545943,
+       0.0007686601121029824,
+       0.001422091596801997,
+       0.0011605311931234244,
+       0.001173173463136764,
+       0.0013277269550530091,
+       0.0006497114562332049,
+       0.0007501889156608694,
+       0.0004681579057924689
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-02-02.orbit_elements.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 0.9250245035569945,
+      "last": 0.9246985380431912,
+      "max": 0.9251123795999647,
+      "mean": 0.9247539077895737,
+      "min": 0.9243895775464694,
+      "non_finite": 0,
+      "samples": [
+       0.9250245035569945,
+       0.924667177939752,
+       0.9244037940604076,
+       0.9248424818518001,
+       0.9250073510642777,
+       0.9245627369279885,
+       0.9245249092841233,
+       0.9250062693520666,
+       0.9249535736194392,
+       0.9245084075954617,
+       0.9246985380431912
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-02.orbit_elements.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 3.141592653589793,
+      "last": 3.1237430903547345,
+      "max": 3.141592653589793,
+      "mean": 3.1324866303992196,
+      "min": 3.1237430903547345,
+      "non_finite": 0,
+      "samples": [
+       3.141592653589793,
+       3.1393765713815185,
+       3.1380387068410114,
+       3.136486315531908,
+       3.1341018039487074,
+       3.1321485325174034,
+       3.1309171309256123,
+       3.129081642646569,
+       3.126677071291075,
+       3.1250144742552215,
+       3.1237430903547345
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-02.orbit_elements.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 7078136.6,
+      "last": 7070296.345303318,
+      "max": 7078196.07064036,
+      "mean": 7072320.779325222,
+      "min": 7066172.969493042,
+      "non_finite": 0,
+      "samples": [
+       7078136.6,
+       7071468.525452757,
+       7066470.875803935,
+       7074401.98880642,
+       7077422.650437817,
+       7068724.218487736,
+       7067833.908104088,
+       7076779.920717166,
+       7075433.578059087,
+       7066812.671460168,
+       7070296.345303318
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-02-02.orbit_elements.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 3.141592653589793,
+      "last": 0.9183045683885134,
+      "max": 6.282719357216401,
+      "mean": 3.215717269976809,
+      "min": 3.8995661256556945e-05,
+      "non_finite": 0,
+      "samples": [
+       3.141592653589793,
+       5.733864527417016,
+       2.233143920638994,
+       4.291944068740488,
+       6.250429796243414,
+       2.240228019466205,
+       4.042153833023973,
+       0.07430866581013916,
+       1.970162395566019,
+       4.163169373970969,
+       0.9183045683885134
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-02.orbit_elements_mean.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 6.283185307179586,
+      "last": 0.004153246999770044,
+      "max": 12.568627159701144,
+      "mean": 6.531338918321423,
+      "min": -0.02621215226843887,
+      "non_finite": 0,
+      "samples": [
+       6.283185307179586,
+       12.563780076701947,
+       6.269986392686546,
+       12.552182895729048,
+       12.555433698413042,
+       6.259604853052559,
+       6.267058891278343,
+       -0.013743817235378764,
+       -0.011505244784508317,
+       6.277233311286585,
+       0.004153246999770044
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-02.orbit_elements_mean.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 0.0007579190176164232,
+      "last": 0.0007842810645939288,
+      "max": 0.0007911247913313403,
+      "mean": 0.0007721034180347968,
+      "min": 0.0007408868877347807,
+      "non_finite": 0,
+      "samples": [
+       0.0007579190176164232,
+       0.0007601562588778223,
+       0.0007638157862224295,
+       0.0007660487040411959,
+       0.0007665885059999932,
+       0.0007762849166575773,
+       0.0007778096352889923,
+       0.0007827672630160041,
+       0.0007845809008888827,
+       0.000784310674582946,
+       0.0007842810645939288
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-02-02.orbit_elements_mean.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 0.9247076344148448,
+      "last": 0.924802973766758,
+      "max": 0.924802973766758,
+      "mean": 0.924747406888694,
+      "min": 0.9247061172373835,
+      "non_finite": 0,
+      "samples": [
+       0.9247076344148448,
+       0.9247070369945484,
+       0.9247121203888162,
+       0.9247269574124689,
+       0.9247280690434928,
+       0.9247464348788718,
+       0.9247583048793557,
+       0.9247644230118067,
+       0.924779478746339,
+       0.9247940684082648,
+       0.924802973766758
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-02.orbit_elements_mean.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 3.141592653589793,
+      "last": 3.123368112291465,
+      "max": 3.141592653589793,
+      "mean": 3.1324747339942376,
+      "min": 3.123368112291465,
+      "non_finite": 0,
+      "samples": [
+       3.141592653589793,
+       3.1397706992828347,
+       3.137943753931587,
+       3.1361147949995813,
+       3.134290917718964,
+       3.132475075076573,
+       3.130645149255968,
+       3.128824164648973,
+       3.1270102799747423,
+       3.1251874814853995,
+       3.123368112291465
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-02.orbit_elements_mean.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 7072183.658345098,
+      "last": 7072255.524717477,
+      "max": 7072274.990521455,
+      "mean": 7072189.300614619,
+      "min": 7072068.684355323,
+      "non_finite": 0,
+      "samples": [
+       7072183.658345098,
+       7072215.946510777,
+       7072241.710371262,
+       7072231.184600939,
+       7072162.739765699,
+       7072159.712850123,
+       7072199.548422939,
+       7072226.016648313,
+       7072163.246756826,
+       7072162.238790314,
+       7072255.524717477
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-02-02.orbit_elements_mean.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": -3.141592653589793,
+      "last": 0.9488498819868594,
+      "max": 3.132445809478322,
+      "mean": -0.19724940141556077,
+      "min": -3.141592653589793,
+      "non_finite": 0,
+      "samples": [
+       -3.141592653589793,
+       -0.8458358761679506,
+       1.4616814428797409,
+       -2.5286402728470745,
+       -0.2370718592012338,
+       2.0715647272378988,
+       -1.9276010311954968,
+       0.36632718276341264,
+       2.658538498839867,
+       -1.3381494738854034,
+       0.9488498819868594
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-02.position_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 7078136.6,
+      "last": -4156392.691386294,
+      "max": 7078136.6,
+      "mean": -238642.68955238623,
+      "min": -7067180.621262232,
+      "non_finite": 0,
+      "samples": [
+       7078136.6,
+       -4666988.141079578,
+       -877930.994301318,
+       5858328.163709213,
+       -6843252.040078331,
+       3213886.1970776115,
+       2619985.7353563164,
+       -6650765.94998845,
+       6198847.061779226,
+       -1520458.3031038435,
+       -4156392.691386294
+      ]
+     },
+     {
+      "first": -1.3884880744931333e-09,
+      "last": -3394984.641515986,
+      "max": 4259079.713843394,
+      "mean": 295328.7059289077,
+      "min": -4259334.369667884,
+      "non_finite": 0,
+      "samples": [
+       -1.3884880744931333e-09,
+       3202690.3876310964,
+       -4223572.880878221,
+       2370503.572865526,
+       1095047.9651260953,
+       -3814124.9395809523,
+       3938739.504808656,
+       -1385258.4683116395,
+       -2113942.618564044,
+       4174270.4290034785,
+       -3394984.641515986
+      ]
+     },
+     {
+      "first": 6.922746169437992e-10,
+      "last": 4599906.61273784,
+      "max": 5644520.729297393,
+      "mean": -384906.2666585366,
+      "min": -5644543.730159176,
+      "non_finite": 0,
+      "samples": [
+       6.922746169437992e-10,
+       -4233230.353541861,
+       5601737.917852865,
+       -3184215.2537362673,
+       -1385061.497815585,
+       5016189.738009104,
+       -5258234.625389742,
+       1948499.892134671,
+       2681895.5143330023,
+       -5499326.811320705,
+       4599906.61273784
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-02-02.velocity_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": 1.4720841242500613e-12,
+      "last": 6072.2444377475695,
+      "max": 7505.587580717615,
+      "mean": -515.1408585835251,
+      "min": -7505.5752204733335,
+      "non_finite": 0,
+      "samples": [
+       1.4720841242500613e-12,
+       -5639.692336157015,
+       7447.664289349901,
+       -4213.644874452398,
+       -1876.693386526868,
+       6687.54833328101,
+       -6972.723094780415,
+       2540.3170791587736,
+       3623.54328398392,
+       -7329.967509506492,
+       6072.2444377475695
+      ]
+     },
+     {
+      "first": 4516.192442722187,
+      "last": -2730.0491317509345,
+      "max": 4516.275863886456,
+      "mean": -155.70529354877783,
+      "min": -4523.852524401535,
+      "non_finite": 0,
+      "samples": [
+       4516.192442722187,
+       -2979.249424901661,
+       -581.3801529336519,
+       3751.418735251303,
+       -4370.764165952209,
+       2009.20974597967,
+       1717.7062428084203,
+       -4276.937886987553,
+       3920.5938499569493,
+       -897.9147817564917,
+       -2730.0491317509345
+      ]
+     },
+     {
+      "first": -5993.189794555707,
+      "last": 3476.135680237685,
+      "max": 6002.792671481416,
+      "mean": 210.8997194080786,
+      "min": -5993.189794555707,
+      "non_finite": 0,
+      "samples": [
+       -5993.189794555707,
+       3967.223003611147,
+       735.4374778948063,
+       -4947.808876316767,
+       5818.485030046131,
+       -2747.364303810516,
+       -2178.29821311073,
+       5632.855432155706,
+       -5273.167267224245,
+       1351.2097468353122,
+       3476.135680237685
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m/s"
+   },
+   "leo-02-03.eclipse.illumination_factor": {
+    "columns": [
+     "illumination_factor"
+    ],
+    "data": [
+     {
+      "first": 1.0,
+      "last": 1.0,
+      "max": 1.0,
+      "mean": 1.0,
+      "min": 1.0,
+      "non_finite": 0,
+      "samples": [
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0,
+       1.0
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-02-03.orbit_elements.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 0.0,
+      "last": 3.025447966197157,
+      "max": 6.282369583114664,
+      "mean": 3.5258392820421487,
+      "min": 0.0,
+      "non_finite": 0,
+      "samples": [
+       0.0,
+       4.786053699873198,
+       4.575020661870759,
+       5.617674870971955,
+       5.501417243982396,
+       6.113548942929811,
+       0.015648327344455943,
+       0.3204558933631421,
+       0.9094811955460924,
+       0.502325826776051,
+       3.025447966197157
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-03.orbit_elements.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 9.415076698299268e-17,
+      "last": 0.0003391257853159691,
+      "max": 0.001158153462538662,
+      "mean": 0.0006146994186705745,
+      "min": 9.415076698299268e-17,
+      "non_finite": 0,
+      "samples": [
+       9.415076698299268e-17,
+       0.0005571494001978826,
+       0.0005341504083223894,
+       0.000887395275693133,
+       0.0009114732547402834,
+       0.000716039354275864,
+       0.0010986562358270883,
+       0.000490358246632631,
+       0.0006389213130352814,
+       0.0003717511176900585,
+       0.0003391257853159691
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-02-03.orbit_elements.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 0.9250245035569945,
+      "last": 0.9255802585201661,
+      "max": 0.9255802585201661,
+      "mean": 0.9252236873601358,
+      "min": 0.9248617823613514,
+      "non_finite": 0,
+      "samples": [
+       0.9250245035569945,
+       0.9249272831169368,
+       0.9254139342008961,
+       0.9253818161013313,
+       0.9249318250743598,
+       0.9251018743362818,
+       0.925531323565223,
+       0.9252788829185331,
+       0.9249370833846953,
+       0.9253072064732031,
+       0.9255802585201661
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-03.orbit_elements.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": 3.141592653589793,
+      "last": 3.1236940167756453,
+      "max": 3.141592653589793,
+      "mean": 3.132846776565309,
+      "min": 3.1236940167756453,
+      "non_finite": 0,
+      "samples": [
+       3.141592653589793,
+       3.14035571089529,
+       3.138577016991806,
+       3.1361673253184104,
+       3.134475252242356,
+       3.133220789558273,
+       3.131137162018596,
+       3.1288402238264172,
+       3.1274237783353036,
+       3.125999537341754,
+       3.1236940167756453
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-03.orbit_elements.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 7078136.6,
+      "last": 7086850.557333563,
+      "max": 7087081.112497197,
+      "mean": 7081156.837816905,
+      "min": 7075051.179689843,
+      "non_finite": 0,
+      "samples": [
+       7078136.6,
+       7076424.37610363,
+       7085340.998360045,
+       7084681.940313347,
+       7075925.7165964125,
+       7078876.063683013,
+       7086863.241063738,
+       7081749.463420447,
+       7075119.323606553,
+       7082002.272827989,
+       7086850.557333563
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-02-03.orbit_elements.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": 5.235987755982989,
+      "last": 6.2607582692767565,
+      "max": 6.264823221976839,
+      "mean": 2.2148373974918583,
+      "min": 0.010779888872488288,
+      "non_finite": 0,
+      "samples": [
+       5.235987755982989,
+       2.7408764324408192,
+       5.240527739798868,
+       0.2053574252613879,
+       2.6122278096718614,
+       4.288388583509045,
+       0.11116889505003269,
+       2.096431196333646,
+       3.7961418281430177,
+       0.21139855121341866,
+       6.2607582692767565
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-03.orbit_elements_mean.arg_periapsis": {
+    "columns": [
+     "argp"
+    ],
+    "data": [
+     {
+      "first": 12.21083941720104,
+      "last": 12.215613192365723,
+      "max": 12.224467205586196,
+      "mean": 5.684401978645069,
+      "min": -0.3963543850995146,
+      "non_finite": 0,
+      "samples": [
+       12.21083941720104,
+       5.918181341165173,
+       12.207899971567713,
+       5.930638827984959,
+       5.908379918718851,
+       12.19603699207101,
+       -0.3673020399533313,
+       -0.36377596411189383,
+       5.936477818000297,
+       -0.3302084511814525,
+       12.215613192365723
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-03.orbit_elements_mean.eccentricity": {
+    "columns": [
+     "e"
+    ],
+    "data": [
+     {
+      "first": 0.000380803601231148,
+      "last": 0.0003994533860181338,
+      "max": 0.0004144592101943903,
+      "mean": 0.00039914877697012566,
+      "min": 0.00036154296381864123,
+      "non_finite": 0,
+      "samples": [
+       0.000380803601231148,
+       0.00038833312852464957,
+       0.00038793463388487654,
+       0.000389815425265103,
+       0.0003987257721155742,
+       0.00040269625734963094,
+       0.00040497650979983904,
+       0.0004138208655485093,
+       0.0004086408683662162,
+       0.0004110353472107129,
+       0.0003994533860181338
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "-"
+   },
+   "leo-02-03.orbit_elements_mean.inclination": {
+    "columns": [
+     "i"
+    ],
+    "data": [
+     {
+      "first": 0.9251830063773395,
+      "last": 0.9252761944248727,
+      "max": 0.9252761944248727,
+      "mean": 0.9252196665547511,
+      "min": 0.9251778106233444,
+      "non_finite": 0,
+      "samples": [
+       0.9251830063773395,
+       0.9251787311037263,
+       0.9251895429902658,
+       0.9251901762855781,
+       0.9252069024699142,
+       0.9252205693070741,
+       0.9252249882736557,
+       0.9252407364205805,
+       0.9252540217978018,
+       0.9252620331588132,
+       0.9252761944248727
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-03.orbit_elements_mean.raan": {
+    "columns": [
+     "raan"
+    ],
+    "data": [
+     {
+      "first": -3.141249087654492,
+      "last": 3.1238022943766874,
+      "max": 3.141583935953394,
+      "mean": 3.010856213942545,
+      "min": -3.1415762064853037,
+      "non_finite": 0,
+      "samples": [
+       -3.141249087654492,
+       3.140114841756459,
+       3.1382969035132997,
+       3.1364832283444186,
+       3.1346730491092023,
+       3.1328516495561893,
+       3.131038057708754,
+       3.1292344569237294,
+       3.1274175857366937,
+       3.125607384416186,
+       3.1238022943766874
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-03.orbit_elements_mean.semi_major_axis": {
+    "columns": [
+     "a"
+    ],
+    "data": [
+     {
+      "first": 7081113.070827451,
+      "last": 7081120.931507132,
+      "max": 7081150.735942266,
+      "mean": 7081071.86322558,
+      "min": 7080942.291462197,
+      "non_finite": 0,
+      "samples": [
+       7081113.070827451,
+       7081142.197868137,
+       7081113.617077002,
+       7081068.266876682,
+       7081083.135872041,
+       7081101.892367316,
+       7081083.677241089,
+       7081029.457320202,
+       7081064.842455735,
+       7081150.735942266,
+       7081120.931507132
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-02-03.orbit_elements_mean.true_anomaly": {
+    "columns": [
+     "true_anomaly"
+    ],
+    "data": [
+     {
+      "first": -0.6918125772670619,
+      "last": -2.9294527581805374,
+      "max": 3.1280249170129193,
+      "mean": 0.17827273571143346,
+      "min": -3.141013470126478,
+      "non_finite": 0,
+      "samples": [
+       -0.6918125772670619,
+       1.6088512560744739,
+       -2.3922329894576446,
+       -0.10774016489375396,
+       2.205180038312903,
+       -1.7939417237735498,
+       0.49416115034027647,
+       2.7804953610156478,
+       -1.230851556842358,
+       1.0440991335909404,
+       -2.9294527581805374
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "rad"
+   },
+   "leo-02-03.position_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": -3539068.3,
+      "last": 7004882.052430953,
+      "max": 7084039.122016366,
+      "mean": -307026.2362525733,
+      "min": -7079136.305544201,
+      "non_finite": 0,
+      "samples": [
+       -3539068.3,
+       -2279473.174182259,
+       6554318.264283945,
+       -6331898.805318252,
+       1788844.999951619,
+       3990371.473419561,
+       -7027522.098137299,
+       5266915.33367409,
+       108253.04524235832,
+       -5394367.589690186,
+       7004882.052430953
+      ]
+     },
+     {
+      "first": 3689033.4768366497,
+      "last": -713966.4255232397,
+      "max": 4261265.288177855,
+      "mean": -275543.9274996486,
+      "min": -4262694.081515555,
+      "non_finite": 0,
+      "samples": [
+       3689033.4768366497,
+       -4032733.365272485,
+       1603151.1051030138,
+       1925270.5670608287,
+       -4132221.7922098455,
+       3498700.8489951123,
+       -465023.49585907056,
+       -2892419.5958580966,
+       4259361.111240852,
+       -2704326.6927794856,
+       -713966.4255232397
+      ]
+     },
+     {
+      "first": -4895512.77222041,
+      "last": 781844.22740732,
+      "max": 5654541.639048374,
+      "mean": 365863.36960272444,
+      "min": -5652802.889515585,
+      "non_finite": 0,
+      "samples": [
+       -4895512.77222041,
+       5354272.416207328,
+       -2155419.2003507516,
+       -2511161.8354693283,
+       5465554.963142335,
+       -4687856.59952806,
+       715331.7454703747,
+       3750913.3436513315,
+       -5652802.889515585,
+       3702123.393350272,
+       781844.22740732
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m"
+   },
+   "leo-02-03.velocity_N": {
+    "columns": [
+     "x",
+     "y",
+     "z"
+    ],
+    "data": [
+     {
+      "first": -6498.902874328154,
+      "last": 1116.0220063519932,
+      "max": 7499.845938846038,
+      "mean": 483.6948509391066,
+      "min": -7501.911508360227,
+      "non_finite": 0,
+      "samples": [
+       -6498.902874328154,
+       7101.4018694115275,
+       -2848.3113284049527,
+       -3357.0147801567414,
+       7257.0834315585025,
+       -6199.638472869507,
+       901.7865851194008,
+       5017.255856733897,
+       -7500.7707062408235,
+       4858.89377479822,
+       1116.0220063519932
+      ]
+     },
+     {
+      "first": -2258.096221361093,
+      "last": 4449.111162111856,
+      "max": 4512.2310296482265,
+      "mean": -202.0233079240506,
+      "min": -4515.849912564007,
+      "non_finite": 0,
+      "samples": [
+       -2258.096221361093,
+       -1460.1701566972906,
+       4180.401572236061,
+       -4027.6485138097023,
+       1105.3352243069717,
+       2574.6790393806605,
+       -4488.78536290505,
+       3313.434021773293,
+       135.08095971405146,
+       -3489.3653895936754,
+       4449.111162111856
+      ]
+     },
+     {
+      "first": 2996.594897277854,
+      "last": -5936.592514682241,
+      "max": 5998.548457597218,
+      "mean": 260.415071081451,
+      "min": -5994.004300877545,
+      "non_finite": 0,
+      "samples": [
+       2996.594897277854,
+       1925.6634225117482,
+       -5540.644421382628,
+       5372.953976713229,
+       -1535.0395924278919,
+       -3348.2575350687043,
+       5950.253889587389,
+       -4483.995630025708,
+       -38.203279097332654,
+       4532.1066446482055,
+       -5936.592514682241
+      ]
+     }
+    ],
+    "time_s": {
+     "first": 0.0,
+     "last": 21600.0,
+     "max": 21600.0,
+     "mean": 10800.0,
+     "min": 0.0,
+     "non_finite": 0,
+     "samples": [
+      0.0,
+      2160.0,
+      4320.0,
+      6480.0,
+      8640.0,
+      10800.0,
+      12960.0,
+      15120.000000000002,
+      17280.0,
+      19440.0,
+      21600.0
+     ]
+    },
+    "units": "m/s"
+   }
+  },
+  "summary": [
+   {
+    "decimals": 2,
+    "key": "run_length",
+    "label": "Run length",
+    "unit": "h",
+    "value": 6.0
+   },
+   {
+    "decimals": 3,
+    "key": "leo-01-01.mean_sma_change",
+    "label": "leo-01-01: Mean semi-major axis change",
+    "unit": "km",
+    "value": -0.006003873239271343
+   },
+   {
+    "decimals": 0,
+    "key": "leo-01-01.eclipses",
+    "label": "leo-01-01: Eclipses",
+    "unit": "-",
+    "value": 4.0
+   },
+   {
+    "decimals": 1,
+    "key": "leo-01-01.eclipse_time",
+    "label": "leo-01-01: Eclipse time",
+    "unit": "min",
+    "value": 131.5
+   },
+   {
+    "decimals": 3,
+    "key": "leo-01-02.mean_sma_change",
+    "label": "leo-01-02: Mean semi-major axis change",
+    "unit": "km",
+    "value": 0.012389954051934183
+   },
+   {
+    "decimals": 0,
+    "key": "leo-01-02.eclipses",
+    "label": "leo-01-02: Eclipses",
+    "unit": "-",
+    "value": 4.0
+   },
+   {
+    "decimals": 1,
+    "key": "leo-01-02.eclipse_time",
+    "label": "leo-01-02: Eclipse time",
+    "unit": "min",
+    "value": 110.0
+   },
+   {
+    "decimals": 3,
+    "key": "leo-01-03.mean_sma_change",
+    "label": "leo-01-03: Mean semi-major axis change",
+    "unit": "km",
+    "value": -0.005606710307300091
+   },
+   {
+    "decimals": 0,
+    "key": "leo-01-03.eclipses",
+    "label": "leo-01-03: Eclipses",
+    "unit": "-",
+    "value": 4.0
+   },
+   {
+    "decimals": 1,
+    "key": "leo-01-03.eclipse_time",
+    "label": "leo-01-03: Eclipse time",
+    "unit": "min",
+    "value": 116.5
+   },
+   {
+    "decimals": 3,
+    "key": "leo-02-01.mean_sma_change",
+    "label": "leo-02-01: Mean semi-major axis change",
+    "unit": "km",
+    "value": 0.0004934199368581176
+   },
+   {
+    "decimals": 0,
+    "key": "leo-02-01.eclipses",
+    "label": "leo-02-01: Eclipses",
+    "unit": "-",
+    "value": 0.0
+   },
+   {
+    "decimals": 1,
+    "key": "leo-02-01.eclipse_time",
+    "label": "leo-02-01: Eclipse time",
+    "unit": "min",
+    "value": 0.0
+   },
+   {
+    "decimals": 3,
+    "key": "leo-02-02.mean_sma_change",
+    "label": "leo-02-02: Mean semi-major axis change",
+    "unit": "km",
+    "value": -0.004398345088586211
+   },
+   {
+    "decimals": 0,
+    "key": "leo-02-02.eclipses",
+    "label": "leo-02-02: Eclipses",
+    "unit": "-",
+    "value": 0.0
+   },
+   {
+    "decimals": 1,
+    "key": "leo-02-02.eclipse_time",
+    "label": "leo-02-02: Eclipse time",
+    "unit": "min",
+    "value": 0.0
+   },
+   {
+    "decimals": 3,
+    "key": "leo-02-03.mean_sma_change",
+    "label": "leo-02-03: Mean semi-major axis change",
+    "unit": "km",
+    "value": 0.004489275208674371
+   },
+   {
+    "decimals": 0,
+    "key": "leo-02-03.eclipses",
+    "label": "leo-02-03: Eclipses",
+    "unit": "-",
+    "value": 0.0
+   },
+   {
+    "decimals": 1,
+    "key": "leo-02-03.eclipse_time",
+    "label": "leo-02-03: Eclipse time",
+    "unit": "min",
+    "value": 0.0
+   }
+  ],
+  "warnings": [
+   "space weather uses MSFC's prediction (oct2026f10-prd.txt), 50th percentile F10.7 and Ap",
+   "Earth orientation: IAU rotation model, no IERS data installed",
+   "Earth gravity field oriented by the IAU model (no IERS data): ~160 m/day position error at degree 20, 400 km"
+  ]
+ },
+ "span_days": 0.25,
+ "template": "04_walker_constellation.json"
+}
