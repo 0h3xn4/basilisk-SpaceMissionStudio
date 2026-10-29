@@ -39,7 +39,16 @@ def _plan_rows():
 
 
 @pytest.fixture(scope="module")
-def window(qapp):
+def window(qapp, tmp_path_factory):
+    """Template 23 open at 1280 x 720, in a home of its own: made before any
+    test's, the window read and wrote the real ~/.spacemissionstudio/layout.ini."""
+    with pytest.MonkeyPatch.context() as patch:
+        home = tmp_path_factory.mktemp("home")
+        patch.setattr(Path, "home", lambda: home)
+        yield from _made_window(qapp)
+
+
+def _made_window(qapp):
     from PySide6.QtWidgets import QMessageBox
 
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR

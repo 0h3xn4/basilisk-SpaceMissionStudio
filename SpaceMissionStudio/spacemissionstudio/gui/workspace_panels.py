@@ -104,6 +104,22 @@ def field_value(widget: QWidget) -> str:
     return ""
 
 
+_FIELD_TYPES = (QAbstractSpinBox, QLineEdit, QComboBox, QCheckBox, QPlainTextEdit, QTextEdit)
+
+
+def inspected_field(widget: QWidget | None) -> QWidget | None:
+    """The field the Inspector shows for ``widget`` focused: the widget
+    itself when it is a field (a value box, text field, choice or check
+    box), the box holding it when it is a box's own line edit; None for
+    any other control (a button, a tab bar, the rail, a plot)."""
+    if widget is None:
+        return None
+    parent = widget.parentWidget()
+    if isinstance(widget, QLineEdit) and isinstance(parent, (QAbstractSpinBox, QComboBox)):
+        widget = parent
+    return widget if isinstance(widget, _FIELD_TYPES) else None
+
+
 def field_range(widget: QWidget) -> str:
     if isinstance(widget, (QSpinBox, QDoubleSpinBox)):
         suffix = widget.suffix().strip()
@@ -141,8 +157,9 @@ class InspectorWidget(QWidget):
         self._widget: QWidget | None = None
 
     def inspect(self, widget: QWidget | None) -> None:
-        """Show ``widget``'s details, or the empty state for None."""
-        self._widget = widget
+        """Show ``widget``'s details when it is a field, else the empty
+        state (G8: a button or tab bar showed "Value -, Allowed -, Help -")."""
+        self._widget = inspected_field(widget)
         self.refresh()
 
     def refresh(self) -> None:

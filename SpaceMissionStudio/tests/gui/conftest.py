@@ -75,6 +75,16 @@ def _dialog_text(args, kwargs):
     return " / ".join(repr(w[:80]) for w in words[:2]) or "(no title)"
 
 
+@pytest.fixture
+def wide_screen(monkeypatch):
+    """A main window made after this starts with the Inspector shown, as on
+    a screen of 1600 px or more (the offscreen screen is 800 px wide; G8
+    hides the Inspector of a new window on a narrower one)."""
+    from spacemissionstudio.gui import main_window
+
+    monkeypatch.setattr(main_window, "_INSPECTOR_MIN_SCREEN_PX", 0)
+
+
 @pytest.fixture(autouse=True)
 def _closed_widgets_deleted_after_the_test():
     """Deletes the widgets the test registered with ``qtbot.addWidget``

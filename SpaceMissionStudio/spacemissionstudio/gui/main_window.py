@@ -139,6 +139,9 @@ _logger = logging.getLogger(__name__)
 _run_logger = logging.getLogger("spacemissionstudio.run")
 _RUN_END_STEP_MS = 4  # [ms] between the steps that show a run's end (M6b)
 _LAYOUT_VERSION = 4  # [-] saveState() version: bump when the docks change, so an old layout is ignored
+# A screen narrower than this starts with the Inspector hidden (G8): at
+# 1280 x 720 it took 380 px of the plot's width.
+_INSPECTOR_MIN_SCREEN_PX = 1600  # [px]
 
 
 def _duration_text(seconds: float) -> str:
@@ -392,6 +395,7 @@ class MainWindow(QMainWindow):
         self.scenario_explainer_widget.explained.connect(self._on_explained)
         # The Problems panel, at the bottom (M2b): what does not validate or
         # looks implausible, as a table; Enter or a double-click goes to the field.
+        self._error_count: int | None = None  # the errors last counted: None until the first count
         self.problems_widget = ProblemsWidget()
         self.problems_widget.activated.connect(self._on_problem_activated)
         self.problems_widget.counts_changed.connect(self._on_problem_counts)
@@ -436,6 +440,7 @@ class MainWindow(QMainWindow):
         self._build_areas()
         self.resizeDocks([self.side_dock], [380], Qt.Orientation.Horizontal)  # [px]
         self.resizeDocks([self.problems_dock], [140], Qt.Orientation.Vertical)  # [px] about four rows
+        self._hide_default_panels()
         self._default_layout = self.saveState(_LAYOUT_VERSION)
         self._restore_layout()
 
@@ -1016,7 +1021,13 @@ class MainWindow(QMainWindow):
                                           [g.name for g in editor.ground_station_list.to_list()])
 
     def _on_problem_counts(self, errors: int, warnings: int) -> None:
-        """The counts on the panel's title, in the status bar and the top bar."""
+        """The counts on the panel's title, in the status bar and the top
+        bar. An edit that makes a valid scenario invalid opens the Problems
+        panel (G8); warnings, and the problems of a scenario just opened,
+        only count."""
+        if errors and self._error_count == 0 and not self.scenario_editor.opening:
+            self.problems_dock.show()
+        self._error_count = errors
         count = errors + warnings
         self.problems_dock.setWindowTitle(f"Problems ({count})" if count else "Problems")
         if "view.problems" in getattr(self, "commands", ()):
@@ -1165,7 +1176,17 @@ class MainWindow(QMainWindow):
         self.restoreState(self._default_layout, _LAYOUT_VERSION)
         for dock in self._docks():
             dock.show()
+        self._hide_default_panels()
         self.rail_collapse_action.setChecked(False)
+
+    def _hide_default_panels(self) -> None:
+        """The panels a new window starts without (G8): Problems, which a
+        new error opens, and the Inspector on a screen narrower than
+        _INSPECTOR_MIN_SCREEN_PX. Ctrl+J and Ctrl+I show them."""
+        self.problems_dock.hide()
+        screen = self.screen() or QApplication.primaryScreen()
+        if screen is not None and screen.availableGeometry().width() < _INSPECTOR_MIN_SCREEN_PX:
+            self.side_dock.hide()
 
     def on_user_manual(self) -> None:
         from .help_dialog import ManualDialog

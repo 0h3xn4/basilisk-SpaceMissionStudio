@@ -145,6 +145,37 @@ def test_a_refused_run_opens_a_hidden_problems_panel(window):
     assert window._run_worker is None and window.problems_dock.isVisibleTo(window)
 
 
+def test_an_edit_that_makes_the_scenario_invalid_opens_the_problems_panel(window):
+    """G8: a new window starts without the Problems panel. An edit that
+    makes a valid scenario invalid opens it; warnings, an edit while it is
+    invalid and a scenario opened with an error leave it as it is."""
+    from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
+
+    assert not window.problems_dock.isVisibleTo(window)  # the blank scenario's error does not open it
+    _open(window)  # a warning only
+    assert window.status_items.problems_button.text() == "1 warning"
+    assert not window.problems_dock.isVisibleTo(window)
+    editor = window.scenario_editor
+    editor.epoch_edit.setText("2030-13-45T99:00:00")
+    assert window.problems_dock.isVisibleTo(window)
+    window.problems_dock.hide()
+    editor.name_edit.setText("")  # another edit while invalid: the panel stays as the user left it
+    assert window.status_items.problems_button.text().endswith(("error", "errors"))
+    assert not window.problems_dock.isVisibleTo(window)
+    editor.name_edit.setText("named")
+    editor.epoch_edit.setText("2030-01-01T00:00:00")
+    assert not window.status_items.problems_button.text().endswith(("error", "errors"))
+    editor.epoch_edit.setText("2030-13-45T99:00:00")
+    assert window.problems_dock.isVisibleTo(window)
+
+    window.problems_dock.hide()
+    window.on_new()  # a blank scenario: an error, but not an edit's
+    assert window.status_items.problems_button.text() == "1 error"
+    assert not window.problems_dock.isVisibleTo(window)
+    assert window.open_path(TEMPLATES_DIR / _TEMPLATE)
+    assert not window.problems_dock.isVisibleTo(window)
+
+
 def test_enter_in_the_problems_table_goes_to_the_field(shown, qtbot):
     """Keyboard only: Ctrl+J into the panel, the arrow keys to a row, Enter
     to the field it is about."""
@@ -254,7 +285,49 @@ def test_the_inspector_and_explain_are_panels_on_the_right_without_tabs(window):
     assert window.commands["view.inspector"].keys == "Ctrl+I" and window.commands["view.problems"].keys == "Ctrl+J"
 
 
-def test_ctrl_i_shows_and_hides_the_inspector(shown, qtbot):
+def test_a_new_window_on_a_small_screen_starts_without_the_inspector(qtbot, monkeypatch):
+    """G8: on a screen narrower than 1600 px a new window starts without the
+    Inspector, and Reset Layout keeps it so; on a wider one the Inspector
+    is shown. Problems starts hidden on both."""
+    from PySide6.QtWidgets import QApplication
+
+    from spacemissionstudio.gui import main_window
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    screen_width = QApplication.primaryScreen().availableGeometry().width()  # [px]
+    for limit, shown in ((screen_width + 1, False), (screen_width, True)):  # [px]
+        monkeypatch.setattr(main_window, "_INSPECTOR_MIN_SCREEN_PX", limit)
+        window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+        qtbot.addWidget(window)
+        window.show()
+        assert window.side_dock.isVisible() is shown
+        assert not window.problems_dock.isVisible()
+        window.side_dock.setVisible(not shown)
+        window.problems_dock.show()
+        window.reset_layout()
+        assert window.side_dock.isVisible() is shown
+        assert not window.problems_dock.isVisible()
+
+
+def test_the_inspector_shows_fields_only(window):
+    """G8: a focused button, tab bar or rail entry shows the Inspector's
+    empty state, not "Value -, Allowed -, Help -"; the line edit inside a
+    value box shows the box."""
+    from PySide6.QtWidgets import QAbstractSpinBox, QLineEdit
+
+    inspector = window.inspector_widget
+    inspector.inspect(window.shell.rail.buttons["home"])
+    assert inspector.empty_label.isVisibleTo(inspector) and not inspector.form.isVisibleTo(inspector)
+    inspector.inspect(window.results_views.tabBar())
+    assert not inspector.form.isVisibleTo(inspector)
+    inspector.inspect(window.scenario_editor.epoch_edit)
+    assert inspector.form.isVisibleTo(inspector) and inspector.name_label.text() == "Epoch (UTC)"
+    spin = next(child for child in window.scenario_editor.findChildren(QAbstractSpinBox))
+    inspector.inspect(spin.findChild(QLineEdit))
+    assert inspector.form.isVisibleTo(inspector) and inspector.value_label.text() == spin.text()
+
+
+def test_ctrl_i_shows_and_hides_the_inspector(wide_screen, shown, qtbot):
     """Ctrl+I, pressed in the window, hides the Inspector and shows it again."""
     from PySide6.QtCore import Qt
 
@@ -268,7 +341,7 @@ def test_ctrl_i_shows_and_hides_the_inspector(shown, qtbot):
 
 # -- the layout, per project ----------------------------------------------------------
 
-def test_each_project_keeps_its_own_layout(themed, window, tmp_path, qapp):
+def test_each_project_keeps_its_own_layout(themed, wide_screen, window, tmp_path, qapp):
     """The rail, the panels and the splitters come back as they were for
     each scenario file; a scenario without a layout keeps the one shown."""
     from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
@@ -361,6 +434,9 @@ def test_a_keyboard_only_walk_of_the_shell(shown, qtbot, monkeypatch):
     qtbot.keyClick(window, Qt.Key.Key_K, Qt.KeyboardModifier.ControlModifier)
     assert len(opened) == 1
 
+    assert not window.problems_dock.isVisible()  # a new window starts without it (G8)
+    qtbot.keyClick(window, Qt.Key.Key_J, Qt.KeyboardModifier.ControlModifier)
+    assert window.problems_dock.isVisible() and window.problems_dock.isAncestorOf(QApplication.focusWidget())
     qtbot.keyClick(window, Qt.Key.Key_J, Qt.KeyboardModifier.ControlModifier)
     assert not window.problems_dock.isVisible()
     qtbot.keyClick(window, Qt.Key.Key_J, Qt.KeyboardModifier.ControlModifier)

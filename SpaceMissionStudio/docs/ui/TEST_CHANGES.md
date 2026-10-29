@@ -729,3 +729,38 @@ is the only test that an empty `.app` is not refused.
 
 - Added `test_results_widget.py::test_an_export_that_ends_after_its_widget_is_gone_touches_nothing`.
   No existing test changed.
+
+## Room for results at 1280 x 720 (2026-10-28)
+
+A new window starts without the Problems panel and, on a screen narrower
+than 1600 px (the offscreen test screen is 800 px), without the
+Inspector; the Inspector shows fields only (audit G8).
+
+### Changed: a test's precondition, no assertion
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_panels.py::test_ctrl_i_shows_and_hides_the_inspector`, `::test_each_project_keeps_its_own_layout`, `test_workspace.py::test_the_layout_is_kept_and_reset`, `test_load_scenario_widget.py::test_left_pane_content_fits_a_default_window_without_horizontal_scrolling` | A new window had the Inspector shown | The new `wide_screen` fixture (`tests/gui/conftest.py`) sets the 1600 px limit to 0, so the window starts with the Inspector shown, as on a wide screen | Each tests something with the Inspector shown (hiding and showing it, keeping it in a layout, Reset Layout bringing it back, Home fitting beside it); the assertions are unchanged |
+| `test_panels.py::test_a_keyboard_only_walk_of_the_shell` | `Ctrl+J` hid the open Problems panel, then showed it with the focus in it | Asserts it starts hidden, then `Ctrl+J` shows it with the focus in it, hides it, and shows it again with the focus in it | Problems starts hidden; the same three behaviours are checked, in the order the new start allows |
+
+### Changed: test isolation only
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_forms.py` (module fixture `_shared_window`) | Its window was made before any test's home was patched, so it read and wrote the real `~/.spacemissionstudio/layout.ini`; the Inspector was shown when that file said so | The window has a home of its own (a module temporary folder) and shows the Inspector itself | CI (an empty home) failed all 31 `test_every_page_of_the_template` cases on this change, while a machine with a kept layout passed; reproduced with an empty `HOME`. The walk is at 1280 px with the Inspector shown, as its docstring says; no assertion changed |
+| `test_shell_reachability.py` (module fixture `window`) | The same: the real home's layout read and written | A home of its own | The same leak; its tests passed either way; no assertion changed |
+
+### One behaviour changed on purpose
+
+`test_keyboard_walk.py::test_the_inspector_names_a_focused_control_by_what_it_shows`
+asserted that a focused tab bar was named "Plots" (by its current tab,
+never "_TabBar"). The audit asks the Inspector to show fields only, so
+the test now asserts the empty state for a tab bar, and still that it is
+never named "_TabBar".
+
+### Added
+
+- `test_panels.py::test_an_edit_that_makes_the_scenario_invalid_opens_the_problems_panel`,
+  `::test_a_new_window_on_a_small_screen_starts_without_the_inspector` and
+  `::test_the_inspector_shows_fields_only`: each fails on the code before
+  (checked).

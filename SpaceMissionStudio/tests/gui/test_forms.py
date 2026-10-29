@@ -31,11 +31,21 @@ _ALL = sorted(_TEMPLATES.glob("*.json"))
 
 
 @pytest.fixture(scope="module")
-def _shared_window(qapp):
+def _shared_window(qapp, tmp_path_factory):
     """One 1280 x 720 main window with the app's theme (widths are measured
-    with its fonts), for the module. Applying the theme restyles every
-    widget alive, so it is applied once: per test, in a full-suite worker
-    holding the widgets of earlier tests, it took minutes."""
+    with its fonts) and the Inspector shown, for the module. Applying the
+    theme restyles every widget alive, so it is applied once: per test, in
+    a full-suite worker holding the widgets of earlier tests, it took
+    minutes. It has a home of its own: made before any test's, it read and
+    wrote the real ~/.spacemissionstudio/layout.ini (passing or not by the
+    panels a real layout kept)."""
+    with pytest.MonkeyPatch.context() as patch:
+        home = tmp_path_factory.mktemp("home")
+        patch.setattr(Path, "home", lambda: home)
+        yield from _made_shared_window(qapp)
+
+
+def _made_shared_window(qapp):
     from PySide6.QtWidgets import QApplication
 
     from spacemissionstudio.gui.main_window import MainWindow
@@ -55,6 +65,7 @@ def _shared_window(qapp):
     window._confirm_discard_unsaved = lambda: True
     window.resize(1280, 720)  # [px]
     window.show()
+    window.side_dock.show()  # a new window on a narrow screen starts without it (G8)
     QApplication.processEvents()
     yield window
     window._mark_clean()
