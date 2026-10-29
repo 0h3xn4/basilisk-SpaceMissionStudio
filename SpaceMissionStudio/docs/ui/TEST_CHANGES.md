@@ -767,7 +767,8 @@ never named "_TabBar".
 
 ## Parser, look-ahead and exit codes (2026-10-29)
 
-- Added `test_scenario_schema.py::test_json_the_parser_cannot_read_is_a_refusal`
+- Added `test_scenario_schema.py::test_json_nested_too_deeply_for_the_parser_is_a_refusal`,
+  `::test_json_with_a_number_too_long_for_python_is_a_refusal`
   and `::test_no_template_however_mangled_gets_past_the_loader_as_anything_but_a_refusal`,
   `test_autosave.py::test_a_recovery_file_the_loader_would_refuse_is_ignored_not_raised`,
   and `test_cli.py::test_an_internal_error_has_its_own_status_and_names_the_log`

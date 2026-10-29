@@ -14182,12 +14182,15 @@ stopped the command with an exception of its own and expected it to leave
 Full suite on Python 3.14 (a home holding only the reference data cache): 3931 passed.
 
 **CI's Linux runner** failed the deep-nesting case: 1 failed, 3930
-passed. Python 3.14 bounds the JSON parser by the stack, and that runner's
-stack is large enough for 100 000 levels; the file then parsed and was
-refused for its content (`missing required top-level 'schema_version'
-field`), a refusal still, but not the one the test named. Here the limit
-is 40 093 levels with an 8 MiB stack, and none with an unlimited one
-(10 million levels parse). The test now loads on a thread with a 4 MiB
-stack: it passes with an 8 MiB and an unlimited stack, and fails on the
-code before with both (checked).
+passed. There 100 000 levels parse, and the file is refused for its
+content (`missing required top-level 'schema_version' field`): a refusal
+still, but not the one the test named. Here (Python 3.14.6) the limit is
+40 093 levels with an 8 MiB stack and none with an unlimited one (10
+million levels parse); a 4 MiB thread stack, tried next, still parsed on
+the runner (Python 3.14.9). The depth the parser reaches is the build's
+and the machine's, so the test is now two: a real 100 000-level file must
+be refused, for any reason, and a RecursionError from `json.loads` (raised
+by the test) must give "nested more deeply than can be read". The
+big-integer case is a test of its own. Both fail on the code before, with
+an 8 MiB and an unlimited stack (checked).
 Full suite on Python 3.14 after the change: 3931 passed.

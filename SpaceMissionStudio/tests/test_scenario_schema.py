@@ -2,7 +2,6 @@
 
 import copy
 import json
-import threading
 
 import pytest
 
@@ -328,38 +327,35 @@ def test_load_scenario_malformed_json_gives_clear_error(tmp_path):
         load_scenario(path)
 
 
-@pytest.mark.parametrize("text, reason", [
-    ("[" * 100000 + "]" * 100000, "nested more deeply than can be read"),
-    ('{"schema_version": ' + "9" * 5000 + "}", "a number with more digits than can be read"),
-])
-def test_json_the_parser_cannot_read_is_a_refusal(tmp_path, text, reason):
-    """Audit R5: JSON nested deeper than Python's parser goes, or holding an
-    integer of more than 4300 digits, gave a RecursionError or ValueError
-    traceback; each is now a refusal naming the file.
+def test_json_nested_too_deeply_for_the_parser_is_a_refusal(tmp_path, monkeypatch):
+    """Audit R5: JSON nested deeper than Python's parser goes gave a
+    RecursionError traceback; it is now a refusal naming the file.
 
-    How deep the parser goes depends on the stack: with a large one (as on
-    CI's Linux runners) 100 000 levels parse, and the file is refused for
-    its content instead. The load runs on a thread with a 4 MiB stack, so
-    the depth is beyond the parser everywhere."""
+    How deep the parser goes depends on the Python build and the stack:
+    100 000 levels fail here but parse on CI's Linux runner, so the
+    parser's RecursionError is raised for the refusal's wording, and a
+    real 100 000-level file is checked to be refused for one reason or
+    another."""
     path = tmp_path / "odd.json"
-    path.write_text(text, encoding="utf-8")
-    outcome = []
+    path.write_text("[" * 100000 + "]" * 100000, encoding="utf-8")
+    with pytest.raises(ScenarioValidationError):
+        load_scenario(path)
 
-    def load():
-        try:
-            load_scenario(path)
-        except BaseException as exc:  # noqa: BLE001 -- handed to the test thread
-            outcome.append(exc)
+    def too_deep(*args, **kwargs):
+        raise RecursionError("maximum recursion depth exceeded while decoding a JSON array")
 
-    previous = threading.stack_size(4 * 1024 * 1024)  # [byte]
-    try:
-        thread = threading.Thread(target=load)
-        thread.start()
-    finally:
-        threading.stack_size(previous)
-    thread.join()
-    assert len(outcome) == 1 and isinstance(outcome[0], ScenarioValidationError), outcome
-    assert reason in str(outcome[0])
+    monkeypatch.setattr(json, "loads", too_deep)
+    with pytest.raises(ScenarioValidationError, match="nested more deeply than can be read"):
+        load_scenario(path)
+
+
+def test_json_with_a_number_too_long_for_python_is_a_refusal(tmp_path):
+    """Audit R5: an integer of more than 4300 digits gave a ValueError
+    traceback; it is now a refusal naming the file."""
+    path = tmp_path / "odd.json"
+    path.write_text('{"schema_version": ' + "9" * 5000 + "}", encoding="utf-8")
+    with pytest.raises(ScenarioValidationError, match="a number with more digits than can be read"):
+        load_scenario(path)
 
 
 def _mutated(document, rng):
