@@ -209,7 +209,7 @@ class OrbitIcWidget(QWidget):
         self.sma_km.setToolTip(
             "Half the distance across the orbit's long axis, measured from Earth's center -- "
             "sets the orbit's SIZE and, by Kepler's third law, its PERIOD. Bigger = slower, "
-            "longer orbit (e.g. ~6778 km is a ~500 km-altitude LEO with a ~95 min period; "
+            "longer orbit (e.g. ~6778 km is a ~400 km-altitude LEO with a ~92.6 min period; "
             "~42164 km is geostationary, one orbit per sidereal day)."
         )
         self.ecc.setToolTip(

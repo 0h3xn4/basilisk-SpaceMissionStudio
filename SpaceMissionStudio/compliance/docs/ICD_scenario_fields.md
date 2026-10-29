@@ -403,7 +403,7 @@ Inputs for a delta-V and propellant budget in the manner of ESA's AD10 guideline
 
 ## RFLinkConfig
 
-A spacecraft's downlink transmitter, for a reported link-margin ESTIMATE only (``engine.link_budget``) -- a simplified free-space-path -loss Eb/N0 budget (no atmosphere/rain/pointing-loss/coding-gain terms), ported directly from ``../missionAnalysis``'s ``run_constellation_mission.py::_rf_link_margin_db()``. It is evaluated against the real simulated slant range from ``engine.service``'s ground-station access analysis, but it does NOT feed back into the simulated physics anywhere (no data-rate/duty-cycle simulation) -- see :class:`PowerConfig` for what IS actually simulated. ``None`` (the default) means no link margin is computed for that spacecraft.
+A spacecraft's downlink transmitter and antenna, for the link margin (``engine.link_budget``): a free-space-path-loss Eb/N0 budget, first ported from ``../missionAnalysis``'s ``run_constellation_mission.py::_rf_link_margin_db()``, evaluated at the real simulated slant range of ``engine.service``'s ground-station access analysis. No atmospheric, rain or coding-gain term is modelled; ``implementation_loss_db`` is a fixed allowance.
 
 | Field | Type | Default | Unit / note |
 |---|---|---|---|

@@ -98,6 +98,11 @@ _ELEMENT_LABELS = {
 }
 
 
+# Quantities whose dispersion is the value itself (written absolutely, as
+# engine.monte_carlo does), so a new one starts at the spacecraft's own.
+SCALAR_DISPERSION_QUANTITIES = ("dry_mass_kg", "drag_coeff", "srp_coeff")
+
+
 class _DispersionEditorDialog(QDialog):
     def __init__(self, spacecraft_names: list, item: DispersionConfig | None = None, parent: QWidget | None = None):
         super().__init__(parent)
@@ -231,6 +236,17 @@ class _DispersionEditorDialog(QDialog):
         finish_form(self)  # units in the fields, optional groups collapse (M4a)
         self.resize(self.sizeHint())
 
+    def start_at(self, nominal: float) -> None:
+        """A new dispersion starts at ``nominal``, the spacecraft's own value,
+        with no spread: bounds [nominal, nominal], mean nominal, deviation 0.
+        Transparency audit 3.7: it started at bounds [0, 1] and mean 0, which
+        for the dry mass, written absolutely, made every run a 0 to 1 kg
+        spacecraft."""
+        self.bounds_lo_spin.setValue(nominal)
+        self.bounds_hi_spin.setValue(nominal)
+        self.mean_spin.setValue(nominal)
+        self.std_spin.setValue(0.0)
+
     def _refresh_kind_choices(self, quantity: str) -> None:
         current = self.kind_combo.currentText()
         self.kind_combo.clear()
@@ -317,6 +333,7 @@ class DispersionListWidget(QWidget):
         super().__init__(parent)
         self._items: list = []
         self._spacecraft_names: list = []
+        self._nominals: dict = {}  # {spacecraft: {quantity: its own value}}
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -339,7 +356,11 @@ class DispersionListWidget(QWidget):
         self.remove_button.clicked.connect(self._on_remove)
         self.list_widget.itemDoubleClicked.connect(lambda _item: self._focus_form())
 
-    def set_spacecraft_names(self, names: list) -> None:
+    def set_spacecraft_names(self, names: list, nominals: dict | None = None) -> None:
+        """The spacecraft a dispersion can name, and their own values of the
+        scalar quantities (``{name: {quantity: value}}``), where a new
+        dispersion starts."""
+        self._nominals = dict(nominals or {})
         if list(names) == self._spacecraft_names:
             return
         self.inline.flush()
@@ -366,6 +387,9 @@ class DispersionListWidget(QWidget):
         dialog first, M4b): Remove or Undo take back one not wanted."""
         self.inline.flush()
         dialog = _DispersionEditorDialog(self._spacecraft_names, parent=self)
+        nominal = self._nominals.get(dialog.spacecraft_combo.currentData(), {}).get(dialog.quantity_combo.currentText())
+        if nominal is not None:
+            dialog.start_at(nominal)
         try:
             item = dialog.to_dataclass()
         except ValueError as exc:  # no spacecraft yet
@@ -376,7 +400,8 @@ class DispersionListWidget(QWidget):
         self._items.append(item)
         self._refresh_list()
         self.list_widget.setCurrentRow(len(self._items) - 1)
-        show_toast(self.window(), f"Added dispersion: {item.spacecraft}: {item.quantity}")
+        show_toast(self.window(), f"Added dispersion: {item.spacecraft}: {item.quantity}"
+                   + (f", at its own {nominal:g} with no spread yet: widen its bounds" if nominal is not None else ""))
         self.changed.emit()
         self._focus_form()
 
@@ -499,8 +524,8 @@ class MonteCarloGroupWidget(QGroupBox):
     def problem_text(self, message: str) -> str:
         """``message`` with its field codes as this form's titles."""
         return labelled(message, self.field_title)
-    def set_spacecraft_names(self, names: list) -> None:
-        self.dispersion_list.set_spacecraft_names(names)
+    def set_spacecraft_names(self, names: list, nominals: dict | None = None) -> None:
+        self.dispersion_list.set_spacecraft_names(names, nominals)
 
     def to_dataclass(self) -> MonteCarloConfig:
         config = MonteCarloConfig(

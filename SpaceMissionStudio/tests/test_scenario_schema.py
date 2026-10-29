@@ -2725,3 +2725,15 @@ def test_forecast_percentile_as_text_is_a_validation_error():
 
     with pytest.raises(ScenarioValidationError, match="forecast_percentile"):
         SpaceWeatherConfig(forecast_percentile="high").validate()
+
+
+def test_the_rf_link_docstring_describes_the_model_that_is_run():
+    """Transparency audit 3.10: the docstring said the link budget had no
+    pointing loss and did not feed back into the simulation. The generated
+    API documentation comes from it, so it must name both."""
+    from spacemissionstudio.schema.scenario import RFLinkConfig
+
+    text = RFLinkConfig.__doc__
+    assert "does NOT feed back" not in text and "no atmosphere/rain/pointing-loss" not in text
+    for named in ("antenna_beamwidth_deg", "antenna_pattern", "DataHandlingConfig", "data_rate_bps"):
+        assert named in text, named

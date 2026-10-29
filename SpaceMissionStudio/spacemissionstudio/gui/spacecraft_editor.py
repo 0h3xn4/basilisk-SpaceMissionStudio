@@ -74,6 +74,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..engine import control_gains
 from ..schema.scenario import (
     ActuatorConfig,
     CommsPointingConfig,
@@ -186,13 +187,16 @@ _FSW_MODE_SUMMARIES: dict = {
 
 _TARGET_BODY_CHOICES = ["moon", "sun", "earth", "mars barycenter", "venus", "jupiter barycenter"]
 
-# Mirrors engine.fsw.DEFAULT_MRP_GAINS -- not imported directly since
-# engine.fsw pulls in Basilisk, which this GUI module must not require
-# just to be opened (see e.g. tests/gui/'s requires_gui-only, no
-# requires_basilisk, marker on every test that imports this module).
+# K and P show the reference gains here; the editor replaces an unticked
+# one with the gain the engine applies, scaled to the spacecraft's inertia
+# (engine.control_gains, which needs no Basilisk; _show_default_gains).
 _CONTROL_PARAM_SPECS: list[_FswParamSpec] = [
-    _FswParamSpec("K", False, 3.5, "MRP feedback proportional (attitude) gain", label="Attitude gain K"),
-    _FswParamSpec("P", False, 30.0, "MRP feedback derivative (rate) gain", label="Rate gain P"),
+    _FswParamSpec("K", False, control_gains.DEFAULT_MRP_GAINS["K"],
+                  "MRP feedback proportional (attitude) gain; unticked, the reference 3.5 scaled to the "
+                  "spacecraft's inertia", label="Attitude gain K"),
+    _FswParamSpec("P", False, control_gains.DEFAULT_MRP_GAINS["P"],
+                  "MRP feedback derivative (rate) gain; unticked, the reference 30 scaled to the "
+                  "spacecraft's inertia", label="Rate gain P"),
     _FswParamSpec("Ki", False, -1.0, "integral gain (negative disables integral feedback)",
                   label="Integral gain Ki"),
     _FswParamSpec("integral_limit", False, 0.0, "integral windup limit", label="Integral limit"),
@@ -683,12 +687,16 @@ class SpacecraftEditorDialog(QDialog):
 
         self.control_group = QGroupBox("Control gains (MRP feedback)")
         control_layout = QVBoxLayout(self.control_group)
-        control_legend = QLabel("Unticked gains use the defaults (K 3.5, P 30, integral off).")
-        set_role(control_legend, tone="secondary")
-        control_layout.addWidget(control_legend)
+        self.control_legend = QLabel("")
+        self.control_legend.setWordWrap(True)
+        set_role(self.control_legend, tone="secondary")
+        control_layout.addWidget(self.control_legend)
         self.control_param_form = ParamForm()
         self.control_param_form.set_specs(_CONTROL_PARAM_SPECS, dict(config.control_params) if config else {})
         control_layout.addWidget(self.control_param_form)
+        for box in (self.ixx, self.iyy, self.izz):
+            box.valueChanged.connect(self._show_default_gains)
+        self._show_default_gains()
         fsw_layout.addWidget(self.control_group)
         self._build_navigation_error_group(config.navigation_error if config else None)
         fsw_layout.addWidget(self.navigation_error_group)
@@ -2113,6 +2121,18 @@ class SpacecraftEditorDialog(QDialog):
         return config
 
     # -- inertia and the 3D model -----------------------------------------------------------------------------
+
+    def _show_default_gains(self) -> None:
+        """The gains the engine applies when K or P is unticked: the
+        reference gains scaled by this spacecraft's inertia
+        (engine.control_gains), in the legend and in the unticked fields.
+        Transparency audit 3.4: the form showed the unscaled 3.5 and 30."""
+        inertia = self._inertia_from_form()
+        self.control_legend.setText(control_gains.describe_default_gains(inertia))
+        for key, value in control_gains.default_mrp_gains_for_inertia(inertia).items():
+            box = self.control_param_form.include_box(key)
+            if box is not None and not box.isChecked():
+                self.control_param_form.set_value(key, value, include=False)
 
     def _inertia_from_form(self) -> list:
         """The moments from the form; the products of inertia as loaded or

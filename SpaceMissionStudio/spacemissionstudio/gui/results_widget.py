@@ -332,6 +332,18 @@ _DRIFT_WARNING_TOOLTIP = (
     "constant. A drift this large usually means a numerical-integration problem, not real physics: try a "
     "smaller dynamics step (Propagation Setup) or a higher-order integrator."
 )
+# The words engine.results.conservation_drift_warnings puts in a drift warning.
+_DRIFT_WARNING_MARKERS = ("orbital energy drifted", "angular momentum drifted")
+
+
+def warnings_tooltip(warnings: list[str]) -> str:
+    """The run warnings' tooltip: the drift explanation when one of them is
+    a conservation drift warning, otherwise none, since the others say
+    themselves what happened. Transparency audit 3.12: the drift explanation
+    was shown for every warning, a space-weather or re-entry one too."""
+    if any(marker in warning for warning in warnings for marker in _DRIFT_WARNING_MARKERS):
+        return "About the drift warnings: " + _DRIFT_WARNING_TOOLTIP
+    return ""
 
 
 def _short_utc(timestamp: str) -> str:
@@ -1011,7 +1023,7 @@ class ResultsWidget(QWidget):
             self.warnings_label.setText("")
             return
         self.warnings_label.setText("\n".join(f"⚠ {w}" for w in warnings))
-        self.warnings_label.setToolTip(_DRIFT_WARNING_TOOLTIP)
+        self.warnings_label.setToolTip(warnings_tooltip(warnings))
         self.warnings_label.setVisible(True)
 
     def _update_provenance_label(self) -> None:

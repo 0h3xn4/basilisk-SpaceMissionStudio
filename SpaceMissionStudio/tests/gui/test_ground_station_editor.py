@@ -6,17 +6,20 @@ pytestmark = pytest.mark.requires_gui
 
 
 def test_dialog_default(qtbot):
-    """A new ground station is gs-1 with a 10 deg mask, a 45 dBi antenna and
-    290 K noise."""
+    """A new ground station is gs-1 with the schema's defaults: a 10 deg
+    mask, a 0 dBi antenna and 290 K noise, the same station a file without
+    these fields gives (transparency audit 3.9: the GUI gave 45 dBi)."""
     from spacemissionstudio.gui.ground_station_editor import GroundStationEditorDialog
+    from spacemissionstudio.schema.scenario import GroundStationConfig
 
     dialog = GroundStationEditorDialog()
     qtbot.addWidget(dialog)
     gs = dialog.to_dataclass()
     assert gs.name == "gs-1"
     assert gs.min_elevation_deg == 10.0
-    assert gs.rx_antenna_gain_dbi == 45.0
+    assert gs.rx_antenna_gain_dbi == 0.0
     assert gs.system_noise_temp_k == 290.0
+    assert gs == GroundStationConfig(name="gs-1", latitude_deg=0.0, longitude_deg=0.0)
 
 
 def test_dialog_round_trips_rf_link_fields(qtbot):

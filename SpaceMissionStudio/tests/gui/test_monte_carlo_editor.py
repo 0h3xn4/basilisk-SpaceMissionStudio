@@ -270,3 +270,42 @@ def test_dispersion_editor_dialog_resizes_to_its_own_sizehint_on_construction(qt
     qtbot.addWidget(dialog)
 
     assert dialog.size() == dialog.sizeHint()
+
+
+def test_a_new_dispersion_starts_at_the_spacecrafts_own_value_with_no_spread(qtbot):
+    """Transparency audit 3.7: an untouched Add gave dry mass uniform in
+    [0, 1] kg, written absolutely, so every run flew a 0 to 1 kg spacecraft.
+    It now starts at the spacecraft's own dry mass with no spread; the toast
+    says to widen it. The scenario editor hands the spacecraft's values over."""
+    from spacemissionstudio.gui.monte_carlo_editor import DispersionListWidget
+
+    widget = DispersionListWidget()
+    qtbot.addWidget(widget)
+    widget.set_spacecraft_names(["sat-1"], {"sat-1": {"dry_mass_kg": 150.0, "drag_coeff": 2.2, "srp_coeff": 1.3}})
+    widget._on_add()
+    item = widget.to_list()[0]
+    assert item.quantity == "dry_mass_kg"
+    if item.kind == "uniform":
+        assert item.bounds == [150.0, 150.0]
+    else:
+        assert (item.mean, item.std_deviation) == (150.0, 0.0)
+    toasts = getattr(widget.window(), "_spacemissionstudio_active_toasts", [])
+    assert any("own 150 with no spread" in t.text() for t in toasts)
+
+
+def test_the_scenario_editor_gives_the_dispersions_each_spacecrafts_own_values(qtbot):
+    """The values a new dispersion starts at come from the scenario's spacecraft."""
+    from pathlib import Path
+
+    from spacemissionstudio.gui.scenario_editor import ScenarioEditorWidget
+    from spacemissionstudio.schema import load_scenario
+
+    template = (Path(__file__).resolve().parents[2] / "spacemissionstudio" / "scenarios" / "templates"
+                / "25_monte_carlo_orbit_and_drag_dispersions.json")
+    scenario = load_scenario(template)
+    editor = ScenarioEditorWidget()
+    qtbot.addWidget(editor)
+    editor.from_scenario(scenario)
+    nominals = editor.monte_carlo_group.dispersion_list._nominals
+    sc = scenario.spacecraft[0]
+    assert nominals[sc.name] == {"dry_mass_kg": sc.dry_mass_kg, "drag_coeff": sc.drag_coeff, "srp_coeff": sc.srp_coeff}

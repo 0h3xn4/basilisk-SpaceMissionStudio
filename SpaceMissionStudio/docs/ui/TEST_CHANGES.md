@@ -837,3 +837,17 @@ never named "_TabBar".
 | `test_offline.py::test_validate_and_export_a_template_offline` | `kernels-status` accepted 0 or 1 | Accepts 0 or 2 | A missing kernel is a missing component, 2 in ICD-02, not an input error (audit 3.2) |
 | `test_results.py::test_result_set_export_csv_with_provenance_writes_sidecar_json` | Expected the provenance record's fields up to `series_frames` | Also expects `central_body` ("") and `central_body_mu_m3_s2` (0.0) | The record now keeps the run's central body and GM (audit 3.1); the test still checks every field the file holds |
 | `tests/gui/test_export_files.py::test_every_export_is_byte_identical_to_1_1_0` | Removed the four provenance keys added since 1.1.0 before comparing | Also removes `central_body` and `central_body_mu_m3_s2`, which must be there | As above; every other byte is still compared with 1.1.0's, as for the earlier keys |
+
+## GUI defects of the transparency audit (2026-10-29)
+
+- Added `tests/gui/test_spacecraft_editor.py::test_unticked_control_gains_show_the_gains_the_engine_applies`
+  (3.4), `tests/gui/test_monte_carlo_editor.py::test_a_new_dispersion_starts_at_the_spacecrafts_own_value_with_no_spread`
+  and `::test_the_scenario_editor_gives_the_dispersions_each_spacecrafts_own_values`
+  (3.7), `tests/gui/test_orbit_ic_widget.py::test_the_semi_major_axis_help_gives_the_right_altitude_and_period`
+  (3.8), `test_scenario_schema.py::test_the_rf_link_docstring_describes_the_model_that_is_run`
+  (3.10) and `tests/gui/test_results_widget.py::test_a_run_warning_gets_the_drift_explanation_only_when_it_is_a_drift_warning`
+  (3.12). Each fails on the code before (checked).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_ground_station_editor.py::test_dialog_default` | A new station had a 45 dBi receive gain | 0 dBi, and the whole station equals `GroundStationConfig`'s defaults | A new station now takes the schema's defaults (audit 3.9); the other defaults (gs-1, 10 deg, 290 K) are still asserted |

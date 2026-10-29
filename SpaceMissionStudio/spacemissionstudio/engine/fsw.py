@@ -187,43 +187,14 @@ from Basilisk.simulation import (
 from Basilisk.utilities import macros, simIncludeRW, simIncludeThruster
 
 from ..schema.scenario import SUPPORTED_FSW_MODES, GroundStationConfig, RFLinkConfig
-from . import environment_models, geodesy, link_budget
+from . import control_gains, environment_models, geodesy, link_budget
 from .orbit_maintenance import LogThinner
 
-DEFAULT_MRP_GAINS: dict[str, float] = {"K": 3.5, "P": 30.0}
-
-# DEFAULT_MRP_GAINS is lifted directly from Basilisk's own examples/BskSim
-# reference (BSK_Fsw.py's mrpFeedbackRWs), tuned for THAT example's
-# 900 kg*m^2 spacecraft (BSK_Dynamics.py's I_sc) at its fswRate=0.1.
-# Applied unscaled to a much smaller spacecraft (this app's own schema
-# default inertia is 10 kg*m^2 -- 90x smaller), the resulting discrete-time
-# control update is wildly over-aggressive for the body's actual rotational
-# inertia and reliably reaches NaN within seconds (root-caused and fixed,
-# by hand, per-template, in HISTORY.md's "attitude determination pipeline"
-# entry -- this constant generalizes that same fix to every spacecraft by
-# default, not just the templates it was manually applied to).
-_MRP_GAIN_REFERENCE_INERTIA_KG_M2 = 900.0
-
-
-def _default_mrp_gains_for_inertia(inertia_kg_m2: list[float] | None) -> dict[str, float]:
-    """``DEFAULT_MRP_GAINS`` scaled by a spacecraft's own (isotropic-
-    equivalent) inertia relative to the 900 kg*m^2 reference it was tuned
-    for -- confirmed in HISTORY.md to converge cleanly where the unscaled
-    gains diverge to NaN, for both RW- and thruster-actuated spacecraft.
-    ``inertia_kg_m2`` is the row-major 3x3 hub inertia
-    (``SpacecraftConfig.inertia_kg_m2``); its trace/3 is used as the
-    scaling quantity so an anisotropic inertia still gets a sensible
-    scalar gain pair (``mrpFeedback``'s K/P are themselves scalars, not
-    per-axis). Falls back to the unscaled reference gains if no inertia is
-    given (callers that have no spacecraft inertia in scope).
-    """
-    if not inertia_kg_m2:
-        return dict(DEFAULT_MRP_GAINS)
-    mean_inertia = (inertia_kg_m2[0] + inertia_kg_m2[4] + inertia_kg_m2[8]) / 3.0
-    if mean_inertia <= 0.0:  # unreachable if Scenario.validate() passed
-        return dict(DEFAULT_MRP_GAINS)
-    scale = mean_inertia / _MRP_GAIN_REFERENCE_INERTIA_KG_M2
-    return {"K": DEFAULT_MRP_GAINS["K"] * scale, "P": DEFAULT_MRP_GAINS["P"] * scale}
+# The default gains and their inertia scaling live in engine.control_gains,
+# which the GUI imports without Basilisk to show the gains applied.
+DEFAULT_MRP_GAINS = control_gains.DEFAULT_MRP_GAINS
+_MRP_GAIN_REFERENCE_INERTIA_KG_M2 = control_gains.MRP_GAIN_REFERENCE_INERTIA_KG_M2
+_default_mrp_gains_for_inertia = control_gains.default_mrp_gains_for_inertia
 
 # RW factory create() kwargs that must be Python float (rwFactory.create()
 # calls exit(1) directly -- not a raised exception -- on a type mismatch;

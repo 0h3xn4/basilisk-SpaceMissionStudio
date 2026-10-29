@@ -135,3 +135,21 @@ def test_tle_page_shows_the_tle_epoch_age_or_the_format_problem(widget):
     assert widget.tle_status.text() == "2019-12-09 16:38:29 UTC (10.3 d before the scenario epoch)"
     widget.tle_line1.setText(line1[:-1] + "2")
     assert "checksum" in widget.tle_status.text()
+
+
+def test_the_semi_major_axis_help_gives_the_right_altitude_and_period(widget):
+    """Transparency audit 3.8: the help said ~6778 km was a ~500 km orbit of
+    ~95 min. Its numbers must be the ones Kepler's third law gives (400 km,
+    92.6 min), within the rounding the text shows."""
+    import math
+    import re
+
+    from spacemissionstudio.engine.propellant_budget import MU_EARTH_M3_S2
+
+    text = widget.sma_km.toolTip()
+    match = re.search(r"~(\d+) km is a ~(\d+) km-altitude LEO with a ~([\d.]+) min period", text)
+    assert match, text
+    sma_km, altitude_km, period_min = (float(g) for g in match.groups())  # [km], [km], [min]
+    assert abs(sma_km - 6378.137 - altitude_km) < 1.0  # [km] Earth's equatorial radius
+    period = 2.0 * math.pi * math.sqrt((sma_km * 1e3) ** 3 / MU_EARTH_M3_S2) / 60.0  # [min]
+    assert abs(period - period_min) < 0.05  # [min]

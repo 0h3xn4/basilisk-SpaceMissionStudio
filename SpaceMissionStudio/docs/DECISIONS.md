@@ -5,6 +5,27 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## GUI defects of the transparency audit (2026-10-29)
+
+The transparency plan's Phase 1b for the GUI (`docs/transparency_audit.md`
+3.4, 3.7, 3.8, 3.9, 3.10, 3.12).
+
+- **3.4, shown not changed:** the inertia scaling of the default gains is
+  kept (the unscaled gains diverge for small spacecraft, HISTORY.md); the
+  form shows the scaled values and the line above it the derivation. The
+  defaults and their scaling moved to `engine.control_gains`, which needs no
+  Basilisk, so the GUI computes them as the engine does instead of keeping
+  a copy.
+- **3.7, no spread rather than a guessed one:** a new dispersion starts
+  at the spacecraft's own value with zero width. A percentage would be an
+  assumption nobody made; zero width disperses nothing until the user sets
+  a spread, and the note says so.
+- **3.9, the schema's default wins:** the GUI now takes a new station's
+  defaults from `GroundStationConfig`, so the receive gain is 0 dBi in
+  both. Changing the schema to 45 dBi instead would change every scenario
+  file written without the field; the templates that use a link set their
+  own gain (35 dBi or 0 dBi).
+
 ## Engine and command-line defects (2026-10-29)
 
 The transparency plan's Phase 1b (`docs/transparency_audit.md` 3.1-3.3,
