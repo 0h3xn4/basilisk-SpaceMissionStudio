@@ -486,8 +486,38 @@ def test_load_scenario_rejects_an_unknown_field_naming_it(tmp_path, where):
     (data if where == "top" else data["spacecraft"][0])["bogus_field"] = 1
     path = tmp_path / "unknown.json"
     path.write_text(json.dumps(data))
-    with pytest.raises(ScenarioValidationError, match="unexpected keyword argument 'bogus_field'"):
+    with pytest.raises(ScenarioValidationError, match="unexpected field 'bogus_field'"):
         load_scenario(path)
+
+
+@pytest.mark.parametrize("change, where", [
+    (lambda d: d.update(spacecraft={"a": 1}), "spacecraft must be a list ([...]), not an object"),
+    (lambda d: d["spacecraft"][0].update(sensors="star tracker"),
+     "spacecraft[0].sensors must be a list ([...]), not text"),
+    (lambda d: d["spacecraft"][0].update(sensors=[7]), "spacecraft[0].sensors[0] must be an object ({...}), not a number"),
+    (lambda d: d["spacecraft"][0].pop("orbit"), "spacecraft[0]: missing field 'orbit'"),
+    (lambda d: d["spacecraft"][0]["orbit"].update(warp=9), "spacecraft[0].orbit: unexpected field 'warp'"),
+    (lambda d: d.update(gravity=[]), "gravity must be an object ({...}), not a list"),
+    (lambda d: d.update(mission_sequence=["propagate"]), "mission_sequence[0] must be an object ({...}), not text"),
+    (lambda d: d.update(monte_carlo={"dispersions": {}}), "monte_carlo.dispersions must be a list ([...]), not an object"),
+])
+def test_a_file_of_the_wrong_shape_is_refused_naming_where(tmp_path, change, where):
+    """The audit's notes (R5): ``spacecraft: {"a": 1}`` was refused as
+    "dictionary update sequence element #0 has length 1; 2 is required",
+    which says neither where nor what. A record or a list in the wrong
+    shape, a missing or an unknown field, is now refused naming where it
+    is and what was expected."""
+    data = json.loads(json.dumps(_minimal_scenario().to_dict()))
+    change(data)
+    path = tmp_path / "shape.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    with pytest.raises(ScenarioValidationError) as refusal:
+        load_scenario(path)
+    message = str(refusal.value)
+    assert where in message
+    assert "malformed scenario structure" in message
+    for internal in ("__init__", "keyword argument", "dictionary update sequence", "object is not"):
+        assert internal not in message
 
 
 def test_load_scenario_future_schema_version_gives_clear_error(tmp_path):

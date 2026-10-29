@@ -145,7 +145,6 @@ from . import export_log
 from . import webengine_setup  # noqa: F401 -- importing it sets the flags
 
 import json
-import tempfile
 import time
 import weakref
 from datetime import datetime, UTC
@@ -173,7 +172,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import output_provenance
+from .. import output_provenance, temp_folders
 from ..engine import events as event_model
 from ..engine import orbit_number, time_system
 from ..engine.results import ResultSet, TimeSeries, output_path
@@ -722,7 +721,7 @@ class ResultsWidget(QWidget):
         on_change(self._on_theme_changed)
         # The page is written here and loaded from file: setHtml() cannot
         # reach the bundled plotly.js (a file:// URL) from a data URL.
-        self._page_dir = tempfile.TemporaryDirectory(prefix="spacemissionstudio-plot-")
+        self._page_dir = temp_folders.temporary_directory(temp_folders.PLOT_PAGE)
         self._load_shell()
         self.readout = ReadoutPanel()
         # The catalog over the readout, beside the grid: the plots keep the

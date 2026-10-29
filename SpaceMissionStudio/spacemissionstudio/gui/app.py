@@ -23,12 +23,15 @@ via ``spacemissionstudio gui`` (see ``../cli.py``).
 from __future__ import annotations
 
 import gc
+import logging
 import os
 import sys
+import threading
 
 from PySide6.QtCore import QTimer
 from PySide6.QtWidgets import QApplication
 
+from .. import temp_folders
 from ..logging_setup import configure_logging
 from .icons import app_icon
 from .main_window import MainWindow
@@ -42,6 +45,14 @@ def apply_ui_scale(environ=os.environ) -> None:
     percent = ui_scale_setting()  # [%]
     if percent != 100 and "QT_SCALE_FACTOR" not in environ:
         environ["QT_SCALE_FACTOR"] = f"{percent / 100:g}"
+
+
+def remove_left_behind_folders() -> None:
+    """Remove the temporary folders of earlier sessions that were killed
+    or crashed (audit R14), and log how many there were."""
+    removed = temp_folders.remove_left_behind()
+    if removed:
+        logging.getLogger(__name__).info("Removed %d temporary folder(s) left behind by earlier sessions", removed)
 
 
 def freeze_start_up_objects() -> None:
@@ -59,6 +70,8 @@ def main(argv: list | None = None) -> int:
     # own module docstring for why (direct user feedback: a crash whose
     # only information anywhere was one bare line in a GUI error dialog).
     configure_logging()
+    # In the background: after a crash there can be hundreds of folders.
+    threading.Thread(target=remove_left_behind_folders, name="left-behind-folders", daemon=True).start()
     apply_ui_scale()
     app = QApplication(argv if argv is not None else sys.argv)
     app.setApplicationName("SpaceMissionStudio")

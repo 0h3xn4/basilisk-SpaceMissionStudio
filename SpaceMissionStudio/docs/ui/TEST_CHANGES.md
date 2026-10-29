@@ -790,3 +790,14 @@ never named "_TabBar".
   `::test_a_run_into_a_used_folder_names_the_files_it_did_not_write` and
   `::test_ccsds_messages_larger_than_the_limit_are_refused_unread` (audit
   R7, R8, R9). No existing test changed.
+
+## Temporary folders and refusals of the wrong shape (2026-10-29)
+
+- Added `test_temp_folders.py` (5 tests) and
+  `test_scenario_schema.py::test_a_file_of_the_wrong_shape_is_refused_naming_where`
+  (8 cases) (audit R14 and R5's notes). Each fails on the code before
+  (checked).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_scenario_schema.py::test_load_scenario_rejects_an_unknown_field_naming_it` | Matched Python's `unexpected keyword argument 'bogus_field'` | Matches `unexpected field 'bogus_field'` | The refusal now names the field in its own words and says where (`spacecraft[0]: unexpected field 'bogus_field', not one this version knows`); the test still checks that the field is named |

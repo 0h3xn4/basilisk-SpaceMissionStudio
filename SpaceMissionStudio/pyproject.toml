@@ -98,6 +98,17 @@ qt_api = "pyside6"
 # reads the captured messages (no qtlog, qt_log_level_fail stays NO).
 addopts = "--no-qt-log"
 
+# Coverage also measures Monte Carlo's worker processes (multiprocessing,
+# audit R11). Branch coverage and the source are set here, not only on
+# pytest's command line, so that every process records the same kind of
+# data and it can be combined. Not patch = ["subprocess"]: it also starts
+# coverage in pytest-xdist's workers, whose second data files are written
+# after the combine and stay behind, for 3 more lines.
+[tool.coverage.run]
+branch = true
+source = ["spacemissionstudio"]
+concurrency = ["thread", "multiprocessing"]
+
 # Coding standard (compliance/docs/coding_standard.md; ECSS-Q-ST-80C 6.3.4,
 # remediation R10). pyflakes, pycodestyle errors/warnings and bugbear; the
 # 120-character limit applies to new code (E501 is not enforced on the

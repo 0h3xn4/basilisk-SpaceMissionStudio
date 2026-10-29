@@ -37,7 +37,6 @@ Delete removes a saved run from disk (not the run shown).
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -47,6 +46,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (QHBoxLayout, QLabel, QListWidget, QListWidgetItem, QMessageBox, QPushButton,
                                QSplitter, QTabWidget, QVBoxLayout, QWidget)
 
+from .. import temp_folders
 from ..engine import events as event_model
 from ..engine import run_summary, scenario_diff
 from ..plot_categories import categorize as _categorize
@@ -170,7 +170,7 @@ class CompareWidget(QWidget):
         self.content.setStretchFactor(1, 1)
         self.content.setSizes([300, 900])  # [px]
 
-        self._page_dir = tempfile.TemporaryDirectory(prefix="sms-compare-")
+        self._page_dir = temp_folders.temporary_directory(temp_folders.COMPARE_PAGE)
         self._runs: list = []
         self._current = None
         self._checked: set = set()

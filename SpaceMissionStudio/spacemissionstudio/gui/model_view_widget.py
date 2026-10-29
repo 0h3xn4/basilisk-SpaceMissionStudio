@@ -28,13 +28,13 @@ a part does not reset the camera.
 
 from __future__ import annotations
 
-import tempfile
 from pathlib import Path
 
 import numpy as np
 import plotly.graph_objects as go
 from PySide6.QtCore import QUrl
 
+from .. import temp_folders
 from . import webengine_setup  # noqa: F401 -- sets the Chromium flags, before QtWebEngine is imported
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import QVBoxLayout, QWidget
@@ -105,7 +105,7 @@ class ModelViewWidget(QWidget):
         self._ready = False
         self._pending: str | None = None
         self.figure: go.Figure | None = None
-        self._page_dir = tempfile.TemporaryDirectory(prefix="spacemissionstudio_model_view_")
+        self._page_dir = temp_folders.temporary_directory(temp_folders.MODEL_VIEW_PAGE)
         page = Path(self._page_dir.name) / "model.html"
         page.write_text(self._page_html(), encoding="utf-8")
         self.web_view.loadFinished.connect(self._on_loaded)

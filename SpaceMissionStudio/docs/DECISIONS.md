@@ -5,6 +5,39 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Temporary folders and refusals of the wrong shape (2026-10-29)
+
+The audit's R14 and a note under R5.
+
+- **Removed when their process has ended, not only at exit:** the audit
+  proposed `atexit`, but the page folders already went at a normal exit
+  (`TemporaryDirectory`) and the icons' folder, which used `atexit`,
+  leaked with them: what leaks is a killed or crashed process, which runs
+  no exit code. So each name carries the process id, and the next start
+  removes the folders of processes that have ended. A process that cannot
+  be checked counts as running: a folder in use is never removed.
+- **The old names, after a day:** a folder named before this change
+  cannot be traced to its process; it is removed once it has not changed
+  for a day, as only a session of the old version still running could
+  use it.
+- **At GUI start, in the background:** the GUI makes all the page folders;
+  1014 folders took 10.4 s to remove here, so a thread does it. The CLI
+  makes only Vizard's folder, removed at exit; a crashed CLI run's is
+  removed at the next GUI start.
+- **Coverage of Monte Carlo's workers, set in `pyproject.toml`:** the
+  audit read `cli.py`'s 74 % as CLI tests in unmeasured subprocesses.
+  They call `cli.main` in the test process; what went unmeasured is Monte
+  Carlo's `multiprocessing` workers. Measuring them costs no time (9 min
+  41 s against 10 min 18 s) and needs `branch` and `source` in the
+  configuration, or the processes' data cannot be combined (the first try
+  failed so). Coverage's `patch = ["subprocess"]` adds 3 lines more but
+  also starts coverage in pytest-xdist's workers: 6 data files were left
+  after the run, one half-written, which a later local run would try to
+  combine. The missing CLI tests are a separate change.
+- **Refusals keep "malformed scenario structure":** the SUM's message
+  table, the JSON view and scripts read it; the part in brackets now says
+  where and what instead of Python's own message.
+
 ## Output folder and input limits (2026-10-29)
 
 The audit's R7, R8 and R9.
