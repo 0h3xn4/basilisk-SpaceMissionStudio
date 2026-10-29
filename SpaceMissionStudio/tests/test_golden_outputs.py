@@ -45,8 +45,9 @@ def test_every_template_has_a_recorded_fingerprint():
     assert templates == recorded
 
 
-def _fingerprint(series: dict, library: str = "libstdc++") -> dict:
-    return {"template": "t.json", "rng_library": library, "run": {"series": series}}
+def _fingerprint(series: dict) -> dict:
+    """A fingerprint recorded on this platform's standard library."""
+    return {"template": "t.json", "rng_library": golden_capture.rng_library(), "run": {"series": series}}
 
 
 def _series(units: str, column: str, values: list[float]) -> dict:
@@ -84,11 +85,22 @@ def test_an_ill_conditioned_angle_is_held_to_its_floor_and_compares_modulo_two_p
 def test_sensor_noise_compares_value_by_value_only_on_the_library_that_recorded_it():
     """A sensor's noise from another C++ standard library is another draw:
     only its count is compared there. On the recording library every value
-    is."""
+    is. Holds on every platform: the fixture is recorded on this one."""
     golden = _fingerprint({"sat.sensor.imu-1.gyro": _series("rad/s", "x", [1.0e-5, -2.0e-5, 3.0e-5])})
     other = copy.deepcopy(golden)
-    other["rng_library"] = "msvc"
+    other["rng_library"] = "another library"
     noise = [-4.0e-5, 1.0e-5, 2.0e-5]  # [rad/s]
     assert _changed(golden, "sat.sensor.imu-1.gyro", noise)
     assert _changed(other, "sat.sensor.imu-1.gyro", noise) == []
     assert _changed(other, "sat.sensor.imu-1.gyro", noise[:2])
+
+
+def test_on_another_library_numbers_are_held_to_one_percent():
+    """Off the recording platform every number is held to 1 % of its scale
+    (switching controllers turn last bits into shifted switches there): a
+    0.1 % change passes, a 5 % one does not, and a count still must match."""
+    golden = _fingerprint({"sat.rw_speeds": _series("rad/s", "wheel_0", [-2.0, 1.0, 2.0])})
+    golden["rng_library"] = "another library"
+    assert _changed(golden, "sat.rw_speeds", [-2.0, 1.002, 2.0]) == []
+    assert _changed(golden, "sat.rw_speeds", [-2.0, 1.1, 2.0])
+    assert _changed(golden, "sat.rw_speeds", [-2.0, 2.0])

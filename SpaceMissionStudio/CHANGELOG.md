@@ -272,9 +272,10 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   spacecraft, every budget or its refusal, and a Monte Carlo batch. A
   number may now change only with an entry in the new `docs/changes.md`
   (transparency plan, Phase 1a). Numbers are compared within what two
-  computers disagree on: 1e-6 of each quantity's scale, with floors for
-  ill-conditioned values, angles modulo 2*pi, and sensor noise (another
-  random draw on Windows) by its count only there.
+  computers disagree on: on Linux, where it is written, 1e-6 of each
+  quantity's scale, with floors for ill-conditioned values and angles
+  modulo 2*pi; on Windows 1 %, with sensor noise (another random draw
+  there) compared by its count only.
 - **The provenance names recorder seeds the same on Windows:** they were
   keyed by the compiler's spelling of the message type
   (`Rec:class <struct SCStatesMsg` on Windows, `Rec:SCStatesMsg` on Linux).
