@@ -13818,6 +13818,265 @@ on the code before (checked), the fourth passes on both.
 
 Full suite on Python 3.14: 3895 passed.
 
+## The run's length with a Mission Sequence (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G4. Branch
+`sequence-duration`.
+
+**Found, reproduced:** Overview's Duration tile showed
+`sim_settings.duration_days` and the pass lines counted passes over it,
+though a Mission Sequence decides the run's length. Template 23 (Duration
+0.1 day): "2.4 h", "berlin-gs: 2 passes"; its run lasts 1.26 h (the last
+sample of `berlin-gs.access_to_smallsat-1.azimuth.csv`) with one pass.
+Templates 08 and 16 (Duration 1 day and 0.2 day) run 14.4 h and 83 min.
+
+**Change:** `scenario_checks.sequence_span` reads the length from the
+steps (durations add, an epoch stop ends at its epoch, unticked steps do
+not run, an event stop or an if/while with a propagate is counted as
+open) and `sequence_length_text` says it. Overview's Duration tile shows
+it ("58 min + 2 event or condition stops (sequence)"; "14.4 h
+(sequence)"; "83 min (sequence)"); the pass lines count over the
+sequence when it is all fixed, else over the Duration and say "in the
+Duration". Under the Duration field a note (only with a sequence) says
+how long the sequence runs and that the Duration must still cover it.
+
+**Tests:** `test_a_mission_sequence_sets_the_run_length_overview_reports`,
+`test_an_epoch_stop_and_disabled_or_nested_steps_count_as_they_run`,
+`test_the_duration_says_when_the_mission_sequence_decides` (GUI): fail
+on the code before (checked), pass after.
+
+Full suite on Python 3.14: 3897 passed.
+
+## Toasts fade out every time (2026-10-28)
+
+Found while driving PR #136 (the audit's G4) to green: one of its two
+`test` runs failed in `test_reports_and_settings.py::test_toasts_fade_unless_motion_is_reduced`
+(waited 10 s for the fade-out), the other passed on the same commit.
+Branch `toast-fade-order`.
+
+**Cause:** `show_toast` set two `QTimer.singleShot` timers, the fade-out
+at the duration less 150 ms and the dismissal at the duration. Qt makes a
+single-shot of 2 s or more a coarse timer, accurate to 5 %: for a 3 s
+toast, 2707 to 2992 ms and 2850 to 3150 ms overlap. When the dismissal
+came first the toast was hidden, and the fade-out, which only fades a
+visible toast, was skipped.
+
+**Change:** the fade-out starts the dismissal 150 ms later; a toast that
+does not fade keeps its one timer.
+
+**Tests:** `test_feedback.py::test_a_toast_fades_out_before_it_is_dismissed_whatever_order_its_timers_fire`
+fires the toast's timers latest deadline first, as a coarse timer may:
+it fails on the code before (checked; the toast hid with the fade-in's
+effect) and passes now, with `test_toasts_fade_unless_motion_is_reduced`.
+
+## Monte Carlo off, said before Run (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G5. Branch
+`monte-carlo-switch`.
+
+**Found:** the run mode (Single, Monte Carlo, SIL) and Scenario > Monte
+Carlo > Enabled are two switches; with the mode on Monte Carlo and
+Enabled off, `on_run_monte_carlo` said "Monte Carlo is off for this
+scenario ..." only once Run was pressed.
+
+**Change:** the Run page's Monte Carlo options show "Monte Carlo is off
+for this scenario, so Run has no batch to run." with **Enable Monte
+Carlo** while Enabled is off; it follows the checkbox. Enable ticks it
+and opens Scenario > Monte Carlo. Run still says why when pressed anyway.
+
+**Tests:** `test_the_run_page_says_monte_carlo_is_off_before_run`: fails
+on the code before (no such note), passes after.
+
+Full suite on Python 3.14: 3895 passed.
+
+## Exports off the GUI thread (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G2. Branch
+`export-worker`.
+
+**Found:** `ResultsWidget._on_export` called `ResultSet.export_csv` in the
+click handler, and `_on_all_rendered` decoded every plot's image and wrote
+the images, the CSVs and `provenance.json` there too: the window held
+for the whole export, with no progress and no cancel.
+
+**Change:** `_ExportWorker` (a QThread) runs the writing; `export_csv`
+takes an optional `progress(written, total)`, called before each file and
+at the end, which may raise to stop (Cancel). The Results page shows
+"Exporting N of M files..." and **Cancel** beside the buttons; Export
+CSV and Export all are off while it runs and the PNG re-enable paths
+leave them so. Export all takes the plots' file names, the series and the
+provenance when it starts; the images are decoded in the worker with
+that provenance. The main window waits for an export when it closes.
+Cancel reports "Export cancelled: N file(s) were written to ...".
+
+**Tests:** the new GUI test holds the first file's write on a gate:
+the write happens off the main thread, the row reads "Exporting 1 of 2
+files...", Export is off, Cancel leaves exactly one CSV and says so. The
+engine test checks the calls `(0, 3) (1, 3) (2, 3) (3, 3)`, that the
+files equal those written without progress byte for byte, and that
+raising stops after the first file. Both fail on the code before
+(checked). `test_export_files.py` (1.1.0's exports byte for byte) passes
+unchanged.
+
+**First full suite:** 3898 passed, 1 failed:
+`test_timeline_scale.py::test_an_export_keeps_every_sample_the_plot_thins`
+read the CSV right after `_on_export()`, before the worker had written it.
+It now waits for the export (`docs/ui/TEST_CHANGES.md`).
+
+Full suite on Python 3.14 after that: 3899 passed.
+
+## A Monte Carlo batch can be cancelled (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G3. Branch
+`monte-carlo-cancel`.
+
+**Found:** the batch ran with `cancellable=False` ("Basilisk's Controller
+has no way to stop it part way") and `closeEvent` refused to close while
+it ran. The batch already runs in its own spawned child
+(`gui/monte_carlo_process.py`), from which the Controller starts its
+Manager, its DataWriter and (with more than one thread) its Pool
+(`Basilisk/utilities/MonteCarlo/Controller.py`, read, not changed).
+
+**Change:** `run_batch(..., should_cancel)` sets a cancel event; a thread
+in the child (`_stop_on`) then terminates every
+`multiprocessing.active_children()` and exits (code 3); the GUI terminates
+the child itself only if that takes over 15 s. A second spawned child
+(`_summary_child`) summarizes the cases finished (`collect_batch`, which
+now skips a run file cut short) with no run listed as failed, and
+`BatchCancelled(finished)` carries how many. `MonteCarloWorker` has
+`request_cancel()` and `cancelled`; the progress strip's Cancel and Esc
+cancel a batch; the Monte Carlo view opens on the runs finished; History
+lists it as cancelled. Closing during a batch asks "Cancel and close" or
+"Keep running" (the default); Cancel and close cancels the batch and
+waits for it, once the unsaved-changes question (if any) is answered.
+
+**Tests:** a real batch (template 09, 12 runs, 0.01 day) cancelled once
+its first case has finished, with 1 and 2 threads: `BatchCancelled` with
+1 to 11 finished, the summary holding exactly those runs, none failed;
+a child that started a grandchild, cancelled: the child exits with code 3
+and the grandchild is gone (`os.kill(pid, 0)`; on Windows
+`GetExitCodeProcess`, since `os.kill` would end it there); the window:
+Esc cancels, Keep running keeps the window, Cancel and close cancels and
+waits. All four fail on the code before (checked).
+
+Full suite on Python 3.14: 3905 passed.
+
+## Control borders at 3:1 (2026-10-28)
+
+The user: "Continue as per your recommendations". The audit's G7. Branch
+`control-borders`.
+
+**Found, measured:** fields (QLineEdit, spin boxes, combo boxes, text
+edits) and check box and radio indicators had `border.strong`: light
+1.50:1 on bg.field, bg.surface and bg.raised, 1.40 on bg.canvas; dark
+1.49 on bg.field and bg.surface, 1.40 on bg.raised, 1.57 on bg.canvas.
+WCAG 1.4.11 asks 3:1; `CONTRAST_PAIRS` had no border.
+
+**Change:** `border.control` = text.primary over bg.surface at 51 % (light,
+#88898C) and 42 % (dark, #6B6D71), the least shares giving 3:1 against
+bg.canvas, bg.surface, bg.raised, bg.field and bg.hover: light 3.27, 3.50,
+3.50, 3.50, 3.09; dark 3.75, 3.56, 3.33, 3.56, 3.08. In `CONTRAST_PAIRS`
+for those five; `qss.py` draws fields and indicators with it. Hover,
+focus, error and disabled borders are unchanged. `docs/DESIGN.md` lists
+the token.
+
+**Seen:** the Environment page in both themes, before and after
+(screenshots in the session, not committed): the fields and check boxes
+are outlined where they were barely visible; lists and disabled fields as
+before.
+
+**Tests:** `test_fields_and_check_boxes_have_a_border_of_three_to_one`
+(both themes: the style sheet's field and indicator rules use the token,
+and it is 3:1 against the five backgrounds): fails on the code before
+(checked).
+
+## The export test's race (2026-10-28)
+
+Found by the full suite of `control-borders` after develop (with #138)
+was merged in: `test_an_export_runs_off_the_gui_thread_with_progress_and_cancel`
+read "Exporting..." where it expected "Exporting 1 of 2", and
+`test_run_record.py::test_a_run_is_saved_in_a_worker_and_listed_at_once`
+then failed with that export's `_end_export` on a deleted widget.
+
+**Cause:** the worker emits its progress, a queued signal, before it
+writes the file; the test checked the label as soon as the write began.
+Its gate (10 s) opened only after the asserts, so a failed assert left
+the export running into the next test. Reproduced: the test run 64 times
+on 8 workers, 6 failed.
+
+**Change (the test only):** it waits for the label, and opens the gate
+in a `finally`. 0 of 128 failed (two runs of 64). Ported into this PR
+because it would fail its CI the same way.
+
+## A Monte Carlo batch and pandas (2026-10-28)
+
+Found by CI on PR #140 (`platforms (windows-latest)`):
+`test_run_worker.py::test_monte_carlo_worker_runs_a_single_thread_batch`
+failed with "partially initialized module 'pandas' has no attribute
+'Series'", raised in the window's event loop by plotly's `fig.to_json()`
+(`ResultsWidget._push_figure_to_webview`). Branch `mc-pandas-import`.
+
+**Cause:** `MonteCarloWorker.run` imports `engine.monte_carlo` on its
+thread, and with it Basilisk's Monte Carlo `Controller`, which imports
+pandas. Plotly checks for pandas with `sys.modules.get` and does not wait
+for an import in progress. Reproduced outside the tests: one thread
+importing pandas while the main thread asks plotly's `get_module` for it;
+plotly returned a module without `Series` on every check of the import
+(three runs). A single run does not load pandas (template 22, checked),
+so only a batch started while a plot is drawn is exposed.
+
+**Change:** `MonteCarloWorker.__init__`, on the GUI thread, imports
+pandas (once, about 0.25 s measured with `-X importtime`); without
+pandas (no Basilisk) the worker reports Basilisk missing, as before.
+
+**Tests:** `test_a_monte_carlo_worker_imports_pandas_on_the_thread_that_makes_it`
+(in a fresh interpreter): fails on the code before (checked), passes now.
+
+## An export that outlives its view (2026-10-28)
+
+Found by CI on PR #143: `test` raised, at the teardown of
+`test_plot_workspace.py::test_export_all_writes_every_plot_its_data_and_the_provenance`,
+"Internal C++ object (PySide6.QtWidgets.QLabel) already deleted" from
+`ResultsWidget._end_export`. Branch `export-worker-receiver`.
+
+**Cause:** `_start_export` (G2, #138) connected the worker's
+`finished_ok`, `failed` and `cancelled` to lambdas calling the widget.
+Qt drops a connection when its receiver is destroyed only for the
+receiver's own slots; a lambda has none, so the end of an export that
+outlived its widget ran on a deleted one. The test ends when
+`provenance.json` exists, before the worker's `finished_ok`. In the app
+the window waits for an export when it closes, so only a view deleted
+while exporting is exposed.
+
+**Change:** the three signals go to `_on_export_done`,
+`_on_export_failed` and `_on_export_cancelled`, methods of the widget;
+the callers' handlers are kept in `_export_ends`.
+
+**Tests:** `test_results_widget.py::test_an_export_that_ends_after_its_widget_is_gone_touches_nothing`
+(an export gated until its widget is deleted): fails on the code before
+with the CI's error (checked), passes now.
+
+Full suite on Python 3.14: 3915 passed.
+
+## tornado 6.6 (2026-10-28)
+
+Found by CI on PR #144: its tests passed (3915), then the pip-audit step
+failed: "Found 3 known vulnerabilities", tornado 6.5.10,
+CVE-2026-116577, CVE-2026-115927 and CVE-2026-116578, each fixed in 6.6.
+The same step passed on #143 earlier in the day: the advisories were new.
+Every branch fails it until the pin moves. Branch `tornado-6-6`.
+
+**Checked:** the audit as CI runs it fails on the old pins (the three
+advisories) and passes with tornado 6.6 ("No known vulnerabilities found,
+64 ignored"). Only bokeh requires tornado (`>=6.2`). `pip install
+--dry-run` of Basilisk 2.12.0 with every extra, PySide6, bokeh and tornado
+under both pin files resolves for Python 3.14 on Linux (manylinux 2_17 to
+2_39) and Windows, with tornado 6.6 (wheel cp311-abi3).
+
+**Change:** `packaging/constraints.txt`: tornado 6.6.
+
+Full suite on Python 3.14 with tornado 6.6: 3915 passed.
+
 ## Room for results at 1280 x 720 (2026-10-28)
 
 The user: "Continue as per your recommendations". The audit's G8. Branch

@@ -159,5 +159,6 @@ def test_an_export_keeps_every_sample_the_plot_thins(qtbot, tmp_path, monkeypatc
     monkeypatch.setattr(QFileDialog, "getExistingDirectory", staticmethod(lambda *a, **k: str(tmp_path)))
     monkeypatch.setattr(results_widget, "report", lambda *a, **k: None)
     widget._on_export()
+    widget.wait_for_export()  # written by a worker (audit G2)
     rows = (tmp_path / "sat-1.battery_charge.csv").read_text(encoding="utf-8").splitlines()
     assert len(rows) == samples + 1  # the header and every sample

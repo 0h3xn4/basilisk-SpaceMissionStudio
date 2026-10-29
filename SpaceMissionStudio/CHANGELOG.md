@@ -149,6 +149,62 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   it goes there, with a message to set the Duration to cover the
   sequence. Runs inside the loaded days, and every template, are
   unchanged.
+- **The run's length with a Mission Sequence:** a sequence's steps, not
+  the Duration, decide how long a run is, but Overview showed the
+  Duration: template 23 said 2.4 h and 2 passes, and its run lasts 1.26
+  h with one. Overview's Duration now shows the sequence's own length
+  ("58 min + 2 event or condition stops (sequence)"; 14.4 h for template
+  08, 83 min for 16, as their runs last), passes are counted over it, or
+  said to be counted "in the Duration" when event stops leave it open,
+  and a note under the Duration field says the same. Found by the audit
+  of 2026-10-27 (G4).
+- **Toasts fade out every time:** a toast shown for 2 s or more could
+  vanish without its fade-out. Its two timers (the fade-out, then the
+  dismissal 150 ms later) are coarse at that length, accurate to 5 %, and
+  could fire the wrong way round. The fade-out now starts the dismissal.
+  Found when a GUI test failed on CI.
+- **Monte Carlo off, said before Run:** with Monte Carlo as the run mode
+  but the scenario's Monte Carlo off, Run said so only after the click.
+  The Run page's Monte Carlo options now say it is off, with **Enable
+  Monte Carlo**, which turns it on and opens Scenario > Monte Carlo for
+  its runs and dispersions. Found by the audit of 2026-10-27 (G5).
+- **Exports no longer hold the window:** Results' **Export CSV** and
+  **Export all** wrote their files in the click handler, about a second
+  per long series, with no progress and no way to stop. They are written
+  in the background now; beside the buttons the export says how far it is
+  ("Exporting 3 of 40 files...") with **Cancel**, which stops before the
+  next file and keeps the ones written. The files are the same, byte for
+  byte. Found by the audit of 2026-10-27 (G2).
+- **A Monte Carlo batch can be cancelled:** a batch ran to the end, and
+  the window would not close while it ran. **Cancel** (or Esc) now stops
+  it: the processes running it end, the runs finished stay in the archive
+  folder, and the Monte Carlo view opens on them. Closing the window
+  during a batch asks **Cancel and close** or **Keep running**. Found by
+  the audit of 2026-10-27 (G3).
+- **Field and check box borders meet WCAG 1.4.11:** the borders of
+  input fields, check boxes and radio buttons were 1.4 to 1.6:1 against
+  their backgrounds, under the 3:1 WCAG asks for the boundary that
+  identifies a control. A new token, `border.control` (#88898C light,
+  #6B6D71 dark), gives at least 3.08:1 against every background a control
+  sits on, and the contrast test now covers it. Found by the audit of
+  2026-10-27 (G7).
+- **No plot error when a Monte Carlo batch starts:** the batch's thread
+  imports pandas (through Basilisk's Monte Carlo controller), and a plot
+  drawn on the window's thread at that moment could fail with "partially
+  initialized module 'pandas'": plotly takes the module without waiting
+  for the import. The window now imports pandas itself when it makes the
+  batch's worker, once, about 0.25 s. Found when CI failed on it
+  (Windows).
+- **tornado 6.6:** three advisories published against tornado 6.5.10
+  (CVE-2026-116577, CVE-2026-115927, CVE-2026-116578; fixed in 6.6) made
+  CI's dependency audit fail. tornado comes with bokeh, which needs 6.2 or
+  later; the pin is now 6.6.
+- **An export that ends after its view is gone does nothing:** the end
+  of an export (written off the window's thread since G2) called the
+  results view through lambdas, which Qt does not disconnect when the view
+  is deleted: the end of an export that outlived its view raised
+  "Internal C++ object already deleted". It now reaches the view's own
+  methods, which Qt disconnects with it. Found when CI failed on it.
 - **More room for results on a small screen:** at 1280 x 720 the
   Inspector (380 px wide) and the Problems panel (140 px tall) left the
   plot 545 x 339 px. A new window now starts without the Problems panel,

@@ -155,7 +155,7 @@ import numpy as np
 
 import plotly.graph_objects as go
 import shiboken6
-from PySide6.QtCore import QElapsedTimer, QSettings, Qt, QTimer, QUrl, Signal
+from PySide6.QtCore import QElapsedTimer, QSettings, Qt, QThread, QTimer, QUrl, Signal
 from PySide6.QtGui import QAction, QKeySequence
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
@@ -453,6 +453,50 @@ def _utc_text(epoch_utc: str) -> str:
     return parsed.strftime("%Y-%m-%d %H:%M:%S UTC")
 
 
+class _ExportCancelled(Exception):
+    """Cancel pressed: the export stops before its next file."""
+
+
+_exports: set = set()  # the export threads running, kept until each ends (not a widget's child)
+
+
+class _ExportWorker(QThread):
+    """Writes an export's files off the GUI thread (audit G2: about 1 s per
+    long series, with no progress or cancel). ``job(step)`` writes them,
+    calling ``step(written, total)`` before each file; Cancel stops it
+    before the next one."""
+
+    progress = Signal(int, int)  # files written, files in all
+    finished_ok = Signal(object)  # what ``job`` returned
+    failed = Signal(str)
+    cancelled = Signal(int)  # files written before it stopped
+
+    def __init__(self, job) -> None:
+        super().__init__()
+        self._job = job
+        self._cancel = False
+        self._written = 0
+
+    def request_cancel(self) -> None:
+        self._cancel = True
+
+    def _step(self, written: int, total: int) -> None:
+        self._written = written
+        if self._cancel and written < total:
+            raise _ExportCancelled
+        self.progress.emit(written, total)
+
+    def run(self) -> None:
+        try:
+            outcome = self._job(self._step)
+        except _ExportCancelled:
+            self.cancelled.emit(self._written)
+        except (OSError, ValueError) as exc:
+            self.failed.emit(str(exc))
+        else:
+            self.finished_ok.emit(outcome)
+
+
 class ResultsWidget(QWidget):
     open_in_vizard = Signal(str)  # the last run's playback file
     plot_drawn = Signal(bool)  # the page drew the latest figures (M6a); False: Plotly reported an error
@@ -585,6 +629,17 @@ class ResultsWidget(QWidget):
         self.export_all_button.setMenu(export_menu)
         self.export_all_button.setEnabled(False)
         button_row.addWidget(self.export_all_button)
+        # An export in progress: how far, and Cancel (audit G2).
+        self.export_progress_label = set_role(QLabel(""), tone="secondary")
+        self.export_progress_label.hide()
+        button_row.addWidget(self.export_progress_label)
+        self.export_cancel_button = QPushButton("Cancel")
+        self.export_cancel_button.setToolTip("Stops the export before its next file; the files written stay.")
+        self.export_cancel_button.clicked.connect(self._cancel_export)
+        self.export_cancel_button.hide()
+        button_row.addWidget(self.export_cancel_button)
+        self._export_worker: _ExportWorker | None = None
+        self._export_ends: tuple = ()  # (on_done, on_failed, folder) of the export running
         # The last run's Vizard playback file (UX/UI guidelines, decision 3:
         # open only -- Vizard has no interface to follow the time cursor).
         self.vizard_button = QPushButton("Open in Vizard")
@@ -719,7 +774,7 @@ class ResultsWidget(QWidget):
         self._result = result
         self._epoch_utc = epoch_utc
         self._fill_catalog(result)
-        self.export_button.setEnabled(result is not None and bool(result.series))
+        self.export_button.setEnabled(result is not None and bool(result.series) and self._export_worker is None)
         self._update_provenance_label()
         self._update_warnings_label()
         self._update_event_buttons()
@@ -1001,7 +1056,7 @@ class ResultsWidget(QWidget):
         self._update_warnings_label()
         if is_first_update:
             self._fill_catalog(result)
-            self.export_button.setEnabled(bool(result.series))
+            self.export_button.setEnabled(bool(result.series) and self._export_worker is None)
             self._update_provenance_label()
             self._update_event_buttons()
             self._redraw()
@@ -1422,6 +1477,7 @@ class ResultsWidget(QWidget):
         if self._png_poll_state is None:
             for button in (self.save_png_button, self.save_svg_button, self.export_all_button):
                 button.setEnabled(bool(self.figures))
+            self.export_all_button.setEnabled(bool(self.figures) and self._export_worker is None)
 
     def _on_page_loaded(self) -> None:
         self.apply_cursor_line()
@@ -1751,16 +1807,76 @@ class ResultsWidget(QWidget):
         if self._result is None:
             return
         out_dir = QFileDialog.getExistingDirectory(self, "Export results to CSV")
-        if not out_dir:
+        if not out_dir or self._export_worker is not None:
             return
-        try:
-            paths = self._result.export_csv(Path(out_dir))
-        except OSError as exc:
-            report(self, f"Could not export the results to {out_dir}: {exc}")
-            return
-        csv_count = sum(1 for key in paths if key != "provenance")
-        export_log.record("plot_csv", out_dir)
-        report(self, f"Exported {csv_count} CSV file(s) to {out_dir}", kind="success")
+        result = self._result
+
+        def done(paths) -> None:
+            csv_count = sum(1 for key in paths if key != "provenance")
+            export_log.record("plot_csv", out_dir)
+            report(self, f"Exported {csv_count} CSV file(s) to {out_dir}", kind="success")
+
+        self._start_export(lambda step: result.export_csv(Path(out_dir), progress=step), done,
+                           lambda message: report(self, f"Could not export the results to {out_dir}: {message}"),
+                           out_dir)
+
+    # -- an export's files, written off the GUI thread (audit G2) ----------------------
+
+    def _start_export(self, job, on_done, on_failed, folder: str) -> None:
+        worker = _ExportWorker(job)
+        # The widget's own methods, not lambdas: Qt disconnects them when the
+        # widget is deleted, so an export that ends after it calls nothing.
+        self._export_ends = (on_done, on_failed, folder)
+        worker.progress.connect(self._on_export_progress)
+        worker.finished_ok.connect(self._on_export_done)
+        worker.failed.connect(self._on_export_failed)
+        worker.cancelled.connect(self._on_export_cancelled)
+        self._export_worker = worker
+        self.export_button.setEnabled(False)
+        self.export_all_button.setEnabled(False)
+        self.export_progress_label.setText("Exporting...")
+        self.export_progress_label.show()
+        self.export_cancel_button.setEnabled(True)
+        self.export_cancel_button.show()
+        _exports.add(worker)
+        worker.finished.connect(lambda: _exports.discard(worker))
+        worker.start()
+
+    def _on_export_done(self, outcome) -> None:
+        on_done = self._export_ends[0]
+        self._end_export()
+        on_done(outcome)
+
+    def _on_export_failed(self, message: str) -> None:
+        on_failed = self._export_ends[1]
+        self._end_export()
+        on_failed(message)
+
+    def _on_export_cancelled(self, written: int) -> None:
+        folder = self._export_ends[2]
+        self._end_export()
+        report(self, f"Export cancelled: {written} file(s) were written to {folder}", kind="warning")
+
+    def _on_export_progress(self, written: int, total: int) -> None:
+        self.export_progress_label.setText(f"Exporting {min(written + 1, total)} of {total} files...")
+
+    def _cancel_export(self) -> None:
+        if self._export_worker is not None:
+            self._export_worker.request_cancel()
+            self.export_cancel_button.setEnabled(False)
+            self.export_progress_label.setText("Cancelling...")
+
+    def _end_export(self) -> None:
+        self._export_worker = None
+        self.export_progress_label.hide()
+        self.export_cancel_button.hide()
+        self.export_button.setEnabled(self._result is not None and bool(self._result.series))
+        self.export_all_button.setEnabled(bool(self.figures) and self._png_poll_state is None)
+
+    def wait_for_export(self) -> None:
+        """Let an export finish (the window is closing; tests)."""
+        if self._export_worker is not None:
+            self._export_worker.wait()
 
     def _on_export_all(self, fmt: str) -> None:
         folder = QFileDialog.getExistingDirectory(self, f"Export the shown plots ({fmt.upper()}) and their data")
@@ -1789,39 +1905,58 @@ class ResultsWidget(QWidget):
         if isinstance(data, str) and data.startswith(_SAVE_PNG_ERROR_PREFIX):
             show_toast(self.window(), f"Export failed: {data[len(_SAVE_PNG_ERROR_PREFIX):]}", kind="error")
             return
-        try:
-            urls = json.loads(data) if isinstance(data, str) else None
-            if not isinstance(urls, list) or len(urls) != len(self.figures):
-                raise ValueError("the plots could not be rendered")
+        urls = json.loads(data) if isinstance(data, str) else None
+        if not isinstance(urls, list) or len(urls) != len(self.figures):
+            show_toast(self.window(), "Export failed: the plots could not be rendered", kind="error")
+            return
+        if self._export_worker is not None:
+            return
+        # What the files hold, taken now: the worker writes them while the
+        # page may change (the decoding and writing are what took the time).
+        stems = [self._plot_file_stem(index) for index in range(len(urls))]
+        result = self._result
+        series = [(name, result.series[name]) for name in self._shown
+                  if result is not None and name in result.series]
+        provenance = result.provenance if result is not None else None
+        decode = self._decode_image
+
+        def job(step) -> tuple[int, int]:
             out_dir = Path(folder)
             out_dir.mkdir(parents=True, exist_ok=True)
+            total = len(urls) + len(series) + (provenance is not None)
             for index, url in enumerate(urls):
-                content = self._decode_image(url, fmt)
-                path = output_path(out_dir, f"{self._plot_file_stem(index)}.{fmt}")
+                step(index, total)
+                content = decode(url, fmt, provenance)
+                path = output_path(out_dir, f"{stems[index]}.{fmt}")
                 if isinstance(content, str):
                     path.write_text(content, encoding="utf-8")
                 else:
                     path.write_bytes(content)
-            written = 0
-            for name in self._shown:
-                series = self._result.series.get(name) if self._result is not None else None
-                if series is not None:
-                    series.to_csv(output_path(out_dir, f"{name}.csv"))
-                    written += 1
-            provenance = self._result.provenance if self._result is not None else None
-            if provenance is not None:
+            for index, (name, one) in enumerate(series):
+                step(len(urls) + index, total)
+                one.to_csv(output_path(out_dir, f"{name}.csv"))
+            if provenance is not None:  # last: a test waits for it
+                step(total - 1, total)
                 (out_dir / "provenance.json").write_text(json.dumps(provenance.to_dict(), indent=2))
-        except (OSError, ValueError) as exc:
-            show_toast(self.window(), f"Export failed: {exc}", kind="error")
-            return
-        export_log.record("plots_all", folder)
-        show_toast(self.window(), f"Exported {len(urls)} plot(s) as {fmt.upper()} and {written} CSV file(s) "
-                                  f"to {folder}")
+            step(total, total)
+            return len(urls), len(series)
 
-    def _decode_image(self, data_url: object, fmt: str):
+        def done(counts) -> None:
+            export_log.record("plots_all", folder)
+            show_toast(self.window(), f"Exported {counts[0]} plot(s) as {fmt.upper()} and {counts[1]} CSV file(s) "
+                                      f"to {folder}")
+
+        self._start_export(job, done, lambda message: show_toast(self.window(), f"Export failed: {message}",
+                                                                 kind="error"), folder)
+
+    _CURRENT = object()  # _decode_image: the shown result's provenance
+
+    def _decode_image(self, data_url: object, fmt: str, provenance=_CURRENT):
         """A rendered plot's file content: PNG bytes or SVG text, with the
-        run's provenance embedded. Raises ValueError when it is not one."""
-        provenance = self._result.provenance if self._result is not None else None
+        run's provenance embedded (``provenance``: the shown result's, or one
+        taken when an export started). Raises ValueError when it is not one."""
+        if provenance is self._CURRENT:
+            provenance = self._result.provenance if self._result is not None else None
         if fmt == "svg":
             prefix = "data:image/svg+xml,"
             if not isinstance(data_url, str) or not data_url.startswith(prefix):
@@ -1939,6 +2074,7 @@ class ResultsWidget(QWidget):
         self._png_poll_state = None  # see _on_save_plot_png's own re-entrancy-guard comment
         for button in (self.save_png_button, self.save_svg_button, self.export_all_button):
             button.setEnabled(bool(self.figures))
+        self.export_all_button.setEnabled(bool(self.figures) and self._export_worker is None)
 
     def _poll_plot_png(self) -> None:
         # runJavaScript() answers asynchronously, while the timer keeps

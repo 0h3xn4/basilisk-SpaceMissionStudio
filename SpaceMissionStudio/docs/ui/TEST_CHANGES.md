@@ -674,6 +674,62 @@ is the only test that an empty `.app` is not refused.
   `test_a_failed_read_in_the_child_comes_back_as_its_message` and
   `test_a_failed_read_is_shown_with_retry_and_retry_reads_again` (G10).
 
+## The run's length with a Mission Sequence (2026-10-28)
+
+- Added `test_scenario_editor.py::test_the_duration_says_when_the_mission_sequence_decides`
+  (audit G4). No existing test changed.
+
+## Toasts fade out every time (2026-10-28)
+
+- Added `test_feedback.py::test_a_toast_fades_out_before_it_is_dismissed_whatever_order_its_timers_fire`.
+  No existing test changed.
+
+## Monte Carlo off, said before Run (2026-10-28)
+
+- Added `test_main_window.py::test_the_run_page_says_monte_carlo_is_off_before_run`
+  (audit G5). No existing test changed.
+
+## Exports off the GUI thread (2026-10-28)
+
+- `test_results_widget.py::test_export_writes_csv_files`: the export is
+  written by a worker now (audit G2), so the test waits for its report
+  (`qtbot.waitUntil`) before it reads the folder; what it checks is
+  unchanged.
+- `test_timeline_scale.py::test_an_export_keeps_every_sample_the_plot_thins`:
+  the same; it waits for the export (`wait_for_export()`) before it reads
+  the CSV.
+- Added `test_results_widget.py::test_an_export_runs_off_the_gui_thread_with_progress_and_cancel`
+  and `test_results.py::test_result_set_export_csv_reports_progress_and_can_be_stopped`.
+
+## A Monte Carlo batch can be cancelled (2026-10-28)
+
+- Added `test_main_window.py::test_a_running_monte_carlo_batch_can_be_cancelled_and_the_window_closed`
+  and, in `test_run_worker.py`,
+  `test_a_monte_carlo_batch_can_be_cancelled_keeping_the_runs_finished` (1
+  and 2 threads) and `test_cancel_ends_the_processes_the_batch_started_too`
+  (audit G3). No existing test changed.
+
+## Control borders at 3:1 (2026-10-28)
+
+- Added `test_dark_theme.py::test_fields_and_check_boxes_have_a_border_of_three_to_one`
+  (audit G7). No existing test changed; `test_design_rules.py`'s token
+  table check reads the new row of `docs/DESIGN.md`.
+
+## The export test's race (2026-10-28)
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_results_widget.py::test_an_export_runs_off_the_gui_thread_with_progress_and_cancel` | Read "Exporting 1 of 2" as soon as the worker began its first file; opened the worker's gate only after its asserts | Waits for the label to say it (up to 10 s), then checks the same things; the gate opens in a `finally` | The progress signal is queued across threads, so the label can still say "Exporting..." when the file is begun: 6 of 64 runs failed under load (8 workers), 0 of 128 now. A failed assert also left the worker writing into the next test's event loop (`test_run_record.py` failed with the export's "already deleted" error). Same assertions |
+
+## A Monte Carlo batch and pandas (2026-10-28)
+
+- Added `test_run_worker.py::test_a_monte_carlo_worker_imports_pandas_on_the_thread_that_makes_it`.
+
+## An export that outlives its view (2026-10-28)
+
+- Added `test_results_widget.py::test_an_export_that_ends_after_its_widget_is_gone_touches_nothing`.
+  No existing test changed.
+
 ## Room for results at 1280 x 720 (2026-10-28)
 
 A new window starts without the Problems panel and, on a screen narrower

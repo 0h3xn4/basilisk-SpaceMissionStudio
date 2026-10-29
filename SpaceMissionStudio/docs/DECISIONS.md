@@ -27,6 +27,86 @@ windows; open Problems on errors only."
   describes a value: its range and help. A button or a tab has neither,
   so it shows the empty state rather than dashes.
 
+## Control borders at 3:1 (2026-10-28)
+
+The audit's G7: "A control-border token of at least 3:1, added to
+CONTRAST_PAIRS."
+
+- **A new token, not a darker border.strong:** border.strong also draws
+  panels, toasts and buttons, where it separates surfaces (the design
+  rules' "very few lines"); a field or a check box is identified by its
+  border, a button by its label.
+- **text.primary over the surface, the least share that passes:** the
+  same derivation as the other tokens; 51 % light and 42 % dark give
+  3.08:1 at worst (on bg.hover), so the borders stay as quiet as the rule
+  allows.
+- **Disabled controls keep border.subtle:** WCAG 1.4.11 exempts inactive
+  components, and the fainter border says that they are.
+
+## A Monte Carlo batch can be cancelled (2026-10-28)
+
+The audit's G3: "Terminate the child process, keep finished cases, offer
+'Cancel and close'."
+
+- **The child ends its own processes, then itself:** Basilisk's
+  Controller has no way to stop part way, and it starts a pool, a data
+  writer and a manager from the batch's child; terminating the child
+  alone would leave them running (on Windows, nothing would end them).
+  A thread in the child waits for a cancel event and ends every process
+  it started; the GUI terminates the child only if that takes over 15 s.
+- **The runs finished are summarized by a second, short child:** the run
+  files are pickles, read only by the kind of process that had them
+  written (security analysis S-04), as the batch does at its end. A file
+  cut short by the cancel is skipped. Runs not finished are not listed as
+  failed: they were stopped.
+- **Closing asks, Keep running the default:** a batch can be hours of
+  work; closing by accident must not end it.
+
+## Exports off the GUI thread (2026-10-28)
+
+The audit's G2: "Move them to a worker, as the flight software export
+already does."
+
+- **A worker per export, the files only:** the folder dialog and the
+  plots' rendering (in the page) stay where they are; what took the time
+  was decoding the images and writing the files.
+- **Cancel between files, not inside one:** a file is never left half
+  written; the ones written stay, and the message says how many.
+- **What the files hold is taken when the export starts:** the shown
+  plots, their series and the run's provenance, so a new run arriving
+  meanwhile does not mix into it.
+- **Progress beside the buttons, not in the status bar:** the status bar's
+  job strip is the run's; an export is the Results page's own.
+- **The window waits for an export when it closes** (seconds at most),
+  as it does for the reference data read.
+
+## Monte Carlo off, said before Run (2026-10-28)
+
+The audit's G5: "Let the mode decide, or show an inline 'Enable' banner
+before the click."
+
+- **The banner, not the mode deciding:** Scenario > Monte Carlo > Enabled
+  is saved in the scenario (a file can carry its dispersions, off, for a
+  later batch), and the run mode is not; letting the mode switch it would
+  change the file by picking a mode. Enable stays one click, on the Run
+  page, and goes to the page where the batch still needs its dispersions.
+- **Run is not disabled:** it still says why, as before, for a click made
+  anyway (from the toolbar or Ctrl+R, where the note is not seen).
+
+## The run's length with a Mission Sequence (2026-10-28)
+
+The audit's G4: "Say so on the Duration field; make Overview reflect the
+sequence."
+
+- **From the steps, without running:** durations add up, an epoch stop
+  ends at its epoch; an event stop, or an if/while with a propagate in
+  it, ends only when it runs, so it is counted ("+ 2 event or condition
+  stops") rather than guessed.
+- **Passes over the sequence when it is known,** else over the Duration,
+  said so: predicting where an event stop ends would need the run.
+- **The Duration field is kept:** it still sets how far the space
+  weather and the checks reach, which the note says.
+
 ## Space weather past the Duration (2026-10-28)
 
 Found while checking the audit's G4 (the Duration does not limit a run

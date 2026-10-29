@@ -425,7 +425,9 @@ fixed:
   gravity model is (spherical harmonics for Earth, to degree 180, and
   Mars, to degree 80), which other bodies' gravity to include (Sun, Moon,
   ...), the numerical integrator, how long to simulate, and atmospheric
-  drag/space-weather settings. The rkf45 and rkf78 integrators adapt
+  drag/space-weather settings. With a Mission Sequence its steps decide
+  how long the run is; a note under **Duration** then says how long
+  ("58 min + 2 event or condition stops"), and Overview shows the same. The rkf45 and rkf78 integrators adapt
   their steps inside each dynamics step to a relative error of 1e-10
   (recorded in the run's provenance); Euler and RK2 take fixed steps.
   Keep the dynamics step at 60 s or less: above that the orbit loses
@@ -1258,14 +1260,17 @@ parallel (each in its own process; at most one per CPU is used), and add
 one or more **dispersions** (which quantity varies, and by how much;
 **Add** adds one, and the selected one's form is under the list) --
 then set the run mode beside **Run** to **Monte Carlo** and press
-**Run**. This is a more advanced feature; most people won't need it
+**Run**. While Monte Carlo is off, the Run page says so, with **Enable
+Monte Carlo**, which turns it on and opens this page. This is a more advanced feature; most people won't need it
 for a first mission. Templates 09 and 25 are ready-made batches.
 
 A Monte Carlo run saves every run in the archive folder on the Run
 area's **Run** page (with **Browse...**; remembered for each scenario;
 left empty, Run asks for one) (the
-progress in the status bar counts the cases done; a batch cannot be cancelled part
-way, as Basilisk's Controller has no way to stop it), and opens the
+progress in the status bar counts the cases done; **Cancel** (or Esc)
+stops the batch and keeps the runs finished, which the Monte Carlo view
+then shows; closing the window during a batch asks **Cancel and close**
+or **Keep running**), and opens the
 **Monte Carlo** view of Results on the batch (the view is there
 whenever the scenario has Monte Carlo on, or a batch is open):
 

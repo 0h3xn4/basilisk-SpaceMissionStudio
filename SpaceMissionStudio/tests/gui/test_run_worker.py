@@ -335,6 +335,30 @@ def _short_batch(num_runs: int = 2):
     return scenario, mc_config
 
 
+def test_a_monte_carlo_worker_imports_pandas_on_the_thread_that_makes_it():
+    """The batch's thread imports pandas through Basilisk's Monte Carlo
+    controller; plotly, drawing a plot on the GUI thread meanwhile, read the
+    half-imported module ("partially initialized module 'pandas'", Windows
+    CI). Making the worker now imports it on the GUI thread first. Checked
+    in a fresh interpreter, since this one has pandas already."""
+    import os
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    pytest.importorskip("pandas")
+    code = ("import sys\n"
+            "from spacemissionstudio.gui.run_worker import MonteCarloWorker\n"
+            "assert 'pandas' not in sys.modules, 'pandas was loaded before the worker'\n"
+            "MonteCarloWorker(None, None, None)\n"
+            "print('pandas' in sys.modules and hasattr(sys.modules['pandas'], 'Series'))\n")
+    root = Path(__file__).resolve().parents[2]
+    done = subprocess.run([sys.executable, "-c", code], cwd=root, capture_output=True, text=True, timeout=120,
+                          env={**os.environ, "QT_QPA_PLATFORM": "offscreen", "PYTHONPATH": str(root)})
+    assert done.returncode == 0, done.stderr
+    assert done.stdout.strip() == "True"
+
+
 @pytest.mark.requires_basilisk
 def test_monte_carlo_worker_runs_a_single_thread_batch(qtbot, tmp_path):
     """A batch with one thread succeeds from the GUI's worker thread.
@@ -387,3 +411,87 @@ def test_monte_carlo_child_logs_reach_this_process(tmp_path, caplog):
         run_batch(scenario, None, tmp_path / "mc")  # no config: run_monte_carlo raises AttributeError
     assert any(record.name == "spacemissionstudio.gui.monte_carlo_process"
                and "Monte Carlo batch failed" in record.getMessage() for record in caplog.records)
+
+
+@pytest.mark.requires_basilisk
+@pytest.mark.parametrize("threads", [1, 2])
+def test_a_monte_carlo_batch_can_be_cancelled_keeping_the_runs_finished(tmp_path, threads):
+    """Audit G3: a batch could not be cancelled, and the window would not
+    close while it ran. Cancel ends the batch's child and the processes
+    the controller started from it (its pool with 2 threads); the runs
+    finished stay, summarized for the Monte Carlo view, with none listed as
+    failed (the ones not finished were stopped)."""
+    import dataclasses
+
+    from spacemissionstudio.engine import monte_carlo_results
+    from spacemissionstudio.gui.monte_carlo_process import BatchCancelled, run_batch
+
+    scenario, mc_config = _short_batch(num_runs=12)
+    mc_config = dataclasses.replace(mc_config, thread_count=threads)
+    scenario.monte_carlo = mc_config
+    archive = tmp_path / "mc"
+    with pytest.raises(BatchCancelled) as stopped:
+        run_batch(scenario, mc_config, archive,
+                  should_cancel=lambda: monte_carlo_results.finished_cases(archive) >= 1)
+    batch = monte_carlo_results.load(archive)
+    assert 1 <= stopped.value.finished == len(batch.runs) < 12
+    assert batch.failed == []
+    assert monte_carlo_results.finished_cases(archive) < 12
+
+
+def _parent_of_a_sleeper(pid_queue, cancel_event):
+    """A child that starts a grandchild, as the controller starts its pool,
+    and waits for Cancel as the batch's child does."""
+    import multiprocessing
+    import threading
+    import time
+
+    from spacemissionstudio.gui import monte_carlo_process
+
+    sleeper = multiprocessing.get_context("spawn").Process(target=time.sleep, args=(60.0,))
+    sleeper.start()
+    pid_queue.put(sleeper.pid)
+    threading.Thread(target=monte_carlo_process._stop_on, args=(cancel_event,), daemon=True).start()
+    time.sleep(60.0)
+
+
+def test_cancel_ends_the_processes_the_batch_started_too():
+    """The batch's child ends every process it started before it exits
+    (a terminated child would leave the controller's pool running)."""
+    import multiprocessing
+    import os
+    import time
+
+    from spacemissionstudio.gui import monte_carlo_process
+
+    context = multiprocessing.get_context("spawn")
+    pid_queue, cancel_event = context.Queue(), context.Event()
+    child = context.Process(target=_parent_of_a_sleeper, args=(pid_queue, cancel_event))
+    child.start()
+    sleeper_pid = pid_queue.get(timeout=30.0)
+    cancel_event.set()
+    child.join(30.0)
+    assert child.exitcode == monte_carlo_process._CANCELLED_EXIT
+
+    def alive(pid: int) -> bool:
+        if os.name == "nt":  # os.kill(pid, 0) would end it there, not ask
+            import ctypes
+
+            kernel32 = ctypes.windll.kernel32
+            handle = kernel32.OpenProcess(0x1000, False, pid)  # PROCESS_QUERY_LIMITED_INFORMATION
+            if not handle:
+                return False
+            code = ctypes.c_ulong()
+            kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
+            kernel32.CloseHandle(handle)
+            return code.value == 259  # STILL_ACTIVE
+        try:
+            os.kill(pid, 0)
+        except OSError:
+            return False
+        return True
+
+    deadline = time.monotonic() + 10.0
+    while alive(sleeper_pid) and time.monotonic() < deadline:
+        time.sleep(0.1)
+    assert not alive(sleeper_pid)

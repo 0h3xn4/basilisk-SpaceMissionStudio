@@ -65,6 +65,7 @@ from the table (`tokens.tokens(mode)`).
 | `bg.selected` | `#E9EFFD` | `#1A273D` | selected rows: the accent at 10 % (light) or 16 % (dark) over bg.surface |
 | `bg.field` | `#FFFFFF` | `#111418` | inputs: bg.surface |
 | `border.focus` | `#2563EB` | `#4C8DFF` | the 2 px focus ring: the accent |
+| `border.control` | `#88898C` | `#6B6D71` | the border of a field, a check box and a radio button: text.primary over the surface (51 % light, 42 % dark), 3:1 against every background a control sits on (WCAG 1.4.11; audit G7) |
 | `text.disabled` | `#A6A7A9` | `#626569` | disabled text: text.primary at 38 % |
 | `text.on_accent` | `#FFFFFF` | `#0B0D10` | text on the accent fill (dark: the canvas, white is 3.2:1) |
 | `text.link` | `#2563EB` | `#4C8DFF` | links: the accent |
