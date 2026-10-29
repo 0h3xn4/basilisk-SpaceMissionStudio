@@ -14336,3 +14336,44 @@ fails on the code before (checked).
 `test_load_scenario_rejects_an_unknown_field_naming_it` matched Python's
 wording and now matches the new one (TEST_CHANGES).
 Full suite on Python 3.14 with coverage, as CI runs it (a home holding only the reference data cache): 3953 passed, 92.67 % covered, no data file left behind.
+
+## Transparency audit, Phase 0 (2026-10-29)
+
+The user's brief: make the tool transparent, traceable and customizable
+("glass box, not black box"; every constant visible and editable;
+overrides flagged; progressive disclosure), with 14 requirements. Phase 0
+first: an audit in `docs/transparency_audit.md`, then stop for review. No
+code changed. Branch `transparency-audit`.
+
+**Method.** A script walked the syntax tree of every module (191, about
+74 000 lines) and listed each numeric literal with file, line, enclosing
+definition, kind and unit comment: 9888, of which 6247 trivial and 567
+layout; the other 3074 are in `docs/transparency_audit_constants.csv`
+with a heuristic class. Four reviews by area (dynamics and environment;
+mission analysis; schema, CLI and exchanges; GUI) read the code; their
+findings are the audit's Appendices A to D. The main findings were
+checked again in the code.
+
+**Defects found** (to fix in Phase 1, not fixed here):
+- The orbit-number axis uses Earth's mu for every central body
+  (`engine/orbit_number.py:81, 124`). Reproduced: a circular 400 km Mars
+  orbit over 2 days, true 24.41 orbits, gives 24.41 when sampled every
+  60 s or 300 s, 312.41 every 600 s and 216.41 every 1800 s.
+- `monte-carlo` exits 4 for failed runs, the code ICD-02 has given an
+  internal error since #146 (`cli.py:364-366`).
+- Runs over 100 days keep segment 0's provenance (`engine/long_run.py:203-204`).
+- The GUI shows the control gains K 3.5 and P 30; the engine applies them
+  scaled by inertia/900, 0.039 and 0.33 for the default spacecraft
+  (`engine/fsw.py:208-226`).
+- And nine more (the audit's Section 3).
+
+**Plan** (Section 9): baseline regression outputs and the defects first;
+then reproducibility; a parameter registry with a YAML configuration and
+an Assumptions page; a calculation trace behind every number; structured
+warnings and flagged overrides; selectable models through a registry with
+a plugin entry point; change history; units, workflow and data links;
+exports and a documented API; `docs/models/`. Six decisions are asked
+of the user (Section 10).
+
+Full suite on Python 3.14 (a home holding only the reference data cache): 3953 passed.
+The user answered the six decisions (Section 10.1 records them).
