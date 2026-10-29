@@ -14546,6 +14546,10 @@ Tried by hand: template 18's lifetime over 3 years (3.6 s) and budget
 (9.0 s) with `--out`; both name `SW-All.txt` and `oct2026f10-prd.txt` with
 their SHA-256, and the lifetime's decay holds 519 samples.
 
+Each new test fails on the code before (6 failed). The regression baseline
+differs only in the 46 new `area_m2` and 46 `drag_coeff` fields.
+Full suite on Python 3.14, after merging develop with #153: 4022 passed in 13 min 26 s.
+
 ## The run record (2026-10-29)
 
 The transparency plan, Phase 2 ("Reproducibility"), first part: 2a, 2b,
