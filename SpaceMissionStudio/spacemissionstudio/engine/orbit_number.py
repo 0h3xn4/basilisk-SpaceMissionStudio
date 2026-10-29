@@ -36,7 +36,13 @@ semi-major axis), and the whole number of turns closest to that is
 added. So a recording interval of a whole orbit or more (one sample a
 day of a geostationary satellite) still counts every turn.
 
-Basilisk-free: numpy and :class:`engine.results.ResultSet` only.
+The mean motion uses the central body's gravitational parameter as the run
+recorded it (:func:`central_body_mu`). In 1.3.1 and earlier Earth's was used for every
+body, which added hundreds of spurious orbits to a sparsely recorded Mars or
+Eros run (audit 3.1).
+
+Basilisk-free: numpy and :class:`engine.results.ResultSet` only, except for
+runs recorded before the provenance kept the GM (see :func:`central_body_mu`).
 """
 
 from __future__ import annotations
@@ -109,6 +115,31 @@ def reference_spacecraft(result: ResultSet | None, preferred: str | None = None)
     return names[0] if names else None
 
 
+def central_body_mu(result: ResultSet | None) -> float:
+    """The central body's gravitational parameter [m^3/s^2] of the run in
+    ``result``: the one its provenance recorded; for a run recorded before
+    it was kept (1.3.1 and earlier), Basilisk's for the body its inertial
+    frame is centred on; Earth's when neither is known."""
+    provenance = getattr(result, "provenance", None)
+    if provenance is None:
+        return MU_EARTH_M3_S2
+    if provenance.central_body_mu_m3_s2 > 0.0:
+        return provenance.central_body_mu_m3_s2
+    origin = str(provenance.frames.get("N", {}).get("origin", ""))
+    body = origin.removesuffix(" centre of mass").lower()
+    if body in ("", "earth"):
+        return MU_EARTH_M3_S2
+    try:
+        from .orbit_conversion import OrbitConversionError
+        from .orbit_conversion import central_body_mu as basilisk_mu
+    except ImportError:  # pragma: no cover - the package always has it
+        return MU_EARTH_M3_S2
+    try:
+        return basilisk_mu(body)
+    except OrbitConversionError:
+        return MU_EARTH_M3_S2
+
+
 def for_result(result: ResultSet | None, spacecraft: str | None):
     """``(time_s, orbit_number)`` of ``spacecraft`` in ``result``, or None
     when it did not record its position and velocity (or recorded fewer
@@ -121,7 +152,8 @@ def for_result(result: ResultSet | None, spacecraft: str | None):
         return None
     count = min(len(position.time_s), len(velocity.time_s))
     time_s = np.asarray(position.time_s[:count], dtype=float)
-    return time_s, orbit_numbers(time_s, position.data[:count, :3], velocity.data[:count, :3])
+    return time_s, orbit_numbers(time_s, position.data[:count, :3], velocity.data[:count, :3],
+                                 mu=central_body_mu(result))
 
 
 def reference_note(result: ResultSet | None, spacecraft: str | None) -> str:

@@ -26,6 +26,42 @@ The transparency plan's Phase 1b for the GUI (`docs/transparency_audit.md`
   file written without the field; the templates that use a link set their
   own gain (35 dBi or 0 dBi).
 
+## Engine and command-line defects (2026-10-29)
+
+The transparency plan's Phase 1b (`docs/transparency_audit.md` 3.1-3.3,
+3.5, 3.6, 3.11, 3.13 and 3.14); the GUI and default defects (3.4, 3.7-3.10,
+3.12) follow in their own change.
+
+- **The run keeps its central body and GM** (`central_body`,
+  `central_body_mu_m3_s2` in the provenance): the orbit-number axis and the
+  mean semi-major axis change take the GM from the run itself, not from a
+  constant. A record written before (no GM) falls back to the body its
+  inertial frame names, and to Earth's GM when that is Earth or unknown, so
+  every Earth run reads as before.
+- **Exit status 5 for a check that ran and did not pass** (`fsw-status`,
+  `sil --max-error`): they returned 2, which ICD-02 gives a missing
+  component or a usage error, so a script could not tell "stale export"
+  from "no Basilisk". A new status was chosen over reusing 1 (an input
+  error) because the input was fine. `monte-carlo` with a failed run
+  returns 3 (a run failed), not 4 (an internal error), and `kernels-status`
+  with a kernel missing returns 2 (a missing component), not 1.
+- **The predicted Earth orientation note reaches the run's warnings:** it
+  was shown in the Explain tab only. No reason was recorded for keeping it
+  out of the run (#124 added the filter with the coverage notes), and a
+  run that uses predicted values has a larger Earth-fixed error, which the
+  user should see with the results.
+- **A check that fails says so:** the pre-run and plausibility checks
+  dropped an exception without a word, so a check that could not run looked
+  passed. It is now one line, `check not run: <name> (<error>)`, and the
+  traceback goes to the log; the checks still never raise.
+- **A stop epoch counts TDB seconds:** the simulation clock counts TDB
+  seconds since the epoch, so the time to a stop epoch is now the TDB time
+  between the two, leap seconds included (`time_system.tdb_seconds_between`).
+- **A split run's provenance is the whole run's:** the scenario hash of the
+  file as given (not of segment 0's copy), every segment's seeds, and the
+  real space-weather file, with the whole-span file built from it kept as
+  `space_weather_resolved`.
+
 ## Regression baseline (2026-10-29)
 
 The transparency plan's Phase 1a (`docs/transparency_audit.md` 9.2).

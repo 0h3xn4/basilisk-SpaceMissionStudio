@@ -24,12 +24,13 @@ Figure                         From
 =============================  ==========================================
 Run length [h]                 the last recorded sample
 Delta-V [m/s]                  the cumulative delta-V of the station-,
-                               GEO-, phasing-keeping and constant-thrust
-                               controllers, at the end
+                               GEO-, phasing-keeping, constant-thrust and
+                               ROE formation controllers, at the end
 Propellant used [kg]           the drop of every recorded propellant mass
                                (the controllers' tanks, the fuel tank)
 Mean semi-major axis change    the mean semi-major axis averaged over the
-[km]                           last orbit minus over the first (the
+[km]                           last orbit (from the central body's GM)
+                               minus over the first (the
                                averaging takes out what first-order mean
                                elements leave of the orbital-period
                                wobble); runs shorter than two orbits
@@ -61,10 +62,11 @@ from dataclasses import dataclass
 import numpy as np
 
 from . import events as event_model
-from .propellant_budget import MU_EARTH_M3_S2
+from . import orbit_number
 from .results import ResultSet, TimeSeries
 
-_DELTA_V_CONTROLLERS = ("station_keeping", "geo_station_keeping", "phasing_keeping", "constant_thrust")
+_DELTA_V_CONTROLLERS = ("station_keeping", "geo_station_keeping", "phasing_keeping", "constant_thrust",
+                        "roe_formation")  # the ROE controller left out in 1.3.1 and earlier (audit 3.5)
 _PROPELLANT_SUFFIXES = (".station_keeping.propellant_remaining", ".geo_station_keeping.propellant_remaining",
                         ".constant_thrust.propellant_remaining", ".fuel_mass_remaining")
 _M_PER_KM = 1000.0  # [m/km]
@@ -99,15 +101,17 @@ def _first(series: TimeSeries, column: int = 0) -> float | None:
     return float(finite[0]) if finite.size else None
 
 
-def _orbit_averaged_change(series: TimeSeries) -> float | None:
+def _orbit_averaged_change(series: TimeSeries, mu_m3_s2: float) -> float | None:
     """Mean semi-major axis [m] averaged over the last orbit minus over the
-    first; None for a run shorter than two orbits."""
+    first; None for a run shorter than two orbits. The orbit period comes
+    from ``mu_m3_s2``, the central body's (audit 3.14: Earth's was used for
+    every body)."""
     time_s, values = np.asarray(series.time_s, dtype=float), series.data[:, 0] if series.data.shape[0] else np.zeros(0)
     good = np.isfinite(values) & (values > 0.0)
     time_s, values = time_s[good], values[good]
     if time_s.size < 4:
         return None
-    period_s = 2.0 * math.pi * math.sqrt(float(np.median(values)) ** 3 / MU_EARTH_M3_S2)  # [s]
+    period_s = 2.0 * math.pi * math.sqrt(float(np.median(values)) ** 3 / mu_m3_s2)  # [s]
     if time_s[-1] - time_s[0] < 2.0 * period_s:
         return None
     first = values[time_s <= time_s[0] + period_s]
@@ -145,7 +149,7 @@ def summarize(result: ResultSet | None, events: list[event_model.Event] | None =
                 used.append(_first(series) - _last(series))  # [kg]
         add(sc, "propellant_used", "Propellant used", "kg", sum(used) if used else None, 3)
         sma = result.series.get(f"{sc}.orbit_elements_mean.semi_major_axis")
-        change = _orbit_averaged_change(sma) if sma is not None else None
+        change = _orbit_averaged_change(sma, orbit_number.central_body_mu(result)) if sma is not None else None
         add(sc, "mean_sma_change", "Mean semi-major axis change", "km",
             None if change is None else change / _M_PER_KM, 3)
         margins = [s.data[:, 0] for name, s in result.series.items()

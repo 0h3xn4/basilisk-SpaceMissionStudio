@@ -861,3 +861,17 @@ def test_on_step_reports_each_enabled_top_level_step():
     steps = []
     MissionEngine(scenario, on_step=lambda number, total, command: steps.append((number, total, command.label))).run()
     assert steps == [(1, 2, "first"), (2, 2, "branch")]
+
+
+def test_a_stop_epoch_across_a_leap_second_counts_it():
+    """Audit 3.13: the stop epoch was the UTC calendar difference, on a
+    clock that counts TDB seconds; across the leap second at the end of
+    2016 it stopped a second short. From 23:59:00 to 00:01:00 is 121 s."""
+    from spacemissionstudio.engine.mission_engine import MissionEngine
+
+    scenario = _scenario(duration_days=1.0, dynamics_task_rate_s=1.0, mission_sequence=[
+        Command(kind="propagate", params={"stop_condition": "epoch", "stop_epoch_utc": "2017-01-01T00:01:00"}),
+    ])
+    scenario.epoch_utc = "2016-12-31T23:59:00"
+    result, _summary = MissionEngine(scenario).run()
+    assert result.series["sat-1.position_N"].time_s[-1] == pytest.approx(121.0, abs=1e-3)  # [s]

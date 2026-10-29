@@ -143,6 +143,19 @@ See [Flight software and SIL](flight-software-and-sil.md).
 
 See [Reference data](reference-data.md).
 
+## Exit codes
+
+A script can tell from the exit code what happened:
+
+| Code | Means |
+|---|---|
+| 0 | Done |
+| 1 | The input was refused (`INVALID:`); the message names what to correct |
+| 2 | A component is missing (Basilisk, a SPICE kernel for `kernels-status`, PySide6 for `gui`), or the command line is wrong |
+| 3 | The run or analysis failed, including a Monte Carlo batch in which a run failed |
+| 4 | An internal error of SpaceMissionStudio; report it with the log file it names |
+| 5 | The command ran, but its check did not pass: `fsw-status` found an export that is not up to date, or `sil --max-error` found a residual over the limit |
+
 ## From Python
 
 The [examples](../../examples/README.md) call the same engine from

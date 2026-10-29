@@ -340,3 +340,23 @@ def test_a_run_may_not_go_past_the_end_of_the_files():
     service.check_stop_time(macros.sec2nano(45 * 86400.0))  # [ns] 2027-01-15: inside
     with pytest.raises(SimulationServiceError, match="2027-01-16 00:00 UTC, where the installed Earth orientation"):
         service.check_stop_time(macros.sec2nano(47 * 86400.0))  # [ns] 2027-01-17
+
+
+@pytest.mark.requires_basilisk
+def test_a_run_on_predicted_earth_orientation_says_so_in_its_warnings(monkeypatch):
+    """Audit 3.6: the note that the Earth orientation is predicted (low
+    accuracy) reached only the Explain tab; the run's own warnings now carry
+    it, as they carry every other Earth orientation note. The provenance
+    names the central body and the GM the run used (audit 3.1)."""
+    from spacemissionstudio.engine.service import SimulationService
+    from spacemissionstudio.schema import load_scenario
+
+    predicted = "Earth orientation: ITRF93, predicted (low accuracy) for the whole run"
+    monkeypatch.setattr(eo, "notes", lambda start, end, kernels=None: [predicted])
+    scenario = load_scenario(Path(__file__).resolve().parent.parent / "spacemissionstudio" / "scenarios"
+                             / "templates" / "01_two_body_circular_orbit.json")
+    scenario.sim_settings.duration_days = 0.01  # [day]
+    result = SimulationService(scenario).run()
+    assert predicted in result.warnings
+    assert result.provenance.central_body == "earth"
+    assert result.provenance.central_body_mu_m3_s2 == pytest.approx(398600.436e9, rel=1e-12)  # [m^3/s^2]

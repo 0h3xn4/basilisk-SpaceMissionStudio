@@ -213,3 +213,24 @@ def test_recording_every_step_of_a_long_run_is_flagged():
     assert any("5.3 million samples per series" in w for w in scenario_warnings(scenario))
     scenario.sim_settings.record_interval_s = 600.0  # [s]
     assert not any("samples per series" in w for w in scenario_warnings(scenario))
+
+
+@pytest.mark.requires_basilisk
+def test_a_split_run_records_the_whole_runs_provenance(monkeypatch):
+    """Audit 3.3: a split run kept its first segment's provenance: the hash
+    of that segment's modified copy, its seeds only, and the intermediate
+    space-weather file. It now records the hash of the scenario as given,
+    every segment's seeds, and the real space-weather file, with the
+    whole-span file built from it beside it."""
+    from spacemissionstudio import output_provenance
+    from spacemissionstudio.engine.service import SimulationService
+
+    scenario = _load_template("22_starter_first_leo_satellite.json")
+    scenario.sim_settings.duration_days = 1.0  # [day]
+    _split(monkeypatch, 0.5)  # [day]
+    provenance = SimulationService(scenario).run().provenance
+    assert provenance.scenario_sha256 == output_provenance.scenario_sha256(scenario)
+    assert Path(provenance.data_files["space_weather"]["path"]).name.startswith("SW-All")
+    assert Path(provenance.data_files["space_weather_resolved"]["path"]).name.startswith("real_")
+    assert all(f"{model} (segment 1)" in provenance.rng_seeds
+               for model in [m for m in provenance.rng_seeds if "(segment" not in m])
