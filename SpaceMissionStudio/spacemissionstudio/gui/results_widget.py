@@ -639,6 +639,7 @@ class ResultsWidget(QWidget):
         self.export_cancel_button.hide()
         button_row.addWidget(self.export_cancel_button)
         self._export_worker: _ExportWorker | None = None
+        self._export_ends: tuple = ()  # (on_done, on_failed, folder) of the export running
         # The last run's Vizard playback file (UX/UI guidelines, decision 3:
         # open only -- Vizard has no interface to follow the time cursor).
         self.vizard_button = QPushButton("Open in Vizard")
@@ -1823,11 +1824,13 @@ class ResultsWidget(QWidget):
 
     def _start_export(self, job, on_done, on_failed, folder: str) -> None:
         worker = _ExportWorker(job)
+        # The widget's own methods, not lambdas: Qt disconnects them when the
+        # widget is deleted, so an export that ends after it calls nothing.
+        self._export_ends = (on_done, on_failed, folder)
         worker.progress.connect(self._on_export_progress)
-        worker.finished_ok.connect(lambda outcome: (self._end_export(), on_done(outcome)))
-        worker.failed.connect(lambda message: (self._end_export(), on_failed(message)))
-        worker.cancelled.connect(lambda written: (self._end_export(), report(
-            self, f"Export cancelled: {written} file(s) were written to {folder}", kind="warning")))
+        worker.finished_ok.connect(self._on_export_done)
+        worker.failed.connect(self._on_export_failed)
+        worker.cancelled.connect(self._on_export_cancelled)
         self._export_worker = worker
         self.export_button.setEnabled(False)
         self.export_all_button.setEnabled(False)
@@ -1838,6 +1841,21 @@ class ResultsWidget(QWidget):
         _exports.add(worker)
         worker.finished.connect(lambda: _exports.discard(worker))
         worker.start()
+
+    def _on_export_done(self, outcome) -> None:
+        on_done = self._export_ends[0]
+        self._end_export()
+        on_done(outcome)
+
+    def _on_export_failed(self, message: str) -> None:
+        on_failed = self._export_ends[1]
+        self._end_export()
+        on_failed(message)
+
+    def _on_export_cancelled(self, written: int) -> None:
+        folder = self._export_ends[2]
+        self._end_export()
+        report(self, f"Export cancelled: {written} file(s) were written to {folder}", kind="warning")
 
     def _on_export_progress(self, written: int, total: int) -> None:
         self.export_progress_label.setText(f"Exporting {min(written + 1, total)} of {total} files...")

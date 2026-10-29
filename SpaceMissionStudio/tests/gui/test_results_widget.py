@@ -1374,6 +1374,36 @@ def test_the_figure_warm_up_starts_after_the_start_up_read(monkeypatch):
     assert [type(thread).__name__ for thread in started] == ["_SpaceWeatherWarmUp", "_FigureWarmUp"]
 
 
+def test_an_export_that_ends_after_its_widget_is_gone_touches_nothing(qtbot):
+    """An export's worker can end after its widget was deleted (a test that
+    stopped at the file it waited for; CI: "Internal C++ object (QLabel)
+    already deleted" from the end of the export). Its signals reach the
+    widget's own methods, which Qt disconnects with the widget, so the end
+    calls nothing."""
+    import threading
+
+    from PySide6.QtCore import QCoreApplication, QEvent
+    from PySide6.QtWidgets import QApplication
+
+    from spacemissionstudio.gui.results_widget import ResultsWidget
+
+    gate, ended = threading.Event(), []
+    widget = ResultsWidget()
+
+    def job(step):
+        gate.wait(10.0)
+        return {}
+
+    widget._start_export(job, ended.append, ended.append, "folder")
+    worker = widget._export_worker
+    widget.deleteLater()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    gate.set()
+    assert worker.wait(10000)  # [ms]
+    QApplication.processEvents()  # the worker's queued signals: nothing left to call
+    assert ended == []
+
+
 def test_an_export_runs_off_the_gui_thread_with_progress_and_cancel(widget, tmp_path, monkeypatch, reported,
                                                                      qtbot):
     """Audit G2: Export CSV and Export all wrote their files in the click

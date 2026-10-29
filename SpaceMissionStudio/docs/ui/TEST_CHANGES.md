@@ -724,4 +724,8 @@ is the only test that an empty `.app` is not refused.
 ## A Monte Carlo batch and pandas (2026-10-28)
 
 - Added `test_run_worker.py::test_a_monte_carlo_worker_imports_pandas_on_the_thread_that_makes_it`.
+
+## An export that outlives its view (2026-10-28)
+
+- Added `test_results_widget.py::test_an_export_that_ends_after_its_widget_is_gone_touches_nothing`.
   No existing test changed.

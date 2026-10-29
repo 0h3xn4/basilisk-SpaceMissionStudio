@@ -199,6 +199,12 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   (CVE-2026-116577, CVE-2026-115927, CVE-2026-116578; fixed in 6.6) made
   CI's dependency audit fail. tornado comes with bokeh, which needs 6.2 or
   later; the pin is now 6.6.
+- **An export that ends after its view is gone does nothing:** the end
+  of an export (written off the window's thread since G2) called the
+  results view through lambdas, which Qt does not disconnect when the view
+  is deleted: the end of an export that outlived its view raised
+  "Internal C++ object already deleted". It now reaches the view's own
+  methods, which Qt disconnects with it. Found when CI failed on it.
 
 ## 1.3.1 (2026-10-27)
 
