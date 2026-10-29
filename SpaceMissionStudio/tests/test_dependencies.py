@@ -224,3 +224,40 @@ def test_file_record_of_an_unreadable_file_is_marked_not_raised(tmp_path):
     a folder) raised in the middle of a run's provenance record."""
     record = dependencies.file_record(tmp_path)  # a folder: stat works, open fails
     assert "unreadable" in record and "sha256" not in record
+
+
+def test_a_large_file_is_hashed_once_and_its_hash_kept_until_it_changes(tmp_path, monkeypatch):
+    """Transparency audit 2d: a file over the limit (de430.bsp, 114 MB) was
+    recorded by size only. It now gets its SHA-256, computed once and kept
+    in the hash cache, keyed by path, size and modification time; a changed
+    file is hashed again."""
+    monkeypatch.setattr(dependencies, "_HASH_LIMIT_BYTES", 8)  # [byte]
+    monkeypatch.setattr(dependencies, "_large_file_hashes", {})
+    monkeypatch.setattr(dependencies, "hash_cache_path", lambda: tmp_path / "cache" / "file_hashes.json")
+    kernel = tmp_path / "de430.bsp"
+    kernel.write_bytes(b"a large ephemeris")
+    first = dependencies.file_record(kernel)
+    assert first["sha256"] == hashlib.sha256(b"a large ephemeris").hexdigest() and first["sha256_cached"] is False
+    assert dependencies.file_record(kernel)["sha256_cached"] is True
+    monkeypatch.setattr(dependencies, "_large_file_hashes", {})  # a new process: the cache file answers
+    assert dependencies.file_record(kernel)["sha256_cached"] is True
+    kernel.write_bytes(b"another ephemeris, longer")
+    changed = dependencies.file_record(kernel)
+    assert changed["sha256"] == hashlib.sha256(b"another ephemeris, longer").hexdigest()
+    assert changed["sha256_cached"] is False
+
+
+def test_an_installed_file_is_hashed_again_and_a_changed_one_is_warned_of(tmp_path):
+    """Transparency audit 2d: an Earth orientation or small-body kernel's
+    record copied the hash its install manifest gave, without reading the
+    file. It is now hashed at run time and compared; a file changed since
+    the install gives a run warning."""
+    kernel = tmp_path / "earth_latest_high_prec.bpc"
+    kernel.write_bytes(b"orientation")
+    good = dependencies.installed_file_record(kernel, hashlib.sha256(b"orientation").hexdigest(), source="NAIF")
+    bad = dependencies.installed_file_record(kernel, "0" * 64, source="NAIF")
+    assert good["matches_install"] is True and good["source"] == "NAIF"
+    assert bad["matches_install"] is False
+    warnings = dependencies.changed_since_install({"earth_orientation:a": good, "earth_orientation:b": bad})
+    assert warnings == ["earth_orientation:b: earth_latest_high_prec.bpc is not the file installed (its SHA-256 "
+                        "changed since; reinstall it in Reference data)"]

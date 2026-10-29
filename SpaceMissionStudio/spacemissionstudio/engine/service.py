@@ -846,9 +846,8 @@ class SimulationService:
                     "it in Reference data, or run 'spacemissionstudio small-bodies --fetch'")
             spk_path = Path(installed_spk.path)
             self.spice_object.loadSpiceKernel(spk_path.name, str(spk_path.parent) + os.sep)
-            self._data_files[f"spice:{spk_path.name}"] = {
-                "path": installed_spk.path, "size_bytes": installed_spk.size_bytes,
-                "sha256": installed_spk.sha256, "source": installed_spk.source}
+            self._data_files[f"spice:{spk_path.name}"] = dependencies.installed_file_record(
+                installed_spk.path, installed_spk.sha256, source=installed_spk.source)
         # Earth-fixed frame: ITRF93 from the IERS-based NAIF Earth PCKs when
         # installed (engine.earth_orientation, ECSS-E-ST-10-09C 5.4.9f),
         # else Basilisk's default IAU_EARTH. Combined file first, so the
@@ -866,9 +865,8 @@ class SimulationService:
             for eop in eop_kernels:
                 eop_path = Path(eop.path)
                 self.spice_object.loadSpiceKernel(eop_path.name, str(eop_path.parent) + os.sep)
-                self._data_files[f"earth_orientation:{eop_path.name}"] = {
-                    "path": eop.path, "size_bytes": eop.size_bytes, "sha256": eop.sha256, "source": eop.source,
-                    "last_datum_utc": eop.last_datum_utc}
+                self._data_files[f"earth_orientation:{eop_path.name}"] = dependencies.installed_file_record(
+                    eop.path, eop.sha256, source=eop.source, last_datum_utc=eop.last_datum_utc)
             if eop_kernels:
                 self._earth_orientation_span = (start_utc, earth_orientation.covered_until(eop_kernels, start_utc))
                 self.earth_frame = earth_orientation.EARTH_FIXED_FRAME
@@ -1100,6 +1098,9 @@ class SimulationService:
                                          resolved_sw.last_day.day) + timedelta(days=1)
                         self._space_weather_span = (naive_start, until)
                     self._data_files["space_weather"] = dependencies.file_record(resolved_sw.data_file)
+                    if resolved_sw.forecast_file is not None:
+                        self._data_files["space_weather_forecast"] = dependencies.file_record(
+                            resolved_sw.forecast_file)
                 except sw.SpaceWeatherError as exc:
                     raise SimulationServiceError(
                         f"could not resolve space weather for atmospheric drag: {exc}") from exc
@@ -2298,6 +2299,7 @@ class SimulationService:
             )
         result.warnings.extend(self._space_weather_warnings)
         result.warnings.extend(self._model_warnings)
+        result.warnings.extend(dependencies.changed_since_install(self._data_files))
         for name, handle in self._handles.items():
             for what, controller in (("station keeping", handle.station_keeping_controller),
                                      ("GEO station keeping", handle.geo_station_keeping_controller)):

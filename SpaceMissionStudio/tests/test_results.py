@@ -146,6 +146,11 @@ def test_result_set_export_csv_with_provenance_writes_sidecar_json(tmp_path):
         # the central body and its GM (audit 3.1), empty and 0 when not filled by engine.service
         "central_body": "",
         "central_body_mu_m3_s2": 0.0,
+        # the file the run was loaded from (transparency audit 2b), empty when not filled by the CLI
+        "scenario_file": "",
+        "scenario_file_sha256": "",
+        # the run's warnings (transparency audit 2f)
+        "run_warnings": [],
     }
 
 
@@ -337,3 +342,14 @@ def test_result_set_export_csv_reports_progress_and_can_be_stopped(tmp_path):
     with pytest.raises(Stop):
         rs.export_csv(tmp_path / "stopped", progress=stop_after_one)
     assert sorted(p.name for p in (tmp_path / "stopped").iterdir()) == ["sat-1.position_N.csv"]
+
+
+def test_the_exported_provenance_lists_the_runs_warnings(tmp_path):
+    """Transparency audit 2f: a run's warnings were printed or shown, never
+    exported. provenance.json now lists them as run_warnings."""
+    rs = ResultSet(scenario_name="test", provenance=_sample_provenance())
+    rs.add(_sample_series("sat-1.position_N"))
+    rs.warnings = ["sat-1: re-entered: below 100 km at t = 3.20 days"]
+    written = json.loads(rs.export_csv(tmp_path / "out")["provenance"].read_text())
+    assert written["run_warnings"] == ["sat-1: re-entered: below 100 km at t = 3.20 days"]
+    assert rs.provenance_record() == written

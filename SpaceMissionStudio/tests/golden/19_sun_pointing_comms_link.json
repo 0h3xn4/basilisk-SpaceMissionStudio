@@ -308,6 +308,8 @@
     "midStepOrientation_moon": 3302786954,
     "midStepOrientation_sun": 896524486
    },
+   "scenario_file": "",
+   "scenario_file_sha256": "",
    "series_frames": {
     "berlin-gs.access_to_leo-comms-1.azimuth": "L",
     "berlin-gs.access_to_leo-comms-1.elevation": "L",

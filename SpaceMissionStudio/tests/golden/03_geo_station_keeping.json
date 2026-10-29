@@ -258,6 +258,8 @@
     "midStepOrientation_moon": 3302786954,
     "midStepOrientation_sun": 896524486
    },
+   "scenario_file": "",
+   "scenario_file_sha256": "",
    "series_frames": {
     "geo-sat-1.orbit_elements.arg_periapsis": "N",
     "geo-sat-1.orbit_elements.eccentricity": "N",

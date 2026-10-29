@@ -234,3 +234,25 @@ def test_a_split_run_records_the_whole_runs_provenance(monkeypatch):
     assert Path(provenance.data_files["space_weather_resolved"]["path"]).name.startswith("real_")
     assert all(f"{model} (segment 1)" in provenance.rng_seeds
                for model in [m for m in provenance.rng_seeds if "(segment" not in m])
+
+
+@pytest.mark.requires_basilisk
+def test_a_split_run_and_a_whole_run_record_the_msfc_table_they_used(monkeypatch):
+    """Transparency audit 2d: a run in 2030 takes its space weather from
+    MSFC's prediction, which the provenance did not record (only a warning
+    named it). Whole and split, the run now records it with its SHA-256, as
+    space_weather_forecast."""
+    import hashlib
+
+    from spacemissionstudio.engine import spaceweather
+    from spacemissionstudio.engine.service import SimulationService
+
+    scenario = _load_template("22_starter_first_leo_satellite.json")  # epoch 2030-01-01
+    scenario.sim_settings.duration_days = 0.1  # [day]
+    expected = hashlib.sha256(spaceweather.MSFC_BUNDLED_PATH.read_bytes()).hexdigest()
+    whole = SimulationService(scenario).run().provenance.data_files["space_weather_forecast"]
+    scenario.sim_settings.duration_days = 1.0  # [day]
+    _split(monkeypatch, 0.5)  # [day]
+    split = SimulationService(scenario).run().provenance.data_files["space_weather_forecast"]
+    assert whole["sha256"] == split["sha256"] == expected
+    assert Path(split["path"]).name == spaceweather.MSFC_BUNDLED_PATH.name

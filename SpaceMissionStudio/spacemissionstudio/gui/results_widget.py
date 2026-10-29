@@ -1929,6 +1929,7 @@ class ResultsWidget(QWidget):
         series = [(name, result.series[name]) for name in self._shown
                   if result is not None and name in result.series]
         provenance = result.provenance if result is not None else None
+        record = result.provenance_record() if result is not None else {}
         decode = self._decode_image
 
         def job(step) -> tuple[int, int]:
@@ -1948,7 +1949,7 @@ class ResultsWidget(QWidget):
                 one.to_csv(output_path(out_dir, f"{name}.csv"))
             if provenance is not None:  # last: a test waits for it
                 step(total - 1, total)
-                (out_dir / "provenance.json").write_text(json.dumps(provenance.to_dict(), indent=2))
+                (out_dir / "provenance.json").write_text(json.dumps(record, indent=2))
             step(total, total)
             return len(urls), len(series)
 

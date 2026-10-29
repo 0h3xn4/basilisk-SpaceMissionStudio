@@ -28,10 +28,11 @@ how much, so a consent prompt can say so before anything is fetched.
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass, field
 from datetime import date, datetime, UTC
 from pathlib import Path
+
+from .. import dependencies
 
 SPACE_WEATHER_STALE_DAYS = 60  # [day] observed data older than this is flagged
 
@@ -82,18 +83,11 @@ DOWNLOADS: dict[str, Download] = {
 }
 
 
-def _sha256(path: Path, limit_bytes: int = 32 * 1024 * 1024) -> str:
-    """SHA-256 of a file up to ``limit_bytes`` (larger files: empty, as provenance does)."""
-    try:
-        if path.stat().st_size > limit_bytes:
-            return ""
-        digest = hashlib.sha256()
-        with open(path, "rb") as handle:
-            for chunk in iter(lambda: handle.read(1 << 20), b""):
-                digest.update(chunk)
-        return digest.hexdigest()
-    except OSError:
-        return ""
+def _sha256(path: Path) -> str:
+    """SHA-256 of a file, as the run's provenance records it (a large file
+    hashed once and its hash kept, :func:`dependencies.file_record`); empty
+    when it cannot be read."""
+    return str(dependencies.file_record(path).get("sha256", ""))
 
 
 def _mtime_utc(path: Path) -> str:

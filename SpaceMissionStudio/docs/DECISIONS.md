@@ -5,6 +5,38 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The run record (2026-10-29)
+
+The transparency plan's Phase 2a, 2b, 2d and 2f (`docs/transparency_audit.md`
+9.2): what a colleague needs to re-run a result.
+
+- **The scenario as run, not only its hash:** `run` writes
+  `scenario_as_run.json`, the migrated scenario as the app saves it. Its
+  canonical JSON hashes to `scenario_sha256`, so the file and the record
+  check each other. The GUI's exports do not write it yet: the
+  reproduction bundle (Phase 2h) will cover the GUI.
+- **Both hashes:** `scenario_sha256` (the scenario as run, after migration)
+  and `scenario_file_sha256` (the bytes given). Two files that differ only
+  in layout, or an old file and its migrated form, share the first and not
+  the second. The GUI records the file only when the run starts from it
+  unchanged; after an edit the file is not what ran, and an empty field is
+  more honest than a stale hash.
+- **Large files hashed once:** hashing `de430.bsp` took 8.2 s on this
+  computer. A file over 32 MB is hashed on first use and its hash kept in
+  `~/.cache/SpaceMissionStudio/file_hashes.json`, keyed by path, size and
+  modification time, as git's index trusts a file; the record says
+  `sha256_cached`. A file changed in place with its size and time kept
+  would not be noticed: that is the assumption made.
+- **Installed kernels re-hashed:** an Earth orientation or small-body
+  kernel was trusted on its install manifest. It is now hashed at run time
+  (under 32 MB each, the Eros SPK about 5 MB) and a mismatch is a run
+  warning, not an error: the run still uses the file, and says so.
+- **Warnings in the record, not in the run record:** `run_warnings` is
+  added to the exported `provenance.json` and the Timeline and Output
+  sidecars, not to `RunProvenance`: the warnings are what the run found,
+  the provenance how it was made. Plot images keep the record without
+  them.
+
 ## GUI defects of the transparency audit (2026-10-29)
 
 The transparency plan's Phase 1b for the GUI (`docs/transparency_audit.md`

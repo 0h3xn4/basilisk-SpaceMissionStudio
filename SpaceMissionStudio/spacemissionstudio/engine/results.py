@@ -123,6 +123,12 @@ class RunProvenance:
     # in a record from before they were kept (1.3.1 and earlier).
     central_body: str = ""
     central_body_mu_m3_s2: float = 0.0  # [m^3/s^2]
+    # The scenario file the run was loaded from and the SHA-256 of its bytes
+    # as read, before migration (transparency audit, Phase 2b);
+    # scenario_sha256 is the hash of the scenario as run. Empty when the run
+    # did not start from an unchanged file (a scenario edited in the GUI).
+    scenario_file: str = ""
+    scenario_file_sha256: str = ""
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -289,6 +295,14 @@ class ResultSet:
             raise ResultsError(f"a TimeSeries named {series.name!r} was already added to this ResultSet")
         self.series[series.name] = series
 
+    def provenance_record(self) -> dict:
+        """What ``provenance.json`` holds: :attr:`provenance` and the run's
+        warnings (``run_warnings``), which were printed or shown only until
+        2026-10-29 (transparency audit, Phase 2f). Empty without provenance."""
+        if self.provenance is None:
+            return {}
+        return dict(self.provenance.to_dict(), run_warnings=list(self.warnings))
+
     def export_csv(self, out_dir: str | Path, progress=None) -> dict[str, Path]:
         """Write one CSV per series into ``out_dir`` (created if needed),
         plus a ``provenance.json`` sidecar when :attr:`provenance` is set
@@ -311,7 +325,7 @@ class ResultSet:
             if progress is not None:
                 progress(len(self.series), total)
             provenance_path = out_dir / "provenance.json"
-            provenance_path.write_text(json.dumps(self.provenance.to_dict(), indent=2))
+            provenance_path.write_text(json.dumps(self.provenance_record(), indent=2))
             paths["provenance"] = provenance_path
         if progress is not None:
             progress(total, total)

@@ -364,7 +364,7 @@ class DataPanelWidget(QWidget):
             for column, value in enumerate(values):
                 item = QTableWidgetItem(value)
                 if column == _COLUMNS.index("SHA-256"):
-                    item.setToolTip(file.sha256 or "not computed (file over 32 MB)")
+                    item.setToolTip(file.sha256 or "not computed (the file could not be read)")
                 elif column == _COLUMNS.index("File"):
                     item.setToolTip(file.path or file.note)
                 elif column == _COLUMNS.index("Source"):

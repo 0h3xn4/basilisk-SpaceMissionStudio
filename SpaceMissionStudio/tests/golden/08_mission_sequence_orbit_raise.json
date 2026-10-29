@@ -806,6 +806,8 @@
     "spaceWeatherData": 3328266330,
     "zeroWind": 507670478
    },
+   "scenario_file": "",
+   "scenario_file_sha256": "",
    "series_frames": {
     "sat-1.orbit_elements.arg_periapsis": "N",
     "sat-1.orbit_elements.eccentricity": "N",

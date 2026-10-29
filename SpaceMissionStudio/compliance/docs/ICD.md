@@ -51,7 +51,7 @@ See SRS section 4 for the software overview.
 |---|---|---|
 | ICD-01 | Scenario files are UTF-8 JSON with the fields of RD1. Files of an older `schema_version` are migrated on load. An unknown field is refused with an error naming it. | SRS-I-01 |
 | ICD-02 | The command-line interface is `spacemissionstudio <command> [arguments]`. Commands and arguments are those of RD5. The exit code is 0 on success; 1 on an input or validation error; 2 when a required component is missing (Basilisk, or PySide6 and plotly for `gui`) or on a usage error (argparse); 3 when a run or analysis fails (a Monte Carlo batch with a failed run included); 4 on an internal error (a fault in SpaceMissionStudio itself, whose traceback is written to the log file); 5 when the command ran and its check did not pass (`fsw-status`: an export is not current; `sil --max-error`: a residual over the limit). | SRS-I-02 |
-| ICD-03 | Each result series is one CSV file. The first column is `time_s`. Columns are named `<column>_<unit>`. A run writes a `provenance.json` alongside its results. | SRS-I-03 |
+| ICD-03 | Each result series is one CSV file. The first column is `time_s`. Columns are named `<column>_<unit>`. A run writes a `provenance.json` alongside its results, and `run` also writes the scenario as run (`scenario_as_run.json`). | SRS-I-03 |
 | ICD-04 | CCSDS OPM, OMM and OEM are read and written in KVN per AD2. The items supported are those in RD3. | SRS-I-04 |
 | ICD-05 | Space weather is read from CelesTrak SW-All files (CSV or legacy text, RD4) and from NASA MSFC prediction tables. Files are validated for coverage before use. | SRS-I-05 |
 | ICD-06 | SPICE kernels come from Basilisk's data fetcher. IERS-based NAIF Earth PCKs come from the user directory or the installation directory. | SRS-I-06 |
@@ -108,7 +108,8 @@ codes are those of ICD-02.
 |---|---|
 | Series CSV | `<series name>.csv` (for example `sat-1.position_N.csv`). Header: `time_s`, then `<column>_<unit>`. One row per recorded sample. Values have 9 significant digits. |
 | `time_s` | TDB seconds since the scenario epoch. Convert to UTC with `engine.time_system.elapsed_to_utc` (RD2). |
-| `provenance.json` | `spacemissionstudio_version`; `basilisk_version`; `qualified_basilisk_version`; `basilisk_qualified`; `run_started_utc`; `integrator`; `dynamics_task_rate_s`; `dependency_versions`; `data_files` (path, size, SHA-256 per file used); `time_system`; `frames`; `transformations`; `series_frames`; the scenario's SHA-256. |
+| `provenance.json` | `spacemissionstudio_version`; `basilisk_version`; `qualified_basilisk_version`; `basilisk_qualified`; `run_started_utc`; `integrator`; `dynamics_task_rate_s`; `dependency_versions`; `data_files` (path, size, SHA-256 per file used, `sha256_cached` for a file over 32 MB whose hash was kept from an earlier run, and for an installed kernel the SHA-256 it was installed with and `matches_install`); `time_system`; `frames`; `transformations`; `series_frames`; `central_body` and `central_body_mu_m3_s2`; the SHA-256 of the scenario as run (`scenario_sha256`); the file it was loaded from and the SHA-256 of its bytes (`scenario_file`, `scenario_file_sha256`, empty for a scenario edited since it was saved); the run's warnings (`run_warnings`). |
+| `scenario_as_run.json` | The scenario as run, after migration, as the app saves it; its canonical JSON hashes to `scenario_sha256`. Written by `run`. |
 | Frames | `series_frames` gives each series' frame mnemonic (N, B, L, ...) per RD2. |
 | Frequency | Once per run. A series' sample interval is the dynamics step, or `sim_settings.record_interval_s` if set. |
 

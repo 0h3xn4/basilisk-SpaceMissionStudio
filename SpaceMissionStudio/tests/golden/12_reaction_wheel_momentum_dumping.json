@@ -171,6 +171,8 @@
     "sat-1_thrMomentumDumping": 2436458424,
     "sat-1_thrMomentumManagement": 3863100428
    },
+   "scenario_file": "",
+   "scenario_file_sha256": "",
    "series_frames": {
     "sat-1.attitude_sigma_BN": "B relative to N",
     "sat-1.body_rate_omega_BN_B": "B",

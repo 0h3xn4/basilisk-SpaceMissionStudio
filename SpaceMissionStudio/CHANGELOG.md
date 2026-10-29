@@ -330,6 +330,19 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   tooltip blaming numerical drift, a re-entry or space-weather one too;
   only a conservation-drift warning has it now (audit 3.12).
 
+- **A run keeps what it was run from:** `run` writes `scenario_as_run.json`
+  beside its results, the scenario as run after an older file was brought
+  up to date; running it again runs the same scenario. `provenance.json`
+  now also names the file given and the SHA-256 of its bytes, lists the
+  run's warnings (`run_warnings`), and records the MSFC prediction a run
+  past the observed space weather used. A run started in the GUI from a
+  saved file with no unsaved edits records the file too (transparency
+  plan, Phase 2a, 2b, 2d, 2f).
+- **Every data file is hashed:** a file over 32 MB (`de430.bsp`, 114 MB)
+  was recorded by size only; it is now hashed once and its SHA-256 kept
+  while its path, size and modification time stay the same. Installed
+  Earth orientation and small-body kernels are hashed at every run and
+  compared with their install: a changed one gives a run warning.
 ## 1.3.1 (2026-10-27)
 
 A faster window. Changing the theme, opening a template and the end of

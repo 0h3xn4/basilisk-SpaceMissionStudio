@@ -121,6 +121,8 @@
     "midStepOrientation_sun": 896524486,
     "sat-1": 232435509
    },
+   "scenario_file": "",
+   "scenario_file_sha256": "",
    "series_frames": {
     "sat-1.orbit_elements.arg_periapsis": "N",
     "sat-1.orbit_elements.eccentricity": "N",
