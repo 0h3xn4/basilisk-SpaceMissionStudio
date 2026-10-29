@@ -2,6 +2,7 @@
 
 import copy
 import json
+import threading
 
 import pytest
 
@@ -334,11 +335,31 @@ def test_load_scenario_malformed_json_gives_clear_error(tmp_path):
 def test_json_the_parser_cannot_read_is_a_refusal(tmp_path, text, reason):
     """Audit R5: JSON nested deeper than Python's parser goes, or holding an
     integer of more than 4300 digits, gave a RecursionError or ValueError
-    traceback; each is now a refusal naming the file."""
+    traceback; each is now a refusal naming the file.
+
+    How deep the parser goes depends on the stack: with a large one (as on
+    CI's Linux runners) 100 000 levels parse, and the file is refused for
+    its content instead. The load runs on a thread with a 4 MiB stack, so
+    the depth is beyond the parser everywhere."""
     path = tmp_path / "odd.json"
     path.write_text(text, encoding="utf-8")
-    with pytest.raises(ScenarioValidationError, match=reason):
-        load_scenario(path)
+    outcome = []
+
+    def load():
+        try:
+            load_scenario(path)
+        except BaseException as exc:  # noqa: BLE001 -- handed to the test thread
+            outcome.append(exc)
+
+    previous = threading.stack_size(4 * 1024 * 1024)  # [byte]
+    try:
+        thread = threading.Thread(target=load)
+        thread.start()
+    finally:
+        threading.stack_size(previous)
+    thread.join()
+    assert len(outcome) == 1 and isinstance(outcome[0], ScenarioValidationError), outcome
+    assert reason in str(outcome[0])
 
 
 def _mutated(document, rng):
