@@ -2282,3 +2282,33 @@ def test_a_running_monte_carlo_batch_can_be_cancelled_and_the_window_closed(wind
     window.closeEvent(event)
     assert event.isAccepted() and calls == ["cancel", "cancel", "wait"]
     window._mc_worker = None
+
+
+def test_a_run_from_an_unchanged_file_records_the_file_and_an_edited_one_does_not(window, tmp_path):
+    """Transparency audit 2b: the run's provenance names the scenario file
+    and the SHA-256 of its bytes when the run starts from it unchanged. After
+    an edit the file is not the scenario run, so nothing is recorded."""
+    import hashlib
+
+    from spacemissionstudio.engine.results import ResultSet, RunProvenance
+    from spacemissionstudio.schema import OrbitIC, Scenario, SpacecraftConfig
+
+    path = tmp_path / "mine.json"
+    Scenario(name="mine", epoch_utc="2030-01-01T00:00:00", spacecraft=[SpacecraftConfig(
+        name="sat-1", orbit=OrbitIC(type="cartesian", position_km=[7000.0, 0.0, 0.0],
+                                    velocity_km_s=[0.0, 7.5, 0.0]))]).save(path)
+    assert window.open_path(path)
+
+    def finished_run():
+        result = ResultSet(scenario_name="mine", provenance=RunProvenance(
+            spacemissionstudio_version="test", basilisk_version="test", run_started_utc="-", integrator="rkf78",
+            dynamics_task_rate_s=10.0))
+        window._last_run_file = window._unchanged_file_record()
+        window._on_run_finished(result)
+        return result.provenance
+
+    unchanged = finished_run()
+    assert (unchanged.scenario_file, unchanged.scenario_file_sha256) == (
+        "mine.json", hashlib.sha256(path.read_bytes()).hexdigest())
+    window._mark_dirty()
+    assert finished_run().scenario_file == ""

@@ -23,7 +23,7 @@ with a non-zero status and prints `ERROR:` or `INVALID:` with the reason.
 | Command | What it does |
 |---|---|
 | `validate scenario.json` | Checks the file without running it. Does not need Basilisk. |
-| `run scenario.json --out-dir out` | Runs it and writes one CSV per quantity, `events.csv` and `provenance.json` |
+| `run scenario.json --out-dir out` | Runs it and writes one CSV per quantity, `events.csv`, `provenance.json` and `scenario_as_run.json` |
 | `monte-carlo scenario.json --archive-dir mc` | Runs the scenario's Monte Carlo batch |
 | `gui` | Starts the app |
 
@@ -40,6 +40,12 @@ Useful `run` options:
 | `--vizard-save-file run.bin` | Writes a Vizard playback file |
 | `--vizard-live-stream` | Streams to a Vizard that is already running |
 | `--allow-scripts` | Runs the scenario's `script_block` commands. They are unrestricted Python: use it only for files you trust and have read. |
+
+`scenario_as_run.json` is the scenario exactly as it was run, after an
+older file was brought up to date: running it again runs the same
+scenario. `provenance.json` names the file you gave and the SHA-256 of
+its bytes, the SHA-256 of the scenario as run, every data file used with
+its SHA-256, and the run's warnings (`run_warnings`).
 
 `run` checks that it can write to `--out-dir` before it starts, and stops
 with exit code 3 if it cannot. Give each run its own empty folder: if the

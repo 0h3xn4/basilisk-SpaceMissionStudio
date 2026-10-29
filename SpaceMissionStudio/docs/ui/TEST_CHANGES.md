@@ -851,3 +851,19 @@ never named "_TabBar".
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `tests/gui/test_ground_station_editor.py::test_dialog_default` | A new station had a 45 dBi receive gain | 0 dBi, and the whole station equals `GroundStationConfig`'s defaults | A new station now takes the schema's defaults (audit 3.9); the other defaults (gs-1, 10 deg, 290 K) are still asserted |
+
+## The run record (2026-10-29)
+
+- Added `test_dependencies.py::test_a_large_file_is_hashed_once_and_its_hash_kept_until_it_changes`
+  and `::test_an_installed_file_is_hashed_again_and_a_changed_one_is_warned_of`
+  (Phase 2d), `test_spaceweather.py::test_the_resolution_names_the_msfc_table_only_when_the_run_needs_it`
+  and `test_long_run.py::test_a_split_run_and_a_whole_run_record_the_msfc_table_they_used`
+  (2d), `test_cli.py::test_run_keeps_the_scenario_as_run_and_the_file_it_came_from`
+  (2a, 2b, 2f), `test_results.py::test_the_exported_provenance_lists_the_runs_warnings`
+  (2f) and `tests/gui/test_main_window.py::test_a_run_from_an_unchanged_file_records_the_file_and_an_edited_one_does_not`
+  (2b). Each fails on the code before (checked: 7 failed).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_results.py::test_result_set_export_csv_with_provenance_writes_sidecar_json` | Expected the record's fields up to `central_body_mu_m3_s2` | Also expects `scenario_file`, `scenario_file_sha256` ("") and `run_warnings` ([]) | The record names the file run and the export lists the warnings; the test still checks every field the file holds |
+| `tests/gui/test_export_files.py::test_every_export_is_byte_identical_to_1_1_0` | Removed the six provenance keys added since 1.1.0 before comparing | Also removes `scenario_file`, `scenario_file_sha256` and `run_warnings`, which must be there | As above; every other byte is still compared with 1.1.0's |

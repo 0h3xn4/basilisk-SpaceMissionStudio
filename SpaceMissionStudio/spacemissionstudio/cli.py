@@ -60,6 +60,8 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import dataclasses
+import hashlib
 import logging
 import math
 import sys
@@ -135,10 +137,18 @@ def _output_folder_error(out_dir: Path) -> str | None:
     return None
 
 
+# The scenario as run, beside its results (transparency audit, Phase 2a).
+SCENARIO_AS_RUN = "scenario_as_run.json"
+
+
 def _write_run_outputs(args, scenario, result, command_summary) -> None:
-    """The CSV files, OEMs, events and Mission Sequence summary of a run."""
+    """The CSV files, OEMs, events and Mission Sequence summary of a run,
+    and the scenario as run: after loading and migration, as the app saves
+    it, so ``spacemissionstudio run`` on it runs the same scenario
+    (its hash is the provenance's ``scenario_sha256``)."""
     from .engine import ccsds_odm, data_budget, events
     from .engine.results import output_path
+    from .schema.scenario import scenario_text
 
     before = {entry.name for entry in Path(args.out_dir).iterdir()} if Path(args.out_dir).is_dir() else set()
     paths = result.export_csv(args.out_dir)
@@ -146,6 +156,10 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
     print(f"Wrote {len(paths)} result file(s) to {args.out_dir}:")
     for name, path in sorted(paths.items()):
         print(f"  {name}: {path}")
+    as_run = output_path(args.out_dir, SCENARIO_AS_RUN)
+    as_run.write_text(scenario_text(scenario), encoding="utf-8")
+    written.add(as_run.name)
+    print(f"  scenario as run: {as_run}")
     if args.oem:
         names = [sc.name for sc in scenario.spacecraft
                  if f"{sc.name}.position_N" in result.series and len(result.series[f"{sc.name}.position_N"].time_s)]
@@ -191,8 +205,12 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
 def cmd_run(args: argparse.Namespace) -> int:
     try:
         scenario = load_scenario(args.scenario)
+        file_sha256 = hashlib.sha256(Path(args.scenario).read_bytes()).hexdigest()
     except ScenarioValidationError as exc:
         print(f"INVALID: {exc}", file=sys.stderr)
+        return 1
+    except OSError as exc:  # removed or unreadable between the load and the hash
+        print(f"INVALID: {args.scenario}: could not read file ({exc.strerror or exc})", file=sys.stderr)
         return 1
 
     argument_error = _run_argument_error(scenario, args)
@@ -248,6 +266,9 @@ def cmd_run(args: argparse.Namespace) -> int:
     except Exception as exc:  # noqa: BLE001 -- report ANY run failure with a specific message, not a bare traceback
         print(f"ERROR: run failed: {exc}", file=sys.stderr)
         return 3
+    if result.provenance is not None:  # the file as read, before migration (transparency audit, Phase 2b)
+        result.provenance = dataclasses.replace(result.provenance, scenario_file=Path(args.scenario).name,
+                                                scenario_file_sha256=file_sha256)
 
     try:
         _write_run_outputs(args, scenario, result, command_summary)

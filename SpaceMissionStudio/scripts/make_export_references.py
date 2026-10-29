@@ -168,7 +168,7 @@ def _write(out: Path, app) -> None:
     event_model.write_csv(_events(), out / "events.csv", _EPOCH)  # Timeline > Export CSV...
     summary_path = out / "mission_output.csv"
     _summary().export_csv(summary_path)  # Output > Export CSV...
-    output_provenance.write_sidecar(summary_path, _result().provenance.to_dict())
+    output_provenance.write_sidecar(summary_path, _result().provenance_record())
 
     from spacemissionstudio.gui.monte_carlo_results_widget import MonteCarloResultsWidget
 

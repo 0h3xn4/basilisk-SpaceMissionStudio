@@ -171,6 +171,9 @@ class ResolvedSpaceWeather:
     # the last day's values (SimulationService.check_stop_time stops a run
     # there).
     last_day: date | None = None
+    # The MSFC prediction table the run's days past the observations came
+    # from, None when it needed none (recorded in the run's provenance).
+    forecast_file: Path | None = None
 
 
 def validate_file(path, start_utc: datetime, end_utc: datetime) -> ValidationResult:
@@ -805,7 +808,8 @@ def _resolve_real(source: str, start_utc: datetime, end_utc: datetime, local_fil
                         f"{first:%Y%m%d}_{last:%Y%m%d}.csv")
     if not _has_rows(dest, len(days) + 1):  # missing, or cut short by a write before F-09's fix
         _write_basilisk_csv(days, dest)
-    return ResolvedSpaceWeather(dest, path, warnings, last)
+    used_msfc = bool(kinds & {"msfc_forecast", "msfc_repeated"})
+    return ResolvedSpaceWeather(dest, path, warnings, last, Path(msfc.path) if used_msfc else None)
 
 
 def resolve(source: str, start_utc: datetime, end_utc: datetime,

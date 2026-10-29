@@ -141,6 +141,8 @@
     "probe-1PinholeCamera": 1622141468,
     "shadow_eros": 79412294
    },
+   "scenario_file": "",
+   "scenario_file_sha256": "",
    "series_frames": {
     "probe-1.orbit_elements.arg_periapsis": "N",
     "probe-1.orbit_elements.eccentricity": "N",

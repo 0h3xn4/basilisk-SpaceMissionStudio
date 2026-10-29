@@ -140,6 +140,8 @@
     "probe-1PixelLineConverter": 396302027,
     "probe-1RelativeODuKF": 1410543790
    },
+   "scenario_file": "",
+   "scenario_file_sha256": "",
    "series_frames": {
     "probe-1.orbit_elements.arg_periapsis": "N",
     "probe-1.orbit_elements.eccentricity": "N",

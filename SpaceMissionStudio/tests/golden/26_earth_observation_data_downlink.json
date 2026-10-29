@@ -648,6 +648,8 @@
     "spaceWeatherData": 3328266330,
     "zeroWind": 507670478
    },
+   "scenario_file": "",
+   "scenario_file_sha256": "",
    "series_frames": {
     "berlin-gs.access_to_eo-sat.azimuth": "L",
     "berlin-gs.access_to_eo-sat.elevation": "L",

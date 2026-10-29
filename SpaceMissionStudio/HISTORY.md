@@ -14513,3 +14513,35 @@ No result of a saved scenario changes: the gains applied are the same, and
 the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
+
+## The run record (2026-10-29)
+
+The transparency plan, Phase 2 ("Reproducibility"), first part: 2a, 2b,
+2d and 2f of `docs/transparency_audit.md` 9.2. 2e (a split run's
+provenance) was done with the defects (#151). Branch `run-record`.
+
+- **2a:** `run` writes `scenario_as_run.json`, the scenario after load and
+  migration in the app's own format (`schema.scenario.scenario_text`).
+  Checked: its canonical hash equals the provenance's `scenario_sha256`,
+  and running it again gives the same `scenario_sha256`.
+- **2b:** `RunProvenance.scenario_file` and `scenario_file_sha256`, the
+  file given and the SHA-256 of its bytes, set by `run` and by the GUI when
+  the run starts from a saved file with no unsaved edits
+  (`MainWindow._unchanged_file_record`).
+- **2d:** `dependencies.file_record` hashes a file over 32 MB once and
+  keeps the hash (`hash_cache_path()`, keyed by path, size and
+  modification time; an in-process memo first). `de430.bsp`: 119 741 440
+  bytes, 8.2 s to hash here, then read from the cache. Installed Earth
+  orientation and small-body kernels go through
+  `dependencies.installed_file_record` (hashed now, compared with the
+  install: `matches_install`), and a mismatch is a run warning
+  (`changed_since_install`). `ResolvedSpaceWeather.forecast_file` names the
+  MSFC table a run used; the service and the split run record it as
+  `space_weather_forecast`. The Reference data panel hashes through the
+  same function.
+- **2f:** `ResultSet.provenance_record()` is the record and the run's
+  warnings (`run_warnings`): `provenance.json` from **Export CSV** and
+  **Export all**, and the Timeline and Output sidecars.
+
+Each new test fails on the code before (7 failed).
+Full suite on Python 3.14 (a home holding only the reference data cache): 4016 passed in 11 min 51 s.

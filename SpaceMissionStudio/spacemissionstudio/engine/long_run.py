@@ -123,7 +123,8 @@ def _whole_span_space_weather(scenario: Scenario):
     NRLMSISE atmosphere), handed to every segment as a local file: the
     whole span is checked against the data's dates up front. Returns the
     segments' config, the resolver's warnings (what the data is) and the
-    real data file it was built from (None when nothing was resolved)."""
+    resolution itself, with the real data files it was built from (None
+    when nothing was resolved)."""
     sw_config = scenario.space_weather
     if sw_config.atmosphere_model != "nrlmsise00" or not any(sc.enable_drag for sc in scenario.spacecraft):
         return sw_config, [], None
@@ -134,7 +135,7 @@ def _whole_span_space_weather(scenario: Scenario):
     resolved = spaceweather.resolve_for(sw_config, start, end)
     return SpaceWeatherConfig(source="local_file", local_file_path=str(resolved.path), cache_dir=sw_config.cache_dir,
                               atmosphere_model=sw_config.atmosphere_model), \
-        list(resolved.warnings), resolved.data_file
+        list(resolved.warnings), resolved
 
 
 def _carry_state(segment: Scenario, service, result: ResultSet) -> dict[str, float]:
@@ -248,7 +249,7 @@ def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], 
     total_s = sum(lengths)  # [s]
     epoch = _parse_epoch(scenario.epoch_utc)
     segment = copy.deepcopy(scenario)
-    segment.space_weather, weather_warnings, weather_file = _whole_span_space_weather(scenario)
+    segment.space_weather, weather_warnings, weather = _whole_span_space_weather(scenario)
     provenances = []
     merged: ResultSet | None = None
     dv_offsets: dict[str, float] = {}
@@ -292,16 +293,17 @@ def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], 
     for warning in weather_warnings:
         if warning not in merged.warnings:
             merged.warnings.insert(0, warning)
-    merged.provenance = _whole_run_provenance(scenario, provenances, weather_file)
+    merged.provenance = _whole_run_provenance(scenario, provenances, weather)
     return merged
 
 
-def _whole_run_provenance(scenario: Scenario, provenances: list, weather_file):
+def _whole_run_provenance(scenario: Scenario, provenances: list, weather):
     """The provenance of the whole run, from its segments' (audit 3.3: it
     was segment 0's alone): the hash of the scenario as given, not of
     segment 0's modified copy; every segment's seeds, later segments' as
-    "<model> (segment N)"; and the real space-weather file the run used,
-    with the whole-span file built from it as ``space_weather_resolved``."""
+    "<model> (segment N)"; and the real space-weather files the run used
+    (observations, and the MSFC prediction when it reached past them), with
+    the whole-span file built from them as ``space_weather_resolved``."""
     first = provenances[0] if provenances else None
     if first is None:
         return None
@@ -312,9 +314,11 @@ def _whole_run_provenance(scenario: Scenario, provenances: list, weather_file):
         if provenance is not None:
             seeds.update({f"{model} (segment {index})": seed for model, seed in provenance.rng_seeds.items()})
     data_files = dict(first.data_files)
-    if weather_file is not None and "space_weather" in data_files:
+    if weather is not None and "space_weather" in data_files:
         data_files["space_weather_resolved"] = data_files["space_weather"]
-        data_files["space_weather"] = dependencies.file_record(weather_file)
+        data_files["space_weather"] = dependencies.file_record(weather.data_file)
+        if weather.forecast_file is not None:
+            data_files["space_weather_forecast"] = dependencies.file_record(weather.forecast_file)
     return dataclasses.replace(first, scenario_sha256=output_provenance.scenario_sha256(scenario),
                                rng_seeds=seeds, data_files=data_files)
 

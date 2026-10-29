@@ -649,6 +649,8 @@
     "spaceWeatherData": 3328266330,
     "zeroWind": 507670478
    },
+   "scenario_file": "",
+   "scenario_file_sha256": "",
    "series_frames": {
     "rods-off.attitude_sigma_BN": "B relative to N",
     "rods-off.body_rate_omega_BN_B": "B",

@@ -713,7 +713,6 @@ class EventTimelineWidget(QWidget):
         """Write the shown events to ``path``, and the run's provenance to
         ``<path>.provenance.json`` (as the Mission Output export does)."""
         event_model.write_csv(self.visible_events(), path, self._epoch_utc)
-        provenance = getattr(self._result, "provenance", None)
-        if provenance is not None:  # provenance on every output (UX/UI guidelines)
-            output_provenance.write_sidecar(path, provenance.to_dict())
+        if getattr(self._result, "provenance", None) is not None:  # provenance on every output (UX/UI guidelines)
+            output_provenance.write_sidecar(path, self._result.provenance_record())
         return path

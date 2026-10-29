@@ -618,3 +618,14 @@ def test_without_hard_links_the_file_is_moved_into_place(tmp_path, monkeypatch):
     resolved = sw.resolve("bundled", *window, cache_dir=tmp_path)
     assert resolved.path.exists() and len(resolved.path.read_text().splitlines()) > 60
     assert sorted(p.name for p in tmp_path.iterdir()) == [resolved.path.name]
+
+
+def test_the_resolution_names_the_msfc_table_only_when_the_run_needs_it(tmp_path):
+    """Transparency audit 2d: the MSFC prediction a run used was named in a
+    warning only, so the provenance did not record it. The resolution now
+    names it (forecast_file), for the run to record; a run on observed days
+    names none."""
+    past = sw.resolve("bundled", datetime(2003, 10, 28), datetime(2003, 11, 2), cache_dir=tmp_path)
+    future = sw.resolve("bundled", datetime(2030, 1, 1), datetime(2030, 2, 1), cache_dir=tmp_path)
+    assert past.forecast_file is None
+    assert future.forecast_file == sw.MSFC_BUNDLED_PATH

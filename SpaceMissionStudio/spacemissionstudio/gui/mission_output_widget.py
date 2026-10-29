@@ -321,9 +321,8 @@ class MissionOutputWidget(QWidget):
             path = path.with_suffix(".csv")
         try:
             self._summary.export_csv(path)
-            provenance = getattr(self._result, "provenance", None)
-            if provenance is not None:  # provenance on every output (UX/UI guidelines)
-                output_provenance.write_sidecar(path, provenance.to_dict())
+            if getattr(self._result, "provenance", None) is not None:  # provenance on every output (UX/UI guidelines)
+                output_provenance.write_sidecar(path, self._result.provenance_record())
         except OSError as exc:
             feedback.report(self, f"Could not export the mission output to {path}: {exc}")
             return

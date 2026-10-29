@@ -17,6 +17,15 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-29: the run record (Phase 2a, 2b, 2d, 2f)
+
+**No number changes.** The regression baseline of all 31 templates differs
+only in two new provenance fields, `scenario_file` and
+`scenario_file_sha256` (empty in the baseline, which runs the service
+directly). The data files' records, excluded from the baseline as they
+differ from computer to computer, gain the SHA-256 of files over 32 MB and
+of installed kernels, and the MSFC prediction file where a run used it.
+
 ## 2026-10-29: GUI defaults (audit 3.4, 3.7, 3.9)
 
 **Saved scenarios:** no number changes. The regression baseline (31

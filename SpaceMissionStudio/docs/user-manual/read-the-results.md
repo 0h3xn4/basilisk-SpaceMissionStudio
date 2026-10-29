@@ -91,8 +91,11 @@ commands). **Clear Time Cursor**, at the top of Results and the Timeline
 | Timeline: **Ctrl+C** | The selected rows, as tab-separated text |
 | Results > Output: **Export CSV...** | Every report, in SI units |
 
-Every export records its provenance: the software versions and the
-checksum of every input, so you can tell later exactly what produced it.
+Every export records its provenance: the software versions, the
+checksum of every input, and the run's warnings, so you can tell later
+exactly what produced it and what it was warned of. A run started from a
+saved file with no unsaved edits also records the file's name and the
+checksum of its bytes.
 The Results export writes a `provenance.json` into its folder; the
 Timeline and Output exports write `<file>.provenance.json` beside
 the CSV; PNG and SVG files carry it inside the image.
@@ -100,7 +103,8 @@ the CSV; PNG and SVG files carry it inside the image.
 ## From the command line
 
 `spacemissionstudio run scenario.json --out-dir out` writes the same CSV
-files, `events.csv` and `provenance.json` into `out/`.
+files, `events.csv` and `provenance.json` into `out/`, and
+`scenario_as_run.json`, the scenario as it was run.
 
 **More detail:** User Manual section 7,
 [Reading the results](../../USER_MANUAL.md#7-reading-the-results).

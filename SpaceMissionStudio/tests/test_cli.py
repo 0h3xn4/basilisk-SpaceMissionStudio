@@ -1016,3 +1016,31 @@ def test_kernels_status_with_a_missing_kernel_exits_2(capsys, monkeypatch):
         SimpleNamespace(filename="de430.bsp", available=False, error="not downloaded", path=None, modified_utc=None)])
     assert cli.main(["kernels-status"]) == 2
     assert "FAIL  de430.bsp: not downloaded" in capsys.readouterr().out
+
+
+@pytest.mark.requires_basilisk
+def test_run_keeps_the_scenario_as_run_and_the_file_it_came_from(tmp_path, capsys):
+    """Transparency audit 2a, 2b, 2f: the output folder holds the scenario
+    as run (scenario_as_run.json), whose canonical hash is the provenance's
+    scenario_sha256; the provenance names the file the run was loaded from
+    and the SHA-256 of its bytes, and lists the run's warnings. Running the
+    scenario as run again runs the same scenario."""
+    import hashlib
+
+    from spacemissionstudio.schema import SimSettings
+
+    path = tmp_path / "scenario.json"
+    scenario = _write_scenario(path, sim_settings=SimSettings(duration_days=0.01))  # [day]
+    path.write_text(json.dumps(scenario.to_dict(), indent=4), encoding="utf-8")  # other bytes, same scenario
+    assert cli.main(["run", str(path), "--out-dir", str(tmp_path / "out")]) == 0
+    record = json.loads((tmp_path / "out" / "provenance.json").read_text())
+    as_run = tmp_path / "out" / "scenario_as_run.json"
+    assert "scenario as run" in capsys.readouterr().out
+    assert record["scenario_file"] == "scenario.json"
+    assert record["scenario_file_sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    canonical = hashlib.sha256(json.dumps(json.loads(as_run.read_text()), sort_keys=True).encode()).hexdigest()
+    assert canonical == record["scenario_sha256"] != record["scenario_file_sha256"]
+    assert isinstance(record["run_warnings"], list)
+    assert cli.main(["run", str(as_run), "--out-dir", str(tmp_path / "again")]) == 0
+    again = json.loads((tmp_path / "again" / "provenance.json").read_text())
+    assert again["scenario_sha256"] == record["scenario_sha256"]
