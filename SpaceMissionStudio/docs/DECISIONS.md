@@ -5,6 +5,30 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The budget's calculation traces (2026-10-30)
+
+The transparency plan's Phase 4a and 4c, first model.
+
+- **The calculation writes its own trace, from the values it computes
+  with:** a trace rebuilt afterwards could describe a different
+  calculation than the one that ran. `tests/test_trace.py` then
+  recomputes each number from its trace's inputs alone, so a trace that
+  drifts from the code fails.
+- **One trace type for every model** (`engine.trace`): quantity, equation,
+  reference, inputs, intermediates and notes, each input with a unit and a
+  source of one of six kinds (`scenario:`, `parameter:`, `constant:`,
+  `last run:`, `computed:`, `trace:`). The lifetime, link and run-summary
+  traces will use the same type, and the GUI's Explain drawer (4b) shows
+  any of them.
+- **A solver's result is traced to its inputs, not its steps:** the
+  disposal burn (a bisection on the lifetime) and the drag make-up name
+  the model and every input; the lifetime's own trace will show inside.
+- **The baseline records the numbers, not the traces:** the traces
+  restate them. They are left out of the regression fingerprint, which
+  would otherwise change with every rewording, and checked by their own
+  tests.
+- **`--explain` is opt-in:** the default table is as it was.
+
 ## The orbit controllers' rules, as parameters (2026-10-30)
 
 The transparency plan's Phase 3a, the first area the coverage check

@@ -135,6 +135,7 @@ made with. The GUI writes the same bundle from Results › Plots ›
 | `budget scenario.json --altitudes 400,450,500` | Which altitude fits the tank |
 | `lifetime scenario.json --out life.json` | Also writes the lifetime as JSON |
 | `budget scenario.json --out budget.json` | Also writes the budget as JSON |
+| `budget scenario.json --explain` | After the table, how each number was computed: the equation, each input with its unit and where it came from, and the AD10 section |
 | `spaceweather-resolve scenario.json` | Which space-weather file a run would use |
 | `assumptions [scenario.json]` | The named parameters: value, unit and source, and which ones the scenario's configuration file changes (`--changed`, `--area`, `--yaml` for the defaults file); see [Change a parameter](project-configuration.md) |
 
@@ -157,16 +158,37 @@ what from:
 - `model`: the values used that are not in the scenario file. For a
   lifetime, the drag area and coefficient, the mass, the ballistic
   coefficient and the 120 km re-entry perigee. For a budget, its rules
-  and margins, such as `CAM_COUNT_FACTOR` (4).
+  and margins, such as `propellant_budget.cam_count_factor` (4).
 - `results`: the figures printed. A lifetime adds the perigee and apogee
-  height over time (`decay`).
+  height over time (`decay`). A budget's rows each carry their traces,
+  `delta_v_trace` and `propellant_trace`, the same `--explain` prints.
+  `traces` holds the efficiency, exhaust speed, dry mass and propellant
+  total.
 - `warnings` or `notes`: as printed.
 - `provenance`: the tool and Basilisk versions, the file you gave and the
   SHA-256 of its bytes, the scenario's SHA-256, and each space-weather file
   read with its SHA-256. After `budget --run`, also the run's own record.
 
-`--out` writes the budget itself. It does not go with `--launch-delays` or
-`--altitudes` (exit code 2).
+`--out` and `--explain` concern the budget itself. They do not go with
+`--launch-delays` or `--altitudes` (exit code 2).
+
+```console
+$ spacemissionstudio budget spacemissionstudio/scenarios/templates/18_leo_station_keeping.json --explain
+...
+How each number was computed:
+
+Effective exhaust speed: Ve = 14709.975 [m/s]
+  Ve = eta * Isp * g0   [ESA AD10 Sec. 5.11]
+  inputs:
+    eta = 1 [-]  Thruster efficiency  (trace: Thruster efficiency)
+    Isp = 1500 [s]  specific impulse  (scenario: the orbit thruster's isp_s (station_keeping, geo_station_keeping or constant_thrust))
+    g0 = 9.80665 [m/s^2]  standard gravity  (constant: STANDARD_GRAVITY_M_S2)
+...
+```
+
+Each input says where it came from: `scenario:` (a field of the file),
+`parameter:` (a named parameter, as in effect), `constant:`, `last run:`
+(a series of the run), `computed:` or `trace:` (another number above).
 
 ## Build scenarios
 

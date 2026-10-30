@@ -447,6 +447,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   configuration file changes them. GEO station keeping's J22 and lambda22
   now come from the GGM03S field the run loads (they had no recorded
   source). See `docs/models/orbit-control.md`.
+- **How each budget number was computed:** `budget --explain` prints, for
+  every row's delta-V and propellant and for the exhaust speed, dry mass
+  and total, the equation and its AD10 section. It also prints each input
+  with its unit and where it came from: the scenario file, a named
+  parameter, a constant, the last run's series, or another number of the
+  budget. `budget --out` writes the same traces in the JSON. The numbers
+  are unchanged.
 
 ## 1.3.1 (2026-10-27)
 
