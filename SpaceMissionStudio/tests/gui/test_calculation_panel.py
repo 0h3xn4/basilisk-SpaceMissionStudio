@@ -249,6 +249,47 @@ def test_a_results_overview_card_shows_how_its_figure_was_computed(qtbot):
     overview.wait_for_worker()
 
 
+def test_the_timeline_shows_how_the_selected_event_was_found(qtbot):
+    """With an event selected in the Timeline's table, Show calculation
+    sends its trace (its span first, then its delta-V); with none selected,
+    or without a run, the button is off."""
+    import numpy as np
+    from PySide6.QtCore import Qt
+
+    from spacemissionstudio.engine import events
+    from spacemissionstudio.engine.results import ResultSet, TimeSeries
+    from spacemissionstudio.gui.event_timeline_widget import EventTimelineWidget
+
+    t = np.arange(8, dtype=float) * 60.0  # [s]
+    result = ResultSet("burn")
+    result.add(TimeSeries("sat.station_keeping.burn_on", t, ("burn_on",),
+                          np.array([0, 0, 1, 1, 0, 0, 0, 0], dtype=float)[:, None]))
+    result.add(TimeSeries("sat.station_keeping.delta_v", t, ("cumulative_delta_v",),
+                          np.array([0, 0, 0, 0.3, 0.7, 0.7, 0.7, 0.7])[:, None], "m/s"))
+    widget = EventTimelineWidget()
+    qtbot.addWidget(widget)
+    widget.set_result(result)
+    assert not widget.calculation_button.isEnabled()
+    widget.table.view.setCurrentIndex(widget.table.view.model().index(0, 0))
+    assert widget.calculation_button.isEnabled()
+    with qtbot.waitSignal(widget.calculation_requested) as sent:
+        qtbot.mouseClick(widget.calculation_button, Qt.MouseButton.LeftButton)
+    explanation = sent.args[0]
+    (burn,) = events.extract_events(result)
+    assert explanation.title == "Event: station-keeping burn (sat)"
+    assert explanation.traces == events.trace_of(result, burn)
+    assert [trace.quantity for trace in explanation.traces] == ["station-keeping burn (sat)", "Delta-V"]
+    from spacemissionstudio.gui.calculation_panel import CalculationPanel
+
+    panel = CalculationPanel()
+    qtbot.addWidget(panel)
+    panel.explain(explanation)
+    panel.open_buttons["Delta-V"].click()  # the delta-V is opened from the burn
+    assert panel.trace is explanation.traces[1]
+    widget.set_result(None)
+    assert not widget.calculation_button.isEnabled() and widget.explanation() is None
+
+
 def test_the_semi_major_axis_card_opens_how_the_mean_elements_were_made(qtbot):
     """The Overview's semi-major axis change sends its trace and the mean
     elements' trace; the panel opens the second from the first."""
