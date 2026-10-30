@@ -1036,7 +1036,13 @@ says how each figure is read. Click a card (or focus it and press
 series it was read from, at which time, and the parameters and constants
 it used. **Provenance**
 beside the run's name shows what produced it: the versions, the
-integrator and step, the data files.
+integrator and step, the data files. Its **Show everything recorded**
+opens the whole record in a window, nothing left out: each data file's
+SHA-256, the scenario's hashes, every model's random seed, the time
+scales, the frames and transformations, each series' frame, and the
+configuration. Type in its filter to find a value (`sha256`, `rng`,
+`J2000`); **Copy as JSON** copies the record as `provenance.json` holds
+it.
 
 * **The catalog** lists every plot by group (Orbit, Attitude, Power,
   Link, Data, Thermal, Propellant, Sensors, Monte Carlo), by its title
@@ -1119,7 +1125,7 @@ took, and whether it is saved (**Saving...** while it is written, then
 **Saved**). Failed runs and Monte Carlo batches are not kept with the
 saved runs; they are listed for the session they ran in. **Provenance**
 shows what produced the selected run (versions, integrator, step, data
-files); a double-click draws the run dashed beside the run shown in
+files; **Show everything recorded** for the whole record); a double-click draws the run dashed beside the run shown in
 Results; **Copy** (or Ctrl+C) copies the rows as tab-separated text.
 A run is saved, and the oldest pruned, in the background: the window
 does not wait for the disk when a run ends.

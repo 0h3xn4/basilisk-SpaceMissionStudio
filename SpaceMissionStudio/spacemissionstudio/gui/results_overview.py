@@ -314,4 +314,4 @@ class ResultsOverview(QWidget):
     def _on_provenance(self) -> None:
         button = self.provenance_button
         self.popover.show_text(f"Provenance of {self._title or 'this run'}", self.provenance_text(),
-                               button.mapToGlobal(QPoint(0, button.height())))
+                               button.mapToGlobal(QPoint(0, button.height())), self._provenance)

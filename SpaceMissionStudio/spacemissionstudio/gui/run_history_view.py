@@ -221,11 +221,15 @@ class HistoryTable(QTableView):
 
 class ProvenancePopover(QFrame):
     """A run's provenance, in a popup beside the History (design: shadows
-    only on floating elements)."""
+    only on floating elements): a summary, and **Show everything
+    recorded**, the full record in a :class:`gui.provenance_view.ProvenanceDialog`
+    (transparency plan, Phase 4d)."""
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent, Qt.WindowType.Popup)
         set_role(self, role="card")  # a raised surface with its border
+        self._title, self._provenance = "", None
+        self.dialog = None  # the last ProvenanceDialog opened
         layout = QVBoxLayout(self)
         self.title = set_role(QLabel(), role="section-title")
         layout.addWidget(self.title)
@@ -234,18 +238,34 @@ class ProvenancePopover(QFrame):
         self.body.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.body.setWordWrap(True)
         layout.addWidget(self.body)
+        self.all_button = QPushButton("Show everything recorded")
+        self.all_button.setToolTip("Every value of the record: hashes, frames, time scales, seeds, configuration")
+        self.all_button.clicked.connect(self.show_all)
+        layout.addWidget(self.all_button, 0, Qt.AlignmentFlag.AlignLeft)
 
     def show_for(self, entry: HistoryEntry, at: QPoint) -> None:
         self.show_text(f"Run {entry.number}" if entry.number is not None else entry.scenario,
-                       provenance_text(entry.provenance), at)
+                       provenance_text(entry.provenance), at, entry.provenance)
 
-    def show_text(self, title: str, text: str, at: QPoint) -> None:
-        """``text`` under ``title``, at ``at`` (Results › Overview's too, M6a)."""
+    def show_text(self, title: str, text: str, at: QPoint, provenance: dict | None = None) -> None:
+        """``text`` under ``title``, at ``at`` (Results › Overview's too, M6a);
+        ``provenance``: the record Show everything recorded opens."""
+        self._title, self._provenance = title, provenance
         self.title.setText(title)
         self.body.setText(text)
+        self.all_button.setVisible(bool(provenance))
         self.adjustSize()
         self.move(at)
         self.show()
+
+    def show_all(self) -> None:
+        """The whole record, in its own window."""
+        from .provenance_view import ProvenanceDialog
+
+        self.hide()
+        self.dialog = ProvenanceDialog(self._title, self._provenance, self.parentWidget())
+        self.dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self.dialog.show()
 
 
 class RunHistoryView(QWidget):

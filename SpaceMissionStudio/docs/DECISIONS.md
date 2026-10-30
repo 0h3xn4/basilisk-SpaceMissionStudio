@@ -5,6 +5,20 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The provenance view (2026-10-30)
+
+- **A window from the popover, not a bigger popover:** the popover stays
+  the quick look the overview and History had; the full record (hundreds
+  of rows with the frames and seeds) needs room, a filter and Copy.
+- **A tree in fixed groups, with "Other" for the rest:** the groups follow
+  what an engineer looks for (software, run, seeds, scenario, data files,
+  time scales, frames, configuration). A key no group names, from a newer
+  record, still shows, under Other, so nothing recorded is hidden.
+- **Numbers in full (`repr`):** a provenance value is evidence, so a GM
+  or a tolerance is shown as recorded, not rounded.
+- **The record as `provenance.json` holds it**, the run's warnings
+  included, so the window and the file agree.
+
 ## The run summary's traces (2026-10-30)
 
 - **The card itself opens the calculation, not a button on it:** eleven

@@ -14514,6 +14514,21 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The provenance view (2026-10-30)
+
+The transparency plan, Phase 4d. Branch `provenance-view`, after
+`run-summary-trace`.
+
+- **`gui.provenance_view`** (new): `provenance_rows` (every key and
+  nested value of a record, as `(group, path, value)`, in `GROUPS` order,
+  unknown keys under Other) and `ProvenanceDialog` (a tree, a filter that
+  keeps matching rows and the branches to them, Copy as JSON, an empty
+  state).
+- **`ProvenancePopover`:** **Show everything recorded**, shown when the
+  run has a record; `show_text` takes the record. Results › Overview and
+  Run › History pass it.
+- **Tests:** `tests/gui/test_provenance_view.py` (4).
+
 ## The run summary's traces (2026-10-30)
 
 The transparency plan, Phase 4a and 4c, for a run's headline figures.
