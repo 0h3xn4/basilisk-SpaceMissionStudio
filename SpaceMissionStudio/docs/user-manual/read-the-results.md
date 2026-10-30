@@ -87,6 +87,7 @@ commands). **Clear Time Cursor**, at the top of Results and the Timeline
 | Results: **Export CSV...** | Every series, in SI units, one `.csv` per series |
 | Results: **Save PNG...** / **Save SVG...** | The selected plot (click a plot to select it) |
 | Results: **Export all...** | Every shown plot as PNG or SVG, with its data as CSV and `provenance.json` |
+| Results: **Export all...** › **Reproduction bundle...** | The shown run as a folder that `spacemissionstudio reproduce` runs again and compares: every series, the provenance, the scenario as run and copies of the files it refers to |
 | Timeline: **Export CSV...** | The events shown, in seconds and UTC, one column per measured value |
 | Timeline: **Ctrl+C** | The selected rows, as tab-separated text |
 | Results > Output: **Export CSV...** | Every report, in SI units |

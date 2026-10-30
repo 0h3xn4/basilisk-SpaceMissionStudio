@@ -901,3 +901,19 @@ never named "_TabBar".
 | `tests/golden/*.json` (regression baseline) | The run provenance had no effective configuration | Rewritten: each run provenance gains `effective_defaults`, `device_parameters`, `effective_config_note` and an empty `scenario_file_migrations` | The new provenance fields; the comparison found no other difference |
 | `test_results.py::test_result_set_export_csv_with_provenance_writes_sidecar_json` | Expected the record's fields up to `run_warnings` | Also expects `effective_defaults`, `effective_config_note`, `device_parameters` and `scenario_file_migrations` (empty) | The new provenance fields; the test still checks every field the file holds |
 | `tests/gui/test_export_files.py::test_every_export_is_byte_identical_to_1_1_0` | Removed the nine provenance keys added since 1.1.0 before comparing | Also removes the four of the effective configuration, which must be there | As above; every other byte is still compared with 1.1.0's |
+
+## Reproduction bundles (2026-10-29)
+
+- Added `test_reproduction.py` (5 tests: the column comparison, a folder
+  that is not a bundle or whose copies changed, a bundle run again with a
+  changed and a missing series caught and an edited scenario refused, a
+  bundle that carries its files and reproduces with the originals gone,
+  and the bundle's space weather used when this computer's differs) and
+  `tests/gui/test_results_widget.py::test_the_shown_run_exports_as_a_reproduction_bundle`
+  (Phase 2h). Each fails on the code before (checked:
+  `test_reproduction.py` cannot import the module that does not exist
+  there, and the GUI test fails the same way).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_reports_and_settings.py::test_every_export_is_listed_never_written_at_first` | 12 exports listed | 13, with "Reproduction bundle" | The new export is listed in Reports › Exports; every column of every row is still checked |

@@ -957,7 +957,7 @@ spacemissionstudio sil scenario.json --spacecraft sat-1 --binary <folder>/build/
     --report sil.json --max-error 1e-9
 ```
 
-`--max-error` makes the exit status 2 when any residual is larger, or a
+`--max-error` makes the exit status 5 when any residual is larger, or a
 command was never written: a check for CI.
 
 **Options.** The **step deadline** (off by default) counts a late answer

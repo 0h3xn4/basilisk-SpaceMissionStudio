@@ -1458,3 +1458,41 @@ def test_a_run_warning_gets_the_drift_explanation_only_when_it_is_a_drift_warnin
     rs.warnings = ["sat-1: orbital energy drifted 2.0% (limit 1%) -- the step is likely too large"]
     widget.set_result(rs)
     assert "numerical-integration problem" in widget.warnings_label.toolTip()
+
+
+def test_the_shown_run_exports_as_a_reproduction_bundle(widget, tmp_path, reported, qtbot):
+    """Transparency audit, Phase 2h: Export all... › Reproduction bundle...
+    writes the shown run's series, its scenario as run, and copies of the
+    files the scenario refers to, listed in bundle.json; a file that
+    cannot be found is listed and reported as missing. A folder that is
+    not empty is refused."""
+    import json
+    from datetime import datetime, UTC
+
+    from spacemissionstudio import reproduction
+    from spacemissionstudio.gui.run_history import RunRecord
+    from spacemissionstudio.schema import OrbitIC, Scenario, SpacecraftConfig
+
+    (tmp_path / "scenario").mkdir()
+    (tmp_path / "scenario" / "sat.obj").write_text("v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n", encoding="utf-8")
+    scenario = Scenario(name="demo", epoch_utc="2030-01-01T00:00:00", spacecraft=[SpacecraftConfig(
+        name="sat-1", vizard_model_path="sat.obj",
+        orbit=OrbitIC(type="cartesian", position_km=[7000.0, 0.0, 0.0], velocity_km_s=[0.0, 7.5, 0.0]))])
+    scenario.space_weather.msfc_file_path = str(tmp_path / "gone.txt")
+    result = _sample_result_set()
+    widget.set_result(result, scenario.epoch_utc)
+    widget._current_run = RunRecord(1, scenario.to_dict(), result, scenario.epoch_utc, datetime.now(UTC))
+    widget.scenario_folder = tmp_path / "scenario"
+    bundle = tmp_path / "bundle"
+    bundle.mkdir()
+    widget.export_bundle(bundle)
+    qtbot.waitUntil(lambda: bool(reported), timeout=10000)
+    assert sorted(p.name for p in bundle.glob("*.csv")) == ["sat-1.position_N.csv", "sat-1.velocity_N.csv"]
+    assert (bundle / reproduction.SCENARIO_AS_RUN).is_file() and (bundle / "inputs" / "sat.obj").is_file()
+    manifest = json.loads((bundle / reproduction.MANIFEST).read_text(encoding="utf-8"))
+    assert {e["role"]: e.get("file") for e in manifest["inputs"]} == {
+        "spacecraft[sat-1].vizard_model_path": "inputs/sat.obj", "space_weather.msfc_file_path": None}
+    assert reported[-1][1] == "warning" and "without 1 file(s)" in reported[-1][0]
+    reported.clear()
+    widget.export_bundle(bundle)
+    assert reported and "is not empty" in reported[-1][0]

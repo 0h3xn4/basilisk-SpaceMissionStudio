@@ -55,6 +55,10 @@ EXPORTS = (
            "In the image, as SVG metadata"),
     Export("plots_all", "Every shown plot", "PNG or SVG, CSV", "Results › Plots › Export all...", "Folder chosen",
            "In each image; provenance.json", "In each image, and provenance.json in the folder"),
+    Export("bundle", "Reproduction bundle", "CSV, JSON and the files referred to",
+           "Results › Plots › Export all... › Reproduction bundle...", "Empty folder chosen",
+           "provenance.json, bundle.json", "provenance.json, and bundle.json listing each file copied with its "
+           "SHA-256"),
     Export("events_csv", "Events", "CSV", "Timeline › Export CSV...", "events.csv", "<file>.provenance.json",
            "<file>.provenance.json beside it"),
     Export("output_csv", "Mission output", "CSV", "Results › Output › Export CSV...", "File chosen",

@@ -2355,6 +2355,7 @@ class MainWindow(QMainWindow):
         self._last_run_epoch_utc = scenario.epoch_utc
         self._last_run_scenario = scenario
         self._last_run_file = self._unchanged_file_record()
+        self.results_widget.scenario_folder = self._current_path.parent if self._current_path is not None else None
         save_file = getattr(self._vizard_request, "save_file", None)
         self._last_run_vizard_file = str(vizard_playback_file(save_file)) if save_file else None
         self.results_widget.set_featured_series(featured_series(scenario))

@@ -17,6 +17,12 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-29: reproduction bundles (Phase 2h)
+
+**No number changes.** The bundle and `reproduce` read and write files
+around a run; no engine code changed, and the regression baseline of all
+31 templates passes unchanged.
+
 ## 2026-10-29: the effective configuration (Phase 2c)
 
 **No number changes.** In the regression baseline, each of the 31

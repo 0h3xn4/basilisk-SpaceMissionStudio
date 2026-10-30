@@ -14514,7 +14514,37 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
-## The effective configuration (2026-10-29)
+## Reproduction bundles (2026-10-29)
+
+The transparency plan, Phase 2h of `docs/transparency_audit.md` 9.2, the last
+of Phase 2. Branch `reproduce`.
+
+- **`spacemissionstudio.reproduction`:**
+  - `write_bundle` copies the references (`_references`: meshes and the
+    Vizard model from the scenario's folder, the space-weather files from
+    the working folder, as the engine opens them) and the space-weather
+    files of `data_files` into `inputs/`, and writes `bundle.json`;
+  - `export_bundle` writes a whole run held in memory (the GUI's);
+  - `reproduce` checks the bundle (`read_manifest`, `bundled_scenario`),
+    uses the bundle's space weather when this computer's differs
+    (`_use_bundled_space_weather`), runs, compares each CSV
+    (`compare_series`) and lists what differs (`_environment_differences`).
+- **CLI:** `run --bundle`; `reproduce BUNDLE --out-dir DIR [--rtol] [--allow-scripts]`,
+  exit 0, 5, 1 or 3.
+- **GUI:** Results › Plots › **Export all...** › **Reproduction bundle...**,
+  off the GUI thread like the other exports, into an empty folder; listed
+  in Reports › Exports.
+- **Fixed on the way:** the user manual's `sil --max-error` exit status (2;
+  it is 5 since #151).
+
+Tried by hand:
+- Templates 01, 18 and 28 each bundled and reproduced: 8, 19 and 26 series with no difference.
+- Template 18's bundle holds `SW-All.txt` and `oct2026f10-prd.txt`.
+- Bundling template 01 took 3.7 s; reproducing it took 1.9 s.
+
+Each new test fails on the code before. Full suite on Python 3.14: 4034 passed in 13 min 12 s, including the
+regression baseline, which passes unchanged.
+
 
 The transparency plan, Phase 2c of `docs/transparency_audit.md` 9.2: every
 value a run used that its file does not give. Branch `effective-config`,

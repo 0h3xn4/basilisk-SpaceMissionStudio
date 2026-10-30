@@ -323,6 +323,8 @@ itself). The mission-sequence commands are in UM section 6 and HT
 | `<folder> also holds N file(s) this run did not write` | Files from an earlier run are next to this run's results | Use an empty `--out-dir` for each run |
 | `... at most 1000` / `... at most 64` / `larger than 20 MB` | The scenario exceeds a size limit (spacecraft, name length, description, file size; UM `command-line.md`) | Reduce it; real scenarios are far below the limits |
 | `... STALE -- changed since the export` (`fsw-status`) / `FAIL: largest residual ...` (`sil --max-error`) (exit code 5) | The command ran; its check did not pass | Export the flight software again / look at the SIL residuals |
+| `NOT REPRODUCED: N of M series differ ...` (`reproduce`, exit code 5) | The bundle's run, run again, gave other results; the lines below name each series and by how much | Read the `DIFFERS:` lines (versions, platform, data files) for the cause |
+| `... is not the file the bundle was made with` / `... is not the scenario the bundle was made from` (`reproduce`, exit code 1) | A file in the bundle was changed after it was written | Use the bundle as it was sent |
 | `INTERNAL ERROR: ...` (exit code 4) | A fault in SpaceMissionStudio itself, not in the input | Report it with the log file the message names |
 | CCSDS `error: ... (CCSDS 502.0-B-3 <clause>)` / `warning: ...` | The message breaks a 502.0-B-3 rule | Fix the message; warnings can be accepted |
 
