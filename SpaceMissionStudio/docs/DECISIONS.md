@@ -5,6 +5,23 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The events' traces (2026-10-30)
+
+- **Made when asked, not kept on each event:** a run can have 10,000
+  events, and the Timeline must stay instant. `events.trace_of` reads the
+  run again for the one event asked about. `Event` is unchanged, so the
+  regression baseline and `events.csv` (byte for byte against 1.1.0) are
+  too.
+- **One set of rules:** the burn and mode rules became tables
+  (`_BURN_SOURCES`, `_MODE_SOURCES`) and each rule a function, used by
+  extraction and by the trace alike, so the trace cannot state a
+  different rule. A test finds every event again from its trace.
+- **The samples either side are shown:** they bound when the event began
+  and ended, which is what an engineer asks of an event from a run
+  recorded every minute.
+- **No `--explain` for events:** a long run has thousands; `events.csv`
+  lists them, and the rule of each kind is on the models page.
+
 ## The provenance view (2026-10-30)
 
 - **A window from the popover, not a bigger popover:** the popover stays

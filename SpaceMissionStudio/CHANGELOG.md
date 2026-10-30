@@ -474,6 +474,12 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   shows it. The panels' layout saved by an earlier version is not
   restored, once: they start as in a new window (the rail and the
   dividers are restored as before).
+- **How each event was found:** **Show calculation** on the Timeline
+  opens the selected event's trace. It gives the series and the rule that
+  says the event is on, the samples it starts and ends on, and the samples
+  either side, so you see how precisely its times are known. **Open**
+  then shows how its delta-V, data, elevation or lowest sunlight was
+  read. The events and `events.csv` are unchanged.
 - **Tests:** the SIL deadline test no longer fails when a loaded Windows
   runner answers its first step in more than 50 ms (it now allows 0.2 s,
   and checks that missed deadlines are dropped steps).

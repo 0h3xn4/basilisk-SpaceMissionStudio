@@ -33,6 +33,12 @@ A search box (Ctrl+F) and a station filter narrow the timeline, the
 table and the export alike. Ctrl+C copies the selected rows, with the
 headings, as tab-separated text for a spreadsheet. The table exports to
 CSV with a provenance file beside it.
+
+**Show calculation** sends how the selected event was found
+(:func:`engine.events.trace_of`) to the Calculation panel
+(``calculation_requested``): the series and its rule, the first and last
+samples and those either side, and how its delta-V, data, elevation or
+sunlight was read.
 """
 
 from __future__ import annotations
@@ -49,6 +55,7 @@ from . import export_log
 from .. import output_provenance
 from ..engine import events as event_model
 from ..engine.results import ResultSet
+from .calculation_panel import Explanation
 from .data_table import DataTable, LazyRows, Row
 from .feedback import report
 from .theme import PALETTE, SERIES_COLORS, set_role
@@ -471,6 +478,8 @@ def _merged(x0: np.ndarray, x1: np.ndarray) -> list[tuple]:
 class EventTimelineWidget(QWidget):
     """The Timeline area (the run's events)."""
 
+    calculation_requested = Signal(object)  # a gui.calculation_panel.Explanation
+
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self._cursor: TimeCursor | None = None
@@ -493,6 +502,12 @@ class EventTimelineWidget(QWidget):
         self.fit_button.setToolTip("Show the whole run (0). The wheel or +/- zooms the timeline; Shift+wheel, the "
                                    "arrow keys or a right-button drag move it.")
         controls.addWidget(self.fit_button)
+        self.calculation_button = QPushButton("Show calculation")
+        self.calculation_button.setToolTip("How the selected event was found: the series and its rule, the "
+                                           "samples it starts and ends on, and how its values were read")
+        self.calculation_button.setEnabled(False)
+        self.calculation_button.clicked.connect(self.show_calculation)
+        controls.addWidget(self.calculation_button)
         self.export_button = QPushButton("Export CSV...")
         self.export_button.setToolTip("The events shown in the table, with a provenance file beside them.")
         self.export_button.clicked.connect(self._on_export)
@@ -657,6 +672,7 @@ class EventTimelineWidget(QWidget):
         self.table.sort_by(header.sortIndicatorSection() if header.sortIndicatorSection() < len(headings) else 0,
                            header.sortIndicatorOrder())  # the order chosen, earliest first until one is
         self._filling = False
+        self.calculation_button.setEnabled(self.selected_event() is not None)
 
     @staticmethod
     def _quantity_headings(keys: list[str]) -> list[str]:
@@ -677,6 +693,31 @@ class EventTimelineWidget(QWidget):
     def _on_row_clicked(self, row: int) -> None:
         if 0 <= row < self.table.row_count():
             self._pick_time(float(self.row_event(row).start_s))
+            self.calculation_button.setEnabled(True)
+
+    def selected_event(self) -> event_model.Event | None:
+        """The event of the table's current row, or None."""
+        index = self.table.view.currentIndex()
+        if not index.isValid() or not 0 <= index.row() < self.table.row_count():
+            return None
+        return self.row_event(index.row())
+
+    def explanation(self) -> Explanation | None:
+        """How the selected event was found, or None (no event selected, or
+        a run without the event's series)."""
+        event = self.selected_event()
+        if event is None or self._result is None:
+            return None
+        try:
+            traces = event_model.trace_of(self._result, event)
+        except (KeyError, ValueError, IndexError):
+            return None
+        return Explanation(f"Event: {event.label} ({event.spacecraft})", traces)
+
+    def show_calculation(self) -> None:
+        explanation = self.explanation()
+        if explanation is not None:
+            self.calculation_requested.emit(explanation)
 
     def _on_current_row_changed(self, current, previous) -> None:
         """The arrow keys move the cursor from row to row, as a click does."""
