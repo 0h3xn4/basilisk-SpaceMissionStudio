@@ -109,6 +109,21 @@ delta-V and propellant budget (ESA AD10 style)
 | `--out` | also write the budget as JSON: inputs, rules, rows with their traces, notes, the provenance |
 | `--explain` | after the table, how each number was computed: the equation, the inputs with their units and sources, and the AD10 section |
 
+## `link-budget`
+
+the downlink's Eb/N0 budget at a slant range (no Basilisk needed)
+
+| Argument | Help |
+|---|---|
+| `scenario` |  |
+| `--spacecraft` | spacecraft name (default: the first with an rf_link) |
+| `--station` | ground station name (default: the first) |
+| `--range-km` | slant range [km] (default: the longest of a pass, at the station's minimum elevation, for a circular orbit at the semi-major axis) |
+| `--elevation-deg` | elevation [deg] for the default range (default: the station's min_elevation_deg) |
+| `--pointing-deg` | angle between the antenna's boresight and the station [deg] (default: 0) |
+| `--explain` | how each figure was computed: the equation, the inputs with their units and sources |
+| `--out` | also write the budget as JSON: inputs, figures, traces, the provenance |
+
 ## `kernels-status`
 
 fetch/check SPICE kernel cache status

@@ -458,6 +458,11 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   the traces of the mean orbit, the mass, the ballistic coefficient, the
   deorbit burn, the lifetime and each rule's verdict. `lifetime --out`
   writes them.
+- **`link-budget`:** a new command. It gives the downlink's Eb/N0 budget,
+  by default at the longest range of a pass (the station's minimum
+  elevation), or at `--range-km`. Each figure, from EIRP to the margin, and
+  whether the link closes; `--explain` gives how each was computed, and
+  `--out` writes it as JSON. It needs no Basilisk.
 - **Fixed: a lifetime that reached the ground within one step raised an
   error.** With the exponential atmosphere and a deorbit burn, for
   instance, the estimate failed with "M2E() received e = 5.9e+26". It now

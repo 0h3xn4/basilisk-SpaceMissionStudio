@@ -22,6 +22,7 @@ the command line."""
 
 import json
 import math
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -362,3 +363,117 @@ def test_the_lifetime_traces_reach_the_record_and_the_command_line(tmp_path, cap
     out = capsys.readouterr().out
     assert "How each figure was computed:" in out and "Ballistic coefficient: B = " in out
     assert "Cd = 2.2 [-]  drag coefficient  (option: the drag coefficient asked for" in out
+
+
+# -- the RF link budget (engine.link_budget) ------------------------------------------------------
+
+def _link(pattern="fixed", **extra):
+    from spacemissionstudio.schema.scenario import GroundStationConfig, RFLinkConfig
+
+    settings = dict(tx_power_w=2.0, frequency_hz=8.2e9, data_rate_bps=50e6, tx_antenna_gain_dbi=6.0,
+                    implementation_loss_db=2.0, required_ebno_db=4.5, antenna_pattern=pattern)  # [W], [Hz], ...
+    settings.update(extra)
+    station = GroundStationConfig(name="gs", latitude_deg=52.5, longitude_deg=13.4, altitude_m=34.0,
+                                  min_elevation_deg=10.0, rx_antenna_gain_dbi=45.0, system_noise_temp_k=150.0)
+    return RFLinkConfig(**settings), station
+
+
+_LINK_EQUATIONS = {
+    "EIRP = 10 log10(P_tx) + G_tx - L_impl":
+        lambda t: 10.0 * math.log10(t.input("P_tx")) + t.input("G_tx") - t.input("L_impl"),
+    "FSPL = 20 log10(4 pi r f / c)": lambda t: 20.0 * math.log10(4.0 * math.pi * t.input("r") * t.input("f") / t.input("c")),
+    "L_point = min(L_max, k (theta / theta_3dB)^2)  (0 at theta = 0)":
+        lambda t: min(t.input("L_max"), t.input("k") * (t.input("theta") / t.input("theta_3dB")) ** 2),
+    "L_point = 0": lambda t: 0.0,
+    "L_point = G_tx - G(theta)": lambda t: t.input("G_tx") - t.input("G(theta)"),
+    "C = EIRP - FSPL - L_point + G_rx": lambda t: t.input("EIRP") - t.input("FSPL") - t.input("L_point") + t.input("G_rx"),
+    "N0 = 10 log10(k_B) + 10 log10(T_sys)": lambda t: t.input("10 log10(k_B)") + 10.0 * math.log10(t.input("T_sys")),
+    "C/N0 = C - N0": lambda t: t.input("C") - t.input("N0"),
+    "Eb/N0 = C/N0 - 10 log10(R_b)": lambda t: t.input("C/N0") - 10.0 * math.log10(t.input("R_b")),
+    "M = Eb/N0 - (Eb/N0)_req": lambda t: t.input("Eb/N0") - t.input("(Eb/N0)_req"),
+    "closes: M >= M_req": lambda t: "yes" if t.input("M") >= t.input("M_req") else "no",
+}
+
+
+@pytest.mark.parametrize("pattern, extra, angle", [("fixed", {}, 0.0), ("fixed", {"antenna_beamwidth_deg": 20.0}, 7.0),
+                                                   ("cosine", {}, 35.0)])
+def test_every_link_figure_is_recomputed_from_its_trace(pattern, extra, angle):
+    """EIRP, path loss, pointing loss, received power, noise density, C/N0,
+    Eb/N0, margin and the verdict each follow from their trace's inputs, and
+    equal the breakdown the run and the dashboard use."""
+    from spacemissionstudio.engine import link_budget
+
+    rf_link, station = _link(pattern, **extra)
+    traces = link_budget.link_budget_traces(2.1e6, rf_link, station, angle)
+    breakdown = link_budget.link_budget_breakdown(2.1e6, rf_link, station, angle)
+    for key, field_name in (("eirp", "eirp_dbw"), ("fspl", "fspl_db"), ("pointing_loss", "pointing_loss_db"),
+                            ("received", "received_dbw"), ("n0", "n0_dbw_hz"), ("cn0", "cn0_db_hz"),
+                            ("ebno", "ebno_db"), ("margin", "margin_db")):
+        assert traces[key].value == getattr(breakdown, field_name), key
+    for key, trace in traces.items():
+        assert trace.equation in _LINK_EQUATIONS, (key, trace.equation)
+        expected = _LINK_EQUATIONS[trace.equation](trace)
+        assert trace.value == (expected if isinstance(expected, str) else pytest.approx(expected, rel=1e-12, abs=1e-12)), key
+        for quantity in trace.inputs + trace.intermediates:
+            assert quantity.source.split(":", 1)[0] in SOURCE_KINDS, (key, quantity.source)
+    if pattern == "cosine":
+        assert traces["pointing_loss"].value > 0.0
+
+
+def test_the_link_verdict_follows_the_projects_required_margin():
+    """The verdict's required margin is the parameter in effect: the same
+    link closes at the default 0 dB and not at 30 dB."""
+    from types import SimpleNamespace
+
+    from spacemissionstudio.engine import link_budget
+
+    rf_link, station = _link()
+    default = link_budget.link_budget_traces(2.1e6, rf_link, station)["closes"]
+    strict = link_budget.link_budget_traces(2.1e6, rf_link, station, scenario=SimpleNamespace(
+        configuration=Configuration({"link.required_margin_db": 30.0})))["closes"]
+    assert (default.value, default.input("M_req")) == ("yes", 0.0)
+    assert (strict.value, strict.input("M_req")) == ("no", 30.0)
+    assert strict.inputs[1].source == "parameter: link.required_margin_db"
+
+
+def test_the_longest_range_of_a_pass_is_at_the_minimum_elevation():
+    """rho = sqrt(r^2 - (R cos eps)^2) - R sin eps: overhead it is the
+    height, and it satisfies the triangle's law of cosines at 10 deg."""
+    from spacemissionstudio.engine import link_budget
+
+    _rf, station = _link()
+    radius = constants.EARTH_EQUATORIAL_RADIUS_M + station.altitude_m  # [m]
+    a_m = constants.EARTH_EQUATORIAL_RADIUS_M + 550e3  # [m]
+    assert link_budget.slant_range_at_elevation_m(a_m, station, 90.0) == pytest.approx(a_m - radius)
+    rho = link_budget.slant_range_at_elevation_m(a_m, station)  # [m] at the station's 10 deg
+    assert a_m ** 2 == pytest.approx(radius ** 2 + rho ** 2 + 2.0 * radius * rho * math.sin(math.radians(10.0)))
+
+
+def test_the_link_budget_command_explains_and_records(tmp_path, capsys, monkeypatch):
+    """``link-budget`` prints the figures at the minimum-elevation range,
+    ``--explain`` their traces and ``--out`` the record; it needs no
+    Basilisk; a spacecraft without a link is refused."""
+    import builtins
+
+    from spacemissionstudio import cli
+
+    real_import = builtins.__import__
+
+    def no_basilisk(name, *args, **kwargs):
+        if name.startswith("Basilisk"):
+            raise ImportError(name)
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", no_basilisk)
+    template = (Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates"
+                / "26_earth_observation_data_downlink.json")
+    out = tmp_path / "link.json"
+    assert cli.main(["link-budget", str(template), "--explain", "--out", str(out)]) == 0
+    printed = capsys.readouterr().out
+    assert "eo-sat to berlin-gs, at 1,815.3 km, the slant range at 10 deg elevation:" in printed
+    assert "How each figure was computed:" in printed and "[the link equation" in printed
+    record = json.loads(out.read_text(encoding="utf-8"))
+    assert record["kind"] == "link_budget" and record["results"]["closes"] == "yes"
+    assert record["results"]["traces"]["fspl"]["inputs"][0]["source"].startswith("computed: rho = sqrt")
+    assert record["model"]["rules"]["link.required_margin_db"] == 0.0
+    assert cli.main(["link-budget", str(template), "--spacecraft", "nobody"]) == 3

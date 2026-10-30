@@ -5,6 +5,19 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The link budget's traces (2026-10-30)
+
+- **A command, not only traces:** a run's link margin is a time series,
+  and a design review asks for one budget. `link-budget` gives it at the
+  case that sizes the link: the longest range of a pass, at the station's
+  minimum elevation. Any other range can be given.
+- **The traces are built beside the breakdown, not inside it:** the
+  breakdown is evaluated every step of a run, and the traces would cost
+  there for nothing. `link_budget_traces` takes its values from the same
+  breakdown, so the two cannot differ.
+- **Boltzmann's constant stays -228.6 dBW/K/Hz,** as link budgets write it
+  (10 log10 of 1.380649e-23 is -228.599). The trace says so.
+
 ## The lifetime's traces (2026-10-30)
 
 - **A seventh source kind, `option:`**: the lifetime's drag coefficient,

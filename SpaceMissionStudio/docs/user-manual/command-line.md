@@ -136,6 +136,7 @@ made with. The GUI writes the same bundle from Results › Plots ›
 | `lifetime scenario.json --out life.json` | Also writes the lifetime as JSON |
 | `budget scenario.json --out budget.json` | Also writes the budget as JSON |
 | `lifetime scenario.json --explain` | After the result, how each figure was computed: the orbit, mass, ballistic coefficient, deorbit burn, lifetime and each rule's verdict, with their inputs and sources |
+| `link-budget scenario.json` | The downlink's Eb/N0 budget at the longest range of a pass (`--range-km`, `--pointing-deg`, `--explain`, `--out`) |
 | `budget scenario.json --explain` | After the table, how each number was computed: the equation, each input with its unit and where it came from, and the AD10 section |
 | `spaceweather-resolve scenario.json` | Which space-weather file a run would use |
 | `assumptions [scenario.json]` | The named parameters: value, unit and source, and which ones the scenario's configuration file changes (`--changed`, `--area`, `--yaml` for the defaults file); see [Change a parameter](project-configuration.md) |

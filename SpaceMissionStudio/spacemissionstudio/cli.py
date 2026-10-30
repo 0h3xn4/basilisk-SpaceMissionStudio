@@ -766,6 +766,70 @@ def cmd_budget(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_link_budget(args: argparse.Namespace) -> int:
+    loaded = _load_hashed(args.scenario)
+    if isinstance(loaded, int):
+        return loaded
+    scenario, file_record = loaded
+    from .engine import link_budget
+
+    spacecraft = next((sc for sc in scenario.spacecraft if sc.name == args.spacecraft), None) if args.spacecraft \
+        else next((sc for sc in scenario.spacecraft if sc.rf_link is not None), None)
+    if spacecraft is None or spacecraft.rf_link is None:
+        print(f"ERROR: {args.spacecraft or 'no spacecraft'}: no rf_link to budget", file=sys.stderr)
+        return 3
+    station = next((gs for gs in scenario.ground_stations if gs.name == args.station), None) if args.station \
+        else (scenario.ground_stations[0] if scenario.ground_stations else None)
+    if station is None:
+        print(f"ERROR: no ground station {args.station or ''}".rstrip(), file=sys.stderr)
+        return 3
+    if args.range_km is not None:
+        range_m, range_source = args.range_km * 1e3, "option: link-budget --range-km"
+        where = f"at {args.range_km:g} km"
+    else:
+        if spacecraft.orbit.type != "classical_elements":
+            print("ERROR: give --range-km: the minimum-elevation range needs the orbit's classical elements",
+                  file=sys.stderr)
+            return 2
+        a_m = spacecraft.orbit.semi_major_axis_km * 1e3  # [m]
+        elevation = station.min_elevation_deg if args.elevation_deg is None else args.elevation_deg  # [deg]
+        try:
+            range_m = link_budget.slant_range_at_elevation_m(a_m, station, elevation)
+        except ValueError:
+            range_m = float("nan")
+        if not range_m > 0.0:
+            print("ERROR: the orbit does not rise above that elevation", file=sys.stderr)
+            return 3
+        range_source = (f"computed: rho = sqrt(r^2 - (R cos(eps))^2) - R sin(eps), r = a = {a_m:.10g} m "
+                        f"(scenario: orbit.semi_major_axis_km), eps = {elevation:g} deg ("
+                        + ("option: link-budget --elevation-deg" if args.elevation_deg is not None
+                           else f"scenario: ground_stations[{station.name}].min_elevation_deg")
+                        + f"), R = R_E + {station.altitude_m:g} m")
+        where = f"at {range_m / 1e3:,.1f} km, the slant range at {elevation:g} deg elevation"
+    traces = link_budget.link_budget_traces(range_m, spacecraft.rf_link, station, args.pointing_deg, scenario,
+                                            range_source, "option: link-budget --pointing-deg")
+    print(f"{spacecraft.name} to {station.name}, {where}:")
+    for key in ("eirp", "fspl", "pointing_loss", "received", "n0", "cn0", "ebno", "margin"):
+        trace = traces[key]
+        print(f"  {trace.quantity:<36} {trace.value:>10.2f} {trace.unit}")
+    required = traces["closes"].input("M_req")
+    verdict = "closes" if traces["closes"].value == "yes" else "does not close"
+    print(f"The link {verdict} (required margin {required:g} dB, link.required_margin_db)")
+    if args.explain:
+        print()
+        print("How each figure was computed:")
+        for trace in traces.values():
+            print()
+            print("\n".join(trace.text()))
+    if args.out is not None:
+        from .engine import analysis_records
+
+        record = analysis_records.link_budget_record(scenario, spacecraft.name, station.name, range_m, range_source,
+                                                     args.pointing_deg, traces)
+        return _write_record(args, record, file_record)
+    return 0
+
+
 def _print_budget_traces(budget) -> None:
     """How each number of ``budget`` was computed (``engine.trace``): the
     budget-wide values, then each row's delta-V and propellant."""
@@ -1502,6 +1566,24 @@ def build_parser() -> argparse.ArgumentParser:
                           help="after the table, how each number was computed: the equation, the inputs with their "
                                "units and sources, and the AD10 section")
     p_budget.set_defaults(func=cmd_budget)
+
+    p_link = subparsers.add_parser("link-budget", help="the downlink's Eb/N0 budget at a slant range (no Basilisk "
+                                                       "needed)")
+    p_link.add_argument("scenario", type=Path)
+    p_link.add_argument("--spacecraft", help="spacecraft name (default: the first with an rf_link)")
+    p_link.add_argument("--station", help="ground station name (default: the first)")
+    p_link.add_argument("--range-km", type=_finite_float_arg, default=None,
+                        help="slant range [km] (default: the longest of a pass, at the station's minimum elevation, "
+                             "for a circular orbit at the semi-major axis)")
+    p_link.add_argument("--elevation-deg", type=_finite_float_arg, default=None,
+                        help="elevation [deg] for the default range (default: the station's min_elevation_deg)")
+    p_link.add_argument("--pointing-deg", type=_finite_float_arg, default=0.0,
+                        help="angle between the antenna's boresight and the station [deg] (default: 0)")
+    p_link.add_argument("--explain", action="store_true",
+                        help="how each figure was computed: the equation, the inputs with their units and sources")
+    p_link.add_argument("--out", type=Path, metavar="FILE.json", default=None,
+                        help="also write the budget as JSON: inputs, figures, traces, the provenance")
+    p_link.set_defaults(func=cmd_link_budget)
 
     p_kernels = subparsers.add_parser("kernels-status", help="fetch/check SPICE kernel cache status")
     p_kernels.set_defaults(func=cmd_kernels_status)

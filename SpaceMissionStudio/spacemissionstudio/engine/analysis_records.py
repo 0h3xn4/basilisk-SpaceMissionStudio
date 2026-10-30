@@ -48,6 +48,7 @@ from .. import output_provenance
 
 LIFETIME_KIND = "lifetime"
 BUDGET_KIND = "propellant_budget"
+LINK_BUDGET_KIND = "link_budget"
 
 
 def _plain(value):
@@ -141,6 +142,24 @@ def budget_record(scenario, spacecraft_name: str, budget, result=None) -> dict:
                     "traces": _plain(budget.traces)},
         "notes": list(budget.notes),
         "provenance": provenance,
+    }
+
+
+def link_budget_record(scenario, spacecraft_name: str, station_name: str, range_m: float, range_source: str,
+                       pointing_error_deg: float, traces: dict) -> dict:
+    """The record of a link budget (:func:`.link_budget.link_budget_traces`)
+    from ``spacecraft_name`` to ``station_name`` at ``range_m``."""
+    from ..config import registry
+
+    return {
+        "kind": LINK_BUDGET_KIND,
+        "spacecraft": spacecraft_name,
+        "ground_station": station_name,
+        "inputs": {"range_m": range_m, "range_source": range_source, "pointing_error_deg": pointing_error_deg},
+        "model": {"method": "free-space Eb/N0 link equation (engine.link_budget)",
+                  "rules": {p.name: registry.value(p.name, scenario) for p in registry.parameters("link")}},
+        "results": {key: trace.value for key, trace in traces.items()} | {"traces": _plain(traces)},
+        "provenance": _provenance(scenario, {}),
     }
 
 
