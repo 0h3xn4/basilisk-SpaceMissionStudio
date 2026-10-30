@@ -120,24 +120,31 @@ def central_body_mu(result: ResultSet | None) -> float:
     ``result``: the one its provenance recorded; for a run recorded before
     it was kept (1.3.1 and earlier), Basilisk's for the body its inertial
     frame is centred on; Earth's when neither is known."""
+    return central_body_mu_and_source(result)[0]
+
+
+def central_body_mu_and_source(result: ResultSet | None) -> tuple[float, str]:
+    """:func:`central_body_mu` and where it came from, as a calculation
+    trace names a source (``engine.trace``)."""
+    earth = "constant: EARTH_GM_M3_S2"
     provenance = getattr(result, "provenance", None)
     if provenance is None:
-        return MU_EARTH_M3_S2
+        return MU_EARTH_M3_S2, f"{earth} (the run recorded no provenance)"
     if provenance.central_body_mu_m3_s2 > 0.0:
-        return provenance.central_body_mu_m3_s2
+        return provenance.central_body_mu_m3_s2, "last run: provenance central_body_mu_m3_s2"
     origin = str(provenance.frames.get("N", {}).get("origin", ""))
     body = origin.removesuffix(" centre of mass").lower()
     if body in ("", "earth"):
-        return MU_EARTH_M3_S2
+        return MU_EARTH_M3_S2, f"{earth} (the run did not record its central body's GM)"
     try:
         from .orbit_conversion import OrbitConversionError
         from .orbit_conversion import central_body_mu as basilisk_mu
     except ImportError:  # pragma: no cover - the package always has it
-        return MU_EARTH_M3_S2
+        return MU_EARTH_M3_S2, f"{earth} (the run did not record its central body's GM)"
     try:
-        return basilisk_mu(body)
+        return basilisk_mu(body), f"constant: Basilisk's GM of {body}, the centre of the run's N frame"
     except OrbitConversionError:
-        return MU_EARTH_M3_S2
+        return MU_EARTH_M3_S2, f"{earth} ({body} has no GM in Basilisk)"
 
 
 def for_result(result: ResultSet | None, spacecraft: str | None):

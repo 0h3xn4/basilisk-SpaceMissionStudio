@@ -477,3 +477,114 @@ def test_the_link_budget_command_explains_and_records(tmp_path, capsys, monkeypa
     assert record["results"]["traces"]["fspl"]["inputs"][0]["source"].startswith("computed: rho = sqrt")
     assert record["model"]["rules"]["link.required_margin_db"] == 0.0
     assert cli.main(["link-budget", str(template), "--spacecraft", "nobody"]) == 3
+
+
+# -- the run's headline figures (engine.run_summary) ----------------------------------------------
+
+def _summary_traces(result):
+    from spacemissionstudio.engine import run_summary
+
+    figures = run_summary.summarize(result)
+    assert figures and all(f.trace is not None for f in figures), [f.key for f in figures if f.trace is None]
+    return run_summary.by_key(figures)
+
+
+def _sum_of(trace, prefix):
+    return sum(q.value for q in trace.inputs if q.symbol.startswith(prefix))
+
+
+_SUMMARY_EQUATIONS = {
+    "T = t_end / 3600": lambda t: t.input("t_end") / 3600.0,
+    "dV = sum of each controller's cumulative delta-V at the end": lambda t: _sum_of(t, "dV_"),
+    "m = sum over the tanks of (m0 - m1)": lambda t: _sum_of(t, "m0_") - _sum_of(t, "m1_"),
+    "M_min = min of M while a station is in view": lambda t: t.input("M"),
+    "E_min = min of E over the run": lambda t: t.input("E"),
+    "N = number of passes over every station": lambda t: _sum_of(t, "N_"),
+    "T_c = sum of the passes' durations / 60": lambda t: _sum_of(t, "T_") / 60.0,
+    "N = N_umbra + N_penumbra": lambda t: t.input("N_umbra") + t.input("N_penumbra"),
+    "T_e = sum of the eclipses' durations / 60": lambda t: t.input("T") / 60.0,
+    "D = D_end / 1e9": lambda t: t.input("D_end") / 1e9,
+}
+
+
+def test_every_headline_figure_is_recomputed_from_its_trace():
+    """Each figure of a run's summary (Results > Overview) equals what its
+    trace's equation gives from the trace's own inputs, and each series its
+    trace names is one the run recorded."""
+    from test_run_summary import _run
+
+    result = _run()
+    figures = _summary_traces(result)
+    assert set(figures) == {"run_length", "sat.delta_v", "sat.propellant_used", "sat.mean_sma_change",
+                            "sat.lowest_link_margin", "sat.lowest_battery_charge", "sat.passes", "sat.contact_time",
+                            "sat.eclipses", "sat.eclipse_time", "sat.data_downlinked"}
+    for key, figure in figures.items():
+        trace = figure.trace
+        assert trace.value == figure.value, key
+        if key == "sat.mean_sma_change":
+            continue
+        assert trace.equation in _SUMMARY_EQUATIONS, (key, trace.equation)
+        assert _SUMMARY_EQUATIONS[trace.equation](trace) == pytest.approx(figure.value, rel=1e-12, abs=1e-12), key
+        for quantity in trace.inputs + trace.intermediates:
+            if quantity.source.startswith("last run: "):
+                series = quantity.source[len("last run: "):].split(",")[0]
+                assert series in result.series, (key, series)
+    assert figures["sat.delta_v"].trace.input("dV_station_keeping") == 1.5  # [m/s]
+    assert figures["sat.delta_v"].trace.input("dV_constant_thrust") == 0.25  # [m/s]
+    assert figures["sat.lowest_link_margin"].trace.inputs[0].source == \
+        "last run: gs.access_to_sat.link_margin_db, at t = 3600 s"
+    assert figures["sat.eclipses"].trace.input("N_umbra") == 1
+
+
+def test_the_semi_major_axis_change_is_recomputed_from_its_trace():
+    """The window is N orbits of the median semi-major axis about the
+    central body; the change is the last window's mean less the first's.
+    The central body's GM is the run's own when it recorded one, else
+    Earth's, and the trace says which."""
+    from test_run_summary import _run
+
+    from spacemissionstudio.engine.results import RunProvenance
+
+    trace = _summary_traces(_run())["sat.mean_sma_change"].trace
+    assert trace.inputs[0].source == "parameter: results.sma_window_orbits" and trace.input("N") == 1.0
+    assert trace.inputs[1].source == "constant: EARTH_GM_M3_S2 (the run recorded no provenance)"
+    assert trace.input("mu") == constants.EARTH_GM_M3_S2
+    window = trace.input("N") * 2.0 * math.pi * math.sqrt(trace.input("a_med") ** 3 / trace.input("mu"))  # [s]
+    assert trace.input("window") == pytest.approx(window, rel=1e-15)
+    assert trace.value == pytest.approx((trace.input("a_last") - trace.input("a_first")) / 1000.0, rel=1e-15)
+
+    mu_mars, a = 4.282837e13, 3789.5e3  # [m^3/s^2], [m]
+    t = np.arange(0.0, 3.0 * 2.0 * math.pi * math.sqrt(a ** 3 / mu_mars), 30.0)  # [s] three orbits
+    provenance = RunProvenance(spacemissionstudio_version="test", basilisk_version="test", run_started_utc="-",
+                               integrator="rkf78", dynamics_task_rate_s=30.0, central_body="mars barycenter",
+                               central_body_mu_m3_s2=mu_mars)
+    mars = ResultSet("mars", provenance=provenance)
+    mars.add(TimeSeries("probe.position_N", t, ("x", "y", "z"), np.zeros((t.size, 3)), "m"))
+    mars.add(TimeSeries("probe.orbit_elements_mean.semi_major_axis", t, ("semi_major_axis",),
+                        (a - 0.2 * t).reshape(-1, 1), "m"))
+    trace = _summary_traces(mars)["probe.mean_sma_change"].trace
+    assert trace.input("mu") == mu_mars and trace.inputs[1].source == "last run: provenance central_body_mu_m3_s2"
+
+
+def test_the_run_command_explains_its_headline_figures(tmp_path, capsys):
+    """``run --explain`` prints each headline figure and how it was
+    computed after the run's files; without it, nothing more is printed."""
+    import argparse
+
+    from test_run_summary import _run
+
+    from spacemissionstudio import cli
+    from spacemissionstudio.schema import load_scenario
+
+    templates = Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates"
+    scenario = load_scenario(next(templates.glob("18_*.json")))
+    args = argparse.Namespace(out_dir=tmp_path / "plain", oem=False)
+    cli._write_run_outputs(args, scenario, _run(), None)
+    assert "Headline figures" not in capsys.readouterr().out
+    args = argparse.Namespace(out_dir=tmp_path / "explained", oem=False, explain=True)
+    cli._write_run_outputs(args, scenario, _run(), None)
+    printed = capsys.readouterr().out
+    assert "Headline figures, and how each was computed:" in printed
+    assert "Delta-V: 1.750 m/s\n  Delta-V: dV = 1.75 [m/s]\n" in printed
+    assert "dV_station_keeping = 1.5 [m/s]" in printed and "(last run: sat.station_keeping.delta_v" in printed
+    assert cli.build_parser().parse_args(["run", "s.json", "--explain"]).explain

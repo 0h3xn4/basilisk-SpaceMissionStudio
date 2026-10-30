@@ -34,6 +34,10 @@ the scenario sets its threshold (the brief: colour means something):
   empty battery is critical.
 
 The status is an icon and a word as well as a colour.
+
+A card with a calculation trace (``engine.trace``) shows it in the
+Calculation panel when clicked, or on Enter or Space when focused:
+``calculation_requested`` carries the :class:`gui.calculation_panel.Explanation`.
 """
 
 from __future__ import annotations
@@ -46,6 +50,7 @@ from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton, QScroll
 
 from ..config import registry
 from ..engine import run_summary
+from .calculation_panel import Explanation
 from .flow_layout import FlowLayout
 from .run_history_view import ProvenancePopover, provenance_text
 from .theme import CONTENT_MAX_WIDTH_PX, icon, numeric_font, set_role
@@ -95,7 +100,10 @@ def card_status(figure: run_summary.Figure, limits: CardLimits | None = None) ->
 
 class MetricCard(QFrame):
     """One figure: its label, its value with the unit, and its status when
-    it has one."""
+    it has one. ``chosen``: clicked, or Enter or Space while focused, when
+    the figure has a trace."""
+
+    chosen = Signal(object)  # the figure
 
     def __init__(self, figure: run_summary.Figure, parent: QWidget | None = None,
                  limits: CardLimits | None = None) -> None:
@@ -103,6 +111,13 @@ class MetricCard(QFrame):
         set_role(self, role="card")
         self.setFixedWidth(CARD_WIDTH_PX)
         self.figure = figure
+        if figure.trace is not None:
+            self.setObjectName("metricCard")
+            self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+            self.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.setToolTip("Show how this was computed")
+            self.setAccessibleName(f"{figure.label}: {figure.text()} {figure.unit}")
+            self.setAccessibleDescription("Press Enter to show how this was computed")
         layout = QVBoxLayout(self)
         layout.setSpacing(4)  # [px]
         self.label = set_role(QLabel(figure.label), tone="secondary")
@@ -134,6 +149,19 @@ class MetricCard(QFrame):
         self.status_row.setVisible(self.status is not None)
         layout.addWidget(self.status_row)
 
+    def mouseReleaseEvent(self, event) -> None:
+        if (self.figure.trace is not None and event.button() == Qt.MouseButton.LeftButton
+                and self.rect().contains(event.position().toPoint())):
+            self.chosen.emit(self.figure)
+            return
+        super().mouseReleaseEvent(event)
+
+    def keyPressEvent(self, event) -> None:
+        if self.figure.trace is not None and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Space):
+            self.chosen.emit(self.figure)
+            return
+        super().keyPressEvent(event)
+
 
 class _SummaryWorker(QThread):
     """:func:`run_summary.summarize` of one result, off the GUI thread."""
@@ -153,6 +181,7 @@ class ResultsOverview(QWidget):
 
     run_requested = Signal()
     summarized = Signal()
+    calculation_requested = Signal(object)  # a gui.calculation_panel.Explanation
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -259,9 +288,16 @@ class ResultsOverview(QWidget):
         limits = CardLimits.of_run(self._result, self._scenario)
         self.cards = [MetricCard(figure, self.cards_holder, limits) for figure in figures]
         for card in self.cards:
+            card.chosen.connect(self.show_calculation)
             self.cards_layout.addWidget(card)
             card.show()
         self.cards_layout.invalidate()
+
+    def show_calculation(self, figure: run_summary.Figure) -> None:
+        """``figure``'s trace, in the Calculation panel."""
+        if figure.trace is not None:
+            self.calculation_requested.emit(Explanation(f"{self._title or 'This run'}: {figure.label}",
+                                                        [figure.trace]))
 
     def wait_for_worker(self) -> None:
         """Wait for a run's figures still being worked out (closing)."""

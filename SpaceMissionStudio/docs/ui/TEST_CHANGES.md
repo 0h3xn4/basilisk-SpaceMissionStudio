@@ -1124,3 +1124,21 @@ never named "_TabBar".
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `tests/gui/test_workspace.py::test_the_view_analyses_and_tools_commands` | The View commands were Inspector, Explain, Problems, Reset Layout, ... | Calculation follows Explain; the test also hides the panel and shows it with View > Calculation | A new View command, View > Calculation, for the new panel. The other assertions are unchanged |
+
+## The run summary's traces (2026-10-30)
+
+- Added:
+  - in `tests/test_trace.py` (3 tests): every headline figure recomputed
+    from its trace, with each series it names one the run recorded; the
+    semi-major axis change's window and means, and the GM's source for a
+    run without provenance and for one that recorded a Mars GM;
+    `run --explain`;
+  - in `tests/gui/test_calculation_panel.py` (1 test): a Results ›
+    Overview card sends its figure's trace on a click and on Enter.
+
+  Each fails on the code before (checked).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/golden_capture.py` (the regression baseline's fingerprint) | Left out `data_files`, `delta_v_trace`, `propellant_trace`, `traces` | Also leaves out `trace` | A headline figure's trace restates its value with its inputs; `tests/test_trace.py` checks it. Every number in the baseline is compared as before |
+| `tests/gui/test_calculation_panel.py::test_the_calculation_panel_is_hidden_until_a_page_asks_for_it` | Pages: Budget | Also: Results › Overview's request shows the panel | The overview is a new source of calculations; the earlier assertions are unchanged |

@@ -255,7 +255,8 @@ A few things to notice right away:
   in the status bar and the top bar; click the count to open the panel.
 * The **Calculation** panel, a tab beside the Inspector: how a computed
   number was reached. **Show calculation** on the **Budget** and **End of
-  Life** pages, and beside the link budget on the Dashboard, opens it. It
+  Life** pages, and beside the link budget on the Dashboard, opens it, and
+  so does a card of the run's **Overview**. It
   gives the result, the equation and the standard it comes from, then
   each input and intermediate value with its unit and, under it, its
   source: a scenario field (`scenario:`), a named parameter at the value
@@ -1030,7 +1031,10 @@ margin already includes the required Eb/N0) and a battery that ran empty,
 or fell to a project's depth-of-discharge limit
 (`results.battery_critical_fraction`). A run is judged by the values it
 was run with. [Reading a run's results](docs/models/reading-results.md)
-says how each figure is read. **Provenance**
+says how each figure is read. Click a card (or focus it and press
+`Enter`) to see in the Calculation panel how its figure was computed: the
+series it was read from, at which time, and the parameters and constants
+it used. **Provenance**
 beside the run's name shows what produced it: the versions, the
 integrator and step, the data files.
 

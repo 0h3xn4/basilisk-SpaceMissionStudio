@@ -190,6 +190,10 @@ QFrame#templateCard:hover {{ background-color: {t['bg.hover']}; }}
 QFrame#templateCard[selected="true"] {{ background-color: {t['bg.selected']}; border-color: {t['accent']}; }}
 QFrame#templateCard:focus {{ border: {px(FOCUS_RING)} solid {t['border.focus']}; margin: 0px; }}
 QFrame#templateCard[selected="true"] QPushButton[variant="ghost"] {{ color: {t['text.primary']}; }}
+/* A Results › Overview card: click or Enter shows how its figure was computed. */
+QFrame#metricCard {{ margin: {px(FOCUS_RING - BORDER)}; }}
+QFrame#metricCard:hover {{ background-color: {t['bg.hover']}; }}
+QFrame#metricCard:focus {{ border: {px(FOCUS_RING)} solid {t['border.focus']}; margin: 0px; }}
 QFrame[role="recessed"], QScrollArea#paramReference {{
     background-color: {t['bg.canvas']};
     border: {px(BORDER)} solid {t['border.subtle']};

@@ -5,6 +5,23 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The run summary's traces (2026-10-30)
+
+- **The card itself opens the calculation, not a button on it:** eleven
+  cards with a button each would crowd the overview. A card with a trace
+  takes the focus, shows a hand pointer and the tooltip "Show how this
+  was computed", and answers Enter and Space as well as a click.
+- **`run --explain`, not a new command:** no command reads a run's CSV
+  files back, and the figures are worked out at the end of the run, so
+  `run` prints them when asked. Its default output is unchanged.
+- **The central body's GM says where it came from:**
+  `orbit_number.central_body_mu_and_source` gives the value and its
+  source together, so the trace cannot name a different GM from the one
+  used.
+- **Inputs that are whole series are named in the sources of the values
+  read from them** (the first window's mean, the median), not given a
+  value of their own: a series has no single value to show.
+
 ## The Calculation panel (2026-10-30)
 
 - **Named "Calculation", not "Explain":** Explain (Scenario > Overview)

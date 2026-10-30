@@ -154,7 +154,7 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
     and the scenario as run: after loading and migration, as the app saves
     it, so ``spacemissionstudio run`` on it runs the same scenario
     (its hash is the provenance's ``scenario_sha256``)."""
-    from .engine import ccsds_odm, data_budget, events
+    from .engine import ccsds_odm, data_budget, events, run_summary
     from .engine.results import output_path
     from .schema.scenario import scenario_text
 
@@ -200,6 +200,11 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
             summary_path = command_summary.export_csv(args.out_dir / "command_summary.csv")
             written.add(Path(summary_path).name)
             print(f"  command_summary: {summary_path}")
+
+    if getattr(args, "explain", False):
+        print()
+        print("Headline figures, and how each was computed:")
+        print("\n".join(run_summary.explain_lines(run_summary.summarize(result, found))))
 
     # Files an earlier run left: not this run's, though they sit beside it
     # (a stale events.csv and another spacecraft's series, audit R7).
@@ -1479,6 +1484,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_run.add_argument("--bundle", action="store_true",
                        help="also make --out-dir a reproduction bundle: copies of the files the scenario refers to "
                             "and the space-weather files read, listed in bundle.json")
+    p_run.add_argument("--explain", action="store_true",
+                       help="after the run, its headline figures (Results > Overview) and how each was computed: "
+                            "the series, parameters and constants it came from")
     p_run.set_defaults(func=cmd_run)
 
     p_assumptions = subparsers.add_parser("assumptions", help="list the named parameters: value, unit, source, "

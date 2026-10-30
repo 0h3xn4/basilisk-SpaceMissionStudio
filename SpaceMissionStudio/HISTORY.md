@@ -14514,6 +14514,28 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The run summary's traces (2026-10-30)
+
+The transparency plan, Phase 4a and 4c, for a run's headline figures.
+Branch `run-summary-trace`, after `explain-drawer`.
+
+- **`run_summary.Figure.trace`** (not compared), for each figure: run
+  length, delta-V (per controller), propellant used (per tank, first and
+  last finite sample), mean semi-major axis change (window, median, the
+  two windows' means, the GM and its source), lowest link margin and
+  battery charge (the series and time), passes and contact time (per
+  station), eclipses (umbra and penumbra) and eclipse time, data
+  downlinked.
+- **`orbit_number.central_body_mu_and_source`:** `central_body_mu` with
+  where it came from.
+- **Results › Overview:** a card with a trace is focusable and opens it
+  (click, Enter, Space): `ResultsOverview.calculation_requested`, which
+  the main window shows in the Calculation panel.
+- **`run --explain`:** `run_summary.explain_lines` after the run's files.
+- **Tests:** 3 in `tests/test_trace.py`, 1 in
+  `tests/gui/test_calculation_panel.py`; the golden fingerprint leaves
+  out `trace`.
+
 ## The Calculation panel (2026-10-30)
 
 The transparency plan, Phase 4b (the plan's "Explain drawer"). Branch
