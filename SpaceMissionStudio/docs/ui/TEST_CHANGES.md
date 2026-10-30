@@ -994,3 +994,13 @@ never named "_TabBar".
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `test_config.py::test_every_parameter_has_a_case_that_sets_it` | A GUI case named a test in `test_lifetime_widget.py` | A GUI case names its file and test (`file::test`), and each is checked in its file | GUI cases are now in three files; every case is still required and checked |
+
+## The dynamics' integration and run control, as parameters (2026-10-30)
+
+- Added, in `test_config.py`: a case for each of the 6 dynamics parameters, setting it and checking what it controls
+  changes (the trajectory, the re-entry checks, the conservation warning) and is unchanged at its default; and
+  `test_a_runs_provenance_records_the_tolerances_it_used`. Each fails on the code before (checked).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_two_body_validation.py::test_a_long_step_stays_close_to_kepler_and_records_its_tolerances` | Compared the provenance with `service.INTEGRATOR_*_TOLERANCE` | Compares it with the registry's defaults | The constants are parameters now; the values compared are the same |

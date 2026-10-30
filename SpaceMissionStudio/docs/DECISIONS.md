@@ -5,6 +5,25 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The dynamics' integration and run control, as parameters (2026-10-30)
+
+The transparency plan's Phase 3a, fifth area. The dynamics are split in
+two: run control here; the environment's data rules next.
+
+- **The tolerances are a project's to choose:** 1e-10 was chosen for long
+  steps (audit E3), and a project trading accuracy for speed, or wanting
+  more, now sets it. The provenance records the run's own.
+- **The re-entry checks' cadence is a parameter, not the trajectory's:**
+  the chunks do not change what Basilisk integrates (the same final
+  position to the millimetre in every case measured), only how precisely
+  the re-entry time is known.
+- **Not parameters:**
+  - the 100 km re-entry altitude, which Phase 3c reconciles with the
+    lifetime's 120 km;
+  - the long run's 90-day segments, which only have to fit Basilisk's
+    104-day clock;
+  - the order of the modules within a step.
+
 ## How a run's results are read, as parameters (2026-10-30)
 
 The transparency plan's Phase 3a, fourth area: the run summary, the

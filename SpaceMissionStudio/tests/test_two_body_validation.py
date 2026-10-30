@@ -195,8 +195,8 @@ def test_a_long_step_stays_close_to_kepler_and_records_its_tolerances():
     from Basilisk.utilities import orbitalMotion as om
     from Basilisk.utilities import simIncludeGravBody
 
-    from spacemissionstudio.engine.service import (INTEGRATOR_ABSOLUTE_TOLERANCE, INTEGRATOR_RELATIVE_TOLERANCE,
-                                                   SimulationService)
+    from spacemissionstudio.config import registry
+    from spacemissionstudio.engine.service import SimulationService
 
     scenario = load_scenario(SCENARIO_PATH)
     scenario.sim_settings.duration_days = 1.0  # [day]
@@ -217,5 +217,5 @@ def test_a_long_step_stays_close_to_kepler_and_records_its_tolerances():
     error_m = np.linalg.norm(pos.data[-1] - np.array(r_analytical))  # [m]
     assert error_m < 50.0, f"{error_m:.1f} m off Kepler after one day at a 300 s step"
 
-    assert result.provenance.integrator_relative_tolerance == INTEGRATOR_RELATIVE_TOLERANCE
-    assert result.provenance.integrator_absolute_tolerance == INTEGRATOR_ABSOLUTE_TOLERANCE
+    assert result.provenance.integrator_relative_tolerance == registry.default("dynamics.integrator_relative_tolerance")
+    assert result.provenance.integrator_absolute_tolerance == registry.default("dynamics.integrator_absolute_tolerance")

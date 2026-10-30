@@ -17,6 +17,15 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-30: the dynamics' integration and run control, as parameters (Phase 3a)
+
+**No number changes.** The adaptive integrators' tolerances (1e-10
+relative, 1e-8 absolute), the re-entry checks (every 6 h, every 300 s
+below a 200 km perigee) and the two-body runs' 1 % conservation check are
+named parameters with the same values; the regression baseline of all 31
+templates passes unchanged. The conservation warning writes its limit
+from the value now ("{limit * 100:g}%"), "1%" as it printed before.
+
 ## 2026-10-30: how a run's results are read, as parameters (Phase 3a)
 
 **No number changes.** The mean semi-major axis change's one-orbit window,

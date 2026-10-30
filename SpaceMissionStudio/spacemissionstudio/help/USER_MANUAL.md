@@ -429,7 +429,9 @@ fixed:
   how long the run is; a note under **Duration** then says how long
   ("58 min + 2 event or condition stops"), and Overview shows the same. The rkf45 and rkf78 integrators adapt
   their steps inside each dynamics step to a relative error of 1e-10
-  (recorded in the run's provenance); Euler and RK2 take fixed steps.
+  (recorded in the run's provenance; a project configuration can change
+  it, `dynamics.integrator_relative_tolerance`); Euler and RK2 take fixed
+  steps.
   Keep the dynamics step at 60 s or less: above that the orbit loses
   accuracy whatever the integrator (a one-day test orbit was 11 m off at
   300 s and 8.6 km at 1800 s), and Explain says so. **Random seed**
@@ -1104,8 +1106,9 @@ has a problem, the banner says so and Re-run waits until it is fixed.
 
 A line under the buttons names what produced the result (versions,
 integrator and step, run time). If an orbit-only run's energy or angular
-momentum drifts, an amber note appears there too: try a smaller
-dynamics step or a higher-order integrator.
+momentum drifts by more than 1 % (`dynamics.conservation_tolerance`),
+an amber note appears there too: try a smaller dynamics step or a
+higher-order integrator.
 
 The plot is interactive: hover to see exact values, and use your
 scroll wheel/drag to zoom and pan.

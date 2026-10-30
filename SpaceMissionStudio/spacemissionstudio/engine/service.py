@@ -114,26 +114,34 @@ _INTEGRATORS = {
 # what is refreshed only once per step, which is why the checks warn
 # above 60 s (engine.scenario_checks). At 30 s or less, the steps every
 # template uses, the default was met in one step already and results are
-# unchanged.
-INTEGRATOR_RELATIVE_TOLERANCE = 1e-10  # [-]
-INTEGRATOR_ABSOLUTE_TOLERANCE = 1e-8  # [state units: m, m/s, rad, ...] Basilisk's default
+# unchanged. The values are the parameters dynamics.integrator_relative_tolerance
+# (1e-10) and dynamics.integrator_absolute_tolerance (1e-8, Basilisk's
+# default), which a project configuration can change.
 
 
-def _integrator(integrator_cls, sc_object):
-    """``integrator_cls`` for ``sc_object``, with the tolerances above when
-    it is adaptive (Euler and RK2 take fixed steps and have none)."""
+def rule(name: str, scenario=None):
+    """The value of ``dynamics.<name>`` in effect for ``scenario``
+    (config.parameters): the integrator's tolerances, the re-entry checks
+    and the conservation check."""
+    return registry.value(f"dynamics.{name}", scenario)
+
+
+def _integrator(integrator_cls, sc_object, scenario=None):
+    """``integrator_cls`` for ``sc_object``, with the scenario's tolerances
+    when it is adaptive (Euler and RK2 take fixed steps and have none)."""
     integrator = integrator_cls(sc_object)
     if hasattr(integrator, "setRelativeTolerance"):
-        integrator.setRelativeTolerance(INTEGRATOR_RELATIVE_TOLERANCE)
-        integrator.setAbsoluteTolerance(INTEGRATOR_ABSOLUTE_TOLERANCE)
+        relative, absolute = integrator_tolerances("rkf78", scenario)
+        integrator.setRelativeTolerance(relative)
+        integrator.setAbsoluteTolerance(absolute)
     return integrator
 
 
-def integrator_tolerances(integrator: str) -> tuple[float | None, float | None]:
-    """``(relative, absolute)`` tolerance a run with ``integrator`` uses;
-    ``(None, None)`` for the fixed-step ones."""
+def integrator_tolerances(integrator: str, scenario=None) -> tuple[float | None, float | None]:
+    """``(relative, absolute)`` tolerance a run of ``scenario`` with
+    ``integrator`` uses; ``(None, None)`` for the fixed-step ones."""
     if integrator in ("rkf45", "rkf78"):
-        return INTEGRATOR_RELATIVE_TOLERANCE, INTEGRATOR_ABSOLUTE_TOLERANCE
+        return rule("integrator_relative_tolerance", scenario), rule("integrator_absolute_tolerance", scenario)
     return None, None
 
 
@@ -157,9 +165,8 @@ _logger = logging.getLogger(__name__)
 
 
 _REENTRY_ALTITUDE_M = 100e3  # [m] below this a spacecraft is flagged as re-entered
-_REENTRY_CHECK_S = 6.0 * 3600.0  # [s] between re-entry checks, perigee high
-_REENTRY_NEAR_PERIGEE_M = 200e3  # [m] below this perigee altitude, check often
-_REENTRY_NEAR_CHECK_S = 300.0  # [s] between re-entry checks, perigee low
+# How often a run with drag checks for re-entry: dynamics.reentry_check_s (6 h), and
+# dynamics.reentry_near_check_s (300 s) once a perigee is below dynamics.reentry_near_perigee_km (200 km).
 
 
 class SimulationServiceError(Exception):
@@ -1164,7 +1171,7 @@ class SimulationService:
             sc_object.hub.r_CN_NInit = r_N
             sc_object.hub.v_CN_NInit = v_N
 
-            sc_object.setIntegrator(_integrator(integrator_cls, sc_object))
+            sc_object.setIntegrator(_integrator(integrator_cls, sc_object, scenario))
             grav_factory.addBodiesTo(sc_object)
             self.scSim.AddModelToTask(dyn_task_name, sc_object, 10)
 
@@ -2194,11 +2201,14 @@ class SimulationService:
         return self._extract_results()
 
     def _execute_until(self, stop_ns: int) -> bool:
-        """Runs to ``stop_ns``. With drag, in chunks: every 6 h, or every
-        5 minutes once a perigee is below 200 km, and stops early (setting
-        :attr:`reentry`, returning False) once a spacecraft is below
-        100 km -- integrating it on through the Earth goes non-physical
-        and would lose the whole run."""
+        """Runs to ``stop_ns``. With drag, in chunks: every
+        ``dynamics.reentry_check_s`` (6 h), or every
+        ``dynamics.reentry_near_check_s`` (5 minutes) once a perigee is below
+        ``dynamics.reentry_near_perigee_km`` (200 km), and stops early
+        (setting :attr:`reentry`, returning False) once a spacecraft is
+        below 100 km -- integrating it on through the Earth goes
+        non-physical and would lose the whole run. The check's step is how
+        precisely the re-entry time is known."""
         watched = [(name, handle) for name, handle in self._handles.items()
                    if self._sc_has_drag(name)] if self.reentry is None else []
         if not watched:
@@ -2209,8 +2219,10 @@ class SimulationService:
             self.scSim.ExecuteSimulation()
             return True
         now_ns = self.scSim.TotalSim.CurrentNanos
+        check_s, near_check_s = rule("reentry_check_s", self.scenario), rule("reentry_near_check_s", self.scenario)
+        near_perigee_m = rule("reentry_near_perigee_km", self.scenario) * 1000.0  # [m]
         while now_ns < stop_ns:
-            step_s = _REENTRY_CHECK_S  # [s]
+            step_s = check_s  # [s]
             for name, handle in watched:
                 state = handle.sc_object.scStateOutMsg.read()
                 r_m, v_m_s = np.array(state.r_BN_N), np.array(state.v_BN_N)
@@ -2224,8 +2236,8 @@ class SimulationService:
                     a_m = -self.mu / (2.0 * energy)
                     h2 = float(np.sum(np.cross(r_m, v_m_s) ** 2))
                     e = math.sqrt(max(0.0, 1.0 - h2 / (self.mu * a_m)))
-                    if a_m * (1.0 - e) - self.central_radius_m < _REENTRY_NEAR_PERIGEE_M:
-                        step_s = _REENTRY_NEAR_CHECK_S
+                    if a_m * (1.0 - e) - self.central_radius_m < near_perigee_m:
+                        step_s = near_check_s
             next_ns = min(stop_ns, now_ns + macros.sec2nano(step_s))
             self.check_stop_time(next_ns)
             self.scSim.ConfigureStopTime(next_ns)
@@ -2292,8 +2304,10 @@ class SimulationService:
             run_started_utc=self._run_started_utc,
             integrator=self.scenario.sim_settings.integrator,
             dynamics_task_rate_s=self.scenario.sim_settings.dynamics_task_rate_s,
-            integrator_relative_tolerance=integrator_tolerances(self.scenario.sim_settings.integrator)[0],
-            integrator_absolute_tolerance=integrator_tolerances(self.scenario.sim_settings.integrator)[1],
+            integrator_relative_tolerance=integrator_tolerances(self.scenario.sim_settings.integrator,
+                                                                self.scenario)[0],
+            integrator_absolute_tolerance=integrator_tolerances(self.scenario.sim_settings.integrator,
+                                                                self.scenario)[1],
             rng_seed=self.scenario.sim_settings.seed,
             rng_seeds=dict(self._rng_seeds),
             rng_seed_note=RNG_SEED_NOTE,
@@ -2371,8 +2385,10 @@ class SimulationService:
             # during build()'s gravity setup.
             sc_config = spacecraft_by_name.get(name)
             if sc_config is not None and self.mu is not None and _is_two_body_only(self.scenario, sc_config):
+                tolerance = rule("conservation_tolerance", self.scenario)  # [-]
                 result.warnings.extend(conservation_drift_warnings(
                     name, self.mu, np.asarray(handle.recorder.r_BN_N), np.asarray(handle.recorder.v_BN_N),
+                    tolerance, tolerance,
                 ))
 
             # Osculating Keplerian elements -- see _osculating_elements()'s

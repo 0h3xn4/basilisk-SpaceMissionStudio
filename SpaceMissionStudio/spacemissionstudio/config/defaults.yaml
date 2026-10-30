@@ -208,3 +208,35 @@ parameters:
   # Source: SpaceMissionStudio's own choice. A project with a depth-of-discharge limit sets it here, e.g. 0.3 for 70 % depth of discharge.
   # Limits: 0 to 1 [-]
   # results.battery_critical_fraction: 0.0  # [-]
+
+  # -- dynamics --------------------------------------------------------------
+
+  # The relative error tolerance of the adaptive integrators (rkf45, rkf78).
+  # Source: SpaceMissionStudio's own choice (audit E3). Basilisk's 1e-4 let a 300 s step pass unrefined: a one-day two-body run was 384 m off Kepler's solution; at 1e-10 it is 11 m. Steps of 30 s or less are unaffected.
+  # Limits: 1e-14 to 0.001 [-]
+  # dynamics.integrator_relative_tolerance: 1e-10  # [-]
+
+  # The absolute error tolerance of the adaptive integrators, one value for every state.
+  # Source: Basilisk's default.
+  # Limits: 1e-14 to 0.01 [m, m/s, rad]
+  # dynamics.integrator_absolute_tolerance: 1e-08  # [m, m/s, rad]
+
+  # How often a run with drag checks for re-entry while every perigee is high.
+  # Source: SpaceMissionStudio's own choice. Six hours: a high orbit cannot re-enter between two checks.
+  # Limits: 60 to 86400 [s]
+  # dynamics.reentry_check_s: 21600.0  # [s]
+
+  # Below this perigee altitude a run with drag checks for re-entry every reentry_near_check_s.
+  # Source: SpaceMissionStudio's own choice.
+  # Limits: 100 to 2000 [km]
+  # dynamics.reentry_near_perigee_km: 200.0  # [km]
+
+  # How often a run checks for re-entry once a perigee is low: the precision of the re-entry time.
+  # Source: SpaceMissionStudio's own choice.
+  # Limits: 1 to 21600 [s]
+  # dynamics.reentry_near_check_s: 300.0  # [s]
+
+  # A two-body run warns when its orbital energy or angular momentum drifts by more than this fraction.
+  # Source: SpaceMissionStudio's own choice. 1 %: a check for a numerical blow-up, not a grade of the integrator's accuracy.
+  # Limits: 1e-12 to 1 [-]
+  # dynamics.conservation_tolerance: 0.01  # [-]
