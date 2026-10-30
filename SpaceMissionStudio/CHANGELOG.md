@@ -376,6 +376,17 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   (transparency plan, Phase 2h).
 - The user manual said `sil --max-error` exits 2 over its limit; it exits 5
   since the exit codes were made consistent with ICD-02.
+- **Change a rule without editing code:** the propellant budget's rules
+  and margins are named parameters (`propellant_budget.cam_count_factor`,
+  `residual_fraction`, ... 18 in all), each with its unit, source and
+  limits. A scenario names a project configuration file
+  (`config_file`, YAML) that changes them. `spacemissionstudio assumptions`
+  lists them with the values in effect and marks the changed ones.
+  `validate` says which file changes them, and every run, budget and
+  lifetime record names the file, its SHA-256 and each value changed. The
+  budget's margin labels follow the values ("5% of tank"). Each model is
+  documented in `docs/models/`, starting with the propellant budget
+  (transparency plan, Phase 3a, 3b). PyYAML is now a declared dependency.
 
 ## 1.3.1 (2026-10-27)
 

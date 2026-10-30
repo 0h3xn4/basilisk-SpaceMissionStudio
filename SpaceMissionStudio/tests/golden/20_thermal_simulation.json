@@ -146,6 +146,10 @@
    "basilisk_qualified": true,
    "central_body": "earth",
    "central_body_mu_m3_s2": 398600436000000.0,
+   "configuration": {
+    "file": null,
+    "overrides": {}
+   },
    "device_parameters": {
     "spacecraft[sat-1].actuators[rw-1]": {
      "Jg": 0.00477464829275686,

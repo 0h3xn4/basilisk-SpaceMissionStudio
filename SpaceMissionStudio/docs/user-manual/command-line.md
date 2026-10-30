@@ -95,9 +95,9 @@ or damaged file from filling the memory or the disk.
 `run --bundle` makes the output folder a reproduction bundle. Beside the
 results and `scenario_as_run.json` it holds:
 
-- `inputs/`: copies of the files the scenario refers to (a model's meshes,
-  a Vizard model, your own space-weather or MSFC file) and of the
-  space-weather files the run read;
+- `inputs/`: copies of the files the scenario refers to (its project
+  configuration file, a model's meshes, a Vizard model, your own
+  space-weather or MSFC file) and of the space-weather files the run read;
 - `bundle.json`: each copy, with the path it stands for and its SHA-256.
 
 Send the folder to a colleague. `reproduce` runs it again and compares:
@@ -136,6 +136,7 @@ made with. The GUI writes the same bundle from Results › Plots ›
 | `lifetime scenario.json --out life.json` | Also writes the lifetime as JSON |
 | `budget scenario.json --out budget.json` | Also writes the budget as JSON |
 | `spaceweather-resolve scenario.json` | Which space-weather file a run would use |
+| `assumptions [scenario.json]` | The named parameters: value, unit and source, and which ones the scenario's configuration file changes (`--changed`, `--area`, `--yaml` for the defaults file); see [Change a parameter](project-configuration.md) |
 
 ```console
 $ spacemissionstudio lifetime spacemissionstudio/scenarios/templates/22_starter_first_leo_satellite.json

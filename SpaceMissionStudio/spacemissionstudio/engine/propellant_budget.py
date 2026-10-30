@@ -79,27 +79,21 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, UTC
 from collections.abc import Callable
 
+from ..config import registry
 from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import PropellantBudgetConfig
 
 G0_M_S2 = 9.80665  # [m/s^2]
 MU_EARTH_M3_S2 = 398600.436e9  # [m^3/s^2] Basilisk's (astroConstants.h)
 REQ_EARTH_M = 6378136.6  # [m]
-CONVERGENCE_KG = 0.1  # [kg] Sec. 6.5
-CAM_SMA_CHANGE_M = 100.0  # [m] Sec. 6.2.4: up 100 m, then back
-CAM_COUNT_FACTOR = 4.0  # [-] Sec. 5.6
-ATTITUDE_PROPELLANT_FACTOR = 2.0  # [-] Sec. 5.6: +100%
-CONTROLLED_LAST_BURN_MARGIN = 0.15  # [-] Sec. 5.6
-RESIDUAL_FRACTION = 0.01  # [-] Sec. 5.8
-UNCERTAINTY_FRACTION = 0.02  # [-] Sec. 5.8
-EOL_DRAG_COEFF = 2.2  # [-] Sec. 5.2, end of life
-OPERATIONS_DRAG_COEFF = 3.0  # [-] Sec. 5.2, beginning of life and operations (not CubeSats)
-OPERATIONS_PERCENTILE = 95.0  # [%] Sec. 5.9
-EOL_PERCENTILE = 50.0  # [%] Sec. 5.9
-GEO_GRAVEYARD_BASE_M = 235e3  # [m] Sec. 6.3.1.3
-GEO_GRAVEYARD_PER_CR_A_M = 1000e3  # [m per (m^2/kg)] Sec. 6.3.1.3
-_MAX_ITERATIONS = 50
-LAUNCH_DELAYS_YEARS = (0.0, 1.0, 2.0, 3.0, 4.0, 5.0)  # [year] Sec. 5.5: up to 5 years late
+# The budget's rules and margins are named parameters (config.parameters,
+# "propellant_budget"): AD10's values by default, a project's own where its
+# configuration file sets them (transparency audit, Phase 3a).
+
+
+def rule(name: str, scenario=None):
+    """The value of ``propellant_budget.<name>`` in effect for ``scenario``."""
+    return registry.value(f"propellant_budget.{name}", scenario)
 
 
 class BudgetError(Exception):
@@ -166,9 +160,11 @@ def injection_delta_v(config: PropellantBudgetConfig, a_m: float):
     return max(sma, ecc), inclination
 
 
-def collision_avoidance_delta_v(a_m: float) -> float:
-    """One avoidance (Sec. 6.2.4): +100 m of semi-major axis, then back [m/s]."""
-    return 2.0 * _circular_speed(a_m) * CAM_SMA_CHANGE_M / (2.0 * a_m)
+def collision_avoidance_delta_v(a_m: float, sma_change_m: float | None = None) -> float:
+    """One avoidance (Sec. 6.2.4): +``sma_change_m`` of semi-major axis
+    (default ``cam_sma_change_m``, 100 m), then back [m/s]."""
+    sma_change_m = rule("cam_sma_change_m") if sma_change_m is None else sma_change_m
+    return 2.0 * _circular_speed(a_m) * sma_change_m / (2.0 * a_m)
 
 
 def clearance_delta_v(a_m: float, drop_km: float) -> float:
@@ -176,10 +172,13 @@ def clearance_delta_v(a_m: float, drop_km: float) -> float:
     return _circular_speed(a_m) * drop_km * 1e3 / (2.0 * a_m)
 
 
-def graveyard_delta_v(a_m: float, srp_coeff: float, srp_area_m2: float, dry_mass_kg: float):
+def graveyard_delta_v(a_m: float, srp_coeff: float, srp_area_m2: float, dry_mass_kg: float, scenario=None):
     """(delta-V [m/s], raise [m]) of a Hohmann transfer to the GEO graveyard
-    orbit, ``235 + 1000 * Cr * A / m`` km up (Sec. 6.3.1.3)."""
-    raise_m = GEO_GRAVEYARD_BASE_M + GEO_GRAVEYARD_PER_CR_A_M * srp_coeff * srp_area_m2 / dry_mass_kg
+    orbit, ``235 + 1000 * Cr * A / m`` km up by default (Sec. 6.3.1.3;
+    ``geo_graveyard_base_m`` and ``geo_graveyard_per_cr_a_m`` for
+    ``scenario``)."""
+    raise_m = rule("geo_graveyard_base_m", scenario) + \
+        rule("geo_graveyard_per_cr_a_m", scenario) * srp_coeff * srp_area_m2 / dry_mass_kg
     r1, r2 = a_m, a_m + raise_m
     dv1 = _circular_speed(r1) * (math.sqrt(2.0 * r2 / (r1 + r2)) - 1.0)
     dv2 = _circular_speed(r2) * (1.0 - math.sqrt(2.0 * r1 / (r1 + r2)))
@@ -274,10 +273,10 @@ def uncontrolled_reentry_delta_v(scenario, spacecraft, eol_utc, mass_kg: float, 
     r_m, v_m_s = _orbit_ic_to_rv(lt.MU_EARTH_M3_S2, spacecraft.orbit)
     orbit = lt.mean_orbit_from_state(r_m, v_m_s)
     area_m2, _cd = lt.drag_properties(spacecraft)
-    ballistic = EOL_DRAG_COEFF * area_m2 / mass_kg  # [m^2/kg]
+    ballistic = rule("eol_drag_coeff", scenario) * area_m2 / mass_kg  # [m^2/kg]
     horizon_years = target_years * 1.5 + 1.0
     density, horizon_years, notes = lt.density_for_scenario(scenario, eol_utc, horizon_years,
-                                                            forecast_percentile=EOL_PERCENTILE)
+                                                            forecast_percentile=rule("eol_percentile", scenario))
     files = getattr(density, "data_files", {})
 
     def years_from(start_orbit, horizon=horizon_years):
@@ -338,28 +337,39 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
     a_m = _operational_sma_m(spacecraft)
     notes: list[str] = []
     data_files: dict = {}
+    # The rules and margins in effect (config.parameters, "propellant_budget").
+    operations_percentile = rule("operations_percentile", scenario)  # [%]
+    operations_cd = rule("operations_drag_coeff", scenario)  # [-]
+    scaled_ratio = rule("scaled_run_ratio", scenario)  # [-]
+    cam_factor = rule("cam_count_factor", scenario)  # [-]
+    attitude_factor = rule("attitude_propellant_factor", scenario)  # [-]
+    last_burn_margin = rule("controlled_last_burn_margin", scenario)  # [-]
+    residual = rule("residual_fraction", scenario)  # [-]
+    uncertainty = rule("uncertainty_fraction", scenario)  # [-]
+    convergence_kg = rule("convergence_kg", scenario)  # [kg]
+    max_iterations = rule("max_iterations", scenario)
 
     if flown is None and result is not None:
         flown = run_contributors(result, spacecraft_name, config.mission_years)
     if flown is not None:
-        if flown.scale > 1.05:
+        if flown.scale > scaled_ratio:
             notes.append(f"the last run covered {flown.run_days:.0f} days; its orbit control is scaled "
                          f"x{flown.scale:.1f} to {config.mission_years:g} years -- run the whole mission for "
                          "an AD10 budget")
         settings = run_scenario or scenario
         run_sc = next((sc for sc in settings.spacecraft if sc.name == spacecraft_name), spacecraft)
-        if settings.space_weather.forecast_percentile != OPERATIONS_PERCENTILE:
+        if settings.space_weather.forecast_percentile != operations_percentile:
             notes.append(f"the last run used MSFC's {settings.space_weather.forecast_percentile:g}th percentile; "
-                         f"AD10 Sec. 5.9 asks for the {OPERATIONS_PERCENTILE:g}th for operations")
-        if run_sc.enable_drag and run_sc.drag_coeff != OPERATIONS_DRAG_COEFF and not run_sc.facets:
+                         f"AD10 Sec. 5.9 asks for the {operations_percentile:g}th for operations")
+        if run_sc.enable_drag and run_sc.drag_coeff != operations_cd and not run_sc.facets:
             notes.append(f"the last run used Cd {run_sc.drag_coeff:g}; AD10 Sec. 5.2 asks for "
-                         f"{OPERATIONS_DRAG_COEFF:g} in operations (2.2 for CubeSats)")
+                         f"{operations_cd:g} in operations (2.2 for CubeSats)")
 
     def simulated(entered, flown_pair, label):
         if entered is not None:
             return entered, None, "input"
         if flown_pair is not None:
-            return flown_pair[0], flown_pair[1], "last run, scaled" if flown.scale > 1.05 else "last run"
+            return flown_pair[0], flown_pair[1], "last run, scaled" if flown.scale > scaled_ratio else "last run"
         if label:
             notes.append(f"{label}: no value entered and none in the last run -- counted as 0")
         return 0.0, None, "input"
@@ -371,15 +381,15 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
     elif (config.in_plane_control_delta_v_m_s is None and (flown is None or flown.in_plane is None)
           and _estimates_in_plane(spacecraft) and scenario.gravity.central_body == "earth"):
         estimate = makeup(scenario, spacecraft, _parse_epoch(scenario.epoch_utc), config.mission_years,
-                          OPERATIONS_PERCENTILE)
+                          operations_percentile)
         ip_dv, ip_kg, ip_source = estimate.delta_v_m_s, None, "estimated"
         data_files.update(getattr(estimate, "data_files", {}))
         notes.append(f"in-plane control estimated from the drag at {estimate.altitude_km:.0f} km (NRLMSISE-00, "
-                     f"MSFC {OPERATIONS_PERCENTILE:g}th percentile, Cd {lifetime_cd(spacecraft):g}); full runs "
+                     f"MSFC {operations_percentile:g}th percentile, Cd {lifetime_cd(spacecraft):g}); full runs "
                      "spent ~5% more -- run the mission for the simulated figure")
-        if lifetime_cd(spacecraft) != OPERATIONS_DRAG_COEFF:
+        if lifetime_cd(spacecraft) != operations_cd:
             notes.append(f"the estimate uses Cd {lifetime_cd(spacecraft):g}; AD10 Sec. 5.2 asks for "
-                         f"{OPERATIONS_DRAG_COEFF:g} in operations (2.2 for CubeSats)")
+                         f"{operations_cd:g} in operations (2.2 for CubeSats)")
         notes.extend(f"in-plane estimate: {w}" for w in estimate.warnings)
     else:
         ip_dv, ip_kg, ip_source = simulated(config.in_plane_control_delta_v_m_s, flown and flown.in_plane,
@@ -391,18 +401,18 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
                                               "formation keeping" if spacecraft.phasing_keeping or spacecraft.roe_formation
                                               else "")
     lie_ip, lie_oop = injection_delta_v(config, a_m)
-    cam_count = config.collision_avoidance_count * CAM_COUNT_FACTOR
-    cam_dv = cam_count * collision_avoidance_delta_v(a_m)
+    cam_count = config.collision_avoidance_count * cam_factor
+    cam_dv = cam_count * collision_avoidance_delta_v(a_m, rule("cam_sma_change_m", scenario))
     if config.collision_avoidance_count == 0.0:
         notes.append("no collision avoidances entered -- AD10 Sec. 6.2.4 takes their number from ESA's DRAMA")
-    notes.append("residual and uncertainty are 1% and 2% of the tank load (AD10 Secs. 5.8, 6.4; its summary "
-                 "table prints 10% and 20%)")
+    notes.append(f"residual and uncertainty are {residual * 100:g}% and {uncertainty * 100:g}% of the tank load "
+                 "(AD10 Secs. 5.8, 6.4; its summary table prints 10% and 20%)")
 
     eol_utc = _parse_epoch(scenario.epoch_utc) + timedelta(days=config.mission_years * 365.25)
     reentry = None  # computed once: (delta-V, perigee, lifetime)
     propellant_kg = config.tank_capacity_kg  # [kg] initial guess (Sec. 6)
     rows: list[BudgetRow] = []
-    for iteration in range(1, _MAX_ITERATIONS + 1):
+    for iteration in range(1, max_iterations + 1):
         rows = []
         mass = dry_kg + propellant_kg  # beginning of life
 
@@ -423,12 +433,12 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
         add(phase, "Orbit transfers", config.transfer_delta_v_m_s, source="input")
         add(phase, "In-plane orbit control", ip_dv, ip_kg, source=ip_source)
         add(phase, "Out-of-plane orbit control", oop_dv, oop_kg, source=oop_source)
-        add(phase, f"Collision avoidance ({config.collision_avoidance_count:g} x 4)", cam_dv,
-            margin="x4 count", source="computed")
+        add(phase, f"Collision avoidance ({config.collision_avoidance_count:g} x {cam_factor:g})", cam_dv,
+            margin=f"x{cam_factor:g} count", source="computed")
         add(phase, "Constellation/formation keeping", form_dv, form_kg, source=form_source)
         add(phase, "Attitude control by thrusters", None,
-            config.attitude_thruster_propellant_kg * ATTITUDE_PROPELLANT_FACTOR, margin="+100% propellant",
-            source="input")
+            config.attitude_thruster_propellant_kg * attitude_factor,
+            margin=f"+{(attitude_factor - 1.0) * 100:g}% propellant", source="input")
         if config.hall_thruster_ignition_kg:
             add(phase, "Hall thruster ignitions", None, config.hall_thruster_ignition_kg, source="input")
 
@@ -438,7 +448,7 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
                 clearance_delta_v(a_m, config.clearance_sma_drop_km))
         if config.disposal == "uncontrolled_reentry":
             if reentry is None:
-                left_kg = dry_kg + (RESIDUAL_FRACTION + UNCERTAINTY_FRACTION) * max(propellant_kg, 0.0)
+                left_kg = dry_kg + (residual + uncertainty) * max(propellant_kg, 0.0)
                 dv, perigee_km, years, reentry_notes, *read = reentry_solver(scenario, spacecraft, eol_utc, left_kg,
                                                                              config.disposal_lifetime_years)
                 reentry = (dv, perigee_km, years)
@@ -449,24 +459,25 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
                      else f"Uncontrolled re-entry (perigee to {reentry[1]:.0f} km: {reentry[2]:.1f} y)")
             add(phase, label, reentry[0])
         elif config.disposal == "controlled_reentry":
-            last = config.controlled_reentry_last_burn_m_s * (1.0 + CONTROLLED_LAST_BURN_MARGIN)
+            last = config.controlled_reentry_last_burn_m_s * (1.0 + last_burn_margin)
             add(phase, "Controlled re-entry", config.controlled_reentry_delta_v_m_s + last,
-                margin="+15% on the last burn", source="input")
+                margin=f"+{last_burn_margin * 100:g}% on the last burn", source="input")
         elif config.disposal == "graveyard":
-            dv, raise_m = graveyard_delta_v(a_m, spacecraft.srp_coeff, spacecraft.srp_area_m2, dry_kg)
+            dv, raise_m = graveyard_delta_v(a_m, spacecraft.srp_coeff, spacecraft.srp_area_m2, dry_kg, scenario)
             add(phase, f"Graveyard orbit (+{raise_m / 1e3:.0f} km)", dv)
 
         tank_kg = config.tank_capacity_kg or propellant_kg
-        rows.append(BudgetRow("Propellant", "Residual", None, RESIDUAL_FRACTION * tank_kg, "1% of tank", "computed"))
+        rows.append(BudgetRow("Propellant", "Residual", None, residual * tank_kg, f"{residual * 100:g}% of tank",
+                              "computed"))
         rows.append(BudgetRow("Propellant", "Loading uncertainty and gauging", None,
-                              UNCERTAINTY_FRACTION * tank_kg, "2% of tank", "computed"))
+                              uncertainty * tank_kg, f"{uncertainty * 100:g}% of tank", "computed"))
         new_kg = sum(r.propellant_kg for r in rows)
-        converged = abs(new_kg - propellant_kg) < CONVERGENCE_KG
+        converged = abs(new_kg - propellant_kg) < convergence_kg
         propellant_kg = new_kg
         if converged:
             break
     else:
-        notes.append(f"the propellant total did not settle within {_MAX_ITERATIONS} iterations")
+        notes.append(f"the propellant total did not settle within {max_iterations} iterations")
     if config.tank_capacity_kg and propellant_kg > config.tank_capacity_kg:
         notes.append(f"the budget ({propellant_kg:.2f} kg) exceeds the tank ({config.tank_capacity_kg:g} kg)")
     return Budget(rows, dry_kg, isp_s, efficiency, iteration, notes, data_files)
@@ -535,7 +546,7 @@ def _launched_later(scenario, years: float):
 
 
 def launch_delay_sweep(scenario, spacecraft_name: str, result=None, run_scenario=None,
-                       delays_years=LAUNCH_DELAYS_YEARS, reentry_solver=uncontrolled_reentry_delta_v,
+                       delays_years=None, reentry_solver=uncontrolled_reentry_delta_v,
                        makeup=_drag_makeup, progress: Callable[[float, str], None] | None = None,
                        should_cancel: Callable[[], bool] | None = None, flown: RunContributors | None = None,
                        reference_drag_m_s: float | None = None) -> LaunchDelaySweep:
@@ -558,6 +569,8 @@ def launch_delay_sweep(scenario, spacecraft_name: str, result=None, run_scenario
     if spacecraft is None:
         raise BudgetError(f"no spacecraft named {spacecraft_name!r}")
     config = spacecraft.propellant_budget or PropellantBudgetConfig()
+    if delays_years is None:
+        delays_years = rule("launch_delays_years", scenario)
     delays = sorted(set(float(d) for d in delays_years) | {0.0})
     notes: list[str] = []
     steps = len(delays) * 2  # a drag estimate and a budget per launch date
@@ -583,7 +596,7 @@ def launch_delay_sweep(scenario, spacecraft_name: str, result=None, run_scenario
         run_sc = next((sc for sc in settings.spacecraft if sc.name == spacecraft_name), spacecraft)
         percentile, drag_coeff = settings.space_weather.forecast_percentile, lifetime_cd(run_sc)
     else:
-        percentile, drag_coeff = OPERATIONS_PERCENTILE, lifetime_cd(spacecraft)
+        percentile, drag_coeff = rule("operations_percentile", scenario), lifetime_cd(spacecraft)
     if not follows_drag:
         notes.append("no drag-driven station keeping: in-plane control is the same for every launch date")
 
@@ -630,9 +643,6 @@ def launch_delay_sweep(scenario, spacecraft_name: str, result=None, run_scenario
     return LaunchDelaySweep(spacecraft_name, cases, notes)
 
 
-ALTITUDE_STEP_KM = 50.0  # [km] default spacing of an altitude trade
-
-
 @dataclass
 class AltitudeCase:
     """The launch-delay sweep at one operational altitude (:func:`altitude_trade`)."""
@@ -663,11 +673,14 @@ class AltitudeTrade:
         return min(fitting, key=lambda case: case.altitude_km) if fitting else None
 
 
-def default_altitudes_km(altitude_km: float) -> list[float]:
-    """Five altitudes around ``altitude_km`` [km], ``ALTITUDE_STEP_KM`` apart, from 250 km up."""
-    centre = ALTITUDE_STEP_KM * round(altitude_km / ALTITUDE_STEP_KM)
-    low = max(250.0, centre - 2.0 * ALTITUDE_STEP_KM)  # [km]
-    return [low + k * ALTITUDE_STEP_KM for k in range(5)]
+def default_altitudes_km(altitude_km: float, scenario=None) -> list[float]:
+    """Five altitudes around ``altitude_km`` [km], ``altitude_step_km``
+    apart (50 km), from ``altitude_floor_km`` (250 km) up, as in effect for
+    ``scenario``."""
+    step_km, floor_km = rule("altitude_step_km", scenario), rule("altitude_floor_km", scenario)  # [km]
+    centre = step_km * round(altitude_km / step_km)
+    low = max(floor_km, centre - 2.0 * step_km)  # [km]
+    return [low + k * step_km for k in range(5)]
 
 
 def _at_altitude(scenario, spacecraft_name: str, altitude_km: float):
@@ -723,7 +736,7 @@ def _sweep_in_worker(job):
 
 
 def altitude_trade(scenario, spacecraft_name: str, altitudes_km=None, result=None, run_scenario=None,
-                   delays_years=LAUNCH_DELAYS_YEARS, workers: int | None = None,
+                   delays_years=None, workers: int | None = None,
                    reentry_solver=uncontrolled_reentry_delta_v, makeup=_drag_makeup,
                    progress: Callable[[float, str], None] | None = None,
                    should_cancel: Callable[[], bool] | None = None) -> AltitudeTrade:
@@ -745,7 +758,7 @@ def altitude_trade(scenario, spacecraft_name: str, altitudes_km=None, result=Non
         raise BudgetError(f"{spacecraft_name}: an altitude trade needs the orbit as classical elements")
     config = spacecraft.propellant_budget or PropellantBudgetConfig()
     own_km = spacecraft.orbit.semi_major_axis_km - REQ_EARTH_M / 1e3  # [km]
-    altitudes = sorted(float(a) for a in (altitudes_km or default_altitudes_km(own_km)))
+    altitudes = sorted(float(a) for a in (altitudes_km or default_altitudes_km(own_km, scenario)))
     flown = run_contributors(result, spacecraft_name, config.mission_years) if result is not None else None
     reference_drag = None  # [m/s] drag make-up of the scenario's own orbit and launch
     if config.in_plane_control_delta_v_m_s is not None or (flown is not None and flown.in_plane is not None):

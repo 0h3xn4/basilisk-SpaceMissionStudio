@@ -917,3 +917,26 @@ never named "_TabBar".
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `tests/gui/test_reports_and_settings.py::test_every_export_is_listed_never_written_at_first` | 12 exports listed | 13, with "Reproduction bundle" | The new export is listed in Reports › Exports; every column of every row is still checked |
+
+## The parameter registry and project configuration (2026-10-30)
+
+- Added `test_config.py` (25 tests):
+  - each parameter declared with what a reader needs, and the shipped defaults file equal to the registry;
+  - a project file checked against the registry, and a scenario reading only the file it names;
+  - every parameter documented on its model's page;
+  - one case per budget parameter, 18, setting it and checking what it controls changes; a guard fails
+    when a parameter is declared without a case;
+  - the budget record's configuration.
+
+  Also added `test_cli.py::test_assumptions_lists_the_parameters_and_a_run_records_its_configuration`
+  and `tests/gui/test_scenario_editor.py::test_the_project_configuration_survives_the_editor_and_is_read_from_the_files_folder`
+  (Phase 3a, 3b). Each fails on the code before (checked: the `config` package and `config_file` do not
+  exist there).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_cli.py::test_lifetime_and_budget_write_what_they_were_computed_from` | Read the rule `CAM_COUNT_FACTOR` from the budget record | Reads `propellant_budget.cam_count_factor`, and checks the record's `configuration` is empty | The rules are named as in the parameter registry; the value checked is the same |
+| `test_reproduction.py::test_a_bundle_carries_the_files_its_scenario_refers_to` | A scenario with its own space weather and a Vizard model | Also names a project configuration file, and checks the bundle copies it and the reproduction uses the copy | The configuration file is a file the scenario refers to; everything checked before is still checked |
+| `test_results.py::test_result_set_export_csv_with_provenance_writes_sidecar_json` | Expected the record's fields up to `scenario_file_migrations` | Also expects `configuration` (empty) | The new provenance field; the test still checks every field the file holds |
+| `tests/gui/test_export_files.py::test_every_export_is_byte_identical_to_1_1_0` | Removed the 13 provenance keys added since 1.1.0 | Also removes `configuration`, which must be there | As above; every other byte is still compared with 1.1.0's |
+| `tests/golden/*.json` (regression baseline) | The run provenance had no configuration | Rewritten: each gains `configuration` (no file, no overrides) | The new provenance field; the comparison found no other difference |

@@ -21,8 +21,9 @@ check that it does (transparency audit, Phase 2h; ICD-03).
 A bundle is a ``run --out-dir`` folder (the series CSVs, ``events.csv``,
 ``provenance.json`` and ``scenario_as_run.json``) with, in addition:
 
-- ``inputs/``: a copy of every file the scenario refers to (model meshes,
-  a Vizard model, the user's space-weather and MSFC files) and of the
+- ``inputs/``: a copy of every file the scenario refers to (its project
+  configuration, model meshes, a Vizard model, the user's space-weather and
+  MSFC files) and of the
   space-weather files the run read, which for the ``"bundled"`` source
   depend on the computer;
 - ``bundle.json`` (:data:`MANIFEST`): each copy, with the reference it
@@ -90,6 +91,8 @@ def _references(scenario):
                 yield f"spacecraft[{sc.name}].model.meshes[{index}]", mesh, "path", mesh.path, True
         if sc.vizard_model_path and sc.vizard_model_path.upper() not in _SHAPES:
             yield f"spacecraft[{sc.name}].vizard_model_path", sc, "vizard_model_path", sc.vizard_model_path, True
+    if scenario.config_file:
+        yield "config_file", scenario, "config_file", scenario.config_file, True
     weather = scenario.space_weather
     if weather.source == "local_file" and weather.local_file_path:
         yield "space_weather.local_file_path", weather, "local_file_path", weather.local_file_path, False
@@ -246,16 +249,25 @@ def read_manifest(bundle) -> dict:
 
 def bundled_scenario(bundle, manifest: dict):
     """(the bundle's scenario with its file references pointed at the
-    bundle's copies, the substitutions made). The scenario's canonical
-    hash before the substitutions must be the one recorded."""
-    from . import output_provenance
-    from .schema import load_scenario
+    bundle's copies, the substitutions made). The canonical hash of the
+    file's own JSON must be the one recorded: a field added to the schema
+    since does not make an older bundle unreadable. The project
+    configuration is read, and the scenario validated, once the references
+    point at the copies."""
+    from .config import files as config_files
+    from .schema.scenario import parse_scenario_text
 
     bundle = Path(bundle)
-    scenario = load_scenario(bundle / manifest.get("scenario", SCENARIO_AS_RUN))
-    if manifest.get("scenario_sha256") and output_provenance.scenario_sha256(scenario) != manifest["scenario_sha256"]:
-        raise BundleError(f"{bundle / SCENARIO_AS_RUN} is not the scenario the bundle was made from (its SHA-256 "
-                          "differs from the one recorded)")
+    path = bundle / manifest.get("scenario", SCENARIO_AS_RUN)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise BundleError(f"{path}: could not be read ({exc})") from None
+    scenario = parse_scenario_text(text, str(path))
+    canonical = hashlib.sha256(json.dumps(json.loads(text), sort_keys=True).encode("utf-8")).hexdigest()
+    if manifest.get("scenario_sha256") and canonical != manifest["scenario_sha256"]:
+        raise BundleError(f"{path} is not the scenario the bundle was made from (its SHA-256 differs from the one "
+                          "recorded)")
     by_role = {entry["role"]: entry for entry in manifest.get("inputs", [])}
     substitutions = []
     for role, owner, attribute, given, _from_scenario in _references(scenario):
@@ -263,6 +275,8 @@ def bundled_scenario(bundle, manifest: dict):
         if entry and entry.get("file"):
             setattr(owner, attribute, str((bundle / entry["file"]).resolve()))
             substitutions.append(f"{role}: the bundle's {entry['file']} for {given}")
+    config_files.attach(scenario, bundle)
+    scenario.validate()
     return scenario, substitutions
 
 

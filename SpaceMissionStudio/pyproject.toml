@@ -22,11 +22,15 @@ authors = [
 # on PYTHONPATH, arranged separately (see README.md).
 # sgp4 (Vallado's SGP4) and pyerfa (ERFA, the BSD-licensed SOFA library)
 # convert TLEs to the simulation frame (engine/tle.py, ECSS-E-ST-10-09C
-# 5.3.1b); both are pure offline libraries.
+# 5.3.1b); both are pure offline libraries. PyYAML reads the project
+# configuration files (config/files.py, transparency audit Phase 3b); it
+# already came with Basilisk's own dependencies, and is declared now that
+# this tool reads it.
 dependencies = [
     "numpy>=1.24.4",
     "sgp4>=2.20",
     "pyerfa>=2.0.1",
+    "PyYAML>=6.0",
 ]
 
 [project.optional-dependencies]
@@ -86,7 +90,7 @@ spacemissionstudio = ["scenarios/*.json", "scenarios/templates/*.json", "scenari
                       "data/spaceweather/SW-All.txt", "data/spaceweather/oct2026f10-prd.txt",
                       "data/spaceweather/README.md", "help/USER_MANUAL.md", "help/docs/images/*.png",
                       "fsw_export/basilisk_fsw_sources.zip", "fsw_export/basilisk_fsw_sources.json",
-                      "fsw_export/templates/*"]
+                      "fsw_export/templates/*", "config/defaults.yaml"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

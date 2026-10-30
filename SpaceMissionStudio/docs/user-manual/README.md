@@ -16,6 +16,7 @@ New to the app? Do [Getting started](../getting-started.md) first.
 | Build a mission of my own? | [Build your own scenario](build-your-own-scenario.md) |
 | Read plots, events and exports? | [Read the results](read-the-results.md) |
 | Run things without the GUI? | [Use the command line](command-line.md) |
+| Change a rule or margin an analysis uses, for my project? | [Change a parameter](project-configuration.md) |
 
 ## Mission features
 

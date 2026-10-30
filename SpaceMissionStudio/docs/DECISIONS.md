@@ -5,6 +5,54 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The parameter registry and project configuration (2026-10-30)
+
+The transparency plan's Phase 3a and 3b (`docs/transparency_audit.md` 9.2),
+for the first area, the propellant budget; Section 10.1 decided YAML.
+
+- **One declaration per parameter:** `config/parameters.py` declares
+  each with its name, default, unit, what it controls, source, rationale
+  and limits. The code reads the value in effect (`registry.value`); the
+  module constants are gone, so there is no second copy to drift. Earth's
+  GM and radius stay constants until Phase 3c chooses one set.
+- **Named, never found:** a scenario names its file (`config_file`). A
+  configuration file lying in the folder changes nothing unless a
+  scenario names it, so no result depends on a file nobody chose.
+- **Read where the scenario is loaded, carried with it:** the file is read
+  by `load_scenario` and by the GUI editor's `to_scenario()`, both of which
+  know the scenario's folder, into `Scenario.configuration`. That field is
+  never saved (`init=False`, dropped from `to_dict`), never compared, and
+  left out of the scenario's hash. It travels with the scenario object
+  into Monte Carlo workers (pickled), long-run segments (copied) and the
+  altitude trade's processes; a context variable would not survive a
+  Windows `spawn`.
+- **The hash and the record:** `config_file` is written only when set,
+  so every scenario without one saves, and hashes, exactly as before. When
+  set, the scenario's hash covers the name, not the file's values; the run's provenance records the
+  file's SHA-256 and each value it changes, with its default. A bundle
+  copies the file. Two runs of one scenario with different files share a
+  scenario hash and differ in `configuration`.
+- **Refused, not ignored:** a file that cannot be read, a name the
+  registry does not know, or a value outside a parameter's limits makes
+  the scenario invalid, naming the file and the parameter. A relative
+  `config_file` in a scenario not saved yet is refused, not read from the
+  working folder.
+- **The defaults file, commented out:** `config/defaults.yaml` is
+  generated from the registry and lists every parameter with its default,
+  unit, source and limits, each line commented. A copy changes nothing
+  until a line is uncommented, so starting a project file cannot change
+  a result by accident.
+- **Labels follow the values:** the budget's margin labels and notes ("1%
+  of tank", "x4 count") are worked out from the values in effect, so a
+  changed margin is never labelled with the default. At the defaults they
+  read as before, character for character.
+- **A test sets each parameter:** `test_config.py` sets each budget
+  parameter and checks that what it controls changes, and fails when a
+  parameter is declared without such a case (the plan's 9.4).
+- **PyYAML declared:** it already shipped with Basilisk's `bsk[all]`
+  (6.0.3 in the installers); it is now a core dependency, as the
+  configuration needs it whatever Basilisk pulls in.
+
 ## Reproduction bundles (2026-10-29)
 
 The transparency plan's Phase 2h (`docs/transparency_audit.md` 9.2;

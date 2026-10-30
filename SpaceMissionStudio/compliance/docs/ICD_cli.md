@@ -36,6 +36,17 @@ run a scenario headlessly and export results to CSV
 | `--allow-scripts` | run the scenario's script_block commands (unrestricted Python: only for files you trust and have read) |
 | `--bundle` | also make --out-dir a reproduction bundle: copies of the files the scenario refers to and the space-weather files read, listed in bundle.json |
 
+## `assumptions`
+
+list the named parameters: value, unit, source, and which a scenario's configuration changes
+
+| Argument | Help |
+|---|---|
+| `scenario` | a scenario: show the values its configuration file sets |
+| `--area` | only one area's parameters, e.g. propellant_budget |
+| `--changed` | only the parameters the configuration changes |
+| `--yaml` | print the defaults as a commented YAML file, to start a project configuration |
+
 ## `reproduce`
 
 run a reproduction bundle again and compare its results

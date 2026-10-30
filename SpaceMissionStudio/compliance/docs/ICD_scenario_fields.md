@@ -21,6 +21,8 @@ Top-level scenario object (the JSON file's root).
 | `fsw_exports` | list | `[]` | list[FswExportRecord], at most one per spacecraft |
 | `description` | str | `''` |  |
 | `schema_version` | int | `4` |  |
+| `config_file` | str / None | `None` |  |
+| `configuration` | object | `None` |  |
 
 ## ActuatorConfig
 

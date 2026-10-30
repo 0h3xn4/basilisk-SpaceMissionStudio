@@ -122,6 +122,9 @@ def test_a_bundle_carries_the_files_its_scenario_refers_to(tmp_path, capsys):
     path = tmp_path / "s.json"
     scenario = _scenario(path, enable_drag=True, vizard_model_path="sat.obj")
     scenario.space_weather.source, scenario.space_weather.local_file_path = "local_file", str(weather)
+    scenario.config_file = "project.yaml"  # the project configuration travels too (Phase 3b)
+    (tmp_path / "project.yaml").write_text("parameters:\n  propellant_budget.residual_fraction: 0.05\n",
+                                           encoding="utf-8")
     scenario.save(path)
     bundle = tmp_path / "bundle"
     assert cli.main(["run", str(path), "--out-dir", str(bundle), "--bundle"]) == 0
@@ -129,13 +132,16 @@ def test_a_bundle_carries_the_files_its_scenario_refers_to(tmp_path, capsys):
     roles = {entry["role"]: entry["file"] for entry in manifest["inputs"]}
     assert roles["space_weather.local_file_path"] == "inputs/my_weather.txt"
     assert roles["spacecraft[sat-1].vizard_model_path"] == "inputs/sat.obj"
+    assert roles["config_file"] == "inputs/project.yaml"
     shutil.rmtree(weather.parent)
     (tmp_path / "sat.obj").unlink()
+    (tmp_path / "project.yaml").unlink()
     capsys.readouterr()
     assert cli.main(["reproduce", str(bundle), "--out-dir", str(tmp_path / "again")]) == 0
     out = capsys.readouterr().out
     assert "REPRODUCED:" in out
     assert "USED: space_weather.local_file_path: the bundle's inputs/my_weather.txt" in out
+    assert "USED: config_file: the bundle's inputs/project.yaml" in out
 
 
 def test_this_computers_newer_space_weather_is_replaced_by_the_bundles(tmp_path, monkeypatch):

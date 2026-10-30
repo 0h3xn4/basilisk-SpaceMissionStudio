@@ -91,6 +91,10 @@ def cmd_validate(args: argparse.Namespace) -> int:
     scenario, file_record = loaded
     print(f"OK: {scenario.name!r} -- {len(scenario.spacecraft)} spacecraft, "
           f"schema version {scenario.schema_version}, epoch {scenario.epoch_utc}")
+    configuration = scenario.configuration
+    if configuration is not None:
+        print(f"CONFIG: {scenario.config_file} changes {len(configuration.overrides)} parameter(s); "
+              f"'spacemissionstudio assumptions {args.scenario}' lists them")
     # An older file is brought up to date as it loads; say what that changed
     # (transparency audit, Phase 2c: the migrations were silent).
     for change in file_record["scenario_file_migrations"]:
@@ -366,6 +370,53 @@ def _print_constant_thrust_summary(scenario, result) -> None:
         propellant_used_kg = sc.constant_thrust.propellant_kg - propellant_remaining_kg
         print(f"  {sc.name}: {delta_v_m_s:.3f} m/s delta-V ({sc.constant_thrust.frame} frame), "
               f"{propellant_used_kg:.3f} kg propellant used ({propellant_remaining_kg:.3f} kg remaining)")
+
+
+def cmd_assumptions(args: argparse.Namespace) -> int:
+    """The named parameters (transparency audit, Phase 3d): each with the
+    value in effect, its unit and its source, and for a scenario whose
+    project configuration changes it, CHANGED with the default it replaces
+    and the file; or, with --yaml, the commented defaults file to start a
+    project configuration from."""
+    from .config import files, registry
+
+    if args.yaml:
+        sys.stdout.write(files.defaults_yaml())
+        return 0
+    scenario = None
+    if args.scenario is not None:
+        loaded = _load_hashed(args.scenario)
+        if isinstance(loaded, int):
+            return loaded
+        scenario = loaded[0]
+    try:
+        chosen = registry.parameters(args.area)
+    except registry.ConfigError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
+    if not chosen:
+        areas = sorted({p.area for p in registry.parameters()})
+        print(f"ERROR: no parameters in area {args.area!r} (areas: {', '.join(areas)})", file=sys.stderr)
+        return 2
+    configuration = scenario.configuration if scenario is not None else None
+    if configuration is not None:
+        print(f"Configuration: {scenario.config_file} (SHA-256 {configuration.file['sha256']})")
+    elif scenario is not None:
+        print("Configuration: none named (config_file): every parameter has its default")
+    width = max(len(p.name) for p in chosen)
+    area = None
+    for parameter in chosen:
+        if parameter.area != area:
+            area = parameter.area
+            print(f"{area}:")
+        value = registry.value(parameter.name, scenario)
+        changed = configuration is not None and parameter.name in configuration.overrides
+        if args.changed and not changed:
+            continue
+        flag = f"  CHANGED (default {files.format_value(parameter.default)})" if changed else ""
+        print(f"  {parameter.name:<{width}}  {files.format_value(value):>12} {parameter.unit:<16} "
+              f"{parameter.source}{flag}")
+    return 0
 
 
 def cmd_reproduce(args: argparse.Namespace) -> int:
@@ -1332,6 +1383,16 @@ def build_parser() -> argparse.ArgumentParser:
                        help="also make --out-dir a reproduction bundle: copies of the files the scenario refers to "
                             "and the space-weather files read, listed in bundle.json")
     p_run.set_defaults(func=cmd_run)
+
+    p_assumptions = subparsers.add_parser("assumptions", help="list the named parameters: value, unit, source, "
+                                                              "and which a scenario's configuration changes")
+    p_assumptions.add_argument("scenario", type=Path, nargs="?", default=None,
+                               help="a scenario: show the values its configuration file sets")
+    p_assumptions.add_argument("--area", default=None, help="only one area's parameters, e.g. propellant_budget")
+    p_assumptions.add_argument("--changed", action="store_true", help="only the parameters the configuration changes")
+    p_assumptions.add_argument("--yaml", action="store_true",
+                               help="print the defaults as a commented YAML file, to start a project configuration")
+    p_assumptions.set_defaults(func=cmd_assumptions)
 
     p_reproduce = subparsers.add_parser("reproduce", help="run a reproduction bundle again and compare its results")
     p_reproduce.add_argument("bundle", type=Path, help="a folder written by 'run --bundle'")
