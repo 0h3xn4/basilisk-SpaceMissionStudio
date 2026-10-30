@@ -255,7 +255,9 @@ bar and no toolbar:
   figure: its label in the secondary tone, its value in the numeric font
   (page size) and its unit; critical (an icon, the words, the critical
   tone) only for a link margin below the run's `link.required_margin_db`
-  (0 dB by default) and an empty battery. Worked out
+  (0 dB by default) and a battery at or below the run's
+  `results.battery_critical_fraction` of its capacity (empty by default).
+  Worked out
   in a `QThread`; the provenance in History's popover; an empty state with
   Run.
 - **The plot page (M6a):** one persistent `QWebEngineView` page

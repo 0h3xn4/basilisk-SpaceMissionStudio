@@ -18,7 +18,8 @@
 """The declared parameters, one section per area (transparency audit,
 Phase 3a). The areas move in one at a time, each proven by the
 regression baseline to change no number: the propellant budget, the
-orbital lifetime, then the RF link and data handling.
+orbital lifetime, the RF link and data handling, then how a run's results
+are read.
 
 "AD10" is ESA's "Guidelines for the computation of the Delta-V and
 Propellant Mass budgets", EOP-FM/2024-07-177, issue 3.0.
@@ -168,4 +169,28 @@ register(
     Parameter("data_handling.explainer_pass_minutes", 10.0, "[min]",
               "The pass length of the scenario explanation's 'Gbit per pass' note; a run's passes are predicted.",
               "SpaceMissionStudio's own choice", "A typical low Earth orbit pass.", minimum=0.1, maximum=1440.0),
+)
+
+# -- reading a run's results (engine.run_summary, engine.events, gui.results_overview, -------------
+# -- gui.mission_dashboard_widget). Read back from a run's provenance, so a run shown later is judged by
+# -- the values it was run with.
+
+register(
+    Parameter("results.sma_window_orbits", 1.0, "[orbit]",
+              "The mean semi-major axis change averages over this many orbits at the start and at the end of a "
+              "run; a run shorter than twice this has none.", "SpaceMissionStudio's own choice",
+              "One orbit takes out what first-order mean elements leave of the orbital-period wobble.",
+              minimum=0.1, maximum=100.0),
+    Parameter("results.umbra_sunlight_fraction", 0.01, "[-]",
+              "An eclipse whose lowest sunlight is below this fraction is listed as umbra, else as penumbra.",
+              "SpaceMissionStudio's own choice", "1 %: the Sun fully hidden, within the shadow model's accuracy.",
+              minimum=0.0, maximum=1.0),
+    Parameter("results.pointing_converged_deg", 5.0, "[deg]",
+              "The mission dashboard reads the comms pointing as converged below this pointing error, as "
+              "slewing above it.", "SpaceMissionStudio's own choice", minimum=0.01, maximum=180.0),
+    Parameter("results.battery_critical_fraction", 0.0, "[-]",
+              "The results overview marks the lowest battery charge as critical at or below this fraction of the "
+              "battery's capacity (0: only an empty battery).", "SpaceMissionStudio's own choice",
+              "A project with a depth-of-discharge limit sets it here, e.g. 0.3 for 70 % depth of discharge.",
+              minimum=0.0, maximum=1.0),
 )

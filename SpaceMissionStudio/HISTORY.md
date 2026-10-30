@@ -14514,6 +14514,27 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## How a run's results are read, as parameters (2026-10-30)
+
+The transparency plan, Phase 3a, fourth area. Branch `run-summary-params`.
+
+- **4 `results.*` parameters** (`config/parameters.py`):
+  - `sma_window_orbits` (1): the mean semi-major axis change's averaging
+    window;
+  - `umbra_sunlight_fraction` (0.01): umbra or penumbra;
+  - `pointing_converged_deg` (5): the dashboard's tracking badge;
+  - `battery_critical_fraction` (0): the overview's battery card, now a
+    share of the capacity, so a project can set a depth-of-discharge limit.
+- **Read with the run's own values:** `registry.value_of_run(name,
+  result)` reads a value from the run's provenance. `run_summary.summarize`
+  and `events.extract_events` take nothing new, and a run reloaded from
+  the history keeps its rules (the store keeps the provenance).
+- **The overview's cards:** `CardLimits.of_run(result, scenario)` holds
+  the required margin, the battery fraction and each battery's capacity
+  from the scenario as run, which `set_run` now takes. The main window
+  passes the run record's scenario.
+- **Docs:** `docs/models/reading-results.md`.
+
 ## The link's and data handling's rules as parameters (2026-10-30)
 
 The transparency plan, Phase 3a, third area. Branch `link-power-params`.

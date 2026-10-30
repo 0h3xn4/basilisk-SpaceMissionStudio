@@ -17,6 +17,14 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-30: how a run's results are read, as parameters (Phase 3a)
+
+**No number changes.** The mean semi-major axis change's one-orbit window,
+the 1 % sunlight that makes an eclipse umbra, the dashboard's 5° converged
+pointing, and the overview's battery limit (empty, 0 of the capacity) are
+named parameters with the same values; the regression baseline of all 31
+templates passes unchanged, every figure and event as before.
+
 ## 2026-10-30: the link's and data handling's rules as parameters (Phase 3a)
 
 **No number changes.** The link's closure rule (a margin of at least 0

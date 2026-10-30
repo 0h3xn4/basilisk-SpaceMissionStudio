@@ -40,6 +40,7 @@ from collections.abc import Callable, Iterable
 
 import numpy as np
 
+from ..config import registry
 from .results import ResultSet, TimeSeries
 
 ACCESS = "pass"
@@ -61,7 +62,6 @@ QUANTITIES: dict[str, tuple[str, str, str]] = {
 }
 _CSV_UNITS = {"deg": "deg", "%": "percent", "m/s": "m_s", "Gbit": "gbit"}
 
-_UMBRA_SHADOW_FACTOR = 0.01  # [-] below this the Sun is fully hidden (umbra)
 # The phasing controller's states (engine.orbit_maintenance.PhasingKeepingController).
 _PHASING_IDLE, _PHASING_BURN_OUT, _PHASING_DRIFT, _PHASING_BURN_RESTORE = range(4)
 _PHASING_FIRING = 4  # a Basilisk formation law firing (engine.formation_control.FIRING)
@@ -148,6 +148,7 @@ def _passes(result: ResultSet) -> list[Event]:
 
 def _eclipses(result: ResultSet) -> list[Event]:
     events = []
+    umbra = registry.value_of_run("results.umbra_sunlight_fraction", result)  # [-] below it the Sun is hidden
     for name, series in result.series.items():
         if not name.endswith(".eclipse.illumination_factor"):
             continue
@@ -156,7 +157,7 @@ def _eclipses(result: ResultSet) -> list[Event]:
 
         def make(first, last, series=series, spacecraft=spacecraft, factor=factor):
             deepest = float(np.min(factor[first:last + 1]))  # [-]
-            label = "umbra" if deepest < _UMBRA_SHADOW_FACTOR else "penumbra"
+            label = "umbra" if deepest < umbra else "penumbra"
             return Event(ECLIPSE, spacecraft, float(series.time_s[first]), float(series.time_s[last]),
                          f"eclipse ({label})", f"lowest sunlight {deepest:.0%}",
                          quantities=(("lowest_sunlight", deepest * 100.0),))

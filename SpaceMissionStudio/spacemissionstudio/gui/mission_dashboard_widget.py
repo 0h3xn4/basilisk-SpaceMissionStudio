@@ -59,6 +59,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..config import registry
 from ..engine import link_budget
 from ..engine.results import ResultSet
 from ..schema.scenario import Scenario
@@ -363,7 +364,7 @@ class MissionDashboardWidget(QWidget):
         if pointing_error_deg is None:
             self.tracking_badge.setText("Unknown")
             set_badge(self.tracking_badge, _MUTED_BADGE)
-        elif pointing_error_deg < 5.0:
+        elif pointing_error_deg < registry.value("results.pointing_converged_deg", self._scenario):  # [deg]
             self.tracking_badge.setText("Converged")
             set_badge(self.tracking_badge, _SUCCESS_BADGE)
         else:

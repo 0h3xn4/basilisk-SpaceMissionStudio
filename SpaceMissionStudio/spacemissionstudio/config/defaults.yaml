@@ -186,3 +186,25 @@ parameters:
   # Source: SpaceMissionStudio's own choice. A typical low Earth orbit pass.
   # Limits: 0.1 to 1440 [min]
   # data_handling.explainer_pass_minutes: 10.0  # [min]
+
+  # -- results ---------------------------------------------------------------
+
+  # The mean semi-major axis change averages over this many orbits at the start and at the end of a run; a run shorter than twice this has none.
+  # Source: SpaceMissionStudio's own choice. One orbit takes out what first-order mean elements leave of the orbital-period wobble.
+  # Limits: 0.1 to 100 [orbit]
+  # results.sma_window_orbits: 1.0  # [orbit]
+
+  # An eclipse whose lowest sunlight is below this fraction is listed as umbra, else as penumbra.
+  # Source: SpaceMissionStudio's own choice. 1 %: the Sun fully hidden, within the shadow model's accuracy.
+  # Limits: 0 to 1 [-]
+  # results.umbra_sunlight_fraction: 0.01  # [-]
+
+  # The mission dashboard reads the comms pointing as converged below this pointing error, as slewing above it.
+  # Source: SpaceMissionStudio's own choice.
+  # Limits: 0.01 to 180 [deg]
+  # results.pointing_converged_deg: 5.0  # [deg]
+
+  # The results overview marks the lowest battery charge as critical at or below this fraction of the battery's capacity (0: only an empty battery).
+  # Source: SpaceMissionStudio's own choice. A project with a depth-of-discharge limit sets it here, e.g. 0.3 for 70 % depth of discharge.
+  # Limits: 0 to 1 [-]
+  # results.battery_critical_fraction: 0.0  # [-]

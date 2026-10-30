@@ -27,13 +27,18 @@ the scenario sets its threshold (the brief: colour means something):
   ``link.required_margin_db`` as the run had it (0 dB unless its project
   configuration set it; the margin already includes the required Eb/N0):
   critical, "Link margin below <required> dB";
-- the battery's lowest charge at 0: critical, "Battery empty".
+- the battery's lowest charge at or below ``results.battery_critical_fraction``
+  of its capacity, as the run had it (0 unless its project configuration
+  set it): critical, "Battery empty", or "Battery at or below <x>% of
+  capacity". The capacity is the scenario's as run; without it, only an
+  empty battery is critical.
 
 The status is an icon and a word as well as a colour.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 
 from PySide6.QtCore import QPoint, Qt, QThread, Signal
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QStackedWidget,
@@ -49,15 +54,42 @@ CARD_WIDTH_PX = 216  # [px] a card, on the 4 px grid: four in a row at 1280 px w
 _CRITICAL_ICON_PX = 16  # [px]
 
 
-def card_status(figure: run_summary.Figure, required_margin_db: float = 0.0) -> str | None:
+@dataclass(frozen=True)
+class CardLimits:
+    """The thresholds a run's cards are judged by: its own
+    ``link.required_margin_db`` and ``results.battery_critical_fraction``,
+    and each spacecraft's battery capacity as run."""
+
+    required_margin_db: float = 0.0  # [dB]
+    battery_critical_fraction: float = 0.0  # [-]
+    battery_capacity_wh: dict = field(default_factory=dict)  # {spacecraft: [W*h]}
+
+    @classmethod
+    def of_run(cls, result, scenario: dict | None = None) -> CardLimits:
+        """The limits of ``result`` (its provenance's configuration) and of
+        ``scenario``, the scenario as run (``Scenario.to_dict()``)."""
+        capacities = {sc.get("name", ""): (sc.get("power") or {}).get("battery_capacity_wh")
+                      for sc in (scenario or {}).get("spacecraft", [])}
+        return cls(registry.value_of_run("link.required_margin_db", result),
+                   registry.value_of_run("results.battery_critical_fraction", result),
+                   {name: wh for name, wh in capacities.items() if wh})
+
+
+def card_status(figure: run_summary.Figure, limits: CardLimits | None = None) -> str | None:
     """The critical status of ``figure`` (its words), or None: only the
-    thresholds a scenario sets colour a card. ``required_margin_db`` is the
-    run's ``link.required_margin_db``."""
-    key = figure.key.rsplit(".", 1)[-1]
-    if key == "lowest_link_margin" and figure.value < required_margin_db:  # [dB]
-        return f"Link margin below {required_margin_db:g} dB"
-    if key == "lowest_battery_charge" and figure.value <= 0.0:  # [W*h]
-        return "Battery empty"
+    thresholds a scenario sets colour a card (``limits``: the defaults
+    when None)."""
+    limits = limits or CardLimits()
+    spacecraft, _, key = figure.key.rpartition(".")  # a spacecraft's figure: "<spacecraft>.<key>"
+    if key == "lowest_link_margin" and figure.value < limits.required_margin_db:  # [dB]
+        return f"Link margin below {limits.required_margin_db:g} dB"
+    if key == "lowest_battery_charge":
+        capacity_wh = limits.battery_capacity_wh.get(spacecraft)  # [W*h]
+        if limits.battery_critical_fraction > 0.0 and capacity_wh is not None:
+            if figure.value <= limits.battery_critical_fraction * capacity_wh:  # [W*h]
+                return f"Battery at or below {limits.battery_critical_fraction * 100.0:g}% of capacity"
+        elif figure.value <= 0.0:  # [W*h]
+            return "Battery empty"
     return None
 
 
@@ -66,7 +98,7 @@ class MetricCard(QFrame):
     it has one."""
 
     def __init__(self, figure: run_summary.Figure, parent: QWidget | None = None,
-                 required_margin_db: float = 0.0) -> None:
+                 limits: CardLimits | None = None) -> None:
         super().__init__(parent)
         set_role(self, role="card")
         self.setFixedWidth(CARD_WIDTH_PX)
@@ -86,7 +118,7 @@ class MetricCard(QFrame):
         row.addWidget(self.unit, 0, Qt.AlignmentFlag.AlignBottom)
         row.addStretch(1)
         layout.addLayout(row)
-        self.status = card_status(figure, required_margin_db)
+        self.status = card_status(figure, limits)
         self.status_row = QWidget()
         status_layout = QHBoxLayout(self.status_row)
         status_layout.setContentsMargins(0, 0, 0, 0)
@@ -127,6 +159,7 @@ class ResultsOverview(QWidget):
         self._result = None
         self._title = ""
         self._provenance: dict | None = None
+        self._scenario: dict | None = None
         self._worker: _SummaryWorker | None = None
         self.cards: list[MetricCard] = []
         outer = QVBoxLayout(self)
@@ -177,10 +210,12 @@ class ResultsOverview(QWidget):
         self.popover = ProvenancePopover(self)
 
     # -- the run ------------------------------------------------------------------------------
-    def set_run(self, result, title: str = "", provenance: dict | None = None) -> None:
+    def set_run(self, result, title: str = "", provenance: dict | None = None, scenario: dict | None = None) -> None:
         """Show ``result``'s figures (None: the empty state); ``title``
-        names the run, ``provenance`` is its provenance as a dict."""
-        self._result, self._title, self._provenance = result, title, provenance
+        names the run, ``provenance`` is its provenance as a dict,
+        ``scenario`` the scenario as run (``Scenario.to_dict()``), for the
+        battery capacities."""
+        self._result, self._title, self._provenance, self._scenario = result, title, provenance, scenario
         if result is None:
             self._show_cards([])
             self.stack.setCurrentWidget(self.empty)
@@ -221,10 +256,8 @@ class ResultsOverview(QWidget):
         for card in self.cards:
             self.cards_layout.removeWidget(card)
             card.deleteLater()
-        provenance = getattr(self._result, "provenance", None)
-        required_margin_db = registry.recorded_value("link.required_margin_db",
-                                                     getattr(provenance, "configuration", None))  # [dB]
-        self.cards = [MetricCard(figure, self.cards_holder, required_margin_db) for figure in figures]
+        limits = CardLimits.of_run(self._result, self._scenario)
+        self.cards = [MetricCard(figure, self.cards_holder, limits) for figure in figures]
         for card in self.cards:
             self.cards_layout.addWidget(card)
             card.show()

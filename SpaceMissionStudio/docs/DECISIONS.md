@@ -5,6 +5,28 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## How a run's results are read, as parameters (2026-10-30)
+
+The transparency plan's Phase 3a, fourth area: the run summary, the
+events, and the overview's and dashboard's marks.
+
+- **A run is judged by its own values:** each value is read back from the
+  run's provenance, not from the configuration open now. A run kept in the
+  history and shown a week later, after the project changed its file,
+  still reads as it did. The dashboard reads the scenario of the run it
+  shows, which carries that run's configuration.
+- **The battery limit is a share of the capacity:** a limit in W*h would
+  differ for every battery. 0 keeps "Battery empty"; a project with a
+  depth-of-discharge limit (Section 7 lists one as missing) sets 0.3 for
+  70 %. It marks the result only: Basilisk's battery still runs to 0.
+  Without the scenario as run (no capacity), only an empty battery is
+  marked.
+- **Not parameters:**
+  - an eclipse is any sunlight below 1 (a definition, not a choice);
+  - a pass is `has_access` on (the station's elevation mask, a scenario
+    input, decides it);
+  - unit conversions.
+
 ## The link's and data handling's rules as parameters (2026-10-30)
 
 The transparency plan's Phase 3a, third area.
