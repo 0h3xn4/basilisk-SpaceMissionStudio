@@ -135,6 +135,7 @@ made with. The GUI writes the same bundle from Results › Plots ›
 | `budget scenario.json --altitudes 400,450,500` | Which altitude fits the tank |
 | `lifetime scenario.json --out life.json` | Also writes the lifetime as JSON |
 | `budget scenario.json --out budget.json` | Also writes the budget as JSON |
+| `lifetime scenario.json --explain` | After the result, how each figure was computed: the orbit, mass, ballistic coefficient, deorbit burn, lifetime and each rule's verdict, with their inputs and sources |
 | `budget scenario.json --explain` | After the table, how each number was computed: the equation, each input with its unit and where it came from, and the AD10 section |
 | `spaceweather-resolve scenario.json` | Which space-weather file a run would use |
 | `assumptions [scenario.json]` | The named parameters: value, unit and source, and which ones the scenario's configuration file changes (`--changed`, `--area`, `--yaml` for the defaults file); see [Change a parameter](project-configuration.md) |
@@ -188,7 +189,8 @@ Effective exhaust speed: Ve = 14709.975 [m/s]
 
 Each input says where it came from: `scenario:` (a field of the file),
 `parameter:` (a named parameter, as in effect), `constant:`, `last run:`
-(a series of the run), `computed:` or `trace:` (another number above).
+(a series of the run), `computed:`, `trace:` (another number above) or
+`option:` (an option of the command, such as `lifetime --drag-coeff`).
 
 ## Build scenarios
 

@@ -105,6 +105,40 @@ Full Basilisk decay runs of template 18's spacecraft
 (`tests/test_lifetime.py`): the re-entry date within 3 %. The density
 matches the simulation's own atmosphere model at the same points.
 
+## How each figure was computed
+
+Each figure carries its trace (`engine.trace`), written by the calculation
+from the values it computed with:
+- the mean orbit the decay starts from;
+- the mass, with the deorbit burn's propellant taken off;
+- the ballistic coefficient, `B = Cd * A / m`;
+- the deorbit burn, a retrograde burn at apogee (vis-viva);
+- the lifetime, with the re-entry perigee, the atmosphere, the solar
+  activity, the look-ahead and the step control;
+- each rule's verdict.
+
+Each input says where it came from:
+- `scenario:`, a field of the file;
+- `parameter:`, at the value in effect;
+- `constant:`;
+- `last run:`, a series, after a run;
+- `option:`, the analysis's own setting (`--drag-coeff`,
+  `--forecast-percentile`, `--max-years`, `--deorbit-perigee-km`, or
+  the End of Life page's fields);
+- `trace:`, another figure.
+
+`lifetime --explain` prints them. `tests/test_trace.py` recomputes each
+figure from its trace, and runs the decay again from its traced inputs.
+
+**When the ground is reached within a step:** a step is never shorter
+than an orbit. In an atmosphere steeper than the step control allows for
+(the exponential one, a large ballistic coefficient), the orbit can reach
+the ground within one step, and the drag there blows the orbit up. The
+decay then ends in that step, re-entered, with
+the last perigee 0 km and a warning that the re-entry time is known to
+within that step. Until 2026-10-30 the estimate raised an error instead
+(`docs/changes.md`).
+
 ## Outputs and records
 
 `spacemissionstudio lifetime` and the **End of Life** page give:
@@ -118,6 +152,7 @@ matches the simulation's own atmosphere model at the same points.
 - the drag used and the ballistic coefficient;
 - the rules in effect under their parameter names;
 - the decay curve;
+- each figure's trace (`results.traces`);
 - the warnings;
 - the provenance, with the space-weather files read and the project
   configuration.

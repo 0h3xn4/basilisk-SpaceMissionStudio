@@ -14514,6 +14514,29 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The lifetime's traces (2026-10-30)
+
+The transparency plan, Phase 4a and 4c, for the orbital lifetime. Branch
+`lifetime-trace`.
+
+- **`EndOfLife.traces`** (not compared):
+  - `orbit`: the mean orbit the decay starts from, before or after the
+    burn;
+  - `mass`, `ballistic_coefficient`, `deorbit` (with a burn);
+  - `lifetime`: the decay's inputs: the re-entry perigee, B, the
+    atmosphere, the percentile, the look-ahead, the ring points, the step
+    control. Intermediates: the look-ahead used, the steps, the last
+    perigee;
+  - one per disposal rule, its verdict from T, L and whether it re-entered.
+- **`engine.trace.SOURCE_KINDS`** gains `option`. `Trace.value` may be a
+  verdict ("met").
+- **Out:** `lifetime --explain`; `lifetime --out` writes
+  `results.traces`.
+- **Fixed** (`docs/changes.md`): `propagate_decay` raised when half a step
+  on the orbit was under the ground; it re-enters in that step now, with
+  a warning.
+- **Tests:** 3 more in `tests/test_trace.py`.
+
 ## The budget's calculation traces (2026-10-30)
 
 The transparency plan, Phase 4a and 4c, for the propellant budget. Branch

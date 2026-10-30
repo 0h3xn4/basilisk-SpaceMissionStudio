@@ -454,6 +454,15 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   parameter, a constant, the last run's series, or another number of the
   budget. `budget --out` writes the same traces in the JSON. The numbers
   are unchanged.
+- **How each lifetime figure was computed:** `lifetime --explain` prints
+  the traces of the mean orbit, the mass, the ballistic coefficient, the
+  deorbit burn, the lifetime and each rule's verdict. `lifetime --out`
+  writes them.
+- **Fixed: a lifetime that reached the ground within one step raised an
+  error.** With the exponential atmosphere and a deorbit burn, for
+  instance, the estimate failed with "M2E() received e = 5.9e+26". It now
+  re-enters in that step and says the re-entry time is known to within
+  it.
 
 ## 1.3.1 (2026-10-27)
 
