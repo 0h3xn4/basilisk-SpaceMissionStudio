@@ -475,15 +475,16 @@ def test_setting_a_results_parameter_changes_how_a_run_is_read(name):
 
 # -- every dynamics parameter changes what it says it changes ---------------------------------
 
-def _orbit_run(configuration, drag=True, **settings):
-    """Half a day of a 400 km orbit, orbit only, 60 s steps: the chunks the
-    run executes in (its re-entry checks), its last position [m] and its
-    warnings."""
+def _orbit_run(configuration, drag=True, altitude_km=400.0, **settings):
+    """Half a day of a circular orbit (400 km), orbit only, 60 s steps: the
+    chunks the run executes in (its re-entry checks), its last position [m]
+    and its warnings."""
     from spacemissionstudio.engine.service import SimulationService
     from spacemissionstudio.schema.scenario import SimSettings, SpaceWeatherConfig
 
     spacecraft = SpacecraftConfig(name="s", enable_drag=drag, orbit=OrbitIC(
-        type="classical_elements", semi_major_axis_km=6778.1366, eccentricity=0.0, inclination_deg=51.6,  # [km], [deg]
+        type="classical_elements", semi_major_axis_km=6378.1366 + altitude_km, eccentricity=0.0,  # [km]
+        inclination_deg=51.6,  # [deg]
         raan_deg=0.0, arg_periapsis_deg=0.0, true_anomaly_deg=0.0))
     scenario = Scenario(name="d", epoch_utc="2030-01-01T00:00:00", simulation_mode="orbit_only",
                         spacecraft=[spacecraft], gravity=GravityConfig(central_body="earth"),
@@ -498,7 +499,8 @@ def _orbit_run(configuration, drag=True, **settings):
     configure = service.scSim.ConfigureStopTime
     service.scSim.ConfigureStopTime = lambda stop_ns: (stops.append(stop_ns), configure(stop_ns))[1]
     result = service.run()
-    return len(stops), tuple(result.series["s.position_N"].data[-1].round(3)), result.warnings
+    position = result.series["s.position_N"].data  # [m] none when the run stopped at its start
+    return len(stops), tuple(position[-1].round(3)) if len(position) else None, result.warnings
 
 
 def _with(configuration, **base):
@@ -513,6 +515,8 @@ _DYNAMICS_CASES = {
     "dynamics.integrator_relative_tolerance": (1e-4, lambda c: _orbit_run(c)[1]),
     "dynamics.integrator_absolute_tolerance": (1e-2, lambda c: _orbit_run(c)[1]),
     "dynamics.reentry_check_s": (3600.0, lambda c: _orbit_run(c)[0]),
+    "dynamics.reentry_altitude_km": (290.0, lambda c: [w for w in _orbit_run(c, altitude_km=280.0)[2]
+                                                       if "re-entered" in w]),
     "dynamics.reentry_near_perigee_km": (500.0, lambda c: _orbit_run(c)[0]),
     "dynamics.reentry_near_check_s": (600.0, lambda c: _orbit_run(_with(c, **_NEAR))[0]),
     "dynamics.conservation_tolerance": (1e-12, lambda c: [w for w in _orbit_run(c, drag=False)[2] if "drifted" in w]),

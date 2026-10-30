@@ -5,6 +5,31 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## One set of physical constants (2026-10-30)
+
+The transparency plan's Phase 3c; the user's answer to the audit's
+Section 10, question 2: one set, every changed number recorded.
+
+- **Basilisk's set:** every simulated orbit uses it, so an estimate and a
+  run of the same orbit agree on the Earth they describe. A more recent
+  set (IAU 2012's AU, GGM03S's GM) would make the estimates disagree with
+  the simulation they estimate, by more than they gain.
+- **Constants, not parameters:** a project does not change the Earth. A
+  study with another set edits one file, and `tests/test_constants.py`
+  then shows where it departs from the simulation's.
+- **Left as they are, each for a reason** (`docs/models/constants.md`):
+  - the gravity files' own reference values;
+  - WGS-84's ellipsoid, for geodetic latitude and height;
+  - the mean elements' J2;
+  - constants inside Basilisk's modules.
+- **Two re-entry altitudes, kept:** they are two criteria, not one value
+  twice. The run stops on the simulated altitude (100 km, now a
+  parameter); the lifetime ends on the orbit-averaged perigee (120 km).
+  Unifying them would make one of the two wrong.
+- **The baseline is not rewritten:** the largest change in a recorded
+  run output is 1.1e-10 of its scale, far below the baseline's 1e-6.
+  `docs/changes.md` records it with its digits.
+
 ## The environment's data rules, as parameters (2026-10-30)
 
 The transparency plan's Phase 3a, last area.

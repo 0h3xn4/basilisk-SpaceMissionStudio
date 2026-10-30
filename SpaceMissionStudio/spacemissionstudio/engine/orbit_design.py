@@ -39,6 +39,7 @@ from __future__ import annotations
 import math
 from datetime import datetime, UTC
 
+from .. import constants
 from ..schema.epochs import parse_epoch_utc
 
 # J2/Req/mu below are Basilisk's own real Earth constants, confirmed
@@ -49,9 +50,9 @@ from ..schema.epochs import parse_epoch_utc
 #   simIncludeGravBody.gravBodyFactory().createEarth().mu == 398600436000000.0 [m^3/s^2]
 # Matches gui.template_wizard's own already-established _EARTH_RADIUS_KM
 # constant exactly (same source).
-_EARTH_J2 = 0.001082616  # [-]
-_EARTH_REQUATOR_KM = 6378.1366  # [km]
-_EARTH_MU_KM3_S2 = 398600.436  # [km^3/s^2]
+_EARTH_J2 = constants.EARTH_J2  # [-] the one set (spacemissionstudio.constants)
+_EARTH_REQUATOR_KM = constants.EARTH_EQUATORIAL_RADIUS_M / 1000.0  # [km]
+_EARTH_MU_KM3_S2 = constants.EARTH_GM_M3_S2 / 1e9  # [km^3/s^2]
 _TROPICAL_YEAR_DAYS = 365.2421897  # [day] mean interval between vernal equinoxes
 
 # Default LTAN used throughout this project's bundled templates -- the

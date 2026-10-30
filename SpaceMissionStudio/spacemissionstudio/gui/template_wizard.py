@@ -79,6 +79,7 @@ from PySide6.QtWidgets import (
     QListWidgetItem, QScrollArea, QVBoxLayout, QWidget,
 )
 
+from .. import constants
 from ..schema.scenario import Scenario, SimSettings
 from .theme import set_role
 from .widgets import PreciseDoubleSpinBox, style_number
@@ -102,7 +103,7 @@ from .wizard_settings import build_all_settings_pages, setting_paths, get_settin
 # semi_major_axis_km from this constant on every accept() -- even with
 # zero user edits -- silently drifted it by ~137 m; a real bug, caught by
 # this module's own round-trip regression tests).
-_EARTH_RADIUS_KM = 6378.1366
+_EARTH_RADIUS_KM = constants.EARTH_EQUATORIAL_RADIUS_M / 1000.0  # [km] the one set (spacemissionstudio.constants)
 
 
 @dataclass(frozen=True)

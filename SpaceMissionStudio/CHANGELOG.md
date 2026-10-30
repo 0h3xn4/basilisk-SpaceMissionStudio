@@ -420,6 +420,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   `docs/models/environment-and-data.md` documents them with the
   environment data's fixed rules and why each is fixed. Every area of
   the transparency plan's Phase 3a is now in the registry: 46 parameters.
+- **One set of physical constants:** every calculation of SpaceMissionStudio's
+  own takes Basilisk's Earth and Sun constants from one module, as the
+  simulation does. Five sets were in the code; the four that differed now
+  agree. No printed number changes; the measured differences are in
+  `docs/changes.md`. The scenario checks' re-entry follows
+  `lifetime.reentry_altitude_km`, and the run's 100 km is the parameter
+  `dynamics.reentry_altitude_km`. See `docs/models/constants.md`.
 
 ## 1.3.1 (2026-10-27)
 

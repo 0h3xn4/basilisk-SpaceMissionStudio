@@ -59,15 +59,16 @@ from collections.abc import Callable
 
 import numpy as np
 
+from .. import constants
 from ..schema.epochs import parse_epoch_utc
 from . import geodesy
 from .mean_elements import cl_mean_osc_map
 
-# Basilisk's own Earth constants (architecture/utilities/astroConstants.h)
-MU_EARTH_M3_S2 = 398600.436e9  # [m^3/s^2]
-REQ_EARTH_M = 6378136.6  # [m]
-J2_EARTH = 1082.616e-6  # [-]
-OMEGA_EARTH_RAD_S = 2.0 * math.pi / 23.9345 / 3600.0  # [rad/s]
+# Basilisk's own Earth constants, the one set (spacemissionstudio.constants)
+MU_EARTH_M3_S2 = constants.EARTH_GM_M3_S2  # [m^3/s^2]
+REQ_EARTH_M = constants.EARTH_EQUATORIAL_RADIUS_M  # [m]
+J2_EARTH = constants.EARTH_J2  # [-]
+OMEGA_EARTH_RAD_S = constants.EARTH_ROTATION_RAD_S  # [rad/s]
 
 # The farthest a lifetime looks ahead: the GUI's limit, now the CLI's and
 # this module's too (1e6 years overflowed the date, audit R6).

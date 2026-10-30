@@ -97,10 +97,10 @@ project configuration file changes them
 The residual and uncertainty follow AD10's equations, 1 % and 2 %; its
 summary table prints 10 % and 20 %, and the budget's notes say so.
 
-**Constants**, not yet parameters: Earth's GM (398 600.436 km^3/s^2) and
-equatorial radius (6378.1366 km), Basilisk's own, and `g0`. They join the
-one set of Earth and Sun constants the transparency plan chooses in
-Phase 3c.
+**Constants**, not parameters: Earth's GM (398 600.436 km^3/s^2) and
+equatorial radius (6378.1366 km), from the one set
+([Physical constants](constants.md)), and standard gravity `g0`
+(9.80665 m/s^2, by definition).
 
 ## Assumptions
 

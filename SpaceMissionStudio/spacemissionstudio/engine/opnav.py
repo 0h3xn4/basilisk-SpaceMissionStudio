@@ -65,11 +65,13 @@ from collections.abc import Sequence
 
 import numpy as np
 
+from .. import constants
+
 # pixelLineConverter / relativeODuKF body numbers (planetIds, planetIdInit)
 BODY_IDS = {"earth": 1, "mars barycenter": 2, "jupiter barycenter": 3}
-# [m] Basilisk 2.12 astroConstants REQ_EARTH, REQ_MARS, REQ_JUPITER: the radii
+# [m] Basilisk 2.12 astroConstants REQ_EARTH, REQ_MARS, REQ_JUPITER (spacemissionstudio.constants): the radii
 # pixelLineConverter takes the range from
-BODY_RADIUS_M = {"earth": 6378.1366e3, "mars barycenter": 3396.19e3, "jupiter barycenter": 71492.0e3}
+BODY_RADIUS_M = {body: constants.CENTRAL_BODY_EQUATORIAL_RADIUS_KM[body] * 1e3 for body in BODY_IDS}
 
 
 def _tilde(v: Sequence[float]) -> np.ndarray:

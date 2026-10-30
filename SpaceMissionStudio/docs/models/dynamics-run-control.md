@@ -11,8 +11,8 @@ the Scenario Editor", under **Environment**.
 
 The models themselves are Basilisk's: gravity, drag, solar radiation
 pressure, third bodies and the rest. The transparency audit's Appendix A
-lists their settings and constants. The physical constants are gathered
-into one set in the transparency plan's Phase 3c.
+lists their settings and constants; SpaceMissionStudio's own calculations
+use one set of physical constants, Basilisk's ([Physical constants](constants.md)).
 
 ## Integration
 
@@ -46,12 +46,16 @@ spacecraft's altitude is checked:
 - every `reentry_near_check_s` (300 s) once a perigee is below
   `reentry_near_perigee_km` (200 km).
 
-When a spacecraft is below 100 km, the run stops there and says so; the
-re-entry time is known to within one check. Integrating on through the
-atmosphere would give non-physical results and could lose the whole run.
-The chunks do not change the trajectory: Basilisk integrates the same
-steps either way. The 100 km is reconciled with the lifetime estimate's
-120 km in Phase 3c.
+When a spacecraft is below `reentry_altitude_km` (100 km), the run stops
+there and says so; the re-entry time is known to within one check.
+Integrating on through the atmosphere would give non-physical results and
+could lose the whole run. The chunks do not change the trajectory:
+Basilisk integrates the same steps either way.
+
+This is the run's criterion, on the simulated altitude. The lifetime
+estimate's is different: the orbit-averaged perigee reaching
+`lifetime.reentry_altitude_km` (120 km), from where an orbit lasts days at
+most ([Physical constants](constants.md), "The re-entry altitudes").
 
 ## The conservation check
 
@@ -78,13 +82,14 @@ effect, and a project configuration file changes them
 |---|---|---|---|---|
 | `integrator_relative_tolerance` | 1e-10 | [-] | The adaptive integrators' relative tolerance | SpaceMissionStudio's own choice (audit E3) |
 | `integrator_absolute_tolerance` | 1e-8 | [m, m/s, rad] | Their absolute tolerance, one value for every state | Basilisk's default |
+| `reentry_altitude_km` | 100 | [km] | The altitude below which a run counts a spacecraft as re-entered | SpaceMissionStudio's own choice |
 | `reentry_check_s` | 21 600 | [s] | The re-entry check's interval while perigees are high | SpaceMissionStudio's own choice |
 | `reentry_near_perigee_km` | 200 | [km] | The perigee below which the checks come often | SpaceMissionStudio's own choice |
 | `reentry_near_check_s` | 300 | [s] | The re-entry check's interval near re-entry: the precision of the re-entry time | SpaceMissionStudio's own choice |
 | `conservation_tolerance` | 0.01 | [-] | The energy and momentum drift a two-body run warns at | SpaceMissionStudio's own choice |
 
 **Not parameters:**
-- **The 100 km re-entry altitude:** Phase 3c.
+- **The physical constants** ([Physical constants](constants.md)).
 - **The segment length of runs over 100 days** (90 days): Basilisk's
   clock holds about 104 days, and segments only need to fit in it.
 - **The order of the modules within a step:** fixed by what each module

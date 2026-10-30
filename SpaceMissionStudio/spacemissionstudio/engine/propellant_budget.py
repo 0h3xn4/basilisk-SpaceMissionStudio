@@ -79,13 +79,14 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta, UTC
 from collections.abc import Callable
 
+from .. import constants
 from ..config import registry
 from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import PropellantBudgetConfig
 
 G0_M_S2 = 9.80665  # [m/s^2]
-MU_EARTH_M3_S2 = 398600.436e9  # [m^3/s^2] Basilisk's (astroConstants.h)
-REQ_EARTH_M = 6378136.6  # [m]
+MU_EARTH_M3_S2 = constants.EARTH_GM_M3_S2  # [m^3/s^2] the one set (spacemissionstudio.constants)
+REQ_EARTH_M = constants.EARTH_EQUATORIAL_RADIUS_M  # [m]
 # The budget's rules and margins are named parameters (config.parameters,
 # "propellant_budget"): AD10's values by default, a project's own where its
 # configuration file sets them (transparency audit, Phase 3a).

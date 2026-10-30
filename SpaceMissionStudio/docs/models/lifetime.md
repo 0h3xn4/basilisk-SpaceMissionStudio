@@ -81,11 +81,12 @@ configuration file changes them
 | `default_horizon_years` | 30 | [year] | How far an estimate looks ahead unless told | SpaceMissionStudio's own choice: past the 25-year rule |
 | `default_deorbit_perigee_km` | 250 | [km] | The End of Life page's deorbit perigee to start with | SpaceMissionStudio's own choice |
 
-**Constants**, not yet parameters: Earth's GM, equatorial radius, J2 and
-rotation rate, Basilisk's own (`engine/lifetime.py`). They join the one
-set of constants the transparency plan chooses in Phase 3c, which also
-reconciles the 120 km here with the 100 km at which a full simulation run
-stops.
+**Constants**, not parameters: Earth's GM, equatorial radius, J2 and
+rotation rate, from the one set ([Physical constants](constants.md)).
+
+**Two re-entry altitudes, two criteria:** the 120 km here is on the
+orbit-averaged perigee. A full simulation run stops at its own
+`dynamics.reentry_altitude_km` (100 km), on the simulated altitude.
 
 ## Assumptions
 

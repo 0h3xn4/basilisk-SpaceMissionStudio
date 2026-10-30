@@ -16,9 +16,10 @@ configuration file changes them without editing code
 | The integrator's tolerances, the re-entry checks, the conservation check | [Dynamics: integration and run control](dynamics-run-control.md) | `dynamics.*` |
 | Space weather past the prediction, Earth orientation, TLEs, mean elements | [Environment data](environment-and-data.md) | `space_weather.*`, `tle.*` |
 
-The physical constants (Earth's and the Sun's) are gathered into one set
-next (transparency plan, Phase 3c). Until then the constants each model
-uses are named on its page, and all are listed, with file and line, in
-the [transparency audit](../transparency_audit.md), Section 4. Until then their values are
+Every calculation uses one set of physical constants, Basilisk's:
+[Physical constants](constants.md). The values each model uses that are
+neither parameters nor constants are named on its page; the
+[transparency audit](../transparency_audit.md), Section 4, lists them all
+with file and line. Until then their values are
 listed, with file and line, in the
 [transparency audit](../transparency_audit.md), Section 4.

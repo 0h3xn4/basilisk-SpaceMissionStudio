@@ -1010,3 +1010,14 @@ never named "_TabBar".
 - Added, in `test_config.py`: a case for each of the 2 parameters (the space weather past MSFC's prediction, the TLE
   age warning), set and at its default, and `test_a_repeat_longer_than_the_prediction_is_refused`. Each fails on the
   code before (checked). No existing test changed.
+
+## One set of physical constants (2026-10-30)
+
+- Added: `tests/test_constants.py` (4 tests): the constants against Basilisk's, the C header's definitions, every
+  analysis taking the one set, and the checks' re-entry by the lifetime's parameter; and in `test_config.py` the case
+  for `dynamics.reentry_altitude_km`. Each fails on the code before (checked; `spacemissionstudio.constants` does not
+  exist there).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_config.py::_orbit_run` (helper) | A 400 km orbit only | Takes the altitude, 400 km unless given | The re-entry altitude's case needs a lower orbit; every other case runs the same 400 km orbit (6378.1366 + 400 is exactly the earlier 6778.1366) |

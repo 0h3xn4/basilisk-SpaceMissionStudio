@@ -90,28 +90,14 @@ import copy
 import math
 from dataclasses import dataclass
 
+from .. import constants
 from ..schema.scenario import MAX_SPACECRAFT, OrbitIC, ScenarioValidationError, SpacecraftConfig
 
-# [km] equatorial radius -- see module docstring for provenance. Kept in
-# sync manually with astroConstants.h's REQ_* values; only bodies
-# schema.scenario.SUPPORTED_CENTRAL_BODIES actually offers are listed.
-CENTRAL_BODY_EQUATORIAL_RADIUS_KM = {
-    "sun": 695000.0,
-    "mercury": 2439.7,
-    "venus": 6051.8,
-    "earth": 6378.1366,
-    "moon": 1737.4,
-    "mars barycenter": 3396.19,
-    "jupiter barycenter": 71492.0,
-}
-
-# J2 [-] of the central bodies a run can give spherical-harmonics gravity
-# (schema.scenario.GRAVITY_FIELDS), from Basilisk's astroConstants.h J2_*
-# values, as the radii above.
-CENTRAL_BODY_J2 = {
-    "earth": 1082.616e-6,
-    "mars barycenter": 1960.45e-6,
-}
+# [km] equatorial radius and J2 [-] of the central bodies a run can use: the
+# one set (spacemissionstudio.constants, Basilisk's astroConstants.h), which a
+# test checks against Basilisk's own.
+CENTRAL_BODY_EQUATORIAL_RADIUS_KM = constants.CENTRAL_BODY_EQUATORIAL_RADIUS_KM
+CENTRAL_BODY_J2 = constants.CENTRAL_BODY_J2
 
 WALKER_PATTERNS = ("delta", "star")
 
