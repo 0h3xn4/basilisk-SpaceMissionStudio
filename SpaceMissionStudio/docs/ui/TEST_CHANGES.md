@@ -1157,6 +1157,12 @@ never named "_TabBar".
   Each fails on the code before (checked; `gui.provenance_view` does not
   exist there). No existing test changed.
 
+## The SIL deadline test (2026-10-30)
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/test_sil_contract.py::test_timeouts_closed_links_and_flight_software_errors_end_the_run_loudly[fake_kwargs1-timeouts1-None]` | `deadline_s=0.05`, `step_s=0.3`; asserted only the first step's answer and the final failure | `deadline_s=0.2`, `step_s=0.6`; also asserts at least one dropped step (`late_replies >= 1`) before the failure | On the Windows runner under the parallel suite (#172), the first, answered step's reply took more than 0.05 s and was dropped, which is correct behaviour for a missed deadline. 0.2 s leaves a loaded runner room and stays below the 0.6 s of silence, so the case still drops steps before failing. The new assertion makes it check that. A reply delayed 0.1 s fails at the old values and passes at the new (checked) |
+
 ## The events' traces (2026-10-30)
 
 - Added:

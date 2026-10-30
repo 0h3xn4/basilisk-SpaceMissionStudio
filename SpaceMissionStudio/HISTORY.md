@@ -14531,6 +14531,17 @@ The transparency plan, Phase 4a, for the events. Branch `event-trace`.
 - **Tests:** 2 in `tests/test_trace.py`, 1 in
   `tests/gui/test_calculation_panel.py`.
 
+## The SIL deadline test, robust on a loaded runner (2026-10-30)
+
+`tests/test_sil_contract.py::test_timeouts_closed_links_and_flight_software_errors_end_the_run_loudly`,
+its deadline case, failed once on the Windows runner (#172): the first,
+answered STEP had 0.05 s, the fake flight software's reply came later
+under the parallel suite's load, and the step was dropped as it should
+be. The case now gives the deadline 0.2 s and the silence 0.6 s, and
+asserts that at least one step was dropped before the run failed. A
+first reply delayed 0.1 s is dropped at the old values and answered at
+the new (checked). No code changed.
+
 ## The provenance view (2026-10-30)
 
 The transparency plan, Phase 4d. Branch `provenance-view`, after
