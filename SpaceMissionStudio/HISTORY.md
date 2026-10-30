@@ -14514,6 +14514,23 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The events' traces (2026-10-30)
+
+The transparency plan, Phase 4a, for the events. Branch `event-trace`.
+
+- **`events.trace_of(result, event)`:** the span (series, rule, first and
+  last samples, the samples either side) and one trace per value carried
+  (delta-V, data, max elevation, lowest sunlight with the umbra fraction),
+  each linked from the span (`trace:`). Made on demand.
+- **One set of rules:** `_BURN_SOURCES` and `_MODE_SOURCES` tables and
+  the `_on_*` functions, used by the extractors and the trace;
+  `_delta_v_samples` shared by the burn's delta-V and its trace. The
+  events found are unchanged (the event tests pass as before).
+- **Timeline:** Show calculation (`calculation_requested`,
+  `selected_event`, `explanation`), connected to the Calculation panel.
+- **Tests:** 2 in `tests/test_trace.py`, 1 in
+  `tests/gui/test_calculation_panel.py`.
+
 ## The provenance view (2026-10-30)
 
 The transparency plan, Phase 4d. Branch `provenance-view`, after

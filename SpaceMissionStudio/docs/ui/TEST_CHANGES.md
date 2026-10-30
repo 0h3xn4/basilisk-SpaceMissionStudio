@@ -1156,3 +1156,17 @@ never named "_TabBar".
 
   Each fails on the code before (checked; `gui.provenance_view` does not
   exist there). No existing test changed.
+
+## The events' traces (2026-10-30)
+
+- Added:
+  - in `tests/test_trace.py` (2 tests): every event of a run with all six
+    kinds found again from its trace (span, the samples either side,
+    delta-V, data, elevation, sunlight with the umbra rule, every series
+    named recorded); a station-keeping burn's rule, samples and delta-V,
+    and a run without the series;
+  - in `tests/gui/test_calculation_panel.py` (1 test): the Timeline's Show
+    calculation sends the selected event's traces, the panel opens its
+    delta-V from it, and the button is off without a selection or run.
+
+  Each fails on the code before (checked). No existing test changed.

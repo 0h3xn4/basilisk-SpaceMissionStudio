@@ -88,6 +88,31 @@ the event is on, from its first to its last such sample.
 - **Downlink:** a window in which the link closes and data went down, with
   how much.
 
+### How each event was found
+
+`events.trace_of(result, event)` gives an event's trace (`engine.trace`),
+from the run, when it is asked for:
+- **The span:** the series and its rule (for example `has_access != 0`,
+  `illumination_factor < 1`, `round(state) == 1` for a phasing burn), the
+  first and last samples where the rule is true (`t_start`, `t_end`), and
+  the samples either side where it is false (`t_before`, `t_after`). The
+  event began between `t_before` and `t_start` and ended between `t_end`
+  and `t_after`: its times are known to within a recording interval.
+- **What it carries:**
+  - a burn's delta-V: the controller's cumulative delta-V at the sample
+    after the burn less at the sample before it;
+  - a downlink's data: the data downlinked by the window's last sample
+    less by the sample before it;
+  - a pass's highest elevation, at its sample;
+  - an eclipse's lowest sunlight at its sample, and umbra or penumbra
+    against `umbra_sunlight_fraction`.
+
+Extraction and the trace use the same rules (`_BURN_SOURCES`,
+`_MODE_SOURCES` and the `_on_*` functions). `tests/test_trace.py` finds
+every event of a run again from its trace alone. In the app, **Show
+calculation** on the Timeline opens the selected event's trace.
+`events.csv` is unchanged.
+
 ## Critical marks
 
 A card on Results › Overview is neutral unless the run crosses a limit
