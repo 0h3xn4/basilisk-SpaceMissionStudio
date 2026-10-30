@@ -788,7 +788,7 @@ def test_lifetime_and_budget_write_what_they_were_computed_from(tmp_path, capsys
     assert cli.main(["lifetime", str(path), "--max-years", "2", "--out", str(tmp_path / "life.json")]) == 0
     life = json.loads((tmp_path / "life.json").read_text(encoding="utf-8"))
     assert life["kind"] == "lifetime" and life["inputs"]["drag_coeff"] == 2.2
-    assert life["model"]["drag_coeff"] == 2.2 and life["model"]["REENTRY_ALTITUDE_KM"] == 120.0  # [km]
+    assert life["model"]["drag_coeff"] == 2.2 and life["model"]["rules"]["lifetime.reentry_altitude_km"] == 120.0  # [km]
     assert life["results"]["reentered"] and life["results"]["rules"]["zero_debris_5_year_rule"] == "met"
     assert len(life["decay"]["time_s"]) == len(life["decay"]["perigee_altitude_km"]) > 100
     assert (life["provenance"]["scenario_file"], life["provenance"]["scenario_file_sha256"]) == ("18.json",
@@ -830,7 +830,8 @@ def test_assumptions_lists_the_parameters_and_a_run_records_its_configuration(tm
     assert cli.main(["assumptions", "--yaml"]) == 0
     assert "# propellant_budget.cam_count_factor: 4.0  # [-]" in capsys.readouterr().out
     assert cli.main(["assumptions", "--area", "nowhere"]) == 2
-    assert "areas: propellant_budget" in capsys.readouterr().err
+    err = capsys.readouterr().err
+    assert "areas: " in err and "lifetime" in err and "propellant_budget" in err
 
     project = tmp_path / "project.yaml"
     project.write_text("parameters:\n  propellant_budget.residual_fraction: 0.05\n", encoding="utf-8")
@@ -850,9 +851,14 @@ def test_assumptions_lists_the_parameters_and_a_run_records_its_configuration(tm
 
 def test_lifetime_drag_coefficient_defaults_to_ad10s_end_of_life_value():
     """lifetime's drag coefficient defaults to 2.2 (AD10's end-of-life value),
-    takes 'own', and refuses a negative value."""
+    takes 'own', and refuses a negative value. The default is the named
+    parameter lifetime.default_drag_coeff, taken when the option is unset
+    (a project file may change it)."""
+    from spacemissionstudio.config import registry
+
     parser = cli.build_parser()
-    assert parser.parse_args(["lifetime", "s.json"]).drag_coeff == "2.2"
+    assert parser.parse_args(["lifetime", "s.json"]).drag_coeff is None
+    assert registry.default("lifetime.default_drag_coeff") == 2.2
     assert parser.parse_args(["lifetime", "s.json", "--drag-coeff", "own"]).drag_coeff == "own"
     with pytest.raises(SystemExit):
         parser.parse_args(["lifetime", "s.json", "--drag-coeff", "-1"])

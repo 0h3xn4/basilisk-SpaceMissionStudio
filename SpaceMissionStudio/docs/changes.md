@@ -17,7 +17,12 @@ case; and how it was checked.
 
 Newest first.
 
-## 2026-10-30: the parameter registry, first area the propellant budget (Phase 3a, 3b)
+## 2026-10-30: the lifetime's rules as parameters (Phase 3a)
+
+**No number changes.** The lifetime's rules moved from module constants to
+named parameters with the same values; the regression baseline of all 31
+templates passes unchanged, every lifetime and re-entry date as before.
+
 
 **No number changes.** The budget's rules moved from module constants to
 named parameters with the same values. The regression baseline of all 31

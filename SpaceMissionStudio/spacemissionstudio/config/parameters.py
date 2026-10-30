@@ -25,6 +25,10 @@ Propellant Mass budgets", EOP-FM/2024-07-177, issue 3.0.
 
 from .registry import Parameter, register
 
+# The percentiles of MSFC's solar-activity prediction (engine.spaceweather.MSFC_PERCENTILES), the only ones
+# a forecast can be resolved at.
+_MSFC_PERCENTILES = (95.0, 50.0, 5.0)
+
 # -- propellant budget (engine.propellant_budget) ---------------------------------------------
 
 register(
@@ -58,10 +62,11 @@ register(
               minimum=0.1, maximum=10.0),
     Parameter("propellant_budget.operations_percentile", 95.0, "[%]",
               "The MSFC solar-activity percentile of the in-plane drag estimate and the launch-delay sweep; a run "
-              "with another is noted.", "AD10 Sec. 5.9", minimum=5.0, maximum=95.0),
+              "with another is noted.", "AD10 Sec. 5.9", "MSFC publishes the 95th, 50th and 5th percentiles only.",
+              choices=_MSFC_PERCENTILES),
     Parameter("propellant_budget.eol_percentile", 50.0, "[%]",
               "The MSFC solar-activity percentile of the end-of-life disposal estimate.",
-              "AD10 Sec. 5.9", minimum=5.0, maximum=95.0),
+              "AD10 Sec. 5.9", "MSFC publishes the 95th, 50th and 5th percentiles only.", choices=_MSFC_PERCENTILES),
     Parameter("propellant_budget.geo_graveyard_base_m", 235e3, "[m]",
               "A GEO graveyard orbit is raised by this plus geo_graveyard_per_cr_a_m * Cr * A / m.",
               "AD10 Sec. 6.3.1.3 (IADC)", minimum=0.0),
@@ -88,4 +93,51 @@ register(
     Parameter("propellant_budget.altitude_floor_km", 250.0, "[km]",
               "The lowest altitude an altitude trade takes when none are given.", "SpaceMissionStudio's own choice",
               "Below about 250 km an orbit decays within weeks.", minimum=100.0, maximum=2000.0),
+)
+
+# -- orbital lifetime (engine.lifetime) ---------------------------------------------------------
+
+register(
+    Parameter("lifetime.reentry_altitude_km", 120.0, "[km]",
+              "A perigee at or below this counts as re-entry: the lifetime ends there.",
+              "Common practice for orbit-averaged decay estimates",
+              "Below about 120 km an orbit lasts days at most. A full simulation run stops at 100 km "
+              "(engine.service); Phase 3c of the transparency plan chooses one value for both.",
+              minimum=60.0, maximum=300.0),
+    Parameter("lifetime.ring_points", 16, "[-]",
+              "The points spread evenly around the orbit (in mean anomaly) the drag is averaged over at each step.",
+              "SpaceMissionStudio's own choice",
+              "With 16, the estimate is within 3 % of full Basilisk decay runs (tests/test_lifetime.py).",
+              kind="integer", minimum=4, maximum=360),
+    Parameter("lifetime.max_step_s", 86400.0, "[s]",
+              "The longest decay step; it shortens as the orbit nears re-entry.",
+              "SpaceMissionStudio's own choice", "A day: the density follows the space weather's daily values.",
+              minimum=600.0, maximum=864000.0),
+    Parameter("lifetime.max_perigee_drop_fraction", 0.01, "[-]",
+              "The largest fraction of the perigee height left above re-entry that one step may lose.",
+              "SpaceMissionStudio's own choice", minimum=1e-4, maximum=0.5),
+    Parameter("lifetime.zero_debris_years", 5.0, "[year]",
+              "The first disposal rule a lifetime is checked against: re-entry within this many years.",
+              "ESA Zero Debris approach; the FCC's 5-year rule", minimum=0.1, maximum=100.0),
+    Parameter("lifetime.iadc_years", 25.0, "[year]",
+              "The second disposal rule a lifetime is checked against: re-entry within this many years.",
+              "IADC Space Debris Mitigation Guidelines; ISO 24113", minimum=0.1, maximum=100.0),
+    Parameter("lifetime.makeup_step_s", 21600.0, "[s]",
+              "The sampling step of the drag make-up estimate (the in-plane control a station keeper spends).",
+              "SpaceMissionStudio's own choice", "Six hours: four samples a day of the daily space weather.",
+              minimum=600.0, maximum=864000.0),
+    Parameter("lifetime.default_drag_coeff", 2.2, "[-]",
+              "The drag coefficient a lifetime estimate starts with, before 'the spacecraft's own' is chosen.",
+              "ESA AD10 Sec. 5.2 (end of life)", minimum=0.1, maximum=10.0),
+    Parameter("lifetime.default_forecast_percentile", 50.0, "[%]",
+              "The MSFC solar-activity percentile a lifetime estimate starts with.",
+              "ESA AD10 Sec. 5.9 (end of life)", "MSFC publishes the 95th, 50th and 5th percentiles only.",
+              choices=_MSFC_PERCENTILES),
+    Parameter("lifetime.default_horizon_years", 30.0, "[year]",
+              "How far a lifetime estimate looks ahead unless another is given.",
+              "SpaceMissionStudio's own choice", "Past the 25-year guideline, so both rules can be decided.",
+              minimum=0.1, maximum=100.0),
+    Parameter("lifetime.default_deorbit_perigee_km", 250.0, "[km]",
+              "The perigee the End of Life page's deorbit burn starts with.", "SpaceMissionStudio's own choice",
+              minimum=130.0, maximum=2000.0),
 )

@@ -188,7 +188,7 @@ def _summarise_decay(result, scenario) -> dict:
     ecc = result.series[f"{SPACECRAFT}.orbit_elements_mean.eccentricity"].data[:, 0]
     perigee_km = (sma.data[:, 0] * (1.0 - ecc) - lifetime.REQ_EARTH_M) / 1e3
     with np.errstate(invalid="ignore"):
-        below = perigee_km <= lifetime.REENTRY_ALTITUDE_KM
+        below = perigee_km <= lifetime.rule("reentry_altitude_km")
     basilisk_days = float(sma.time_s[np.argmax(below)]) / 86400.0 if below.any() else None
     estimate_days = estimate.lifetime_s / 86400.0 if estimate.reentered else None
     return {"basilisk_days": None if basilisk_days is None else round(basilisk_days, 2),

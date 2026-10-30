@@ -280,7 +280,7 @@ def uncontrolled_reentry_delta_v(scenario, spacecraft, eol_utc, mass_kg: float, 
     files = getattr(density, "data_files", {})
 
     def years_from(start_orbit, horizon=horizon_years):
-        result = lt.propagate_decay(start_orbit, eol_utc, ballistic, density, horizon)
+        result = lt.propagate_decay(start_orbit, eol_utc, ballistic, density, horizon, scenario=scenario)
         return result.lifetime_years if result.reentered else math.inf
 
     def in_time(start_orbit):  # stops at the target: no need to follow a slower decay further
@@ -288,7 +288,7 @@ def uncontrolled_reentry_delta_v(scenario, spacecraft, eol_utc, mass_kg: float, 
 
     if in_time(orbit):
         return 0.0, orbit.perigee_altitude_km, years_from(orbit), notes, files
-    low_km, high_km = lt.REENTRY_ALTITUDE_KM + 20.0, orbit.perigee_altitude_km  # [km]
+    low_km, high_km = lt.rule("reentry_altitude_km", scenario) + 20.0, orbit.perigee_altitude_km  # [km]
     while high_km - low_km > 2.0:  # [km]
         middle_km = 0.5 * (low_km + high_km)
         _dv, _kg, lowered = lt.deorbit_burn(orbit, middle_km, mass_kg, 1.0e9)

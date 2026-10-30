@@ -56,7 +56,7 @@ def test_the_shipped_defaults_file_is_the_registry():
 
 
 # The page of docs/models that documents each area (the brief: every model, rule and assumption).
-_MODEL_PAGES = {"propellant_budget": "propellant-budget.md"}
+_MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifetime.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -186,7 +186,7 @@ def _reentry_inputs(scenario, monkeypatch):
         seen["percentile"] = forecast_percentile
         return SimpleNamespace(data_files={}), years, []
 
-    def decay(_orbit, _start, ballistic, _density, _horizon, *_args):
+    def decay(_orbit, _start, ballistic, _density, _horizon, *_args, **_kwargs):
         seen["ballistic"] = ballistic
         return SimpleNamespace(reentered=True, lifetime_years=1.0)
 
@@ -247,12 +247,128 @@ _CASES = {
 }
 
 
+# -- every lifetime parameter changes what it says it changes ----------------------------------
+
+def _lifetime_scenario():
+    return _budget_scenario()  # a LEO station keeper at 400 km with drag
+
+
+def _flat_density(seen=None):
+    """A density model of a fixed 1e-11 kg/m^3, noting the ring sizes it sees."""
+    import numpy as np
+
+    def density(_t_s, r_m):
+        if seen is not None:
+            seen.add(len(r_m))
+        return np.full(len(r_m), 1e-11)  # [kg/m^3]
+    return density
+
+
+def _decay(scenario):
+    from spacemissionstudio.engine import lifetime as lt
+
+    seen = set()
+    orbit = lt.MeanOrbit(lt.REQ_EARTH_M + 300e3, 0.001, 1.7, 0.0, 0.0)
+    result = lt.propagate_decay(orbit, datetime(2030, 1, 1), 0.02, _flat_density(seen), 1.0, scenario=scenario)
+    return round(result.lifetime_s), len(result.time_s), sorted(seen)
+
+
+def _makeup_samples(scenario, monkeypatch):
+    from spacemissionstudio.engine import lifetime as lt
+
+    monkeypatch.setattr(lt, "density_for_scenario", lambda _s, _start, years, **_k: (_flat_density(), years, []))
+    return len(lt.drag_makeup(scenario, scenario.spacecraft[0], datetime(2030, 1, 1), 0.1).time_s)
+
+
+def _cli_lifetime(scenario, monkeypatch, tmp_path):
+    """The options ``lifetime`` passes the estimate when none are given."""
+    from spacemissionstudio import cli
+    from spacemissionstudio.engine import lifetime as lt
+
+    seen = {}
+
+    def end_of_life(_scenario, _name, **kwargs):
+        seen.update(kwargs)
+        raise lt.LifetimeError("stopped here")
+
+    monkeypatch.setattr(lt, "end_of_life", end_of_life)
+    overrides = scenario.configuration.overrides if scenario.configuration is not None else {}
+    (tmp_path / "project.yaml").write_text("parameters:\n" + "".join(f"  {k}: {v}\n" for k, v in overrides.items()),
+                                           encoding="utf-8")
+    saved = Scenario.from_dict(scenario.to_dict())
+    saved.config_file = "project.yaml"
+    saved.gravity.third_body_perturbers = ["sun"]  # a station keeper needs the Sun to validate
+    path = tmp_path / "s.json"
+    saved.save(path)
+    assert cli.main(["lifetime", str(path)]) == 3
+    return seen["max_years"], seen["forecast_percentile"], seen["drag_coeff"]
+
+
+def _rules(scenario):
+    from spacemissionstudio.engine import lifetime as lt
+
+    result = lt.LifetimeResult(True, 10.0 * 365.25 * 86400.0, None, None, None, datetime(2030, 1, 1))
+    return [(label, result.meets(years)) for years, label, _key in lt.disposal_rules(scenario)]
+
+
+# name: (value to set, what to measure: called with the scenario, monkeypatch and tmp_path)
+_LIFETIME_CASES = {
+    "lifetime.reentry_altitude_km": (200.0, lambda s, _m, _t: _decay(s)),
+    "lifetime.ring_points": (8, lambda s, _m, _t: _decay(s)),
+    "lifetime.max_step_s": (43200.0, lambda s, _m, _t: _decay(s)),
+    "lifetime.max_perigee_drop_fraction": (0.001, lambda s, _m, _t: _decay(s)),
+    "lifetime.zero_debris_years": (12.0, lambda s, _m, _t: _rules(s)),
+    "lifetime.iadc_years": (8.0, lambda s, _m, _t: _rules(s)),
+    "lifetime.makeup_step_s": (43200.0, lambda s, m, _t: _makeup_samples(s, m)),
+    "lifetime.default_drag_coeff": (3.0, _cli_lifetime),
+    "lifetime.default_forecast_percentile": (95.0, _cli_lifetime),
+    "lifetime.default_horizon_years": (10.0, _cli_lifetime),
+}
+# Set where they act, in the GUI: tests/gui/test_lifetime_widget.py
+_GUI_CASES = {"lifetime.default_deorbit_perigee_km": "test_the_pages_defaults_are_the_configurations"}
+
+
 def test_every_parameter_has_a_case_that_sets_it():
     """A parameter declared without a case below fails here: the
     definition of done asks that a test set each one (transparency audit
-    9.4)."""
+    9.4). A GUI default's case is a named test of its page."""
+    from pathlib import Path
+
     declared = {p.name for p in registry.parameters()}
-    assert declared == set(_CASES), f"no case for {sorted(declared - set(_CASES))}"
+    cases = set(_CASES) | set(_LIFETIME_CASES) | set(_GUI_CASES)
+    assert declared == cases, f"no case for {sorted(declared - cases)}"
+    gui_tests = (Path(__file__).resolve().parent / "gui" / "test_lifetime_widget.py").read_text(encoding="utf-8")
+    assert all(f"def {name}(" in gui_tests for name in _GUI_CASES.values())
+
+
+def test_the_percentile_choices_are_msfcs():
+    """A percentile parameter takes only the percentiles MSFC publishes,
+    the ones a forecast can be resolved at; any other is refused when the
+    file is read, not when a run needs it."""
+    from spacemissionstudio.config import parameters
+    from spacemissionstudio.engine import spaceweather
+
+    assert parameters._MSFC_PERCENTILES == spaceweather.MSFC_PERCENTILES
+    for name in ("propellant_budget.operations_percentile", "propellant_budget.eol_percentile",
+                 "lifetime.default_forecast_percentile"):
+        assert registry.parameter(name).check(95) == 95.0
+        with pytest.raises(ConfigError, match="one of 95, 50, 5"):
+            registry.parameter(name).check(60.0)
+
+
+@pytest.mark.requires_basilisk
+@pytest.mark.parametrize("name", sorted(_LIFETIME_CASES))
+def test_setting_a_lifetime_parameter_changes_what_it_controls(name, monkeypatch, tmp_path):
+    """Each lifetime parameter set in a project configuration changes the
+    output it says it controls."""
+    value, measure = _LIFETIME_CASES[name]
+    default_scenario, changed = _lifetime_scenario(), _lifetime_scenario()
+    changed.configuration = Configuration({name: registry.parameter(name).check(value)})
+    (tmp_path / "default").mkdir()
+    (tmp_path / "changed").mkdir()
+    before = measure(default_scenario, monkeypatch, tmp_path / "default")
+    after = measure(changed, monkeypatch, tmp_path / "changed")
+    assert before != after, name
 
 
 @pytest.mark.requires_basilisk

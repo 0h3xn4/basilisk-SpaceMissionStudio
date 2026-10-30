@@ -387,6 +387,15 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   budget's margin labels follow the values ("5% of tank"). Each model is
   documented in `docs/models/`, starting with the propellant budget
   (transparency plan, Phase 3a, 3b). PyYAML is now a declared dependency.
+- **The orbital lifetime's rules are parameters too:** the 120 km re-entry
+  perigee, the decay's step control and drag ring, the 5- and 25-year
+  rules, the drag make-up step, and the defaults `lifetime` and the End
+  of Life page start from (Cd 2.2, the 50th percentile, 30 years, a 250
+  km deorbit perigee): 11 in all, documented in
+  `docs/models/lifetime.md`. The rules' labels and plot marks follow
+  their values. A solar-activity percentile parameter now takes only
+  MSFC's 95, 50 and 5, which a forecast can be resolved at; the budget's
+  two accepted any value from 5 to 95 and failed later.
 
 ## 1.3.1 (2026-10-27)
 

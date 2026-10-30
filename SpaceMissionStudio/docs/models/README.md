@@ -10,9 +10,10 @@ configuration file changes them without editing code
 | Model | Page | Parameters |
 |---|---|---|
 | Delta-V and propellant budget (ESA AD10) | [Propellant budget](propellant-budget.md) | `propellant_budget.*` |
+| Orbital lifetime, disposal rules and drag make-up | [Orbital lifetime](lifetime.md) | `lifetime.*` |
 
 The other areas move into the parameter registry one at a time
-(transparency plan, Phase 3: lifetime, link and power, the run summary,
-then dynamics), each with its page here. Until then their values are
+(transparency plan, Phase 3: link and power, the run summary, then
+dynamics), each with its page here. Until then their values are
 listed, with file and line, in the
 [transparency audit](../transparency_audit.md), Section 4.

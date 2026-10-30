@@ -45,8 +45,6 @@ from .widgets import ComboBox, PreciseDoubleSpinBox
 
 _FROM_START = "Start of scenario"
 _FROM_LAST_RUN = "End of last run"
-_DEFAULT_DEORBIT_PERIGEE_KM = 250.0  # [km]
-_DEFAULT_HORIZON_YEARS = 30.0  # [year]
 
 
 class _LifetimeWorker(QThread):
@@ -88,8 +86,11 @@ class AltitudeChart(QWidget):
     def sizeHint(self) -> QSize:
         return QSize(480, 260)
 
-    def set_data(self, years, perigee_km, apogee_km, reentry_km: float, horizon_years: float) -> None:
+    def set_data(self, years, perigee_km, apogee_km, reentry_km: float, horizon_years: float,
+                 rule_years=(5.0, 25.0)) -> None:
+        """``rule_years``: the disposal rules' years, marked where they fit."""
         self._data = (list(years), list(perigee_km), list(apogee_km), reentry_km, horizon_years)
+        self._rule_years = tuple(rule_years)
         self.update()
 
     def clear(self) -> None:
@@ -138,7 +139,7 @@ class AltitudeChart(QWidget):
         # the disposal-rule marks and the re-entry altitude
         rule_pen = QPen(QColor(PALETTE["warning"]))
         rule_pen.setStyle(Qt.PenStyle.DashLine)
-        for mark, label in ((5.0, "5 y"), (25.0, "25 y")):
+        for mark, label in ((years_mark, f"{years_mark:g} y") for years_mark in getattr(self, "_rule_years", ())):
             if mark <= span_years:
                 x = point(mark, bottom_km).x()
                 painter.setPen(rule_pen)
@@ -205,7 +206,6 @@ class LifetimeWidget(QWidget):
         self.deorbit_perigee_spin = PreciseDoubleSpinBox()
         self.deorbit_perigee_spin.setRange(130.0, 2000.0)
         self.deorbit_perigee_spin.setDecimals(0)
-        self.deorbit_perigee_spin.setValue(_DEFAULT_DEORBIT_PERIGEE_KM)
         self.deorbit_perigee_spin.setSuffix(" km")
         self.deorbit_perigee_spin.setEnabled(False)
         self.deorbit_check.toggled.connect(self.deorbit_perigee_spin.setEnabled)
@@ -221,16 +221,15 @@ class LifetimeWidget(QWidget):
         self.activity_combo.setToolTip("NASA MSFC's predicted solar activity past the observations. "
                                        "ESA AD10 Sec. 5.9: 50th for end of life.")
         form.addRow("Solar activity", self.activity_combo)
-        self._drag_items = [("2.2 (AD10 end of life)", 2.2), ("The spacecraft's own", None)]  # [-]
+        # The first item's coefficient is lifetime.default_drag_coeff (_apply_defaults).
+        self._drag_items = [("", 2.2), ("The spacecraft's own", None)]  # [-]
         self.drag_combo = ComboBox()
         for label, _value in self._drag_items:
             self.drag_combo.addItem(label)
-        self.drag_combo.setToolTip("ESA AD10 Sec. 5.2: Cd 2.2 at end of life (3.0 in operations).")
         form.addRow("Drag coefficient", self.drag_combo)
         self.horizon_spin = PreciseDoubleSpinBox()
         self.horizon_spin.setRange(1.0, 100.0)
         self.horizon_spin.setDecimals(0)
-        self.horizon_spin.setValue(_DEFAULT_HORIZON_YEARS)
         self.horizon_spin.setSuffix(" years")
         form.addRow("Look ahead", self.horizon_spin)
         settings = QWidget()  # the settings at a form's width; the plot below keeps the page's
@@ -264,13 +263,40 @@ class LifetimeWidget(QWidget):
         hint.setWordWrap(True)
         set_role(hint, role="caption")
         layout.addWidget(hint)
+        self._defaults = None  # the configuration's defaults the controls were last set to
+        self._apply_defaults(None)
         self._update_from_choices()
 
     # -- inputs -------------------------------------------------------------
 
+    def _apply_defaults(self, scenario) -> None:
+        """Set the controls to the defaults in effect for ``scenario``
+        (``lifetime.default_*``, config.parameters), when those differ from
+        the ones last applied: a project file's defaults show, and an edit
+        elsewhere in the scenario leaves the user's choices alone."""
+        from ..engine import lifetime as lt
+
+        defaults = tuple(lt.rule(name, scenario) for name in ("default_drag_coeff", "default_forecast_percentile",
+                                                              "default_horizon_years", "default_deorbit_perigee_km"))
+        if defaults == self._defaults:
+            return
+        self._defaults = defaults
+        drag_coeff, percentile, horizon_years, perigee_km = defaults
+        self._drag_items[0] = (f"{drag_coeff:g} (AD10 end of life)" if drag_coeff == 2.2  # [-] AD10 Sec. 5.2
+                               else f"{drag_coeff:g} (the project's default)", drag_coeff)
+        self.drag_combo.setItemText(0, self._drag_items[0][0])
+        self.drag_combo.setCurrentIndex(0)
+        self.drag_combo.setToolTip(f"lifetime.default_drag_coeff: Cd {drag_coeff:g}. ESA AD10 Sec. 5.2: Cd 2.2 at "
+                                   "end of life (3.0 in operations).")
+        self.activity_combo.setCurrentIndex([value for _label, value in self._activity_items].index(percentile))
+        self.horizon_spin.setValue(horizon_years)
+        self.deorbit_perigee_spin.setValue(perigee_km)
+
     def set_scenario(self, scenario) -> None:
         """The editor's current scenario (None while it does not validate)."""
         self._scenario = scenario
+        if scenario is not None:
+            self._apply_defaults(scenario)
         current = self.spacecraft_combo.currentText()
         names = [sc.name for sc in scenario.spacecraft] if scenario is not None else []
         if names != [self.spacecraft_combo.itemText(i) for i in range(self.spacecraft_combo.count())]:
@@ -306,6 +332,7 @@ class LifetimeWidget(QWidget):
             self._show_error(f"{name} was not in the last run")
             return
         perigee_km = self.deorbit_perigee_spin.value() if self.deorbit_check.isChecked() else None
+        self._computed_for = scenario  # its rules mark the result (_show)
         self._worker = _LifetimeWorker(scenario, name, result, perigee_km, self.horizon_spin.value(),
                                        self._activity_items[self.activity_combo.currentIndex()][1], self,
                                        drag_coeff=self._drag_items[self.drag_combo.currentIndex()][1])
@@ -338,6 +365,7 @@ class LifetimeWidget(QWidget):
     def _show(self, end_of_life) -> None:
         from ..engine import lifetime as lt
 
+        scenario = getattr(self, "_computed_for", None)
         self._clear_results()
         result = end_of_life.lifetime
         self.status_label.setText("From the end of the last run" if end_of_life.from_end_of_run
@@ -357,7 +385,7 @@ class LifetimeWidget(QWidget):
                                                 f"{plan.propellant_kg:.2f} kg"))
         self.tiles_row.addStretch(1)
 
-        for years, label in ((lt.ZERO_DEBRIS_YEARS, "5-year rule"), (lt.IADC_YEARS, "25-year guideline")):
+        for years, label, _key in lt.disposal_rules(scenario):
             unknown = not result.known(years)
             met = result.meets(years)
             text = f"{label}: {'not known' if unknown else 'met' if met else 'not met'}"
@@ -373,7 +401,8 @@ class LifetimeWidget(QWidget):
         notes.extend(result.warnings)
         self.notes_label.setText("\n".join(notes))
         self.chart.set_data([t / (365.25 * 86400.0) for t in result.time_s], result.perigee_altitude_km,
-                            result.apogee_altitude_km, lt.REENTRY_ALTITUDE_KM, horizon_years)
+                            result.apogee_altitude_km, lt.rule("reentry_altitude_km", scenario), horizon_years,
+                            [years for years, _label, _key in lt.disposal_rules(scenario)])
 
 
 def _years_text(years: float) -> str:

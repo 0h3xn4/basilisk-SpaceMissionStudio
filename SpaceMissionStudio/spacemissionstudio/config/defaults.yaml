@@ -52,13 +52,13 @@ parameters:
   # propellant_budget.operations_drag_coeff: 3.0  # [-]
 
   # The MSFC solar-activity percentile of the in-plane drag estimate and the launch-delay sweep; a run with another is noted.
-  # Source: AD10 Sec. 5.9.
-  # Limits: 5 to 95 [%]
+  # Source: AD10 Sec. 5.9. MSFC publishes the 95th, 50th and 5th percentiles only.
+  # One of: 95, 50, 5 [%]
   # propellant_budget.operations_percentile: 95.0  # [%]
 
   # The MSFC solar-activity percentile of the end-of-life disposal estimate.
-  # Source: AD10 Sec. 5.9.
-  # Limits: 5 to 95 [%]
+  # Source: AD10 Sec. 5.9. MSFC publishes the 95th, 50th and 5th percentiles only.
+  # One of: 95, 50, 5 [%]
   # propellant_budget.eol_percentile: 50.0  # [%]
 
   # A GEO graveyard orbit is raised by this plus geo_graveyard_per_cr_a_m * Cr * A / m.
@@ -100,3 +100,60 @@ parameters:
   # Source: SpaceMissionStudio's own choice. Below about 250 km an orbit decays within weeks.
   # Limits: 100 to 2000 [km]
   # propellant_budget.altitude_floor_km: 250.0  # [km]
+
+  # -- lifetime --------------------------------------------------------------
+
+  # A perigee at or below this counts as re-entry: the lifetime ends there.
+  # Source: Common practice for orbit-averaged decay estimates. Below about 120 km an orbit lasts days at most. A full simulation run stops at 100 km (engine.service); Phase 3c of the transparency plan chooses one value for both.
+  # Limits: 60 to 300 [km]
+  # lifetime.reentry_altitude_km: 120.0  # [km]
+
+  # The points spread evenly around the orbit (in mean anomaly) the drag is averaged over at each step.
+  # Source: SpaceMissionStudio's own choice. With 16, the estimate is within 3 % of full Basilisk decay runs (tests/test_lifetime.py).
+  # Limits: 4 to 360 [-], integer
+  # lifetime.ring_points: 16  # [-]
+
+  # The longest decay step; it shortens as the orbit nears re-entry.
+  # Source: SpaceMissionStudio's own choice. A day: the density follows the space weather's daily values.
+  # Limits: 600 to 864000 [s]
+  # lifetime.max_step_s: 86400.0  # [s]
+
+  # The largest fraction of the perigee height left above re-entry that one step may lose.
+  # Source: SpaceMissionStudio's own choice.
+  # Limits: 0.0001 to 0.5 [-]
+  # lifetime.max_perigee_drop_fraction: 0.01  # [-]
+
+  # The first disposal rule a lifetime is checked against: re-entry within this many years.
+  # Source: ESA Zero Debris approach; the FCC's 5-year rule.
+  # Limits: 0.1 to 100 [year]
+  # lifetime.zero_debris_years: 5.0  # [year]
+
+  # The second disposal rule a lifetime is checked against: re-entry within this many years.
+  # Source: IADC Space Debris Mitigation Guidelines; ISO 24113.
+  # Limits: 0.1 to 100 [year]
+  # lifetime.iadc_years: 25.0  # [year]
+
+  # The sampling step of the drag make-up estimate (the in-plane control a station keeper spends).
+  # Source: SpaceMissionStudio's own choice. Six hours: four samples a day of the daily space weather.
+  # Limits: 600 to 864000 [s]
+  # lifetime.makeup_step_s: 21600.0  # [s]
+
+  # The drag coefficient a lifetime estimate starts with, before 'the spacecraft's own' is chosen.
+  # Source: ESA AD10 Sec. 5.2 (end of life).
+  # Limits: 0.1 to 10 [-]
+  # lifetime.default_drag_coeff: 2.2  # [-]
+
+  # The MSFC solar-activity percentile a lifetime estimate starts with.
+  # Source: ESA AD10 Sec. 5.9 (end of life). MSFC publishes the 95th, 50th and 5th percentiles only.
+  # One of: 95, 50, 5 [%]
+  # lifetime.default_forecast_percentile: 50.0  # [%]
+
+  # How far a lifetime estimate looks ahead unless another is given.
+  # Source: SpaceMissionStudio's own choice. Past the 25-year guideline, so both rules can be decided.
+  # Limits: 0.1 to 100 [year]
+  # lifetime.default_horizon_years: 30.0  # [year]
+
+  # The perigee the End of Life page's deorbit burn starts with.
+  # Source: SpaceMissionStudio's own choice.
+  # Limits: 130 to 2000 [km]
+  # lifetime.default_deorbit_perigee_km: 250.0  # [km]
