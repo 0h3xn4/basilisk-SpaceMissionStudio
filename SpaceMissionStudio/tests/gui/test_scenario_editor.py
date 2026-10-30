@@ -342,10 +342,10 @@ def test_the_duration_says_when_the_mission_sequence_decides(widget):
 
 
 def test_the_project_configuration_survives_the_editor_and_is_read_from_the_files_folder(widget, tmp_path):
-    """Transparency audit, Phase 3b: the form has no field for
-    ``config_file`` yet, and the editor rebuilds the scenario from its
-    fields: the file named is kept, and read relative to the scenario
-    file's folder at each to_scenario()."""
+    """Transparency audit, Phase 3b: the editor rebuilds the scenario from
+    its fields, and the file named (shown on Scenario › Assumptions since
+    Phase 3d) is kept, and read relative to the scenario file's folder at
+    each to_scenario()."""
     from spacemissionstudio.schema import load_scenario
 
     (tmp_path / "project.yaml").write_text("parameters:\n  propellant_budget.cam_count_factor: 3\n", encoding="utf-8")

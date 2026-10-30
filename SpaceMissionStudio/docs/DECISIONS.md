@@ -5,6 +5,22 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The Assumptions page (2026-10-30)
+
+The transparency plan's Phase 3d.
+
+- **A page of the scenario, not a dialog:** the configuration belongs to
+  the scenario that names it, so the page is a node of the editor's tree.
+  It shows only when chosen, which keeps the default view as it was.
+- **The file is edited, not rewritten:** a project's configuration file
+  carries its reasons as comments ("our tanks: 5 % measured"). Writing
+  the parameters out anew would lose them, so the page changes one line at
+  a time and checks that the file still reads.
+- **Values are set below the table, not in it:** the selected
+  parameter's details (what it controls, its source, its limits) need the
+  room, and a single field with Set makes clear when the file is written.
+- **The JSON view stays:** it still edits `config_file`, as before.
+
 ## One set of physical constants (2026-10-30)
 
 The transparency plan's Phase 3c; the user's answer to the audit's

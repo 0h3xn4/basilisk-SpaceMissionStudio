@@ -1021,3 +1021,18 @@ never named "_TabBar".
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `test_config.py::_orbit_run` (helper) | A 400 km orbit only | Takes the altitude, 400 km unless given | The re-entry altitude's case needs a lower orbit; every other case runs the same 400 km orbit (6378.1366 + 400 is exactly the earlier 6778.1366) |
+
+## The Assumptions page (2026-10-30)
+
+- Added:
+  - `tests/gui/test_assumptions_page.py` (5 tests): the parameters at their defaults without a file; a file chosen,
+    named relative to the scenario, its values in bold, "Changed values only"; a value set, written into its line,
+    refused out of range, reset; a relative file of an unsaved scenario; the editor taking the page's file and values;
+  - in `test_config.py`, 3 tests of `config.files.set_value`, `reset_value` and `new_file`.
+
+  Each fails on the code before (checked).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_scenario_editor.py::test_the_project_configuration_survives_the_editor_and_is_read_from_the_files_folder` | Docstring: "the form has no field for config_file yet" | Docstring names Scenario › Assumptions | The page is that field now; the test's code is unchanged |
+| `tests/gui/test_workspace.py::test_the_areas_and_what_they_hold` | The editor's tree ended with Monte Carlo | Ends with Assumptions | The new node; every other node is checked as before |

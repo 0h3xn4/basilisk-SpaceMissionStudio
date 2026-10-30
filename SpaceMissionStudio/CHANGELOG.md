@@ -427,6 +427,10 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   `docs/changes.md`. The scenario checks' re-entry follows
   `lifetime.reentry_altitude_km`, and the run's 100 km is the parameter
   `dynamics.reentry_altitude_km`. See `docs/models/constants.md`.
+- **Scenario › Assumptions:** every parameter with the value in effect,
+  its unit and source; the project configuration file the scenario names,
+  chosen or created there; and a value set there, checked and written into
+  the file on its own line, so the file's comments stay.
 
 ## 1.3.1 (2026-10-27)
 
