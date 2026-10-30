@@ -979,3 +979,18 @@ never named "_TabBar".
 | `test_config.py::test_every_parameter_is_documented_on_its_models_page` | Checked each area's page is linked from the index | Also checks the index names the area's parameters (`link.*`) | Two areas share one page; the index must say which parameters it covers |
 | `test_comms_pointing.py::_run_comms_pointing` (helper) | Passed `rf_link` and the station to `build_comms_pointing` | Also passes `scenario` (None unless given) | For the new test; every existing call passes None, as before |
 | `test_link_budget.py` (one comment) | Named `_MAX_POINTING_LOSS_DB` | Names `link.max_pointing_loss_db` | The constant is a parameter; the assertion is unchanged |
+
+## How a run's results are read, as parameters (2026-10-30)
+
+- Added:
+  - in `test_config.py`, a case for each of the 2 results parameters read outside the GUI (the mean
+    semi-major axis change, the eclipse's kind), set in a run's provenance, and
+    `test_a_run_is_read_with_its_own_configuration`;
+  - `tests/gui/test_mission_dashboard_widget.py::test_the_tracking_badge_uses_the_projects_converged_angle`;
+  - `tests/gui/test_results_overview.py::test_the_battery_card_uses_the_runs_critical_fraction`.
+
+  Each fails on the code before (checked).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_config.py::test_every_parameter_has_a_case_that_sets_it` | A GUI case named a test in `test_lifetime_widget.py` | A GUI case names its file and test (`file::test`), and each is checked in its file | GUI cases are now in three files; every case is still required and checked |

@@ -57,7 +57,8 @@ def test_the_shipped_defaults_file_is_the_registry():
 
 # The page of docs/models that documents each area (the brief: every model, rule and assumption).
 _MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifetime.md",
-                "link": "link-data-and-power.md", "data_handling": "link-data-and-power.md"}
+                "link": "link-data-and-power.md", "data_handling": "link-data-and-power.md",
+                "results": "reading-results.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -326,8 +327,14 @@ _LIFETIME_CASES = {
     "lifetime.default_forecast_percentile": (95.0, _cli_lifetime),
     "lifetime.default_horizon_years": (10.0, _cli_lifetime),
 }
-# Set where they act, in the GUI: tests/gui/test_lifetime_widget.py
-_GUI_CASES = {"lifetime.default_deorbit_perigee_km": "test_the_pages_defaults_are_the_configurations"}
+# Set where they act, in the GUI: {parameter: "file under tests/gui::test"}
+_GUI_CASES = {
+    "lifetime.default_deorbit_perigee_km": "test_lifetime_widget.py::test_the_pages_defaults_are_the_configurations",
+    "results.pointing_converged_deg":
+        "test_mission_dashboard_widget.py::test_the_tracking_badge_uses_the_projects_converged_angle",
+    "results.battery_critical_fraction":
+        "test_results_overview.py::test_the_battery_card_uses_the_runs_critical_fraction",
+}
 
 
 # -- every link and data-handling parameter changes what it says it changes -------------------
@@ -381,10 +388,11 @@ def test_every_parameter_has_a_case_that_sets_it():
     from pathlib import Path
 
     declared = {p.name for p in registry.parameters()}
-    cases = set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_GUI_CASES)
+    cases = set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_RESULTS_CASES) | set(_GUI_CASES)
     assert declared == cases, f"no case for {sorted(declared - cases)}"
-    gui_tests = (Path(__file__).resolve().parent / "gui" / "test_lifetime_widget.py").read_text(encoding="utf-8")
-    assert all(f"def {name}(" in gui_tests for name in _GUI_CASES.values())
+    for where in _GUI_CASES.values():
+        file, name = where.split("::")
+        assert f"def {name}(" in (Path(__file__).resolve().parent / "gui" / file).read_text(encoding="utf-8"), where
 
 
 def test_the_percentile_choices_are_msfcs():
@@ -415,6 +423,52 @@ def test_setting_a_lifetime_parameter_changes_what_it_controls(name, monkeypatch
     before = measure(default_scenario, monkeypatch, tmp_path / "default")
     after = measure(changed, monkeypatch, tmp_path / "changed")
     assert before != after, name
+
+
+# -- every results parameter changes what it says it changes ----------------------------------
+
+def _run_with(configuration):
+    """tests/test_run_summary.py's run, with a provenance recording
+    ``configuration`` as a run's does."""
+    from test_run_summary import _run
+
+    result = _run()
+    result.provenance = SimpleNamespace(configuration=registry.record(SimpleNamespace(configuration=configuration)),
+                                        central_body_mu_m3_s2=0.0, frames={})
+    return result
+
+
+def _sma_change(configuration):
+    from spacemissionstudio.engine import run_summary
+
+    return run_summary.by_key(run_summary.summarize(_run_with(configuration)))["sat.mean_sma_change"].value
+
+
+def _eclipse_labels(configuration):
+    from spacemissionstudio.engine import events
+
+    result = _run_with(configuration)
+    sunlight = result.series["sat.eclipse.illumination_factor"].data[:, 0]
+    sunlight[30:65] = 0.3  # [-] a partial eclipse: 30 % of the sunlight at its deepest
+    return [e.label for e in events.extract_events(result) if e.kind == events.ECLIPSE]
+
+
+# name: (value to set, what to measure: called with the run's configuration, None for the defaults)
+_RESULTS_CASES = {
+    "results.sma_window_orbits": (0.5, _sma_change),
+    "results.umbra_sunlight_fraction": (0.5, _eclipse_labels),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_RESULTS_CASES))
+def test_setting_a_results_parameter_changes_how_a_run_is_read(name):
+    """Each results parameter a run's configuration set changes what is
+    read from the run -- the mean semi-major axis change, the eclipse's
+    kind -- and set to its default, leaves it as it was."""
+    value, measure = _RESULTS_CASES[name]
+    before = measure(None)
+    assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
+    assert measure(Configuration({name: registry.default(name)})) == before, name
 
 
 @pytest.mark.requires_basilisk
@@ -477,3 +531,14 @@ def test_a_runs_recorded_value_is_the_one_it_had():
     assert registry.recorded_value("link.required_margin_db", {}) == 0.0
     assert registry.recorded_value("link.required_margin_db", None) == 0.0
     assert registry.recorded_value("link.max_pointing_loss_db", record) == 30.0
+
+
+def test_a_run_is_read_with_its_own_configuration():
+    """registry.value_of_run: the value a run's provenance recorded; the
+    default for a run without provenance or without that override."""
+    from spacemissionstudio.engine.results import ResultSet
+
+    assert registry.value_of_run("results.sma_window_orbits", ResultSet("no provenance")) == 1.0
+    assert registry.value_of_run("results.sma_window_orbits", _run_with(None)) == 1.0
+    configured = _run_with(Configuration({"results.sma_window_orbits": 2.0}))
+    assert registry.value_of_run("results.sma_window_orbits", configured) == 2.0

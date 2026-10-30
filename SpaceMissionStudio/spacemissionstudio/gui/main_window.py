@@ -1529,7 +1529,8 @@ class MainWindow(QMainWindow):
                                       cancelled=cancelled)  # saved in a worker: _on_run_saved
         self.results_widget.set_runs(self.run_history.runs, record)
         self.results_overview.set_run(result, record.name,
-                                      result.provenance.to_dict() if result.provenance is not None else None)
+                                      result.provenance.to_dict() if result.provenance is not None else None,
+                                      record.scenario)
         self._refresh_compare_tab()
         mode = "SIL" if getattr(self, "_last_run_sil", False) else "Single"
         self._run_modes[record.number], self._run_seconds[record.number] = mode, self.last_run_seconds

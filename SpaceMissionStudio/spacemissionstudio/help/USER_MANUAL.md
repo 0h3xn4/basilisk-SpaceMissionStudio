@@ -999,7 +999,11 @@ data downlinked (only those the run recorded; Compare's summary has the
 same figures). A card is red, with an icon and its reason, only where the
 scenario sets the limit: a link margin below the required margin (0 dB
 unless the project configuration sets `link.required_margin_db`; the
-margin already includes the required Eb/N0) and a battery that ran empty. **Provenance**
+margin already includes the required Eb/N0) and a battery that ran empty,
+or fell to a project's depth-of-discharge limit
+(`results.battery_critical_fraction`). A run is judged by the values it
+was run with. [Reading a run's results](docs/models/reading-results.md)
+says how each figure is read. **Provenance**
 beside the run's name shows what produced it: the versions, the
 integrator and step, the data files.
 

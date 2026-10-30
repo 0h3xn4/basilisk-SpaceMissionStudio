@@ -172,5 +172,12 @@ def recorded_value(name: str, configuration_record: dict | None):
     return parameter(name).check(override["value"]) if override is not None else default(name)
 
 
+def value_of_run(name: str, result):
+    """The value of ``name`` the run ``result`` (an engine.results.ResultSet)
+    had, from its provenance's configuration; the default without one."""
+    provenance = getattr(result, "provenance", None)
+    return recorded_value(name, getattr(provenance, "configuration", None))
+
+
 def _plain(value):
     return list(value) if isinstance(value, tuple) else value

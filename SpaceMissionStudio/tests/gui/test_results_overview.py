@@ -109,6 +109,24 @@ def test_the_link_card_uses_the_runs_required_margin(overview, qtbot):
     assert margin.status == "Link margin below 5 dB" and not margin.status_row.isHidden()
 
 
+def test_the_battery_card_uses_the_runs_critical_fraction(overview, qtbot):
+    """A run whose project configuration set a depth-of-discharge limit
+    (``results.battery_critical_fraction`` 0.5, in its provenance): a
+    lowest charge of 20 W*h from a 50 W*h battery is critical, with the
+    limit in its words. At the default, or without the capacity (no
+    scenario as run), only an empty battery is."""
+    from types import SimpleNamespace
+
+    scenario = {"spacecraft": [{"name": "sat-1", "power": {"battery_capacity_wh": 50.0}}]}  # [W*h]
+    result = _result(lowest_charge=20.0)  # [W*h]
+    assert _show(overview, qtbot, result, scenario=scenario)["lowest_battery_charge"].status is None
+    result.provenance = SimpleNamespace(configuration={"file": None, "overrides": {
+        "results.battery_critical_fraction": {"value": 0.5, "default": 0.0, "unit": "[-]", "source": "-"}}})
+    battery = _show(overview, qtbot, result, scenario=scenario)["lowest_battery_charge"]
+    assert battery.status == "Battery at or below 50% of capacity" and not battery.status_row.isHidden()
+    assert _show(overview, qtbot, result)["lowest_battery_charge"].status is None
+
+
 def test_the_figures_are_worked_out_off_the_gui_thread(overview, qtbot, monkeypatch):
     from spacemissionstudio.engine import run_summary
 

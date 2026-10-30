@@ -12,9 +12,9 @@ configuration file changes them without editing code
 | Delta-V and propellant budget (ESA AD10) | [Propellant budget](propellant-budget.md) | `propellant_budget.*` |
 | Orbital lifetime, disposal rules and drag make-up | [Orbital lifetime](lifetime.md) | `lifetime.*` |
 | RF link budget, onboard data and power | [RF link, data handling and power](link-data-and-power.md) | `link.*`, `data_handling.*` |
+| A run's figures, events, critical marks and dashboard badges | [Reading a run's results](reading-results.md) | `results.*` |
 
 The other areas move into the parameter registry one at a time
-(transparency plan, Phase 3: the run summary, then dynamics), each with
-its page here. Until then their values are
+(transparency plan, Phase 3: dynamics next), each with its page here. Until then their values are
 listed, with file and line, in the
 [transparency audit](../transparency_audit.md), Section 4.

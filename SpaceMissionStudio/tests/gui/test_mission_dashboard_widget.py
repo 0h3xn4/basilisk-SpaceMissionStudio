@@ -179,6 +179,22 @@ def test_the_link_badge_and_breakdown_use_the_projects_link_parameters(widget):
     assert widget.pointing_loss_label.text() == f"{6.0 * (10.0 / 30.0) ** 2:.2f} dB"
 
 
+def test_the_tracking_badge_uses_the_projects_converged_angle(widget):
+    """An 8 deg pointing error reads as slewing at the default 5 deg
+    (``results.pointing_converged_deg``), as converged when a project sets
+    10 deg."""
+    from spacemissionstudio.config.registry import Configuration
+
+    result = _result_set(active_mode=[1], pointing_error_deg=[8.0], has_access=[1],
+                         slant_range_m=[1.0e6], battery_charge_wh=[33.0], net_power_w=[-10.0])
+    widget.set_result(result, _scenario())
+    assert widget.tracking_badge.text() == "Slewing"
+    configured = _scenario()
+    configured.configuration = Configuration({"results.pointing_converged_deg": 10.0})
+    widget.set_result(result, configured)
+    assert widget.tracking_badge.text() == "Converged"
+
+
 def test_battery_soc_bar_reflects_capacity_when_scenario_given(widget):
     """With the scenario's 40 Wh battery, 20 Wh reads 50 %, beside the bar, and
     the net power is signed."""

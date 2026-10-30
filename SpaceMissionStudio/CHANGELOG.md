@@ -403,6 +403,14 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   (angle / beamwidth)^2, at most 30 dB), the transmitter's packet size
   and the explanation's pass length are parameters too, documented with
   the power model in `docs/models/link-data-and-power.md`.
+- **A project can set a depth-of-discharge limit:** Results › Overview
+  marks the battery when its lowest charge falls to
+  `results.battery_critical_fraction` of its capacity (0, an empty
+  battery, unless set). How a run's figures and events are read is
+  documented in `docs/models/reading-results.md`. The window of the mean
+  semi-major axis change, the umbra threshold and the dashboard's
+  converged pointing are parameters too. A run is judged by the values it
+  was run with.
 
 ## 1.3.1 (2026-10-27)
 
