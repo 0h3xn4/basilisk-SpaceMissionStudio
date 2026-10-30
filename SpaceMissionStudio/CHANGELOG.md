@@ -474,6 +474,9 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   shows it. The panels' layout saved by an earlier version is not
   restored, once: they start as in a new window (the rail and the
   dividers are restored as before).
+- **Tests:** the SIL deadline test no longer fails when a loaded Windows
+  runner answers its first step in more than 50 ms (it now allows 0.2 s,
+  and checks that missed deadlines are dropped steps).
 - **Everything a run recorded, in one window:** the Provenance popover
   (Results > Overview, Run > History) has **Show everything recorded**.
   It opens the whole record as a tree in groups: software, run, seeds,

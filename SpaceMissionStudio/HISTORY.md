@@ -14514,6 +14514,17 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The SIL deadline test, robust on a loaded runner (2026-10-30)
+
+`tests/test_sil_contract.py::test_timeouts_closed_links_and_flight_software_errors_end_the_run_loudly`,
+its deadline case, failed once on the Windows runner (#172): the first,
+answered STEP had 0.05 s, the fake flight software's reply came later
+under the parallel suite's load, and the step was dropped as it should
+be. The case now gives the deadline 0.2 s and the silence 0.6 s, and
+asserts that at least one step was dropped before the run failed. A
+first reply delayed 0.1 s is dropped at the old values and answered at
+the new (checked). No code changed.
+
 ## The provenance view (2026-10-30)
 
 The transparency plan, Phase 4d. Branch `provenance-view`, after
