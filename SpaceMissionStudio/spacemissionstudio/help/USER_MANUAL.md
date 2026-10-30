@@ -758,7 +758,10 @@ all Basilisk modules (`simpleInstrument`, `partitionedStorageUnit`,
   After a run, the Dashboard shows the link budget at the time cursor
   (else the run's end) while the station is in view and **Comms
   pointing** has turned the spacecraft to it; its **Show calculation** opens how the margin was
-  computed, the range and pointing error taken from the run.
+  computed, the range and pointing error taken from the run. The Power
+  card's **Show calculation** opens how its figures were read: the
+  battery series and sample at the cursor, and the state of charge from
+  the battery's capacity.
 * Instruments and the transmitter can draw power from the power budget.
 
 **Antenna pattern** (same group as the link budget) says how the

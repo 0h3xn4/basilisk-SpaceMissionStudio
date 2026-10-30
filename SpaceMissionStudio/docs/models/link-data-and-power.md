@@ -187,6 +187,20 @@ needed. In the app, the Dashboard's **Show calculation** opens the same
 traces in the Calculation panel, the margin first, at the time cursor:
 the range and pointing error are then the run's (`last run:`). `tests/test_trace.py` recomputes every figure from its trace.
 
+**The data totals** (`engine.data_budget`, `DataBudget.traces`): data
+generated, downlinked and lost, each the ledger's cumulative count at its
+last sample; the data on board at the end, the memory's total column at
+its last sample; and whether the memory was full at some point (when any
+data was lost). Each names its series and sample. `run --explain` prints
+them after the headline figures.
+
+**The power at the time cursor** (`engine.power_state`): the battery
+charge and the net power are Basilisk's (`simpleBattery`), read at the
+last sample at or before the cursor, or at the run's end. The state of
+charge is SpaceMissionStudio's: `SOC = 100 * E / E_cap`, held to 0..100,
+with `E_cap` the scenario's `battery_capacity_wh`. The Dashboard's Power
+card has **Show calculation** for them.
+
 ## Outputs and records
 
 A run records, for each station and spacecraft:

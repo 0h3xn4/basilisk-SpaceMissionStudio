@@ -588,3 +588,78 @@ def test_the_run_command_explains_its_headline_figures(tmp_path, capsys):
     assert "Delta-V: 1.750 m/s\n  Delta-V: dV = 1.75 [m/s]\n" in printed
     assert "dV_station_keeping = 1.5 [m/s]" in printed and "(last run: sat.station_keeping.delta_v" in printed
     assert cli.build_parser().parse_args(["run", "s.json", "--explain"]).explain
+
+
+# -- the data totals (engine.data_budget) and the power at the time cursor (engine.power_state) -----
+
+def test_each_data_total_is_read_from_the_ledger_at_its_last_sample():
+    """Generated, downlinked, lost and on board: each trace names its ledger
+    series and last sample and gives the budget's number; the memory was
+    full exactly when data was lost."""
+    from test_data_handling import _synthetic_result
+
+    from spacemissionstudio.engine import data_budget
+
+    result = _synthetic_result()
+    (budget,) = data_budget.budgets(result)
+    traces = budget.traces
+    assert set(traces) == {"data_generated", "data_downlinked", "data_lost", "stored_end", "capacity_full"}
+    for key, value in (("data_generated", budget.generated), ("data_downlinked", budget.downlinked),
+                       ("data_lost", budget.lost), ("stored_end", budget.stored_end)):
+        trace = traces[key]
+        name = trace.inputs[0].source[len("last run: "):].split(",")[0]
+        series = result.series[name]
+        column = list(series.columns).index("total") if key == "stored_end" else 0
+        assert trace.value == trace.inputs[0].value == value == float(series.data[-1, column]), key
+        assert trace.inputs[0].source.startswith(f"last run: {name}, its last sample {series.time_s.size - 1} ")
+    assert traces["capacity_full"].value == ("yes" if traces["data_lost"].value > 0 else "no") == "no"
+
+
+def test_the_run_command_explains_the_data_totals(tmp_path, capsys):
+    import argparse
+
+    from test_data_handling import _synthetic_result
+
+    from spacemissionstudio import cli
+    from spacemissionstudio.schema import load_scenario
+
+    templates = Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates"
+    scenario = load_scenario(next(templates.glob("26_*.json")))
+    cli._write_run_outputs(argparse.Namespace(out_dir=tmp_path, oem=False, explain=True), scenario,
+                           _synthetic_result(), None)
+    printed = capsys.readouterr().out
+    assert "Data handling of sat, and how each total was read:" in printed
+    assert "  Data generated: G = 90000000 [bit]" in printed
+    assert "(last run: sat.data_handling.data_generated, its last sample 9 (t = 90 s))" in printed
+
+
+def _battery_run():
+    t = np.arange(6, dtype=float) * 60.0  # [s]
+    result = ResultSet("power")
+    result.add(TimeSeries("sat.battery_charge", t, ("charge",), np.array([40.0, 38.0, 35.0, 36.0, 39.0, 41.0])[:, None],
+                          "W*hr"))
+    result.add(TimeSeries("sat.battery_net_power", t, ("net_power",),
+                          np.array([-5.0, -6.0, 2.0, 3.0, 4.0, 1.0])[:, None], "W"))
+    return result
+
+
+def test_the_power_at_the_time_cursor_is_read_from_the_battery_series():
+    """At a cursor between samples the last sample at or before it is read;
+    the state of charge is 100 E / E_cap held to 0..100 and opens the charge;
+    without a capacity there is no state of charge; without the cursor, the
+    run's end."""
+    from spacemissionstudio.engine import power_state
+
+    result = _battery_run()
+    traces = power_state.battery_traces(result, "sat", capacity_wh=50.0, at_s=150.0)  # [W*h], [s]
+    assert traces["charge"].value == 35.0 and traces["net_power"].value == 2.0  # sample 2 (t = 120 s)
+    assert traces["charge"].inputs[0].source.startswith("last run: sat.battery_charge, sample 2 (t = 120 s)")
+    soc = traces["state_of_charge"]
+    assert soc.value == 100.0 * soc.input("E") / soc.input("E_cap") == 70.0  # [%]
+    assert soc.inputs[0].source == "trace: Battery charge"
+    assert soc.inputs[1].source == "scenario: spacecraft.power.battery_capacity_wh"
+    assert power_state.battery_traces(result, "sat", capacity_wh=30.0)["state_of_charge"].value == 100.0  # held
+    assert "state_of_charge" not in power_state.battery_traces(result, "sat")
+    end = power_state.battery_traces(result, "sat")
+    assert end["charge"].value == 41.0 and "the last at or before the end of the run" in end["charge"].inputs[0].source
+    assert power_state.battery_traces(ResultSet("none"), "sat") == {}

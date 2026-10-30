@@ -249,6 +249,34 @@ def test_a_results_overview_card_shows_how_its_figure_was_computed(qtbot):
     overview.wait_for_worker()
 
 
+def test_the_dashboards_power_card_shows_how_its_figures_were_read(qtbot):
+    """The Power card's Show calculation sends the state of charge first
+    (the figure shown), then the net power and the charge, read at the
+    run's end; without a run the button is off."""
+    from test_mission_dashboard_widget import _result_set, _scenario
+
+    from spacemissionstudio.gui.mission_dashboard_widget import MissionDashboardWidget
+
+    widget = MissionDashboardWidget()
+    qtbot.addWidget(widget)
+    scenario = _scenario()  # a 40 W*h battery
+    widget.set_result(_result_set(active_mode=[1, 1], pointing_error_deg=[5.0, 5.0], has_access=[1, 1],
+                                  slant_range_m=[1.5e6, 1.5e6], battery_charge_wh=[33.0, 30.0],
+                                  net_power_w=[-10.0, -12.0]), scenario)
+    assert widget.power_calculation_button.isEnabled()
+    with qtbot.waitSignal(widget.calculation_requested) as sent:
+        widget.power_calculation_button.click()
+    explanation = sent.args[0]
+    assert explanation.title == "Power: sat-1"
+    assert [t.quantity for t in explanation.traces] == ["State of charge", "Net power", "Battery charge"]
+    soc, net, charge = explanation.traces
+    assert soc.value == 75.0 and widget.battery_soc_label.text() == "75%"  # [%] 30 of 40 W*h
+    assert net.value == -12.0 and widget.net_power_label.text() == "-12.00 W"
+    assert charge.inputs[0].source.startswith("last run: sat-1.battery_charge, sample 1 (t = 1 s)")
+    widget.set_result(None, scenario)
+    assert widget.power_explanation() is None
+
+
 # -- the main window ----------------------------------------------------------------------------
 
 @pytest.fixture

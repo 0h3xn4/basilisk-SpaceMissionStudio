@@ -1156,3 +1156,17 @@ never named "_TabBar".
 
   Each fails on the code before (checked; `gui.provenance_view` does not
   exist there). No existing test changed.
+
+## The power and data traces (2026-10-30)
+
+- Added:
+  - in `tests/test_trace.py` (3 tests): each data total read from its
+    ledger series at its last sample, and the memory-full verdict;
+    `run --explain` printing the data totals; the power at a cursor
+    between samples, the state of charge's formula and clamp, without a
+    capacity, at the run's end, and without the series;
+  - in `tests/gui/test_calculation_panel.py` (1 test): the Dashboard's
+    Power card sending the state of charge, net power and charge, with
+    the values the card shows.
+
+  Each fails on the code before (checked). No existing test changed.
