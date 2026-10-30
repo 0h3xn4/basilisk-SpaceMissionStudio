@@ -590,6 +590,103 @@ def test_the_run_command_explains_its_headline_figures(tmp_path, capsys):
     assert cli.build_parser().parse_args(["run", "s.json", "--explain"]).explain
 
 
+# -- the events (engine.events) -------------------------------------------------------------------
+
+def _every_kind_of_event():
+    """A run with a pass, eclipses, station-keeping and GEO burns, phasing
+    burns and drift, a thruster firing, comms modes and a downlink."""
+    t = np.arange(12, dtype=float) * 60.0  # [s]
+    result = ResultSet("events")
+
+    def add(name, columns, data, units=""):
+        result.add(TimeSeries(name, t, columns, np.asarray(data, dtype=float).reshape(t.size, -1), units))
+
+    add("gs.access_to_sat.has_access", ("has_access",), [0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1])
+    add("gs.access_to_sat.elevation", ("elevation",), np.radians([0, 5, 30, 50, 10, 0, 0, 0, 3, 8, 12, 9]), "rad")
+    add("gs.access_to_sat.link_closed", ("link_closed",), [0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 1, 0])
+    add("sat.data_handling.data_downlinked", ("data_downlinked",),
+        [0, 0, 1e9, 2.5e9, 2.5e9, 2.5e9, 2.5e9, 2.5e9, 2.5e9, 3e9, 3.5e9, 3.5e9], "bit")
+    add("sat.eclipse.illumination_factor", ("illumination_factor",), [1, 1, 0.5, 0, 0, 1, 1, 0.3, 1, 1, 1, 1])
+    add("sat.station_keeping.burn_on", ("burn_on",), [0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0])
+    add("sat.station_keeping.delta_v", ("cumulative_delta_v",), [0, 0, 0, 0, 0.4, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9, 0.9],
+        "m/s")
+    burn = np.zeros((12, 2))
+    burn[2, 0] = burn[6:8, 1] = 1
+    add("geo.geo_station_keeping.burn_on", ("east_west", "north_south"), burn)
+    add("geo.geo_station_keeping.north_south.delta_v", ("cumulative_delta_v",), np.linspace(0.0, 2.2, 12), "m/s")
+    add("f1.phasing_keeping.state", ("state",), [0, 1, 1, 2, 2, 2, 3, 0, 0, 0, 0, 0])
+    on_time = np.zeros((12, 2))  # [s]
+    on_time[4, 1] = 0.2
+    add("sat.thruster_on_time", ("thruster_0", "thruster_1"), on_time, "s")
+    add("sat.comms_pointing.active_mode", ("active_mode",), [0, 1, 1, 1, 1, 0, 0, 0, 1, 1, 1, 1])
+    return result
+
+
+def test_every_event_is_found_again_from_its_trace():
+    """Each event's span follows from its trace: the first and last samples
+    where its rule is true, with the samples either side false; each value
+    it carries (delta-V, data, elevation, sunlight) is what its trace's
+    equation gives from the trace's inputs; every series named was recorded."""
+    from spacemissionstudio.engine import events
+
+    result = _every_kind_of_event()
+    found = events.extract_events(result)
+    assert {e.kind for e in found} == set(events.KINDS)
+    for event in found:
+        traces = events.trace_of(result, event)
+        span = traces[0]
+        assert (span.input("t_start"), span.input("t_end")) == (event.start_s, event.end_s), event
+        assert span.value == span.input("t_end") - span.input("t_start") == event.duration_s, event
+        for quantity in span.intermediates:
+            if quantity.symbol == "t_before":
+                assert quantity.value < event.start_s
+            elif quantity.symbol == "t_after":
+                assert quantity.value > event.end_s
+            else:  # a value the event carries, opened from the span
+                linked = next(t for t in traces[1:] if f"trace: {t.quantity}" == quantity.source)
+                assert quantity.value == linked.value
+        for trace in traces:
+            for quantity in trace.inputs + trace.intermediates:
+                if quantity.source.startswith("last run: "):
+                    assert quantity.source[len("last run: "):].split(",")[0] in result.series, quantity.source
+        values = {t.symbol: t for t in traces[1:]}
+        if "dV" in values:
+            dv = values["dV"]
+            assert dv.value == dv.input("dV_after") - dv.input("dV_before") == event.quantity("delta_v")
+        if "D" in values:
+            d = values["D"]
+            assert d.value == (d.input("D_end") - d.input("D_before")) / 1e9 == event.quantity("data")
+        if "el_max" in values:
+            assert values["el_max"].value == math.degrees(values["el_max"].input("el")) == event.quantity("max_elevation")
+        if "f_min" in values:
+            f = values["f_min"]
+            assert f.value == f.input("f") * 100.0 == event.quantity("lowest_sunlight")
+            assert event.label == f"eclipse ({'umbra' if f.input('f') < f.input('u') else 'penumbra'})"
+            assert f.inputs[1].source == "parameter: results.umbra_sunlight_fraction"
+        expected = {"delta_v": "dV", "data": "D", "max_elevation": "el_max", "lowest_sunlight": "f_min"}
+        assert {expected[key] for key, _value in event.quantities} == set(values), event
+
+
+def test_an_event_trace_states_its_rule_and_samples():
+    """A station-keeping burn's trace names the series and rule, the samples
+    either side, and reads the delta-V between the samples outside it."""
+    from spacemissionstudio.engine import events
+
+    result = _every_kind_of_event()
+    burn = next(e for e in events.extract_events(result) if e.label == "station-keeping burn")
+    span, delta_v = events.trace_of(result, burn)
+    assert span.quantity == "station-keeping burn (sat)" and span.value == 60.0
+    assert span.equation.startswith("on where burn_on != 0;")
+    assert span.inputs[0].source == "last run: sat.station_keeping.burn_on, sample 3 (t = 180 s)"
+    assert span.input("t_before") == 120.0 and span.input("t_after") == 300.0
+    assert delta_v.input("dV_before") == 0.0 and delta_v.input("dV_after") == 0.9  # [m/s] samples 2 and 5
+    assert span.intermediates[-1].source == "trace: Delta-V" and span.input("dV") == delta_v.value
+    sun = next(e for e in events.extract_events(result) if e.label == "Sun pointing")
+    assert events.trace_of(result, sun)[0].equation.startswith("on where active_mode <= 0.5;")
+    with pytest.raises(KeyError):
+        events.trace_of(ResultSet("empty"), burn)
+
+
 # -- the data totals (engine.data_budget) and the power at the time cursor (engine.power_state) -----
 
 def test_each_data_total_is_read_from_the_ledger_at_its_last_sample():

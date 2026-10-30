@@ -14529,6 +14529,22 @@ The transparency plan, Phase 4a, for power and data. Branch
 - **`DataBudget.traces`:** generated, downlinked, lost, on board at the
   end, memory full. `run --explain` prints them.
 - **Tests:** 3 in `tests/test_trace.py`, 1 in
+
+## The events' traces (2026-10-30)
+
+The transparency plan, Phase 4a, for the events. Branch `event-trace`.
+
+- **`events.trace_of(result, event)`:** the span (series, rule, first and
+  last samples, the samples either side) and one trace per value carried
+  (delta-V, data, max elevation, lowest sunlight with the umbra fraction),
+  each linked from the span (`trace:`). Made on demand.
+- **One set of rules:** `_BURN_SOURCES` and `_MODE_SOURCES` tables and
+  the `_on_*` functions, used by the extractors and the trace;
+  `_delta_v_samples` shared by the burn's delta-V and its trace. The
+  events found are unchanged (the event tests pass as before).
+- **Timeline:** Show calculation (`calculation_requested`,
+  `selected_event`, `explanation`), connected to the Calculation panel.
+- **Tests:** 2 in `tests/test_trace.py`, 1 in
   `tests/gui/test_calculation_panel.py`.
 
 ## The SIL deadline test, robust on a loaded runner (2026-10-30)

@@ -1186,6 +1186,12 @@ year of passes) filter and sort without a pause. **Ctrl+C** copies the selected 
 tab-separated text that pastes into a spreadsheet as columns. **Export
 CSV...** writes the events shown, in seconds and UTC with one column per
 measured value, with a `.provenance.json` file beside them.
+**Show calculation** opens how the selected row's event was found in the
+Calculation panel: the series and the rule that says it is on
+(`has_access != 0`, `illumination_factor < 1`, ...), the samples it
+starts and ends on and the samples either side (so you see how precisely
+its times are known), and, with **Open**, how its delta-V, data,
+elevation or lowest sunlight was read.
 A kind the run could not produce is named with the reason, e.g. no
 eclipses when the Sun is not one of the third-body perturbers.
 

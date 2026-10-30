@@ -396,7 +396,8 @@ class MainWindow(QMainWindow):
         self.calculation_panel = CalculationPanel()
         self.calculation_dock = self._make_dock("Calculation", "calculationDock", self.calculation_panel)
         self.tabifyDockWidget(self.side_dock, self.calculation_dock)
-        for page in (self.budget_widget, self.lifetime_widget, self.mission_dashboard_widget, self.results_overview):
+        for page in (self.budget_widget, self.lifetime_widget, self.mission_dashboard_widget, self.results_overview,
+                     self.event_timeline_widget):
             page.calculation_requested.connect(self.show_calculation)
         self.scenario_explainer_widget.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
         self.overview_item = self.scenario_editor.page_tree.add_page("Overview", self.scenario_explainer_widget,
