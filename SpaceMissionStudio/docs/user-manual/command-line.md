@@ -41,6 +41,7 @@ Useful `run` options:
 | `--vizard-live-stream` | Streams to a Vizard that is already running |
 | `--allow-scripts` | Runs the scenario's `script_block` commands. They are unrestricted Python: use it only for files you trust and have read. |
 | `--bundle` | Also makes `--out-dir` a reproduction bundle that `reproduce` can run again (see below) |
+| `--explain` | After the run, its headline figures (as Results > Overview shows them) and how each was computed: the series it was read from, the parameters and constants |
 
 `scenario_as_run.json` is the scenario exactly as it was run, after an
 older file was brought up to date: running it again runs the same

@@ -44,6 +44,30 @@ difference of two single samples would carry that wobble. The
 orbit's period comes from the median semi-major axis and the central
 body's GM, as the run recorded it.
 
+### How each figure was computed
+
+Each figure carries its trace (`engine.trace`), written by the summary
+from the values it computed with:
+- the equation, for example `da = (mean of a over the last window - mean
+  of a over the first) / 1000`, with `window = N * 2 pi sqrt(a_med^3 /
+  mu)`;
+- each input with its unit and source: the series it was read from
+  (`last run:`) and which sample (its last, its first, or the time of
+  the lowest value), the parameter (`parameter:
+  results.sma_window_orbits`), or the constant;
+- the values on the way: each controller's delta-V, each tank's mass at
+  the start and the end, the passes and contact time per station, the
+  umbra and penumbra eclipses.
+
+The central body's GM is the run's own when its provenance recorded it.
+Otherwise it is Basilisk's for the body the run's frame is centred on,
+or the Earth's, and the trace says which.
+
+`run --explain` prints the figures and their traces after the run. In
+the app, a card of Results › Overview opens its figure's trace in the
+Calculation panel. `tests/test_trace.py` recomputes each figure from its
+trace's inputs alone.
+
 ## Events
 
 Each event is a contiguous run of samples in which a recorded series says

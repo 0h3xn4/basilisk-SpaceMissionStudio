@@ -223,6 +223,32 @@ def test_the_dashboard_shows_the_link_margins_calculation_from_the_run(qtbot):
     assert not widget.calculation_button.isEnabled()
 
 
+def test_a_results_overview_card_shows_how_its_figure_was_computed(qtbot):
+    """A card of Results > Overview, clicked or given Enter, sends its
+    figure's trace; the main window shows it in the Calculation panel."""
+    from PySide6.QtCore import Qt
+    from test_results_overview import _result
+
+    from spacemissionstudio.gui.results_overview import ResultsOverview
+
+    overview = ResultsOverview()
+    qtbot.addWidget(overview)
+    with qtbot.waitSignal(overview.summarized, timeout=10000):
+        overview.set_run(_result(), "Run 1")
+    cards = {card.figure.key: card for card in overview.cards}
+    card = cards["sat-1.lowest_link_margin"]
+    assert card.focusPolicy() == Qt.FocusPolicy.StrongFocus and card.toolTip() == "Show how this was computed"
+    with qtbot.waitSignal(overview.calculation_requested) as sent:
+        qtbot.mouseClick(card, Qt.MouseButton.LeftButton)
+    assert sent.args[0].title == "Run 1: Lowest link margin"
+    assert sent.args[0].traces == [card.figure.trace]
+    battery = cards["sat-1.lowest_battery_charge"]
+    with qtbot.waitSignal(overview.calculation_requested) as sent:
+        qtbot.keyClick(battery, Qt.Key.Key_Return)
+    assert sent.args[0].traces[0].quantity == "Lowest battery charge"
+    overview.wait_for_worker()
+
+
 # -- the main window ----------------------------------------------------------------------------
 
 @pytest.fixture
@@ -257,3 +283,6 @@ def test_the_calculation_panel_is_hidden_until_a_page_asks_for_it(window, qtbot)
     assert window.calculation_dock.isHidden()
     window.calculation_dock.toggleViewAction().trigger()
     assert window.calculation_dock.isVisible()
+    window.calculation_dock.hide()
+    window.results_overview.calculation_requested.emit(Explanation("Run 1: Delta-V", [speed]))
+    assert window.calculation_dock.isVisible() and window.calculation_panel.trace is speed

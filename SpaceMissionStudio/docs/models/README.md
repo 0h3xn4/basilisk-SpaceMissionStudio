@@ -18,12 +18,15 @@ configuration file changes them without editing code
 | Altitude station keeping, the thruster's firing model, phasing keeping, GEO station keeping | [Orbit control](orbit-control.md) | `orbit_control.*`, `geo_station_keeping.*` |
 
 **How a number was computed:** the propellant budget's, the orbital
-lifetime's and the link budget's numbers carry their calculation trace:
+lifetime's and the link budget's numbers, and a run's headline figures,
+carry their calculation trace:
 the equation, the inputs with their units and sources, and the standard's
 clause. The command line prints them (`budget --explain`, `lifetime
---explain`, `link-budget --explain`); in the app, **Show calculation** on
-the Budget and End of Life pages and the Dashboard's link opens them in
-the Calculation panel ("How each ... was computed" on
+--explain`, `link-budget --explain`, `run --explain` for the run's
+headline figures); in the app, **Show calculation** on the Budget and End
+of Life pages and the Dashboard's link, and a card of Results › Overview,
+open them in the Calculation panel ("How each ... was computed" on
+[Reading a run's results](reading-results.md),
 [Propellant budget](propellant-budget.md),
 [Orbital lifetime](lifetime.md) and
 [RF link, data handling and power](link-data-and-power.md)). The other

@@ -474,6 +474,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   shows it. The panels' layout saved by an earlier version is not
   restored, once: they start as in a new window (the rail and the
   dividers are restored as before).
+- **How each headline figure of a run was computed:** click a card on
+  Results > Overview (or focus it and press Enter) to see its figure's
+  calculation: the series it was read from, at which sample or time, the
+  parameters and constants, and the values on the way (each controller's
+  delta-V, each tank, each station's passes, the averaging windows of the
+  semi-major axis). `run --explain` prints the same after a run. The
+  figures are unchanged.
 - **Fixed: a lifetime that reached the ground within one step raised an
   error.** With the exponential atmosphere and a deorbit burn, for
   instance, the estimate failed with "M2E() received e = 5.9e+26". It now

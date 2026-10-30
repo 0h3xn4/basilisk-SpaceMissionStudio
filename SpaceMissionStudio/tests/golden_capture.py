@@ -151,7 +151,7 @@ _VOLATILE_PROVENANCE = {"run_started_utc", "dependency_versions", "data_files", 
 # Also the calculation traces (engine.trace): they restate the numbers
 # recorded here, with their inputs, and tests/test_trace.py recomputes each
 # number from its trace; the baseline records the numbers.
-_MACHINE_FIELDS = {"data_files", "delta_v_trace", "propellant_trace", "traces"}
+_MACHINE_FIELDS = {"data_files", "delta_v_trace", "propellant_trace", "traces", "trace"}
 
 
 def template_paths() -> list[Path]:
