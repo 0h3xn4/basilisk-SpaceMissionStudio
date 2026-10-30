@@ -312,6 +312,9 @@ class ScenarioEditorWidget(QWidget):
         source of truth for those three dataclasses."""
         self._gravity = GravityConfig()
         self._fsw_exports: list = []  # FswExportRecord list, kept as loaded (see set_fsw_exports)
+        # The project configuration file, kept as loaded: it has no widget yet
+        # (the JSON view edits it); read again at each to_scenario().
+        self._config_file: str | None = None
         self._sim_settings = SimSettings()
         self._space_weather = SpaceWeatherConfig()
         page = QWidget()
@@ -852,6 +855,9 @@ class ScenarioEditorWidget(QWidget):
         if self._form_errors:
             raise ScenarioValidationError(next(iter(self._form_errors.values())))
         scenario = self._draft_scenario()
+        from ..config import files as config_files
+
+        config_files.attach(scenario, self._base_dir_provider() if self._base_dir_provider else None)
         _validate(scenario)
         return scenario
 
@@ -874,6 +880,7 @@ class ScenarioEditorWidget(QWidget):
             monte_carlo=self.monte_carlo_group.to_dataclass(),
             mission_sequence=self.mission_sequence_editor.to_command_list(),
             fsw_exports=list(self._fsw_exports),
+            config_file=self._config_file,
         )
 
     def set_fsw_exports(self, records: list) -> None:
@@ -923,6 +930,7 @@ class ScenarioEditorWidget(QWidget):
         self.mission_sequence_editor.from_command_list(scenario.mission_sequence)
         self._show_sequence_length()  # the Environment form was built before the sequence was filled
         self._fsw_exports = list(scenario.fsw_exports)
+        self._config_file = scenario.config_file
         if not self._applying_json:  # another scenario: the JSON page forgets an edit it held
             self.json_view.reset()
             self._form_errors.pop(id(self.json_view), None)

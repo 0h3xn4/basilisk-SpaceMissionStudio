@@ -14514,6 +14514,48 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The parameter registry and project configuration (2026-10-30)
+
+The transparency plan, Phase 3a and 3b of `docs/transparency_audit.md` 9.2,
+first area: the propellant budget. Branch `registry`.
+
+- **`spacemissionstudio.config`:**
+  - `registry` holds `Parameter` (name, default, unit, controls, source,
+    rationale, kind, limits, `check`), `Configuration`, `value`,
+    `checked_overrides` and `record`;
+  - `parameters` declares the 18 `propellant_budget.*` parameters;
+  - `files` reads YAML (`read`), attaches a scenario's file (`attach`) and
+    writes `defaults.yaml` (`defaults_yaml`; `scripts/build_config_defaults.py`).
+- **Scenario:** `config_file` (saved) and `configuration` (`init=False`,
+  not saved, not compared, not hashed), set by `load_scenario` and the
+  GUI editor's `to_scenario()`; `validate()` refuses a configuration with
+  an error.
+- **Budget:** `propellant_budget.rule(name, scenario)` replaces 16 module
+  constants and two numbers written in the code (the 1.05 scaled-run
+  ratio, the 250 km altitude floor); the margin labels and notes are worked out from the
+  values; `launch_delay_sweep` and `altitude_trade` take the scenario's
+  delays when given none; `default_altitudes_km` the scenario's step and
+  floor.
+- **Records:** `RunProvenance.configuration`; the budget record's rules
+  under their parameter names, its constants apart, and `configuration`
+  in every analysis record's provenance; the bundle copies the file
+  (`config_file` role), and `bundled_scenario` now checks the file's own
+  JSON hash, then substitutes, then reads the configuration.
+- **CLI:** `assumptions [scenario] [--area] [--changed] [--yaml]`; `validate`
+  prints `CONFIG:`.
+- **Docs:** `docs/models/` (the index and the propellant budget page) and
+  the how-to "Change a parameter".
+
+Tried by hand: template 18 with `residual_fraction` 0.05 and
+`cam_count_factor` 3 in `project.yaml`:
+- the residual row reads "5% of tank" (0.356 kg);
+- collision avoidance reads "x3 count";
+- the total rises from 6.907 kg to 7.211 kg;
+- `assumptions --changed` lists both values as CHANGED, with their defaults.
+
+Each new test fails on the code before. The regression baseline differs only in the run provenance's new
+`configuration` field, in each of the 31 templates. Full suite on Python 3.14: 4061 passed in 11 min 27 s.
+
 ## Reproduction bundles (2026-10-29)
 
 The transparency plan, Phase 2h of `docs/transparency_audit.md` 9.2, the last

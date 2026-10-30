@@ -411,7 +411,7 @@ class BudgetWidget(QWidget):
         if spacecraft is None or spacecraft.orbit.type != "classical_elements":
             self.altitudes_edit.setPlaceholderText("e.g. 400, 450, 500")
             return
-        defaults = default_altitudes_km(spacecraft.orbit.semi_major_axis_km - REQ_EARTH_M / 1e3)
+        defaults = default_altitudes_km(spacecraft.orbit.semi_major_axis_km - REQ_EARTH_M / 1e3, self._scenario)
         self.altitudes_edit.setPlaceholderText(", ".join(f"{a:g}" for a in defaults) + " (default)")
 
     def set_last_run(self, scenario, result) -> None:

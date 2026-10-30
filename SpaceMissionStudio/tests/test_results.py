@@ -154,6 +154,8 @@ def test_result_set_export_csv_with_provenance_writes_sidecar_json(tmp_path):
         "effective_config_note": "",
         "device_parameters": {},
         "scenario_file_migrations": [],
+        # the project configuration (transparency audit 3b), empty when not filled by engine.service
+        "configuration": {},
         # the run's warnings (transparency audit 2f)
         "run_warnings": [],
     }

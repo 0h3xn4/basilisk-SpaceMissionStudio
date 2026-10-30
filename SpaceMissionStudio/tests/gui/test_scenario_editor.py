@@ -339,3 +339,20 @@ def test_the_duration_says_when_the_mission_sequence_decides(widget):
     assert "is: 12.0 h." in note.text()
     widget.from_scenario(load_scenario(next(_TEMPLATES_DIR.glob("19_*.json"))))
     assert widget._environment_form.duration_note.isHidden()
+
+
+def test_the_project_configuration_survives_the_editor_and_is_read_from_the_files_folder(widget, tmp_path):
+    """Transparency audit, Phase 3b: the form has no field for
+    ``config_file`` yet, and the editor rebuilds the scenario from its
+    fields: the file named is kept, and read relative to the scenario
+    file's folder at each to_scenario()."""
+    from spacemissionstudio.schema import load_scenario
+
+    (tmp_path / "project.yaml").write_text("parameters:\n  propellant_budget.cam_count_factor: 3\n", encoding="utf-8")
+    scenario = load_scenario(_SCENARIO_PATH)
+    scenario.config_file = "project.yaml"
+    widget.set_base_dir_provider(lambda: tmp_path)
+    widget.from_scenario(scenario)
+    got = widget.to_scenario()
+    assert got.config_file == "project.yaml"
+    assert got.configuration.overrides == {"propellant_budget.cam_count_factor": 3.0}

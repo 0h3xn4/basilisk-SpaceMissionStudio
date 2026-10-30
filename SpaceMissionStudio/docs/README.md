@@ -26,6 +26,7 @@ to do. New here? Start with **Getting started**.
 | Page | What it is for |
 |---|---|
 | [Use the command line](user-manual/command-line.md) | Every `spacemissionstudio` command |
+| [Models, rules and assumptions](models/README.md) | One page per model: how it computes, every rule with its value, unit and source, and what it assumes |
 | [Capabilities and verification](reference/capabilities.md) | What the app can do, which Basilisk modules do it, what has been verified |
 | [Known limitations](reference/limitations.md) | What it does not do, and why |
 | [Transparency audit](transparency_audit.md) | Every hard-coded value, hidden assumption, underived output, forced choice and data exchange, with file and line, and the plan to make results traceable and editable ([every numeric literal](transparency_audit_constants.csv)) |

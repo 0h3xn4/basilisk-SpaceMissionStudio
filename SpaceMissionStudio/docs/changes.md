@@ -17,7 +17,14 @@ case; and how it was checked.
 
 Newest first.
 
-## 2026-10-29: reproduction bundles (Phase 2h)
+## 2026-10-30: the parameter registry, first area the propellant budget (Phase 3a, 3b)
+
+**No number changes.** The budget's rules moved from module constants to
+named parameters with the same values. The regression baseline of all 31
+templates differs only in the run provenance's new `configuration` field
+(no file, no overrides); every budget row, margin label, note and total is
+as before. With no configuration file, every parameter has its default.
+
 
 **No number changes.** The bundle and `reproduce` read and write files
 around a run; no engine code changed, and the regression baseline of all

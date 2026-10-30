@@ -2735,6 +2735,16 @@ class Scenario:
     fsw_exports: list = field(default_factory=list)  # list[FswExportRecord], at most one per spacecraft
     description: str = ""
     schema_version: int = CURRENT_SCHEMA_VERSION
+    # The project configuration file this scenario uses (transparency audit,
+    # Phase 3b; spacemissionstudio.config.files): YAML naming parameters
+    # and the values the project gives them. Absolute, or relative to the
+    # scenario file's folder; None: every parameter has its default.
+    config_file: str | None = None
+    # That file, read (config.registry.Configuration): set where the
+    # scenario is loaded (load_scenario, the GUI's editor), never saved,
+    # left out of the scenario's hash and of comparisons; the run's
+    # provenance records the file's SHA-256 and each value it changes.
+    configuration: object = field(default=None, init=False, compare=False, repr=False, metadata={"transient": True})
 
     def _validate_small_body(self) -> None:
         """Checks for a run around a small body (``SMALL_BODY_CENTRAL_BODIES``)."""
@@ -2752,6 +2762,10 @@ class Scenario:
 
     def validate(self) -> None:
         _require(bool(self.name), "scenario.name must not be empty")
+        _require(self.config_file is None or (isinstance(self.config_file, str) and self.config_file.strip() != ""),
+                 "scenario.config_file must name a file, or be null for the default parameters")
+        error = getattr(self.configuration, "error", "")
+        _require(not error, f"scenario.config_file: {error}")
         try:
             parse_epoch_utc(self.epoch_utc)
         except ValueError as exc:
@@ -3075,11 +3089,18 @@ class Scenario:
     def to_dict(self) -> dict:
         data = asdict(self)
         data["mission_sequence"] = [command_dict(command) for command in self.mission_sequence]
+        data.pop("configuration")  # read from config_file where the scenario is loaded, never saved
+        if data["config_file"] is None:  # written only when set: a scenario without one saves, and hashes, as before
+            del data["config_file"]
         return data
 
     @staticmethod
     def from_dict(data: dict) -> Scenario:
         data = _fields_of(data, "the scenario")  # a copy: the caller's dict is not changed
+        if "configuration" in data and data["configuration"] is None:
+            # dataclasses.asdict() writes the transient field as null; that carries nothing. Any other value is
+            # refused below, as the configuration is read from config_file, never from the scenario.
+            del data["configuration"]
         gravity = _record(GravityConfig, data.pop("gravity", {}), "gravity")
         sim_settings = _record(SimSettings, data.pop("sim_settings", {}), "sim_settings")
         space_weather = _record(SpaceWeatherConfig, data.pop("space_weather", {}), "space_weather")
@@ -3364,6 +3385,9 @@ def load_scenario(path: str | Path) -> Scenario:
     except UnicodeDecodeError as exc:
         raise ScenarioValidationError(f"{path}: not a scenario file (not UTF-8 text: {exc.reason})") from exc
     scenario = parse_scenario_text(text, str(path))
+    from ..config import files as config_files  # local import: config is a sibling package
+
+    config_files.attach(scenario, path.resolve().parent)
     try:
         scenario.validate()
     except ScenarioValidationError:

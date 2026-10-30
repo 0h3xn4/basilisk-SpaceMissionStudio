@@ -22,13 +22,15 @@ Each record holds:
 
 - ``inputs``: what was asked (the spacecraft, the options);
 - ``model``: the values the calculation used that are not in the scenario
-  file (the drag area and coefficient, the rules and margins), each named
-  as in the code;
+  file (the drag area and coefficient, the rules and margins), named as in
+  the code or, for a budget's rules, as in the parameter registry
+  (``config.parameters``), with the values in effect;
 - ``results``: the figures shown, with their units in their names;
 - ``notes`` or ``warnings``: as printed;
 - ``provenance``: the tool and Basilisk versions, the scenario's hash, the
-  time, and the data files read with their SHA-256; for a budget after a
-  run, that run's own record too.
+  time, the data files read with their SHA-256, and the configuration
+  (``config.registry.record``: the project file and each value it
+  changes); for a budget after a run, that run's own record too.
 
 Without Basilisk: the records are built from results already computed.
 """
@@ -66,7 +68,10 @@ def _plain(value):
 
 
 def _provenance(scenario, data_files: dict) -> dict:
-    return dict(output_provenance.scenario_record(scenario), data_files=_plain(data_files))
+    from ..config import registry
+
+    return dict(output_provenance.scenario_record(scenario), data_files=_plain(data_files),
+                configuration=registry.record(scenario))
 
 
 def lifetime_record(scenario, spacecraft_name: str, end, max_years: float, forecast_percentile: float,
@@ -110,15 +115,14 @@ def budget_record(scenario, spacecraft_name: str, budget, result=None) -> dict:
     ``spacecraft_name``; ``result``: the run it took its simulated
     contributors from, if any."""
     from . import propellant_budget as pb
+    from ..config import registry
     from ..schema.scenario import PropellantBudgetConfig
 
     spacecraft = next(sc for sc in scenario.spacecraft if sc.name == spacecraft_name)
     config = spacecraft.propellant_budget or PropellantBudgetConfig()
-    rules = {name: getattr(pb, name) for name in (
-        "G0_M_S2", "MU_EARTH_M3_S2", "CONVERGENCE_KG", "CAM_SMA_CHANGE_M", "CAM_COUNT_FACTOR",
-        "ATTITUDE_PROPELLANT_FACTOR", "CONTROLLED_LAST_BURN_MARGIN", "RESIDUAL_FRACTION", "UNCERTAINTY_FRACTION",
-        "EOL_DRAG_COEFF", "OPERATIONS_DRAG_COEFF", "OPERATIONS_PERCENTILE", "EOL_PERCENTILE",
-        "GEO_GRAVEYARD_BASE_M", "GEO_GRAVEYARD_PER_CR_A_M")}
+    rules = {parameter.name: registry.value(parameter.name, scenario)
+             for parameter in registry.parameters("propellant_budget")}  # in effect: provenance.configuration says
+    constants = {name: getattr(pb, name) for name in ("G0_M_S2", "MU_EARTH_M3_S2", "REQ_EARTH_M")}
     provenance = _provenance(scenario, budget.data_files)
     if result is not None:
         provenance["run"] = _plain(result.provenance_record())
@@ -127,7 +131,7 @@ def budget_record(scenario, spacecraft_name: str, budget, result=None) -> dict:
         "spacecraft": spacecraft_name,
         "inputs": {"propellant_budget": _plain(config), "from_run": result is not None},
         "model": {"method": "rocket equation per contributor, in the order of the rows (engine.propellant_budget, "
-                            "ESA AD10)", "rules": rules},
+                            "ESA AD10)", "rules": rules, "constants": constants},
         "results": {"dry_mass_kg": budget.dry_mass_kg, "isp_s": budget.isp_s, "efficiency": budget.efficiency,
                     "iterations": budget.iterations, "rows": _plain(budget.rows),
                     "total_delta_v_m_s": budget.total_delta_v_m_s,

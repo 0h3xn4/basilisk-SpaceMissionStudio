@@ -803,13 +803,49 @@ def test_lifetime_and_budget_write_what_they_were_computed_from(tmp_path, capsys
     assert cli.main(["budget", str(path), "--out", str(tmp_path / "budget.json")]) == 0
     budget = json.loads((tmp_path / "budget.json").read_text(encoding="utf-8"))
     assert budget["kind"] == "propellant_budget" and budget["inputs"]["from_run"] is False
-    assert budget["model"]["rules"]["CAM_COUNT_FACTOR"] == 4.0
+    assert budget["model"]["rules"]["propellant_budget.cam_count_factor"] == 4.0
+    assert budget["provenance"]["configuration"] == {"file": None, "overrides": {}}
     out = capsys.readouterr().out
     assert budget["results"]["rows"] and all(row["contributor"] in out for row in budget["results"]["rows"])
     assert budget["provenance"]["data_files"] == files and budget["provenance"]["scenario_file_sha256"] == file_sha256
     assert cli.main(["budget", str(path), "--launch-delays", "--out", str(tmp_path / "sweep.json")]) == 2
     assert "does not go with --launch-delays" in capsys.readouterr().err
     assert not (tmp_path / "sweep.json").exists()
+
+
+@pytest.mark.requires_basilisk
+def test_assumptions_lists_the_parameters_and_a_run_records_its_configuration(tmp_path, capsys):
+    """Transparency audit, Phase 3b, 3d: ``assumptions`` lists every
+    parameter with its unit and source; for a scenario whose project file
+    changes some, CHANGED with the default replaced. ``--yaml`` prints the
+    defaults file. ``validate`` says the file changes them, and the run's
+    provenance names the file, its SHA-256 and each value changed."""
+    import hashlib
+
+    from spacemissionstudio.schema import SimSettings
+
+    assert cli.main(["assumptions"]) == 0
+    out = capsys.readouterr().out
+    assert "propellant_budget.cam_count_factor" in out and "AD10 Sec. 5.6" in out and "CHANGED" not in out
+    assert cli.main(["assumptions", "--yaml"]) == 0
+    assert "# propellant_budget.cam_count_factor: 4.0  # [-]" in capsys.readouterr().out
+    assert cli.main(["assumptions", "--area", "nowhere"]) == 2
+    assert "areas: propellant_budget" in capsys.readouterr().err
+
+    project = tmp_path / "project.yaml"
+    project.write_text("parameters:\n  propellant_budget.residual_fraction: 0.05\n", encoding="utf-8")
+    path = tmp_path / "s.json"
+    _write_scenario(path, sim_settings=SimSettings(duration_days=0.01), config_file="project.yaml")  # [day]
+    assert cli.main(["assumptions", str(path), "--changed"]) == 0
+    out = capsys.readouterr().out
+    assert "propellant_budget.residual_fraction" in out and "CHANGED (default 0.01)" in out
+    assert "cam_count_factor" not in out
+    assert cli.main(["validate", str(path)]) == 0
+    assert "CONFIG: project.yaml changes 1 parameter(s)" in capsys.readouterr().out
+    assert cli.main(["run", str(path), "--out-dir", str(tmp_path / "out")]) == 0
+    record = json.loads((tmp_path / "out" / "provenance.json").read_text())["configuration"]
+    assert record["file"]["sha256"] == hashlib.sha256(project.read_bytes()).hexdigest()
+    assert record["overrides"]["propellant_budget.residual_fraction"]["default"] == 0.01
 
 
 def test_lifetime_drag_coefficient_defaults_to_ad10s_end_of_life_value():

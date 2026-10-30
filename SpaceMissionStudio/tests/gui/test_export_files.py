@@ -28,7 +28,8 @@ Since 2026-10-28 a provenance record also holds the integrator's
 tolerances (audit E3) and the run's seeds (E5), and since 2026-10-29 the
 central body and its GM (transparency audit 3.1), the scenario file and
 its hash, and the run's warnings (Phase 2b, 2f), and the effective
-configuration (Phase 2c); and the SIL report its provenance (Phase 2g). The two provenance files and the SIL report are
+configuration (Phase 2c), and the project configuration (Phase 3b); and
+the SIL report its provenance (Phase 2g). The two provenance files and the SIL report are
 compared without those keys, which must be there; everything else in them,
 and every other file, is still 1.1.0's byte for byte."""
 
@@ -69,7 +70,7 @@ def test_every_export_is_byte_identical_to_1_1_0(qtbot, tmp_path):
 _NEW_PROVENANCE_KEYS = ("integrator_relative_tolerance", "integrator_absolute_tolerance", "rng_seed", "rng_seeds",
                         "central_body", "central_body_mu_m3_s2", "scenario_file", "scenario_file_sha256",
                         "run_warnings", "effective_defaults", "effective_config_note", "device_parameters",
-                        "scenario_file_migrations")
+                        "scenario_file_migrations", "configuration")
 
 
 def _without_new_keys(content: bytes, name: str) -> bytes:

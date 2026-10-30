@@ -66,6 +66,7 @@ Files in the package:
 |---|---|---|---|---|
 | PySide6 (Qt for Python) | `>=6.6` | 6.11.2 (Qt 6.11.2) | LGPL-3.0 (Qt and PySide6, as installed from PyPI) | Widgets, `QtSvg` (icon rendering), Qt WebEngine (plots) |
 | plotly | `>=5.0` | 7.1.0 | MIT | Figures; `plotly.min.js` loaded from `plotly/package_data/` by local file URL |
+| PyYAML | `>=6.0` (a core dependency) | 6.0.3 | MIT | Project configuration files (`config/files.py`, transparency plan Phase 3b); it came with `bsk[all]` before it was declared |
 
 No new run-time dependency came with the new look (1.1.0) or the new
 interface (1.3.0): the fonts and icons are files, not packages. `plotly.min.js` is not copied into the
@@ -88,7 +89,7 @@ which also lists every data file with its SHA-256.
 | PySide6, PySide6-Essentials, PySide6-Addons, shiboken6 (Qt 6.11.2) | 6.11.2 | LGPL-3.0-only (offered also under GPL-2.0/3.0) | PyPI wheels, unmodified; Qt stays in separate shared libraries in `site-packages/PySide6`, which a user can replace |
 | numpy | 2.4.6 | BSD-3-Clause (with 0BSD, MIT, Zlib, CC0-1.0 parts) | PyPI |
 | pandas, matplotlib, contourpy, kiwisolver, cycler, pyparsing, fonttools, pillow, python-dateutil, six, bokeh, Jinja2, MarkupSafe, tornado, xyzservices, narwhals, PyYAML | from `constraints.txt` or as resolved | BSD, MIT, PSF (matplotlib), MIT-CMU (pillow), Apache-2.0 (tornado; dateutil partly) | PyPI (dependencies of `bsk[all]`) |
-| plotly, sgp4, pyerfa, platformdirs | from `constraints.txt` or as resolved | MIT, MIT, BSD-3-Clause, MIT | PyPI (SpaceMissionStudio's own dependencies) |
+| plotly, sgp4, pyerfa, platformdirs, PyYAML | from `constraints.txt` or as resolved | MIT, MIT, BSD-3-Clause, MIT, MIT | PyPI (SpaceMissionStudio's own dependencies; PyYAML also a dependency of `bsk[all]`) |
 | pooch, requests, urllib3, idna, charset-normalizer, certifi, tqdm, protobuf, packaging, colorama | from `constraints.txt` or as resolved | BSD-3-Clause, Apache-2.0, MIT, BSD-3-Clause, MIT, MPL-2.0, MPL-2.0 and MIT, BSD-3-Clause, Apache-2.0 or BSD-2-Clause, BSD | PyPI |
 | pip, setuptools | as in the build | MIT | PyPI |
 

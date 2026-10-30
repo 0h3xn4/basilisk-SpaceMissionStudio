@@ -1375,7 +1375,11 @@ each contributor per mission phase with its margin, the total, and notes
 on anything that departs from the guideline. **Copy as CSV** puts the
 table on the clipboard. Without a run, a LEO station keeper's orbit
 control is estimated from the drag on its orbit (full runs spent ~5%
-more).
+more). The budget's margins and rules (x4 on collision avoidances, 1 %
+residual, ...) are AD10's by default; a project changes them in a
+configuration file the scenario names, and `spacemissionstudio
+assumptions` lists them (docs/user-manual/project-configuration.md; every
+rule with its source in docs/models/propellant-budget.md).
 
 **Launch delays** repeats the budget for launches 1 to 5 years late, as
 AD10 asks: a later launch meets a different part of the solar cycle.

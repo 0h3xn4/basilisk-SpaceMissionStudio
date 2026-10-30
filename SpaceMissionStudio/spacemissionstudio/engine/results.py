@@ -141,6 +141,11 @@ class RunProvenance:
     effective_config_note: str = ""
     device_parameters: dict[str, dict[str, object]] = field(default_factory=dict)
     scenario_file_migrations: list[dict[str, object]] = field(default_factory=list)
+    # The project configuration (transparency audit, Phase 3b;
+    # config.registry.record): {"file": {path, sha256} or None, "overrides":
+    # {parameter: {value, default, unit, source}}}. Empty overrides: every
+    # parameter at its default. Empty in a record from before it was kept.
+    configuration: dict[str, object] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return asdict(self)
