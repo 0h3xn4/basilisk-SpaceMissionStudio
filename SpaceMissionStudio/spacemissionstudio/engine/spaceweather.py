@@ -140,7 +140,7 @@ BUNDLED_DATA_PATH = Path(__file__).resolve().parent.parent / "data" / "spaceweat
 # (EOP-FM/2024-07-177 v3.0, Sec. 5.9) prescribes for future solar activity.
 MSFC_BUNDLED_PATH = BUNDLED_DATA_PATH.parent / "oct2026f10-prd.txt"
 MSFC_PERCENTILES = (95.0, 50.0, 5.0)  # [%] the columns MSFC publishes, in file order
-_MSFC_REPEAT_MONTHS = 132  # AD10 Sec. 5.9: past the file's end, its last 132 months repeat
+_MSFC_MIN_MONTHS = 132  # [month] one solar cycle: a shorter table is not an MSFC prediction
 _PAD_DAYS = 10  # [day] around a run: MSIS reads the previous days' Ap and F10.7
 
 class SpaceWeatherError(Exception):
@@ -584,10 +584,11 @@ class MsfcForecast:
     def last_month(self):
         return max(self.months)
 
-    def values(self, month, percentile: float):
+    def values(self, month, percentile: float, repeat_months: int = 132):
         """(F10.7, Ap, repeated) for ``month`` (the first of a month). Past
-        the file's end the last 132 months repeat cyclically (AD10 Sec.
-        5.9); ``repeated`` says so. None before the file starts."""
+        the file's end its last ``repeat_months`` months repeat cyclically
+        (132, AD10 Sec. 5.9: the parameter space_weather.msfc_repeat_months);
+        ``repeated`` says so. None before the file starts."""
         if month < self.first_month:
             return None
         column = MSFC_PERCENTILES.index(float(percentile))
@@ -595,7 +596,7 @@ class MsfcForecast:
         last = self.last_month
         if month > last:
             behind = (month.year - last.year) * 12 + month.month - last.month  # [month] past the end
-            back = _MSFC_REPEAT_MONTHS - (behind - 1) % _MSFC_REPEAT_MONTHS  # into the last 132 months
+            back = repeat_months - (behind - 1) % repeat_months  # into the last repeat_months months
             index = last.year * 12 + last.month - 1 - back + 1
             month = date(index // 12, index % 12 + 1, 1)
             repeated = True
@@ -625,9 +626,9 @@ def load_msfc(path) -> MsfcForecast:
                 months[date(year, _MONTHS.index(fields[1]) + 1, 1)] = (tuple(numbers[:3]), tuple(numbers[3:]))
     except (OSError, UnicodeDecodeError) as exc:
         raise SpaceWeatherError(f"could not read {path} as an MSFC prediction table: {exc}") from exc
-    if len(months) < _MSFC_REPEAT_MONTHS:
+    if len(months) < _MSFC_MIN_MONTHS:
         raise SpaceWeatherError(f"{path} has {len(months)} monthly rows; an MSFC prediction table needs at least "
-                                f"{_MSFC_REPEAT_MONTHS} (one solar cycle)")
+                                f"{_MSFC_MIN_MONTHS} (one solar cycle)")
     return MsfcForecast(path, months)
 
 
@@ -672,7 +673,8 @@ def _msfc_or_none(msfc_file_path: str | None) -> MsfcForecast | None:
     return load_msfc(MSFC_BUNDLED_PATH) if MSFC_BUNDLED_PATH.exists() else None
 
 
-def _span_days(data: CelestrakData, msfc: MsfcForecast | None, percentile: float, first, last):
+def _span_days(data: CelestrakData, msfc: MsfcForecast | None, percentile: float, first, last,
+               repeat_months: int = 132):
     """Day -> record over ``first``..``last``: observed days and the
     45-day forecast from CelesTrak first, then MSFC's prediction (at
     ``percentile``, 13-month smoothed F10.7 and Ap used for the day and
@@ -683,7 +685,7 @@ def _span_days(data: CelestrakData, msfc: MsfcForecast | None, percentile: float
     while day <= last:
         record = data.days.get(day)
         if record is None or record.kind == "monthly_forecast":
-            values = msfc.values(day.replace(day=1), percentile) if msfc is not None else None
+            values = msfc.values(day.replace(day=1), percentile, repeat_months) if msfc is not None else None
             if values is not None:
                 f107, ap, repeated = values
                 record = _DailyRecord((ap,) * 8, ap, f107, f107, "msfc_repeated" if repeated else "msfc_forecast")
@@ -776,7 +778,7 @@ def _replace_or_keep_complete(tmp_path: Path, dest_path: Path, rows: int) -> Non
 
 def _resolve_real(source: str, start_utc: datetime, end_utc: datetime, local_file_path: str | None,
                   cache_dir: Path | None, warnings: list, forecast_percentile: float = 50.0,
-                  msfc_file_path: str | None = None) -> ResolvedSpaceWeather:
+                  msfc_file_path: str | None = None, repeat_months: int = 132) -> ResolvedSpaceWeather:
     if float(forecast_percentile) not in MSFC_PERCENTILES:
         raise SpaceWeatherError(f"forecast_percentile {forecast_percentile!r} must be one of {MSFC_PERCENTILES}")
     path = real_data_path(source, local_file_path, cache_dir)
@@ -789,7 +791,10 @@ def _resolve_real(source: str, start_utc: datetime, end_utc: datetime, local_fil
         raise SpaceWeatherError(
             f"the real space-weather data ({path.name}) covers {data.first_date}{end}; this run needs "
             f"{first}..{last} (incl. {_PAD_DAYS} days either side) -- move the epoch or shorten the run")
-    days = _span_days(data, msfc, forecast_percentile, first, last)
+    if msfc is not None and len(msfc.months) < repeat_months:
+        raise SpaceWeatherError(f"{msfc.path.name} has {len(msfc.months)} months; space_weather.msfc_repeat_months "
+                                f"asks to repeat its last {repeat_months}")
+    days = _span_days(data, msfc, forecast_percentile, first, last, repeat_months)
     kinds = {rec.kind for day, rec in days.items() if start_utc.date() <= day <= end_utc.date()}
     stamp = f", updated {data.updated}" if data.updated else ""
     if "daily_forecast" in kinds:
@@ -801,10 +806,12 @@ def _resolve_real(source: str, start_utc: datetime, end_utc: datetime, local_fil
         warnings.append(f"space weather uses MSFC's prediction ({msfc.path.name}), {forecast_percentile:g}th "
                         "percentile F10.7 and Ap")
     if "msfc_repeated" in kinds:
-        warnings.append(f"past {msfc.last_month:%Y-%m} MSFC's last 132 months repeat (ESA AD10 Sec. 5.9)")
+        source = "ESA AD10 Sec. 5.9" if repeat_months == 132 else "space_weather.msfc_repeat_months"
+        warnings.append(f"past {msfc.last_month:%Y-%m} MSFC's last {repeat_months} months repeat ({source})")
     cache_dir = Path(cache_dir) if cache_dir else DEFAULT_CACHE_DIR
     msfc_tag = f"_{msfc.path.stem}_{int(msfc.path.stat().st_mtime)}" if msfc is not None else ""
-    dest = cache_dir / (f"real_{path.stem}_{int(path.stat().st_mtime)}{msfc_tag}_p{forecast_percentile:g}_"
+    repeat_tag = "" if repeat_months == 132 else f"_r{repeat_months}"  # the default keeps the earlier name
+    dest = cache_dir / (f"real_{path.stem}_{int(path.stat().st_mtime)}{msfc_tag}{repeat_tag}_p{forecast_percentile:g}_"
                         f"{first:%Y%m%d}_{last:%Y%m%d}.csv")
     if not _has_rows(dest, len(days) + 1):  # missing, or cut short by a write before F-09's fix
         _write_basilisk_csv(days, dest)
@@ -814,7 +821,8 @@ def _resolve_real(source: str, start_utc: datetime, end_utc: datetime, local_fil
 
 def resolve(source: str, start_utc: datetime, end_utc: datetime,
             local_file_path: str | None = None, cache_dir: Path | None = None,
-            forecast_percentile: float = 50.0, msfc_file_path: str | None = None) -> ResolvedSpaceWeather:
+            forecast_percentile: float = 50.0, msfc_file_path: str | None = None,
+            repeat_months: int = 132) -> ResolvedSpaceWeather:
     """Resolve a ``SpaceWeatherConfig`` (see ``schema.scenario``) into a
     CSV Basilisk's ``spaceWeatherData.loadSpaceWeatherFile()`` loads.
     Real data only -- no network here (see this module's docstring):
@@ -828,19 +836,23 @@ def resolve(source: str, start_utc: datetime, end_utc: datetime,
     MSFC's prediction (``msfc_file_path``, else the shipped one) at
     ``forecast_percentile`` (95 conservative, 50 nominal or 5 low; ESA
     AD10 Sec. 5.9: 95 for operations budgets, 50 for end of life),
-    repeating its last 132 months past its end. A run outside the data is
-    refused.
+    repeating its last ``repeat_months`` (132) months past its end. A run
+    outside the data is refused.
     """
     warnings: list = []
     return _resolve_real(source, start_utc, end_utc, local_file_path, cache_dir, warnings, forecast_percentile,
-                         msfc_file_path)
+                         msfc_file_path, repeat_months)
 
 
 def resolve_for(config, start_utc: datetime, end_utc: datetime,
-                forecast_percentile: float | None = None) -> ResolvedSpaceWeather:
+                forecast_percentile: float | None = None, scenario=None) -> ResolvedSpaceWeather:
     """:func:`resolve` for a ``schema.scenario.SpaceWeatherConfig``;
     ``forecast_percentile`` overrides the config's (e.g. 50 for an
-    end-of-life estimate, AD10 Sec. 5.9)."""
+    end-of-life estimate, AD10 Sec. 5.9); ``scenario`` gives
+    ``space_weather.msfc_repeat_months`` (config.parameters)."""
+    from ..config import registry
+
     return resolve(config.source, start_utc, end_utc, local_file_path=config.local_file_path,
                    cache_dir=config.cache_dir, forecast_percentile=config.forecast_percentile if forecast_percentile is None
-                   else forecast_percentile, msfc_file_path=config.msfc_file_path)
+                   else forecast_percentile, msfc_file_path=config.msfc_file_path,
+                   repeat_months=registry.value("space_weather.msfc_repeat_months", scenario))

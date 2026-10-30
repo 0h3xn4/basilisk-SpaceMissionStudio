@@ -240,3 +240,17 @@ parameters:
   # Source: SpaceMissionStudio's own choice. 1 %: a check for a numerical blow-up, not a grade of the integrator's accuracy.
   # Limits: 1e-12 to 1 [-]
   # dynamics.conservation_tolerance: 0.01  # [-]
+
+  # -- space_weather ---------------------------------------------------------
+
+  # Past the end of MSFC's solar-activity prediction its last this many months repeat, for runs and lifetimes that look further ahead.
+  # Source: ESA AD10 Sec. 5.9. 132 months: one solar cycle. A table must hold at least this many months.
+  # Limits: 12 to 600 [month], integer
+  # space_weather.msfc_repeat_months: 132  # [month]
+
+  # -- tle -------------------------------------------------------------------
+
+  # The scenario checks warn when a TLE's epoch is further than this from the scenario epoch: SGP4's accuracy drops with the span it propagates over.
+  # Source: SpaceMissionStudio's own choice.
+  # Limits: 0 to 3650 [day]
+  # tle.age_warning_days: 3.0  # [day]

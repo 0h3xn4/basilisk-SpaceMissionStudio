@@ -17,6 +17,13 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-30: the environment's data rules, as parameters (Phase 3a)
+
+**No number changes.** MSFC's 132-month repeat and the 3-day TLE age
+warning are named parameters with the same values; the regression
+baseline of all 31 templates passes unchanged. A resolved space-weather
+file keeps its name at the default repeat, so cached files are reused.
+
 ## 2026-10-30: the dynamics' integration and run control, as parameters (Phase 3a)
 
 **No number changes.** The adaptive integrators' tolerances (1e-10

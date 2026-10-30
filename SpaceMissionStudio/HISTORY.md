@@ -14514,6 +14514,24 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The environment's data rules, as parameters (2026-10-30)
+
+The transparency plan, Phase 3a, sixth and last area. Branch `environment-params`.
+
+- **2 parameters:**
+  - `space_weather.msfc_repeat_months` (132, AD10 Sec. 5.9): `resolve_for`
+    takes the scenario and passes it down to `MsfcForecast.values`. A
+    table shorter than the repeat is refused, naming the parameter. The
+    resolved file's name carries a repeat other than 132, so a cached
+    file is never reused across a change.
+  - `tle.age_warning_days` (3) in the scenario checks.
+- **Fixed rules, documented:**
+  - the 10-week Earth-orientation accuracy (NAIF's);
+  - the mean-element bands at the critical and equatorial inclinations;
+  - WMM's 5-year validity;
+  - the reference panel's 60-day flag.
+- **Docs:** `docs/models/environment-and-data.md`.
+
 ## The dynamics' integration and run control, as parameters (2026-10-30)
 
 The transparency plan, Phase 3a, fifth area. Branch `dynamics-run-params`.

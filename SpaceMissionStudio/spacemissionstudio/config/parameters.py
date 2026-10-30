@@ -19,7 +19,7 @@
 Phase 3a). The areas move in one at a time, each proven by the
 regression baseline to change no number: the propellant budget, the
 orbital lifetime, the RF link and data handling, how a run's results are
-read, then the dynamics' run control.
+read, the dynamics' run control, then the environment's data rules.
 
 "AD10" is ESA's "Guidelines for the computation of the Delta-V and
 Propellant Mass budgets", EOP-FM/2024-07-177, issue 3.0.
@@ -222,4 +222,18 @@ register(
               "fraction.", "SpaceMissionStudio's own choice",
               "1 %: a check for a numerical blow-up, not a grade of the integrator's accuracy.",
               minimum=1e-12, maximum=1.0),
+)
+
+# -- the environment's data rules (engine.spaceweather, engine.scenario_checks) ------------------
+
+register(
+    Parameter("space_weather.msfc_repeat_months", 132, "[month]",
+              "Past the end of MSFC's solar-activity prediction its last this many months repeat, for runs and "
+              "lifetimes that look further ahead.", "ESA AD10 Sec. 5.9",
+              "132 months: one solar cycle. A table must hold at least this many months.",
+              kind="integer", minimum=12, maximum=600),
+    Parameter("tle.age_warning_days", 3.0, "[day]",
+              "The scenario checks warn when a TLE's epoch is further than this from the scenario epoch: SGP4's "
+              "accuracy drops with the span it propagates over.", "SpaceMissionStudio's own choice",
+              minimum=0.0, maximum=3650.0),
 )

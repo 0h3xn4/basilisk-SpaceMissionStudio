@@ -62,7 +62,8 @@ from sgp4.api import SGP4_ERRORS, Satrec, jday
 from ..schema.epochs import parse_epoch_utc
 from ..schema.tle_format import TLEError, _checksum, check_lines  # noqa: F401 -- re-exported: engine.tle.TLEError, .check_lines
 
-TLE_AGE_WARNING_DAYS = 3.0  # [day] warn when the TLE epoch is further from the scenario epoch
+# The scenario checks warn when the TLE epoch is further than tle.age_warning_days (3 days) from the
+# scenario epoch (config.parameters).
 
 
 @dataclass(frozen=True)
