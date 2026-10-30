@@ -48,7 +48,7 @@ from ..schema.epochs import parse_epoch_utc
 TOTAL_SOLAR_IRRADIANCE_W_M2 = constants.SOLAR_FLUX_1AU_W_M2  # [W/m^2] at 1 AU, ECSS-E-ST-10-04C Table 6-2
 SPACE_SINK_TEMPERATURE_K = 3.0  # [K] ECSS-E-ST-10-04C 6.2.1c
 STEFAN_BOLTZMANN_W_M2_K4 = 5.670374419e-8  # [W/m^2/K^4] CODATA 2018
-SPEED_OF_LIGHT_M_S = 299792458.0  # [m/s]
+SPEED_OF_LIGHT_M_S = constants.SPEED_OF_LIGHT_M_S  # [m/s]
 ASTRONOMICAL_UNIT_M = constants.ASTRONOMICAL_UNIT_M  # [m] Basilisk's; IAU 2012's 149597870700 m until 2026-10-30
 
 # Basilisk 2.12 sensorThermal's built-in constants (sensorThermal.cpp).

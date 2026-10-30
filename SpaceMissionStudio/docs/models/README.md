@@ -20,6 +20,23 @@ Every calculation uses one set of physical constants, Basilisk's:
 [Physical constants](constants.md). The values each model uses that are
 neither parameters nor constants are named on its page; the
 [transparency audit](../transparency_audit.md), Section 4, lists them all
-with file and line. Until then their values are
-listed, with file and line, in the
-[transparency audit](../transparency_audit.md), Section 4.
+with file and line.
+
+## Not yet covered
+
+A check of the audit's Section 4 against the registry (2026-10-30) found
+these models with rules that are still values in the code, and no page
+here yet. Until each has its page, its values are listed with file and
+line in the audit's Appendix B, Sections 1.3 to 1.8, and Appendix A,
+Sections 1h and 1i.
+
+| Models | Rules still in the code (examples) | To be done |
+|---|---|---|
+| Orbit controllers: station keeping, phasing, GEO station keeping, formation, ROE guidance | the firing gate's factor 2.5; 2 non-improving cycles before phasing stops; GEO's triaxiality J22 and lambda22, its burn arcs and targets; about 15 ROE guidance thresholds | Phase 3a, controllers |
+| Flight software and navigation | thruster firing (Schmitt trigger 0.75/0.25, 2 ms); the momentum-dump mapping threshold; the landmark camera's 25 mm focal length; the UKF's alpha, beta, kappa | Phase 3a, flight software |
+| Pre-run checks, Explain and the mission sequence | pass-prediction sampling (30 s, 7 days); the coarse-recording, late-pass and CSS-facing rules; Explain's SSO, drag and camera tolerances; Lambert's 1 m/s convergence | Phase 3a, checks (with Phase 5a's structured warnings) |
+| Monte Carlo statistics | the 1-sigma spread uses the population standard deviation | Phase 6b (a choice of statistic) |
+
+Numerical settings that set no result are not parameters: download
+limits, timeouts, task priorities, iteration caps, plotting limits. The
+audit's tables mark them "own" or "Internal".

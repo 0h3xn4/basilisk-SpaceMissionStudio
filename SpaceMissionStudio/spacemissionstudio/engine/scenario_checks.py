@@ -42,7 +42,7 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
-from datetime import datetime, timedelta, UTC
+from datetime import timedelta, UTC
 from pathlib import Path
 
 import numpy as np
@@ -52,14 +52,13 @@ from ..config import registry
 from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import usable_thread_count
-from . import environment_models, geodesy, small_bodies, tle
+from . import environment_models, geodesy, small_bodies, time_system, tle
 
 # Earth: the one set (spacemissionstudio.constants), the simulation's own. Until 2026-10-30
 # these were GGM03S's GM (3.986004415e14, mislabelled as Basilisk's) and a J2 cut to 1.0826e-3.
 _MU_M3_S2 = constants.EARTH_GM_M3_S2  # [m^3/s^2]
 _R_EARTH_M = constants.EARTH_EQUATORIAL_RADIUS_M  # [m] equatorial radius, as engine.service gives groundLocation
 _J2 = constants.EARTH_J2  # [-]
-_TT_MINUS_UTC_S = 69.184  # [s] 32.184 s + 37 leap seconds (constant since 2017)
 _STEP_S = 30.0  # [s] sample spacing; a LEO pass above 10 deg lasts several minutes
 _MAX_HORIZON_S = 7 * 86400.0  # [s] keep long runs cheap; passes beyond this aren't counted
 _LOOKAHEAD_S = 2 * 86400.0  # [s] how far past the run to look for "first pass in ..."
@@ -157,8 +156,9 @@ def _earth_rotation_angle(epoch_utc: str, t):
     epoch = parse_epoch_utc(epoch_utc)
     if epoch.tzinfo is not None:
         epoch = epoch.astimezone(UTC).replace(tzinfo=None)
-    days_tdb = ((epoch - datetime(2000, 1, 1, 12)).total_seconds() + _TT_MINUS_UTC_S) / 86400.0  # [day] from J2000
-    return np.radians(90.0 + 190.147 + 360.9856235 * (days_tdb + t / 86400.0))
+    days_tdb = time_system.tdb_seconds_past_j2000(epoch) / 86400.0  # [day] TDB from J2000, leap seconds of the date
+    return np.radians(90.0 + constants.IAU_EARTH_PRIME_MERIDIAN_DEG
+                      + constants.IAU_EARTH_PRIME_MERIDIAN_RATE_DEG_DAY * (days_tdb + t / 86400.0))
 
 
 def predict_passes(scenario, horizon_s: float | None = None) -> list[GroundPass] | None:

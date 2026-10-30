@@ -84,7 +84,7 @@ from ..config import registry
 from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import PropellantBudgetConfig
 
-G0_M_S2 = 9.80665  # [m/s^2]
+G0_M_S2 = constants.STANDARD_GRAVITY_M_S2  # [m/s^2]
 MU_EARTH_M3_S2 = constants.EARTH_GM_M3_S2  # [m^3/s^2] the one set (spacemissionstudio.constants)
 REQ_EARTH_M = constants.EARTH_EQUATORIAL_RADIUS_M  # [m]
 # The budget's rules and margins are named parameters (config.parameters,

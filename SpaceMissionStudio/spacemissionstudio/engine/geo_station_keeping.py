@@ -70,11 +70,12 @@ from Basilisk.architecture import messaging, sysModel
 from Basilisk.simulation import extForceTorque
 from Basilisk.utilities import macros
 
+from .. import constants
 from ..schema.scenario import GeoStationKeepingConfig
 from .orbit_maintenance import LogThinner
 from .propellant_bookkeeping import apply_propellant_burn
 
-_OMEGA_EARTH = 7.2921159e-5  # [rad/s] Earth's sidereal rotation rate
+_OMEGA_EARTH = constants.EARTH_ROTATION_RAD_S  # [rad/s] the one set's (7.2921159e-5 until 2026-10-30)
 _SIDEREAL_DAY_S = 2.0 * math.pi / _OMEGA_EARTH  # [s]
 _J22 = 1.81554e-6  # [-] Earth's sectoral (triaxiality) harmonic
 _LAMBDA_22 = math.radians(-14.928)  # [rad] longitude of the J22 bulge axis
@@ -101,7 +102,7 @@ class GeoStationKeepingController(sysModel.SysModel):
     :func:`build_geo_station_keeping`."""
 
     def __init__(self, name: str, mu: float, r_equator_m: float, config: GeoStationKeepingConfig,
-                 dry_mass_kg: float, g0_mps2: float = 9.80665):
+                 dry_mass_kg: float, g0_mps2: float = constants.STANDARD_GRAVITY_M_S2):
         super().__init__()
         self.ModelTag = name
         self.scStateInMsg = messaging.SCStatesMsgReader()

@@ -1036,3 +1036,16 @@ never named "_TabBar".
 |---|---|---|---|
 | `tests/gui/test_scenario_editor.py::test_the_project_configuration_survives_the_editor_and_is_read_from_the_files_folder` | Docstring: "the form has no field for config_file yet" | Docstring names Scenario › Assumptions | The page is that field now; the test's code is unchanged |
 | `tests/gui/test_workspace.py::test_the_areas_and_what_they_hold` | The editor's tree ended with Monte Carlo | Ends with Assumptions | The new node; every other node is checked as before |
+
+## The rest of the one set of constants (2026-10-30)
+
+- Added, in `tests/test_constants.py`: `test_the_earth_turns_as_spice_turns_it`,
+  `test_no_module_keeps_a_copy_of_a_constant` and
+  `test_the_earth_rotation_angle_counts_the_leap_seconds_of_its_date`; and checks of g0, the speed of light, the
+  ODM's GM, Explain's radii and GEO station keeping's rate in the two existing tests. Each fails on the code before
+  (checked).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_constants.py::test_the_constants_are_basilisks` | The Earth's rotation within 2e-6 of `orbitalMotion.OMEGA_EARTH` | Within 1e-7 | The rate is now pck00010's, 5e-8 from the binding's (the header's was 1.2e-6 from it) |
+| `test_constants.py::test_the_c_header_defines_what_the_python_binding_rounds` | Checked the header's `OMEGA_EARTH` and that the set's rate equalled it | Checks the header's `EARTH_GRAV` (g0) instead; the solar flux as before | The set's rate is no longer the header's (decision in `docs/DECISIONS.md`); `test_the_earth_turns_as_spice_turns_it` checks the rate |

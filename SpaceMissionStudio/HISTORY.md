@@ -14514,6 +14514,34 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The rest of the one set of constants (2026-10-30)
+
+The transparency plan, Phase 4's first step: the audit's Section 4 checked
+against the registry and the one set of constants. Branch
+`registry-coverage`.
+
+- **Copies Phase 3c missed, now from `spacemissionstudio.constants`:**
+  - g0, 9.80665 m/s^2, in `lifetime`, `propellant_budget`,
+    `propellant_bookkeeping`, `orbit_maintenance`, `formation_control`,
+    `roe_formation` and `geo_station_keeping`
+    (`constants.STANDARD_GRAVITY_M_S2`);
+  - the speed of light in `link_budget` and `environment_models`;
+  - the ODM writer's GM, and Explain's body radii.
+- **The Earth's rotation:** `constants.EARTH_ROTATION_RAD_S` is pck00010's
+  prime-meridian rate, with `IAU_EARTH_PRIME_MERIDIAN_DEG` and `_RATE_DEG_DAY`
+  for the IAU_EARTH angle. That angle was written out in the scenario
+  checks and the orbit design. GEO station keeping and the lifetime take
+  the rate.
+- **Fixed: TT - UTC.** `orbit_design.geostationary_elements_deg` and the
+  pass predictions' Earth angle added a fixed 69.184 s, which is only
+  right from 2017. They now take `time_system.tdb_seconds_past_j2000`.
+- **Tests:** `tests/test_constants.py` gains three tests: the rotation
+  rate; no module keeping a number literal of the set; the Earth's angle
+  across the 2016 leap second. It also checks the new constants' users.
+  Each fails on the code before (checked).
+- **The coverage:** `docs/models/README.md`, "Not yet covered", lists
+  the models whose rules are still in the code.
+
 ## The Assumptions page (2026-10-30)
 
 The transparency plan, Phase 3d. Branch `assumptions-page`.

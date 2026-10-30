@@ -54,10 +54,11 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .. import constants
 from ..schema.scenario import GroundStationConfig, RFLinkConfig
 from .results import ResultSet, ResultsError, TimeSeries
 
-_C_LIGHT_M_S = 299792458.0  # [m/s]
+_C_LIGHT_M_S = constants.SPEED_OF_LIGHT_M_S  # [m/s]
 _K_BOLTZMANN_DBW_HZ = -228.6  # [dBW/K/Hz] 10*log10(1.380649e-23)
 
 
