@@ -416,6 +416,10 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   re-entry checks of a run with drag (every 6 h, every 300 s below a 200 km
   perigee) and the two-body runs' 1 % conservation warning are
   parameters, documented in `docs/models/dynamics-run-control.md`.
+- **MSFC's 132-month repeat and the TLE age warning are parameters:**
+  `docs/models/environment-and-data.md` documents them with the
+  environment data's fixed rules and why each is fixed. Every area of
+  the transparency plan's Phase 3a is now in the registry: 46 parameters.
 
 ## 1.3.1 (2026-10-27)
 

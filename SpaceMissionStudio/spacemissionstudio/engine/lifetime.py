@@ -419,7 +419,8 @@ def density_for_scenario(scenario, start_utc: datetime, max_years: float, points
             max_years = data_years
     end_utc = start_utc + timedelta(days=max_years * 365.25)
     try:
-        resolved = spaceweather.resolve_for(sw_config, start_utc, end_utc, forecast_percentile=forecast_percentile)
+        resolved = spaceweather.resolve_for(sw_config, start_utc, end_utc, forecast_percentile=forecast_percentile,
+                                            scenario=scenario)
     except spaceweather.SpaceWeatherError as exc:
         raise LifetimeError(str(exc)) from None
     return (MsisDensity(resolved.path, start_utc, points, space_weather_files(resolved)), max_years,

@@ -47,6 +47,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ..config import registry
 from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import usable_thread_count
@@ -503,7 +504,7 @@ def _tle_warnings(scenario) -> list[str]:
         except tle.TLEError as exc:
             warnings.append(f"{sc.name}: {exc}")
             continue
-        if abs(age_days) > tle.TLE_AGE_WARNING_DAYS:
+        if abs(age_days) > registry.value("tle.age_warning_days", scenario):  # [day]
             side = "before" if age_days > 0 else "after"
             warnings.append(f"{sc.name}: TLE epoch is {abs(age_days):.1f} d {side} the scenario epoch -- "
                             "SGP4 accuracy drops with TLE age")

@@ -1004,3 +1004,9 @@ never named "_TabBar".
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `test_two_body_validation.py::test_a_long_step_stays_close_to_kepler_and_records_its_tolerances` | Compared the provenance with `service.INTEGRATOR_*_TOLERANCE` | Compares it with the registry's defaults | The constants are parameters now; the values compared are the same |
+
+## The environment's data rules, as parameters (2026-10-30)
+
+- Added, in `test_config.py`: a case for each of the 2 parameters (the space weather past MSFC's prediction, the TLE
+  age warning), set and at its default, and `test_a_repeat_longer_than_the_prediction_is_refused`. Each fails on the
+  code before (checked). No existing test changed.

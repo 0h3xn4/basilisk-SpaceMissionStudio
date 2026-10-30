@@ -5,6 +5,24 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The environment's data rules, as parameters (2026-10-30)
+
+The transparency plan's Phase 3a, last area.
+
+- **Two of the environment's rules are a project's:** MSFC's 132-month
+  repeat, which AD10 sets but a project with its own solar-cycle
+  assumption may change, and the TLE age warning.
+- **The rest are the data's or the mathematics':**
+  - **The Earth-orientation accuracy window:** NAIF states it for its
+    predicted file; a project cannot make the prediction better.
+  - **The mean-element bands:** the handling of the map's singularities,
+    with no physical meaning to tune; they sit inside pure functions used
+    by the generators, the lifetime and the runs alike.
+  - **WMM's validity:** the model's release rule.
+  - **The panel's stale flag:** it covers the whole app, not a scenario.
+
+  Each is documented, with its reason, on the model page.
+
 ## The dynamics' integration and run control, as parameters (2026-10-30)
 
 The transparency plan's Phase 3a, fifth area. The dynamics are split in

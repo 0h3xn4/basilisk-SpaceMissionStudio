@@ -1092,7 +1092,7 @@ def cmd_spaceweather_resolve(args: argparse.Namespace) -> int:
     start = parse_epoch_utc(scenario.epoch_utc)
     end = start + timedelta(days=scenario.sim_settings.duration_days)
     try:
-        resolved = sw.resolve_for(scenario.space_weather, start, end)
+        resolved = sw.resolve_for(scenario.space_weather, start, end, scenario=scenario)
     except Exception as exc:  # noqa: BLE001 -- report ANY resolve failure with a specific message, not a bare traceback
         print(f"ERROR: space weather resolve failed: {exc}", file=sys.stderr)
         return 3

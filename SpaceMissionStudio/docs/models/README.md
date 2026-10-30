@@ -14,9 +14,11 @@ configuration file changes them without editing code
 | RF link budget, onboard data and power | [RF link, data handling and power](link-data-and-power.md) | `link.*`, `data_handling.*` |
 | A run's figures, events, critical marks and dashboard badges | [Reading a run's results](reading-results.md) | `results.*` |
 | The integrator's tolerances, the re-entry checks, the conservation check | [Dynamics: integration and run control](dynamics-run-control.md) | `dynamics.*` |
+| Space weather past the prediction, Earth orientation, TLEs, mean elements | [Environment data](environment-and-data.md) | `space_weather.*`, `tle.*` |
 
-The dynamics' environment and data rules (the space-weather forecast's
-repeat, the Earth-orientation accuracy, the TLE age warning, the mean
-elements) move into the registry next, each with its page here. Until then their values are
+The physical constants (Earth's and the Sun's) are gathered into one set
+next (transparency plan, Phase 3c). Until then the constants each model
+uses are named on its page, and all are listed, with file and line, in
+the [transparency audit](../transparency_audit.md), Section 4. Until then their values are
 listed, with file and line, in the
 [transparency audit](../transparency_audit.md), Section 4.

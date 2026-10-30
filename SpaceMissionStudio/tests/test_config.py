@@ -58,7 +58,8 @@ def test_the_shipped_defaults_file_is_the_registry():
 # The page of docs/models that documents each area (the brief: every model, rule and assumption).
 _MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifetime.md",
                 "link": "link-data-and-power.md", "data_handling": "link-data-and-power.md",
-                "results": "reading-results.md", "dynamics": "dynamics-run-control.md"}
+                "results": "reading-results.md", "dynamics": "dynamics-run-control.md",
+                "space_weather": "environment-and-data.md", "tle": "environment-and-data.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -389,7 +390,7 @@ def test_every_parameter_has_a_case_that_sets_it():
 
     declared = {p.name for p in registry.parameters()}
     cases = (set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_RESULTS_CASES) | set(_DYNAMICS_CASES)
-             | set(_GUI_CASES))
+             | set(_ENVIRONMENT_CASES) | set(_GUI_CASES))
     assert declared == cases, f"no case for {sorted(declared - cases)}"
     for where in _GUI_CASES.values():
         file, name = where.split("::")
@@ -528,6 +529,64 @@ def test_setting_a_dynamics_parameter_changes_what_it_controls(name):
     before = measure(None)
     assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
     assert measure(Configuration({name: registry.default(name)})) == before, name
+
+
+# -- every environment data parameter changes what it says it changes --------------------------
+
+def _repeated_cycle(configuration):
+    """The space weather a run from mid-2041 to 2045 is given, past the end
+    of MSFC's prediction (October 2041): the file's days and the warnings."""
+    import tempfile
+
+    from spacemissionstudio.engine import spaceweather
+    from spacemissionstudio.schema.scenario import SpaceWeatherConfig
+
+    with tempfile.TemporaryDirectory() as cache:
+        resolved = spaceweather.resolve_for(SpaceWeatherConfig(cache_dir=cache), datetime(2041, 6, 1),
+                                            datetime(2045, 1, 1), scenario=SimpleNamespace(configuration=configuration))
+        return resolved.path.read_text(encoding="utf-8"), tuple(resolved.warnings)
+
+
+def _tle_warnings(configuration):
+    """The scenario checks of tests/test_tle.py's ISS TLE, 10.3 days old."""
+    from test_tle import LINE1, LINE2
+
+    from spacemissionstudio.engine.scenario_checks import scenario_warnings
+
+    scenario = Scenario(name="t", epoch_utc="2019-12-20T00:00:00", spacecraft=[SpacecraftConfig(
+        name="iss", orbit=OrbitIC(type="tle", tle_line1=LINE1, tle_line2=LINE2))])
+    scenario.configuration = configuration
+    return [w for w in scenario_warnings(scenario) if "TLE" in w]
+
+
+# name: (value to set, what to measure: called with the scenario's configuration, None for the defaults)
+_ENVIRONMENT_CASES = {
+    "space_weather.msfc_repeat_months": (120, _repeated_cycle),
+    "tle.age_warning_days": (15.0, _tle_warnings),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_ENVIRONMENT_CASES))
+def test_setting_an_environment_parameter_changes_what_it_controls(name):
+    """Each environment data parameter set in a project configuration
+    changes what it controls -- the space weather past MSFC's prediction,
+    the TLE age warning -- and set to its default, leaves it as it was."""
+    value, measure = _ENVIRONMENT_CASES[name]
+    before = measure(None)
+    assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
+    assert measure(Configuration({name: registry.default(name)})) == before, name
+
+
+def test_a_repeat_longer_than_the_prediction_is_refused(tmp_path):
+    """MSFC's shipped table holds 187 months: repeating its last 200 is
+    refused, naming the parameter."""
+    from spacemissionstudio.engine import spaceweather
+    from spacemissionstudio.schema.scenario import SpaceWeatherConfig
+
+    scenario = SimpleNamespace(configuration=Configuration({"space_weather.msfc_repeat_months": 200}))
+    with pytest.raises(spaceweather.SpaceWeatherError, match="msfc_repeat_months asks to repeat its last 200"):
+        spaceweather.resolve_for(SpaceWeatherConfig(cache_dir=str(tmp_path)), datetime(2041, 6, 1),
+                                 datetime(2045, 1, 1), scenario=scenario)
 
 
 @pytest.mark.requires_basilisk

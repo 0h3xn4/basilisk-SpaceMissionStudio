@@ -1103,7 +1103,7 @@ class SimulationService:
                 start_utc = parse_epoch_utc(scenario.epoch_utc)
                 end_utc = start_utc + timedelta(days=sim_settings.duration_days)
                 try:
-                    resolved_sw = sw.resolve_for(scenario.space_weather, start_utc, end_utc)
+                    resolved_sw = sw.resolve_for(scenario.space_weather, start_utc, end_utc, scenario=scenario)
                     self._space_weather_warnings = list(resolved_sw.warnings)
                     if resolved_sw.last_day is not None:
                         naive_start = start_utc.astimezone(UTC).replace(tzinfo=None) if start_utc.tzinfo else start_utc

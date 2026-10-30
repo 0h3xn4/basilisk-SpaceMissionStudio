@@ -132,7 +132,7 @@ def _whole_span_space_weather(scenario: Scenario):
 
     start = _parse_epoch(scenario.epoch_utc)
     end = start + timedelta(days=scenario.sim_settings.duration_days)
-    resolved = spaceweather.resolve_for(sw_config, start, end)
+    resolved = spaceweather.resolve_for(sw_config, start, end, scenario=scenario)
     return SpaceWeatherConfig(source="local_file", local_file_path=str(resolved.path), cache_dir=sw_config.cache_dir,
                               atmosphere_model=sw_config.atmosphere_model), \
         list(resolved.warnings), resolved
