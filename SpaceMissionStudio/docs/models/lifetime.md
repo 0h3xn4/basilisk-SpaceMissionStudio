@@ -127,7 +127,9 @@ Each input says where it came from:
   the End of Life page's fields);
 - `trace:`, another figure.
 
-`lifetime --explain` prints them. `tests/test_trace.py` recomputes each
+`lifetime --explain` prints them. In the app, **Show calculation** on the
+End of Life page opens them in the Calculation panel, the lifetime first.
+`tests/test_trace.py` recomputes each
 figure from its trace, and runs the decay again from its traced inputs.
 
 **When the ground is reached within a step:** a step is never shorter

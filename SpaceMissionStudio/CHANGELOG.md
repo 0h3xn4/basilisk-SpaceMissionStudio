@@ -463,6 +463,17 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   elevation), or at `--range-km`. Each figure, from EIRP to the margin, and
   whether the link closes; `--explain` gives how each was computed, and
   `--out` writes it as JSON. It needs no Basilisk.
+- **Show calculation, and the Calculation panel:** the Budget and End of
+  Life pages, and the Dashboard's link budget, have a **Show
+  calculation** button. It opens the Calculation panel, a tab beside the
+  Inspector: the number's equation and standard, each input with its
+  unit and source, and an **Open** button to each input that is itself
+  computed; **Back** returns and **Copy** copies it as text. On the
+  Budget page it explains the selected row, or the total. A new window
+  starts without the panel; View > Calculation in the command palette
+  shows it. The panels' layout saved by an earlier version is not
+  restored, once: they start as in a new window (the rail and the
+  dividers are restored as before).
 - **Fixed: a lifetime that reached the ground within one step raised an
   error.** With the exponential atmosphere and a deorbit burn, for
   instance, the estimate failed with "M2E() received e = 5.9e+26". It now

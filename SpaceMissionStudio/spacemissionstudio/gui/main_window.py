@@ -78,6 +78,7 @@ from .event_timeline_widget import EventTimelineWidget
 from .exports_page import ExportsPage
 from . import recent_files
 from .load_scenario_widget import TEMPLATES_DIR, LoadScenarioWidget
+from .calculation_panel import CalculationPanel
 from .mission_dashboard_widget import MissionDashboardWidget
 from .mission_output_widget import MissionOutputWidget
 from .monte_carlo_results_widget import MonteCarloResultsWidget
@@ -138,7 +139,7 @@ _logger = logging.getLogger(__name__)
 # The Log's record of each run (M5a): start, end, warnings, where it is saved.
 _run_logger = logging.getLogger("spacemissionstudio.run")
 _RUN_END_STEP_MS = 4  # [ms] between the steps that show a run's end (M6b)
-_LAYOUT_VERSION = 4  # [-] saveState() version: bump when the docks change, so an old layout is ignored
+_LAYOUT_VERSION = 5  # [-] saveState() version: bump when the docks change, so an old layout is ignored
 # A screen narrower than this starts with the Inspector hidden (G8): at
 # 1280 x 720 it took 380 px of the plot's width.
 _INSPECTOR_MIN_SCREEN_PX = 1600  # [px]
@@ -390,6 +391,13 @@ class MainWindow(QMainWindow):
         # tree's first node, Overview (M4b).
         self.inspector_widget = InspectorWidget()
         self.side_dock = self._make_dock("Inspector", "inspectorDock", self.inspector_widget)
+        # How a computed number was reached (transparency plan, Phase 4b): a
+        # tab beside the Inspector, hidden until a page's Show calculation.
+        self.calculation_panel = CalculationPanel()
+        self.calculation_dock = self._make_dock("Calculation", "calculationDock", self.calculation_panel)
+        self.tabifyDockWidget(self.side_dock, self.calculation_dock)
+        for page in (self.budget_widget, self.lifetime_widget, self.mission_dashboard_widget):
+            page.calculation_requested.connect(self.show_calculation)
         self.scenario_explainer_widget.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
         self.overview_item = self.scenario_editor.page_tree.add_page("Overview", self.scenario_explainer_widget,
                                                                      index=0)
@@ -670,6 +678,10 @@ class MainWindow(QMainWindow):
                 self._on_dock_toggled)
         add("view.explain", "E&xplain", self._on_page_action, category="View", area="global",
             tip="What the scenario does: Scenario › Overview.").setData(self.scenario_explainer_widget)
+        add("view.calculation", "&Calculation", None, category="View", area="global",
+            action=self.calculation_dock.toggleViewAction(), keywords=("how computed", "trace"),
+            tip="Show or hide the Calculation panel: how a computed number was reached.").triggered.connect(
+                self._on_dock_toggled)
         add("view.problems", "&Problems", None, category="View", area="global",
             action=self.problems_dock.toggleViewAction(), shortcut="Ctrl+J",
             tip="Show or hide the Problems panel: what does not validate.").triggered.connect(
@@ -845,7 +857,13 @@ class MainWindow(QMainWindow):
         return dock
 
     def _docks(self) -> tuple:
-        return (self.side_dock, self.problems_dock)
+        return (self.side_dock, self.problems_dock, self.calculation_dock)
+
+    def show_calculation(self, explanation) -> None:
+        """A page's Show calculation: the Calculation panel, shown, with
+        ``explanation`` (gui.calculation_panel)."""
+        self.calculation_panel.explain(explanation)
+        self.show_panel(self.calculation_dock)
 
     def _on_dock_toggled(self, shown: bool) -> None:
         """A panel shown by its command takes the focus, so the keyboard can
@@ -1182,9 +1200,11 @@ class MainWindow(QMainWindow):
 
     def _hide_default_panels(self) -> None:
         """The panels a new window starts without (G8): Problems, which a
-        new error opens, and the Inspector on a screen narrower than
+        new error opens, the Calculation panel, which Show calculation
+        opens, and the Inspector on a screen narrower than
         _INSPECTOR_MIN_SCREEN_PX. Ctrl+J and Ctrl+I show them."""
         self.problems_dock.hide()
+        self.calculation_dock.hide()  # until a page's Show calculation
         screen = self.screen() or QApplication.primaryScreen()
         if screen is not None and screen.availableGeometry().width() < _INSPECTOR_MIN_SCREEN_PX:
             self.side_dock.hide()

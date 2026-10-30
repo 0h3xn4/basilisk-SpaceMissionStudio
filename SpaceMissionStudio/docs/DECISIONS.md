@@ -5,6 +5,27 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The Calculation panel (2026-10-30)
+
+- **Named "Calculation", not "Explain":** Explain (Scenario > Overview)
+  already says what a scenario does. The plan's "Explain drawer" says how
+  a number was computed, so its button is **Show calculation** and its
+  panel **Calculation**.
+- **A dock beside the Inspector, hidden until asked for:** the default
+  window stays as it was; the panel opens from the number, and the
+  layout's reset hides it again, as it does Problems.
+- **Two lines per input, not a table:** in a side panel the shared table
+  cut off the sources, the point of the panel. Each input gives its value
+  and meaning, with its source under it.
+- **One explanation per page:** a page sends the trace asked about first,
+  with every other trace of the same calculation, so **Open** follows an
+  input to its own calculation without asking the page again.
+- **The Dashboard's link at the time cursor:** the panel's range and
+  pointing error are the run's at the cursor (`last run:`), so it
+  explains the figures on screen.
+- **The window layout's version goes from 4 to 5:** a new dock; a layout
+  saved before would leave it out of place.
+
 ## The link budget's traces (2026-10-30)
 
 - **A command, not only traces:** a run's link margin is a time series,

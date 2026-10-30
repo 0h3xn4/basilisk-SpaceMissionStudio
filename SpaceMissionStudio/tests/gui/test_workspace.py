@@ -244,7 +244,7 @@ def test_the_view_analyses_and_tools_commands(window):
     Analyses and Tools commands open their pages; Tools > Reference Data
     opens the dialog."""
     view = [command.label for command in window.commands if command.category == "View"]
-    assert view == ["Inspector", "Explain", "Problems", "Reset Layout", "Navigation: Icons Only",
+    assert view == ["Inspector", "Explain", "Calculation", "Problems", "Reset Layout", "Navigation: Icons Only",
                     "Theme: System", "Theme: Light", "Theme: Dark"]
 
     def trigger(category, label):
@@ -260,6 +260,9 @@ def test_the_view_analyses_and_tools_commands(window):
     window.problems_dock.hide()
     trigger("View", "Problems")
     assert window.problems_dock.isVisibleTo(window)
+    window.calculation_dock.hide()
+    trigger("View", "Calculation")
+    assert window.calculation_dock.isVisibleTo(window)
 
 
 def _box_model():

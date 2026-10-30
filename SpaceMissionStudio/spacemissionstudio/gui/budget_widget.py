@@ -47,6 +47,7 @@ from PySide6.QtWidgets import (
 from . import export_log
 from .. import output_provenance
 from ..schema.scenario import SUPPORTED_DISPOSALS, PropellantBudgetConfig
+from .calculation_panel import Explanation
 from .data_table import DataTable, Row
 from .theme import set_role
 from .widgets import ComboBox, PreciseDoubleSpinBox
@@ -291,7 +292,11 @@ _SWEEP_COLUMNS = ("Launch", "Delay [y]", "In-plane [m/s]", "Disposal [m/s]", "To
 
 
 class BudgetWidget(QWidget):
-    """The budget table of one spacecraft (AD10's summary-table layout)."""
+    """The budget table of one spacecraft (AD10's summary-table layout).
+    ``calculation_requested(Explanation)``: Show calculation was chosen, for
+    the selected row or, with none selected, the propellant total."""
+
+    calculation_requested = Signal(object)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -339,9 +344,17 @@ class BudgetWidget(QWidget):
         self.table = DataTable("Compute budget shows the spacecraft's delta-V and propellant budget here.")
         self.table.setMinimumHeight(260)  # [px] a phase's rows stay readable when the result tables open below
         layout.addWidget(self.table, 1)
+        totals_row = QHBoxLayout()
         self.totals_label = QLabel("")
         set_role(self.totals_label, role="strong")
-        layout.addWidget(self.totals_label)
+        totals_row.addWidget(self.totals_label, 1)
+        self.calculation_button = QPushButton("Show calculation")
+        self.calculation_button.setToolTip("How the selected row's delta-V and propellant were computed (or, with no "
+                                           "row selected, the total): the equations, each input and its source")
+        self.calculation_button.setEnabled(False)
+        self.calculation_button.clicked.connect(self.show_calculation)
+        totals_row.addWidget(self.calculation_button)
+        layout.addLayout(totals_row)
         self.notes_label = QLabel("")
         self.notes_label.setWordWrap(True)
         set_role(self.notes_label, tone="secondary")
@@ -545,6 +558,32 @@ class BudgetWidget(QWidget):
         self.totals_label.setText(f"Total: {budget.total_delta_v_m_s:.2f} m/s, {budget.total_propellant_kg:.3f} kg")
         self.notes_label.setText("\n".join(f"- {n}" for n in budget.notes))
         self.copy_button.setEnabled(True)
+        self.calculation_button.setEnabled(True)
+
+    def explanation(self) -> Explanation | None:
+        """The calculation of the selected row (its delta-V's, else its
+        propellant's), or of the propellant total; every other trace of the
+        budget is reachable from it."""
+        budget = self._budget
+        if budget is None:
+            return None
+        every = [trace for row in budget.rows for trace in (row.delta_v_trace, row.propellant_trace)
+                 if trace is not None] + list(budget.traces.values())
+        row = self.table.chosen_row()  # the first selected
+        if row is not None and 0 <= row < len(budget.rows):
+            entry = budget.rows[row]
+            first = entry.delta_v_trace or entry.propellant_trace
+        else:
+            first = budget.traces.get("total_propellant")
+        if first is None:
+            return None
+        title = f"Budget: {self.spacecraft_combo.currentText()}"
+        return Explanation(title, [first] + [trace for trace in every if trace is not first])
+
+    def show_calculation(self) -> None:
+        explanation = self.explanation()
+        if explanation is not None:
+            self.calculation_requested.emit(explanation)
 
     def _copy(self) -> None:
         if self._budget is None:

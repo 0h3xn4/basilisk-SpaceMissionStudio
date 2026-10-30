@@ -20,8 +20,10 @@ configuration file changes them without editing code
 **How a number was computed:** the propellant budget's, the orbital
 lifetime's and the link budget's numbers carry their calculation trace:
 the equation, the inputs with their units and sources, and the standard's
-clause (`budget --explain`, `lifetime --explain`, `link-budget
---explain`; "How each ... was computed" on
+clause. The command line prints them (`budget --explain`, `lifetime
+--explain`, `link-budget --explain`); in the app, **Show calculation** on
+the Budget and End of Life pages and the Dashboard's link opens them in
+the Calculation panel ("How each ... was computed" on
 [Propellant budget](propellant-budget.md),
 [Orbital lifetime](lifetime.md) and
 [RF link, data handling and power](link-data-and-power.md)). The other
