@@ -481,6 +481,9 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   run's data totals (generated, downlinked, lost, on board at the end,
   memory full) carry their ledger series and sample, and `run --explain`
   prints them. The figures are unchanged.
+- **Tests:** the SIL deadline test no longer fails when a loaded Windows
+  runner answers its first step in more than 50 ms (it now allows 0.2 s,
+  and checks that missed deadlines are dropped steps).
 - **Everything a run recorded, in one window:** the Provenance popover
   (Results > Overview, Run > History) has **Show everything recorded**.
   It opens the whole record as a tree in groups: software, run, seeds,

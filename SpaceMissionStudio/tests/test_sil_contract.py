@@ -469,7 +469,7 @@ def test_a_step_without_deadline_waits_while_earlier_steps_are_still_answered():
 
 @pytest.mark.parametrize("fake_kwargs, timeouts, reason", [
     ({"silent_after": 1}, Timeouts(handshake_s=5.0, step_s=0.3), "did not answer for"),
-    ({"silent_after": 1}, Timeouts(handshake_s=5.0, step_s=0.3, deadline_s=0.05), None),
+    ({"silent_after": 1}, Timeouts(handshake_s=5.0, step_s=0.6, deadline_s=0.2), None),
     ({"close_after": 1}, Timeouts(handshake_s=5.0, step_s=2.0), "closed the link"),
     ({"error_after": 1}, Timeouts(handshake_s=5.0, step_s=2.0), "reported an error: BSK_ERROR: wheel model diverged"),
 ])
@@ -477,7 +477,9 @@ def test_timeouts_closed_links_and_flight_software_errors_end_the_run_loudly(fak
     """No answer for step_s, a closed link and an ERROR from the flight
     software each raise SilError with the reason. With a deadline, missed
     deadlines are dropped steps until nothing at all has been heard for
-    step_s; then it fails too."""
+    step_s; then it fails too. The deadline (0.2 s) leaves the first,
+    answered step room on a loaded runner: at 0.05 s, a Windows runner
+    answered late and the step was dropped (2026-10-30, #172)."""
     listener, fake, side = _session(KINDS[0], fake_kwargs, timeouts)
     try:
         side.handshake()
@@ -486,6 +488,8 @@ def test_timeouts_closed_links_and_flight_software_errors_end_the_run_loudly(fak
         with pytest.raises(c.SilError, match=reason or "did not answer for"):
             for step in range(1, 100):
                 side.step(step * RATE_NS, [bytes(8), bytes(4)])
+        if timeouts.deadline_s is not None:
+            assert side.late_replies >= 1  # missed deadlines were dropped steps before the run failed
     finally:
         side.transport.close()
         listener.close()
