@@ -1083,3 +1083,13 @@ never named "_TabBar".
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `tests/golden_capture.py` (the regression baseline's fingerprint) | Left out `data_files` | Also leaves out `delta_v_trace`, `propellant_trace` and `traces` | The traces restate the numbers the fingerprint records, with their inputs; `tests/test_trace.py` checks them. Every number in the baseline is compared as before |
+
+## The lifetime's traces (2026-10-30)
+
+- Added, in `tests/test_trace.py` (3 tests):
+  - every lifetime figure recomputed from its trace, and the decay run
+    again from the traced inputs;
+  - a decay reaching the ground within a step re-enters (it raised);
+  - the record and `lifetime --explain`.
+
+  Each fails on the code before (checked). No existing test changed.

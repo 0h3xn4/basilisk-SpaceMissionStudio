@@ -600,6 +600,12 @@ def cmd_lifetime(args: argparse.Namespace) -> int:
         print(f"  {label}: {verdict}")
     for warning in result.warnings:
         print(f"WARNING: {warning}", file=sys.stderr)
+    if args.explain:
+        print()
+        print("How each figure was computed:")
+        for trace in end.traces.values():
+            print()
+            print("\n".join(trace.text()))
     if args.out is not None:
         from .engine import analysis_records
 
@@ -1459,7 +1465,11 @@ def build_parser() -> argparse.ArgumentParser:
                         help="drag coefficient, or 'own' for the spacecraft's (default: lifetime.default_drag_coeff, "
                              "2.2: ESA AD10 end of life)")
     p_life.add_argument("--out", type=Path, metavar="FILE.json", default=None,
-                        help="also write the lifetime as JSON: inputs, the drag used, the decay, the provenance")
+                        help="also write the lifetime as JSON: inputs, the drag used, the decay, the traces, the "
+                             "provenance")
+    p_life.add_argument("--explain", action="store_true",
+                        help="after the result, how each figure was computed: the equation, the inputs with their "
+                             "units and sources")
     p_life.set_defaults(func=cmd_lifetime)
 
     p_model = subparsers.add_parser("model", help="report a spacecraft's 3D model: mass properties and facets")

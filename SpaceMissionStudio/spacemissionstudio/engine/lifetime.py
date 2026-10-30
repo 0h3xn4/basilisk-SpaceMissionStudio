@@ -63,6 +63,7 @@ from .. import constants
 from ..schema.epochs import parse_epoch_utc
 from . import geodesy
 from .mean_elements import cl_mean_osc_map
+from .trace import Quantity, Trace
 
 # Basilisk's own Earth constants, the one set (spacemissionstudio.constants)
 MU_EARTH_M3_S2 = constants.EARTH_GM_M3_S2  # [m^3/s^2]
@@ -340,8 +341,12 @@ def propagate_decay(orbit: MeanOrbit, start_utc: datetime, ballistic_m2_kg: floa
         step_s = max_step_s if drop_m_s <= 0.0 else min(max_step_s, max_drop * remaining_m / drop_m_s)
         step_s = min(max(step_s, orbit.period_s), horizon_s - t_s)  # [s]
         middle = _advanced(orbit, 0.5 * step_s, da_dt, de_vec_dt)
+        if not _is_ellipse(middle):
+            return _reached_ground(times, perigees, apogees, t_s + step_s, step_s, start_utc)
         da_dt, de_vec_dt = _drag_rates(middle, t_s + 0.5 * step_s, ballistic_m2_kg, density, points)
         orbit = _advanced(orbit, step_s, da_dt, de_vec_dt)
+        if not _is_ellipse(orbit):
+            return _reached_ground(times, perigees, apogees, t_s + step_s, step_s, start_utc)
         t_s += step_s
         times.append(t_s)
         perigees.append(orbit.perigee_altitude_km)
@@ -352,6 +357,26 @@ def propagate_decay(orbit: MeanOrbit, start_utc: datetime, ballistic_m2_kg: floa
     return LifetimeResult(reentered=reentered, lifetime_s=t_s, time_s=np.array(times),
                           perigee_altitude_km=np.array(perigees), apogee_altitude_km=np.array(apogees),
                           start_utc=start_utc)
+
+
+def _is_ellipse(orbit: MeanOrbit) -> bool:
+    return orbit.semi_major_axis_m > 0.0 and 0.0 <= orbit.eccentricity < 1.0
+
+
+def _reached_ground(times: list, perigees: list, apogees: list, t_s: float, step_s: float,
+                    start_utc: datetime) -> LifetimeResult:
+    """A decay whose step ends in an orbit that is no longer an ellipse: a
+    step is at least an orbit, and in an atmosphere steeper than the step
+    control assumes (the exponential one, a large ballistic coefficient)
+    the drag under the ground blows the orbit up within it. Its drag rates
+    raised (M2E) instead of re-entering (found by the lifetime's trace,
+    2026-10-30). It re-enters within the step: the last perigee is the
+    ground, 0 km."""
+    return LifetimeResult(reentered=True, lifetime_s=t_s, time_s=np.array(times + [t_s]),
+                          perigee_altitude_km=np.array(perigees + [0.0]),
+                          apogee_altitude_km=np.array(apogees + [apogees[-1]]), start_utc=start_utc,
+                          warnings=[f"the orbit reached the ground within the last step of the decay, "
+                                    f"{step_s / 86400.0:.2g} days: the re-entry time is known to within it"])
 
 
 def deorbit_burn(orbit: MeanOrbit, target_perigee_km: float, mass_kg: float, isp_s: float):
@@ -559,6 +584,9 @@ class EndOfLife:
     area_m2: float | None = None  # [m^2]
     drag_coeff: float | None = None  # [-]
     data_files: dict = field(default_factory=dict)
+    # How each figure was computed (engine.trace, transparency plan Phase 4a): "mass", "ballistic_coefficient",
+    # "orbit", "deorbit" (with a burn), "lifetime", and one per disposal rule, keyed by its record key.
+    traces: dict = field(default_factory=dict, compare=False, repr=False)
 
     @property
     def ballistic_coefficient_m2_kg(self) -> float | None:
@@ -611,6 +639,10 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
     isp_s, propellant_kg = _propulsion(spacecraft)
     r_m = v_m_s = None
     elapsed_s = 0.0  # [s]
+    mass_inputs = [Quantity("dry mass", "m_dry", spacecraft.dry_mass_kg, "[kg]", "scenario: dry_mass_kg")]
+    thruster = next((key for key in ("station_keeping", "geo_station_keeping", "constant_thrust")
+                     if getattr(spacecraft, key) is not None), None)
+    propellant_source = f"scenario: {thruster}.propellant_kg" if thruster else "scenario: no orbit thruster"
     if result is not None:
         position = result.series.get(f"{spacecraft_name}.position_N")
         velocity = result.series.get(f"{spacecraft_name}.velocity_N")
@@ -618,22 +650,32 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
             raise LifetimeError(f"the last run has no position for {spacecraft_name!r}")
         r_m, v_m_s, elapsed_s = position.data[-1], velocity.data[-1], float(position.time_s[-1])
         propellant_kg = _remaining_propellant(result, spacecraft_name, propellant_kg)
+        if thruster and f"{spacecraft_name}.{thruster}.propellant_remaining" in result.series:
+            propellant_source = f"last run: {spacecraft_name}.{thruster}.propellant_remaining, last value"
+    mass_inputs.append(Quantity("orbit thruster's propellant", "m_p", propellant_kg, "[kg]", propellant_source))
     mass_kg = spacecraft.dry_mass_kg + propellant_kg  # [kg]
     if spacecraft.fuel_tank is not None:
         # After a run, what the tank still holds, not its initial load (audit L4).
         tank_kg = spacecraft.fuel_tank.propellant_mass_kg  # [kg]
+        tank_source = "scenario: fuel_tank.propellant_mass_kg"
         remaining = result.series.get(f"{spacecraft_name}.fuel_mass_remaining") if result is not None else None
         if remaining is not None and len(remaining.data):
             tank_kg = float(remaining.data[-1, 0])
+            tank_source = f"last run: {spacecraft_name}.fuel_mass_remaining, last value"
         mass_kg += tank_kg
+        mass_inputs.append(Quantity("fuel tank's propellant", "m_tank", tank_kg, "[kg]", tank_source))
 
     if scenario.gravity.central_body != "earth":
         raise LifetimeError("orbit lifetime is only estimated around Earth")
+    state_source = (f"last run: {spacecraft_name}.position_N and velocity_N, last sample" if r_m is not None
+                    else f"scenario: orbit ({spacecraft.orbit.type})")
     if r_m is None:
         from .service import _orbit_ic_to_rv  # the same orbit set-up a run uses
 
         r_m, v_m_s = _orbit_ic_to_rv(MU_EARTH_M3_S2, spacecraft.orbit, scenario.epoch_utc)
     orbit = mean_orbit_from_state(r_m, v_m_s)
+    traces = {"orbit": _orbit_trace("Mean orbit at the start of the decay", orbit, state_source,
+                                    "osculating state to mean elements, first-order J2 (Basilisk clMeanOscMap)")}
     plan = None
     if deorbit_perigee_km is not None:
         if isp_s is None:
@@ -645,18 +687,120 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
             lowered = _orbit_after_retro_burn(orbit, delta_v)
             needed_kg = propellant_kg
         plan = DeorbitPlan(deorbit_perigee_km, lowered.perigee_altitude_km, delta_v, needed_kg, propellant_kg)
+        traces["deorbit"] = _deorbit_trace(orbit, plan, mass_kg, isp_s)
         orbit, mass_kg = lowered, mass_kg - needed_kg
+        traces["orbit"] = _orbit_trace("Mean orbit after the deorbit burn", orbit, "trace: Deorbit burn",
+                                       "the apogee burn's new perigee, the argument of perigee kept")
+        mass_inputs.append(Quantity("propellant the deorbit burn used", "m_burn", needed_kg, "[kg]",
+                                    "trace: Deorbit burn"))
+    added = " + ".join(q.symbol for q in mass_inputs if q.symbol != "m_burn")
+    traces["mass"] = Trace("Mass during the decay", "m", mass_kg, "[kg]",
+                           f"m = {added}" + (" - m_burn" if plan is not None else ""), "the scenario",
+                           inputs=tuple(mass_inputs))
     area_m2, own_cd = drag_properties(spacecraft)
+    cd_source = ("option: the drag coefficient asked for (lifetime --drag-coeff, the End of Life page; default "
+                 "lifetime.default_drag_coeff)" if drag_coeff is not None
+                 else "scenario: the facets' area-weighted drag_coeff" if spacecraft.facets else "scenario: drag_coeff")
     drag_coeff = own_cd if drag_coeff is None else drag_coeff
+    ballistic = drag_coeff * area_m2 / mass_kg  # [m^2/kg]
+    traces["ballistic_coefficient"] = Trace(
+        "Ballistic coefficient", "B", ballistic, "[m^2/kg]", "B = Cd * A / m",
+        "ESA AD10 Secs. 5.2, 5.3 (drag coefficient, tumbling area)",
+        inputs=(Quantity("drag coefficient", "Cd", drag_coeff, "[-]", cd_source),
+                Quantity("drag area", "A", area_m2, "[m^2]",
+                         "scenario: the facets' total area / 4 (tumbling average)" if spacecraft.facets
+                         else "scenario: drag_area_m2"),
+                Quantity("mass", "m", mass_kg, "[kg]", "trace: Mass during the decay")))
     start_utc = _parse_utc(scenario.epoch_utc) + timedelta(seconds=elapsed_s)
     density, horizon_years, warnings = density_for_scenario(scenario, start_utc, max_years,
                                                             forecast_percentile=forecast_percentile)
-    lifetime = propagate_decay(orbit, start_utc, drag_coeff * area_m2 / mass_kg, density, horizon_years,
-                               should_cancel, scenario=scenario)
+    lifetime = propagate_decay(orbit, start_utc, ballistic, density, horizon_years, should_cancel, scenario=scenario)
     lifetime.horizon_years = horizon_years
     lifetime.warnings.extend(warnings)
+    traces["lifetime"] = _lifetime_trace(lifetime, scenario, traces["orbit"], ballistic, max_years, horizon_years,
+                                         forecast_percentile)
+    for years, label, key in disposal_rules(scenario):
+        parameter = "zero_debris_years" if key.startswith("zero_debris") else "iadc_years"
+        verdict = ("met" if lifetime.meets(years) else "not met") if lifetime.known(years) else "not known"
+        traces[key] = Trace(f"The {label}", "met", verdict, "[-]", "met: re-entered and L <= T; not known: neither "
+                            "re-entered nor looked T ahead", "ESA Zero Debris approach" if parameter ==
+                            "zero_debris_years" else "IADC guideline, ISO 24113",
+                            inputs=(Quantity("the rule's years", "T", years, "[year]", f"parameter: lifetime.{parameter}"),
+                                    Quantity("lifetime", "L", lifetime.lifetime_years, "[year]",
+                                             "trace: Orbital lifetime"),
+                                    Quantity("re-entered within the look-ahead", "reentered", lifetime.reentered, "[-]",
+                                             "trace: Orbital lifetime")))
     return EndOfLife(lifetime, result is not None, mass_kg, plan, area_m2, drag_coeff,
-                     getattr(density, "data_files", {}))
+                     getattr(density, "data_files", {}), traces)
+
+
+def _orbit_trace(quantity: str, orbit: MeanOrbit, source: str, how: str) -> Trace:
+    return Trace(quantity, "h_p", orbit.perigee_altitude_km, "[km]", "h_p = a (1 - e) - R", how,
+                 inputs=(Quantity("mean semi-major axis", "a", orbit.semi_major_axis_m, "[m]",
+                                  source if source.startswith("trace") else f"computed: the mean elements of {source}"),
+                         Quantity("mean eccentricity", "e", orbit.eccentricity, "[-]", "computed: as a"),
+                         Quantity("Earth's equatorial radius", "R", REQ_EARTH_M, "[m]",
+                                  "constant: EARTH_EQUATORIAL_RADIUS_M")),
+                 intermediates=(Quantity("apogee height", "h_a", orbit.apogee_altitude_km, "[km]",
+                                         "computed: a (1 + e) - R"),
+                                Quantity("inclination", "i", math.degrees(orbit.inclination_rad), "[deg]",
+                                         "computed: as a")))
+
+
+def _deorbit_trace(orbit: MeanOrbit, plan: DeorbitPlan, mass_kg: float, isp_s: float) -> Trace:
+    r_apo = orbit.semi_major_axis_m * (1.0 + orbit.eccentricity)  # [m]
+    return Trace("Deorbit burn", "dV", plan.delta_v_m_s, "[m/s]",
+                 "dV = sqrt(mu (2 / r_a - 1 / a)) - sqrt(mu (2 / r_a - 1 / a')), a' = (r_a + R + h_p') / 2; "
+                 "limited to dV = Isp g0 ln(m / (m - m_p)) when the propellant is short",
+                 "a retrograde burn at apogee (vis-viva); the rocket equation",
+                 inputs=(Quantity("target perigee height", "h_p'", plan.target_perigee_km, "[km]",
+                                  "option: lifetime --deorbit-perigee-km, the End of Life page"),
+                         Quantity("apogee radius", "r_a", r_apo, "[m]", "trace: Mean orbit at the start of the decay"),
+                         Quantity("mean semi-major axis", "a", orbit.semi_major_axis_m, "[m]",
+                                  "trace: Mean orbit at the start of the decay"),
+                         Quantity("mass before the burn", "m", mass_kg, "[kg]", "computed: dry mass plus propellant"),
+                         Quantity("propellant on board", "m_p", plan.propellant_available_kg, "[kg]",
+                                  "computed: the orbit thruster's propellant"),
+                         Quantity("specific impulse", "Isp", isp_s, "[s]", "scenario: the orbit thruster's isp_s"),
+                         Quantity("Earth's gravitational parameter", "mu", MU_EARTH_M3_S2, "[m^3/s^2]",
+                                  "constant: EARTH_GM_M3_S2"),
+                         Quantity("standard gravity", "g0", constants.STANDARD_GRAVITY_M_S2, "[m/s^2]",
+                                  "constant: STANDARD_GRAVITY_M_S2")),
+                 intermediates=(Quantity("perigee height reached", "h_p", plan.perigee_km, "[km]", "computed"),
+                                Quantity("propellant burned", "m_burn", plan.propellant_kg, "[kg]",
+                                         "computed: m (1 - exp(-dV / (Isp g0)))")),
+                 notes=() if plan.sufficient else ("not enough propellant: the perigee stays higher than asked",))
+
+
+def _lifetime_trace(lifetime: LifetimeResult, scenario, orbit_trace: Trace, ballistic_m2_kg: float, max_years: float,
+                    horizon_years: float, forecast_percentile: float) -> Trace:
+    atmosphere = scenario.space_weather.atmosphere_model
+    return Trace(
+        "Orbital lifetime", "L", lifetime.lifetime_years, "[year]",
+        "L: the time until the orbit-averaged perigee h_p reaches h_re, integrating d(a, e)/dt from drag over a ring "
+        "of n points and J2, in midpoint steps of at most dt_max and at most f of the height left above h_re",
+        "SpaceMissionStudio's decay model (docs/models/lifetime.md)",
+        inputs=(Quantity("re-entry perigee", "h_re", rule("reentry_altitude_km", scenario), "[km]",
+                         "parameter: lifetime.reentry_altitude_km"),
+                Quantity("ballistic coefficient", "B", ballistic_m2_kg, "[m^2/kg]", "trace: Ballistic coefficient"),
+                Quantity("starting perigee", "h_p0", orbit_trace.value, "[km]", f"trace: {orbit_trace.quantity}"),
+                Quantity("atmosphere", "rho", atmosphere, "[-]", "scenario: space_weather.atmosphere_model"),
+                Quantity("solar activity: MSFC percentile", "P", forecast_percentile, "[%]",
+                         "option: lifetime --forecast-percentile, the End of Life page; default "
+                         "lifetime.default_forecast_percentile"),
+                Quantity("look-ahead asked", "T_max", max_years, "[year]",
+                         "option: lifetime --max-years, the End of Life page; default lifetime.default_horizon_years"),
+                Quantity("drag ring points", "n", rule("ring_points", scenario), "[-]", "parameter: lifetime.ring_points"),
+                Quantity("longest step", "dt_max", rule("max_step_s", scenario), "[s]", "parameter: lifetime.max_step_s"),
+                Quantity("step's largest perigee drop", "f", rule("max_perigee_drop_fraction", scenario), "[-]",
+                         "parameter: lifetime.max_perigee_drop_fraction")),
+        intermediates=(Quantity("looked ahead", "T", horizon_years, "[year]",
+                                "computed: T_max, or less where the space-weather data ends"),
+                       Quantity("steps", "N", max(len(lifetime.time_s) - 1, 0), "[-]", "computed"),
+                       Quantity("re-entered", "reentered", lifetime.reentered, "[-]", "computed: h_p <= h_re"),
+                       Quantity("last perigee", "h_p_end", float(lifetime.perigee_altitude_km[-1]), "[km]",
+                                "computed")),
+        notes=tuple(lifetime.warnings))
 
 
 def _orbit_after_retro_burn(orbit: MeanOrbit, delta_v_m_s: float) -> MeanOrbit:

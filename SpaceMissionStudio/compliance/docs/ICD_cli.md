@@ -81,7 +81,8 @@ estimate when a spacecraft re-enters (orbit-averaged drag)
 | `--max-years` | how far ahead to look [years], more than 0 and at most 100 (default: lifetime.default_horizon_years, 30) |
 | `--forecast-percentile {95.0,50.0,5.0}` | MSFC solar-activity percentile (default: lifetime.default_forecast_percentile, 50: ESA AD10 end of life) |
 | `--drag-coeff` | drag coefficient, or 'own' for the spacecraft's (default: lifetime.default_drag_coeff, 2.2: ESA AD10 end of life) |
-| `--out` | also write the lifetime as JSON: inputs, the drag used, the decay, the provenance |
+| `--out` | also write the lifetime as JSON: inputs, the drag used, the decay, the traces, the provenance |
+| `--explain` | after the result, how each figure was computed: the equation, the inputs with their units and sources |
 
 ## `model`
 

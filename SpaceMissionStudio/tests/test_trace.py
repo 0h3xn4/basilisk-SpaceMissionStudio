@@ -260,3 +260,105 @@ def test_a_trace_is_plain_data():
     assert trace.input("b") == 2.0
     with pytest.raises(KeyError):
         trace.input("c")
+
+
+# -- the orbital lifetime (engine.lifetime) -------------------------------------------------------
+
+def _steep_lifetime_scenario():
+    """Template 18's spacecraft with the exponential atmosphere: no
+    space-weather file, a decay of a few hundred steps."""
+    from pathlib import Path
+
+    from spacemissionstudio.schema import load_scenario
+
+    templates = Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates"
+    scenario = load_scenario(next(templates.glob("18_*.json")))
+    scenario.space_weather.atmosphere_model = "exponential"
+    return scenario
+
+
+@pytest.mark.requires_basilisk
+def test_every_lifetime_figure_is_recomputed_from_its_trace():
+    """The mass, the ballistic coefficient, the perigee, the deorbit burn
+    and each disposal rule's verdict follow from their traces' inputs; the
+    lifetime is the decay run again with the trace's ballistic coefficient
+    and parameters."""
+    from spacemissionstudio.engine import lifetime
+
+    scenario = _steep_lifetime_scenario()
+    name = scenario.spacecraft[0].name
+    end = lifetime.end_of_life(scenario, name, deorbit_perigee_km=200.0, max_years=5.0)
+    traces = end.traces
+    assert set(traces) == {"orbit", "deorbit", "mass", "ballistic_coefficient", "lifetime",
+                           *(key for _y, _l, key in lifetime.disposal_rules(scenario))}
+    mass = traces["mass"]
+    assert mass.value == end.mass_kg == pytest.approx(mass.input("m_dry") + mass.input("m_p") - mass.input("m_burn"))
+    b = traces["ballistic_coefficient"]
+    assert b.value == end.ballistic_coefficient_m2_kg == pytest.approx(b.input("Cd") * b.input("A") / b.input("m"))
+    orbit = traces["orbit"]
+    assert orbit.value == pytest.approx(orbit.input("a") * (1.0 - orbit.input("e")) / 1e3 - orbit.input("R") / 1e3)
+    burn = traces["deorbit"]
+    mu, r_a, a = burn.input("mu"), burn.input("r_a"), burn.input("a")
+    a_new = 0.5 * (r_a + constants.EARTH_EQUATORIAL_RADIUS_M + burn.input("h_p'") * 1e3)  # [m]
+    assert burn.value == end.deorbit.delta_v_m_s == pytest.approx(
+        math.sqrt(mu * (2.0 / r_a - 1.0 / a)) - math.sqrt(mu * (2.0 / r_a - 1.0 / a_new)), rel=1e-12)
+    assert burn.input("m_burn") == pytest.approx(
+        burn.input("m") * (1.0 - math.exp(-burn.value / (burn.input("Isp") * burn.input("g0")))), rel=1e-12)
+    life = traces["lifetime"]
+    assert life.value == end.lifetime.lifetime_years and life.input("B") == b.value
+    for symbol, parameter in (("h_re", "reentry_altitude_km"), ("n", "ring_points"), ("dt_max", "max_step_s"),
+                              ("f", "max_perigee_drop_fraction")):
+        assert life.input(symbol) == registry.value(f"lifetime.{parameter}", scenario)
+    from spacemissionstudio.engine.service import _orbit_ic_to_rv
+
+    r_m, v_m_s = _orbit_ic_to_rv(lifetime.MU_EARTH_M3_S2, scenario.spacecraft[0].orbit, scenario.epoch_utc)
+    _dv, _kg, lowered = lifetime.deorbit_burn(lifetime.mean_orbit_from_state(r_m, v_m_s), 200.0,
+                                              burn.input("m"), burn.input("Isp"))
+    again = lifetime.propagate_decay(lowered, end.lifetime.start_utc, life.input("B"), lifetime.exponential_density,
+                                     life.input("T"), scenario=scenario)
+    assert again.lifetime_years == life.value
+    for years, _label, key in lifetime.disposal_rules(scenario):
+        rule = traces[key]
+        assert rule.input("T") == years
+        assert rule.value == ("met" if rule.input("reentered") and rule.input("L") <= rule.input("T") else "not met")
+    for trace in traces.values():
+        for quantity in trace.inputs + trace.intermediates:
+            assert quantity.source.split(":", 1)[0] in SOURCE_KINDS, (trace.quantity, quantity.source)
+
+
+@pytest.mark.requires_basilisk
+def test_a_decay_reaching_the_ground_within_a_step_re_enters():
+    """A decay never steps less than an orbit. In the exponential
+    atmosphere, after a burn to a 200 km perigee, the drag under the
+    ground blew the orbit up within a step (an eccentricity of 6e26) and
+    the estimate raised. It now re-enters within that step and says so."""
+    from spacemissionstudio.engine import lifetime
+
+    scenario = _steep_lifetime_scenario()
+    end = lifetime.end_of_life(scenario, scenario.spacecraft[0].name, deorbit_perigee_km=200.0, max_years=5.0)
+    assert end.lifetime.reentered and 0.0 < end.lifetime.lifetime_years < 5.0
+    assert end.lifetime.perigee_altitude_km[-1] == 0.0
+    assert any("reached the ground within the last step" in w for w in end.lifetime.warnings)
+
+
+@pytest.mark.requires_basilisk
+def test_the_lifetime_traces_reach_the_record_and_the_command_line(tmp_path, capsys):
+    """``lifetime --out`` writes the traces, ``lifetime --explain`` prints
+    them."""
+    from spacemissionstudio import cli
+    from spacemissionstudio.engine import analysis_records, lifetime
+
+    scenario = _steep_lifetime_scenario()
+    name = scenario.spacecraft[0].name
+    end = lifetime.end_of_life(scenario, name, max_years=1.0)
+    record = json.loads(json.dumps(analysis_records._plain(
+        analysis_records.lifetime_record(scenario, name, end, 1.0, 50.0, None, None))))
+    traces = record["results"]["traces"]
+    assert traces["ballistic_coefficient"]["equation"] == "B = Cd * A / m"
+    assert traces["lifetime"]["inputs"][0]["source"] == "parameter: lifetime.reentry_altitude_km"
+    path = tmp_path / "l.json"
+    path.write_text(json.dumps(scenario.to_dict()), encoding="utf-8")
+    assert cli.main(["lifetime", str(path), "--max-years", "1", "--explain"]) == 0
+    out = capsys.readouterr().out
+    assert "How each figure was computed:" in out and "Ballistic coefficient: B = " in out
+    assert "Cd = 2.2 [-]  drag coefficient  (option: the drag coefficient asked for" in out

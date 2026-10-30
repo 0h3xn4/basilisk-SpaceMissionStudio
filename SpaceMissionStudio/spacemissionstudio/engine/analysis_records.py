@@ -101,7 +101,9 @@ def lifetime_record(scenario, spacecraft_name: str, end, max_years: float, forec
         "results": {"start_utc": life.start_utc, "reentered": life.reentered,
                     "reentry_utc": life.reentry_utc, "lifetime_years": life.lifetime_years,
                     "horizon_years": life.horizon_years, "rules": verdicts,
-                    "deorbit": None if end.deorbit is None else _plain(end.deorbit)},
+                    "deorbit": None if end.deorbit is None else _plain(end.deorbit),
+                    # How each figure was computed (engine.trace)
+                    "traces": _plain(end.traces)},
         "decay": {"time_s": life.time_s, "perigee_altitude_km": life.perigee_altitude_km,
                   "apogee_altitude_km": life.apogee_altitude_km},
         "warnings": list(life.warnings),

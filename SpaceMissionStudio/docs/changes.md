@@ -17,6 +17,28 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-30: the lifetime's traces; a decay reaching the ground within a step
+
+**One case that raised now gives a result.** Writing the lifetime's trace
+found it. A decay step is at least one orbit. With the exponential
+atmosphere and a large ballistic coefficient, the drag under the ground
+blew the orbit up within a step: a negative semi-major axis, an
+eccentricity of 6e26. Its drag rates then raised a `ValueError` in
+`end_of_life` instead of re-entering. The decay
+now ends in that step, re-entered, with a warning.
+
+| Case | Before | Now |
+|---|---|---|
+| Template 18, exponential atmosphere, a deorbit burn to 200 km, 5-year look-ahead | `ValueError: M2E() received e = 5.9376078822461745e+26` | re-enters after 13644914.605955968 s (0.432 years), the last of 183 steps 0.06 days long, with the warning |
+
+The new branch is reached only where the orbit half-way through a step,
+or at its end, is no longer an ellipse. Every other decay takes the same
+path, step for step. Where the end-of-step orbit was no longer an ellipse
+but the old code stopped without raising, the lifetime is the same; the
+curve's last perigee is now 0 km (it was a meaningless negative height),
+and the warning is added. The regression baseline
+of all 31 templates passes unchanged.
+
 ## 2026-10-30: the budget's calculation traces (Phase 4a)
 
 **No number changes.** Each number of the propellant budget now carries

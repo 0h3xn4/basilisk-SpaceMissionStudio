@@ -5,6 +5,19 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The lifetime's traces (2026-10-30)
+
+- **A seventh source kind, `option:`**: the lifetime's drag coefficient,
+  solar-activity percentile, look-ahead and deorbit perigee are the
+  analysis's own settings, from the command line or the End of Life page,
+  each with a parameter as its default. They are neither the scenario's
+  nor a parameter's when given.
+- **A decay that reaches the ground within a step re-enters there:** the
+  step stays at least an orbit, which the orbit-averaged rates need. The
+  re-entry time is then known to within that step, which the warning
+  gives. Shorter steps near the end would change every lifetime's last
+  digits; this changes only the cases that raised.
+
 ## The budget's calculation traces (2026-10-30)
 
 The transparency plan's Phase 4a and 4c, first model.

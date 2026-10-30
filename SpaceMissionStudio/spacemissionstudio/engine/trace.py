@@ -41,8 +41,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 #: Where an input comes from. The text after the colon names it, e.g.
-#: ``"parameter: propellant_budget.cam_count_factor"``.
-SOURCE_KINDS = ("scenario", "parameter", "constant", "last run", "computed", "trace")
+#: ``"parameter: propellant_budget.cam_count_factor"``. ``option`` is the
+#: analysis's own setting, a command-line option or a field of its page.
+SOURCE_KINDS = ("scenario", "parameter", "constant", "last run", "computed", "trace", "option")
 
 
 @dataclass(frozen=True)
@@ -71,7 +72,7 @@ class Trace:
 
     quantity: str  # what the result is, e.g. "Collision avoidance delta-V"
     symbol: str
-    value: float | None
+    value: float | int | str | None  # a number, or a verdict such as "met"
     unit: str
     equation: str  # e.g. "dV = N f v dA / a"
     reference: str  # the standard and clause, e.g. "ESA AD10 Sec. 6.2.4", or "SpaceMissionStudio's own"
@@ -89,7 +90,7 @@ class Trace:
     def text(self) -> list[str]:
         """The trace as lines: the result, the equation and its reference,
         then the inputs, the intermediates and the notes."""
-        value = "-" if self.value is None else f"{self.value:.10g}"
+        value = "-" if self.value is None else f"{self.value:.10g}" if isinstance(self.value, float) else str(self.value)
         lines = [f"{self.quantity}: {self.symbol} = {value} {self.unit}",
                  f"  {self.equation}   [{self.reference}]"]
         if self.inputs:
