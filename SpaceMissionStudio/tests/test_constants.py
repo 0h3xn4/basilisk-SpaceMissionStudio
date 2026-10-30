@@ -114,7 +114,7 @@ def test_no_module_keeps_a_copy_of_a_constant():
 
     package = Path(__file__).resolve().parents[1] / "spacemissionstudio"
     copies = ("9.80665", "299792458", "398600.436", "7.2921159", "6378.1366", "6378136.6", "1082.616",
-              "360.9856235", "69.184")
+              "360.9856235", "69.184", "1.81554", "14.928")
     found = []
     for path in sorted(package.rglob("*.py")):
         if path.name == "constants.py":
@@ -164,3 +164,21 @@ def test_the_earth_rotation_angle_counts_the_leap_seconds_of_its_date():
     days = time_system.tdb_seconds_past_j2000("2010-01-01T00:00:00") / 86400.0  # [day]
     assert orbit_design.geostationary_elements_deg("2010-01-01T00:00:00", 0.0)[2] == pytest.approx(
         (190.147 + 360.9856235 * days) % 360.0, abs=1e-9)
+
+
+@pytest.mark.requires_basilisk
+def test_the_earths_triaxiality_is_the_gravity_fields():
+    """GEO station keeping plans with the J22 and lambda22 of the GGM03S
+    file the run loads (they were 1.81554e-6 and -14.928 deg, with no
+    source recorded)."""
+    from Basilisk.simulation.gravityEffector import loadGravFromFileToList
+
+    from spacemissionstudio.engine import gravity_field, kernels
+    from spacemissionstudio.engine.geo_station_keeping import _J22, _LAMBDA_22
+
+    c_bar, s_bar, _, _ = loadGravFromFileToList(str(kernels.cached_path(gravity_field.FIELD_FILES["earth"])), 2)
+    scale = math.sqrt(2.0 * 5.0 / math.factorial(4))  # [-] full normalization of degree 2, order 2
+    c22, s22 = c_bar[2][2] * scale, s_bar[2][2] * scale  # [-] unnormalized
+    assert constants.EARTH_J22 == pytest.approx(math.hypot(c22, s22), rel=1e-12)
+    assert constants.EARTH_LAMBDA22_DEG == pytest.approx(math.degrees(0.5 * math.atan2(s22, c22)), abs=1e-10)
+    assert (_J22, _LAMBDA_22) == (constants.EARTH_J22, math.radians(constants.EARTH_LAMBDA22_DEG))

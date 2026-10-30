@@ -38,8 +38,9 @@ drift rate. If Earth's triaxiality (the J22 term) is accelerating it outward,
 the new drift sends it back across the box on a parabola that just reaches
 the far edge: drift speed ``2 sqrt(|lambda_ddot| * deadband)``. If that
 acceleration already points back inward, nothing is done unless it would
-carry the spacecraft more than a quarter box further out; then the burn
-only stops the drift. A
+carry the spacecraft more than a quarter box further out
+(``geo_station_keeping.drift_stop_fraction``); then the burn only stops the
+drift. A
 tangential delta-V changes the drift rate by ``-3 dv / a``, so the burn is
 ``dv = -a * d(lambda_dot) / 3``. After each burn, the day of samples restarts.
 
@@ -47,7 +48,8 @@ North-south. When the inclination passes ``inclination_max_deg``, the
 controller waits for the next node of the orbit on Earth's equator, the only
 place an out-of-plane burn changes inclination efficiently, and fires one
 burn centred on it, sized to bring the inclination down to a quarter of the
-limit. The thrust is held along Earth's pole axis (as with thrusters fixed on
+limit (``geo_station_keeping.inclination_reset_fraction``), over at most 60
+deg each side of the node (``max_half_arc_deg``). The thrust is held along Earth's pole axis (as with thrusters fixed on
 an Earth-pointing bus), so the symmetric burn turns the orbit's angular
 momentum straight toward the pole and leaves the node where it was. (Gating a
 burn on "near a node" alone does not work at these tiny inclinations: each
@@ -71,17 +73,21 @@ from Basilisk.simulation import extForceTorque
 from Basilisk.utilities import macros
 
 from .. import constants
+from ..config import registry
 from ..schema.scenario import GeoStationKeepingConfig
 from .orbit_maintenance import LogThinner
 from .propellant_bookkeeping import apply_propellant_burn
 
 _OMEGA_EARTH = constants.EARTH_ROTATION_RAD_S  # [rad/s] the one set's (7.2921159e-5 until 2026-10-30)
 _SIDEREAL_DAY_S = 2.0 * math.pi / _OMEGA_EARTH  # [s]
-_J22 = 1.81554e-6  # [-] Earth's sectoral (triaxiality) harmonic
-_LAMBDA_22 = math.radians(-14.928)  # [rad] longitude of the J22 bulge axis
-_MAX_HALF_ARC = math.radians(60.0)  # [rad] longest N-S burn arc per node; more needs more passes
-_INCLINATION_RESET_FRACTION = 0.25  # [-] N-S burns stop below this fraction of the limit
-_FIT_INTERVAL_S = 600.0  # [s] how often the east-west drift fit is redone
+_J22 = constants.EARTH_J22  # [-] Earth's sectoral (triaxiality) harmonic, from GGM03S
+_LAMBDA_22 = math.radians(constants.EARTH_LAMBDA22_DEG)  # [rad] longitude of the J22 bulge axis
+
+
+def rule(name: str, scenario=None):
+    """GEO station keeping's rule ``geo_station_keeping.<name>`` in effect
+    for ``scenario`` (``config.parameters``; ``docs/models/orbit-control.md``)."""
+    return registry.value(f"geo_station_keeping.{name}", scenario)
 
 
 def longitude_acceleration(longitude_rad: float, semi_major_axis_m: float, r_equator_m: float) -> float:
@@ -102,9 +108,15 @@ class GeoStationKeepingController(sysModel.SysModel):
     :func:`build_geo_station_keeping`."""
 
     def __init__(self, name: str, mu: float, r_equator_m: float, config: GeoStationKeepingConfig,
-                 dry_mass_kg: float, g0_mps2: float = constants.STANDARD_GRAVITY_M_S2):
+                 dry_mass_kg: float, g0_mps2: float = constants.STANDARD_GRAVITY_M_S2, scenario=None):
         super().__init__()
         self.ModelTag = name
+        # The planning rules (geo_station_keeping.*)
+        self.maxHalfArc = math.radians(rule("max_half_arc_deg", scenario))  # [rad] per node; more needs more passes
+        self.inclinationResetFraction = float(rule("inclination_reset_fraction", scenario))  # [-] of the limit
+        self.fitIntervalS = float(rule("fit_interval_s", scenario))  # [s] between east-west drift fits
+        self.driftStopFraction = float(rule("drift_stop_fraction", scenario))  # [-] of the deadband
+        self.nsCompletionFraction = float(rule("ns_completion_fraction", scenario))  # [-] of the needed dv
         self.scStateInMsg = messaging.SCStatesMsgReader()
         self.planetStateInMsg = messaging.SpicePlanetStateMsgReader()
         self.extForceEffector = None
@@ -183,7 +195,7 @@ class GeoStationKeepingController(sysModel.SysModel):
         outward = math.copysign(1.0, error)
         if accel * outward > 0.0:  # pushed further out: reverse onto a parabola spanning the box
             target_drift = -outward * 2.0 * math.sqrt(abs(accel) * self.deadband)  # [rad/s]
-        elif drift ** 2 / (2.0 * max(abs(accel), 1e-30)) > 0.25 * self.deadband:
+        elif drift ** 2 / (2.0 * max(abs(accel), 1e-30)) > self.driftStopFraction * self.deadband:
             target_drift = 0.0  # pulled back in, but not before overshooting further: stop the drift
         else:
             return 0.0  # the pull back inward turns it around soon enough
@@ -225,7 +237,7 @@ class GeoStationKeepingController(sysModel.SysModel):
         mass = (self.scObject.scMassOutMsg.read().massSC if self.scObject is not None
                 else self.dryMass + self.propellant)  # [kg]
         fit = None
-        if self._lastFit is None or t - self._lastFit[0] >= _FIT_INTERVAL_S:
+        if self._lastFit is None or t - self._lastFit[0] >= self.fitIntervalS:
             fit = self._drift_fit(t)
             self._lastFit = (t, fit) if fit is not None else None
         smoothed = (self._lastFit[1][0] + self._lastFit[1][1] * (t - self._lastFit[0])
@@ -240,7 +252,7 @@ class GeoStationKeepingController(sysModel.SysModel):
         if not self._nsActive and inclination > self.inclinationMax:
             self._nsActive = True
             self.nsManeuvers += 1
-        elif self._nsActive and inclination < _INCLINATION_RESET_FRACTION * self.inclinationMax:
+        elif self._nsActive and inclination < self.inclinationResetFraction * self.inclinationMax:
             self._nsActive = False
 
         ew_thrust = ns_thrust = 0.0  # [N]
@@ -287,10 +299,10 @@ class GeoStationKeepingController(sysModel.SysModel):
                 return np.zeros(3)
             node /= np.linalg.norm(node)
             node *= math.copysign(1.0, float(r_hat @ node))  # the nearer node
-            needed_dv = float(np.linalg.norm(v_n)) * (inclination - _INCLINATION_RESET_FRACTION
+            needed_dv = float(np.linalg.norm(v_n)) * (inclination - self.inclinationResetFraction
                                                       * self.inclinationMax)  # [m/s]
             mean_motion = math.sqrt(self.mu / np.linalg.norm(r_n) ** 3)  # [rad/s]
-            half_arc = min(0.5 * needed_dv * mass / self.thrustN * mean_motion, _MAX_HALF_ARC)  # [rad]
+            half_arc = min(0.5 * needed_dv * mass / self.thrustN * mean_motion, self.maxHalfArc)  # [rad]
             if float(r_hat @ node) < math.cos(half_arc):
                 return np.zeros(3)  # not at the node yet
             # Thrust along the pole, signed so r x F points against the
@@ -303,7 +315,7 @@ class GeoStationKeepingController(sysModel.SysModel):
             # Past the arc: a full burn ends the maneuver (short-period
             # wobble would otherwise trigger touch-ups at every node); one
             # cut short by starting mid-arc is finished at the next node.
-            if delivered_dv >= 0.9 * needed_dv:
+            if delivered_dv >= self.nsCompletionFraction * needed_dv:
                 self._nsActive = False
             self._nsBurn = None
             return np.zeros(3)
@@ -331,11 +343,12 @@ class GeoStationKeepingController(sysModel.SysModel):
 
 def build_geo_station_keeping(scSim, task_name: str, tag: str, sc_object, mu: float, r_equator_m: float,
                               dry_mass_kg: float, config: GeoStationKeepingConfig,
-                              planet_state_out_msg) -> GeoStationKeepingController:
+                              planet_state_out_msg, scenario=None) -> GeoStationKeepingController:
     """One spacecraft's controller, its own ``extForceTorque`` effector, and
     their wiring. The caller has already added ``config.propellant_kg`` to
     the hub mass."""
-    controller = GeoStationKeepingController(f"{tag}GeoStationKeeping", mu, r_equator_m, config, dry_mass_kg)
+    controller = GeoStationKeepingController(f"{tag}GeoStationKeeping", mu, r_equator_m, config, dry_mass_kg,
+                                             scenario=scenario)
     effector = extForceTorque.ExtForceTorque()
     effector.ModelTag = f"{tag}GeoStationKeepingThrust"
     sc_object.addDynamicEffector(effector)

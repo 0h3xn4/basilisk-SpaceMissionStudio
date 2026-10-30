@@ -146,30 +146,20 @@ from Basilisk.simulation import extForceTorque
 from Basilisk.utilities import macros, orbitalMotion
 
 from .. import constants
+from ..config import registry
 from ..schema.scenario import ConstantThrustConfig, PhasingKeepingConfig, StationKeepingConfig
 from .constellation import SeparationSchedule
 from .propellant_bookkeeping import apply_propellant_burn, total_delta_v_budget
 
 _LOGGER = logging.getLogger(__name__)
 
-# PhasingKeepingController's own divergence guard (see its UpdateState's
-# own comment): how many consecutive full correction cycles may fail to
-# reduce the tracking error before automatic corrections are suspended.
-# 2 (not 1): a single non-improving cycle alone is not yet a strong
-# signal of genuine non-convergence (could be ordinary smoothing-window
-# noise right at a cycle boundary); two in a row is.
-_MAX_NON_CONVERGENT_CYCLES = 2
 
-# Relative semi-major-axis mismatch [m] (follower minus chief, one-orbit
-# average) that PhasingKeepingController treats as a disturbance worth
-# trimming out on its own, independent of the phase error -- e.g. a reboost
-# that only one spacecraft made. Measured to ~0.1 m under real J2 (the
-# one-orbit boxcar of the osculating difference), so this is far above
-# measurement noise, yet a fraction of the ~5 km mismatch a lone reboost
-# causes. Smaller mismatches are left to the ordinary phase-error cycles.
-# (Burns hit their delta-V exactly -- partial-tick thrust, see UpdateState
-# -- so a trim cannot overshoot back out of this tolerance.)
-_RELATIVE_SMA_TRIM_TOLERANCE_M = 25.0
+def rule(name: str, scenario=None):
+    """The orbit controllers' rule ``orbit_control.<name>`` in effect for
+    ``scenario`` (``config.parameters``; ``docs/models/orbit-control.md``):
+    the firing gate, the minimum impulse bit, phasing's divergence guard
+    and its relative semi-major-axis trim."""
+    return registry.value(f"orbit_control.{name}", scenario)
 
 
 def _log_sunlit_transition(tag: str, t_s: float, illumination: float, in_sun: bool,
@@ -216,7 +206,7 @@ class ThrusterOnTimeModel:
       A firing, once started, runs for at least that long, even across
       several control ticks. A burn needing LESS than one minimum firing
       is rounded up to it if it needs at least half of one, and otherwise
-      skipped.
+      skipped (``orbit_control.min_impulse_skip_fraction``).
     * **Eccentricity-neutral burns** (``eccentricity_neutral``). Tangential
       thrust changes the eccentricity vector by ~(2 dv / v) (cos u, sin u)
       at argument of latitude u. A burn spread evenly over whole orbits
@@ -239,9 +229,11 @@ class ThrusterOnTimeModel:
     tick (same impulse as full thrust for part of the tick).
     """
 
-    def __init__(self, min_on_time_s: float = 0.0, eccentricity_neutral: bool = False):
+    def __init__(self, min_on_time_s: float = 0.0, eccentricity_neutral: bool = False, scenario=None):
         self.minOnTimeS = float(min_on_time_s)  # [s]
         self.eccentricityNeutral = bool(eccentricity_neutral)
+        self.gateFactor = float(rule("eccentricity_gate_factor", scenario))  # [-]
+        self.skipFraction = float(rule("min_impulse_skip_fraction", scenario))  # [-] of one minimum firing
         self.pulseLeftS = 0.0  # [s] committed on-time still to fire
         self.pulseOwner = None  # the controller whose command started the firing in progress
         self.eccVector = np.zeros(2)  # [-] eccentricity-vector change of the current maneuver (node frame)
@@ -277,7 +269,7 @@ class ThrusterOnTimeModel:
         # an uninterrupted burn is never held back; only the drift that
         # eclipse gating adds orbit after orbit is.
         tolerance = max(4.0 * accel / (v_mps * mean_motion),
-                        2.5 * 2.0 * accel * on_time_s / v_mps)
+                        self.gateFactor * 2.0 * accel * on_time_s / v_mps)
         after = self.eccVector + self._ecc_step(sign, accel * on_time_s, u_rad, v_mps)
         return float(np.linalg.norm(after)) <= max(float(np.linalg.norm(self.eccVector)), tolerance)
 
@@ -319,8 +311,8 @@ class ThrusterOnTimeModel:
                 if on_time <= 0.0:
                     return 0.0, 0.0, True
                 if self.minOnTimeS > 0.0 and on_time < self.minOnTimeS:
-                    if on_time < 0.5 * self.minOnTimeS:
-                        return 0.0, 0.0, True  # below half an impulse bit: not worth a firing
+                    if on_time < self.skipFraction * self.minOnTimeS:
+                        return 0.0, 0.0, True  # below orbit_control.min_impulse_skip_fraction of an impulse bit
                     extra_dv = (self.minOnTimeS - on_time) * thrust_n / mass_kg
                     on_time = self.minOnTimeS
                 if self.eccentricityNeutral and on_time >= chunk_s + self.minOnTimeS:
@@ -452,6 +444,7 @@ class StationKeepingController(sysModel.SysModel):
         g0_mps2: float = constants.STANDARD_GRAVITY_M_S2,
         min_on_time_s: float = 0.0,
         eccentricity_neutral: bool = False,
+        scenario=None,
     ):
         super().__init__()
         self.ModelTag = name
@@ -500,7 +493,7 @@ class StationKeepingController(sysModel.SysModel):
         # The physical thruster's firing model -- shared with a co-located
         # PhasingKeepingController (build_phasing_keeping), see
         # ThrusterOnTimeModel.
-        self.thruster = ThrusterOnTimeModel(min_on_time_s, eccentricity_neutral)
+        self.thruster = ThrusterOnTimeModel(min_on_time_s, eccentricity_neutral, scenario)
         self._burnWasOn = False
 
         self.burnOn = False
@@ -762,7 +755,7 @@ class StationKeepingController(sysModel.SysModel):
 
 def build_station_keeping(scSim, task_name: str, tag: str, sc_object, mu: float, r_planet_m: float,
                            dry_mass_kg: float, config: StationKeepingConfig,
-                           eclipse_out_msg=None) -> StationKeepingController:
+                           eclipse_out_msg=None, scenario=None) -> StationKeepingController:
     """Builds and wires one spacecraft's :class:`StationKeepingController`:
     a dedicated ``extForceTorque`` effector for the reboost force, the
     controller itself subscribed to the spacecraft's own state (and, if
@@ -790,6 +783,7 @@ def build_station_keeping(scSim, task_name: str, tag: str, sc_object, mu: float,
         eclipse_sunlit_threshold=config.eclipse_sunlit_threshold,
         min_on_time_s=config.min_on_time_s,
         eccentricity_neutral=config.eccentricity_neutral_burns,
+        scenario=scenario,
     )
 
     thruster = extForceTorque.ExtForceTorque()
@@ -959,9 +953,13 @@ class PhasingKeepingController(sysModel.SysModel):
         dv_budget_mps: float = 0.0,
         eclipse_sunlit_threshold: float = 0.99,
         g0_mps2: float = constants.STANDARD_GRAVITY_M_S2,
+        scenario=None,
     ):
         super().__init__()
         self.ModelTag = name
+        # The divergence guard (UpdateState) and the relative semi-major-axis trim: orbit_control.*
+        self.maxNonConvergentCycles = int(rule("phasing_non_convergent_cycles", scenario))  # [-]
+        self.relativeSmaTrimM = float(rule("relative_sma_trim_m", scenario))  # [m]
 
         self.scStateInMsgA = messaging.SCStatesMsgReader()  # chief
         self.scStateInMsgB = messaging.SCStatesMsgReader()  # follower (maneuvered)
@@ -1043,7 +1041,7 @@ class PhasingKeepingController(sysModel.SysModel):
         # Firing model of the shared physical thruster -- replaced by the
         # co-located StationKeepingController's own instance in
         # build_phasing_keeping (one thruster, one firing state).
-        self.thruster = ThrusterOnTimeModel()
+        self.thruster = ThrusterOnTimeModel(scenario=scenario)
         self.lastRelativeSmaM = 0.0  # [m] latest one-orbit-mean relative SMA (telemetry)
         self._lastInSun: bool | None = None  # for _log_sunlit_transition
         # Divergence guard -- see UpdateState's own comment at the
@@ -1123,7 +1121,7 @@ class PhasingKeepingController(sysModel.SysModel):
         bitA = self._impulse_bit_delta_a_m()  # [m]
         bitDv = bitA / self.aNom * vCirc / 2.0  # [m/s]
         roundingErrorA = min(abs(deltaA_needed_m), bitA - abs(deltaA_needed_m))  # [m] skip or one bit
-        if 0.0 < abs(dv) < bitDv * (1.0 - 1e-6) and roundingErrorA > _RELATIVE_SMA_TRIM_TOLERANCE_M:
+        if 0.0 < abs(dv) < bitDv * (1.0 - 1e-6) and roundingErrorA > self.relativeSmaTrimM:
             # Finer than one minimum firing, and neither skipping it nor
             # rounding it to one firing lands within tolerance: fly (one bit
             # + dv) then one bit back, which nets exactly dv. Rounding
@@ -1442,7 +1440,7 @@ class PhasingKeepingController(sysModel.SysModel):
                 self._start_burn(deltaA - (relA if relASettled else 0.0))
                 self._trimOnly = False
                 self.state = self.BURN_OUT
-            elif relASettled and abs(relA) > _RELATIVE_SMA_TRIM_TOLERANCE_M:
+            elif relASettled and abs(relA) > self.relativeSmaTrimM:
                 # Not a phasing correction: something else (e.g. a reboost
                 # only one spacecraft made) left the two orbits at different
                 # semi-major axes, which would otherwise drift the formation
@@ -1476,7 +1474,7 @@ class PhasingKeepingController(sysModel.SysModel):
                 self._trimOnly = False
                 self.state = self.BURN_RESTORE
             elif relASettled and abs(relA - self._plannedDeltaA) > max(
-                    _RELATIVE_SMA_TRIM_TOLERANCE_M, 0.5 * abs(self._plannedDeltaA)):
+                    self.relativeSmaTrimM, 0.5 * abs(self._plannedDeltaA)):
                 # Disturbed mid-drift (e.g. a station-keeping burn): steer back
                 # to the planned offset, keeping this cycle's target/clock.
                 self._start_burn(self._plannedDeltaA - relA)
@@ -1521,7 +1519,7 @@ class PhasingKeepingController(sysModel.SysModel):
                     self._consecutiveNonConvergentCycles += 1
                 else:
                     self._consecutiveNonConvergentCycles = 0
-                if (self._consecutiveNonConvergentCycles >= _MAX_NON_CONVERGENT_CYCLES
+                if (self._consecutiveNonConvergentCycles >= self.maxNonConvergentCycles
                         and not self.suspendedDueToNonConvergence):
                     self.suspendedDueToNonConvergence = True
                     _LOGGER.warning(
@@ -1618,7 +1616,7 @@ def build_phasing_keeping(scSim, task_name: str, tag: str, mu: float, chief_sc_o
                            follower_eclipse_out_msg, chief_semi_major_axis_km: float,
                            config: PhasingKeepingConfig,
                            chief_station_keeping_controller: StationKeepingController | None = None,
-                           ) -> PhasingKeepingController:
+                           scenario=None) -> PhasingKeepingController:
     """Builds and wires one follower spacecraft's :class:`PhasingKeepingController`.
 
     Also switches ``follower_station_keeping_controller`` into formation
@@ -1654,6 +1652,7 @@ def build_phasing_keeping(scSim, task_name: str, tag: str, mu: float, chief_sc_o
         dry_mass_kg=follower_station_keeping_controller.dryMass,
         dv_budget_mps=follower_station_keeping_controller.dvBudgetMps,
         eclipse_sunlit_threshold=follower_station_keeping_controller.sunlitThreshold,
+        scenario=scenario,
     )
 
     controller.scStateInMsgA.subscribeTo(chief_sc_object.scStateOutMsg)

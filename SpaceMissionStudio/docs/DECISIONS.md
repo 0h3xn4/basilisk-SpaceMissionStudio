@@ -5,6 +5,27 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The orbit controllers' rules, as parameters (2026-10-30)
+
+The transparency plan's Phase 3a, the first area the coverage check
+found missing.
+
+- **The controllers' internal rules are a project's, the targets already
+  were:** a scenario sets each controller's deadband, thrust and
+  propellant. Its decisions inside (when a firing may start, when a burn
+  is not worth firing, when phasing gives up, how far a GEO burn
+  reaches) are tuning a project may change for its own bus, so they are
+  parameters.
+- **Two values say "no derivation recorded":** the firing gate's 2.5 and
+  the GEO inclination target's quarter. Their parameters say so rather
+  than give a reason no one wrote down.
+- **J22 and lambda22 are constants, taken from the field:** they describe
+  the Earth. The run's gravity is GGM03S, so the controller plans with
+  GGM03S's own degree-2 order-2 term. The old values had no recorded
+  source and differ from the field's by 2.7e-5 and 0.0009 deg.
+- **The ROE guidance is its own area,** next: it has about 15 rules of
+  its own and its own model page to write.
+
 ## The rest of the one set of constants (2026-10-30)
 
 The first step of the transparency plan's Phase 4: the audit's Section 4

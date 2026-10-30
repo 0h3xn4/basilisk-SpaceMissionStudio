@@ -14514,6 +14514,27 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The orbit controllers' rules, as parameters (2026-10-30)
+
+The transparency plan, Phase 3a: the orbit controllers. Branch
+`controller-params`.
+
+- **9 parameters** (`config/parameters.py`):
+  - `orbit_control.*`: the eccentricity-neutral firing gate's factor, the
+    minimum-impulse skip fraction, phasing's non-convergent cycles and
+    relative semi-major-axis trim;
+  - `geo_station_keeping.*`: the north-south half arc, the inclination
+    reset fraction, the drift-fit interval, the drift-stop fraction, the
+    north-south completion fraction.
+- `orbit_maintenance.rule()` and `geo_station_keeping.rule()`. The
+  controllers and the thruster's firing model take `scenario` and read
+  their rules once, at construction. The run passes the scenario to each
+  builder.
+- **J22 and lambda22:** `constants.EARTH_J22` and `EARTH_LAMBDA22_DEG`,
+  from GGM03S's C22 and S22.
+- **Docs:** `docs/models/orbit-control.md`; the index's coverage list
+  now names only the ROE guidance among the controllers.
+
 ## The rest of the one set of constants (2026-10-30)
 
 The transparency plan, Phase 4's first step: the audit's Section 4 checked
