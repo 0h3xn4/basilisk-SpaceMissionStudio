@@ -17,6 +17,25 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-30: the orbit controllers' rules, as parameters (Phase 3a)
+
+**One number changes: GEO station keeping's J22 and lambda22.** The nine
+controller rules keep their values. The triaxiality GEO station keeping
+plans its east-west burns with had no recorded source. It now comes from
+the GGM03S field the run loads (`docs/models/constants.md`): J22
+1.81554e-6 → 1.8155875285019523e-6 (+2.6e-5), lambda22 -14.928 deg →
+-14.928879893153685 deg.
+
+| Output, template 03 (`geo-sat-1`, 45 days) | Before | Now |
+|---|---|---|
+| East-west delta-V | 0.313209954537848 m/s | 0.3132147112725057 m/s (+1.5e-5) |
+| Total delta-V | 4.4083291060238965 m/s | 4.40833386724845 m/s (+1.1e-6) |
+| Propellant remaining | 48.87732217238854 kg | 48.87732096106767 kg |
+| Final position | (-38105179.678, 18043508.381, 140246.380) m | (-38105177.890, 18043512.029, 140246.372) m (4.1 m) |
+
+The regression baseline of all 31 templates passes at its tolerance (1e-6
+of each quantity's scale), so it is not rewritten.
+
 ## 2026-10-30: the rest of the one set of constants (Phase 3c, completed)
 
 **Numbers change; one is a defect.** Phase 3c left copies behind; checking

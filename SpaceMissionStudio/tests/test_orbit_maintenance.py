@@ -806,11 +806,12 @@ def test_phasing_keeping_rtn_separation_is_unclamped_when_within_capacity():
 # simulation -- the full-sim confirmation lives in the scratch diagnostic
 # referenced above, not in this suite.
 
-def _build_non_convergent_phasing_controller():
+def _build_non_convergent_phasing_controller(scenario=None):
     """A controller whose chief/follower state never actually moves (a
     frozen mean-anomaly mismatch), with a target separation tiny enough
     that this fixed mismatch is always far outside tolerance -- a correction
     cycle against this state can never converge, by construction.
+    ``scenario`` carries a project configuration (tests/test_config.py).
     """
     from Basilisk.architecture import messaging
     from Basilisk.simulation import extForceTorque
@@ -826,6 +827,7 @@ def _build_non_convergent_phasing_controller():
                                                 semi_major_axis_m=nominal_a_m),
         tolerance_fraction=0.1, restore_tolerance_fraction=0.5, correction_window_days=1.0,
         max_drift_days=5.0, max_delta_a_m=1000.0, thrust_n=0.05, isp_s=1500.0, dry_mass_kg=400.0,
+        scenario=scenario,
     )
     controller.extForceEffectorB = extForceTorque.ExtForceTorque()
     state_a = messaging.SCStatesMsg()
@@ -847,15 +849,14 @@ def _build_non_convergent_phasing_controller():
 def test_phasing_keeping_divergence_guard_suspends_after_non_convergent_cycles():
     """Phasing keeping suspends itself after the set number of cycles that end
     outside tolerance, and not before."""
-    from spacemissionstudio.engine.orbit_maintenance import _MAX_NON_CONVERGENT_CYCLES
-
     controller = _build_non_convergent_phasing_controller()
+    cycles = controller.maxNonConvergentCycles  # orbit_control.phasing_non_convergent_cycles
 
     controller.UpdateState(0)  # IDLE -> BURN_OUT: the fixed ~30 deg error is far outside tolerance
     assert controller.state == controller.BURN_OUT
     assert controller.suspendedDueToNonConvergence is False
 
-    for cycle in range(_MAX_NON_CONVERGENT_CYCLES):
+    for cycle in range(cycles):
         # Fast-forward straight to the BURN_RESTORE -> IDLE decision point
         # -- this test is about the convergence bookkeeping made AT that
         # transition, not the burn-duration arithmetic that gets a real
@@ -868,7 +869,7 @@ def test_phasing_keeping_divergence_guard_suspends_after_non_convergent_cycles()
         controller.UpdateState(int((cycle + 1) * 1e9))
         assert controller.state == controller.IDLE
 
-        if cycle < _MAX_NON_CONVERGENT_CYCLES - 1:
+        if cycle < cycles - 1:
             assert controller.suspendedDueToNonConvergence is False
         else:
             assert controller.suspendedDueToNonConvergence is True
@@ -881,18 +882,17 @@ def test_phasing_keeping_suspends_further_burns_once_guard_trips():
     tolerance -- otherwise the guard would stop counting but not actually
     stop the propellant drain it exists to prevent.
     """
-    from spacemissionstudio.engine.orbit_maintenance import _MAX_NON_CONVERGENT_CYCLES
-
     controller = _build_non_convergent_phasing_controller()
+    cycles = controller.maxNonConvergentCycles  # orbit_control.phasing_non_convergent_cycles
     controller.UpdateState(0)
-    for cycle in range(_MAX_NON_CONVERGENT_CYCLES):
+    for cycle in range(cycles):
         controller.state = controller.BURN_RESTORE
         controller._accumDv = controller._targetDv
         controller.UpdateState(int((cycle + 1) * 1e9))
     assert controller.suspendedDueToNonConvergence is True
 
     dv_before = controller._cumulativeDv
-    controller.UpdateState(int((_MAX_NON_CONVERGENT_CYCLES + 1) * 1e9))
+    controller.UpdateState(int((cycles + 1) * 1e9))
 
     assert controller.state == controller.IDLE  # never re-triggered BURN_OUT
     assert controller._cumulativeDv == dv_before  # no further propellant spent
@@ -905,11 +905,10 @@ def test_phasing_keeping_new_schedule_target_clears_the_suspension():
     after a previous target was given up on -- see UpdateState's own
     comment at the divergence-guard check.
     """
-    from spacemissionstudio.engine.orbit_maintenance import _MAX_NON_CONVERGENT_CYCLES
-
     controller = _build_non_convergent_phasing_controller()
+    cycles = controller.maxNonConvergentCycles  # orbit_control.phasing_non_convergent_cycles
     controller.UpdateState(0)
-    for cycle in range(_MAX_NON_CONVERGENT_CYCLES):
+    for cycle in range(cycles):
         controller.state = controller.BURN_RESTORE
         controller._accumDv = controller._targetDv
         controller.UpdateState(int((cycle + 1) * 1e9))
@@ -918,7 +917,7 @@ def test_phasing_keeping_new_schedule_target_clears_the_suspension():
     # Simulate the schedule ticking over to a new target.
     controller.separationSchedule.targetsRad[0] = controller.separationSchedule.targetsRad[0] * 2.0
 
-    controller.UpdateState(int((_MAX_NON_CONVERGENT_CYCLES + 1) * 1e9))
+    controller.UpdateState(int((cycles + 1) * 1e9))
 
     assert controller.suspendedDueToNonConvergence is False
     assert controller._consecutiveNonConvergentCycles == 0
@@ -939,16 +938,15 @@ def test_phasing_keeping_schedule_tick_mid_maneuver_does_not_reset_the_guard():
     IDLE), and asserts the accumulated non-convergence count survives
     intact and the guard still trips exactly on schedule.
     """
-    from spacemissionstudio.engine.orbit_maintenance import _MAX_NON_CONVERGENT_CYCLES
-
     controller = _build_non_convergent_phasing_controller()
+    cycles = controller.maxNonConvergentCycles  # orbit_control.phasing_non_convergent_cycles
     controller.UpdateState(0)
-    for cycle in range(_MAX_NON_CONVERGENT_CYCLES - 1):
+    for cycle in range(cycles - 1):
         controller.state = controller.BURN_RESTORE
         controller._accumDv = controller._targetDv
         controller.UpdateState(int((cycle + 1) * 1e9))
     assert controller.suspendedDueToNonConvergence is False
-    assert controller._consecutiveNonConvergentCycles == _MAX_NON_CONVERGENT_CYCLES - 1
+    assert controller._consecutiveNonConvergentCycles == cycles - 1
 
     # Force a mid-maneuver state (not IDLE) and tick the schedule over --
     # this must NOT clear the accumulated non-convergence count.
@@ -960,10 +958,10 @@ def test_phasing_keeping_schedule_tick_mid_maneuver_does_not_reset_the_guard():
     controller.state = controller.BURN_OUT
     controller._accumDv = 0.0
     controller.separationSchedule.targetsRad[0] = controller.separationSchedule.targetsRad[0] * 2.0
-    controller.UpdateState(int(_MAX_NON_CONVERGENT_CYCLES * 1e9))
+    controller.UpdateState(int(cycles * 1e9))
 
     assert controller.state == controller.BURN_OUT  # still mid-maneuver, as forced
-    assert controller._consecutiveNonConvergentCycles == _MAX_NON_CONVERGENT_CYCLES - 1
+    assert controller._consecutiveNonConvergentCycles == cycles - 1
     assert controller.suspendedDueToNonConvergence is False
 
     # Finish this cycle out (still against the old-vs-new target mismatch
@@ -971,10 +969,10 @@ def test_phasing_keeping_schedule_tick_mid_maneuver_does_not_reset_the_guard():
     # on schedule, not have been given a free extra cycle.
     controller.state = controller.BURN_RESTORE
     controller._accumDv = controller._targetDv
-    controller.UpdateState(int((_MAX_NON_CONVERGENT_CYCLES + 1) * 1e9))
+    controller.UpdateState(int((cycles + 1) * 1e9))
 
     assert controller.state == controller.IDLE
-    assert controller._consecutiveNonConvergentCycles == _MAX_NON_CONVERGENT_CYCLES
+    assert controller._consecutiveNonConvergentCycles == cycles
     assert controller.suspendedDueToNonConvergence is True
 
 

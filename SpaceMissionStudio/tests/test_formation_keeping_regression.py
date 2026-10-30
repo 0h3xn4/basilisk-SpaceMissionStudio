@@ -340,12 +340,14 @@ def test_a_trim_finer_than_one_impulse_bit_is_flown_as_an_exact_pair(delta_a_m):
     ~17 km/day, so a coarse thruster ran a full correction every day. A
     trim finer than one bit is flown as (one bit + dv), then one bit back.
     """
+    from spacemissionstudio.config import registry
     from spacemissionstudio.engine.orbit_maintenance import PhasingKeepingController, ThrusterOnTimeModel
 
     controller = PhasingKeepingController.__new__(PhasingKeepingController)
     controller.mu, controller.aNom = 3.986004418e14, _SMA_M  # [m^3/s^2], [m]
     controller.thrustN, controller.dryMass, controller.propellant = 0.05, 100.0, 5.0  # [N], [kg], [kg]
     controller.altitudeControllerB = None
+    controller.relativeSmaTrimM = registry.default("orbit_control.relative_sma_trim_m")  # [m] 25, as __init__ sets it
     controller.thruster = ThrusterOnTimeModel(min_on_time_s=300.0)  # [s]
     v_circ = np.sqrt(controller.mu / _SMA_M)  # [m/s]
     wanted_dv = delta_a_m / _SMA_M * v_circ / 2.0  # [m/s]
@@ -368,12 +370,14 @@ def test_a_trim_within_tolerance_of_whole_firings_is_not_split(delta_a_m):
     """A restore that needs just under one firing is flown as ONE firing
     (and a tiny one is skipped): a pair would cost three firings' worth
     of delta-V for an error already within the 25 m tolerance."""
+    from spacemissionstudio.config import registry
     from spacemissionstudio.engine.orbit_maintenance import PhasingKeepingController, ThrusterOnTimeModel
 
     controller = PhasingKeepingController.__new__(PhasingKeepingController)
     controller.mu, controller.aNom = 3.986004418e14, _SMA_M  # [m^3/s^2], [m]
     controller.thrustN, controller.dryMass, controller.propellant = 0.05, 100.0, 5.0  # [N], [kg], [kg]
     controller.altitudeControllerB = None
+    controller.relativeSmaTrimM = registry.default("orbit_control.relative_sma_trim_m")  # [m] 25, as __init__ sets it
     controller.thruster = ThrusterOnTimeModel(min_on_time_s=300.0)  # [s]
     controller._start_burn(delta_a_m)
     assert controller._pendingLegDv == 0.0

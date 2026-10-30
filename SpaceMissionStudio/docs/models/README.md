@@ -15,6 +15,7 @@ configuration file changes them without editing code
 | A run's figures, events, critical marks and dashboard badges | [Reading a run's results](reading-results.md) | `results.*` |
 | The integrator's tolerances, the re-entry checks, the conservation check | [Dynamics: integration and run control](dynamics-run-control.md) | `dynamics.*` |
 | Space weather past the prediction, Earth orientation, TLEs, mean elements | [Environment data](environment-and-data.md) | `space_weather.*`, `tle.*` |
+| Altitude station keeping, the thruster's firing model, phasing keeping, GEO station keeping | [Orbit control](orbit-control.md) | `orbit_control.*`, `geo_station_keeping.*` |
 
 Every calculation uses one set of physical constants, Basilisk's:
 [Physical constants](constants.md). The values each model uses that are
@@ -32,7 +33,7 @@ Sections 1h and 1i.
 
 | Models | Rules still in the code (examples) | To be done |
 |---|---|---|
-| Orbit controllers: station keeping, phasing, GEO station keeping, formation, ROE guidance | the firing gate's factor 2.5; 2 non-improving cycles before phasing stops; GEO's triaxiality J22 and lambda22, its burn arcs and targets; about 15 ROE guidance thresholds | Phase 3a, controllers |
+| ROE formation guidance | about 15 thresholds: the holding check, glide orbits, the direct-correction factor, the drag estimate's minimum span, hold and trigger fractions, eclipse retries | Phase 3a, ROE guidance |
 | Flight software and navigation | thruster firing (Schmitt trigger 0.75/0.25, 2 ms); the momentum-dump mapping threshold; the landmark camera's 25 mm focal length; the UKF's alpha, beta, kappa | Phase 3a, flight software |
 | Pre-run checks, Explain and the mission sequence | pass-prediction sampling (30 s, 7 days); the coarse-recording, late-pass and CSS-facing rules; Explain's SSO, drag and camera tolerances; Lambert's 1 m/s convergence | Phase 3a, checks (with Phase 5a's structured warnings) |
 | Monte Carlo statistics | the 1-sigma spread uses the population standard deviation | Phase 6b (a choice of statistic) |

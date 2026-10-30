@@ -19,7 +19,8 @@
 Phase 3a). The areas move in one at a time, each proven by the
 regression baseline to change no number: the propellant budget, the
 orbital lifetime, the RF link and data handling, how a run's results are
-read, the dynamics' run control, then the environment's data rules.
+read, the dynamics' run control, the environment's data rules, then the
+orbit controllers.
 
 "AD10" is ESA's "Guidelines for the computation of the Delta-V and
 Propellant Mass budgets", EOP-FM/2024-07-177, issue 3.0.
@@ -242,4 +243,60 @@ register(
               "The scenario checks warn when a TLE's epoch is further than this from the scenario epoch: SGP4's "
               "accuracy drops with the span it propagates over.", "SpaceMissionStudio's own choice",
               minimum=0.0, maximum=3650.0),
+)
+
+# -- orbit controllers (engine.orbit_maintenance, engine.geo_station_keeping) -----------------
+
+register(
+    Parameter("orbit_control.eccentricity_gate_factor", 2.5, "[-]",
+              "With eccentricity-neutral burns, a new firing may start only while the burn's accumulated "
+              "eccentricity change stays within the larger of one orbit's excursion under continuous thrust and "
+              "this many times twice the change one firing makes.", "SpaceMissionStudio's own choice",
+              "Ported with the controller; the code records no derivation for 2.5. Smaller holds back more "
+              "firings and keeps the eccentricity closer to its start; larger fires more often.",
+              minimum=0.5, maximum=20.0),
+    Parameter("orbit_control.min_impulse_skip_fraction", 0.5, "[-]",
+              "A burn needing less than one minimum firing (thrust x minimum on-time) is rounded up to one if it "
+              "needs at least this fraction of it, and skipped otherwise.", "SpaceMissionStudio's own choice",
+              "Half: the burn is rounded to the nearer of no firing and one firing.",
+              minimum=0.0, maximum=1.0),
+    Parameter("orbit_control.phasing_non_convergent_cycles", 2, "[-]",
+              "Phasing keeping suspends its corrections after this many full correction cycles in a row that "
+              "end outside the tolerance, rather than burn propellant into a correction that does not converge.",
+              "SpaceMissionStudio's own choice",
+              "Two, not one: a single cycle can end outside the tolerance from the smoothing window's noise at a "
+              "cycle boundary; two in a row cannot.", kind="integer", minimum=1, maximum=50),
+    Parameter("orbit_control.relative_sma_trim_m", 25.0, "[m]",
+              "Phasing keeping trims a difference of the follower's and chief's one-orbit-mean semi-major axes "
+              "larger than this on its own (a reboost only one of them made), whatever the phase error.",
+              "SpaceMissionStudio's own choice",
+              "Far above the 0.1 m the one-orbit mean measures under J2, and a small part of the 5 km a lone "
+              "reboost leaves.", minimum=0.1, maximum=10000.0),
+    Parameter("geo_station_keeping.max_half_arc_deg", 60.0, "[deg]",
+              "A north-south burn is centred on a node and spans at most this much of the orbit on each side; "
+              "a correction needing more is finished at later nodes.", "SpaceMissionStudio's own choice",
+              "Thrust off the node changes the inclination by the cosine of the angle from it: at 60 deg, "
+              "half as much.", minimum=1.0, maximum=90.0),
+    Parameter("geo_station_keeping.inclination_reset_fraction", 0.25, "[-]",
+              "A north-south maneuver, started when the inclination passes its limit, brings it down to this "
+              "fraction of the limit.", "SpaceMissionStudio's own choice",
+              "The code records no derivation for a quarter. A smaller fraction makes each maneuver larger and "
+              "the next one later.", minimum=0.0, maximum=0.95),
+    Parameter("geo_station_keeping.fit_interval_s", 600.0, "[s]",
+              "How often the east-west control fits its last sidereal day of longitude samples (a line plus the "
+              "daily libration) for the longitude and drift rate.", "SpaceMissionStudio's own choice",
+              "Ten minutes: the drift changes over days, and the fit costs a least-squares solve.",
+              minimum=1.0, maximum=86400.0),
+    Parameter("geo_station_keeping.drift_stop_fraction", 0.25, "[-]",
+              "When the Earth's triaxiality is already pulling the satellite back into its box, a burn stops "
+              "its drift only if it would otherwise travel more than this fraction of the deadband further "
+              "out first.", "SpaceMissionStudio's own choice",
+              "A quarter of the box: smaller overshoots are left to the triaxiality to turn around.",
+              minimum=0.0, maximum=10.0),
+    Parameter("geo_station_keeping.ns_completion_fraction", 0.9, "[-]",
+              "A north-south burn that delivered at least this fraction of the delta-V it needed ends the "
+              "maneuver; one cut shorter (started mid-arc) is finished at the next node.",
+              "SpaceMissionStudio's own choice",
+              "Nine tenths: otherwise the inclination's short-period wobble would ask for a touch-up at every "
+              "node.", minimum=0.1, maximum=1.0),
 )

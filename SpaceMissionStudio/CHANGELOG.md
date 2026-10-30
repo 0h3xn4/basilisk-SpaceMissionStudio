@@ -440,6 +440,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   lifetime changes by 2e-8 of itself at most; `docs/changes.md` has the
   digits. `docs/models/README.md` now lists the models whose rules are not
   yet parameters.
+- **The orbit controllers' rules are parameters:** 9 of them, for the
+  thruster's firing gate and minimum impulse bit, phasing keeping's
+  divergence guard and trim, and GEO station keeping's burn arc,
+  inclination target, drift fit, drift stop and maneuver end. A project
+  configuration file changes them. GEO station keeping's J22 and lambda22
+  now come from the GGM03S field the run loads (they had no recorded
+  source). See `docs/models/orbit-control.md`.
 
 ## 1.3.1 (2026-10-27)
 

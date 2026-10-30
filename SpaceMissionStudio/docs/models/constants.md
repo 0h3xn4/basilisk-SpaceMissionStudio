@@ -31,6 +31,7 @@ about.
 | Equatorial radii of the Sun, Mercury, Venus, the Moon, Mars, Jupiter | 695 000; 2439.7; 6051.8; 1737.4; 3396.19; 71 492 | [km] | `REQ_*` |
 | Mars's J2 | 1960.45e-6 | [-] | `J2_MARS` |
 | Standard gravity g0 | 9.80665 | [m/s^2] | `EARTH_GRAV` (CGPM 1901): turns a specific impulse in seconds into an exhaust speed |
+| Earth's triaxiality J22, and the longitude of its axis lambda22 | 1.8155875e-6; -14.92888 | [-]; [deg] | none: from GGM03S's C22 and S22, the field the run loads (J22 = sqrt(C22^2 + S22^2), lambda22 = atan2(S22, C22) / 2, unnormalized). GEO station keeping plans its east-west burns with them |
 | Speed of light | 299 792 458 | [m/s] | SI definition |
 
 **The Earth's rotation is SPICE's, not the header's `OMEGA_EARTH`.**
@@ -63,6 +64,7 @@ before and after values.
 | The lifetime's co-rotating atmosphere; GEO station keeping | 2 pi / 23.9345 h; 7.2921159e-5 rad/s | pck00010's rate (completed later the same day) |
 | Pass predictions and GEO elements: the Earth's angle | a fixed 69.184 s from UTC to TT (37 leap seconds; wrong before 2017) | TDB with the leap seconds of the date |
 | g0, the speed of light, the ODM writer's GM, Explain's body radii | copies | the one set (same values) |
+| GEO station keeping's J22 and lambda22 | 1.81554e-6 and -14.928 deg, source not recorded | GGM03S's (later the same day) |
 
 ## Not in the set, and why
 

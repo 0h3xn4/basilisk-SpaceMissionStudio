@@ -43,6 +43,10 @@ EARTH_J2 = 1082.616e-6  # [-] J2_EARTH
 IAU_EARTH_PRIME_MERIDIAN_DEG = 190.147  # [deg] W0
 IAU_EARTH_PRIME_MERIDIAN_RATE_DEG_DAY = 360.9856235  # [deg/day] W'
 EARTH_ROTATION_RAD_S = math.radians(IAU_EARTH_PRIME_MERIDIAN_RATE_DEG_DAY) / 86400.0  # [rad/s]
+# The Earth's triaxiality, from GGM03S's degree-2 order-2 coefficients (the field the run loads):
+# J22 = sqrt(C22^2 + S22^2), lambda22 = atan2(S22, C22) / 2, unnormalized. GEO station keeping plans with them.
+EARTH_J22 = 1.8155875285019523e-06  # [-]
+EARTH_LAMBDA22_DEG = -14.928879893153685  # [deg] longitude of the bulge's axis
 
 # -- Sun ---------------------------------------------------------------------------------------
 ASTRONOMICAL_UNIT_M = 149597870693.0  # [m] AU2M

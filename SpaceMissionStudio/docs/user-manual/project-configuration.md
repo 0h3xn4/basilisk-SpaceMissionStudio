@@ -8,8 +8,10 @@ records what was changed.
 
 The rules of the propellant budget, the orbital lifetime, the RF link
 and data handling, how a run's results are read, the dynamics'
-integration and run control, and the environment's data rules are
-parameters. The other areas follow ([Models](../models/README.md)).
+integration and run control, the environment's data rules, and the orbit
+controllers (station keeping, phasing, GEO station keeping) are
+parameters. The other areas follow ([Models](../models/README.md), "Not
+yet covered").
 
 ## See the parameters
 

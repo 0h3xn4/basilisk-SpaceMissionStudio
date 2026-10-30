@@ -1302,6 +1302,7 @@ class SimulationService:
                 handle.station_keeping_controller = orbit_maintenance.build_station_keeping(
                     self.scSim, dyn_task_name, sc_config.name, sc_object, mu, central_body.radEquator,
                     sc_config.dry_mass_kg, sc_config.station_keeping, eclipse_out_msg=sc_eclipse_out_msg,
+                    scenario=scenario,
                 )
 
             # GEO east-west/north-south station-keeping
@@ -1313,6 +1314,7 @@ class SimulationService:
                 handle.geo_station_keeping_controller = build_geo_station_keeping(
                     self.scSim, dyn_task_name, sc_config.name, sc_object, mu, central_body.radEquator,
                     sc_config.dry_mass_kg, sc_config.geo_station_keeping, central_body_state_out_msg,
+                    scenario=scenario,
                 )
 
             # -- Phase 5: continuous constant-frame thrust
@@ -1747,6 +1749,7 @@ class SimulationService:
                     chief_semi_major_axis_km=chief_config.orbit.semi_major_axis_km,
                     config=sc_config.phasing_keeping,
                     chief_station_keeping_controller=chief_handle.station_keeping_controller,
+                    scenario=scenario,
                 )
             else:
                 # Basilisk's own formationFlying laws (engine.formation_control);

@@ -59,7 +59,8 @@ def test_the_shipped_defaults_file_is_the_registry():
 _MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifetime.md",
                 "link": "link-data-and-power.md", "data_handling": "link-data-and-power.md",
                 "results": "reading-results.md", "dynamics": "dynamics-run-control.md",
-                "space_weather": "environment-and-data.md", "tle": "environment-and-data.md"}
+                "space_weather": "environment-and-data.md", "tle": "environment-and-data.md",
+                "orbit_control": "orbit-control.md", "geo_station_keeping": "orbit-control.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -390,7 +391,7 @@ def test_every_parameter_has_a_case_that_sets_it():
 
     declared = {p.name for p in registry.parameters()}
     cases = (set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_RESULTS_CASES) | set(_DYNAMICS_CASES)
-             | set(_ENVIRONMENT_CASES) | set(_GUI_CASES))
+             | set(_ENVIRONMENT_CASES) | set(_CONTROL_CASES) | set(_GUI_CASES))
     assert declared == cases, f"no case for {sorted(declared - cases)}"
     for where in _GUI_CASES.values():
         file, name = where.split("::")
@@ -734,3 +735,218 @@ def test_a_value_refused_leaves_the_file_as_it_was(tmp_path):
         files.set_value(broken, "lifetime.zero_debris_years", 6)
     assert broken.read_text(encoding="utf-8") == before
     assert path.read_text(encoding="utf-8") == text
+
+
+
+# -- the orbit controllers (engine.orbit_maintenance, engine.geo_station_keeping) ---------------------
+# Each measure drives the controller's own decision directly, with hand-made states, as
+# tests/test_orbit_maintenance.py and tests/test_geo_station_keeping.py do.
+
+def _gate_allows_a_firing(configuration):
+    """An eccentricity-neutral firing of 1000 s at 0.01 m/s^2, its maneuver
+    already at e = 3e-3: whether the gate lets it start (the firing's own
+    allowance is 6.6e-3 at the default 2.5, one orbit's 4.8e-3 below it)."""
+    import numpy as np
+
+    from spacemissionstudio.engine.orbit_maintenance import ThrusterOnTimeModel
+
+    thruster = ThrusterOnTimeModel(eccentricity_neutral=True, scenario=SimpleNamespace(configuration=configuration))
+    thruster.eccVector = np.array([3e-3, 0.0])  # [-]
+    return thruster._start_allowed(1.0, 1000.0, 1.0, 100.0, 0.0, 7600.0, 1.1e-3)  # [s], [N], [kg], [rad], ...
+
+
+def _small_burn_command(configuration):
+    """A burn needing 4 s of a thruster whose minimum on-time is 10 s:
+    skipped below half an impulse bit, rounded up to one above."""
+    from spacemissionstudio.engine.orbit_maintenance import ThrusterOnTimeModel
+
+    thruster = ThrusterOnTimeModel(min_on_time_s=10.0, scenario=SimpleNamespace(configuration=configuration))
+    return thruster.command(owner=object(), want_firing=True, remaining_dv=0.04, sign=1.0, thrust_n=1.0,
+                            mass_kg=100.0, dt_s=30.0, in_sun=True, u_rad=0.0, v_mps=7600.0, mean_motion=1.1e-3)
+
+
+def _phasing_controller(configuration, **overrides):
+    from spacemissionstudio.engine.orbit_maintenance import PhasingKeepingController, SeparationSchedule
+
+    nominal_a_m = 6928e3  # [m]
+    settings = dict(name="pk", mu=3.986004418e14, nominal_a_m=nominal_a_m,
+                    separation_schedule=SeparationSchedule(distances_km=[5.0], interval_days=0.0,
+                                                           semi_major_axis_m=nominal_a_m),
+                    tolerance_fraction=0.1, restore_tolerance_fraction=0.5, correction_window_days=1.0,
+                    max_drift_days=5.0, max_delta_a_m=1000.0, thrust_n=0.05, isp_s=1500.0, dry_mass_kg=400.0,
+                    scenario=SimpleNamespace(configuration=configuration))
+    settings.update(overrides)
+    return PhasingKeepingController(**settings)
+
+
+def _cycles_before_phasing_stops(configuration):
+    """Correction cycles that end outside the tolerance (a frozen 30 deg
+    phase error) before phasing keeping suspends itself."""
+    from test_orbit_maintenance import _build_non_convergent_phasing_controller
+
+    controller = _build_non_convergent_phasing_controller(scenario=SimpleNamespace(configuration=configuration))
+    controller.UpdateState(0)
+    for cycle in range(1, 20):
+        controller.state = controller.BURN_RESTORE
+        controller._accumDv = controller._targetDv
+        controller.UpdateState(int(cycle * 1e9))
+        if controller.suspendedDueToNonConvergence:
+            return cycle
+    return None
+
+
+def _split_trim(configuration):
+    """A 60 m semi-major-axis correction with a 228 m minimum impulse bit:
+    flown as one bit out and one back (the second leg's delta-V) when
+    neither skipping nor one bit lands within the trim tolerance."""
+    from spacemissionstudio.engine.orbit_maintenance import ThrusterOnTimeModel
+
+    controller = _phasing_controller(configuration)
+    controller.thruster = ThrusterOnTimeModel(min_on_time_s=1000.0)  # [s]
+    controller._start_burn(60.0)  # [m]
+    return controller._pendingLegDv
+
+
+def _geo_controller(configuration, **config):
+    from spacemissionstudio.engine.geo_station_keeping import GeoStationKeepingController
+    from spacemissionstudio.schema.scenario import GeoStationKeepingConfig
+
+    settings = dict(target_longitude_deg=10.0, thrust_n=0.01, isp_s=220.0, propellant_kg=50.0)  # [deg], [N], [s], [kg]
+    settings.update(config)
+    return GeoStationKeepingController("geo", 3.986004418e14, 6378136.6, GeoStationKeepingConfig(**settings), 500.0,
+                                       scenario=SimpleNamespace(configuration=configuration))
+
+
+def _geo_north_south_burn(configuration):
+    """A north-south burn planned at the node of a 0.1 deg orbit (limit
+    0.05 deg): its half arc and the delta-V it needs."""
+    import math
+
+    import numpy as np
+
+    controller = _geo_controller(configuration, inclination_max_deg=0.05)
+    controller._nsActive = True
+    inclination = math.radians(0.1)  # [rad]
+    r_n = np.array([42164e3, 0.0, 0.0])  # [m] at the ascending node
+    v_n = np.array([0.0, 3074.7 * math.cos(inclination), 3074.7 * math.sin(inclination)])  # [m/s]
+    h_hat = np.cross(r_n, v_n) / np.linalg.norm(np.cross(r_n, v_n))
+    controller._north_south_force(r_n, v_n, h_hat, np.array([0.0, 0.0, 1.0]), inclination, 550.0)  # [kg]
+    return round(controller._nsBurn[1], 12), round(controller._nsBurn[3], 12)
+
+
+def _geo_maneuver_ends(configuration):
+    """A north-south burn past its arc having delivered 85 % of its
+    delta-V: whether the maneuver ends there."""
+    import numpy as np
+
+    controller = _geo_controller(configuration)
+    controller._nsActive = True
+    controller._nsBurn = [np.array([1.0, 0.0, 0.0]), 0.1, np.array([0.0, 0.0, 1.0]), 1.0, 0.85]
+    r_n = np.array([0.0, 42164e3, 0.0])  # [m] 90 deg past the node
+    controller._north_south_force(r_n, np.array([-3074.7, 0.0, 0.0]), np.array([0.0, 0.0, 1.0]),
+                                  np.array([0.0, 0.0, 1.0]), 0.0, 550.0)
+    return controller._nsActive
+
+
+def _geo_east_west_plan(configuration):
+    """At 80 deg E, east of the 75 deg E stable point (pulled back west), an
+    eastward error of 0.06 deg and an eastward drift that would carry it
+    0.3 x the 0.05 deg box further: whether a burn stops the drift (its
+    delta-V)."""
+    import math
+
+    from spacemissionstudio.engine.geo_station_keeping import longitude_acceleration
+
+    controller = _geo_controller(configuration, target_longitude_deg=80.0, longitude_deadband_deg=0.05)
+    lon, a_m = math.radians(80.06), 42166.2e3  # [rad], [m]
+    accel = abs(longitude_acceleration(lon, a_m, controller.rEquator))  # [rad/s^2] toward 75 E: inward
+    drift = math.sqrt(2.0 * accel * 0.3 * controller.deadband)  # [rad/s]
+    return controller._plan_east_west(math.radians(0.06), drift, a_m, lon)
+
+
+def _geo_fits_in_half_an_hour(configuration):
+    """East-west drift fits over 30 minutes of 60 s steps, with a day of
+    samples already held."""
+    import math
+
+    import numpy as np
+    from Basilisk.architecture import messaging
+
+    from spacemissionstudio.engine.geo_station_keeping import _SIDEREAL_DAY_S
+
+    controller = _geo_controller(configuration)
+    state, planet = messaging.SCStatesMsg(), messaging.SpicePlanetStateMsg()
+    payload = messaging.SpicePlanetStateMsgPayload()
+    payload.J20002Pfix = np.eye(3).tolist()
+    planet.write(payload)
+    controller.scStateInMsg.subscribeTo(state)
+    controller.planetStateInMsg.subscribeTo(planet)
+    controller.Reset(0)
+    start = _SIDEREAL_DAY_S + 60.0  # [s]
+    controller._historyStartT = 0.0
+    controller._history.extend((t, 0.0) for t in np.arange(60.0, start, 60.0))
+    fits, fit = [], controller._drift_fit
+    controller._drift_fit = lambda t: fits.append(t) or fit(t)
+    lon = math.radians(10.0)  # [rad]
+    for step in range(30):
+        sc = messaging.SCStatesMsgPayload()
+        sc.r_BN_N = [42164e3 * math.cos(lon), 42164e3 * math.sin(lon), 0.0]  # [m]
+        sc.v_BN_N = [-3074.7 * math.sin(lon), 3074.7 * math.cos(lon), 0.0]  # [m/s]
+        t = start + 60.0 * step  # [s]
+        state.write(sc, int(t * 1e9))
+        controller.UpdateState(int(t * 1e9))
+    return len(fits)
+
+
+_CONTROL_CASES = {
+    "orbit_control.eccentricity_gate_factor": (0.5, _gate_allows_a_firing),
+    "orbit_control.min_impulse_skip_fraction": (0.3, _small_burn_command),
+    "orbit_control.phasing_non_convergent_cycles": (4, _cycles_before_phasing_stops),
+    "orbit_control.relative_sma_trim_m": (100.0, _split_trim),
+    "geo_station_keeping.max_half_arc_deg": (5.0, _geo_north_south_burn),
+    "geo_station_keeping.inclination_reset_fraction": (0.5, _geo_north_south_burn),
+    "geo_station_keeping.fit_interval_s": (300.0, _geo_fits_in_half_an_hour),
+    "geo_station_keeping.drift_stop_fraction": (0.5, _geo_east_west_plan),
+    "geo_station_keeping.ns_completion_fraction": (0.8, _geo_maneuver_ends),
+}
+
+
+@pytest.mark.requires_basilisk
+@pytest.mark.parametrize("name", sorted(_CONTROL_CASES))
+def test_setting_a_controller_parameter_changes_what_it_controls(name):
+    """Each orbit controller parameter set in a project configuration
+    changes the decision it controls -- the firing gate, a small burn's
+    rounding, phasing's divergence guard and trim, GEO station keeping's
+    burn arc, target, fit cadence, drift stop and maneuver end -- and set
+    to its default, leaves it as it was."""
+    value, measure = _CONTROL_CASES[name]
+    before = measure(None)
+    assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
+    assert measure(Configuration({name: registry.default(name)})) == before, name
+
+
+@pytest.mark.requires_basilisk
+def test_the_controllers_read_the_scenarios_configuration():
+    """The run builds each controller with its scenario, so a project's
+    values reach the simulated station keeping, phasing and GEO control."""
+    from pathlib import Path
+
+    from spacemissionstudio.engine.service import SimulationService
+
+    templates = Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates"
+    scenario = load_scenario(next(templates.glob("03_*.json")))
+    scenario.configuration = Configuration({"geo_station_keeping.fit_interval_s": 1200.0,
+                                            "orbit_control.min_impulse_skip_fraction": 0.2})
+    service = SimulationService(scenario)
+    service.build(initialize=False)
+    controller = next(h.geo_station_keeping_controller for h in service._handles.values()
+                      if h.geo_station_keeping_controller is not None)
+    assert controller.fitIntervalS == 1200.0
+    scenario = load_scenario(next(templates.glob("05_*.json")))
+    scenario.configuration = Configuration({"orbit_control.phasing_non_convergent_cycles": 5,
+                                            "orbit_control.min_impulse_skip_fraction": 0.2})
+    service = SimulationService(scenario)
+    service.build(initialize=False)
+    phasing = [h.phasing_keeping_controller for h in service._handles.values()
+               if getattr(h, "phasing_keeping_controller", None) is not None]
+    assert phasing and all(c.maxNonConvergentCycles == 5 and c.thruster.skipFraction == 0.2 for c in phasing)

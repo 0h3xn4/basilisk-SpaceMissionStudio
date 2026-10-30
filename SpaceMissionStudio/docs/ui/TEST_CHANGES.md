@@ -1049,3 +1049,19 @@ never named "_TabBar".
 |---|---|---|---|
 | `test_constants.py::test_the_constants_are_basilisks` | The Earth's rotation within 2e-6 of `orbitalMotion.OMEGA_EARTH` | Within 1e-7 | The rate is now pck00010's, 5e-8 from the binding's (the header's was 1.2e-6 from it) |
 | `test_constants.py::test_the_c_header_defines_what_the_python_binding_rounds` | Checked the header's `OMEGA_EARTH` and that the set's rate equalled it | Checks the header's `EARTH_GRAV` (g0) instead; the solar flux as before | The set's rate is no longer the header's (decision in `docs/DECISIONS.md`); `test_the_earth_turns_as_spice_turns_it` checks the rate |
+
+## The orbit controllers' rules, as parameters (2026-10-30)
+
+- Added:
+  - in `test_config.py`, a case for each of the 9 parameters (each drives the controller's own decision with a
+    hand-made state, set and at its default), and `test_the_controllers_read_the_scenarios_configuration`;
+  - in `test_constants.py`, `test_the_earths_triaxiality_is_the_gravity_fields`.
+
+  Each fails on the code before (checked).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_orbit_maintenance.py`: the four divergence-guard tests | Imported `_MAX_NON_CONVERGENT_CYCLES` | Read `controller.maxNonConvergentCycles` | The module constant is the parameter `orbit_control.phasing_non_convergent_cycles` now; the value and every assertion are the same |
+| `test_orbit_maintenance.py::_build_non_convergent_phasing_controller` (helper) | No arguments | Takes an optional `scenario`, passed to the controller | The parameter's case in `test_config.py` builds the same controller with a configuration; the four tests call it as before |
+| `test_constants.py::test_no_module_keeps_a_copy_of_a_constant` | Nine values | Also J22's and lambda22's old literals | They are constants now |
+| `test_formation_keeping_regression.py`: the two sub-bit trim tests (5 cases) | Built the controller with `__new__` and set the attributes `_start_burn` read | Also set `relativeSmaTrimM` to the registry's default (25 m) | `_start_burn` reads the trim tolerance from the controller now, which `__init__` sets from `orbit_control.relative_sma_trim_m`; the value and every assertion are the same |
