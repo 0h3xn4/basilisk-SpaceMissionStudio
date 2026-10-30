@@ -47,8 +47,10 @@ from collections.abc import Sequence
 
 import numpy as np
 
+from .. import constants
+
 VERSION = "3.0"
-EARTH_GM_KM3_S2 = 398600.436  # [km^3/s^2] the GM the propagation uses: Basilisk 2.12 Earth, BODY399_GM of
+EARTH_GM_KM3_S2 = constants.EARTH_GM_M3_S2 / 1e9  # [km^3/s^2] the GM the propagation uses: Basilisk 2.12 Earth, BODY399_GM of
 # de-403-masses.tpc (not GGM03S's 398600.4415; deviation D-07; tests/test_ccsds_odm.py checks it)
 MAX_LINE_LENGTH = 254  # [-] characters, 7.3.2
 _TIME = re.compile(r"^\d{4}-(\d{2}-\d{2}|\d{3})T\d{2}:\d{2}:\d{2}(\.\d+)?Z?$")

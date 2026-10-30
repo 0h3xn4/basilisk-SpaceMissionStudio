@@ -25,11 +25,23 @@ about.
 | Earth's GM | 398 600.436e9 | [m^3/s^2] | `MU_EARTH` |
 | Earth's equatorial radius | 6 378 136.6 | [m] | `REQ_EARTH` (from SPICE) |
 | Earth's J2 | 1082.616e-6 | [-] | `J2_EARTH` |
-| Earth's rotation rate | 2 pi / 23.9345 h | [rad/s] | `OMEGA_EARTH` |
+| Earth's rotation rate | 360.9856235 deg/day (7.292115373e-5 rad/s), the prime meridian of pck00010 (IAU 2009): W = 190.147 + 360.9856235 d deg, d in TDB days from J2000 | [rad/s] | not `OMEGA_EARTH` (below) |
 | Astronomical unit | 149 597 870 693 | [m] | `AU2M` |
 | Solar flux at 1 AU | 1361 | [W/m^2] | `SOLAR_FLUX_EARTH` (ECSS-E-ST-10-04C Table 6-2 gives the same) |
 | Equatorial radii of the Sun, Mercury, Venus, the Moon, Mars, Jupiter | 695 000; 2439.7; 6051.8; 1737.4; 3396.19; 71 492 | [km] | `REQ_*` |
 | Mars's J2 | 1960.45e-6 | [-] | `J2_MARS` |
+| Standard gravity g0 | 9.80665 | [m/s^2] | `EARTH_GRAV` (CGPM 1901): turns a specific impulse in seconds into an exhaust speed |
+| Speed of light | 299 792 458 | [m/s] | SI definition |
+
+**The Earth's rotation is SPICE's, not the header's `OMEGA_EARTH`.**
+The simulation turns the Earth with SPICE, and the pass predictions and
+GEO elements use pck00010's IAU_EARTH model. `OMEGA_EARTH` (2 pi /
+23.9345 h) rounds the sidereal day and is 1.2e-6 slow. That is 4.3e-4 deg
+a day, which a GEO station keeper fitting its drift over a day would see.
+
+**Time:** an angle of the Earth at a UTC epoch takes TDB from
+`engine.time_system`, with the leap seconds of that date. It used a
+fixed 37 until 2026-10-30.
 
 They are constants, not parameters: a project does not change the
 Earth. A study with another set changes them in this one file, and the
@@ -37,7 +49,8 @@ test then shows where it departs from the simulation's.
 
 ## What was unified (2026-10-30)
 
-Before Phase 3c the code held five sets. `docs/changes.md` gives the
+Before Phase 3c the code held five sets, and copies the first pass
+missed. `docs/changes.md` gives the
 before and after values.
 
 | Where | Before | Now |
@@ -47,6 +60,9 @@ before and after values.
 | Scenario checks: "re-enters within about an orbit" | 120 km of their own | `lifetime.reentry_altitude_km` |
 | Gravity-truncation estimate (Explain's gravity fidelity) | GGM03S's GM, radius 6 378 136.3 m and J2 1.08263e-3 | The one set |
 | Sensor solar flux and its distance scaling | IAU 2012's AU, 149 597 870 700 m | Basilisk's, 149 597 870 693 m |
+| The lifetime's co-rotating atmosphere; GEO station keeping | 2 pi / 23.9345 h; 7.2921159e-5 rad/s | pck00010's rate (completed later the same day) |
+| Pass predictions and GEO elements: the Earth's angle | a fixed 69.184 s from UTC to TT (37 leap seconds; wrong before 2017) | TDB with the leap seconds of the date |
+| g0, the speed of light, the ODM writer's GM, Explain's body radii | copies | the one set (same values) |
 
 ## Not in the set, and why
 

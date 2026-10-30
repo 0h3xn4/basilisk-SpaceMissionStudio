@@ -41,6 +41,7 @@ from datetime import datetime, UTC
 
 from .. import constants
 from ..schema.epochs import parse_epoch_utc
+from . import time_system
 
 # J2/Req/mu below are Basilisk's own real Earth constants, confirmed
 # directly against a real build (not guessed):
@@ -127,7 +128,6 @@ def raan_for_ltan_deg(epoch_utc: str, ltan_hour: float = DEFAULT_LTAN_HOUR) -> f
     return round(raan, 2)
 
 
-_TT_MINUS_UTC_S = 69.184  # [s] 32.184 s + 37 leap seconds (constant since 2017)
 
 
 def geostationary_elements_deg(epoch_utc: str, east_longitude_deg: float):
@@ -144,9 +144,10 @@ def geostationary_elements_deg(epoch_utc: str, east_longitude_deg: float):
     epoch = parse_epoch_utc(epoch_utc)
     if epoch.tzinfo is not None:
         epoch = epoch.astimezone(UTC).replace(tzinfo=None)
-    days = ((epoch - datetime(2000, 1, 1, 12)).total_seconds() + _TT_MINUS_UTC_S) / 86400.0  # [day] TDB
+    days = time_system.tdb_seconds_past_j2000(epoch) / 86400.0  # [day] TDB from J2000, leap seconds of the date
     centuries = days / 36525.0
     alpha0 = -0.641 * centuries  # [deg]
     delta0 = 90.0 - 0.557 * centuries  # [deg]
-    prime_meridian = 190.147 + 360.9856235 * days  # [deg]
+    prime_meridian = (constants.IAU_EARTH_PRIME_MERIDIAN_DEG
+                      + constants.IAU_EARTH_PRIME_MERIDIAN_RATE_DEG_DAY * days)  # [deg]
     return 90.0 - delta0, (alpha0 + 90.0) % 360.0, (prime_meridian + east_longitude_deg) % 360.0

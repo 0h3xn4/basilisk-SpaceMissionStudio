@@ -39,27 +39,40 @@ def test_the_constants_are_basilisks():
     assert constants.EARTH_EQUATORIAL_RADIUS_M == earth.radEquator == om.REQ_EARTH * 1e3
     assert constants.EARTH_J2 == om.J2_EARTH
     assert constants.ASTRONOMICAL_UNIT_M == om.AU * 1e3
-    # The C header's 2 pi / 23.9345 h rounds the sidereal day, 1.1e-6 below the binding's 7.292115e-05;
-    # the header's is the one kept (the lifetime's atmosphere rotation, unchanged).
-    assert constants.EARTH_ROTATION_RAD_S == pytest.approx(om.OMEGA_EARTH, rel=2e-6)
+    # The Earth's rotation is SPICE's pck00010 rate, 5e-8 from the binding's rounded 7.292115e-05 (the
+    # C header's 2 pi / 23.9345 h is 1.2e-6 slow: test_the_earth_turns_as_spice_turns_it).
+    assert constants.EARTH_ROTATION_RAD_S == pytest.approx(om.OMEGA_EARTH, rel=1e-7)
     for body, radius_km in constants.CENTRAL_BODY_EQUATORIAL_RADIUS_KM.items():
         name = {"mars barycenter": "MARS", "jupiter barycenter": "JUPITER"}.get(body, body.upper())
         assert radius_km == getattr(om, f"REQ_{name}"), body
     for body, j2 in constants.CENTRAL_BODY_J2.items():
         name = {"mars barycenter": "MARS"}.get(body, body.upper())
         assert j2 == getattr(om, f"J2_{name}"), body
+    from spacemissionstudio.engine.geo_station_keeping import _OMEGA_EARTH  # needs Basilisk
+
+    assert _OMEGA_EARTH == constants.EARTH_ROTATION_RAD_S
 
 
 def test_the_c_header_defines_what_the_python_binding_rounds():
-    """The Earth's rotation and the solar flux, as astroConstants.h
-    defines them (the binding rounds the first and lacks the second)."""
+    """The solar flux and standard gravity, as astroConstants.h defines
+    them (the binding lacks them)."""
     header = (Path(__file__).resolve().parents[2] / "src" / "architecture" / "utilities" / "astroConstants.h")
     if not header.exists():
         pytest.skip("Basilisk's sources are not next to SpaceMissionStudio")
     text = header.read_text(encoding="utf-8")
-    assert "#define OMEGA_EARTH       (2*MPI/23.9345/3600.)" in text
-    assert constants.EARTH_ROTATION_RAD_S == 2.0 * math.pi / 23.9345 / 3600.0
     assert "#define SOLAR_FLUX_EARTH    1361.0" in text and constants.SOLAR_FLUX_1AU_W_M2 == 1361.0
+    assert "#define EARTH_GRAV 9.80665" in text and constants.STANDARD_GRAVITY_M_S2 == 9.80665
+
+
+def test_the_earth_turns_as_spice_turns_it():
+    """The Earth's rotation rate is the prime meridian's rate of pck00010,
+    the IAU_EARTH model the pass predictions and the GEO elements use and
+    the kernel the simulation loads; astroConstants.h's 2 pi / 23.9345 h
+    rounds the sidereal day and is 1.2e-6 slow."""
+    assert (constants.IAU_EARTH_PRIME_MERIDIAN_DEG, constants.IAU_EARTH_PRIME_MERIDIAN_RATE_DEG_DAY) == (190.147,
+                                                                                                    360.9856235)
+    assert constants.EARTH_ROTATION_RAD_S == math.radians(360.9856235) / 86400.0
+    assert (2.0 * math.pi / 23.9345 / 3600.0) / constants.EARTH_ROTATION_RAD_S - 1.0 == pytest.approx(-1.2e-6, abs=1e-7)
 
 
 def test_every_analysis_takes_the_one_set():
@@ -84,6 +97,33 @@ def test_every_analysis_takes_the_one_set():
     assert environment_models.ASTRONOMICAL_UNIT_M == constants.ASTRONOMICAL_UNIT_M
     assert environment_models.TOTAL_SOLAR_IRRADIANCE_W_M2 == constants.SOLAR_FLUX_1AU_W_M2
     assert opnav.BODY_RADIUS_M["earth"] == radius
+    from spacemissionstudio.engine import ccsds_odm, link_budget, propellant_bookkeeping, scenario_explainer
+
+    assert ccsds_odm.EARTH_GM_KM3_S2 * 1e9 == gm
+    assert scenario_explainer._BODY_RADIUS_KM is constants.CENTRAL_BODY_EQUATORIAL_RADIUS_KM
+    assert propellant_budget.G0_M_S2 == constants.STANDARD_GRAVITY_M_S2
+    assert link_budget._C_LIGHT_M_S == environment_models.SPEED_OF_LIGHT_M_S == constants.SPEED_OF_LIGHT_M_S
+    assert propellant_bookkeeping.total_delta_v_budget.__defaults__[-1] == constants.STANDARD_GRAVITY_M_S2
+
+
+def test_no_module_keeps_a_copy_of_a_constant():
+    """No analysis writes one of the set's values as a literal of its own
+    (Phase 3c missed g0 in six controllers, GEO station keeping's Earth
+    rotation, the ODM's GM, Explain's body radii and the speed of light)."""
+    import tokenize
+
+    package = Path(__file__).resolve().parents[1] / "spacemissionstudio"
+    copies = ("9.80665", "299792458", "398600.436", "7.2921159", "6378.1366", "6378136.6", "1082.616",
+              "360.9856235", "69.184")
+    found = []
+    for path in sorted(package.rglob("*.py")):
+        if path.name == "constants.py":
+            continue
+        with path.open("rb") as stream:  # number literals only: a docstring may cite a value
+            found += [f"{path.relative_to(package)}:{token.start[0]}: {token.string}"
+                      for token in tokenize.tokenize(stream.readline)
+                      if token.type == tokenize.NUMBER and any(token.string.startswith(c) for c in copies)]
+    assert found == []
 
 
 def test_the_checks_judge_re_entry_by_the_lifetimes_parameter():
@@ -105,3 +145,22 @@ def test_the_checks_judge_re_entry_by_the_lifetimes_parameter():
     assert warnings(None) == []  # a 150 km perigee is above the default 120 km
     assert warnings(Configuration({"lifetime.reentry_altitude_km": 200.0})) == [
         "s: perigee at 150 km -- it re-enters within about an orbit"]
+
+
+def test_the_earth_rotation_angle_counts_the_leap_seconds_of_its_date():
+    """The pass predictions and the GEO elements turn the Earth by TDB
+    days from J2000 with the leap seconds of the scenario's date. They added
+    a fixed 69.184 s (37 leap seconds), 3 s short for a 2010 epoch: the Earth
+    turned 0.0125 deg too far, a quarter of a 0.05 deg GEO box. Across the
+    leap second of 2016-12-31, a UTC day is 86 401 s of TDB."""
+    from spacemissionstudio.engine import orbit_design, scenario_checks, time_system
+
+    before, after = "2016-12-31T12:00:00", "2017-01-01T12:00:00"
+    turned = math.degrees(scenario_checks._earth_rotation_angle(after, 0.0)
+                          - scenario_checks._earth_rotation_angle(before, 0.0))  # [deg]
+    assert turned == pytest.approx(360.9856235 * 86401.0 / 86400.0, abs=1e-6)
+    geo = orbit_design.geostationary_elements_deg(after, 0.0)[2] - orbit_design.geostationary_elements_deg(before, 0.0)[2]
+    assert geo % 360.0 == pytest.approx((360.9856235 * 86401.0 / 86400.0) % 360.0, abs=1e-6)
+    days = time_system.tdb_seconds_past_j2000("2010-01-01T00:00:00") / 86400.0  # [day]
+    assert orbit_design.geostationary_elements_deg("2010-01-01T00:00:00", 0.0)[2] == pytest.approx(
+        (190.147 + 360.9856235 * days) % 360.0, abs=1e-9)

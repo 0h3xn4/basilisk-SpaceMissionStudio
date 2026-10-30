@@ -37,11 +37,20 @@ import math
 EARTH_GM_M3_S2 = 398600.436e9  # [m^3/s^2] MU_EARTH
 EARTH_EQUATORIAL_RADIUS_M = 6378136.6  # [m] REQ_EARTH, from SPICE
 EARTH_J2 = 1082.616e-6  # [-] J2_EARTH
-EARTH_ROTATION_RAD_S = 2.0 * math.pi / 23.9345 / 3600.0  # [rad/s] OMEGA_EARTH: one sidereal day of 23.9345 h
+# The Earth turns as SPICE's pck00010 turns it (IAU 2009, IAU_EARTH): the prime meridian is W0 + W' d
+# past the equator's node, d in TDB days from J2000. Not astroConstants.h's OMEGA_EARTH, whose
+# 23.9345 h day is rounded and 1.2e-6 slow (docs/models/constants.md).
+IAU_EARTH_PRIME_MERIDIAN_DEG = 190.147  # [deg] W0
+IAU_EARTH_PRIME_MERIDIAN_RATE_DEG_DAY = 360.9856235  # [deg/day] W'
+EARTH_ROTATION_RAD_S = math.radians(IAU_EARTH_PRIME_MERIDIAN_RATE_DEG_DAY) / 86400.0  # [rad/s]
 
 # -- Sun ---------------------------------------------------------------------------------------
 ASTRONOMICAL_UNIT_M = 149597870693.0  # [m] AU2M
 SOLAR_FLUX_1AU_W_M2 = 1361.0  # [W/m^2] SOLAR_FLUX_EARTH (ECSS-E-ST-10-04C Table 6-2 gives the same)
+
+# -- defined values ----------------------------------------------------------------------------
+STANDARD_GRAVITY_M_S2 = 9.80665  # [m/s^2] g0, CGPM 1901 (Basilisk's EARTH_GRAV): Isp in seconds to exhaust speed
+SPEED_OF_LIGHT_M_S = 299792458.0  # [m/s] SI definition
 
 # -- the central bodies a run can use (schema.scenario.SUPPORTED_CENTRAL_BODIES) ---------------
 CENTRAL_BODY_EQUATORIAL_RADIUS_KM = {  # [km] REQ_*

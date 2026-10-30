@@ -92,6 +92,7 @@ from Basilisk.fswAlgorithms import hillFrameRelativeControl, meanOEFeedback
 from Basilisk.simulation import simpleNav
 from Basilisk.utilities import macros, orbitalMotion
 
+from .. import constants
 from ..schema.scenario import PhasingKeepingConfig
 from .constellation import SeparationSchedule
 from .orbit_maintenance import (
@@ -125,7 +126,7 @@ class FormationControlBridge(sysModel.SysModel):
     def __init__(self, name: str, control_law: str, mu: float, nominal_a_m: float,
                  separation_schedule: SeparationSchedule, thrust_n: float, isp_s: float,
                  dry_mass_kg: float, dv_budget_mps: float, eclipse_sunlit_threshold: float,
-                 g0_mps2: float = 9.80665):
+                 g0_mps2: float = constants.STANDARD_GRAVITY_M_S2):
         super().__init__()
         self.ModelTag = name
         self.controlLaw = control_law

@@ -118,6 +118,7 @@ from Basilisk.fswAlgorithms import meanOEFeedback
 from Basilisk.simulation import simpleNav
 from Basilisk.utilities import macros, orbitalMotion
 
+from .. import constants
 from ..schema.scenario import OrbitIC, RoeFormationConfig, RoeTargetConfig, ScenarioValidationError, SpacecraftConfig
 from . import roe
 from .orbit_maintenance import (
@@ -308,7 +309,7 @@ class RoeFormationController(sysModel.SysModel):
 
     def __init__(self, name: str, config: RoeFormationConfig, mu: float, req: float, j2: float,
                  thrust_n: float, isp_s: float, dry_mass_kg: float, eclipse_sunlit_threshold: float,
-                 g0_mps2: float = 9.80665):
+                 g0_mps2: float = constants.STANDARD_GRAVITY_M_S2):
         super().__init__()
         self.ModelTag = name
         self.config = config

@@ -49,9 +49,11 @@ from __future__ import annotations
 
 import math
 
+from .. import constants
+
 
 def total_delta_v_budget(dry_mass_kg: float, propellant_kg: float, isp_s: float,
-                          g0_mps2: float = 9.80665) -> float:
+                          g0_mps2: float = constants.STANDARD_GRAVITY_M_S2) -> float:
     """Theoretical total delta-V [m/s] a full ``propellant_kg`` tank could
     ever deliver, via the closed-form Tsiolkovsky rocket equation
     (``isp * g0 * ln((dry + propellant) / dry)``) -- NOT the same
@@ -68,7 +70,7 @@ def total_delta_v_budget(dry_mass_kg: float, propellant_kg: float, isp_s: float,
 
 
 def apply_propellant_burn(current_total_mass_kg: float, propellant_kg: float, thrust_n: float,
-                           isp_s: float, dt_s: float, g0_mps2: float = 9.80665) -> tuple[float, float, float, float]:
+                           isp_s: float, dt_s: float, g0_mps2: float = constants.STANDARD_GRAVITY_M_S2) -> tuple[float, float, float, float]:
     """One tick's propellant burn via the explicit-Euler rocket equation,
     applied as a DELTA to ``current_total_mass_kg`` -- see this module's
     docstring for why that (rather than recomputing an absolute mass) is

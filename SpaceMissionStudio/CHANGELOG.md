@@ -431,6 +431,15 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   its unit and source; the project configuration file the scenario names,
   chosen or created there; and a value set there, checked and written into
   the file on its own line, so the file's comments stay.
+- **Fixed: the pass predictions and GEO elements for an epoch before
+  2017** turned the Earth by a fixed 37 leap seconds, too far by 0.0042
+  deg per leap second missing (0.0125 deg for 2010). They now count the
+  leap seconds of the date. The Earth's rotation rate everywhere is
+  SPICE's (pck00010), and the last copies of the constants (g0 in seven
+  modules, the speed of light, the ODM writer's GM) take the one set. A
+  lifetime changes by 2e-8 of itself at most; `docs/changes.md` has the
+  digits. `docs/models/README.md` now lists the models whose rules are not
+  yet parameters.
 
 ## 1.3.1 (2026-10-27)
 

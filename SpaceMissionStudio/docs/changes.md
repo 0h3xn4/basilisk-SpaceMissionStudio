@@ -17,6 +17,48 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-30: the rest of the one set of constants (Phase 3c, completed)
+
+**Numbers change; one is a defect.** Phase 3c left copies behind; checking
+the audit's Section 4 against the registry found them. They now take
+`spacemissionstudio.constants`:
+
+- **The Earth's rotation angle in the pass predictions and the GEO
+  elements counted a fixed 37 leap seconds** (`_TT_MINUS_UTC_S = 69.184`
+  in `orbit_design` and `scenario_checks`). That is right only from 2017:
+  for an earlier epoch the Earth was turned too far, by 0.0042 deg per
+  missing leap second. For a 2010 epoch, 3 s short, the error is
+  0.0125 deg, a quarter of a 0.05 deg GEO box. Both now take TDB from
+  `time_system`, with the leap seconds of the date (ERFA's table), as
+  the simulation does.
+- **The Earth's rotation rate is SPICE's.** It is now the rate of
+  pck00010's prime meridian (IAU 2009, 360.9856235 deg/day, the IAU_EARTH
+  model the pass predictions and GEO elements already used). It replaces
+  two values:
+  - astroConstants.h's 2 pi / 23.9345 h, a rounded sidereal day 1.2e-6
+    slow (the lifetime's co-rotating atmosphere);
+  - GEO station keeping's own 7.2921159e-5 rad/s.
+- **No number changes:** g0 (9.80665 m/s^2, in seven modules), the speed
+  of light, the ODM writer's GM and Explain's body radii were copies of
+  the same values.
+
+| Output | Before | Now |
+|---|---|---|
+| GEO elements at 10 deg E (`orbit_design.geostationary_elements_deg`), true anomaly, epoch 2010-01-01T00:00:00 | 20.425889645703137 deg | 20.413355029420927 deg (-0.0125 deg: 3 leap seconds) |
+| The same, epoch 2016-06-30T12:00:00 | 18.817643395159394 deg | 18.81346571771428 deg (-0.0042 deg: 1 leap second) |
+| The same, epoch 2026-11-01T00:00:00 | 320.03916764538735 deg | 320.03916150983423 deg (-6.1e-6 deg: TDB - TT, 1.5 ms) |
+| Earth rotation angle of the pass predictions, epoch 2010-01-01, t = 1 h | 23017.323058780818 rad | 23017.322840010493 rad (-2.2e-4 rad) |
+| Lifetime, template 18 (`leo-sat-1`), 30-year look-ahead | 28131146.015538994 s | 28131145.524166778 s (-0.49 s of 326 days, -1.7e-8) |
+| Lifetime, template 22 (`my-sat`) | 448726522.39818966 s | 448726512.5553172 s (-9.8 s of 14.2 years, -2.2e-8) |
+| GEO station keeping's Earth rotation rate | 7.2921159e-5 rad/s | 7.292115373194001e-5 rad/s (-7.2e-8) |
+
+Pass predictions, at their 30 s sampling, are unchanged for template 26
+and for a copy of it moved to 2010. Every template's epoch is in 2030, so
+the leap-second defect touched none of them. The regression baseline of
+all 31 templates passes at its tolerance (0 of 31 differ), so it is not
+rewritten. `tests/test_constants.py` now also fails if any module writes
+one of the set's values as a number of its own.
+
 ## 2026-10-30: the Assumptions page (Phase 3d)
 
 **No number changes.** A page of the scenario editor that shows the

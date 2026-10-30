@@ -366,7 +366,7 @@ def deorbit_burn(orbit: MeanOrbit, target_perigee_km: float, mass_kg: float, isp
     v_old = math.sqrt(MU_EARTH_M3_S2 * (2.0 / r_apo - 1.0 / orbit.semi_major_axis_m))  # [m/s]
     v_new = math.sqrt(MU_EARTH_M3_S2 * (2.0 / r_apo - 1.0 / a_new))  # [m/s]
     delta_v = v_old - v_new  # [m/s]
-    propellant = mass_kg * (1.0 - math.exp(-delta_v / (isp_s * 9.80665)))  # [kg]
+    propellant = mass_kg * (1.0 - math.exp(-delta_v / (isp_s * constants.STANDARD_GRAVITY_M_S2)))  # [kg]
     lowered = _orbit_after_retro_burn(orbit, delta_v)
     return delta_v, propellant, lowered
 
@@ -641,7 +641,7 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
                                 "for a deorbit burn")
         delta_v, needed_kg, lowered = deorbit_burn(orbit, deorbit_perigee_km, mass_kg, isp_s)
         if needed_kg > propellant_kg:  # burn what there is: lower the perigee as far as it goes
-            delta_v = isp_s * 9.80665 * math.log(mass_kg / (mass_kg - propellant_kg))  # [m/s]
+            delta_v = isp_s * constants.STANDARD_GRAVITY_M_S2 * math.log(mass_kg / (mass_kg - propellant_kg))  # [m/s]
             lowered = _orbit_after_retro_burn(orbit, delta_v)
             needed_kg = propellant_kg
         plan = DeorbitPlan(deorbit_perigee_km, lowered.perigee_altitude_km, delta_v, needed_kg, propellant_kg)

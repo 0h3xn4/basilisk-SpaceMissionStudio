@@ -5,6 +5,27 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The rest of the one set of constants (2026-10-30)
+
+The first step of the transparency plan's Phase 4: the audit's Section 4
+checked against the registry before the traces are built on it.
+
+- **The Earth's rotation is SPICE's, not astroConstants.h's:** the
+  decision was Basilisk's constants because the simulation uses them. For
+  the Earth's rotation the simulation uses SPICE (pck00010, or ITRF93
+  where installed), and the header's `OMEGA_EARTH` is a rounded sidereal
+  day, 1.2e-6 slow. That is 4.3e-4 deg a day, which GEO station keeping
+  (which already had a better value) would fit as drift. The rule behind
+  the decision, agreeing with the simulation, picks pck00010's rate.
+- **Time from `time_system`, not a constant:** TT - UTC is not a constant
+  (it was 37 leap seconds only since 2017), and the module that converts
+  the scenario's epoch for the run already has ERFA's table.
+- **The registry's gaps are listed, not filled in this step:** orbit
+  controllers, flight software and navigation, the pre-run checks and the
+  mission sequence. Each is an area of its own, a pull request each with
+  its model page (`docs/models/README.md`, "Not yet covered"); the checks
+  go with Phase 5a's structured warnings, which need their limits named.
+
 ## The Assumptions page (2026-10-30)
 
 The transparency plan's Phase 3d.

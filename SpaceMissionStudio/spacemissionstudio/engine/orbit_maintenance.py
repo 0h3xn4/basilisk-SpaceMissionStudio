@@ -145,6 +145,7 @@ from Basilisk.architecture import messaging, sysModel
 from Basilisk.simulation import extForceTorque
 from Basilisk.utilities import macros, orbitalMotion
 
+from .. import constants
 from ..schema.scenario import ConstantThrustConfig, PhasingKeepingConfig, StationKeepingConfig
 from .constellation import SeparationSchedule
 from .propellant_bookkeeping import apply_propellant_burn, total_delta_v_budget
@@ -448,7 +449,7 @@ class StationKeepingController(sysModel.SysModel):
         dry_mass_kg: float,
         propellant_kg: float,
         eclipse_sunlit_threshold: float = 0.99,
-        g0_mps2: float = 9.80665,
+        g0_mps2: float = constants.STANDARD_GRAVITY_M_S2,
         min_on_time_s: float = 0.0,
         eccentricity_neutral: bool = False,
     ):
@@ -957,7 +958,7 @@ class PhasingKeepingController(sysModel.SysModel):
         dry_mass_kg: float,
         dv_budget_mps: float = 0.0,
         eclipse_sunlit_threshold: float = 0.99,
-        g0_mps2: float = 9.80665,
+        g0_mps2: float = constants.STANDARD_GRAVITY_M_S2,
     ):
         super().__init__()
         self.ModelTag = name
@@ -1726,7 +1727,7 @@ class ConstantFrameThrustController(sysModel.SysModel):
     """
 
     def __init__(self, name: str, frame: str, direction, thrust_n: float, isp_s: float,
-                 dry_mass_kg: float, propellant_kg: float, g0_mps2: float = 9.80665):
+                 dry_mass_kg: float, propellant_kg: float, g0_mps2: float = constants.STANDARD_GRAVITY_M_S2):
         super().__init__()
         self.ModelTag = name
 
