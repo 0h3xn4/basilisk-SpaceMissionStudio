@@ -14514,6 +14514,27 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The dynamics' integration and run control, as parameters (2026-10-30)
+
+The transparency plan, Phase 3a, fifth area. Branch `dynamics-run-params`.
+
+- **6 `dynamics.*` parameters** (`config/parameters.py`):
+  - the integrators' relative and absolute tolerances;
+  - the re-entry checks: interval, the perigee below which they come
+    often, and their interval then;
+  - the two-body conservation tolerance.
+- `service.rule(name, scenario)` replaces five module constants;
+  `integrator_tolerances(integrator, scenario)` gives the run's own, and
+  the provenance records them. `results.conservation_drift_warnings`
+  takes the tolerance from the run, its default from the registry.
+- **Measured:** the chunks a half-day drag run executes in follow the
+  checks: 2 at 6 h, 12 at 1 h, 144 with every check a near one (300 s), 72
+  at 600 s. The last position is the same to the millimetre in all four,
+  so the checks set the re-entry time's precision and not the trajectory.
+  A relative tolerance of 1e-4 moves it by 39 m, an absolute one of 1e-2
+  by 16 m.
+- **Docs:** `docs/models/dynamics-run-control.md`.
+
 ## How a run's results are read, as parameters (2026-10-30)
 
 The transparency plan, Phase 3a, fourth area. Branch `run-summary-params`.

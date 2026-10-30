@@ -234,12 +234,12 @@ class TimeSeries:
 # spacecraft/scenario; every perturbation/thrust source is excluded
 # there specifically because it would make a real, non-conserved energy
 # change look like a false positive here).
-_DEFAULT_CONSERVATION_TOLERANCE = 0.01  # [-] 1% -- see module comment above
+# The tolerance is the parameter dynamics.conservation_tolerance (1 %), which a
+# project configuration can change.
 
 
 def conservation_drift_warnings(name: str, mu: float, r_m: np.ndarray, v_m: np.ndarray,
-                                 energy_tol: float = _DEFAULT_CONSERVATION_TOLERANCE,
-                                 momentum_tol: float = _DEFAULT_CONSERVATION_TOLERANCE) -> list[str]:
+                                 energy_tol: float | None = None, momentum_tol: float | None = None) -> list[str]:
     """Checks specific orbital energy (``v^2/2 - mu/r``) and orbital
     angular momentum magnitude (``|r x v|``) for drift away from their
     own first-sample value, over the recorded ``r_m``/``v_m`` time
@@ -257,6 +257,10 @@ def conservation_drift_warnings(name: str, mu: float, r_m: np.ndarray, v_m: np.n
     docstring for why a caller should never treat a non-empty result as
     fatal.
     """
+    from ..config import registry
+
+    energy_tol = registry.default("dynamics.conservation_tolerance") if energy_tol is None else energy_tol  # [-]
+    momentum_tol = registry.default("dynamics.conservation_tolerance") if momentum_tol is None else momentum_tol
     warnings: list[str] = []
     if r_m.shape[0] < 2:
         return warnings
@@ -269,7 +273,7 @@ def conservation_drift_warnings(name: str, mu: float, r_m: np.ndarray, v_m: np.n
     energy_drift = float(np.max(np.abs(specific_energy - specific_energy[0]))) / energy_scale
     if energy_drift > energy_tol:
         warnings.append(
-            f"{name}: orbital energy drifted {energy_drift:.1%} (limit {energy_tol:.0%}) -- "
+            f"{name}: orbital energy drifted {energy_drift:.1%} (limit {energy_tol * 100.0:g}%) -- "
             "try a smaller dynamics step or a higher-order integrator"
         )
 
@@ -277,7 +281,7 @@ def conservation_drift_warnings(name: str, mu: float, r_m: np.ndarray, v_m: np.n
     momentum_drift = float(np.max(np.abs(h_mag - h_mag[0]))) / momentum_scale
     if momentum_drift > momentum_tol:
         warnings.append(
-            f"{name}: angular momentum drifted {momentum_drift:.1%} (limit {momentum_tol:.0%}) -- "
+            f"{name}: angular momentum drifted {momentum_drift:.1%} (limit {momentum_tol * 100.0:g}%) -- "
             "try a smaller dynamics step or a higher-order integrator"
         )
     return warnings

@@ -58,7 +58,7 @@ def test_the_shipped_defaults_file_is_the_registry():
 # The page of docs/models that documents each area (the brief: every model, rule and assumption).
 _MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifetime.md",
                 "link": "link-data-and-power.md", "data_handling": "link-data-and-power.md",
-                "results": "reading-results.md"}
+                "results": "reading-results.md", "dynamics": "dynamics-run-control.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -388,7 +388,8 @@ def test_every_parameter_has_a_case_that_sets_it():
     from pathlib import Path
 
     declared = {p.name for p in registry.parameters()}
-    cases = set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_RESULTS_CASES) | set(_GUI_CASES)
+    cases = (set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_RESULTS_CASES) | set(_DYNAMICS_CASES)
+             | set(_GUI_CASES))
     assert declared == cases, f"no case for {sorted(declared - cases)}"
     for where in _GUI_CASES.values():
         file, name = where.split("::")
@@ -469,6 +470,79 @@ def test_setting_a_results_parameter_changes_how_a_run_is_read(name):
     before = measure(None)
     assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
     assert measure(Configuration({name: registry.default(name)})) == before, name
+
+
+# -- every dynamics parameter changes what it says it changes ---------------------------------
+
+def _orbit_run(configuration, drag=True, **settings):
+    """Half a day of a 400 km orbit, orbit only, 60 s steps: the chunks the
+    run executes in (its re-entry checks), its last position [m] and its
+    warnings."""
+    from spacemissionstudio.engine.service import SimulationService
+    from spacemissionstudio.schema.scenario import SimSettings, SpaceWeatherConfig
+
+    spacecraft = SpacecraftConfig(name="s", enable_drag=drag, orbit=OrbitIC(
+        type="classical_elements", semi_major_axis_km=6778.1366, eccentricity=0.0, inclination_deg=51.6,  # [km], [deg]
+        raan_deg=0.0, arg_periapsis_deg=0.0, true_anomaly_deg=0.0))
+    scenario = Scenario(name="d", epoch_utc="2030-01-01T00:00:00", simulation_mode="orbit_only",
+                        spacecraft=[spacecraft], gravity=GravityConfig(central_body="earth"),
+                        space_weather=SpaceWeatherConfig(atmosphere_model="exponential"),
+                        sim_settings=SimSettings(duration_days=0.5, dynamics_task_rate_s=60.0,  # [day], [s]
+                                                 integrator="rkf45", **settings))
+    scenario.validate()
+    scenario.configuration = configuration
+    service = SimulationService(scenario)
+    service.build()
+    stops = []
+    configure = service.scSim.ConfigureStopTime
+    service.scSim.ConfigureStopTime = lambda stop_ns: (stops.append(stop_ns), configure(stop_ns))[1]
+    result = service.run()
+    return len(stops), tuple(result.series["s.position_N"].data[-1].round(3)), result.warnings
+
+
+def _with(configuration, **base):
+    """``configuration`` over ``base`` ({name: value})."""
+    return Configuration({**base, **(configuration.overrides if configuration is not None else {})})
+
+
+_NEAR = {"dynamics.reentry_near_perigee_km": 500.0}  # [km] above the 400 km orbit: every check is a near one
+
+# name: (value to set, what to measure: called with the scenario's configuration, None for the defaults)
+_DYNAMICS_CASES = {
+    "dynamics.integrator_relative_tolerance": (1e-4, lambda c: _orbit_run(c)[1]),
+    "dynamics.integrator_absolute_tolerance": (1e-2, lambda c: _orbit_run(c)[1]),
+    "dynamics.reentry_check_s": (3600.0, lambda c: _orbit_run(c)[0]),
+    "dynamics.reentry_near_perigee_km": (500.0, lambda c: _orbit_run(c)[0]),
+    "dynamics.reentry_near_check_s": (600.0, lambda c: _orbit_run(_with(c, **_NEAR))[0]),
+    "dynamics.conservation_tolerance": (1e-12, lambda c: [w for w in _orbit_run(c, drag=False)[2] if "drifted" in w]),
+}
+
+
+@pytest.mark.requires_basilisk
+@pytest.mark.parametrize("name", sorted(_DYNAMICS_CASES))
+def test_setting_a_dynamics_parameter_changes_what_it_controls(name):
+    """Each dynamics parameter set in a project configuration changes what
+    it controls -- the trajectory, the re-entry checks, the conservation
+    warning -- and set to its default, leaves it as it was."""
+    value, measure = _DYNAMICS_CASES[name]
+    before = measure(None)
+    assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
+    assert measure(Configuration({name: registry.default(name)})) == before, name
+
+
+@pytest.mark.requires_basilisk
+def test_a_runs_provenance_records_the_tolerances_it_used():
+    """The tolerances a project configuration sets are the ones the run's
+    provenance records."""
+    from spacemissionstudio.engine.service import SimulationService, integrator_tolerances
+
+    scenario = _budget_scenario()
+    scenario.gravity.third_body_perturbers = ["sun"]  # a station keeper needs the Sun to validate
+    scenario.configuration = Configuration({"dynamics.integrator_relative_tolerance": 1e-8})
+    assert integrator_tolerances("rkf78", scenario) == (1e-8, 1e-8)
+    assert integrator_tolerances("rk2", scenario) == (None, None)
+    provenance = SimulationService(scenario).nominal_provenance()
+    assert provenance.integrator_relative_tolerance == 1e-8
 
 
 @pytest.mark.requires_basilisk

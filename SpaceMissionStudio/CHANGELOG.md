@@ -411,6 +411,11 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   semi-major axis change, the umbra threshold and the dashboard's
   converged pointing are parameters too. A run is judged by the values it
   was run with.
+- **A project can set the integrator's tolerances:** the adaptive
+  integrators' relative (1e-10) and absolute (1e-8) tolerances, the
+  re-entry checks of a run with drag (every 6 h, every 300 s below a 200 km
+  perigee) and the two-body runs' 1 % conservation warning are
+  parameters, documented in `docs/models/dynamics-run-control.md`.
 
 ## 1.3.1 (2026-10-27)
 

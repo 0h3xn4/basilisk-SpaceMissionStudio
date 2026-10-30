@@ -18,8 +18,8 @@
 """The declared parameters, one section per area (transparency audit,
 Phase 3a). The areas move in one at a time, each proven by the
 regression baseline to change no number: the propellant budget, the
-orbital lifetime, the RF link and data handling, then how a run's results
-are read.
+orbital lifetime, the RF link and data handling, how a run's results are
+read, then the dynamics' run control.
 
 "AD10" is ESA's "Guidelines for the computation of the Delta-V and
 Propellant Mass budgets", EOP-FM/2024-07-177, issue 3.0.
@@ -193,4 +193,33 @@ register(
               "battery's capacity (0: only an empty battery).", "SpaceMissionStudio's own choice",
               "A project with a depth-of-discharge limit sets it here, e.g. 0.3 for 70 % depth of discharge.",
               minimum=0.0, maximum=1.0),
+)
+
+# -- the dynamics' run control (engine.service) --------------------------------------------------
+
+register(
+    Parameter("dynamics.integrator_relative_tolerance", 1e-10, "[-]",
+              "The relative error tolerance of the adaptive integrators (rkf45, rkf78).",
+              "SpaceMissionStudio's own choice (audit E3)",
+              "Basilisk's 1e-4 let a 300 s step pass unrefined: a one-day two-body run was 384 m off Kepler's "
+              "solution; at 1e-10 it is 11 m. Steps of 30 s or less are unaffected.",
+              minimum=1e-14, maximum=1e-3),
+    Parameter("dynamics.integrator_absolute_tolerance", 1e-8, "[m, m/s, rad]",
+              "The absolute error tolerance of the adaptive integrators, one value for every state.",
+              "Basilisk's default", minimum=1e-14, maximum=1e-2),
+    Parameter("dynamics.reentry_check_s", 21600.0, "[s]",
+              "How often a run with drag checks for re-entry while every perigee is high.",
+              "SpaceMissionStudio's own choice", "Six hours: a high orbit cannot re-enter between two checks.",
+              minimum=60.0, maximum=86400.0),
+    Parameter("dynamics.reentry_near_perigee_km", 200.0, "[km]",
+              "Below this perigee altitude a run with drag checks for re-entry every reentry_near_check_s.",
+              "SpaceMissionStudio's own choice", minimum=100.0, maximum=2000.0),
+    Parameter("dynamics.reentry_near_check_s", 300.0, "[s]",
+              "How often a run checks for re-entry once a perigee is low: the precision of the re-entry time.",
+              "SpaceMissionStudio's own choice", minimum=1.0, maximum=21600.0),
+    Parameter("dynamics.conservation_tolerance", 0.01, "[-]",
+              "A two-body run warns when its orbital energy or angular momentum drifts by more than this "
+              "fraction.", "SpaceMissionStudio's own choice",
+              "1 %: a check for a numerical blow-up, not a grade of the integrator's accuracy.",
+              minimum=1e-12, maximum=1.0),
 )
