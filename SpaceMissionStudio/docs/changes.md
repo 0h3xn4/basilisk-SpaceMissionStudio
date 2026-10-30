@@ -17,6 +17,12 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-30: the Assumptions page (Phase 3d)
+
+**No number changes.** A page of the scenario editor that shows the
+parameters and writes the project configuration file; no calculation
+changed, and the regression baseline of all 31 templates passes unchanged.
+
 ## 2026-10-30: one set of physical constants (Phase 3c)
 
 **Numbers change, below what any output prints.** The decision (the

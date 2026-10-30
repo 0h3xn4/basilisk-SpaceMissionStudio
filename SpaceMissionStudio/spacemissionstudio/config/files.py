@@ -32,8 +32,11 @@ line is uncommented.
 from __future__ import annotations
 
 import hashlib
+import os
+import re
 from pathlib import Path
 
+from . import registry
 from .registry import ConfigError, Configuration, checked_overrides, parameters
 
 FORMAT = 1
@@ -135,3 +138,68 @@ def defaults_yaml() -> str:
                                                                     else ""))
         lines.append(f"  # {parameter.name}: {format_value(parameter.default)}  # {parameter.unit}")
     return "\n".join(lines) + "\n"
+
+
+def new_file(path) -> Path:
+    """Write :data:`DEFAULTS_FILE`'s text to ``path``, a new project file
+    that changes nothing yet; refused when ``path`` exists."""
+    path = Path(path)
+    if path.exists():
+        raise ConfigError(f"configuration {path}: already exists")
+    _write(path, defaults_yaml())
+    return path
+
+
+def set_value(path, name: str, value) -> None:
+    """Set ``name`` to ``value`` in the project file ``path``, editing only
+    that parameter's line so every comment stays: its line is replaced (and
+    uncommented, for a line of the defaults file), or added at the end of
+    ``parameters``. The value is checked first, and the file read back
+    after; on any error :class:`ConfigError` and the file is left as it was."""
+    checked = registry.parameter(name).check(value)
+    unit = registry.parameter(name).unit
+    _edit(path, name, lambda indent, comment: f"{indent}{name}: {format_value(checked)}{comment or f'  # {unit}'}")
+
+
+def reset_value(path, name: str) -> None:
+    """Back to the default: ``name``'s line in ``path`` commented out, as
+    in the defaults file (nothing to do when no line sets it)."""
+    default = registry.parameter(name).default
+    _edit(path, name, lambda indent, comment: f"{indent}# {name}: {format_value(default)}{comment}", add=False)
+
+
+def _edit(path, name: str, line_for, add: bool = True) -> None:
+    path = Path(path)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ConfigError(f"configuration {path}: could not be read ({exc.strerror or exc})") from None
+    lines = text.splitlines()
+    pattern = re.compile(rf"^(\s*)(#\s*)?{re.escape(name)}\s*:[^#]*?(\s+#.*)?$")
+    matches = [(i, m) for i, line in enumerate(lines) if (m := pattern.match(line))]
+    chosen = next(((i, m) for i, m in matches if not m.group(2)), matches[0] if matches else None)
+    if chosen is not None:
+        index, match = chosen
+        if match.group(2) and not add:
+            return  # commented out already: the default
+        lines[index] = line_for(match.group(1) or "  ", match.group(3) or "")
+    elif add:
+        if not any(re.match(r"^parameters\s*:", line) for line in lines):
+            lines.append("parameters:")
+        lines.append(line_for("  ", ""))
+    else:
+        return
+    edited = "\n".join(lines) + "\n"
+    _write(path, edited)
+    try:
+        read(path)
+    except ConfigError:
+        _write(path, text)  # the edit made the file unreadable: put it back
+        raise
+
+
+def _write(path: Path, text: str) -> None:
+    """``text`` into ``path`` atomically: a reader never sees half a file."""
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text(text, encoding="utf-8")
+    os.replace(temporary, path)

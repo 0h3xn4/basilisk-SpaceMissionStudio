@@ -14514,6 +14514,30 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The Assumptions page (2026-10-30)
+
+The transparency plan, Phase 3d. Branch `assumptions-page`.
+
+- **Scenario › Assumptions** (`gui/assumptions_page.py`), a node of the
+  editor's tree after Monte Carlo:
+  - the configuration file the scenario names, with Choose..., New...
+    (the defaults file) and Remove; a file inside the scenario's folder is
+    named relative to it;
+  - every parameter in a table, by area: the value in effect, the
+    default, the unit and the source, changed values in bold, and
+    "Changed values only";
+  - the selected parameter: what it controls, why, and the values it may
+    take; Set and Reset to default.
+- **Writing the file keeps it the user's:** `config.files.set_value` and
+  `reset_value` edit only that parameter's line. Its comment stays, a line
+  of the defaults file is uncommented, and a parameter the file lacks is
+  added under `parameters`. The value is checked first; the file is read
+  back after, and put back as it was if the edit made it unreadable. The
+  write is atomic.
+- **The editor:** the page sets `config_file` (until now only the JSON
+  view could), and a value set there revalidates the scenario like any
+  edit.
+
 ## One set of physical constants (2026-10-30)
 
 The transparency plan, Phase 3c. Branch `one-constant-set`.

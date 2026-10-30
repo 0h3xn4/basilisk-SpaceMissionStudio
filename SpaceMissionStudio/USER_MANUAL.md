@@ -168,7 +168,7 @@ A few things to notice right away:
     **Power / propulsion / link budget**, **3D model**, **Vizard model**,
     **Budget (AD10)**; orbit-only scenarios have no sensors or attitude
     control), **Ground stations** with a node per station, **Mission
-    sequence** and **Monte Carlo** (Section 6). A node with
+    sequence**, **Monte Carlo** and **Assumptions** (Section 6). A node with
     problems shows how many after its name: in red when one of them is an
     error, in yellow when they are all warnings. Hover over it to see how
     many of each there are. At the top, **Form · JSON** switches between
@@ -500,6 +500,15 @@ fixed:
   mass unchanged. For propellant, use the **Budget** page (Section 11)
   or a fuel tank with station-keeping or constant thrust.
 * **Monte Carlo** -- see Section 10.
+* **Assumptions** -- the rules and margins the analyses use, each with
+  its value in effect, unit and source, and the project configuration
+  file the scenario names: **Choose...** an existing one, **New...** to
+  write one listing every parameter (commented out), or **Remove**.
+  Select a parameter to see what it controls and the values it may take,
+  then **Set** a value or **Reset to default**; the value is checked and
+  written into the file, on its own line, so the file's comments stay.
+  Changed values are in bold, and **Changed values only** lists just
+  those. See [Change a parameter](docs/user-manual/project-configuration.md).
 
 **Form · JSON**, at the top of the area, shows the scenario as it is
 saved, as text you can edit, in place of the tree. An edit there applies

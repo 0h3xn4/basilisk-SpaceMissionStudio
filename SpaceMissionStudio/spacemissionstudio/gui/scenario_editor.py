@@ -60,6 +60,7 @@ from .feedback import bring_into_view, clear_field_error, show_field_error
 from .json_view import ScenarioJsonView
 from . import mission_guide
 from .mission_guide import MissionGuide
+from .assumptions_page import AssumptionsPage
 from .page_tree import PageTree, embed_dialog, watch_edits
 from .ground_station_editor import GroundStationListWidget
 from .mission_sequence_editor import MissionSequenceEditorWidget
@@ -185,6 +186,11 @@ class ScenarioEditorWidget(QWidget):
         self.ground_station_page = _page(self._build_ground_station_group())
         self.mission_sequence_page = self._build_mission_sequence_group()  # its tree and form scroll themselves
         self.monte_carlo_page = _page(self._build_monte_carlo_group())
+        # The project configuration (transparency plan, Phase 3d): its own
+        # table scrolls, so the page is not put in a scroll area.
+        self.assumptions_page = AssumptionsPage()
+        self.assumptions_page.config_file_changed.connect(self._on_config_file_changed)
+        self.assumptions_page.configuration_edited.connect(self.changed)
         # The scenario as JSON, edited directly (U-16).
         self.json_view = ScenarioJsonView()
         self.json_page = self.json_view
@@ -202,6 +208,7 @@ class ScenarioEditorWidget(QWidget):
         self.ground_station_item = tree.add_page("Ground stations", self.ground_station_page)
         self.mission_sequence_item = tree.add_page("Mission sequence", self.mission_sequence_page)
         self.monte_carlo_item = tree.add_page("Monte Carlo", self.monte_carlo_page)
+        self.assumptions_item = tree.add_page("Assumptions", self.assumptions_page)
         tree.page_shown.connect(self._on_page_shown)
         tree.section_shown.connect(self._on_section_shown)
         self.spacecraft_list.set_edit_handler(self.show_spacecraft)
@@ -312,8 +319,8 @@ class ScenarioEditorWidget(QWidget):
         source of truth for those three dataclasses."""
         self._gravity = GravityConfig()
         self._fsw_exports: list = []  # FswExportRecord list, kept as loaded (see set_fsw_exports)
-        # The project configuration file, kept as loaded: it has no widget yet
-        # (the JSON view edits it); read again at each to_scenario().
+        # The project configuration file the scenario names: the Assumptions
+        # page sets it (and the JSON view); read again at each to_scenario().
         self._config_file: str | None = None
         self._sim_settings = SimSettings()
         self._space_weather = SpaceWeatherConfig()
@@ -733,7 +740,8 @@ class ScenarioEditorWidget(QWidget):
         """Whether ``page`` is one of the editor's own (not Templates or an
         analysis, which MainWindow adds)."""
         return page in (self.scenario_page, self.environment_page, self.spacecraft_page, self.ground_station_page,
-                        self.mission_sequence_page, self.monte_carlo_page, self.json_page) or self._node_of(page) is not None
+                        self.mission_sequence_page, self.monte_carlo_page, self.assumptions_page,
+                        self.json_page) or self._node_of(page) is not None
 
     def _show_node(self, nodes: list, row: int):
         node = nodes[row]
@@ -839,12 +847,19 @@ class ScenarioEditorWidget(QWidget):
         self.json_button.setText(f"JSON ({json_problems})" if json_problems else "JSON")
 
     # -- (dis)assembly -------------------------------------------------------
+    def _on_config_file_changed(self, config_file) -> None:
+        """The Assumptions page named another configuration file (or none)."""
+        self._config_file = config_file
+        self.changed.emit()
+
     def set_base_dir_provider(self, provider) -> None:
         """``provider`` returns the scenario file's folder, or None while the
         scenario is unsaved: where a 3D model's relative mesh paths start
         (the spacecraft editor and the plausibility checks need it)."""
         self._base_dir_provider = provider
         self.spacecraft_list.set_base_dir_provider(provider)
+        self.assumptions_page.set_base_dir_provider(provider)
+        self.assumptions_page.refresh()
 
     def to_scenario(self) -> Scenario:
         """Raises :class:`ScenarioValidationError` with a specific message
@@ -931,6 +946,7 @@ class ScenarioEditorWidget(QWidget):
         self._show_sequence_length()  # the Environment form was built before the sequence was filled
         self._fsw_exports = list(scenario.fsw_exports)
         self._config_file = scenario.config_file
+        self.assumptions_page.set_config_file(scenario.config_file)
         if not self._applying_json:  # another scenario: the JSON page forgets an edit it held
             self.json_view.reset()
             self._form_errors.pop(id(self.json_view), None)

@@ -90,7 +90,7 @@ def test_the_areas_and_what_they_hold(window):
         *(f"Spacecraft > my-sat > {tab}" for tab in ("Orbit / mass", "Power / propulsion / link budget", "3D model",
                                                      "Vizard model", "Budget (AD10)")),
         "Ground stations",
-        "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo"]
+        "Ground stations > berlin-gs", "Mission sequence", "Monte Carlo", "Assumptions"]  # Assumptions: Phase 3d
     assert window.shell.page("scenario").header.isAncestorOf(window.scenario_editor.mode_toggle)  # Form · JSON
     assert _tab_texts(window.run_views) == ["Run", "End of Life", "Budget", "History", "Log"]  # History: M5a; Run: M5b
     assert _tab_texts(window.results_views) == ["Overview", "Plots", "Dashboard", "Output", "Compare"]  # Overview: M6a

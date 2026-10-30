@@ -679,3 +679,58 @@ def test_a_run_is_read_with_its_own_configuration():
     assert registry.value_of_run("results.sma_window_orbits", _run_with(None)) == 1.0
     configured = _run_with(Configuration({"results.sma_window_orbits": 2.0}))
     assert registry.value_of_run("results.sma_window_orbits", configured) == 2.0
+
+
+# -- editing a project file (config.files.set_value, the Assumptions page) ---------------------
+
+def test_setting_a_value_edits_only_its_line(tmp_path):
+    """A value set replaces its own line and keeps the line's comment; a
+    parameter the file does not name is added under ``parameters``; the
+    rest of the file, comments included, is unchanged."""
+    path = _project(tmp_path, "# our project\nformat: 1\nparameters:\n"
+                              "  propellant_budget.residual_fraction: 0.05   # measured on our tanks\n")
+    files.set_value(path, "propellant_budget.residual_fraction", 0.06)
+    files.set_value(path, "propellant_budget.launch_delays_years", [0, 2])
+    assert path.read_text(encoding="utf-8") == (
+        "# our project\nformat: 1\nparameters:\n"
+        "  propellant_budget.residual_fraction: 0.06   # measured on our tanks\n"
+        "  propellant_budget.launch_delays_years: [0.0, 2.0]  # [year]\n")
+    assert files.read(path).overrides == {"propellant_budget.residual_fraction": 0.06,
+                                          "propellant_budget.launch_delays_years": (0.0, 2.0)}
+
+
+def test_a_new_file_is_the_defaults_and_a_set_value_uncomments_its_line(tmp_path):
+    """``new_file`` writes the defaults file (refusing to overwrite); a
+    value set uncomments that parameter's own line, and Reset comments it
+    out again at the default."""
+    path = tmp_path / "project.yaml"
+    files.new_file(path)
+    assert path.read_text(encoding="utf-8") == files.defaults_yaml()
+    with pytest.raises(ConfigError, match="already exists"):
+        files.new_file(path)
+    files.set_value(path, "lifetime.iadc_years", 20)
+    lines = path.read_text(encoding="utf-8").splitlines()
+    assert "  lifetime.iadc_years: 20.0  # [year]" in lines and "  # lifetime.iadc_years: 25.0  # [year]" not in lines
+    assert len(lines) == len(files.defaults_yaml().splitlines())
+    files.reset_value(path, "lifetime.iadc_years")
+    assert path.read_text(encoding="utf-8") == files.defaults_yaml()
+    files.reset_value(path, "lifetime.iadc_years")  # already the default: nothing to do
+    assert path.read_text(encoding="utf-8") == files.defaults_yaml()
+
+
+def test_a_value_refused_leaves_the_file_as_it_was(tmp_path):
+    """A value out of range, a name the registry lacks, or an edit that
+    would leave the file unreadable: ConfigError, and the file unchanged."""
+    text = "parameters:\n  lifetime.iadc_years: 20\n"
+    path = _project(tmp_path, text)
+    with pytest.raises(ConfigError, match="at most 100"):
+        files.set_value(path, "lifetime.iadc_years", 1000)
+    with pytest.raises(ConfigError, match="unknown parameter"):
+        files.set_value(path, "lifetime.no_such_rule", 1)
+    broken = tmp_path / "flow.yaml"  # a flow mapping: replacing its line drops the closing brace
+    broken.write_text("parameters: {lifetime.iadc_years: 20,\n  lifetime.zero_debris_years: 5}\n", encoding="utf-8")
+    before = broken.read_text(encoding="utf-8")
+    with pytest.raises(ConfigError):
+        files.set_value(broken, "lifetime.zero_debris_years", 6)
+    assert broken.read_text(encoding="utf-8") == before
+    assert path.read_text(encoding="utf-8") == text

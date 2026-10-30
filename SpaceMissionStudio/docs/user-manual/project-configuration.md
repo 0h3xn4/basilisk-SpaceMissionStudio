@@ -24,7 +24,22 @@ propellant_budget:
 Each model's page in [Models](../models/README.md) explains what each
 parameter does, with its source.
 
-## Change one for a project
+## Change one for a project, in the app
+
+Open **Scenario › Assumptions**:
+
+1. **New...** writes a configuration file next to your scenario listing
+   every parameter, commented out, and names it for the scenario.
+   **Choose...** names one you already have.
+2. Select a parameter. The page shows what it controls, its source and
+   the values it may take.
+3. Type the value and **Set**. It is checked against the parameter's
+   limits and written into the file, on that parameter's own line, so
+   your comments stay. **Reset to default** comments the line out again.
+
+Changed values are in bold; **Changed values only** lists just those.
+
+## Change one for a project, with files
 
 1. Write the defaults file next to your scenario. Every line in it is
    commented out, so it changes nothing yet:
@@ -42,9 +57,8 @@ parameter does, with its source.
      propellant_budget.residual_fraction: 0.05   # [-] our tanks: 5 % measured
    ```
 
-3. Name the file in the scenario, relative to the scenario file's folder.
-   In the app, use the scenario's **JSON** view; there is no form field for
-   it yet:
+3. Name the file in the scenario, relative to the scenario file's folder
+   (in the app, **Scenario › Assumptions › Choose...** does this):
 
    ```json
    "config_file": "project.yaml"
