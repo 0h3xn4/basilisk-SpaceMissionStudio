@@ -34,8 +34,10 @@ file a simulation would use, or Basilisk's exponential model. Drag acts on
 the velocity relative to an atmosphere turning with the Earth, as in the
 simulations (``zeroWindModel``).
 
-Re-entry is taken as the perigee reaching :data:`REENTRY_ALTITUDE_KM`;
-below that an orbit lasts days at most.
+Re-entry is taken as the perigee reaching ``lifetime.reentry_altitude_km``
+(120 km); below that an orbit lasts days at most. That value, the step
+control, the drag ring and the disposal rules are named parameters
+(config.parameters, "lifetime"): :func:`rule` gives the one in effect.
 
 :func:`drag_makeup` uses the same drag model the other way round: the
 delta-V a station keeper spends holding an orbit against drag over a
@@ -67,17 +69,27 @@ REQ_EARTH_M = 6378136.6  # [m]
 J2_EARTH = 1082.616e-6  # [-]
 OMEGA_EARTH_RAD_S = 2.0 * math.pi / 23.9345 / 3600.0  # [rad/s]
 
-REENTRY_ALTITUDE_KM = 120.0  # [km] perigee altitude counted as re-entry
-RING_POINTS = 16  # points around the orbit per drag average
-MAX_STEP_S = 86400.0  # [s]
-_MAX_PERIGEE_DROP = 0.01  # [-] largest fraction of the remaining perigee height lost in one step
-
-# Disposal rules a lifetime is checked against [year]
-ZERO_DEBRIS_YEARS = 5.0  # [year] ESA Zero Debris approach (and the FCC's 5-year rule)
-IADC_YEARS = 25.0  # [year] IADC / ISO 24113 guideline
 # The farthest a lifetime looks ahead: the GUI's limit, now the CLI's and
 # this module's too (1e6 years overflowed the date, audit R6).
 MAX_HORIZON_YEARS = 100.0  # [year]
+
+
+def rule(name: str, scenario=None):
+    """The value of ``lifetime.<name>`` in effect for ``scenario``
+    (config.parameters): the re-entry perigee, the decay's step control
+    and drag ring, the disposal rules and the estimate's defaults."""
+    from ..config import registry
+
+    return registry.value(f"lifetime.{name}", scenario)
+
+
+def disposal_rules(scenario=None) -> list[tuple[float, str, str]]:
+    """(years [year], label, record key) of the disposal rules a lifetime is
+    checked against, as in effect for ``scenario``: ESA's Zero Debris
+    approach (5 years) and the IADC guideline (25 years)."""
+    zero_debris, iadc = rule("zero_debris_years", scenario), rule("iadc_years", scenario)
+    return [(zero_debris, f"{zero_debris:g}-year rule", f"zero_debris_{zero_debris:g}_year_rule"),
+            (iadc, f"{iadc:g}-year guideline", f"iadc_{iadc:g}_year_guideline")]
 
 
 class LifetimeError(Exception):
@@ -146,7 +158,7 @@ def _perifocal_axes(orbit: MeanOrbit):
     return p, q
 
 
-def ring_states(orbit: MeanOrbit, points: int = RING_POINTS):
+def ring_states(orbit: MeanOrbit, points: int | None = None):
     """Positions and velocities [m, m/s] at ``points`` evenly spaced mean
     anomalies, shape (points, 3) each, with J2's short-period terms added
     back (Basilisk's ``clMeanOscMap``, mean -> osculating). Without them
@@ -154,6 +166,7 @@ def ring_states(orbit: MeanOrbit, points: int = RING_POINTS):
     the density there is ~12% too high."""
     from Basilisk.utilities import orbitalMotion
 
+    points = rule("ring_points") if points is None else points
     eccentricity = max(orbit.eccentricity, 1e-7)  # clMeanOscMap divides by e
     r = np.empty((points, 3))
     v = np.empty((points, 3))
@@ -198,7 +211,7 @@ class MsisDensity:
     records (:func:`..dependencies.file_record`) of the real data that file
     was built from, for the provenance of what uses it."""
 
-    def __init__(self, space_weather_path, start_utc: datetime, points: int = RING_POINTS,
+    def __init__(self, space_weather_path, start_utc: datetime, points: int,
                  data_files: dict | None = None):
         from Basilisk.architecture import messaging
         from Basilisk.simulation import msisAtmosphere, spaceWeatherData
@@ -258,10 +271,11 @@ def exponential_density(t_s: float, r_m: np.ndarray) -> np.ndarray:
     return 1.217 * np.exp(-altitude_m / 8500.0)  # [kg/m^3]
 
 
-def _drag_rates(orbit: MeanOrbit, t_s: float, ballistic_m2_kg: float, density: DensityModel):
+def _drag_rates(orbit: MeanOrbit, t_s: float, ballistic_m2_kg: float, density: DensityModel, points: int):
     """Orbit-averaged da/dt [m/s] and d(eccentricity vector)/dt [1/s] from
-    drag, ``ballistic_m2_kg`` = Cd * A / m."""
-    r, v = ring_states(orbit, getattr(density, "points", RING_POINTS))
+    drag, ``ballistic_m2_kg`` = Cd * A / m, over ``points`` around the
+    orbit (the density's own, when it was built for a number of them)."""
+    r, v = ring_states(orbit, getattr(density, "points", points))
     omega = np.array([0.0, 0.0, OMEGA_EARTH_RAD_S])
     v_rel = v - np.cross(omega, r)
     rho = density(t_s, r)
@@ -302,24 +316,30 @@ def _perigee_drop_rate(orbit: MeanOrbit, da_dt: float, de_vec_dt: np.ndarray) ->
 
 def propagate_decay(orbit: MeanOrbit, start_utc: datetime, ballistic_m2_kg: float, density: DensityModel,
                     max_years: float = 30.0,
-                    should_cancel: Callable[[], bool] | None = None) -> LifetimeResult:
+                    should_cancel: Callable[[], bool] | None = None, scenario=None) -> LifetimeResult:
     """Follows ``orbit`` down until re-entry or ``max_years``, one midpoint
     step at a time (rates taken half-way through each step: a plain step
-    from the start lags the rising density and decays ~2% slow)."""
+    from the start lags the rising density and decays ~2% slow). The
+    re-entry perigee, step control and drag ring are ``scenario``'s
+    (:func:`rule`)."""
+    reentry_km = rule("reentry_altitude_km", scenario)  # [km]
+    max_step_s = rule("max_step_s", scenario)  # [s]
+    max_drop = rule("max_perigee_drop_fraction", scenario)  # [-]
+    points = rule("ring_points", scenario)
     horizon_s = max_years * 365.25 * 86400.0  # [s]
     t_s = 0.0  # [s]
     times, perigees, apogees = [0.0], [orbit.perigee_altitude_km], [orbit.apogee_altitude_km]
-    while t_s < horizon_s and orbit.perigee_altitude_km > REENTRY_ALTITUDE_KM:
+    while t_s < horizon_s and orbit.perigee_altitude_km > reentry_km:
         if should_cancel is not None and should_cancel():
             # Returning would report a lifetime nobody computed (audit L3).
             raise LifetimeError("the lifetime estimate was cancelled")
-        da_dt, de_vec_dt = _drag_rates(orbit, t_s, ballistic_m2_kg, density)
+        da_dt, de_vec_dt = _drag_rates(orbit, t_s, ballistic_m2_kg, density, points)
         drop_m_s = _perigee_drop_rate(orbit, da_dt, de_vec_dt)
-        remaining_m = (orbit.perigee_altitude_km - REENTRY_ALTITUDE_KM) * 1e3  # [m]
-        step_s = MAX_STEP_S if drop_m_s <= 0.0 else min(MAX_STEP_S, _MAX_PERIGEE_DROP * remaining_m / drop_m_s)
+        remaining_m = (orbit.perigee_altitude_km - reentry_km) * 1e3  # [m]
+        step_s = max_step_s if drop_m_s <= 0.0 else min(max_step_s, max_drop * remaining_m / drop_m_s)
         step_s = min(max(step_s, orbit.period_s), horizon_s - t_s)  # [s]
         middle = _advanced(orbit, 0.5 * step_s, da_dt, de_vec_dt)
-        da_dt, de_vec_dt = _drag_rates(middle, t_s + 0.5 * step_s, ballistic_m2_kg, density)
+        da_dt, de_vec_dt = _drag_rates(middle, t_s + 0.5 * step_s, ballistic_m2_kg, density, points)
         orbit = _advanced(orbit, step_s, da_dt, de_vec_dt)
         t_s += step_s
         times.append(t_s)
@@ -327,7 +347,7 @@ def propagate_decay(orbit: MeanOrbit, start_utc: datetime, ballistic_m2_kg: floa
         apogees.append(orbit.apogee_altitude_km)
         if orbit.semi_major_axis_m * (1.0 - orbit.eccentricity) < REQ_EARTH_M:
             break
-    reentered = orbit.perigee_altitude_km <= REENTRY_ALTITUDE_KM
+    reentered = orbit.perigee_altitude_km <= reentry_km
     return LifetimeResult(reentered=reentered, lifetime_s=t_s, time_s=np.array(times),
                           perigee_altitude_km=np.array(perigees), apogee_altitude_km=np.array(apogees),
                           start_utc=start_utc)
@@ -364,13 +384,14 @@ def drag_properties(spacecraft) -> tuple:
     return spacecraft.drag_area_m2, spacecraft.drag_coeff
 
 
-def density_for_scenario(scenario, start_utc: datetime, max_years: float, points: int = RING_POINTS,
+def density_for_scenario(scenario, start_utc: datetime, max_years: float, points: int | None = None,
                          forecast_percentile: float = 50.0):
     """The scenario's atmosphere model as a :data:`DensityModel` from
     ``start_utc``, the years it can look ahead (``max_years``, or less
     where the real space-weather data ends), and any warnings. Solar
     activity at MSFC's ``forecast_percentile`` (ESA AD10 Sec. 5.9: 50
     for end of life)."""
+    points = rule("ring_points", scenario) if points is None else points
     sw_config = scenario.space_weather
     if sw_config.atmosphere_model == "exponential":
         return exponential_density, max_years, [
@@ -419,9 +440,6 @@ def space_weather_files(resolved) -> dict:
     return files
 
 
-MAKEUP_STEP_S = 21600.0  # [s] drag make-up sampling step
-
-
 @dataclass
 class DragMakeup:
     """Delta-V to hold an orbit against drag (:func:`drag_makeup`)."""
@@ -451,7 +469,7 @@ def held_orbit(spacecraft) -> MeanOrbit:
 
 
 def drag_makeup(scenario, spacecraft, start_utc: datetime, years: float, forecast_percentile: float = 50.0,
-                drag_coeff: float | None = None, step_s: float = MAKEUP_STEP_S,
+                drag_coeff: float | None = None, step_s: float | None = None,
                 should_cancel: Callable[[], bool] | None = None) -> DragMakeup:
     """Delta-V [m/s] that holds the spacecraft's orbit (:func:`held_orbit`)
     against drag for ``years`` from ``start_utc``: the orbit-averaged
@@ -481,6 +499,7 @@ def drag_makeup(scenario, spacecraft, start_utc: datetime, years: float, forecas
                                                     forecast_percentile=forecast_percentile)
     node_rate, perigee_rate = _j2_rates(orbit)
     omega = np.array([0.0, 0.0, OMEGA_EARTH_RAD_S])
+    step_s = rule("makeup_step_s", scenario) if step_s is None else step_s  # [s]
     steps = max(1, int(round(years * 365.25 * 86400.0 / step_s)))
     step_s = years * 365.25 * 86400.0 / steps  # [s]
     times, cumulative = np.empty(steps), np.empty(steps)
@@ -491,7 +510,7 @@ def drag_makeup(scenario, spacecraft, start_utc: datetime, years: float, forecas
         t_s = (k + 0.5) * step_s  # [s] mid-step
         turned = MeanOrbit(orbit.semi_major_axis_m, orbit.eccentricity, orbit.inclination_rad,
                            orbit.raan_rad + node_rate * t_s, orbit.arg_periapsis_rad + perigee_rate * t_s)
-        r, v = ring_states(turned, getattr(density, "points", RING_POINTS))
+        r, v = ring_states(turned, getattr(density, "points", rule("ring_points", scenario)))
         v_rel = v - np.cross(omega, r)
         rho = density(t_s, r)
         accel = -0.5 * ballistic * (rho * np.linalg.norm(v_rel, axis=1))[:, None] * v_rel  # [m/s^2]
@@ -502,9 +521,9 @@ def drag_makeup(scenario, spacecraft, start_utc: datetime, years: float, forecas
     return DragMakeup(total, times, cumulative, altitude_km, years, warnings, getattr(density, "data_files", {}))
 
 
-def spacecraft_lifetime(scenario, spacecraft_name: str, max_years: float = 30.0,
+def spacecraft_lifetime(scenario, spacecraft_name: str, max_years: float | None = None,
                         should_cancel: Callable[[], bool] | None = None,
-                        forecast_percentile: float = 50.0, drag_coeff: float | None = None) -> LifetimeResult:
+                        forecast_percentile: float | None = None, drag_coeff: float | None = None) -> LifetimeResult:
     """Natural lifetime of one spacecraft from the scenario's start (see
     :func:`end_of_life` for after a run, or with a deorbit burn)."""
     return end_of_life(scenario, spacecraft_name, max_years=max_years, should_cancel=should_cancel,
@@ -564,8 +583,8 @@ def _remaining_propellant(result, name: str, initial_kg: float) -> float:
 
 
 def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km: float | None = None,
-                max_years: float = 30.0, should_cancel: Callable[[], bool] | None = None,
-                forecast_percentile: float = 50.0, drag_coeff: float | None = None) -> EndOfLife:
+                max_years: float | None = None, should_cancel: Callable[[], bool] | None = None,
+                forecast_percentile: float | None = None, drag_coeff: float | None = None) -> EndOfLife:
     """Lifetime of one spacecraft after the run in ``result`` (from its
     last state, with the propellant left), or from the scenario's start
     when ``result`` is None. With ``deorbit_perigee_km``, an apogee burn
@@ -573,7 +592,13 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
     Solar activity at MSFC's ``forecast_percentile`` (ESA AD10 Sec. 5.9:
     50 for end of life, whatever the scenario's operations setting);
     ``drag_coeff`` replaces the spacecraft's own (AD10 Sec. 5.2: 2.2 at
-    end of life, against 3.0 in operations)."""
+    end of life, against 3.0 in operations). ``max_years`` and
+    ``forecast_percentile`` default to the scenario's
+    ``lifetime.default_horizon_years`` (30) and
+    ``lifetime.default_forecast_percentile`` (50)."""
+    max_years = rule("default_horizon_years", scenario) if max_years is None else max_years
+    if forecast_percentile is None:
+        forecast_percentile = rule("default_forecast_percentile", scenario)
     if not (math.isfinite(max_years) and 0.0 < max_years <= MAX_HORIZON_YEARS):
         # -5 used to reach Basilisk as an end before the start (audit M12); 1e6 overflowed the date (R6).
         raise LifetimeError(f"max_years must be a positive number of years, at most {MAX_HORIZON_YEARS:g}, "
@@ -625,7 +650,7 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
     density, horizon_years, warnings = density_for_scenario(scenario, start_utc, max_years,
                                                             forecast_percentile=forecast_percentile)
     lifetime = propagate_decay(orbit, start_utc, drag_coeff * area_m2 / mass_kg, density, horizon_years,
-                               should_cancel)
+                               should_cancel, scenario=scenario)
     lifetime.horizon_years = horizon_years
     lifetime.warnings.extend(warnings)
     return EndOfLife(lifetime, result is not None, mass_kg, plan, area_m2, drag_coeff,

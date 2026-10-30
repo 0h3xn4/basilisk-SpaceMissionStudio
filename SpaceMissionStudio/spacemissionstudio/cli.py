@@ -573,11 +573,15 @@ def cmd_lifetime(args: argparse.Namespace) -> int:
     except ImportError as exc:
         print(f"ERROR: Basilisk is not installed/built ({exc}) -- see SpaceMissionStudio/README.md", file=sys.stderr)
         return 2
+    # Unset options take the scenario's defaults (lifetime.default_*: config.parameters).
+    max_years = lifetime.rule("default_horizon_years", scenario) if args.max_years is None else args.max_years
+    percentile = (lifetime.rule("default_forecast_percentile", scenario) if args.forecast_percentile is None
+                  else args.forecast_percentile)
+    drag_coeff = (lifetime.rule("default_drag_coeff", scenario) if args.drag_coeff is None
+                  else None if args.drag_coeff == "own" else float(args.drag_coeff))
     try:
-        drag_coeff = None if args.drag_coeff == "own" else float(args.drag_coeff)
         end = lifetime.end_of_life(scenario, name, deorbit_perigee_km=args.deorbit_perigee_km,
-                                   max_years=args.max_years, forecast_percentile=args.forecast_percentile,
-                                   drag_coeff=drag_coeff)
+                                   max_years=max_years, forecast_percentile=percentile, drag_coeff=drag_coeff)
     except lifetime.LifetimeError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 3
@@ -591,7 +595,7 @@ def cmd_lifetime(args: argparse.Namespace) -> int:
               f"{result.start_utc:%Y-%m-%d}")
     else:
         print(f"{name}: still in orbit after {result.horizon_years:.1f} years")
-    for years, label in ((lifetime.ZERO_DEBRIS_YEARS, "5-year rule"), (lifetime.IADC_YEARS, "25-year guideline")):
+    for years, label, _key in lifetime.disposal_rules(scenario):
         verdict = ("met" if result.meets(years) else "not met") if result.known(years) else "not known"
         print(f"  {label}: {verdict}")
     for warning in result.warnings:
@@ -599,8 +603,8 @@ def cmd_lifetime(args: argparse.Namespace) -> int:
     if args.out is not None:
         from .engine import analysis_records
 
-        record = analysis_records.lifetime_record(scenario, name, end, args.max_years, args.forecast_percentile,
-                                                  drag_coeff, args.deorbit_perigee_km)
+        record = analysis_records.lifetime_record(scenario, name, end, max_years, percentile, drag_coeff,
+                                                  args.deorbit_perigee_km)
         return _write_record(args, record, file_record)
     return 0
 
@@ -1422,12 +1426,15 @@ def build_parser() -> argparse.ArgumentParser:
     p_life.add_argument("--spacecraft", help="spacecraft name (default: the first)")
     p_life.add_argument("--deorbit-perigee-km", type=_finite_float_arg, default=None,
                         help="first lower the perigee to this altitude [km] with the orbit thruster")
-    p_life.add_argument("--max-years", type=_max_years_arg, default=30.0,
-                        help="how far ahead to look [years], more than 0 and at most 100")
-    p_life.add_argument("--forecast-percentile", type=_finite_float_arg, choices=(95.0, 50.0, 5.0), default=50.0,
-                        help="MSFC solar-activity percentile (ESA AD10: 50 for end of life)")
-    p_life.add_argument("--drag-coeff", default="2.2", type=_drag_coeff_arg,
-                        help="drag coefficient, or 'own' for the spacecraft's (default 2.2: ESA AD10 end of life)")
+    p_life.add_argument("--max-years", type=_max_years_arg, default=None,
+                        help="how far ahead to look [years], more than 0 and at most 100 (default: "
+                             "lifetime.default_horizon_years, 30)")
+    p_life.add_argument("--forecast-percentile", type=_finite_float_arg, choices=(95.0, 50.0, 5.0), default=None,
+                        help="MSFC solar-activity percentile (default: lifetime.default_forecast_percentile, 50: "
+                             "ESA AD10 end of life)")
+    p_life.add_argument("--drag-coeff", default=None, type=_drag_coeff_arg,
+                        help="drag coefficient, or 'own' for the spacecraft's (default: lifetime.default_drag_coeff, "
+                             "2.2: ESA AD10 end of life)")
     p_life.add_argument("--out", type=Path, metavar="FILE.json", default=None,
                         help="also write the lifetime as JSON: inputs, the drag used, the decay, the provenance")
     p_life.set_defaults(func=cmd_lifetime)

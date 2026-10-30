@@ -128,7 +128,9 @@ def defaults_yaml() -> str:
         lines.append("")
         lines.append(f"  # {parameter.controls}")
         lines.append(f"  # Source: {parameter.source}." + (f" {parameter.rationale}" if parameter.rationale else ""))
-        if limits:
+        if parameter.choices is not None:
+            lines.append(f"  # One of: {', '.join(f'{c:g}' for c in parameter.choices)} {parameter.unit}")
+        elif limits:
             lines.append(f"  # Limits: {limits} {parameter.unit}" + (f", {parameter.kind}" if parameter.kind != "number"
                                                                     else ""))
         lines.append(f"  # {parameter.name}: {format_value(parameter.default)}  # {parameter.unit}")

@@ -80,12 +80,14 @@ def lifetime_record(scenario, spacecraft_name: str, end, max_years: float, forec
     ``spacecraft_name`` with these options (:func:`.lifetime.end_of_life`'s);
     ``drag_coeff`` None means the spacecraft's own."""
     from . import lifetime
+    from ..config import registry
 
     life = end.lifetime
     verdicts = {}
-    for years, label in ((lifetime.ZERO_DEBRIS_YEARS, "zero_debris_5_year_rule"),
-                         (lifetime.IADC_YEARS, "iadc_25_year_guideline")):
-        verdicts[label] = ("met" if life.meets(years) else "not met") if life.known(years) else "not known"
+    for years, _label, key in lifetime.disposal_rules(scenario):
+        verdicts[key] = ("met" if life.meets(years) else "not met") if life.known(years) else "not known"
+    rules = {parameter.name: registry.value(parameter.name, scenario)
+             for parameter in registry.parameters("lifetime")}  # in effect: provenance.configuration says
     return {
         "kind": LIFETIME_KIND,
         "spacecraft": spacecraft_name,
@@ -95,10 +97,7 @@ def lifetime_record(scenario, spacecraft_name: str, end, max_years: float, forec
         "model": {"method": "orbit-averaged mean-element decay under drag and J2 (engine.lifetime)",
                   "atmosphere_model": scenario.space_weather.atmosphere_model,
                   "area_m2": end.area_m2, "drag_coeff": end.drag_coeff, "mass_kg": end.mass_kg,
-                  "ballistic_coefficient_m2_kg": end.ballistic_coefficient_m2_kg,
-                  "REENTRY_ALTITUDE_KM": lifetime.REENTRY_ALTITUDE_KM, "RING_POINTS": lifetime.RING_POINTS,
-                  "MAX_STEP_S": lifetime.MAX_STEP_S, "ZERO_DEBRIS_YEARS": lifetime.ZERO_DEBRIS_YEARS,
-                  "IADC_YEARS": lifetime.IADC_YEARS},
+                  "ballistic_coefficient_m2_kg": end.ballistic_coefficient_m2_kg, "rules": rules},
         "results": {"start_utc": life.start_utc, "reentered": life.reentered,
                     "reentry_utc": life.reentry_utc, "lifetime_years": life.lifetime_years,
                     "horizon_years": life.horizon_years, "rules": verdicts,

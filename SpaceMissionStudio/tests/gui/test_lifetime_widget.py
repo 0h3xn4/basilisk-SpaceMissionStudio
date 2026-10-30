@@ -113,3 +113,33 @@ def test_the_drag_coefficient_defaults_to_ad10s_end_of_life_value(qtbot, monkeyp
         widget.compute()
         qtbot.waitUntil(lambda: widget._worker is None, timeout=10000)
         assert asked[-1] == expected
+
+
+def test_the_pages_defaults_are_the_configurations(qtbot):
+    """Transparency audit, Phase 3a: the End of Life page starts from the
+    lifetime defaults in effect (``lifetime.default_*``): AD10's, or a
+    project file's. An edit elsewhere in the scenario leaves the user's
+    own choices alone; a change of the defaults sets them again."""
+    from spacemissionstudio.config.registry import Configuration
+    from spacemissionstudio.gui.lifetime_widget import LifetimeWidget
+
+    widget = LifetimeWidget()
+    qtbot.addWidget(widget)
+    scenario = _scenario()
+    widget.set_scenario(scenario)
+    assert widget.drag_combo.currentText() == "2.2 (AD10 end of life)"
+    assert (widget.horizon_spin.value(), widget.deorbit_perigee_spin.value()) == (30.0, 250.0)
+    assert widget.activity_combo.currentText().startswith("50th")
+    widget.horizon_spin.setValue(12.0)
+    widget.set_scenario(_scenario())  # another edit: the user's 12 years stay
+    assert widget.horizon_spin.value() == 12.0
+    project = _scenario()
+    project.configuration = Configuration({"lifetime.default_drag_coeff": 3.0,
+                                           "lifetime.default_forecast_percentile": 95.0,
+                                           "lifetime.default_horizon_years": 40.0,
+                                           "lifetime.default_deorbit_perigee_km": 300.0})
+    widget.set_scenario(project)
+    assert widget.drag_combo.currentText() == "3 (the project's default)"
+    assert widget._drag_items[widget.drag_combo.currentIndex()][1] == 3.0
+    assert (widget.horizon_spin.value(), widget.deorbit_perigee_spin.value()) == (40.0, 300.0)
+    assert widget.activity_combo.currentText().startswith("95th")

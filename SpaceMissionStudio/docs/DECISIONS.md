@@ -5,6 +5,30 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The lifetime's rules as parameters (2026-10-30)
+
+The transparency plan's Phase 3a, second area.
+
+- **The estimate's defaults are parameters:** the drag coefficient,
+  percentile, horizon and deorbit perigee that `lifetime` and the End of
+  Life page start from are what a project most often wants as its own.
+  The CLI's options default to unset and take them per scenario. The page
+  sets its controls to them when they change, and not on every edit,
+  which would undo the user's own choices.
+- **The input limit stays a limit:** `MAX_HORIZON_YEARS` (100 years) bounds
+  what the estimate accepts; it is not an assumption of the model.
+- **Two re-entry altitudes, kept for now:** the lifetime's 120 km is a
+  parameter; the run's 100 km is not yet. Phase 3c reconciles them, as a
+  recorded change of numbers.
+- **Choices, not only limits:** a percentile parameter takes only MSFC's
+  95, 50 and 5, the only ones a forecast can be resolved at. The budget's
+  two percentiles, merged with limits 5 to 95, accepted 60 and failed at
+  run time; a value outside the choices is now refused when the file is
+  read.
+- **A GUI default's test is the page's:** the deorbit perigee acts only on
+  the End of Life page, so its case is a test of that page, which the
+  registry's guard test names.
+
 ## The parameter registry and project configuration (2026-10-30)
 
 The transparency plan's Phase 3a and 3b (`docs/transparency_audit.md` 9.2),

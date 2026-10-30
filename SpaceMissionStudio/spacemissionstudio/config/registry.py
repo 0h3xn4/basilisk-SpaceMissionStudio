@@ -51,6 +51,7 @@ class Parameter:
     kind: str = "number"  # "number", "integer" or "number list"
     minimum: float | None = None
     maximum: float | None = None
+    choices: tuple | None = None  # the only values it may take, e.g. MSFC's (95, 50, 5) percentiles
 
     @property
     def area(self) -> str:
@@ -64,6 +65,9 @@ class Parameter:
                 raise ConfigError(f"{self.name}: a list of numbers {self.unit}, got {value!r}")
             return tuple(self._number(v) for v in value)
         number = self._number(value)
+        if self.choices is not None and number not in self.choices:
+            raise ConfigError(f"{self.name}: one of {', '.join(f'{c:g}' for c in self.choices)} {self.unit}, "
+                              f"got {value!r}")
         if self.kind == "integer":
             if number != int(number):
                 raise ConfigError(f"{self.name}: a whole number, got {value!r}")

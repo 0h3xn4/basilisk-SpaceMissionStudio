@@ -78,9 +78,9 @@ def test_rule_checks_need_an_actual_reentry():
     without re-entry no rule is met and there is no date."""
     result = lifetime.LifetimeResult(True, 4.0 * 365.25 * 86400.0, np.zeros(2), np.zeros(2), np.zeros(2),
                                      datetime(2030, 1, 1))
-    assert result.meets(lifetime.ZERO_DEBRIS_YEARS) and result.reentry_utc.year == 2034
+    assert result.meets(lifetime.rule("zero_debris_years")) and result.reentry_utc.year == 2034
     result.reentered = False
-    assert not result.meets(lifetime.IADC_YEARS) and result.reentry_utc is None
+    assert not result.meets(lifetime.rule("iadc_years")) and result.reentry_utc is None
 
 
 def _template_18(altitude_km, duration_days=1.0):
@@ -147,7 +147,7 @@ def test_reentry_date_matches_a_basilisk_decay_run():
     ecc = result.series["leo-sat-1.orbit_elements_mean.eccentricity"].data[:, 0]
     perigee_km = (sma.data[:, 0] * (1.0 - ecc) - lifetime.REQ_EARTH_M) / 1e3
     with np.errstate(invalid="ignore"):
-        basilisk_days = sma.time_s[np.argmax(perigee_km <= lifetime.REENTRY_ALTITUDE_KM)] / 86400.0
+        basilisk_days = sma.time_s[np.argmax(perigee_km <= lifetime.rule("reentry_altitude_km"))] / 86400.0
     assert estimate.reentered
     assert estimate.lifetime_s / 86400.0 == pytest.approx(basilisk_days, rel=0.03)
     assert any(w.startswith("leo-sat-1 re-entered: below 100 km") for w in result.warnings)

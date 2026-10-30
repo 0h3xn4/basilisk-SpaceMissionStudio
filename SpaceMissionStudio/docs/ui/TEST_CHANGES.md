@@ -940,3 +940,23 @@ never named "_TabBar".
 | `test_results.py::test_result_set_export_csv_with_provenance_writes_sidecar_json` | Expected the record's fields up to `scenario_file_migrations` | Also expects `configuration` (empty) | The new provenance field; the test still checks every field the file holds |
 | `tests/gui/test_export_files.py::test_every_export_is_byte_identical_to_1_1_0` | Removed the 13 provenance keys added since 1.1.0 | Also removes `configuration`, which must be there | As above; every other byte is still compared with 1.1.0's |
 | `tests/golden/*.json` (regression baseline) | The run provenance had no configuration | Rewritten: each gains `configuration` (no file, no overrides) | The new provenance field; the comparison found no other difference |
+
+## The lifetime's rules as parameters (2026-10-30)
+
+- Added, in `test_config.py`:
+  - a case for each of the 10 lifetime parameters that act outside the GUI, setting it and checking what it
+    controls changes: the decay's length and steps, the ring size, the rules' labels and verdicts, the make-up's
+    samples, and the CLI's defaults;
+  - `test_the_percentile_choices_are_msfcs`;
+  - in `tests/gui/test_lifetime_widget.py`, `test_the_pages_defaults_are_the_configurations`, for the four GUI
+    defaults.
+
+  Each fails on the code before (checked).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_cli.py::test_lifetime_drag_coefficient_defaults_to_ad10s_end_of_life_value` | The parser's default was the text "2.2" | The parser leaves it unset, and the registry's `lifetime.default_drag_coeff` is 2.2 | The default is a named parameter a project may change; it is still AD10's 2.2 |
+| `test_cli.py::test_lifetime_and_budget_write_what_they_were_computed_from` | Read `REENTRY_ALTITUDE_KM` from the lifetime record | Reads `lifetime.reentry_altitude_km` from its rules | The rules are named as in the registry; the value checked is the same |
+| `test_cli.py::test_assumptions_lists_the_parameters_and_a_run_records_its_configuration` | Expected the areas to be "propellant_budget" alone | Expects both areas listed | A second area is in the registry |
+| `test_lifetime.py` (3 lines) | Read `ZERO_DEBRIS_YEARS`, `IADC_YEARS`, `REENTRY_ALTITUDE_KM` | Read them through `lifetime.rule()` | The constants are now parameters; the values are the same |
+| `test_config.py::test_setting_a_parameter_changes_what_it_controls` (the disposal stub) | The decay stub took positional arguments only | Also takes the scenario as a keyword | `propagate_decay` now takes the scenario |

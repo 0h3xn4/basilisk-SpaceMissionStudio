@@ -14514,7 +14514,38 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
-## The parameter registry and project configuration (2026-10-30)
+## The lifetime's rules as parameters (2026-10-30)
+
+The transparency plan, Phase 3a, second area. Branch `lifetime-params`.
+
+- **11 `lifetime.*` parameters** (`config/parameters.py`):
+  - the re-entry perigee;
+  - the drag ring, the step and the perigee-drop fraction;
+  - the 5- and 25-year rules;
+  - the make-up step;
+  - the defaults for Cd, percentile, horizon and deorbit perigee.
+
+  `lifetime.rule(name, scenario)` replaces seven module constants.
+  `propagate_decay`, `density_for_scenario` and `drag_makeup` take the
+  scenario; `end_of_life`'s horizon and percentile default to the
+  scenario's. `lifetime.disposal_rules(scenario)` gives each rule's
+  years, label and record key, for the CLI, the End of Life page (its
+  badges and plot marks) and the record.
+- **CLI:** `lifetime`'s `--max-years`, `--forecast-percentile` and
+  `--drag-coeff` default to unset and take the scenario's defaults.
+- **GUI:** the End of Life page applies the configuration's defaults when
+  they change (`_apply_defaults`).
+- **Registry:** `Parameter.choices`; the three percentile parameters take
+  MSFC's 95, 50 and 5 only (a fix to the budget's two from #157).
+- **Records:** the lifetime record's rules carry their parameter names.
+- **Docs:** `docs/models/lifetime.md`.
+
+Tried by hand: `lifetime` on template 18 prints re-entry 2031-03-22,
+1.22 years, both rules met, as before.
+
+Each new test fails on the code before. The regression baseline of all 31 templates passes unchanged (0
+differences). Full suite on Python 3.14: 4073 passed in 9 min 57 s.
+
 
 The transparency plan, Phase 3a and 3b of `docs/transparency_audit.md` 9.2,
 first area: the propellant budget. Branch `registry`.
