@@ -148,7 +148,10 @@ _VOLATILE_PROVENANCE = {"run_started_utc", "dependency_versions", "data_files", 
                         "scenario_sha256"}
 # Fields of a result that name this machine's files (paths, sizes and
 # hashes): a lifetime's and a budget's data files, as the run's above.
-_MACHINE_FIELDS = {"data_files"}
+# Also the calculation traces (engine.trace): they restate the numbers
+# recorded here, with their inputs, and tests/test_trace.py recomputes each
+# number from its trace; the baseline records the numbers.
+_MACHINE_FIELDS = {"data_files", "delta_v_trace", "propellant_trace", "traces"}
 
 
 def template_paths() -> list[Path]:

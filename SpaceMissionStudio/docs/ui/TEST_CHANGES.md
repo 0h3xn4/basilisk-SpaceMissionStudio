@@ -1065,3 +1065,21 @@ never named "_TabBar".
 | `test_orbit_maintenance.py::_build_non_convergent_phasing_controller` (helper) | No arguments | Takes an optional `scenario`, passed to the controller | The parameter's case in `test_config.py` builds the same controller with a configuration; the four tests call it as before |
 | `test_constants.py::test_no_module_keeps_a_copy_of_a_constant` | Nine values | Also J22's and lambda22's old literals | They are constants now |
 | `test_formation_keeping_regression.py`: the two sub-bit trim tests (5 cases) | Built the controller with `__new__` and set the attributes `_start_burn` read | Also set `relativeSmaTrimM` to the registry's default (25 m) | `_start_burn` reads the trim tolerance from the controller now, which `__init__` sets from `orbit_control.relative_sma_trim_m`; the value and every assertion are the same |
+
+## The budget's calculation traces (2026-10-30)
+
+- Added: `tests/test_trace.py` (10 tests):
+  - every budget number recomputed from its trace, for each disposal;
+  - the mass before each burn;
+  - every input's source and parameter value;
+  - a flown contributor traced to the run's series;
+  - contributors given without the series;
+  - the drag estimate's inputs;
+  - the record and `--explain`;
+  - the trace type itself.
+
+  Each fails on the code before (checked; `engine.trace` does not exist there).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/golden_capture.py` (the regression baseline's fingerprint) | Left out `data_files` | Also leaves out `delta_v_trace`, `propellant_trace` and `traces` | The traces restate the numbers the fingerprint records, with their inputs; `tests/test_trace.py` checks them. Every number in the baseline is compared as before |

@@ -14514,6 +14514,30 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The budget's calculation traces (2026-10-30)
+
+The transparency plan, Phase 4a and 4c, for the propellant budget. Branch
+`budget-trace`.
+
+- **`engine/trace.py`:**
+  - `Quantity` (name, symbol, value, unit, source);
+  - `Trace` (quantity, symbol, value, unit, equation, reference, inputs,
+    intermediates, notes), with `to_dict`, `text` and `input(symbol)`;
+  - plain data, no Basilisk.
+- **`propellant_budget.compute_budget`** builds them as it computes:
+  - `BudgetRow.delta_v_trace` and `propellant_trace` on every row;
+  - `Budget.traces`: `efficiency`, `exhaust_speed`, `dry_mass`,
+    `total_propellant`;
+  - `RunContributors.flown_from` keeps the series each flown contributor
+    came from. These fields are not compared, so a row is still equal to
+    its numbers.
+- **Out:**
+  - `budget --explain` prints every trace;
+  - `budget --out` writes them (`analysis_records.budget_record`:
+    `results.rows[*].*_trace`, `results.traces`);
+  - ICD-02's description of the record names them.
+- **Tests:** `tests/test_trace.py`, 10 tests.
+
 ## The orbit controllers' rules, as parameters (2026-10-30)
 
 The transparency plan, Phase 3a: the orbit controllers. Branch

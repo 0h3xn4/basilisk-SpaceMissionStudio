@@ -120,11 +120,42 @@ equatorial radius (6378.1366 km), from the one set
 - Launch-date effects other than drag, such as the Moon's 18.6-year cycle
   in GEO north-south control.
 
+## How each number was computed
+
+Every number of the budget carries its trace (`engine.trace`), written by
+the calculation from the values it computed with:
+- each row's delta-V and its propellant;
+- the thruster efficiency, the exhaust speed and the dry mass with its
+  margin;
+- the propellant total and the iterations that settled it.
+
+A trace gives the equation, the AD10 section it comes from, and each input
+and intermediate with its unit and its source:
+- `scenario:` the field of the scenario file;
+- `parameter:` the named parameter, at the value in effect;
+- `constant:` one of the [physical constants](constants.md);
+- `last run:` the run's series;
+- `computed:` how it was derived;
+- `trace:` another number of the budget.
+
+For example, a row's propellant is
+
+    m_p = m * (1 - exp(-dV / Ve))   [ESA AD10 Secs. 6.1.3, 6.2.7, 6.3.4]
+
+with `m` the mass before the burn: the dry mass plus the iteration's load,
+less the propellant of the rows above. The row's own delta-V trace and the
+exhaust speed's trace are its inputs. `budget --explain` prints every
+trace, and `budget --out` writes them. `tests/test_trace.py` recomputes
+every number from its trace's inputs alone. The exceptions are the
+re-entry burn and the drag estimate, whose traces name the solver and its
+inputs.
+
 ## Outputs and records
 
 The **Budget** page and `spacemissionstudio budget` print one row per
 contributor with its phase, delta-V, propellant, margin and source, and
-the notes. `budget --out FILE.json` writes the record: the inputs, the
-rules in effect under their parameter names, the rows and totals, the
-notes, and the provenance, including the project configuration file and
-each value it changes.
+the notes. `budget --explain` adds each number's trace. `budget --out
+FILE.json` writes the record: the inputs, the rules in effect under their
+parameter names, the rows with their traces and the totals, the notes,
+and the provenance, including the project configuration file and each
+value it changes.

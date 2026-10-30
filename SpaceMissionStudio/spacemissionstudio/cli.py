@@ -716,6 +716,10 @@ def cmd_budget(args: argparse.Namespace) -> int:
         print("ERROR: --out writes the budget itself; it does not go with --launch-delays or --altitudes",
               file=sys.stderr)
         return 2
+    if args.explain and (args.launch_delays or args.altitudes is not None):
+        print("ERROR: --explain explains the budget itself; it does not go with --launch-delays or --altitudes",
+              file=sys.stderr)
+        return 2
     try:
         from .engine import propellant_budget as pb
         from .engine.service import SimulationService
@@ -747,11 +751,30 @@ def cmd_budget(args: argparse.Namespace) -> int:
     print(f"{'Total':<71} {budget.total_delta_v_m_s:>9.2f} {budget.total_propellant_kg:>10.3f}")
     for note in budget.notes:
         print(f"NOTE: {note}")
+    if args.explain:
+        _print_budget_traces(budget)
     if args.out is not None:
         from .engine import analysis_records
 
         return _write_record(args, analysis_records.budget_record(scenario, name, budget, result), file_record)
     return 0
+
+
+def _print_budget_traces(budget) -> None:
+    """How each number of ``budget`` was computed (``engine.trace``): the
+    budget-wide values, then each row's delta-V and propellant."""
+    print()
+    print("How each number was computed:")
+    for key in ("efficiency", "exhaust_speed", "dry_mass"):
+        print()
+        print("\n".join(budget.traces[key].text()))
+    for row in budget.rows:
+        for trace in (row.delta_v_trace, row.propellant_trace):
+            if trace is not None:
+                print()
+                print("\n".join(trace.text()))
+    print()
+    print("\n".join(budget.traces["total_propellant"].text()))
 
 
 def _print_launch_delays(pb, scenario, name, result) -> int:
@@ -1463,7 +1486,11 @@ def build_parser() -> argparse.ArgumentParser:
                               help="launch-delay sweep at each altitude [km] (default: five around the "
                                    "spacecraft's own), against the tank")
     p_budget.add_argument("--out", type=Path, metavar="FILE.json", default=None,
-                          help="also write the budget as JSON: inputs, rules, rows, notes, the provenance")
+                          help="also write the budget as JSON: inputs, rules, rows with their traces, notes, the "
+                               "provenance")
+    p_budget.add_argument("--explain", action="store_true",
+                          help="after the table, how each number was computed: the equation, the inputs with their "
+                               "units and sources, and the AD10 section")
     p_budget.set_defaults(func=cmd_budget)
 
     p_kernels = subparsers.add_parser("kernels-status", help="fetch/check SPICE kernel cache status")

@@ -17,6 +17,12 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-30: the budget's calculation traces (Phase 4a)
+
+**No number changes.** Each number of the propellant budget now carries
+how it was computed. The numbers are computed as before; the regression
+baseline of all 31 templates passes unchanged.
+
 ## 2026-10-30: the orbit controllers' rules, as parameters (Phase 3a)
 
 **One number changes: GEO station keeping's J22 and lambda22.** The nine

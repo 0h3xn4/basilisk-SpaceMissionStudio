@@ -134,7 +134,9 @@ def budget_record(scenario, spacecraft_name: str, budget, result=None) -> dict:
         "results": {"dry_mass_kg": budget.dry_mass_kg, "isp_s": budget.isp_s, "efficiency": budget.efficiency,
                     "iterations": budget.iterations, "rows": _plain(budget.rows),
                     "total_delta_v_m_s": budget.total_delta_v_m_s,
-                    "total_propellant_kg": budget.total_propellant_kg},
+                    "total_propellant_kg": budget.total_propellant_kg,
+                    # How each number was computed (engine.trace); each row carries its own two
+                    "traces": _plain(budget.traces)},
         "notes": list(budget.notes),
         "provenance": provenance,
     }
