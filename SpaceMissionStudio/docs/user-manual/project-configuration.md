@@ -6,8 +6,8 @@ avoidances. Each has a default, a unit, a source and limits. A project
 changes them in a configuration file. No code is edited, and every result
 records what was changed.
 
-So far the rules of the propellant budget and of the orbital lifetime are
-parameters. The other areas follow ([Models](../models/README.md)).
+So far the rules of the propellant budget, the orbital lifetime, the RF
+link and data handling are parameters. The other areas follow ([Models](../models/README.md)).
 
 ## See the parameters
 

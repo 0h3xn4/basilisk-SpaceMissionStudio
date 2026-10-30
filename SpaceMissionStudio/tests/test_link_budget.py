@@ -130,7 +130,7 @@ def test_link_budget_breakdown_pointing_loss_clamped_at_max():
     rf_link = _rf_link(antenna_beamwidth_deg=1.0)  # tiny beamwidth -> huge unclamped loss
     gs = _ground_station()
     breakdown = link_budget_breakdown(1.0e6, rf_link, gs, pointing_error_deg=90.0)
-    assert breakdown.pointing_loss_db == 30.0  # _MAX_POINTING_LOSS_DB
+    assert breakdown.pointing_loss_db == 30.0  # link.max_pointing_loss_db
 
 
 def test_link_margin_db_pointing_error_kwarg_matches_breakdown():

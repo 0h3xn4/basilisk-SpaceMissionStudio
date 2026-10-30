@@ -14514,6 +14514,47 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The link's and data handling's rules as parameters (2026-10-30)
+
+The transparency plan, Phase 3a, third area. Branch `link-power-params`.
+
+- **5 parameters** (`config/parameters.py`):
+  - `link.required_margin_db` (0 dB): the margin at which the link closes;
+  - `link.pointing_loss_coeff_db` (12) and `link.max_pointing_loss_db`
+    (30 dB): the "fixed" pattern's pointing loss;
+  - `data_handling.packet_size_bits` (1 Mbit);
+  - `data_handling.explainer_pass_minutes` (10 min).
+- **One closure rule, four places.** `link_budget.link_closes(margin,
+  scenario)` replaces four separate `>= 0` tests:
+  - the live downlink gate (`engine.data_handling`);
+  - the comms-pointing arbitrator's Vizard link status (`engine.fsw`);
+  - the mission dashboard's badge;
+  - the results overview's link card. The card reads the value the run
+    had from its provenance (`registry.recorded_value`), so a run is judged
+    by its own rule.
+- **The scenario reaches the simulation.** The gate, the arbitrator,
+  `build_data_handling` and `link_margin_series` take the scenario. The
+  gate and the arbitrator read the required margin once, when built.
+- **Registry:** `parameter()` no longer builds the whole list on each
+  call, since the gate reads the pointing loss's parameters every step in
+  view.
+- **Power** has no rule of its own: the page documents Basilisk's
+  `simpleSolarPanel`, `simplePowerSink` and `simpleBattery`.
+- **Docs:** `docs/models/link-data-and-power.md`.
+- **Records repaired:** the headings of the registry's entry here and in
+  `docs/changes.md`, and of the bundles' entry in `docs/changes.md`, were
+  lost when later entries were added above them; they are restored.
+
+Measured: a 12 dB required margin, on `tests/test_data_handling.py`'s
+half-day downlink, cuts the closed samples from 127 to 48 and the data
+downlinked from 762 to 666 Mbit.
+
+Tried by hand: template 26 (a day of Earth observation over Berlin) with a
+project file requiring 6 dB. `assumptions --changed` and `validate` name
+the file. The run closes the link in 210 samples instead of 339 and
+downlinks 8.73 Gbit instead of 11.49, losing 3.12 Gbit instead of 0.89.
+Its `provenance.json` holds the file, its SHA-256 and the override.
+
 ## The lifetime's rules as parameters (2026-10-30)
 
 The transparency plan, Phase 3a, second area. Branch `lifetime-params`.
@@ -14546,6 +14587,7 @@ Tried by hand: `lifetime` on template 18 prints re-entry 2031-03-22,
 Each new test fails on the code before. The regression baseline of all 31 templates passes unchanged (0
 differences). Full suite on Python 3.14: 4073 passed in 9 min 57 s.
 
+## The parameter registry and project configuration (2026-10-30)
 
 The transparency plan, Phase 3a and 3b of `docs/transparency_audit.md` 9.2,
 first area: the propellant budget. Branch `registry`.

@@ -1835,7 +1835,7 @@ class SimulationService:
                 self.scSim, dyn_task_name, sc_config.name, comms_config,
                 sun_guid_msg=handle.comms_sun_guid_msg, comms_guid_msg=handle.comms_station_guid_msg,
                 access_out_msg=access_out_msg, comms_power_sink=handle.comms_power_sink,
-                rf_link=sc_config.rf_link, ground_station_config=target_gs_config,
+                rf_link=sc_config.rf_link, ground_station_config=target_gs_config, scenario=scenario,
             )
             handle.comms_pointing_arbitrator = arbitrator
 
@@ -1859,14 +1859,14 @@ class SimulationService:
                     list(gs_configs_by_name.values()),
                     {gs: self._access_out_msgs[(gs, sc_config.name)] for gs in gs_configs_by_name},
                     {gs: loc.currentGroundStateOutMsg for gs, loc in self._ground_locations.items()},
-                    scenario.sim_settings.record_interval_s,
+                    scenario.sim_settings.record_interval_s, scenario,
                 )
                 handle.link_gate = gate
             if sc_config.data_handling is not None:
                 handle.data_handling = data_handling.build_data_handling(
                     self.scSim, dyn_task_name, sc_config.name, sc_config.data_handling, gate,
                     sc_config.rf_link.data_rate_bps if sc_config.rf_link is not None else 0.0,
-                    handle.battery_module, self._record, scenario.sim_settings.record_interval_s,
+                    handle.battery_module, self._record, scenario.sim_settings.record_interval_s, scenario,
                 )
 
         if self.vizard_request is not None:
@@ -2670,7 +2670,7 @@ class SimulationService:
             for gs_config in self.scenario.ground_stations:
                 result.add(link_budget.link_margin_series(
                     result, gs_config.name, sc_config.name, sc_config.rf_link, gs_config,
-                    comms_pointing_target_ground_station=comms_target,
+                    comms_pointing_target_ground_station=comms_target, scenario=self.scenario,
                 ))
         if result.provenance is not None:
             result.provenance = dataclasses.replace(result.provenance,

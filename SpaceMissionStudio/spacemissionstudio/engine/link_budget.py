@@ -59,7 +59,22 @@ from .results import ResultSet, ResultsError, TimeSeries
 
 _C_LIGHT_M_S = 299792458.0  # [m/s]
 _K_BOLTZMANN_DBW_HZ = -228.6  # [dBW/K/Hz] 10*log10(1.380649e-23)
-_MAX_POINTING_LOSS_DB = 30.0  # [dB] clamp -- the parabolic approximation below is only valid near boresight
+
+
+def rule(name: str, scenario=None):
+    """The value of ``link.<name>`` in effect for ``scenario``
+    (config.parameters): the required margin and the "fixed" pattern's
+    pointing loss."""
+    from ..config import registry
+
+    return registry.value(f"link.{name}", scenario)
+
+
+def link_closes(margin_db: float, scenario=None, required_margin_db: float | None = None) -> bool:
+    """True when ``margin_db`` (a NaN: no link) is at least the required
+    margin, ``link.required_margin_db`` unless given."""
+    required = rule("required_margin_db", scenario) if required_margin_db is None else required_margin_db  # [dB]
+    return not math.isnan(margin_db) and margin_db >= required
 
 
 def needs_link_gate(sc_config) -> bool:
@@ -139,7 +154,7 @@ class LinkBudgetBreakdown:
 
 
 def link_budget_breakdown(range_m: float, rf_link: RFLinkConfig, ground_station: GroundStationConfig,
-                           pointing_error_deg: float = 0.0) -> LinkBudgetBreakdown:
+                           pointing_error_deg: float = 0.0, scenario=None) -> LinkBudgetBreakdown:
     """The full link budget, every stage broken out -- see
     :class:`LinkBudgetBreakdown`. :func:`link_margin_db` is a thin
     wrapper returning just ``.margin_db``.
@@ -153,14 +168,15 @@ def link_budget_breakdown(range_m: float, rf_link: RFLinkConfig, ground_station:
     exact pre-pointing-loss behavior for every scenario that doesn't set
     that field. When both are given, applies the standard parabolic
     -reflector/Gaussian-main-lobe pointing-loss approximation
-    ``12*(pointing_error_deg / antenna_beamwidth_deg)^2`` dB (clamped to
-    :data:`_MAX_POINTING_LOSS_DB` -- the approximation itself is only
-    meaningful within a few beamwidths of boresight, not an indication
-    the link still "almost" closes far off-axis).
+    ``12*(pointing_error_deg / antenna_beamwidth_deg)^2`` dB (the 12 is
+    ``link.pointing_loss_coeff_db``; clamped to ``link.max_pointing_loss_db``
+    -- the approximation itself is only meaningful within a few beamwidths
+    of boresight, not an indication the link still "almost" closes far
+    off-axis). ``scenario`` gives those parameters' values.
     """
     eirp_dbw = 10.0 * np.log10(rf_link.tx_power_w) + peak_gain_dbi(rf_link) - rf_link.implementation_loss_db
     fspl_db = 20.0 * np.log10(4.0 * np.pi * range_m * rf_link.frequency_hz / _C_LIGHT_M_S)
-    pointing_loss = pointing_loss_db(rf_link, pointing_error_deg)
+    pointing_loss = pointing_loss_db(rf_link, pointing_error_deg, scenario)
     received_dbw = eirp_dbw - fspl_db - pointing_loss + ground_station.rx_antenna_gain_dbi
     n0_dbw_hz = _K_BOLTZMANN_DBW_HZ + 10.0 * np.log10(ground_station.system_noise_temp_k)
     cn0_db_hz = received_dbw - n0_dbw_hz
@@ -181,30 +197,33 @@ def margin_at_one_metre_db(rf_link: RFLinkConfig, ground_station: GroundStationC
     return link_budget_breakdown(1.0, rf_link, ground_station, 0.0).margin_db
 
 
-def pointing_loss_db(rf_link: RFLinkConfig, off_boresight_deg: float) -> float:
+def pointing_loss_db(rf_link: RFLinkConfig, off_boresight_deg: float, scenario=None) -> float:
     """The gain toward the station below the peak [dB], as
     :func:`link_budget_breakdown` applies it."""
     if rf_link.antenna_pattern != "fixed":
         return peak_gain_dbi(rf_link) - antenna_gain_dbi(rf_link, off_boresight_deg)
     if rf_link.antenna_beamwidth_deg is not None and off_boresight_deg != 0.0:
-        return min(_MAX_POINTING_LOSS_DB, 12.0 * (off_boresight_deg / rf_link.antenna_beamwidth_deg) ** 2)
+        coefficient_db = rule("pointing_loss_coeff_db", scenario)  # [dB]
+        return min(rule("max_pointing_loss_db", scenario),
+                   coefficient_db * (off_boresight_deg / rf_link.antenna_beamwidth_deg) ** 2)
     return 0.0
 
 
 def link_margin_db(range_m: float, rf_link: RFLinkConfig, ground_station: GroundStationConfig,
-                    pointing_error_deg: float = 0.0) -> float:
+                    pointing_error_deg: float = 0.0, scenario=None) -> float:
     """Downlink Eb/N0 margin [dB] at the given slant range: positive means
     the link closes with that much margin to spare; negative means it
     doesn't close at that range with these parameters. See
     :func:`link_budget_breakdown` for every intermediate quantity and
     for what ``pointing_error_deg`` does.
     """
-    return link_budget_breakdown(range_m, rf_link, ground_station, pointing_error_deg).margin_db
+    return link_budget_breakdown(range_m, rf_link, ground_station, pointing_error_deg, scenario).margin_db
 
 
 def link_margin_series(result: ResultSet, ground_station_name: str, spacecraft_name: str,
                         rf_link: RFLinkConfig, ground_station: GroundStationConfig,
-                        comms_pointing_target_ground_station: str | None = None) -> TimeSeries:
+                        comms_pointing_target_ground_station: str | None = None,
+                        scenario=None) -> TimeSeries:
     """Builds a ``"<gs>.access_to_<sc>.link_margin_db"`` :class:`TimeSeries`
     from that pair's already-recorded ``slant_range``/``has_access`` series
     (see ``engine.service.SimulationService.run()``'s access-analysis
@@ -282,7 +301,8 @@ def link_margin_series(result: ResultSet, ground_station_name: str, spacecraft_n
         has_access = has_access & (active_mode_series.data[:, 0] > 0.5)
     for i in np.nonzero(has_access)[0]:
         pointing_error_deg = float(pointing_error_series.data[i, 0]) if pointing_error_series is not None else 0.0
-        margin_db[i] = link_margin_db(float(range_series.data[i, 0]), rf_link, ground_station, pointing_error_deg)
+        margin_db[i] = link_margin_db(float(range_series.data[i, 0]), rf_link, ground_station, pointing_error_deg,
+                                      scenario)
 
     return TimeSeries(f"{prefix}.link_margin_db", range_series.time_s, ("link_margin_db",),
                        margin_db.reshape(-1, 1), units="dB")

@@ -157,3 +157,32 @@ parameters:
   # Source: SpaceMissionStudio's own choice.
   # Limits: 130 to 2000 [km]
   # lifetime.default_deorbit_perigee_km: 250.0  # [km]
+
+  # -- link ------------------------------------------------------------------
+
+  # The link closes while its Eb/N0 margin (over the required Eb/N0) is at least this: the simulated downlink is allowed, Vizard shows the link OK, and a lower margin is marked on the dashboard and the results overview.
+  # Source: SpaceMissionStudio's own choice. 0 dB: the link closes with nothing to spare. Projects usually require a few dB; set that here.
+  # Limits: -20 to 30 [dB]
+  # link.required_margin_db: 0.0  # [dB]
+
+  # The pointing loss of a 'fixed' antenna with a beamwidth: this * (off-boresight angle / beamwidth)^2.
+  # Source: Parabolic main-lobe approximation, as in Wertz & Larson, Space Mission Analysis and Design, ch. 13. 12 dB puts the loss at 3 dB half a beamwidth off boresight, the beamwidth's definition.
+  # Limits: 0 to 100 [dB]
+  # link.pointing_loss_coeff_db: 12.0  # [dB]
+
+  # The most pointing loss a 'fixed' antenna's approximation gives; a larger angle is held at this.
+  # Source: SpaceMissionStudio's own choice. The approximation holds near boresight only; at 30 dB below the peak the link does not close.
+  # Limits: 0 to 200 [dB]
+  # link.max_pointing_loss_db: 30.0  # [dB]
+
+  # -- data_handling ---------------------------------------------------------
+
+  # The size of the packets the transmitter takes from the memory.
+  # Source: Basilisk's examples/scenarioGroundDownlink.py.
+  # Limits: 1 to 1e+12 [bit]
+  # data_handling.packet_size_bits: 1000000.0  # [bit]
+
+  # The pass length of the scenario explanation's 'Gbit per pass' note; a run's passes are predicted.
+  # Source: SpaceMissionStudio's own choice. A typical low Earth orbit pass.
+  # Limits: 0.1 to 1440 [min]
+  # data_handling.explainer_pass_minutes: 10.0  # [min]

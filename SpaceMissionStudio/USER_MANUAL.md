@@ -728,8 +728,9 @@ all Basilisk modules (`simpleInstrument`, `partitionedStorageUnit`,
   run counts it.
 * With the **Downlink RF link budget** on, the transmitter sends at the
   link's data rate to any ground station whose link closes: the station is
-  in view and the Eb/N0 margin is 0 dB or more. It empties the fullest
-  part of the memory first.
+  in view and the Eb/N0 margin is 0 dB or more (the parameter
+  `link.required_margin_db`; a project can require more). It empties the
+  fullest part of the memory first.
 * Instruments and the transmitter can draw power from the power budget.
 
 **Antenna pattern** (same group as the link budget) says how the
@@ -996,8 +997,9 @@ used, the change of the mean semi-major axis, the lowest link margin and
 battery charge, passes and contact time, eclipses and eclipse time, and
 data downlinked (only those the run recorded; Compare's summary has the
 same figures). A card is red, with an icon and its reason, only where the
-scenario sets the limit: a link margin below 0 dB (the margin already
-includes the required Eb/N0) and a battery that ran empty. **Provenance**
+scenario sets the limit: a link margin below the required margin (0 dB
+unless the project configuration sets `link.required_margin_db`; the
+margin already includes the required Eb/N0) and a battery that ran empty. **Provenance**
 beside the run's name shows what produced it: the versions, the
 integrator and step, the data files.
 
@@ -1499,7 +1501,8 @@ anyone who hasn't worked with spacecraft before:
   when each spacecraft is visible to each ground station.
 * **Link margin** -- how much stronger the received radio signal is than
   the receiver needs (Eb/N0 above the required value, in dB). At 0 dB or
-  more the link closes and data can be sent; below 0 dB it cannot.
+  more the link closes and data can be sent; below 0 dB it cannot. A
+  project can require more (`link.required_margin_db`).
 * **Patch antenna** -- a flat antenna on a face of the spacecraft, the
   kind most small satellites fly. Its gain is highest straight out of the
   face (its boresight) and falls off toward the sides, so the link to a

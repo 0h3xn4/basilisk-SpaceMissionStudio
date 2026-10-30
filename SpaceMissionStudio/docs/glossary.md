@@ -209,7 +209,8 @@ fly there, low enough to feel [drag](#d).
 
 **Link margin** -- how much stronger the received radio signal is than
 the receiver needs, in dB. At 0 dB or more the link closes and data can
-be sent; below 0 dB it cannot.
+be sent; below 0 dB it cannot. A project can require more
+(`link.required_margin_db`, [RF link, data handling and power](models/link-data-and-power.md)).
 
 **LTAN (local time of the ascending node)** -- for a [Sun-synchronous
 orbit](#s), the local solar time when the satellite crosses the equator

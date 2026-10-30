@@ -58,6 +58,7 @@ import math
 from dataclasses import dataclass, field
 from datetime import timedelta, UTC
 
+from ..config import registry
 from ..schema.epochs import parse_epoch_utc
 from . import earth_orientation, landmarks, opnav, small_bodies
 from .orbit_design import sun_synchronous_inclination_deg
@@ -425,9 +426,6 @@ def _solar_array_section(scenario) -> ExplanationSection | None:
     return ExplanationSection(title="Flexible solar arrays", badges=badges, notes=notes)
 
 
-_PASS_MINUTES = 10.0  # [min] a typical LEO pass, for the "per pass" figure only
-
-
 def _data_handling_section(scenario) -> ExplanationSection | None:
     """What the instruments produce, how long the memory lasts and what a
     pass can carry (engine.data_handling) -- arithmetic on the settings,
@@ -449,14 +447,15 @@ def _data_handling_section(scenario) -> ExplanationSection | None:
         free_gbit = dh.storage_capacity_gbit - sum(i.initial_data_gbit for i in dh.instruments)  # [Gbit]
         hours = free_gbit * 1e9 / rate_bps / 3600.0 if rate_bps > 0 else float("inf")  # [h]
         notes.append(f"{sc.name}: {per_day_gbit:.3g} Gbit/day; memory full in {hours:.3g} h")
+        pass_minutes = registry.value("data_handling.explainer_pass_minutes", scenario)  # [min] "per pass" only
         if sc.rf_link is None:
             badges.append(Badge(f"{sc.name}: no downlink (no RF link)", "warning"))
         elif not scenario.ground_stations:
             badges.append(Badge(f"{sc.name}: no ground station to downlink to", "warning"))
         else:
-            per_pass_gbit = sc.rf_link.data_rate_bps * _PASS_MINUTES * 60.0 / 1e9  # [Gbit]
+            per_pass_gbit = sc.rf_link.data_rate_bps * pass_minutes * 60.0 / 1e9  # [Gbit]
             notes.append(f"{sc.name}: {sc.rf_link.data_rate_bps / 1e6:.3g} Mbit/s, "
-                         f"{per_pass_gbit:.3g} Gbit per {_PASS_MINUTES:g}-min pass")
+                         f"{per_pass_gbit:.3g} Gbit per {pass_minutes:g}-min pass")
     return ExplanationSection(title="Data handling", badges=badges, notes=notes)
 
 

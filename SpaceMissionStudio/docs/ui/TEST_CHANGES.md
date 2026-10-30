@@ -960,3 +960,22 @@ never named "_TabBar".
 | `test_cli.py::test_assumptions_lists_the_parameters_and_a_run_records_its_configuration` | Expected the areas to be "propellant_budget" alone | Expects both areas listed | A second area is in the registry |
 | `test_lifetime.py` (3 lines) | Read `ZERO_DEBRIS_YEARS`, `IADC_YEARS`, `REENTRY_ALTITUDE_KM` | Read them through `lifetime.rule()` | The constants are now parameters; the values are the same |
 | `test_config.py::test_setting_a_parameter_changes_what_it_controls` (the disposal stub) | The decay stub took positional arguments only | Also takes the scenario as a keyword | `propagate_decay` now takes the scenario |
+
+## The link's and data handling's rules as parameters (2026-10-30)
+
+- Added:
+  - in `test_config.py`, a case for each of the 5 link and data-handling parameters, setting it and checking what
+    it controls changes, and is unchanged at its default: the simulated downlink's closed samples and bits sent,
+    the pointing loss within and at its clamp, and the explanation's note; and
+    `test_a_runs_recorded_value_is_the_one_it_had`;
+  - `test_comms_pointing.py::test_link_status_cmd_out_msg_uses_the_projects_required_margin`;
+  - `tests/gui/test_mission_dashboard_widget.py::test_the_link_badge_and_breakdown_use_the_projects_link_parameters`;
+  - `tests/gui/test_results_overview.py::test_the_link_card_uses_the_runs_required_margin`.
+
+  Each fails on the code before (checked).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `test_config.py::test_every_parameter_is_documented_on_its_models_page` | Checked each area's page is linked from the index | Also checks the index names the area's parameters (`link.*`) | Two areas share one page; the index must say which parameters it covers |
+| `test_comms_pointing.py::_run_comms_pointing` (helper) | Passed `rf_link` and the station to `build_comms_pointing` | Also passes `scenario` (None unless given) | For the new test; every existing call passes None, as before |
+| `test_link_budget.py` (one comment) | Named `_MAX_POINTING_LOSS_DB` | Names `link.max_pointing_loss_db` | The constant is a parameter; the assertion is unchanged |

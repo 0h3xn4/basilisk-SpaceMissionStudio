@@ -5,6 +5,35 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The link's and data handling's rules as parameters (2026-10-30)
+
+The transparency plan's Phase 3a, third area.
+
+- **A required margin, at 0 dB:** the link closes at a margin of at
+  least `link.required_margin_db`. The default keeps today's 0 dB, so no
+  number changes; a project that requires 3 dB sets it. The audit asked
+  for one (Section 7 and Appendix B: "no required-margin policy").
+- **One rule wherever the link is judged:** the simulated downlink, the
+  Vizard status, the dashboard and the overview card use the same
+  `link_budget.link_closes`, so they cannot disagree. A run shown in the
+  overview is judged by the value it was run with, read from its
+  provenance, not by the configuration open now.
+- **Only the "fixed" pattern's loss is a parameter:** the patch and the
+  gain table take their shape from the antenna's own inputs, which are
+  the scenario's. The 0.05° grid of the reported beamwidth is numerical
+  and stays as it is, documented.
+- **Constants stay constants:** c, Boltzmann's constant and Basilisk's
+  solar flux are not engineering choices. Phase 3c gathers the physical
+  constants; the solar flux and the AU are in Basilisk's C++ modules,
+  which this tool does not change.
+- **Power has no parameter:** every value of the power model is the
+  scenario's (panel, battery, loads) or Basilisk's. Its page documents
+  the model instead.
+- **GUI starting values of new spacecraft groups wait:** the panel
+  efficiency 0.29 and the other values a new group starts with are
+  scenario defaults, saved in the file once set; they are the scenario
+  defaults' area, not a rule's.
+
 ## The lifetime's rules as parameters (2026-10-30)
 
 The transparency plan's Phase 3a, second area.

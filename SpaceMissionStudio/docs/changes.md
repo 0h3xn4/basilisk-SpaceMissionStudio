@@ -17,12 +17,26 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-30: the link's and data handling's rules as parameters (Phase 3a)
+
+**No number changes.** The link's closure rule (a margin of at least 0
+dB), the "fixed" pattern's pointing loss (12 dB per (angle / beamwidth)^2,
+at most 30 dB), the transmitter's 1 Mbit packets and the explanation's
+10-minute pass are named parameters with the same values; the regression
+baseline of all 31 templates passes unchanged, every link margin, closed
+sample and downlinked bit as before.
+
+The records are repaired: the headings of the registry's and the
+reproduction bundles' entries below were lost when the entries above them
+were added, and are restored.
+
 ## 2026-10-30: the lifetime's rules as parameters (Phase 3a)
 
 **No number changes.** The lifetime's rules moved from module constants to
 named parameters with the same values; the regression baseline of all 31
 templates passes unchanged, every lifetime and re-entry date as before.
 
+## 2026-10-30: the parameter registry, first area the propellant budget (Phase 3a, 3b)
 
 **No number changes.** The budget's rules moved from module constants to
 named parameters with the same values. The regression baseline of all 31
@@ -30,6 +44,7 @@ templates differs only in the run provenance's new `configuration` field
 (no file, no overrides); every budget row, margin label, note and total is
 as before. With no configuration file, every parameter has its default.
 
+## 2026-10-29: reproduction bundles (Phase 2h)
 
 **No number changes.** The bundle and `reproduce` read and write files
 around a run; no engine code changed, and the regression baseline of all

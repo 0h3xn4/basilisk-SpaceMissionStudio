@@ -29,7 +29,8 @@ wires it:
   would not fit is refused whole, so a full memory loses data;
 * one ``spaceToGroundTransmitter`` at ``rf_link.data_rate_bps``, which
   empties the fullest partition while any of its access messages says
-  there is access, in 1 Mbit packets (the example's size).
+  there is access, in packets of ``data_handling.packet_size_bits``
+  (1 Mbit, the example's size, unless a project configuration sets it).
 
 Two Python modules of this tool sit around it:
 
@@ -37,7 +38,8 @@ Two Python modules of this tool sit around it:
   ``groundLocation`` access message to the transmitter, with ``hasAccess``
   cleared unless the link closes: the Eb/N0 margin
   (``engine.link_budget``) for the real slant range and the antenna's gain
-  toward the station must be at least 0 dB. That gain comes from the
+  toward the station must be at least ``link.required_margin_db`` (0 dB
+  unless a project configuration sets it). That gain comes from the
   simulated attitude: the angle between ``rf_link.antenna_boresight_b``
   and the line of sight to the station, through ``rf_link.antenna_pattern``
   (a patch antenna's cos^n, or a datasheet table). Basilisk's own antenna
@@ -71,12 +73,12 @@ from Basilisk.simulation import partitionedStorageUnit, simpleInstrument, simple
 from Basilisk.utilities import RigidBodyKinematics as rbk
 from Basilisk.utilities import macros
 
+from ..config import registry
 from ..schema.scenario import DataHandlingConfig, GroundStationConfig, RFLinkConfig
 from . import link_budget
 from .orbit_maintenance import LogThinner
 
 BITS_PER_GBIT = 1.0e9  # [bit/Gbit]
-PACKET_SIZE_BITS = 1.0e6  # [bit] scenarioGroundDownlink.py's packet size
 
 # Higher runs first within a task (Basilisk): engine.service's power sinks
 # run at 50, before the battery at 40.
@@ -101,9 +103,10 @@ class _DownlinkGate(sysModel.SysModel):
     """One spacecraft's link to every ground station; see the module docstring."""
 
     def __init__(self, rf_link: RFLinkConfig, stations: list[GroundStationConfig],
-                 boresight_b: np.ndarray | None, record_interval_s: float):
+                 boresight_b: np.ndarray | None, record_interval_s: float, scenario=None):
         super().__init__()
         self.rfLink = rf_link
+        self.scenario = scenario  # its project configuration's link parameters, if any
         self.stations = stations
         self.boresightB = boresight_b  # None: perfect pointing assumed, as engine.link_budget always did
         self.scStateInMsg = messaging.SCStatesMsgReader()
@@ -112,6 +115,7 @@ class _DownlinkGate(sysModel.SysModel):
         self.accessOutMsgs = [messaging.AccessMsg() for _ in stations]
         self.marginAtOneMetreDb = [link_budget.margin_at_one_metre_db(rf_link, station)
                                    for station in stations]  # [dB]
+        self.requiredMarginDb = link_budget.rule("required_margin_db", scenario)  # [dB]
         self.logThinner = LogThinner(record_interval_s)
         self.tLog: list = []
         self.marginDbLog: list[list] = [[] for _ in stations]  # [dB] NaN outside access
@@ -145,8 +149,8 @@ class _DownlinkGate(sysModel.SysModel):
                     sc_state = self.scStateInMsg()
                 angle_deg = self.off_boresight_deg(sc_state, self.groundStateInMsgs[index]())
                 margin_db = (self.marginAtOneMetreDb[index] - 20.0 * math.log10(float(access.slantRange))
-                             - link_budget.pointing_loss_db(self.rfLink, angle_deg))  # [dB]
-                closed = margin_db >= 0.0
+                             - link_budget.pointing_loss_db(self.rfLink, angle_deg, self.scenario))  # [dB]
+                closed = link_budget.link_closes(margin_db, required_margin_db=self.requiredMarginDb)
             out = messaging.AccessMsgPayload()
             out.hasAccess = 1 if closed else 0
             out.slantRange = access.slantRange
@@ -233,9 +237,10 @@ class DataHandlingHandle:
 
 def build_link_gate(scSim, task_name: str, tag: str, sc_config, sc_object, stations: list[GroundStationConfig],
                     access_out_msgs: dict[str, object], ground_state_msgs: dict[str, object],
-                    record_interval_s: float) -> _DownlinkGate:
-    """The live link gate of one spacecraft (see ``engine.link_budget.needs_link_gate``)."""
-    gate = _DownlinkGate(sc_config.rf_link, stations, antenna_boresight_b(sc_config), record_interval_s)
+                    record_interval_s: float, scenario=None) -> _DownlinkGate:
+    """The live link gate of one spacecraft (see ``engine.link_budget.needs_link_gate``);
+    ``scenario`` gives the link parameters (config.parameters)."""
+    gate = _DownlinkGate(sc_config.rf_link, stations, antenna_boresight_b(sc_config), record_interval_s, scenario)
     gate.ModelTag = f"{tag}DownlinkGate"
     gate.scStateInMsg.subscribeTo(sc_object.scStateOutMsg)
     for index, station in enumerate(stations):
@@ -247,10 +252,11 @@ def build_link_gate(scSim, task_name: str, tag: str, sc_config, sc_object, stati
 
 def build_data_handling(scSim, task_name: str, tag: str, config: DataHandlingConfig,
                         gate: _DownlinkGate | None, downlink_rate_bps: float, battery,
-                        record, record_interval_s: float) -> DataHandlingHandle:
+                        record, record_interval_s: float, scenario=None) -> DataHandlingHandle:
     """Builds one spacecraft's instruments, storage and (with ``gate``)
     transmitter. ``battery`` (or None) receives the instruments' and the
-    transmitter's power sinks; ``record(msg)`` makes a recorder."""
+    transmitter's power sinks; ``record(msg)`` makes a recorder;
+    ``scenario`` gives the packet size (config.parameters)."""
     handle = DataHandlingHandle(instrument_names=[i.name for i in config.instruments])
     capacity_bits = int(round(config.storage_capacity_gbit * BITS_PER_GBIT))  # [bit]
 
@@ -271,7 +277,7 @@ def build_data_handling(scSim, task_name: str, tag: str, config: DataHandlingCon
         transmitter = spaceToGroundTransmitter.SpaceToGroundTransmitter()
         transmitter.ModelTag = f"{tag}Transmitter"
         transmitter.nodeBaudRate = -downlink_rate_bps  # [bit/s] negative: removes data
-        transmitter.packetSize = -PACKET_SIZE_BITS  # [bit]
+        transmitter.packetSize = -registry.value("data_handling.packet_size_bits", scenario)  # [bit]
         transmitter.numBuffers = len(config.instruments)
         for access_msg in gate.accessOutMsgs:
             transmitter.addAccessMsgToTransmitter(access_msg)

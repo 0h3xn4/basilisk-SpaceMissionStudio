@@ -396,6 +396,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   their values. A solar-activity percentile parameter now takes only
   MSFC's 95, 50 and 5, which a forecast can be resolved at; the budget's
   two accepted any value from 5 to 95 and failed later.
+- **A project can require a link margin:** the link closes at a margin of
+  at least `link.required_margin_db` (0 dB unless set), in the simulated
+  downlink, Vizard's link status, the mission dashboard and the results
+  overview alike. The "fixed" antenna's pointing loss (12 dB per
+  (angle / beamwidth)^2, at most 30 dB), the transmitter's packet size
+  and the explanation's pass length are parameters too, documented with
+  the power model in `docs/models/link-data-and-power.md`.
 
 ## 1.3.1 (2026-10-27)
 

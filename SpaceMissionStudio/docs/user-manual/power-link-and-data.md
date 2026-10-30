@@ -38,7 +38,9 @@ their own cells (template **27**).
 | Gain table | A real antenna's datasheet: gain against angle |
 
 The run records, per station, `link_margin_db` and `link_closed`. The link
-closes when the station is in view and the margin is 0 dB or more.
+closes when the station is in view and the margin is 0 dB or more; a
+project configuration can require more (`link.required_margin_db`,
+[the link model](../models/link-data-and-power.md)).
 
 To point the antenna at the station during passes, use **Comms
 pointing** on the **Attitude control** page (template **19**).
