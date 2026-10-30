@@ -566,7 +566,7 @@ class _CommsPointingArbitrator(sysModel.SysModel):
 
     def __init__(self, name: str, comms_power_w: float,
                  rf_link: RFLinkConfig | None = None,
-                 ground_station_config: GroundStationConfig | None = None):
+                 ground_station_config: GroundStationConfig | None = None, scenario=None):
         super().__init__()
         self.ModelTag = name
 
@@ -610,6 +610,8 @@ class _CommsPointingArbitrator(sysModel.SysModel):
         # own "no rf_link configured" fallback.
         self.rfLink = rf_link
         self.groundStationConfig = ground_station_config
+        self.scenario = scenario  # its project configuration's link parameters, if any
+        self.requiredMarginDb = link_budget.rule("required_margin_db", scenario)  # [dB]
 
         # Python-side telemetry -- same convention as
         # engine.orbit_maintenance's controllers (see class docstring).
@@ -662,9 +664,9 @@ class _CommsPointingArbitrator(sysModel.SysModel):
         link_ok_cmd = 1  # "no link" -- 1, never 0, same reason as mode_cmd above
         if active_comms and self.rfLink is not None and self.groundStationConfig is not None:
             margin_db = link_budget.link_margin_db(
-                float(access_payload.slantRange), self.rfLink, self.groundStationConfig, theta_deg
+                float(access_payload.slantRange), self.rfLink, self.groundStationConfig, theta_deg, self.scenario
             )
-            if not np.isnan(margin_db) and margin_db >= 0.0:
+            if link_budget.link_closes(margin_db, required_margin_db=self.requiredMarginDb):
                 link_ok_cmd = 2
         link_cmd = messaging.DeviceCmdMsgPayload()
         link_cmd.deviceCmd = link_ok_cmd
@@ -678,7 +680,8 @@ class _CommsPointingArbitrator(sysModel.SysModel):
 
 def build_comms_pointing(scSim, task_name: str, tag: str, comms_config, sun_guid_msg, comms_guid_msg,
                           access_out_msg, comms_power_sink=None, rf_link: RFLinkConfig | None = None,
-                          ground_station_config: GroundStationConfig | None = None) -> _CommsPointingArbitrator:
+                          ground_station_config: GroundStationConfig | None = None,
+                          scenario=None) -> _CommsPointingArbitrator:
     """Builds and wires one spacecraft's :class:`_CommsPointingArbitrator`.
 
     Args:
@@ -713,6 +716,9 @@ def build_comms_pointing(scSim, task_name: str, tag: str, comms_config, sun_guid
             from ``scenario.ground_stations``), or ``None``. Both this and
             ``rf_link`` must be given for the live link-status message to
             report anything other than "no link".
+        scenario: gives the link parameters (``link.required_margin_db``,
+            the pointing loss; config.parameters), or None for their
+            defaults.
 
     Returns the arbitrator (feed its ``attGuidOutMsg`` to
     :func:`build_mrp_feedback`) -- the CALLER must keep this object alive
@@ -723,7 +729,7 @@ def build_comms_pointing(scSim, task_name: str, tag: str, comms_config, sun_guid
     """
     arbitrator = _CommsPointingArbitrator(
         name=f"{tag}_commsPointing", comms_power_w=comms_config.comms_power_w,
-        rf_link=rf_link, ground_station_config=ground_station_config,
+        rf_link=rf_link, ground_station_config=ground_station_config, scenario=scenario,
     )
     arbitrator.accessInMsg.subscribeTo(access_out_msg)
     arbitrator.sunGuidInMsg.subscribeTo(sun_guid_msg)

@@ -96,6 +96,19 @@ def test_only_the_scenarios_thresholds_make_a_card_critical(overview, qtbot):
     assert [key for key, card in cards.items() if card.status] == ["lowest_link_margin", "lowest_battery_charge"]
 
 
+def test_the_link_card_uses_the_runs_required_margin(overview, qtbot):
+    """A run whose project configuration required a 5 dB margin
+    (``link.required_margin_db``, in its provenance): a lowest margin of
+    3 dB is critical, and the card names the 5 dB."""
+    from types import SimpleNamespace
+
+    result = _result(margin_db=3.0)
+    result.provenance = SimpleNamespace(configuration={"file": None, "overrides": {
+        "link.required_margin_db": {"value": 5.0, "default": 0.0, "unit": "[dB]", "source": "-"}}})
+    margin = _show(overview, qtbot, result)["lowest_link_margin"]
+    assert margin.status == "Link margin below 5 dB" and not margin.status_row.isHidden()
+
+
 def test_the_figures_are_worked_out_off_the_gui_thread(overview, qtbot, monkeypatch):
     from spacemissionstudio.engine import run_summary
 

@@ -45,8 +45,6 @@ change to this module's own per-spacecraft logic.
 
 from __future__ import annotations
 
-import math
-
 import numpy as np
 
 from PySide6.QtCore import Qt
@@ -419,7 +417,7 @@ class MissionDashboardWidget(QWidget):
         if rf_link is not None and gs_config is not None and slant_range_m is not None \
                 and has_access and is_comms_mode:
             breakdown = link_budget.link_budget_breakdown(
-                slant_range_m, rf_link, gs_config, pointing_error_deg or 0.0
+                slant_range_m, rf_link, gs_config, pointing_error_deg or 0.0, self._scenario
             )
 
         if breakdown is None:
@@ -453,7 +451,7 @@ class MissionDashboardWidget(QWidget):
         self.cn0_label.setText(f"{breakdown.cn0_db_hz:.2f} dB-Hz")
         self.ebno_label.setText(f"{breakdown.ebno_db:.2f} dB")
         self.margin_label.setText(f"{breakdown.margin_db:.2f} dB")
-        if math.isnan(breakdown.margin_db) or breakdown.margin_db < 0:
+        if not link_budget.link_closes(breakdown.margin_db, self._scenario):
             self.link_status_badge.setText("Link degraded")
             set_badge(self.link_status_badge, _DANGER_BADGE)
         else:

@@ -56,7 +56,8 @@ def test_the_shipped_defaults_file_is_the_registry():
 
 
 # The page of docs/models that documents each area (the brief: every model, rule and assumption).
-_MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifetime.md"}
+_MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifetime.md",
+                "link": "link-data-and-power.md", "data_handling": "link-data-and-power.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -69,6 +70,7 @@ def test_every_parameter_is_documented_on_its_models_page():
     assert {p.area for p in registry.parameters()} == set(_MODEL_PAGES)
     for area, page in _MODEL_PAGES.items():
         assert f"({page})" in index, page
+        assert f"`{area}.*`" in index, area
         text = (models / page).read_text(encoding="utf-8")
         for parameter in registry.parameters(area):
             assert f"`{parameter.name.split('.', 1)[1]}`" in text, parameter.name
@@ -328,6 +330,50 @@ _LIFETIME_CASES = {
 _GUI_CASES = {"lifetime.default_deorbit_perigee_km": "test_the_pages_defaults_are_the_configurations"}
 
 
+# -- every link and data-handling parameter changes what it says it changes -------------------
+
+def _downlink(configuration):
+    """A half-day run of tests/test_data_handling.py's fast downlink: the
+    samples the link closed in, and the bits downlinked."""
+    from test_data_handling import _orbit_only_downlink
+
+    from spacemissionstudio.engine.service import SimulationService
+
+    scenario = _orbit_only_downlink(days=0.5)
+    scenario.configuration = configuration
+    result = SimulationService(scenario).run()
+    return (int(result.series["berlin-gs.access_to_sat.link_closed"].data[:, 0].sum()),
+            float(result.series["sat.data_handling.data_downlinked"].data[-1, 0]))
+
+
+def _pointing_loss(configuration, off_boresight_deg):
+    from spacemissionstudio.engine import link_budget
+    from spacemissionstudio.schema.scenario import RFLinkConfig
+
+    rf_link = RFLinkConfig(15.0, 8.2e9, 1.0e6, antenna_beamwidth_deg=10.0)  # [W], [Hz], [bit/s], [deg]
+    return link_budget.pointing_loss_db(rf_link, off_boresight_deg, SimpleNamespace(configuration=configuration))
+
+
+def _pass_note(configuration):
+    from test_data_handling import _scenario
+
+    from spacemissionstudio.engine.scenario_explainer import explain
+
+    scenario = _scenario()
+    scenario.configuration = configuration
+    return next(s for s in explain(scenario).sections if s.title == "Data handling").notes
+
+
+# name: (value to set, what to measure: called with the scenario's configuration, None for the defaults)
+_LINK_CASES = {
+    "link.required_margin_db": (12.0, _downlink),
+    "link.pointing_loss_coeff_db": (6.0, lambda c: _pointing_loss(c, 4.0)),  # [deg] within the clamp
+    "link.max_pointing_loss_db": (50.0, lambda c: _pointing_loss(c, 30.0)),  # [deg] clamped: 108 dB unclamped
+    "data_handling.packet_size_bits": (1.0e8, _downlink),
+    "data_handling.explainer_pass_minutes": (5.0, _pass_note),
+}
+
+
 def test_every_parameter_has_a_case_that_sets_it():
     """A parameter declared without a case below fails here: the
     definition of done asks that a test set each one (transparency audit
@@ -335,7 +381,7 @@ def test_every_parameter_has_a_case_that_sets_it():
     from pathlib import Path
 
     declared = {p.name for p in registry.parameters()}
-    cases = set(_CASES) | set(_LIFETIME_CASES) | set(_GUI_CASES)
+    cases = set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_GUI_CASES)
     assert declared == cases, f"no case for {sorted(declared - cases)}"
     gui_tests = (Path(__file__).resolve().parent / "gui" / "test_lifetime_widget.py").read_text(encoding="utf-8")
     assert all(f"def {name}(" in gui_tests for name in _GUI_CASES.values())
@@ -369,6 +415,19 @@ def test_setting_a_lifetime_parameter_changes_what_it_controls(name, monkeypatch
     before = measure(default_scenario, monkeypatch, tmp_path / "default")
     after = measure(changed, monkeypatch, tmp_path / "changed")
     assert before != after, name
+
+
+@pytest.mark.requires_basilisk
+@pytest.mark.parametrize("name", sorted(_LINK_CASES))
+def test_setting_a_link_or_data_parameter_changes_what_it_controls(name):
+    """Each link and data-handling parameter set in a project configuration
+    changes the output it says it controls -- the simulated downlink, the
+    pointing loss, the explanation's note -- and set to its default, leaves
+    it as it was."""
+    value, measure = _LINK_CASES[name]
+    before = measure(None)
+    assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
+    assert measure(Configuration({name: registry.default(name)})) == before, name
 
 
 @pytest.mark.requires_basilisk
@@ -407,3 +466,14 @@ def test_the_budgets_record_names_the_configuration_and_the_rules_in_effect(tmp_
         "file": {"path": "/p/project.yaml", "sha256": "ab" * 32},
         "overrides": {"propellant_budget.residual_fraction": {"value": 0.05, "default": 0.01, "unit": "[-]",
                                                               "source": "AD10 Sec. 5.8"}}}
+
+
+def test_a_runs_recorded_value_is_the_one_it_had():
+    """registry.recorded_value reads a value back from a provenance's
+    ``configuration`` (a run shown later is judged by its own rules): the
+    override when the run had one, else the default."""
+    record = registry.record(SimpleNamespace(configuration=Configuration({"link.required_margin_db": 3.0})))
+    assert registry.recorded_value("link.required_margin_db", record) == 3.0
+    assert registry.recorded_value("link.required_margin_db", {}) == 0.0
+    assert registry.recorded_value("link.required_margin_db", None) == 0.0
+    assert registry.recorded_value("link.max_pointing_loss_db", record) == 30.0

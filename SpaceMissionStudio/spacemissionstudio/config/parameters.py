@@ -17,7 +17,8 @@
 #
 """The declared parameters, one section per area (transparency audit,
 Phase 3a). The areas move in one at a time, each proven by the
-regression baseline to change no number: the propellant budget first.
+regression baseline to change no number: the propellant budget, the
+orbital lifetime, then the RF link and data handling.
 
 "AD10" is ESA's "Guidelines for the computation of the Delta-V and
 Propellant Mass budgets", EOP-FM/2024-07-177, issue 3.0.
@@ -140,4 +141,31 @@ register(
     Parameter("lifetime.default_deorbit_perigee_km", 250.0, "[km]",
               "The perigee the End of Life page's deorbit burn starts with.", "SpaceMissionStudio's own choice",
               minimum=130.0, maximum=2000.0),
+)
+
+# -- RF link (engine.link_budget) and data handling (engine.data_handling) -----------------------
+
+register(
+    Parameter("link.required_margin_db", 0.0, "[dB]",
+              "The link closes while its Eb/N0 margin (over the required Eb/N0) is at least this: the simulated "
+              "downlink is allowed, Vizard shows the link OK, and a lower margin is marked on the dashboard and "
+              "the results overview.", "SpaceMissionStudio's own choice",
+              "0 dB: the link closes with nothing to spare. Projects usually require a few dB; set that here.",
+              minimum=-20.0, maximum=30.0),
+    Parameter("link.pointing_loss_coeff_db", 12.0, "[dB]",
+              "The pointing loss of a 'fixed' antenna with a beamwidth: this * (off-boresight angle / beamwidth)^2.",
+              "Parabolic main-lobe approximation, as in Wertz & Larson, Space Mission Analysis and Design, ch. 13",
+              "12 dB puts the loss at 3 dB half a beamwidth off boresight, the beamwidth's definition.",
+              minimum=0.0, maximum=100.0),
+    Parameter("link.max_pointing_loss_db", 30.0, "[dB]",
+              "The most pointing loss a 'fixed' antenna's approximation gives; a larger angle is held at this.",
+              "SpaceMissionStudio's own choice",
+              "The approximation holds near boresight only; at 30 dB below the peak the link does not close.",
+              minimum=0.0, maximum=200.0),
+    Parameter("data_handling.packet_size_bits", 1.0e6, "[bit]",
+              "The size of the packets the transmitter takes from the memory.",
+              "Basilisk's examples/scenarioGroundDownlink.py", minimum=1.0, maximum=1.0e12),
+    Parameter("data_handling.explainer_pass_minutes", 10.0, "[min]",
+              "The pass length of the scenario explanation's 'Gbit per pass' note; a run's passes are predicted.",
+              "SpaceMissionStudio's own choice", "A typical low Earth orbit pass.", minimum=0.1, maximum=1440.0),
 )

@@ -1509,7 +1509,8 @@ class SpacecraftEditorDialog(QDialog):
             "evaluated against the real simulated slant range to each configured ground station). "
             "A positive margin means the link closes with that much headroom; negative means it "
             "doesn't close at that range with these numbers. With 'Data handling' below ON, the "
-            "transmitter sends data only while the margin is >= 0 dB."
+            "transmitter sends data only while the margin is at least the required margin: 0 dB, "
+            "or the project configuration's link.required_margin_db."
         )
         self.rf_link_group.setChecked(rf_link0 is not None)
         rf_form = QFormLayout(self.rf_link_group)

@@ -23,8 +23,10 @@ The figures are :func:`engine.run_summary.summarize`'s, as Compare's
 summary has them, computed in a worker thread. A card is neutral unless
 the scenario sets its threshold (the brief: colour means something):
 
-- the lowest link margin below 0 dB (the margin already includes the
-  required Eb/N0): critical, "Link margin below 0 dB";
+- the lowest link margin below the required margin,
+  ``link.required_margin_db`` as the run had it (0 dB unless its project
+  configuration set it; the margin already includes the required Eb/N0):
+  critical, "Link margin below <required> dB";
 - the battery's lowest charge at 0: critical, "Battery empty".
 
 The status is an icon and a word as well as a colour.
@@ -37,6 +39,7 @@ from PySide6.QtCore import QPoint, Qt, QThread, Signal
 from PySide6.QtWidgets import (QFrame, QHBoxLayout, QLabel, QPushButton, QScrollArea, QStackedWidget,
                                QVBoxLayout, QWidget)
 
+from ..config import registry
 from ..engine import run_summary
 from .flow_layout import FlowLayout
 from .run_history_view import ProvenancePopover, provenance_text
@@ -46,12 +49,13 @@ CARD_WIDTH_PX = 216  # [px] a card, on the 4 px grid: four in a row at 1280 px w
 _CRITICAL_ICON_PX = 16  # [px]
 
 
-def card_status(figure: run_summary.Figure) -> str | None:
+def card_status(figure: run_summary.Figure, required_margin_db: float = 0.0) -> str | None:
     """The critical status of ``figure`` (its words), or None: only the
-    thresholds a scenario sets colour a card."""
+    thresholds a scenario sets colour a card. ``required_margin_db`` is the
+    run's ``link.required_margin_db``."""
     key = figure.key.rsplit(".", 1)[-1]
-    if key == "lowest_link_margin" and figure.value < 0.0:  # [dB]
-        return "Link margin below 0 dB"
+    if key == "lowest_link_margin" and figure.value < required_margin_db:  # [dB]
+        return f"Link margin below {required_margin_db:g} dB"
     if key == "lowest_battery_charge" and figure.value <= 0.0:  # [W*h]
         return "Battery empty"
     return None
@@ -61,7 +65,8 @@ class MetricCard(QFrame):
     """One figure: its label, its value with the unit, and its status when
     it has one."""
 
-    def __init__(self, figure: run_summary.Figure, parent: QWidget | None = None) -> None:
+    def __init__(self, figure: run_summary.Figure, parent: QWidget | None = None,
+                 required_margin_db: float = 0.0) -> None:
         super().__init__(parent)
         set_role(self, role="card")
         self.setFixedWidth(CARD_WIDTH_PX)
@@ -81,7 +86,7 @@ class MetricCard(QFrame):
         row.addWidget(self.unit, 0, Qt.AlignmentFlag.AlignBottom)
         row.addStretch(1)
         layout.addLayout(row)
-        self.status = card_status(figure)
+        self.status = card_status(figure, required_margin_db)
         self.status_row = QWidget()
         status_layout = QHBoxLayout(self.status_row)
         status_layout.setContentsMargins(0, 0, 0, 0)
@@ -216,7 +221,10 @@ class ResultsOverview(QWidget):
         for card in self.cards:
             self.cards_layout.removeWidget(card)
             card.deleteLater()
-        self.cards = [MetricCard(figure, self.cards_holder) for figure in figures]
+        provenance = getattr(self._result, "provenance", None)
+        required_margin_db = registry.recorded_value("link.required_margin_db",
+                                                     getattr(provenance, "configuration", None))  # [dB]
+        self.cards = [MetricCard(figure, self.cards_holder, required_margin_db) for figure in figures]
         for card in self.cards:
             self.cards_layout.addWidget(card)
             card.show()

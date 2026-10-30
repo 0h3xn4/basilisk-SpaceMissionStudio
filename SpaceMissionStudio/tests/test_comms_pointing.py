@@ -86,7 +86,7 @@ def _build_fixed_att_guid_msg(sigma_br, moduleID: int):
     return messaging.AttGuidMsg().write(payload, 0, moduleID)
 
 
-def _run_comms_pointing(segments, rf_link=None, ground_station_config=None):
+def _run_comms_pointing(segments, rf_link=None, ground_station_config=None, scenario=None):
     """``segments``: a list of ``(has_access, duration_s)`` or
     ``(has_access, duration_s, slant_range_m)`` tuples, run in order on
     the SAME simulation (``ConfigureStopTime``/``ExecuteSimulation()``
@@ -103,7 +103,8 @@ def _run_comms_pointing(segments, rf_link=None, ground_station_config=None):
     ``rf_link``/``ground_station_config``: optional
     ``schema.scenario.RFLinkConfig``/``GroundStationConfig``, passed
     straight through to :func:`fsw.build_comms_pointing` -- see that
-    function's own docstring for what they enable.
+    function's own docstring for what they enable. ``scenario``: passed
+    through as well, for its project configuration's link parameters.
     """
     from Basilisk.architecture import messaging
     from Basilisk.simulation import simplePowerSink, spacecraft
@@ -147,6 +148,7 @@ def _run_comms_pointing(segments, rf_link=None, ground_station_config=None):
     arbitrator = fsw.build_comms_pointing(
         scSim, task_name, "sat", comms_config, sun_guid_msg, comms_guid_msg, access_msg,
         comms_power_sink=power_sink, rf_link=rf_link, ground_station_config=ground_station_config,
+        scenario=scenario,
     )
     mrp = fsw.build_mrp_feedback(scSim, task_name, "sat", arbitrator.attGuidOutMsg, veh_config_msg, {})
     fsw.build_idealized_actuation(scSim, task_name, "sat", sc_object, mrp)
@@ -338,3 +340,28 @@ def test_link_status_cmd_out_msg_tracks_a_real_link_budget_margin_sign():
     assert np.all(link_cmd[(t_log > 11.0) & (t_log < 19.0)] == 2)
     # Third segment: comms-pointing at the far range -- link should read degraded/no-link.
     assert np.all(link_cmd[t_log > 21.0] == 1)
+
+
+def test_link_status_cmd_out_msg_uses_the_projects_required_margin():
+    """A project configuration requiring more margin than the close range
+    gives (``link.required_margin_db``): the live link status reads "no
+    link" (1) there, where at the default 0 dB it reads "link OK" (2)."""
+    from types import SimpleNamespace
+
+    from spacemissionstudio.config.registry import Configuration
+    from spacemissionstudio.engine import link_budget
+
+    rf_link = RFLinkConfig(tx_power_w=5.0, frequency_hz=2.2e9, data_rate_bps=1.0e6, tx_antenna_gain_dbi=6.0,
+                            required_ebno_db=10.0)
+    gs_config = GroundStationConfig(name="gs-1", latitude_deg=0.0, longitude_deg=0.0,
+                                     rx_antenna_gain_dbi=35.0, system_noise_temp_k=150.0)
+    close_range_m = 700.0e3
+    margin_db = link_budget.link_margin_db(close_range_m, rf_link, gs_config)  # [dB]
+    assert margin_db >= 0.0
+    for required_db, expected in ((None, 2), (margin_db + 1.0, 1)):
+        scenario = None if required_db is None else SimpleNamespace(
+            configuration=Configuration({"link.required_margin_db": required_db}))
+        arbitrator, _, _, _ = _run_comms_pointing([(True, 10.0, close_range_m)], rf_link=rf_link,
+                                                  ground_station_config=gs_config, scenario=scenario)
+        link_cmd = np.array(arbitrator.linkStatusRecorder.deviceCmd)
+        assert np.all(link_cmd[np.array(arbitrator.tLog) > 1.0] == expected), required_db

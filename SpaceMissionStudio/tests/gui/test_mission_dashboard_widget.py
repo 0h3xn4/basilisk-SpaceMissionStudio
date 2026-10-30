@@ -159,6 +159,26 @@ def test_large_pointing_error_shows_slewing_badge_and_degraded_link(widget):
     assert widget.margin_label.text() != "--"
 
 
+def test_the_link_badge_and_breakdown_use_the_projects_link_parameters(widget):
+    """With a project configuration, the badge judges the margin against
+    ``link.required_margin_db`` and the breakdown's pointing loss uses
+    ``link.pointing_loss_coeff_db``."""
+    from spacemissionstudio.config.registry import Configuration
+
+    result = _result_set(active_mode=[1], pointing_error_deg=[10.0], has_access=[1],
+                         slant_range_m=[1.0e6], battery_charge_wh=[33.0], net_power_w=[-10.0])
+    widget.set_result(result, _scenario())
+    assert widget.link_status_badge.text() == "Link OK"
+    assert widget.pointing_loss_label.text() == f"{12.0 * (10.0 / 30.0) ** 2:.2f} dB"
+    margin_db = float(widget.margin_label.text().split()[0])  # [dB]
+    configured = _scenario()
+    configured.configuration = Configuration({"link.required_margin_db": margin_db + 1.0,
+                                              "link.pointing_loss_coeff_db": 6.0})
+    widget.set_result(result, configured)
+    assert widget.link_status_badge.text() == "Link degraded"
+    assert widget.pointing_loss_label.text() == f"{6.0 * (10.0 / 30.0) ** 2:.2f} dB"
+
+
 def test_battery_soc_bar_reflects_capacity_when_scenario_given(widget):
     """With the scenario's 40 Wh battery, 20 Wh reads 50 %, beside the bar, and
     the net power is signed."""

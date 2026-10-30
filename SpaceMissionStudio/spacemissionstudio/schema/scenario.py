@@ -554,7 +554,8 @@ class RFLinkConfig:
       simulated attitude through that pattern.
     * **Downlink:** with a :class:`DataHandlingConfig`, data leaves the
       onboard storage at ``data_rate_bps`` only while the margin toward a
-      station in view is at least 0 dB (``engine.data_handling``).
+      station in view is at least ``link.required_margin_db``, 0 dB unless
+      a project configuration sets it (``engine.data_handling``).
 
     ``None`` (the default) means no link margin is computed and no data is
     downlinked for that spacecraft.

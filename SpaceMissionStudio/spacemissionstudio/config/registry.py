@@ -107,15 +107,18 @@ def register(*parameters: Parameter) -> None:
         _REGISTRY[parameter.name] = parameter
 
 
-def parameters(area: str | None = None) -> list[Parameter]:
-    """The parameters, in declaration order; of ``area`` only, when given."""
+def _declare() -> None:
     from . import parameters as _declared  # noqa: F401 -- declares them on first use
 
+
+def parameters(area: str | None = None) -> list[Parameter]:
+    """The parameters, in declaration order; of ``area`` only, when given."""
+    _declare()
     return [p for p in _REGISTRY.values() if area is None or p.area == area]
 
 
 def parameter(name: str) -> Parameter:
-    parameters()
+    _declare()  # not parameters(): a simulation step reads values through here
     try:
         return _REGISTRY[name]
     except KeyError:
@@ -159,6 +162,14 @@ def record(scenario) -> dict:
             "overrides": {name: {"value": _plain(v), "default": _plain(parameter(name).default),
                                  "unit": parameter(name).unit, "source": parameter(name).source}
                           for name, v in sorted(overrides.items())}}
+
+
+def recorded_value(name: str, configuration_record: dict | None):
+    """The value of ``name`` a run had, from its :func:`record` (a
+    provenance's ``configuration``; None or empty: the defaults), so a
+    result shown later is judged by the run's own rules."""
+    override = ((configuration_record or {}).get("overrides") or {}).get(name)
+    return parameter(name).check(override["value"]) if override is not None else default(name)
 
 
 def _plain(value):
