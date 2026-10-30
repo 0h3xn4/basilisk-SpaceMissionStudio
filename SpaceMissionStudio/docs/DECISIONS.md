@@ -5,6 +5,18 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The mean elements' trace (2026-10-30)
+
+- **One trace for the series, not one per sample:** every sample goes
+  through the same map with the same radius and J2. What differs between
+  samples is only the band each falls in, so the trace counts them.
+- **The bands are constants, not parameters:** they handle the map's
+  singularity (Environment and data, "Fixed rules"). The trace names
+  them as `constant:`.
+- **Reached from the figure that uses it:** the semi-major axis change
+  carries it as a related trace (`Figure.related`), so the Calculation
+  panel opens it from there.
+
 ## The provenance view (2026-10-30)
 
 - **A window from the popover, not a bigger popover:** the popover stays

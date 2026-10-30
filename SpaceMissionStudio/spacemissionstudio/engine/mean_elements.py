@@ -166,3 +166,50 @@ def osculating_from_mean(req_m: float, j2: float, mean):
         _set_equinoctial(osculating, [x + d for x, d in zip(_equinoctial(osculating, retrograde), step)],
                          retrograde)
     return osculating
+
+
+def series_trace(result, spacecraft: str):
+    """How the run's mean-element series of ``spacecraft`` were made
+    (``engine.trace``; transparency plan, Phase 4a): the map, its radius
+    and J2, the bands, and how many samples fell in each. None when the run
+    has no mean elements for it. Basilisk-free: it reads the run's series."""
+    import numpy as np
+
+    from .. import constants
+    from .trace import Quantity, Trace
+
+    mean_name = f"{spacecraft}.orbit_elements_mean.semi_major_axis"
+    inclination_name = f"{spacecraft}.orbit_elements.inclination"
+    if mean_name not in result.series or inclination_name not in result.series:
+        return None
+    inclination = np.asarray(result.series[inclination_name].data[:, 0], dtype=float)  # [rad] osculating
+    mean_a = np.asarray(result.series[mean_name].data[:, 0], dtype=float)  # [m]
+    critical = sum(_critical_band(float(i)) is not None for i in inclination)
+    equatorial = int(np.sum((inclination < EQUATORIAL_BAND_RAD) | (inclination > math.pi - EQUATORIAL_BAND_RAD)))
+    return Trace(
+        f"Mean orbital elements ({spacecraft})", "mean", "first-order J2 mean", "[-]",
+        "mean = osculating with J2's short-period terms removed: clMeanOscMap(R_eq, J2, osculating, mean, -1); "
+        "within b_crit of the critical inclination, the map's values at the band's edges blended by distance; "
+        "within b_eq of 0 or 180 deg, the map at the band's edge",
+        "Basilisk's orbitalMotion.clMeanOscMap (first-order Brouwer-Lyddane, Schaub & Junkins); "
+        "SpaceMissionStudio's handling of the critical inclination (engine.mean_elements)",
+        inputs=(Quantity("osculating elements, each sample", "osculating", f"{inclination.size} samples", "[-]",
+                         f"last run: {spacecraft}.orbit_elements.*, from the recorded position and velocity"),
+                Quantity("the Earth's equatorial radius", "R_eq", constants.EARTH_EQUATORIAL_RADIUS_M, "[m]",
+                         "constant: EARTH_EQUATORIAL_RADIUS_M (Basilisk's radEquator of the run's Earth)"),
+                Quantity("the Earth's J2", "J2", constants.EARTH_J2, "[-]",
+                         "constant: EARTH_J2 (Basilisk's orbitalMotion.J2_EARTH)"),
+                Quantity("half-width of the critical-inclination band", "b_crit", math.degrees(CRITICAL_BAND_RAD),
+                         "[deg]", "constant: mean_elements.CRITICAL_BAND_RAD"),
+                Quantity("half-width of the equatorial band", "b_eq", math.degrees(EQUATORIAL_BAND_RAD), "[deg]",
+                         "constant: mean_elements.EQUATORIAL_BAND_RAD")),
+        intermediates=(Quantity("samples within the critical band", "n_crit", critical, "[-]",
+                                f"computed: from {inclination_name}"),
+                       Quantity("samples within the equatorial band", "n_eq", equatorial, "[-]",
+                                f"computed: from {inclination_name}"),
+                       Quantity("samples with no closed orbit (no mean elements)", "n_none",
+                                int(np.sum(~np.isfinite(mean_a))), "[-]", f"computed: from {mean_name}")),
+        notes=("The run makes mean elements only for an Earth orbit with gravity of degree 2 or more, the J2 its "
+               "motion holds.",
+               "The critical inclination is 63.435 deg (and 116.565 deg), where 1 - 5 cos^2 i = 0 and the plain "
+               "map's long-period terms are infinite."))

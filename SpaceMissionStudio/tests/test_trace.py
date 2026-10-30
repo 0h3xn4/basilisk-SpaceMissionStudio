@@ -588,3 +588,74 @@ def test_the_run_command_explains_its_headline_figures(tmp_path, capsys):
     assert "Delta-V: 1.750 m/s\n  Delta-V: dV = 1.75 [m/s]\n" in printed
     assert "dV_station_keeping = 1.5 [m/s]" in printed and "(last run: sat.station_keeping.delta_v" in printed
     assert cli.build_parser().parse_args(["run", "s.json", "--explain"]).explain
+
+
+# -- the mean orbital elements (engine.mean_elements) ----------------------------------------------
+
+def _mean_element_run(inclinations_deg, mean_a_m):
+    t = np.arange(len(inclinations_deg), dtype=float) * 60.0  # [s]
+    result = ResultSet("mean")
+    result.add(TimeSeries("sat.orbit_elements.inclination", t, ("i",), np.radians(inclinations_deg)[:, None], "rad"))
+    result.add(TimeSeries("sat.orbit_elements_mean.semi_major_axis", t, ("a",), np.asarray(mean_a_m)[:, None], "m"))
+    return result
+
+
+def test_the_mean_elements_trace_names_the_map_its_constants_and_bands():
+    """The trace gives the radius and J2 (the one set of constants), the two
+    bands, and counts the samples in each band and those with no closed
+    orbit; a run without mean elements has none."""
+    from spacemissionstudio.engine import mean_elements
+
+    result = _mean_element_run([97.4, 63.0, 63.5, 64.8, 0.5, 179.6, 45.0],
+                               [7e6, 7e6, 7e6, 7e6, 7e6, np.nan, 7e6])  # [deg], [m]
+    trace = mean_elements.series_trace(result, "sat")
+    assert trace.quantity == "Mean orbital elements (sat)" and trace.value == "first-order J2 mean"
+    assert trace.input("R_eq") == constants.EARTH_EQUATORIAL_RADIUS_M and trace.input("J2") == constants.EARTH_J2
+    assert trace.input("b_crit") == trace.input("b_eq") == 1.0  # [deg]
+    assert (trace.input("n_crit"), trace.input("n_eq"), trace.input("n_none")) == (2, 2, 1)
+    assert trace.inputs[0].value == "7 samples"
+    assert mean_elements.series_trace(ResultSet("none"), "sat") is None
+
+
+@pytest.mark.requires_basilisk
+def test_the_mean_elements_trace_states_the_runs_own_map():
+    """The radius and J2 the trace names are the run's (Basilisk's Earth
+    radEquator and J2_EARTH), and the map with them gives what the run
+    records, in the critical band, the equatorial band and elsewhere."""
+    from Basilisk.utilities import orbitalMotion, simIncludeGravBody
+
+    from spacemissionstudio.engine import mean_elements
+    from spacemissionstudio.engine.service import _mean_elements
+
+    trace = mean_elements.series_trace(_mean_element_run([60.0], [7e6]), "sat")
+    earth = simIncludeGravBody.gravBodyFactory().createEarth()
+    assert trace.input("R_eq") == earth.radEquator and trace.input("J2") == orbitalMotion.J2_EARTH
+    inclinations = np.radians([97.4, 63.2, 0.4])  # [rad] elsewhere, critical band, equatorial band
+    oe = {"a": np.full(3, 6.978e6), "e": np.full(3, 1e-3), "i": inclinations, "raan": np.full(3, 0.3),
+          "argp": np.full(3, 0.2), "true_anomaly": np.full(3, 1.0)}
+    recorded = _mean_elements(oe, earth.radEquator, orbitalMotion.J2_EARTH)
+    for k in range(3):
+        osc, mean = orbitalMotion.ClassicElements(), orbitalMotion.ClassicElements()
+        osc.a, osc.e, osc.i, osc.Omega, osc.omega, osc.f = (oe["a"][k], oe["e"][k], oe["i"][k], oe["raan"][k],
+                                                             oe["argp"][k], oe["true_anomaly"][k])
+        mean_elements.cl_mean_osc_map(trace.input("R_eq"), trace.input("J2"), osc, mean, -1)
+        assert mean.a == recorded["a"][k] and mean.i == recorded["i"][k], k
+
+
+def test_the_semi_major_axis_change_opens_how_the_mean_elements_were_made():
+    """The headline figure's trace links the mean elements' trace (Open in
+    the panel; printed after it by run --explain)."""
+    from spacemissionstudio.engine import run_summary
+
+    t = np.arange(0.0, 3.0 * 5740.0, 60.0)  # [s] three orbits
+    result = ResultSet("sma")
+    result.add(TimeSeries("sat.position_N", t, ("x", "y", "z"), np.zeros((t.size, 3)), "m"))
+    result.add(TimeSeries("sat.orbit_elements.inclination", t, ("i",), np.full((t.size, 1), np.radians(97.4)), "rad"))
+    result.add(TimeSeries("sat.orbit_elements_mean.semi_major_axis", t, ("a",),
+                          (6928e3 - 0.5e3 * t / t[-1])[:, None], "m"))
+    figure = run_summary.by_key(run_summary.summarize(result))["sat.mean_sma_change"]
+    (made,) = figure.related
+    assert made.quantity == "Mean orbital elements (sat)"
+    assert figure.trace.intermediates[-1].source == "trace: Mean orbital elements (sat)"
+    lines = run_summary.explain_lines([figure])
+    assert any(line.startswith("  Mean orbital elements (sat): mean = first-order J2 mean") for line in lines)

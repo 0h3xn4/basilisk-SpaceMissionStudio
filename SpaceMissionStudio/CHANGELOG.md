@@ -477,6 +477,12 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
 - **Tests:** the SIL deadline test no longer fails when a loaded Windows
   runner answers its first step in more than 50 ms (it now allows 0.2 s,
   and checks that missed deadlines are dropped steps).
+- **How the mean elements were made:** the mean semi-major axis change on
+  Results > Overview now opens the trace of the run's mean elements. It
+  gives Basilisk's map, the radius and J2 the run used, the bands around
+  the critical inclination and the equator, and how many samples fell in
+  each or had no closed orbit. `run --explain` prints it. Nothing
+  computed changes.
 - **Everything a run recorded, in one window:** the Provenance popover
   (Results > Overview, Run > History) has **Show everything recorded**.
   It opens the whole record as a tree in groups: software, run, seeds,

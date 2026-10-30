@@ -297,7 +297,7 @@ class ResultsOverview(QWidget):
         """``figure``'s trace, in the Calculation panel."""
         if figure.trace is not None:
             self.calculation_requested.emit(Explanation(f"{self._title or 'This run'}: {figure.label}",
-                                                        [figure.trace]))
+                                                        [figure.trace, *figure.related]))
 
     def wait_for_worker(self) -> None:
         """Wait for a run's figures still being worked out (closing)."""
