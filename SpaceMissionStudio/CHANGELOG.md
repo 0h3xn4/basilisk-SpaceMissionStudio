@@ -474,6 +474,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   shows it. The panels' layout saved by an earlier version is not
   restored, once: they start as in a new window (the rail and the
   dividers are restored as before).
+- **Everything a run recorded, in one window:** the Provenance popover
+  (Results > Overview, Run > History) has **Show everything recorded**.
+  It opens the whole record as a tree in groups: software, run, seeds,
+  scenario, data files, time scales, frames, configuration. It shows
+  every value in full: each data file's SHA-256, every model's seed,
+  each series' frame. The popover only counted them ("5 entries"). A
+  filter finds a name or value, and **Copy as JSON** copies the record.
 - **How each headline figure of a run was computed:** click a card on
   Results > Overview (or focus it and press Enter) to see its figure's
   calculation: the series it was read from, at which sample or time, the

@@ -1142,3 +1142,17 @@ never named "_TabBar".
 |---|---|---|---|
 | `tests/golden_capture.py` (the regression baseline's fingerprint) | Left out `data_files`, `delta_v_trace`, `propellant_trace`, `traces` | Also leaves out `trace` | A headline figure's trace restates its value with its inputs; `tests/test_trace.py` checks it. Every number in the baseline is compared as before |
 | `tests/gui/test_calculation_panel.py::test_the_calculation_panel_is_hidden_until_a_page_asks_for_it` | Pages: Budget | Also: Results › Overview's request shows the panel | The overview is a new source of calculations; the earlier assertions are unchanged |
+
+## The provenance view (2026-10-30)
+
+- Added, in `tests/gui/test_provenance_view.py` (4 tests):
+  - every leaf of a full record (the engine's time scales, frames and
+    transformations, seeds, data files, configuration, the warnings and a
+    key no group names) is a row in its group with its value in full;
+  - the window's tree, its filter (by value, by group, cleared), Copy as
+    JSON and its empty state;
+  - the popover's Show everything recorded, offered only with a record;
+  - Results › Overview passing its run's record to the popover.
+
+  Each fails on the code before (checked; `gui.provenance_view` does not
+  exist there). No existing test changed.
