@@ -145,7 +145,10 @@ For example, a row's propellant is
 with `m` the mass before the burn: the dry mass plus the iteration's load,
 less the propellant of the rows above. The row's own delta-V trace and the
 exhaust speed's trace are its inputs. `budget --explain` prints every
-trace, and `budget --out` writes them. `tests/test_trace.py` recomputes
+trace, and `budget --out` writes them. In the app, **Show calculation** on
+the Budget page opens the selected row's (or, with none, the total's) in
+the Calculation panel, with **Open** to each number it is built from.
+`tests/test_trace.py` recomputes
 every number from its trace's inputs alone. The exceptions are the
 re-entry burn and the drag estimate, whose traces name the solver and its
 inputs.

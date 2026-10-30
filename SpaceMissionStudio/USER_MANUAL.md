@@ -253,6 +253,18 @@ A few things to notice right away:
   scenario invalid opens it, and so does a run that cannot start.
   Warnings, and the problems of a file just opened, only add to the count
   in the status bar and the top bar; click the count to open the panel.
+* The **Calculation** panel, a tab beside the Inspector: how a computed
+  number was reached. **Show calculation** on the **Budget** and **End of
+  Life** pages, and beside the link budget on the Dashboard, opens it. It
+  gives the result, the equation and the standard it comes from, then
+  each input and intermediate value with its unit and, under it, its
+  source: a scenario field (`scenario:`), a named parameter at the value
+  in effect (`parameter:`), a physical constant (`constant:`), a series
+  of the last run (`last run:`), or a value computed on the way
+  (`computed:`). An input that is another computed number has an
+  **Open** button to its own calculation; **Back** returns. **Copy** puts
+  the calculation on the clipboard as text, as the command line's
+  `--explain` prints it. A new window starts without it.
 * `Ctrl+I` and `Ctrl+J` show and hide their panel, and a panel they show
   takes the keyboard. Drag a panel elsewhere, close it, or put them all
   back as a new window has them with **Settings > Layout > Reset
@@ -742,6 +754,10 @@ all Basilisk modules (`simpleInstrument`, `partitionedStorageUnit`,
   in view and the Eb/N0 margin is 0 dB or more (the parameter
   `link.required_margin_db`; a project can require more). It empties the
   fullest part of the memory first.
+  After a run, the Dashboard shows the link budget at the time cursor
+  (else the run's end) while the station is in view and **Comms
+  pointing** has turned the spacecraft to it; its **Show calculation** opens how the margin was
+  computed, the range and pointing error taken from the run.
 * Instruments and the transmitter can draw power from the power budget.
 
 **Antenna pattern** (same group as the link budget) says how the
@@ -1377,7 +1393,9 @@ approach, the FCC) and the 25-year guideline (IADC) are met. Choose
 **End of last run** to start from where a run finished, with the
 propellant it left. Tick **Lower perigee to** to plan a deorbit burn
 with the orbit thruster; if the propellant is short, it says how low
-the perigee gets. The estimate takes seconds and agrees with full
+the perigee gets. **Show calculation** opens how the lifetime was
+computed (the orbit, the mass, the ballistic coefficient, the burn and
+each rule) in the Calculation panel. The estimate takes seconds and agrees with full
 simulations to about 2%. It uses the scenario's atmosphere and real
 space weather: the observed record, then NASA MSFC's prediction, whose
 last solar cycle repeats past 2041. **Drag coefficient** defaults to
@@ -1391,7 +1409,9 @@ budget), then press **Compute budget** on the **Budget** page (**Run >
 Budget**). It lists
 each contributor per mission phase with its margin, the total, and notes
 on anything that departs from the guideline. **Copy as CSV** puts the
-table on the clipboard. Without a run, a LEO station keeper's orbit
+table on the clipboard. **Show calculation** opens how the selected
+row's delta-V was computed (with no row selected, the propellant total)
+in the Calculation panel. Without a run, a LEO station keeper's orbit
 control is estimated from the drag on its orbit (full runs spent ~5%
 more). The budget's margins and rules (x4 on collision avoidances, 1 %
 residual, ...) are AD10's by default; a project changes them in a

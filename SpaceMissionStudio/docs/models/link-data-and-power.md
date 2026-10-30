@@ -183,7 +183,9 @@ slant range:
   antenna's angle off the station.
 
 `--explain` prints the traces, and `--out` writes them. No Basilisk is
-needed. `tests/test_trace.py` recomputes every figure from its trace.
+needed. In the app, the Dashboard's **Show calculation** opens the same
+traces in the Calculation panel, the margin first, at the time cursor:
+the range and pointing error are then the run's (`last run:`). `tests/test_trace.py` recomputes every figure from its trace.
 
 ## Outputs and records
 

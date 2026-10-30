@@ -14514,6 +14514,30 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The Calculation panel (2026-10-30)
+
+The transparency plan, Phase 4b (the plan's "Explain drawer"). Branch
+`explain-drawer`.
+
+- **`gui.calculation_panel`** (new): `Explanation` (a title and the
+  traces, the one asked about first) and `CalculationPanel`: the result,
+  equation and reference; each input and intermediate in two lines (the
+  value and meaning, then the source); **Open** on an input whose source
+  is another trace of the explanation; **Back**; **Copy** (the trace's
+  `text()`).
+- **Show calculation** (`calculation_requested`, `explanation()`):
+  - Budget: the selected row's delta-V trace (its propellant's when it has
+    none; the first, of several), else the total's; the budget's other
+    traces after it;
+  - End of Life: the lifetime's trace, then the others;
+  - Dashboard: `link_budget_traces` at the time cursor's range and pointing
+    error, the margin first; enabled while the link budget is shown.
+- **`MainWindow`:** the Calculation dock, tabbed with the Inspector and
+  hidden in a new window and by Reset Layout; `show_calculation`;
+  View > Calculation in the command palette. `_LAYOUT_VERSION` 4 to 5.
+- **Tests:** `tests/gui/test_calculation_panel.py` (8); the View commands'
+  list in `tests/gui/test_workspace.py` gains Calculation.
+
 ## The link budget's traces (2026-10-30)
 
 The transparency plan, Phase 4a and 4c, for the RF link. Branch

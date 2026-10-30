@@ -47,7 +47,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFormLayout,
     QGridLayout,
@@ -55,6 +55,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QProgressBar,
+    QPushButton,
     QVBoxLayout,
     QWidget,
 )
@@ -65,6 +66,7 @@ from ..engine.results import ResultSet
 from ..schema.scenario import Scenario
 from .badges import ACCENT as _ACCENT_BADGE, DANGER as _DANGER_BADGE, MUTED as _MUTED_BADGE
 from .badges import SUCCESS as _SUCCESS_BADGE, set_badge
+from .calculation_panel import Explanation
 from .theme import set_role
 
 
@@ -141,8 +143,14 @@ def _card_form(box: QGroupBox) -> QFormLayout:
 
 
 class MissionDashboardWidget(QWidget):
+    """``calculation_requested(Explanation)``: Show calculation was chosen
+    for the link budget at the time cursor."""
+
+    calculation_requested = Signal(object)
+
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
+        self._link_inputs = None  # (range, rf_link, station, angle, the sources) of the budget shown
         self._result: ResultSet | None = None
         self._scenario: Scenario | None = None
         self._cursor_s: float | None = None  # [s] the shared time cursor, or None (the latest sample)
@@ -237,6 +245,12 @@ class MissionDashboardWidget(QWidget):
             set_role(row_label, tone="secondary")
             set_role(value_label, tone="secondary")
             rf_form.addRow(row_label, value_label)
+        self.calculation_button = QPushButton("Show calculation")
+        self.calculation_button.setToolTip("How the link budget at the time cursor was computed: each figure's "
+                                           "equation, its inputs and their sources")
+        self.calculation_button.setEnabled(False)
+        self.calculation_button.clicked.connect(self.show_calculation)
+        rf_form.addRow(self.calculation_button)
         self._arrange_cards(2)
 
         self._set_panels_visible(False)
@@ -279,6 +293,22 @@ class MissionDashboardWidget(QWidget):
         self._power_box.setVisible(visible)
         self._rf_box.setVisible(visible)
         self._placeholder.setVisible(not visible)
+
+    def explanation(self) -> Explanation | None:
+        """The link margin's calculation at the time cursor; the budget's
+        other figures are reached from it."""
+        if self._link_inputs is None:
+            return None
+        range_m, rf_link, station, angle, range_source, angle_source, title = self._link_inputs
+        traces = link_budget.link_budget_traces(range_m, rf_link, station, angle, self._scenario, range_source,
+                                                angle_source)
+        first = traces.pop("margin")
+        return Explanation(title, [first, *traces.values()])
+
+    def show_calculation(self) -> None:
+        explanation = self.explanation()
+        if explanation is not None:
+            self.calculation_requested.emit(explanation)
 
     def set_time_cursor(self, cursor) -> None:
         """Show the values at ``cursor`` (a :class:`gui.time_cursor.TimeCursor`) instead of the latest."""
@@ -415,11 +445,21 @@ class MissionDashboardWidget(QWidget):
         # no breakdown -- should be shown while it's still Sun-pointing,
         # even if the ground station happens to already be visible.
         breakdown = None
+        self._link_inputs = None
+        self.calculation_button.setEnabled(False)
         if rf_link is not None and gs_config is not None and slant_range_m is not None \
                 and has_access and is_comms_mode:
             breakdown = link_budget.link_budget_breakdown(
                 slant_range_m, rf_link, gs_config, pointing_error_deg or 0.0, self._scenario
             )
+            sc_name = sc_config.name
+            at = "the time cursor" if self._cursor_s is not None else "the end of the run"
+            range_source = f"last run: {gs_name}.access_to_{sc_name}.slant_range, at {at}"
+            angle_source = (f"last run: {sc_name}.comms_pointing.pointing_error_deg, at {at}"
+                            if pointing_error_deg is not None else "computed: no pointing series, taken as 0")
+            self._link_inputs = (slant_range_m, rf_link, gs_config, pointing_error_deg or 0.0, range_source,
+                                 angle_source, f"Link: {sc_name} to {gs_name}")
+            self.calculation_button.setEnabled(True)
 
         if breakdown is None:
             for label in (self.eirp_label, self.fspl_label, self.pointing_loss_label,

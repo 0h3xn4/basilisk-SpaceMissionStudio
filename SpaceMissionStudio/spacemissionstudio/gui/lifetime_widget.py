@@ -39,6 +39,7 @@ from PySide6.QtWidgets import (
 )
 
 from .badges import MUTED, SUCCESS, WARNING, set_badge
+from .calculation_panel import Explanation
 from .scenario_explainer_widget import _clear_layout, _stat_tile
 from .theme import CONTENT_MAX_WIDTH_PX, PALETTE, set_role
 from .widgets import ComboBox, PreciseDoubleSpinBox
@@ -186,8 +187,13 @@ def _nice_ticks(low: float, high: float, count: int = 5) -> list:
 
 
 class LifetimeWidget(QWidget):
+    """``calculation_requested(Explanation)``: Show calculation was chosen."""
+
+    calculation_requested = Signal(object)
+
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
+        self._end_of_life = None  # the estimate shown
         self._scenario = None
         self._last_run = None  # (scenario, ResultSet) of the last completed run
         self._worker: _LifetimeWorker | None = None
@@ -246,6 +252,12 @@ class LifetimeWidget(QWidget):
         set_role(self.status_label, tone="secondary")
         self.status_label.setWordWrap(True)
         button_row.addWidget(self.status_label, 1)
+        self.calculation_button = QPushButton("Show calculation")
+        self.calculation_button.setToolTip("How the lifetime, the mass, the ballistic coefficient, the burn and each "
+                                           "rule's verdict were computed")
+        self.calculation_button.setEnabled(False)
+        self.calculation_button.clicked.connect(self.show_calculation)
+        button_row.addWidget(self.calculation_button)
         layout.addLayout(button_row)
 
         self.tiles_row = QHBoxLayout()
@@ -343,6 +355,16 @@ class LifetimeWidget(QWidget):
         self._update_from_choices()
         self._worker.start()
 
+    def explanation(self) -> Explanation | None:
+        if self._end_of_life is None:
+            return None
+        return _lifetime_explanation(self._end_of_life, self.spacecraft_combo.currentText())
+
+    def show_calculation(self) -> None:
+        explanation = self.explanation()
+        if explanation is not None:
+            self.calculation_requested.emit(explanation)
+
     def _worker_done(self) -> None:
         self._worker = None
         self._update_from_choices()
@@ -357,6 +379,8 @@ class LifetimeWidget(QWidget):
         self._clear_results()
 
     def _clear_results(self) -> None:
+        self._end_of_life = None
+        self.calculation_button.setEnabled(False)
         _clear_layout(self.tiles_row)
         _clear_layout(self.badges_row)
         self.notes_label.setText("")
@@ -367,6 +391,8 @@ class LifetimeWidget(QWidget):
 
         scenario = getattr(self, "_computed_for", None)
         self._clear_results()
+        self._end_of_life = end_of_life
+        self.calculation_button.setEnabled(bool(end_of_life.traces))
         result = end_of_life.lifetime
         self.status_label.setText("From the end of the last run" if end_of_life.from_end_of_run
                                   else "From the start of the scenario")
@@ -403,6 +429,15 @@ class LifetimeWidget(QWidget):
         self.chart.set_data([t / (365.25 * 86400.0) for t in result.time_s], result.perigee_altitude_km,
                             result.apogee_altitude_km, lt.rule("reentry_altitude_km", scenario), horizon_years,
                             [years for years, _label, _key in lt.disposal_rules(scenario)])
+
+
+def _lifetime_explanation(end_of_life, spacecraft_name: str) -> Explanation | None:
+    """The lifetime's calculation first; the others are reached from it."""
+    traces = dict(end_of_life.traces)
+    first = traces.pop("lifetime", None)
+    if first is None:
+        return None
+    return Explanation(f"End of Life: {spacecraft_name}", [first, *traces.values()])
 
 
 def _years_text(years: float) -> str:

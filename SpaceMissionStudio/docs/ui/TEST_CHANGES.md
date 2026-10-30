@@ -1104,3 +1104,23 @@ never named "_TabBar".
     Basilisk.
 
   Each fails on the code before (checked). No existing test changed.
+
+## The Calculation panel (2026-10-30)
+
+- Added, in `tests/gui/test_calculation_panel.py` (8 tests):
+  - the panel: the result, equation, reference, inputs with their
+    sources and notes; Open to another trace and Back; an input whose
+    trace is not in the explanation is not a link; Copy; an empty
+    explanation;
+  - Show calculation on the Budget (the selected row, else the total),
+    End of Life (the lifetime) and the Dashboard (the margin, from the
+    run's range and pointing error; off without a link);
+  - the main window: the panel hidden until asked for, shown by a page,
+    hidden by Reset Layout, toggled from View.
+
+  Each fails on the code before (checked; `gui.calculation_panel` does not
+  exist there).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_workspace.py::test_the_view_analyses_and_tools_commands` | The View commands were Inspector, Explain, Problems, Reset Layout, ... | Calculation follows Explain; the test also hides the panel and shows it with View > Calculation | A new View command, View > Calculation, for the new panel. The other assertions are unchanged |
