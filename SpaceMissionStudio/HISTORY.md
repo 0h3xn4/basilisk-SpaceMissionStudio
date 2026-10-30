@@ -14514,6 +14514,23 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The link budget's traces (2026-10-30)
+
+The transparency plan, Phase 4a and 4c, for the RF link. Branch
+`link-trace`.
+
+- **`link_budget.link_budget_traces`:**
+  - EIRP, the path loss, the pointing loss (fixed, fixed with a
+    beamwidth, cosine or table pattern);
+  - the received power, N0, C/N0, Eb/N0, the margin, and the verdict
+    against `link.required_margin_db`;
+  - each value is the breakdown's own.
+- **`link_budget.slant_range_at_elevation_m`:** the longest range of a pass.
+- **`link-budget`,** a new command (no Basilisk): the budget at that range
+  or at `--range-km`. It takes `--pointing-deg`, `--explain` and `--out`
+  (`analysis_records.link_budget_record`, kind `link_budget`).
+- **Tests:** 6 more in `tests/test_trace.py`.
+
 ## The lifetime's traces (2026-10-30)
 
 The transparency plan, Phase 4a and 4c, for the orbital lifetime. Branch

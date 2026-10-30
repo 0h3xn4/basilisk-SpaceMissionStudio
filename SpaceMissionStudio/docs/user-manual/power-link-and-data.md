@@ -42,6 +42,11 @@ closes when the station is in view and the margin is 0 dB or more; a
 project configuration can require more (`link.required_margin_db`,
 [the link model](../models/link-data-and-power.md)).
 
+To size the link before a run, `spacemissionstudio link-budget
+scenario.json` gives the budget at the longest range of a pass, at the
+station's minimum elevation. Add `--explain` for how each figure was
+computed ([Use the command line](command-line.md)).
+
 To point the antenna at the station during passes, use **Comms
 pointing** on the **Attitude control** page (template **19**).
 

@@ -1093,3 +1093,14 @@ never named "_TabBar".
   - the record and `lifetime --explain`.
 
   Each fails on the code before (checked). No existing test changed.
+
+## The link budget's traces (2026-10-30)
+
+- Added, in `tests/test_trace.py` (6 tests):
+  - every link figure recomputed from its trace, for three antenna cases;
+  - the verdict following the project's required margin;
+  - the minimum-elevation range;
+  - the `link-budget` command with `--explain` and `--out`, without
+    Basilisk.
+
+  Each fails on the code before (checked). No existing test changed.

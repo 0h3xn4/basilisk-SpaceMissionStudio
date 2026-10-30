@@ -17,6 +17,12 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-30: the link budget's traces and the link-budget command (Phase 4a)
+
+**No number changes.** The link budget is computed as before; its traces
+and the new `link-budget` command only report it. The regression baseline
+of all 31 templates passes unchanged.
+
 ## 2026-10-30: the lifetime's traces; a decay reaching the ground within a step
 
 **One case that raised now gives a result.** Writing the lifetime's trace

@@ -17,13 +17,15 @@ configuration file changes them without editing code
 | Space weather past the prediction, Earth orientation, TLEs, mean elements | [Environment data](environment-and-data.md) | `space_weather.*`, `tle.*` |
 | Altitude station keeping, the thruster's firing model, phasing keeping, GEO station keeping | [Orbit control](orbit-control.md) | `orbit_control.*`, `geo_station_keeping.*` |
 
-**How a number was computed:** the propellant budget's and the orbital
-lifetime's numbers carry their calculation trace: the equation, the inputs
-with their units and sources, and the standard's clause (`budget
---explain`, `lifetime --explain`; "How each number was computed" on
-[Propellant budget](propellant-budget.md) and
-[Orbital lifetime](lifetime.md)). The other models follow (the
-transparency plan, Phase 4).
+**How a number was computed:** the propellant budget's, the orbital
+lifetime's and the link budget's numbers carry their calculation trace:
+the equation, the inputs with their units and sources, and the standard's
+clause (`budget --explain`, `lifetime --explain`, `link-budget
+--explain`; "How each ... was computed" on
+[Propellant budget](propellant-budget.md),
+[Orbital lifetime](lifetime.md) and
+[RF link, data handling and power](link-data-and-power.md)). The other
+models follow (the transparency plan, Phase 4).
 
 Every calculation uses one set of physical constants, Basilisk's:
 [Physical constants](constants.md). The values each model uses that are

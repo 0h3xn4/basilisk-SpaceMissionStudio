@@ -159,6 +159,32 @@ saved in its file. Their defaults are listed in the
 `tests/test_comms_pointing.py`: the Vizard link status follows the margin
 and the required margin.
 
+## How each figure was computed
+
+`engine.link_budget.link_budget_traces` gives each figure of the budget
+its trace (`engine.trace`), from the values the run and the dashboard
+compute with:
+- EIRP, the path loss, the pointing loss (for the pattern in use);
+- the received power, the noise density, C/N0, Eb/N0 and the margin;
+- whether the link closes against `required_margin_db`.
+
+Each input says where it came from: the field of `rf_link` or of the
+ground station, a parameter at its value in effect, a constant, or the
+range and angle asked for.
+
+`spacemissionstudio link-budget scenario.json` prints the budget at a
+slant range:
+- by default the longest of a pass, at the station's minimum elevation,
+  for a circular orbit at the semi-major axis:
+
+      rho = sqrt(r^2 - (R cos(eps))^2) - R sin(eps),  R = R_E + h_station
+
+- or the range given with `--range-km`, with `--pointing-deg` for the
+  antenna's angle off the station.
+
+`--explain` prints the traces, and `--out` writes them. No Basilisk is
+needed. `tests/test_trace.py` recomputes every figure from its trace.
+
 ## Outputs and records
 
 A run records, for each station and spacecraft:
@@ -170,6 +196,7 @@ A run records, for each station and spacecraft:
 - the battery's charge and net power.
 
 The mission dashboard shows the link budget's breakdown at the time cursor.
+`link-budget --out` writes one budget, with its traces, as JSON.
 
 A run's `provenance.json` holds `configuration`, with each link and
 data-handling parameter the project changed and the default it replaces.
