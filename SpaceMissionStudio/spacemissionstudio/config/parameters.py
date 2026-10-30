@@ -103,8 +103,8 @@ register(
     Parameter("lifetime.reentry_altitude_km", 120.0, "[km]",
               "A perigee at or below this counts as re-entry: the lifetime ends there.",
               "Common practice for orbit-averaged decay estimates",
-              "Below about 120 km an orbit lasts days at most. A full simulation run stops at 100 km "
-              "(engine.service); Phase 3c of the transparency plan chooses one value for both.",
+              "Below about 120 km an orbit lasts days at most. A full simulation run has its own criterion, "
+              "on the simulated altitude: dynamics.reentry_altitude_km (100 km).",
               minimum=60.0, maximum=300.0),
     Parameter("lifetime.ring_points", 16, "[-]",
               "The points spread evenly around the orbit (in mean anomaly) the drag is averaged over at each step.",
@@ -207,6 +207,12 @@ register(
     Parameter("dynamics.integrator_absolute_tolerance", 1e-8, "[m, m/s, rad]",
               "The absolute error tolerance of the adaptive integrators, one value for every state.",
               "Basilisk's default", minimum=1e-14, maximum=1e-2),
+    Parameter("dynamics.reentry_altitude_km", 100.0, "[km]",
+              "A run stops (or, without drag, warns) once a spacecraft's altitude is below this: the run's re-entry.",
+              "SpaceMissionStudio's own choice",
+              "Not the lifetime's 120 km (lifetime.reentry_altitude_km): that one is on the orbit-averaged perigee, "
+              "this one on the simulated altitude, at which the run can no longer be integrated sensibly.",
+              minimum=60.0, maximum=300.0),
     Parameter("dynamics.reentry_check_s", 21600.0, "[s]",
               "How often a run with drag checks for re-entry while every perigee is high.",
               "SpaceMissionStudio's own choice", "Six hours: a high orbit cannot re-enter between two checks.",

@@ -14514,6 +14514,34 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## One set of physical constants (2026-10-30)
+
+The transparency plan, Phase 3c. Branch `one-constant-set`.
+
+- **`spacemissionstudio/constants.py`:** Basilisk's Earth GM, radius, J2
+  and rotation, the AU, the solar flux, and the central bodies' radii and
+  J2. These modules take theirs from it, under their own names:
+  - `lifetime`, `propellant_budget`, `orbit_design`, `constellation`;
+  - `opnav`, `template_wizard`;
+  - `scenario_checks`, `environment_models`.
+- **Five sets found, one kept:**
+  - Basilisk's, copied in six modules (identical floats, no change);
+  - GGM03S's in the truncation estimate;
+  - GGM03S's GM with a cut J2 in the scenario checks (the GM's comment
+    called it Basilisk's);
+  - WGS-84's radius for the checks' surface;
+  - IAU 2012's AU.
+
+  The last four now take the one set. The changes are measured in
+  `docs/changes.md`; none shows in a printed digit.
+- **Re-entry:** `dynamics.reentry_altitude_km` (100 km), the run's own; the
+  checks use `lifetime.reentry_altitude_km` (a duplicated 120 km of
+  theirs, left behind by #158, is gone).
+- **Tests:** `tests/test_constants.py` checks each constant against
+  Basilisk's (its gravity factory, `orbitalMotion`, and the C header where
+  the binding rounds), and that every analysis takes the one set.
+- **Docs:** `docs/models/constants.md`.
+
 ## The environment's data rules, as parameters (2026-10-30)
 
 The transparency plan, Phase 3a, sixth and last area. Branch `environment-params`.

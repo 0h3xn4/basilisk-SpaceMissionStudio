@@ -125,9 +125,9 @@ and a project configuration file changes them
 - k, rounded to -228.6 dBW/K/Hz (10 log10(1.380649e-23) = -228.599);
 - Basilisk's solar flux and astronomical unit.
 
-The transparency plan's Phase 3c chooses one set of physical constants.
-The solar flux and AU are Basilisk's, in its C++ modules, which
-SpaceMissionStudio does not change.
+The solar flux and the AU are the one set's, Basilisk's
+([Physical constants](constants.md)); in the solar panel they are inside
+Basilisk's C++ module, which SpaceMissionStudio does not change.
 
 **Scenario inputs, not parameters:** the transmitter, antenna,
 station, panel, battery and instrument values are the scenario's own,

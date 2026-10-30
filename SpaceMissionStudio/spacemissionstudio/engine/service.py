@@ -164,7 +164,8 @@ _LIVE_DEFAULT_FRAMES = 60
 _logger = logging.getLogger(__name__)
 
 
-_REENTRY_ALTITUDE_M = 100e3  # [m] below this a spacecraft is flagged as re-entered
+# Below dynamics.reentry_altitude_km (100 km) a spacecraft is flagged as re-entered: the run's own
+# criterion, on its altitude; engine.lifetime's is on the orbit's perigee (lifetime.reentry_altitude_km).
 # How often a run with drag checks for re-entry: dynamics.reentry_check_s (6 h), and
 # dynamics.reentry_near_check_s (300 s) once a perigee is below dynamics.reentry_near_perigee_km (200 km).
 
@@ -2206,7 +2207,7 @@ class SimulationService:
         ``dynamics.reentry_near_check_s`` (5 minutes) once a perigee is below
         ``dynamics.reentry_near_perigee_km`` (200 km), and stops early
         (setting :attr:`reentry`, returning False) once a spacecraft is
-        below 100 km -- integrating it on through the Earth goes
+        below ``dynamics.reentry_altitude_km`` (100 km) -- integrating it on through the Earth goes
         non-physical and would lose the whole run. The check's step is how
         precisely the re-entry time is known."""
         watched = [(name, handle) for name, handle in self._handles.items()
@@ -2220,6 +2221,7 @@ class SimulationService:
             return True
         now_ns = self.scSim.TotalSim.CurrentNanos
         check_s, near_check_s = rule("reentry_check_s", self.scenario), rule("reentry_near_check_s", self.scenario)
+        reentry_m = rule("reentry_altitude_km", self.scenario) * 1000.0  # [m]
         near_perigee_m = rule("reentry_near_perigee_km", self.scenario) * 1000.0  # [m]
         while now_ns < stop_ns:
             step_s = check_s  # [s]
@@ -2227,7 +2229,7 @@ class SimulationService:
                 state = handle.sc_object.scStateOutMsg.read()
                 r_m, v_m_s = np.array(state.r_BN_N), np.array(state.v_BN_N)
                 radius_m = float(np.linalg.norm(r_m))
-                if radius_m - self.central_radius_m < _REENTRY_ALTITUDE_M:
+                if radius_m - self.central_radius_m < reentry_m:
                     self.reentry = (name, now_ns * macros.NANO2SEC)
                     _logger.warning("%s re-entered at t=%.0f s; stopping the run there", name, self.reentry[1])
                     return False
@@ -2368,14 +2370,15 @@ class SimulationService:
             result.add(TimeSeries(f"{name}.position_N", t_s, ("x", "y", "z"), handle.recorder.r_BN_N, units="m"))
             result.add(TimeSeries(f"{name}.velocity_N", t_s, ("x", "y", "z"), handle.recorder.v_BN_N, units="m/s"))
             altitude_m = np.linalg.norm(np.asarray(handle.recorder.r_BN_N).reshape(-1, 3), axis=1) - self.central_radius_m
-            below = np.nonzero(altitude_m < _REENTRY_ALTITUDE_M)[0] if self.small_body is None else []
+            reentry_km = rule("reentry_altitude_km", self.scenario)  # [km]
+            below = np.nonzero(altitude_m < reentry_km * 1000.0)[0] if self.small_body is None else []
             if self.small_body is not None:
                 self._add_small_body_results(result, name, handle, t_s)
             elif self.reentry is not None and self.reentry[0] == name:
-                result.warnings.append(f"{name} re-entered: below {_REENTRY_ALTITUDE_M / 1e3:g} km at "
+                result.warnings.append(f"{name} re-entered: below {reentry_km:g} km at "
                                        f"t = {self.reentry[1] / 86400.0:.2f} days -- the run stopped there")
             elif len(below):
-                result.warnings.append(f"{name} re-entered: below {_REENTRY_ALTITUDE_M / 1e3:g} km from "
+                result.warnings.append(f"{name} re-entered: below {reentry_km:g} km from "
                                        f"t = {t_s[below[0]] / 86400.0:.2f} days -- later results are not physical")
 
             # Conservation/drift diagnostic -- see _is_two_body_only's own

@@ -17,6 +17,34 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-10-30: one set of physical constants (Phase 3c)
+
+**Numbers change, below what any output prints.** The decision (the
+transparency audit's Section 10, question 2; `docs/models/constants.md`):
+SpaceMissionStudio's own calculations take Basilisk's constants, the ones
+every simulated orbit uses, from one module (`spacemissionstudio.constants`).
+Five sets were in the code; the modules that already held Basilisk's values
+keep them exactly (the same floating-point numbers), and these change:
+
+| Output | Constant before | Constant now | Value before | Value now |
+|---|---|---|---|---|
+| Thermal sensor temperature (template 20, `sat-1.sensor.therm-1`), through the solar flux's distance scaling | AU 149 597 870 700 m (IAU 2012) | 149 597 870 693 m (Basilisk) | 81.14740754499958 °C | 81.14740753540956 °C (largest change over the run: 9.6e-9 °C, 1.1e-10 of the scale) |
+| Solar flux at a given Sun distance (`environment_models.solar_flux_at_distance_w_m2`), e.g. at 1 IAU AU | as above | as above | 1361.0 W/m^2 | 1360.9999998726319 W/m^2 (-9.4e-11) |
+| Gravity-truncation estimate (Explain's gravity fidelity), degree 0 at 400 km | GGM03S: GM 3.986004415e14 m^3/s^2, R 6 378 136.3 m, J2 1.08263e-3 | Basilisk: 3.98600436e14, 6 378 136.6 m, 1.082616e-3 | 0.02495128850121258 m/s^2 | 0.024950967858611308 m/s^2 (-1.3e-5) |
+| The same, degree 20 at 400 km | as above | as above | 2.0382206775595973e-05 m/s^2 | 2.0382232312299818e-05 m/s^2 (+1.3e-6) |
+| Scenario checks: pass predictions, orbit warnings | GM 3.986004415e14 (labelled as Basilisk's, which it is not), J2 1.0826e-3, WGS-84's 6 378 137 m for the surface | the one set | unchanged in every printed digit across all 31 templates (pass summary, fidelity notes, first three passes to 0.1 s, orbit warnings) | |
+
+The regression baseline of all 31 templates passes unchanged at its
+tolerance (1e-6 of each quantity's scale); the thermal sensor's change,
+1.1e-10, is far below it, so the baseline is not rewritten.
+
+Two rules change without changing a number at the defaults:
+- the scenario checks' "re-enters within about an orbit" now uses
+  `lifetime.reentry_altitude_km` instead of a 120 km of their own, which a
+  project changing the parameter did not move;
+- the run's 100 km re-entry altitude is the parameter
+  `dynamics.reentry_altitude_km`, and its warnings print it.
+
 ## 2026-10-30: the environment's data rules, as parameters (Phase 3a)
 
 **No number changes.** MSFC's 132-month repeat and the 3-day TLE age

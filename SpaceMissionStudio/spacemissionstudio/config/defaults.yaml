@@ -104,7 +104,7 @@ parameters:
   # -- lifetime --------------------------------------------------------------
 
   # A perigee at or below this counts as re-entry: the lifetime ends there.
-  # Source: Common practice for orbit-averaged decay estimates. Below about 120 km an orbit lasts days at most. A full simulation run stops at 100 km (engine.service); Phase 3c of the transparency plan chooses one value for both.
+  # Source: Common practice for orbit-averaged decay estimates. Below about 120 km an orbit lasts days at most. A full simulation run has its own criterion, on the simulated altitude: dynamics.reentry_altitude_km (100 km).
   # Limits: 60 to 300 [km]
   # lifetime.reentry_altitude_km: 120.0  # [km]
 
@@ -220,6 +220,11 @@ parameters:
   # Source: Basilisk's default.
   # Limits: 1e-14 to 0.01 [m, m/s, rad]
   # dynamics.integrator_absolute_tolerance: 1e-08  # [m, m/s, rad]
+
+  # A run stops (or, without drag, warns) once a spacecraft's altitude is below this: the run's re-entry.
+  # Source: SpaceMissionStudio's own choice. Not the lifetime's 120 km (lifetime.reentry_altitude_km): that one is on the orbit-averaged perigee, this one on the simulated altitude, at which the run can no longer be integrated sensibly.
+  # Limits: 60 to 300 [km]
+  # dynamics.reentry_altitude_km: 100.0  # [km]
 
   # How often a run with drag checks for re-entry while every perigee is high.
   # Source: SpaceMissionStudio's own choice. Six hours: a high orbit cannot re-enter between two checks.

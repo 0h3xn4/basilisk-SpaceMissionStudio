@@ -47,15 +47,18 @@ from pathlib import Path
 
 import numpy as np
 
+from .. import constants
 from ..config import registry
 from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import usable_thread_count
 from . import environment_models, geodesy, small_bodies, tle
 
-_MU_M3_S2 = 3.986004415e14  # [m^3/s^2] Earth, as Basilisk's simIncludeGravBody uses
-_R_EARTH_M = 6378.1366e3  # [m] equatorial radius, as engine.service gives groundLocation
-_J2 = 1.0826e-3  # [-]
+# Earth: the one set (spacemissionstudio.constants), the simulation's own. Until 2026-10-30
+# these were GGM03S's GM (3.986004415e14, mislabelled as Basilisk's) and a J2 cut to 1.0826e-3.
+_MU_M3_S2 = constants.EARTH_GM_M3_S2  # [m^3/s^2]
+_R_EARTH_M = constants.EARTH_EQUATORIAL_RADIUS_M  # [m] equatorial radius, as engine.service gives groundLocation
+_J2 = constants.EARTH_J2  # [-]
 _TT_MINUS_UTC_S = 69.184  # [s] 32.184 s + 37 leap seconds (constant since 2017)
 _STEP_S = 30.0  # [s] sample spacing; a LEO pass above 10 deg lasts several minutes
 _MAX_HORIZON_S = 7 * 86400.0  # [s] keep long runs cheap; passes beyond this aren't counted
@@ -350,8 +353,7 @@ def _small_body_data_warnings(scenario) -> list[str]:
 _MANY_SAMPLES = 1_000_000
 
 
-_REENTRY_PERIGEE_KM = 120.0  # [km] perigee counted as re-entry, as engine.lifetime
-_EARTH_RADIUS_M = geodesy.WGS84_SEMI_MAJOR_AXIS_M  # [m]
+_EARTH_RADIUS_M = constants.EARTH_EQUATORIAL_RADIUS_M  # [m] WGS-84's 6378137 m until 2026-10-30
 
 
 def _orbit_warnings(scenario) -> list[str]:
@@ -382,7 +384,7 @@ def _orbit_warnings(scenario) -> list[str]:
         perigee_km = (elements[0] * (1.0 - elements[1]) - _EARTH_RADIUS_M) / 1e3  # [km]
         if perigee_km < 0.0:
             warnings.append(f"{sc.name}: perigee is {-perigee_km:.0f} km below Earth's surface")
-        elif perigee_km < _REENTRY_PERIGEE_KM:
+        elif perigee_km < registry.value("lifetime.reentry_altitude_km", scenario):  # [km] as engine.lifetime
             warnings.append(f"{sc.name}: perigee at {perigee_km:.0f} km -- it re-enters within about an orbit")
     return warnings
 
