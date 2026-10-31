@@ -1260,3 +1260,17 @@ never named "_TabBar".
   The `_MODEL_PAGES` table and the declared-names union gain the area and
   its cases. Each new case fails on the code before (checked). No
   existing test changed.
+
+## Explain's rules; the mission sequence's settings (2026-10-31)
+
+- Added:
+  - in `test_config.py`, `test_setting_an_explain_parameter_changes_what_it_says`,
+    one case per parameter (4), each on a template edited near the rule,
+    set and at its default;
+  - in `test_lambert_transfer.py`, `test_the_convergence_tolerance_sets_no_result`:
+    the delta-V applied is the same at 1e-6, 1 and 100 m/s.
+
+  The `_MODEL_PAGES` table and the declared-names union gain the area and
+  its cases. Each new case fails on the code before (checked); the
+  Lambert test passes on it, as it should (it checks a property the code
+  has). No existing assertion changed.

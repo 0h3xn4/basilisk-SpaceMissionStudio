@@ -487,6 +487,12 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **Explain's rules are parameters:** the Sun-synchronous label's
+  tolerance, the differential-drag note's threshold, the passive-safety
+  margin and the camera axis tolerance. A project configuration file
+  changes them. `docs/models/explain.md` also says why the mission
+  sequence's numerical settings, Lambert's convergence tolerance among
+  them, are not parameters.
 - **The pre-run checks' rules are parameters:** the pass prediction's
   sample spacing, horizon and look-ahead, and the thresholds of the
   every-step, coarse-recording, long-step, late-first-pass and sun-sensor

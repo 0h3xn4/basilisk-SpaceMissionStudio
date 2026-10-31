@@ -14514,6 +14514,34 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Explain's rules, as parameters; the mission sequence's settings (2026-10-31)
+
+Phase 3a for Explain and the mission sequence, the last "Not yet covered"
+row of Phase 3 (Monte Carlo's statistic is Phase 6b's). Branch
+`explain-params`.
+
+- **4 parameters, `explain.*`:** `sso_tolerance_deg` (was
+  `_SSO_TOLERANCE_DEG`), `differential_drag_fraction`,
+  `passive_safety_margin_m`, `camera_axis_tolerance_deg` (inline 0.05,
+  1.0, 1.0). `_is_sun_synchronous`, `_orbit_summary` and
+  `_differential_drag_note` take the scenario (optional: the Home page's
+  template cards have none).
+- **Lambert's convergence tolerance is not a parameter, and why:** it was
+  to be one, but trying it showed it sets no result. Basilisk's
+  `lambertValidator` compares the delta-V of successive solutions, and
+  the app's mini-simulation feeds the solver the same state at each tick,
+  so they always agree: the delta-V was identical at 1e-6, 1 and 100 m/s.
+  A test now shows it. The other mission sequence values are a numerical
+  zero (the apsis start), caps that stop a runaway sequence, and the
+  Abort granularity.
+- **docs/models/explain.md.** The models index has no "Not yet covered"
+  row left for Phase 3 but Monte Carlo's statistic.
+- **Tests:** 4 cases in `tests/test_config.py`; the convergence test in
+  `tests/test_lambert_transfer.py`.
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4209 passed in 19 min 7 s, including the regression baseline.
+
 ## The pre-run checks' rules, as parameters (2026-10-31)
 
 Phase 3a for the pre-run checks. Branch `checks-params`.
