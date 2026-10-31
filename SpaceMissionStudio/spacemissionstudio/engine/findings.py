@@ -31,7 +31,9 @@ limit, if one does. :func:`explanation_lines` gives all of it as text, as
 ``spacemissionstudio validate --explain`` prints it.
 
 Pre-run checks never block a run: a warning is advice. The run refuses
-only what it cannot do, and says so in its own error.
+only what it cannot do, and says so in its own error. A run's own
+warnings (re-entry, a drift, the space-weather sources read) are
+findings too: they say how to read its results.
 """
 
 from __future__ import annotations
@@ -108,6 +110,9 @@ def explanation_lines(warning: str) -> list[str]:
     lines.append(f"override: {override}")
     return lines
 
+
+# The override of a finished run's warnings.
+_RESULT = "It is about the run as made: read its results with it in mind."
 
 RULES: dict[str, Rule] = {rule.rule_id: rule for rule in (
     Rule("check.not_run", "A check that fails to run says so, with the reason.",
@@ -196,4 +201,53 @@ RULES: dict[str, Rule] = {rule.rule_id: rule for rule in (
          "Turn on drag or SRP, or remove the facets."),
     Rule("station_keeping.no_drag", "Altitude station keeping needs drag to trip its deadband.",
          "With drag off the average altitude barely drifts.", "Turn on drag, or remove station keeping."),
+    # A run's own warnings (engine.service, engine.long_run, engine.results).
+    Rule("run.small_body_impact", "A spacecraft inside the small body's shape has hit it.",
+         "The run integrates on through the body, so its results after the impact are not physical.",
+         "Check the initial orbit and the maneuvers, or end the run before the impact.", override=_RESULT),
+    Rule("run.propellant_depleted", "Station keeping whose propellant runs out makes no more burns.",
+         "From then on the orbit is not controlled.", "Carry more propellant, or shorten the run.",
+         override=_RESULT),
+    Rule("run.reentry_stopped", "A run stops when a spacecraft is below the run's re-entry altitude.",
+         "Integrating on through the atmosphere would give non-physical results and could lose the whole run.",
+         "Raise the orbit, or accept the re-entry: its time is known to within one check.", override=_RESULT,
+         parameter="dynamics.reentry_altitude_km"),
+    Rule("run.reentry_after", "A spacecraft below the run's re-entry altitude has re-entered.",
+         "Its results after that are not physical.", "Raise the orbit, or end the run before the re-entry.",
+         override=_RESULT, parameter="dynamics.reentry_altitude_km"),
+    Rule("run.energy_drift", "A two-body-only run's orbital energy must keep its first value to within the "
+         "tolerance.", "Two-body gravity conserves it exactly: a drift this large flags a numerical blow-up, "
+         "such as too long a step, not physics.", "Use a smaller dynamics step or a higher-order integrator.",
+         override=_RESULT, parameter="dynamics.conservation_tolerance"),
+    Rule("run.momentum_drift", "A two-body-only run's angular momentum must keep its first value to within the "
+         "tolerance.", "Two-body gravity conserves it exactly: a drift this large flags a numerical blow-up, "
+         "such as too long a step, not physics.", "Use a smaller dynamics step or a higher-order integrator.",
+         override=_RESULT, parameter="dynamics.conservation_tolerance"),
+    Rule("space_weather.daily_forecast", "A run that reads CelesTrak's 45-day forecast says so.",
+         "Those days are a forecast, not observations.", "Accept it, or move the run into the observed days.",
+         override=_RESULT),
+    Rule("space_weather.monthly_forecast", "A run that reads NOAA's monthly F10.7 forecast says so.",
+         "It fills months MSFC's prediction does not reach, with Ap held at the observed mean.",
+         "Install MSFC's prediction in Reference data, or move the run into the months it covers.",
+         override=_RESULT),
+    Rule("space_weather.msfc_prediction", "A run that reads MSFC's prediction says so, with its percentile.",
+         "Those days are a prediction at the percentile the scenario chooses, not observations.",
+         "Choose the percentile the analysis needs (95, 50 or 5).", override=_RESULT),
+    Rule("space_weather.msfc_repeated", "Past the end of MSFC's prediction its last months repeat.",
+         "Those days repeat a past solar cycle (ESA AD10 Sec. 5.9), not a prediction.",
+         "Install a newer MSFC prediction, or shorten the run.", override=_RESULT,
+         parameter="space_weather.msfc_repeat_months"),
+    Rule("magnetic_field.wmm_validity", "The magnetic field model (WMM) is valid for 5 years from its epoch.",
+         "Outside those years magnetometer readings and torque-rod control use an extrapolated field.",
+         "Use a WMM coefficient file whose years cover the run, or move the run.", override=_RESULT),
+    Rule("data.changed_since_install", "A data file a run reads must be the one installed.",
+         "Its SHA-256 differs from the one recorded when it was installed, so the run may not be reproduced.",
+         "Reinstall it in Reference data.", override=_RESULT),
+    Rule("lifetime.space_weather_ends", "A lifetime estimate looks ahead only as far as the real space-weather "
+         "data goes.", "Past it there is no density to decay the orbit with: nothing is made up.",
+         "Install space-weather data that reaches further, or read the estimate as covering the shorter span.",
+         override=_RESULT),
+    Rule("lifetime.ground_in_step", "An orbit that reaches the ground within one decay step re-enters within it.",
+         "The re-entry time is known to within that step.", "Accept it: the step is the estimate's own.",
+         override=_RESULT),
 )}

@@ -14514,6 +14514,49 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Structured warnings: the run's own (2026-10-31)
+
+The transparency plan, Phase 5a, third step. Branch `run-findings`.
+
+- **14 rules more in `engine.findings.RULES`:** `run.small_body_impact`,
+  `run.propellant_depleted`, `run.reentry_stopped`, `run.reentry_after`,
+  `run.energy_drift`, `run.momentum_drift`, four `space_weather.*` for
+  the sources read (CelesTrak's 45-day forecast, NOAA's monthly forecast,
+  MSFC's prediction, MSFC's repeated months),
+  `magnetic_field.wmm_validity`, `data.changed_since_install`,
+  `lifetime.space_weather_ends` and `lifetime.ground_in_step`. Their
+  override is to read the results with the warning in mind: a finished
+  run has nothing to override.
+- **Every warning a run gives is a Finding:** `engine/service.py`,
+  `long_run.py`, `results.py` (the conservation check), `spaceweather.py`,
+  `environment_models.py` (the WMM), `earth_orientation.notes`,
+  `dependencies.changed_since_install` and `lifetime.py`. The Earth
+  orientation notes use the pre-run checks' rules. The texts are
+  unchanged.
+- **A saved run keeps the rules:** `run.json` gains `warning_rules`, one
+  entry per warning (its rule, value and limit, or null), beside
+  `warnings`. An older version reads `warnings` as before; a run saved
+  before, or with a rule this version does not know, reads back as text.
+  The format version is unchanged.
+- **Results' warning note:** its tooltip gives each warning's rule. The
+  drift explanation of audit 3.12 is kept for a drift warning without a
+  rule (a run saved before).
+- **`run --explain`, `lifetime --explain`:** each warning on stderr is
+  followed by its rule.
+- **Left as notes, not warnings:** the propellant budget's notes and the
+  gravity fidelity notes of Explain; a 3D model's and a SIL report's
+  warnings, which have their own views.
+- **Tests:** `tests/test_run_findings.py` (5): no plain-string warning in
+  the run's modules and every run rule used; the drift warning's value,
+  tolerance and parameter; the environment and data warnings' rules;
+  `run.json`'s rules kept, an unknown rule and an old run read as text;
+  the `--explain` output. One GUI test in `tests/gui/test_results_widget.py`.
+  `tests/test_findings.py`'s rule-use test now counts the run's modules
+  (TEST_CHANGES).
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4221 passed in 19 min 45 s, including the regression baseline.
+
 ## Structured warnings in the app (2026-10-31)
 
 Phase 5a, second step. Branch `warnings-gui`.

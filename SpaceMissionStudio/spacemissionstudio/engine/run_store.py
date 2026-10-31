@@ -55,6 +55,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .findings import RULES, Finding
 from .results import ResultsError, ResultSet, RunProvenance, TimeSeries
 
 logger = logging.getLogger(__name__)
@@ -132,6 +133,9 @@ def save(root: str | Path, number: int, scenario: dict, result: ResultSet, epoch
                     "units": result.series[name].units} for name in names],
         "provenance": result.provenance.to_dict() if result.provenance is not None else None,
         "warnings": list(result.warnings),
+        # Each warning's rule (engine.findings), or null: the text above is
+        # what an older version reads.
+        "warning_rules": [_rule_record(w) for w in result.warnings],
     }
     arrays: dict[str, np.ndarray] = {}
     for index, name in enumerate(names):
@@ -153,6 +157,27 @@ def save(root: str | Path, number: int, scenario: dict, result: ResultSet, epoch
     return _saved_run(run_id, record, _folder_size(final))
 
 
+def _rule_record(warning: str) -> dict | None:
+    if not isinstance(warning, Finding):
+        return None
+    return {"rule_id": warning.rule_id, "actual": warning.actual, "limit": warning.limit}
+
+
+def _warnings(texts: list, rules) -> list[str]:
+    """The saved warnings, each with its rule again; a run saved before
+    rules, or with a rule this version does not know, gets the text."""
+    rules = rules if isinstance(rules, list) and len(rules) == len(texts) else [None] * len(texts)
+    warnings: list[str] = []
+    for text, rule in zip(texts, rules):
+        if isinstance(rule, dict) and rule.get("rule_id") in RULES:
+            actual, limit = rule.get("actual"), rule.get("limit")
+            warnings.append(Finding(str(text), str(rule["rule_id"]), None if actual is None else str(actual),
+                                    None if limit is None else str(limit)))
+        else:
+            warnings.append(str(text))
+    return warnings
+
+
 def _saved_run(run_id: str, record: dict, size_bytes: int) -> SavedRun:
     if record.get("format_version") != FORMAT_VERSION:
         raise RunStoreError(f"{run_id}: format {record.get('format_version')!r}, this version reads "
@@ -165,7 +190,8 @@ def _saved_run(run_id: str, record: dict, size_bytes: int) -> SavedRun:
             raise TypeError("the scenario is not an object")
         return SavedRun(run_id, int(record["number"]), scenario, str(record.get("epoch_utc", "")),
                         datetime.fromisoformat(str(record["finished"])), bool(record.get("cancelled", False)),
-                        series, record.get("provenance"), [str(w) for w in record.get("warnings", [])],
+                        series, record.get("provenance"),
+                        _warnings(record.get("warnings", []), record.get("warning_rules")),
                         size_bytes)
     except (KeyError, TypeError, ValueError) as exc:
         raise RunStoreError(f"{run_id}: {exc}") from exc

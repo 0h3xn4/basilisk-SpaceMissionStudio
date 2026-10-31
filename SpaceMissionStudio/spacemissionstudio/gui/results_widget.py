@@ -175,6 +175,7 @@ from PySide6.QtWidgets import (
 from .. import output_provenance, temp_folders
 from ..engine import events as event_model
 from ..engine import orbit_number, time_system
+from ..engine.findings import explanation_lines
 from ..engine.results import ResultSet, TimeSeries, output_path
 from ..plot_categories import categorize as _categorize
 from ..plot_categories import legacy_display as _legacy_display
@@ -337,13 +338,17 @@ _DRIFT_WARNING_MARKERS = ("orbital energy drifted", "angular momentum drifted")
 
 
 def warnings_tooltip(warnings: list[str]) -> str:
-    """The run warnings' tooltip: the drift explanation when one of them is
-    a conservation drift warning, otherwise none, since the others say
-    themselves what happened. Transparency audit 3.12: the drift explanation
-    was shown for every warning, a space-weather or re-entry one too."""
-    if any(marker in warning for warning in warnings for marker in _DRIFT_WARNING_MARKERS):
-        return "About the drift warnings: " + _DRIFT_WARNING_TOOLTIP
-    return ""
+    """The run warnings' tooltip: each warning's rule (engine.findings: what
+    it is, what it found against its limit, why, the fix), one paragraph
+    each. A warning without one (a run saved before rules) gets none, but a
+    conservation drift warning still gets the drift explanation.
+    Transparency audit 3.12: the drift explanation was shown for every
+    warning, a space-weather or re-entry one too."""
+    rules = ["\n".join(lines) for lines in map(explanation_lines, warnings) if lines]
+    if any(marker in warning for warning in warnings for marker in _DRIFT_WARNING_MARKERS
+           if not explanation_lines(warning)):
+        rules.insert(0, "About the drift warnings: " + _DRIFT_WARNING_TOOLTIP)
+    return "\n\n".join(rules)
 
 
 def _short_utc(timestamp: str) -> str:

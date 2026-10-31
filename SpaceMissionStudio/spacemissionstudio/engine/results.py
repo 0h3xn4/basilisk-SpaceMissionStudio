@@ -258,6 +258,7 @@ def conservation_drift_warnings(name: str, mu: float, r_m: np.ndarray, v_m: np.n
     fatal.
     """
     from ..config import registry
+    from .findings import Finding
 
     energy_tol = registry.default("dynamics.conservation_tolerance") if energy_tol is None else energy_tol  # [-]
     momentum_tol = registry.default("dynamics.conservation_tolerance") if momentum_tol is None else momentum_tol
@@ -272,18 +273,20 @@ def conservation_drift_warnings(name: str, mu: float, r_m: np.ndarray, v_m: np.n
     energy_scale = mu / max(r_mag[0], 1.0)  # [J/kg] the 1 m floor only matters for a degenerate r_mag[0] == 0
     energy_drift = float(np.max(np.abs(specific_energy - specific_energy[0]))) / energy_scale
     if energy_drift > energy_tol:
-        warnings.append(
+        warnings.append(Finding(
             f"{name}: orbital energy drifted {energy_drift:.1%} (limit {energy_tol * 100.0:g}%) -- "
-            "try a smaller dynamics step or a higher-order integrator"
-        )
+            "try a smaller dynamics step or a higher-order integrator",
+            "run.energy_drift", actual=f"{energy_drift:.1%}", limit=f"{energy_tol * 100.0:g}%",
+        ))
 
     momentum_scale = max(float(h_mag[0]), 1e-12)
     momentum_drift = float(np.max(np.abs(h_mag - h_mag[0]))) / momentum_scale
     if momentum_drift > momentum_tol:
-        warnings.append(
+        warnings.append(Finding(
             f"{name}: angular momentum drifted {momentum_drift:.1%} (limit {momentum_tol * 100.0:g}%) -- "
-            "try a smaller dynamics step or a higher-order integrator"
-        )
+            "try a smaller dynamics step or a higher-order integrator",
+            "run.momentum_drift", actual=f"{momentum_drift:.1%}", limit=f"{momentum_tol * 100.0:g}%",
+        ))
     return warnings
 
 

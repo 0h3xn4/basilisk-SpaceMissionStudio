@@ -44,6 +44,7 @@ from datetime import datetime, UTC
 
 from .. import constants
 from ..schema.epochs import parse_epoch_utc
+from .findings import Finding
 
 TOTAL_SOLAR_IRRADIANCE_W_M2 = constants.SOLAR_FLUX_1AU_W_M2  # [W/m^2] at 1 AU, ECSS-E-ST-10-04C Table 6-2
 SPACE_SINK_TEMPERATURE_K = 3.0  # [K] ECSS-E-ST-10-04C 6.2.1c
@@ -176,6 +177,7 @@ def wmm_validity_warnings(epoch_utc: str, duration_days: float, cof_path) -> lis
         return []
     # No run dates in the text: the segments of a long run then share one
     # warning (engine.long_run merges identical warnings).
-    return [f"the magnetic field model (WMM, epoch {model_epoch:.1f}) is valid from {model_epoch:.1f} to "
-            f"{valid_until:.1f}; outside those years magnetometer readings and torque-rod control use an "
-            "extrapolated field"]
+    return [Finding(f"the magnetic field model (WMM, epoch {model_epoch:.1f}) is valid from {model_epoch:.1f} to "
+                    f"{valid_until:.1f}; outside those years magnetometer readings and torque-rod control use an "
+                    "extrapolated field", "magnetic_field.wmm_validity", actual=f"run {first:.1f} to {last:.1f}",
+                    limit=f"{model_epoch:.1f} to {valid_until:.1f}")]

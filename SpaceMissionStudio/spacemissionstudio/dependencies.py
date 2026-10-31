@@ -165,7 +165,9 @@ def installed_file_record(path, installed_sha256: str | None, **extra) -> dict[s
 
 def changed_since_install(data_files: dict) -> list[str]:
     """One run warning per data file that is not the one installed."""
-    return [f"{name}: {Path(str(record.get('path', ''))).name} is not the file installed (its SHA-256 changed "
-            "since; reinstall it in Reference data)"
+    from .engine.findings import Finding
+
+    return [Finding(f"{name}: {Path(str(record.get('path', ''))).name} is not the file installed (its SHA-256 changed "
+            "since; reinstall it in Reference data)", "data.changed_since_install")
             for name, record in sorted(data_files.items())
             if isinstance(record, dict) and record.get("matches_install") is False]

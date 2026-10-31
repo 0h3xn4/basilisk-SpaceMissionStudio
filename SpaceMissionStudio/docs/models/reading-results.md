@@ -137,6 +137,29 @@ The mission dashboard reads the moment under the time cursor:
 - **Battery:** the state of charge, as a share of the capacity from 0 to
   100 %. The net power is marked critical while negative.
 
+## The run's warnings
+
+A run's warnings say how to read its results; none changes them. Each
+names its rule (`engine/findings.py`): what the rule is, what it found
+against its limit, why it matters and the fix. Results' warning note
+shows them on hover, and `run --explain` and `lifetime --explain` print
+them. A saved run keeps them (`run.json`'s `warning_rules`, beside the
+text).
+
+| Warning | Rule | Given when | Limit |
+|---|---|---|---|
+| A re-entry, the run stopped | `run.reentry_stopped` | a spacecraft is below the run's re-entry altitude | `dynamics.reentry_altitude_km` ([Dynamics](dynamics-run-control.md)) |
+| A re-entry in the recorded series | `run.reentry_after` | a recorded altitude is below it, the run not stopped | `dynamics.reentry_altitude_km` |
+| Energy or angular momentum drifted | `run.energy_drift`, `run.momentum_drift` | a two-body-only run drifts by more than the tolerance | `dynamics.conservation_tolerance` |
+| A small-body impact | `run.small_body_impact` | a spacecraft is inside the small body's shape | none |
+| Propellant ran out | `run.propellant_depleted` | station keeping's propellant runs out | none |
+| The space weather read | `space_weather.daily_forecast`, `space_weather.monthly_forecast`, `space_weather.msfc_prediction`, `space_weather.msfc_repeated` | the run reads a forecast, a prediction or MSFC's repeated months | `space_weather.msfc_repeat_months` for the repeat ([Environment data](environment-and-data.md)) |
+| The Earth orientation | `earth_orientation.none`, `earth_orientation.not_covered`, `earth_orientation.predicted` | no IERS data, files that do not cover the run, or predicted values | none |
+| The magnetic field model | `magnetic_field.wmm_validity` | the run is outside the WMM's 5 years | none |
+| A data file changed | `data.changed_since_install` | a file read is not the one installed (SHA-256) | none |
+| The lifetime's look-ahead | `lifetime.space_weather_ends` | the real space-weather data ends before the horizon | none ([Orbital lifetime](lifetime.md)) |
+| The lifetime's last step | `lifetime.ground_in_step` | the orbit reaches the ground within one decay step | none |
+
 ## Rules and parameters
 
 Each is a named parameter, `results.<name>`.
@@ -166,3 +189,5 @@ effect, and a project configuration file changes them
 - `tests/test_events.py`: each kind of event against hand-built series.
 - `tests/gui/test_results_overview.py` and
   `tests/gui/test_mission_dashboard_widget.py`: the marks and badges.
+- `tests/test_run_findings.py`: every warning of a run names its rule,
+  and a saved run keeps it.

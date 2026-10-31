@@ -90,6 +90,7 @@ from . import (data_handling, earth_orientation, effective_config, environment_m
                geodesy, geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
                optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, small_bodies,
                solar_arrays, time_system, tle, vizard)
+from .findings import Finding
 from .mean_elements import cl_mean_osc_map
 from .results import ResultSet, RunProvenance, TimeSeries, conservation_drift_warnings
 from .seeds import RNG_SEED_NOTE, assign_rng_seeds
@@ -886,17 +887,19 @@ class SimulationService:
                 self.earth_frame = earth_orientation.EARTH_FIXED_FRAME
                 self.spice_object.planetFrames = [self.earth_frame if name == "earth" else "" for name in body_names]
             if installed_eop and not eop_kernels:
-                self._earth_orientation_notes = [
+                self._earth_orientation_notes = [Finding(
                     f"Earth orientation: IAU rotation model; the installed IERS files cover "
-                    f"{earth_orientation.coverage_text(installed_eop)}, not this run"]
+                    f"{earth_orientation.coverage_text(installed_eop)}, not this run", "earth_orientation.not_covered",
+                    actual=f"files cover {earth_orientation.coverage_text(installed_eop)}")]
             else:
                 self._earth_orientation_notes = earth_orientation.notes(start_utc, end_utc, eop_kernels)
             if not eop_kernels and gravity.central_body == "earth" and gravity.central_body_degree > 0:
                 # Phase 3 V-04: degree 20 at 400 km is ~160 m from GMAT after a day with IAU_EARTH
                 why = "the IERS files do not cover this run" if installed_eop else "no IERS data"
-                self._earth_orientation_notes.append(
+                self._earth_orientation_notes.append(Finding(
                     f"Earth gravity field oriented by the IAU model ({why}): ~160 m/day "
-                    "position error at degree 20, 400 km")
+                    "position error at degree 20, 400 km",
+                    "earth_orientation.not_covered" if installed_eop else "earth_orientation.none"))
         # Re-zero every SPICE ephemeris output on the central body (SPICE's
         # own observer/"zeroBase" concept -- see spiceInterface.cpp's
         # spkezr_c call, which queries each body's state relative to
@@ -2263,8 +2266,10 @@ class SimulationService:
             return
         inside = np.nonzero(self.small_body_shape.contains(r_p))[0]
         if len(inside):
-            result.warnings.append(f"{name} hit {self.small_body.title}: inside its shape from "
-                                   f"t = {t_s[inside[0]] / 86400.0:.3f} days -- later results are not physical")
+            result.warnings.append(Finding(f"{name} hit {self.small_body.title}: inside its shape from "
+                                           f"t = {t_s[inside[0]] / 86400.0:.3f} days -- later results are not "
+                                           "physical", "run.small_body_impact",
+                                           actual=f"inside from {t_s[inside[0]] / 86400.0:.3f} days"))
 
     def _sc_has_drag(self, name: str) -> bool:
         sc_config = next((sc for sc in self.scenario.spacecraft if sc.name == name), None)
@@ -2361,8 +2366,10 @@ class SimulationService:
                                      ("GEO station keeping", handle.geo_station_keeping_controller)):
                 depleted_at_s = getattr(controller, "depletedAtS", None)
                 if depleted_at_s is not None:
-                    result.warnings.append(f"{name}: {what} ran out of propellant at t = {depleted_at_s / 86400.0:.2f} "
-                                           "days; no further burns were made")
+                    result.warnings.append(Finding(f"{name}: {what} ran out of propellant at t = "
+                                                   f"{depleted_at_s / 86400.0:.2f} days; no further burns were made",
+                                                   "run.propellant_depleted",
+                                                   actual=f"empty at {depleted_at_s / 86400.0:.2f} days"))
         # Every note, the predicted (low-accuracy) Earth orientation too: in
         # 1.3.1 and earlier that one reached only the Explain tab, never the
         # run (audit 3.6).
@@ -2378,11 +2385,15 @@ class SimulationService:
             if self.small_body is not None:
                 self._add_small_body_results(result, name, handle, t_s)
             elif self.reentry is not None and self.reentry[0] == name:
-                result.warnings.append(f"{name} re-entered: below {reentry_km:g} km at "
-                                       f"t = {self.reentry[1] / 86400.0:.2f} days -- the run stopped there")
+                result.warnings.append(Finding(f"{name} re-entered: below {reentry_km:g} km at "
+                                               f"t = {self.reentry[1] / 86400.0:.2f} days -- the run stopped there",
+                                               "run.reentry_stopped", limit=f"{reentry_km:g} km"))
             elif len(below):
-                result.warnings.append(f"{name} re-entered: below {reentry_km:g} km from "
-                                       f"t = {t_s[below[0]] / 86400.0:.2f} days -- later results are not physical")
+                result.warnings.append(Finding(f"{name} re-entered: below {reentry_km:g} km from "
+                                               f"t = {t_s[below[0]] / 86400.0:.2f} days -- later results are not "
+                                               "physical", "run.reentry_after",
+                                               actual=f"{float(np.min(altitude_m)) / 1000.0:.1f} km lowest",
+                                               limit=f"{reentry_km:g} km"))
 
             # Conservation/drift diagnostic -- see _is_two_body_only's own
             # docstring for the (deliberately conservative) gate, and

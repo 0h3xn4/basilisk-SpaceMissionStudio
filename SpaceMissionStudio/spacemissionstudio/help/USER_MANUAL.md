@@ -1146,10 +1146,13 @@ goes away if you undo back to the scenario that ran. While the scenario
 has a problem, the banner says so and Re-run waits until it is fixed.
 
 A line under the buttons names what produced the result (versions,
-integrator and step, run time). If an orbit-only run's energy or angular
-momentum drifts by more than 1 % (`dynamics.conservation_tolerance`),
-an amber note appears there too: try a smaller dynamics step or a
-higher-order integrator.
+integrator and step, run time). The run's warnings appear there too, as
+an amber note: a re-entry, propellant running out, the forecast space
+weather it read, or an orbit-only run whose energy or angular momentum
+drifts by more than 1 % (`dynamics.conservation_tolerance`; try a smaller
+dynamics step or a higher-order integrator). Hover over the note to see
+each warning's rule: what it found against its limit, why it matters and
+the fix.
 
 The plot is interactive: hover to see exact values, and use your
 scroll wheel/drag to zoom and pan.

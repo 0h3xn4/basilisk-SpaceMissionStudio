@@ -1300,3 +1300,23 @@ never named "_TabBar".
 
   Each new test fails on the code before (checked), and so does the
   changed assertion.
+
+## Structured warnings: the run's own (2026-10-31)
+
+- Changed `tests/test_findings.py::test_every_rule_is_used_by_a_check_and_every_check_names_a_rule`:
+  it counted the rules named in `engine/scenario_checks.py` only and
+  asserted they were all of `RULES`. The run's rules are named in the
+  run's modules, so it now counts those too; the assertion (every rule
+  used) and the check that no pre-run warning is a plain string are
+  unchanged.
+- Added `tests/test_run_findings.py` (5 tests): no plain-string warning
+  in the run's modules, and every run rule used; the drift warning's
+  value, tolerance and parameter; the Earth orientation, WMM, changed
+  file and space-weather warnings' rules; `run.json` keeping the rules,
+  an unknown rule and a run saved before reading back as text; `run
+  --explain`'s output.
+- Added `tests/gui/test_results_widget.py::test_a_run_warnings_tooltip_gives_each_warnings_rule`.
+
+  Each new test fails on the code before (checked by stashing
+  `spacemissionstudio/`). The drift explanation test of audit 3.12 is
+  unchanged and passes: its warnings are plain strings.
