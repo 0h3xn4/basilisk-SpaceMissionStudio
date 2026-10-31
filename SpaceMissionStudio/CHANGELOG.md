@@ -492,6 +492,9 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   eclipse retries and the differential-drag estimate and cycle. A project
   configuration file changes them. See `docs/models/roe-formation.md`,
   which also lists the guidance's values not yet parameters.
+- **Tests:** the plots' Export all test no longer reads `provenance.json`
+  before the export has finished writing it (it now waits for the export
+  to end).
 - **Tests:** the SIL deadline test no longer fails when a loaded Windows
   runner answers its first step in more than 50 ms (it now allows 0.2 s,
   and checks that missed deadlines are dropped steps).

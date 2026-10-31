@@ -14514,6 +14514,18 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The plots' Export all test waits for the export to end (2026-10-31)
+
+`tests/gui/test_plot_workspace.py::test_export_all_writes_every_plot_its_data_and_the_provenance`
+failed once on CI (#177's Linux `test` job): `provenance.json` was empty
+when read. The export writes its files on a worker thread, and
+`provenance.json` last. The test waited until the file existed, but
+`write_text` creates the file before it writes it, so the test could read
+it in between. It now also waits until the export has ended (its worker
+is gone). A one-second pause between creating and writing the file fails
+the old wait and passes the new (checked). No product code changed.
+Full suite on Python 3.14: 4170 passed in 23 min 31 s, including the regression baseline.
+
 ## The ROE guidance's rules, as parameters (2026-10-31)
 
 The transparency plan, Phase 3a, for the ROE formation guidance. Branch
