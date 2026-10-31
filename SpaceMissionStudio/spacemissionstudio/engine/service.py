@@ -1779,7 +1779,7 @@ class SimulationService:
                 follower_station_keeping_controller=follower_handle.station_keeping_controller,
                 follower_eclipse_out_msg=follower_handle.eclipse_out_msg,
                 config=sc_config.roe_formation, central_radius_m=self.central_radius_m,
-                j2=self.mean_elements_j2,
+                j2=self.mean_elements_j2, scenario=scenario,
             )
 
         # Optical navigation (engine.optical_navigation): a camera model,

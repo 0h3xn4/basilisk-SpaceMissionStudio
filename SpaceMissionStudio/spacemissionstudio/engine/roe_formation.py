@@ -29,11 +29,12 @@ navigation filter.
 **Two laws** (``control_law``):
 
 * ``"impulsive"``, the tool's own guidance (``engine.roe``). At each
-  decision point (every quarter orbit while the formation is inside its
-  tolerances, one orbit after the last burn of a correction), the mean
+  decision point (every ``holding_check_fraction`` of an orbit, a quarter
+  by default, while the formation is inside its tolerances, one orbit after the last burn of a correction), the mean
   ROE are compared with the active target:
 
-  - an along-track error up to five tolerances, or a relative
+  - an along-track error up to ``direct_dl_factor`` tolerances (five by
+    default), or a relative
     semi-major axis or e vector out of tolerance, is corrected with
     along-track burns over the next two orbits that set ``da``, the e
     vector and the mean longitude together
@@ -42,7 +43,7 @@ navigation filter.
   - a larger along-track error drifts: along-track burns set a drift
     ``da`` (:func:`.roe.plan_drift`, with the J2 state transition matrix
     over ``correction_window_days``), cut back as the target nears so the
-    rest takes no less than three orbits, and stopped once stopping now
+    rest takes no less than ``glide_orbits`` (three by default), and stopped once stopping now
     (the stop burns still take time to fire,
     :func:`.roe.sequence_dl_shift`) brings it to the target;
   - an inclination vector out of tolerance gets one cross-track burn.
@@ -53,7 +54,8 @@ navigation filter.
   orbits. The controller records, by argument of latitude, where the
   last orbit was in eclipse, and plans burns only at sunlit locations
   once it knows (the first orbit's burns are planned as if sunlit). A
-  burn that still meets eclipse waits an orbit; after three tries the
+  burn that still meets eclipse waits an orbit; after ``eclipse_retries``
+  tries (three by default) the
   plan is dropped and made again. A new target in the schedule drops the
   plan at once. During a correction the ROE can leave their tolerances
   (``da`` between the burns of a sequence, the along-track offset during
@@ -63,16 +65,22 @@ navigation filter.
   decay of the mean relative semi-major axis over the last
   ``drag_estimate_window_days`` (:class:`.roe.DifferentialDragEstimator`;
   a new stretch after each burn and after any jump, such as the chief's
-  reboosts) once four orbits of data are in. When the decay would move the
+  reboosts: a change of ``a*da`` between two samples above ``drag_jump_m``,
+  0.1 m by default) once ``drag_min_orbits`` of data are in (four by default). When the decay would move the
   mean longitude by more than half its tolerance over the correction
   window (:func:`.roe.drag_is_significant`), a small correction sets ``da``
   and the mean longitude for a drag cycle (:func:`.roe.drag_hold_cycle`:
-  the mean longitude swings evenly about its target, both inside six
-  tenths of their tolerances), plans its burns with the decay included,
-  and a hold check corrects when ``da`` or the mean longitude two orbits
-  ahead, decay included (:func:`.roe.propagate_roe`), would be past seven
-  tenths of its tolerance: about when the cycle ends. A drift
+  the mean longitude swings evenly about its target, both inside
+  ``drag_hold_fraction`` of their tolerances, six tenths by default), plans
+  its burns with the decay included, and a hold check corrects when ``da``
+  or the mean longitude ``drag_lookahead_orbits`` ahead (two by default),
+  decay included (:func:`.roe.propagate_roe`), would be past
+  ``drag_trigger_fraction`` of its tolerance (seven tenths by default):
+  about when the cycle ends. A drift
   and its stop are corrected by feedback as before.
+  The rules named here are parameters, ``roe_formation.<name>``
+  (``config.parameters``, ``docs/models/roe-formation.md``): a project
+  configuration changes them without editing code.
 * ``"continuous"``: Basilisk's ``meanOEFeedback`` (oeType 1, mean
   equinoctial elements), run unmodified. Its target difference is the ROE
   target turned into the deputy's mean elements
@@ -119,6 +127,7 @@ from Basilisk.simulation import simpleNav
 from Basilisk.utilities import macros, orbitalMotion
 
 from .. import constants
+from ..config import registry
 from ..schema.scenario import OrbitIC, RoeFormationConfig, RoeTargetConfig, ScenarioValidationError, SpacecraftConfig
 from . import roe
 from .orbit_maintenance import (
@@ -140,20 +149,16 @@ DRIFTING = 4  # state: drifting to the target's mean longitude
 CONTINUOUS_FIRING = 5  # state: the continuous law fired
 
 _SUNLIT_BINS = 72  # eclipse record by argument of latitude, 5 deg per bin
-_ECLIPSE_RETRIES = 3  # a burn that meets eclipse this many times drops the plan
-_HOLDING_CHECK_FRACTION = 0.25  # [-] of an orbit between decisions while in tolerance
-_GLIDE_ORBITS = 3.0  # [-] a drift's da is cut back to close the rest in no less than this
-_DIRECT_DL_FACTOR = 5.0  # [-] dl errors up to this many tolerances are corrected without a drift
 _DAY_S = 86400.0  # [s]
 _PLACEMENT_ITERATIONS = 6  # follower_orbit's mean/osculating correction (below a millimetre in two)
-_DRAG_MIN_ORBITS = 4.0  # [-] of data before the decay estimate is used (shorter fits are biased)
-_DRAG_JUMP_M = 0.1  # [m] a*da change between two samples that starts a new stretch (a burn unseen here)
-_DRAG_HOLD_FRACTION = 0.6  # [-] of the da and dl tolerances a drag cycle may use
-# [-] a drag cycle is corrected when da or dl, this many orbits ahead (about
-# when a correction's last burn fires), would be past this fraction of its
-# tolerance: just after the cycle's end, never at its turn
-_DRAG_LOOKAHEAD_ORBITS = 2.0
-_DRAG_TRIGGER_FRACTION = 0.7
+# The guidance's rules are named parameters, roe_formation.<name> (config.parameters,
+# docs/models/roe-formation.md): read once, when the controller is built (rule()).
+
+
+def rule(name: str, scenario=None):
+    """The ROE guidance's rule ``roe_formation.<name>`` in effect for
+    ``scenario`` (``config.parameters``; ``docs/models/roe-formation.md``)."""
+    return registry.value(f"roe_formation.{name}", scenario)
 
 
 def mean_elements(r_m, v_mps, mu: float, req: float, j2: float) -> roe.MeanElements | None:
@@ -309,7 +314,7 @@ class RoeFormationController(sysModel.SysModel):
 
     def __init__(self, name: str, config: RoeFormationConfig, mu: float, req: float, j2: float,
                  thrust_n: float, isp_s: float, dry_mass_kg: float, eclipse_sunlit_threshold: float,
-                 g0_mps2: float = constants.STANDARD_GRAVITY_M_S2):
+                 g0_mps2: float = constants.STANDARD_GRAVITY_M_S2, scenario=None):
         super().__init__()
         self.ModelTag = name
         self.config = config
@@ -340,6 +345,16 @@ class RoeFormationController(sysModel.SysModel):
         self.g0 = g0_mps2  # [m/s^2]
         self.dryMass = dry_mass_kg  # [kg]
         self.sunlitThreshold = eclipse_sunlit_threshold  # [-]
+        # The guidance's rules (roe_formation.<name>), as the scenario's project configuration sets them.
+        self.holdingCheckFraction = rule("holding_check_fraction", scenario)  # [orbit]
+        self.glideOrbits = rule("glide_orbits", scenario)  # [orbit]
+        self.directDlFactor = rule("direct_dl_factor", scenario)  # [-]
+        self.eclipseRetries = rule("eclipse_retries", scenario)  # [-]
+        self.dragMinOrbits = rule("drag_min_orbits", scenario)  # [orbit]
+        self.dragJumpM = rule("drag_jump_m", scenario)  # [m]
+        self.dragHoldFraction = rule("drag_hold_fraction", scenario)  # [-]
+        self.dragLookaheadOrbits = rule("drag_lookahead_orbits", scenario)  # [orbit]
+        self.dragTriggerFraction = rule("drag_trigger_fraction", scenario)  # [-]
         self.dvBudgetMps = 0.0  # [m/s] shared-tank total, for the Vizard gauge (set by build_roe_formation)
         self.separationCapacityKm, self.marginCapacityM = gauge_scales(config)  # [km], [m]
 
@@ -405,6 +420,14 @@ class RoeFormationController(sysModel.SysModel):
         sunlit on the last orbit."""
         steps = max(1, int(math.ceil(2.0 * half_arc / (2.0 * math.pi / _SUNLIT_BINS))))
         return all(self._sunlit[self._bin(u - half_arc + k * 2.0 * half_arc / steps)] for k in range(steps + 1))
+
+    def new_drag_estimator(self, a: float, n: float) -> roe.DifferentialDragEstimator:
+        """The decay estimator for a chief of mean semi-major axis ``a``
+        [m] and mean motion ``n`` [rad/s]: the rules drag_min_orbits and
+        drag_jump_m in its units."""
+        return roe.DifferentialDragEstimator(window_s=self.config.drag_estimate_window_days * _DAY_S,
+                                             min_span_s=self.dragMinOrbits * 2.0 * math.pi / n,
+                                             jump_da=self.dragJumpM / a)
 
     def _log(self, t: float, propellant_kg: float, min_separation_m: float) -> None:
         if not self.logThinner.due(t):
@@ -473,17 +496,17 @@ class RoeFormationController(sysModel.SysModel):
             self._dragRate = self._dragEstimate if significant else None
 
         error_dl = roe.wrap_pi(float(roe_now[1] - target[1]))
-        next_check_s = period_s * _HOLDING_CHECK_FRACTION
+        next_check_s = period_s * self.holdingCheckFraction
         if self._driftDa is not None:
             # The stop burns take time to fire, and dl keeps drifting until
             # they do (roe.sequence_dl_shift); where it ends depends on which
             # pass over their locations they use, in steps of 1.5 n da T.
             # So the drift glides in: its da is cut back to close the rest
-            # in no less than _GLIDE_ORBITS, down to the slow da whose stop
+            # in no less than glide_orbits, down to the slow da whose stop
             # steps fit the tolerance, and it stops from there, once stopping
             # now brings dl to (or past) the target.
             slow_da = max(0.25 * tolerance[0], tolerance[1] / (1.5 * n * period_s))
-            glide_da = max(slow_da, abs(error_dl) / (1.5 * n * _GLIDE_ORBITS * period_s))
+            glide_da = max(slow_da, abs(error_dl) / (1.5 * n * self.glideOrbits * period_s))
             stop, stop_scheduled = plan(roe_now, stop_drift=True)
             final = error_dl + roe.sequence_dl_shift(stop_scheduled, a, n)
             reached = final * error_dl <= 0.0 or abs(final) < 0.5 * tolerance[1]
@@ -497,7 +520,7 @@ class RoeFormationController(sysModel.SysModel):
                 rate = 1.5 * n * abs(self._driftDa)  # [1/s] how fast dl moves
                 if rate > 0.0:  # look again before the stop is due
                     next_check_s = min(next_check_s, max(60.0, abs(final) / rate))
-        elif abs(error_dl) <= _DIRECT_DL_FACTOR * tolerance[1]:
+        elif abs(error_dl) <= self.directDlFactor * tolerance[1]:
             correction, scheduled = self._direct(roe_now, target, chief, tolerance, u, n, mass_kg, plan)
         else:
             correction, scheduled = plan(roe_now, stop_drift=False)
@@ -537,13 +560,13 @@ class RoeFormationController(sysModel.SysModel):
         needs_in_plane = (abs(error[0]) > tolerance[0] or math.hypot(error[2], error[3]) > tolerance[2]
                           or abs(error[1]) > tolerance[1])
         da_dot = self._dragRate if self._dragRate is not None else 0.0  # [1/s]
-        cycle = roe.drag_hold_cycle(da_dot, tolerance[0], tolerance[1], n, _DRAG_HOLD_FRACTION)
+        cycle = roe.drag_hold_cycle(da_dot, tolerance[0], tolerance[1], n, self.dragHoldFraction)
         if da_dot != 0.0 and not needs_in_plane:
-            ahead = roe.propagate_roe(roe_now, chief, _DRAG_LOOKAHEAD_ORBITS * period_s, self.j2, self.req,
+            ahead = roe.propagate_roe(roe_now, chief, self.dragLookaheadOrbits * period_s, self.j2, self.req,
                                       self.mu, da_dot) - target
             ahead[1] = roe.wrap_pi(float(ahead[1]))
-            needs_in_plane = (abs(ahead[0]) > _DRAG_TRIGGER_FRACTION * tolerance[0]
-                              or abs(ahead[1]) > _DRAG_TRIGGER_FRACTION * tolerance[1])
+            needs_in_plane = (abs(ahead[0]) > self.dragTriggerFraction * tolerance[0]
+                              or abs(ahead[1]) > self.dragTriggerFraction * tolerance[1])
         if not needs_in_plane:
             return correction, scheduled
         u1 = math.atan2(-error[3], -error[2]) if math.hypot(error[2], error[3]) > 0.0 else u + math.pi / 2.0
@@ -596,7 +619,7 @@ class RoeFormationController(sysModel.SysModel):
                 period_s = 2.0 * math.pi / n
                 burn.eclipseTries += 1
                 self._firing = None
-                if burn.eclipseTries >= _ECLIPSE_RETRIES:
+                if burn.eclipseTries >= self.eclipseRetries:
                     self._pending = []
                     self._nextDecisionT = t
                 else:
@@ -612,7 +635,7 @@ class RoeFormationController(sysModel.SysModel):
                     self._firing = None
                     if not self._pending:  # look again one orbit later; a quarter while drifting
                         self._nextDecisionT = t + 2.0 * math.pi / n * (
-                            _HOLDING_CHECK_FRACTION if self._driftDa is not None else 1.0)
+                            self.holdingCheckFraction if self._driftDa is not None else 1.0)
                 if thrust > 0.0:
                     self._note_state(IN_PLANE_BURN if burn.burn.kind == "in-plane" else OUT_OF_PLANE_BURN)
         if thrust == 0.0:
@@ -682,9 +705,7 @@ class RoeFormationController(sysModel.SysModel):
         self._chiefA = a
         if self.estimateDrag:
             if self.dragEstimator is None:
-                self.dragEstimator = roe.DifferentialDragEstimator(
-                    window_s=self.config.drag_estimate_window_days * _DAY_S,
-                    min_span_s=_DRAG_MIN_ORBITS * 2.0 * math.pi / n, jump_da=_DRAG_JUMP_M / a)
+                self.dragEstimator = self.new_drag_estimator(a, n)
             self.dragEstimator.add(t, float(roe_now[0]), new_segment=self._thrustLastTick)
 
         u = PhasingKeepingController._argument_of_latitude(rB, vB)
@@ -750,7 +771,8 @@ def gauge_scales(config: RoeFormationConfig):
 
 def build_roe_formation(scSim, task_name: str, tag: str, mu: float, chief_sc_object, follower_sc_object,
                         follower_station_keeping_controller: StationKeepingController, follower_eclipse_out_msg,
-                        config: RoeFormationConfig, central_radius_m: float, j2: float) -> RoeFormationController:
+                        config: RoeFormationConfig, central_radius_m: float, j2: float,
+                        scenario=None) -> RoeFormationController:
     """Builds one follower's :class:`RoeFormationController` on
     ``task_name``; for the continuous law, ``meanOEFeedback`` with truth
     navigation of both spacecraft (``simpleNav``, no noise) before it, so
@@ -759,7 +781,7 @@ def build_roe_formation(scSim, task_name: str, tag: str, mu: float, chief_sc_obj
     controller = RoeFormationController(
         name=f"{tag}RoeFormation", config=config, mu=mu, req=central_radius_m, j2=j2,
         thrust_n=station_keeping.thrustN, isp_s=station_keeping.ispS, dry_mass_kg=station_keeping.dryMass,
-        eclipse_sunlit_threshold=station_keeping.sunlitThreshold)
+        eclipse_sunlit_threshold=station_keeping.sunlitThreshold, scenario=scenario)
 
     if config.control_law == "continuous":
         navs = []

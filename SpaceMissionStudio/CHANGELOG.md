@@ -487,6 +487,11 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **The ROE formation guidance's rules are parameters:** 9 of them, for
+  how often it looks, when an along-track error drifts, how a drift ends,
+  eclipse retries and the differential-drag estimate and cycle. A project
+  configuration file changes them. See `docs/models/roe-formation.md`,
+  which also lists the guidance's values not yet parameters.
 - **Tests:** the plots' Export all test no longer reads `provenance.json`
   before the export has finished writing it (it now waits for the export
   to end).

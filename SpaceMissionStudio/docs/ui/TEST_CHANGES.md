@@ -1207,6 +1207,20 @@ never named "_TabBar".
 |---|---|---|---|
 | `tests/golden_capture.py` (the regression baseline's fingerprint) | Left out `data_files`, `delta_v_trace`, `propellant_trace`, `traces`, `trace` | Also leaves out `related` | A headline figure's related traces describe how it was computed; `tests/test_trace.py` checks them. Every number in the baseline is compared as before |
 
+## The ROE guidance's rules, as parameters (2026-10-31)
+
+- Added, in `test_config.py`:
+  - `test_setting_an_roe_guidance_rule_changes_its_decision`, a case for
+    each of the 9 parameters: each drives the ROE controller's own
+    decision (`_decide`, `_impulsive` or its decay estimator) with a
+    hand-made state, set and at its default;
+  - `test_the_roe_controller_reads_the_scenarios_configuration`: template
+    29's run builds the controller with the scenario's values.
+
+  The `_MODEL_PAGES` table and the declared-names union gain the new area
+  and cases. Each new test fails on the code before (checked). No
+  existing test's assertions changed.
+
 ## The plots' Export all test (2026-10-31)
 
 | Test | Before | Now | Why |

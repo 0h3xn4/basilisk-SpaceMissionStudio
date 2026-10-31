@@ -13,8 +13,8 @@ Code: `spacemissionstudio/engine/orbit_maintenance.py`,
 targets, thrust, specific impulse and propellant
 (`station_keeping`, `phasing_keeping`, `geo_station_keeping`); the
 parameters below are the rules inside the controllers. The ROE formation
-controller's guidance rules are not parameters yet ([index](README.md),
-"Not yet covered").
+controller's guidance has its own page:
+[ROE formation guidance](roe-formation.md).
 
 The controllers apply their thrust as an ideal inertial force through
 Basilisk's `extForceTorque`. Each tracks its propellant with the rocket

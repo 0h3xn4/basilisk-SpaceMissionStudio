@@ -14526,6 +14526,33 @@ is gone). A one-second pause between creating and writing the file fails
 the old wait and passes the new (checked). No product code changed.
 Full suite on Python 3.14: 4170 passed in 23 min 31 s, including the regression baseline.
 
+## The ROE guidance's rules, as parameters (2026-10-31)
+
+The transparency plan, Phase 3a, for the ROE formation guidance. Branch
+`roe-params`.
+
+- **9 parameters, `roe_formation.*`:** the holding check, glide orbits,
+  the direct-correction factor, eclipse retries, and the five drag rules
+  (the decay fit's minimum span and jump, the drag cycle's hold fraction,
+  the hold check's look-ahead and trigger). They were module constants
+  (`_HOLDING_CHECK_FRACTION` and so on); `RoeFormationController` reads
+  them once from its scenario (`rule()`), and `build_roe_formation` and
+  the run pass the scenario. `new_drag_estimator` builds the decay
+  estimator from two of them.
+- **Sources:** each is SpaceMissionStudio's own choice; none has a
+  recorded derivation, and the parameters say so.
+- **docs/models/roe-formation.md:** the guidance, the parameters, the
+  values still in the code (the drift's slow end and bands, the 60 s
+  earliest look-again, the re-plan shift, the significance test's half
+  tolerance), the assumptions.
+- **Tests:** in `tests/test_config.py`, a case per parameter that drives
+  the controller's own decision, and the run's controller reads the
+  scenario's values.
+- **Numbers:** none change (the defaults are the old constants; the
+  regression baseline passes).
+
+Full suite on Python 3.14: 4172 passed in 22 min 53 s, including the regression baseline.
+
 ## The mean elements' trace (2026-10-30)
 
 The transparency plan, Phase 4a, for the mean elements. Branch

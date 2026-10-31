@@ -60,7 +60,8 @@ _MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifeti
                 "link": "link-data-and-power.md", "data_handling": "link-data-and-power.md",
                 "results": "reading-results.md", "dynamics": "dynamics-run-control.md",
                 "space_weather": "environment-and-data.md", "tle": "environment-and-data.md",
-                "orbit_control": "orbit-control.md", "geo_station_keeping": "orbit-control.md"}
+                "orbit_control": "orbit-control.md", "geo_station_keeping": "orbit-control.md",
+                "roe_formation": "roe-formation.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -391,7 +392,7 @@ def test_every_parameter_has_a_case_that_sets_it():
 
     declared = {p.name for p in registry.parameters()}
     cases = (set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_RESULTS_CASES) | set(_DYNAMICS_CASES)
-             | set(_ENVIRONMENT_CASES) | set(_CONTROL_CASES) | set(_GUI_CASES))
+             | set(_ENVIRONMENT_CASES) | set(_CONTROL_CASES) | set(_ROE_CASES) | set(_GUI_CASES))
     assert declared == cases, f"no case for {sorted(declared - cases)}"
     for where in _GUI_CASES.values():
         file, name = where.split("::")
@@ -950,3 +951,148 @@ def test_the_controllers_read_the_scenarios_configuration():
     phasing = [h.phasing_keeping_controller for h in service._handles.values()
                if getattr(h, "phasing_keeping_controller", None) is not None]
     assert phasing and all(c.maxNonConvergentCycles == 5 and c.thruster.skipFraction == 0.2 for c in phasing)
+
+
+# The ROE formation guidance (engine.roe_formation), on a controller built
+# directly: a 500 km sun-synchronous chief and a hold target 500 m behind.
+_ROE_TARGET_M = (0.0, -500.0, 0.0, 200.0, 0.0, 200.0)  # [m] a times the mean ROE
+_ROE_A_M = 6878137.0  # [m] the chief's mean semi-major axis
+
+
+def _roe_controller(configuration):
+    import math
+
+    from spacemissionstudio.engine import roe
+    from spacemissionstudio.engine.roe_formation import RoeFormationController
+    from spacemissionstudio.schema.scenario import RoeFormationConfig, RoeTargetConfig
+
+    mu = 3.986004418e14  # [m^3/s^2]
+    config = RoeFormationConfig(chief_spacecraft="chief", targets=[RoeTargetConfig(0.0, list(_ROE_TARGET_M))])
+    controller = RoeFormationController("follower", config, mu, 6378136.3, 1.0826e-3,  # [m], [-]
+                                        thrust_n=0.1, isp_s=220.0, dry_mass_kg=100.0,  # [N], [s], [kg]
+                                        eclipse_sunlit_threshold=0.5,  # [-]
+                                        scenario=SimpleNamespace(configuration=configuration))
+    chief = roe.MeanElements(_ROE_A_M, 0.001, math.radians(97.4), 0.3, 0.2, 0.1)  # [m], [-], [rad] x 4
+    return controller, chief, math.sqrt(mu / _ROE_A_M ** 3)  # [rad/s]
+
+
+def _roe_decision(configuration, error_m, drift_m=None, decay_m_per_day=None):
+    """The controller's decision at t = 1000 s with the mean ROE ``error_m``
+    [m] off the target, a drift holding ``a*da = drift_m`` [m] in progress
+    and a differential-drag decay of ``a*da`` [m/day] to plan with."""
+    import numpy as np
+
+    controller, chief, n = _roe_controller(configuration)
+    target = np.array(_ROE_TARGET_M) / _ROE_A_M
+    controller._driftDa = None if drift_m is None else drift_m / _ROE_A_M
+    controller._dragRate = None if decay_m_per_day is None else decay_m_per_day / 86400.0 / _ROE_A_M
+    controller._decide(1000.0, target + np.array(error_m) / _ROE_A_M, target, chief, 0.0, n, 120.0)  # [s], [kg]
+    return controller
+
+
+def _roe_next_check(configuration):
+    """In tolerance: when the controller looks again."""
+    return _roe_decision(configuration, [0.0] * 6)._nextDecisionT
+
+
+def _roe_glide(configuration):
+    """A 100 m drift with 1000 m of mean longitude to go: the da it is cut
+    back to."""
+    return _roe_decision(configuration, [0.0, 1000.0, 0.0, 0.0, 0.0, 0.0], drift_m=-100.0)._driftDa
+
+
+def _roe_corrects_directly(configuration):
+    """A 140 m (seven-tolerance) mean longitude error: corrected without a
+    drift?"""
+    return _roe_decision(configuration, [0.0, 140.0, 0.0, 0.0, 0.0, 0.0])._driftDa is None
+
+
+def _roe_burns_for_drag(configuration):
+    """In tolerance with a 12 m/day decay: the burns planned to stay inside
+    (none while the look-ahead is inside the trigger)."""
+    return len(_roe_decision(configuration, [0.0] * 6, decay_m_per_day=-12.0)._pending)
+
+
+def _roe_drag_cycle_burns(configuration):
+    """A 3 m da error with a 12 m/day decay: the drag cycle's burns [m/s]."""
+    controller = _roe_decision(configuration, [3.0, 0.0, 0.0, 0.0, 0.0, 0.0], decay_m_per_day=-12.0)
+    return [round(p.burn.magnitude, 12) for p in controller._pending]
+
+
+def _roe_after_eclipse(configuration):
+    """A burn meeting eclipse for the third time: the burns still planned
+    (it waits an orbit, or the plan is dropped)."""
+    import numpy as np
+
+    from spacemissionstudio.engine import roe
+    from spacemissionstudio.engine.roe_formation import _Pending
+
+    controller, chief, n = _roe_controller(configuration)
+    burn = _Pending(1000.0, roe.Burn(0.0, (0.0, 0.002, 0.0), "in-plane"))  # [s], [rad], [m/s]
+    burn.eclipseTries = 2
+    controller._firing = burn
+    target = np.array(_ROE_TARGET_M) / _ROE_A_M
+    controller._impulsive(1000.0, 1.0, target, target, chief, np.array([_ROE_A_M, 0.0, 0.0]),  # [s], [s], [m]
+                          np.array([0.0, 7612.6, 0.0]), 0.0, n, 120.0, False)  # [m/s], [rad], [kg]
+    return len(controller._pending)
+
+
+def _roe_decay_estimate(configuration, orbits, step_m=0.0):
+    """The decay [1/s] fitted to ``orbits`` of a 3.5 m/day decay sampled
+    each minute, with a ``step_m`` jump halfway (a reboost of the chief)."""
+    import math
+
+    controller, _chief, n = _roe_controller(configuration)
+    estimator = controller.new_drag_estimator(_ROE_A_M, n)
+    period_s = 2.0 * math.pi / n
+    for k in range(int(orbits * period_s / 60.0)):
+        t = 60.0 * k  # [s]
+        jump = step_m if t > 0.5 * orbits * period_s else 0.0  # [m]
+        estimator.add(t, (-3.5 / 86400.0 * t + jump) / _ROE_A_M)
+    return estimator.rate()
+
+
+_ROE_CASES = {
+    "roe_formation.holding_check_fraction": (0.5, _roe_next_check),
+    "roe_formation.glide_orbits": (6.0, _roe_glide),
+    "roe_formation.direct_dl_factor": (10.0, _roe_corrects_directly),
+    "roe_formation.eclipse_retries": (5, _roe_after_eclipse),
+    "roe_formation.drag_min_orbits": (2.0, lambda configuration: _roe_decay_estimate(configuration, 3.0)),
+    "roe_formation.drag_jump_m": (1.0, lambda configuration: _roe_decay_estimate(configuration, 6.0, 0.3)),
+    "roe_formation.drag_hold_fraction": (0.3, _roe_drag_cycle_burns),
+    "roe_formation.drag_lookahead_orbits": (1.0, _roe_burns_for_drag),
+    "roe_formation.drag_trigger_fraction": (0.95, _roe_burns_for_drag),
+}
+
+
+@pytest.mark.requires_basilisk
+@pytest.mark.parametrize("name", sorted(_ROE_CASES))
+def test_setting_an_roe_guidance_rule_changes_its_decision(name):
+    """Each ROE guidance rule set in a project configuration changes the
+    decision it controls -- when to look again, the glide-in drift, a
+    direct correction or a drift, the eclipse retries, the decay
+    estimate's span and jumps, the drag cycle and when it is corrected --
+    and set to its default, leaves it as it was."""
+    value, measure = _ROE_CASES[name]
+    before = measure(None)
+    assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
+    assert measure(Configuration({name: registry.default(name)})) == before, name
+
+
+@pytest.mark.requires_basilisk
+def test_the_roe_controller_reads_the_scenarios_configuration():
+    """The run builds the ROE formation controller with its scenario, so a
+    project's guidance rules reach the simulated formation."""
+    from pathlib import Path
+
+    from spacemissionstudio.engine.service import SimulationService
+
+    templates = Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates"
+    scenario = load_scenario(next(templates.glob("29_*.json")))
+    scenario.configuration = Configuration({"roe_formation.glide_orbits": 5.0,
+                                            "roe_formation.eclipse_retries": 4})
+    service = SimulationService(scenario)
+    service.build(initialize=False)
+    controllers = [h.roe_formation_controller for h in service._handles.values()
+                   if h.roe_formation_controller is not None]
+    assert controllers and all(c.glideOrbits == 5.0 and c.eclipseRetries == 4 for c in controllers)

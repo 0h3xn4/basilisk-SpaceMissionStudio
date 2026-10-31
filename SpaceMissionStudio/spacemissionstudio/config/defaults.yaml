@@ -308,3 +308,50 @@ parameters:
   # Source: SpaceMissionStudio's own choice. Nine tenths: otherwise the inclination's short-period wobble would ask for a touch-up at every node.
   # Limits: 0.1 to 1 [-]
   # geo_station_keeping.ns_completion_fraction: 0.9  # [-]
+
+  # -- roe_formation ---------------------------------------------------------
+
+  # The impulsive law looks at the formation again this many orbits after a decision that planned nothing, and this long after a burn while a drift is under way.
+  # Source: SpaceMissionStudio's own choice. No derivation recorded. Shorter catches an error sooner and decides more often; longer lets an error grow further before it is corrected.
+  # Limits: 0.01 to 5 [orbit]
+  # roe_formation.holding_check_fraction: 0.25  # [orbit]
+
+  # A drift's relative semi-major axis is cut back as the target nears, so that the rest of the along-track offset closes in no less than this many orbits.
+  # Source: SpaceMissionStudio's own choice. No derivation recorded. The stop burns take time to fire, and the mean longitude keeps drifting until they do; a slower end makes where it stops more certain.
+  # Limits: 0.5 to 50 [orbit]
+  # roe_formation.glide_orbits: 3.0  # [orbit]
+
+  # An along-track offset up to this many along-track tolerances is corrected directly, with burns over the next two orbits that set the relative semi-major axis, the e vector and the mean longitude together; a larger one drifts.
+  # Source: SpaceMissionStudio's own choice. No derivation recorded.
+  # Limits: 1 to 100 [-]
+  # roe_formation.direct_dl_factor: 5.0  # [-]
+
+  # A planned burn that meets eclipse waits an orbit and tries again at the same place; after this many tries the plan is dropped and made again.
+  # Source: SpaceMissionStudio's own choice. No derivation recorded. The controller learns where the last orbit was in eclipse, so a new plan usually avoids it.
+  # Limits: 1 to 20 [-], integer
+  # roe_formation.eclipse_retries: 3  # [-]
+
+  # With differential drag, the decay of the relative semi-major axis is fitted only once this many orbits of data are in since the last burn or jump.
+  # Source: SpaceMissionStudio's own choice. Shorter fits are biased by the orbit's own oscillation of the mean elements; the code records no derivation for four.
+  # Limits: 1 to 100 [orbit]
+  # roe_formation.drag_min_orbits: 4.0  # [orbit]
+
+  # A change of the relative semi-major axis (times the chief's) larger than this between two samples starts a new stretch of the decay fit: a burn the controller did not make, such as the chief's reboost.
+  # Source: SpaceMissionStudio's own choice. No derivation recorded.
+  # Limits: 0.001 to 100 [m]
+  # roe_formation.drag_jump_m: 0.1  # [m]
+
+  # A differential-drag cycle sets the relative semi-major axis and mean longitude so that both swing about their targets within this fraction of their tolerances.
+  # Source: SpaceMissionStudio's own choice. No derivation recorded.
+  # Limits: 0.1 to 1 [-]
+  # roe_formation.drag_hold_fraction: 0.6  # [-]
+
+  # A drag cycle's hold check propagates the relative semi-major axis and mean longitude this many orbits ahead, decay included, about when a correction's last burn would fire.
+  # Source: SpaceMissionStudio's own choice. No derivation recorded; a correction's burns span about two orbits.
+  # Limits: 0 to 20 [orbit]
+  # roe_formation.drag_lookahead_orbits: 2.0  # [orbit]
+
+  # A drag cycle is corrected when the relative semi-major axis or the mean longitude, propagated drag_lookahead_orbits ahead, would be past this fraction of its tolerance: just after the cycle's end, never at its turn.
+  # Source: SpaceMissionStudio's own choice. No derivation recorded. Above drag_hold_fraction, so a cycle is not corrected at its turn.
+  # Limits: 0.1 to 1 [-]
+  # roe_formation.drag_trigger_fraction: 0.7  # [-]
