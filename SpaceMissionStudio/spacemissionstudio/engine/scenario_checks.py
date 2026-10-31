@@ -28,8 +28,10 @@
 
 The orbit model is a Keplerian orbit plus J2's secular drift (only when
 the gravity model includes J2, matching what the simulation will model);
-stations sit on a spherical Earth, as Basilisk's ``groundLocation``
-places them; Earth rotates per the IAU_EARTH model SPICE uses (pck00010).
+stations sit on the WGS-84 ellipsoid, with the elevation measured from its
+normal (ECSS-E-ST-10-09C 5.4.6a); Earth rotates per the IAU_EARTH model
+SPICE uses (pck00010). The rules are parameters, ``checks.<name>``
+(:func:`rule`; ``docs/models/pre-run-checks.md``).
 Maneuvers, drag and higher-order gravity are ignored, so predictions are
 for the orbit as configured -- typically within a minute over a few hours
 in LEO. Everything here must stay fast (the Explain tab calls it on every
@@ -59,9 +61,24 @@ from . import environment_models, geodesy, small_bodies, time_system, tle
 _MU_M3_S2 = constants.EARTH_GM_M3_S2  # [m^3/s^2]
 _R_EARTH_M = constants.EARTH_EQUATORIAL_RADIUS_M  # [m] equatorial radius, as engine.service gives groundLocation
 _J2 = constants.EARTH_J2  # [-]
-_STEP_S = 30.0  # [s] sample spacing; a LEO pass above 10 deg lasts several minutes
-_MAX_HORIZON_S = 7 * 86400.0  # [s] keep long runs cheap; passes beyond this aren't counted
-_LOOKAHEAD_S = 2 * 86400.0  # [s] how far past the run to look for "first pass in ..."
+# The checks' rules are named parameters, checks.<name> (config.parameters,
+# docs/models/pre-run-checks.md): the pass prediction's sample spacing,
+# horizon and look-ahead, and each warning's threshold.
+
+
+def rule(name: str, scenario=None):
+    """The pre-run checks' rule ``checks.<name>`` in effect for ``scenario``."""
+    return registry.value(f"checks.{name}", scenario)
+
+
+def _horizon_s(scenario) -> float:
+    """[s] how far passes are counted: longer runs keep their check cheap."""
+    return rule("pass_horizon_days", scenario) * 86400.0
+
+
+def _lookahead_s(scenario) -> float:
+    """[s] how far past the run to look for "first pass in ..."."""
+    return rule("pass_lookahead_days", scenario) * 86400.0
 
 
 @dataclass
@@ -171,8 +188,9 @@ def predict_passes(scenario, horizon_s: float | None = None) -> list[GroundPass]
         return None
     if horizon_s is None:
         horizon_s = scenario.sim_settings.duration_days * 86400.0
-    horizon_s = min(max(horizon_s, _STEP_S), _MAX_HORIZON_S + _LOOKAHEAD_S)
-    t = np.arange(0.0, horizon_s + _STEP_S, _STEP_S)
+    step_s = rule("pass_step_s", scenario)  # [s]
+    horizon_s = min(max(horizon_s, step_s), _horizon_s(scenario) + _lookahead_s(scenario))
+    t = np.arange(0.0, horizon_s + step_s, step_s)
     rotation = _earth_rotation_angle(scenario.epoch_utc, t)
     with_j2 = (gravity.central_body_degree or 0) >= 2
     passes: list[GroundPass] = []
@@ -277,8 +295,9 @@ def pass_summary(scenario) -> list[str]:
             continue
         first = mine[0]
         counted = f"{len(mine)} pass{'es' if len(mine) != 1 else ''}"
-        if run_s > _MAX_HORIZON_S:
-            counted += " in the first week"
+        if run_s > _horizon_s(scenario):
+            days = rule("pass_horizon_days", scenario)  # [day]
+            counted += " in the first week" if days == 7.0 else f" in the first {days:g} days"
         elif span is not None and span.open_steps:
             counted += " in the Duration"
         lines.append(f"{gs.name}: {counted}, first at {format_elapsed(first.start_s)} for "
@@ -323,7 +342,7 @@ def scenario_warnings(scenario) -> list[str]:
                         ("small-body data", _small_body_data_warnings), ("Monte Carlo", _monte_carlo_warnings)):
         warnings += _checked(name, check, scenario)
     for sc in scenario.spacecraft:
-        warnings += _checked(f"{sc.name} devices", _spacecraft_warnings, sc)
+        warnings += _checked(f"{sc.name} devices", _spacecraft_warnings, sc, scenario)
     return warnings
 
 
@@ -346,11 +365,6 @@ def _small_body_data_warnings(scenario) -> list[str]:
             warnings.append(f"The shape model of {body.title} is not installed: download it in Reference data "
                             "(Small bodies)")
     return warnings
-
-
-# [-] samples per series over which recording every step is flagged
-# (~1.7 MB per simulated day at full recording for one LEO spacecraft)
-_MANY_SAMPLES = 1_000_000
 
 
 _EARTH_RADIUS_M = constants.EARTH_EQUATORIAL_RADIUS_M  # [m] WGS-84's 6378137 m until 2026-10-30
@@ -565,8 +579,9 @@ def _recording_warnings(scenario) -> list[str]:
     settings = scenario.sim_settings
     interval_s = settings.record_interval_s  # [s]
     samples = settings.duration_days * 86400.0 / settings.dynamics_task_rate_s
-    if interval_s <= 0.0 and samples > _MANY_SAMPLES:
-        return [f"every step is recorded: {samples / 1e6:.1f} million samples per series -- set "
+    if interval_s <= 0.0 and samples > rule("many_samples", scenario):
+        count = f"{samples / 1e6:.1f} million" if samples >= 1e6 else f"{samples:,.0f}"  # below 1e6: a lower limit
+        return [f"every step is recorded: {count} samples per series -- set "
                 "'Record every' (e.g. 600 s) to save memory"]
     if interval_s <= 0.0 or not scenario.ground_stations:
         return []
@@ -574,7 +589,7 @@ def _recording_warnings(scenario) -> list[str]:
     if not passes:
         return []
     shortest = min(p.end_s - p.start_s for p in passes)  # [s]
-    if shortest > 3.0 * interval_s:
+    if shortest > rule("coarse_recording_factor", scenario) * interval_s:
         return []
     return [f"passes last as little as {format_elapsed(shortest)} but results are recorded every "
             f"{format_elapsed(interval_s)} -- some may show coarsely or not at all"]
@@ -583,19 +598,19 @@ def _recording_warnings(scenario) -> list[str]:
 # Above this dynamics step the position error grows quickly, whatever the
 # integrator tolerance: in a one-day two-body run (7000 km, Kepler as the
 # reference) it was under 2 cm at 60 s, 0.9 m at 120 s, 11 m at 300 s and
-# 8.6 km at 1800 s (audit E3, 2026-10-27).
-_LONG_STEP_S = 60.0  # [s]
+# 8.6 km at 1800 s (audit E3, 2026-10-27): checks.long_step_s.
 
 
 def _step_warnings(scenario) -> list[str]:
     """A long dynamics step loses accuracy (and the integrator cannot make
     up for it)."""
     step_s = scenario.sim_settings.dynamics_task_rate_s  # [s]
-    if step_s <= _LONG_STEP_S:
+    long_step_s = rule("long_step_s", scenario)  # [s]
+    if step_s <= long_step_s:
         return []
-    return [f"the dynamics step is {step_s:g} s: above {_LONG_STEP_S:g} s the orbit loses accuracy "
+    return [f"the dynamics step is {step_s:g} s: above {long_step_s:g} s the orbit loses accuracy "
             "(a one-day two-body test was 11 m off at 300 s and 8.6 km at 1800 s) -- "
-            f"use {_LONG_STEP_S:g} s or less, and 'Record every' to keep fewer samples"]
+            f"use {long_step_s:g} s or less, and 'Record every' to keep fewer samples"]
 
 
 def _monte_carlo_warnings(scenario) -> list[str]:
@@ -612,14 +627,15 @@ def _pass_warnings(scenario) -> list[str]:
     if runs_sequence(scenario.mission_sequence):
         return []  # the run's length comes from its commands, not sim_settings
     run_s = scenario.sim_settings.duration_days * 86400.0
-    passes = predict_passes(scenario, horizon_s=min(run_s, _MAX_HORIZON_S) + _LOOKAHEAD_S)
+    lookahead_s = _lookahead_s(scenario)  # [s]
+    passes = predict_passes(scenario, horizon_s=min(run_s, _horizon_s(scenario)) + lookahead_s)
     if passes is None:
         return []
     warnings = []
     for gs in scenario.ground_stations:
         mine = [p for p in passes if p.station == gs.name]
         if any(p.start_s <= run_s for p in mine):
-            if mine[0].start_s > 0.5 * run_s:
+            if mine[0].start_s > rule("late_first_pass_fraction", scenario) * run_s:
                 warnings.append(f"{gs.name}: the first pass only comes at {format_elapsed(mine[0].start_s)} of "
                                 f"a {format_elapsed(run_s)} run")
             continue
@@ -627,7 +643,9 @@ def _pass_warnings(scenario) -> list[str]:
             warnings.append(f"{gs.name}: no pass in this run -- the first comes at "
                             f"{format_elapsed(mine[0].start_s)}; change the epoch or lengthen the run")
         else:
-            warnings.append(f"{gs.name}: no pass in this run or the 2 days after it -- check the orbit "
+            after = format_elapsed(lookahead_s) if lookahead_s % 86400.0 else (
+                f"{lookahead_s / 86400.0:g} day{'s' if lookahead_s != 86400.0 else ''}")
+            warnings.append(f"{gs.name}: no pass in this run or the {after} after it -- check the orbit "
                             "and the station's minimum elevation")
     return warnings
 
@@ -704,7 +722,7 @@ def _navigation_restart_warnings(scenario) -> list[str]:
     return warnings
 
 
-def _spacecraft_warnings(sc) -> list[str]:
+def _spacecraft_warnings(sc, scenario=None) -> list[str]:
     warnings = []
     axis = _sun_axis(sc)
     css = [s for s in sc.sensors if s.kind == "coarse_sun_sensor"]
@@ -714,7 +732,7 @@ def _spacecraft_warnings(sc) -> list[str]:
         def facing(sensor):
             normal = np.array(sensor.params.get("nHat_B", [0.0, 0.0, 0.0]), dtype=float)
             norm = np.linalg.norm(normal)
-            return norm > 0 and float(np.dot(normal / norm, axis)) > 0.5
+            return norm > 0 and float(np.dot(normal / norm, axis)) > rule("css_facing_min_cosine", scenario)
 
         if not any(facing(s) for s in css):
             warnings.append(f"{sc.name}: no sun sensor faces the Sun-pointing axis, so none sees the Sun "

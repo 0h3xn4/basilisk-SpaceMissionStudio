@@ -487,6 +487,11 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **The pre-run checks' rules are parameters:** the pass prediction's
+  sample spacing, horizon and look-ahead, and the thresholds of the
+  every-step, coarse-recording, long-step, late-first-pass and sun-sensor
+  warnings. A project configuration file changes them. See
+  `docs/models/pre-run-checks.md`, which lists every check and its rule.
 - **Flight software and navigation rules are parameters:** the attitude
   thrusters' Schmitt trigger (minimum fire time, on and off levels),
   optical navigation's filter settings (alpha, beta, kappa, noise scale)
