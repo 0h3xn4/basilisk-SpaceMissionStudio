@@ -35,7 +35,7 @@ run a scenario headlessly and export results to CSV
 | `--vizard-ground-tracks` | also draw ground tracks in Vizard |
 | `--allow-scripts` | run the scenario's script_block commands (unrestricted Python: only for files you trust and have read) |
 | `--bundle` | also make --out-dir a reproduction bundle: copies of the files the scenario refers to and the space-weather files read, listed in bundle.json |
-| `--explain` | after the run, its headline figures (Results > Overview) and how each was computed: the series, parameters and constants it came from |
+| `--explain` | after the run, its headline figures (Results > Overview) and its data-handling totals, and how each was computed: the series, parameters and constants it came from |
 
 ## `assumptions`
 
