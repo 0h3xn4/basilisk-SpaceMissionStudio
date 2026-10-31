@@ -5,6 +5,22 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The ROE guidance's rules, as parameters (2026-10-31)
+
+- **Nine now, the rest next:** the guidance's named constants become
+  parameters first. The values written inline in the drift logic (its
+  slow end, the 1.25 and 1.5 bands, the 60 s earliest look-again, the
+  re-plan shift) and `roe.drag_is_significant`'s half tolerance are
+  listed on the model page and follow in a second step, so each step
+  stays small and its tests specific.
+- **Not parameters:** the burn scheduling margins (half a burn part plus
+  1 s ahead, 1.5 burn parts apart), the 72-bin eclipse record and
+  `follower_orbit`'s six iterations. They keep burns apart and set
+  numerical resolution; they are not tuning a project would change.
+- **"No derivation recorded":** the code's comments say what each rule
+  does, not why its value; the parameters say so rather than give a
+  reason no one wrote down.
+
 ## The mean elements' trace (2026-10-30)
 
 - **One trace for the series, not one per sample:** every sample goes

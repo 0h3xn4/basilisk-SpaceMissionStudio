@@ -300,3 +300,51 @@ register(
               "Nine tenths: otherwise the inclination's short-period wobble would ask for a touch-up at every "
               "node.", minimum=0.1, maximum=1.0),
 )
+
+register(
+    Parameter("roe_formation.holding_check_fraction", 0.25, "[orbit]",
+              "The impulsive law looks at the formation again this many orbits after a decision that planned "
+              "nothing, and this long after a burn while a drift is under way.", "SpaceMissionStudio's own choice",
+              "No derivation recorded. Shorter catches an error sooner and decides more often; longer lets an "
+              "error grow further before it is corrected.", minimum=0.01, maximum=5.0),
+    Parameter("roe_formation.glide_orbits", 3.0, "[orbit]",
+              "A drift's relative semi-major axis is cut back as the target nears, so that the rest of the "
+              "along-track offset closes in no less than this many orbits.", "SpaceMissionStudio's own choice",
+              "No derivation recorded. The stop burns take time to fire, and the mean longitude keeps drifting "
+              "until they do; a slower end makes where it stops more certain.", minimum=0.5, maximum=50.0),
+    Parameter("roe_formation.direct_dl_factor", 5.0, "[-]",
+              "An along-track offset up to this many along-track tolerances is corrected directly, with burns "
+              "over the next two orbits that set the relative semi-major axis, the e vector and the mean "
+              "longitude together; a larger one drifts.", "SpaceMissionStudio's own choice",
+              "No derivation recorded.", minimum=1.0, maximum=100.0),
+    Parameter("roe_formation.eclipse_retries", 3, "[-]",
+              "A planned burn that meets eclipse waits an orbit and tries again at the same place; after this "
+              "many tries the plan is dropped and made again.", "SpaceMissionStudio's own choice",
+              "No derivation recorded. The controller learns where the last orbit was in eclipse, so a new "
+              "plan usually avoids it.", kind="integer", minimum=1, maximum=20),
+    Parameter("roe_formation.drag_min_orbits", 4.0, "[orbit]",
+              "With differential drag, the decay of the relative semi-major axis is fitted only once this many "
+              "orbits of data are in since the last burn or jump.", "SpaceMissionStudio's own choice",
+              "Shorter fits are biased by the orbit's own oscillation of the mean elements; the code records "
+              "no derivation for four.", minimum=1.0, maximum=100.0),
+    Parameter("roe_formation.drag_jump_m", 0.1, "[m]",
+              "A change of the relative semi-major axis (times the chief's) larger than this between two samples "
+              "starts a new stretch of the decay fit: a burn the controller did not make, such as the chief's "
+              "reboost.", "SpaceMissionStudio's own choice",
+              "No derivation recorded.", minimum=0.001, maximum=100.0),
+    Parameter("roe_formation.drag_hold_fraction", 0.6, "[-]",
+              "A differential-drag cycle sets the relative semi-major axis and mean longitude so that both swing "
+              "about their targets within this fraction of their tolerances.", "SpaceMissionStudio's own choice",
+              "No derivation recorded.", minimum=0.1, maximum=1.0),
+    Parameter("roe_formation.drag_lookahead_orbits", 2.0, "[orbit]",
+              "A drag cycle's hold check propagates the relative semi-major axis and mean longitude this many "
+              "orbits ahead, decay included, about when a correction's last burn would fire.",
+              "SpaceMissionStudio's own choice", "No derivation recorded; a correction's burns span about two "
+              "orbits.", minimum=0.0, maximum=20.0),
+    Parameter("roe_formation.drag_trigger_fraction", 0.7, "[-]",
+              "A drag cycle is corrected when the relative semi-major axis or the mean longitude, propagated "
+              "drag_lookahead_orbits ahead, would be past this fraction of its tolerance: just after the "
+              "cycle's end, never at its turn.", "SpaceMissionStudio's own choice",
+              "No derivation recorded. Above drag_hold_fraction, so a cycle is not corrected at its turn.",
+              minimum=0.1, maximum=1.0),
+)
