@@ -55,6 +55,7 @@ from Basilisk.architecture import messaging, sysModel
 from Basilisk.fswAlgorithms import pixelLineConverter, relativeODuKF
 from Basilisk.utilities import macros
 
+from ..config import registry
 from ..schema.scenario import OpticalNavigationConfig
 from . import opnav
 from .results import TimeSeries
@@ -182,9 +183,11 @@ def initial_filter_state(r0_m, v0_mps, config: OpticalNavigationConfig) -> np.nd
 
 
 def build_optical_navigation(scSim, process, tag: str, sc_object, sun_state_msg, config: OpticalNavigationConfig,
-                             central_body: str, ideal_pointing: bool) -> OpticalNavigation:
+                             central_body: str, ideal_pointing: bool, scenario=None) -> OpticalNavigation:
     """Builds the chain (module docstring) on a new task of ``process``
-    running every ``config.measurement_interval_s``."""
+    running every ``config.measurement_interval_s``. The filter's sigma
+    point and noise-scale settings are the parameters
+    ``navigation.opnav_ukf_*`` for ``scenario`` (``config.parameters``)."""
     task_name = f"{tag}OpNavTask"
     process.addTask(scSim.CreateNewTask(task_name, macros.sec2nano(config.measurement_interval_s)), _TASK_PRIORITY)
 
@@ -205,10 +208,10 @@ def build_optical_navigation(scSim, process, tag: str, sc_object, sun_state_msg,
     od_filter.ModelTag = f"{tag}RelativeODuKF"
     od_filter.opNavInMsg.subscribeTo(converter.opNavOutMsg)
     od_filter.planetIdInit = opnav.BODY_IDS[central_body]
-    od_filter.alpha = 0.02  # [-] as Basilisk's own relativeODuKF test and OpNav scenarios
-    od_filter.beta = 2.0  # [-]
-    od_filter.kappa = 0.0  # [-]
-    od_filter.noiseSF = 1.0  # [-]
+    od_filter.alpha = registry.value("navigation.opnav_ukf_alpha", scenario)  # [-]
+    od_filter.beta = registry.value("navigation.opnav_ukf_beta", scenario)  # [-]
+    od_filter.kappa = registry.value("navigation.opnav_ukf_kappa", scenario)  # [-]
+    od_filter.noiseSF = registry.value("navigation.opnav_ukf_noise_scale", scenario)  # [-]
     od_filter.stateInit = initial_filter_state(sc_object.hub.r_CN_NInit, sc_object.hub.v_CN_NInit, config).tolist()
     sigma_r, sigma_v = config.initial_position_sigma_m, config.initial_velocity_sigma_mps  # [m], [m/s]
     od_filter.covarInit = np.diag([sigma_r ** 2] * 3 + [sigma_v ** 2] * 3).flatten().tolist()  # [m^2], [m^2/s^2]

@@ -1618,7 +1618,7 @@ class SimulationService:
                         handle.num_thrusters = len(thruster_actuators)
                         _, firing_logic = fsw.build_thruster_force_mapping(
                             self.scSim, dyn_task_name, sc_config.name, mrp, thr_config_msg, veh_config_msg,
-                            thruster_effector,
+                            thruster_effector, scenario=scenario,
                         )
                         handle.thruster_on_time_recorder = self._record(firing_logic.onTimeOutMsg)
                         self.scSim.AddModelToTask(dyn_task_name, handle.thruster_on_time_recorder)
@@ -1793,7 +1793,7 @@ class SimulationService:
             handle.optical_navigation = optical_navigation.build_optical_navigation(
                 self.scSim, dyn_process, sc_config.name, handle.sc_object, self._sun_state_out_msg,
                 sc_config.optical_navigation, gravity.central_body,
-                ideal_pointing=scenario.simulation_mode == "orbit_only")
+                ideal_pointing=scenario.simulation_mode == "orbit_only", scenario=scenario)
 
         # Landmark navigation (engine.landmark_navigation): Basilisk's
         # pinholeCamera and the tool's filter on a task of their own.
@@ -1806,7 +1806,7 @@ class SimulationService:
             handle.landmark_navigation = landmark_navigation.build_landmark_navigation(
                 self.scSim, dyn_process, sc_config.name, handle.sc_object, self._sun_state_out_msg,
                 central_body_state_out_msg, sc_config.landmark_navigation, small_body, self.small_body_shape,
-                ideal_pointing=scenario.simulation_mode == "orbit_only")
+                ideal_pointing=scenario.simulation_mode == "orbit_only", scenario=scenario)
 
         # Phase 3: access analysis -- every ground station sees every
         # spacecraft, now that all spacecraft exist (see fsw.add_access_analysis).

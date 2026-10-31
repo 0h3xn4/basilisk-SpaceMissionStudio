@@ -54,7 +54,6 @@ from .polyhedron import Polyhedron
 
 QUANTIZATION_SIGMA_PX = 1.0 / math.sqrt(12.0)  # [px] rounding to whole pixels
 FOCAL_LENGTH_M = 0.025  # [m] the camera model's focal length; the pixel pitch follows from the field of view
-_MAX_STEP_S = 60.0  # [s] the filter's integration step
 
 
 def place_landmarks(shape: Polyhedron, count: int, seed: int) -> tuple[np.ndarray, np.ndarray]:
@@ -147,7 +146,7 @@ class LandmarkFilter:
 
     def __init__(self, shape: Polyhedron, mu: float, spin_rad_s: float, landmarks_P: np.ndarray,
                  x0: np.ndarray, sigma_r_m: float, sigma_v_mps: float, process_noise: float,
-                 pixel_sigma: float, f_over_w: float):
+                 pixel_sigma: float, f_over_w: float, max_step_s: float | None = None):
         self.shape = shape
         self.mu = mu
         self.spin = spin_rad_s
@@ -157,6 +156,11 @@ class LandmarkFilter:
         self.q = process_noise ** 2  # [m^2/s^3]
         self.R_px2 = pixel_sigma ** 2  # [px^2]
         self.f_over_w = f_over_w
+        if max_step_s is None:  # the parameter's default (landmark_navigation passes the scenario's)
+            from ..config import registry
+
+            max_step_s = registry.default("navigation.landmark_filter_max_step_s")
+        self.maxStepS = max_step_s  # [s] the longest RK4 step of the propagation
 
     def _derivatives(self, x: np.ndarray, phi: np.ndarray, dcm_PN: np.ndarray):
         acceleration_P, gradient_P = self.shape.field_and_gradient(dcm_PN @ x[:3], self.mu)
@@ -171,7 +175,7 @@ class LandmarkFilter:
         (RK4 on the state and its transition matrix)."""
         if dt_s <= 0.0:
             return
-        steps = max(1, math.ceil(dt_s / _MAX_STEP_S))
+        steps = max(1, math.ceil(dt_s / self.maxStepS))
         h = dt_s / steps
         x, phi = self.x, np.eye(6)
         for k in range(steps):

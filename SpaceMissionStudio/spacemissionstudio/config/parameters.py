@@ -379,3 +379,44 @@ register(
               "this fraction of the along-track tolerance.", "SpaceMissionStudio's own choice",
               "No derivation recorded.", minimum=0.01, maximum=10.0),
 )
+
+
+register(
+    Parameter("flight_software.thruster_min_fire_time_s", 0.002, "[s]",
+              "The attitude thrusters' Schmitt trigger (Basilisk's thrFiringSchmitt): the shortest on-time it "
+              "commands. A shorter request fires for this long or not at all, by thruster_level_on and "
+              "thruster_level_off.",
+              "Basilisk's examples/scenarioAttitudeFeedback2T_TH.py",
+              "The example's value for its attitude-control thrusters; it is not derived for this app's "
+              "thrusters.", minimum=1e-4, maximum=10.0),
+    Parameter("flight_software.thruster_level_on", 0.75, "[-]",
+              "The Schmitt trigger turns a thruster on (for the minimum fire time) when a request shorter than "
+              "the minimum fire time is at least this fraction of it.", "Basilisk's examples/scenarioAttitudeFeedback2T_TH.py",
+              "The example's value.", minimum=0.0, maximum=1.0),
+    Parameter("flight_software.thruster_level_off", 0.25, "[-]",
+              "The Schmitt trigger turns a thruster off when a request shorter than the minimum fire time is "
+              "at most this fraction of it; between the two levels the thruster keeps its last state.", "Basilisk's examples/scenarioAttitudeFeedback2T_TH.py",
+              "The example's value. It must be below thruster_level_on.", minimum=0.0, maximum=1.0),
+)
+
+register(
+    Parameter("navigation.opnav_ukf_alpha", 0.02, "[-]",
+              "Optical navigation's filter (Basilisk's relativeODuKF): the spread of the unscented transform's "
+              "sigma points.", "Basilisk's relativeODuKF unit test and examples/OpNavScenarios",
+              "Their value.", minimum=1e-4, maximum=1.0),
+    Parameter("navigation.opnav_ukf_beta", 2.0, "[-]",
+              "Optical navigation's filter: the unscented transform's weight on the prior's distribution.", "Basilisk's relativeODuKF unit test and examples/OpNavScenarios",
+              "Their value.", minimum=0.0, maximum=10.0),
+    Parameter("navigation.opnav_ukf_kappa", 0.0, "[-]",
+              "Optical navigation's filter: the unscented transform's secondary scaling.",
+              "Basilisk's relativeODuKF unit test and examples/OpNavScenarios", "Their value.",
+              minimum=-10.0, maximum=10.0),
+    Parameter("navigation.opnav_ukf_noise_scale", 1.0, "[-]",
+              "Optical navigation's filter: relativeODuKF's noiseSF, which its header calls the scale factor "
+              "for measurement noise (it scales the sigma points' spread in the measurement update).",
+              "Basilisk's relativeODuKF unit test", "Its value.", minimum=1e-3, maximum=1e3),
+    Parameter("navigation.landmark_filter_max_step_s", 60.0, "[s]",
+              "Landmark navigation's filter propagates its state between measurements with RK4 steps no longer "
+              "than this.", "SpaceMissionStudio's own choice", "No derivation recorded.",
+              minimum=1.0, maximum=3600.0),
+)

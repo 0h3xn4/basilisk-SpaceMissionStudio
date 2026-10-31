@@ -5,6 +5,23 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Flight software and navigation rules (2026-10-31)
+
+- **One page for two areas:** `flight_software.*` and `navigation.*`
+  share `docs/models/flight-software-and-navigation.md`, as `link.*` and
+  `data_handling.*` share theirs: the page is about the onboard chain.
+- **The trigger is tested on Basilisk's module:** the case drives
+  `thrFiringSchmitt` with four requests and compares the on-times it
+  commands, so the test shows each value changes what the thrusters do,
+  not only that it was passed.
+- **The filter settings are tested on the run's build:** running
+  `relativeODuKF` long enough to tell 0.02 from 0.1 would take a full
+  optical navigation run per case; the case checks that the run builds
+  the filter with the scenario's values. The filter itself is Basilisk's.
+- **What cancels is not a parameter:** the focal length cannot change a
+  result, so a parameter for it would suggest a choice that has no
+  effect. A test shows it cancels.
+
 ## The rest of the ROE guidance's rules (2026-10-31)
 
 - **The physics stays in the code:** `1.5 n da` (how fast the mean

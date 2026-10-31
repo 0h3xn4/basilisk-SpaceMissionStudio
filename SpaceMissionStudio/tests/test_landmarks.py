@@ -97,6 +97,28 @@ def test_visibility_needs_front_facing_lit_landmarks_on_the_detector():
     assert not behind[0]
 
 
+def test_the_focal_length_sets_no_result(monkeypatch):
+    """The camera's focal length is not a parameter: the pixel pitch is
+    derived from it and the field of view, so the pinhole model's f / w,
+    and with it every pixel and the landmarks in view, are the same for
+    any focal length."""
+    fov, resolution = math.radians(30.0), (1024, 1024)  # [rad], [px]
+    r_n, v_n = np.array([3.0e4, 0.0, 0.0]), np.array([0.0, 3.0, 0.0])  # [m], [m/s]
+    points, normals = landmarks.place_landmarks(_cube(1.0e4), 6, 1)  # [m]
+
+    def seen():
+        f_over_w = landmarks.FOCAL_LENGTH_M / landmarks.pixel_pitch_m(fov, resolution[0])
+        return f_over_w, landmarks.landmark_count_in_view(points, normals, r_n, v_n, np.eye(3), None, fov,
+                                                          resolution, 0.0)
+
+    f_over_w, count = seen()
+    assert count > 0
+    for focal_length_m in (0.005, 0.1, 1.0):  # [m]
+        monkeypatch.setattr(landmarks, "FOCAL_LENGTH_M", focal_length_m)
+        other_f_over_w, other_count = seen()
+        assert other_f_over_w == pytest.approx(f_over_w, rel=1e-12) and other_count == count
+
+
 def test_the_gravity_gradient_is_the_fields_derivative():
     """field_and_gradient's d a / d r equals central differences of the
     acceleration, is symmetric, and has trace 0 outside the body."""

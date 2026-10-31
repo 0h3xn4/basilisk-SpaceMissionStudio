@@ -61,7 +61,8 @@ _MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifeti
                 "results": "reading-results.md", "dynamics": "dynamics-run-control.md",
                 "space_weather": "environment-and-data.md", "tle": "environment-and-data.md",
                 "orbit_control": "orbit-control.md", "geo_station_keeping": "orbit-control.md",
-                "roe_formation": "roe-formation.md"}
+                "roe_formation": "roe-formation.md", "flight_software": "flight-software-and-navigation.md",
+                "navigation": "flight-software-and-navigation.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -392,7 +393,8 @@ def test_every_parameter_has_a_case_that_sets_it():
 
     declared = {p.name for p in registry.parameters()}
     cases = (set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_RESULTS_CASES) | set(_DYNAMICS_CASES)
-             | set(_ENVIRONMENT_CASES) | set(_CONTROL_CASES) | set(_ROE_CASES) | set(_GUI_CASES))
+             | set(_ENVIRONMENT_CASES) | set(_CONTROL_CASES) | set(_ROE_CASES) | set(_FSW_NAV_CASES)
+             | set(_GUI_CASES))
     assert declared == cases, f"no case for {sorted(declared - cases)}"
     for where in _GUI_CASES.values():
         file, name = where.split("::")
@@ -1147,3 +1149,118 @@ def test_the_roe_controller_reads_the_scenarios_configuration():
     controllers = [h.roe_formation_controller for h in service._handles.values()
                    if h.roe_formation_controller is not None]
     assert controllers and all(c.glideOrbits == 5.0 and c.eclipseRetries == 4 for c in controllers)
+
+
+# Flight software (engine.fsw): the attitude thrusters' Schmitt trigger,
+# Basilisk's thrFiringSchmitt as the run builds it, given force requests.
+_THRUSTER_REQUESTS_S = (0.0, 0.0015, 0.0019, 0.0008)  # [s] on-time requested each second (1 N thruster)
+
+
+def _schmitt_on_times(configuration):
+    """The on-times [s] thrFiringSchmitt commands for the requests above:
+    one below the minimum fire time and above level_on, one near it, one
+    between the levels while on."""
+    from Basilisk.architecture import messaging
+    from Basilisk.utilities import SimulationBaseClass, macros
+
+    from spacemissionstudio.engine import fsw
+
+    sim = SimulationBaseClass.SimBaseClass()
+    sim.CreateNewProcess("fsw").addTask(sim.CreateNewTask("fswTask", macros.sec2nano(1.0)))  # [ns]
+    thruster = messaging.THRConfigMsgPayload()
+    thruster.maxThrust = 1.0  # [N]
+    thruster.rThrust_B = [1.0, 0.0, 0.0]  # [m]
+    thruster.tHatThrust_B = [0.0, 1.0, 0.0]
+    thrusters = messaging.THRArrayConfigMsgPayload()
+    thrusters.numThrusters = 1
+    messaging.ThrustConfigArray_setitem(thrusters.thrusters, 0, thruster)
+    vehicle = messaging.VehicleConfigMsgPayload()
+    vehicle.ISCPntB_B = [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]  # [kg*m^2]
+    torque = messaging.CmdTorqueBodyMsg().write(messaging.CmdTorqueBodyMsgPayload())
+    effector = SimpleNamespace(cmdsInMsg=messaging.THRArrayOnTimeCmdMsgReader())
+    _, firing = fsw.build_thruster_force_mapping(
+        sim, "fswTask", "sat", SimpleNamespace(cmdTorqueOutMsg=torque),
+        messaging.THRArrayConfigMsg().write(thrusters), messaging.VehicleConfigMsg().write(vehicle), effector,
+        scenario=SimpleNamespace(configuration=configuration))
+    force = messaging.THRArrayCmdForceMsg()
+    firing.thrForceInMsg.subscribeTo(force)  # the requests, not the force mapping's
+    recorder = firing.onTimeOutMsg.recorder()
+    sim.AddModelToTask("fswTask", recorder)
+    sim.InitializeSimulation()
+    for step, request in enumerate(_THRUSTER_REQUESTS_S):
+        payload = messaging.THRArrayCmdForceMsgPayload()
+        payload.thrForce = [request] + [0.0] * (len(payload.thrForce) - 1)  # [N] = on-time over a 1 s period
+        force.write(payload)
+        sim.ConfigureStopTime(macros.sec2nano(float(step + 1)))  # [ns]
+        sim.ExecuteSimulation()
+    return [round(float(row[0]), 9) for row in recorder.OnTimeRequest]
+
+
+# Navigation (engine.optical_navigation, engine.landmark_navigation), as
+# the run builds them for templates 30 and 31.
+def _built_navigation(configuration, template: str, attribute: str):
+    from pathlib import Path
+
+    from spacemissionstudio.engine.service import SimulationService
+
+    templates = Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates"
+    scenario = load_scenario(next(templates.glob(template)))
+    scenario.configuration = configuration
+    service = SimulationService(scenario)
+    service.build(initialize=False)
+    return next(getattr(h, attribute) for h in service._handles.values() if getattr(h, attribute) is not None)
+
+
+def _opnav_filter_settings(configuration):
+    """Template 30's relativeODuKF: alpha, beta, kappa, noiseSF."""
+    od_filter = _built_navigation(configuration, "30_*.json", "optical_navigation").filter
+    return od_filter.alpha, od_filter.beta, od_filter.kappa, od_filter.noiseSF
+
+
+def _landmark_filter_steps(configuration):
+    """Landmark navigation's filter, built as the run builds it about a
+    10 km cube, propagating 10 minutes: its RK4 steps."""
+    import numpy as np
+    from test_polyhedron import _cube
+
+    from spacemissionstudio.engine import landmarks
+    from spacemissionstudio.engine.landmark_navigation import LandmarkNavigationFilter
+    from spacemissionstudio.schema.scenario import LandmarkNavigationConfig
+
+    shape = _cube(5000.0)  # [m] half side
+    points, _normals = landmarks.place_landmarks(shape, 6, 1)
+    body = SimpleNamespace(gm_m3_s2=4.46e5, spin_rad_s=3.3e-4)  # [m^3/s^2], [rad/s] about Eros's
+    nav_filter = LandmarkNavigationFilter("nav", LandmarkNavigationConfig(landmark_count=6), body, shape, points,
+                                          [3.0e4, 0.0, 0.0], [0.0, 3.0, 0.0],  # [m], [m/s]
+                                          scenario=SimpleNamespace(configuration=configuration)).filter
+    calls = []
+    derivatives = nav_filter._derivatives
+    nav_filter._derivatives = lambda *args: calls.append(1) or derivatives(*args)
+    nav_filter.propagate(600.0, np.eye(3))  # [s]
+    return len(calls) // 4  # four evaluations a step
+
+
+_FSW_NAV_CASES = {
+    "flight_software.thruster_min_fire_time_s": (0.001, _schmitt_on_times),
+    "flight_software.thruster_level_on": (0.8, _schmitt_on_times),
+    "flight_software.thruster_level_off": (0.5, _schmitt_on_times),
+    "navigation.opnav_ukf_alpha": (0.1, _opnav_filter_settings),
+    "navigation.opnav_ukf_beta": (1.0, _opnav_filter_settings),
+    "navigation.opnav_ukf_kappa": (1.0, _opnav_filter_settings),
+    "navigation.opnav_ukf_noise_scale": (2.0, _opnav_filter_settings),
+    "navigation.landmark_filter_max_step_s": (10.0, _landmark_filter_steps),
+}
+
+
+@pytest.mark.requires_basilisk
+@pytest.mark.parametrize("name", sorted(_FSW_NAV_CASES))
+def test_setting_a_flight_software_or_navigation_parameter_changes_what_it_controls(name):
+    """Each flight software and navigation parameter set in a project
+    configuration changes what it controls -- the on-times the thrusters'
+    Schmitt trigger commands, the optical navigation filter the run
+    builds, the landmark filter's steps -- and set to its default, leaves
+    it as it was."""
+    value, measure = _FSW_NAV_CASES[name]
+    before = measure(None)
+    assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
+    assert measure(Configuration({name: registry.default(name)})) == before, name

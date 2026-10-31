@@ -1238,3 +1238,15 @@ never named "_TabBar".
 
   Each new case fails on the code before (checked). No existing
   assertion changed.
+
+## Flight software and navigation rules (2026-10-31)
+
+- Added:
+  - in `test_config.py`, `test_setting_a_flight_software_or_navigation_parameter_changes_what_it_controls`,
+    one case per parameter (8), set and at its default;
+  - in `test_landmarks.py`, `test_the_focal_length_sets_no_result`.
+
+  The `_MODEL_PAGES` table and the declared-names union gain the two
+  areas and their cases. Each new case fails on the code before
+  (checked); the focal-length test passes on it, as it should (it checks
+  a property the code already has). No existing assertion changed.

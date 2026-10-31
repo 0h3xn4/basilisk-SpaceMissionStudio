@@ -390,3 +390,47 @@ parameters:
   # Source: SpaceMissionStudio's own choice. No derivation recorded.
   # Limits: 0.01 to 10 [-]
   # roe_formation.replan_shift_fraction: 0.25  # [-]
+
+  # -- flight_software -------------------------------------------------------
+
+  # The attitude thrusters' Schmitt trigger (Basilisk's thrFiringSchmitt): the shortest on-time it commands. A shorter request fires for this long or not at all, by thruster_level_on and thruster_level_off.
+  # Source: Basilisk's examples/scenarioAttitudeFeedback2T_TH.py. The example's value for its attitude-control thrusters; it is not derived for this app's thrusters.
+  # Limits: 0.0001 to 10 [s]
+  # flight_software.thruster_min_fire_time_s: 0.002  # [s]
+
+  # The Schmitt trigger turns a thruster on (for the minimum fire time) when a request shorter than the minimum fire time is at least this fraction of it.
+  # Source: Basilisk's examples/scenarioAttitudeFeedback2T_TH.py. The example's value.
+  # Limits: 0 to 1 [-]
+  # flight_software.thruster_level_on: 0.75  # [-]
+
+  # The Schmitt trigger turns a thruster off when a request shorter than the minimum fire time is at most this fraction of it; between the two levels the thruster keeps its last state.
+  # Source: Basilisk's examples/scenarioAttitudeFeedback2T_TH.py. The example's value. It must be below thruster_level_on.
+  # Limits: 0 to 1 [-]
+  # flight_software.thruster_level_off: 0.25  # [-]
+
+  # -- navigation ------------------------------------------------------------
+
+  # Optical navigation's filter (Basilisk's relativeODuKF): the spread of the unscented transform's sigma points.
+  # Source: Basilisk's relativeODuKF unit test and examples/OpNavScenarios. Their value.
+  # Limits: 0.0001 to 1 [-]
+  # navigation.opnav_ukf_alpha: 0.02  # [-]
+
+  # Optical navigation's filter: the unscented transform's weight on the prior's distribution.
+  # Source: Basilisk's relativeODuKF unit test and examples/OpNavScenarios. Their value.
+  # Limits: 0 to 10 [-]
+  # navigation.opnav_ukf_beta: 2.0  # [-]
+
+  # Optical navigation's filter: the unscented transform's secondary scaling.
+  # Source: Basilisk's relativeODuKF unit test and examples/OpNavScenarios. Their value.
+  # Limits: -10 to 10 [-]
+  # navigation.opnav_ukf_kappa: 0.0  # [-]
+
+  # Optical navigation's filter: relativeODuKF's noiseSF, which its header calls the scale factor for measurement noise (it scales the sigma points' spread in the measurement update).
+  # Source: Basilisk's relativeODuKF unit test. Its value.
+  # Limits: 0.001 to 1000 [-]
+  # navigation.opnav_ukf_noise_scale: 1.0  # [-]
+
+  # Landmark navigation's filter propagates its state between measurements with RK4 steps no longer than this.
+  # Source: SpaceMissionStudio's own choice. No derivation recorded.
+  # Limits: 1 to 3600 [s]
+  # navigation.landmark_filter_max_step_s: 60.0  # [s]

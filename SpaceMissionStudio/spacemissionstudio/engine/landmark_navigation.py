@@ -48,6 +48,7 @@ from Basilisk.simulation import pinholeCamera
 from Basilisk.utilities import RigidBodyKinematics as rbk
 from Basilisk.utilities import macros
 
+from ..config import registry
 from ..schema.scenario import LandmarkNavigationConfig
 from . import landmarks
 from .polyhedron import Polyhedron
@@ -106,7 +107,7 @@ class LandmarkNavigationFilter(sysModel.SysModel):
     landmark messages (module docstring, step 3)."""
 
     def __init__(self, name: str, config: LandmarkNavigationConfig, body: SmallBody, shape: Polyhedron,
-                 landmarks_P: np.ndarray, r0_m, v0_mps):
+                 landmarks_P: np.ndarray, r0_m, v0_mps, scenario=None):
         super().__init__()
         self.ModelTag = name
         self.attitudeInMsg = messaging.SCStatesMsgReader()
@@ -122,7 +123,8 @@ class LandmarkNavigationFilter(sysModel.SysModel):
                                      config.initial_velocity_sigma_mps, config.seed)
         self.filter = landmarks.LandmarkFilter(shape, body.gm_m3_s2, body.spin_rad_s, landmarks_P, x0,
                                                config.initial_position_sigma_m, config.initial_velocity_sigma_mps,
-                                               config.process_noise_mps2_per_sqrt_hz, pixel_sigma, f_over_w)
+                                               config.process_noise_mps2_per_sqrt_hz, pixel_sigma, f_over_w,
+                                               registry.value("navigation.landmark_filter_max_step_s", scenario))
         self.lastNanos = None
         self.lastDcmPN = None
         self.tLog: list[float] = []
@@ -182,7 +184,7 @@ def configure_camera(camera, config: LandmarkNavigationConfig) -> None:
 
 def build_landmark_navigation(scSim, process, tag: str, sc_object, sun_state_msg, body_state_msg,
                               config: LandmarkNavigationConfig, body: SmallBody, shape: Polyhedron,
-                              ideal_pointing: bool) -> LandmarkNavigation:
+                              ideal_pointing: bool, scenario=None) -> LandmarkNavigation:
     """Builds the chain (module docstring) on a new task of ``process``
     running every ``config.measurement_interval_s``."""
     task_name = f"{tag}LandmarkNavTask"
@@ -205,7 +207,7 @@ def build_landmark_navigation(scSim, process, tag: str, sc_object, sun_state_msg
     scSim.AddModelToTask(task_name, camera, 20)
 
     nav_filter = LandmarkNavigationFilter(f"{tag}LandmarkNavFilter", config, body, shape, landmarks_P,
-                                          sc_object.hub.r_CN_NInit, sc_object.hub.v_CN_NInit)
+                                          sc_object.hub.r_CN_NInit, sc_object.hub.v_CN_NInit, scenario=scenario)
     nav_filter.attitudeInMsg.subscribeTo(inputs.scStateOutMsg)
     nav_filter.bodyStateInMsg.subscribeTo(body_state_msg)
     for message in camera.landmarkOutMsgs:
