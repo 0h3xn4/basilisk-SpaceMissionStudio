@@ -1226,3 +1226,15 @@ never named "_TabBar".
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `tests/gui/test_plot_workspace.py::test_export_all_writes_every_plot_its_data_and_the_provenance` | Waited until `provenance.json` existed, then read it | Waits until it exists and the export has ended (`widget._export_worker is None`) | The worker creates the file before it writes it; on CI (#177) the test read it empty in between. A one-second pause between creating and writing the file fails the old wait and passes the new (checked). Every assertion is as before |
+
+## Flight software and navigation rules (2026-10-31)
+
+- Added:
+  - in `test_config.py`, `test_setting_a_flight_software_or_navigation_parameter_changes_what_it_controls`,
+    one case per parameter (8), set and at its default;
+  - in `test_landmarks.py`, `test_the_focal_length_sets_no_result`.
+
+  The `_MODEL_PAGES` table and the declared-names union gain the two
+  areas and their cases. Each new case fails on the code before
+  (checked); the focal-length test passes on it, as it should (it checks
+  a property the code already has). No existing assertion changed.

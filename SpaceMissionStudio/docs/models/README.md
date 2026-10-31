@@ -17,6 +17,7 @@ configuration file changes them without editing code
 | Space weather past the prediction, Earth orientation, TLEs, mean elements | [Environment data](environment-and-data.md) | `space_weather.*`, `tle.*` |
 | Altitude station keeping, the thruster's firing model, phasing keeping, GEO station keeping | [Orbit control](orbit-control.md) | `orbit_control.*`, `geo_station_keeping.*` |
 | ROE formation guidance: decisions, drifts, eclipse retries, differential drag | [ROE formation guidance](roe-formation.md) | `roe_formation.*` |
+| The attitude thrusters' Schmitt trigger, optical and landmark navigation's filters | [Flight software and navigation](flight-software-and-navigation.md) | `flight_software.*`, `navigation.*` |
 
 **How a number was computed:** the propellant budget's, the orbital
 lifetime's and the link budget's numbers, a run's headline figures and
@@ -50,7 +51,6 @@ Sections 1h and 1i.
 | Models | Rules still in the code (examples) | To be done |
 |---|---|---|
 | ROE formation guidance (the rest) | a drift's slow end and its 1.25 and 1.5 bands, the 60 s earliest look-again, the re-plan shift, the half tolerance that makes a decay worth compensating (listed on [its page](roe-formation.md)) | Phase 3a, ROE guidance |
-| Flight software and navigation | thruster firing (Schmitt trigger 0.75/0.25, 2 ms); the momentum-dump mapping threshold; the landmark camera's 25 mm focal length; the UKF's alpha, beta, kappa | Phase 3a, flight software |
 | Pre-run checks, Explain and the mission sequence | pass-prediction sampling (30 s, 7 days); the coarse-recording, late-pass and CSS-facing rules; Explain's SSO, drag and camera tolerances; Lambert's 1 m/s convergence | Phase 3a, checks (with Phase 5a's structured warnings) |
 | Monte Carlo statistics | the 1-sigma spread uses the population standard deviation | Phase 6b (a choice of statistic) |
 

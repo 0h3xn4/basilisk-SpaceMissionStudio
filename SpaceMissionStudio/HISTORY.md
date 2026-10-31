@@ -14514,6 +14514,35 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Flight software and navigation rules, as parameters (2026-10-31)
+
+Phase 3a for the flight software and navigation. Branch `fsw-params`.
+
+- **8 parameters:** `flight_software.thruster_min_fire_time_s`,
+  `thruster_level_on`, `thruster_level_off` (`fsw.build_thruster_force_mapping`
+  takes the scenario); `navigation.opnav_ukf_alpha`, `opnav_ukf_beta`,
+  `opnav_ukf_kappa`, `opnav_ukf_noise_scale`
+  (`optical_navigation.build_optical_navigation`) and
+  `navigation.landmark_filter_max_step_s` (`landmarks.LandmarkFilter`'s
+  new `max_step_s`, which replaces `_MAX_STEP_S`). The run passes the
+  scenario to each builder.
+- **Sources checked:** the Schmitt trigger's values are
+  `examples/scenarioAttitudeFeedback2T_TH.py`'s (lines 573-575), the
+  filter's are `relativeODuKF`'s unit test's (lines 56-58, 82) and
+  `examples/OpNavScenarios/modelsOpNav/BSK_OpNavFsw.py`'s.
+- **Not parameters, with why:** `angErrThresh` 3.15 (a switch above pi,
+  `examples/scenarioMomentumDumping.py` line 324); the focal length,
+  which cancels in pinholeCamera's `f * x / (z * wPixel)` because the
+  pixel pitch is derived from it (a new test shows the pixels and the
+  landmarks in view do not change with it).
+- **docs/models/flight-software-and-navigation.md.**
+- **Tests:** 8 cases in `tests/test_config.py` (the Schmitt trigger
+  driven with four requests, the filter template 30's run builds, the
+  landmark filter's steps) and the focal-length test.
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4189 passed in 20 min 37 s, including the regression baseline.
+
 ## The plots' Export all test waits for the export to end (2026-10-31)
 
 `tests/gui/test_plot_workspace.py::test_export_all_writes_every_plot_its_data_and_the_provenance`

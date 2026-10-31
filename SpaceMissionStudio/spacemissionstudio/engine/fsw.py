@@ -186,6 +186,7 @@ from Basilisk.simulation import (
 )
 from Basilisk.utilities import macros, simIncludeRW, simIncludeThruster
 
+from ..config import registry
 from ..schema.scenario import SUPPORTED_FSW_MODES, GroundStationConfig, RFLinkConfig
 from . import control_gains, environment_models, geodesy, link_budget
 from .orbit_maintenance import LogThinner
@@ -1011,12 +1012,15 @@ def build_fuel_tank(scSim, task_name: str, tag: str, sc_object, thruster_effecto
 
 
 def build_thruster_force_mapping(scSim, task_name: str, tag: str, mrp_feedback_module, thr_config_msg,
-                                  veh_config_msg, thruster_effector):
+                                  veh_config_msg, thruster_effector, scenario=None):
     """Maps ``mrpFeedback``'s 3D torque command onto individual thruster
     on-times: ``thrForceMapping`` (torque -> per-thruster force) followed by
     ``thrFiringSchmitt`` (force -> Schmitt-trigger on-time logic), connected
     to the thruster hardware's command input. ``thrForceSign = 1`` and
-    Schmitt-trigger ``thrMinFireTime``/``level_on``/``level_off`` match
+    Schmitt-trigger ``thrMinFireTime``/``level_on``/``level_off`` are the
+    parameters ``flight_software.thruster_min_fire_time_s``,
+    ``thruster_level_on`` and ``thruster_level_off`` for ``scenario``
+    (``config.parameters``); their defaults match
     ``examples/scenarioAttitudeFeedback2T_TH.py``'s single-cluster (ACS
     -only) case -- this app only ever builds one thruster cluster per
     spacecraft, never that example's separate ACS/DV split.
@@ -1032,9 +1036,10 @@ def build_thruster_force_mapping(scSim, task_name: str, tag: str, mrp_feedback_m
 
     firing_logic = thrFiringSchmitt.thrFiringSchmitt()
     firing_logic.ModelTag = f"{tag}_thrFiringSchmitt"
-    firing_logic.thrMinFireTime = 0.002  # [s]
-    firing_logic.level_on = 0.75  # [-] duty-cycle fraction (of thrMinFireTime) above which a thruster turns on
-    firing_logic.level_off = 0.25  # [-] duty-cycle fraction below which a thruster turns back off
+    firing_logic.thrMinFireTime = registry.value("flight_software.thruster_min_fire_time_s", scenario)  # [s]
+    # [-] duty-cycle fractions (of thrMinFireTime) above which a thruster turns on, below which it turns off
+    firing_logic.level_on = registry.value("flight_software.thruster_level_on", scenario)
+    firing_logic.level_off = registry.value("flight_software.thruster_level_off", scenario)
     firing_logic.thrConfInMsg.subscribeTo(thr_config_msg)
     firing_logic.thrForceInMsg.subscribeTo(force_mapping.thrForceCmdOutMsg)
     scSim.AddModelToTask(task_name, firing_logic)
