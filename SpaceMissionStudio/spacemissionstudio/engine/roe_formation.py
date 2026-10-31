@@ -43,9 +43,16 @@ navigation filter.
   - a larger along-track error drifts: along-track burns set a drift
     ``da`` (:func:`.roe.plan_drift`, with the J2 state transition matrix
     over ``correction_window_days``), cut back as the target nears so the
-    rest takes no less than ``glide_orbits`` (three by default), and stopped once stopping now
-    (the stop burns still take time to fire,
-    :func:`.roe.sequence_dl_shift`) brings it to the target;
+    rest takes no less than ``glide_orbits`` (three by default), never
+    below the slow drift (``slow_drift_fraction``), and stopped once
+    stopping now (the stop burns still take time to fire,
+    :func:`.roe.sequence_dl_shift`) brings it to the target (within
+    ``stop_reached_fraction`` of its tolerance); ``stop_band_factor`` and
+    ``cutback_band_factor`` keep it from being planned again at each
+    check, and ``min_check_s`` is the earliest look-again while it is
+    held. A drift whose burns shift the mean longitude by more than
+    ``replan_shift_fraction`` of its tolerance is planned again from where
+    they lead;
   - an inclination vector out of tolerance gets one cross-track burn.
 
   Each burn is fired as an arc centred on its planned argument of
@@ -67,8 +74,9 @@ navigation filter.
   a new stretch after each burn and after any jump, such as the chief's
   reboosts: a change of ``a*da`` between two samples above ``drag_jump_m``,
   0.1 m by default) once ``drag_min_orbits`` of data are in (four by default). When the decay would move the
-  mean longitude by more than half its tolerance over the correction
-  window (:func:`.roe.drag_is_significant`), a small correction sets ``da``
+  mean longitude by more than ``drag_significance_fraction`` of its
+  tolerance (half by default) over the correction window
+  (:func:`.roe.drag_is_significant`), a small correction sets ``da``
   and the mean longitude for a drag cycle (:func:`.roe.drag_hold_cycle`:
   the mean longitude swings evenly about its target, both inside
   ``drag_hold_fraction`` of their tolerances, six tenths by default), plans
@@ -355,6 +363,13 @@ class RoeFormationController(sysModel.SysModel):
         self.dragHoldFraction = rule("drag_hold_fraction", scenario)  # [-]
         self.dragLookaheadOrbits = rule("drag_lookahead_orbits", scenario)  # [orbit]
         self.dragTriggerFraction = rule("drag_trigger_fraction", scenario)  # [-]
+        self.dragSignificanceFraction = rule("drag_significance_fraction", scenario)  # [-]
+        self.slowDriftFraction = rule("slow_drift_fraction", scenario)  # [-]
+        self.stopBandFactor = rule("stop_band_factor", scenario)  # [-]
+        self.cutbackBandFactor = rule("cutback_band_factor", scenario)  # [-]
+        self.stopReachedFraction = rule("stop_reached_fraction", scenario)  # [-]
+        self.minCheckS = rule("min_check_s", scenario)  # [s]
+        self.replanShiftFraction = rule("replan_shift_fraction", scenario)  # [-]
         self.dvBudgetMps = 0.0  # [m/s] shared-tank total, for the Vizard gauge (set by build_roe_formation)
         self.separationCapacityKm, self.marginCapacityM = gauge_scales(config)  # [km], [m]
 
@@ -492,7 +507,8 @@ class RoeFormationController(sysModel.SysModel):
         if self.dragEstimator is not None:
             self._dragEstimate = self.dragEstimator.rate()
             significant = self._dragEstimate is not None and roe.drag_is_significant(
-                self._dragEstimate, tolerance[1], self.config.correction_window_days * _DAY_S, n)
+                self._dragEstimate, tolerance[1], self.config.correction_window_days * _DAY_S, n,
+                self.dragSignificanceFraction)
             self._dragRate = self._dragEstimate if significant else None
 
         error_dl = roe.wrap_pi(float(roe_now[1] - target[1]))
@@ -504,22 +520,24 @@ class RoeFormationController(sysModel.SysModel):
             # So the drift glides in: its da is cut back to close the rest
             # in no less than glide_orbits, down to the slow da whose stop
             # steps fit the tolerance, and it stops from there, once stopping
-            # now brings dl to (or past) the target.
-            slow_da = max(0.25 * tolerance[0], tolerance[1] / (1.5 * n * period_s))
+            # now brings dl to (or past) the target. The bands
+            # (stop_band_factor, cutback_band_factor) keep a drift from being
+            # planned again at each check.
+            slow_da = max(self.slowDriftFraction * tolerance[0], tolerance[1] / (1.5 * n * period_s))
             glide_da = max(slow_da, abs(error_dl) / (1.5 * n * self.glideOrbits * period_s))
             stop, stop_scheduled = plan(roe_now, stop_drift=True)
             final = error_dl + roe.sequence_dl_shift(stop_scheduled, a, n)
-            reached = final * error_dl <= 0.0 or abs(final) < 0.5 * tolerance[1]
-            if reached and abs(self._driftDa) <= 1.5 * slow_da:
+            reached = final * error_dl <= 0.0 or abs(final) < self.stopReachedFraction * tolerance[1]
+            if reached and abs(self._driftDa) <= self.stopBandFactor * slow_da:
                 correction, scheduled = stop, stop_scheduled
-            elif abs(self._driftDa) > 1.25 * glide_da:
+            elif abs(self._driftDa) > self.cutbackBandFactor * glide_da:
                 correction, scheduled = plan(roe_now, stop_drift=False,
                                              drift_da=math.copysign(glide_da, self._driftDa))
             else:
                 correction, scheduled = plan(roe_now, stop_drift=False)
                 rate = 1.5 * n * abs(self._driftDa)  # [1/s] how fast dl moves
                 if rate > 0.0:  # look again before the stop is due
-                    next_check_s = min(next_check_s, max(60.0, abs(final) / rate))
+                    next_check_s = min(next_check_s, max(self.minCheckS, abs(final) / rate))
         elif abs(error_dl) <= self.directDlFactor * tolerance[1]:
             correction, scheduled = self._direct(roe_now, target, chief, tolerance, u, n, mass_kg, plan)
         else:
@@ -527,7 +545,7 @@ class RoeFormationController(sysModel.SysModel):
             # The burns set da only one by one, so dl ends up elsewhere than
             # the plan assumed: plan once more from where they lead.
             shift = roe.sequence_dl_shift(scheduled, a, n)
-            if abs(shift) > 0.25 * tolerance[1]:
+            if abs(shift) > self.replanShiftFraction * tolerance[1]:
                 shifted = np.array(roe_now, dtype=float)
                 shifted[1] += shift
                 correction, scheduled = plan(shifted, stop_drift=False)

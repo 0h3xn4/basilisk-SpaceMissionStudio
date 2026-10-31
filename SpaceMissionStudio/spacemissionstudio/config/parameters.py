@@ -347,4 +347,35 @@ register(
               "cycle's end, never at its turn.", "SpaceMissionStudio's own choice",
               "No derivation recorded. Above drag_hold_fraction, so a cycle is not corrected at its turn.",
               minimum=0.1, maximum=1.0),
+    Parameter("roe_formation.drag_significance_fraction", 0.5, "[-]",
+              "A differential-drag decay is compensated only when it would move the mean longitude by more than "
+              "this fraction of its tolerance over the correction window; a smaller one, such as the estimate's "
+              "scatter for twin spacecraft, is left to the ordinary corrections.",
+              "SpaceMissionStudio's own choice", "No derivation recorded.", minimum=0.01, maximum=10.0),
+    Parameter("roe_formation.slow_drift_fraction", 0.25, "[-]",
+              "A drift ends at a slow relative semi-major axis: the larger of this fraction of the semi-major "
+              "axis tolerance and the drift whose stop steps fit the along-track tolerance.",
+              "SpaceMissionStudio's own choice", "No derivation recorded.", minimum=0.01, maximum=5.0),
+    Parameter("roe_formation.stop_band_factor", 1.5, "[-]",
+              "A drift is stopped, once stopping brings the mean longitude to the target, only when its relative "
+              "semi-major axis is within this factor of the slow drift.", "SpaceMissionStudio's own choice",
+              "No derivation recorded. With cutback_band_factor, it keeps a drift from being planned again at "
+              "each check.", minimum=1.0, maximum=10.0),
+    Parameter("roe_formation.cutback_band_factor", 1.25, "[-]",
+              "A drift is cut back to the glide-in drift (glide_orbits) only when it is more than this factor of "
+              "it; within the band it is held.", "SpaceMissionStudio's own choice",
+              "No derivation recorded. With stop_band_factor, it keeps a drift from being planned again at each "
+              "check.", minimum=1.0, maximum=10.0),
+    Parameter("roe_formation.stop_reached_fraction", 0.5, "[-]",
+              "Stopping a drift is taken to bring the mean longitude to the target when it would end past the "
+              "target or within this fraction of the along-track tolerance of it.",
+              "SpaceMissionStudio's own choice", "No derivation recorded.", minimum=0.01, maximum=1.0),
+    Parameter("roe_formation.min_check_s", 60.0, "[s]",
+              "While a drift is held, the controller looks again before its stop is due, but no sooner than "
+              "this.", "SpaceMissionStudio's own choice", "No derivation recorded.", minimum=1.0, maximum=3600.0),
+    Parameter("roe_formation.replan_shift_fraction", 0.25, "[-]",
+              "A drift's burns set the relative semi-major axis one by one, so the mean longitude ends up "
+              "elsewhere than planned: the plan is made again from where they lead when that shift is more than "
+              "this fraction of the along-track tolerance.", "SpaceMissionStudio's own choice",
+              "No derivation recorded.", minimum=0.01, maximum=10.0),
 )
