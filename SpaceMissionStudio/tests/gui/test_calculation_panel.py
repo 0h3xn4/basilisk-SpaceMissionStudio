@@ -318,6 +318,38 @@ def test_the_dashboards_power_card_shows_how_its_figures_were_read(qtbot):
     assert widget.power_explanation() is None
 
 
+def test_the_semi_major_axis_card_opens_how_the_mean_elements_were_made(qtbot):
+    """The Overview's semi-major axis change sends its trace and the mean
+    elements' trace; the panel opens the second from the first."""
+    import numpy as np
+
+    from spacemissionstudio.engine.results import ResultSet, TimeSeries
+    from spacemissionstudio.gui.calculation_panel import CalculationPanel
+    from spacemissionstudio.gui.results_overview import ResultsOverview
+
+    t = np.arange(0.0, 3.0 * 5740.0, 60.0)  # [s] three orbits
+    result = ResultSet("sma")
+    result.add(TimeSeries("sat.position_N", t, ("x", "y", "z"), np.zeros((t.size, 3)), "m"))
+    result.add(TimeSeries("sat.orbit_elements.inclination", t, ("i",), np.full((t.size, 1), np.radians(97.4)), "rad"))
+    result.add(TimeSeries("sat.orbit_elements_mean.semi_major_axis", t, ("a",),
+                          (6928e3 - 0.5e3 * t / t[-1])[:, None], "m"))
+    overview = ResultsOverview()
+    qtbot.addWidget(overview)
+    with qtbot.waitSignal(overview.summarized, timeout=10000):
+        overview.set_run(result, "Run 1")
+    card = next(c for c in overview.cards if c.figure.key == "sat.mean_sma_change")
+    with qtbot.waitSignal(overview.calculation_requested) as sent:
+        overview.show_calculation(card.figure)
+    explanation = sent.args[0]
+    assert [t.quantity for t in explanation.traces] == ["Mean semi-major axis change", "Mean orbital elements (sat)"]
+    panel = CalculationPanel()
+    qtbot.addWidget(panel)
+    panel.explain(explanation)
+    panel.open_buttons["Mean orbital elements (sat)"].click()
+    assert panel.trace is explanation.traces[1]
+    overview.wait_for_worker()
+
+
 # -- the main window ----------------------------------------------------------------------------
 
 @pytest.fixture

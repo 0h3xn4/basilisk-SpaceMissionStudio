@@ -55,6 +55,17 @@ project makes:
   (or above 179°), it is evaluated at 1°. Placing a satellite by its mean
   elements inverts the map in six correction steps; two already bring the
   semi-major axis within a millimetre.
+
+  A run's mean elements are only for an Earth orbit with gravity of
+  degree 2 or more. Their trace (`mean_elements.series_trace`) names:
+  - Basilisk's `clMeanOscMap`;
+  - the radius and J2 the run used (`EARTH_EQUATORIAL_RADIUS_M`,
+    `EARTH_J2`: Basilisk's `radEquator` and `J2_EARTH`);
+  - the two bands;
+  - how many samples fell in each, and how many had no closed orbit.
+
+  The mean semi-major axis change of Results › Overview opens it
+  (**Open**), and `run --explain` prints it.
 - **The magnetic field model (WMM) is valid for 5 years** from its epoch,
   by its release rule; past that a run warns.
 - **The reference-data panel flags space weather older than 60 days** as

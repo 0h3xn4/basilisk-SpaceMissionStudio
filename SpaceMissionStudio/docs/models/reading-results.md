@@ -59,6 +59,9 @@ from the values it computed with:
   the start and the end, the passes and contact time per station, the
   umbra and penumbra eclipses.
 
+The semi-major axis change also opens how the mean elements were made
+([Environment and data](environment-and-data.md), "Fixed rules").
+
 The central body's GM is the run's own when its provenance recorded it.
 Otherwise it is Basilisk's for the body the run's frame is centred on,
 or the Earth's, and the trace says which.

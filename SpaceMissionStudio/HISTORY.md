@@ -14541,6 +14541,24 @@ The transparency plan, Phase 3a, for the ROE formation guidance. Branch
 
 Full suite on Python 3.14: 4172 passed in 22 min 53 s, including the regression baseline.
 
+## The mean elements' trace (2026-10-30)
+
+The transparency plan, Phase 4a, for the mean elements. Branch
+`mean-elements-trace`.
+
+- **`mean_elements.series_trace(result, spacecraft)`:** the map
+  (`clMeanOscMap`, with the critical-inclination and equatorial
+  handling), R_eq and J2 from the one set of constants, the two bands, and
+  the samples in each band and with no closed orbit. Basilisk-free.
+- **`run_summary.Figure.related`** (not compared): the mean semi-major
+  axis change carries the mean elements' trace and links it (`trace:`).
+  Results › Overview sends it to the Calculation panel and
+  `explain_lines` prints it.
+- **Tests:** 3 in `tests/test_trace.py` (one with Basilisk: the trace's
+  radius and J2 are the run's, and the map with them gives the recorded
+  values in each band), 1 in `tests/gui/test_calculation_panel.py`; the
+  golden fingerprint leaves out `related`.
+
 ## The power and data traces (2026-10-30)
 
 The transparency plan, Phase 4a, for power and data. Branch
