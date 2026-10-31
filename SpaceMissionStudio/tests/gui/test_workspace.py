@@ -412,7 +412,8 @@ def test_a_stale_model_problem_opens_the_model_editor(model_window, monkeypatch)
     model_window.scenario_editor.revalidate()
     problems = model_window.problems_widget
     row = next(i for i, (_severity, text) in enumerate(problems.problems) if "differ from the 3D model" in text)
-    assert problems.index_of(row).data(Qt.ItemDataRole.ToolTipRole) == "Double-click to open the 3D model editor"
+    tooltip = problems.index_of(row).data(Qt.ItemDataRole.ToolTipRole)
+    assert tooltip.startswith("rule model.stale: ") and tooltip.endswith("\n\nDouble-click to open the 3D model editor")
 
     problems.table.activated.emit(problems.index_of(row))
     assert opened == [sc.name] and model_window.current_view() is model_window.scenario_editor

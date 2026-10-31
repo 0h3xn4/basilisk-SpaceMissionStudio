@@ -495,6 +495,10 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   why it matters and the fix; `run --explain` and `lifetime --explain`
   print them. A saved run keeps them. The warnings read as before. See
   `docs/models/reading-results.md`.
+- **The app shows a warning's rule:** hold the pointer over a warning in
+  the Problems panel or in Scenario › Overview's "Check before running"
+  to see its rule, what it found against its limit, why it matters, how
+  to fix it and how to override it. Nothing else changes in either view.
 - **Every pre-run warning names its rule:** `spacemissionstudio validate
   --explain` follows each warning with the rule behind it: what it is,
   what it found against its limit, why it matters, how to fix it and how

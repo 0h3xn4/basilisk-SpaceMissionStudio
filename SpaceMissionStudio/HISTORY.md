@@ -14557,6 +14557,22 @@ The transparency plan, Phase 5a, third step. Branch `run-findings`.
 
 Full suite on Python 3.14: 4221 passed in 19 min 45 s, including the regression baseline.
 
+## Structured warnings in the app (2026-10-31)
+
+Phase 5a, second step. Branch `warnings-gui`.
+
+- **Problems panel:** a warning's tooltip is its rule
+  (`engine.findings.explanation_lines`), then the double-click hint it
+  had; an error keeps the hint alone (errors have no rule yet).
+- **Explain:** each "Check before running" note carries its rule as a
+  tooltip and an accessible description (screen readers).
+- **Not added:** a column or a button. The default views stay as they
+  were; the rule is there on hover, and `validate --explain` prints it.
+- **Tests:** 2 in `tests/gui/test_findings_views.py`; one assertion in
+  `test_workspace.py` changed (TEST_CHANGES).
+
+Full suite on Python 3.14: 4217 passed in 24 min 2 s, including the regression baseline.
+
 ## Structured warnings, first step: the pre-run checks (2026-10-31)
 
 The transparency plan, Phase 5a. Branch `structured-warnings`.

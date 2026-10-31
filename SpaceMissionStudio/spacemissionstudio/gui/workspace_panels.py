@@ -43,6 +43,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QAbstractSpinBox, QApplication
                                QFormLayout, QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPlainTextEdit, QPushButton,
                                QSpinBox, QTabBar, QTableView, QTextEdit, QVBoxLayout, QWidget)
 
+from ..engine.findings import explanation_lines
 from .feedback import row_label
 from .problem_location import JSON_VIEW, MISSION_SEQUENCE, PROPAGATION, SCENARIO, SPACECRAFT, locate
 from .theme import ROW_HEIGHT, SPACE, TOKENS, icon, mono_font, set_role
@@ -266,8 +267,10 @@ class ProblemsModel(QAbstractTableModel):
         if role == Qt.ItemDataRole.FontRole and column == 1:
             return mono_font()
         if role == Qt.ItemDataRole.ToolTipRole:
-            return ("Double-click to open the 3D model editor" if _MODEL_MARK in problem.text
-                    else "Double-click to go to where it is fixed")
+            action = ("Double-click to open the 3D model editor" if _MODEL_MARK in problem.text
+                      else "Double-click to go to where it is fixed")
+            rule = "\n".join(explanation_lines(problem.text))  # a warning's rule (engine.findings)
+            return f"{rule}\n\n{action}" if rule else action
         if role == SORT_ROLE:
             # Errors first; within a severity, as the scenario lists them.
             return (rank, index.row()) if column == 0 else (str(self.data(index)).lower(), index.row())
