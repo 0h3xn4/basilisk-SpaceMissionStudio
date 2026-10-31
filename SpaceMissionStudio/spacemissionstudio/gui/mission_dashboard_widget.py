@@ -45,8 +45,6 @@ change to this module's own per-spacecraft logic.
 
 from __future__ import annotations
 
-import numpy as np
-
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFormLayout,
@@ -61,7 +59,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..config import registry
-from ..engine import link_budget
+from ..engine import link_budget, power_state
 from ..engine.results import ResultSet
 from ..schema.scenario import Scenario
 from .badges import ACCENT as _ACCENT_BADGE, DANGER as _DANGER_BADGE, MUTED as _MUTED_BADGE
@@ -117,11 +115,7 @@ def _find_ground_station(result: ResultSet, spacecraft_name: str,
     return None
 
 
-def _sample_index(series, at_s: float | None) -> int:
-    """The last sample at or before ``at_s`` [s] (the time cursor), else the last one."""
-    if at_s is None:
-        return series.data.shape[0] - 1
-    return max(int(np.searchsorted(series.time_s, at_s, side="right")) - 1, 0)
+_sample_index = power_state.sample_index  # the last sample at or before the time cursor, else the last one
 
 
 def _latest(result: ResultSet, series_name: str, at_s: float | None = None) -> float | None:
@@ -151,6 +145,7 @@ class MissionDashboardWidget(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
         self._link_inputs = None  # (range, rf_link, station, angle, the sources) of the budget shown
+        self._power_inputs = None  # (spacecraft, battery capacity [W*h] or None, the cursor [s] or None)
         self._result: ResultSet | None = None
         self._scenario: Scenario | None = None
         self._cursor_s: float | None = None  # [s] the shared time cursor, or None (the latest sample)
@@ -214,6 +209,12 @@ class MissionDashboardWidget(QWidget):
         power_form.addRow("Battery charge:", self.battery_charge_label)
         power_form.addRow("State of charge:", soc_row)
         power_form.addRow("Net power:", self.net_power_label)
+        self.power_calculation_button = QPushButton("Show calculation")
+        self.power_calculation_button.setToolTip("How the battery charge, state of charge and net power at the "
+                                                 "time cursor were read: each series and sample, and the capacity")
+        self.power_calculation_button.setEnabled(False)
+        self.power_calculation_button.clicked.connect(self.show_power_calculation)
+        power_form.addRow(self.power_calculation_button)
 
         # -- RF link --------------------------------------------------------
         self._rf_box = QGroupBox("RF link")
@@ -310,6 +311,24 @@ class MissionDashboardWidget(QWidget):
         if explanation is not None:
             self.calculation_requested.emit(explanation)
 
+    def power_explanation(self) -> Explanation | None:
+        """How the Power card's figures were read at the time cursor: the
+        state of charge first when there is one, then the net power and the
+        charge."""
+        if self._power_inputs is None or self._result is None:
+            return None
+        spacecraft, capacity_wh, at_s = self._power_inputs
+        traces = power_state.battery_traces(self._result, spacecraft, capacity_wh, at_s)
+        if not traces:
+            return None
+        order = [traces[key] for key in ("state_of_charge", "net_power", "charge") if key in traces]
+        return Explanation(f"Power: {spacecraft}", order)
+
+    def show_power_calculation(self) -> None:
+        explanation = self.power_explanation()
+        if explanation is not None:
+            self.calculation_requested.emit(explanation)
+
     def set_time_cursor(self, cursor) -> None:
         """Show the values at ``cursor`` (a :class:`gui.time_cursor.TimeCursor`) instead of the latest."""
         cursor.changed.connect(self._on_cursor_changed)
@@ -338,6 +357,7 @@ class MissionDashboardWidget(QWidget):
         sc_name = _find_comms_pointing_spacecraft(self._result)
         if sc_name is None:
             self._set_panels_visible(False)
+            self._link_inputs = self._power_inputs = None
             return
         self._set_panels_visible(True)
         result = self._result
@@ -407,8 +427,11 @@ class MissionDashboardWidget(QWidget):
         self.battery_charge_label.setText(f"{battery_charge_wh:.2f} W*hr" if battery_charge_wh is not None else "--")
         battery_capacity_wh = sc_config.power.battery_capacity_wh if sc_config is not None and \
             sc_config.power is not None else None
+        self._power_inputs = (sc_name, battery_capacity_wh, at_s) \
+            if battery_charge_wh is not None or net_power_w is not None else None
+        self.power_calculation_button.setEnabled(self._power_inputs is not None)
         if battery_charge_wh is not None and battery_capacity_wh is not None and battery_capacity_wh > 0:
-            soc_pct = max(0.0, min(100.0, 100.0 * battery_charge_wh / battery_capacity_wh))
+            soc_pct = power_state.state_of_charge_pct(battery_charge_wh, battery_capacity_wh)
             self.battery_soc_bar.setValue(int(round(soc_pct)))
             self.battery_soc_bar.setEnabled(True)
             self.battery_soc_label.setText(f"{soc_pct:.0f}%")

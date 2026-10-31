@@ -14532,6 +14532,22 @@ The transparency plan, Phase 4a, for the mean elements. Branch
   values in each band), 1 in `tests/gui/test_calculation_panel.py`; the
   golden fingerprint leaves out `related`.
 
+## The power and data traces (2026-10-30)
+
+The transparency plan, Phase 4a, for power and data. Branch
+`power-data-trace`.
+
+- **`engine.power_state`** (new): `sample_index` (moved from the
+  dashboard), `state_of_charge_pct`, and `battery_traces` (charge, net
+  power, state of charge at the cursor or the run's end).
+- **Dashboard:** the Power card's Show calculation
+  (`power_explanation`, `show_power_calculation`). The card uses
+  `power_state` for its sample and state of charge. A dashboard without a
+  comms-pointing spacecraft forgets its link and power inputs.
+- **`DataBudget.traces`:** generated, downlinked, lost, on board at the
+  end, memory full. `run --explain` prints them.
+- **Tests:** 3 in `tests/test_trace.py`, 1 in
+
 ## The events' traces (2026-10-30)
 
 The transparency plan, Phase 4a, for the events. Branch `event-trace`.

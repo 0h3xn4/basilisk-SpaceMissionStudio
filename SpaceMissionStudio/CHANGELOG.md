@@ -474,6 +474,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   shows it. The panels' layout saved by an earlier version is not
   restored, once: they start as in a new window (the rail and the
   dividers are restored as before).
+- **How the power and data figures were read:** the Dashboard's Power
+  card has **Show calculation**. It shows the battery charge and net power
+  with the series and sample read at the time cursor, and the state of
+  charge, 100 x charge / capacity with the capacity from the scenario. A
+  run's data totals (generated, downlinked, lost, on board at the end,
+  memory full) carry their ledger series and sample, and `run --explain`
+  prints them. The figures are unchanged.
 - **How each event was found:** **Show calculation** on the Timeline
   opens the selected event's trace. It gives the series and the rule that
   says the event is on, the samples it starts and ends on, and the samples

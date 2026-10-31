@@ -17,6 +17,22 @@ Newest milestone first.
   carries it as a related trace (`Figure.related`), so the Calculation
   panel opens it from there.
 
+## The power and data traces (2026-10-30)
+
+- **Read, not recomputed:** the power is Basilisk's (`simpleBattery`),
+  and the data totals are the ledger's. Their traces name the series and
+  the sample, not an equation SpaceMissionStudio does not apply. Only the
+  state of charge is SpaceMissionStudio's arithmetic, and its trace says
+  so.
+- **One place for the sample and the formula:** the dashboard's
+  last-sample-at-or-before-the-cursor and the state of charge moved to
+  `engine.power_state`. The dashboard and the trace use them, so the trace
+  states what the card shows.
+- **Not yet:** the scenario explanation's pre-run data estimates (data
+  per day, memory fill time, data per pass). They are arithmetic on the
+  settings and show as text in Scenario › Overview, where the Calculation
+  panel does not reach yet.
+
 ## The events' traces (2026-10-30)
 
 - **Made when asked, not kept on each event:** a run can have 10,000
