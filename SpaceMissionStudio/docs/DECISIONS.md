@@ -5,6 +5,21 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The pre-run checks' rules (2026-10-31)
+
+- **The rules first, the structure next:** this step names each check's
+  threshold as a parameter. Phase 5a's structured warnings (rule id, the
+  rule, the actual value, the limit, how to fix) build on these names, in
+  a step of their own, since they change what every consumer of a
+  warning receives.
+- **A cosine, not an angle, for the sun sensor:** the check compares a
+  cosine with 0.5; an angle of 60 deg would be compared as
+  cos(60 deg) = 0.5000000000000001, a different rule at the edge. The
+  parameter is the cosine the code uses, and says it is 60 deg.
+- **The defaults' wording kept:** a warning that read "in the first week"
+  still does at the default; it says the configured length when the
+  parameter is set.
+
 ## Flight software and navigation rules (2026-10-31)
 
 - **One page for two areas:** `flight_software.*` and `navigation.*`

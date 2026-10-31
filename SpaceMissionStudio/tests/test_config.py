@@ -62,7 +62,7 @@ _MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifeti
                 "space_weather": "environment-and-data.md", "tle": "environment-and-data.md",
                 "orbit_control": "orbit-control.md", "geo_station_keeping": "orbit-control.md",
                 "roe_formation": "roe-formation.md", "flight_software": "flight-software-and-navigation.md",
-                "navigation": "flight-software-and-navigation.md"}
+                "navigation": "flight-software-and-navigation.md", "checks": "pre-run-checks.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -394,7 +394,7 @@ def test_every_parameter_has_a_case_that_sets_it():
     declared = {p.name for p in registry.parameters()}
     cases = (set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_RESULTS_CASES) | set(_DYNAMICS_CASES)
              | set(_ENVIRONMENT_CASES) | set(_CONTROL_CASES) | set(_ROE_CASES) | set(_FSW_NAV_CASES)
-             | set(_GUI_CASES))
+             | set(_CHECK_CASES) | set(_GUI_CASES))
     assert declared == cases, f"no case for {sorted(declared - cases)}"
     for where in _GUI_CASES.values():
         file, name = where.split("::")
@@ -1261,6 +1261,90 @@ def test_setting_a_flight_software_or_navigation_parameter_changes_what_it_contr
     builds, the landmark filter's steps -- and set to its default, leaves
     it as it was."""
     value, measure = _FSW_NAV_CASES[name]
+    before = measure(None)
+    assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
+    assert measure(Configuration({name: registry.default(name)})) == before, name
+
+
+# The pre-run checks (engine.scenario_checks), on templates edited to sit
+# near each rule's threshold.
+def _checked_template(configuration, prefix, edit=None):
+    """Template ``prefix`` with the project ``configuration``, edited by
+    ``edit``: the scenario the checks are given."""
+    from pathlib import Path
+
+    templates = Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates"
+    scenario = load_scenario(next(templates.glob(f"{prefix}_*.json")))
+    scenario.configuration = configuration
+    if edit is not None:
+        edit(scenario)
+    return scenario
+
+
+def _check_warnings(configuration, prefix, edit=None):
+    from spacemissionstudio.engine.scenario_checks import scenario_warnings
+
+    return scenario_warnings(_checked_template(configuration, prefix, edit))
+
+
+def _late_pass(scenario, days=0.5):
+    scenario.epoch_utc = "2030-01-01T00:00:00"  # template 19's first pass at about 8.2 h
+    scenario.sim_settings.duration_days = days
+
+
+def _every_step(scenario):
+    scenario.sim_settings.record_interval_s = 0.0  # [s] record every step
+    scenario.sim_settings.duration_days = 1.0  # [day] thousands of samples at template 01's step
+
+
+def _coarse_recording(scenario):
+    scenario.sim_settings.record_interval_s = 200.0  # [s]
+
+
+def _long_step(scenario):
+    scenario.sim_settings.dynamics_task_rate_s = 120.0  # [s]
+
+
+def _sun_sensor_off_axis(scenario):
+    import math
+
+    css = next(s for s in scenario.spacecraft[0].sensors if s.kind == "coarse_sun_sensor")
+    css.params["nHat_B"] = [math.sin(math.radians(70.0)), 0.0, math.cos(math.radians(70.0))]  # 70 deg from +Z
+
+
+def _pass_starts(configuration):
+    from spacemissionstudio.engine.scenario_checks import predict_passes
+
+    return [p.start_s for p in predict_passes(_checked_template(configuration, "19"))]
+
+
+def _pass_count_over_ten_days(configuration):
+    from spacemissionstudio.engine.scenario_checks import pass_summary
+
+    return pass_summary(_checked_template(configuration, "19",
+                                          lambda s: setattr(s.sim_settings, "duration_days", 10.0)))
+
+
+_CHECK_CASES = {
+    "checks.pass_step_s": (7.0, _pass_starts),
+    "checks.pass_horizon_days": (3.0, _pass_count_over_ten_days),
+    "checks.pass_lookahead_days": (0.05, lambda c: _check_warnings(c, "19", lambda s: _late_pass(s, 0.25))),
+    "checks.many_samples": (1000, lambda c: _check_warnings(c, "01", _every_step)),
+    "checks.coarse_recording_factor": (1.0, lambda c: _check_warnings(c, "19", _coarse_recording)),
+    "checks.long_step_s": (200.0, lambda c: _check_warnings(c, "01", _long_step)),
+    "checks.late_first_pass_fraction": (0.9, lambda c: _check_warnings(c, "19", _late_pass)),
+    "checks.css_facing_min_cosine": (0.3, lambda c: _check_warnings(c, "07", _sun_sensor_off_axis)),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_CHECK_CASES))
+def test_setting_a_check_parameter_changes_what_it_flags(name):
+    """Each pre-run check parameter set in a project configuration changes
+    what the checks predict or flag -- the pass samples, the horizon and
+    look-ahead, the every-step and coarse-recording warnings, the long
+    step, the late first pass, the sun sensor facing the Sun -- and set to
+    its default, leaves it as it was."""
+    value, measure = _CHECK_CASES[name]
     before = measure(None)
     assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
     assert measure(Configuration({name: registry.default(name)})) == before, name

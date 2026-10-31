@@ -14514,6 +14514,36 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The pre-run checks' rules, as parameters (2026-10-31)
+
+Phase 3a for the pre-run checks. Branch `checks-params`.
+
+- **8 parameters, `checks.*`:** `pass_step_s`, `pass_horizon_days`,
+  `pass_lookahead_days` (they were `_STEP_S`, `_MAX_HORIZON_S`,
+  `_LOOKAHEAD_S`), `many_samples` (`_MANY_SAMPLES`),
+  `coarse_recording_factor` (an inline 3), `long_step_s`
+  (`_LONG_STEP_S`), `late_first_pass_fraction` (an inline 0.5),
+  `css_facing_min_cosine` (an inline 0.5). `_spacecraft_warnings` takes
+  the scenario for the last.
+- **The messages at the defaults are as before:** "in the first week" and
+  "the 2 days after it" are kept for the default horizon and look-ahead,
+  and say the configured length otherwise. The every-step warning gives a
+  plain count below a million samples, which only a lower limit reaches
+  (it read "0.0 million").
+- **Fixed, a docstring:** `scenario_checks` said the stations sit on a
+  spherical Earth; the code puts them on the WGS-84 ellipsoid, with the
+  elevation from its normal (ECSS-E-ST-10-09C 5.4.6a).
+- **Not parameters:** the navigation build-up factor 0.41 (measured with
+  simpleNav), Kepler's 12 Newton iterations, the coarse-recording check's
+  one-day window.
+- **docs/models/pre-run-checks.md:** every check, its rule and where it
+  shows.
+- **Tests:** 8 cases in `tests/test_config.py`, each on a template edited
+  to sit near the rule's threshold.
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4204 passed in 20 min 27 s, including the regression baseline.
+
 ## Flight software and navigation rules, as parameters (2026-10-31)
 
 Phase 3a for the flight software and navigation. Branch `fsw-params`.

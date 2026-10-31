@@ -420,3 +420,41 @@ register(
               "than this.", "SpaceMissionStudio's own choice", "No derivation recorded.",
               minimum=1.0, maximum=3600.0),
 )
+
+
+register(
+    Parameter("checks.pass_step_s", 30.0, "[s]",
+              "The pre-run pass prediction samples each station's elevation this often.",
+              "SpaceMissionStudio's own choice",
+              "A LEO pass above 10 deg lasts several minutes (the code's comment); no derivation recorded for "
+              "30 s.", minimum=1.0, maximum=600.0),
+    Parameter("checks.pass_horizon_days", 7.0, "[day]",
+              "Passes are predicted over the run up to this long; a longer run's passes are counted over this "
+              "much (\"in the first week\").", "SpaceMissionStudio's own choice",
+              "Keeps the check fast on long runs (the code's comment).", minimum=0.1, maximum=365.0),
+    Parameter("checks.pass_lookahead_days", 2.0, "[day]",
+              "When a station has no pass in the run, the prediction looks this far past it for the first one.",
+              "SpaceMissionStudio's own choice", "No derivation recorded.", minimum=0.0, maximum=30.0),
+    Parameter("checks.many_samples", 1_000_000, "[-]",
+              "Recording every step is flagged when a series would hold more samples than this.",
+              "SpaceMissionStudio's own choice",
+              "About 1.7 MB per simulated day at full recording for one LEO spacecraft (the code's comment); "
+              "no derivation recorded for the limit.", kind="integer", minimum=1000, maximum=1_000_000_000),
+    Parameter("checks.coarse_recording_factor", 3.0, "[-]",
+              "Recording is flagged as too coarse for the passes when the shortest predicted pass (over the "
+              "first day) lasts no more than this many recording intervals.", "SpaceMissionStudio's own choice",
+              "No derivation recorded.", minimum=1.0, maximum=100.0),
+    Parameter("checks.long_step_s", 60.0, "[s]",
+              "A dynamics step longer than this is flagged: the orbit loses accuracy whatever the integrator's "
+              "tolerance.", "SpaceMissionStudio's measurement (audit E3, 2026-10-27)",
+              "In a one-day two-body run at 7000 km against Kepler, the position error was under 2 cm at 60 s, "
+              "0.9 m at 120 s, 11 m at 300 s and 8.6 km at 1800 s.", minimum=1.0, maximum=3600.0),
+    Parameter("checks.late_first_pass_fraction", 0.5, "[-]",
+              "A station whose first pass comes later than this fraction of the run is flagged.",
+              "SpaceMissionStudio's own choice", "No derivation recorded.", minimum=0.0, maximum=1.0),
+    Parameter("checks.css_facing_min_cosine", 0.5, "[-]",
+              "A coarse sun sensor counts as facing the Sun-pointing axis when the cosine of the angle between "
+              "its normal and the axis is above this (0.5: within 60 deg); with none facing it, the spacecraft "
+              "is flagged.", "SpaceMissionStudio's own choice", "No derivation recorded.",
+              minimum=-1.0, maximum=1.0),
+)

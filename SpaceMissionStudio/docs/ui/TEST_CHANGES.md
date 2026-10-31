@@ -1250,3 +1250,13 @@ never named "_TabBar".
   areas and their cases. Each new case fails on the code before
   (checked); the focal-length test passes on it, as it should (it checks
   a property the code already has). No existing assertion changed.
+
+## The pre-run checks' rules (2026-10-31)
+
+- Added, in `test_config.py`, `test_setting_a_check_parameter_changes_what_it_flags`,
+  one case per parameter (8), each on a template edited near the rule's
+  threshold, set and at its default.
+
+  The `_MODEL_PAGES` table and the declared-names union gain the area and
+  its cases. Each new case fails on the code before (checked). No
+  existing test changed.

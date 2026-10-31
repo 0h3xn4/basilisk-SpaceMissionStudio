@@ -18,6 +18,7 @@ configuration file changes them without editing code
 | Altitude station keeping, the thruster's firing model, phasing keeping, GEO station keeping | [Orbit control](orbit-control.md) | `orbit_control.*`, `geo_station_keeping.*` |
 | ROE formation guidance: decisions, drifts, eclipse retries, differential drag | [ROE formation guidance](roe-formation.md) | `roe_formation.*` |
 | The attitude thrusters' Schmitt trigger, optical and landmark navigation's filters | [Flight software and navigation](flight-software-and-navigation.md) | `flight_software.*`, `navigation.*` |
+| The pre-run checks: pass prediction, recording, step, late pass, sun sensor | [Pre-run checks](pre-run-checks.md) | `checks.*` |
 
 **How a number was computed:** the propellant budget's, the orbital
 lifetime's and the link budget's numbers, a run's headline figures and
@@ -50,7 +51,7 @@ Sections 1h and 1i.
 
 | Models | Rules still in the code (examples) | To be done |
 |---|---|---|
-| Pre-run checks, Explain and the mission sequence | pass-prediction sampling (30 s, 7 days); the coarse-recording, late-pass and CSS-facing rules; Explain's SSO, drag and camera tolerances; Lambert's 1 m/s convergence | Phase 3a, checks (with Phase 5a's structured warnings) |
+| Explain and the mission sequence | Explain's SSO, differential-drag, passive-safety and camera tolerances; the mission sequence's start-on-apsis tolerance and Lambert's 1 m/s convergence | Phase 3a, Explain and the mission sequence |
 | Monte Carlo statistics | the 1-sigma spread uses the population standard deviation | Phase 6b (a choice of statistic) |
 
 Numerical settings that set no result are not parameters: download
