@@ -5,6 +5,17 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The rest of the ROE guidance's rules (2026-10-31)
+
+- **The physics stays in the code:** `1.5 n da` (how fast the mean
+  longitude moves for a relative semi-major axis) and `3/4 n da_dot t^2`
+  (its drift under a steady decay) are equations, not choices; only the
+  thresholds compared with them are parameters.
+- **`drag_is_significant` keeps its signature:** `fraction` is optional
+  and defaults to the parameter's default, so the ROE math can be called
+  without a configuration (its own tests do); the controller passes the
+  scenario's value.
+
 ## The ROE guidance's rules, as parameters (2026-10-31)
 
 - **Nine now, the rest next:** the guidance's named constants become

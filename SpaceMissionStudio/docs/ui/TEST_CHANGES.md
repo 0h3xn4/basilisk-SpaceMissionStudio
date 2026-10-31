@@ -1226,3 +1226,15 @@ never named "_TabBar".
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `tests/gui/test_plot_workspace.py::test_export_all_writes_every_plot_its_data_and_the_provenance` | Waited until `provenance.json` existed, then read it | Waits until it exists and the export has ended (`widget._export_worker is None`) | The worker creates the file before it writes it; on CI (#177) the test read it empty in between. A one-second pause between creating and writing the file fails the old wait and passes the new (checked). Every assertion is as before |
+
+## The rest of the ROE guidance's rules (2026-10-31)
+
+- Added, in `test_config.py`: 7 cases in `_ROE_CASES` (whether a decay
+  is compensated, a drift's slow end, its stop and cut-back bands, when
+  its stop counts as reached, the earliest look-again, the re-plan), each
+  driving `_decide` with a hand-made state, set and at its default. The
+  docstring of `test_setting_an_roe_guidance_rule_changes_its_decision`
+  names them.
+
+  Each new case fails on the code before (checked). No existing
+  assertion changed.

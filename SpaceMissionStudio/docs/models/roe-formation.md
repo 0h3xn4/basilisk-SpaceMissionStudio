@@ -33,10 +33,25 @@ point the mean ROE are compared with the active target:
   orbits set the relative semi-major axis, the e vector and the mean
   longitude together.
 - **A larger along-track error drifts:** burns set a drift relative
-  semi-major axis, capped by the scenario's `max_drift_m`. As the target
-  nears, the drift is cut back so the rest closes in no less than
-  `glide_orbits` (3). It is stopped once stopping there brings the mean
-  longitude to the target.
+  semi-major axis, capped by the scenario's `max_drift_m`. The burns set
+  it one by one, so the mean longitude ends up elsewhere than planned:
+  when that shift is more than `replan_shift_fraction` of the along-track
+  tolerance (0.25), the plan is made again from where they lead.
+- **How a drift ends:**
+  - **Gliding in:** as the target nears, the drift is cut back so the
+    rest closes in no less than `glide_orbits` (3).
+  - **The slow drift:** it is never cut below the slow drift. That is the
+    larger of `slow_drift_fraction` of the semi-major axis tolerance
+    (0.25) and the drift whose stop steps fit the along-track tolerance.
+  - **Bands:** it is cut back only when more than `cutback_band_factor`
+    times the glide-in drift (1.25), and stopped only when within
+    `stop_band_factor` times the slow drift (1.5). Between them it is
+    held, so it is not planned again at each check.
+  - **The stop:** it is stopped once stopping there would bring the mean
+    longitude past the target, or within `stop_reached_fraction` of the
+    along-track tolerance of it (0.5).
+  - **Looking again:** while it is held, the controller looks again
+    before the stop is due, but no sooner than `min_check_s` (60 s).
 - **An inclination vector out of tolerance** gets one cross-track burn.
 
 Each burn is fired as an arc centred on its planned place on the orbit.
@@ -55,7 +70,8 @@ relative semi-major axis over the scenario's `drag_estimate_window_days`:
   Shorter fits are biased by the oscillation the mean-element map leaves.
 
 A decay is compensated only when it would move the mean longitude by more
-than half its tolerance over the correction window. If it would, each
+than `drag_significance_fraction` of its tolerance (0.5) over the
+correction window. If it would, each
 correction sets a drag cycle: the relative semi-major axis and the mean
 longitude swing about their targets, both inside `drag_hold_fraction` of
 their tolerances (0.6). A hold check propagates both
@@ -81,22 +97,13 @@ controller reads them once, when the run builds it.
 | `roe_formation.drag_hold_fraction` | 0.6 | [-] | The share of the tolerances a drag cycle may use | SpaceMissionStudio's own choice (no derivation recorded) |
 | `roe_formation.drag_lookahead_orbits` | 2 | [orbit] | How far ahead a drag cycle's hold check looks | SpaceMissionStudio's own choice (no derivation recorded) |
 | `roe_formation.drag_trigger_fraction` | 0.7 | [-] | The share of a tolerance, that far ahead, that starts a correction | SpaceMissionStudio's own choice (no derivation recorded) |
-
-**Still values in the code** (no derivation recorded; to become
-parameters next):
-- **During a drift:**
-  - the slow drift it ends at: the larger of a quarter of the
-    semi-major axis tolerance and the drift whose stop steps fit the
-    along-track tolerance;
-  - when to stop: within 1.5 times that slow drift;
-  - when to cut back: more than 1.25 times the glide-in drift;
-  - the stop's "reached" test: under half the along-track tolerance;
-  - the earliest look-again, 60 s.
-- **A shifted re-plan:** a drift plan is made again from where its burns
-  lead when they shift the mean longitude by more than a quarter of the
-  along-track tolerance.
-- **Compensating a decay:** half the along-track tolerance over the
-  correction window (`roe.drag_is_significant`).
+| `roe_formation.drag_significance_fraction` | 0.5 | [-] | The share of the along-track tolerance a decay must move the mean longitude by, over the correction window, to be compensated | SpaceMissionStudio's own choice (no derivation recorded) |
+| `roe_formation.slow_drift_fraction` | 0.25 | [-] | The slow drift a drift ends at, as a share of the semi-major axis tolerance (when that is the larger) | SpaceMissionStudio's own choice (no derivation recorded) |
+| `roe_formation.stop_band_factor` | 1.5 | [-] | How close to the slow drift a drift must be before it is stopped | SpaceMissionStudio's own choice (no derivation recorded) |
+| `roe_formation.cutback_band_factor` | 1.25 | [-] | How far above the glide-in drift a drift must be before it is cut back | SpaceMissionStudio's own choice (no derivation recorded) |
+| `roe_formation.stop_reached_fraction` | 0.5 | [-] | How close to the target, in along-track tolerances, a stop must bring the mean longitude | SpaceMissionStudio's own choice (no derivation recorded) |
+| `roe_formation.min_check_s` | 60 | [s] | The earliest the controller looks again while a drift is held | SpaceMissionStudio's own choice (no derivation recorded) |
+| `roe_formation.replan_shift_fraction` | 0.25 | [-] | The shift of the mean longitude, in along-track tolerances, that makes a drift plan be made again | SpaceMissionStudio's own choice (no derivation recorded) |
 
 **Not parameters:**
 - **The burn scheduling margins:** a burn at least half a burn part plus
