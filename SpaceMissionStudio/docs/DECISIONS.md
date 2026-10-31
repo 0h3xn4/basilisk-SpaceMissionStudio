@@ -5,6 +5,22 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The scenario file's limits, with their rules (2026-10-31)
+
+- **Only the limits that are choices get a rule:** a cap such as 3660
+  days or 1000 spacecraft is a choice someone made, so its reason is
+  worth stating. A check that a mass is positive or an eccentricity below
+  1 states its rule in its message; 330 hand-written rule entries saying
+  "a mass must be positive" would add text, not transparency.
+- **An error stays an error:** a limit is not overridable. Its rule says
+  so, and that the limit is a constant of the code, not a parameter.
+  Making such a limit a parameter would let a project file accept what
+  the run cannot do (the 100-day single run) or what no real scenario
+  needs.
+- **The rule rides on the exception:** `ScenarioValidationError` keeps
+  its message as before and adds `finding`, so every caller that shows
+  `str(exc)` is unchanged.
+
 ## The run's warnings, with their rules (2026-10-31)
 
 - **A finished run's warning is not overridden:** it says how to read the

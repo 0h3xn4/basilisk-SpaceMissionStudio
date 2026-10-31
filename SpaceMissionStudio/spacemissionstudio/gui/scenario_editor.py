@@ -47,6 +47,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..engine.findings import explanation_lines
 from ..engine.scenario_checks import plausibility_warnings
 from ..engine.series_names import expected_series_names
 from ..schema.scenario import (
@@ -55,6 +56,7 @@ from ..schema.scenario import (
     ScenarioValidationError,
     SimSettings,
     SpaceWeatherConfig,
+    problem_text,
 )
 from .feedback import bring_into_view, clear_field_error, show_field_error
 from .json_view import ScenarioJsonView
@@ -1072,8 +1074,13 @@ class ScenarioEditorWidget(QWidget):
         try:
             _validate(scenario)
         except ScenarioValidationError as exc:
-            errors.append(str(exc))
-        errors = list(dict.fromkeys(errors))  # a form's problem can also be the scenario's
+            errors.append(problem_text(exc))  # with its rule, when it has one (Phase 5a)
+        # A form's problem can also be the scenario's: listed once, with its rule if either has one.
+        unique: dict[str, str] = {}
+        for error in errors:
+            if error not in unique or explanation_lines(error):
+                unique[error] = error
+        errors = list(unique.values())
         problems = [("error", error) for error in errors]
         if errors:
             more = len(errors) - 1

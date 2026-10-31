@@ -91,6 +91,7 @@ import math
 from dataclasses import dataclass
 
 from .. import constants
+from .findings import Finding
 from ..schema.scenario import MAX_SPACECRAFT, OrbitIC, ScenarioValidationError, SpacecraftConfig
 
 # [km] equatorial radius and J2 [-] of the central bodies a run can use: the
@@ -109,9 +110,11 @@ def simulated_j2(central_body: str, central_body_degree: int) -> float:
     return CENTRAL_BODY_J2.get(central_body, 0.0) if central_body_degree >= 2 else 0.0
 
 
-def _require(condition: bool, message: str) -> None:
+def _require(condition: bool, message: str, rule_id: str | None = None, actual: str | None = None,
+             limit: str | None = None) -> None:
     if not condition:
-        raise ScenarioValidationError(message)
+        finding = Finding(message, rule_id, actual, limit) if rule_id else None
+        raise ScenarioValidationError(message, finding=finding)
 
 
 @dataclass
@@ -134,7 +137,8 @@ class WalkerConstellationRequest:
         _require(self.total_satellites > 0, "constellation.total_satellites must be > 0")
         # Checked before anything is made: 10 million ran for over a minute (audit R9).
         _require(self.total_satellites <= MAX_SPACECRAFT,
-                  f"constellation.total_satellites must be at most {MAX_SPACECRAFT}, a scenario's limit")
+                  f"constellation.total_satellites must be at most {MAX_SPACECRAFT}, a scenario's limit",
+                  "schema.spacecraft_max", actual=f"{self.total_satellites} spacecraft", limit=f"{MAX_SPACECRAFT}")
         _require(self.num_planes > 0, "constellation.num_planes must be > 0")
         _require(self.total_satellites % self.num_planes == 0,
                   f"constellation.total_satellites ({self.total_satellites}) must be evenly divisible by "

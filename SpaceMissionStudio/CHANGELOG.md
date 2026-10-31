@@ -487,6 +487,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **The scenario file's limits name their rules:** a file past one (a
+  run over 3660 days, a step under 0.001 s, more than 1000 spacecraft, a
+  name over 64 characters, more than 100 000 Monte Carlo runs, ...) is
+  refused as before, with the same message. Hover over the error in the
+  Problems panel, or run `validate --explain`, to see the limit's rule,
+  the value found and why the limit is there. See
+  `docs/models/scenario-limits.md`.
 - **A run's warnings name their rules too:** a re-entry, propellant
   running out, an energy or momentum drift, the forecast space weather
   read, the Earth orientation, the magnetic field model, a changed data

@@ -255,7 +255,10 @@ A few things to notice right away:
   in the status bar and the top bar; click the count to open the panel.
   Hold the pointer over a warning to see the rule behind it: what it is,
   what it found against its limit, why it matters, how to fix it and how
-  to override it, with the parameter that sets the limit.
+  to override it, with the parameter that sets the limit. An error past
+  one of the scenario file's limits (a run over 10 years, more than 1000
+  spacecraft, a name over 64 characters) shows its rule the same way
+  ([The scenario file's limits](docs/models/scenario-limits.md)).
 * The **Calculation** panel, a tab beside the Inspector: how a computed
   number was reached. **Show calculation** on the **Budget** and **End of
   Life** pages, and beside the link budget on the Dashboard, opens it, and

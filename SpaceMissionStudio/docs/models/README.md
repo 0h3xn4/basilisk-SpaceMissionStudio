@@ -20,6 +20,7 @@ configuration file changes them without editing code
 | The attitude thrusters' Schmitt trigger, optical and landmark navigation's filters | [Flight software and navigation](flight-software-and-navigation.md) | `flight_software.*`, `navigation.*` |
 | The pre-run checks: pass prediction, recording, step, late pass, sun sensor | [Pre-run checks](pre-run-checks.md) | `checks.*` |
 | Explain's labels and notes; the mission sequence's numerical settings | [Explain and the mission sequence](explain.md) | `explain.*` |
+| The scenario file's limits: run length, step, counts, sizes, names | [The scenario file's limits](scenario-limits.md) | none (constants) |
 
 **How a number was computed:** the propellant budget's, the orbital
 lifetime's and the link budget's numbers, a run's headline figures and

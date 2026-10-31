@@ -113,6 +113,9 @@ def explanation_lines(warning: str) -> list[str]:
 
 # The override of a finished run's warnings.
 _RESULT = "It is about the run as made: read its results with it in mind."
+# The override of a scenario file's limit (schema.scenario): an error.
+_REFUSED = ("It cannot be overridden: a scenario past the limit is refused. The limit is a constant of "
+            "SpaceMissionStudio's code, not a parameter.")
 
 RULES: dict[str, Rule] = {rule.rule_id: rule for rule in (
     Rule("check.not_run", "A check that fails to run says so, with the reason.",
@@ -247,6 +250,43 @@ RULES: dict[str, Rule] = {rule.rule_id: rule for rule in (
          "data goes.", "Past it there is no density to decay the orbit with: nothing is made up.",
          "Install space-weather data that reaches further, or read the estimate as covering the shorter span.",
          override=_RESULT),
+    # The scenario file's limits (schema.scenario, engine.constellation): errors.
+    Rule("schema.duration_max", "A run lasts at most 3660 days (about 10 years).",
+         "Runs past 100 days are chains of shorter simulations (engine.long_run); no derivation recorded for "
+         "the 10 years.", "Shorten the run (sim_settings.duration_days).", override=_REFUSED),
+    Rule("schema.single_run", "A run that cannot be split into segments lasts at most 100 days: one around a "
+         "small body, or with a mission sequence, phasing keeping, an ROE formation or optical navigation.",
+         "One Basilisk run keeps time in nanoseconds in a double, exact only to about 104 days; past that its "
+         "times are NaN. Longer runs are split, which these cannot be.", "Shorten the run.", override=_REFUSED),
+    Rule("schema.step_min", "The dynamics step is at least 0.001 s, the editor's least.",
+         "A smaller step was accepted and asked for 86 400 billion steps a day (audit R9).",
+         "Use a step of 0.001 s or more.", override=_REFUSED),
+    Rule("schema.spacecraft_max", "A scenario has at most 1000 spacecraft.",
+         "Far above any real scenario (the templates have at most 6): the limit stops a mistyped or damaged "
+         "input (audit R9).", "Check the count; split a larger constellation into several scenarios.",
+         override=_REFUSED),
+    Rule("schema.description_max", "A scenario's description has at most 100 000 characters.",
+         "Far above any real description: the limit stops a damaged input (audit R9).",
+         "Shorten the description.", override=_REFUSED),
+    Rule("schema.file_size_max", "A scenario file is at most 20 MB.",
+         "Far above any real scenario file (the templates are at most 27 KB): a damaged or wrong file is "
+         "refused after reading one byte past the limit, never whole (audit R9).",
+         "Check that it is a scenario file.", override=_REFUSED),
+    Rule("schema.name_length", "A name has at most 64 characters.",
+         "Names become file names and the first part of series names (audit R8).", "Use a shorter name.",
+         override=_REFUSED),
+    Rule("schema.data_name_length", "A data-handling instrument's name has at most 127 characters.",
+         "Basilisk's DataNodeUsageMsgPayload.dataName holds 128 characters, with the terminating null.",
+         "Use a shorter name.", override=_REFUSED),
+    Rule("schema.monte_carlo_runs", "A Monte Carlo batch has at most 100 000 runs.",
+         "The editor's own range: the limit stops a mistyped count (audit R4).", "Ask for fewer runs.",
+         override=_REFUSED),
+    Rule("schema.monte_carlo_threads", "A Monte Carlo batch asks for at most 256 processes.",
+         "The editor's own range: the limit stops a mistyped count (audit R4). The batch uses at most one "
+         "process per CPU in any case.", "Ask for fewer processes.", override=_REFUSED),
+    Rule("schema.roe_chief_eccentricity", "An ROE formation's chief has an eccentricity of at most 0.01.",
+         "The ROE guidance (engine.roe) is the near-circular one.",
+         "Use a near-circular chief orbit, or another formation control.", override=_REFUSED),
     Rule("lifetime.ground_in_step", "An orbit that reaches the ground within one decay step re-enters within it.",
          "The re-entry time is known to within that step.", "Accept it: the step is the estimate's own.",
          override=_RESULT),

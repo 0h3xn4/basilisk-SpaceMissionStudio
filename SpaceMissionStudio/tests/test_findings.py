@@ -55,18 +55,17 @@ def test_each_rule_is_complete_and_names_a_real_parameter():
 
 
 def test_every_rule_is_used_by_a_check_and_every_check_names_a_rule():
-    """No rule is left without a check or a run's warning
-    (tests/test_run_findings.py), and no warning of the pre-run checks is a
-    plain string: each names a rule in the table."""
+    """No rule is left without a check, a run's warning
+    (tests/test_run_findings.py) or a scenario file limit
+    (tests/test_schema_findings.py) that names it, and no warning of the
+    pre-run checks is a plain string: each names a rule in the table."""
     source = (Path(scenario_checks.__file__)).read_text(encoding="utf-8")
     package = Path(scenario_checks.__file__).resolve().parents[1]
-    run_sources = ("engine/service.py", "engine/long_run.py", "engine/results.py", "engine/spaceweather.py",
-                   "engine/environment_models.py", "engine/earth_orientation.py", "engine/lifetime.py",
-                   "dependencies.py")
     used = set()
-    for text in (source, *((package / name).read_text(encoding="utf-8") for name in run_sources)):
-        used |= set(re.findall(r'"([a-z_]+\.[a-z_]+)"(?=[),])', text)) & set(RULES)
-    assert used == set(RULES)
+    for path in package.rglob("*.py"):
+        if path.name != "findings.py":  # the table itself
+            used |= set(re.findall(r'"([a-z_]+\.[a-z_]+)"(?=[),\s])', path.read_text(encoding="utf-8")))
+    assert used & set(RULES) == set(RULES)
     assert "warnings.append(f\"" not in source and "warnings.append(\"" not in source
     for line in source.splitlines():
         if "leaves out ~" in line:  # gravity_fidelity_notes: Explain's notes, not warnings

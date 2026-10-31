@@ -54,7 +54,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from .command import report_before_propagate_errors
-from .scenario import ScenarioValidationError
+from .scenario import ScenarioValidationError, problem_text
 
 if TYPE_CHECKING:
     from .scenario import Scenario
@@ -86,7 +86,7 @@ def validate_all(scenario: Scenario) -> list[str]:
         # it here and letting the dedicated loop be the sole source of
         # mission_sequence errors.
         if not str(exc).startswith("mission_sequence["):
-            errors.append(str(exc))
+            errors.append(problem_text(exc))  # with its rule, when it has one (Phase 5a)
 
     spacecraft_names = {sc.name for sc in scenario.spacecraft}
     ground_station_names = {gs.name for gs in scenario.ground_stations}
