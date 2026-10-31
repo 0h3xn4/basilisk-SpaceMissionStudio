@@ -67,6 +67,7 @@ import numpy as np
 
 from ..config import registry
 from . import events as event_model
+from . import mean_elements
 from . import orbit_number
 from .results import ResultSet, TimeSeries
 from .trace import Quantity, Trace
@@ -92,6 +93,7 @@ class Figure:
     value: float
     decimals: int  # shown at this many decimals
     trace: Trace | None = field(default=None, compare=False, repr=False)  # how it was computed
+    related: tuple[Trace, ...] = field(default=(), compare=False, repr=False)  # traces its trace opens
 
     def text(self) -> str:
         return f"{self.value:.{self.decimals}f}"
@@ -163,11 +165,12 @@ def summarize(result: ResultSet | None, events: list[event_model.Event] | None =
     figures: list[Figure] = []
 
     def add(sc: str, key: str, label: str, unit: str, value: float | None, decimals: int,
-            trace=None) -> None:
+            trace=None, related=()) -> None:
         """``trace``: a function of the value giving its trace."""
         if value is not None and math.isfinite(value):
             figures.append(Figure(f"{sc}.{key}" if sc else key, f"{sc}: {label}" if several and sc else label,
-                                  unit, float(value), decimals, trace(float(value)) if trace else None))
+                                  unit, float(value), decimals, trace(float(value)) if trace else None,
+                                  tuple(related)))
 
     window_orbits = registry.value_of_run("results.sma_window_orbits", result)  # [orbit]
     ends = [(float(s.time_s[-1]), name) for name, s in result.series.items() if s.time_s.size]
@@ -211,6 +214,7 @@ def _summarize_spacecraft(result: ResultSet, events, sc: str, window_orbits: flo
     sma = result.series.get(sma_name)
     mu, mu_source = orbit_number.central_body_mu_and_source(result) if sma is not None else (None, "")
     parts = _orbit_averaged(sma, mu, window_orbits) if sma is not None else None
+    made = mean_elements.series_trace(result, sc) if parts is not None else None
     add(sc, "mean_sma_change", "Mean semi-major axis change", "km",
         None if parts is None else parts["change"] / _M_PER_KM, 3,
         lambda v: Trace("Mean semi-major axis change", "da", v, "[km]",
@@ -227,9 +231,12 @@ def _summarize_spacecraft(result: ResultSet, events, sc: str, window_orbits: flo
                             _q(f"mean over the first window ({parts['first_n']} samples)", "a_first",
                                parts["first"], "[m]", f"last run: {sma_name}, its first window"),
                             _q(f"mean over the last window ({parts['last_n']} samples)", "a_last",
-                               parts["last"], "[m]", f"last run: {sma_name}, its last window")),
+                               parts["last"], "[m]", f"last run: {sma_name}, its last window"))
+                        + (() if made is None else (_q("how the mean elements were made", "mean", made.value, "[-]",
+                                                       f"trace: {made.quantity}"),)),
                         notes=("First-order mean elements still wobble at the orbital period; averaging a whole "
-                               "orbit at each end takes it out.",)))
+                               "orbit at each end takes it out.",)),
+        related=() if made is None else (made,))
 
     lowest = None  # (value, series name, time)
     for name, series in result.series.items():
@@ -307,8 +314,8 @@ def explain_lines(figures: list[Figure]) -> list[str]:
     lines = []
     for figure in figures:
         lines += ["", f"{figure.label}: {figure.text()} {figure.unit}"]
-        if figure.trace is not None:
-            lines += [f"  {line}" for line in figure.trace.text()]
+        for trace in ((figure.trace,) if figure.trace is not None else ()) + figure.related:
+            lines += [f"  {line}" for line in trace.text()]
     return lines
 
 

@@ -1188,3 +1188,21 @@ never named "_TabBar".
     the values the card shows.
 
   Each fails on the code before (checked). No existing test changed.
+
+## The mean elements' trace (2026-10-30)
+
+- Added:
+  - in `tests/test_trace.py` (3 tests): the trace's constants, bands and
+    sample counts; with Basilisk, the trace's radius and J2 are the run's
+    and the map with them gives the recorded mean elements in the critical
+    band, the equatorial band and elsewhere; the semi-major axis change
+    linking it and `explain_lines` printing it;
+  - in `tests/gui/test_calculation_panel.py` (1 test): the Overview's
+    semi-major axis change sending both traces, the panel opening the
+    mean elements' from it.
+
+  Each fails on the code before (checked).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/golden_capture.py` (the regression baseline's fingerprint) | Left out `data_files`, `delta_v_trace`, `propellant_trace`, `traces`, `trace` | Also leaves out `related` | A headline figure's related traces describe how it was computed; `tests/test_trace.py` checks them. Every number in the baseline is compared as before |
