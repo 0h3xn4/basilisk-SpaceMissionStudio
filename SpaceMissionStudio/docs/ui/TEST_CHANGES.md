@@ -1206,3 +1206,9 @@ never named "_TabBar".
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `tests/golden_capture.py` (the regression baseline's fingerprint) | Left out `data_files`, `delta_v_trace`, `propellant_trace`, `traces`, `trace` | Also leaves out `related` | A headline figure's related traces describe how it was computed; `tests/test_trace.py` checks them. Every number in the baseline is compared as before |
+
+## The plots' Export all test (2026-10-31)
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_plot_workspace.py::test_export_all_writes_every_plot_its_data_and_the_provenance` | Waited until `provenance.json` existed, then read it | Waits until it exists and the export has ended (`widget._export_worker is None`) | The worker creates the file before it writes it; on CI (#177) the test read it empty in between. A one-second pause between creating and writing the file fails the old wait and passes the new (checked). Every assertion is as before |

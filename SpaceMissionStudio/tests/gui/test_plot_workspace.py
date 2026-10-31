@@ -332,7 +332,9 @@ def test_export_all_writes_every_plot_its_data_and_the_provenance(widget, qtbot,
     widget.raise_()
     widget.activateWindow()
     widget.export_all(tmp_path, "svg")
-    qtbot.waitUntil(lambda: (tmp_path / "provenance.json").exists(), timeout=30000)
+    # provenance.json is the export's last file; the export has ended once its worker is gone (the file can exist
+    # before it is written).
+    qtbot.waitUntil(lambda: (tmp_path / "provenance.json").exists() and widget._export_worker is None, timeout=30000)
     names = sorted(path.name for path in tmp_path.iterdir())
     assert names == ["01_sat-1.position_N.svg", "02_sat-1.velocity_N.svg", "provenance.json",
                      "sat-1.position_N.csv", "sat-1.velocity_N.csv"]

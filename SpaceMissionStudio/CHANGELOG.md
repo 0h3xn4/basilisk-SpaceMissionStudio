@@ -487,6 +487,9 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **Tests:** the plots' Export all test no longer reads `provenance.json`
+  before the export has finished writing it (it now waits for the export
+  to end).
 - **Tests:** the SIL deadline test no longer fails when a loaded Windows
   runner answers its first step in more than 50 ms (it now allows 0.2 s,
   and checks that missed deadlines are dropped steps).
