@@ -325,13 +325,20 @@ class DifferentialDragEstimator:
         return numerator / denominator
 
 
-def drag_is_significant(da_dot: float, tolerance_dl: float, window_s: float, n: float) -> bool:
+def drag_is_significant(da_dot: float, tolerance_dl: float, window_s: float, n: float,
+                        fraction: float | None = None) -> bool:
     """Whether a decay ``da_dot`` [1/s] moves the mean longitude by more
-    than half its tolerance ``tolerance_dl`` [-] over ``window_s`` [s]:
-    ``3/4 n |da_dot| window^2`` (the Keplerian drift of a linearly growing
-    ``da``). Smaller rates, such as the scatter of the estimate for twin
-    spacecraft, are left to the ordinary corrections."""
-    return 0.75 * n * abs(da_dot) * window_s ** 2 > 0.5 * tolerance_dl
+    than ``fraction`` of its tolerance ``tolerance_dl`` [-] over
+    ``window_s`` [s]: ``3/4 n |da_dot| window^2`` (the Keplerian drift of a
+    linearly growing ``da``). Smaller rates, such as the scatter of the
+    estimate for twin spacecraft, are left to the ordinary corrections.
+    ``fraction`` defaults to the parameter
+    ``roe_formation.drag_significance_fraction``'s default (half)."""
+    if fraction is None:
+        from ..config import registry
+
+        fraction = registry.default("roe_formation.drag_significance_fraction")
+    return 0.75 * n * abs(da_dot) * window_s ** 2 > fraction * tolerance_dl
 
 
 @dataclass(frozen=True)

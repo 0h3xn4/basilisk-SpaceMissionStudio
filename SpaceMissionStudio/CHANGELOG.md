@@ -494,6 +494,12 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   file changes them. See `docs/models/flight-software-and-navigation.md`,
   which also says why the momentum-dump threshold and the landmark
   camera's focal length are not parameters.
+- **The rest of the ROE guidance's rules are parameters:** 7 more, for
+  how a drift ends (its slow end, the bands that keep it from being
+  planned again, when its stop counts as reached, the earliest
+  look-again), when a drift plan is made again, and when a differential
+  drag decay is worth compensating. No rule of the guidance is left in the
+  code. See `docs/models/roe-formation.md`.
 - **The ROE formation guidance's rules are parameters:** 9 of them, for
   how often it looks, when an along-track error drifts, how a drift ends,
   eclipse retries and the differential-drag estimate and cycle. A project

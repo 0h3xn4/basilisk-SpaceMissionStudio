@@ -1054,6 +1054,47 @@ def _roe_decay_estimate(configuration, orbits, step_m=0.0):
     return estimator.rate()
 
 
+def _roe_drift(configuration, error_dl_m, drift_m):
+    """A drift holding ``a*da = drift_m`` [m] with ``error_dl_m`` [m] of mean
+    longitude to go: the da it holds after the decision (None: stopped)."""
+    drift = _roe_decision(configuration, [0.0, error_dl_m, 0.0, 0.0, 0.0, 0.0], drift_m=drift_m)._driftDa
+    return None if drift is None else round(drift * _ROE_A_M, 9)
+
+
+def _roe_held_drift_check(configuration):
+    """A 30 m drift, held (its da already reached), 300 m from the target
+    and gliding in over one orbit, with two orbits between checks: when
+    the controller looks again before the stop is due."""
+    import numpy as np
+
+    controller, chief, n = _roe_controller(configuration)
+    controller.glideOrbits, controller.holdingCheckFraction = 1.0, 2.0  # [orbit] so the look-again comes first
+    target = np.array(_ROE_TARGET_M) / _ROE_A_M
+    controller._driftDa = 30.0 / _ROE_A_M
+    controller._decide(1000.0, target + np.array([30.0, 300.0, 0.0, 0.0, 0.0, 0.0]) / _ROE_A_M, target, chief,
+                       0.0, n, 120.0)  # [s], [rad], [kg]
+    return controller._nextDecisionT
+
+
+def _roe_large_error_burns(configuration):
+    """A 1000 m mean longitude error, no drift yet: the burns planned [m/s]
+    (made again from where the first plan's burns lead, or not)."""
+    controller = _roe_decision(configuration, [0.0, 1000.0, 0.0, 0.0, 0.0, 0.0])
+    return [round(p.burn.magnitude, 12) for p in controller._pending]
+
+
+def _roe_decay_compensated(configuration):
+    """A 0.2 m/day decay estimated, in tolerance: the decay the guidance
+    plans with (None: left to the ordinary corrections)."""
+    import numpy as np
+
+    controller, chief, n = _roe_controller(configuration)
+    controller.dragEstimator = SimpleNamespace(rate=lambda: -0.2 / 86400.0 / _ROE_A_M)  # [1/s]
+    target = np.array(_ROE_TARGET_M) / _ROE_A_M
+    controller._decide(1000.0, target, target, chief, 0.0, n, 120.0)  # [s], [rad], [kg]
+    return controller._dragRate
+
+
 _ROE_CASES = {
     "roe_formation.holding_check_fraction": (0.5, _roe_next_check),
     "roe_formation.glide_orbits": (6.0, _roe_glide),
@@ -1064,6 +1105,13 @@ _ROE_CASES = {
     "roe_formation.drag_hold_fraction": (0.3, _roe_drag_cycle_burns),
     "roe_formation.drag_lookahead_orbits": (1.0, _roe_burns_for_drag),
     "roe_formation.drag_trigger_fraction": (0.95, _roe_burns_for_drag),
+    "roe_formation.drag_significance_fraction": (1.0, _roe_decay_compensated),
+    "roe_formation.slow_drift_fraction": (2.0, lambda configuration: _roe_drift(configuration, 15.0, 3.0)),
+    "roe_formation.stop_band_factor": (1.0, lambda configuration: _roe_drift(configuration, 5.0, 2.5)),
+    "roe_formation.cutback_band_factor": (2.0, lambda configuration: _roe_drift(configuration, 1000.0, 50.0)),
+    "roe_formation.stop_reached_fraction": (0.05, lambda configuration: _roe_drift(configuration, 5.0, 2.0)),
+    "roe_formation.min_check_s": (3000.0, _roe_held_drift_check),
+    "roe_formation.replan_shift_fraction": (10.0, _roe_large_error_burns),
 }
 
 
@@ -1073,8 +1121,11 @@ def test_setting_an_roe_guidance_rule_changes_its_decision(name):
     """Each ROE guidance rule set in a project configuration changes the
     decision it controls -- when to look again, the glide-in drift, a
     direct correction or a drift, the eclipse retries, the decay
-    estimate's span and jumps, the drag cycle and when it is corrected --
-    and set to its default, leaves it as it was."""
+    estimate's span and jumps, the drag cycle and when it is corrected,
+    whether a decay is compensated, a drift's slow end, its stop and
+    cut-back bands, when its stop counts as reached, the earliest
+    look-again and the re-plan -- and set to its default, leaves it as it
+    was."""
     value, measure = _ROE_CASES[name]
     before = measure(None)
     assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name

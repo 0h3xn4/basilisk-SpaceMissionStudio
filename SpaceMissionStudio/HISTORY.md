@@ -14543,6 +14543,24 @@ Phase 3a for the flight software and navigation. Branch `fsw-params`.
 
 Full suite on Python 3.14: 4189 passed in 20 min 37 s, including the regression baseline.
 
+## The rest of the ROE guidance's rules, as parameters (2026-10-31)
+
+The second step of Phase 3a for the ROE guidance. Branch `roe-params-2`.
+
+- **7 parameters:** `slow_drift_fraction` (0.25), `stop_band_factor`
+  (1.5), `cutback_band_factor` (1.25), `stop_reached_fraction` (0.5),
+  `min_check_s` (60 s), `replan_shift_fraction` (0.25) in `_decide`'s
+  drift logic, and `drag_significance_fraction` (0.5), which
+  `roe.drag_is_significant` takes as `fraction` (by default the
+  parameter's default).
+- **Not parameters:** the 1.5 in `tolerance_dl / (1.5 n T)` and the 0.75
+  in the significance test are the Keplerian drift rate, not rules.
+- **Tests:** 7 more cases in `tests/test_config.py`'s ROE table, each
+  driving `_decide` with a hand-made state.
+- **Numbers:** none change (the defaults are the old values).
+
+Full suite on Python 3.14: 4187 passed in 21 min 41 s, including the regression baseline.
+
 ## The plots' Export all test waits for the export to end (2026-10-31)
 
 `tests/gui/test_plot_workspace.py::test_export_all_writes_every_plot_its_data_and_the_provenance`
