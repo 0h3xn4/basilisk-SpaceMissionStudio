@@ -35,23 +35,48 @@ gets no prediction.
 
 ## The checks and their rules
 
-| Warning | It is given when | Parameters |
-|---|---|---|
-| A late first pass | the first pass comes after `late_first_pass_fraction` of the run (0.5) | `late_first_pass_fraction` |
-| No pass in the run | none is predicted in the run; it says when the first comes, or that none comes in the look-ahead | `pass_horizon_days`, `pass_lookahead_days` |
-| Every step is recorded | `Record every` is 0 and a series would hold more than `many_samples` samples (1,000,000) | `many_samples` |
-| Recording too coarse for the passes | the shortest pass predicted over the first day lasts no more than `coarse_recording_factor` recording intervals (3) | `coarse_recording_factor` |
-| A long dynamics step | the step is longer than `long_step_s` (60 s) | `long_step_s` |
-| No sun sensor faces the Sun-pointing axis | no coarse sun sensor's normal is within the angle whose cosine is `css_facing_min_cosine` (0.5, 60 deg) of the axis the spacecraft keeps on the Sun | `css_facing_min_cosine` |
-| A TLE far from the epoch | the TLE's epoch is more than `tle.age_warning_days` from the scenario's | ([Environment data](environment-and-data.md)) |
-| Perigee below the re-entry altitude (a plausibility check) | the initial perigee is below `lifetime.reentry_altitude_km` | ([Orbital lifetime](lifetime.md)) |
+Each warning names its rule (`engine/findings.py`): what the rule is,
+what it found against its limit, why it matters, how to fix it and how
+to override it. `spacemissionstudio validate --explain` prints them. A
+warning never stops a run; the run itself refuses only what it cannot
+do, and says so.
 
-Other checks have no threshold: no pass with a Mission Sequence (its
-length comes from its commands, so it is skipped), drag with point-mass
-gravity, facets with drag and SRP off, station keeping with drag off,
-navigation errors restarting at each segment of a long run, a hill_pd
-follower whose thruster can't hold its law, missing small-body data, and
-more Monte Carlo processes than CPUs.
+| Warning | Rule | It is given when | Parameters |
+|---|---|---|---|
+| A late first pass | `passes.late_first` | the first pass comes after `late_first_pass_fraction` of the run (0.5) | `late_first_pass_fraction` |
+| No pass in the run | `passes.none_in_run` | none is predicted in the run; it says when the first comes | `pass_horizon_days` |
+| No pass in the look-ahead either | `passes.none_in_lookahead` | none comes in the run or the look-ahead after it | `pass_lookahead_days` |
+| Every step is recorded | `recording.every_step` | `Record every` is 0 and a series would hold more than `many_samples` samples (1,000,000) | `many_samples` |
+| Recording too coarse for the passes | `recording.coarse` | the shortest pass predicted over the first day lasts no more than `coarse_recording_factor` recording intervals (3) | `coarse_recording_factor` |
+| A long dynamics step | `step.long` | the step is longer than `long_step_s` (60 s) | `long_step_s` |
+| No sun sensor faces the Sun-pointing axis | `sensors.sun_sensor_facing` | no coarse sun sensor's normal is within the angle whose cosine is `css_facing_min_cosine` (0.5, 60 deg) of the axis the spacecraft keeps on the Sun | `css_facing_min_cosine` |
+| A TLE far from the epoch | `tle.age` | the TLE's epoch is more than `tle.age_warning_days` from the scenario's | ([Environment data](environment-and-data.md)) |
+| Perigee below the re-entry altitude (a plausibility check) | `orbit.perigee_reentry` | the initial perigee is below `lifetime.reentry_altitude_km` | ([Orbital lifetime](lifetime.md)) |
+
+Other checks have no threshold, each with its rule:
+- **Plausibility:** `orbit.inside_body`, `orbit.escape`,
+  `orbit.perigee_below_surface`; the reference data
+  (`space_weather.unreadable`, `space_weather.starts_late`,
+  `space_weather.ends_early`, `earth_orientation.none`,
+  `earth_orientation.not_covered`, `earth_orientation.predicted`); the
+  3D model (`model.problem`, `model.stale`).
+- **The scenario:**
+  - an unreadable TLE (`tle.unreadable`);
+  - drag with point-mass gravity (`gravity.drag_point_mass`);
+  - facets with drag and SRP off (`facets.unused`);
+  - station keeping with drag off (`station_keeping.no_drag`);
+  - navigation errors restarting at each segment of a long run
+    (`navigation.restart`);
+  - a hill_pd follower whose thruster can't hold its law
+    (`formation.hill_pd_hold`, `formation.hill_pd_start`);
+  - missing small-body data (`small_body.ephemeris_missing`,
+    `small_body.shape_missing`);
+  - more Monte Carlo processes than CPUs (`monte_carlo.processes`).
+- **A check that fails:** it says "check not run" with the reason
+  (`check.not_run`).
+
+With a Mission Sequence the pass check is skipped: the run's length
+comes from its commands.
 
 ## Rules and parameters
 

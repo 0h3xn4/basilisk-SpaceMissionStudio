@@ -14514,6 +14514,29 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Structured warnings, first step: the pre-run checks (2026-10-31)
+
+The transparency plan, Phase 5a. Branch `structured-warnings`.
+
+- **`engine/findings.py`:** `Rule` (id, what it is, why it matters, how
+  to fix, how to override, the parameter that sets its limit) and
+  `Finding`, a `str` subclass carrying the rule id, the actual value and
+  the limit. A Finding is its warning's text, so every list, file,
+  message and test that held the string is unchanged; it pickles with its
+  rule (Monte Carlo workers). 31 rules in `RULES`.
+- **The pre-run and plausibility checks** return Findings, each with its
+  rule and, where it has them, the value found and its limit. "check not
+  run" is a rule of its own.
+- **`validate --explain`** prints each warning's rule under it.
+- **Tests:** `tests/test_findings.py` (6): every rule complete and used,
+  no plain-string warning left in the checks, the text unchanged with the
+  rule, values and limit carried (also through JSON and pickling), a
+  failing check, the explanation, `validate --explain`.
+- **Next:** the Problems panel and Explain show the rule; then the run's
+  own warnings and the schema's limits.
+
+Full suite on Python 3.14: 4215 passed in 19 min 45 s, including the regression baseline.
+
 ## Explain's rules, as parameters; the mission sequence's settings (2026-10-31)
 
 Phase 3a for Explain and the mission sequence, the last "Not yet covered"

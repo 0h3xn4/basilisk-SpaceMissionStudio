@@ -53,6 +53,22 @@ keys a device's `params` leave out, with the value applied
 (`effective_defaults`), and each wheel's and thruster's values from
 Basilisk's catalogue (`device_parameters`).
 
+`validate` also prints the pre-run checks' warnings (`WARNING:`). With
+`--explain`, each is followed by the rule behind it: what the rule is,
+what it found against its limit, why it matters, how to fix it and how
+to override it, with the parameter that sets the limit
+([Pre-run checks](../models/pre-run-checks.md)):
+
+```console
+$ spacemissionstudio validate late.json --explain
+WARNING: the dynamics step is 120 s: above 60 s the orbit loses accuracy (...)
+  rule step.long: A dynamics step above the limit is flagged.
+  found 120 s; limit 60 s
+  why: The orbit loses accuracy whatever the integrator tolerance (audit E3).
+  fix: Use a shorter step, and 'Record every' to keep fewer samples.
+  override: A warning does not stop the run: run it as it is if the setup is intended. The limit is the parameter checks.long_step_s (spacemissionstudio assumptions).
+```
+
 A file written by an older version is brought up to date as it loads.
 `validate` lists each value that changed in a `MIGRATED:` line, and the
 run records them (`scenario_file_migrations`):

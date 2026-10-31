@@ -5,6 +5,29 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Structured warnings (2026-10-31)
+
+The transparency plan's Phase 5a: a warning names its rule, what it
+found against its limit, why it matters, how to fix it and how to
+override it.
+
+- **A warning is still its text:** `Finding` subclasses `str`, so the
+  checks' callers, the run's record (`run_warnings`), the exports, the
+  GUI and every test see the same strings. The structure rides along for
+  the views that show it, and nothing that stored or compared a warning
+  had to change.
+- **The rules live in one table, `engine.findings.RULES`:** a check names
+  its rule by id; the text of the rule, the reason, the fix and the
+  override are written once. A test fails if a rule has no check or a
+  check's warning has no rule.
+- **"Override" means what it can mean today:** a pre-run warning never
+  blocks a run, so its override is to run as it is, or to change the
+  limit's parameter. Overriding a computed value with a justification is
+  Phase 5b.
+- **In steps:** the pre-run checks and the command line first; the
+  Problems panel and Explain next; then the run's own warnings and the
+  schema's limits.
+
 ## Explain's rules; the mission sequence's settings (2026-10-31)
 
 - **A value that cannot change a result is not a parameter:** Lambert's

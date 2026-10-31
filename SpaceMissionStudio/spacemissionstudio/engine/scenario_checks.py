@@ -55,6 +55,7 @@ from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import usable_thread_count
 from . import environment_models, geodesy, small_bodies, time_system, tle
+from .findings import Finding
 
 # Earth: the one set (spacemissionstudio.constants), the simulation's own. Until 2026-10-30
 # these were GGM03S's GM (3.986004415e14, mislabelled as Basilisk's) and a J2 cut to 1.0826e-3.
@@ -328,7 +329,7 @@ def _checked(name: str, check, *args) -> list[str]:
         return list(check(*args))
     except Exception as exc:  # noqa: BLE001 -- reported, not raised
         logging.getLogger(__name__).debug("check %s could not run", name, exc_info=True)
-        return [f"check not run: {name} ({type(exc).__name__}: {exc})"]
+        return [Finding(f"check not run: {name} ({type(exc).__name__}: {exc})", "check.not_run")]
 
 
 def scenario_warnings(scenario) -> list[str]:
@@ -354,16 +355,16 @@ def _small_body_data_warnings(scenario) -> list[str]:
         return []
     warnings = []
     if small_bodies.installed(body.name) is None:
-        warnings.append(f"The ephemeris of {body.title} is not installed: download it in Reference data "
-                        "(Small bodies)")
+        warnings.append(Finding(f"The ephemeris of {body.title} is not installed: download it in Reference data "
+                                "(Small bodies)", "small_body.ephemeris_missing"))
     if getattr(scenario.gravity, "polyhedral_gravity", False):
         try:
             missing_shape = small_bodies.shape_path(body) is None
         except ImportError:  # no Basilisk, no support-data cache to look in
             missing_shape = False
         if missing_shape:
-            warnings.append(f"The shape model of {body.title} is not installed: download it in Reference data "
-                            "(Small bodies)")
+            warnings.append(Finding(f"The shape model of {body.title} is not installed: download it in Reference "
+                                    "data (Small bodies)", "small_body.shape_missing"))
     return warnings
 
 
@@ -384,22 +385,28 @@ def _orbit_warnings(scenario) -> list[str]:
             r = np.array(orbit.position_km, dtype=float) * 1e3  # [m]
             v = np.array(orbit.velocity_km_s, dtype=float) * 1e3  # [m/s]
             if np.linalg.norm(r) < _EARTH_RADIUS_M:
-                warnings.append(f"{sc.name}: the position is inside Earth ({np.linalg.norm(r) / 1e3:.0f} km "
-                                "from its centre)")
+                warnings.append(Finding(f"{sc.name}: the position is inside Earth ({np.linalg.norm(r) / 1e3:.0f} km "
+                                        "from its centre)", "orbit.inside_body",
+                                        actual=f"{np.linalg.norm(r) / 1e3:.0f} km from the centre",
+                                        limit=f"{_EARTH_RADIUS_M / 1e3:.1f} km"))
                 continue
             energy = 0.5 * float(v @ v) - _MU_M3_S2 / float(np.linalg.norm(r))  # [m^2/s^2]
             if energy >= 0.0:
-                warnings.append(f"{sc.name}: position and velocity give an escape trajectory, not an orbit "
-                                "(check the units: km and km/s)")
+                warnings.append(Finding(f"{sc.name}: position and velocity give an escape trajectory, not an orbit "
+                                        "(check the units: km and km/s)", "orbit.escape",
+                                        actual=f"{energy:.4g} m^2/s^2", limit="below 0 m^2/s^2"))
                 continue
         elements = _initial_elements(orbit, scenario.epoch_utc)
         if elements is None:
             continue
         perigee_km = (elements[0] * (1.0 - elements[1]) - _EARTH_RADIUS_M) / 1e3  # [km]
         if perigee_km < 0.0:
-            warnings.append(f"{sc.name}: perigee is {-perigee_km:.0f} km below Earth's surface")
-        elif perigee_km < registry.value("lifetime.reentry_altitude_km", scenario):  # [km] as engine.lifetime
-            warnings.append(f"{sc.name}: perigee at {perigee_km:.0f} km -- it re-enters within about an orbit")
+            warnings.append(Finding(f"{sc.name}: perigee is {-perigee_km:.0f} km below Earth's surface",
+                                    "orbit.perigee_below_surface", actual=f"{perigee_km:.0f} km altitude",
+                                    limit="0 km"))
+        elif perigee_km < (reentry_km := registry.value("lifetime.reentry_altitude_km", scenario)):  # [km]
+            warnings.append(Finding(f"{sc.name}: perigee at {perigee_km:.0f} km -- it re-enters within about an orbit",
+                                    "orbit.perigee_reentry", actual=f"{perigee_km:.0f} km", limit=f"{reentry_km:g} km"))
     return warnings
 
 
@@ -440,27 +447,37 @@ def _data_coverage_warnings(scenario) -> list[str]:
         try:
             first, last = _space_weather_coverage(sw.source, sw.local_file_path, sw.msfc_file_path)
         except Exception as exc:  # noqa: BLE001 -- a missing or unreadable file is itself the warning
-            warnings.append(f"space weather: {exc}")
+            warnings.append(Finding(f"space weather: {exc}", "space_weather.unreadable"))
         else:
             if start.date() < first:
-                warnings.append(f"space weather: the data start {first}, after the epoch -- the run is refused")
+                warnings.append(Finding(f"space weather: the data start {first}, after the epoch -- the run is refused",
+                                        "space_weather.starts_late", actual=f"data from {first}",
+                                        limit=f"the epoch, {start.date()}"))
             elif last is not None and end.date() > last:
-                warnings.append(f"space weather: the data end {last}, before the run ends -- the run is refused")
+                warnings.append(Finding(f"space weather: the data end {last}, before the run ends -- the run is refused",
+                                        "space_weather.ends_early", actual=f"data to {last}",
+                                        limit=f"the run's end, {end.date()}"))
     if getattr(scenario.gravity, "central_body", "earth") == "earth":
         needs_frame = (scenario.gravity.central_body_degree or 0) >= 2 or bool(scenario.ground_stations)
         installed = earth_orientation.installed()
         kernels = earth_orientation.covering(installed, start, end)
         if needs_frame and not installed:
-            warnings.append("Earth orientation: no IERS files installed -- the Earth-fixed frame is IAU_EARTH "
-                            "(about 160 m/day of error at 400 km); Settings > Reference data downloads them")
+            warnings.append(Finding("Earth orientation: no IERS files installed -- the Earth-fixed frame is "
+                                    "IAU_EARTH (about 160 m/day of error at 400 km); Settings > Reference data "
+                                    "downloads them", "earth_orientation.none"))
         elif needs_frame and not kernels:
-            warnings.append(f"Earth orientation: the installed IERS files cover {earth_orientation.coverage_text(installed)}, "
-                            "not this run -- the Earth-fixed frame is IAU_EARTH (about 160 m/day of error at 400 km)")
+            warnings.append(Finding(f"Earth orientation: the installed IERS files cover "
+                                    f"{earth_orientation.coverage_text(installed)}, not this run -- the Earth-fixed "
+                                    "frame is IAU_EARTH (about 160 m/day of error at 400 km)",
+                                    "earth_orientation.not_covered",
+                                    actual=f"files cover {earth_orientation.coverage_text(installed)}",
+                                    limit=f"the run, {start:%Y-%m-%d} to {end:%Y-%m-%d}"))
         for kernel in kernels:
             until = kernel.high_accuracy_until
             if kernel.role == "high_precision" and until is not None and end > until:
-                warnings.append(f"Earth orientation: high accuracy until {until:%Y-%m-%d}; the run goes on into "
-                                "predicted values (lower accuracy)")
+                warnings.append(Finding(f"Earth orientation: high accuracy until {until:%Y-%m-%d}; the run goes on "
+                                        "into predicted values (lower accuracy)", "earth_orientation.predicted",
+                                        actual=f"the run ends {end:%Y-%m-%d}", limit=f"{until:%Y-%m-%d}"))
     return warnings
 
 
@@ -498,12 +515,14 @@ def _model_warnings(scenario, base_dir) -> list[str]:
         if sc.model is None:
             continue
         derived = model3d.derive(sc.model, base_dir, cache=_MODEL_CACHE)
-        warnings += [f"{sc.name}: 3D model: {message}" for message in derived.errors + derived.warnings]
+        warnings += [Finding(f"{sc.name}: 3D model: {message}", "model.problem")
+                     for message in derived.errors + derived.warnings]
         stale = model3d.stale_fields(sc, derived, orbit_only=orbit_only)
         if stale:
-            warnings.append(f"{sc.name}: {', '.join(stale)} differ from the 3D model -- open the model "
-                            "(3D Model... in the app) and press OK to apply it again, or run "
-                            "'spacemissionstudio model --apply', or turn off applying it")
+            warnings.append(Finding(f"{sc.name}: {', '.join(stale)} differ from the 3D model -- open the model "
+                                    "(3D Model... in the app) and press OK to apply it again, or run "
+                                    "'spacemissionstudio model --apply', or turn off applying it", "model.stale",
+                                    actual=", ".join(stale)))
     return warnings
 
 
@@ -518,12 +537,13 @@ def _tle_warnings(scenario) -> list[str]:
         try:
             age_days = tle.state_at(sc.orbit.tle_line1, sc.orbit.tle_line2, scenario.epoch_utc).age_days
         except tle.TLEError as exc:
-            warnings.append(f"{sc.name}: {exc}")
+            warnings.append(Finding(f"{sc.name}: {exc}", "tle.unreadable"))
             continue
-        if abs(age_days) > registry.value("tle.age_warning_days", scenario):  # [day]
+        if abs(age_days) > (age_limit := registry.value("tle.age_warning_days", scenario)):  # [day]
             side = "before" if age_days > 0 else "after"
-            warnings.append(f"{sc.name}: TLE epoch is {abs(age_days):.1f} d {side} the scenario epoch -- "
-                            "SGP4 accuracy drops with TLE age")
+            warnings.append(Finding(f"{sc.name}: TLE epoch is {abs(age_days):.1f} d {side} the scenario epoch -- "
+                                    "SGP4 accuracy drops with TLE age", "tle.age", actual=f"{abs(age_days):.1f} day",
+                                    limit=f"{age_limit:g} day"))
     return warnings
 
 
@@ -533,8 +553,9 @@ def _gravity_warnings(scenario) -> list[str]:
     gravity = scenario.gravity
     if getattr(gravity, "central_body", "earth") != "earth" or (gravity.central_body_degree or 0) >= 2:
         return []
-    return [f"{sc.name}: drag is modelled but gravity is a point mass -- J2 is far larger; set the gravity "
-            "degree to 2 or more" for sc in scenario.spacecraft if sc.enable_drag]
+    return [Finding(f"{sc.name}: drag is modelled but gravity is a point mass -- J2 is far larger; set the gravity "
+                    "degree to 2 or more", "gravity.drag_point_mass", actual=f"degree {gravity.central_body_degree or 0}",
+                    limit="degree 2") for sc in scenario.spacecraft if sc.enable_drag]
 
 
 def gravity_fidelity_notes(scenario) -> list[str]:
@@ -579,20 +600,22 @@ def _recording_warnings(scenario) -> list[str]:
     settings = scenario.sim_settings
     interval_s = settings.record_interval_s  # [s]
     samples = settings.duration_days * 86400.0 / settings.dynamics_task_rate_s
-    if interval_s <= 0.0 and samples > rule("many_samples", scenario):
+    if interval_s <= 0.0 and samples > (many := rule("many_samples", scenario)):
         count = f"{samples / 1e6:.1f} million" if samples >= 1e6 else f"{samples:,.0f}"  # below 1e6: a lower limit
-        return [f"every step is recorded: {count} samples per series -- set "
-                "'Record every' (e.g. 600 s) to save memory"]
+        return [Finding(f"every step is recorded: {count} samples per series -- set "
+                        "'Record every' (e.g. 600 s) to save memory", "recording.every_step",
+                        actual=f"{samples:,.0f} samples", limit=f"{many:,} samples")]
     if interval_s <= 0.0 or not scenario.ground_stations:
         return []
     passes = predict_passes(scenario, horizon_s=min(scenario.sim_settings.duration_days * 86400.0, 86400.0))
     if not passes:
         return []
     shortest = min(p.end_s - p.start_s for p in passes)  # [s]
-    if shortest > rule("coarse_recording_factor", scenario) * interval_s:
+    if shortest > (factor := rule("coarse_recording_factor", scenario)) * interval_s:
         return []
-    return [f"passes last as little as {format_elapsed(shortest)} but results are recorded every "
-            f"{format_elapsed(interval_s)} -- some may show coarsely or not at all"]
+    return [Finding(f"passes last as little as {format_elapsed(shortest)} but results are recorded every "
+                    f"{format_elapsed(interval_s)} -- some may show coarsely or not at all", "recording.coarse",
+                    actual=f"shortest pass {shortest:g} s", limit=f"{factor:g} x {interval_s:g} s")]
 
 
 # Above this dynamics step the position error grows quickly, whatever the
@@ -608,9 +631,10 @@ def _step_warnings(scenario) -> list[str]:
     long_step_s = rule("long_step_s", scenario)  # [s]
     if step_s <= long_step_s:
         return []
-    return [f"the dynamics step is {step_s:g} s: above {long_step_s:g} s the orbit loses accuracy "
-            "(a one-day two-body test was 11 m off at 300 s and 8.6 km at 1800 s) -- "
-            f"use {long_step_s:g} s or less, and 'Record every' to keep fewer samples"]
+    return [Finding(f"the dynamics step is {step_s:g} s: above {long_step_s:g} s the orbit loses accuracy "
+                    "(a one-day two-body test was 11 m off at 300 s and 8.6 km at 1800 s) -- "
+                    f"use {long_step_s:g} s or less, and 'Record every' to keep fewer samples", "step.long",
+                    actual=f"{step_s:g} s", limit=f"{long_step_s:g} s")]
 
 
 def _monte_carlo_warnings(scenario) -> list[str]:
@@ -619,8 +643,10 @@ def _monte_carlo_warnings(scenario) -> list[str]:
     config = scenario.monte_carlo
     if not config.enabled or usable_thread_count(config.thread_count) >= config.thread_count:
         return []
-    return [f"Monte Carlo asks for {config.thread_count} processes; this computer has "
-            f"{usable_thread_count(config.thread_count)} CPUs, so it runs that many at once"]
+    return [Finding(f"Monte Carlo asks for {config.thread_count} processes; this computer has "
+                    f"{usable_thread_count(config.thread_count)} CPUs, so it runs that many at once",
+                    "monte_carlo.processes", actual=f"{config.thread_count} processes",
+                    limit=f"{usable_thread_count(config.thread_count)} CPUs")]
 
 
 def _pass_warnings(scenario) -> list[str]:
@@ -635,18 +661,22 @@ def _pass_warnings(scenario) -> list[str]:
     for gs in scenario.ground_stations:
         mine = [p for p in passes if p.station == gs.name]
         if any(p.start_s <= run_s for p in mine):
-            if mine[0].start_s > rule("late_first_pass_fraction", scenario) * run_s:
-                warnings.append(f"{gs.name}: the first pass only comes at {format_elapsed(mine[0].start_s)} of "
-                                f"a {format_elapsed(run_s)} run")
+            if mine[0].start_s > (late := rule("late_first_pass_fraction", scenario)) * run_s:
+                warnings.append(Finding(f"{gs.name}: the first pass only comes at {format_elapsed(mine[0].start_s)} "
+                                        f"of a {format_elapsed(run_s)} run", "passes.late_first",
+                                        actual=f"{mine[0].start_s / run_s:.2f} of the run", limit=f"{late:g}"))
             continue
         if mine:
-            warnings.append(f"{gs.name}: no pass in this run -- the first comes at "
-                            f"{format_elapsed(mine[0].start_s)}; change the epoch or lengthen the run")
+            warnings.append(Finding(f"{gs.name}: no pass in this run -- the first comes at "
+                                    f"{format_elapsed(mine[0].start_s)}; change the epoch or lengthen the run",
+                                    "passes.none_in_run", actual=f"first pass at {mine[0].start_s:g} s",
+                                    limit=f"the run, {run_s:g} s"))
         else:
             after = format_elapsed(lookahead_s) if lookahead_s % 86400.0 else (
                 f"{lookahead_s / 86400.0:g} day{'s' if lookahead_s != 86400.0 else ''}")
-            warnings.append(f"{gs.name}: no pass in this run or the {after} after it -- check the orbit "
-                            "and the station's minimum elevation")
+            warnings.append(Finding(f"{gs.name}: no pass in this run or the {after} after it -- check the orbit "
+                                    "and the station's minimum elevation", "passes.none_in_lookahead",
+                                    limit=f"the run and {lookahead_s:g} s after it"))
     return warnings
 
 
@@ -673,8 +703,10 @@ def _formation_law_warnings(scenario) -> list[str]:
         reference = np.array([-a * (1.0 - math.cos(theta)), a * math.sin(theta), 0.0])  # [m]
         hold = 3.0 * _MU_M3_S2 / a ** 3 * abs(reference[0])  # [m/s^2]
         if hold > accel_max:
-            warnings.append(f"{sc.name}: hill_pd needs {hold:.1e} m/s^2 to hold {pk.target_separation_km[0]:g} km, "
-                            f"more than its thruster's {accel_max:.1e} m/s^2 -- use mean_oe or drift_orbit")
+            warnings.append(Finding(f"{sc.name}: hill_pd needs {hold:.1e} m/s^2 to hold "
+                                    f"{pk.target_separation_km[0]:g} km, more than its thruster's {accel_max:.1e} m/s^2 "
+                                    "-- use mean_oe or drift_orbit", "formation.hill_pd_hold",
+                                    actual=f"{hold:.1e} m/s^2", limit=f"{accel_max:.1e} m/s^2"))
             continue
         times = np.array([0.0, 1.0])  # [s] velocity by difference
         rc, rd = _positions(chief_elements, times, False), _positions(follower_elements, times, False)
@@ -685,9 +717,11 @@ def _formation_law_warnings(scenario) -> list[str]:
         rho = np.array([offset @ x_hat, offset @ np.cross(z_hat, x_hat), offset @ z_hat])  # [m] Hill frame
         command = pk.hill_position_gain * float(np.linalg.norm(rho - reference))  # [m/s^2]
         if command > accel_max:
-            warnings.append(f"{sc.name}: hill_pd starts {np.linalg.norm(rho - reference) / 1e3:.2f} km off its "
-                            f"reference and asks for {command:.1e} m/s^2, more than the thruster's "
-                            f"{accel_max:.1e} m/s^2 -- a saturated PD law can diverge")
+            warnings.append(Finding(f"{sc.name}: hill_pd starts {np.linalg.norm(rho - reference) / 1e3:.2f} km off "
+                                    f"its reference and asks for {command:.1e} m/s^2, more than the thruster's "
+                                    f"{accel_max:.1e} m/s^2 -- a saturated PD law can diverge",
+                                    "formation.hill_pd_start", actual=f"{command:.1e} m/s^2",
+                                    limit=f"{accel_max:.1e} m/s^2"))
     return warnings
 
 
@@ -717,8 +751,9 @@ def _navigation_restart_warnings(scenario) -> list[str]:
         ratio = max(bound / step for step, bound in (nav.channel(p) for p in _NAV_PREFIXES) if step > 0.0)
         build_up_s = _NAV_BUILD_UP_STEPS * ratio ** 2 * step_s  # [s]
         took = f"{build_up_s:.0f} s" if build_up_s < 120.0 else format_elapsed(build_up_s)
-        warnings.append(f"{sc.name}: navigation errors restart at zero at each of the {restarts} segment "
-                        f"starts, then take about {took} to build up again")
+        warnings.append(Finding(f"{sc.name}: navigation errors restart at zero at each of the {restarts} segment "
+                                f"starts, then take about {took} to build up again", "navigation.restart",
+                                actual=f"{restarts} restarts"))
     return warnings
 
 
@@ -735,12 +770,14 @@ def _spacecraft_warnings(sc, scenario=None) -> list[str]:
             return norm > 0 and float(np.dot(normal / norm, axis)) > rule("css_facing_min_cosine", scenario)
 
         if not any(facing(s) for s in css):
-            warnings.append(f"{sc.name}: no sun sensor faces the Sun-pointing axis, so none sees the Sun "
-                            "once pointed")
+            warnings.append(Finding(f"{sc.name}: no sun sensor faces the Sun-pointing axis, so none sees the Sun "
+                                    "once pointed", "sensors.sun_sensor_facing",
+                                    limit=f"cosine above {rule('css_facing_min_cosine', scenario):g}"))
     if sc.facets and not (sc.enable_drag or sc.enable_srp):
-        warnings.append(f"{sc.name}: its facets are unused -- they only shape drag and SRP, and both are off")
+        warnings.append(Finding(f"{sc.name}: its facets are unused -- they only shape drag and SRP, and both are "
+                                "off", "facets.unused"))
     sk = sc.station_keeping
     if sk is not None and not sc.enable_drag and sc.phasing_keeping is None:
-        warnings.append(f"{sc.name}: with drag off its average altitude barely drifts, so the "
-                        f"{sk.deadband_km:g} km deadband may never trip")
+        warnings.append(Finding(f"{sc.name}: with drag off its average altitude barely drifts, so the "
+                                f"{sk.deadband_km:g} km deadband may never trip", "station_keeping.no_drag"))
     return warnings
