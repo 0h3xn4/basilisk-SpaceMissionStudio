@@ -154,6 +154,18 @@ def _output_folder_error(out_dir: Path) -> str | None:
 SCENARIO_AS_RUN = "scenario_as_run.json"
 
 
+def _print_run_warnings(warnings, explain: bool) -> None:
+    """A result's warnings on stderr; with ``--explain`` each is followed by
+    its rule (engine.findings), indented."""
+    from .engine.findings import explanation_lines
+
+    for warning in warnings:
+        print(f"WARNING: {warning}", file=sys.stderr)
+        if explain:
+            for line in explanation_lines(warning):
+                print(f"  {line}", file=sys.stderr)
+
+
 def _write_run_outputs(args, scenario, result, command_summary) -> None:
     """The CSV files, OEMs, events and Mission Sequence summary of a run,
     and the scenario as run: after loading and migration, as the app saves
@@ -195,8 +207,7 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
     # Informational only -- never affects the exit code (see
     # ResultSet.warnings's own docstring: a non-empty list here is a
     # numerical-health diagnostic, not a validation failure).
-    for warning in result.warnings:
-        print(f"WARNING: {warning}", file=sys.stderr)
+    _print_run_warnings(result.warnings, getattr(args, "explain", False))
 
     if command_summary is not None:
         print(f"Mission sequence: executed {command_summary.commands_executed} command(s), "
@@ -613,8 +624,7 @@ def cmd_lifetime(args: argparse.Namespace) -> int:
     for years, label, _key in lifetime.disposal_rules(scenario):
         verdict = ("met" if result.meets(years) else "not met") if result.known(years) else "not known"
         print(f"  {label}: {verdict}")
-    for warning in result.warnings:
-        print(f"WARNING: {warning}", file=sys.stderr)
+    _print_run_warnings(result.warnings, args.explain)
     if args.explain:
         print()
         print("How each figure was computed:")
@@ -1499,7 +1509,8 @@ def build_parser() -> argparse.ArgumentParser:
                             "and the space-weather files read, listed in bundle.json")
     p_run.add_argument("--explain", action="store_true",
                        help="after the run, its headline figures (Results > Overview) and its data-handling "
-                            "totals, and how each was computed: the series, parameters and constants it came from")
+                            "totals, and how each was computed: the series, parameters and constants it came from; "
+                            "each warning is followed by its rule")
     p_run.set_defaults(func=cmd_run)
 
     p_assumptions = subparsers.add_parser("assumptions", help="list the named parameters: value, unit, source, "
@@ -1554,7 +1565,7 @@ def build_parser() -> argparse.ArgumentParser:
                              "provenance")
     p_life.add_argument("--explain", action="store_true",
                         help="after the result, how each figure was computed: the equation, the inputs with their "
-                             "units and sources")
+                             "units and sources; each warning is followed by its rule")
     p_life.set_defaults(func=cmd_lifetime)
 
     p_model = subparsers.add_parser("model", help="report a spacecraft's 3D model: mass properties and facets")

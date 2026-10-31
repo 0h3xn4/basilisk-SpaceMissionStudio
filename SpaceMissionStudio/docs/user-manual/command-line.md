@@ -41,7 +41,7 @@ Useful `run` options:
 | `--vizard-live-stream` | Streams to a Vizard that is already running |
 | `--allow-scripts` | Runs the scenario's `script_block` commands. They are unrestricted Python: use it only for files you trust and have read. |
 | `--bundle` | Also makes `--out-dir` a reproduction bundle that `reproduce` can run again (see below) |
-| `--explain` | After the run, its headline figures (as Results > Overview shows them) and its data-handling totals, and how each was computed: the series and sample it was read from, the parameters and constants |
+| `--explain` | After the run, its headline figures (as Results > Overview shows them) and its data-handling totals, and how each was computed: the series and sample it was read from, the parameters and constants. Each of the run's warnings is followed by its rule ([Reading a run's results](../models/reading-results.md)) |
 
 `scenario_as_run.json` is the scenario exactly as it was run, after an
 older file was brought up to date: running it again runs the same
@@ -152,7 +152,7 @@ made with. The GUI writes the same bundle from Results › Plots ›
 | `budget scenario.json --altitudes 400,450,500` | Which altitude fits the tank |
 | `lifetime scenario.json --out life.json` | Also writes the lifetime as JSON |
 | `budget scenario.json --out budget.json` | Also writes the budget as JSON |
-| `lifetime scenario.json --explain` | After the result, how each figure was computed: the orbit, mass, ballistic coefficient, deorbit burn, lifetime and each rule's verdict, with their inputs and sources |
+| `lifetime scenario.json --explain` | After the result, how each figure was computed: the orbit, mass, ballistic coefficient, deorbit burn, lifetime and each rule's verdict, with their inputs and sources; each warning is followed by its rule |
 | `link-budget scenario.json` | The downlink's Eb/N0 budget at the longest range of a pass (`--range-km`, `--pointing-deg`, `--explain`, `--out`) |
 | `budget scenario.json --explain` | After the table, how each number was computed: the equation, each input with its unit and where it came from, and the AD10 section |
 | `spaceweather-resolve scenario.json` | Which space-weather file a run would use |

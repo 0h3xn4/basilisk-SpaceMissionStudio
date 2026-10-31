@@ -5,6 +5,22 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The run's warnings, with their rules (2026-10-31)
+
+- **A finished run's warning is not overridden:** it says how to read the
+  results (a re-entry, a drift, the forecast space weather read), so its
+  override says that, not "run it as it is".
+- **A saved run keeps its rules beside the text:** `run.json`'s
+  `warning_rules` is a list parallel to `warnings`. The text stays where
+  every version reads it, so the format version does not change; an
+  unknown rule reads back as plain text rather than failing the load.
+- **The tooltip, not a new view:** Results' warning note keeps its text
+  and shows the rules on hover, keeping the default view uncluttered.
+- **Notes stay notes:** the budget's notes and Explain's gravity fidelity
+  notes describe a model, not a finding against a limit; a 3D model's and
+  a SIL report's warnings are shown in their own views and are left for
+  a later step.
+
 ## Structured warnings (2026-10-31)
 
 The transparency plan's Phase 5a: a warning names its rule, what it

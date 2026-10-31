@@ -1496,3 +1496,23 @@ def test_the_shown_run_exports_as_a_reproduction_bundle(widget, tmp_path, report
     reported.clear()
     widget.export_bundle(bundle)
     assert reported and "is not empty" in reported[-1][0]
+
+
+def test_a_run_warnings_tooltip_gives_each_warnings_rule(widget):
+    """Structured warnings (Phase 5a): hovering over the run warnings shows
+    each one's rule, what it found against its limit, why and the fix; the
+    warnings' own text is as before."""
+    from spacemissionstudio.engine.findings import Finding
+
+    rs = _sample_result_set()
+    reentry = Finding("sat-1 re-entered: below 100 km at t = 3.20 days -- the run stopped there",
+                      "run.reentry_stopped", limit="100 km")
+    drift = Finding("sat-1: orbital energy drifted 2.0% (limit 1%) -- try a smaller dynamics step or a "
+                    "higher-order integrator", "run.energy_drift", actual="2.0%", limit="1%")
+    rs.warnings = [reentry, drift]
+    widget.set_result(rs)
+    assert widget.warnings_label.text() == f"⚠ {reentry}\n⚠ {drift}"
+    reentry_rule, drift_rule = widget.warnings_label.toolTip().split("\n\n")
+    assert reentry_rule.startswith("rule run.reentry_stopped: ") and "limit 100 km" in reentry_rule
+    assert "dynamics.reentry_altitude_km" in reentry_rule
+    assert drift_rule.startswith("rule run.energy_drift: ") and "found 2.0%; limit 1%" in drift_rule

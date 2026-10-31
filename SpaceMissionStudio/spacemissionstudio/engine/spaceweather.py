@@ -101,6 +101,8 @@ from pathlib import Path
 
 import numpy as np
 
+from .findings import Finding
+
 REQUIRED_COLUMNS = (
     "DATE", "AP1", "AP2", "AP3", "AP4", "AP5", "AP6", "AP7", "AP8",
     "AP_AVG", "F10.7_OBS", "F10.7_OBS_CENTER81",
@@ -798,16 +800,21 @@ def _resolve_real(source: str, start_utc: datetime, end_utc: datetime, local_fil
     kinds = {rec.kind for day, rec in days.items() if start_utc.date() <= day <= end_utc.date()}
     stamp = f", updated {data.updated}" if data.updated else ""
     if "daily_forecast" in kinds:
-        warnings.append(f"space weather includes CelesTrak's 45-day forecast ({path.name}{stamp})")
+        warnings.append(Finding(f"space weather includes CelesTrak's 45-day forecast ({path.name}{stamp})",
+                                "space_weather.daily_forecast"))
     if "monthly_forecast" in kinds:
-        warnings.append(f"space weather uses NOAA's monthly F10.7 forecast ({path.name}{stamp}) where MSFC's "
-                        f"prediction does not reach, with Ap held at the observed mean of {data.long_term_ap:.1f}")
+        warnings.append(Finding(f"space weather uses NOAA's monthly F10.7 forecast ({path.name}{stamp}) where "
+                                f"MSFC's prediction does not reach, with Ap held at the observed mean of "
+                                f"{data.long_term_ap:.1f}", "space_weather.monthly_forecast"))
     if kinds & {"msfc_forecast", "msfc_repeated"}:
-        warnings.append(f"space weather uses MSFC's prediction ({msfc.path.name}), {forecast_percentile:g}th "
-                        "percentile F10.7 and Ap")
+        warnings.append(Finding(f"space weather uses MSFC's prediction ({msfc.path.name}), "
+                                f"{forecast_percentile:g}th percentile F10.7 and Ap", "space_weather.msfc_prediction",
+                                actual=f"{forecast_percentile:g}th percentile"))
     if "msfc_repeated" in kinds:
         source = "ESA AD10 Sec. 5.9" if repeat_months == 132 else "space_weather.msfc_repeat_months"
-        warnings.append(f"past {msfc.last_month:%Y-%m} MSFC's last {repeat_months} months repeat ({source})")
+        warnings.append(Finding(f"past {msfc.last_month:%Y-%m} MSFC's last {repeat_months} months repeat "
+                                f"({source})", "space_weather.msfc_repeated", actual=f"after {msfc.last_month:%Y-%m}",
+                                limit=f"{repeat_months} months repeat"))
     cache_dir = Path(cache_dir) if cache_dir else DEFAULT_CACHE_DIR
     msfc_tag = f"_{msfc.path.stem}_{int(msfc.path.stat().st_mtime)}" if msfc is not None else ""
     repeat_tag = "" if repeat_months == 132 else f"_r{repeat_months}"  # the default keeps the earlier name

@@ -63,6 +63,7 @@ from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import SMALL_BODY_CENTRAL_BODIES, OrbitIC, Scenario, SimSettings, SpaceWeatherConfig
 from . import time_system
+from .findings import Finding
 from .results import ResultSet, TimeSeries
 from .seeds import derived_seed
 
@@ -285,8 +286,9 @@ def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], 
             name, t_s = service.reentry
             merged.warnings = [w for w in merged.warnings if not w.startswith(f"{name} re-entered")]
             reentry_km = registry.value("dynamics.reentry_altitude_km", scenario)  # [km] engine.service's criterion
-            merged.warnings.append(f"{name} re-entered: below {reentry_km:g} km at "
-                                   f"t = {(offset_s + t_s) / 86400.0:.2f} days -- the run stopped there")
+            merged.warnings.append(Finding(f"{name} re-entered: below {reentry_km:g} km at "
+                                           f"t = {(offset_s + t_s) / 86400.0:.2f} days -- the run stopped there",
+                                           "run.reentry_stopped", limit=f"{reentry_km:g} km"))
             break
         if index < len(lengths) - 1:
             finals = _carry_state(segment, service, part)

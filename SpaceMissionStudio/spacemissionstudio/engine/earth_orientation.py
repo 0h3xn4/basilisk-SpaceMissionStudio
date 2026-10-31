@@ -60,6 +60,8 @@ from datetime import datetime, timedelta, UTC
 from pathlib import Path
 from collections.abc import Iterable
 
+from .findings import Finding
+
 NAIF_PCK_URL = "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/"
 HIGH_PRECISION_NAME = "earth_latest_high_prec.bpc"
 _COMBINED_PATTERN = re.compile(r"earth_\d{4}_\d{6}_\d{4}_combined\.bpc")
@@ -386,9 +388,11 @@ def notes(start_utc: datetime, end_utc: datetime, kernels: list[EOPKernel] | Non
     ``end_utc`` gets (naive UTC datetimes)."""
     kernels = installed() if kernels is None else kernels
     if not kernels:
-        return ["Earth orientation: IAU rotation model, no IERS data installed"]
+        return [Finding("Earth orientation: IAU rotation model, no IERS data installed", "earth_orientation.none")]
     until = high_accuracy_until(kernels)
     if until is not None and end_utc > until:
         when = "the whole run" if start_utc >= until else f"after {until:%Y-%m-%d}"
-        return [f"Earth orientation: {EARTH_FIXED_FRAME}, predicted (low accuracy) for {when}"]
+        return [Finding(f"Earth orientation: {EARTH_FIXED_FRAME}, predicted (low accuracy) for {when}",
+                        "earth_orientation.predicted", actual=f"run to {end_utc:%Y-%m-%d}",
+                        limit=f"high accuracy to {until:%Y-%m-%d}")]
     return []

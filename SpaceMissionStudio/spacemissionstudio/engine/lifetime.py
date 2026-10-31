@@ -62,6 +62,7 @@ import numpy as np
 from .. import constants
 from ..schema.epochs import parse_epoch_utc
 from . import geodesy
+from .findings import Finding
 from .mean_elements import cl_mean_osc_map
 from .trace import Quantity, Trace
 
@@ -375,8 +376,9 @@ def _reached_ground(times: list, perigees: list, apogees: list, t_s: float, step
     return LifetimeResult(reentered=True, lifetime_s=t_s, time_s=np.array(times + [t_s]),
                           perigee_altitude_km=np.array(perigees + [0.0]),
                           apogee_altitude_km=np.array(apogees + [apogees[-1]]), start_utc=start_utc,
-                          warnings=[f"the orbit reached the ground within the last step of the decay, "
-                                    f"{step_s / 86400.0:.2g} days: the re-entry time is known to within it"])
+                          warnings=[Finding(f"the orbit reached the ground within the last step of the decay, "
+                                            f"{step_s / 86400.0:.2g} days: the re-entry time is known to within it",
+                                            "lifetime.ground_in_step", actual=f"{step_s / 86400.0:.2g} days step")])
 
 
 def deorbit_burn(orbit: MeanOrbit, target_perigee_km: float, mass_kg: float, isp_s: float):
@@ -440,8 +442,9 @@ def density_for_scenario(scenario, start_utc: datetime, max_years: float, points
         if data_years <= 0.0:
             raise LifetimeError(f"the real space-weather data ends {last}, before {start_utc:%Y-%m-%d}")
         if data_years < max_years:
-            warnings.append(f"the real space-weather data ends {last}: looked {data_years:.1f} years ahead, "
-                            f"not {max_years:g}")
+            warnings.append(Finding(f"the real space-weather data ends {last}: looked {data_years:.1f} years "
+                                    f"ahead, not {max_years:g}", "lifetime.space_weather_ends",
+                                    actual=f"{data_years:.1f} years", limit=f"{max_years:g} years asked"))
             max_years = data_years
     end_utc = start_utc + timedelta(days=max_years * 365.25)
     try:

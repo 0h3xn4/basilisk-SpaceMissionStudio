@@ -487,6 +487,14 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **A run's warnings name their rules too:** a re-entry, propellant
+  running out, an energy or momentum drift, the forecast space weather
+  read, the Earth orientation, the magnetic field model, a changed data
+  file, and a lifetime estimate's shorter look-ahead. Hover over Results'
+  warning note to see each one's rule, what it found against its limit,
+  why it matters and the fix; `run --explain` and `lifetime --explain`
+  print them. A saved run keeps them. The warnings read as before. See
+  `docs/models/reading-results.md`.
 - **Every pre-run warning names its rule:** `spacemissionstudio validate
   --explain` follows each warning with the rule behind it: what it is,
   what it found against its limit, why it matters, how to fix it and how

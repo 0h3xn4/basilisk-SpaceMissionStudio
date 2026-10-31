@@ -55,10 +55,17 @@ def test_each_rule_is_complete_and_names_a_real_parameter():
 
 
 def test_every_rule_is_used_by_a_check_and_every_check_names_a_rule():
-    """No rule is left without a check, and no warning of the pre-run
-    checks is a plain string: each names a rule in the table."""
+    """No rule is left without a check or a run's warning
+    (tests/test_run_findings.py), and no warning of the pre-run checks is a
+    plain string: each names a rule in the table."""
     source = (Path(scenario_checks.__file__)).read_text(encoding="utf-8")
-    used = set(re.findall(r'"([a-z_]+\.[a-z_]+)"(?=[),])', source)) & set(RULES)
+    package = Path(scenario_checks.__file__).resolve().parents[1]
+    run_sources = ("engine/service.py", "engine/long_run.py", "engine/results.py", "engine/spaceweather.py",
+                   "engine/environment_models.py", "engine/earth_orientation.py", "engine/lifetime.py",
+                   "dependencies.py")
+    used = set()
+    for text in (source, *((package / name).read_text(encoding="utf-8") for name in run_sources)):
+        used |= set(re.findall(r'"([a-z_]+\.[a-z_]+)"(?=[),])', text)) & set(RULES)
     assert used == set(RULES)
     assert "warnings.append(f\"" not in source and "warnings.append(\"" not in source
     for line in source.splitlines():

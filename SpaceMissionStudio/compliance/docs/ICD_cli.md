@@ -36,7 +36,7 @@ run a scenario headlessly and export results to CSV
 | `--vizard-ground-tracks` | also draw ground tracks in Vizard |
 | `--allow-scripts` | run the scenario's script_block commands (unrestricted Python: only for files you trust and have read) |
 | `--bundle` | also make --out-dir a reproduction bundle: copies of the files the scenario refers to and the space-weather files read, listed in bundle.json |
-| `--explain` | after the run, its headline figures (Results > Overview) and its data-handling totals, and how each was computed: the series, parameters and constants it came from |
+| `--explain` | after the run, its headline figures (Results > Overview) and its data-handling totals, and how each was computed: the series, parameters and constants it came from; each warning is followed by its rule |
 
 ## `assumptions`
 
@@ -84,7 +84,7 @@ estimate when a spacecraft re-enters (orbit-averaged drag)
 | `--forecast-percentile {95.0,50.0,5.0}` | MSFC solar-activity percentile (default: lifetime.default_forecast_percentile, 50: ESA AD10 end of life) |
 | `--drag-coeff` | drag coefficient, or 'own' for the spacecraft's (default: lifetime.default_drag_coeff, 2.2: ESA AD10 end of life) |
 | `--out` | also write the lifetime as JSON: inputs, the drag used, the decay, the traces, the provenance |
-| `--explain` | after the result, how each figure was computed: the equation, the inputs with their units and sources |
+| `--explain` | after the result, how each figure was computed: the equation, the inputs with their units and sources; each warning is followed by its rule |
 
 ## `model`
 
