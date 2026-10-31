@@ -205,6 +205,11 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
         print()
         print("Headline figures, and how each was computed:")
         print("\n".join(run_summary.explain_lines(run_summary.summarize(result, found))))
+        for budget in data_budget.budgets(result):
+            print()
+            print(f"Data handling of {budget.spacecraft}, and how each total was read:")
+            for trace in budget.traces.values():
+                print("\n".join(f"  {line}" for line in trace.text()))
 
     # Files an earlier run left: not this run's, though they sit beside it
     # (a stale events.csv and another spacecraft's series, audit R7).
@@ -1485,8 +1490,8 @@ def build_parser() -> argparse.ArgumentParser:
                        help="also make --out-dir a reproduction bundle: copies of the files the scenario refers to "
                             "and the space-weather files read, listed in bundle.json")
     p_run.add_argument("--explain", action="store_true",
-                       help="after the run, its headline figures (Results > Overview) and how each was computed: "
-                            "the series, parameters and constants it came from")
+                       help="after the run, its headline figures (Results > Overview) and its data-handling "
+                            "totals, and how each was computed: the series, parameters and constants it came from")
     p_run.set_defaults(func=cmd_run)
 
     p_assumptions = subparsers.add_parser("assumptions", help="list the named parameters: value, unit, source, "
