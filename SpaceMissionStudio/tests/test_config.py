@@ -62,7 +62,8 @@ _MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifeti
                 "space_weather": "environment-and-data.md", "tle": "environment-and-data.md",
                 "orbit_control": "orbit-control.md", "geo_station_keeping": "orbit-control.md",
                 "roe_formation": "roe-formation.md", "flight_software": "flight-software-and-navigation.md",
-                "navigation": "flight-software-and-navigation.md", "checks": "pre-run-checks.md"}
+                "navigation": "flight-software-and-navigation.md", "checks": "pre-run-checks.md",
+                "explain": "explain.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -394,7 +395,7 @@ def test_every_parameter_has_a_case_that_sets_it():
     declared = {p.name for p in registry.parameters()}
     cases = (set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_RESULTS_CASES) | set(_DYNAMICS_CASES)
              | set(_ENVIRONMENT_CASES) | set(_CONTROL_CASES) | set(_ROE_CASES) | set(_FSW_NAV_CASES)
-             | set(_CHECK_CASES) | set(_GUI_CASES))
+             | set(_CHECK_CASES) | set(_EXPLAIN_CASES) | set(_GUI_CASES))
     assert declared == cases, f"no case for {sorted(declared - cases)}"
     for where in _GUI_CASES.values():
         file, name = where.split("::")
@@ -1345,6 +1346,71 @@ def test_setting_a_check_parameter_changes_what_it_flags(name):
     step, the late first pass, the sun sensor facing the Sun -- and set to
     its default, leaves it as it was."""
     value, measure = _CHECK_CASES[name]
+    before = measure(None)
+    assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
+    assert measure(Configuration({name: registry.default(name)})) == before, name
+
+
+# Explain (engine.scenario_explainer), on templates edited near each rule.
+def _orbit_label(configuration):
+    """Template 19's orbit 0.15 deg off Sun-synchronous: Explain's label."""
+    from spacemissionstudio.engine import scenario_explainer
+    from spacemissionstudio.engine.orbit_design import sun_synchronous_inclination_deg
+
+    def tilt(scenario):
+        orbit = scenario.spacecraft[0].orbit
+        orbit.inclination_deg = sun_synchronous_inclination_deg(orbit.semi_major_axis_km,
+                                                                 orbit.eccentricity or 0.0) + 0.15  # [deg]
+
+    scenario = _checked_template(configuration, "19", tilt)
+    return scenario_explainer._orbit_summary(scenario.spacecraft[0].orbit, scenario.gravity, scenario)
+
+
+def _roe_notes(configuration, edit=None):
+    from spacemissionstudio.engine import scenario_explainer
+
+    return scenario_explainer._roe_notes(_checked_template(configuration, "29", edit))
+
+
+def _three_percent_more_drag(scenario):
+    chief, follower = scenario.spacecraft
+    chief.enable_drag = follower.enable_drag = True
+    follower.drag_area_m2 = chief.drag_area_m2 * 1.03  # [m^2]
+
+
+def _camera_badges(configuration):
+    """Template 30 with attitude, pointed at Mars with pHat_B 2 deg off the
+    camera's boresight: Explain's optical navigation badges."""
+    import math
+
+    from spacemissionstudio.engine import scenario_explainer
+
+    def point(scenario):
+        scenario.simulation_mode = "full_attitude"
+        sc = scenario.spacecraft[0]
+        sc.fsw_mode = "locationPointing"
+        sc.fsw_params = {"target_body": scenario.gravity.central_body,
+                         "pHat_B": [math.sin(math.radians(2.0)), 0.0, math.cos(math.radians(2.0))]}
+
+    section = scenario_explainer._optical_navigation_section(_checked_template(configuration, "30", point))
+    return [badge.label for badge in section.badges]
+
+
+_EXPLAIN_CASES = {
+    "explain.sso_tolerance_deg": (0.2, _orbit_label),
+    "explain.differential_drag_fraction": (0.01, lambda c: _roe_notes(c, _three_percent_more_drag)),
+    "explain.passive_safety_margin_m": (1000.0, _roe_notes),
+    "explain.camera_axis_tolerance_deg": (5.0, _camera_badges),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_EXPLAIN_CASES))
+def test_setting_an_explain_parameter_changes_what_it_says(name):
+    """Each Explain parameter set in a project configuration changes what
+    Explain says -- the Sun-synchronous label, the differential-drag note,
+    passive safety, the camera axis warning -- and set to its default,
+    leaves it as it was."""
+    value, measure = _EXPLAIN_CASES[name]
     before = measure(None)
     assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
     assert measure(Configuration({name: registry.default(name)})) == before, name

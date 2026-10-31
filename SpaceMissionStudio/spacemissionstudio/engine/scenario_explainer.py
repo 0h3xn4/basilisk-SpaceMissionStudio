@@ -77,8 +77,14 @@ _EARTH_REQUATOR_KM = _BODY_RADIUS_KM["earth"]  # [km]
 # to call it "Sun-synchronous" -- wide enough to tolerate the 2-decimal
 # rounding every bundled template's own inclination_deg already carries
 # (see engine.orbit_design.sun_synchronous_inclination_deg's own comment),
-# narrow enough that an unrelated inclination (e.g. 51.6 deg) never matches.
-_SSO_TOLERANCE_DEG = 0.1
+# narrow enough that an unrelated inclination (e.g. 51.6 deg) never matches:
+# the parameter explain.sso_tolerance_deg. Explain's rules are named
+# parameters, explain.<name> (config.parameters, docs/models/explain.md).
+
+
+def rule(name: str, scenario=None):
+    """Explain's rule ``explain.<name>`` in effect for ``scenario``."""
+    return registry.value(f"explain.{name}", scenario)
 
 
 @dataclass
@@ -157,7 +163,7 @@ def _models_oblateness(gravity) -> bool:
             and (getattr(gravity, "central_body_degree", 0) or 0) >= 2)
 
 
-def _is_sun_synchronous(orbit, gravity) -> bool:
+def _is_sun_synchronous(orbit, gravity, scenario=None) -> bool:
     if not _models_oblateness(gravity):
         return False
     if getattr(orbit, "type", None) != "classical_elements":
@@ -170,17 +176,17 @@ def _is_sun_synchronous(orbit, gravity) -> bool:
         target = sun_synchronous_inclination_deg(sma, orbit.eccentricity or 0.0)
     except (ValueError, ArithmeticError, ZeroDivisionError):
         return False
-    return abs(inc - target) <= _SSO_TOLERANCE_DEG
+    return abs(inc - target) <= rule("sso_tolerance_deg", scenario)
 
 
-def _orbit_summary(orbit, gravity) -> str:
+def _orbit_summary(orbit, gravity, scenario=None) -> str:
     orbit_type = getattr(orbit, "type", None)
     if orbit_type == "classical_elements":
         sma = orbit.semi_major_axis_km
         inc = orbit.inclination_deg
         if sma is None or inc is None:
             return "Classical elements"
-        label = "SSO" if _is_sun_synchronous(orbit, gravity) else "Classical"
+        label = "SSO" if _is_sun_synchronous(orbit, gravity, scenario) else "Classical"
         if small_bodies.body(getattr(gravity, "central_body", "earth")) is not None:
             return f"{label} {inc:g} deg, {sma:g} km from the centre"  # a small body has no single radius
         # Above the central body, not always Earth (audit L21).
@@ -269,14 +275,15 @@ def _roe_notes(scenario) -> list[str]:
         for index, target in enumerate(sc.roe_formation.targets):
             da, dl, dex, dey, dix, diy = target.roe_m
             margin = min_radial_normal_separation(target.roe_m, 1.0)  # [m] the ROE are in metres
-            safety = (f"closest radial/cross-track approach {margin:.0f} m" if margin > 1.0
+            safety = (f"closest radial/cross-track approach {margin:.0f} m"
+                      if margin > rule("passive_safety_margin_m", scenario)
                       else "the orbits cross in the radial/cross-track plane: not passively safe")
             notes.append(f"{sc.name} from day {target.start_day:g}: {abs(dl):.0f} m "
                          f"{'ahead of' if dl >= 0 else 'behind'} {sc.roe_formation.chief_spacecraft}, "
                          f"{math.hypot(dex, dey):.0f} m radial and {math.hypot(dix, diy):.0f} m cross-track "
                          f"motion; {safety}" + ("" if abs(da) < 1e-9 else f"; relative semi-major axis {da:g} m"))
         chief = next((c for c in scenario.spacecraft if c.name == sc.roe_formation.chief_spacecraft), None)
-        note = _differential_drag_note(sc, chief) if chief is not None else None
+        note = _differential_drag_note(sc, chief, scenario) if chief is not None else None
         if note:
             notes.append(note)
     return notes
@@ -287,14 +294,15 @@ def _ballistic_coefficient(sc) -> float:
     return sc.drag_coeff * sc.drag_area_m2 / sc.dry_mass_kg if sc.enable_drag else 0.0
 
 
-def _differential_drag_note(follower, chief) -> str | None:
+def _differential_drag_note(follower, chief, scenario=None) -> str | None:
     """Whether the follower's flat-plate drag differs from the chief's by
-    more than 5 %, and what the ROE guidance does about it; ``None`` when
-    it does not, or when either uses facets (attitude-dependent area)."""
+    more than ``explain.differential_drag_fraction`` (5 %), and what the
+    ROE guidance does about it; ``None`` when it does not, or when either
+    uses facets (attitude-dependent area)."""
     if follower.facets or chief.facets or not (follower.enable_drag or chief.enable_drag):
         return None
     mine, theirs = _ballistic_coefficient(follower), _ballistic_coefficient(chief)
-    if abs(mine - theirs) <= 0.05 * max(mine, theirs):
+    if abs(mine - theirs) <= rule("differential_drag_fraction", scenario) * max(mine, theirs):
         return None
     config = follower.roe_formation
     if config.control_law != "impulsive":
@@ -352,7 +360,7 @@ def _attitude_section(scenario) -> ExplanationSection | None:
 
 def _environment_section(scenario) -> ExplanationSection | None:
     badges: list[Badge] = []
-    if any(_is_sun_synchronous(sc.orbit, scenario.gravity) for sc in scenario.spacecraft):
+    if any(_is_sun_synchronous(sc.orbit, scenario.gravity, scenario) for sc in scenario.spacecraft):
         badges.append(Badge("Sun-synchronous", "accent"))
     if any(sc.enable_drag for sc in scenario.spacecraft):
         badges.append(Badge("Drag", "accent"))
@@ -499,7 +507,7 @@ def _optical_navigation_section(scenario) -> ExplanationSection | None:
             axis = sc.fsw_params.get("pHat_B") or (0.0, 0.0, 1.0)
             norm = math.sqrt(sum(c * c for c in axis))
             cosine = sum(b * c for b, c in zip(boresight_b, axis)) / norm if norm > 0.0 else -1.0
-            if cosine < math.cos(math.radians(1.0)):
+            if cosine < math.cos(math.radians(rule("camera_axis_tolerance_deg", scenario))):
                 badges.append(Badge(f"{sc.name}: locationPointing's pointing axis (pHat_B) is not the camera's "
                                     "boresight", "warning"))
     return ExplanationSection(title="Optical navigation", badges=badges, notes=notes)
@@ -645,7 +653,7 @@ def _explain(scenario) -> ScenarioExplanation:
         StatTile("Gravity", _gravity_summary(scenario.gravity)),
     ]
     if len(spacecraft) == 1:
-        stat_tiles.append(StatTile("Orbit", _orbit_summary(spacecraft[0].orbit, scenario.gravity)))
+        stat_tiles.append(StatTile("Orbit", _orbit_summary(spacecraft[0].orbit, scenario.gravity, scenario)))
     if scenario.simulation_mode != "full_attitude":
         stat_tiles.append(StatTile("Mode", "Orbit only"))
 
@@ -672,7 +680,7 @@ def _explain(scenario) -> ScenarioExplanation:
         for sc in spacecraft:
             propellant_kg = _spacecraft_propellant_kg(sc)
             facts = {
-                "Orbit": _orbit_summary(sc.orbit, scenario.gravity),
+                "Orbit": _orbit_summary(sc.orbit, scenario.gravity, scenario),
                 "Control": _spacecraft_control_summary(sc),
                 "Propellant": f"{propellant_kg:g} kg" if propellant_kg > 0 else "-",
             }

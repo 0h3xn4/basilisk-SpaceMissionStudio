@@ -139,6 +139,40 @@ def test_lambert_transfer_applies_a_delta_v_that_reaches_the_target():
     )
 
 
+def test_the_convergence_tolerance_sets_no_result(monkeypatch):
+    """Lambert's dvConvergenceTolerance (1 m/s, as
+    examples/scenarioLambertSolver.py) is not a parameter: the validator
+    compares the delta-V of successive solutions, and the mini-sim gives the
+    solver the same state at each tick, so they agree whatever the
+    tolerance. The delta-V applied is the same at 1e-6 and 100 m/s."""
+    from Basilisk.fswAlgorithms import lambertValidator
+    from Basilisk.utilities import orbitalMotion, simHelpers
+
+    from spacemissionstudio.engine.mission_engine import MissionEngine
+
+    def velocity_after(tolerance_mps):
+        set_tolerance = lambertValidator.LambertValidator.setDvConvergenceTolerance
+        monkeypatch.setattr(lambertValidator.LambertValidator, "setDvConvergenceTolerance",
+                            lambda self, _value: set_tolerance(self, tolerance_mps))
+        oe = orbitalMotion.ClassicElements()
+        oe.a, oe.e, oe.i = 10000.0e3, 0.001, np.radians(5.0)  # [m], [-], [rad]
+        oe.Omega, oe.omega, oe.f = np.radians(10.0), np.radians(10.0), np.radians(10.0)  # [rad]
+        r_bn_n, v_bn_n = orbitalMotion.elem2rv(_MU, oe)
+        _scSim, sc_object = _build_spacecraft_with_state(r_bn_n, v_bn_n)
+        engine = SimpleNamespace(service=SimpleNamespace(mu=_MU, spacecraft_handles={
+            "sat-1": SimpleNamespace(sc_object=sc_object)}))
+        command = Command(kind="lambert_transfer", params={
+            "spacecraft": "sat-1", "target_position_m": [-(_R_EARTH + 200.0e3), 0.0, 0.0],  # [m]
+            "time_of_flight_s": 2490.0})  # [s]
+        MissionEngine._run_lambert_transfer(engine, command, summary=None, path="test")
+        velocity = sc_object.dynManager.getStateObject(sc_object.hub.nameOfHubVelocity)
+        return simHelpers.EigenVector3d2np(velocity.getState())
+
+    reference = velocity_after(1.0)  # [m/s]
+    for tolerance_mps in (1e-6, 100.0):
+        np.testing.assert_array_equal(velocity_after(tolerance_mps), reference)
+
+
 def test_lambert_transfer_unreachable_target_raises_a_clear_error():
     """A target that needs a path through the Earth is refused with
     lambertValidator's report."""

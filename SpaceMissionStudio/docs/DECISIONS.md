@@ -5,6 +5,21 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Explain's rules; the mission sequence's settings (2026-10-31)
+
+- **A value that cannot change a result is not a parameter:** Lambert's
+  convergence tolerance looked like a rule, but in the app's use it
+  decides nothing (the solver sees the same state each tick). Making it
+  a parameter would offer a choice with no effect, so the model page says
+  why it is not one and a test shows it, as for the landmark camera's
+  focal length.
+- **Caps are not parameters:** the loop and event-search limits stop a
+  runaway sequence with an error; they set no result of a sequence that
+  ends.
+- **Explain's checks of the scenario take it optionally:** the Home
+  page's template cards label orbits without a project configuration;
+  they get the defaults.
+
 ## The pre-run checks' rules (2026-10-31)
 
 - **The rules first, the structure next:** this step names each check's

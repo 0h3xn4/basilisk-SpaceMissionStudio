@@ -458,3 +458,25 @@ register(
               "is flagged.", "SpaceMissionStudio's own choice", "No derivation recorded.",
               minimum=-1.0, maximum=1.0),
 )
+
+
+register(
+    Parameter("explain.sso_tolerance_deg", 0.1, "[deg]",
+              "Explain labels a classical-elements orbit Sun-synchronous when its inclination is within this of "
+              "the Sun-synchronous inclination at its own semi-major axis and eccentricity.",
+              "SpaceMissionStudio's own choice",
+              "Wide enough for the 2-decimal rounding of the templates' inclinations, narrow enough that an "
+              "unrelated inclination (51.6 deg) never matches (the code's comment).", minimum=0.0, maximum=10.0),
+    Parameter("explain.differential_drag_fraction", 0.05, "[-]",
+              "Explain notes differential drag in an ROE formation when the follower's flat-plate ballistic "
+              "coefficient (Cd A / dry mass) differs from the chief's by more than this fraction of the larger.",
+              "SpaceMissionStudio's own choice", "No derivation recorded.", minimum=0.0, maximum=1.0),
+    Parameter("explain.passive_safety_margin_m", 1.0, "[m]",
+              "Explain calls an ROE target not passively safe when the closest radial/cross-track approach of "
+              "the two orbits is no more than this.", "SpaceMissionStudio's own choice",
+              "No derivation recorded.", minimum=0.0, maximum=1e4),
+    Parameter("explain.camera_axis_tolerance_deg", 1.0, "[deg]",
+              "Explain warns when locationPointing's pointing axis (pHat_B) is further than this from the "
+              "optical navigation camera's boresight.", "SpaceMissionStudio's own choice",
+              "No derivation recorded.", minimum=0.0, maximum=90.0),
+)

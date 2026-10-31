@@ -19,6 +19,7 @@ configuration file changes them without editing code
 | ROE formation guidance: decisions, drifts, eclipse retries, differential drag | [ROE formation guidance](roe-formation.md) | `roe_formation.*` |
 | The attitude thrusters' Schmitt trigger, optical and landmark navigation's filters | [Flight software and navigation](flight-software-and-navigation.md) | `flight_software.*`, `navigation.*` |
 | The pre-run checks: pass prediction, recording, step, late pass, sun sensor | [Pre-run checks](pre-run-checks.md) | `checks.*` |
+| Explain's labels and notes; the mission sequence's numerical settings | [Explain and the mission sequence](explain.md) | `explain.*` |
 
 **How a number was computed:** the propellant budget's, the orbital
 lifetime's and the link budget's numbers, a run's headline figures and
@@ -51,7 +52,6 @@ Sections 1h and 1i.
 
 | Models | Rules still in the code (examples) | To be done |
 |---|---|---|
-| Explain and the mission sequence | Explain's SSO, differential-drag, passive-safety and camera tolerances; the mission sequence's start-on-apsis tolerance and Lambert's 1 m/s convergence | Phase 3a, Explain and the mission sequence |
 | Monte Carlo statistics | the 1-sigma spread uses the population standard deviation | Phase 6b (a choice of statistic) |
 
 Numerical settings that set no result are not parameters: download
