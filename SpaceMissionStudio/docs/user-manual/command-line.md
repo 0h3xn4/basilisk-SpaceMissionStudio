@@ -57,7 +57,10 @@ Basilisk's catalogue (`device_parameters`).
 `--explain`, each is followed by the rule behind it: what the rule is,
 what it found against its limit, why it matters, how to fix it and how
 to override it, with the parameter that sets the limit
-([Pre-run checks](../models/pre-run-checks.md)):
+([Pre-run checks](../models/pre-run-checks.md)). A file past one of the
+scenario file's limits is `INVALID` (exit status 1), and `--explain`
+follows that line with the limit's rule
+([The scenario file's limits](../models/scenario-limits.md)):
 
 ```console
 $ spacemissionstudio validate late.json --explain

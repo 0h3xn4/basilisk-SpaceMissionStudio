@@ -83,3 +83,30 @@ def test_explain_shows_a_warnings_rule_on_hover(qtbot):
     assert "checks.long_step_s" in step.toolTip()
     headline = widget._headline_label
     assert headline.toolTip() == ""  # labels that are not warnings get no rule
+
+
+def test_a_scenario_file_limit_shows_its_rule_in_problems(qtbot):
+    """A scenario past one of the file's limits is an error, as before; in
+    the Problems panel its tooltip is the limit's rule, then the hint."""
+    from PySide6.QtCore import Qt
+
+    from spacemissionstudio.gui.scenario_editor import ScenarioEditorWidget
+    from spacemissionstudio.gui.workspace_panels import ProblemsWidget
+    from spacemissionstudio.schema import load_scenario
+
+    scenario = load_scenario(next(_TEMPLATES.glob("01_*.json")))
+    scenario.description = "x" * 100_001
+    editor = ScenarioEditorWidget()
+    qtbot.addWidget(editor)
+    editor.from_scenario(scenario)
+    editor.revalidate()
+    (error,) = [text for severity, text in editor.problems if severity == "error"]
+    assert error == "scenario.description is 100001 characters; at most 100000"  # the message as before
+    assert error.rule_id == "schema.description_max"
+    panel = ProblemsWidget()
+    qtbot.addWidget(panel)
+    panel.set_problems(editor.problem_rows())
+    tooltip = panel.proxy.index(0, 3).data(Qt.ItemDataRole.ToolTipRole)
+    assert tooltip.startswith("rule schema.description_max: ")
+    assert "found 100001 characters; limit 100000 characters" in tooltip
+    assert "It cannot be overridden" in tooltip

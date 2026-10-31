@@ -14514,6 +14514,37 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Structured errors: the scenario file's limits (2026-10-31)
+
+The transparency plan, Phase 5a, last step. Branch `schema-limits`.
+
+- **11 rules, `schema.*`,** for the limits that are choices, each with
+  the reason the code or the audit recorded: `duration_max` (3660 days),
+  `single_run` (100 days, for what cannot be split), `step_min`
+  (0.001 s), `spacecraft_max` (1000, also a generated constellation),
+  `description_max`, `file_size_max` (20 MB), `name_length` (64),
+  `data_name_length` (127, Basilisk's `char[128]`), `monte_carlo_runs`,
+  `monte_carlo_threads`, `roe_chief_eccentricity` (0.01). 56 rules in
+  all.
+- **`ScenarioValidationError.finding`:** the error's message as a
+  Finding when its check names a rule, else None; `problem_text(exc)`
+  gives whichever there is. `_require` takes the rule, the value and the
+  limit; `_prefixed` keeps a name's rule under the part, sensor or
+  actuator prefix. The messages are unchanged.
+- **Where it shows:** `validate_all`, the editor's Problems list (its
+  tooltip, as for a warning) and `validate --explain` after the
+  `INVALID` line.
+- **Not given a rule:** the other 330 or so checks, which say whether a
+  value can mean anything (a positive mass, an eccentricity below 1);
+  their message states the rule. `docs/models/scenario-limits.md` says
+  so.
+- **Tests:** `tests/test_schema_findings.py` (10); one GUI test in
+  `tests/gui/test_findings_views.py`. `tests/test_findings.py`'s
+  rule-use test now scans the whole package (TEST_CHANGES).
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4234 passed in 24 min 31 s, including the regression baseline.
+
 ## Structured warnings: the run's own (2026-10-31)
 
 The transparency plan, Phase 5a, third step. Branch `run-findings`.

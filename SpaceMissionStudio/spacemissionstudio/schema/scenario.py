@@ -69,6 +69,7 @@ from pathlib import Path
 import typing
 from typing import Any
 
+from ..engine.findings import Finding
 from .epochs import parse_epoch_utc
 from .tle_format import TLEError, check_lines
 from .command import Command, command_dict, report_before_propagate_errors, runs_sequence
@@ -307,12 +308,39 @@ class ScenarioValidationError(ValueError):
     hooks it calls) with a specific, actionable message -- never a silent
     NaN or a bare ``KeyError``/``TypeError`` from malformed input, per the
     "clear error messages" requirement this project is built around.
+
+    ``finding`` is the message as an :class:`engine.findings.Finding` when
+    the check names its rule (a limit of the scenario file, Phase 5a), else
+    None; :func:`problem_text` gives whichever there is.
     """
 
+    def __init__(self, *args, finding: Finding | None = None):
+        super().__init__(*args)
+        self.finding = finding
 
-def _require(condition: bool, message: str) -> None:
+
+def problem_text(exc: ScenarioValidationError) -> str:
+    """The error's message, as its Finding when it has a rule."""
+    finding = getattr(exc, "finding", None)
+    return finding if finding is not None else str(exc)
+
+
+def _require(condition: bool, message: str, rule_id: str | None = None, actual: str | None = None,
+             limit: str | None = None) -> None:
+    """Raise ``message`` unless ``condition``. With ``rule_id`` (or a
+    ``message`` that is already a Finding) the error carries its rule."""
     if not condition:
-        raise ScenarioValidationError(message)
+        finding = Finding(message, rule_id, actual, limit) if rule_id else (
+            message if isinstance(message, Finding) else None)
+        raise ScenarioValidationError(str(message), finding=finding)
+
+
+def _prefixed(prefix: str, message: str) -> str:
+    """``f"{prefix}: {message}"``, keeping the rule of a Finding."""
+    text = f"{prefix}: {message}"
+    if isinstance(message, Finding):
+        return Finding(text, message.rule_id, message.actual, message.limit)
+    return text
 
 
 def _is_finite_number(value) -> bool:
@@ -345,8 +373,9 @@ def name_error(what: str, name) -> str | None:
         return (f"{what} name {name!r} contains {shown}: names become file names, so they cannot contain "
                 "/ \\ : * ? \" < > | . or control characters")
     if len(name) > MAX_NAME_CHARS:
-        return (f"{what} name {name[:20]!r}... is {len(name)} characters: names become file names, "
-                f"so at most {MAX_NAME_CHARS}")
+        return Finding(f"{what} name {name[:20]!r}... is {len(name)} characters: names become file names, "
+                       f"so at most {MAX_NAME_CHARS}", "schema.name_length", actual=f"{len(name)} characters",
+                       limit=f"{MAX_NAME_CHARS} characters")
     if name != name.strip():
         return f"{what} name {name!r} must not start or end with a space"
     if name.upper() in _WINDOWS_RESERVED:
@@ -715,9 +744,12 @@ class InstrumentConfig:
 
     def validate(self, spacecraft_name: str) -> None:
         label = f"{spacecraft_name}: data_handling instrument {self.name!r}"
-        _require(bool(self.name) and len(self.name) <= MAX_DATA_NAME_CHARS,
+        _require(bool(self.name), f"{spacecraft_name}: every data_handling instrument needs a name of 1 to "
+                                  f"{MAX_DATA_NAME_CHARS} characters")
+        _require(len(self.name) <= MAX_DATA_NAME_CHARS,
                   f"{spacecraft_name}: every data_handling instrument needs a name of 1 to "
-                  f"{MAX_DATA_NAME_CHARS} characters")
+                  f"{MAX_DATA_NAME_CHARS} characters", "schema.data_name_length",
+                  actual=f"{len(self.name)} characters", limit=f"{MAX_DATA_NAME_CHARS} characters")
         _require(_is_finite_number(self.data_rate_bps) and 0.0 < self.data_rate_bps <= 1.0e11,
                   f"{label}: data_rate_bps must be in (0, 1e11] bit/s")
         _require(_is_finite_number(self.power_w) and self.power_w >= 0, f"{label}: power_w must be >= 0")
@@ -1710,7 +1742,7 @@ class ModelPartConfig:
     diffuse_coeff: float = 0.1  # [-]
 
     def validate(self, where: str, mesh_count: int) -> None:
-        _require(name_error("part", self.name) is None, f"{where}: {name_error('part', self.name)}")
+        _require(name_error("part", self.name) is None, _prefixed(where, name_error("part", self.name)))
         where = f"{where}: part {self.name!r}"
         _require(self.shape in MODEL_SHAPES, f"{where}: shape {self.shape!r} must be one of {MODEL_SHAPES}")
         expected = set(MODEL_SHAPE_DIMENSIONS[self.shape])
@@ -2012,7 +2044,7 @@ class SpacecraftConfig:
                   f"{self.name}: sensor names must be unique, got {sensor_names}")
         for sensor in self.sensors:
             _require(bool(sensor.kind) and bool(sensor.name), f"{self.name}: every sensor needs kind and name")
-            _require(name_error("sensor", sensor.name) is None, f"{self.name}: {name_error('sensor', sensor.name)}")
+            _require(name_error("sensor", sensor.name) is None, _prefixed(self.name, name_error("sensor", sensor.name)))
             _require(sensor.kind in SUPPORTED_SENSOR_KINDS,
                       f"{self.name}: sensor {sensor.name!r} kind {sensor.kind!r} must be one of "
                       f"{SUPPORTED_SENSOR_KINDS}")
@@ -2082,7 +2114,7 @@ class SpacecraftConfig:
         for actuator in self.actuators:
             _require(bool(actuator.kind) and bool(actuator.name), f"{self.name}: every actuator needs kind and name")
             _require(name_error("actuator", actuator.name) is None,
-                     f"{self.name}: {name_error('actuator', actuator.name)}")
+                     _prefixed(self.name, name_error("actuator", actuator.name)))
             _require(actuator.kind in SUPPORTED_ACTUATOR_KINDS,
                       f"{self.name}: actuator {actuator.name!r} kind {actuator.kind!r} must be one of "
                       f"{SUPPORTED_ACTUATOR_KINDS}")
@@ -2591,10 +2623,13 @@ class MonteCarloConfig:
             _require(isinstance(value, int) and not isinstance(value, bool),
                       f"monte_carlo.{key} must be a whole number, got {value!r}")
         _require(1 <= self.num_runs <= MAX_MONTE_CARLO_RUNS,
-                 f"monte_carlo.num_runs must be between 1 and {MAX_MONTE_CARLO_RUNS}, got {self.num_runs}")
+                 f"monte_carlo.num_runs must be between 1 and {MAX_MONTE_CARLO_RUNS}, got {self.num_runs}",
+                 "schema.monte_carlo_runs" if self.num_runs > MAX_MONTE_CARLO_RUNS else None,
+                 actual=f"{self.num_runs}", limit=f"{MAX_MONTE_CARLO_RUNS}")
         _require(1 <= self.thread_count <= MAX_MONTE_CARLO_THREADS,
                  f"monte_carlo.thread_count must be between 1 and {MAX_MONTE_CARLO_THREADS}, "
-                 f"got {self.thread_count}")
+                 f"got {self.thread_count}", "schema.monte_carlo_threads" if self.thread_count > MAX_MONTE_CARLO_THREADS
+                 else None, actual=f"{self.thread_count}", limit=f"{MAX_MONTE_CARLO_THREADS}")
         for dispersion in self.dispersions:
             dispersion.validate()
 
@@ -2654,10 +2689,14 @@ class SimSettings:
     def validate(self) -> None:
         _require(self.duration_days > 0, "sim_settings.duration_days must be > 0")
         _require(self.duration_days <= self._MAX_DURATION_DAYS,
-                  f"sim_settings.duration_days must be <= {self._MAX_DURATION_DAYS:g} days (about 10 years)")
+                  f"sim_settings.duration_days must be <= {self._MAX_DURATION_DAYS:g} days (about 10 years)",
+                  "schema.duration_max", actual=f"{self.duration_days:g} days",
+                  limit=f"{self._MAX_DURATION_DAYS:g} days")
         # 1 ms, the editor's least: 1e-9 s validated and asked for 86 400 billion steps a day (audit R9).
         _require(self.dynamics_task_rate_s >= MIN_DYNAMICS_TASK_RATE_S,
-                  f"sim_settings.dynamics_task_rate_s must be at least {MIN_DYNAMICS_TASK_RATE_S:g} s")
+                  f"sim_settings.dynamics_task_rate_s must be at least {MIN_DYNAMICS_TASK_RATE_S:g} s",
+                  "schema.step_min", actual=f"{self.dynamics_task_rate_s:g} s",
+                  limit=f"{MIN_DYNAMICS_TASK_RATE_S:g} s")
         _require(0.0 <= self.record_interval_s <= 86400.0,
                   "sim_settings.record_interval_s must be in [0, 86400] s (0 = every dynamics step)")
         _require(self.integrator in SUPPORTED_INTEGRATORS,
@@ -2779,9 +2818,12 @@ class Scenario:
         self.gravity.validate()
         _require(len(self.spacecraft) >= 1, "scenario needs at least one spacecraft")
         _require(len(self.spacecraft) <= MAX_SPACECRAFT,
-                  f"scenario has {len(self.spacecraft)} spacecraft; at most {MAX_SPACECRAFT}")
+                  f"scenario has {len(self.spacecraft)} spacecraft; at most {MAX_SPACECRAFT}", "schema.spacecraft_max",
+                  actual=f"{len(self.spacecraft)} spacecraft", limit=f"{MAX_SPACECRAFT}")
         _require(len(self.description) <= MAX_DESCRIPTION_CHARS,
-                  f"scenario.description is {len(self.description)} characters; at most {MAX_DESCRIPTION_CHARS}")
+                  f"scenario.description is {len(self.description)} characters; at most {MAX_DESCRIPTION_CHARS}",
+                  "schema.description_max", actual=f"{len(self.description)} characters",
+                  limit=f"{MAX_DESCRIPTION_CHARS} characters")
         names = [sc.name for sc in self.spacecraft]
         _require(len(names) == len(set(names)), f"spacecraft names must be unique, got {names}")
         # Two names that differ only in case overwrite each other's files on
@@ -2905,7 +2947,9 @@ class Scenario:
                           f"{prefix} must have a 'classical_elements' orbit, not {chief.orbit.type!r}")
                 _require((chief.orbit.eccentricity or 0.0) <= ROE_MAX_CHIEF_ECCENTRICITY,
                           f"{prefix} must be near-circular (eccentricity at most "
-                          f"{ROE_MAX_CHIEF_ECCENTRICITY:g}), not {chief.orbit.eccentricity or 0.0:g}")
+                          f"{ROE_MAX_CHIEF_ECCENTRICITY:g}), not {chief.orbit.eccentricity or 0.0:g}",
+                          "schema.roe_chief_eccentricity", actual=f"{chief.orbit.eccentricity or 0.0:g}",
+                          limit=f"{ROE_MAX_CHIEF_ECCENTRICITY:g}")
                 _require(0.0 < (chief.orbit.inclination_deg or 0.0) < 180.0,
                           f"{prefix} must be inclined: the relative inclination vector needs a node")
                 # Mean elements (clMeanOscMap) and the J2 state transition
@@ -2917,24 +2961,26 @@ class Scenario:
         # (engine/long_run.py); these two cannot be split.
         single_run_days = SimSettings._MAX_SINGLE_RUN_DAYS
         if self.sim_settings.duration_days > single_run_days:
+            one_run = {"rule_id": "schema.single_run", "actual": f"{self.sim_settings.duration_days:g} days",
+                       "limit": f"{single_run_days:g} days"}
             _require(self.gravity.central_body not in SMALL_BODY_CENTRAL_BODIES,
                       f"a run around {self.gravity.central_body!r} is one simulation, at most {single_run_days:g} "
                       "days (sim_settings.duration_days; longer, segmented runs are not verified around small "
-                      "bodies) -- shorten the run")
+                      "bodies) -- shorten the run", **one_run)
             _require(not runs_sequence(self.mission_sequence),
                       f"sim_settings.duration_days is over {single_run_days:g} days, which a mission sequence "
-                      "cannot run -- shorten the run or remove the mission sequence")
+                      "cannot run -- shorten the run or remove the mission sequence", **one_run)
             for sc in self.spacecraft:
                 _require(sc.phasing_keeping is None,
                           f"{sc.name}: phasing_keeping runs at most {single_run_days:g} days "
-                          "(sim_settings.duration_days) -- shorten the run")
+                          "(sim_settings.duration_days) -- shorten the run", **one_run)
                 _require(sc.roe_formation is None,
                           f"{sc.name}: roe_formation runs at most {single_run_days:g} days "
-                          "(sim_settings.duration_days) -- shorten the run")
+                          "(sim_settings.duration_days) -- shorten the run", **one_run)
                 _require(sc.optical_navigation is None,
                           f"{sc.name}: optical_navigation runs at most {single_run_days:g} days "
                           "(sim_settings.duration_days; its filter is not carried between segments) "
-                          "-- shorten the run")
+                          "-- shorten the run", **one_run)
         # engine.service.SimulationService.build() raises a
         # SimulationServiceError for this same condition (power/
         # station_keeping/enable_srp all need the real eclipse shadow
@@ -3375,8 +3421,10 @@ def load_scenario(path: str | Path) -> Scenario:
         with path.open("rb") as stream:  # bounded: a 50 MB file, or /dev/zero, is refused, not read (audit R9)
             data = stream.read(MAX_SCENARIO_FILE_BYTES + 1)
         if len(data) > MAX_SCENARIO_FILE_BYTES:
-            raise ScenarioValidationError(f"{path}: larger than {MAX_SCENARIO_FILE_BYTES // 1_000_000} MB: not a "
-                                          "scenario file")
+            text = f"{path}: larger than {MAX_SCENARIO_FILE_BYTES // 1_000_000} MB: not a scenario file"
+            raise ScenarioValidationError(text, finding=Finding(
+                text, "schema.file_size_max", actual=f"more than {MAX_SCENARIO_FILE_BYTES} bytes",
+                limit=f"{MAX_SCENARIO_FILE_BYTES} bytes"))
         text = data.decode("utf-8")  # as save() writes it, on every platform
     except OSError as exc:
         # Covers a missing file, a directory given by mistake, a

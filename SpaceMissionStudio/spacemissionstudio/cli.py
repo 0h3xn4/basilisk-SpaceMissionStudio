@@ -85,7 +85,7 @@ EXIT_CHECK_FAILED = 5
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
-    loaded = _load_hashed(args.scenario)
+    loaded = _load_hashed(args.scenario, explain=getattr(args, "explain", False))
     if isinstance(loaded, int):
         return loaded
     scenario, file_record = loaded
@@ -236,7 +236,7 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
               "not this run's results; use an empty --out-dir to keep runs apart.", file=sys.stderr)
 
 
-def _load_hashed(path: Path) -> tuple | int:
+def _load_hashed(path: Path, explain: bool = False) -> tuple | int:
     """(scenario, the file's record: ``output_provenance.scenario_file_record``)
     from ``path``, for the provenance of what is made from it (transparency
     audit, Phase 2b, 2c); or exit status 1, the reason printed, when the
@@ -245,6 +245,12 @@ def _load_hashed(path: Path) -> tuple | int:
         return load_scenario(path), output_provenance.scenario_file_record(path)
     except ScenarioValidationError as exc:
         print(f"INVALID: {exc}", file=sys.stderr)
+        if explain:  # the limit it is past (engine.findings), when it names one
+            from .engine.findings import explanation_lines
+            from .schema.scenario import problem_text
+
+            for line in explanation_lines(problem_text(exc)):
+                print(f"  {line}", file=sys.stderr)
         return 1
     except OSError as exc:  # removed or unreadable between the load and the hash
         print(f"INVALID: {path}: could not read file ({exc.strerror or exc})", file=sys.stderr)
@@ -1476,7 +1482,8 @@ def build_parser() -> argparse.ArgumentParser:
     p_validate.add_argument("scenario", type=Path)
     p_validate.add_argument("--explain", action="store_true",
                             help="after each warning, the rule behind it: what it is, what it found against its "
-                                 "limit, why it matters, how to fix it and how to override it")
+                                 "limit, why it matters, how to fix it and how to override it; and the rule of a "
+                                 "scenario file limit an invalid file is past")
     p_validate.set_defaults(func=cmd_validate)
 
     p_run = subparsers.add_parser("run", help="run a scenario headlessly and export results to CSV")

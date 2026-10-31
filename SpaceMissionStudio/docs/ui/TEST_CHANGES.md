@@ -1320,3 +1320,21 @@ never named "_TabBar".
   Each new test fails on the code before (checked by stashing
   `spacemissionstudio/`). The drift explanation test of audit 3.12 is
   unchanged and passes: its warnings are plain strings.
+
+## Structured errors: the scenario file's limits (2026-10-31)
+
+- Changed `tests/test_findings.py::test_every_rule_is_used_by_a_check_and_every_check_names_a_rule`:
+  it counted the rule ids named in the pre-run checks and the run's
+  modules. The schema's limits name theirs in `schema/scenario.py` and
+  `engine/constellation.py`, so it now scans every module of the package
+  (but the rule table itself), and also accepts an id followed by a space
+  (`"schema.monte_carlo_runs" if ...`). The assertion (every rule used)
+  and the check that no pre-run warning is a plain string are unchanged.
+- Added `tests/test_schema_findings.py` (10 tests): each limit refused
+  with its message as before and its rule, value and limit, also in
+  `validate_all`; the single-run, data-name, ROE chief and constellation
+  limits; a check without a limit naming no rule; `validate --explain`.
+- Added `tests/gui/test_findings_views.py::test_a_scenario_file_limit_shows_its_rule_in_problems`.
+
+  Each new test fails on the code before (checked by stashing
+  `spacemissionstudio/`).
