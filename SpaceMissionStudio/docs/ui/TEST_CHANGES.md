@@ -1286,3 +1286,17 @@ never named "_TabBar".
   Each fails on the code before (checked: `engine.findings` does not
   exist there). No existing test changed: the checks' tests compare the
   warnings' text, which is the same.
+
+## Structured warnings in the app (2026-10-31)
+
+- Added `tests/gui/test_findings_views.py` (2 tests): the Problems
+  panel's warning tooltip (its rule, values, parameter, then the hint) and
+  an error's (the hint alone); Explain's notes with their rule as tooltip
+  and accessible description.
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_workspace.py::test_a_stale_model_problem_opens_the_model_editor` | The stale-model warning's tooltip equalled "Double-click to open the 3D model editor" | It starts with "rule model.stale: " and ends with that hint | The tooltip now gives the warning's rule first; the hint is still there, and the rest of the test (double-click opens the editor, OK clears the problem) is unchanged |
+
+  Each new test fails on the code before (checked), and so does the
+  changed assertion.

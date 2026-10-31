@@ -253,6 +253,9 @@ A few things to notice right away:
   scenario invalid opens it, and so does a run that cannot start.
   Warnings, and the problems of a file just opened, only add to the count
   in the status bar and the top bar; click the count to open the panel.
+  Hold the pointer over a warning to see the rule behind it: what it is,
+  what it found against its limit, why it matters, how to fix it and how
+  to override it, with the parameter that sets the limit.
 * The **Calculation** panel, a tab beside the Inspector: how a computed
   number was reached. **Show calculation** on the **Budget** and **End of
   Life** pages, and beside the link budget on the Dashboard, opens it, and
@@ -1254,7 +1257,9 @@ Explain also checks the scenario before you run it:
   a station that is never in view during the run, or whose first pass
   comes late; a Sun-pointing spacecraft with no sun sensor on its
   Sun-facing side; or station-keeping with drag off, whose deadband may
-  never trip. These are warnings only; the run still works.
+  never trip. These are warnings only; the run still works. Hold the
+  pointer over one to see its rule, as in the Problems panel
+  ([Pre-run checks](docs/models/pre-run-checks.md)).
 
 ## 8. Saving your work
 

@@ -487,6 +487,10 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **The app shows a warning's rule:** hold the pointer over a warning in
+  the Problems panel or in Scenario › Overview's "Check before running"
+  to see its rule, what it found against its limit, why it matters, how
+  to fix it and how to override it. Nothing else changes in either view.
 - **Every pre-run warning names its rule:** `spacemissionstudio validate
   --explain` follows each warning with the rule behind it: what it is,
   what it found against its limit, why it matters, how to fix it and how

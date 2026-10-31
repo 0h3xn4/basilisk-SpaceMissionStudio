@@ -5,6 +5,14 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Structured warnings in the app (2026-10-31)
+
+- **On hover, not in a column:** the brief keeps the default UI
+  uncluttered, and a warning's rule is detail asked for once it is
+  noticed. A tooltip (and an accessible description, which a screen
+  reader reads) shows it without a new column or button; the message,
+  the panel's columns and `Ctrl+C`'s rows are as before.
+
 ## Structured warnings (2026-10-31)
 
 The transparency plan's Phase 5a: a warning names its rule, what it

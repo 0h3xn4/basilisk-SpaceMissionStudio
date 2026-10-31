@@ -51,6 +51,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..engine.findings import explanation_lines
 from ..engine.scenario_explainer import ScenarioExplanation, explain
 from ..schema.scenario import Scenario
 from .flow_layout import FlowLayout
@@ -363,6 +364,10 @@ class ScenarioExplainerWidget(QWidget):
                 note_label = QLabel(note)
                 note_label.setWordWrap(True)
                 set_role(note_label, tone="secondary")
+                rule = "\n".join(explanation_lines(note))  # a warning's rule (engine.findings), on hover
+                if rule:
+                    note_label.setToolTip(rule)
+                    note_label.setAccessibleDescription(rule)
                 section_layout.addWidget(note_label)
 
             # The formation-geometry diagram(s) belong right alongside the
