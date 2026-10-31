@@ -487,6 +487,11 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **Every pre-run warning names its rule:** `spacemissionstudio validate
+  --explain` follows each warning with the rule behind it: what it is,
+  what it found against its limit, why it matters, how to fix it and how
+  to override it, with the parameter that sets the limit. The warnings
+  read as before. See `docs/models/pre-run-checks.md`.
 - **Explain's rules are parameters:** the Sun-synchronous label's
   tolerance, the differential-drag note's threshold, the passive-safety
   margin and the camera axis tolerance. A project configuration file

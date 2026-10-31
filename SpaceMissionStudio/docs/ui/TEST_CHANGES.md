@@ -1274,3 +1274,15 @@ never named "_TabBar".
   its cases. Each new case fails on the code before (checked); the
   Lambert test passes on it, as it should (it checks a property the code
   has). No existing assertion changed.
+
+## Structured warnings: the pre-run checks (2026-10-31)
+
+- Added `tests/test_findings.py` (6 tests): every rule complete, named by
+  a check, and naming a real parameter; no plain-string warning left in
+  the checks; a flagged scenario's warnings the same text, with their
+  rule, value and limit, through JSON and pickling; a failing check under
+  `check.not_run`; the explanation's lines; `validate --explain`.
+
+  Each fails on the code before (checked: `engine.findings` does not
+  exist there). No existing test changed: the checks' tests compare the
+  warnings' text, which is the same.

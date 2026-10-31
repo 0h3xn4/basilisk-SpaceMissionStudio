@@ -111,9 +111,14 @@ def cmd_validate(args: argparse.Namespace) -> int:
     from .engine import scenario_checks
 
     base_dir = args.scenario.resolve().parent  # resolves a 3D model's relative mesh paths
+    from .engine.findings import explanation_lines
+
     for warning in (scenario_checks.plausibility_warnings(scenario, base_dir=base_dir)
                     + scenario_checks.scenario_warnings(scenario)):
         print(f"WARNING: {warning}")
+        if getattr(args, "explain", False):  # the rule behind it (engine.findings)
+            for line in explanation_lines(warning):
+                print(f"  {line}")
     return 0
 
 
@@ -1459,6 +1464,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_validate = subparsers.add_parser("validate", help="validate a scenario file (no Basilisk needed)")
     p_validate.add_argument("scenario", type=Path)
+    p_validate.add_argument("--explain", action="store_true",
+                            help="after each warning, the rule behind it: what it is, what it found against its "
+                                 "limit, why it matters, how to fix it and how to override it")
     p_validate.set_defaults(func=cmd_validate)
 
     p_run = subparsers.add_parser("run", help="run a scenario headlessly and export results to CSV")

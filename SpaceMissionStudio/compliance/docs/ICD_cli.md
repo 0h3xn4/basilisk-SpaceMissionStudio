@@ -15,6 +15,7 @@ validate a scenario file (no Basilisk needed)
 | Argument | Help |
 |---|---|
 | `scenario` |  |
+| `--explain` | after each warning, the rule behind it: what it is, what it found against its limit, why it matters, how to fix it and how to override it |
 
 ## `run`
 
