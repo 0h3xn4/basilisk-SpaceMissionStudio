@@ -2729,6 +2729,125 @@ class FswExportRecord:
         _require(isinstance(self.parts, dict), f"fsw_exports[{self.spacecraft}].parts must be a mapping")
 
 
+#: ValueMark.state values (the transparency plan, Phase 5b).
+VALUE_MARK_STATES = ("computed", "overridden")
+
+_PATH_NAME = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
+
+
+def resolve_value_path(scenario, path: str) -> tuple:
+    """``(record, field)`` of the scenario value ``path`` names, such as
+    ``"sim_settings.duration_days"`` or
+    ``"spacecraft[sat-1].orbit.inclination_deg"``: dotted field names, a
+    list item in brackets by its ``name`` (or its index for a list of
+    unnamed records). Names cannot hold a ".", so a key ends at the first
+    "]" that is followed by "." or ends the path. Raises ValueError, saying
+    why, when ``path`` names no field of a record."""
+    if not isinstance(path, str) or not path:
+        raise ValueError("the path is empty")
+    record, position, parts = scenario, 0, []
+    while True:
+        match = _PATH_NAME.match(path, position)
+        if match is None:
+            raise ValueError(f"{path!r} is not a path of field names")
+        name, position = match.group(0), match.end()
+        if not dataclasses.is_dataclass(record) or name not in {f.name for f in dataclasses.fields(record)
+                                                                 if f.init}:
+            raise ValueError(f"{'.'.join(parts) or 'the scenario'} has no field {name!r}")
+        parts.append(name)
+        if position == len(path):
+            return record, name
+        value = getattr(record, name)
+        if path[position] == "[":
+            end = path.find("].", position)
+            end = end if end != -1 else (len(path) - 1 if path.endswith("]") else -1)
+            if end == -1 or not isinstance(value, list):
+                raise ValueError(f"{'.'.join(parts)} is not a list with an item {path[position:]!r}")
+            key = path[position + 1:end]
+            named = [item for item in value if getattr(item, "name", None) == key]
+            if named:
+                value = named[0]
+            elif key.isdigit() and int(key) < len(value):
+                value = value[int(key)]
+            else:
+                raise ValueError(f"{'.'.join(parts)} has no item {key!r}")
+            position = end + 1
+            if position == len(path):
+                raise ValueError(f"{path!r} names a list item, not a field")
+        if path[position] != ".":
+            raise ValueError(f"{path!r} is not a path of field names")
+        record, position = value, position + 1
+
+
+@dataclass
+class ValueMark:
+    """A value of the scenario that SpaceMissionStudio computed or
+    suggested (the transparency plan, Phase 5b).
+
+    ``state`` "computed": the field was filled with ``value`` by
+    ``source`` (the Sun-synchronous inclination, a wizard's value, a
+    catalog preset), and is shown as computed until it is edited.
+    "overridden": the scenario's value replaces ``value`` on purpose, for
+    ``reason`` (required). ``author`` and ``time_utc`` say who marked it
+    and when, if known. ``path`` is :func:`resolve_value_path`'s."""
+
+    path: str
+    state: str
+    value: float  # the value computed or suggested, in the field's own unit
+    source: str  # what computed or suggested it
+    reason: str = ""  # why the scenario's value replaces it: required when overridden
+    author: str = ""
+    time_utc: str = ""  # ISO 8601 UTC
+
+    def validate(self, scenario, index: int) -> None:
+        where = f"value_marks[{index}]"
+        _require(isinstance(self.path, str) and bool(self.path), f"{where}.path must name a value")
+        where = f"{where} ({self.path})"
+        try:
+            record, name = resolve_value_path(scenario, self.path)
+        except ValueError as exc:
+            raise ScenarioValidationError(f"{where}: {exc}") from None
+        _require(_is_finite_number(getattr(record, name)),
+                 f"{where}: the scenario's value is {getattr(record, name)!r}, not a number -- set it, or remove "
+                 "the mark")
+        _require(self.state in VALUE_MARK_STATES, f"{where}.state must be one of {VALUE_MARK_STATES}")
+        _require(_is_finite_number(self.value), f"{where}.value must be a finite number")
+        _require(isinstance(self.source, str) and bool(self.source.strip()),
+                 f"{where}.source must say what computed the value")
+        for key in ("reason", "author", "time_utc"):
+            _require(isinstance(getattr(self, key), str), f"{where}.{key} must be text")
+        _require(self.state != "overridden" or bool(self.reason.strip()),
+                 f"{where}: an overridden value needs a reason")
+        if self.time_utc:
+            try:
+                datetime.fromisoformat(self.time_utc)
+            except ValueError:
+                raise ScenarioValidationError(f"{where}.time_utc {self.time_utc!r} is not an ISO 8601 time") from None
+
+
+def value_mark_status(scenario, mark: ValueMark) -> str:
+    """"overridden"; "computed" while the scenario's value is the one
+    computed (exactly: the field holds the number that was written); or
+    "edited" once it differs, the mark then only recording what was
+    computed."""
+    if mark.state == "overridden":
+        return "overridden"
+    record, name = resolve_value_path(scenario, mark.path)
+    return "computed" if getattr(record, name) == mark.value else "edited"
+
+
+def value_mark_records(scenario) -> list[dict]:
+    """Each mark with its status and the value the scenario uses, as the
+    provenance records them."""
+    records = []
+    for mark in scenario.value_marks:
+        record, name = resolve_value_path(scenario, mark.path)
+        records.append({"path": mark.path, "status": value_mark_status(scenario, mark),
+                        "value_used": getattr(record, name), "value": mark.value, "source": mark.source,
+                        "reason": mark.reason, "author": mark.author, "time_utc": mark.time_utc})
+    return records
+
+
 SUPPORTED_SIMULATION_MODES = ("full_attitude", "orbit_only")
 
 
@@ -2785,6 +2904,11 @@ class Scenario:
     # left out of the scenario's hash and of comparisons; the run's
     # provenance records the file's SHA-256 and each value it changes.
     configuration: object = field(default=None, init=False, compare=False, repr=False, metadata={"transient": True})
+    # The values SpaceMissionStudio computed or suggested, and those that
+    # replace one on purpose (ValueMark; the transparency plan, Phase 5b).
+    # Written only when there is one: a scenario without saves, and
+    # hashes, as before.
+    value_marks: list = field(default_factory=list)  # list[ValueMark]
 
     def _validate_small_body(self) -> None:
         """Checks for a run around a small body (``SMALL_BODY_CENTRAL_BODIES``)."""
@@ -2842,6 +2966,11 @@ class Scenario:
         exported = [record.spacecraft for record in self.fsw_exports]
         _require(len(exported) == len(set(exported)),
                  f"fsw_exports lists a spacecraft more than once: {exported}")
+        for index, mark in enumerate(self.value_marks):
+            _require(isinstance(mark, ValueMark), f"value_marks[{index}] must be a value mark")
+            mark.validate(self, index)
+        marked = [mark.path for mark in self.value_marks]
+        _require(len(marked) == len(set(marked)), f"value_marks marks a value more than once: {marked}")
         flexible = [sc.name for sc in self.spacecraft if sc.solar_arrays]
         _require(not flexible or self.sim_settings.integrator in ("rkf45", "rkf78"),
                   f"{flexible[0] if flexible else ''}: flexible solar arrays need an adaptive integrator "
@@ -3139,6 +3268,8 @@ class Scenario:
         data.pop("configuration")  # read from config_file where the scenario is loaded, never saved
         if data["config_file"] is None:  # written only when set: a scenario without one saves, and hashes, as before
             del data["config_file"]
+        if not data["value_marks"]:  # the same
+            del data["value_marks"]
         return data
 
     @staticmethod
@@ -3194,10 +3325,11 @@ class Scenario:
         mission_sequence = [Command.from_dict(_fields_of(c, f"mission_sequence[{index}]"))
                             for index, c in enumerate(_items(data.pop("mission_sequence", []), "mission_sequence"))]
         fsw_exports = _records(FswExportRecord, data.pop("fsw_exports", []), "fsw_exports")
+        value_marks = _records(ValueMark, data.pop("value_marks", []), "value_marks")
 
         data.update(gravity=gravity, sim_settings=sim_settings, space_weather=space_weather,
                     ground_stations=ground_stations, spacecraft=spacecraft, monte_carlo=monte_carlo,
-                    mission_sequence=mission_sequence, fsw_exports=fsw_exports)
+                    mission_sequence=mission_sequence, fsw_exports=fsw_exports, value_marks=value_marks)
         return _record(Scenario, data, "the scenario")
 
     def save(self, path: str | Path) -> None:

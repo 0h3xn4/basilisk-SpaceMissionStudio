@@ -146,9 +146,18 @@ class RunProvenance:
     # {parameter: {value, default, unit, source}}}. Empty overrides: every
     # parameter at its default. Empty in a record from before it was kept.
     configuration: dict[str, object] = field(default_factory=dict)
+    # The scenario's computed and overridden values (the transparency plan,
+    # Phase 5b; schema.scenario.value_mark_records): each one's path,
+    # status ("computed", "edited", "overridden"), the value used, the
+    # value computed, its source and, for an override, the reason. Empty
+    # when the scenario marks none, and in a record from before.
+    value_marks: list[dict[str, object]] = field(default_factory=list)
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        record = asdict(self)
+        if not record["value_marks"]:  # recorded only when there are some: a run's record is as before without
+            del record["value_marks"]
+        return record
 
     def summary_lines(self) -> list[str]:
         """Short ASCII lines to embed in an output (a CCSDS COMMENT, a plot's

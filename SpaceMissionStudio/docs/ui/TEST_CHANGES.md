@@ -1338,3 +1338,15 @@ never named "_TabBar".
 
   Each new test fails on the code before (checked by stashing
   `spacemissionstudio/`).
+
+## Computed and overridden values (2026-11-01)
+
+- Added `tests/test_scenario_hashes.py` and its baseline
+  `tests/data/scenario_hashes.json`, recorded on the code before the
+  change and passing there: every template's saved text and scenario
+  hash.
+- Added `tests/test_value_marks.py` (24 tests): the round trip, the
+  statuses, the paths, the rules, the provenance records. They fail on
+  the code before (checked: `ValueMark` does not exist there).
+
+No existing test changed.
