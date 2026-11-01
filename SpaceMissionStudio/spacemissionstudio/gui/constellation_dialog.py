@@ -178,6 +178,16 @@ class WalkerConstellationDialog(QDialog):
                 sun_synchronous_inclination_deg(semi_major_axis_km, self.eccentricity.value()))
         except ValueError as exc:  # too high an orbit to be Sun-synchronous
             show_dialog_error(self, f"No Sun-synchronous inclination: {exc}")
+            return
+        self._sun_synchronous = (self.inclination_deg.value(), (
+            f"Sun-synchronous inclination at a = {semi_major_axis_km:g} km, e = {self.eccentricity.value():g} "
+            f"(engine.orbit_design), rounded to {self.inclination_deg.decimals()} decimals"))
+
+    def inclination_source(self) -> str | None:
+        """What computed the inclination, while it is the Sun-synchronous
+        button's value (Phase 5b); None once edited, or never computed."""
+        computed = getattr(self, "_sun_synchronous", None)
+        return computed[1] if computed is not None and computed[0] == self.inclination_deg.value() else None
 
     def to_request(self) -> WalkerConstellationRequest:
         request = WalkerConstellationRequest(

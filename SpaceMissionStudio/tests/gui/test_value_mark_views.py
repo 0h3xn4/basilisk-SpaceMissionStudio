@@ -147,6 +147,73 @@ def test_a_scenario_with_marks_opens_with_its_notes(qtbot):
     assert widget.to_scenario().value_marks == scenario.value_marks
 
 
+def test_the_wizard_marks_the_inclination_it_recomputes(qtbot):
+    """A starter template's wizard keeps the orbit Sun-synchronous at the
+    new size: the inclination it recomputes is marked computed."""
+    from spacemissionstudio.engine.orbit_design import sun_synchronous_inclination_deg
+    from spacemissionstudio.gui.load_scenario_widget import TEMPLATES_DIR
+    from spacemissionstudio.gui.template_wizard import TemplateCustomizeWizard, get_wizard_spec
+    from spacemissionstudio.schema import load_scenario
+
+    name = "22_starter_first_leo_satellite.json"
+    wizard = TemplateCustomizeWizard(load_scenario(TEMPLATES_DIR / name), get_wizard_spec(name))
+    qtbot.addWidget(wizard)
+    wizard.page(0)._boxes[0].setValue(6978.0)  # [km] semi-major axis, 600 km
+    wizard.accept()
+    result = wizard.result_scenario()
+    result.validate()
+    (mark,) = result.value_marks
+    orbit = result.spacecraft[0].orbit
+    assert mark.path == f"spacecraft[{result.spacecraft[0].name}].orbit.inclination_deg"
+    assert mark.value == orbit.inclination_deg == sun_synchronous_inclination_deg(6978.0, orbit.eccentricity)
+    assert "set by the template's wizard" in mark.source
+
+
+def test_a_generated_constellation_is_marked_computed(qtbot, monkeypatch):
+    """Generate Walker constellation... marks each satellite's computed
+    elements, and its Sun-synchronous inclination when the dialog's button
+    set it; the satellites' pages show the notes."""
+    from PySide6.QtWidgets import QDialog
+
+    from spacemissionstudio.engine.constellation import WalkerConstellationRequest
+    from spacemissionstudio.gui import constellation_dialog
+    from spacemissionstudio.gui.scenario_editor import ScenarioEditorWidget
+    from spacemissionstudio.schema import load_scenario
+
+    class _Dialog:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def exec(self):
+            return QDialog.DialogCode.Accepted
+
+        def to_request(self):
+            return WalkerConstellationRequest(total_satellites=2, num_planes=2, phasing_factor=0, altitude_km=550.0,
+                                              inclination_deg=97.5976, name_prefix="walker")
+
+        def selected_template_name(self):
+            return None
+
+        def inclination_source(self):
+            return "Sun-synchronous inclination at a = 6928.14 km, e = 0 (engine.orbit_design)"
+
+    monkeypatch.setattr(constellation_dialog, "WalkerConstellationDialog", _Dialog)
+    editor = ScenarioEditorWidget()
+    qtbot.addWidget(editor)
+    editor.from_scenario(load_scenario(next(_TEMPLATES.glob("01_*.json"))))  # two-body: no J2
+    editor.spacecraft_list._on_generate_constellation()
+    editor.revalidate()
+    marks = {mark.path: mark for mark in editor.to_scenario().value_marks}
+    assert marks["spacecraft[walker-02-01].orbit.raan_deg"].value == 180.0
+    inclination = marks["spacecraft[walker-01-01].orbit.inclination_deg"]
+    assert inclination.value == 97.5976 and inclination.source.startswith("Sun-synchronous")
+    row = [c.name for c in editor.spacecraft_list.to_list()].index("walker-02-01")
+    editor.show_spacecraft(row)
+    qtbot.waitUntil(lambda: editor._spacecraft_nodes[row].form is not None)
+    notes = editor._spacecraft_nodes[row].form.orbit_widget.mark_notes
+    assert notes["raan_deg"].status == "computed" and "plane 2 of 2" in notes["raan_deg"].label.text()
+
+
 def test_the_note_says_what_an_edit_changes(editor, qtbot):
     """An edited Sun-synchronous inclination: the note says the node now
     drifts from the Sun; back at the computed value, it says nothing more."""

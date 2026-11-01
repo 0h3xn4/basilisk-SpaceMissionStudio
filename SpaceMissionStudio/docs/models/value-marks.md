@@ -110,8 +110,24 @@ edited, which is what it is.
 - **Undo, the JSON view and saving** carry the marks with the rest of the
   scenario.
 
-Not yet marked: the wizard's values, the Walker constellation
-generator's and the spacecraft presets' (later steps).
+## What else marks itself
+
+- **The template wizard:** a starter template's orbit page keeps the orbit
+  Sun-synchronous at the size you choose; the inclination it recomputes
+  is marked computed ("..., set by the template's wizard"). A field you
+  leave as it is is not written, so it gets no mark.
+- **Generate Walker constellation...:** each satellite's semi-major axis
+  (the body's equatorial radius plus the altitude), RAAN (its plane) and
+  mean anomaly (its slot), with the pattern, plane and slot in the
+  source. With J2 in the run the generator writes osculating elements
+  from the pattern's mean ones, so all six are marked, the anomaly as a
+  true anomaly. The inclination is the one you typed, so it is marked
+  only with J2, or when the dialog's **Sun-synchronous** button set it.
+
+Not marked: a spacecraft preset's values (**New from template...**). A
+preset fills dozens of fields, mass, inertia, devices, which would give a
+spacecraft dozens of marks; how to record a preset is still to be
+decided.
 
 ## Checked against
 

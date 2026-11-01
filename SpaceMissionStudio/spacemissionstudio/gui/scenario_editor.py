@@ -63,6 +63,7 @@ from ..schema.scenario import (
     ValueMark,
     live_value_marks,
     problem_text,
+    put_value_marks,
     rename_in_value_marks,
     resolve_value_path,
     value_mark_status,
@@ -388,6 +389,7 @@ class ScenarioEditorWidget(QWidget):
         )
         self.spacecraft_list.set_epoch_provider(lambda: self.epoch_edit.text().strip())
         self._base_dir_provider = None  # set_base_dir_provider
+        self.spacecraft_list.value_marks_made.connect(self._on_value_marks_made)  # before its changed
         self.spacecraft_list.changed.connect(self.changed)
         self.spacecraft_list.changed.connect(self._refresh_monte_carlo_spacecraft_names)
         layout.addWidget(self.spacecraft_list)
@@ -1137,10 +1139,14 @@ class ScenarioEditorWidget(QWidget):
         """A form's button computed ``path``'s value: marked computed, in
         place of any mark it had."""
         full = f"spacecraft[{node.config.name}].{path}"
-        self._value_marks = [mark for mark in self._value_marks if mark.path != full]
-        self._value_marks.append(ValueMark(full, "computed", value, source,
-                                           time_utc=datetime.now(UTC).isoformat(timespec="seconds")))
+        self._value_marks = put_value_marks(self._value_marks, [ValueMark(
+            full, "computed", value, source, time_utc=datetime.now(UTC).isoformat(timespec="seconds"))])
         self.changed.emit()
+
+    def _on_value_marks_made(self, marks: list) -> None:
+        """A generator's computed values (the Walker constellation), kept
+        in place of earlier marks of the same values."""
+        self._value_marks = put_value_marks(self._value_marks, marks)
 
     def _on_reason_requested(self, node: _FormNode, path: str) -> None:
         """Give a reason... for an edited computed value: asked for, and the

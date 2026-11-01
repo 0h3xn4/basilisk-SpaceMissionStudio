@@ -2918,6 +2918,8 @@ class SpacecraftListWidget(QWidget):
 
     changed = Signal()
     reloaded = Signal()  # from_list() replaced every entry (a load, an undo): not an edit
+    # Values a generator computed into the spacecraft it added (ValueMark list, Phase 5b).
+    value_marks_made = Signal(list)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -3280,6 +3282,13 @@ class SpacecraftListWidget(QWidget):
         self._configs.extend(generated)
         self._refresh_list()
         self.list_widget.setCurrentRow(len(self._configs) - 1)
+        from datetime import UTC, datetime
+
+        from ..engine.constellation import walker_value_marks
+
+        self.value_marks_made.emit(walker_value_marks(
+            request, generated, j2=self._simulated_j2(central_body), inclination_source=dialog.inclination_source(),
+            time_utc=datetime.now(UTC).isoformat(timespec="seconds")))
         show_toast(self.window(), f"Generated {len(generated)} constellation spacecraft")
         self.changed.emit()
 

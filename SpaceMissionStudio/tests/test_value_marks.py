@@ -196,3 +196,47 @@ def test_a_rename_carries_the_marks_and_a_removal_drops_them():
     assert live_value_marks(scenario, scenario.value_marks) == [scenario.value_marks[0]]
     scenario.spacecraft[0].orbit.inclination_deg = None
     assert live_value_marks(scenario, scenario.value_marks) == []
+
+
+def _walker_request(**changes):
+    from spacemissionstudio.engine.constellation import WalkerConstellationRequest
+
+    request = dict(total_satellites=4, num_planes=2, phasing_factor=1, altitude_km=550.0, inclination_deg=53.0)
+    request.update(changes)
+    return WalkerConstellationRequest(**request)
+
+
+def test_the_walker_generator_marks_what_it_computed():
+    """Each satellite's semi-major axis, RAAN and mean anomaly, at the
+    values written, with its plane and slot; the inclination only when
+    something computed it."""
+    from spacemissionstudio.engine.constellation import generate_walker_constellation, walker_value_marks
+
+    request = _walker_request()
+    generated = generate_walker_constellation(request, _scenario().spacecraft[0])
+    marks = walker_value_marks(request, generated)
+    assert len(marks) == 3 * 4
+    by_path = {mark.path: mark for mark in marks}
+    third = generated[2]  # plane 2, slot 1
+    raan = by_path[f"spacecraft[{third.name}].orbit.raan_deg"]
+    assert raan.value == third.orbit.raan_deg and "plane 2 of 2, slot 1 of 2" in raan.source
+    assert "Walker delta 4/2/1 at 550 km" in raan.source
+    assert by_path[f"spacecraft[{third.name}].orbit.mean_anomaly_deg"].value == third.orbit.mean_anomaly_deg
+    assert not any(path.endswith("inclination_deg") for path in by_path)
+    marks = walker_value_marks(request, generated, inclination_source="Sun-synchronous inclination at ...")
+    assert by_path[f"spacecraft[{third.name}].orbit.raan_deg"].state == "computed"
+    assert sum(mark.path.endswith("inclination_deg") for mark in marks) == 4
+
+
+@pytest.mark.requires_basilisk
+def test_with_j2_every_osculating_element_is_marked():
+    from spacemissionstudio.engine.constellation import generate_walker_constellation, walker_value_marks
+
+    request = _walker_request()
+    generated = generate_walker_constellation(request, _scenario().spacecraft[0], j2=1.08262668e-3)
+    marks = walker_value_marks(request, generated, j2=1.08262668e-3)
+    assert len(marks) == 6 * 4 and all("osculating from the mean elements with J2" in m.source for m in marks)
+    scenario = _scenario()
+    scenario.spacecraft = generated
+    scenario.value_marks = marks
+    assert {record["status"] for record in value_mark_records(scenario)} == {"computed"}

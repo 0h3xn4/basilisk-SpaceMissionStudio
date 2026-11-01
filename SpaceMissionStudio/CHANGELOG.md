@@ -494,6 +494,11 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   time, a semi-major axis's change of period, or else the difference.
   The provenance records the same lines. See
   `docs/models/value-marks.md`.
+- **Generated orbits are marked computed too:** **Generate Walker
+  constellation...** marks each satellite's semi-major axis, RAAN and
+  anomaly (all six elements with J2), naming its plane and slot, and the
+  inclination when the dialog's Sun-synchronous button set it. A starter
+  template's wizard marks the Sun-synchronous inclination it recomputes.
 - **The editor marks computed values, and records why one was changed:**
   **Compute Sun-sync inclination for this altitude** and **Compute RAAN
   for LTAN...** mark the value they write as computed, with a note under

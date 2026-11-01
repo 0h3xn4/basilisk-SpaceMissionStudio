@@ -14539,6 +14539,30 @@ The transparency plan, Phase 5b ("explains the consequence"). Branch
 
 Full suite on Python 3.14: 4304 passed in 18 min 37 s, including the regression baseline.
 
+## Computed and overridden values: the generators (2026-11-01)
+
+The transparency plan, Phase 5b, third step. Branch `generator-marks`.
+
+- **`engine.constellation.walker_value_marks`:** the generator's computed
+  values as marks, per satellite: semi-major axis, RAAN, mean anomaly;
+  with J2 all six osculating elements (true anomaly). The inclination
+  only with J2 or an `inclination_source`.
+- **`WalkerConstellationDialog.inclination_source`:** the Sun-synchronous
+  button's source while the inclination is still its value.
+- **`SpacecraftListWidget.value_marks_made`:** emitted before `changed`;
+  the scenario editor keeps them (`put_value_marks`, a mark in place of
+  one of the same path, now used for the orbit buttons too).
+- **Template wizard:** `_set_sun_synchronous_semi_major_axis` marks the
+  inclination it recomputes. The wizard writes only the fields changed,
+  so an untouched template has no mark (its round-trip test unchanged).
+- **Not marked: presets.** A preset fills dozens of fields; marking each
+  would bury the scenario in marks. The way to record a preset is open.
+- **Tests:** 2 in `tests/test_value_marks.py`, 2 in
+  `tests/gui/test_value_mark_views.py`. No existing test changed.
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4300 passed in 17 min 4 s, including the regression baseline.
+
 ## Computed and overridden values: the editor (2026-11-01)
 
 The transparency plan, Phase 5b, second step. Branch `computed-marks`.
