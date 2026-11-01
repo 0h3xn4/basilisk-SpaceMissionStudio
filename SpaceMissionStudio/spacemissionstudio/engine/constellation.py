@@ -92,7 +92,7 @@ from dataclasses import dataclass
 
 from .. import constants
 from .findings import Finding
-from ..schema.scenario import MAX_SPACECRAFT, OrbitIC, ScenarioValidationError, SpacecraftConfig
+from ..schema.scenario import MAX_SPACECRAFT, OrbitIC, ScenarioValidationError, SpacecraftConfig, ValueMark
 
 # [km] equatorial radius and J2 [-] of the central bodies a run can use: the
 # one set (spacemissionstudio.constants, Basilisk's astroConstants.h), which a
@@ -204,6 +204,42 @@ def generate_walker_constellation(request: WalkerConstellationRequest,
                 sc.orbit = osculating_orbit(sc.orbit, radius_km * 1000.0, j2)
             spacecraft.append(sc)
     return spacecraft
+
+
+def walker_value_marks(request: WalkerConstellationRequest, generated: list[SpacecraftConfig], j2: float = 0.0,
+                       inclination_source: str | None = None, time_utc: str = "") -> list[ValueMark]:
+    """The values :func:`generate_walker_constellation` computed into
+    ``generated``'s orbits, marked computed (the transparency plan, Phase
+    5b): each satellite's semi-major axis (radius + altitude), RAAN (its
+    plane) and anomaly (its slot); with ``j2`` all six elements, which are
+    osculating ones from the pattern's mean elements. The inclination is
+    the request's own, so it is marked only with J2 or when
+    ``inclination_source`` says what computed it (the dialog's
+    Sun-synchronous button)."""
+    pattern = (f"Walker {request.pattern} {request.total_satellites}/{request.num_planes}/"
+               f"{request.phasing_factor} at {request.altitude_km:g} km")
+    how = ", osculating from the mean elements with J2 (engine.constellation)" if j2 > 0.0 else \
+        " (engine.constellation)"
+    sats_per_plane = request.total_satellites // request.num_planes
+    marks = []
+    for index, sc in enumerate(generated):
+        plane, slot = divmod(index, sats_per_plane)
+        where = f"{pattern}: plane {plane + 1} of {request.num_planes}, slot {slot + 1} of {sats_per_plane}"
+        sources = {
+            "semi_major_axis_km": f"{pattern}: the body's equatorial radius + the altitude{how}",
+            "raan_deg": f"{where}{how}",
+            "true_anomaly_deg" if j2 > 0.0 else "mean_anomaly_deg": f"{where}{how}",
+        }
+        if j2 > 0.0:
+            sources.update(eccentricity=f"{pattern}{how}", arg_periapsis_deg=f"{pattern}{how}",
+                           inclination_deg=f"{pattern}{how}" + (f"; mean inclination: {inclination_source}"
+                                                                if inclination_source else ""))
+        elif inclination_source:
+            sources["inclination_deg"] = inclination_source
+        for field, source in sources.items():
+            marks.append(ValueMark(f"spacecraft[{sc.name}].orbit.{field}", "computed",
+                                   float(getattr(sc.orbit, field)), source, time_utc=time_utc))
+    return marks
 
 
 def osculating_orbit(mean_orbit: OrbitIC, req_m: float, j2: float) -> OrbitIC:

@@ -1362,3 +1362,14 @@ No existing test changed.
 
   Each fails on the code before (checked by stashing
   `spacemissionstudio/`). No existing test changed.
+
+## Computed and overridden values from the generators (2026-11-01)
+
+- Added `tests/test_value_marks.py::test_the_walker_generator_marks_what_it_computed`
+  and `::test_with_j2_every_osculating_element_is_marked`.
+- Added `tests/gui/test_value_mark_views.py::test_the_wizard_marks_the_inclination_it_recomputes`
+  and `::test_a_generated_constellation_is_marked_computed`.
+
+  Each fails on the code before (checked by stashing
+  `spacemissionstudio/`). No existing test changed: the wizard's
+  round-trip test still finds an untouched template unchanged.

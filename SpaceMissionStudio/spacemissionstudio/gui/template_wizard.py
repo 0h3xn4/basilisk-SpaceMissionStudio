@@ -437,9 +437,19 @@ def _set_sun_synchronous_semi_major_axis(scenario: Scenario, value: float) -> No
     # reproduces the template exactly).
     from ..engine.orbit_design import sun_synchronous_inclination_deg
 
-    orbit = _sc(scenario).orbit
+    from datetime import UTC, datetime
+
+    from ..schema.scenario import ValueMark, put_value_marks
+
+    sc = _sc(scenario)
+    orbit = sc.orbit
     orbit.semi_major_axis_km = value
     orbit.inclination_deg = sun_synchronous_inclination_deg(value, orbit.eccentricity)
+    # Marked computed (Phase 5b): the editor shows it so, until it is edited.
+    scenario.value_marks = put_value_marks(scenario.value_marks, [ValueMark(
+        f"spacecraft[{sc.name}].orbit.inclination_deg", "computed", orbit.inclination_deg,
+        f"Sun-synchronous inclination at a = {value:g} km, e = {orbit.eccentricity:g} (engine.orbit_design), "
+        "set by the template's wizard", time_utc=datetime.now(UTC).isoformat(timespec="seconds"))])
 
 
 def _orbit_element_spread(key: str):
