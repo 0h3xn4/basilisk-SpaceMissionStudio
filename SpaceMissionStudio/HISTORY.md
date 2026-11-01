@@ -14514,6 +14514,23 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Computed and overridden values: Explain and Results (2026-11-01)
+
+The transparency plan, Phase 5b ("marks the value as overridden in every
+view"). Branch `marks-shown`.
+
+- **`engine.scenario_explainer`:** `_value_marks_section` (after the
+  checks): badges counting each status, a note per value not as computed
+  (`value_mark_lines`: path, values, reason, consequences).
+- **`gui.results_widget`:** the provenance line ends "· N value(s)
+  overridden" and "· N value(s) edited" when the run's provenance records
+  some; the tooltip lists them. A run without them reads as before.
+- **Tests:** one in `tests/test_value_consequences.py`, one in
+  `tests/gui/test_results_widget.py`. No existing test changed.
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4310 passed in 18 min 32 s, including the regression baseline.
+
 ## Computed and overridden values: what a change does (2026-11-01)
 
 The transparency plan, Phase 5b ("explains the consequence"). Branch

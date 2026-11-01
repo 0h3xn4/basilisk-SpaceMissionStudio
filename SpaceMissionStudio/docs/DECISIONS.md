@@ -5,6 +5,15 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Computed and overridden values in Explain and Results (2026-11-01)
+
+- **Changed values listed, computed ones counted:** a Walker
+  constellation marks hundreds of computed values; listing each would
+  bury the one an engineer replaced. A value still as computed is
+  counted; a changed one gets its line.
+- **The provenance line names them only when there are some:** the
+  default line is as before.
+
 ## What a changed computed value changes (2026-11-01)
 
 - **Analytic, not simulated:** the note updates as the field is typed;

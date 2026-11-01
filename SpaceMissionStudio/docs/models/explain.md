@@ -11,6 +11,13 @@ Code: `spacemissionstudio/engine/scenario_explainer.py`,
 gets a shorter summary, not an error. Its warnings come from the
 [pre-run checks](pre-run-checks.md); the rules below are Explain's own.
 
+## The computed and overridden values
+
+When the scenario marks values (see
+[Computed and overridden values](value-marks.md)), a section counts them
+and lists each value used in place of the one computed, with its reason
+and what it changes. It reads the marks; it has no rule of its own.
+
 ## Explain's rules
 
 - **The Sun-synchronous label:** a classical-elements orbit about a body

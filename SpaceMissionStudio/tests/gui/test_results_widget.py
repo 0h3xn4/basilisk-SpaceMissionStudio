@@ -1516,3 +1516,31 @@ def test_a_run_warnings_tooltip_gives_each_warnings_rule(widget):
     assert reentry_rule.startswith("rule run.reentry_stopped: ") and "limit 100 km" in reentry_rule
     assert "dynamics.reentry_altitude_km" in reentry_rule
     assert drift_rule.startswith("rule run.energy_drift: ") and "found 2.0%; limit 1%" in drift_rule
+
+
+def test_the_provenance_line_names_the_values_used_in_place_of_computed_ones(widget):
+    """Phase 5b: a run that used an overridden or edited value says so on
+    its provenance line, and its tooltip lists them; a run without one is
+    as before."""
+    import dataclasses
+
+    from spacemissionstudio.engine.results import RunProvenance
+
+    rs = _sample_result_set()
+    rs.provenance = RunProvenance(spacemissionstudio_version="9.9.9", basilisk_version="2.12.0",
+                                  run_started_utc="2030-01-01T00:00:00+00:00", integrator="rkf78",
+                                  dynamics_task_rate_s=10.0)
+    widget.set_result(rs)
+    plain = widget.provenance_label.text()
+    assert "overridden" not in plain and "Values used" not in widget.provenance_label.toolTip()
+    rs.provenance = dataclasses.replace(rs.provenance, value_marks=[
+        {"path": "spacecraft[sat-1].orbit.inclination_deg", "status": "overridden", "value_used": 98.0,
+         "value": 97.87, "source": "Sun-synchronous", "reason": "the launcher's orbit", "consequences": []},
+        {"path": "spacecraft[sat-1].orbit.raan_deg", "status": "computed", "value_used": 10.0, "value": 10.0,
+         "source": "LTAN", "reason": "", "consequences": []},
+    ])
+    widget.set_result(rs)
+    assert widget.provenance_label.text() == plain + " · 1 value overridden"
+    assert ("spacecraft[sat-1].orbit.inclination_deg: overridden, 98 in place of 97.87 (the launcher's orbit)"
+            in widget.provenance_label.toolTip())
+    assert "raan_deg" not in widget.provenance_label.toolTip()

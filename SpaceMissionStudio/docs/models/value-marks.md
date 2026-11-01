@@ -89,6 +89,18 @@ without them is as before. The provenance view shows them under
 Scenario. A Monte Carlo run's own record shows a dispersed value as
 edited, which is what it is.
 
+## In Explain and the results
+
+- **Scenario › Overview (Explain):** a section "Computed and overridden
+  values" counts the marks by status ("12 computed", "1 overridden"), and
+  gives a note for each value used in place of the one computed: its
+  path, the value used and the value computed, the reason, and what it
+  changes. A value still as computed gets no note; a scenario without
+  marks gets no section.
+- **Results:** the provenance line under the buttons ends "· 1 value
+  overridden" (or edited) when the run used one; its tooltip lists them
+  as Explain does. A run that used none shows the line as before.
+
 ## In the editor
 
 - **What marks itself:** a spacecraft's orbit, on its **Orbit / mass**

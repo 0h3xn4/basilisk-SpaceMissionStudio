@@ -115,3 +115,28 @@ def test_a_small_edit_is_still_sun_synchronous_by_explains_rule():
     assert consequences(scenario, mark)[1].startswith("Still Sun-synchronous to Explain's 0.1 deg")
     scenario.configuration = Configuration({"explain.sso_tolerance_deg": 0.01})
     assert consequences(scenario, mark)[1].startswith("Not Sun-synchronous")
+
+
+def test_explain_lists_the_values_used_in_place_of_computed_ones():
+    """Scenario > Overview gets a section counting the marks; a note per
+    value used in place of the one computed, with its reason and what it
+    changes; none for a value still as computed, and no section without
+    marks."""
+    from spacemissionstudio.engine.scenario_explainer import explain
+
+    scenario = _scenario()
+    assert all(s.title != "Computed and overridden values" for s in explain(scenario).sections)
+    orbit = scenario.spacecraft[0].orbit
+    computed = orbit.inclination_deg
+    scenario.value_marks = [
+        ValueMark(_ORBIT + "inclination_deg", "overridden", computed, "Sun-synchronous inclination at ...",
+                  reason="the launcher's orbit"),
+        ValueMark(_ORBIT + "raan_deg", "computed", orbit.raan_deg, "RAAN for an LTAN of 10.5 h at ..."),
+    ]
+    orbit.inclination_deg = computed + 1.0  # [deg]
+    (section,) = [s for s in explain(scenario).sections if s.title == "Computed and overridden values"]
+    assert [b.label for b in section.badges] == ["1 computed", "1 overridden"]
+    (note,) = section.notes
+    assert note.startswith(f"{_ORBIT}inclination_deg: overridden, {computed + 1.0:g} in place of {computed:g} "
+                           "(the launcher's orbit). The node drifts")
+    assert "Not Sun-synchronous" in note
