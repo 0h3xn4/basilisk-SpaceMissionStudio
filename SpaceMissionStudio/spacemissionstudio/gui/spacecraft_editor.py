@@ -446,6 +446,11 @@ class SpacecraftEditorDialog(QDialog):
         )
         top_form.addRow("Dry mass [kg]", self.dry_mass_kg)
         layout.addLayout(top_form)
+        # "From preset X: n of m values as it gave them" (Phase 5b); hidden for a spacecraft not made from one.
+        self.preset_label = set_role(QLabel(), tone="secondary")
+        self.preset_label.setWordWrap(True)
+        self.preset_label.setVisible(False)
+        layout.addWidget(self.preset_label)
 
         orbit_group = QGroupBox("Orbit initial condition")
         orbit_layout = QVBoxLayout(orbit_group)
@@ -2053,6 +2058,24 @@ class SpacecraftEditorDialog(QDialog):
         except ValueError as exc:
             raise ValueError(f"{field_label}: {exc}") from exc
 
+    def show_preset(self, record=None, status=None) -> None:
+        """The preset this spacecraft was made from (``schema.scenario.
+        PresetRecord``) and ``preset_status``; None hides the line."""
+        if not hasattr(self, "preset_label"):
+            return
+        if record is None or status is None:
+            self.preset_label.setVisible(False)
+            self.preset_label.setToolTip("")
+            return
+        changed = status["changed"]
+        self.preset_label.setText(f"From preset {record.preset}: {status['kept']} of {len(record.values)} values as "
+                                  f"it gave them" + (f", {len(changed)} changed" if changed else ""))
+        lines = [f"{path}: {value:g} in the preset, " + ("removed" if now is None else f"{now:g} now")
+                 for path, value, now in changed]
+        self.preset_label.setToolTip("\n".join(["Changed since the preset:", *lines]) if lines
+                                     else "Every value as the preset gave it")
+        self.preset_label.setVisible(True)
+
     def show_value_marks(self, marks: dict) -> None:
         """``{path within the spacecraft: (status, mark, value used, what it
         changes)}``: the notes of the marked fields (only the orbit's fields
@@ -2920,6 +2943,8 @@ class SpacecraftListWidget(QWidget):
     reloaded = Signal()  # from_list() replaced every entry (a load, an undo): not an edit
     # Values a generator computed into the spacecraft it added (ValueMark list, Phase 5b).
     value_marks_made = Signal(list)
+    # A spacecraft added from a preset (PresetRecord, Phase 5b).
+    preset_used = Signal(object)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -3103,7 +3128,7 @@ class SpacecraftListWidget(QWidget):
             show_toast(self.window(), f"Added spacecraft {config.name!r}")
             self.changed.emit()
 
-    def _add_inline(self, dialog, message: str) -> bool:
+    def _add_inline(self, dialog, message: str, before_changed=None) -> bool:
         """In the Scenario editor (M4b): add the spacecraft ``dialog`` holds
         and open its page; no dialog is shown. False on a list used alone."""
         if getattr(self, "_edit_handler", None) is None:
@@ -3114,6 +3139,8 @@ class SpacecraftListWidget(QWidget):
         self._refresh_list()
         self.list_widget.setCurrentRow(len(self._configs) - 1)
         show_toast(self.window(), message.format(config.name))
+        if before_changed is not None:
+            before_changed(config)
         self.changed.emit()
         self._edit_handler(len(self._configs) - 1)
         return True
@@ -3144,7 +3171,15 @@ class SpacecraftListWidget(QWidget):
                                          epoch_provider=self._epoch_provider,
                                          central_body_provider=self._central_body_provider,
                                          base_dir_provider=self._base_dir_provider)
-        if self._add_inline(dialog, "Added spacecraft {!r} from template"):
+        def record(config) -> None:  # the preset and the values it gave, as added (Phase 5b)
+            from datetime import UTC, datetime
+
+            from ..schema.scenario import PresetRecord, preset_values
+
+            self.preset_used.emit(PresetRecord(config.name, template.name, preset_values(config),
+                                               datetime.now(UTC).isoformat(timespec="seconds")))
+
+        if self._add_inline(dialog, "Added spacecraft {!r} from template", before_changed=record):
             return
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
@@ -3155,6 +3190,7 @@ class SpacecraftListWidget(QWidget):
             self._refresh_list()
             self.list_widget.setCurrentRow(len(self._configs) - 1)
             show_toast(self.window(), f"Added spacecraft {config.name!r} from template")
+            record(config)
             self.changed.emit()
 
     def set_edit_handler(self, handler) -> None:

@@ -2825,6 +2825,88 @@ class ValueMark:
                 raise ScenarioValidationError(f"{where}.time_utc {self.time_utc!r} is not an ISO 8601 time") from None
 
 
+def number_fields(record, prefix: str = "") -> dict:
+    """``{path: number}`` of every finite number in ``record`` (a dataclass),
+    by field names: a list item by its ``name`` or index, a dictionary
+    entry by its key, as text ("dry_mass_kg", "inertia_kg_m2[0]",
+    "sensors[st-1].params.noise_arcsec"). For comparing values, not for
+    :func:`resolve_value_path`."""
+    found = {}
+
+    def walk(value, path):
+        if _is_finite_number(value):
+            found[path] = value
+        elif dataclasses.is_dataclass(value) and not isinstance(value, type):
+            for f in dataclasses.fields(value):
+                if f.init:
+                    walk(getattr(value, f.name), f"{path}.{f.name}" if path else f.name)
+        elif isinstance(value, list):
+            for index, item in enumerate(value):
+                key = getattr(item, "name", None) or index
+                walk(item, f"{path}[{key}]")
+        elif isinstance(value, dict):
+            for key, item in value.items():
+                walk(item, f"{path}.{key}")
+
+    walk(record, prefix)
+    return found
+
+
+@dataclass
+class PresetRecord:
+    """A spacecraft made from one of SpaceMissionStudio's presets
+    (**New from template...**, engine.spacecraft_templates; the
+    transparency plan, Phase 5b): the preset's name and every number it
+    gave the spacecraft as added (:func:`number_fields`, its name and orbit
+    left out: the orbit is set after), so a value still as the preset gave
+    it can be told from one changed since, whatever later versions do to
+    the preset."""
+
+    spacecraft: str
+    preset: str
+    values: dict = field(default_factory=dict)  # {path: number}, as added
+    time_utc: str = ""
+
+    def validate(self, scenario, index: int) -> None:
+        where = f"presets[{index}]"
+        _require(isinstance(self.spacecraft, str) and any(sc.name == self.spacecraft for sc in scenario.spacecraft),
+                 f"{where}.spacecraft {self.spacecraft!r} is not one of this scenario's spacecraft")
+        _require(isinstance(self.preset, str) and bool(self.preset.strip()), f"{where}.preset must name the preset")
+        _require(isinstance(self.values, dict) and all(isinstance(k, str) and _is_finite_number(v)
+                                                       for k, v in self.values.items()),
+                 f"{where}.values must map field paths to finite numbers")
+        _require(isinstance(self.time_utc, str), f"{where}.time_utc must be text")
+
+
+def preset_values(config) -> dict:
+    """The numbers a preset gives ``config``, as :class:`PresetRecord`
+    keeps them: its name and orbit left out."""
+    return {path: value for path, value in number_fields(config).items()
+            if not path.startswith("orbit.") and path != "orbit"}
+
+
+def preset_status(scenario, record: PresetRecord) -> dict:
+    """``{"kept": n, "changed": [(path, preset value, value now or None)]}``
+    of the preset's values in the spacecraft as it is now; None once a
+    field is gone (a device removed)."""
+    config = next((sc for sc in scenario.spacecraft if sc.name == record.spacecraft), None)
+    now = preset_values(config) if config is not None else {}
+    changed = [(path, value, now.get(path)) for path, value in record.values.items() if now.get(path) != value]
+    return {"kept": len(record.values) - len(changed), "changed": changed}
+
+
+def preset_records(scenario) -> list[dict]:
+    """Each preset record with its status, as the provenance records it."""
+    records = []
+    for record in scenario.presets:
+        status = preset_status(scenario, record)
+        records.append({"spacecraft": record.spacecraft, "preset": record.preset, "time_utc": record.time_utc,
+                        "values": len(record.values), "kept": status["kept"],
+                        "changed": [{"path": path, "preset": value, "now": now}
+                                    for path, value, now in status["changed"]]})
+    return records
+
+
 def value_mark_status(scenario, mark: ValueMark) -> str:
     """"overridden"; "computed" while the scenario's value is the one
     computed (exactly: the field holds the number that was written); or
@@ -2944,6 +3026,9 @@ class Scenario:
     # Written only when there is one: a scenario without saves, and
     # hashes, as before.
     value_marks: list = field(default_factory=list)  # list[ValueMark]
+    # The spacecraft made from a preset (PresetRecord, Phase 5b); written
+    # only when there is one, as value_marks.
+    presets: list = field(default_factory=list)  # list[PresetRecord]
 
     def _validate_small_body(self) -> None:
         """Checks for a run around a small body (``SMALL_BODY_CENTRAL_BODIES``)."""
@@ -3006,6 +3091,11 @@ class Scenario:
             mark.validate(self, index)
         marked = [mark.path for mark in self.value_marks]
         _require(len(marked) == len(set(marked)), f"value_marks marks a value more than once: {marked}")
+        for index, record in enumerate(self.presets):
+            _require(isinstance(record, PresetRecord), f"presets[{index}] must be a preset record")
+            record.validate(self, index)
+        preset_for = [record.spacecraft for record in self.presets]
+        _require(len(preset_for) == len(set(preset_for)), f"presets names a spacecraft more than once: {preset_for}")
         flexible = [sc.name for sc in self.spacecraft if sc.solar_arrays]
         _require(not flexible or self.sim_settings.integrator in ("rkf45", "rkf78"),
                   f"{flexible[0] if flexible else ''}: flexible solar arrays need an adaptive integrator "
@@ -3305,6 +3395,8 @@ class Scenario:
             del data["config_file"]
         if not data["value_marks"]:  # the same
             del data["value_marks"]
+        if not data["presets"]:  # the same
+            del data["presets"]
         return data
 
     @staticmethod
@@ -3361,10 +3453,12 @@ class Scenario:
                             for index, c in enumerate(_items(data.pop("mission_sequence", []), "mission_sequence"))]
         fsw_exports = _records(FswExportRecord, data.pop("fsw_exports", []), "fsw_exports")
         value_marks = _records(ValueMark, data.pop("value_marks", []), "value_marks")
+        presets = _records(PresetRecord, data.pop("presets", []), "presets")
 
         data.update(gravity=gravity, sim_settings=sim_settings, space_weather=space_weather,
                     ground_stations=ground_stations, spacecraft=spacecraft, monte_carlo=monte_carlo,
-                    mission_sequence=mission_sequence, fsw_exports=fsw_exports, value_marks=value_marks)
+                    mission_sequence=mission_sequence, fsw_exports=fsw_exports, value_marks=value_marks,
+                    presets=presets)
         return _record(Scenario, data, "the scenario")
 
     def save(self, path: str | Path) -> None:

@@ -487,6 +487,11 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **A spacecraft made from a preset says so:** **New from template...**
+  records the preset and the values it gave, once per spacecraft. Its
+  page reads "From preset X: 38 of 40 values as it gave them, 2 changed"
+  (the changes on hover); Explain and every provenance record list it. A
+  scenario without one saves and hashes as before.
 - **Explain and Results show the values used in place of computed
   ones:** Scenario > Overview gets a section counting computed, edited
   and overridden values, with a note for each changed one (the values,

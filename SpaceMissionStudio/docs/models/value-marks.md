@@ -136,10 +136,27 @@ edited, which is what it is.
   true anomaly. The inclination is the one you typed, so it is marked
   only with J2, or when the dialog's **Sun-synchronous** button set it.
 
-Not marked: a spacecraft preset's values (**New from template...**). A
-preset fills dozens of fields, mass, inertia, devices, which would give a
-spacecraft dozens of marks; how to record a preset is still to be
-decided.
+## Spacecraft made from a preset
+
+**New from template...** records the preset once per spacecraft, in the
+scenario's `presets` (`PresetRecord`): the spacecraft, the preset's name,
+when, and every number it gave the spacecraft as added (`values`, by field
+path: `dry_mass_kg`, `inertia_kg_m2[0]`, `sensors[st-1].params.noise_arcsec`;
+the name and the orbit left out, since the orbit is set after). The
+values are kept, not looked up again, so a later change to a preset never
+makes an older scenario look edited.
+
+- **Status:** each kept value is compared with the spacecraft as it is now
+  (`preset_status`): as the preset gave it, changed, or gone (a device
+  removed).
+- **Where it shows:** a line on the spacecraft's page ("From preset
+  Microsatellite (150 kg): 38 of 40 values as it gave them, 2 changed",
+  the changes in its tooltip); Explain's "Computed and overridden values"
+  section ("1 from a preset", a note listing up to five changes); every
+  provenance record (`presets`), written only when there is one.
+- **Rules:** the spacecraft must exist, the preset be named, the values be
+  numbers; one record per spacecraft. A renamed spacecraft keeps it; a
+  removed one takes it along.
 
 ## Checked against
 
