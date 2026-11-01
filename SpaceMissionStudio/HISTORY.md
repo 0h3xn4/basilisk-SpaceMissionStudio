@@ -14514,6 +14514,33 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Computed and overridden values: the editor (2026-11-01)
+
+The transparency plan, Phase 5b, second step. Branch `computed-marks`.
+
+- **`gui/value_mark_note.py`:** `ValueMarkNote`, one line under a field:
+  "Computed: <source>", "Edited (computed <value>)" with **Give a
+  reason...**, "Overridden (computed <value>): <reason>"; hidden without
+  a mark; the record in its tooltip and accessible description.
+- **The orbit's compute buttons** (`OrbitIcWidget`) emit `value_computed`
+  with the value the field holds (rounded to its 4 decimals) and the
+  source; notes under Inclination and RAAN. The spacecraft form relays
+  them as `orbit.<field>`.
+- **`ScenarioEditorWidget`** keeps the marks: a computed one replaces the
+  field's earlier mark; **Give a reason...** asks
+  (`QInputDialog.getMultiLineText`) and marks it overridden. The draft
+  scenario carries the live marks (`live_value_marks`): one whose
+  spacecraft is gone, or whose field no longer holds a number, goes with
+  it. A rename in a form carries them (`rename_in_value_marks`), and so
+  do `schema.references.rename_spacecraft` and `rename_ground_station`.
+- **Author:** left empty for now; the author name in Settings comes with
+  the change history (Phase 7).
+- **Tests:** `tests/gui/test_value_mark_views.py` (5), one more in
+  `tests/test_value_marks.py`. No existing test changed.
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4296 passed in 17 min 44 s, including the regression baseline.
+
 ## Computed and overridden values: the file and the records (2026-11-01)
 
 The transparency plan, Phase 5b, first step. Branch `value-marks`.

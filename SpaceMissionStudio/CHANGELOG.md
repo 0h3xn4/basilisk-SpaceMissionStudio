@@ -487,6 +487,12 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **The editor marks computed values, and records why one was changed:**
+  **Compute Sun-sync inclination for this altitude** and **Compute RAAN
+  for LTAN...** mark the value they write as computed, with a note under
+  the field. Change it and **Give a reason...** records why: the value is
+  then marked overridden in the scenario and in every run's provenance.
+  A renamed spacecraft keeps its marks; a removed one takes them along.
 - **A scenario records computed and overridden values:** its new
   `value_marks` list says which values SpaceMissionStudio computed or
   suggested (with the value and what computed it) and which replace one

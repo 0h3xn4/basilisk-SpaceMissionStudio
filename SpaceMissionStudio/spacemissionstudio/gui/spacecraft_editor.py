@@ -317,6 +317,10 @@ class SpacecraftEditorDialog(QDialog):
     """
 
     section_built = Signal(object)  # a section's page, once its fields exist (a page's form builds them in turn)
+    # A field's value computed, or a reason asked for it (Phase 5b), with
+    # its path within the spacecraft ("orbit.inclination_deg").
+    value_computed = Signal(str, float, str)
+    reason_requested = Signal(str)
 
     def __init__(self, config: SpacecraftConfig | None = None, parent: QWidget | None = None,
                  other_spacecraft_names: list[str] | None = None, simulation_mode: str = "full_attitude",
@@ -452,6 +456,9 @@ class SpacecraftEditorDialog(QDialog):
             self.orbit_widget.set_central_body_provider(central_body_provider)
         orbit_layout.addWidget(self.orbit_widget)
         layout.addWidget(orbit_group)
+        self.orbit_widget.value_computed.connect(
+            lambda field, value, source: self.value_computed.emit(f"orbit.{field}", value, source))
+        self.orbit_widget.reason_requested.connect(lambda field: self.reason_requested.emit(f"orbit.{field}"))
 
         inertia_group = QGroupBox("Center of mass and moments of inertia [kg*m^2] (about the center of mass)")
         inertia_group.setToolTip(
@@ -2045,6 +2052,12 @@ class SpacecraftEditorDialog(QDialog):
             return form.params()
         except ValueError as exc:
             raise ValueError(f"{field_label}: {exc}") from exc
+
+    def show_value_marks(self, marks: dict) -> None:
+        """``{path within the spacecraft: (status, mark, value used)}``: the
+        notes of the marked fields (only the orbit's fields carry one)."""
+        self.orbit_widget.show_value_marks({path[len("orbit."):]: shown for path, shown in marks.items()
+                                            if path.startswith("orbit.")})
 
     def to_dataclass(self) -> SpacecraftConfig:
         name = self.name_edit.text().strip()

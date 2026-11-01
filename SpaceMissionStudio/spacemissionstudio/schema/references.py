@@ -228,6 +228,9 @@ def rename_spacecraft(scenario: Scenario, old_name: str, new_name: str) -> int:
             record.spacecraft = new_name
             updated += 1
     updated += _rename_in_commands(scenario.mission_sequence, "spacecraft", old_name, new_name)
+    from .scenario import rename_in_value_marks  # local: this module imports schema.scenario for types only
+
+    updated += rename_in_value_marks(scenario.value_marks, "spacecraft", old_name, new_name)
 
     target.name = new_name
     return updated
@@ -252,6 +255,9 @@ def rename_ground_station(scenario: Scenario, old_name: str, new_name: str) -> i
             sc.comms_pointing.target_ground_station = new_name
             updated += 1
     updated += _rename_in_commands(scenario.mission_sequence, "ground_station", old_name, new_name)
+    from .scenario import rename_in_value_marks  # local: this module imports schema.scenario for types only
+
+    updated += rename_in_value_marks(scenario.value_marks, "ground_stations", old_name, new_name)
 
     target.name = new_name
     return updated

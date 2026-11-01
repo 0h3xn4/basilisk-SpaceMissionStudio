@@ -5,6 +5,20 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Computed and overridden values in the editor (2026-11-01)
+
+- **A note under the field, only when it has a mark:** a field without
+  one looks as before, so the default form is unchanged.
+- **The reason is asked for when the engineer chooses to give one:** an
+  edit stays an edit; asking at every keystroke would interrupt typing,
+  and refusing the edit would hide what the field is for.
+- **A mark goes with what it marked:** removing a spacecraft, or giving
+  its orbit as a Cartesian state or a TLE, leaves no mark pointing at
+  nothing; the scenario stays valid.
+- **Orbit buttons first:** they are the one place the editor writes a
+  computed value into a field the engineer then edits. The wizard,
+  generator and presets come next.
+
 ## Computed and overridden values (2026-11-01)
 
 - **Marks beside the values, not in them:** a value stays a plain number

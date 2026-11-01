@@ -583,7 +583,13 @@ The quickest way to a mission of your own is a starter template (22 or
    radius (6378 km) plus the altitude, so 6928 km for 550 km. For an
    Earth-observation orbit, press **Compute Sun-sync inclination for
    this altitude** and **Compute RAAN for LTAN...** (10:30 is the usual
-   local time). Have a real satellite's TLE? Choose the TLE orbit type
+   local time). A value they compute is marked so under its field
+   ("Computed: Sun-synchronous inclination at ..."; hover for its source).
+   Edit it and the note reads "Edited (computed 97.59 deg)", with **Give a
+   reason...**: the reason you give marks the value overridden, and it is
+   kept with the scenario and in every run's provenance
+   ([Computed and overridden values](docs/models/value-marks.md)). Have a
+   real satellite's TLE? Choose the TLE orbit type
    and paste it. Then set the **Dry mass**, and tick **Enable atmospheric
    drag** with its area (and **Enable solar radiation pressure**).
 4. **Ground stations**: **Add**, then its name, latitude, longitude and the

@@ -1,0 +1,86 @@
+#
+#  ISC License
+#
+#  Copyright (c) 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
+#
+#  Permission to use, copy, modify, and/or distribute this software for any
+#  purpose with or without fee is hereby granted, provided that the above
+#  copyright notice and this permission notice appear in all copies.
+#
+#  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+#  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+#  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+#  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+#  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+#  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+#  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+"""A computed or overridden value's note, under its field (the
+transparency plan, Phase 5b; schema.scenario.ValueMark).
+
+Hidden while the field has no mark. Otherwise one short line:
+"Computed: <source>", "Edited (computed <value>)" with **Give a
+reason...**, or "Overridden (computed <value>): <reason>"; its tooltip has
+the whole record."""
+
+from __future__ import annotations
+
+from PySide6.QtCore import Signal
+from PySide6.QtWidgets import QHBoxLayout, QLabel, QPushButton, QWidget
+
+from .theme import set_role
+
+
+class ValueMarkNote(QWidget):
+    """Emits :attr:`reason_requested` when **Give a reason...** is pressed."""
+
+    reason_requested = Signal()
+
+    def __init__(self, unit: str = "", parent: QWidget | None = None):
+        super().__init__(parent)
+        self._unit = unit
+        row = QHBoxLayout(self)
+        row.setContentsMargins(0, 0, 0, 0)
+        self.label = set_role(QLabel(), tone="secondary")
+        self.label.setWordWrap(True)
+        self.reason_button = set_role(QPushButton("Give a reason..."), variant="ghost")
+        self.reason_button.setToolTip("Record why this value replaces the computed one: it is then marked "
+                                      "overridden in every view and export.")
+        self.reason_button.clicked.connect(self.reason_requested)
+        row.addWidget(self.label, 1)
+        row.addWidget(self.reason_button)
+        self.status = ""
+        self.show_mark(None)
+
+    def _value(self, value) -> str:
+        return f"{value:g} {self._unit}".strip()
+
+    def show_mark(self, status: str | None, mark=None, value_used=None) -> None:
+        """``status`` (``schema.scenario.value_mark_status``) of ``mark``,
+        the field holding ``value_used``; None hides the note."""
+        self.status = status or ""
+        if status is None or mark is None:
+            self.setVisible(False)
+            self.label.setText("")
+            self.setToolTip("")
+            return
+        computed = self._value(mark.value)
+        if status == "computed":
+            text = f"Computed: {mark.source}"
+        elif status == "edited":
+            text = f"Edited (computed {computed})"
+        else:
+            text = f"Overridden (computed {computed}): {mark.reason}"
+        lines = [f"Computed value: {computed}", f"Source: {mark.source}"]
+        if value_used is not None:
+            lines.append(f"Value used: {self._value(value_used)}")
+        if mark.reason:
+            lines.append(f"Reason: {mark.reason}")
+        if mark.author or mark.time_utc:
+            lines.append("Marked " + " ".join(part for part in (f"by {mark.author}" if mark.author else "",
+                                                                  mark.time_utc) if part))
+        self.label.setText(text)
+        self.setToolTip("\n".join(lines))
+        self.label.setAccessibleDescription(self.toolTip())
+        self.reason_button.setVisible(status == "edited")
+        self.setVisible(True)

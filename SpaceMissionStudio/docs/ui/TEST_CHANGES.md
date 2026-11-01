@@ -1350,3 +1350,15 @@ never named "_TabBar".
   the code before (checked: `ValueMark` does not exist there).
 
 No existing test changed.
+
+## Computed and overridden values in the editor (2026-11-01)
+
+- Added `tests/gui/test_value_mark_views.py` (5 tests): the Sun-synchronous
+  button marks the inclination computed, with its note; an edited value
+  given a reason is overridden; a cancelled reason changes nothing; the
+  marks follow a rename and go with the spacecraft; a scenario with marks
+  opens with its notes.
+- Added `tests/test_value_marks.py::test_a_rename_carries_the_marks_and_a_removal_drops_them`.
+
+  Each fails on the code before (checked by stashing
+  `spacemissionstudio/`). No existing test changed.
