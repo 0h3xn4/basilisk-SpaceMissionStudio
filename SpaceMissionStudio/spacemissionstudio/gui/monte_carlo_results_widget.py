@@ -161,9 +161,13 @@ class MonteCarloResultsWidget(QWidget):
         shown = min(len(batch.runs), mcr.MAX_PLOTTED_RUNS)
         note = f" Plots show the first {shown} runs; the spread uses all." if shown < len(batch.runs) else ""
         source = f"saved in {self.folder.name}" if self.folder else "from this session"
+        statistic = mcr.spread_model(batch)
         self.hint_label.setText(f"{days:.3g} days per run, {source}. Spreads are 1-sigma offsets from the mean of "
-                                f"all runs: along the orbit, radially and across it.{note}")
-        self.hint_label.setToolTip(str(self.folder) if self.folder else "")
+                                f"all runs ({statistic.title.lower()}): along the orbit, radially and across "
+                                f"it.{note}")
+        self.hint_label.setToolTip("\n".join(([str(self.folder)] if self.folder else []) + [
+            f"{statistic.title}: {statistic.method}",
+            f"Chosen by {mcr.SPREAD_CHOICE} on the Assumptions page, as the batch was run."]))
         self._ensure_plots().set_result(mcr.to_result_set(batch), batch.epoch_utc or None)
         self._refresh_spacecraft_views()
 

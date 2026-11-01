@@ -450,3 +450,25 @@ def test_an_earlier_simulation_left_as_garbage_is_collected_before_the_batch_for
     finally:
         gc.enable()
     assert alive_at_fork == [False]
+
+
+def test_a_batch_uses_and_records_the_statistic_its_configuration_chooses(tmp_path):
+    """Transparency plan, Phase 6a: a project configuration that chooses
+    the sample standard deviation gives a batch that keeps it, and the
+    batch's provenance names the model (``models``)."""
+    import json
+
+    from spacemissionstudio.config.registry import Configuration
+    from spacemissionstudio.engine import monte_carlo_results as mcr
+    from spacemissionstudio.engine.monte_carlo import run_monte_carlo
+
+    scenario = _short(_scenario(), num_runs=2)
+    scenario.configuration = Configuration(overrides={"monte_carlo.spread_statistic": "sample"})
+    assert run_monte_carlo(scenario, scenario.monte_carlo, tmp_path) == []
+    batch = mcr.load(tmp_path)
+    assert batch.spread_statistic == "sample"
+    rel = mcr.offsets(batch.positions["sat-1"], batch.velocities["sat-1"])[:, -1, :]
+    assert mcr.final_spread(batch, "sat-1").radial_m == pytest.approx(rel.std(axis=0, ddof=1)[0], abs=1e-12)
+    record = json.loads((tmp_path / "archive.provenance.json").read_text(encoding="utf-8"))
+    assert record["models"]["monte_carlo.spread_statistic"]["model"] == "sample"
+    assert record["models"]["monte_carlo.spread_statistic"]["title"] == "Sample standard deviation"

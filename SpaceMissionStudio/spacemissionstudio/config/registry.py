@@ -48,10 +48,14 @@ class Parameter:
     controls: str  # what the value changes, in one sentence
     source: str  # the standard, document or study it comes from
     rationale: str = ""  # why this value, when the source alone does not say
-    kind: str = "number"  # "number", "integer" or "number list"
+    kind: str = "number"  # "number", "integer", "number list" or "model" (the name of a model, .models)
     minimum: float | None = None
     maximum: float | None = None
     choices: tuple | None = None  # the only values it may take, e.g. MSFC's (95, 50, 5) percentiles
+
+    def choices_text(self) -> str:
+        """The values it may take, as the messages and pages name them."""
+        return ", ".join(c if isinstance(c, str) else f"{c:g}" for c in self.choices or ())
 
     @property
     def area(self) -> str:
@@ -60,13 +64,17 @@ class Parameter:
     def check(self, value):
         """``value`` as this parameter's kind, or :class:`ConfigError`
         naming the parameter and what it may take."""
+        if self.kind == "model":
+            if not isinstance(value, str) or value not in (self.choices or ()):
+                raise ConfigError(f"{self.name}: one of {self.choices_text()}, got {value!r}")
+            return value
         if self.kind == "number list":
             if not isinstance(value, (list, tuple)) or not value:
                 raise ConfigError(f"{self.name}: a list of numbers {self.unit}, got {value!r}")
             return tuple(self._number(v) for v in value)
         number = self._number(value)
         if self.choices is not None and number not in self.choices:
-            raise ConfigError(f"{self.name}: one of {', '.join(f'{c:g}' for c in self.choices)} {self.unit}, "
+            raise ConfigError(f"{self.name}: one of {self.choices_text()} {self.unit}, "
                               f"got {value!r}")
         if self.kind == "integer":
             if number != int(number):

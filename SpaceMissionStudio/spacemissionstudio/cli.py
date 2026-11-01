@@ -514,7 +514,8 @@ def cmd_monte_carlo(args: argparse.Namespace) -> int:
     from .engine import monte_carlo_results
 
     if monte_carlo_results.has_summary(args.archive_dir):
-        for line in monte_carlo_results.summary_lines(monte_carlo_results.load(args.archive_dir)):
+        batch = monte_carlo_results.load(args.archive_dir)
+        for line in monte_carlo_results.summary_lines(batch) + [monte_carlo_results.statistic_line(batch)]:
             print(f"  {line}")
     if failures:
         print(f"FAILED runs: {failures}", file=sys.stderr)

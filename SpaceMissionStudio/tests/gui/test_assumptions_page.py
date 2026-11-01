@@ -147,3 +147,27 @@ def test_the_editor_takes_the_pages_file_and_its_values(qtbot, tmp_path, monkeyp
     with qtbot.waitSignal(editor.changed):
         page.remove_button.click()
     assert editor.to_scenario().config_file is None and editor.to_scenario().configuration is None
+
+
+def test_a_model_choice_names_its_models_and_is_set_by_name(page, qtbot, tmp_path, monkeypatch):
+    """Transparency plan, Phase 6a: a choice of model lists its models with
+    their titles; one is set by its name, and a name that is not one of
+    them is refused, the file left as it was."""
+    from spacemissionstudio.config import files
+
+    path = tmp_path / "project.yaml"
+    monkeypatch.setattr(page, "_ask_save_path", lambda: str(path))
+    page.new_button.click()
+    page.select("monte_carlo.spread_statistic")
+    assert "one of population (Population standard deviation); sample (Sample standard deviation)" in \
+        page.detail_label.text()
+    assert page.value_edit.text() == "population"
+    page.value_edit.setText("sample")
+    with qtbot.waitSignal(page.configuration_edited):
+        page.set_button.click()
+    assert files.read(path).overrides == {"monte_carlo.spread_statistic": "sample"}
+    assert "  monte_carlo.spread_statistic: sample  # [-]" in path.read_text(encoding="utf-8").splitlines()
+    before = path.read_text(encoding="utf-8")
+    page.value_edit.setText("median")
+    page.set_button.click()
+    assert "one of population, sample" in page.edit_error.text() and path.read_text(encoding="utf-8") == before

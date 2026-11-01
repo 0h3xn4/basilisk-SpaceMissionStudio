@@ -1357,7 +1357,10 @@ whenever the scenario has Monte Carlo on, or a batch is open):
 
 * **Tiles:** how many runs succeeded, which failed, and how far apart
   the runs ended (1-sigma) along the orbit, radially and across it, plus
-  the range of final altitudes.
+  the range of final altitudes. The 1-sigma is the population standard
+  deviation of the runs unless the project configuration chooses the
+  sample one (`monte_carlo.spread_statistic`); the line under the title
+  names it ([Monte Carlo statistics](docs/models/monte-carlo-statistics.md)).
 * **Plots:** every run's altitude and its offsets from the mean of all
   runs, drawn as one family of thin lines, and the 1-sigma spread over
   time. Offsets are measured along the orbit: "along-track" is how far

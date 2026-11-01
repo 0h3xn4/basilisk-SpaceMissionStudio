@@ -14514,6 +14514,41 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Selectable models: the registry and the Monte Carlo spread (2026-11-01)
+
+The transparency plan, Phase 6a, and the first choice of 6b. Branch
+`model-registry`.
+
+- **`config/models.py`:** `Model` (choice, name, title, method, inputs,
+  outputs, assumptions, references, evidence, applies_to), `register`
+  (a model declared twice, or without every part, is refused),
+  `choices`, `names`, `models`, `model`, `active`, `record`, `records`.
+- **A choice is a parameter** of kind "model" (`config.registry`): its
+  values are its models' names, checked as any parameter's; `choices_text`
+  names them in messages, the defaults file and the Assumptions page.
+- **`monte_carlo.spread_statistic`:** `population` (default) or `sample`.
+  `engine.monte_carlo_results.spread` applies it (`SPREAD_DDOF`: numpy's
+  ddof 0 or 1); `MonteCarloBatch.spread_statistic`, saved in
+  `batch_results.json` and read back (a summary without it: population;
+  an unknown one refused). `collect_batch` takes it from the scenario's
+  configuration; `archive_record` writes `models`.
+- **Shown:** the Monte Carlo page's line under the title and its tooltip
+  (the formula, the parameter); `monte-carlo` prints `statistic_line`
+  after the spread (`summary_lines` unchanged, so the golden baseline is);
+  the Assumptions page lists a choice's models by title.
+- **Docs:** `docs/models/monte-carlo-statistics.md`; the models index's
+  "Selectable models" section; "Choose a model" in
+  `docs/user-manual/project-configuration.md`. The index's last "Not yet
+  covered" row is gone.
+- **Tests:** `tests/test_model_registry.py` (6), one each in
+  `tests/test_monte_carlo.py`, `tests/gui/test_assumptions_page.py` and
+  `tests/gui/test_monte_carlo_results_widget.py`; `tests/test_config.py`
+  maps the new area to its page and the parameter to its case.
+- **Numbers:** none change: the default is the statistic used before
+  (`numpy.std`, ddof 0).
+
+Full suite on Python 3.14: 4,328 passed (18 min 57 s).
+
 ## Computed and overridden values: presets (2026-11-01)
 
 The transparency plan, Phase 5b, the last part. Branch `preset-records`.

@@ -37,6 +37,12 @@ A run's radial offset is its distance from the central body minus the
 runs' mean distance; its along-track offset is the arc, at that mean
 distance, by which it leads (+) or trails (-) R in the R-S plane; its
 cross-track offset is the arc out of that plane.
+
+The spread is the standard deviation of those offsets over the runs: the
+population one by default, or the sample one, as the scenario's project
+configuration chooses (``monte_carlo.spread_statistic``, the models in
+``config.models``). A batch keeps the statistic it was run with
+(``spread_statistic``), so it reads the same later.
 """
 
 from __future__ import annotations
@@ -47,6 +53,7 @@ from pathlib import Path
 
 import numpy as np
 
+from ..config import models
 from .constellation import CENTRAL_BODY_EQUATORIAL_RADIUS_KM
 from .results import ResultSet, TimeSeries
 
@@ -60,6 +67,9 @@ MAX_SAMPLES = 2000
 # series always covers every run.
 MAX_PLOTTED_RUNS = 100
 OFFSET_COMPONENTS = ("radial", "along_track", "cross_track")
+SPREAD_CHOICE = "monte_carlo.spread_statistic"
+# numpy.std's ddof of each model of SPREAD_CHOICE: the divisor is N - ddof.
+SPREAD_DDOF = {"population": 0, "sample": 1}
 
 
 class MonteCarloResultsError(Exception):
@@ -85,6 +95,7 @@ class MonteCarloBatch:
     velocities: dict[str, np.ndarray]
     drawn: list[dict[str, float]] = field(default_factory=list)
     epoch_utc: str = ""  # the scenario's epoch, so plots can show dates
+    spread_statistic: str = "population"  # the model of SPREAD_CHOICE the batch was run with
 
     @property
     def spacecraft(self) -> list[str]:
@@ -114,6 +125,7 @@ def save(batch: MonteCarloBatch, folder: str | Path) -> Path:
         "runs": [int(run) for run in batch.runs],
         "failed": [int(run) for run in batch.failed],
         "drawn": batch.drawn,
+        "spread_statistic": batch.spread_statistic,
     }
     path = folder / SUMMARY_JSON
     path.write_text(json.dumps(meta, indent=1), encoding="utf-8")
@@ -203,10 +215,12 @@ def load(folder: str | Path) -> MonteCarloBatch:
         positions[name], velocities[name] = r, v
     drawn = meta.get("drawn") or [{} for _ in runs]
     _require(len(drawn) == len(runs), f"{SUMMARY_JSON}: {len(drawn)} drawn-value rows for {len(runs)} runs")
+    statistic = meta.get("spread_statistic", "population")  # a summary written before the choice: population
+    _require(statistic in SPREAD_DDOF, f"{SUMMARY_JSON}: unknown spread statistic {statistic!r}")
     return MonteCarloBatch(str(meta.get("scenario_name", "")), str(meta.get("central_body", "earth")), time_s,
                            runs, [int(run) for run in meta.get("failed", [])], positions, velocities,
                            [{str(k): float(v) for k, v in row.items()} for row in drawn],
-                           str(meta.get("epoch_utc", "")))
+                           str(meta.get("epoch_utc", "")), statistic)
 
 
 def stride_for(samples: int) -> int:
@@ -231,6 +245,25 @@ def offsets(positions: np.ndarray, velocities: np.ndarray) -> np.ndarray:
     return np.stack([distance - mean_distance, mean_distance * in_plane, mean_distance * out_of_plane], axis=-1)
 
 
+def spread(offsets_m: np.ndarray, statistic: str = "population") -> np.ndarray:
+    """The standard deviation over the runs (axis 0) of ``offsets_m``, by
+    ``statistic`` (:data:`SPREAD_DDOF`); zeros for a single run."""
+    if offsets_m.shape[0] < 2:
+        return np.zeros_like(offsets_m[0])
+    return offsets_m.std(axis=0, ddof=SPREAD_DDOF[statistic])
+
+
+def spread_model(batch: MonteCarloBatch) -> models.Model:
+    """The model of the batch's spread (``config.models``)."""
+    return models.model(SPREAD_CHOICE, batch.spread_statistic)
+
+
+def statistic_line(batch: MonteCarloBatch) -> str:
+    """The statistic of the spread, as the command line names it."""
+    model = spread_model(batch)
+    return f"1-sigma: the {model.title.lower()} of the {len(batch.runs)} run(s) ({SPREAD_CHOICE}: {model.name})"
+
+
 def _equatorial_radius_m(central_body: str) -> float:
     return CENTRAL_BODY_EQUATORIAL_RADIUS_KM.get(central_body, 0.0) * 1e3
 
@@ -243,7 +276,7 @@ def to_result_set(batch: MonteCarloBatch) -> ResultSet:
     * ``<sc>.monte_carlo.radial_offset``, ``.along_track_offset``,
       ``.cross_track_offset`` [m]: each run against the batch mean;
     * ``<sc>.monte_carlo.spread`` [m]: the 1-sigma of the three offsets
-      over all runs.
+      over all runs, by the batch's statistic (:func:`spread`).
 
     Per-run series hold the first :data:`MAX_PLOTTED_RUNS` runs.
     """
@@ -259,8 +292,8 @@ def to_result_set(batch: MonteCarloBatch) -> ResultSet:
         for index, component in enumerate(OFFSET_COMPONENTS):
             result.add(TimeSeries(f"{name}.monte_carlo.{component}_offset", batch.time_s, columns,
                                   rel[:shown, :, index].T, "m"))
-        spread = rel.std(axis=0) if len(batch.runs) > 1 else np.zeros_like(rel[0])
-        result.add(TimeSeries(f"{name}.monte_carlo.spread", batch.time_s, list(OFFSET_COMPONENTS), spread, "m"))
+        result.add(TimeSeries(f"{name}.monte_carlo.spread", batch.time_s, list(OFFSET_COMPONENTS),
+                              spread(rel, batch.spread_statistic), "m"))
     return result
 
 
@@ -277,7 +310,7 @@ class SpreadSummary:
 
 def final_spread(batch: MonteCarloBatch, spacecraft: str) -> SpreadSummary:
     rel = offsets(batch.positions[spacecraft], batch.velocities[spacecraft])[:, -1, :]
-    sigma = rel.std(axis=0) if len(batch.runs) > 1 else np.zeros(3)
+    sigma = spread(rel, batch.spread_statistic)
     altitude = np.linalg.norm(batch.positions[spacecraft][:, -1, :], axis=1) - _equatorial_radius_m(batch.central_body)
     return SpreadSummary(float(sigma[0]), float(sigma[1]), float(sigma[2]),
                          float(altitude.min()), float(altitude.max()))

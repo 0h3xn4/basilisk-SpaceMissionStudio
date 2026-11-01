@@ -498,3 +498,10 @@ parameters:
   # Source: SpaceMissionStudio's own choice. No derivation recorded.
   # Limits: 0 to 90 [deg]
   # explain.camera_axis_tolerance_deg: 1.0  # [deg]
+
+  # -- monte_carlo -----------------------------------------------------------
+
+  # The statistic of a Monte Carlo batch's 1-sigma spread: the population or the sample standard deviation of the runs' offsets from their mean.
+  # Source: SpaceMissionStudio's own choice. The population standard deviation is the one the tool used before the choice existed. No derivation recorded.
+  # One of: population, sample
+  # monte_carlo.spread_statistic: population  # [-]

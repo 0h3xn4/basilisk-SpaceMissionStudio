@@ -82,6 +82,23 @@ Changed values are in bold; **Changed values only** lists just those.
 A file is read only when a scenario names it: a configuration file lying
 in the folder does not change anything on its own.
 
+## Choose a model
+
+Where an analysis can be done more than one way, the way is a parameter
+too, set by the model's name. The first is the statistic of a Monte Carlo
+batch's spread:
+
+```yaml
+parameters:
+  monte_carlo.spread_statistic: sample   # [-] population (default) or sample
+```
+
+The Assumptions page lists each choice's models by title, and a name that
+is not one of them is refused. Each model's method, assumptions,
+references and tests are on its page
+([Selectable models](../models/README.md#selectable-models)). A Monte
+Carlo batch keeps the statistic it was run with, and its page names it.
+
 ## What results record
 
 - The budget's rows and notes use the values in effect: with the file
