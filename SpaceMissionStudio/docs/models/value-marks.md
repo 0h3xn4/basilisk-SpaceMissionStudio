@@ -61,9 +61,29 @@ without them is as before. The provenance view shows them under
 Scenario. A Monte Carlo run's own record shows a dispersed value as
 edited, which is what it is.
 
-The editor does not yet set or show them: that is the next step of
-Phase 5b, with the fields the tool computes (the Sun-synchronous
-inclination, the wizard's values, catalog presets) marked as computed.
+## In the editor
+
+- **What marks itself:** a spacecraft's orbit, on its **Orbit / mass**
+  page. **Compute Sun-sync inclination for this altitude** marks the
+  inclination, and **Compute RAAN for LTAN...** the RAAN, each as
+  computed. The value is the one the field holds, rounded to its 4
+  decimals, and the source says from what.
+- **The note under the field:** "Computed: <source>"; "Edited (computed
+  <value>)" with **Give a reason...**; or "Overridden (computed <value>):
+  <reason>". Its tooltip has the whole record. A field without a mark
+  shows no note.
+- **Give a reason...** asks why the value used replaces the computed one.
+  The answer marks it overridden; Cancel or an empty answer changes
+  nothing.
+- **Pressing a compute button again** marks the new value computed, in
+  place of the old mark.
+- **A renamed spacecraft or station keeps its marks.** A removed one, or
+  an orbit given another way (Cartesian, TLE), takes them with it.
+- **Undo, the JSON view and saving** carry the marks with the rest of the
+  scenario.
+
+Not yet marked: the wizard's values, the Walker constellation
+generator's and the spacecraft presets' (later steps).
 
 ## Checked against
 

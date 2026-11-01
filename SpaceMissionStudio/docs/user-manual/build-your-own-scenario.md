@@ -27,7 +27,10 @@ or build one up from an empty scenario.
    500 kg preset). On **Orbit / mass**:
    - semi-major axis = 6378 km + altitude, so 6928 km for 550 km;
    - for an Earth-observation orbit, press **Compute Sun-sync inclination
-     for this altitude** and **Compute RAAN for LTAN...** (10:30 is usual);
+     for this altitude** and **Compute RAAN for LTAN...** (10:30 is usual).
+     The note under the field marks the value computed; if you change it,
+     **Give a reason...** records why, and the value is then marked
+     overridden ([Computed and overridden values](../models/value-marks.md));
    - or choose the TLE orbit type and paste a real satellite's TLE
      (switching the orbit type asks whether to convert the orbit you
      have or use the new page's values);

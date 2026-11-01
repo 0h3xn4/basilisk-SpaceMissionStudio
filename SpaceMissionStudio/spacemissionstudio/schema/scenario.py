@@ -2836,6 +2836,32 @@ def value_mark_status(scenario, mark: ValueMark) -> str:
     return "computed" if getattr(record, name) == mark.value else "edited"
 
 
+def rename_in_value_marks(marks: list, collection: str, old_name: str, new_name: str) -> int:
+    """Point the marks of ``collection[old_name]`` (``"spacecraft"`` or
+    ``"ground_stations"``) at ``new_name``; returns how many changed."""
+    old, new, renamed = f"{collection}[{old_name}].", f"{collection}[{new_name}].", 0
+    for mark in marks:
+        if mark.path.startswith(old):
+            mark.path = new + mark.path[len(old):]
+            renamed += 1
+    return renamed
+
+
+def live_value_marks(scenario, marks: list) -> list:
+    """The ``marks`` that still name a number of ``scenario``: one whose
+    spacecraft or station was removed, or whose field no longer holds a
+    number (an orbit given another way), goes with what it marked."""
+    live = []
+    for mark in marks:
+        try:
+            record, name = resolve_value_path(scenario, mark.path)
+        except ValueError:
+            continue
+        if _is_finite_number(getattr(record, name)):
+            live.append(mark)
+    return live
+
+
 def value_mark_records(scenario) -> list[dict]:
     """Each mark with its status and the value the scenario uses, as the
     provenance records them."""

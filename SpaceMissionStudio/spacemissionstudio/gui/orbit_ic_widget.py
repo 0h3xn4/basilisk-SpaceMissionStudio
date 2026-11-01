@@ -45,6 +45,7 @@ from ..engine import orbit_conversion, tle
 from ..engine.orbit_design import DEFAULT_LTAN_HOUR, raan_for_ltan_deg, sun_synchronous_inclination_deg
 from ..schema.scenario import ANOMALY_TYPES, ORBIT_IC_TYPES, OrbitIC
 from .feedback import report
+from .value_mark_note import ValueMarkNote
 from .widgets import ComboBox, PreciseDoubleSpinBox, finish_form
 
 _ANOMALY_TYPE_LABELS = {
@@ -84,6 +85,11 @@ class OrbitIcWidget(QWidget):
     """
 
     changed = Signal()
+    # A button computed a field's value (the transparency plan, Phase 5b):
+    # (field, value as the field holds it, what computed it).
+    value_computed = Signal(str, float, str)
+    # Give a reason... under a field: (field).
+    reason_requested = Signal(str)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -241,6 +247,10 @@ class OrbitIcWidget(QWidget):
         form.addRow("Semi-major axis [km]", self.sma_km)
         form.addRow("Eccentricity [-]", self.ecc)
         form.addRow("Inclination [deg]", self.inc_deg)
+        self.mark_notes = {"inclination_deg": ValueMarkNote("deg"), "raan_deg": ValueMarkNote("deg")}
+        for field, note in self.mark_notes.items():
+            note.reason_requested.connect(lambda field=field: self.reason_requested.emit(field))
+        form.addRow(self.mark_notes["inclination_deg"])
 
         # Sun-synchronous helper (Phase 6 audit fix): previously, the only
         # way to reproduce 12 of the 20 bundled templates' own
@@ -281,6 +291,7 @@ class OrbitIcWidget(QWidget):
         form.addRow(raan_ltan_row)
 
         form.addRow("RAAN [deg]", self.raan_deg)
+        form.addRow(self.mark_notes["raan_deg"])
         form.addRow("Argument of periapsis [deg]", self.aop_deg)
 
         # One shared angle field for whichever anomaly the user wants to
@@ -403,8 +414,12 @@ class OrbitIcWidget(QWidget):
         self.tle_status.setText(text)
 
     def _on_compute_sso_inclination(self) -> None:
-        value = sun_synchronous_inclination_deg(self.sma_km.value(), self.ecc.value())
+        sma_km, ecc = self.sma_km.value(), self.ecc.value()
+        value = sun_synchronous_inclination_deg(sma_km, ecc)
         self.inc_deg.setValue(value)
+        self.value_computed.emit("inclination_deg", self.inc_deg.value(),
+                                 f"Sun-synchronous inclination at a = {sma_km:g} km, e = {ecc:g} "
+                                 f"(engine.orbit_design), rounded to {self.inc_deg.decimals()} decimals")
 
     def _on_compute_sso_raan(self) -> None:
         epoch_utc = (self._epoch_provider() if self._epoch_provider else "").strip()
@@ -419,6 +434,15 @@ class OrbitIcWidget(QWidget):
                    kind="warning")
             return
         self.raan_deg.setValue(value)
+        self.value_computed.emit("raan_deg", self.raan_deg.value(),
+                                 f"RAAN for an LTAN of {self.sso_ltan_hour.value():g} h at {epoch_utc} "
+                                 f"(engine.orbit_design), rounded to {self.raan_deg.decimals()} decimals")
+
+    def show_value_marks(self, marks: dict) -> None:
+        """``{field: (status, mark, value used)}`` of this orbit's marked
+        fields; a field not in it shows no note."""
+        for field, note in self.mark_notes.items():
+            note.show_mark(*marks.get(field, (None, None, None)))
 
     def to_dataclass(self, orbit_type: str | None = None) -> OrbitIC:
         """The orbit on the current type's page, or on ``orbit_type``'s."""

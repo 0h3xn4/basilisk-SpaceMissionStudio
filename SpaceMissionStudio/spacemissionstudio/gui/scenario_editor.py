@@ -29,6 +29,9 @@ sensors/actuators/FSW modes, which this editor deliberately omits).
 
 from __future__ import annotations
 
+import copy
+from datetime import UTC, datetime
+
 import shiboken6
 from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtWidgets import (
@@ -56,7 +59,12 @@ from ..schema.scenario import (
     ScenarioValidationError,
     SimSettings,
     SpaceWeatherConfig,
+    ValueMark,
+    live_value_marks,
     problem_text,
+    rename_in_value_marks,
+    resolve_value_path,
+    value_mark_status,
 )
 from .feedback import bring_into_view, clear_field_error, show_field_error
 from .json_view import ScenarioJsonView
@@ -321,6 +329,9 @@ class ScenarioEditorWidget(QWidget):
         source of truth for those three dataclasses."""
         self._gravity = GravityConfig()
         self._fsw_exports: list = []  # FswExportRecord list, kept as loaded (see set_fsw_exports)
+        # The computed and overridden values (ValueMark list, Phase 5b): set by
+        # a form's compute buttons and Give a reason..., kept with every edit.
+        self._value_marks: list = []
         # The project configuration file the scenario names: the Assumptions
         # page sets it (and the JSON view); read again at each to_scenario().
         self._config_file: str | None = None
@@ -553,6 +564,10 @@ class ScenarioEditorWidget(QWidget):
         node.debounce.settled.connect(self._on_form_settled)
         if kind == "spacecraft":  # its sections are built in turn: watch each one's fields as it comes
             form.section_built.connect(self._on_section_built)
+            form.value_computed.connect(lambda path, value, source, node=node:
+                                        self._on_value_computed(node, path, value, source))
+            form.reason_requested.connect(lambda path, node=node: self._on_reason_requested(node, path))
+            self._show_value_marks(self._draft_scenario())
         if out_of_range_boxes(form):  # a value from the file outside its box's range: say so now
             self.revalidate()
 
@@ -627,6 +642,9 @@ class ScenarioEditorWidget(QWidget):
         if config == node.config:
             self.revalidate()
             return
+        if config.name != node.config.name:  # its computed and overridden values follow the name (Phase 5b)
+            rename_in_value_marks(self._value_marks, "spacecraft" if kind == "spacecraft" else "ground_stations",
+                                  node.config.name, config.name)
         node.config = config
         self._applying = True
         try:
@@ -884,7 +902,7 @@ class ScenarioEditorWidget(QWidget):
 
     def _draft_scenario(self) -> Scenario:
         """The scenario as currently edited, NOT validated."""
-        return Scenario(
+        scenario = Scenario(
             name=self.name_edit.text().strip(),
             epoch_utc=self.epoch_edit.text().strip(),
             simulation_mode=self.simulation_mode_combo.currentData(),
@@ -899,6 +917,9 @@ class ScenarioEditorWidget(QWidget):
             fsw_exports=list(self._fsw_exports),
             config_file=self._config_file,
         )
+        # A mark goes with what it marked: a spacecraft removed, an orbit given another way.
+        scenario.value_marks = [copy.copy(mark) for mark in live_value_marks(scenario, self._value_marks)]
+        return scenario
 
     def set_fsw_exports(self, records: list) -> None:
         """Replaces the recorded flight-software exports (Flight Software
@@ -947,6 +968,7 @@ class ScenarioEditorWidget(QWidget):
         self.mission_sequence_editor.from_command_list(scenario.mission_sequence)
         self._show_sequence_length()  # the Environment form was built before the sequence was filled
         self._fsw_exports = list(scenario.fsw_exports)
+        self._value_marks = [copy.copy(mark) for mark in scenario.value_marks]
         self._config_file = scenario.config_file
         self.assumptions_page.set_config_file(scenario.config_file)
         if not self._applying_json:  # another scenario: the JSON page forgets an edit it held
@@ -1104,7 +1126,60 @@ class ScenarioEditorWidget(QWidget):
         self.mission_guide.update_state(len(scenario.spacecraft), len(scenario.ground_stations), valid=not errors,
                                         orbit_only=self.simulation_mode_combo.currentData() == "orbit_only")
         self._update_problem_counts()
+        self._value_marks = list(scenario.value_marks)  # those that went with what they marked are gone
+        self._show_value_marks(scenario)
         self.problems_changed.emit(self.problem_rows())
+
+    # -- computed and overridden values (Phase 5b) ------------------------
+
+    def _on_value_computed(self, node: _FormNode, path: str, value: float, source: str) -> None:
+        """A form's button computed ``path``'s value: marked computed, in
+        place of any mark it had."""
+        full = f"spacecraft[{node.config.name}].{path}"
+        self._value_marks = [mark for mark in self._value_marks if mark.path != full]
+        self._value_marks.append(ValueMark(full, "computed", value, source,
+                                           time_utc=datetime.now(UTC).isoformat(timespec="seconds")))
+        self.changed.emit()
+
+    def _on_reason_requested(self, node: _FormNode, path: str) -> None:
+        """Give a reason... for an edited computed value: asked for, and the
+        value then marked overridden."""
+        from PySide6.QtWidgets import QInputDialog
+
+        full = f"spacecraft[{node.config.name}].{path}"
+        mark = next((m for m in self._value_marks if m.path == full), None)
+        if mark is None:
+            return
+        self.flush_forms()
+        try:
+            record, name = resolve_value_path(self._draft_scenario(), full)
+            used = getattr(record, name)
+        except ValueError:
+            return
+        reason, ok = QInputDialog.getMultiLineText(
+            self, "Why this value?",
+            f"{full}\nComputed: {mark.value:g} ({mark.source})\nUsed: {used:g}\n\n"
+            "Why does the value used replace the computed one? The reason is kept with the scenario and in "
+            "every run's provenance.")
+        if not ok or not reason.strip():
+            return
+        mark.state, mark.reason = "overridden", reason.strip()
+        mark.time_utc = datetime.now(UTC).isoformat(timespec="seconds")
+        self.changed.emit()
+        self.revalidate()
+
+    def _show_value_marks(self, scenario: Scenario) -> None:
+        """Each built spacecraft form's notes, from ``scenario``'s marks."""
+        for node in self._spacecraft_nodes:
+            if node.form is None:
+                continue
+            prefix = f"spacecraft[{node.config.name}]."
+            shown = {}
+            for mark in scenario.value_marks:
+                if mark.path.startswith(prefix):
+                    record, name = resolve_value_path(scenario, mark.path)
+                    shown[mark.path[len(prefix):]] = (value_mark_status(scenario, mark), mark, getattr(record, name))
+            node.form.show_value_marks(shown)
 
     def _range_owner(self, box) -> str:
         """Who a box's value belongs to, as its message starts."""

@@ -1,0 +1,147 @@
+#
+#  ISC License
+#
+#  Copyright (c) 2026, Autonomous Vehicle Systems Lab, University of Colorado at Boulder
+#
+#  Permission to use, copy, modify, and/or distribute this software for any
+#  purpose with or without fee is hereby granted, provided that the above
+#  copyright notice and this permission notice appear in all copies.
+#
+#  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+#  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+#  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+#  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+#  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+#  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+#  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+#
+"""Computed and overridden values in the editor (the transparency plan,
+Phase 5b, second step): the orbit's compute buttons mark the value
+computed, a note under the field says so, an edited value can be given a
+reason (overridden), and the marks follow the spacecraft."""
+
+from pathlib import Path
+
+import pytest
+
+pytestmark = pytest.mark.requires_gui
+
+_TEMPLATES = Path(__file__).resolve().parents[2] / "spacemissionstudio" / "scenarios" / "templates"
+_PATH = "spacecraft[leo-comms-1].orbit.inclination_deg"
+
+
+@pytest.fixture
+def editor(qtbot):
+    from spacemissionstudio.gui.scenario_editor import ScenarioEditorWidget
+    from spacemissionstudio.schema import load_scenario
+
+    widget = ScenarioEditorWidget()
+    qtbot.addWidget(widget)
+    widget.from_scenario(load_scenario(next(_TEMPLATES.glob("19_*.json"))))  # leo-comms-1, Sun-synchronous
+    widget.show_spacecraft(0)
+    qtbot.waitUntil(lambda: widget._spacecraft_nodes[0].form is not None)
+    return widget
+
+
+def _orbit(editor):
+    return editor._spacecraft_nodes[0].form.orbit_widget
+
+
+def _compute_inclination(editor, qtbot):
+    orbit = _orbit(editor)
+    orbit.sma_km.setValue(7000.0)  # [km] away from the template's own value
+    orbit._on_compute_sso_inclination()
+    editor.flush_forms()
+    editor.revalidate()
+    return orbit
+
+
+def test_the_sun_synchronous_button_marks_the_inclination_computed(editor, qtbot):
+    """The button writes the inclination, as before, and the scenario
+    records it as computed, with the value the field holds and its source;
+    the note under the field says so."""
+    from spacemissionstudio.engine.orbit_design import sun_synchronous_inclination_deg
+
+    orbit = _compute_inclination(editor, qtbot)
+    scenario = editor.to_scenario()
+    (mark,) = scenario.value_marks
+    assert (mark.path, mark.state) == (_PATH, "computed")
+    assert mark.value == scenario.spacecraft[0].orbit.inclination_deg == orbit.inc_deg.value()
+    assert mark.value == pytest.approx(sun_synchronous_inclination_deg(7000.0, orbit.ecc.value()), abs=1e-4)
+    assert "Sun-synchronous inclination at a = 7000 km" in mark.source and mark.time_utc
+    note = orbit.mark_notes["inclination_deg"]
+    assert note.isVisibleTo(orbit) and note.status == "computed"
+    assert note.label.text().startswith("Computed: Sun-synchronous inclination")
+    assert not note.reason_button.isVisibleTo(orbit)
+    assert not orbit.mark_notes["raan_deg"].isVisibleTo(orbit)  # a field without a mark shows nothing
+
+
+def test_an_edited_value_can_be_given_a_reason(editor, qtbot, monkeypatch):
+    """Edited by hand: the note says so and offers Give a reason...; the
+    reason given marks the value overridden, kept with the scenario."""
+    from PySide6.QtWidgets import QInputDialog
+
+    orbit = _compute_inclination(editor, qtbot)
+    computed = orbit.inc_deg.value()
+    orbit.inc_deg.setValue(98.0)  # [deg]
+    editor.flush_forms()
+    editor.revalidate()
+    note = orbit.mark_notes["inclination_deg"]
+    assert note.status == "edited" and note.label.text() == f"Edited (computed {computed:g} deg)"
+    assert note.reason_button.isVisibleTo(orbit)
+    asked = []
+    monkeypatch.setattr(QInputDialog, "getMultiLineText",
+                        lambda *args, **kwargs: (asked.append(args[2]) or "the launcher's injection orbit", True))
+    note.reason_button.click()
+    assert "Computed: " in asked[0] and "Used: 98" in asked[0]
+    (mark,) = editor.to_scenario().value_marks
+    assert (mark.state, mark.reason, mark.value) == ("overridden", "the launcher's injection orbit", computed)
+    assert note.status == "overridden" and "the launcher's injection orbit" in note.label.text()
+    assert not note.reason_button.isVisibleTo(orbit)
+
+
+def test_a_cancelled_reason_changes_nothing(editor, qtbot, monkeypatch):
+    from PySide6.QtWidgets import QInputDialog
+
+    orbit = _compute_inclination(editor, qtbot)
+    orbit.inc_deg.setValue(98.0)  # [deg]
+    editor.flush_forms()
+    editor.revalidate()
+    monkeypatch.setattr(QInputDialog, "getMultiLineText", lambda *args, **kwargs: ("", False))
+    orbit.mark_notes["inclination_deg"].reason_button.click()
+    assert editor.to_scenario().value_marks[0].state == "computed"
+
+
+def test_the_marks_follow_a_rename_and_go_with_the_spacecraft(editor, qtbot):
+    _compute_inclination(editor, qtbot)
+    form = editor._spacecraft_nodes[0].form
+    form.name_edit.setText("leo-comms-2")
+    editor.flush_forms()
+    editor.revalidate()
+    (mark,) = editor.to_scenario().value_marks
+    assert mark.path == "spacecraft[leo-comms-2].orbit.inclination_deg"
+    editor.spacecraft_list.from_list([])  # the spacecraft removed
+    editor.revalidate()
+    assert editor.draft_scenario().value_marks == []
+
+
+def test_a_scenario_with_marks_opens_with_its_notes(qtbot):
+    """A scenario saved with an overridden value shows its note when the
+    spacecraft's page opens; the scenario keeps the mark unchanged."""
+    from spacemissionstudio.gui.scenario_editor import ScenarioEditorWidget
+    from spacemissionstudio.schema import load_scenario
+    from spacemissionstudio.schema.scenario import ValueMark
+
+    scenario = load_scenario(next(_TEMPLATES.glob("19_*.json")))
+    used = scenario.spacecraft[0].orbit.inclination_deg
+    scenario.value_marks = [ValueMark(_PATH, "overridden", 97.0, "Sun-synchronous inclination",
+                                      reason="the customer's orbit")]
+    widget = ScenarioEditorWidget()
+    qtbot.addWidget(widget)
+    widget.from_scenario(scenario)
+    widget.show_spacecraft(0)
+    qtbot.waitUntil(lambda: widget._spacecraft_nodes[0].form is not None)
+    note = widget._spacecraft_nodes[0].form.orbit_widget.mark_notes["inclination_deg"]
+    assert note.status == "overridden" and note.label.text() == "Overridden (computed 97 deg): the customer's orbit"
+    assert f"Value used: {used:g} deg" in note.toolTip()
+    assert widget.to_scenario().value_marks == scenario.value_marks

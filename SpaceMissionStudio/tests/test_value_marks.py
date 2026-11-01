@@ -175,3 +175,24 @@ def test_a_runs_provenance_records_the_marks():
     scenario.value_marks = [_computed(scenario)]
     provenance = SimulationService(scenario).nominal_provenance()
     assert provenance.value_marks == value_mark_records(scenario)
+
+
+def test_a_rename_carries_the_marks_and_a_removal_drops_them():
+    """schema.references' renames point the marks at the new name; a mark
+    whose spacecraft is gone, or whose field no longer holds a number, is
+    not live."""
+    from spacemissionstudio.schema.references import rename_ground_station, rename_spacecraft
+    from spacemissionstudio.schema.scenario import live_value_marks
+
+    scenario = _scenario()
+    station = ValueMark("ground_stations[berlin-gs].min_elevation_deg", "computed", 10.0, "the template")
+    scenario.value_marks = [_computed(scenario), station]
+    rename_spacecraft(scenario, "leo-comms-1", "leo-comms-2")
+    rename_ground_station(scenario, "berlin-gs", "bonn-gs")
+    assert [m.path for m in scenario.value_marks] == ["spacecraft[leo-comms-2].orbit.inclination_deg",
+                                                      "ground_stations[bonn-gs].min_elevation_deg"]
+    scenario.validate()
+    scenario.ground_stations = []
+    assert live_value_marks(scenario, scenario.value_marks) == [scenario.value_marks[0]]
+    scenario.spacecraft[0].orbit.inclination_deg = None
+    assert live_value_marks(scenario, scenario.value_marks) == []
