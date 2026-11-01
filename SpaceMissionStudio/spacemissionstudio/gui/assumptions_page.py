@@ -35,7 +35,7 @@ from PySide6.QtCore import Signal
 from PySide6.QtWidgets import (QCheckBox, QFileDialog, QHBoxLayout, QLabel, QLineEdit, QPushButton, QVBoxLayout,
                                QWidget)
 
-from ..config import files, registry
+from ..config import files, models, registry
 from ..config.registry import ConfigError, Configuration
 from .data_table import DataTable, Row
 from .theme import SPACE, set_role
@@ -266,8 +266,10 @@ class AssumptionsPage(QWidget):
             self.value_edit.clear()
             return
         parameter = registry.parameter(name)
-        if parameter.choices is not None:
-            limits = "one of " + ", ".join(f"{c:g}" for c in parameter.choices)
+        if parameter.kind == "model":
+            limits = "one of " + "; ".join(f"{m.name} ({m.title})" for m in models.models(name))
+        elif parameter.choices is not None:
+            limits = "one of " + parameter.choices_text()
         else:
             bounds = [f"at least {parameter.minimum:g}" if parameter.minimum is not None else "",
                       f"at most {parameter.maximum:g}" if parameter.maximum is not None else ""]

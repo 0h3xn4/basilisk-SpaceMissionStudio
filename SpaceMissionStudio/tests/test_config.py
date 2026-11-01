@@ -63,7 +63,7 @@ _MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifeti
                 "orbit_control": "orbit-control.md", "geo_station_keeping": "orbit-control.md",
                 "roe_formation": "roe-formation.md", "flight_software": "flight-software-and-navigation.md",
                 "navigation": "flight-software-and-navigation.md", "checks": "pre-run-checks.md",
-                "explain": "explain.md"}
+                "explain": "explain.md", "monte_carlo": "monte-carlo-statistics.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -340,6 +340,10 @@ _GUI_CASES = {
     "results.battery_critical_fraction":
         "test_results_overview.py::test_the_battery_card_uses_the_runs_critical_fraction",
 }
+# A choice of model (config.models): its case is a named test that runs each model.
+_MODEL_CASES = {
+    "monte_carlo.spread_statistic": "test_model_registry.py::test_each_spread_statistic_is_the_one_it_declares",
+}
 
 
 # -- every link and data-handling parameter changes what it says it changes -------------------
@@ -395,11 +399,14 @@ def test_every_parameter_has_a_case_that_sets_it():
     declared = {p.name for p in registry.parameters()}
     cases = (set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_RESULTS_CASES) | set(_DYNAMICS_CASES)
              | set(_ENVIRONMENT_CASES) | set(_CONTROL_CASES) | set(_ROE_CASES) | set(_FSW_NAV_CASES)
-             | set(_CHECK_CASES) | set(_EXPLAIN_CASES) | set(_GUI_CASES))
+             | set(_CHECK_CASES) | set(_EXPLAIN_CASES) | set(_GUI_CASES) | set(_MODEL_CASES))
     assert declared == cases, f"no case for {sorted(declared - cases)}"
     for where in _GUI_CASES.values():
         file, name = where.split("::")
         assert f"def {name}(" in (Path(__file__).resolve().parent / "gui" / file).read_text(encoding="utf-8"), where
+    for where in _MODEL_CASES.values():
+        file, name = where.split("::")
+        assert f"def {name}(" in (Path(__file__).resolve().parent / file).read_text(encoding="utf-8"), where
 
 
 def test_the_percentile_choices_are_msfcs():

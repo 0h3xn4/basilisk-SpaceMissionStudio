@@ -193,3 +193,25 @@ def test_the_main_window_shows_the_tab_only_when_it_has_something(qtbot, tmp_pat
     assert tabs.indexOf(tab) >= 0 and window.current_view() is tab
     assert tab.folder == Path(tmp_path)
     assert all(tabs.isTabVisible(i) for i in range(tabs.count()))  # no hidden tabs anywhere
+
+
+def test_the_page_names_the_statistic_of_the_spread(qtbot, tmp_path):
+    """Transparency plan, Phase 6a: the line under the title names the
+    statistic the batch was run with, its tooltip the formula and the
+    parameter that chose it; the tiles use it (sample: divided by N - 1)."""
+    from dataclasses import replace
+
+    from spacemissionstudio.engine import monte_carlo_results as mcr
+    from spacemissionstudio.gui.monte_carlo_results_widget import MonteCarloResultsWidget
+
+    mcr.save(replace(_save_batch(tmp_path / "first"), spread_statistic="sample"), tmp_path / "sample")
+    widget = MonteCarloResultsWidget()
+    qtbot.addWidget(widget)
+    assert widget.load_folder(tmp_path / "first")
+    assert "(population standard deviation)" in widget.hint_label.text()
+    assert widget.load_folder(tmp_path / "sample")
+    assert "all runs (sample standard deviation): along the orbit" in widget.hint_label.text()
+    tip = widget.hint_label.toolTip()
+    assert "Sample standard deviation: " in tip and "(N - 1)" in tip and "monte_carlo.spread_statistic" in tip
+    along_km = np.std((np.arange(5) - 2) * 1e-4, ddof=1) * _R_M / 1e3  # [km]
+    assert _tile_texts(widget)[2] == f"{along_km:.3g} km | Along-track spread, end"

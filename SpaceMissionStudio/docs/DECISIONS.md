@@ -5,6 +5,27 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Selectable models (2026-11-01)
+
+- **A choice is a parameter:** one way to set it (the project file), one
+  list of what is in effect (`assumptions`, the Assumptions page), one
+  record of what changed (`configuration`). A model registry of its own
+  would have needed all three again.
+- **The model is declared apart from the parameter:** the parameter says
+  which; the model says what it does, on what, assuming what, from which
+  reference, checked by which tests. A test fails when a model's evidence
+  names a test that does not exist.
+- **The default is the earlier behaviour:** no batch, run or export
+  changes until a project chooses.
+- **A batch keeps the statistic it was run with,** as a run is read with
+  its own configuration: a batch opened later reads the same, whatever
+  the project file says by then. Re-running the batch is the way to apply
+  another; the run table's CSV has every run's offsets for any other
+  statistic.
+- **The command line's spread lines stay as they were:** the statistic is
+  a line of its own after them, so the golden baseline, which records
+  them, is unchanged.
+
 ## Presets: one record per spacecraft (2026-11-01)
 
 The user's choice, of two offered: one record per spacecraft rather than

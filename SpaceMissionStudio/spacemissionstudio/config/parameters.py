@@ -26,6 +26,7 @@ orbit controllers.
 Propellant Mass budgets", EOP-FM/2024-07-177, issue 3.0.
 """
 
+from . import models
 from .registry import Parameter, register
 
 # The percentiles of MSFC's solar-activity prediction (engine.spaceweather.MSFC_PERCENTILES), the only ones
@@ -479,4 +480,14 @@ register(
               "Explain warns when locationPointing's pointing axis (pHat_B) is further than this from the "
               "optical navigation camera's boresight.", "SpaceMissionStudio's own choice",
               "No derivation recorded.", minimum=0.0, maximum=90.0),
+)
+
+# -- Monte Carlo statistics (engine.monte_carlo_results; the models, .models) -----------------
+
+register(
+    Parameter("monte_carlo.spread_statistic", "population", "[-]",
+              "The statistic of a Monte Carlo batch's 1-sigma spread: the population or the sample standard "
+              "deviation of the runs' offsets from their mean.", "SpaceMissionStudio's own choice",
+              "The population standard deviation is the one the tool used before the choice existed. No "
+              "derivation recorded.", kind="model", choices=models.names("monte_carlo.spread_statistic")),
 )

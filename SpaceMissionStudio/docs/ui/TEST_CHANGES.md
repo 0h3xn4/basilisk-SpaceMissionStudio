@@ -1405,3 +1405,23 @@ No existing test changed.
 
   Each fails on the code before (checked by stashing
   `spacemissionstudio/`). No existing test changed.
+
+## Selectable models (2026-11-01)
+
+- Added `tests/test_model_registry.py` (6 tests): every model declared
+  whole, with a page and tests that exist; declared once; chosen by name
+  in a project file, a wrong name refused; each statistic's formula (the
+  sqrt(3/2) ratio for three runs); the statistic saved, read back and
+  named; the default's numbers as before.
+- Added `tests/test_monte_carlo.py::test_a_batch_uses_and_records_the_statistic_its_configuration_chooses`,
+  `tests/gui/test_assumptions_page.py::test_a_model_choice_names_its_models_and_is_set_by_name`
+  and `tests/gui/test_monte_carlo_results_widget.py::test_the_page_names_the_statistic_of_the_spread`.
+- Changed `tests/test_config.py`: `_MODEL_PAGES` maps the new area
+  `monte_carlo` to its page, and `_MODEL_CASES` gives
+  `monte_carlo.spread_statistic` its case (checked to exist, as the GUI
+  cases are), so `test_every_parameter_is_documented_on_its_models_page`
+  and `test_every_parameter_has_a_case_that_sets_it` cover it. Nothing was
+  removed or loosened.
+
+  Each fails on the code before (checked by stashing
+  `spacemissionstudio/`).

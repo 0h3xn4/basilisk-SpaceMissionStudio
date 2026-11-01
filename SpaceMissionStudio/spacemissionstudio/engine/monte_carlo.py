@@ -176,6 +176,7 @@ from Basilisk.utilities.MonteCarlo.Dispersions import (
 from Basilisk.utilities.MonteCarlo.RetentionPolicy import RetentionPolicy
 
 from .. import output_provenance
+from ..config import models, registry
 from ..schema.command import runs_sequence, script_blocks
 from ..schema.scenario import DispersionConfig, MonteCarloConfig, Scenario, SimSettings, usable_thread_count
 from . import monte_carlo_results
@@ -578,7 +579,9 @@ def archive_record(scenario: Scenario, scenario_file: dict | None = None) -> dic
     ``nominal_run`` what every run shares, from the record a run of it
     would carry (:meth:`.SimulationService.nominal_provenance`: integrator,
     tolerances, task rates, central body, frames, time system, data files).
-    The seeds are each run's own: see :data:`ARCHIVE_SEEDS_NOTE`.
+    The seeds are each run's own: see :data:`ARCHIVE_SEEDS_NOTE`. As
+    ``models``, the models in effect for the batch's results
+    (``config.models``: the spread's statistic).
 
     Built after the batch, never before it: the Controller forks its
     workers from this process, where a Basilisk simulation left over can
@@ -594,6 +597,7 @@ def archive_record(scenario: Scenario, scenario_file: dict | None = None) -> dic
         nominal = {"error": f"{type(exc).__name__}: {exc}"}
     record["nominal_run"] = {key: value for key, value in nominal.items() if key not in _NOT_NOMINAL}
     record["rng_seeds"] = ARCHIVE_SEEDS_NOTE
+    record["models"] = models.records(scenario, "monte_carlo")
     return record
 
 
@@ -689,9 +693,10 @@ def collect_batch(scenario: Scenario, archive_dir: str | Path, num_runs: int,
         drawn.append(_drawn_values(params, scenario, mu))
         runs.append(run)
     failed = sorted(set(failures) | {run for run in range(num_runs) if run not in runs})
+    statistic = registry.value(monte_carlo_results.SPREAD_CHOICE, scenario)
     if not runs:
         return monte_carlo_results.MonteCarloBatch(scenario.name, scenario.gravity.central_body, np.zeros(0),
-                                                   [], failed, {}, {}, [])
+                                                   [], failed, {}, {}, [], scenario.epoch_utc, statistic)
     samples = min(rv[0].shape[0] for run_data in raw for rv in run_data.values())
     stride = monte_carlo_results.stride_for(samples)
     rows = slice(0, samples, stride)
@@ -699,4 +704,4 @@ def collect_batch(scenario: Scenario, archive_dir: str | Path, num_runs: int,
     positions = {name: np.stack([run_data[name][0][rows, 1:4] for run_data in raw]) for name in names}
     velocities = {name: np.stack([run_data[name][1][rows, 1:4] for run_data in raw]) for name in names}
     return monte_carlo_results.MonteCarloBatch(scenario.name, scenario.gravity.central_body, time_s, runs,
-                                               failed, positions, velocities, drawn, scenario.epoch_utc)
+                                               failed, positions, velocities, drawn, scenario.epoch_utc, statistic)

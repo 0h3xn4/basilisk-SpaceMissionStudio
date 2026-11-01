@@ -487,6 +487,14 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **Selectable models, starting with the Monte Carlo spread:** a model
+  is declared once with its method, inputs, outputs, assumptions,
+  references and the tests that check it (`config/models.py`); a choice
+  between models is a project parameter set by the model's name. The
+  first, `monte_carlo.spread_statistic`, gives the population (default,
+  as before) or the sample standard deviation. A batch keeps the one it
+  was run with; its provenance (`models`), the Monte Carlo page and the
+  `monte-carlo` command name it. See `docs/models/monte-carlo-statistics.md`.
 - **A spacecraft made from a preset says so:** **New from template...**
   records the preset and the values it gave, once per spacecraft. Its
   page reads "From preset X: 38 of 40 values as it gave them, 2 changed"

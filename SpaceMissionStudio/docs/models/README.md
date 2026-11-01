@@ -20,6 +20,7 @@ configuration file changes them without editing code
 | The attitude thrusters' Schmitt trigger, optical and landmark navigation's filters | [Flight software and navigation](flight-software-and-navigation.md) | `flight_software.*`, `navigation.*` |
 | The pre-run checks: pass prediction, recording, step, late pass, sun sensor | [Pre-run checks](pre-run-checks.md) | `checks.*` |
 | Explain's labels and notes; the mission sequence's numerical settings | [Explain and the mission sequence](explain.md) | `explain.*` |
+| A Monte Carlo batch's offsets and the statistic of its spread | [Monte Carlo statistics](monte-carlo-statistics.md) | `monte_carlo.*` |
 | The scenario file's limits: run length, step, counts, sizes, names | [The scenario file's limits](scenario-limits.md) | none (constants) |
 | Computed and overridden values: what is marked, its status, where it is recorded | [Computed and overridden values](value-marks.md) | none |
 
@@ -44,17 +45,42 @@ neither parameters nor constants are named on its page; the
 [transparency audit](../transparency_audit.md), Section 4, lists them all
 with file and line.
 
+## Selectable models
+
+Where an analysis can be done more than one way, each way is a model,
+declared once in `spacemissionstudio/config/models.py` with:
+
+- its **name** (the value that selects it) and **title**;
+- its **method**: what it computes and how, with the formula;
+- its **inputs** and **outputs**;
+- its **assumptions**;
+- its **references**;
+- its **evidence**: the tests that check it, which a test confirms exist.
+
+A choice between models is a parameter like the others (its kind is
+"model"): a project configuration file sets it by the model's name, the
+Assumptions page and `spacemissionstudio assumptions` list it, and a name
+that is not one of its models is refused when the file is read. The
+default is the model the tool used before the choice existed, so no
+result changes until a project chooses another. The model in effect is
+recorded with the results it gives and named where they are shown.
+
+| Choice | Models | Page |
+|---|---|---|
+| `monte_carlo.spread_statistic` | `population` (default), `sample` | [Monte Carlo statistics](monte-carlo-statistics.md) |
+
+The other models the plan names (the re-entry criterion and debris
+rules, margin policy profiles, shadowing bodies, the atmosphere, link
+losses, power degradation) are still one model each; they follow (the
+transparency plan, Phase 6b).
+
 ## Not yet covered
 
 A check of the audit's Section 4 against the registry (2026-10-30) found
-these models with rules that are still values in the code, and no page
-here yet. Until each has its page, its values are listed with file and
-line in the audit's Appendix B, Sections 1.3 to 1.8, and Appendix A,
-Sections 1h and 1i.
-
-| Models | Rules still in the code (examples) | To be done |
-|---|---|---|
-| Monte Carlo statistics | the 1-sigma spread uses the population standard deviation | Phase 6b (a choice of statistic) |
+models with rules still in the code and no page here; the last of them,
+the Monte Carlo statistics, has its page now. The audit's Appendix B,
+Sections 1.3 to 1.8, and Appendix A, Sections 1h and 1i, list the values
+with file and line.
 
 Numerical settings that set no result are not parameters: download
 limits, timeouts, task priorities, iteration caps, plotting limits. The
