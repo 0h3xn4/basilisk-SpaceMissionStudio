@@ -231,6 +231,10 @@ def rename_spacecraft(scenario: Scenario, old_name: str, new_name: str) -> int:
     from .scenario import rename_in_value_marks  # local: this module imports schema.scenario for types only
 
     updated += rename_in_value_marks(scenario.value_marks, "spacecraft", old_name, new_name)
+    for record in scenario.presets:  # a preset record names its spacecraft (Phase 5b)
+        if record.spacecraft == old_name:
+            record.spacecraft = new_name
+            updated += 1
 
     target.name = new_name
     return updated

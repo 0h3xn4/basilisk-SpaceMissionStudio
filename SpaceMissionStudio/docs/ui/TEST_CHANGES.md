@@ -1394,3 +1394,14 @@ No existing test changed.
 
   Each fails on the code before (checked by stashing
   `spacemissionstudio/`). No existing test changed.
+
+## Presets: one record per spacecraft (2026-11-01)
+
+- Added `tests/test_preset_records.py` (8 tests): the numbers by field
+  path; a record's round trip and what changed; a scenario without one
+  writing none (file, provenance); malformed records refused; a rename
+  and one record per spacecraft; Explain's note and the provenance.
+- Added `tests/gui/test_value_mark_views.py::test_new_from_template_records_the_preset`.
+
+  Each fails on the code before (checked by stashing
+  `spacemissionstudio/`). No existing test changed.

@@ -152,11 +152,15 @@ class RunProvenance:
     # value computed, its source and, for an override, the reason. Empty
     # when the scenario marks none, and in a record from before.
     value_marks: list[dict[str, object]] = field(default_factory=list)
+    # The spacecraft made from a preset (schema.scenario.preset_records):
+    # the preset, how many of its values are kept, and those changed.
+    presets: list[dict[str, object]] = field(default_factory=list)
 
     def to_dict(self) -> dict:
         record = asdict(self)
-        if not record["value_marks"]:  # recorded only when there are some: a run's record is as before without
-            del record["value_marks"]
+        for key in ("value_marks", "presets"):  # recorded only when there are some: a run's record is as before
+            if not record[key]:
+                del record[key]
         return record
 
     def summary_lines(self) -> list[str]:

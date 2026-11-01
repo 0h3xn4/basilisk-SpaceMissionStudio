@@ -14514,6 +14514,34 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Computed and overridden values: presets (2026-11-01)
+
+The transparency plan, Phase 5b, the last part. Branch `preset-records`.
+The user chose one record per spacecraft.
+
+- **`PresetRecord`** (`schema.scenario`): spacecraft, preset, `values`
+  (every number it gave, `number_fields`, name and orbit left out), time.
+  `Scenario.presets`, written only when not empty. Validated: the
+  spacecraft exists, the preset is named, the values are numbers, one per
+  spacecraft.
+- **`preset_status`:** kept, changed, or gone, against the spacecraft as
+  it is now; **`preset_records`** for the provenance (`RunProvenance.presets`,
+  a long run's from the scenario as given, `scenario_record`), each only
+  when there is one.
+- **The editor:** `SpacecraftListWidget.preset_used` on **New from
+  template...** (the values as the form added them, so its rounding is
+  the preset's value); the scenario editor keeps the records, follows a
+  rename, drops a removed spacecraft's; the spacecraft page's line
+  (`SpacecraftEditorDialog.show_preset`).
+- **Explain:** "N from a preset" and a note per spacecraft
+  (`preset_lines`, up to five changes).
+- **`schema.references.rename_spacecraft`** renames the record too.
+- **Tests:** `tests/test_preset_records.py` (8), one in
+  `tests/gui/test_value_mark_views.py`. No existing test changed.
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4,319 passed (18 min 50 s).
+
 ## Computed and overridden values: Explain and Results (2026-11-01)
 
 The transparency plan, Phase 5b ("marks the value as overridden in every

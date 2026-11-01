@@ -61,7 +61,7 @@ from datetime import timedelta, UTC
 from .. import constants
 from ..config import registry
 from ..schema.epochs import parse_epoch_utc
-from ..schema.scenario import value_mark_records
+from ..schema.scenario import preset_records, value_mark_records
 from . import earth_orientation, landmarks, opnav, small_bodies
 from .orbit_design import sun_synchronous_inclination_deg
 from .roe import min_radial_normal_separation
@@ -597,18 +597,38 @@ def value_mark_lines(records: list[dict]) -> list[str]:
     return lines
 
 
+def preset_lines(records: list[dict]) -> list[str]:
+    """One line per spacecraft made from a preset, from ``preset_records``:
+    how many of its values are as the preset gave them, and those changed."""
+    lines = []
+    for record in records:
+        line = f"{record['spacecraft']}: from preset {record['preset']}, {record['kept']} of {record['values']} " \
+               "values as it gave them"
+        changed = record["changed"]
+        if changed:
+            line += "; changed: " + ", ".join(
+                f"{c['path']} {c['preset']:g} -> " + ("removed" if c["now"] is None else f"{c['now']:g}")
+                for c in changed[:5]) + (f" and {len(changed) - 5} more" if len(changed) > 5 else "")
+        lines.append(line)
+    return lines
+
+
 def _value_marks_section(scenario) -> ExplanationSection | None:
-    """The values SpaceMissionStudio computed, and those used in their
-    place (the transparency plan, Phase 5b; schema.scenario.ValueMark)."""
-    if not scenario.value_marks:
+    """The values SpaceMissionStudio computed, those used in their place,
+    and the spacecraft made from a preset (the transparency plan, Phase 5b;
+    schema.scenario.ValueMark, PresetRecord)."""
+    if not scenario.value_marks and not scenario.presets:
         return None
     records = value_mark_records(scenario)
     counts = {status: sum(r["status"] == status for r in records) for status in ("computed", "edited", "overridden")}
     kinds = {"computed": "neutral", "edited": "warning", "overridden": "accent"}
+    badges = [Badge(f"{count} {status}", kinds[status]) for status, count in counts.items() if count]
+    if scenario.presets:
+        badges.append(Badge(f"{len(scenario.presets)} from a preset", "neutral"))
     return ExplanationSection(
         title="Computed and overridden values",
-        badges=[Badge(f"{count} {status}", kinds[status]) for status, count in counts.items() if count],
-        notes=value_mark_lines(records),
+        badges=badges,
+        notes=value_mark_lines(records) + preset_lines(preset_records(scenario)),
     )
 
 

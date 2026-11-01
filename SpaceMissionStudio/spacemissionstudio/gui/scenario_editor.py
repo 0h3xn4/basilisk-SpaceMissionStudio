@@ -62,6 +62,7 @@ from ..schema.scenario import (
     SpaceWeatherConfig,
     ValueMark,
     live_value_marks,
+    preset_status,
     problem_text,
     put_value_marks,
     rename_in_value_marks,
@@ -334,6 +335,7 @@ class ScenarioEditorWidget(QWidget):
         # The computed and overridden values (ValueMark list, Phase 5b): set by
         # a form's compute buttons and Give a reason..., kept with every edit.
         self._value_marks: list = []
+        self._presets: list = []  # PresetRecord list: spacecraft made from a preset (Phase 5b)
         # The project configuration file the scenario names: the Assumptions
         # page sets it (and the JSON view); read again at each to_scenario().
         self._config_file: str | None = None
@@ -390,6 +392,7 @@ class ScenarioEditorWidget(QWidget):
         self.spacecraft_list.set_epoch_provider(lambda: self.epoch_edit.text().strip())
         self._base_dir_provider = None  # set_base_dir_provider
         self.spacecraft_list.value_marks_made.connect(self._on_value_marks_made)  # before its changed
+        self.spacecraft_list.preset_used.connect(self._on_preset_used)
         self.spacecraft_list.changed.connect(self.changed)
         self.spacecraft_list.changed.connect(self._refresh_monte_carlo_spacecraft_names)
         layout.addWidget(self.spacecraft_list)
@@ -648,6 +651,9 @@ class ScenarioEditorWidget(QWidget):
         if config.name != node.config.name:  # its computed and overridden values follow the name (Phase 5b)
             rename_in_value_marks(self._value_marks, "spacecraft" if kind == "spacecraft" else "ground_stations",
                                   node.config.name, config.name)
+            for record in self._presets if kind == "spacecraft" else ():
+                if record.spacecraft == node.config.name:
+                    record.spacecraft = config.name
         node.config = config
         self._applying = True
         try:
@@ -922,6 +928,8 @@ class ScenarioEditorWidget(QWidget):
         )
         # A mark goes with what it marked: a spacecraft removed, an orbit given another way.
         scenario.value_marks = [copy.copy(mark) for mark in live_value_marks(scenario, self._value_marks)]
+        names = {sc.name for sc in scenario.spacecraft}
+        scenario.presets = [copy.copy(record) for record in self._presets if record.spacecraft in names]
         return scenario
 
     def set_fsw_exports(self, records: list) -> None:
@@ -972,6 +980,7 @@ class ScenarioEditorWidget(QWidget):
         self._show_sequence_length()  # the Environment form was built before the sequence was filled
         self._fsw_exports = list(scenario.fsw_exports)
         self._value_marks = [copy.copy(mark) for mark in scenario.value_marks]
+        self._presets = [copy.copy(record) for record in scenario.presets]
         self._config_file = scenario.config_file
         self.assumptions_page.set_config_file(scenario.config_file)
         if not self._applying_json:  # another scenario: the JSON page forgets an edit it held
@@ -1130,6 +1139,7 @@ class ScenarioEditorWidget(QWidget):
                                         orbit_only=self.simulation_mode_combo.currentData() == "orbit_only")
         self._update_problem_counts()
         self._value_marks = list(scenario.value_marks)  # those that went with what they marked are gone
+        self._presets = list(scenario.presets)
         self._show_value_marks(scenario)
         self.problems_changed.emit(self.problem_rows())
 
@@ -1142,6 +1152,11 @@ class ScenarioEditorWidget(QWidget):
         self._value_marks = put_value_marks(self._value_marks, [ValueMark(
             full, "computed", value, source, time_utc=datetime.now(UTC).isoformat(timespec="seconds"))])
         self.changed.emit()
+
+    def _on_preset_used(self, record) -> None:
+        """A spacecraft added from a preset: its record, in place of an
+        earlier one for that name."""
+        self._presets = [r for r in self._presets if r.spacecraft != record.spacecraft] + [record]
 
     def _on_value_marks_made(self, marks: list) -> None:
         """A generator's computed values (the Walker constellation), kept
@@ -1188,6 +1203,8 @@ class ScenarioEditorWidget(QWidget):
                     shown[mark.path[len(prefix):]] = (value_mark_status(scenario, mark), mark, getattr(record, name),
                                                       consequences(scenario, mark))
             node.form.show_value_marks(shown)
+            record = next((r for r in scenario.presets if r.spacecraft == node.config.name), None)
+            node.form.show_preset(record, preset_status(scenario, record) if record is not None else None)
 
     def _range_owner(self, box) -> str:
         """Who a box's value belongs to, as its message starts."""

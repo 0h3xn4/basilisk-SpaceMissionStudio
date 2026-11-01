@@ -88,7 +88,7 @@ def scenario_record(scenario) -> dict:
     run (an OPM export, a budget, a lifetime, a Monte Carlo archive)."""
     from . import __version__, dependencies
 
-    from .schema.scenario import value_mark_records
+    from .schema.scenario import preset_records, value_mark_records
 
     record = {"spacemissionstudio_version": __version__, "basilisk_version": dependencies.basilisk_version(),
               "qualified_basilisk_version": dependencies.QUALIFIED_BASILISK_VERSION,
@@ -98,6 +98,9 @@ def scenario_record(scenario) -> dict:
     marks = value_mark_records(scenario) if getattr(scenario, "value_marks", None) else []
     if marks:  # the computed and overridden values (Phase 5b); recorded only when there are some
         record["value_marks"] = marks
+    presets = preset_records(scenario) if getattr(scenario, "presets", None) else []
+    if presets:  # the spacecraft made from a preset, the same
+        record["presets"] = presets
     return record
 
 

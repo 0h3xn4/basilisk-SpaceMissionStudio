@@ -65,7 +65,7 @@ GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
              "integrator_absolute_tolerance", "central_body", "central_body_mu_m3_s2", "run_warnings")),
     ("Seeds", ("rng_seed", "rng_seeds", "rng_seed_note")),
     ("Scenario", ("scenario_file", "scenario_file_sha256", "scenario_sha256", "scenario_file_migrations",
-                  "value_marks")),
+                  "value_marks", "presets")),
     ("Data files", ("data_files",)),
     ("Time scales", ("time_system",)),
     ("Frames", ("frames", "transformations", "series_frames")),

@@ -230,3 +230,44 @@ def test_the_note_says_what_an_edit_changes(editor, qtbot):
     editor.flush_forms()
     editor.revalidate()
     assert note.status == "computed" and not note.consequence_label.isVisibleTo(orbit)
+
+
+def test_new_from_template_records_the_preset(qtbot, monkeypatch):
+    """New from template... adds the spacecraft and records its preset;
+    the spacecraft's page says how many values are as the preset gave
+    them, and a change shows."""
+    from PySide6.QtWidgets import QDialog
+
+    from spacemissionstudio.engine.spacecraft_templates import SPACECRAFT_TEMPLATES
+    from spacemissionstudio.gui import spacecraft_template_dialog
+    from spacemissionstudio.gui.scenario_editor import ScenarioEditorWidget
+    from spacemissionstudio.schema import load_scenario
+
+    class _Picker:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def exec(self):
+            return QDialog.DialogCode.Accepted
+
+        def selected_template(self):
+            return SPACECRAFT_TEMPLATES[1]
+
+    monkeypatch.setattr(spacecraft_template_dialog, "SpacecraftTemplateDialog", _Picker)
+    editor = ScenarioEditorWidget()
+    qtbot.addWidget(editor)
+    editor.from_scenario(load_scenario(next(_TEMPLATES.glob("19_*.json"))))
+    editor.spacecraft_list._on_new_from_template()
+    qtbot.waitUntil(lambda: editor._spacecraft_nodes[-1].form is not None)
+    editor.revalidate()
+    (record,) = editor.draft_scenario().presets
+    assert record.preset == SPACECRAFT_TEMPLATES[1].name and record.spacecraft == editor._spacecraft_nodes[-1].config.name
+    form = editor._spacecraft_nodes[-1].form
+    assert form.preset_label.isVisibleTo(form)
+    assert form.preset_label.text() == (f"From preset {record.preset}: {len(record.values)} of {len(record.values)} "
+                                        "values as it gave them")
+    form.dry_mass_kg.setValue(form.dry_mass_kg.value() + 10.0)  # [kg]
+    editor.flush_forms()
+    editor.revalidate()
+    assert form.preset_label.text().endswith(", 1 changed") and "dry_mass_kg" in form.preset_label.toolTip()
+    assert not editor._spacecraft_nodes[0].form or not editor._spacecraft_nodes[0].form.preset_label.isVisible()

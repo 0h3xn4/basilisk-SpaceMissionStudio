@@ -5,6 +5,22 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Presets: one record per spacecraft (2026-11-01)
+
+The user's choice, of two offered: one record per spacecraft rather than
+a mark on each key value.
+
+- **The values kept, not looked up again:** comparing with the preset as
+  the code builds it today would make a scenario look edited after a
+  preset's numbers change in a later version. The record keeps the
+  numbers the spacecraft was given, as the form added them (rounded to
+  its fields), so "as the preset gave it" means exactly that.
+- **Numbers only:** a preset's text and choices (an attitude mode) are
+  part of the spacecraft and seen in its form; the record is about the
+  values an engineer would have had to invent.
+- **The orbit left out:** a preset's orbit is a placeholder that the
+  engineer replaces at once.
+
 ## Computed and overridden values in Explain and Results (2026-11-01)
 
 - **Changed values listed, computed ones counted:** a Walker

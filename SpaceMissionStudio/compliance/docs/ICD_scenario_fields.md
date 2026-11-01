@@ -24,6 +24,7 @@ Top-level scenario object (the JSON file's root).
 | `config_file` | str / None | `None` |  |
 | `configuration` | object | `None` |  |
 | `value_marks` | list | `[]` | list[ValueMark] |
+| `presets` | list | `[]` | list[PresetRecord] |
 
 ## ActuatorConfig
 
@@ -370,6 +371,17 @@ A spacecraft's power budget: a body-fixed solar panel, a constant "bus" housekee
 | `bus_idle_power_w` | float | `0.0` | [W] constant always-on avionics/thermal/ADCS housekeeping load |
 | `battery_capacity_wh` | float | `100.0` | [W*hr] |
 | `battery_initial_soc` | float | `1.0` | [-] initial state of charge, fraction of capacity, 0 <= x <= 1 |
+
+## PresetRecord
+
+A spacecraft made from one of SpaceMissionStudio's presets (**New from template...**, engine.spacecraft_templates; the transparency plan, Phase 5b): the preset's name and every number it gave the spacecraft as added (:func:`number_fields`, its name and orbit left out: the orbit is set after), so a value still as the preset gave it can be told from one changed since, whatever later versions do to the preset.
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `spacecraft` | str | `required` |  |
+| `preset` | str | `required` |  |
+| `values` | dict | `{}` | {path: number}, as added |
+| `time_utc` | str | `''` |  |
 
 ## PropellantBudgetConfig
 

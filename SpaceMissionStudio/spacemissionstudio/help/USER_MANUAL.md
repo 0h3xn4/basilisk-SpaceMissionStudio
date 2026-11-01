@@ -579,7 +579,9 @@ The quickest way to a mission of your own is a starter template (22 or
 3. **Spacecraft**: **Add**, or **New from template...** for a 100-500 kg
    preset (in *Orbit only* mode it keeps the preset's mass, inertia and
    drag areas and leaves its hardware out); the spacecraft then has its
-   own node in the tree. On its **Orbit / mass** page: the semi-major axis is Earth's
+   own node in the tree. A spacecraft made from a preset says so on its
+   page, with how many of the preset's values it still has (hover for the
+   ones changed). On its **Orbit / mass** page: the semi-major axis is Earth's
    radius (6378 km) plus the altitude, so 6928 km for 550 km. For an
    Earth-observation orbit, press **Compute Sun-sync inclination for
    this altitude** and **Compute RAAN for LTAN...** (10:30 is the usual
