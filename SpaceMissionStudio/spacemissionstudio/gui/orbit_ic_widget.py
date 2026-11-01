@@ -439,10 +439,10 @@ class OrbitIcWidget(QWidget):
                                  f"(engine.orbit_design), rounded to {self.raan_deg.decimals()} decimals")
 
     def show_value_marks(self, marks: dict) -> None:
-        """``{field: (status, mark, value used)}`` of this orbit's marked
-        fields; a field not in it shows no note."""
+        """``{field: (status, mark, value used, what it changes)}`` of this
+        orbit's marked fields; a field not in it shows no note."""
         for field, note in self.mark_notes.items():
-            note.show_mark(*marks.get(field, (None, None, None)))
+            note.show_mark(*marks.get(field, (None, None, None, ())))
 
     def to_dataclass(self, orbit_type: str | None = None) -> OrbitIC:
         """The orbit on the current type's page, or on ``orbit_type``'s."""

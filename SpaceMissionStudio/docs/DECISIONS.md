@@ -5,6 +5,18 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## What a changed computed value changes (2026-11-01)
+
+- **Analytic, not simulated:** the note updates as the field is typed;
+  a run per keystroke is out of the question, and the first-order J2
+  formula is the one that computed the Sun-synchronous value, so it is
+  the right measure of what departing from it does.
+- **One rule for "Sun-synchronous":** Explain's `explain.sso_tolerance_deg`,
+  so the note never says "not Sun-synchronous" for an orbit Explain still
+  labels SSO.
+- **A line of its own:** the status line stays as it was; the
+  consequence goes under it, and only while the value differs.
+
 ## Computed and overridden values from the generators (2026-11-01)
 
 - **Only what was computed:** a Walker satellite's semi-major axis,

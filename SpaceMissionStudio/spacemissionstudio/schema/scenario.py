@@ -2871,12 +2871,15 @@ def live_value_marks(scenario, marks: list) -> list:
 def value_mark_records(scenario) -> list[dict]:
     """Each mark with its status and the value the scenario uses, as the
     provenance records them."""
+    from ..engine.value_consequences import consequences  # local: the engine imports this module
+
     records = []
     for mark in scenario.value_marks:
         record, name = resolve_value_path(scenario, mark.path)
         records.append({"path": mark.path, "status": value_mark_status(scenario, mark),
                         "value_used": getattr(record, name), "value": mark.value, "source": mark.source,
-                        "reason": mark.reason, "author": mark.author, "time_utc": mark.time_utc})
+                        "reason": mark.reason, "author": mark.author, "time_utc": mark.time_utc,
+                        "consequences": consequences(scenario, mark)})
     return records
 
 

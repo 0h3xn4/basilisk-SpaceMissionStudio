@@ -487,6 +487,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **A changed computed value says what it changes:** under the note of
+  an edited or overridden value, a line gives the consequence: an
+  inclination's node drift (and whether the orbit is still
+  Sun-synchronous, by Explain's rule), a RAAN's shift of the node's local
+  time, a semi-major axis's change of period, or else the difference.
+  The provenance records the same lines. See
+  `docs/models/value-marks.md`.
 - **Generated orbits are marked computed too:** **Generate Walker
   constellation...** marks each satellite's semi-major axis, RAAN and
   anomaly (all six elements with J2), naming its plane and slot, and the

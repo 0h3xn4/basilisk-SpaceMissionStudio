@@ -212,3 +212,21 @@ def test_a_generated_constellation_is_marked_computed(qtbot, monkeypatch):
     qtbot.waitUntil(lambda: editor._spacecraft_nodes[row].form is not None)
     notes = editor._spacecraft_nodes[row].form.orbit_widget.mark_notes
     assert notes["raan_deg"].status == "computed" and "plane 2 of 2" in notes["raan_deg"].label.text()
+
+
+def test_the_note_says_what_an_edit_changes(editor, qtbot):
+    """An edited Sun-synchronous inclination: the note says the node now
+    drifts from the Sun; back at the computed value, it says nothing more."""
+    orbit = _compute_inclination(editor, qtbot)
+    computed = orbit.inc_deg.value()
+    orbit.inc_deg.setValue(computed + 1.0)  # [deg]
+    editor.flush_forms()
+    editor.revalidate()
+    note = orbit.mark_notes["inclination_deg"]
+    assert note.label.text() == f"Edited (computed {computed:g} deg)"  # the status line as before
+    assert "Not Sun-synchronous: the node moves" in note.consequence_label.text()
+    assert note.consequence_label.isVisibleTo(orbit) and "Changes: The node drifts" in note.toolTip()
+    orbit.inc_deg.setValue(computed)
+    editor.flush_forms()
+    editor.revalidate()
+    assert note.status == "computed" and not note.consequence_label.isVisibleTo(orbit)

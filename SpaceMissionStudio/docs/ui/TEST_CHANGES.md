@@ -1373,3 +1373,16 @@ No existing test changed.
   Each fails on the code before (checked by stashing
   `spacemissionstudio/`). No existing test changed: the wizard's
   round-trip test still finds an untouched template unchanged.
+
+## What a changed computed value changes (2026-11-01)
+
+- Added `tests/test_value_consequences.py` (7 tests): the drift at the
+  Sun-synchronous inclination is the Sun's; an overridden inclination's
+  drift and "Not Sun-synchronous"; a small edit "Still Sun-synchronous"
+  by `explain.sso_tolerance_deg`, and not with a tighter one; a RAAN's
+  local-time shift; a semi-major axis's period; any other value's
+  difference; the provenance's `consequences`.
+- Added `tests/gui/test_value_mark_views.py::test_the_note_says_what_an_edit_changes`.
+
+  Each fails on the code before (checked by stashing
+  `spacemissionstudio/`). No existing test changed.

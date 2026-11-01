@@ -14514,6 +14514,31 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Computed and overridden values: what a change does (2026-11-01)
+
+The transparency plan, Phase 5b ("explains the consequence"). Branch
+`override-consequences`.
+
+- **`engine/value_consequences.py`:** `consequences(scenario, mark)`,
+  sentences for a mark whose field no longer holds the value computed:
+  the J2 node drift of an Earth orbit's inclination (and against the Sun
+  when the value computed was Sun-synchronous, "Not" or "Still"
+  Sun-synchronous by `explain.sso_tolerance_deg`), the local-time shift
+  of a RAAN computed for an LTAN, the period change of a semi-major
+  axis, else the difference with its unit.
+- **`engine.orbit_design`:** `nodal_rate_deg_per_day`,
+  `orbital_period_s`, `SUN_MEAN_MOTION_DEG_PER_DAY`, the formulas the
+  Sun-synchronous inclination already used. `sun_synchronous_inclination_deg`
+  is unchanged.
+- **The note** gets a second line, the consequences, while the value is
+  edited or overridden; the status line is as before. The provenance
+  records them (`value_mark_records`: `consequences`).
+- **Tests:** `tests/test_value_consequences.py` (7), one in
+  `tests/gui/test_value_mark_views.py`. No existing test changed.
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4304 passed in 18 min 37 s, including the regression baseline.
+
 ## Computed and overridden values: the generators (2026-11-01)
 
 The transparency plan, Phase 5b, third step. Branch `generator-marks`.

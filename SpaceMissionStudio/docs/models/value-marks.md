@@ -36,6 +36,34 @@ A scenario's `value_marks` lists them, one per value:
 - **overridden:** the value replaces the computed one, for the reason
   given.
 
+## What a changed value changes
+
+When the field no longer holds the value computed (edited or
+overridden), the note says what that changes, on a line under it, and
+the provenance records the same sentences (`consequences`). Code:
+`spacemissionstudio/engine/value_consequences.py`. Earth orbits given as
+classical elements:
+
+- **Inclination:** the node's J2 secular drift at the value used and at
+  the value computed, `-1.5 n J2 (Req/p)^2 cos i` (the formula the
+  Sun-synchronous inclination is solved from). When the value computed
+  was Sun-synchronous, how fast the node now moves against the mean Sun
+  (360 deg per tropical year), and how far its local time moves (1 deg is
+  4 min). "Not Sun-synchronous" follows Explain's rule: beyond
+  `explain.sso_tolerance_deg` (0.1 deg) of the Sun-synchronous
+  inclination; within it, "Still Sun-synchronous", with the drift.
+- **RAAN computed for an LTAN:** how far the node's local time moves
+  (15 deg of RAAN per hour), the shorter way round.
+- **Semi-major axis:** the change of the two-body period.
+
+Any other value, or another body's orbit: its difference from the value
+computed, with the unit its field name gives.
+
+These are first-order, analytic statements; no simulation runs for
+them. Checked against: `tests/test_value_consequences.py`, including that
+the drift at the Sun-synchronous inclination is the Sun's, to the 0.01
+deg the inclination is rounded to (within 1e-3 deg/day).
+
 ## Rules
 
 - A mark names a field that exists and holds a number; a value is marked

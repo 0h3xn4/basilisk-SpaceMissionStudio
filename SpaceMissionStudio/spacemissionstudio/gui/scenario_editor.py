@@ -51,6 +51,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..engine.findings import explanation_lines
+from ..engine.value_consequences import consequences
 from ..engine.scenario_checks import plausibility_warnings
 from ..engine.series_names import expected_series_names
 from ..schema.scenario import (
@@ -1184,7 +1185,8 @@ class ScenarioEditorWidget(QWidget):
             for mark in scenario.value_marks:
                 if mark.path.startswith(prefix):
                     record, name = resolve_value_path(scenario, mark.path)
-                    shown[mark.path[len(prefix):]] = (value_mark_status(scenario, mark), mark, getattr(record, name))
+                    shown[mark.path[len(prefix):]] = (value_mark_status(scenario, mark), mark, getattr(record, name),
+                                                      consequences(scenario, mark))
             node.form.show_value_marks(shown)
 
     def _range_owner(self, box) -> str:
