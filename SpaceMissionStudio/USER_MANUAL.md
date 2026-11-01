@@ -593,7 +593,9 @@ The quickest way to a mission of your own is a starter template (22 or
    deg/day against the Sun, so its local time moves +0.06 min/day ...")
    ([Computed and overridden values](docs/models/value-marks.md)). A
    Walker constellation's computed elements, and a template wizard's
-   recomputed inclination, are marked the same way. Have a
+   recomputed inclination, are marked the same way. Scenario > Overview
+   lists the values used in place of computed ones, and a run that used
+   one says so at the end of its provenance line in Results. Have a
    real satellite's TLE? Choose the TLE orbit type
    and paste it. Then set the **Dry mass**, and tick **Enable atmospheric
    drag** with its area (and **Enable solar radiation pressure**).

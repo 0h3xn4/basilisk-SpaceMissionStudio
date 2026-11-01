@@ -61,6 +61,7 @@ from datetime import timedelta, UTC
 from .. import constants
 from ..config import registry
 from ..schema.epochs import parse_epoch_utc
+from ..schema.scenario import value_mark_records
 from . import earth_orientation, landmarks, opnav, small_bodies
 from .orbit_design import sun_synchronous_inclination_deg
 from .roe import min_radial_normal_separation
@@ -580,6 +581,37 @@ def _checks_section(scenario) -> ExplanationSection | None:
     )
 
 
+def value_mark_lines(records: list[dict]) -> list[str]:
+    """One line per value used in place of the one computed (edited or
+    overridden), from ``value_mark_records``: the path, the values, the
+    reason and what it changes. Values still as computed get none."""
+    lines = []
+    for record in records:
+        if record["status"] == "computed":
+            continue
+        line = f"{record['path']}: {record['status']}, {record['value_used']:g} in place of {record['value']:g}"
+        if record.get("reason"):
+            line += f" ({record['reason']})"
+        line += "".join(f". {change}" for change in record.get("consequences", []))
+        lines.append(line)
+    return lines
+
+
+def _value_marks_section(scenario) -> ExplanationSection | None:
+    """The values SpaceMissionStudio computed, and those used in their
+    place (the transparency plan, Phase 5b; schema.scenario.ValueMark)."""
+    if not scenario.value_marks:
+        return None
+    records = value_mark_records(scenario)
+    counts = {status: sum(r["status"] == status for r in records) for status in ("computed", "edited", "overridden")}
+    kinds = {"computed": "neutral", "edited": "warning", "overridden": "accent"}
+    return ExplanationSection(
+        title="Computed and overridden values",
+        badges=[Badge(f"{count} {status}", kinds[status]) for status, count in counts.items() if count],
+        notes=value_mark_lines(records),
+    )
+
+
 def _formation_diagrams(scenario) -> list[FormationDiagram]:
     diagrams = []
     for sc in scenario.spacecraft:
@@ -660,7 +692,7 @@ def _explain(scenario) -> ScenarioExplanation:
     # One section that fails (a half-edited scenario) is left out and
     # logged; it used to blank the whole tab, with nothing logged (L21).
     sections = []
-    for build in (_checks_section, _formation_section, _attitude_section, _environment_section,
+    for build in (_checks_section, _value_marks_section, _formation_section, _attitude_section, _environment_section,
                   _power_comms_section, _data_handling_section, _solar_array_section,
                   _optical_navigation_section, _small_body_section, _ground_stations_section,
                   _monte_carlo_section):

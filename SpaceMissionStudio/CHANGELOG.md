@@ -487,6 +487,11 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **Explain and Results show the values used in place of computed
+  ones:** Scenario > Overview gets a section counting computed, edited
+  and overridden values, with a note for each changed one (the values,
+  the reason, what it changes). A run that used one ends its provenance
+  line in Results with "· 1 value overridden", listed in the tooltip.
 - **A changed computed value says what it changes:** under the note of
   an edited or overridden value, a line gives the consequence: an
   inclination's node drift (and whether the orbit is still

@@ -176,6 +176,7 @@ from .. import output_provenance, temp_folders
 from ..engine import events as event_model
 from ..engine import orbit_number, time_system
 from ..engine.findings import explanation_lines
+from ..engine.scenario_explainer import value_mark_lines
 from ..engine.results import ResultSet, TimeSeries, output_path
 from ..plot_categories import categorize as _categorize
 from ..plot_categories import legacy_display as _legacy_display
@@ -1049,12 +1050,21 @@ class ResultsWidget(QWidget):
             self.provenance_label.setToolTip("")
             return
         run = f"{self._current_run.name} · " if self._current_run is not None else ""  # U-22
+        # Values used in place of computed ones (Phase 5b): named only when there are some.
+        records = getattr(provenance, "value_marks", None) or []
+        changed = value_mark_lines(records)
+        overridden, edited = (sum(r.get("status") == status for r in records) for status in ("overridden", "edited"))
+        marked = "".join(f" · {count} value{'s' if count != 1 else ''} {status}"
+                         for status, count in (("overridden", overridden), ("edited", edited)) if count)
         self.provenance_label.setText(
             f"{run}SpaceMissionStudio {provenance.spacemissionstudio_version} · "
             f"Basilisk {provenance.basilisk_version} · {provenance.integrator.upper()}, "
-            f"{provenance.dynamics_task_rate_s:g} s step · {_short_utc(provenance.run_started_utc)}"
+            f"{provenance.dynamics_task_rate_s:g} s step · {_short_utc(provenance.run_started_utc)}{marked}"
         )
-        self.provenance_label.setToolTip(provenance.rng_seed_note)
+        tooltip = provenance.rng_seed_note
+        if changed:
+            tooltip += "\n\nValues used in place of the ones computed:\n" + "\n".join(changed)
+        self.provenance_label.setToolTip(tooltip)
 
     def set_live_result(self, result: ResultSet, epoch_utc: str | None = None) -> None:
         """Updates the plots with one chunk's worth of a still-running

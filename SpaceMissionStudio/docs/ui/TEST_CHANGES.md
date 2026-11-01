@@ -1386,3 +1386,11 @@ No existing test changed.
 
   Each fails on the code before (checked by stashing
   `spacemissionstudio/`). No existing test changed.
+
+## Computed and overridden values in Explain and Results (2026-11-01)
+
+- Added `tests/test_value_consequences.py::test_explain_lists_the_values_used_in_place_of_computed_ones`
+  and `tests/gui/test_results_widget.py::test_the_provenance_line_names_the_values_used_in_place_of_computed_ones`.
+
+  Each fails on the code before (checked by stashing
+  `spacemissionstudio/`). No existing test changed.
