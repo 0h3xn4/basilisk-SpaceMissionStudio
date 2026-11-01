@@ -88,11 +88,17 @@ def scenario_record(scenario) -> dict:
     run (an OPM export, a budget, a lifetime, a Monte Carlo archive)."""
     from . import __version__, dependencies
 
-    return {"spacemissionstudio_version": __version__, "basilisk_version": dependencies.basilisk_version(),
-            "qualified_basilisk_version": dependencies.QUALIFIED_BASILISK_VERSION,
-            "dependency_versions": dependencies.dependency_versions(),
-            "scenario_name": scenario.name, "scenario_sha256": scenario_sha256(scenario),
-            "created_utc": datetime.now(UTC).isoformat(timespec="seconds")}
+    from .schema.scenario import value_mark_records
+
+    record = {"spacemissionstudio_version": __version__, "basilisk_version": dependencies.basilisk_version(),
+              "qualified_basilisk_version": dependencies.QUALIFIED_BASILISK_VERSION,
+              "dependency_versions": dependencies.dependency_versions(),
+              "scenario_name": scenario.name, "scenario_sha256": scenario_sha256(scenario),
+              "created_utc": datetime.now(UTC).isoformat(timespec="seconds")}
+    marks = value_mark_records(scenario) if getattr(scenario, "value_marks", None) else []
+    if marks:  # the computed and overridden values (Phase 5b); recorded only when there are some
+        record["value_marks"] = marks
+    return record
 
 
 def scenario_file_record(path) -> dict:

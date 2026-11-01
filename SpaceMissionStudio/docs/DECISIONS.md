@@ -5,6 +5,24 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Computed and overridden values (2026-11-01)
+
+- **Marks beside the values, not in them:** a value stays a plain number
+  in its field, so every reader of the file, the engine and every test
+  see the same scenario. The marks are a list of their own, keyed by a
+  path, and a scenario without them is byte-for-byte what it was.
+- **"Edited" is a status, not an error:** the plan marks a computed value
+  "until edited". An edit is the engineer's choice; refusing it would
+  hide the field's purpose. An override is the one that needs a reason,
+  because it says the computed value was seen and replaced.
+- **Exact comparison for "computed":** the field holds the number the
+  tool wrote, and JSON keeps a float exactly, so any tolerance would only
+  hide an edit.
+- **No version bump:** like `config_file`, the field is written only when
+  used, so files without marks still open in older versions. A version
+  bump would have made every file unreadable to them.
+- **No cap on the number of marks:** the 20 MB file limit bounds them.
+
 ## The scenario file's limits, with their rules (2026-10-31)
 
 - **Only the limits that are choices get a rule:** a cap such as 3660

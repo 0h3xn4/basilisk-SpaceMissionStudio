@@ -85,7 +85,7 @@ from ..schema.epochs import parse_epoch_utc
 from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import dependencies, output_provenance
 from ..config import registry
-from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario
+from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario, value_mark_records
 from . import (data_handling, earth_orientation, effective_config, environment_models, formation_control, frames, fsw,
                geodesy, geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
                optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, small_bodies,
@@ -2335,6 +2335,7 @@ class SimulationService:
             effective_config_note=effective_config.NOTE,
             device_parameters=dict(self._device_parameters),
             configuration=registry.record(self.scenario),
+            value_marks=value_mark_records(self.scenario),
         )
 
     def nominal_provenance(self) -> RunProvenance:

@@ -23,6 +23,7 @@ Top-level scenario object (the JSON file's root).
 | `schema_version` | int | `4` |  |
 | `config_file` | str / None | `None` |  |
 | `configuration` | object | `None` |  |
+| `value_marks` | list | `[]` | list[ValueMark] |
 
 ## ActuatorConfig
 
@@ -579,3 +580,17 @@ Automated altitude/semi-major-axis station-keeping for one spacecraft, with delt
 | `eclipse_sunlit_threshold` | float | `0.99` | [-] shadow factor above which the spacecraft is treated as sunlit |
 | `min_on_time_s` | float | `0.0` | [s] minimum firing duration (minimum impulse bit = thrust_n * min_on_time_s) |
 | `eccentricity_neutral_burns` | bool | `False` |  |
+
+## ValueMark
+
+A value of the scenario that SpaceMissionStudio computed or suggested (the transparency plan, Phase 5b).
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `path` | str | `required` |  |
+| `state` | str | `required` |  |
+| `value` | float | `required` | the value computed or suggested, in the field's own unit |
+| `source` | str | `required` | what computed or suggested it |
+| `reason` | str | `''` | why the scenario's value replaces it: required when overridden |
+| `author` | str | `''` |  |
+| `time_utc` | str | `''` | ISO 8601 UTC |

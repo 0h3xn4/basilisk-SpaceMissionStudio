@@ -14514,6 +14514,41 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Computed and overridden values: the file and the records (2026-11-01)
+
+The transparency plan, Phase 5b, first step. Branch `value-marks`.
+
+- **First, a baseline:** `tests/data/scenario_hashes.json`, recorded
+  before any change: every template's saved text and scenario hash.
+  `tests/test_scenario_hashes.py` holds them, so a field a template does
+  not use cannot change its file or the hash its runs record.
+- **`ValueMark`** (`schema.scenario`): path, state (`computed`,
+  `overridden`), value, source, reason (required for an override),
+  author, time. `Scenario.value_marks`, written only when not empty, as
+  `config_file` is. No schema version bump: a file without marks is
+  unchanged and older versions read it; one with marks is refused by an
+  older version naming `value_marks`.
+- **`resolve_value_path`:** dotted field names, list items in brackets by
+  `name` or index; names cannot hold a ".", so a key ends at the first
+  "]" before a "." or the end.
+- **Status:** `value_mark_status` gives computed, edited (a computed
+  value since changed: not an error) or overridden;
+  `value_mark_records` the record the provenance keeps.
+- **Provenance:** `RunProvenance.value_marks`, written only when there
+  are marks, so every export of an unmarked run is as before (the
+  byte-identical export and golden tests hold it); a long run's from the
+  scenario as given (a segment's copy has a Cartesian orbit and its own
+  length, so its marks are cleared); `scenario_record` (lifetime,
+  budget, Monte Carlo, SIL) only when there are marks. The provenance
+  view shows them under Scenario.
+- **Not yet:** the editor setting and showing them, and the computed
+  fields marking themselves (the next step).
+- **Tests:** `tests/test_value_marks.py` (24), `tests/test_scenario_hashes.py`
+  (32).
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4290 passed in 16 min 0 s, including the regression baseline.
+
 ## Structured errors: the scenario file's limits (2026-10-31)
 
 The transparency plan, Phase 5a, last step. Branch `schema-limits`.

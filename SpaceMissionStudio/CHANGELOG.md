@@ -487,6 +487,15 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **A scenario records computed and overridden values:** its new
+  `value_marks` list says which values SpaceMissionStudio computed or
+  suggested (with the value and what computed it) and which replace one
+  on purpose (with the reason, required). Each run's `provenance.json`,
+  and the records of a lifetime, a budget, a Monte Carlo archive and a
+  SIL report, list them with their status (computed, edited or
+  overridden). A scenario without marks saves and hashes exactly as
+  before. The editor sets them in a later step. See
+  `docs/models/value-marks.md`.
 - **The scenario file's limits name their rules:** a file past one (a
   run over 3660 days, a step under 0.001 s, more than 1000 spacecraft, a
   name over 64 characters, more than 100 000 Monte Carlo runs, ...) is

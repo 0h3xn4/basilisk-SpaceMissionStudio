@@ -61,7 +61,8 @@ import numpy as np
 from ..config import registry
 from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
-from ..schema.scenario import SMALL_BODY_CENTRAL_BODIES, OrbitIC, Scenario, SimSettings, SpaceWeatherConfig
+from ..schema.scenario import (SMALL_BODY_CENTRAL_BODIES, OrbitIC, Scenario, SimSettings, SpaceWeatherConfig,
+                               value_mark_records)
 from . import time_system
 from .findings import Finding
 from .results import ResultSet, TimeSeries
@@ -251,6 +252,9 @@ def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], 
     total_s = sum(lengths)  # [s]
     epoch = _parse_epoch(scenario.epoch_utc)
     segment = copy.deepcopy(scenario)
+    # A segment's orbit becomes the carried Cartesian state: the marks are the
+    # whole run's, recorded from the scenario as given (_whole_run_provenance).
+    segment.value_marks = []
     segment.space_weather, weather_warnings, weather = _whole_span_space_weather(scenario)
     provenances = []
     merged: ResultSet | None = None
@@ -323,8 +327,9 @@ def _whole_run_provenance(scenario: Scenario, provenances: list, weather):
         data_files["space_weather"] = dependencies.file_record(weather.data_file)
         if weather.forecast_file is not None:
             data_files["space_weather_forecast"] = dependencies.file_record(weather.forecast_file)
+    # The marks of the scenario as given: a segment's copy has its own length (Phase 5b).
     return dataclasses.replace(first, scenario_sha256=output_provenance.scenario_sha256(scenario),
-                               rng_seeds=seeds, data_files=data_files)
+                               rng_seeds=seeds, data_files=data_files, value_marks=value_mark_records(scenario))
 
 
 def _shallow(result: ResultSet) -> ResultSet:
