@@ -587,7 +587,10 @@ The quickest way to a mission of your own is a starter template (22 or
    ("Computed: Sun-synchronous inclination at ..."; hover for its source).
    Edit it and the note reads "Edited (computed 97.59 deg)", with **Give a
    reason...**: the reason you give marks the value overridden, and it is
-   kept with the scenario and in every run's provenance
+   kept with the scenario and in every run's provenance. A line under the
+   note says what the change does (for 98 deg in place of a computed
+   97.87 deg at 7000 km: "Not Sun-synchronous: the node moves +0.0157
+   deg/day against the Sun, so its local time moves +0.06 min/day ...")
    ([Computed and overridden values](docs/models/value-marks.md)). Have a
    real satellite's TLE? Choose the TLE orbit type
    and paste it. Then set the **Dry mass**, and tick **Enable atmospheric

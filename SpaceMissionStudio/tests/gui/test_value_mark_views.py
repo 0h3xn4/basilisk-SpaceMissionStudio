@@ -145,3 +145,21 @@ def test_a_scenario_with_marks_opens_with_its_notes(qtbot):
     assert note.status == "overridden" and note.label.text() == "Overridden (computed 97 deg): the customer's orbit"
     assert f"Value used: {used:g} deg" in note.toolTip()
     assert widget.to_scenario().value_marks == scenario.value_marks
+
+
+def test_the_note_says_what_an_edit_changes(editor, qtbot):
+    """An edited Sun-synchronous inclination: the note says the node now
+    drifts from the Sun; back at the computed value, it says nothing more."""
+    orbit = _compute_inclination(editor, qtbot)
+    computed = orbit.inc_deg.value()
+    orbit.inc_deg.setValue(computed + 1.0)  # [deg]
+    editor.flush_forms()
+    editor.revalidate()
+    note = orbit.mark_notes["inclination_deg"]
+    assert note.label.text() == f"Edited (computed {computed:g} deg)"  # the status line as before
+    assert "Not Sun-synchronous: the node moves" in note.consequence_label.text()
+    assert note.consequence_label.isVisibleTo(orbit) and "Changes: The node drifts" in note.toolTip()
+    orbit.inc_deg.setValue(computed)
+    editor.flush_forms()
+    editor.revalidate()
+    assert note.status == "computed" and not note.consequence_label.isVisibleTo(orbit)

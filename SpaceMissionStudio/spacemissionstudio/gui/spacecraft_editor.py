@@ -2054,8 +2054,9 @@ class SpacecraftEditorDialog(QDialog):
             raise ValueError(f"{field_label}: {exc}") from exc
 
     def show_value_marks(self, marks: dict) -> None:
-        """``{path within the spacecraft: (status, mark, value used)}``: the
-        notes of the marked fields (only the orbit's fields carry one)."""
+        """``{path within the spacecraft: (status, mark, value used, what it
+        changes)}``: the notes of the marked fields (only the orbit's fields
+        carry one)."""
         self.orbit_widget.show_value_marks({path[len("orbit."):]: shown for path, shown in marks.items()
                                             if path.startswith("orbit.")})
 

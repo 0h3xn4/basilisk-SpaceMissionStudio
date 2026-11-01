@@ -93,6 +93,27 @@ def sun_synchronous_inclination_deg(semi_major_axis_km: float, eccentricity: flo
     return round(math.degrees(math.acos(cos_i)), 2)
 
 
+#: The mean Sun's apparent eastward motion: the node rate of a
+#: Sun-synchronous orbit [deg/day].
+SUN_MEAN_MOTION_DEG_PER_DAY = 360.0 / _TROPICAL_YEAR_DAYS
+
+
+def nodal_rate_deg_per_day(semi_major_axis_km: float, eccentricity: float, inclination_deg: float) -> float:
+    """The J2 secular rate of the ascending node [deg/day], by the formula
+    :func:`sun_synchronous_inclination_deg` solves:
+    ``-1.5 * n * J2 * (Req/p)^2 * cos(i)``. Positive is eastward."""
+    a = semi_major_axis_km
+    p = a * (1.0 - eccentricity**2)
+    mean_motion = math.sqrt(_EARTH_MU_KM3_S2 / a**3)  # [rad/s]
+    rate = -1.5 * mean_motion * _EARTH_J2 * (_EARTH_REQUATOR_KM / p) ** 2 * math.cos(math.radians(inclination_deg))
+    return math.degrees(rate) * 86400.0
+
+
+def orbital_period_s(semi_major_axis_km: float) -> float:
+    """The two-body period [s] of an Earth orbit."""
+    return 2.0 * math.pi * math.sqrt(semi_major_axis_km**3 / _EARTH_MU_KM3_S2)
+
+
 def _sun_right_ascension_deg(epoch_utc: str) -> float:
     """The Sun's real right ascension (deg, J2000-ish mean-of-date frame)
     at ``epoch_utc`` -- the Astronomical Almanac's own "low precision
