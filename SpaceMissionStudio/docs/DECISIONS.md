@@ -5,6 +5,19 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Computed and overridden values from the generators (2026-11-01)
+
+- **Only what was computed:** a Walker satellite's semi-major axis,
+  RAAN and anomaly are the generator's; its inclination, eccentricity and
+  argument of periapsis are the values typed, unless J2 turns them into
+  osculating ones. Marking typed values as computed would say the tool
+  chose them.
+- **Presets are left for a decision:** a preset is a starting point
+  spread over dozens of fields; one mark per field would make the marks
+  unreadable. Recording "made from preset X" once per spacecraft, or
+  marking only the values a preset is known for (mass, drag area), are
+  the options.
+
 ## Computed and overridden values in the editor (2026-11-01)
 
 - **A note under the field, only when it has a mark:** a field without

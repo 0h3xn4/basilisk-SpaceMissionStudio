@@ -588,7 +588,9 @@ The quickest way to a mission of your own is a starter template (22 or
    Edit it and the note reads "Edited (computed 97.59 deg)", with **Give a
    reason...**: the reason you give marks the value overridden, and it is
    kept with the scenario and in every run's provenance
-   ([Computed and overridden values](docs/models/value-marks.md)). Have a
+   ([Computed and overridden values](docs/models/value-marks.md)). A
+   Walker constellation's computed elements, and a template wizard's
+   recomputed inclination, are marked the same way. Have a
    real satellite's TLE? Choose the TLE orbit type
    and paste it. Then set the **Dry mass**, and tick **Enable atmospheric
    drag** with its area (and **Enable solar radiation pressure**).

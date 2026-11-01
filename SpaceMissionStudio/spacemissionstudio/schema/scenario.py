@@ -2836,6 +2836,12 @@ def value_mark_status(scenario, mark: ValueMark) -> str:
     return "computed" if getattr(record, name) == mark.value else "edited"
 
 
+def put_value_marks(marks: list, new: list) -> list:
+    """``marks`` with each of ``new`` in place of a mark of the same path."""
+    paths = {mark.path for mark in new}
+    return [mark for mark in marks if mark.path not in paths] + list(new)
+
+
 def rename_in_value_marks(marks: list, collection: str, old_name: str, new_name: str) -> int:
     """Point the marks of ``collection[old_name]`` (``"spacecraft"`` or
     ``"ground_stations"``) at ``new_name``; returns how many changed."""

@@ -487,6 +487,11 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **Generated orbits are marked computed too:** **Generate Walker
+  constellation...** marks each satellite's semi-major axis, RAAN and
+  anomaly (all six elements with J2), naming its plane and slot, and the
+  inclination when the dialog's Sun-synchronous button set it. A starter
+  template's wizard marks the Sun-synchronous inclination it recomputes.
 - **The editor marks computed values, and records why one was changed:**
   **Compute Sun-sync inclination for this altitude** and **Compute RAAN
   for LTAN...** mark the value they write as computed, with a note under
