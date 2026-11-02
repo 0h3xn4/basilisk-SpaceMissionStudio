@@ -112,6 +112,17 @@ parameters:
   dynamics.shadowing_bodies: tracked_bodies   # [-] or central_body (default)
 ```
 
+What the atmosphere takes from the radio link is another. By default
+nothing; with ITU-R P.676-13, the oxygen and water-vapour attenuation at
+each sample's elevation, for the surface conditions you give (the data
+file it needs, the ITU's Part 1, is installed with the tool):
+
+```yaml
+parameters:
+  link.atmospheric_loss: itu_r_p676                 # [-] or none (default)
+  link.surface_water_vapour_density_g_m3: 12.0      # [g/m^3] a humid site
+```
+
 The Assumptions page lists each choice's models by title, and a name that
 is not one of them is refused. Each model's method, assumptions,
 references and tests are on its page

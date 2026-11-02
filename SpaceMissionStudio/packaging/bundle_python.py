@@ -24,7 +24,9 @@ versions (``constraints.txt``) and adds the reference data runs read:
   with Basilisk's own checked fetch into ``site-packages/supportData``,
   the folder Basilisk's ``dataFetcher`` reads before its download cache;
 * the IERS-based Earth orientation files (NAIF ITRF93 PCKs) in
-  ``earth_orientation.SYSTEM_DIR``, which every user of the install reads.
+  ``earth_orientation.SYSTEM_DIR``, which every user of the install reads;
+* ITU-R P.676-13's data file Part 1 (``link.atmospheric_loss``) in
+  ``gaseous_attenuation.SYSTEM_DIR``, checked against its pinned SHA-256.
 
 The installers then copy that folder as it is: installing needs no Python
 on the machine and no internet.
@@ -154,9 +156,11 @@ def add_support_data(python: Path, dest: Path) -> list:
     make_readable(target)
     eop_dir = Path(run_python(python, _EOP_FETCH).strip())
     make_readable(eop_dir)
+    itu_dir = Path(run_python(python, _ITU_FETCH).strip())
+    make_readable(itu_dir)
     return [{"path": path.relative_to(dest).as_posix(),
              "size_bytes": path.stat().st_size, "sha256": sha256_of(path)}
-            for folder in (target, eop_dir) for path in sorted(folder.rglob("*")) if path.is_file()]
+            for folder in (target, eop_dir, itu_dir) for path in sorted(folder.rglob("*")) if path.is_file()]
 
 
 _SUPPORT_DATA_FETCH = """
@@ -175,6 +179,12 @@ earth_orientation.fetch(earth_orientation.SYSTEM_DIR)
 print(earth_orientation.SYSTEM_DIR)
 """
 
+_ITU_FETCH = """
+from spacemissionstudio.engine import gaseous_attenuation
+gaseous_attenuation.fetch(gaseous_attenuation.SYSTEM_DIR)
+print(gaseous_attenuation.SYSTEM_DIR)
+"""
+
 #: Run with an empty download cache and no network: every support-data file
 #: and the Earth orientation files must come from the bundle.
 _OFFLINE_CHECK = """
@@ -185,11 +195,12 @@ socket.socket.connect = _refuse
 socket.create_connection = _refuse
 from pathlib import Path
 from Basilisk.utilities.supportDataTools import dataFetcher
-from spacemissionstudio.engine import earth_orientation, kernels
+from spacemissionstudio.engine import earth_orientation, gaseous_attenuation, kernels
 local = Path(dataFetcher.LOCAL_SUPPORT)
 for data_file in kernels.ALL_SUPPORT_DATA_FILES:
     assert local in kernels.cached_path(data_file).parents, data_file
 assert earth_orientation.installed(earth_orientation.SYSTEM_DIR), "no Earth orientation files"
+gaseous_attenuation.load_part1(gaseous_attenuation.part1_path())
 """
 
 
@@ -228,7 +239,7 @@ def bundle(platform: str, dest: Path, wheel: Path, constraints: Path, cache: Pat
     pip_install(python, constraints, BASILISK_REQUIREMENT)
     print(f"Installing {wheel.name}[gui] ...", flush=True)
     pip_install(python, constraints, f"{wheel}[gui]")
-    print("Fetching the support data and the Earth orientation files ...", flush=True)
+    print("Fetching the support data, the Earth orientation files and ITU-R P.676-13 Part 1 ...", flush=True)
     data = add_support_data(python, dest)
     with tempfile.TemporaryDirectory() as empty_cache:
         run_python(python, _OFFLINE_CHECK, {"BSK_SUPPORT_DATA_CACHE": empty_cache})

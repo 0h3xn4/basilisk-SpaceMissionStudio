@@ -30,6 +30,8 @@ BASILISK_AVAILABLE = importlib.util.find_spec("Basilisk") is not None
 # Where 'spacemissionstudio small-bodies --fetch' installs the Eros kernel for
 # this user (CI runs it); the autouse fixture below hides it from other tests.
 REAL_SMALL_BODIES_DIR = os.path.join(os.path.expanduser("~"), ".cache", "SpaceMissionStudio", "small_bodies")
+# Where 'spacemissionstudio gaseous-attenuation --fetch' installs ITU-R P.676-13 Part 1 (CI runs it).
+REAL_ITU_P676_DIR = os.path.join(os.path.expanduser("~"), ".cache", "SpaceMissionStudio", "itu_p676")
 GUI_AVAILABLE = importlib.util.find_spec("PySide6") is not None
 # The exported flight-software package (spacemissionstudio.fsw_export) is
 # built with CMake and the platform's C compiler; GitHub's Linux, macOS and
@@ -111,6 +113,11 @@ def _isolate_logging_setup(tmp_path, monkeypatch):
 
     monkeypatch.setattr(small_bodies, "DEFAULT_DIR", tmp_path / ".cache" / "SpaceMissionStudio" / "small_bodies")
     monkeypatch.setattr(small_bodies, "SYSTEM_DIR", tmp_path / "share" / "small_bodies")
+    # And for ITU-R P.676-13's data file Part 1 (engine.gaseous_attenuation).
+    from spacemissionstudio.engine import gaseous_attenuation
+
+    monkeypatch.setattr(gaseous_attenuation, "DEFAULT_DIR", tmp_path / ".cache" / "SpaceMissionStudio" / "itu_p676")
+    monkeypatch.setattr(gaseous_attenuation, "SYSTEM_DIR", tmp_path / "share" / "itu_p676")
 
     root_logger = logging.getLogger()
     original_handlers = list(root_logger.handlers)
@@ -164,6 +171,19 @@ def eros_files_if_installed(monkeypatch) -> bool:
     if installed:
         monkeypatch.setattr(small_bodies, "DEFAULT_DIR", Path(REAL_SMALL_BODIES_DIR))
     return installed
+
+
+@pytest.fixture
+def real_itu_part1(monkeypatch):
+    """The real ITU-R P.676-13 Part 1, as the installers and CI fetch it;
+    skipped without it (spacemissionstudio gaseous-attenuation --fetch)."""
+    from pathlib import Path
+
+    from spacemissionstudio.engine import gaseous_attenuation
+
+    if gaseous_attenuation.installed(Path(REAL_ITU_P676_DIR)) is None:
+        pytest.skip("ITU-R P.676-13 Part 1 not installed (spacemissionstudio gaseous-attenuation --fetch)")
+    monkeypatch.setattr(gaseous_attenuation, "DEFAULT_DIR", Path(REAL_ITU_P676_DIR))
 
 
 @pytest.fixture

@@ -14514,6 +14514,57 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Selectable models: the gases' attenuation of the link, ITU-R P.676-13 (2026-11-02)
+
+The transparency plan, Phase 6b ("link losses"). Branch
+`gaseous-attenuation`. The user chose ITU-R P.676, and that its data
+file be fetched at installation ("Fetch at install"), not committed.
+
+- **`engine/gaseous_attenuation.py`:** Annex 1's line-by-line specific
+  attenuation (the 44 oxygen and 35 water-vapour lines of Tables 1 and 2,
+  in the code with their citation) and Annex 2's instantaneous slant path
+  (Sec. 1.1, oxygen, h_o from Part 1; Sec. 2.1, water vapour, h_w from
+  eq. 37). Part 1: its URL, size and SHA-256; `fetch`, `import_file`,
+  `installed` (found beside its manifest, so an installed folder can
+  move), `load_part1` (checked, read once per file version). The
+  method's edges: 5 deg, 1 GHz, 350 GHz.
+- **Checked against the ITU:** the ITU's validation workbook for
+  P.676-13 (Study Group 3, CG-3M3J-13-ValEx, Rev 8.3.0, fetched from
+  `www.itu.int` and not committed): the specific attenuation at all 350
+  frequencies to about 1e-14 and the ten slant-path cases to 1e-15 before the
+  code was wired in; nine and four of them are in the tests.
+- **`config`:** the choice `link.atmospheric_loss` (`none`, the default,
+  and `itu_r_p676`) and `link.surface_pressure_hpa`,
+  `surface_temperature_k`, `surface_water_vapour_density_g_m3`
+  (Annex 1's "Standard" atmosphere).
+- **`engine.link_budget`:** `atmospheric_loss_db` (0 with `none`, so
+  every margin is bit-for-bit the same), `LinkBudgetBreakdown.atmospheric_loss_db`,
+  the zenith terms cached per frequency and surface, the
+  "Atmospheric gases" trace, `access_elevation_deg` (the geodetic
+  elevation of an access message, as the run records it), and the
+  elevation series in `link_margin_series`.
+- **The live link gate and comms pointing** take the loss at each step's
+  geodetic elevation (the station latitudes from `engine.service`).
+- **`engine.service`:** before the run, Part 1 is loaded and checked and
+  each link's frequency too (a missing file or a link above 350 GHz is
+  refused); the model goes into `models` and Part 1 into `data_files`;
+  a station below 5 deg or a link below 1 GHz warns
+  (`link.atmospheric_low_elevation`, `link.atmospheric_low_frequency`).
+- **The command line:** `gaseous-attenuation` (status, `--fetch`,
+  `--import`); `link-budget` takes the elevation (`--elevation-deg`,
+  needed with `--range-km` when the model is chosen) and records it,
+  the model and Part 1.
+- **The GUI:** the Dashboard's **Atmospheric gases** row, shown only with
+  the model; Reference data lists, downloads and imports Part 1.
+- **The installers, the bundle and CI** fetch Part 1 as they fetch the
+  other reference data; the bundle's offline check loads it.
+- **Docs:** the link page's new section with the equations, the losses
+  at S, X, K and Ka band (computed), the range and the assumptions;
+  reference data, project configuration, FAQ, User Manual, packaging.
+- **Numbers:** none change: the default is `none`.
+
+Full suite on Python 3.14: 4,358 passed (19 min 54 s); the two registry checks it failed, run before their cases were added, then passed with the link, trace and Dashboard tests (244 passed).
+
 ## Selectable models: the tabular atmosphere (2026-11-02)
 
 The transparency plan, Phase 6b ("atmosphere (adding the tabular

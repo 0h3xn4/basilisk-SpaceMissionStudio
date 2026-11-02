@@ -188,7 +188,7 @@ from Basilisk.utilities import macros, simIncludeRW, simIncludeThruster
 
 from ..config import registry
 from ..schema.scenario import SUPPORTED_FSW_MODES, GroundStationConfig, RFLinkConfig
-from . import control_gains, environment_models, geodesy, link_budget
+from . import control_gains, environment_models, gaseous_attenuation, geodesy, link_budget
 from .orbit_maintenance import LogThinner
 
 # The default gains and their inertia scaling live in engine.control_gains,
@@ -567,7 +567,8 @@ class _CommsPointingArbitrator(sysModel.SysModel):
 
     def __init__(self, name: str, comms_power_w: float,
                  rf_link: RFLinkConfig | None = None,
-                 ground_station_config: GroundStationConfig | None = None, scenario=None):
+                 ground_station_config: GroundStationConfig | None = None, scenario=None,
+                 station_latitudes: tuple[float, float] | None = None):
         super().__init__()
         self.ModelTag = name
 
@@ -613,6 +614,10 @@ class _CommsPointingArbitrator(sysModel.SysModel):
         self.groundStationConfig = ground_station_config
         self.scenario = scenario  # its project configuration's link parameters, if any
         self.requiredMarginDb = link_budget.rule("required_margin_db", scenario)  # [dB]
+        # The gases' attenuation takes the elevation (link.atmospheric_loss): from the geodetic horizon,
+        # with the station's (geocentric, geodetic) latitudes [rad], as the recorded series.
+        self.stationLatitudes = station_latitudes
+        self.atmosphericZenith = link_budget.atmospheric_zenith(rf_link, scenario) if rf_link is not None else None
 
         # Python-side telemetry -- same convention as
         # engine.orbit_maintenance's controllers (see class docstring).
@@ -667,6 +672,9 @@ class _CommsPointingArbitrator(sysModel.SysModel):
             margin_db = link_budget.link_margin_db(
                 float(access_payload.slantRange), self.rfLink, self.groundStationConfig, theta_deg, self.scenario
             )
+            if self.atmosphericZenith is not None:  # [dB] the gases' attenuation at this step's elevation
+                margin_db -= gaseous_attenuation.slant_path_db(
+                    self.atmosphericZenith, link_budget.access_elevation_deg(access_payload, self.stationLatitudes))
             if link_budget.link_closes(margin_db, required_margin_db=self.requiredMarginDb):
                 link_ok_cmd = 2
         link_cmd = messaging.DeviceCmdMsgPayload()
@@ -682,7 +690,8 @@ class _CommsPointingArbitrator(sysModel.SysModel):
 def build_comms_pointing(scSim, task_name: str, tag: str, comms_config, sun_guid_msg, comms_guid_msg,
                           access_out_msg, comms_power_sink=None, rf_link: RFLinkConfig | None = None,
                           ground_station_config: GroundStationConfig | None = None,
-                          scenario=None) -> _CommsPointingArbitrator:
+                          scenario=None,
+                          station_latitudes: tuple[float, float] | None = None) -> _CommsPointingArbitrator:
     """Builds and wires one spacecraft's :class:`_CommsPointingArbitrator`.
 
     Args:
@@ -720,6 +729,9 @@ def build_comms_pointing(scSim, task_name: str, tag: str, comms_config, sun_guid
         scenario: gives the link parameters (``link.required_margin_db``,
             the pointing loss; config.parameters), or None for their
             defaults.
+        station_latitudes: the target station's (geocentric, geodetic)
+            latitude [rad], for the elevation the gases' attenuation takes
+            (``link_budget.access_elevation_deg``); None: Basilisk's own.
 
     Returns the arbitrator (feed its ``attGuidOutMsg`` to
     :func:`build_mrp_feedback`) -- the CALLER must keep this object alive
@@ -731,6 +743,7 @@ def build_comms_pointing(scSim, task_name: str, tag: str, comms_config, sun_guid
     arbitrator = _CommsPointingArbitrator(
         name=f"{tag}_commsPointing", comms_power_w=comms_config.comms_power_w,
         rf_link=rf_link, ground_station_config=ground_station_config, scenario=scenario,
+        station_latitudes=station_latitudes,
     )
     arbitrator.accessInMsg.subscribeTo(access_out_msg)
     arbitrator.sunGuidInMsg.subscribeTo(sun_guid_msg)

@@ -5,6 +5,37 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The gases' attenuation of the link, ITU-R P.676-13 (2026-11-02)
+
+- **ITU-R P.676, Annex 2's instantaneous methods:** the user chose
+  P.676 for the link losses. Annex 2 gives the slant path from the
+  station's surface conditions in closed form; Annex 1's ray tracing
+  needs a profile of the atmosphere that a project rarely has.
+- **Water vapour by method 1 (Sec. 2.1), not 2:** method 2 needs the
+  integrated water-vapour content, and Part 2 for its coefficients;
+  method 1 needs only the surface density, the same input as oxygen.
+  Part 2 is therefore not fetched: nothing unused is downloaded.
+- **Part 1 fetched at installation, by the user's choice:** the ITU's
+  file is not committed. The installers and CI download it from the ITU
+  and check it against its size and SHA-256 written in the code, as
+  Basilisk's support data; runs only read it. The 79 lines of Annex 1's
+  Tables 1 and 2 are physical measurements, in the code with their
+  citation, and no other part of the Recommendation is.
+- **One set of surface conditions for every station:** the parameters
+  are a project's, like the other link rules. Their defaults are the
+  Recommendation's own "Standard" atmosphere (P.835's mean annual global
+  reference), named as such.
+- **Outside the method's range, its edge and a warning:** below 5 deg the
+  loss at 5 deg (optimistic, warned); below 1 GHz the loss at 1 GHz
+  (pessimistic by hundredths of a dB, warned); above 350 GHz refused.
+  Extending the method would invent numbers it does not give.
+- **The geometric elevation, from the geodetic horizon:** the same one
+  the run records, so the live gate and the post-run margin agree; the
+  apparent elevation needs a refraction model the run does not have, and
+  differs by under 0.2 deg above 5 deg. The page says so.
+- **The default is `none`:** every run, budget and export reads as
+  before; the new parameters appear in records as parameters do.
+
 ## The tabular atmosphere (2026-11-02)
 
 - **Basilisk's own tables:** the user had no table and no reference

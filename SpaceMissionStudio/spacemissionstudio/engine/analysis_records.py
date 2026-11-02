@@ -44,7 +44,7 @@ from pathlib import Path
 
 import numpy as np
 
-from .. import output_provenance
+from .. import dependencies, output_provenance
 
 LIFETIME_KIND = "lifetime"
 BUDGET_KIND = "propellant_budget"
@@ -150,20 +150,34 @@ def budget_record(scenario, spacecraft_name: str, budget, result=None) -> dict:
 
 
 def link_budget_record(scenario, spacecraft_name: str, station_name: str, range_m: float, range_source: str,
-                       pointing_error_deg: float, traces: dict) -> dict:
+                       pointing_error_deg: float, traces: dict, elevation_deg: float | None = None) -> dict:
     """The record of a link budget (:func:`.link_budget.link_budget_traces`)
-    from ``spacecraft_name`` to ``station_name`` at ``range_m``."""
-    from ..config import registry
+    from ``spacecraft_name`` to ``station_name`` at ``range_m``; with
+    ``link.atmospheric_loss`` chosen, the elevation it took and the ITU-R
+    P.676-13 Part 1 file it read."""
+    from ..config import models, registry
+    from . import gaseous_attenuation, link_budget
 
+    inputs = {"range_m": range_m, "range_source": range_source, "pointing_error_deg": pointing_error_deg}
+    model = {"method": "free-space Eb/N0 link equation (engine.link_budget)",
+             "rules": {p.name: registry.value(p.name, scenario) for p in registry.parameters("link")}}
+    data_files = {}
+    if link_budget.atmospheric_model(scenario) != "none":
+        inputs["elevation_deg"] = elevation_deg
+        model["models"] = {gaseous_attenuation.CHOICE: models.record(models.active(gaseous_attenuation.CHOICE,
+                                                                                   scenario))}
+        found = gaseous_attenuation.installed()
+        if found is not None:
+            data_files["itu_p676_part1"] = dependencies.installed_file_record(found.path, found.sha256,
+                                                                              source=found.source)
     return {
         "kind": LINK_BUDGET_KIND,
         "spacecraft": spacecraft_name,
         "ground_station": station_name,
-        "inputs": {"range_m": range_m, "range_source": range_source, "pointing_error_deg": pointing_error_deg},
-        "model": {"method": "free-space Eb/N0 link equation (engine.link_budget)",
-                  "rules": {p.name: registry.value(p.name, scenario) for p in registry.parameters("link")}},
+        "inputs": inputs,
+        "model": model,
         "results": {key: trace.value for key, trace in traces.items()} | {"traces": _plain(traces)},
-        "provenance": _provenance(scenario, {}),
+        "provenance": _provenance(scenario, data_files),
     }
 
 

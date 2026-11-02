@@ -818,16 +818,22 @@ def cmd_link_budget(args: argparse.Namespace) -> int:
     if station is None:
         print(f"ERROR: no ground station {args.station or ''}".rstrip(), file=sys.stderr)
         return 3
+    elevation_source = ("option: link-budget --elevation-deg" if args.elevation_deg is not None
+                        else f"scenario: ground_stations[{station.name}].min_elevation_deg")
+    elevation = station.min_elevation_deg if args.elevation_deg is None else args.elevation_deg  # [deg]
     if args.range_km is not None:
         range_m, range_source = args.range_km * 1e3, "option: link-budget --range-km"
         where = f"at {args.range_km:g} km"
+        if args.elevation_deg is None and link_budget.atmospheric_model(scenario) != "none":
+            print("ERROR: give --elevation-deg with --range-km: link.atmospheric_loss takes the elevation",
+                  file=sys.stderr)
+            return 2
     else:
         if spacecraft.orbit.type != "classical_elements":
             print("ERROR: give --range-km: the minimum-elevation range needs the orbit's classical elements",
                   file=sys.stderr)
             return 2
         a_m = spacecraft.orbit.semi_major_axis_km * 1e3  # [m]
-        elevation = station.min_elevation_deg if args.elevation_deg is None else args.elevation_deg  # [deg]
         try:
             range_m = link_budget.slant_range_at_elevation_m(a_m, station, elevation)
         except ValueError:
@@ -836,15 +842,22 @@ def cmd_link_budget(args: argparse.Namespace) -> int:
             print("ERROR: the orbit does not rise above that elevation", file=sys.stderr)
             return 3
         range_source = (f"computed: rho = sqrt(r^2 - (R cos(eps))^2) - R sin(eps), r = a = {a_m:.10g} m "
-                        f"(scenario: orbit.semi_major_axis_km), eps = {elevation:g} deg ("
-                        + ("option: link-budget --elevation-deg" if args.elevation_deg is not None
-                           else f"scenario: ground_stations[{station.name}].min_elevation_deg")
-                        + f"), R = R_E + {station.altitude_m:g} m")
+                        f"(scenario: orbit.semi_major_axis_km), eps = {elevation:g} deg ({elevation_source}), "
+                        f"R = R_E + {station.altitude_m:g} m")
         where = f"at {range_m / 1e3:,.1f} km, the slant range at {elevation:g} deg elevation"
-    traces = link_budget.link_budget_traces(range_m, spacecraft.rf_link, station, args.pointing_deg, scenario,
-                                            range_source, "option: link-budget --pointing-deg")
+    from .engine import gaseous_attenuation
+
+    try:
+        traces = link_budget.link_budget_traces(range_m, spacecraft.rf_link, station, args.pointing_deg, scenario,
+                                                range_source, "option: link-budget --pointing-deg", elevation,
+                                                elevation_source)
+    except gaseous_attenuation.GaseousAttenuationError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 2
     print(f"{spacecraft.name} to {station.name}, {where}:")
-    for key in ("eirp", "fspl", "pointing_loss", "received", "n0", "cn0", "ebno", "margin"):
+    for key in ("eirp", "fspl", "pointing_loss", "atmospheric_loss", "received", "n0", "cn0", "ebno", "margin"):
+        if key not in traces:
+            continue
         trace = traces[key]
         print(f"  {trace.quantity:<36} {trace.value:>10.2f} {trace.unit}")
     required = traces["closes"].input("M_req")
@@ -860,7 +873,7 @@ def cmd_link_budget(args: argparse.Namespace) -> int:
         from .engine import analysis_records
 
         record = analysis_records.link_budget_record(scenario, spacecraft.name, station.name, range_m, range_source,
-                                                     args.pointing_deg, traces)
+                                                     args.pointing_deg, traces, elevation)
         return _write_record(args, record, file_record)
     return 0
 
@@ -976,6 +989,31 @@ def cmd_small_bodies(args: argparse.Namespace) -> int:
     if kernel is None or shape is None:
         print("Run 'spacemissionstudio small-bodies --fetch' (needs internet), or --import the ephemeris file.")
         return 1
+    return 0
+
+
+def cmd_gaseous_attenuation(args: argparse.Namespace) -> int:
+    """Status of ITU-R P.676-13's data file Part 1 (link.atmospheric_loss:
+    itu_r_p676); --fetch downloads it from the ITU (network: only when
+    asked, and at installation), --import installs a copy from disk."""
+    from .engine import gaseous_attenuation as gases
+
+    try:
+        if args.fetch:
+            print(f"Downloading {gases.PART1_NAME} from {gases.PART1_URL} ...")
+            gases.fetch()
+        elif args.import_file:
+            gases.import_file(args.import_file)
+    except gases.GaseousAttenuationError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    found = gases.installed()
+    if found is None:
+        print(f"ITU-R P.676-13 Part 1: missing ({gases.PART1_NAME})")
+        print("Run 'spacemissionstudio gaseous-attenuation --fetch' (needs internet), or --import the file.")
+        return 1
+    print(f"ITU-R P.676-13 Part 1: {found.path}  {found.size_bytes} bytes  sha256 {found.sha256[:16]}  "
+          f"from {found.source}")
     return 0
 
 
@@ -1648,6 +1686,15 @@ def build_parser() -> argparse.ArgumentParser:
     small_action.add_argument("--import", dest="import_file", type=Path, metavar="FILE",
                               help="install the Eros ephemeris kernel eros_1900_2100.bsp from disk")
     p_small.set_defaults(func=cmd_small_bodies)
+
+    p_gases = subparsers.add_parser("gaseous-attenuation",
+                                    help="ITU-R P.676-13's data file Part 1 (link.atmospheric_loss): status, --fetch, "
+                                         "--import")
+    gases_action = p_gases.add_mutually_exclusive_group()
+    gases_action.add_argument("--fetch", action="store_true", help="download Part 1 from the ITU (internet)")
+    gases_action.add_argument("--import", dest="import_file", type=Path, metavar="FILE",
+                              help="install Part 1 (R11010000020001TXTM.txt, the ITU's file) from disk")
+    p_gases.set_defaults(func=cmd_gaseous_attenuation)
 
     p_ccsds = subparsers.add_parser("ccsds-validate", help="check CCSDS OPM/OMM/OEM (KVN) files (no Basilisk needed)")
     p_ccsds.add_argument("files", nargs="+", type=Path)

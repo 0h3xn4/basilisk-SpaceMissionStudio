@@ -45,6 +45,8 @@ change to this module's own per-spacecraft logic.
 
 from __future__ import annotations
 
+import math
+
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QFormLayout,
@@ -60,6 +62,7 @@ from PySide6.QtWidgets import (
 
 from ..config import registry
 from ..engine import link_budget, power_state
+from ..engine.gaseous_attenuation import GaseousAttenuationError
 from ..engine.results import ResultSet
 from ..schema.scenario import Scenario
 from .badges import ACCENT as _ACCENT_BADGE, DANGER as _DANGER_BADGE, MUTED as _MUTED_BADGE
@@ -224,6 +227,7 @@ class MissionDashboardWidget(QWidget):
         self.eirp_label = QLabel("--")
         self.fspl_label = QLabel("--")
         self.pointing_loss_label = QLabel("--")
+        self.atmospheric_loss_label = QLabel("--")  # shown with link.atmospheric_loss chosen only
         self.received_power_label = QLabel("--")
         self.noise_label = QLabel("--")
         self.cn0_label = QLabel("--")
@@ -240,12 +244,15 @@ class MissionDashboardWidget(QWidget):
         rf_form.addRow(budget_heading)
         for text, value_label in (("EIRP", self.eirp_label), ("Free-space path loss", self.fspl_label),
                                   ("Antenna pointing loss", self.pointing_loss_label),
+                                  ("Atmospheric gases", self.atmospheric_loss_label),
                                   ("Received power", self.received_power_label), ("Noise (N0)", self.noise_label),
                                   ("C/N0", self.cn0_label), ("Eb/N0", self.ebno_label)):
             row_label = QLabel(f"{text}:")
             set_role(row_label, tone="secondary")
             set_role(value_label, tone="secondary")
             rf_form.addRow(row_label, value_label)
+        self._rf_form = rf_form
+        rf_form.setRowVisible(self.atmospheric_loss_label, False)
         self.calculation_button = QPushButton("Show calculation")
         self.calculation_button.setToolTip("How the link budget at the time cursor was computed: each figure's "
                                            "equation, its inputs and their sources")
@@ -300,9 +307,10 @@ class MissionDashboardWidget(QWidget):
         other figures are reached from it."""
         if self._link_inputs is None:
             return None
-        range_m, rf_link, station, angle, range_source, angle_source, title = self._link_inputs
+        (range_m, rf_link, station, angle, range_source, angle_source, title, elevation_deg,
+         elevation_source) = self._link_inputs
         traces = link_budget.link_budget_traces(range_m, rf_link, station, angle, self._scenario, range_source,
-                                                angle_source)
+                                                angle_source, elevation_deg, elevation_source)
         first = traces.pop("margin")
         return Explanation(title, [first, *traces.values()])
 
@@ -392,10 +400,13 @@ class MissionDashboardWidget(QWidget):
         gs_name = _find_ground_station(result, sc_name, comms_target)
         has_access = None
         slant_range_m = None
+        elevation_deg = None
         if gs_name is not None:
             has_access_val = _latest(result, f"{gs_name}.access_to_{sc_name}.has_access", at_s)
             has_access = bool(has_access_val is not None and has_access_val > 0.5)
             slant_range_m = _latest(result, f"{gs_name}.access_to_{sc_name}.slant_range", at_s)
+            elevation_rad = _latest(result, f"{gs_name}.access_to_{sc_name}.elevation", at_s)
+            elevation_deg = math.degrees(elevation_rad) if elevation_rad is not None else None
         if has_access is None:
             self.visibility_badge.setText("Unknown")
             set_badge(self.visibility_badge, _MUTED_BADGE)
@@ -448,11 +459,14 @@ class MissionDashboardWidget(QWidget):
             set_role(self.net_power_label, tone=None)
 
         # -- RF link --------------------------------------------------------
-        self._refresh_rf_link(sc_config, gs_name, has_access, is_comms_mode, slant_range_m, pointing_error_deg)
+        self._refresh_rf_link(sc_config, gs_name, has_access, is_comms_mode, slant_range_m, pointing_error_deg,
+                              elevation_deg)
 
     def _refresh_rf_link(self, sc_config, gs_name: str | None, has_access: bool | None,
                           is_comms_mode: bool, slant_range_m: float | None,
-                          pointing_error_deg: float | None) -> None:
+                          pointing_error_deg: float | None, elevation_deg: float | None = None) -> None:
+        atmospheric = link_budget.atmospheric_model(self._scenario) != "none"
+        self._rf_form.setRowVisible(self.atmospheric_loss_label, atmospheric)
         self.slant_range_label.setText(f"{slant_range_m / 1000.0:,.1f} km" if slant_range_m is not None else "--")
 
         rf_link = sc_config.rf_link if sc_config is not None else None
@@ -471,21 +485,26 @@ class MissionDashboardWidget(QWidget):
         self._link_inputs = None
         self.calculation_button.setEnabled(False)
         if rf_link is not None and gs_config is not None and slant_range_m is not None \
-                and has_access and is_comms_mode:
-            breakdown = link_budget.link_budget_breakdown(
-                slant_range_m, rf_link, gs_config, pointing_error_deg or 0.0, self._scenario
-            )
+                and has_access and is_comms_mode and (elevation_deg is not None or not atmospheric):
+            try:
+                breakdown = link_budget.link_budget_breakdown(
+                    slant_range_m, rf_link, gs_config, pointing_error_deg or 0.0, self._scenario, elevation_deg
+                )
+            except GaseousAttenuationError:  # Part 1 removed since the run: no budget to show
+                breakdown = None
+        if breakdown is not None:
             sc_name = sc_config.name
             at = "the time cursor" if self._cursor_s is not None else "the end of the run"
             range_source = f"last run: {gs_name}.access_to_{sc_name}.slant_range, at {at}"
             angle_source = (f"last run: {sc_name}.comms_pointing.pointing_error_deg, at {at}"
                             if pointing_error_deg is not None else "computed: no pointing series, taken as 0")
+            elevation_source = f"last run: {gs_name}.access_to_{sc_name}.elevation, at {at}"
             self._link_inputs = (slant_range_m, rf_link, gs_config, pointing_error_deg or 0.0, range_source,
-                                 angle_source, f"Link: {sc_name} to {gs_name}")
+                                 angle_source, f"Link: {sc_name} to {gs_name}", elevation_deg, elevation_source)
             self.calculation_button.setEnabled(True)
 
         if breakdown is None:
-            for label in (self.eirp_label, self.fspl_label, self.pointing_loss_label,
+            for label in (self.eirp_label, self.fspl_label, self.pointing_loss_label, self.atmospheric_loss_label,
                           self.received_power_label, self.noise_label, self.cn0_label,
                           self.ebno_label, self.margin_label):
                 label.setText("--")
@@ -510,6 +529,7 @@ class MissionDashboardWidget(QWidget):
         self.eirp_label.setText(f"{breakdown.eirp_dbw:.2f} dBW")
         self.fspl_label.setText(f"{breakdown.fspl_db:.2f} dB")
         self.pointing_loss_label.setText(f"{breakdown.pointing_loss_db:.2f} dB")
+        self.atmospheric_loss_label.setText(f"{breakdown.atmospheric_loss_db:.2f} dB")
         self.received_power_label.setText(f"{breakdown.received_dbw:.2f} dBW")
         self.noise_label.setText(f"{breakdown.n0_dbw_hz:.2f} dBW/Hz")
         self.cn0_label.setText(f"{breakdown.cn0_db_hz:.2f} dB-Hz")
