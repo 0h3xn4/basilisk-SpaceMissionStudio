@@ -1794,7 +1794,7 @@ class MainWindow(QMainWindow):
             self._open_problem(f"Cannot save: {self.scenario_editor.problem_display(str(exc))}", str(exc))
             return
         try:  # and record what changed in its change history (Phase 7, spacemissionstudio.history)
-            _entries, history_problem = history.save(scenario, path, source="app")
+            _entries, history_problem = history.save(scenario, path, author=history.current_author(), source="app")
         except OSError as exc:  # unwritable folder, a file in the path, a full disk (audit M9)
             report(self, f"Could not save the scenario to {path}: {exc}\n"
                          "The previous file, if there was one, is unchanged.")

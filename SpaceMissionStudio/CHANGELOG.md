@@ -503,6 +503,9 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   run records it. Below 5 deg or 1 GHz the method's lowest is used, and the
   run warns. Checked against the ITU's own validation examples. The
   default, `none`, is what the link budget did before: no number changes.
+- **The change history's author is a name you set:** **Settings > Change
+  history > Author**, kept in `~/.spacemissionstudio/author.txt` so the
+  command line records the same name; empty, the user name as before.
 - **Every save records what it changed:** in `mission.history.jsonl`
   beside `mission.json`, one line per value with its old and new value,
   the time, the author (the user name for now), what saved it (the app

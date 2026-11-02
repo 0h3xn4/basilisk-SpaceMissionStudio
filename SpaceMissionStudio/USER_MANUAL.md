@@ -214,7 +214,9 @@ A few things to notice right away:
     90, 100, 110 or 125 %, from the next start, unless the
     `QT_SCALE_FACTOR` environment variable sets one; **Reduce motion**:
     notifications appear and go without fading), **Reference data**,
-    **Vizard** (the Vizard program **Launch Vizard** starts: **Browse...**
+    **Change history** (**Author**: the name each save records in the
+    scenario's change history, the command line's too; empty: your user
+    name), **Vizard** (the Vizard program **Launch Vizard** starts: **Browse...**
     to choose it, **Clear** to have it looked for again), **Layout** (the rail as icons only, the **Inspector** and **Problems** panels, **Reset Layout**),
     **Keyboard** (every shortcut) and **About**.
   * **Help**, at the bottom: this manual (`F1`). The rail's last button

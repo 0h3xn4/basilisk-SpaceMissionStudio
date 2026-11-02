@@ -34,9 +34,11 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QAction
-from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QFileDialog, QHBoxLayout, QLabel, QPushButton,
-                               QScrollArea, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QFileDialog, QHBoxLayout, QLabel, QLineEdit,
+                               QPushButton, QScrollArea, QTableWidget, QTableWidgetItem, QToolButton, QVBoxLayout,
+                               QWidget)
 
+from .. import history
 from . import vizard_launcher
 from .widgets import ComboBox
 from .theme import (CONTENT_MAX_WIDTH_PX, SPACE, UI_SCALES, mono_font, reduce_motion, set_reduce_motion, set_role,
@@ -48,6 +50,9 @@ _SECTIONS: tuple[tuple[str, str, str], ...] = (
                                  "start."),
     ("reference_data", "Reference data", "The SPICE kernels, gravity fields, magnetic model, space weather and "
                                          "Earth orientation files, with their sources, dates and checksums."),
+    ("history", "Change history", "Each save records what it changed beside the scenario "
+                                  "(mission.history.jsonl), with this name as its author; the command line uses "
+                                  "it too. Empty: your user name."),
     ("vizard", "Vizard", "The Vizard program Launch Vizard and Open in Vizard start. When none is set, it is "
                          "looked for where the download puts it."),
     ("layout", "Layout", "The navigation rail, the inspector and the Problems panel; Reset Layout puts them "
@@ -141,6 +146,32 @@ class SettingsPage(QScrollArea):
     def _on_ui_scale(self, index: int) -> None:
         set_ui_scale_setting(self.ui_scale.itemData(index))
         self.ui_scale_note.setText("Applies at the next start.")
+
+    def _build_history(self) -> None:
+        row = QHBoxLayout()
+        row.setSpacing(SPACE["sm"])
+        row.addWidget(QLabel("Author"))
+        self.author_edit = QLineEdit(history.set_author_name())
+        self.author_edit.setPlaceholderText(history.default_author())
+        self.author_edit.setToolTip("Your name, as the change history records it; empty: your user name")
+        self.author_edit.setAccessibleName("Author")
+        self.author_edit.editingFinished.connect(self._on_author)
+        row.addWidget(self.author_edit, 1)
+        self._layout.addLayout(row)
+        self.author_note = set_role(QLabel(""), tone="secondary")
+        self.author_note.setWordWrap(True)
+        self._layout.addWidget(self.author_note)
+
+    def _on_author(self) -> None:
+        try:
+            history.set_author(self.author_edit.text())
+        except OSError as exc:
+            set_role(self.author_note, tone="critical")
+            self.author_note.setText(f"Could not keep the name: {exc}")
+            return
+        self.author_edit.setText(history.set_author_name())
+        set_role(self.author_note, tone="secondary")
+        self.author_note.setText(f"Saves are recorded as {history.current_author()}.")
 
     def _build_vizard(self) -> None:
         row = QHBoxLayout()
