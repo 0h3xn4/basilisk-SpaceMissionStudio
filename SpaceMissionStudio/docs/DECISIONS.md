@@ -5,6 +5,23 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The change history (2026-11-02)
+
+- **Found by comparing, not by listening:** a save compares the file on
+  disk with what it writes. Every way of changing a scenario (a form,
+  the JSON view, a command, a generator) is recorded the same, and none
+  can forget to report itself.
+- **One line per value, JSON Lines, only appended to:** a history is
+  never rewritten, so it can be trusted, and a damaged line loses only
+  itself.
+- **The marks are not values:** an override's line carries the mark's
+  reason; the marks and preset records are already the record of those
+  values.
+- **The save before the history:** a history that cannot be written must
+  not lose the user's work; it is reported.
+- **The user name until Settings has one:** Section 10's answer, the
+  operating-system user name as the default.
+
 ## Shadowing bodies (2026-11-02)
 
 - **One eclipse module per body, combined here:** Basilisk's module with

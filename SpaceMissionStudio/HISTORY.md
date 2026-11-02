@@ -14514,6 +14514,31 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The change history: the file and the recording (2026-11-02)
+
+The transparency plan, Phase 7, first part. Branch `change-history`. The
+design is the user's (Section 10): a sidecar file beside the scenario,
+and an author name in Settings (next).
+
+- **`spacemissionstudio/history.py`:** `history_path` (`mission.json` ->
+  `mission.history.jsonl`), `entries_for_save` (the file on disk against
+  what is saved, by `engine.scenario_diff`; `created`, `edit`,
+  `override` with the mark's reason, `replaced`; the marks and preset
+  records left out), `append` (JSON Lines, only appended to), `save` (the
+  scenario saved, then the history; a history that cannot be written is
+  returned, not raised), `read` (a damaged line skipped and named),
+  `default_author` (the user name, "unknown" without one).
+- **Every save:** the app's File > Save (`MainWindow._save_to`: a warning
+  when the history cannot be written) and the six commands that save
+  (`model --apply`, `ccsds-import`, `export-fsw`, `generate-constellation`,
+  `generate-phasing-formation`, `generate-roe-formation`: `cli._save`).
+- **Not recorded:** autosave and the scenario as run (`run --out-dir`):
+  neither is a save of the scenario.
+- **Tests:** `tests/test_history.py` (9). No existing test changed.
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4,345 passed (18 min 47 s).
+
 ## Selectable models: shadowing bodies (2026-11-02)
 
 The transparency plan, Phase 6b ("shadowing bodies"). Branch

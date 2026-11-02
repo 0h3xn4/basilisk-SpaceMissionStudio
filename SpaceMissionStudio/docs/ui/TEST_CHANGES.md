@@ -1454,3 +1454,17 @@ No existing test changed.
 - Changed `tests/test_model_registry.py` (`_PAGES`) and `tests/test_config.py`
   (`_MODEL_CASES`): the new choice's page and case. Nothing removed or
   loosened.
+
+## The change history (2026-11-02)
+
+- Added `tests/test_history.py` (9 tests): the sidecar's name; each save
+  records what it changed (created, edits with old and new, none for no
+  change, only appended); an override carries its mark's reason and the
+  marks are left out; a file that was not a scenario is recorded as
+  replaced; a history that cannot be written does not lose the save; a
+  damaged line is skipped and named; the author is the user name, or
+  "unknown"; a command's save records itself; the app's File > Save
+  records itself.
+
+  Each fails on the code before (checked by stashing
+  `spacemissionstudio/`). No existing test changed.

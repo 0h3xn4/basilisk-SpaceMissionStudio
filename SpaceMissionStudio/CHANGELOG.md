@@ -487,6 +487,12 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **Every save records what it changed:** in `mission.history.jsonl`
+  beside `mission.json`, one line per value with its old and new value,
+  the time, the author (the user name for now), what saved it (the app
+  or the command) and the reason; an override's line carries the reason
+  given for it. The scenario file is unchanged. See
+  `docs/user-manual/change-history.md`.
 - **The Moon can shadow an Earth orbiter:** `dynamics.shadowing_bodies:
   tracked_bodies` gives every tracked body but the Sun its own eclipse,
   and a spacecraft's sunlight is their product: lunar eclipses reach the
