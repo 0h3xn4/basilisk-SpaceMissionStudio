@@ -14514,6 +14514,43 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Selectable models: the tabular atmosphere (2026-11-02)
+
+The transparency plan, Phase 6b ("atmosphere (adding the tabular
+model)"). Branch `tabular-atmosphere`. The user had no table; Basilisk
+ships three Earth profiles with their sources, so those are the tables.
+
+- **`schema.scenario`:** `ATMOSPHERE_MODELS` (`tabular` added),
+  `ATMOSPHERE_TABLES`; `SpaceWeatherConfig.atmosphere_table` (default
+  `us_standard_1976`), written only with `tabular`, so every other
+  scenario saves and hashes as before.
+- **`engine/atmosphere_tables.py`:** each table's Basilisk `DataFile`,
+  reader, altitude range, source and conditions (from Basilisk's
+  AtmosphereData README and Earth-GRAM namelist); `load` by Basilisk's
+  `readAtmTable`.
+- **`engine.service`:** the `tabular` branch builds Basilisk's
+  `TabularAtmosphere` with the equatorial radius of the one set (its base
+  class's default is 0), records the table in `data_files`, and warns
+  (`run.above_atmosphere_table`) for a drag spacecraft whose perigee is
+  above the table's top. `atmosphere_module` keeps the module, for tests.
+- **`engine.lifetime.TabularDensity`:** the same table at the geodetic
+  altitude, 0 outside it, with `lifetime.tabular_atmosphere`; before this
+  a tabular scenario's lifetime would have used NRLMSISE-00 without
+  saying so. The lifetime record and trace name the table.
+- **`engine.kernels.ALL_SUPPORT_DATA_FILES`:** the three tables, fetched
+  at installation; runs read the cache only.
+- **The GUI:** **Tabular** in **Atmosphere model**, and **Atmosphere
+  table** (each item with its range; its source on hover), active only
+  with it.
+- **`run.cannot_shadow`:** #195's warning for a body that cannot shadow
+  was a plain string; it is a finding with its rule now.
+- **Tests:** `tests/test_atmosphere_tables.py` (5), one in
+  `tests/gui/test_propagation_setup_dialog.py`;
+  `tests/test_environment_models.py` expects the new refusal text.
+- **Numbers:** none change: no scenario used the tabular model.
+
+Full suite on Python 3.14: 4,342 passed (20 min 13 s).
+
 ## Selectable models: shadowing bodies (2026-11-02)
 
 The transparency plan, Phase 6b ("shadowing bodies"). Branch

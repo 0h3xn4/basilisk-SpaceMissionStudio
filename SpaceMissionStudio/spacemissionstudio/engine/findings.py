@@ -226,6 +226,14 @@ RULES: dict[str, Rule] = {rule.rule_id: rule for rule in (
          "tolerance.", "Two-body gravity conserves it exactly: a drift this large flags a numerical blow-up, "
          "such as too long a step, not physics.", "Use a smaller dynamics step or a higher-order integrator.",
          override=_RESULT, parameter="dynamics.conservation_tolerance"),
+    Rule("run.above_atmosphere_table", "A spacecraft with drag whose perigee is above the tabular "
+         "atmosphere's top has no drag there.", "Above its top the table's density is 0, so the orbit does not "
+         "decay while it stays above.", "Use NRLMSISE-00 for an orbit, or a table that reaches its perigee "
+         "(space_weather.atmosphere_table).", override=_RESULT),
+    Rule("run.cannot_shadow", "A tracked body whose radius Basilisk's eclipse does not know cannot shadow the "
+         "spacecraft.", "Its shadow is left out of the sunlight, the eclipses, the solar panels and the "
+         "solar radiation pressure.", "Accept it, or stop tracking the body (dynamics.shadowing_bodies).",
+         override=_RESULT),
     Rule("space_weather.daily_forecast", "A run that reads CelesTrak's 45-day forecast says so.",
          "Those days are a forecast, not observations.", "Accept it, or move the run into the observed days.",
          override=_RESULT),
@@ -246,6 +254,9 @@ RULES: dict[str, Rule] = {rule.rule_id: rule for rule in (
     Rule("data.changed_since_install", "A data file a run reads must be the one installed.",
          "Its SHA-256 differs from the one recorded when it was installed, so the run may not be reproduced.",
          "Reinstall it in Reference data.", override=_RESULT),
+    Rule("lifetime.tabular_atmosphere", "A lifetime with the tabular atmosphere decays the orbit through one "
+         "profile with no solar activity.", "The solar cycle is not in it, and above its top the density is 0: "
+         "an orbit above it never decays.", "Use NRLMSISE-00 for a lifetime.", override=_RESULT),
     Rule("lifetime.space_weather_ends", "A lifetime estimate looks ahead only as far as the real space-weather "
          "data goes.", "Past it there is no density to decay the orbit with: nothing is made up.",
          "Install space-weather data that reaches further, or read the estimate as covering the shorter span.",

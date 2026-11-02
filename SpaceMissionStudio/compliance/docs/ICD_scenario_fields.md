@@ -511,7 +511,8 @@ See engine/spaceweather.py and engine/service.py. Real data only (user requireme
 | `source` | str | `'bundled'` | "bundled" / "local_file" |
 | `local_file_path` | str / None | `None` |  |
 | `cache_dir` | str / None | `None` | defaults to engine.spaceweather's own cache dir when None |
-| `atmosphere_model` | str | `'nrlmsise00'` | "nrlmsise00" / "exponential" |
+| `atmosphere_model` | str | `'nrlmsise00'` | "nrlmsise00" / "exponential" / "tabular" |
+| `atmosphere_table` | str | `'us_standard_1976'` |  |
 | `forecast_percentile` | float | `50.0` |  |
 | `msfc_file_path` | str / None | `None` | your own MSFC prediction table; None = the one shipped with the app |
 

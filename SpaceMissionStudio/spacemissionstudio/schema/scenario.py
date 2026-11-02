@@ -2439,6 +2439,12 @@ SUPPORTED_SPACE_WEATHER_SOURCES = ("bundled", "local_file")
 SUPPORTED_FORECAST_PERCENTILES = (95.0, 50.0, 5.0)  # [%] MSFC's published columns
 
 
+# The atmosphere models a run with drag can use (SpaceWeatherConfig.atmosphere_model), and the published
+# profiles "tabular" interpolates (atmosphere_table; engine.atmosphere_tables has their sources and ranges).
+ATMOSPHERE_MODELS = ("nrlmsise00", "exponential", "tabular")
+ATMOSPHERE_TABLES = ("us_standard_1976", "earthgram_2016_nominal", "nrlmsise00_nominal")
+
+
 @dataclass
 class SpaceWeatherConfig:
     """See engine/spaceweather.py and engine/service.py. Real data only
@@ -2476,9 +2482,12 @@ class SpaceWeatherConfig:
     NRLMSISE-00" -- Basilisk (checked directly against its own
     ``src/simulation/environment/`` tree, not assumed) ships exactly
     three atmosphere models: ``MsisAtmosphere`` (NRLMSISE-00),
-    ``ExponentialAtmosphere``, and ``TabularAtmosphere`` (a user-supplied
-    altitude/density table, not wired up here -- would need a new file
-    -upload schema/GUI concept of its own, out of scope for this round).
+    ``ExponentialAtmosphere``, and ``TabularAtmosphere`` (an altitude/
+    density/temperature table): ``"tabular"`` interpolates one of the
+    published profiles Basilisk ships, named by ``atmosphere_table``
+    (``ATMOSPHERE_TABLES``: the US Standard Atmosphere 1976, Earth-GRAM 2016's
+    and NRLMSISE-00's nominal profiles; ``engine.atmosphere_tables``), with
+    no space-weather dependence and zero density above the table's top.
     There is no Jacchia-Roberts model in Basilisk at all, so that specific
     option genuinely cannot be offered here.
 
@@ -2494,7 +2503,10 @@ class SpaceWeatherConfig:
     source: str = "bundled"  # "bundled" | "local_file"
     local_file_path: str | None = None
     cache_dir: str | None = None  # defaults to engine.spaceweather's own cache dir when None
-    atmosphere_model: str = "nrlmsise00"  # "nrlmsise00" | "exponential"
+    atmosphere_model: str = "nrlmsise00"  # "nrlmsise00" | "exponential" | "tabular"
+    # The profile "tabular" interpolates (ATMOSPHERE_TABLES); written only
+    # with "tabular": a scenario without it saves, and hashes, as before.
+    atmosphere_table: str = "us_standard_1976"
     # [%] which of MSFC's predicted percentiles drives the days past the
     # observations: 95 conservative (ESA AD10 Sec. 5.9, operations), 50
     # nominal (AD10, end of life), 5 low
@@ -2507,8 +2519,12 @@ class SpaceWeatherConfig:
         if self.source == "local_file":
             _require(bool(self.local_file_path),
                       "space_weather.source is 'local_file' but local_file_path was not set")
-        _require(self.atmosphere_model in ("nrlmsise00", "exponential"),
-                  f"space_weather.atmosphere_model {self.atmosphere_model!r} must be 'nrlmsise00' or 'exponential'")
+        _require(self.atmosphere_model in ATMOSPHERE_MODELS,
+                  f"space_weather.atmosphere_model {self.atmosphere_model!r} must be one of "
+                  f"{', '.join(repr(m) for m in ATMOSPHERE_MODELS)}")
+        _require(self.atmosphere_table in ATMOSPHERE_TABLES,
+                  f"space_weather.atmosphere_table {self.atmosphere_table!r} must be one of "
+                  f"{', '.join(repr(t) for t in ATMOSPHERE_TABLES)}")
         # Text such as "95" gave a bare ValueError (audit L29).
         _require(_is_finite_number(self.forecast_percentile)
                   and float(self.forecast_percentile) in SUPPORTED_FORECAST_PERCENTILES,
@@ -3393,6 +3409,8 @@ class Scenario:
         data.pop("configuration")  # read from config_file where the scenario is loaded, never saved
         if data["config_file"] is None:  # written only when set: a scenario without one saves, and hashes, as before
             del data["config_file"]
+        if data["space_weather"]["atmosphere_model"] != "tabular":  # the same: only a tabular run names a table
+            del data["space_weather"]["atmosphere_table"]
         if not data["value_marks"]:  # the same
             del data["value_marks"]
         if not data["presets"]:  # the same

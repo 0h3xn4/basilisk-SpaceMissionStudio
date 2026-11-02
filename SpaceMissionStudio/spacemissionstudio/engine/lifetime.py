@@ -274,6 +274,28 @@ def exponential_density(t_s: float, r_m: np.ndarray) -> np.ndarray:
     return 1.217 * np.exp(-altitude_m / 8500.0)  # [kg/m^3]
 
 
+class TabularDensity:
+    """One of the published profiles a run's tabular atmosphere uses
+    (engine.atmosphere_tables), at the geodetic altitude, interpolated
+    linearly as Basilisk's TabularAtmosphere does; 0 outside the table.
+    ``data_files``: the table's record, for the provenance."""
+
+    def __init__(self, table_name: str):
+        from .. import dependencies
+        from . import atmosphere_tables, kernels
+
+        path = kernels.cached_path(atmosphere_tables.data_file(table_name))
+        altitudes_m, densities, _temperatures = atmosphere_tables.load(table_name, path)
+        self.table = atmosphere_tables.table(table_name)
+        self.altitudes_m = np.asarray(altitudes_m, dtype=float)  # [m]
+        self.densities = np.asarray(densities, dtype=float)  # [kg/m^3]
+        self.data_files = {"atmosphere_table": dependencies.file_record(path)}
+
+    def __call__(self, t_s: float, r_m: np.ndarray) -> np.ndarray:
+        altitude_m = np.array([geodesy.pcpf_to_geodetic(r)[2] for r in np.atleast_2d(r_m)])  # [m] geodetic
+        return np.interp(altitude_m, self.altitudes_m, self.densities, left=0.0, right=0.0)  # [kg/m^3]
+
+
 def _drag_rates(orbit: MeanOrbit, t_s: float, ballistic_m2_kg: float, density: DensityModel, points: int):
     """Orbit-averaged da/dt [m/s] and d(eccentricity vector)/dt [1/s] from
     drag, ``ballistic_m2_kg`` = Cd * A / m, over ``points`` around the
@@ -425,6 +447,12 @@ def density_for_scenario(scenario, start_utc: datetime, max_years: float, points
         return exponential_density, max_years, [
             "the exponential atmosphere (8.5 km scale height from sea level) is far too thin above ~150 km: "
             "the lifetime is overstated -- use NRLMSISE-00"]
+    if sw_config.atmosphere_model == "tabular":
+        density = TabularDensity(sw_config.atmosphere_table)
+        return density, max_years, [Finding(
+            f"the tabular atmosphere ({density.table.title}) is one profile with no solar activity, and 0 above "
+            f"{density.table.top_km:g} km: an orbit above it never decays -- use NRLMSISE-00 for a lifetime",
+            "lifetime.tabular_atmosphere", limit=f"{density.table.top_km:g} km")]
     from . import spaceweather
 
     try:
@@ -778,6 +806,8 @@ def _deorbit_trace(orbit: MeanOrbit, plan: DeorbitPlan, mass_kg: float, isp_s: f
 def _lifetime_trace(lifetime: LifetimeResult, scenario, orbit_trace: Trace, ballistic_m2_kg: float, max_years: float,
                     horizon_years: float, forecast_percentile: float) -> Trace:
     atmosphere = scenario.space_weather.atmosphere_model
+    if atmosphere == "tabular":  # which profile (engine.atmosphere_tables)
+        atmosphere = f"tabular: {scenario.space_weather.atmosphere_table}"
     return Trace(
         "Orbital lifetime", "L", lifetime.lifetime_years, "[year]",
         "L: the time until the orbit-averaged perigee h_p reaches h_re, integrating d(a, e)/dt from drag over a ring "

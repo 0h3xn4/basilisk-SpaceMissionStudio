@@ -429,3 +429,21 @@ def test_the_random_seed_round_trips(qtbot):
     assert dialog.to_sim_settings().seed == 12345
     dialog.seed_spin.setValue(7)
     assert dialog.to_sim_settings().seed == 7
+
+
+def test_the_tabular_atmosphere_chooses_a_table(qtbot):
+    """Transparency plan, Phase 6b: the tabular model lists Basilisk's
+    published profiles with their ranges; the table is chosen only with it
+    (greyed out otherwise), and the scenario keeps the choice."""
+    from spacemissionstudio.schema.scenario import SpaceWeatherConfig
+
+    d = _dialog(space_weather=SpaceWeatherConfig(atmosphere_model="tabular", atmosphere_table="nrlmsise00_nominal"))
+    qtbot.addWidget(d)
+    assert d.atmosphere_model_combo.currentText() == "Tabular (a published profile, no space weather)"
+    assert d.atmosphere_table_combo.currentText() == "NRLMSISE-00, nominal profile (0 to 499.5 km)"
+    assert d.atmosphere_table_combo.isEnabled() and not d.space_weather_source_combo.isEnabled()
+    d.atmosphere_table_combo.setCurrentIndex(0)
+    config = d.to_space_weather()
+    assert (config.atmosphere_model, config.atmosphere_table) == ("tabular", "us_standard_1976")
+    d.atmosphere_model_combo.setCurrentIndex(0)  # NRLMSISE-00
+    assert not d.atmosphere_table_combo.isEnabled()
