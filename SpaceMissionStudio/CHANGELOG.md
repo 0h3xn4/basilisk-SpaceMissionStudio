@@ -506,6 +506,19 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
 - **The change history's author is a name you set:** **Settings > Change
   history > Author**, kept in `~/.spacemissionstudio/author.txt` so the
   command line records the same name; empty, the user name as before.
+- **Solar panels that degrade with time in orbit:** `power.degradation`
+  chooses `yearly_rate`, F = (1 - D)^t with D = 2.7 %/yr by default
+  (NASA's expectation for the ISS's silicon arrays), or `radiation_dose`,
+  NRL and NASA's displacement-damage-dose fit for triple-junction cells,
+  1 - C log10(1 + D_d t / D_x), for the orbit's yearly dose from SPENVIS
+  (no default: a run without one is refused). Either applies the Solar
+  Maximum array's ultraviolet (0.98) and thermal-cycling (0.99) factors.
+  Every panel of a spacecraft is degraded at each step, from
+  `power.years_in_orbit_at_start` plus the time flown (a long run's
+  segments included); the run records
+  `<spacecraft>.power.degradation_factor` and the model. Every value is a
+  parameter, cited, with flight data in the docs to choose a rate from.
+  The default, `none`, is what a run did before: no number changes.
 - **Every save records what it changed:** in `mission.history.jsonl`
   beside `mission.json`, one line per value with its old and new value,
   the time, the author (the user name for now), what saved it (the app

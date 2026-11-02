@@ -23,6 +23,25 @@ The run records the battery's charge and the power in and out. Watch it
 drop in eclipse. Flexible solar arrays can feed the same budget from
 their own cells (template **27**).
 
+The panel efficiency is the beginning-of-life one, and by default it does
+not change. To see the end of life, choose a degradation model in the
+project configuration file
+([Change a parameter](project-configuration.md)):
+
+```yaml
+parameters:
+  power.degradation: yearly_rate          # [-] or radiation_dose, none (default)
+  power.degradation_per_year: 0.02        # [-] your cells' and orbit's
+  power.years_in_orbit_at_start: 5.0      # [year] the run starts 5 years after launch
+```
+
+`radiation_dose` is NRL and NASA's fit for triple-junction cells; it
+needs your orbit's yearly displacement damage dose from SPENVIS
+(`power.displacement_damage_dose_per_year_mev_g`). The run then records
+`<spacecraft>.power.degradation_factor`, the fraction of the efficiency
+kept. The equations, their sources and flight data to choose a rate from
+are in [the power model](../models/link-data-and-power.md#solar-array-degradation-degradation).
+
 ## Radio link to the ground
 
 1. Add a ground station (**Ground stations > Add**).

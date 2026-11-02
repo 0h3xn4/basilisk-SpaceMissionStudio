@@ -14514,6 +14514,39 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Selectable models: solar-array degradation (2026-11-02)
+
+The transparency plan, Phase 6b ("power degradation"). Branch
+`solar-degradation`. The user asked for "realistic degradation please",
+and chose both models offered.
+
+- **The sources, read on NTRS:** NASA/TM-2003-212513 (ISS P6, expected
+  2.7 %/yr, p. 2; measured current 0.2 to 0.5 %/yr), NASA TM-86194
+  (Solar Max, 574 km at 33°: 16 % in 5 years; factors 0.99 thermal
+  cycling and 0.98 FEP darkening, p. 11), JPL Publication 96-9 (GaAs:
+  UoSAT-5 at most 1.5 % after a year, p. 7-6; LIPS-III 2.2 to 4.5 %/yr,
+  p. 7-5), and Walters et al., NASA/CP-2007-214494, pp. 25-30
+  (P/P0 = 1 - C log(1 + D_d/D_x), C = 0.199, D_x = 1.2e9 MeV/g for
+  Emcore ATJ and Spectrolab 3J cells, p. 29). No document read gives a
+  table of yearly rates by cell type, so none is quoted.
+- **`engine/solar_degradation.py`:** `Degradation` (the two models, F_UV,
+  F_thermal, the years in orbit), `from_scenario`, `trace`, and the
+  Basilisk module `PanelDegradation`, which sets every panel's efficiency
+  each step (priority 51, before the panels' 50) and records the factor.
+- **`config`:** the choice `power.degradation` (`none`, `yearly_rate`,
+  `radiation_dose`) and seven `power.*` parameters, a new area.
+- **`engine.service`:** the model is checked before the build (the dose
+  model without a dose is refused), recorded in `models`, and built for
+  every spacecraft with panels, its body panel and its arrays' cells
+  (`_SpacecraftHandle.solar_panels`); the series
+  `<spacecraft>.power.degradation_factor`. `mission_elapsed_offset_s`,
+  set by `engine.long_run` for each segment, counts the time flown.
+- **Tests:** `tests/test_solar_degradation.py` (9);
+  `tests/test_config.py` cases for each parameter.
+- **Numbers:** none change: the default is `none`.
+
+Full suite on Python 3.14: 4,369 passed (26 min 25 s); with develop (P.676) merged in, 4,391 passed (24 min 17 s).
+
 ## Selectable models: the gases' attenuation of the link, ITU-R P.676-13 (2026-11-02)
 
 The transparency plan, Phase 6b ("link losses"). Branch

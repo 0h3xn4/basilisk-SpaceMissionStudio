@@ -1522,5 +1522,21 @@ No existing test changed.
   surface parameters): the new choice's page and cases. Nothing removed
   or loosened.
 
+## Solar-array degradation (2026-11-02)
+
+- Added `tests/test_solar_degradation.py` (9 tests): no model by default;
+  each model's equation with the project's values and the years flown;
+  the dose fit in base 10 against the paper's figures; the dose model
+  refused without a dose (the model and a run); the trace's inputs; the
+  module setting each panel's efficiency with the time flown before; a
+  run's panel power the default's times the factor, with the series and
+  the provenance; a long run's two segments carrying the time on.
+- Changed `tests/test_config.py`: `_MODEL_PAGES` gives the new `power`
+  area its page, `_MODEL_CASES` the new choice its case, and the new
+  `_POWER_CASES` (with
+  `test_setting_a_degradation_parameter_changes_what_the_panels_keep`)
+  one case per parameter. Changed `tests/test_model_registry.py`
+  (`_PAGES`): the choice's page. Nothing removed or loosened.
+
   Each new test fails on the code before (checked by stashing
   `spacemissionstudio/`).

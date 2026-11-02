@@ -32,7 +32,8 @@ simulation starting where the last one ended:
 * thermal-sensor and wheel-motor temperatures (from their last recorded
   value);
 * the data in each instrument's memory partition (``data_handling``);
-* each flexible solar array's deflection and its rate.
+* each flexible solar array's deflection and its rate;
+* the time flown, for the solar panels' degradation (``power.degradation``).
 
 Results are stitched into one :class:`ResultSet` on one time axis;
 cumulative delta-V series, and the generated, downlinked and lost data
@@ -267,6 +268,7 @@ def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], 
         segment.sim_settings.duration_days = length_s / 86400.0  # [day]
         _seed_segment(scenario, segment, index)
         service = SimulationService(segment)
+        service.mission_elapsed_offset_s = offset_s  # the solar panels' time in orbit (power.degradation)
         if on_progress is None and should_cancel is None:
             part = service.run()
         else:

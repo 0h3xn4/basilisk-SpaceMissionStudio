@@ -89,7 +89,7 @@ from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario, preset_records, va
 from . import (atmosphere_tables, data_handling, earth_orientation, effective_config, environment_models, formation_control, frames, fsw,
                gaseous_attenuation, geodesy, geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
                optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, shadows,
-               small_bodies, solar_arrays, time_system, tle, vizard)
+               small_bodies, solar_arrays, solar_degradation, time_system, tle, vizard)
 from .findings import Finding
 from .mean_elements import cl_mean_osc_map
 from .results import ResultSet, RunProvenance, TimeSeries, conservation_drift_warnings
@@ -572,6 +572,8 @@ class _SpacecraftHandle:
     link_gate: object | None = None
     data_handling: object | None = None  # data_handling.DataHandlingHandle
     solar_arrays: object | None = None  # solar_arrays.SolarArrayHandle, only with flexible arrays
+    solar_panels: list = field(default_factory=list)  # every simpleSolarPanel (the body's, the arrays'), in order
+    panel_degradation: object | None = None  # solar_degradation.PanelDegradation, with power.degradation chosen
 
 
 class SimulationService:
@@ -654,6 +656,9 @@ class SimulationService:
         self._own_eclipses: list = []  # dynamics.shadowing_bodies "tracked_bodies": one eclipse module per other body
         self._combined_eclipses: list = []  # their CombinedEclipse, one per spacecraft (kept alive)
         self._run_models: dict = {}  # the models of this run other than the defaults (provenance "models")
+        # [s] The time flown before this run: a long run's earlier segments (engine.long_run sets it), for
+        # the solar panels' time in orbit (power.degradation).
+        self.mission_elapsed_offset_s = 0.0
         self._record_eclipses = False  # built anyway when the Sun is tracked: every spacecraft's eclipses are recorded
         # Phase 4: retains the vizInterface module enable_vizard() returns,
         # and (separately -- see that function's own docstring for why a
@@ -756,6 +761,14 @@ class SimulationService:
 
         scenario = self.scenario
         scenario.validate()  # re-validate: the scenario object may have been mutated after load
+        # Solar-array degradation (power.degradation): checked before anything is built.
+        try:
+            degradation = solar_degradation.from_scenario(scenario)
+        except solar_degradation.DegradationError as exc:
+            raise SimulationServiceError(str(exc)) from exc
+        if degradation is not None and any(sc.power is not None for sc in scenario.spacecraft):
+            choice = solar_degradation.CHOICE
+            self._run_models[choice] = model_registry.record(model_registry.model(choice, degradation.model))
         # From here on the engine's reads of the open params are noted: the
         # defaults it applies are the run's effective configuration (Phase 2c).
         self._recorded_params = effective_config.record(scenario)
@@ -1343,6 +1356,7 @@ class SimulationService:
                 handle.battery_recorder = self._record(battery.batPowerOutMsg)
                 self.scSim.AddModelToTask(dyn_task_name, handle.battery_recorder)
                 handle.battery_module = battery
+                handle.solar_panels.append(panel)
 
             # Flexible solar arrays (engine.solar_arrays): after the power
             # budget, so a power-generating array can feed its battery.
@@ -1353,6 +1367,15 @@ class SimulationService:
                     eclipse_msg=sc_eclipse_out_msg,
                     panel_efficiency=sc_config.power.panel_efficiency if sc_config.power is not None else 0.0,
                 )
+                handle.solar_panels += [module for module in handle.solar_arrays.effectors
+                                        if hasattr(module, "panelEfficiency")]
+            # Solar-array degradation (power.degradation, engine.solar_degradation): each panel's efficiency,
+            # set every step before the panels (50) read it.
+            if degradation is not None and handle.solar_panels:
+                handle.panel_degradation = solar_degradation.PanelDegradation(
+                    f"{sc_config.name}PanelDegradation", degradation, handle.solar_panels,
+                    self.mission_elapsed_offset_s, scenario.sim_settings.record_interval_s)
+                self.scSim.AddModelToTask(dyn_task_name, handle.panel_degradation, solar_degradation.PRIORITY)
 
             # -- Phase 4: station-keeping (schema.scenario.StationKeepingConfig)
             # -- independent of fsw_mode/sensors/power like the blocks
@@ -2603,6 +2626,10 @@ class SimulationService:
                                        ("illumination_factor",),
                                        recorder.shadowFactor if sunlight is None else sunlight, units="-"))
 
+            if handle.panel_degradation is not None:
+                result.add(TimeSeries(f"{name}.power.degradation_factor", np.asarray(handle.panel_degradation.tLog),
+                                       ("degradation_factor",), np.asarray(handle.panel_degradation.factorLog),
+                                       units="-"))
             if handle.battery_recorder is not None:
                 battery_t_s = handle.battery_recorder.times() * macros.NANO2SEC
                 result.add(TimeSeries(f"{name}.battery_charge", battery_t_s, ("charge",),

@@ -276,3 +276,58 @@ register(
            "tests/test_gaseous_attenuation.py::test_the_loss_is_in_the_link_margin"),
           "run"),
 )
+
+# -- Solar-array degradation (engine.solar_degradation) ---------------------------------------------
+
+_DEGRADATION = "power.degradation"
+_DEGRADATION_INPUTS = ("Each solar panel's beginning-of-life efficiency (power.panel_efficiency) [-]",
+                       "The years in orbit: power.years_in_orbit_at_start plus the time flown [year]")
+_DEGRADATION_OUTPUTS = ("Each solar panel's power, and so the battery's charge and net power",
+                        "<spacecraft>.power.degradation_factor [-], the series (with a model chosen)")
+_FACTORS = ("Ultraviolet darkening 0.98 and thermal cycling 0.99 (power.uv_darkening_factor, "
+            "power.thermal_cycling_factor): the Solar Maximum Mission array's factors, whose FEP cover adhesive "
+            "had no ultraviolet filter. They apply from the start of the run.")
+_SOLAR_MAX = "T. Miller, Solar Maximum: Solar Array Degradation, NASA TM-86194 (1985), p. 11 (the one-off factors)"
+
+register(
+    Model(_DEGRADATION, "none", "None",
+          "No degradation: each panel keeps its beginning-of-life efficiency.",
+          _DEGRADATION_INPUTS, _DEGRADATION_OUTPUTS,
+          ("Beginning of life equals end of life: no radiation, ultraviolet or thermal-cycling loss.",),
+          ("SpaceMissionStudio's power model (docs/models/link-data-and-power.md)",),
+          ("tests/test_solar_degradation.py::test_no_degradation_by_default",),
+          "run"),
+    Model(_DEGRADATION, "yearly_rate", "A yearly rate",
+          "eta = eta_BOL F_UV F_thermal (1 - D)^t: a constant fraction D of the output lost each year "
+          "(power.degradation_per_year).",
+          _DEGRADATION_INPUTS + ("D, the yearly loss [-]",), _DEGRADATION_OUTPUTS,
+          ("The same fraction is lost every year, whatever the orbit's radiation: D is the project's estimate "
+           "for its cells and orbit. The default, 2.7 %/yr, is NASA's expectation for the ISS's silicon arrays "
+           "in low Earth orbit; flight data range from 0.2 %/yr (the ISS arrays' current) to 4.5 %/yr (GaAs at 1100 km).",
+           _FACTORS),
+          ("T. W. Kerslake, E. D. Gustafson, On-Orbit Performance Degradation of the International Space Station "
+           "P6 Photovoltaic Arrays, NASA/TM-2003-212513 (2003), p. 2 (the expected 2.7 %/yr)", _SOLAR_MAX),
+          ("tests/test_solar_degradation.py::test_each_model_is_the_equation_it_declares",
+           "tests/test_solar_degradation.py::test_a_run_degrades_the_panels_by_the_model"),
+          "run"),
+    Model(_DEGRADATION, "radiation_dose", "Displacement damage dose (triple-junction cells)",
+          "eta = eta_BOL F_UV F_thermal (1 - C log10(1 + D_d t / D_x)): NRL and NASA's displacement-damage-dose "
+          "fit, D_d the orbit's yearly displacement damage dose (power.displacement_damage_dose_per_year_mev_g).",
+          _DEGRADATION_INPUTS + ("D_d, the yearly proton-equivalent displacement damage dose [MeV/g], from SPENVIS "
+                                 "for the orbit and the cells' cover glass", "C [-] and D_x [MeV/g], the fit"),
+          _DEGRADATION_OUTPUTS,
+          ("C = 0.199 and D_x = 1.2e9 MeV/g are the fit to Emcore ATJ and Spectrolab triple-junction cells' "
+           "ground data; other cells have their own.",
+           "The dose accumulates at a constant yearly rate (no solar cycle, no change of orbit).",
+           "The logarithm is base 10: the paper does not say so, but with the natural logarithm its fits would "
+           "fall below 0.5 at 1e10 MeV/g, off the figures it is drawn on.",
+           "SpaceMissionStudio has no radiation-belt model: the dose is the project's, and the run is refused "
+           "without it.", _FACTORS),
+          ("R. Walters, G. P. Summers, J. H. Warner, S. Messenger, J. R. Lorentzen, T. Morton et al., SPENVIS "
+           "Implementation of End-of-Life Solar Cell Calculations Using the Displacement Damage Dose "
+           "Methodology, NASA/CP-2007-214494 (2007), pp. 25-30, eq. 2 and Figures 7 and 8", _SOLAR_MAX),
+          ("tests/test_solar_degradation.py::test_each_model_is_the_equation_it_declares",
+           "tests/test_solar_degradation.py::test_the_dose_fit_is_the_papers_equation_in_base_10",
+           "tests/test_solar_degradation.py::test_a_run_degrades_the_panels_by_the_model"),
+          "run"),
+)
