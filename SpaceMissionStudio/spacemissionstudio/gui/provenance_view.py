@@ -69,7 +69,7 @@ GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
     ("Data files", ("data_files",)),
     ("Time scales", ("time_system",)),
     ("Frames", ("frames", "transformations", "series_frames")),
-    ("Configuration", ("configuration", "effective_defaults", "effective_config_note", "device_parameters")),
+    ("Configuration", ("configuration", "models", "effective_defaults", "effective_config_note", "device_parameters")),
 )
 OTHER = "Other"
 

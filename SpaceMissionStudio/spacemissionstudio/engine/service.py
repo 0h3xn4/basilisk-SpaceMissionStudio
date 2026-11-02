@@ -84,12 +84,12 @@ from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import dependencies, output_provenance
-from ..config import registry
+from ..config import models as model_registry, registry
 from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario, preset_records, value_mark_records
 from . import (data_handling, earth_orientation, effective_config, environment_models, formation_control, frames, fsw,
                geodesy, geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
-               optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, small_bodies,
-               solar_arrays, time_system, tle, vizard)
+               optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, shadows,
+               small_bodies, solar_arrays, time_system, tle, vizard)
 from .findings import Finding
 from .mean_elements import cl_mean_osc_map
 from .results import ResultSet, RunProvenance, TimeSeries, conservation_drift_warnings
@@ -651,6 +651,9 @@ class SimulationService:
         self._ground_station_latitudes: dict[str, tuple] = {}  # name -> (geocentric, geodetic) [rad]
         self._access_out_msgs: dict[tuple, object] = {}  # (ground_station_name, spacecraft_name) -> accessOutMsg, for engine.vizard
         self._eclipse_object = None  # Phase 4: only built if some spacecraft has power or station_keeping configured
+        self._own_eclipses: list = []  # dynamics.shadowing_bodies "tracked_bodies": one eclipse module per other body
+        self._combined_eclipses: list = []  # their CombinedEclipse, one per spacecraft (kept alive)
+        self._run_models: dict = {}  # the models of this run other than the defaults (provenance "models")
         self._record_eclipses = False  # built anyway when the Sun is tracked: every spacecraft's eclipses are recorded
         # Phase 4: retains the vizInterface module enable_vizard() returns,
         # and (separately -- see that function's own docstring for why a
@@ -1009,10 +1012,20 @@ class SimulationService:
         # The bodies that can shadow the Sun: the central body, except in a
         # heliocentric run, where the Sun cannot shadow itself (audit L27)
         # and only the other tracked bodies can.
-        if gravity.central_body == "sun":
-            occulter_names = [name for name in body_names if name != "sun"]
-        else:
-            occulter_names = [gravity.central_body]
+        # Which: dynamics.shadowing_bodies (engine.shadows). The default,
+        # "central_body", is the list above; "tracked_bodies" gives every
+        # other tracked body a module of its own.
+        shadow_model = rule("shadowing_bodies", scenario)
+        occulter_names, own_names, cannot_shadow = shadows.occulters(
+            shadow_model, gravity.central_body, body_names, small_body.name if small_body is not None else None)
+        if shadow_model != registry.default(shadows.CHOICE):
+            self._run_models[shadows.CHOICE] = dict(model_registry.record(model_registry.model(shadows.CHOICE, shadow_model)),
+                                                    bodies=occulter_names + own_names,
+                                                    cannot_shadow=cannot_shadow)
+            if cannot_shadow:
+                self._model_warnings.append(
+                    f"{', '.join(cannot_shadow)} cannot shadow the spacecraft: Basilisk's eclipse knows no radius "
+                    f"for {'it' if len(cannot_shadow) == 1 else 'them'} ({shadows.CHOICE})")
         if (needs_eclipse or self._record_eclipses) and occulter_names:
             if self._sun_state_out_msg is None:
                 raise SimulationServiceError(
@@ -1038,6 +1051,13 @@ class SimulationService:
                     continue
                 self._eclipse_object.addPlanetToModel(self._planet_state_out_msgs[name])
             self.scSim.AddModelToTask(dyn_task_name, self._eclipse_object, 370)
+            for name in own_names:
+                own = eclipse.Eclipse()
+                own.ModelTag = f"eclipse_{name.replace(' ', '_')}"
+                own.sunInMsg.subscribeTo(self._sun_state_out_msg)
+                own.addPlanetToModel(self._planet_state_out_msgs[name])
+                self.scSim.AddModelToTask(dyn_task_name, own, 370)
+                self._own_eclipses.append(own)
 
         # Phase 4: atmospheric drag (schema.scenario.SpacecraftConfig.enable_drag)
         # -- built once, shared by every spacecraft that enables it. Ported
@@ -1207,6 +1227,15 @@ class SimulationService:
             if (needs_eclipse_for_this_sc or self._record_eclipses) and self._eclipse_object is not None:
                 self._eclipse_object.addSpacecraftToModel(sc_object.scStateOutMsg)
                 sc_eclipse_out_msg = self._eclipse_object.eclipseOutMsgs[eclipse_index]
+                if self._own_eclipses:  # dynamics.shadowing_bodies: every body's shadow, combined
+                    combined = shadows.CombinedEclipse(f"combinedEclipse_{sc_config.name}")
+                    combined.add(sc_eclipse_out_msg)
+                    for own in self._own_eclipses:
+                        own.addSpacecraftToModel(sc_object.scStateOutMsg)
+                        combined.add(own.eclipseOutMsgs[eclipse_index])
+                    self.scSim.AddModelToTask(dyn_task_name, combined, shadows.PRIORITY)
+                    self._combined_eclipses.append(combined)
+                    sc_eclipse_out_msg = combined.eclipseOutMsg
                 eclipse_index += 1
                 handle.eclipse_out_msg = sc_eclipse_out_msg
                 handle.eclipse_recorder = self._record(sc_eclipse_out_msg)
@@ -2337,6 +2366,7 @@ class SimulationService:
             configuration=registry.record(self.scenario),
             value_marks=value_mark_records(self.scenario),
             presets=preset_records(self.scenario),
+            models=dict(self._run_models),
         )
 
     def nominal_provenance(self) -> RunProvenance:

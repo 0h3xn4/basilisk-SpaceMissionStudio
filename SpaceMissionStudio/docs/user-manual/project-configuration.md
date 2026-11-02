@@ -103,6 +103,15 @@ parameters:
 A margin you set yourself replaces the policy's, and `assumptions`
 marks each value a policy set ("SET BY ...").
 
+The bodies that shadow a spacecraft from the Sun are a choice too. By
+default only the central body does; with every tracked body, the Moon
+shadows an Earth orbiter as well (add `moon` to the third bodies):
+
+```yaml
+parameters:
+  dynamics.shadowing_bodies: tracked_bodies   # [-] or central_body (default)
+```
+
 The Assumptions page lists each choice's models by title, and a name that
 is not one of them is refused. Each model's method, assumptions,
 references and tests are on its page

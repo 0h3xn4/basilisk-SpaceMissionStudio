@@ -487,6 +487,15 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **The Moon can shadow an Earth orbiter:** `dynamics.shadowing_bodies:
+  tracked_bodies` gives every tracked body but the Sun its own eclipse,
+  and a spacecraft's sunlight is their product: lunar eclipses reach the
+  sunlight series, the eclipse events, the solar panels, SRP and the
+  sensors. Basilisk's eclipse, given several bodies, takes only the
+  nearest one's shadow, so before this the Moon never shadowed. The
+  default, the central body only, is as before; a run with the other
+  records `models` in its provenance. The re-entry criterion and debris
+  rules stay parameters (the models index says why).
 - **Margin policies for the propellant budget:**
   `propellant_budget.margin_policy` chooses AD10's equations (the
   default, as before) or AD10's summary table, whose residual and
