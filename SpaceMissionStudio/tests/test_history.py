@@ -156,3 +156,50 @@ def test_the_app_records_a_save(qtbot, tmp_path, monkeypatch):
     entries, _problems = history.read(path)
     assert [(e["kind"], e["source"]) for e in entries] == [("created", "app"), ("edit", "app")]
     assert (entries[1]["path"], entries[1]["new"]) == ("name", "My first satellite")
+
+
+def test_the_name_set_in_settings_is_every_saves_author(tmp_path, monkeypatch):
+    """A name set (one line, its spaces tidied) is kept in a plain file the
+    command line reads too, and every save records it; an empty one
+    forgets it: the user name again."""
+    monkeypatch.setattr(history.getpass, "getuser", lambda: "ana")
+    assert history.current_author() == "ana" and history.set_author_name() == ""
+    history.set_author("  Ana  Ruiz\n")
+    assert history.author_file().read_text(encoding="utf-8") == "Ana Ruiz\n"
+    assert history.current_author() == "Ana Ruiz"
+    path = tmp_path / "template.json"
+    _scenario().save(path)
+    out = tmp_path / "constellation.json"
+    assert cli.main(["generate-constellation", str(path), "--out", str(out), "--total-satellites", "2",
+                     "--planes", "1", "--phasing-factor", "0", "--altitude-km", "700",
+                     "--inclination-deg", "98.0"]) == 0
+    assert [e["author"] for e in history.read(out)[0]] == ["Ana Ruiz"]
+    history.set_author("")
+    assert not history.author_file().exists() and history.current_author() == "ana"
+
+
+@pytest.mark.requires_gui
+def test_settings_sets_the_author_the_app_records(qtbot, tmp_path, monkeypatch):
+    """Settings > Change history: the name typed is kept, shown with what
+    saves will record, and the app's next save records it."""
+    from pathlib import Path
+
+    from PySide6.QtWidgets import QMessageBox
+
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    monkeypatch.setattr(history.getpass, "getuser", lambda: "ana")
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
+    window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+    qtbot.addWidget(window)
+    settings = window.settings_page
+    assert "history" in dict(settings.sections()) and settings.author_edit.placeholderText() == "ana"
+    settings.author_edit.setText("Ana Ruiz")
+    settings.author_edit.editingFinished.emit()
+    assert history.set_author_name() == "Ana Ruiz"
+    assert settings.author_note.text() == "Saves are recorded as Ana Ruiz."
+    templates = Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates"
+    assert window.open_path(templates / "22_starter_first_leo_satellite.json")
+    path = tmp_path / "mine.json"
+    window._save_to(path)
+    assert [e["author"] for e in history.read(path)[0]] == ["Ana Ruiz"]

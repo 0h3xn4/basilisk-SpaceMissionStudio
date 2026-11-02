@@ -534,7 +534,8 @@ def _save(scenario, path, command: str) -> None:
     the same."""
     from . import history
 
-    _entries, problem = history.save(scenario, path, source=f"spacemissionstudio {command}")
+    _entries, problem = history.save(scenario, path, author=history.current_author(),
+                                     source=f"spacemissionstudio {command}")
     if problem:
         print(f"WARNING: {problem}", file=sys.stderr)
 

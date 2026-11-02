@@ -1487,3 +1487,11 @@ No existing test changed.
 
   Each fails on the code before (checked by stashing
   `spacemissionstudio/`). No existing test changed.
+
+## The change history's author (2026-11-02)
+
+- Added `tests/test_history.py::test_the_name_set_in_settings_is_every_saves_author`
+  and `::test_settings_sets_the_author_the_app_records`.
+
+  Each fails on the code before (checked by stashing
+  `spacemissionstudio/`). No existing test changed.
