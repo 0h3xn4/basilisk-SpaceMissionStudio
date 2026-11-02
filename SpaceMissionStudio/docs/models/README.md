@@ -14,7 +14,7 @@ configuration file changes them without editing code
 | RF link budget, onboard data and power | [RF link, data handling and power](link-data-and-power.md) | `link.*`, `data_handling.*` |
 | A run's figures, events, critical marks and dashboard badges | [Reading a run's results](reading-results.md) | `results.*` |
 | The integrator's tolerances, the re-entry checks, the conservation check | [Dynamics: integration and run control](dynamics-run-control.md) | `dynamics.*` |
-| Space weather past the prediction, Earth orientation, TLEs, mean elements | [Environment data](environment-and-data.md) | `space_weather.*`, `tle.*` |
+| The atmosphere models and tables, space weather past the prediction, Earth orientation, TLEs, mean elements | [Environment data](environment-and-data.md) | `space_weather.*`, `tle.*` |
 | Altitude station keeping, the thruster's firing model, phasing keeping, GEO station keeping | [Orbit control](orbit-control.md) | `orbit_control.*`, `geo_station_keeping.*` |
 | ROE formation guidance: decisions, drifts, eclipse retries, differential drag | [ROE formation guidance](roe-formation.md) | `roe_formation.*` |
 | The attitude thrusters' Schmitt trigger, optical and landmark navigation's filters | [Flight software and navigation](flight-software-and-navigation.md) | `flight_software.*`, `navigation.*` |
@@ -71,6 +71,12 @@ recorded with the results it gives and named where they are shown.
 | `propellant_budget.margin_policy` | `ad10_equations` (default), `ad10_summary_table` | [Propellant budget](propellant-budget.md#the-margin-policy-margin_policy) |
 | `dynamics.shadowing_bodies` | `central_body` (default), `tracked_bodies` | [Dynamics: integration and run control](dynamics-run-control.md#shadows-shadowing_bodies) |
 
+The atmosphere is chosen in the scenario itself
+(`space_weather.atmosphere_model`: `nrlmsise00`, `exponential` or
+`tabular`, the tabular's profile in `space_weather.atmosphere_table`), as
+it was before the registry: it is part of what the scenario describes,
+and saved with it ([Environment data](environment-and-data.md#the-atmosphere)).
+
 A model may also set other parameters: a margin policy is the set of
 margins it gives. A value the project file sets itself replaces the
 model's, and the records say which values a model set.
@@ -83,9 +89,10 @@ altitude); every lifetime is checked against both disposal rules,
 `lifetime.zero_debris_years` (5) and `lifetime.iadc_years` (25). A choice
 of model would add nothing a project file cannot already set.
 
-The other models the plan names (the atmosphere, link losses, power
-degradation) are still one model each; they follow (the transparency
-plan, Phase 6b).
+The other models the plan names (link losses with ITU-R P.676's gaseous
+attenuation, a realistic power degradation) wait for their sources: the
+recommendation's text and validation examples, and a published
+degradation model (the transparency plan, Phase 6b).
 
 ## Not yet covered
 

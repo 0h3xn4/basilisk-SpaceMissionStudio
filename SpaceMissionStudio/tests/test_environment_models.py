@@ -195,12 +195,13 @@ def test_gravity_degree_above_the_field_maximum_is_rejected_by_the_schema():
 
 @pytest.mark.requirement("E-ST-10-04C 7.2.1.2a")
 def test_no_jacchia_bowman_model_can_be_mixed_with_nrlmsise_00():
-    """The only atmospheres are NRLMSISE-00 and Basilisk's exponential
-    model; a JB-2006/JB-2008 choice is rejected."""
+    """The only atmospheres are NRLMSISE-00, Basilisk's exponential model
+    and its tabular one; a JB-2006/JB-2008 choice is rejected."""
     from spacemissionstudio.schema.scenario import ScenarioValidationError, SpaceWeatherConfig
 
     for model in ("jb2006", "jb2008"):
-        with pytest.raises(ScenarioValidationError, match="must be 'nrlmsise00' or 'exponential'"):
+        with pytest.raises(ScenarioValidationError,
+                           match="must be one of 'nrlmsise00', 'exponential', 'tabular'"):
             SpaceWeatherConfig(atmosphere_model=model).validate()
 
 

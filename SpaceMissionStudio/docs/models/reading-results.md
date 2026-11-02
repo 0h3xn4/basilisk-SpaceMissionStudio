@@ -156,9 +156,12 @@ text).
 | The space weather read | `space_weather.daily_forecast`, `space_weather.monthly_forecast`, `space_weather.msfc_prediction`, `space_weather.msfc_repeated` | the run reads a forecast, a prediction or MSFC's repeated months | `space_weather.msfc_repeat_months` for the repeat ([Environment data](environment-and-data.md)) |
 | The Earth orientation | `earth_orientation.none`, `earth_orientation.not_covered`, `earth_orientation.predicted` | no IERS data, files that do not cover the run, or predicted values | none |
 | The magnetic field model | `magnetic_field.wmm_validity` | the run is outside the WMM's 5 years | none |
+| Above the atmosphere table | `run.above_atmosphere_table` | a drag spacecraft's perigee is above the tabular atmosphere's top | the table's top ([Environment data](environment-and-data.md)) |
+| A body that cannot shadow | `run.cannot_shadow` | a tracked body Basilisk's eclipse knows no radius for | none ([Dynamics](dynamics-run-control.md)) |
 | A data file changed | `data.changed_since_install` | a file read is not the one installed (SHA-256) | none |
 | The lifetime's look-ahead | `lifetime.space_weather_ends` | the real space-weather data ends before the horizon | none ([Orbital lifetime](lifetime.md)) |
 | The lifetime's last step | `lifetime.ground_in_step` | the orbit reaches the ground within one decay step | none |
+| The lifetime's tabular atmosphere | `lifetime.tabular_atmosphere` | the lifetime uses the tabular atmosphere | the table's top |
 
 ## Rules and parameters
 

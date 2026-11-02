@@ -83,10 +83,10 @@ from Basilisk.utilities.supportDataTools.dataFetcher import DataFile
 from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
-from .. import dependencies, output_provenance
+from .. import constants, dependencies, output_provenance
 from ..config import models as model_registry, registry
 from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario, preset_records, value_mark_records
-from . import (data_handling, earth_orientation, effective_config, environment_models, formation_control, frames, fsw,
+from . import (atmosphere_tables, data_handling, earth_orientation, effective_config, environment_models, formation_control, frames, fsw,
                geodesy, geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
                optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, shadows,
                small_bodies, solar_arrays, time_system, tle, vizard)
@@ -1023,9 +1023,10 @@ class SimulationService:
                                                     bodies=occulter_names + own_names,
                                                     cannot_shadow=cannot_shadow)
             if cannot_shadow:
-                self._model_warnings.append(
+                self._model_warnings.append(Finding(
                     f"{', '.join(cannot_shadow)} cannot shadow the spacecraft: Basilisk's eclipse knows no radius "
-                    f"for {'it' if len(cannot_shadow) == 1 else 'them'} ({shadows.CHOICE})")
+                    f"for {'it' if len(cannot_shadow) == 1 else 'them'} ({shadows.CHOICE})", "run.cannot_shadow",
+                    actual=", ".join(cannot_shadow)))
         if (needs_eclipse or self._record_eclipses) and occulter_names:
             if self._sun_state_out_msg is None:
                 raise SimulationServiceError(
@@ -1074,6 +1075,7 @@ class SimulationService:
         needs_drag = any(sc.enable_drag for sc in scenario.spacecraft)
         atmo_module = None
         wind_model = None
+        self.atmosphere_module = None  # the atmosphere drag reads, after build (its envOutMsgs: one per drag spacecraft)
         if needs_drag:
             if gravity.central_body != "earth":
                 raise SimulationServiceError(
@@ -1155,11 +1157,35 @@ class SimulationService:
                 for msg_index in range(23):  # fixed count of space-weather sub-messages msisAtmosphere reads
                     atmo_module.swDataInMsgs[msg_index].subscribeTo(sw_module.swDataOutMsgs[msg_index])
                 self.scSim.AddModelToTask(dyn_task_name, atmo_module, 390)
+            elif scenario.space_weather.atmosphere_model == "tabular":
+                # One of the published profiles Basilisk ships (engine.atmosphere_tables), interpolated in
+                # altitude by its TabularAtmosphere; no space weather, 0 above the table's top.
+                from Basilisk.simulation import tabularAtmosphere
+
+                table_name = scenario.space_weather.atmosphere_table
+                try:
+                    table_path = kernels.cached_path(atmosphere_tables.data_file(table_name))
+                except Exception as exc:  # noqa: BLE001 -- name the file, never a bare fetch traceback
+                    raise SimulationServiceError(
+                        f"the atmosphere table {table_name!r} is not installed ({exc}): run the installer again "
+                        "to fetch Basilisk's support data") from exc
+                self._data_files["atmosphere_table"] = dependencies.file_record(table_path)
+                altitudes_m, densities, temperatures = atmosphere_tables.load(table_name, table_path)
+                atmo_module = tabularAtmosphere.TabularAtmosphere()
+                atmo_module.ModelTag = "tabularAtmosphere"
+                # Altitudes above the equatorial radius, as MSIS's (AtmosphereBase's own default is 0)
+                atmo_module.planetRadius = constants.EARTH_EQUATORIAL_RADIUS_M  # [m]
+                atmo_module.altList = tabularAtmosphere.DoubleVector(altitudes_m)
+                atmo_module.rhoList = tabularAtmosphere.DoubleVector(densities)
+                atmo_module.tempList = tabularAtmosphere.DoubleVector(temperatures)
+                atmo_module.planetPosInMsg.subscribeTo(central_body_state_out_msg)
+                self.scSim.AddModelToTask(dyn_task_name, atmo_module, 390)
             else:
                 raise SimulationServiceError(
                     f"unknown space_weather.atmosphere_model {scenario.space_weather.atmosphere_model!r}"
                 )
 
+        self.atmosphere_module = atmo_module
         sc_objects_in_order: list = []
         rw_effectors_in_order: list = []
         thr_effectors_in_order: list = []
@@ -1367,6 +1393,17 @@ class SimulationService:
             # called for spacecraft that enable it, so drag_index stays in
             # lockstep with atmo_module.envOutMsgs/wind_model.envOutMsgs.
             if sc_config.enable_drag:
+                if scenario.space_weather.atmosphere_model == "tabular":
+                    table = atmosphere_tables.table(scenario.space_weather.atmosphere_table)
+                    perigee_km = (orbitalMotion.rv2elem(mu, np.asarray(r_N, float).reshape(3),
+                                                          np.asarray(v_N, float).reshape(3)).rPeriap
+                                  - atmo_module.planetRadius) / 1e3  # [km]
+                    if atmosphere_tables.above_the_table(table.name, {sc_config.name: perigee_km}):
+                        self._model_warnings.append(Finding(
+                            f"{sc_config.name}: its perigee ({perigee_km:.0f} km) is above the top of the "
+                            f"{table.title} table ({table.top_km:g} km): no drag acts on it while it stays above "
+                            "(space_weather.atmosphere_table)", "run.above_atmosphere_table",
+                            actual=f"{perigee_km:.0f} km", limit=f"{table.top_km:g} km"))
                 if sc_config.facets:
                     # Attitude-dependent drag and its torque: each facet
                     # facing the flow pushes at its own centre of pressure.
