@@ -14514,6 +14514,27 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The change history: the author (2026-11-02)
+
+The transparency plan, Phase 7, second part (Section 10: "a name set in
+Settings, defaulting to the operating-system user name"). Branch
+`history-author`, on `change-history`.
+
+- **`spacemissionstudio.history`:** `author_file`
+  (`~/.spacemissionstudio/author.txt`, plain UTF-8, so the command line
+  reads it without Qt), `set_author` (one line, its spaces tidied; empty
+  forgets it), `set_author_name`, `current_author` (the name set, else
+  `default_author`).
+- **Settings > Change history:** an **Author** field (the user name as
+  its placeholder), kept when editing finishes, with a note naming what
+  saves will record, or the error.
+- **Every save records it:** `MainWindow._save_to` and `cli._save` pass
+  `current_author()`.
+- **Tests:** 2 more in `tests/test_history.py`. No existing test changed.
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4,353 passed (18 min 54 s).
+
 ## The change history: the file and the recording (2026-11-02)
 
 The transparency plan, Phase 7, first part. Branch `change-history`. The

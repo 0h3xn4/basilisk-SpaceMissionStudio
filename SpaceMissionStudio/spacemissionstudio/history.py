@@ -69,6 +69,37 @@ def default_author() -> str:
         return "unknown"
 
 
+def author_file() -> Path:
+    """Where Settings keeps the author's name: a plain UTF-8 file, so the
+    command line reads the same name as the app, without Qt."""
+    return Path.home() / ".spacemissionstudio" / "author.txt"
+
+
+def set_author(name: str) -> None:
+    """The name Settings gives; an empty one forgets it (the user name
+    again). Raises OSError."""
+    name = " ".join(name.split())  # one line, no stray spaces
+    path = author_file()
+    if not name:
+        path.unlink(missing_ok=True)
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(name + "\n", encoding="utf-8")
+
+
+def set_author_name() -> str:
+    """The name set in Settings, or "" when none is."""
+    try:
+        return " ".join(author_file().read_text(encoding="utf-8").split())
+    except (OSError, UnicodeDecodeError):
+        return ""
+
+
+def current_author() -> str:
+    """Who a save records: the name set in Settings, else the user name."""
+    return set_author_name() or default_author()
+
+
 def changes(before: dict | None, after: dict) -> list[tuple[str, object, object]]:
     """``(path, old, new)`` for each value that differs between two
     scenario dicts (``Scenario.to_dict()``), by its path in the file."""
@@ -91,7 +122,7 @@ def entries_for_save(path, scenario, author: str | None = None, reason: str = ""
     nothing changes. Read before the file is replaced."""
     path = Path(path)
     time_utc = (now or datetime.now(UTC)).astimezone(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    common = {"format": FORMAT, "time_utc": time_utc, "author": author or default_author(), "source": source}
+    common = {"format": FORMAT, "time_utc": time_utc, "author": author or current_author(), "source": source}
     after = scenario.to_dict()
     if not path.exists():
         return [dict(common, kind="created", path="", old=None, new=scenario.name, reason=reason)]

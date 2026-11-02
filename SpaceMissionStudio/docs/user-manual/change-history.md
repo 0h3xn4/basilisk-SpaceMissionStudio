@@ -12,7 +12,7 @@ One line per value that a save changes, with:
 | Field | What it holds |
 |---|---|
 | `time_utc` | when it was saved |
-| `author` | who saved it: your operating-system user name (a name of your own comes with Settings, next) |
+| `author` | who saved it: the name set in **Settings > Change history > Author**, else your operating-system user name |
 | `source` | `app`, or the command that saved it (`spacemissionstudio generate-constellation`, ...) |
 | `kind` | `created` (the first save), `edit`, `override` or `replaced` |
 | `path` | the value's place in the scenario file, as `spacecraft[sat-1].dry_mass_kg` |
@@ -42,6 +42,12 @@ only ever added to; nothing rewrites them.
 {"author": "ana", "format": 1, "kind": "override", "new": 98.0, "old": 97.8, "path": "spacecraft[sat-1].orbit.inclination_deg", "reason": "launcher's injection", "source": "app", "time_utc": "2026-11-02T12:06:00Z"}
 ```
 
-Code: `spacemissionstudio/history.py`. A History view in the app, and a
-name of your own as the author, come next (the transparency plan,
-Phase 7).
+## The author
+
+**Settings > Change history > Author** sets the name every save records,
+in the app and on the command line alike: it is kept in a plain file,
+`~/.spacemissionstudio/author.txt`. Leave it empty and saves record your
+operating-system user name ("unknown" when there is none).
+
+Code: `spacemissionstudio/history.py`. A History view in the app comes
+next (the transparency plan, Phase 7).

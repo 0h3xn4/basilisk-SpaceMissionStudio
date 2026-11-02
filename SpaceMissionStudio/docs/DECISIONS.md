@@ -5,6 +5,15 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The change history's author (2026-11-02)
+
+- **A plain file, not the app's settings store:** the command line saves
+  scenarios too and must record the same name; Qt's INI encoding (quoted
+  commas, escaped non-ASCII) would need Qt to read back. A one-line UTF-8
+  file reads the same everywhere.
+- **Kept when editing finishes:** no Save button for one field; the note
+  says what saves will record.
+
 ## The change history (2026-11-02)
 
 - **Found by comparing, not by listening:** a save compares the file on
