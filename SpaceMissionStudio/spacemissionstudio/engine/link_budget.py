@@ -21,8 +21,10 @@ Downlink RF link-margin ESTIMATE: a simplified free-space-path-loss Eb/N0
 budget, ported directly from ``../missionAnalysis``'s
 ``run_constellation_mission.py::_rf_link_margin_db()`` -- EIRP - FSPL
 (- an optional antenna-pointing-loss term, see
-:func:`link_budget_breakdown`) + G/T against the required Eb/N0 for the
-assumed data rate (still no atmosphere/rain/coding-gain terms). See
+:func:`link_budget_breakdown`; - the atmospheric gases' attenuation with
+``link.atmospheric_loss: itu_r_p676``, :mod:`.gaseous_attenuation`) + G/T
+against the required Eb/N0 for the assumed data rate (still no
+rain/cloud/coding-gain terms). See
 ``schema.scenario.RFLinkConfig``'s docstring for what this does and does
 NOT feed into.
 
@@ -49,13 +51,17 @@ already-proven approach is used instead, extended (not replaced) below.
 
 from __future__ import annotations
 
+import functools
 import math
 from dataclasses import dataclass
+from pathlib import Path
 
 import numpy as np
 
 from .. import constants
+from ..config import models
 from ..schema.scenario import GroundStationConfig, RFLinkConfig
+from . import gaseous_attenuation as gases
 from .results import ResultSet, ResultsError, TimeSeries
 from .trace import Quantity, Trace
 
@@ -153,10 +159,65 @@ class LinkBudgetBreakdown:
     cn0_db_hz: float
     ebno_db: float
     margin_db: float
+    atmospheric_loss_db: float = 0.0  # 0 with link.atmospheric_loss: none
+
+
+def atmospheric_model(scenario=None) -> str:
+    """The ``link.atmospheric_loss`` model in effect: "none" or "itu_r_p676"."""
+    return models.active(gases.CHOICE, scenario).name
+
+
+def surface(scenario=None) -> gases.Surface:
+    """Every station's surface conditions (``link.surface_*``)."""
+    return gases.Surface(rule("surface_pressure_hpa", scenario), rule("surface_temperature_k", scenario),
+                         rule("surface_water_vapour_density_g_m3", scenario))
+
+
+def atmospheric_zenith(rf_link: RFLinkConfig, scenario=None) -> gases.Zenith | None:
+    """The gases' zenith terms on ``rf_link``'s frequency (the attenuation
+    at elevation theta is their total over sin(theta)); None with
+    ``link.atmospheric_loss: none``. Raises GaseousAttenuationError when
+    Part 1 is not installed or the frequency is above 350 GHz."""
+    if atmospheric_model(scenario) == "none":
+        return None
+    return _zenith(float(rf_link.frequency_hz), surface(scenario), str(gases.part1_path()))
+
+
+@functools.lru_cache(maxsize=64)
+def _zenith(frequency_hz: float, conditions: gases.Surface, part1_path: str) -> gases.Zenith:
+    return gases.zenith(frequency_hz, conditions, gases.load_part1(Path(part1_path)))
+
+
+def atmospheric_loss_db(rf_link: RFLinkConfig, elevation_deg: float | None, scenario=None) -> float:
+    """[dB] What the atmosphere takes from the link at ``elevation_deg``:
+    0 with ``link.atmospheric_loss: none``, else ITU-R P.676-13 Annex 2's
+    slant-path attenuation (:mod:`.gaseous_attenuation`). That model needs
+    the elevation: None raises ValueError."""
+    zenith_terms = atmospheric_zenith(rf_link, scenario)
+    if zenith_terms is None:
+        return 0.0
+    if elevation_deg is None:
+        raise ValueError("link.atmospheric_loss: itu_r_p676 needs the station's elevation")
+    return gases.slant_path_db(zenith_terms, elevation_deg)
+
+
+def access_elevation_deg(access, latitudes: tuple[float, float] | None = None) -> float:
+    """[deg] The station's elevation of the spacecraft in an
+    ``AccessMsgPayload``: from the geodetic horizon, as the recorded
+    ``<station>.access_to_<spacecraft>.elevation`` series, when the
+    station's (geocentric, geodetic) latitudes [rad] are given; Basilisk's
+    own (the geocentric horizon) otherwise."""
+    if latitudes is None:
+        return math.degrees(float(access.elevation))
+    from .geodesy import geodetic_elevation_azimuth
+
+    elevation, _azimuth = geodetic_elevation_azimuth(np.asarray(access.r_BL_L, dtype=float), *latitudes)
+    return math.degrees(float(elevation[0]))
 
 
 def link_budget_breakdown(range_m: float, rf_link: RFLinkConfig, ground_station: GroundStationConfig,
-                           pointing_error_deg: float = 0.0, scenario=None) -> LinkBudgetBreakdown:
+                           pointing_error_deg: float = 0.0, scenario=None,
+                           elevation_deg: float | None = None) -> LinkBudgetBreakdown:
     """The full link budget, every stage broken out -- see
     :class:`LinkBudgetBreakdown`. :func:`link_margin_db` is a thin
     wrapper returning just ``.margin_db``.
@@ -175,11 +236,16 @@ def link_budget_breakdown(range_m: float, rf_link: RFLinkConfig, ground_station:
     -- the approximation itself is only meaningful within a few beamwidths
     of boresight, not an indication the link still "almost" closes far
     off-axis). ``scenario`` gives those parameters' values.
+
+    ``elevation_deg`` (the station's elevation of the spacecraft) is needed
+    with ``link.atmospheric_loss: itu_r_p676`` (:func:`atmospheric_loss_db`)
+    and not used otherwise.
     """
     eirp_dbw = 10.0 * np.log10(rf_link.tx_power_w) + peak_gain_dbi(rf_link) - rf_link.implementation_loss_db
     fspl_db = 20.0 * np.log10(4.0 * np.pi * range_m * rf_link.frequency_hz / _C_LIGHT_M_S)
     pointing_loss = pointing_loss_db(rf_link, pointing_error_deg, scenario)
-    received_dbw = eirp_dbw - fspl_db - pointing_loss + ground_station.rx_antenna_gain_dbi
+    atmospheric_loss = atmospheric_loss_db(rf_link, elevation_deg, scenario)
+    received_dbw = eirp_dbw - fspl_db - pointing_loss - atmospheric_loss + ground_station.rx_antenna_gain_dbi
     n0_dbw_hz = _K_BOLTZMANN_DBW_HZ + 10.0 * np.log10(ground_station.system_noise_temp_k)
     cn0_db_hz = received_dbw - n0_dbw_hz
     ebno_db = cn0_db_hz - 10.0 * np.log10(rf_link.data_rate_bps)
@@ -187,14 +253,15 @@ def link_budget_breakdown(range_m: float, rf_link: RFLinkConfig, ground_station:
     return LinkBudgetBreakdown(
         eirp_dbw=float(eirp_dbw), fspl_db=float(fspl_db), pointing_loss_db=float(pointing_loss),
         received_dbw=float(received_dbw), n0_dbw_hz=float(n0_dbw_hz), cn0_db_hz=float(cn0_db_hz),
-        ebno_db=float(ebno_db), margin_db=float(margin_db),
+        ebno_db=float(ebno_db), margin_db=float(margin_db), atmospheric_loss_db=float(atmospheric_loss),
     )
 
 
 def margin_at_one_metre_db(rf_link: RFLinkConfig, ground_station: GroundStationConfig) -> float:
-    """Every range- and pointing-independent term of the margin [dB]:
-    ``link_margin_db(r, ..., angle) == margin_at_one_metre_db(...)
-    - 20 log10(r) - pointing loss``. For callers evaluating the margin
+    """Every range-, pointing- and elevation-independent term of the
+    margin [dB]: ``link_margin_db(r, ..., angle, scenario, elevation) ==
+    margin_at_one_metre_db(...) - 20 log10(r) - pointing loss - atmospheric
+    loss``. For callers evaluating the margin
     every simulation step (``engine.data_handling``)."""
     return link_budget_breakdown(1.0, rf_link, ground_station, 0.0).margin_db
 
@@ -212,14 +279,15 @@ def pointing_loss_db(rf_link: RFLinkConfig, off_boresight_deg: float, scenario=N
 
 
 def link_margin_db(range_m: float, rf_link: RFLinkConfig, ground_station: GroundStationConfig,
-                    pointing_error_deg: float = 0.0, scenario=None) -> float:
+                    pointing_error_deg: float = 0.0, scenario=None, elevation_deg: float | None = None) -> float:
     """Downlink Eb/N0 margin [dB] at the given slant range: positive means
     the link closes with that much margin to spare; negative means it
     doesn't close at that range with these parameters. See
     :func:`link_budget_breakdown` for every intermediate quantity and
-    for what ``pointing_error_deg`` does.
+    for what ``pointing_error_deg`` and ``elevation_deg`` do.
     """
-    return link_budget_breakdown(range_m, rf_link, ground_station, pointing_error_deg, scenario).margin_db
+    return link_budget_breakdown(range_m, rf_link, ground_station, pointing_error_deg, scenario,
+                                 elevation_deg).margin_db
 
 
 _LINK_EQUATION = "the link equation (docs/models/link-data-and-power.md)"
@@ -242,14 +310,18 @@ def slant_range_at_elevation_m(semi_major_axis_m: float, ground_station: GroundS
 
 def link_budget_traces(range_m: float, rf_link: RFLinkConfig, ground_station: GroundStationConfig,
                        pointing_error_deg: float = 0.0, scenario=None, range_source: str = "option: the range asked for",
-                       pointing_source: str = "option: the pointing error asked for") -> dict:
+                       pointing_source: str = "option: the pointing error asked for",
+                       elevation_deg: float | None = None,
+                       elevation_source: str = "option: the elevation asked for") -> dict:
     """How each figure of :func:`link_budget_breakdown` was computed
     (``engine.trace``, transparency plan Phase 4a), keyed ``eirp``, ``fspl``,
-    ``pointing_loss``, ``received``, ``n0``, ``cn0``, ``ebno``, ``margin`` and
-    ``closes``. The values are the breakdown's own; ``range_source`` and
-    ``pointing_source`` say where the range and the pointing error came
-    from (a run's series, the minimum-elevation geometry, an option)."""
-    b = link_budget_breakdown(range_m, rf_link, ground_station, pointing_error_deg, scenario)
+    ``pointing_loss``, (with ``link.atmospheric_loss: itu_r_p676``)
+    ``atmospheric_loss``, ``received``, ``n0``, ``cn0``, ``ebno``, ``margin``
+    and ``closes``. The values are the breakdown's own; ``range_source``,
+    ``pointing_source`` and ``elevation_source`` say where the range, the
+    pointing error and the elevation came from (a run's series, the
+    minimum-elevation geometry, an option)."""
+    b = link_budget_breakdown(range_m, rf_link, ground_station, pointing_error_deg, scenario, elevation_deg)
     gs, rf = f"scenario: ground_stations[{ground_station.name}]", "scenario: rf_link"
     peak_source = (f"{rf}.antenna_gain_table, first row" if rf_link.antenna_pattern == "table"
                    else f"{rf}.tx_antenna_gain_dbi")
@@ -289,13 +361,20 @@ def link_budget_traces(range_m: float, rf_link: RFLinkConfig, ground_station: Gr
                                                  float(antenna_gain_dbi(rf_link, pointing_error_deg)), "[dBi]",
                                                  f"computed: the {rf_link.antenna_pattern} pattern"),))
     traces["pointing_loss"] = pointing
+    zenith_terms = atmospheric_zenith(rf_link, scenario)
+    losses = (Quantity("EIRP", "EIRP", b.eirp_dbw, "[dBW]", "trace: EIRP"),
+              Quantity("free-space path loss", "FSPL", b.fspl_db, "[dB]", "trace: Free-space path loss"),
+              Quantity("pointing loss", "L_point", b.pointing_loss_db, "[dB]", "trace: Pointing loss"))
+    received_equation = "C = EIRP - FSPL - L_point + G_rx"
+    if zenith_terms is not None:
+        traces["atmospheric_loss"] = _atmospheric_trace(b.atmospheric_loss_db, rf_link, zenith_terms, elevation_deg,
+                                                        elevation_source, scenario)
+        losses += (Quantity("atmospheric gases", "A_gas", b.atmospheric_loss_db, "[dB]", "trace: Atmospheric gases"),)
+        received_equation = "C = EIRP - FSPL - L_point - A_gas + G_rx"
     traces["received"] = Trace(
-        "Received power", "C", b.received_dbw, "[dBW]", "C = EIRP - FSPL - L_point + G_rx", _LINK_EQUATION,
-        inputs=(Quantity("EIRP", "EIRP", b.eirp_dbw, "[dBW]", "trace: EIRP"),
-                Quantity("free-space path loss", "FSPL", b.fspl_db, "[dB]", "trace: Free-space path loss"),
-                Quantity("pointing loss", "L_point", b.pointing_loss_db, "[dB]", "trace: Pointing loss"),
-                Quantity("station receive gain", "G_rx", ground_station.rx_antenna_gain_dbi, "[dBi]",
-                         f"{gs}.rx_antenna_gain_dbi")))
+        "Received power", "C", b.received_dbw, "[dBW]", received_equation, _LINK_EQUATION,
+        inputs=losses + (Quantity("station receive gain", "G_rx", ground_station.rx_antenna_gain_dbi, "[dBi]",
+                                  f"{gs}.rx_antenna_gain_dbi"),))
     traces["n0"] = Trace(
         "Noise density", "N0", b.n0_dbw_hz, "[dBW/Hz]", "N0 = 10 log10(k_B) + 10 log10(T_sys)", _LINK_EQUATION,
         inputs=(Quantity("Boltzmann's constant", "10 log10(k_B)", _K_BOLTZMANN_DBW_HZ, "[dBW/K/Hz]",
@@ -324,6 +403,46 @@ def link_budget_traces(range_m: float, rf_link: RFLinkConfig, ground_station: Gr
         inputs=(Quantity("link margin", "M", b.margin_db, "[dB]", "trace: Link margin"),
                 Quantity("required margin", "M_req", required, "[dB]", "parameter: link.required_margin_db")))
     return traces
+
+
+def _atmospheric_trace(value_db: float, rf_link: RFLinkConfig, zenith_terms: gases.Zenith, elevation_deg: float,
+                       elevation_source: str, scenario) -> Trace:
+    """How the gases' attenuation was computed (ITU-R P.676-13 Annex 2)."""
+    conditions = surface(scenario)
+    used_deg = gases.method_elevation_deg(elevation_deg)
+    notes = ()
+    if used_deg != elevation_deg:
+        notes += (f"The elevation is below {gases.MIN_ELEVATION_DEG:g} deg, Annex 2's lowest: the loss is the one at "
+                  f"{gases.MIN_ELEVATION_DEG:g} deg, less than the real one.",)
+    if zenith_terms.frequency_ghz != rf_link.frequency_hz / 1e9:
+        notes += (f"The frequency is below {gases.MIN_FREQUENCY_GHZ:g} GHz, Annex 2's lowest: the loss is the one "
+                  f"at {gases.MIN_FREQUENCY_GHZ:g} GHz, more than the real one.",)
+    parameter = "parameter: link."
+    return Trace(
+        "Atmospheric gases", "A_gas", value_db, "[dB]", "A_gas = (gamma_o h_o + gamma_w h_w) / sin(theta)",
+        "ITU-R P.676-13 Annex 2, eqs. (29) to (37) (docs/models/link-data-and-power.md)",
+        inputs=(Quantity("elevation", "theta", elevation_deg, "[deg]", elevation_source),
+                Quantity("frequency", "f", rf_link.frequency_hz, "[Hz]", "scenario: rf_link.frequency_hz"),
+                Quantity("surface pressure", "P_s", conditions.pressure_hpa, "[hPa]",
+                         parameter + "surface_pressure_hpa"),
+                Quantity("surface temperature", "T_s", conditions.temperature_k, "[K]",
+                         parameter + "surface_temperature_k"),
+                Quantity("surface water-vapour density", "rho_ws", conditions.water_vapour_density_g_m3, "[g/m^3]",
+                         parameter + "surface_water_vapour_density_g_m3"),
+                Quantity("oxygen equivalent-height coefficients", "a_o..d_o", gases.PART1_NAME, "[-]",
+                         f"data: ITU-R P.676-13 Part 1, SHA-256 {gases.PART1_SHA256}")),
+        intermediates=(
+            Quantity("oxygen specific attenuation", "gamma_o", zenith_terms.gamma_o_db_km, "[dB/km]",
+                     "computed: 0.1820 f N''_oxygen, Annex 1 Table 1 (44 lines) and the dry continuum"),
+            Quantity("oxygen equivalent height", "h_o", zenith_terms.h_o_km, "[km]",
+                     "computed: a_o + b_o T_s + c_o P_s + d_o rho_ws, Part 1 interpolated in frequency"),
+            Quantity("water-vapour specific attenuation", "gamma_w", zenith_terms.gamma_w_db_km, "[dB/km]",
+                     "computed: 0.1820 f N''_water vapour, Annex 1 Table 2 (35 lines)"),
+            Quantity("water-vapour equivalent height", "h_w", zenith_terms.h_w_km, "[km]",
+                     "computed: Annex 2 eq. (37), Table 4"),
+            Quantity("elevation used", "theta_used", used_deg, "[deg]",
+                     f"computed: max(theta, {gases.MIN_ELEVATION_DEG:g} deg)")),
+        notes=notes)
 
 
 def link_margin_series(result: ResultSet, ground_station_name: str, spacecraft_name: str,
@@ -364,6 +483,9 @@ def link_margin_series(result: ResultSet, ground_station_name: str, spacecraft_n
     single committed antenna to speak of and so keeps the plain, always
     -perfect-pointing ``has_access``-only gate for every station it's
     evaluated against).
+
+    With ``link.atmospheric_loss: itu_r_p676`` each sample's margin takes
+    the gases' attenuation at that sample's ``{prefix}.elevation``.
     """
     prefix = f"{ground_station_name}.access_to_{spacecraft_name}"
     range_series = result.series.get(f"{prefix}.slant_range")
@@ -402,13 +524,21 @@ def link_margin_series(result: ResultSet, ground_station_name: str, spacecraft_n
                 f"{range_series.name!r} has {len(range_series.time_s)} -- these must share one time grid"
             )
 
+    elevation_series = None
+    if atmospheric_model(scenario) != "none":
+        elevation_series = result.series.get(f"{prefix}.elevation")
+        if elevation_series is None or len(elevation_series.time_s) != len(range_series.time_s):
+            raise ResultsError(f"{prefix}: link.atmospheric_loss needs the elevation series {prefix}.elevation, "
+                               "on the slant range's time grid")
+
     has_access = access_series.data[:, 0] > 0.5
     if active_mode_series is not None:
         has_access = has_access & (active_mode_series.data[:, 0] > 0.5)
     for i in np.nonzero(has_access)[0]:
         pointing_error_deg = float(pointing_error_series.data[i, 0]) if pointing_error_series is not None else 0.0
+        elevation_deg = math.degrees(float(elevation_series.data[i, 0])) if elevation_series is not None else None
         margin_db[i] = link_margin_db(float(range_series.data[i, 0]), rf_link, ground_station, pointing_error_deg,
-                                      scenario)
+                                      scenario, elevation_deg)
 
     return TimeSeries(f"{prefix}.link_margin_db", range_series.time_s, ("link_margin_db",),
                        margin_db.reshape(-1, 1), units="dB")

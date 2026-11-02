@@ -198,6 +198,9 @@ register(
 
 # -- RF link (engine.link_budget) and data handling (engine.data_handling) -----------------------
 
+_STANDARD_ATMOSPHERE = ("ITU-R P.676-13 Annex 1, its \"Standard\" atmosphere: ITU-R P.835's mean annual global "
+                        "reference atmosphere at the surface (1013.25 hPa, 15 deg C, 7.5 g/m^3)")
+
 register(
     Parameter("link.required_margin_db", 0.0, "[dB]",
               "The link closes while its Eb/N0 margin (over the required Eb/N0) is at least this: the simulated "
@@ -215,6 +218,21 @@ register(
               "SpaceMissionStudio's own choice",
               "The approximation holds near boresight only; at 30 dB below the peak the link does not close.",
               minimum=0.0, maximum=200.0),
+    Parameter("link.atmospheric_loss", "none", "[-]",
+              "What the atmosphere takes from the link: nothing (default), or the oxygen and water-vapour "
+              "attenuation of the slant path by ITU-R P.676-13.", "SpaceMissionStudio's own choice",
+              "None is what a run did before the choice existed.",
+              kind="model", choices=models.names("link.atmospheric_loss")),
+    Parameter("link.surface_pressure_hpa", 1013.25, "[hPa]",
+              "The total (barometric) surface pressure at every station, for link.atmospheric_loss: itu_r_p676.",
+              _STANDARD_ATMOSPHERE, minimum=300.0, maximum=1100.0),
+    Parameter("link.surface_temperature_k", 288.15, "[K]",
+              "The surface temperature at every station, for link.atmospheric_loss: itu_r_p676.",
+              _STANDARD_ATMOSPHERE, minimum=200.0, maximum=330.0),
+    Parameter("link.surface_water_vapour_density_g_m3", 7.5, "[g/m^3]",
+              "The surface water-vapour density at every station, for link.atmospheric_loss: itu_r_p676.",
+              _STANDARD_ATMOSPHERE, "Humid sites have more: a station's local climate is better than the mean.",
+              minimum=0.0, maximum=60.0),
     Parameter("data_handling.packet_size_bits", 1.0e6, "[bit]",
               "The size of the packets the transmitter takes from the memory.",
               "Basilisk's examples/scenarioGroundDownlink.py", minimum=1.0, maximum=1.0e12),

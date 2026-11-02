@@ -87,7 +87,7 @@ from .. import constants, dependencies, output_provenance
 from ..config import models as model_registry, registry
 from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario, preset_records, value_mark_records
 from . import (atmosphere_tables, data_handling, earth_orientation, effective_config, environment_models, formation_control, frames, fsw,
-               geodesy, geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
+               gaseous_attenuation, geodesy, geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
                optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, shadows,
                small_bodies, solar_arrays, solar_degradation, time_system, tle, vizard)
 from .findings import Finding
@@ -990,6 +990,7 @@ class SimulationService:
             # elevation/azimuth; the recorded series are geodetic.
             self._ground_station_latitudes[gs_config.name] = (geodesy.geocentric_latitude(r_LP_P),
                                                               math.radians(gs_config.latitude_deg))
+        self._check_atmospheric_loss(scenario)
 
         needs_magnetometer = any(
             sensor.kind == "magnetometer" for sc in scenario.spacecraft for sensor in sc.sensors
@@ -1939,6 +1940,8 @@ class SimulationService:
                 sun_guid_msg=handle.comms_sun_guid_msg, comms_guid_msg=handle.comms_station_guid_msg,
                 access_out_msg=access_out_msg, comms_power_sink=handle.comms_power_sink,
                 rf_link=sc_config.rf_link, ground_station_config=target_gs_config, scenario=scenario,
+                station_latitudes=self._ground_station_latitudes.get(target_gs_config.name)
+                if target_gs_config is not None else None,
             )
             handle.comms_pointing_arbitrator = arbitrator
 
@@ -1962,7 +1965,7 @@ class SimulationService:
                     list(gs_configs_by_name.values()),
                     {gs: self._access_out_msgs[(gs, sc_config.name)] for gs in gs_configs_by_name},
                     {gs: loc.currentGroundStateOutMsg for gs, loc in self._ground_locations.items()},
-                    scenario.sim_settings.record_interval_s, scenario,
+                    scenario.sim_settings.record_interval_s, scenario, self._ground_station_latitudes,
                 )
                 handle.link_gate = gate
             if sc_config.data_handling is not None:
@@ -2805,6 +2808,44 @@ class SimulationService:
             result.provenance = dataclasses.replace(result.provenance,
                                                     series_frames=frames.series_frames(result.series))
         return result
+
+    def _check_atmospheric_loss(self, scenario) -> None:
+        """With ``link.atmospheric_loss: itu_r_p676`` and a link to budget:
+        ITU-R P.676-13 Part 1 is installed and is the ITU's, and every link
+        is within the method's 350 GHz, before the run starts; the file is
+        recorded, and a station or link outside the method's range warns."""
+        choice = gaseous_attenuation.CHOICE
+        chosen = link_budget.atmospheric_model(scenario)
+        links = [sc for sc in scenario.spacecraft if sc.rf_link is not None]
+        if chosen == registry.default(choice) or not links or not scenario.ground_stations:
+            return
+        try:
+            for sc_config in links:
+                link_budget.atmospheric_zenith(sc_config.rf_link, scenario)
+        except gaseous_attenuation.GaseousAttenuationError as exc:
+            raise SimulationServiceError(f"{sc_config.name}: {exc}") from exc
+        found = gaseous_attenuation.installed()
+        self._data_files["itu_p676_part1"] = dependencies.installed_file_record(found.path, found.sha256,
+                                                                                source=found.source)
+        self._run_models[choice] = model_registry.record(model_registry.model(choice, chosen))
+        low_deg = gaseous_attenuation.MIN_ELEVATION_DEG  # [deg]
+        low_stations = [gs.name for gs in scenario.ground_stations if gs.min_elevation_deg < low_deg]
+        if low_stations:
+            self._model_warnings.append(Finding(
+                f"{', '.join(low_stations)}: below {low_deg:g} deg elevation the gases' attenuation is the one at "
+                f"{low_deg:g} deg, ITU-R P.676-13 Annex 2's lowest: less than the real one ({choice})",
+                "link.atmospheric_low_elevation",
+                actual=", ".join(f"{gs.min_elevation_deg:g} deg" for gs in scenario.ground_stations
+                                 if gs.name in low_stations), limit=f"{low_deg:g} deg"))
+        low_ghz = gaseous_attenuation.MIN_FREQUENCY_GHZ  # [GHz]
+        low_links = [sc for sc in links if sc.rf_link.frequency_hz / 1e9 < low_ghz]
+        if low_links:
+            self._model_warnings.append(Finding(
+                f"{', '.join(sc.name for sc in low_links)}: below {low_ghz:g} GHz the gases' attenuation is the one "
+                f"at {low_ghz:g} GHz, ITU-R P.676-13 Annex 2's lowest: more than the real one ({choice})",
+                "link.atmospheric_low_frequency",
+                actual=", ".join(f"{sc.rf_link.frequency_hz / 1e9:g} GHz" for sc in low_links),
+                limit=f"{low_ghz:g} GHz"))
 
     def log_last_known_state(self) -> None:
         """Best-effort diagnostic, called right before

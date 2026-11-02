@@ -75,7 +75,7 @@ from Basilisk.utilities import macros
 
 from ..config import registry
 from ..schema.scenario import DataHandlingConfig, GroundStationConfig, RFLinkConfig
-from . import link_budget
+from . import gaseous_attenuation, link_budget
 from .orbit_maintenance import LogThinner
 
 BITS_PER_GBIT = 1.0e9  # [bit/Gbit]
@@ -103,7 +103,8 @@ class _DownlinkGate(sysModel.SysModel):
     """One spacecraft's link to every ground station; see the module docstring."""
 
     def __init__(self, rf_link: RFLinkConfig, stations: list[GroundStationConfig],
-                 boresight_b: np.ndarray | None, record_interval_s: float, scenario=None):
+                 boresight_b: np.ndarray | None, record_interval_s: float, scenario=None,
+                 station_latitudes: list | None = None):
         super().__init__()
         self.rfLink = rf_link
         self.scenario = scenario  # its project configuration's link parameters, if any
@@ -116,6 +117,10 @@ class _DownlinkGate(sysModel.SysModel):
         self.marginAtOneMetreDb = [link_budget.margin_at_one_metre_db(rf_link, station)
                                    for station in stations]  # [dB]
         self.requiredMarginDb = link_budget.rule("required_margin_db", scenario)  # [dB]
+        # The gases' zenith terms (link.atmospheric_loss), computed once: the loss at each step is their
+        # total over sin(elevation). None: no such term.
+        self.atmosphericZenith = link_budget.atmospheric_zenith(rf_link, scenario)
+        self.stationLatitudes = station_latitudes or [None] * len(stations)  # [rad] (geocentric, geodetic)
         self.logThinner = LogThinner(record_interval_s)
         self.tLog: list = []
         self.marginDbLog: list[list] = [[] for _ in stations]  # [dB] NaN outside access
@@ -150,6 +155,10 @@ class _DownlinkGate(sysModel.SysModel):
                 angle_deg = self.off_boresight_deg(sc_state, self.groundStateInMsgs[index]())
                 margin_db = (self.marginAtOneMetreDb[index] - 20.0 * math.log10(float(access.slantRange))
                              - link_budget.pointing_loss_db(self.rfLink, angle_deg, self.scenario))  # [dB]
+                if self.atmosphericZenith is not None:
+                    margin_db -= gaseous_attenuation.slant_path_db(
+                        self.atmosphericZenith,
+                        link_budget.access_elevation_deg(access, self.stationLatitudes[index]))  # [dB]
                 closed = link_budget.link_closes(margin_db, required_margin_db=self.requiredMarginDb)
             out = messaging.AccessMsgPayload()
             out.hasAccess = 1 if closed else 0
@@ -237,10 +246,15 @@ class DataHandlingHandle:
 
 def build_link_gate(scSim, task_name: str, tag: str, sc_config, sc_object, stations: list[GroundStationConfig],
                     access_out_msgs: dict[str, object], ground_state_msgs: dict[str, object],
-                    record_interval_s: float, scenario=None) -> _DownlinkGate:
+                    record_interval_s: float, scenario=None,
+                    station_latitudes: dict[str, tuple] | None = None) -> _DownlinkGate:
     """The live link gate of one spacecraft (see ``engine.link_budget.needs_link_gate``);
-    ``scenario`` gives the link parameters (config.parameters)."""
-    gate = _DownlinkGate(sc_config.rf_link, stations, antenna_boresight_b(sc_config), record_interval_s, scenario)
+    ``scenario`` gives the link parameters (config.parameters), ``station_latitudes``
+    each station's (geocentric, geodetic) latitude [rad], for the elevation
+    the gases' attenuation takes (``link_budget.access_elevation_deg``)."""
+    latitudes = [station_latitudes.get(station.name) for station in stations] if station_latitudes else None
+    gate = _DownlinkGate(sc_config.rf_link, stations, antenna_boresight_b(sc_config), record_interval_s, scenario,
+                         latitudes)
     gate.ModelTag = f"{tag}DownlinkGate"
     gate.scStateInMsg.subscribeTo(sc_object.scStateOutMsg)
     for index, station in enumerate(stations):

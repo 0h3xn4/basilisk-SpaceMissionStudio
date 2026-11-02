@@ -236,6 +236,47 @@ register(
           "run"),
 )
 
+# -- Atmospheric loss on the link (engine.link_budget, engine.gaseous_attenuation) ---------------
+
+_ATMOSPHERIC_LOSS = "link.atmospheric_loss"
+_LINK_INPUTS = ("The slant range [m] and the station's elevation [deg] at each sample of an access",
+                "The link's frequency [Hz]")
+_LINK_OUTPUTS = ("<station>.access_to_<spacecraft>.link_margin_db [dB], and so the live link gate's downlink",
+                 "The link budget's traces (Calculation panel, spacemissionstudio link-budget)",
+                 "Vizard's link-status panel")
+
+register(
+    Model(_ATMOSPHERIC_LOSS, "none", "None",
+          "No atmospheric term: C = EIRP - FSPL - L_point + G_rx.",
+          _LINK_INPUTS, _LINK_OUTPUTS,
+          ("The atmosphere takes nothing from the signal. A project's allowance for it, if any, is in the "
+           "transmitter's implementation_loss_db.",),
+          ("SpaceMissionStudio's link equation (docs/models/link-data-and-power.md)",),
+          ("tests/test_gaseous_attenuation.py::test_no_atmospheric_loss_by_default",),
+          "run"),
+    Model(_ATMOSPHERIC_LOSS, "itu_r_p676", "ITU-R P.676-13, gaseous attenuation",
+          "The oxygen and water-vapour attenuation of the slant path, by ITU-R P.676-13 Annex 2's instantaneous "
+          "methods (Sec. 1.1, Sec. 2.1): A = (gamma_o h_o + gamma_w h_w) / sin(elevation), gamma from Annex 1's "
+          "line-by-line sum, h_o from the Recommendation's data file Part 1, h_w from Annex 2 eq. (37); "
+          "C = EIRP - FSPL - L_point - A + G_rx.",
+          _LINK_INPUTS + ("The station's surface pressure [hPa], temperature [K] and water-vapour density [g/m^3] "
+                          "(link.surface_*)", "ITU-R P.676-13 Part 1, installed with the tool"),
+          _LINK_OUTPUTS,
+          ("The same surface conditions at every station and every time: no weather, no season.",
+           "Gases only: no rain, cloud, fog or scintillation (ITU-R P.618, P.840).",
+           "The elevation is the geometric one, not the apparent one refraction gives (Annex 2 asks for the "
+           "apparent one; they differ by less than 0.2 deg above 5 deg).",
+           "Below 5 deg elevation, the method's lowest, the loss is the one at 5 deg: less than the real one.",
+           "Below 1 GHz, the method's lowest, the loss is the one at 1 GHz: more than the real one. Above "
+           "350 GHz there is no method and the run is refused."),
+          ("Recommendation ITU-R P.676-13 (08/2022), Attenuation by atmospheric gases and related effects, "
+           "Annex 1 and Annex 2, and its data file Part 1",),
+          ("tests/test_gaseous_attenuation.py::test_the_specific_attenuation_matches_the_itu_validation_example",
+           "tests/test_gaseous_attenuation.py::test_the_slant_path_matches_the_itu_validation_example",
+           "tests/test_gaseous_attenuation.py::test_the_loss_is_in_the_link_margin"),
+          "run"),
+)
+
 # -- Solar-array degradation (engine.solar_degradation) ---------------------------------------------
 
 _DEGRADATION = "power.degradation"

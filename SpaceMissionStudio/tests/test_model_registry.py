@@ -36,6 +36,7 @@ _MODELS_DOCS = _TESTS.parent / "docs" / "models"
 _PAGES = {"monte_carlo.spread_statistic": "monte-carlo-statistics.md",
           "propellant_budget.margin_policy": "propellant-budget.md",
           "dynamics.shadowing_bodies": "dynamics-run-control.md",
+          "link.atmospheric_loss": "link-data-and-power.md",
           "power.degradation": "link-data-and-power.md"}
 
 _R_M = 6778.0e3  # [m] orbit radius

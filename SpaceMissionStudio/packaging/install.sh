@@ -126,6 +126,13 @@ Earth orientation files (NAIF ITRF93) fetched."
             kernel_status="$kernel_status
 Earth orientation files not fetched -- runs use IAU_EARTH until 'spacemissionstudio earth-orientation --fetch'."
         fi
+        if python3 -m spacemissionstudio.cli gaseous-attenuation --fetch >/dev/null 2>&1; then
+            kernel_status="$kernel_status
+ITU-R P.676-13 Part 1 fetched (link.atmospheric_loss)."
+        else
+            kernel_status="$kernel_status
+ITU-R P.676-13 Part 1 not fetched -- link.atmospheric_loss: itu_r_p676 needs 'spacemissionstudio gaseous-attenuation --fetch'."
+        fi
     else
         kernel_status="Could not pre-fetch support data (no internet access right now?) -- run
 'spacemissionstudio kernels-status' once WITH internet access before your first real run."

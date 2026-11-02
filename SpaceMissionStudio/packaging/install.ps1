@@ -122,6 +122,13 @@ kernels.require_kernels()
 " 2>$null
     if ($LASTEXITCODE -eq 0) {
         $KernelStatus = "Support data pre-fetched -- SpaceMissionStudio will not need network access again."
+        & $VenvPython -m spacemissionstudio.cli gaseous-attenuation --fetch *> $null
+        if ($LASTEXITCODE -eq 0) {
+            $KernelStatus += " ITU-R P.676-13 Part 1 fetched (link.atmospheric_loss)."
+        } else {
+            $KernelStatus += " ITU-R P.676-13 Part 1 not fetched -- link.atmospheric_loss: itu_r_p676 needs " +
+                "'spacemissionstudio gaseous-attenuation --fetch'."
+        }
     } else {
         $KernelStatus = "Could not pre-fetch support data (no internet access right now?) -- run " +
             "'spacemissionstudio kernels-status' once WITH internet access before your first real run."

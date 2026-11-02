@@ -346,6 +346,7 @@ _MODEL_CASES = {
     "monte_carlo.spread_statistic": "test_model_registry.py::test_each_spread_statistic_is_the_one_it_declares",
     "propellant_budget.margin_policy": "test_model_registry.py::test_the_summary_tables_budget_says_so_and_records_it",
     "dynamics.shadowing_bodies": "test_shadows.py::test_the_moon_shadows_a_spacecraft_behind_it_with_tracked_bodies",
+    "link.atmospheric_loss": "test_gaseous_attenuation.py::test_a_run_takes_the_loss_at_each_steps_elevation",
     "power.degradation": "test_solar_degradation.py::test_a_run_degrades_the_panels_by_the_model",
 }
 
@@ -384,11 +385,26 @@ def _pass_note(configuration):
     return next(s for s in explain(scenario).sections if s.title == "Data handling").notes
 
 
+def _gases_zenith_db(configuration):
+    """The gases' zenith attenuation at 38.5 GHz for the surface conditions
+    in effect (link.surface_*, which link.atmospheric_loss: itu_r_p676
+    uses), with the ITU workbook's rows of Part 1."""
+    from test_gaseous_attenuation import _two_row_part1
+
+    from spacemissionstudio.engine import gaseous_attenuation, link_budget
+
+    surface = link_budget.surface(SimpleNamespace(configuration=configuration))
+    return gaseous_attenuation.zenith(38.5e9, surface, _two_row_part1()).total_db
+
+
 # name: (value to set, what to measure: called with the scenario's configuration, None for the defaults)
 _LINK_CASES = {
     "link.required_margin_db": (12.0, _downlink),
     "link.pointing_loss_coeff_db": (6.0, lambda c: _pointing_loss(c, 4.0)),  # [deg] within the clamp
     "link.max_pointing_loss_db": (50.0, lambda c: _pointing_loss(c, 30.0)),  # [deg] clamped: 108 dB unclamped
+    "link.surface_pressure_hpa": (900.0, _gases_zenith_db),
+    "link.surface_temperature_k": (300.0, _gases_zenith_db),
+    "link.surface_water_vapour_density_g_m3": (15.0, _gases_zenith_db),
     "data_handling.packet_size_bits": (1.0e8, _downlink),
     "data_handling.explainer_pass_minutes": (5.0, _pass_note),
 }

@@ -14,11 +14,12 @@ station is in view. The scenario gives every input: the spacecraft's
 
     EIRP    = 10 log10(P_tx) + G_tx - L_impl                       [dBW]
     FSPL    = 20 log10(4 pi R f / c)                                [dB]
-    C/N0    = EIRP - FSPL - L_point + G_rx - (k + 10 log10(T_sys))  [dB-Hz]
+    C/N0    = EIRP - FSPL - L_point - A_gas + G_rx - (k + 10 log10(T_sys))  [dB-Hz]
     Eb/N0   = C/N0 - 10 log10(data rate)                            [dB]
     margin  = Eb/N0 - required Eb/N0                                [dB]
 
 - **R** is the slant range from Basilisk's `groundLocation`.
+- **A_gas** is the atmospheric gases' attenuation: 0 by default (below).
 - **k** is Boltzmann's constant, -228.6 dBW/K/Hz.
 - **c** is 299 792 458 m/s.
 
@@ -56,6 +57,81 @@ Without a boresight, pointing is taken as perfect.
 
 The half-power beamwidth reported for a gain table is found on a 0.05°
 grid.
+
+## The atmospheric gases (`atmospheric_loss`)
+
+`link.atmospheric_loss` chooses what the atmosphere takes from the signal
+(code: `engine/gaseous_attenuation.py`):
+
+- **`none`** (None, the default): nothing, A_gas = 0. This is what the link
+  budget did before the choice existed, so no result changes until a
+  project chooses the other. A project's allowance for the atmosphere, if
+  any, is then in the transmitter's `implementation_loss_db`.
+- **`itu_r_p676`** (ITU-R P.676-13, gaseous attenuation): the oxygen
+  and water-vapour attenuation of the slant
+  path, by Recommendation ITU-R P.676-13 (08/2022), Annex 2, its
+  instantaneous methods (Sec. 1.1 for oxygen, Sec. 2.1, "method 1", for
+  water vapour):
+
+      e_s = rho T_s / 216.7,  p_s = P_s - e_s                         [hPa]
+      gamma_o = 0.1820 f N''_oxygen(f, p_s, e_s, T_s)                 [dB/km]  (eq. 30)
+      gamma_w = 0.1820 f N''_water vapour(f, p_s, e_s, T_s)           [dB/km]  (eq. 36)
+      h_o = a_o(f) + b_o(f) T_s + c_o(f) P_s + d_o(f) rho             [km]     (eq. 31)
+      h_w = 5.6585e-5 f + 1.8348 + sum_i a_i / ((f - f_i)^2 + b_i)   [km]     (eq. 37)
+      A_gas = (gamma_o h_o + gamma_w h_w) / sin(theta)                [dB]     (eqs. 29, 35)
+
+  - **f** is the link's frequency in GHz; **theta** the station's
+    elevation of the spacecraft, at each sample of the run.
+  - **N''** is Annex 1's line-by-line sum (eqs. 2a, 2b and 3 to 9): the 44
+    oxygen lines of its Table 1, with the dry continuum, and the 35
+    water-vapour lines of its Table 2. The line data are in the code as
+    published.
+  - **a_o to d_o** are interpolated linearly in frequency in the
+    Recommendation's data file **Part 1**. Part 1 is the ITU's, not part
+    of SpaceMissionStudio: the installers download it from the ITU
+    (https://www.itu.int/oth/R1101000002/en) and check it against its
+    size (44 100 bytes) and SHA-256, as they do Basilisk's support data.
+    A run only reads it, and is refused before it starts when it is not
+    installed: run `spacemissionstudio gaseous-attenuation --fetch`, or
+    `--import` the file, or use Reference data > Download.
+  - **f_i, a_i, b_i** are Annex 2's Table 4.
+  - **P_s, T_s, rho** are the station's surface pressure, temperature and
+    water-vapour density: `surface_pressure_hpa`, `surface_temperature_k`
+    and `surface_water_vapour_density_g_m3` (below). Their defaults are
+    Annex 1's "Standard" atmosphere: ITU-R P.835's mean annual global
+    reference atmosphere at the surface, 1013.25 hPa, 15 °C and 7.5 g/m^3.
+    A station's local climate is better: a humid site has more water
+    vapour, and so more loss.
+
+  How much it is, in the Standard atmosphere (computed with this code and
+  the ITU's Part 1):
+
+  | Frequency | At the zenith | At 10° | At 5° |
+  |---|---|---|---|
+  | 2.2 GHz (S band) | 0.035 dB | 0.20 dB | 0.40 dB |
+  | 8.4 GHz (X band) | 0.046 dB | 0.27 dB | 0.53 dB |
+  | 22.2 GHz (the water-vapour line) | 0.57 dB | 3.3 dB | 6.5 dB |
+  | 26 GHz (K band) | 0.30 dB | 1.7 dB | 3.4 dB |
+  | 38.5 GHz (Ka band) | 0.36 dB | 2.1 dB | 4.1 dB |
+
+  Near the 60 GHz oxygen band the atmosphere is opaque (153 dB at the
+  zenith). `spacemissionstudio link-budget --explain` gives the figure for
+  your own link.
+
+  **Its range:** Annex 2 is for 1 to 350 GHz and elevations of 5° and
+  above.
+  - Below 5°, the loss is the one at 5°: less than the real one. A run
+    whose station has a lower `min_elevation_deg` warns
+    (`link.atmospheric_low_elevation`).
+  - Below 1 GHz, the loss is the one at 1 GHz: more than the real one, by
+    at most a few hundredths of a dB at the zenith. The run warns
+    (`link.atmospheric_low_frequency`).
+  - Above 350 GHz there is no method: the run is refused.
+
+  **Checked against** the ITU's own validation examples for P.676-13
+  (ITU-R Study Group 3, CG-3M3J-13-ValEx, Rev 8.3.0):
+  `tests/test_gaseous_attenuation.py` recomputes its specific attenuation
+  at 1 to 350 GHz and its slant paths, to 1e-12.
 
 ## Data handling
 
@@ -172,6 +248,10 @@ and a project configuration file changes them
 | `link.required_margin_db` | 0 | [dB] | The margin at which the link closes: the simulated downlink, Vizard, the dashboard, the overview | SpaceMissionStudio's own choice |
 | `link.pointing_loss_coeff_db` | 12 | [dB] | The "fixed" pattern's pointing loss per (angle / beamwidth)^2 | Parabolic main-lobe approximation (Wertz & Larson, *Space Mission Analysis and Design*, ch. 13) |
 | `link.max_pointing_loss_db` | 30 | [dB] | The most pointing loss the "fixed" pattern gives | SpaceMissionStudio's own choice |
+| `link.atmospheric_loss` | `none` | [-] | The atmospheric gases' attenuation: `none` or `itu_r_p676` (above) | SpaceMissionStudio's own choice |
+| `link.surface_pressure_hpa` | 1013.25 | [hPa] | P_s at every station, for `itu_r_p676` | ITU-R P.676-13 Annex 1, its "Standard" atmosphere (ITU-R P.835) |
+| `link.surface_temperature_k` | 288.15 | [K] | T_s at every station, for `itu_r_p676` | The same |
+| `link.surface_water_vapour_density_g_m3` | 7.5 | [g/m^3] | rho at every station, for `itu_r_p676` | The same |
 | `data_handling.packet_size_bits` | 1 000 000 | [bit] | The transmitter's packet size | Basilisk's `examples/scenarioGroundDownlink.py` |
 | `power.degradation` | `none` | [-] | The panels' degradation: `none`, `yearly_rate` or `radiation_dose` (above) | SpaceMissionStudio's own choice |
 | `power.years_in_orbit_at_start` | 0 | [year] | The time in orbit when the run starts | SpaceMissionStudio's own choice |
@@ -199,9 +279,18 @@ saved in its file. Their defaults are listed in the
 
 ## Assumptions
 
-- **Link:** free-space path loss and one lumped implementation loss only.
-  No atmosphere, rain, scintillation, polarisation or coding gain. The
-  noise temperature does not change with elevation.
+- **Link:** free-space path loss and one lumped implementation loss only,
+  by default. With `atmospheric_loss: itu_r_p676`, the gases' attenuation
+  too, with these assumptions:
+  - the same surface conditions at every station and at every time: no
+    weather and no season;
+  - the elevation is the geometric one, from the geodetic horizon, not the
+    apparent one refraction gives, which Annex 2 asks for (they differ by
+    less than 0.2° above 5°).
+
+  No rain, cloud, fog, scintillation (ITU-R P.618, P.840), polarisation
+  or coding gain in either case. The noise temperature does not change
+  with elevation.
 - **Data:** instruments make data at a constant rate and are always on.
   There is no downlink schedule: the transmitter sends whenever the link
   closes, to any station in view.
@@ -224,6 +313,14 @@ saved in its file. Their defaults are listed in the
 `tests/test_comms_pointing.py`: the Vizard link status follows the margin
 and the required margin.
 
+`tests/test_gaseous_attenuation.py`:
+- the specific attenuation and the slant path equal the ITU's validation
+  examples;
+- with `itu_r_p676`, the margin of a run (the live gate and the post-run
+  series) is the default's less A_gas at each sample's elevation;
+- only the ITU's Part 1 is installed and read; a run without it is
+  refused before it starts.
+
 `tests/test_solar_degradation.py`:
 - each model is its equation, with the project's values;
 - the dose fit is base 10, as the paper's figures show;
@@ -237,6 +334,9 @@ and the required margin.
 its trace (`engine.trace`), from the values the run and the dashboard
 compute with:
 - EIRP, the path loss, the pointing loss (for the pattern in use);
+- with `atmospheric_loss: itu_r_p676`, the gases' attenuation: the
+  elevation, frequency and surface conditions, Part 1 with its SHA-256,
+  and gamma_o, h_o, gamma_w and h_w on the way;
 - the received power, the noise density, C/N0, Eb/N0 and the margin;
 - whether the link closes against `required_margin_db`.
 
@@ -252,12 +352,13 @@ slant range:
       rho = sqrt(r^2 - (R cos(eps))^2) - R sin(eps),  R = R_E + h_station
 
 - or the range given with `--range-km`, with `--pointing-deg` for the
-  antenna's angle off the station.
+  antenna's angle off the station. With `atmospheric_loss: itu_r_p676`,
+  `--range-km` needs `--elevation-deg` too.
 
 `--explain` prints the traces, and `--out` writes them. No Basilisk is
 needed. In the app, the Dashboard's **Show calculation** opens the same
 traces in the Calculation panel, the margin first, at the time cursor:
-the range and pointing error are then the run's (`last run:`). `tests/test_trace.py` recomputes every figure from its trace.
+the range, pointing error and elevation are then the run's (`last run:`). `tests/test_trace.py` recomputes every figure from its trace.
 
 **The data totals** (`engine.data_budget`, `DataBudget.traces`): data
 generated, downlinked and lost, each the ledger's cumulative count at its
@@ -283,8 +384,14 @@ A run records, for each station and spacecraft:
   `data_lost`, `downlink_rate`);
 - the battery's charge and net power.
 
-The mission dashboard shows the link budget's breakdown at the time cursor.
-`link-budget --out` writes one budget, with its traces, as JSON.
+The mission dashboard shows the link budget's breakdown at the time
+cursor, with the atmospheric gases' row when `itu_r_p676` is chosen.
+`link-budget --out` writes one budget, with its traces, as JSON; with
+`itu_r_p676`, also the elevation, the model and Part 1's record.
+
+With `itu_r_p676`, a run's `provenance.json` records the model
+(`models`) and Part 1 (`data_files.itu_p676_part1`: its path, size,
+SHA-256 and the SHA-256 it was installed with).
 
 A run's `provenance.json` holds `configuration`, with each link and
 data-handling parameter the project changed and the default it replaces.

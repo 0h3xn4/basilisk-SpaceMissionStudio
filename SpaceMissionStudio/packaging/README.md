@@ -38,16 +38,22 @@ the offline policy, so:
 
 * **The `.deb` and the Windows setup program** carry the data: every file
   of ALL_SUPPORT_DATA_FILES (SPICE kernels, gravity fields, the magnetic
-  field model, albedo maps; 117 MB) and the Earth orientation files
-  (36 MB) are fetched when the installer is BUILT, by `bundle_python.py`,
-  and installed with it. The installing computer downloads nothing.
+  field model, albedo maps; 117 MB), the Earth orientation files
+  (36 MB) and ITU-R P.676-13's data file Part 1 (44 kB, from
+  `www.itu.int`, checked against its pinned SHA-256; the gases'
+  attenuation of the link, `link.atmospheric_loss`) are fetched when the
+  installer is BUILT, by `bundle_python.py`, and installed with it. The
+  installing computer downloads nothing.
 * **`install.sh`** / **`install.ps1`** call `engine.kernels.require_kernels()`
   once, right after SpaceMissionStudio is installed into the venv, and
   only when a Basilisk wheel was also given
   (`--basilisk-wheel`/`-BasiliskWheel`); non-fatal (a missing Basilisk
   build already means Run/Monte Carlo won't work) -- they print a status
   line either way, so the user knows whether a later `spacemissionstudio
-  kernels-status` run (WITH internet access) is still needed.
+  kernels-status` run (WITH internet access) is still needed. They then
+  fetch the Earth orientation files and ITU-R P.676-13 Part 1
+  (`spacemissionstudio gaseous-attenuation --fetch`), each non-fatal and
+  reported the same way.
 
 Every later lookup then resolves from the installed files (or, for the
 install scripts, Basilisk's own local cache), with no network touched at
@@ -376,11 +382,14 @@ that platform's binary wheels):
    `site-packages/supportData`, the folder Basilisk's
    `dataFetcher.find_local_support_data()` reads before its download
    cache; then the Earth orientation files into
-   `earth_orientation.SYSTEM_DIR` (`share/spacemissionstudio/earth_orientation`).
-   Both made world-readable (pooch writes 0600).
+   `earth_orientation.SYSTEM_DIR` (`share/spacemissionstudio/earth_orientation`),
+   and ITU-R P.676-13 Part 1 into `gaseous_attenuation.SYSTEM_DIR`
+   (`share/spacemissionstudio/itu_p676`; found beside its manifest, so it
+   needs no relocating). All made world-readable (pooch writes 0600).
 4. **An offline check:** with sockets refused and an empty download
-   cache, every support file must resolve to the bundle and the Earth
-   orientation files must be found; otherwise the build stops.
+   cache, every support file must resolve to the bundle, the Earth
+   orientation files must be found and Part 1 must be the ITU's; otherwise
+   the build stops.
 5. **With `--prefix`** (the `.deb`): the bytecode is recompiled as if at
    that folder (tracebacks name the installed files) and the Earth
    orientation manifest's paths are pointed there. The Windows setup

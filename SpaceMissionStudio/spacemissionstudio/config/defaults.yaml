@@ -222,6 +222,26 @@ parameters:
   # Limits: 0 to 200 [dB]
   # link.max_pointing_loss_db: 30.0  # [dB]
 
+  # What the atmosphere takes from the link: nothing (default), or the oxygen and water-vapour attenuation of the slant path by ITU-R P.676-13.
+  # Source: SpaceMissionStudio's own choice. None is what a run did before the choice existed.
+  # One of: none, itu_r_p676
+  # link.atmospheric_loss: none  # [-]
+
+  # The total (barometric) surface pressure at every station, for link.atmospheric_loss: itu_r_p676.
+  # Source: ITU-R P.676-13 Annex 1, its "Standard" atmosphere: ITU-R P.835's mean annual global reference atmosphere at the surface (1013.25 hPa, 15 deg C, 7.5 g/m^3).
+  # Limits: 300 to 1100 [hPa]
+  # link.surface_pressure_hpa: 1013.25  # [hPa]
+
+  # The surface temperature at every station, for link.atmospheric_loss: itu_r_p676.
+  # Source: ITU-R P.676-13 Annex 1, its "Standard" atmosphere: ITU-R P.835's mean annual global reference atmosphere at the surface (1013.25 hPa, 15 deg C, 7.5 g/m^3).
+  # Limits: 200 to 330 [K]
+  # link.surface_temperature_k: 288.15  # [K]
+
+  # The surface water-vapour density at every station, for link.atmospheric_loss: itu_r_p676.
+  # Source: ITU-R P.676-13 Annex 1, its "Standard" atmosphere: ITU-R P.835's mean annual global reference atmosphere at the surface (1013.25 hPa, 15 deg C, 7.5 g/m^3). Humid sites have more: a station's local climate is better than the mean.
+  # Limits: 0 to 60 [g/m^3]
+  # link.surface_water_vapour_density_g_m3: 7.5  # [g/m^3]
+
   # -- data_handling ---------------------------------------------------------
 
   # The size of the packets the transmitter takes from the memory.
