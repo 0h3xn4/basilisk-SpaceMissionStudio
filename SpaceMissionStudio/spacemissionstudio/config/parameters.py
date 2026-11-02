@@ -27,6 +27,7 @@ Propellant Mass budgets", EOP-FM/2024-07-177, issue 3.0.
 """
 
 from . import models
+from . import registry
 from .registry import Parameter, register
 
 # The percentiles of MSFC's solar-activity prediction (engine.spaceweather.MSFC_PERCENTILES), the only ones
@@ -76,6 +77,11 @@ register(
               "AD10 Sec. 6.3.1.3 (IADC)", minimum=0.0),
     Parameter("propellant_budget.geo_graveyard_per_cr_a_m", 1000e3, "[m per (m^2/kg)]",
               "The GEO graveyard raise per unit of Cr * A / m.", "AD10 Sec. 6.3.1.3 (IADC)", minimum=0.0),
+    Parameter("propellant_budget.margin_policy", "ad10_equations", "[-]",
+              "The margins' policy: AD10's equations, or the residual and uncertainty its summary table prints. A "
+              "margin set in this file replaces the policy's.", "AD10 Secs. 5.6, 5.8, 6.4",
+              "The equations are the ones the budget used before the choice existed.",
+              kind="model", choices=models.names("propellant_budget.margin_policy")),
     Parameter("propellant_budget.convergence_kg", 0.1, "[kg]",
               "The budget iterates until the propellant total changes by less than this.",
               "AD10 Sec. 6.5", minimum=1e-6, maximum=100.0),
@@ -491,3 +497,5 @@ register(
               "The population standard deviation is the one the tool used before the choice existed. No "
               "derivation recorded.", kind="model", choices=models.names("monte_carlo.spread_statistic")),
 )
+
+registry.check_models()

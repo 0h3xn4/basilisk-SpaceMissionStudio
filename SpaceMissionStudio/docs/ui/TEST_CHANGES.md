@@ -1425,3 +1425,19 @@ No existing test changed.
 
   Each fails on the code before (checked by stashing
   `spacemissionstudio/`).
+
+## Margin policies (2026-11-02)
+
+- Added to `tests/test_model_registry.py`: a policy sets its margins and a
+  project's own value wins (with the record and a run read later); a
+  model setting a value its parameter may not take, or a choice not of
+  kind "model", is refused; the summary table's budget (rows, note, trace
+  sources, record) and AD10's equations' note as before. `_PAGES` maps
+  the new choice to its page.
+- Added `tests/test_cli.py::test_assumptions_marks_the_values_a_margin_policy_sets`
+  and `tests/gui/test_assumptions_page.py::test_a_margin_policy_shows_the_values_it_sets`.
+- Changed `tests/test_config.py`: `_MODEL_CASES` gives
+  `propellant_budget.margin_policy` its case. Nothing removed or loosened.
+
+  Each fails on the code before (checked by stashing
+  `spacemissionstudio/`).

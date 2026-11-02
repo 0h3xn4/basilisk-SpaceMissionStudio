@@ -68,11 +68,15 @@ recorded with the results it gives and named where they are shown.
 | Choice | Models | Page |
 |---|---|---|
 | `monte_carlo.spread_statistic` | `population` (default), `sample` | [Monte Carlo statistics](monte-carlo-statistics.md) |
+| `propellant_budget.margin_policy` | `ad10_equations` (default), `ad10_summary_table` | [Propellant budget](propellant-budget.md#the-margin-policy-margin_policy) |
+
+A model may also set other parameters: a margin policy is the set of
+margins it gives. A value the project file sets itself replaces the
+model's, and the records say which values a model set.
 
 The other models the plan names (the re-entry criterion and debris
-rules, margin policy profiles, shadowing bodies, the atmosphere, link
-losses, power degradation) are still one model each; they follow (the
-transparency plan, Phase 6b).
+rules, shadowing bodies, the atmosphere, link losses, power degradation)
+are still one model each; they follow (the transparency plan, Phase 6b).
 
 ## Not yet covered
 

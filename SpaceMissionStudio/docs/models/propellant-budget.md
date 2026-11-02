@@ -81,6 +81,7 @@ project configuration file changes them
 | `controlled_last_burn_margin` | 0.15 | [-] | Added to a controlled re-entry's last burn (+15 %) | AD10 Sec. 5.6 |
 | `residual_fraction` | 0.01 | [-] | Unusable residual, as a fraction of the tank load | AD10 Sec. 5.8 |
 | `uncertainty_fraction` | 0.02 | [-] | Loading and gauging uncertainty, as a fraction of the tank load | AD10 Secs. 5.8, 6.4 |
+| `margin_policy` | `ad10_equations` | [-] | The set of margins: AD10's equations or its summary table (below) | AD10 Secs. 5.6, 5.8, 6.4 |
 | `eol_drag_coeff` | 2.2 | [-] | Cd of the uncontrolled re-entry estimate | AD10 Sec. 5.2 |
 | `operations_drag_coeff` | 3.0 | [-] | Cd AD10 asks for in operations; another is noted | AD10 Sec. 5.2 |
 | `operations_percentile` | 95 | [%] | MSFC solar activity of the in-plane estimate and the launch-delay sweep; another in the run is noted | AD10 Sec. 5.9 |
@@ -95,7 +96,61 @@ project configuration file changes them
 | `altitude_floor_km` | 250 | [km] | The lowest default altitude of an altitude trade | SpaceMissionStudio's own choice |
 
 The residual and uncertainty follow AD10's equations, 1 % and 2 %; its
-summary table prints 10 % and 20 %, and the budget's notes say so.
+summary table prints 10 % and 20 %, and the budget's notes say so. The
+margin policy below chooses between the two.
+
+## The margin policy: `margin_policy`
+
+`propellant_budget.margin_policy` chooses the set of margins, by name, as
+any parameter is set
+([Selectable models](README.md#selectable-models)):
+
+```yaml
+parameters:
+  propellant_budget.margin_policy: ad10_summary_table   # [-] or ad10_equations (default)
+```
+
+| Policy | Name | Residual | Uncertainty | Other margins |
+|---|---|---|---|---|
+| AD10's equations | `ad10_equations` (default) | 1 % | 2 % | the parameters' defaults |
+| AD10's summary table | `ad10_summary_table` | 10 % | 20 % | the parameters' defaults |
+
+- **AD10's equations** (`ad10_equations`): sets nothing; every margin is its
+  parameter's default, as before the choice existed. Assumption: the
+  equations are the authority where the summary table prints other values.
+  Checked against `tests/test_propellant_budget.py` (the budget applies the
+  margins and converges).
+- **AD10's summary table** (`ad10_summary_table`): sets `residual_fraction`
+  to 0.10 and `uncertainty_fraction` to 0.20; every other margin is the
+  equations'. These two are the only differences between the table and
+  the equations recorded here. Assumption: the table's 10 % and 20 % are
+  fractions of the tank's load, as the equations' 1 % and 2 % are; the
+  table's own basis is not recorded here. Checked against
+  `tests/test_model_registry.py` (the rows are 10 % and 20 % of the tank,
+  the note and the records say so).
+- **A project's own policy:** a margin the project file sets itself
+  replaces the policy's. With the summary table and
+  `residual_fraction: 0.05`, the residual is 5 % and the uncertainty the
+  table's 20 %.
+- **Reference:** ESA, *Guidelines for the computation of the Delta-V and
+  Propellant Mass budgets*, EOP-FM/2024-07-177, issue 3.0 (AD10): Secs.
+  5.6, 5.8 and 6.4, and its summary table.
+
+Where it shows, when a policy sets a margin:
+
+- the budget's note: "residual and uncertainty are 10% and 20% of the
+  tank load (propellant_budget.margin_policy: ad10_summary_table, AD10's
+  summary table; AD10's equations give 1% and 2%, Secs. 5.8, 6.4)";
+- the calculation of each row it sets: the input's source reads
+  "parameter: propellant_budget.residual_fraction (set by
+  propellant_budget.margin_policy: ad10_summary_table)";
+- the budget's record: `model.models` (the policy, its method, what it
+  sets) and the provenance's `configuration.set_by_models` (each value it
+  set, with the default it replaced);
+- the Assumptions page (the value, with the policy as its source) and
+  `spacemissionstudio assumptions` ("SET BY ...").
+
+With AD10's equations every one of these reads as it did before.
 
 **Constants**, not parameters: Earth's GM (398 600.436 km^3/s^2) and
 equatorial radius (6378.1366 km), from the one set

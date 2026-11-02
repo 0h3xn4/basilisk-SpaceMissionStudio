@@ -345,7 +345,9 @@ def _entry(name: str, symbol: str, value, unit: str, field_name: str) -> Quantit
 
 
 def _rule_input(name: str, symbol: str, unit: str, parameter: str, scenario) -> Quantity:
-    return Quantity(name, symbol, rule(parameter, scenario), unit, f"parameter: propellant_budget.{parameter}")
+    setter = registry.set_by(f"propellant_budget.{parameter}", scenario)
+    by = f" (set by {setter.choice}: {setter.name})" if setter is not None else ""
+    return Quantity(name, symbol, rule(parameter, scenario), unit, f"parameter: propellant_budget.{parameter}{by}")
 
 
 def _of(trace: Trace, symbol: str | None = None) -> Quantity:
@@ -568,8 +570,17 @@ def compute_budget(scenario, spacecraft_name: str, result=None, run_scenario=Non
                               q_a, q_v))
     if config.collision_avoidance_count == 0.0:
         notes.append("no collision avoidances entered -- AD10 Sec. 6.2.4 takes their number from ESA's DRAMA")
-    notes.append(f"residual and uncertainty are {residual * 100:g}% and {uncertainty * 100:g}% of the tank load "
-                 "(AD10 Secs. 5.8, 6.4; its summary table prints 10% and 20%)")
+    setters = {registry.set_by(f"propellant_budget.{name}", scenario)
+               for name in ("residual_fraction", "uncertainty_fraction")} - {None}
+    if not setters:
+        notes.append(f"residual and uncertainty are {residual * 100:g}% and {uncertainty * 100:g}% of the tank load "
+                     "(AD10 Secs. 5.8, 6.4; its summary table prints 10% and 20%)")
+    else:
+        policy = ", ".join(f"{s.choice}: {s.name}, {s.title}" for s in sorted(setters, key=lambda s: s.choice))
+        notes.append(f"residual and uncertainty are {residual * 100:g}% and {uncertainty * 100:g}% of the tank load "
+                     f"({policy}; AD10's equations give "
+                     f"{registry.default('propellant_budget.residual_fraction') * 100:g}% and "
+                     f"{registry.default('propellant_budget.uncertainty_fraction') * 100:g}%, Secs. 5.8, 6.4)")
 
     eol_utc = _parse_epoch(scenario.epoch_utc) + timedelta(days=config.mission_years * 365.25)
     reentry = None  # computed once: (delta-V, perigee, lifetime)

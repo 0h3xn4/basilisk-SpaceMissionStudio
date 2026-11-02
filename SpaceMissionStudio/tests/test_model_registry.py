@@ -33,7 +33,8 @@ from spacemissionstudio.engine import monte_carlo_results as mcr
 _TESTS = Path(__file__).resolve().parent
 _MODELS_DOCS = _TESTS.parent / "docs" / "models"
 # The page of docs/models that documents each choice's models.
-_PAGES = {"monte_carlo.spread_statistic": "monte-carlo-statistics.md"}
+_PAGES = {"monte_carlo.spread_statistic": "monte-carlo-statistics.md",
+          "propellant_budget.margin_policy": "propellant-budget.md"}
 
 _R_M = 6778.0e3  # [m] orbit radius
 _N_RAD_S = math.sqrt(3.986004415e14 / _R_M ** 3)  # [rad/s] mean motion
@@ -152,3 +153,108 @@ def test_the_default_statistic_gives_the_numbers_it_gave():
     np.testing.assert_array_equal(mcr.to_result_set(batch).series["sat-1.monte_carlo.spread"].data,
                                   rel.std(axis=0))
     assert Configuration().overrides == {}
+
+
+_POLICY = "propellant_budget.margin_policy"
+
+
+class _Configured:
+    """A stand-in scenario carrying only a configuration."""
+
+    def __init__(self, overrides):
+        self.configuration = Configuration(overrides=overrides)
+
+
+def test_a_margin_policy_sets_its_margins_and_a_projects_own_value_wins():
+    """AD10's equations (the default) set nothing: the margins are the
+    parameters' defaults. The summary table sets the residual and the
+    uncertainty to 10 % and 20 %; a value the project file sets itself
+    replaces the policy's. The record names what the policy set, and a run
+    read later gets the same values from it."""
+    assert models.names(_POLICY) == ("ad10_equations", "ad10_summary_table")
+    assert registry.default(_POLICY) == "ad10_equations" and models.model(_POLICY, "ad10_equations").sets == ()
+    table = _Configured({_POLICY: "ad10_summary_table"})
+    assert registry.value("propellant_budget.residual_fraction", table) == 0.10
+    assert registry.value("propellant_budget.uncertainty_fraction", table) == 0.20
+    assert registry.value("propellant_budget.cam_count_factor", table) == 4.0  # the equations'
+    assert registry.set_by("propellant_budget.residual_fraction", table).name == "ad10_summary_table"
+    own = _Configured({_POLICY: "ad10_summary_table", "propellant_budget.residual_fraction": 0.05})
+    assert registry.value("propellant_budget.residual_fraction", own) == 0.05
+    assert registry.set_by("propellant_budget.residual_fraction", own) is None
+    assert registry.value("propellant_budget.uncertainty_fraction", own) == 0.20
+    record = registry.record(own)
+    assert record["set_by_models"] == {"propellant_budget.uncertainty_fraction": {
+        "value": 0.2, "default": 0.02, "unit": "[-]", "model": "propellant_budget.margin_policy: ad10_summary_table"}}
+    assert registry.recorded_value("propellant_budget.uncertainty_fraction", record) == 0.20
+    assert registry.recorded_value("propellant_budget.residual_fraction", record) == 0.05
+    assert "set_by_models" not in registry.record(_Configured({}))  # a default record is as before
+    assert registry.value("propellant_budget.residual_fraction") == 0.01
+
+
+def test_a_model_that_sets_a_value_its_parameter_may_not_take_is_refused(monkeypatch):
+    """The values a model sets are checked against their parameters when
+    the registry is declared, as a default is."""
+    from dataclasses import replace
+
+    bad = replace(models.model(_POLICY, "ad10_summary_table"), name="bad",
+                  sets=(("propellant_budget.residual_fraction", 2.0),))
+    monkeypatch.setitem(models._MODELS, _POLICY, {**models._MODELS[_POLICY], "bad": bad})
+    monkeypatch.setitem(registry._REGISTRY, _POLICY, replace(registry.parameter(_POLICY),
+                                                             choices=models.names(_POLICY)))
+    with pytest.raises(ConfigError, match="residual_fraction: at most 0.5"):
+        registry.check_models()
+    monkeypatch.setitem(registry._REGISTRY, _POLICY, replace(registry.parameter(_POLICY),
+                                                             choices=("ad10_equations",)))
+    with pytest.raises(ValueError, match="not a parameter of kind 'model'"):
+        registry.check_models()
+
+
+def _budget_scenario(overrides):
+    from spacemissionstudio.schema.scenario import (GravityConfig, OrbitIC, PropellantBudgetConfig, Scenario,
+                                                    SpacecraftConfig, StationKeepingConfig)
+
+    spacecraft = SpacecraftConfig(
+        name="sat-1", dry_mass_kg=120.0, enable_drag=True,
+        orbit=OrbitIC(type="classical_elements", semi_major_axis_km=6378.1366 + 400.0, eccentricity=0.0,
+                      inclination_deg=97.0, raan_deg=0.0, arg_periapsis_deg=0.0, true_anomaly_deg=0.0),
+        station_keeping=StationKeepingConfig(target_altitude_km=400.0, deadband_km=1.0, thrust_n=0.05,
+                                             isp_s=1500.0, propellant_kg=5.0),
+        propellant_budget=PropellantBudgetConfig(in_plane_control_delta_v_m_s=20.0, tank_capacity_kg=10.0))
+    scenario = Scenario(name="b", epoch_utc="2030-01-01T00:00:00", spacecraft=[spacecraft],
+                        gravity=GravityConfig(central_body="earth", third_body_perturbers=["sun"]))
+    scenario.configuration = Configuration(overrides=overrides)
+    return scenario
+
+
+def test_the_summary_tables_budget_says_so_and_records_it():
+    """With the summary table, the residual and uncertainty rows are 10 %
+    and 20 % of the 10 kg tank; the note names the policy and the
+    equations' values, each trace input says the policy set it, and the
+    budget's record names the policy and what it set. AD10's equations
+    give the note as before."""
+    from spacemissionstudio.engine import analysis_records
+    from spacemissionstudio.engine import propellant_budget as pb
+
+    budget = pb.compute_budget(_budget_scenario({_POLICY: "ad10_summary_table"}), "sat-1")
+    rows = {r.contributor: r for r in budget.rows}
+    assert rows["Residual"].propellant_kg == pytest.approx(1.0)  # [kg] 10 % of 10 kg
+    assert rows["Loading uncertainty and gauging"].propellant_kg == pytest.approx(2.0)  # [kg]
+    assert ("residual and uncertainty are 10% and 20% of the tank load (propellant_budget.margin_policy: "
+            "ad10_summary_table, AD10's summary table; AD10's equations give 1% and 2%, Secs. 5.8, 6.4)"
+            in budget.notes)
+    source = rows["Residual"].propellant_trace.inputs[0].source
+    assert source == ("parameter: propellant_budget.residual_fraction "
+                      "(set by propellant_budget.margin_policy: ad10_summary_table)")
+    scenario = _budget_scenario({_POLICY: "ad10_summary_table"})
+    record = analysis_records.budget_record(scenario, "sat-1", budget)
+    assert record["model"]["models"][_POLICY]["model"] == "ad10_summary_table"
+    assert record["model"]["models"][_POLICY]["sets"] == {"propellant_budget.residual_fraction": 0.1,
+                                                          "propellant_budget.uncertainty_fraction": 0.2}
+    assert record["model"]["rules"]["propellant_budget.residual_fraction"] == 0.10
+    assert record["provenance"]["configuration"]["set_by_models"]["propellant_budget.residual_fraction"][
+        "model"] == "propellant_budget.margin_policy: ad10_summary_table"
+    equations = pb.compute_budget(_budget_scenario({}), "sat-1")
+    assert ("residual and uncertainty are 1% and 2% of the tank load (AD10 Secs. 5.8, 6.4; its summary table "
+            "prints 10% and 20%)" in equations.notes)
+    assert {r.contributor: r for r in equations.rows}["Residual"].propellant_trace.inputs[0].source == (
+        "parameter: propellant_budget.residual_fraction")

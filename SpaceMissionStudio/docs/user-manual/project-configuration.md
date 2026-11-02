@@ -93,6 +93,16 @@ parameters:
   monte_carlo.spread_statistic: sample   # [-] population (default) or sample
 ```
 
+A margin policy chooses a set of margins for the propellant budget:
+
+```yaml
+parameters:
+  propellant_budget.margin_policy: ad10_summary_table   # [-] residual 10 %, uncertainty 20 %
+```
+
+A margin you set yourself replaces the policy's, and `assumptions`
+marks each value a policy set ("SET BY ...").
+
 The Assumptions page lists each choice's models by title, and a name that
 is not one of them is refused. Each model's method, assumptions,
 references and tests are on its page

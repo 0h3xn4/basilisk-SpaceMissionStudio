@@ -219,10 +219,13 @@ class AssumptionsPage(QWidget):
                 rows.append(Row((area,), group=True))
                 self._names.append(None)
             changed = parameter.name in overrides
-            value = overrides.get(parameter.name, parameter.default)
+            value = registry.effective(parameter.name, overrides)
+            setter = None if changed else models.set_by(parameter.name, overrides)
+            source = f"{setter.title} ({setter.choice})" if setter is not None else parameter.source
             rows.append(Row((parameter.name, files.format_value(value), files.format_value(parameter.default),
-                             parameter.unit, parameter.source),
-                            tooltips={0: parameter.controls, 4: parameter.rationale or parameter.source},
+                             parameter.unit, source),
+                            tooltips={0: parameter.controls,
+                                      4: setter.method if setter is not None else parameter.rationale or source},
                             bold=changed))
             self._names.append(parameter.name)
         self.table.set_table(_HEADERS, rows, stretch=4)
@@ -275,9 +278,13 @@ class AssumptionsPage(QWidget):
                       f"at most {parameter.maximum:g}" if parameter.maximum is not None else ""]
             limits = ", ".join(b for b in bounds if b) or "any value"
         rationale = f" {parameter.rationale}" if parameter.rationale else ""
+        overrides = self.overrides()
+        setter = None if name in overrides else models.set_by(name, overrides)
+        set_by = (f" Set to {files.format_value(registry.effective(name, overrides))} by {setter.choice}: "
+                  f"{setter.title}; a value set here replaces it." if setter is not None else "")
         self.detail_label.setText(f"{name} {parameter.unit}: {parameter.controls} Source: {parameter.source}."
-                                  f"{rationale} It may take {limits} ({parameter.kind}).")
-        self.value_edit.setText(files.format_value(self.overrides().get(name, parameter.default)))
+                                  f"{rationale} It may take {limits} ({parameter.kind}).{set_by}")
+        self.value_edit.setText(files.format_value(registry.effective(name, overrides)))
 
     def _on_set(self) -> None:
         import yaml
