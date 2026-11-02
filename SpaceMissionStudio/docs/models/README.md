@@ -69,14 +69,23 @@ recorded with the results it gives and named where they are shown.
 |---|---|---|
 | `monte_carlo.spread_statistic` | `population` (default), `sample` | [Monte Carlo statistics](monte-carlo-statistics.md) |
 | `propellant_budget.margin_policy` | `ad10_equations` (default), `ad10_summary_table` | [Propellant budget](propellant-budget.md#the-margin-policy-margin_policy) |
+| `dynamics.shadowing_bodies` | `central_body` (default), `tracked_bodies` | [Dynamics: integration and run control](dynamics-run-control.md#shadows-shadowing_bodies) |
 
 A model may also set other parameters: a margin policy is the set of
 margins it gives. A value the project file sets itself replaces the
 model's, and the records say which values a model set.
 
-The other models the plan names (the re-entry criterion and debris
-rules, shadowing bodies, the atmosphere, link losses, power degradation)
-are still one model each; they follow (the transparency plan, Phase 6b).
+The re-entry criterion and the debris rules the plan names are
+parameters already, each with its own criterion: the lifetime's
+`lifetime.reentry_altitude_km` (120 km, on the orbit-averaged perigee)
+and a run's `dynamics.reentry_altitude_km` (100 km, on the simulated
+altitude); every lifetime is checked against both disposal rules,
+`lifetime.zero_debris_years` (5) and `lifetime.iadc_years` (25). A choice
+of model would add nothing a project file cannot already set.
+
+The other models the plan names (the atmosphere, link losses, power
+degradation) are still one model each; they follow (the transparency
+plan, Phase 6b).
 
 ## Not yet covered
 

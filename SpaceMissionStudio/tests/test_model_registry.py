@@ -34,7 +34,8 @@ _TESTS = Path(__file__).resolve().parent
 _MODELS_DOCS = _TESTS.parent / "docs" / "models"
 # The page of docs/models that documents each choice's models.
 _PAGES = {"monte_carlo.spread_statistic": "monte-carlo-statistics.md",
-          "propellant_budget.margin_policy": "propellant-budget.md"}
+          "propellant_budget.margin_policy": "propellant-budget.md",
+          "dynamics.shadowing_bodies": "dynamics-run-control.md"}
 
 _R_M = 6778.0e3  # [m] orbit radius
 _N_RAD_S = math.sqrt(3.986004415e14 / _R_M ** 3)  # [rad/s] mean motion

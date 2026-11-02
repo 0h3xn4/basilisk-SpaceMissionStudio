@@ -221,6 +221,12 @@ register(
               "Not the lifetime's 120 km (lifetime.reentry_altitude_km): that one is on the orbit-averaged perigee, "
               "this one on the simulated altitude, at which the run can no longer be integrated sensibly.",
               minimum=60.0, maximum=300.0),
+    Parameter("dynamics.shadowing_bodies", "central_body", "[-]",
+              "The bodies that shadow a spacecraft from the Sun: the central body (default), or every tracked body "
+              "but the Sun, each with its own eclipse module.", "SpaceMissionStudio's own choice",
+              "The central body alone is what a run did before the choice existed. Basilisk's eclipse, given "
+              "several bodies, takes only the nearest one's shadow.",
+              kind="model", choices=models.names("dynamics.shadowing_bodies")),
     Parameter("dynamics.reentry_check_s", 21600.0, "[s]",
               "How often a run with drag checks for re-entry while every perigee is high.",
               "SpaceMissionStudio's own choice", "Six hours: a high orbit cannot re-enter between two checks.",

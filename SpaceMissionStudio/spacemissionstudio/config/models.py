@@ -198,3 +198,40 @@ register(
           "propellant_budget",
           sets=(("propellant_budget.residual_fraction", 0.10), ("propellant_budget.uncertainty_fraction", 0.20))),
 )
+
+# -- Shadowing bodies (engine.shadows) ----------------------------------------------------------
+
+_SHADOWS = "dynamics.shadowing_bodies"
+_SHADOW_INPUTS = ("The Sun's and every tracked body's position (SPICE) [m]", "Each spacecraft's position [m]",
+                  "Each body's equatorial radius, as Basilisk's eclipse knows it by name [m]")
+_SHADOW_OUTPUTS = ("<spacecraft>.eclipse.illumination_factor [-], and so the eclipse events",
+                   "The sunlight the solar panels, solar radiation pressure, the sun and thermal sensors and the "
+                   "eclipse-gated thrusters see")
+_ECLIPSE_REF = ("Basilisk's eclipse module (src/simulation/environment/eclipse): a conical umbra and penumbra "
+                "of a spherical body, the Sun's disk overlap for partial shadow.")
+
+register(
+    Model(_SHADOWS, "central_body", "The central body",
+          "The central body's shadow only, by one Basilisk eclipse module (in a heliocentric run, every tracked "
+          "body but the Sun in that one module, which takes the shadow of the body nearest the spacecraft).",
+          _SHADOW_INPUTS, _SHADOW_OUTPUTS,
+          ("No other body shadows a spacecraft orbiting the central body: no lunar eclipse of an Earth orbiter.",
+           "The bodies are spheres of their equatorial radius."),
+          (_ECLIPSE_REF,),
+          ("tests/test_shadows.py::test_only_the_central_body_shadows_by_default",),
+          "run"),
+    Model(_SHADOWS, "tracked_bodies", "Every tracked body",
+          "The central body's module as before, and one more Basilisk eclipse module for each other tracked "
+          "body but the Sun, each with that one body (one module with several takes only the nearest one's "
+          "shadow). A spacecraft's sunlight is the product of the fractions each body leaves.",
+          _SHADOW_INPUTS, _SHADOW_OUTPUTS,
+          ("Two bodies shading the Sun at once are combined as independent: the product of their fractions. "
+           "Exact whenever no more than one body shades.",
+           "The bodies are spheres of their equatorial radius; a tracked body whose radius Basilisk's eclipse "
+           "does not know by name (a small body other than the central one) cannot shadow, and the run warns.",
+           "Each extra body adds one Basilisk module and one Python module per spacecraft: a slower run."),
+          (_ECLIPSE_REF,),
+          ("tests/test_shadows.py::test_the_moon_shadows_a_spacecraft_behind_it_with_tracked_bodies",
+           "tests/test_shadows.py::test_the_occulters_of_each_model"),
+          "run"),
+)

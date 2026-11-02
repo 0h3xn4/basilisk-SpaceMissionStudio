@@ -3,6 +3,7 @@
 How a run is integrated and watched while it runs:
 - the integrator's error tolerances;
 - the checks for re-entry;
+- the bodies that shadow a spacecraft from the Sun;
 - the energy and momentum check of two-body runs.
 
 Code: `spacemissionstudio/engine/service.py`, `engine/results.py`. How to
@@ -57,6 +58,52 @@ estimate's is different: the orbit-averaged perigee reaching
 `lifetime.reentry_altitude_km` (120 km), from where an orbit lasts days at
 most ([Physical constants](constants.md), "The re-entry altitudes").
 
+## Shadows: `shadowing_bodies`
+
+Which bodies shadow a spacecraft from the Sun, and so its sunlight
+(`<spacecraft>.eclipse.illumination_factor`): the eclipse events, the
+solar panels, solar radiation pressure, the sun and thermal sensors and
+the eclipse-gated thrusters all read it. `dynamics.shadowing_bodies`
+chooses, by name ([Selectable models](README.md#selectable-models)):
+
+```yaml
+parameters:
+  dynamics.shadowing_bodies: tracked_bodies   # [-] or central_body (default)
+```
+
+- **The central body** (`central_body`, default): one Basilisk eclipse
+  module with the central body, as before the choice existed. In a
+  heliocentric run that one module has every tracked body but the Sun,
+  and takes the shadow of the one nearest the spacecraft. So no other
+  body shadows an Earth orbiter: no lunar eclipse. Checked against
+  `tests/test_shadows.py` (a spacecraft in the Moon's umbra is lit).
+- **Every tracked body** (`tracked_bodies`): the central body's module,
+  and one more eclipse module for each other tracked body but the Sun,
+  each with that one body. One module with several bodies would take only
+  the nearest one's shadow: around the Earth, always the Earth's. A
+  spacecraft's sunlight is the product of the fractions each body leaves.
+  Checked against `tests/test_shadows.py` (a spacecraft 20 000 km behind
+  the Moon, away from the Sun, is in its umbra throughout: sunlight 0).
+
+Assumptions of both: the bodies are spheres of their equatorial radius,
+with a conical umbra and penumbra and the Sun's disk overlap for partial
+shadow (Basilisk's eclipse module, `src/simulation/environment/eclipse`).
+Of every tracked body:
+
+- Two bodies shading the Sun at once are combined as independent: the
+  product of their fractions. It is exact whenever no more than one body
+  shades.
+- A tracked body whose radius Basilisk's eclipse does not know by name (a
+  small body other than the central one) cannot shadow; the run warns.
+  The bodies it knows: Mercury, Venus, the Earth, the Moon, Mars (and its
+  barycenter), Jupiter's barycenter, Saturn, Uranus, Neptune.
+- Each extra body adds one Basilisk module, and one Python module per
+  spacecraft: a slower run.
+
+A run with every tracked body records `models` in its provenance: the
+model, its method and references, the bodies that shadow, and those that
+cannot. A run with the default records none, as before.
+
 ## The conservation check
 
 A spacecraft whose run is two-body only has these properties exactly
@@ -83,6 +130,7 @@ effect, and a project configuration file changes them
 | `integrator_relative_tolerance` | 1e-10 | [-] | The adaptive integrators' relative tolerance | SpaceMissionStudio's own choice (audit E3) |
 | `integrator_absolute_tolerance` | 1e-8 | [m, m/s, rad] | Their absolute tolerance, one value for every state | Basilisk's default |
 | `reentry_altitude_km` | 100 | [km] | The altitude below which a run counts a spacecraft as re-entered | SpaceMissionStudio's own choice |
+| `shadowing_bodies` | `central_body` | [-] | The bodies that shadow a spacecraft from the Sun (above) | SpaceMissionStudio's own choice |
 | `reentry_check_s` | 21 600 | [s] | The re-entry check's interval while perigees are high | SpaceMissionStudio's own choice |
 | `reentry_near_perigee_km` | 200 | [km] | The perigee below which the checks come often | SpaceMissionStudio's own choice |
 | `reentry_near_check_s` | 300 | [s] | The re-entry check's interval near re-entry: the precision of the re-entry time | SpaceMissionStudio's own choice |

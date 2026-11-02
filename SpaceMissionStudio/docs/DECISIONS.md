@@ -5,6 +5,24 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Shadowing bodies (2026-11-02)
+
+- **One eclipse module per body, combined here:** Basilisk's module with
+  several bodies takes only the nearest one's shadow, so it cannot give a
+  lunar eclipse of an Earth orbiter. The framework stays as it is; a
+  module of SpaceMissionStudio's multiplies the sunlight each body's
+  module leaves.
+- **The product:** two bodies shading at once are rare (an Earth orbiter
+  in the penumbra of both); the product treats the shadows as
+  independent and is exact whenever only one body shades. The page says
+  so.
+- **The default stays the central body:** every run reads as before; the
+  other model costs a module per body and per spacecraft.
+- **The re-entry criterion and debris rules stay parameters:** both
+  altitudes and both disposal rules are named parameters with their own
+  criteria; a choice of model would select nothing a project file cannot
+  already set.
+
 ## Margin policies (2026-11-02)
 
 - **A policy sets parameters, it does not replace them:** each margin

@@ -231,6 +231,11 @@ parameters:
   # Limits: 60 to 300 [km]
   # dynamics.reentry_altitude_km: 100.0  # [km]
 
+  # The bodies that shadow a spacecraft from the Sun: the central body (default), or every tracked body but the Sun, each with its own eclipse module.
+  # Source: SpaceMissionStudio's own choice. The central body alone is what a run did before the choice existed. Basilisk's eclipse, given several bodies, takes only the nearest one's shadow.
+  # One of: central_body, tracked_bodies
+  # dynamics.shadowing_bodies: central_body  # [-]
+
   # How often a run with drag checks for re-entry while every perigee is high.
   # Source: SpaceMissionStudio's own choice. Six hours: a high orbit cannot re-enter between two checks.
   # Limits: 60 to 86400 [s]

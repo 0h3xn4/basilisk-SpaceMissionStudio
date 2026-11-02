@@ -1441,3 +1441,16 @@ No existing test changed.
 
   Each fails on the code before (checked by stashing
   `spacemissionstudio/`).
+
+## Shadowing bodies (2026-11-02)
+
+- Added `tests/test_shadows.py` (3 tests): the occulters of each model and
+  their product; a spacecraft 20 000 km behind the Moon (SPICE positions,
+  taken directly) lit with the default and in the Moon's umbra
+  throughout with every tracked body, the provenance naming the model and
+  the bodies. The default's test captures the behaviour before (it would
+  pass on it, but its module imports `engine.shadows`, new here); the
+  others fail on the code before (checked by stashing `spacemissionstudio/`).
+- Changed `tests/test_model_registry.py` (`_PAGES`) and `tests/test_config.py`
+  (`_MODEL_CASES`): the new choice's page and case. Nothing removed or
+  loosened.

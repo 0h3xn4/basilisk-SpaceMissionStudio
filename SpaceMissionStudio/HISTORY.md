@@ -14514,6 +14514,39 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Selectable models: shadowing bodies (2026-11-02)
+
+The transparency plan, Phase 6b ("shadowing bodies"). Branch
+`shadowing-bodies`.
+
+- **Found:** Basilisk's `eclipse`, given several bodies, computes the
+  shadow of only the one nearest the spacecraft (`eclipse.cpp`,
+  `UpdateState`). Around the Earth that is always the Earth: adding the
+  Moon to the one module would never give a lunar eclipse.
+- **`engine/shadows.py`:** `occulters(model, central, bodies, custom)`
+  (the shared module's bodies, those with a module of their own, those
+  that cannot shadow: no radius by name, `KNOWN_RADII` from
+  `eclipse.cpp`); `combined_illumination` (the product); `CombinedEclipse`,
+  a Python module writing one `EclipseMsg` from several, at priority 369,
+  after the eclipse modules (370) and before every reader.
+- **`dynamics.shadowing_bodies`:** `central_body` (default: the list a run
+  always had) or `tracked_bodies`. `SimulationService.build` makes one
+  more eclipse module per other body and one `CombinedEclipse` per
+  spacecraft, which every reader of the sunlight then takes; a body that
+  cannot shadow is a run warning.
+- **`RunProvenance.models`:** the run's models other than the defaults
+  (written only when there is one): the model, its method, the bodies
+  that shadow, those that cannot. The provenance view shows it.
+- **The re-entry criterion and debris rules:** already parameters, each
+  with its own criterion; the models index says so instead of a choice.
+- **Tests:** `tests/test_shadows.py` (3: the occulters of each model; a
+  spacecraft 20 000 km behind the Moon lit by default, in its umbra with
+  every tracked body). `tests/test_model_registry.py` and
+  `tests/test_config.py` map the new choice.
+- **Numbers:** none change with the default.
+
+Full suite on Python 3.14: 4,336 passed (19 min 52 s).
+
 ## Selectable models: margin policies (2026-11-02)
 
 The transparency plan, Phase 6b ("margin policy profiles (AD10, AD10
