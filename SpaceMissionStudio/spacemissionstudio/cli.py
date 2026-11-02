@@ -443,9 +443,12 @@ def cmd_assumptions(args: argparse.Namespace) -> int:
             print(f"{area}:")
         value = registry.value(parameter.name, scenario)
         changed = configuration is not None and parameter.name in configuration.overrides
-        if args.changed and not changed:
+        setter = registry.set_by(parameter.name, scenario)  # a value a chosen model (a margin policy) sets
+        if args.changed and not changed and setter is None:
             continue
         flag = f"  CHANGED (default {files.format_value(parameter.default)})" if changed else ""
+        if setter is not None:
+            flag = f"  SET BY {setter.choice}: {setter.name} (default {files.format_value(parameter.default)})"
         print(f"  {parameter.name:<{width}}  {files.format_value(value):>12} {parameter.unit:<16} "
               f"{parameter.source}{flag}")
     return 0

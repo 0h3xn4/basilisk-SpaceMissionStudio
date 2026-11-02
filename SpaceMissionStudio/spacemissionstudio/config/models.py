@@ -27,6 +27,10 @@ used before the choice existed, so no result changes until a project
 chooses another. The model in effect is recorded with the results it
 gives (:func:`records`).
 
+A model may also set other parameters (``sets``): a margin policy is the
+set of margins it gives. A value the project file sets itself replaces
+the model's (:func:`.registry.effective`).
+
 Without Basilisk, and without the GUI.
 """
 
@@ -51,6 +55,7 @@ class Model:
     references: tuple[str, ...]
     evidence: tuple[str, ...]  # the tests that check it, "tests/<file>.py::<test>"
     applies_to: str  # the records it is written into: "monte_carlo" (a batch's provenance)
+    sets: tuple[tuple[str, object], ...] = ()  # (parameter, value): the values it gives other parameters
 
 
 _MODELS: dict[str, dict[str, Model]] = {}
@@ -94,9 +99,25 @@ def active(choice: str, scenario=None) -> Model:
     return model(choice, registry.value(choice, scenario))
 
 
+def set_by(name: str, chosen: dict) -> Model | None:
+    """The model in effect that sets parameter ``name``, given the values
+    ``chosen`` ({parameter: value}, a configuration's overrides; a choice
+    not in it has its default); None when none does."""
+    from . import registry
+
+    for choice in choices():
+        found = model(choice, chosen.get(choice, registry.default(choice)))
+        if name in dict(found.sets):
+            return found
+    return None
+
+
 def record(found: Model) -> dict:
     """``found`` as a provenance record keeps it."""
-    return {"model": found.name, "title": found.title, "method": found.method, "references": list(found.references)}
+    out = {"model": found.name, "title": found.title, "method": found.method, "references": list(found.references)}
+    if found.sets:
+        out["sets"] = {name: list(value) if isinstance(value, tuple) else value for name, value in found.sets}
+    return out
 
 
 def records(scenario, applies_to: str) -> dict:
@@ -140,4 +161,40 @@ register(
           ("tests/test_model_registry.py::test_each_spread_statistic_is_the_one_it_declares",
            "tests/test_monte_carlo.py::test_a_batch_uses_and_records_the_statistic_its_configuration_chooses"),
           "monte_carlo"),
+)
+
+# -- Propellant budget margin policies (engine.propellant_budget) ------------------------------
+
+_MARGINS = "propellant_budget.margin_policy"
+_AD10 = ("ESA, Guidelines for the computation of the Delta-V and Propellant Mass budgets, EOP-FM/2024-07-177, "
+         "issue 3.0 (AD10): Secs. 5.6, 5.8 and 6.4, and its summary table.")
+_MARGIN_INPUTS = ("The margin parameters propellant_budget.residual_fraction and .uncertainty_fraction [-]",
+                  "The tank's load, its capacity or the iteration's total [kg]")
+_MARGIN_OUTPUTS = ("The budget's Residual and Loading uncertainty rows [kg], and so its propellant total",
+                   "The budget's note on the residual and uncertainty")
+
+register(
+    Model(_MARGINS, "ad10_equations", "AD10's equations",
+          "The margins as AD10's equations give them, the parameters' defaults: the residual 1 % and the loading "
+          "and gauging uncertainty 2 % of the tank's load (Secs. 5.8, 6.4), and the other margins as declared "
+          "(collision avoidances x4, attitude propellant x2, a controlled re-entry's last burn +15 %, Sec. 5.6).",
+          _MARGIN_INPUTS, _MARGIN_OUTPUTS,
+          ("AD10's equations are the authority where its summary table prints other values.",),
+          (_AD10,),
+          ("tests/test_propellant_budget.py::test_the_budget_applies_ad10s_margins_and_converges",
+           "tests/test_model_registry.py::test_a_margin_policy_sets_its_margins_and_a_projects_own_value_wins"),
+          "propellant_budget"),
+    Model(_MARGINS, "ad10_summary_table", "AD10's summary table",
+          "As AD10's equations, but the residual and the loading uncertainty AD10's summary table prints: 10 % "
+          "and 20 % of the tank's load. These two are the only differences between the table and the equations "
+          "recorded here.",
+          _MARGIN_INPUTS, _MARGIN_OUTPUTS,
+          ("The table's 10 % and 20 % are taken as fractions of the tank's load, as the equations' 1 % and 2 % "
+           "are; the table's own basis is not recorded here.",
+           "The other margins are the equations'.",),
+          (_AD10,),
+          ("tests/test_model_registry.py::test_a_margin_policy_sets_its_margins_and_a_projects_own_value_wins",
+           "tests/test_model_registry.py::test_the_summary_tables_budget_says_so_and_records_it"),
+          "propellant_budget",
+          sets=(("propellant_budget.residual_fraction", 0.10), ("propellant_budget.uncertainty_fraction", 0.20))),
 )

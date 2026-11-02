@@ -14514,6 +14514,37 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Selectable models: margin policies (2026-11-02)
+
+The transparency plan, Phase 6b ("margin policy profiles (AD10, AD10
+summary table, user)"). Branch `margin-profiles`.
+
+- **A model may set other parameters** (`Model.sets`). `registry.effective`
+  gives a value as the project file sets it, else as a model in effect
+  sets it, else its default; `value`, `recorded_value` (a run read later)
+  and the Assumptions page use it. `registry.set_by` names the model
+  whose value is in effect. `registry.check_models`, run when the
+  parameters are declared, refuses a choice that is not of kind "model"
+  and a set value its parameter may not take.
+- **`propellant_budget.margin_policy`:** `ad10_equations` (default, sets
+  nothing) or `ad10_summary_table` (`residual_fraction` 0.10,
+  `uncertainty_fraction` 0.20, the only differences the repository
+  records between the table and the equations). "User" is the project
+  file's own values, which replace the policy's: no third model.
+- **Shown:** the budget's note names the policy and the equations' values
+  when a policy set a margin; each trace input it set says "(set by
+  ...)"; `budget_record` adds `model.models`; `registry.record` adds
+  `set_by_models` when a model set a value; the Assumptions page gives the
+  policy as the source and says a value set there replaces it;
+  `assumptions` prints "SET BY ...", also under `--changed`.
+- **Tests:** 4 in `tests/test_model_registry.py`, one each in
+  `tests/test_cli.py` and `tests/gui/test_assumptions_page.py`;
+  `tests/test_config.py`'s `_MODEL_CASES` gives the new parameter its case.
+- **Numbers:** none change: the default policy sets nothing, so every
+  record, note and trace reads as before (the golden baseline).
+
+Full suite on Python 3.14: 4,333 passed (18 min 2 s).
+
 ## Selectable models: the registry and the Monte Carlo spread (2026-11-01)
 
 The transparency plan, Phase 6a, and the first choice of 6b. Branch

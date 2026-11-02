@@ -137,13 +137,56 @@ def default(name: str):
     return parameter(name).default
 
 
+def effective(name: str, overrides: dict | None = None):
+    """The value of ``name`` given a configuration's ``overrides``: the one
+    they set; else the one a model in effect sets (``.models``, e.g. a
+    margin policy); else the default."""
+    overrides = overrides or {}
+    if name in overrides:
+        return overrides[name]
+    from . import models
+
+    setter = models.set_by(name, overrides)
+    return dict(setter.sets)[name] if setter is not None else default(name)
+
+
 def value(name: str, scenario=None):
     """The value of ``name`` in effect for ``scenario``: the one its
-    configuration sets, else the default."""
+    configuration sets, else the one a model it chooses sets, else the
+    default."""
+    return effective(name, _overrides(scenario))
+
+
+def set_by(name: str, scenario=None):
+    """The model (``.models.Model``) whose value of ``name`` is in effect for
+    ``scenario``; None when the configuration sets it itself or no model
+    does."""
+    from . import models
+
+    overrides = _overrides(scenario)
+    return None if name in overrides else models.set_by(name, overrides)
+
+
+def _overrides(scenario) -> dict:
     configuration = getattr(scenario, "configuration", None)
-    if configuration is not None and name in configuration.overrides:
-        return configuration.overrides[name]
-    return default(name)
+    return configuration.overrides if configuration is not None else {}
+
+
+def check_models() -> None:
+    """Each choice of model is a parameter of kind "model" whose values are
+    its models, and each value a model sets is one its parameter may take:
+    a fault here, at import, not in a user's file."""
+    from . import models
+
+    for choice in models.choices():
+        declared = parameter(choice)
+        if declared.kind != "model" or tuple(declared.choices or ()) != models.names(choice):
+            raise ValueError(f"{choice}: not a parameter of kind 'model' with the choices {models.names(choice)}")
+        for found in models.models(choice):
+            for name, set_value in found.sets:
+                if name in models.choices():
+                    raise ValueError(f"{choice}: model {found.name!r} sets the choice {name!r}")
+                parameter(name).check(set_value)
 
 
 def checked_overrides(values: dict, where: str) -> dict:
@@ -166,18 +209,31 @@ def record(scenario) -> dict:
     its default."""
     configuration = getattr(scenario, "configuration", None)
     overrides = configuration.overrides if configuration is not None else {}
-    return {"file": configuration.file if configuration is not None else None,
-            "overrides": {name: {"value": _plain(v), "default": _plain(parameter(name).default),
-                                 "unit": parameter(name).unit, "source": parameter(name).source}
-                          for name, v in sorted(overrides.items())}}
+    out = {"file": configuration.file if configuration is not None else None,
+           "overrides": {name: {"value": _plain(v), "default": _plain(parameter(name).default),
+                                "unit": parameter(name).unit, "source": parameter(name).source}
+                         for name, v in sorted(overrides.items())}}
+    from . import models
+
+    set_by_models = {}  # the values a chosen model sets in place of the defaults, when it sets any
+    for name in sorted(p.name for p in parameters()):
+        setter = None if name in overrides else models.set_by(name, overrides)
+        if setter is not None:
+            set_by_models[name] = {"value": _plain(dict(setter.sets)[name]), "default": _plain(default(name)),
+                                   "unit": parameter(name).unit, "model": f"{setter.choice}: {setter.name}"}
+    if set_by_models:
+        out["set_by_models"] = set_by_models
+    return out
 
 
 def recorded_value(name: str, configuration_record: dict | None):
     """The value of ``name`` a run had, from its :func:`record` (a
     provenance's ``configuration``; None or empty: the defaults), so a
     result shown later is judged by the run's own rules."""
-    override = ((configuration_record or {}).get("overrides") or {}).get(name)
-    return parameter(name).check(override["value"]) if override is not None else default(name)
+    overrides = (configuration_record or {}).get("overrides") or {}
+    chosen = {other: parameter(other).check(entry["value"]) for other, entry in overrides.items()
+              if other == name or other in _model_choices()}
+    return effective(name, chosen)
 
 
 def value_of_run(name: str, result):
@@ -185,6 +241,12 @@ def value_of_run(name: str, result):
     had, from its provenance's configuration; the default without one."""
     provenance = getattr(result, "provenance", None)
     return recorded_value(name, getattr(provenance, "configuration", None))
+
+
+def _model_choices() -> list[str]:
+    from . import models
+
+    return models.choices()
 
 
 def _plain(value):

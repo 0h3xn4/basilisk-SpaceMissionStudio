@@ -1156,3 +1156,19 @@ def test_run_keeps_the_scenario_as_run_and_the_file_it_came_from(tmp_path, capsy
     assert cli.main(["run", str(as_run), "--out-dir", str(tmp_path / "again")]) == 0
     again = json.loads((tmp_path / "again" / "provenance.json").read_text())
     assert again["scenario_sha256"] == record["scenario_sha256"]
+
+
+def test_assumptions_marks_the_values_a_margin_policy_sets(tmp_path, capsys):
+    """Transparency plan, Phase 6b: with AD10's summary table as the margin
+    policy, ``assumptions --changed`` lists the policy (CHANGED) and the two
+    margins it sets (SET BY), with the defaults they replace."""
+    project = tmp_path / "project.yaml"
+    project.write_text("parameters:\n  propellant_budget.margin_policy: ad10_summary_table\n", encoding="utf-8")
+    path = tmp_path / "s.json"
+    _write_scenario(path, config_file="project.yaml")
+    assert cli.main(["assumptions", str(path), "--changed", "--area", "propellant_budget"]) == 0
+    out = capsys.readouterr().out
+    assert "propellant_budget.margin_policy" in out and "CHANGED (default ad10_equations)" in out
+    residual = next(line for line in out.splitlines() if "residual_fraction" in line)
+    assert "0.1 " in residual and "SET BY propellant_budget.margin_policy: ad10_summary_table (default 0.01)" in residual
+    assert "uncertainty_fraction" in out and "cam_count_factor" not in out

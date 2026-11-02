@@ -171,3 +171,24 @@ def test_a_model_choice_names_its_models_and_is_set_by_name(page, qtbot, tmp_pat
     page.value_edit.setText("median")
     page.set_button.click()
     assert "one of population, sample" in page.edit_error.text() and path.read_text(encoding="utf-8") == before
+
+
+def test_a_margin_policy_shows_the_values_it_sets(page, qtbot, tmp_path, monkeypatch):
+    """Transparency plan, Phase 6b: with AD10's summary table chosen, the
+    residual reads 0.1 with the policy as its source, not bold (the file
+    does not set it), and its details say a value set here replaces it."""
+    path = tmp_path / "project.yaml"
+    monkeypatch.setattr(page, "_ask_save_path", lambda: str(path))
+    page.new_button.click()
+    page.select("propellant_budget.margin_policy")
+    page.value_edit.setText("ad10_summary_table")
+    with qtbot.waitSignal(page.configuration_edited):
+        page.set_button.click()
+    row = _row(page, "propellant_budget.residual_fraction")
+    assert page.table.cell(row, 1) == "0.1" and page.table.cell(row, 2) == "0.01"
+    assert page.table.cell(row, 4) == "AD10's summary table (propellant_budget.margin_policy)"
+    assert not page.table.row_is_bold(row) and page.table.row_is_bold(_row(page, "propellant_budget.margin_policy"))
+    page.select("propellant_budget.residual_fraction")
+    assert page.value_edit.text() == "0.1"
+    assert ("Set to 0.1 by propellant_budget.margin_policy: AD10's summary table; a value set here replaces it."
+            in page.detail_label.text())

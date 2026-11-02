@@ -71,6 +71,11 @@ parameters:
   # Limits: at least 0 [m per (m^2/kg)]
   # propellant_budget.geo_graveyard_per_cr_a_m: 1000000.0  # [m per (m^2/kg)]
 
+  # The margins' policy: AD10's equations, or the residual and uncertainty its summary table prints. A margin set in this file replaces the policy's.
+  # Source: AD10 Secs. 5.6, 5.8, 6.4. The equations are the ones the budget used before the choice existed.
+  # One of: ad10_equations, ad10_summary_table
+  # propellant_budget.margin_policy: ad10_equations  # [-]
+
   # The budget iterates until the propellant total changes by less than this.
   # Source: AD10 Sec. 6.5.
   # Limits: 1e-06 to 100 [kg]

@@ -5,6 +5,19 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Margin policies (2026-11-02)
+
+- **A policy sets parameters, it does not replace them:** each margin
+  stays one named parameter with one source; the policy is a set of
+  values for them. A project's own value replaces the policy's, so the
+  plan's "user" profile is the project file itself, not a third model.
+- **Only the differences the repository records:** the summary table's
+  10 % residual and 20 % uncertainty, already in the budget's note. No
+  other value of the table is written here; the policy says so.
+- **The default sets nothing:** with AD10's equations no record, note or
+  trace changes, and a record shows `set_by_models` only when a policy
+  set a value.
+
 ## Selectable models (2026-11-01)
 
 - **A choice is a parameter:** one way to set it (the project file), one

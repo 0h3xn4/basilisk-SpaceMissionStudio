@@ -343,6 +343,7 @@ _GUI_CASES = {
 # A choice of model (config.models): its case is a named test that runs each model.
 _MODEL_CASES = {
     "monte_carlo.spread_statistic": "test_model_registry.py::test_each_spread_statistic_is_the_one_it_declares",
+    "propellant_budget.margin_policy": "test_model_registry.py::test_the_summary_tables_budget_says_so_and_records_it",
 }
 
 

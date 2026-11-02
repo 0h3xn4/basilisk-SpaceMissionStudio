@@ -117,7 +117,7 @@ def budget_record(scenario, spacecraft_name: str, budget, result=None) -> dict:
     ``spacecraft_name``; ``result``: the run it took its simulated
     contributors from, if any."""
     from . import propellant_budget as pb
-    from ..config import registry
+    from ..config import models, registry
     from ..schema.scenario import PropellantBudgetConfig
 
     spacecraft = next(sc for sc in scenario.spacecraft if sc.name == spacecraft_name)
@@ -133,7 +133,8 @@ def budget_record(scenario, spacecraft_name: str, budget, result=None) -> dict:
         "spacecraft": spacecraft_name,
         "inputs": {"propellant_budget": _plain(config), "from_run": result is not None},
         "model": {"method": "rocket equation per contributor, in the order of the rows (engine.propellant_budget, "
-                            "ESA AD10)", "rules": rules, "constants": constants},
+                            "ESA AD10)", "rules": rules, "constants": constants,
+                  "models": models.records(scenario, "propellant_budget")},
         "results": {"dry_mass_kg": budget.dry_mass_kg, "isp_s": budget.isp_s, "efficiency": budget.efficiency,
                     "iterations": budget.iterations, "rows": _plain(budget.rows),
                     "total_delta_v_m_s": budget.total_delta_v_m_s,

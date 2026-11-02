@@ -487,6 +487,13 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **Margin policies for the propellant budget:**
+  `propellant_budget.margin_policy` chooses AD10's equations (the
+  default, as before) or AD10's summary table, whose residual and
+  uncertainty are 10 % and 20 % of the tank. A margin the project file
+  sets itself replaces the policy's. The budget's note, each row's
+  calculation, its record (`set_by_models`), the Assumptions page and
+  `assumptions` ("SET BY") say which values a policy set.
 - **Selectable models, starting with the Monte Carlo spread:** a model
   is declared once with its method, inputs, outputs, assumptions,
   references and the tests that check it (`config/models.py`); a choice
