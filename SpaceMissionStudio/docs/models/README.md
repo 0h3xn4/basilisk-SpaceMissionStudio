@@ -11,7 +11,7 @@ configuration file changes them without editing code
 |---|---|---|
 | Delta-V and propellant budget (ESA AD10) | [Propellant budget](propellant-budget.md) | `propellant_budget.*` |
 | Orbital lifetime, disposal rules and drag make-up | [Orbital lifetime](lifetime.md) | `lifetime.*` |
-| RF link budget, onboard data and power | [RF link, data handling and power](link-data-and-power.md) | `link.*`, `data_handling.*` |
+| RF link budget, onboard data and power | [RF link, data handling and power](link-data-and-power.md) | `link.*`, `data_handling.*`, `power.*` |
 | A run's figures, events, critical marks and dashboard badges | [Reading a run's results](reading-results.md) | `results.*` |
 | The integrator's tolerances, the re-entry checks, the conservation check | [Dynamics: integration and run control](dynamics-run-control.md) | `dynamics.*` |
 | The atmosphere models and tables, space weather past the prediction, Earth orientation, TLEs, mean elements | [Environment data](environment-and-data.md) | `space_weather.*`, `tle.*` |
@@ -70,6 +70,7 @@ recorded with the results it gives and named where they are shown.
 | `monte_carlo.spread_statistic` | `population` (default), `sample` | [Monte Carlo statistics](monte-carlo-statistics.md) |
 | `propellant_budget.margin_policy` | `ad10_equations` (default), `ad10_summary_table` | [Propellant budget](propellant-budget.md#the-margin-policy-margin_policy) |
 | `dynamics.shadowing_bodies` | `central_body` (default), `tracked_bodies` | [Dynamics: integration and run control](dynamics-run-control.md#shadows-shadowing_bodies) |
+| `power.degradation` | `none` (default), `yearly_rate`, `radiation_dose` | [RF link, data handling and power](link-data-and-power.md#solar-array-degradation-degradation) |
 
 The atmosphere is chosen in the scenario itself
 (`space_weather.atmosphere_model`: `nrlmsise00`, `exponential` or

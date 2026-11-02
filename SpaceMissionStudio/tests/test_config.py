@@ -63,7 +63,8 @@ _MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifeti
                 "orbit_control": "orbit-control.md", "geo_station_keeping": "orbit-control.md",
                 "roe_formation": "roe-formation.md", "flight_software": "flight-software-and-navigation.md",
                 "navigation": "flight-software-and-navigation.md", "checks": "pre-run-checks.md",
-                "explain": "explain.md", "monte_carlo": "monte-carlo-statistics.md"}
+                "explain": "explain.md", "monte_carlo": "monte-carlo-statistics.md",
+                "power": "link-data-and-power.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -345,6 +346,7 @@ _MODEL_CASES = {
     "monte_carlo.spread_statistic": "test_model_registry.py::test_each_spread_statistic_is_the_one_it_declares",
     "propellant_budget.margin_policy": "test_model_registry.py::test_the_summary_tables_budget_says_so_and_records_it",
     "dynamics.shadowing_bodies": "test_shadows.py::test_the_moon_shadows_a_spacecraft_behind_it_with_tracked_bodies",
+    "power.degradation": "test_solar_degradation.py::test_a_run_degrades_the_panels_by_the_model",
 }
 
 
@@ -392,6 +394,48 @@ _LINK_CASES = {
 }
 
 
+def _remaining_after_five_years(model, **base):
+    """What a panel keeps after five years with ``model`` (the parameters a
+    model reads change nothing under "none")."""
+    def measure(configuration):
+        from spacemissionstudio.engine import solar_degradation
+
+        overrides = dict(base, **(configuration.overrides if configuration is not None else {}))
+        overrides["power.degradation"] = model
+        found = solar_degradation.from_scenario(SimpleNamespace(configuration=Configuration(overrides)))
+        return found.remaining(found.years_at(5.0 * solar_degradation.YEAR_S))
+
+    return measure
+
+
+_DOSE = {"power.displacement_damage_dose_per_year_mev_g": 1.0e9}  # [MeV/g] the dose model needs one
+# name: (value to set, what to measure: called with the configuration, None for the defaults)
+_POWER_CASES = {
+    "power.years_in_orbit_at_start": (3.0, _remaining_after_five_years("yearly_rate")),
+    "power.degradation_per_year": (0.01, _remaining_after_five_years("yearly_rate")),
+    "power.uv_darkening_factor": (1.0, _remaining_after_five_years("yearly_rate")),
+    "power.thermal_cycling_factor": (0.95, _remaining_after_five_years("yearly_rate")),
+    "power.displacement_damage_dose_per_year_mev_g": (5.0e9, _remaining_after_five_years("radiation_dose")),
+    "power.dose_fit_c": (0.25, _remaining_after_five_years("radiation_dose", **_DOSE)),
+    "power.dose_fit_dx_mev_g": (3.0e9, _remaining_after_five_years("radiation_dose", **_DOSE)),
+}
+
+
+@pytest.mark.parametrize("name", sorted(_POWER_CASES))
+def test_setting_a_degradation_parameter_changes_what_the_panels_keep(name):
+    """Each degradation parameter set in a project configuration changes
+    the fraction of its efficiency a panel keeps, and set to its default
+    leaves it as it was. The dose itself has no default a run may use:
+    its case starts from the smallest the test gives."""
+    value, measure = _POWER_CASES[name]
+    if name == "power.displacement_damage_dose_per_year_mev_g":
+        before = measure(Configuration({name: 1.0e9}))
+    else:
+        before = measure(None)
+        assert measure(Configuration({name: registry.default(name)})) == before, name
+    assert measure(Configuration({name: registry.parameter(name).check(value)})) != before, name
+
+
 def test_every_parameter_has_a_case_that_sets_it():
     """A parameter declared without a case below fails here: the
     definition of done asks that a test set each one (transparency audit
@@ -401,7 +445,7 @@ def test_every_parameter_has_a_case_that_sets_it():
     declared = {p.name for p in registry.parameters()}
     cases = (set(_CASES) | set(_LIFETIME_CASES) | set(_LINK_CASES) | set(_RESULTS_CASES) | set(_DYNAMICS_CASES)
              | set(_ENVIRONMENT_CASES) | set(_CONTROL_CASES) | set(_ROE_CASES) | set(_FSW_NAV_CASES)
-             | set(_CHECK_CASES) | set(_EXPLAIN_CASES) | set(_GUI_CASES) | set(_MODEL_CASES))
+             | set(_CHECK_CASES) | set(_EXPLAIN_CASES) | set(_GUI_CASES) | set(_MODEL_CASES) | set(_POWER_CASES))
     assert declared == cases, f"no case for {sorted(declared - cases)}"
     for where in _GUI_CASES.values():
         file, name = where.split("::")

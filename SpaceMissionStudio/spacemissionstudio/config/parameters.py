@@ -152,6 +152,50 @@ register(
               minimum=130.0, maximum=2000.0),
 )
 
+# -- Solar-array degradation (engine.solar_degradation) ----------------------------------------------
+
+_SOLAR_MAX = "The Solar Maximum Mission array's prediction (T. Miller, NASA TM-86194, 1985, p. 11)"
+_DDD_FIT = ("Walters et al., NASA/CP-2007-214494, p. 29, Figures 7 and 8: Emcore ATJ and Spectrolab "
+            "triple-junction cells")
+
+register(
+    Parameter("power.degradation", "none", "[-]",
+              "How the solar panels' efficiency falls with time in orbit: not at all (default), by a yearly rate, "
+              "or by the radiation dose (triple-junction cells).", "SpaceMissionStudio's own choice",
+              "None is what a run did before the choice existed.",
+              kind="model", choices=models.names("power.degradation")),
+    Parameter("power.years_in_orbit_at_start", 0.0, "[year]",
+              "How long the spacecraft has been in orbit when the run starts, for power.degradation.",
+              "SpaceMissionStudio's own choice", "0: the run starts at the beginning of life.",
+              minimum=0.0, maximum=50.0),
+    Parameter("power.degradation_per_year", 0.027, "[-]",
+              "The fraction of the panels' output lost each year, for power.degradation: yearly_rate.",
+              "NASA/TM-2003-212513, p. 2: the expected maximum-power degradation of the ISS P6 silicon arrays in "
+              "low Earth orbit", "Flight data: the ISS P6 arrays' current 0.2 to 0.5 %/yr (the same report); Solar "
+              "Max's silicon array 16 % in 5 years (NASA TM-86194); GaAs cells in low Earth orbit at most 1.5 % "
+              "after a year, and 2.2 to 4.5 %/yr at 1100 km (JPL Publication 96-9, pp. 7-5, 7-6). Set your "
+              "cells' and orbit's.", minimum=0.0, maximum=0.5),
+    Parameter("power.displacement_damage_dose_per_year_mev_g", 0.0, "[MeV/g]",
+              "The orbit's yearly proton-equivalent displacement damage dose behind the cells' cover glass, for "
+              "power.degradation: radiation_dose.", "The project's: SPENVIS's displacement-damage-dose output",
+              "No default can be given: it depends on the orbit and the shielding. A run with radiation_dose and "
+              "0 is refused.", minimum=0.0, maximum=1.0e13),
+    Parameter("power.dose_fit_c", 0.199, "[-]",
+              "C of the displacement-damage-dose fit, for power.degradation: radiation_dose.", _DDD_FIT,
+              minimum=0.0, maximum=1.0),
+    Parameter("power.dose_fit_dx_mev_g", 1.2e9, "[MeV/g]",
+              "D_x of the displacement-damage-dose fit, for power.degradation: radiation_dose.", _DDD_FIT,
+              "The paper's proton D_x (D_xp): the dose is the proton-equivalent one.", minimum=1.0, maximum=1.0e13),
+    Parameter("power.uv_darkening_factor", 0.98, "[-]",
+              "The fraction of the output kept after ultraviolet darkening of the cover adhesive, with a "
+              "degradation model.", _SOLAR_MAX,
+              "Its FEP adhesive had no ultraviolet filter; a cover with one may keep more (set 1).",
+              minimum=0.5, maximum=1.0),
+    Parameter("power.thermal_cycling_factor", 0.99, "[-]",
+              "The fraction of the output kept after thermal cycling of the interconnects, with a degradation "
+              "model.", _SOLAR_MAX, minimum=0.5, maximum=1.0),
+)
+
 # -- RF link (engine.link_budget) and data handling (engine.data_handling) -----------------------
 
 register(

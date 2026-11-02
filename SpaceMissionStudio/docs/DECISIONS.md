@@ -5,6 +5,30 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Solar-array degradation (2026-11-02)
+
+- **Two models, by the user's choice:** a yearly rate, simple and
+  checkable against flight data, and the displacement-damage-dose fit,
+  physically based for triple-junction cells. Both are NASA or NRL
+  sources read for this (NTRS), each number cited with its page.
+- **No SMAD-style table of rates by cell type:** none was found in a
+  document that could be read here, so none is quoted. The yearly rate's
+  default is one documented case (ISS P6, expected), and the page lists
+  the flight data a project can choose its own from.
+- **The dose has no default:** it depends on the orbit and the cover
+  glass, and SpaceMissionStudio has no radiation-belt model; a made-up
+  dose would be a made-up result. The run is refused without one, naming
+  the parameter and SPENVIS.
+- **Base-10 logarithm:** the paper writes "log"; its figures only fit
+  base 10. The page and the model say this is an inference, with the
+  test that checks it.
+- **Every panel set each step, before the panels read it:** Basilisk's
+  `simpleSolarPanel` reads its efficiency every step, so a small module
+  sets it; the framework is unchanged. A long run passes the time already
+  flown to each segment.
+- **The one-off factors only with a model:** "none" stays exactly what a
+  run did before.
+
 ## The change history's author (2026-11-02)
 
 - **A plain file, not the app's settings store:** the command line saves

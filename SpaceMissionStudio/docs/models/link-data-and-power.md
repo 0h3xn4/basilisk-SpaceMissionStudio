@@ -85,7 +85,8 @@ These are arithmetic on the settings. A run predicts the real passes.
 
 ## Power
 
-Basilisk's own modules; SpaceMissionStudio sets no power rule of its own.
+Basilisk's own modules. SpaceMissionStudio's one power rule is the panels'
+degradation, which is off by default (below).
 
 - **Solar panel** (`simpleSolarPanel`):
 
@@ -105,9 +106,63 @@ Basilisk's own modules; SpaceMissionStudio sets no power rule of its own.
 
 Flexible solar arrays can feed the same battery from their own cells.
 
+### Solar-array degradation (`degradation`)
+
+`power.degradation` chooses how the panels' efficiency falls with time in
+orbit (code: `engine/solar_degradation.py`). Every panel of a spacecraft,
+its body panel and its arrays' cells, is degraded alike:
+
+    efficiency(t) = efficiency_BOL * F_UV * F_thermal * F(t)
+
+- **`none`** (None, the default): no degradation, F = 1 and no one-off
+  factor. This is what a run did before the choice existed, so no result
+  changes until a project chooses another.
+- **`yearly_rate`** (A yearly rate): F(t) = (1 - D)^t, D the fraction lost
+  each year (`degradation_per_year`). The default, 2.7 %/yr, is NASA's
+  expected maximum-power degradation of the ISS P6 silicon arrays in low
+  Earth orbit (Kerslake and Gustafson, NASA/TM-2003-212513, 2003, p. 2).
+  Flight data to choose your own from:
+
+  | Array | Measured | Source |
+  |---|---|---|
+  | ISS P6, silicon, LEO | short-circuit current 0.2 to 0.5 %/yr (predicted 0.8 %/yr) | NASA/TM-2003-212513 |
+  | Solar Maximum Mission, silicon, 574 km | 16 % in 5 years | NASA TM-86194 (1985) |
+  | UoSAT-5, GaAs, 770 km Sun-synchronous | at most 1.5 % after one year | JPL Publication 96-9, p. 7-6 |
+  | LIPS-III, GaAs, 1100 km, 63° | 2.2 to 4.5 %/yr (predicted about 1 %/yr) | JPL Publication 96-9, p. 7-5 |
+
+- **`radiation_dose`**, Displacement damage dose (triple-junction cells):
+  F(t) = 1 - C log10(1 + D_d t / D_x), the
+  displacement-damage-dose fit of NRL and NASA (Walters et al.,
+  NASA/CP-2007-214494, 2007, pp. 25-30, eq. 2).
+  - **D_d** is the orbit's yearly proton-equivalent displacement damage
+    dose behind the cells' cover glass, in MeV/g
+    (`displacement_damage_dose_per_year_mev_g`): SPENVIS's
+    displacement-damage-dose output for the orbit. SpaceMissionStudio
+    has no radiation-belt model, so there is no default: a run with this
+    model and no dose is refused.
+  - **C = 0.199** and **D_x = 1.2e9 MeV/g** (`dose_fit_c`,
+    `dose_fit_dx_mev_g`) are the paper's fit to Emcore ATJ and Spectrolab
+    triple-junction cells (its Figures 7 and 8; D_x is the proton value).
+    Other cells have their own.
+  - The logarithm is base 10. The paper does not say so; with the natural
+    logarithm its fits would fall below 0.5 at 1e10 MeV/g, off the
+    figures they are drawn on (`tests/test_solar_degradation.py`).
+- **F_UV = 0.98** and **F_thermal = 0.99** (`uv_darkening_factor`,
+  `thermal_cycling_factor`) are the Solar Maximum Mission array's
+  ultraviolet-darkening and thermal-cycling factors (T. Miller, NASA
+  TM-86194, 1985, p. 11), applied with either model. Its FEP cover
+  adhesive had no ultraviolet filter; a cover with one may keep more (set
+  1).
+- **t** is `years_in_orbit_at_start` plus the time flown, the earlier
+  segments of a long run included.
+
+A run with a model records `<spacecraft>.power.degradation_factor` (the
+fraction kept, F_UV F_thermal F(t)) and the model in its provenance.
+
 ## Rules and parameters
 
-Each is a named parameter, `link.<name>` or `data_handling.<name>`.
+Each is a named parameter, `link.<name>`, `data_handling.<name>` or
+`power.<name>`.
 `spacemissionstudio assumptions --area link` lists the values in effect,
 and a project configuration file changes them
 ([Change a parameter](../user-manual/project-configuration.md)).
@@ -118,6 +173,14 @@ and a project configuration file changes them
 | `link.pointing_loss_coeff_db` | 12 | [dB] | The "fixed" pattern's pointing loss per (angle / beamwidth)^2 | Parabolic main-lobe approximation (Wertz & Larson, *Space Mission Analysis and Design*, ch. 13) |
 | `link.max_pointing_loss_db` | 30 | [dB] | The most pointing loss the "fixed" pattern gives | SpaceMissionStudio's own choice |
 | `data_handling.packet_size_bits` | 1 000 000 | [bit] | The transmitter's packet size | Basilisk's `examples/scenarioGroundDownlink.py` |
+| `power.degradation` | `none` | [-] | The panels' degradation: `none`, `yearly_rate` or `radiation_dose` (above) | SpaceMissionStudio's own choice |
+| `power.years_in_orbit_at_start` | 0 | [year] | The time in orbit when the run starts | SpaceMissionStudio's own choice |
+| `power.degradation_per_year` | 0.027 | [-] | D, for `yearly_rate` | NASA/TM-2003-212513, p. 2 (ISS P6, expected) |
+| `power.displacement_damage_dose_per_year_mev_g` | 0 (must be set) | [MeV/g] | D_d, for `radiation_dose` | The project's (SPENVIS) |
+| `power.dose_fit_c` | 0.199 | [-] | C, for `radiation_dose` | Walters et al., NASA/CP-2007-214494, p. 29 |
+| `power.dose_fit_dx_mev_g` | 1.2e9 | [MeV/g] | D_x, for `radiation_dose` | The same |
+| `power.uv_darkening_factor` | 0.98 | [-] | F_UV, with a model | NASA TM-86194, p. 11 |
+| `power.thermal_cycling_factor` | 0.99 | [-] | F_thermal, with a model | NASA TM-86194, p. 11 |
 | `data_handling.explainer_pass_minutes` | 10 | [min] | The pass length of the explanation's "per pass" note | SpaceMissionStudio's own choice |
 
 **Constants**, not parameters:
@@ -142,8 +205,10 @@ saved in its file. Their defaults are listed in the
 - **Data:** instruments make data at a constant rate and are always on.
   There is no downlink schedule: the transmitter sends whenever the link
   closes, to any station in view.
-- **Power:** a constant efficiency with no degradation (beginning of life
-  equals end of life). One panel normal, with no temperature effect or
+- **Power:** by default a constant efficiency with no degradation
+  (beginning of life equals end of life). With a degradation model, every
+  panel of a spacecraft degrades alike, by a rate or a dose constant over
+  the years (no solar cycle, no change of orbit). One panel normal, with no temperature effect or
   packing factor, and no depth-of-discharge limit on the battery.
 - **Timing:** the transmitter's power draw takes effect one step after it
   starts sending (the power sinks run before the battery).
@@ -158,6 +223,13 @@ saved in its file. Their defaults are listed in the
 
 `tests/test_comms_pointing.py`: the Vizard link status follows the margin
 and the required margin.
+
+`tests/test_solar_degradation.py`:
+- each model is its equation, with the project's values;
+- the dose fit is base 10, as the paper's figures show;
+- a run's panel power is the default run's times the factor, recorded;
+- a long run's segments count the time already flown;
+- the dose model without a dose is refused.
 
 ## How each figure was computed
 

@@ -112,6 +112,16 @@ parameters:
   dynamics.shadowing_bodies: tracked_bodies   # [-] or central_body (default)
 ```
 
+So is the solar panels' degradation with time in orbit: none by default,
+a yearly rate, or the radiation dose of triple-junction cells
+([Power](power-link-and-data.md#power-panel-and-battery)):
+
+```yaml
+parameters:
+  power.degradation: yearly_rate          # [-] or radiation_dose, none (default)
+  power.years_in_orbit_at_start: 5.0      # [year]
+```
+
 The Assumptions page lists each choice's models by title, and a name that
 is not one of them is refused. Each model's method, assumptions,
 references and tests are on its page
