@@ -1299,6 +1299,11 @@ Explain also checks the scenario before you run it:
 current scenario to a `.json` file you choose. **Open...** (Ctrl+O) loads
 one back. **New Scenario** (Ctrl+N) clears the editor and starts fresh.
 
+Each save also records what it changed (old and new value, when, who,
+and an override's reason) in a file beside the scenario,
+`mission.history.jsonl`; the scenario file itself is unchanged
+([The change history](docs/user-manual/change-history.md)).
+
 If you started from a template or its customize wizard, **Save** asks
 where to keep your copy: the dialog starts in your home folder under the
 template's file name. The built-in templates are never written to (a

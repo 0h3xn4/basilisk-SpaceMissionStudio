@@ -527,6 +527,18 @@ def cmd_monte_carlo(args: argparse.Namespace) -> int:
     return 0
 
 
+def _save(scenario, path, command: str) -> None:
+    """Save ``scenario`` to ``path`` and record what changed in its change
+    history (transparency plan, Phase 7: ``spacemissionstudio.history``);
+    a history that cannot be written is a warning, the scenario saved all
+    the same."""
+    from . import history
+
+    _entries, problem = history.save(scenario, path, source=f"spacemissionstudio {command}")
+    if problem:
+        print(f"WARNING: {problem}", file=sys.stderr)
+
+
 def cmd_model(args: argparse.Namespace) -> int:
     """Report a spacecraft's 3D model: its parts, the mass properties and
     facets it gives, and whether the spacecraft's stored values match;
@@ -593,7 +605,7 @@ def cmd_model(args: argparse.Namespace) -> int:
         except ScenarioValidationError as exc:
             print(f"INVALID after applying, not saved: {exc}", file=sys.stderr)
             return 1
-        scenario.save(args.scenario)
+        _save(scenario, args.scenario, "model --apply")
         print(f"Saved {args.scenario}")
     return 1 if failed else 0
 
@@ -1149,7 +1161,7 @@ def cmd_ccsds_import(args: argparse.Namespace) -> int:
         scenario.epoch_utc = epoch.isoformat()
     matches[0].orbit = orbit
     scenario.validate()
-    scenario.save(args.out or args.scenario)
+    _save(scenario, args.out or args.scenario, "ccsds-import")
     for note in notes:
         print(f"  {note}")
     print(f"{args.spacecraft}: orbit set from {args.message} -> {args.out or args.scenario}")
@@ -1182,7 +1194,7 @@ def cmd_export_fsw(args: argparse.Namespace) -> int:
     if args.record:
         scenario.fsw_exports = with_record(scenario, record)
         scenario.validate()
-        scenario.save(args.scenario)
+        _save(scenario, args.scenario, "export-fsw")
         print(f"  recorded in {args.scenario}")
     return 0
 
@@ -1311,7 +1323,7 @@ def cmd_generate_constellation(args: argparse.Namespace) -> int:
 
     scenario.spacecraft = (scenario.spacecraft + generated) if args.append else generated
     try:
-        scenario.save(args.out)
+        _save(scenario, args.out, "generate-constellation")
     except ScenarioValidationError as exc:
         print(f"INVALID: {exc}", file=sys.stderr)
         return 1
@@ -1382,7 +1394,7 @@ def cmd_generate_phasing_formation(args: argparse.Namespace) -> int:
         return 1
     scenario.spacecraft = scenario.spacecraft + [follower]
     try:
-        scenario.save(args.out)
+        _save(scenario, args.out, "generate-phasing-formation")
     except ScenarioValidationError as exc:
         print(f"INVALID: {exc}", file=sys.stderr)
         return 1
@@ -1445,7 +1457,7 @@ def cmd_generate_roe_formation(args: argparse.Namespace) -> int:
     try:
         follower = generate_roe_follower(chief, template, args.follower_name, roe_m, args.control_law)
         scenario.spacecraft = scenario.spacecraft + [follower]
-        scenario.save(args.out)
+        _save(scenario, args.out, "generate-roe-formation")
     except ScenarioValidationError as exc:
         print(f"INVALID: {exc}", file=sys.stderr)
         return 1

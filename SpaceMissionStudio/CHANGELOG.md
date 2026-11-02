@@ -503,6 +503,12 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   run records it. Below 5 deg or 1 GHz the method's lowest is used, and the
   run warns. Checked against the ITU's own validation examples. The
   default, `none`, is what the link budget did before: no number changes.
+- **Every save records what it changed:** in `mission.history.jsonl`
+  beside `mission.json`, one line per value with its old and new value,
+  the time, the author (the user name for now), what saved it (the app
+  or the command) and the reason; an override's line carries the reason
+  given for it. The scenario file is unchanged. See
+  `docs/user-manual/change-history.md`.
 - **A tabular atmosphere:** `space_weather.atmosphere_model: tabular`
   interpolates one of the published profiles Basilisk ships, named by
   `atmosphere_table`: the US Standard Atmosphere 1976 (to 86 km),
