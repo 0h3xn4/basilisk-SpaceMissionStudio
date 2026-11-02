@@ -444,7 +444,12 @@ fixed:
   gravity model is (spherical harmonics for Earth, to degree 180, and
   Mars, to degree 80), which other bodies' gravity to include (Sun, Moon,
   ...), the numerical integrator, how long to simulate, and atmospheric
-  drag/space-weather settings. With a Mission Sequence its steps decide
+  drag/space-weather settings. **Atmosphere model**: NRLMSISE-00 with
+  real space weather, the simple exponential, or **Tabular**, one of the
+  published profiles Basilisk ships (**Atmosphere table**: the US
+  Standard Atmosphere 1976 to 86 km, Earth-GRAM 2016's to 200 km,
+  NRLMSISE-00's to 499.5 km), with no drag above its top
+  ([Environment data](docs/models/environment-and-data.md)). With a Mission Sequence its steps decide
   how long the run is; a note under **Duration** then says how long
   ("58 min + 2 event or condition stops"), and Overview shows the same. The rkf45 and rkf78 integrators adapt
   their steps inside each dynamics step to a relative error of 1e-10

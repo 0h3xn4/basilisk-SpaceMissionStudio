@@ -89,7 +89,7 @@ def lifetime_record(scenario, spacecraft_name: str, end, max_years: float, forec
         verdicts[key] = ("met" if life.meets(years) else "not met") if life.known(years) else "not known"
     rules = {parameter.name: registry.value(parameter.name, scenario)
              for parameter in registry.parameters("lifetime")}  # in effect: provenance.configuration says
-    return {
+    record = {
         "kind": LIFETIME_KIND,
         "spacecraft": spacecraft_name,
         "inputs": {"max_years": max_years, "forecast_percentile": forecast_percentile,
@@ -110,6 +110,9 @@ def lifetime_record(scenario, spacecraft_name: str, end, max_years: float, forec
         "warnings": list(life.warnings),
         "provenance": _provenance(scenario, end.data_files),
     }
+    if scenario.space_weather.atmosphere_model == "tabular":  # which profile; written only then: records as before
+        record["model"]["atmosphere_table"] = scenario.space_weather.atmosphere_table
+    return record
 
 
 def budget_record(scenario, spacecraft_name: str, budget, result=None) -> dict:

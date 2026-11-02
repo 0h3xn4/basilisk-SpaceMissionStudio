@@ -22,6 +22,21 @@ Newest milestone first.
 - **The user name until Settings has one:** Section 10's answer, the
   operating-system user name as the default.
 
+## The tabular atmosphere (2026-11-02)
+
+- **Basilisk's own tables:** the user had no table and no reference
+  result. Basilisk ships three Earth profiles with recorded sources and
+  conditions, read by its own reader; they are the choices, and nothing
+  else is made up.
+- **In the scenario, as the other atmospheres:** the atmosphere was
+  already the scenario's choice (`atmosphere_model`); the table is a
+  field beside it, written only when used.
+- **A lifetime uses the same table:** otherwise a tabular scenario's
+  lifetime would silently use NRLMSISE-00. Its warning says what the
+  profile leaves out (the solar cycle; all drag above its top).
+- **Above the top, zero and a warning:** the table says nothing there;
+  extrapolating would invent a density.
+
 ## Shadowing bodies (2026-11-02)
 
 - **One eclipse module per body, combined here:** Basilisk's module with

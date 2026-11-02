@@ -1455,6 +1455,25 @@ No existing test changed.
   (`_MODEL_CASES`): the new choice's page and case. Nothing removed or
   loosened.
 
+## The tabular atmosphere (2026-11-02)
+
+- Added `tests/test_atmosphere_tables.py` (5 tests): the scenario names
+  its table only when it uses one (and an unknown table is refused); each
+  table as recorded, read by Basilisk's reader, the US Standard
+  Atmosphere's sea level 1.225 kg/m^3 and 288.15 K; a run at 300 km reads
+  the NRLMSISE-00 profile's density, its provenance the table's file; no
+  drag and the warning above 86 km; a lifetime reads the same table, with
+  its warning.
+- Added `tests/gui/test_propagation_setup_dialog.py::test_the_tabular_atmosphere_chooses_a_table`.
+- Changed `tests/test_environment_models.py::test_no_jacchia_bowman_model_can_be_mixed_with_nrlmsise_00`:
+  the refusal now names three models ("must be one of 'nrlmsise00',
+  'exponential', 'tabular'"), so the text it expects names them; its
+  docstring names the tabular model. It still checks that a JB-2006 or
+  JB-2008 choice is refused. Nothing removed or loosened.
+
+  Each new test fails on the code before (checked by stashing
+  `spacemissionstudio/`).
+
 ## The change history (2026-11-02)
 
 - Added `tests/test_history.py` (9 tests): the sidecar's name; each save

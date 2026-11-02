@@ -493,6 +493,16 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   or the command) and the reason; an override's line carries the reason
   given for it. The scenario file is unchanged. See
   `docs/user-manual/change-history.md`.
+- **A tabular atmosphere:** `space_weather.atmosphere_model: tabular`
+  interpolates one of the published profiles Basilisk ships, named by
+  `atmosphere_table`: the US Standard Atmosphere 1976 (to 86 km),
+  Earth-GRAM 2016's (to 200 km) or NRLMSISE-00's nominal profile (to
+  499.5 km). A run and a lifetime use the same table; a perigee above its
+  top warns (no drag there), and the provenance records the table's file.
+  The files are fetched with the other support data at installation. A
+  scenario with another model saves and hashes as before.
+- **The run warning for a body that cannot shadow names its rule**
+  (`run.cannot_shadow`), as every other run warning does.
 - **The Moon can shadow an Earth orbiter:** `dynamics.shadowing_bodies:
   tracked_bodies` gives every tracked body but the Sun its own eclipse,
   and a spacecraft's sunlight is their product: lunar eclipses reach the

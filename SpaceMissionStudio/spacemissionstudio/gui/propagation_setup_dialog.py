@@ -91,8 +91,11 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from ..engine import atmosphere_tables
 from ..schema.scenario import (
     ALBEDO_MAPS,
+    ATMOSPHERE_MODELS,
+    ATMOSPHERE_TABLES,
     GRAVITY_FIELDS,
     MAX_GRAVITY_DEGREE,
     SMALL_BODY_CENTRAL_BODIES,
@@ -444,11 +447,13 @@ class PropagationSetupDialog(QDialog):
         # own docstring explains why these two and not, say, Jacchia-Roberts
         # (Basilisk has no such model at all).
         self._atmosphere_model_items = [("NRLMSISE-00 (real space weather)", "nrlmsise00"),
-                                         ("Exponential (simple, no space weather)", "exponential")]
+                                         ("Exponential (simple, no space weather)", "exponential"),
+                                         ("Tabular (a published profile, no space weather)", "tabular")]
         for label, _value in self._atmosphere_model_items:
             self.atmosphere_model_combo.addItem(label)
         self.atmosphere_model_combo.setCurrentIndex(
-            0 if space_weather.atmosphere_model == "nrlmsise00" else 1
+            [value for _label, value in self._atmosphere_model_items].index(space_weather.atmosphere_model)
+            if space_weather.atmosphere_model in ATMOSPHERE_MODELS else 0
         )
         self.atmosphere_model_combo.setToolTip(
             "What atmospheric density model drag (see each spacecraft's own 'Enable "
@@ -460,6 +465,22 @@ class PropagationSetupDialog(QDialog):
         )
         self.atmosphere_model_combo.currentIndexChanged.connect(self._on_atmosphere_model_changed)
         form.addRow("Atmosphere model", self.atmosphere_model_combo)
+
+        self.atmosphere_table_combo = ComboBox()
+        self._atmosphere_table_items = list(ATMOSPHERE_TABLES)
+        for name in self._atmosphere_table_items:
+            table = atmosphere_tables.table(name)
+            self.atmosphere_table_combo.addItem(f"{table.title} ({table.bottom_km:g} to {table.top_km:g} km)")
+            self.atmosphere_table_combo.setItemData(self.atmosphere_table_combo.count() - 1,
+                                                    f"{table.source} Made for: {table.conditions}",
+                                                    Qt.ItemDataRole.ToolTipRole)
+        self.atmosphere_table_combo.setCurrentIndex(
+            self._atmosphere_table_items.index(space_weather.atmosphere_table)
+            if space_weather.atmosphere_table in self._atmosphere_table_items else 0)
+        self.atmosphere_table_combo.setToolTip(
+            "The profile the tabular model interpolates: density by altitude only, the same everywhere and at "
+            "every time, and 0 above its top. Basilisk ships these tables; hover an item for its source.")
+        form.addRow("Atmosphere table", self.atmosphere_table_combo)
 
         self.space_weather_source_combo = ComboBox()
         self.space_weather_source_combo.addItems(list(SUPPORTED_SPACE_WEATHER_SOURCES))
@@ -549,6 +570,7 @@ class PropagationSetupDialog(QDialog):
         )
         for widget in (self.forecast_percentile_combo, self.msfc_file_edit, self.msfc_browse_button):
             widget.setEnabled(is_msis)
+        self.atmosphere_table_combo.setEnabled(self._selected_atmosphere_model() == "tabular")
 
     def _selected_atmosphere_model(self) -> str:
         return self._atmosphere_model_items[self.atmosphere_model_combo.currentIndex()][1]
@@ -626,6 +648,7 @@ class PropagationSetupDialog(QDialog):
             local_file_path=self.local_file_edit.text().strip() or None,
             cache_dir=self.cache_dir_edit.text().strip() or None,
             atmosphere_model=self._selected_atmosphere_model(),
+            atmosphere_table=self._atmosphere_table_items[self.atmosphere_table_combo.currentIndex()],
             forecast_percentile=self._forecast_items[self.forecast_percentile_combo.currentIndex()][1],
             msfc_file_path=self.msfc_file_edit.text().strip() or None,
         )
@@ -655,6 +678,7 @@ class PropagationSetupDialog(QDialog):
                       "space_weather.local_file_path": "local_file_edit",
                       "space_weather.cache_dir": "cache_dir_edit",
                       "space_weather.atmosphere_model": "atmosphere_model_combo",
+                      "space_weather.atmosphere_table": "atmosphere_table_combo",
                       "space_weather.forecast_percentile": "forecast_percentile_combo",
                       "space_weather.msfc_file_path": "msfc_file_edit"}
 

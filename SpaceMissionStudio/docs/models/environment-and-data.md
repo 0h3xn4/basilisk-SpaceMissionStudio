@@ -1,4 +1,4 @@
-# Environment data: space weather, Earth orientation, TLEs
+# Environment data: the atmosphere, space weather, Earth orientation, TLEs
 
 The rules SpaceMissionStudio applies to the environment's data, and the
 checks it makes on it. Code:
@@ -9,6 +9,54 @@ checks it makes on it. Code:
 Where each file comes from, and how to update it:
 [Reference data](../user-manual/reference-data.md) and
 [Data and standards](../reference/data-and-standards.md).
+
+## The atmosphere
+
+A run with drag reads the density of one of three models, the scenario's
+`space_weather.atmosphere_model` (Scenario › Environment, **Atmosphere
+model**). Each is Basilisk's; the altitude it is given is the WGS-84
+geodetic one (`engine/geodetic_atmosphere.py`).
+
+| Model | Name | Density from | Use it for |
+|---|---|---|---|
+| NRLMSISE-00 | `nrlmsise00` (default) | the day's real space weather (below), position and time | any orbit: lifetimes, station keeping |
+| Exponential | `exponential` | 1.217 kg/m^3 at sea level, 8.5 km scale height | a quick check only: far too thin above about 150 km |
+| Tabular | `tabular` | a published profile, by altitude only | entry and low-altitude analyses within the table, a fixed reference profile |
+
+The tabular model interpolates linearly in altitude one of the profiles
+Basilisk ships (`supportData/AtmosphereData`, read by Basilisk's
+`readAtmTable` and interpolated by its `TabularAtmosphere`); the scenario
+names it in `space_weather.atmosphere_table`
+(`engine/atmosphere_tables.py`):
+
+| Table | Name | Altitudes | Made for |
+|---|---|---|---|
+| U.S. Standard Atmosphere, 1976 | `us_standard_1976` | -5 to 86 km | the standard's mid-latitude year-round mean; not defined above 86 km |
+| Earth-GRAM 2016, nominal profile | `earthgram_2016_nominal` | 0 to 200 km | 40 deg N, 105.27 deg W, 2021-09-21 21 h; F10.7 230, Ap 16.3 |
+| NRLMSISE-00, nominal profile | `nrlmsise00_nominal` | 0 to 499.5 km | 40 deg N, 40 deg E, 2021-04-01 21 h UT; the indices were ModelWeb's defaults, not recorded |
+
+- **Sources:** the U.S. Standard Atmosphere, 1976 (NOAA, NASA, USAF;
+  NOAA-S/T 76-1562); NASA's Earth-GRAM 2016; NRLMSISE-00 from NASA CCMC's
+  ModelWeb; each table every 500 m, as Basilisk's
+  `supportData/AtmosphereData/support/README.txt` and its Earth-GRAM
+  namelist record.
+- **Assumptions:** one column, the same everywhere and at every time: no
+  latitude, local time or solar activity. Above the table's top, and
+  below its bottom, the density is 0.
+- **What it says:** a spacecraft with drag whose perigee is above the
+  top gets the run warning `run.above_atmosphere_table`; a lifetime with
+  the tabular model warns `lifetime.tabular_atmosphere` (an orbit above
+  the top never decays). The run's provenance records the table's file
+  and SHA-256 (`data_files.atmosphere_table`), and a lifetime's record
+  names the table.
+- **Checked against:** `tests/test_atmosphere_tables.py`: each table read
+  by Basilisk's reader between the altitudes recorded here, the US
+  Standard Atmosphere's sea level its defining 1.225 kg/m^3 and 288.15 K;
+  a run at 300 km reading the NRLMSISE-00 profile's density at its
+  altitude; zero drag and the warning above the US Standard's 86 km; a
+  lifetime reading the same table.
+- **Data:** the three files are support data, fetched once at
+  installation with the rest (`engine.kernels`); a run never downloads.
 
 ## Space weather
 
