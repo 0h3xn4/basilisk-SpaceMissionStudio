@@ -17,6 +17,7 @@ New to the app? Do [Getting started](../getting-started.md) first.
 | Read plots, events and exports? | [Read the results](read-the-results.md) |
 | Run things without the GUI? | [Use the command line](command-line.md) |
 | Change a rule or margin an analysis uses, for my project? | [Change a parameter](project-configuration.md) |
+| See what changed in a scenario, when, by whom and why? | [The change history](change-history.md) |
 
 ## Mission features
 

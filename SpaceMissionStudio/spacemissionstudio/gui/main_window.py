@@ -61,7 +61,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from .. import output_provenance
+from .. import history, output_provenance
 from ..engine import monte_carlo_results, run_store
 from ..engine.series_names import featured_series
 from ..logging_setup import get_log_file_path
@@ -1793,12 +1793,14 @@ class MainWindow(QMainWindow):
         except ScenarioValidationError as exc:
             self._open_problem(f"Cannot save: {self.scenario_editor.problem_display(str(exc))}", str(exc))
             return
-        try:
-            scenario.save(path)
+        try:  # and record what changed in its change history (Phase 7, spacemissionstudio.history)
+            _entries, history_problem = history.save(scenario, path, source="app")
         except OSError as exc:  # unwritable folder, a file in the path, a full disk (audit M9)
             report(self, f"Could not save the scenario to {path}: {exc}\n"
                          "The previous file, if there was one, is unchanged.")
             return
+        if history_problem:
+            report(self, f"Saved {path.name}, but {history_problem}.", kind="warning")
         self._current_path = path
         if hasattr(self, "run_page"):
             self._recall_archive_dir()  # this scenario's Monte Carlo archive folder (M5b)
