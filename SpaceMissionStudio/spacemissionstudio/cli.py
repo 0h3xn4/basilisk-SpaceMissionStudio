@@ -976,6 +976,31 @@ def cmd_earth_orientation(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_history(args: argparse.Namespace) -> int:
+    """A scenario's change history (``spacemissionstudio.history``), newest
+    first; --spacecraft and --field filter it. Reads the file only."""
+    from . import history
+    from .engine.scenario_diff import short
+
+    entries, problems = history.read(args.scenario)
+    for problem in problems:
+        print(f"WARNING: {problem} (skipped)", file=sys.stderr)
+    shown = history.newest_first(entries, args.spacecraft, args.field or "")
+    if not entries:
+        print(f"No change recorded for {args.scenario} ({history.history_path(args.scenario).name} does not exist "
+              "or is empty): the history starts with the next save.")
+        return 0
+    print(f"{len(shown)} of {len(entries)} changes, newest first ({history.history_path(args.scenario).name}):")
+    for entry in shown:
+        path = entry.get("path") or "(the scenario)"
+        old, new = entry.get("old"), entry.get("new")
+        change = f"{short(old, 40)} -> {short(new, 40)}" if old is not None else short(new, 40)
+        reason = f"  reason: {entry['reason']}" if entry.get("reason") else ""
+        print(f"  {entry.get('time_utc', '')}  {entry.get('author', '')}  {entry.get('source', '')}  "
+              f"{entry.get('kind', '')}  {path}  {change}{reason}")
+    return 0
+
+
 def cmd_small_bodies(args: argparse.Namespace) -> int:
     """Status of the small-body files (433 Eros: ephemeris and shape);
     --fetch downloads them (network: only when asked), --import installs
@@ -1690,6 +1715,12 @@ def build_parser() -> argparse.ArgumentParser:
                             help="install Earth PCK .bpc files from disk (a .cmt next to each is read too)")
     eop_action.add_argument("--rollback", action="store_true", help="restore the previously installed files")
     p_eop.set_defaults(func=cmd_earth_orientation)
+
+    p_history = subparsers.add_parser("history", help="a scenario's change history, newest first (reads only)")
+    p_history.add_argument("scenario", type=Path)
+    p_history.add_argument("--spacecraft", help="only this spacecraft's changes (and the scenario's own)")
+    p_history.add_argument("--field", help="only changes whose path contains this, e.g. dry_mass_kg")
+    p_history.set_defaults(func=cmd_history)
 
     p_small = subparsers.add_parser("small-bodies",
                                     help="small-body files (433 Eros ephemeris and shape): status, --fetch, --import")

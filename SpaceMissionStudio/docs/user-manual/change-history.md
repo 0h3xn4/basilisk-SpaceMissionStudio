@@ -49,5 +49,32 @@ in the app and on the command line alike: it is kept in a plain file,
 `~/.spacemissionstudio/author.txt`. Leave it empty and saves record your
 operating-system user name ("unknown" when there is none).
 
-Code: `spacemissionstudio/history.py`. A History view in the app comes
-next (the transparency plan, Phase 7).
+## Reading the history
+
+- **In the app:** **Change History...** (the Scenario area's commands, or
+  the command palette) lists every change, newest first: the time, the
+  author, what saved it, the kind, the field, the old and the new value,
+  and the reason. Choose a spacecraft to see its changes (and the
+  scenario's created and replaced lines), or type part of a field's name
+  (`dry_mass`, `orbit`). The view only reads the file. A scenario not
+  saved yet has no history: it starts with the first save.
+- **On the command line:**
+
+      spacemissionstudio history mission.json [--spacecraft sat-1] [--field dry_mass]
+
+  prints the same, newest first.
+
+A line that is not a change (the file edited by hand, a line cut short)
+is skipped and named, never removed from the file.
+
+## Undo names the edit
+
+Undo and Redo (the top bar, Ctrl+Z, Ctrl+Shift+Z) are labelled with the
+edit they change back: "Undo dry_mass_kg (sat-1)", or "Undo 3 changes"
+when one step changed several values. The tooltip gives the old and new
+value, and after the step the status bar says what was undone. Undo
+works on the edits since the scenario was opened; the history file keeps
+what was saved.
+
+Code: `spacemissionstudio/history.py`, `gui/change_history_dialog.py`,
+`gui/undo_history.py`.

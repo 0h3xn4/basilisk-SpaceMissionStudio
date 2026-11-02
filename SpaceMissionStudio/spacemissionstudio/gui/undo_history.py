@@ -21,7 +21,8 @@ The history holds whole scenarios (``Scenario.to_dict()``, valid or not:
 a scenario being built from scratch is invalid until it has a
 spacecraft), one per settled edit: the main window records the scenario
 once typing pauses. A field being typed in keeps its own Ctrl+Z for its
-text. Loading or starting a scenario starts a new history.
+text. Loading or starting a scenario starts a new history. Undo and Redo
+are labelled with what they change back (:meth:`ScenarioHistory.undo_label`).
 """
 
 from __future__ import annotations
@@ -81,3 +82,22 @@ class ScenarioHistory:
             return None
         self._index += 1
         return copy.deepcopy(self._states[self._index])
+
+    def undo_label(self) -> tuple[str, str] | None:
+        """``(short, long)`` naming what :meth:`undo` would change back
+        (``history.describe``); None when there is nothing to undo."""
+        if not self.can_undo():
+            return None
+        return _label(self._states[self._index], self._states[self._index - 1])
+
+    def redo_label(self) -> tuple[str, str] | None:
+        """The same for :meth:`redo`."""
+        if not self.can_redo():
+            return None
+        return _label(self._states[self._index], self._states[self._index + 1])
+
+
+def _label(before: dict, after: dict) -> tuple[str, str]:
+    from .. import history
+
+    return history.describe(history.changes(before, after))

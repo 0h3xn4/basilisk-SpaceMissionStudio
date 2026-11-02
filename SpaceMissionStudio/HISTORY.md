@@ -14514,6 +14514,26 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The change history: the History view and labelled Undo (2026-11-02)
+
+The transparency plan, Phase 7, its last part. Branch `history-view`.
+
+- **`spacemissionstudio.history`:** `newest_first` (the spacecraft and
+  field filters), `spacecraft_of`, and `describe`, a change's name for a
+  menu and its old and new value for a tooltip.
+- **`gui/change_history_dialog.py`:** the file's entries in a DataTable,
+  newest first, with the spacecraft and field filters, the file's path
+  and any lines skipped; read only.
+- **`gui.main_window`:** the command `file.change_history` (Scenario
+  area, palette), which says when a scenario never saved will have one;
+  Undo and Redo's text, tooltip and status message from
+  `ScenarioHistory.undo_label`/`redo_label` (`gui/undo_history.py`).
+- **The command line:** `history` (`--spacecraft`, `--field`).
+- **Tests:** five more in `tests/test_history.py`.
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4,396 passed (19 min 51 s).
+
 ## Selectable models: solar-array degradation (2026-11-02)
 
 The transparency plan, Phase 6b ("power degradation"). Branch

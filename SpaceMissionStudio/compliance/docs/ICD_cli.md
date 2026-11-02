@@ -143,6 +143,16 @@ IERS-based Earth orientation files: status, --fetch, --import, --rollback
 | `--import` | install Earth PCK .bpc files from disk (a .cmt next to each is read too) |
 | `--rollback` | restore the previously installed files |
 
+## `history`
+
+a scenario's change history, newest first (reads only)
+
+| Argument | Help |
+|---|---|
+| `scenario` |  |
+| `--spacecraft` | only this spacecraft's changes (and the scenario's own) |
+| `--field` | only changes whose path contains this, e.g. dry_mass_kg |
+
 ## `small-bodies`
 
 small-body files (433 Eros ephemeris and shape): status, --fetch, --import

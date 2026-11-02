@@ -54,6 +54,7 @@ ACTION_ICONS = {
     "vizard-config": "sliders-horizontal",
     "vizard-launch": "monitor-play",
     "model-3d": "box",
+    "change-history": "file-text",
     "open-monte-carlo": "folder-open",
     "clear-cursor": "x",
 }
