@@ -1304,7 +1304,10 @@ one back. **New Scenario** (Ctrl+N) clears the editor and starts fresh.
 Each save also records what it changed (old and new value, when, who,
 and an override's reason) in a file beside the scenario,
 `mission.history.jsonl`; the scenario file itself is unchanged
-([The change history](docs/user-manual/change-history.md)).
+([The change history](docs/user-manual/change-history.md)). **Change
+History...** (the Scenario area's commands, or the command palette) shows
+it, newest first, filtered by spacecraft or field;
+`spacemissionstudio history mission.json` prints it.
 
 If you started from a template or its customize wizard, **Save** asks
 where to keep your copy: the dialog starts in your home folder under the
@@ -1316,7 +1319,10 @@ clean copy.
 Windows) step through your scenario edits, one step for each edit once
 you pause typing. While the cursor is in a text field, Ctrl+Z first
 undoes that field's own typing; the top bar's Undo always undoes the last
-scenario edit. New, Open and loading a template start a fresh history.
+scenario edit. Undo and Redo name the edit they change back ("Undo
+dry_mass_kg (sat-1)"; their tooltip has the old and the new value), and
+the status bar says what was undone. New, Open and loading a template
+start a fresh history.
 
 The command palette (Ctrl+K, or the top bar's search) finds any command, area,
 page, spacecraft, ground station, setting, template or result series by a

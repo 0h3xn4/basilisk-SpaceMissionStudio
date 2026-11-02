@@ -203,3 +203,116 @@ def test_settings_sets_the_author_the_app_records(qtbot, tmp_path, monkeypatch):
     path = tmp_path / "mine.json"
     window._save_to(path)
     assert [e["author"] for e in history.read(path)[0]] == ["Ana Ruiz"]
+
+
+def _entry(path, old=None, new=None, kind="edit", time_utc="2026-11-02T12:00:00Z"):
+    return {"format": 1, "time_utc": time_utc, "author": "ana", "source": "app", "kind": kind, "path": path,
+            "old": old, "new": new, "reason": ""}
+
+
+def test_the_history_is_shown_newest_first_and_filtered():
+    """Newest first; a spacecraft's filter keeps its changes and the
+    scenario's own records (created, replaced), not the other spacecraft's
+    or the scenario-wide values; a field's matches any part of the path,
+    in any case."""
+    entries = [_entry("", None, "mission", kind="created", time_utc="2026-11-01T00:00:00Z"),
+               _entry("spacecraft[sat-1].dry_mass_kg", 100.0, 120.0, time_utc="2026-11-01T01:00:00Z"),
+               _entry("spacecraft[sat-2].dry_mass_kg", 90.0, 95.0, time_utc="2026-11-01T02:00:00Z"),
+               _entry("sim_settings.duration_days", 1.0, 2.0, time_utc="2026-11-01T03:00:00Z")]
+    assert [e["time_utc"][11:13] for e in history.newest_first(entries)] == ["03", "02", "01", "00"]
+    assert [e["path"] for e in history.newest_first(entries, "sat-1")] == ["spacecraft[sat-1].dry_mass_kg", ""]
+    assert [e["path"] for e in history.newest_first(entries, field="DRY_MASS")] == [
+        "spacecraft[sat-2].dry_mass_kg", "spacecraft[sat-1].dry_mass_kg"]
+    assert history.spacecraft_of("spacecraft[sat-1].orbit.raan_deg") == "sat-1"
+    assert history.spacecraft_of("name") is None
+
+
+def test_a_change_is_named_for_the_undo_label():
+    """One value: its name (and spacecraft) for the menu, its old and new
+    value for the tooltip; several: how many and which."""
+    assert history.describe([("spacecraft[sat-1].dry_mass_kg", 120.0, 100.0)]) == (
+        "dry_mass_kg (sat-1)", "spacecraft[sat-1].dry_mass_kg: 120.0 -> 100.0")
+    assert history.describe([("name", "a", "b")]) == ("name", "name: a -> b")
+    short, long = history.describe([(f"p{i}", 0, 1) for i in range(5)])
+    assert short == "5 changes" and long == "5 changes: p0, p1, p2, ..."
+
+
+def test_the_command_line_lists_the_history(tmp_path, capsys):
+    """`history`: newest first, filtered, naming the file; a scenario never
+    saved with a history says the history starts with the next save."""
+    path = tmp_path / "mission.json"
+    scenario = _scenario()
+    history.save(scenario, path, author="ana")
+    scenario.spacecraft[0].dry_mass_kg = 120.0  # [kg]
+    history.save(scenario, path, author="ana", reason="new bus")
+    assert cli.main(["history", str(path)]) == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == "2 of 2 changes, newest first (mission.history.jsonl):"
+    assert "spacecraft[sat-1].dry_mass_kg  100.0 -> 120.0  reason: new bus" in lines[1] and "created" in lines[2]
+    assert cli.main(["history", str(path), "--field", "inclination"]) == 0
+    assert capsys.readouterr().out.startswith("0 of 2 changes")
+    assert cli.main(["history", str(tmp_path / "other.json")]) == 0
+    assert "the history starts with the next save" in capsys.readouterr().out
+
+
+@pytest.mark.requires_gui
+def test_undo_and_redo_name_the_edit_they_change_back(qtbot, monkeypatch):
+    """Undo's label and tooltip name the edit it changes back, Redo's the
+    one it makes again; the status bar says what was undone."""
+    from PySide6.QtWidgets import QMessageBox
+
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
+    window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+    qtbot.addWidget(window)
+    editor = window.scenario_editor
+    original = editor.name_edit.text()
+    assert window.undo_action.text() == "&Undo"
+    editor.name_edit.setText("renamed")
+    window._history_timer.stop()
+    window._record_history()  # as the settle timer would
+    assert window.undo_action.text() == "&Undo name"
+    assert f"Changes back name: renamed -> {original}." in window.undo_action.toolTip()
+    window.undo_action.trigger()
+    assert window.statusBar().currentMessage() == f"Undone: name: renamed -> {original}."
+    assert window.redo_action.text() == "&Redo name" and window.undo_action.text() == "&Undo"
+    assert f"Makes again name: {original} -> renamed." in window.redo_action.toolTip()
+
+
+@pytest.mark.requires_gui
+def test_the_history_view_shows_the_saves_newest_first(qtbot, tmp_path, monkeypatch):
+    """File > Change History lists what the saves recorded, newest first,
+    filtered by spacecraft and field; an unsaved scenario says when its
+    history starts."""
+    from pathlib import Path
+
+    from PySide6.QtWidgets import QMessageBox
+
+    from spacemissionstudio.gui import main_window as main_window_module
+    from spacemissionstudio.gui.change_history_dialog import ChangeHistoryDialog
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
+    window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+    qtbot.addWidget(window)
+    reported = []
+    monkeypatch.setattr(main_window_module, "report", lambda widget, text, kind="error": reported.append(text))
+    window.change_history_action.trigger()
+    assert reported and "starts with its first save" in reported[0]
+
+    templates = Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates"
+    assert window.open_path(templates / "22_starter_first_leo_satellite.json")
+    path = tmp_path / "mine.json"
+    window._save_to(path)
+    window.scenario_editor.name_edit.setText("My first satellite")
+    window._save_to(path)
+    dialog = ChangeHistoryDialog(path)
+    qtbot.addWidget(dialog)
+    table = dialog.table
+    assert table.row_count() == 2 and table.cell(0, 3) == "edit" and table.cell(0, 4) == "name"
+    assert table.cell(0, 6) == "My first satellite" and table.cell(1, 3) == "created"
+    dialog.field_filter.setText("dry_mass")
+    assert table.row_count() == 0 and "No change matches" in table.empty_label.text()
+    dialog.field_filter.setText("")
+    assert dialog.spacecraft_filter.itemText(0) == "All spacecraft" and table.row_count() == 2

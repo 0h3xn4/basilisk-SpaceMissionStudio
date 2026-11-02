@@ -567,6 +567,12 @@ class MainWindow(QMainWindow):
             "file.save_as", "Save &As...", self.on_save_as, category="File", area="global",
             shortcut=QKeySequence.StandardKey.SaveAs,
             tip="Saves the scenario to a file you choose; later saves go there. Use it to branch off a variant.")
+        self.change_history_action = add(
+            "file.change_history", "Change &History...", self.on_change_history, category="File", area="scenario",
+            qicon=toolbar_icon("change-history"),
+            tip="Every change the saves of this scenario recorded, newest first, with the time, the author and the "
+                "reason; filter by spacecraft or field. Read from the history file beside the scenario.",
+            keywords=("history", "audit trail", "changes"))
         add("file.quit", "&Quit", self.close, category="File", area="global",
             shortcut=QKeySequence.StandardKey.Quit,
             tip="Closes SpaceMissionStudio, asking to save first if the scenario has unsaved changes.")
@@ -767,9 +773,10 @@ class MainWindow(QMainWindow):
                             action=self.manual_action, keys="F1")
 
         # Home's own page has New blank scenario and Browse for a file.
-        # The Scenario area's Form · JSON toggle (M4b), then its 3D model command.
+        # The Scenario area's Form · JSON toggle (M4b), then its 3D model and change-history commands.
         self.shell.page("scenario").add_widget(self.scenario_editor.mode_toggle)
         self.shell.page("scenario").add_command(self.model_3d_action)
+        self.shell.page("scenario").add_command(self.change_history_action)
         run = self.shell.page("run")
         self.run_area_run_button = run.add_command(self.run_action, primary=True)
         keep_icon(self.run_area_run_button, icon("play", "text.on_accent"))  # the accent icon would vanish on the fill
@@ -1438,6 +1445,16 @@ class MainWindow(QMainWindow):
         show_toast(self, "Restored autosaved changes")
         self.show_view(self.scenario_editor)
 
+    def on_change_history(self) -> None:
+        """File > Change History: the history beside the scenario's file."""
+        from .change_history_dialog import ChangeHistoryDialog
+
+        if self._current_path is None:
+            report(self, "This scenario has not been saved yet: its change history starts with its first save.",
+                   kind="info")
+            return
+        ChangeHistoryDialog(self._current_path, self).exec()
+
     # -- undo and redo ----------------------------------------------------
 
     def _editor_state(self):
@@ -1465,18 +1482,29 @@ class MainWindow(QMainWindow):
             self._update_undo_actions()
 
     def _update_undo_actions(self) -> None:
-        if hasattr(self, "undo_action"):
-            self.undo_action.setEnabled(self._history.can_undo())
-            self.redo_action.setEnabled(self._history.can_redo())
+        """Enable Undo and Redo, labelled with the edit each changes back."""
+        if not hasattr(self, "undo_action"):
+            return
+        typing = " A field being typed in undoes its own text first."
+        for command_id, action, label, verb, does, plain, extra in (
+                ("edit.undo", self.undo_action, self._history.undo_label(), "Undo", "Changes back",
+                 "Undo the last scenario edit.", typing),
+                ("edit.redo", self.redo_action, self._history.redo_label(), "Redo", "Makes again",
+                 "Redo the scenario edit just undone.", "")):
+            action.setEnabled(label is not None)
+            action.setText(f"&{verb} {label[0]}" if label else f"&{verb}")
+            self.commands.refresh_tooltip(command_id, (f"{does} {label[1]}." if label else plain) + extra)
 
     def on_undo(self) -> None:
         if self._history_timer.isActive():  # the edit just made counts first
             self._history_timer.stop()
             self._record_history()
-        self._restore_history(self._history.undo(), "Undone.")
+        label = self._history.undo_label()
+        self._restore_history(self._history.undo(), f"Undone: {label[1]}." if label else "Undone.")
 
     def on_redo(self) -> None:
-        self._restore_history(self._history.redo(), "Redone.")
+        label = self._history.redo_label()
+        self._restore_history(self._history.redo(), f"Redone: {label[1]}." if label else "Redone.")
 
     def _restore_history(self, state, message: str) -> None:
         if state is None:

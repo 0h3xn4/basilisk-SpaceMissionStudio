@@ -5,6 +5,21 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The History view and labelled Undo (2026-11-02)
+
+- **A dialog, from a command:** the default screens stay as they are
+  ("keep the default UI uncluttered"); the history is one command away,
+  in the Scenario area and the palette.
+- **Read only:** the file is a record, only ever appended to by saves;
+  the view and `history` never write it. Going back to an earlier value
+  is Undo's (this session) or an edit's (it is then recorded too).
+- **A spacecraft's filter keeps the scenario's own lines:** its creation
+  and a replaced file belong to every spacecraft's story; scenario-wide
+  values (the duration) do not, and are found by the field filter.
+- **One description for both:** Undo's label and the history name a
+  change from the same comparison (`history.changes`), leaving out the
+  value marks and presets, so what the label says is what changes.
+
 ## Solar-array degradation (2026-11-02)
 
 - **Two models, by the user's choice:** a yearly rate, simple and

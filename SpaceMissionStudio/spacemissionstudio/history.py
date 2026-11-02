@@ -190,3 +190,46 @@ def read(scenario_path) -> tuple[list[dict], list[str]]:
             continue
         entries.append(entry)
     return entries, problems
+
+
+def spacecraft_of(value_path: str) -> str | None:
+    """The spacecraft a value path is of (``spacecraft[sat-1].dry_mass_kg``
+    -> ``sat-1``); None for a scenario-wide value."""
+    if value_path.startswith("spacecraft[") and "]" in value_path:
+        return value_path[len("spacecraft["):value_path.index("]")]
+    return None
+
+
+def newest_first(entries: list[dict], spacecraft: str | None = None, field: str = "") -> list[dict]:
+    """``entries`` (as :func:`read` gives them, oldest first) newest first,
+    those of ``spacecraft`` only when one is given (the scenario's own
+    entries, created and replaced, stay), and those whose path contains
+    ``field`` (any case) when one is given."""
+    field = field.strip().lower()
+    out = []
+    for entry in reversed(entries):
+        path = str(entry.get("path", ""))
+        if spacecraft is not None and path and spacecraft_of(path) != spacecraft:
+            continue
+        if field and field not in path.lower():
+            continue
+        out.append(entry)
+    return out
+
+
+def describe(changed: list[tuple[str, object, object]]) -> tuple[str, str]:
+    """``(short, long)`` naming ``changed`` (:func:`changes`' triples): the
+    short for a menu ("dry_mass_kg", "3 changes"), the long with each old
+    and new value, for a tooltip or the status bar."""
+    from .engine.scenario_diff import short as shorten
+
+    if not changed:
+        return "the value marks", "the value marks (no value)"
+    if len(changed) == 1:
+        path, old, new = changed[0]
+        leaf = path.rsplit(".", 1)[-1] or path
+        where = spacecraft_of(path)
+        return (f"{leaf} ({where})" if where and leaf != path else leaf,
+                f"{path}: {shorten(old, 40)} -> {shorten(new, 40)}")
+    names = ", ".join(path for path, _old, _new in changed[:3]) + (", ..." if len(changed) > 3 else "")
+    return f"{len(changed)} changes", f"{len(changed)} changes: {names}"

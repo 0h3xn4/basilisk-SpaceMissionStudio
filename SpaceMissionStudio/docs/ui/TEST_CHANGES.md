@@ -1540,3 +1540,15 @@ No existing test changed.
 
   Each new test fails on the code before (checked by stashing
   `spacemissionstudio/`).
+
+## The History view and labelled Undo (2026-11-02)
+
+- Added five tests to `tests/test_history.py`: the entries newest first
+  and filtered by spacecraft and field; a change named for Undo's label;
+  `spacemissionstudio history`; Undo and Redo labelled with the edit, the
+  tooltip and the status bar (GUI); the History view listing the saves
+  newest first and filtering, and the command on a scenario never saved
+  (GUI). No existing test changed.
+
+  Each new test fails on the code before (checked by stashing
+  `spacemissionstudio/`).

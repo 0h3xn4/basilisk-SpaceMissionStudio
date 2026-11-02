@@ -506,6 +506,12 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
 - **The change history's author is a name you set:** **Settings > Change
   history > Author**, kept in `~/.spacemissionstudio/author.txt` so the
   command line records the same name; empty, the user name as before.
+- **The change history in the app, and Undo that names the edit:**
+  **Change History...** lists what the saves recorded, newest first,
+  filtered by spacecraft or field (`spacemissionstudio history` prints
+  it). Undo and Redo are labelled with the edit they change back ("Undo
+  dry_mass_kg (sat-1)", the old and new value in the tooltip), and the
+  status bar says what was undone.
 - **Solar panels that degrade with time in orbit:** `power.degradation`
   chooses `yearly_rate`, F = (1 - D)^t with D = 2.7 %/yr by default
   (NASA's expectation for the ISS's silicon arrays), or `radiation_dose`,
