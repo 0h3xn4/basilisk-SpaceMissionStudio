@@ -487,6 +487,22 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   either side, so you see how precisely its times are known. **Open**
   then shows how its delta-V, data, elevation or lowest sunlight was
   read. The events and `events.csv` are unchanged.
+- **The atmospheric gases' attenuation of the link, by ITU-R P.676-13:**
+  `link.atmospheric_loss: itu_r_p676` takes the oxygen and water-vapour
+  attenuation of the slant path (Annex 2's instantaneous methods, 1 to
+  350 GHz) from the link margin at each step's elevation: the live link
+  gate, the post-run margin, Vizard's link status, the Dashboard (an
+  **Atmospheric gases** row) and `link-budget` (`--elevation-deg` with
+  `--range-km`). The station's surface pressure, temperature and
+  water-vapour density are parameters (`link.surface_*`), by default
+  ITU-R P.835's mean annual global reference atmosphere. The
+  Recommendation's data file Part 1 is the ITU's, fetched by the
+  installers and CI and checked against its pinned SHA-256
+  (`spacemissionstudio gaseous-attenuation --fetch`/`--import`, Reference
+  data > Download); a run without it is refused before it starts, and a
+  run records it. Below 5 deg or 1 GHz the method's lowest is used, and the
+  run warns. Checked against the ITU's own validation examples. The
+  default, `none`, is what the link budget did before: no number changes.
 - **The change history's author is a name you set:** **Settings > Change
   history > Author**, kept in `~/.spacemissionstudio/author.txt` so the
   command line records the same name; empty, the user name as before.

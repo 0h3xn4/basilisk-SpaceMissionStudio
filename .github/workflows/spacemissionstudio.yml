@@ -171,6 +171,8 @@ jobs:
         run: spacemissionstudio earth-orientation --fetch
       - name: 433 Eros ephemeris (NAIF) and shape model for the small-body runs
         run: spacemissionstudio small-bodies --fetch
+      - name: ITU-R P.676-13 data file Part 1 for the gaseous attenuation (link.atmospheric_loss)
+        run: spacemissionstudio gaseous-attenuation --fetch
       # A test worker that crashes in native code shows only "<no Python
       # frame>" in faulthandler's output. Python's faulthandler re-raises the
       # signal, so with core dumps on, the kernel writes a core that
@@ -284,6 +286,8 @@ jobs:
         run: spacemissionstudio earth-orientation --fetch
       - name: 433 Eros ephemeris (NAIF) and shape model for the small-body runs
         run: spacemissionstudio small-bodies --fetch
+      - name: ITU-R P.676-13 data file Part 1 for the gaseous attenuation (link.atmospheric_loss)
+        run: spacemissionstudio gaseous-attenuation --fetch
       - name: Tests
         run: python -m pytest tests -q -n auto -p no:cacheprovider -o faulthandler_timeout=600 --junitxml=test-report-${{ matrix.os }}.xml
       - uses: actions/upload-artifact@v6

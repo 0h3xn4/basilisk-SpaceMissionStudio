@@ -1495,3 +1495,32 @@ No existing test changed.
 
   Each fails on the code before (checked by stashing
   `spacemissionstudio/`). No existing test changed.
+
+## The gases' attenuation of the link, ITU-R P.676-13 (2026-11-02)
+
+- Added `tests/test_gaseous_attenuation.py` (19 tests, one of them the
+  Dashboard's row, a GUI test): Annex 1's
+  specific attenuation at nine frequencies and Annex 2's slant path for
+  four cases equal the ITU's validation workbook (CG-3M3J-13-ValEx, Rev
+  8.3.0) to 1e-12; Part 1's interpolation, range and parsing; only the
+  ITU's file is installed (its size and SHA-256), fetched from its URL,
+  found when its folder moves, read by the command line; the real file,
+  when installed, against the workbook's rows; no loss by default; the
+  loss, its trace and the surface parameters in the margin; a missing
+  file refused by the budget, the command line and a run; the post-run
+  margin per sample; a run's margin (the live gate and the post-run
+  series) less the loss at each recorded elevation, with the model and
+  file recorded and the low-elevation warning; the Dashboard's
+  Atmospheric gases row only with the model. The slant-path tests use
+  the two rows of Part 1 the workbook lists, not the ITU's file.
+- Changed `tests/conftest.py`: the autouse fixture points the Part 1
+  folders at the test's own temporary folder, as it does the Earth
+  orientation and small-body ones; a `real_itu_part1` fixture uses the
+  installed file, as `real_small_body_files` does.
+- Changed `tests/test_model_registry.py` (`_PAGES`) and
+  `tests/test_config.py` (`_MODEL_CASES`, and `_LINK_CASES` for the three
+  surface parameters): the new choice's page and cases. Nothing removed
+  or loosened.
+
+  Each new test fails on the code before (checked by stashing
+  `spacemissionstudio/`).

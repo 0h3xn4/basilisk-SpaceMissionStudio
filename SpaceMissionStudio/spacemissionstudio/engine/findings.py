@@ -234,6 +234,14 @@ RULES: dict[str, Rule] = {rule.rule_id: rule for rule in (
          "spacecraft.", "Its shadow is left out of the sunlight, the eclipses, the solar panels and the "
          "solar radiation pressure.", "Accept it, or stop tracking the body (dynamics.shadowing_bodies).",
          override=_RESULT),
+    Rule("link.atmospheric_low_elevation", "Below 5 deg elevation, the gases' attenuation is the one at 5 deg.",
+         "ITU-R P.676-13 Annex 2 is for 5 deg and above; the loss lower down is larger than the one used, so the "
+         "margin there is optimistic.", "Raise the station's min_elevation_deg to 5 deg, or accept it.",
+         override=_RESULT),
+    Rule("link.atmospheric_low_frequency", "Below 1 GHz, the gases' attenuation is the one at 1 GHz.",
+         "ITU-R P.676-13 Annex 2 is for 1 GHz and above; the gases take less lower down (a few hundredths of a dB "
+         "at the zenith at 1 GHz), so the margin there is pessimistic by at most that.",
+         "Accept it, or choose link.atmospheric_loss: none for the link.", override=_RESULT),
     Rule("space_weather.daily_forecast", "A run that reads CelesTrak's 45-day forecast says so.",
          "Those days are a forecast, not observations.", "Accept it, or move the run into the observed days.",
          override=_RESULT),

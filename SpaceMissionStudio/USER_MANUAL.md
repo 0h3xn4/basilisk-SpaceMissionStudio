@@ -791,6 +791,12 @@ all Basilisk modules (`simpleInstrument`, `partitionedStorageUnit`,
   battery series and sample at the cursor, and the state of charge from
   the battery's capacity.
 * Instruments and the transmitter can draw power from the power budget.
+* The link budget takes nothing for the atmosphere unless a project
+  chooses ITU-R P.676-13 (`link.atmospheric_loss: itu_r_p676` in its
+  configuration file): the oxygen and water-vapour attenuation at each
+  step's elevation, for the station's surface conditions
+  (`link.surface_*`). The Dashboard then shows an **Atmospheric gases**
+  row. See [RF link, data handling and power](docs/models/link-data-and-power.md#the-atmospheric-gases-atmospheric_loss).
 
 **Antenna pattern** (same group as the link budget) says how the
 antenna's gain falls off away from its boresight. The margin then uses
@@ -1244,13 +1250,13 @@ it is showing.
 
 The **Reference data** dialog (the status bar's reference data entry,
 **Settings > Reference data** or **Check Reference Data** (the Run area)) lists every reference data file the app uses (SPICE kernels,
-gravity field, magnetic model, space weather, Earth orientation) with
-its status, the dates it covers, where it came from and its SHA-256.
+gravity field, magnetic model, space weather, Earth orientation, ITU-R
+P.676-13 Part 1) with its status, the dates it covers, where it came from and its SHA-256.
 Files that are missing or out of date are marked. This is the only place
 the app downloads anything: **Download...** asks first, naming the
 source, the files and their size, and afterwards says what changed.
-**Import file...** installs a space-weather or Earth orientation file you
-already have (for example from a USB stick), and **Roll back...** puts
+**Import file...** installs a space-weather, Earth orientation or ITU-R
+P.676-13 Part 1 file you already have (for example from a USB stick), and **Roll back...** puts
 back the version the last download or import replaced. See
 [Section 11](#11-common-questions-and-problems) if Run ever says a file
 is missing.

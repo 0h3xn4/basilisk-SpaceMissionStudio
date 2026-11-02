@@ -70,6 +70,7 @@ recorded with the results it gives and named where they are shown.
 | `monte_carlo.spread_statistic` | `population` (default), `sample` | [Monte Carlo statistics](monte-carlo-statistics.md) |
 | `propellant_budget.margin_policy` | `ad10_equations` (default), `ad10_summary_table` | [Propellant budget](propellant-budget.md#the-margin-policy-margin_policy) |
 | `dynamics.shadowing_bodies` | `central_body` (default), `tracked_bodies` | [Dynamics: integration and run control](dynamics-run-control.md#shadows-shadowing_bodies) |
+| `link.atmospheric_loss` | `none` (default), `itu_r_p676` | [RF link, data handling and power](link-data-and-power.md#the-atmospheric-gases-atmospheric_loss) |
 
 The atmosphere is chosen in the scenario itself
 (`space_weather.atmosphere_model`: `nrlmsise00`, `exponential` or

@@ -193,11 +193,18 @@ def _fetch_small_bodies():
         small_bodies.fetch_shape(body)
 
 
+def _fetch_itu_p676():
+    from ..engine import gaseous_attenuation
+
+    gaseous_attenuation.fetch()
+
+
 _DOWNLOAD_TASKS: dict[str, Callable[[], object]] = {
     "support_data": _fetch_support_data,
     "space_weather": _fetch_space_weather,
     "earth_orientation": _fetch_earth_orientation,
     "small_bodies": _fetch_small_bodies,
+    "itu_p676": _fetch_itu_p676,
 }
 
 
@@ -266,7 +273,8 @@ class DataPanelWidget(QWidget):
             "Import file...", "Install a file you already have, for example from removable media. No network.",
             [("Space-weather file (CelesTrak CSV or TXT)...", self.import_space_weather),
              ("Earth orientation files (NAIF Earth PCKs)...", self.import_earth_orientation),
-             ("433 Eros ephemeris (eros_1900_2100.bsp)...", self.import_small_body)])
+             ("433 Eros ephemeris (eros_1900_2100.bsp)...", self.import_small_body),
+             ("ITU-R P.676-13 Part 1 (R-REC-P.676-13-Part1.txt)...", self.import_itu_p676)])
         self.rollback_button = self._menu_button(
             "Roll back...", "Put back the version that the last download or import replaced.",
             [("Space weather", lambda: self.roll_back("space_weather")),
@@ -422,6 +430,13 @@ class DataPanelWidget(QWidget):
             from ..engine import small_bodies
 
             self._start(lambda: small_bodies.import_file(path), "Importing the 433 Eros ephemeris...")
+
+    def import_itu_p676(self) -> None:
+        path, _ = QFileDialog.getOpenFileName(self, "Import ITU-R P.676-13 Part 1", "", "Text (*.txt)")
+        if path and not self._busy():
+            from ..engine import gaseous_attenuation
+
+            self._start(lambda: gaseous_attenuation.import_file(path), "Importing ITU-R P.676-13 Part 1...")
 
     def roll_back(self, which: str) -> None:
         if self._busy():

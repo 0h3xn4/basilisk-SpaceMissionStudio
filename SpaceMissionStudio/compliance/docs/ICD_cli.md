@@ -152,6 +152,15 @@ small-body files (433 Eros ephemeris and shape): status, --fetch, --import
 | `--fetch` | download the Eros ephemeris (NAIF) and shape (Basilisk support data) (internet) |
 | `--import` | install the Eros ephemeris kernel eros_1900_2100.bsp from disk |
 
+## `gaseous-attenuation`
+
+ITU-R P.676-13's data file Part 1 (link.atmospheric_loss): status, --fetch, --import
+
+| Argument | Help |
+|---|---|
+| `--fetch` | download Part 1 from the ITU (internet) |
+| `--import` | install Part 1 (R11010000020001TXTM.txt, the ITU's file) from disk |
+
 ## `ccsds-validate`
 
 check CCSDS OPM/OMM/OEM (KVN) files (no Basilisk needed)

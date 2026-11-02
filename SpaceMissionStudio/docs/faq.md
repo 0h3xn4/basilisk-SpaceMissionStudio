@@ -56,8 +56,8 @@ way it then runs offline:
   for newer reference data; **Not now** touches no network. The **Reference data** dialog's downloads ask
   first, naming the source, the files and the size, and default to No.
   Vizard downloads only when you click **Download Vizard**. On the
-  command line, only `kernels-status`, `earth-orientation --fetch` and
-  `small-bodies --fetch` download.
+  command line, only `kernels-status`, `earth-orientation --fetch`,
+  `small-bodies --fetch` and `gaseous-attenuation --fetch` download.
 - Every file can also be installed from disk, for machines that never go
   online.
 

@@ -80,6 +80,9 @@ DOWNLOADS: dict[str, Download] = {
         "small_bodies", "Small bodies (433 Eros: ephemeris and shape model)",
         "NAIF, https://naif.jpl.nasa.gov/pub/naif/generic_kernels/spk/asteroids/a_old_versions/ (ephemeris), "
         "the Basilisk repository (shape)", ["eros_1900_2100.bsp", "eros007790.tab"], "about 5 MB"),
+    "itu_p676": Download(
+        "itu_p676", "Gaseous attenuation (ITU-R P.676-13, data file Part 1)",
+        "ITU, https://www.itu.int/oth/R1101000002/en", ["R-REC-P.676-13-Part1.txt"], "44 kB"),
 }
 
 
@@ -200,13 +203,27 @@ def _small_body_files() -> list[ReferenceFile]:
     return files
 
 
+def _itu_files() -> list[ReferenceFile]:
+    from . import gaseous_attenuation as gases
+
+    found = gases.installed()
+    if found is None:
+        return [ReferenceFile("ITU-R recommendation data", gases.PART1_NAME, "missing", gases.PART1_URL,
+                              note="needed for link.atmospheric_loss: itu_r_p676")]
+    path = Path(found.path)
+    matches = _sha256(path) == gases.PART1_SHA256
+    return [ReferenceFile("ITU-R recommendation data", gases.PART1_NAME, "ok" if matches else "missing", found.source,
+                          found.path, found.size_bytes, found.sha256, found.installed_utc,
+                          note="checksum checked" if matches else "not the ITU's file: download it again")]
+
+
 def inventory(now: datetime | None = None) -> list[ReferenceFile]:
     """Every reference data file, local reads only. Never raises: a part
     that cannot be read is listed as missing with the reason."""
     now = now or datetime.now(UTC).replace(tzinfo=None)
     files: list[ReferenceFile] = []
     for part, args in ((_support_files, ()), (_space_weather_files, (now.date(),)), (_earth_orientation_files, (now,)),
-                       (_small_body_files, ())):
+                       (_small_body_files, ()), (_itu_files, ())):
         try:
             files += part(*args)
         except Exception as exc:  # noqa: BLE001 -- the panel must show the rest
