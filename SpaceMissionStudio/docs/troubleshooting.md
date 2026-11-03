@@ -40,6 +40,7 @@ environment variable; set it before installing. The hosts to allow:
 | `raw.githubusercontent.com` | The gravity field and magnetic model |
 | `hanspeterschaub.info` | Basilisk's backup for the support data; Vizard |
 | `celestrak.org` | Newer space weather, only if you ask for it |
+| `www.itu.int` | The ITU-R P.676-13 data file (`gaseous-attenuation --fetch`), only if you ask for it |
 
 ### Windows: "running scripts is disabled on this system"
 
@@ -131,7 +132,10 @@ field to fix; the **Problems** panel (`Ctrl+J`) lists every problem. **✓ valid
 
 **Cancel** in the status bar (`Esc`, or **Cancel Run**) stops it
 safely at the next checkpoint and keeps the results so far. It is not
-instant. A Monte Carlo batch cannot be cancelled part way.
+instant. A Monte Carlo batch is cancelled the same way: the processes
+running it end, the runs finished stay in the archive folder, and the
+Monte Carlo view opens on them. Closing the window during a batch asks
+**Cancel and close** or **Keep running**.
 
 ### A long run fills memory
 
@@ -158,6 +162,7 @@ trust it, add `--allow-scripts` (the GUI asks instead).
 | `INVALID: f.json: spacecraft[0].dry_mass_kg: expected a number, got text` | A value has the wrong type; the field is named |
 | `INVALID: my-sat: dry_mass_kg must be in (0, 1e6] -- if your intended value is outside this range, check for a units mixup (e.g. g instead of kg)` | A value is out of range |
 | `INVALID: f.json: could not read file (No such file or directory)` | Wrong path |
+| `INVALID: f.json: malformed scenario structure (...)` from SpaceMissionStudio 1.3.1 or earlier | The file was saved by 2.0.0, which writes fields older versions do not know (`sim_settings.seed` in every file). Open it with 2.0.0; 2.0.0 opens every file 1.x saved. Update a team together |
 
 `ccsds-import` refuses a message whose epoch differs from the scenario's:
 

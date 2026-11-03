@@ -30,6 +30,11 @@ estimate away from the Sun (template 14).
 [F10.7](#f), it sets how dense the upper atmosphere is, and so how much
 [drag](#d) a low satellite feels.
 
+**Assumptions** -- **Scenario › Assumptions** lists every [parameter](#p):
+the rule, margin or model an analysis uses, with its value in effect,
+unit, source and rationale (`spacemissionstudio assumptions` prints the
+same). A [project configuration file](#p) changes them.
+
 **Attitude** -- which way a spacecraft points, as opposed to where it is.
 "Attitude control" keeps it pointed at a target: the ground, the Sun, a
 ground station or a planet.
@@ -45,6 +50,13 @@ of; its gain or field of view is centred on it.
 
 ## C
 
+**Calculation panel (Show calculation)** -- the tab beside the Inspector
+that explains a number: its equation and standard, each input with its unit
+and where it came from, and an **Open** button to each input that is itself
+computed. The **Show calculation** buttons on the Budget, End of Life,
+Dashboard and Timeline, and a card of Results › Overview, open it;
+`--explain` prints the same on the command line.
+
 **CCSDS** -- the Consultative Committee for Space Data Systems, which
 publishes the standard file formats space agencies exchange. SpaceMissionStudio
 reads and writes three of its orbit messages: [OPM, OMM and OEM](#o).
@@ -57,6 +69,12 @@ higher, conservative value) and 2.2 for end of life.
 balances on. Forces that do not pass through it (drag, sunlight, a
 thruster off its axis) turn the spacecraft. The app gives it from body
 point B (`center_of_mass_b_m`); a 3D model computes it.
+
+**Change history** -- the record beside a scenario (`mission.history.jsonl`)
+of every saved change: the value before and after, when, by whom (the name
+set in **Settings > Change history > Author**), and the reason given for an
+[override](#v). **Change History...** lists it; `spacemissionstudio history`
+prints it.
 
 **Classical orbit elements** -- six numbers that describe an orbit:
 semi-major axis (roughly its average size), eccentricity (how stretched
@@ -276,7 +294,15 @@ FCC, 25 years under the older IADC guideline.
 spacecraft would follow if every force but the central gravity stopped
 at that instant. They wobble along the orbit; see mean elements.
 
+**Overridden value** -- see [value mark](#v).
+
 ## P
+
+**Parameter** -- a named rule, margin or model choice of an analysis, such
+as `propellant_budget.residual_fraction`, with a default, a unit, a source
+and limits. A [project configuration file](#p) changes it without editing
+code; every result records what was changed. See
+[Models, rules and assumptions](models/README.md).
 
 **Pass** -- one period when a spacecraft is above a ground station's
 horizon (and above its minimum elevation).
@@ -299,6 +325,12 @@ another spacecraft (the chief) a satellite sits along the same orbit.
 "Phasing-keeping" holds that separation, the way station-keeping holds
 altitude.
 
+**Plugin** -- a Python package that declares an entry point in the group
+`spacemissionstudio.models` and so adds [parameters](#p), pre-run rules and
+models of its own, without editing the tool. A run records the plugins it
+loaded. It cannot add what Basilisk simulates. See
+[Add your own models and rules](user-manual/plugins.md).
+
 **Polyhedral gravity** -- the gravity of a body computed from its shape,
 given as a closed surface of triangles (a polyhedron), at constant density
 (Werner and Scheeres 1997). Close to an irregular small body such as an
@@ -308,15 +340,27 @@ asteroid it is far closer to the real pull than a point mass.
 inertia are zero; the moments about them are its principal moments. A
 model shows both, and how far each axis is from the nearest body axis.
 
+**Project configuration file** -- a YAML file a scenario names
+(`config_file`) that changes [parameters](#p) for a project. Chosen or
+created in **Scenario › Assumptions**; see
+[Change a parameter](user-manual/project-configuration.md).
+
 **Provenance** -- `provenance.json`, written with every run's results: the
 Basilisk version, whether it is the verified one, the other software
-versions, and checksums of the scenario and every reference file used.
+versions, checksums of the scenario and every reference file used, every
+random seed, the values used that the file did not give, and each
+[parameter](#p) a project changed. **Show everything recorded** opens it
+all.
 
 ## R
 
 **RAAN (right ascension of the ascending node)** -- the direction, in
 space, where the orbit crosses the equator going north. It sets which way
 the orbit plane faces.
+
+**Random seed** -- the number (`sim_settings.seed`, default 0) from which
+each sensor noise model's own random sequence is derived, so the same
+scenario gives the same run and no two sensors draw the same noise.
 
 **Reaction wheel (RW)** -- a spinning wheel inside the spacecraft.
 Speeding it up or slowing it down turns the spacecraft the other way,
@@ -332,6 +376,11 @@ set): a relative semi-major axis (a drift), a relative mean longitude
 (the along-track offset) and the two [e/i vectors](#e). The app gives
 them in metres, times the chief's semi-major axis.
 
+**Reproduction bundle** -- a folder (`run --bundle`, or Results › Plots ›
+**Export all...** › **Reproduction bundle...**) that holds a run's results,
+its provenance, the scenario as run and copies of the files it refers to.
+`spacemissionstudio reproduce` runs it again and says what differs.
+
 **RF** -- radio frequency: the radio link between spacecraft and ground.
 
 **RTN, VNB** -- two sets of axes for a burn's direction. **RTN**: Radial,
@@ -344,13 +393,19 @@ normal), Binormal. Both move with the spacecraft.
 orbits, ground stations, environment, run settings and an optional
 Mission Sequence. A **template** is a ready-made scenario.
 
+**SHA-256** -- a checksum of a file's bytes. The provenance records one for
+the scenario and for every data file a run read, so a changed file shows.
+
+**Show calculation** -- see [Calculation panel](#c).
+
 **SIL (software in the loop)** -- running the flight software as its own
 program against the simulated spacecraft, step by step: the simulation
 sends it the sensor readings and flies the spacecraft with its commands.
 
 **Space weather** -- solar activity ([F10.7](#f)) and geomagnetic
 activity ([Ap](#a)) over time. SpaceMissionStudio uses only real data:
-measured values, and NASA [MSFC](#m)'s prediction for the future.
+measured values, CelesTrak's 45-day forecast, and NASA [MSFC](#m)'s
+prediction for the future.
 
 **SPICE kernels** -- reference files from [NAIF](#n) with planet
 positions, leap seconds and planet shapes, which Basilisk needs for
@@ -393,12 +448,23 @@ way to give a starting orbit if you have one.
 against Earth's magnetic field to turn the spacecraft. Used here to
 unload reaction wheels.
 
+**Trace (calculation trace)** -- how one number was computed: its equation,
+the standard's clause and each input with its unit and source (`scenario:`,
+`parameter:`, `constant:`, `last run:`, `computed:`). It is what the
+[Calculation panel](#c) shows and what `--explain` and `--out` write.
+
 ## U
 
 **UTC** -- Coordinated Universal Time, the civil time standard. Every
 epoch and time in SpaceMissionStudio is in UTC unless it says otherwise.
 
 ## V
+
+**Value mark** -- the status the scenario file keeps for a value
+SpaceMissionStudio computed or suggested (**computed**, with what computed
+it), one you edited afterwards (**edited**) or one you replace on purpose
+(**overridden**, with the reason, which is required). Runs and records list
+them. See [Computed and overridden values](models/value-marks.md).
 
 **Vizard** -- Basilisk's separate 3D visualisation program. SpaceMissionStudio
 can stream a run to it live or save a file to play back.

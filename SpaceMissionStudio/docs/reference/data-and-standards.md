@@ -21,8 +21,9 @@ compliance decision D5). The `.deb`, the install scripts and the Windows
 setup script install `bsk[all]==2.12.0`. Another version still runs, but the GUI status bar and
 `spacemissionstudio run` say so, and every run's `provenance.json` records
 the Basilisk version, whether it is the qualified one, the other dependency
-versions, a SHA-256 of the scenario and the reference data files used
-(SPICE kernels, gravity field, magnetic model, space weather). The Basilisk
+versions, a SHA-256 of the scenario and of every reference data file used
+(SPICE kernels, gravity field, magnetic model, atmosphere table, space
+weather, Earth orientation, small-body and ITU files). The Basilisk
 sources in this repository (the root `src/`, currently 2.13.0b0) are not
 the qualified version, and the app does not use them.
 
@@ -117,13 +118,14 @@ access happens only in these places, each started by you:
 |---|---|---|
 | Installation | Basilisk and the Python packages (PyPI), then the support data once | You run the installer or `pip` |
 | The **Fetch or update reference data?** card on Home at each GUI start (`gui.startup_fetch_dialog.ReferenceDataCard`) | Support data, CelesTrak space weather, Earth orientation files: what you tick | Shown every time; **Not now** touches no network; no "don't ask again" |
-| The **Reference data** dialog's **Download...** (**Settings > Reference data**, or the status bar) | Support data, space weather or Earth orientation | Names the source, the files and the size; default No |
+| The **Reference data** dialog's **Download...** (**Settings > Reference data**, or the status bar) | Support data, space weather, Earth orientation, small bodies (433 Eros) or gaseous attenuation (ITU-R P.676-13 Part 1) | Names the source, the files and the size; default No |
 | **Download Vizard** in the "Vizard not found" dialog | AVS's pre-built Vizard | Only on that click; **Browse...** is the alternative |
-| Commands you type | `kernels-status` (missing support data), `earth-orientation --fetch` | Running the command is the request |
+| Commands you type | `kernels-status` (missing support data), `earth-orientation --fetch`, `small-bodies --fetch`, `gaseous-attenuation --fetch`, `spaceweather-download` | Running the command is the request |
 
 Everything fetched is stored locally, and every file can also be
 installed from disk (**Import file...** in the **Reference data** dialog,
-`earth-orientation --import`), so a machine can stay offline for good. The installers'
+`earth-orientation --import`, `small-bodies --import`,
+`gaseous-attenuation --import`), so a machine can stay offline for good. The installers'
 part is described in [`packaging/README.md`](../../packaging/README.md);
 `tests/test_offline.py` runs with all network access blocked in CI.
 

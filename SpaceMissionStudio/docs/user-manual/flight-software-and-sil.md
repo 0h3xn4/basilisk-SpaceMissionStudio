@@ -67,7 +67,7 @@ spacemissionstudio sil scenario.json --spacecraft sat-1 --binary fsw_out/build/f
     --report sil.json --max-error 1e-9
 ```
 
-With `--max-error`, `sil` exits with status 2 when any residual is larger
+With `--max-error`, `sil` exits with status 5 when any residual is larger
 or a command was never written: a check you can use in CI.
 
 ## Limits

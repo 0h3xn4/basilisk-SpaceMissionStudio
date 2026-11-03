@@ -103,7 +103,8 @@ Each item was checked against Basilisk's own source.
   spacecraft -- those templates' own explicit choices are now redundant
   but harmless. Passing explicit `control_params={"K": ..., "P": ...}`
   still overrides this unscaled, same as always -- that choice stays on
-  you.
+  you. Since 2.0.0 the attitude form shows the gains applied, not the
+  unscaled reference values.
 * **Monte Carlo dispersions** cover dry mass, starting attitude, orbital
   elements, inertia, body rate and the drag and SRP coefficients (User
   Manual section 10). Raw Cartesian position/velocity dispersion is
@@ -116,17 +117,20 @@ Each item was checked against Basilisk's own source.
   environment (template 25 and three-run batches with 3 threads, Basilisk
   2.12.0); the schema default stays `1`. A batch uses at most one process
   per CPU, and validation refuses more than 256 processes or 100 000 runs.
+* **Two Monte Carlo batches of the same scenario draw the same samples**:
+  Basilisk's Monte Carlo controller seeds each run from its number
+  (SRelD K-24).
 * **Monte Carlo retains a fixed set of data per run** (each spacecraft's
   position/velocity) -- there is no per-run custom retention-policy
   selection in the schema yet.
 * **No Jacchia-Roberts atmosphere model, no Earth-albedo/IR radiation
-  pressure, no `TabularAtmosphere` (user-supplied density table).** All
+  pressure, no user-supplied density table.** All
   three were real user questions/requests, checked directly against
   Basilisk's own source (not assumed) before answering:
   * Jacchia-Roberts genuinely doesn't exist anywhere in Basilisk (checked
     `src/simulation/environment/` -- only `ExponentialAtmosphere`,
     `MsisAtmosphere`, `TabularAtmosphere` do); `atmosphere_model` offers
-    the first two (see [Orbital dynamics & propagation](capabilities.md#orbital-dynamics--propagation)), not the
+    those three (`nrlmsise00`, `exponential`, `tabular`; see [Orbital dynamics & propagation](capabilities.md#orbital-dynamics--propagation)), not the
     one that doesn't exist.
   * Basilisk's `earthRadiationModel` module computes Earth albedo/IR
     flux, but its own payload comment names `facetERPDynamicEffector` as
@@ -139,10 +143,13 @@ Each item was checked against Basilisk's own source.
     the standard flux/c * area * Cr formula solar SRP already uses) --
     deliberately not done this round; real user decision, not a gap that
     slipped through unnoticed.
-  * `TabularAtmosphere` (a user-supplied altitude/density CSV) would need
-    a new file-upload schema/GUI concept of its own -- out of scope for
-    the atmosphere-model-choice work that added `ExponentialAtmosphere`
-    as the second option.
+  * A user-supplied altitude/density table would need a new file-upload
+    schema/GUI concept of its own. The tabular atmosphere
+    (`space_weather.atmosphere_model: tabular`) takes only the three
+    published profiles Basilisk ships, by one altitude column: no
+    latitude, local time or solar activity, and a density of 0 beyond
+    the table's ends
+    ([Environment data](../models/environment-and-data.md#the-atmosphere)).
 
 * **3D models (`spacemissionstudio.model3d`).**
   * Basilisk's facet effectors treat every facet as exposed whenever it
@@ -214,6 +221,28 @@ Scoped from real use, with the detail in
 Beyond these, the list above is the rest of the map: spherical-harmonics
 gravity and magnetometers away from Earth, and richer Monte Carlo
 retention.
+
+## Known limits of 2.0.0
+
+From the [changelog](../../CHANGELOG.md):
+
+* **The bundled space weather is that of 1.3.0:** observations to
+  2026-10-24 and CelesTrak's daily forecast to 2026-12-07. Before a drag
+  study, fetch the current file: the **Fetch or update reference data?**
+  card on Home, **Settings > Reference data**, or `spacemissionstudio
+  spaceweather-download`.
+* **Some actions hold the window for longer than the 50 ms the interface
+  aims at:** changing the theme (about 0.4 s), the first visit to a
+  spacecraft page and opening a template (SRelD K-19, K-23).
+* **The installers ship pillow 12.2.0, which has published advisories**,
+  all about decoding crafted image files, which SpaceMissionStudio does
+  not do (SRelD K-25). The qualified Basilisk (2.12.0) allows no later
+  version.
+* **The last check of the definition of done is the team's:** timing an
+  engineer who did not build the tool as they trace each number to its
+  calculation ([the definition of done](../definition-of-done.md)).
+* **Python 3.14 only:** 3.11 to 3.13 are no longer supported, and
+  Basilisk 2.12.0 and PySide6 6.11 do not install on 3.15 yet.
 
 ---
 

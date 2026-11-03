@@ -22,6 +22,7 @@ do it, and what has been verified.
   - [Safe cancellation](#safe-cancellation)
   - [Long runs and end of life](#long-runs-and-end-of-life)
   - [Propellant budgets (ESA AD10 style)](#propellant-budgets-esa-ad10-style)
+  - [Traceability and reproducibility](#traceability-and-reproducibility)
   - [GUI & CLI](#gui--cli)
 - [Verification status](#verification-status)
 
@@ -48,8 +49,9 @@ references it). No third-party schema library.
 Central-body point-mass or spherical-harmonics gravity (Earth GGM03S to
 degree 180, Mars GGM2B to degree 80, each with its file's own reference
 radius: `engine.gravity_field`) plus third-body point-mass perturbers,
-atmospheric drag (Earth-only; a choice of NRLMSISE-00 or a simple
-exponential model -- see `SpaceWeatherConfig.atmosphere_model`'s own
+atmospheric drag (Earth-only; a choice of NRLMSISE-00, a simple
+exponential model or a published density table -- see
+`SpaceWeatherConfig.atmosphere_model`'s own
 docstring for why not Jacchia-Roberts too: Basilisk has no such model)
 and SRP (per spacecraft, on that spacecraft's own "Orbit / mass" page),
 a selectable integrator (`euler`/`rk2`/`rkf45`/`rkf78`), and osculating
@@ -58,7 +60,10 @@ position/velocity at every sample -- plus, when a real J2 term is
 actually modeled (Earth with spherical-harmonics degree >= 2), MEAN
 (first-order-J2, osc -> mean) elements alongside the osculating ones,
 via Basilisk's own `orbitalMotion.clMeanOscMap` (the same tool its
-`meanOEFeedback` FSW module uses -- not a bespoke implementation).
+`meanOEFeedback` FSW module uses -- not a bespoke implementation), blended
+across 1 deg bands around the critical inclinations (63.435 and 116.565
+deg) and evaluated at the band's edge near the equator, so the elements
+stay finite there.
 NRLMSISE-00 drag takes its solar activity at one of three levels:
 nominal (NASA MSFC's 50th-percentile prediction), conservative (its 95th
 percentile, ESA AD10's operations case) or low (its 5th). The
@@ -151,7 +156,10 @@ Ground-station access analysis (has-access,
 slant range, elevation, azimuth per station/spacecraft pair), a real
 power budget (solar panel/battery/eclipse, driven by actual simulated
 attitude and eclipse state, not a flat duty cycle), a downlink RF
-link-margin estimate evaluated against real simulated slant range,
+link-margin estimate evaluated against real simulated slant range
+(optionally with the oxygen and water-vapour attenuation of ITU-R P.676-13,
+`link.atmospheric_loss`, and solar panels that degrade with time in orbit,
+`power.degradation`; see [RF link, data handling and power](../models/link-data-and-power.md)),
 onboard data handling (instruments filling a memory and a transmitter
 emptying it while the link to a station closes, with a patch antenna's
 gain pattern applied to the real attitude; template 26, User Manual
@@ -192,7 +200,8 @@ simulated spacecraft mass every tick) and eclipse-gated burns; a
 constant-frame (VNB/RTN) continuous-thrust maneuver mode; a
 Walker-pattern constellation generator (satellite count, planes,
 phasing factor, altitude, inclination -> a full set of spacecraft with
-pre-computed orbital elements); a **Generate phasing formation...**
+pre-computed orbital elements, placed by their mean elements when the
+gravity includes J2); a **Generate phasing formation...**
 wizard (`engine.formation`) that turns an existing chief spacecraft plus
 a desired Radial/Transverse/Normal (Hill-frame) offset at epoch into a
 new follower spacecraft with `phasing_keeping`/`station_keeping`
@@ -288,11 +297,12 @@ same layer from code.
 ### Safe cancellation
 
 **Cancel** (`Esc`; **Cancel Run**) cooperatively cancels an
-in-progress run (or Mission Sequence, or SIL run; not a Monte Carlo
-batch, which Basilisk's Controller cannot stop part way) between
+in-progress run (or Mission Sequence, or SIL run) between
 simulation chunks or commands, keeping whatever partial results were
 already produced -- never a forced kill that could leave Basilisk's C++
-state mid-mutation.
+state mid-mutation. A Monte Carlo batch is cancelled by ending the
+processes that run it (**Cancel** or `Esc`): the runs already finished
+stay in the archive folder and the Monte Carlo view opens on them.
 
 ### Long runs and end of life
 
@@ -301,13 +311,16 @@ past Basilisk's ~104-day limit, with a "Record every" setting to keep
 them in memory; and an **End of Life** page (**Run > End of Life**,
 and `spacemissionstudio lifetime`) estimating when a spacecraft re-enters, with or without a
 deorbit burn, checked against the 5- and 25-year disposal rules. The
-estimate agrees with full Basilisk decay runs to within ~2% in seconds.
+estimate agrees with full Basilisk decay runs to within ~3% in seconds
+(`tests/test_lifetime.py`), including at the critical inclinations, where
+2.0.0 fixed a re-entry reported at once.
 
 ### Propellant budgets (ESA AD10 style)
 
 A **Budget** page (**Run > Budget**) and
 `spacemissionstudio budget`: delta-V and propellant per mission phase with
-the guideline's margins, residuals and iteration, simulated orbit control
+the guideline's margins, residuals and iteration (each contributor's
+propellant from the mass before its burn, `m * (1 - exp(-dV / Ve))`), simulated orbit control
 taken from the last run (or estimated from the drag), the disposal burn
 sized for a 5-year lifetime, and a launch-delay sweep for launches up to
 5 years late (`budget --launch-delays`), and an altitude trade of that
@@ -315,11 +328,37 @@ sweep against the tank (`budget --altitudes`, in parallel processes); solar acti
 prediction at the 95th/50th percentile. Templates use AD10's operations
 drag coefficient, 3.0.
 
+### Traceability and reproducibility
+
+Every figure can be traced to how it was computed, and every result
+reproduced from the files it was exported with (2.0.0;
+[definition of done](../definition-of-done.md)):
+
+* **Show calculation** (the Calculation panel; `--explain` on the
+  command line) gives a budget, a lifetime, a link, an event or a headline
+  figure its equation, its inputs with unit and source, and the rule
+  applied ([Models, rules and assumptions](../models/README.md)).
+* **Parameters:** the rules and margins behind the analyses are named
+  parameters, listed on **Scenario › Assumptions** and by `assumptions`, and
+  a project configuration file changes them without editing code
+  ([Change a parameter](../user-manual/project-configuration.md)).
+  **Plugins** add parameters, pre-run rules and models of their own
+  ([Add your own models and rules](../user-manual/plugins.md)).
+* **Value marks:** the scenario file marks values SpaceMissionStudio
+  computed, and those you edited or overrode (with a reason)
+  ([Computed and overridden values](../models/value-marks.md)); a change
+  history beside the scenario records every save (`history`).
+* **Reproduction:** a run keeps `scenario_as_run.json`, the SHA-256 of every
+  data file and the values it used that the file did not give;
+  `run --bundle` makes a folder that `reproduce` runs again and compares.
+* **A Python API**, `spacemissionstudio.api`, gives scripts the same
+  numbers ([The Python API](../api.md)).
+
 ### GUI & CLI
 
 A full PySide6 desktop shell (scenario editor,
 Monte Carlo, live progress feedback, a real visual theme and icons, a
-navigation rail and a command palette) and an equivalent headless CLI (19 commands; see
+navigation rail and a command palette) and an equivalent headless CLI (29 commands; see
 [Use the command line](../user-manual/command-line.md)), both built on
 the exact same `schema`/`engine` layer -- neither is a thin wrapper
 around the other. Result plots are Plotly figures (a validated,
@@ -354,9 +393,10 @@ compliance matrix.
   the shell's areas and commands, dialogs and the plots in their embedded
   web view.
 - **Template claims are re-checked.** `tests/test_template_claims.py`
-  runs templates 03, 07, 08, 10-14, 16, 17, 19-24 and 26-28 in Basilisk and
+  runs templates 03, 07, 08, 10-14, 16, 17, 19-24 and 26-31 in Basilisk and
   checks the headline numbers their descriptions quote; template 25 runs
-  in `tests/test_examples.py`.
+  in `tests/test_examples.py`. `tests/test_golden_outputs.py` checks that
+  all 31 templates still give the outputs recorded in `tests/golden/`.
 - **Long runs**: a real 5-year LEO station-keeping run and a 7-day run of
   template 05 with live Vizard were run to completion.
 - **Packaging**: for 1.0.0 the Linux `.deb` and `install.sh`, and for

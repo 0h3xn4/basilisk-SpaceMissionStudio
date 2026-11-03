@@ -18,6 +18,17 @@ fixes bugs.
   `generate-*` commands were missing) and no longer repeats a paragraph;
   the design document (SDD) describes 2.0.0's `api`, `config`, `plugins`,
   `history` and `reproduction`. Nothing the tool computes changes.
+- **More documentation fixes:** Linux needs glibc 2.34, not 2.28 (the
+  PySide6 6.11 wheels are `manylinux_2_34`); the user manual, tips and
+  FAQ describe the reproduction bundle, the Python API and the exit
+  statuses (`sil --max-error` exits with 5, as the code does; its
+  `--help` and the ICD said 2); the limitations and capabilities pages
+  no longer say a Monte Carlo batch cannot be cancelled or that there is
+  no tabular atmosphere, and list 2.0.0's known limits; the glossary has
+  the 2.0.0 terms; the API page's signatures match `api.py`; reference
+  data lists the Eros and ITU files; the developer guide, architecture
+  page and packaging notes name the current modules, CI jobs and Python
+  3.14. Nothing the tool computes changes.
 
 ## 2.0.0 (2026-11-03)
 
