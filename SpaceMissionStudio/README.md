@@ -101,7 +101,7 @@ Details, and the Basilisk module behind each feature:
 
 | | |
 |---|---|
-| System | Linux x86_64 or aarch64 (glibc 2.28 or newer), Windows 10 or 11 x86_64 |
+| System | Linux x86_64 or aarch64 (glibc 2.34 or newer), Windows 10 or 11 x86_64 |
 | Python | None for the installers (they bring Python 3.14); 3.14 from source (older versions are not supported). CI tests 3.14 |
 | Basilisk | 2.12.0: in the installers, or from PyPI (`bsk`) |
 | Disk | About 1.7 GB, including the reference data |

@@ -15,7 +15,7 @@ checks, and keep its generated files current.
 
 ## 1. Set up
 
-You need Python 3.14 (CI uses 3.14), git, and on Linux glibc 2.28
+You need Python 3.14 (CI uses 3.14), git, and on Linux glibc 2.34
 or newer. From a terminal:
 
 ```bash
