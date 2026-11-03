@@ -14514,6 +14514,47 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Chained inputs: what an analysis takes from the last run (2026-11-03)
+
+The transparency plan, Phase 8b. Branch `imported-values`, with 8c.
+
+- **`engine.lifetime`:** `StartState` and `start_state` (the run's last
+  state and propellant, or the scenario's), used by `end_of_life`, which
+  takes `propellant_kg` (edited before computing).
+- **`engine.chained_inputs`:** `lifetime_inputs`, `budget_inputs`,
+  `changed_since`.
+- **`gui.chained_inputs_panel.ChainedInputsPanel`:** on the End of Life
+  page (with **Propellant at the start > Set to**) and the Budget page.
+- **Docs:** the lifetime and propellant budget model pages, the User
+  Manual, the lifetime and budget guide.
+- **Tests:** `tests/test_chained_inputs.py` (6).
+- **Numbers:** none change; the lifetime's start is computed by the same
+  steps, moved into `start_state`.
+
+## Imported values with their source and hash (2026-11-03)
+
+The transparency plan, Phase 8c. Branch `imported-values`.
+
+- **`schema.scenario`:** `ImportRecord` and `Scenario.imports` (saved
+  only when there is one), `imported_values`, `file_state`,
+  `import_status`, `put_import`, `import_records`;
+  `ModelMassPropertiesConfig.source_path` (saved only when set).
+  `schema.references.rename_spacecraft` and the scenario editor carry the
+  records along.
+- **`cli ccsds-import`:** records the import (`_record_import`).
+- **`model3d.mass_import`:** keeps the file's absolute path; the model
+  editor keeps it while the mass properties stay imported.
+- **Checks and records:** `import.source_changed` and
+  `import.source_missing` (`engine.findings`, `scenario_checks`);
+  `RunProvenance.imports` (a run and a long run).
+- **Docs:** `docs/models/value-marks.md` ("Values read from a file"), the
+  orbit files and 3D model guides.
+- **Tests:** `tests/test_imports.py` (6).
+- **Numbers:** none change; a scenario without imports saves, and
+  hashes, as before.
+
+Full suite on Python 3.14: 4422 passed.
+
 ## Plugins: models, rules and parameters of your own (2026-11-03)
 
 The transparency plan, Phase 6c. Branch `model-plugins`.

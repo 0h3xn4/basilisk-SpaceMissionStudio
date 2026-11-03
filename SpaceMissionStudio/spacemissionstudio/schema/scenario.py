@@ -1789,6 +1789,8 @@ class ModelMassPropertiesConfig:
     inertia_kg_m2: list = field(default_factory=lambda: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0])  # about it
     source_file: str = ""  # imported: the file's name
     source_sha256: str = ""  # imported: its SHA-256
+    # imported: the file's absolute path, so a later change of it is seen (Phase 8c); written only when set
+    source_path: str = ""
 
     def validate(self, where: str) -> None:
         _require(isinstance(self.mass_kg, (int, float)) and math.isfinite(self.mass_kg)
@@ -2868,6 +2870,117 @@ def number_fields(record, prefix: str = "") -> dict:
     return found
 
 
+# What an import record says was read from a file, and the formats (Phase 8c).
+IMPORT_TARGETS = ("orbit",)
+IMPORT_FORMATS = ("ccsds_opm", "ccsds_omm")
+IMPORT_SOURCE_STATES = ("unchanged", "changed", "missing")
+
+
+@dataclass
+class ImportRecord:
+    """A spacecraft's values read from a file (``spacemissionstudio
+    ccsds-import``; the transparency plan, Phase 8c): what was set
+    (``target``: its orbit), from which file (``source``, its absolute path
+    then) in which format, the file's SHA-256 then, and every number set
+    and text as it was read (:func:`imported_values`), so a later change of
+    the file, or of the values, is seen."""
+
+    spacecraft: str
+    target: str  # one of IMPORT_TARGETS
+    format: str  # one of IMPORT_FORMATS
+    source: str
+    sha256: str
+    values: dict = field(default_factory=dict)  # {path: number or text}, as imported
+    time_utc: str = ""
+    author: str = ""
+
+    def validate(self, scenario, index: int) -> None:
+        where = f"imports[{index}]"
+        _require(isinstance(self.spacecraft, str) and any(sc.name == self.spacecraft for sc in scenario.spacecraft),
+                 f"{where}.spacecraft {self.spacecraft!r} is not one of this scenario's spacecraft")
+        _require(self.target in IMPORT_TARGETS, f"{where}.target must be one of {IMPORT_TARGETS}")
+        _require(self.format in IMPORT_FORMATS, f"{where}.format must be one of {IMPORT_FORMATS}")
+        _require(isinstance(self.source, str) and bool(self.source.strip()), f"{where}.source must name the file")
+        _require(isinstance(self.sha256, str) and len(self.sha256) == 64
+                 and all(c in "0123456789abcdef" for c in self.sha256),
+                 f"{where}.sha256 must be 64 lowercase hex digits")
+        _require(isinstance(self.values, dict) and all(isinstance(k, str) and (_is_finite_number(v) or
+                                                                               isinstance(v, str))
+                                                       for k, v in self.values.items()),
+                 f"{where}.values must map field paths to finite numbers or text")
+        for key in ("time_utc", "author"):
+            _require(isinstance(getattr(self, key), str), f"{where}.{key} must be text")
+
+
+def imported_values(config, target: str) -> dict:
+    """The numbers of ``config``'s ``target`` (its orbit), as an
+    :class:`ImportRecord` keeps them."""
+    if target != "orbit":
+        raise ValueError(f"no import target {target!r}")
+    if config.orbit is None:
+        return {}
+    found = number_fields(config.orbit, "orbit")
+    for f in dataclasses.fields(config.orbit):  # and its text: the orbit's type, a TLE's lines
+        value = getattr(config.orbit, f.name)
+        if isinstance(value, str) and value:
+            found[f"orbit.{f.name}"] = value
+    return found
+
+
+def file_state(path: str, sha256: str) -> str:
+    """"unchanged", "changed" or "missing": the file at ``path`` against
+    the SHA-256 it had when it was imported."""
+    import hashlib
+
+    try:
+        with Path(path).expanduser().open("rb") as stream:
+            digest = hashlib.sha256()
+            for block in iter(lambda: stream.read(1 << 20), b""):
+                digest.update(block)
+    except OSError:
+        return "missing"
+    return "unchanged" if digest.hexdigest() == sha256 else "changed"
+
+
+def import_status(scenario, record: ImportRecord) -> dict:
+    """``{"source": state, "kept": n, "changed": [(path, imported, now or
+    None)]}``: the file now (:func:`file_state`) and the values as they are
+    now against those imported."""
+    config = next((sc for sc in scenario.spacecraft if sc.name == record.spacecraft), None)
+    now = imported_values(config, record.target) if config is not None else {}
+    changed = [(path, value, now.get(path)) for path, value in record.values.items() if now.get(path) != value]
+    return {"source": file_state(record.source, record.sha256), "kept": len(record.values) - len(changed),
+            "changed": changed}
+
+
+def put_import(scenario, record: ImportRecord) -> None:
+    """``record`` in place of an earlier one of the same spacecraft and target."""
+    scenario.imports = [r for r in scenario.imports
+                        if (r.spacecraft, r.target) != (record.spacecraft, record.target)] + [record]
+
+
+def import_records(scenario) -> list[dict]:
+    """Every value read from a file, with the file's state now, as the
+    provenance records it: the import records, and each imported mass
+    properties file (``ModelMassPropertiesConfig.source_path``)."""
+    records = []
+    for record in scenario.imports:
+        status = import_status(scenario, record)
+        records.append({"spacecraft": record.spacecraft, "target": record.target, "format": record.format,
+                        "source": record.source, "sha256": record.sha256, "time_utc": record.time_utc,
+                        "author": record.author, "source_now": status["source"], "values": len(record.values),
+                        "kept": status["kept"],
+                        "changed": [{"path": path, "imported": value, "now": now}
+                                    for path, value, now in status["changed"]]})
+    for sc in scenario.spacecraft:
+        mass = sc.model.mass_properties if sc.model is not None else None
+        if mass is not None and mass.source_path and mass.source_sha256:
+            records.append({"spacecraft": sc.name, "target": "model.mass_properties", "format": "mass_properties",
+                            "source": mass.source_path, "sha256": mass.source_sha256,
+                            "source_now": file_state(mass.source_path, mass.source_sha256)})
+    return records
+
+
 @dataclass
 class PresetRecord:
     """A spacecraft made from one of SpaceMissionStudio's presets
@@ -3045,6 +3158,9 @@ class Scenario:
     # The spacecraft made from a preset (PresetRecord, Phase 5b); written
     # only when there is one, as value_marks.
     presets: list = field(default_factory=list)  # list[PresetRecord]
+    # The values read from a file, with the file's SHA-256 (ImportRecord,
+    # Phase 8c); written only when there is one, as value_marks.
+    imports: list = field(default_factory=list)  # list[ImportRecord]
 
     def _validate_small_body(self) -> None:
         """Checks for a run around a small body (``SMALL_BODY_CENTRAL_BODIES``)."""
@@ -3110,6 +3226,11 @@ class Scenario:
         for index, record in enumerate(self.presets):
             _require(isinstance(record, PresetRecord), f"presets[{index}] must be a preset record")
             record.validate(self, index)
+        for index, record in enumerate(self.imports):
+            _require(isinstance(record, ImportRecord), f"imports[{index}] must be an import record")
+            record.validate(self, index)
+        imported = [(record.spacecraft, record.target) for record in self.imports]
+        _require(len(imported) == len(set(imported)), f"imports records a value more than once: {imported}")
         preset_for = [record.spacecraft for record in self.presets]
         _require(len(preset_for) == len(set(preset_for)), f"presets names a spacecraft more than once: {preset_for}")
         flexible = [sc.name for sc in self.spacecraft if sc.solar_arrays]
@@ -3415,6 +3536,12 @@ class Scenario:
             del data["value_marks"]
         if not data["presets"]:  # the same
             del data["presets"]
+        if not data["imports"]:  # the same
+            del data["imports"]
+        for sc in data["spacecraft"]:  # a mass properties file's path: written only when recorded (Phase 8c)
+            mass = (sc.get("model") or {}).get("mass_properties")
+            if mass is not None and not mass.get("source_path"):
+                mass.pop("source_path", None)
         return data
 
     @staticmethod
@@ -3472,11 +3599,12 @@ class Scenario:
         fsw_exports = _records(FswExportRecord, data.pop("fsw_exports", []), "fsw_exports")
         value_marks = _records(ValueMark, data.pop("value_marks", []), "value_marks")
         presets = _records(PresetRecord, data.pop("presets", []), "presets")
+        imports = _records(ImportRecord, data.pop("imports", []), "imports")
 
         data.update(gravity=gravity, sim_settings=sim_settings, space_weather=space_weather,
                     ground_stations=ground_stations, spacecraft=spacecraft, monte_carlo=monte_carlo,
                     mission_sequence=mission_sequence, fsw_exports=fsw_exports, value_marks=value_marks,
-                    presets=presets)
+                    presets=presets, imports=imports)
         return _record(Scenario, data, "the scenario")
 
     def save(self, path: str | Path) -> None:

@@ -48,6 +48,7 @@ from . import export_log
 from .. import output_provenance
 from ..schema.scenario import SUPPORTED_DISPOSALS, PropellantBudgetConfig
 from .calculation_panel import Explanation
+from .chained_inputs_panel import ChainedInputsPanel
 from .data_table import DataTable, Row
 from .theme import set_role
 from .widgets import ComboBox, PreciseDoubleSpinBox
@@ -340,6 +341,10 @@ class BudgetWidget(QWidget):
         self.status_label.setWordWrap(True)
         set_role(self.status_label, tone="secondary")
         layout.addWidget(self.status_label)
+        # What the budget takes from the last run, before it computes (Phase 8b).
+        self.chain_panel = ChainedInputsPanel()
+        layout.addWidget(self.chain_panel)
+        self.spacecraft_combo.currentTextChanged.connect(lambda _name: self._show_chain())
         # DataTables (UI overhaul M6b): the budget, and the two tables a row of which picks it.
         self.table = DataTable("Compute budget shows the spacecraft's delta-V and propellant budget here.")
         self.table.setMinimumHeight(260)  # [px] a phase's rows stay readable when the result tables open below
@@ -414,6 +419,32 @@ class BudgetWidget(QWidget):
                 self.spacecraft_combo.setCurrentText(current)
         self._update_altitude_hint()
         self._update_enabled()
+        self._show_chain()
+
+    def _show_chain(self) -> None:
+        """What the last run gives the budget (``engine.chained_inputs``):
+        the orbit control and formation keeping it flew, scaled to the
+        mission, and whether the scenario changed since."""
+        name = self.spacecraft_combo.currentText()
+        if self._last_run is None or self._scenario is None or not name:
+            self.chain_panel.clear()
+            return
+        run_scenario, result = self._last_run
+        if name not in {sc.name for sc in run_scenario.spacecraft}:
+            self.chain_panel.clear()
+            return
+        from ..engine import chained_inputs
+
+        spacecraft = next(sc for sc in self._scenario.spacecraft if sc.name == name)
+        mission_years = (spacecraft.propellant_budget or PropellantBudgetConfig()).mission_years
+        quantities = chained_inputs.budget_inputs(result, name, mission_years)
+        if not quantities:
+            self.chain_panel.clear()
+            return
+        started = getattr(getattr(result, "provenance", None), "run_started_utc", "")
+        self.chain_panel.show_inputs("From the last run" + (f", started {started}" if started else "") +
+                                     " (a contributor set to 'from last run' takes these):", quantities,
+                                     chained_inputs.changed_since(run_scenario, self._scenario))
 
     def _update_altitude_hint(self) -> None:
         from ..engine.propellant_budget import REQ_EARTH_M, default_altitudes_km
@@ -429,6 +460,7 @@ class BudgetWidget(QWidget):
 
     def set_last_run(self, scenario, result) -> None:
         self._last_run = (scenario, result) if scenario is not None and result is not None else None
+        self._show_chain()
 
     def _update_enabled(self) -> None:
         idle = self._worker is None

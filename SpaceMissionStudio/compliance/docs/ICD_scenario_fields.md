@@ -25,6 +25,7 @@ Top-level scenario object (the JSON file's root).
 | `configuration` | object | `None` |  |
 | `value_marks` | list | `[]` | list[ValueMark] |
 | `presets` | list | `[]` | list[PresetRecord] |
+| `imports` | list | `[]` | list[ImportRecord] |
 
 ## ActuatorConfig
 
@@ -172,6 +173,21 @@ A ground station. Coordinates are geodetic on the WGS-84 ellipsoid for Earth (pl
 | `rx_antenna_gain_dbi` | float | `0.0` | [dBi] ground station receive antenna gain |
 | `system_noise_temp_k` | float | `290.0` | [K] ground receiver system noise temperature |
 
+## ImportRecord
+
+A spacecraft's values read from a file (``spacemissionstudio ccsds-import``; the transparency plan, Phase 8c): what was set (``target``: its orbit), from which file (``source``, its absolute path then) in which format, the file's SHA-256 then, and every number set and text as it was read (:func:`imported_values`), so a later change of the file, or of the values, is seen.
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `spacecraft` | str | `required` |  |
+| `target` | str | `required` | one of IMPORT_TARGETS |
+| `format` | str | `required` | one of IMPORT_FORMATS |
+| `source` | str | `required` |  |
+| `sha256` | str | `required` |  |
+| `values` | dict | `{}` | {path: number or text}, as imported |
+| `time_utc` | str | `''` |  |
+| `author` | str | `''` |  |
+
 ## InstrumentConfig
 
 One source of onboard data -- a payload instrument, or the platform's housekeeping telemetry -- as Basilisk's ``simpleInstrument``: a constant data rate, so give the instrument's orbit-average rate if it does not run all the time.
@@ -221,6 +237,7 @@ Mass properties typed in, or imported from a file, instead of computed from the 
 | `inertia_kg_m2` | list | `[1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]` | about it |
 | `source_file` | str | `''` | imported: the file's name |
 | `source_sha256` | str | `''` | imported: its SHA-256 |
+| `source_path` | str | `''` |  |
 
 ## ModelMeshConfig
 

@@ -1466,7 +1466,12 @@ Life** page (**Run > End of Life**), pick the spacecraft and press
 gives the re-entry date and whether the 5-year rule (ESA's Zero Debris
 approach, the FCC) and the 25-year guideline (IADC) are met. Choose
 **End of last run** to start from where a run finished, with the
-propellant it left. Tick **Lower perigee to** to plan a deorbit burn
+propellant it left: before you estimate, the page lists what it takes
+from the run (the state's time, the mean perigee, apogee and
+inclination, the propellant left), each with where it came from in its
+tooltip, and says so when the scenario has changed since that run.
+**Propellant at the start > Set to** uses your own value instead; the
+calculation records it as edited. Tick **Lower perigee to** to plan a deorbit burn
 with the orbit thruster; if the propellant is short, it says how low
 the perigee gets. **Show calculation** opens how the lifetime was
 computed (the orbit, the mass, the ballistic coefficient, the burn and

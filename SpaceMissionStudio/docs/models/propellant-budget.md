@@ -44,7 +44,12 @@ it already includes one.
 - **From the last run** (`last run`; Sec. 6.2.7, "via simulation"):
   in- and out-of-plane control and formation keeping as flown. A run
   shorter than the mission by more than `scaled_run_ratio` (1.05) is
-  scaled up to it (`last run, scaled`), with a note.
+  scaled up to it (`last run, scaled`), with a note. The Budget page
+  lists what the last run gives before computing
+  (`engine.chained_inputs.budget_inputs`, from the same
+  `run_contributors`): the run's length, its scale to the mission and each
+  contributor flown, with its source, and a caution when the scenario
+  differs from the one the run flew.
 - **Estimated** (`estimated`): without a run, a LEO station keeper's
   in-plane control is the drag make-up of its held orbit over the mission
   (`engine.lifetime.drag_makeup`), at MSFC's `operations_percentile`

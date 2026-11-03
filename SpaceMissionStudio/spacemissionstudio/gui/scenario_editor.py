@@ -336,6 +336,7 @@ class ScenarioEditorWidget(QWidget):
         # a form's compute buttons and Give a reason..., kept with every edit.
         self._value_marks: list = []
         self._presets: list = []  # PresetRecord list: spacecraft made from a preset (Phase 5b)
+        self._imports: list = []  # ImportRecord list: values read from a file (Phase 8c)
         # The project configuration file the scenario names: the Assumptions
         # page sets it (and the JSON view); read again at each to_scenario().
         self._config_file: str | None = None
@@ -651,7 +652,7 @@ class ScenarioEditorWidget(QWidget):
         if config.name != node.config.name:  # its computed and overridden values follow the name (Phase 5b)
             rename_in_value_marks(self._value_marks, "spacecraft" if kind == "spacecraft" else "ground_stations",
                                   node.config.name, config.name)
-            for record in self._presets if kind == "spacecraft" else ():
+            for record in [*self._presets, *self._imports] if kind == "spacecraft" else ():  # (8c) imports too
                 if record.spacecraft == node.config.name:
                     record.spacecraft = config.name
         node.config = config
@@ -930,6 +931,7 @@ class ScenarioEditorWidget(QWidget):
         scenario.value_marks = [copy.copy(mark) for mark in live_value_marks(scenario, self._value_marks)]
         names = {sc.name for sc in scenario.spacecraft}
         scenario.presets = [copy.copy(record) for record in self._presets if record.spacecraft in names]
+        scenario.imports = [copy.copy(record) for record in self._imports if record.spacecraft in names]
         return scenario
 
     def set_fsw_exports(self, records: list) -> None:
@@ -981,6 +983,7 @@ class ScenarioEditorWidget(QWidget):
         self._fsw_exports = list(scenario.fsw_exports)
         self._value_marks = [copy.copy(mark) for mark in scenario.value_marks]
         self._presets = [copy.copy(record) for record in scenario.presets]
+        self._imports = [copy.copy(record) for record in scenario.imports]
         self._config_file = scenario.config_file
         self.assumptions_page.set_config_file(scenario.config_file)
         if not self._applying_json:  # another scenario: the JSON page forgets an edit it held
@@ -1140,6 +1143,7 @@ class ScenarioEditorWidget(QWidget):
         self._update_problem_counts()
         self._value_marks = list(scenario.value_marks)  # those that went with what they marked are gone
         self._presets = list(scenario.presets)
+        self._imports = list(scenario.imports)
         self._show_value_marks(scenario)
         self.problems_changed.emit(self.problem_rows())
 

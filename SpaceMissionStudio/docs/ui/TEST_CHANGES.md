@@ -1570,3 +1570,27 @@ No existing test changed.
 
   Each new test fails on the code before (checked by stashing
   `spacemissionstudio/`).
+
+## Imported values (2026-11-03)
+
+- Added `tests/test_imports.py`, 6 tests: `ccsds-import` records the
+  file, its hash and the values; a changed or missing file is a pre-run
+  warning; values edited since are recorded; the records follow a
+  renamed spacecraft and are saved only when there are some; a mass
+  properties file is kept with its path; a run records the imports
+  (Basilisk). No existing test changed.
+
+  Each new test fails on the code before (checked by stashing
+  `spacemissionstudio/`).
+
+## Chained inputs (2026-11-03)
+
+- Added `tests/test_chained_inputs.py`, 6 tests: the lifetime's start
+  shown is the one `end_of_life` uses (Basilisk); the starting propellant
+  edited before computing, and its trace (Basilisk); the budget's run
+  contributors shown, scaled; a scenario changed since the run named; the
+  End of Life page's panel, caution and edited propellant (GUI,
+  Basilisk); the Budget page's panel (GUI). No existing test changed.
+
+  Each new test fails on the code before (checked by stashing
+  `spacemissionstudio/`).
