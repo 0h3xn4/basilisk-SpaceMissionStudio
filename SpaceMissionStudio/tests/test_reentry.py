@@ -30,7 +30,7 @@ from spacemissionstudio.analyses import reentry
 from spacemissionstudio.config import registry
 from spacemissionstudio.constants import EARTH_EQUATORIAL_RADIUS_M, EARTH_GM_M3_S2
 from spacemissionstudio.schema import load_scenario
-from spacemissionstudio.schema.scenario import MaterialConfig
+from spacemissionstudio.schema.scenario import MaterialConfig, ModelMeshConfig, ModelPartConfig
 
 pytest.importorskip("Basilisk")
 _TEMPLATE = Path(__file__).resolve().parents[1] / "spacemissionstudio" / "scenarios" / "templates" \
@@ -137,3 +137,39 @@ def test_setting_a_reentry_parameter_changes_the_estimate(name, value):
     before = measure(None)
     assert measure(Configuration({name: registry.default(name)})) == before
     assert measure(Configuration({name: registry.parameter(name).check(value)})) != before
+
+
+def test_a_part_that_cannot_be_built_stops_the_estimate_and_the_design_checks(tmp_path):
+    """A part whose mesh file is missing has no surface and is not in the
+    scene: rather than leave its mass out of the casualty area (or its
+    blockage out of a field of view) without a word, the estimate and the
+    design checks refuse the model and name the part."""
+    from spacemissionstudio.analyses import common, design_checks
+
+    sc = load_scenario(_TEMPLATE).spacecraft[0]
+    sc.model.meshes.append(ModelMeshConfig(path="missing.obj"))
+    sc.model.parts.append(ModelPartConfig(name="ghost", shape="mesh", mesh_index=len(sc.model.meshes) - 1,
+                                          mesh_group="x", mass_kg=5.0))  # [kg]
+    with pytest.raises(common.AnalysisError, match="ghost"):
+        reentry.reentry_estimate(sc, tmp_path)
+    with pytest.raises(common.AnalysisError, match="could not be built"):
+        design_checks.design_checks(sc, base_dir=tmp_path)
+
+
+def test_a_mesh_part_s_material_is_found_from_the_scenario_s_folder(tmp_path):
+    """A mesh given by a path relative to the scenario file: the exposure
+    table's materials are read from that folder (the scenario's, not the
+    current directory's)."""
+    from spacemissionstudio.analyses import run_analyses
+    from spacemissionstudio.model3d import obj_io, shapes
+
+    obj_io.write_obj(tmp_path / "plate.obj", [obj_io.ObjGroup("plate", shapes.mesh(
+        "panel", {"width": 1.0, "length": 1.0, "thickness": 0.01}))])  # [m]
+    sc = load_scenario(_TEMPLATE).spacecraft[0]
+    sc.model.meshes.append(ModelMeshConfig(path="plate.obj"))
+    sc.model.parts.append(ModelPartConfig(name="plate", shape="mesh", mesh_index=len(sc.model.meshes) - 1,
+                                          mesh_group="plate", mass_kg=1.0, material="kapton_h",  # [kg]
+                                          position_b_m=[0.0, 0.0, 2.0]))  # [m]
+    found = run_analyses._face_materials(sc, tmp_path)
+    assert any(name.startswith("plate: ") and material == "kapton_h" for name, (material, _y) in found.items())
+    assert run_analyses._face_materials(sc, None) == {}

@@ -271,3 +271,19 @@ def test_the_analyses_series_give_timeline_events_with_their_traces():
     for event in found.values():
         span = events.trace_of(result, event)[0]
         assert (span.input("t_start"), span.input("t_end")) == (event.start_s, event.end_s)
+
+
+def test_array_shading_casts_no_rays_in_umbra_and_obstruction_takes_the_nearest_sample():
+    """In umbra a cell gives no power whatever shades it, so no ray is cast
+    (the shaded fraction is 0 there); and a pass time between two samples
+    takes the nearer one's position and attitude."""
+    from spacemissionstudio.analyses.run_geometry import nearest_sample
+
+    light = _box_and_shade()
+    cast = []
+    light.scene.face_shading = lambda *args: cast.append(args)
+    cells = _item("cells", kind="solar_cell", part="bus", boresight=(0, 0, 1))
+    series, _notes = shading.shading_series(_geometry([0, 0, 1], n=3, sunlight=0.0), light, [cells], 0.3)
+    assert cast == [] and series[0].data[:, 0].tolist() == [0.0, 0.0, 0.0]
+    assert nearest_sample(np.array([0.0, 10.0, 20.0]), np.array([0.0, 4.0, 6.0, 14.0, 20.0])).tolist() == [
+        0, 0, 1, 1, 2]

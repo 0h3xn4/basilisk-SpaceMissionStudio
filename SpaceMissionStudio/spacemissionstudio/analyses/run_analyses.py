@@ -180,9 +180,11 @@ def _on_time(series, column: int = -1) -> tuple[float, float]:
     return (float(on.mean()) if len(on) else 0.0), float(dt[on].sum())
 
 
-def report(result, scenario, sc) -> RunReport:
+def report(result, scenario, sc, base_dir=None) -> RunReport:
     """The :class:`RunReport` of ``sc`` from ``result`` (series the run
-    recorded; nothing is computed again but the budgets)."""
+    recorded; nothing is computed again but the budgets). ``base_dir``
+    resolves the model's relative mesh paths (default: the scenario file's
+    folder)."""
     from . import disturbances, exposure
 
     out = RunReport(sc.name, notes=[str(w) for w in result.warnings if f"{sc.name}: model analyses" in str(w)])
@@ -217,12 +219,12 @@ def report(result, scenario, sc) -> RunReport:
         out.notes.append(f"array shading: {lost:.3g} W*h lost over the run "
                          f"({100.0 * lost / max(np.trapezoid(data[:, -2], power.time_s) / 3600.0, 1e-12):.2g} %)")
     if f"{sc.name}.exposure.sun_factor" in result.series:
-        materials = _face_materials(sc)
+        materials = _face_materials(sc, base_dir if base_dir is not None else getattr(scenario, "_base_dir", None))
         out.exposure = exposure.totals(result, sc, materials)
     return out
 
 
-def _face_materials(sc) -> dict:
+def _face_materials(sc, base_dir=None) -> dict:
     """``{facet name: (material, erosion yield [cm^3/atom] or None)}``: a
     face property's material, else its part's."""
     from ..config import materials as library
@@ -240,7 +242,7 @@ def _face_materials(sc) -> dict:
     found = {}
     by_part = {p.name: p.material for p in sc.model.parts if p.material}
     try:
-        derived, _scene = common.derived_and_scene(sc, "deployed", getattr(sc, "_base_dir", None))
+        derived, _scene = common.derived_and_scene(sc, "deployed", base_dir)
         names = [f.name for f in derived.facets]
     except Exception:  # noqa: BLE001 -- no facets: no materials to give
         names = []

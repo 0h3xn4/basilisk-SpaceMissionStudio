@@ -1392,7 +1392,7 @@ class MainWindow(QMainWindow):
         wanted = ModelAnalysesWidget.has_analyses(scenario) and result is not None
         index = self.results_views.indexOf(self.model_analyses_scroll)
         if wanted:
-            self.model_analyses_widget.set_run(scenario, result)
+            self.model_analyses_widget.set_run(scenario, result, self._scenario_dir())
             if index < 0:
                 self.results_views.addTab(self.model_analyses_scroll, "Model Analyses")
         elif index >= 0:

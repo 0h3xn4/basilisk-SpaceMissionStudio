@@ -237,3 +237,21 @@ def test_an_undersized_wheel_is_among_the_runs_warnings():
     sc.model, sc.sensors, sc.rf_link, sc.comms_pointing = None, [], None, None
     run_analyses.add_to(result, scenario)
     assert [w.rule_id for w in result.warnings] == ["design.wheel_capacity"], [str(w) for w in result.warnings]
+
+
+def test_a_segmented_run_sizes_the_wheels_on_the_whole_run():
+    """A run past 100 days runs in segments, and each segment's analyses
+    size the wheels on its own part of the run. The merged run keeps one
+    finding, from the whole run's budget: a segment's stale one (here an
+    invented 0.5 N*m*s) is replaced by the run's 0.06 N*m*s per orbit."""
+    from spacemissionstudio.engine import long_run
+    from spacemissionstudio.engine.findings import Finding
+
+    result, sc = _synthetic(lambda t: np.column_stack([0 * t, 0 * t, 1e-5 + 0 * t]), 6000.0, 2)
+    sc.actuators = [ActuatorConfig("reaction_wheel", "rw-z", {"gsHat_B": [0.0, 0.0, 1.0], "maxMomentum": 0.05})]
+    result.warnings = [Finding("sc: a segment's wheel finding", "design.wheel_capacity", actual="0.5 N*m*s"),
+                       "another warning"]
+    long_run._whole_run_disturbance_findings(SimpleNamespace(spacecraft=[sc]), result)
+    sizing = [w for w in result.warnings if getattr(w, "rule_id", "") == "design.wheel_capacity"]
+    assert len(sizing) == 1 and sizing[0].actual == "0.06 N*m*s"
+    assert "another warning" in result.warnings

@@ -261,3 +261,19 @@ def test_the_design_checks_on_the_command_line_and_in_the_api(tmp_path, capsys):
     assert api.record(loaded, report)["results"]["launcher"]["fits"] is False
     assert cli.main(["check-design", str(path), "--spacecraft", "nobody"]) == 1
     assert "no spacecraft named 'nobody'" in capsys.readouterr().err
+
+
+def test_the_editor_s_repeated_checks_of_an_unchanged_spacecraft_cast_no_new_rays(monkeypatch):
+    """The scenario editor checks at every edit: a spacecraft whose content
+    has not changed keeps its findings without new ray casting; a change
+    to it checks it again."""
+    scenario, sc = _spacecraft()
+    calls = []
+    real = design_checks.design_checks
+    monkeypatch.setattr(design_checks, "_FINDINGS", {})
+    monkeypatch.setattr(design_checks, "design_checks", lambda *a, **k: calls.append(a) or real(*a, **k))
+    first = design_checks.design_findings(scenario)
+    assert design_checks.design_findings(scenario) == first and len(calls) == 1
+    sc.model.parts[0].mass_kg += 1.0  # [kg]
+    design_checks.design_findings(scenario)
+    assert len(calls) == 2

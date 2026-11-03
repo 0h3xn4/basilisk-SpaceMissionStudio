@@ -225,15 +225,16 @@ def design_checks(scenario, spacecraft: str | None = None, samples: int | None =
     return checks.design_checks(common.spacecraft(scenario, spacecraft), samples=samples, base_dir=base_dir)
 
 
-def model_analyses(scenario, result, spacecraft: str | None = None):
+def model_analyses(scenario, result, spacecraft: str | None = None, base_dir=None):
     """A run's model analyses for a spacecraft with ``model_analyses`` set:
     ``analyses.run_analyses.RunReport`` with the ``disturbances`` budget
     (``findings()`` for undersized wheels or magnetorquers) and the blinding,
     obstruction, shading, exposure and brightness tables; ``result`` is the
-    run (:func:`run`), whose series hold the analyses."""
+    run (:func:`run`), whose series hold the analyses; ``base_dir`` resolves
+    the model's relative mesh paths (default: the scenario file's folder)."""
     from .analyses import common, run_analyses
 
-    return run_analyses.report(result, scenario, common.spacecraft(scenario, spacecraft))
+    return run_analyses.report(result, scenario, common.spacecraft(scenario, spacecraft), base_dir)
 
 
 def reentry(scenario, spacecraft: str | None = None, population_density_per_km2: float | None = None,

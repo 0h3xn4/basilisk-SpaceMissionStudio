@@ -709,13 +709,13 @@ def cmd_check_design(args: argparse.Namespace) -> int:
     scenario, file_record = loaded
     from .analyses import common, design_checks, records
 
+    base_dir = args.scenario.resolve().parent
     try:
         sc = common.spacecraft(scenario, args.spacecraft)
+        report = design_checks.design_checks(sc, samples=args.samples, base_dir=base_dir)
     except common.AnalysisError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
-    base_dir = args.scenario.resolve().parent
-    report = design_checks.design_checks(sc, samples=args.samples, base_dir=base_dir)
     print(f"{sc.name}: design checks{'' if sc.model is not None else ' (no 3D model: the mass budget only)'}")
     for row in report.fov.rows() if report.fov is not None else []:
         print(f"  field of view: {row['item']} ({row['configuration']}, {row['field_of_view_deg']:g} deg): "
@@ -809,7 +809,7 @@ def cmd_model_analyses(args: argparse.Namespace) -> int:
         print(f"ERROR: run failed: {exc}", file=sys.stderr)
         return 3
     for sc in chosen:
-        report = run_analyses.report(result, scenario, sc)
+        report = run_analyses.report(result, scenario, sc, args.scenario.resolve().parent)
         print(f"{sc.name}: model analyses")
         budget = report.disturbances
         if budget is not None:

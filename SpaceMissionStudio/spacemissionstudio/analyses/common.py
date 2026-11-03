@@ -68,7 +68,7 @@ def model_hash(model) -> str:
 def derived_and_scene(sc, configuration: str = "deployed", base_dir=None):
     """``(DerivedModel, Scene)`` of ``sc``'s model in ``configuration``,
     cached by the model's content. Raises :class:`AnalysisError` without
-    a model."""
+    a model, or when one of its parts could not be built."""
     if sc.model is None:
         raise AnalysisError(f"{sc.name} has no 3D model")
     key = (model_hash(sc.model), configuration, str(base_dir))
@@ -77,7 +77,14 @@ def derived_and_scene(sc, configuration: str = "deployed", base_dir=None):
         if len(_SCENES) >= _MAX_SCENES:
             _SCENES.pop(next(iter(_SCENES)))
         _SCENES[key] = (derived, scene_from_model(sc.model, derived, configuration, base_dir))
-    return _SCENES[key]
+    derived, found = _SCENES[key]
+    # A part that could not be built (an unreadable mesh file) is missing from the scene: what it would block,
+    # shade or add to the re-entry would be lost without a word, so no analysis is made on such a model.
+    broken = [f"{part.name} ({part.error})" for part in derived.parts if part.mesh is None]
+    if broken:
+        raise AnalysisError(f"{sc.name}: the 3D model's part(s) {'; '.join(broken)} could not be built: "
+                            "fix the model before analysing it")
+    return derived, found
 
 
 def scene(sc, configuration: str = "deployed", base_dir=None) -> Scene:

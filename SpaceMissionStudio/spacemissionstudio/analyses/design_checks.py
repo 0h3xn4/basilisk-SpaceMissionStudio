@@ -35,7 +35,9 @@ limits are the user's, with their source: no limit is assumed.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+import hashlib
+import json
+from dataclasses import asdict, dataclass, field
 
 from ..engine.findings import Finding
 from . import common
@@ -107,12 +109,29 @@ def design_checks(sc, samples: int | None = None, base_dir=None) -> DesignReport
     return report
 
 
+# The findings of each spacecraft as last checked: the editor checks the scenario at every edit
+# (engine.scenario_checks), and an edit elsewhere must not cast the rays again.
+_FINDINGS: dict = {}  # (spacecraft hash, base_dir) -> list[Finding]
+_MAX_FINDINGS = 32
+
+
+def _spacecraft_key(sc, base_dir) -> tuple:
+    text = json.dumps(asdict(sc), sort_keys=True, default=str)
+    return hashlib.sha256(text.encode()).hexdigest(), str(base_dir)
+
+
 def design_findings(scenario, base_dir=None) -> list[Finding]:
     """Every spacecraft's design findings (none for a spacecraft without a
-    3D model, mounts, mass limit or launcher)."""
+    3D model, mounts, mass limit or launcher), remembered per spacecraft
+    content until it changes."""
     found: list[Finding] = []
     for sc in scenario.spacecraft:
         if sc.model is None:
             continue
-        found += design_checks(sc, base_dir=base_dir).findings()
+        key = _spacecraft_key(sc, base_dir)
+        if key not in _FINDINGS:
+            if len(_FINDINGS) >= _MAX_FINDINGS:
+                _FINDINGS.pop(next(iter(_FINDINGS)))
+            _FINDINGS[key] = design_checks(sc, base_dir=base_dir).findings()
+        found += _FINDINGS[key]
     return found

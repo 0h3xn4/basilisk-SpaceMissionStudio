@@ -217,7 +217,10 @@ Each item was checked against Basilisk's own source.
   * The re-entry estimate is preliminary and simplified (one lumped mass
     per part, a planar descent, the emissivity bracketed): not a
     substitute for DAS, DRAMA or SESAM. Its population density is the
-    user's (D-16). See [the method](../models/reentry.md).
+    user's (D-16). Its descent takes a fixed 0.05 s step to the ground,
+    so a very light part with a large surface (one that falls at under
+    1 m/s) can take minutes to estimate (D-23). See
+    [the method](../models/reentry.md).
   * Star-tracker Sun, Earth and Moon exclusion angles have no default:
     no datasheet could be read (D-12).
   * The 3D model editor does not yet edit the equipment, the stowed

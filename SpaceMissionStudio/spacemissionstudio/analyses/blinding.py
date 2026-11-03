@@ -48,6 +48,7 @@ import numpy as np
 
 from ..constants import CENTRAL_BODY_EQUATORIAL_RADIUS_KM
 from ..engine.results import TimeSeries
+from .run_geometry import nearest_sample
 
 SUN_RADIUS_M = CENTRAL_BODY_EQUATORIAL_RADIUS_KM["sun"] * 1000.0  # [m]
 MOON_RADIUS_M = CENTRAL_BODY_EQUATORIAL_RADIUS_KM["moon"] * 1000.0  # [m]
@@ -120,7 +121,7 @@ def obstruction_series(result, geometry, antenna, scene, stations) -> list:
         on = np.asarray(access.data, dtype=float)[:, 0] > 0.0
         blocked = np.zeros(len(t))
         if on.any():
-            index = np.clip(np.searchsorted(geometry.time_s, t[on]), 0, len(geometry.time_s) - 1)
+            index = nearest_sample(geometry.time_s, t[on])
             station_n = np.column_stack([np.interp(t[on], where.time_s, np.asarray(where.data, float)[:, k])
                                          for k in range(3)])
             offset = station_n - geometry.position_n[index]

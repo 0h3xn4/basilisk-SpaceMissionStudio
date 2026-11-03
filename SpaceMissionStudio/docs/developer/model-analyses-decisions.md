@@ -331,3 +331,34 @@ reads.
   would be worse than a larger one that was. This deviates from the
   brief's "small reviewable commits"; the progress file's step list is
   the reading order for review.
+
+## D-23: Review fixes, and one finding left as it is
+
+A review of the branch (PR #209) found seven points.
+
+- **Fixed:**
+  - A part that could not be built was missing from the scene, so the
+    analyses ran without it, and the re-entry estimate left its mass out.
+    The analyses now refuse such a model and name the part
+    (`analyses.common.derived_and_scene`).
+  - The exposure table's materials were looked up without the scenario's
+    folder, so a mesh given by a relative path had none. `report()` now
+    takes the folder, and defaults to the scenario file's.
+  - A segmented run (past 100 days) sized the wheels and magnetorquers
+    once per segment. The whole run's budget now replaces those findings
+    (`engine.long_run`).
+  - Array shading cast rays in umbra, where the flux is zero. It no
+    longer does, and its shaded fraction there is 0. Template 32's golden
+    file was re-recorded for this, and its power is unchanged.
+  - Antenna obstruction paired a pass time with the next sample rather
+    than the nearest one.
+  - The editor's checks at every edit cast the design checks' rays
+    again for spacecraft that had not changed. Their findings are now
+    kept per spacecraft content.
+- **Left as it is:** the re-entry descent's fixed 0.05 s RK4 step. A
+  very light fragment with a large surface, falling at under 1 m/s,
+  takes many steps to reach the ground. For template 28's parts (about
+  0.3 m^2/kg) it takes seconds. An adaptive step, or stopping once
+  nothing more can melt, would change the validated numbers, and either
+  would need its own validation case. Recorded as a limitation.
+

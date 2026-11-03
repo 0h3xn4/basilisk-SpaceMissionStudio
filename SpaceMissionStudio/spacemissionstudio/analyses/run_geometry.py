@@ -45,7 +45,8 @@ def mrp_to_dcm(sigma: np.ndarray) -> np.ndarray:
     return np.eye(3) + (8.0 * square - 4.0 * (1.0 - s2)[:, None, None] * tilde) / ((1.0 + s2) ** 2)[:, None, None]
 
 
-def _nearest(source_t: np.ndarray, t: np.ndarray) -> np.ndarray:
+def nearest_sample(source_t: np.ndarray, t: np.ndarray) -> np.ndarray:
+    """The index in ``source_t`` (sorted) of the sample nearest each of ``t``."""
     index = np.clip(np.searchsorted(source_t, t), 1, max(len(source_t) - 1, 1))
     left = np.clip(index - 1, 0, len(source_t) - 1)
     right = np.clip(index, 0, len(source_t) - 1)
@@ -89,7 +90,7 @@ def run_geometry(result, sc_name: str, central_body: str) -> RunGeometry | None:
     if attitude is None or position is None or len(position.time_s) == 0:
         return None
     t = np.asarray(position.time_s, dtype=float)
-    dcm = mrp_to_dcm(np.asarray(attitude.data, dtype=float)[_nearest(np.asarray(attitude.time_s, float), t)])
+    dcm = mrp_to_dcm(np.asarray(attitude.data, dtype=float)[nearest_sample(np.asarray(attitude.time_s, float), t)])
     central = result.series.get(f"ephemeris.{central_body}.position_N")
     central_n = _interp(central, t) if central is not None else np.zeros((len(t), 3))
     sun = result.series.get("ephemeris.sun.position_N")

@@ -114,7 +114,7 @@ def shading_series(geometry, light: FacetLight, items, efficiency) -> tuple[list
             notes.append(f"array shading: {item.name}: its part {item.part!r} has no face")
             continue
         k = own[int(np.argmax(light.normals[own] @ np.asarray(item.boresight_b, float)))]
-        shaded = np.array([light.shaded(sun_b[i], [k])[0] for i in range(n)])
+        shaded = np.array([light.shaded(sun_b[i], [k])[0] if flux[i] > 0.0 else 0.0 for i in range(n)])  # no rays in umbra
         cosine = np.clip(sun_b @ light.normals[k], 0.0, None)
         out.append(TimeSeries(f"{geometry.spacecraft}.shading.{item.name}", geometry.time_s,
                               ("shaded_fraction", "incidence_cos"), np.column_stack([shaded, cosine]), units="-"))

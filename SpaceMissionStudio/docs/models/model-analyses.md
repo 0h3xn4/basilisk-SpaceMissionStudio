@@ -25,6 +25,11 @@ Every geometric analysis casts rays against the model's parts
   `sqrt(f (1 - f) / N)`, `N` the samples (`model_analyses.samples`,
   default 256).
 
+A model with a part that could not be built (an unreadable mesh file, a
+missing group) is not analysed: the analysis stops and names the part,
+because the part would otherwise be missing from every view, shadow and
+fragment without a word.
+
 ## Design checks (no run)
 
 | Check | What it computes | Finding |
@@ -57,7 +62,7 @@ with no margin (decision D-18).
 |---|---|---|
 | Sensor blinding | `<sc>.blinding.<item>`, `<sc>.blinding.all_star_trackers` | The boresight within the exclusion angle plus the body's angular radius of the Sun (when lit), the central body (plus `earth_atmosphere_km`) or the Moon (when tracked) |
 | Antenna obstruction | `<station>.access_to_<sc>.antenna_obstructed` | During each pass, a ray from the antenna to the station against the model |
-| Array shading | `<sc>.shading.<item>`, `<sc>.shading.power` | The solar-cell face's light from the Sun, shaded by other parts; its power with the power budget's efficiency |
+| Array shading | `<sc>.shading.<item>`, `<sc>.shading.power` | The solar-cell face's light from the Sun, shaded by other parts (0 in umbra, where no ray is cast); its power with the power budget's efficiency |
 | Exposure | `<sc>.exposure.ao_flux`, `<sc>.exposure.sun_factor` | Atomic-oxygen flux `n_O v cos(alpha)` with `n_O = rho / m_O` (an upper bound, D-08); equivalent sun hours |
 | Brightness | `<site>.brightness_of_<sc>.visual_magnitude` | Diffuse (Lambert) reflection of the lit facets toward a dark site, `m_sun = -26.74` |
 

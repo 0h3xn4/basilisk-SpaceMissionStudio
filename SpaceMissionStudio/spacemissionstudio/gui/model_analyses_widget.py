@@ -55,6 +55,7 @@ class ModelAnalysesWidget(QWidget):
         super().__init__(parent)
         self._scenario = None
         self._result = None
+        self._base_dir = None  # set_run
         self.report = None
         layout = QVBoxLayout(self)
         top = QHBoxLayout()
@@ -91,9 +92,10 @@ class ModelAnalysesWidget(QWidget):
     def has_analyses(scenario) -> bool:
         return scenario is not None and any(sc.model_analyses is not None for sc in scenario.spacecraft)
 
-    def set_run(self, scenario, result) -> None:
-        """The run's scenario and results (None: nothing to show)."""
-        self._scenario, self._result = scenario, result
+    def set_run(self, scenario, result, base_dir=None) -> None:
+        """The run's scenario and results (None: nothing to show), and the
+        folder its model's relative mesh paths are read from."""
+        self._scenario, self._result, self._base_dir = scenario, result, base_dir
         names = [sc.name for sc in scenario.spacecraft if sc.model_analyses is not None] if scenario else []
         self.spacecraft_combo.blockSignals(True)
         self.spacecraft_combo.clear()
@@ -106,7 +108,7 @@ class ModelAnalysesWidget(QWidget):
 
         name = self.spacecraft_combo.currentText()
         sc = next((s for s in self._scenario.spacecraft if s.name == name), None) if self._scenario else None
-        self.report = run_analyses.report(self._result, self._scenario, sc) if sc and self._result else None
+        self.report = run_analyses.report(self._result, self._scenario, sc, self._base_dir) if sc and self._result else None
         self.save_button.setEnabled(self.report is not None)
         if self.report is None:
             self.summary_label.setText("Run a scenario whose spacecraft set model analyses to see them here.")

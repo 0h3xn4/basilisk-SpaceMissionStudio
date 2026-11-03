@@ -1678,3 +1678,14 @@ bundled template saves, runs and exports as before.
   template 32's golden file and scenario hash (`tests/golden/`,
   `tests/data/scenario_hashes.json`). No other golden file or hash
   changed.
+- After review: template 32's golden file re-recorded once. Array
+  shading no longer casts rays in umbra, so the cells' shaded fraction
+  there is 0 (it was 0.0078 at six samples); the power, which is zero in
+  umbra, does not change. No other golden file changed.
+- Added after review: `tests/test_reentry.py`'s tests of a part that
+  cannot be built (the estimate and the design checks refuse the model)
+  and of a mesh part's material read from the scenario's folder;
+  `tests/test_run_analyses.py`'s test of no rays in umbra and the nearest
+  sample; `tests/test_design_checks.py`'s test that an unchanged
+  spacecraft is not checked again; `tests/test_disturbance_torques.py`'s
+  test that a segmented run sizes the wheels on the whole run.
