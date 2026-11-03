@@ -77,6 +77,7 @@ from ..schema.command import (
     SUPPORTED_STOP_CONDITIONS,
     Command,
 )
+from . import units
 from .feedback import ProblemBanner, show_dialog_error, show_toast
 from .icons import step_icon
 from .page_tree import embed_dialog, watch_edits
@@ -92,6 +93,7 @@ from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, finish_form
 # sync if either changes.
 _ASSIGNMENT_CONTROLLER_CHOICES = ("station_keeping", "phasing_keeping", "constant_thrust")
 _ASSIGNMENT_PARAMETER_CHOICES = ("thrust_n", "isp_s")
+_ASSIGNMENT_PARAMETER_UNITS = {"thrust_n": "N", "isp_s": "s"}  # the New value field's unit, by parameter
 
 # self.stack page order -- "if"/"while" share one page (same params shape:
 # just "condition"), so this has one fewer entries than
@@ -418,6 +420,8 @@ class _CommandEditorDialog(QDialog):
         value = params.get("value", 0.0)
         self.assignment_value_spin.setValue(float(value) if isinstance(value, (int, float)) else 0.0)
         form.addRow("New value", self.assignment_value_spin)
+        self.assignment_parameter_combo.currentTextChanged.connect(self._show_assignment_unit)
+        self._show_assignment_unit(self.assignment_parameter_combo.currentText())
 
         hint = QLabel(
             "Changes a controller setting mid-mission, e.g. lower thrust for a later phase. "
@@ -428,6 +432,9 @@ class _CommandEditorDialog(QDialog):
         form.addRow(hint)
 
         self.stack.addWidget(page)
+
+    def _show_assignment_unit(self, parameter: str) -> None:
+        self.assignment_value_spin.setSuffix(units.suffix(_ASSIGNMENT_PARAMETER_UNITS.get(parameter, "-")))
 
     def _build_report_page(self, params: dict) -> None:
         """A checkable list of the series this scenario produces (real user

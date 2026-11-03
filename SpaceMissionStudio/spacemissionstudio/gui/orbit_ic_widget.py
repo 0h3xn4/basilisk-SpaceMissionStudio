@@ -46,6 +46,7 @@ from ..engine.orbit_design import DEFAULT_LTAN_HOUR, raan_for_ltan_deg, sun_sync
 from ..schema.scenario import ANOMALY_TYPES, ORBIT_IC_TYPES, OrbitIC
 from .feedback import report
 from .value_mark_note import ValueMarkNote
+from . import units
 from .widgets import ComboBox, PreciseDoubleSpinBox, finish_form
 
 _ANOMALY_TYPE_LABELS = {
@@ -317,6 +318,7 @@ class OrbitIcWidget(QWidget):
             "Where the spacecraft starts along the orbit at the epoch, as the angle type "
             "selected on the left. 0 deg = starting exactly at periapsis (closest approach)."
         )
+        self.anomaly_deg.setSuffix(units.suffix("deg"))  # its label is the anomaly type's choice, not "[deg]"
         form.addRow(self.anomaly_type_combo, self.anomaly_deg)
 
         for box in (self.sma_km, self.ecc, self.inc_deg, self.raan_deg, self.aop_deg, self.anomaly_deg):

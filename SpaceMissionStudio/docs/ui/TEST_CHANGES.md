@@ -1567,6 +1567,48 @@ No existing test changed.
   plugins` (its output is the page's); a run records the plugins and the
   model (Basilisk); the Assumptions page names them (GUI). No existing
   test changed.
+## Every value with its unit (2026-11-03)
+
+- Added `tests/gui/test_display_units.py`, 4 tests: every editor number
+  field shows its unit or is a named dimensionless value or count; the
+  gains carry their control laws' units (and the inertia, the anomaly);
+  a field shown in another unit says what is saved, and a dispersion's
+  and an assignment's fields carry their quantity's unit; the plots'
+  units preference and the elapsed axis. Added one test to
+  `tests/test_sil_report.py` (each signal's unit, the summary, an older
+  report) and one to `tests/gui/test_sil_widgets.py` (the Unit column
+  and the tile).
+- Changed four expectations to the new text, nothing else in them:
+  `tests/gui/test_mission_dashboard_widget.py`'s battery charge,
+  "20.00 W*hr" to "20.00 Wh" (and its docstring);
+  `tests/gui/test_results_widget.py`'s and `tests/gui/test_compare_tab.py`'s
+  elapsed axis, "Elapsed time [hr]" and "Elapsed time [h]" to "Elapsed time
+  since t0, TDB [h]"; `tests/gui/test_sil_widgets.py`'s tile, "2" to
+  "2 (rw_torqueOutMsg.torque[0])", the signal named.
+
+  Each new test fails on the code before (checked by stashing
+  `spacemissionstudio/`).
+
+## Imported values (2026-11-03)
+
+- Added `tests/test_imports.py`, 6 tests: `ccsds-import` records the
+  file, its hash and the values; a changed or missing file is a pre-run
+  warning; values edited since are recorded; the records follow a
+  renamed spacecraft and are saved only when there are some; a mass
+  properties file is kept with its path; a run records the imports
+  (Basilisk). No existing test changed.
+
+  Each new test fails on the code before (checked by stashing
+  `spacemissionstudio/`).
+
+## Chained inputs (2026-11-03)
+
+- Added `tests/test_chained_inputs.py`, 6 tests: the lifetime's start
+  shown is the one `end_of_life` uses (Basilisk); the starting propellant
+  edited before computing, and its trace (Basilisk); the budget's run
+  contributors shown, scaled; a scenario changed since the run named; the
+  End of Life page's panel, caution and edited propellant (GUI,
+  Basilisk); the Budget page's panel (GUI). No existing test changed.
 
   Each new test fails on the code before (checked by stashing
   `spacemissionstudio/`).
@@ -1579,7 +1621,8 @@ No existing test changed.
   the command line (Basilisk); the space-weather download command; the
   launch-delay sweep written with its provenance (Basilisk). Added
   `tests/gui/test_open_data_exports.py`, 2 tests: the Monte Carlo table's
-  provenance sidecar; the lifetime estimate exported as its record
+  provenance sidecar; the lifetime estimate exported as its record, with
+  a starting propellant set by hand (Phase 8b) only when there is one
   (Basilisk).
 - Added two tests to `tests/test_reproduction.py`: a vector's components
   share its scale; a bundle made on another computer (Linux,

@@ -36,7 +36,9 @@ from .feedback import report
 from .theme import set_role
 from .widgets import TabWidget
 
-_COLUMNS = ("Signal", "Kind", "Max |residual|", "RMS", "At t [s]", "Max |reference|", "Not written [steps]")
+# "Unit": the signal's, as Basilisk's payload header writes it (SignalStats.unit); the residual, RMS and
+# reference columns are in it. Kept last so the columns before stay where they were.
+_COLUMNS = ("Signal", "Kind", "Max |residual|", "RMS", "At t [s]", "Max |reference|", "Not written [steps]", "Unit")
 
 
 class _NumberItem(QTableWidgetItem):
@@ -53,6 +55,16 @@ class _NumberItem(QTableWidgetItem):
 
 def _duration(seconds: float) -> str:
     return f"{seconds * 1e6:.3g} \u00b5s" if seconds < 1e-3 else f"{seconds * 1e3:.3g} ms"
+
+
+def _worst_text(report) -> str:
+    """The largest |residual| with its signal's unit and name: the signals
+    have different units, so the number alone says nothing."""
+    worst = report.worst_signal
+    if worst is None:
+        return f"{report.max_abs_error:.3g}"
+    unit = f" {worst.unit}" if worst.unit else ""
+    return f"{worst.max_abs_error:.3g}{unit} ({worst.name})"
 
 
 def _sentence(text: str) -> str:
@@ -140,7 +152,7 @@ class SilComparisonWidget(QWidget):
         self._set_tiles([
             ("Steps", f"{report.steps}"),
             ("Dropped steps", f"{report.dropped_steps}"),
-            ("Max |residual|", f"{report.max_abs_error:.3g}" + (f" ({missing} not written)" if missing else "")),
+            ("Max |residual|", _worst_text(report) + (f" ({missing} not written)" if missing else "")),
             ("Round trip p99", _duration(report.round_trip.get("p99_s", 0.0))),
             ("Jitter (std)", _duration(report.round_trip.get("jitter_s", 0.0))),
             ("Flight-software step", _duration(report.execution.get("mean_s", 0.0))),
@@ -175,6 +187,9 @@ class SilComparisonWidget(QWidget):
             self.table.setItem(row, 4, _NumberItem(s.time_of_max_s))
             self.table.setItem(row, 5, _NumberItem(s.max_abs_reference))
             self.table.setItem(row, 6, _NumberItem(float(s.steps_missing), str(s.steps_missing)))
+            unit = QTableWidgetItem(s.unit or "-")
+            unit.setToolTip("As Basilisk's message header writes it" if s.unit else "The header gives no unit")
+            self.table.setItem(row, 7, unit)
         self.table.setSortingEnabled(True)
         self.table.sortItems(2, Qt.SortOrder.DescendingOrder)
 

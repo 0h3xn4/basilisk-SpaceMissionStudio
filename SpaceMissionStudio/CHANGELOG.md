@@ -551,6 +551,24 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   the Monte Carlo runs table's CSV gets `<file>.provenance.json` beside it
   with the batch's provenance. A lifetime estimate keeps the options it
   ran with.
+- **Every value with its unit:** the number fields that had none show
+  it: the inertia's diagonal (kg·m²), the starting anomaly (°), the
+  attitude gains K, P, Ki and the integral limit (N·m, N·m·s,
+  1/(N·m·s²), s, the units of `mrpFeedback`'s control law), a Monte
+  Carlo dispersion's mean, standard deviation and bounds (the quantity's
+  unit) and a mission-sequence assignment's new value (N or s). A test
+  checks that every editor field shows a unit or is a named dimensionless
+  value or count. The magnetic momentum management's gain was labelled
+  `[-]`: it is Basilisk's `cGain`, in 1/s. The SIL comparison shows each
+  signal's unit (Basilisk's message headers'), in a **Unit** column, the
+  largest residual with its signal's unit and name, and the command
+  line's summary too. A field shown in another unit than it is saved
+  (GHz, Mbit/s, RPM, %, seconds of a coast) says what is saved.
+  Temperatures show °C and the Dashboard's battery Wh. The plots'
+  elapsed-time axis says "Elapsed time since t0, TDB [h]", and the top
+  bar's last-run time names its zone. **Settings > Appearance > Plot
+  units** shows the plots and the run comparison as recorded (SI) in
+  place of the display units. No number computed changes.
 - **Your own models, checks and parameters, without editing the tool
   (plugins):** a Python package that declares an entry point in the group
   `spacemissionstudio.models` adds, under its own name, parameters (set
@@ -563,6 +581,23 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   `SPACEMISSIONSTUDIO_PLUGINS=0` loads none. A plugin cannot add what
   Basilisk simulates. See `docs/user-manual/plugins.md`. With none
   installed, nothing changes.
+- **What an analysis takes from the last run, shown before it computes:**
+  the End of Life page, from the end of the last run, lists the state it
+  starts from (its time, the mean perigee, apogee and inclination) and
+  the propellant left, each with its source; the Budget page lists the
+  orbit control and formation keeping the run flew, scaled to the
+  mission. Both warn when the scenario has changed since that run,
+  naming the values. **Propellant at the start > Set to** edits the
+  lifetime's starting propellant before estimating; the calculation
+  records it as edited. The numbers computed do not change.
+- **Imported values keep their source:** `ccsds-import` records in the
+  scenario where a spacecraft's orbit came from: the file's path, its
+  SHA-256, the format and the values read (`imports`). An imported mass
+  properties file keeps its path with its name and SHA-256. A file that
+  has changed since, or is not there, is a pre-run warning
+  (`import.source_changed`, `import.source_missing`); each run's
+  provenance records every import with the file's state and the values
+  edited since. A scenario without imports saves as before.
 - **Every save records what it changed:** in `mission.history.jsonl`
   beside `mission.json`, one line per value with its old and new value,
   the time, the author (the user name for now), what saved it (the app

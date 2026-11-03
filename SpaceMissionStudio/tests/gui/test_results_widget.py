@@ -571,7 +571,7 @@ def test_access_timeline_ignores_x_axis_combo_always_uses_elapsed_time(widget):
     widget.show_series(ACCESS_TIMELINE)
     widget.x_axis_combo.setCurrentIndex(widget.x_axis_combo.findData("epoch"))
 
-    assert widget.figure.layout.xaxis.title.text == "Elapsed time [hr]"
+    assert widget.figure.layout.xaxis.title.text == "Elapsed time since t0, TDB [h]"
 
 def test_switching_back_to_single_series_restores_previous_plot(widget):
     """Going from the access timeline back to a series plots that series as

@@ -14528,7 +14528,9 @@ The transparency plan, Phases 9 and 10. Branch `open-data-api`.
   (`analysis_records.sweep_record`, `trade_record`).
 - **`engine.lifetime.EndOfLife`:** the options it ran with, in `options`
   (`max_years`, `forecast_percentile`, `drag_coeff` asked for,
-  `deorbit_perigee_km`). One field, which the golden-output baseline
+  `deorbit_perigee_km`, and, with develop's Phase 8b merged in, the
+  starting `propellant_kg` set on the End of Life page, which its record
+  writes only when there is one). One field, which the golden-output baseline
   leaves out: they are the options its capture passed, inputs, not
   outputs.
 - **The app:** End of Life's **Export JSON...** (`lifetime_json` on
@@ -14550,6 +14552,79 @@ and fixed: the golden baseline took the lifetime's new option fields
 met the Monte Carlo table's new provenance file (checked on its own now),
 and a CLI test expected `--launch-delays --out` to be refused (it now
 checks the record). Those tests and this change's own then passed (68).
+With develop merged in (Phase 8a, 8b, 8c) and the propellant set by hand
+added to the lifetime's options and record: 4441 passed (31 min 36 s).
+
+## Chained inputs: what an analysis takes from the last run (2026-11-03)
+
+The transparency plan, Phase 8b. Branch `imported-values`, with 8c.
+
+- **`engine.lifetime`:** `StartState` and `start_state` (the run's last
+  state and propellant, or the scenario's), used by `end_of_life`, which
+  takes `propellant_kg` (edited before computing).
+- **`engine.chained_inputs`:** `lifetime_inputs`, `budget_inputs`,
+  `changed_since`.
+- **`gui.chained_inputs_panel.ChainedInputsPanel`:** on the End of Life
+  page (with **Propellant at the start > Set to**) and the Budget page.
+- **Docs:** the lifetime and propellant budget model pages, the User
+  Manual, the lifetime and budget guide.
+- **Tests:** `tests/test_chained_inputs.py` (6).
+- **Numbers:** none change; the lifetime's start is computed by the same
+  steps, moved into `start_state`.
+
+## Imported values with their source and hash (2026-11-03)
+
+The transparency plan, Phase 8c. Branch `imported-values`.
+
+- **`schema.scenario`:** `ImportRecord` and `Scenario.imports` (saved
+  only when there is one), `imported_values`, `file_state`,
+  `import_status`, `put_import`, `import_records`;
+  `ModelMassPropertiesConfig.source_path` (saved only when set).
+  `schema.references.rename_spacecraft` and the scenario editor carry the
+  records along.
+- **`cli ccsds-import`:** records the import (`_record_import`).
+- **`model3d.mass_import`:** keeps the file's absolute path; the model
+  editor keeps it while the mass properties stay imported.
+- **Checks and records:** `import.source_changed` and
+  `import.source_missing` (`engine.findings`, `scenario_checks`);
+  `RunProvenance.imports` (a run and a long run).
+- **Docs:** `docs/models/value-marks.md` ("Values read from a file"), the
+  orbit files and 3D model guides.
+- **Tests:** `tests/test_imports.py` (6).
+- **Numbers:** none change; a scenario without imports saves, and
+  hashes, as before.
+
+Full suite on Python 3.14: 4422 passed.
+
+## Units: every value with its unit (2026-11-03)
+
+The transparency plan, Phase 8a. Branch `display-units`.
+
+- **Editor fields:** units on the inertia's diagonal, the starting
+  anomaly, the attitude gains (`_CONTROL_PARAM_SPECS`, from
+  `mrpFeedback`'s control law), the wizard's K, P, Ki, integral limit
+  and c_gain, a dispersion's fields (`_FIELD_UNITS`) and an assignment's
+  value. The momentum-management gain's label said `[-]`; it is 1/s
+  (Basilisk's `mtbMomentumManagement.h` and `.c`). " C" became °C, " W*h"
+  and the Dashboard's "W*hr" Wh.
+- **Conversions said:** the frequency, data rate, wheel targets, a
+  coast's seconds and the budget's system margin say what is saved.
+- **SIL:** `fsw_export.documents.payload_units`; `SignalStats.unit`
+  (empty in an older report; written into the JSON only when there is
+  one, so a report without units is byte for byte as 1.1.0 wrote it); `SilReport.worst_signal`; the panel's
+  **Unit** column and the tile's signal; the summary lines.
+- **Plots:** `plot_categories.shown` (display units, or as recorded);
+  `gui.units.plot_units` (Settings > Appearance > Plot units); the
+  elapsed axis "Elapsed time since t0, TDB [h]" (seconds as recorded);
+  the run comparison follows; the figure cache keys on the choice.
+- **Docs:** the flight-software models page ("The attitude controller's
+  gains: their units"), the User Manual, Read the results.
+- **Tests:** `tests/gui/test_display_units.py` (4), one more in
+  `tests/test_sil_report.py` and `tests/gui/test_sil_widgets.py`; four
+  expectations follow the new text (TEST_CHANGES).
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4,402 passed (29 min 54 s).
 
 ## Plugins: models, rules and parameters of your own (2026-11-03)
 

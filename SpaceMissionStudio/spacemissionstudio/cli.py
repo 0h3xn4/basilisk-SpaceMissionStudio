@@ -1186,6 +1186,21 @@ def _read_ccsds_message(path) -> str:
     return data.decode("ascii", errors="replace")
 
 
+def _record_import(scenario, config, path: Path, file_format: str) -> None:
+    """The scenario keeps where ``config``'s orbit was read from, the file's
+    SHA-256 and the values read (Phase 8c, ``schema.scenario.ImportRecord``)."""
+    import hashlib
+    from datetime import UTC, datetime
+
+    from . import history
+    from .schema.scenario import ImportRecord, imported_values, put_import
+
+    put_import(scenario, ImportRecord(
+        config.name, "orbit", file_format, str(path.expanduser().resolve()),
+        hashlib.sha256(path.read_bytes()).hexdigest(), imported_values(config, "orbit"),
+        datetime.now(UTC).replace(microsecond=0).isoformat(), history.current_author()))
+
+
 def cmd_ccsds_validate(args: argparse.Namespace) -> int:
     """Check KVN OPM/OMM/OEM files against CCSDS 502.0-B-3."""
     from .engine import ccsds_odm
@@ -1280,8 +1295,8 @@ def cmd_ccsds_import(args: argparse.Namespace) -> int:
 
     try:
         scenario = load_scenario(args.scenario)
-        orbit, epoch, notes = ccsds_odm.orbit_ic_from_odm(_read_ccsds_message(args.message),
-                                                          central_body=scenario.gravity.central_body)
+        message = _read_ccsds_message(args.message)
+        orbit, epoch, notes = ccsds_odm.orbit_ic_from_odm(message, central_body=scenario.gravity.central_body)
     except OSError as exc:  # a missing message, or a folder (audit M12)
         print(f"ERROR: could not read {args.message}: {exc}", file=sys.stderr)
         return 1
@@ -1302,6 +1317,7 @@ def cmd_ccsds_import(args: argparse.Namespace) -> int:
             return 1
         scenario.epoch_utc = epoch.isoformat()
     matches[0].orbit = orbit
+    _record_import(scenario, matches[0], Path(args.message), "ccsds_opm" if "CCSDS_OPM_VERS" in message else "ccsds_omm")
     scenario.validate()
     _save(scenario, args.out or args.scenario, "ccsds-import")
     for note in notes:

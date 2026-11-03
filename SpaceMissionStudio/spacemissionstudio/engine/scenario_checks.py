@@ -340,13 +340,34 @@ def scenario_warnings(scenario) -> list[str]:
                         ("TLE", _tle_warnings), ("gravity", _gravity_warnings),
                         ("formation law", _formation_law_warnings),
                         ("navigation restarts", _navigation_restart_warnings),
-                        ("small-body data", _small_body_data_warnings), ("Monte Carlo", _monte_carlo_warnings)):
+                        ("small-body data", _small_body_data_warnings), ("Monte Carlo", _monte_carlo_warnings),
+                        ("imported files", _import_warnings)):
         warnings += _checked(name, check, scenario)
     for sc in scenario.spacecraft:
         warnings += _checked(f"{sc.name} devices", _spacecraft_warnings, sc, scenario)
     from .. import plugins
 
     warnings += plugins.check_findings(scenario)  # the installed plugins' rules (Phase 6c)
+    return warnings
+
+
+def _import_warnings(scenario) -> list[str]:
+    """Each value read from a file whose file has changed since, or is not
+    where it was (Phase 8c, ``schema.scenario.import_records``)."""
+    from ..schema.scenario import import_records
+
+    warnings = []
+    for record in import_records(scenario):
+        what = f"{record['spacecraft']}'s {record['target'].replace('model.', '').replace('_', ' ')}"
+        if record["source_now"] == "changed":
+            warnings.append(Finding(f"{what} was imported from {record['source']}, which has changed since "
+                                    "(SHA-256): import it again, or keep the values imported then",
+                                    "import.source_changed", actual="the file's SHA-256 differs",
+                                    limit=f"SHA-256 {record['sha256'][:12]}... when imported"))
+        elif record["source_now"] == "missing":
+            warnings.append(Finding(f"{what} was imported from {record['source']}, which is not there: the "
+                                    "values are as imported, unchecked", "import.source_missing",
+                                    actual="not found", limit=record["source"]))
     return warnings
 
 

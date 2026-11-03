@@ -660,7 +660,8 @@ class ModelEditorDialog(QDialog):
             mass_kg=float(self.typed_mass.value()), center_of_mass_b_m=[float(b.value()) for b in self.typed_com],
             inertia_kg_m2=[t["Ixx"], t["Ixy"], t["Ixz"], t["Ixy"], t["Iyy"], t["Iyz"], t["Ixz"], t["Iyz"], t["Izz"]],
             source_file=previous.source_file if previous is not None and self._source() == "imported" else "",
-            source_sha256=previous.source_sha256 if previous is not None and self._source() == "imported" else "")
+            source_sha256=previous.source_sha256 if previous is not None and self._source() == "imported" else "",
+            source_path=previous.source_path if previous is not None and self._source() == "imported" else "")
 
     def _source(self) -> str:
         return next(s for s, b in self.source_buttons.items() if b.isChecked())

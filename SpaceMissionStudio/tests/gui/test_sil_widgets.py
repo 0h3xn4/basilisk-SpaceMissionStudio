@@ -127,7 +127,8 @@ def test_the_comparison_panel_shows_the_numbers_and_saves_the_report(qtbot, tmp_
     tiles = [panel.tiles_row.itemAt(i).widget() for i in range(panel.tiles_row.count())
              if panel.tiles_row.itemAt(i).widget() is not None]
     texts = [label.text() for tile in tiles for label in tile.findChildren(type(panel.title_label))]
-    assert "3" in texts and "2" in texts and "Max |residual|" in texts and "Round trip p99" in texts
+    assert "3" in texts and "Max |residual|" in texts and "Round trip p99" in texts
+    assert "2 (rw_torqueOutMsg.torque[0])" in texts  # the worst signal named: the signals' units differ
     assert panel.table.item(0, 0).text() == "rw_torqueOutMsg.torque[0]" and panel.table.item(0, 2).text() == "2"
     assert panel.table.rowCount() == 2 and panel.log_view.toPlainText() == "fsw_host: connected\n"
     assert panel.title_label.text() == "sat-1 in the loop with fsw_host"
@@ -157,3 +158,25 @@ def test_the_mouse_wheel_changes_nothing_on_the_comparison_panel(qtbot, qapp):
     qtbot.waitExposed(panel)
     changed, count = _changed_by_wheel(panel, qapp)
     assert count > 0 and not changed, changed
+
+
+def test_the_comparison_table_shows_each_signals_unit(qtbot):
+    """The Unit column (Phase 8a): each signal's, as Basilisk's header
+    writes it, "-" where it gives none; the tile names the worst signal
+    with its unit."""
+    from spacemissionstudio.gui.sil_comparison_widget import SilComparisonWidget
+
+    report = _report()
+    report.signals[0].unit = "Nm"
+    panel = SilComparisonWidget()
+    qtbot.addWidget(panel)
+    panel.show_report(report)
+    header = [panel.table.horizontalHeaderItem(i).text() for i in range(panel.table.columnCount())]
+    assert header[-1] == "Unit"
+    units = {panel.table.item(row, 0).text(): panel.table.item(row, len(header) - 1).text()
+             for row in range(panel.table.rowCount())}
+    assert units[report.signals[0].name] == "Nm" and set(units.values()) <= {"Nm", "-"}
+    tiles = [panel.tiles_row.itemAt(i).widget() for i in range(panel.tiles_row.count())
+             if panel.tiles_row.itemAt(i).widget() is not None]
+    texts = [label.text() for tile in tiles for label in tile.findChildren(type(panel.title_label))]
+    assert f"2 Nm ({report.signals[0].name})" in texts

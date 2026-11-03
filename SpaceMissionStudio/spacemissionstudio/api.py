@@ -218,7 +218,7 @@ def record(scenario, analysis, spacecraft: str | None = None, result=None) -> di
         options = analysis.options
         return analysis_records.lifetime_record(scenario, name, analysis, options["max_years"],
                                                 options["forecast_percentile"], options["drag_coeff"],
-                                                options["deorbit_perigee_km"])
+                                                options["deorbit_perigee_km"], options.get("propellant_kg"))
     if isinstance(analysis, propellant_budget.Budget):
         return analysis_records.budget_record(scenario, name, analysis, result)
     if isinstance(analysis, propellant_budget.LaunchDelaySweep):

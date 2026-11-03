@@ -41,6 +41,7 @@ _DISPLAY = {
     "N": "N", "mN": "mN", "N*m": "N·m", "N m": "N·m", "N*m*s": "N·m·s", "N m s": "N·m·s",
     "W": "W", "W*hr": "Wh", "Wh": "Wh", "V": "V", "A": "A", "A*m^2": "A·m²", "A m^2": "A·m²",
     "T": "T", "nT": "nT", "K": "K", "degC": "°C",
+    "1/(N*m*s^2)": "1/(N·m·s²)",
     "Hz": "Hz", "GHz": "GHz", "MHz": "MHz", "1/s": "1/s", "1/s^2": "1/s²",
     "dB": "dB", "dBi": "dBi", "dBW": "dBW", "dB-Hz": "dB-Hz", "dBm": "dBm",
     "bit": "bit", "kbit/s": "kbit/s", "Mbit/s": "Mbit/s", "Gbit": "Gbit",
@@ -77,3 +78,33 @@ def split_label(text: str) -> tuple[str, str | None]:
         return text, None
     name, rest = match.group("name").strip(), match.group("rest").strip()
     return (f"{name} {rest}" if rest else name), match.group("unit").strip()
+
+
+# -- the plots' units (transparency plan, Phase 8a) -----------------------------------------------
+
+PLOT_UNITS_KEY = "appearance/plot_units"
+PLOT_UNITS = (("display", "Display units (km, °, h)"), ("recorded", "As recorded (SI, as the CSV exports)"))
+
+
+def _settings():
+    from pathlib import Path
+
+    from PySide6.QtCore import QSettings
+
+    # The app's own settings file, as the appearance settings' (gui.theme.apply).
+    return QSettings(str(Path.home() / ".spacemissionstudio" / "settings.ini"), QSettings.Format.IniFormat)
+
+
+def plot_units() -> str:
+    """"display" (the default) or "recorded": the units the plots show
+    (``plot_categories.shown``)."""
+    value = str(_settings().value(PLOT_UNITS_KEY, "display"))
+    return value if value in dict(PLOT_UNITS) else "display"
+
+
+def set_plot_units(value: str) -> None:
+    if value not in dict(PLOT_UNITS):
+        raise ValueError(f"plot units: one of {', '.join(dict(PLOT_UNITS))}, got {value!r}")
+    settings = _settings()
+    settings.setValue(PLOT_UNITS_KEY, value)
+    settings.sync()

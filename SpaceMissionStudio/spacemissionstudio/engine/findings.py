@@ -122,6 +122,20 @@ RULES: dict[str, Rule] = {rule.rule_id: rule for rule in (
          "Otherwise it would look passed.",
          "Correct the field the reason points to; the log has the full traceback.",
          override="It cannot be silenced: the check runs again on the next edit."),
+    Rule("import.source_changed", "A value read from a file is checked against the file: it has not changed "
+         "since the import (its SHA-256).",
+         "The scenario still holds the values read then: a newer orbit determination or mass report would "
+         "not be in the run.",
+         "Import the file again (spacemissionstudio ccsds-import, or the 3D model's Import file...), "
+         "or keep the values as they are if the earlier file is the one meant.",
+         override="A warning does not stop the run: the values imported then are used, and the run records "
+                  "that the file changed."),
+    Rule("import.source_missing", "A value read from a file is checked against the file, where it is.",
+         "Without the file the import cannot be checked: the values are as they were read, on another "
+         "computer or before the file moved.",
+         "Put the file back where the record says, or import it again from where it is now.",
+         override="A warning does not stop the run: the values imported then are used, and the run records "
+                  "that the file was not found."),
     Rule("small_body.ephemeris_missing", "A run about a small body needs its ephemeris installed.",
          "Without it the run stops at once.",
          "Download it in Reference data (Small bodies), or run 'spacemissionstudio small-bodies --fetch'.",

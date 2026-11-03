@@ -15,7 +15,10 @@ record, then NASA MSFC's prediction.
    - the **5-year rule** (ESA's Zero Debris approach, the FCC);
    - the **25-year guideline** (IADC).
 3. Choose **End of last run** to start from where a run ended, with the
-   propellant it left.
+   propellant it left. The page lists what it takes from the run before
+   you estimate (hover a value for where it came from), and warns when
+   the scenario has changed since the run. To try another amount, tick
+   **Propellant at the start > Set to**.
 4. Tick **Lower perigee to** to plan a deorbit burn with the orbit
    thruster. If the propellant is short, it says how low the perigee gets.
 

@@ -39,7 +39,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QFileDialog, QHBoxL
                                QWidget)
 
 from .. import history
-from . import vizard_launcher
+from . import units, vizard_launcher
 from .widgets import ComboBox
 from .theme import (CONTENT_MAX_WIDTH_PX, SPACE, UI_SCALES, mono_font, reduce_motion, set_reduce_motion, set_role,
                     set_ui_scale_setting, ui_scale_setting)
@@ -142,6 +142,26 @@ class SettingsPage(QScrollArea):
         self.reduce_motion.setChecked(reduce_motion())
         self.reduce_motion.toggled.connect(set_reduce_motion)
         self._layout.addWidget(self.reduce_motion)
+        row = QHBoxLayout()
+        row.setSpacing(SPACE["sm"])
+        row.addWidget(QLabel("Plot units"))
+        self.plot_units = ComboBox()
+        for value, text in units.PLOT_UNITS:
+            self.plot_units.addItem(text, value)
+        self.plot_units.setCurrentIndex(self.plot_units.findData(units.plot_units()))
+        self.plot_units.setToolTip("The units the plots and the run comparison show: the display units, or the "
+                                   "values as recorded and exported (SI: m, rad, s). The exports are always SI.")
+        self.plot_units.setAccessibleName("Plot units")
+        self.plot_units.currentIndexChanged.connect(self._on_plot_units)
+        row.addWidget(self.plot_units)
+        self.plot_units_note = set_role(QLabel(""), tone="secondary")
+        row.addWidget(self.plot_units_note)
+        row.addStretch(1)
+        self._layout.addLayout(row)
+
+    def _on_plot_units(self, index: int) -> None:
+        units.set_plot_units(self.plot_units.itemData(index))
+        self.plot_units_note.setText("Applies to the plots drawn next.")
 
     def _on_ui_scale(self, index: int) -> None:
         set_ui_scale_setting(self.ui_scale.itemData(index))

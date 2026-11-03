@@ -193,5 +193,6 @@ def read_mass_properties(path) -> tuple[ModelMassPropertiesConfig, list[str]]:
         raise MassImportError(f"{path.name}: {exc}") from None
     config = ModelMassPropertiesConfig(mass_kg=mass, center_of_mass_b_m=[float(v) for v in com],
                                        inertia_kg_m2=[float(v) for v in inertia.reshape(9)],
-                                       source_file=path.name, source_sha256=file_sha256(path))
+                                       source_file=path.name, source_sha256=file_sha256(path),
+                                       source_path=str(path.expanduser().resolve()))
     return config, notes

@@ -212,7 +212,7 @@ def test_battery_soc_bar_reflects_capacity_when_scenario_given(widget):
 
 def test_battery_soc_bar_disabled_without_scenario(widget):
     """Without the scenario, the charge bar is disabled and the charge shown in
-    W*hr."""
+    Wh."""
     result = _result_set(
         active_mode=[0], pointing_error_deg=[0.0], has_access=[0],
         slant_range_m=[2.0e7], battery_charge_wh=[20.0], net_power_w=[5.0],
@@ -220,7 +220,7 @@ def test_battery_soc_bar_disabled_without_scenario(widget):
     widget.set_result(result, scenario=None)
 
     assert not widget.battery_soc_bar.isEnabled()
-    assert widget.battery_charge_label.text() == "20.00 W*hr"
+    assert widget.battery_charge_label.text() == "20.00 Wh"
 
 
 def test_negative_net_power_shown_without_plus_sign(widget):

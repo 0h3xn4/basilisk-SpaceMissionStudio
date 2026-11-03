@@ -158,7 +158,42 @@ makes an older scenario look edited.
   numbers; one record per spacecraft. A renamed spacecraft keeps it; a
   removed one takes it along.
 
+## Values read from a file
+
+A value read from a file keeps the file it came from, so a later change
+of the file, or of the value, can be seen (the transparency plan,
+Phase 8c).
+
+- **An orbit from a CCSDS message** (`spacemissionstudio ccsds-import`):
+  the scenario's `imports` (`ImportRecord`) keeps the spacecraft, what
+  was set (`orbit`), the format (`ccsds_opm` or `ccsds_omm`), the file's
+  absolute path and SHA-256, when and who, and every value as it was read
+  (`values`: the orbit's numbers and text, a TLE's lines included). A
+  second import of the same orbit replaces the record.
+- **Mass properties from a file** (the model's **Import file...**): the
+  mass properties keep the file's name and SHA-256, as before, and now its
+  absolute path (`source_path`), written only when there is one.
+- **Meshes** (`.obj`) already keep their SHA-256; a changed one is a
+  warning when the model is built.
+
+**Status:** the file is hashed again: unchanged, changed or missing
+(`file_state`); an orbit's values are compared with those read
+(`import_status`), each one changed named. **Where it shows:** a changed
+file is the pre-run warning `import.source_changed`, a missing one
+`import.source_missing` (with the other pre-run warnings: the app's
+**to check**, `validate`); every run's provenance (`imports`, written only
+when there is one) records each import with the file's state when the
+run started and the values edited since. The run uses the values in the
+scenario either way: a warning does not stop it. **Rules:** the
+spacecraft must exist, the target and format be known, the SHA-256 be 64
+hex digits; one record per spacecraft and target. A renamed spacecraft
+keeps it; a removed one takes it along.
+
 ## Checked against
+
+- `tests/test_imports.py`: the record of an import, a changed and a
+  missing file, values edited since, a rename, the file saved only with
+  records, the mass properties file's path, the run's provenance.
 
 - `tests/test_value_marks.py`: a round trip through the file, each
   status, the paths, each rule, the provenance records.

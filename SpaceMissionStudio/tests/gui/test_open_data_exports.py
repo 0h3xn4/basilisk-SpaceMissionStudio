@@ -51,8 +51,9 @@ def test_the_monte_carlo_table_has_the_batchs_provenance_beside_it(qtbot, tmp_pa
 @pytest.mark.requires_basilisk
 def test_the_lifetime_estimate_is_exported_as_its_record(qtbot, tmp_path):
     """Export JSON... writes the estimate shown, as `lifetime --out` does:
-    the options it ran with, the decay curve and the provenance; the
-    export is logged."""
+    the options it ran with, the decay curve and the provenance; a
+    starting propellant set by hand only when there is one; the export is
+    logged."""
     from spacemissionstudio.engine import lifetime
     from spacemissionstudio.gui import export_log
     from spacemissionstudio.gui.lifetime_widget import LifetimeWidget
@@ -73,6 +74,10 @@ def test_the_lifetime_estimate_is_exported_as_its_record(qtbot, tmp_path):
     assert record["kind"] == "lifetime" and record["inputs"]["max_years"] == 2.0
     assert record["inputs"]["drag_coeff"] == 2.2 and record["inputs"]["forecast_percentile"] == 50.0
     assert record["decay"]["perigee_altitude_km"] and record["provenance"]["scenario_sha256"]
+    assert "propellant_kg" not in record["inputs"]
+    widget._show(lifetime.end_of_life(scenario, "my-sat", max_years=2.0, drag_coeff=2.2, propellant_kg=1.5))
+    edited = json.loads(widget.export_record(tmp_path / "edited.json").read_text())
+    assert edited["inputs"]["propellant_kg"] == 1.5  # [kg] set on the page
     from PySide6.QtWidgets import QFileDialog
 
     target = tmp_path / "logged.json"

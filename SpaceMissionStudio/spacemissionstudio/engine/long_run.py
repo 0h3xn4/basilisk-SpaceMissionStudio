@@ -63,7 +63,7 @@ from ..config import registry
 from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from ..schema.scenario import (SMALL_BODY_CENTRAL_BODIES, OrbitIC, Scenario, SimSettings, SpaceWeatherConfig,
-                               preset_records, value_mark_records)
+                               import_records, preset_records, value_mark_records)
 from . import time_system
 from .findings import Finding
 from .results import ResultSet, TimeSeries
@@ -332,7 +332,7 @@ def _whole_run_provenance(scenario: Scenario, provenances: list, weather):
     # The marks of the scenario as given: a segment's copy has its own length (Phase 5b).
     return dataclasses.replace(first, scenario_sha256=output_provenance.scenario_sha256(scenario),
                                rng_seeds=seeds, data_files=data_files, value_marks=value_mark_records(scenario),
-                               presets=preset_records(scenario))
+                               presets=preset_records(scenario), imports=import_records(scenario))
 
 
 def _shallow(result: ResultSet) -> ResultSet:

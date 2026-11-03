@@ -83,10 +83,13 @@ def _provenance(scenario, data_files: dict) -> dict:
 
 
 def lifetime_record(scenario, spacecraft_name: str, end, max_years: float, forecast_percentile: float,
-                    drag_coeff: float | None, deorbit_perigee_km: float | None) -> dict:
+                    drag_coeff: float | None, deorbit_perigee_km: float | None,
+                    propellant_kg: float | None = None) -> dict:
     """The record of ``end`` (:class:`.lifetime.EndOfLife`), computed for
     ``spacecraft_name`` with these options (:func:`.lifetime.end_of_life`'s);
-    ``drag_coeff`` None means the spacecraft's own."""
+    ``drag_coeff`` None means the spacecraft's own. ``propellant_kg``, the
+    starting propellant set by hand, is written only when given, so other
+    records are as before."""
     from . import lifetime
     from ..config import registry
 
@@ -117,6 +120,8 @@ def lifetime_record(scenario, spacecraft_name: str, end, max_years: float, forec
         "warnings": list(life.warnings),
         "provenance": _provenance(scenario, end.data_files),
     }
+    if propellant_kg is not None:  # set by hand (the End of Life page); written only then: records as before
+        record["inputs"]["propellant_kg"] = propellant_kg
     if scenario.space_weather.atmosphere_model == "tabular":  # which profile; written only then: records as before
         record["model"]["atmosphere_table"] = scenario.space_weather.atmosphere_table
     return record

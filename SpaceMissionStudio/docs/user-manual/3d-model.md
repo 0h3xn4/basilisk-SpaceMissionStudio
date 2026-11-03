@@ -86,7 +86,9 @@ The **Mass properties** tab has three sources:
   about the center of mass. **Start from the computed values** fills the
   boxes with what the parts give.
 - **Imported from a file**: **Import file...** reads a JSON or CSV file,
-  for instance a mass report from a CAD tool turned into this format:
+  for instance a mass report from a CAD tool turned into this format (the
+  scenario keeps the file's path and SHA-256: a later change of the file
+  is a pre-run warning, `import.source_changed`):
 
   ```
   quantity,value

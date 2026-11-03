@@ -60,6 +60,12 @@ sets a TLE orbit. If the message's epoch differs from the scenario's, it
 stops and says so; `--set-epoch` moves the scenario to the message's
 epoch. Without `--out` the scenario file is overwritten.
 
+The scenario records where the orbit came from: the file's path and
+SHA-256 and the values read (`imports`). If the file changes, or is not
+there any more, the pre-run checks say so (`import.source_changed`,
+`import.source_missing`), and each run records it in its provenance;
+import it again to take the new orbit.
+
 ### Check
 
 ```console

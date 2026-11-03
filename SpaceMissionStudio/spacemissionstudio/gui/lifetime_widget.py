@@ -44,6 +44,7 @@ from . import export_log
 from .badges import MUTED, SUCCESS, WARNING, set_badge
 from .feedback import report
 from .calculation_panel import Explanation
+from .chained_inputs_panel import ChainedInputsPanel
 from .scenario_explainer_widget import _clear_layout, _stat_tile
 from .theme import CONTENT_MAX_WIDTH_PX, PALETTE, set_role
 from .widgets import ComboBox, PreciseDoubleSpinBox
@@ -57,10 +58,10 @@ class _LifetimeWorker(QThread):
     failed = Signal(str)
 
     def __init__(self, scenario, spacecraft_name, result, deorbit_perigee_km, max_years, forecast_percentile=50.0,
-                 parent=None, drag_coeff=None):
+                 parent=None, drag_coeff=None, propellant_kg=None):
         super().__init__(parent)
         self._args = (scenario, spacecraft_name, result, deorbit_perigee_km, max_years, forecast_percentile,
-                      drag_coeff)
+                      drag_coeff, propellant_kg)
 
     def run(self) -> None:
         try:
@@ -68,10 +69,11 @@ class _LifetimeWorker(QThread):
         except ImportError as exc:
             self.failed.emit(f"Basilisk is not installed/built ({exc}) -- the lifetime uses its atmosphere model.")
             return
-        scenario, name, result, perigee_km, max_years, percentile, drag_coeff = self._args
+        scenario, name, result, perigee_km, max_years, percentile, drag_coeff, propellant_kg = self._args
         try:
             self.finished_ok.emit(lifetime.end_of_life(scenario, name, result, perigee_km, max_years,
-                                                       forecast_percentile=percentile, drag_coeff=drag_coeff))
+                                                       forecast_percentile=percentile, drag_coeff=drag_coeff,
+                                                       propellant_kg=propellant_kg))
         except lifetime.LifetimeError as exc:
             self.failed.emit(str(exc))
         except (Exception, SystemExit) as exc:  # noqa: BLE001 -- shown in the tab, never a crashed thread
@@ -242,11 +244,32 @@ class LifetimeWidget(QWidget):
         self.horizon_spin.setDecimals(0)
         self.horizon_spin.setSuffix(" years")
         form.addRow("Look ahead", self.horizon_spin)
+        # The propellant at the start, edited before computing (Phase 8b): in place of the run's or the scenario's.
+        propellant_row = QHBoxLayout()
+        self.propellant_check = QCheckBox("Set to")
+        self.propellant_check.setToolTip("Use this propellant at the start of the decay in place of what the last "
+                                         "run left (or the scenario's); the calculation records it as edited")
+        self.propellant_spin = PreciseDoubleSpinBox()
+        self.propellant_spin.setRange(0.0, 1.0e5)
+        self.propellant_spin.setDecimals(3)
+        self.propellant_spin.setSuffix(" kg")
+        self.propellant_spin.setEnabled(False)
+        self.propellant_check.toggled.connect(self.propellant_spin.setEnabled)
+        propellant_row.addWidget(self.propellant_check)
+        propellant_row.addWidget(self.propellant_spin)
+        propellant_row.addStretch(1)
+        form.addRow("Propellant at the start", propellant_row)
         settings = QWidget()  # the settings at a form's width; the plot below keeps the page's
         settings.setLayout(form)
         form.setContentsMargins(0, 0, 0, 0)
         settings.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
         layout.addWidget(settings)
+        # What the estimate takes from the last run, before it computes (Phase 8b).
+        self.chain_panel = ChainedInputsPanel()
+        self.chain_panel.setMaximumWidth(CONTENT_MAX_WIDTH_PX)
+        layout.addWidget(self.chain_panel)
+        self.from_combo.currentIndexChanged.connect(lambda _index: self._show_chain())
+        self.spacecraft_combo.currentIndexChanged.connect(lambda _index: self._show_chain())
 
         button_row = QHBoxLayout()
         self.compute_button = QPushButton("Estimate lifetime")
@@ -343,6 +366,26 @@ class LifetimeWidget(QWidget):
         if self._last_run is None and self.from_combo.currentText() == _FROM_LAST_RUN:
             self.from_combo.setCurrentText(_FROM_START)
         self.compute_button.setEnabled(self._worker is None and self.spacecraft_combo.count() > 0)
+        self._show_chain()
+
+    def _show_chain(self) -> None:
+        """From the end of the last run: what the estimate takes from it,
+        and whether the scenario changed since (``engine.chained_inputs``)."""
+        name = self.spacecraft_combo.currentText()
+        if self.from_combo.currentText() != _FROM_LAST_RUN or self._last_run is None or not name:
+            self.chain_panel.clear()
+            return
+        from ..engine import chained_inputs
+
+        run_scenario, result = self._last_run
+        started = getattr(getattr(result, "provenance", None), "run_started_utc", "")
+        heading = "From the end of the last run" + (f", started {started}" if started else "") + ":"
+        try:
+            quantities = chained_inputs.lifetime_inputs(run_scenario, result, name)
+        except Exception as exc:  # noqa: BLE001 -- said here; the estimate gives the same reason
+            self.chain_panel.show_inputs(heading, (), error=str(exc))
+            return
+        self.chain_panel.show_inputs(heading, quantities, chained_inputs.changed_since(run_scenario, self._scenario))
 
     # -- computing ----------------------------------------------------------
 
@@ -359,7 +402,9 @@ class LifetimeWidget(QWidget):
         self._computed_for = scenario  # its rules mark the result (_show)
         self._worker = _LifetimeWorker(scenario, name, result, perigee_km, self.horizon_spin.value(),
                                        self._activity_items[self.activity_combo.currentIndex()][1], self,
-                                       drag_coeff=self._drag_items[self.drag_combo.currentIndex()][1])
+                                       drag_coeff=self._drag_items[self.drag_combo.currentIndex()][1],
+                                       propellant_kg=self.propellant_spin.value() if self.propellant_check.isChecked()
+                                       else None)
         self._worker.finished_ok.connect(self._show)
         self._worker.failed.connect(self._show_error)
         self._worker.finished.connect(self._worker_done)
@@ -376,7 +421,8 @@ class LifetimeWidget(QWidget):
         options = end.options
         record = analysis_records.lifetime_record(scenario, self.spacecraft_combo.currentText(), end,
                                                   options["max_years"], options["forecast_percentile"],
-                                                  options["drag_coeff"], options["deorbit_perigee_km"])
+                                                  options["drag_coeff"], options["deorbit_perigee_km"],
+                                                  options.get("propellant_kg"))
         return analysis_records.write(Path(path), record)
 
     def _on_export(self) -> None:

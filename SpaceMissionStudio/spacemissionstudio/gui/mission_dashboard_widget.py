@@ -435,7 +435,7 @@ class MissionDashboardWidget(QWidget):
         # -- Power ----------------------------------------------------------
         battery_charge_wh = _latest(result, f"{sc_name}.battery_charge", at_s)
         net_power_w = _latest(result, f"{sc_name}.battery_net_power", at_s)
-        self.battery_charge_label.setText(f"{battery_charge_wh:.2f} W*hr" if battery_charge_wh is not None else "--")
+        self.battery_charge_label.setText(f"{battery_charge_wh:.2f} Wh" if battery_charge_wh is not None else "--")
         battery_capacity_wh = sc_config.power.battery_capacity_wh if sc_config is not None and \
             sc_config.power is not None else None
         self._power_inputs = (sc_name, battery_capacity_wh, at_s) \
