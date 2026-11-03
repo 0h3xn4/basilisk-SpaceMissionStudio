@@ -14514,6 +14514,46 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.0.0 prepared (2026-11-03)
+
+The user: "continue as per your recommendations. don't ask me for
+permission, continue until you finished releasing the fully ready
+product that I can share with my team." Branch `release-2.0.0`, after
+the last phases of the transparency work were merged (#203, #204, #205).
+
+By `docs/developer/releasing.md`:
+- the version 2.0.0 in `pyproject.toml`, `spacemissionstudio/__init__.py`
+  and the Inno Setup script;
+- the CHANGELOG's "Unreleased" entries under `## 2.0.0 (2026-11-03)`,
+  with a summary (the glass box, the defects fixed, and two breaking
+  changes: Python 3.14 only, and scenario files 1.x cannot open), "Who
+  should update" and "Known limits";
+- SRelD issue 17 (2.0.0 prepared; 1.3.1 the previous release; what changed
+  since `081f74079`; K-13 and K-14 updated, K-26 new);
+- the SDP, SRS, ICD, CSD, SUM, the README and `releasing.md` name 2.0.0.
+
+**Checked:**
+- The release notes as the workflow will write them
+  (`packaging/release_notes.py` on stand-in files): 56 kB, under GitHub's
+  limit, with the summary, "Who should update", the changes and the
+  known limits.
+- **Scenario files across versions.** 1.3.1's own `load_scenario` (from
+  the tag) refused all 31 templates as 2.0.0 saves them: "SimSettings
+  got an unexpected keyword argument 'seed'". 2.0.0 opened all 31 as
+  1.3.1 saved them. Hence the breaking note and K-26.
+- **Space weather.** CelesTrak reset the connection from this
+  environment (`SSL_connect: Connection reset by peer`), so the bundled
+  file stays 1.3.0's (observations to 2026-10-24, forecast to
+  2026-12-07). NASA's site answered: its latest solar-cycle prediction is
+  still October 2026's (`oct2026f10-prd.txt`), and the bundled copy has
+  the same values (it differs only in the line endings and the trailing
+  space its README names).
+- **Outside `SpaceMissionStudio/`:** only SpaceMissionStudio's own CI
+  workflows changed since 1.3.1 (`git diff --name-only 081f74079`); no
+  Basilisk file changed.
+- **The full suite** on the release's code (develop with #205): 4441
+  passed on Python 3.14.
+
 ## Open data, the Python API and the definition of done (2026-11-03)
 
 The transparency plan, Phases 9 and 10. Branch `open-data-api`.

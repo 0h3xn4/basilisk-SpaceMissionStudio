@@ -237,6 +237,16 @@ started, so it was public without files or notes for 12 minutes: push
 the tag, wait for the workflow's draft (about 13 minutes), read it, then
 publish it.
 
+2.0.0 was prepared on 2026-11-03 by this checklist: the audit of
+2026-10-27 and the transparency work (PRs #120 to #205), and Python 3.14
+only. Two steps could not be done as written. The space weather was not
+refreshed: CelesTrak reset every connection from the environment the
+release was prepared in, so it is 1.3.0's (observations to 2026-10-24),
+said in the CHANGELOG's known limits and SRelD K-13. And by the user's
+instruction of the day, the release pull request was merged and the tag
+pushed without asking; publishing the workflow's draft stays the
+user's.
+
 ---
 
 **Next:** [Syncing with upstream Basilisk](upstream-sync.md) ·

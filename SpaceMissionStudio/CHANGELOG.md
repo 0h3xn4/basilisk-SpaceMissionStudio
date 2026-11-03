@@ -8,7 +8,32 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 2.0.0 (2026-11-03)
+
+A glass box. Every figure the tool shows can now be traced to how it was
+computed, every rule and margin behind it can be changed without editing
+code, and every result can be reproduced from the files it was exported
+with. **Show calculation** beside a budget, a lifetime, a link, an event
+or a headline figure opens its equation, its inputs with their units and
+where each came from, and the rule applied; **Scenario › Assumptions**
+lists every named parameter with its value, unit, source and rationale,
+and a project file changes them; a run keeps the scenario as it ran, the
+SHA-256 of every data file and the values it took that the file did not
+give, and `spacemissionstudio reproduce` runs a colleague's result folder
+again and says what differs. The scenario file marks computed, overridden
+and imported values, a change history beside each scenario records who
+changed what, plugins add models and rules of your own, and a Python API
+(`spacemissionstudio.api`) gives the same numbers to scripts.
+`docs/models/` documents every model, rule and assumption, and
+`docs/definition-of-done.md` is the checklist for a design review of the
+tool itself.
+
+It also fixes the defects found by two audits, some of which change
+results: the propellant budget overestimated propellant (2.5 times too
+high for a 1 km/s transfer), lifetimes at the critical inclination were
+reported as an immediate re-entry, and the others listed below, each
+with its before and after values (for the transparency work's fixes also
+in `docs/changes.md`).
 
 **Breaking (2.0.0): Python 3.14 only.** SpaceMissionStudio now needs
 Python 3.14; 3.11 to 3.13 are no longer supported (`requires-python =
@@ -20,6 +45,11 @@ computer: Ubuntu 24.04 ships 3.12 and Debian 12 ships 3.11, so use the
 2.12.0 and PySide6 6.11 do not install on 3.15 yet. The code was
 modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
 `datetime.UTC`); nothing it computes changes.
+
+**Breaking (2.0.0): scenario files.** 2.0.0 opens every scenario file
+1.x saved, but 1.3.1 and earlier cannot open one 2.0.0 saved: it writes
+fields they do not know (`sim_settings.seed` in every file), and they
+refuse it as a "malformed scenario structure". Update a team together.
 
 - **A software-in-the-loop run on Windows no longer stops while the
   flight software is still answering:** when the flight software fell
@@ -759,6 +789,50 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   instance, the estimate failed with "M2E() received e = 5.9e+26". It now
   re-enters in that step and says the re-entry time is known to within
   it.
+
+### Who should update
+
+- **Everyone who budgets propellant or estimates lifetimes:** budgets
+  made with 1.x overestimated propellant (5 % at 100 m/s of delta-V, 2.5
+  times at 1 km/s), and lifetimes at the critical inclinations (63.435
+  deg, 116.565 deg) came out as an immediate re-entry or an error. Re-run
+  them with 2.0.0.
+- **Teams update together:** 2.0.0 opens every 1.x scenario file, but
+  1.3.1 and earlier cannot open a file saved by 2.0.0 ("malformed
+  scenario structure"): 2.0.0 saves fields they do not know, starting
+  with `sim_settings.seed`.
+- **The installers:** on Linux, `apt install
+  ./spacemissionstudio_2.0.0_amd64.deb` replaces 1.3.1; on Windows, run
+  the 2.0.0 setup over 1.3.1. They bring their own Python, now 3.14.8:
+  nothing else to install.
+- **From source, or with `install.sh`/`install.ps1`:** Python 3.14 is
+  needed (above).
+- **Scripts:** a script that tested exit status 2 after `fsw-status` or
+  `sil --max-error` must now test 5, and an internal error exits 4. To
+  script the tool from Python, use `spacemissionstudio.api`
+  (`docs/api.md`), which keeps its names and arguments within an API
+  version.
+
+### Known limits
+
+- The bundled space weather is that of 1.3.0: observations to
+  2026-10-24 and CelesTrak's daily forecast to 2026-12-07 (it could not be
+  downloaded again for this release). Before a drag study, fetch the
+  current file: the **Fetch or update reference data?** card on Home,
+  **Settings > Reference data**, or `spacemissionstudio
+  spaceweather-download`.
+- Some actions still hold the window for longer than the 50 ms the
+  interface aims at: changing the theme (about 0.4 s), the first visit to
+  a spacecraft page and opening a template (SRelD K-19, K-23).
+- Two Monte Carlo batches of the same scenario draw the same samples:
+  Basilisk's Monte Carlo controller seeds each run from its number
+  (SRelD K-24).
+- The installers ship pillow 12.2.0, which has published advisories, all
+  about decoding crafted image files, which SpaceMissionStudio does not do
+  (SRelD K-25).
+- The last check of the definition of done, timing an engineer who did
+  not build the tool as they trace each number to its calculation, is the
+  team's to do (`docs/definition-of-done.md`).
 
 ## 1.3.1 (2026-10-27)
 
