@@ -484,3 +484,48 @@ def test_31_one_pixel_of_noise_shows_in_the_residuals_and_the_error(real_small_b
     _t, error, _sigma3, _seen, residual, _distance = _landmark_flight(_run(scenario, duration_days=0.5))
     assert np.nanmedian(residual) == pytest.approx(1.04, abs=0.1)  # [px]
     assert np.median(error[1:, 3]) == pytest.approx(5.1, abs=0.5)  # [m]
+
+
+def test_32_the_design_checks_find_the_array_in_the_tracker_s_view_and_the_plume():
+    """Template 32's design checks: the +y array takes about 5.5 % of the
+    star tracker's 20 deg view (looking 10 deg below the arrays' plane) and
+    about 9.4 % of the station-keeping nozzle's 15 deg plume, both only
+    deployed; the AIAA S-120 growth is 42.54 kg on 300 kg (bus 15 %,
+    arrays 10 %, tracker 3 %, dish 25 %, battery 5 %), 352.54 kg with the
+    10 kg of propellant; folded, the arrays fit the envelope."""
+    from spacemissionstudio.analyses import design_checks
+
+    scenario = _template("32")
+    path = next(_TEMPLATES_DIR.glob("32_*.json"))
+    report = design_checks.design_checks(scenario.spacecraft[0], base_dir=path.parent)
+    fov = {(o.item, o.configuration): o for o in report.fov.obstructions}
+    tracker = fov[("st-1", "deployed")]
+    assert list(tracker.by_part) == ["array +y"] and 0.02 < tracker.blocked_fraction < 0.09
+    assert fov[("st-1", "stowed")].blocked_fraction == 0.0
+    assert list(report.plumes[0].by_part) == ["array +y"] and 0.06 < report.plumes[0].blocked_fraction < 0.13
+    assert report.mass.basic_dry_kg == pytest.approx(300.0) and report.mass.growth_kg == pytest.approx(42.54)
+    assert report.mass.launch_mass_kg == pytest.approx(352.54)
+    assert report.launcher.configuration == "stowed" and report.launcher.fits
+    assert [f.rule_id for f in report.findings()] == ["design.fov_obstructed", "design.plume_impingement"]
+
+
+@pytest.mark.slow
+def test_32_the_run_records_the_disturbances_and_the_arrays_shading():
+    """One orbit: the gravity gradient dominates, at most 8.0e-5 N*m, under
+    its analytical worst case 8.5e-5 N*m; about 0.2 N*m*s builds up about z
+    in the orbit, far below the 12 N*m*s wheels; the arrays give up to
+    about 1.37 kW unshaded and lose about 0.6 % of their energy to shading."""
+    from spacemissionstudio.analyses import run_analyses
+
+    scenario = _template("32")
+    result = _run(scenario)
+    report = run_analyses.report(result, scenario, scenario.spacecraft[0])
+    gravity = report.disturbances.sources["gravity_gradient"]
+    assert gravity.max_n_m == pytest.approx(7.96e-5, rel=0.05)
+    assert gravity.max_n_m <= gravity.analytic_worst_n_m == pytest.approx(8.48e-5, rel=0.02)
+    assert report.disturbances.whole_orbits == 1
+    assert report.disturbances.required_momentum_n_m_s()[2] == pytest.approx(0.204, rel=0.1)
+    assert report.findings() == []
+    power = result.series["smallsat-1.shading.power"]
+    assert power.data[:, -2].max() == pytest.approx(1372.0, rel=0.02)
+    assert any("0.59 %" in note or "0.6 %" in note for note in report.notes)

@@ -88,6 +88,8 @@ from .problem_location import (GROUND_STATION, JSON_VIEW, MISSION_SEQUENCE, PROP
 from .run_worker import MonteCarloWorker, RunWorker
 from .scenario_editor import ScenarioEditorWidget
 from .budget_widget import BudgetWidget
+from .design_checks_widget import DesignChecksWidget
+from .model_analyses_widget import ModelAnalysesWidget
 from .fsw_workbench_widget import FlightSoftwareWidget
 from .lifetime_widget import LifetimeWidget
 from .scenario_explainer_widget import ScenarioExplainerWidget
@@ -172,7 +174,9 @@ def _with_log_file_hint(message: str) -> str:
 
 _EVENT_WORDS = {"pass": ("pass", "passes"), "eclipse": ("eclipse", "eclipses"), "burn": ("burn", "burns"),
                 "thruster firing": ("thruster firing", "thruster firings"), "mode": ("mode change", "mode changes"),
-                "downlink": ("downlink", "downlinks")}
+                "downlink": ("downlink", "downlinks"), "blinding": ("blinding", "blindings"),
+                "obstruction": ("antenna obstruction", "antenna obstructions"),
+                "visible": ("visible pass", "visible passes")}
 
 
 def events_summary(result) -> str:
@@ -297,6 +301,7 @@ class MainWindow(QMainWindow):
         self.scenario_explainer_widget.model_requested.connect(self.open_3d_model_of)
         self.lifetime_widget = LifetimeWidget()
         self.budget_widget = BudgetWidget()
+        self.design_checks_widget = DesignChecksWidget()  # the 3D model's design checks (model analyses)
         self.flight_software_widget = FlightSoftwareWidget()
         self.flight_software_widget.exports_changed.connect(self.scenario_editor.set_fsw_exports)
         # Reports (M8): every export in one table, then the flight software.
@@ -328,6 +333,9 @@ class MainWindow(QMainWindow):
         budget_scroll = QScrollArea()
         budget_scroll.setWidgetResizable(True)
         budget_scroll.setWidget(self.budget_widget)
+        design_scroll = QScrollArea()
+        design_scroll.setWidgetResizable(True)
+        design_scroll.setWidget(self.design_checks_widget)
         self.scenario_editor.navigate_requested.connect(self._on_guide_navigate)
 
         # Results: the run's overview, the plots, the dashboard, the mission
@@ -344,6 +352,13 @@ class MainWindow(QMainWindow):
         # as a hidden tab: selecting a hidden tab crashed a CI test run.
         self.monte_carlo_results_widget = MonteCarloResultsWidget(self)
         self.monte_carlo_results_widget.hide()
+        # Added after a run whose spacecraft set model analyses, removed otherwise (as Monte Carlo).
+        self.model_analyses_widget = ModelAnalysesWidget(self)
+        self.model_analyses_widget.hide()
+        self.model_analyses_scroll = QScrollArea()
+        self.model_analyses_scroll.setWidgetResizable(True)
+        self.model_analyses_scroll.setWidget(self.model_analyses_widget)
+        self.model_analyses_scroll.hide()
 
         # Compare is a view of the results (§5.2), after them.
         self.compare_widget = CompareWidget()
@@ -381,6 +396,7 @@ class MainWindow(QMainWindow):
         self.run_views.addTab(self.run_page, "Run")
         self.run_views.addTab(lifetime_scroll, "End of Life")
         self.run_views.addTab(budget_scroll, "Budget")
+        self.run_views.addTab(design_scroll, "Design Checks")
         self.run_views.addTab(self.history_view, "History")
         self.run_views.addTab(self.log_widget, "Log")
         self.results_widget.set_runs(self.run_history.runs, None)  # the saved runs of earlier sessions (U-33)
@@ -669,6 +685,8 @@ class MainWindow(QMainWindow):
                  "Re-entry and deorbit estimates."),
                 ("analyses.budget", "Analyses", "&Budget", self.budget_widget, "run",
                  "Delta-V and propellant budgets."),
+                ("analyses.design_checks", "Analyses", "&Design Checks", self.design_checks_widget, "run",
+                 "The 3D model's fields of view, thrusters, mass budget and launcher envelope."),
                 ("tools.flight_software", "Tools", "&Flight Software", self.flight_software_widget, "reports",
                  "Export the flight software, run SIL."),
                 ("tools.reference_data", "Tools", "&Reference Data...", self.data_panel_widget, "settings",
@@ -970,6 +988,8 @@ class MainWindow(QMainWindow):
             return
         views = {"events_csv": self.event_timeline_widget, "output_csv": self.mission_output_widget,
                  "monte_carlo_csv": self.monte_carlo_results_widget, "budget_csv": self.budget_widget,
+                 "design_checks": self.design_checks_widget, "reentry_json": self.lifetime_widget,
+                 "model_analyses": self.model_analyses_scroll,
                  "fsw_project": self.flight_software_widget, "sil_report": self.flight_software_widget,
                  "vizard_file": self.run_page}
         self.show_view(views.get(key, self.results_widget))  # the plot exports: Results › Plots
@@ -1337,6 +1357,9 @@ class MainWindow(QMainWindow):
         self._refresh_top_bar()
         self.lifetime_widget.set_scenario(scenario)
         self.budget_widget.set_scenario(scenario)
+        self.design_checks_widget.set_scenario(scenario, self._current_path.parent if self._current_path else None)
+        self.lifetime_widget.reentry_section.set_scenario(
+            scenario, self._current_path.parent if self._current_path else None)
         self.flight_software_widget.set_base_dir(self._current_path.parent if self._current_path else None)
         self.flight_software_widget.set_scenario(scenario)
         self._update_monte_carlo_tab(scenario)
@@ -1363,6 +1386,17 @@ class MainWindow(QMainWindow):
             self.results_views.addTab(widget, "Monte Carlo")
         elif not wanted and index >= 0:
             self.results_views.removeTab(index)  # the widget stays, hidden, as the tab stack's child
+
+    def _set_model_analyses_tab(self, scenario, result) -> None:
+        """Results › Model Analyses, while the run shown asked for some."""
+        wanted = ModelAnalysesWidget.has_analyses(scenario) and result is not None
+        index = self.results_views.indexOf(self.model_analyses_scroll)
+        if wanted:
+            self.model_analyses_widget.set_run(scenario, result)
+            if index < 0:
+                self.results_views.addTab(self.model_analyses_scroll, "Model Analyses")
+        elif index >= 0:
+            self.results_views.removeTab(index)
 
     def _show_monte_carlo_tab(self) -> None:
         self._set_monte_carlo_tab(True)
@@ -2527,6 +2561,7 @@ class MainWindow(QMainWindow):
             self._keep_run(result, cancelled=False)
             self.lifetime_widget.set_last_run(self._last_run_scenario, result)
             self.budget_widget.set_last_run(self._last_run_scenario, result)
+            self._set_model_analyses_tab(self._last_run_scenario, result)
 
         def shown() -> None:
             if command_summary is not None:
@@ -2803,6 +2838,7 @@ class MainWindow(QMainWindow):
             self.results_overview.wait_for_worker()
             self.lifetime_widget.wait_for_worker()  # a few seconds at most; its thread must not be destroyed mid-run
             self.budget_widget.wait_for_worker()
+            self.design_checks_widget.wait_for_worker()
             self.flight_software_widget.wait_for_worker()
             self.data_panel_widget.wait_for_reader()  # the start-up read of the reference data files
             self.results_widget.wait_for_export()  # an export's files are finished, not cut off

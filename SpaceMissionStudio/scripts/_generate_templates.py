@@ -38,7 +38,7 @@ from spacemissionstudio.engine.constellation import WalkerConstellationRequest, 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _template_descriptions import DESCRIPTIONS  # noqa: E402 -- short, user-facing; see that module
 from spacemissionstudio.engine.facets import box_facets
-from spacemissionstudio.engine.propellant_budget import OPERATIONS_DRAG_COEFF  # 3.0: ESA AD10 Sec. 5.2
+from spacemissionstudio.config import registry
 from spacemissionstudio.engine.orbit_design import (
     geostationary_elements_deg,
     raan_for_ltan_deg,
@@ -72,6 +72,9 @@ from spacemissionstudio.schema.scenario import (
     SpaceWeatherConfig,
     StationKeepingConfig,
 )
+
+# 3.0: ESA AD10 Sec. 5.2, now the parameter propellant_budget.operations_drag_coeff (config.parameters)
+OPERATIONS_DRAG_COEFF = registry.default("propellant_budget.operations_drag_coeff")  # [-]
 
 OUT_DIR = Path(__file__).resolve().parent.parent / "spacemissionstudio" / "scenarios" / "templates"
 
@@ -1599,6 +1602,120 @@ def build_28_octagonal_bus_3d_model() -> Scenario:
     )
 
 
+def _smallsat_300_model():
+    """Template 32's model: the 300 kg bus (1.2 x 1.2 x 1.5 m, the Small
+    satellite (300 kg) preset's box), two deployed arrays, a star tracker
+    on +y, a dish on +x and a battery inside; each part with its material,
+    subsystem and maturity; the arrays folded against the bus when
+    stowed; the solar cells, the antenna and a station-keeping nozzle as
+    mounted equipment; an illustrative launcher envelope."""
+    from spacemissionstudio.schema.scenario import (LauncherConfig, MassBudgetConfig, ModelPartConfig, MountConfig,
+                                                    MountedEquipmentConfig, PartPoseConfig, SpacecraftModelConfig)
+
+    width, length, thickness = 1.2, 1.4, 0.03  # [m] each array
+    array_y = 0.6 + 0.1 + length / 2.0  # [m] 0.1 m from the bus
+    common = dict(drag_coeff=OPERATIONS_DRAG_COEFF)
+    arrays = [ModelPartConfig(name=f"array {side}", shape="panel",
+                              dimensions_m={"width": width, "length": length, "thickness": thickness},
+                              position_b_m=[0.0, sign * array_y, 0.0], color=[0.15, 0.2, 0.45], mass_kg=12.0,
+                              specular_coeff=0.05, diffuse_coeff=0.1, material="cfrp", subsystem="solar_array",
+                              maturity="pre_release", **common)  # [kg]
+              for side, sign in (("+y", 1.0), ("-y", -1.0))]
+    return SpacecraftModelConfig(
+        parts=[
+            ModelPartConfig(name="bus", shape="box", dimensions_m={"x": 1.2, "y": 1.2, "z": 1.5},  # [m]
+                            color=[0.85, 0.7, 0.25], mass_kg=252.0, material="aluminium_6061_t6",  # [kg]
+                            subsystem="structure", maturity="layout", **common),
+            *arrays,
+            ModelPartConfig(name="star tracker", shape="box", dimensions_m={"x": 0.15, "y": 0.15, "z": 0.25},
+                            position_b_m=[0.3, 0.675, 0.45], color=[0.3, 0.3, 0.3], mass_kg=3.0,  # [m], [kg]
+                            material="titanium_6al_4v", subsystem="electronics", maturity="existing",
+                            excluded_faces=["-y"], **common),  # -y sits on the bus
+            ModelPartConfig(name="dish", shape="cone", dimensions_m={"base_diameter": 0.6, "height": 0.2},  # [m]
+                            position_b_m=[0.7, 0.0, -0.3], rotation_deg=[0.0, 90.0, 0.0], color=[0.9, 0.9, 0.9],
+                            mass_kg=6.0, distribution="shell", material="aluminium", subsystem="electronics",
+                            maturity="estimated", **common),  # [kg]
+            ModelPartConfig(name="battery", shape="box", dimensions_m={"x": 0.4, "y": 0.4, "z": 0.25},  # [m]
+                            position_b_m=[0.0, 0.0, -0.5], color=[0.6, 0.2, 0.2], visible=False, mass_kg=15.0,
+                            in_surface_model=False, material="stainless_steel", subsystem="battery",
+                            maturity="released"),  # [kg] inside the bus
+        ],
+        equipment=[
+            *[MountedEquipmentConfig(f"cells {side}", "solar_cell", MountConfig(
+                part=f"array {side}", position_m=[0.0, 0.0, thickness / 2.0], boresight=[0.0, 0.0, 1.0]))
+              for side in ("+y", "-y")],
+            MountedEquipmentConfig("antenna", "antenna", MountConfig(part="dish", position_m=[0.0, 0.0, 0.1],
+                                                                     boresight=[0.0, 0.0, 1.0],
+                                                                     field_of_view_deg=20.0)),  # [deg]
+            MountedEquipmentConfig("sk thruster", "thruster", MountConfig(
+                position_m=[-0.3, 0.6, 0.3], boresight=[0.0, -1.0, 0.0], plume_half_angle_deg=15.0),  # [m], [deg]
+                thrust_n=0.05),  # [N] the station keeping's thrust
+        ],
+        stowed=[PartPoseConfig(f"array {side}", [0.0, sign * (0.6 + thickness / 2.0 + 0.005), 0.0],
+                               [90.0, 0.0, 0.0])  # [m], [deg] folded flat against the bus's side
+                for side, sign in (("+y", 1.0), ("-y", -1.0))],
+        mass_budget=MassBudgetConfig(policy="aiaa_s120_2006"),
+        launcher=LauncherConfig(envelope="custom", shape="cylinder", diameter_m=1.9, height_m=2.0,  # [m]
+                                origin_b_m=[0.0, 0.0, -0.75],  # [m] the bus's bottom face
+                                source="an illustrative envelope for this template, not a launcher's"),
+    )
+
+
+def build_32_smallsat_design_checks() -> Scenario:
+    # The 300 kg small-satellite bus built as a 3D model with mounted
+    # equipment, to show the model analyses: the star tracker's field of
+    # view and the station-keeping nozzle's plume both reach the +y array
+    # (the design checks find them), the disturbance torques are recorded
+    # and the arrays' shading and power computed in the run.
+    from spacemissionstudio.model3d import model as model3d
+    from spacemissionstudio.schema.scenario import ModelAnalysesConfig, MountConfig
+
+    tilt = math.radians(10.0)  # [rad]
+    axes = (("x", [1.0, 0.0, 0.0]), ("y", [0.0, 1.0, 0.0]), ("z", [0.0, 0.0, 1.0]))
+    spacecraft = SpacecraftConfig(
+        name="smallsat-1",
+        orbit=_starter_orbit(),
+        enable_drag=True, enable_srp=True,
+        sensors=[
+            SensorConfig(kind="star_tracker", name="st-1", params={"noise_arcsec": 5.0},  # [arcsec]
+                         # 20 deg circular field of view: the Terma T1's (NASA/TP-20250000142, Table 5-5)
+                         mount=MountConfig(part="star tracker", position_m=[0.0, 0.075, 0.0],
+                                           boresight=[0.0, math.cos(tilt), -math.sin(tilt)], field_of_view_deg=20.0)),
+            SensorConfig(kind="imu", name="imu-1", params={"gyro_noise_rad_s": 1e-5}),  # [rad/s]
+            SensorConfig(kind="coarse_sun_sensor", name="css-1", params={"nHat_B": [0.0, 0.0, 1.0]}),
+        ],
+        actuators=[ActuatorConfig(kind="reaction_wheel", name=f"rw-{axis_name}",
+                                  params={"gsHat_B": axis, "rw_type": "Honeywell_HR12",
+                                          "maxMomentum": 12.0})  # [N*m*s]
+                   for axis_name, axis in axes],
+        power=PowerConfig(panel_area_m2=3.36, panel_efficiency=0.29, panel_normal_b=[0.0, 0.0, 1.0],  # [m^2], [-]
+                          bus_idle_power_w=150.0, battery_capacity_wh=700.0,  # [W], [W*h]
+                          battery_initial_soc=0.9),  # [-]
+        station_keeping=StationKeepingConfig(target_altitude_km=550.0, deadband_km=15.0, thrust_n=0.05,  # [km], [N]
+                                             isp_s=1500.0, propellant_kg=10.0),  # [s], [kg]
+        sigma_bn_init=[0.0, 0.0, 0.0],
+        fsw_mode="sunSafePoint",
+        fsw_params={"sHatBdyCmd": [0.0, 0.0, 1.0]},
+        model=_smallsat_300_model(),
+        model_analyses=ModelAnalysesConfig(disturbance_torques=True, array_shading=True),
+    )
+    derived = model3d.derive(spacecraft.model)
+    if derived.errors:
+        raise ValueError(f"template 32's model: {derived.errors}")
+    model3d.apply(spacecraft, derived)
+    return Scenario(
+        name="32 - Small satellite: design checks on the 3D model",
+        description=DESCRIPTIONS["32"],
+        epoch_utc=_STARTER_EPOCH_UTC,
+        simulation_mode="full_attitude",
+        gravity=GravityConfig(central_body="earth", central_body_degree=10, third_body_perturbers=["sun", "moon"]),
+        sim_settings=SimSettings(duration_days=0.07, dynamics_task_rate_s=1.0, integrator="rkf78",
+                                 record_interval_s=10.0),  # [day], [s], [s]
+        space_weather=_real_space_weather(),
+        spacecraft=[spacecraft],
+    )
+
+
 def build_29_roe_formation_helix() -> Scenario:
     # An ROE formation (engine.roe, engine.roe_formation): two 150 kg
     # sister satellites, the follower placed 2 km behind the chief by
@@ -1732,6 +1849,7 @@ def main() -> None:
     _save(build_29_roe_formation_helix(), "29_roe_formation_helix.json")
     _save(build_30_mars_optical_navigation(), "30_mars_optical_navigation.json")
     _save(build_31_eros_landmark_navigation(), "31_eros_landmark_navigation.json")
+    _save(build_32_smallsat_design_checks(), "32_smallsat_design_checks.json")
 
 
 if __name__ == "__main__":

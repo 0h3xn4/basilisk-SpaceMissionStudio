@@ -154,9 +154,28 @@ def _typed(model) -> mp.MassProperties | None:
     return mp.MassProperties(typed.mass_kg, typed.center_of_mass_b_m, np.reshape(typed.inertia_kg_m2, (3, 3)))
 
 
-def derive(model, base_dir=None, cache: MeshCache | None = None) -> DerivedModel:
-    """See the module docstring. ``base_dir`` resolves relative mesh paths."""
+CONFIGURATIONS = ("deployed", "stowed")
+
+
+def poses(model, configuration: str = "deployed") -> dict:
+    """``{part name: (position_b_m, rotation_deg)}`` of the parts that are
+    elsewhere in ``configuration``: the stowed poses, or nothing for the
+    deployed configuration (the parts' own placement)."""
+    if configuration not in CONFIGURATIONS:
+        raise ValueError(f"configuration {configuration!r} must be one of {CONFIGURATIONS}")
+    if configuration == "deployed":
+        return {}
+    return {pose.part: (pose.position_b_m, pose.rotation_deg) for pose in getattr(model, "stowed", [])}
+
+
+def derive(model, base_dir=None, cache: MeshCache | None = None, configuration: str = "deployed") -> DerivedModel:
+    """See the module docstring. ``base_dir`` resolves relative mesh paths.
+    ``configuration`` places the parts as deployed (their own placement)
+    or stowed (``model.stowed`` poses): meshes, faces and the computed
+    mass properties all follow it. Mounted equipment with a mass
+    (``model.equipment``) adds a point mass at its mount."""
     cache = cache or MeshCache()
+    moved = poses(model, configuration)
     result = DerivedModel()
     files: dict[int, tuple[tuple, obj_io.ObjFile]] = {}
     for index, mesh_config in enumerate(model.meshes):
@@ -174,8 +193,9 @@ def derive(model, base_dir=None, cache: MeshCache | None = None) -> DerivedModel
     for part in model.parts:
         color = tuple(float(c) for c in part.color)
         try:
-            rotation = rotation_matrix(part.rotation_deg)
-            position = np.asarray(part.position_b_m, dtype=float)
+            placed_position, placed_rotation = moved.get(part.name, (part.position_b_m, part.rotation_deg))
+            rotation = rotation_matrix(placed_rotation)
+            position = np.asarray(placed_position, dtype=float)
             shell = part.distribution == "shell"
             if part.shape == "mesh":
                 if part.mesh_index not in files:
@@ -212,6 +232,9 @@ def derive(model, base_dir=None, cache: MeshCache | None = None) -> DerivedModel
                     face.name = f"{part.name}: {face.name}"
                     result.faces.append(face)
 
+    from .equipment import equipment_point_masses
+
+    bodies += equipment_point_masses(model, configuration)
     result.computed = mp.combine(bodies)
     if model.mass_properties_source == "computed":
         result.mass_properties = result.computed if result.computed.mass_kg > 0.0 else None
@@ -241,10 +264,32 @@ def derive(model, base_dir=None, cache: MeshCache | None = None) -> DerivedModel
 
 
 def _coefficients(model, face_name: str) -> dict:
-    part_name = face_name.split(": ", 1)[0]
+    """A facet's coefficients: its part's, or the part's face property for
+    that face (``model.face_properties``, by face group: ``side k`` belongs
+    to ``sides``) where one sets them."""
+    part_name, face = face_name.split(": ", 1)
     part = next(p for p in model.parts if p.name == part_name)
-    return {"drag_coeff": float(part.drag_coeff), "specular_coeff": float(part.specular_coeff),
-            "diffuse_coeff": float(part.diffuse_coeff)}
+    values = {"drag_coeff": float(part.drag_coeff), "specular_coeff": float(part.specular_coeff),
+              "diffuse_coeff": float(part.diffuse_coeff)}
+    override = face_property(model, part_name, face)
+    if override is not None:
+        for name in ("specular_coeff", "diffuse_coeff"):
+            if getattr(override, name) is not None:
+                values[name] = float(getattr(override, name))
+    return values
+
+
+def face_group(face: str) -> str:
+    """The face group of a face name (``MODEL_SHAPE_FACES``): ``side 3`` is
+    in ``sides``, ``+x`` is its own."""
+    return "sides" if face.startswith("side ") else face
+
+
+def face_property(model, part_name: str, face: str):
+    """The :class:`~spacemissionstudio.schema.scenario.FacePropertyConfig`
+    for a face of a part, or None."""
+    group = face_group(face)
+    return next((fp for fp in getattr(model, "face_properties", []) if fp.part == part_name and fp.face == group), None)
 
 
 def _arrays_mass_kg(sc_config) -> float:

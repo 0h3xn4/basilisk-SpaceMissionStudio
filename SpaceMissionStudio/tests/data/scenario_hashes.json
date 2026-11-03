@@ -122,5 +122,9 @@
  "31_eros_landmark_navigation": {
   "saved_text_sha256": "c54effed43c1f2ac7e14f2dbb18426a893616b75eb35f23210bb38d767b947ac",
   "scenario_sha256": "24c0ac4d5468403a97256af501d81dd751208f854cd17fb69aae0b3d3f87b102"
+ },
+ "32_smallsat_design_checks": {
+  "saved_text_sha256": "bbadf69c273630c873763e1d10c992cfcf45822ed529a3036accd35f477d8f5a",
+  "scenario_sha256": "b1180b63bcee39d264cccd779765d144f5a1955169b85626dd6f8df2bc034fb3"
  }
 }

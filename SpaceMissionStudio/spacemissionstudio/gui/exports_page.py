@@ -70,6 +70,15 @@ EXPORTS = (
            "In the file", "In the file: the inputs, rules, traces, decay curve, data files and the scenario's SHA-256"),
     Export("budget_csv", "Budget", "CSV text", "Run › Budget › Copy as CSV", "Clipboard", "Its last lines",
            "Its last lines: the versions, the scenario's SHA-256 and the time"),
+    Export("design_checks", "Design checks", "JSON, a CSV a table", "Run › Design Checks › Save...", "Folder chosen",
+           "In the record; <file>.provenance.json", "In design_checks.json, and <file>.provenance.json beside each "
+           "table"),
+    Export("model_analyses", "Model analyses", "JSON, a CSV a table", "Results › Model Analyses › Save...",
+           "Folder chosen", "In the record; <file>.provenance.json", "In model_analyses.json (with the run's own "
+           "record), and <file>.provenance.json beside each table"),
+    Export("reentry_json", "Re-entry estimate", "JSON", "Run › End of Life › Re-entry casualty › Save...",
+           "reentry.json", "In the file", "In the file: the rules in effect, each part's fate and the scenario's "
+           "SHA-256"),
     Export("fsw_project", "Flight software", "C project (CMake)", "Reports › Flight Software › Export...",
            "Folder chosen", "manifest.json", "manifest.json in the folder"),
     Export("sil_report", "SIL report", "JSON, residuals CSV", "Reports › Flight Software › Save report...",

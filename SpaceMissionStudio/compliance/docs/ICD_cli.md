@@ -118,6 +118,41 @@ report a spacecraft's 3D model: mass properties and facets
 | `--apply` | write the model's mass properties and facets into the scenario file |
 | `--export-obj` | write the model as a Wavefront .obj (and .mtl) in the body frame |
 
+## `check-design`
+
+design checks of a spacecraft's 3D model: fields of view, thrusters and plumes, mass budget, launcher envelope (no Basilisk needed)
+
+| Argument | Help |
+|---|---|
+| `scenario` |  |
+| `--spacecraft` | spacecraft name (default: the first) |
+| `--samples` | rays per field of view or plume cone (default: the spacecraft's model_analyses.samples, else 256) |
+| `--explain` | each finding's rule, why, fix and override |
+| `--out` | write the record (inputs, tables, findings, provenance) |
+| `--tables` | write each table as CSV, with its provenance |
+
+## `model-analyses`
+
+run the scenario and report its model analyses: disturbance torques, blinding, obstruction, shading, exposure, brightness
+
+| Argument | Help |
+|---|---|
+| `scenario` |  |
+| `--spacecraft` | spacecraft name (default: every one with model_analyses) |
+| `--out` | write the record (one spacecraft) |
+| `--tables` | write each table as CSV, with its provenance |
+
+## `reentry`
+
+a preliminary re-entry casualty estimate from the 3D model (DAS-like, simplified)
+
+| Argument | Help |
+|---|---|
+| `scenario` |  |
+| `--spacecraft` | spacecraft name (default: the first) |
+| `--population-density` | people per km^2 under the re-entry (no default): gives the casualty risk |
+| `--out` | write the record |
+
 ## `budget`
 
 delta-V and propellant budget (ESA AD10 style)

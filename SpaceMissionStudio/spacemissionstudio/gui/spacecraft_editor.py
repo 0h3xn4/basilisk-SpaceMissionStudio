@@ -1792,7 +1792,7 @@ class SpacecraftEditorDialog(QDialog):
     _ORBIT_ONLY_GROUPS = (("power_group", True, True), ("momentum_dumping_group", True, True),
                           ("magnetic_momentum_management_group", True, True), ("fuel_tank_group", True, True),
                           ("comms_pointing_group", True, False), ("solar_array_group", False, True),
-                          ("facet_group", False, True))
+                          ("facet_group", False, True), ("model_analyses_group", True, True))
 
     def _apply_orbit_only(self) -> None:
         """Turn off and hide the groups orbit_only has no use for, in the
@@ -1913,6 +1913,10 @@ class SpacecraftEditorDialog(QDialog):
                 return spins[0] if "_step_" in leaf else spins[1]
         if top == "propellant_budget" and len(parts) == 2:
             widget = self.budget_group.field_widget(leaf)
+            if widget is not None:
+                return widget
+        if top == "model_analyses" and len(parts) >= 2:
+            widget = self.model_analyses_group.field_widget(parts[1].split("[")[0])
             if widget is not None:
                 return widget
         prefix = _SECTION_PREFIXES.get(top, "")
@@ -2149,6 +2153,7 @@ class SpacecraftEditorDialog(QDialog):
             navigation_error=self._navigation_error_to_dataclass(),
             fuel_tank=self._fuel_tank_to_dataclass(),
             propellant_budget=self.budget_group.to_config(),
+            model_analyses=None if self._orbit_only else self.model_analyses_group.to_config(),
             enable_drag=self.enable_drag_check.isChecked(),
             drag_coeff=self.drag_coeff.value(),
             drag_area_m2=self.drag_area_m2.value(),
@@ -2223,6 +2228,11 @@ class SpacecraftEditorDialog(QDialog):
             row.addWidget(button)
         row.addStretch(1)
         layout.addLayout(row)
+        from .model_analyses_editor import ModelAnalysesGroup
+
+        config = self._init_config
+        self.model_analyses_group = ModelAnalysesGroup(config.model_analyses if config else None)
+        layout.addWidget(self.model_analyses_group)
         layout.addStretch(1)
         self._refresh_model_tab()
 

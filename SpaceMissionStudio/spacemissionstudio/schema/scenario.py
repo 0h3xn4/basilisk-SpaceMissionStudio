@@ -496,6 +496,7 @@ class SensorConfig:
     kind: str
     name: str
     params: dict = field(default_factory=dict)
+    mount: MountConfig | None = None  # where it sits on the 3D model; written only when set
 
 
 @dataclass
@@ -511,6 +512,7 @@ class ActuatorConfig:
     kind: str
     name: str
     params: dict = field(default_factory=dict)
+    mount: MountConfig | None = None  # where it sits on the 3D model; written only when set
 
 
 @dataclass
@@ -628,6 +630,9 @@ class RFLinkConfig:
     # comms_pointing.antenna_boresight_b; "cosine" and "table" need one of
     # the two, since the gain then depends on the real attitude.
     antenna_boresight_b: list | None = None
+    # Where the antenna sits on the 3D model (its boresight and beamwidth
+    # default to the two above); written only when set.
+    antenna_mount: MountConfig | None = None
 
     def validate(self, spacecraft_name: str) -> None:
         # Generous plausibility ceiling (docs/ux_audit.md, "units
@@ -1740,6 +1745,12 @@ class ModelPartConfig:
     drag_coeff: float = 2.2  # [-]
     specular_coeff: float = 0.3  # [-]
     diffuse_coeff: float = 0.1  # [-]
+    # The analyses built on the model (written only when set): the part's
+    # material (config.materials, or one of the model's own), its mass
+    # maturity category and its subsystem, for the mass budget.
+    material: str = ""
+    maturity: str = ""
+    subsystem: str = ""
 
     def validate(self, where: str, mesh_count: int) -> None:
         _require(name_error("part", self.name) is None, _prefixed(where, name_error("part", self.name)))
@@ -1777,6 +1788,8 @@ class ModelPartConfig:
         _require(0.0 <= self.specular_coeff <= 1.0 and 0.0 <= self.diffuse_coeff <= 1.0
                  and self.specular_coeff + self.diffuse_coeff <= 1.0,
                  f"{where}: specular_coeff and diffuse_coeff must each be in [0, 1] and sum to at most 1")
+        for name in ("material", "maturity", "subsystem"):
+            _require(isinstance(getattr(self, name), str), f"{where}: {name} must be text")
 
 
 @dataclass
@@ -1799,6 +1812,305 @@ class ModelMassPropertiesConfig:
         _require(_finite_vector(self.inertia_kg_m2, 9), f"{where}: inertia_kg_m2 must be 9 finite numbers (3x3)")
 
 
+# The analyses built on the 3D model (docs/developer/model-analyses-design.md):
+# mounted equipment, the stowed configuration, materials and face properties,
+# the mass budget, the launcher envelope. Every field is optional and written
+# only when set (Scenario.to_dict), so a scenario without them saves as before.
+EQUIPMENT_KINDS = ("camera", "antenna", "thruster", "star_tracker", "sun_sensor", "solar_cell", "radiator", "unit")
+LAUNCHER_SHAPES = ("cylinder", "box", "profile")
+
+
+def _optional_angle(value, low: float, high: float) -> bool:
+    return value is None or (_is_finite_number(value) and low <= value <= high)
+
+
+@dataclass
+class MountConfig:
+    """Where a piece of equipment sits on the 3D model: a position and a
+    boresight, in the frame of ``part`` when set (it then moves with that
+    part, e.g. to its stowed place) or else in the body frame.
+
+    Each value left as None comes from the definition the mount belongs to
+    (a thruster's ``r_B`` and ``tHat_B``, a sun sensor's ``nHat_B`` and
+    ``fov_deg``, the RF antenna's boresight and beamwidth), so nothing is
+    given twice (model-analyses decision D-03). Angles: the field of view
+    is the full cone angle; the exclusions and the plume are half-angles.
+    """
+
+    part: str = ""
+    position_m: list | None = None  # [m]
+    boresight: list | None = None  # [-] unit vector (normalized when used)
+    field_of_view_deg: float | None = None  # [deg] full cone angle
+    exclusion_sun_deg: float | None = None  # [deg] half-angle about the boresight
+    exclusion_earth_deg: float | None = None  # [deg] from the Earth's limb, atmosphere margin included
+    exclusion_moon_deg: float | None = None  # [deg] from the Moon's limb
+    earth_atmosphere_km: float | None = None  # [km] added to the Earth's radius for the limb
+    plume_half_angle_deg: float | None = None  # [deg] thrusters: the plume cone, along -boresight
+
+    def validate(self, where: str, part_names) -> None:
+        _require(isinstance(self.part, str), f"{where}: mount.part must be a part name or empty")
+        if self.part:
+            _require(part_names is not None, f"{where}: mount.part {self.part!r} needs a 3D model")
+            _require(self.part in part_names, f"{where}: mount.part {self.part!r} is not a part of the model")
+        _require(self.position_m is None or _finite_vector(self.position_m),
+                 f"{where}: mount.position_m must be a finite [x, y, z] in m")
+        _require(self.boresight is None or _is_direction_vector(self.boresight),
+                 f"{where}: mount.boresight must be a non-zero, finite [x, y, z]")
+        _require(_optional_angle(self.field_of_view_deg, 0.0, 360.0) and self.field_of_view_deg != 0.0,
+                 f"{where}: mount.field_of_view_deg must be in (0, 360] deg")
+        for name in ("exclusion_sun_deg", "exclusion_earth_deg", "exclusion_moon_deg"):
+            _require(_optional_angle(getattr(self, name), 0.0, 180.0), f"{where}: mount.{name} must be in [0, 180] deg")
+        _require(self.earth_atmosphere_km is None
+                 or (_is_finite_number(self.earth_atmosphere_km) and 0.0 <= self.earth_atmosphere_km <= 1000.0),
+                 f"{where}: mount.earth_atmosphere_km must be in [0, 1000] km")
+        _require(_optional_angle(self.plume_half_angle_deg, 0.0, 90.0) and self.plume_half_angle_deg != 0.0,
+                 f"{where}: mount.plume_half_angle_deg must be in (0, 90] deg")
+
+
+@dataclass
+class MountedEquipmentConfig:
+    """Equipment the scenario has no other definition for -- a payload
+    camera, an orbit thruster's nozzle, a solar-cell panel, a radiator, a
+    unit -- mounted on the model. ``mass_kg`` (point mass at the mount)
+    counts in the model's computed mass properties and the mass budget;
+    ``thrust_n`` is a thruster's force for the authority matrix."""
+
+    name: str
+    kind: str  # one of EQUIPMENT_KINDS
+    mount: MountConfig = field(default_factory=MountConfig)
+    mass_kg: float = 0.0  # [kg]
+    maturity: str = ""  # the mass budget's maturity category; "" for none
+    subsystem: str = ""  # the mass budget's grouping; "" for none
+    thrust_n: float | None = None  # [N] thrusters only
+
+    def validate(self, where: str, part_names) -> None:
+        _require(name_error("equipment", self.name) is None, _prefixed(where, name_error("equipment", self.name)))
+        where = f"{where}: equipment {self.name!r}"
+        _require(self.kind in EQUIPMENT_KINDS, f"{where}: kind {self.kind!r} must be one of {EQUIPMENT_KINDS}")
+        _require(isinstance(self.mount, MountConfig), f"{where}: mount must be an object")
+        self.mount.validate(where, part_names)
+        _require(self.mount.position_m is not None, f"{where}: mount.position_m is needed")
+        _require(self.mount.boresight is not None, f"{where}: mount.boresight is needed")
+        _require(_is_finite_number(self.mass_kg) and 0.0 <= self.mass_kg <= 1.0e5,
+                 f"{where}: mass_kg must be in [0, 1e5] kg")
+        _require(isinstance(self.subsystem, str), f"{where}: subsystem must be text")
+        _require(self.thrust_n is None or (_is_finite_number(self.thrust_n) and 0.0 < self.thrust_n <= 1.0e5),
+                 f"{where}: thrust_n must be in (0, 1e5] N")
+
+
+@dataclass
+class PartPoseConfig:
+    """Where a part is in the stowed configuration (arrays and antennas
+    folded): its position and rotation then, as ``ModelPartConfig`` gives
+    them for the deployed one."""
+
+    part: str
+    position_b_m: list = field(default_factory=lambda: [0.0, 0.0, 0.0])  # [m]
+    rotation_deg: list = field(default_factory=lambda: [0.0, 0.0, 0.0])  # [deg] roll, pitch, yaw (3-2-1)
+
+    def validate(self, where: str, part_names) -> None:
+        _require(self.part in part_names, f"{where}: stowed pose names {self.part!r}, not a part of the model")
+        _require(_finite_vector(self.position_b_m), f"{where}: stowed {self.part!r}: position_b_m must be finite")
+        _require(_finite_vector(self.rotation_deg), f"{where}: stowed {self.part!r}: rotation_deg must be finite")
+
+
+@dataclass
+class FacePropertyConfig:
+    """Surface properties of one face of a part, in place of the part's:
+    ``face`` is a face group of the part's shape (``MODEL_SHAPE_FACES``:
+    "+x", "sides", ...). Imported meshes take properties per part only
+    (their face names change with the mesh, decision D-02)."""
+
+    part: str
+    face: str
+    material: str = ""
+    diffuse_coeff: float | None = None  # [-]
+    specular_coeff: float | None = None  # [-]
+
+    def validate(self, where: str, parts_by_name: dict, material_names) -> None:
+        _require(self.part in parts_by_name, f"{where}: face property names {self.part!r}, not a part of the model")
+        shape = parts_by_name[self.part].shape
+        allowed = MODEL_SHAPE_FACES[shape]
+        _require(self.face in allowed, f"{where}: face {self.face!r} is not a face of {self.part!r} (a {shape}"
+                 + (f": {list(allowed)})" if allowed else ", which takes properties per part only)"))
+        _require(self.material == "" or self.material in material_names,
+                 f"{where}: material {self.material!r} is not in the library or the model's materials")
+        for name in ("diffuse_coeff", "specular_coeff"):
+            value = getattr(self, name)
+            _require(value is None or (_is_finite_number(value) and 0.0 <= value <= 1.0),
+                     f"{where}: {self.part}: {self.face}: {name} must be in [0, 1]")
+        diffuse = parts_by_name[self.part].diffuse_coeff if self.diffuse_coeff is None else self.diffuse_coeff
+        specular = parts_by_name[self.part].specular_coeff if self.specular_coeff is None else self.specular_coeff
+        _require(diffuse + specular <= 1.0, f"{where}: {self.part}: {self.face}: diffuse and specular sum to more than 1")
+
+
+#: The fields a material may have, with their units (config.materials holds the library).
+MATERIAL_FIELDS = (("density_kg_m3", "[kg/m^3]"), ("melting_temperature_k", "[K]"), ("heat_of_fusion_j_kg", "[J/kg]"),
+                   ("specific_heat_j_kg_k", "[J/(kg*K)]"), ("emissivity", "[-]"), ("solar_absorptance", "[-]"),
+                   ("ao_erosion_yield_cm3_atom", "[cm^3/atom]"))
+
+
+@dataclass
+class MaterialConfig:
+    """A material of the user's own, beside the library's
+    (``config.materials``). Every value is optional; ``source`` says where
+    the values come from."""
+
+    name: str
+    density_kg_m3: float | None = None  # [kg/m^3]
+    melting_temperature_k: float | None = None  # [K]
+    heat_of_fusion_j_kg: float | None = None  # [J/kg]
+    specific_heat_j_kg_k: float | None = None  # [J/(kg*K)]
+    emissivity: float | None = None  # [-]
+    solar_absorptance: float | None = None  # [-]
+    ao_erosion_yield_cm3_atom: float | None = None  # [cm^3/atom]
+    source: str = ""
+
+    def validate(self, where: str) -> None:
+        _require(isinstance(self.name, str) and bool(self.name.strip()), f"{where}: a material needs a name")
+        where = f"{where}: material {self.name!r}"
+        for name, _unit in MATERIAL_FIELDS:
+            value = getattr(self, name)
+            _require(value is None or (_is_finite_number(value) and value >= 0.0), f"{where}: {name} must be >= 0")
+        for name in ("emissivity", "solar_absorptance"):
+            value = getattr(self, name)
+            _require(value is None or value <= 1.0, f"{where}: {name} must be in [0, 1]")
+
+
+@dataclass
+class MassBudgetConfig:
+    """The mass budget's settings: the margin policy whose maturity
+    categories the parts carry (``config.materials.MASS_MARGIN_POLICIES``),
+    a system margin in place of the policy's, and the limit to meet."""
+
+    policy: str = ""  # "" for the default policy
+    system_margin_percent: float | None = None  # [%] None: the policy's
+    mass_limit_kg: float | None = None  # [kg]
+    limit_source: str = ""  # where the limit comes from (a launcher's guide, a port's rating)
+
+    def validate(self, where: str, policies) -> None:
+        _require(self.policy == "" or self.policy in policies,
+                 f"{where}: mass_budget.policy {self.policy!r} must be one of {sorted(policies)}")
+        _require(self.system_margin_percent is None
+                 or (_is_finite_number(self.system_margin_percent) and 0.0 <= self.system_margin_percent <= 100.0),
+                 f"{where}: mass_budget.system_margin_percent must be in [0, 100]")
+        _require(self.mass_limit_kg is None or (_is_finite_number(self.mass_limit_kg) and self.mass_limit_kg > 0.0),
+                 f"{where}: mass_budget.mass_limit_kg must be > 0")
+
+
+@dataclass
+class LauncherConfig:
+    """The launcher's envelope the stowed spacecraft must fit, and its mass
+    and centre-of-mass limits. ``envelope`` names one of the sourced
+    envelopes (``analyses.envelopes``) or is "custom": then ``shape`` with
+    its dimensions -- a ``cylinder`` (``diameter_m``, ``height_m``), a
+    ``box`` (``width_m``, ``depth_m``, ``height_m``) or an axisymmetric
+    ``profile`` of ``[height_m, radius_m]`` points. The envelope stands on
+    the separation plane through ``origin_b_m``, its axis along ``axis_b``
+    (the box's width along ``width_axis_b``)."""
+
+    envelope: str = "custom"
+    shape: str = "cylinder"  # one of LAUNCHER_SHAPES
+    diameter_m: float | None = None  # [m]
+    height_m: float | None = None  # [m]
+    width_m: float | None = None  # [m]
+    depth_m: float | None = None  # [m]
+    profile: list = field(default_factory=list)  # [[height_m, radius_m], ...] rising heights
+    origin_b_m: list = field(default_factory=lambda: [0.0, 0.0, 0.0])  # [m] the separation plane's centre
+    axis_b: list = field(default_factory=lambda: [0.0, 0.0, 1.0])  # [-] up the envelope, from the separation plane
+    width_axis_b: list = field(default_factory=lambda: [1.0, 0.0, 0.0])  # [-] box only
+    mass_limit_kg: float | None = None  # [kg]
+    com_height_limit_m: float | None = None  # [m] above the separation plane
+    com_lateral_limit_m: float | None = None  # [m] from the envelope's axis
+    source: str = ""  # where the limits come from
+
+    def validate(self, where: str, envelopes) -> None:
+        where = f"{where}: launcher"
+        _require(self.envelope == "custom" or self.envelope in envelopes,
+                 f"{where}: envelope {self.envelope!r} must be \"custom\" or one of {sorted(envelopes)}")
+        _require(_finite_vector(self.origin_b_m), f"{where}: origin_b_m must be a finite [x, y, z] in m")
+        _require(_is_direction_vector(self.axis_b), f"{where}: axis_b must be a non-zero, finite [x, y, z]")
+        if self.envelope == "custom":
+            _require(self.shape in LAUNCHER_SHAPES, f"{where}: shape {self.shape!r} must be one of {LAUNCHER_SHAPES}")
+            needs = {"cylinder": ("diameter_m", "height_m"), "box": ("width_m", "depth_m", "height_m"),
+                     "profile": ()}[self.shape]
+            for name in needs:
+                value = getattr(self, name)
+                _require(_is_finite_number(value) and 0.0 < value <= 100.0, f"{where}: a {self.shape} needs {name} "
+                         "in (0, 100] m")
+            if self.shape == "box":
+                _require(_is_direction_vector(self.width_axis_b), f"{where}: width_axis_b must be a non-zero vector")
+            if self.shape == "profile":
+                points = self.profile
+                _require(isinstance(points, list) and len(points) >= 2
+                         and all(_finite_vector(p, 2) and p[1] >= 0.0 for p in points),
+                         f"{where}: profile needs at least two [height_m, radius_m] points, radii >= 0")
+                heights = [p[0] for p in points]
+                _require(all(b > a for a, b in zip(heights, heights[1:])) and heights[0] >= 0.0,
+                         f"{where}: profile heights must start at or above 0 m and rise")
+        for name in ("mass_limit_kg", "com_height_limit_m", "com_lateral_limit_m"):
+            value = getattr(self, name)
+            _require(value is None or (_is_finite_number(value) and value > 0.0), f"{where}: {name} must be > 0")
+
+
+@dataclass
+class ObserverSiteConfig:
+    """A place on the Earth the spacecraft's brightness is computed from,
+    beside the ground stations."""
+
+    name: str
+    latitude_deg: float  # [deg] geodetic
+    longitude_deg: float  # [deg] east
+    altitude_m: float = 0.0  # [m] above the WGS-84 ellipsoid
+    min_elevation_deg: float = 10.0  # [deg] above the horizon
+
+    def validate(self, where: str) -> None:
+        _require(name_error("observer site", self.name) is None,
+                 _prefixed(where, name_error("observer site", self.name)))
+        where = f"{where}: observer site {self.name!r}"
+        _require(_is_finite_number(self.latitude_deg) and -90.0 <= self.latitude_deg <= 90.0,
+                 f"{where}: latitude_deg must be in [-90, 90]")
+        _require(_is_finite_number(self.longitude_deg) and -180.0 <= self.longitude_deg <= 360.0,
+                 f"{where}: longitude_deg must be in [-180, 360]")
+        _require(_is_finite_number(self.altitude_m) and -500.0 <= self.altitude_m <= 1.0e4,
+                 f"{where}: altitude_m must be in [-500, 1e4] m")
+        _require(_is_finite_number(self.min_elevation_deg) and 0.0 <= self.min_elevation_deg < 90.0,
+                 f"{where}: min_elevation_deg must be in [0, 90) deg")
+
+
+#: The analyses of a run (``ModelAnalysesConfig``'s switches): each follows the attitude.
+MODEL_RUN_ANALYSES = ("sensor_blinding", "antenna_obstruction", "disturbance_torques", "array_shading",
+                      "surface_exposure", "brightness")
+
+
+@dataclass
+class ModelAnalysesConfig:
+    """Which analyses of a run use the 3D model and the mounted equipment
+    (each off by default), and their inputs. With none of this, a run
+    records and computes nothing new (decision D-01)."""
+
+    sensor_blinding: bool = False  # Sun, Earth and Moon in the sensors' exclusion cones
+    antenna_obstruction: bool = False  # parts between the antenna and the ground station during passes
+    disturbance_torques: bool = False  # aero, SRP, gravity gradient and magnetic torques, recorded in the run
+    residual_dipole_a_m2: list = field(default_factory=lambda: [0.0, 0.0, 0.0])  # [A*m^2] body frame
+    array_shading: bool = False  # solar-cell panels shaded by other parts
+    surface_exposure: bool = False  # atomic oxygen fluence and sun hours per face
+    brightness: bool = False  # visual magnitude from the ground stations and observer sites
+    observers: list = field(default_factory=list)  # list[ObserverSiteConfig]
+    samples: int = 256  # [-] ray samples per face or cone
+
+    def validate(self, where: str) -> None:
+        where = f"{where}: model_analyses"
+        _require(_finite_vector(self.residual_dipole_a_m2) and all(abs(v) <= 1.0e4 for v in self.residual_dipole_a_m2),
+                 f"{where}: residual_dipole_a_m2 must be three finite values within 1e4 A*m^2")
+        _require(isinstance(self.samples, int) and not isinstance(self.samples, bool) and 16 <= self.samples <= 65536,
+                 f"{where}: samples must be an integer from 16 to 65536")
+        names = [site.name for site in self.observers]
+        _require(len(names) == len(set(names)), f"{where}: observer site names must be unique")
+        for site in self.observers:
+            site.validate(where)
+
+
 @dataclass
 class SpacecraftModelConfig:
     """A spacecraft's 3D model (see ``spacemissionstudio.model3d``): parts
@@ -1816,6 +2128,21 @@ class SpacecraftModelConfig:
     apply_mass_properties: bool = True
     apply_facets: bool = True
     use_for_vizard: bool = True
+    # The analyses built on the model (docs/developer/model-analyses-design.md),
+    # each written only when set.
+    equipment: list = field(default_factory=list)  # list[MountedEquipmentConfig]
+    stowed: list = field(default_factory=list)  # list[PartPoseConfig]: the stowed configuration
+    face_properties: list = field(default_factory=list)  # list[FacePropertyConfig]
+    materials: list = field(default_factory=list)  # list[MaterialConfig]: the model's own
+    mass_budget: MassBudgetConfig | None = None
+    launcher: LauncherConfig | None = None
+
+    def material_names(self) -> set:
+        """The materials a part or face may name: the library's and the
+        model's own."""
+        from ..config import materials as library
+
+        return set(library.MATERIALS) | {m.name for m in self.materials}
 
     def validate(self, spacecraft_name: str) -> None:
         where = f"{spacecraft_name}: model"
@@ -1826,6 +2153,7 @@ class SpacecraftModelConfig:
             mesh.validate(f"{where}: meshes[{k}]")
         for part in self.parts:
             part.validate(where, len(self.meshes))
+        self._validate_analyses(where, names)
         _require(self.mass_properties_source in MASS_PROPERTIES_SOURCES,
                  f"{where}: mass_properties_source {self.mass_properties_source!r} must be one of "
                  f"{MASS_PROPERTIES_SOURCES}")
@@ -1834,6 +2162,45 @@ class SpacecraftModelConfig:
                      f"{where}: mass_properties_source {self.mass_properties_source!r} needs mass_properties")
         if self.mass_properties is not None:
             self.mass_properties.validate(f"{where}: mass_properties")
+
+    def _validate_analyses(self, where: str, names: list) -> None:
+        from ..config import envelopes as envelope_library
+        from ..config import materials as library
+
+        own = [m.name for m in self.materials]
+        _require(len(own) == len(set(own)), f"{where}: material names must be unique, got {own}")
+        for material in self.materials:
+            material.validate(where)
+        material_names = self.material_names()
+        parts = {part.name: part for part in self.parts}
+        policy = library.mass_policy(self.mass_budget.policy if self.mass_budget is not None else "") \
+            if library.MASS_MARGIN_POLICIES else library.MassMarginPolicy("", "no policy", "")
+        for part in self.parts:
+            _require(part.material == "" or part.material in material_names,
+                     f"{where}: part {part.name!r}: material {part.material!r} is not in the library or the "
+                     "model's materials")
+            _require(part.maturity == "" or part.maturity in policy.categories,
+                     f"{where}: part {part.name!r}: maturity {part.maturity!r} must be one of "
+                     f"{list(policy.categories)} ({policy.name})")
+        equipment = [item.name for item in self.equipment]
+        _require(len(equipment) == len(set(equipment)), f"{where}: equipment names must be unique, got {equipment}")
+        for item in self.equipment:
+            item.validate(where, names)
+            _require(item.maturity == "" or item.maturity in policy.categories,
+                     f"{where}: equipment {item.name!r}: maturity {item.maturity!r} must be one of "
+                     f"{list(policy.categories)}")
+        posed = [pose.part for pose in self.stowed]
+        _require(len(posed) == len(set(posed)), f"{where}: a part has at most one stowed pose")
+        for pose in self.stowed:
+            pose.validate(where, names)
+        faces = [(fp.part, fp.face) for fp in self.face_properties]
+        _require(len(faces) == len(set(faces)), f"{where}: a face has at most one face property")
+        for face in self.face_properties:
+            face.validate(where, parts, material_names)
+        if self.mass_budget is not None:
+            self.mass_budget.validate(where, library.MASS_MARGIN_POLICIES)
+        if self.launcher is not None:
+            self.launcher.validate(where, envelope_library.ENVELOPES)
 
 
 @dataclass
@@ -1936,6 +2303,31 @@ class SpacecraftConfig:
     # The spacecraft's 3D model, if one was built or imported in the model
     # editor; see SpacecraftModelConfig.
     model: SpacecraftModelConfig | None = None
+    # The run analyses built on the model and the mounted equipment
+    # (ModelAnalysesConfig); None, as every scenario before them: none.
+    model_analyses: ModelAnalysesConfig | None = None
+
+    def mounted_definitions(self) -> list:
+        """``(where, mount)`` for every sensor, actuator and RF antenna with
+        a mount, in that order."""
+        found = [(f"sensor {s.name!r}", s.mount) for s in self.sensors if getattr(s, "mount", None) is not None]
+        found += [(f"actuator {a.name!r}", a.mount) for a in self.actuators if getattr(a, "mount", None) is not None]
+        if self.rf_link is not None and self.rf_link.antenna_mount is not None:
+            found.append(("rf_link antenna", self.rf_link.antenna_mount))
+        return found
+
+    def _validate_mounts(self) -> None:
+        part_names = None if self.model is None else [part.name for part in self.model.parts]
+        for where, mount in self.mounted_definitions():
+            _require(isinstance(mount, MountConfig), f"{self.name}: {where}: mount must be an object")
+            mount.validate(f"{self.name}: {where}", part_names)
+        if self.model_analyses is not None:
+            analyses = self.model_analyses
+            analyses.validate(self.name)
+            needs_model = [name for name in ("antenna_obstruction", "array_shading", "surface_exposure", "brightness")
+                           if getattr(analyses, name)]
+            _require(not needs_model or self.model is not None,
+                     f"{self.name}: model_analyses: {', '.join(needs_model)} need a 3D model")
 
     def validate(self) -> None:
         _require(name_error("spacecraft", self.name) is None, name_error("spacecraft", self.name) or "")
@@ -1986,6 +2378,7 @@ class SpacecraftConfig:
                  f"{self.name}: center_of_mass_b_m must be a finite [x, y, z] within 100 m of point B")
         if self.model is not None:
             self.model.validate(self.name)
+        self._validate_mounts()
         _require(len(self.sigma_bn_init) == 3, f"{self.name}: sigma_bn_init must have 3 elements")
         _require(len(self.omega_bn_b_init_rad_s) == 3, f"{self.name}: omega_bn_b_init_rad_s must have 3 elements")
         # drag_coeff/drag_area_m2/srp_coeff/srp_area_m2 feed straight into
@@ -3240,6 +3633,11 @@ class Scenario:
                   "step diverges")
         if self.simulation_mode == "orbit_only":
             for sc in self.spacecraft:
+                running = [name for name in MODEL_RUN_ANALYSES
+                           if sc.model_analyses is not None and getattr(sc.model_analyses, name)]
+                _require(not running,
+                          f"{sc.name}: model_analyses {', '.join(running)} follow the attitude, but "
+                          "scenario.simulation_mode is 'orbit_only' -- use 'full_attitude' mode, or turn them off")
                 _require(not sc.solar_arrays,
                           f"{sc.name}: solar arrays are set but scenario.simulation_mode is 'orbit_only' -- their "
                           "flexing moves the attitude 'full_attitude' mode simulates, or remove them")
@@ -3431,6 +3829,10 @@ class Scenario:
                 # here, same as magnetic_momentum_management's own
                 # docstring already said it SHOULD be (it previously
                 # pointed at this exact gap as deferred-to-engine-layer).
+                _require(sc.model_analyses is None or not sc.model_analyses.disturbance_torques
+                          or not any(sc.model_analyses.residual_dipole_a_m2),
+                          f"{sc.name}: model_analyses.residual_dipole_a_m2 needs the Earth's magnetic field (WMM), "
+                          f"but gravity.central_body is {self.gravity.central_body!r} -- set the dipole to zero")
                 _require(sc.magnetic_momentum_management is None,
                           f"{sc.name}: has magnetic_momentum_management configured, but gravity.central_body "
                           f"is {self.gravity.central_body!r}, not 'earth' -- magneticFieldWMM is Earth-only. "
@@ -3542,6 +3944,7 @@ class Scenario:
             mass = (sc.get("model") or {}).get("mass_properties")
             if mass is not None and not mass.get("source_path"):
                 mass.pop("source_path", None)
+            _drop_unset_model_analyses(sc)
         return data
 
     @staticmethod
@@ -3570,6 +3973,10 @@ class Scenario:
             for name, cls in (("sensors", SensorConfig), ("facets", FacetConfig), ("actuators", ActuatorConfig),
                               ("solar_arrays", SolarArrayConfig)):
                 sc[name] = _records(cls, sc.pop(name, []), f"{where}.{name}")
+            for name in ("sensors", "actuators"):
+                for k, item in enumerate(sc[name]):
+                    if item.mount is not None:
+                        item.mount = _record(MountConfig, item.mount, f"{where}.{name}[{k}].mount")
             if sc.get("model") is not None:
                 model_data = _fields_of(sc["model"], f"{where}.model")
                 model_data["parts"] = _records(ModelPartConfig, model_data.pop("parts", []), f"{where}.model.parts")
@@ -3578,7 +3985,24 @@ class Scenario:
                 if model_data.get("mass_properties") is not None:
                     model_data["mass_properties"] = _record(ModelMassPropertiesConfig, model_data["mass_properties"],
                                                             f"{where}.model.mass_properties")
+                equipment = []
+                for k, item in enumerate(_items(model_data.pop("equipment", []), f"{where}.model.equipment")):
+                    item = _fields_of(item, f"{where}.model.equipment[{k}]")
+                    item["mount"] = _record(MountConfig, item.get("mount", {}), f"{where}.model.equipment[{k}].mount")
+                    equipment.append(_record(MountedEquipmentConfig, item, f"{where}.model.equipment[{k}]"))
+                model_data["equipment"] = equipment
+                for name, cls in (("stowed", PartPoseConfig), ("face_properties", FacePropertyConfig),
+                                  ("materials", MaterialConfig)):
+                    model_data[name] = _records(cls, model_data.pop(name, []), f"{where}.model.{name}")
+                for name, cls in (("mass_budget", MassBudgetConfig), ("launcher", LauncherConfig)):
+                    if model_data.get(name) is not None:
+                        model_data[name] = _record(cls, model_data[name], f"{where}.model.{name}")
                 sc["model"] = _record(SpacecraftModelConfig, model_data, f"{where}.model")
+            if sc.get("model_analyses") is not None:
+                analyses = _fields_of(sc["model_analyses"], f"{where}.model_analyses")
+                analyses["observers"] = _records(ObserverSiteConfig, analyses.pop("observers", []),
+                                                 f"{where}.model_analyses.observers")
+                sc["model_analyses"] = _record(ModelAnalysesConfig, analyses, f"{where}.model_analyses")
             if sc.get("data_handling") is not None:
                 handling = _fields_of(sc["data_handling"], f"{where}.data_handling")
                 handling["instruments"] = _records(InstrumentConfig, handling.pop("instruments", []),
@@ -3592,6 +4016,9 @@ class Scenario:
             for name, cls in _SPACECRAFT_RECORDS:
                 if sc.get(name) is not None:
                     sc[name] = _record(cls, sc[name], f"{where}.{name}")
+            if sc.get("rf_link") is not None and sc["rf_link"].antenna_mount is not None:
+                sc["rf_link"].antenna_mount = _record(MountConfig, sc["rf_link"].antenna_mount,
+                                                      f"{where}.rf_link.antenna_mount")
             spacecraft.append(_record(SpacecraftConfig, sc, where))
 
         mission_sequence = [Command.from_dict(_fields_of(c, f"mission_sequence[{index}]"))
@@ -3652,6 +4079,56 @@ def _items(data, where: str) -> list:
     if not isinstance(data, list):
         raise _StructureError(f"{where} must be a list ([...]), not {_describe(data)}")
     return data
+
+
+def _compact(record: dict) -> dict:
+    """``record`` without its None values (the analyses' optional fields)."""
+    return {key: value for key, value in record.items() if value is not None}
+
+
+def _drop_unset_model_analyses(sc: dict) -> None:
+    """Leave out of a saved spacecraft the fields of the analyses built on
+    the model that are not set, so a scenario without them saves, and
+    hashes, as before (decision D-01)."""
+    for name in ("sensors", "actuators"):
+        for item in sc.get(name, []):
+            if item.get("mount") is None:
+                item.pop("mount", None)
+            else:
+                item["mount"] = _compact(item["mount"])
+    rf_link = sc.get("rf_link")
+    if rf_link is not None:
+        if rf_link.get("antenna_mount") is None:
+            rf_link.pop("antenna_mount", None)
+        else:
+            rf_link["antenna_mount"] = _compact(rf_link["antenna_mount"])
+    if sc.get("model_analyses") is None:
+        sc.pop("model_analyses", None)
+    model = sc.get("model")
+    if model is None:
+        return
+    for part in model.get("parts", []):
+        for name in ("material", "maturity", "subsystem"):
+            if part.get(name) == "":
+                part.pop(name, None)
+    for name in ("equipment", "stowed", "face_properties", "materials"):
+        if not model.get(name):
+            model.pop(name, None)
+    for item in model.get("equipment", []):
+        item["mount"] = _compact(item["mount"])
+        for name in ("maturity", "subsystem"):
+            if item.get(name) == "":
+                item.pop(name)
+        if item.get("thrust_n") is None:
+            item.pop("thrust_n")
+    for name in ("face_properties", "materials"):
+        if name in model:
+            model[name] = [_compact(entry) for entry in model[name]]
+    for name in ("mass_budget", "launcher"):
+        if model.get(name) is None:
+            model.pop(name, None)
+        else:
+            model[name] = _compact(model[name])
 
 
 def _record(cls, data, where: str):
@@ -3844,6 +4321,7 @@ def load_scenario(path: str | Path) -> Scenario:
     from ..config import files as config_files  # local import: config is a sibling package
 
     config_files.attach(scenario, path.resolve().parent)
+    scenario._base_dir = path.resolve().parent  # not saved: where its model's relative mesh paths are read from
     try:
         scenario.validate()
     except ScenarioValidationError:

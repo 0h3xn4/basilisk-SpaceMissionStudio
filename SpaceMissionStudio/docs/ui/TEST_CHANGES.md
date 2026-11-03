@@ -1648,3 +1648,33 @@ No existing test changed.
 
   Each new test fails on the code before (checked by stashing
   `spacemissionstudio/`, untracked files included).
+
+## Analyses built on the 3D model (2026-11-03)
+
+Branch `feature/model-analyses`. No golden or output file changed: every
+bundled template saves, runs and exports as before.
+
+- Added `tests/test_model_raycast.py` (12 tests), `tests/test_model_equipment.py`
+  (8 tests), `tests/test_design_checks.py` (10 tests) and
+  `tests/gui/test_design_checks_page.py`.
+- Changed one expectation: `tests/gui/test_reports_and_settings.py`'s
+  `test_every_export_is_listed_never_written_at_first` counts 17 exports,
+  not 14, and lists the three added: "Design checks", "Model analyses"
+  and "Re-entry estimate".
+- Changed one expectation: `tests/gui/test_workspace.py`'s Run area holds
+  the new Design Checks tab after Budget.
+- Changed `tests/test_config.py`: the new parameter area `analyses` maps
+  to its page, `docs/models/model-analyses.md`, and its one parameter,
+  `analyses.observer_sun_depression_deg`, to the test that sets it
+  (`tests/test_run_analyses.py`); the area `reentry` to
+  `docs/models/reentry.md` and its three parameters to
+  `tests/test_reentry.py`. Nothing removed.
+- Changed `tests/gui/test_home.py`: Home shows 32 template cards, not 31,
+  and the filter's count reads "2 of 32" (template 32 added).
+- Changed my own `tests/test_design_checks.py` test of the templates:
+  template 32 raises its two findings on purpose; every other template
+  none.
+- Added `tests/test_template_claims.py::test_32_*` (two tests), and
+  template 32's golden file and scenario hash (`tests/golden/`,
+  `tests/data/scenario_hashes.json`). No other golden file or hash
+  changed.

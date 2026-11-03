@@ -176,6 +176,22 @@ def _set_all_arrays(scenario: Scenario, attribute: str, value: float) -> None:
         setattr(array, attribute, value)
 
 
+def _equipment(scenario, name: str):
+    """The first spacecraft's model equipment item ``name``."""
+    return next(item for item in scenario.spacecraft[0].model.equipment if item.name == name)
+
+
+def _tracker_tilt_deg(scenario) -> float:
+    """Template 32's st-1: how far below level its boresight looks [deg]."""
+    boresight = scenario.spacecraft[0].sensors[0].mount.boresight
+    return math.degrees(math.asin(-boresight[2] / math.hypot(*boresight)))
+
+
+def _set_tracker_tilt_deg(scenario, value: float) -> None:
+    tilt = math.radians(value)  # [rad]
+    scenario.spacecraft[0].sensors[0].mount.boresight = [0.0, math.cos(tilt), -math.sin(tilt)]
+
+
 def _model_part(scenario: Scenario, name: str):
     return next(part for part in _sc(scenario).model.parts if part.name == name)
 
@@ -1743,6 +1759,30 @@ _SPECS: dict[str, TemplateWizardSpec] = {
                 ],
             ),
             _duration_page("Each orbit adds about 2 RPM to rw-y; longer runs show the drift grow.",
+                           SimSettings._MAX_SINGLE_RUN_DAYS),
+        ],
+    ),
+    "32_smallsat_design_checks.json": TemplateWizardSpec(
+        template_filename="32_smallsat_design_checks.json",
+        pages=[
+            WizardPageSpec(
+                title="Design",
+                intro="Run › Design Checks shows what these change; a run records the torques and shading.",
+                fields=[
+                    WizardField(
+                        "Star tracker tilt", "How far below the arrays' plane st-1 looks.",
+                        _tracker_tilt_deg, _set_tracker_tilt_deg,
+                        -30.0, 30.0, decimals=1, step=1.0, suffix=" deg", hint="0 deg: the array leaves its view",
+                    ),
+                    WizardField(
+                        "Plume half-angle", "The station-keeping nozzle's plume cone, half its full angle.",
+                        lambda s: _equipment(s, "sk thruster").mount.plume_half_angle_deg,
+                        lambda s, v: setattr(_equipment(s, "sk thruster").mount, "plume_half_angle_deg", v),
+                        1.0, 89.0, decimals=1, step=1.0, suffix=" deg", hint="10 deg: the plume clears the array",
+                    ),
+                ],
+            ),
+            _duration_page("One orbit records the torques and the shading; longer runs add orbits.",
                            SimSettings._MAX_SINGLE_RUN_DAYS),
         ],
     ),

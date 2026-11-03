@@ -60,6 +60,11 @@ THRUSTER = "thruster firing"
 MODE = "mode"
 DOWNLINK = "downlink"
 KINDS = (ACCESS, ECLIPSE, BURN, THRUSTER, MODE, DOWNLINK)
+# The model analyses' events (analyses.run_analyses), only in a run that asks for them.
+BLINDING = "blinding"
+OBSTRUCTION = "obstruction"
+VISIBLE = "visible"
+MODEL_KINDS = (BLINDING, OBSTRUCTION, VISIBLE)
 
 # The measured values an event can carry (Event.quantities): key -> (column
 # heading, unit, format). The Events table gives each its own column and the
@@ -69,8 +74,9 @@ QUANTITIES: dict[str, tuple[str, str, str]] = {
     "lowest_sunlight": ("Lowest sunlight", "%", ".0f"),
     "delta_v": ("Delta-V", "m/s", ".3f"),
     "data": ("Data", "Gbit", ".3f"),
+    "magnitude": ("Brightest", "mag", ".1f"),
 }
-_CSV_UNITS = {"deg": "deg", "%": "percent", "m/s": "m_s", "Gbit": "gbit"}
+_CSV_UNITS = {"deg": "deg", "%": "percent", "m/s": "m_s", "Gbit": "gbit", "mag": "mag"}
 
 # The phasing controller's states (engine.orbit_maintenance.PhasingKeepingController).
 _PHASING_IDLE, _PHASING_BURN_OUT, _PHASING_DRIFT, _PHASING_BURN_RESTORE = range(4)
@@ -315,7 +321,68 @@ def _downlinks(result: ResultSet) -> list[Event]:
     return events
 
 
-_EXTRACTORS = (_passes, _eclipses, _burns, _thruster_firings, _modes, _downlinks)
+def _on_flag(series: TimeSeries, index: int = -1) -> np.ndarray:
+    return _column(series, index) > 0.5
+
+
+def _on_finite(series: TimeSeries) -> np.ndarray:
+    return np.isfinite(_column(series))
+
+
+def _blinding(result: ResultSet) -> list[Event]:
+    events = []
+    for name, series in result.series.items():
+        if ".blinding." not in name:
+            continue
+        spacecraft, item = name.split(".blinding.", 1)
+        if item == "all_star_trackers":
+            label = "all star trackers blinded"
+        else:
+            label = f"{item} blinded"
+
+        def make(first, last, series=series, spacecraft=spacecraft, label=label):
+            data = np.asarray(series.data, dtype=float)[first:last + 1]
+            by = [column for k, column in enumerate(series.columns[:3]) if data.shape[1] > 3 and data[:, k].max() > 0.5]
+            return Event(BLINDING, spacecraft, float(series.time_s[first]), float(series.time_s[last]), label,
+                         ("by " + ", ".join(by)) if by else "", note=", ".join(by))
+
+        events += _spans(series, _on_flag(series), make)
+    return events
+
+
+def _obstructions(result: ResultSet) -> list[Event]:
+    events = []
+    for name, series in result.series.items():
+        if not name.endswith(".antenna_obstructed") or ".access_to_" not in name:
+            continue
+        station, spacecraft = name[:-len(".antenna_obstructed")].split(".access_to_", 1)
+
+        def make(first, last, series=series, spacecraft=spacecraft, station=station):
+            return Event(OBSTRUCTION, spacecraft, float(series.time_s[first]), float(series.time_s[last]),
+                         "antenna obstructed", f"a part between the antenna and {station}", other=station)
+
+        events += _spans(series, _on_flag(series, 0), make)
+    return events
+
+
+def _visibility(result: ResultSet) -> list[Event]:
+    events = []
+    for name, series in result.series.items():
+        if not name.endswith(".visual_magnitude") or ".brightness_of_" not in name:
+            continue
+        site, spacecraft = name[:-len(".visual_magnitude")].split(".brightness_of_", 1)
+
+        def make(first, last, series=series, spacecraft=spacecraft, site=site):
+            brightest = float(np.nanmin(_column(series)[first:last + 1]))  # [mag]
+            return Event(VISIBLE, spacecraft, float(series.time_s[first]), float(series.time_s[last]), "visible",
+                         f"brightest {brightest:.1f} mag", other=site, quantities=(("magnitude", brightest),))
+
+        events += _spans(series, _on_finite(series), make)
+    return events
+
+
+_EXTRACTORS = (_passes, _eclipses, _burns, _thruster_firings, _modes, _downlinks, _blinding, _obstructions,
+               _visibility)
 
 
 # -- how one event was found ---------------------------------------------------------------------
@@ -344,6 +411,17 @@ def _source(result: ResultSet, event: Event) -> tuple[str, np.ndarray, str]:
     if event.kind == DOWNLINK:
         name = f"{other}.access_to_{sc}.link_closed"
         return name, _on_link_closed(result.series[name]), "link_closed > 0.5 (the link closes), with data sent"
+    if event.kind == BLINDING:
+        item = "all_star_trackers" if event.label == "all star trackers blinded" else event.label[:-len(" blinded")]
+        name = f"{sc}.blinding.{item}"
+        series = result.series[name]
+        return name, _on_flag(series), f"{series.columns[-1]} > 0.5 (inside an exclusion cone)"
+    if event.kind == OBSTRUCTION:
+        name = f"{other}.access_to_{sc}.antenna_obstructed"
+        return name, _on_flag(result.series[name], 0), "antenna_obstructed > 0.5 (a part on the ray to the station)"
+    if event.kind == VISIBLE:
+        name = f"{other}.brightness_of_{sc}.visual_magnitude"
+        return name, _on_finite(result.series[name]), "visual_magnitude defined (site dark, spacecraft lit and up)"
     raise ValueError(f"no rule for an event of kind {event.kind!r}")
 
 

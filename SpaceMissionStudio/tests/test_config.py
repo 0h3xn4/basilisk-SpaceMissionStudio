@@ -64,7 +64,8 @@ _MODEL_PAGES = {"propellant_budget": "propellant-budget.md", "lifetime": "lifeti
                 "roe_formation": "roe-formation.md", "flight_software": "flight-software-and-navigation.md",
                 "navigation": "flight-software-and-navigation.md", "checks": "pre-run-checks.md",
                 "explain": "explain.md", "monte_carlo": "monte-carlo-statistics.md",
-                "power": "link-data-and-power.md"}
+                "power": "link-data-and-power.md", "analyses": "model-analyses.md",
+                "reentry": "reentry.md"}
 
 
 def test_every_parameter_is_documented_on_its_models_page():
@@ -348,6 +349,10 @@ _MODEL_CASES = {
     "dynamics.shadowing_bodies": "test_shadows.py::test_the_moon_shadows_a_spacecraft_behind_it_with_tracked_bodies",
     "link.atmospheric_loss": "test_gaseous_attenuation.py::test_a_run_takes_the_loss_at_each_steps_elevation",
     "power.degradation": "test_solar_degradation.py::test_a_run_degrades_the_panels_by_the_model",
+    "analyses.observer_sun_depression_deg": "test_run_analyses.py::test_the_depression_angle_sets_when_a_site_is_dark",
+    "reentry.breakup_altitude_km": "test_reentry.py::test_setting_a_reentry_parameter_changes_the_estimate",
+    "reentry.casualty_energy_j": "test_reentry.py::test_setting_a_reentry_parameter_changes_the_estimate",
+    "reentry.casualty_risk_limit": "test_reentry.py::test_setting_a_reentry_parameter_changes_the_estimate",
 }
 
 

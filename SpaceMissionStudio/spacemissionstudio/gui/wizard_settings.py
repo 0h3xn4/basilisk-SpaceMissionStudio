@@ -141,6 +141,17 @@ _META: dict[str, SettingMeta] = {
     "initial_deflection_deg": SettingMeta("Initial deflection", " deg"),
     "initial_rate_deg_s": SettingMeta("Initial deflection rate", " deg/s"),
     "generates_power": SettingMeta("Generates power"),
+    # Mounts on the 3D model (model analyses)
+    "position_m": SettingMeta("Mount position (on its part)", " m"),
+    "boresight": SettingMeta("Boresight (on its part)"),
+    "field_of_view_deg": SettingMeta("Field of view", " deg", "The full cone angle."),
+    "exclusion_sun_deg": SettingMeta("Sun exclusion angle", " deg"),
+    "exclusion_earth_deg": SettingMeta("Earth exclusion angle", " deg"),
+    "exclusion_moon_deg": SettingMeta("Moon exclusion angle", " deg"),
+    "earth_atmosphere_km": SettingMeta("Bright atmosphere above the limb", " km"),
+    "plume_half_angle_deg": SettingMeta("Plume half-angle", " deg"),
+    "residual_dipole_a_m2": SettingMeta("Residual dipole", " A*m^2"),
+    "samples": SettingMeta("Ray samples", " rays"),
     # Data handling
     "storage_capacity_gbit": SettingMeta("Memory capacity", " Gbit", "8 Gbit = 1 GB."),
     "transmitter_power_w": SettingMeta("Transmitter power draw", " W", "DC power while sending."),

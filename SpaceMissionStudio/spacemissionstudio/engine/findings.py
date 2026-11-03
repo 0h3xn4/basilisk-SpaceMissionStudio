@@ -177,6 +177,35 @@ RULES: dict[str, Rule] = {rule.rule_id: rule for rule in (
          "The run uses the stored values, not the model's.",
          "Open the model (3D Model... in the app) and press OK to apply it again, run "
          "'spacemissionstudio model --apply', or turn off applying it."),
+    Rule("design.fov_obstructed", "A sensor's, camera's or antenna's field of view is clear of the spacecraft's "
+         "own parts.", "A part in the field of view blinds a sensor, hides a target or blocks a link in that "
+         "direction.", "Move or turn the item or the part, narrow the field of view if the item allows, or accept "
+         "the blocked fraction and record why."),
+    Rule("design.plume_impingement", "A thruster's plume cone is clear of the spacecraft's own parts.",
+         "A plume on a part heats, contaminates and pushes it: a disturbance torque and a loss of thrust. Only "
+         "the geometry is checked, not the plume's physics.",
+         "Cant or move the thruster, move the part, or narrow the plume half-angle to the one the thruster's "
+         "data give."),
+    Rule("design.mass_over_limit", "The launch mass with its margins is within the mass limit.",
+         "Above the limit the spacecraft cannot be launched as planned.",
+         "Lower the mass, the propellant or the margins (with a reason), or check the limit and its source."),
+    Rule("design.envelope_protrusion", "The stowed spacecraft is inside the launcher's envelope.",
+         "A part outside the envelope can strike the fairing or the adapter.",
+         "Stow the part closer in, move it, or check the envelope and its source."),
+    Rule("design.launcher_limit", "The launch mass and the centre of mass are within the launcher's limits.",
+         "The launcher's adapter is qualified for loads up to these limits.",
+         "Move mass to bring the centre of mass in, lower the mass, or check the limits and their source."),
+    Rule("design.wheel_capacity", "The reaction wheels hold the momentum the disturbance torques build up in an "
+         "orbit.", "Wheels that saturate lose attitude control until their momentum is removed.",
+         "Use larger wheels, remove momentum more often (magnetorquers or thrusters), or lower the disturbances "
+         "(centre of pressure closer to the centre of mass, smaller residual dipole).", override=_RESULT),
+    Rule("design.dipole_capacity", "The magnetorquers give at least the dipole that could remove one orbit's "
+         "momentum.", "Below it the momentum builds up from orbit to orbit until the wheels saturate. The dipole "
+         "needed is a lower bound: the field taken at its mean and always perpendicular.",
+         "Use stronger magnetorquers, or lower the disturbances.", override=_RESULT),
+    Rule("analyses.note", "A model analysis says what it could not compute, and why.",
+         "Its results leave that part out.", "Give what the note names (a field, a tracked body), or accept it.",
+         override=_RESULT),
     Rule("tle.unreadable", "A TLE orbit must propagate with SGP4.", "The spacecraft has no initial state.",
          "Correct the two TLE lines."),
     Rule("tle.age", "A TLE far from the scenario epoch is flagged.",

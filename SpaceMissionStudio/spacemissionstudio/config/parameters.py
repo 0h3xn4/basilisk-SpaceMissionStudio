@@ -566,4 +566,34 @@ register(
               "derivation recorded.", kind="model", choices=models.names("monte_carlo.spread_statistic")),
 )
 
+# -- analyses built on the 3D model (analyses/) ------------------------------------------------
+
+register(
+    Parameter("analyses.observer_sun_depression_deg", 0.0, "[deg]",
+              "A spacecraft's brightness is computed for a ground station or observer site only while the Sun is "
+              "at least this far below the site's horizon (the site in darkness).",
+              "Geometric sunset (the Sun's centre on the horizon) at 0 deg: a definition, not a sourced darkness "
+              "level", "The civil, nautical and astronomical twilights (6, 12 and 18 deg) could not be read in a "
+              "primary source here, so the user sets one (model-analyses decision D-17).",
+              minimum=0.0, maximum=30.0),
+)
+
+# -- re-entry casualty estimate (analyses/reentry.py) ------------------------------------------
+
+_DAS_GUIDE = "NASA DAS 3.0 User's Guide (Liou et al., NASA/TP-2019-220300, 2019)"
+register(
+    Parameter("reentry.breakup_altitude_km", 78.0, "[km]",
+              "The preliminary re-entry estimate breaks the spacecraft into its parts at this altitude.",
+              f"{_DAS_GUIDE}, Sec. 3.8 and 4.1.3: the parent object is assumed to break apart at 78 km",
+              minimum=40.0, maximum=120.0),
+    Parameter("reentry.casualty_energy_j", 15.0, "[J]",
+              "A fragment landing with more kinetic energy than this adds to the casualty area.",
+              f"NASA-STD-8719.14B Req. 4.7-1, as reproduced in the {_DAS_GUIDE}, Appendix B",
+              minimum=0.0, maximum=1000.0),
+    Parameter("reentry.casualty_risk_limit", 1.0e-4, "[-]",
+              "The preliminary re-entry estimate's casualty expectation is compared with this limit.",
+              f"NASA-STD-8719.14B Req. 4.7-1a (uncontrolled re-entry: 1:10,000), as reproduced in the "
+              f"{_DAS_GUIDE}, Appendix B", minimum=0.0, maximum=1.0),
+)
+
 registry.check_models()
