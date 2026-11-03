@@ -525,6 +525,32 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   `<spacecraft>.power.degradation_factor` and the model. Every value is a
   parameter, cited, with flight data in the docs to choose a rate from.
   The default, `none`, is what a run did before: no number changes.
+- **`reproduce` no longer fails a bundle on a vector component that is
+  all but zero:** each value column is compared against its series' scale
+  (the vector's), not its own largest value, so the rounding noise of an
+  equatorial orbit's z no longer reads as a difference (`docs/changes.md`,
+  before and after). A real difference is still caught.
+- **The definition of done, checked:** `docs/definition-of-done.md` lists,
+  for every output, where its calculation opens; the tests set every
+  parameter; a bundle made on Linux is reproduced by CI on Linux and
+  Windows. Timing the walkthrough with an engineer is the team's step.
+- **A Python API:** `spacemissionstudio.api` (API version 1) loads,
+  checks and runs a scenario and computes its lifetime, budget,
+  launch-delay sweep, altitude trade, Monte Carlo batch and run
+  comparison with the app's engine, and writes each analysis's JSON
+  record. `docs/api.md` is the reference; its examples are run by the
+  tests.
+- **What was GUI-only, on the command line:** `run --save` keeps a run in
+  the app's run store, `runs` lists them and `compare A B` puts two side
+  by side (scenario differences, headline figures with the difference,
+  events; `--out` JSON with both runs' provenance);
+  `spaceweather-download` fetches CelesTrak's file.
+- **More exports with their provenance:** `budget --launch-delays` and
+  `--altitudes` take `--out` (every case, as JSON with the provenance);
+  the End of Life page exports the estimate as JSON (**Export JSON...**);
+  the Monte Carlo runs table's CSV gets `<file>.provenance.json` beside it
+  with the batch's provenance. A lifetime estimate keeps the options it
+  ran with.
 - **Every value with its unit:** the number fields that had none show
   it: the inertia's diagonal (kg·m²), the starting anomaly (°), the
   attitude gains K, P, Ki and the integral limit (N·m, N·m·s,

@@ -619,6 +619,11 @@ class EndOfLife:
     # How each figure was computed (engine.trace, transparency plan Phase 4a): "mass", "ballistic_coefficient",
     # "orbit", "deorbit" (with a burn), "lifetime", and one per disposal rule, keyed by its record key.
     traces: dict = field(default_factory=dict, compare=False, repr=False)
+    # The options it was computed with (Phase 9: a record of it needs no more): "max_years" (the look-ahead
+    # [year]), "forecast_percentile" (MSFC's), "drag_coeff" (asked for; None: the spacecraft's own) and
+    # "deorbit_perigee_km" (the deorbit target [km], None: no burn) and "propellant_kg" (the starting
+    # propellant set by hand [kg], None: the scenario's or the run's).
+    options: dict = field(default_factory=dict, compare=False, repr=False)
 
     @property
     def ballistic_coefficient_m2_kg(self) -> float | None:
@@ -735,6 +740,7 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
         raise LifetimeError(f"no spacecraft named {spacecraft_name!r}")
     isp_s, _scenario_propellant_kg = _propulsion(spacecraft)
     state = start_state(scenario, spacecraft_name, result)
+    propellant_kg_asked = propellant_kg
     if propellant_kg is not None:  # edited before computing (the End of Life page, Phase 8b)
         if not (math.isfinite(propellant_kg) and propellant_kg >= 0.0):
             raise LifetimeError(f"the propellant must be a number >= 0 kg, got {propellant_kg!r}")
@@ -772,6 +778,7 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
     traces["mass"] = Trace("Mass during the decay", "m", mass_kg, "[kg]",
                            f"m = {added}" + (" - m_burn" if plan is not None else ""), "the scenario",
                            inputs=tuple(mass_inputs))
+    drag_coeff_asked = drag_coeff
     area_m2, own_cd = drag_properties(spacecraft)
     cd_source = ("option: the drag coefficient asked for (lifetime --drag-coeff, the End of Life page; default "
                  "lifetime.default_drag_coeff)" if drag_coeff is not None
@@ -806,7 +813,10 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
                                     Quantity("re-entered within the look-ahead", "reentered", lifetime.reentered, "[-]",
                                              "trace: Orbital lifetime")))
     return EndOfLife(lifetime, result is not None, mass_kg, plan, area_m2, drag_coeff,
-                     getattr(density, "data_files", {}), traces)
+                     getattr(density, "data_files", {}), traces,
+                     {"max_years": max_years, "forecast_percentile": forecast_percentile,
+                      "drag_coeff": drag_coeff_asked, "deorbit_perigee_km": deorbit_perigee_km,
+                      "propellant_kg": propellant_kg_asked})
 
 
 def _orbit_trace(quantity: str, orbit: MeanOrbit, source: str, how: str) -> Trace:

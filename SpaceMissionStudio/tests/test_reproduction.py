@@ -23,6 +23,7 @@ import csv
 import json
 import math
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -58,6 +59,20 @@ def test_a_series_is_compared_column_by_column_against_its_scale(tmp_path):
     _write_series(tmp_path / "short.csv", [[0.0, 7.0e6]])
     shape = reproduction.compare_series(tmp_path / "old.csv", tmp_path / "short.csv", "s")
     assert [d.relative for d in shape] == [math.inf] and "1 of" in shape[0].note
+
+
+def test_a_vectors_components_share_its_scale(tmp_path):
+    """A component that is all but zero (an equatorial orbit's z) is
+    compared against the vector's scale, not its own: its rounding noise,
+    1e-14 of the vector, agrees; the time column keeps its own scale."""
+    rows = [["time_s", "x_m", "z_m"], [0.0, 7.0e6, 1.0e-12], [10.0, -7.0e6, 2.0e-12]]
+    noisy = [["time_s", "x_m", "z_m"], [0.0, 7.0e6, 1.0e-12], [10.0, -7.0e6, 2.0e-12 + 3.0e-14]]
+    for name, table in (("old.csv", rows), ("new.csv", noisy)):
+        with (tmp_path / name).open("w", newline="", encoding="utf-8") as stream:
+            csv.writer(stream).writerows(table)
+    found = {d.column: d for d in reproduction.compare_series(tmp_path / "old.csv", tmp_path / "new.csv", "s")}
+    assert found["z_m"].relative == pytest.approx(3.0e-14 / 7.0e6) and found["z_m"].relative < 1e-6
+    assert found["time_s"].relative == 0.0
 
 
 def test_a_folder_that_is_not_a_bundle_or_does_not_match_itself_is_refused(tmp_path):
@@ -170,3 +185,20 @@ def test_this_computers_newer_space_weather_is_replaced_by_the_bundles(tmp_path,
     here.write_text("recorded", encoding="utf-8")
     reproduction._use_bundled_space_weather(same, tmp_path, manifest, recorded, used := [])
     assert same.space_weather.source == "bundled" and used == []
+
+
+@pytest.mark.requires_basilisk
+def test_a_bundle_made_on_another_computer_reproduces_here(tmp_path, capsys):
+    """The definition of done's "reproduce a colleague's result from an
+    exported file" (transparency audit, Section 9.4): a bundle made on Linux
+    (tests/data/bundles/linux_two_body, ``run --bundle`` of this file's
+    two-body scenario) reproduces within the default tolerance wherever the
+    suite runs, Linux and Windows in CI. It was made with the qualified
+    Basilisk: after a requalification, make it again with ``spacemissionstudio
+    run two_body.json --out-dir linux_two_body --bundle`` on Linux."""
+    source = Path(__file__).resolve().parent / "data" / "bundles" / "linux_two_body"
+    bundle = tmp_path / "linux_two_body"
+    shutil.copytree(source, bundle)
+    assert cli.main(["reproduce", str(bundle), "--out-dir", str(tmp_path / "here")]) == 0
+    out = capsys.readouterr().out
+    assert "REPRODUCED: 10 series within 1e-06 of their scale" in out

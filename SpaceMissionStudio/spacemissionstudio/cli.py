@@ -61,6 +61,7 @@ from __future__ import annotations
 
 import argparse
 import dataclasses
+import json
 import logging
 import math
 import sys
@@ -337,6 +338,93 @@ def cmd_run(args: argparse.Namespace) -> int:
     if any(sc.constant_thrust is not None for sc in scenario.spacecraft):
         print("Constant-thrust summary:")
         _print_constant_thrust_summary(scenario, result)
+    if args.save:
+        return _save_to_run_store(args.store, scenario, result)
+    return 0
+
+
+def _save_to_run_store(root, scenario, result) -> int:
+    """The run into the run store, as the app keeps its runs (``runs``,
+    ``compare``, Results > Compare)."""
+    from datetime import UTC, datetime
+
+    from .engine import run_store
+
+    root = root or run_store.default_root()
+    number = max((saved.number for saved in run_store.load_index(root)), default=0) + 1
+    try:
+        saved = run_store.save(root, number, scenario.to_dict(), result, scenario.epoch_utc,
+                               datetime.now(UTC).replace(tzinfo=None))
+    except run_store.RunStoreError as exc:
+        print(f"ERROR: could not save the run: {exc}", file=sys.stderr)
+        return 3
+    print(f"  saved as run {saved.number} ({saved.run_id}) in {root}: 'spacemissionstudio compare' compares it")
+    return 0
+
+
+def _saved_runs(root):
+    from .engine import run_store
+
+    root = root or run_store.default_root()
+    return root, run_store.load_index(root)
+
+
+def cmd_runs(args: argparse.Namespace) -> int:
+    """The runs kept in the run store (the app's, and ``run --save``'s)."""
+    root, saved = _saved_runs(args.store)
+    if not saved:
+        print(f"No saved runs in {root}.")
+        return 0
+    for run in saved:
+        state = " (cancelled)" if run.cancelled else ""
+        print(f"  {run.number:>4}  {run.finished:%Y-%m-%d %H:%M}  {run.scenario_name}{state}")
+    return 0
+
+
+def cmd_compare(args: argparse.Namespace) -> int:
+    """Two saved runs side by side (Results > Compare): the scenario
+    differences, the headline figures and the events; --out writes JSON."""
+    from .engine import run_comparison, run_store
+
+    root, saved = _saved_runs(args.store)
+    by_number = {run.number: run for run in saved}
+    missing = [n for n in (args.a, args.b) if n not in by_number]
+    if missing:
+        print(f"ERROR: no saved run {', '.join(map(str, missing))} in {root} ('spacemissionstudio runs' lists them)",
+              file=sys.stderr)
+        return 1
+    try:
+        results = [run_store.load_result(root, by_number[n]) for n in (args.a, args.b)]
+    except run_store.RunStoreError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    a, b = by_number[args.a], by_number[args.b]
+    found = run_comparison.compare(a.scenario, results[0], b.scenario, results[1], f"run {a.number}",
+                                   f"run {b.number}")
+    for line in run_comparison.lines(found):
+        print(line)
+    if args.out is not None:
+        record = found.to_dict() | {"provenance": {"a": a.provenance, "b": b.provenance}}
+        try:
+            args.out.write_text(json.dumps(record, indent=2, default=str), encoding="utf-8")
+        except OSError as exc:
+            print(f"ERROR: could not write {args.out}: {exc}", file=sys.stderr)
+            return 1
+        print(f"  written: {args.out}")
+    return 0
+
+
+def cmd_spaceweather_download(args: argparse.Namespace) -> int:
+    """Download CelesTrak's space-weather file (the app's Reference data >
+    Download): running this command is the consent."""
+    from .engine import spaceweather
+
+    try:
+        path = spaceweather.fetch(args.dataset, force=True)
+    except spaceweather.SpaceWeatherError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    print(f"{args.dataset}: {path} ({path.stat().st_size} bytes), from {spaceweather.CELESTRAK_URLS[args.dataset]}")
     return 0
 
 
@@ -678,13 +766,14 @@ def _write_record(args: argparse.Namespace, record: dict, file_record: dict) -> 
     return 0
 
 
-def _print_altitude_trade(pb, scenario, name, result, altitudes) -> int:
+def _print_altitude_trade(pb, scenario, name, result, altitudes):
+    """(exit status, the trade or None)."""
     print(f"{name}: launch-delay sweep per altitude (several minutes; altitudes run in parallel)...")
     try:
         trade = pb.altitude_trade(scenario, name, altitudes or None, result)
     except pb.BudgetError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
-        return 3
+        return 3, None
     print(f"{'Altitude':>8} {'Incl.':>6} {'Worst launch':<12} {'In-plane dV':>12} {'Disposal dV':>12} "
           f"{'Prop. [kg]':>10}  Fits tank")
     for case in trade.altitudes:
@@ -695,7 +784,7 @@ def _print_altitude_trade(pb, scenario, name, result, altitudes) -> int:
               f"{worst.budget.total_propellant_kg:>10.3f}  {fits}")
     for note in trade.notes:
         print(f"NOTE: {note}")
-    return 0
+    return 0, trade
 
 
 def _finite_float_arg(text: str) -> float:
@@ -766,10 +855,6 @@ def cmd_budget(args: argparse.Namespace) -> int:
         return loaded
     scenario, file_record = loaded
     name = args.spacecraft or scenario.spacecraft[0].name
-    if args.out is not None and (args.launch_delays or args.altitudes is not None):
-        print("ERROR: --out writes the budget itself; it does not go with --launch-delays or --altitudes",
-              file=sys.stderr)
-        return 2
     if args.explain and (args.launch_delays or args.altitudes is not None):
         print("ERROR: --explain explains the budget itself; it does not go with --launch-delays or --altitudes",
               file=sys.stderr)
@@ -788,10 +873,18 @@ def cmd_budget(args: argparse.Namespace) -> int:
         except Exception as exc:  # noqa: BLE001 -- report ANY run failure with a specific message
             print(f"ERROR: run failed: {exc}", file=sys.stderr)
             return 3
-    if args.altitudes is not None:
-        return _print_altitude_trade(pb, scenario, name, result, args.altitudes)
-    if args.launch_delays:
-        return _print_launch_delays(pb, scenario, name, result)
+    if args.altitudes is not None or args.launch_delays:  # --out writes the sweep or the trade (Phase 9a)
+        from .engine import analysis_records
+
+        if args.altitudes is not None:
+            code, trade = _print_altitude_trade(pb, scenario, name, result, args.altitudes)
+            record = analysis_records.trade_record(scenario, name, trade, result) if trade is not None else None
+        else:
+            code, sweep = _print_launch_delays(pb, scenario, name, result)
+            record = analysis_records.sweep_record(scenario, name, sweep, result) if sweep is not None else None
+        if code or args.out is None:
+            return code
+        return _write_record(args, record, file_record)
     try:
         budget = pb.compute_budget(scenario, name, result)
     except pb.BudgetError as exc:
@@ -908,13 +1001,14 @@ def _print_budget_traces(budget) -> None:
     print("\n".join(budget.traces["total_propellant"].text()))
 
 
-def _print_launch_delays(pb, scenario, name, result) -> int:
+def _print_launch_delays(pb, scenario, name, result):
+    """(exit status, the sweep or None)."""
     print(f"{name}: budget for the planned launch and up to 5 years late (ESA AD10 Sec. 5.5)...")
     try:
         sweep = pb.launch_delay_sweep(scenario, name, result)
     except pb.BudgetError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
-        return 3
+        return 3, None
     print(f"{'Launch':<11} {'Delay':>6} {'In-plane dV':>12} {'Disposal dV':>12} {'Total dV':>9} {'Prop. [kg]':>10}")
     worst = sweep.worst
     for case in sweep.cases:
@@ -925,7 +1019,7 @@ def _print_launch_delays(pb, scenario, name, result) -> int:
               f"{case.budget.total_delta_v_m_s:>9.2f} {case.budget.total_propellant_kg:>10.3f}{mark}")
     for note in sweep.notes:
         print(f"NOTE: {note}")
-    return 0
+    return 0, sweep
 
 
 def cmd_kernels_status(args: argparse.Namespace) -> int:
@@ -1636,7 +1730,24 @@ def build_parser() -> argparse.ArgumentParser:
                        help="after the run, its headline figures (Results > Overview) and its data-handling "
                             "totals, and how each was computed: the series, parameters and constants it came from; "
                             "each warning is followed by its rule")
+    p_run.add_argument("--save", action="store_true",
+                       help="also keep the run in the run store, as the app does, for 'runs' and 'compare'")
+    p_run.add_argument("--store", type=Path, default=None,
+                       help="the run store's folder (default: ~/.spacemissionstudio/runs, the app's)")
     p_run.set_defaults(func=cmd_run)
+
+    p_runs = subparsers.add_parser("runs", help="list the runs kept in the run store (the app's, and run --save's)")
+    p_runs.add_argument("--store", type=Path, default=None, help="the run store's folder (default: the app's)")
+    p_runs.set_defaults(func=cmd_runs)
+
+    p_compare = subparsers.add_parser("compare", help="two saved runs side by side: scenario differences, headline "
+                                                      "figures, events (Results > Compare)")
+    p_compare.add_argument("a", type=int, help="a saved run's number ('runs' lists them)")
+    p_compare.add_argument("b", type=int, help="the other run's number")
+    p_compare.add_argument("--store", type=Path, default=None, help="the run store's folder (default: the app's)")
+    p_compare.add_argument("--out", type=Path, metavar="FILE.json", default=None,
+                           help="also write the comparison as JSON, with both runs' provenance")
+    p_compare.set_defaults(func=cmd_compare)
 
     p_assumptions = subparsers.add_parser("assumptions", help="list the named parameters: value, unit, source, "
                                                               "and which a scenario's configuration changes")
@@ -1652,7 +1763,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_reproduce.add_argument("bundle", type=Path, help="a folder written by 'run --bundle'")
     p_reproduce.add_argument("--out-dir", type=Path, required=True, help="where the new run's results go")
     p_reproduce.add_argument("--rtol", type=_rtol_arg, default=1e-6,
-                             help="largest difference allowed, as a fraction of each column's largest value "
+                             help="largest difference allowed, as a fraction of each series' largest value "
                                   "(default 1e-6)")
     p_reproduce.add_argument("--allow-scripts", action="store_true",
                              help="run the scenario's script_block commands (unrestricted Python: only for "
@@ -1718,7 +1829,7 @@ def build_parser() -> argparse.ArgumentParser:
                                    "spacecraft's own), against the tank")
     p_budget.add_argument("--out", type=Path, metavar="FILE.json", default=None,
                           help="also write the budget as JSON: inputs, rules, rows with their traces, notes, the "
-                               "provenance")
+                               "provenance (with --launch-delays or --altitudes: every case of the sweep or trade)")
     p_budget.add_argument("--explain", action="store_true",
                           help="after the table, how each number was computed: the equation, the inputs with their "
                                "units and sources, and the AD10 section")
@@ -1833,6 +1944,13 @@ def build_parser() -> argparse.ArgumentParser:
                                   help="resolve space weather for a scenario without running it (no Basilisk needed)")
     p_sw.add_argument("scenario", type=Path)
     p_sw.set_defaults(func=cmd_spaceweather_resolve)
+
+    p_swd = subparsers.add_parser("spaceweather-download",
+                                  help="download CelesTrak's space-weather file (needs internet; running it is "
+                                       "the consent)")
+    p_swd.add_argument("--dataset", default="SW-All", choices=("SW-All", "SW-Last5Years"),
+                       help="the CelesTrak file (default: SW-All)")
+    p_swd.set_defaults(func=cmd_spaceweather_download)
 
     p_const = subparsers.add_parser(
         "generate-constellation",

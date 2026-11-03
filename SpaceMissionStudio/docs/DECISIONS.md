@@ -5,6 +5,30 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## The definition of done (2026-11-03)
+
+- **A bundle made elsewhere, reproduced in CI:** a small Linux bundle is
+  test data, so every CI platform reproduces a result it did not make;
+  regenerating it after a Basilisk requalification is a stated step.
+- **The timing is a person's:** "under a minute, with an engineer who did
+  not build it" cannot be automated honestly; the walkthrough and a form
+  for the times are in `docs/definition-of-done.md`.
+
+## Open data and the Python API (2026-11-03)
+
+- **A thin API over the engine:** each function calls what the app and
+  the command line call, so a script's number is the app's; the objects
+  returned are the engine's own, not copies that could drift.
+- **A version, not a promise of forever:** `API_VERSION` names the
+  contract; a breaking change raises it and is in the changelog.
+- **The guide's examples are the tests:** the test runs each example as
+  written, so the reference cannot drift from the code.
+- **Compare saved runs, not CSV folders:** the run store keeps each
+  series with its units and the scenario as run; the CSV folders' headers
+  do not say where a column name ends and its unit begins. `run --save`
+  puts a command-line run in the same store as the app's.
+- **A download is a command, never automatic:** `spaceweather-download`
+  is the user's explicit request, as the app's consent prompt is.
 ## Chained inputs (2026-11-03)
 
 - **The same function shows and computes:** the End of Life page's list
@@ -883,7 +907,8 @@ file").
   new run is the same scenario on the same file contents, at other paths.
 - **Compared as written:** both runs' series are compared from their CSV
   files, 9 significant digits each, column by column, as a fraction of the
-  column's largest magnitude. The default 1e-6 is the regression
+  series' largest magnitude (its value columns'; the time column's own:
+  2026-11-03, a vector's near-zero component had failed on its noise). The default 1e-6 is the regression
   baseline's general rule, found to hold for well-conditioned outputs
   across computers (3.8e-7 measured). Like that rule, it does not hold for
   a noisy sensor across C++ standard libraries, and the report says when

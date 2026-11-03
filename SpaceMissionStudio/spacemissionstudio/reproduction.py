@@ -36,7 +36,8 @@ computer's copy.
 
 :func:`reproduce` checks the bundle, runs its scenario with the references
 pointed at the copies, and compares every series with the bundle's,
-column by column, within ``rtol`` of the column's largest value. It says
+column by column, within ``rtol`` of the series' scale (its value
+columns' largest magnitude; the time column's own). It says
 what differed: versions, platform, data files, and which series, by how
 much.
 """
@@ -59,7 +60,11 @@ FORMAT = 1
 # Files of a run folder that are not series.
 NOT_SERIES = {"events.csv", "command_summary.csv"}
 # The default comparison: a column agrees when every value is within this
-# fraction of the column's largest magnitude. The CSVs hold 9 significant
+# fraction of its series' scale: the largest magnitude of the series' value
+# columns (a vector's components share its scale; the time column has its
+# own). Each column against its own largest value made a component that is
+# all but zero (an equatorial orbit's z, 1e-12 m) fail on its rounding
+# noise. The CSVs hold 9 significant
 # digits, and the regression baseline found well-conditioned outputs to
 # agree within 3.8e-7 of their scale across computers (DECISIONS,
 # "The regression baseline").
@@ -184,7 +189,7 @@ def missing_inputs(manifest_path) -> list[str]:
 @dataclass
 class SeriesDifference:
     """The largest difference in one series between the bundle and the new
-    run, as a fraction of the column's largest magnitude."""
+    run, as a fraction of the series' scale (:func:`compare_series`)."""
 
     series: str
     column: str
@@ -312,17 +317,22 @@ def _read_series(path: Path) -> tuple[list[str], list[list[float]]]:
 
 def compare_series(old: Path, new: Path, name: str) -> list[SeriesDifference]:
     """One :class:`SeriesDifference` per column of series ``name``,
-    between its CSV in the bundle (``old``) and in the new run (``new``)."""
+    between its CSV in the bundle (``old``) and in the new run (``new``):
+    each column's largest difference as a fraction of the series' scale,
+    the largest magnitude of its value columns (the time column, the
+    first, against its own)."""
     old_header, old_rows = _read_series(old)
     new_header, new_rows = _read_series(new)
     if old_header != new_header or len(old_rows) != len(new_rows):
         return [SeriesDifference(name, "*", math.inf, math.inf,
                                  f"{len(old_rows)} rows of {old_header} against {len(new_rows)} of {new_header}")]
     out = []
+    series_scale = max((abs(v) for row in old_rows for v in row[1:] if math.isfinite(v)), default=0.0)
     for index, column in enumerate(old_header):
         old_values = [row[index] for row in old_rows]
         new_values = [row[index] for row in new_rows]
-        scale = max((abs(v) for v in old_values if math.isfinite(v)), default=0.0)
+        scale = (max((abs(v) for v in old_values if math.isfinite(v)), default=0.0) if index == 0
+                 else series_scale)
         worst = max((abs(a - b) for a, b in zip(new_values, old_values) if math.isfinite(a - b)), default=0.0)
         if any(math.isfinite(a) != math.isfinite(b) for a, b in zip(new_values, old_values)):
             out.append(SeriesDifference(name, column, math.inf, math.inf, "a value is finite in one run only"))

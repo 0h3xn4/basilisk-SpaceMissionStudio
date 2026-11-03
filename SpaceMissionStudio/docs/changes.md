@@ -17,6 +17,26 @@ case; and how it was checked.
 
 Newest first.
 
+## 2026-11-03: `reproduce` compares a vector's components against the vector (Phase 10)
+
+**No computed number changes; one verdict of `reproduce` does.** The
+definition of done's check, a bundle made on another computer reproduced
+here, found it: `reproduce` judged each column against its own largest
+value, so a component that is all but zero, the z of an equatorial orbit
+(at most 1.07e-10 m), failed on its rounding noise. Each value column is
+now judged against its series' scale, the largest magnitude of its value
+columns (the time column against its own).
+
+| Bundle (tests/data/bundles/linux_two_body), reproduced in the test suite | Before | After |
+|---|---|---|
+| `sat-1.position_N [z_m]`, its difference (1.85e-12 m) as a fraction of the scale | 0.0174 (of 1.07e-10 m, the column's largest): NOT REPRODUCED | 2.7e-19 (of 6.78e6 m, the series'): reproduced |
+| `sat-1.velocity_N [z_m/s]`, its difference (3.71e-15 m/s) | 0.018 (of 2.06e-13 m/s): NOT REPRODUCED | 4.8e-19 (of 7.67e3 m/s): reproduced |
+| The verdict | NOT REPRODUCED: 2 of 10 series | REPRODUCED: 10 series within 1e-06 |
+
+A real difference is still caught: the test that changes a value by 1e-4
+of the position still fails the bundle. The regression baseline of all
+31 templates is unchanged (`reproduce` is not in it).
+
 ## 2026-10-30: the link budget's traces and the link-budget command (Phase 4a)
 
 **No number changes.** The link budget is computed as before; its traces

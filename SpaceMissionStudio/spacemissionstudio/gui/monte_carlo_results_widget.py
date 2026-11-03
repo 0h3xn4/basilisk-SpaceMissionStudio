@@ -29,6 +29,7 @@ earlier batch saved (**Open results...**).
 from __future__ import annotations
 
 import csv
+import json
 import math
 from pathlib import Path
 
@@ -221,14 +222,30 @@ class MonteCarloResultsWidget(QWidget):
     # -- export ------------------------------------------------------------
 
     def export_table_csv(self, path: str | Path) -> Path:
-        """The Runs table, for the shown spacecraft, as CSV."""
+        """The Runs table, for the shown spacecraft, as CSV, with
+        ``<file>.provenance.json`` beside it (Phase 9a): the batch's own
+        provenance (``archive.provenance.json``) when its folder has one."""
+        from .. import output_provenance
+
         path = Path(path)
-        labels, rows = mcr.run_table(self.batch, self.spacecraft_combo.currentText() or None)
+        spacecraft = self.spacecraft_combo.currentText() or None
+        labels, rows = mcr.run_table(self.batch, spacecraft)
         with open(path, "w", newline="", encoding="utf-8") as handle:
             writer = csv.writer(handle)
             writer.writerow(labels)
             for row in rows:
                 writer.writerow([int(row[0])] + [f"{value:.9g}" for value in row[1:]])
+        archive = None
+        if self.folder is not None and (self.folder / "archive.provenance.json").is_file():
+            try:
+                archive = json.loads((self.folder / "archive.provenance.json").read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                archive = None
+        output_provenance.write_sidecar(path, {
+            "export": "Monte Carlo runs table", "spacecraft": spacecraft, "runs": len(rows),
+            "batch_folder": str(self.folder) if self.folder is not None else "",
+            "batch_provenance": archive if archive is not None else
+            "not found: the batch folder's archive.provenance.json"})
         return path
 
     def _on_export(self) -> None:

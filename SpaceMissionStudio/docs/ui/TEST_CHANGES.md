@@ -1612,3 +1612,39 @@ No existing test changed.
 
   Each new test fails on the code before (checked by stashing
   `spacemissionstudio/`).
+
+## Open data and the Python API (2026-11-03)
+
+- Added `tests/test_api.py`, 9 tests: the API's version and every
+  function in the guide; the Basilisk-free functions; the guide's four
+  examples run as written (Basilisk); runs saved, listed and compared on
+  the command line (Basilisk); the space-weather download command; the
+  launch-delay sweep written with its provenance (Basilisk). Added
+  `tests/gui/test_open_data_exports.py`, 2 tests: the Monte Carlo table's
+  provenance sidecar; the lifetime estimate exported as its record, with
+  a starting propellant set by hand (Phase 8b) only when there is one
+  (Basilisk).
+- Added two tests to `tests/test_reproduction.py`: a vector's components
+  share its scale; a bundle made on another computer (Linux,
+  `tests/data/bundles/linux_two_body`) reproduces here (Basilisk).
+- Changed one expectation: `tests/gui/test_reports_and_settings.py`'s
+  `test_every_export_is_listed_never_written_at_first` counts 14 exports,
+  not 13, and lists "Lifetime estimate", the export added.
+- Changed `tests/test_cli.py`'s
+  `test_lifetime_and_budget_write_what_they_were_computed_from`: it
+  checked that `budget --launch-delays --out` is refused (exit 2), which
+  this change ends on purpose; it now checks that the sweep's record is
+  written, with the scenario file's SHA-256, the drag and re-entry
+  stand-ins as for the budget before it.
+- Changed `tests/gui/test_export_files.py`: the Monte Carlo table is now
+  written with a provenance file beside it, which 1.1.0 did not write.
+  The test checks that file on its own (there, and JSON) and still
+  compares every file 1.1.0 wrote byte for byte.
+- Changed `tests/golden_capture.py`: a lifetime's new `options` (the
+  look-ahead, the percentile, the drag coefficient and the deorbit target
+  it was computed with) are left out of the baseline, as its data files
+  and traces are: they are the options the capture passed itself. No
+  golden file changed.
+
+  Each new test fails on the code before (checked by stashing
+  `spacemissionstudio/`, untracked files included).

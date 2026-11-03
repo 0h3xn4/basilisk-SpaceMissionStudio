@@ -1,0 +1,171 @@
+{
+  "spacemissionstudio_version": "1.3.1",
+  "basilisk_version": "2.12.0",
+  "run_started_utc": "2026-11-03T06:55:48.882263+00:00",
+  "integrator": "rkf78",
+  "dynamics_task_rate_s": 10.0,
+  "integrator_relative_tolerance": 1e-10,
+  "integrator_absolute_tolerance": 1e-08,
+  "rng_seed": 0,
+  "rng_seeds": {
+    "SpiceInterfaceData": 193139944,
+    "midStepOrientation_earth": 2740032469,
+    "sat-1": 232435509,
+    "Rec:SCStatesMsg": 455511093
+  },
+  "rng_seed_note": "each model's RNGSeed is derived from the scenario's seed (sim_settings.seed) and the model's name (SHA-256); a navigation error's own seed is kept, and a Monte Carlo run disperses them per run",
+  "qualified_basilisk_version": "2.12.0",
+  "basilisk_qualified": true,
+  "dependency_versions": {
+    "python": "3.14.6",
+    "platform": "linux x86_64",
+    "bsk": "2.12.0",
+    "numpy": "2.4.6",
+    "sgp4": "2.25",
+    "pyerfa": "2.0.1.5",
+    "PySide6": "6.11.2",
+    "plotly": "7.1.0"
+  },
+  "scenario_sha256": "2f111d5070e9685ba0c0ac33be92c4c7d8bb8ee3d262b84ef023176295c92fdc",
+  "data_files": {
+    "spice:naif0012.tls": {
+      "path": "/tmp/claude-0/-home-user-basilisk-SpaceMissionStudio/34bf9a8e-f238-57ef-a551-1da2bf43af3d/scratchpad/emptyhome/.cache/bsk_support_data/supportData/EphemerisData/naif0012.tls",
+      "size_bytes": 5257,
+      "sha256": "678e32bdb5a744117a467cd9601cd6b373f0e9bc9bbde1371d5eee39600a039b"
+    },
+    "spice:de430.bsp": {
+      "path": "/tmp/claude-0/-home-user-basilisk-SpaceMissionStudio/34bf9a8e-f238-57ef-a551-1da2bf43af3d/scratchpad/emptyhome/.cache/bsk_support_data/supportData/EphemerisData/de430.bsp",
+      "size_bytes": 119741440,
+      "sha256": "6e1b277c5f07135a84950604b83e56b736be696a7f3560bcddb1d4aeb944fca1",
+      "sha256_cached": true
+    },
+    "spice:de-403-masses.tpc": {
+      "path": "/tmp/claude-0/-home-user-basilisk-SpaceMissionStudio/34bf9a8e-f238-57ef-a551-1da2bf43af3d/scratchpad/emptyhome/.cache/bsk_support_data/supportData/EphemerisData/de-403-masses.tpc",
+      "size_bytes": 1992,
+      "sha256": "5cd68fcd3f59ddc21ed8bbad3a341126b8e092a29ac8f0ae585db718af8e7468"
+    },
+    "spice:pck00010.tpc": {
+      "path": "/tmp/claude-0/-home-user-basilisk-SpaceMissionStudio/34bf9a8e-f238-57ef-a551-1da2bf43af3d/scratchpad/emptyhome/.cache/bsk_support_data/supportData/EphemerisData/pck00010.tpc",
+      "size_bytes": 126143,
+      "sha256": "59468328349aa730d18bf1f8d7e86efe6e40b75dfb921908f99321b3a7a701d2"
+    },
+    "earth_orientation:earth_1962_260806_2126_combined.bpc": {
+      "path": "/root/.cache/SpaceMissionStudio/earth_orientation/earth_1962_260806_2126_combined.bpc",
+      "size_bytes": 31318016,
+      "sha256": "cc87ad1a495cf598800ba403763d350f087ac0b97da9fec603278a3864c6a53e",
+      "source": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/earth_1962_260806_2126_combined.bpc",
+      "last_datum_utc": "2026-08-06T00:00:00",
+      "installed_sha256": "cc87ad1a495cf598800ba403763d350f087ac0b97da9fec603278a3864c6a53e",
+      "matches_install": true
+    },
+    "earth_orientation:earth_latest_high_prec.bpc": {
+      "path": "/root/.cache/SpaceMissionStudio/earth_orientation/earth_latest_high_prec.bpc",
+      "size_bytes": 5150720,
+      "sha256": "eced5b8952a9cb479be2e4d39c2ce15556764fbbeb919c40e4ba4b846aa9eaa0",
+      "source": "https://naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/earth_latest_high_prec.bpc",
+      "last_datum_utc": "2026-10-21T00:00:00",
+      "installed_sha256": "eced5b8952a9cb479be2e4d39c2ce15556764fbbeb919c40e4ba4b846aa9eaa0",
+      "matches_install": true
+    }
+  },
+  "time_system": {
+    "time_variable": "TDB seconds since the scenario epoch",
+    "epoch_utc": "2030-01-01T00:00:00",
+    "epoch_tdb_seconds_past_j2000": 946728069.1839262,
+    "tai_minus_utc_s": 37.0,
+    "tt_minus_tai_s": 32.184,
+    "tdb_minus_tt_s": -7.380966890522468e-05,
+    "last_leap_second_utc": "2017-01-01",
+    "conversions": "ERFA (SOFA): dat, utctai, taitt, dtdb"
+  },
+  "frames": {
+    "N": {
+      "mnemonic": "N",
+      "name": "Inertial (EME2000 / SPICE J2000)",
+      "origin": "Earth centre of mass",
+      "axes": "Earth mean equator and equinox of J2000 (SPICE J2000, treated as ICRF-aligned by SPICE)",
+      "epoch": "J2000.0 = 2000-01-01T12:00:00 TT",
+      "time_scale": "TDB (ephemerides, propagation)",
+      "realisation": "SPICE with DE430"
+    },
+    "P": {
+      "mnemonic": "P",
+      "name": "Earth-fixed",
+      "origin": "Earth centre of mass",
+      "axes": "ITRF93: Earth-fixed, z = rotation pole, x = prime meridian",
+      "epoch": "-",
+      "time_scale": "TDB",
+      "realisation": "SPICE PCK (engine.earth_orientation for Earth)"
+    },
+    "B": {
+      "mnemonic": "B",
+      "name": "Spacecraft body",
+      "origin": "spacecraft body point B (Basilisk hub frame origin)",
+      "axes": "fixed to the spacecraft structure, as given by inertia_kg_m2 and device axes",
+      "epoch": "-",
+      "time_scale": "-",
+      "realisation": "-"
+    },
+    "H": {
+      "mnemonic": "H",
+      "name": "Hill (orbit)",
+      "origin": "spacecraft",
+      "axes": "x radial out, z orbit normal, y completes (along-track)",
+      "epoch": "-",
+      "time_scale": "-",
+      "realisation": "-"
+    },
+    "L": {
+      "mnemonic": "L",
+      "name": "Topocentric (ground station)",
+      "origin": "ground station site (WGS-84 geodetic, engine.geodesy)",
+      "axes": "South-East-Zenith; elevation/azimuth from the geodetic horizon, azimuth from North to East",
+      "epoch": "-",
+      "time_scale": "-",
+      "realisation": "-"
+    },
+    "TEME": {
+      "mnemonic": "TEME",
+      "name": "True equator, mean equinox of date (TLE input only)",
+      "origin": "Earth centre of mass",
+      "axes": "SGP4 output frame, converted to N at the scenario epoch (engine.tle)",
+      "epoch": "-",
+      "time_scale": "UTC",
+      "realisation": "-"
+    }
+  },
+  "transformations": {
+    "N -> P": "dcm_PN = J20002Pfix from SPICE pxform(J2000, P frame, ET) each step; time dependent; SPICE evaluates the PCK Chebyshev/rotation model at ET (no further interpolation)",
+    "N -> B": "dcm_BN from the spacecraft MRP sigma_BN (integrated by Basilisk)",
+    "N -> H": "dcm_HN from r_BN_N, v_BN_N (Basilisk hillFrame convention)",
+    "P -> L": "dcm_LP from the site's geodetic latitude and longitude (engine.geodesy)",
+    "TEME -> N": "P^T N^T R3(-Eq) at the scenario epoch, IAU 1976/1980 (engine.tle)"
+  },
+  "series_frames": {
+    "sat-1.position_N": "N",
+    "sat-1.velocity_N": "N",
+    "sat-1.orbit_elements.semi_major_axis": "N",
+    "sat-1.orbit_elements.eccentricity": "N",
+    "sat-1.orbit_elements.inclination": "N",
+    "sat-1.orbit_elements.raan": "N",
+    "sat-1.orbit_elements.arg_periapsis": "N",
+    "sat-1.orbit_elements.true_anomaly": "N",
+    "sat-1.attitude_sigma_BN": "B relative to N",
+    "sat-1.body_rate_omega_BN_B": "B"
+  },
+  "central_body": "earth",
+  "central_body_mu_m3_s2": 398600436000000.0,
+  "scenario_file": "two_body.json",
+  "scenario_file_sha256": "4871f2087ef7b5457c21e94f999a3476fa0ea5177b091bbd1cfe7657ffec3988",
+  "effective_defaults": {},
+  "effective_config_note": "effective_defaults: each key the engine read that the file does not give, with the value it used; null: the engine set nothing, so the Basilisk module keeps its own value or the option is off. device_parameters: the values Basilisk's factories gave each wheel and thruster, in Basilisk's SI units (kg, kg*m^2, rad/s, N*m, N, s, W)",
+  "device_parameters": {},
+  "scenario_file_migrations": [],
+  "configuration": {
+    "file": null,
+    "overrides": {}
+  },
+  "run_warnings": [
+    "Earth orientation: ITRF93, predicted (low accuracy) for the whole run"
+  ]
+}
