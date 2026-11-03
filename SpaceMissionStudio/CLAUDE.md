@@ -1,7 +1,7 @@
 # CLAUDE.md: rules for work on SpaceMissionStudio
 
-Read `CONTRIBUTING.md` and `docs/developer/README.md` first. The GUI is
-being overhauled milestone by milestone (`docs/ui/UI_OVERHAUL.md`, the
+Read `CONTRIBUTING.md` and `docs/developer/README.md` first. The GUI was
+overhauled milestone by milestone for 1.3.0 (`docs/ui/UI_OVERHAUL.md`, the
 brief; `docs/ui/UI_OVERHAUL_PLAN.md`, the plan). Every session that
 touches the GUI follows the design rules below; where they and older
 documents disagree, these win.
@@ -98,7 +98,7 @@ very few lines, colour only where it means something.
 
 ## Checks before a commit
 
-- `ruff check spacemissionstudio scripts tests`
+- `python -m ruff check spacemissionstudio tests scripts compliance/tools`
 - `QT_QPA_PLATFORM=offscreen python -m pytest tests -q -n auto -p no:cacheprovider`
 - the compliance generators leave `compliance/docs` unchanged
   (`compliance/tools/build_icd_schema.py`, `build_sdd_components.py`,

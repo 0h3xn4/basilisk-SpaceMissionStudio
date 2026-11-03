@@ -14,7 +14,8 @@ platform:
    get a menu entry, click it.
 2. **The scriptable install path** (`build_wheel.sh`/`install.sh` and
    their `.ps1` counterparts): installs from a checkout into a virtual
-   environment made with the computer's own Python, downloading Basilisk
+   environment made with the computer's own Python (3.14 or later:
+   `requires-python` in `pyproject.toml`), downloading Basilisk
    and the packages from PyPI. For anyone who would rather script an
    install, and for Linux on ARM (aarch64), which has no installer.
 
@@ -38,7 +39,7 @@ the offline policy, so:
 
 * **The `.deb` and the Windows setup program** carry the data: every file
   of ALL_SUPPORT_DATA_FILES (SPICE kernels, gravity fields, the magnetic
-  field model, albedo maps; 117 MB), the Earth orientation files
+  field model, albedo maps, the tabular atmosphere profiles; 117 MB), the Earth orientation files
   (36 MB) and ITU-R P.676-13's data file Part 1 (44 kB, from
   `www.itu.int`, checked against its pinned SHA-256; the gases'
   attenuation of the link, `link.atmospheric_loss`) are fetched when the

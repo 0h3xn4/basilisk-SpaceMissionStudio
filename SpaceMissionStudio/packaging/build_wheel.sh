@@ -35,10 +35,10 @@
 # throwaway venv, and running `spacemissionstudio validate` against the
 # installed copy of that file; do the same after any packaging change here.
 #
-# This script does NOT bundle Basilisk -- see install.sh and this
-# directory's README.md for why (this project does not have a Basilisk
-# wheel to vendor in this development sandbox; a real release build must
-# supply one).
+# This script does NOT bundle Basilisk: the wheel depends on neither it nor
+# a Basilisk build (see pyproject.toml). install.sh takes a Basilisk wheel
+# or requirement (--basilisk-wheel "bsk[all]==2.12.0"), and the installers
+# carry it through bundle_python.py -- see this directory's README.md.
 
 set -euo pipefail
 

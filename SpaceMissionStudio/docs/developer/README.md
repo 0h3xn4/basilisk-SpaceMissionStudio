@@ -24,7 +24,7 @@ cd basilisk-SpaceMissionStudio/SpaceMissionStudio
 python3 -m venv .venv
 source .venv/bin/activate              # Windows PowerShell: .venv\Scripts\Activate.ps1
 pip install "bsk[all]==2.12.0"         # Basilisk, the version the tool is verified against
-pip install -e ".[dev,gui]"            # the tool, its GUI, and pytest, pytest-qt, pytest-xdist, ruff
+pip install -e ".[dev,gui]"            # the tool, its GUI, and pytest, pytest-qt, pytest-cov, pytest-xdist, ruff
 spacemissionstudio kernels-status      # downloads the reference data once (about 116 MB)
 spacemissionstudio earth-orientation --fetch
 ```
@@ -119,11 +119,14 @@ script; CI fails when a generated file is out of date.
 |---|---|---|
 | `USER_MANUAL.md` or its images in `docs/images/` | `python scripts/sync_help.py` | `spacemissionstudio/help/` (the copy the app shows; `tests/gui/test_help.py` checks it) |
 | A template, the schema, or `scripts/_template_descriptions.py` | `python scripts/_generate_templates.py` | `spacemissionstudio/scenarios/templates/*.json` |
-| Code, tests or the schema | the five commands below | `compliance/docs/` (ICD schema, component map, test specifications, traceability) |
+| A parameter declared in `spacemissionstudio/config/` | `python scripts/build_config_defaults.py` | `spacemissionstudio/config/defaults.yaml` (`tests/test_config.py` checks it) |
+| Code, tests or the schema | the five commands below | `compliance/docs/` (ICD schema, component map, test specifications) and `compliance/traceability_matrix.csv` |
 | A compliance assessment | `python compliance/tools/build_matrix.py` | `compliance/compliance_matrix.csv` |
 | What a screen looks like | `QT_QPA_PLATFORM=offscreen python scripts/capture_screenshots.py docs/images` (needs Basilisk and the reference data; the Monte Carlo batch takes the longest), then `python scripts/sync_help.py` | The screenshots in `docs/images/` |
 
-The compliance documents, as CI checks them:
+The compliance documents. CI runs the first four commands and fails on a
+difference in `compliance/docs`; it regenerates `build_traceability.py`'s
+file in a later step but does not compare it:
 
 ```bash
 for t in check_drds build_icd_schema build_sdd_components build_test_specs build_traceability; do
@@ -168,8 +171,8 @@ request that touches `SpaceMissionStudio/`:
 | Job | Runs on | What |
 |---|---|---|
 | `docs` | Ubuntu, when only documentation changed | Whitespace hooks, the compliance-document checks, `tests/gui/test_help.py` |
-| `test` | Ubuntu, Python 3.14 | Lint; compliance-document checks; reference data download; the full suite with coverage; the offline tests; metrics (statement coverage at least 90 %, branch at least 80 %); traceability and compliance matrix |
-| `platforms` | `windows-latest` | Reference data download and the full suite |
+| `test` | Ubuntu, Python 3.14 | Lint; compliance-document checks; reference data download; the full suite with coverage; the offline tests; metrics (statement coverage at least 90 %, branch at least 80 %); `pip-audit` of the pinned packages (`packaging/constraints.txt`, `constraints-dev.txt`); traceability, ICS and compliance matrix |
+| `platforms` | `windows-latest`, Python 3.14 | Reference data download and the full suite |
 
 If a process in the `test` job crashes in native code (Qt, numpy,
 Basilisk), Python's faulthandler shows only `<no Python frame>` for the
@@ -182,8 +185,12 @@ the loaded libraries. The output is in that step's log and in the
 crash. Before the tests, the job crashes one Python process on purpose
 to check that cores are written and readable, and warns if not.
 
-Basilisk's own workflows (in `.github/workflows/`, from upstream) also
-run; they build and test Basilisk itself, on Linux and Windows only
+Three more workflows are SpaceMissionStudio's own: `spacemissionstudio-release.yml`
+(builds and attaches a tag's release files; see [Releasing](releasing.md)),
+`spacemissionstudio-windows-installer.yml` (builds and installs the Windows
+setup program) and `spacemissionstudio-sil-stress.yml` (by hand or when its file changes: the
+SIL link test, many times over, on Windows). Basilisk's own workflows (in
+`.github/workflows/`, from upstream) also run; they build and test Basilisk itself, on Linux and Windows only
 (their macOS jobs were removed: `docs/DECISIONS.md`, macOS removed).
 
 ## 7. More developer pages

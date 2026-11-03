@@ -20,7 +20,8 @@ Unpacks a pinned, relocatable CPython (python-build-standalone) into
 versions (``constraints.txt``) and adds the reference data runs read:
 
 * Basilisk's support data (SPICE kernels, gravity fields, the magnetic
-  field model, albedo maps: ``kernels.ALL_SUPPORT_DATA_FILES``), fetched
+  field model, albedo maps, the tabular atmosphere profiles:
+  ``kernels.ALL_SUPPORT_DATA_FILES``), fetched
   with Basilisk's own checked fetch into ``site-packages/supportData``,
   the folder Basilisk's ``dataFetcher`` reads before its download cache;
 * the IERS-based Earth orientation files (NAIF ITRF93 PCKs) in
@@ -35,7 +36,7 @@ Run it on the platform the installer is for, since pip installs that
 platform's binary wheels::
 
     python packaging/bundle_python.py --platform linux --dest build/python \
-        --wheel dist/spacemissionstudio-1.1.0-py3-none-any.whl
+        --wheel dist/spacemissionstudio-<version>-py3-none-any.whl
 
 The archive is downloaded once into ``--cache`` and always checked against
 its pinned SHA-256; ``--archive`` uses a file already on disk instead.

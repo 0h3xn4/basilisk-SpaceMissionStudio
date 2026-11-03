@@ -2,7 +2,7 @@
 
 How to cut a SpaceMissionStudio release. The formal procedure is in the
 Software Maintenance Plan,
-[`compliance/docs/SMP.md`](../../compliance/docs/SMP.md) section 9; this
+[`compliance/docs/SMP.md`](../../compliance/docs/SMP.md) section 10.6; this
 page is the checklist.
 
 **Contents**
@@ -54,6 +54,8 @@ The `.deb` reads `spacemissionstudio.__version__`, so it needs no change.
     section of their own, and the known limits follow the standing ones
     (the unsigned Windows setup, no installer for ARM Linux).
 - [`HISTORY.md`](../../HISTORY.md): a short entry for the release.
+- [`README.md`](../../README.md): the version badge and the "Version" and
+  "Platforms" lines of its status section (they name the release).
 - The Software Release Document,
   [`compliance/docs/SRelD.md`](../../compliance/docs/SRelD.md): the
   release's contents, known problems and dependency versions.
