@@ -235,6 +235,10 @@ def rename_spacecraft(scenario: Scenario, old_name: str, new_name: str) -> int:
         if record.spacecraft == old_name:
             record.spacecraft = new_name
             updated += 1
+    for record in scenario.imports:  # so does an import record (Phase 8c)
+        if record.spacecraft == old_name:
+            record.spacecraft = new_name
+            updated += 1
 
     target.name = new_name
     return updated

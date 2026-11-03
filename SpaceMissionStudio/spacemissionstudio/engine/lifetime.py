@@ -52,6 +52,7 @@ runs in ``tests/test_lifetime.py``.
 
 from __future__ import annotations
 
+import dataclasses
 import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, UTC
@@ -643,34 +644,35 @@ def _remaining_propellant(result, name: str, initial_kg: float) -> float:
     return initial_kg
 
 
-def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km: float | None = None,
-                max_years: float | None = None, should_cancel: Callable[[], bool] | None = None,
-                forecast_percentile: float | None = None, drag_coeff: float | None = None) -> EndOfLife:
-    """Lifetime of one spacecraft after the run in ``result`` (from its
-    last state, with the propellant left), or from the scenario's start
-    when ``result`` is None. With ``deorbit_perigee_km``, an apogee burn
-    first lowers the perigee there, or as far as the propellant allows.
-    Solar activity at MSFC's ``forecast_percentile`` (ESA AD10 Sec. 5.9:
-    50 for end of life, whatever the scenario's operations setting);
-    ``drag_coeff`` replaces the spacecraft's own (AD10 Sec. 5.2: 2.2 at
-    end of life, against 3.0 in operations). ``max_years`` and
-    ``forecast_percentile`` default to the scenario's
-    ``lifetime.default_horizon_years`` (30) and
-    ``lifetime.default_forecast_percentile`` (50)."""
-    max_years = rule("default_horizon_years", scenario) if max_years is None else max_years
-    if forecast_percentile is None:
-        forecast_percentile = rule("default_forecast_percentile", scenario)
-    if not (math.isfinite(max_years) and 0.0 < max_years <= MAX_HORIZON_YEARS):
-        # -5 used to reach Basilisk as an end before the start (audit M12); 1e6 overflowed the date (R6).
-        raise LifetimeError(f"max_years must be a positive number of years, at most {MAX_HORIZON_YEARS:g}, "
-                            f"got {max_years:g}")
+@dataclass(frozen=True)
+class StartState:
+    """Where the decay starts (:func:`start_state`): the inertial state, the
+    time since the epoch and the propellant on board, each with where it
+    came from (the transparency plan, Phase 8b: a chained input shown
+    before it is used)."""
+
+    r_m: object  # [m] inertial position
+    v_m_s: object  # [m/s] inertial velocity
+    elapsed_s: float  # [s] since the scenario's epoch
+    state_source: str
+    propellant_kg: float  # [kg] the orbit thruster's
+    propellant_source: str
+    tank_kg: float | None  # [kg] the fuel tank's, None without one
+    tank_source: str
+    from_end_of_run: bool
+
+
+def start_state(scenario, spacecraft_name: str, result=None) -> StartState:
+    """The start of the decay: the last state of the run in ``result`` with
+    the propellant left, or the scenario's own orbit and propellant
+    (``result`` None). :class:`LifetimeError` without the spacecraft, the
+    run's position, or an Earth orbit."""
     spacecraft = next((sc for sc in scenario.spacecraft if sc.name == spacecraft_name), None)
     if spacecraft is None:
         raise LifetimeError(f"no spacecraft named {spacecraft_name!r}")
-    isp_s, propellant_kg = _propulsion(spacecraft)
+    _isp_s, propellant_kg = _propulsion(spacecraft)
     r_m = v_m_s = None
     elapsed_s = 0.0  # [s]
-    mass_inputs = [Quantity("dry mass", "m_dry", spacecraft.dry_mass_kg, "[kg]", "scenario: dry_mass_kg")]
     thruster = next((key for key in ("station_keeping", "geo_station_keeping", "constant_thrust")
                      if getattr(spacecraft, key) is not None), None)
     propellant_source = f"scenario: {thruster}.propellant_kg" if thruster else "scenario: no orbit thruster"
@@ -683,8 +685,7 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
         propellant_kg = _remaining_propellant(result, spacecraft_name, propellant_kg)
         if thruster and f"{spacecraft_name}.{thruster}.propellant_remaining" in result.series:
             propellant_source = f"last run: {spacecraft_name}.{thruster}.propellant_remaining, last value"
-    mass_inputs.append(Quantity("orbit thruster's propellant", "m_p", propellant_kg, "[kg]", propellant_source))
-    mass_kg = spacecraft.dry_mass_kg + propellant_kg  # [kg]
+    tank_kg, tank_source = None, ""
     if spacecraft.fuel_tank is not None:
         # After a run, what the tank still holds, not its initial load (audit L4).
         tank_kg = spacecraft.fuel_tank.propellant_mass_kg  # [kg]
@@ -693,9 +694,6 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
         if remaining is not None and len(remaining.data):
             tank_kg = float(remaining.data[-1, 0])
             tank_source = f"last run: {spacecraft_name}.fuel_mass_remaining, last value"
-        mass_kg += tank_kg
-        mass_inputs.append(Quantity("fuel tank's propellant", "m_tank", tank_kg, "[kg]", tank_source))
-
     if scenario.gravity.central_body != "earth":
         raise LifetimeError("orbit lifetime is only estimated around Earth")
     state_source = (f"last run: {spacecraft_name}.position_N and velocity_N, last sample" if r_m is not None
@@ -704,6 +702,52 @@ def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km:
         from .service import _orbit_ic_to_rv  # the same orbit set-up a run uses
 
         r_m, v_m_s = _orbit_ic_to_rv(MU_EARTH_M3_S2, spacecraft.orbit, scenario.epoch_utc)
+    return StartState(r_m, v_m_s, elapsed_s, state_source, propellant_kg, propellant_source, tank_kg, tank_source,
+                      result is not None)
+
+
+def end_of_life(scenario, spacecraft_name: str, result=None, deorbit_perigee_km: float | None = None,
+                max_years: float | None = None, should_cancel: Callable[[], bool] | None = None,
+                forecast_percentile: float | None = None, drag_coeff: float | None = None,
+                propellant_kg: float | None = None) -> EndOfLife:
+    """Lifetime of one spacecraft after the run in ``result`` (from its
+    last state, with the propellant left), or from the scenario's start
+    when ``result`` is None. With ``deorbit_perigee_km``, an apogee burn
+    first lowers the perigee there, or as far as the propellant allows.
+    Solar activity at MSFC's ``forecast_percentile`` (ESA AD10 Sec. 5.9:
+    50 for end of life, whatever the scenario's operations setting);
+    ``drag_coeff`` replaces the spacecraft's own (AD10 Sec. 5.2: 2.2 at
+    end of life, against 3.0 in operations). ``max_years`` and
+    ``forecast_percentile`` default to the scenario's
+    ``lifetime.default_horizon_years`` (30) and
+    ``lifetime.default_forecast_percentile`` (50). ``propellant_kg``
+    replaces the orbit thruster's propellant at the start (edited before
+    computing, Phase 8b); :func:`start_state` gives the rest."""
+    max_years = rule("default_horizon_years", scenario) if max_years is None else max_years
+    if forecast_percentile is None:
+        forecast_percentile = rule("default_forecast_percentile", scenario)
+    if not (math.isfinite(max_years) and 0.0 < max_years <= MAX_HORIZON_YEARS):
+        # -5 used to reach Basilisk as an end before the start (audit M12); 1e6 overflowed the date (R6).
+        raise LifetimeError(f"max_years must be a positive number of years, at most {MAX_HORIZON_YEARS:g}, "
+                            f"got {max_years:g}")
+    spacecraft = next((sc for sc in scenario.spacecraft if sc.name == spacecraft_name), None)
+    if spacecraft is None:
+        raise LifetimeError(f"no spacecraft named {spacecraft_name!r}")
+    isp_s, _scenario_propellant_kg = _propulsion(spacecraft)
+    state = start_state(scenario, spacecraft_name, result)
+    if propellant_kg is not None:  # edited before computing (the End of Life page, Phase 8b)
+        if not (math.isfinite(propellant_kg) and propellant_kg >= 0.0):
+            raise LifetimeError(f"the propellant must be a number >= 0 kg, got {propellant_kg!r}")
+        state = dataclasses.replace(state, propellant_kg=float(propellant_kg),
+                                    propellant_source="option: edited before computing (the End of Life page)")
+    r_m, v_m_s, elapsed_s, propellant_kg = state.r_m, state.v_m_s, state.elapsed_s, state.propellant_kg
+    mass_inputs = [Quantity("dry mass", "m_dry", spacecraft.dry_mass_kg, "[kg]", "scenario: dry_mass_kg"),
+                   Quantity("orbit thruster's propellant", "m_p", propellant_kg, "[kg]", state.propellant_source)]
+    mass_kg = spacecraft.dry_mass_kg + propellant_kg  # [kg]
+    if state.tank_kg is not None:  # after a run, what the tank still holds, not its initial load (audit L4)
+        mass_kg += state.tank_kg
+        mass_inputs.append(Quantity("fuel tank's propellant", "m_tank", state.tank_kg, "[kg]", state.tank_source))
+    state_source = state.state_source
     orbit = mean_orbit_from_state(r_m, v_m_s)
     traces = {"orbit": _orbit_trace("Mean orbit at the start of the decay", orbit, state_source,
                                     "osculating state to mean elements, first-order J2 (Basilisk clMeanOscMap)")}

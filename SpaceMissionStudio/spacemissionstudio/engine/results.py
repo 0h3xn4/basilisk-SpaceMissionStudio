@@ -155,6 +155,9 @@ class RunProvenance:
     # The spacecraft made from a preset (schema.scenario.preset_records):
     # the preset, how many of its values are kept, and those changed.
     presets: list[dict[str, object]] = field(default_factory=list)
+    # The values read from a file (schema.scenario.import_records, Phase 8c), with the file's state when
+    # the run started: unchanged, changed or missing. Empty without imports, and in a record from before.
+    imports: list[dict[str, object]] = field(default_factory=list)
     # The models of the run other than the defaults (config.models,
     # Phase 6b; e.g. dynamics.shadowing_bodies with the bodies that shadow).
     # Empty when every model is its default, and in a record from before.
@@ -163,7 +166,7 @@ class RunProvenance:
 
     def to_dict(self) -> dict:
         record = asdict(self)
-        for key in ("value_marks", "presets", "models", "plugins"):  # recorded only when there are some: a run's record is as before
+        for key in ("value_marks", "presets", "imports", "models", "plugins"):  # recorded only when there are some: a run's record is as before
             if not record[key]:
                 del record[key]
         return record

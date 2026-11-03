@@ -51,7 +51,14 @@ re-enters within its years: `zero_debris_years` (5) and `iadc_years`
 (25). A rule is "not known" when the estimate did not look that far ahead.
 
 **After a run, or with a deorbit burn:** from the end of a run, the
-estimate starts from the run's last state with the propellant left. A
+estimate starts from the run's last state with the propellant left
+(`start_state`). The End of Life page lists that start before it
+estimates (`engine.chained_inputs.lifetime_inputs`, from the same
+`start_state`): the state's time, the mean perigee, apogee and
+inclination, the propellant left, each with its source, and a caution
+when the scenario differs from the one the run flew. The starting
+propellant can be edited before estimating (`propellant_kg`; the mass
+trace's source then reads "option: edited before computing"). A
 deorbit burn is one retrograde burn at apogee lowering the perigee, or as
 far as the propellant allows.
 

@@ -85,7 +85,7 @@ from ..schema.epochs import parse_epoch_utc
 from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import constants, dependencies, output_provenance, plugins
 from ..config import models as model_registry, registry
-from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario, preset_records, value_mark_records
+from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario, import_records, preset_records, value_mark_records
 from . import (atmosphere_tables, data_handling, earth_orientation, effective_config, environment_models, formation_control, frames, fsw,
                gaseous_attenuation, geodesy, geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
                optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, shadows,
@@ -2429,6 +2429,7 @@ class SimulationService:
             configuration=registry.record(self.scenario),
             value_marks=value_mark_records(self.scenario),
             presets=preset_records(self.scenario),
+            imports=import_records(self.scenario),
             models=dict(self._run_models),
             plugins=plugins.records(self.scenario),
         )

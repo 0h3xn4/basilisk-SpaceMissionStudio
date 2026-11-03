@@ -555,6 +555,23 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   `SPACEMISSIONSTUDIO_PLUGINS=0` loads none. A plugin cannot add what
   Basilisk simulates. See `docs/user-manual/plugins.md`. With none
   installed, nothing changes.
+- **What an analysis takes from the last run, shown before it computes:**
+  the End of Life page, from the end of the last run, lists the state it
+  starts from (its time, the mean perigee, apogee and inclination) and
+  the propellant left, each with its source; the Budget page lists the
+  orbit control and formation keeping the run flew, scaled to the
+  mission. Both warn when the scenario has changed since that run,
+  naming the values. **Propellant at the start > Set to** edits the
+  lifetime's starting propellant before estimating; the calculation
+  records it as edited. The numbers computed do not change.
+- **Imported values keep their source:** `ccsds-import` records in the
+  scenario where a spacecraft's orbit came from: the file's path, its
+  SHA-256, the format and the values read (`imports`). An imported mass
+  properties file keeps its path with its name and SHA-256. A file that
+  has changed since, or is not there, is a pre-run warning
+  (`import.source_changed`, `import.source_missing`); each run's
+  provenance records every import with the file's state and the values
+  edited since. A scenario without imports saves as before.
 - **Every save records what it changed:** in `mission.history.jsonl`
   beside `mission.json`, one line per value with its old and new value,
   the time, the author (the user name for now), what saved it (the app

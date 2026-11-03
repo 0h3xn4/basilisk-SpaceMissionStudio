@@ -5,6 +5,42 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Chained inputs (2026-11-03)
+
+- **The same function shows and computes:** the End of Life page's list
+  comes from `lifetime.start_state`, which the estimate now uses, and the
+  Budget page's from `run_contributors`, which the budget uses; a value
+  shown cannot differ from the value used.
+- **A caution, not a lock:** a run of an earlier version of the scenario
+  is still a run; the page names what changed and lets the engineer
+  decide to run again.
+- **Only the propellant is edited:** the starting state belongs to the
+  run (or to the scenario's orbit, chosen with **Start of scenario**); the
+  propellant left is the value most often questioned, and an edited one
+  is recorded as such in the calculation. The budget's contributors were
+  already editable ("from last run" or a value).
+- **No separate workflow page:** the chain is shown where the next step
+  is taken (End of Life, Budget), the run's provenance shows the scenario,
+  and Reports > Exports what was written from it; a page repeating them
+  would add a place to look without adding a fact.
+
+## Imported values (2026-11-03)
+
+- **Kept in the scenario, not looked up:** the record keeps the values
+  as read, so a later edit is told from the file, and the file's SHA-256,
+  so a newer file is told from the one read. Neither needs the file to be
+  there; without it the check says so.
+- **A warning, not a refusal:** the scenario's values are what the user
+  chose to run; a newer file may be meant or not. The warning says which
+  file and how to take it, and the run records the state either way.
+- **Absolute paths:** an import's file is wherever it was read from,
+  rarely beside the scenario; a colleague without it sees "missing", the
+  honest state. Meshes keep their paths as they were (relative ones
+  stay relative).
+- **CCSDS orbits and mass properties first:** these are the values the
+  tool reads from another tool's file. TLE lines typed or pasted are in
+  the scenario itself; catalog presets have their own record (Phase 5b);
+  data files are hashed by every run (Phase 2).
 ## Every value with its unit (2026-11-03)
 
 - **The control law over the header's comment:** `mrpFeedback.h` gives K
