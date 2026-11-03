@@ -1470,7 +1470,9 @@ propellant it left. Tick **Lower perigee to** to plan a deorbit burn
 with the orbit thruster; if the propellant is short, it says how low
 the perigee gets. **Show calculation** opens how the lifetime was
 computed (the orbit, the mass, the ballistic coefficient, the burn and
-each rule) in the Calculation panel. The estimate takes seconds and agrees with full
+each rule) in the Calculation panel. **Export JSON...** writes the
+estimate, with its options, rules, traces, decay curve and provenance, as
+`spacemissionstudio lifetime --out` does. The estimate takes seconds and agrees with full
 simulations to about 2%. It uses the scenario's atmosphere and real
 space weather: the observed record, then NASA MSFC's prediction, whose
 last solar cycle repeats past 2041. **Drag coefficient** defaults to

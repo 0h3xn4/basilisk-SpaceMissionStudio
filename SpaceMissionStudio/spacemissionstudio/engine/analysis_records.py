@@ -50,6 +50,8 @@ from .. import dependencies, output_provenance
 LIFETIME_KIND = "lifetime"
 BUDGET_KIND = "propellant_budget"
 LINK_BUDGET_KIND = "link_budget"
+SWEEP_KIND = "launch_delay_sweep"
+TRADE_KIND = "altitude_trade"
 
 
 def _plain(value):
@@ -152,6 +154,51 @@ def budget_record(scenario, spacecraft_name: str, budget, result=None) -> dict:
         "notes": list(budget.notes),
         "provenance": provenance,
     }
+
+
+def _case_record(case) -> dict:
+    """One launch date of a sweep: its delay, the totals, the rows."""
+    return {"launch_utc": case.launch_utc, "delay_years": case.delay_years,
+            "in_plane_delta_v_m_s": case.delta_v_of("Operations", "In-plane"),
+            "disposal_delta_v_m_s": case.delta_v_of("End of life", ""),
+            "total_delta_v_m_s": case.budget.total_delta_v_m_s,
+            "total_propellant_kg": case.budget.total_propellant_kg, "drag_ratio": case.drag_ratio,
+            "rows": _plain(case.budget.rows), "notes": list(case.budget.notes)}
+
+
+def sweep_record(scenario, spacecraft_name: str, sweep, result=None) -> dict:
+    """The record of a launch-delay sweep (:func:`.propellant_budget.launch_delay_sweep`):
+    every launch date's budget, the worst, the notes and the provenance."""
+    data_files = {}
+    for case in sweep.cases:
+        data_files.update(case.budget.data_files)
+    provenance = _provenance(scenario, data_files)
+    if result is not None:
+        provenance["run"] = _plain(result.provenance_record())
+    return {"kind": SWEEP_KIND, "spacecraft": spacecraft_name, "inputs": {"from_run": result is not None},
+            "results": {"cases": [_case_record(case) for case in sweep.cases],
+                        "worst_launch_utc": sweep.worst.launch_utc},
+            "notes": list(sweep.notes), "provenance": provenance}
+
+
+def trade_record(scenario, spacecraft_name: str, trade, result=None) -> dict:
+    """The record of an altitude trade (:func:`.propellant_budget.altitude_trade`):
+    each altitude's sweep, whether its worst launch fits the tank, the
+    notes and the provenance."""
+    data_files = {}
+    for altitude in trade.altitudes:
+        for case in altitude.sweep.cases:
+            data_files.update(case.budget.data_files)
+    provenance = _provenance(scenario, data_files)
+    if result is not None:
+        provenance["run"] = _plain(result.provenance_record())
+    return {"kind": TRADE_KIND, "spacecraft": spacecraft_name,
+            "inputs": {"from_run": result is not None, "tank_kg": trade.tank_kg},
+            "results": {"altitudes": [{"altitude_km": case.altitude_km, "inclination_deg": case.inclination_deg,
+                                       "fits_tank": trade.fits(case), "worst_launch_utc": case.worst.launch_utc,
+                                       "cases": [_case_record(c) for c in case.sweep.cases]}
+                                      for case in trade.altitudes]},
+            "notes": list(trade.notes), "provenance": provenance}
 
 
 def link_budget_record(scenario, spacecraft_name: str, station_name: str, range_m: float, range_source: str,

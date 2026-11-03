@@ -24,11 +24,13 @@ deorbit burn -- computed on a background thread (a few seconds)."""
 from __future__ import annotations
 
 from datetime import timedelta
+from pathlib import Path
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QThread, Signal
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import (
     QCheckBox,
+    QFileDialog,
     QFormLayout,
     QHBoxLayout,
     QLabel,
@@ -38,7 +40,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from . import export_log
 from .badges import MUTED, SUCCESS, WARNING, set_badge
+from .feedback import report
 from .calculation_panel import Explanation
 from .scenario_explainer_widget import _clear_layout, _stat_tile
 from .theme import CONTENT_MAX_WIDTH_PX, PALETTE, set_role
@@ -258,6 +262,14 @@ class LifetimeWidget(QWidget):
         self.calculation_button.setEnabled(False)
         self.calculation_button.clicked.connect(self.show_calculation)
         button_row.addWidget(self.calculation_button)
+        # The estimate as JSON, as `lifetime --out` writes it (Phase 9a): inputs, model, results with their
+        # traces, the decay curve, the warnings and the provenance.
+        self.export_button = QPushButton("Export JSON...")
+        self.export_button.setToolTip("Write this estimate as JSON: its inputs, rules, results with how each was "
+                                      "computed, the decay curve and the provenance")
+        self.export_button.setEnabled(False)
+        self.export_button.clicked.connect(self._on_export)
+        button_row.addWidget(self.export_button)
         layout.addLayout(button_row)
 
         self.tiles_row = QHBoxLayout()
@@ -355,6 +367,33 @@ class LifetimeWidget(QWidget):
         self._update_from_choices()
         self._worker.start()
 
+    def export_record(self, path) -> Path:
+        """The estimate shown as JSON at ``path`` (``engine.analysis_records.lifetime_record``)."""
+        from ..engine import analysis_records
+
+        end = self._end_of_life
+        scenario = getattr(self, "_computed_for", None) or self._scenario
+        options = end.options
+        record = analysis_records.lifetime_record(scenario, self.spacecraft_combo.currentText(), end,
+                                                  options["max_years"], options["forecast_percentile"],
+                                                  options["drag_coeff"], options["deorbit_perigee_km"])
+        return analysis_records.write(Path(path), record)
+
+    def _on_export(self) -> None:
+        if self._end_of_life is None:
+            return
+        name, _ = QFileDialog.getSaveFileName(self, "Export the lifetime estimate", "lifetime.json", "JSON (*.json)")
+        if not name:
+            return
+        path = Path(name) if Path(name).suffix == ".json" else Path(name).with_suffix(".json")
+        try:
+            self.export_record(path)
+        except OSError as exc:
+            report(self, f"Could not write {path}: {exc}")
+            return
+        export_log.record("lifetime_json", path)
+        report(self, f"Exported the lifetime estimate to {path}", kind="success")
+
     def explanation(self) -> Explanation | None:
         if self._end_of_life is None:
             return None
@@ -381,6 +420,7 @@ class LifetimeWidget(QWidget):
     def _clear_results(self) -> None:
         self._end_of_life = None
         self.calculation_button.setEnabled(False)
+        self.export_button.setEnabled(False)
         _clear_layout(self.tiles_row)
         _clear_layout(self.badges_row)
         self.notes_label.setText("")
@@ -393,6 +433,7 @@ class LifetimeWidget(QWidget):
         self._clear_results()
         self._end_of_life = end_of_life
         self.calculation_button.setEnabled(bool(end_of_life.traces))
+        self.export_button.setEnabled(True)
         result = end_of_life.lifetime
         self.status_label.setText("From the end of the last run" if end_of_life.from_end_of_run
                                   else "From the start of the scenario")

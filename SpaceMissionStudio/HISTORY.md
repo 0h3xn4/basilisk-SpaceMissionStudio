@@ -14514,6 +14514,43 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Open data, the Python API and the definition of done (2026-11-03)
+
+The transparency plan, Phases 9 and 10. Branch `open-data-api`.
+
+- **`spacemissionstudio/api.py`:** `API_VERSION` (1), `template`, `load`,
+  `validate`, `assumptions`, `run`, `summary`, `lifetime`, `budget`,
+  `launch_delays`, `altitude_trade`, `monte_carlo`, `compare`, `record`,
+  `write`; `docs/api.md`, its examples run by `tests/test_api.py`.
+- **`engine/run_comparison.py`:** `compare`, `Comparison.to_dict`, `lines`.
+- **The command line:** `run --save` and `--store`, `runs`, `compare`,
+  `spaceweather-download`; `budget --launch-delays/--altitudes --out`
+  (`analysis_records.sweep_record`, `trade_record`).
+- **`engine.lifetime.EndOfLife`:** the options it ran with, in `options`
+  (`max_years`, `forecast_percentile`, `drag_coeff` asked for,
+  `deorbit_perigee_km`). One field, which the golden-output baseline
+  leaves out: they are the options its capture passed, inputs, not
+  outputs.
+- **The app:** End of Life's **Export JSON...** (`lifetime_json` on
+  Reports > Exports); the Monte Carlo runs CSV's provenance sidecar.
+- **The definition of done (Phase 10):** `docs/definition-of-done.md`;
+  `tests/data/bundles/linux_two_body` and its test, which found that
+  `reproduce` judged a vector's near-zero component against itself:
+  `reproduction.compare_series` now uses the series' scale
+  (`docs/changes.md`).
+- **Tests:** `tests/test_api.py` (9), `tests/gui/test_open_data_exports.py`
+  (2), two in `tests/test_reproduction.py`; the Exports page test counts
+  14 exports.
+- **Numbers:** none computed change; one `reproduce` verdict does
+  (`docs/changes.md`).
+
+Full suite on Python 3.14: 4407 passed, 16 failed, all from this change
+and fixed: the golden baseline took the lifetime's new option fields
+(now one `options` field it leaves out), the byte-identical export test
+met the Monte Carlo table's new provenance file (checked on its own now),
+and a CLI test expected `--launch-delays --out` to be refused (it now
+checks the record). Those tests and this change's own then passed (68).
+
 ## Plugins: models, rules and parameters of your own (2026-11-03)
 
 The transparency plan, Phase 6c. Branch `model-plugins`.

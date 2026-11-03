@@ -31,7 +31,9 @@ its hash, and the run's warnings (Phase 2b, 2f), and the effective
 configuration (Phase 2c), and the project configuration (Phase 3b); and
 the SIL report its provenance (Phase 2g). The two provenance files and the SIL report are
 compared without those keys, which must be there; everything else in them,
-and every other file, is still 1.1.0's byte for byte."""
+and every other file, is still 1.1.0's byte for byte. Since 2026-11-03 the
+Monte Carlo table is written with a provenance file beside it (Phase 9),
+a new file 1.1.0 did not write: it is checked on its own."""
 
 import json
 import os
@@ -55,6 +57,9 @@ def test_every_export_is_byte_identical_to_1_1_0(qtbot, tmp_path):
     from make_export_references import write_all
 
     written = write_all(tmp_path)
+    for name in _NEW_FILES:  # written since 1.1.0, beside a file 1.1.0 wrote: there, and JSON
+        assert name in written and json.loads((tmp_path / name).read_text(encoding="utf-8")), name
+    written = [name for name in written if name not in _NEW_FILES]
     with zipfile.ZipFile(_REFERENCES) as references:
         assert written == sorted(references.namelist())
         for name in written:
@@ -65,6 +70,9 @@ def test_every_export_is_byte_identical_to_1_1_0(qtbot, tmp_path):
                 content = _without_sil_provenance(content)
             assert _same_lines(content) == _same_lines(references.read(name)), name
 
+
+# Files written since 1.1.0: the Monte Carlo table's provenance (Phase 9).
+_NEW_FILES = ("monte_carlo_runs.csv.provenance.json",)
 
 # Keys a provenance record gained after 1.1.0, removed before comparing.
 _NEW_PROVENANCE_KEYS = ("integrator_relative_tolerance", "integrator_absolute_tolerance", "rng_seed", "rng_seeds",

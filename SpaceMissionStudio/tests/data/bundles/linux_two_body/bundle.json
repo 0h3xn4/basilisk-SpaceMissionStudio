@@ -1,0 +1,8 @@
+{
+  "format": 1,
+  "scenario": "scenario_as_run.json",
+  "scenario_sha256": "2f111d5070e9685ba0c0ac33be92c4c7d8bb8ee3d262b84ef023176295c92fdc",
+  "inputs": [],
+  "spacemissionstudio_version": "1.3.1",
+  "created_utc": "2026-11-03T06:55:49+00:00"
+}

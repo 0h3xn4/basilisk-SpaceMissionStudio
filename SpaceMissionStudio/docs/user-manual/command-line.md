@@ -25,6 +25,9 @@ with a non-zero status and prints `ERROR:` or `INVALID:` with the reason.
 | `validate scenario.json` | Checks the file without running it. Does not need Basilisk. |
 | `run scenario.json --out-dir out` | Runs it and writes one CSV per quantity, `events.csv`, `provenance.json` and `scenario_as_run.json` |
 | `monte-carlo scenario.json --archive-dir mc` | Runs the scenario's Monte Carlo batch and writes its provenance, `archive.provenance.json` |
+| `run scenario.json --save` | Also keeps the run in the run store, as the app does (`--store DIR` for another folder) |
+| `runs` | Lists the runs kept in the run store: the app's and `run --save`'s |
+| `compare 3 5 --out comparison.json` | Two kept runs side by side (Results > Compare): the scenario differences, the headline figures with the difference, the events; `--out` writes JSON with both runs' provenance |
 | `gui` | Starts the app |
 
 ```console
@@ -159,6 +162,8 @@ made with. The GUI writes the same bundle from Results › Plots ›
 | `link-budget scenario.json` | The downlink's Eb/N0 budget at the longest range of a pass (`--range-km`, `--pointing-deg`, `--explain`, `--out`) |
 | `budget scenario.json --explain` | After the table, how each number was computed: the equation, each input with its unit and where it came from, and the AD10 section |
 | `spaceweather-resolve scenario.json` | Which space-weather file a run would use |
+| `spaceweather-download [--dataset SW-All]` | Downloads CelesTrak's space-weather file (needs internet; running it is the consent), as Reference data > Download does |
+| `budget scenario.json --launch-delays --out sweep.json` | Writes the launch-delay sweep, every launch date's budget, as JSON with its provenance (`--altitudes` writes the altitude trade the same way) |
 | `assumptions [scenario.json]` | The named parameters: value, unit and source, and which ones the scenario's configuration file changes (`--changed`, `--area`, `--yaml` for the defaults file); see [Change a parameter](project-configuration.md) |
 | `plugins` | The plugins installed: each one's parameters, rules and models, and any that could not be loaded (exit status 5); see [Add your own models and rules](plugins.md) |
 

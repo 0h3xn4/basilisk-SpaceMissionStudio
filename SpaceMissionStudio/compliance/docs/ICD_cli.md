@@ -37,6 +37,27 @@ run a scenario headlessly and export results to CSV
 | `--allow-scripts` | run the scenario's script_block commands (unrestricted Python: only for files you trust and have read) |
 | `--bundle` | also make --out-dir a reproduction bundle: copies of the files the scenario refers to and the space-weather files read, listed in bundle.json |
 | `--explain` | after the run, its headline figures (Results > Overview) and its data-handling totals, and how each was computed: the series, parameters and constants it came from; each warning is followed by its rule |
+| `--save` | also keep the run in the run store, as the app does, for 'runs' and 'compare' |
+| `--store` | the run store's folder (default: ~/.spacemissionstudio/runs, the app's) |
+
+## `runs`
+
+list the runs kept in the run store (the app's, and run --save's)
+
+| Argument | Help |
+|---|---|
+| `--store` | the run store's folder (default: the app's) |
+
+## `compare`
+
+two saved runs side by side: scenario differences, headline figures, events (Results > Compare)
+
+| Argument | Help |
+|---|---|
+| `a` | a saved run's number ('runs' lists them) |
+| `b` | the other run's number |
+| `--store` | the run store's folder (default: the app's) |
+| `--out` | also write the comparison as JSON, with both runs' provenance |
 
 ## `assumptions`
 
@@ -57,7 +78,7 @@ run a reproduction bundle again and compare its results
 |---|---|
 | `bundle` | a folder written by 'run --bundle' |
 | `--out-dir` | where the new run's results go |
-| `--rtol` | largest difference allowed, as a fraction of each column's largest value (default 1e-6) |
+| `--rtol` | largest difference allowed, as a fraction of each series' largest value (default 1e-6) |
 | `--allow-scripts` | run the scenario's script_block commands (unrestricted Python: only for bundles you trust and have read) |
 
 ## `monte-carlo`
@@ -108,7 +129,7 @@ delta-V and propellant budget (ESA AD10 style)
 | `--run` | run the scenario first, for orbit control and formation keeping |
 | `--launch-delays` | repeat the budget for launches 1-5 years late (ESA AD10 Sec. 5.5) |
 | `--altitudes` | launch-delay sweep at each altitude [km] (default: five around the spacecraft's own), against the tank |
-| `--out` | also write the budget as JSON: inputs, rules, rows with their traces, notes, the provenance |
+| `--out` | also write the budget as JSON: inputs, rules, rows with their traces, notes, the provenance (with --launch-delays or --altitudes: every case of the sweep or trade) |
 | `--explain` | after the table, how each number was computed: the equation, the inputs with their units and sources, and the AD10 section |
 
 ## `link-budget`
@@ -252,6 +273,14 @@ resolve space weather for a scenario without running it (no Basilisk needed)
 | Argument | Help |
 |---|---|
 | `scenario` |  |
+
+## `spaceweather-download`
+
+download CelesTrak's space-weather file (needs internet; running it is the consent)
+
+| Argument | Help |
+|---|---|
+| `--dataset {SW-All,SW-Last5Years}` | the CelesTrak file (default: SW-All) |
 
 ## `generate-constellation`
 

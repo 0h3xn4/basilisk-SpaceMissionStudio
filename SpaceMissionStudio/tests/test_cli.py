@@ -771,8 +771,9 @@ def test_lifetime_and_budget_write_what_they_were_computed_from(tmp_path, capsys
     """Transparency audit, Phase 2g: ``lifetime`` and ``budget`` printed with
     no provenance, and a lifetime could not be exported at all. ``--out``
     writes the inputs, the drag and rules used, the results and the
-    provenance: the scenario file's SHA-256 and the data files read. With a
-    sweep, ``--out`` is refused before anything runs."""
+    provenance: the scenario file's SHA-256 and the data files read. A
+    launch-delay sweep's ``--out`` (refused until Phase 9) writes its
+    record, with the same provenance."""
     import hashlib
     import json
     import shutil
@@ -808,9 +809,15 @@ def test_lifetime_and_budget_write_what_they_were_computed_from(tmp_path, capsys
     out = capsys.readouterr().out
     assert budget["results"]["rows"] and all(row["contributor"] in out for row in budget["results"]["rows"])
     assert budget["provenance"]["data_files"] == files and budget["provenance"]["scenario_file_sha256"] == file_sha256
-    assert cli.main(["budget", str(path), "--launch-delays", "--out", str(tmp_path / "sweep.json")]) == 2
-    assert "does not go with --launch-delays" in capsys.readouterr().err
-    assert not (tmp_path / "sweep.json").exists()
+    monkeypatch.setattr(pb, "compute_budget", original)
+    sweep = pb.launch_delay_sweep
+    monkeypatch.setattr(pb, "launch_delay_sweep", lambda scenario, name, result=None: sweep(
+        scenario, name, result, reentry_solver=lambda *_a: (0.0, 400.0, 0.5, [], files),
+        makeup=lambda *_a, **_k: SimpleNamespace(delta_v_m_s=100.0, altitude_km=400.0, warnings=[])))
+    assert cli.main(["budget", str(path), "--launch-delays", "--out", str(tmp_path / "sweep.json")]) == 0
+    record = json.loads((tmp_path / "sweep.json").read_text(encoding="utf-8"))
+    assert record["kind"] == "launch_delay_sweep" and record["results"]["cases"]
+    assert record["provenance"]["scenario_file_sha256"] == file_sha256
 
 
 @pytest.mark.requires_basilisk
