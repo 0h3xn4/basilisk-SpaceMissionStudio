@@ -159,3 +159,32 @@ def test_a_report_keeps_its_provenance_and_an_earlier_one_still_reads():
     earlier = json.loads(_report().to_json())
     del earlier["provenance"]
     assert SilReport.from_json(json.dumps(earlier)).provenance == {}
+
+
+def test_each_signal_has_its_payload_headers_unit():
+    """Each scalar has its field's unit, as Basilisk's payload header writes
+    it (Phase 8a): the statistics, the summary and an old report without
+    units (read as none). By default the units are the vendored headers'."""
+    from spacemissionstudio.fsw_export.documents import payload_units
+
+    assert payload_units("CmdTorqueBody") == {"torqueRequestBody": "Nm"}
+    assert payload_units("NoSuchPayload") == {}
+    comparator = Comparator([OUT], [], {"Demo": LAYOUT}, expected_steps=1, units={"Demo": {"torque": "Nm"}})
+    comparator.add(0.0, [_payload(1.5, 2.0, 0.0, 5)], [_payload(1.0, 2.0, 0.0, 5)])
+    report = _report(steps=1)
+    comparator.finish(report)
+    assert {s.name: s.unit for s in report.signals} == {
+        "rw_torqueOutMsg.torque[0]": "Nm", "rw_torqueOutMsg.torque[1]": "Nm", "rw_torqueOutMsg.torque[2]": "Nm",
+        "rw_torqueOutMsg.count": ""}
+    assert report.worst_signal.name == "rw_torqueOutMsg.torque[0]"
+    lines = report.summary_lines()
+    assert "largest |residual| 0.5 [Nm] over 4 signals" in lines[4]
+    assert any(line.strip().startswith("rw_torqueOutMsg.torque[0]") and "max 0.5 [Nm] at t = 0 s" in line
+               for line in lines)
+    data = json.loads(report.to_json())
+    assert [s.get("unit") for s in data["signals"]] == ["Nm", "Nm", "Nm", None]  # written only when it has one
+    for stats in data["signals"]:
+        stats.pop("unit", None)  # a report written before the units
+    assert {s.unit for s in SilReport.from_json(json.dumps(data)).signals} == {""}
+    plain = Comparator([OUT], [], {"Demo": LAYOUT}, expected_steps=1)  # "Demo" has no header: no units
+    assert {s.unit for row in plain.stats for s in row} == {""}

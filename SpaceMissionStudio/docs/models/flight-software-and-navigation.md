@@ -15,6 +15,34 @@ Code: `spacemissionstudio/engine/fsw.py`,
 `engine/optical_navigation.py`, `engine/landmark_navigation.py`,
 `engine/landmarks.py`.
 
+## The attitude controller's gains: their units
+
+The gains `control_params` sets (`K`, `P`, `Ki`, `integral_limit`) are
+Basilisk's `mrpFeedback`'s. The editor shows each with the unit of its
+control law, Basilisk's `mrpFeedback.rst`:
+
+L_r = -K sigma - [P] delta_omega - [P][K_I] z, with
+z = K integral(sigma) dt + [I_RW](delta_omega - delta_omega_0)
+
+where sigma (the MRP error) is dimensionless, delta_omega is in rad/s
+and L_r is a torque, N·m:
+
+| Gain | Unit shown | From the law | `mrpFeedback.h`'s comment |
+|---|---|---|---|
+| `K` | N·m | K sigma is a torque | `[rad/sec]` |
+| `P` | N·m·s | P delta_omega is a torque | `[N*m*s]` |
+| `Ki` | 1/(N·m·s²) | z is in N·m·s, so [P][K_I] z is a torque only if K_I is | `[N*m]` |
+| `integral_limit` | s | it bounds each element of the integral of sigma (`mrpFeedback.rst`: "within the desired limit") | `[N*m]` |
+
+The header's comments for `K`, `Ki` and `integralLimit` do not match the
+law; the editor follows the law. Nothing computed changes: Basilisk reads
+the numbers as they are.
+
+The magnetic momentum management's gain (`c_gain`, Basilisk's
+`mtbMomentumManagement` `cGain`) is in 1/s: the module's torque is
+-cGain times the wheels' momentum error (`mtbMomentumManagement.c`),
+as its header says (`[1/s]`). The editor labelled it `[-]` before.
+
 ## The attitude thrusters' Schmitt trigger
 
 With thrusters for attitude control, `mrpFeedback`'s torque is mapped to

@@ -80,6 +80,15 @@ on every view; the Timeline says what is in progress then, and
 commands). **Clear Time Cursor**, at the top of Results and the Timeline
 (**Alt+Backspace**), removes it.
 
+## Units
+
+Every axis and number shows its unit. The plots use display units:
+altitudes and semi-major axes in km, angles in degrees, the elapsed time
+in hours since t0 (TDB, the simulation's clock). To see the values as
+the run recorded them, in SI, as the CSV exports hold them, choose
+**Settings > Appearance > Plot units > As recorded**. The exports are SI
+either way.
+
 ## Save what you see
 
 | Button | Writes |

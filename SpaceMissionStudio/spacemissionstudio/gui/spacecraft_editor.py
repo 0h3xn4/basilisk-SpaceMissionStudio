@@ -191,15 +191,21 @@ _TARGET_BODY_CHOICES = ["moon", "sun", "earth", "mars barycenter", "venus", "jup
 # one with the gain the engine applies, scaled to the spacecraft's inertia
 # (engine.control_gains, which needs no Basilisk; _show_default_gains).
 _CONTROL_PARAM_SPECS: list[_FswParamSpec] = [
+    # The units are those of mrpFeedback's control law, L_r = -K sigma - [P] delta_omega - [P][K_I] z
+    # (Basilisk's mrpFeedback.rst; sigma is dimensionless, z is in N*m*s): its header's comments give K as
+    # [rad/sec], Ki and integralLimit as [N*m], which the law does not bear out (docs/models/
+    # flight-software-and-navigation.md, "The attitude controller's gains").
     _FswParamSpec("K", False, control_gains.DEFAULT_MRP_GAINS["K"],
-                  "MRP feedback proportional (attitude) gain; unticked, the reference 3.5 scaled to the "
+                  "MRP feedback proportional (attitude) gain [N*m] -- unticked, the reference 3.5 scaled to the "
                   "spacecraft's inertia", label="Attitude gain K"),
     _FswParamSpec("P", False, control_gains.DEFAULT_MRP_GAINS["P"],
-                  "MRP feedback derivative (rate) gain; unticked, the reference 30 scaled to the "
+                  "MRP feedback derivative (rate) gain [N*m*s] -- unticked, the reference 30 scaled to the "
                   "spacecraft's inertia", label="Rate gain P"),
-    _FswParamSpec("Ki", False, -1.0, "integral gain (negative disables integral feedback)",
+    _FswParamSpec("Ki", False, -1.0, "integral gain [1/(N*m*s^2)] -- negative disables integral feedback",
                   label="Integral gain Ki"),
-    _FswParamSpec("integral_limit", False, 0.0, "integral windup limit", label="Integral limit"),
+    _FswParamSpec("integral_limit", False, 0.0,
+                  "integral windup limit [s] -- the largest each element of the integral of sigma may reach",
+                  label="Integral limit"),
 ]
 
 
@@ -484,9 +490,9 @@ class SpacecraftEditorDialog(QDialog):
         self.ixx = _spin(0.001, 1.0e8, decimals=3, step=1.0, value=inertia0[0])
         self.iyy = _spin(0.001, 1.0e8, decimals=3, step=1.0, value=inertia0[4])
         self.izz = _spin(0.001, 1.0e8, decimals=3, step=1.0, value=inertia0[8])
-        inertia_form.addRow("Ixx", self.ixx)
-        inertia_form.addRow("Iyy", self.iyy)
-        inertia_form.addRow("Izz", self.izz)
+        inertia_form.addRow("Ixx [kg*m^2]", self.ixx)
+        inertia_form.addRow("Iyy [kg*m^2]", self.iyy)
+        inertia_form.addRow("Izz [kg*m^2]", self.izz)
         self.products_label = QLabel()
         self.products_label.setWordWrap(True)
         inertia_form.addRow(self.products_label)
@@ -1457,10 +1463,11 @@ class SpacecraftEditorDialog(QDialog):
         self.mmm_c_gain = _spin(1.0e-9, 1.0e6, decimals=6, step=0.001, value=mmm0.c_gain if mmm0 else 0.003)
         self.mmm_c_gain.setToolTip(
             "Control gain mapping each wheel's speed error (from its bias above) to a desired "
-            "magnetic torque. Higher = more aggressively pulls wheel speed toward the bias, at "
-            "the cost of a more aggressive torque-rod command."
+            "magnetic torque: the torque is -cGain times the wheels' momentum error (Basilisk's "
+            "mtbMomentumManagement), so the gain is in 1/s. Higher = more aggressively pulls wheel "
+            "speed toward the bias, at the cost of a more aggressive torque-rod command."
         )
-        mmm_form.addRow("Control gain [-]", self.mmm_c_gain)
+        mmm_form.addRow("Control gain [1/s]", self.mmm_c_gain)
         power_layout.addWidget(self.magnetic_momentum_management_group)
 
         # Requires a "thruster" actuator on this spacecraft (see
@@ -1533,14 +1540,16 @@ class SpacecraftEditorDialog(QDialog):
         self.frequency_ghz.setToolTip(
             "Downlink carrier frequency. Higher frequencies suffer more free-space path loss "
             "for the same distance, but typically allow a higher-gain antenna in the same "
-            "physical size (common bands: ~2.2 GHz S-band, ~8.2 GHz X-band)."
+            "physical size (common bands: ~2.2 GHz S-band, ~8.2 GHz X-band). Shown in GHz, saved in "
+            "the scenario in Hz (rf_link.frequency_hz)."
         )
         self.data_rate_mbps = _spin(1.0e-6, 1.0e6, decimals=6, step=1.0,
                                      value=(rf_link0.data_rate_bps / 1.0e6) if rf_link0 else 1.0)
         self.data_rate_mbps.setToolTip(
             "Downlink data rate. Higher data rate spreads the same received power over more "
             "bits per second, which REDUCES the margin -- there's a direct trade between "
-            "downlink speed and link robustness."
+            "downlink speed and link robustness. Shown in Mbit/s, saved in the scenario in bit/s "
+            "(rf_link.data_rate_bps)."
         )
         self.tx_antenna_gain_dbi = _spin(-50.0, 100.0, decimals=2, step=1.0,
                                           value=rf_link0.tx_antenna_gain_dbi if rf_link0

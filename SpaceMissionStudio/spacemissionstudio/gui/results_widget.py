@@ -178,11 +178,11 @@ from ..engine import orbit_number, time_system
 from ..engine.findings import explanation_lines
 from ..engine.scenario_explainer import value_mark_lines
 from ..engine.results import ResultSet, TimeSeries, output_path
-from ..plot_categories import categorize as _categorize
-from ..plot_categories import legacy_display as _legacy_display
+from ..plot_categories import categorize as _categorize  # noqa: F401 -- tests and older callers import it from here
+from ..plot_categories import shown as _shown_in
 from ..plot_categories import parse_access_pair as _parse_access_pair
 from ..plot_categories import plot_group
-from . import plot_page
+from . import plot_page, units
 from .flow_layout import FlowLayout
 from .plot_catalog import ACCESS_TIMELINE, PlotCatalog
 from .readout_panel import ReadoutPanel, value_at
@@ -314,11 +314,17 @@ def _break_at_wraps(x: np.ndarray, y: np.ndarray, period: float):
     return np.insert(x, jumps, x[jumps - 1]), np.insert(y.astype(float), jumps, np.nan)
 
 
+def _shown(name: str, series: TimeSeries):
+    """How ``series`` is plotted, in the units Settings > Appearance > Plot
+    units chooses (``plot_categories.shown``)."""
+    return _shown_in(name, series, recorded=units.plot_units() == "recorded")
+
+
 def _series_label(name: str, series: TimeSeries) -> str:
     """The name shown for a series in the Series list -- the same title
     its plot gets (e.g. "chief-1: Mean Semi-Major Axis"), not the dotted
     code name. Uncategorized series keep their code name."""
-    display = _categorize(name, series) or _legacy_display(name, series)
+    display = _shown(name, series)
     subject = name.split(".", 1)[0]
     return display.title if display.standalone_title else f"{subject}: {display.title}"
 
@@ -429,6 +435,11 @@ def _empty_state_html() -> str:
 <body><div class="empty">Run a simulation to see results here</div></body></html>"""
 
 
+# The simulation's clock: TDB seconds since the epoch t0 (engine.time_system), shown in hours. Its
+# elapsed time differs from UTC's by the change of TDB - TT (+-1.7 ms over a year) and any leap second
+# in the run (none since 2017); the Epoch (UTC) axis takes both into account.
+ELAPSED_AXIS_TITLE = "Elapsed time since t0, TDB [h]"
+ELAPSED_AXIS_TITLE_RECORDED = "Elapsed time since t0, TDB [s]"  # Plot units: as recorded (gui.units.plot_units)
 _X_AXES = (("elapsed", "Elapsed time"), ("epoch", "Epoch (UTC)"), ("orbit", "Orbit number"))
 _EVENT_LABELS = {event_model.ECLIPSE: "Eclipses", event_model.ACCESS: "Passes", event_model.BURN: "Burns",
                  event_model.THRUSTER: "Thruster firings", event_model.MODE: "Modes",
@@ -1169,7 +1180,9 @@ class ResultsWidget(QWidget):
                 note = orbit_number.reference_note(self._result, spacecraft)
                 suffix = ", from the X axis" if "X axis" in note else ""  # an equatorial orbit has no node
                 return np.interp(time_s, ref_t, ref_n), f"Orbit number ({spacecraft}{suffix})"
-        return time_s / 3600.0, "Elapsed time [hr]"
+        if units.plot_units() == "recorded":
+            return time_s, ELAPSED_AXIS_TITLE_RECORDED
+        return time_s / 3600.0, ELAPSED_AXIS_TITLE
 
     def _subtitle(self) -> str:
         """ "t0 = 2030-01-01 08:30:00 UTC" under a title, for an elapsed-time
@@ -1194,7 +1207,7 @@ class ResultsWidget(QWidget):
         return dict(l=left, r=30, t=78 if self._subtitle() else 60, b=50)
 
     def _build_figure(self, name: str, series: TimeSeries) -> go.Figure:
-        display = _categorize(name, series) or _legacy_display(name, series)
+        display = _shown(name, series)
         display_data = series.data * display.factor
         x_values, x_label = self._x_axis_values(series.time_s)
         is_datetime_axis = self._x_mode() == "epoch" and x_label == "Epoch (UTC)"
@@ -1337,7 +1350,8 @@ class ResultsWidget(QWidget):
         other = self.comparison_run()
         return (mode, self._epoch_utc, self._compact(), self._orbit_reference()[0] if mode == "orbit" else None,
                 frozenset(self._hidden_kinds), None if other is None else other.number,
-                None if self._current_run is None else self._current_run.number, self._theme_generation)
+                None if self._current_run is None else self._current_run.number, self._theme_generation,
+                units.plot_units())
 
     def _cached_plot(self, name: str) -> go.Figure | None:
         """``name``'s figure: the one built before when nothing it shows has
@@ -1449,7 +1463,7 @@ class ResultsWidget(QWidget):
             title=pt.title(TOKENS, title, subtitle),
             # Fixed to the run: the end-of-pass ticks would otherwise pad
             # the axis to before t = 0.
-            xaxis=dict(axis_common, title_text="Elapsed time [hr]", exponentformat="none",
+            xaxis=dict(axis_common, title_text=ELAPSED_AXIS_TITLE, exponentformat="none",
                        separatethousands=True, range=[0.0, t_end_hr]),
             yaxis=dict(axis_common, title_text=None, categoryorder="category descending"),
             **_template_layout(),
@@ -1812,7 +1826,7 @@ class ResultsWidget(QWidget):
             series = self._result.series.get(name)
             if series is None:
                 continue
-            display = _categorize(name, series) or _legacy_display(name, series)
+            display = _shown(name, series)
             labels = dict(display.columns or {})
             if len(series.columns) == 1 and not labels and display.y_label:
                 labels = {series.columns[0]: display.y_label}
