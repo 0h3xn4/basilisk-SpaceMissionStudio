@@ -83,7 +83,7 @@ from Basilisk.utilities.supportDataTools.dataFetcher import DataFile
 from ..schema.command import runs_sequence
 from ..schema.epochs import parse_epoch_utc
 from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
-from .. import constants, dependencies, output_provenance
+from .. import constants, dependencies, output_provenance, plugins
 from ..config import models as model_registry, registry
 from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario, preset_records, value_mark_records
 from . import (atmosphere_tables, data_handling, earth_orientation, effective_config, environment_models, formation_control, frames, fsw,
@@ -2430,6 +2430,7 @@ class SimulationService:
             value_marks=value_mark_records(self.scenario),
             presets=preset_records(self.scenario),
             models=dict(self._run_models),
+            plugins=plugins.records(self.scenario),
         )
 
     def nominal_provenance(self) -> RunProvenance:
@@ -2819,6 +2820,9 @@ class SimulationService:
         links = [sc for sc in scenario.spacecraft if sc.rf_link is not None]
         if chosen == registry.default(choice) or not links or not scenario.ground_stations:
             return
+        self._run_models[choice] = model_registry.record(model_registry.model(choice, chosen))
+        if chosen != "itu_r_p676":  # a plugin's model (spacemissionstudio.plugins): its own data, its own checks
+            return
         try:
             for sc_config in links:
                 link_budget.atmospheric_zenith(sc_config.rf_link, scenario)
@@ -2827,7 +2831,6 @@ class SimulationService:
         found = gaseous_attenuation.installed()
         self._data_files["itu_p676_part1"] = dependencies.installed_file_record(found.path, found.sha256,
                                                                                 source=found.source)
-        self._run_models[choice] = model_registry.record(model_registry.model(choice, chosen))
         low_deg = gaseous_attenuation.MIN_ELEVATION_DEG  # [deg]
         low_stations = [gs.name for gs in scenario.ground_stations if gs.min_elevation_deg < low_deg]
         if low_stations:

@@ -976,6 +976,28 @@ def cmd_earth_orientation(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_plugins(args: argparse.Namespace) -> int:
+    """The plugins loaded (``spacemissionstudio.plugins``) and what each
+    added; those that could not be loaded, with the reason (exit status 5)."""
+    from . import plugins
+    from .config import registry
+
+    registry.parameters()  # loads them
+    loaded, problems = plugins.loaded(), plugins.problems()
+    if not loaded and not problems:
+        print(f"No plugins installed (entry-point group {plugins.GROUP!r}; see docs/user-manual/plugins.md).")
+        return 0
+    for plugin in loaded:
+        print(f"{plugin.name}  ({plugin.distribution} {plugin.version})")
+        for label, items in (("parameters", plugin.parameters), ("rules", plugin.rules),
+                             ("models", [f"{choice}: {name}" for choice, name in plugin.models])):
+            if items:
+                print(f"  {label}: {', '.join(items)}")
+    for problem in problems:
+        print(f"ERROR: {problem}", file=sys.stderr)
+    return EXIT_CHECK_FAILED if problems else 0
+
+
 def cmd_history(args: argparse.Namespace) -> int:
     """A scenario's change history (``spacemissionstudio.history``), newest
     first; --spacecraft and --field filter it. Reads the file only."""
@@ -1715,6 +1737,9 @@ def build_parser() -> argparse.ArgumentParser:
                             help="install Earth PCK .bpc files from disk (a .cmt next to each is read too)")
     eop_action.add_argument("--rollback", action="store_true", help="restore the previously installed files")
     p_eop.set_defaults(func=cmd_earth_orientation)
+
+    p_plugins = subparsers.add_parser("plugins", help="the plugins loaded: their parameters, rules and models")
+    p_plugins.set_defaults(func=cmd_plugins)
 
     p_history = subparsers.add_parser("history", help="a scenario's change history, newest first (reads only)")
     p_history.add_argument("scenario", type=Path)

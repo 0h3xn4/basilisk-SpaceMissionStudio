@@ -56,6 +56,7 @@ class Model:
     evidence: tuple[str, ...]  # the tests that check it, "tests/<file>.py::<test>"
     applies_to: str  # the records it is written into: "monte_carlo" (a batch's provenance)
     sets: tuple[tuple[str, object], ...] = ()  # (parameter, value): the values it gives other parameters
+    plugin: str = ""  # the plugin that added it (spacemissionstudio.plugins); "" for a built-in one
 
 
 _MODELS: dict[str, dict[str, Model]] = {}
@@ -70,6 +71,12 @@ def register(*models: Model) -> None:
                 and model.references and model.evidence):
             raise ValueError(f"model {model.name!r} of {model.choice!r}: every part of its declaration is needed")
         declared[model.name] = model
+
+
+def unregister(choice: str, name: str) -> None:
+    """Take back a plugin's model (``spacemissionstudio.plugins``)."""
+    if _MODELS.get(choice, {}).get(name) is not None and _MODELS[choice][name].plugin:
+        del _MODELS[choice][name]
 
 
 def choices() -> list[str]:
@@ -115,6 +122,8 @@ def set_by(name: str, chosen: dict) -> Model | None:
 def record(found: Model) -> dict:
     """``found`` as a provenance record keeps it."""
     out = {"model": found.name, "title": found.title, "method": found.method, "references": list(found.references)}
+    if found.plugin:
+        out["plugin"] = found.plugin
     if found.sets:
         out["sets"] = {name: list(value) if isinstance(value, tuple) else value for name, value in found.sets}
     return out

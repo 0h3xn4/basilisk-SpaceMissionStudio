@@ -91,10 +91,17 @@ altitude); every lifetime is checked against both disposal rules,
 `lifetime.zero_debris_years` (5) and `lifetime.iadc_years` (25). A choice
 of model would add nothing a project file cannot already set.
 
-The other models the plan names (link losses with ITU-R P.676's gaseous
-attenuation, a realistic power degradation) wait for their sources: the
-recommendation's text and validation examples, and a published
-degradation model (the transparency plan, Phase 6b).
+### Models of your own (plugins)
+
+A plugin, a Python package installed next to SpaceMissionStudio, can add
+models to `link.atmospheric_loss`, `power.degradation` and
+`propellant_budget.margin_policy`, with the same declaration as the
+models above, and parameters and pre-run rules of its own. Each run
+records the plugins loaded and names a plugin's model with its plugin.
+A plugin cannot add what Basilisk simulates (a sensor, an actuator, a
+flight-software mode, an atmosphere or shadow model). A plugin's models
+are documented by its own package, not here:
+[Add your own models and rules](../user-manual/plugins.md).
 
 ## Not yet covered
 
