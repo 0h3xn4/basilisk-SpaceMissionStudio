@@ -62,7 +62,7 @@ The objectives, in order:
 No project master schedule exists. Development is continuous and driven by
 the user's requests. Releases are made when the user decides, tagged, not
 signed (decision 11). The current release is 2.0.0, the transparency
-work and Python 3.14 (prepared 2026-11-03); before it 1.3.1, a faster
+work and Python 3.14 (published 2026-11-03); before it 1.3.1, a faster
 window (2026-10-27), 1.3.0, the UI overhaul (2026-10-26),
 1.2.0, starting a mission from scratch (2026-10-21), and before 1.2.0 came 1.1.1, the self-contained
 installers (2026-10-21), 1.1.0 (2026-10-20) and 1.0.0 (2026-10-14), which
