@@ -7,12 +7,14 @@ disk on a machine without internet, and undo an update.
 
 | Data | Used for | Comes from | Size |
 |---|---|---|---|
-| SPICE kernels (leap seconds, planet positions, masses, orientations) | Time, Sun and Moon positions | NAIF | about 116 MB with the next two |
+| SPICE kernels (leap seconds, planet positions, masses, orientations) | Time, Sun and Moon positions | NAIF | about 116 MB with the next three |
 | Gravity fields (GGM03S, GGM2B) | Earth's and Mars's detailed gravity | the Basilisk repository | |
 | Magnetic model (WMM2025) | Torque rods, magnetometers | the Basilisk repository | |
+| Albedo maps (Earth CERES, Mars TES) | Reflected sunlight on the sun sensors | the Basilisk repository | |
 | Space weather (observed F10.7 and Ap) | Atmospheric density, so drag | CelesTrak; a copy is bundled | about 3 MB |
 | Solar-activity prediction | Drag after the observed record ends | NASA MSFC; bundled | small |
 | Earth orientation (IERS-based NAIF Earth PCKs) | Measured Earth rotation | NAIF | about 36 MB |
+| 433 Eros ephemeris and shape model | A run around Eros ([small bodies](small-body-navigation.md)) | NAIF and the Basilisk repository; downloaded on request | about 5 MB |
 | ITU-R P.676-13, data file Part 1 | The atmospheric gases' attenuation of the radio link, when a project chooses it (`link.atmospheric_loss`) | the ITU; the installers fetch it | 44 kB |
 
 Runs never download anything. Space weather is always real data: the
@@ -45,8 +47,8 @@ the source, the files and their size; the default is No. Afterwards it
 says what changed.
 
 From the command line: `spacemissionstudio kernels-status` (support data),
-`spacemissionstudio earth-orientation --fetch` and `spacemissionstudio
-gaseous-attenuation --fetch`. Part 1 is installed only if it is the ITU's
+`spacemissionstudio earth-orientation --fetch`, `spacemissionstudio
+small-bodies --fetch` and `spacemissionstudio gaseous-attenuation --fetch`. Part 1 is installed only if it is the ITU's
 file, byte for byte (its size and SHA-256 are in the code).
 
 Hosts to allow through a firewall: `naif.jpl.nasa.gov`,
@@ -61,10 +63,11 @@ Hosts to allow through a firewall: `naif.jpl.nasa.gov`,
    `SW-All.csv`.
 2. On the offline machine, **Import file...** in the **Reference data**
    dialog installs a
-   space-weather, Earth orientation or ITU-R P.676-13 Part 1 file from
-   disk. From the command line: `spacemissionstudio earth-orientation
-   --import FILE.bpc`, `spacemissionstudio gaseous-attenuation --import
-   FILE.txt`.
+   space-weather, Earth orientation, Eros ephemeris or ITU-R P.676-13
+   Part 1 file from disk. From the command line: `spacemissionstudio
+   earth-orientation --import FILE.bpc`, `spacemissionstudio
+   small-bodies --import FILE`, `spacemissionstudio
+   gaseous-attenuation --import FILE.txt`.
 3. Support data (SPICE kernels, gravity, magnetic model) goes into
    Basilisk's own cache; copy that folder (`kernels-status` prints where
    it is).
@@ -87,6 +90,7 @@ earth-orientation --rollback`.
 | Space-weather downloads | `~/.cache/SpaceMissionStudio/spaceweather/` |
 | Earth orientation | Downloads and imports: `~/.cache/SpaceMissionStudio/earth_orientation/`, used first. The installers also put a copy, as current as the installer, inside the install folder |
 | ITU-R P.676-13 Part 1 | Downloads and imports: `~/.cache/SpaceMissionStudio/itu_p676/`, used first. The installers also put a copy inside the install folder |
+| Eros ephemeris | `~/.cache/SpaceMissionStudio/small_bodies/` (the shape model goes into Basilisk's cache, with the support data) |
 | Vizard download | `~/.cache/SpaceMissionStudio/vizard/` |
 
 **More detail:** User Manual section 7, the **Reference data** paragraph of

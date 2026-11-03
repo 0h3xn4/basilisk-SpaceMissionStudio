@@ -7,7 +7,7 @@ far apart the results end up.
 
 1. In the scenario tree, open the **Monte Carlo** page and tick
    **Enabled**.
-2. Set how many runs, and how many run in parallel.
+2. Set how many runs, and how many run in parallel (**Thread count**).
 3. Add one or more **dispersions**: which quantity varies, for which
    spacecraft, and by how much. A new dispersion starts at the
    spacecraft's own value (dry mass, drag or radiation-pressure
@@ -16,14 +16,15 @@ far apart the results end up.
 4. Set the mode beside **Run** to **Monte Carlo**, press **Run**, and
    choose a folder (or set it first under **Archive folder** on **Run >
    Run**, where it is remembered for the scenario). Every run is saved there; the progress in the status bar counts
-   the cases done. A batch runs to the end: it cannot be cancelled.
+   the cases done. **Cancel** (`Esc`) stops the batch: the runs
+   finished stay in the folder and **Results > Monte Carlo** opens on them.
 
 What can vary:
 
 | Quantity | Varies | Kinds |
 |---|---|---|
 | `dry_mass_kg` | Dry mass [kg] | uniform, normal |
-| `attitude_sigma_bn` | Starting attitude | uniform |
+| `attitude_sigma_bn` | Starting attitude | uniform_euler_mrp |
 | `orbit_elements` | Each orbital element of the starting orbit | normal, uniform |
 | `inertia_kg_m2` | The inertia [kg m^2] | normal |
 | `angular_rate_bn_b` | Starting body rate [deg/s] | normal, uniform |

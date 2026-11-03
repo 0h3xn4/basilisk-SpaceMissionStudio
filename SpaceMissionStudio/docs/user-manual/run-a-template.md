@@ -32,8 +32,8 @@ spacemissionstudio run spacemissionstudio/scenarios/templates/22_starter_first_l
 ```
 
 You should see `Wrote 20 result file(s) to out:` followed by the files.
-`out/` then has one CSV file per quantity, `events.csv` and
-`provenance.json`.
+`out/` then has one CSV file per quantity, `events.csv`,
+`provenance.json` and `scenario_as_run.json` (the scenario as it was run).
 
 ## Which template?
 

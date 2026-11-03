@@ -18,7 +18,7 @@
 
 """Run a bundled template headlessly and look at what came out (needs Basilisk).
 
-The same three steps as the GUI's Run Simulation, in code:
+The same three steps as the GUI's Run, in code:
 
 1. ``load_scenario()`` reads a scenario file (any template, or your own).
 2. ``SimulationService(scenario).run()`` builds the Basilisk simulation and
@@ -27,7 +27,7 @@ The same three steps as the GUI's Run Simulation, in code:
 3. The ``ResultSet`` holds one ``TimeSeries`` per plotted quantity
    (``result.series["my-sat.position_N"]``: time in seconds since the
    epoch, a data array, column names and units). ``events.extract_events()``
-   lists the passes, eclipses and burns of the Events tab.
+   lists the passes, eclipses and burns of the Timeline.
 
 Run it from the SpaceMissionStudio folder::
 

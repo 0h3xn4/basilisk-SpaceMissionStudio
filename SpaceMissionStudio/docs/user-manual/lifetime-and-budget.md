@@ -38,6 +38,10 @@ WARNING: past 2041-10 MSFC's last 132 months repeat (ESA AD10 Sec. 5.9)
 
 The warnings are normal for a mission after the observed record ends.
 
+**Show calculation** (beside the result) opens how each figure was computed:
+its equation, its inputs with their units and sources, and the rule applied.
+On the command line, add `--explain`.
+
 To compare altitudes, [`examples/altitude_lifetime_sweep.py`](../../examples/altitude_lifetime_sweep.py)
 prints a table (400 km: 2.65 years, 550 km: 17.26 years).
 
@@ -66,6 +70,8 @@ Two trades, as AD10 asks:
 |---|---|---|
 | **Launch delays** | What if the launch is 1 to 5 years late (a different part of the solar cycle)? | A minute or two |
 | **Altitude trade** | Which altitude fits the tank, at the worst launch date? | About ten minutes |
+
+**Show calculation** on the Budget page does the same for the budget's rows.
 
 From the command line:
 
