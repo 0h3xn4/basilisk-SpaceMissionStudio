@@ -160,6 +160,7 @@ made with. The GUI writes the same bundle from Results › Plots ›
 | `budget scenario.json --explain` | After the table, how each number was computed: the equation, each input with its unit and where it came from, and the AD10 section |
 | `spaceweather-resolve scenario.json` | Which space-weather file a run would use |
 | `assumptions [scenario.json]` | The named parameters: value, unit and source, and which ones the scenario's configuration file changes (`--changed`, `--area`, `--yaml` for the defaults file); see [Change a parameter](project-configuration.md) |
+| `plugins` | The plugins installed: each one's parameters, rules and models, and any that could not be loaded (exit status 5); see [Add your own models and rules](plugins.md) |
 
 ```console
 $ spacemissionstudio lifetime spacemissionstudio/scenarios/templates/22_starter_first_leo_satellite.json

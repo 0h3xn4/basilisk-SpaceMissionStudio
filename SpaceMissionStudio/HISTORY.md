@@ -14544,6 +14544,37 @@ The transparency plan, Phase 8a. Branch `display-units`.
 
 Full suite on Python 3.14: 4,402 passed (29 min 54 s).
 
+## Plugins: models, rules and parameters of your own (2026-11-03)
+
+The transparency plan, Phase 6c. Branch `model-plugins`.
+
+- **`spacemissionstudio/plugins.py`:** the entry-point group
+  `spacemissionstudio.models`; `PluginAPI` (`add_parameter`, `add_rule`,
+  `add_model`), `load` (once, at the registry's first use; never raises),
+  `unload`, `loaded`, `problems`, `records`, `implementation`,
+  `check_findings`. The choices a plugin may add a model to are
+  `PLUGGABLE`: `link.atmospheric_loss`, `power.degradation`,
+  `propellant_budget.margin_policy`.
+- **`config`:** `Model.plugin` (recorded when set), `models.unregister`,
+  `registry.unregister` and `replace_choices`; the registry loads the
+  plugins after declaring its own parameters.
+- **The engine:** `link_budget.atmospheric_loss_function` (ITU-R P.676 or
+  a plugin's, once per link) used by the budget, the margin series, data
+  handling's gate and the flight software's; a plugin model's trace;
+  `solar_degradation`'s `plugin_factor`; the plugins' rules in
+  `scenario_checks.scenario_warnings`; `RunProvenance.plugins` and the analyses' records, each plugin
+  parameter with its value in effect; ITU-R
+  P.676's Part 1 recorded and checked only with that model.
+- **The app and command line:** the Assumptions page names the plugins
+  loaded and those not; `spacemissionstudio plugins`.
+- **Docs:** `docs/user-manual/plugins.md`, with an example plugin the
+  tests run; the models README, the command-line page, the User Manual.
+- **Tests:** `tests/test_plugins.py` (14).
+- **Numbers:** none change; with no plugin installed every path is the
+  one before.
+
+Full suite on Python 3.14: 4,410 passed (29 min 23 s).
+
 ## The change history: the History view and labelled Undo (2026-11-02)
 
 The transparency plan, Phase 7, its last part. Branch `history-view`.

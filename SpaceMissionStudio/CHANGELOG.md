@@ -543,6 +543,18 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   bar's last-run time names its zone. **Settings > Appearance > Plot
   units** shows the plots and the run comparison as recorded (SI) in
   place of the display units. No number computed changes.
+- **Your own models, checks and parameters, without editing the tool
+  (plugins):** a Python package that declares an entry point in the group
+  `spacemissionstudio.models` adds, under its own name, parameters (set
+  in a project file, listed on the Assumptions page), pre-run rules (each
+  with its rule, why and fix) and models of `link.atmospheric_loss`,
+  `power.degradation` and `propellant_budget.margin_policy`, declared
+  like the built-in ones. A run records the plugins loaded, and a model's
+  plugin. A plugin that fails is left out and named
+  (`spacemissionstudio plugins`, the Assumptions page);
+  `SPACEMISSIONSTUDIO_PLUGINS=0` loads none. A plugin cannot add what
+  Basilisk simulates. See `docs/user-manual/plugins.md`. With none
+  installed, nothing changes.
 - **Every save records what it changed:** in `mission.history.jsonl`
   beside `mission.json`, one line per value with its old and new value,
   the time, the author (the user name for now), what saved it (the app

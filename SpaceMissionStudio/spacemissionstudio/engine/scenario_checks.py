@@ -344,6 +344,9 @@ def scenario_warnings(scenario) -> list[str]:
         warnings += _checked(name, check, scenario)
     for sc in scenario.spacecraft:
         warnings += _checked(f"{sc.name} devices", _spacecraft_warnings, sc, scenario)
+    from .. import plugins
+
+    warnings += plugins.check_findings(scenario)  # the installed plugins' rules (Phase 6c)
     return warnings
 
 

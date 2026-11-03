@@ -539,6 +539,9 @@ fixed:
   written into the file, on its own line, so the file's comments stay.
   Changed values are in bold, and **Changed values only** lists just
   those. See [Change a parameter](docs/user-manual/project-configuration.md).
+  Installed plugins (your organization's own parameters, checks and
+  models) are named under the file field, with any that could not be
+  loaded; see [Add your own models and rules](docs/user-manual/plugins.md).
 
 **Form · JSON**, at the top of the area, shows the scenario as it is
 saved, as text you can edit, in place of the tree. An edit there applies

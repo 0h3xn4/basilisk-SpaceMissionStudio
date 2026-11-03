@@ -159,10 +159,11 @@ class RunProvenance:
     # Phase 6b; e.g. dynamics.shadowing_bodies with the bodies that shadow).
     # Empty when every model is its default, and in a record from before.
     models: dict[str, object] = field(default_factory=dict)
+    plugins: list = field(default_factory=list)  # the plugins loaded (spacemissionstudio.plugins), when any
 
     def to_dict(self) -> dict:
         record = asdict(self)
-        for key in ("value_marks", "presets", "models"):  # recorded only when there are some: a run's record is as before
+        for key in ("value_marks", "presets", "models", "plugins"):  # recorded only when there are some: a run's record is as before
             if not record[key]:
                 del record[key]
         return record
