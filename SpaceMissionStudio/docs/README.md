@@ -36,6 +36,7 @@ to do. New here? Start with **Getting started**.
 | [Packaging](../packaging/README.md) | How the installers are built, and what was run where |
 | [Compliance records](../compliance/README.md) | ECSS and CCSDS requirements, design, verification and the compliance matrix |
 | [Changelog](../CHANGELOG.md) | What changed in each release |
+| [Changes to results](changes.md) | Each fix that changed a computed value, with its before and after figures |
 
 ## Examples
 

@@ -8,6 +8,17 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+- **Documentation brought up to date with 2.0.0:** the front-page README
+  names version 2.0.0 and Python 3.14 (it still said 1.3.0 and 3.11);
+  the command-line guide lists every command and option (`history`,
+  `small-bodies`, `gaseous-attenuation` and the options of `run`,
+  `monte-carlo`, `lifetime`, `link-budget`, `export-fsw`, `sil` and the
+  `generate-*` commands were missing) and no longer repeats a paragraph;
+  the design document (SDD) describes 2.0.0's `api`, `config`, `plugins`,
+  `history` and `reproduction`. Nothing the tool computes changes.
+
 ## 2.0.0 (2026-11-03)
 
 A glass box. Every figure the tool shows can now be traced to how it was

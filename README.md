@@ -5,7 +5,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-[![Version 1.3.0](https://img.shields.io/badge/version-1.3.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.3.0)
+[![Version 2.0.0](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.0.0)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -37,9 +37,10 @@ battery, link margin, lifetime and propellant.
 has a `.deb` (`sudo apt install ./spacemissionstudio_<version>_amd64.deb`),
 a Windows setup program and the wheel. From 1.1.1 both installers bring
 their own Python, Basilisk and reference data, and install with no
-internet.
+internet. Installing from source needs Python 3.14 on the computer; older
+versions are not supported.
 
-**From source**, on Linux with Python 3.11 or newer (Windows: see
+**From source**, on Linux with Python 3.14 (Windows: see
 [Getting started](SpaceMissionStudio/docs/getting-started.md)):
 
 ```bash
@@ -94,6 +95,10 @@ A few seconds later **Results > Plots** shows the orbit and the
 - **Results:** interactive plots, an events timeline, a shared time
   cursor, run comparison, CSV, PNG and SVG export, provenance on every
   output.
+- **Transparency:** **Show calculation** beside a figure opens its
+  equation, inputs and rule; named parameters a project file can change;
+  a change history beside each scenario; plugins with models and rules
+  of your own; reproduction bundles that run again on another computer.
 - **Exchange:** CCSDS orbit messages; flight-software export as a C
   project; software-in-the-loop testing.
 - **3D view** in Vizard; a **command line** for every analysis; a
@@ -106,7 +111,7 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 | | |
 |---|---|
 | System | Linux x86_64 or aarch64 (glibc 2.28 or newer), Windows 10 or 11 x86_64 |
-| Python | None for the installers (they bring Python 3.11); 3.11 or newer from source. CI tests 3.11 (Basilisk's wheels go up to 3.14) |
+| Python | None for the installers (they bring Python 3.14); 3.14 from source (older versions are not supported). CI tests 3.14 |
 | Basilisk | 2.12.0: in the installers, or from PyPI |
 | Disk | About 1.7 GB, including the reference data |
 | Internet | None for the installers; once from source, to install and fetch the reference data |
@@ -115,15 +120,20 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE),
   [`SpaceMissionStudio/LICENSE`](SpaceMissionStudio/LICENSE)).
-- **Version:** 1.3.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v1.3.0),
-  [changelog](SpaceMissionStudio/CHANGELOG.md)): the new interface (a
-  navigation rail, a command palette, Results › Overview, the Timeline,
-  Reports › Exports); 1.2.0 guided a mission from scratch, 1.1.1 made
-  the installers self-contained, and 1.0.0 was the first
-  release of the renewed tool, and the version numbers used before the
-  renewal are withdrawn.
-- **Platforms:** the Linux `.deb` and the Windows setup program are
-  built, installed and run by the release workflow
+- **Version:** 2.0.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.0.0),
+  [changelog](SpaceMissionStudio/CHANGELOG.md)): a glass box. Every
+  figure opens its calculation, every rule is a parameter a project file
+  can change, every result can be reproduced from its folder, and a
+  Python API scripts the same numbers. It needs Python 3.14 from source,
+  and 1.x cannot open the scenario files it saves. Before it: 1.3.x made
+  the interface new (a navigation rail, a command palette, the Timeline,
+  Reports › Exports), 1.2.0 guided a mission from scratch, 1.1.1 made
+  the installers self-contained, and 1.0.0 was the first release of the
+  renewed tool; the version numbers used before the renewal are
+  withdrawn.
+- **Platforms:** the Linux `.deb`, the Windows setup program and the
+  wheel are built, and the two installers installed and run, by the
+  release workflow
   ([`packaging/README.md`](SpaceMissionStudio/packaging/README.md)); the
   test suite runs in CI on Linux and Windows. macOS is not supported.
 - **Known gaps:** [Known limitations](SpaceMissionStudio/docs/reference/limitations.md).

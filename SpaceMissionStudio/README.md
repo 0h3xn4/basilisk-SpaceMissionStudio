@@ -121,16 +121,15 @@ internet needed.
   every result can be reproduced from its folder, and a Python API
   scripts the same numbers ([definition of done](docs/definition-of-done.md)).
   It needs Python 3.14 from source, and 1.x cannot open the scenario
-  files it saves. 1.3.1 made the window faster. 1.3.0
-  brought a new interface (a navigation rail, the command palette, units
-  in the fields, a Timeline for long runs, every export in Reports), with
-  what the tool computes unchanged
-  ([before and after](docs/ui/BEFORE_AFTER.md)). 1.2.0 guided a mission
-  from scratch to a first run; 1.1.1 made the installers for
-  Linux and Windows self-contained; 1.1.0 added relative-orbital-element formations, optical and
-  landmark navigation, asteroid Eros, Mars's gravity field and albedo on
-  the sun sensors, after 1.0.0, the first release of the renewed tool.
-  From source it needs Python 3.14.
+  files it saves. Before it: 1.3.1 made the window faster; 1.3.0 brought
+  a new interface (a navigation rail, the command palette, units in the
+  fields, a Timeline for long runs, every export in Reports) with what
+  the tool computes unchanged ([before and after](docs/ui/BEFORE_AFTER.md));
+  1.2.0 guided a mission from scratch to a first run; 1.1.1 made the
+  installers for Linux and Windows self-contained; 1.1.0 added
+  relative-orbital-element formations, optical and landmark navigation,
+  asteroid Eros, Mars's gravity field and albedo on the sun sensors; and
+  1.0.0 was the first release of the renewed tool.
 - **Platforms:** 2.0.0 has the Linux `.deb`, the Windows setup program
   and the wheel. Both installers carry their own Python, Basilisk and
   reference data; each was installed and run offline by the release
