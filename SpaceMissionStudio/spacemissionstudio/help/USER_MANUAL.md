@@ -850,6 +850,35 @@ worked example.
 
 ![The 3D model editor: the parts on the left, the selected part's settings in the middle, the model in 3D on the right and its mass properties below](docs/images/model_editor.png)
 
+### Analyses built on the 3D model
+
+A spacecraft's 3D model can carry its equipment (the sensors, actuators
+and antenna already defined, given a `mount`, and items of its own in
+`equipment`), a stowed configuration (`stowed`), materials, maturity
+categories and a launcher envelope. With them:
+
+- **Run › Design Checks** checks without running: the parts in each field
+  of view, the thrusters' torque arms and authority, plume impingement
+  (geometry only), the mass budget with AIAA S-120-2006 growth
+  allowances, and the stowed spacecraft against the launcher envelope.
+  Its findings also show in the Problems panel.
+- The spacecraft editor's **3D model** page, group **Model analyses**,
+  chooses what a run computes: the disturbance torques (drag and sunlight
+  as Basilisk computes them, gravity gradient, residual dipole) with the
+  momentum and the wheel and magnetorquer sizing; sensor blinding by the
+  Sun, Earth and Moon; antenna obstruction during passes; array shading
+  and its power; atomic oxygen and sun hours per face; the brightness
+  seen from the ground. After the run they are in **Results › Model
+  Analyses**, the plots and the Timeline.
+- **Run › End of Life › Re-entry casualty (preliminary)** estimates which
+  parts survive re-entry and the casualty risk. It is a preliminary
+  estimate, not a substitute for DAS, DRAMA or SESAM.
+
+Every number comes with its method and source
+(`docs/models/model-analyses.md`, `docs/models/reentry.md`); ray-cast
+results come with their sampling error. Template 32 shows them all. On
+the command line: `check-design`, `model-analyses` and `reentry`.
+
 ### Flexible solar arrays
 
 **Flexible solar arrays** (the spacecraft's **Orbit / mass** page) lists
@@ -1648,7 +1677,7 @@ anyone who hasn't worked with spacecraft before:
 
 * **More templates to learn from:**
   [`spacemissionstudio/scenarios/templates/README.md`](spacemissionstudio/scenarios/templates/README.md)
-  describes what each of the thirty-one built-in templates teaches, in
+  describes what each of the thirty-two built-in templates teaches, in
   more depth than the in-app description box.
 * **Scripting it from Python:** [`examples/`](examples/README.md) builds
   a scenario in code, runs templates, writes a Mission Sequence, sweeps a

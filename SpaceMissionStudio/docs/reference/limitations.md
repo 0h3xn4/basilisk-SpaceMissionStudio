@@ -180,6 +180,44 @@ Each item was checked against Basilisk's own source.
     eclipse waits for another, and the formation can move meanwhile
     (template 29's along-track offset slips 2 km this way).
 
+* **Analyses built on the 3D model (`analyses/`, `model3d/raycast.py`).**
+  Out of scope, by design:
+  * any change to Basilisk, including self-shadowing in drag or solar
+    radiation pressure: those stay as Basilisk computes them, and the
+    shadowing here is the app's own analyses' only;
+  * radiation doses and effects; structural analysis (stiffness and
+    fundamental frequencies are not checked against a launcher); plume
+    physics (the plume check is a cone of the user's half-angle);
+    reaction-control (RCS) sizing; high-fidelity break-up; CubeSat
+    checks (the target is 100 kg and above).
+
+  Limits of what is done:
+  * Model parts do not articulate: the checks use the deployed and the
+    stowed configurations, the run analyses the deployed one, and a
+    flexible array's deflection is not followed (decision D-04). There is
+    no mass-property switch at a deployment in the Mission Sequence
+    (D-05).
+  * Ray-cast results are sampled: each comes with its standard error;
+    raise `model_analyses.samples` to shrink it.
+  * The atomic-oxygen density counts all the neutral density as oxygen,
+    an upper bound (D-08); brightness is diffuse only (D-10); "dark" is
+    the Sun below a depression angle, by default geometric sunset (D-17).
+  * The disturbance torques use the hub's centre of mass and inertia:
+    moving propellant and flexible arrays do not change them.
+  * The launcher envelope library is empty: an envelope and its limits
+    are the user's, with their source (D-11). No margin is required on
+    the wheels and magnetorquers, only a shortfall flagged (D-18).
+  * The re-entry estimate is preliminary and simplified (one lumped mass
+    per part, a planar descent, the emissivity bracketed): not a
+    substitute for DAS, DRAMA or SESAM. Its population density is the
+    user's (D-16). See [the method](../models/reentry.md).
+  * Star-tracker Sun, Earth and Moon exclusion angles have no default:
+    no datasheet could be read (D-12).
+  * The 3D model editor does not yet edit the equipment, the stowed
+    configuration, materials or the launcher, nor draw the fields of view
+    and plume cones: these are set in the scenario file (the JSON view)
+    for now (D-21).
+
 ## Planned, not yet built
 
 Scoped from real use, with the detail in

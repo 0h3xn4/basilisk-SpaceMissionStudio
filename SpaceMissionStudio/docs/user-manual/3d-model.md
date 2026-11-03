@@ -169,6 +169,17 @@ Elsewhere in the app:
 `--apply` writes its values into the file; `--export-obj` saves it. See
 [Use the command line](command-line.md#3d-models).
 
+## Equipment, stowed configuration, materials and the analyses
+
+The model can also carry the spacecraft's mounted equipment (with
+boresights, fields of view and exclusion angles), a stowed configuration,
+materials and maturity categories, and a launcher envelope. With them the
+tool checks the design and analyses a run: see
+[Analyses built on the 3D model](model-analyses.md). In this version these
+are set in the scenario file (the Scenario's JSON view) and, for the
+analyses of a run, in the spacecraft editor's **3D model** page; the 3D
+model editor shows the parts, not yet the equipment's cones.
+
 ---
 
 **Next:** [Attitude and hardware](attitude-and-hardware.md) ·

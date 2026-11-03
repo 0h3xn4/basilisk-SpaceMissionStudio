@@ -30,6 +30,8 @@ estimate away from the Sun (template 14).
 [F10.7](#f), it sets how dense the upper atmosphere is, and so how much
 [drag](#d) a low satellite feels.
 
+**Atomic oxygen (AO)** -- single oxygen atoms, the main gas of the upper atmosphere in low Earth orbit. A surface facing the direction of flight is hit by them and some materials (Kapton, Mylar) erode; the erosion is the number of atoms per area (the fluence) times the material's erosion yield.
+
 **Attitude** -- which way a spacecraft points, as opposed to where it is.
 "Attitude control" keeps it pointed at a target: the ground, the Sun, a
 ground station or a planet.
@@ -44,6 +46,8 @@ SpaceMissionStudio. This repository is a fork of it.
 of; its gain or field of view is centred on it.
 
 ## C
+
+**Casualty area** -- the area over which falling debris could hurt a person: for each fragment that reaches the ground with more than 15 J, `(0.6 + sqrt(A))^2` m^2, `A` its average cross-section and 0.6 m the root of a standing person's. Times the population density it gives the casualty risk.
 
 **CCSDS** -- the Consultative Committee for Space Data Systems, which
 publishes the standard file formats space agencies exchange. SpaceMissionStudio
@@ -105,6 +109,8 @@ atmospheric density and where the ground is all depend on it.
 passes, eclipses, burns and attitude-mode changes. The **Timeline** area
 lists and draws them.
 
+**Exclusion angle** -- how close to its boresight a star tracker or camera tolerates a bright body (the Sun, the Earth's lit limb, the Moon) before it is blinded.
+
 ## F
 
 **F10.7** -- the Sun's radio brightness at 10.7 cm wavelength, a daily
@@ -115,6 +121,8 @@ atmosphere, so low satellites feel more [drag](#d).
 own area, facing direction and centre of pressure. Drag and solar
 pressure push on each plate that faces the flow or the Sun, so both
 depend on the attitude and can twist the spacecraft.
+
+**Field of view (FOV)** -- the cone a sensor, camera or antenna sees, given as its full angle.
 
 **Flexible appendage** -- a large, light part, such as a solar-array
 wing, that bends and swings when the spacecraft turns. Its first mode is
@@ -218,6 +226,8 @@ going north, for example 10:30. It sets the lighting the satellite sees.
 
 ## M
 
+**Maturity (mass)** -- how far a part's mass is known: estimated, from a layout, a design about to be released, a released design, existing hardware, or measured. The less mature, the larger the growth allowance added to it (AIAA S-120-2006).
+
 **Mean elements** -- orbit elements with the short, regular wobbles
 averaged out, so slow trends (such as the orbit plane turning under
 [J2](#j)) are easy to see. The opposite of osculating elements.
@@ -318,6 +328,8 @@ versions, and checksums of the scenario and every reference file used.
 space, where the orbit crosses the equator going north. It sets which way
 the orbit plane faces.
 
+**Ray casting** -- following straight lines (rays) through the 3D model to see what they hit: how the app finds parts in a field of view, a plume or the way of the sunlight.
+
 **Reaction wheel (RW)** -- a spinning wheel inside the spacecraft.
 Speeding it up or slowing it down turns the spacecraft the other way,
 without propellant.
@@ -366,6 +378,8 @@ spacecraft. It matters most for high orbits and large, light spacecraft.
 **Station-keeping** -- small, regular burns that put a satellite back
 where it should be as drag and gravity make it drift.
 
+**Stowed configuration** -- where the deployable parts (arrays, booms, antennas) sit for launch, folded against the bus.
+
 **Sun-synchronous orbit (SSO)** -- a near-polar orbit whose plane turns
 once a year, in step with the Sun, so the satellite passes over each
 latitude at the same local solar time every day. Common for Earth
@@ -399,6 +413,8 @@ unload reaction wheels.
 epoch and time in SpaceMissionStudio is in UTC unless it says otherwise.
 
 ## V
+
+**Visual magnitude** -- how bright an object looks to the eye on a scale where smaller is brighter: the Sun is -26.7, the brightest stars about 0, the faintest seen in a dark sky about 6.
 
 **Vizard** -- Basilisk's separate 3D visualisation program. SpaceMissionStudio
 can stream a run to it live or save a file to play back.

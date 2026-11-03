@@ -10,6 +10,7 @@ do it, and what has been verified.
   - [Orbital dynamics & propagation](#orbital-dynamics--propagation)
   - [Attitude, sensors & actuators](#attitude-sensors--actuators)
   - [3D spacecraft models](#3d-spacecraft-models)
+  - [Analyses built on the 3D model](#analyses-built-on-the-3d-model)
   - [Flight-software export](#flight-software-export)
   - [Software in the loop](#software-in-the-loop)
   - [Mission planning](#mission-planning)
@@ -104,6 +105,32 @@ about it, not about the body origin. The **3D model editor** shows the
 model as it is built; `spacemissionstudio model` reports, applies and
 exports it. See template 28 and
 [Build a 3D model](../user-manual/3d-model.md).
+
+### Analyses built on the 3D model
+
+Mounted equipment (the existing sensors, actuators and antenna, or items of
+the model's own: cameras, nozzles, solar cells, units) with boresights,
+fields of view and exclusion angles; a stowed configuration with its own
+mass properties; a material library with a NASA source per value; maturity
+categories. By ray casting against the parts (exact for every shape, a
+bounding-volume hierarchy for meshes, with a stated sampling error):
+
+- **design checks** (Run › Design Checks, `check-design`): field-of-view
+  obstruction, thruster torque arms and authority with the centre-of-mass
+  drift, plume impingement (geometry), the mass budget with AIAA S-120-2006
+  growth allowances, the stowed spacecraft against a launcher envelope;
+- **in and after a run** (Results › Model Analyses, `model-analyses`): the
+  disturbance torques (aerodynamic and SRP as Basilisk computes them,
+  gravity gradient, residual dipole) with the momentum and the wheel and
+  magnetorquer sizing; sensor blinding by the Sun, Earth and Moon; antenna
+  obstruction during passes; array shading and its power; atomic-oxygen
+  fluence and sun hours per face; the visual magnitude from the ground; as
+  series, Timeline events and tables;
+- **a preliminary re-entry casualty estimate** (End of Life, `reentry`).
+
+Findings go to the Problems panel; every table exports with its
+provenance. See template 32 and
+[Analyses built on the 3D model](../user-manual/model-analyses.md).
 
 ### Flight-software export
 

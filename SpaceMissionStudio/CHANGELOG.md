@@ -8,6 +8,54 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+Analyses built on the 3D model. A spacecraft's model now carries its
+equipment, a stowed configuration, materials and maturity, and the tool
+checks and analyses the design with it, by ray casting against the parts.
+Nothing changes for a scenario that does not ask: every template gives
+the same results as in 2.0.0.
+
+### Added
+
+- **Mounted equipment.** The existing sensors, actuators and RF antenna
+  take an optional `mount` (part, position, boresight, field of view,
+  exclusion angles, plume half-angle); items without a definition (a
+  camera, a nozzle, solar cells, a unit with mass) go in the model's
+  `equipment`. Renaming a part follows every reference to it.
+- **Stowed configuration** (`model.stowed`) with its own mass properties;
+  a **material library** with a NASA source per value
+  (`docs/models/materials.md`); **maturity and subsystem** per part.
+- **Design checks** (Run › Design Checks, `spacemissionstudio
+  check-design`, `api.design_checks`): field-of-view obstruction, thruster
+  authority with the centre-of-mass drift, plume impingement (geometry),
+  the mass budget with AIAA S-120-2006 growth allowances, launcher
+  envelope, mass and centre-of-mass limits. Findings in the Problems panel.
+- **Analyses of a run** (`model_analyses`; Results › Model Analyses,
+  `spacemissionstudio model-analyses`, `api.model_analyses`): disturbance
+  torques recorded in the run (drag and SRP as Basilisk computes them,
+  gravity gradient, residual dipole) with the momentum and the wheel and
+  magnetorquer sizing; sensor blinding; antenna obstruction during passes;
+  array shading and its power; atomic-oxygen fluence and sun hours per
+  face; visual magnitude from the ground. Blinding, obstruction and
+  visibility are Timeline events.
+- **A preliminary re-entry casualty estimate** on End of Life
+  (`spacemissionstudio reentry`, `api.reentry`), labelled preliminary.
+- **Template 32**, the 300 kg small satellite with its equipment mounted,
+  showing a star tracker and a nozzle plume that see an array.
+- Parameters `analyses.observer_sun_depression_deg` and `reentry.*`, with
+  their sources; requirements SRS-F-25 to F-27.
+
+### Not changed
+
+- Basilisk: no change, and no change to drag or SRP (no self-shadowing).
+- The outputs of every existing template (the regression baseline).
+
+See [the guide](docs/user-manual/model-analyses.md), the methods in
+[docs/models/model-analyses.md](docs/models/model-analyses.md) and
+[docs/models/reentry.md](docs/models/reentry.md), and the limitations in
+[docs/reference/limitations.md](docs/reference/limitations.md).
+
 ## 2.0.0 (2026-11-03)
 
 A glass box. Every figure the tool shows can now be traced to how it was

@@ -17,8 +17,8 @@ return are the engine's own (`Scenario`, `ResultSet`, `EndOfLife`,
 `Budget`, ...): their documented fields are part of the API, the ones
 whose names start with `_` are not.
 
-Without Basilisk, `template`, `load`, `validate`, `assumptions` and
-`compare` work; the others need it.
+Without Basilisk, `template`, `load`, `validate`, `assumptions`,
+`compare` and `design_checks` work; the others need it.
 
 ## The functions
 
@@ -36,7 +36,10 @@ Without Basilisk, `template`, `load`, `validate`, `assumptions` and
 | `altitude_trade(scenario, spacecraft=None, altitudes_km=None, result=None)` | `AltitudeTrade` | The sweep at each altitude, against the tank |
 | `monte_carlo(scenario, archive_dir)` | `MonteCarloBatch` | The scenario's Monte Carlo batch, archived with its provenance |
 | `compare(a_scenario, a_result, b_scenario, b_result)` | `Comparison` | Two runs side by side (Results > Compare) |
-| `record(scenario, analysis, ...)` | `dict` | A lifetime's, budget's, sweep's or trade's JSON record, as `--out` writes it |
+| `design_checks(scenario, spacecraft=None, samples=None, base_dir=None)` | `DesignReport` | The 3D model's design checks: field-of-view obstruction, thruster authority and plumes, mass budget, launcher envelope, and their `findings()` |
+| `model_analyses(scenario, result, spacecraft=None)` | `RunReport` | A run's model analyses: the disturbance-torque budget, blinding, antenna obstruction, array shading, exposure and brightness |
+| `reentry(scenario, spacecraft=None, population_density_per_km2=None, base_dir=None)` | `ReentryEstimate` | The preliminary re-entry casualty estimate from the 3D model |
+| `record(scenario, analysis, ...)` | `dict` | A lifetime's, budget's, sweep's, trade's, design report's, model analyses' or re-entry estimate's JSON record, as `--out` writes it |
 | `write(path, data)` | `Path` | Writes a record as JSON |
 
 ## Load, check and run
@@ -89,6 +92,20 @@ api.write("lifetime.json", api.record(scenario, end))
 The record holds the inputs, the model and its rules, the results with
 how each was computed, the decay curve, the warnings and the provenance:
 the same file `spacemissionstudio lifetime --out` writes.
+
+`api.design_checks(scenario)` needs no run and no Basilisk: it checks the
+first spacecraft's 3D model and returns a `DesignReport`. Its `fov`,
+`authority`, `plumes`, `mass` and `launcher` hold each check's results,
+`findings()` what the Problems panel lists, and `api.record(scenario,
+report)` the record `spacemissionstudio check-design --out` writes.
+Pass `base_dir` (the scenario file's folder) when the model reads mesh
+files by relative path.
+
+`api.model_analyses(scenario, result)` reads a run's model analyses (set
+in the spacecraft's `model_analyses`) from the run `api.run` returned, and
+`api.reentry(scenario, population_density_per_km2=...)` gives the
+preliminary re-entry estimate; `api.record` turns either into the record
+`spacemissionstudio model-analyses --out` or `reentry --out` writes.
 
 ## Compare two runs
 
