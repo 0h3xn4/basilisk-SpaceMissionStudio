@@ -30,7 +30,8 @@ Each record holds:
 - ``provenance``: the tool and Basilisk versions, the scenario's hash, the
   time, the data files read with their SHA-256, and the configuration
   (``config.registry.record``: the project file and each value it
-  changes); for a budget after a run, that run's own record too.
+  changes), and the plugins loaded, with their parameters' values, when
+  there are any; for a budget after a run, that run's own record too.
 
 Without Basilisk: the records are built from results already computed.
 """
@@ -69,10 +70,14 @@ def _plain(value):
 
 
 def _provenance(scenario, data_files: dict) -> dict:
+    from .. import plugins
     from ..config import registry
 
-    return dict(output_provenance.scenario_record(scenario), data_files=_plain(data_files),
-                configuration=registry.record(scenario))
+    record = dict(output_provenance.scenario_record(scenario), data_files=_plain(data_files),
+                  configuration=registry.record(scenario))
+    if plugins.loaded():  # recorded only when there are some: a record is as before
+        record["plugins"] = _plain(plugins.records(scenario))
+    return record
 
 
 def lifetime_record(scenario, spacecraft_name: str, end, max_years: float, forecast_percentile: float,
@@ -166,7 +171,7 @@ def link_budget_record(scenario, spacecraft_name: str, station_name: str, range_
         inputs["elevation_deg"] = elevation_deg
         model["models"] = {gaseous_attenuation.CHOICE: models.record(models.active(gaseous_attenuation.CHOICE,
                                                                                    scenario))}
-        found = gaseous_attenuation.installed()
+        found = gaseous_attenuation.installed() if link_budget.atmospheric_model(scenario) == "itu_r_p676" else None
         if found is not None:
             data_files["itu_p676_part1"] = dependencies.installed_file_record(found.path, found.sha256,
                                                                               source=found.source)

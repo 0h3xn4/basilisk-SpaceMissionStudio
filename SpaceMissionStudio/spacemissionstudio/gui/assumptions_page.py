@@ -92,6 +92,11 @@ class AssumptionsPage(QWidget):
         self.status_label = QLabel()
         self.status_label.setWordWrap(True)
         layout.addWidget(self.status_label)
+        # The installed plugins (spacemissionstudio.plugins, Phase 6c): shown only when there are any.
+        self.plugins_label = QLabel()
+        self.plugins_label.setWordWrap(True)
+        layout.addWidget(self.plugins_label)
+        self._show_plugins()
 
         self.changed_only = QCheckBox("Changed values only")
         self.changed_only.toggled.connect(self._apply_filter)
@@ -189,6 +194,21 @@ class AssumptionsPage(QWidget):
         self._name_file(Path(chosen))
 
     # -- the parameters -----------------------------------------------------------------------
+    def _show_plugins(self) -> None:
+        from .. import plugins
+
+        registry.parameters()  # loads them
+        loaded, problems = plugins.loaded(), plugins.problems()
+        text = ""
+        if loaded:
+            text = "Plugins: " + "; ".join(f"{p.name} ({p.distribution} {p.version})".replace(" )", ")")
+                                           for p in loaded) + "."
+        if problems:
+            text += (" " if text else "") + "Not loaded: " + "; ".join(problems) + "."
+        set_role(self.plugins_label, tone="caution" if problems else "secondary")
+        self.plugins_label.setText(text)
+        self.plugins_label.setVisible(bool(text))
+
     def refresh(self) -> None:
         """Read the file named again and show every parameter's value in effect."""
         self.file_edit.setText(self._config_file or "")

@@ -28,6 +28,7 @@ Without Basilisk, and without the GUI.
 
 from __future__ import annotations
 
+import dataclasses
 import math
 from dataclasses import dataclass, field
 
@@ -117,6 +118,19 @@ def register(*parameters: Parameter) -> None:
 
 def _declare() -> None:
     from . import parameters as _declared  # noqa: F401 -- declares them on first use
+    from .. import plugins
+
+    plugins.load()  # once: the installed plugins' parameters, rules and models (Phase 6c)
+
+
+def unregister(name: str) -> None:
+    """Take back a plugin's parameter (``spacemissionstudio.plugins``)."""
+    _REGISTRY.pop(name, None)
+
+
+def replace_choices(name: str, choices: tuple) -> None:
+    """A choice's models after a plugin added (or took back) one."""
+    _REGISTRY[name] = dataclasses.replace(_REGISTRY[name], choices=tuple(choices))
 
 
 def parameters(area: str | None = None) -> list[Parameter]:

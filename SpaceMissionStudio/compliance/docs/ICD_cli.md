@@ -143,6 +143,13 @@ IERS-based Earth orientation files: status, --fetch, --import, --rollback
 | `--import` | install Earth PCK .bpc files from disk (a .cmt next to each is read too) |
 | `--rollback` | restore the previously installed files |
 
+## `plugins`
+
+the plugins loaded: their parameters, rules and models
+
+| Argument | Help |
+|---|---|
+
 ## `history`
 
 a scenario's change history, newest first (reads only)

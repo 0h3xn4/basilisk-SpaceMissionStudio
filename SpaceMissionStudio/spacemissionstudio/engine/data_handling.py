@@ -75,7 +75,7 @@ from Basilisk.utilities import macros
 
 from ..config import registry
 from ..schema.scenario import DataHandlingConfig, GroundStationConfig, RFLinkConfig
-from . import gaseous_attenuation, link_budget
+from . import link_budget
 from .orbit_maintenance import LogThinner
 
 BITS_PER_GBIT = 1.0e9  # [bit/Gbit]
@@ -117,9 +117,9 @@ class _DownlinkGate(sysModel.SysModel):
         self.marginAtOneMetreDb = [link_budget.margin_at_one_metre_db(rf_link, station)
                                    for station in stations]  # [dB]
         self.requiredMarginDb = link_budget.rule("required_margin_db", scenario)  # [dB]
-        # The gases' zenith terms (link.atmospheric_loss), computed once: the loss at each step is their
-        # total over sin(elevation). None: no such term.
-        self.atmosphericZenith = link_budget.atmospheric_zenith(rf_link, scenario)
+        # The atmosphere's loss at an elevation (link.atmospheric_loss), set up once (ITU-R P.676's zenith
+        # terms, or a plugin's model). None: no such term.
+        self.atmosphericLoss = link_budget.atmospheric_loss_function(rf_link, scenario)
         self.stationLatitudes = station_latitudes or [None] * len(stations)  # [rad] (geocentric, geodetic)
         self.logThinner = LogThinner(record_interval_s)
         self.tLog: list = []
@@ -155,9 +155,8 @@ class _DownlinkGate(sysModel.SysModel):
                 angle_deg = self.off_boresight_deg(sc_state, self.groundStateInMsgs[index]())
                 margin_db = (self.marginAtOneMetreDb[index] - 20.0 * math.log10(float(access.slantRange))
                              - link_budget.pointing_loss_db(self.rfLink, angle_deg, self.scenario))  # [dB]
-                if self.atmosphericZenith is not None:
-                    margin_db -= gaseous_attenuation.slant_path_db(
-                        self.atmosphericZenith,
+                if self.atmosphericLoss is not None:
+                    margin_db -= self.atmosphericLoss(
                         link_budget.access_elevation_deg(access, self.stationLatitudes[index]))  # [dB]
                 closed = link_budget.link_closes(margin_db, required_margin_db=self.requiredMarginDb)
             out = messaging.AccessMsgPayload()

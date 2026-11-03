@@ -5,6 +5,32 @@ Choices made where the brief (`docs/ui/UI_OVERHAUL.md`) or the plan
 The user's own answers to the plan's questions are in the plan's §9.
 Newest milestone first.
 
+## Plugins (2026-11-03)
+
+- **Entry points, not a plugin folder:** an installed distribution's
+  entry point (`spacemissionstudio.models`) has a name, a distribution
+  and a version a run can record, and needs no path setting; a folder of
+  scripts would have none of them.
+- **Only the choices with a hook:** a plugin may add models to the link's
+  atmospheric loss and the arrays' degradation (each a function the
+  engine calls) and margin policies (values only). Sensors, actuators,
+  flight-software modes, atmosphere and shadow models are wired into
+  Basilisk and need the tool's code; offering them to plugins would mean
+  a second, untested way of building a simulation.
+- **Everything under the plugin's name:** its parameters are the area
+  `<plugin>.*` and its rules `<plugin>.<rule>`, so a plugin cannot change
+  or shadow a built-in value or rule, and every record says whose a value
+  is. A name that is a built-in area is refused.
+- **A failing plugin is left out, not fatal:** what it added is taken
+  back and the reason shown, so a broken package never stops the tool or
+  leaves half a model in a choice.
+- **No sandbox:** a plugin is Python code installed by the user, with
+  the user's rights, as any package is, and the guide says so. Loading
+  can be turned off with `SPACEMISSIONSTUDIO_PLUGINS=0`.
+- **The docs' example is the test's plugin:** the test runs the code of
+  `docs/user-manual/plugins.md` as it is, and checks the command's
+  output the page shows, so the page cannot drift from the code.
+
 ## The History view and labelled Undo (2026-11-02)
 
 - **A dialog, from a command:** the default screens stay as they are

@@ -1552,3 +1552,21 @@ No existing test changed.
 
   Each new test fails on the code before (checked by stashing
   `spacemissionstudio/`).
+
+## Plugins (2026-11-03)
+
+- Added `tests/test_plugins.py`, 14 tests. The example plugin of
+  `docs/user-manual/plugins.md`, run as the page gives it through a
+  stand-in entry point, adds its parameters, rule and models; unloading
+  takes them back; the records keep its parameters' values, an
+  analysis's record has the plugins; its link loss is in the margin and the trace; its
+  degradation is the arrays' factor; its margin policy sets its margins;
+  its rule is a pre-run warning; a check that fails says so; a plugin that
+  fails is left out and taken back; a choice of a plugin not installed is
+  refused; `SPACEMISSIONSTUDIO_PLUGINS=0` loads none; `spacemissionstudio
+  plugins` (its output is the page's); a run records the plugins and the
+  model (Basilisk); the Assumptions page names them (GUI). No existing
+  test changed.
+
+  Each new test fails on the code before (checked by stashing
+  `spacemissionstudio/`).

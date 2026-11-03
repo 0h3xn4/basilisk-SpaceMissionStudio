@@ -188,7 +188,7 @@ from Basilisk.utilities import macros, simIncludeRW, simIncludeThruster
 
 from ..config import registry
 from ..schema.scenario import SUPPORTED_FSW_MODES, GroundStationConfig, RFLinkConfig
-from . import control_gains, environment_models, gaseous_attenuation, geodesy, link_budget
+from . import control_gains, environment_models, geodesy, link_budget
 from .orbit_maintenance import LogThinner
 
 # The default gains and their inertia scaling live in engine.control_gains,
@@ -617,7 +617,7 @@ class _CommsPointingArbitrator(sysModel.SysModel):
         # The gases' attenuation takes the elevation (link.atmospheric_loss): from the geodetic horizon,
         # with the station's (geocentric, geodetic) latitudes [rad], as the recorded series.
         self.stationLatitudes = station_latitudes
-        self.atmosphericZenith = link_budget.atmospheric_zenith(rf_link, scenario) if rf_link is not None else None
+        self.atmosphericLoss = link_budget.atmospheric_loss_function(rf_link, scenario) if rf_link is not None else None
 
         # Python-side telemetry -- same convention as
         # engine.orbit_maintenance's controllers (see class docstring).
@@ -672,9 +672,9 @@ class _CommsPointingArbitrator(sysModel.SysModel):
             margin_db = link_budget.link_margin_db(
                 float(access_payload.slantRange), self.rfLink, self.groundStationConfig, theta_deg, self.scenario
             )
-            if self.atmosphericZenith is not None:  # [dB] the gases' attenuation at this step's elevation
-                margin_db -= gaseous_attenuation.slant_path_db(
-                    self.atmosphericZenith, link_budget.access_elevation_deg(access_payload, self.stationLatitudes))
+            if self.atmosphericLoss is not None:  # [dB] the atmosphere's loss at this step's elevation
+                margin_db -= self.atmosphericLoss(
+                    link_budget.access_elevation_deg(access_payload, self.stationLatitudes))
             if link_budget.link_closes(margin_db, required_margin_db=self.requiredMarginDb):
                 link_ok_cmd = 2
         link_cmd = messaging.DeviceCmdMsgPayload()

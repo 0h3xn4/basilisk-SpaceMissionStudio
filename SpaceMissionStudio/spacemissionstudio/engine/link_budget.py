@@ -176,9 +176,9 @@ def surface(scenario=None) -> gases.Surface:
 def atmospheric_zenith(rf_link: RFLinkConfig, scenario=None) -> gases.Zenith | None:
     """The gases' zenith terms on ``rf_link``'s frequency (the attenuation
     at elevation theta is their total over sin(theta)); None with
-    ``link.atmospheric_loss: none``. Raises GaseousAttenuationError when
+    any model but ``itu_r_p676``. Raises GaseousAttenuationError when
     Part 1 is not installed or the frequency is above 350 GHz."""
-    if atmospheric_model(scenario) == "none":
+    if atmospheric_model(scenario) != "itu_r_p676":
         return None
     return _zenith(float(rf_link.frequency_hz), surface(scenario), str(gases.part1_path()))
 
@@ -188,17 +188,34 @@ def _zenith(frequency_hz: float, conditions: gases.Surface, part1_path: str) -> 
     return gases.zenith(frequency_hz, conditions, gases.load_part1(Path(part1_path)))
 
 
+def atmospheric_loss_function(rf_link: RFLinkConfig, scenario=None):
+    """``loss(elevation_deg) -> [dB]``, what the atmosphere takes from
+    ``rf_link`` at an elevation, with the model ``link.atmospheric_loss``
+    chooses: ITU-R P.676-13 Annex 2 (its zenith terms computed once), or a
+    plugin's (``spacemissionstudio.plugins``); None with ``none``."""
+    model = atmospheric_model(scenario)
+    if model == "none":
+        return None
+    if model == "itu_r_p676":
+        zenith_terms = atmospheric_zenith(rf_link, scenario)
+        return lambda elevation_deg: gases.slant_path_db(zenith_terms, elevation_deg)
+    from .. import plugins
+
+    implementation = plugins.implementation(gases.CHOICE, model)
+    return lambda elevation_deg: float(implementation(rf_link, elevation_deg, scenario))
+
+
 def atmospheric_loss_db(rf_link: RFLinkConfig, elevation_deg: float | None, scenario=None) -> float:
     """[dB] What the atmosphere takes from the link at ``elevation_deg``:
-    0 with ``link.atmospheric_loss: none``, else ITU-R P.676-13 Annex 2's
-    slant-path attenuation (:mod:`.gaseous_attenuation`). That model needs
-    the elevation: None raises ValueError."""
-    zenith_terms = atmospheric_zenith(rf_link, scenario)
-    if zenith_terms is None:
+    0 with ``link.atmospheric_loss: none``, else the chosen model's
+    (:func:`atmospheric_loss_function`). A model needs the elevation: None
+    raises ValueError."""
+    loss = atmospheric_loss_function(rf_link, scenario)
+    if loss is None:
         return 0.0
     if elevation_deg is None:
-        raise ValueError("link.atmospheric_loss: itu_r_p676 needs the station's elevation")
-    return gases.slant_path_db(zenith_terms, elevation_deg)
+        raise ValueError(f"link.atmospheric_loss: {atmospheric_model(scenario)} needs the station's elevation")
+    return loss(elevation_deg)
 
 
 def access_elevation_deg(access, latitudes: tuple[float, float] | None = None) -> float:
@@ -371,6 +388,16 @@ def link_budget_traces(range_m: float, rf_link: RFLinkConfig, ground_station: Gr
                                                         elevation_source, scenario)
         losses += (Quantity("atmospheric gases", "A_gas", b.atmospheric_loss_db, "[dB]", "trace: Atmospheric gases"),)
         received_equation = "C = EIRP - FSPL - L_point - A_gas + G_rx"
+    elif atmospheric_model(scenario) != "none":  # a plugin's model (spacemissionstudio.plugins)
+        found = models.active(gases.CHOICE, scenario)
+        traces["atmospheric_loss"] = Trace(
+            "Atmospheric gases", "A_gas", b.atmospheric_loss_db, "[dB]", f"A_gas = {found.name}(f, theta)",
+            f"{found.title} (plugin {found.plugin}): " + "; ".join(found.references),
+            inputs=(Quantity("elevation", "theta", elevation_deg, "[deg]", elevation_source),
+                    Quantity("frequency", "f", rf_link.frequency_hz, "[Hz]", "scenario: rf_link.frequency_hz")),
+            notes=(found.method,))
+        losses += (Quantity("atmospheric gases", "A_gas", b.atmospheric_loss_db, "[dB]", "trace: Atmospheric gases"),)
+        received_equation = "C = EIRP - FSPL - L_point - A_gas + G_rx"
     traces["received"] = Trace(
         "Received power", "C", b.received_dbw, "[dBW]", received_equation, _LINK_EQUATION,
         inputs=losses + (Quantity("station receive gain", "G_rx", ground_station.rx_antenna_gain_dbi, "[dBi]",
@@ -484,8 +511,9 @@ def link_margin_series(result: ResultSet, ground_station_name: str, spacecraft_n
     -perfect-pointing ``has_access``-only gate for every station it's
     evaluated against).
 
-    With ``link.atmospheric_loss: itu_r_p676`` each sample's margin takes
-    the gases' attenuation at that sample's ``{prefix}.elevation``.
+    With a ``link.atmospheric_loss`` model (ITU-R P.676 or a plugin's) each
+    sample's margin takes the model's loss at that sample's
+    ``{prefix}.elevation``.
     """
     prefix = f"{ground_station_name}.access_to_{spacecraft_name}"
     range_series = result.series.get(f"{prefix}.slant_range")
