@@ -41,7 +41,28 @@ Newest milestone first.
   tool reads from another tool's file. TLE lines typed or pasted are in
   the scenario itself; catalog presets have their own record (Phase 5b);
   data files are hashed by every run (Phase 2).
+## Every value with its unit (2026-11-03)
 
+- **The control law over the header's comment:** `mrpFeedback.h` gives K
+  as rad/s and Ki and the integral limit as N·m, which its own control
+  law (`mrpFeedback.rst`) does not bear out. The editor shows the law's
+  units and the models page gives both, with the derivation. Basilisk
+  is not changed.
+- **The header's spelling for SIL signals:** the residuals' units are
+  read from the vendored payload headers as written ("Nm", "r/s"), not
+  respelt: they are Basilisk's statement, and a guessed respelling could
+  be wrong. A field without one shows "-".
+- **Dimensionless fields stay bare, named in a test:** efficiencies,
+  coefficients, fractions, MRPs, directions, counts and seeds show no
+  suffix; the test lists each with its reason, so a new field without a
+  unit fails until it has one or a reason.
+- **The plots' units, not the exports':** the preference changes what
+  the plots and the comparison show; the CSV exports stay SI, as
+  recorded, so a file handed on never depends on a viewer's setting.
+- **TDB named on the axis, not converted:** the elapsed time is the
+  simulation's clock; the axis says so. Converting it to UTC would move
+  every sample by milliseconds and change what the exports' `time_s`
+  means.
 ## Plugins (2026-11-03)
 
 - **Entry points, not a plugin folder:** an installed distribution's

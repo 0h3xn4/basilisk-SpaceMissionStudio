@@ -42,6 +42,13 @@ def _payload_fields(message_type: str) -> list[cdecl.Field]:
         return []
 
 
+def payload_units(message_type: str) -> dict[str, str]:
+    """``{field: unit}`` of a message payload, as Basilisk's header for it
+    writes each unit (``[Nm]``, ``[r/s]``); a field the header gives no unit,
+    and every field of a payload whose header is not vendored, is left out."""
+    return {f.name: f.unit for f in _payload_fields(message_type) if f.unit}
+
+
 def _escape(text: str) -> str:
     return text.replace("|", "\\|")
 

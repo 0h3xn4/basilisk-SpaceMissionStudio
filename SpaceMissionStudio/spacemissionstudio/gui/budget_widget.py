@@ -108,7 +108,8 @@ class BudgetInputsGroup(QGroupBox):
         self.dry_includes_margin.setChecked(c.dry_mass_includes_margin)
         general.addRow(self.dry_includes_margin)
         self.system_margin = _spin(0.0, 99.0, c.system_margin_fraction * 100.0, suffix=" %")
-        self.system_margin.setToolTip("AD10 Sec. 5.10: 15% when no other margin policy applies.")
+        self.system_margin.setToolTip("AD10 Sec. 5.10: 15% when no other margin policy applies. Shown in %, "
+                                      "saved as a fraction (system_margin_fraction).")
         general.addRow("System margin on dry mass", self.system_margin)
         self.tank_capacity = _spin(0.0, 1.0e5, c.tank_capacity_kg, decimals=3, suffix=" kg")
         self.tank_capacity.setToolTip("Maximum propellant load: the residual (1%) and uncertainty (2%) are "

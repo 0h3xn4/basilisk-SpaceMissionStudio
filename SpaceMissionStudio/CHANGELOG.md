@@ -525,6 +525,24 @@ modernised for 3.14 by ruff's upgrade rules (built-in generics, `X | None`,
   `<spacecraft>.power.degradation_factor` and the model. Every value is a
   parameter, cited, with flight data in the docs to choose a rate from.
   The default, `none`, is what a run did before: no number changes.
+- **Every value with its unit:** the number fields that had none show
+  it: the inertia's diagonal (kg·m²), the starting anomaly (°), the
+  attitude gains K, P, Ki and the integral limit (N·m, N·m·s,
+  1/(N·m·s²), s, the units of `mrpFeedback`'s control law), a Monte
+  Carlo dispersion's mean, standard deviation and bounds (the quantity's
+  unit) and a mission-sequence assignment's new value (N or s). A test
+  checks that every editor field shows a unit or is a named dimensionless
+  value or count. The magnetic momentum management's gain was labelled
+  `[-]`: it is Basilisk's `cGain`, in 1/s. The SIL comparison shows each
+  signal's unit (Basilisk's message headers'), in a **Unit** column, the
+  largest residual with its signal's unit and name, and the command
+  line's summary too. A field shown in another unit than it is saved
+  (GHz, Mbit/s, RPM, %, seconds of a coast) says what is saved.
+  Temperatures show °C and the Dashboard's battery Wh. The plots'
+  elapsed-time axis says "Elapsed time since t0, TDB [h]", and the top
+  bar's last-run time names its zone. **Settings > Appearance > Plot
+  units** shows the plots and the run comparison as recorded (SI) in
+  place of the display units. No number computed changes.
 - **Your own models, checks and parameters, without editing the tool
   (plugins):** a Python package that declares an entry point in the group
   `spacemissionstudio.models` adds, under its own name, parameters (set

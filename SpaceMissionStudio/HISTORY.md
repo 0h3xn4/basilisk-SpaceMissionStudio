@@ -14555,6 +14555,36 @@ The transparency plan, Phase 8c. Branch `imported-values`.
 
 Full suite on Python 3.14: 4422 passed.
 
+## Units: every value with its unit (2026-11-03)
+
+The transparency plan, Phase 8a. Branch `display-units`.
+
+- **Editor fields:** units on the inertia's diagonal, the starting
+  anomaly, the attitude gains (`_CONTROL_PARAM_SPECS`, from
+  `mrpFeedback`'s control law), the wizard's K, P, Ki, integral limit
+  and c_gain, a dispersion's fields (`_FIELD_UNITS`) and an assignment's
+  value. The momentum-management gain's label said `[-]`; it is 1/s
+  (Basilisk's `mtbMomentumManagement.h` and `.c`). " C" became °C, " W*h"
+  and the Dashboard's "W*hr" Wh.
+- **Conversions said:** the frequency, data rate, wheel targets, a
+  coast's seconds and the budget's system margin say what is saved.
+- **SIL:** `fsw_export.documents.payload_units`; `SignalStats.unit`
+  (empty in an older report; written into the JSON only when there is
+  one, so a report without units is byte for byte as 1.1.0 wrote it); `SilReport.worst_signal`; the panel's
+  **Unit** column and the tile's signal; the summary lines.
+- **Plots:** `plot_categories.shown` (display units, or as recorded);
+  `gui.units.plot_units` (Settings > Appearance > Plot units); the
+  elapsed axis "Elapsed time since t0, TDB [h]" (seconds as recorded);
+  the run comparison follows; the figure cache keys on the choice.
+- **Docs:** the flight-software models page ("The attitude controller's
+  gains: their units"), the User Manual, Read the results.
+- **Tests:** `tests/gui/test_display_units.py` (4), one more in
+  `tests/test_sil_report.py` and `tests/gui/test_sil_widgets.py`; four
+  expectations follow the new text (TEST_CHANGES).
+- **Numbers:** none change.
+
+Full suite on Python 3.14: 4,402 passed (29 min 54 s).
+
 ## Plugins: models, rules and parameters of your own (2026-11-03)
 
 The transparency plan, Phase 6c. Branch `model-plugins`.

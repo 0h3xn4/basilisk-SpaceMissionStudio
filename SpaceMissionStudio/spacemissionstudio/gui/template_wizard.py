@@ -1196,13 +1196,13 @@ _SPECS: dict[str, TemplateWizardSpec] = {
                 title="Wheel speed targets",
                 intro='The speed each wheel is steered toward using the torque rods.',
                 fields=[
-                    WizardField("Wheel 1 target", "rw-1's target speed.", *_wheel_bias_rpm(0),
+                    WizardField("Wheel 1 target", "rw-1's target speed, saved in rad/s.", *_wheel_bias_rpm(0),
                                  0.0, 5000.0, decimals=1, step=50.0, suffix=" RPM"),
-                    WizardField("Wheel 2 target", "rw-2's target speed.", *_wheel_bias_rpm(1),
+                    WizardField("Wheel 2 target", "rw-2's target speed, saved in rad/s.", *_wheel_bias_rpm(1),
                                  0.0, 5000.0, decimals=1, step=50.0, suffix=" RPM"),
-                    WizardField("Wheel 3 target", "rw-3's target speed.", *_wheel_bias_rpm(2),
+                    WizardField("Wheel 3 target", "rw-3's target speed, saved in rad/s.", *_wheel_bias_rpm(2),
                                  0.0, 5000.0, decimals=1, step=50.0, suffix=" RPM"),
-                    WizardField("Wheel 4 target", "rw-4's target speed.", *_wheel_bias_rpm(3),
+                    WizardField("Wheel 4 target", "rw-4's target speed, saved in rad/s.", *_wheel_bias_rpm(3),
                                  0.0, 5000.0, decimals=1, step=50.0, suffix=" RPM"),
                 ],
             ),
@@ -1305,7 +1305,7 @@ _SPECS: dict[str, TemplateWizardSpec] = {
                 intro='Where and when the transfer arrives; the coast after it follows automatically.',
                 fields=[
                     WizardField(
-                        "Coast to burn point", "How long to coast before the transfer burn.",
+                        "Coast to burn point", "How long to coast before the burn; saved in days.",
                         lambda s: _coast_command(s, "burn point").params["duration_days"] * 86400.0,
                         lambda s, v: _coast_command(s, "burn point").params.__setitem__("duration_days",
                                                                                          v / 86400.0),

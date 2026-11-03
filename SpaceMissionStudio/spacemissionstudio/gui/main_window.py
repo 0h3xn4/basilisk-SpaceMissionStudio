@@ -1885,7 +1885,7 @@ class MainWindow(QMainWindow):
                 if run_name:
                     chip_text = f"{run_name}: {chip_text[0].lower()}{chip_text[1:]}"
                 self.top_bar.set_last_run(f"{run_name + ' at ' if run_name else 'last run '}"
-                                          f"{time.strftime('%H:%M')}, {chip_state}, {_duration_text(seconds)}")
+                                          f"{time.strftime('%H:%M %Z')}, {chip_state}, {_duration_text(seconds)}")
             self._run_started_s = None
         self.run_chip.set_state(chip_state, chip_text)
         self.run_chip.show()

@@ -1567,6 +1567,24 @@ No existing test changed.
   plugins` (its output is the page's); a run records the plugins and the
   model (Basilisk); the Assumptions page names them (GUI). No existing
   test changed.
+## Every value with its unit (2026-11-03)
+
+- Added `tests/gui/test_display_units.py`, 4 tests: every editor number
+  field shows its unit or is a named dimensionless value or count; the
+  gains carry their control laws' units (and the inertia, the anomaly);
+  a field shown in another unit says what is saved, and a dispersion's
+  and an assignment's fields carry their quantity's unit; the plots'
+  units preference and the elapsed axis. Added one test to
+  `tests/test_sil_report.py` (each signal's unit, the summary, an older
+  report) and one to `tests/gui/test_sil_widgets.py` (the Unit column
+  and the tile).
+- Changed four expectations to the new text, nothing else in them:
+  `tests/gui/test_mission_dashboard_widget.py`'s battery charge,
+  "20.00 W*hr" to "20.00 Wh" (and its docstring);
+  `tests/gui/test_results_widget.py`'s and `tests/gui/test_compare_tab.py`'s
+  elapsed axis, "Elapsed time [hr]" and "Elapsed time [h]" to "Elapsed time
+  since t0, TDB [h]"; `tests/gui/test_sil_widgets.py`'s tile, "2" to
+  "2 (rw_torqueOutMsg.torque[0])", the signal named.
 
   Each new test fails on the code before (checked by stashing
   `spacemissionstudio/`).

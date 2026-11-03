@@ -132,7 +132,7 @@ def test_the_plots_overlay_one_series_of_every_ticked_run(compare):
     assert [t.name for t in traces] == ["Run 1, 09:00 (base)", "Run 2, 09:05", "Run 3, 09:10"]
     assert [t.line.dash for t in traces] == ["solid", "dash", "dash"]
     assert np.isclose(traces[1].y[-1], 1.5)  # [m/s]
-    assert widget.figure.layout.xaxis.title.text == "Elapsed time [h]"
+    assert widget.figure.layout.xaxis.title.text == "Elapsed time since t0, TDB [h]"
     assert not widget.column_combo.isVisibleTo(widget)  # one column: nothing to pick
 
 

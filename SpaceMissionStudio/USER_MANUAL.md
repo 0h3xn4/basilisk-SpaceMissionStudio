@@ -213,7 +213,11 @@ A few things to notice right away:
     a new theme applies at once, to every open view; the **UI scale**,
     90, 100, 110 or 125 %, from the next start, unless the
     `QT_SCALE_FACTOR` environment variable sets one; **Reduce motion**:
-    notifications appear and go without fading), **Reference data**,
+    notifications appear and go without fading; **Plot units**: the
+    plots and the run comparison in display units, km, degrees and hours,
+    the default, or **As recorded**, the values and units the run
+    recorded and the CSV exports hold, SI, with the elapsed time in
+    seconds; the exports are SI either way), **Reference data**,
     **Change history** (**Author**: the name each save records in the
     scenario's change history, the command line's too; empty: your user
     name), **Vizard** (the Vizard program **Launch Vizard** starts: **Browse...**
@@ -1011,10 +1015,10 @@ they computed.
 | In the comparison | What it is |
 |---|---|
 | Steps, Dropped steps | Steps run; steps whose answer missed the deadline |
-| Max \|residual\| | The largest difference between the program's and the modules' values (external - reference), over every signal and step |
+| Max \|residual\| | The largest difference between the program's and the modules' values (external - reference), over every signal and step, with that signal's unit and name: the signals' units differ |
 | Round trip p99, Jitter | The time from sending a step to its answer, 99th percentile and standard deviation |
 | Flight-software step | The program's own time per step, as it reports it |
-| Signals | Every output and telemetry value: largest and RMS residual, when, the reference's size, steps not written |
+| Signals | Every output and telemetry value: largest and RMS residual, when, the reference's size, steps not written, and its **Unit**, as Basilisk's message header writes it ("-" where it gives none) |
 | Residuals | The residuals over time, one plot per message |
 | Program output | What the program printed |
 
@@ -1113,7 +1117,10 @@ it.
   opens on the first of them. For your own scenarios, write series names
   in that section of the Description and they show up here too.
 * **X-axis** -- for every plot: elapsed time (with "t0 = ... UTC" under
-  each title), the calendar date (UTC), or **Orbit number**: one
+  each title; it is the simulation's clock, TDB seconds since t0, which
+  runs within a few milliseconds of UTC's apart from a leap second; the
+  CSV's `time_s` is the same clock), the calendar date (UTC, both taken
+  into account), or **Orbit number**: one
   spacecraft's revolutions counted from the ascending node (orbit 0 is
   the one in progress at the epoch; an equatorial orbit counts from the
   inertial X axis).
