@@ -62,6 +62,7 @@ from ..schema.scenario import (
     DispersionConfig,
     MonteCarloConfig,
 )
+from . import units
 from .feedback import report, show_dialog_error, show_toast
 from .field_text import field_title, labelled
 from .theme import set_role
@@ -87,6 +88,12 @@ _UNITS = {
     "angular_rate_bn_b": "deg/s on each axis, added to the initial rate",
     "drag_coeff": "drag coefficient Cd [-]",
     "srp_coeff": "radiation-pressure coefficient Cr [-]",
+}
+# The unit the mean, standard deviation and bounds fields carry for each
+# quantity (orbit_elements has a field per element, with its own unit).
+_FIELD_UNITS = {
+    "dry_mass_kg": "kg", "attitude_sigma_bn": "rad", "inertia_kg_m2": "kg*m^2", "angular_rate_bn_b": "deg/s",
+    "drag_coeff": "-", "srp_coeff": "-",
 }
 _ELEMENT_LABELS = {
     "semi_major_axis_km": "Semi-major axis [km]",
@@ -279,6 +286,9 @@ class _DispersionEditorDialog(QDialog):
             self._set_row_visible(spin, orbit)
         self._set_row_visible(self.angle_std_spin, quantity == "inertia_kg_m2")
         self.units_label.setText(_UNITS.get(quantity, ""))
+        suffix = units.suffix(_FIELD_UNITS.get(quantity, "-"))
+        for spin in (self.mean_spin, self.std_spin, self.bounds_lo_spin, self.bounds_hi_spin):
+            spin.setSuffix(suffix)
 
     def _set_row_visible(self, field, visible: bool) -> None:
         label = self._form.labelForField(field)

@@ -49,6 +49,7 @@ class SignalStats:
     time_of_max_s: float = 0.0  # [s]
     max_abs_reference: float = 0.0
     steps_missing: int = 0  # steps the flight software did not write this port
+    unit: str = ""  # as Basilisk's payload header writes it ("Nm", "r/s"); "" when it gives none
 
 
 def timing_summary(values: Sequence[int]) -> dict[str, float]:
@@ -97,6 +98,13 @@ class SilReport:
         return max(provided) if provided else 0.0
 
     @property
+    def worst_signal(self) -> SignalStats | None:
+        """The written signal with the largest |residual| (its value is
+        :attr:`max_abs_error`), None without one."""
+        provided = [s for s in self.signals if s.steps_missing < self.steps - self.dropped_steps]
+        return max(provided, key=lambda s: s.max_abs_error) if provided else None
+
+    @property
     def signals_missing(self) -> int:
         """Signals the flight software never wrote."""
         return sum(1 for s in self.signals if self.steps and s.steps_missing >= self.steps - self.dropped_steps)
@@ -113,19 +121,24 @@ class SilReport:
                  f"jitter {self.round_trip.get('jitter_s', 0) * 1e3:.3f} ms",
                  f"  flight-software step: mean {self.execution.get('mean_s', 0) * 1e6:.1f} us, max "
                  f"{self.execution.get('max_s', 0) * 1e6:.1f} us",
-                 f"  largest |residual| {self.max_abs_error:.6g} over {len(self.signals)} signals"
+                 f"  largest |residual| {self.max_abs_error:.6g}{_unit_text(self.worst_signal)} over "
+                 f"{len(self.signals)} signals"
                  + (f"; {self.signals_missing} never written by the flight software" if self.signals_missing else "")]
         for s in self.worst_signals(5):
             missing = f", not written at {s.steps_missing} steps" if s.steps_missing else ""
-            lines.append(f"    {s.name:<56} max {s.max_abs_error:.6g} at t = {s.time_of_max_s:.6g} s, "
-                         f"rms {s.rms_error:.3g}{missing}")
+            lines.append(f"    {s.name:<56} max {s.max_abs_error:.6g}{_unit_text(s)} at t = {s.time_of_max_s:.6g} s, "
+                         f"rms {s.rms_error:.3g}{_unit_text(s)}{missing}")
         lines += [f"  warning: {w}" for w in self.warnings]
         return lines
 
     def to_json(self) -> str:
         """Strict JSON (for jq, browsers, CI): NaN as null, infinities as
         "inf"/"-inf"; :meth:`from_json` reads them back."""
-        return json.dumps(_json_safe(asdict(self)), indent=1, sort_keys=True, allow_nan=False)
+        data = asdict(self)
+        for stats in data["signals"]:  # a signal's unit is written only when it has one: a report is as before
+            if not stats["unit"]:
+                del stats["unit"]
+        return json.dumps(_json_safe(data), indent=1, sort_keys=True, allow_nan=False)
 
     @classmethod
     def from_json(cls, text: str) -> SilReport:
@@ -167,6 +180,11 @@ class SilReport:
 _STATS_NUMBERS = ("max_abs_error", "rms_error", "time_of_max_s", "max_abs_reference")
 
 
+def _unit_text(stats: SignalStats | None) -> str:
+    """" [Nm]" after a value of ``stats``'s signal; "" without a unit."""
+    return f" [{stats.unit}]" if stats is not None and stats.unit else ""
+
+
 def _json_safe(value):
     if isinstance(value, float) and not math.isfinite(value):
         return None if math.isnan(value) else ("inf" if value > 0 else "-inf")
@@ -188,12 +206,14 @@ def _number(value) -> float:
 class _PortReader:
     """A payload's scalars as one float vector, with their names."""
 
-    def __init__(self, port: PortSpec, layout: dict):
+    def __init__(self, port: PortSpec, layout: dict, field_units: dict[str, str] | None = None):
         self.port = port
         self.runs = [(offset, count, np.dtype(kind)) for offset, count, kind, _ in leaves(layout)]
         self.names = []
+        self.units = []  # each scalar's unit: its top-level field's (a nested struct's fields have none here)
         for _, count, _, name in leaves(layout):
             self.names += [f"{port.name}.{name}[{i}]" for i in range(count)] if count > 1 else [f"{port.name}.{name}"]
+            self.units += [(field_units or {}).get(name, "")] * count
 
     def values(self, payload: bytes) -> np.ndarray:
         parts = [np.frombuffer(payload, dtype=kind, count=count, offset=offset).astype(np.float64)
@@ -206,10 +226,19 @@ class Comparator:
     output and telemetry ports, step by step."""
 
     def __init__(self, outputs: list[PortSpec], telemetry: list[PortSpec], layouts: dict[str, dict],
-                 expected_steps: int):
-        self.readers = [(_PortReader(p, layouts[p.message_type]), "output") for p in outputs]
-        self.readers += [(_PortReader(p, layouts[p.message_type]), "telemetry") for p in telemetry]
-        self.stats = [[SignalStats(n, r.port.name, kind) for n in r.names] for r, kind in self.readers]
+                 expected_steps: int, units: dict[str, dict[str, str]] | None = None):
+        """``units``: ``{message type: {field: unit}}``; by default each
+        payload's Basilisk header's (``fsw_export.documents.payload_units``)."""
+        if units is None:
+            from ..fsw_export.documents import payload_units
+
+            units = {p.message_type: payload_units(p.message_type) for p in outputs + telemetry}
+        self.readers = [(_PortReader(p, layouts[p.message_type], units.get(p.message_type)), "output")
+                        for p in outputs]
+        self.readers += [(_PortReader(p, layouts[p.message_type], units.get(p.message_type)), "telemetry")
+                         for p in telemetry]
+        self.stats = [[SignalStats(n, r.port.name, kind, unit=u) for n, u in zip(r.names, r.units)]
+                      for r, kind in self.readers]
         self._sum_sq = [np.zeros(len(r.names)) for r, _ in self.readers]
         self._count = [0 for _ in self.readers]
         self._max = [np.zeros(len(r.names)) for r, _ in self.readers]

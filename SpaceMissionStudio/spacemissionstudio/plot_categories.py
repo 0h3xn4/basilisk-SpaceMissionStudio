@@ -44,7 +44,7 @@ from __future__ import annotations
 
 import math
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from .engine.results import TimeSeries
 
@@ -507,6 +507,18 @@ def plot_group(name: str, series: TimeSeries) -> str:
 
 
 _LEGACY_UNIT_CONVERSIONS = {"m": ("km", 0.001), "m/s": ("km/s", 0.001)}
+
+
+def shown(name: str, series: TimeSeries, recorded: bool = False) -> SeriesDisplay:
+    """How ``series`` is plotted: in the display units of :func:`categorize`
+    (or :func:`legacy_display`), or with ``recorded`` as it is recorded and
+    exported (SI, in the unit the series records). A series that records no
+    unit keeps its display: its value would otherwise have none."""
+    found = categorize(name, series) or legacy_display(name, series)
+    if not recorded or found.factor == 1.0 or not series.units:
+        return found
+    return replace(found, unit=series.units, factor=1.0,
+                   wrap_period=found.wrap_period / found.factor if found.wrap_period else None)
 
 
 def legacy_display(name: str, series: TimeSeries) -> SeriesDisplay:

@@ -49,9 +49,8 @@ from PySide6.QtWidgets import (QHBoxLayout, QLabel, QListWidget, QListWidgetItem
 from .. import temp_folders
 from ..engine import events as event_model
 from ..engine import run_summary, scenario_diff
-from ..plot_categories import categorize as _categorize
-from ..plot_categories import legacy_display as _legacy_display
-from . import plot_page
+from ..plot_categories import shown as _shown_in
+from . import plot_page, units
 from .data_table import DataTable, Row
 from .theme import SERIES_COLORS, TOKENS, on_change, set_role
 from .theme import plotly_template as pt
@@ -89,6 +88,12 @@ def _signed(value: float, decimals: int) -> str:
 
 def _short(record) -> str:
     return f"Run {record.number}"
+
+
+def _shown(name: str, series):
+    """How ``series`` is plotted, in the units Settings > Appearance > Plot
+    units chooses, as on the Plots page."""
+    return _shown_in(name, series, recorded=units.plot_units() == "recorded")
 
 
 class CompareWidget(QWidget):
@@ -406,7 +411,7 @@ class CompareWidget(QWidget):
         self.column_combo.blockSignals(True)
         self.column_combo.clear()
         if series is not None:
-            display = _categorize(name, series) or _legacy_display(name, series)
+            display = _shown(name, series)
             labels = display.columns or {}
             for index, column in enumerate(series.columns):
                 self.column_combo.addItem(str(labels.get(column, column)), index)
@@ -428,7 +433,10 @@ class CompareWidget(QWidget):
                                   QUrl())
             return
         sample = runs[0].result.series[name]
-        display = _categorize(name, sample) or _legacy_display(name, sample)
+        display = _shown(name, sample)
+        recorded = units.plot_units() == "recorded"  # elapsed seconds, as the plots and the exports
+        x_scale = 1.0 if recorded else _S_PER_H
+        x_title = "Elapsed time since t0, TDB [s]" if recorded else "Elapsed time since t0, TDB [h]"
         fig = go.Figure()
         for index, record in enumerate(runs):
             series = record.result.series[name]
@@ -437,7 +445,7 @@ class CompareWidget(QWidget):
             values = series.data[:, column] * display.factor
             keep = _display_indices(values)
             fig.add_trace(go.Scatter(
-                x=np.asarray(series.time_s)[keep] / _S_PER_H, y=values[keep], mode="lines",
+                x=np.asarray(series.time_s)[keep] / x_scale, y=values[keep], mode="lines",
                 name=record.name + (" (base)" if index == 0 else ""),
                 # the base solid, the others dashed: where runs agree, both still show
                 line=dict(color=SERIES_COLORS[index % len(SERIES_COLORS)], width=2,
@@ -448,7 +456,7 @@ class CompareWidget(QWidget):
         fig.update_layout(
             **_template_layout(),
             title=pt.title(TOKENS, self.series_combo.currentText()),
-            xaxis=dict(axis, title_text="Elapsed time [h]"), yaxis=dict(axis, title_text=y_title),
+            xaxis=dict(axis, title_text=x_title), yaxis=dict(axis, title_text=y_title),
             showlegend=True, legend=dict(orientation="h", y=-0.18, font=dict(color=TOKENS["text.secondary"])),
             margin=dict(l=70, r=30, t=60, b=80))
         self.figure = fig
