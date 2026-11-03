@@ -361,4 +361,3 @@ A review of the branch (PR #209) found seven points.
   0.3 m^2/kg) it takes seconds. An adaptive step, or stopping once
   nothing more can melt, would change the validated numbers, and either
   would need its own validation case. Recorded as a limitation.
-
