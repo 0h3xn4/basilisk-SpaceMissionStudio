@@ -37,9 +37,11 @@ explains the terms. Python is optional: for scripting and batch runs.
 
 ## Which systems does it run on?
 
-Linux (x86_64 and aarch64, glibc 2.28 or newer) and Windows 10 and 11
+Linux (x86_64 and aarch64, glibc 2.34 or newer) and Windows 10 and 11
 (x86_64). The test suite runs on both in CI. There are installers for
-Linux (x86_64) and Windows. macOS is not supported. Details:
+Linux (x86_64) and Windows, which bring their own Python 3.14; installing
+from source needs Python 3.14 (3.11 to 3.13 are no longer supported since
+2.0.0). macOS is not supported. Details:
 [Getting started, section 1](getting-started.md#1-what-you-need).
 
 ## Does it need the internet?
@@ -57,7 +59,8 @@ way it then runs offline:
   first, naming the source, the files and the size, and default to No.
   Vizard downloads only when you click **Download Vizard**. On the
   command line, only `kernels-status`, `earth-orientation --fetch`,
-  `small-bodies --fetch` and `gaseous-attenuation --fetch` download.
+  `small-bodies --fetch`, `gaseous-attenuation --fetch` and
+  `spaceweather-download` download.
 - Every file can also be installed from disk, for machines that never go
   online.
 
@@ -67,8 +70,8 @@ installers, [`packaging/README.md`](../packaging/README.md).
 ## Where does the space weather come from?
 
 From real data only: CelesTrak's record of the observed solar flux
-(F10.7) and geomagnetic index (Ap), bundled with the app, then NASA
-MSFC's prediction of the solar cycle. There is no synthetic or made-up
+(F10.7) and geomagnetic index (Ap) and its 45-day forecast, bundled with
+the app, then NASA MSFC's prediction of the solar cycle. There is no synthetic or made-up
 profile. A run past the end of the record prints
 `WARNING: space weather uses MSFC's prediction (...)`; that is expected.
 
@@ -95,7 +98,8 @@ Up to about 10 years. Past 100 days the run is split into segments and
 chained automatically. Set **Record every** for long runs, or the results
 fill memory. Template 22 (one day, orbit only) takes about 5 s; five years
 of LEO station keeping took about 50 minutes. Mission sequences, phasing
-keeping, Monte Carlo and Vizard are limited to 100 days.
+keeping, ROE formations, optical navigation, runs around a small body,
+Monte Carlo and Vizard are limited to 100 days.
 
 ## Can I exchange data with other tools?
 
@@ -115,7 +119,10 @@ every file the app reads and writes.
 
 Yes. [`examples/`](../examples/README.md) builds a scenario in code, runs
 templates, plans a Hohmann transfer, sweeps altitudes and reads a Monte
-Carlo batch. Every command-line command uses the same engine
+Carlo batch. `spacemissionstudio.api` loads, checks and runs a scenario
+and computes its lifetime, budget and comparisons with the app's engine
+([The Python API](api.md)). Every
+command-line command uses the same engine
 ([Use the command line](user-manual/command-line.md)).
 
 ## Does it comply with ECSS or CCSDS standards?

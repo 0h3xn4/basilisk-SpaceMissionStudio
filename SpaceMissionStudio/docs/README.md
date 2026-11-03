@@ -18,7 +18,7 @@ to do. New here? Start with **Getting started**.
 |---|---|
 | [How-to guides](user-manual/README.md) | One short page per task: run, customize, build, read results, and each feature |
 | [User Manual](../USER_MANUAL.md) | The full manual, also in the app under **Help**, the last button of the navigation rail (`F1`) |
-| [Template catalog](../spacemissionstudio/scenarios/templates/README.md) | The 31 template missions, what each teaches, and a learning path |
+| [Template catalog](../spacemissionstudio/scenarios/templates/README.md) | The 32 template missions, what each teaches, and a learning path |
 | [Tips](tips.md) | Shortcuts, good habits, and every file the app reads and writes |
 
 ## Reference
@@ -36,6 +36,7 @@ to do. New here? Start with **Getting started**.
 | [Packaging](../packaging/README.md) | How the installers are built, and what was run where |
 | [Compliance records](../compliance/README.md) | ECSS and CCSDS requirements, design, verification and the compliance matrix |
 | [Changelog](../CHANGELOG.md) | What changed in each release |
+| [Changes to results](changes.md) | Each fix that changed a computed value, with its before and after figures |
 
 ## Examples
 

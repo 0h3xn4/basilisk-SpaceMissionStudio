@@ -23,14 +23,22 @@ ones supplied, and every requirement ID and text here comes from them.
 * `PROGRESS.md` -- where the work stands, to resume across sessions.
 * `tools/extract_requirements.py` -- regenerates the CSVs from the
   standards' text.
+* `tools/` -- also the generators and checks CI runs: `build_icd_schema.py`,
+  `build_sdd_components.py`, `build_test_specs.py`, `build_traceability.py`,
+  `build_ics.py`, `build_matrix.py`, `check_drds.py` and `metrics.py`; and,
+  run by hand, `measure_performance.py`, `remeasure_drag.py` and
+  `unreached_code.py`.
+* `audit/` -- the assessment rules `tools/build_matrix.py` reads;
+  `validation/` -- the GMAT scripts and the generator of the validation
+  references (`validation/make_gmat_references.py`).
 
 * `gap_analysis.md`, `compliance_matrix.csv` (Phase 1; rebuilt by CI from
   `audit/`), `traceability_matrix.csv`, `ics_ccsds_502.csv`.
 * `deviations.md` -- deviations D-01 to D-13 (D-08 to D-13 signed).
 * `phase2_log.md`, `phase3_log.md` -- implementation and validation logs.
 * `docs/` -- the DRD-based documents (Phase 4): SRS, ICD, SDD, CSD, SRF,
-  SVerP, SValP, SUITP, SVS, SVR, SUM, SRelD, SDP, SMP, SPAP, SPAMR, and the
-  security analysis. `*_fields.md`, `*_cli.md`, `*_components.md` and
+  SVerP, SValP, SUITP, SVS, SVR, SUM, SRelD, SDP, SMP, SPAP, SPAMR, the
+  coding standard and the security analysis. `*_fields.md`, `*_cli.md`, `*_components.md` and
   `*_test_cases.md` are generated from the code by `tools/`; CI fails when
   they are out of date, and `tools/check_drds.py` checks every DRD section.
 * `docs/dependability_safety_analysis.md` -- category C sign-off and failure modes (H04).
@@ -38,6 +46,11 @@ ones supplied, and every requirement ID and text here comes from them.
 * `reviews/code_review_guide.md` -- the guide for the independent code review (H06).
 * `review_log.md` -- findings of the whole-tool review (F-09 on).
 * `performance.md` -- run time and memory on the reference PC (H13; `tools/measure_performance.py`).
+* `metrics.md`, `metrics.json` -- the product metrics (`tools/metrics.py`).
+* `unreached_code.md` -- the statements the tests do not execute
+  (`tools/unreached_code.py`; reviewed in `review_log.md`).
+* `drag_remeasure.md`, `drag_remeasure.json` -- drag figures re-measured
+  after F-07 and F-09 (`tools/remeasure_drag.py`; SRelD K-01).
 * `summary_report.md` -- the audit's result.
 
 ## Requirement CSV columns

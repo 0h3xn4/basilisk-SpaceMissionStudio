@@ -121,7 +121,7 @@ find **SpaceMissionStudio** in your application menu like any other program.
 through it; it installs for your user only, with no administrator
 rights. Then start **SpaceMissionStudio** from the Start Menu.
 
-The installers bring everything with them: their own Python, the
+The installers bring everything with them: their own Python (3.14), the
 Basilisk simulation engine and its reference data (planet positions,
 leap seconds, Earth's and Mars's gravity fields, Earth's magnetic field,
 Earth orientation). They need no Python on the computer and no internet,
@@ -132,7 +132,8 @@ and the 1.1.0 Windows setup also needed Python 3.11.)
 **No installer, or want to run it from source?**
 [Getting started](docs/getting-started.md) walks through every way to
 install it, with copy-and-paste commands, how to check that it works,
-and what to do when it doesn't.
+and what to do when it doesn't. Installing from source needs Python 3.14;
+3.11 to 3.13 are no longer supported.
 
 ## 3. Starting the app
 
@@ -198,16 +199,17 @@ A few things to notice right away:
   * **Reports**: **Exports** and **Flight Software** (export the
     attitude flight software and run it in the loop, Section 6).
     **Exports** lists every file the app writes: plot data (CSV), plot
-    images (PNG, SVG, **Export all**), events, mission output, the Monte
-    Carlo runs table, the budget, the flight-software project, the SIL
-    report, the Vizard playback file and the 3D model. Each row gives the
+    images (PNG, SVG, **Export all**), the reproduction bundle
+    (`spacemissionstudio reproduce` runs it again, Section 7), events,
+    mission output, the Monte Carlo runs table, the lifetime estimate,
+    the budget, the flight-software project, the SIL report, the Vizard
+    playback file and the 3D model. Each row gives the
     format, the view and button that make it, where it goes by default,
     the provenance written with it (the versions, the run or the
-    scenario's SHA-256 and the time, in the file or beside it; the Monte
-    Carlo table, the Vizard file and the 3D model have none), and when this computer last
+    scenario's SHA-256 and the time, in the file or beside it; the Vizard
+    file and the 3D model have none), and when this computer last
     wrote one, in UTC (hover for the path). Double-click a row, or select
-    it and press `Enter`, to open the view that makes it. The files are
-    the same, byte for byte, as version 1.1.0 wrote.
+    it and press `Enter`, to open the view that makes it.
   * **Settings**, at the bottom: **Appearance** (the theme: **System**,
     light or dark as your desktop is, the default; **Light** or **Dark**;
     a new theme applies at once, to every open view; the **UI scale**,
@@ -1161,7 +1163,11 @@ it.
   `.csv` files in SI units, for a spreadsheet or another tool.
   **Export all...** saves every shown plot as a PNG or SVG image,
   numbered in grid order, with each plot's series as CSV and the run's
-  `provenance.json`, into one folder.
+  `provenance.json`, into one folder. Its **Reproduction bundle...** saves
+  the shown run as a folder (every series, the provenance, the scenario
+  as run and copies of the files it refers to) that
+  `spacemissionstudio reproduce <folder>` runs again on any computer and
+  says what differs ([Use the command line](docs/user-manual/command-line.md#reproduce-a-result)).
 * **Compare with** -- once there is an earlier run: draws the same
   series from it, dashed, in the same colours. **Input differences...**
   lists every scenario input that differs between the two runs, e.g.
@@ -1679,9 +1685,14 @@ anyone who hasn't worked with spacecraft before:
   [`spacemissionstudio/scenarios/templates/README.md`](spacemissionstudio/scenarios/templates/README.md)
   describes what each of the thirty-two built-in templates teaches, in
   more depth than the in-app description box.
-* **Scripting it from Python:** [`examples/`](examples/README.md) builds
-  a scenario in code, runs templates, writes a Mission Sequence, sweeps a
-  parameter and reads a Monte Carlo batch's summary.
+* **Scripting it from Python:** [The Python API](docs/api.md)
+  (`spacemissionstudio.api`) loads, checks and runs a scenario and
+  computes lifetimes, budgets and comparisons from a script;
+  [`examples/`](examples/README.md) builds a scenario in code, runs
+  templates, writes a Mission Sequence, sweeps a parameter and reads a
+  Monte Carlo batch's summary.
+* **From a terminal:** [Use the command line](docs/user-manual/command-line.md)
+  lists every command.
 * **Installing it somewhere else, or something not working after
   installation:** [Getting started](docs/getting-started.md) and
   [Troubleshooting](docs/troubleshooting.md).

@@ -28,18 +28,18 @@ Without Basilisk, `template`, `load`, `validate`, `assumptions`,
 | `load(path)` | `Scenario` | Reads and validates a scenario file, with its project configuration file |
 | `validate(scenario)` | warnings | The pre-run checks (each a `Finding` with its `rule_id`); raises `ScenarioValidationError` when the scenario cannot run |
 | `assumptions(scenario=None)` | `{name: value}` | Every named parameter with the value in effect |
-| `run(scenario, out_dir=None)` | `ResultSet` | Runs it (its Mission Sequence when it has one); with `out_dir`, writes the CSVs and `provenance.json` |
+| `run(scenario, out_dir=None, allow_scripts=False)` | `ResultSet` | Runs it (its Mission Sequence when it has one); with `out_dir`, writes the CSVs and `provenance.json`; `allow_scripts=True` runs its `script_block` commands (unrestricted Python: only for files you trust) |
 | `summary(result)` | `[Figure]` | The headline figures (Results > Overview), each with its `trace` |
-| `lifetime(scenario, spacecraft=None, result=None, **options)` | `EndOfLife` | The orbital lifetime (End of Life); from the end of `result` when given |
+| `lifetime(scenario, spacecraft=None, result=None, **options)` | `EndOfLife` | The orbital lifetime (End of Life); from the end of `result` when given. Options: `deorbit_perigee_km`, `max_years`, `forecast_percentile`, `drag_coeff`, `propellant_kg` |
 | `budget(scenario, spacecraft=None, result=None)` | `Budget` | The delta-V and propellant budget (ESA AD10) |
 | `launch_delays(scenario, spacecraft=None, result=None)` | `LaunchDelaySweep` | The budget for launches up to five years late |
 | `altitude_trade(scenario, spacecraft=None, altitudes_km=None, result=None)` | `AltitudeTrade` | The sweep at each altitude, against the tank |
-| `monte_carlo(scenario, archive_dir)` | `MonteCarloBatch` | The scenario's Monte Carlo batch, archived with its provenance |
+| `monte_carlo(scenario, archive_dir, allow_scripts=False, overwrite=False)` | `MonteCarloBatch` | The scenario's Monte Carlo batch, archived with its provenance; raises `MonteCarloError` when it has none; `overwrite=True` replaces an earlier batch in `archive_dir` |
 | `compare(a_scenario, a_result, b_scenario, b_result)` | `Comparison` | Two runs side by side (Results > Compare) |
 | `design_checks(scenario, spacecraft=None, samples=None, base_dir=None)` | `DesignReport` | The 3D model's design checks: field-of-view obstruction, thruster authority and plumes, mass budget, launcher envelope, and their `findings()` |
 | `model_analyses(scenario, result, spacecraft=None)` | `RunReport` | A run's model analyses: the disturbance-torque budget, blinding, antenna obstruction, array shading, exposure and brightness |
 | `reentry(scenario, spacecraft=None, population_density_per_km2=None, base_dir=None)` | `ReentryEstimate` | The preliminary re-entry casualty estimate from the 3D model |
-| `record(scenario, analysis, ...)` | `dict` | A lifetime's, budget's, sweep's, trade's, design report's, model analyses' or re-entry estimate's JSON record, as `--out` writes it |
+| `record(scenario, analysis, spacecraft=None, result=None)` | `dict` | A lifetime's, budget's, sweep's, trade's, design report's, model analyses' or re-entry estimate's JSON record, as `--out` writes it; `result` is the run the analysis took its inputs from |
 | `write(path, data)` | `Path` | Writes a record as JSON |
 
 ## Load, check and run

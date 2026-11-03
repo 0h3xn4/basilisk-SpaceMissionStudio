@@ -19,7 +19,7 @@ works, run a first mission and know what you should see.
 
 | | |
 |---|---|
-| Linux | x86_64 or aarch64 with glibc 2.28 or newer (Ubuntu 20.04, Debian 10, RHEL 8 or later). Tested in CI on Ubuntu 24.04. |
+| Linux | x86_64 or aarch64 with glibc 2.34 or newer (Ubuntu 22.04, Debian 12, RHEL 9 or later). Tested in CI on Ubuntu 24.04. |
 | Windows | Windows 10 or 11, x86_64. The test suite passes on Windows in CI (two tests that failed intermittently are fixed and under watch, SRelD K-14). |
 | Python | None for the installers (path A): they bring their own Python 3.14. Paths B and C need Python 3.14 (Windows: from [python.org](https://www.python.org/downloads/), on PATH); older versions are not supported. CI tests with 3.14. Basilisk 2.12.0 and PySide6 6.11 do not install on 3.15 yet. |
 | Disk | About 1.7 GB: Python with Basilisk and Qt, 117 MB of reference data, 36 MB of Earth orientation files. |
@@ -143,8 +143,9 @@ spacemissionstudio kernels-status
 spacemissionstudio earth-orientation --fetch
 ```
 
-The first downloads 116 MB (SPICE kernels, the gravity fields and the
-magnetic model) and lists nine files as `OK`. The second downloads the
+The first downloads 116 MB (SPICE kernels, the gravity fields, the
+magnetic model, the albedo maps and the atmosphere tables) and lists twelve
+files as `OK`. The second downloads the
 measured Earth orientation files (36 MB) and ends with:
 
 ```text
@@ -152,7 +153,11 @@ Earth-fixed frame: ITRF93; high accuracy until 2026-12-18, predicted after.
 ```
 
 (the date moves with each update). Without these files runs still work,
-with a simpler Earth rotation model, and say so.
+with a simpler Earth rotation model, and say so. Two more files are
+fetched only when you need them: template 31 (the asteroid Eros) needs
+`spacemissionstudio small-bodies --fetch`, and
+`link.atmospheric_loss: itu_r_p676` needs `spacemissionstudio
+gaseous-attenuation --fetch` ([Reference data](user-manual/reference-data.md)).
 
 Every command first prints a line like
 `INFO ... Logging to ~/.spacemissionstudio/logs/...log`. That is normal.

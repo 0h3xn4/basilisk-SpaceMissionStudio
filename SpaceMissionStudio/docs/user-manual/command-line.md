@@ -24,7 +24,7 @@ with a non-zero status and prints `ERROR:` or `INVALID:` with the reason.
 |---|---|
 | `validate scenario.json` | Checks the file without running it. Does not need Basilisk. |
 | `run scenario.json --out-dir out` | Runs it and writes one CSV per quantity, `events.csv`, `provenance.json` and `scenario_as_run.json` |
-| `monte-carlo scenario.json --archive-dir mc` | Runs the scenario's Monte Carlo batch and writes its provenance, `archive.provenance.json` |
+| `monte-carlo scenario.json --archive-dir mc` | Runs the scenario's Monte Carlo batch and writes its provenance, `archive.provenance.json`. `--archive-dir` must be empty or hold an earlier batch, which `--overwrite` replaces; `--allow-scripts` runs the Mission Sequence's `script_block` commands in every run |
 | `run scenario.json --save` | Also keeps the run in the run store, as the app does (`--store DIR` for another folder) |
 | `runs` | Lists the runs kept in the run store: the app's and `run --save`'s |
 | `compare 3 5 --out comparison.json` | Two kept runs side by side (Results > Compare): the scenario differences, the headline figures with the difference, the events; `--out` writes JSON with both runs' provenance |
@@ -39,9 +39,11 @@ Useful `run` options:
 
 | Option | Does |
 |---|---|
-| `--oem` | Also writes each spacecraft's ephemeris as a CCSDS OEM file |
+| `--oem` | Also writes each spacecraft's ephemeris as a CCSDS OEM file (`--oem-stride N` writes every Nth recorded state; `--oem-interpolation hermite` or `lagrange` sets the interpolation the file suggests, degree 7: GMAT reads only `lagrange`) |
 | `--vizard-save-file run.bin` | Writes a Vizard playback file |
 | `--vizard-live-stream` | Streams to a Vizard that is already running |
+| `--vizard-camera-target NAME` | The spacecraft or celestial body Vizard's camera starts locked on (default: the scenario's central body) |
+| `--vizard-no-orbit-lines`, `--vizard-trail`, `--vizard-ground-tracks` | Turn off the orbit lines (on by default), or add the flown path or the ground tracks, in Vizard |
 | `--allow-scripts` | Runs the scenario's `script_block` commands. They are unrestricted Python: use it only for files you trust and have read. |
 | `--bundle` | Also makes `--out-dir` a reproduction bundle that `reproduce` can run again (see below) |
 | `--explain` | After the run, its headline figures (as Results > Overview shows them) and its data-handling totals, and how each was computed: the series and sample it was read from, the parameters and constants. Each of the run's warnings is followed by its rule ([Reading a run's results](../models/reading-results.md)) |
@@ -85,13 +87,6 @@ OK: 'old' -- 1 spacecraft, schema version 4, epoch 2030-01-01T00:00:00
 MIGRATED: schema 1 -> 2: space_weather.source 'celestrak' -> 'synthetic'
 MIGRATED: schema 2 -> 3: space_weather.source 'synthetic' -> 'bundled'
 ```
-
-`archive.provenance.json` in a Monte Carlo folder names the file you gave
-and the SHA-256 of its bytes and of the scenario. Under `nominal_run` it
-gives what every run shares: the integrator and its tolerances, the time
-step, the central body, the frames and every data file with its SHA-256.
-It gives no seeds: each run draws its own, and they are in its
-`run<N>.json`.
 
 `archive.provenance.json` in a Monte Carlo folder names the file you gave
 and the SHA-256 of its bytes and of the scenario. Under `nominal_run` it
@@ -152,19 +147,21 @@ made with. The GUI writes the same bundle from Results › Plots ›
 
 | Command | What it does |
 |---|---|
-| `lifetime scenario.json` | Re-entry date, and the 5-year and 25-year checks |
+| `lifetime scenario.json` | Re-entry date, and the 5-year and 25-year checks (`--spacecraft`, `--max-years`, `--drag-coeff`, `--forecast-percentile 5\|50\|95` for MSFC's solar-activity percentile, `--deorbit-perigee-km` to lower the perigee with the orbit thruster first) |
+| `reentry scenario.json` | A preliminary re-entry casualty estimate from the 3D model: the fragments that reach the ground and the casualty area (`--spacecraft`, `--population-density` people per km² for the risk, `--out`); see [Preliminary re-entry casualty estimate](../models/reentry.md) |
 | `budget scenario.json` | Delta-V and propellant budget (ESA AD10 style) |
 | `budget scenario.json --launch-delays` | The same, for launches 1 to 5 years late |
 | `budget scenario.json --altitudes 400,450,500` | Which altitude fits the tank |
 | `lifetime scenario.json --out life.json` | Also writes the lifetime as JSON |
 | `budget scenario.json --out budget.json` | Also writes the budget as JSON |
 | `lifetime scenario.json --explain` | After the result, how each figure was computed: the orbit, mass, ballistic coefficient, deorbit burn, lifetime and each rule's verdict, with their inputs and sources; each warning is followed by its rule |
-| `link-budget scenario.json` | The downlink's Eb/N0 budget at the longest range of a pass (`--range-km`, `--pointing-deg`, `--explain`, `--out`) |
+| `link-budget scenario.json` | The downlink's Eb/N0 budget at the longest range of a pass (`--spacecraft`, `--station`, `--range-km`, `--elevation-deg` for the default range, `--pointing-deg`, `--explain`, `--out`) |
 | `budget scenario.json --explain` | After the table, how each number was computed: the equation, each input with its unit and where it came from, and the AD10 section |
 | `spaceweather-resolve scenario.json` | Which space-weather file a run would use |
 | `spaceweather-download [--dataset SW-All]` | Downloads CelesTrak's space-weather file (needs internet; running it is the consent), as Reference data > Download does |
 | `budget scenario.json --launch-delays --out sweep.json` | Writes the launch-delay sweep, every launch date's budget, as JSON with its provenance (`--altitudes` writes the altitude trade the same way) |
 | `assumptions [scenario.json]` | The named parameters: value, unit and source, and which ones the scenario's configuration file changes (`--changed`, `--area`, `--yaml` for the defaults file); see [Change a parameter](project-configuration.md) |
+| `history scenario.json` | The scenario's change history, newest first: who changed what, when and why (`--spacecraft`, `--field`; reads only); see [The change history](change-history.md) |
 | `plugins` | The plugins installed: each one's parameters, rules and models, and any that could not be loaded (exit status 5); see [Add your own models and rules](plugins.md) |
 
 ```console
@@ -223,8 +220,8 @@ Each input says where it came from: `scenario:` (a field of the file),
 
 | Command | What it does |
 |---|---|
-| `generate-constellation in.json --out out.json --total-satellites 12 --planes 3 --phasing-factor 1 --altitude-km 780 --inclination-deg 86.4` | A Walker constellation from one spacecraft |
-| `generate-phasing-formation in.json --out out.json --chief chief-1 --follower-name follower-1 --along-track-km 50` | A follower that holds a distance ahead of a chief |
+| `generate-constellation in.json --out out.json --total-satellites 12 --planes 3 --phasing-factor 1 --altitude-km 780 --inclination-deg 86.4` | A Walker constellation from one spacecraft. Also: `--pattern delta\|star`, `--eccentricity`, `--arg-periapsis-deg`, `--raan-offset-deg`, `--name-prefix`, `--template-spacecraft`, and `--append` to add the satellites to the file's spacecraft instead of replacing them |
+| `generate-phasing-formation in.json --out out.json --chief chief-1 --follower-name follower-1 --along-track-km 50` | A follower that holds a distance ahead of a chief. `--along-track-km` is the held separation; `--radial-km` and `--cross-track-km` only set the starting geometry. Further options set the reconfiguration and correction windows and tolerances, the station-keeping altitude and deadband, the shared thruster (`--thrust-n`, `--isp-s`, `--min-on-time-s`, `--propellant-kg`), and `--control-law drift_orbit\|mean_oe\|hill_pd` (`generate-phasing-formation --help` lists them) |
 | `generate-roe-formation in.json --out out.json --chief chief-1 --follower-name follower-1 --safe 0,300,300` | A follower in a formation of relative orbital elements: `--safe along,radial,cross[,phase]` [m, deg] for a passively safe helix, or `--roe` with the six ROE in metres; `--control-law impulsive` (default) or `continuous`. Clones the chief (or `--template-spacecraft`), whose station keeping provides the thruster |
 
 ## 3D models
@@ -238,6 +235,8 @@ drag and solar pressure act on.
 | `model scenario.json` | Lists each model's parts, the mass properties and facets it gives, and whether the spacecraft's stored values still match |
 | `model scenario.json --apply` | Writes those values into the scenario file |
 | `model scenario.json --spacecraft sat-1 --export-obj sat.obj` | Writes the model as a Wavefront `.obj` (and `.mtl`), body frame, metres, +z up |
+| `check-design scenario.json` | The design checks of a model, with no run: field-of-view obstruction, thruster authority and plumes, mass budget, launcher envelope (`--spacecraft`, `--samples` rays per cone, `--explain`, `--out` for the record, `--tables DIR` for the CSV tables); see [Analyses built on the 3D model](model-analyses.md) |
+| `model-analyses scenario.json` | Runs the scenario and reports its model analyses: disturbance torques with the wheel and magnetorquer sizing, blinding, antenna obstruction, array shading, exposure and brightness (`--spacecraft`, `--out`, `--tables DIR`) |
 
 ```console
 $ spacemissionstudio model octagon.json
@@ -271,9 +270,9 @@ See [Orbit files](orbit-files.md).
 
 | Command | What it does |
 |---|---|
-| `export-fsw scenario.json --spacecraft sat-1 --out dir` | Writes the attitude flight software as a C project |
+| `export-fsw scenario.json --spacecraft sat-1 --out dir` | Writes the attitude flight software as a C project (`--steps N` flight-software steps to record for its tests, 200 by default; `--overwrite` replaces an earlier export; `--record` records the export in the scenario file) |
 | `fsw-status scenario.json` | Says whether recorded exports are up to date |
-| `sil scenario.json --spacecraft sat-1 --binary prog` | Runs an external flight-software program in the loop |
+| `sil scenario.json --spacecraft sat-1 --binary prog` | Runs an external flight-software program in the loop (`--transport auto\|unix\|tcp`, `--deadline-ms` after which a late answer counts as a dropped step, `--step-timeout` and `--handshake-timeout` in seconds, `--report`, `--residuals-csv`, `--max-error`) |
 
 The `sil --report` file also has a `provenance` section: the tool and
 Basilisk versions, the scenario's SHA-256, the time, and the run's own
@@ -287,6 +286,8 @@ See [Flight software and SIL](flight-software-and-sil.md).
 |---|---|
 | `kernels-status` | Lists the SPICE kernels, gravity field and magnetic model, and whether each is installed |
 | `earth-orientation` | Shows the Earth orientation files; `--fetch` downloads new ones, `--import` installs them from disk, `--rollback` undoes the last change |
+| `small-bodies` | Shows the asteroid Eros files (ephemeris and shape); `--fetch` downloads them, `--import FILE` installs the ephemeris kernel `eros_1900_2100.bsp` from disk; see [Small bodies](small-body-navigation.md) |
+| `gaseous-attenuation` | Shows the ITU-R P.676-13 data file (Part 1) that `link.atmospheric_loss` reads; `--fetch` downloads it, `--import FILE` installs the ITU's `R11010000020001TXTM.txt` from disk |
 
 See [Reference data](reference-data.md).
 

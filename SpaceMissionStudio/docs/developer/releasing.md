@@ -2,7 +2,7 @@
 
 How to cut a SpaceMissionStudio release. The formal procedure is in the
 Software Maintenance Plan,
-[`compliance/docs/SMP.md`](../../compliance/docs/SMP.md) section 9; this
+[`compliance/docs/SMP.md`](../../compliance/docs/SMP.md) section 10.6; this
 page is the checklist.
 
 **Contents**
@@ -54,6 +54,8 @@ The `.deb` reads `spacemissionstudio.__version__`, so it needs no change.
     section of their own, and the known limits follow the standing ones
     (the unsigned Windows setup, no installer for ARM Linux).
 - [`HISTORY.md`](../../HISTORY.md): a short entry for the release.
+- [`README.md`](../../README.md): the version badge and the "Version" and
+  "Platforms" lines of its status section (they name the release).
 - The Software Release Document,
   [`compliance/docs/SRelD.md`](../../compliance/docs/SRelD.md): the
   release's contents, known problems and dependency versions.
@@ -243,9 +245,15 @@ only. Two steps could not be done as written. The space weather was not
 refreshed: CelesTrak reset every connection from the environment the
 release was prepared in, so it is 1.3.0's (observations to 2026-10-24),
 said in the CHANGELOG's known limits and SRelD K-13. And by the user's
-instruction of the day, the release pull request was merged and the tag
-pushed without asking; publishing the workflow's draft stays the
-user's.
+instruction of the day, the release pull request was merged without
+asking, but the tag could not be pushed from that environment (its git
+proxy refused tags), so the user tagged and published. It was published
+on 2026-11-03 at 12:30 UTC: tag `spacemissionstudio-v2.0.0` on
+`6608682a3`, with the user's own notes, which the workflow kept. Published before the workflow
+started, it was public without files for 32 minutes, until the workflow
+attached them at 13:02, the fourth release so. Push the tag first,
+or save the release as a draft and run the workflow on its tag, and
+publish only once the files are there.
 
 ---
 

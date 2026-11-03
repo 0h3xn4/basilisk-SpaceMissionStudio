@@ -299,7 +299,7 @@ run a spacecraft's flight software as an external program in the loop and compar
 | `--handshake-timeout` | seconds to connect and say HELLO |
 | `--report` | write the full report (JSON) here |
 | `--residuals-csv` | write the sampled residuals (CSV) here |
-| `--max-error` | exit with status 2 if any residual is larger, or an output was never written |
+| `--max-error` | exit with status 5 if any residual is larger, or an output was never written |
 
 ## `spaceweather-resolve`
 

@@ -2150,7 +2150,7 @@ def build_parser() -> argparse.ArgumentParser:
     p_sil.add_argument("--report", type=Path, help="write the full report (JSON) here")
     p_sil.add_argument("--residuals-csv", type=Path, help="write the sampled residuals (CSV) here")
     p_sil.add_argument("--max-error", type=_finite_float_arg, default=None,
-                       help="exit with status 2 if any residual is larger, or an output was never written")
+                       help="exit with status 5 if any residual is larger, or an output was never written")
     p_sil.set_defaults(func=cmd_sil)
 
     p_sw = subparsers.add_parser("spaceweather-resolve",

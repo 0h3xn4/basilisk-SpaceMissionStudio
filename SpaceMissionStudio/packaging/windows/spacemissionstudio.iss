@@ -6,7 +6,7 @@
 ; Self-contained: the setup program carries a private CPython 3.14
 ; (python-build-standalone) with Basilisk, SpaceMissionStudio and every
 ; Python package installed, plus the support data (SPICE kernels, gravity
-; fields, magnetic field model, albedo maps) and the Earth orientation
+; fields, magnetic field model, albedo maps, tabular atmosphere profiles) and the Earth orientation
 ; files -- the folder packaging/bundle_python.py builds. Installing needs
 ; no Python on the machine and no internet.
 ;
@@ -18,10 +18,10 @@
 ;   2. Build the bundled Python into packaging\windows\python\ (needs
 ;      Python 3.14 or later to run the script, and internet access):
 ;        python packaging\bundle_python.py --platform windows --dest packaging\windows\python ^
-;            --wheel packaging\windows\dist\spacemissionstudio-2.0.0-py3-none-any.whl
+;            --wheel packaging\windows\dist\spacemissionstudio-<version>-py3-none-any.whl
 ;   3. Compile this script:
 ;        ISCC packaging\windows\spacemissionstudio.iss
-;      -> packaging\windows\Output\spacemissionstudio-2.0.0-setup.exe
+;      -> packaging\windows\Output\spacemissionstudio-<version>-setup.exe
 ;
 ; Verification: .github/workflows/spacemissionstudio-release.yml and
 ; spacemissionstudio-windows-installer.yml build it on a Windows runner,

@@ -61,7 +61,7 @@ Template 23 is this process, finished.
 ## From Python instead
 
 [`examples/build_a_scenario.py`](../../examples/build_a_scenario.py)
-builds the same kind of scenario in code and prints the Explain summary.
+builds the same kind of scenario in code and prints the summary that **Scenario > Overview** shows.
 
 **More detail:** User Manual section 6,
 [Building your own scenario, step by step](../../USER_MANUAL.md#building-your-own-scenario-step-by-step).

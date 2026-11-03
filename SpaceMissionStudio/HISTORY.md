@@ -14514,6 +14514,23 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.0.0 published (2026-11-03)
+
+#206 was merged. The tag could not be pushed from this environment: its
+git proxy answered the tag push with HTTP 403, and no GitHub tool here
+creates a tag. The user tagged `develop`'s `6608682a3` and published the
+release "Space Mission Studio 2.0.0" at 12:30:59 UTC, with release notes
+written in this session at the user's request (a summary, highlights, breaking changes, the results
+that change, what is new, fixes, upgrading, downloads, known issues). The
+release workflow (run 41636370025) started two seconds later, passed the
+tests on the tag on Linux and Windows, and attached the six files at
+13:02, keeping the notes; so the release was public without files for 32
+minutes, as 1.2.0, 1.3.0 and 1.3.1 were. SRelD issue 18 records the tag,
+the run and the files' digests; the SDP, H05 and `releasing.md` record the
+publication, and `releasing.md` says again how to publish only once the
+files are attached. The records of the preparation said the tag would be
+pushed from here; they are corrected.
+
 ## Release 2.0.0 prepared (2026-11-03)
 
 The user: "continue as per your recommendations. don't ask me for
