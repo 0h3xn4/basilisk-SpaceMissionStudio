@@ -99,7 +99,7 @@ def build_scenario(altitude_km: float = 550.0, duration_days: float = 1.0) -> Sc
 
 
 def describe(scenario: Scenario) -> list:
-    """The Explain tab's summary of ``scenario``, as lines of text."""
+    """The summary of ``scenario`` that Scenario > Overview shows, as lines of text."""
     explanation = explain(scenario)
     lines = [explanation.headline]
     lines += [f"  {tile.label}: {tile.value}" for tile in explanation.stat_tiles]

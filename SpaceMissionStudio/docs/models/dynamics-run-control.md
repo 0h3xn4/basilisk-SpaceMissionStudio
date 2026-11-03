@@ -32,9 +32,14 @@ integrators:
 
 Why 1e-10: Basilisk's own default relative tolerance, 1e-4, lets a long
 step pass unsplit. A one-day two-body run at a 300 s step was 384 m off
-Kepler's solution with it, and is 11 m off at 1e-10 (audit E3). Steps of
-30 s or less, which every template uses, met the default in one step
-already; their results are the same either way.
+Kepler's solution with it, and is 11 m off at 1e-10 (audit E3). Above a
+60 s step the rest of the error comes from what is refreshed only once per
+step, so Explain and `validate` warn there. Steps of 30 s or less, which
+every template uses, met the default in one step already, so 28 of the 31
+templates give the same results to the last digit. The three that fire
+attitude thrusters (11, 12, 17) change: their 20 to 40 ms pulses fall
+inside a 0.5 to 1 s step, and the default tolerance stepped over most of
+them (template 17's fuel tank drains about 14 g, not 0.3 g).
 
 The run's `provenance.json` records the tolerances it used
 (`integrator_relative_tolerance`, `integrator_absolute_tolerance`).

@@ -105,6 +105,7 @@ All five use the same few entry points:
 | List events | `spacemissionstudio.engine.events.extract_events(result)` |
 | Summarize a scenario | `spacemissionstudio.engine.scenario_explainer.explain(scenario)` (Explain: Scenario › Overview) |
 | Estimate lifetime | `spacemissionstudio.engine.lifetime.spacecraft_lifetime(scenario, name)` (**Run > End of Life**) |
+| Script the whole tool with a stable interface | `spacemissionstudio.api`: `load`, `validate`, `assumptions`, `run`, `lifetime`, `budget`, `monte_carlo`, `compare`, `record`, `write` ([reference](../docs/api.md)); the scripts above use the engine modules directly |
 | Monte Carlo | `spacemissionstudio.engine.monte_carlo.run_monte_carlo(scenario, scenario.monte_carlo, folder)`; read the results with `spacemissionstudio.engine.monte_carlo_results.load(folder)` |
 
 Series names follow `<spacecraft>.<quantity>` (`my-sat.position_N`) or

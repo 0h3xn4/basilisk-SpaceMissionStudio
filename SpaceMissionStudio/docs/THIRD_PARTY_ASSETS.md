@@ -106,5 +106,6 @@ Reference data dialog download:
 | Data | Files | Source |
 |---|---|---|
 | SPICE kernels | `naif0012.tls`, `de430.bsp`, `de-403-masses.tpc`, `pck00010.tpc` | NASA NAIF, `naif.jpl.nasa.gov/pub/naif/generic_kernels/` (the URLs Basilisk's registry gives) |
-| Gravity fields, magnetic field (WMM-2025), albedo maps | `GGM03S.txt`, `GGM2BData.txt`, `WMM2025.COF`, `Earth_ALB_2018_CERES_All_5x5.csv`, `Mars_ALB_TES_5x5.csv` | Basilisk's `supportData` folder (`raw.githubusercontent.com/AVSLab/basilisk/.../supportData/`), the files Basilisk itself downloads |
+| Gravity fields, magnetic field (WMM-2025), albedo maps, tabular atmosphere profiles | `GGM03S.txt`, `GGM2BData.txt`, `WMM2025.COF`, `Earth_ALB_2018_CERES_All_5x5.csv`, `Mars_ALB_TES_5x5.csv`, `USStandardAtmosphere1976.csv`, `EarthGRAMNominal.txt`, `NRLMSISE00Nominal.txt` | Basilisk's `supportData` folder (`raw.githubusercontent.com/AVSLab/basilisk/.../supportData/`), the files Basilisk itself downloads |
 | Earth orientation | the current `earth_*_combined.bpc` and `earth_latest_high_prec.bpc`, with their comment files | NASA NAIF, `naif.jpl.nasa.gov/pub/naif/generic_kernels/pck/` |
+| Gaseous attenuation (`link.atmospheric_loss`) | `R-REC-P.676-13-Part1.txt` (44,100 bytes, SHA-256 pinned in `engine/gaseous_attenuation.py`) | ITU-R Recommendation P.676-13, data file Part 1, `www.itu.int/dms_pub/itu-r/oth/11/01/R11010000020001TXTM.txt` (page: `www.itu.int/oth/R1101000002/en`) |

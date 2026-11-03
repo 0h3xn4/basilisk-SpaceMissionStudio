@@ -22,7 +22,7 @@ Shows how the GUI's Mission Sequence editor works underneath: a list of
 ``Command`` objects run in order. Here: burn prograde, coast until
 apoapsis (an event, not a fixed time), burn prograde again to
 circularize, then coast one orbit. Each ``report`` command records a
-snapshot, as on the Mission Output tab.
+snapshot, as on Results > Output.
 
 Gravity is a point mass, so the result can be checked against the
 textbook formulas: the final orbit is circular at the target altitude to

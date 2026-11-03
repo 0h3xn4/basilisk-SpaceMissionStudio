@@ -19,6 +19,8 @@ New to the app? Do [Getting started](../getting-started.md) first.
 | Change a rule or margin an analysis uses, for my project? | [Change a parameter](project-configuration.md) |
 | See what changed in a scenario, when, by whom and why? | [The change history](change-history.md) |
 | Add my organization's own models, checks and parameters? | [Add your own models and rules](plugins.md) |
+| Check how a number was computed, or run someone's result again? | [Show calculation](../models/README.md), and [Reproduce a result](command-line.md#reproduce-a-result) |
+| Script it from Python? | [The Python API](../api.md) |
 
 ## Mission features
 

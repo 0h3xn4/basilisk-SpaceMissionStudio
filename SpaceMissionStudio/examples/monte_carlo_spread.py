@@ -18,12 +18,12 @@
 
 """Run a Monte Carlo batch, then read its results back (the batch needs Basilisk).
 
-Run Monte Carlo... (GUI) and ``spacemissionstudio monte-carlo`` (CLI) save
+Run in Monte Carlo mode (GUI) and ``spacemissionstudio monte-carlo`` (CLI) save
 each run to the folder you choose. Next to Basilisk's own archive (pickles,
 which only the batch that wrote them reads), the tool writes a summary
 anyone can read safely: ``batch_results.npz`` (every run's position and
-velocity) and ``batch_results.json`` (the values each run drew). The GUI's
-Monte Carlo tab shows it; this script reads it with
+velocity) and ``batch_results.json`` (the values each run drew). In the GUI,
+Results > Monte Carlo shows it; this script reads it with
 ``spacemissionstudio.engine.monte_carlo_results`` and prints how far apart
 the runs end up, day by day.
 

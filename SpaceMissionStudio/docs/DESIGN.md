@@ -528,11 +528,11 @@ Settings > Appearance offers System, Light and Dark:
   `theme.signals.changed`; plots, diagrams and item colours connect to it
   and redraw (`theme.on_change`, `theme/items.py`). With System, a change
   of the desktop's scheme applies while the app runs.
-- **Time:** about 0.5 s on a new main window with a scenario open, 2.4 s
-  after every page has been visited (before M1: 1.3 s and 6.1-6.5 s on the
-  same machine); Qt re-polishes every widget, most of them hidden. The
-  brief's 100 ms needs fewer live widgets, which the shell's lazy areas
-  (M2) bring (`docs/DECISIONS.md`).
+- **Time:** about 0.36 s with every template opened in turn, then
+  template 23 (1.3.1; 0.53 s before it, 6.1 s before the overhaul on the
+  same machine: SRelD K-19); Qt re-polishes every widget, most of them
+  hidden. The brief's 100 ms is not met (see [Known gaps](#known-gaps);
+  `docs/DECISIONS.md`).
 
 ### Long operations
 
@@ -607,11 +607,13 @@ audit uses.
 Where the app does not meet `docs/ui/UI_OVERHAUL.md` after the overhaul
 (measured in `docs/ui/BEFORE_AFTER.md`, the reasons in `docs/DECISIONS.md`):
 
-- **Live theme switch time:** about 2 s, not the brief's 100 ms: the
-  application style sheet is applied to every widget (6.1 s before).
-- **Stalls over 50 ms** remain when a template is opened (156-463 ms),
-  on the first visit to a spacecraft page (456 ms) and in the spacecraft
-  editor dialog (381 ms), and at the end of a run (474 ms).
+- **Live theme switch time:** about 0.4 s, not the brief's 100 ms: the
+  application style sheet is applied to every widget (6.1 s before the
+  overhaul; SRelD K-19).
+- **Stalls over 50 ms** remain when a template is opened (72-134 ms), on
+  the first visit to a spacecraft page (157-168 ms) and in the spacecraft
+  editor dialog (381 ms), and at the end of a run that ends in the first
+  seconds after start-up (up to 0.3 s; 27-52 ms otherwise). SRelD K-23.
 - **Tables:** Output, Monte Carlo, Budget, Compare, the Timeline and
   Reports › Exports are `DataTable`s. The reference data list, the
   readouts, the scenario overview's table, the SIL comparison, the

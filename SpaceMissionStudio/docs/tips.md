@@ -19,7 +19,9 @@ writes, so you can move data to and from other tools.
 | `Ctrl+R` | Run, in the mode beside it (Single run, Monte Carlo, SIL) |
 | `Esc` | Cancel the run |
 | `F1` | User Manual |
-| `Ctrl+Z` / `Ctrl+Shift+Z` (`Ctrl+Y` on Windows) | Undo / redo a scenario edit |
+| `Ctrl+Z` / `Ctrl+Shift+Z` (`Ctrl+Y` on Windows) | Undo / redo a scenario edit (the menu names the edit: "Undo dry_mass_kg (sat-1)") |
+| `Ctrl+J`, `Ctrl+I` | Show or hide the Problems panel, the Inspector |
+| `Ctrl+1` to `Ctrl+6` | Go to Home, Scenario, Run, Results, Timeline, Reports |
 | `Ctrl+N`, `Ctrl+O`, `Ctrl+S`, `Ctrl+Shift+S` | New, Open, Save, Save As |
 | `Esc` in the Timeline, `Alt+Backspace` anywhere | Clear the time cursor |
 | `Alt+Right` / `Alt+Left` in Results (with `Shift`: ten) | Move the time cursor a sample |
@@ -58,9 +60,14 @@ writes, so you can move data to and from other tools.
   scenario files.
 - `spacemissionstudio run ... --out-dir` and `monte-carlo` give the same
   numbers as the GUI.
-- `spacemissionstudio sil ... --max-error 1e-9` exits with status 2 when
-  external flight software disagrees with the simulation: a CI gate.
-- The [examples](../examples/README.md) show the Python API: build a
+- `spacemissionstudio sil ... --max-error 1e-9` exits with status 5 when
+  external flight software disagrees with the simulation: a CI gate. An
+  internal error exits 4.
+- `spacemissionstudio run ... --bundle` and `spacemissionstudio reproduce`
+  make a result folder anyone can run again and compare.
+- `spacemissionstudio.api` ([The Python API](api.md)) gives a script the
+  same lifetime, budget, run and comparison the app computes.
+- The [examples](../examples/README.md) show the engine from Python: build a
   scenario, sweep a parameter, read a Monte Carlo batch.
 
 ## Files the app reads and writes
@@ -78,6 +85,11 @@ writes, so you can move data to and from other tools.
 | 3D model | Wavefront OBJ (`.obj`, with its `.mtl`) | 3D Model... > Import .obj..., Spacecraft page > Vizard model |
 | Mass properties | JSON or CSV | 3D Model... > Mass properties > Import file... |
 | Flight-software program | An executable speaking the SIL contract | Run in SIL mode, `sil --binary` |
+| Project configuration | YAML (`config_file` in the scenario) | Scenario › Assumptions, `assumptions` |
+| Atmosphere gases data | ITU-R P.676-13 Part 1 (`.txt`) | Reference data > Import file..., `gaseous-attenuation --import` |
+| Small-body ephemeris | NAIF `eros_1900_2100.bsp` | Reference data > Import file..., `small-bodies --import` |
+| Plugins | Python packages declaring the entry point `spacemissionstudio.models` | Loaded at start-up ([Plugins](user-manual/plugins.md)) |
+| Reproduction bundle | A folder written by `run --bundle` | `reproduce` |
 
 **Writes**
 
@@ -88,6 +100,10 @@ writes, so you can move data to and from other tools.
 | Events | CSV (seconds and UTC) | Timeline > Export CSV..., `run` (`events.csv`) |
 | Reports | CSV | Results > Output > Export CSV... |
 | Provenance | JSON (versions and checksums of every input) | Beside every export |
+| Scenario as run | JSON (`scenario_as_run.json`) | `run --out-dir`, beside the results |
+| Reproduction bundle | Folder: results, provenance, the scenario as run and copies of the files it refers to (`bundle.json`) | Results > Plots > Export all... > Reproduction bundle..., `run --bundle` |
+| Lifetime and budget records | JSON, with inputs, traces and provenance | End of Life > Export JSON..., `lifetime --out`, `budget --out` |
+| Change history | `mission.history.jsonl` beside `mission.json` | Every save; Change History... |
 | Plots | PNG, SVG | Results > Plots > Save PNG... / Save SVG... (the selected plot), Export all... (every shown plot, with CSV) |
 | Orbit messages | CCSDS OPM, OEM (KVN text) | `ccsds-export`, `run --oem` |
 | Vizard playback | `.bin` | Run > Run (the Vizard save file), `run --vizard-save-file` |

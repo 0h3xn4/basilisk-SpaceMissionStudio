@@ -21,7 +21,8 @@ Each layer uses only the layers below it.
              |
              v
    schema/  the scenario data model and its validation
-   data/    bundled data files (space weather, device catalog)
+   config/  named parameters, selectable models, project configuration files
+   data/    bundled data files (space weather)
 ```
 
 | Package | What it holds | Needs Basilisk |
@@ -29,7 +30,11 @@ Each layer uses only the layers below it.
 | `schema/` | The scenario model (`Scenario`, `SpacecraftConfig`, `OrbitIC`, ...) as dataclasses, its validation, file migrations, the Mission Sequence commands and reference checks | No |
 | `engine/` | `service.SimulationService` builds and runs a Basilisk simulation; `long_run` chains runs past 100 days; `mission_engine` runs a Mission Sequence; analyses (lifetime, budgets, Monte Carlo, link budget, formations, constellations); data and exchange (space weather, Earth orientation, kernels, CCSDS, TLE, results, events) | Only the modules that build a simulation, and they import it inside functions |
 | `gui/` | The PySide6 application: the shell (navigation rail, areas, top bar, status bar, command registry), the theme package (`gui/theme/`), the editors, the Run, Results, Timeline and Reports views, the workers that run things in the background | No (it opens without Basilisk; runs need it) |
+| `config/` | The registry of named parameters (value, unit, source, limits: `registry.py`, `parameters.py`), the selectable models (`models.py`), and the YAML project configuration files a scenario names in `config_file` (`files.py`; `defaults.yaml` is generated) | No |
 | `cli.py` | The `spacemissionstudio` command, over the same `engine` calls as the GUI | Only for commands that run something |
+| `api.py` | The stable Python API for scripts (`load`, `validate`, `run`, `lifetime`, `budget`, `compare`, ...; reference in [`docs/api.md`](../api.md)), over the same `engine` calls | Only for the functions that run something |
+| `plugins.py`, `history.py`, `reproduction.py`, `output_provenance.py` | Plugins found by entry point (`spacemissionstudio.models`); a scenario's change history in a `.history.jsonl` file beside it; reproduction bundles (a run's folder that can run itself again); provenance inside output files | No |
+| `dependencies.py`, `constants.py`, `logging_setup.py`, `temp_folders.py`, `_offline.py` | The qualified Basilisk version and its check; the physical constants the tool's own calculations use; logging to the terminal and `~/.spacemissionstudio/logs/`; the temporary folders and their clean-up; keeping Basilisk's import-time request off the network | No |
 | `fsw_export/` | Exports a spacecraft's attitude flight software as a standalone C project | Only to record a run |
 | `sil/` | Software in the loop: the transport contract, the session, the runner, the comparison report | Only to run |
 | `model3d/` | 3D spacecraft models: shapes and `.obj` files, mass properties, surface facets, and applying them to a spacecraft | No (numpy only) |
@@ -73,6 +78,8 @@ days (`engine/long_run.py`).
 |---|---|
 | A scenario field and its meaning | `schema/scenario.py` (each field's comment), and the generated field list [`compliance/docs/ICD_scenario_fields.md`](../../compliance/docs/ICD_scenario_fields.md) |
 | How a feature maps to Basilisk modules | `engine/service.py` and `engine/fsw.py` |
+| An engineering value an analysis uses (its unit, source and default) | `config/parameters.py`, and the generated `config/defaults.yaml` |
+| Scripting the tool from Python | `api.py` and [`docs/api.md`](../api.md) |
 | The CLI's commands and exit codes | `cli.py`, and [`compliance/docs/ICD_cli.md`](../../compliance/docs/ICD_cli.md) |
 | Every external interface | [`compliance/docs/ICD.md`](../../compliance/docs/ICD.md) |
 | Why something is the way it is | [`HISTORY.md`](../../HISTORY.md), the development log |

@@ -101,6 +101,11 @@ orbit-averaged perigee. A full simulation run stops at its own
   short-period effects on the decay beyond the ring's positions.
 - Constant mass during the decay.
 - Earth only.
+- At the critical inclinations (63.435 and 116.565 deg) and near the
+  equator, the mean elements the decay starts from use the blended map of
+  [Environment data](environment-and-data.md#fixed-rules-and-why); before
+  2.0.0 a 600 km orbit at the critical inclination was reported to
+  re-enter at once.
 - Sphere (cannonball) drag, or the tumbling average of the facets.
 - No solar radiation pressure, third bodies or higher harmonics, which
   matter little for orbits that decay within decades.
