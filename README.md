@@ -5,7 +5,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-[![Version 2.1.0](https://img.shields.io/badge/version-2.1.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.1.0)
+[![Version 2.1.1](https://img.shields.io/badge/version-2.1.1-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.1.1)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -125,8 +125,10 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE),
   [`SpaceMissionStudio/LICENSE`](SpaceMissionStudio/LICENSE)).
-- **Version:** 2.1.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.1.0),
-  [changelog](SpaceMissionStudio/CHANGELOG.md)): the spacecraft as
+- **Version:** 2.1.1 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.1.1),
+  [changelog](SpaceMissionStudio/CHANGELOG.md)): fixes to 2.1.0 (the 3D
+  model editor is a window of its own, the IDM-CIC import from a
+  template, Vizard's battery in watt-hours). 2.1.0 was the spacecraft as
   designed. Its 3D model carries the equipment, a stowed configuration
   and materials; the tool checks fields of view, thrusters, the mass
   budget and launcher fit and analyses disturbances, blinding, shading,

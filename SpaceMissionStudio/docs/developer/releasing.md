@@ -270,6 +270,12 @@ fifth release so. Push the tag, wait for the workflow's draft (about 37
 minutes now that it runs the whole suite on both platforms), then edit
 its notes and publish.
 
+2.1.1 was prepared on 2026-11-04 by this checklist, a patch release with
+the fixes reported on 2.1.0 (#215: the 3D model editor as a window of its
+own, the IDM-CIC import from a template, Vizard's battery in watt-hours).
+No scenario field, template or golden file changed. The space weather is
+still 1.3.0's (CelesTrak reset the connection again, K-13).
+
 ---
 
 **Next:** [Syncing with upstream Basilisk](upstream-sync.md) ·

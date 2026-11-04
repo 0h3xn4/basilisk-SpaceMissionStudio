@@ -8,7 +8,12 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 2.1.1 (2026-11-04)
+
+Fixes for problems found in 2.1.0's 3D model editor, IDM-CIC import and
+Vizard battery panel. Nothing the tool computes changes: every template
+gives the same results as in 2.1.0, and 2.1.0 and 2.1.1 open each other's
+scenario files.
 
 ### Fixed
 
@@ -36,6 +41,25 @@ fixes bugs.
   message carries watt-seconds and Vizard shows the numbers as sent), and
   now reads "700 / 700 Wh". Results, exports and the scenario file are
   unchanged.
+
+### Who should update
+
+- **Anyone who uses the 3D model editor or the IDM-CIC import:** update.
+- **Everyone else can update when convenient:** results, scenario files,
+  the command line and every exported file are as in 2.1.0.
+- **Teams:** no need to update together; the scenario format is
+  2.1.0's.
+- **The installers:** on Linux, `apt install
+  ./spacemissionstudio_2.1.1_amd64.deb` replaces 2.1.0; on Windows, run
+  the 2.1.1 setup over 2.1.0.
+
+### Known limits
+
+As in 2.1.0. The bundled space weather is still 1.3.0's (observations to
+2026-10-24, CelesTrak's forecast to 2026-12-07; CelesTrak could not be
+reached for this release either): fetch the current file before a drag
+study (Home's reference-data card, **Settings > Reference data**, or
+`spacemissionstudio spaceweather-download`).
 
 ## 2.1.0 (2026-11-04)
 
