@@ -200,9 +200,22 @@ In the 3D model editor:
   face properties); a part that carries equipment cannot be deleted until
   the equipment is moved.
 
-Materials, face properties, the mass budget's policy and the launcher
-envelope are set in the scenario file (the Scenario's JSON view); the
-analyses of a run are chosen in the spacecraft editor's **3D model**
+- The part form also gives each part a **material** (the library's
+  sourced materials, or the model's own), a **maturity** category and a
+  **subsystem** for the mass budget, and, under **Per face**, a material
+  and reflection coefficients for one face in place of the part's (blank
+  keeps the part's).
+- **Materials** holds the model's own materials, with their values and
+  where they come from. Renaming one renames it in the parts and faces
+  that use it; one in use cannot be deleted.
+- **Budget and launcher** sets the mass budget (the margin policy, a
+  system margin in place of the policy's, the mass limit and its source)
+  and the launcher envelope the stowed configuration is checked against:
+  a cylinder, a box or a profile of heights and radii, its separation
+  plane and axis, and its mass and centre-of-mass limits with their
+  source.
+
+The analyses of a run are chosen in the spacecraft editor's **3D model**
 page.
 
 ---

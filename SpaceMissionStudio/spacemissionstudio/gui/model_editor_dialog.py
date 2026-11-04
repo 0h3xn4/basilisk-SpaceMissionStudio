@@ -20,13 +20,17 @@
 imported ``.obj`` groups, and see the mass properties and facets it gives.
 
 Left, the parts; in the middle, the selected part's form; right, the 3D
-view (:mod:`.model_view_widget`). Below, five tabs: **Mass properties**
-(computed from the parts, typed in, or imported from a file), **Surfaces**
-(the facets drag and solar pressure will act on), **Equipment** (what is
-mounted on the model, drawn in the view with its field of view or plume
-cone), **Stowed** (each part's pose folded for launch, and the view of
-either configuration) and **Use** (what the model is applied to, and an
-``.obj`` export). Every change recomputes the model
+view (:mod:`.model_view_widget`). The part form also gives the part its
+material, maturity and subsystem, and each face a material and
+reflection coefficients of its own. Below, seven tabs: **Mass
+properties** (computed from the parts, typed in, or imported from a
+file), **Surfaces** (the facets drag and solar pressure will act on),
+**Equipment** (what is mounted on the model, drawn in the view with its
+field of view or plume cone), **Stowed** (each part's pose folded for
+launch, and the view of either configuration), **Materials** (the
+model's own, beside the library's), **Budget and launcher** (the mass
+budget's policy and limit, the launcher envelope) and **Use** (what the
+model is applied to, and an ``.obj`` export). Every change recomputes the model
 (``model3d.model.derive``) a moment later.
 
 The dialog edits a copy of the model, and of the spacecraft's devices when
@@ -61,6 +65,7 @@ from ..schema.scenario import (MESH_UNITS, MODEL_SHAPE_DIMENSIONS, MODEL_SHAPE_F
                                name_error)
 from .feedback import report, show_dialog_error
 from .model_equipment_tabs import EquipmentTab, StowedTab
+from .model_property_tabs import BudgetLauncherTab, FacePropertiesTable, MaterialsTab, fill_material_combo
 from .model_view_widget import ModelViewWidget
 from .theme import set_role
 from .theme.palettes import swatch_style
@@ -107,6 +112,16 @@ def _row(*widgets) -> QWidget:
             widget.setButtonSymbols(PreciseDoubleSpinBox.ButtonSymbols.NoButtons)
         layout.addWidget(widget, 1)
     return holder
+
+
+def _scrolled(widget: QWidget) -> QScrollArea:
+    """``widget`` in a scroll area: a tall tab scrolls rather than squeezing
+    the parts, the form and the 3D view above it."""
+    area = QScrollArea()
+    area.setWidgetResizable(True)
+    area.setFrameShape(QScrollArea.Shape.NoFrame)
+    area.setWidget(widget)
+    return area
 
 
 def unique_name(base: str, taken: list[str]) -> str:
@@ -605,9 +620,60 @@ class ModelEditorDialog(QDialog):
             box.valueChanged.connect(lambda v, k=key: self._set(k, float(v)))
             w[key] = box
             surface_form.addRow(label, box)
+        if faces:
+            w["face_properties"] = FacePropertiesTable(self._model, part)
+            w["face_properties"].changed.connect(self._schedule)
+            w["face_properties"].setMinimumHeight(60 + 30 * len(faces))  # [px] every face's row in view
+            surface_form.addRow("Per face", w["face_properties"])
         form.addRow(surface_group)
+
+        budget_group = QGroupBox("Material and mass budget")
+        budget_form = QFormLayout(budget_group)
+        w["material"] = ComboBox()
+        fill_material_combo(w["material"], self._model, part.material)
+        w["material"].setToolTip("Used by the re-entry estimate (melting, heat of fusion), the surface exposure "
+                                 "(erosion yield) and the design checks. The library's materials are sourced.")
+        w["material"].currentIndexChanged.connect(lambda _i: self._set("material", w["material"].currentData()))
+        budget_form.addRow("Material", w["material"])
+        w["maturity"] = ComboBox()
+        policy = self._policy()
+        w["maturity"].addItem("(none)", "")
+        for category, (label, margin) in policy.categories.items():
+            w["maturity"].addItem(f"{label} ({margin:g} % growth)" if isinstance(margin, (int, float))
+                                  else str(label), category)
+        index = w["maturity"].findData(part.maturity)
+        if index < 0 and part.maturity:
+            w["maturity"].addItem(f"{part.maturity} (not in {policy.name})", part.maturity)
+            index = w["maturity"].count() - 1
+        w["maturity"].setCurrentIndex(max(index, 0))
+        w["maturity"].setToolTip(f"The mass budget's maturity category ({policy.name}): it sets the growth "
+                                 "allowance on the part's mass")
+        w["maturity"].currentIndexChanged.connect(lambda _i: self._set("maturity", w["maturity"].currentData()))
+        budget_form.addRow("Maturity", w["maturity"])
+        w["subsystem"] = QLineEdit(part.subsystem)
+        w["subsystem"].setPlaceholderText("Groups the mass budget, e.g. structure, power, propulsion")
+        w["subsystem"].editingFinished.connect(lambda: self._set("subsystem", w["subsystem"].text().strip()))
+        budget_form.addRow("Subsystem", w["subsystem"])
+        form.addRow(budget_group)
         self._form_area.setWidget(form_widget)
         self._loading_form = False
+
+    def _policy(self):
+        from ..config import materials as library
+
+        budget = self._model.mass_budget
+        return library.mass_policy(budget.policy if budget is not None else "")
+
+    def _on_materials_changed(self) -> None:
+        """A material added, renamed or deleted: the part form's choices follow."""
+        self._show_part_form(self.selected_part())
+        self._schedule()
+
+    def _on_policy_changed(self) -> None:
+        """Another margin policy: its maturity categories in the part form and the Equipment tab."""
+        self._show_part_form(self.selected_part())
+        self.equipment_tab.refresh()
+        self._schedule()
 
     def _vector_row(self, form, label: str, field: str, values, low: float, high: float, step: float = 0.05,
                     decimals: int = 3) -> None:
@@ -686,7 +752,7 @@ class ModelEditorDialog(QDialog):
 
     def _build_bottom_tabs(self) -> QWidget:
         tabs = TabWidget()
-        tabs.addTab(self._build_mass_tab(), "Mass properties")
+        tabs.addTab(_scrolled(self._build_mass_tab()), "Mass properties")
         surfaces = QWidget()
         surfaces_layout = QVBoxLayout(surfaces)
         self.surfaces_label = QLabel()
@@ -694,16 +760,23 @@ class ModelEditorDialog(QDialog):
         self.surfaces_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         surfaces_layout.addWidget(self.surfaces_label)
         surfaces_layout.addStretch(1)
-        tabs.addTab(surfaces, "Surfaces")
+        tabs.addTab(_scrolled(surfaces), "Surfaces")
         self.equipment_tab = EquipmentTab(self._model, self._devices)
         self.equipment_tab.changed.connect(self._schedule)
         self.equipment_tab.list.currentRowChanged.connect(lambda _row: self._redraw())
-        tabs.addTab(self.equipment_tab, "Equipment")
+        tabs.addTab(_scrolled(self.equipment_tab), "Equipment")
         self.stowed_tab = StowedTab(self._model)
         self.stowed_tab.changed.connect(self._schedule)
         self.stowed_tab.configuration_changed.connect(lambda _c: self.recompute_now())
-        tabs.addTab(self.stowed_tab, "Stowed")
-        tabs.addTab(self._build_use_tab(), "Use")
+        tabs.addTab(_scrolled(self.stowed_tab), "Stowed")
+        self.materials_tab = MaterialsTab(self._model)
+        self.materials_tab.changed.connect(self._on_materials_changed)
+        tabs.addTab(_scrolled(self.materials_tab), "Materials")
+        self.budget_tab = BudgetLauncherTab(self._model)
+        self.budget_tab.changed.connect(self._schedule)
+        self.budget_tab.policy_changed.connect(self._on_policy_changed)
+        tabs.addTab(_scrolled(self.budget_tab), "Budget and launcher")
+        tabs.addTab(_scrolled(self._build_use_tab()), "Use")
         self.bottom_tabs = tabs
         return tabs
 

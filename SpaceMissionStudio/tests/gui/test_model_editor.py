@@ -351,3 +351,104 @@ def test_the_spacecraft_editor_keeps_the_antenna_mount_and_takes_the_devices_mou
     config = dialog.to_dataclass()
     assert next(s for s in config.sensors if s.name == "imu-1").mount is not None
     assert config.rf_link.antenna_mount.field_of_view_deg == 12.0 and config.rf_link.antenna_mount.part == "dish"
+
+
+def _box_model():
+    from spacemissionstudio.schema.scenario import ModelPartConfig, SpacecraftModelConfig
+
+    return SpacecraftModelConfig(parts=[ModelPartConfig(name="bus", shape="box", mass_kg=50.0,
+                                                        dimensions_m={"x": 1.0, "y": 1.0, "z": 1.0})])
+
+
+def test_the_part_form_sets_material_maturity_and_subsystem(qtbot):
+    """The part form offers the library's materials and the policy's
+    maturity categories; the choices and the subsystem reach the part."""
+    dialog = _editor(qtbot, _box_model())
+    w = dialog.part_widgets
+    w["material"].setCurrentIndex(w["material"].findData("aluminium_6061_t6"))
+    w["maturity"].setCurrentIndex(w["maturity"].findData("layout"))
+    w["subsystem"].setText("structure")
+    w["subsystem"].editingFinished.emit()
+    part = dialog.model().parts[0]
+    assert (part.material, part.maturity, part.subsystem) == ("aluminium_6061_t6", "layout", "structure")
+
+
+def test_the_models_own_materials_are_added_renamed_and_guarded(qtbot):
+    """A material of the model's own takes its values (the erosion yield
+    in 1e-24 cm^3/atom: 3.0 is 3e-24) and a source; renaming it renames it
+    in the parts and faces that use it; it cannot be deleted while used,
+    and a library name is refused."""
+    dialog = _editor(qtbot, _box_model())
+    tab = dialog.materials_tab
+    material = tab.add_material()
+    tab.fields["ao_erosion_yield_cm3_atom"].check.setChecked(True)
+    tab.fields["ao_erosion_yield_cm3_atom"].field.setValue(3.0)
+    tab.source_edit.setText("a coupon test")
+    tab.source_edit.editingFinished.emit()
+    assert material.ao_erosion_yield_cm3_atom == 3e-24 and material.source == "a coupon test"
+    w = dialog.part_widgets
+    w["material"].setCurrentIndex(w["material"].findData(material.name))
+    dialog.part_widgets["face_properties"].cellWidget(0, 1).setCurrentIndex(
+        dialog.part_widgets["face_properties"].cellWidget(0, 1).findData(material.name))
+    tab.name_edit.setText("aluminium_6061_t6")
+    tab.name_edit.editingFinished.emit()
+    assert material.name == "material-1" and "library material" in tab.problem.text()
+    tab.name_edit.setText("black paint")
+    tab.name_edit.editingFinished.emit()
+    model = dialog.model()
+    assert model.parts[0].material == "black paint" and model.face_properties[0].material == "black paint"
+    tab.delete_material()
+    assert dialog.model().materials and "is used by part 'bus'" in tab.problem.text()
+    dialog.part_widgets["material"].setCurrentIndex(0)
+    dialog.part_widgets["face_properties"].cellWidget(0, 1).setCurrentIndex(0)
+    tab.delete_material()
+    assert dialog.model().materials == [] and dialog.model().face_properties == []
+
+
+def test_a_faces_own_properties_are_written_and_cleared(qtbot):
+    """A diffuse coefficient typed for face +z gives that face a property
+    of its own (comma decimals read too); a value outside [0, 1] is not
+    written; blanking it removes the property."""
+    dialog = _editor(qtbot, _box_model())
+    table = dialog.part_widgets["face_properties"]
+    row = [table.item(r, 0).text() for r in range(table.rowCount())].index("+z")
+    table.item(row, 2).setText("0,25")
+    assert [(f.face, f.diffuse_coeff) for f in dialog.model().face_properties] == [("+z", 0.25)]
+    table.item(row, 3).setText("2")
+    assert dialog.model().face_properties[0].specular_coeff is None and "[0, 1]" in table.problem
+    table.item(row, 3).setText("")
+    table.item(row, 2).setText("")
+    assert dialog.model().face_properties == []
+
+
+def test_the_mass_budget_and_launcher_envelope_are_edited(qtbot):
+    """Ticking the mass budget gives the default policy and a 120 kg
+    limit with its source; a custom box envelope with its dimensions and
+    a profile envelope with rising points both validate; unticking takes
+    them away."""
+    dialog = _editor(qtbot, _box_model())
+    tab = dialog.budget_tab
+    tab.budget_group.setChecked(True)
+    tab.mass_limit.check.setChecked(True)
+    tab.mass_limit.field.setValue(120.0)
+    tab.limit_source.setText("a rideshare port's rating")
+    tab.limit_source.editingFinished.emit()
+    budget = dialog.model().mass_budget
+    assert budget.mass_limit_kg == 120.0 and budget.limit_source == "a rideshare port's rating"
+    tab.launcher_group.setChecked(True)
+    tab.shape.setCurrentIndex(tab.shape.findData("box"))
+    for name, value in (("width_m", 1.2), ("depth_m", 1.1), ("height_m", 1.5)):  # [m]
+        tab.dimensions[name].check.setChecked(True)
+        tab.dimensions[name].field.setValue(value)
+    model = dialog.model()
+    assert (model.launcher.shape, model.launcher.width_m, model.launcher.height_m) == ("box", 1.2, 1.5)
+    model.validate("sat-1")
+    tab.shape.setCurrentIndex(tab.shape.findData("profile"))
+    tab._add_profile_point()
+    tab._add_profile_point()
+    tab.profile.item(1, 1).setText("0.8")
+    assert dialog.model().launcher.profile == [[0.0, 1.0], [0.5, 0.8]]
+    dialog.model().validate("sat-1")
+    tab.budget_group.setChecked(False)
+    tab.launcher_group.setChecked(False)
+    assert dialog.model().mass_budget is None and dialog.model().launcher is None
