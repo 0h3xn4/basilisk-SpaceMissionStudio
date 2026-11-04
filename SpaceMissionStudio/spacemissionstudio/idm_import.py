@@ -117,7 +117,8 @@ class ImportSummary:
         for name in self.gone:
             out.append(f"    no longer in the file (kept; remove it if it should go): {name}")
         for reason, names in sorted(self.approximations.items()):
-            shown = ", ".join(names[:3]) + (f" and {len(names) - 3} more" if len(names) > 3 else "")
+            distinct = list(dict.fromkeys(names))  # one name per item, however many times it occurs
+            shown = ", ".join(distinct[:3]) + (f" and {len(distinct) - 3} more" if len(distinct) > 3 else "")
             out.append(f"  approximated ({len(names)}): {reason}: {shown}")
         if self.margins:
             levels = collections.Counter((level or "not given", margin) for _, level, margin in self.margins)

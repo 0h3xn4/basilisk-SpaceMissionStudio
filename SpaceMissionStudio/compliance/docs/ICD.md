@@ -60,10 +60,11 @@ See SRS section 4 for the software overview.
 | ICD-09 | A flight-software export is a folder holding a standalone C project for one spacecraft, its interface control document, its traceability table, a `manifest.json` with the configuration digest and the SHA-256 of every file, and the recorded run (`capture.json`, `tests/data/*.trace`). | SRS-F-18 |
 | ICD-10 | A software-in-the-loop run exchanges frames of the SIL transport contract, version 1 (`SIL_CONTRACT.md` in every export), between the tool and the flight-software program it started: HELLO with the program's ports and layout hashes, RESET, one STEP and OUTPUT per step, ERROR, BYE. | SRS-F-19 |
 | ICD-11 | A spacecraft's 3D model reads Wavefront `.obj` meshes (and their `.mtl` colours) and mass-property files in JSON or CSV, as defined in 5.3.11, and writes `.obj`/`.mtl` for Vizard and on request. | SRS-F-20 |
+| ICD-12 | A spacecraft's 3D model is built or updated from an IDM-CIC model file (`.idm`, IDM-CIC (c) CNES), read only, as defined in 5.3.12. | SRS-F-28 |
 
 The interfaces are of three kinds:
 
-- **Software to software:** ICD-04 to ICD-11.
+- **Software to software:** ICD-04 to ICD-12.
 - **Software to hardware:** none. The tool uses only the host computer.
 - **Man-machine:** the GUI and the CLI (ICD-02). The GUI is described in
   the SUM.
@@ -97,7 +98,8 @@ parser. The commands are:
   `generate-roe-formation`.
 - **Data:** `kernels-status`, `earth-orientation` (status, `--fetch`,
   `--import`, `--rollback`).
-- **Exchange:** `ccsds-validate`, `ccsds-export`, `ccsds-import`.
+- **Exchange:** `ccsds-validate`, `ccsds-export`, `ccsds-import`,
+  `idm-info`, `idm-import`.
 - **GUI:** `gui`.
 
 Results and errors go to standard output and standard error; the exit
@@ -198,6 +200,16 @@ messages (`SimulationBaseClass`, `spacecraft`, `gravityEffector`,
 | Record in the scenario | `SpacecraftConfig.model` (parts, meshes with path, SHA-256, unit and up axis; mass-property source and values; the import's file name and SHA-256) and the applied `dry_mass_kg`, `center_of_mass_b_m`, `inertia_kg_m2`, `facets` (RD1). |
 | Frequency | On the user's request; the Vizard copy on each run with Vizard. |
 
+#### 5.3.12 IDM-CIC model files (ICD-12)
+
+| Item | Definition |
+|---|---|
+| Service | `idm-info` and `idm-import` and the 3D model editor's **Import IDM-CIC model...** read an IDM-CIC model; nothing writes one. Modules `spacemissionstudio.idm` (reader) and `spacemissionstudio.idm_import` (mapping). IDM-CIC is © CNES; the reader is SpaceMissionStudio's own and uses no CNES software. |
+| File | A ZIP archive with `model.xml` at its root (any case, `/` or `\` separators), UTF-8 with or without a byte-order mark. Other entries are listed, never read. Limits: 512 MiB file, 1 GiB `model.xml`; a document type or entity declaration is refused. |
+| Data read | Model version, configurations (enabled elements, articulation values, optional units, tank fillings), elements and their coordinate systems, equipment (colour, mass origin, manual mass and centre of gravity, margin, maturity) and shapes (position, mass definition, the object's parameters), unit instances and occurrences, layers' default visibility. Decimal commas, `True`/`False`, `RGB(r,g,b)`, `dd/MM/yyyy HH:mm:ss`. Versions 3.4 and 3.5; others with a note. Conventions: design note section 14 (`docs/developer/idm-cic-integration.md`). |
+| Written | Into the scenario: model parts, point masses (`equipment` of kind `unit`) and stowed poses with `source_id` (the source object's `fullId`); the meshes to `models/<spacecraft>_idm.obj` beside the scenario; an `ImportRecord` (target `model`, format `idm_cic`, path, SHA-256, `details`, values keyed by `source_id`); the applied mass properties (RD1). |
+| Frequency | On the user's request. |
+
 ## 6 Validation requirements (E.2.1<6>)
 
 | ID | Method | Evidence |
@@ -213,12 +225,14 @@ messages (`SimulationBaseClass`, `spacecraft`, `gravityEffector`,
 | ICD-09 | T | `tests/test_fsw_export.py`, `tests/test_fsw_export_units.py`, `tests/test_fsw_vendored_sources.py` |
 | ICD-10 | T | `tests/test_sil_contract.py` (both sides of the frames, every refusal), `tests/test_sil.py` (the C harness against the Python side) |
 | ICD-11 | T | `tests/test_model3d.py` (reading, writing, limits, malformed files), `tests/test_model3d_model.py` (mass-property files) |
+| ICD-12 | T | `tests/test_idm_reader.py` (archive refusals, values, graph), `tests/test_idm_import.py` (what is written, the record, re-import) |
 
 ## 7 Traceability (E.2.1<7>)
 
 - **Backward (ICD → SRS):** column "SRS" of 5.2.
 - **Forward (SRS-I-01 to SRS-I-08 → ICD):** one-to-one. ICD-nn details
   SRS-I-nn. ICD-09 details the export format of SRS-F-18, ICD-10 the
-  SIL link of SRS-F-19, ICD-11 the 3D-model files of SRS-F-20.
+  SIL link of SRS-F-19, ICD-11 the 3D-model files of SRS-F-20, ICD-12
+  the IDM-CIC model files of SRS-F-28.
 - **Further:** the CCSDS items are traced in
   `compliance/traceability_matrix.csv`.

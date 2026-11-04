@@ -111,6 +111,17 @@ model as it is built; `spacemissionstudio model` reports, applies and
 exports it. See template 28 and
 [Build a 3D model](../user-manual/3d-model.md).
 
+A model can also be **imported from IDM-CIC** (`.idm` files; IDM-CIC is
+© CNES), read by SpaceMissionStudio's own code: the units of a chosen
+configuration in one element's frame, with the shapes' masses, typed-in
+masses as point masses, tank propellant and a second configuration's
+stowed poses; every approximation reported, every value recorded with
+the file's SHA-256 and the source object's identifier, and a re-import
+that keeps the user's edits (`idm-import`, `idm-info`, the editor's
+**Import IDM-CIC model...**). Checked against hand calculations on a
+synthetic model; see
+[Import a spacecraft from IDM-CIC](../user-manual/idm-cic.md).
+
 ### Analyses built on the 3D model
 
 Mounted equipment (the existing sensors, actuators and antenna, or items of

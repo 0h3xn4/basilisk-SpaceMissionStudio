@@ -54,6 +54,8 @@ In the 3D model editor (**Scenario › 3D Model...**), choose
 - whether to build drag and solar pressure facets from the imported
   boxes, cylinders, cones and spheres.
 
+![The import dialog: the model file, the configuration, the stowed configuration and the body element, and below what the import will do](../images/idm_import.png)
+
 The dialog shows what the import will do before you apply it: the
 elements imported and left out, the number of parts and point masses,
 the mass, and every approximation. The scenario must be saved first:

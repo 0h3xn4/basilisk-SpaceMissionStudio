@@ -188,7 +188,7 @@ A ground station. Coordinates are geodetic on the WGS-84 ellipsoid for Earth (pl
 
 ## ImportRecord
 
-A spacecraft's values read from a file (``spacemissionstudio ccsds-import``; the transparency plan, Phase 8c): what was set (``target``: its orbit), from which file (``source``, its absolute path then) in which format, the file's SHA-256 then, and every number set and text as it was read (:func:`imported_values`), so a later change of the file, or of the values, is seen.
+A spacecraft's values read from a file (``spacemissionstudio ccsds-import`` and ``idm-import``; the transparency plan, Phase 8c): what was set (``target``: its orbit, or its 3D model), from which file (``source``, its absolute path then) in which format, the file's SHA-256 then, and every number set and text as it was read (:func:`imported_values`), so a later change of the file, or of the values, is seen. ``details`` (written only when set) says how the file was read: for a model, its version and the configuration used.
 
 | Field | Type | Default | Unit / note |
 |---|---|---|---|
@@ -200,6 +200,7 @@ A spacecraft's values read from a file (``spacemissionstudio ccsds-import``; the
 | `values` | dict | `{}` | {path: number or text}, as imported |
 | `time_utc` | str | `''` |  |
 | `author` | str | `''` |  |
+| `details` | dict | `{}` | {name: text} |
 
 ## InstrumentConfig
 
@@ -356,6 +357,7 @@ One part of a 3D model: a simple shape, or a group of an imported mesh, placed i
 | `material` | str | `''` |  |
 | `maturity` | str | `''` |  |
 | `subsystem` | str | `''` |  |
+| `source_id` | str | `''` |  |
 
 ## MomentumDumpingConfig
 
@@ -408,6 +410,7 @@ Equipment the scenario has no other definition for -- a payload camera, an orbit
 | `maturity` | str | `''` | the mass budget's maturity category; "" for none |
 | `subsystem` | str | `''` | the mass budget's grouping; "" for none |
 | `thrust_n` | float / None | `None` | [N] thrusters only |
+| `source_id` | str | `''` | where it was imported from, as ModelPartConfig.source_id; written only when set |
 
 ## NavigationErrorConfig
 

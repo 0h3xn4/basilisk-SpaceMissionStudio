@@ -13,10 +13,28 @@ fixes bugs.
 Analyses built on the 3D model. A spacecraft's model now carries its
 equipment, a stowed configuration, materials and maturity, and the tool
 checks and analyses the design with it, by ray casting against the parts.
+The model can be built from an IDM-CIC concurrent-engineering model, and
+updated from its later versions without losing your edits.
 Nothing changes for a scenario that does not ask: every template gives
 the same results as in 2.0.0.
 
 ### Added
+
+- **Import from IDM-CIC** (`.idm` files; IDM-CIC is © CNES, read by
+  SpaceMissionStudio's own code, no CNES software used or bundled):
+  `spacemissionstudio idm-import` and `idm-info`, and **Import IDM-CIC
+  model...** in the 3D model editor with a preview of what it will do.
+  The units of a chosen configuration, in one element's frame with the
+  elements mounted on it, become parts with their shapes' masses, point
+  masses for typed-in values, and the tanks' propellant; a second
+  configuration gives the stowed poses. Every approximation is listed;
+  margins are reported, not applied. Each imported value is recorded with
+  the file's SHA-256 and the source object's `fullId`, and a re-import
+  updates only what the file set, keeps your edits, and flags (never
+  deletes) what the file no longer has (`import.source_item_gone`). New
+  optional fields `source_id` (parts, equipment) and `details` (import
+  records), written only when set. Requirement SRS-F-28;
+  [the guide](docs/user-manual/idm-cic.md).
 
 - **Mounted equipment.** The existing sensors, actuators and RF antenna
   take an optional `mount` (part, position, boresight, field of view,

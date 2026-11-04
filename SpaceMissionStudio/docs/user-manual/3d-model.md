@@ -75,6 +75,10 @@ triangles themselves stay as imported.
 A **Solid** mass needs a closed surface. An open one, such as a single
 sheet, only works as a **Shell**, and the editor says so.
 
+To build the model from a concurrent-engineering model made in IDM-CIC,
+use **Import IDM-CIC model...** instead: see
+[Import a spacecraft from IDM-CIC](idm-cic.md).
+
 ## Mass, center of mass and inertia
 
 The **Mass properties** tab has three sources:
