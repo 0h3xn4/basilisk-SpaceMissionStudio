@@ -324,7 +324,6 @@ def test_the_spacecraft_editor_keeps_the_antenna_mount_and_takes_the_devices_mou
     """The RF antenna's mount survives the spacecraft editor (it was
     dropped on OK); the 3D model editor's device mounts reach the sensor
     list and the antenna through the 3D model tab."""
-    from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui import model_editor_dialog
     from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
@@ -344,9 +343,9 @@ def test_the_spacecraft_editor_keeps_the_antenna_mount_and_takes_the_devices_mou
         tab.list.setCurrentRow(tab._rows.index(("rf_link", None)))
         tab.fov.check.setChecked(True)
         tab.fov.field.setValue(12.0)
-        return QDialog.DialogCode.Accepted
+        editor.accept()  # OK, in the editor's own window
 
-    monkeypatch.setattr(model_editor_dialog.ModelEditorDialog, "exec", accept)
+    monkeypatch.setattr(model_editor_dialog.ModelEditorDialog, "show_window", accept)
     dialog._on_open_model_editor()
     config = dialog.to_dataclass()
     assert next(s for s in config.sensors if s.name == "imu-1").mount is not None

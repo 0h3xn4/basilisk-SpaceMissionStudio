@@ -340,6 +340,10 @@ class SpacecraftEditorDialog(QDialog):
         # The scenario's import records (for a re-import), and the one a model import here made.
         self._imports_provider = imports_provider
         self.pending_import = None
+        # A page's form opens the 3D model editor through its scenario (set by gui.scenario_editor), so there is
+        # one editor per spacecraft; a dialog, or a form without one, opens its own (_model_editor).
+        self.model_editor_opener = None
+        self._model_editor = None
         if embedded:  # a page's form (page_tree.embed_dialog): a widget before it has children, not after
             self.setWindowFlags(Qt.WindowType.Widget)
         self.setWindowTitle("Spacecraft" if config is None else f"Spacecraft: {config.name}")
@@ -2306,27 +2310,52 @@ class SpacecraftEditorDialog(QDialog):
                                rf_link=self._rf_link_to_dataclass(), comms_pointing=comms_pointing)
 
     def _on_open_model_editor(self) -> None:
+        """The 3D model editor, as a window of its own (not modal: OK applies
+        its model and mounts here when it is clicked)."""
         from .model_editor_dialog import ModelEditorDialog
 
+        if self.model_editor_opener is not None:
+            self.model_editor_opener()
+            return
+        if self._model_editor is not None:
+            self._model_editor.show_window()
+            return
         name = self.name_edit.text().strip() or "sat-1"
-        dialog = ModelEditorDialog(self._model, spacecraft_name=name,
-                                   base_dir=self._base_dir(), parent=self,
+        editor = ModelEditorDialog(self._model, spacecraft_name=name,
+                                   base_dir=self._base_dir_provider, parent=self,
                                    simulation_mode="orbit_only" if self._orbit_only else "full_attitude",
                                    devices=self._devices(), previous_import=self.pending_import or _model_import(
                                        self._imports_provider, name))
-        if dialog.exec() == QDialog.DialogCode.Accepted:
-            self._model = dialog.model()
-            if dialog.import_record() is not None:
-                self.pending_import = dialog.import_record()
-                if self._embedded:
-                    self.import_recorded.emit(self.pending_import)
-            devices = dialog.devices()
-            if not self._orbit_only:
-                self.sensor_list.set_mounts({d.name: d.mount for d in devices.sensors})
-                self.actuator_list.set_mounts({d.name: d.mount for d in devices.actuators})
-            if devices.rf_link is not None:
-                self._rf_antenna_mount = devices.rf_link.antenna_mount
-            self._on_apply_model()
+        editor.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        editor.accepted.connect(lambda editor=editor: self._apply_model_editor(editor))
+        editor.finished.connect(lambda _result: setattr(self, "_model_editor", None))
+        self._model_editor = editor
+        editor.show_window()
+
+    def _apply_model_editor(self, editor) -> None:
+        """The 3D model editor's OK: its model and mounts into the form."""
+        self._model = editor.model()
+        if editor.import_record() is not None:
+            self.pending_import = editor.import_record()
+            if self._embedded:
+                self.import_recorded.emit(self.pending_import)
+        devices = editor.devices()
+        if not self._orbit_only:
+            self.sensor_list.set_mounts({d.name: d.mount for d in devices.sensors})
+            self.actuator_list.set_mounts({d.name: d.mount for d in devices.actuators})
+        if devices.rf_link is not None:
+            self._rf_antenna_mount = devices.rf_link.antenna_mount
+        self._on_apply_model()
+
+    def done(self, result: int) -> None:
+        """A dialog does not close under its open 3D model editor: the
+        editor's OK or Cancel comes first, so its edits are not lost."""
+        if self._model_editor is not None and self._model_editor.isVisible():
+            self._model_editor.show_window()
+            report(self, "The 3D model editor of this spacecraft is still open: click OK in it to apply its "
+                         "changes, or Cancel, first.", kind="warning")
+            return
+        super().done(result)
 
     def _on_apply_model(self) -> None:
         from ..model3d import model as model3d
@@ -3041,6 +3070,8 @@ class SpacecraftListWidget(QWidget):
         # the scenario file's folder, for a 3D model's mesh paths.
         self._base_dir_provider = None
         self._imports_provider = None  # set_imports_provider
+        # The open 3D model editors (windows of their own), by the name of the spacecraft they edit.
+        self._model_editors: dict = {}
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -3275,6 +3306,7 @@ class SpacecraftListWidget(QWidget):
     def replace_config(self, row: int, config) -> None:
         """Put ``config`` in ``row``, as an edit in the spacecraft's page
         does: the list's text follows, and :attr:`changed` is emitted."""
+        self._follow_rename(self._configs[row].name, config.name)
         self._configs[row] = config
         self.list_widget.item(row).setText(config.name)
         self.changed.emit()
@@ -3313,33 +3345,82 @@ class SpacecraftListWidget(QWidget):
                 return
             if dialog.pending_import is not None:
                 self.import_recorded.emit(dialog.pending_import)
+            self._follow_rename(self._configs[row].name, new_config.name)
             self._configs[row] = new_config
             self._refresh_list()
             self.list_widget.setCurrentRow(row)
             show_toast(self.window(), f"Updated spacecraft {new_config.name!r}")
             self.changed.emit()
 
-    def open_model_editor(self, row: int) -> bool:
+    def open_model_editor(self, row: int):
         """Open the 3D model editor for spacecraft ``row`` (the toolbar's
-        3D Model entry; the spacecraft editor's 3D model tab does the same
-        from inside that dialog). OK stores the model and writes what it
-        applies (mass, center of mass, inertia, facets) into the spacecraft,
-        as the 3D model tab does. Returns whether the spacecraft changed."""
-        from ..model3d import model as model3d
-        from .model_editor_dialog import ModelEditorDialog, apply_device_mounts
+        3D Model entry, and a spacecraft page's 3D model tab), as a window
+        of its own; one per spacecraft, so a second request brings the open
+        one to the front. Returns the editor. Its OK stores the model in the
+        spacecraft and writes what it applies (mass, center of mass,
+        inertia, facets), as the spacecraft as it is then: edits made
+        meanwhile elsewhere are kept."""
+        from .model_editor_dialog import ModelEditorDialog
 
         config = self._configs[row]
-        base_dir = self._base_dir_provider() if self._base_dir_provider else None
-        dialog = ModelEditorDialog(config.model, spacecraft_name=config.name, base_dir=base_dir, parent=self,
-                                   simulation_mode=self._simulation_mode(), devices=config,
+        editor = self._model_editors.get(config.name)
+        if editor is not None:
+            editor.show_window()
+            return editor
+        editor = ModelEditorDialog(config.model, spacecraft_name=config.name, base_dir=self._base_dir_provider,
+                                   parent=self, simulation_mode=self._simulation_mode(), devices=config,
                                    previous_import=_model_import(self._imports_provider, config.name))
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return False
-        if dialog.import_record() is not None:
-            self.import_recorded.emit(dialog.import_record())
-        new_config = copy.deepcopy(config)
-        new_config.model = dialog.model()
-        apply_device_mounts(new_config, dialog.devices())
+        editor.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        editor.accept_check = lambda editor=editor: self._model_editor_problem(editor)
+        editor.accepted.connect(lambda editor=editor: self._apply_model_editor(editor))
+        editor.finished.connect(lambda _result, editor=editor: self._forget_model_editor(editor))
+        self._model_editors[config.name] = editor
+        editor.show_window()
+        return editor
+
+    def model_editors(self) -> list:
+        """The 3D model editors open on this scenario's spacecraft."""
+        return list(self._model_editors.values())
+
+    def close_model_editors(self) -> None:
+        """Close every open 3D model editor without applying it (the
+        scenario is being replaced or closed, as the user agreed)."""
+        for editor in self.model_editors():
+            editor.discard()
+        self._model_editors.clear()
+
+    def _forget_model_editor(self, editor) -> None:
+        self._model_editors = {name: e for name, e in self._model_editors.items() if e is not editor}
+
+    def _follow_rename(self, old: str, new: str) -> None:
+        """A spacecraft renamed: its open 3D model editor follows it."""
+        if old != new and old in self._model_editors:
+            editor = self._model_editors.pop(old)
+            editor.set_spacecraft_name(new)
+            self._model_editors[new] = editor
+
+    def _model_editor_problem(self, editor) -> str:
+        """Why the editor's OK cannot be applied now ('' when it can)."""
+        if any(config.name == editor.spacecraft_name for config in self._configs):
+            return ""
+        return (f"There is no spacecraft named {editor.spacecraft_name!r} in the scenario any more, so this model "
+                "cannot be applied to it. Cancel closes the editor without applying it.")
+
+    def _apply_model_editor(self, editor) -> None:
+        """The 3D model editor's OK: the model, the mounts and what the model
+        applies, into the spacecraft as it is now."""
+        from ..model3d import model as model3d
+        from .model_editor_dialog import apply_device_mounts
+
+        row = next((i for i, config in enumerate(self._configs) if config.name == editor.spacecraft_name), None)
+        if row is None:  # _model_editor_problem kept the window open: not reached from the window
+            return
+        if editor.import_record() is not None:
+            self.import_recorded.emit(editor.import_record())
+        base_dir = self._base_dir_provider() if self._base_dir_provider else None
+        new_config = copy.deepcopy(self._configs[row])
+        new_config.model = editor.model()
+        apply_device_mounts(new_config, editor.devices())
         orbit_only = self._simulation_mode() == "orbit_only"
         target = SimpleNamespace(model=new_config.model, solar_arrays=[] if orbit_only else new_config.solar_arrays)
         derived = model3d.derive(new_config.model, base_dir)
@@ -3351,7 +3432,6 @@ class SpacecraftListWidget(QWidget):
         self.list_widget.setCurrentRow(row)
         show_toast(self.window(), applied_summary(new_config.name, values), duration_ms=5000)  # [ms]
         self.changed.emit()
-        return True
 
     def _on_remove(self) -> None:
         row = self.list_widget.currentRow()

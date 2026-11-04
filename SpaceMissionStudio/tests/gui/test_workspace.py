@@ -277,13 +277,12 @@ def _box_model():
 def _accept_the_model_editor(monkeypatch, model):
     """The 3D model editor returns ``model`` at once, as if OK was clicked;
     returns the names it was opened for."""
-    from PySide6.QtWidgets import QDialog
 
     from spacemissionstudio.gui import model_editor_dialog
 
     opened = []
-    monkeypatch.setattr(model_editor_dialog.ModelEditorDialog, "exec",
-                        lambda self: opened.append(self._spacecraft_name) or QDialog.DialogCode.Accepted)
+    monkeypatch.setattr(model_editor_dialog.ModelEditorDialog, "show_window",
+                        lambda self: opened.append(self._spacecraft_name) or self.accept())
     monkeypatch.setattr(model_editor_dialog.ModelEditorDialog, "model", lambda self: model)
     return opened
 

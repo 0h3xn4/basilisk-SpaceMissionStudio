@@ -479,13 +479,41 @@ def merge(scenario, spacecraft: str, the_plan: Plan, scenario_path, author: str 
     """Write ``the_plan`` into ``scenario``'s spacecraft ``spacecraft``
     (module docstring), the meshes into ``models/<spacecraft>_idm.obj``
     beside ``scenario_path``. Returns the summary with what was added,
-    updated, kept and gone. The scenario is changed in place; saving it
-    is the caller's."""
-    from .model3d import model as model3d
-
+    updated, kept and gone. The scenario is changed in place, and only
+    when the whole import succeeds: if anything fails (the meshes file
+    cannot be written, say), the spacecraft and the import records are
+    put back as they were, so no part is left naming a mesh file that was
+    not written. Saving it is the caller's."""
     sc = next((s for s in scenario.spacecraft if s.name == spacecraft), None)
     if sc is None:
         raise IdmError(f"no spacecraft {spacecraft!r} in the scenario")
+    saved_spacecraft, saved_imports = copy.deepcopy(vars(sc)), copy.deepcopy(list(scenario.imports))
+    try:
+        return _merge(scenario, sc, spacecraft, the_plan, scenario_path, author, orbit_only)
+    except BaseException:
+        _restore(sc, saved_spacecraft)
+        scenario.imports[:] = saved_imports
+        raise
+
+
+def _restore(target, saved: dict) -> None:
+    """Put ``target``'s attributes back as ``saved`` (a deep copy of its
+    ``vars``), keeping the identity of its model object, which an editor
+    may hold."""
+    model, saved_model = getattr(target, "model", None), saved.get("model")
+    if model is not None and saved_model is not None:
+        vars(model).clear()
+        vars(model).update(vars(saved_model))
+        saved = {**saved, "model": model}
+    vars(target).clear()
+    vars(target).update(saved)
+
+
+def _merge(scenario, sc, spacecraft: str, the_plan: Plan, scenario_path, author: str,
+           orbit_only: bool | None) -> ImportSummary:
+    """:func:`merge`'s work on spacecraft ``sc``, in place."""
+    from .model3d import model as model3d
+
     base_dir = Path(scenario_path).expanduser().resolve().parent
     summary = copy.deepcopy(the_plan.summary)
     previous = _previous_record(scenario, spacecraft)

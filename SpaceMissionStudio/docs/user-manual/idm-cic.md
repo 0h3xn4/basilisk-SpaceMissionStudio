@@ -58,9 +58,12 @@ In the 3D model editor (**Scenario › 3D Model...**), choose
 
 The dialog shows what the import will do before you apply it: the
 elements imported and left out, the number of parts and point masses,
-the mass, and every approximation. The scenario must be saved first:
-the shapes that are not one of the model's own primitives are written as
-meshes to `models/<spacecraft>_idm.obj` beside the scenario file.
+the mass, and every approximation. The scenario must be saved as your
+own file first (not a built-in template, whose folder is not yours to
+write to): the shapes that are not one of the model's own primitives are
+written as meshes to `models/<spacecraft>_idm.obj` beside the scenario
+file. If you started from a template, use **File › Save As** in the main
+window (the editor can stay open) and import again.
 
 From the command line:
 

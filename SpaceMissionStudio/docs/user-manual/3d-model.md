@@ -21,8 +21,15 @@ bus from a 3D model", is a worked example.
 ## Open the editor
 
 Click **3D Model...** at the top of the Scenario area (or `Ctrl+K`, "3d model");
-with several spacecraft, pick the one to model. **OK** stores the model
-and applies it to the spacecraft, and **Undo** takes it back.
+with several spacecraft, pick the one to model. The editor opens in a
+window of its own: move it, minimise it or put it on another screen, and
+keep working in the main window while it is open. Each spacecraft has one
+editor; asking for it again brings it to the front. **OK** stores the
+model and applies it to the spacecraft as it is then (a rename or another
+edit made meanwhile in the main window is kept), and **Undo** takes it
+back. **Cancel**, or closing the window, asks first when you changed
+something; so do **File › New**, **Open** and closing SpaceMissionStudio
+while an editor holds changes.
 On a spacecraft's **3D model** page (scenario tree > **Spacecraft** > its name > **3D model**):
 **Build a 3D model...** (**Open 3D model editor...** once it has one). On the left is the list
 of parts, in the middle the selected part's settings, on the right the

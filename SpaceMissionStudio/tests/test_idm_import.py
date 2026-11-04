@@ -40,6 +40,7 @@ the lens 0.8 kg at (0.1, 0, 0.65). 38.7 kg in all. The optional spare
 battery (1 kg) only at launch; the jig element is not mounted on the bus.
 """
 
+import copy
 import json
 import math
 import shutil
@@ -53,7 +54,7 @@ from spacemissionstudio import cli, idm, idm_import
 from spacemissionstudio.engine.scenario_checks import scenario_warnings
 from spacemissionstudio.model3d import model as model3d
 from spacemissionstudio.schema import load_scenario
-from spacemissionstudio.schema.scenario import Scenario, import_status
+from spacemissionstudio.schema.scenario import Scenario, SpacecraftModelConfig, import_status
 
 _ROOT = Path(__file__).resolve().parents[1]
 _SOURCE = _ROOT / "spacemissionstudio" / "scenarios" / "two_body_validation.json"
@@ -209,6 +210,34 @@ def test_a_reimport_updates_what_the_file_set_keeps_edits_and_flags_what_is_gone
     assert model3d.derive(model, tmp_path).errors == []
     unchanged = _reimport(tmp_path, text, scenario, path)
     assert unchanged.added == [] and unchanged.updated == [] and unchanged.unchanged > 0
+
+
+def test_an_import_that_fails_changes_nothing(tmp_path, monkeypatch):
+    """The meshes file cannot be written (a read-only folder): the import
+    raises and leaves the spacecraft, its model object and the import
+    records as they were, so no part names a mesh file that was not
+    written (the 3D model editor then refused its OK with "mesh_index must
+    name one of the model's 0 mesh file(s)")."""
+    path = _scenario(tmp_path)
+    scenario = load_scenario(path)
+    sc = scenario.spacecraft[0]
+    before = copy.deepcopy(sc)
+    imports = list(scenario.imports)
+
+    def refuse(*_args, **_kwargs):
+        raise PermissionError(13, "Permission denied", str(tmp_path / "models"))
+
+    monkeypatch.setattr(idm_import, "write_obj", refuse)
+    with pytest.raises(PermissionError):
+        idm_import.merge(scenario, "sat-1", idm_import.plan(_model(tmp_path)), path)
+    assert sc == before and scenario.imports == imports
+    assert not (tmp_path / "models").exists() or not any((tmp_path / "models").iterdir())
+
+    holder_model = SpacecraftModelConfig(parts=[])  # an editor's model object keeps its identity
+    sc.model = holder_model
+    with pytest.raises(PermissionError):
+        idm_import.merge(scenario, "sat-1", idm_import.plan(_model(tmp_path)), path)
+    assert sc.model is holder_model and holder_model.parts == [] and holder_model.meshes == []
 
 
 def test_a_gone_mesh_part_keeps_its_mesh(tmp_path):
