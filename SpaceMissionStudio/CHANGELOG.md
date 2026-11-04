@@ -31,6 +31,11 @@ fixes bugs.
   failed write the editor's **OK** refused the model ("mesh_index must
   name one of the model's 0 mesh file(s)"). The import now changes the
   spacecraft only when it succeeds as a whole.
+- Vizard's battery panel shows watt-hours, like the rest of the app: a
+  700 Wh battery read "2520000 / 2520000 W-s" (Basilisk's battery
+  message carries watt-seconds and Vizard shows the numbers as sent), and
+  now reads "700 / 700 Wh". Results, exports and the scenario file are
+  unchanged.
 
 ## 2.1.0 (2026-11-04)
 

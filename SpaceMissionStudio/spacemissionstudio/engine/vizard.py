@@ -103,9 +103,15 @@ REAL, already-simulated messages (nothing here is a static snapshot or an
 analytical estimate -- see each source module's own docstring):
 
 * **Battery state of charge** -- a Vizard ``GenericStorage`` bar panel per
-  spacecraft with ``PowerConfig`` configured, wired directly to that
-  spacecraft's ``simpleBattery.SimpleBattery.batPowerOutMsg``
-  (``engine.service``). Pattern copied from
+  spacecraft with ``PowerConfig`` configured, in watt-hours like the rest
+  of the app (the scenario's ``battery_capacity_wh``, the dashboard).
+  ``simpleBattery.SimpleBattery.batPowerOutMsg`` (``engine.service``)
+  carries watt-seconds, and ``vizInterface`` copies a battery message's
+  ``storageLevel``/``storageCapacity`` into the panel unscaled, so a
+  700 Wh battery read "2520000 / 2520000 W-s". The panel therefore reads
+  a ``_BatteryWattHourBridge`` (in :func:`enable_vizard`) that republishes
+  the battery's message in watt-hours, rounded to 0.1 Wh for display.
+  Pattern copied from
   ``examples/MultiSatBskSim/scenariosMultiSat/scenario_StationKeepingMultiSat.py``
   (a real, shipped Basilisk example -- not guessed).
 * **Station-keeping propellant remaining** -- a second ``GenericStorage``
@@ -817,6 +823,35 @@ def enable_vizard(scSim, task_name: str, sc_objects: list, request: VizardReques
             payload.deviceCmd = self._ACCESS_CMD if has_access else self._NO_ACCESS_CMD
             self.cmdOutMsg.write(payload, CurrentSimNanos, self.moduleID)
 
+    class _BatteryWattHourBridge(sysModel.SysModel):
+        """A battery's ``PowerStorageStatusMsg`` again, in watt-hours (its
+        level and capacity rounded to 0.1 Wh; the net power unchanged), for
+        the Vizard battery panel: see this module's docstring, "Battery
+        state of charge" bullet. Added to the task before ``vizInterface``,
+        so the panel shows the same step's value."""
+
+        _WS_PER_WH = 3600.0  # [W*s/(W*h)]
+
+        def __init__(self, name: str, battery_out_msg):
+            super().__init__()
+            self.ModelTag = name
+            self.batteryInMsg = messaging.PowerStorageStatusMsgReader()
+            self.batteryInMsg.subscribeTo(battery_out_msg)
+            self.batteryOutMsg = messaging.PowerStorageStatusMsg()
+
+        def Reset(self, CurrentSimNanos):
+            pass
+
+        def UpdateState(self, CurrentSimNanos):
+            if not self.batteryInMsg.isWritten():
+                return
+            state = self.batteryInMsg()
+            payload = messaging.PowerStorageStatusMsgPayload()
+            payload.storageLevel = round(state.storageLevel / self._WS_PER_WH, 1)  # [W*h]
+            payload.storageCapacity = round(state.storageCapacity / self._WS_PER_WH, 1)  # [W*h]
+            payload.currentNetPower = state.currentNetPower  # [W]
+            self.batteryOutMsg.write(payload, CurrentSimNanos, self.moduleID)
+
     generic_storage_list: list[list | None] = []
     generic_sensor_list: list[list | None] = []
     spacecraft_with_storage_panel: list[str] = []
@@ -827,8 +862,10 @@ def enable_vizard(scSim, task_name: str, sc_objects: list, request: VizardReques
     # (a SWIG director), unlike the plain-data vizInterface structs below
     # (GenericStorage/GenericSensor), whose relevant state is copied into
     # Basilisk's own C++ containers by enableUnityVisualization() and so
-    # don't need this. A Python object garbage-collected while its C++
-    # counterpart is still task-registered is undefined behavior -- see
+    # don't need this. The battery panels' _BatteryWattHourBridge instances
+    # are kept here too, for the same reason. A Python object
+    # garbage-collected while its C++ counterpart is still task-registered
+    # is undefined behavior -- see
     # where this list is attached to ``viz`` below, and
     # ``engine.service``'s own retention of the returned ``viz``.
     access_indicator_bridges: list[object] = []
@@ -841,11 +878,14 @@ def enable_vizard(scSim, task_name: str, sc_objects: list, request: VizardReques
             panel = vizInterface.GenericStorage()
             panel.label = "Battery"
             panel.type = "Battery"
-            panel.units = "W-s"
+            panel.units = "Wh"
             panel.color = vizInterface.IntVector(vizSupport.toRGBA255("red") + vizSupport.toRGBA255("lightgreen"))
             panel.thresholds = vizInterface.IntVector([20])  # [%] below this, use the first (red) color
+            watt_hours = _BatteryWattHourBridge(f"{sc_name}_batteryWattHours", battery.batPowerOutMsg)
+            scSim.AddModelToTask(task_name, watt_hours)
+            access_indicator_bridges.append(watt_hours)
             battery_reader = messaging.PowerStorageStatusMsgReader()
-            battery_reader.subscribeTo(battery.batPowerOutMsg)
+            battery_reader.subscribeTo(watt_hours.batteryOutMsg)
             panel.batteryStateInMsg = battery_reader
             storages.append(panel)
 

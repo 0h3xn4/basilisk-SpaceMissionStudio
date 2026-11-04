@@ -1774,6 +1774,9 @@ The assertions on what OK applies are unchanged.
   open editor; nothing is written into the built-in templates' folder or
   for an unsaved scenario, and a Save As while the editor is open lets it
   write.
+- Added `tests/test_vizard_battery_panel.py`: the Vizard battery panel's
+  unit is Wh, and its bridge republishes a 700 Wh battery's level and
+  capacity in watt-hours.
 - Added `tests/test_idm_import.py::test_an_import_that_fails_changes_nothing`:
   with the meshes file refused, the import raises and leaves the
   spacecraft, its model object and the import records as they were.
