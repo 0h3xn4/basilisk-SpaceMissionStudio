@@ -8,6 +8,30 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+### Added
+
+- **CCSDS orbit files in the app**, as on the command line (CCSDS
+  502.0-B-3; [Exchange orbits with other tools](docs/user-manual/orbit-files.md)):
+  - **Import CCSDS OPM/OMM...** on a spacecraft's Orbit / mass page sets
+    its orbit from an OPM (a Cartesian state) or a TLE-based OMM. When an
+    OPM's state is at another time it asks to move the scenario epoch to
+    it. The scenario records the file's path and SHA-256 and the values
+    read, as `ccsds-import` does;
+  - **Export Orbits as CCSDS...** (`Ctrl+K`) writes each spacecraft's
+    starting orbit as an OPM (an OMM for a TLE spacecraft), as
+    `ccsds-export` does;
+  - **Results › Plots › Export all... › CCSDS ephemeris (OEM)...** writes
+    a run's trajectory as one OEM per spacecraft, with the stride and the
+    suggested interpolation (Lagrange for GMAT), as `run --oem` does;
+  - **Check a CCSDS File...** (`Ctrl+K`) checks an OPM, OMM or OEM and
+    lists each issue with its line and clause, as `ccsds-validate` does.
+
+  Reports › Exports lists the two exports. The command line and the app
+  share one module for these files (`spacemissionstudio.ccsds_files`), so
+  both write the same bytes; the command line's behaviour is unchanged.
+
 ## 2.1.1 (2026-11-04)
 
 Fixes for problems found in 2.1.0's 3D model editor, IDM-CIC import and

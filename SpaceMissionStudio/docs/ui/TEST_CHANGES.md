@@ -1780,3 +1780,33 @@ The assertions on what OK applies are unchanged.
 - Added `tests/test_idm_import.py::test_an_import_that_fails_changes_nothing`:
   with the meshes file refused, the import raises and leaves the
   spacecraft, its model object and the import records as they were.
+
+## CCSDS orbit files in the app (2026-11-04)
+
+Branch `feature/ccsds-gui`. No test removed; no golden or output file
+changed. One test changed what it expects, because the app has two more
+exports:
+
+| Test | Before | Now |
+|---|---|---|
+| `tests/gui/test_reports_and_settings.py::test_every_export_is_listed_never_written_at_first` | 17 exports, the names listed | 19, with "Starting orbits" and "Ephemeris" (the CCSDS exports) |
+
+Every other assertion of it is unchanged: each row filled in, none
+written yet on a new machine.
+
+- Added `tests/test_ccsds_files.py`, six tests of the module the command
+  line and the app share: an OPM read as a Cartesian state at its epoch;
+  an OMM read as its TLE; a message for another body, or too large,
+  refused; the import record (path, SHA-256, values) in a scenario that
+  validates; a TLE spacecraft's OMM that conforms; a run's OEMs skipping
+  a spacecraft with no state and following the stride.
+- Added `tests/gui/test_ccsds_gui.py`, ten tests: an OPM at the scenario
+  epoch sets the Cartesian state; an OPM at another epoch asks, and
+  Cancel changes nothing while Yes moves the epoch; an OMM sets the TLE
+  and a broken file changes nothing; a spacecraft dialog hands on the
+  import record under its final name; an import on a spacecraft page
+  reaches the scenario (epoch, orbit, record); Export Orbits as CCSDS
+  writes conforming OPMs (needs Basilisk); the check dialog lists each
+  issue; the OEM options keep the 8 states the interpolation needs; the
+  shown run exports a conforming OEM; Reports › Exports lists both
+  exports.

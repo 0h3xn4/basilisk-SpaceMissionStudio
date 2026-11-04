@@ -85,6 +85,11 @@ EXPORTS = (
            "File chosen", "In the report", "In the report: the binary's and the configurations' SHA-256"),
     Export("vizard_file", "Vizard playback", "Vizard .bin", "Run › Run › Vizard save file", "Set on Run › Run",
            "None", "None (Basilisk writes it during the run)"),
+    Export("ccsds_orbits", "Starting orbits", "CCSDS OPM, or OMM for a TLE", "Tools › Export Orbits as CCSDS...",
+           "Folder chosen", "In the file", "COMMENT lines: the scenario's name and hash"),
+    Export("ccsds_oem", "Ephemeris", "CCSDS OEM, a file a spacecraft",
+           "Results › Plots › Export all... › CCSDS ephemeris (OEM)...", "Folder chosen", "In the file",
+           "COMMENT lines: the run's provenance"),
     Export("model_obj", "3D model", "OBJ and MTL", "Scenario › 3D Model... › Export .obj...", "<spacecraft>.obj",
            "None"),
 )

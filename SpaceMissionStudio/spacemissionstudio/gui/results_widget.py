@@ -160,6 +160,7 @@ from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
+    QDialog,
     QFileDialog,
     QHBoxLayout,
     QLabel,
@@ -662,6 +663,12 @@ class ResultsWidget(QWidget):
                                              "and compares")
         self.export_bundle_action.triggered.connect(self._on_export_bundle)
         export_menu.addAction(self.export_bundle_action)
+        # The run's ephemeris for another flight-dynamics tool (CCSDS 502.0-B-3; run --oem).
+        self.export_oem_action = QAction("CCSDS ephemeris (OEM)...", export_menu)
+        self.export_oem_action.setToolTip("Each spacecraft's recorded states as a CCSDS OEM, in EME2000 with UTC "
+                                          "epochs, for GMAT, STK or another tool")
+        self.export_oem_action.triggered.connect(self._on_export_oem)
+        export_menu.addAction(self.export_oem_action)
         # The scenario file's folder at the last run start (gui.main_window):
         # a model's relative mesh paths are read from it.
         self.scenario_folder: Path | None = None
@@ -1966,6 +1973,52 @@ class ResultsWidget(QWidget):
                                                                    progress=step), done,
                            lambda message: report(self, f"Could not export the bundle to {folder}: {message}"),
                            str(folder))
+
+    def _on_export_oem(self) -> None:
+        """Results › Plots › Export all... › CCSDS ephemeris (OEM)...: the
+        stride and interpolation, then a folder."""
+        from .ccsds_dialogs import OemOptionsDialog
+
+        if self._result is None or self._current_run is None or self._export_worker is not None:
+            return
+        counts = [len(series.time_s) for name, series in self._result.series.items()
+                  if name.endswith(".position_N") and len(series.time_s)]
+        if not counts:
+            report(self, "This run recorded no spacecraft position: there is no ephemeris to export", kind="info")
+            return
+        options = OemOptionsDialog(max(counts), self)
+        if options.exec() != QDialog.DialogCode.Accepted:
+            return
+        folder = QFileDialog.getExistingDirectory(self, "Export the ephemeris as CCSDS OEM (choose a folder)")
+        if folder:
+            self.export_oem(Path(folder), options.stride(), options.interpolation())
+
+    def export_oem(self, folder: Path, stride: int = 1, interpolation: str = "hermite") -> None:
+        """The shown run's ephemeris as one OEM per spacecraft in
+        ``folder`` (``run --oem``), off the GUI thread."""
+        from .. import ccsds_files
+        from ..engine.results import output_path
+        from ..schema.scenario import Scenario
+
+        result, scenario = self._result, Scenario.from_dict(self._current_run.scenario)
+
+        def job(step) -> list:
+            messages = ccsds_files.oem_messages(result, scenario, stride, interpolation)
+            folder.mkdir(parents=True, exist_ok=True)
+            written = []
+            for index, (name, text) in enumerate(messages.items()):
+                step(index, len(messages))
+                path = output_path(folder, f"{name}.oem")
+                path.write_text(text, encoding="ascii")
+                written.append(path)
+            return written
+
+        def done(written) -> None:
+            export_log.record("ccsds_oem", folder)
+            report(self, f"Exported {len(written)} CCSDS OEM file(s) to {folder}", kind="success")
+
+        self._start_export(job, done, lambda message: report(self, f"Could not export the ephemeris to {folder}: "
+                                                                   f"{message}"), str(folder))
 
     def _on_export_all(self, fmt: str) -> None:
         folder = QFileDialog.getExistingDirectory(self, f"Export the shown plots ({fmt.upper()}) and their data")

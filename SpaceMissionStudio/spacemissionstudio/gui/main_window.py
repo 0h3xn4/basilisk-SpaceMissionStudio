@@ -680,6 +680,16 @@ class MainWindow(QMainWindow):
             qicon=toolbar_icon("model-3d"),
             tip="Build or edit a spacecraft's 3D model: its look in Vizard, its mass, center of mass and inertia, "
                 "and its drag and solar pressure surfaces.")
+        # CCSDS orbit data messages (CCSDS 502.0-B-3), as the command line's ccsds-export and ccsds-validate.
+        self.ccsds_export_action = add(
+            "tools.ccsds_export", "Export Orbits as &CCSDS...", self.on_export_ccsds_orbits, category="Tools",
+            area="scenario", keywords=("OPM", "OMM", "orbit file"),
+            tip="Write each spacecraft's starting orbit as a CCSDS OPM (an OMM for a TLE spacecraft), for another "
+                "flight-dynamics tool.")
+        self.ccsds_check_action = add(
+            "tools.ccsds_check", "Check a CCSDS &File...", self.on_check_ccsds_file, category="Tools",
+            area="reports", keywords=("OPM", "OMM", "OEM", "validate"),
+            tip="Check an OPM, OMM or OEM against CCSDS 502.0-B-3: each issue with its line and clause.")
         for command_id, category, label, widget, area, tip in (
                 ("analyses.end_of_life", "Analyses", "&End of Life", self.lifetime_widget, "run",
                  "Re-entry and deorbit estimates."),
@@ -977,10 +987,64 @@ class MainWindow(QMainWindow):
     def _on_page_action(self) -> None:
         self._show_page(self.sender().data())
 
+    def on_export_ccsds_orbits(self) -> None:
+        """Export Orbits as CCSDS... (Tools; ``ccsds-export``): each
+        spacecraft's starting orbit as an OPM, or an OMM for a TLE, in a
+        folder the user chooses."""
+        try:
+            scenario = self.scenario_editor.to_scenario()
+        except ScenarioValidationError as exc:
+            self._open_problem(f"Cannot export the orbits: {self.scenario_editor.problem_display(str(exc))}",
+                               str(exc))
+            return
+        if not scenario.spacecraft:
+            self.show_view(self.scenario_editor)
+            show_toast(self, "Add a spacecraft first: there is no orbit to export", kind="info")
+            return
+        folder = QFileDialog.getExistingDirectory(self, "Export the starting orbits as CCSDS OPM/OMM (choose a folder)")
+        if folder:
+            self.export_ccsds_orbits(scenario, Path(folder))
+
+    def export_ccsds_orbits(self, scenario, folder: Path) -> list:
+        """Write ``scenario``'s starting orbits into ``folder``; returns the
+        files (none when it failed, which is reported)."""
+        from .ccsds_dialogs import write_initial_states
+
+        try:
+            written = write_initial_states(scenario, folder)
+        except ImportError as exc:
+            report(self, f"Could not export the orbits: Basilisk, which computes the starting states, could not be "
+                         f"loaded ({exc})")
+            return []
+        except (OSError, ValueError) as exc:
+            report(self, f"Could not export the orbits to {folder}: {exc}")
+            return []
+        export_log.record("ccsds_orbits", folder)
+        report(self, f"Wrote {len(written)} CCSDS file(s) to {folder}: {', '.join(p.name for p in written)}",
+               kind="success")
+        return written
+
+    def on_check_ccsds_file(self) -> None:
+        """Check a CCSDS File... (Tools; ``ccsds-validate``)."""
+        from .ccsds_dialogs import FILE_FILTER
+
+        path, _ = QFileDialog.getOpenFileName(self, "Check a CCSDS file (OPM, OMM or OEM)", "", FILE_FILTER)
+        if path:
+            self.check_ccsds_file(path).exec()
+
+    def check_ccsds_file(self, path):
+        """The check dialog of the file at ``path``, not yet shown."""
+        from .ccsds_dialogs import CcsdsCheckDialog
+
+        return CcsdsCheckDialog(path, self)
+
     def _on_export_open_requested(self, key: str) -> None:
         """Reports › Exports: the view that makes export ``key``."""
         if key == "model_obj":
             self.on_open_3d_model()
+            return
+        if key == "ccsds_orbits":
+            self.on_export_ccsds_orbits()
             return
         if key == "monte_carlo_csv" and self.results_views.indexOf(self.monte_carlo_results_widget) < 0:
             self.show_view(self.results_views)
