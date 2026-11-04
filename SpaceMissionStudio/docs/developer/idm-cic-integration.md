@@ -1,10 +1,15 @@
-# IDM-CIC import: design (Phase 1)
+# IDM-CIC import: design
 
-Status: **design for review, nothing implemented.** This page proposes how
-SpaceMissionStudio could build or update a scenario's spacecraft from a
-model made in IDM-CIC, the concurrent-engineering tool of CNES (IDM-CIC
-and IDM View are © CNES). SpaceMissionStudio is not affiliated with,
-endorsed or supported by CNES.
+Status: **implemented** (`spacemissionstudio/idm/`, `idm_import.py`,
+`idm-info` and `idm-import`, the 3D model editor's **Import IDM-CIC
+model...**; requirement SRS-F-28; user page
+[Import a spacecraft from IDM-CIC](../user-manual/idm-cic.md)). Sections 1
+to 13 are the design as proposed; **section 14 records what was decided
+when it was built**, and wins where they differ. This page describes how
+SpaceMissionStudio builds or updates a scenario's spacecraft from a model
+made in IDM-CIC, the concurrent-engineering tool of CNES (IDM-CIC and IDM
+View are © CNES). SpaceMissionStudio is not affiliated with, endorsed or
+supported by CNES.
 
 Scope, as agreed: the **import** only. The CIC ephemeris and attitude
 **export** is left out until a description of the CIC file formats is
@@ -333,3 +338,35 @@ approximate; and the facet cap.
 3. Re-import and the summary.
 4. CLI, GUI entry, user-manual page (crediting CNES, the supported version
    and what is not imported), capabilities, limitations, changelog.
+
+## 14. Decisions taken when building it
+
+The questions of section 12 were settled as follows, without input from
+CNES or from IDM-CIC itself (no CNES software was run). Each is a
+decision of this project, reversible when better information comes.
+
+| # | Decision | Why |
+|---|---|---|
+| IDM-01 | **Rotations**: `R = R1 R2 R3` about the axes the order names, each about the axes already turned (intrinsic), right-handed, active. `Translation_Rotation`: `x_parent = t + R x`; `Rotation_Translation`: `x_parent = R (t + x)`. | Fixed against the example models: truss members, panels and hinge frames only meet their neighbours under this reading. Encoded in the synthetic fixture (`tests/test_idm_import.py`'s two pointers). |
+| IDM-02 | **Articulations** turn or move a coordinate system about or along its own axis after its position: `frame = parent @ position @ articulation`. A copy's own value for the configuration wins over its origin's, then over the definition's default. | Hinged panels in the examples swing about their edge only this way. |
+| IDM-03 | **Shape origins**: box, extruded triangle and quadrangle, rectangle: a corner, `d1` along +x, width along +y, thickness along +z. Revolution shapes and the tank: axis +z, base at the origin, height `d3` (negative: along -z). Spheres and tori centred. Hollow thicknesses inward. The tank: cylinder from 0 to `d3`, hemispheres beyond. | Box and cylinder origins fixed against the examples; the others assumed and reported as such ("corner convention assumed"). |
+| IDM-04 | **Physical units** are the element's unit instances and the occurrences inside assembly instances; the templates inside an assembly's definition never count. | Counting both doubles every assembly's mass. |
+| IDM-05 | **Body frame**: the root coordinate system of one element; by default the heaviest element (with what it carries) that is not mounted on another enabled element, stepping down to its heaviest child while it has no mass of its own (an "orbit" element). The elements whose mounting chain reaches it are imported; the others are left out with the reason. | The examples' spacecraft hang on an orbit element or carry a fairing; neither belongs in the spacecraft's mass. |
+| IDM-06 | **Manual inertia** is reported, not applied (question 3). | Its reference point and axes are not stated; every example has zero. |
+| IDM-07 | **Margins and maturity levels** are reported only (question 6); the model gets nominal masses and the parts no maturity category. | The scenario's margin policy (AIAA S-120-2006) uses other categories; mapping them silently would invent data. |
+| IDM-08 | **Tanks**: the wall is a mesh part; the propellant (filling x capacity, of the chosen configuration) a hidden solid part filling the wall's cavity, so it counts in the mass properties with its own inertia. No `fuel_tank` is written and no `fuel_tank.geometry` added (question 8). | The scenario's fuel tank needs a thruster and is a point mass; the 3D model already carries geometry and inertia. |
+| IDM-09 | **Thrusters and `managedData/propulsion.xml`** are not read (question 5). | The file is undocumented; reading it would mean inferring a third party's format. |
+| IDM-10 | **Power modes** are not imported or reported (question 9). | No operating-mode concept in the scenario. |
+| IDM-11 | **Facets** are off: imported parts are left out of the surface model unless `--apply-facets` (or the dialog's box) puts the boxes, cylinders, cones and spheres in, with the default coefficients (question 7). | The file has no surface coefficients; meshes would exceed the facet cap. |
+| IDM-12 | **Unsupported shapes** (STEP, Collada, pipes, labels, paths, intersections and section planes) become point masses at the shape's origin (or the centroid of the Boolean bodies before the unsupported operation); wires without mass are dropped silently, with mass they are points. A shape whose every layer is hidden by default and that has no mass (a field of view, a keep-out zone) is left out; one with mass is kept, hidden. | Nothing is dropped without a word; visual aids are not structure. |
+| IDM-13 | **Boolean operations**: union adds and difference subtracts, as a mesh with the removed body wound inward, so the volume integrals are exact when the bodies do not overlap or lie inside. | The examples' Booleans are panels with holes and stiffeners. |
+| IDM-14 | **Meshes**: one `.obj` per spacecraft, `models/<spacecraft>_idm.obj` beside the scenario, one group per shape definition; full revolutions scale their radii so each circle's polygon keeps the circle's area (cylinders and cones exact in volume; spheres and tori within 0.3 %). | Exact where cheap, bounded elsewhere. |
+| IDM-15 | **Versions** 3.4 and 3.5 are read; any other is read with a note (question 11). `FilledBox` (3.5) is read as a box. | The examples are 3.4.1.1 and 3.5.0.32. |
+| IDM-16 | **Re-import** compares groups of values (geometry; mass and distribution; position; rotation; stowed pose; a point mass's mass; its position) with what the last import wrote: equal, the new values are taken; edited since, kept and reported. Items whose `fullId` is gone are kept and flagged (`import.source_item_gone`); the meshes they use are kept in the rewritten `.obj`. | Never overwrite an edit, never delete. |
+| IDM-17 | **XML safety**: `ElementTree` with any document type or entity declaration refused before parsing (Python's expat also bounds entity expansion); the file and `model.xml` sizes are capped. `defusedxml` is not a dependency. | A model never declares a DTD; refusing one removes the entity attacks. |
+| IDM-18 | **The licence** of IDM-CIC was not available to read (question 1). The reader uses the format's published description only for element names and meanings; no CNES text, file or example is in the repository; the test fixtures are written by hand. Listed in the known limitations. | The brief's rules. |
+
+Validation (question 10) remains open: no example stores IDM-CIC's own
+totals, so the importer's mass properties are checked against hand
+calculations on the synthetic fixture, not against IDM-CIC. A model's
+mass, centre-of-gravity and inertia report from IDM-CIC would close it.
