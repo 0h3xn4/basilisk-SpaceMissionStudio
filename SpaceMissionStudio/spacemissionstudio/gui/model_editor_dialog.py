@@ -39,18 +39,28 @@ given (their mounts are edited in the Equipment tab);
 return them after OK, and :func:`apply_device_mounts` copies the devices'
 mounts back. Applying the model to the spacecraft's fields is the
 spacecraft editor's job.
+
+The editor is a window of its own (:meth:`ModelEditorDialog.show_window`):
+not modal, so the rest of the application stays usable while it is open,
+and not attached to the window that opened it, so it moves, minimises and
+stacks on its own. Its owner applies the result when it emits
+``accepted``. Files it writes (a copied ``.obj``, an IDM-CIC import's
+meshes) go beside the scenario file, so it refuses to write while the
+scenario has no folder of its own: unsaved, a built-in template, or a
+read-only folder.
 """
 
 from __future__ import annotations
 
 import copy
+import os
 import shutil
 from pathlib import Path
 from types import SimpleNamespace
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QColorDialog, QDialog, QDialogButtonBox, QFileDialog,
+from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QColorDialog, QDialog, QDialogButtonBox, QFileDialog,
                                QFormLayout, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                                QMenu, QMessageBox, QPushButton, QRadioButton, QScrollArea, QSplitter, QToolButton,
                                QVBoxLayout, QWidget)
@@ -64,6 +74,7 @@ from ..schema.scenario import (MESH_UNITS, MODEL_SHAPE_DIMENSIONS, MODEL_SHAPE_F
                                ModelMeshConfig, ModelPartConfig, ScenarioValidationError, SpacecraftModelConfig,
                                name_error)
 from .feedback import report, show_dialog_error
+from .load_scenario_widget import TEMPLATES_DIR
 from .model_equipment_tabs import EquipmentTab, StowedTab
 from .model_property_tabs import BudgetLauncherTab, FacePropertiesTable, MaterialsTab, fill_material_combo
 from .model_view_widget import ModelViewWidget
@@ -162,7 +173,7 @@ class _ImportOptionsDialog(QDialog):
         self.copy_check.setEnabled(can_copy)
         self.copy_check.setChecked(can_copy)
         self.copy_check.setToolTip("Keeps the scenario and its model together when you move or share them."
-                                   if can_copy else "Save the scenario first to copy models beside it.")
+                                   if can_copy else "Save the scenario as your own file first to copy models beside it.")
         layout.addWidget(self.copy_check)
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self.accept)
@@ -210,12 +221,21 @@ class ModelEditorDialog(QDialog):
     stored relative to it, and imports can be copied into it. ``devices``
     (anything with ``sensors``, ``actuators``, ``rf_link`` and
     ``comms_pointing``, such as the spacecraft) is copied: its mounts are
-    edited in the Equipment tab and its items drawn in the view."""
+    edited in the Equipment tab and its items drawn in the view.
+    ``base_dir`` may also be a callable returning the folder, so the editor
+    follows a scenario saved under a new name while it is open.
+    ``accept_check``, when set, is called on OK and returns why the result
+    cannot be applied now ('' when it can): OK then keeps the window open."""
 
     def __init__(self, model: SpacecraftModelConfig | None, spacecraft_name: str = "sat-1",
                  base_dir=None, parent: QWidget | None = None, simulation_mode: str | None = None, devices=None,
                  previous_import=None):
         super().__init__(parent)
+        # A window of its own (show_window), with the buttons of one; not the dialog frame of its parent.
+        self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowTitleHint
+                            | Qt.WindowType.WindowSystemMenuHint | Qt.WindowType.WindowMinMaxButtonsHint
+                            | Qt.WindowType.WindowCloseButtonHint)
+        self.accept_check = None
         # The spacecraft's earlier IDM-CIC import record (re-import compares with it), and the one an import
         # here makes (import_record(); the caller keeps it with the scenario on OK).
         self._previous_import = previous_import
@@ -228,8 +248,9 @@ class ModelEditorDialog(QDialog):
         self.setWindowTitle(f"3D model: {spacecraft_name}")
         self.resize(1280, 820)
         self._spacecraft_name = spacecraft_name
-        self._base_dir = Path(base_dir) if base_dir else None
+        self._base_dir_source = base_dir
         self._model = copy.deepcopy(model) if model is not None else SpacecraftModelConfig(parts=[])
+        self._original = (copy.deepcopy(self._model), copy.deepcopy(self._devices))  # Close asks when they differ
         self._cache = model3d.MeshCache()
         self.derived: model3d.DerivedModel = model3d.DerivedModel()
         self.shown: model3d.DerivedModel = self.derived  # what the view draws: the deployed or stowed model
@@ -276,6 +297,81 @@ class ModelEditorDialog(QDialog):
             self._show_part_form(None)
         self.recompute_now()
         finish_form(self)  # units in the fields, optional groups collapse (M4a)
+
+    # -- the window --------------------------------------------------------------------------------------------
+
+    def show_window(self) -> None:
+        """Show the editor as a window of its own, in front: not modal, and
+        not attached to the window that opened it (a window manager moves a
+        modal dialog with its parent, and keeps a transient one above it).
+        Opened from inside a modal dialog it stays that dialog's transient
+        window, the one kind a modal dialog leaves usable."""
+        self.setWindowModality(Qt.WindowModality.NonModal)
+        if not self.isVisible() and QApplication.activeModalWidget() is None:
+            self.winId()  # the native window, so that its transient parent can be cleared before it shows
+            handle = self.windowHandle()
+            if handle is not None:
+                handle.setTransientParent(None)
+        if self.isMinimized():
+            self.showNormal()
+        self.show()
+        self.raise_()
+        self.activateWindow()
+
+    @property
+    def spacecraft_name(self) -> str:
+        return self._spacecraft_name
+
+    def set_spacecraft_name(self, name: str) -> None:
+        """The spacecraft was renamed while the editor was open."""
+        self._spacecraft_name = name
+        self.setWindowTitle(f"3D model: {name}")
+
+    @property
+    def _base_dir(self) -> Path | None:
+        """The scenario file's folder now (mesh paths are relative to it)."""
+        source = self._base_dir_source() if callable(self._base_dir_source) else self._base_dir_source
+        return Path(source) if source else None
+
+    def _write_problem(self) -> str:
+        """Why nothing can be written beside the scenario file now; '' when
+        it can (its folder exists, is not the built-in templates' and can
+        be written to)."""
+        base = self._base_dir
+        if base is None:
+            return "the scenario is not saved yet: save it first (File › Save)"
+        try:
+            template = base.resolve() == TEMPLATES_DIR.resolve()
+        except OSError:
+            template = False
+        if template:
+            return ("the scenario is a built-in template: save it as your own file first (File › Save As), "
+                    "then try again")
+        if not os.access(base, os.W_OK):
+            return f"its folder {base} is read-only: save the scenario somewhere else first (File › Save As)"
+        return ""
+
+    def has_changes(self) -> bool:
+        """Whether anything was edited since the editor opened."""
+        return (self._model, self._devices) != self._original or self._import_record is not None
+
+    def reject(self) -> None:
+        """Cancel, Esc or the window's close button: asks first when
+        something was edited, as the edits go with the window."""
+        if self.isVisible() and self.has_changes():
+            answer = QMessageBox.question(
+                self, "Discard the changes?",
+                f"Close the 3D model of {self._spacecraft_name} without applying your changes?",
+                QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+                QMessageBox.StandardButton.Cancel)
+            if answer != QMessageBox.StandardButton.Discard:
+                return
+        super().reject()
+
+    def discard(self) -> None:
+        """Close without applying and without asking (the scenario it edits
+        is being closed, after the user agreed)."""
+        super().reject()
 
     # -- parts list -------------------------------------------------------------------------------------------
 
@@ -404,7 +500,7 @@ class ModelEditorDialog(QDialog):
         name, _ = QFileDialog.getOpenFileName(self, "Import a 3D model", start, "Wavefront OBJ (*.obj *.OBJ)")
         if not name:
             return
-        options = _ImportOptionsDialog(Path(name), self._base_dir is not None, self)
+        options = _ImportOptionsDialog(Path(name), not self._write_problem(), self)
         if options.exec() != QDialog.DialogCode.Accepted:
             return
         try:
@@ -418,7 +514,7 @@ class ModelEditorDialog(QDialog):
         0 until set); returns their names. Raises ObjError or OSError."""
         source = Path(path)
         obj = obj_io.read_obj(source, units=units, up_axis=up_axis)  # check before anything is copied
-        if copy_to_scenario and self._base_dir is not None:
+        if copy_to_scenario and not self._write_problem():
             target_dir = self._base_dir / "models"
             target_dir.mkdir(parents=True, exist_ok=True)
             target = target_dir / source.name
@@ -446,9 +542,10 @@ class ModelEditorDialog(QDialog):
     def _on_import_idm(self) -> None:
         from .idm_import_dialog import IdmImportDialog
 
-        if self._base_dir is None:
-            report(self, "Save the scenario first: the import writes the model's meshes beside the scenario file.",
-                   kind="warning")
+        problem = self._write_problem()
+        if problem:
+            report(self, f"Cannot import here yet: {problem}. The import writes the model's meshes beside the "
+                         "scenario file.", kind="warning")
             return
         dialog = IdmImportDialog(parent=self, start_dir=self._base_dir)
         if dialog.exec() != QDialog.DialogCode.Accepted or dialog.plan() is None:
@@ -470,8 +567,9 @@ class ModelEditorDialog(QDialog):
         and returns the summary. Needs the scenario's folder."""
         from .. import history, idm_import
 
-        if self._base_dir is None:
-            raise ValueError("the scenario has no folder yet: save it first")
+        problem = self._write_problem()
+        if problem:
+            raise ValueError(problem)
         previous = self._import_record or self._previous_import
         holder = SimpleNamespace(name=self._spacecraft_name, model=self._model, solar_arrays=[], dry_mass_kg=0.0,
                                  center_of_mass_b_m=[0.0, 0.0, 0.0], inertia_kg_m2=[0.0] * 9, facets=[])
@@ -1036,6 +1134,10 @@ class ModelEditorDialog(QDialog):
         return copy.deepcopy(self._devices)
 
     def _on_ok(self) -> None:
+        problem = self.accept_check() if self.accept_check is not None else ""
+        if problem:
+            show_dialog_error(self, problem)
+            return
         if self._model.mass_properties_source == "typed":
             self._model.mass_properties = self._typed_from_form()
         try:

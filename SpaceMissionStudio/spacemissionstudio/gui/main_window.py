@@ -1702,8 +1702,11 @@ class MainWindow(QMainWindow):
         saved them, or the user explicitly said to discard them) -- never
         silently discards. Save, Discard or Cancel (audit G6): Save is
         File > Save (Save As for a scenario with no file), and goes ahead
-        only once the file is written.
+        only once the file is written. An open 3D model editor (a window of
+        its own) asks first: its edits are not in the scenario until its OK.
         """
+        if not self._confirm_close_model_editors():
+            return False
         if not self._dirty:
             return True
         response = QMessageBox.question(
@@ -1718,10 +1721,31 @@ class MainWindow(QMainWindow):
             return not self._dirty  # a cancelled Save As, or a save that failed, leaves it unsaved
         return response == QMessageBox.StandardButton.Discard
 
+    def _confirm_close_model_editors(self) -> bool:
+        """Whether the open 3D model editors may close without applying
+        their edits (none open, or the user said so); brings them to the
+        front otherwise."""
+        editors = self.scenario_editor.spacecraft_list.model_editors()
+        changed = [editor for editor in editors if editor.has_changes()]
+        if not changed:
+            return True
+        names = ", ".join(editor.spacecraft_name for editor in changed)
+        response = QMessageBox.question(
+            self, "3D model editor open",
+            f"The 3D model editor of {names} has changes not applied to the scenario. Close it without "
+            "applying them? (Cancel, then OK in the editor, applies them.)",
+            QMessageBox.StandardButton.Discard | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel)
+        if response == QMessageBox.StandardButton.Discard:
+            return True
+        changed[0].show_window()
+        return False
+
     # -- File actions ---------------------------------------------------------
     def on_new(self) -> None:
         if not self._confirm_discard_unsaved():
             return
+        self.scenario_editor.spacecraft_list.close_model_editors()
         self._save_project_layout()
         self.scenario_editor.reset_to_default()
         self._reset_history()
@@ -1807,6 +1831,7 @@ class MainWindow(QMainWindow):
         through on_save_as() -- see that method -- rather than silently
         picking a path to write to.
         """
+        self.scenario_editor.spacecraft_list.close_model_editors()  # they edit the scenario being replaced
         self._save_project_layout()
         self.scenario_editor.from_scenario(scenario)
         # The guide opens for a scenario still without spacecraft; an
@@ -2825,6 +2850,7 @@ class MainWindow(QMainWindow):
             event.ignore()
             return
         if self._confirm_discard_unsaved():
+            self.scenario_editor.spacecraft_list.close_model_editors()  # windows of their own: they go too
             if batch is not None:
                 batch.request_cancel()
                 batch.wait()  # its child ends the batch's processes; seconds at most

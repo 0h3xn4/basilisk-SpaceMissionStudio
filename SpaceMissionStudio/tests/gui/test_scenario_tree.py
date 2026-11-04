@@ -145,13 +145,12 @@ def test_a_change_made_elsewhere_rebuilds_the_page(window, monkeypatch):
     from spacemissionstudio.gui import model_editor_dialog
     from spacemissionstudio.schema.scenario import ModelPartConfig, SpacecraftModelConfig
 
-    from PySide6.QtWidgets import QDialog
 
     _spacecraft_form(window)
     model = SpacecraftModelConfig(parts=[ModelPartConfig(name="bus", shape="box",
                                                          dimensions_m={"x": 1.0, "y": 1.0, "z": 1.0},  # [m]
                                                          mass_kg=120.0)])  # [kg]
-    monkeypatch.setattr(model_editor_dialog.ModelEditorDialog, "exec", lambda self: QDialog.DialogCode.Accepted)
+    monkeypatch.setattr(model_editor_dialog.ModelEditorDialog, "show_window", lambda self: self.accept())
     monkeypatch.setattr(model_editor_dialog.ModelEditorDialog, "model", lambda self: model)
     window.model_3d_action.trigger()
     assert _spacecraft_form(window).dry_mass_kg.value() == pytest.approx(120.0)  # [kg]

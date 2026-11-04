@@ -549,6 +549,7 @@ class ScenarioEditorWidget(QWidget):
                 central_body_provider=spacecraft_list._central_body_provider, embedded=True,
                 imports_provider=lambda: self._imports)
             form.import_recorded.connect(self._on_import_recorded)
+            form.model_editor_opener = lambda node=node: self._open_model_editor_of(node)
             kind = "spacecraft"
         else:
             from .ground_station_editor import GroundStationEditorDialog
@@ -666,6 +667,13 @@ class ScenarioEditorWidget(QWidget):
         finally:
             self._applying = False
         self.page_tree.set_title(node.item, config.name)
+
+    def _open_model_editor_of(self, node: _FormNode) -> None:
+        """A spacecraft page's 3D model tab opens the editor of the list (one
+        per spacecraft), once the page's waiting edits are in the list."""
+        self.flush_forms()
+        if node in self._spacecraft_nodes:
+            self.spacecraft_list.open_model_editor(self._spacecraft_nodes.index(node))
 
     def flush_forms(self) -> None:
         """Apply every live form's waiting edit now (before a save or a run)."""

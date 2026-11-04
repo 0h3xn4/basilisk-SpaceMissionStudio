@@ -1748,3 +1748,35 @@ dialog on the synthetic model).
   choices and preview; a damaged file refused; the 3D model editor's
   import and re-import, and the scenario editor keeping the record; a
   duplicated imported part made the user's own.
+
+## The 3D model editor as a window of its own (2026-11-04)
+
+Branch `fix/model-editor-window`. No test removed, no assertion
+weakened, no golden or output file changed. The editor is now shown with
+`show_window()` (not modal) and applied on its `accepted` signal, instead
+of `exec()`, so three tests reach it differently:
+
+| Test | Before | Now |
+|---|---|---|
+| `tests/gui/test_model_editor.py::test_the_equipment_tab_mounts_reach_the_spacecraft_editor` and the other tests of that file that open it from a spacecraft dialog | patched `ModelEditorDialog.exec` to edit, then return Accepted | patches `ModelEditorDialog.show_window` to edit, then call `accept()` (OK) |
+| `tests/gui/test_scenario_tree.py::test_a_change_made_elsewhere_rebuilds_the_page` | patched `exec` to return Accepted | patches `show_window` to call `accept()` |
+| `tests/gui/test_workspace.py` (`_accept_the_model_editor`, used by three tests) | patched `exec` to record the name and return Accepted | patches `show_window` to record the name and call `accept()` |
+
+The assertions on what OK applies are unchanged.
+
+- Added `tests/gui/test_model_editor_window.py`, eight tests: the editor
+  is a top-level, non-modal window with no transient parent and
+  minimise and maximise buttons, one per spacecraft; OK applies to the
+  spacecraft as it is then (renamed and edited meanwhile); OK for a
+  removed spacecraft keeps the window open; closing an edited editor
+  asks first; File › New asks about an edited editor; a spacecraft page
+  opens the same editor; a spacecraft dialog does not close under its
+  open editor; nothing is written into the built-in templates' folder or
+  for an unsaved scenario, and a Save As while the editor is open lets it
+  write.
+- Added `tests/test_vizard_battery_panel.py`: the Vizard battery panel's
+  unit is Wh, and its bridge republishes a 700 Wh battery's level and
+  capacity in watt-hours.
+- Added `tests/test_idm_import.py::test_an_import_that_fails_changes_nothing`:
+  with the meshes file refused, the import raises and leaves the
+  spacecraft, its model object and the import records as they were.

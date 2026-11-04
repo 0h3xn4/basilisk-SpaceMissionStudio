@@ -8,6 +8,35 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+### Fixed
+
+- The 3D model editor is a window of its own. It was a modal dialog of the
+  main window, and on GNOME a modal dialog is attached to its parent, so
+  dragging the editor dragged the whole application. It now moves,
+  minimises and stacks on its own, and the rest of the application stays
+  usable while it is open. There is one editor per spacecraft; its **OK**
+  applies to the spacecraft as it is then (a rename or another edit made
+  meanwhile is kept). Closing it, or replacing or closing the scenario,
+  asks first when it holds changes not applied.
+- The IDM-CIC import and the `.obj` copy no longer write into the
+  built-in templates' folder. With a scenario opened from a template, the
+  import failed with "Permission denied" in an installed copy (and wrote
+  into the templates in a source checkout); it now says to save the
+  scenario as your own file first. The editor follows the scenario's
+  folder, so a **Save As** while it is open is enough.
+- An IDM-CIC import that fails no longer leaves the model half-imported.
+  Its parts were added before the meshes file was written, so after a
+  failed write the editor's **OK** refused the model ("mesh_index must
+  name one of the model's 0 mesh file(s)"). The import now changes the
+  spacecraft only when it succeeds as a whole.
+- Vizard's battery panel shows watt-hours, like the rest of the app: a
+  700 Wh battery read "2520000 / 2520000 W-s" (Basilisk's battery
+  message carries watt-seconds and Vizard shows the numbers as sent), and
+  now reads "700 / 700 Wh". Results, exports and the scenario file are
+  unchanged.
+
 ## 2.1.0 (2026-11-04)
 
 The spacecraft as designed. A spacecraft's 3D model now carries its
