@@ -19,6 +19,10 @@
 """The 3D view of a spacecraft's model in the model editor: every visible
 part as a shaded mesh in its colour, the body axes at point B and the
 center of mass, in the body frame. Drag to turn it, scroll to zoom.
+With the mounted equipment given, each item is drawn where it sits: a
+field of view as a translucent cone along its boresight, a thruster's
+plume as a cone along minus its boresight, and any other item as a
+short line along its boresight.
 
 :func:`model_figure` builds the Plotly figure (testable on its own); the
 widget loads one page with the local plotly.js (offline, as the Results
@@ -48,6 +52,10 @@ _DIV_ID = "model-view"
 # Body axes at B: x, y, z in the usual red, green, blue (identity, not state).
 _AXIS_COLORS = AXIS_COLOURS
 _OTHER_PARTS_OPACITY = 0.35  # [-] the parts not selected, while one is
+_CONE_OPACITY = 0.22  # [-] a field of view or plume cone
+_HIGHLIGHTED_CONE_OPACITY = 0.5  # [-] the selected item's
+_CONE_SEGMENTS = 32  # [-] around a cone's rim
+_CONE_LENGTH = 0.45  # [-] a cone's slant length, as a fraction of the model's largest size
 
 
 def _rgb(color) -> str:
@@ -55,10 +63,65 @@ def _rgb(color) -> str:
     return f"rgb({r},{g},{b})"
 
 
-def model_figure(derived, selected: str | None = None) -> go.Figure:
+def cone_mesh(apex, axis, half_angle_deg: float, slant_m: float,
+              segments: int = _CONE_SEGMENTS) -> tuple[np.ndarray, np.ndarray]:
+    """``(vertices, triangles)`` of a cone with its apex at ``apex``, about
+    the unit ``axis``, of half-angle ``half_angle_deg`` (up to 180: a
+    field of view wider than a hemisphere opens backwards) and slant
+    length ``slant_m``: the apex, then the rim, then the rim's centre."""
+    apex = np.asarray(apex, dtype=float)
+    axis = np.asarray(axis, dtype=float)
+    axis = axis / np.linalg.norm(axis)
+    helper = np.array([1.0, 0.0, 0.0]) if abs(axis[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+    u = np.cross(axis, helper)
+    u /= np.linalg.norm(u)
+    w = np.cross(axis, u)
+    half = np.radians(min(max(float(half_angle_deg), 0.0), 180.0))
+    centre = apex + slant_m * np.cos(half) * axis
+    radius = slant_m * np.sin(half)
+    angles = np.linspace(0.0, 2.0 * np.pi, segments, endpoint=False)
+    rim = centre + radius * (np.outer(np.cos(angles), u) + np.outer(np.sin(angles), w))
+    vertices = np.vstack([apex, rim, centre])
+    k = np.arange(segments)
+    side = np.column_stack([np.zeros(segments, int), 1 + k, 1 + (k + 1) % segments])
+    cap = np.column_stack([np.full(segments, segments + 1), 1 + (k + 1) % segments, 1 + k])
+    return vertices, np.vstack([side, cap])
+
+
+def _item_traces(items, highlight: str | None, slant_m: float) -> list:
+    """The cones and lines of the mounted ``items`` (``MountedItem``)."""
+    traces = []
+    for item in items:
+        if item.position_b_m is None or item.boresight_b is None:
+            continue
+        chosen = item.name == highlight
+        opacity = _HIGHLIGHTED_CONE_OPACITY if chosen else _CONE_OPACITY
+        p, b = np.asarray(item.position_b_m, dtype=float), np.asarray(item.boresight_b, dtype=float)
+        cones = []
+        if item.field_of_view_deg is not None:
+            cones.append((b, 0.5 * float(item.field_of_view_deg), TOKENS["accent"], "field of view"))
+        if item.plume_half_angle_deg is not None:
+            cones.append((-b, float(item.plume_half_angle_deg), TOKENS["status.caution"], "plume"))
+        for axis, half, color, what in cones:
+            v, t = cone_mesh(p, axis, half, slant_m)
+            traces.append(go.Mesh3d(x=v[:, 0], y=v[:, 1], z=v[:, 2], i=t[:, 0], j=t[:, 1], k=t[:, 2],
+                                    name=f"{item.name} {what}", color=color, opacity=opacity, flatshading=True,
+                                    hovertemplate=f"{item.name}: {what} ({2.0 * half if what == 'field of view' else half:g} deg"
+                                    f"{'' if what == 'field of view' else ' half-angle'})<extra></extra>"))
+        end = p + 0.5 * slant_m * b
+        traces.append(go.Scatter3d(x=[p[0], end[0]], y=[p[1], end[1]], z=[p[2], end[2]], mode="lines+markers",
+                                   name=item.name, line={"color": TOKENS["text.primary"], "width": 6 if chosen else 3},
+                                   marker={"size": [5 if chosen else 3, 0], "color": TOKENS["text.primary"]},
+                                   hovertemplate=f"{item.name} ({item.kind})<extra></extra>"))
+    return traces
+
+
+def model_figure(derived, selected: str | None = None, items=(), highlight: str | None = None) -> go.Figure:
     """The figure for a :class:`~spacemissionstudio.model3d.model.DerivedModel`:
     one ``Mesh3d`` per visible part (named after it), the body axes at B and
-    the center of mass. With a part ``selected``, the others are faded."""
+    the center of mass. With a part ``selected``, the others are faded.
+    ``items`` (``model3d.equipment.MountedItem``) adds the mounted
+    equipment, the one named ``highlight`` drawn stronger."""
     traces = []
     for part in derived.parts:
         if part.mesh is None or not part.visible or len(part.mesh.triangles) == 0:
@@ -79,6 +142,7 @@ def model_figure(derived, selected: str | None = None) -> go.Figure:
                                    text=["", f"{label}_B"], textposition="top center", name=f"{label} axis",
                                    line={"color": color, "width": 5}, hoverinfo="skip",
                                    textfont={"color": color}))
+    traces += _item_traces(items, highlight, _CONE_LENGTH * max(size, 0.1))
     if derived.mass_properties is not None:
         com = derived.mass_properties.center_of_mass_m
         traces.append(go.Scatter3d(x=[com[0]], y=[com[1]], z=[com[2]], mode="markers", name="center of mass",
@@ -112,6 +176,8 @@ class ModelViewWidget(QWidget):
         self.web_view.load(QUrl.fromLocalFile(str(page)))
         self._derived = None
         self._selected: str | None = None
+        self._items: list = []
+        self._highlight: str | None = None
         on_change(self._on_theme_changed)
 
     @staticmethod
@@ -130,10 +196,11 @@ class ModelViewWidget(QWidget):
             self.web_view.page().runJavaScript(self._pending)
             self._pending = None
 
-    def show_model(self, derived, selected: str | None = None) -> None:
-        """Draw ``derived`` (a DerivedModel), fading all but ``selected``."""
-        self._derived, self._selected = derived, selected
-        self.figure = model_figure(derived, selected)
+    def show_model(self, derived, selected: str | None = None, items=(), highlight: str | None = None) -> None:
+        """Draw ``derived`` (a DerivedModel), fading all but ``selected``,
+        with the mounted ``items`` (``highlight`` the selected one)."""
+        self._derived, self._selected, self._items, self._highlight = derived, selected, list(items), highlight
+        self.figure = model_figure(derived, selected, self._items, highlight)
         script = f"window.smsShow({self.figure.to_json()});"
         if self._ready:
             self.web_view.page().runJavaScript(script)
@@ -147,4 +214,4 @@ class ModelViewWidget(QWidget):
                 f"document.body.style.background = '{TOKENS['bg.surface']}';"
                 f"document.getElementById('{_DIV_ID}').style.background = '{TOKENS['bg.surface']}';")
         if self._derived is not None:
-            self.show_model(self._derived, self._selected)
+            self.show_model(self._derived, self._selected, self._items, self._highlight)
