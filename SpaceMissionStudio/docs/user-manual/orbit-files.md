@@ -23,9 +23,34 @@ tools, GMAT among them, read and write:
 | OMM (Orbit Mean-elements Message) | Mean elements, for example a TLE | read, check |
 | OEM (Orbit Ephemeris Message) | A trajectory: many states over time | write, check |
 
-These are command-line features; the GUI has no CCSDS command yet.
+Each can be done in the app or on the command line; both write and read
+the same files.
 
-### Write
+### In the app
+
+| To | Do |
+|---|---|
+| Set a spacecraft's orbit from an OPM or OMM | On its **Orbit / mass** page, **Import CCSDS OPM/OMM...** |
+| Write every spacecraft's starting orbit | `Ctrl+K`, **Export Orbits as CCSDS...** (one OPM per spacecraft, an OMM for a TLE spacecraft) |
+| Write a run's trajectory | **Results › Plots › Export all... › CCSDS ephemeris (OEM)...** |
+| Check any OPM, OMM or OEM | `Ctrl+K`, **Check a CCSDS File...** |
+
+- **Import:** an OPM becomes a Cartesian state, an OMM with TLE mean
+  elements a TLE orbit. An OPM's state is at its own epoch: when that is
+  not the scenario's, the app asks to move the scenario epoch to it (every
+  spacecraft then starts at that time), or changes nothing. A message for
+  another central body, or one that does not conform, is refused with the
+  reason. The scenario records the file, as below.
+- **Ephemeris:** choose how many recorded states to keep (every Nth, and
+  always the last; at least the 8 that the degree-7 interpolation needs)
+  and the interpolation the file suggests (Lagrange for GMAT).
+- **Check:** the dialog says whether the file conforms, then lists each
+  issue with its line and the clause of the standard it breaks.
+
+**Reports › Exports** lists the orbit and ephemeris exports with the last
+time each was written.
+
+### On the command line: write
 
 ```console
 $ spacemissionstudio ccsds-export spacemissionstudio/scenarios/templates/22_starter_first_leo_satellite.json --out opm
@@ -44,11 +69,12 @@ spacemissionstudio run scenario.json --out-dir out --oem
 
 **For GMAT:** GMAT R2026a reads only OEM version 1.0 with Lagrange
 interpolation, and the app writes version 3.0 (the current standard).
-Write with `--oem-interpolation lagrange`, then change the first line to
+Write with Lagrange interpolation (`--oem-interpolation lagrange`, or
+Lagrange in the app), then change the first line to
 `CCSDS_OEM_VERS = 1.0` in a copy for GMAT; that is how the app's OEMs
 were checked against GMAT.
 
-### Read
+### On the command line: read
 
 ```console
 $ spacemissionstudio ccsds-import opm/my-sat.opm scenario.json --spacecraft my-sat --out scenario2.json
@@ -60,13 +86,13 @@ sets a TLE orbit. If the message's epoch differs from the scenario's, it
 stops and says so; `--set-epoch` moves the scenario to the message's
 epoch. Without `--out` the scenario file is overwritten.
 
-The scenario records where the orbit came from: the file's path and
-SHA-256 and the values read (`imports`). If the file changes, or is not
-there any more, the pre-run checks say so (`import.source_changed`,
-`import.source_missing`), and each run records it in its provenance;
-import it again to take the new orbit.
+The scenario records where the orbit came from, whether imported in the
+app or here: the file's path and SHA-256 and the values read (`imports`).
+If the file changes, or is not there any more, the pre-run checks say so
+(`import.source_changed`, `import.source_missing`), and each run records
+it in its provenance; import it again to take the new orbit.
 
-### Check
+### On the command line: check
 
 ```console
 $ spacemissionstudio ccsds-validate opm/my-sat.opm

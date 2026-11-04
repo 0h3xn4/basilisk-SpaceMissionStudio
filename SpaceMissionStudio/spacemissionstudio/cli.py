@@ -70,7 +70,7 @@ from datetime import timedelta
 from pathlib import Path
 
 from .schema.epochs import parse_epoch_utc
-from . import __version__, dependencies, output_provenance
+from . import __version__, ccsds_files, dependencies, output_provenance
 from .logging_setup import configure_logging, get_log_file_path
 from .schema import ScenarioValidationError, load_scenario
 from .schema.command import runs_sequence, script_blocks
@@ -172,7 +172,7 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
     and the scenario as run: after loading and migration, as the app saves
     it, so ``spacemissionstudio run`` on it runs the same scenario
     (its hash is the provenance's ``scenario_sha256``)."""
-    from .engine import ccsds_odm, data_budget, events, run_summary
+    from .engine import data_budget, events, run_summary
     from .engine.results import output_path
     from .schema.scenario import scenario_text
 
@@ -187,11 +187,8 @@ def _write_run_outputs(args, scenario, result, command_summary) -> None:
     written.add(as_run.name)
     print(f"  scenario as run: {as_run}")
     if args.oem:
-        names = [sc.name for sc in scenario.spacecraft
-                 if f"{sc.name}.position_N" in result.series and len(result.series[f"{sc.name}.position_N"].time_s)]
-        for name, text in ccsds_odm.oem_from_result(result, scenario.epoch_utc, scenario.gravity.central_body,
-                                                    names, stride=args.oem_stride,
-                                                    interpolation=args.oem_interpolation).items():
+        for name, text in ccsds_files.oem_messages(result, scenario, stride=args.oem_stride,
+                                                   interpolation=args.oem_interpolation).items():
             oem_path = output_path(args.out_dir, f"{name}.oem")
             oem_path.write_text(text, encoding="ascii")
             written.add(oem_path.name)
@@ -1355,34 +1352,24 @@ def cmd_gaseous_attenuation(args: argparse.Namespace) -> int:
     return 0
 
 
-# A CCSDS message is read whole; a long OEM is large, an endless file
-# (/dev/zero) was read until the process was killed (exit 137, audit R9).
-MAX_CCSDS_MESSAGE_BYTES = 500_000_000  # [byte]
+# A CCSDS message is read whole (ccsds_files.MAX_MESSAGE_BYTES; audit R9).
+MAX_CCSDS_MESSAGE_BYTES = ccsds_files.MAX_MESSAGE_BYTES  # [byte]
 
 
 def _read_ccsds_message(path) -> str:
     """``path``'s text (ASCII, other bytes replaced); OSError when it cannot
     be read or is larger than MAX_CCSDS_MESSAGE_BYTES."""
-    with Path(path).open("rb") as stream:
-        data = stream.read(MAX_CCSDS_MESSAGE_BYTES + 1)
-    if len(data) > MAX_CCSDS_MESSAGE_BYTES:
-        raise OSError(f"larger than {MAX_CCSDS_MESSAGE_BYTES // 1_000_000} MB: not a CCSDS message")
-    return data.decode("ascii", errors="replace")
+    return ccsds_files.read_message(path, MAX_CCSDS_MESSAGE_BYTES)
 
 
 def _record_import(scenario, config, path: Path, file_format: str) -> None:
     """The scenario keeps where ``config``'s orbit was read from, the file's
     SHA-256 and the values read (Phase 8c, ``schema.scenario.ImportRecord``)."""
-    import hashlib
-    from datetime import UTC, datetime
-
     from . import history
-    from .schema.scenario import ImportRecord, imported_values, put_import
+    from .schema.scenario import put_import
 
-    put_import(scenario, ImportRecord(
-        config.name, "orbit", file_format, str(path.expanduser().resolve()),
-        hashlib.sha256(path.read_bytes()).hexdigest(), imported_values(config, "orbit"),
-        datetime.now(UTC).replace(microsecond=0).isoformat(), history.current_author()))
+    put_import(scenario, ccsds_files.orbit_import_record(config.name, config.orbit, path, file_format,
+                                                         history.current_author()))
 
 
 def cmd_ccsds_validate(args: argparse.Namespace) -> int:
@@ -1414,7 +1401,6 @@ def cmd_ccsds_export(args: argparse.Namespace) -> int:
     except ScenarioValidationError as exc:
         print(f"INVALID: {exc}", file=sys.stderr)
         return 1
-    from .engine import ccsds_odm, time_system
     from .engine.results import output_path
 
     try:
@@ -1422,31 +1408,13 @@ def cmd_ccsds_export(args: argparse.Namespace) -> int:
     except OSError as exc:
         print(f"ERROR: could not create {args.out}: {exc}", file=sys.stderr)
         return 3
-    epoch = time_system.elapsed_to_utc(scenario.epoch_utc, [0.0])[0]
-    for sc in scenario.spacecraft:
-        if sc.orbit.type == "tle":
-            text = ccsds_odm.omm_from_tle(sc.orbit.tle_line1, sc.orbit.tle_line2, sc.name,
-                                          comments=output_provenance.scenario_lines(scenario))
-            path = output_path(args.out, f"{sc.name}.omm")
-        else:
-            try:
-                from .engine.service import _orbit_ic_to_rv
-            except ImportError as exc:
-                print(f"ERROR: Basilisk is not installed/built ({exc})", file=sys.stderr)
-                return 2
-            r, v = _orbit_ic_to_rv(ccsds_odm.EARTH_GM_KM3_S2 * 1e9 if scenario.gravity.central_body == "earth"
-                                   else _central_mu(scenario), sc.orbit, scenario.epoch_utc)
-            gm = ccsds_odm.EARTH_GM_KM3_S2 if scenario.gravity.central_body == "earth" else None
-            text = ccsds_odm.write_opm(
-                object_name=sc.name, object_id="UNKNOWN", center_name=scenario.gravity.central_body,
-                ref_frame="EME2000", time_system="UTC", epoch=epoch, r_km=[x / 1e3 for x in r],
-                v_km_s=[x / 1e3 for x in v], gm_km3_s2=gm, mass_kg=_total_mass_kg(sc),
-                srp_area_m2=sc.srp_area_m2 if sc.enable_srp else None, srp_coeff=sc.srp_coeff if sc.enable_srp else None,
-                drag_area_m2=sc.drag_area_m2 if sc.enable_drag else None,
-                drag_coeff=sc.drag_coeff if sc.enable_drag else None,
-                comments=[f"Initial state of scenario {scenario.name!r}; EME2000 is SPICE J2000",
-                          *output_provenance.scenario_lines(scenario)])
-            path = output_path(args.out, f"{sc.name}.opm")
+    try:
+        messages = ccsds_files.initial_state_messages(scenario)
+    except ImportError as exc:
+        print(f"ERROR: Basilisk is not installed/built ({exc})", file=sys.stderr)
+        return 2
+    for name, text in messages:
+        path = output_path(args.out, name)
         try:
             path.write_text(text, encoding="ascii")
         except OSError as exc:
@@ -1454,23 +1422,6 @@ def cmd_ccsds_export(args: argparse.Namespace) -> int:
             return 3
         print(f"wrote {path}")
     return 0
-
-
-def _total_mass_kg(spacecraft) -> float:
-    """The spacecraft's mass at the epoch [kg] (CCSDS OPM MASS): dry mass plus
-    every propellant load aboard."""
-    blocks = (spacecraft.station_keeping, spacecraft.geo_station_keeping, spacecraft.constant_thrust)
-    propellant_kg = sum(block.propellant_kg for block in blocks if block is not None)  # [kg]
-    if spacecraft.fuel_tank is not None:
-        propellant_kg += spacecraft.fuel_tank.propellant_mass_kg
-    return spacecraft.dry_mass_kg + propellant_kg
-
-
-def _central_mu(scenario) -> float:
-    from Basilisk.utilities import simIncludeGravBody
-
-    factory = simIncludeGravBody.gravBodyFactory()
-    return getattr(factory, f"create{scenario.gravity.central_body.capitalize()}")().mu
 
 
 def cmd_ccsds_import(args: argparse.Namespace) -> int:
@@ -1501,7 +1452,7 @@ def cmd_ccsds_import(args: argparse.Namespace) -> int:
             return 1
         scenario.epoch_utc = epoch.isoformat()
     matches[0].orbit = orbit
-    _record_import(scenario, matches[0], Path(args.message), "ccsds_opm" if "CCSDS_OPM_VERS" in message else "ccsds_omm")
+    _record_import(scenario, matches[0], Path(args.message), ccsds_files.orbit_format(message))
     scenario.validate()
     _save(scenario, args.out or args.scenario, "ccsds-import")
     for note in notes:

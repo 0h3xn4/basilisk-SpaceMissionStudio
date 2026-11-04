@@ -391,6 +391,7 @@ class ScenarioEditorWidget(QWidget):
             lambda: [gs.name for gs in self.ground_station_list.to_list()]
         )
         self.spacecraft_list.set_epoch_provider(lambda: self.epoch_edit.text().strip())
+        self.spacecraft_list.set_epoch_setter(self.epoch_edit.setText)
         self._base_dir_provider = None  # set_base_dir_provider
         self.spacecraft_list.value_marks_made.connect(self._on_value_marks_made)  # before its changed
         self.spacecraft_list.preset_used.connect(self._on_preset_used)
@@ -545,7 +546,8 @@ class ScenarioEditorWidget(QWidget):
                 config=node.config, parent=node.holder, other_spacecraft_names=others,
                 simulation_mode=self.simulation_mode_combo.currentData(),
                 ground_station_names=[gs.name for gs in self.ground_station_list.to_list()],
-                epoch_provider=spacecraft_list._epoch_provider, base_dir_provider=spacecraft_list._base_dir_provider,
+                epoch_provider=spacecraft_list._epoch_provider, epoch_setter=spacecraft_list._epoch_setter,
+                base_dir_provider=spacecraft_list._base_dir_provider,
                 central_body_provider=spacecraft_list._central_body_provider, embedded=True,
                 imports_provider=lambda: self._imports)
             form.import_recorded.connect(self._on_import_recorded)
@@ -1175,8 +1177,9 @@ class ScenarioEditorWidget(QWidget):
         self._presets = [r for r in self._presets if r.spacecraft != record.spacecraft] + [record]
 
     def _on_import_recorded(self, record) -> None:
-        """A 3D model imported from a file (IDM-CIC): its record, in place of
-        an earlier one of that spacecraft and target."""
+        """A 3D model (IDM-CIC) or an orbit (CCSDS OPM or OMM) imported from
+        a file: its record, in place of an earlier one of that spacecraft and
+        target."""
         self._imports = [r for r in self._imports
                          if (r.spacecraft, r.target) != (record.spacecraft, record.target)] + [record]
 

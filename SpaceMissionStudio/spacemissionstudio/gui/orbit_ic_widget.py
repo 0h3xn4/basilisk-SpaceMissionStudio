@@ -30,11 +30,13 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
+    QFileDialog,
     QFormLayout,
     QFrame,
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QMessageBox,
     QPushButton,
     QStackedWidget,
     QVBoxLayout,
@@ -89,6 +91,9 @@ class OrbitIcWidget(QWidget):
     # A button computed a field's value (the transparency plan, Phase 5b):
     # (field, value as the field holds it, what computed it).
     value_computed = Signal(str, float, str)
+    # An orbit read from a CCSDS OPM or OMM (import_ccsds): the file's path and format ("ccsds_opm" or
+    # "ccsds_omm"), for the scenario's import record.
+    orbit_imported = Signal(str, str)
     # Give a reason... under a field: (field).
     reason_requested = Signal(str)
 
@@ -102,6 +107,7 @@ class OrbitIcWidget(QWidget):
         # Falls back to a fixed placeholder epoch when unset (e.g. this
         # widget used standalone in a test).
         self._epoch_provider = None
+        self._epoch_setter = None  # set_epoch_setter: an imported OPM can move the scenario epoch
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -143,6 +149,17 @@ class OrbitIcWidget(QWidget):
         segment_row.addStretch(1)
         self.type_group.buttonClicked.connect(self._on_type_clicked)
         layout.addWidget(segments)
+        # A real orbit from another tool (CCSDS 502.0-B-3; ccsds-import on the command line).
+        self.import_ccsds_button = QPushButton("Import CCSDS OPM/OMM...")
+        self.import_ccsds_button.setToolTip(
+            "Set the orbit from a CCSDS orbit message: an OPM (a state vector at its epoch) becomes a "
+            "Cartesian state, a TLE-based OMM a TLE. The scenario keeps the file's path and SHA-256.")
+        self.import_ccsds_button.clicked.connect(self._on_import_ccsds)
+        import_row = QHBoxLayout()
+        import_row.setContentsMargins(0, 0, 0, 0)
+        import_row.addWidget(self.import_ccsds_button)
+        import_row.addStretch(1)
+        layout.addLayout(import_row)
 
         self.stack = QStackedWidget()
         layout.addWidget(self.stack)
@@ -195,6 +212,73 @@ class OrbitIcWidget(QWidget):
             self.type_combo.setCurrentIndex(self.type_combo.findData(new_type))
         else:
             self._sync_type_buttons()
+
+    def set_epoch_setter(self, setter) -> None:
+        """``setter(epoch_utc)`` moves the scenario epoch, when an imported
+        OPM's state is at another time and the user agrees."""
+        self._epoch_setter = setter
+
+    def _on_import_ccsds(self) -> None:
+        from .ccsds_dialogs import ORBIT_FILTER
+
+        path, _ = QFileDialog.getOpenFileName(self, "Import an orbit (CCSDS OPM or OMM)", "", ORBIT_FILTER)
+        if path:
+            self.import_ccsds(path)
+
+    def import_ccsds(self, path) -> bool:
+        """Set the orbit from the OPM or TLE-based OMM at ``path``, as
+        ``ccsds-import`` does: an OPM's state is at its own epoch, so when
+        that is not the scenario's the user is asked to move the scenario
+        epoch to it (or nothing changes). Emits :attr:`orbit_imported`;
+        returns whether the orbit was set."""
+        from pathlib import Path
+
+        from .. import ccsds_files
+        from ..engine import ccsds_odm
+        from ..schema.epochs import parse_epoch_utc
+
+        name = Path(path).name
+        central_body = self._central_body_provider() if self._central_body_provider else "earth"
+        try:
+            orbit, epoch, notes, file_format = ccsds_files.orbit_from_file(path, central_body)
+        except OSError as exc:
+            report(self, f"Could not read {name}: {exc.strerror or exc}")
+            return False
+        except ccsds_odm.OdmError as exc:
+            issues = "\n".join(str(issue) for issue in getattr(exc, "issues", []))
+            report(self, f"Could not import the orbit from {name}: {exc}" + (f"\n{issues}" if issues else ""))
+            return False
+        if epoch is not None:
+            scenario_epoch = self._epoch_provider() if self._epoch_provider else ""
+            try:
+                same = abs((epoch - parse_epoch_utc(scenario_epoch)).total_seconds()) <= 1e-3  # [s]
+            except ValueError:
+                same = False
+            if not same:
+                if self._epoch_setter is None:
+                    report(self, f"The OPM's state is at {epoch.isoformat()} UTC, not at the scenario epoch "
+                                 f"{scenario_epoch}: set the scenario epoch to it first")
+                    return False
+                answer = QMessageBox.question(
+                    self, "Move the scenario epoch?",
+                    f"The state in {name} is at {epoch.isoformat()} UTC; the scenario starts at "
+                    f"{scenario_epoch or '(no epoch)'}.\n\nMove the scenario epoch to the OPM's? Every spacecraft "
+                    "then starts at that time.",
+                    QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+                    QMessageBox.StandardButton.Cancel)
+                if answer != QMessageBox.StandardButton.Yes:
+                    return False
+                self._epoch_setter(epoch.isoformat())
+        self.from_dataclass(orbit)
+        self.changed.emit()
+        self.orbit_imported.emit(str(path), file_format)
+        kind = "OPM" if file_format == "ccsds_opm" else "OMM"
+        if notes:
+            report(self, f"Orbit imported from {name} ({kind}), with {len(notes)} note(s):\n" + "\n".join(notes),
+                   kind="warning")
+        else:
+            report(self, f"Orbit imported from {name} ({kind})", kind="success")
+        return True
 
     def set_epoch_provider(self, provider) -> None:
         """``provider`` is a zero-argument callable returning this

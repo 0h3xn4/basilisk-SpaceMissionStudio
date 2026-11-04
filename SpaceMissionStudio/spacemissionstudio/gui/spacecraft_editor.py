@@ -327,19 +327,22 @@ class SpacecraftEditorDialog(QDialog):
     # its path within the spacecraft ("orbit.inclination_deg").
     value_computed = Signal(str, float, str)
     reason_requested = Signal(str)
-    # An IDM-CIC import made in the 3D model editor (its ImportRecord), as the model editor's OK took it;
-    # the scenario keeps it (gui.scenario_editor). An embedded form sends it at once, a dialog when accepted.
+    # An IDM-CIC import made in the 3D model editor, or an orbit read from a CCSDS OPM or OMM (its
+    # ImportRecord); the scenario keeps it (gui.scenario_editor). An embedded form sends it at once, a dialog
+    # when accepted (pending_imports).
     import_recorded = Signal(object)
 
     def __init__(self, config: SpacecraftConfig | None = None, parent: QWidget | None = None,
                  other_spacecraft_names: list[str] | None = None, simulation_mode: str = "full_attitude",
                  ground_station_names: list[str] | None = None, epoch_provider=None, base_dir_provider=None,
-                 central_body_provider=None, embedded: bool = False, imports_provider=None):
+                 central_body_provider=None, embedded: bool = False, imports_provider=None, epoch_setter=None):
         super().__init__(parent)
         self._embedded = embedded
-        # The scenario's import records (for a re-import), and the one a model import here made.
+        # The scenario's import records (for a re-import), and the ones a model import and an orbit import
+        # here made.
         self._imports_provider = imports_provider
         self.pending_import = None
+        self.pending_orbit_import = None
         # A page's form opens the 3D model editor through its scenario (set by gui.scenario_editor), so there is
         # one editor per spacecraft; a dialog, or a form without one, opens its own (_model_editor).
         self.model_editor_opener = None
@@ -385,7 +388,7 @@ class SpacecraftEditorDialog(QDialog):
         # section is shown or one of its fields is read (__getattr__). The
         # whole form at once took 0.35-0.45 s (K-23).
         self._init_config = config
-        self._init_providers = (epoch_provider, central_body_provider)
+        self._init_providers = (epoch_provider, central_body_provider, epoch_setter)
         self._section_pages = {title: _tab_page(tabs, title) for title in TAB_TITLES}
         self._sensors_tab_index = TAB_TITLES.index("Sensors / actuators")
         self._fsw_tab_index = TAB_TITLES.index("Attitude control")
@@ -448,7 +451,7 @@ class SpacecraftEditorDialog(QDialog):
     def _build_orbit_section(self, orbit_tab: QWidget) -> None:
         """The Orbit / mass section, on ``orbit_tab``."""
         config = self._init_config
-        epoch_provider, central_body_provider = self._init_providers
+        epoch_provider, central_body_provider, epoch_setter = self._init_providers
         layout = QVBoxLayout(orbit_tab)
 
         top_form = QFormLayout()
@@ -476,6 +479,9 @@ class SpacecraftEditorDialog(QDialog):
             self.orbit_widget.set_epoch_provider(epoch_provider)
         if central_body_provider is not None:
             self.orbit_widget.set_central_body_provider(central_body_provider)
+        if epoch_setter is not None:
+            self.orbit_widget.set_epoch_setter(epoch_setter)
+        self.orbit_widget.orbit_imported.connect(self._on_orbit_imported)
         orbit_layout.addWidget(self.orbit_widget)
         layout.addWidget(orbit_group)
         self.orbit_widget.value_computed.connect(
@@ -2298,6 +2304,34 @@ class SpacecraftEditorDialog(QDialog):
         self.facet_table.setEnabled(not facets_locked)
         self.facet_table.setToolTip(tip if facets_locked else "")
 
+    def _on_orbit_imported(self, path: str, file_format: str) -> None:
+        """An orbit read from a CCSDS OPM or OMM: its import record (the
+        file's path and SHA-256, the values read), sent now from a page's
+        form, on OK from a dialog."""
+        from .. import ccsds_files, history
+
+        name = self.name_edit.text().strip() or "sat-1"
+        try:
+            record = ccsds_files.orbit_import_record(name, self.orbit_widget.to_dataclass(), path, file_format,
+                                                     history.current_author())
+        except OSError as exc:  # the file went between reading and hashing
+            report(self, f"The orbit was set, but its source could not be recorded: {exc.strerror or exc}",
+                   kind="warning")
+            return
+        self.pending_orbit_import = record
+        if self._embedded:
+            self.import_recorded.emit(record)
+
+    def pending_imports(self) -> list:
+        """The import records made in this dialog (a 3D model, an orbit),
+        under the spacecraft's name now."""
+        name = self.name_edit.text().strip()
+        records = [r for r in (self.pending_import, self.pending_orbit_import) if r is not None]
+        for record in records:
+            if name:
+                record.spacecraft = name
+        return records
+
     def _devices(self) -> SimpleNamespace:
         """The devices as the form holds them (the 3D model editor edits
         their mounts); the comms pointing only when its form reads."""
@@ -3066,6 +3100,7 @@ class SpacecraftListWidget(QWidget):
         # straight down to OrbitIcWidget's own "Compute RAAN for LTAN..."
         # button -- same provider pattern as the two above.
         self._epoch_provider = None
+        self._epoch_setter = None  # set_epoch_setter: an orbit imported from an OPM can move the epoch
         # Set by the owning ScenarioEditorWidget (see set_base_dir_provider):
         # the scenario file's folder, for a 3D model's mesh paths.
         self._base_dir_provider = None
@@ -3176,6 +3211,11 @@ class SpacecraftListWidget(QWidget):
         """
         self._epoch_provider = provider
 
+    def set_epoch_setter(self, setter) -> None:
+        """``setter(epoch_utc)`` sets the scenario epoch: an orbit imported
+        from an OPM at another time moves it, when the user agrees."""
+        self._epoch_setter = setter
+
     def set_base_dir_provider(self, provider) -> None:
         """``provider`` returns the scenario file's folder (a Path) or None
         while it is unsaved: where a 3D model's relative mesh paths start."""
@@ -3203,7 +3243,7 @@ class SpacecraftListWidget(QWidget):
         dialog = SpacecraftEditorDialog(parent=self, other_spacecraft_names=sorted(existing_names),
                                          simulation_mode=self._simulation_mode(),
                                          ground_station_names=self._ground_station_names(),
-                                         epoch_provider=self._epoch_provider,
+                                         epoch_provider=self._epoch_provider, epoch_setter=self._epoch_setter,
                                          central_body_provider=self._central_body_provider,
                                          base_dir_provider=self._base_dir_provider,
                                          imports_provider=self._imports_provider)
@@ -3218,8 +3258,8 @@ class SpacecraftListWidget(QWidget):
             return
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
-            if dialog.pending_import is not None:
-                self.import_recorded.emit(dialog.pending_import)
+            for record in dialog.pending_imports():
+                self.import_recorded.emit(record)
             if config.name in existing_names:
                 report(self, f"Not added: a spacecraft named {config.name!r} already exists", kind="warning")
                 return
@@ -3269,7 +3309,7 @@ class SpacecraftListWidget(QWidget):
         dialog = SpacecraftEditorDialog(config=prefilled, parent=self, other_spacecraft_names=sorted(existing_names),
                                          simulation_mode=self._simulation_mode(),
                                          ground_station_names=self._ground_station_names(),
-                                         epoch_provider=self._epoch_provider,
+                                         epoch_provider=self._epoch_provider, epoch_setter=self._epoch_setter,
                                          central_body_provider=self._central_body_provider,
                                          base_dir_provider=self._base_dir_provider,
                                          imports_provider=self._imports_provider)
@@ -3285,8 +3325,8 @@ class SpacecraftListWidget(QWidget):
             return
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
-            if dialog.pending_import is not None:
-                self.import_recorded.emit(dialog.pending_import)
+            for record in dialog.pending_imports():
+                self.import_recorded.emit(record)
             if config.name in existing_names:
                 report(self, f"Not added: a spacecraft named {config.name!r} already exists", kind="warning")
                 return
@@ -3331,7 +3371,7 @@ class SpacecraftListWidget(QWidget):
         dialog = SpacecraftEditorDialog(config=self._configs[row], parent=self, other_spacecraft_names=other_names,
                                          simulation_mode=self._simulation_mode(),
                                          ground_station_names=self._ground_station_names(),
-                                         epoch_provider=self._epoch_provider,
+                                         epoch_provider=self._epoch_provider, epoch_setter=self._epoch_setter,
                                          central_body_provider=self._central_body_provider,
                                          base_dir_provider=self._base_dir_provider,
                                          imports_provider=self._imports_provider)
@@ -3343,8 +3383,8 @@ class SpacecraftListWidget(QWidget):
             if new_config.name in other_names:
                 report(self, f"Not saved: a spacecraft named {new_config.name!r} already exists", kind="warning")
                 return
-            if dialog.pending_import is not None:
-                self.import_recorded.emit(dialog.pending_import)
+            for record in dialog.pending_imports():
+                self.import_recorded.emit(record)
             self._follow_rename(self._configs[row].name, new_config.name)
             self._configs[row] = new_config
             self._refresh_list()
