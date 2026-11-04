@@ -260,8 +260,15 @@ on the 3D model (#209), the 3D model editor's equipment, stowed,
 materials, budget and launcher tabs (#210, #211) and the IDM-CIC import
 (#212). The space weather again could not be refreshed (CelesTrak reset
 the connection), so it is 1.3.0's, said in the known limits and SRelD
-K-13. The release pull request is merged once CI is green; tagging and
-publishing are the user's (the environment cannot push tags).
+K-13. The release pull request (#213) was merged once CI was green, and
+the user tagged and published (the environment cannot push tags). It was
+published on 2026-11-04 at 14:57 UTC: tag `spacemissionstudio-v2.1.0` on
+`4346b4189`, with notes written for it, which the workflow kept.
+Published two seconds before the workflow started, it was public without
+files for 37 minutes, until the workflow attached them at 15:34, the
+fifth release so. Push the tag, wait for the workflow's draft (about 37
+minutes now that it runs the whole suite on both platforms), then edit
+its notes and publish.
 
 ---
 
