@@ -197,6 +197,8 @@ class IdmImportDialog(QDialog):
         self.status.setText(f"Cannot import: {message}")
 
     def _on_worker_done(self) -> None:
+        if self._worker is not None:
+            self._worker.wait()  # "finished" comes just before the thread ends: let it end before it is dropped
         self._worker = None
         if self._again:
             self._again = False
@@ -218,12 +220,20 @@ class IdmImportDialog(QDialog):
         """The import planned for the choices shown (``idm_import.Plan``), or None."""
         return self._plan
 
-    def wait(self, timeout_ms: int = 30000) -> bool:
-        """Wait for the worker (tests); True when it finished."""
-        worker = self._worker
-        return worker is None or worker.wait(timeout_ms)
+    def busy(self) -> bool:
+        """Whether the file is being read or the import planned."""
+        return self._worker is not None
 
     def done(self, result: int) -> None:  # noqa: D102 -- a closed dialog must not leave its thread running
-        if self._worker is not None:
-            self._worker.wait()
+        self._finish_worker()
         super().done(result)
+
+    def closeEvent(self, event) -> None:  # noqa: N802 -- Qt's name
+        self._finish_worker()
+        super().closeEvent(event)
+
+    def _finish_worker(self) -> None:
+        worker = self._worker
+        if worker is not None:
+            self._again = False
+            worker.wait()

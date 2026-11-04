@@ -37,8 +37,14 @@ def _dialog(qtbot, path):
 
     dialog = IdmImportDialog(path)
     qtbot.addWidget(dialog)
-    qtbot.waitUntil(lambda: dialog.plan() is not None or bool(dialog.status.text()), timeout=30000)
+    _settle(qtbot, dialog)
     return dialog
+
+
+def _settle(qtbot, dialog):
+    """Until the worker has finished (its thread too) with a plan or a reason."""
+    qtbot.waitUntil(lambda: not dialog.busy() and (dialog.plan() is not None or bool(dialog.status.text())),
+                    timeout=30000)
 
 
 def test_the_dialog_previews_the_import_and_offers_the_file_s_choices(qtbot, tmp_path):
@@ -58,8 +64,9 @@ def test_the_dialog_previews_the_import_and_offers_the_file_s_choices(qtbot, tmp
     assert ok.isEnabled() and ok.text() == "Import"
     dialog.configuration_combo.setCurrentIndex(2)
     dialog.stowed_combo.setCurrentIndex(1)
-    qtbot.waitUntil(lambda: dialog.plan() is not None and dialog.plan().summary.configuration.startswith("LCH")
-                    and dialog.plan().summary.stowed_configuration.startswith("OPS"), timeout=30000)
+    _settle(qtbot, dialog)
+    assert dialog.plan().summary.configuration.startswith("LCH")
+    assert dialog.plan().summary.stowed_configuration.startswith("OPS")
     assert "45.7 kg imported" in dialog.preview.toPlainText()
     assert dialog.plan().stowed  # the wing is elsewhere in operations
 
@@ -72,3 +79,52 @@ def test_a_damaged_file_is_refused_with_the_reason(qtbot, tmp_path):
     dialog = _dialog(qtbot, bad)
     assert "not a ZIP archive" in dialog.status.text() and dialog.plan() is None
     assert not dialog.buttons.button(QDialogButtonBox.StandardButton.Ok).isEnabled()
+
+
+def test_the_model_editor_imports_and_reimports_and_hands_the_record_on(qtbot, tmp_path):
+    """The editor merges the plan into its model (meshes beside the
+    scenario), keeps the record for its caller; a second import keeps the
+    user's edit; the scenario editor stores the record it is given."""
+    from spacemissionstudio import idm, idm_import
+    from spacemissionstudio.gui.model_editor_dialog import ModelEditorDialog
+    from spacemissionstudio.gui.scenario_editor import ScenarioEditorWidget
+    from spacemissionstudio.schema import load_scenario
+
+    editor = ModelEditorDialog(None, spacecraft_name="sat-1", base_dir=tmp_path)
+    qtbot.addWidget(editor)
+    assert editor.import_idm_button.text() == "Import IDM-CIC model..."
+    plan = idm_import.plan(idm.load(write_idm(tmp_path / "demosat.idm")))
+    summary = editor.import_idm(plan)
+    assert len(summary.added) == 11 and (tmp_path / "models" / "sat-1_idm.obj").is_file()
+    record = editor.import_record()
+    assert (record.spacecraft, record.target, record.format) == ("sat-1", "model", "idm_cic")
+    editor.recompute_now()
+    assert editor.derived.mass_properties.mass_kg == pytest.approx(38.7)
+    body = next(p for p in editor.model().parts if p.name == "Body box")
+    editor._model.parts[editor.model().parts.index(body)].mass_kg = 21.0  # an edit
+    again = editor.import_idm(plan)
+    assert ("Body box", "mass") in again.kept and not again.added
+    assert next(p for p in editor.model().parts if p.name == "Body box").mass_kg == 21.0
+
+    scenario_path = Path(__file__).resolve().parents[2] / "spacemissionstudio" / "scenarios" / "two_body_validation.json"
+    widget = ScenarioEditorWidget()
+    qtbot.addWidget(widget)
+    widget.from_scenario(load_scenario(scenario_path))
+    widget._on_import_recorded(record)
+    assert widget.to_scenario().imports == [record]
+
+
+def test_a_duplicated_imported_part_is_the_user_s_own(qtbot, tmp_path):
+    """The copy has no source identifier (two parts may not share one), so
+    the model stays valid and a re-import leaves the copy alone."""
+    from spacemissionstudio import idm, idm_import
+    from spacemissionstudio.gui.model_editor_dialog import ModelEditorDialog
+
+    editor = ModelEditorDialog(None, spacecraft_name="sat-1", base_dir=tmp_path)
+    qtbot.addWidget(editor)
+    editor.import_idm(idm_import.plan(idm.load(write_idm(tmp_path / "demosat.idm"))))
+    editor.parts_list.setCurrentRow(0)
+    editor.duplicate_part()
+    twin = editor.model().parts[1]
+    assert twin.name == "Body box 2" and twin.source_id == ""
+    editor.model().validate("sat-1")
