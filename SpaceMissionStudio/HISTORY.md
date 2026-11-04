@@ -14557,8 +14557,10 @@ By `docs/developer/releasing.md`:
   1.3.0's (observations to 2026-10-24, forecast to 2026-12-07).
 - **Outside `SpaceMissionStudio/`:** since 2.0.0 only the repository's
   front-page `README.md` changed (#208, the documentation update); no
-  Basilisk file changed. That front page still names 2.0.0 in its badge:
-  it is outside `SpaceMissionStudio/`, so it is left to the user.
+  Basilisk file changed. At the user's request ("update the README badge
+  too") the release also updates that front page: the version badge,
+  the version paragraph and the feature list (the 3D model and the
+  IDM-CIC import).
 - **The full suite** on the release's code: 4566 passed on Python 3.14
   in 19 min 56 s (4441 at 2.0.0).
 - A coverage data file committed by mistake with #209

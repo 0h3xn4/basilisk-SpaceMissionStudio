@@ -201,7 +201,7 @@ This SRelD describes release 2.1.0 of SpaceMissionStudio in
 | Platform | The installers: Linux x86_64 with glibc 2.34 or newer (`.deb`), Windows 10/11 x64; no Python needed. From source: Python 3.14 (3.11 to 3.13 are no longer supported; Basilisk 2.12.0 and PySide6 6.11 do not install on 3.15 yet) |
 | Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_2.1.0_amd64.deb`, the Windows setup program `spacemissionstudio-2.1.0-setup.exe` (not signed, D-13), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
 | Documentation | SUM and `USER_MANUAL.md`; the documents in `compliance/docs/` |
-| Basilisk framework | No Basilisk source, module or test changed. Since 2.0.0 nothing outside `SpaceMissionStudio/` changed but the repository's front-page `README.md` (#208; `git diff --name-only 6608682a3 develop`). The installers carry Basilisk 2.12.0 from PyPI, not this repository's framework, and add its support data next to the installed package, in the folder its own `dataFetcher` reads |
+| Basilisk framework | No Basilisk source, module or test changed. Since 2.0.0 nothing outside `SpaceMissionStudio/` changed but the repository's front-page `README.md` (#208, and this release's badge, version and features, at the user's request; `git diff --name-only 6608682a3 develop`). The installers carry Basilisk 2.12.0 from PyPI, not this repository's framework, and add its support data next to the installed package, in the folder its own `dataFetcher` reads |
 
 ## 5 Status of the software configuration item
 
