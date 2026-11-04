@@ -846,7 +846,10 @@ tool, and give each part its mass. The model then sets the spacecraft's
 dry mass, center of mass, inertia and surface facets, and its look in
 Vizard; mass properties can also be typed in or imported from a file.
 A model problem in **Problems**, or the "3D model" badge in **Explain**,
-opens the editor for that spacecraft too. Step by step:
+opens the editor for that spacecraft too. Its **Equipment** tab mounts
+items and the spacecraft's devices on the model, drawn in the view with
+their field-of-view and plume cones, and its **Stowed** tab gives parts
+their pose folded for launch and shows either configuration. Step by step:
 [Build a 3D model](docs/user-manual/3d-model.md); template 28 is a
 worked example.
 

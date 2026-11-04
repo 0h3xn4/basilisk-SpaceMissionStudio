@@ -300,6 +300,8 @@ reads.
 
 ## D-21: The 3D model editor does not yet edit equipment or draw cones
 
+*Superseded by D-24 for the equipment, the stowed poses and the cones.*
+
 - **Chosen:** mounts, equipment, stowed poses, materials, maturity, face
   properties, the mass budget and the launcher are edited in the scenario
   file (the Scenario's JSON view, which validates them with their
@@ -361,3 +363,37 @@ A review of the branch (PR #209) found seven points.
   0.3 m^2/kg) it takes seconds. An adaptive step, or stopping once
   nothing more can melt, would change the validated numbers, and either
   would need its own validation case. Recorded as a limitation.
+
+## D-24: The 3D model editor's Equipment and Stowed tabs, and the cones
+
+- **Chosen:** two tabs beside Mass properties and Surfaces
+  (`gui/model_equipment_tabs.py`):
+  - **Equipment** edits the model's own items (`model.equipment`) and
+    the mounts of the spacecraft's sensors, actuators and RF antenna.
+    The editor is given a copy of the devices and returns their
+    mounts. The spacecraft editor copies them back
+    (`apply_device_mounts`, `SensorActuatorListWidget.set_mounts`).
+  - A device's position and boresight are optional: left unticked,
+    they come from the device's definition (D-03).
+  - **Stowed** gives the selected part a stowed pose, and switches the
+    view between the deployed and stowed configurations.
+  - The view draws each field of view as a translucent cone along the
+    boresight, each plume as a cone along minus the boresight, and
+    other items as a short line. The selected item is drawn stronger.
+    A cone has a constant slant length (45 % of the model's largest
+    size), so a field of view wider than 180 deg opens backwards
+    rather than flattening.
+- **Fixed with it:**
+  - Renaming a part in the editor left the mounts, stowed poses and
+    face properties that named it dangling, and OK then refused the
+    model. They now follow the part (`schema.references.rename_part`).
+  - Deleting a part that carries equipment is refused, naming the
+    equipment. Its stowed pose and face properties go with it.
+  - The spacecraft editor dropped the RF link's `antenna_mount` on OK.
+    It is now kept.
+- **Not in this step:** materials, face properties, the mass budget's
+  policy and the launcher envelope are still edited in the scenario
+  file's JSON view.
+- **Alternative:** a mount group in each device's own form (the sensor
+  and actuator editors). It was not taken: a mount is about the model's
+  geometry, and needs the parts and the view to set it well.
