@@ -8,15 +8,19 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 2.1.0 (2026-11-04)
 
-Analyses built on the 3D model. A spacecraft's model now carries its
+The spacecraft as designed. A spacecraft's 3D model now carries its
 equipment, a stowed configuration, materials and maturity, and the tool
-checks and analyses the design with it, by ray casting against the parts.
-The model can be built from an IDM-CIC concurrent-engineering model, and
-updated from its later versions without losing your edits.
+checks and analyses the design with it, by ray casting against the parts:
+fields of view, thrusters and plumes, the mass budget and launcher fit,
+disturbance torques, blinding, shading, exposure, brightness and a
+preliminary re-entry casualty estimate. The 3D model editor now edits all
+of it. And the model can be built from an IDM-CIC concurrent-engineering
+model, then updated from its later versions without losing your edits.
+
 Nothing changes for a scenario that does not ask: every template gives
-the same results as in 2.0.0.
+the same results as in 2.0.0, and 2.1.0 opens every 2.0.0 file.
 
 ### Added
 
@@ -108,6 +112,44 @@ See [the guide](docs/user-manual/model-analyses.md), the methods in
   data lists the Eros and ITU files; the developer guide, architecture
   page and packaging notes name the current modules, CI jobs and Python
   3.14. Nothing the tool computes changes.
+
+### Who should update
+
+- **Anyone who designs the spacecraft itself:** its equipment, fields of
+  view, thrusters, mass budget, launcher fit and disturbances are now
+  checked on its 3D model, and a model made in IDM-CIC can be brought in
+  directly.
+- **Everyone else can update when convenient:** results, scenario files,
+  the command line and every exported file are as in 2.0.0 for a scenario
+  that uses none of the new fields.
+- **Teams update together if they use the new fields:** 2.0.0 opens a
+  file saved by 2.1.0 unless it uses them (mounts, model equipment, stowed
+  poses, materials, model analyses, an IDM-CIC import); then it refuses
+  the file, naming the field (SRelD K-27).
+- **The installers:** on Linux, `apt install
+  ./spacemissionstudio_2.1.0_amd64.deb` replaces 2.0.0; on Windows, run
+  the 2.1.0 setup over 2.0.0.
+
+### Known limits
+
+- The bundled space weather is still that of 1.3.0: observations to
+  2026-10-24 and CelesTrak's daily forecast to 2026-12-07 (CelesTrak could
+  not be reached for this release either). Before a drag study, fetch the
+  current file: the **Fetch or update reference data?** card on Home,
+  **Settings > Reference data**, or `spacemissionstudio
+  spaceweather-download`.
+- The IDM-CIC import is checked against hand calculations on a synthetic
+  model, not against IDM-CIC's own mass report; some shape conventions
+  are assumed and reported as such; the IDM-CIC licence was not available
+  to review (SRelD K-28).
+- The analyses on the 3D model are geometric estimates: no self-shadowing
+  in Basilisk's drag and SRP, the re-entry estimate is preliminary, and
+  the launcher library is empty until an envelope can be sourced
+  (`docs/reference/limitations.md`).
+- 2.0.0's known limits still hold: some actions hold the window for longer
+  than 50 ms (SRelD K-19, K-23), two Monte Carlo batches of the same
+  scenario draw the same samples (K-24), and the installers ship pillow
+  12.2.0 (K-25).
 
 ## 2.0.0 (2026-11-03)
 

@@ -255,6 +255,14 @@ attached them at 13:02, the fourth release so. Push the tag first,
 or save the release as a draft and run the workflow on its tag, and
 publish only once the files are there.
 
+2.1.0 was prepared on 2026-11-04 by this checklist: the analyses built
+on the 3D model (#209), the 3D model editor's equipment, stowed,
+materials, budget and launcher tabs (#210, #211) and the IDM-CIC import
+(#212). The space weather again could not be refreshed (CelesTrak reset
+the connection), so it is 1.3.0's, said in the known limits and SRelD
+K-13. The release pull request is merged once CI is green; tagging and
+publishing are the user's (the environment cannot push tags).
+
 ---
 
 **Next:** [Syncing with upstream Basilisk](upstream-sync.md) ·

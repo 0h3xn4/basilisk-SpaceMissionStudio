@@ -1,7 +1,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-![Version 2.0.0](https://img.shields.io/badge/version-2.0.0-blue)
+![Version 2.1.0](https://img.shields.io/badge/version-2.1.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -115,13 +115,16 @@ internet needed.
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
-- **Version:** 2.0.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.0.0),
-  [changelog](CHANGELOG.md)): a glass box. Every figure opens its
-  calculation, every rule is a parameter a project file can change,
-  every result can be reproduced from its folder, and a Python API
-  scripts the same numbers ([definition of done](docs/definition-of-done.md)).
-  It needs Python 3.14 from source, and 1.x cannot open the scenario
-  files it saves. Before it: 1.3.1 made the window faster; 1.3.0 brought
+- **Version:** 2.1.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.1.0),
+  [changelog](CHANGELOG.md)): the spacecraft as designed. Its 3D model
+  carries the equipment, a stowed configuration and materials, and the
+  tool checks fields of view, thrusters, the mass budget and launcher fit
+  and analyses disturbances, blinding, shading, exposure, brightness and
+  re-entry with it; the model can be imported from IDM-CIC (© CNES) and
+  updated from its later versions. Before it: 2.0.0, a glass box (every
+  figure opens its calculation, every rule is a parameter, every result
+  can be reproduced, a Python API; Python 3.14 from source, and 1.x
+  cannot open the files it saves); 1.3.1 made the window faster; 1.3.0 brought
   a new interface (a navigation rail, the command palette, units in the
   fields, a Timeline for long runs, every export in Reports) with what
   the tool computes unchanged ([before and after](docs/ui/BEFORE_AFTER.md));
@@ -130,7 +133,7 @@ internet needed.
   relative-orbital-element formations, optical and landmark navigation,
   asteroid Eros, Mars's gravity field and albedo on the sun sensors; and
   1.0.0 was the first release of the renewed tool.
-- **Platforms:** 2.0.0 has the Linux `.deb`, the Windows setup program
+- **Platforms:** 2.1.0 has the Linux `.deb`, the Windows setup program
   and the wheel. Both installers carry their own Python, Basilisk and
   reference data; each was installed and run offline by the release
   workflow, the `.deb` also by hand in a container
