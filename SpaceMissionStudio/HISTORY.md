@@ -14514,6 +14514,96 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.1.1 prepared (2026-11-04)
+
+The user, after #215: "Yes" (to preparing 2.1.1 so the fixes reach the
+installers). Branch `release/2.1.1`.
+
+What it contains since 2.1.0 (`4346b4189`): #214 (the 2.1.0 publication
+recorded, documents only) and #215 (the fixes below). By
+`docs/developer/releasing.md`:
+- the version 2.1.1 in `pyproject.toml`, `spacemissionstudio/__init__.py`
+  and the Inno Setup script;
+- the CHANGELOG's "Unreleased" entries under `## 2.1.1 (2026-11-04)`,
+  with a summary, "Who should update" and "Known limits";
+- SRelD issue 21 (2.1.1 prepared; 2.1.0 the previous release; K-13
+  updated, K-29 new);
+- the SDP, SRS, ICD, CSD, SUM, both READMEs and `releasing.md` name
+  2.1.1.
+
+**Checked:**
+- **Nothing the tool computes changed.** `git diff 4346b4189` touches no
+  file in `schema/`, the templates or `tests/golden/`; in the code only
+  `engine/vizard.py` (the battery bridge), `idm_import.py` (the
+  all-or-nothing merge) and four GUI modules. 2.1.0 and 2.1.1 therefore
+  read and write the same scenario files.
+- **Space weather.** CelesTrak reset the connection again (`curl: (35)
+  Recv failure: Connection reset by peer`): the bundled file stays
+  1.3.0's (K-13).
+- **Outside `SpaceMissionStudio/`:** only the front-page `README.md`'s
+  badge and version, as the user asked for 2.1.0.
+- **Full suite on Python 3.14** (a home holding only the reference data
+  cache), on the release branch: 4576 passed in 19 min 19 s (4566 at
+  2.1.0, and the ten tests #215 added).
+
+## The 3D model editor as a window of its own, and three fixes (2026-11-04)
+
+Reported by the user on 2.1.0, with screenshots (#215):
+
+1. "the 3d model editor should be an independant window. why is it tied
+   to the main spacemissionstudio window? when I try to move the 3d
+   editor window, it moves the entire spacemissionstudio." The editor
+   was a `QDialog` opened with `exec()` and the main window as parent:
+   modal, and transient for it. GNOME's window manager attaches a modal
+   dialog to its parent, so a drag moved both. `ModelEditorDialog` is now
+   a `Qt.Window` with minimise and maximise buttons, shown non-modal by
+   `show_window()`, which clears the transient parent (kept only inside
+   a modal Add or Edit spacecraft dialog, where it is the one kind a
+   modal dialog leaves usable). Its owner applies it on `accepted`:
+   - the spacecraft list keeps one editor per spacecraft, by name; a
+     spacecraft page's 3D model tab opens the same one (after flushing
+     the page's waiting edits);
+   - OK applies to the spacecraft as it is then, so edits made meanwhile
+     are kept; a rename follows the editor (`_follow_rename`); for a
+     removed spacecraft OK says so and keeps the window
+     (`accept_check`);
+   - Cancel, Esc or the close button asks first when something changed
+     (`has_changes`); File › New, Open and closing the application ask
+     about an editor with changes and close it;
+   - an Add or Edit spacecraft dialog does not close under its own open
+     editor.
+2. "Could not import the model: [Errno 13] Permission denied:
+   '/opt/spacemissionstudio/.../scenarios/templates/models'". A scenario
+   opened from a template keeps the template's path (it saves through
+   Save As), so its folder was the installed templates', and the import
+   wrote its meshes there. `_write_problem()` refuses a write for an
+   unsaved scenario, the templates' folder or a read-only one, with
+   "save it as your own file first (File › Save As)"; the `.obj` import
+   disables its copy option the same way. The editor takes the folder as
+   a provider, so a Save As while it is open is followed.
+3. Then "The model is not complete: template: model: part 'Launch
+   Interface Ring': mesh_index must name one of the model's 0 mesh
+   file(s)": the failed import had already added its parts before the
+   meshes file failed to write. `idm_import.merge` now restores the
+   spacecraft (keeping its model object, which the editor holds) and the
+   import records when anything fails.
+4. Vizard's "Battery 2520000 / 2520000 W-s" ("would watt hours be
+   better?"): Basilisk's battery message carries watt-seconds and
+   `vizInterface` copies `storageLevel`/`storageCapacity` into the panel
+   unscaled. A `_BatteryWattHourBridge`, added to the task before
+   `vizInterface`, republishes them in watt-hours (rounded to 0.1 Wh) and
+   the panel reads it, in "Wh" like the rest of the app.
+
+Each fix has a test that fails on 2.1.0's code
+(`tests/gui/test_model_editor_window.py`, eight;
+`test_an_import_that_fails_changes_nothing`;
+`tests/test_vizard_battery_panel.py`). Three tests now open the editor
+through `show_window` instead of `exec`, their assertions unchanged
+(`docs/ui/TEST_CHANGES.md`). Full suite: 4575 passed on the first three
+fixes; after the fourth, the Vizard, service, power and golden tests
+(144) passed. Not seen in Vizard itself, which this environment cannot
+run: the panel was checked through the message it reads.
+
 ## Release 2.1.0 published (2026-11-04)
 
 #213 was merged once CI was green. The user tagged

@@ -1,9 +1,24 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 20, 2026-11-04. Remediation R14.
+Document: SMS-SRelD, issue 21, 2026-11-04. Remediation R14.
 
-**Status:** release **2.1.0**, published 2026-11-04 (14:57 UTC): the
+**Status:** release **2.1.1**, prepared 2026-11-04: fixes to problems
+reported on 2.1.0 (#215, K-29). The 3D model editor is a window of its
+own (it was a modal dialog, which GNOME moved with the main window); the
+editor no longer writes into the built-in templates' folder (an IDM-CIC
+import from a template failed with "Permission denied"); a failed
+IDM-CIC import changes nothing (it left parts naming a mesh file the
+model did not have); Vizard's battery panel shows watt-hours (it showed
+watt-seconds). Since 2.1.0 no scenario field, template or golden file
+changed, and only `engine/vizard.py`, `idm_import.py` and four GUI
+modules changed in the code: every template's outputs are as in 2.1.0,
+and 2.1.0 and 2.1.1 open each other's files. The bundled space weather is
+still 1.3.0's: CelesTrak reset the connection again (K-13). The release
+pull request is merged once CI is green; tagging and publishing are the
+user's (the environment cannot push tags).
+
+**Previous release:** 2.1.0, published 2026-11-04 (14:57 UTC): the
 spacecraft as designed. The analyses built on the 3D model (#209:
 mounted equipment, a stowed configuration, materials and maturity;
 design checks of fields of view, thrusters and plumes, the mass budget
@@ -17,8 +32,7 @@ set: every template's outputs are as in 2.0.0 (the golden baseline), and
 2.0.0 opens a file 2.1.0 saves unless it uses them (K-27). The bundled
 space weather is still 1.3.0's: CelesTrak reset the connection again
 (K-13). The release pull request (#213) was merged once CI was green;
-tagging and publishing were the user's (the environment cannot push
-tags).
+tagging and publishing were the user's.
 - Tagged `spacemissionstudio-v2.1.0` (not signed, D-13) on commit
   `4346b4189` (`4346b41899378824855e190f2a6834d506ceb8c7`), the merge of
   #213 into `develop`, by the user. GitHub release "Space Mission Studio
@@ -38,7 +52,7 @@ tags).
   `SHA256SUMS-linux` `0a91eb5c...0b00`, `SHA256SUMS-windows`
   `ddbd3093...b376`.
 
-**Previous release:** 2.0.0, published 2026-11-03 (12:30 UTC): a
+Before it: 2.0.0, published 2026-11-03 (12:30 UTC): a
 glass box, and Python 3.14. It takes the audit of 2026-10-27 (#120 to
 #148: engine E1-E5, interface G1-G10, robustness R1-R14) and the
 transparency work (`docs/transparency_audit.md`, Phases 0 to 10, #149
@@ -86,7 +100,7 @@ tagging and publishing were the user's.
   `SHA256SUMS-linux` `d7aded00...23ea`, `SHA256SUMS-windows`
   `84b0360a...3e05`.
 
-Before it: 1.3.1, published 2026-10-27 (06:05 UTC): a
+Earlier still: 1.3.1, published 2026-10-27 (06:05 UTC): a
 faster window (#116, #117, #118). What the tool computes is unchanged
 from 1.3.0: since commit `7bdfa21ac` the only change in `engine/`,
 `schema/`, `sil/`, `fsw_export/`, `model3d/`, `cli.py` or
@@ -188,9 +202,9 @@ internet access and, for the setup program, Python 3.11 on `PATH`
 
 ## 1 Introduction (G.2.1<1>)
 
-This SRelD describes release 2.1.0 of SpaceMissionStudio in
-`0h3xn4/basilisk-SpaceMissionStudio`: what it contains, what changed since 2.0.0
-(commit `6608682a3`), what is known to be wrong, and how to use it.
+This SRelD describes release 2.1.1 of SpaceMissionStudio in
+`0h3xn4/basilisk-SpaceMissionStudio`: what it contains, what changed since 2.1.0
+(commit `4346b4189`), what is known to be wrong, and how to use it.
 
 ## 2 Applicable and reference documents (G.2.1<2>)
 
@@ -214,64 +228,50 @@ This SRelD describes release 2.1.0 of SpaceMissionStudio in
 | Item | Value |
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
-| Baseline | Commit `4346b4189` (`4346b41899378824855e190f2a6834d506ceb8c7`), tagged `spacemissionstudio-v2.1.0`: `develop` after the 2.1.0 release pull request (#213; the changes of #207 to #212 and the release's records). Previous release: 2.0.0, commit `6608682a3` (`6608682a34c3694a1df7de86b5553d85e7ea9167`), tagged `spacemissionstudio-v2.0.0`. |
+| Baseline | `develop` after the 2.1.1 release pull request (the changes of #214 and #215 and the release's records), to be tagged `spacemissionstudio-v2.1.1` by the user; the commit is recorded at publication. Previous release: 2.1.0, commit `4346b4189` (`4346b41899378824855e190f2a6834d506ceb8c7`), tagged `spacemissionstudio-v2.1.0`. |
 | Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt`. Bundled with the GUI as files, not packages: Inter 4.1 and JetBrains Mono 2.304 (SIL OFL 1.1) and 45 Lucide icons from lucide-static 1.52.0 (ISC), with versions, sources and checksums in `docs/THIRD_PARTY_ASSETS.md`. The installers also carry CPython 3.14.8 (python-build-standalone 20261013, SHA-256 pinned) with every installed package and the reference data; each build lists them in its `SPACEMISSIONSTUDIO_RUNTIME.json`, and `docs/THIRD_PARTY_ASSETS.md` ("In the installers") gives their licences |
 | Platform | The installers: Linux x86_64 with glibc 2.34 or newer (`.deb`), Windows 10/11 x64; no Python needed. From source: Python 3.14 (3.11 to 3.13 are no longer supported; Basilisk 2.12.0 and PySide6 6.11 do not install on 3.15 yet) |
-| Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_2.1.0_amd64.deb`, the Windows setup program `spacemissionstudio-2.1.0-setup.exe` (not signed, D-13), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
+| Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_2.1.1_amd64.deb`, the Windows setup program `spacemissionstudio-2.1.1-setup.exe` (not signed, D-13), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
 | Documentation | SUM and `USER_MANUAL.md`; the documents in `compliance/docs/` |
-| Basilisk framework | No Basilisk source, module or test changed. Since 2.0.0 nothing outside `SpaceMissionStudio/` changed but the repository's front-page `README.md` (#208, and this release's badge, version and features, at the user's request; `git diff --name-only 6608682a3 develop`). The installers carry Basilisk 2.12.0 from PyPI, not this repository's framework, and add its support data next to the installed package, in the folder its own `dataFetcher` reads |
+| Basilisk framework | No Basilisk source, module or test changed. Since 2.1.0 nothing outside `SpaceMissionStudio/` changed but the repository's front-page `README.md` (this release's badge and version, as the user asked for 2.1.0; `git diff --name-only 4346b4189 develop`). The installers carry Basilisk 2.12.0 from PyPI, not this repository's framework, and add its support data next to the installed package, in the folder its own `dataFetcher` reads |
 
 ## 5 Status of the software configuration item
 
 ### 5.1 Evolution since previous version (G.2.1<5.1>)
 
-`CHANGELOG.md` 2.1.0 lists the changes since 2.0.0 (commit `6608682a3`);
-RD1 has the full story, one entry per change. In summary:
+`CHANGELOG.md` 2.1.1 lists the changes since 2.1.0 (commit `4346b4189`);
+RD1 has the full story. In summary:
 
-- **The 2.0.0 records and documentation** (#207, #208): the publication
-  recorded, and the documentation brought up to date with 2.0.0.
-- **Analyses built on the 3D model** (#209, SRS-F-25 to F-27,
-  `docs/developer/model-analyses-design.md`, decisions D-01 to D-23):
-  - mounts on the existing sensors, actuators and RF antenna, and model
-    equipment; a stowed configuration with its own mass properties; a
-    sourced material library, maturity and subsystem per part;
-  - design checks by ray casting (`check-design`, Run › Design Checks):
-    field-of-view obstruction, thruster authority, plume impingement,
-    the AIAA S-120-2006 mass budget and a launcher envelope;
-  - analyses of a run (`model-analyses`, Results › Model Analyses):
-    disturbance torques recorded in the run (drag and SRP as Basilisk
-    computes them, gravity gradient, residual dipole) and the actuator
-    sizing; blinding, antenna obstruction, array shading and power,
-    atomic oxygen and sun hours, brightness;
-  - a preliminary re-entry casualty estimate (`reentry`, End of Life);
-  - template 32, with its golden file and claims.
-- **The 3D model editor** (#210, #211, decisions D-24 and D-25): the
-  Equipment, Stowed, Materials and Budget and launcher tabs, cones for
-  fields of view and plumes, and per-face properties; nothing of the
-  model needs the JSON view any more.
-- **IDM-CIC import** (#212, SRS-F-28, ICD-12, design note
-  `docs/developer/idm-cic-integration.md` section 14): `idm-info`,
-  `idm-import` and the editor's **Import IDM-CIC model...**; provenance
-  per value with the file's SHA-256 and the source object's `fullId`;
-  re-import that keeps the user's edits and flags what is gone
-  (`import.source_item_gone`). No CNES software, text or file is in the
-  repository; the tests use a hand-written synthetic model.
+- **The 2.1.0 publication recorded** (#214): documents only.
+- **Fixes reported on 2.1.0** (#215, K-29):
+  - the 3D model editor is a window of its own: not modal, with no
+    transient parent, one per spacecraft, its OK applied to the
+    spacecraft as it is then; it asks before closing with changes not
+    applied, and so do File › New, Open and closing the application
+    (SRS-F-25);
+  - the editor writes files (IDM-CIC meshes, an `.obj` copy) only beside
+    a saved scenario of the user's own, never into the built-in
+    templates' folder or a read-only one, and follows a Save As made
+    while it is open (SRS-F-25);
+  - `idm_import.merge` changes the scenario only when the whole import
+    succeeds (SRS-F-28);
+  - Vizard's battery panel reads a bridge that republishes the battery's
+    state in watt-hours (SRS-F-16).
 
-**Unchanged:** what runs compute for every scenario that uses none of the
-new fields (the golden baseline of every template), the command line's
-existing commands and exit statuses, and every file the tool wrote at
-2.0.0.
+**Unchanged:** the scenario format (no field added or changed), every
+template and golden file, the command line's commands and exit statuses,
+and every file the tool writes. What runs compute is as in 2.1.0.
 
-**Tests:** 4566 passed on Linux, Python 3.14, on the release's code (4441 passed at 2.0.0); none skipped. No existing test changed except where
-`docs/ui/TEST_CHANGES.md` (sections after 2.0.0) says why; none was
-skipped or removed.
+**Tests:** 4576 passed on Linux, Python 3.14, on the release's code
+(4566 passed at 2.1.0); none skipped. Ten tests were added; three changed how they open the editor,
+not what they assert (`docs/ui/TEST_CHANGES.md`).
 
 **Still open:** K-19 (about 0.4 s), K-22, K-23 (smaller), K-24, K-25,
 K-26, K-27, K-28.
 
-**Changes users notice:** Run › Design Checks, Results › Model Analyses,
-the re-entry section of End of Life, the 3D model editor's new tabs and
-**Import IDM-CIC model...**, and the new commands.
+**Changes users notice:** the 3D model editor in its own window, the
+message asking to save a template-based scenario before an import, and
+watt-hours on Vizard's battery panel.
 
 ### 5.2 Known problems and limitations (G.2.1<5.2>)
 
@@ -291,7 +291,7 @@ the re-entry section of End of Life, the 3D model editor's new tabs and
 | K-08 | Closed: the PNG/SVG export polled the page with overlapping asynchronous queries; a late timer tick read the cleared state (the CI tracebacks), and several answers could save the file twice. One query at a time now, late answers ignored (F-12) | – | `review_log.md` F-12 |
 | K-09 | Closed (2026-10-19): 1054 of the 2314 unit and integration test functions had no docstring. Every one now has a docstring stating what it checks, read from its body; no test code changed (each file's syntax tree without docstrings equals the one before) | – | `SUITP_test_cases.md`; HISTORY.md |
 | K-12 | The Windows setup program is built, installed silently and the installed tool run on a GitHub Windows runner (1.1.1: with an empty support-data cache, the GUI opened offscreen); the wizard has not been clicked through by hand and the GUI not opened on a real Windows machine, and an upgrade over an installed 1.1.0 has not been tried. The graceful SIL close (M15) has not run on Windows | Unknown for interactive use on Windows | `AUDIT.md` sections 5 and 6; `packaging/README.md` |
-| K-13 | Closed: the bundled CelesTrak space weather (observations to 2025-07-20) was refreshed for this release: observations to 2026-10-11, updated 2026-10-12. Refreshed again on 2026-10-19 for the next release: observations to 2026-10-18, CelesTrak's daily forecast to 2026-12-02, updated 2026-10-19 20:34 UTC. Refreshed for 1.3.0 on 2026-10-26: observations to 2026-10-24, daily forecast to 2026-12-07, updated 2026-10-25 23:32 UTC (CelesTrak revised its values from 2026-09-09 and the monthly forecast's 2027-01 and 2027-02). Results of drag runs dated after 2025-07-20 change, because observed solar activity replaces the earlier forecasts. Not refreshed for 2.0.0 nor for 2.1.0: on 2026-11-03 and again on 2026-11-04 CelesTrak reset every connection from the environment the release was prepared in, so 2.0.0 and 2.1.0 carry 1.3.0's file (observations to 2026-10-24, forecast to 2026-12-07); users fetch the current one in the app (Home's reference-data card, **Settings > Reference data**) or with `spacemissionstudio spaceweather-download` | Drag on dates after 2026-10-24 uses CelesTrak's forecast until the file is fetched | `spacemissionstudio/data/spaceweather/README.md` |
+| K-13 | Closed: the bundled CelesTrak space weather (observations to 2025-07-20) was refreshed for this release: observations to 2026-10-11, updated 2026-10-12. Refreshed again on 2026-10-19 for the next release: observations to 2026-10-18, CelesTrak's daily forecast to 2026-12-02, updated 2026-10-19 20:34 UTC. Refreshed for 1.3.0 on 2026-10-26: observations to 2026-10-24, daily forecast to 2026-12-07, updated 2026-10-25 23:32 UTC (CelesTrak revised its values from 2026-09-09 and the monthly forecast's 2027-01 and 2027-02). Results of drag runs dated after 2025-07-20 change, because observed solar activity replaces the earlier forecasts. Not refreshed for 2.0.0, 2.1.0 nor 2.1.1: on 2026-11-03 and again twice on 2026-11-04 CelesTrak reset every connection from the environment the release was prepared in, so 2.0.0, 2.1.0 and 2.1.1 carry 1.3.0's file (observations to 2026-10-24, forecast to 2026-12-07); users fetch the current one in the app (Home's reference-data card, **Settings > Reference data**) or with `spacemissionstudio spaceweather-download` | Drag on dates after 2026-10-24 uses CelesTrak's forecast until the file is fetched | `spacemissionstudio/data/spaceweather/README.md` |
 | K-14 | Addressed, under watch: platform test failures. On Windows, two tests fail intermittently in CI (PR #64, 2026-10-14; each passed on the same commit in another run). `test_the_altitude_trade_runs_its_altitudes_in_parallel_processes`: a worker hit a Basilisk error whose exception cannot be pickled, so its message is lost (cause not yet known; suspected: the cached space-weather file opened by one worker while another replaces it). `test_a_step_without_deadline_waits_while_earlier_steps_are_still_answered`: its fake flight software went over the 0.3 s step timeout on a loaded runner (a test margin). On macOS (PR #65, 2026-10-14), `test_forms_stay_at_a_readable_width` and `test_a_template_row_keeps_its_customize_button_close` fail their own precondition: Qt's `cocoa` platform fits the 2560 x 1440 test window to the runner's screen, so the page is 618 px wide and there is no wide screen to check (a test set-up problem, not the layout). Fixed on the ROE branch (PR #73, commit `f601576c1`, 2026-10-18): the test window is laid out with `WA_DontShowOnScreen`, which the screen does not constrain, and the fixture asserts its 2560 x 1440 size; macOS CI then passed both (3347 passed, 0 failed, 11 skipped, run 39165811899). On the release commit `f288e0c73` (run 38633749308) Windows passed (3224 passed, 16 skipped) and macOS failed these two (3229 passed, 2 failed, 11 skipped). By the user's decision 1.0.0 is a Linux release; Windows and macOS are fixed and released later. Windows pair addressed on 2026-10-18 (after PR #73): the SIL test's step timeout is 1 s against 30 ms answers (it was 0.3 s against 20 ms), and the altitude trade's lost message is a confirmed bug, now fixed: Basilisk's `BasiliskError` cannot be pickled (its module `_bskLogging` does not import by that name), so any Basilisk error in a worker arrived as a pickling error. Workers now send such an error as a `BudgetError` with its type, message and traceback. The suspected cause is removed too: a complete space-weather file is no longer replaced by a second worker's copy, which on Windows could meet the first worker opening it. The Basilisk error behind the 2026-10-14 failure was never seen, so its cause is not confirmed; if it recurs, its message now shows. macOS, 2026-10-19 (PR #75, run 39218996167): `test_the_keys_work_where_results_has_the_focus` timed out waiting for its window to become active (passed on the PR's previous commit). On macOS activation is per application, and the parallel test workers are separate processes whose windows can keep it from this one; the test now sets Qt's active window itself (`QApplication.setActiveWindow`), which is what the shortcut map checks. Not reproducible on Linux (offscreen activates every shown window); confirmed only by the next macOS CI runs. Windows, 2026-10-19 (PR #76, job 118026573080): `test_thousands_of_dropped_steps_never_block_the_link[tcp]` failed with "the flight software took no STEP for 10 s" at step 16172 of 20000; the other Windows job on the same commit and the one re-run passed. The fake flight software was waiting to read when the link closed, so the simulation side's send found the socket not writable for 10 s, or did not run for that long. Cause not confirmed: not reproduced on Linux in 60 runs under CPU overload. A related defect was confirmed and fixed: `SocketTransport.send` gave up as soon as its time had run out, before trying the socket again, so a stall of the simulation's own process counted as the flight software's silence. The send now counts its time from the last bytes the peer took and tries once more without waiting before it gives up (`test_a_stall_of_this_process_is_not_the_peers_silence`, which fails on the previous code). Whether this was the Windows failure is confirmed only if it does not recur. It recurred on 2026-10-21 (PR #90, job 119083739177, on the 1.1.1 release commit `9dca37d5f`): the same message at step 10907 of 20000, and again the fake flight software was waiting to read when the link closed. So the send's stall handling was not the cause, and the cause is still not known. Not a Basilisk thread holding Python's interpreter lock: a Basilisk run in a second thread let the other thread run at least every 0.03 s (measured on Linux). Only this test has shown it (20000 steps, every one dropped, over TCP on a Windows runner); it may also stop a Windows SIL session that drops thousands of steps, with "the flight software took no STEP for 10 s". Not reproduced since (PR #91, 2026-10-21): the test alone passed 240 times on `windows-latest` (four workers side by side, two processes keeping the CPU busy) and the whole suite passed seven times on Windows (six runs of the new workflow "SpaceMissionStudio SIL stress (Windows)" and the platforms job). On a stall the test now fails with the state of both ends of the link: frames sent and dropped, bytes received and not read, the socket buffer sizes, what the fake flight software last did, when, and its stack, and the last `select()` calls of the send. The next recurrence names its cause. It recurred three times on 2026-10-27 (runs 40526819275 and 40543074495, twice) and named it: every `select()` of the stalled send saw the socket readable and not writable, the fake flight software alive and reading its backlog (12462 frames sent, 4568 read). The send's 10 s limit counted only bytes the peer took, and Windows reopens a full receive window only once the reader has freed much of it, so a peer that was answering looked silent. Fixed in 2.0.0 (#128): bytes the peer sends count too (`SocketTransport.send`); `test_a_peer_that_keeps_answering_is_not_silent` fails without the fix | Windows: an altitude trade with several workers may have failed with an unexplained error; a recurrence now names the error. macOS: the wide-screen layout was not checked in CI until PR #73 | PR #64 and #65 comments |
 | K-15 | Fixed (2026-10-19): a run around, or with a third body, `mars` or `jupiter` passed validation and then failed. The bundled DE430 ephemeris has the Mars and Jupiter system barycentres, not the planets: a `mars` run stopped the whole process with `SPICE(SPKINSUFFDATA)` (the GUI runs in its own process, so the app closed), and Basilisk has no body named `jupiter`. The schema now offers `mars barycenter` and `jupiter barycenter` (Basilisk gives them the planet's mass and radius) and refuses the two old names with the one to use; a test flies every offered body | A scenario with `mars` or `jupiter` could not be run, and in the GUI closed the app; no result was ever produced with them | `tests/test_central_bodies.py`; HISTORY.md |
 | K-16 | Fixed (2026-10-19): a thermal sensor's heat balance used the solar flux at Earth's distance from the Sun on the epoch, whatever the central body. Basilisk's `sensorThermal` assumes 1366 W/m^2 at any distance, and the tool's correction of it took Earth's flux. The flux is now the one at the spacecraft's own distance from the Sun when the run starts (SPICE), for every central body | Thermal sensors around the Sun, Mercury or Venus ran too cold, and around Mars, Jupiter or Eros too hot: around Mars on 2030-01-01 they absorbed 1408 W/m^2 instead of 713 W/m^2. Runs around Earth or the Moon are unchanged | `tests/test_sensor_thermal_flux.py`; HISTORY.md |
@@ -307,6 +307,7 @@ the re-entry section of End of Life, the 3D model editor's new tabs and
 | K-26 | Limitation (2026-11-03): 1.3.1 and earlier do not open a scenario file saved by 2.0.0. They refuse any key they do not know, and 2.0.0 saves fields added since, starting with `sim_settings.seed` (audit E5), which it always writes: 1.3.1's `load_scenario` refused all 31 templates as 2.0.0 saves them ("malformed scenario structure (SimSettings.__init__() got an unexpected keyword argument 'seed')"). 2.0.0 opens every 1.x file (its 31 templates as 1.3.1 saved them load) | A team updates together; a file saved by 2.0.0 and sent to a 1.x user does not open | `CHANGELOG.md` 2.0.0, Who should update |
 | K-27 | Limitation (2026-11-04): 2.0.0 does not open a scenario file saved by 2.1.0 that uses a field added since: a mount, model equipment, a stowed pose, a material or maturity, model analyses, face properties, a mass budget or launcher, or an IDM-CIC import (`source_id`, an import record of target `model`). It refuses unknown keys, naming the first ("spacecraft[0].sensors[0]: unexpected field 'mount', not one this version knows"; "spacecraft[0].model.parts[0]: unexpected field 'subsystem'..."). Every new field is written only when set, so a file that uses none opens: checked with 2.0.0's code on the 32 templates as 2.1.0 saves them (31 open; template 32, which uses mounts, is refused). 2.1.0 opens every 2.0.0 file | A file using the new fields, sent to a 2.0.0 user, does not open | `CHANGELOG.md` 2.1.0, Who should update |
 | K-28 | Limitation (2026-11-04): the IDM-CIC import is verified against hand calculations on a synthetic model (`tests/test_idm_import.py`), not against IDM-CIC's own mass, centre-of-gravity and inertia report, which no example model stores. Some conventions are assumed and reported in each import's summary (the extruded shapes' corner, sphere and torus centres, inward thicknesses, the tank's straight part). Unsupported shapes (STEP, Collada, pipes, labels, intersections, section planes) become point masses; a typed-in inertia, margins and maturity levels are reported, not applied. The IDM-CIC licence was not available to review; the reader uses the format's published description only | Mass properties of models with assumed or unsupported shapes are approximate, as their summary says | `docs/developer/idm-cic-integration.md` sections 12 and 14; `docs/reference/limitations.md` |
+| K-29 | Fixed in 2.1.1 (2026-11-04), reported by the user on 2.1.0: (1) the 3D model editor was a modal dialog of the main window; GNOME attaches a modal dialog to its parent, so dragging the editor dragged the whole application. (2) A scenario opened from a built-in template has the templates' folder as its folder, so the IDM-CIC import wrote its meshes there: "Permission denied" in an installed copy, the repository's templates in a source checkout. (3) That failed import had already added its parts, which named a mesh file the model did not have, so the editor's OK refused the model ("mesh_index must name one of the model's 0 mesh file(s)"). (4) Vizard's battery panel showed watt-seconds ("2520000 / 2520000 W-s" for 700 Wh), the numbers Basilisk's battery message carries. Each fix has a test that fails on 2.1.0's code | 2.1.0: the editor could not be moved apart from the main window; no IDM-CIC import into a scenario opened from a template; a confusing battery unit in Vizard. Workaround in 2.1.0: save a template-based scenario as your own file before importing | `CHANGELOG.md` 2.1.1; `docs/ui/TEST_CHANGES.md`; HISTORY.md |
 
 **Waivers and deviations:** D-01 to D-13 (RD4). D-08 to D-13 are signed; D-01 to D-07
 are not (decision 14, H08).
