@@ -19,7 +19,7 @@ Colorado Boulder); SpaceMissionStudio adds the windows, scenario files,
 plots, checks and analysis around it. Each feature maps to a Basilisk
 module, or is marked as the tool's own code.
 
-Start from one of 31 template missions (a single orbit, a GEO slot, a
+Start from one of 32 template missions (a single orbit, a GEO slot, a
 formation, a complete small satellite with power and a radio link), or
 build your own, then look at orbits, ground passes, eclipses, pointing,
 battery, link margin, lifetime and propellant.

@@ -93,6 +93,10 @@ Each layer uses only the layers below it:
   file beside it), `reproduction` (reproduction bundles and the check that
   runs one again) and `output_provenance` (the provenance record carried
   in each output file).
+- **analyses** and **model3d:** the 3D spacecraft model (shapes, mass
+  properties, facets, mounted equipment, ray casting) and the analyses
+  built on it: design checks, a run's model analyses and the
+  preliminary re-entry estimate (SRS-F-25 to F-27).
 
 **States and modes:**
 - The GUI is either idle (editing) or running one long operation (a run, a

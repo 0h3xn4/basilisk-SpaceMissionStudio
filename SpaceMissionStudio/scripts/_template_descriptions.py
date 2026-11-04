@@ -552,4 +552,16 @@ error to about 5 m (median over the first half day).
 Note:
 - Needs the Eros files: Reference data, Download..., Small bodies. Basilisk's camera does not check whether \
 terrain hides a landmark. About 4 minutes to run.""",
+    "32": """\
+The 300 kg small-satellite bus as a 3D model with its equipment mounted: arrays, a star tracker, \
+a dish, a nozzle. The design checks find the +y array in the tracker's view and in the nozzle's \
+plume. One orbit, with the disturbance torques and the arrays' shading recorded.
+
+What to look at:
+- Run > Design Checks: the field of view, the plume, the mass budget and the launcher envelope.
+- Results > Model Analyses: the disturbance torques, the momentum and the arrays' shading.
+
+Try changing:
+- The star tracker's tilt to 0 deg (looking level): the array leaves its field of view.
+- The nozzle's plume half-angle to 10 deg: the plume clears the array.""",
 }

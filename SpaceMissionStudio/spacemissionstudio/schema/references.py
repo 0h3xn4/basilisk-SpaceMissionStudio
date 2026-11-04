@@ -318,3 +318,58 @@ def _rename_in_commands(commands: list[Command], resource_kind: str, old_name: s
         if command.kind in ("if", "while"):
             updated += _rename_in_commands(command.children, resource_kind, old_name, new_name)
     return updated
+
+
+def _part_reference_sites(sc):
+    """``(path, holder, attribute)`` for every place a spacecraft's data
+    names a part of its 3D model (the analyses built on the model): the
+    mounts of sensors, actuators, the RF antenna and the model's
+    equipment, the stowed poses and the face properties."""
+    sites = []
+    for kind in ("sensors", "actuators"):
+        for item in getattr(sc, kind):
+            if getattr(item, "mount", None) is not None and item.mount.part:
+                sites.append((f"{kind} {item.name!r}.mount.part", item.mount, "part"))
+    if sc.rf_link is not None and sc.rf_link.antenna_mount is not None and sc.rf_link.antenna_mount.part:
+        sites.append(("rf_link.antenna_mount.part", sc.rf_link.antenna_mount, "part"))
+    model = sc.model
+    if model is not None:
+        for item in model.equipment:
+            if item.mount.part:
+                sites.append((f"model.equipment {item.name!r}.mount.part", item.mount, "part"))
+        for pose in model.stowed:
+            sites.append((f"model.stowed {pose.part!r}", pose, "part"))
+        for face in model.face_properties:
+            sites.append((f"model.face_properties {face.part!r}: {face.face}", face, "part"))
+    return sites
+
+
+def find_part_references(sc, part_name: str) -> list[Reference]:
+    """Every place in spacecraft ``sc`` that names model part
+    ``part_name``: what deleting the part would leave dangling."""
+    return [Reference(f"{sc.name}: {path}", "part", part_name)
+            for path, holder, attribute in _part_reference_sites(sc) if getattr(holder, attribute) == part_name]
+
+
+def rename_part(sc, old_name: str, new_name: str) -> int:
+    """Rename a part of ``sc``'s 3D model and every reference to it
+    (mounts, stowed poses, face properties), atomically; returns the
+    number of references updated. Raises :class:`ReferenceError` when the
+    part is not there or the new name is taken."""
+    model = sc.model
+    if model is None:
+        raise ReferenceError(f"{sc.name} has no 3D model")
+    if not new_name:
+        raise ReferenceError("new part name must not be empty")
+    target = next((part for part in model.parts if part.name == old_name), None)
+    if target is None:
+        raise ReferenceError(f"no part named {old_name!r} in {sc.name}'s model")
+    if new_name != old_name and any(part.name == new_name for part in model.parts):
+        raise ReferenceError(f"a part named {new_name!r} already exists in {sc.name}'s model")
+    updated = 0
+    for _path, holder, attribute in _part_reference_sites(sc):
+        if getattr(holder, attribute) == old_name:
+            setattr(holder, attribute, new_name)
+            updated += 1
+    target.name = new_name
+    return updated

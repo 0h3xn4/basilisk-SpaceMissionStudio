@@ -37,7 +37,8 @@ Each layer uses only the layers below it.
 | `dependencies.py`, `constants.py`, `logging_setup.py`, `temp_folders.py`, `_offline.py` | The qualified Basilisk version and its check; the physical constants the tool's own calculations use; logging to the terminal and `~/.spacemissionstudio/logs/`; the temporary folders and their clean-up; keeping Basilisk's import-time request off the network | No |
 | `fsw_export/` | Exports a spacecraft's attitude flight software as a standalone C project | Only to record a run |
 | `sil/` | Software in the loop: the transport contract, the session, the runner, the comparison report | Only to run |
-| `model3d/` | 3D spacecraft models: shapes and `.obj` files, mass properties, surface facets, and applying them to a spacecraft | No (numpy only) |
+| `model3d/` | 3D spacecraft models: shapes and `.obj` files, mass properties, surface facets, mounted equipment, the stowed configuration, ray casting (`raycast.py`), and applying them to a spacecraft | No (numpy only) |
+| `analyses/` | Analyses built on the 3D model: the design checks (fields of view, thrusters and plumes, mass budget, launcher envelope), a run's model analyses (disturbance budget, blinding, obstruction, shading, exposure, brightness), the preliminary re-entry estimate, and their records and tables | Only for the device defaults (thrusters, wheels) and the atmosphere table, imported inside functions |
 
 Nothing is duplicated between the GUI and the CLI: both call `schema` and
 `engine`.

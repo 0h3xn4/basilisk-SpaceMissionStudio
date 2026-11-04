@@ -35,8 +35,9 @@ into the JSON record the command line's ``--out`` writes (inputs, model,
 results with their calculation traces, provenance), and :func:`write`
 saves one.
 
-Without Basilisk only :func:`load`, :func:`validate`, :func:`assumptions`
-and :func:`compare` work; the others raise ``ImportError``.
+Without Basilisk only :func:`load`, :func:`validate`, :func:`assumptions`,
+:func:`compare` and :func:`design_checks` work; the others raise
+``ImportError``.
 """
 
 from __future__ import annotations
@@ -46,7 +47,7 @@ from pathlib import Path
 API_VERSION = 1
 
 __all__ = ["API_VERSION", "template", "load", "validate", "assumptions", "run", "summary", "lifetime", "budget",
-           "launch_delays", "altitude_trade", "monte_carlo", "compare", "record", "write"]
+           "launch_delays", "altitude_trade", "monte_carlo", "compare", "design_checks", "model_analyses", "reentry", "record", "write"]
 
 
 def template(name: str) -> Path:
@@ -206,9 +207,52 @@ def compare(a_scenario, a_result, b_scenario, b_result):
     return run_comparison.compare(as_dict(a_scenario), a_result, as_dict(b_scenario), b_result)
 
 
+def design_checks(scenario, spacecraft: str | None = None, samples: int | None = None, base_dir=None):
+    """The static design checks of a spacecraft's 3D model:
+    ``analyses.design_checks.DesignReport`` with ``fov`` (field-of-view
+    obstruction), ``authority`` (thruster torque arms and authority),
+    ``plumes``, ``mass`` (the mass budget with maturity margins) and
+    ``launcher`` (the stowed configuration against the envelope), and
+    ``findings()``. Needs no Basilisk.
+
+    :param samples: rays per cone (default: the spacecraft's
+        ``model_analyses.samples``, else 256).
+    :param base_dir: the folder relative mesh paths are read from (the
+        scenario file's).
+    """
+    from .analyses import common, design_checks as checks
+
+    return checks.design_checks(common.spacecraft(scenario, spacecraft), samples=samples, base_dir=base_dir)
+
+
+def model_analyses(scenario, result, spacecraft: str | None = None, base_dir=None):
+    """A run's model analyses for a spacecraft with ``model_analyses`` set:
+    ``analyses.run_analyses.RunReport`` with the ``disturbances`` budget
+    (``findings()`` for undersized wheels or magnetorquers) and the blinding,
+    obstruction, shading, exposure and brightness tables; ``result`` is the
+    run (:func:`run`), whose series hold the analyses; ``base_dir`` resolves
+    the model's relative mesh paths (default: the scenario file's folder)."""
+    from .analyses import common, run_analyses
+
+    return run_analyses.report(result, scenario, common.spacecraft(scenario, spacecraft), base_dir)
+
+
+def reentry(scenario, spacecraft: str | None = None, population_density_per_km2: float | None = None,
+            base_dir=None):
+    """The preliminary re-entry casualty estimate of a spacecraft's 3D
+    model: ``analyses.reentry.ReentryEstimate`` (each part's fate, the
+    casualty area, and with a population density the risk against
+    1:10,000). A preliminary estimate, not a substitute for DAS."""
+    from .analyses import common, reentry as estimate
+
+    return estimate.reentry_estimate(common.spacecraft(scenario, spacecraft), base_dir, population_density_per_km2,
+                                     scenario)
+
+
 def record(scenario, analysis, spacecraft: str | None = None, result=None) -> dict:
     """The JSON record of ``analysis`` (an ``EndOfLife``, a ``Budget``, a
-    ``LaunchDelaySweep`` or an ``AltitudeTrade`` computed for ``scenario``),
+    ``LaunchDelaySweep``, an ``AltitudeTrade``, a ``DesignReport``, a ``RunReport`` or a
+    ``ReentryEstimate`` computed for ``scenario``),
     as ``--out`` writes it: inputs, model, results with their traces,
     notes and provenance. ``result``: the run it took its inputs from."""
     from .engine import analysis_records, lifetime as engine_lifetime, propellant_budget
@@ -225,6 +269,16 @@ def record(scenario, analysis, spacecraft: str | None = None, result=None) -> di
         return analysis_records.sweep_record(scenario, name, analysis, result)
     if isinstance(analysis, propellant_budget.AltitudeTrade):
         return analysis_records.trade_record(scenario, name, analysis, result)
+    from .analyses import design_checks as checks, records as analysis_tables
+
+    if isinstance(analysis, checks.DesignReport):
+        return analysis_tables.design_record(scenario, analysis)
+    from .analyses import reentry as reentry_module, run_analyses
+
+    if isinstance(analysis, run_analyses.RunReport):
+        return analysis_tables.run_record(scenario, analysis, result)
+    if isinstance(analysis, reentry_module.ReentryEstimate):
+        return analysis_tables.reentry_record(scenario, analysis)
     raise TypeError(f"no record for a {type(analysis).__name__}")
 
 

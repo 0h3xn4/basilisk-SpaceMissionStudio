@@ -78,6 +78,27 @@ def mesh_faces(mesh: Mesh) -> list[Face]:
                  moment[g] / area[g]) for rank, g in enumerate(order)]
 
 
+def mesh_face_groups(mesh: Mesh):
+    """For each triangle of ``mesh``, the index ``k`` of the face ``plane
+    k + 1`` :func:`mesh_faces` puts it in (-1 for a triangle of no area):
+    how the ray casting samples a mesh's faces."""
+    areas, normals, centroids = triangle_areas_and_normals(mesh)
+    result = np.full(len(areas), -1, dtype=np.int64)
+    keep = np.nonzero(areas > 0.0)[0]
+    if len(keep) == 0:
+        return result
+    normals, centroids, kept_areas = normals[keep], centroids[keep], areas[keep]
+    offsets = np.einsum("mi,mi->m", normals, centroids)
+    keys = np.column_stack([np.round(normals / NORMAL_STEP), np.round(offsets / PLANE_STEP_M)]).astype(np.int64)
+    _, group_of = np.unique(keys, axis=0, return_inverse=True)
+    group_of = group_of.reshape(-1)
+    area = np.bincount(group_of, weights=kept_areas, minlength=int(group_of.max()) + 1)
+    rank = np.empty(len(area), dtype=np.int64)
+    rank[np.argsort(-area, kind="stable")] = np.arange(len(area))
+    result[keep] = rank[group_of]
+    return result
+
+
 def projected_area_m2(faces: Sequence[Face], direction) -> float:
     """The area the faces present to a flow (or light) arriving against
     ``direction``: the sum of ``A * cos`` over faces turned toward it.

@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import copy
 import dataclasses
+import logging
 import math
 from datetime import datetime, timedelta, UTC
 from collections.abc import Callable
@@ -304,7 +305,35 @@ def run_segmented(scenario: Scenario, on_progress: Callable[[ResultSet, float], 
         if warning not in merged.warnings:
             merged.warnings.insert(0, warning)
     merged.provenance = _whole_run_provenance(scenario, provenances, weather)
+    _whole_run_disturbance_findings(scenario, merged)
     return merged
+
+
+#: The model analyses' findings each segment makes on its own part of the run.
+_SEGMENT_SIZING_RULES = ("design.wheel_capacity", "design.dipole_capacity")
+
+
+def _whole_run_disturbance_findings(scenario: Scenario, merged: ResultSet) -> None:
+    """Each segment sized the wheels and magnetorquers on its own part of
+    the run (analyses.run_analyses); the whole run's disturbance budget
+    replaces those findings."""
+    asking = [sc for sc in scenario.spacecraft
+              if sc.model_analyses is not None and sc.model_analyses.disturbance_torques]
+    if not asking:
+        return
+    from ..analyses.disturbances import disturbance_budget
+
+    merged.warnings = [w for w in merged.warnings if getattr(w, "rule_id", None) not in _SEGMENT_SIZING_RULES]
+    for sc in asking:
+        try:
+            budget = disturbance_budget(merged, sc)
+        except Exception as exc:  # noqa: BLE001 -- the run's results stand; the analysis says it failed
+            logging.getLogger(__name__).debug("disturbance budget of %s failed", sc.name, exc_info=True)
+            merged.warnings.append(Finding(f"{sc.name}: model analyses not made ({type(exc).__name__}: {exc})",
+                                           "check.not_run"))
+            continue
+        if budget is not None:
+            merged.warnings.extend(budget.findings())
 
 
 def _whole_run_provenance(scenario: Scenario, provenances: list, weather):

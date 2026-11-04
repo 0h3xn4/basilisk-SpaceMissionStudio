@@ -63,6 +63,7 @@ from .time_cursor import TimeCursor, describe
 
 # Fixed categorical order, one slot per kind (the Results tab's series colours).
 KIND_SLOTS: dict[str, int] = {kind: index for index, kind in enumerate(event_model.KINDS)}
+MODEL_ANALYSES_BOX = "model analyses"  # one box for every kind of event_model.MODEL_KINDS
 
 
 def kind_colour(kind: str) -> str:
@@ -75,8 +76,16 @@ _AXIS_HEIGHT = 26  # [px]
 _MIN_BAR_PX = 2  # [px] a short event on a long run stays visible
 
 
+_MODEL_WORDS = {"blinding": ("sensor blinding", "sensor blindings"),
+                "obstruction": ("antenna obstruction", "antenna obstructions"),
+                "visible": ("visible pass", "visible passes")}
+
+
 def _plural(kind: str, count: int) -> str:
     """"1 pass", "2 passes", "1 thruster firing", "3 thruster firings"."""
+    words = _MODEL_WORDS.get(kind)
+    if words is not None:
+        return f"{count} {words[count != 1]}"
     if count == 1:
         return f"1 {kind}"
     return f"{count} {kind}{'es' if kind.endswith('ss') else 's'}"
@@ -497,6 +506,14 @@ class EventTimelineWidget(QWidget):
             box.toggled.connect(self._apply_filter)
             controls.addWidget(box)
             self.kind_boxes[kind] = box
+        # The model analyses' events (blinding, obstruction, visible), shown only in a run that has them.
+        box = QCheckBox("Model analyses")
+        box.setChecked(True)
+        box.setToolTip("Sensor blinding, antenna obstruction and visibility from the ground (model analyses)")
+        box.toggled.connect(self._apply_filter)
+        box.setVisible(False)
+        controls.addWidget(box)
+        self.kind_boxes[MODEL_ANALYSES_BOX] = box
         controls.addStretch(1)
         self.fit_button = QPushButton("Fit")
         self.fit_button.setToolTip("Show the whole run (0). The wheel or +/- zooms the timeline; Shift+wheel, the "
@@ -577,7 +594,9 @@ class EventTimelineWidget(QWidget):
         self.events = event_model.extract_events(result)
         self._texts = [_event_text(event) for event in self.events]
         missing = event_model.missing_kinds(result) if result is not None else {}
-        counts = {kind: sum(e.kind == kind for e in self.events) for kind in event_model.KINDS}
+        counts = {kind: sum(e.kind == kind for e in self.events)
+                  for kind in event_model.KINDS + event_model.MODEL_KINDS}
+        self.kind_boxes[MODEL_ANALYSES_BOX].setVisible(any(counts[kind] for kind in event_model.MODEL_KINDS))
         if result is None:
             self.summary_label.setText("Run a scenario to see its passes, eclipses, burns and mode changes.")
         else:
@@ -604,6 +623,8 @@ class EventTimelineWidget(QWidget):
         """The events the kind boxes, the station filter and the search let
         through: what the timeline, the table and the export show."""
         shown = {kind for kind, box in self.kind_boxes.items() if box.isChecked()}
+        if MODEL_ANALYSES_BOX in shown:
+            shown |= set(event_model.MODEL_KINDS)
         station = self.station_combo.currentText()
         words = self.search.text().lower().split()
         any_station = station in ("", _ALL_STATIONS)

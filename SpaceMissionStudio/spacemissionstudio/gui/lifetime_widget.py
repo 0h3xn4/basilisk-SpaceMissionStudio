@@ -310,6 +310,11 @@ class LifetimeWidget(QWidget):
         hint.setWordWrap(True)
         set_role(hint, role="caption")
         layout.addWidget(hint)
+        # The preliminary re-entry casualty estimate from the 3D model (model analyses, Phase D).
+        from .reentry_section import ReentrySection
+
+        self.reentry_section = ReentrySection()
+        layout.addWidget(self.reentry_section)
         self._defaults = None  # the configuration's defaults the controls were last set to
         self._apply_defaults(None)
         self._update_from_choices()
@@ -458,6 +463,7 @@ class LifetimeWidget(QWidget):
         """Blocks until a running estimate finishes (tests, shutdown)."""
         if self._worker is not None:
             self._worker.wait(timeout_ms)
+        self.reentry_section.wait_for_worker(timeout_ms)
 
     def _show_error(self, message: str) -> None:
         self.status_label.setText(message)

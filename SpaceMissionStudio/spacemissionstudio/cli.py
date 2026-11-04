@@ -699,6 +699,190 @@ def cmd_model(args: argparse.Namespace) -> int:
     return 1 if failed else 0
 
 
+def cmd_check_design(args: argparse.Namespace) -> int:
+    """The static design checks of a spacecraft's 3D model (fields of view,
+    thrusters and plumes, mass budget, launcher envelope), their findings,
+    and optionally the record and the tables (analyses.design_checks)."""
+    loaded = _load_hashed(args.scenario)
+    if isinstance(loaded, int):
+        return loaded
+    scenario, file_record = loaded
+    from .analyses import common, design_checks, records
+
+    base_dir = args.scenario.resolve().parent
+    try:
+        sc = common.spacecraft(scenario, args.spacecraft)
+        report = design_checks.design_checks(sc, samples=args.samples, base_dir=base_dir)
+    except common.AnalysisError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    print(f"{sc.name}: design checks{'' if sc.model is not None else ' (no 3D model: the mass budget only)'}")
+    for row in report.fov.rows() if report.fov is not None else []:
+        print(f"  field of view: {row['item']} ({row['configuration']}, {row['field_of_view_deg']:g} deg): "
+              f"{row['blocked_percent']:.1f} % blocked +- {row['standard_error_percent']:.1f} %"
+              + (f" by {row['blocking_parts']}" if row["blocking_parts"] else ""))
+    if report.authority is not None:
+        authority = report.authority
+        print(f"  thrusters: {len(authority.columns)}, authority rank {authority.rank('bol')} of 6 "
+              f"(beginning of life), {authority.rank('eol')} (end)")
+        for row in authority.rows():
+            torque = ", ".join(f"{v:.4g}" for v in row["torque_bol_n_m"])
+            print(f"    {row['thruster']}: {row['thrust_n']:g} N, torque [{torque}] N*m, arm moves "
+                  f"{1000.0 * row['arm_change_m']:.1f} mm to the end of life")
+    for p in report.plumes:
+        print(f"  plume: {p.thruster} ({p.half_angle_deg:g} deg): {100.0 * p.blocked_fraction:.1f} % of the cone "
+              "meets " + (", ".join(p.by_part) if p.by_part else "nothing"))
+    mass = report.mass
+    print(f"  mass budget ({mass.policy}): basic dry {mass.basic_dry_kg:.2f} kg, growth {mass.growth_kg:.2f} kg, "
+          f"system margin {mass.system_margin_kg:.2f} kg, propellant {mass.propellant_kg:.2f} kg, launch "
+          f"{mass.launch_mass_kg:.2f} kg"
+          + ("" if mass.mass_limit_kg is None else f" against {mass.mass_limit_kg:g} kg ({mass.limit_source})"))
+    if report.launcher is not None:
+        check = report.launcher
+        print(f"  launcher ({check.envelope}, {check.configuration}): "
+              + ("fits" if check.fits else f"{len(check.protrusions)} part(s) outside")
+              + f"; faceting error up to {1000.0 * check.largest_faceting_error_m:.2f} mm. {check.out_of_scope}")
+    findings = report.findings()
+    for finding in findings:
+        print(f"FINDING: {finding}")
+    if args.explain:
+        from .engine.findings import explanation_lines
+
+        for finding in findings:
+            print(f"{finding}:")
+            for line in explanation_lines(finding):
+                print(f"  {line}")
+    if not findings:
+        print("No design finding.")
+    record = None
+    if args.out is not None or args.tables is not None:
+        record = records.design_record(scenario, report)
+        record["provenance"].update(file_record)
+    if args.tables is not None:
+        try:
+            paths = records.write_tables(records.design_tables(report), args.tables, record)
+        except OSError as exc:
+            print(f"ERROR: could not write {args.tables}: {exc}", file=sys.stderr)
+            return 3
+        print(f"wrote {len(paths)} table(s) to {args.tables}")
+    if args.out is not None:
+        return _write_record(args, record, {})
+    return 0
+
+
+def _print_rows(title: str, rows: list) -> None:
+    if not rows:
+        return
+    print(f"  {title}:")
+    for row in rows:
+        print("    " + ", ".join(f"{k} {v:.4g}" if isinstance(v, float) else f"{k} {v}" for k, v in row.items()
+                                if v is not None and v != ""))
+
+
+def cmd_model_analyses(args: argparse.Namespace) -> int:
+    """Run the scenario and report each spacecraft's model analyses
+    (disturbance torques, blinding, antenna obstruction, array shading,
+    exposure, brightness: analyses.run_analyses)."""
+    loaded = _load_hashed(args.scenario)
+    if isinstance(loaded, int):
+        return loaded
+    scenario, file_record = loaded
+    chosen = [sc for sc in scenario.spacecraft if sc.model_analyses is not None
+              and (args.spacecraft is None or sc.name == args.spacecraft)]
+    if not chosen:
+        print("ERROR: no spacecraft " + (f"{args.spacecraft!r} " if args.spacecraft else "")
+              + "with model_analyses set", file=sys.stderr)
+        return 1
+    if args.out is not None and len(chosen) > 1:
+        print("ERROR: --out writes one spacecraft's record; name it with --spacecraft", file=sys.stderr)
+        return 2
+    try:
+        from . import api
+        from .analyses import records, run_analyses
+    except ImportError as exc:  # pragma: no cover - depends on the install
+        print(f"ERROR: Basilisk is not installed/built ({exc}) -- see SpaceMissionStudio/README.md", file=sys.stderr)
+        return 2
+    print(f"Running {scenario.name!r}...")
+    try:
+        result = api.run(scenario)
+    except Exception as exc:  # noqa: BLE001 -- report ANY run failure with a specific message
+        print(f"ERROR: run failed: {exc}", file=sys.stderr)
+        return 3
+    for sc in chosen:
+        report = run_analyses.report(result, scenario, sc, args.scenario.resolve().parent)
+        print(f"{sc.name}: model analyses")
+        budget = report.disturbances
+        if budget is not None:
+            _print_rows("disturbance torques [N*m]", budget.rows())
+            per_orbit = budget.required_momentum_n_m_s()
+            print(f"    momentum: {budget.momentum_max_n_m_s:.4g} N*m*s largest over the run, per body axis "
+                  f"{', '.join(f'{v:.4g}' for v in per_orbit)} N*m*s "
+                  + ("per orbit" if budget.momentum_per_orbit_n_m_s is not None else "over the run"))
+        for title, rows in (("blinding", report.blinding), ("antenna obstruction", report.obstruction),
+                            ("array shading", report.shading), ("surface exposure", report.exposure),
+                            ("brightness", report.brightness)):
+            _print_rows(title, rows)
+        for note in report.notes + (budget.notes if budget is not None else []):
+            print(f"NOTE: {note}")
+        for finding in report.findings():
+            print(f"FINDING: {finding}")
+        if args.tables is not None or args.out is not None:
+            record = records.run_record(scenario, report, result)
+            record["provenance"].update(file_record)
+            if args.tables is not None:
+                folder = args.tables / sc.name if len(chosen) > 1 else args.tables
+                try:
+                    paths = records.write_tables(report.tables(), folder, record)
+                except OSError as exc:
+                    print(f"ERROR: could not write {folder}: {exc}", file=sys.stderr)
+                    return 3
+                print(f"wrote {len(paths)} table(s) to {folder}")
+            if args.out is not None:
+                code = _write_record(args, record, {})
+                if code:
+                    return code
+    return 0
+
+
+def cmd_reentry(args: argparse.Namespace) -> int:
+    """The preliminary re-entry casualty estimate of a spacecraft's 3D
+    model (analyses.reentry)."""
+    loaded = _load_hashed(args.scenario)
+    if isinstance(loaded, int):
+        return loaded
+    scenario, file_record = loaded
+    from .analyses import common, records, reentry
+
+    try:
+        sc = common.spacecraft(scenario, args.spacecraft)
+        estimate = reentry.reentry_estimate(sc, args.scenario.resolve().parent, args.population_density, scenario)
+    except common.AnalysisError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    except ImportError as exc:  # pragma: no cover - depends on the install
+        print(f"ERROR: Basilisk is not installed/built ({exc}) -- see SpaceMissionStudio/README.md", file=sys.stderr)
+        return 2
+    print(f"{sc.name}: {estimate.label}")
+    print(f"  break-up at {estimate.breakup_altitude_km:g} km; survival-prone (eps = 1), demise-prone (eps = 0) "
+          "beside it")
+    for row in estimate.rows():
+        fate = (f"demises at {row['demise_altitude_km']:.1f} km" if row["demise_altitude_km"] is not None
+                else f"lands, {row['surviving_mass_kg']:.2f} kg, {row['impact_energy_j']:.3g} J")
+        print(f"    {row['part']} ({row['material'] or 'no material'}, {row['mass_kg']:g} kg): {fate}; casualty area "
+              f"{row['casualty_area_m2']:.3f} m^2 (demise-prone {row['demise_prone_casualty_area_m2']:.3f})"
+              + (f" -- {row['note']}" if row["note"] else ""))
+    print(f"  casualty area {estimate.casualty_area_m2:.3f} m^2 (demise-prone {estimate.casualty_area_demise_prone_m2:.3f})")
+    if estimate.risk is not None:
+        print(f"  casualty risk {estimate.risk:.3g} at {estimate.population_density_per_km2:g} people/km^2, limit "
+              f"{estimate.risk_limit:g}: {'within' if estimate.compliant else 'OVER'}")
+    for note in estimate.notes:
+        print(f"NOTE: {note}")
+    if args.out is not None:
+        record = records.reentry_record(scenario, estimate)
+        return _write_record(args, record, file_record)
+    return 0
+
+
 def cmd_lifetime(args: argparse.Namespace) -> int:
     loaded = _load_hashed(args.scenario)
     if isinstance(loaded, int):
@@ -1812,6 +1996,35 @@ def build_parser() -> argparse.ArgumentParser:
     p_model.add_argument("--export-obj", type=Path, metavar="PATH",
                          help="write the model as a Wavefront .obj (and .mtl) in the body frame")
     p_model.set_defaults(func=cmd_model)
+
+    p_design = subparsers.add_parser("check-design", help="design checks of a spacecraft's 3D model: fields of view, "
+                                     "thrusters and plumes, mass budget, launcher envelope (no Basilisk needed)")
+    p_design.add_argument("scenario", type=Path)
+    p_design.add_argument("--spacecraft", help="spacecraft name (default: the first)")
+    p_design.add_argument("--samples", type=_positive_int_arg, help="rays per field of view or plume cone (default: the "
+                          "spacecraft's model_analyses.samples, else 256)")
+    p_design.add_argument("--explain", action="store_true", help="each finding's rule, why, fix and override")
+    p_design.add_argument("--out", type=Path, metavar="JSON", help="write the record (inputs, tables, findings, "
+                          "provenance)")
+    p_design.add_argument("--tables", type=Path, metavar="DIR", help="write each table as CSV, with its provenance")
+    p_design.set_defaults(func=cmd_check_design)
+
+    p_analyses = subparsers.add_parser("model-analyses", help="run the scenario and report its model analyses: "
+                                       "disturbance torques, blinding, obstruction, shading, exposure, brightness")
+    p_analyses.add_argument("scenario", type=Path)
+    p_analyses.add_argument("--spacecraft", help="spacecraft name (default: every one with model_analyses)")
+    p_analyses.add_argument("--out", type=Path, metavar="JSON", help="write the record (one spacecraft)")
+    p_analyses.add_argument("--tables", type=Path, metavar="DIR", help="write each table as CSV, with its provenance")
+    p_analyses.set_defaults(func=cmd_model_analyses)
+
+    p_reentry = subparsers.add_parser("reentry", help="a preliminary re-entry casualty estimate from the 3D model "
+                                      "(DAS-like, simplified)")
+    p_reentry.add_argument("scenario", type=Path)
+    p_reentry.add_argument("--spacecraft", help="spacecraft name (default: the first)")
+    p_reentry.add_argument("--population-density", type=float, metavar="PER_KM2",
+                           help="people per km^2 under the re-entry (no default): gives the casualty risk")
+    p_reentry.add_argument("--out", type=Path, metavar="JSON", help="write the record")
+    p_reentry.set_defaults(func=cmd_reentry)
 
     p_budget = subparsers.add_parser("budget", help="delta-V and propellant budget (ESA AD10 style)")
     p_budget.add_argument("scenario", type=Path)

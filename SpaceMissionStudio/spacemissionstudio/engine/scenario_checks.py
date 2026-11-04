@@ -514,9 +514,21 @@ def plausibility_warnings(scenario, base_dir=None) -> list[str]:
     model mesh paths."""
     warnings: list[str] = []
     for name, check in (("orbits", _orbit_warnings), ("data coverage", _data_coverage_warnings),
-                        ("3D models", lambda s: _model_warnings(s, base_dir))):
+                        ("3D models", lambda s: _model_warnings(s, base_dir)),
+                        ("design checks", lambda s: _design_warnings(s, base_dir))):
         warnings += _checked(name, check, scenario)
     return warnings
+
+
+def _design_warnings(scenario, base_dir) -> list[str]:
+    """The static design checks of each spacecraft's 3D model (fields of
+    view, plumes, mass limit, launcher envelope: ``analyses.design_checks``).
+    Nothing for a spacecraft without a model."""
+    if not any(sc.model is not None for sc in scenario.spacecraft):
+        return []
+    from ..analyses.design_checks import design_findings
+
+    return design_findings(scenario, base_dir)
 
 
 # One cache for every check, so mesh files are read once while editing.

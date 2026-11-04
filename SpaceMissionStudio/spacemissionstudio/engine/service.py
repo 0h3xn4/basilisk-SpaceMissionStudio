@@ -86,7 +86,7 @@ from .. import __version__ as _SPACEMISSIONSTUDIO_VERSION
 from .. import constants, dependencies, output_provenance, plugins
 from ..config import models as model_registry, registry
 from ..schema.scenario import ALBEDO_MAPS, OrbitIC, Scenario, import_records, preset_records, value_mark_records
-from . import (atmosphere_tables, data_handling, earth_orientation, effective_config, environment_models, formation_control, frames, fsw,
+from . import (atmosphere_tables, data_handling, disturbance_recorder, earth_orientation, effective_config, environment_models, formation_control, frames, fsw,
                gaseous_attenuation, geodesy, geodetic_atmosphere, gravity_field, kernels, landmark_navigation, link_budget, long_run,
                optical_navigation, orbit_maintenance, planet_rotation, polyhedron, roe_formation, shadows,
                small_bodies, solar_arrays, solar_degradation, time_system, tle, vizard)
@@ -249,6 +249,21 @@ class SimulationCancelled(Exception):
     def __init__(self, partial_result: ResultSet):
         super().__init__("Simulation cancelled by the user")
         self.partial_result = partial_result
+
+
+def _runs_model_analyses(sc_config) -> bool:
+    """A spacecraft with a model analysis of the run (``MODEL_RUN_ANALYSES``)."""
+    from ..schema.scenario import MODEL_RUN_ANALYSES
+
+    analyses = sc_config.model_analyses
+    return analyses is not None and any(getattr(analyses, name) for name in MODEL_RUN_ANALYSES)
+
+
+def _residual_dipole(sc_config) -> bool:
+    """A spacecraft whose disturbance torques include a residual dipole
+    (model analyses): it needs the magnetic field model."""
+    analyses = sc_config.model_analyses
+    return analyses is not None and analyses.disturbance_torques and any(analyses.residual_dipole_a_m2)
 
 
 def _unit_vector(values) -> list[float]:
@@ -574,6 +589,8 @@ class _SpacecraftHandle:
     solar_arrays: object | None = None  # solar_arrays.SolarArrayHandle, only with flexible arrays
     solar_panels: list = field(default_factory=list)  # every simpleSolarPanel (the body's, the arrays'), in order
     panel_degradation: object | None = None  # solar_degradation.PanelDegradation, with power.degradation chosen
+    disturbance_recorder: object | None = None  # disturbance_recorder.DisturbanceRecorder (model analyses)
+    density_recorder: object | None = None  # the drag's density, for the atomic oxygen (model analyses)
 
 
 class SimulationService:
@@ -992,9 +1009,34 @@ class SimulationService:
                                                               math.radians(gs_config.latitude_deg))
         self._check_atmospheric_loss(scenario)
 
+        # Model analyses after the run (analyses.run_analyses): the central body's, the Sun's and the
+        # Moon's positions and the stations', recorded only when a spacecraft asks for one.
+        self._analysis_recorders: dict = {}
+        if any(_runs_model_analyses(sc) for sc in scenario.spacecraft):
+            sources = {f"ephemeris.{body}": self._planet_state_out_msgs[body]
+                       for body in dict.fromkeys((gravity.central_body, "sun", "moon"))
+                       if body in self._planet_state_out_msgs}
+            sources.update({f"{gs}.station": location.currentGroundStateOutMsg
+                            for gs, location in self._ground_locations.items()})
+            self._observer_locations = {}  # the brightness's observer sites, placed as ground stations are
+            for sc in scenario.spacecraft:
+                if sc.model_analyses is None or not sc.model_analyses.brightness:
+                    continue
+                for site in sc.model_analyses.observers:
+                    if site.name in self._observer_locations or site.name in self._ground_locations:
+                        continue
+                    self._observer_locations[site.name] = fsw.build_ground_location(
+                        self.scSim, dyn_task_name, site, central_body.radEquator, central_body_state_out_msg,
+                        sc_state_out_msgs=[], central_body=gravity.central_body)
+                    sources[f"{site.name}.station"] = self._observer_locations[site.name].currentGroundStateOutMsg
+            for key, msg in sources.items():
+                self._analysis_recorders[key] = self._record(msg)
+                self.scSim.AddModelToTask(dyn_task_name, self._analysis_recorders[key])
+
         needs_magnetometer = any(
             sensor.kind == "magnetometer" for sc in scenario.spacecraft for sensor in sc.sensors
-        ) or any(sc.magnetic_momentum_management is not None for sc in scenario.spacecraft)
+        ) or any(sc.magnetic_momentum_management is not None for sc in scenario.spacecraft) or any(
+            _residual_dipole(sc) for sc in scenario.spacecraft)  # model analyses' disturbance torques
         if needs_magnetometer and gravity.central_body == "earth":
             self._mag_field_model = fsw.build_magnetic_field_wmm(
                 self.scSim, dyn_task_name, central_body_state_out_msg, central_body.radEquator,
@@ -1454,6 +1496,9 @@ class SimulationService:
                 atmo_module.addSpacecraftToModel(proxy.scStateOutMsg)
                 wind_model.addSpacecraftToModel(sc_object.scStateOutMsg)
                 drag_effector.atmoDensInMsg.subscribeTo(atmo_module.envOutMsgs[drag_index])
+                if sc_config.model_analyses is not None and sc_config.model_analyses.surface_exposure:
+                    handle.density_recorder = self._record(atmo_module.envOutMsgs[drag_index])
+                    self.scSim.AddModelToTask(dyn_task_name, handle.density_recorder)
                 drag_effector.windVelInMsg.subscribeTo(wind_model.envOutMsgs[drag_index])
                 drag_index += 1
                 self.scSim.AddModelToTask(dyn_task_name, drag_effector, 100)
@@ -1532,6 +1577,19 @@ class SimulationService:
                 gg_effector.addPlanetName(central_body.planetName)
                 sc_object.addDynamicEffector(gg_effector)
                 self.scSim.AddModelToTask(dyn_task_name, gg_effector, 100)
+
+            # Model analyses: the disturbance torques, recorded only (engine.disturbance_recorder).
+            if sc_config.model_analyses is not None and sc_config.model_analyses.disturbance_torques:
+                field_msg = None
+                if _residual_dipole(sc_config) and self._mag_field_model is not None:
+                    env_index = len(self._mag_field_model.scStateInMsgs)
+                    self._mag_field_model.addSpacecraftToModel(sc_object.scStateOutMsg)
+                    field_msg = self._mag_field_model.envOutMsgs[env_index]
+                handle.disturbance_recorder = disturbance_recorder.DisturbanceRecorder(
+                    f"{sc_config.name}Disturbances", sc_object, mu, central_body_state_out_msg,
+                    handle.drag_effector, handle.srp_effector, field_msg,
+                    sc_config.model_analyses.residual_dipole_a_m2, scenario.sim_settings.record_interval_s)
+                self.scSim.AddModelToTask(dyn_task_name, handle.disturbance_recorder, disturbance_recorder.PRIORITY)
 
             if sc_config.actuators and sc_config.fsw_mode is None:
                 raise SimulationServiceError(
@@ -1906,6 +1964,8 @@ class SimulationService:
         # accessOutMsgs[i] corresponds to sc_objects_in_order[i]: fsw.add_access_analysis
         # calls addSpacecraftToModel in exactly that order (verified indexing
         # convention, see that function's docstring).
+        for observer in getattr(self, "_observer_locations", {}).values():  # model analyses' sites track them too
+            fsw.add_access_analysis(observer, sc_objects_in_order)
         for gs_name, ground_location in self._ground_locations.items():
             fsw.add_access_analysis(ground_location, sc_objects_in_order)
             for index, sc_object in enumerate(sc_objects_in_order):
@@ -2628,6 +2688,12 @@ class SimulationService:
                                        ("illumination_factor",),
                                        recorder.shadowFactor if sunlight is None else sunlight, units="-"))
 
+            if handle.density_recorder is not None:
+                result.add(TimeSeries(f"{name}.atmosphere.density", handle.density_recorder.times() * macros.NANO2SEC,
+                                       ("density",), handle.density_recorder.neutralDensity, units="kg/m^3"))
+            if handle.disturbance_recorder is not None:
+                for series in disturbance_recorder.series(name, handle.disturbance_recorder):
+                    result.add(series)
             if handle.panel_degradation is not None:
                 result.add(TimeSeries(f"{name}.power.degradation_factor", np.asarray(handle.panel_degradation.tLog),
                                        ("degradation_factor",), np.asarray(handle.panel_degradation.factorLog),
@@ -2806,10 +2872,24 @@ class SimulationService:
                     result, gs_config.name, sc_config.name, sc_config.rf_link, gs_config,
                     comms_pointing_target_ground_station=comms_target, scenario=self.scenario,
                 ))
+        for key, recorder in getattr(self, "_analysis_recorders", {}).items():
+            times = recorder.times() * macros.NANO2SEC
+            data = recorder.PositionVector if key.startswith("ephemeris.") else recorder.r_LN_N
+            result.add(TimeSeries(f"{key}.position_N", times, ("x", "y", "z"), data, units="m"))
+        if any(_runs_model_analyses(sc) for sc in self.scenario.spacecraft):
+            from ..analyses import run_analyses
+
+            run_analyses.add_to(result, self.scenario, self._model_base_dir())
         if result.provenance is not None:
             result.provenance = dataclasses.replace(result.provenance,
                                                     series_frames=frames.series_frames(result.series))
         return result
+
+    def _model_base_dir(self):
+        """The folder a model's relative mesh paths are read from: the one the
+        Vizard request names (the app's), else the scenario file's."""
+        request = getattr(self.vizard_request, "model_base_dir", None)
+        return request if request is not None else getattr(self.scenario, "_base_dir", None)
 
     def _check_atmospheric_loss(self, scenario) -> None:
         """With ``link.atmospheric_loss: itu_r_p676`` and a link to budget:

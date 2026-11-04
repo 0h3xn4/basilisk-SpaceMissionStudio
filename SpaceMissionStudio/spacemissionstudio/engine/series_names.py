@@ -91,6 +91,16 @@ def _spacecraft_series(scenario: Scenario, sc) -> list[str]:
         if sensor.kind == "coarse_sun_sensor" and gravity.albedo:  # validation requires the Sun then
             names.append(f"{series}.albedo")
 
+    analyses = sc.model_analyses
+    if analyses is not None and analyses.disturbance_torques:  # engine.disturbance_recorder (model analyses)
+        from .disturbance_recorder import series_names as disturbance_series
+
+        names += disturbance_series(name)
+    if analyses is not None:
+        from ..analyses.run_analyses import expected_names as analysis_series
+
+        names += analysis_series(scenario, sc)
+
     tracked = {gravity.central_body, *gravity.third_body_perturbers}
     if "sun" in tracked and gravity.central_body != "sun":  # engine.service records every eclipse then
         names.append(f"{name}.eclipse.illumination_factor")
@@ -157,7 +167,27 @@ def expected_series_names(scenario: Scenario) -> list[str]:
                 names.append(f"{prefix}.link_margin_db")
                 if link_budget.needs_link_gate(sc):
                     names += [f"{prefix}.antenna_off_boresight", f"{prefix}.link_closed"]
+    names += _model_analyses_series(scenario)
     return sorted(dict.fromkeys(names))
+
+
+def _model_analyses_series(scenario: Scenario) -> list[str]:
+    """What engine.service records for the model analyses when a spacecraft
+    asks for one: the tracked bodies' positions, the stations' and the
+    brightness's observer sites'."""
+    from ..schema.scenario import MODEL_RUN_ANALYSES
+
+    asking = [sc for sc in scenario.spacecraft if sc.model_analyses is not None
+              and any(getattr(sc.model_analyses, name) for name in MODEL_RUN_ANALYSES)]
+    if not asking:
+        return []
+    gravity = scenario.gravity
+    tracked = {gravity.central_body, *gravity.third_body_perturbers}
+    names = [f"ephemeris.{body}.position_N" for body in dict.fromkeys((gravity.central_body, "sun", "moon"))
+             if body in tracked]
+    stations = [gs.name for gs in scenario.ground_stations]
+    sites = [site.name for sc in asking if sc.model_analyses.brightness for site in sc.model_analyses.observers]
+    return names + [f"{name}.station.position_N" for name in dict.fromkeys(stations + sites)]
 
 
 _SERIES_TOKEN = re.compile(r"(?<![\w.-])[A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+")

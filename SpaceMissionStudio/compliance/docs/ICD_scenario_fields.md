@@ -36,6 +36,7 @@ One actuator instance. ``kind`` is one of :data:`SUPPORTED_ACTUATOR_KINDS`. See 
 | `kind` | str | `required` |  |
 | `name` | str | `required` |  |
 | `params` | dict | `{}` |  |
+| `mount` | MountConfig / None | `None` | where it sits on the 3D model; written only when set |
 
 ## Command
 
@@ -96,6 +97,18 @@ One dispersed quantity for one spacecraft in a Monte Carlo batch -- see :data:`D
 | `std_deviation` | float / None | `None` | 1-sigma in the quantity's unit (User Manual section 10) |
 | `element_spread` | dict / None | `None` | "orbit_elements": {element key: spread} |
 | `angle_std_deg` | float / None | `None` | [deg] "inertia_kg_m2": 1-sigma rotation that mixes in off-diagonal terms |
+
+## FacePropertyConfig
+
+Surface properties of one face of a part, in place of the part's: ``face`` is a face group of the part's shape (``MODEL_SHAPE_FACES``: "+x", "sides", ...). Imported meshes take properties per part only (their face names change with the mesh, decision D-02).
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `part` | str | `required` |  |
+| `face` | str | `required` |  |
+| `material` | str | `''` |  |
+| `diffuse_coeff` | float / None | `None` | [-] |
+| `specular_coeff` | float / None | `None` | [-] |
 
 ## FacetConfig
 
@@ -217,6 +230,27 @@ Navigation from surface landmarks around a small body (``engine.landmarks`` for 
 | `process_noise_mps2_per_sqrt_hz` | float | `1e-08` |  |
 | `seed` | int | `1` | landmark placement, pixel noise and the initial error |
 
+## LauncherConfig
+
+The launcher's envelope the stowed spacecraft must fit, and its mass and centre-of-mass limits. ``envelope`` names one of the sourced envelopes (``analyses.envelopes``) or is "custom": then ``shape`` with its dimensions -- a ``cylinder`` (``diameter_m``, ``height_m``), a ``box`` (``width_m``, ``depth_m``, ``height_m``) or an axisymmetric ``profile`` of ``[height_m, radius_m]`` points. The envelope stands on the separation plane through ``origin_b_m``, its axis along ``axis_b`` (the box's width along ``width_axis_b``).
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `envelope` | str | `'custom'` |  |
+| `shape` | str | `'cylinder'` | one of LAUNCHER_SHAPES |
+| `diameter_m` | float / None | `None` | [m] |
+| `height_m` | float / None | `None` | [m] |
+| `width_m` | float / None | `None` | [m] |
+| `depth_m` | float / None | `None` | [m] |
+| `profile` | list | `[]` | [[height_m, radius_m], ...] rising heights |
+| `origin_b_m` | list | `[0.0, 0.0, 0.0]` | [m] the separation plane's centre |
+| `axis_b` | list | `[0.0, 0.0, 1.0]` | [-] up the envelope, from the separation plane |
+| `width_axis_b` | list | `[1.0, 0.0, 0.0]` | [-] box only |
+| `mass_limit_kg` | float / None | `None` | [kg] |
+| `com_height_limit_m` | float / None | `None` | [m] above the separation plane |
+| `com_lateral_limit_m` | float / None | `None` | [m] from the envelope's axis |
+| `source` | str | `''` | where the limits come from |
+
 ## MagneticMomentumManagementConfig
 
 Continuous reaction-wheel momentum management via this spacecraft's ``"magnetic_torque_rod"`` actuators -- Basilisk's ``mtbMomentumManagement``, a materially different strategy from :class:`MomentumDumpingConfig`'s thruster-based threshold-and-burst approach: rather than waiting for total momentum to cross a threshold and firing a discrete pulse, this continuously biases the commanded RW motor torque (sitting between ``rwMotorTorque`` and the RW hardware) so each wheel's speed is driven toward its own entry in ``wheel_speed_biases_rad_s``, using whatever magnetic torque the real geomagnetic field (Basilisk's WMM model) allows at the spacecraft's current position -- see ``examples/scenarioMtbMomentumManagement.py``, the real, shipped example this is built from.
@@ -225,6 +259,49 @@ Continuous reaction-wheel momentum management via this spacecraft's ``"magnetic_
 |---|---|---|---|
 | `wheel_speed_biases_rad_s` | list | `required` | [rad/s] one entry per reaction_wheel actuator, in listed order |
 | `c_gain` | float | `0.003` | [-] control gain mapping wheel speed error to desired magnetic torque |
+
+## MassBudgetConfig
+
+The mass budget's settings: the margin policy whose maturity categories the parts carry (``config.materials.MASS_MARGIN_POLICIES``), a system margin in place of the policy's, and the limit to meet.
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `policy` | str | `''` | "" for the default policy |
+| `system_margin_percent` | float / None | `None` | [%] None: the policy's |
+| `mass_limit_kg` | float / None | `None` | [kg] |
+| `limit_source` | str | `''` | where the limit comes from (a launcher's guide, a port's rating) |
+
+## MaterialConfig
+
+A material of the user's own, beside the library's (``config.materials``). Every value is optional; ``source`` says where the values come from.
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `name` | str | `required` |  |
+| `density_kg_m3` | float / None | `None` | [kg/m^3] |
+| `melting_temperature_k` | float / None | `None` | [K] |
+| `heat_of_fusion_j_kg` | float / None | `None` | [J/kg] |
+| `specific_heat_j_kg_k` | float / None | `None` | [J/(kg*K)] |
+| `emissivity` | float / None | `None` | [-] |
+| `solar_absorptance` | float / None | `None` | [-] |
+| `ao_erosion_yield_cm3_atom` | float / None | `None` | [cm^3/atom] |
+| `source` | str | `''` |  |
+
+## ModelAnalysesConfig
+
+Which analyses of a run use the 3D model and the mounted equipment (each off by default), and their inputs. With none of this, a run records and computes nothing new (decision D-01).
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `sensor_blinding` | bool | `False` | Sun, Earth and Moon in the sensors' exclusion cones |
+| `antenna_obstruction` | bool | `False` | parts between the antenna and the ground station during passes |
+| `disturbance_torques` | bool | `False` | aero, SRP, gravity gradient and magnetic torques, recorded in the run |
+| `residual_dipole_a_m2` | list | `[0.0, 0.0, 0.0]` | [A*m^2] body frame |
+| `array_shading` | bool | `False` | solar-cell panels shaded by other parts |
+| `surface_exposure` | bool | `False` | atomic oxygen fluence and sun hours per face |
+| `brightness` | bool | `False` | visual magnitude from the ground stations and observer sites |
+| `observers` | list | `[]` | list[ObserverSiteConfig] |
+| `samples` | int | `256` | [-] ray samples per face or cone |
 
 ## ModelMassPropertiesConfig
 
@@ -276,6 +353,9 @@ One part of a 3D model: a simple shape, or a group of an imported mesh, placed i
 | `drag_coeff` | float | `2.2` | [-] |
 | `specular_coeff` | float | `0.3` | [-] |
 | `diffuse_coeff` | float | `0.1` | [-] |
+| `material` | str | `''` |  |
+| `maturity` | str | `''` |  |
+| `subsystem` | str | `''` |  |
 
 ## MomentumDumpingConfig
 
@@ -299,6 +379,36 @@ Batch execution settings -- see ``engine/monte_carlo.py``. ``thread_count`` > 1 
 | `verbose` | bool | `False` |  |
 | `dispersions` | list | `[]` | list[DispersionConfig] |
 
+## MountConfig
+
+Where a piece of equipment sits on the 3D model: a position and a boresight, in the frame of ``part`` when set (it then moves with that part, e.g. to its stowed place) or else in the body frame.
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `part` | str | `''` |  |
+| `position_m` | list / None | `None` | [m] |
+| `boresight` | list / None | `None` | [-] unit vector (normalized when used) |
+| `field_of_view_deg` | float / None | `None` | [deg] full cone angle |
+| `exclusion_sun_deg` | float / None | `None` | [deg] half-angle about the boresight |
+| `exclusion_earth_deg` | float / None | `None` | [deg] from the Earth's limb, atmosphere margin included |
+| `exclusion_moon_deg` | float / None | `None` | [deg] from the Moon's limb |
+| `earth_atmosphere_km` | float / None | `None` | [km] added to the Earth's radius for the limb |
+| `plume_half_angle_deg` | float / None | `None` | [deg] thrusters: the plume cone, along -boresight |
+
+## MountedEquipmentConfig
+
+Equipment the scenario has no other definition for -- a payload camera, an orbit thruster's nozzle, a solar-cell panel, a radiator, a unit -- mounted on the model. ``mass_kg`` (point mass at the mount) counts in the model's computed mass properties and the mass budget; ``thrust_n`` is a thruster's force for the authority matrix.
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `name` | str | `required` |  |
+| `kind` | str | `required` | one of EQUIPMENT_KINDS |
+| `mount` | MountConfig | `MountConfig(part='', position_m=None, boresight=None, field_` |  |
+| `mass_kg` | float | `0.0` | [kg] |
+| `maturity` | str | `''` | the mass budget's maturity category; "" for none |
+| `subsystem` | str | `''` | the mass budget's grouping; "" for none |
+| `thrust_n` | float / None | `None` | [N] thrusters only |
+
 ## NavigationErrorConfig
 
 Errors on what the flight software is told, by Basilisk's ``simpleNav`` (its Gauss-Markov error model, ``PMatrix`` and ``walkBounds``). Without this, the navigation messages are the true state.
@@ -316,6 +426,18 @@ Errors on what the flight software is told, by Basilisk's ``simpleNav`` (its Gau
 | `velocity_step_m_s` | float | `0.0` | [m/s] |
 | `velocity_bound_m_s` | float | `0.0` | [m/s] |
 | `seed` | int / None | `None` |  |
+
+## ObserverSiteConfig
+
+A place on the Earth the spacecraft's brightness is computed from, beside the ground stations.
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `name` | str | `required` |  |
+| `latitude_deg` | float | `required` | [deg] geodetic |
+| `longitude_deg` | float | `required` | [deg] east |
+| `altitude_m` | float | `0.0` | [m] above the WGS-84 ellipsoid |
+| `min_elevation_deg` | float | `10.0` | [deg] above the horizon |
 
 ## OpticalNavigationConfig
 
@@ -356,6 +478,16 @@ One spacecraft's orbit initial condition, in exactly one of three forms. Only th
 | `velocity_km_s` | list / None | `None` | [vx, vy, vz] |
 | `tle_line1` | str / None | `None` |  |
 | `tle_line2` | str / None | `None` |  |
+
+## PartPoseConfig
+
+Where a part is in the stowed configuration (arrays and antennas folded): its position and rotation then, as ``ModelPartConfig`` gives them for the deployed one.
+
+| Field | Type | Default | Unit / note |
+|---|---|---|---|
+| `part` | str | `required` |  |
+| `position_b_m` | list | `[0.0, 0.0, 0.0]` | [m] |
+| `rotation_deg` | list | `[0.0, 0.0, 0.0]` | [deg] roll, pitch, yaw (3-2-1) |
 
 ## PhasingKeepingConfig
 
@@ -450,6 +582,7 @@ A spacecraft's downlink transmitter and antenna, for the link margin (``engine.l
 | `antenna_gain_table` | list | `[]` |  |
 | `antenna_front_to_back_db` | float | `15.0` | [dB] "cosine" only: gain behind the ground plane, below the peak |
 | `antenna_boresight_b` | list / None | `None` |  |
+| `antenna_mount` | MountConfig / None | `None` |  |
 
 ## RoeFormationConfig
 
@@ -487,6 +620,7 @@ One sensor instance. ``kind`` is one of :data:`SUPPORTED_SENSOR_KINDS` (see the 
 | `kind` | str | `required` |  |
 | `name` | str | `required` |  |
 | `params` | dict | `{}` |  |
+| `mount` | MountConfig / None | `None` | where it sits on the 3D model; written only when set |
 
 ## SimSettings
 
@@ -581,6 +715,7 @@ See engine/spaceweather.py and engine/service.py. Real data only (user requireme
 | `vizard_model_rotation_deg` | list | `[0.0, 0.0, 0.0]` | 3-2-1 Euler (z,y,x) |
 | `vizard_model_scale` | list | `[1.0, 1.0, 1.0]` |  |
 | `model` | SpacecraftModelConfig / None | `None` |  |
+| `model_analyses` | ModelAnalysesConfig / None | `None` |  |
 
 ## SpacecraftModelConfig
 
@@ -595,6 +730,12 @@ A spacecraft's 3D model (see ``spacemissionstudio.model3d``): parts built from s
 | `apply_mass_properties` | bool | `True` |  |
 | `apply_facets` | bool | `True` |  |
 | `use_for_vizard` | bool | `True` |  |
+| `equipment` | list | `[]` | list[MountedEquipmentConfig] |
+| `stowed` | list | `[]` | list[PartPoseConfig]: the stowed configuration |
+| `face_properties` | list | `[]` | list[FacePropertyConfig] |
+| `materials` | list | `[]` | list[MaterialConfig]: the model's own |
+| `mass_budget` | MassBudgetConfig / None | `None` |  |
+| `launcher` | LauncherConfig / None | `None` |  |
 
 ## StationKeepingConfig
 

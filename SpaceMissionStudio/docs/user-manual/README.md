@@ -33,6 +33,7 @@ New to the app? Do [Getting started](../getting-started.md) first.
 | Fly around an asteroid, with its shape's gravity, and navigate from its landmarks? | [Small bodies and landmark navigation](small-body-navigation.md) |
 | Point the spacecraft, with real sensors and actuators? | [Attitude and hardware](attitude-and-hardware.md) |
 | Build my spacecraft in 3D, or import it from CAD, with its mass, center of mass and inertia? | [3D model](3d-model.md) |
+| Check fields of view, thrusters, mass and launcher fit on my 3D model, and analyse disturbances, blinding, shading, exposure, brightness and re-entry? | [Analyses built on the 3D model](model-analyses.md) |
 | Model power, the radio link and data? | [Power, link and data](power-link-and-data.md) |
 | Run many variations at once? | [Monte Carlo](monte-carlo.md) |
 | Know when it comes down, and how much propellant it needs? | [Lifetime and propellant budget](lifetime-and-budget.md) |

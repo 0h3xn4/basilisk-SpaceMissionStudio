@@ -65,6 +65,8 @@ kind's non-vector keys.
 
 from __future__ import annotations
 
+import copy
+
 import html
 import re
 from typing import NamedTuple
@@ -478,6 +480,8 @@ class _ItemEditorDialog(QDialog):
         if item is not None:
             self._kind_params[item.kind] = dict(item.params)
         self._item_params = dict(item.params) if item is not None else {}
+        # Where it is mounted on the 3D model (model analyses): kept as it is, edited in the scenario file.
+        self._mount = copy.deepcopy(getattr(item, "mount", None)) if item is not None else None
         label = "sensor" if item_cls.__name__ == "SensorConfig" else "actuator"
         self.setWindowTitle(f"Edit {label}" if item is not None else f"New {label}")
 
@@ -732,7 +736,7 @@ class _ItemEditorDialog(QDialog):
                 f"{kind!r} is missing required params key(s): {', '.join(missing)} -- "
                 "use 'Reset to template' for a working example"
             )
-        return self._item_cls(kind=kind, name=name, params=params)
+        return self._item_cls(kind=kind, name=name, params=params, mount=copy.deepcopy(self._mount))
 
 
 class SensorActuatorListWidget(QWidget):

@@ -148,6 +148,7 @@ made with. The GUI writes the same bundle from Results › Plots ›
 | Command | What it does |
 |---|---|
 | `lifetime scenario.json` | Re-entry date, and the 5-year and 25-year checks (`--spacecraft`, `--max-years`, `--drag-coeff`, `--forecast-percentile 5\|50\|95` for MSFC's solar-activity percentile, `--deorbit-perigee-km` to lower the perigee with the orbit thruster first) |
+| `reentry scenario.json` | A preliminary re-entry casualty estimate from the 3D model: the fragments that reach the ground and the casualty area (`--spacecraft`, `--population-density` people per km² for the risk, `--out`); see [Preliminary re-entry casualty estimate](../models/reentry.md) |
 | `budget scenario.json` | Delta-V and propellant budget (ESA AD10 style) |
 | `budget scenario.json --launch-delays` | The same, for launches 1 to 5 years late |
 | `budget scenario.json --altitudes 400,450,500` | Which altitude fits the tank |
@@ -234,6 +235,8 @@ drag and solar pressure act on.
 | `model scenario.json` | Lists each model's parts, the mass properties and facets it gives, and whether the spacecraft's stored values still match |
 | `model scenario.json --apply` | Writes those values into the scenario file |
 | `model scenario.json --spacecraft sat-1 --export-obj sat.obj` | Writes the model as a Wavefront `.obj` (and `.mtl`), body frame, metres, +z up |
+| `check-design scenario.json` | The design checks of a model, with no run: field-of-view obstruction, thruster authority and plumes, mass budget, launcher envelope (`--spacecraft`, `--samples` rays per cone, `--explain`, `--out` for the record, `--tables DIR` for the CSV tables); see [Analyses built on the 3D model](model-analyses.md) |
+| `model-analyses scenario.json` | Runs the scenario and reports its model analyses: disturbance torques with the wheel and magnetorquer sizing, blinding, antenna obstruction, array shading, exposure and brightness (`--spacecraft`, `--out`, `--tables DIR`) |
 
 ```console
 $ spacemissionstudio model octagon.json

@@ -35,6 +35,8 @@ the rule, margin or model an analysis uses, with its value in effect,
 unit, source and rationale (`spacemissionstudio assumptions` prints the
 same). A [project configuration file](#p) changes them.
 
+**Atomic oxygen (AO)** -- single oxygen atoms, the main gas of the upper atmosphere in low Earth orbit. A surface facing the direction of flight is hit by them and some materials (Kapton, Mylar) erode; the erosion is the number of atoms per area (the fluence) times the material's erosion yield.
+
 **Attitude** -- which way a spacecraft points, as opposed to where it is.
 "Attitude control" keeps it pointed at a target: the ground, the Sun, a
 ground station or a planet.
@@ -56,6 +58,8 @@ and where it came from, and an **Open** button to each input that is itself
 computed. The **Show calculation** buttons on the Budget, End of Life,
 Dashboard and Timeline, and a card of Results › Overview, open it;
 `--explain` prints the same on the command line.
+
+**Casualty area** -- the area over which falling debris could hurt a person: for each fragment that reaches the ground with more than 15 J, `(0.6 + sqrt(A))^2` m^2, `A` its average cross-section and 0.6 m the root of a standing person's. Times the population density it gives the casualty risk.
 
 **CCSDS** -- the Consultative Committee for Space Data Systems, which
 publishes the standard file formats space agencies exchange. SpaceMissionStudio
@@ -123,6 +127,8 @@ atmospheric density and where the ground is all depend on it.
 passes, eclipses, burns and attitude-mode changes. The **Timeline** area
 lists and draws them.
 
+**Exclusion angle** -- how close to its boresight a star tracker or camera tolerates a bright body (the Sun, the Earth's lit limb, the Moon) before it is blinded.
+
 ## F
 
 **F10.7** -- the Sun's radio brightness at 10.7 cm wavelength, a daily
@@ -133,6 +139,8 @@ atmosphere, so low satellites feel more [drag](#d).
 own area, facing direction and centre of pressure. Drag and solar
 pressure push on each plate that faces the flow or the Sun, so both
 depend on the attitude and can twist the spacecraft.
+
+**Field of view (FOV)** -- the cone a sensor, camera or antenna sees, given as its full angle.
 
 **Flexible appendage** -- a large, light part, such as a solar-array
 wing, that bends and swings when the spacecraft turns. Its first mode is
@@ -235,6 +243,8 @@ orbit](#s), the local solar time when the satellite crosses the equator
 going north, for example 10:30. It sets the lighting the satellite sees.
 
 ## M
+
+**Maturity (mass)** -- how far a part's mass is known: estimated, from a layout, a design about to be released, a released design, existing hardware, or measured. The less mature, the larger the growth allowance added to it (AIAA S-120-2006).
 
 **Mean elements** -- orbit elements with the short, regular wobbles
 averaged out, so slow trends (such as the orbit plane turning under
@@ -362,6 +372,8 @@ the orbit plane faces.
 each sensor noise model's own random sequence is derived, so the same
 scenario gives the same run and no two sensors draw the same noise.
 
+**Ray casting** -- following straight lines (rays) through the 3D model to see what they hit: how the app finds parts in a field of view, a plume or the way of the sunlight.
+
 **Reaction wheel (RW)** -- a spinning wheel inside the spacecraft.
 Speeding it up or slowing it down turns the spacecraft the other way,
 without propellant.
@@ -421,6 +433,8 @@ spacecraft. It matters most for high orbits and large, light spacecraft.
 **Station-keeping** -- small, regular burns that put a satellite back
 where it should be as drag and gravity make it drift.
 
+**Stowed configuration** -- where the deployable parts (arrays, booms, antennas) sit for launch, folded against the bus.
+
 **Sun-synchronous orbit (SSO)** -- a near-polar orbit whose plane turns
 once a year, in step with the Sun, so the satellite passes over each
 latitude at the same local solar time every day. Common for Earth
@@ -465,6 +479,8 @@ SpaceMissionStudio computed or suggested (**computed**, with what computed
 it), one you edited afterwards (**edited**) or one you replace on purpose
 (**overridden**, with the reason, which is required). Runs and records list
 them. See [Computed and overridden values](models/value-marks.md).
+
+**Visual magnitude** -- how bright an object looks to the eye on a scale where smaller is brighter: the Sun is -26.7, the brightest stars about 0, the faintest seen in a dark sky about 6.
 
 **Vizard** -- Basilisk's separate 3D visualisation program. SpaceMissionStudio
 can stream a run to it live or save a file to play back.
