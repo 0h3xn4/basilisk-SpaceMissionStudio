@@ -274,7 +274,14 @@ its notes and publish.
 the fixes reported on 2.1.0 (#215: the 3D model editor as a window of its
 own, the IDM-CIC import from a template, Vizard's battery in watt-hours).
 No scenario field, template or golden file changed. The space weather is
-still 1.3.0's (CelesTrak reset the connection again, K-13).
+still 1.3.0's (CelesTrak reset the connection again, K-13). The release
+pull request (#216) was merged once CI was green, and the user tagged
+`spacemissionstudio-v2.1.1` on `a6413c1cb` and published it on
+2026-11-04 at 19:58 UTC, with notes written for it, which the workflow
+kept. Published two seconds before the workflow started, it was public
+without files for 35 minutes, until the workflow attached them at 20:33,
+the sixth release so. To avoid it: push the tag, or save the release as
+a draft, wait for the files (about 35 minutes), then publish.
 
 ---
 
