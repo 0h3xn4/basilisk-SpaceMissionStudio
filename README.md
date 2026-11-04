@@ -5,7 +5,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-[![Version 2.0.0](https://img.shields.io/badge/version-2.0.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.0.0)
+[![Version 2.1.0](https://img.shields.io/badge/version-2.1.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.1.0)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -99,8 +99,13 @@ A few seconds later **Results > Plots** shows the orbit and the
   equation, inputs and rule; named parameters a project file can change;
   a change history beside each scenario; plugins with models and rules
   of your own; reproduction bundles that run again on another computer.
-- **Exchange:** CCSDS orbit messages; flight-software export as a C
-  project; software-in-the-loop testing.
+- **3D model:** build the spacecraft from shapes, CAD meshes or an
+  IDM-CIC model, with its mass properties, equipment and stowed
+  configuration; design checks (fields of view, thrusters, mass budget,
+  launcher fit) and analyses after a run (disturbance torques, blinding,
+  shading, exposure, brightness, a preliminary re-entry estimate).
+- **Exchange:** CCSDS orbit messages; IDM-CIC models (read only);
+  flight-software export as a C project; software-in-the-loop testing.
 - **3D view** in Vizard; a **command line** for every analysis; a
   **Python API**; light and dark themes; **offline by design**.
 
@@ -120,12 +125,17 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE),
   [`SpaceMissionStudio/LICENSE`](SpaceMissionStudio/LICENSE)).
-- **Version:** 2.0.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.0.0),
-  [changelog](SpaceMissionStudio/CHANGELOG.md)): a glass box. Every
-  figure opens its calculation, every rule is a parameter a project file
-  can change, every result can be reproduced from its folder, and a
-  Python API scripts the same numbers. It needs Python 3.14 from source,
-  and 1.x cannot open the scenario files it saves. Before it: 1.3.x made
+- **Version:** 2.1.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.1.0),
+  [changelog](SpaceMissionStudio/CHANGELOG.md)): the spacecraft as
+  designed. Its 3D model carries the equipment, a stowed configuration
+  and materials; the tool checks fields of view, thrusters, the mass
+  budget and launcher fit and analyses disturbances, blinding, shading,
+  exposure, brightness and re-entry with it; and the model can be
+  imported from IDM-CIC (© CNES) and updated from its later versions.
+  Before it: 2.0.0 was a glass box (every figure opens its calculation,
+  every rule is a parameter, every result can be reproduced, a Python
+  API; Python 3.14 from source, and 1.x cannot open the files it
+  saves); 1.3.x made
   the interface new (a navigation rail, a command palette, the Timeline,
   Reports › Exports), 1.2.0 guided a mission from scratch, 1.1.1 made
   the installers self-contained, and 1.0.0 was the first release of the

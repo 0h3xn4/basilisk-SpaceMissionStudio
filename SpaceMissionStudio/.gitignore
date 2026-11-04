@@ -11,6 +11,7 @@ dist/
 
 # Coverage data (compliance/tools/metrics.py, CI)
 .coverage
+.coverage.*
 coverage.json
 
 # The .deb launcher (the repository root ignores every bin/ folder).

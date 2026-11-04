@@ -14514,6 +14514,58 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.1.0 prepared (2026-11-04)
+
+The user: "Please continue as per your recommendations and don't stop to
+ask for my input, my decisions or my permission. work autonomously until
+you fully incorporated the feature(s) and are ready for a new release."
+Branch `release/2.1.0`, after the IDM-CIC import (#212).
+
+What it contains since 2.0.0, each with its own record:
+- #207 and #208: the 2.0.0 publication recorded, the documentation
+  brought up to date with 2.0.0.
+- #209: the analyses built on the 3D model
+  (`docs/developer/model-analyses-design.md`, decisions D-01 to D-23,
+  SRS-F-25 to F-27, template 32).
+- #210 and #211: the 3D model editor's Equipment, Stowed, Materials and
+  Budget and launcher tabs (decisions D-24 and D-25).
+- #212: the IDM-CIC import (SRS-F-28, ICD-12; the design note's
+  section 14 records decisions IDM-01 to IDM-18). The 16 example models
+  supplied for the work were read outside the repository only; every
+  one loads and places, and the CIC-SAT example renders as a coherent
+  satellite with its arrays deploying in its orbit configuration. The
+  tests use a hand-written synthetic model.
+
+By `docs/developer/releasing.md`:
+- the version 2.1.0 in `pyproject.toml`, `spacemissionstudio/__init__.py`
+  and the Inno Setup script;
+- the CHANGELOG's "Unreleased" entries under `## 2.1.0 (2026-11-04)`,
+  with a summary, "Who should update" and "Known limits";
+- SRelD issue 19 (2.1.0 prepared; 2.0.0 the previous release; what
+  changed since `6608682a3`; K-13 updated, K-27 and K-28 new);
+- the SDP, SRS, ICD, CSD, SUM, the README and `releasing.md` name 2.1.0.
+
+**Checked:**
+- **Scenario files across versions.** 2.0.0's own `load_scenario` (from
+  the tag, `6608682a3`) on the 32 templates as 2.1.0 saves them: the 31
+  older ones open; template 32, which mounts its equipment, is refused
+  ("spacecraft[0].sensors[0]: unexpected field 'mount'"), and so is a
+  scenario with an IDM-CIC import ("model.parts[0]: unexpected field
+  'subsystem'"). Hence K-27 and the "Who should update" note.
+- **Space weather.** CelesTrak reset the connection again (`curl: (35)
+  Recv failure: Connection reset by peer`), so the bundled file stays
+  1.3.0's (observations to 2026-10-24, forecast to 2026-12-07).
+- **Outside `SpaceMissionStudio/`:** since 2.0.0 only the repository's
+  front-page `README.md` changed (#208, the documentation update); no
+  Basilisk file changed. At the user's request ("update the README badge
+  too") the release also updates that front page: the version badge,
+  the version paragraph and the feature list (the 3D model and the
+  IDM-CIC import).
+- **The full suite** on the release's code: 4566 passed on Python 3.14
+  in 19 min 56 s (4441 at 2.0.0).
+- A coverage data file committed by mistake with #209
+  (`.coverage.vm.pid8546.XXUfTrAx`) is removed.
+
 ## Release 2.0.0 published (2026-11-03)
 
 #206 was merged. The tag could not be pushed from this environment: its
