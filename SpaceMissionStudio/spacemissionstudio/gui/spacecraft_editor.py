@@ -1521,6 +1521,8 @@ class SpacecraftEditorDialog(QDialog):
         power_layout.addWidget(self.fuel_tank_group)
 
         rf_link0 = config.rf_link if config else None
+        # Where the antenna sits on the 3D model: edited in the 3D model editor's Equipment tab.
+        self._rf_antenna_mount = copy.deepcopy(rf_link0.antenna_mount) if rf_link0 is not None else None
         self.rf_link_group = QGroupBox("Downlink RF link budget")
         self.rf_link_group.setCheckable(True)
         self.rf_link_group.setToolTip(
@@ -2285,14 +2287,32 @@ class SpacecraftEditorDialog(QDialog):
         self.facet_table.setEnabled(not facets_locked)
         self.facet_table.setToolTip(tip if facets_locked else "")
 
+    def _devices(self) -> SimpleNamespace:
+        """The devices as the form holds them (the 3D model editor edits
+        their mounts); the comms pointing only when its form reads."""
+        try:
+            comms_pointing = None if self._orbit_only else self._comms_pointing_to_dataclass()
+        except ValueError:
+            comms_pointing = None
+        return SimpleNamespace(sensors=[] if self._orbit_only else self.sensor_list.to_list(),
+                               actuators=[] if self._orbit_only else self.actuator_list.to_list(),
+                               rf_link=self._rf_link_to_dataclass(), comms_pointing=comms_pointing)
+
     def _on_open_model_editor(self) -> None:
         from .model_editor_dialog import ModelEditorDialog
 
         dialog = ModelEditorDialog(self._model, spacecraft_name=self.name_edit.text().strip() or "sat-1",
                                    base_dir=self._base_dir(), parent=self,
-                                   simulation_mode="orbit_only" if self._orbit_only else "full_attitude")
+                                   simulation_mode="orbit_only" if self._orbit_only else "full_attitude",
+                                   devices=self._devices())
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self._model = dialog.model()
+            devices = dialog.devices()
+            if not self._orbit_only:
+                self.sensor_list.set_mounts({d.name: d.mount for d in devices.sensors})
+                self.actuator_list.set_mounts({d.name: d.mount for d in devices.actuators})
+            if devices.rf_link is not None:
+                self._rf_antenna_mount = devices.rf_link.antenna_mount
             self._on_apply_model()
 
     def _on_apply_model(self) -> None:
@@ -2785,6 +2805,7 @@ class SpacecraftEditorDialog(QDialog):
             antenna_front_to_back_db=self.rf_front_to_back_db.value(),
             antenna_boresight_b=[self.rf_boresight_x.value(), self.rf_boresight_y.value(),
                                  self.rf_boresight_z.value()] if self.rf_boresight_check.isChecked() else None,
+            antenna_mount=copy.deepcopy(self._rf_antenna_mount),
         )
 
     def _data_handling_to_dataclass(self) -> DataHandlingConfig | None:
@@ -3269,16 +3290,17 @@ class SpacecraftListWidget(QWidget):
         applies (mass, center of mass, inertia, facets) into the spacecraft,
         as the 3D model tab does. Returns whether the spacecraft changed."""
         from ..model3d import model as model3d
-        from .model_editor_dialog import ModelEditorDialog
+        from .model_editor_dialog import ModelEditorDialog, apply_device_mounts
 
         config = self._configs[row]
         base_dir = self._base_dir_provider() if self._base_dir_provider else None
         dialog = ModelEditorDialog(config.model, spacecraft_name=config.name, base_dir=base_dir, parent=self,
-                                   simulation_mode=self._simulation_mode())
+                                   simulation_mode=self._simulation_mode(), devices=config)
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return False
         new_config = copy.deepcopy(config)
         new_config.model = dialog.model()
+        apply_device_mounts(new_config, dialog.devices())
         orbit_only = self._simulation_mode() == "orbit_only"
         target = SimpleNamespace(model=new_config.model, solar_arrays=[] if orbit_only else new_config.solar_arrays)
         derived = model3d.derive(new_config.model, base_dir)

@@ -223,10 +223,10 @@ Each item was checked against Basilisk's own source.
     [the method](../models/reentry.md).
   * Star-tracker Sun, Earth and Moon exclusion angles have no default:
     no datasheet could be read (D-12).
-  * The 3D model editor does not yet edit the equipment, the stowed
-    configuration, materials or the launcher, nor draw the fields of view
-    and plume cones: these are set in the scenario file (the JSON view)
-    for now (D-21).
+  * The 3D model editor edits the equipment and the stowed
+    configuration and draws the fields of view and plume cones (D-24);
+    materials, face properties, the mass budget's policy and the launcher
+    envelope are still set in the scenario file (the JSON view).
 
 ## Planned, not yet built
 

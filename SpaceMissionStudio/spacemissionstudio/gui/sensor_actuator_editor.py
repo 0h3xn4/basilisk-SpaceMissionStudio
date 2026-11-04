@@ -66,6 +66,7 @@ kind's non-vector keys.
 from __future__ import annotations
 
 import copy
+import dataclasses
 
 import html
 import re
@@ -847,6 +848,22 @@ class SensorActuatorListWidget(QWidget):
 
     def to_list(self) -> list:
         return list(self._items)
+
+    def set_mounts(self, mounts: dict) -> None:
+        """Give each device named in ``mounts`` that mount (the 3D model
+        editor's Equipment tab edits them); the open form is rebuilt so it
+        does not write the old mount back."""
+        self.inline.flush()
+        changed = False
+        for row, item in enumerate(self._items):
+            if item.name in mounts and getattr(item, "mount", None) != mounts[item.name]:
+                self._items[row] = dataclasses.replace(item, mount=copy.deepcopy(mounts[item.name]))
+                changed = True
+        if changed:
+            row = self.list_widget.currentRow()
+            if row >= 0:
+                self.inline.show_row(row)
+            self.changed.emit()
 
     def from_list(self, items: list) -> None:
         self.inline.discard()  # another spacecraft's devices: the form of one of these is gone

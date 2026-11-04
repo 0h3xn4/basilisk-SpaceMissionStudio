@@ -20,14 +20,20 @@
 imported ``.obj`` groups, and see the mass properties and facets it gives.
 
 Left, the parts; in the middle, the selected part's form; right, the 3D
-view (:mod:`.model_view_widget`). Below, three tabs: **Mass properties**
+view (:mod:`.model_view_widget`). Below, five tabs: **Mass properties**
 (computed from the parts, typed in, or imported from a file), **Surfaces**
-(the facets drag and solar pressure will act on) and **Use** (what the
-model is applied to, and an ``.obj`` export). Every change recomputes the
-model (``model3d.model.derive``) a moment later.
+(the facets drag and solar pressure will act on), **Equipment** (what is
+mounted on the model, drawn in the view with its field of view or plume
+cone), **Stowed** (each part's pose folded for launch, and the view of
+either configuration) and **Use** (what the model is applied to, and an
+``.obj`` export). Every change recomputes the model
+(``model3d.model.derive``) a moment later.
 
-The dialog edits a copy of the model; :meth:`ModelEditorDialog.model`
-returns it after OK. Applying it to the spacecraft's fields is the
+The dialog edits a copy of the model, and of the spacecraft's devices when
+given (their mounts are edited in the Equipment tab);
+:meth:`ModelEditorDialog.model` and :meth:`ModelEditorDialog.devices`
+return them after OK, and :func:`apply_device_mounts` copies the devices'
+mounts back. Applying the model to the spacecraft's fields is the
 spacecraft editor's job.
 """
 
@@ -36,6 +42,7 @@ from __future__ import annotations
 import copy
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
@@ -45,12 +52,15 @@ from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QColorDialog, QDialog, Q
                                QVBoxLayout, QWidget)
 
 from . import export_log
+from ..model3d import equipment as equipment_module
 from ..model3d import mass_import, obj_io
 from ..model3d import model as model3d
+from ..schema import references
 from ..schema.scenario import (MESH_UNITS, MODEL_SHAPE_DIMENSIONS, MODEL_SHAPE_FACES, ModelMassPropertiesConfig,
                                ModelMeshConfig, ModelPartConfig, ScenarioValidationError, SpacecraftModelConfig,
                                name_error)
 from .feedback import report, show_dialog_error
+from .model_equipment_tabs import EquipmentTab, StowedTab
 from .model_view_widget import ModelViewWidget
 from .theme import set_role
 from .theme.palettes import swatch_style
@@ -145,6 +155,26 @@ class _ImportOptionsDialog(QDialog):
         layout.addWidget(buttons)
 
 
+def apply_device_mounts(target, devices) -> bool:
+    """Copy the mounts of ``devices`` (as :meth:`ModelEditorDialog.devices`
+    returns them) onto spacecraft ``target``'s sensors, actuators and RF
+    antenna, matched by name; returns whether one changed."""
+    if devices is None:
+        return False
+    changed = False
+    for source in ("sensors", "actuators"):
+        mounts = {device.name: device.mount for device in getattr(devices, source)}
+        for device in getattr(target, source):
+            if device.name in mounts and getattr(device, "mount", None) != mounts[device.name]:
+                device.mount = copy.deepcopy(mounts[device.name])
+                changed = True
+    if target.rf_link is not None and devices.rf_link is not None \
+            and target.rf_link.antenna_mount != devices.rf_link.antenna_mount:
+        target.rf_link.antenna_mount = copy.deepcopy(devices.rf_link.antenna_mount)
+        changed = True
+    return changed
+
+
 def uses_note(simulation_mode: str | None) -> str:
     """What the next run takes from an applied model in a scenario of this
     simulation mode; empty when the mode is not known."""
@@ -162,11 +192,18 @@ def uses_note(simulation_mode: str | None) -> str:
 class ModelEditorDialog(QDialog):
     """Edits a copy of a :class:`SpacecraftModelConfig` (see the module
     docstring). ``base_dir`` is the scenario file's folder: mesh paths are
-    stored relative to it, and imports can be copied into it."""
+    stored relative to it, and imports can be copied into it. ``devices``
+    (anything with ``sensors``, ``actuators``, ``rf_link`` and
+    ``comms_pointing``, such as the spacecraft) is copied: its mounts are
+    edited in the Equipment tab and its items drawn in the view."""
 
     def __init__(self, model: SpacecraftModelConfig | None, spacecraft_name: str = "sat-1",
-                 base_dir=None, parent: QWidget | None = None, simulation_mode: str | None = None):
+                 base_dir=None, parent: QWidget | None = None, simulation_mode: str | None = None, devices=None):
         super().__init__(parent)
+        self._devices = None if devices is None else SimpleNamespace(
+            sensors=copy.deepcopy(list(devices.sensors)), actuators=copy.deepcopy(list(devices.actuators)),
+            rf_link=copy.deepcopy(devices.rf_link), comms_pointing=copy.deepcopy(getattr(devices, "comms_pointing",
+                                                                                         None)))
         self._simulation_mode = simulation_mode
         self.setWindowTitle(f"3D model: {spacecraft_name}")
         self.resize(1280, 820)
@@ -175,6 +212,8 @@ class ModelEditorDialog(QDialog):
         self._model = copy.deepcopy(model) if model is not None else SpacecraftModelConfig(parts=[])
         self._cache = model3d.MeshCache()
         self.derived: model3d.DerivedModel = model3d.DerivedModel()
+        self.shown: model3d.DerivedModel = self.derived  # what the view draws: the deployed or stowed model
+        self.items: list = []  # the mounted equipment drawn (model3d.equipment.MountedItem)
         self._loading_form = False
         self._recompute_timer = QTimer(self)
         self._recompute_timer.setSingleShot(True)
@@ -289,15 +328,35 @@ class ModelEditorDialog(QDialog):
         self.parts_list.setCurrentRow(row)
         self._schedule()
 
+    def _holder(self) -> SimpleNamespace:
+        """The model and the devices as one spacecraft (schema.references)."""
+        devices = self._devices
+        return SimpleNamespace(name=self._spacecraft_name, model=self._model,
+                               sensors=devices.sensors if devices else [], actuators=devices.actuators if devices else [],
+                               rf_link=devices.rf_link if devices else None,
+                               comms_pointing=devices.comms_pointing if devices else None)
+
     def delete_part(self) -> None:
         row = self.parts_list.currentRow()
         if not 0 <= row < len(self._model.parts):
             return
+        name = self._model.parts[row].name
+        mounted = [ref.path.split(": ", 1)[1].removesuffix(".part").removesuffix(".mount").removesuffix(
+            ".antenna_mount").removeprefix("model.") for ref in references.find_part_references(self._holder(), name)
+                   if "mount" in ref.path]
+        if mounted:
+            self.messages.setText(f"{name!r} carries {', '.join(mounted)}: move them to another part (Equipment "
+                                  "tab) before deleting it")
+            return
+        # Its stowed pose and face properties go with it.
+        self._model.stowed = [pose for pose in self._model.stowed if pose.part != name]
+        self._model.face_properties = [face for face in self._model.face_properties if face.part != name]
         del self._model.parts[row]
         self._drop_unused_meshes()
         self._refresh_parts_list()
         if not self._model.parts:
             self._show_part_form(None)
+        self.equipment_tab.refresh()
         self._schedule()
 
     def _drop_unused_meshes(self) -> None:
@@ -310,6 +369,7 @@ class ModelEditorDialog(QDialog):
 
     def _on_part_selected(self, row: int) -> None:
         self._show_part_form(self.selected_part())
+        self.stowed_tab.show_part(self.selected_part())
         self._redraw()
 
     # -- importing ---------------------------------------------------------------------------------------------
@@ -541,8 +601,11 @@ class ModelEditorDialog(QDialog):
             self.part_widgets["name"].setText(part.name)
             self.messages.setText(problem)
             return
-        part.name = name
+        if name != part.name:  # the mounts, stowed pose and face properties that name it follow
+            references.rename_part(self._holder(), part.name, name)
         self._refresh_parts_list()
+        self.equipment_tab.refresh()
+        self.stowed_tab.show_part(part)
         self._schedule()
 
     def _on_pick_color(self) -> None:
@@ -574,6 +637,14 @@ class ModelEditorDialog(QDialog):
         surfaces_layout.addWidget(self.surfaces_label)
         surfaces_layout.addStretch(1)
         tabs.addTab(surfaces, "Surfaces")
+        self.equipment_tab = EquipmentTab(self._model, self._devices)
+        self.equipment_tab.changed.connect(self._schedule)
+        self.equipment_tab.list.currentRowChanged.connect(lambda _row: self._redraw())
+        tabs.addTab(self.equipment_tab, "Equipment")
+        self.stowed_tab = StowedTab(self._model)
+        self.stowed_tab.changed.connect(self._schedule)
+        self.stowed_tab.configuration_changed.connect(lambda _c: self.recompute_now())
+        tabs.addTab(self.stowed_tab, "Stowed")
         tabs.addTab(self._build_use_tab(), "Use")
         self.bottom_tabs = tabs
         return tabs
@@ -806,12 +877,21 @@ class ModelEditorDialog(QDialog):
         else:
             self.surfaces_label.setText("No facets: no part is in the surface model.")
         problems = self.derived.errors + self.derived.warnings
+        configuration = self.stowed_tab.configuration()
+        self.shown = self.derived if configuration == "deployed" else model3d.derive(
+            self._model, self._base_dir, cache=self._cache, configuration=configuration)
+        try:
+            self.items = equipment_module.mounted_items(self._holder(), configuration)
+        except (ValueError, TypeError, KeyError, IndexError) as exc:  # a device half-edited: draw the model alone
+            self.items = []
+            problems = [*problems, f"equipment not drawn: {exc}"]
         self.messages.setText("\n".join(problems))
         self._redraw()
 
     def _redraw(self) -> None:
         part = self.selected_part()
-        self.view.show_model(self.derived, part.name if part is not None else None)
+        self.view.show_model(self.shown, part.name if part is not None else None, self.items,
+                             self.equipment_tab.selected_name())
 
     # -- result ------------------------------------------------------------------------------------------------
 
@@ -819,11 +899,24 @@ class ModelEditorDialog(QDialog):
         """The edited model (a copy; the one passed in is untouched)."""
         return copy.deepcopy(self._model)
 
+    def devices(self):
+        """The devices with their edited mounts (a copy; for
+        :func:`apply_device_mounts`), or None when none were given."""
+        return copy.deepcopy(self._devices)
+
     def _on_ok(self) -> None:
         if self._model.mass_properties_source == "typed":
             self._model.mass_properties = self._typed_from_form()
         try:
             self._model.validate(self._spacecraft_name)
+            part_names = [part.name for part in self._model.parts]
+            for source in ("sensors", "actuators"):
+                for device in getattr(self._devices, source, []):
+                    if getattr(device, "mount", None) is not None:
+                        device.mount.validate(f"{self._spacecraft_name}: {source} {device.name!r}", part_names)
+            rf_link = getattr(self._devices, "rf_link", None)
+            if rf_link is not None and rf_link.antenna_mount is not None:
+                rf_link.antenna_mount.validate(f"{self._spacecraft_name}: rf_link.antenna_mount", part_names)
         except ScenarioValidationError as exc:
             show_dialog_error(self, f"The model is not complete: {exc}")
             return

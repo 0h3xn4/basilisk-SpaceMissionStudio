@@ -1689,3 +1689,18 @@ bundled template saves, runs and exports as before.
   sample; `tests/test_design_checks.py`'s test that an unchanged
   spacecraft is not checked again; `tests/test_disturbance_torques.py`'s
   test that a segmented run sizes the wheels on the whole run.
+
+## The 3D model editor's Equipment and Stowed tabs (2026-11-04)
+
+Branch `feature/model-editor-equipment`. No test removed or changed, no
+golden or output file changed.
+
+- Added to `tests/gui/test_model_editor.py`, six tests:
+  - the cone geometry (apex, slant length, half-angle, a field of view
+    wider than 180 deg);
+  - equipment added, edited, drawn and deleted;
+  - a device's mount edited and applied back;
+  - a stowed pose given, shown and taken away;
+  - a part rename that follows its references, and a guarded delete;
+  - the spacecraft editor keeping the RF antenna's mount and taking the
+    devices' mounts.

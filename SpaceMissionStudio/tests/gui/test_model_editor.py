@@ -21,6 +21,7 @@ and its place in the spacecraft editor: building a model from shapes,
 importing an .obj and a mass-properties file, the 3D view's contents, and
 the spacecraft editor applying the model and keeping it on a re-edit."""
 
+import copy
 import json
 
 import numpy as np
@@ -186,3 +187,167 @@ def test_hand_written_products_of_inertia_survive_a_re_edit(qtbot):
     qtbot.addWidget(dialog)
     assert dialog.products_label.isVisibleTo(dialog)
     assert dialog.to_dataclass().inertia_kg_m2 == config.inertia_kg_m2
+
+
+_TEMPLATE_32 = "spacemissionstudio/scenarios/templates/32_smallsat_design_checks.json"
+
+
+def _template_32():
+    from pathlib import Path
+
+    from spacemissionstudio.schema import load_scenario
+
+    return load_scenario(Path(__file__).resolve().parents[2] / _TEMPLATE_32).spacecraft[0]
+
+
+def test_a_cone_has_its_apex_at_the_mount_and_its_rim_at_the_half_angle():
+    """A field of view of 20 deg (half-angle 10) along +z from (1, 0, 0):
+    every rim point is the slant length from the apex and 10 deg off the
+    axis; a 240 deg field of view (half-angle 120) opens backwards."""
+    from spacemissionstudio.gui.model_view_widget import cone_mesh
+
+    apex = np.array([1.0, 0.0, 0.0])  # [m]
+    vertices, triangles = cone_mesh(apex, [0.0, 0.0, 2.0], 10.0, 0.5)
+    rim = vertices[1:-1] - apex
+    assert np.linalg.norm(rim, axis=1) == pytest.approx(np.full(len(rim), 0.5))
+    assert np.degrees(np.arccos(rim[:, 2] / 0.5)) == pytest.approx(np.full(len(rim), 10.0))
+    assert triangles.max() == len(vertices) - 1
+    wide, _ = cone_mesh(apex, [0.0, 0.0, 1.0], 120.0, 0.5)
+    assert np.all(wide[1:, 2] < 0.0)
+
+
+def test_equipment_is_added_edited_drawn_and_deleted(qtbot):
+    """Add puts a camera on the model at B looking along +z; giving it a
+    part, a position and a 30 deg field of view writes its mount, and the
+    view draws its cone (highlighted while selected); Delete removes it."""
+    from spacemissionstudio.schema.scenario import ModelPartConfig, SpacecraftModelConfig
+
+    model = SpacecraftModelConfig(parts=[ModelPartConfig(name="bus", shape="box", mass_kg=50.0,
+                                                         dimensions_m={"x": 1.0, "y": 1.0, "z": 1.0})])
+    dialog = _editor(qtbot, model)
+    tab = dialog.equipment_tab
+    item = tab.add_item("camera")
+    assert item.name == "camera-1" and item.mount.boresight == [0.0, 0.0, 1.0]
+    tab.part_combo.setCurrentIndex(tab.part_combo.findData("bus"))
+    tab.position.fields[2].setValue(0.5)
+    tab.fov.check.setChecked(True)
+    tab.fov.field.setValue(30.0)
+    tab.mass.setValue(2.0)
+    dialog.recompute_now()
+    mount = dialog.model().equipment[0].mount
+    assert mount.part == "bus" and mount.position_m == [0.0, 0.0, 0.5] and mount.field_of_view_deg == 30.0
+    cone = next(t for t in dialog.view.figure.data if t.name == "camera-1 field of view")
+    assert cone.opacity == pytest.approx(0.5)
+    assert "mass 52 kg" in dialog.mass_summary.text()  # the camera's 2 kg count
+    tab.delete_item()
+    assert dialog.model().equipment == []
+
+
+def test_a_devices_mount_is_edited_and_applied_back(qtbot):
+    """With the spacecraft's devices, a reaction wheel not yet mounted is
+    listed; Mount on the model gives it a mount on a part, edited here;
+    the device itself is untouched and apply_device_mounts copies the
+    mount onto the spacecraft. Remove the mount takes it away again."""
+    from spacemissionstudio.gui.model_editor_dialog import ModelEditorDialog, apply_device_mounts
+
+    sc = _template_32()
+    dialog = ModelEditorDialog(sc.model, sc.name, devices=sc)
+    qtbot.addWidget(dialog)
+    tab = dialog.equipment_tab
+    tab.list.setCurrentRow(tab._rows.index(("actuators", "rw-x")))
+    assert "not mounted" in tab.list.currentItem().text() and not tab.form_widget.isEnabled()
+    tab.mount_button.click()
+    tab.part_combo.setCurrentIndex(tab.part_combo.findData("bus"))
+    assert sc.actuators[0].mount is None  # the dialog edits a copy
+    devices = dialog.devices()
+    assert next(a for a in devices.actuators if a.name == "rw-x").mount.part == "bus"
+    target = copy.deepcopy(sc)
+    assert apply_device_mounts(target, devices)
+    rw = next(a for a in target.actuators if a.name == "rw-x")
+    assert rw.mount.part == "bus" and rw.mount.position_m is None  # its position stays the definition's
+    assert rw.params == next(a for a in sc.actuators if a.name == "rw-x").params
+    tab.mount_button.click()
+    assert next(a for a in dialog.devices().actuators if a.name == "rw-x").mount is None
+
+
+def test_a_stowed_pose_is_given_shown_and_taken_away(qtbot):
+    """Ticking 'moves for launch' gives the part a stowed pose starting
+    from its deployed one; moving it and showing the stowed configuration
+    draws the part there; unticking removes the pose."""
+    from spacemissionstudio.schema.scenario import ModelPartConfig, SpacecraftModelConfig
+
+    model = SpacecraftModelConfig(parts=[
+        ModelPartConfig(name="bus", shape="box", mass_kg=50.0, dimensions_m={"x": 1.0, "y": 1.0, "z": 1.0}),
+        ModelPartConfig(name="wing", shape="panel", mass_kg=5.0, position_b_m=[0.0, 1.5, 0.0],
+                        dimensions_m={"width": 1.0, "length": 2.0, "thickness": 0.02})])
+    dialog = _editor(qtbot, model)
+    dialog.parts_list.setCurrentRow(1)
+    tab = dialog.stowed_tab
+    tab.pose_check.setChecked(True)
+    assert dialog.model().stowed[0].position_b_m == [0.0, 1.5, 0.0]
+    tab.position.fields[1].setValue(0.52)
+    tab.rotation.fields[0].setValue(90.0)
+    tab.view_buttons["stowed"].setChecked(True)
+    low, high = dialog.derived.bounds()
+    deployed_width = float(high[1] - low[1])  # [m]
+    low, high = dialog.shown.bounds()
+    stowed_width = float(high[1] - low[1])  # [m]
+    assert deployed_width == pytest.approx(3.0) and stowed_width < 1.1  # the bus -0.5..0.5 m, the wing 0.5..2.5 m
+    tab.pose_check.setChecked(False)
+    assert dialog.model().stowed == []
+
+
+def test_renaming_a_part_moves_its_references_and_deleting_one_is_guarded(qtbot):
+    """Renaming a part renames it in the mounts and stowed poses that name
+    it (OK then validates); a part that carries equipment cannot be
+    deleted until the equipment moves; a part with only a stowed pose is
+    deleted with it."""
+    from spacemissionstudio.gui.model_editor_dialog import ModelEditorDialog
+
+    sc = _template_32()
+    dialog = ModelEditorDialog(sc.model, sc.name, devices=sc)
+    qtbot.addWidget(dialog)
+    row = [p.name for p in dialog.model().parts].index("array +y")
+    dialog.parts_list.setCurrentRow(row)
+    dialog.part_widgets["name"].setText("wing +y")
+    dialog.part_widgets["name"].editingFinished.emit()
+    model = dialog.model()
+    assert "wing +y" in [e.mount.part for e in model.equipment] and "wing +y" in [p.part for p in model.stowed]
+    dialog.delete_part()
+    assert "wing +y" in [p.name for p in dialog.model().parts]
+    assert "carries equipment 'cells +y'" in dialog.messages.text()
+    dialog._on_ok()
+    assert dialog.result() == 1
+
+
+def test_the_spacecraft_editor_keeps_the_antenna_mount_and_takes_the_devices_mounts(qtbot, monkeypatch):
+    """The RF antenna's mount survives the spacecraft editor (it was
+    dropped on OK); the 3D model editor's device mounts reach the sensor
+    list and the antenna through the 3D model tab."""
+    from PySide6.QtWidgets import QDialog
+
+    from spacemissionstudio.gui import model_editor_dialog
+    from spacemissionstudio.gui.spacecraft_editor import SpacecraftEditorDialog
+    from spacemissionstudio.schema.scenario import MountConfig, RFLinkConfig
+
+    sc = _template_32()
+    sc.rf_link = sc.rf_link or RFLinkConfig(10.0, 8.0e9, 1.0e6)
+    sc.rf_link.antenna_mount = MountConfig(part="dish", boresight=[1.0, 0.0, 0.0])
+    dialog = SpacecraftEditorDialog(config=sc)
+    qtbot.addWidget(dialog)
+    assert dialog.to_dataclass().rf_link.antenna_mount == sc.rf_link.antenna_mount
+
+    def accept(editor):
+        tab = editor.equipment_tab
+        tab.list.setCurrentRow(tab._rows.index(("sensors", "imu-1")))
+        tab.mount_button.click()
+        tab.list.setCurrentRow(tab._rows.index(("rf_link", None)))
+        tab.fov.check.setChecked(True)
+        tab.fov.field.setValue(12.0)
+        return QDialog.DialogCode.Accepted
+
+    monkeypatch.setattr(model_editor_dialog.ModelEditorDialog, "exec", accept)
+    dialog._on_open_model_editor()
+    config = dialog.to_dataclass()
+    assert next(s for s in config.sensors if s.name == "imu-1").mount is not None
+    assert config.rf_link.antenna_mount.field_of_view_deg == 12.0 and config.rf_link.antenna_mount.part == "dish"

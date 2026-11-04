@@ -41,6 +41,13 @@ the same results as in 2.0.0.
   visibility are Timeline events.
 - **A preliminary re-entry casualty estimate** on End of Life
   (`spacemissionstudio reentry`, `api.reentry`), labelled preliminary.
+- **The 3D model editor's Equipment and Stowed tabs:** the model's own
+  equipment and the mounts of the sensors, actuators and RF antenna are
+  edited there, drawn with their field-of-view and plume cones; a part's
+  stowed pose is set there, and the view shows either configuration.
+  Renaming a part now renames it in the mounts, stowed poses and face
+  properties; the spacecraft editor no longer drops the RF antenna's
+  mount.
 - **Template 32**, the 300 kg small satellite with its equipment mounted,
   showing a star tracker and a nozzle plume that see an array.
 - Parameters `analyses.observer_sun_depression_deg` and `reentry.*`, with

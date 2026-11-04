@@ -175,10 +175,35 @@ The model can also carry the spacecraft's mounted equipment (with
 boresights, fields of view and exclusion angles), a stowed configuration,
 materials and maturity categories, and a launcher envelope. With them the
 tool checks the design and analyses a run: see
-[Analyses built on the 3D model](model-analyses.md). In this version these
-are set in the scenario file (the Scenario's JSON view) and, for the
-analyses of a run, in the spacecraft editor's **3D model** page; the 3D
-model editor shows the parts, not yet the equipment's cones.
+[Analyses built on the 3D model](model-analyses.md).
+
+In the 3D model editor:
+
+- **Equipment** lists what is mounted on the model. **Add** puts an item
+  of the model's own on it (a camera, a nozzle, solar cells, a radiator,
+  a unit with a mass): give it a part to move with, a position and a
+  boresight in that part's frame, a field of view, the Sun, Earth and
+  Moon exclusion angles, a plume half-angle for a nozzle, a mass, a
+  thrust, a maturity and a subsystem. The spacecraft's sensors,
+  actuators and RF antenna are listed too: **Mount on the model** gives
+  one a place, and a position or boresight left unticked comes from its
+  own definition (a thruster's position and direction, a sun sensor's
+  normal). The device itself is still edited in its own form.
+- The view draws each field of view as a translucent cone along its
+  boresight and each plume as an amber cone behind its nozzle; the item
+  selected in the Equipment tab is drawn stronger.
+- **Stowed** gives the selected part its pose folded for launch (tick
+  "moves for launch", then its position and rotation) and switches the
+  view between the deployed and stowed configurations. Equipment on a
+  part moves with it.
+- Renaming a part renames it wherever it is named (mounts, stowed poses,
+  face properties); a part that carries equipment cannot be deleted until
+  the equipment is moved.
+
+Materials, face properties, the mass budget's policy and the launcher
+envelope are set in the scenario file (the Scenario's JSON view); the
+analyses of a run are chosen in the spacecraft editor's **3D model**
+page.
 
 ---
 
