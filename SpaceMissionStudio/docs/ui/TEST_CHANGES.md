@@ -1704,3 +1704,19 @@ golden or output file changed.
   - a part rename that follows its references, and a guarded delete;
   - the spacecraft editor keeping the RF antenna's mount and taking the
     devices' mounts.
+
+## The rest of the model in the 3D model editor (2026-11-04)
+
+Branch `feature/model-editor-properties`. No test removed or changed, no
+golden or output file changed; `docs/images/model_editor.png`
+re-captured (seven tabs, the 3D view at its full height).
+
+- Added to `tests/gui/test_model_editor.py`, four tests:
+  - the part form's material, maturity and subsystem;
+  - the model's own materials: values, the erosion yield's unit, a
+    rename that follows its users, a delete refused while in use, and
+    a library name refused;
+  - a face's own properties written, with comma decimals, a value out
+    of range refused, and cleared;
+  - the mass budget and a box and a profile launcher envelope edited
+    and validated, then taken away.
