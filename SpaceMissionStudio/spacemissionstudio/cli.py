@@ -1510,6 +1510,72 @@ def cmd_ccsds_import(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_idm_info(args: argparse.Namespace) -> int:
+    """List an IDM-CIC model's elements, configurations and what an import
+    would approximate, without writing anything."""
+    from . import idm, idm_import
+
+    try:
+        model = idm.load(args.model)
+        placement = model.place(args.configuration)
+        the_plan = idm_import.plan(model, args.configuration, None, args.body_element)
+    except idm.IdmError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    masses = idm_import.element_masses(model, placement)
+    print(f"{args.model}: IDM-CIC model version {model.version or 'not given'}"
+          + (f", project {model.project}" if model.project else "")
+          + (f", last modified {model.last_modification}" if model.last_modification else ""))
+    print(f"  SHA-256 {model.sha256}")
+    print("  configurations: " + (", ".join(f"{c.id} ({c.name})" for c in model.configurations) or
+                                  "none saved (the default values are used)"))
+    names = {e.full_id: e.name for e in model.elements}
+    for element in model.elements:
+        mounted = f", mounted on {names.get(element.mounted_on, element.mounted_on)}" if element.mounted_on else ""
+        enabled = "" if element.full_id in placement.enabled_elements else ", not enabled"
+        print(f"  element {element.id}: {element.name}{mounted}{enabled}, {masses.get(element.full_id, 0.0):.6g} kg")
+    for line in the_plan.summary.lines()[1:]:
+        if not line.startswith("  re-import"):
+            print(line)
+    return 0
+
+
+def cmd_idm_import(args: argparse.Namespace) -> int:
+    """Build a spacecraft's 3D model from an IDM-CIC model, or update an
+    earlier import (docs/user-manual/idm-cic.md)."""
+    from . import history, idm, idm_import
+
+    try:
+        scenario = load_scenario(args.scenario)
+    except ScenarioValidationError as exc:
+        print(f"INVALID: {exc}", file=sys.stderr)
+        return 1
+    if not any(sc.name == args.spacecraft for sc in scenario.spacecraft):
+        print(f"ERROR: no spacecraft {args.spacecraft!r} in {args.scenario}", file=sys.stderr)
+        return 1
+    out = args.out or args.scenario
+    try:
+        model = idm.load(args.model)
+        the_plan = idm_import.plan(model, args.configuration, args.stowed_configuration, args.body_element,
+                                   apply_facets=args.apply_facets)
+        summary = idm_import.merge(scenario, args.spacecraft, the_plan, out, author=history.current_author())
+        scenario.validate()
+    except idm.IdmError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        return 1
+    except ScenarioValidationError as exc:
+        print(f"INVALID after the import, not saved: {exc}", file=sys.stderr)
+        return 1
+    except OSError as exc:
+        print(f"ERROR: could not write the model's meshes: {exc}", file=sys.stderr)
+        return 1
+    _save(scenario, out, "idm-import")
+    for line in summary.lines():
+        print(line)
+    print(f"{args.spacecraft}: 3D model imported from {args.model} -> {out}")
+    return 0
+
+
 def cmd_export_fsw(args: argparse.Namespace) -> int:
     """Export a spacecraft's flight software as a standalone C project."""
     from .fsw_export.capture import CaptureError
@@ -2120,6 +2186,27 @@ def build_parser() -> argparse.ArgumentParser:
     p_ccsds_in.add_argument("--set-epoch", action="store_true", help="move the scenario epoch to the OPM's epoch")
     p_ccsds_in.add_argument("--out", type=Path, help="write the updated scenario here (default: overwrite)")
     p_ccsds_in.set_defaults(func=cmd_ccsds_import)
+
+    p_idm_info = subparsers.add_parser("idm-info", help="list an IDM-CIC model's elements, configurations and "
+                                                        "approximations (IDM-CIC is (c) CNES); writes nothing")
+    p_idm_info.add_argument("model", type=Path, help="the .idm file")
+    p_idm_info.add_argument("--configuration", help="a saved configuration's id or name (default: the default values)")
+    p_idm_info.add_argument("--body-element", help="the element whose frame is the body frame (default: chosen)")
+    p_idm_info.set_defaults(func=cmd_idm_info)
+    p_idm_in = subparsers.add_parser("idm-import", help="build or update a spacecraft's 3D model from an IDM-CIC model "
+                                                        "(IDM-CIC is (c) CNES)")
+    p_idm_in.add_argument("model", type=Path, help="the .idm file")
+    p_idm_in.add_argument("scenario", type=Path)
+    p_idm_in.add_argument("--spacecraft", required=True)
+    p_idm_in.add_argument("--configuration", help="a saved configuration's id or name (default: the default values)")
+    p_idm_in.add_argument("--stowed-configuration",
+                          help="a configuration whose poses become the stowed configuration (e.g. the launch one)")
+    p_idm_in.add_argument("--body-element", help="the element whose frame is the body frame (default: chosen)")
+    p_idm_in.add_argument("--apply-facets", action="store_true",
+                          help="also build drag and solar pressure facets from the imported boxes, cylinders, cones "
+                               "and spheres (off by default: the file gives no surface coefficients)")
+    p_idm_in.add_argument("--out", type=Path, help="write the updated scenario here (default: overwrite)")
+    p_idm_in.set_defaults(func=cmd_idm_import)
 
     p_fsw = subparsers.add_parser("export-fsw",
                                   help="export a spacecraft's flight software as a standalone C project (needs Basilisk)")

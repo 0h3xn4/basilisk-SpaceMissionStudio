@@ -18,3 +18,9 @@ coverage.json
 # Built by packaging/bundle_python.py for the Windows setup, and its download cache.
 packaging/windows/python/
 packaging/.python-build-cache/
+
+# IDM-CIC models (.idm, any case) are CNES-format files that may hold real
+# project data: never committed, except the small hand-written synthetic
+# fixtures of the importer's tests (docs/developer/idm-cic-integration.md).
+*.[iI][dD][mM]
+!tests/data/idm/*.[iI][dD][mM]

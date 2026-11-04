@@ -327,12 +327,19 @@ class SpacecraftEditorDialog(QDialog):
     # its path within the spacecraft ("orbit.inclination_deg").
     value_computed = Signal(str, float, str)
     reason_requested = Signal(str)
+    # An IDM-CIC import made in the 3D model editor (its ImportRecord), as the model editor's OK took it;
+    # the scenario keeps it (gui.scenario_editor). An embedded form sends it at once, a dialog when accepted.
+    import_recorded = Signal(object)
 
     def __init__(self, config: SpacecraftConfig | None = None, parent: QWidget | None = None,
                  other_spacecraft_names: list[str] | None = None, simulation_mode: str = "full_attitude",
                  ground_station_names: list[str] | None = None, epoch_provider=None, base_dir_provider=None,
-                 central_body_provider=None, embedded: bool = False):
+                 central_body_provider=None, embedded: bool = False, imports_provider=None):
         super().__init__(parent)
+        self._embedded = embedded
+        # The scenario's import records (for a re-import), and the one a model import here made.
+        self._imports_provider = imports_provider
+        self.pending_import = None
         if embedded:  # a page's form (page_tree.embed_dialog): a widget before it has children, not after
             self.setWindowFlags(Qt.WindowType.Widget)
         self.setWindowTitle("Spacecraft" if config is None else f"Spacecraft: {config.name}")
@@ -2301,12 +2308,18 @@ class SpacecraftEditorDialog(QDialog):
     def _on_open_model_editor(self) -> None:
         from .model_editor_dialog import ModelEditorDialog
 
-        dialog = ModelEditorDialog(self._model, spacecraft_name=self.name_edit.text().strip() or "sat-1",
+        name = self.name_edit.text().strip() or "sat-1"
+        dialog = ModelEditorDialog(self._model, spacecraft_name=name,
                                    base_dir=self._base_dir(), parent=self,
                                    simulation_mode="orbit_only" if self._orbit_only else "full_attitude",
-                                   devices=self._devices())
+                                   devices=self._devices(), previous_import=self.pending_import or _model_import(
+                                       self._imports_provider, name))
         if dialog.exec() == QDialog.DialogCode.Accepted:
             self._model = dialog.model()
+            if dialog.import_record() is not None:
+                self.pending_import = dialog.import_record()
+                if self._embedded:
+                    self.import_recorded.emit(self.pending_import)
             devices = dialog.devices()
             if not self._orbit_only:
                 self.sensor_list.set_mounts({d.name: d.mount for d in devices.sensors})
@@ -2973,6 +2986,12 @@ class SpacecraftLabels:
         return _problem_text(message, self.field_title, self.other_titles)
 
 
+def _model_import(provider, spacecraft: str):
+    """The scenario's 3D model import record of ``spacecraft``, or None."""
+    records = provider() if provider is not None else []
+    return next((r for r in records if r.spacecraft == spacecraft and r.target == "model"), None)
+
+
 class SpacecraftListWidget(QWidget):
     """A list of spacecraft with Add/Edit/Remove, backed by a plain list
     of :class:`SpacecraftConfig`. Emits :attr:`changed` whenever that list
@@ -2985,6 +3004,8 @@ class SpacecraftListWidget(QWidget):
     value_marks_made = Signal(list)
     # A spacecraft added from a preset (PresetRecord, Phase 5b).
     preset_used = Signal(object)
+    # An IDM-CIC import record made through a 3D model editor opened from here (see SpacecraftEditorDialog).
+    import_recorded = Signal(object)
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -3019,6 +3040,7 @@ class SpacecraftListWidget(QWidget):
         # Set by the owning ScenarioEditorWidget (see set_base_dir_provider):
         # the scenario file's folder, for a 3D model's mesh paths.
         self._base_dir_provider = None
+        self._imports_provider = None  # set_imports_provider
 
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -3128,6 +3150,11 @@ class SpacecraftListWidget(QWidget):
         while it is unsaved: where a 3D model's relative mesh paths start."""
         self._base_dir_provider = provider
 
+    def set_imports_provider(self, provider) -> None:
+        """``provider`` returns the scenario's import records, so a 3D model
+        re-import compares with the last one."""
+        self._imports_provider = provider
+
     def _simulation_mode(self) -> str:
         return self._simulation_mode_provider() if self._simulation_mode_provider else "full_attitude"
 
@@ -3147,7 +3174,8 @@ class SpacecraftListWidget(QWidget):
                                          ground_station_names=self._ground_station_names(),
                                          epoch_provider=self._epoch_provider,
                                          central_body_provider=self._central_body_provider,
-                                         base_dir_provider=self._base_dir_provider)
+                                         base_dir_provider=self._base_dir_provider,
+                                         imports_provider=self._imports_provider)
         # default name must be unique so QListWidget entries stay distinguishable
         base_name = dialog.name_edit.text()
         candidate, n = base_name, 1
@@ -3159,6 +3187,8 @@ class SpacecraftListWidget(QWidget):
             return
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
+            if dialog.pending_import is not None:
+                self.import_recorded.emit(dialog.pending_import)
             if config.name in existing_names:
                 report(self, f"Not added: a spacecraft named {config.name!r} already exists", kind="warning")
                 return
@@ -3210,7 +3240,8 @@ class SpacecraftListWidget(QWidget):
                                          ground_station_names=self._ground_station_names(),
                                          epoch_provider=self._epoch_provider,
                                          central_body_provider=self._central_body_provider,
-                                         base_dir_provider=self._base_dir_provider)
+                                         base_dir_provider=self._base_dir_provider,
+                                         imports_provider=self._imports_provider)
         def record(config) -> None:  # the preset and the values it gave, as added (Phase 5b)
             from datetime import UTC, datetime
 
@@ -3223,6 +3254,8 @@ class SpacecraftListWidget(QWidget):
             return
         if dialog.exec() == QDialog.DialogCode.Accepted:
             config = dialog.to_dataclass()
+            if dialog.pending_import is not None:
+                self.import_recorded.emit(dialog.pending_import)
             if config.name in existing_names:
                 report(self, f"Not added: a spacecraft named {config.name!r} already exists", kind="warning")
                 return
@@ -3268,7 +3301,8 @@ class SpacecraftListWidget(QWidget):
                                          ground_station_names=self._ground_station_names(),
                                          epoch_provider=self._epoch_provider,
                                          central_body_provider=self._central_body_provider,
-                                         base_dir_provider=self._base_dir_provider)
+                                         base_dir_provider=self._base_dir_provider,
+                                         imports_provider=self._imports_provider)
         if message:
             dialog.show_problem(path, message)
         if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -3277,6 +3311,8 @@ class SpacecraftListWidget(QWidget):
             if new_config.name in other_names:
                 report(self, f"Not saved: a spacecraft named {new_config.name!r} already exists", kind="warning")
                 return
+            if dialog.pending_import is not None:
+                self.import_recorded.emit(dialog.pending_import)
             self._configs[row] = new_config
             self._refresh_list()
             self.list_widget.setCurrentRow(row)
@@ -3295,9 +3331,12 @@ class SpacecraftListWidget(QWidget):
         config = self._configs[row]
         base_dir = self._base_dir_provider() if self._base_dir_provider else None
         dialog = ModelEditorDialog(config.model, spacecraft_name=config.name, base_dir=base_dir, parent=self,
-                                   simulation_mode=self._simulation_mode(), devices=config)
+                                   simulation_mode=self._simulation_mode(), devices=config,
+                                   previous_import=_model_import(self._imports_provider, config.name))
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return False
+        if dialog.import_record() is not None:
+            self.import_recorded.emit(dialog.import_record())
         new_config = copy.deepcopy(config)
         new_config.model = dialog.model()
         apply_device_mounts(new_config, dialog.devices())

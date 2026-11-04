@@ -1751,6 +1751,10 @@ class ModelPartConfig:
     material: str = ""
     maturity: str = ""
     subsystem: str = ""
+    # Where the part was imported from (written only when set): the source
+    # object's identifier, e.g. an IDM-CIC shape occurrence's fullId, which
+    # a re-import matches on (docs/developer/idm-cic-integration.md).
+    source_id: str = ""
 
     def validate(self, where: str, mesh_count: int) -> None:
         _require(name_error("part", self.name) is None, _prefixed(where, name_error("part", self.name)))
@@ -1788,7 +1792,7 @@ class ModelPartConfig:
         _require(0.0 <= self.specular_coeff <= 1.0 and 0.0 <= self.diffuse_coeff <= 1.0
                  and self.specular_coeff + self.diffuse_coeff <= 1.0,
                  f"{where}: specular_coeff and diffuse_coeff must each be in [0, 1] and sum to at most 1")
-        for name in ("material", "maturity", "subsystem"):
+        for name in ("material", "maturity", "subsystem", "source_id"):
             _require(isinstance(getattr(self, name), str), f"{where}: {name} must be text")
 
 
@@ -1882,6 +1886,7 @@ class MountedEquipmentConfig:
     maturity: str = ""  # the mass budget's maturity category; "" for none
     subsystem: str = ""  # the mass budget's grouping; "" for none
     thrust_n: float | None = None  # [N] thrusters only
+    source_id: str = ""  # where it was imported from, as ModelPartConfig.source_id; written only when set
 
     def validate(self, where: str, part_names) -> None:
         _require(name_error("equipment", self.name) is None, _prefixed(where, name_error("equipment", self.name)))
@@ -1894,6 +1899,7 @@ class MountedEquipmentConfig:
         _require(_is_finite_number(self.mass_kg) and 0.0 <= self.mass_kg <= 1.0e5,
                  f"{where}: mass_kg must be in [0, 1e5] kg")
         _require(isinstance(self.subsystem, str), f"{where}: subsystem must be text")
+        _require(isinstance(self.source_id, str), f"{where}: source_id must be text")
         _require(self.thrust_n is None or (_is_finite_number(self.thrust_n) and 0.0 < self.thrust_n <= 1.0e5),
                  f"{where}: thrust_n must be in (0, 1e5] N")
 
@@ -2189,6 +2195,8 @@ class SpacecraftModelConfig:
             _require(item.maturity == "" or item.maturity in policy.categories,
                      f"{where}: equipment {item.name!r}: maturity {item.maturity!r} must be one of "
                      f"{list(policy.categories)}")
+        sources = [item.source_id for item in self.parts + self.equipment if item.source_id]
+        _require(len(sources) == len(set(sources)), f"{where}: a source_id names one part or equipment item only")
         posed = [pose.part for pose in self.stowed]
         _require(len(posed) == len(set(posed)), f"{where}: a part has at most one stowed pose")
         for pose in self.stowed:
@@ -3264,19 +3272,23 @@ def number_fields(record, prefix: str = "") -> dict:
 
 
 # What an import record says was read from a file, and the formats (Phase 8c).
-IMPORT_TARGETS = ("orbit",)
-IMPORT_FORMATS = ("ccsds_opm", "ccsds_omm")
+IMPORT_TARGETS = ("orbit", "model")
+IMPORT_FORMATS = ("ccsds_opm", "ccsds_omm", "idm_cic")
+#: The formats each target is read from.
+IMPORT_TARGET_FORMATS = {"orbit": ("ccsds_opm", "ccsds_omm"), "model": ("idm_cic",)}
 IMPORT_SOURCE_STATES = ("unchanged", "changed", "missing")
 
 
 @dataclass
 class ImportRecord:
     """A spacecraft's values read from a file (``spacemissionstudio
-    ccsds-import``; the transparency plan, Phase 8c): what was set
-    (``target``: its orbit), from which file (``source``, its absolute path
-    then) in which format, the file's SHA-256 then, and every number set
-    and text as it was read (:func:`imported_values`), so a later change of
-    the file, or of the values, is seen."""
+    ccsds-import`` and ``idm-import``; the transparency plan, Phase 8c):
+    what was set (``target``: its orbit, or its 3D model), from which file
+    (``source``, its absolute path then) in which format, the file's
+    SHA-256 then, and every number set and text as it was read
+    (:func:`imported_values`), so a later change of the file, or of the
+    values, is seen. ``details`` (written only when set) says how the file
+    was read: for a model, its version and the configuration used."""
 
     spacecraft: str
     target: str  # one of IMPORT_TARGETS
@@ -3286,6 +3298,7 @@ class ImportRecord:
     values: dict = field(default_factory=dict)  # {path: number or text}, as imported
     time_utc: str = ""
     author: str = ""
+    details: dict = field(default_factory=dict)  # {name: text}
 
     def validate(self, scenario, index: int) -> None:
         where = f"imports[{index}]"
@@ -3293,6 +3306,8 @@ class ImportRecord:
                  f"{where}.spacecraft {self.spacecraft!r} is not one of this scenario's spacecraft")
         _require(self.target in IMPORT_TARGETS, f"{where}.target must be one of {IMPORT_TARGETS}")
         _require(self.format in IMPORT_FORMATS, f"{where}.format must be one of {IMPORT_FORMATS}")
+        _require(self.target not in IMPORT_TARGET_FORMATS or self.format in IMPORT_TARGET_FORMATS[self.target],
+                 f"{where}: a {self.target} is not read from {self.format}")
         _require(isinstance(self.source, str) and bool(self.source.strip()), f"{where}.source must name the file")
         _require(isinstance(self.sha256, str) and len(self.sha256) == 64
                  and all(c in "0123456789abcdef" for c in self.sha256),
@@ -3303,11 +3318,17 @@ class ImportRecord:
                  f"{where}.values must map field paths to finite numbers or text")
         for key in ("time_utc", "author"):
             _require(isinstance(getattr(self, key), str), f"{where}.{key} must be text")
+        _require(isinstance(self.details, dict) and all(isinstance(k, str) and isinstance(v, str)
+                                                        for k, v in self.details.items()),
+                 f"{where}.details must map names to text")
 
 
 def imported_values(config, target: str) -> dict:
-    """The numbers of ``config``'s ``target`` (its orbit), as an
+    """The numbers of ``config``'s ``target`` (its orbit, or the imported
+    items of its 3D model: :func:`model_import_values`), as an
     :class:`ImportRecord` keeps them."""
+    if target == "model":
+        return model_import_values(config.model) if config.model is not None else {}
     if target != "orbit":
         raise ValueError(f"no import target {target!r}")
     if config.orbit is None:
@@ -3317,6 +3338,49 @@ def imported_values(config, target: str) -> dict:
         value = getattr(config.orbit, f.name)
         if isinstance(value, str) and value:
             found[f"orbit.{f.name}"] = value
+    return found
+
+
+def model_import_values(model) -> dict:
+    """The values of a 3D model's imported items (those with a
+    ``source_id``), keyed by that identifier rather than by name, so a
+    renamed part keeps its record: ``model.parts[<source_id>].mass_kg``,
+    its ``position_b_m``, ``rotation_deg``, ``dimensions_m`` and
+    ``distribution``; an equipment item's ``mass_kg`` and
+    ``mount.position_m``; and a part's stowed pose
+    (``model.stowed[<source_id>]...``)."""
+    found = {}
+    source_of = {}
+    for part in model.parts:
+        if not part.source_id:
+            continue
+        source_of[part.name] = part.source_id
+        where = f"model.parts[{part.source_id}]"
+        found[f"{where}.shape"] = part.shape
+        found[f"{where}.distribution"] = part.distribution
+        found[f"{where}.mass_kg"] = part.mass_kg
+        for k, value in enumerate(part.position_b_m):
+            found[f"{where}.position_b_m[{k}]"] = value
+        for k, value in enumerate(part.rotation_deg):
+            found[f"{where}.rotation_deg[{k}]"] = value
+        for key, value in part.dimensions_m.items():
+            found[f"{where}.dimensions_m.{key}"] = value
+        if part.shape == "mesh":
+            found[f"{where}.mesh_group"] = part.mesh_group
+    for item in model.equipment:
+        if not item.source_id:
+            continue
+        where = f"model.equipment[{item.source_id}]"
+        found[f"{where}.mass_kg"] = item.mass_kg
+        for k, value in enumerate(item.mount.position_m or []):
+            found[f"{where}.mount.position_m[{k}]"] = value
+    for pose in model.stowed:
+        if pose.part in source_of:
+            where = f"model.stowed[{source_of[pose.part]}]"
+            for k, value in enumerate(pose.position_b_m):
+                found[f"{where}.position_b_m[{k}]"] = value
+            for k, value in enumerate(pose.rotation_deg):
+                found[f"{where}.rotation_deg[{k}]"] = value
     return found
 
 
@@ -3940,6 +4004,9 @@ class Scenario:
             del data["presets"]
         if not data["imports"]:  # the same
             del data["imports"]
+        for record in data.get("imports", []):  # an import record's details: written only when set
+            if not record.get("details"):
+                record.pop("details", None)
         for sc in data["spacecraft"]:  # a mass properties file's path: written only when recorded (Phase 8c)
             mass = (sc.get("model") or {}).get("mass_properties")
             if mass is not None and not mass.get("source_path"):
@@ -4108,7 +4175,7 @@ def _drop_unset_model_analyses(sc: dict) -> None:
     if model is None:
         return
     for part in model.get("parts", []):
-        for name in ("material", "maturity", "subsystem"):
+        for name in ("material", "maturity", "subsystem", "source_id"):
             if part.get(name) == "":
                 part.pop(name, None)
     for name in ("equipment", "stowed", "face_properties", "materials"):
@@ -4116,7 +4183,7 @@ def _drop_unset_model_analyses(sc: dict) -> None:
             model.pop(name, None)
     for item in model.get("equipment", []):
         item["mount"] = _compact(item["mount"])
-        for name in ("maturity", "subsystem"):
+        for name in ("maturity", "subsystem", "source_id"):
             if item.get(name) == "":
                 item.pop(name)
         if item.get("thrust_n") is None:

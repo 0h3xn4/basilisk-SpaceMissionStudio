@@ -182,6 +182,8 @@ def main(out: Path, theme: str = "light", size: tuple = WINDOW_SIZE) -> int:
     print(f"wrote {out / 'model_editor.png'}")
     editor.close()
 
+    capture_idm_import(out, spin)
+
     name = "22_starter_first_leo_satellite.json"
     wizard = TemplateCustomizeWizard(load_scenario(TEMPLATES_DIR / name), get_wizard_spec(name))
     wizard.resize(*WIZARD_SIZE)
@@ -190,6 +192,29 @@ def main(out: Path, theme: str = "light", size: tuple = WINDOW_SIZE) -> int:
     wizard.grab().save(str(out / "customize_wizard.png"))
     print(f"wrote {out / 'customize_wizard.png'}")
     return 0
+
+
+def capture_idm_import(out: Path, spin) -> None:
+    """``idm_import.png``: the IDM-CIC import dialog on the synthetic test
+    model (``tests/data/idm/demosat``, made up; never a real model)."""
+    import tempfile
+
+    from spacemissionstudio.gui.idm_import_dialog import IdmImportDialog
+
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
+    from idm_fixtures import write_idm
+
+    with tempfile.TemporaryDirectory() as folder:
+        dialog = IdmImportDialog(write_idm(Path(folder) / "demosat.idm"))
+        dialog.resize(760, 560)
+        dialog.show()
+        spin(1.5)  # [s] the file read and the import planned in the worker
+        dialog.configuration_combo.setCurrentIndex(1)
+        dialog.stowed_combo.setCurrentIndex(2)
+        spin(1.5)  # [s]
+        dialog.grab().save(str(out / "idm_import.png"))
+        print(f"wrote {out / 'idm_import.png'}")
+        dialog.close()
 
 
 if __name__ == "__main__":

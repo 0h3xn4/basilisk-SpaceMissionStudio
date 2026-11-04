@@ -212,6 +212,7 @@ operating-system rights. See 9.9.
 | Lifetime, budgets, launch delays, altitude trade, long runs | 11 |
 | CLI | HT (`command-line.md`); AD1 (`ICD_cli.md`) |
 | CCSDS import and export | AD1 (ICD 5.3.4); `ccsds-import`, `ccsds-export`, `run --oem` |
+| IDM-CIC model import | HT (`idm-cic.md`); AD1 (ICD 5.3.12); `idm-info`, `idm-import` |
 
 ### 9.6 Normal termination (H.2.1<9.6>)
 
@@ -278,6 +279,7 @@ in the CLI. An error never closes the application.
 | Budget | **Run > Budget** | `spacemissionstudio budget FILE` |
 | Earth orientation files | the reference-data card on Home; **Settings > Reference data** | `spacemissionstudio earth-orientation [--fetch \| --import FILES \| --rollback]` |
 | CCSDS | – | `ccsds-validate`, `ccsds-export`, `ccsds-import` |
+| IDM-CIC model | **3D Model... > Import IDM-CIC model...** | `idm-info FILE.idm`, `idm-import FILE.idm SCENARIO --spacecraft NAME` |
 
 ### 10.2 Help method (H.2.1<10.2>)
 

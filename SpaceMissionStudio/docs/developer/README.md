@@ -197,6 +197,8 @@ SIL link test, many times over, on Windows). Basilisk's own workflows (in
 
 - [Architecture](architecture.md): how the code is organised.
 - [Releasing](releasing.md): cutting a release.
+- [IDM-CIC import: design](idm-cic-integration.md): the proposed importer
+  for IDM-CIC models (© CNES), under review.
 - [Syncing with upstream Basilisk](upstream-sync.md): taking a new
   Basilisk, and refreshing the upstream part of the root README.
 - [`compliance/`](../../compliance/README.md): the ECSS and CCSDS

@@ -9,6 +9,7 @@ and when it uses the network.
 - [Qualified Basilisk version](#qualified-basilisk-version)
 - [Installing Basilisk: wheel or source](#installing-basilisk-wheel-or-source)
 - [CCSDS orbit data messages](#ccsds-orbit-data-messages)
+- [IDM-CIC models](#idm-cic-models)
 - [Earth orientation](#earth-orientation)
 - [Space weather](#space-weather)
 - [The offline policy](#the-offline-policy)
@@ -73,6 +74,19 @@ supported):
 (Annex A) for the three messages.
 
 How to use them: [Orbit files](../user-manual/orbit-files.md).
+
+## IDM-CIC models
+
+SpaceMissionStudio reads IDM-CIC model files (`.idm`, IDM-CIC is © CNES)
+of model versions 3.4 and 3.5 with its own reader, written from the
+format's published description and checked against example models; other
+versions are read with a note. It reads only the archive's `model.xml`,
+never runs or downloads CNES software, and never writes `.idm` files. It
+is not affiliated with or endorsed by CNES. The conventions it uses
+(rotation order, shape origins) and what it leaves out are in the
+[design note](../developer/idm-cic-integration.md), section 14.
+
+How to use them: [Import a spacecraft from IDM-CIC](../user-manual/idm-cic.md).
 
 ## Earth orientation
 

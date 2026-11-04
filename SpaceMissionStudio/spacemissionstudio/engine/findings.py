@@ -136,6 +136,11 @@ RULES: dict[str, Rule] = {rule.rule_id: rule for rule in (
          "Put the file back where the record says, or import it again from where it is now.",
          override="A warning does not stop the run: the values imported then are used, and the run records "
                   "that the file was not found."),
+    Rule("import.source_item_gone", "Each imported 3D model item is still in the file it was imported from.",
+         "A re-import found the item gone from the file (removed or replaced there) and kept it rather than "
+         "deleting it: the model may hold a part the design no longer has.",
+         "Remove the item from the 3D model if it should go, or keep it: it is then yours, not the file's.",
+         override="A warning does not stop the run: the item counts in the mass properties as it is."),
     Rule("small_body.ephemeris_missing", "A run about a small body needs its ephemeris installed.",
          "Without it the run stops at once.",
          "Download it in Reference data (Small bodies), or run 'spacemissionstudio small-bodies --fetch'.",

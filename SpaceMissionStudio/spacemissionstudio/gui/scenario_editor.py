@@ -394,6 +394,8 @@ class ScenarioEditorWidget(QWidget):
         self._base_dir_provider = None  # set_base_dir_provider
         self.spacecraft_list.value_marks_made.connect(self._on_value_marks_made)  # before its changed
         self.spacecraft_list.preset_used.connect(self._on_preset_used)
+        self.spacecraft_list.import_recorded.connect(self._on_import_recorded)
+        self.spacecraft_list.set_imports_provider(lambda: self._imports)
         self.spacecraft_list.changed.connect(self.changed)
         self.spacecraft_list.changed.connect(self._refresh_monte_carlo_spacecraft_names)
         layout.addWidget(self.spacecraft_list)
@@ -544,7 +546,9 @@ class ScenarioEditorWidget(QWidget):
                 simulation_mode=self.simulation_mode_combo.currentData(),
                 ground_station_names=[gs.name for gs in self.ground_station_list.to_list()],
                 epoch_provider=spacecraft_list._epoch_provider, base_dir_provider=spacecraft_list._base_dir_provider,
-                central_body_provider=spacecraft_list._central_body_provider, embedded=True)
+                central_body_provider=spacecraft_list._central_body_provider, embedded=True,
+                imports_provider=lambda: self._imports)
+            form.import_recorded.connect(self._on_import_recorded)
             kind = "spacecraft"
         else:
             from .ground_station_editor import GroundStationEditorDialog
@@ -1161,6 +1165,12 @@ class ScenarioEditorWidget(QWidget):
         """A spacecraft added from a preset: its record, in place of an
         earlier one for that name."""
         self._presets = [r for r in self._presets if r.spacecraft != record.spacecraft] + [record]
+
+    def _on_import_recorded(self, record) -> None:
+        """A 3D model imported from a file (IDM-CIC): its record, in place of
+        an earlier one of that spacecraft and target."""
+        self._imports = [r for r in self._imports
+                         if (r.spacecraft, r.target) != (record.spacecraft, record.target)] + [record]
 
     def _on_value_marks_made(self, marks: list) -> None:
         """A generator's computed values (the Walker constellation), kept

@@ -263,6 +263,31 @@ set a spacecraft's orbit from a CCSDS OPM or TLE-based OMM
 | `--set-epoch` | move the scenario epoch to the OPM's epoch |
 | `--out` | write the updated scenario here (default: overwrite) |
 
+## `idm-info`
+
+list an IDM-CIC model's elements, configurations and approximations (IDM-CIC is (c) CNES); writes nothing
+
+| Argument | Help |
+|---|---|
+| `model` | the .idm file |
+| `--configuration` | a saved configuration's id or name (default: the default values) |
+| `--body-element` | the element whose frame is the body frame (default: chosen) |
+
+## `idm-import`
+
+build or update a spacecraft's 3D model from an IDM-CIC model (IDM-CIC is (c) CNES)
+
+| Argument | Help |
+|---|---|
+| `model` | the .idm file |
+| `scenario` |  |
+| `--spacecraft` |  |
+| `--configuration` | a saved configuration's id or name (default: the default values) |
+| `--stowed-configuration` | a configuration whose poses become the stowed configuration (e.g. the launch one) |
+| `--body-element` | the element whose frame is the body frame (default: chosen) |
+| `--apply-facets` | also build drag and solar pressure facets from the imported boxes, cylinders, cones and spheres (off by default: the file gives no surface coefficients) |
+| `--out` | write the updated scenario here (default: overwrite) |
+
 ## `export-fsw`
 
 export a spacecraft's flight software as a standalone C project (needs Basilisk)

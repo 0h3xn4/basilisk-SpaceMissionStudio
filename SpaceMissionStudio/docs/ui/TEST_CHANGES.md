@@ -1720,3 +1720,31 @@ re-captured (seven tabs, the 3D view at its full height).
     of range refused, and cleared;
   - the mass budget and a box and a profile launcher envelope edited
     and validated, then taken away.
+
+## IDM-CIC import (2026-11-04)
+
+Branch `feature/idm-cic-design`. No test removed or changed, no golden or
+output file changed; `docs/images/idm_import.png` added (the import
+dialog on the synthetic model).
+
+- Added `tests/data/idm/demosat/model.xml`: a hand-written, synthetic
+  model in the IDM-CIC layout (made-up names and values, nothing from
+  IDM-CIC's examples), zipped into an `.idm` at test time by
+  `tests/idm_fixtures.py`.
+- Added `tests/test_idm_reader.py`, eight tests: values (decimal commas,
+  exponents, booleans, colours, dates); the archive (byte-order mark, any
+  case, backslash names); refusals (no file, not a ZIP, no model.xml, not
+  XML, a document type, another root); the object graph; all twelve
+  rotation orders and both transformation orders; elements and where
+  they are mounted; placement through assemblies, configurations and
+  tank fillings; shape volumes against closed forms.
+- Added `tests/test_idm_import.py`, nine tests: positions and the centre
+  of mass against hand calculations; configurations, optional units and
+  stowed poses; the merged model's mass properties; the import record and
+  fields written only when set; re-import (update, keep an edit, follow a
+  rename, flag what is gone, the pre-run warning); a gone mesh part kept;
+  an unsupported version; names; the `idm-info` and `idm-import` commands.
+- Added `tests/gui/test_idm_import_dialog.py`, four tests: the dialog's
+  choices and preview; a damaged file refused; the 3D model editor's
+  import and re-import, and the scenario editor keeping the record; a
+  duplicated imported part made the user's own.

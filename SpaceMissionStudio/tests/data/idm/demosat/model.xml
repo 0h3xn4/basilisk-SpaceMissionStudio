@@ -1,0 +1,1089 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A small synthetic model in the IDM-CIC file layout, written by hand for
+  SpaceMissionStudio's tests: every name and value is made up, and nothing
+  in it comes from IDM-CIC's examples (docs/developer/idm-cic-integration.md).
+  The tests zip it into a .idm file. Hand-calculated values are in
+  tests/test_idm_import.py.
+-->
+<IDM>
+<IdmData version="3.4.1.1">
+<MainSystem fullId="">
+<projectName>Demosat</projectName>
+<lastModification>02/03/2026 10:20:30</lastModification>
+<layers maxId="0">
+<Array>
+<Layer id="DEF" fullId="lay.DEF">
+<name>Default</name>
+<isSelectedByDefault>True</isSelectedByDefault>
+</Layer>
+<Layer id="AID" fullId="lay.AID">
+<name>Aids</name>
+<isSelectedByDefault>False</isSelectedByDefault>
+</Layer>
+</Array>
+</layers>
+<subsystems maxId="0">
+<Array>
+<Subsystem id="STR" fullId="ss.STR">
+<name>Structure</name>
+</Subsystem>
+<Subsystem id="PAY" fullId="ss.PAY">
+<name>Payload</name>
+</Subsystem>
+</Array>
+</subsystems>
+<configurations maxId="0">
+<Array>
+<Configuration id="OPS" fullId="cfg.OPS">
+<name>Operations</name>
+<enabledElements>
+<Array>
+<Element ref="el.1" />
+<Element ref="el.2" />
+<Element ref="el.3" />
+</Array>
+</enabledElements>
+</Configuration>
+<Configuration id="LCH" fullId="cfg.LCH">
+<name>Launch</name>
+<enabledElements>
+<Array>
+<Element ref="el.1" />
+<Element ref="el.2" />
+</Array>
+</enabledElements>
+</Configuration>
+</Array>
+</configurations>
+<elements maxId="3">
+<Array>
+
+<Element id="1" fullId="el.1">
+<name>Bus</name>
+<coordinateSystems maxId="2">
+<Array>
+<CoordinateSystemDefinition id="1" fullId="el.1_co.1">
+<name>Bus frame</name>
+<position>
+<Position fullId="el.1_co.1_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+</CoordinateSystemDefinition>
+<CoordinateSystemDefinition id="2" fullId="el.1_co.2">
+<name>Hinge</name>
+<position>
+<Position fullId="el.1_co.2_pos">
+<x>0,5</x>
+<y>0</y>
+<z>0,25</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<articulation>
+<RotationDefinition fullId="el.1_co.2_rotation">
+<axis>Y</axis>
+<minimalValue>0</minimalValue>
+<maximalValue>90</maximalValue>
+<defaultValue>0</defaultValue>
+<articulationValues maxId="0">
+<Array>
+<RotationValue id="OPS" fullId="el.1_co.2_rotation_cfg.OPS">
+<value>0</value>
+<configuration>
+<Configuration ref="cfg.OPS" />
+</configuration>
+</RotationValue>
+<RotationValue id="LCH" fullId="el.1_co.2_rotation_cfg.LCH">
+<value>90</value>
+<configuration>
+<Configuration ref="cfg.LCH" />
+</configuration>
+</RotationValue>
+</Array>
+</articulationValues>
+</RotationDefinition>
+</articulation>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</CoordinateSystemDefinition>
+</Array>
+</coordinateSystems>
+<relatedSubsystems maxId="0">
+<Array>
+<RelatedSubsystem id="STR" fullId="el.1_ss.STR">
+<subsystem>
+<Subsystem ref="ss.STR" />
+</subsystem>
+<units maxId="8">
+<Array>
+
+<Equipment id="1" fullId="el.1_ss.STR_eq.1">
+<name>Body box</name>
+<color>RGB(200,200,210)</color>
+<massMaturityLevel>Level_A</massMaturityLevel>
+<massMargin>0,1</massMargin>
+<mciDataOrigin>FromGeometry</mciDataOrigin>
+<manualMass>0</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+<shapes maxId="1">
+<Array>
+<Shape id="1" fullId="el.1_ss.STR_eq.1_sh.1">
+<name>Walls</name>
+<position>
+<Position fullId="el.1_ss.STR_eq.1_sh.1_pos">
+<x>-0,5</x>
+<y>-0,4</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<massDefinition>
+<MassDefinition fullId="el.1_ss.STR_eq.1_sh.1_massDefinition">
+<massType>Total</massType>
+<massTotal>2,0E+01</massTotal>
+<massPerSquareMeter>0</massPerSquareMeter>
+<massPerCubeMeter>0</massPerCubeMeter>
+</MassDefinition>
+</massDefinition>
+<shapeDefinition>
+<Box fullId="el.1_ss.STR_eq.1_sh.1_box">
+<d1>1</d1>
+<d2>0,8</d2>
+<d3>0,5</d3>
+<r>0</r>
+</Box>
+</shapeDefinition>
+<layers>
+<Array>
+<Layer ref="lay.DEF" />
+</Array>
+</layers>
+</Shape>
+</Array>
+</shapes>
+</Equipment>
+
+<Equipment id="2" fullId="el.1_ss.STR_eq.2">
+<name>Wing</name>
+<color>RGB(40,60,160)</color>
+<massMaturityLevel>Level_B</massMaturityLevel>
+<massMargin>0,2</massMargin>
+<mciDataOrigin>FromGeometry</mciDataOrigin>
+<manualMass>0</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+<shapes maxId="1">
+<Array>
+<Shape id="1" fullId="el.1_ss.STR_eq.2_sh.1">
+<name>Plate</name>
+<position>
+<Position fullId="el.1_ss.STR_eq.2_sh.1_pos">
+<x>0</x>
+<y>-0,3</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<massDefinition>
+<MassDefinition fullId="el.1_ss.STR_eq.2_sh.1_massDefinition">
+<massType>Total</massType>
+<massTotal>2</massTotal>
+<massPerSquareMeter>0</massPerSquareMeter>
+<massPerCubeMeter>0</massPerCubeMeter>
+</MassDefinition>
+</massDefinition>
+<shapeDefinition>
+<Box fullId="el.1_ss.STR_eq.2_sh.1_box">
+<d1>1</d1>
+<d2>0,6</d2>
+<d3>0,02</d3>
+<r>0</r>
+</Box>
+</shapeDefinition>
+<layers>
+<Array>
+<Layer ref="lay.DEF" />
+</Array>
+</layers>
+</Shape>
+</Array>
+</shapes>
+</Equipment>
+
+<Equipment id="3" fullId="el.1_ss.STR_eq.3">
+<name>Computer</name>
+<color>RGB(90,90,90)</color>
+<massMaturityLevel>Level_A</massMaturityLevel>
+<massMargin>0,05</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>3,5</manualMass>
+<manualCog>
+<Point fullId="el.1_ss.STR_eq.3_manualCog">
+<x>0</x>
+<y>0</y>
+<z>0,05</z>
+</Point>
+</manualCog>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+
+<Equipment id="4" fullId="el.1_ss.STR_eq.4">
+<name>Pointer</name>
+<color>RGB(250,250,250)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>0,25</manualMass>
+<manualCog>
+<Point fullId="el.1_ss.STR_eq.4_manualCog">
+<x>0,1</x>
+<y>0</y>
+<z>0</z>
+</Point>
+</manualCog>
+<manualInertiaMatrix>
+<Matrix fullId="el.1_ss.STR_eq.4_manualInertiaMatrix">
+<xx>0,001</xx>
+<xy>0</xy>
+<xz>0</xz>
+<yx>0</yx>
+<yy>0,001</yy>
+<yz>0</yz>
+<zx>0</zx>
+<zy>0</zy>
+<zz>0,001</zz>
+</Matrix>
+</manualInertiaMatrix>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+
+<Equipment id="5" fullId="el.1_ss.STR_eq.5">
+<name>Propellant tank</name>
+<color>RGB(180,180,180)</color>
+<massMargin>0,05</massMargin>
+<mciDataOrigin>FromGeometry</mciDataOrigin>
+<manualMass>0</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+<shapes maxId="1">
+<Array>
+<Shape id="1" fullId="el.1_ss.STR_eq.5_sh.1">
+<name>Shell</name>
+<position>
+<Position fullId="el.1_ss.STR_eq.5_sh.1_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<massDefinition>
+<MassDefinition fullId="el.1_ss.STR_eq.5_sh.1_massDefinition">
+<massType>Total</massType>
+<massTotal>1,2</massTotal>
+<massPerSquareMeter>0</massPerSquareMeter>
+<massPerCubeMeter>0</massPerCubeMeter>
+</MassDefinition>
+</massDefinition>
+<shapeDefinition>
+<Tank fullId="el.1_ss.STR_eq.5_sh.1_tank">
+<d1>0,1</d1>
+<d3>0,1</d3>
+<d4>0,002</d4>
+<capacity>12</capacity>
+<maximalFilling>1</maximalFilling>
+</Tank>
+</shapeDefinition>
+<layers>
+<Array>
+<Layer ref="lay.DEF" />
+</Array>
+</layers>
+</Shape>
+</Array>
+</shapes>
+</Equipment>
+
+<Equipment id="6" fullId="el.1_ss.STR_eq.6">
+<name>Spare battery</name>
+<color>RGB(10,200,10)</color>
+<massMargin>0,1</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>1</manualMass>
+<isOptional>True</isOptional>
+<defaultEnabledValue>False</defaultEnabledValue>
+<optionalUnitLinks>
+<Array>
+<OptionalUnitLink id="LCH" fullId="el.1_ss.STR_eq.6_cfg.LCH">
+<enabled>True</enabled>
+<configuration>
+<Configuration ref="cfg.LCH" />
+</configuration>
+</OptionalUnitLink>
+</Array>
+</optionalUnitLinks>
+</Equipment>
+
+<Equipment id="7" fullId="el.1_ss.STR_eq.7">
+<name>Bracket</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>FromGeometry</mciDataOrigin>
+<manualMass>0</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+<shapes maxId="3">
+<Array>
+<Shape id="1" fullId="el.1_ss.STR_eq.7_sh.1">
+<name>Block</name>
+<position>
+<Position fullId="el.1_ss.STR_eq.7_sh.1_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<massDefinition>
+<MassDefinition fullId="el.1_ss.STR_eq.7_sh.1_massDefinition">
+<massType>Volume</massType>
+<massTotal>0</massTotal>
+<massPerSquareMeter>0</massPerSquareMeter>
+<massPerCubeMeter>2700</massPerCubeMeter>
+</MassDefinition>
+</massDefinition>
+<shapeDefinition>
+<Box fullId="el.1_ss.STR_eq.7_sh.1_box">
+<d1>0,1</d1>
+<d2>0,1</d2>
+<d3>0,1</d3>
+<r>0</r>
+</Box>
+</shapeDefinition>
+<layers>
+<Array>
+<Layer ref="lay.DEF" />
+</Array>
+</layers>
+</Shape>
+<Shape id="2" fullId="el.1_ss.STR_eq.7_sh.2">
+<name>Sheet</name>
+<position>
+<Position fullId="el.1_ss.STR_eq.7_sh.2_pos">
+<x>0</x>
+<y>0</y>
+<z>0,1</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<massDefinition>
+<MassDefinition fullId="el.1_ss.STR_eq.7_sh.2_massDefinition">
+<massType>Area</massType>
+<massTotal>0</massTotal>
+<massPerSquareMeter>0,5</massPerSquareMeter>
+<massPerCubeMeter>0</massPerCubeMeter>
+</MassDefinition>
+</massDefinition>
+<shapeDefinition>
+<Rectangle fullId="el.1_ss.STR_eq.7_sh.2_rect">
+<d1>1</d1>
+<d2>2</d2>
+</Rectangle>
+</shapeDefinition>
+<layers>
+<Array>
+<Layer ref="lay.DEF" />
+</Array>
+</layers>
+</Shape>
+<Shape id="3" fullId="el.1_ss.STR_eq.7_sh.3">
+<name>Keep-out zone</name>
+<position>
+<Position fullId="el.1_ss.STR_eq.7_sh.3_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<massDefinition>
+<MassDefinition fullId="el.1_ss.STR_eq.7_sh.3_massDefinition">
+<massType>Total</massType>
+<massTotal>0</massTotal>
+<massPerSquareMeter>0</massPerSquareMeter>
+<massPerCubeMeter>0</massPerCubeMeter>
+</MassDefinition>
+</massDefinition>
+<shapeDefinition>
+<Cone fullId="el.1_ss.STR_eq.7_sh.3_cone">
+<d1>3</d1>
+<d2>0</d2>
+<d3>5</d3>
+<angle1>0</angle1>
+<angle2>360</angle2>
+<s>1</s>
+</Cone>
+</shapeDefinition>
+<layers>
+<Array>
+<Layer ref="lay.AID" />
+</Array>
+</layers>
+</Shape>
+</Array>
+</shapes>
+</Equipment>
+
+<Equipment id="8" fullId="el.1_ss.STR_eq.8">
+<name>Plate with hole</name>
+<color>RGB(160,120,80)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>FromGeometry</mciDataOrigin>
+<manualMass>0</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+<shapes maxId="1">
+<Array>
+<Shape id="1" fullId="el.1_ss.STR_eq.8_sh.1">
+<name>Cut plate</name>
+<position>
+<Position fullId="el.1_ss.STR_eq.8_sh.1_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<massDefinition>
+<MassDefinition fullId="el.1_ss.STR_eq.8_sh.1_massDefinition">
+<massType>Total</massType>
+<massTotal>1</massTotal>
+<massPerSquareMeter>0</massPerSquareMeter>
+<massPerCubeMeter>0</massPerCubeMeter>
+</MassDefinition>
+</massDefinition>
+<shapeDefinition>
+<Topology fullId="el.1_ss.STR_eq.8_sh.1_topo">
+<topologicalOperations maxId="2">
+<Array>
+<BooleanOperation id="1" fullId="el.1_ss.STR_eq.8_sh.1_topo_bool.1">
+<operationType>Union</operationType>
+<object3d>
+<Box fullId="el.1_ss.STR_eq.8_sh.1_topo_bool.1_box">
+<d1>0,4</d1>
+<d2>0,4</d2>
+<d3>0,05</d3>
+<r>0</r>
+</Box>
+</object3d>
+<position>
+<Position fullId="el.1_ss.STR_eq.8_sh.1_topo_bool.1_pos">
+<x>-0,2</x>
+<y>-0,2</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+</BooleanOperation>
+<BooleanOperation id="2" fullId="el.1_ss.STR_eq.8_sh.1_topo_bool.2">
+<operationType>Difference</operationType>
+<object3d>
+<FilledCylinder fullId="el.1_ss.STR_eq.8_sh.1_topo_bool.2_fcyl">
+<d1>0,1</d1>
+<d3>0,05</d3>
+<angle1>0</angle1>
+<angle2>360</angle2>
+<s>1</s>
+</FilledCylinder>
+</object3d>
+<position>
+<Position fullId="el.1_ss.STR_eq.8_sh.1_topo_bool.2_pos">
+<x>0,05</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+</BooleanOperation>
+</Array>
+</topologicalOperations>
+</Topology>
+</shapeDefinition>
+<layers>
+<Array>
+<Layer ref="lay.DEF" />
+</Array>
+</layers>
+</Shape>
+</Array>
+</shapes>
+</Equipment>
+
+</Array>
+</units>
+<unitInstances maxId="0">
+<Array>
+<EquipmentInstance id="1-1" fullId="el.1_ss.STR_eqi.1-1">
+<position>
+<Position fullId="el.1_ss.STR_eqi.1-1_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<shapeOccurrences maxId="1">
+<Array>
+<ShapeOccurrence id="1" fullId="el.1_ss.STR_eqi.1-1_sh.1">
+<shape>
+<Shape ref="el.1_ss.STR_eq.1_sh.1" />
+</shape>
+</ShapeOccurrence>
+</Array>
+</shapeOccurrences>
+<unit>
+<Equipment ref="el.1_ss.STR_eq.1" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="2-1" fullId="el.1_ss.STR_eqi.2-1">
+<position>
+<Position fullId="el.1_ss.STR_eqi.2-1_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<shapeOccurrences maxId="1">
+<Array>
+<ShapeOccurrence id="1" fullId="el.1_ss.STR_eqi.2-1_sh.1">
+<shape>
+<Shape ref="el.1_ss.STR_eq.2_sh.1" />
+</shape>
+</ShapeOccurrence>
+</Array>
+</shapeOccurrences>
+<unit>
+<Equipment ref="el.1_ss.STR_eq.2" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.2" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="3-1" fullId="el.1_ss.STR_eqi.3-1">
+<position>
+<Position fullId="el.1_ss.STR_eqi.3-1_pos">
+<x>0,2</x>
+<y>0</y>
+<z>0,1</z>
+<rotationOrder>Rz_Ry_Rx</rotationOrder>
+<rotation1>90</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.STR_eq.3" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="4-1" fullId="el.1_ss.STR_eqi.4-1">
+<position>
+<Position fullId="el.1_ss.STR_eqi.4-1_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>90</rotation1>
+<rotation2>90</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.STR_eq.4" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="4-2" fullId="el.1_ss.STR_eqi.4-2">
+<position>
+<Position fullId="el.1_ss.STR_eqi.4-2_pos">
+<x>0</x>
+<y>0,1</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>90</rotation3>
+<transformationOrder>Rotation_Translation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.STR_eq.4" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="5-1" fullId="el.1_ss.STR_eqi.5-1">
+<position>
+<Position fullId="el.1_ss.STR_eqi.5-1_pos">
+<x>0</x>
+<y>0</y>
+<z>0,1</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<shapeOccurrences maxId="1">
+<Array>
+<ShapeOccurrence id="1" fullId="el.1_ss.STR_eqi.5-1_sh.1">
+<shape>
+<Shape ref="el.1_ss.STR_eq.5_sh.1" />
+</shape>
+</ShapeOccurrence>
+</Array>
+</shapeOccurrences>
+<tankContents maxId="1">
+<Array>
+<TankContent id="1" fullId="el.1_ss.STR_eqi.5-1_tk.1">
+<defaultFillingPercentage>0,5</defaultFillingPercentage>
+<tank>
+<Tank ref="el.1_ss.STR_eq.5_sh.1_tank" />
+</tank>
+<tankContentValues maxId="0">
+<Array>
+<TankContentValue id="LCH" fullId="el.1_ss.STR_eqi.5-1_tk.1_cfg.LCH">
+<fillingPercentage>1</fillingPercentage>
+<configuration>
+<Configuration ref="cfg.LCH" />
+</configuration>
+</TankContentValue>
+</Array>
+</tankContentValues>
+</TankContent>
+</Array>
+</tankContents>
+<unit>
+<Equipment ref="el.1_ss.STR_eq.5" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="6-1" fullId="el.1_ss.STR_eqi.6-1">
+<position>
+<Position fullId="el.1_ss.STR_eqi.6-1_pos">
+<x>-0,3</x>
+<y>0</y>
+<z>0,1</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.STR_eq.6" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="7-1" fullId="el.1_ss.STR_eqi.7-1">
+<position>
+<Position fullId="el.1_ss.STR_eqi.7-1_pos">
+<x>-0,4</x>
+<y>0,2</y>
+<z>0,3</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.STR_eq.7" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="8-1" fullId="el.1_ss.STR_eqi.8-1">
+<position>
+<Position fullId="el.1_ss.STR_eqi.8-1_pos">
+<x>0</x>
+<y>0</y>
+<z>-0,05</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.STR_eq.8" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+</Array>
+</unitInstances>
+</RelatedSubsystem>
+</Array>
+</relatedSubsystems>
+</Element>
+
+<Element id="2" fullId="el.2">
+<name>Camera</name>
+<coordinateSystems maxId="1">
+<Array>
+<CoordinateSystemDefinition id="1" fullId="el.2_co.1">
+<name>Camera frame</name>
+<position>
+<Position fullId="el.2_co.1_pos">
+<x>0</x>
+<y>0</y>
+<z>0,5</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</CoordinateSystemDefinition>
+</Array>
+</coordinateSystems>
+<relatedSubsystems maxId="0">
+<Array>
+<RelatedSubsystem id="PAY" fullId="el.2_ss.PAY">
+<subsystem>
+<Subsystem ref="ss.PAY" />
+</subsystem>
+<units maxId="2">
+<Array>
+<Equipment id="1" fullId="el.2_ss.PAY_eq.1">
+<name>Lens</name>
+<color>RGB(20,20,20)</color>
+<massMaturityLevel>Level_C</massMaturityLevel>
+<massMargin>0,2</massMargin>
+<mciDataOrigin>FromGeometry</mciDataOrigin>
+<manualMass>0</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+<shapes maxId="1">
+<Array>
+<Shape id="1" fullId="el.2_ss.PAY_eq.1_sh.1">
+<name>Barrel</name>
+<position>
+<Position fullId="el.2_ss.PAY_eq.1_sh.1_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<massDefinition>
+<MassDefinition fullId="el.2_ss.PAY_eq.1_sh.1_massDefinition">
+<massType>Total</massType>
+<massTotal>8E-01</massTotal>
+<massPerSquareMeter>0</massPerSquareMeter>
+<massPerCubeMeter>0</massPerCubeMeter>
+</MassDefinition>
+</massDefinition>
+<shapeDefinition>
+<FilledCylinder fullId="el.2_ss.PAY_eq.1_sh.1_fcyl">
+<d1>0,05</d1>
+<d3>0,1</d3>
+<angle1>0</angle1>
+<angle2>360</angle2>
+<s>1</s>
+</FilledCylinder>
+</shapeDefinition>
+<layers>
+<Array>
+<Layer ref="lay.DEF" />
+</Array>
+</layers>
+</Shape>
+</Array>
+</shapes>
+</Equipment>
+<Assembly id="2" fullId="el.2_ss.PAY_ass.2">
+<name>Optics</name>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+<coordinateSystems maxId="1">
+<Array>
+<CoordinateSystemDefinition id="1" fullId="el.2_ss.PAY_ass.2_co.1">
+<name>Optics frame</name>
+<position>
+<Position fullId="el.2_ss.PAY_ass.2_co.1_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+</CoordinateSystemDefinition>
+</Array>
+</coordinateSystems>
+<unitInstances maxId="0">
+<Array>
+<EquipmentInstance id="1-1" fullId="el.2_ss.PAY_ass.2_eqi.1-1">
+<position>
+<Position fullId="el.2_ss.PAY_ass.2_eqi.1-1_pos">
+<x>0</x>
+<y>0</y>
+<z>0,1</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<shapeOccurrences maxId="1">
+<Array>
+<ShapeOccurrence id="1" fullId="el.2_ss.PAY_ass.2_eqi.1-1_sh.1">
+<shape>
+<Shape ref="el.2_ss.PAY_eq.1_sh.1" />
+</shape>
+</ShapeOccurrence>
+</Array>
+</shapeOccurrences>
+<unit>
+<Equipment ref="el.2_ss.PAY_eq.1" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.2_ss.PAY_ass.2_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+</Array>
+</unitInstances>
+</Assembly>
+</Array>
+</units>
+<unitInstances maxId="0">
+<Array>
+<AssemblyInstance id="2-1" fullId="el.2_ss.PAY_assi.2-1">
+<position>
+<Position fullId="el.2_ss.PAY_assi.2-1_pos">
+<x>0,1</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Assembly ref="el.2_ss.PAY_ass.2" />
+</unit>
+<coordinateSystems maxId="1">
+<Array>
+<CoordinateSystem id="1" fullId="el.2_ss.PAY_assi.2-1_co.1">
+<originCoordinateSystem>
+<CoordinateSystemDefinition ref="el.2_ss.PAY_ass.2_co.1" />
+</originCoordinateSystem>
+</CoordinateSystem>
+</Array>
+</coordinateSystems>
+<unitOccurrences maxId="0">
+<Array>
+<EquipmentOccurrence id="1-1" fullId="el.2_ss.PAY_assi.2-1_eqi.1-1">
+<shapeOccurrences maxId="1">
+<Array>
+<ShapeOccurrence id="1" fullId="el.2_ss.PAY_assi.2-1_eqi.1-1_sh.1">
+<shape>
+<Shape ref="el.2_ss.PAY_eq.1_sh.1" />
+</shape>
+</ShapeOccurrence>
+</Array>
+</shapeOccurrences>
+<unit>
+<Equipment ref="el.2_ss.PAY_eq.1" />
+</unit>
+<originOccurrence>
+<EquipmentInstance ref="el.2_ss.PAY_ass.2_eqi.1-1" />
+</originOccurrence>
+<parentCoordinateSystem>
+<CoordinateSystem ref="el.2_ss.PAY_assi.2-1_co.1" />
+</parentCoordinateSystem>
+</EquipmentOccurrence>
+</Array>
+</unitOccurrences>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.2_co.1" />
+</parentCoordinateSystem>
+</AssemblyInstance>
+</Array>
+</unitInstances>
+</RelatedSubsystem>
+</Array>
+</relatedSubsystems>
+</Element>
+
+<Element id="3" fullId="el.3">
+<name>Ground jig</name>
+<coordinateSystems maxId="1">
+<Array>
+<CoordinateSystemDefinition id="1" fullId="el.3_co.1">
+<name>Jig frame</name>
+<position>
+<Position fullId="el.3_co.1_pos">
+<x>5</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+</CoordinateSystemDefinition>
+</Array>
+</coordinateSystems>
+<relatedSubsystems maxId="0">
+<Array>
+<RelatedSubsystem id="STR" fullId="el.3_ss.STR">
+<subsystem>
+<Subsystem ref="ss.STR" />
+</subsystem>
+<units maxId="1">
+<Array>
+<Equipment id="1" fullId="el.3_ss.STR_eq.1">
+<name>Jig</name>
+<color>RGB(255,0,0)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>5</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+</Array>
+</units>
+<unitInstances maxId="0">
+<Array>
+<EquipmentInstance id="1-1" fullId="el.3_ss.STR_eqi.1-1">
+<position>
+<Position fullId="el.3_ss.STR_eqi.1-1_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.3_ss.STR_eq.1" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.3_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+</Array>
+</unitInstances>
+</RelatedSubsystem>
+</Array>
+</relatedSubsystems>
+</Element>
+
+</Array>
+</elements>
+</MainSystem>
+</IdmData>
+</IDM>

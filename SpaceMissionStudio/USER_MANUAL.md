@@ -842,7 +842,10 @@ which is assumed perfect.
 **3D model** page of a spacecraft opens it too. In the editor,
 build the spacecraft from boxes, prisms (an octagonal bus), cylinders,
 cones, spheres and panels, or import an `.obj` from a CAD or modelling
-tool, and give each part its mass. The model then sets the spacecraft's
+tool, and give each part its mass; or import the whole spacecraft from
+an IDM-CIC model (IDM-CIC is © CNES) with its masses, and later versions
+of it without losing your edits
+([Import from IDM-CIC](docs/user-manual/idm-cic.md)). The model then sets the spacecraft's
 dry mass, center of mass, inertia and surface facets, and its look in
 Vizard; mass properties can also be typed in or imported from a file.
 A model problem in **Problems**, or the "3D model" badge in **Explain**,

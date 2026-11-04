@@ -167,6 +167,22 @@ Each item was checked against Basilisk's own source.
   * Facets apply only in full-attitude runs; an orbit-only run keeps
     `drag_area_m2` and `srp_area_m2`.
 
+* **IDM-CIC import (`spacemissionstudio.idm`, `idm_import`).**
+  * Checked against hand calculations on a synthetic model, not against
+    IDM-CIC's own mass report: no example model stores IDM-CIC's totals.
+  * Some conventions are assumed and reported as such: the corner of
+    extruded triangles and quadrangles, sphere and torus centres, inward
+    thicknesses, the tank's straight part between z = 0 and its height.
+  * Not modelled, mass kept as a point: STEP and Collada shapes, pipes,
+    paths, labels, Boolean intersections and section planes. Rounded box
+    edges and the stretch factor are ignored.
+  * A typed-in inertia matrix, mass margins and maturity levels are
+    reported, not applied; thrusters, power modes and thermal data are
+    not imported.
+  * Model versions 3.4 and 3.5 are read; others with a note. The
+    IDM-CIC licence was not available to review; the reader uses only
+    the format's published description.
+
 * **ROE formations (`engine.roe`, `engine.roe_formation`).**
   * The chief must be near-circular (eccentricity up to 0.01) and
     inclined: the guidance is the near-circular one (D'Amico) and the

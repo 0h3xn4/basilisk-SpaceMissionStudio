@@ -213,8 +213,13 @@ class ModelEditorDialog(QDialog):
     edited in the Equipment tab and its items drawn in the view."""
 
     def __init__(self, model: SpacecraftModelConfig | None, spacecraft_name: str = "sat-1",
-                 base_dir=None, parent: QWidget | None = None, simulation_mode: str | None = None, devices=None):
+                 base_dir=None, parent: QWidget | None = None, simulation_mode: str | None = None, devices=None,
+                 previous_import=None):
         super().__init__(parent)
+        # The spacecraft's earlier IDM-CIC import record (re-import compares with it), and the one an import
+        # here makes (import_record(); the caller keeps it with the scenario on OK).
+        self._previous_import = previous_import
+        self._import_record = None
         self._devices = None if devices is None else SimpleNamespace(
             sensors=copy.deepcopy(list(devices.sensors)), actuators=copy.deepcopy(list(devices.actuators)),
             rf_link=copy.deepcopy(devices.rf_link), comms_pointing=copy.deepcopy(getattr(devices, "comms_pointing",
@@ -291,6 +296,9 @@ class ModelEditorDialog(QDialog):
         self.add_button.setMenu(menu)
         self.import_button = QPushButton("Import .obj...")
         self.import_button.clicked.connect(self._on_import_obj)
+        self.import_idm_button = QPushButton("Import IDM-CIC model...")
+        self.import_idm_button.setToolTip("Build or update the model from an IDM-CIC model (.idm; IDM-CIC is © CNES)")
+        self.import_idm_button.clicked.connect(self._on_import_idm)
         self.duplicate_button = QPushButton("Duplicate")
         self.duplicate_button.clicked.connect(self.duplicate_part)
         self.delete_button = QPushButton("Delete")
@@ -300,6 +308,7 @@ class ModelEditorDialog(QDialog):
         grid.addWidget(self.import_button, 0, 1)
         grid.addWidget(self.duplicate_button, 1, 0)
         grid.addWidget(self.delete_button, 1, 1)
+        grid.addWidget(self.import_idm_button, 2, 0, 1, 2)
         layout.addLayout(grid)
         return panel
 
@@ -337,6 +346,7 @@ class ModelEditorDialog(QDialog):
             return
         twin = copy.deepcopy(part)
         twin.name = unique_name(part.name, [p.name for p in self._model.parts])
+        twin.source_id = ""  # a copy is the user's own: a re-import does not match it
         self._model.parts.insert(self.parts_list.currentRow() + 1, twin)
         row = self.parts_list.currentRow() + 1
         self._refresh_parts_list()
@@ -432,6 +442,54 @@ class ModelEditorDialog(QDialog):
         self.parts_list.setCurrentRow(len(self._model.parts) - len(names))
         self._schedule()
         return names
+
+    def _on_import_idm(self) -> None:
+        from .idm_import_dialog import IdmImportDialog
+
+        if self._base_dir is None:
+            report(self, "Save the scenario first: the import writes the model's meshes beside the scenario file.",
+                   kind="warning")
+            return
+        dialog = IdmImportDialog(parent=self, start_dir=self._base_dir)
+        if dialog.exec() != QDialog.DialogCode.Accepted or dialog.plan() is None:
+            return
+        try:
+            summary = self.import_idm(dialog.plan())
+        except (OSError, ValueError) as exc:
+            report(self, f"Could not import the model: {exc}")
+            return
+        box = QMessageBox(QMessageBox.Icon.Information, "IDM-CIC model imported",
+                          f"{len(summary.added)} added, {len(summary.updated)} updated, {len(summary.kept)} kept as "
+                          f"edited, {len(summary.gone)} no longer in the file.", parent=self)
+        box.setDetailedText("\n".join(summary.lines()))
+        box.exec()
+
+    def import_idm(self, plan):
+        """Merge an IDM-CIC import plan (``idm_import.plan``) into the model
+        (``idm_import.merge``); keeps its record for :meth:`import_record`
+        and returns the summary. Needs the scenario's folder."""
+        from .. import history, idm_import
+
+        if self._base_dir is None:
+            raise ValueError("the scenario has no folder yet: save it first")
+        previous = self._import_record or self._previous_import
+        holder = SimpleNamespace(name=self._spacecraft_name, model=self._model, solar_arrays=[], dry_mass_kg=0.0,
+                                 center_of_mass_b_m=[0.0, 0.0, 0.0], inertia_kg_m2=[0.0] * 9, facets=[])
+        shim = SimpleNamespace(spacecraft=[holder], imports=[previous] if previous is not None else [])
+        summary = idm_import.merge(shim, self._spacecraft_name, plan, self._base_dir / "scenario.json",
+                                   author=history.current_author(),
+                                   orbit_only=self._simulation_mode == "orbit_only")
+        self._import_record = shim.imports[-1]
+        self._refresh_parts_list()
+        if self._model.parts:
+            self.parts_list.setCurrentRow(0)
+        self.equipment_tab.refresh()
+        self._schedule()
+        return summary
+
+    def import_record(self):
+        """The record of an IDM-CIC import made here (``ImportRecord``), or None."""
+        return self._import_record
 
     @staticmethod
     def _mtl_files(obj_path: Path) -> list[Path]:

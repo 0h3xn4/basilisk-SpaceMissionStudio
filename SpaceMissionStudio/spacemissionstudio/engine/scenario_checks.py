@@ -368,6 +368,12 @@ def _import_warnings(scenario) -> list[str]:
             warnings.append(Finding(f"{what} was imported from {record['source']}, which is not there: the "
                                     "values are as imported, unchecked", "import.source_missing",
                                     actual="not found", limit=record["source"]))
+    from ..idm_import import gone_items
+
+    for spacecraft, item, source in gone_items(scenario):
+        warnings.append(Finding(f"{spacecraft}'s 3D model item {item!r} was imported from {source}, which no longer "
+                                "has it: remove it, or keep it as your own", "import.source_item_gone",
+                                actual="not in the file", limit="every imported item in the file"))
     return warnings
 
 
