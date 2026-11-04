@@ -48,6 +48,12 @@ the same results as in 2.0.0.
   Renaming a part now renames it in the mounts, stowed poses and face
   properties; the spacecraft editor no longer drops the RF antenna's
   mount.
+- **The rest of the model in the 3D model editor:** a part's material,
+  maturity and subsystem and each face's own properties in the part
+  form; the model's own materials (Materials tab); the mass budget and
+  the launcher envelope (Budget and launcher tab). Nothing of the model
+  needs the JSON view any more. The bottom tabs scroll, so the 3D view
+  keeps its height.
 - **Template 32**, the 300 kg small satellite with its equipment mounted,
   showing a star tracker and a nozzle plume that see an array.
 - Parameters `analyses.observer_sun_depression_deg` and `reentry.*`, with

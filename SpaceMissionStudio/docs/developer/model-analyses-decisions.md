@@ -397,3 +397,32 @@ A review of the branch (PR #209) found seven points.
 - **Alternative:** a mount group in each device's own form (the sensor
   and actuator editors). It was not taken: a mount is about the model's
   geometry, and needs the parts and the view to set it well.
+
+## D-25: The rest of the model in the 3D model editor
+
+- **Chosen** (`gui/model_property_tabs.py`):
+  - **The part form** gives each part:
+    - a material (the library's, then the model's own);
+    - a maturity category of the mass budget's policy;
+    - a subsystem;
+    - per face, a material and reflection coefficients in place of
+      the part's. A blank cell keeps the part's, and a face with
+      nothing of its own has no entry.
+  - **Materials** edits the model's own materials.
+    - The erosion yield is shown in units of 1e-24 cm^3/atom, so a
+      typical value reads 3.0 rather than a long string of zeros.
+    - A rename follows the parts and faces that use the material.
+    - A material in use cannot be deleted, and a library name is
+      refused.
+  - **Budget and launcher** edits the mass budget (policy, system
+    margin, mass limit and its source) and the launcher envelope (a
+    library envelope, or a custom cylinder, box or profile, with its
+    plane, axis, limits and source). Each is a checkable group:
+    unticked, the model has none.
+- **Fixed with it:** the bottom tabs are now in scroll areas. Since
+  D-24 added the Equipment tab, the tallest tab's form squeezed the
+  parts list, the part form and the 3D view to about 150 px at
+  1600 x 900. The `model_editor.png` screenshot is re-captured with the
+  seven tabs.
+- **Result:** nothing in a model needs the JSON view any more. The
+  limitations page keeps only the empty launcher library (D-11).

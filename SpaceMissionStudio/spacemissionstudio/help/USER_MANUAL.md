@@ -849,7 +849,10 @@ A model problem in **Problems**, or the "3D model" badge in **Explain**,
 opens the editor for that spacecraft too. Its **Equipment** tab mounts
 items and the spacecraft's devices on the model, drawn in the view with
 their field-of-view and plume cones, and its **Stowed** tab gives parts
-their pose folded for launch and shows either configuration. Step by step:
+their pose folded for launch and shows either configuration. Its
+**Materials** and **Budget and launcher** tabs, and the part form's
+material, maturity and per-face properties, edit the rest of the model's
+data. Step by step:
 [Build a 3D model](docs/user-manual/3d-model.md); template 28 is a
 worked example.
 
