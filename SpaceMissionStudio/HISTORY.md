@@ -14514,6 +14514,78 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The IDM-CIC import finds the sensors and actuators (2026-11-05)
+
+The user: "Is there any way the IDM import could detect any sensors and
+actuators or other relevant subsystems and components (like batteries or
+solar panels) and directly consider them in the satellite model ... this
+way the user would not have to manually input the component data/models
+themselves." Then: "Yes, please start once PR #220 is done."
+
+What an IDM-CIC model gives was checked first, against the format's
+published description and the sample models the user supplied earlier
+(read only, never committed). Each equipment has a name, a subsystem, a
+mass and a placed frame. Nothing states how a device performs: no wheel
+momentum, no sensor noise, no battery capacity, no thrust (that is in the
+undocumented `propulsion.xml`, which stays unread, IDM-09). So the import
+can say what a device is and where it sits, and the values must come
+from elsewhere. Decisions IDM-19 to IDM-23 and section 15 of
+`docs/developer/idm-cic-integration.md` record the design.
+
+`spacemissionstudio/idm_devices.py`:
+- names in English and French, accents ignored, against a rule per kind;
+  parts of a device (electronics, support, mechanism, a battery's thermal
+  cone) and the structure, thermal and harness subsystems are excluded.
+  On the samples it found the star tracker heads (not their electronics),
+  four wheels, three magnetorquers, two sun sensors, a gyro, the
+  magnetometers and the thrusters, in both the English and the French
+  models;
+- the axis is the unit's +z unless chosen: in the samples the four wheels'
+  +z axes form a pyramid, about (+-0.58, +-0.58, -0.57), and the
+  magnetorquers lie along the three body axes;
+- a catalog product is matched when the equipment's name holds its
+  product name as whole words, with one word that is not generic
+  ("ST200", not "Fine Sun Sensor");
+- the values come from the product, or from nothing. A sensor without one
+  runs with Basilisk's defaults, and the new pre-run rule
+  `import.device_defaults` names it until its values change. Wheels and
+  magnetorquers are added only with a product.
+
+Two schema rules shaped this, both found by importing the fixture into
+template 06:
+- a custom wheel needs `u_max` and an inertia, or `rwFactory.create()`
+  exits the process. So wheels need a product (`REQUIRED_VALUES`), and
+  the first version, which added them bare, was refused by validation;
+- magnetorquers need magnetic momentum management. So each device is
+  tried against the spacecraft's own validation (`keep_fitting`), and
+  one it cannot take is left out with the validator's reason, rather than
+  the whole import being refused.
+
+Thrusters, solar arrays and batteries are listed, not added: a thruster's
+direction and thrust and a battery's capacity are not in the file, and
+the power model takes one panel area for the spacecraft. The power modes,
+which the model does state, and a mapping from the team's own properties
+to device values are the next step.
+
+The import record of target `devices` keeps each device's values, its
+product (or "Basilisk's defaults") and its IDM-CIC unit. A re-import adds
+only units without a device yet: the four sample wheels share one name, so
+names could not identify them.
+
+**GUI:** the import dialog's **Devices found** table (add, axis,
+catalog product, why not); the 3D model editor keeps the choices, and the
+spacecraft list or the spacecraft dialog adds the devices on its OK,
+since only they hold the whole spacecraft.
+
+**CLI:** `idm-import --devices`, and `idm-info` lists the devices found.
+
+**Tests:**
+- `tests/test_idm_devices.py`, 29 cases, on a new synthetic fixture
+  `tests/data/idm/devicesat` (made-up names and poses);
+- `tests/gui/test_idm_devices_gui.py`, 4 tests.
+
+Full suite on Python 3.14 (a home holding only the reference data cache): 4643 passed in 25 min 17 s.
+
 ## A Walker constellation that holds its spacing (2026-11-05)
 
 After 2.2.0, by the user's standing instruction (work on until a feature

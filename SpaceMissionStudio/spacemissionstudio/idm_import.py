@@ -96,6 +96,9 @@ class ImportSummary:
     kept: list = field(default_factory=list)  # (item name, what was kept as edited)
     gone: list = field(default_factory=list)
     unchanged: int = 0
+    devices: list = field(default_factory=list)  # (equipment name, kind label, product or "") found by name
+    devices_added: list = field(default_factory=list)  # device names added to the spacecraft
+    devices_skipped: list = field(default_factory=list)  # (equipment name, why)
 
     def lines(self) -> list[str]:
         """The summary as text lines."""
@@ -124,6 +127,14 @@ class ImportSummary:
             levels = collections.Counter((level or "not given", margin) for _, level, margin in self.margins)
             text = "; ".join(f"{level} {margin * 100:g} % x{count}" for (level, margin), count in sorted(levels.items()))
             out.append(f"  mass margins in the file (reported, not applied: nominal masses imported): {text}")
+        if self.devices:
+            out.append(f"  devices found by name ({len(self.devices)}): "
+                       + "; ".join(f"{name} ({label}{', ' + product if product else ''})"
+                                   for name, label, product in self.devices))
+        if self.devices_added:
+            out.append(f"  devices added to the spacecraft ({len(self.devices_added)}): {', '.join(self.devices_added)}")
+        for name, why in self.devices_skipped:
+            out.append(f"    device not added: {name}: {why}")
         for note in self.notes:
             out.append(f"  note: {note}")
         return out
@@ -142,6 +153,7 @@ class Plan:
     summary: ImportSummary
     details: dict
     apply_facets: bool = False
+    devices: list = field(default_factory=list)  # idm_devices.DeviceFinding, found by name
 
 
 def _tidy(value: float, noise: float = 1.0e-9) -> float:
@@ -405,7 +417,53 @@ def plan(model: IdmModel, configuration: str | None = None, stowed_configuration
         details["stowed_configuration"] = stowed_label
     if model.last_modification:
         details["model_last_modification"] = model.last_modification
-    return Plan(parts, points, stowed, groups, summary, details, apply_facets)
+    from . import idm_devices
+
+    devices = idm_devices.detect(model, placement, body, mounted)
+    summary.devices = [(d.equipment, idm_devices.KIND_LABELS[d.kind], d.product) for d in devices]
+    return Plan(parts, points, stowed, groups, summary, details, apply_facets, devices)
+
+
+def add_devices(scenario, spacecraft: str, the_plan: Plan, choices, author: str = "",
+                summary: ImportSummary | None = None):
+    """Add the devices of ``the_plan`` chosen in ``choices`` (one
+    ``idm_devices.DeviceChoice`` per finding) to ``scenario``'s spacecraft
+    ``spacecraft``, and record them (an import record of target
+    "devices"). A finding whose unit an earlier import already added a
+    device for is left as it is (it may have been edited since). Returns the
+    ``idm_devices.DeviceResult``; ``summary``, when given, lists what was
+    added and skipped."""
+    from . import idm_devices
+
+    sc = next((s for s in scenario.spacecraft if s.name == spacecraft), None)
+    if sc is None:
+        raise IdmError(f"no spacecraft {spacecraft!r} in the scenario")
+    previous = next((r for r in scenario.imports if (r.spacecraft, r.target) == (spacecraft, "devices")), None)
+    done = idm_devices.recorded_units(previous)
+    findings, kept_choices, skipped = [], [], []
+    for finding, choice in zip(the_plan.devices, choices):
+        if choice.add and finding.source_id in done:
+            skipped.append((finding.equipment, "added by an earlier import: left as it is"))
+            continue
+        findings.append(finding)
+        kept_choices.append(choice)
+    taken = {d.name for d in list(sc.sensors) + list(sc.actuators)}
+    result = idm_devices.keep_fitting(sc, idm_devices.build_devices(findings, kept_choices, taken))
+    result.skipped[:0] = skipped
+    sc.sensors = list(sc.sensors) + result.sensors
+    sc.actuators = list(sc.actuators) + result.actuators
+    if result.values:
+        values = dict(previous.values) if previous is not None else {}
+        details = dict(previous.details) if previous is not None else {}
+        values.update(result.values)
+        details.update(result.details)
+        put_import(scenario, ImportRecord(spacecraft, "devices", FORMAT, the_plan.summary.source,
+                                          the_plan.summary.sha256, values,
+                                          datetime.now(UTC).replace(microsecond=0).isoformat(), author, details))
+    if summary is not None:
+        summary.devices_added = [d.name for d in result.sensors + result.actuators]
+        summary.devices_skipped = list(result.skipped)
+    return result
 
 
 def _label(configuration) -> str:

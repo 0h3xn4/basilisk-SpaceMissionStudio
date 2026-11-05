@@ -366,7 +366,48 @@ decision of this project, reversible when better information comes.
 | IDM-17 | **XML safety**: `ElementTree` with any document type or entity declaration refused before parsing (Python's expat also bounds entity expansion); the file and `model.xml` sizes are capped. `defusedxml` is not a dependency. | A model never declares a DTD; refusing one removes the entity attacks. |
 | IDM-18 | **The licence** of IDM-CIC was not available to read (question 1). The reader uses the format's published description only for element names and meanings; no CNES text, file or example is in the repository; the test fixtures are written by hand. Listed in the known limitations. | The brief's rules. |
 
+| IDM-19 | **Devices are found by name** (`idm_devices`, section 15): an equipment's name, in English or French with accents ignored, names a device kind; a part of a device (electronics, support, mechanism, a thermal cone) and the structure, thermal and harness subsystems name none. | The file has no device type: only the names say what an equipment is. The rules were checked against the names of the sample models (not committed). |
+| IDM-20 | **A device's axis** is an axis of its equipment frame, +z unless the user chooses another. | IDM-03 builds revolution shapes along +z; in the samples, the wheels' +z axes form a pyramid and the magnetorquers' lie along the three body axes. The file has no boresight. |
+| IDM-21 | **Values come from a catalog product or from Basilisk's defaults, never from an estimate.** A sensor without a product runs with the defaults, and `import.device_defaults` says so until its values are set; wheels and magnetorquers are added only with a product (Basilisk builds neither without values the file does not give); thrusters, solar arrays and batteries are listed, not added. | The file states no performance; the user asked for nothing to be invented. |
+| IDM-22 | **A device the spacecraft cannot take as it is** (its own validation fails with it, e.g. a magnetorquer without magnetic momentum management) is left out, with the validator's reason. | Adding it would make the scenario invalid, and the import is refused whole. |
+| IDM-23 | **Re-import of devices** adds only the units no earlier import added a device for (the record names each device's unit); devices already added are left as they are. | A device's values are the user's once added; the record keeps what was imported for comparison. |
+
 Validation (question 10) remains open: no example stores IDM-CIC's own
 totals, so the importer's mass properties are checked against hand
 calculations on the synthetic fixture, not against IDM-CIC. A model's
 mass, centre-of-gravity and inertia report from IDM-CIC would close it.
+
+## 15. Devices found by name
+
+Added after the user asked whether the import could find the sensors,
+actuators and power equipment of a model, so that they need not be
+typed in again. `spacemissionstudio/idm_devices.py`:
+
+- `classify(name, subsystem)`: the device kind a name names (decision
+  IDM-19), first rule first: star tracker, magnetorquer, magnetometer,
+  sun sensor, gyro or IMU, reaction wheel, thruster, solar array, battery.
+- `detect(model, placement, body)`: each placed unit of the elements
+  carried by the body element whose name names a device, with its mass,
+  its position (the unit's origin, or its manual centre of gravity) and
+  its axes in the body frame, and the catalog product its name names
+  (`catalog_product`: the product name as whole words, with one word
+  that is not generic).
+- `default_choices`, `build_devices`: the sensors and actuators to add,
+  each axis parameter (`nHat_B`, `gsHat_B`, `gtHat_B`) and mount from the
+  chosen axis (IDM-20), the product's values or none (IDM-21).
+- `keep_fitting`: each device tried against the spacecraft's own
+  validation (IDM-22).
+- `unset_devices`: the devices still on Basilisk's defaults, for the
+  `import.device_defaults` pre-run warning.
+
+`idm_import.plan` lists the devices found (`Plan.devices`, the summary),
+and `idm_import.add_devices` adds those chosen and records them as an
+import of target `devices` (re-import: IDM-23). In the GUI the import
+dialog's **Devices found** table makes the choices; the 3D model editor
+keeps them, and the spacecraft list or the spacecraft dialog adds the
+devices on the editor's OK, since only they hold the whole spacecraft.
+On the command line, `idm-import --devices` takes the default choices.
+
+The power modes (IDM-10), a property mapping for performance values the
+team keeps in the model's own properties, and the power equipment are
+the next step.

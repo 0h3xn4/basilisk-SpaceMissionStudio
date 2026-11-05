@@ -343,6 +343,7 @@ class SpacecraftEditorDialog(QDialog):
         self._imports_provider = imports_provider
         self.pending_import = None
         self.pending_orbit_import = None
+        self.pending_devices_import = None  # the record of the devices an IDM-CIC import added here
         # A page's form opens the 3D model editor through its scenario (set by gui.scenario_editor), so there is
         # one editor per spacecraft; a dialog, or a form without one, opens its own (_model_editor).
         self.model_editor_opener = None
@@ -2326,7 +2327,8 @@ class SpacecraftEditorDialog(QDialog):
         """The import records made in this dialog (a 3D model, an orbit),
         under the spacecraft's name now."""
         name = self.name_edit.text().strip()
-        records = [r for r in (self.pending_import, self.pending_orbit_import) if r is not None]
+        records = [r for r in (self.pending_import, self.pending_orbit_import, self.pending_devices_import)
+                   if r is not None]
         for record in records:
             if name:
                 record.spacecraft = name
@@ -2379,7 +2381,31 @@ class SpacecraftEditorDialog(QDialog):
             self.actuator_list.set_mounts({d.name: d.mount for d in devices.actuators})
         if devices.rf_link is not None:
             self._rf_antenna_mount = devices.rf_link.antenna_mount
+        if editor.device_import() is not None and not self._orbit_only:
+            self._add_imported_devices(*editor.device_import())
         self._on_apply_model()
+
+    def _add_imported_devices(self, plan, choices) -> None:
+        """The devices an IDM-CIC import found and the user chose, into the
+        Sensors and Actuators lists (``idm_import.add_devices``, which
+        leaves out what the spacecraft cannot take), with their record."""
+        from .. import history, idm_import
+
+        try:
+            config = self.to_dataclass()
+        except (ValueError, ScenarioValidationError) as exc:
+            report(self, f"The devices found in the IDM-CIC model were not added: the form does not read ({exc}).")
+            return
+        previous = self.pending_devices_import or _devices_import(self._imports_provider, config.name)
+        shim = SimpleNamespace(spacecraft=[config], imports=[previous] if previous is not None else [])
+        result = idm_import.add_devices(shim, config.name, plan, choices, history.current_author())
+        self.sensor_list.add_items(result.sensors)
+        self.actuator_list.add_items(result.actuators)
+        if result.values:
+            self.pending_devices_import = shim.imports[-1]
+            if self._embedded:
+                self.import_recorded.emit(self.pending_devices_import)
+        report(self, device_import_message(result), kind="info" if result.sensors or result.actuators else "warning")
 
     def done(self, result: int) -> None:
         """A dialog does not close under its open 3D model editor: the
@@ -3049,6 +3075,30 @@ class SpacecraftLabels:
         return _problem_text(message, self.field_title, self.other_titles)
 
 
+def _devices_import(provider, spacecraft: str):
+    """The scenario's IDM-CIC devices import record of ``spacecraft``, or None."""
+    records = provider() if provider is not None else []
+    return next((r for r in records if r.spacecraft == spacecraft and r.target == "devices"), None)
+
+
+def device_import_message(result) -> str:
+    """What adding the devices found in an IDM-CIC model did, in a line or
+    two (``idm_devices.DeviceResult``)."""
+    from ..idm_devices import CANNOT_TAKE
+
+    added = [d.name for d in result.sensors + result.actuators]
+    text = (f"Added {len(added)} device(s) found in the IDM-CIC model: {', '.join(added)}." if added else
+            "No device found in the IDM-CIC model was added.")
+    refused = [(name, why) for name, why in result.skipped if why.startswith(CANNOT_TAKE)]
+    if refused:
+        text += " Chosen but not added: " + "; ".join(f"{name} ({why})" for name, why in refused) + "."
+    others = len(result.skipped) - len(refused)
+    if others:
+        text += (f" {others} other device(s) found were not added (the import dialog's Devices found table says "
+                 "why for each).")
+    return text
+
+
 def _model_import(provider, spacecraft: str):
     """The scenario's 3D model import record of ``spacecraft``, or None."""
     records = provider() if provider is not None else []
@@ -3462,6 +3512,16 @@ class SpacecraftListWidget(QWidget):
         new_config.model = editor.model()
         apply_device_mounts(new_config, editor.devices())
         orbit_only = self._simulation_mode() == "orbit_only"
+        device_message = ""
+        if editor.device_import() is not None and not orbit_only:
+            from .. import history, idm_import
+
+            previous = _devices_import(self._imports_provider, new_config.name)
+            shim = SimpleNamespace(spacecraft=[new_config], imports=[previous] if previous is not None else [])
+            result = idm_import.add_devices(shim, new_config.name, *editor.device_import(), history.current_author())
+            if result.values:
+                self.import_recorded.emit(shim.imports[-1])
+            device_message = " " + device_import_message(result)
         target = SimpleNamespace(model=new_config.model, solar_arrays=[] if orbit_only else new_config.solar_arrays)
         derived = model3d.derive(new_config.model, base_dir)
         values = model3d.applied_values(target, derived, orbit_only=orbit_only)
@@ -3470,7 +3530,8 @@ class SpacecraftListWidget(QWidget):
         self._configs[row] = new_config
         self._refresh_list()
         self.list_widget.setCurrentRow(row)
-        show_toast(self.window(), applied_summary(new_config.name, values), duration_ms=5000)  # [ms]
+        show_toast(self.window(), applied_summary(new_config.name, values) + device_message,
+                   duration_ms=5000)  # [ms]
         self.changed.emit()
 
     def _on_remove(self) -> None:

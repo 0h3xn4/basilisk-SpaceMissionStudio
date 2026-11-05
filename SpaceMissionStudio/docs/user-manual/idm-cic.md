@@ -34,8 +34,11 @@ mounted on it, directly or through others, come with it; an element that
 is not mounted on it (a ground jig, an "orbit" element that only shows
 the spacecraft) is left out, and the summary says why.
 
-Not imported: power modes and duty cycles, thrusters and their
-performance, thermal data, scenarios (trajectories and attitudes), the
+Sensors and actuators can be added too, from their names: see
+[Devices found in the model](#devices-found-in-the-model).
+
+Not imported: power modes and duty cycles, the performance of
+thrusters, batteries and solar arrays, thermal data, scenarios (trajectories and attitudes), the
 pictures and documents attached to the model, and surface coefficients
 (the file has none: facets stay off unless you ask for them, with the
 default coefficients). Shapes on layers that IDM-CIC hides by default and
@@ -78,6 +81,66 @@ without writing anything; `idm-import` writes the model, saves the
 scenario through the change history and prints the same summary as the
 dialog. Both accept `--body-element`; `idm-import` also `--apply-facets`
 and `--out`.
+
+## Devices found in the model
+
+An IDM-CIC model says what each equipment is called, which subsystem it
+belongs to, its mass and where it sits. It does not say how the
+equipment performs. The import reads the names, in English or French
+(accents ignored), and the dialog lists under **Devices found** each
+equipment whose name names a device:
+
+| Found | Names such as | Added? |
+|---|---|---|
+| Star tracker | Star tracker, Senseur stellaire | Yes (the head only, not its electronics) |
+| Gyro / IMU | Gyro, IMU, Gyromètre | Yes |
+| Sun sensor | Sun sensor, SAS, Senseur solaire | Yes |
+| Magnetometer | Magnetometer, Magnétomètre | Yes |
+| Reaction wheel | Reaction wheel, Inertia wheel, Roue | With a catalog product |
+| Magnetorquer | Magnetorquer, Magneto torquer, Magnétocoupleur | With a catalog product |
+| Thruster | Thruster, Propulseur | Listed only |
+| Solar array | Solar panel, Panneau solaire | Listed only |
+| Battery | Battery, Batterie | Listed only |
+
+A part of a device (a star tracker's electronics, a wheel's support, a
+solar array's mechanism) and the equipment of the structure, thermal and
+harness subsystems are not devices.
+
+For each device, the table offers:
+
+- **Add**: whether the import adds it to the spacecraft's Sensors or
+  Actuators, at its place in the model;
+- **Axis**: the axis of the equipment's frame in IDM-CIC that is the
+  device's boresight, spin axis or dipole axis. It is +z unless you choose
+  another: IDM-CIC's cylinders and cones are built along +z;
+- **Catalog product**: a product from SpaceMissionStudio's device catalog.
+  If the equipment's name includes a product's name ("Star tracker head
+  ST200"), that product is chosen for you. The device takes its published
+  values.
+
+Nothing is estimated. A star tracker, gyro, sun sensor or magnetometer
+without a product runs with Basilisk's defaults for its kind, and the
+pre-run checks say so for each one until you set its values or choose a
+product (`import.device_defaults`). A reaction wheel or magnetorquer is
+added only with a product: Basilisk cannot build one without its torque
+and inertia, or its dipole, which the file does not give. Thrusters,
+solar arrays and batteries are listed but not added: a thruster's
+direction and thrust and a battery's capacity are not in the file, and
+the Power page takes one panel area for the whole spacecraft.
+
+A device the spacecraft cannot take as it is (a magnetorquer without
+magnetic momentum management, for example) is not added, and the
+message after OK says why. The devices are added when you click **OK**
+in the 3D model editor. In an orbit-only scenario, which simulates no
+sensors or actuators, they are listed but not added.
+
+A newer version of the model adds the devices that are new in it; a
+device an earlier import added is left as it is, edits included. The
+scenario records each added device, its values, the product or
+"Basilisk's defaults", and the IDM-CIC unit it came from.
+
+From the command line, `idm-import --devices` adds the devices that the
+dialog would add by default, and `idm-info` lists the devices found.
 
 ## What is approximated
 

@@ -21,6 +21,20 @@ fixes bugs.
   whose thruster does the phasing. Before, each follower's chief and
   distance had to be set by hand
   ([Build a constellation](docs/user-manual/orbit-keeping-and-formations.md#build-a-constellation)).
+- **The IDM-CIC import finds the sensors and actuators.** The import
+  dialog lists under **Devices found** each equipment whose name (English
+  or French) names a star tracker, gyro, sun sensor, magnetometer,
+  reaction wheel, magnetorquer, thruster, solar array or battery, with
+  its place and axis on the spacecraft. The ones you tick are added to
+  the spacecraft's Sensors and Actuators. A device whose name includes a
+  catalog product's name takes that product's published values; one
+  without a product runs with Basilisk's defaults, and the pre-run checks
+  say so until you set its values (`import.device_defaults`). Nothing is
+  estimated: wheels and magnetorquers need a product, and thrusters,
+  solar arrays and batteries are listed only, because the file does not
+  give their performance. `idm-import --devices` does the same from the
+  command line
+  ([Devices found in the model](docs/user-manual/idm-cic.md#devices-found-in-the-model)).
 
 ## 2.2.0 (2026-11-05)
 

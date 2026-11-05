@@ -3272,10 +3272,10 @@ def number_fields(record, prefix: str = "") -> dict:
 
 
 # What an import record says was read from a file, and the formats (Phase 8c).
-IMPORT_TARGETS = ("orbit", "model")
+IMPORT_TARGETS = ("orbit", "model", "devices")
 IMPORT_FORMATS = ("ccsds_opm", "ccsds_omm", "idm_cic")
 #: The formats each target is read from.
-IMPORT_TARGET_FORMATS = {"orbit": ("ccsds_opm", "ccsds_omm"), "model": ("idm_cic",)}
+IMPORT_TARGET_FORMATS = {"orbit": ("ccsds_opm", "ccsds_omm"), "model": ("idm_cic",), "devices": ("idm_cic",)}
 IMPORT_SOURCE_STATES = ("unchanged", "changed", "missing")
 
 
@@ -3329,6 +3329,10 @@ def imported_values(config, target: str) -> dict:
     :class:`ImportRecord` keeps them."""
     if target == "model":
         return model_import_values(config.model) if config.model is not None else {}
+    if target == "devices":  # the sensors and actuators an IDM-CIC import found (idm_devices)
+        from ..idm_devices import device_import_values
+
+        return device_import_values(config)
     if target != "orbit":
         raise ValueError(f"no import target {target!r}")
     if config.orbit is None:
