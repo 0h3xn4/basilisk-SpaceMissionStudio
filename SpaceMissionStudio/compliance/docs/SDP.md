@@ -62,7 +62,7 @@ The objectives, in order:
 No project master schedule exists. Development is continuous and driven by
 the user's requests. Releases are made when the user decides, tagged, not
 signed (decision 11). The current release is 2.2.0, CCSDS orbit files in
-the app (prepared 2026-11-05); before it 2.1.1, fixes to the 3D model
+the app (published 2026-11-05); before it 2.1.1, fixes to the 3D model
 editor, the IDM-CIC import and Vizard's battery panel (2026-11-04),
 2.1.0, the analyses built
 on the 3D model and the IDM-CIC import (published 2026-11-04), 2.0.0, the transparency work and Python 3.14 (2026-11-03), 1.3.1, a faster

@@ -1,9 +1,9 @@
 # SpaceMissionStudio: Software Release Document (SRelD)
 
 DRD: ECSS-E-ST-40C Annex G
-Document: SMS-SRelD, issue 23, 2026-11-05. Remediation R14.
+Document: SMS-SRelD, issue 24, 2026-11-05. Remediation R14.
 
-**Status:** release **2.2.0**, prepared 2026-11-05: CCSDS orbit files in
+**Status:** release **2.2.0**, published 2026-11-05 (08:55 UTC): CCSDS orbit files in
 the app (#218, SRS-F-14). What the command line already did with CCSDS
 502.0-B-3 orbit messages, the GUI now does too, through one module both
 use (`spacemissionstudio.ccsds_files`): import a spacecraft's orbit from
@@ -15,9 +15,27 @@ data, run record) are windows of their own. Since 2.1.1 no scenario field,
 template or golden file changed, and the command line writes the same
 files: every template's outputs are as in 2.1.1, and 2.1.1 and 2.2.0 open
 each other's files. The bundled space weather is still 1.3.0's: CelesTrak
-reset the connection again (K-13). The release pull request is merged
-once CI is green; tagging and publishing are the user's (the environment
-cannot push tags).
+reset the connection again (K-13). The release pull request (#219) was
+merged once CI was green; tagging and publishing were the user's (the
+environment cannot push tags).
+- Tagged `spacemissionstudio-v2.2.0` (not signed, D-13) on commit
+  `fa9d2b6b9` (`fa9d2b6b9f015d70cdec7f21360a762b2d26fd22`), the merge of
+  #219 into `develop`, by the user. GitHub release "Space Mission Studio
+  2.2.0", published by the user with notes written for it
+  (<https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.2.0>).
+  It was published at 08:55:50 UTC, two seconds before the release
+  workflow started, so it was public without files until the workflow
+  attached them at 09:34.
+- Its six files were built, installed, checked and attached by the
+  release workflow
+  ([run 41998260915](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/41998260915)),
+  which kept the release's notes. GitHub's SHA-256 digests: `.deb`
+  (`spacemissionstudio_2.2.0_amd64.deb`, 450 735 196 bytes)
+  `2e4cfab3...72ae`, setup program (`spacemissionstudio-2.2.0-setup.exe`,
+  395 168 677 bytes) `68715e0b...9b52`, wheel (4 629 618 bytes)
+  `cf71e95e...5f99`, sdist (4 804 357 bytes) `eeffa315...b7ee`,
+  `SHA256SUMS-linux` `f58d682e...96de`, `SHA256SUMS-windows`
+  `5530d333...0372`.
 
 **Previous release:** 2.1.1, published 2026-11-04 (19:58 UTC): fixes to problems
 reported on 2.1.0 (#215, K-29). The 3D model editor is a window of its
@@ -262,7 +280,7 @@ This SRelD describes release 2.2.0 of SpaceMissionStudio in
 | Item | Value |
 |---|---|
 | Configuration item | SpaceMissionStudio (`SpaceMissionStudio/` in the repository) |
-| Baseline | `develop` after the 2.2.0 release pull request (the changes of #217 and #218 and the release's records), to be tagged `spacemissionstudio-v2.2.0` by the user; the commit is recorded at publication. Previous release: 2.1.1, commit `a6413c1cb` (`a6413c1cb44fa3ec98c47ed11cd43b254b5f44c2`), tagged `spacemissionstudio-v2.1.1`. |
+| Baseline | Commit `fa9d2b6b9` (`fa9d2b6b9f015d70cdec7f21360a762b2d26fd22`), tagged `spacemissionstudio-v2.2.0`: `develop` after the 2.2.0 release pull request (#219; the changes of #217 and #218, the windows of their own and the release's records). Previous release: 2.1.1, commit `a6413c1cb` (`a6413c1cb44fa3ec98c47ed11cd43b254b5f44c2`), tagged `spacemissionstudio-v2.1.1`. |
 | Reused software baseline | Basilisk 2.12.0 (PyPI), numpy, sgp4, pyerfa, PySide6, plotly (RD3); the tested versions are pinned in `packaging/constraints.txt`. Bundled with the GUI as files, not packages: Inter 4.1 and JetBrains Mono 2.304 (SIL OFL 1.1) and 45 Lucide icons from lucide-static 1.52.0 (ISC), with versions, sources and checksums in `docs/THIRD_PARTY_ASSETS.md`. The installers also carry CPython 3.14.8 (python-build-standalone 20261013, SHA-256 pinned) with every installed package and the reference data; each build lists them in its `SPACEMISSIONSTUDIO_RUNTIME.json`, and `docs/THIRD_PARTY_ASSETS.md` ("In the installers") gives their licences |
 | Platform | The installers: Linux x86_64 with glibc 2.34 or newer (`.deb`), Windows 10/11 x64; no Python needed. From source: Python 3.14 (3.11 to 3.13 are no longer supported; Basilisk 2.12.0 and PySide6 6.11 do not install on 3.15 yet) |
 | Delivery | Attached to the GitHub release by the release workflow (`.github/workflows/spacemissionstudio-release.yml`): the wheel and sdist, the Debian package `spacemissionstudio_2.2.0_amd64.deb`, the Windows setup program `spacemissionstudio-2.2.0-setup.exe` (not signed, D-13), `SHA256SUMS-linux` and `SHA256SUMS-windows` |
