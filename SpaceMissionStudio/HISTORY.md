@@ -14514,6 +14514,37 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.3.0 prepared (2026-11-05)
+
+A minor release: it adds features. The user had asked to continue until
+the features were in and a release was ready. Contents since 2.2.0: the
+Walker constellation that holds its spacing (#220) and the satellite's
+components from IDM-CIC (#222 devices, #223 power, #224 properties), plus
+the 2.2.0 publication record (#221).
+
+Prepared by `docs/developer/releasing.md`: version 2.3.0 in
+`pyproject.toml`, `__init__.py` and the Inno Setup script; the CHANGELOG's
+Unreleased entries under 2.3.0 with an introduction, Who should update and
+Known limits; SRelD issue 25 (2.3.0 prepared, 2.2.0 previous, K-13
+extended, K-30 added); the SDP, SRS, ICD (ICD-12 now lists the power
+modes, properties, devices and power records), CSD, SUM, both READMEs and
+`releasing.md` name 2.3.0.
+
+Compatibility, checked rather than assumed: three scenarios saved by 2.3.0
+after an IDM-CIC import of the synthetic power model were loaded with
+2.2.0's code (the `release/2.2.0` worktree). The one with only the model
+opens; the ones where the import added devices or set the power budget
+are refused ("imports[1].target must be one of ('orbit', 'model')"),
+because 2.2.0 validates the import record's target. Recorded as K-30 and
+in Who should update. The golden-output regression tests passed, so
+every template's outputs are as in 2.2.0.
+
+CelesTrak reset the connection again (`curl` to celestrak.org: "Recv
+failure: Connection reset by peer"), so the bundled space weather is
+still 1.3.0's (K-13).
+
+Full suite on Python 3.14 (a home holding only the reference data cache), on the release's code: 4671 passed in 23 min 58 s.
+
 ## The IDM-CIC import reads a team's own properties (2026-11-05)
 
 The last part of the user's request to bring a model's components in

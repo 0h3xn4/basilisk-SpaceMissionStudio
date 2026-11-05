@@ -5,7 +5,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-[![Version 2.2.0](https://img.shields.io/badge/version-2.2.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.2.0)
+[![Version 2.3.0](https://img.shields.io/badge/version-2.3.0-blue)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.3.0)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -125,10 +125,13 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE),
   [`SpaceMissionStudio/LICENSE`](SpaceMissionStudio/LICENSE)).
-- **Version:** 2.2.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.2.0),
-  [changelog](SpaceMissionStudio/CHANGELOG.md)): CCSDS orbit files in
-  the app (import an orbit from an OPM or OMM, export the starting orbits
-  and a run's OEM, check a file). 2.1.1 fixed 2.1.0 (the 3D model editor
+- **Version:** 2.3.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.3.0),
+  [changelog](SpaceMissionStudio/CHANGELOG.md)): the IDM-CIC import
+  brings the satellite's components in (sensors and actuators found by
+  name, the power budget from the model's power modes and solar arrays,
+  and the values your team keeps as properties), and a Walker
+  constellation can hold its spacing. 2.2.0 put CCSDS orbit files in the
+  app; 2.1.1 fixed 2.1.0 (the 3D model editor
   is a window of its own, the IDM-CIC import from a template, Vizard's
   battery in watt-hours); 2.1.0 was the spacecraft as designed. Its 3D model carries the equipment, a stowed configuration
   and materials; the tool checks fields of view, thrusters, the mass
