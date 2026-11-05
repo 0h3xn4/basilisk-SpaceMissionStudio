@@ -14514,6 +14514,21 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.3.0 published (2026-11-05)
+
+#225 was merged once CI was green. The user tagged
+`spacemissionstudio-v2.3.0` on its merge commit `3f11a0227` and published
+the release at 16:17:58 UTC with notes written for it (prepared with the
+assistant at the user's request: what is new, who should update, install,
+known limits, and the IDM-CIC credit). The release workflow
+([run 42062956336](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/42062956336)) started two seconds
+later; it ran the whole suite on the tagged commit on Linux and Windows,
+built, installed and checked the six files and attached them at 16:56,
+keeping the notes. So the release was public without files for 39
+minutes, the eighth release so (`releasing.md`). SRelD issue 26, the SDP,
+H05 and `releasing.md` record the tag, the run and the files' digests.
+Documents only.
+
 ## Release 2.3.0 prepared (2026-11-05)
 
 A minor release: it adds features. The user had asked to continue until
