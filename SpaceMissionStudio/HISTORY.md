@@ -14578,6 +14578,8 @@ scenario field was added, so 2.4.0 opens every 2.3.0 file. CelesTrak
 refused the connection again (curl: no response), so the bundled space
 weather is still 1.3.0's (K-13).
 
+Full suite on Python 3.14 (a home holding only the reference data cache), with the origin option: 4688 passed in 21 min 35 s.
+
 ## The IDM-CIC import reads device axes from the shapes (2026-11-05)
 
 The user asked why the import could not detect how the equipment is

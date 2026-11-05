@@ -387,7 +387,7 @@ axes, ICD-12), the devices it adds may point another way than 2.3.0's,
 `idm-import` has `--origin` (ICD-02), and the model record's details
 keep the origin (ICD-12).
 
-**Tests:** 4678 passed on Linux, Python 3.14, on the release's code
+**Tests:** 4688 passed on Linux, Python 3.14, on the release's code
 (4671 passed at 2.3.0); none skipped. Seventeen tests were added (the
 axes: from cones and cylinders, the cone's angle, the default, the
 record, the command and the dialog; the origin: every position moved,
