@@ -14514,6 +14514,62 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The IDM-CIC import sets the power budget (2026-11-05)
+
+The second part of the user's request to bring a model's subsystems in
+("batteries or solar panels ... directly consider them in the satellite
+model"). The first part found the sensors and actuators; this one takes
+what the model says of power.
+
+What the file gives was checked against the format's published
+description (section 4.15) and the sample models (read only, not
+committed). An equipment definition has power modes, each a power and a
+dissipation; system modes, with a duty cycle, put each equipment
+occurrence in one of its modes, through an element mode of its element
+or through a direct mapping, which can give a custom power instead.
+The description gives no unit; the samples' values (a wheel's "On" about
+10, a magnetometer's about 1) are watts. The samples' duty cycles are
+all 0, so their average is not defined. Solar array panels are thin
+boxes, some with thinner cover layers of the same outline.
+
+The scenario's power budget has one constant bus load, one panel area
+and one normal, so the import reads, and the user chooses:
+
+- **`idm/power.py`** (new): each system mode's total over the imported
+  units, element-mode mappings first, then direct ones, a power mode's
+  power or the custom power; units with power modes that a mode does not
+  cover are listed and count 0 W; the duty-cycle average only when the
+  duty cycles add up to one; each solar array unit's largest flat face
+  (a box at most a tenth as thick as wide, or a plane surface) and the
+  faces grouped by normal line.
+- **`idm_import`**: `Plan.power` and the summary lines;
+  `apply_power(scenario, spacecraft, plan, PowerChoice)` sets the bus
+  load and the panel, the normal's sign chosen by the user, and records
+  them (import target `power`). Without a power budget, setting the panels
+  makes one with the editor's panel efficiency and battery
+  (`DEFAULT_PANEL_EFFICIENCY`, now shared with the editor), and the new
+  rule `import.power_defaults` warns until they are set. A bus load alone
+  does not make one.
+- **GUI**: the import dialog's **Power** section (nothing ticked by
+  default); the 3D model editor keeps the choice and the spacecraft list
+  or dialog applies it on OK, filling the Power page.
+- **CLI**: `idm-import --bus-load MODE|average --solar-panels +|-`; the
+  choice is checked before the model is merged, so an unknown mode
+  writes nothing. `idm-info` lists the modes and panels.
+
+Decisions IDM-24 to IDM-26 in `docs/developer/idm-cic-integration.md`
+(section 16); IDM-10 is superseded.
+
+**Tests:** `tests/test_idm_power.py` (11) and
+`tests/gui/test_idm_power_gui.py` (4), on a new synthetic fixture
+`tests/data/idm/powersat` (the device model with made-up modes, powers
+and a flat panel); hand sums: Cruise 1.5 + 3 + 6 = 10.5 W, Downlink
+4.5 + 0 = 4.5 W, average 0.8 x 10.5 + 0.2 x 4.5 = 9.3 W, panel
+1.2 x 0.8 = 0.96 m^2. One stand-in of the device GUI test gained the
+editor's new `power_import()` (docs/ui/TEST_CHANGES.md).
+
+Full suite on Python 3.14 (a home holding only the reference data cache): 4658 passed in 26 min 41 s.
+
 ## The IDM-CIC import finds the sensors and actuators (2026-11-05)
 
 The user: "Is there any way the IDM import could detect any sensors and

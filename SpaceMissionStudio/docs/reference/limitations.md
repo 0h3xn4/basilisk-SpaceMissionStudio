@@ -177,13 +177,20 @@ Each item was checked against Basilisk's own source.
     paths, labels, Boolean intersections and section planes. Rounded box
     edges and the stretch factor are ignored.
   * A typed-in inertia matrix, mass margins and maturity levels are
-    reported, not applied; power modes and thermal data are not
-    imported.
+    reported, not applied; thermal data and the power modes'
+    dissipation are not imported.
+  * The power budget has one constant load: the import sets it to one
+    system mode's total (or the duty-cycle average), not a mode
+    timeline. An equipment a system mode does not set is counted as
+    0 W. The panel area is the largest flat face of each solar array
+    panel along one normal line; panels along other lines, and the side
+    carrying the cells, are not read. A power budget the import makes
+    has the editor's panel efficiency and battery until they are set.
   * Devices are found by their names only. A sensor without a catalog
     product runs with Basilisk's defaults until its values are set (the
     pre-run checks say so); wheels and magnetorquers are added only with
-    a product. Thrusters, solar arrays and batteries are listed, not
-    added. A device's axis is an axis of its equipment frame (+z unless
+    a product. Thrusters and batteries are listed, not added; solar
+    arrays can set the power budget's panel. A device's axis is an axis of its equipment frame (+z unless
     chosen), not read from the file.
   * Model versions 3.4 and 3.5 are read; others with a note. The
     IDM-CIC licence was not available to review; the reader uses only

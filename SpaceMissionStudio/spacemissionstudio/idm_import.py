@@ -99,6 +99,10 @@ class ImportSummary:
     devices: list = field(default_factory=list)  # (equipment name, kind label, product or "") found by name
     devices_added: list = field(default_factory=list)  # device names added to the spacecraft
     devices_skipped: list = field(default_factory=list)  # (equipment name, why)
+    power_modes: list = field(default_factory=list)  # (system mode name, total [W], duty cycle [-])
+    power_average_w: float | None = None  # [W] duty-cycle average, when the duty cycles add up to one
+    panels: tuple = ()  # (solar array panels, total area [m^2], normal lines, the largest group's (+) normal)
+    power_set: list = field(default_factory=list)  # what the import set in the power budget, as text
 
     def lines(self) -> list[str]:
         """The summary as text lines."""
@@ -135,6 +139,19 @@ class ImportSummary:
             out.append(f"  devices added to the spacecraft ({len(self.devices_added)}): {', '.join(self.devices_added)}")
         for name, why in self.devices_skipped:
             out.append(f"    device not added: {name}: {why}")
+        if self.power_modes:
+            out.append("  system modes (power of the imported units): "
+                       + "; ".join(f"{name} {total:.6g} W (duty cycle {duty:g})" for name, total, duty in self.power_modes)
+                       + (f"; duty-cycle average {self.power_average_w:.6g} W" if self.power_average_w is not None
+                          else "; no duty-cycle average (the duty cycles do not add up to one)"))
+        if self.panels:
+            count, area, lines, normal = self.panels
+            out.append(f"  solar array panels: {count}, {area:.6g} m^2 in all"
+                       + (f", along {lines} different normal lines (the power model takes the largest group)"
+                          if lines > 1 else "")
+                       + f"; normal line {normal} in the body frame (+), or its opposite (-)")
+        for text in self.power_set:
+            out.append(f"  power budget: {text}")
         for note in self.notes:
             out.append(f"  note: {note}")
         return out
@@ -154,6 +171,45 @@ class Plan:
     details: dict
     apply_facets: bool = False
     devices: list = field(default_factory=list)  # idm_devices.DeviceFinding, found by name
+    power: PowerPlan | None = None
+
+
+@dataclass
+class PowerPlan:
+    """What an IDM-CIC model says of the power budget: the power of the
+    imported units in each system mode (``idm.power.ModePower``), the
+    duty-cycle average [W] (None unless the duty cycles add up to one), and
+    the solar array panels (``idm.power.Panel``) and their groups by normal
+    line (``idm.power.panel_groups``, largest area first)."""
+
+    modes: list
+    average_w: float | None
+    panels: list
+    groups: list
+
+
+@dataclass
+class PowerChoice:
+    """What to set in the spacecraft's power budget: ``bus_load`` the name
+    of the system mode whose power is the bus load, or "average" (the
+    duty-cycle average), or "" (leave it); ``panels`` whether to set the
+    panel area and normal from the largest group of panels; ``normal_sign``
+    +1 or -1, which side of the group's normal line carries the cells (the
+    file does not say)."""
+
+    bus_load: str = ""
+    panels: bool = False
+    normal_sign: int = 1
+
+    @property
+    def any(self) -> bool:
+        return bool(self.bus_load) or self.panels
+
+
+#: Of a power budget an import creates (the panel area set, none there):
+#: the values the file does not give, the spacecraft editor's own for a new
+#: power budget (``import.power_defaults`` until they are set).
+POWER_DEFAULT_FIELDS = ("panel_efficiency", "battery_capacity_wh", "battery_initial_soc")
 
 
 def _tidy(value: float, noise: float = 1.0e-9) -> float:
@@ -421,7 +477,147 @@ def plan(model: IdmModel, configuration: str | None = None, stowed_configuration
 
     devices = idm_devices.detect(model, placement, body, mounted)
     summary.devices = [(d.equipment, idm_devices.KIND_LABELS[d.kind], d.product) for d in devices]
-    return Plan(parts, points, stowed, groups, summary, details, apply_facets, devices)
+    power_plan = _power_plan(model, placement, body, mounted, devices)
+    summary.power_modes = [(p.mode.name, p.total_w, p.mode.duty_cycle) for p in power_plan.modes]
+    summary.power_average_w = power_plan.average_w
+    if power_plan.panels:
+        summary.panels = (len(power_plan.panels), _tidy(sum(p.area_m2 for p in power_plan.panels)),
+                          len(power_plan.groups), list(power_plan.groups[0][0]))
+    return Plan(parts, points, stowed, groups, summary, details, apply_facets, devices, power_plan)
+
+
+def _power_plan(model: IdmModel, placement: Placement, body: str, mounted: dict, devices: list) -> PowerPlan:
+    """The system modes' power of the imported units, and the panels of
+    the solar arrays found (``devices``)."""
+    from .idm import power
+
+    units = [u for u in placement.units if _reaches(u.element, body, mounted)]
+    modes = power.mode_powers(model, units)
+    arrays = {d.source_id for d in devices if d.kind == "solar_array"}
+    found = power.panels(placement, placement.element_frames[body], [u for u in units if u.full_id in arrays])
+    return PowerPlan(modes, power.duty_cycle_average(modes), found, power.panel_groups(found))
+
+
+def power_values(the_plan: Plan, choice: PowerChoice) -> dict:
+    """``{PowerConfig field: value}`` that ``choice`` sets from
+    ``the_plan`` (an IdmError when the choice names what the file does not
+    give)."""
+    power_plan = the_plan.power
+    values = {}
+    if choice.bus_load:
+        if power_plan is None:
+            raise IdmError("the model gives no system modes")
+        if choice.bus_load == "average":
+            if power_plan.average_w is None:
+                raise IdmError("the model's duty cycles do not add up to one: there is no duty-cycle average; "
+                               "choose a system mode")
+            values["bus_idle_power_w"] = power_plan.average_w
+        else:
+            mode = next((p for p in power_plan.modes if p.mode.name == choice.bus_load), None)
+            if mode is None:
+                names = ", ".join(repr(p.mode.name) for p in power_plan.modes) or "none"
+                raise IdmError(f"no system mode {choice.bus_load!r} in the model (its system modes: {names})")
+            values["bus_idle_power_w"] = mode.total_w
+    if choice.panels:
+        if power_plan is None or not power_plan.groups:
+            raise IdmError("the model has no flat solar array panel to take the area and normal from")
+        normal, area, _ = power_plan.groups[0]
+        sign = -1.0 if choice.normal_sign < 0 else 1.0
+        values["panel_area_m2"] = area
+        values["panel_normal_b"] = [0.0 if v == 0.0 else _tidy(sign * v) for v in normal]
+    return values
+
+
+def power_details(the_plan: Plan, choice: PowerChoice) -> dict:
+    """How each value ``choice`` sets was read, as an import record's details."""
+    power_plan = the_plan.power
+    details = {}
+    if choice.bus_load == "average":
+        details["bus_load"] = (f"duty-cycle average of {len(power_plan.modes)} system modes, the power of the "
+                               "imported units in each")
+    elif choice.bus_load:
+        mode = next(p for p in power_plan.modes if p.mode.name == choice.bus_load)
+        details["bus_load"] = (f"system mode {mode.mode.name}: the power of {len(mode.units)} imported unit(s) in it"
+                               + (f"; {len(mode.unstated)} unit(s) with power modes it does not set counted as 0 W"
+                                  if mode.unstated else ""))
+    if choice.panels:
+        normal, area, members = power_plan.groups[0]
+        details["panels"] = (f"{len(members)} solar array panel(s) along one normal line, the largest flat face of "
+                             f"each: {', '.join(p.equipment for p in members)}; the side carrying the cells chosen "
+                             f"by the user ({'+' if choice.normal_sign >= 0 else '-'})")
+        if len(power_plan.groups) > 1:
+            details["panels"] += f"; {len(power_plan.groups) - 1} other normal line(s) left out"
+    return details
+
+
+def apply_power(scenario, spacecraft: str, the_plan: Plan, choice: PowerChoice, author: str = "",
+                summary: ImportSummary | None = None) -> dict:
+    """Set in ``scenario``'s spacecraft ``spacecraft``'s power budget what
+    ``choice`` takes from ``the_plan`` (:func:`power_values`), and record
+    it (an import record of target "power"). Without a power budget, one
+    is made when the panel area is set, with the spacecraft editor's own
+    values for what the file does not give (:data:`POWER_DEFAULT_FIELDS`);
+    without one and without the panel area, nothing is set and the summary
+    says why. Returns ``{field: value}`` set."""
+    from .schema.scenario import DEFAULT_PANEL_EFFICIENCY, PowerConfig, power_import_values
+
+    sc = next((s for s in scenario.spacecraft if s.name == spacecraft), None)
+    if sc is None:
+        raise IdmError(f"no spacecraft {spacecraft!r} in the scenario")
+    if not choice.any:
+        return {}
+    values = power_values(the_plan, choice)
+    details = power_details(the_plan, choice)
+    lines = []
+    if sc.power is None:
+        if "panel_area_m2" not in values:
+            if summary is not None:
+                summary.power_set.append("not set: the spacecraft has no power budget, and a new one needs the "
+                                         "panel area (choose the solar array panels too, or turn its power budget on)")
+            return {}
+        sc.power = PowerConfig(panel_area_m2=values["panel_area_m2"], panel_efficiency=DEFAULT_PANEL_EFFICIENCY)
+        values.update({name: getattr(sc.power, name) for name in POWER_DEFAULT_FIELDS})
+        details["defaults"] = ", ".join(POWER_DEFAULT_FIELDS)
+        lines.append("made (it had none); panel efficiency and battery are the editor's defaults for a new power "
+                     "budget, not the file's: set them")
+    for name, value in values.items():
+        setattr(sc.power, name, list(value) if isinstance(value, list) else value)
+    if "bus_idle_power_w" in values:
+        lines.append(f"bus load {values['bus_idle_power_w']:.6g} W ({details['bus_load']})")
+    if "panel_area_m2" in values:
+        lines.append(f"panel area {values['panel_area_m2']:.6g} m^2, normal {values['panel_normal_b']} in the body "
+                     "frame")
+    previous = next((r for r in scenario.imports if (r.spacecraft, r.target) == (spacecraft, "power")), None)
+    record_values = dict(previous.values) if previous is not None else {}
+    record_details = dict(previous.details) if previous is not None else {}
+    record_values.update(power_import_values(sc, values))
+    record_details.update(details)
+    put_import(scenario, ImportRecord(spacecraft, "power", FORMAT, the_plan.summary.source, the_plan.summary.sha256,
+                                      record_values, datetime.now(UTC).replace(microsecond=0).isoformat(), author,
+                                      record_details))
+    if summary is not None:
+        summary.power_set.extend(lines)
+    return values
+
+
+def unset_power(scenario) -> list[tuple[str, list]]:
+    """``(spacecraft, fields)`` of each power budget an IDM-CIC import
+    made whose values the file does not give are still the defaults it was
+    made with (``import.power_defaults``)."""
+    found = []
+    for record in getattr(scenario, "imports", []):
+        if record.target != "power" or not record.details.get("defaults"):
+            continue
+        config = next((sc for sc in scenario.spacecraft if sc.name == record.spacecraft), None)
+        if config is None or config.power is None:
+            continue
+        names = record.details["defaults"].split(", ")
+        from .schema.scenario import power_import_values
+
+        now = power_import_values(config, names)
+        if all(now.get(f"power.{name}") == record.values.get(f"power.{name}") for name in names):
+            found.append((record.spacecraft, names))
+    return found
 
 
 def add_devices(scenario, spacecraft: str, the_plan: Plan, choices, author: str = "",

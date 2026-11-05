@@ -1833,3 +1833,17 @@ One existing test reaches the input differences differently:
 | `tests/gui/test_run_comparison.py::test_the_input_differences_name_the_changed_fields` | patched `QDialog.exec` to record the title of the dialog the button opened | the button's window (`input_differences_window`) is visible, titled "Input differences" and not modal, and its table names the changed field |
 
 The assertion on the differences themselves is unchanged.
+
+## IDM-CIC power budget (2026-11-05)
+
+No test removed, no assertion weakened, no golden or output file changed.
+Added `tests/test_idm_power.py` (11 tests) and
+`tests/gui/test_idm_power_gui.py` (4 tests) on the new synthetic fixture
+`tests/data/idm/powersat`.
+
+One existing test's stand-in for the 3D model editor gained the editor's
+new method:
+
+| Test | Before | Now |
+|---|---|---|
+| `tests/gui/test_idm_devices_gui.py::_editor_result` | a stand-in with `model`, `devices`, `import_record` and `device_import` | also `power_import` (None: no power budget values chosen), which the spacecraft list now asks the editor for |

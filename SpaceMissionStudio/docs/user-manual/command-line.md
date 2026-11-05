@@ -238,7 +238,7 @@ drag and solar pressure act on.
 | `check-design scenario.json` | The design checks of a model, with no run: field-of-view obstruction, thruster authority and plumes, mass budget, launcher envelope (`--spacecraft`, `--samples` rays per cone, `--explain`, `--out` for the record, `--tables DIR` for the CSV tables); see [Analyses built on the 3D model](model-analyses.md) |
 | `model-analyses scenario.json` | Runs the scenario and reports its model analyses: disturbance torques with the wheel and magnetorquer sizing, blinding, antenna obstruction, array shading, exposure and brightness (`--spacecraft`, `--out`, `--tables DIR`) |
 | `idm-info model.idm` | Lists an IDM-CIC model's elements, configurations and what an import would approximate; writes nothing (`--configuration`, `--body-element`) |
-| `idm-import model.idm scenario.json --spacecraft sat-1` | Builds or updates the spacecraft's 3D model from an IDM-CIC model (`--configuration`, `--stowed-configuration`, `--body-element`, `--apply-facets`, `--out`), and with `--devices` the sensors and actuators found by name; see [Import a spacecraft from IDM-CIC](idm-cic.md) |
+| `idm-import model.idm scenario.json --spacecraft sat-1` | Builds or updates the spacecraft's 3D model from an IDM-CIC model (`--configuration`, `--stowed-configuration`, `--body-element`, `--apply-facets`, `--out`), with `--devices` the sensors and actuators found by name, and with `--bus-load MODE` and `--solar-panels +`/`-` the power budget's bus load and panel; see [Import a spacecraft from IDM-CIC](idm-cic.md) |
 
 ```console
 $ spacemissionstudio model octagon.json

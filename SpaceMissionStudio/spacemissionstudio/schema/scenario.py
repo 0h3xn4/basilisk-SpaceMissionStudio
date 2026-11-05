@@ -515,6 +515,11 @@ class ActuatorConfig:
     mount: MountConfig | None = None  # where it sits on the 3D model; written only when set
 
 
+#: A new power budget's panel efficiency [-]: the spacecraft editor's, and
+#: an IDM-CIC import's when it makes one (the file does not give it).
+DEFAULT_PANEL_EFFICIENCY = 0.29  # [-]
+
+
 @dataclass
 class PowerConfig:
     """A spacecraft's power budget: a body-fixed solar panel, a constant
@@ -3272,10 +3277,11 @@ def number_fields(record, prefix: str = "") -> dict:
 
 
 # What an import record says was read from a file, and the formats (Phase 8c).
-IMPORT_TARGETS = ("orbit", "model", "devices")
+IMPORT_TARGETS = ("orbit", "model", "devices", "power")
 IMPORT_FORMATS = ("ccsds_opm", "ccsds_omm", "idm_cic")
 #: The formats each target is read from.
-IMPORT_TARGET_FORMATS = {"orbit": ("ccsds_opm", "ccsds_omm"), "model": ("idm_cic",), "devices": ("idm_cic",)}
+IMPORT_TARGET_FORMATS = {"orbit": ("ccsds_opm", "ccsds_omm"), "model": ("idm_cic",), "devices": ("idm_cic",),
+                         "power": ("idm_cic",)}
 IMPORT_SOURCE_STATES = ("unchanged", "changed", "missing")
 
 
@@ -3333,6 +3339,8 @@ def imported_values(config, target: str) -> dict:
         from ..idm_devices import device_import_values
 
         return device_import_values(config)
+    if target == "power":  # the power budget values an IDM-CIC import set (idm_import.apply_power)
+        return power_import_values(config)
     if target != "orbit":
         raise ValueError(f"no import target {target!r}")
     if config.orbit is None:
@@ -3342,6 +3350,23 @@ def imported_values(config, target: str) -> dict:
         value = getattr(config.orbit, f.name)
         if isinstance(value, str) and value:
             found[f"orbit.{f.name}"] = value
+    return found
+
+
+def power_import_values(config, fields=None) -> dict:
+    """``{"power.<field>": value}`` of spacecraft ``config``'s power budget
+    (only ``fields`` when given), a list field by index: what an import
+    record of its power budget keeps and is compared with."""
+    power = getattr(config, "power", None)
+    if power is None:
+        return {}
+    found = {}
+    for name in (fields if fields is not None else [f.name for f in dataclasses.fields(power) if f.init]):
+        value = getattr(power, name)
+        if isinstance(value, list):
+            found.update({f"power.{name}[{k}]": v for k, v in enumerate(value)})
+        else:
+            found[f"power.{name}"] = value
     return found
 
 

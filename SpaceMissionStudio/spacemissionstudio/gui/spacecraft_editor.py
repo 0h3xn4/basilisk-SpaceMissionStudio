@@ -77,6 +77,7 @@ from PySide6.QtWidgets import (
 from ..engine import control_gains
 from ..schema.scenario import (
     ActuatorConfig,
+    DEFAULT_PANEL_EFFICIENCY,
     CommsPointingConfig,
     ConstantThrustConfig,
     DataHandlingConfig,
@@ -344,6 +345,7 @@ class SpacecraftEditorDialog(QDialog):
         self.pending_import = None
         self.pending_orbit_import = None
         self.pending_devices_import = None  # the record of the devices an IDM-CIC import added here
+        self.pending_power_import = None  # the record of the power budget values an IDM-CIC import set here
         # A page's form opens the 3D model editor through its scenario (set by gui.scenario_editor), so there is
         # one editor per spacecraft; a dialog, or a form without one, opens its own (_model_editor).
         self.model_editor_opener = None
@@ -891,7 +893,7 @@ class SpacecraftEditorDialog(QDialog):
                                     value=power0.panel_area_m2 if power0 else 1.2)
         self.panel_area_m2.setToolTip("Total deployed solar panel area. Bigger = more generated power.")
         self.panel_efficiency = _spin(0.001, 1.0, decimals=4, step=0.01,
-                                       value=power0.panel_efficiency if power0 else 0.29)
+                                       value=power0.panel_efficiency if power0 else DEFAULT_PANEL_EFFICIENCY)
         self.panel_efficiency.setToolTip(
             "Fraction of incident sunlight actually converted to electrical power (0-1). "
             "~0.28-0.30 is typical for real triple-junction space-grade solar cells."
@@ -2327,8 +2329,8 @@ class SpacecraftEditorDialog(QDialog):
         """The import records made in this dialog (a 3D model, an orbit),
         under the spacecraft's name now."""
         name = self.name_edit.text().strip()
-        records = [r for r in (self.pending_import, self.pending_orbit_import, self.pending_devices_import)
-                   if r is not None]
+        records = [r for r in (self.pending_import, self.pending_orbit_import, self.pending_devices_import,
+                               self.pending_power_import) if r is not None]
         for record in records:
             if name:
                 record.spacecraft = name
@@ -2383,7 +2385,44 @@ class SpacecraftEditorDialog(QDialog):
             self._rf_antenna_mount = devices.rf_link.antenna_mount
         if editor.device_import() is not None and not self._orbit_only:
             self._add_imported_devices(*editor.device_import())
+        if editor.power_import() is not None and not self._orbit_only:
+            self._set_imported_power(*editor.power_import())
         self._on_apply_model()
+
+    def _set_imported_power(self, plan, choice) -> None:
+        """The power budget values an IDM-CIC import chose, into the Power
+        page (``idm_import.apply_power``), with their record."""
+        from .. import history, idm_import
+
+        try:
+            config = self.to_dataclass()
+        except (ValueError, ScenarioValidationError) as exc:
+            report(self, f"The power budget values from the IDM-CIC model were not set: the form does not read "
+                         f"({exc}).")
+            return
+        previous = self.pending_power_import or _target_import(self._imports_provider, config.name, "power")
+        shim = SimpleNamespace(spacecraft=[config], imports=[previous] if previous is not None else [])
+        summary = SimpleNamespace(power_set=[])
+        try:
+            values = idm_import.apply_power(shim, config.name, plan, choice, history.current_author(), summary)
+        except idm_import.IdmError as exc:
+            report(self, f"The power budget values from the IDM-CIC model were not set: {exc}.")
+            return
+        if values:
+            power = config.power
+            self.power_group.setChecked(True)
+            self.panel_area_m2.setValue(power.panel_area_m2)
+            self.panel_efficiency.setValue(power.panel_efficiency)
+            for spin, value in zip((self.panel_normal_x, self.panel_normal_y, self.panel_normal_z),
+                                   power.panel_normal_b):
+                spin.setValue(value)
+            self.bus_idle_power_w.setValue(power.bus_idle_power_w)
+            self.battery_capacity_wh.setValue(power.battery_capacity_wh)
+            self.battery_initial_soc.setValue(power.battery_initial_soc)
+            self.pending_power_import = shim.imports[-1]
+            if self._embedded:
+                self.import_recorded.emit(self.pending_power_import)
+        report(self, power_import_message(summary.power_set), kind="info" if values else "warning")
 
     def _add_imported_devices(self, plan, choices) -> None:
         """The devices an IDM-CIC import found and the user chose, into the
@@ -3081,6 +3120,18 @@ def _devices_import(provider, spacecraft: str):
     return next((r for r in records if r.spacecraft == spacecraft and r.target == "devices"), None)
 
 
+def _target_import(provider, spacecraft: str, target: str):
+    """The scenario's import record of ``spacecraft``'s ``target``, or None."""
+    records = provider() if provider is not None else []
+    return next((r for r in records if r.spacecraft == spacecraft and r.target == target), None)
+
+
+def power_import_message(lines: list) -> str:
+    """What setting the power budget values from an IDM-CIC model did
+    (``ImportSummary.power_set``), in a sentence."""
+    return "Power budget from the IDM-CIC model: " + "; ".join(lines) + "." if lines else ""
+
+
 def device_import_message(result) -> str:
     """What adding the devices found in an IDM-CIC model did, in a line or
     two (``idm_devices.DeviceResult``)."""
@@ -3522,6 +3573,19 @@ class SpacecraftListWidget(QWidget):
             if result.values:
                 self.import_recorded.emit(shim.imports[-1])
             device_message = " " + device_import_message(result)
+        if editor.power_import() is not None and not orbit_only:
+            from .. import history, idm_import
+
+            previous = _target_import(self._imports_provider, new_config.name, "power")
+            shim = SimpleNamespace(spacecraft=[new_config], imports=[previous] if previous is not None else [])
+            summary = SimpleNamespace(power_set=[])
+            try:
+                if idm_import.apply_power(shim, new_config.name, *editor.power_import(), history.current_author(),
+                                          summary):
+                    self.import_recorded.emit(shim.imports[-1])
+                device_message += " " + power_import_message(summary.power_set)
+            except idm_import.IdmError as exc:
+                device_message += f" The power budget values from the IDM-CIC model were not set: {exc}."
         target = SimpleNamespace(model=new_config.model, solar_arrays=[] if orbit_only else new_config.solar_arrays)
         derived = model3d.derive(new_config.model, base_dir)
         values = model3d.applied_values(target, derived, orbit_only=orbit_only)

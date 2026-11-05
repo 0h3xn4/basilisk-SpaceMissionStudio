@@ -35,10 +35,13 @@ is not mounted on it (a ground jig, an "orbit" element that only shows
 the spacecraft) is left out, and the summary says why.
 
 Sensors and actuators can be added too, from their names: see
-[Devices found in the model](#devices-found-in-the-model).
+[Devices found in the model](#devices-found-in-the-model). The power
+budget's bus load and solar panel can be set from the model's power
+modes and solar arrays: see
+[Power from the model](#power-from-the-model).
 
-Not imported: power modes and duty cycles, the performance of
-thrusters, batteries and solar arrays, thermal data, scenarios (trajectories and attitudes), the
+Not imported: the performance of thrusters, batteries and solar cells,
+the dissipation of the power modes, thermal data, scenarios (trajectories and attitudes), the
 pictures and documents attached to the model, and surface coefficients
 (the file has none: facets stay off unless you ask for them, with the
 default coefficients). Shapes on layers that IDM-CIC hides by default and
@@ -126,7 +129,9 @@ added only with a product: Basilisk cannot build one without its torque
 and inertia, or its dipole, which the file does not give. Thrusters,
 solar arrays and batteries are listed but not added: a thruster's
 direction and thrust and a battery's capacity are not in the file, and
-the Power page takes one panel area for the whole spacecraft.
+the Power page takes one panel area for the whole spacecraft (the solar
+arrays' panels can set it: see
+[Power from the model](#power-from-the-model)).
 
 A device the spacecraft cannot take as it is (a magnetorquer without
 magnetic momentum management, for example) is not added, and the
@@ -141,6 +146,53 @@ scenario records each added device, its values, the product or
 
 From the command line, `idm-import --devices` adds the devices that the
 dialog would add by default, and `idm-info` lists the devices found.
+
+## Power from the model
+
+In IDM-CIC, an equipment can have **power modes** (Off, On, Standby...,
+each with a power), and the system has **system modes** (Survival,
+Downlink...) that put each equipment in one of its power modes, through
+an element mode or directly, or give it a custom power. Each system mode
+has a duty cycle: the share of the lifetime spent in it.
+
+The import adds up, for each system mode, the power of the imported
+equipment in it, and shows the totals in the summary. The duty-cycle
+average is shown too, when the duty cycles add up to one (otherwise part
+of the lifetime is not placed, and no average is given). An equipment
+with power modes that a system mode does not put in any is counted as
+0 W there, and the import record says how many there were. Powers are in
+watts.
+
+The import dialog's **Power** section sets, if you tick them:
+
+- **Set the bus load from** a system mode (or the duty-cycle average):
+  the power budget's constant bus load becomes that total. The power
+  budget has one constant load, so choose the mode that matters for the
+  run: the one it spends most time in, or the worst case;
+- **Set the panel area and normal** from the solar arrays found by name:
+  the area is the largest flat face of each panel (a thin box or a flat
+  surface; the other flat shapes of the same panel are taken as its
+  layers), added up for the panels along one normal line, and the
+  normal is that line in the body frame. The file does not say which
+  side carries the cells, so you choose it (+ or -). Panels along other
+  lines are left out, and the summary says how many lines there were.
+
+Nothing is set unless you tick it. If the spacecraft has no power
+budget, setting the panels makes one, with the spacecraft editor's panel
+efficiency and battery: the file does not give them, and the pre-run
+checks say so until you set them on the Power page
+(`import.power_defaults`). A bus load alone needs a power budget to put
+it in. The values are set when you click **OK** in the 3D model editor;
+an orbit-only scenario simulates no power budget, and nothing is set.
+
+The scenario records what was set and how (the system mode and its
+number of equipment, the panels and the side you chose), and **Scenario
+› Overview** shows a value you have changed since, as for the other
+imported values.
+
+From the command line, `idm-import --bus-load MODE` (a system mode's
+name, or `average`) and `--solar-panels +` or `-` do the same, and
+`idm-info` lists the system modes with their totals and the panels.
 
 ## What is approximated
 
