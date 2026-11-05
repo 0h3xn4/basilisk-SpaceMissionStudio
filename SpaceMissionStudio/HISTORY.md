@@ -14556,6 +14556,12 @@ Tests: `tests/gui/test_own_windows.py`, seven tests (each window is a
 top-level, non-modal window with no transient parent that does not keep
 the application running; the manual and the change history are reused;
 the windows close with the main window, floating panels not).
+`test_run_comparison.py::test_the_input_differences_name_the_changed_fields`
+patched `QDialog.exec` to see the dialog open; it now checks the window
+(visible, not modal, its table naming the changed field). Full suite on
+Python 3.14 (a home holding only the reference data cache) with the
+change: 4598 passed and that one test failed, as expected, in 27 min
+29 s; changed, its file passes. 4599 tests in all.
 
 ## Release 2.2.0 prepared (2026-11-05)
 
@@ -14585,7 +14591,8 @@ By `docs/developer/releasing.md`:
   badge and version.
 - **Full suite on Python 3.14** (a home holding only the reference data
   cache), on the release branch: 4592 passed in 19 min 5 s (4576 at
-  2.1.1, and the sixteen tests #218 added).
+  2.1.1, and the sixteen tests #218 added); with the windows of their
+  own (above), 4599 tests.
 
 ## CCSDS orbit files in the app (2026-11-04)
 

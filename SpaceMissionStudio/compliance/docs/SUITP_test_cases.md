@@ -1452,7 +1452,7 @@ Levels: *unit* runs without Basilisk or Qt; *integration* runs a Basilisk simula
 |---|---|---|---|
 | `test_the_history_keeps_the_last_runs_numbered` | The run history keeps the last runs, numbered and labelled; older ones are dropped. | - | integration |
 | `test_an_earlier_run_is_overlaid_dashed_and_named` | An earlier run chosen for comparison is overlaid dashed, named in the legend, at its true offset. | - | integration |
-| `test_the_input_differences_name_the_changed_fields` | The input differences name the changed field with both values, and the button shows them. | - | integration |
+| `test_the_input_differences_name_the_changed_fields` | The input differences name the changed field with both values, and the button shows them, in a window of its own (not modal). | - | integration |
 | `test_no_earlier_run_hides_the_comparison` | With one run, the comparison is hidden and there are no differences. | - | integration |
 
 ### `tests/gui/test_run_feedback.py`

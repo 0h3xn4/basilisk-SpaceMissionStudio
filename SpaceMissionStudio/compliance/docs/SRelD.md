@@ -302,10 +302,13 @@ RD1 has the full story. In summary:
 template and golden file, the command line's commands, options, exit
 statuses and files, and what runs compute.
 
-**Tests:** 4592 passed on Linux, Python 3.14, on the release's code
-(4576 passed at 2.1.1); none skipped. Sixteen tests were
-added for the CCSDS files and seven for the windows; one changed its expected list of exports from 17 to 19
-(`docs/ui/TEST_CHANGES.md`).
+**Tests:** 4599 on Linux, Python 3.14, on the release's code (4576
+passed at 2.1.1); none skipped. The last full run passed 4598 and failed
+the one test that still opened the input differences as a modal dialog;
+changed (below), it passes. Sixteen tests were
+added for the CCSDS files and seven for the windows; one changed its expected list of exports from 17 to 19,
+and one reaches the input differences as a window instead of a modal
+dialog (`docs/ui/TEST_CHANGES.md`).
 
 **Still open:** K-19 (about 0.4 s), K-22, K-23 (smaller), K-24, K-25,
 K-26, K-27, K-28.

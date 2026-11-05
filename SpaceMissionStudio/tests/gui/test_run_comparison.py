@@ -72,18 +72,19 @@ def test_an_earlier_run_is_overlaid_dashed_and_named(results):
     assert np.allclose(np.asarray(traces[0].y) - np.asarray(traces[1].y), 0.5)  # [km] the 500 m offset
 
 
-def test_the_input_differences_name_the_changed_fields(results, monkeypatch):
+def test_the_input_differences_name_the_changed_fields(results):
     """The input differences name the changed field with both values, and the
-    button shows them."""
-    from PySide6.QtWidgets import QDialog
+    button shows them, in a window of its own (not modal)."""
+    from PySide6.QtWidgets import QTableWidget
 
     widget, first, _second = results
     widget.compare_combo.setCurrentIndex(widget.compare_combo.findData(first.number))
     assert widget.input_differences() == [("sim_settings.duration_days", 2.0, 1.0)]
-    shown = []
-    monkeypatch.setattr(QDialog, "exec", lambda self: shown.append(self.windowTitle()) or 0)
     widget.diff_button.click()
-    assert shown == ["Input differences"]
+    window = widget.input_differences_window
+    assert window.isVisible() and window.windowTitle() == "Input differences" and not window.isModal()
+    table = window.findChild(QTableWidget)
+    assert table.rowCount() == 1 and table.item(0, 0).text() == "sim_settings.duration_days"
 
 
 def test_no_earlier_run_hides_the_comparison(qtbot):
