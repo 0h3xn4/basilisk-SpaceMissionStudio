@@ -1,7 +1,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-![Version 2.1.1](https://img.shields.io/badge/version-2.1.1-blue)
+![Version 2.2.0](https://img.shields.io/badge/version-2.2.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -115,9 +115,10 @@ internet needed.
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
-- **Version:** 2.1.1 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.1.1),
-  [changelog](CHANGELOG.md)): fixes to 2.1.0, which was the spacecraft
-  as designed. Its 3D model
+- **Version:** 2.2.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.2.0),
+  [changelog](CHANGELOG.md)): CCSDS orbit files (OPM, OMM, OEM) in the
+  app, as on the command line. 2.1.1 fixed 2.1.0, which was the
+  spacecraft as designed. Its 3D model
   carries the equipment, a stowed configuration and materials, and the
   tool checks fields of view, thrusters, the mass budget and launcher fit
   and analyses disturbances, blinding, shading, exposure, brightness and
@@ -134,7 +135,7 @@ internet needed.
   relative-orbital-element formations, optical and landmark navigation,
   asteroid Eros, Mars's gravity field and albedo on the sun sensors; and
   1.0.0 was the first release of the renewed tool.
-- **Platforms:** 2.1.1 has the Linux `.deb`, the Windows setup program
+- **Platforms:** 2.2.0 has the Linux `.deb`, the Windows setup program
   and the wheel. Both installers carry their own Python, Basilisk and
   reference data; each was installed and run offline by the release
   workflow, the `.deb` also by hand in a container

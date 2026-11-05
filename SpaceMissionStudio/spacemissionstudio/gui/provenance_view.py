@@ -56,6 +56,7 @@ from PySide6.QtWidgets import (QApplication, QDialog, QHBoxLayout, QLabel, QLine
                                QTreeWidgetItem, QVBoxLayout, QWidget)
 
 from .theme import SPACE, mono_font, set_role
+from .widgets import make_window
 
 #: (group, the record's keys in it), in the order shown.
 GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -122,6 +123,7 @@ class ProvenanceDialog(QDialog):
 
     def __init__(self, title: str, provenance: dict | None, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        make_window(self)  # a window of its own (widgets.show_window)
         title = title if title.startswith("Provenance of ") else f"Provenance of {title}"
         self.setWindowTitle(title)
         self.provenance = provenance or {}

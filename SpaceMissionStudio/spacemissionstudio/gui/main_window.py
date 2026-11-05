@@ -109,7 +109,7 @@ from .vizard_launcher import (
     launch_vizard,
     remember_vizard_executable,
 )
-from .widgets import TabWidget
+from .widgets import TabWidget, make_window, show_window
 from .theme import (CONTENT_MAX_WIDTH_PX, apply_theme, current_theme, follow_system, icon, resolve_theme,
                     set_theme_setting, theme_setting)
 from .theme.icons import keep_icon
@@ -434,8 +434,10 @@ class MainWindow(QMainWindow):
         self.scenario_editor.changed.connect(self.inspector_widget.refresh)
 
         # The reference data files, with their downloads, imports and
-        # rollbacks: a dialog the status bar's entry opens.
-        self.data_dialog = QDialog(self)
+        # rollbacks: a window of its own the status bar's entry opens.
+        self.data_dialog = make_window(QDialog(self))
+        self._manual_dialog = None  # Help > User Manual's window, once opened
+        self._history_window = None  # File > Change History's window, once opened
         self.data_dialog.setWindowTitle("Reference data")
         self.data_dialog.resize(980, 460)  # [px]
         data_layout = QVBoxLayout(self.data_dialog)
@@ -934,9 +936,7 @@ class MainWindow(QMainWindow):
         hold it at every level, raise the dock that holds it, or open the
         reference data dialog."""
         if widget is self.data_panel_widget:
-            self.data_dialog.show()
-            self.data_dialog.raise_()
-            self.data_dialog.activateWindow()
+            show_window(self.data_dialog)
             return
         for dock in self._docks():
             if dock.isAncestorOf(widget):
@@ -1030,7 +1030,9 @@ class MainWindow(QMainWindow):
 
         path, _ = QFileDialog.getOpenFileName(self, "Check a CCSDS file (OPM, OMM or OEM)", "", FILE_FILTER)
         if path:
-            self.check_ccsds_file(path).exec()
+            dialog = self.check_ccsds_file(path)
+            dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+            show_window(dialog)  # one window per file checked, each of its own
 
     def check_ccsds_file(self, path):
         """The check dialog of the file at ``path``, not yet shown."""
@@ -1304,10 +1306,9 @@ class MainWindow(QMainWindow):
     def on_user_manual(self) -> None:
         from .help_dialog import ManualDialog
 
-        dialog = ManualDialog(self)
-        dialog.setModal(False)
-        dialog.show()
-        self._manual_dialog = dialog  # keep it alive while it is open
+        if self._manual_dialog is None:
+            self._manual_dialog = ManualDialog(self)  # one window, kept (with where it was read) when closed
+        show_window(self._manual_dialog)
 
     def palette_entries(self):
         """For the command palette: every command of the registry (by its
@@ -1551,7 +1552,16 @@ class MainWindow(QMainWindow):
             report(self, "This scenario has not been saved yet: its change history starts with its first save.",
                    kind="info")
             return
-        ChangeHistoryDialog(self._current_path, self).exec()
+        window = self._history_window
+        if window is not None and window.scenario_path != Path(self._current_path):
+            window.close()
+            window.deleteLater()
+            window = None
+        if window is None:
+            window = self._history_window = ChangeHistoryDialog(self._current_path, self)
+        else:
+            window.reload()  # a save since may have added to it
+        show_window(window)
 
     # -- undo and redo ----------------------------------------------------
 
@@ -2890,6 +2900,15 @@ class MainWindow(QMainWindow):
         box.exec()
         return box.clickedButton() is cancel_and_close
 
+    def close_own_windows(self) -> None:
+        """Close the windows of their own this window opened
+        (``widgets.make_window``: the manual, the change history, reference
+        data, file checks, run records): they close with it. Floating
+        panels, tool windows, are not among them."""
+        for widget in self.findChildren(QWidget):
+            if widget.isVisible() and widget.isWindow() and widget.windowType() == Qt.WindowType.Window:
+                widget.close()
+
     def closeEvent(self, event: QCloseEvent) -> None:
         # Refuse to close while a background run/Monte Carlo QThread is
         # still alive -- starting a run doesn't mark the scenario dirty, so
@@ -2915,6 +2934,7 @@ class MainWindow(QMainWindow):
             return
         if self._confirm_discard_unsaved():
             self.scenario_editor.spacecraft_list.close_model_editors()  # windows of their own: they go too
+            self.close_own_windows()
             if batch is not None:
                 batch.request_cancel()
                 batch.wait()  # its child ends the batch's processes; seconds at most

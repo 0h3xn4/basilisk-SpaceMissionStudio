@@ -38,6 +38,7 @@ from PySide6.QtWidgets import (QAbstractItemView, QFrame, QHBoxLayout, QHeaderVi
                                QTableView, QVBoxLayout, QWidget)
 
 from .theme import TOKENS, icon, mono_font, set_role
+from .widgets import show_window
 
 HISTORY_COLUMNS = ("Status", "Run", "Scenario", "Mode", "Started (UTC)", "Duration", "Saved")
 SORT_ROLE = Qt.ItemDataRole.UserRole + 1
@@ -265,7 +266,7 @@ class ProvenancePopover(QFrame):
         self.hide()
         self.dialog = ProvenanceDialog(self._title, self._provenance, self.parentWidget())
         self.dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-        self.dialog.show()
+        show_window(self.dialog)
 
 
 class RunHistoryView(QWidget):

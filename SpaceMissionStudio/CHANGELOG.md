@@ -8,7 +8,16 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 2.2.0 (2026-11-05)
+
+CCSDS orbit files in the app. What the command line could already do with
+CCSDS 502.0-B-3 orbit messages, the app now does too: import a
+spacecraft's orbit from an OPM or OMM, export the starting orbits and a
+run's trajectory, and check any orbit file against the standard. The
+windows you read beside the main window are now windows of their own, as
+the 3D model editor became in 2.1.1. Nothing the tool computes changes:
+every template gives the same results as in 2.1.1, and 2.1.1 and 2.2.0
+open each other's scenario files.
 
 ### Added
 
@@ -31,6 +40,44 @@ fixes bugs.
   Reports › Exports lists the two exports. The command line and the app
   share one module for these files (`spacemissionstudio.ccsds_files`), so
   both write the same bytes; the command line's behaviour is unchanged.
+
+### Fixed
+
+- **More windows of their own.** File › Change History, Check a CCSDS
+  File..., Compare's input differences, the user manual, Reference data
+  and a run's full record (Show everything recorded) opened attached to
+  the main window. The first three were modal dialogs, which GNOME
+  attaches to their parent, so dragging one dragged the whole
+  application, and the main window could not be used while one was open.
+  The other three were not modal, but stayed above the main window. Each
+  now moves, minimises and stacks on its own, and the main window stays
+  usable beside it. Asking again for the manual, Reference data or the
+  same scenario's change history brings back its window. All of them
+  close with the main window. Dialogs that ask for something before
+  going on (Add spacecraft, the template wizard, the generators, file
+  pickers, questions) stay modal, as they must.
+
+### Who should update
+
+- **Anyone who exchanges orbits with other flight-dynamics tools (GMAT,
+  STK, an operator's OPMs or OEMs):** it can now be done without the
+  command line.
+- **Everyone else can update when convenient:** results, scenario files,
+  the command line and every exported file are as in 2.1.1.
+- **Teams:** no need to update together; the scenario format is
+  2.1.1's.
+- **The installers:** on Linux, `apt install
+  ./spacemissionstudio_2.2.0_amd64.deb` replaces 2.1.x; on Windows, run
+  the 2.2.0 setup over 2.1.x.
+
+### Known limits
+
+As in 2.1.1. The bundled space weather is still 1.3.0's (observations to
+2026-10-24, CelesTrak's forecast to 2026-12-07; CelesTrak could not be
+reached for this release either): fetch the current file before a drag
+study (Home's reference-data card, **Settings > Reference data**, or
+`spacemissionstudio spaceweather-download`). The CCSDS files are KVN
+only (no XML), and the OCM is not supported, as on the command line.
 
 ## 2.1.1 (2026-11-04)
 

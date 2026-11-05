@@ -38,7 +38,7 @@ from PySide6.QtWidgets import QDialog, QDialogButtonBox, QFormLayout, QLabel, QV
 
 from .data_table import DataTable, Row
 from .theme import set_role
-from .widgets import ComboBox, SpinBox
+from .widgets import ComboBox, SpinBox, make_window
 
 ORBIT_FILTER = "CCSDS orbit messages (*.opm *.omm *.OPM *.OMM *.txt *.kvn);;All files (*)"
 FILE_FILTER = "CCSDS orbit data messages (*.opm *.omm *.oem *.OPM *.OMM *.OEM *.txt *.kvn);;All files (*)"
@@ -150,10 +150,12 @@ class CcsdsCheckDialog(QDialog):
     """A CCSDS file checked against CCSDS 502.0-B-3, as ``ccsds-validate``
     does: the verdict, then each issue with its level, line, clause and
     what is wrong. An error is a "shall" or "must" the file breaks; a
-    warning a "should"."""
+    warning a "should". A window of its own (``widgets.show_window``), so
+    it can sit beside the file's source."""
 
     def __init__(self, path, parent: QWidget | None = None):
         super().__init__(parent)
+        make_window(self)
         self.setWindowTitle(f"CCSDS check: {Path(path).name}")
         self.resize(820, 420)
         layout = QVBoxLayout(self)

@@ -45,8 +45,43 @@ from decimal import Decimal
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QValidator
-from PySide6.QtWidgets import (QAbstractSpinBox, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox, QLabel, QLayout,
+from PySide6.QtWidgets import (QAbstractSpinBox, QApplication, QComboBox, QDoubleSpinBox, QFormLayout, QGroupBox, QLabel, QLayout,
                                QSpinBox, QTabBar, QTabWidget, QWidget)
+
+# The flags of a window of its own: a title bar with the system menu,
+# minimise, maximise and close (the 3D model editor, the viewers).
+WINDOW_FLAGS = (Qt.WindowType.Window | Qt.WindowType.WindowTitleHint | Qt.WindowType.WindowSystemMenuHint
+                | Qt.WindowType.WindowMinMaxButtonsHint | Qt.WindowType.WindowCloseButtonHint)
+
+
+def make_window(widget: QWidget) -> QWidget:
+    """``widget`` as a window of its own (:data:`WINDOW_FLAGS`), still
+    owned by its parent, which closes it; returns it. Show it with
+    :func:`show_window`. It does not keep the application running once
+    the main window has closed."""
+    widget.setWindowFlags(WINDOW_FLAGS)
+    widget.setAttribute(Qt.WidgetAttribute.WA_QuitOnClose, False)
+    return widget
+
+
+def show_window(widget: QWidget) -> None:
+    """Show ``widget`` as a window of its own, in front: not modal, and
+    not attached to the window that opened it (a window manager moves a
+    modal dialog with its parent, and keeps a transient one above it).
+    Opened from inside a modal dialog it stays that dialog's transient
+    window, the one kind a modal dialog leaves usable."""
+    widget.setWindowModality(Qt.WindowModality.NonModal)
+    if not widget.isVisible() and QApplication.activeModalWidget() is None:
+        widget.winId()  # the native window, so that its transient parent can be cleared before it shows
+        handle = widget.windowHandle()
+        if handle is not None:
+            handle.setTransientParent(None)
+    if widget.isMinimized():
+        widget.showNormal()
+    widget.show()
+    widget.raise_()
+    widget.activateWindow()
+
 
 # Qt rounds every value to decimals() as it is set. 40 decimal places
 # keep a double's full 17 significant digits for magnitudes down to

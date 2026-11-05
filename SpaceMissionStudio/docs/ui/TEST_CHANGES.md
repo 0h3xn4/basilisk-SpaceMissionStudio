@@ -1810,3 +1810,26 @@ written yet on a new machine.
   issue; the OEM options keep the 8 states the interpolation needs; the
   shown run exports a conforming OEM; Reports › Exports lists both
   exports.
+
+## More windows of their own (2026-11-05)
+
+On the release branch `release/2.2.0`. No test removed, no assertion
+weakened, no golden or output file changed. The 3D model editor's
+`show_window()` moved to `widgets.show_window()`; the editor's tests pass
+unchanged.
+
+- Added `tests/gui/test_own_windows.py`, seven tests: the user manual,
+  Reference data, File › Change History, a CCSDS check, a run's full
+  record and Compare's input differences each open as a top-level,
+  non-modal window with no transient parent that does not keep the
+  application running; the manual and a scenario's change history are
+  reused, another scenario's history replaces it; the windows close with
+  the main window, and a floating panel does not.
+
+One existing test reaches the input differences differently:
+
+| Test | Before | Now |
+|---|---|---|
+| `tests/gui/test_run_comparison.py::test_the_input_differences_name_the_changed_fields` | patched `QDialog.exec` to record the title of the dialog the button opened | the button's window (`input_differences_window`) is visible, titled "Input differences" and not modal, and its table names the changed field |
+
+The assertion on the differences themselves is unchanged.

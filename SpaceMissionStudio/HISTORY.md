@@ -14514,6 +14514,120 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## More windows of their own (2026-11-05)
+
+The user, on the 3D model editor fixed in 2.1.1: "Are there any other
+windows that were fixed to the main window?" A survey of the GUI's
+windows found six that the user reads beside the main window and that
+still opened attached to it:
+
+| Window | Was | Effect |
+|---|---|---|
+| File › Change History (`ChangeHistoryDialog`) | `exec()`, modal | moved with the main window on GNOME; main window unusable |
+| Tools › Check a CCSDS File... (`CcsdsCheckDialog`, new in 2.2.0) | `exec()`, modal | the same |
+| Results › Compare › input differences | `exec()`, modal | the same |
+| Help › User Manual (`ManualDialog`) | `show()`, transient | stayed above the main window |
+| Reference data (status bar) | `show()`, transient | the same |
+| A run's full record (`ProvenanceDialog`) | `show()`, transient | the same |
+
+`widgets.make_window()` gives a widget the flags of a window of its own
+(`WINDOW_FLAGS`: title, system menu, minimise, maximise, close) and
+clears `WA_QuitOnClose`, so it never keeps the application running after
+the main window has closed. `widgets.show_window()` shows it non-modal and
+clears its transient parent (kept inside a modal dialog, the one kind a
+modal dialog leaves usable): the 3D model editor's `show_window()` of
+2.1.1, moved there and now used by the editor too. The manual, Reference
+data and a scenario's change history keep one window each (another
+scenario's history replaces it); a CCSDS check, an input differences
+table and a run record are deleted on close.
+`MainWindow.close_own_windows()` closes every child of type `Qt.Window`
+when the main window closes (floating panels, tool windows, are not
+among them).
+
+Not changed, on purpose: the dialogs that ask for something before going
+on (Add spacecraft, the template wizard, the constellation and formation
+generators, the device, ground station and dispersion editors, the
+Vizard and SIL options, the IDM-CIC import, file pickers and questions).
+They edit the scenario or wait for an answer, so they stay modal; GNOME
+attaches them to their parent by design (`gsettings set org.gnome.mutter
+attach-modal-dialogs false` detaches them all).
+
+Tests: `tests/gui/test_own_windows.py`, seven tests (each window is a
+top-level, non-modal window with no transient parent that does not keep
+the application running; the manual and the change history are reused;
+the windows close with the main window, floating panels not).
+`test_run_comparison.py::test_the_input_differences_name_the_changed_fields`
+patched `QDialog.exec` to see the dialog open; it now checks the window
+(visible, not modal, its table naming the changed field). Full suite on
+Python 3.14 (a home holding only the reference data cache) with the
+change: 4598 passed and that one test failed, as expected, in 27 min
+29 s; changed, its file passes. 4599 tests in all.
+
+## Release 2.2.0 prepared (2026-11-05)
+
+After #218, by the user's standing instruction (work on until a feature
+is ready for a release, without stopping to ask). Branch
+`release/2.2.0`; a minor release, because it adds features.
+
+What it contains since 2.1.1 (`a6413c1cb`): #217 (the 2.1.1 publication
+recorded, documents only) and #218 (CCSDS orbit files in the app, below).
+By `docs/developer/releasing.md`:
+- the version 2.2.0 in `pyproject.toml`, `spacemissionstudio/__init__.py`
+  and the Inno Setup script;
+- the CHANGELOG's "Unreleased" entries under `## 2.2.0 (2026-11-05)`,
+  with a summary, "Who should update" and "Known limits";
+- SRelD issue 23 (2.2.0 prepared; 2.1.1 the previous release; K-13
+  updated);
+- the SDP, SRS, ICD, CSD, SUM, both READMEs and `releasing.md` name
+  2.2.0.
+
+**Checked:**
+- **Nothing the tool computes changed.** `git diff a6413c1cb` touches no
+  file in `schema/`, the templates or `tests/golden/`; 2.1.1 and 2.2.0
+  read and write the same scenario files.
+- **Space weather.** CelesTrak reset the connection again: the bundled
+  file stays 1.3.0's (K-13).
+- **Outside `SpaceMissionStudio/`:** only the front-page `README.md`'s
+  badge and version.
+- **Full suite on Python 3.14** (a home holding only the reference data
+  cache), on the release branch: 4592 passed in 19 min 5 s (4576 at
+  2.1.1, and the sixteen tests #218 added); with the windows of their
+  own (above), 4599 tests.
+
+## CCSDS orbit files in the app (2026-11-04)
+
+The user chose "The CCSDS stuff" from the options offered after 2.1.1:
+the command line read, wrote and checked CCSDS 502.0-B-3 orbit messages
+(remediation R09), and the GUI could do none of it
+(`orbit-files.md`: "the GUI has no CCSDS command yet"). #218:
+
+- **One module for both.** `spacemissionstudio/ccsds_files.py` takes what
+  `cli.py` did with the files: reading with the 500 MB limit (audit R9),
+  an orbit from an OPM or OMM, its `ImportRecord`, each spacecraft's
+  starting state (OPM, or OMM for a TLE; Basilisk for the state), a run's
+  OEMs. `cli.py` calls it; `tests/test_cli.py`'s CCSDS tests pass
+  unchanged (its size limit is still `cli.MAX_CCSDS_MESSAGE_BYTES`).
+- **Import** (`OrbitIcWidget.import_ccsds`): an OPM at the scenario epoch
+  sets the Cartesian state; at another time it asks to move the scenario
+  epoch (an `epoch_setter` from the scenario editor through the
+  spacecraft list and dialog), or changes nothing; a message for another
+  body, or not conforming, is refused with the reason. The record goes to
+  the scenario at once from a page's form, on OK from a dialog under the
+  spacecraft's final name (`pending_imports`).
+- **Exports:** Tools > Export Orbits as CCSDS..., and Results > Plots >
+  Export all... > CCSDS ephemeris (OEM)... on the export worker. The
+  first test of the OEM export, with stride 10 on 50 states, wrote 6
+  states, and the writer refused its own file: a degree-7 interpolation
+  needs 8 (CCSDS 502.0-B-3 5.2.4.7). The dialog now caps the stride at
+  (n - 1) // 7, which always leaves at least 8.
+- **Check:** Tools > Check a CCSDS File..., the verdict and a table of the
+  issues (level, line, clause, issue).
+
+16 tests added (`tests/test_ccsds_files.py`, `tests/gui/test_ccsds_gui.py`);
+the Reports > Exports test now expects 19 exports, not 17. Full suite:
+4592 passed. The button and both dialogs were captured offscreen and
+looked at.
+
 ## Release 2.1.1 published (2026-11-04)
 
 #216 was merged once CI was green. The user tagged

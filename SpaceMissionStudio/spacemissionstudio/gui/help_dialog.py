@@ -35,6 +35,8 @@ from PySide6.QtCore import Qt, QUrl
 from PySide6.QtGui import QImage, QTextCursor
 from PySide6.QtWidgets import QDialog, QDialogButtonBox, QLabel, QTextBrowser, QVBoxLayout, QWidget
 
+from .widgets import make_window
+
 HELP_DIR = Path(__file__).resolve().parent.parent / "help"
 MANUAL = HELP_DIR / "USER_MANUAL.md"
 
@@ -47,10 +49,12 @@ def heading_slug(text: str) -> str:
 
 
 class ManualDialog(QDialog):
-    """The bundled user manual."""
+    """The bundled user manual, in a window of its own
+    (``widgets.show_window``)."""
 
     def __init__(self, parent: QWidget | None = None, manual: Path = MANUAL):
         super().__init__(parent)
+        make_window(self)
         self.setWindowTitle("SpaceMissionStudio User Manual")
         self.resize(900, 760)  # [px]
         self.browser = QTextBrowser()
