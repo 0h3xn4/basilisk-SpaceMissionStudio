@@ -20,15 +20,24 @@
 stowed configuration and the body element, and see what the import will
 do before it is applied. The file is read and the import planned in a
 worker thread (``spacemissionstudio.idm``, ``idm_import.plan``); the
-editor merges the plan into its model (``idm_import.merge``)."""
+editor merges the plan into its model (``idm_import.merge``).
+
+**Devices found** lists the equipment whose names name a sensor or
+actuator (``spacemissionstudio.idm_devices``): for each, whether to add it
+to the spacecraft, the axis of its equipment frame that is its boresight
+or spin axis, and the catalog product whose values it takes (none: the
+device runs with Basilisk's defaults until its values are set, and the
+pre-run checks say so). Thrusters, solar arrays and batteries are listed,
+not added. :meth:`IdmImportDialog.device_choices` is what was chosen."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 from PySide6.QtCore import QThread, Signal
-from PySide6.QtWidgets import (QCheckBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout, QHBoxLayout, QLabel,
-                               QLineEdit, QPlainTextEdit, QPushButton, QVBoxLayout, QWidget)
+from PySide6.QtWidgets import (QAbstractItemView, QCheckBox, QDialog, QDialogButtonBox, QFileDialog, QFormLayout,
+                               QHBoxLayout, QHeaderView, QLabel, QLineEdit, QPlainTextEdit, QPushButton, QTableWidget,
+                               QTableWidgetItem, QVBoxLayout, QWidget)
 
 from .theme import set_role
 from .widgets import ComboBox
@@ -63,10 +72,13 @@ class _Worker(QThread):
 class IdmImportDialog(QDialog):
     """See the module docstring. :meth:`plan` is the accepted plan."""
 
-    def __init__(self, path=None, parent: QWidget | None = None, start_dir=None):
+    DEVICE_COLUMNS = ("Add", "Equipment", "Subsystem", "Kind", "Axis", "Catalog product", "Note")
+
+    def __init__(self, path=None, parent: QWidget | None = None, start_dir=None, devices_allowed: bool = True):
         super().__init__(parent)
         self.setWindowTitle("Import IDM-CIC model")
-        self.resize(760, 560)
+        self.resize(900, 720)
+        self._devices_allowed = devices_allowed
         self._start_dir = Path(start_dir) if start_dir else None
         self._path: Path | None = None
         self._model = None
@@ -109,6 +121,20 @@ class IdmImportDialog(QDialog):
         self.preview.setReadOnly(True)
         self.preview.setLineWrapMode(QPlainTextEdit.LineWrapMode.WidgetWidth)
         layout.addWidget(self.preview, 1)
+        layout.addWidget(QLabel("Devices found"))
+        self.devices_note = set_role(QLabel(""), tone="secondary")
+        self.devices_note.setWordWrap(True)
+        layout.addWidget(self.devices_note)
+        self.devices_table = QTableWidget(0, len(self.DEVICE_COLUMNS))
+        self.devices_table.setHorizontalHeaderLabels(self.DEVICE_COLUMNS)
+        self.devices_table.verticalHeader().setVisible(False)
+        self.devices_table.setSelectionMode(QAbstractItemView.SelectionMode.NoSelection)
+        self.devices_table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.devices_table.setTabKeyNavigation(False)
+        self.devices_table.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
+        self.devices_table.horizontalHeader().setStretchLastSection(True)
+        layout.addWidget(self.devices_table, 1)
+        self._findings: list = []
         self.status = set_role(QLabel(""), tone="caution")
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
@@ -190,6 +216,84 @@ class IdmImportDialog(QDialog):
             self._fill_combos(model)
         self._plan = plan
         self.preview.setPlainText("\n".join(plan.summary.lines()))
+        self._fill_devices(plan.devices)
+
+    def _fill_devices(self, findings: list) -> None:
+        """One row per device found, with the default choices
+        (``idm_devices.default_choices``)."""
+        from .. import idm_devices
+
+        self._findings = list(findings)
+        table = self.devices_table
+        table.setRowCount(len(findings))
+        for row, (finding, choice) in enumerate(zip(findings, idm_devices.default_choices(findings))):
+            add = QCheckBox()
+            add.setChecked(choice.add and self._devices_allowed)
+            add.setEnabled(finding.addable and self._devices_allowed)
+            add.setAccessibleName(f"Add {finding.equipment}")
+            table.setCellWidget(row, 0, add)
+            table.setItem(row, 1, QTableWidgetItem(finding.equipment))
+            table.setItem(row, 2, QTableWidgetItem(finding.subsystem))
+            table.setItem(row, 3, QTableWidgetItem(idm_devices.KIND_LABELS[finding.kind]))
+            axis = ComboBox()
+            axis.addItems(idm_devices.AXES)
+            axis.setCurrentText(choice.axis)
+            axis.setEnabled(finding.addable)
+            axis.setToolTip("The axis of the equipment's frame in IDM-CIC that is the device's boresight, spin axis "
+                            "or dipole axis (+z: the axis of IDM-CIC's revolution shapes)")
+            table.setCellWidget(row, 4, axis)
+            product = ComboBox()
+            product.addItem("None (Basilisk's defaults)" if finding.kind not in idm_devices.REQUIRED_VALUES else
+                            "None", "")
+            for name in idm_devices.product_names(finding.kind) if finding.addable else []:
+                product.addItem(name, name)
+            product.setCurrentIndex(max(0, product.findData(choice.product)))
+            product.setEnabled(finding.addable)
+            table.setCellWidget(row, 5, product)
+            note = QTableWidgetItem("")
+            table.setItem(row, 6, note)
+            product.currentIndexChanged.connect(lambda _i, row=row: self._update_device_row(row))
+            add.toggled.connect(lambda _on, row=row: self._update_device_row(row))
+            self._update_device_row(row)
+        self.devices_note.setText(
+            "None found by name." if not findings else
+            ("This scenario runs orbit only, which simulates no sensors or actuators: they are listed, not added."
+             if not self._devices_allowed else
+             "The model says what each device is and where it sits, not how it performs: a device takes its values "
+             "from the catalog product chosen, or runs with Basilisk's defaults until you set them (the pre-run "
+             "checks say so)."))
+
+    def _update_device_row(self, row: int) -> None:
+        """The note of a row: why it is not added, or where its values come from."""
+        from .. import idm_devices
+
+        finding = self._findings[row]
+        add = self.devices_table.cellWidget(row, 0)
+        product = self.devices_table.cellWidget(row, 5).currentData() or ""
+        why = idm_devices.why_not(finding.kind, product)
+        if not finding.addable:
+            text = why
+        elif why:
+            text = why
+            add.setChecked(False)
+        elif not add.isChecked():
+            text = "not added"
+        else:
+            text = f"values: {product}" if product else "values: Basilisk's defaults until set"
+        add.setEnabled(self._devices_allowed and finding.addable and not why)
+        self.devices_table.item(row, 6).setText(text)
+
+    def device_choices(self) -> list:
+        """One ``idm_devices.DeviceChoice`` per device found, as shown."""
+        from .. import idm_devices
+
+        choices = []
+        for row, finding in enumerate(self._findings):
+            add = self.devices_table.cellWidget(row, 0).isChecked()
+            choices.append(idm_devices.DeviceChoice(add and self._devices_allowed, finding.kind,
+                                                    self.devices_table.cellWidget(row, 4).currentText(),
+                                                    self.devices_table.cellWidget(row, 5).currentData() or ""))
+        return choices
 
     def _on_failed(self, message: str) -> None:
         self._plan = None

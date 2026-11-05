@@ -286,6 +286,7 @@ build or update a spacecraft's 3D model from an IDM-CIC model (IDM-CIC is (c) CN
 | `--stowed-configuration` | a configuration whose poses become the stowed configuration (e.g. the launch one) |
 | `--body-element` | the element whose frame is the body frame (default: chosen) |
 | `--apply-facets` | also build drag and solar pressure facets from the imported boxes, cylinders, cones and spheres (off by default: the file gives no surface coefficients) |
+| `--devices` | also add the sensors and actuators found by name (star trackers, gyros, sun sensors, magnetometers, reaction wheels, magnetorquers), each along its +z axis, with the catalog product its name names; without one it runs with Basilisk's defaults until its values are set |
 | `--out` | write the updated scenario here (default: overwrite) |
 
 ## `export-fsw`

@@ -1510,6 +1510,14 @@ def cmd_idm_import(args: argparse.Namespace) -> int:
         the_plan = idm_import.plan(model, args.configuration, args.stowed_configuration, args.body_element,
                                    apply_facets=args.apply_facets)
         summary = idm_import.merge(scenario, args.spacecraft, the_plan, out, author=history.current_author())
+        if args.devices and scenario.simulation_mode == "orbit_only":
+            summary.notes.append("--devices: this scenario runs orbit only, which simulates no sensors or "
+                                 "actuators: none added")
+        elif args.devices:
+            from . import idm_devices
+
+            idm_import.add_devices(scenario, args.spacecraft, the_plan,
+                                   idm_devices.default_choices(the_plan.devices), history.current_author(), summary)
         scenario.validate()
     except idm.IdmError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
@@ -2161,6 +2169,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_idm_in.add_argument("--apply-facets", action="store_true",
                           help="also build drag and solar pressure facets from the imported boxes, cylinders, cones "
                                "and spheres (off by default: the file gives no surface coefficients)")
+    p_idm_in.add_argument("--devices", action="store_true",
+                          help="also add the sensors and actuators found by name (star trackers, gyros, sun "
+                               "sensors, magnetometers, reaction wheels, magnetorquers), each along its +z axis, "
+                               "with the catalog product its name names; without one it runs with Basilisk's "
+                               "defaults until its values are set")
     p_idm_in.add_argument("--out", type=Path, help="write the updated scenario here (default: overwrite)")
     p_idm_in.set_defaults(func=cmd_idm_import)
 

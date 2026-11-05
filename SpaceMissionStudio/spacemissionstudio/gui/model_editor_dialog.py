@@ -237,6 +237,7 @@ class ModelEditorDialog(QDialog):
         # here makes (import_record(); the caller keeps it with the scenario on OK).
         self._previous_import = previous_import
         self._import_record = None
+        self._device_import = None  # (plan, device choices) of an IDM-CIC import: device_import()
         self._devices = None if devices is None else SimpleNamespace(
             sensors=copy.deepcopy(list(devices.sensors)), actuators=copy.deepcopy(list(devices.actuators)),
             rf_link=copy.deepcopy(devices.rf_link), comms_pointing=copy.deepcopy(getattr(devices, "comms_pointing",
@@ -534,24 +535,31 @@ class ModelEditorDialog(QDialog):
             report(self, f"Cannot import here yet: {problem}. The import writes the model's meshes beside the "
                          "scenario file.", kind="warning")
             return
-        dialog = IdmImportDialog(parent=self, start_dir=self._base_dir)
+        dialog = IdmImportDialog(parent=self, start_dir=self._base_dir,
+                                 devices_allowed=self._devices is not None and self._simulation_mode != "orbit_only")
         if dialog.exec() != QDialog.DialogCode.Accepted or dialog.plan() is None:
             return
         try:
-            summary = self.import_idm(dialog.plan())
+            summary = self.import_idm(dialog.plan(), dialog.device_choices())
         except (OSError, ValueError) as exc:
             report(self, f"Could not import the model: {exc}")
             return
+        chosen = sum(1 for choice in (self._device_import[1] if self._device_import else []) if choice.add)
         box = QMessageBox(QMessageBox.Icon.Information, "IDM-CIC model imported",
                           f"{len(summary.added)} added, {len(summary.updated)} updated, {len(summary.kept)} kept as "
-                          f"edited, {len(summary.gone)} no longer in the file.", parent=self)
+                          f"edited, {len(summary.gone)} no longer in the file."
+                          + (f" {chosen} device(s) found by name are added to the spacecraft on OK." if chosen else ""),
+                          parent=self)
         box.setDetailedText("\n".join(summary.lines()))
         box.exec()
 
-    def import_idm(self, plan):
+    def import_idm(self, plan, device_choices=None):
         """Merge an IDM-CIC import plan (``idm_import.plan``) into the model
         (``idm_import.merge``); keeps its record for :meth:`import_record`
-        and returns the summary. Needs the scenario's folder."""
+        and returns the summary. Needs the scenario's folder. The devices
+        chosen (``device_choices``, one ``idm_devices.DeviceChoice`` per
+        device found) are added by the spacecraft's editor on OK
+        (:meth:`device_import`), which holds the whole spacecraft."""
         from .. import history, idm_import
 
         problem = self._write_problem()
@@ -565,6 +573,8 @@ class ModelEditorDialog(QDialog):
                                    author=history.current_author(),
                                    orbit_only=self._simulation_mode == "orbit_only")
         self._import_record = shim.imports[-1]
+        if device_choices is not None and any(choice.add for choice in device_choices):
+            self._device_import = (plan, list(device_choices))
         self._refresh_parts_list()
         if self._model.parts:
             self.parts_list.setCurrentRow(0)
@@ -575,6 +585,12 @@ class ModelEditorDialog(QDialog):
     def import_record(self):
         """The record of an IDM-CIC import made here (``ImportRecord``), or None."""
         return self._import_record
+
+    def device_import(self):
+        """``(plan, device choices)`` of the last IDM-CIC import made here
+        with devices chosen to be added (``idm_import.add_devices`` takes
+        them), or None."""
+        return self._device_import
 
     @staticmethod
     def _mtl_files(obj_path: Path) -> list[Path]:

@@ -177,8 +177,14 @@ Each item was checked against Basilisk's own source.
     paths, labels, Boolean intersections and section planes. Rounded box
     edges and the stretch factor are ignored.
   * A typed-in inertia matrix, mass margins and maturity levels are
-    reported, not applied; thrusters, power modes and thermal data are
-    not imported.
+    reported, not applied; power modes and thermal data are not
+    imported.
+  * Devices are found by their names only. A sensor without a catalog
+    product runs with Basilisk's defaults until its values are set (the
+    pre-run checks say so); wheels and magnetorquers are added only with
+    a product. Thrusters, solar arrays and batteries are listed, not
+    added. A device's axis is an axis of its equipment frame (+z unless
+    chosen), not read from the file.
   * Model versions 3.4 and 3.5 are read; others with a note. The
     IDM-CIC licence was not available to review; the reader uses only
     the format's published description.

@@ -136,6 +136,14 @@ RULES: dict[str, Rule] = {rule.rule_id: rule for rule in (
          "Put the file back where the record says, or import it again from where it is now.",
          override="A warning does not stop the run: the values imported then are used, and the run records "
                   "that the file was not found."),
+    Rule("import.device_defaults", "A device found in an IDM-CIC model has its performance values: from a "
+         "catalog product, or set by the user.",
+         "The model says what the device is and where it sits, not how it performs: without values it runs "
+         "with Basilisk's defaults for its kind, which are not the device's.",
+         "Open the device in the spacecraft's Sensors or Actuators and set its values, or select a catalog "
+         "product there.",
+         override="A warning does not stop the run: the device runs with Basilisk's defaults, and the run "
+                  "records that."),
     Rule("import.source_item_gone", "Each imported 3D model item is still in the file it was imported from.",
          "A re-import found the item gone from the file (removed or replaced there) and kept it rather than "
          "deleting it: the model may hold a part the design no longer has.",

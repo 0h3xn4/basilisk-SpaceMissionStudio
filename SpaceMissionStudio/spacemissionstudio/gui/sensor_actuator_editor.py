@@ -865,6 +865,16 @@ class SensorActuatorListWidget(QWidget):
                 self.inline.show_row(row)
             self.changed.emit()
 
+    def add_items(self, items: list) -> None:
+        """Append ``items`` (devices made elsewhere, e.g. found in an
+        IDM-CIC model) after the open form's edits are kept."""
+        if not items:
+            return
+        self.inline.flush()
+        self._items = list(self._items) + list(items)
+        self._refresh_list()
+        self.changed.emit()
+
     def from_list(self, items: list) -> None:
         self.inline.discard()  # another spacecraft's devices: the form of one of these is gone
         self._items = list(items)

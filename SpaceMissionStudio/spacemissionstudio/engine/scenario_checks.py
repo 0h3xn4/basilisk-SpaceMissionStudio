@@ -374,6 +374,14 @@ def _import_warnings(scenario) -> list[str]:
         warnings.append(Finding(f"{spacecraft}'s 3D model item {item!r} was imported from {source}, which no longer "
                                 "has it: remove it, or keep it as your own", "import.source_item_gone",
                                 actual="not in the file", limit="every imported item in the file"))
+    from ..idm_devices import KIND_LABELS, unset_devices
+
+    for spacecraft, path, kind in unset_devices(scenario):
+        label = KIND_LABELS.get(kind, kind).lower()
+        warnings.append(Finding(f"{spacecraft}'s {label} {path.split('[', 1)[1][:-1]!r} was found in an IDM-CIC "
+                                f"model without its performance values: it runs with Basilisk's defaults for a "
+                                f"{label}. Set its values, or select a catalog product", "import.device_defaults",
+                                actual="Basilisk's defaults", limit="the device's own values"))
     return warnings
 
 
