@@ -113,9 +113,17 @@ For each device, the table offers:
 
 - **Add**: whether the import adds it to the spacecraft's Sensors or
   Actuators, at its place in the model;
-- **Axis**: the axis of the equipment's frame in IDM-CIC that is the
-  device's boresight, spin axis or dipole axis. It is +z unless you choose
-  another: IDM-CIC's cylinders and cones are built along +z;
+- **Axis**: the device's boresight, spin axis or dipole axis. The
+  device is already turned as its equipment is placed in the model (a
+  wheel of a pyramid keeps its tilt); the axis says which direction of
+  the equipment is the one that matters. **from the model** is chosen
+  when the equipment's shapes show it: a field-of-view cone gives a
+  sensor's boresight (from its tip toward its wide end) and its field of
+  view, drawn in the 3D view; a cylinder gives a wheel's spin axis or a
+  magnetorquer's rod axis. The tooltip names the shape and gives the
+  vector. When the shapes show none (a gyro drawn as a box), it is +z of
+  the equipment's frame, the axis IDM-CIC builds cylinders and cones
+  along. You can choose any axis of that frame instead;
 - **Catalog product**: a product from SpaceMissionStudio's device catalog.
   If the equipment's name includes a product's name ("Star tracker head
   ST200"), that product is chosen for you. The device takes its published

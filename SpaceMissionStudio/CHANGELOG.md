@@ -8,6 +8,23 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+### Added
+
+- **The IDM-CIC import reads each device's axis from its shapes.** A
+  device already took its equipment's orientation in the model (a wheel
+  of a pyramid keeps its tilt); now the import also finds which direction
+  of the equipment is its boresight, spin axis or dipole axis: a sensor's
+  field-of-view cone gives its boresight and its field of view (drawn in
+  the 3D view), and a wheel's or magnetorquer's cylinder gives its axis.
+  Before, it was always the equipment's +z axis, which was wrong when a
+  team had turned the shape inside the equipment. The **Axis** column of
+  the import dialog offers **from the model**, chosen by default, with
+  the shape and the vector in its tooltip; a device whose shapes show no
+  axis keeps +z, and any axis of the equipment's frame can still be
+  chosen. `idm-import --devices` uses the model's axes.
+
 ## 2.3.0 (2026-11-05)
 
 The satellite's components from IDM-CIC, and a Walker constellation that
