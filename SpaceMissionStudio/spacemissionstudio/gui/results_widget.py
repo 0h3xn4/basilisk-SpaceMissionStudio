@@ -190,7 +190,7 @@ from .readout_panel import ReadoutPanel, value_at
 from .feedback import report
 from .theme import SERIES_COLORS, SIZE, TOKENS, WEB_FONT_STACK, on_change, set_role
 from .theme import plotly_template as pt
-from .widgets import ComboBox
+from .widgets import ComboBox, make_window, show_window
 
 # Categorical series colours: the theme's categorical palette (theme/
 # palettes.py has its validation), the same list object, so a figure built
@@ -1584,7 +1584,8 @@ class ResultsWidget(QWidget):
 
         other = self.comparison_run()
         rows = self.input_differences()
-        dialog = QDialog(self)
+        dialog = make_window(QDialog(self))  # a window of its own, beside the plots it explains
+        dialog.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         dialog.setWindowTitle("Input differences")
         dialog.resize(760, 420)  # [px]
         table = QTableWidget(len(rows), 3, dialog)
@@ -1606,7 +1607,8 @@ class ResultsWidget(QWidget):
         layout.addWidget(QLabel(f"{len(rows)} input(s) differ." if rows else "The inputs are the same."))
         layout.addWidget(table)
         layout.addWidget(buttons)
-        dialog.exec()
+        self.input_differences_window = dialog
+        show_window(dialog)
 
     def _comparison_traces(self, name: str, display) -> list:
         """The compared run's copy of ``name``, dashed, in the same colours."""

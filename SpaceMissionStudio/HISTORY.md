@@ -14514,6 +14514,49 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## More windows of their own (2026-11-05)
+
+The user, on the 3D model editor fixed in 2.1.1: "Are there any other
+windows that were fixed to the main window?" A survey of the GUI's
+windows found six that the user reads beside the main window and that
+still opened attached to it:
+
+| Window | Was | Effect |
+|---|---|---|
+| File › Change History (`ChangeHistoryDialog`) | `exec()`, modal | moved with the main window on GNOME; main window unusable |
+| Tools › Check a CCSDS File... (`CcsdsCheckDialog`, new in 2.2.0) | `exec()`, modal | the same |
+| Results › Compare › input differences | `exec()`, modal | the same |
+| Help › User Manual (`ManualDialog`) | `show()`, transient | stayed above the main window |
+| Reference data (status bar) | `show()`, transient | the same |
+| A run's full record (`ProvenanceDialog`) | `show()`, transient | the same |
+
+`widgets.make_window()` gives a widget the flags of a window of its own
+(`WINDOW_FLAGS`: title, system menu, minimise, maximise, close) and
+clears `WA_QuitOnClose`, so it never keeps the application running after
+the main window has closed. `widgets.show_window()` shows it non-modal and
+clears its transient parent (kept inside a modal dialog, the one kind a
+modal dialog leaves usable): the 3D model editor's `show_window()` of
+2.1.1, moved there and now used by the editor too. The manual, Reference
+data and a scenario's change history keep one window each (another
+scenario's history replaces it); a CCSDS check, an input differences
+table and a run record are deleted on close.
+`MainWindow.close_own_windows()` closes every child of type `Qt.Window`
+when the main window closes (floating panels, tool windows, are not
+among them).
+
+Not changed, on purpose: the dialogs that ask for something before going
+on (Add spacecraft, the template wizard, the constellation and formation
+generators, the device, ground station and dispersion editors, the
+Vizard and SIL options, the IDM-CIC import, file pickers and questions).
+They edit the scenario or wait for an answer, so they stay modal; GNOME
+attaches them to their parent by design (`gsettings set org.gnome.mutter
+attach-modal-dialogs false` detaches them all).
+
+Tests: `tests/gui/test_own_windows.py`, seven tests (each window is a
+top-level, non-modal window with no transient parent that does not keep
+the application running; the manual and the change history are reused;
+the windows close with the main window, floating panels not).
+
 ## Release 2.2.0 prepared (2026-11-05)
 
 After #218, by the user's standing instruction (work on until a feature

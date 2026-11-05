@@ -31,16 +31,19 @@ from .. import history
 from ..engine.scenario_diff import short
 from .data_table import DataTable, Row
 from .theme import set_role
+from .widgets import make_window
 
 HEADERS = ("Time (UTC)", "Author", "Saved by", "Change", "Field", "Old", "New", "Reason")
 _ALL = "All spacecraft"
 
 
 class ChangeHistoryDialog(QDialog):
-    """The history of ``scenario_path``: every change its saves recorded."""
+    """The history of ``scenario_path``: every change its saves recorded.
+    A window of its own (``widgets.show_window``), beside the main window."""
 
     def __init__(self, scenario_path, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        make_window(self)
         self.scenario_path = Path(scenario_path)
         self.setWindowTitle(f"Change history: {self.scenario_path.name}")
         self.resize(1100, 560)  # [px]

@@ -13,9 +13,11 @@ fixes bugs.
 CCSDS orbit files in the app. What the command line could already do with
 CCSDS 502.0-B-3 orbit messages, the app now does too: import a
 spacecraft's orbit from an OPM or OMM, export the starting orbits and a
-run's trajectory, and check any orbit file against the standard. Nothing
-the tool computes changes: every template gives the same results as in
-2.1.1, and 2.1.1 and 2.2.0 open each other's scenario files.
+run's trajectory, and check any orbit file against the standard. The
+windows you read beside the main window are now windows of their own, as
+the 3D model editor became in 2.1.1. Nothing the tool computes changes:
+every template gives the same results as in 2.1.1, and 2.1.1 and 2.2.0
+open each other's scenario files.
 
 ### Added
 
@@ -38,6 +40,22 @@ the tool computes changes: every template gives the same results as in
   Reports › Exports lists the two exports. The command line and the app
   share one module for these files (`spacemissionstudio.ccsds_files`), so
   both write the same bytes; the command line's behaviour is unchanged.
+
+### Fixed
+
+- **More windows of their own.** File › Change History, Check a CCSDS
+  File..., Compare's input differences, the user manual, Reference data
+  and a run's full record (Show everything recorded) opened attached to
+  the main window. The first three were modal dialogs, which GNOME
+  attaches to their parent, so dragging one dragged the whole
+  application, and the main window could not be used while one was open.
+  The other three were not modal, but stayed above the main window. Each
+  now moves, minimises and stacks on its own, and the main window stays
+  usable beside it. Asking again for the manual, Reference data or the
+  same scenario's change history brings back its window. All of them
+  close with the main window. Dialogs that ask for something before
+  going on (Add spacecraft, the template wizard, the generators, file
+  pickers, questions) stay modal, as they must.
 
 ### Who should update
 

@@ -44,7 +44,7 @@ the same files.
 - **Ephemeris:** choose how many recorded states to keep (every Nth, and
   always the last; at least the 8 that the degree-7 interpolation needs)
   and the interpolation the file suggests (Lagrange for GMAT).
-- **Check:** the dialog says whether the file conforms, then lists each
+- **Check:** a window of its own says whether the file conforms, then lists each
   issue with its line and the clause of the standard it breaks.
 
 **Reports › Exports** lists the orbit and ephemeris exports with the last

@@ -22,7 +22,7 @@ observed record, then MSFC's prediction. There is no synthetic profile.
 
 ## Check what you have
 
-Open the **Reference data** dialog (**Check Reference Data** (the Run area), **Settings > Reference data**, or the reference data entry in the status bar). It lists every
+Open the **Reference data** window (**Check Reference Data** (the Run area), **Settings > Reference data**, or the reference data entry in the status bar). It lists every
 file with its status (ok, missing, out of date), the dates it covers,
 where it came from and its SHA-256. From the command line:
 
@@ -40,7 +40,7 @@ the support data, CelesTrak's latest space weather and the Earth
 orientation files. Tick what you want and press **Fetch now**, or
 **Not now**: nothing is downloaded then.
 
-At any time, in the **Reference data** dialog, **Download...** offers five downloads: *Support
+At any time, in the **Reference data** window, **Download...** offers five downloads: *Support
 data*, *Space weather*, *Earth orientation*, *Small bodies* and *Gaseous
 attenuation* (ITU-R P.676-13 Part 1). Each asks first, naming
 the source, the files and their size; the default is No. Afterwards it
@@ -78,7 +78,7 @@ file.
 
 ## Undo an update
 
-**Roll back...** in the **Reference data** dialog puts back the version that the last download or
+**Roll back...** in the **Reference data** window puts back the version that the last download or
 import replaced. From the command line: `spacemissionstudio
 earth-orientation --rollback`.
 

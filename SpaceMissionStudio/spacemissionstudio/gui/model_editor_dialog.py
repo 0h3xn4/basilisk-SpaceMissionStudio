@@ -60,7 +60,7 @@ from types import SimpleNamespace
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtGui import QColor
-from PySide6.QtWidgets import (QApplication, QButtonGroup, QCheckBox, QColorDialog, QDialog, QDialogButtonBox, QFileDialog,
+from PySide6.QtWidgets import (QButtonGroup, QCheckBox, QColorDialog, QDialog, QDialogButtonBox, QFileDialog,
                                QFormLayout, QGridLayout, QGroupBox, QHBoxLayout, QLabel, QLineEdit, QListWidget,
                                QMenu, QMessageBox, QPushButton, QRadioButton, QScrollArea, QSplitter, QToolButton,
                                QVBoxLayout, QWidget)
@@ -80,7 +80,7 @@ from .model_property_tabs import BudgetLauncherTab, FacePropertiesTable, Materia
 from .model_view_widget import ModelViewWidget
 from .theme import set_role
 from .theme.palettes import swatch_style
-from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, TabWidget, finish_form
+from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, TabWidget, finish_form, make_window, show_window
 
 _RECOMPUTE_DELAY_MS = 150  # [ms] after the last edit
 
@@ -231,10 +231,7 @@ class ModelEditorDialog(QDialog):
                  base_dir=None, parent: QWidget | None = None, simulation_mode: str | None = None, devices=None,
                  previous_import=None):
         super().__init__(parent)
-        # A window of its own (show_window), with the buttons of one; not the dialog frame of its parent.
-        self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowTitleHint
-                            | Qt.WindowType.WindowSystemMenuHint | Qt.WindowType.WindowMinMaxButtonsHint
-                            | Qt.WindowType.WindowCloseButtonHint)
+        make_window(self)  # a window of its own (show_window), with the buttons of one; not a dialog frame
         self.accept_check = None
         # The spacecraft's earlier IDM-CIC import record (re-import compares with it), and the one an import
         # here makes (import_record(); the caller keeps it with the scenario on OK).
@@ -306,17 +303,7 @@ class ModelEditorDialog(QDialog):
         modal dialog with its parent, and keeps a transient one above it).
         Opened from inside a modal dialog it stays that dialog's transient
         window, the one kind a modal dialog leaves usable."""
-        self.setWindowModality(Qt.WindowModality.NonModal)
-        if not self.isVisible() and QApplication.activeModalWidget() is None:
-            self.winId()  # the native window, so that its transient parent can be cleared before it shows
-            handle = self.windowHandle()
-            if handle is not None:
-                handle.setTransientParent(None)
-        if self.isMinimized():
-            self.showNormal()
-        self.show()
-        self.raise_()
-        self.activateWindow()
+        show_window(self)
 
     @property
     def spacecraft_name(self) -> str:

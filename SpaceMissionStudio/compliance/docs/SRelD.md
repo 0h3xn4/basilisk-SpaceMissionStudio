@@ -9,7 +9,9 @@ the app (#218, SRS-F-14). What the command line already did with CCSDS
 use (`spacemissionstudio.ccsds_files`): import a spacecraft's orbit from
 an OPM or a TLE-based OMM (recorded as `ccsds-import` records it), export
 the starting orbits (OPM, or OMM for a TLE) and a run's OEMs, and check an
-OPM, OMM or OEM against the standard. Since 2.1.1 no scenario field,
+OPM, OMM or OEM against the standard. The windows read beside the main
+window (change history, CCSDS check, input differences, manual, reference
+data, run record) are windows of their own. Since 2.1.1 no scenario field,
 template or golden file changed, and the command line writes the same
 files: every template's outputs are as in 2.1.1, and 2.1.1 and 2.2.0 open
 each other's files. The bundled space weather is still 1.3.0's: CelesTrak
@@ -289,6 +291,12 @@ RD1 has the full story. In summary:
     level, line and clause, as `ccsds-validate` prints them;
   - `spacemissionstudio.ccsds_files`, used by `cli.py` and the GUI; the
     command line's output is unchanged.
+- **More windows of their own** (on the release branch): File › Change
+  History, Check a CCSDS File..., Compare's input differences, the user
+  manual, Reference data and a run's full record open as windows of their
+  own (`widgets.make_window`, `widgets.show_window`), not modal and not
+  attached to the main window, as the 3D model editor in 2.1.1. Dialogs
+  that ask for something before going on stay modal.
 
 **Unchanged:** the scenario format (no field added or changed), every
 template and golden file, the command line's commands, options, exit
@@ -296,7 +304,7 @@ statuses and files, and what runs compute.
 
 **Tests:** 4592 passed on Linux, Python 3.14, on the release's code
 (4576 passed at 2.1.1); none skipped. Sixteen tests were
-added; one changed its expected list of exports from 17 to 19
+added for the CCSDS files and seven for the windows; one changed its expected list of exports from 17 to 19
 (`docs/ui/TEST_CHANGES.md`).
 
 **Still open:** K-19 (about 0.4 s), K-22, K-23 (smaller), K-24, K-25,
