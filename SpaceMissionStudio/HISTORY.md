@@ -14580,6 +14580,20 @@ refusals, nothing without the option, the run);
 `tests/gui/test_spacecraft_editor.py::test_list_widget_generate_constellation_holds_each_planes_spacing`.
 Full suite on Python 3.14 (a home holding only the reference data cache): 4610 passed in 31 min 44 s.
 
+## Release 2.2.0 published (2026-11-05)
+
+#219 was merged once CI was green. The user tagged
+`spacemissionstudio-v2.2.0` on its merge commit `fa9d2b6b9` and published
+the release at 08:55:50 UTC with notes written for it (the CCSDS files
+in the app, the windows of their own, a section for users coming from
+2.0.0 or 2.1.0, downloads, install, checks and known limits). The release
+workflow ([run 41998260915](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/41998260915)) started two seconds later; it ran the whole suite on the
+tagged commit on Linux and Windows, built, installed and checked the six
+files and attached them at 09:34, keeping the notes. So the release was
+public without files for 38 minutes, the seventh release so
+(`releasing.md`). SRelD issue 24, the SDP, H05 and `releasing.md` record
+the tag, the run and the files' digests. Documents only.
+
 ## More windows of their own (2026-11-05)
 
 The user, on the 3D model editor fixed in 2.1.1: "Are there any other

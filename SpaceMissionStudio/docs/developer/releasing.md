@@ -287,7 +287,14 @@ a draft, wait for the files (about 35 minutes), then publish.
 the app (#218) and more windows of their own, a minor release because it
 adds features. No scenario
 field, template or golden file changed. The space weather is still
-1.3.0's (CelesTrak reset the connection again, K-13).
+1.3.0's (CelesTrak reset the connection again, K-13). The release pull
+request (#219) was merged once CI was green, and the user tagged
+`spacemissionstudio-v2.2.0` on `fa9d2b6b9` and published it on
+2026-11-05 at 08:55 UTC, with notes written for it, which the workflow
+kept. Published two seconds before the workflow started, it was public
+without files for 38 minutes, until the workflow attached them at 09:34,
+the seventh release so. To avoid it: push the tag, or save the release as
+a draft, wait for the files (about 40 minutes), then publish.
 
 ---
 
