@@ -3488,7 +3488,9 @@ class SpacecraftListWidget(QWidget):
         from .constellation_dialog import WalkerConstellationDialog
 
         central_body = self._central_body_provider() if self._central_body_provider else "earth"
-        dialog = WalkerConstellationDialog([c.name for c in self._configs], central_body=central_body, parent=self)
+        dialog = WalkerConstellationDialog([c.name for c in self._configs], central_body=central_body, parent=self,
+                                           with_station_keeping=[c.name for c in self._configs
+                                                                 if c.station_keeping is not None])
         if dialog.exec() != QDialog.DialogCode.Accepted:
             return
 
@@ -3525,7 +3527,9 @@ class SpacecraftListWidget(QWidget):
         self.value_marks_made.emit(walker_value_marks(
             request, generated, j2=self._simulated_j2(central_body), inclination_source=dialog.inclination_source(),
             time_utc=datetime.now(UTC).isoformat(timespec="seconds")))
-        show_toast(self.window(), f"Generated {len(generated)} constellation spacecraft")
+        held = sum(1 for sc in generated if sc.phasing_keeping is not None) if request.phasing_keeping else 0
+        show_toast(self.window(), f"Generated {len(generated)} constellation spacecraft"
+                   + (f"; {held} hold their plane's spacing" if held else ""))
         self.changed.emit()
 
     def _on_generate_phasing_formation(self) -> None:
