@@ -283,6 +283,11 @@ without files for 35 minutes, until the workflow attached them at 20:33,
 the sixth release so. To avoid it: push the tag, or save the release as
 a draft, wait for the files (about 35 minutes), then publish.
 
+2.2.0 was prepared on 2026-11-05 by this checklist: CCSDS orbit files in
+the app (#218), a minor release because it adds features. No scenario
+field, template or golden file changed. The space weather is still
+1.3.0's (CelesTrak reset the connection again, K-13).
+
 ---
 
 **Next:** [Syncing with upstream Basilisk](upstream-sync.md) ·
