@@ -3,7 +3,7 @@
 DRD: ECSS-E-ST-40C Annex E
 Document: SMS-ICD, issue 1 (draft), 2026-10-08. Remediation R14.
 
-**Status:** draft, derived from the implemented interfaces (version 2.3.0; `CHANGELOG.md` lists what changed in each release, for 2.1.0 the model analyses' and the IDM-CIC import's commands and scenario fields, ICD-12; 2.1.1 changes no interface; 2.2.0 reads and writes the same CCSDS messages as before, now from the GUI too; 2.3.0 reads more of an IDM-CIC model, writes devices and the power budget from it with import records of targets `devices` and `power`, adds `idm-import` options and `generate-constellation --phasing-keeping`, ICD-02 and ICD-12).
+**Status:** draft, derived from the implemented interfaces (version 2.4.0; `CHANGELOG.md` lists what changed in each release, for 2.1.0 the model analyses' and the IDM-CIC import's commands and scenario fields, ICD-12; 2.1.1 changes no interface; 2.2.0 reads and writes the same CCSDS messages as before, now from the GUI too; 2.3.0 reads more of an IDM-CIC model, writes devices and the power budget from it with import records of targets `devices` and `power`, adds `idm-import` options and `generate-constellation --phasing-keeping`, ICD-02 and ICD-12; 2.4.0 reads a device's axis and field of view from its equipment's shapes, writing the same fields, ICD-12).
 It has not been reviewed (H01), and no IRD exists (waived, D-11).
 
 ## 1 Introduction (E.2.1<1>)

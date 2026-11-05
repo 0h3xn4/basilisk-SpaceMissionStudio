@@ -1,7 +1,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-![Version 2.3.0](https://img.shields.io/badge/version-2.3.0-blue)
+![Version 2.4.0](https://img.shields.io/badge/version-2.4.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -115,10 +115,11 @@ internet needed.
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
-- **Version:** 2.3.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.3.0),
-  [changelog](CHANGELOG.md)): the IDM-CIC import brings the satellite's
-  sensors, actuators, power budget and team properties in, and a Walker
-  constellation can hold its spacing. 2.2.0 put CCSDS orbit files (OPM,
+- **Version:** 2.4.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.4.0),
+  [changelog](CHANGELOG.md)): the IDM-CIC import reads each device's
+  axis from its shapes. 2.3.0 brought the satellite's sensors, actuators,
+  power budget and team properties in, and a Walker constellation that
+  holds its spacing; 2.2.0 put CCSDS orbit files (OPM,
   OMM, OEM) in the app; 2.1.1 fixed 2.1.0, which was the
   spacecraft as designed. Its 3D model
   carries the equipment, a stowed configuration and materials, and the
@@ -137,7 +138,7 @@ internet needed.
   relative-orbital-element formations, optical and landmark navigation,
   asteroid Eros, Mars's gravity field and albedo on the sun sensors; and
   1.0.0 was the first release of the renewed tool.
-- **Platforms:** 2.3.0 has the Linux `.deb`, the Windows setup program
+- **Platforms:** 2.4.0 has the Linux `.deb`, the Windows setup program
   and the wheel. Both installers carry their own Python, Basilisk and
   reference data; each was installed and run offline by the release
   workflow, the `.deb` also by hand in a container

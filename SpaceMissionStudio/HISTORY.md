@@ -14514,6 +14514,31 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.4.0 prepared (2026-11-05)
+
+A minor release: it adds a feature. After 2.3.0 was published the user
+asked why the IDM-CIC import could not detect the equipment's
+orientation, and agreed to reading the device axes from the shapes; the
+standing instruction is to continue until a release is ready. Contents
+since 2.3.0: the device axes (#227) and the 2.3.0 publication record
+(#226).
+
+Prepared by `docs/developer/releasing.md`: version 2.4.0 in
+`pyproject.toml`, `__init__.py` and the Inno Setup script; the CHANGELOG's
+Unreleased entry under 2.4.0 with an introduction, Who should update
+(check the axes of devices imported with 2.3.0: a re-import leaves them as
+they are) and Known limits; SRelD issue 27 (2.4.0 prepared, 2.3.0
+previous, K-13 extended); the SDP, SRS, ICD, CSD, SUM, both READMEs and
+`releasing.md` name 2.4.0.
+
+Compatibility checked with 2.3.0's own code (the tagged commit
+`3f11a0227` in a worktree): a scenario saved by 2.4.0 after
+`idm-import --devices` of the axes fixture opens and validates in 2.3.0,
+with the star tracker's boresight and field of view as imported. No
+scenario field was added, so 2.4.0 opens every 2.3.0 file. CelesTrak
+refused the connection again (curl: no response), so the bundled space
+weather is still 1.3.0's (K-13).
+
 ## The IDM-CIC import reads device axes from the shapes (2026-11-05)
 
 The user asked why the import could not detect how the equipment is
