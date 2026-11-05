@@ -461,11 +461,19 @@ class IdmImportDialog(QDialog):
             table.setItem(row, 2, QTableWidgetItem(finding.subsystem))
             table.setItem(row, 3, QTableWidgetItem(idm_devices.KIND_LABELS[finding.kind]))
             axis = ComboBox()
-            axis.addItems(idm_devices.AXES)
-            axis.setCurrentText(choice.axis)
+            if finding.model_axis is not None:
+                axis.addItem("from the model", idm_devices.MODEL_AXIS)
+            for name in idm_devices.AXES:
+                axis.addItem(name, name)
+            axis.setCurrentIndex(max(0, axis.findData(choice.axis)))
             axis.setEnabled(finding.addable)
-            axis.setToolTip("The axis of the equipment's frame in IDM-CIC that is the device's boresight, spin axis "
-                            "or dipole axis (+z: the axis of IDM-CIC's revolution shapes)")
+            axis.setToolTip(
+                ("From the model: " + idm_devices.axis_text(finding, idm_devices.MODEL_AXIS) + ", "
+                 f"[{', '.join(f'{v:.3g}' for v in finding.model_axis)}] in the body frame. "
+                 if finding.model_axis is not None else
+                 "The model's shapes show no axis (no field-of-view cone"
+                 + (" or cylinder" if finding.kind in idm_devices.CYLINDER_KINDS else "") + "): +z by default. ")
+                + "Or an axis of the equipment's frame in IDM-CIC (+z: the axis of its revolution shapes).")
             table.setCellWidget(row, 4, axis)
             product = ComboBox()
             product.addItem("None (Basilisk's defaults)" if finding.kind not in idm_devices.REQUIRED_VALUES else
@@ -528,7 +536,7 @@ class IdmImportDialog(QDialog):
         for row, finding in enumerate(self._findings):
             add = self.devices_table.cellWidget(row, 0).isChecked()
             choices.append(idm_devices.DeviceChoice(add and self._devices_allowed, finding.kind,
-                                                    self.devices_table.cellWidget(row, 4).currentText(),
+                                                    self.devices_table.cellWidget(row, 4).currentData(),
                                                     self.devices_table.cellWidget(row, 5).currentData() or ""))
         return choices
 

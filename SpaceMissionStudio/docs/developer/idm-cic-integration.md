@@ -371,7 +371,7 @@ decision of this project, reversible when better information comes.
 | IDM-18 | **The licence** of IDM-CIC was not available to read (question 1). The reader uses the format's published description only for element names and meanings; no CNES text, file or example is in the repository; the test fixtures are written by hand. Listed in the known limitations. | The brief's rules. |
 
 | IDM-19 | **Devices are found by name** (`idm_devices`, section 15): an equipment's name, in English or French with accents ignored, names a device kind; a part of a device (electronics, support, mechanism, a thermal cone) and the structure, thermal and harness subsystems name none. | The file has no device type: only the names say what an equipment is. The rules were checked against the names of the sample models (not committed). |
-| IDM-20 | **A device's axis** is an axis of its equipment frame, +z unless the user chooses another. | IDM-03 builds revolution shapes along +z; in the samples, the wheels' +z axes form a pyramid and the magnetorquers' lie along the three body axes. The file has no boresight. |
+| IDM-20 | **A device's axis** is an axis of its equipment frame, +z unless the user chooses another. Since IDM-30, +z only when its shapes show no axis. | IDM-03 builds revolution shapes along +z; in the samples, the wheels' +z axes form a pyramid. The file has no boresight field. |
 | IDM-21 | **Values come from a catalog product or from Basilisk's defaults, never from an estimate.** A sensor without a product runs with the defaults, and `import.device_defaults` says so until its values are set; wheels and magnetorquers are added only with a product (Basilisk builds neither without values the file does not give); thrusters, solar arrays and batteries are listed, not added. | The file states no performance; the user asked for nothing to be invented. |
 | IDM-22 | **A device the spacecraft cannot take as it is** (its own validation fails with it, e.g. a magnetorquer without magnetic momentum management) is left out, with the validator's reason. | Adding it would make the scenario invalid, and the import is refused whole. |
 | IDM-24 | **The bus load from the power modes** (section 16): a system mode's total is the power of the imported units in it, through the element mode of the unit's element the system mode links, else the unit's own system-mode mapping; a mapping's power mode's power, or its custom power. A unit with power modes that no mapping covers counts 0 W and is counted in the record. The duty-cycle average only when the duty cycles add up to one (within 1e-6). Watts. The user chooses the mode; nothing is set by default. | The format describes both mappings and says an element linked through an element mode has no direct ones; the description gives no unit, and the samples' values (a wheel about 10, a magnetometer about 1) are watts. The scenario has one constant load, so which mode matters is the user's call. |
@@ -380,6 +380,7 @@ decision of this project, reversible when better information comes.
 | IDM-27 | **A team's properties are read only through a mapping the user gives** (section 17): a property name (accents, case and spacing ignored) to one of nine values (`idm_properties.TARGETS`), with the unit its values are in; a unit is offered only when the property's value type has the value's dimension (Angle: deg; Distance: m; Mass: kg; MomentOfInertia: kg*m^2), else the user chooses. | The names are the team's; `DecimalWithoutUnit` carries no unit and the format's description gives none for typed values. The samples show both a torque of "12" without a unit and a wheel speed typed as a distance. |
 | IDM-28 | **Mapped values go over a product's**, and complete a wheel or magnetorquer without one when they give every required value (`idm_devices.complete`). A wheel's mapped inertia drops a product's maximum momentum and the reverse. A device with mapped values and no product is recorded as "properties: Basilisk's defaults for the rest", which `import.device_defaults` does not flag. | The user stated the values; Basilisk's wheel factory stops the process when given both inertia and momentum. |
 | IDM-29 | **The battery capacity** is the sum of the batteries' mapped capacity, set only when the user chooses it (`PowerChoice.battery`); a power budget the import makes with it lists only the rest as the editor's values. **The mapping is kept** in the model import record (`property_map`) and reused by the next import (CLI without `--property-map`, the dialog's initial rows). | The power model has one battery; a newer model version should read the same way without re-entering the mapping. |
+| IDM-30 | **A device's axis from its shapes** (section 18): its largest cone (a field of view, often on a layer hidden by default), from the narrow end toward the wide one, with its full angle as the mount's field of view; else, for a reaction wheel or a magnetorquer, its largest cylinder's axis, along the cylinder's +z; else +z of its frame (IDM-20). Only for the kinds that are added: a thruster's cone is its plume. The user can choose an axis of the frame instead. The angle is read from the cone's radii and height as the model gives them, not from its mesh. The simulated values (a sun sensor's `fov_deg`) are not set from the drawing. | The file has no boresight field, but a team draws a sensor's field of view as a cone and builds a wheel or a rod as a cylinder; their axes are the device's. In the samples the star tracker's cone (30 deg) and the wheels' cylinders give the axes the +z rule gave, and the magnetorquers' cylinders are turned inside their equipment, so +z had given each of them a wrong axis. A drawn cone may be a margin or a keep-out zone rather than the sensor's specification, so it is shown and recorded, not simulated. |
 | IDM-23 | **Re-import of devices** adds only the units no earlier import added a device for (the record names each device's unit); devices already added are left as they are. | A device's values are the user's once added; the record keeps what was imported for comparison. |
 
 Validation (question 10) remains open: no example stores IDM-CIC's own
@@ -404,7 +405,7 @@ typed in again. `spacemissionstudio/idm_devices.py`:
   that is not generic).
 - `default_choices`, `build_devices`: the sensors and actuators to add,
   each axis parameter (`nHat_B`, `gsHat_B`, `gtHat_B`) and mount from the
-  chosen axis (IDM-20), the product's values or none (IDM-21).
+  chosen axis (IDM-20, IDM-30), the product's values or none (IDM-21).
 - `keep_fitting`: each device tried against the spacecraft's own
   validation (IDM-22).
 - `unset_devices`: the devices still on Basilisk's defaults, for the
@@ -491,3 +492,44 @@ dialog with the last import's mapping. On the command line,
 `idm-import --property-map 'NAME=KIND.PARAM[UNIT]'` (repeated; `none`
 for none) and `--battery`; without `--property-map`, the last import's
 mapping.
+
+## 18. Device axes from the shapes
+
+Added after the user asked why the import could not read how the
+equipment is oriented, the wheels of a pyramid or a tetrahedron, the
+sun sensors and the star trackers. The orientation was already read: a
+device takes the axes of its placed unit's frame, so a wheel tilted by
+its instance is tilted in the scenario. What the file does not name is
+which axis of that frame is the boresight or the spin axis; until then
+it was +z (IDM-20), which is wrong when a team turns the shape inside the
+equipment (the samples' magnetorquers). `idm_devices.model_axis` reads it
+from the equipment's shapes (decision IDM-30):
+
+- a cone (`Cone`, `FilledCone`, `HollowCone`; the largest by area when
+  there are several, so a baffle does not win over the field of view):
+  the axis from its narrow end toward its wide end, and its full angle,
+  `2 atan(|r1 - r0| / h)` from the radii and height the model gives
+  (`ShapeGeometry.cone` keeps them, since a revolved mesh scales its
+  radii to keep each circle's area, IDM-14);
+- for a reaction wheel or a magnetorquer without a cone, a cylinder
+  (`Cylinder`, `FilledCylinder`, `HollowCylinder`; the largest by
+  volume): its +z, which is the wheel's spin axis or the rod's axis
+  whatever its proportions;
+- else nothing, and +z of the frame is used.
+
+Each axis is the shape's in the body frame (the unit's pose times the
+shape's position), so a shape turned inside its equipment and a unit
+turned by its instance both count. A cylinder gives nothing to the
+other kinds (a magnetometer's can says nothing of its axes), and a
+thruster's cone is its plume, not a field of view; thrusters are listed,
+not added.
+
+`DeviceFinding` carries `model_axis`, `axis_source` (the shape that gave
+it) and `fov_deg`; `default_choices` chooses `MODEL_AXIS` when there is
+one; `build_devices` puts the cone's angle in the mount's
+`field_of_view_deg` (the 3D view draws it) and the import record says
+where the axis came from (`axis_text`). The import dialog's **Axis**
+column offers "from the model" first, with the shape and the vector in
+its tooltip; `idm-import --devices` takes the default choices. The
+synthetic fixture `tests/data/idm/axessat` covers each rule, with every
+expected axis worked out by hand in `tests/test_idm_device_axes.py`.

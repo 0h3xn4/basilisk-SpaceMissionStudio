@@ -44,9 +44,14 @@ spacecraft (the solar arrays' panels can set that area and its normal:
 
 A device's axis (a sun sensor's boresight, a wheel's spin axis, a
 magnetorquer's dipole axis, a star tracker's boresight for the field of
-view checks) is one axis of its equipment's frame: +z unless chosen
-otherwise, the axis of IDM-CIC's revolution shapes (decision IDM-03), and
-the user confirms it.
+view checks) is read from its equipment's shapes when they show it
+(:func:`model_axis`, decision IDM-30): a cone, which the models draw for
+a field of view, gives the boresight from its apex toward its base and
+the field of view's full angle; for a wheel or a magnetorquer, its
+largest cylinder gives the spin or dipole axis. Otherwise it is the +z
+axis of its equipment's frame, the axis of IDM-CIC's revolution shapes
+(decision IDM-03). The user can choose any axis of the equipment's frame
+instead.
 """
 
 from __future__ import annotations
@@ -81,6 +86,9 @@ REQUIRED_VALUES = {"reaction_wheel": ("u_max", "Js (or Omega_max and maxMomentum
 AXES = ("+x", "-x", "+y", "-y", "+z", "-z")
 CANNOT_TAKE = "the spacecraft cannot take it as it is"  # how keep_fitting's reasons start
 DEFAULT_AXIS = "+z"  # the axis of IDM-CIC's revolution shapes (IDM-03)
+MODEL_AXIS = "model"  # the axis read from the equipment's shapes (model_axis, IDM-30)
+#: Kinds whose axis a cylinder gives (a wheel's spin axis, a rod's dipole axis).
+CYLINDER_KINDS = ("reaction_wheel", "magnetic_torque_rod")
 
 # What a name says, as phrases of normalized words (see _words): the first
 # kind whose phrases match wins, unless one of its exclusions also matches.
@@ -181,15 +189,22 @@ class DeviceFinding:
     axes: list  # 3 x 3, the unit's x, y, z axes as columns, body frame
     product: str = ""  # a catalog display name
     properties: tuple = ()  # idm.properties.PropertyValue of its equipment definition
+    model_axis: list | None = None  # body-frame unit vector read from its shapes (model_axis)
+    axis_source: str = ""  # which shape gave model_axis
+    fov_deg: float | None = None  # [deg] full angle of the field-of-view cone it was read from
 
     @property
     def addable(self) -> bool:
         return self.kind in ADDABLE_KINDS
 
     def axis(self, choice: str = DEFAULT_AXIS) -> list:
-        """The body-frame unit vector of the unit's axis ``choice`` (one of :data:`AXES`)."""
+        """The body-frame unit vector of the axis ``choice``: :data:`MODEL_AXIS`
+        (the one read from its shapes, or +z when they show none) or one of
+        :data:`AXES` of the unit's frame."""
+        if choice == MODEL_AXIS:
+            return list(self.model_axis) if self.model_axis is not None else self.axis(DEFAULT_AXIS)
         if choice not in AXES:
-            raise ValueError(f"axis {choice!r} must be one of {AXES}")
+            raise ValueError(f"axis {choice!r} must be {MODEL_AXIS!r} or one of {AXES}")
         column = "xyz".index(choice[1])
         vector = np.asarray(self.axes, dtype=float)[:, column] * (1.0 if choice[0] == "+" else -1.0)
         return [_tidy(v) for v in vector / np.linalg.norm(vector)]
@@ -246,8 +261,68 @@ def detect(model, placement, body: str, mounted: dict | None = None) -> list[Dev
                                    [_tidy(v) for v in (pose @ local)[:3]],
                                    [[_tidy(v) for v in row] for row in pose[:3, :3]],
                                    product.display_name if product is not None else "",
-                                   tuple(equipment_properties(model, eq.full_id))))
+                                   tuple(equipment_properties(model, eq.full_id)),
+                                   *model_axis(kind, eq, pose)))
     return found
+
+
+def _cone_axis(geometry, frame):
+    """``(boresight, full angle [deg])`` of a cone or truncated cone in
+    ``frame`` (its shape's frame in the body frame): from the narrow end
+    toward the wide one; None for a cylinder-like or degenerate one."""
+    if geometry.kind == "cone":  # the primitive: its base at -z of its centred frame, its apex at +z
+        local = frame @ geometry.local
+        height = geometry.dims.get("height", 0.0)
+        radius = geometry.dims.get("base_diameter", 0.0) / 2.0
+        if height <= 0.0 or radius <= 0.0:
+            return None
+        return -local[:3, 2], 2.0 * np.degrees(np.arctan2(radius, height))
+    if geometry.cone is None:
+        return None
+    r0, r1, h = geometry.cone  # [m] radius at z = 0, radius at z = h, h: as the model gives them
+    if h == 0.0 or abs(r1 - r0) <= 1.0e-12 or min(r0, r1) < 0.0:
+        return None
+    sign = 1.0 if (r1 - r0) * h > 0.0 else -1.0
+    return sign * frame[:3, 2], 2.0 * np.degrees(np.arctan2(abs(r1 - r0), abs(h)))
+
+
+_CONES = ("Cone", "FilledCone", "HollowCone")
+_CYLINDERS = ("Cylinder", "FilledCylinder", "HollowCylinder")
+
+
+def model_axis(kind: str, equipment, pose) -> tuple:
+    """``(axis, source, field of view [deg])`` that the equipment's shapes
+    give a device of ``kind`` placed at ``pose`` (the unit's frame in the
+    body frame), decision IDM-30: its largest cone (a field of view),
+    from the apex toward the base, with its full angle; else, for a wheel
+    or a magnetorquer, its largest cylinder's axis, along the cylinder's
+    own +z; else ``(None, "", None)``. Only for the kinds that are added (a
+    thruster's cone is its plume, and thrusters are listed, not added)."""
+    if kind not in ADDABLE_KINDS:
+        return None, "", None
+    cones, cylinders = [], []
+    for shape in equipment.shapes:
+        geometry = shape.geometry
+        frame = pose @ shape.pose
+        if geometry.object_type in _CONES:
+            found = _cone_axis(geometry, frame)
+            if found is not None:
+                cones.append((float(geometry.area_m2 or geometry.volume_m3), shape.name, *found))
+        elif geometry.object_type in _CYLINDERS and kind in CYLINDER_KINDS:
+            cylinders.append((float(geometry.volume_m3 or geometry.area_m2), shape.name, frame[:3, 2]))
+    if cones:
+        _size, name, vector, angle = max(cones, key=lambda c: c[0])
+        source = f"the field-of-view cone {name!r}" if name else "the field-of-view cone"
+        return _unit(vector), source, float(f"{angle:.6g}")
+    if cylinders:
+        _size, name, vector = max(cylinders, key=lambda c: c[0])
+        return _unit(vector), (f"the cylinder {name!r}" if name else "its cylinder"), None
+    return None, "", None
+
+
+def _unit(vector) -> list:
+    vector = np.asarray(vector, dtype=float)
+    return [_tidy(v) for v in vector / np.linalg.norm(vector)]
 
 
 _LISTED_WHY = {
@@ -292,14 +367,16 @@ def why_not(kind: str, product: str = "", mapped=()) -> str:
 
 
 def default_choices(findings: list[DeviceFinding], mappings=()) -> list[DeviceChoice]:
-    """Add each addable finding along +z with the product its name names;
-    not one that needs values only a product, or its mapped properties,
-    give and has neither."""
+    """Add each addable finding along the axis its shapes show (+z when
+    they show none) with the product its name names; not one that needs
+    values only a product, or its mapped properties, give and has
+    neither."""
     choices = []
     for f in findings:
         mapped = [v.target.param for v in finding_values(f, mappings)[0]]
         needs_product = f.kind in REQUIRED_VALUES and not f.product and not complete(f.kind, mapped)
-        choices.append(DeviceChoice(f.addable and not needs_product, f.kind, DEFAULT_AXIS, f.product))
+        choices.append(DeviceChoice(f.addable and not needs_product, f.kind,
+                                    MODEL_AXIS if f.model_axis is not None else DEFAULT_AXIS, f.product))
     return choices
 
 
@@ -349,6 +426,8 @@ def build_devices(findings: list[DeviceFinding], choices: list[DeviceChoice], ta
             params[AXIS_PARAMS[kind]] = list(axis)
         name = _unique(finding.equipment.strip() or KIND_LABELS[kind], taken)
         mount = MountConfig(position_m=list(finding.position_m), boresight=list(axis))
+        if choice.axis == MODEL_AXIS and finding.fov_deg is not None:
+            mount.field_of_view_deg = finding.fov_deg  # the model's cone, as drawn
         if kind in SUPPORTED_SENSOR_KINDS:
             device, source = SensorConfig(kind=kind, name=name, params=params, mount=mount), "sensors"
             result.sensors.append(device)
@@ -366,8 +445,19 @@ def build_devices(findings: list[DeviceFinding], choices: list[DeviceChoice], ta
             origin = f"no product: Basilisk's defaults for a {KIND_LABELS[kind].lower()}"
         if values:
             origin += "; values from properties: " + ", ".join(v.describe() for v in values)
+        origin += "; axis " + axis_text(finding, choice.axis)
         result.details[f"{source}[{name}]"] = origin + f"; from {finding.equipment}; unit {finding.source_id}"
     return result
+
+
+def axis_text(finding: DeviceFinding, choice: str) -> str:
+    """Where the axis ``choice`` of ``finding`` comes from, in words."""
+    if choice == MODEL_AXIS and finding.model_axis is not None:
+        return f"from {finding.axis_source}" + (f" (field of view {finding.fov_deg:g} deg)"
+                                                 if finding.fov_deg is not None else "")
+    if choice == MODEL_AXIS:
+        return f"{DEFAULT_AXIS} of the equipment frame (its shapes show none)"
+    return f"{choice} of the equipment frame"
 
 
 #: A wheel takes its inertia or its maximum momentum: one mapped drops the other.

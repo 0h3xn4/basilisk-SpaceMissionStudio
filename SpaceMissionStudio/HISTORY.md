@@ -14514,6 +14514,45 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The IDM-CIC import reads device axes from the shapes (2026-11-05)
+
+The user asked why the import could not detect how the equipment is
+oriented: reaction wheels in a pyramid or a tetrahedron, sun sensors,
+star trackers. It already did: a device takes the axes of its placed
+unit's frame, and in the samples the four wheels came out in their
+pyramid. What it could not tell was which axis of that frame is the
+device's boresight, spin axis or dipole axis; it used +z (IDM-20). That
+was right for the samples' wheels and star tracker, and wrong for their
+magnetorquers, whose rods are cylinders turned inside the equipment: +z
+had given each of the three the axis of another.
+
+Decision IDM-30, section 18 of the design note. `idm_devices.model_axis`
+reads the axis from the shapes, in the body frame (the unit's pose times
+the shape's position): the largest cone, from its narrow end toward its
+wide end, with its full angle (a field of view, often on a layer hidden
+by default); else, for a wheel or a magnetorquer, the largest cylinder's
++z; else none, and +z is used. A thruster's cone is its plume and gives
+nothing, nor does a cylinder to the other kinds. The import dialog's
+Axis column offers "from the model" first, chosen, with the shape and the
+vector in its tooltip; the record says where each axis came from; a
+cone's angle becomes the mount's field of view (shown in the 3D view),
+not a simulated value.
+
+A bug found by the new hand-worked test: the field of view was read from
+the cone's mesh, whose radii are scaled to keep each circle's area
+(IDM-14), so it came out 0.02 to 0.04 deg too wide (the samples' star
+tracker: 30.023 deg for a 30 deg cone). `ShapeGeometry.cone` now keeps
+the radii and height the model gives, and the angle is read from them
+(30 deg); fixed before the PR.
+
+**Tests:** `tests/test_idm_device_axes.py` (6) and
+`tests/gui/test_idm_device_axes_gui.py` (1), on the new synthetic fixture
+`tests/data/idm/axessat`: a wheel tilted by its instance, a wheel, a rod
+and a magnetometer with turned cylinders, a star tracker with a field of
+view and a smaller baffle, a sun sensor whose cone narrows along +z, a
+gyro without shape and a thruster with a plume; every expected axis and
+angle worked out by hand from the rotations. No existing test changed.
+
 ## Release 2.3.0 published (2026-11-05)
 
 #225 was merged once CI was green. The user tagged

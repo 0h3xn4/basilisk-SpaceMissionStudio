@@ -2201,8 +2201,8 @@ def build_parser() -> argparse.ArgumentParser:
                                "and spheres (off by default: the file gives no surface coefficients)")
     p_idm_in.add_argument("--devices", action="store_true",
                           help="also add the sensors and actuators found by name (star trackers, gyros, sun "
-                               "sensors, magnetometers, reaction wheels, magnetorquers), each along its +z axis, "
-                               "with the catalog product its name names and the values of its mapped properties "
+                               "sensors, magnetometers, reaction wheels, magnetorquers), each along the axis its shapes show "
+                               "(a field-of-view cone, or a wheel's or rod's cylinder; else its +z axis), with the catalog product its name names and the values of its mapped properties "
                                "(--property-map); without either it runs with Basilisk's defaults until its values "
                                "are set")
     p_idm_in.add_argument("--bus-load", metavar="MODE",

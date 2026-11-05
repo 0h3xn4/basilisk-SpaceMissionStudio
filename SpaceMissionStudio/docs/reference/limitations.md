@@ -196,8 +196,13 @@ Each item was checked against Basilisk's own source.
     gives: the file states none for an untyped value, and the format's
     description none for a typed one. Nine values can be mapped (wheel
     torque, inertia, speed and momentum, magnetorquer dipole, star
-    tracker and gyro noise, sun sensor field of view, battery capacity). A device's axis is an axis of its equipment frame (+z unless
-    chosen), not read from the file.
+    tracker and gyro noise, sun sensor field of view, battery capacity).
+  * The file has no boresight field: a device's axis is read from its
+    shapes (a field-of-view cone, or a wheel's or magnetorquer's
+    cylinder), else +z of its equipment frame. A cone's angle is the
+    mount's field of view, shown in the 3D view; it does not set a sun
+    sensor's simulated field of view, since a drawn cone may be a
+    margin rather than the specification.
   * Model versions 3.4 and 3.5 are read; others with a note. The
     IDM-CIC licence was not available to review; the reader uses only
     the format's published description.

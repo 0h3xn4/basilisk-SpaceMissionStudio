@@ -97,6 +97,10 @@ class ShapeGeometry:
     cavity_volume_m3: float = 0.0
     #: A line or arc (no area or volume): noted only when it has a mass.
     wire: bool = False
+    #: A cone built as a mesh: its radius at z = 0, its radius at z = h, and
+    #: h [m], as the model gives them (the mesh's radii are scaled to keep
+    #: each circle's area, so its angle is read from these).
+    cone: tuple | None = None
 
 
 def _params(node, names, where: str) -> dict:
@@ -347,6 +351,12 @@ def _stretch_note(p: dict, notes: list) -> None:
         notes.append(f"stretch factor s = {p['s']:g} not modelled")
 
 
+def _as_cone(shape: ShapeGeometry, r0: float, r1: float, h: float) -> ShapeGeometry:
+    if shape.mesh is not None:
+        shape.cone = (r0, r1, h)
+    return shape
+
+
 def geometry(node, where: str = "", as_mesh: bool = False) -> ShapeGeometry:
     """The :class:`ShapeGeometry` of an object (``shapeDefinition``'s
     child node). ``as_mesh`` builds a mesh even for the exact primitives
@@ -432,10 +442,11 @@ def geometry(node, where: str = "", as_mesh: bool = False) -> ShapeGeometry:
                                  math.pi * base * (base + math.hypot(base, h)),
                                  local[:3, 3] + local[:3, :3] @ np.array([0.0, 0.0, -h / 4.0]),
                                  {"base_diameter": 2.0 * base, "height": h}, local, notes=notes)
-        return _mesh_geometry(t, revolve([(0, 0), (d1, 0), (d2, d3), (0, d3)], a1, a2, True), True, notes)
+        return _as_cone(_mesh_geometry(t, revolve([(0, 0), (d1, 0), (d2, d3), (0, d3)], a1, a2, True), True,
+                                       notes), d1, d2, d3)
     if t == "HollowCone":
         profile = [(max(0.0, d1 - d4), 0), (d1, 0), (d2, d3), (max(0.0, d2 - d4), d3)]
-        return _mesh_geometry(t, revolve(profile, a1, a2, True), True, notes)
+        return _as_cone(_mesh_geometry(t, revolve(profile, a1, a2, True), True, notes), d1, d2, d3)
     if t == "FilledSphere":
         if d1 <= 0.0:
             return _point(t, [0, 0, 0], ["a sphere without radius has no geometry"])
@@ -483,7 +494,7 @@ def geometry(node, where: str = "", as_mesh: bool = False) -> ShapeGeometry:
     if t == "Cylinder":
         return _mesh_geometry(t, revolve([(d1, 0.0), (d1, d3)], a1, a2, False), False, notes)
     if t == "Cone":
-        return _mesh_geometry(t, revolve([(d1, 0.0), (d2, d3)], a1, a2, False), False, notes)
+        return _as_cone(_mesh_geometry(t, revolve([(d1, 0.0), (d2, d3)], a1, a2, False), False, notes), d1, d2, d3)
     if t == "Sphere":
         return _mesh_geometry(t, revolve(_arc(d1, 0.0, 0.0, math.pi), a1, a2, False), False, notes)
     if t == "Torus":
