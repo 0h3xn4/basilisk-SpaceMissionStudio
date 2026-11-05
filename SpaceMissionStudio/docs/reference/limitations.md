@@ -189,8 +189,14 @@ Each item was checked against Basilisk's own source.
   * Devices are found by their names only. A sensor without a catalog
     product runs with Basilisk's defaults until its values are set (the
     pre-run checks say so); wheels and magnetorquers are added only with
-    a product. Thrusters and batteries are listed, not added; solar
-    arrays can set the power budget's panel. A device's axis is an axis of its equipment frame (+z unless
+    a product or properties that give their values. Thrusters and
+    batteries are listed, not added; solar arrays can set the power
+    budget's panel, and a battery's capacity property its battery.
+  * A team's properties are read only when mapped, in the unit the user
+    gives: the file states none for an untyped value, and the format's
+    description none for a typed one. Nine values can be mapped (wheel
+    torque, inertia, speed and momentum, magnetorquer dipole, star
+    tracker and gyro noise, sun sensor field of view, battery capacity). A device's axis is an axis of its equipment frame (+z unless
     chosen), not read from the file.
   * Model versions 3.4 and 3.5 are read; others with a note. The
     IDM-CIC licence was not available to review; the reader uses only

@@ -113,7 +113,7 @@ SRS_TO_COMPONENTS = {
     "SRS-F-27": ["analyses/reentry", "analyses/records", "config/materials", "config/parameters", "cli", "api",
                  "gui/reentry_section", "gui/lifetime_widget"],
     "SRS-F-28": ["idm/archive", "idm/values", "idm/graph", "idm/frames", "idm/shapes", "idm/model", "idm_import",
-                 "idm_devices", "idm/power",
+                 "idm_devices", "idm/power", "idm/properties", "idm_properties",
                  "schema/scenario", "engine/findings", "engine/scenario_checks", "cli", "gui/model_editor_dialog",
                  "gui/idm_import_dialog", "gui/spacecraft_editor"],
     "SRS-P-01": ["engine/service"],

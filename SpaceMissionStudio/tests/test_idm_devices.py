@@ -126,7 +126,7 @@ def test_by_default_only_what_can_run_is_added(tmp_path):
     assert "u_max" in idm_devices.why_not("reaction_wheel")
     assert idm_devices.why_not("reaction_wheel", "a product") == ""
     assert "direction and thrust are not in the file" in idm_devices.why_not("thruster")
-    assert "capacity is not in the file" in idm_devices.why_not("battery")
+    assert "the file has no capacity field" in idm_devices.why_not("battery")
 
 
 def test_the_devices_built_carry_their_axis_mount_and_values(tmp_path):

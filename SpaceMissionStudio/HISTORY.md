@@ -14514,6 +14514,58 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The IDM-CIC import reads a team's own properties (2026-11-05)
+
+The last part of the user's request to bring a model's components in
+without typing their data again: the performance values a team keeps in
+its IDM-CIC model.
+
+What the samples hold (read only, not committed): equipment definitions
+carry their own properties, many copied from the team's templates
+(categories such as a wheel template with "Torque", a battery template
+with "Capacity"), and additional property values defined on the system
+("Life time"). Most are `DecimalWithoutUnit`: a wheel's "Torque" of 12
+and a battery's "Capacity" of 6000 say nothing of their units. One
+wheel's "Speed range" is typed as a `Distance`. So no property is read
+on its own, and no unit is assumed.
+
+- **`idm/properties.py`** (new): each equipment's own properties and
+  additional property values, with name, type, text and number.
+- **`idm_properties.py`** (new): nine values a property can give (wheel
+  torque, inertia, speed and momentum; magnetorquer dipole; star tracker
+  and gyro noise; sun sensor field of view; battery capacity), each with
+  the units it accepts; the user's mapping (property name, value, unit),
+  checked (one property per value, never a wheel's inertia and momentum
+  both); a unit offered only when the property's type has the value's
+  dimension; the values read and converted.
+- **`idm_devices`**: mapped values go over a product's; a wheel or
+  magnetorquer they complete is added without a product, recorded as
+  "properties", so `import.device_defaults` does not flag it; a mapped
+  inertia drops a product's momentum and the reverse (Basilisk's wheel
+  factory stops the process when given both).
+- **`idm_import`**: the mapping is kept on the plan and in the model
+  record (`property_map`) and reused; `--battery` / the Power tab's
+  battery choice sets the power budget's capacity from the batteries'.
+- **GUI**: the import dialog is now in tabs (Devices found, Properties,
+  Power); the Properties tab maps each property name; the devices' rows
+  and the battery choice follow; a refused mapping disables Import and
+  says why; the model editor reopens it with the last mapping.
+- **CLI**: `idm-import --property-map 'NAME=KIND.PARAM[UNIT]'` (repeated;
+  `none` to drop) and `--battery`; `idm-info` lists the properties and
+  the values they can give. A bug found by the new tests: the command
+  line's default device choices ignored the mapping, so a wheel the
+  mapping completed was not added; fixed before the PR.
+
+Decisions IDM-27 to IDM-29, section 17 of the design note.
+
+**Tests:** `tests/test_idm_properties.py` (9) and
+`tests/gui/test_idm_properties_gui.py` (4), on the synthetic fixture
+`tests/data/idm/powersat`, which gained made-up properties. One
+assertion on a battery's reason text changed with the text
+(docs/ui/TEST_CHANGES.md).
+
+Full suite on Python 3.14 (a home holding only the reference data cache): 4671 passed in 24 min 16 s.
+
 ## The IDM-CIC import sets the power budget (2026-11-05)
 
 The second part of the user's request to bring a model's subsystems in

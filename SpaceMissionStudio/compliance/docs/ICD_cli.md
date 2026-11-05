@@ -286,9 +286,11 @@ build or update a spacecraft's 3D model from an IDM-CIC model (IDM-CIC is (c) CN
 | `--stowed-configuration` | a configuration whose poses become the stowed configuration (e.g. the launch one) |
 | `--body-element` | the element whose frame is the body frame (default: chosen) |
 | `--apply-facets` | also build drag and solar pressure facets from the imported boxes, cylinders, cones and spheres (off by default: the file gives no surface coefficients) |
-| `--devices` | also add the sensors and actuators found by name (star trackers, gyros, sun sensors, magnetometers, reaction wheels, magnetorquers), each along its +z axis, with the catalog product its name names; without one it runs with Basilisk's defaults until its values are set |
+| `--devices` | also add the sensors and actuators found by name (star trackers, gyros, sun sensors, magnetometers, reaction wheels, magnetorquers), each along its +z axis, with the catalog product its name names and the values of its mapped properties (--property-map); without either it runs with Basilisk's defaults until its values are set |
 | `--bus-load` | set the power budget's bus load to the power of the imported equipment in this system mode of the model (its name; idm-info lists them), or 'average' for the duty-cycle average when the model's duty cycles add up to one |
 | `--solar-panels {+,-}` | set the power budget's panel area and normal from the solar array panels found by name (the largest group along one normal line); + or - says which side of that line carries the cells, which the file does not say. Without a power budget, one is made with the editor's panel efficiency and battery until they are set |
+| `--property-map` | read a property the model's equipment carry as a device or battery value, in the unit given, e.g. 'Torque=reaction_wheel.u_max[mN*m]' (repeat for each; 'none' for none). Without it, the mapping of the spacecraft's last IDM-CIC import is used. idm-info lists the properties and the values they can give |
+| `--battery` | set the power budget's battery capacity from the batteries' mapped capacity property (battery.capacity_wh), added up |
 | `--out` | write the updated scenario here (default: overwrite) |
 
 ## `export-fsw`

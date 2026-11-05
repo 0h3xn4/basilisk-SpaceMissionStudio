@@ -377,6 +377,9 @@ decision of this project, reversible when better information comes.
 | IDM-24 | **The bus load from the power modes** (section 16): a system mode's total is the power of the imported units in it, through the element mode of the unit's element the system mode links, else the unit's own system-mode mapping; a mapping's power mode's power, or its custom power. A unit with power modes that no mapping covers counts 0 W and is counted in the record. The duty-cycle average only when the duty cycles add up to one (within 1e-6). Watts. The user chooses the mode; nothing is set by default. | The format describes both mappings and says an element linked through an element mode has no direct ones; the description gives no unit, and the samples' values (a wheel about 10, a magnetometer about 1) are watts. The scenario has one constant load, so which mode matters is the user's call. |
 | IDM-25 | **The panel from the solar arrays** (section 16): for each solar array unit, its largest flat shape (a box whose thinnest side is at most a tenth of the next, or a plane surface), the others taken as its layers; the panels grouped by normal line (within 1 deg, either sense), the largest group's area and line; the side carrying the cells chosen by the user. | The power model takes one panel area and one normal; the file does not say which side carries the cells. In the samples a panel is a thin box with cover layers of the same outline. |
 | IDM-26 | **A power budget made by the import** (the spacecraft had none, the panels chosen) takes the spacecraft editor's panel efficiency and battery, recorded, and `import.power_defaults` warns until they are set. A bus load alone does not make one. | A new budget needs an efficiency and a battery the file does not give; the editor's values are the ones a user would start from, and the warning keeps them from passing for the spacecraft's. |
+| IDM-27 | **A team's properties are read only through a mapping the user gives** (section 17): a property name (accents, case and spacing ignored) to one of nine values (`idm_properties.TARGETS`), with the unit its values are in; a unit is offered only when the property's value type has the value's dimension (Angle: deg; Distance: m; Mass: kg; MomentOfInertia: kg*m^2), else the user chooses. | The names are the team's; `DecimalWithoutUnit` carries no unit and the format's description gives none for typed values. The samples show both a torque of "12" without a unit and a wheel speed typed as a distance. |
+| IDM-28 | **Mapped values go over a product's**, and complete a wheel or magnetorquer without one when they give every required value (`idm_devices.complete`). A wheel's mapped inertia drops a product's maximum momentum and the reverse. A device with mapped values and no product is recorded as "properties: Basilisk's defaults for the rest", which `import.device_defaults` does not flag. | The user stated the values; Basilisk's wheel factory stops the process when given both inertia and momentum. |
+| IDM-29 | **The battery capacity** is the sum of the batteries' mapped capacity, set only when the user chooses it (`PowerChoice.battery`); a power budget the import makes with it lists only the rest as the editor's values. **The mapping is kept** in the model import record (`property_map`) and reused by the next import (CLI without `--property-map`, the dialog's initial rows). | The power model has one battery; a newer model version should read the same way without re-entering the mapping. |
 | IDM-23 | **Re-import of devices** adds only the units no earlier import added a device for (the record names each device's unit); devices already added are left as they are. | A device's values are the user's once added; the record keeps what was imported for comparison. |
 
 Validation (question 10) remains open: no example stores IDM-CIC's own
@@ -410,14 +413,13 @@ typed in again. `spacemissionstudio/idm_devices.py`:
 `idm_import.plan` lists the devices found (`Plan.devices`, the summary),
 and `idm_import.add_devices` adds those chosen and records them as an
 import of target `devices` (re-import: IDM-23). In the GUI the import
-dialog's **Devices found** table makes the choices; the 3D model editor
+dialog's **Devices found** tab makes the choices; the 3D model editor
 keeps them, and the spacecraft list or the spacecraft dialog adds the
 devices on the editor's OK, since only they hold the whole spacecraft.
 On the command line, `idm-import --devices` takes the default choices.
 
-A property mapping for performance values the team keeps in the model's
-own properties (wheels and batteries without a catalog product) is the
-next step.
+The values a team keeps in the model's own properties are read through a
+mapping the user gives (section 17).
 
 ## 16. Power from the model
 
@@ -454,3 +456,38 @@ applies it on the editor's OK, as for the devices. On the command line,
 checked against the plan (`power_values`) before the model is merged, so
 a mode the file does not have stops the import before anything is
 written.
+
+## 17. Values from a team's properties
+
+The sample models keep performance values on equipment definitions as
+properties: their own (`Property`, which also holds the copies of the
+categories the equipment implements, e.g. a wheel template's "Torque")
+and additional property values (`AdditionalPropertyValue`, named and
+typed by an `AdditionalPropertyDefinition` on the system). Most are
+`DecimalWithoutUnit`; one wheel's speed range is typed `Distance`.
+
+- `spacemissionstudio/idm/properties.py`: `equipment_properties(model,
+  equipment)` gives each property's name, value type, text and number
+  (None when empty or not a number).
+- `spacemissionstudio/idm_properties.py`: the values a property can be
+  mapped to (`TARGETS`, each with its unit and the units it accepts),
+  `Mapping` (property name, target, unit), `check_mappings`,
+  `suggested_unit` (IDM-27), the command line's and the record's text
+  form, and `mapped_values`, the values a mapping reads from one
+  equipment's properties, converted, with why a mapped property gave
+  none.
+- `idm_devices`: `DeviceFinding.properties`; `default_choices`,
+  `why_not` and `build_devices` take the mapping (IDM-28).
+- `idm_import`: `set_mappings(plan, mappings)` (kept in
+  `Plan.mappings` and the model record's `property_map`),
+  `recorded_mappings(record)`, `battery_capacity(plan)` and
+  `PowerChoice.battery` (IDM-29); the summary lists the properties
+  found.
+
+In the GUI the import dialog's **Properties** tab makes the mapping; the
+devices' rows and the battery choice follow it, and a mapping
+`check_mappings` refuses disables Import. The model editor opens the
+dialog with the last import's mapping. On the command line,
+`idm-import --property-map 'NAME=KIND.PARAM[UNIT]'` (repeated; `none`
+for none) and `--battery`; without `--property-map`, the last import's
+mapping.

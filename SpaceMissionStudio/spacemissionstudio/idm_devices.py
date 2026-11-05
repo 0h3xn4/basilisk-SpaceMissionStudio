@@ -180,6 +180,7 @@ class DeviceFinding:
     position_m: list  # [m] body frame
     axes: list  # 3 x 3, the unit's x, y, z axes as columns, body frame
     product: str = ""  # a catalog display name
+    properties: tuple = ()  # idm.properties.PropertyValue of its equipment definition
 
     @property
     def addable(self) -> bool:
@@ -224,6 +225,7 @@ def _tidy(value: float) -> float:
 def detect(model, placement, body: str, mounted: dict | None = None) -> list[DeviceFinding]:
     """Every placed unit of the elements carried by ``body`` whose name
     names a device (:func:`classify`), in the placement's order."""
+    from .idm.properties import equipment_properties
     from .idm_import import _mounted_on, _reaches
 
     mounted = _mounted_on(model) if mounted is None else mounted
@@ -243,7 +245,8 @@ def detect(model, placement, body: str, mounted: dict | None = None) -> list[Dev
         found.append(DeviceFinding(unit.full_id, eq.name, unit.subsystem, kind, phrase, _tidy(mass),
                                    [_tidy(v) for v in (pose @ local)[:3]],
                                    [[_tidy(v) for v in row] for row in pose[:3, :3]],
-                                   product.display_name if product is not None else ""))
+                                   product.display_name if product is not None else "",
+                                   tuple(equipment_properties(model, eq.full_id))))
     return found
 
 
@@ -251,27 +254,51 @@ _LISTED_WHY = {
     "thruster": "listed, not added: its direction and thrust are not in the file; add it to the actuators yourself",
     "solar_array": "listed, not added: the power model takes one panel area for the whole spacecraft; its panels "
                    "can set it (the import's Power choices)",
-    "battery": "listed, not added: its capacity is not in the file (Power page)",
+    "battery": "listed, not added: the power model takes one battery for the whole spacecraft, and the file "
+               "has no capacity field; a capacity property, mapped, can set it (the import's Power choices)",
 }
 
 
-def why_not(kind: str, product: str = "") -> str:
-    """Why a finding of ``kind`` (with catalog ``product``) is not added
-    unless chosen: "" when it is added by default."""
+def complete(kind: str, params) -> bool:
+    """Whether ``params`` (names) hold the values a device of ``kind``
+    cannot be built without (:data:`REQUIRED_VALUES`)."""
+    names = set(params)
+    if kind == "reaction_wheel":
+        return "u_max" in names and ("Js" in names or {"Omega_max", "maxMomentum"} <= names)
+    if kind == "magnetic_torque_rod":
+        return "max_dipole_a_m2" in names
+    return True
+
+
+def finding_values(finding: DeviceFinding, mappings=()) -> tuple[list, list]:
+    """The values ``mappings`` (``idm_properties.Mapping``) read from the
+    finding's properties, and why a mapped property gave none
+    (``idm_properties.mapped_values``)."""
+    from .idm_properties import mapped_values
+
+    return mapped_values(finding.kind, finding.properties, mappings) if mappings else ([], [])
+
+
+def why_not(kind: str, product: str = "", mapped=()) -> str:
+    """Why a finding of ``kind`` (with catalog ``product``, and the
+    parameters ``mapped`` from its properties) is not added unless chosen:
+    "" when it is added by default."""
     if kind in _LISTED_WHY:
         return f"a {KIND_LABELS[kind].lower()} is {_LISTED_WHY[kind]}"
-    if kind in REQUIRED_VALUES and not product:
+    if kind in REQUIRED_VALUES and not product and not complete(kind, mapped):
         return (f"a {KIND_LABELS[kind].lower()} needs {' and '.join(REQUIRED_VALUES[kind])}, which the file does not "
-                "give: choose a catalog product, or add it yourself")
+                "give: choose a catalog product, map the properties that give them, or add it yourself")
     return ""
 
 
-def default_choices(findings: list[DeviceFinding]) -> list[DeviceChoice]:
+def default_choices(findings: list[DeviceFinding], mappings=()) -> list[DeviceChoice]:
     """Add each addable finding along +z with the product its name names;
-    not one that needs values only a product gives and has none."""
+    not one that needs values only a product, or its mapped properties,
+    give and has neither."""
     choices = []
     for f in findings:
-        needs_product = f.kind in REQUIRED_VALUES and not f.product
+        mapped = [v.target.param for v in finding_values(f, mappings)[0]]
+        needs_product = f.kind in REQUIRED_VALUES and not f.product and not complete(f.kind, mapped)
         choices.append(DeviceChoice(f.addable and not needs_product, f.kind, DEFAULT_AXIS, f.product))
     return choices
 
@@ -284,18 +311,23 @@ def _unique(base: str, taken: set) -> str:
     return name
 
 
-def build_devices(findings: list[DeviceFinding], choices: list[DeviceChoice], taken: set) -> DeviceResult:
+def build_devices(findings: list[DeviceFinding], choices: list[DeviceChoice], taken: set,
+                  mappings=()) -> DeviceResult:
     """The sensors and actuators of the findings chosen to be added, named
     after their equipment (made unique against ``taken``, which grows), and
-    what the import record keeps. A finding is skipped, with the reason,
-    when it is not chosen, its kind cannot be added, or it needs values
-    (:data:`REQUIRED_VALUES`) and has no product."""
+    what the import record keeps. The values ``mappings`` read from a
+    finding's properties go over its product's. A finding is skipped, with
+    the reason, when it is not chosen, its kind cannot be added, or it
+    needs values (:data:`REQUIRED_VALUES`) that neither a product nor its
+    properties give."""
     result = DeviceResult()
     if len(findings) != len(choices):
         raise ValueError("one choice per finding")
     for finding, choice in zip(findings, choices):
+        values, _problems = finding_values(finding, mappings)
+        mapped = [v.target.param for v in values]
         if not choice.add:
-            result.skipped.append((finding.equipment, why_not(choice.kind, choice.product) or "not chosen"))
+            result.skipped.append((finding.equipment, why_not(choice.kind, choice.product, mapped) or "not chosen"))
             continue
         kind = choice.kind
         if kind not in ADDABLE_KINDS:
@@ -304,11 +336,15 @@ def build_devices(findings: list[DeviceFinding], choices: list[DeviceChoice], ta
         product = product_by_name(kind, choice.product) if choice.product else None
         if choice.product and product is None:
             raise ValueError(f"{finding.equipment}: no {kind} product {choice.product!r} in the catalog")
-        if product is None and kind in REQUIRED_VALUES:
-            result.skipped.append((finding.equipment, why_not(kind)))
+        if product is None and kind in REQUIRED_VALUES and not complete(kind, mapped):
+            result.skipped.append((finding.equipment, why_not(kind, "", mapped)))
             continue
         axis = finding.axis(choice.axis)
         params = copy.deepcopy(product.params) if product is not None else {}
+        for value in values:
+            if value.target.param in _EITHER:  # Basilisk's wheel factory takes one of the two, never both
+                params.pop(_EITHER[value.target.param], None)
+            params[value.target.param] = value.value
         if kind in AXIS_PARAMS:
             params[AXIS_PARAMS[kind]] = list(axis)
         name = _unique(finding.equipment.strip() or KIND_LABELS[kind], taken)
@@ -322,11 +358,20 @@ def build_devices(findings: list[DeviceFinding], choices: list[DeviceChoice], ta
         else:  # pragma: no cover -- ADDABLE_KINDS are all supported kinds (tests/test_idm_devices.py)
             raise ValueError(f"{kind} is not a sensor or actuator kind")
         result.values.update(device_values(device, source))
-        result.details[f"{source}[{name}]"] = (
-            f"product: {product.display_name} ({product.source_url})" if product is not None else
-            f"no product: Basilisk's defaults for a {KIND_LABELS[kind].lower()}") + \
-            f"; from {finding.equipment}; unit {finding.source_id}"
+        if product is not None:
+            origin = f"product: {product.display_name} ({product.source_url})"
+        elif values:
+            origin = "properties: Basilisk's defaults for the rest"
+        else:
+            origin = f"no product: Basilisk's defaults for a {KIND_LABELS[kind].lower()}"
+        if values:
+            origin += "; values from properties: " + ", ".join(v.describe() for v in values)
+        result.details[f"{source}[{name}]"] = origin + f"; from {finding.equipment}; unit {finding.source_id}"
     return result
+
+
+#: A wheel takes its inertia or its maximum momentum: one mapped drops the other.
+_EITHER = {"Js": "maxMomentum", "maxMomentum": "Js"}
 
 
 def recorded_units(record) -> set:

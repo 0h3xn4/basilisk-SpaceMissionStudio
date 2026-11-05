@@ -1488,7 +1488,25 @@ def cmd_idm_info(args: argparse.Namespace) -> int:
     for line in the_plan.summary.lines()[1:]:
         if not line.startswith("  re-import"):
             print(line)
+    from . import idm_properties
+
+    if the_plan.summary.properties:
+        print("  values a property can give (idm-import --property-map 'NAME=KIND.PARAM[UNIT]'): "
+              + "; ".join(f"{t.key} [{', '.join(u for u, _ in t.units)}]" for t in idm_properties.TARGETS.values()))
     return 0
+
+
+def _property_mappings(args: argparse.Namespace, scenario) -> list:
+    """The ``--property-map`` mappings, or those the spacecraft's last
+    IDM-CIC import used (``--property-map none`` for none)."""
+    from . import idm_import, idm_properties
+
+    if args.property_map:
+        if [m.strip().lower() for m in args.property_map] == ["none"]:
+            return []
+        return [idm_properties.parse_mapping(text) for text in args.property_map]
+    previous = next((r for r in scenario.imports if (r.spacecraft, r.target) == (args.spacecraft, "model")), None)
+    return idm_import.recorded_mappings(previous)
 
 
 def cmd_idm_import(args: argparse.Namespace) -> int:
@@ -1509,8 +1527,10 @@ def cmd_idm_import(args: argparse.Namespace) -> int:
         model = idm.load(args.model)
         the_plan = idm_import.plan(model, args.configuration, args.stowed_configuration, args.body_element,
                                    apply_facets=args.apply_facets)
+        mappings = _property_mappings(args, scenario)
+        idm_import.set_mappings(the_plan, mappings)
         power_choice = idm_import.PowerChoice(args.bus_load or "", args.solar_panels is not None,
-                                              -1 if args.solar_panels == "-" else 1)
+                                              -1 if args.solar_panels == "-" else 1, args.battery)
         idm_import.power_values(the_plan, power_choice)  # what the file does not give stops here, before the merge
         summary = idm_import.merge(scenario, args.spacecraft, the_plan, out, author=history.current_author())
         if args.devices and scenario.simulation_mode == "orbit_only":
@@ -1520,15 +1540,16 @@ def cmd_idm_import(args: argparse.Namespace) -> int:
             from . import idm_devices
 
             idm_import.add_devices(scenario, args.spacecraft, the_plan,
-                                   idm_devices.default_choices(the_plan.devices), history.current_author(), summary)
+                                   idm_devices.default_choices(the_plan.devices, the_plan.mappings),
+                                   history.current_author(), summary)
         if power_choice.any and scenario.simulation_mode == "orbit_only":
-            summary.notes.append("--bus-load/--solar-panels: this scenario runs orbit only, which simulates no power "
-                                 "budget: nothing set")
+            summary.notes.append("--bus-load/--solar-panels/--battery: this scenario runs orbit only, which simulates "
+                                 "no power budget: nothing set")
         elif power_choice.any:
             idm_import.apply_power(scenario, args.spacecraft, the_plan, power_choice, history.current_author(),
                                    summary)
         scenario.validate()
-    except idm.IdmError as exc:
+    except (idm.IdmError, ValueError) as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
         return 1
     except ScenarioValidationError as exc:
@@ -2181,8 +2202,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_idm_in.add_argument("--devices", action="store_true",
                           help="also add the sensors and actuators found by name (star trackers, gyros, sun "
                                "sensors, magnetometers, reaction wheels, magnetorquers), each along its +z axis, "
-                               "with the catalog product its name names; without one it runs with Basilisk's "
-                               "defaults until its values are set")
+                               "with the catalog product its name names and the values of its mapped properties "
+                               "(--property-map); without either it runs with Basilisk's defaults until its values "
+                               "are set")
     p_idm_in.add_argument("--bus-load", metavar="MODE",
                           help="set the power budget's bus load to the power of the imported equipment in this "
                                "system mode of the model (its name; idm-info lists them), or 'average' for the "
@@ -2192,6 +2214,14 @@ def build_parser() -> argparse.ArgumentParser:
                                "name (the largest group along one normal line); + or - says which side of that "
                                "line carries the cells, which the file does not say. Without a power budget, one is "
                                "made with the editor's panel efficiency and battery until they are set")
+    p_idm_in.add_argument("--property-map", action="append", metavar="'NAME=KIND.PARAM[UNIT]'",
+                          help="read a property the model's equipment carry as a device or battery value, in the "
+                               "unit given, e.g. 'Torque=reaction_wheel.u_max[mN*m]' (repeat for each; 'none' for "
+                               "none). Without it, the mapping of the spacecraft's last IDM-CIC import is used. "
+                               "idm-info lists the properties and the values they can give")
+    p_idm_in.add_argument("--battery", action="store_true",
+                          help="set the power budget's battery capacity from the batteries' mapped capacity "
+                               "property (battery.capacity_wh), added up")
     p_idm_in.add_argument("--out", type=Path, help="write the updated scenario here (default: overwrite)")
     p_idm_in.set_defaults(func=cmd_idm_import)
 
