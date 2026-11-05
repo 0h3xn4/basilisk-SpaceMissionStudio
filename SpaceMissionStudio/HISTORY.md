@@ -14553,6 +14553,21 @@ view and a smaller baffle, a sun sensor whose cone narrows along +z, a
 gyro without shape and a thruster with a plume; every expected axis and
 angle worked out by hand from the rotations. No existing test changed.
 
+## Release 2.3.0 published (2026-11-05)
+
+#225 was merged once CI was green. The user tagged
+`spacemissionstudio-v2.3.0` on its merge commit `3f11a0227` and published
+the release at 16:17:58 UTC with notes written for it (prepared with the
+assistant at the user's request: what is new, who should update, install,
+known limits, and the IDM-CIC credit). The release workflow
+([run 42062956336](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/42062956336)) started two seconds
+later; it ran the whole suite on the tagged commit on Linux and Windows,
+built, installed and checked the six files and attached them at 16:56,
+keeping the notes. So the release was public without files for 39
+minutes, the eighth release so (`releasing.md`). SRelD issue 26, the SDP,
+H05 and `releasing.md` record the tag, the run and the files' digests.
+Documents only.
+
 ## Release 2.3.0 prepared (2026-11-05)
 
 A minor release: it adds features. The user had asked to continue until

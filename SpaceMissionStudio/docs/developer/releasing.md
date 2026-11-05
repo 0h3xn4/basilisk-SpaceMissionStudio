@@ -302,7 +302,14 @@ components from IDM-CIC (#222 devices, #223 power, #224 properties), a
 minor release because it adds features. No template or golden file
 changed; the scenario format gained the import record targets `devices`
 and `power`, which 2.2.0 refuses (K-30). The space weather is still
-1.3.0's (CelesTrak reset the connection again, K-13).
+1.3.0's (CelesTrak reset the connection again, K-13). The release pull
+request (#225) was merged once CI was green, and the user tagged
+`spacemissionstudio-v2.3.0` on `3f11a0227` and published it on
+2026-11-05 at 16:17 UTC, with notes written for it, which the workflow
+kept. Published two seconds before the workflow started, it was public
+without files for 39 minutes, until the workflow attached them at 16:56,
+the eighth release so. To avoid it: push the tag, or save the release as
+a draft, wait for the files (about 40 minutes), then publish.
 
 ---
 
