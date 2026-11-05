@@ -39,7 +39,8 @@ without values the file does not give (:data:`REQUIRED_VALUES`); thrusters, sola
 arrays and batteries are found and listed, not added: a thruster's
 direction and thrust and a battery's capacity are not in the file, and
 the power model takes one panel area and one battery for the whole
-spacecraft.
+spacecraft (the solar arrays' panels can set that area and its normal:
+``idm_import.apply_power``).
 
 A device's axis (a sun sensor's boresight, a wheel's spin axis, a
 magnetorquer's dipole axis, a star tracker's boresight for the field of
@@ -248,7 +249,8 @@ def detect(model, placement, body: str, mounted: dict | None = None) -> list[Dev
 
 _LISTED_WHY = {
     "thruster": "listed, not added: its direction and thrust are not in the file; add it to the actuators yourself",
-    "solar_array": "listed, not added: the power model takes one panel area for the whole spacecraft (Power page)",
+    "solar_array": "listed, not added: the power model takes one panel area for the whole spacecraft; its panels "
+                   "can set it (the import's Power choices)",
     "battery": "listed, not added: its capacity is not in the file (Power page)",
 }
 

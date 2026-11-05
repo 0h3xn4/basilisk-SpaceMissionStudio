@@ -144,6 +144,15 @@ RULES: dict[str, Rule] = {rule.rule_id: rule for rule in (
          "product there.",
          override="A warning does not stop the run: the device runs with Basilisk's defaults, and the run "
                   "records that."),
+    Rule("import.power_defaults", "A power budget made by an IDM-CIC import has its panel efficiency and "
+         "battery: set by the user.",
+         "The model gives the panels' area and the equipment's power, not the cells' efficiency or the battery: "
+         "the import made the power budget with the spacecraft editor's values for a new one, which are not the "
+         "spacecraft's.",
+         "Open the spacecraft's Power page and set the panel efficiency, the battery capacity and its initial "
+         "state of charge.",
+         override="A warning does not stop the run: the power budget runs with those values, and the run "
+                  "records that."),
     Rule("import.source_item_gone", "Each imported 3D model item is still in the file it was imported from.",
          "A re-import found the item gone from the file (removed or replaced there) and kept it rather than "
          "deleting it: the model may hold a part the design no longer has.",

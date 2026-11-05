@@ -1,0 +1,828 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  A small synthetic model in the IDM-CIC file layout, written for
+  SpaceMissionStudio's power import tests (tests/test_idm_power.py): the
+  device test model (devicesat) with made-up power modes, system modes, an
+  element mode and a flat solar array panel. Every name and value is made
+  up, and nothing in it comes from IDM-CIC's examples
+  (docs/developer/idm-cic-integration.md).
+-->
+<IDM>
+<IdmData version="3.4.1.1">
+<MainSystem fullId="">
+<projectName>Powersat</projectName>
+<lastModification>05/11/2026 10:00:00</lastModification>
+<layers maxId="0">
+<Array>
+<Layer id="DEF" fullId="lay.DEF">
+<name>Default</name>
+<isSelectedByDefault>True</isSelectedByDefault>
+</Layer>
+</Array>
+</layers>
+<subsystems maxId="0">
+<Array>
+<Subsystem id="AOCS" fullId="ss.AOCS">
+<name>AOCS</name>
+</Subsystem>
+<Subsystem id="PWR" fullId="ss.PWR">
+<name>Power</name>
+</Subsystem>
+<Subsystem id="PRP" fullId="ss.PRP">
+<name>Propulsion</name>
+</Subsystem>
+<Subsystem id="STR" fullId="ss.STR">
+<name>Structure</name>
+</Subsystem>
+<Subsystem id="THC" fullId="ss.THC">
+<name>Thermal control</name>
+</Subsystem>
+</Array>
+</subsystems>
+<configurations maxId="0">
+<Array>
+<Configuration id="OPS" fullId="cfg.OPS">
+<name>Operations</name>
+<enabledElements>
+<Array>
+<Element ref="el.1" />
+</Array>
+</enabledElements>
+</Configuration>
+</Array>
+</configurations>
+<systemModes maxId="0">
+<Array>
+<SystemMode id="CRU" fullId="sm.CRU">
+<name>Cruise</name>
+<dutyCycle>0,8</dutyCycle>
+<elementModes>
+<Array>
+<ElementMode ref="el.1_elm.QT" />
+</Array>
+</elementModes>
+</SystemMode>
+<SystemMode id="DL" fullId="sm.DL">
+<name>Downlink</name>
+<dutyCycle>0,2</dutyCycle>
+</SystemMode>
+</Array>
+</systemModes>
+<elements maxId="1">
+<Array>
+<Element id="1" fullId="el.1">
+<name>Platform</name>
+<coordinateSystems maxId="1">
+<Array>
+<CoordinateSystemDefinition id="1" fullId="el.1_co.1">
+<name>Platform frame</name>
+<position>
+<Position fullId="el.1_co.1_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+</CoordinateSystemDefinition>
+</Array>
+</coordinateSystems>
+<relatedSubsystems maxId="0">
+<Array>
+<RelatedSubsystem id="AOCS" fullId="el.1_ss.AOCS">
+<subsystem>
+<Subsystem ref="ss.AOCS" />
+</subsystem>
+<units maxId="16">
+<Array>
+<Equipment id="3" fullId="el.1_ss.AOCS_eq.3">
+<name>Star tracker head ST200</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>0,05</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+<powerModes maxId="1">
+<Array>
+<PowerMode id="1" fullId="el.1_ss.AOCS_eq.3_pm.1">
+<name>On</name>
+<power>1,5</power>
+<dissipation>1,5</dissipation>
+</PowerMode>
+</Array>
+</powerModes>
+</Equipment>
+<Equipment id="4" fullId="el.1_ss.AOCS_eq.4">
+<name>Star tracker electronics</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>0,2</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+<Equipment id="5" fullId="el.1_ss.AOCS_eq.5">
+<name>Reaction Wheel X</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>1,2</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+<powerModes maxId="2">
+<Array>
+<PowerMode id="1" fullId="el.1_ss.AOCS_eq.5_pm.1">
+<name>Idle</name>
+<power>3</power>
+<dissipation>3</dissipation>
+</PowerMode>
+<PowerMode id="2" fullId="el.1_ss.AOCS_eq.5_pm.2">
+<name>Spinning</name>
+<power>12</power>
+<dissipation>12</dissipation>
+</PowerMode>
+</Array>
+</powerModes>
+</Equipment>
+<Equipment id="6" fullId="el.1_ss.AOCS_eq.6">
+<name>Roue Y</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>1,2</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+<Equipment id="7" fullId="el.1_ss.AOCS_eq.7">
+<name>Magnétocoupleur Z MTQ800</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>0,6</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+<Equipment id="8" fullId="el.1_ss.AOCS_eq.8">
+<name>Torque rod X</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>0,6</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+<Equipment id="9" fullId="el.1_ss.AOCS_eq.9">
+<name>Coarse sun sensor +X</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>0,03</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+<Equipment id="10" fullId="el.1_ss.AOCS_eq.10">
+<name>Gyro unit</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>0,8</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+<powerModes maxId="2">
+<Array>
+<PowerMode id="1" fullId="el.1_ss.AOCS_eq.10_pm.1">
+<name>Off</name>
+<power>0</power>
+<dissipation>0</dissipation>
+</PowerMode>
+<PowerMode id="2" fullId="el.1_ss.AOCS_eq.10_pm.2">
+<name>On</name>
+<power>6</power>
+<dissipation>6</dissipation>
+</PowerMode>
+</Array>
+</powerModes>
+</Equipment>
+<Equipment id="11" fullId="el.1_ss.AOCS_eq.11">
+<name>Magnetometer 1</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>0,1</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+</Array>
+</units>
+<unitInstances maxId="0">
+<Array>
+<EquipmentInstance id="3-1" fullId="el.1_ss.AOCS_eqi.3-1">
+<position>
+<Position fullId="el.1_ss.AOCS_eqi.3-1_pos">
+<x>0,3</x>
+<y>0,2</y>
+<z>0,5</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.AOCS_eq.3" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+<elementToEquipmentPowerModes maxId="0">
+<Array>
+<ElementToEquipmentPowerMode id="QT" fullId="el.1_ss.AOCS_eqi.3-1_eleqm.QT">
+<elementMode>
+<ElementMode ref="el.1_elm.QT" />
+</elementMode>
+<powerMode>
+<PowerMode ref="el.1_ss.AOCS_eq.3_pm.1" />
+</powerMode>
+</ElementToEquipmentPowerMode>
+</Array>
+</elementToEquipmentPowerModes>
+</EquipmentInstance>
+<EquipmentInstance id="4-1" fullId="el.1_ss.AOCS_eqi.4-1">
+<position>
+<Position fullId="el.1_ss.AOCS_eqi.4-1_pos">
+<x>0,3</x>
+<y>0,1</y>
+<z>0,4</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.AOCS_eq.4" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="5-1" fullId="el.1_ss.AOCS_eqi.5-1">
+<position>
+<Position fullId="el.1_ss.AOCS_eqi.5-1_pos">
+<x>0,1</x>
+<y>0</y>
+<z>0,1</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>90</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.AOCS_eq.5" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+<elementToEquipmentPowerModes maxId="0">
+<Array>
+<ElementToEquipmentPowerMode id="QT" fullId="el.1_ss.AOCS_eqi.5-1_eleqm.QT">
+<elementMode>
+<ElementMode ref="el.1_elm.QT" />
+</elementMode>
+<powerMode>
+<PowerMode ref="el.1_ss.AOCS_eq.5_pm.1" />
+</powerMode>
+</ElementToEquipmentPowerMode>
+</Array>
+</elementToEquipmentPowerModes>
+<systemToEquipmentPowerModes maxId="0">
+<Array>
+<SystemToEquipmentPowerMode id="DL" fullId="el.1_ss.AOCS_eqi.5-1_syseqm.DL">
+<systemMode>
+<SystemMode ref="sm.DL" />
+</systemMode>
+<customPower>4,5</customPower>
+</SystemToEquipmentPowerMode>
+</Array>
+</systemToEquipmentPowerModes>
+</EquipmentInstance>
+<EquipmentInstance id="6-1" fullId="el.1_ss.AOCS_eqi.6-1">
+<position>
+<Position fullId="el.1_ss.AOCS_eqi.6-1_pos">
+<x>0</x>
+<y>0,1</y>
+<z>0,1</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>-90</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.AOCS_eq.6" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="7-1" fullId="el.1_ss.AOCS_eqi.7-1">
+<position>
+<Position fullId="el.1_ss.AOCS_eqi.7-1_pos">
+<x>0</x>
+<y>-0,2</y>
+<z>0,2</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.AOCS_eq.7" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="8-1" fullId="el.1_ss.AOCS_eqi.8-1">
+<position>
+<Position fullId="el.1_ss.AOCS_eqi.8-1_pos">
+<x>0,2</x>
+<y>-0,2</y>
+<z>0,2</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>90</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.AOCS_eq.8" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="9-1" fullId="el.1_ss.AOCS_eqi.9-1">
+<position>
+<Position fullId="el.1_ss.AOCS_eqi.9-1_pos">
+<x>0,5</x>
+<y>0</y>
+<z>0,3</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>90</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.AOCS_eq.9" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="10-1" fullId="el.1_ss.AOCS_eqi.10-1">
+<position>
+<Position fullId="el.1_ss.AOCS_eqi.10-1_pos">
+<x>0</x>
+<y>0</y>
+<z>0,2</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.AOCS_eq.10" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+<elementToEquipmentPowerModes maxId="0">
+<Array>
+<ElementToEquipmentPowerMode id="QT" fullId="el.1_ss.AOCS_eqi.10-1_eleqm.QT">
+<elementMode>
+<ElementMode ref="el.1_elm.QT" />
+</elementMode>
+<powerMode>
+<PowerMode ref="el.1_ss.AOCS_eq.10_pm.2" />
+</powerMode>
+</ElementToEquipmentPowerMode>
+</Array>
+</elementToEquipmentPowerModes>
+<systemToEquipmentPowerModes maxId="0">
+<Array>
+<SystemToEquipmentPowerMode id="DL" fullId="el.1_ss.AOCS_eqi.10-1_syseqm.DL">
+<systemMode>
+<SystemMode ref="sm.DL" />
+</systemMode>
+<powerMode>
+<PowerMode ref="el.1_ss.AOCS_eq.10_pm.1" />
+</powerMode>
+</SystemToEquipmentPowerMode>
+</Array>
+</systemToEquipmentPowerModes>
+</EquipmentInstance>
+<EquipmentInstance id="11-1" fullId="el.1_ss.AOCS_eqi.11-1">
+<position>
+<Position fullId="el.1_ss.AOCS_eqi.11-1_pos">
+<x>0</x>
+<y>0,3</y>
+<z>0,4</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.AOCS_eq.11" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+</Array>
+</unitInstances>
+</RelatedSubsystem>
+<RelatedSubsystem id="PWR" fullId="el.1_ss.PWR">
+<subsystem>
+<Subsystem ref="ss.PWR" />
+</subsystem>
+<units maxId="16">
+<Array>
+<Equipment id="12" fullId="el.1_ss.PWR_eq.12">
+<name>Battery pack</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>4</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+<Equipment id="13" fullId="el.1_ss.PWR_eq.13">
+<name>Solar array wing</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>3</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+<shapes maxId="1">
+<Array>
+<Shape id="1" fullId="el.1_ss.PWR_eq.13_sh.1">
+<name>Panel</name>
+<position>
+<Position fullId="el.1_ss.PWR_eq.13_sh.1_pos">
+<x>-0,6</x>
+<y>-0,01</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<massDefinition>
+<MassDefinition fullId="el.1_ss.PWR_eq.13_sh.1_massDefinition">
+<massType>Total</massType>
+<massTotal>0</massTotal>
+<massPerSquareMeter>0</massPerSquareMeter>
+<massPerCubeMeter>0</massPerCubeMeter>
+</MassDefinition>
+</massDefinition>
+<shapeDefinition>
+<Box fullId="el.1_ss.PWR_eq.13_sh.1_box">
+<d1>1,2</d1>
+<d2>0,02</d2>
+<d3>0,8</d3>
+<r>0</r>
+</Box>
+</shapeDefinition>
+<layers>
+<Array>
+<Layer ref="lay.DEF" />
+</Array>
+</layers>
+</Shape>
+</Array>
+</shapes>
+</Equipment>
+<Equipment id="14" fullId="el.1_ss.PWR_eq.14">
+<name>Solar array drive mechanism</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>0,5</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+</Array>
+</units>
+<unitInstances maxId="0">
+<Array>
+<EquipmentInstance id="12-1" fullId="el.1_ss.PWR_eqi.12-1">
+<position>
+<Position fullId="el.1_ss.PWR_eqi.12-1_pos">
+<x>-0,2</x>
+<y>0</y>
+<z>0,1</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.PWR_eq.12" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="13-1" fullId="el.1_ss.PWR_eqi.13-1">
+<position>
+<Position fullId="el.1_ss.PWR_eqi.13-1_pos">
+<x>0</x>
+<y>0</y>
+<z>0,6</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.PWR_eq.13" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="14-1" fullId="el.1_ss.PWR_eqi.14-1">
+<position>
+<Position fullId="el.1_ss.PWR_eqi.14-1_pos">
+<x>0</x>
+<y>0</y>
+<z>0,55</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.PWR_eq.14" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+</Array>
+</unitInstances>
+</RelatedSubsystem>
+<RelatedSubsystem id="PRP" fullId="el.1_ss.PRP">
+<subsystem>
+<Subsystem ref="ss.PRP" />
+</subsystem>
+<units maxId="16">
+<Array>
+<Equipment id="15" fullId="el.1_ss.PRP_eq.15">
+<name>Thruster 1N</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>0,3</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+</Array>
+</units>
+<unitInstances maxId="0">
+<Array>
+<EquipmentInstance id="15-1" fullId="el.1_ss.PRP_eqi.15-1">
+<position>
+<Position fullId="el.1_ss.PRP_eqi.15-1_pos">
+<x>0</x>
+<y>0</y>
+<z>-0,3</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>180</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.PRP_eq.15" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+</Array>
+</unitInstances>
+</RelatedSubsystem>
+<RelatedSubsystem id="STR" fullId="el.1_ss.STR">
+<subsystem>
+<Subsystem ref="ss.STR" />
+</subsystem>
+<units maxId="16">
+<Array>
+<Equipment id="1" fullId="el.1_ss.STR_eq.1">
+<name>Body</name>
+<color>RGB(200,200,210)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>FromGeometry</mciDataOrigin>
+<manualMass>0</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+<shapes maxId="1">
+<Array>
+<Shape id="1" fullId="el.1_ss.STR_eq.1_sh.1">
+<name>Cube</name>
+<position>
+<Position fullId="el.1_ss.STR_eq.1_sh.1_pos">
+<x>-0,5</x>
+<y>-0,5</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<massDefinition>
+<MassDefinition fullId="el.1_ss.STR_eq.1_sh.1_massDefinition">
+<massType>Total</massType>
+<massTotal>50</massTotal>
+<massPerSquareMeter>0</massPerSquareMeter>
+<massPerCubeMeter>0</massPerCubeMeter>
+</MassDefinition>
+</massDefinition>
+<shapeDefinition>
+<Box fullId="el.1_ss.STR_eq.1_sh.1_box">
+<d1>1</d1>
+<d2>1</d2>
+<d3>1</d3>
+<r>0</r>
+</Box>
+</shapeDefinition>
+<layers>
+<Array>
+<Layer ref="lay.DEF" />
+</Array>
+</layers>
+</Shape>
+</Array>
+</shapes>
+</Equipment>
+<Equipment id="2" fullId="el.1_ss.STR_eq.2">
+<name>Wheel support</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>0,4</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+</Array>
+</units>
+<unitInstances maxId="0">
+<Array>
+<EquipmentInstance id="1-1" fullId="el.1_ss.STR_eqi.1-1">
+<position>
+<Position fullId="el.1_ss.STR_eqi.1-1_pos">
+<x>0</x>
+<y>0</y>
+<z>0</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<shapeOccurrences maxId="1">
+<Array>
+<ShapeOccurrence id="1" fullId="el.1_ss.STR_eqi.1-1_sh.1">
+<shape>
+<Shape ref="el.1_ss.STR_eq.1_sh.1" />
+</shape>
+</ShapeOccurrence>
+</Array>
+</shapeOccurrences>
+<unit>
+<Equipment ref="el.1_ss.STR_eq.1" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+<EquipmentInstance id="2-1" fullId="el.1_ss.STR_eqi.2-1">
+<position>
+<Position fullId="el.1_ss.STR_eqi.2-1_pos">
+<x>0,1</x>
+<y>0</y>
+<z>0,1</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.STR_eq.2" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+</Array>
+</unitInstances>
+</RelatedSubsystem>
+<RelatedSubsystem id="THC" fullId="el.1_ss.THC">
+<subsystem>
+<Subsystem ref="ss.THC" />
+</subsystem>
+<units maxId="16">
+<Array>
+<Equipment id="16" fullId="el.1_ss.THC_eq.16">
+<name>Battery heater</name>
+<color>RGB(120,120,120)</color>
+<massMargin>0</massMargin>
+<mciDataOrigin>ManualInput</mciDataOrigin>
+<manualMass>0,2</manualMass>
+<isOptional>False</isOptional>
+<defaultEnabledValue>True</defaultEnabledValue>
+</Equipment>
+</Array>
+</units>
+<unitInstances maxId="0">
+<Array>
+<EquipmentInstance id="16-1" fullId="el.1_ss.THC_eqi.16-1">
+<position>
+<Position fullId="el.1_ss.THC_eqi.16-1_pos">
+<x>-0,2</x>
+<y>0</y>
+<z>0,2</z>
+<rotationOrder>Rx_Ry_Rz</rotationOrder>
+<rotation1>0</rotation1>
+<rotation2>0</rotation2>
+<rotation3>0</rotation3>
+<transformationOrder>Translation_Rotation</transformationOrder>
+</Position>
+</position>
+<unit>
+<Equipment ref="el.1_ss.THC_eq.16" />
+</unit>
+<parentCoordinateSystem>
+<CoordinateSystemDefinition ref="el.1_co.1" />
+</parentCoordinateSystem>
+</EquipmentInstance>
+</Array>
+</unitInstances>
+</RelatedSubsystem>
+</Array>
+</relatedSubsystems>
+<elementModes maxId="0">
+<Array>
+<ElementMode id="QT" fullId="el.1_elm.QT">
+<name>Quiet</name>
+<systemModes>
+<Array>
+<SystemMode ref="sm.CRU" />
+</Array>
+</systemModes>
+</ElementMode>
+</Array>
+</elementModes>
+</Element>
+</Array>
+</elements>
+</MainSystem>
+</IdmData>
+</IDM>

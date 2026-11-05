@@ -35,6 +35,19 @@ fixes bugs.
   give their performance. `idm-import --devices` does the same from the
   command line
   ([Devices found in the model](docs/user-manual/idm-cic.md#devices-found-in-the-model)).
+- **The IDM-CIC import sets the power budget's bus load and solar
+  panel.** The import summary gives, for each of the model's system
+  modes, the power of the imported equipment in it (through the element
+  modes or the direct mappings, custom powers included), and the
+  duty-cycle average when the duty cycles add up to one. In the import
+  dialog's **Power** section you can set the bus load from one system
+  mode or the average, and the panel area and normal from the solar
+  arrays' flat panels, choosing which side carries the cells. Nothing is
+  set unless you tick it. A power budget the import makes takes the
+  editor's panel efficiency and battery, and the pre-run checks say so
+  until you set them (`import.power_defaults`). `idm-import --bus-load
+  MODE|average --solar-panels +|-` does the same from the command line
+  ([Power from the model](docs/user-manual/idm-cic.md#power-from-the-model)).
 
 ## 2.2.0 (2026-11-05)
 

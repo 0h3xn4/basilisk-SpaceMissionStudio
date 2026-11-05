@@ -98,7 +98,8 @@ def _editor_result(tmp_path, scenario):
     record = next(r for r in scenario.imports if r.target == "model")
     return SimpleNamespace(spacecraft_name=sat.name, model=lambda: sat.model, devices=lambda: None,
                            import_record=lambda: record,
-                           device_import=lambda: (plan, idm_devices.default_choices(plan.devices)))
+                           device_import=lambda: (plan, idm_devices.default_choices(plan.devices)),
+                           power_import=lambda: None)
 
 
 def test_the_spacecraft_list_adds_the_devices_on_the_editor_s_ok(qtbot, tmp_path):

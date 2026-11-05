@@ -382,6 +382,13 @@ def _import_warnings(scenario) -> list[str]:
                                 f"model without its performance values: it runs with Basilisk's defaults for a "
                                 f"{label}. Set its values, or select a catalog product", "import.device_defaults",
                                 actual="Basilisk's defaults", limit="the device's own values"))
+    from ..idm_import import unset_power
+
+    for spacecraft, names in unset_power(scenario):
+        warnings.append(Finding(f"{spacecraft}'s power budget was made by an IDM-CIC import: its "
+                                f"{', '.join(n.replace('_', ' ') for n in names)} are the editor's values for a new "
+                                "power budget, not the file's. Set them on its Power page", "import.power_defaults",
+                                actual="the editor's values for a new power budget", limit="the spacecraft's own"))
     return warnings
 
 

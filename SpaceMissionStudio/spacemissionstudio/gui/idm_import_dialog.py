@@ -28,7 +28,15 @@ to the spacecraft, the axis of its equipment frame that is its boresight
 or spin axis, and the catalog product whose values it takes (none: the
 device runs with Basilisk's defaults until its values are set, and the
 pre-run checks say so). Thrusters, solar arrays and batteries are listed,
-not added. :meth:`IdmImportDialog.device_choices` is what was chosen."""
+not added. :meth:`IdmImportDialog.device_choices` is what was chosen.
+
+**Power** offers what the model says of the power budget
+(``idm_import.PowerPlan``): the bus load as the power of the imported
+equipment in one of the model's system modes (or their duty-cycle
+average, when the duty cycles add up to one), and the panel area and
+normal from the solar array panels found, with the side carrying the
+cells chosen (the file does not say). Nothing is set unless ticked.
+:meth:`IdmImportDialog.power_choice` is what was chosen."""
 
 from __future__ import annotations
 
@@ -135,6 +143,24 @@ class IdmImportDialog(QDialog):
         self.devices_table.horizontalHeader().setStretchLastSection(True)
         layout.addWidget(self.devices_table, 1)
         self._findings: list = []
+        layout.addWidget(QLabel("Power"))
+        self.power_note = set_role(QLabel(""), tone="secondary")
+        self.power_note.setWordWrap(True)
+        layout.addWidget(self.power_note)
+        power_form = QFormLayout()
+        self.bus_check = QCheckBox("Set the bus load from")
+        self.bus_check.setToolTip("The power budget's bus load: the power of the imported equipment in this system "
+                                  "mode of the model")
+        self.bus_combo = ComboBox()
+        power_form.addRow(self.bus_check, self.bus_combo)
+        self.panels_check = QCheckBox("Set the panel area and normal")
+        self.panels_check.setToolTip("The power budget's panel area and normal: the solar array panels found by "
+                                     "name along one normal line (the largest group), the largest flat face of each")
+        self.normal_combo = ComboBox()
+        self.normal_combo.setToolTip("Which side of the panels carries the cells, as a body-frame normal: the file "
+                                     "does not say")
+        power_form.addRow(self.panels_check, self.normal_combo)
+        layout.addLayout(power_form)
         self.status = set_role(QLabel(""), tone="caution")
         self.status.setWordWrap(True)
         layout.addWidget(self.status)
@@ -217,6 +243,47 @@ class IdmImportDialog(QDialog):
         self._plan = plan
         self.preview.setPlainText("\n".join(plan.summary.lines()))
         self._fill_devices(plan.devices)
+        self._fill_power(plan.power)
+
+    def _fill_power(self, power_plan) -> None:
+        """The system modes and the panel normals the model gives, nothing
+        ticked."""
+        modes = power_plan.modes if power_plan is not None else []
+        groups = power_plan.groups if power_plan is not None else []
+        self.bus_combo.clear()
+        for entry in modes:
+            self.bus_combo.addItem(f"system mode {entry.mode.name}: {entry.total_w:.6g} W", entry.mode.name)
+        if power_plan is not None and power_plan.average_w is not None:
+            self.bus_combo.addItem(f"duty-cycle average: {power_plan.average_w:.6g} W", "average")
+        self.normal_combo.clear()
+        if groups:
+            normal, area, members = groups[0]
+            for sign in (1, -1):
+                shown = [0.0 if v == 0.0 else sign * v for v in normal]
+                self.normal_combo.addItem(f"{'+' if sign > 0 else '-'} [{', '.join(f'{v:.4g}' for v in shown)}]: "
+                                          f"{area:.6g} m^2, {len(members)} panel(s)", sign)
+        for check, combo, any_found in ((self.bus_check, self.bus_combo, bool(modes)),
+                                        (self.panels_check, self.normal_combo, bool(groups))):
+            check.setChecked(False)
+            check.setEnabled(any_found and self._devices_allowed)
+            combo.setEnabled(any_found and self._devices_allowed)
+        if not self._devices_allowed and (modes or groups):
+            self.power_note.setText("This scenario runs orbit only, which simulates no power budget: nothing is set.")
+        elif not (modes or groups):
+            self.power_note.setText("The model gives no system modes and no flat solar array panel.")
+        else:
+            self.power_note.setText(
+                "A system mode's power is that of the imported equipment in it (counted as 0 W where its modes do "
+                "not set one). Without a power budget, setting the panels makes one, with the editor's panel "
+                "efficiency and battery until you set them (the pre-run checks say so).")
+
+    def power_choice(self):
+        """The ``idm_import.PowerChoice`` as shown."""
+        from .. import idm_import
+
+        bus = self.bus_combo.currentData() if self.bus_check.isChecked() and self.bus_check.isEnabled() else ""
+        panels = self.panels_check.isChecked() and self.panels_check.isEnabled()
+        return idm_import.PowerChoice(bus or "", panels, self.normal_combo.currentData() or 1)
 
     def _fill_devices(self, findings: list) -> None:
         """One row per device found, with the default choices

@@ -238,6 +238,7 @@ class ModelEditorDialog(QDialog):
         self._previous_import = previous_import
         self._import_record = None
         self._device_import = None  # (plan, device choices) of an IDM-CIC import: device_import()
+        self._power_import = None  # (plan, power choice) of an IDM-CIC import: power_import()
         self._devices = None if devices is None else SimpleNamespace(
             sensors=copy.deepcopy(list(devices.sensors)), actuators=copy.deepcopy(list(devices.actuators)),
             rf_link=copy.deepcopy(devices.rf_link), comms_pointing=copy.deepcopy(getattr(devices, "comms_pointing",
@@ -540,7 +541,7 @@ class ModelEditorDialog(QDialog):
         if dialog.exec() != QDialog.DialogCode.Accepted or dialog.plan() is None:
             return
         try:
-            summary = self.import_idm(dialog.plan(), dialog.device_choices())
+            summary = self.import_idm(dialog.plan(), dialog.device_choices(), dialog.power_choice())
         except (OSError, ValueError) as exc:
             report(self, f"Could not import the model: {exc}")
             return
@@ -548,18 +549,21 @@ class ModelEditorDialog(QDialog):
         box = QMessageBox(QMessageBox.Icon.Information, "IDM-CIC model imported",
                           f"{len(summary.added)} added, {len(summary.updated)} updated, {len(summary.kept)} kept as "
                           f"edited, {len(summary.gone)} no longer in the file."
-                          + (f" {chosen} device(s) found by name are added to the spacecraft on OK." if chosen else ""),
+                          + (f" {chosen} device(s) found by name are added to the spacecraft on OK." if chosen else "")
+                          + (" The power budget values chosen are set on OK." if self._power_import else ""),
                           parent=self)
         box.setDetailedText("\n".join(summary.lines()))
         box.exec()
 
-    def import_idm(self, plan, device_choices=None):
+    def import_idm(self, plan, device_choices=None, power_choice=None):
         """Merge an IDM-CIC import plan (``idm_import.plan``) into the model
         (``idm_import.merge``); keeps its record for :meth:`import_record`
         and returns the summary. Needs the scenario's folder. The devices
         chosen (``device_choices``, one ``idm_devices.DeviceChoice`` per
         device found) are added by the spacecraft's editor on OK
-        (:meth:`device_import`), which holds the whole spacecraft."""
+        (:meth:`device_import`), which holds the whole spacecraft; so are
+        the power budget values chosen (``power_choice``, an
+        ``idm_import.PowerChoice``: :meth:`power_import`)."""
         from .. import history, idm_import
 
         problem = self._write_problem()
@@ -575,6 +579,8 @@ class ModelEditorDialog(QDialog):
         self._import_record = shim.imports[-1]
         if device_choices is not None and any(choice.add for choice in device_choices):
             self._device_import = (plan, list(device_choices))
+        if power_choice is not None and power_choice.any:
+            self._power_import = (plan, power_choice)
         self._refresh_parts_list()
         if self._model.parts:
             self.parts_list.setCurrentRow(0)
@@ -591,6 +597,12 @@ class ModelEditorDialog(QDialog):
         with devices chosen to be added (``idm_import.add_devices`` takes
         them), or None."""
         return self._device_import
+
+    def power_import(self):
+        """``(plan, power choice)`` of the last IDM-CIC import made here with
+        power budget values chosen (``idm_import.apply_power`` takes them),
+        or None."""
+        return self._power_import
 
     @staticmethod
     def _mtl_files(obj_path: Path) -> list[Path]:

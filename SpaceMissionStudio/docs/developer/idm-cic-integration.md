@@ -210,6 +210,10 @@ lists the modes, their equipment powers and dissipations, and the total
 per mode, so the user can choose a bus load. A modes feature is a
 separate design (question 9).
 
+*Since then (section 16):* still no modes in the scenario, but the user
+can set the constant bus load from one system mode's total or the
+duty-cycle average, and the panel area and normal from the solar arrays.
+
 ## 9. Provenance and re-import
 
 **Provenance.** Each import writes an `ImportRecord` (existing machinery):
@@ -356,7 +360,7 @@ decision of this project, reversible when better information comes.
 | IDM-07 | **Margins and maturity levels** are reported only (question 6); the model gets nominal masses and the parts no maturity category. | The scenario's margin policy (AIAA S-120-2006) uses other categories; mapping them silently would invent data. |
 | IDM-08 | **Tanks**: the wall is a mesh part; the propellant (filling x capacity, of the chosen configuration) a hidden solid part filling the wall's cavity, so it counts in the mass properties with its own inertia. No `fuel_tank` is written and no `fuel_tank.geometry` added (question 8). | The scenario's fuel tank needs a thruster and is a point mass; the 3D model already carries geometry and inertia. |
 | IDM-09 | **Thrusters and `managedData/propulsion.xml`** are not read (question 5). | The file is undocumented; reading it would mean inferring a third party's format. |
-| IDM-10 | **Power modes** are not imported or reported (question 9). | No operating-mode concept in the scenario. |
+| IDM-10 | **Power modes** were not imported or reported (question 9). Superseded by IDM-24: they are reported, and one system mode's total (or the duty-cycle average) can be the bus load. | No operating-mode concept in the scenario. |
 | IDM-11 | **Facets** are off: imported parts are left out of the surface model unless `--apply-facets` (or the dialog's box) puts the boxes, cylinders, cones and spheres in, with the default coefficients (question 7). | The file has no surface coefficients; meshes would exceed the facet cap. |
 | IDM-12 | **Unsupported shapes** (STEP, Collada, pipes, labels, paths, intersections and section planes) become point masses at the shape's origin (or the centroid of the Boolean bodies before the unsupported operation); wires without mass are dropped silently, with mass they are points. A shape whose every layer is hidden by default and that has no mass (a field of view, a keep-out zone) is left out; one with mass is kept, hidden. | Nothing is dropped without a word; visual aids are not structure. |
 | IDM-13 | **Boolean operations**: union adds and difference subtracts, as a mesh with the removed body wound inward, so the volume integrals are exact when the bodies do not overlap or lie inside. | The examples' Booleans are panels with holes and stiffeners. |
@@ -370,6 +374,9 @@ decision of this project, reversible when better information comes.
 | IDM-20 | **A device's axis** is an axis of its equipment frame, +z unless the user chooses another. | IDM-03 builds revolution shapes along +z; in the samples, the wheels' +z axes form a pyramid and the magnetorquers' lie along the three body axes. The file has no boresight. |
 | IDM-21 | **Values come from a catalog product or from Basilisk's defaults, never from an estimate.** A sensor without a product runs with the defaults, and `import.device_defaults` says so until its values are set; wheels and magnetorquers are added only with a product (Basilisk builds neither without values the file does not give); thrusters, solar arrays and batteries are listed, not added. | The file states no performance; the user asked for nothing to be invented. |
 | IDM-22 | **A device the spacecraft cannot take as it is** (its own validation fails with it, e.g. a magnetorquer without magnetic momentum management) is left out, with the validator's reason. | Adding it would make the scenario invalid, and the import is refused whole. |
+| IDM-24 | **The bus load from the power modes** (section 16): a system mode's total is the power of the imported units in it, through the element mode of the unit's element the system mode links, else the unit's own system-mode mapping; a mapping's power mode's power, or its custom power. A unit with power modes that no mapping covers counts 0 W and is counted in the record. The duty-cycle average only when the duty cycles add up to one (within 1e-6). Watts. The user chooses the mode; nothing is set by default. | The format describes both mappings and says an element linked through an element mode has no direct ones; the description gives no unit, and the samples' values (a wheel about 10, a magnetometer about 1) are watts. The scenario has one constant load, so which mode matters is the user's call. |
+| IDM-25 | **The panel from the solar arrays** (section 16): for each solar array unit, its largest flat shape (a box whose thinnest side is at most a tenth of the next, or a plane surface), the others taken as its layers; the panels grouped by normal line (within 1 deg, either sense), the largest group's area and line; the side carrying the cells chosen by the user. | The power model takes one panel area and one normal; the file does not say which side carries the cells. In the samples a panel is a thin box with cover layers of the same outline. |
+| IDM-26 | **A power budget made by the import** (the spacecraft had none, the panels chosen) takes the spacecraft editor's panel efficiency and battery, recorded, and `import.power_defaults` warns until they are set. A bus load alone does not make one. | A new budget needs an efficiency and a battery the file does not give; the editor's values are the ones a user would start from, and the warning keeps them from passing for the spacecraft's. |
 | IDM-23 | **Re-import of devices** adds only the units no earlier import added a device for (the record names each device's unit); devices already added are left as they are. | A device's values are the user's once added; the record keeps what was imported for comparison. |
 
 Validation (question 10) remains open: no example stores IDM-CIC's own
@@ -408,6 +415,42 @@ keeps them, and the spacecraft list or the spacecraft dialog adds the
 devices on the editor's OK, since only they hold the whole spacecraft.
 On the command line, `idm-import --devices` takes the default choices.
 
-The power modes (IDM-10), a property mapping for performance values the
-team keeps in the model's own properties, and the power equipment are
-the next step.
+A property mapping for performance values the team keeps in the model's
+own properties (wheels and batteries without a catalog product) is the
+next step.
+
+## 16. Power from the model
+
+Added with section 15, for the power equipment. `spacemissionstudio/idm/power.py`
+reads, without changing the model:
+
+- `system_modes(model)`: each `SystemMode` definition, its name and
+  duty cycle (a fraction, as the format describes it).
+- `mode_powers(model, units)`: for each system mode, the power of each
+  placed unit (decision IDM-24): its `ElementToEquipmentPowerMode`
+  whose `elementMode` the system mode links (from the system mode's
+  `elementModes` or the element mode's `systemModes`), else its
+  `SystemToEquipmentPowerMode` for that system mode; the mapping's
+  `powerMode` power, or its `customPower`. A unit whose equipment has
+  power modes and that no mapping covers is listed as not stated.
+- `duty_cycle_average(powers)`: the weighted mean, or None when the duty
+  cycles do not add up to one.
+- `panels(placement, body_frame, units)` and `panel_groups(panels)`:
+  the flat faces of the solar array units and their groups by normal
+  line (IDM-25).
+
+`idm_import.plan` puts these in `Plan.power` (a `PowerPlan`) and the
+summary. `idm_import.apply_power(scenario, spacecraft, plan, choice)`
+sets what a `PowerChoice` names (the bus load's mode or "average", the
+panels, the normal's sign) in the spacecraft's `PowerConfig`, making one
+when needed (IDM-26), and records it as an import of target `power`
+(`schema.scenario.power_import_values`: each `power.<field>`, a list by
+index). `unset_power` finds the budgets still on the editor's values,
+for `import.power_defaults`. In the GUI the import dialog's **Power**
+section makes the choice; the 3D model editor keeps it
+(`power_import()`), and the spacecraft list or the spacecraft dialog
+applies it on the editor's OK, as for the devices. On the command line,
+`idm-import --bus-load MODE|average --solar-panels +|-`. The choice is
+checked against the plan (`power_values`) before the model is merged, so
+a mode the file does not have stops the import before anything is
+written.

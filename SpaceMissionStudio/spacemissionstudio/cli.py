@@ -1509,6 +1509,9 @@ def cmd_idm_import(args: argparse.Namespace) -> int:
         model = idm.load(args.model)
         the_plan = idm_import.plan(model, args.configuration, args.stowed_configuration, args.body_element,
                                    apply_facets=args.apply_facets)
+        power_choice = idm_import.PowerChoice(args.bus_load or "", args.solar_panels is not None,
+                                              -1 if args.solar_panels == "-" else 1)
+        idm_import.power_values(the_plan, power_choice)  # what the file does not give stops here, before the merge
         summary = idm_import.merge(scenario, args.spacecraft, the_plan, out, author=history.current_author())
         if args.devices and scenario.simulation_mode == "orbit_only":
             summary.notes.append("--devices: this scenario runs orbit only, which simulates no sensors or "
@@ -1518,6 +1521,12 @@ def cmd_idm_import(args: argparse.Namespace) -> int:
 
             idm_import.add_devices(scenario, args.spacecraft, the_plan,
                                    idm_devices.default_choices(the_plan.devices), history.current_author(), summary)
+        if power_choice.any and scenario.simulation_mode == "orbit_only":
+            summary.notes.append("--bus-load/--solar-panels: this scenario runs orbit only, which simulates no power "
+                                 "budget: nothing set")
+        elif power_choice.any:
+            idm_import.apply_power(scenario, args.spacecraft, the_plan, power_choice, history.current_author(),
+                                   summary)
         scenario.validate()
     except idm.IdmError as exc:
         print(f"ERROR: {exc}", file=sys.stderr)
@@ -2174,6 +2183,15 @@ def build_parser() -> argparse.ArgumentParser:
                                "sensors, magnetometers, reaction wheels, magnetorquers), each along its +z axis, "
                                "with the catalog product its name names; without one it runs with Basilisk's "
                                "defaults until its values are set")
+    p_idm_in.add_argument("--bus-load", metavar="MODE",
+                          help="set the power budget's bus load to the power of the imported equipment in this "
+                               "system mode of the model (its name; idm-info lists them), or 'average' for the "
+                               "duty-cycle average when the model's duty cycles add up to one")
+    p_idm_in.add_argument("--solar-panels", choices=("+", "-"),
+                          help="set the power budget's panel area and normal from the solar array panels found by "
+                               "name (the largest group along one normal line); + or - says which side of that "
+                               "line carries the cells, which the file does not say. Without a power budget, one is "
+                               "made with the editor's panel efficiency and battery until they are set")
     p_idm_in.add_argument("--out", type=Path, help="write the updated scenario here (default: overwrite)")
     p_idm_in.set_defaults(func=cmd_idm_import)
 
