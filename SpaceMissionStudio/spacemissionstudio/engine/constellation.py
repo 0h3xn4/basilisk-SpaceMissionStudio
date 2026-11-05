@@ -87,12 +87,14 @@ constellations it maintains.
 from __future__ import annotations
 
 import copy
+import dataclasses
 import math
 from dataclasses import dataclass
 
 from .. import constants
 from .findings import Finding
-from ..schema.scenario import MAX_SPACECRAFT, OrbitIC, ScenarioValidationError, SpacecraftConfig, ValueMark
+from ..schema.scenario import (MAX_SPACECRAFT, PHASING_CONTROL_LAWS, OrbitIC, PhasingKeepingConfig,
+                               ScenarioValidationError, SpacecraftConfig, ValueMark)
 
 # [km] equatorial radius and J2 [-] of the central bodies a run can use: the
 # one set (spacemissionstudio.constants, Basilisk's astroConstants.h), which a
@@ -132,6 +134,11 @@ class WalkerConstellationRequest:
     pattern: str = "delta"  # one of WALKER_PATTERNS
     raan_offset_deg: float = 0.0  # [deg] rotates the whole constellation's RAAN reference
     name_prefix: str = "sat"  # generated names: "{name_prefix}-{plane:02d}-{slot:02d}"
+    # Hold each plane's spacing (phasing_keeping_configs): the plane's first
+    # satellite is the chief, each other one keeps its slot's along-track
+    # separation from it with the template's station-keeping thruster.
+    phasing_keeping: bool = False
+    phasing_control_law: str = "drift_orbit"  # one of PHASING_CONTROL_LAWS
 
     def validate(self) -> None:
         _require(self.total_satellites > 0, "constellation.total_satellites must be > 0")
@@ -154,6 +161,13 @@ class WalkerConstellationRequest:
                   f"constellation.central_body {self.central_body!r} has no known equatorial radius in "
                   f"engine.constellation -- supported: {sorted(CENTRAL_BODY_EQUATORIAL_RADIUS_KM)}")
         _require(bool(self.name_prefix.strip()), "constellation.name_prefix must not be empty")
+        _require(self.phasing_control_law in PHASING_CONTROL_LAWS,
+                  f"constellation.phasing_control_law {self.phasing_control_law!r} must be one of "
+                  f"{PHASING_CONTROL_LAWS}")
+        if self.phasing_keeping:
+            _require(self.total_satellites // self.num_planes >= 2,
+                      "constellation.phasing_keeping needs at least two satellites per plane: with one there is "
+                      "no spacing to hold")
 
 
 def generate_walker_constellation(request: WalkerConstellationRequest,
@@ -164,13 +178,27 @@ def generate_walker_constellation(request: WalkerConstellationRequest,
     :func:`simulated_j2`) the pattern's mean elements are mapped to
     osculating ones, so the slots keep their spacing -- every other field (mass,
     sensors, actuators, FSW, power, station-keeping, RF link, ...) is
-    carried through unchanged from ``template``. Raises
+    carried through unchanged from ``template``. With
+    ``request.phasing_keeping`` each plane's spacing is held as well
+    (:func:`phasing_keeping_configs`). Raises
     :class:`~spacemissionstudio.schema.scenario.ScenarioValidationError` if
-    ``request`` itself is invalid; does not validate ``template`` (the
-    caller already has/will, e.g. via ``Scenario.validate()`` once these
-    are added to a scenario).
+    ``request`` itself is invalid, or asks for phasing-keeping that
+    ``template`` or the orbit cannot give; does not otherwise validate
+    ``template`` (the caller already has/will, e.g. via
+    ``Scenario.validate()`` once these are added to a scenario).
     """
     request.validate()
+    if request.phasing_keeping:
+        _require(template.station_keeping is not None,
+                  f"constellation.phasing_keeping needs the template spacecraft {template.name!r} to have "
+                  "station-keeping: phasing fires its thruster and draws on its propellant (set its "
+                  "station-keeping first)")
+        # PhasingKeepingConfig's caveat: rv2elem's phase is meaningless for an
+        # exactly circular orbit; with J2 the osculating orbit is never one.
+        _require(request.eccentricity > 0.0 or j2 > 0.0,
+                  "constellation.phasing_keeping needs a small nonzero eccentricity (e.g. 0.001) with a "
+                  "point-mass central body: the phasing controller cannot measure the phase of an exactly "
+                  "circular orbit")
 
     radius_km = CENTRAL_BODY_EQUATORIAL_RADIUS_KM[request.central_body]
     semi_major_axis_km = radius_km + request.altitude_km
@@ -203,7 +231,41 @@ def generate_walker_constellation(request: WalkerConstellationRequest,
             if j2 > 0.0:
                 sc.orbit = osculating_orbit(sc.orbit, radius_km * 1000.0, j2)
             spacecraft.append(sc)
+    if request.phasing_keeping:
+        for sc, phasing in zip(spacecraft, phasing_keeping_configs(request, template.phasing_keeping)):
+            sc.phasing_keeping = phasing
     return spacecraft
+
+
+def phasing_keeping_configs(request: WalkerConstellationRequest,
+                            base: PhasingKeepingConfig | None = None) -> list[PhasingKeepingConfig | None]:
+    """Each generated satellite's ``phasing_keeping``, in the order
+    :func:`generate_walker_constellation` makes them: None for each plane's
+    first satellite, the chief; for slot ``k`` of the plane (from 0), its
+    along-track separation ahead of that chief, ``a * k * 360/S`` deg as an
+    arc [km] (``S`` satellites per plane, ``a`` the pattern's semi-major
+    axis), held with ``request.phasing_control_law``. The controller wraps
+    the phase error to +/-180 deg, so a slot more than half an orbit ahead
+    is held as well. The tuning fields come from ``base`` (the template's
+    own ``phasing_keeping``) when there is one, else
+    :class:`PhasingKeepingConfig`'s defaults."""
+    semi_major_axis_km = CENTRAL_BODY_EQUATORIAL_RADIUS_KM[request.central_body] + request.altitude_km  # [km]
+    sats_per_plane = request.total_satellites // request.num_planes
+    spacing_rad = 2.0 * math.pi / sats_per_plane  # [rad] between neighbouring slots
+    configs: list[PhasingKeepingConfig | None] = []
+    for plane in range(request.num_planes):
+        chief = f"{request.name_prefix}-{plane + 1:02d}-01"
+        configs.append(None)
+        for slot in range(1, sats_per_plane):
+            separation_km = round(semi_major_axis_km * slot * spacing_rad, 6)  # [km] arc ahead of the chief
+            if base is None:
+                configs.append(PhasingKeepingConfig(chief_spacecraft=chief, target_separation_km=[separation_km],
+                                                    control_law=request.phasing_control_law))
+            else:
+                configs.append(dataclasses.replace(base, chief_spacecraft=chief,
+                                                   target_separation_km=[separation_km],
+                                                   control_law=request.phasing_control_law))
+    return configs
 
 
 def walker_value_marks(request: WalkerConstellationRequest, generated: list[SpacecraftConfig], j2: float = 0.0,

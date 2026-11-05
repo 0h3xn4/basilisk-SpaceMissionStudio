@@ -14514,6 +14514,72 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## A Walker constellation that holds its spacing (2026-11-05)
+
+After 2.2.0, by the user's standing instruction (work on until a feature
+is ready for a release). The next features offered were weighed first:
+- **Thrusters from IDM-CIC:** not built. The model has no thruster data;
+  it lives in `managedData/propulsion.xml`, a file the format's
+  description does not cover (IDM-09). Reading it would mean inferring a
+  third party's format, against the user's instruction to avoid anything
+  that might cause legal problems with IDM-CIC's makers.
+- **A launcher library:** not built. The one user's guide reachable from
+  this environment, SpaceX's Rideshare Payload User's Guide (version 11),
+  forbids copying any portion of it without written consent, and gives
+  its payload volumes as drawings. D-11 stands: the envelope is the
+  user's, with its source.
+- **Validating IDM-CIC imports against its mass report:** that needs
+  IDM-CIC's own output, which this environment does not have.
+
+So the next item of "Planned, not yet built" in
+`docs/reference/limitations.md` was built: the Walker generator did not
+wire `PhasingKeepingConfig`, and each follower's chief and separation had
+to be set by hand.
+
+`WalkerConstellationRequest` has `phasing_keeping` and
+`phasing_control_law`. With it, `generate_walker_constellation()` gives
+each satellite `engine.constellation.phasing_keeping_configs()`'s
+config:
+- None for each plane's first satellite, the chief;
+- for slot k of S, `a k 360/S` deg as an arc ahead of it. That is the
+  same angle `SeparationSchedule` gives the controller back, and a test
+  checks it. The controller wraps its error to +/-180 deg, so a slot
+  more than half an orbit ahead is held too;
+- the template's own phasing tuning, when it has some
+  (`dataclasses.replace`); only the chief, the distance and the law
+  change.
+
+It is refused, saying why, for:
+- a template without station keeping (the shared thruster);
+- an exactly circular point-mass orbit (`rv2elem`'s phase is meaningless
+  there, `PhasingKeepingConfig`'s caveat; with J2 the osculating orbit
+  is never circular);
+- one satellite per plane;
+- an unknown law.
+
+**In the app,** **Hold each plane's spacing** and **Phasing control law**
+are in the Walker dialog. The box is enabled only for a template with
+station keeping, and the toast says how many satellites hold their
+spacing. **On the command line,** the options are `--phasing-keeping`
+and `--phasing-control-law`.
+
+A 0.1-day run of a generated 4-satellite plane (point-mass Earth,
+e = 0.001): no follower fired, and each one's separation error ended
+under 0.01 deg. Before the controller's one-orbit smoothing fills, the
+raw error swings by up to about 0.17 deg. That is the gap between true
+and mean anomaly at this eccentricity (2e rad is 0.115 deg for one slot),
+not a wrong target: a wrong target would be off by a whole slot, 90 deg.
+The first version of the test asserted the raw error under 0.05 deg and
+failed on exactly this; the test now checks the settled error and that
+no follower fired.
+
+Tests: `tests/test_constellation.py`, six tests (the chiefs and
+separations, the controller's angle, the template's tuning, four
+refusals, nothing without the option, the run);
+`tests/test_cli.py::test_generate_constellation_phasing_keeping`;
+`tests/gui/test_spacecraft_editor.py::test_list_widget_generate_constellation_holds_each_planes_spacing`.
+Full suite on Python 3.14 (a home holding only the reference data cache): 4610 passed in 31 min 44 s.
+
 ## More windows of their own (2026-11-05)
 
 The user, on the 3D model editor fixed in 2.1.1: "Are there any other

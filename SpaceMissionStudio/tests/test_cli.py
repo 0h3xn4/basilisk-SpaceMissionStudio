@@ -145,6 +145,40 @@ def test_generate_constellation_places_mean_elements_when_the_run_models_j2(tmp_
         spread_m = (max(o.semi_major_axis_km for o in orbits) - min(o.semi_major_axis_km for o in orbits)) * 1e3
         assert (spread_m > 1000.0) if degree else (spread_m == 0.0)  # [m] equal mean, unequal osculating
 
+def test_generate_constellation_phasing_keeping(tmp_path, capsys):
+    """generate-constellation --phasing-keeping makes each plane's first
+    satellite the chief of the others, with the law asked for, and says so;
+    a template without station-keeping is refused, saying why."""
+    from spacemissionstudio.schema import GravityConfig, OrbitIC, Scenario, SpacecraftConfig, load_scenario
+    from spacemissionstudio.schema.scenario import StationKeepingConfig
+
+    def write(path, station_keeping):
+        Scenario(name="phasing", epoch_utc="2030-01-01T00:00:00",
+                 gravity=GravityConfig(central_body="earth", third_body_perturbers=["sun"]),
+                 spacecraft=[SpacecraftConfig(
+                     name="sat-1", orbit=OrbitIC(type="cartesian", position_km=[7000.0, 0.0, 0.0],
+                                                 velocity_km_s=[0.0, 7.5, 0.0]),  # [km], [km/s]
+                     station_keeping=StationKeepingConfig(
+                         target_altitude_km=550.0, deadband_km=15.0, thrust_n=0.05, isp_s=1500.0,  # [km], [km], [N], [s]
+                         propellant_kg=5.0) if station_keeping else None)]).save(path)  # [kg]
+
+    arguments = ["--total-satellites", "6", "--planes", "2", "--phasing-factor", "1", "--altitude-km", "550",
+                 "--inclination-deg", "53", "--eccentricity", "0.001", "--phasing-keeping",
+                 "--phasing-control-law", "hill_pd"]
+    path, out_path = tmp_path / "template.json", tmp_path / "constellation.json"
+    write(path, station_keeping=True)
+    assert cli.main(["generate-constellation", str(path), "--out", str(out_path), *arguments]) == 0
+    assert "4 of them hold their separation from their plane's first satellite (hill_pd)" in capsys.readouterr().out
+    phasing = {sc.name: sc.phasing_keeping for sc in load_scenario(out_path).spacecraft}
+    assert phasing["sat-01-01"] is None and phasing["sat-02-01"] is None
+    assert {name: p.chief_spacecraft for name, p in phasing.items() if p is not None} == {
+        "sat-01-02": "sat-01-01", "sat-01-03": "sat-01-01", "sat-02-02": "sat-02-01", "sat-02-03": "sat-02-01"}
+
+    write(path, station_keeping=False)
+    assert cli.main(["generate-constellation", str(path), "--out", str(out_path), *arguments]) == 1
+    assert "needs the template spacecraft 'sat-1' to have station-keeping" in capsys.readouterr().err
+
+
 def test_generate_constellation_append_keeps_existing_spacecraft(tmp_path, capsys):
     """generate-constellation --append keeps the original spacecraft beside the
     generated ones."""

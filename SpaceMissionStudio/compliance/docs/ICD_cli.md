@@ -361,6 +361,8 @@ generate a Walker-pattern constellation from a template scenario (no Basilisk ne
 | `--arg-periapsis-deg` |  |
 | `--raan-offset-deg` | rotates the whole constellation's RAAN reference |
 | `--name-prefix` | generated spacecraft are named '{prefix}-{plane:02d}-{slot:02d}' |
+| `--phasing-keeping` | hold each plane's spacing: the plane's first satellite is the chief, every other one keeps its slot's along-track separation from it (the template needs station-keeping) |
+| `--phasing-control-law {drift_orbit,mean_oe,hill_pd}` | the law that holds the spacing; default drift_orbit |
 | `--append` | add the generated satellites to the template scenario's existing spacecraft instead of replacing them |
 
 ## `generate-phasing-formation`

@@ -30,6 +30,7 @@ know engine/ imports Basilisk" split used elsewhere, e.g. vizard_dialog.py).
 from __future__ import annotations
 
 from PySide6.QtWidgets import (
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QDoubleSpinBox,
@@ -48,6 +49,11 @@ from ..schema.scenario import ScenarioValidationError
 from .feedback import show_dialog_error
 from .field_text import attribute_title, labelled
 from .widgets import ComboBox, PreciseDoubleSpinBox, SpinBox, finish_form
+
+# The phasing-keeping laws, as the phasing formation dialog names them.
+_PHASING_LAWS = (("Drift orbit (occasional burns)", "drift_orbit"),
+                 ("Mean orbital elements (Basilisk)", "mean_oe"),
+                 ("Hill-frame PD (Basilisk, close formations)", "hill_pd"))
 
 _PATTERN_LABELS = {
     "delta": "Walker-Delta (planes spread over 360°, e.g. GPS)",
@@ -81,12 +87,19 @@ class WalkerConstellationDialog(QDialog):
     between this dialog's body and the scenario's real
     ``gravity.central_body`` would silently produce satellites at the
     wrong altitude relative to whatever body actually gets simulated.
+
+    ``with_station_keeping`` names the templates that have station-keeping:
+    only they can hold each plane's spacing (the phasing controller fires
+    their thruster), so **Hold each plane's spacing** is offered for them
+    alone.
     """
 
-    def __init__(self, template_names: list[str], central_body: str = "earth", parent=None):
+    def __init__(self, template_names: list[str], central_body: str = "earth", parent=None,
+                 with_station_keeping=()):
         super().__init__(parent)
         self.setWindowTitle("Generate Walker constellation")
         self._central_body = central_body
+        self._with_station_keeping = set(with_station_keeping)
 
         layout = QVBoxLayout(self)
         description_label = QLabel(
@@ -142,7 +155,18 @@ class WalkerConstellationDialog(QDialog):
         form.addRow("Pattern", self.pattern_combo)
         form.addRow("RAAN offset [deg]", self.raan_offset_deg)
         form.addRow("Generated name prefix", self.name_prefix_edit)
+        self.phasing_check = QCheckBox("Hold each plane's spacing")
+        self.phasing_law_combo = ComboBox()
+        for label, law in _PHASING_LAWS:
+            self.phasing_law_combo.addItem(label, userData=law)
+        self.phasing_law_combo.setToolTip("Which flight-software law holds each satellite's separation from its "
+                                          "plane's first satellite. See User Manual, 'Formation control laws'.")
+        form.addRow("Phasing-keeping", self.phasing_check)
+        form.addRow("Phasing control law", self.phasing_law_combo)
         layout.addLayout(form)
+        self.phasing_check.toggled.connect(self._update_phasing)
+        self.template_combo.currentIndexChanged.connect(self._update_phasing)
+        self._update_phasing()
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self._on_accept)
@@ -161,6 +185,20 @@ class WalkerConstellationDialog(QDialog):
         # the size rather than trusting Qt's default first-show sizing.
         finish_form(self)  # units in the fields, optional groups collapse (M4a)
         self.resize(self.sizeHint())
+
+    def _update_phasing(self) -> None:
+        """Hold each plane's spacing: only for a template with
+        station-keeping; the law only while it is checked."""
+        possible = self.template_combo.currentData() in self._with_station_keeping
+        self.phasing_check.setEnabled(possible)
+        if not possible:
+            self.phasing_check.setChecked(False)
+        self.phasing_check.setToolTip(
+            "Each plane's first satellite is its chief; every other satellite of the plane keeps its slot's "
+            "along-track separation from it, with the template's station-keeping thruster." if possible else
+            "Needs a template spacecraft with station-keeping: phasing fires its thruster and draws on its "
+            "propellant.")
+        self.phasing_law_combo.setEnabled(self.phasing_check.isChecked())
 
     def _on_accept(self) -> None:
         try:
@@ -202,6 +240,8 @@ class WalkerConstellationDialog(QDialog):
             pattern=self.pattern_combo.currentData(),
             raan_offset_deg=self.raan_offset_deg.value(),
             name_prefix=self.name_prefix_edit.text().strip(),
+            phasing_keeping=self.phasing_check.isChecked(),
+            phasing_control_law=self.phasing_law_combo.currentData(),
         )
         request.validate()  # raises ScenarioValidationError with a specific message on anything bad
         return request

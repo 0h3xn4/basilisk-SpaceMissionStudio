@@ -8,6 +8,20 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+### Added
+
+- **A Walker constellation can hold its spacing.** **Hold each plane's
+  spacing** in **Generate Walker constellation...** (and
+  `generate-constellation --phasing-keeping`) makes each plane's first
+  satellite its chief and gives every other satellite of the plane
+  phasing keeping that holds its slot's distance ahead of it, with the
+  control law you choose. The template spacecraft needs station keeping,
+  whose thruster does the phasing. Before, each follower's chief and
+  distance had to be set by hand
+  ([Build a constellation](docs/user-manual/orbit-keeping-and-formations.md#build-a-constellation)).
+
 ## 2.2.0 (2026-11-05)
 
 CCSDS orbit files in the app. What the command line could already do with
