@@ -8,7 +8,18 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 2.3.0 (2026-11-05)
+
+The satellite's components from IDM-CIC, and a Walker constellation that
+holds its spacing. The IDM-CIC import, which built the 3D model and the
+mass properties, now also brings in what the model says of the
+spacecraft's equipment: the sensors and actuators it names, the power
+its equipment draws in each system mode, the solar arrays' panels, and
+the performance values a team keeps as properties. Nothing is estimated:
+a value the file does not give stays the catalog product's, Basilisk's
+or the editor's, and the pre-run checks say so. Nothing the tool
+computes for an existing scenario changes: every template gives the same
+results as in 2.2.0.
 
 ### Added
 
@@ -60,6 +71,36 @@ fixes bugs.
   the model. `idm-import --property-map 'NAME=KIND.PARAM[UNIT]'` and
   `--battery` do the same from the command line
   ([Values from your team's properties](docs/user-manual/idm-cic.md#values-from-your-teams-properties)).
+
+### Who should update
+
+- **Teams using IDM-CIC models:** the import now fills in sensors,
+  actuators, the power budget and the values kept as properties, which
+  had to be typed in by hand.
+- **Anyone building constellations:** the Walker generator can now set
+  up the phasing keeping of every plane in one go.
+- **Everyone else can update when convenient:** results, templates and
+  the files the tool writes are as in 2.2.0.
+- **Teams:** update together if you use the IDM-CIC import's devices or
+  power budget. 2.2.0 opens every scenario 2.3.0 saves, except one where
+  an IDM-CIC import added devices or set the power budget: its import
+  record names a target 2.2.0 does not know ("imports[1].target must be
+  one of ('orbit', 'model')"). 2.3.0 opens every 2.2.0 file.
+- **The installers:** on Linux, `apt install
+  ./spacemissionstudio_2.3.0_amd64.deb` replaces 2.2.0; on Windows, run
+  the 2.3.0 setup over 2.2.0.
+
+### Known limits
+
+As in 2.2.0, and: devices are found by their names only (English or
+French); a device's axis is an axis of its equipment frame (+z unless
+chosen); thrusters are listed, not added; the power budget has one
+constant load, set from one system mode or the duty-cycle average, not a
+mode timeline; a team's properties are read only through a mapping, in
+the unit the user gives ([Limitations](docs/reference/limitations.md)).
+The bundled space weather is still 1.3.0's (observations to 2026-10-24,
+CelesTrak's forecast to 2026-12-07; CelesTrak could not be reached for
+this release either): fetch the current file before a drag study.
 
 ## 2.2.0 (2026-11-05)
 

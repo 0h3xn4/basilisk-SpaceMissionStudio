@@ -30,7 +30,7 @@
 ; a real Windows 10/11 machine.
 
 #define MyAppName "SpaceMissionStudio"
-#define MyAppVersion "2.2.0"
+#define MyAppVersion "2.3.0"
 #define MyAppPublisher "SpaceMissionStudio contributors"
 #define MyAppURL "https://github.com/AVSLab/basilisk"
 ; The bundled Python folder; CI passes a short path (ISCC /DPythonDir=...)

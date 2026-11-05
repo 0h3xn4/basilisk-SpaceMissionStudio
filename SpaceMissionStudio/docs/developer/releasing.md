@@ -296,6 +296,14 @@ without files for 38 minutes, until the workflow attached them at 09:34,
 the seventh release so. To avoid it: push the tag, or save the release as
 a draft, wait for the files (about 40 minutes), then publish.
 
+2.3.0 was prepared on 2026-11-05 by this checklist: a Walker
+constellation that holds its spacing (#220) and the satellite's
+components from IDM-CIC (#222 devices, #223 power, #224 properties), a
+minor release because it adds features. No template or golden file
+changed; the scenario format gained the import record targets `devices`
+and `power`, which 2.2.0 refuses (K-30). The space weather is still
+1.3.0's (CelesTrak reset the connection again, K-13).
+
 ---
 
 **Next:** [Syncing with upstream Basilisk](upstream-sync.md) ·
