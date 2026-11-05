@@ -31,6 +31,8 @@ from __future__ import annotations
 
 import collections
 import copy
+import dataclasses
+import math
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -63,6 +65,12 @@ MESH_FOLDER = "models"
 _PRIMITIVES = ("box", "cylinder", "cone", "sphere")
 _WINDOWS_RESERVED = {"CON", "PRN", "AUX", "NUL", *(f"COM{k}" for k in range(1, 10)),
                      *(f"LPT{k}" for k in range(1, 10))}
+
+
+#: Where the origin of the body frame (body point B) is put (decision IDM-31):
+#: the body element's own frame, as in IDM-CIC, or the centre of gravity.
+ORIGINS = ("element", "cog")
+ORIGIN_LABELS = {"element": "the body element's frame", "cog": "the centre of gravity"}
 
 
 def mesh_file_name(spacecraft: str) -> str:
@@ -104,6 +112,11 @@ class ImportSummary:
     panels: tuple = ()  # (solar array panels, total area [m^2], normal lines, the largest group's (+) normal)
     power_set: list = field(default_factory=list)  # what the import set in the power budget, as text
     properties: list = field(default_factory=list)  # (name, value type, kind labels, values) on the devices found
+    origin: str = ""  # one of ORIGINS, set by merge
+    origin_m: list = field(default_factory=list)  # [m] the origin (B) in the body element's frame, set by merge
+    origin_moved_m: list = field(default_factory=list)  # [m] how far B moved in this import ([] for not at all)
+    origin_moved: list = field(default_factory=list)  # what moved with it, as text
+    center_of_mass_m: list = field(default_factory=list)  # [m] from B after the import
 
     def lines(self) -> list[str]:
         """The summary as text lines."""
@@ -138,6 +151,15 @@ class ImportSummary:
                                    for name, label, product in self.devices))
         if self.devices_added:
             out.append(f"  devices added to the spacecraft ({len(self.devices_added)}): {', '.join(self.devices_added)}")
+        if self.origin:
+            where = ", ".join(f"{v:.6g}" for v in self.origin_m)
+            out.append(f"  origin of the body frame: {ORIGIN_LABELS[self.origin]}, at [{where}] m in "
+                       f"{self.body_element}'s frame"
+                       + (f"; the centre of gravity is [{', '.join(f'{v:.4g}' for v in self.center_of_mass_m)}] m "
+                          "from it" if self.center_of_mass_m else ""))
+        if self.origin_moved_m:
+            out.append(f"  origin moved by [{', '.join(f'{v:.6g}' for v in self.origin_moved_m)}] m: "
+                       + (", ".join(self.origin_moved) or "nothing else to move"))
         for name, why in self.devices_skipped:
             out.append(f"    device not added: {name}: {why}")
         if self.power_modes:
@@ -180,6 +202,44 @@ class Plan:
     devices: list = field(default_factory=list)  # idm_devices.DeviceFinding, found by name
     power: PowerPlan | None = None
     mappings: list = field(default_factory=list)  # idm_properties.Mapping, set by set_mappings
+    #: [m] The point of the body element's frame its positions are measured
+    #: from: the origin B the last merge put (:func:`plan` gives them from
+    #: the element frame's own origin).
+    origin_m: list = field(default_factory=lambda: [0.0, 0.0, 0.0])
+
+
+def recorded_origin(record) -> tuple[str, list]:
+    """``(origin, offset [m])`` an earlier import (its model record) put the
+    body frame's origin at: one of :data:`ORIGINS` and the origin's place in
+    the body element's frame; ("element", zeros) when it says none."""
+    if record is None:
+        return "element", [0.0, 0.0, 0.0]
+    origin = record.details.get("origin", "element")
+    try:
+        offset = [float(v) for v in record.details.get("origin_offset_m", "0, 0, 0").split(",")]
+    except ValueError:
+        offset = []
+    if origin not in ORIGINS or len(offset) != 3 or not all(math.isfinite(v) for v in offset):
+        return "element", [0.0, 0.0, 0.0]
+    return origin, offset
+
+
+def shift_plan(the_plan: Plan, d) -> None:
+    """Measure ``the_plan``'s positions from the point ``d`` [m] (given from
+    where they are measured now): its parts, point masses, stowed poses and
+    devices."""
+    d = np.asarray(d, dtype=float).reshape(3)
+    if not np.any(d):
+        return
+    for item in the_plan.parts:
+        item.config.position_b_m = _vec(np.asarray(item.config.position_b_m) - d)
+    for item in the_plan.equipment:
+        item.config.mount.position_m = _vec(np.asarray(item.config.mount.position_m) - d)
+    the_plan.stowed = {source: (None if pose is None else (_vec(np.asarray(pose[0]) - d), pose[1]))
+                       for source, pose in the_plan.stowed.items()}
+    for finding in the_plan.devices:
+        finding.position_m = _vec(np.asarray(finding.position_m) - d)
+    the_plan.origin_m = _vec(np.asarray(the_plan.origin_m) + d)
 
 
 def set_mappings(the_plan: Plan, mappings) -> None:
@@ -803,7 +863,7 @@ def _old_groups(model, base_dir: Path, mesh_index: int | None) -> dict:
 
 
 def merge(scenario, spacecraft: str, the_plan: Plan, scenario_path, author: str = "",
-          orbit_only: bool | None = None) -> ImportSummary:
+          orbit_only: bool | None = None, origin: str | None = None) -> ImportSummary:
     """Write ``the_plan`` into ``scenario``'s spacecraft ``spacecraft``
     (module docstring), the meshes into ``models/<spacecraft>_idm.obj``
     beside ``scenario_path``. Returns the summary with what was added,
@@ -811,16 +871,28 @@ def merge(scenario, spacecraft: str, the_plan: Plan, scenario_path, author: str 
     when the whole import succeeds: if anything fails (the meshes file
     cannot be written, say), the spacecraft and the import records are
     put back as they were, so no part is left naming a mesh file that was
-    not written. Saving it is the caller's."""
+    not written. Saving it is the caller's.
+
+    ``origin`` (one of :data:`ORIGINS`; None: where the last import put
+    it, else the element's frame) is where the body frame's origin goes
+    (decision IDM-31): moving it moves every position of the spacecraft
+    (``model3d.origin.move_origin``), the import records' too, and
+    ``the_plan``'s (:func:`shift_plan`), so the devices it adds next are
+    measured from it."""
+    if origin is not None and origin not in ORIGINS:
+        raise IdmError(f"origin {origin!r} must be one of {ORIGINS}")
     sc = next((s for s in scenario.spacecraft if s.name == spacecraft), None)
     if sc is None:
         raise IdmError(f"no spacecraft {spacecraft!r} in the scenario")
     saved_spacecraft, saved_imports = copy.deepcopy(vars(sc)), copy.deepcopy(list(scenario.imports))
+    saved_plan = (copy.deepcopy(the_plan.parts), copy.deepcopy(the_plan.equipment), dict(the_plan.stowed),
+                  copy.deepcopy(the_plan.devices), list(the_plan.origin_m))
     try:
-        return _merge(scenario, sc, spacecraft, the_plan, scenario_path, author, orbit_only)
+        return _merge(scenario, sc, spacecraft, the_plan, scenario_path, author, orbit_only, origin)
     except BaseException:
         _restore(sc, saved_spacecraft)
         scenario.imports[:] = saved_imports
+        (the_plan.parts, the_plan.equipment, the_plan.stowed, the_plan.devices, the_plan.origin_m) = saved_plan
         raise
 
 
@@ -838,7 +910,7 @@ def _restore(target, saved: dict) -> None:
 
 
 def _merge(scenario, sc, spacecraft: str, the_plan: Plan, scenario_path, author: str,
-           orbit_only: bool | None) -> ImportSummary:
+           orbit_only: bool | None, origin: str | None) -> ImportSummary:
     """:func:`merge`'s work on spacecraft ``sc``, in place."""
     from .model3d import model as model3d
 
@@ -846,6 +918,11 @@ def _merge(scenario, sc, spacecraft: str, the_plan: Plan, scenario_path, author:
     summary = copy.deepcopy(the_plan.summary)
     previous = _previous_record(scenario, spacecraft)
     previous_values = dict(previous.values) if previous is not None and previous.format == FORMAT else {}
+    # The spacecraft and the last record are measured from where the last
+    # import put the origin: the plan is measured from there too.
+    previous_origin, previous_offset = recorded_origin(previous if previous is not None
+                                                       and previous.format == FORMAT else None)
+    shift_plan(the_plan, np.asarray(previous_offset) - np.asarray(the_plan.origin_m))
     model = sc.model if sc.model is not None else SpacecraftModelConfig(apply_facets=the_plan.apply_facets)
     if sc.model is None:
         sc.model = model
@@ -993,13 +1070,44 @@ def _merge(scenario, sc, spacecraft: str, the_plan: Plan, scenario_path, author:
 
     # The record: the values as this import gives them, by source_id.
     record_model = SpacecraftModelConfig(parts=imported_parts, equipment=imported_equipment, stowed=imported_poses)
-    put_import(scenario, ImportRecord(spacecraft, TARGET, FORMAT, summary.source, summary.sha256,
-                                      model_import_values(record_model),
-                                      datetime.now(UTC).replace(microsecond=0).isoformat(), author,
-                                      dict(the_plan.details)))
+    record_values = model_import_values(record_model)
     if orbit_only is None:
-        orbit_only = scenario.simulation_mode == "orbit_only"
+        orbit_only = getattr(scenario, "simulation_mode", "") == "orbit_only"
     derived = model3d.derive(model, base_dir)
+
+    # The origin of the body frame (decision IDM-31).
+    chosen = origin or previous_origin
+    d = np.zeros(3)
+    if chosen == "cog":
+        if derived.mass_properties is not None and derived.mass_properties.mass_kg > 0.0:
+            # To the micrometre, so that moving there and back gives the
+            # same numbers, and an unchanged model re-imports unchanged.
+            d = np.round(np.asarray(derived.mass_properties.center_of_mass_m, dtype=float), 6)
+        else:
+            summary.notes.append("the model has no mass, so it has no centre of gravity: the origin is left "
+                                 "where it was")
+    else:
+        d = -np.asarray(previous_offset, dtype=float)
+    if np.linalg.norm(d) > 1.0e-9:
+        from .model3d.origin import move_origin, shift_record_values
+
+        summary.origin_moved = move_origin(sc, d)
+        summary.origin_moved_m = _vec(d)
+        record_values = shift_record_values(record_values, d)
+        for k, record in enumerate(scenario.imports):  # the devices this import's model placed before
+            if record.spacecraft == spacecraft and record.target != TARGET and record.values:
+                scenario.imports[k] = dataclasses.replace(record, values=shift_record_values(record.values, d))
+        shift_plan(the_plan, d)
+        derived = model3d.derive(model, base_dir)
+    offset = _vec(np.asarray(previous_offset, dtype=float) + d)
+    details = dict(the_plan.details)
+    details["origin"] = chosen
+    details["origin_offset_m"] = ", ".join(f"{v:.10g}" for v in offset)
+    put_import(scenario, ImportRecord(spacecraft, TARGET, FORMAT, summary.source, summary.sha256, record_values,
+                                      datetime.now(UTC).replace(microsecond=0).isoformat(), author, details))
+    summary.origin, summary.origin_m = chosen, offset
+    if derived.mass_properties is not None and derived.mass_properties.mass_kg > 0.0:
+        summary.center_of_mass_m = _vec(derived.mass_properties.center_of_mass_m)
     for message in derived.errors:
         summary.notes.append(f"3D model: {message}")
     model3d.apply(sc, derived, orbit_only=orbit_only)

@@ -312,8 +312,9 @@ the eighth release so. To avoid it: push the tag, or save the release as
 a draft, wait for the files (about 40 minutes), then publish.
 
 2.4.0 was prepared on 2026-11-05 by this checklist: device axes read
-from the IDM-CIC model's shapes (#227), a minor release because it adds
-a feature. No template, golden file or scenario field changed; 2.3.0
+from the IDM-CIC model's shapes (#227) and, added on the release branch
+at the user's question, the body frame's origin at the centre of gravity,
+a minor release because it adds features. No template, golden file or scenario field changed; 2.3.0
 opens the files 2.4.0 saves (checked with 2.3.0's code on a file with
 devices imported along the model's axes). The space weather is still
 1.3.0's (CelesTrak refused the connection again, K-13).

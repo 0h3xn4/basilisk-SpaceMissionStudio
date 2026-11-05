@@ -14514,14 +14514,53 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The body frame's origin at the centre of gravity (2026-11-05)
+
+While 2.4.0 was being prepared, the user asked whether the imported
+spacecraft's centre of gravity is the origin of the satellite frame. It
+was not: the origin is the body element's own (IDM-05), and the centre of
+gravity was 0.35 m (CIC-SAT) and 0.39 m (OrbiteX) from it in the example
+models, given to Basilisk as the centre of mass offset (`r_BcB_B`), so
+the dynamics were right. Asked for a recommendation, the assistant
+proposed keeping the element frame as the default and adding the centre
+of gravity as a choice that moves everything, kept for the next import;
+it went into 2.4.0, on the release branch, before the release pull
+request was opened.
+
+Decision IDM-31, section 19 of the design note. `model3d/origin.py`
+(new) moves every position of a spacecraft measured from B, and an
+import record's; `idm_import.merge(origin=...)` measures the plan from
+the last origin, merges, and moves the spacecraft to the centre of
+gravity of the derived model (to the micrometre) or back to the element
+frame, records the choice and the offset, and shifts the plan's devices.
+The summary now always gives the centre of gravity's distance from the
+origin. In the GUI: the dialog's **Origin of the body frame**, the 3D
+model editor moving its model and the mounts it holds, and the
+spacecraft list and dialog moving the rest on OK. `idm-import --origin`.
+
+Two problems found while building it, both fixed before the PR: an
+identical re-import at the centre of gravity reported 63 parts as
+updated, and moving to the centre of gravity and back left positions
+such as -0.07999999999 m, both from rounding the full-precision centre of
+gravity into 10-digit positions; the move is now rounded to the
+micrometre, and the round trip is exact to 1e-10 m. And the demosat hand
+calculation and the computed centre of gravity differ by 1.7 micrometres
+(the plate's hole is a polygon, IDM-14), which the existing test's
+relative tolerance had hidden; the new tests compare with absolute
+tolerances.
+
+**Tests:** `tests/test_idm_origin.py` (6) and
+`tests/gui/test_idm_origin_gui.py` (4). No existing test changed.
+
 ## Release 2.4.0 prepared (2026-11-05)
 
 A minor release: it adds a feature. After 2.3.0 was published the user
 asked why the IDM-CIC import could not detect the equipment's
 orientation, and agreed to reading the device axes from the shapes; the
 standing instruction is to continue until a release is ready. Contents
-since 2.3.0: the device axes (#227) and the 2.3.0 publication record
-(#226).
+since 2.3.0: the device axes (#227), the body frame's origin at the
+centre of gravity (on the release branch) and the 2.3.0 publication
+record (#226).
 
 Prepared by `docs/developer/releasing.md`: version 2.4.0 in
 `pyproject.toml`, `__init__.py` and the Inno Setup script; the CHANGELOG's

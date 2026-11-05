@@ -58,7 +58,9 @@ In the 3D model editor (**Scenario › 3D Model...**), choose
   become the stowed configuration;
 - **Body element**: the element whose frame is the body frame;
 - whether to build drag and solar pressure facets from the imported
-  boxes, cylinders, cones and spheres.
+  boxes, cylinders, cones and spheres;
+- **Origin of the body frame** (see [The origin of the body
+  frame](#the-origin-of-the-body-frame)).
 
 ![The import dialog: the model file, the configuration, the stowed configuration and the body element, and below what the import will do](../images/idm_import.png)
 
@@ -82,8 +84,36 @@ $ spacemissionstudio idm-import demosat.idm scenario.json --spacecraft sat-1 \
 `idm-info` lists the elements, configurations and approximations
 without writing anything; `idm-import` writes the model, saves the
 scenario through the change history and prints the same summary as the
-dialog. Both accept `--body-element`; `idm-import` also `--apply-facets`
-and `--out`.
+dialog. Both accept `--body-element`; `idm-import` also `--apply-facets`,
+`--origin element|cog` and `--out`.
+
+## The origin of the body frame
+
+By default the body frame's origin is the body element's own origin, as
+in IDM-CIC: every position (parts, sensors, actuators, panels) reads as
+it does there. The centre of gravity is then usually elsewhere, and the
+import summary says where ("the centre of gravity is [0.35, -0.013,
+-0.006] m from it"). The simulation is right either way: it takes the
+centre of gravity from the origin (**Center of mass** on the spacecraft's
+Mass page), so drag, solar pressure and thrust push about the true
+centre of gravity.
+
+Choose **The centre of gravity** to put the origin there instead. The
+import computes the centre of gravity of the model as imported
+(propellant included, as the configuration fills the tanks), to the
+micrometre, and moves **every** position of the spacecraft with the
+origin, so that they stay where they are on the spacecraft: the model's
+parts, point masses, stowed poses and launcher plane, and the sensors,
+actuators, thrusters, wheels, RF antenna, facets, fuel tank, solar array
+hinges and the Vizard model's offset, including those you entered by
+hand. A position given in a part's own frame moves with the part. The
+centre of mass is then zero, and the summary lists what moved and by
+how much.
+
+The choice is kept: the next import of the model (a newer version, say)
+puts the origin at the centre of gravity again, wherever that now is,
+and moves everything by the difference. Choose **The body element's
+frame** again to put everything back where IDM-CIC has it.
 
 ## Devices found in the model
 

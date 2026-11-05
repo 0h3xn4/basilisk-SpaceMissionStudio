@@ -2377,6 +2377,9 @@ class SpacecraftEditorDialog(QDialog):
             self.pending_import = editor.import_record()
             if self._embedded:
                 self.import_recorded.emit(self.pending_import)
+        shift = getattr(editor, "origin_shift", lambda: None)()
+        if shift:
+            self._move_origin(shift)
         devices = editor.devices()
         if not self._orbit_only:
             self.sensor_list.set_mounts({d.name: d.mount for d in devices.sensors})
@@ -2388,6 +2391,42 @@ class SpacecraftEditorDialog(QDialog):
         if editor.power_import() is not None and not self._orbit_only:
             self._set_imported_power(*editor.power_import())
         self._on_apply_model()
+
+    def _move_origin(self, shift) -> None:
+        """An IDM-CIC import in the 3D model editor moved the origin of the
+        body frame by ``shift`` [m]: every other position on the form moves
+        with it (``model3d.origin.move_spacecraft_origin``), and so do the
+        positions in the devices' import record."""
+        from ..model3d.origin import move_spacecraft_origin, shift_record_values
+
+        try:
+            config = self.to_dataclass()
+        except (ValueError, ScenarioValidationError) as exc:
+            report(self, "The IDM-CIC import moved the origin of the body frame by "
+                         f"[{', '.join(f'{v:.6g}' for v in shift)}] m, but the form does not read ({exc}): the "
+                         "positions on its other pages are still measured from the old origin.", kind="warning")
+            return
+        move_spacecraft_origin(config, shift)
+        if not self._orbit_only:
+            self.sensor_list.from_list(config.sensors)
+            self.actuator_list.from_list(config.actuators)
+            self.facet_table.from_list(config.facets)
+            self.solar_array_table.from_list(config.solar_arrays)
+        if config.fuel_tank is not None:
+            for box, value in zip((self.ft_tank_pos_x, self.ft_tank_pos_y, self.ft_tank_pos_z),
+                                  config.fuel_tank.tank_position_b_m, strict=True):
+                box.setValue(value)
+        for box, value in zip((self.viz_offset_x, self.viz_offset_y, self.viz_offset_z),
+                              config.vizard_model_offset_m, strict=True):
+            box.setValue(value)
+        if config.rf_link is not None:
+            self._rf_antenna_mount = config.rf_link.antenna_mount
+        previous = self.pending_devices_import or _devices_import(self._imports_provider, config.name)
+        if previous is not None:
+            self.pending_devices_import = dataclasses.replace(previous,
+                                                              values=shift_record_values(previous.values, shift))
+            if self._embedded:
+                self.import_recorded.emit(self.pending_devices_import)
 
     def _set_imported_power(self, plan, choice) -> None:
         """The power budget values an IDM-CIC import chose, into the Power
@@ -3561,6 +3600,15 @@ class SpacecraftListWidget(QWidget):
         base_dir = self._base_dir_provider() if self._base_dir_provider else None
         new_config = copy.deepcopy(self._configs[row])
         new_config.model = editor.model()
+        shift = getattr(editor, "origin_shift", lambda: None)()
+        if shift:  # an IDM-CIC import moved the origin: the rest of the spacecraft moves with it
+            from ..model3d.origin import move_spacecraft_origin, shift_record_values
+
+            move_spacecraft_origin(new_config, shift)
+            previous = _devices_import(self._imports_provider, new_config.name)
+            if previous is not None:
+                self.import_recorded.emit(dataclasses.replace(previous,
+                                                              values=shift_record_values(previous.values, shift)))
         apply_device_mounts(new_config, editor.devices())
         orbit_only = self._simulation_mode() == "orbit_only"
         device_message = ""

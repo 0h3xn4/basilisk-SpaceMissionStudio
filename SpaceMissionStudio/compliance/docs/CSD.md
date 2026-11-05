@@ -27,7 +27,9 @@ import, 2.2.0 makes the CCSDS files the command line already wrote and
 read available in the GUI, 2.3.0 adds IDM-CIC values in the body
 frame and the Walker phasing generator, with no frame or time
 conversion, 2.4.0 device axes in the body frame from the model's
-shapes, with none either; 2.0.0 computes the Earth's rotation angle
+shapes and, on request, the body frame's origin moved to the centre of
+gravity (a translation of every position from B: its axes, and every
+direction, unchanged), with no conversion either; 2.0.0 computes the Earth's rotation angle
 of the pass predictions and GEO elements with the leap seconds of the
 date, as the simulation already did, and takes the physical constants
 from one set, Basilisk's: `docs/changes.md`, 2026-10-30).

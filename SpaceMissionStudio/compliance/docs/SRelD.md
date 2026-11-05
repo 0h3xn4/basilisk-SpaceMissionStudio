@@ -4,17 +4,25 @@ DRD: ECSS-E-ST-40C Annex G
 Document: SMS-SRelD, issue 27, 2026-11-05. Remediation R14.
 
 **Status:** release **2.4.0**, prepared 2026-11-05: each device's axis
-from the IDM-CIC model (#227, SRS-F-28, decision IDM-30). The import
+from the IDM-CIC model (#227, SRS-F-28, decision IDM-30), and the body
+frame's origin at the centre of gravity (decision IDM-31, on the release
+branch, asked by the user while it was prepared). The import
 already placed a sensor or actuator as its equipment is placed; it now
 also reads which way it points or spins from the equipment's shapes: a
 field-of-view cone gives a sensor's boresight and field of view (shown in
 the 3D view, not simulated), a cylinder a wheel's spin axis or a
 magnetorquer's rod axis, and +z of the equipment frame is kept when the
 shapes show none. On the example models it gives the magnetorquers their
-rod axes, which the +z rule of 2.3.0 had swapped. No template, golden file
-or scenario field changed: every template's outputs are as in 2.3.0, and
-2.3.0 and 2.4.0 open each other's files (checked with 2.3.0's code on a
-file with devices imported along the model's axes). The bundled space
+rod axes, which the +z rule of 2.3.0 had swapped. On request, the import
+puts the origin of the body frame at the model's centre of gravity
+(0.35 m and 0.39 m from the element's origin in the example satellites)
+and moves every position of the spacecraft with it; by default it stays
+the element's, as before. No template, golden file or scenario field
+changed: every template's outputs are as in 2.3.0, and 2.3.0 and 2.4.0
+open each other's files (checked with 2.3.0's code on files with devices
+imported along the model's axes and with the origin at the centre of
+gravity); a 2.3.0 re-import of a spacecraft centred by 2.4.0 does not
+keep it centred (K-31). The bundled space
 weather is still 1.3.0's: CelesTrak refused the connection again (K-13).
 The release pull request is merged once CI is green; tagging and
 publishing are the user's (the environment cannot push tags).
@@ -360,25 +368,40 @@ RD1 has the full story. In summary:
   **Axis** column offers **from the model**, chosen by default, with the
   shape and the vector in its tooltip; the import record says where each
   axis came from; `idm-import --devices` uses the model's axes.
+- **The origin of the body frame at the centre of gravity** (on the
+  release branch, SRS-F-28, design note section 19, decision IDM-31):
+  **Origin of the body frame** in the import dialog and
+  `idm-import --origin element|cog`. At the centre of gravity of the
+  merged model (propellant included, to the micrometre), every position
+  of the spacecraft measured from B moves with the origin
+  (`model3d.origin`), and so do the import records' positions; the model
+  record keeps the choice (`origin`, `origin_offset_m`) for the next
+  import. The summary gives the centre of gravity's distance from the
+  origin either way.
 
 **Unchanged:** the scenario format (no field added or changed), every
-template and golden file, the command line's commands, options and exit
-statuses, what runs compute, and the files the tool writes for an
-existing scenario. **Changed in the interface:** more of an IDM-CIC
-model is read (the cones' and cylinders' axes, ICD-12), and the devices
-it adds may point another way than 2.3.0's.
+template and golden file, the exit statuses, what runs compute, and the
+files the tool writes for an existing scenario. **Changed in the
+interface:** more of an IDM-CIC model is read (the cones' and cylinders'
+axes, ICD-12), the devices it adds may point another way than 2.3.0's,
+`idm-import` has `--origin` (ICD-02), and the model record's details
+keep the origin (ICD-12).
 
 **Tests:** 4678 passed on Linux, Python 3.14, on the release's code
-(4671 passed at 2.3.0); none skipped. Seven tests were added (the axes
-from cones and cylinders, the cone's angle, the default, the record, the
-command and the dialog) and none changed or removed.
+(4671 passed at 2.3.0); none skipped. Seventeen tests were added (the
+axes: from cones and cylinders, the cone's angle, the default, the
+record, the command and the dialog; the origin: every position moved,
+the records, demosat's centre of gravity, its re-import and way back,
+the devices, the command, the dialog, the editor and the spacecraft's
+other positions) and none changed or removed.
 
 **Still open:** K-19 (about 0.4 s), K-22, K-23 (smaller), K-24, K-25,
-K-26, K-27, K-28, K-30 (2.3.0 and 2.4.0 open each other's files).
+K-26, K-27, K-28, K-30 (2.3.0 and 2.4.0 open each other's files), K-31.
 
 **Changes users notice:** **from the model** in the IDM-CIC import
-dialog's **Axis** column, and devices imported along the axes the model's
-shapes show.
+dialog's **Axis** column, devices imported along the axes the model's
+shapes show, **Origin of the body frame** in the same dialog, and the
+centre of gravity's distance from the origin in the import summary.
 
 ### 5.2 Known problems and limitations (G.2.1<5.2>)
 
@@ -417,6 +440,8 @@ shapes show.
 | K-29 | Fixed in 2.1.1 (2026-11-04), reported by the user on 2.1.0: (1) the 3D model editor was a modal dialog of the main window; GNOME attaches a modal dialog to its parent, so dragging the editor dragged the whole application. (2) A scenario opened from a built-in template has the templates' folder as its folder, so the IDM-CIC import wrote its meshes there: "Permission denied" in an installed copy, the repository's templates in a source checkout. (3) That failed import had already added its parts, which named a mesh file the model did not have, so the editor's OK refused the model ("mesh_index must name one of the model's 0 mesh file(s)"). (4) Vizard's battery panel showed watt-seconds ("2520000 / 2520000 W-s" for 700 Wh), the numbers Basilisk's battery message carries. Each fix has a test that fails on 2.1.0's code | 2.1.0: the editor could not be moved apart from the main window; no IDM-CIC import into a scenario opened from a template; a confusing battery unit in Vizard. Workaround in 2.1.0: save a template-based scenario as your own file before importing | `CHANGELOG.md` 2.1.1; `docs/ui/TEST_CHANGES.md`; HISTORY.md |
 | K-30 | Limitation (2026-11-05): 2.2.0 does not open a scenario file saved by 2.3.0 in which an IDM-CIC import added devices or set the power budget: its import record's target (`devices`, `power`) is one 2.2.0 does not know ("imports[1].target must be one of ('orbit', 'model')"). Checked with 2.2.0's code on three files saved by 2.3.0 after an IDM-CIC import: the model only (opens), devices added (refused), the power budget set (refused). 2.3.0 opens every 2.2.0 file | A file using them, sent to a 2.2.0 user, does not open | `CHANGELOG.md` 2.3.0, Who should update |
 
+| K-31 | Limitation (2026-11-05): a spacecraft whose body frame origin 2.4.0 put at the centre of gravity (`idm-import --origin cog`) opens and validates in 2.3.0, but a re-import of its IDM-CIC model in 2.3.0, which does not know the recorded origin, puts the model's parts and point masses back in the body element's frame and leaves the other positions (devices, facets, tank) at the centre of gravity's: the spacecraft's positions no longer agree. Checked with 2.3.0's code on the devicesat fixture: after the re-import the centre of mass is 0.447 m from B and the gyro where 2.4.0 put it | A team re-importing in 2.3.0 a file saved by 2.4.0 with the origin at the centre of gravity | `CHANGELOG.md` 2.4.0, Who should update |
+
 **Waivers and deviations:** D-01 to D-13 (RD4). D-08 to D-13 are signed; D-01 to D-07
 are not (decision 14, H08).
 
@@ -440,7 +465,7 @@ are not (decision 14, H08).
   critical inclinations (E1).
 - **Fetch the current space weather before a drag study** (K-13): the
   bundled file's observations end on 2026-10-24.
-- **Update a team together** (K-26, K-27, K-30).
+- **Update a team together** (K-26, K-27, K-30, K-31).
 - **Run script blocks only from scenarios you trust and have read**
   (SUM 9.9).
 - **Exchanging OEMs with GMAT R2026a:** use

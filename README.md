@@ -128,7 +128,8 @@ Details: [Capabilities and verification](SpaceMissionStudio/docs/reference/capab
 - **Version:** 2.4.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.4.0),
   [changelog](SpaceMissionStudio/CHANGELOG.md)): the IDM-CIC import reads
   each sensor's and actuator's axis from its shapes (a field-of-view
-  cone, a wheel's or rod's cylinder). 2.3.0 brought the satellite's
+  cone, a wheel's or rod's cylinder) and can put the body frame's origin
+  at the centre of gravity. 2.3.0 brought the satellite's
   components in (sensors and actuators found by name, the power budget
   from the model's power modes and solar arrays, and the values your team
   keeps as properties) and a Walker constellation that holds its spacing;

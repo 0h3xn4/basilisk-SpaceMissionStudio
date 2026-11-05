@@ -117,7 +117,8 @@ internet needed.
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
 - **Version:** 2.4.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.4.0),
   [changelog](CHANGELOG.md)): the IDM-CIC import reads each device's
-  axis from its shapes. 2.3.0 brought the satellite's sensors, actuators,
+  axis from its shapes and can put the body frame's origin at the centre
+  of gravity. 2.3.0 brought the satellite's sensors, actuators,
   power budget and team properties in, and a Walker constellation that
   holds its spacing; 2.2.0 put CCSDS orbit files (OPM,
   OMM, OEM) in the app; 2.1.1 fixed 2.1.0, which was the
