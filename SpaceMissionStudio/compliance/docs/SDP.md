@@ -63,7 +63,7 @@ No project master schedule exists. Development is continuous and driven by
 the user's requests. Releases are made when the user decides, tagged, not
 signed (decision 11). The current release is 2.3.0, the satellite's
 components from IDM-CIC and a Walker constellation that holds its
-spacing (prepared 2026-11-05); before it 2.2.0, CCSDS orbit files in the
+spacing (published 2026-11-05); before it 2.2.0, CCSDS orbit files in the
 app (published 2026-11-05), 2.1.1, fixes to the 3D model
 editor, the IDM-CIC import and Vizard's battery panel (2026-11-04),
 2.1.0, the analyses built
