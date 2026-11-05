@@ -239,3 +239,125 @@ def test_without_j2_the_pattern_is_written_as_it_is():
     for sc in generate_walker_constellation(_request(), _template()):
         assert sc.orbit.anomaly_type == "mean"
         assert sc.orbit.semi_major_axis_km == pytest.approx(CENTRAL_BODY_EQUATORIAL_RADIUS_KM["earth"] + 780.0)
+
+
+# -- phasing-keeping wired by the generator ---------------------------------
+
+def _station_keeping():
+    from spacemissionstudio.schema.scenario import StationKeepingConfig
+
+    return StationKeepingConfig(target_altitude_km=550.0, deadband_km=15.0, thrust_n=0.05,  # [km], [km], [N]
+                                isp_s=1500.0, propellant_kg=5.0)  # [s], [kg]
+
+
+def test_phasing_keeping_makes_each_planes_first_satellite_the_chief(tmp_path):
+    """With phasing-keeping, each plane's first satellite is its chief (no
+    phasing of its own) and slot k of the plane holds a * k * 360/S deg of
+    arc ahead of it, with the law asked for; the scenario validates."""
+    import math
+
+    from spacemissionstudio.schema.scenario import GravityConfig, Scenario
+
+    request = _request(total_satellites=8, num_planes=2, altitude_km=550.0, eccentricity=0.001,
+                       phasing_keeping=True, phasing_control_law="hill_pd")
+    sats = generate_walker_constellation(request, _template(station_keeping=_station_keeping()))
+    a_km = CENTRAL_BODY_EQUATORIAL_RADIUS_KM["earth"] + 550.0  # [km]
+    for plane in (1, 2):
+        chief, *followers = [sc for sc in sats if sc.name.startswith(f"sat-{plane:02d}-")]
+        assert chief.name == f"sat-{plane:02d}-01" and chief.phasing_keeping is None
+        for slot, follower in enumerate(followers, start=1):
+            phasing = follower.phasing_keeping
+            assert phasing.chief_spacecraft == chief.name and phasing.control_law == "hill_pd"
+            assert phasing.target_separation_km == [pytest.approx(a_km * slot * math.pi / 2.0, abs=1e-6)]  # [km]
+            # The placed slot is that separation ahead of the chief.
+            ahead_deg = (follower.orbit.mean_anomaly_deg - chief.orbit.mean_anomaly_deg) % 360.0  # [deg]
+            assert ahead_deg == pytest.approx(slot * 90.0)
+    scenario = Scenario(name="walker phasing", epoch_utc="2030-01-01T00:00:00",
+                        gravity=GravityConfig(central_body="earth", third_body_perturbers=["sun"]), spacecraft=sats)
+    scenario.validate()
+    scenario.save(tmp_path / "walker.json")
+
+
+def test_the_controller_targets_each_slots_own_phase():
+    """The separation each follower holds is, for the phasing controller
+    (SeparationSchedule's arc-length angle), exactly its slot's spacing."""
+    import math
+
+    request = _request(total_satellites=6, num_planes=1, phasing_factor=0, altitude_km=700.0, eccentricity=0.001,
+                       phasing_keeping=True)
+    sats = generate_walker_constellation(request, _template(station_keeping=_station_keeping()))
+    a_m = (CENTRAL_BODY_EQUATORIAL_RADIUS_KM["earth"] + 700.0) * 1000.0  # [m]
+    for slot, follower in enumerate(sats[1:], start=1):
+        schedule = SeparationSchedule(follower.phasing_keeping.target_separation_km, 90.0, a_m)
+        assert schedule.value_at(0.0) == pytest.approx(math.radians(slot * 60.0), abs=1e-9)  # [rad]
+
+
+def test_phasing_keeping_keeps_the_templates_tuning():
+    """The template's own phasing-keeping tuning is kept; only the chief, the
+    separation and the law are the generator's."""
+    from spacemissionstudio.schema.scenario import PhasingKeepingConfig
+
+    tuned = PhasingKeepingConfig(chief_spacecraft="elsewhere", target_separation_km=[5.0], tolerance_fraction=0.2,
+                                 correction_window_days=6.0)  # [km], [-], [day]
+    sats = generate_walker_constellation(
+        _request(total_satellites=4, num_planes=1, phasing_factor=0, eccentricity=0.001, phasing_keeping=True),
+        _template(station_keeping=_station_keeping(), phasing_keeping=tuned))
+    assert sats[0].phasing_keeping is None
+    for follower in sats[1:]:
+        assert follower.phasing_keeping.chief_spacecraft == "sat-01-01"
+        assert follower.phasing_keeping.tolerance_fraction == 0.2
+        assert follower.phasing_keeping.correction_window_days == 6.0
+        assert follower.phasing_keeping.control_law == "drift_orbit"
+    assert tuned.chief_spacecraft == "elsewhere"  # the template is not changed
+
+
+@pytest.mark.parametrize("request_overrides,template_overrides,match", [
+    (dict(eccentricity=0.001), dict(), "station-keeping"),
+    (dict(eccentricity=0.0), dict(station_keeping=True), "eccentricity"),
+    (dict(total_satellites=3, num_planes=3, phasing_factor=0, eccentricity=0.001), dict(station_keeping=True),
+     "two satellites per plane"),
+    (dict(eccentricity=0.001, phasing_control_law="bang_bang"), dict(station_keeping=True), "phasing_control_law"),
+])
+def test_phasing_keeping_is_refused_without_what_it_needs(request_overrides, template_overrides, match):
+    """Phasing-keeping is refused, saying why, for a template without
+    station-keeping (no thruster), an exactly circular point-mass orbit (no
+    measurable phase), one satellite per plane (nothing to hold) or an
+    unknown law."""
+    if template_overrides.pop("station_keeping", False):
+        template_overrides["station_keeping"] = _station_keeping()
+    with pytest.raises(ScenarioValidationError, match=match):
+        generate_walker_constellation(_request(phasing_keeping=True, **request_overrides),
+                                      _template(**template_overrides))
+
+
+def test_without_phasing_keeping_nothing_is_wired():
+    """Without the option the generator wires no phasing (as before)."""
+    sats = generate_walker_constellation(_request(), _template(station_keeping=_station_keeping()))
+    assert all(sc.phasing_keeping is None for sc in sats)
+
+
+@pytest.mark.requires_basilisk
+def test_a_generated_plane_runs_on_its_targets():
+    """A generated plane runs (point-mass Earth, 0.1 day, over one orbit):
+    once the controller's one-orbit smoothing has filled, every follower's
+    separation error is under 0.01 deg, and no follower fired, so the
+    targets are where the slots were placed (a wrong one would be off by a
+    slot, 90 deg). Before that, the raw error swings by about 2e rad (0.1
+    deg at e = 0.001), true against mean anomaly."""
+    import numpy as np
+
+    from spacemissionstudio.engine.service import SimulationService
+    from spacemissionstudio.schema.scenario import GravityConfig, Scenario, SimSettings
+
+    request = _request(total_satellites=4, num_planes=1, phasing_factor=0, altitude_km=550.0, inclination_deg=53.0,
+                       eccentricity=0.001, phasing_keeping=True)
+    sats = generate_walker_constellation(request, _template(station_keeping=_station_keeping()))
+    scenario = Scenario(name="walker phasing run", epoch_utc="2030-01-01T00:00:00",
+                        gravity=GravityConfig(central_body="earth", central_body_degree=0, third_body_perturbers=["sun"]),
+                        sim_settings=SimSettings(duration_days=0.1), spacecraft=sats)  # [day]
+    scenario.validate()
+    result = SimulationService(scenario).run()
+    for follower in sats[1:]:
+        error = result.series[f"{follower.name}.phasing_keeping.separation_error"].data[:, 0]  # [deg]
+        assert error.shape[0] > 0 and abs(error[-1]) < 0.01  # [deg]
+        assert np.all(result.series[f"{follower.name}.phasing_keeping.state"].data[:, 0] == 0)  # IDLE throughout

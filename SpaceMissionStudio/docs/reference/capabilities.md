@@ -239,7 +239,8 @@ constant-frame (VNB/RTN) continuous-thrust maneuver mode; a
 Walker-pattern constellation generator (satellite count, planes,
 phasing factor, altitude, inclination -> a full set of spacecraft with
 pre-computed orbital elements, placed by their mean elements when the
-gravity includes J2); a **Generate phasing formation...**
+gravity includes J2, and optionally each plane's spacing held by
+phasing keeping from its first satellite); a **Generate phasing formation...**
 wizard (`engine.formation`) that turns an existing chief spacecraft plus
 a desired Radial/Transverse/Normal (Hill-frame) offset at epoch into a
 new follower spacecraft with `phasing_keeping`/`station_keeping`

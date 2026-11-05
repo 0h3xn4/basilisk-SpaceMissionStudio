@@ -1487,6 +1487,53 @@ def test_list_widget_generate_constellation_appends_generated_spacecraft(qtbot, 
     assert any("4" in t.text() and "constellation" in t.text() for t in toasts)
 
 
+def test_list_widget_generate_constellation_holds_each_planes_spacing(qtbot, monkeypatch):
+    """Hold each plane's spacing is offered only for a template with
+    station-keeping; checked, the generated followers keep their separation
+    from their plane's first satellite with the chosen law, and the toast
+    says how many."""
+    from PySide6.QtWidgets import QDialog
+
+    from spacemissionstudio.gui.constellation_dialog import WalkerConstellationDialog
+    from spacemissionstudio.gui.spacecraft_editor import SpacecraftListWidget
+    from spacemissionstudio.schema.scenario import OrbitIC, SpacecraftConfig, StationKeepingConfig
+
+    orbit = OrbitIC(type="cartesian", position_km=[7000, 0, 0], velocity_km_s=[0, 7.5, 0])
+    thruster = StationKeepingConfig(target_altitude_km=550.0, deadband_km=15.0, thrust_n=0.05,  # [km], [km], [N]
+                                    isp_s=1500.0, propellant_kg=5.0)  # [s], [kg]
+    dialog = WalkerConstellationDialog(["bare", "with-thruster"], parent=None, with_station_keeping=["with-thruster"])
+    qtbot.addWidget(dialog)
+    assert not dialog.phasing_check.isEnabled() and not dialog.phasing_law_combo.isEnabled()
+    dialog.template_combo.setCurrentIndex(1)
+    assert dialog.phasing_check.isEnabled() and not dialog.phasing_law_combo.isEnabled()
+    dialog.phasing_check.setChecked(True)
+    assert dialog.phasing_law_combo.isEnabled()
+    dialog.template_combo.setCurrentIndex(0)
+    assert not dialog.phasing_check.isChecked() and not dialog.to_request().phasing_keeping
+
+    lw = SpacecraftListWidget()
+    qtbot.addWidget(lw)
+    lw.from_list([SpacecraftConfig(name="with-thruster", orbit=orbit, station_keeping=thruster)])
+
+    def fake_exec(self):
+        self.total_satellites.setValue(4)
+        self.num_planes.setValue(1)
+        self.phasing_factor.setValue(0)
+        self.eccentricity.setValue(0.001)
+        self.phasing_check.setChecked(True)
+        self.phasing_law_combo.setCurrentIndex(self.phasing_law_combo.findData("mean_oe"))
+        return QDialog.DialogCode.Accepted
+
+    monkeypatch.setattr(WalkerConstellationDialog, "exec", fake_exec)
+    lw._on_generate_constellation()
+    generated = {c.name: c.phasing_keeping for c in lw.to_list() if c.name != "with-thruster"}
+    assert generated["sat-01-01"] is None
+    assert {p.chief_spacecraft for name, p in generated.items() if p is not None} == {"sat-01-01"}
+    assert {p.control_law for p in generated.values() if p is not None} == {"mean_oe"}
+    toasts = getattr(lw.window(), "_spacemissionstudio_active_toasts", [])
+    assert any("3 hold their plane's spacing" in t.text() for t in toasts)
+
+
 def test_list_widget_generate_constellation_uses_default_template_when_list_empty(qtbot, monkeypatch):
     """With no spacecraft listed, the constellation generator uses a default
     spacecraft."""

@@ -82,11 +82,35 @@ day. With point-mass gravity the pattern is stored as it is. Templates
 **04** and **05** keep the elements they were made with (equal
 osculating ones); generate them again to place them by mean elements.
 
+**Hold each plane's spacing** keeps the satellites in their slots. It
+is offered when the template spacecraft has station keeping, because the
+same thruster and propellant do the phasing:
+
+- each plane's first satellite (`sat-01-01`, `sat-02-01`, ...) is the
+  plane's chief, and keeps only its own station keeping;
+- every other satellite of the plane gets phasing keeping that holds its
+  slot's distance ahead of the chief: slot *k* of *S* holds
+  *a* x *k* x 360/*S* deg of arc, with *a* the pattern's semi-major axis;
+- **Phasing control law** chooses how the distance is held, as for one
+  follower (above);
+- a template that already has phasing keeping keeps its tolerances and
+  windows; only the chief, the distance and the law change.
+
+It needs at least two satellites per plane. With point-mass gravity it
+also needs a small eccentricity, such as 0.001: the controller cannot
+measure the phase of an exactly circular orbit. The phasing error each
+follower records swings by about 2*e* rad over an orbit, the gap between
+true and mean anomaly, and settles once the controller's one-orbit
+smoothing has filled.
+
 From the command line:
 
 ```bash
 spacemissionstudio generate-constellation in.json --out walker.json \
     --total-satellites 12 --planes 3 --phasing-factor 1 --altitude-km 780 --inclination-deg 86.4
+spacemissionstudio generate-constellation in.json --out walker.json \
+    --total-satellites 12 --planes 3 --phasing-factor 1 --altitude-km 550 --inclination-deg 53 \
+    --eccentricity 0.001 --phasing-keeping --phasing-control-law drift_orbit
 spacemissionstudio generate-phasing-formation in.json --out formation.json \
     --chief chief-1 --follower-name follower-1 --along-track-km 50
 ```

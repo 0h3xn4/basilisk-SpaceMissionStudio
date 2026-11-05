@@ -247,14 +247,6 @@ Each item was checked against Basilisk's own source.
 Scoped from real use, with the detail in
 [`HISTORY.md`](../../HISTORY.md):
 
-* **`engine.constellation`'s Walker generator doesn't auto-wire
-  `PhasingKeepingConfig`** for the satellites it produces -- each
-  follower's chief/target-separation still needs setting up by hand in
-  the spacecraft editor afterward. A natural, well-scoped follow-on once
-  that manual step is felt to be tedious in practice: the generator
-  already knows each plane's membership and phase ordering, so it could
-  assign chief = "first satellite in the plane" and a sensible default
-  target separation automatically.
 * **A live NUMERIC link-margin gauge in Vizard** -- still deliberately
   not built: Vizard's `GenericStorage` only accepts Battery/DataStorage/
   FuelTank-shaped messages, and forcing a dB margin value (which can be

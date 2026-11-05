@@ -1672,6 +1672,7 @@ def cmd_generate_constellation(args: argparse.Namespace) -> int:
         central_body=scenario.gravity.central_body, eccentricity=args.eccentricity,
         arg_periapsis_deg=args.arg_periapsis_deg, pattern=args.pattern,
         raan_offset_deg=args.raan_offset_deg, name_prefix=args.name_prefix,
+        phasing_keeping=args.phasing_keeping, phasing_control_law=args.phasing_control_law,
     )
     try:
         generated = generate_walker_constellation(
@@ -1689,6 +1690,10 @@ def cmd_generate_constellation(args: argparse.Namespace) -> int:
 
     print(f"Generated {len(generated)} spacecraft ({args.planes} plane(s), {request.pattern} pattern) "
           f"from template {template.name!r}, wrote {len(scenario.spacecraft)}-spacecraft scenario to {args.out}")
+    if request.phasing_keeping:
+        held = sum(1 for sc in generated if sc.phasing_keeping is not None)
+        print(f"{held} of them hold their separation from their plane's first satellite "
+              f"({request.phasing_control_law})")
     return 0
 
 
@@ -2225,6 +2230,12 @@ def build_parser() -> argparse.ArgumentParser:
                           help="rotates the whole constellation's RAAN reference")
     p_const.add_argument("--name-prefix", type=str, default="sat",
                           help="generated spacecraft are named '{prefix}-{plane:02d}-{slot:02d}'")
+    p_const.add_argument("--phasing-keeping", action="store_true",
+                          help="hold each plane's spacing: the plane's first satellite is the chief, every other "
+                               "one keeps its slot's along-track separation from it (the template needs "
+                               "station-keeping)")
+    p_const.add_argument("--phasing-control-law", choices=PHASING_CONTROL_LAWS,
+                          default="drift_orbit", help="the law that holds the spacing; default drift_orbit")
     p_const.add_argument("--append", action="store_true",
                           help="add the generated satellites to the template scenario's existing spacecraft "
                                "instead of replacing them")
