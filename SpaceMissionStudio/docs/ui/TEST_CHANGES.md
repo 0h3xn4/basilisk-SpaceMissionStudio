@@ -1847,3 +1847,14 @@ new method:
 | Test | Before | Now |
 |---|---|---|
 | `tests/gui/test_idm_devices_gui.py::_editor_result` | a stand-in with `model`, `devices`, `import_record` and `device_import` | also `power_import` (None: no power budget values chosen), which the spacecraft list now asks the editor for |
+
+## IDM-CIC properties as device and battery values (2026-11-05)
+
+No test removed, no assertion weakened, no golden or output file changed
+beyond the one below. The synthetic fixture `tests/data/idm/powersat`
+gained properties on five equipment (its power modes and panel are
+unchanged, and `tests/test_idm_power.py` passes unchanged).
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/test_idm_devices.py::test_by_default_only_what_can_run_is_added` | a battery's reason contains "capacity is not in the file" | contains "the file has no capacity field" | The reason now also says a mapped capacity property can set the power budget's battery; the file still has no capacity field of its own |

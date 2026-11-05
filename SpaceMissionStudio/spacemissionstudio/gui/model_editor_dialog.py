@@ -536,8 +536,11 @@ class ModelEditorDialog(QDialog):
             report(self, f"Cannot import here yet: {problem}. The import writes the model's meshes beside the "
                          "scenario file.", kind="warning")
             return
+        from .. import idm_import
+
         dialog = IdmImportDialog(parent=self, start_dir=self._base_dir,
-                                 devices_allowed=self._devices is not None and self._simulation_mode != "orbit_only")
+                                 devices_allowed=self._devices is not None and self._simulation_mode != "orbit_only",
+                                 mappings=idm_import.recorded_mappings(self._import_record or self._previous_import))
         if dialog.exec() != QDialog.DialogCode.Accepted or dialog.plan() is None:
             return
         try:

@@ -103,6 +103,7 @@ class ImportSummary:
     power_average_w: float | None = None  # [W] duty-cycle average, when the duty cycles add up to one
     panels: tuple = ()  # (solar array panels, total area [m^2], normal lines, the largest group's (+) normal)
     power_set: list = field(default_factory=list)  # what the import set in the power budget, as text
+    properties: list = field(default_factory=list)  # (name, value type, kind labels, values) on the devices found
 
     def lines(self) -> list[str]:
         """The summary as text lines."""
@@ -152,6 +153,12 @@ class ImportSummary:
                        + f"; normal line {normal} in the body frame (+), or its opposite (-)")
         for text in self.power_set:
             out.append(f"  power budget: {text}")
+        if self.properties:
+            out.append(f"  properties of the devices found ({len(self.properties)}): "
+                       + "; ".join(f"{name} ({value_type}) on {', '.join(kinds)}: "
+                                   + (", ".join(values[:3]) + (" ..." if len(values) > 3 else "") if values
+                                      else "no value")
+                                   for name, value_type, kinds, values in self.properties))
         for note in self.notes:
             out.append(f"  note: {note}")
         return out
@@ -172,6 +179,34 @@ class Plan:
     apply_facets: bool = False
     devices: list = field(default_factory=list)  # idm_devices.DeviceFinding, found by name
     power: PowerPlan | None = None
+    mappings: list = field(default_factory=list)  # idm_properties.Mapping, set by set_mappings
+
+
+def set_mappings(the_plan: Plan, mappings) -> None:
+    """Read the properties named in ``mappings`` (``idm_properties.Mapping``)
+    for the devices and the battery of ``the_plan``, and keep the mapping in
+    its record (a ValueError when the mapping is not valid)."""
+    from .idm_properties import check_mappings, mapping_text
+
+    mappings = list(mappings)
+    check_mappings(mappings)
+    the_plan.mappings = mappings
+    if mappings:
+        the_plan.details["property_map"] = mapping_text(mappings)
+    else:
+        the_plan.details.pop("property_map", None)
+
+
+def recorded_mappings(record) -> list:
+    """The property mapping an earlier import (its model record) used, or []."""
+    from .idm_properties import parse_mappings_text
+
+    if record is None:
+        return []
+    try:
+        return parse_mappings_text(record.details.get("property_map", ""))
+    except ValueError:
+        return []  # a mapping this version no longer takes is not reused
 
 
 @dataclass
@@ -195,15 +230,17 @@ class PowerChoice:
     duty-cycle average), or "" (leave it); ``panels`` whether to set the
     panel area and normal from the largest group of panels; ``normal_sign``
     +1 or -1, which side of the group's normal line carries the cells (the
-    file does not say)."""
+    file does not say); ``battery`` whether to set the battery capacity from
+    the batteries' mapped capacity property (:func:`set_mappings`)."""
 
     bus_load: str = ""
     panels: bool = False
     normal_sign: int = 1
+    battery: bool = False
 
     @property
     def any(self) -> bool:
-        return bool(self.bus_load) or self.panels
+        return bool(self.bus_load) or self.panels or self.battery
 
 
 #: Of a power budget an import creates (the panel area set, none there):
@@ -477,6 +514,11 @@ def plan(model: IdmModel, configuration: str | None = None, stowed_configuration
 
     devices = idm_devices.detect(model, placement, body, mounted)
     summary.devices = [(d.equipment, idm_devices.KIND_LABELS[d.kind], d.product) for d in devices]
+    from .idm_properties import properties_by_kind
+
+    rows = properties_by_kind((d.kind, d.properties) for d in devices)
+    summary.properties = [(name, value_type, sorted(idm_devices.KIND_LABELS[k] for k in kinds), texts)
+                          for name, value_type, kinds, texts in rows.values()]
     power_plan = _power_plan(model, placement, body, mounted, devices)
     summary.power_modes = [(p.mode.name, p.total_w, p.mode.duty_cycle) for p in power_plan.modes]
     summary.power_average_w = power_plan.average_w
@@ -525,7 +567,31 @@ def power_values(the_plan: Plan, choice: PowerChoice) -> dict:
         sign = -1.0 if choice.normal_sign < 0 else 1.0
         values["panel_area_m2"] = area
         values["panel_normal_b"] = [0.0 if v == 0.0 else _tidy(sign * v) for v in normal]
+    if choice.battery:
+        capacity, _ = battery_capacity(the_plan)
+        if capacity is None:
+            raise IdmError("no battery capacity in the model: map the batteries' capacity property to "
+                           "battery.capacity_wh, with its unit")
+        values["battery_capacity_wh"] = capacity
     return values
+
+
+def battery_capacity(the_plan: Plan) -> tuple[float | None, list]:
+    """The total capacity [W*h] of the batteries found, from the mapped
+    capacity property of each (None when no battery gives one), and how
+    each was read."""
+    from .idm_properties import mapped_values
+
+    total, read = None, []
+    for finding in the_plan.devices:
+        if finding.kind != "battery":
+            continue
+        values, _ = mapped_values("battery", finding.properties, the_plan.mappings)
+        for value in values:
+            if value.target.param == "capacity_wh":
+                total = (total or 0.0) + value.value
+                read.append(f"{finding.equipment}: {value.describe()}")
+    return (_tidy(total) if total is not None else None), read
 
 
 def power_details(the_plan: Plan, choice: PowerChoice) -> dict:
@@ -547,6 +613,9 @@ def power_details(the_plan: Plan, choice: PowerChoice) -> dict:
                              f"by the user ({'+' if choice.normal_sign >= 0 else '-'})")
         if len(power_plan.groups) > 1:
             details["panels"] += f"; {len(power_plan.groups) - 1} other normal line(s) left out"
+    if choice.battery:
+        _, read = battery_capacity(the_plan)
+        details["battery"] = f"{len(read)} battery unit(s), added up: " + "; ".join(read)
     return details
 
 
@@ -576,10 +645,12 @@ def apply_power(scenario, spacecraft: str, the_plan: Plan, choice: PowerChoice, 
                                          "panel area (choose the solar array panels too, or turn its power budget on)")
             return {}
         sc.power = PowerConfig(panel_area_m2=values["panel_area_m2"], panel_efficiency=DEFAULT_PANEL_EFFICIENCY)
-        values.update({name: getattr(sc.power, name) for name in POWER_DEFAULT_FIELDS})
-        details["defaults"] = ", ".join(POWER_DEFAULT_FIELDS)
-        lines.append("made (it had none); panel efficiency and battery are the editor's defaults for a new power "
-                     "budget, not the file's: set them")
+        defaults = [name for name in POWER_DEFAULT_FIELDS if name not in values]
+        values.update({name: getattr(sc.power, name) for name in defaults})
+        if defaults:
+            details["defaults"] = ", ".join(defaults)
+        lines.append(f"made (it had none); {', '.join(n.replace('_', ' ') for n in defaults)} are the editor's "
+                     "values for a new power budget, not the file's: set them")
     for name, value in values.items():
         setattr(sc.power, name, list(value) if isinstance(value, list) else value)
     if "bus_idle_power_w" in values:
@@ -587,6 +658,8 @@ def apply_power(scenario, spacecraft: str, the_plan: Plan, choice: PowerChoice, 
     if "panel_area_m2" in values:
         lines.append(f"panel area {values['panel_area_m2']:.6g} m^2, normal {values['panel_normal_b']} in the body "
                      "frame")
+    if choice.battery:
+        lines.append(f"battery capacity {values['battery_capacity_wh']:.6g} W*h ({details['battery']})")
     previous = next((r for r in scenario.imports if (r.spacecraft, r.target) == (spacecraft, "power")), None)
     record_values = dict(previous.values) if previous is not None else {}
     record_details = dict(previous.details) if previous is not None else {}
@@ -644,7 +717,8 @@ def add_devices(scenario, spacecraft: str, the_plan: Plan, choices, author: str 
         findings.append(finding)
         kept_choices.append(choice)
     taken = {d.name for d in list(sc.sensors) + list(sc.actuators)}
-    result = idm_devices.keep_fitting(sc, idm_devices.build_devices(findings, kept_choices, taken))
+    result = idm_devices.keep_fitting(sc, idm_devices.build_devices(findings, kept_choices, taken,
+                                                                    the_plan.mappings))
     result.skipped[:0] = skipped
     sc.sensors = list(sc.sensors) + result.sensors
     sc.actuators = list(sc.actuators) + result.actuators

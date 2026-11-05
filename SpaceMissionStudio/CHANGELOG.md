@@ -22,7 +22,7 @@ fixes bugs.
   distance had to be set by hand
   ([Build a constellation](docs/user-manual/orbit-keeping-and-formations.md#build-a-constellation)).
 - **The IDM-CIC import finds the sensors and actuators.** The import
-  dialog lists under **Devices found** each equipment whose name (English
+  dialog's **Devices found** tab lists each equipment whose name (English
   or French) names a star tracker, gyro, sun sensor, magnetometer,
   reaction wheel, magnetorquer, thruster, solar array or battery, with
   its place and axis on the spacecraft. The ones you tick are added to
@@ -40,7 +40,7 @@ fixes bugs.
   modes, the power of the imported equipment in it (through the element
   modes or the direct mappings, custom powers included), and the
   duty-cycle average when the duty cycles add up to one. In the import
-  dialog's **Power** section you can set the bus load from one system
+  dialog's **Power** tab you can set the bus load from one system
   mode or the average, and the panel area and normal from the solar
   arrays' flat panels, choosing which side carries the cells. Nothing is
   set unless you tick it. A power budget the import makes takes the
@@ -48,6 +48,18 @@ fixes bugs.
   until you set them (`import.power_defaults`). `idm-import --bus-load
   MODE|average --solar-panels +|-` does the same from the command line
   ([Power from the model](docs/user-manual/idm-cic.md#power-from-the-model)).
+- **The IDM-CIC import reads your team's own properties.** The import
+  dialog's new **Properties** tab lists the properties the devices'
+  equipment carry in the model ("Max torque", "Capacity", "Field of
+  view"...). Map one to a value and say its unit, and the device takes
+  it: a reaction wheel or magnetorquer whose properties give every value
+  it needs is added without a catalog product, and the batteries'
+  capacity can set the power budget's battery. Nothing is read from a
+  property that is not mapped, and a unit is offered only when the
+  property's type says it. The mapping is kept for the next import of
+  the model. `idm-import --property-map 'NAME=KIND.PARAM[UNIT]'` and
+  `--battery` do the same from the command line
+  ([Values from your team's properties](docs/user-manual/idm-cic.md#values-from-your-teams-properties)).
 
 ## 2.2.0 (2026-11-05)
 

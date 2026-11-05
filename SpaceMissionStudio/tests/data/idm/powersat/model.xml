@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   A small synthetic model in the IDM-CIC file layout, written for
-  SpaceMissionStudio's power import tests (tests/test_idm_power.py): the
-  device test model (devicesat) with made-up power modes, system modes, an
-  element mode and a flat solar array panel. Every name and value is made
+  SpaceMissionStudio's power and property import tests
+  (tests/test_idm_power.py, tests/test_idm_properties.py): the device test
+  model (devicesat) with made-up power modes, system modes, an element mode,
+  a flat solar array panel, and properties on some equipment (own
+  properties, and an additional property defined on the system). Every name and value is made
   up, and nothing in it comes from IDM-CIC's examples
   (docs/developer/idm-cic-integration.md).
 -->
@@ -68,6 +70,20 @@
 </SystemMode>
 </Array>
 </systemModes>
+<additionalPropertyDefinitions maxId="0">
+<Array>
+<AdditionalPropertyDefinition id="CAP" fullId="add.CAP">
+<name>Capacity</name>
+<idmObjectType>Equipment</idmObjectType>
+<valueType>DecimalWithoutUnit</valueType>
+<additionalPropertyValues>
+<Array>
+<AdditionalPropertyValue ref="el.1_ss.PWR_eq.12_addProp.CAP" />
+</Array>
+</additionalPropertyValues>
+</AdditionalPropertyDefinition>
+</Array>
+</additionalPropertyDefinitions>
 <elements maxId="1">
 <Array>
 <Element id="1" fullId="el.1">
@@ -148,6 +164,25 @@
 </PowerMode>
 </Array>
 </powerModes>
+<properties maxId="0">
+<Array>
+<Property id="P1" fullId="el.1_ss.AOCS_eq.5_prop.P1">
+<name>Max torque</name>
+<valueType>DecimalWithoutUnit</valueType>
+<value>15</value>
+</Property>
+<Property id="P2" fullId="el.1_ss.AOCS_eq.5_prop.P2">
+<name>Wheel inertia</name>
+<valueType>DecimalWithoutUnit</valueType>
+<value>0,0021</value>
+</Property>
+<Property id="P3" fullId="el.1_ss.AOCS_eq.5_prop.P3">
+<name>Speed range</name>
+<valueType>Distance</valueType>
+<value>6</value>
+</Property>
+</Array>
+</properties>
 </Equipment>
 <Equipment id="6" fullId="el.1_ss.AOCS_eq.6">
 <name>Roue Y</name>
@@ -157,6 +192,19 @@
 <manualMass>1,2</manualMass>
 <isOptional>False</isOptional>
 <defaultEnabledValue>True</defaultEnabledValue>
+<properties maxId="0">
+<Array>
+<Property id="P1" fullId="el.1_ss.AOCS_eq.6_prop.P1">
+<name>Max torque</name>
+<valueType>DecimalWithoutUnit</valueType>
+<value>15</value>
+</Property>
+<Property id="P2" fullId="el.1_ss.AOCS_eq.6_prop.P2">
+<name>Wheel inertia</name>
+<valueType>DecimalWithoutUnit</valueType>
+</Property>
+</Array>
+</properties>
 </Equipment>
 <Equipment id="7" fullId="el.1_ss.AOCS_eq.7">
 <name>Magnétocoupleur Z MTQ800</name>
@@ -184,6 +232,15 @@
 <manualMass>0,03</manualMass>
 <isOptional>False</isOptional>
 <defaultEnabledValue>True</defaultEnabledValue>
+<properties maxId="0">
+<Array>
+<Property id="P1" fullId="el.1_ss.AOCS_eq.9_prop.P1">
+<name>Field of view</name>
+<valueType>Angle</valueType>
+<value>120</value>
+</Property>
+</Array>
+</properties>
 </Equipment>
 <Equipment id="10" fullId="el.1_ss.AOCS_eq.10">
 <name>Gyro unit</name>
@@ -207,6 +264,15 @@
 </PowerMode>
 </Array>
 </powerModes>
+<properties maxId="0">
+<Array>
+<Property id="P1" fullId="el.1_ss.AOCS_eq.10_prop.P1">
+<name>ARW</name>
+<valueType>DecimalWithoutUnit</valueType>
+<value>0,005</value>
+</Property>
+</Array>
+</properties>
 </Equipment>
 <Equipment id="11" fullId="el.1_ss.AOCS_eq.11">
 <name>Magnetometer 1</name>
@@ -476,6 +542,16 @@
 <manualMass>4</manualMass>
 <isOptional>False</isOptional>
 <defaultEnabledValue>True</defaultEnabledValue>
+<additionalPropertyValues maxId="0">
+<Array>
+<AdditionalPropertyValue id="CAP" fullId="el.1_ss.PWR_eq.12_addProp.CAP">
+<additionalPropertyDefinition>
+<AdditionalPropertyDefinition ref="add.CAP" />
+</additionalPropertyDefinition>
+<value>85</value>
+</AdditionalPropertyValue>
+</Array>
+</additionalPropertyValues>
 </Equipment>
 <Equipment id="13" fullId="el.1_ss.PWR_eq.13">
 <name>Solar array wing</name>

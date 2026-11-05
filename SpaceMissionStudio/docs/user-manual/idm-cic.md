@@ -90,7 +90,7 @@ and `--out`.
 An IDM-CIC model says what each equipment is called, which subsystem it
 belongs to, its mass and where it sits. It does not say how the
 equipment performs. The import reads the names, in English or French
-(accents ignored), and the dialog lists under **Devices found** each
+(accents ignored), and the dialog's **Devices found** tab lists each
 equipment whose name names a device:
 
 | Found | Names such as | Added? |
@@ -123,14 +123,16 @@ For each device, the table offers:
 
 Nothing is estimated. A star tracker, gyro, sun sensor or magnetometer
 without a product runs with Basilisk's defaults for its kind, and the
-pre-run checks say so for each one until you set its values or choose a
-product (`import.device_defaults`). A reaction wheel or magnetorquer is
-added only with a product: Basilisk cannot build one without its torque
-and inertia, or its dipole, which the file does not give. Thrusters,
-solar arrays and batteries are listed but not added: a thruster's
-direction and thrust and a battery's capacity are not in the file, and
-the Power page takes one panel area for the whole spacecraft (the solar
-arrays' panels can set it: see
+pre-run checks say so for each one until you set its values, choose a
+product or map a property that gives them (`import.device_defaults`). A
+reaction wheel or magnetorquer is added only with a product, or with
+properties that give its torque and inertia, or its dipole: Basilisk
+cannot build one without them, and the file has no field for them (see
+[Values from your team's properties](#values-from-your-teams-properties)).
+Thrusters, solar arrays and batteries are listed but not added: a
+thruster's direction and thrust are not in the file, and the Power page
+takes one panel area and one battery for the whole spacecraft (the solar
+arrays' panels and the batteries' capacity property can set them: see
 [Power from the model](#power-from-the-model)).
 
 A device the spacecraft cannot take as it is (a magnetorquer without
@@ -163,7 +165,7 @@ with power modes that a system mode does not put in any is counted as
 0 W there, and the import record says how many there were. Powers are in
 watts.
 
-The import dialog's **Power** section sets, if you tick them:
+The import dialog's **Power** tab sets, if you tick them:
 
 - **Set the bus load from** a system mode (or the duty-cycle average):
   the power budget's constant bus load becomes that total. The power
@@ -175,11 +177,15 @@ The import dialog's **Power** section sets, if you tick them:
   layers), added up for the panels along one normal line, and the
   normal is that line in the body frame. The file does not say which
   side carries the cells, so you choose it (+ or -). Panels along other
-  lines are left out, and the summary says how many lines there were.
+  lines are left out, and the summary says how many lines there were;
+- **Set the battery capacity** from the batteries' capacity property,
+  added up, once you have mapped it on the **Properties** tab (see
+  [Values from your team's properties](#values-from-your-teams-properties)).
 
 Nothing is set unless you tick it. If the spacecraft has no power
 budget, setting the panels makes one, with the spacecraft editor's panel
-efficiency and battery: the file does not give them, and the pre-run
+efficiency and battery (the battery's capacity from the file when you
+set it): the file does not give them, and the pre-run
 checks say so until you set them on the Power page
 (`import.power_defaults`). A bus load alone needs a power budget to put
 it in. The values are set when you click **OK** in the 3D model editor;
@@ -191,8 +197,60 @@ number of equipment, the panels and the side you chose), and **Scenario
 imported values.
 
 From the command line, `idm-import --bus-load MODE` (a system mode's
-name, or `average`) and `--solar-panels +` or `-` do the same, and
-`idm-info` lists the system modes with their totals and the panels.
+name, or `average`), `--solar-panels +` or `-` and `--battery` do the
+same, and `idm-info` lists the system modes with their totals and the
+panels.
+
+## Values from your team's properties
+
+A team often keeps performance values in its IDM-CIC model as
+**properties** of the equipment, its own or from its templates: "Max
+torque" on a reaction wheel, "Capacity" on a battery, "Field of view" on
+a sun sensor. Their names are the team's, and their values mostly carry
+no unit ("12" may be mN·m or N·m), so the import reads none of them on
+its own. The import dialog's **Properties** tab lists each property name
+found on the devices' equipment, with its type, the devices that carry
+it and its values. For each one you want, choose:
+
+- **Use as**: the value it gives, among those its devices take;
+- **Unit**: the unit its values are in.
+
+| Use as | Units |
+|---|---|
+| Reaction wheel: maximum torque | N·m, mN·m |
+| Reaction wheel: inertia about the spin axis | kg·m², g·cm² |
+| Reaction wheel: maximum speed | RPM, rad/s |
+| Reaction wheel: maximum momentum | N·m·s, mN·m·s |
+| Magnetorquer: maximum dipole | A·m² |
+| Star tracker: attitude noise (1-sigma) | arcsec, deg, rad |
+| Gyro / IMU: rate noise (1-sigma) | rad/s, deg/s, deg/h |
+| Sun sensor: full field of view | deg, rad |
+| Battery: capacity | W·h, kW·h |
+
+A unit is offered only when the property's type has the value's
+dimension (an angle for a field of view, in degrees, the format's own
+unit for angles); a property typed as something else (a speed typed as a
+distance happens) or untyped has none, and you choose.
+
+A device then takes the mapped values, over its catalog product's when
+one is chosen. A reaction wheel or magnetorquer that its properties give
+every value it needs (torque and inertia, or torque, maximum speed and
+momentum; a dipole) can be added without a product, and is ticked for
+you. A wheel takes its inertia or its maximum momentum, not both: map
+one, and it replaces the other a product gives. A property mapped but
+empty on an equipment is noted in its row and gives nothing. The import
+record says, for each device, which values came from which property, in
+which unit.
+
+The mapping is kept with the import, so a newer version of the model is
+read the same way, and the dialog shows it next time.
+
+From the command line, give each mapping as
+`--property-map 'NAME=KIND.PARAM[UNIT]'`, for example
+`--property-map 'Max torque=reaction_wheel.u_max[mN*m]'`. Without the
+option, the mapping of the spacecraft's last import is used;
+`--property-map none` drops it. `idm-info` lists the properties found and
+the values they can give.
 
 ## What is approximated
 
