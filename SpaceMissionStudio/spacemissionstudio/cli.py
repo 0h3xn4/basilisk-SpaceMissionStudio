@@ -1532,7 +1532,8 @@ def cmd_idm_import(args: argparse.Namespace) -> int:
         power_choice = idm_import.PowerChoice(args.bus_load or "", args.solar_panels is not None,
                                               -1 if args.solar_panels == "-" else 1, args.battery)
         idm_import.power_values(the_plan, power_choice)  # what the file does not give stops here, before the merge
-        summary = idm_import.merge(scenario, args.spacecraft, the_plan, out, author=history.current_author())
+        summary = idm_import.merge(scenario, args.spacecraft, the_plan, out, author=history.current_author(),
+                                   origin=args.origin)
         if args.devices and scenario.simulation_mode == "orbit_only":
             summary.notes.append("--devices: this scenario runs orbit only, which simulates no sensors or "
                                  "actuators: none added")
@@ -2199,6 +2200,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_idm_in.add_argument("--apply-facets", action="store_true",
                           help="also build drag and solar pressure facets from the imported boxes, cylinders, cones "
                                "and spheres (off by default: the file gives no surface coefficients)")
+    p_idm_in.add_argument("--origin", choices=("element", "cog"),  # idm_import.ORIGINS
+                          help="where the origin of the spacecraft's body frame goes: 'element', the body "
+                               "element's frame as in IDM-CIC, or 'cog', the centre of gravity of the model (every "
+                               "position of the spacecraft is moved with it); default: where the last import put "
+                               "it, else 'element'")
     p_idm_in.add_argument("--devices", action="store_true",
                           help="also add the sensors and actuators found by name (star trackers, gyros, sun "
                                "sensors, magnetometers, reaction wheels, magnetorquers), each along the axis its shapes show "

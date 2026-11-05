@@ -381,6 +381,7 @@ decision of this project, reversible when better information comes.
 | IDM-28 | **Mapped values go over a product's**, and complete a wheel or magnetorquer without one when they give every required value (`idm_devices.complete`). A wheel's mapped inertia drops a product's maximum momentum and the reverse. A device with mapped values and no product is recorded as "properties: Basilisk's defaults for the rest", which `import.device_defaults` does not flag. | The user stated the values; Basilisk's wheel factory stops the process when given both inertia and momentum. |
 | IDM-29 | **The battery capacity** is the sum of the batteries' mapped capacity, set only when the user chooses it (`PowerChoice.battery`); a power budget the import makes with it lists only the rest as the editor's values. **The mapping is kept** in the model import record (`property_map`) and reused by the next import (CLI without `--property-map`, the dialog's initial rows). | The power model has one battery; a newer model version should read the same way without re-entering the mapping. |
 | IDM-30 | **A device's axis from its shapes** (section 18): its largest cone (a field of view, often on a layer hidden by default), from the narrow end toward the wide one, with its full angle as the mount's field of view; else, for a reaction wheel or a magnetorquer, its largest cylinder's axis, along the cylinder's +z; else +z of its frame (IDM-20). Only for the kinds that are added: a thruster's cone is its plume. The user can choose an axis of the frame instead. The angle is read from the cone's radii and height as the model gives them, not from its mesh. The simulated values (a sun sensor's `fov_deg`) are not set from the drawing. | The file has no boresight field, but a team draws a sensor's field of view as a cone and builds a wheel or a rod as a cylinder; their axes are the device's. In the samples the star tracker's cone (30 deg) and the wheels' cylinders give the axes the +z rule gave, and the magnetorquers' cylinders are turned inside their equipment, so +z had given each of them a wrong axis. A drawn cone may be a margin or a keep-out zone rather than the sensor's specification, so it is shown and recorded, not simulated. |
+| IDM-31 | **The origin of the body frame** (section 19): the body element's own origin by default; on request, the computed centre of gravity of the merged model (propellant as the configuration fills it), rounded to the micrometre. Moving the origin moves every position of the spacecraft measured from it (`model3d.origin.move_origin`: the model's parts, mounted equipment, stowed poses, launcher plane and typed centre of mass; the devices' mounts and `r_B`/`rWB_B`, the RF antenna, facets, fuel tank, solar array hinges and Vizard offset), the import records' positions (`shift_record_values`) and the plan's devices. The model record keeps the choice and the origin's place in the element frame (`origin`, `origin_offset_m`); the next import takes the recorded choice unless told otherwise, and recentres at the centre of gravity of that model. | The user asked for the centre of gravity to be the origin. Basilisk takes a centre of mass away from B (`r_BcB_B`), so the results do not depend on it; the element's frame keeps positions as the team reads them in IDM-CIC. Rounding the move to the micrometre keeps an unchanged model's re-import unchanged and a move there and back exact (to 1e-10 m). Moving the records as well keeps the re-import's "edited since" test comparing like with like. |
 | IDM-23 | **Re-import of devices** adds only the units no earlier import added a device for (the record names each device's unit); devices already added are left as they are. | A device's values are the user's once added; the record keeps what was imported for comparison. |
 
 Validation (question 10) remains open: no example stores IDM-CIC's own
@@ -533,3 +534,42 @@ column offers "from the model" first, with the shape and the vector in
 its tooltip; `idm-import --devices` takes the default choices. The
 synthetic fixture `tests/data/idm/axessat` covers each rule, with every
 expected axis worked out by hand in `tests/test_idm_device_axes.py`.
+
+## 19. The origin of the body frame
+
+Added after the user asked whether the imported spacecraft's centre of
+gravity is the origin of the satellite frame. It was not: the origin is
+the body element's own (IDM-05), and the centre of gravity, computed
+from the parts and point masses, became the spacecraft's
+`center_of_mass_b_m` (Basilisk's `r_BcB_B`), 0.35 m and 0.39 m from the
+origin in the two example satellites. The results do not depend on it,
+but a team may want the frame at the centre of gravity. Decision IDM-31:
+
+- `idm_import.merge(..., origin=None|"element"|"cog")`: the plan is
+  first measured from where the last import put the origin (the model
+  record's `origin_offset_m`, `shift_plan`), so the re-import's
+  comparisons hold; after the merge, `d` is the centre of gravity of the
+  derived model ("cog", to the micrometre) or the way back to the element
+  frame ("element"), and `model3d.origin.move_origin(sc, d)` moves the
+  spacecraft, `shift_record_values` the new model record and the other
+  records of the spacecraft (devices), and `shift_plan` the plan's
+  devices, which `add_devices` places next. With no mass there is no
+  centre of gravity: the origin stays and a note says so.
+- `ImportSummary.origin`, `origin_m`, `origin_moved_m`, `origin_moved`
+  and `center_of_mass_m` give the summary's lines.
+- In the GUI the import dialog's **Origin of the body frame** starts from
+  the recorded choice; the 3D model editor moves its model and the
+  devices' mounts it holds, and keeps the total move (`origin_shift`);
+  the spacecraft list (`move_spacecraft_origin` on the new config) and
+  the spacecraft dialog (`_move_origin`: its form's lists, tank, Vizard
+  offset and pending devices record) move the rest on OK, before the
+  editor's mounts are copied back.
+- On the command line, `idm-import --origin element|cog`.
+
+`tests/test_idm_origin.py` checks every moved field, the record values,
+the origin at the centre of gravity of demosat (against the hand
+calculation of `tests/test_idm_import.py`, to 2 micrometres: the plate's
+hole is a polygon) with its re-import and its way back, the devices of
+devicesat through the command line, and a massless model;
+`tests/gui/test_idm_origin_gui.py` the dialog, the editor and both ways
+the spacecraft's other positions are moved.

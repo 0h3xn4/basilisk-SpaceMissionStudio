@@ -20,13 +20,16 @@ for the tool's inputs, results and exchanged data.
 
 It was prepared during the ECSS/CCSDS audit (remediation R02 implemented
 the frame and time layer; R14 wrote this document). It applies to versions
-1.1.0 to 2.3.0 of the tool (1.1.1 changes only the packaging, 1.2.0,
+1.1.0 to 2.4.0 of the tool (1.1.1 changes only the packaging, 1.2.0,
 1.3.0 and 1.3.1 only the GUI, 2.1.0 adds analyses in the body frame and
 no frame or time conversion, 2.1.1 only fixes the GUI and the IDM-CIC
 import, 2.2.0 makes the CCSDS files the command line already wrote and
 read available in the GUI, 2.3.0 adds IDM-CIC values in the body
 frame and the Walker phasing generator, with no frame or time
-conversion; 2.0.0 computes the Earth's rotation angle
+conversion, 2.4.0 device axes in the body frame from the model's
+shapes and, on request, the body frame's origin moved to the centre of
+gravity (a translation of every position from B: its axes, and every
+direction, unchanged), with no conversion either; 2.0.0 computes the Earth's rotation angle
 of the pass predictions and GEO elements with the leap seconds of the
 date, as the simulation already did, and takes the physical constants
 from one set, Basilisk's: `docs/changes.md`, 2026-10-30).

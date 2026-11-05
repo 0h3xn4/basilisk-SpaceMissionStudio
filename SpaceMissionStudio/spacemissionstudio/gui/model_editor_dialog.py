@@ -239,6 +239,7 @@ class ModelEditorDialog(QDialog):
         self._import_record = None
         self._device_import = None  # (plan, device choices) of an IDM-CIC import: device_import()
         self._power_import = None  # (plan, power choice) of an IDM-CIC import: power_import()
+        self._origin_shift = [0.0, 0.0, 0.0]  # [m] how far imports here moved the origin: origin_shift()
         self._devices = None if devices is None else SimpleNamespace(
             sensors=copy.deepcopy(list(devices.sensors)), actuators=copy.deepcopy(list(devices.actuators)),
             rf_link=copy.deepcopy(devices.rf_link), comms_pointing=copy.deepcopy(getattr(devices, "comms_pointing",
@@ -540,11 +541,12 @@ class ModelEditorDialog(QDialog):
 
         dialog = IdmImportDialog(parent=self, start_dir=self._base_dir,
                                  devices_allowed=self._devices is not None and self._simulation_mode != "orbit_only",
-                                 mappings=idm_import.recorded_mappings(self._import_record or self._previous_import))
+                                 mappings=idm_import.recorded_mappings(self._import_record or self._previous_import),
+                                 origin=idm_import.recorded_origin(self._import_record or self._previous_import)[0])
         if dialog.exec() != QDialog.DialogCode.Accepted or dialog.plan() is None:
             return
         try:
-            summary = self.import_idm(dialog.plan(), dialog.device_choices(), dialog.power_choice())
+            summary = self.import_idm(dialog.plan(), dialog.device_choices(), dialog.power_choice(), dialog.origin())
         except (OSError, ValueError) as exc:
             report(self, f"Could not import the model: {exc}")
             return
@@ -558,7 +560,7 @@ class ModelEditorDialog(QDialog):
         box.setDetailedText("\n".join(summary.lines()))
         box.exec()
 
-    def import_idm(self, plan, device_choices=None, power_choice=None):
+    def import_idm(self, plan, device_choices=None, power_choice=None, origin=None):
         """Merge an IDM-CIC import plan (``idm_import.plan``) into the model
         (``idm_import.merge``); keeps its record for :meth:`import_record`
         and returns the summary. Needs the scenario's folder. The devices
@@ -566,7 +568,10 @@ class ModelEditorDialog(QDialog):
         device found) are added by the spacecraft's editor on OK
         (:meth:`device_import`), which holds the whole spacecraft; so are
         the power budget values chosen (``power_choice``, an
-        ``idm_import.PowerChoice``: :meth:`power_import`)."""
+        ``idm_import.PowerChoice``: :meth:`power_import`). ``origin`` (one
+        of ``idm_import.ORIGINS``; None: as the last import) is where the
+        body frame's origin goes: the model and the devices' mounts here move
+        with it, and the rest of the spacecraft on OK (:meth:`origin_shift`)."""
         from .. import history, idm_import
 
         problem = self._write_problem()
@@ -578,8 +583,14 @@ class ModelEditorDialog(QDialog):
         shim = SimpleNamespace(spacecraft=[holder], imports=[previous] if previous is not None else [])
         summary = idm_import.merge(shim, self._spacecraft_name, plan, self._base_dir / "scenario.json",
                                    author=history.current_author(),
-                                   orbit_only=self._simulation_mode == "orbit_only")
+                                   orbit_only=self._simulation_mode == "orbit_only", origin=origin)
         self._import_record = shim.imports[-1]
+        if summary.origin_moved_m:
+            from ..model3d.origin import move_mounts
+
+            if self._devices is not None:  # their mounts are edited here: they move with the model
+                move_mounts(self._devices, summary.origin_moved_m)
+            self._origin_shift = [a + b for a, b in zip(self._origin_shift, summary.origin_moved_m, strict=True)]
         if device_choices is not None and any(choice.add for choice in device_choices):
             self._device_import = (plan, list(device_choices))
         if power_choice is not None and power_choice.any:
@@ -590,6 +601,12 @@ class ModelEditorDialog(QDialog):
         self.equipment_tab.refresh()
         self._schedule()
         return summary
+
+    def origin_shift(self) -> list | None:
+        """[m] How far the IDM-CIC imports made here moved the origin of the
+        body frame (None for not at all): the rest of the spacecraft moves by
+        it on OK (``model3d.origin.move_spacecraft_origin``)."""
+        return list(self._origin_shift) if any(self._origin_shift) else None
 
     def import_record(self):
         """The record of an IDM-CIC import made here (``ImportRecord``), or None."""

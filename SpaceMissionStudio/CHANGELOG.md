@@ -8,7 +8,17 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 2.4.0 (2026-11-05)
+
+Each device's axis from the IDM-CIC model, and the body frame's origin
+at the centre of gravity. The import already placed a sensor or actuator
+as its equipment is placed, so a wheel of a pyramid kept its tilt; it
+now also reads which way the device points or spins from the shapes the
+team drew: a field-of-view cone, a wheel's or a magnetorquer's cylinder.
+And the origin of the spacecraft's body frame can now be put at the
+model's centre of gravity, everything on the spacecraft moving with it.
+Nothing the tool computes for an existing scenario changes: every
+template gives the same results as in 2.3.0.
 
 ### Added
 
@@ -24,6 +34,52 @@ fixes bugs.
   the shape and the vector in its tooltip; a device whose shapes show no
   axis keeps +z, and any axis of the equipment's frame can still be
   chosen. `idm-import --devices` uses the model's axes.
+- **The origin of the body frame at the centre of gravity.** The IDM-CIC
+  import keeps the body element's origin, as in IDM-CIC, unless you
+  choose **Origin of the body frame: The centre of gravity** (or
+  `idm-import --origin cog`): the origin then goes to the model's centre
+  of gravity, propellant included, and every position of the spacecraft
+  moves with it, those you typed in too (sensors, thrusters, wheels,
+  facets, the tank, the solar array hinges, the launcher plane). The
+  choice is kept, so the next import of a newer model recentres it. The
+  summary now always says how far the centre of gravity is from the
+  origin. The results are the same either way: the simulation already
+  took the centre of gravity's offset from the origin into account
+  ([The origin of the body frame](docs/user-manual/idm-cic.md#the-origin-of-the-body-frame)).
+
+### Who should update
+
+- **Teams using IDM-CIC models:** devices imported with 2.3.0 along +z
+  may point the wrong way when the model turns a shape inside its
+  equipment (a magnetorquer's rod, for example). A re-import leaves the
+  devices already added as they are, so check their axes (the spacecraft's
+  **Sensors / actuators** page); the import dialog's tooltip on **Axis** gives
+  the model's vector for each.
+- **Teams who want the body frame at the centre of gravity:** import
+  the model again with **The centre of gravity**; everything on the
+  spacecraft moves with the origin. Update the team together: 2.3.0
+  opens such a file, but re-importing its model in 2.3.0 puts the parts
+  back in IDM-CIC's frame and not the rest.
+- **Everyone else can update when convenient:** results, templates and
+  the files the tool writes are as in 2.3.0, and 2.3.0 and 2.4.0 open
+  each other's files.
+- **The installers:** on Linux, `apt install
+  ./spacemissionstudio_2.4.0_amd64.deb` replaces 2.3.0; on Windows, run
+  the 2.4.0 setup over 2.3.0.
+
+### Known limits
+
+As in 2.3.0, except that a device's axis now comes from its shapes when
+they show one; else it is +z of its equipment frame. The centre of
+gravity the origin goes to is the model's as imported, to the
+micrometre; a position typed in a form with fewer decimals (the fuel
+tank's, to the millimetre) moves to that precision. A field-of-view
+cone's angle is shown in the 3D view, but it does not set a sun sensor's
+simulated field of view, since a drawn cone may be a margin
+([Limitations](docs/reference/limitations.md)). The bundled space
+weather is still 1.3.0's (observations to 2026-10-24, CelesTrak's
+forecast to 2026-12-07; CelesTrak could not be reached for this release
+either): fetch the current file before a drag study.
 
 ## 2.3.0 (2026-11-05)
 

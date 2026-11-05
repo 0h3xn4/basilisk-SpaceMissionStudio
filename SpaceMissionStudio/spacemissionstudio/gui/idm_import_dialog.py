@@ -92,7 +92,7 @@ class IdmImportDialog(QDialog):
     PROPERTY_COLUMNS = ("Property", "Type", "On", "Values", "Use as", "Unit", "Note")
 
     def __init__(self, path=None, parent: QWidget | None = None, start_dir=None, devices_allowed: bool = True,
-                 mappings=None):
+                 mappings=None, origin: str = "element"):
         super().__init__(parent)
         self._initial_mappings = list(mappings or [])  # an earlier import's (idm_import.recorded_mappings)
         self._mapping_problem = ""
@@ -136,6 +136,17 @@ class IdmImportDialog(QDialog):
         self.facets_check.setToolTip("Off by default: the file gives no surface coefficients, so the parts keep "
                                      "the default ones")
         form.addRow("", self.facets_check)
+        self.origin_combo = ComboBox()
+        self.origin_combo.addItem("The body element's frame (as in IDM-CIC)", "element")
+        self.origin_combo.addItem("The centre of gravity", "cog")
+        self.origin_combo.setCurrentIndex(max(0, self.origin_combo.findData(origin)))
+        self.origin_combo.setToolTip(
+            "Where the origin of the spacecraft's body frame goes. The body element's frame keeps every position as "
+            "in IDM-CIC; the centre of gravity (of the model as imported, propellant included) moves the origin "
+            "there, and every position of the spacecraft with it: parts, point masses, sensors, actuators, thrusters, "
+            "facets, the tank, the solar array hinges, the launcher plane. Either way the run is the same: the "
+            "simulation takes the centre of gravity from the origin. The choice is kept for the next import.")
+        form.addRow("Origin of the body frame", self.origin_combo)
         layout.addLayout(form)
         layout.addWidget(QLabel("What the import will do"))
         self.preview = QPlainTextEdit()
@@ -527,6 +538,10 @@ class IdmImportDialog(QDialog):
         add.setEnabled(self._devices_allowed and finding.addable and not why)
         self.devices_table.item(row, 6).setText(text)
         self.devices_table.item(row, 6).setToolTip(text)  # the column cuts long notes
+
+    def origin(self) -> str:
+        """Where the body frame's origin goes: one of ``idm_import.ORIGINS``."""
+        return self.origin_combo.currentData()
 
     def device_choices(self) -> list:
         """One ``idm_devices.DeviceChoice`` per device found, as shown."""

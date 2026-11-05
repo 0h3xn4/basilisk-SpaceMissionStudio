@@ -203,6 +203,10 @@ Each item was checked against Basilisk's own source.
     mount's field of view, shown in the 3D view; it does not set a sun
     sensor's simulated field of view, since a drawn cone may be a
     margin rather than the specification.
+  * The body frame's origin is the body element's own unless the user
+    puts it at the centre of gravity of the model as imported (to the
+    micrometre); a position typed in a form that shows fewer decimals
+    (the fuel tank's, to the millimetre) is moved to that precision.
   * Model versions 3.4 and 3.5 are read; others with a note. The
     IDM-CIC licence was not available to review; the reader uses only
     the format's published description.
