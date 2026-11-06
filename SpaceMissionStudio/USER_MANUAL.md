@@ -851,7 +851,8 @@ cones, spheres and panels, or import an `.obj` from a CAD or modelling
 tool, and give each part its mass; or import the whole spacecraft from
 an IDM-CIC model (IDM-CIC is © CNES) with its masses, and later versions
 of it without losing your edits. The import can also add the sensors and
-actuators the model names, along the axes its shapes show, set the power
+actuators the model names, along the axes its shapes show, place its
+thrusters from their plume cones for the design checks, set the power
 budget from its power modes and solar arrays, read the values your team
 keeps as properties, and put the body frame's origin at the center of
 gravity ([Import from IDM-CIC](docs/user-manual/idm-cic.md)). The model then sets the spacecraft's

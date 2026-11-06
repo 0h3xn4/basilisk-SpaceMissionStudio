@@ -14514,6 +14514,41 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The IDM-CIC import adds thrusters to the 3D model (2026-11-06)
+
+After the documentation refresh the user asked what comes next. Of the
+options offered, the thrusters needed no input from the user: a
+thruster found by name was listed, not added, because the file has no
+thrust and no direction field, and because the actuators' thrusters are
+the attitude control's (refused next to reaction wheels unless they dump
+momentum). But the 3D model's equipment has thrusters too, for the
+design checks, and those need only a position, a direction, a plume
+half-angle and a thrust, which a drawn plume cone and a product give.
+
+Decision IDM-32, section 20 of the design note. `model_axis` reads a
+thruster's largest cone as its plume: the thrust is from the cone's wide
+end toward its tip, and `_cone_axis` now also gives where the cone
+starts (`DeviceFinding.axis_origin_m`, moved with the origin by
+`shift_plan`). `build_devices` makes a massless `MountedEquipmentConfig`
+"EQUIPMENT nozzle" there, with half the cone's angle as the plume
+half-angle and the thrust of the product or of a mapped property (the
+new target `thruster.MaxThrust`, N or mN); `keep_fitting` refuses it
+without a 3D model; `add_devices` puts it on the model, and the devices
+record keeps it as `model.equipment[NAME]`, so a re-import leaves it as
+it is. It is added by default only with a plume cone: without one its
+direction would be a guess. The import dialog says it goes to the model
+and where its thrust comes from.
+
+The plume's half-angle is half the 6-digit full angle the record keeps
+(26.565 deg for the fixture's 53.1301 deg cone, 5e-5 deg below the exact
+value).
+
+**Tests:** `tests/test_idm_thrusters.py` (8) and
+`tests/gui/test_idm_thrusters_gui.py` (3), on the synthetic fixture
+axessat's "Thruster 2", every expected value worked out by hand. Four
+existing tests changed their expectations for the thruster, logged in
+`docs/ui/TEST_CHANGES.md`.
+
 ## The documentation brought up to 2.4.0 (2026-11-06)
 
 The user asked for all documentation to be updated: the READMEs, the user

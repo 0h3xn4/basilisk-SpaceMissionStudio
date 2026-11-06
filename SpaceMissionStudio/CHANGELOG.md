@@ -8,6 +8,24 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+### Added
+
+- **Thrusters from the IDM-CIC model.** A thruster found by name was
+  listed, not added: the file has no thrust or direction field. When the
+  team drew its plume as a cone, the import now adds it to the 3D
+  model's equipment, where the design checks use it (plume impingement,
+  the thrust authority matrix): placed where the plume starts, pushing
+  against the plume, with the plume's half-angle, and the thrust of the
+  catalog product chosen or of a thrust property your team gives
+  (**Thruster: thrust**, in N or mN, on the import's Properties tab or
+  `--property-map 'NAME=thruster.MaxThrust[mN]'`). It is named after its
+  equipment with "nozzle" added and has no mass (the equipment's mass is
+  already counted). A thruster without a plume cone is added only when
+  you tick it, along the axis you choose. `idm-import --devices` adds the
+  thrusters with a plume cone.
+
 ## 2.4.0 (2026-11-05)
 
 Each device's axis from the IDM-CIC model, and the body frame's origin

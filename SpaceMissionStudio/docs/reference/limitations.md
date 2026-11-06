@@ -189,20 +189,27 @@ Each item was checked against Basilisk's own source.
   * Devices are found by their names only. A sensor without a catalog
     product runs with Basilisk's defaults until its values are set (the
     pre-run checks say so); wheels and magnetorquers are added only with
-    a product or properties that give their values. Thrusters and
-    batteries are listed, not added; solar arrays can set the power
-    budget's panel, and a battery's capacity property its battery.
+    a product or properties that give their values. A thruster goes to
+    the 3D model's equipment for the design checks, not to the
+    simulated actuators, and only by default when a plume cone shows its
+    direction; its specific impulse is not read. Batteries are listed,
+    not added; solar arrays can set the power budget's panel, and a
+    battery's capacity property its battery.
   * A team's properties are read only when mapped, in the unit the user
     gives: the file states none for an untyped value, and the format's
-    description none for a typed one. Nine values can be mapped (wheel
+    description none for a typed one. Ten values can be mapped (wheel
     torque, inertia, speed and momentum, magnetorquer dipole, star
-    tracker and gyro noise, sun sensor field of view, battery capacity).
+    tracker and gyro noise, sun sensor field of view, thruster thrust,
+    battery capacity).
   * The file has no boresight field: a device's axis is read from its
     shapes (a field-of-view cone, or a wheel's or magnetorquer's
     cylinder), else +z of its equipment frame. A cone's angle is the
     mount's field of view, shown in the 3D view; it does not set a sun
     sensor's simulated field of view, since a drawn cone may be a
-    margin rather than the specification.
+    margin rather than the specification. A thruster's cone is read as
+    its plume: the thruster sits at the cone's tip and pushes against
+    it; a nozzle drawn as a cone larger than the plume would be read
+    instead, with its throat as the start.
   * The body frame's origin is the body element's own unless the user
     puts it at the centre of gravity of the model as imported (to the
     micrometre); a position typed in a form that shows fewer decimals
