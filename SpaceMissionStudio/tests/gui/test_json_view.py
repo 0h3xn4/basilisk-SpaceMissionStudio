@@ -101,7 +101,10 @@ def test_text_that_is_not_json_is_marked_and_blocks_the_run(window):
     good = view.edit.toPlainText()
     _set(view, good.replace('"name": ', '"name" ', 1))
     assert view.error.startswith("JSON view: line 2, column 10: Expecting ':' delimiter")
-    assert view.banner.isVisibleTo(view) and len(view.edit.extraSelections()) == 1
+    assert view.banner.isVisibleTo(view) and view.edit.error_line == 2
+    [mark] = view.edit.diagnostics  # the place itself, with the reason
+    assert (mark.severity, mark.message) == ("error", "Expecting ':' delimiter")
+    assert view.edit.document().findBlock(mark.cursor.position()).blockNumber() == 1
     assert editor.name_edit.text() == "22 - Starter: your first LEO satellite"  # not applied
     with pytest.raises(ScenarioValidationError, match="JSON view"):
         editor.to_scenario()
@@ -112,7 +115,8 @@ def test_text_that_is_not_json_is_marked_and_blocks_the_run(window):
     assert view.dirty and view.error
 
     _set(view, good)
-    assert view.error == "" and not view.banner.isVisibleTo(view) and view.edit.extraSelections() == []
+    assert view.error == "" and not view.banner.isVisibleTo(view) and view.edit.error_line is None
+    assert not any(d.message == "Expecting ':' delimiter" for d in view.edit.diagnostics)
     editor.to_scenario()
 
 

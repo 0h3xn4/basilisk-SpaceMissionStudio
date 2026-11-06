@@ -58,6 +58,7 @@ to do. New here? Start with **Getting started**.
 | [Decisions](DECISIONS.md) | Choices made during the UI overhaul where the brief and the plan are silent, each with its rationale |
 | [Third-party assets](THIRD_PARTY_ASSETS.md) | The fonts, icons and libraries the GUI bundles or needs, with their licences |
 | [IDM-CIC import: design](developer/idm-cic-integration.md) | How the IDM-CIC reader and import work, and what was decided when they were built |
+| [The JSON page as a code editor](developer/json-editor.md) | How the scenario's text is highlighted and its problems marked in place, and what was decided |
 | [Analyses built on the 3D model: design](developer/model-analyses-design.md) | The design of the equipment, design checks and model analyses, with its [decisions](developer/model-analyses-decisions.md), [progress](developer/model-analyses-progress.md) and [sources](developer/model-analyses-sources.md) |
 | [Releasing](developer/releasing.md) | Version numbers, checks, building the packages |
 | [Keeping up with upstream Basilisk](developer/upstream-sync.md) | Merging upstream, refreshing the root README's upstream part |

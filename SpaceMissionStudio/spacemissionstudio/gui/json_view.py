@@ -29,18 +29,28 @@ until it is fixed or discarded (Discard puts the scenario's own text
 back). Back to Form applies a waiting edit first and is refused while
 the text does not apply. An edit on another page shows here when JSON
 mode is next shown, unless the text holds an edit not yet applied.
+
+The text is a JSON code editor (``gui/code_editor.py``, decisions JE-01
+to JE-03 of ``docs/developer/json-editor.md``): highlighted, with line
+numbers, and with the scenario's problems (:meth:`ScenarioJsonView.set_problems`,
+the Problems list's) marked at the key or value each is about
+(``gui/json_positions.py``); the one at the cursor shows under the text.
 """
 
 from __future__ import annotations
 
+import json
 
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtGui import QColor, QFontDatabase, QTextCursor, QTextFormat
-from PySide6.QtWidgets import QLabel, QPlainTextEdit, QPushButton, QTextEdit, QVBoxLayout, QWidget
+from PySide6.QtGui import QTextCursor
+from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
 from ..schema.scenario import Scenario, ScenarioJSONError, ScenarioValidationError, parse_scenario_text, scenario_text
+from . import json_positions
+from .code_editor import ERROR, WARNING, JsonEditor
 from .feedback import ProblemBanner
-from .theme import TOKENS
+from .problem_location import locate
+from .theme import set_role
 
 SOURCE = "JSON view"  # how this page's problems start
 
@@ -68,12 +78,20 @@ class ScenarioJsonView(QWidget):
         self.discard_button.clicked.connect(self._on_discard)
         self.banner.layout().addWidget(self.discard_button)
         layout.addWidget(self.banner)
-        self.edit = QPlainTextEdit()
+        self.edit = JsonEditor()
         self.edit.setObjectName("jsonEdit")
-        self.edit.setFont(QFontDatabase.systemFont(QFontDatabase.SystemFont.FixedFont))
-        self.edit.setLineWrapMode(QPlainTextEdit.LineWrapMode.NoWrap)
+        self.edit.setAccessibleName("Scenario JSON")
+        self.edit.setAccessibleDescription("F8 and Shift+F8 go to the next and the previous problem.")
         self.edit.setTabChangesFocus(True)  # keyboard users leave the page with Tab
         layout.addWidget(self.edit, 1)
+        self.cursor_problem = QLabel("")
+        self.cursor_problem.setObjectName("jsonCursorProblem")
+        self.cursor_problem.setWordWrap(True)
+        self.cursor_problem.setVisible(False)
+        layout.addWidget(self.cursor_problem)
+        self.edit.cursor_problem_changed.connect(self._on_cursor_problem)
+        self._problems: list = []  # (severity, message) of the scenario, as the Problems list gives them
+        self._names: tuple = ((), ())  # the spacecraft's and ground stations' names, for locate
         self.error = ""
         self._dirty = False
         self._setting = False
@@ -106,6 +124,44 @@ class ScenarioJsonView(QWidget):
         block = self.edit.document().findBlockByNumber(min(line, self.edit.document().blockCount() - 1))
         self.edit.setTextCursor(QTextCursor(block))
         self.edit.verticalScrollBar().setValue(scroll)
+        self._mark_problems()
+
+    def set_problems(self, problems, spacecraft_names=(), station_names=()) -> None:
+        """The scenario's problems (``(severity, message)``, as the
+        Problems list), marked where they are in the text when it is
+        JSON. While the text holds an edit not yet applied, the marks
+        already there follow it as it is typed."""
+        self._problems = [(severity, message) for severity, message in problems if message]
+        self._names = (tuple(spacecraft_names), tuple(station_names))
+        self._mark_problems()
+
+    def _mark_problems(self) -> None:
+        if self._dirty:
+            return
+        text = self.edit.toPlainText()
+        try:
+            data = json.loads(text)
+        except ValueError:
+            return  # not JSON: its own error is marked instead
+        nodes = json_positions.index(text)
+        marks = []
+        for severity, message in self._problems:
+            path = json_positions.json_path(locate(message, *self._names), data)
+            span = json_positions.mark_span(nodes, path) if path is not None else None
+            if span is not None:
+                marks.append((WARNING if severity == "warning" else ERROR, message, *span))
+        self.edit.set_diagnostics(marks)
+
+    def problem_marks(self) -> list[tuple[str, str, str]]:
+        """``(severity, message, marked text)`` of each problem marked."""
+        return [(d.severity, d.message, d.cursor.selectedText()) for d in self.edit.diagnostics]
+
+    def _on_cursor_problem(self, text: str) -> None:
+        self.cursor_problem.setText(f"At the cursor: {text}" if text else "")
+        self.cursor_problem.setVisible(bool(text))
+        here = self.edit.textCursor().position()
+        severity = next((d.severity for d in self.edit.diagnostics if d.covers(here)), ERROR)
+        set_role(self.cursor_problem, tone="critical" if severity == ERROR else "caution")
 
     def reset(self) -> None:
         """Forget an edit not applied (another scenario was opened)."""
@@ -133,7 +189,8 @@ class ScenarioJsonView(QWidget):
         try:
             scenario = parse_scenario_text(self.edit.toPlainText(), SOURCE)
         except ScenarioJSONError as exc:
-            self._set_error(f"{SOURCE}: line {exc.line}, column {exc.column}: {exc.reason}", exc.line)
+            self._set_error(f"{SOURCE}: line {exc.line}, column {exc.column}: {exc.reason}", exc.line, exc.column,
+                            exc.reason)
             return
         except ScenarioValidationError as exc:
             self._set_error(str(exc), None)
@@ -142,7 +199,7 @@ class ScenarioJsonView(QWidget):
         self._set_error("", None)
         self.applied.emit(scenario)
 
-    def _set_error(self, message: str, line: int | None) -> None:
+    def _set_error(self, message: str, line: int | None, column: int = 1, reason: str = "") -> None:
         changed = message != self.error
         self.error = message
         if message:
@@ -150,13 +207,14 @@ class ScenarioJsonView(QWidget):
                                      "or Discard it to go back to the form.")
         else:
             self.banner.hide()
-        selections = []
-        if line is not None:
-            selection = QTextEdit.ExtraSelection()
-            selection.format.setBackground(QColor(TOKENS["status.critical.soft"]))
-            selection.format.setProperty(QTextFormat.Property.FullWidthSelection, True)
-            selection.cursor = QTextCursor(self.edit.document().findBlockByNumber(line - 1))
-            selections.append(selection)
-        self.edit.setExtraSelections(selections)
+        self.edit.set_error_line(line)
+        if line is not None:  # the place itself, underlined, with the reason
+            block = self.edit.document().findBlockByNumber(line - 1)
+            start = block.position() + max(0, min(column - 1, block.length() - 1))
+            self.edit.set_diagnostics([(ERROR, reason or message, start, start)])
+        elif message:
+            self.edit.set_diagnostics([])
+        else:
+            self._mark_problems()
         if changed:
             self.failed.emit(message)

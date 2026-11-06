@@ -1858,3 +1858,14 @@ unchanged, and `tests/test_idm_power.py` passes unchanged).
 | Test | Before | Now | Why |
 |---|---|---|---|
 | `tests/test_idm_devices.py::test_by_default_only_what_can_run_is_added` | a battery's reason contains "capacity is not in the file" | contains "the file has no capacity field" | The reason now also says a mapped capacity property can set the power budget's battery; the file still has no capacity field of its own |
+
+## The JSON page as a code editor (2026-11-06)
+
+No test removed, no assertion weakened, no golden or output file
+changed. The JSON page's text box became a code editor whose highlighted
+regions include the current line, the matched bracket and each problem's
+underline, so one test that counted them now checks what they mark:
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_json_view.py::test_text_that_is_not_json_is_marked_and_blocks_the_run` | exactly one extra selection while the text is broken, none once fixed | the error line is 2 and the one problem marked is the parser's reason ("Expecting ':' delimiter") on that line; once fixed, no error line and no such mark | The editor now also draws the current line and the matched bracket as extra selections, and underlines the error's place; the test checks the error's line and place instead of a count |

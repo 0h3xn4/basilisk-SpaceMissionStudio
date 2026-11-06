@@ -8,6 +8,20 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
+## Unreleased
+
+### Added
+
+- **The JSON page is a code editor.** The scenario's text (**Form ·
+  JSON** at the top of the Scenario area) is now coloured by what each
+  part is, with line numbers, the cursor's line shaded and the matching
+  bracket shown. Every problem in the **Problems** list is marked where
+  it is in the text: a wavy underline (red for an error, amber for a
+  warning) on the value or key, a dot beside the line number, the
+  message on hover and under the text when the cursor is on it. **F8**
+  and **Shift+F8** go to the next and the previous problem; Enter keeps
+  the indentation. Completion and refactoring come next.
+
 ## 2.4.0 (2026-11-05)
 
 Each device's axis from the IDM-CIC model, and the body frame's origin
