@@ -2465,8 +2465,9 @@ class SpacecraftEditorDialog(QDialog):
 
     def _add_imported_devices(self, plan, choices) -> None:
         """The devices an IDM-CIC import found and the user chose, into the
-        Sensors and Actuators lists (``idm_import.add_devices``, which
-        leaves out what the spacecraft cannot take), with their record."""
+        Sensors and Actuators lists and the thrusters into the 3D model's
+        equipment (``idm_import.add_devices``, which leaves out what the
+        spacecraft cannot take), with their record."""
         from .. import history, idm_import
 
         try:
@@ -2479,11 +2480,14 @@ class SpacecraftEditorDialog(QDialog):
         result = idm_import.add_devices(shim, config.name, plan, choices, history.current_author())
         self.sensor_list.add_items(result.sensors)
         self.actuator_list.add_items(result.actuators)
+        if result.equipment:  # the thrusters, on the 3D model (decision IDM-32)
+            self._model = config.model
         if result.values:
             self.pending_devices_import = shim.imports[-1]
             if self._embedded:
                 self.import_recorded.emit(self.pending_devices_import)
-        report(self, device_import_message(result), kind="info" if result.sensors or result.actuators else "warning")
+        added = result.sensors or result.actuators or result.equipment
+        report(self, device_import_message(result), kind="info" if added else "warning")
 
     def done(self, result: int) -> None:
         """A dialog does not close under its open 3D model editor: the
@@ -3178,7 +3182,11 @@ def device_import_message(result) -> str:
 
     added = [d.name for d in result.sensors + result.actuators]
     text = (f"Added {len(added)} device(s) found in the IDM-CIC model: {', '.join(added)}." if added else
-            "No device found in the IDM-CIC model was added.")
+            "No device found in the IDM-CIC model was added." if not result.equipment else "")
+    if result.equipment:
+        text = (text + " " if text else "") + (
+            f"Added {len(result.equipment)} thruster(s) to the 3D model's equipment: "
+            f"{', '.join(e.name for e in result.equipment)}.")
     refused = [(name, why) for name, why in result.skipped if why.startswith(CANNOT_TAKE)]
     if refused:
         text += " Chosen but not added: " + "; ".join(f"{name} ({why})" for name, why in refused) + "."

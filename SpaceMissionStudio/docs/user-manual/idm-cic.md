@@ -41,8 +41,9 @@ budget's bus load and solar panel can be set from the model's power
 modes and solar arrays: see
 [Power from the model](#power-from-the-model).
 
-Not imported: the performance of thrusters, batteries and solar cells
-(a battery's capacity can come from your team's properties: see
+Not imported: the performance of batteries and solar cells, and a
+thruster's specific impulse (a thruster's thrust and a battery's
+capacity can come from your team's properties: see
 [Values from your team's properties](#values-from-your-teams-properties)),
 the dissipation of the power modes, thermal data, scenarios (trajectories and attitudes), the
 pictures and documents attached to the model, and surface coefficients
@@ -145,7 +146,7 @@ equipment whose name names a device:
 | Magnetometer | Magnetometer, Magnétomètre | Yes |
 | Reaction wheel | Reaction wheel, Inertia wheel, Roue | With a catalog product |
 | Magnetorquer | Magnetorquer, Magneto torquer, Magnétocoupleur | With a catalog product |
-| Thruster | Thruster, Propulseur | Listed only |
+| Thruster | Thruster, Propulseur | To the 3D model, when a plume cone shows its direction |
 | Solar array | Solar panel, Panneau solaire | Listed only |
 | Battery | Battery, Batterie | Listed only |
 
@@ -181,11 +182,34 @@ reaction wheel or magnetorquer is added only with a product, or with
 properties that give its torque and inertia, or its dipole: Basilisk
 cannot build one without them, and the file has no field for them (see
 [Values from your team's properties](#values-from-your-teams-properties)).
-Thrusters, solar arrays and batteries are listed but not added: a
-thruster's direction and thrust are not in the file, and the Power page
+Solar arrays and batteries are listed but not added: the Power page
 takes one panel area and one battery for the whole spacecraft (the solar
 arrays' panels and the batteries' capacity property can set them: see
 [Power from the model](#power-from-the-model)).
+
+A thruster goes to the **3D model's equipment**, not to the Actuators
+(those are the attitude control's thrusters, which the simulation
+fires). There, the design checks use it: plume impingement and the
+thrust authority matrix (see the 3D model editor's **Analyses**). A team
+often draws a thruster's plume as a cone on the field-of-view layer;
+from that cone the import reads:
+
+- **where it sits**: where the plume starts, the cone's tip;
+- **which way it pushes**: against the plume, from the cone's wide end
+  toward its tip;
+- **the plume's half-angle**: half the cone's angle;
+- **its thrust**: from the catalog product chosen, or a thrust property
+  your team gives, mapped (see
+  [Values from your team's properties](#values-from-your-teams-properties)).
+  Without either, the thruster has no thrust and the authority matrix
+  counts it per newton.
+
+It is named after its equipment, with "nozzle" added ("Thruster 2
+nozzle"), and has no mass: the import already counts the equipment's
+mass at its place. A thruster whose shapes show no plume cone is not
+added unless you tick it; it then pushes along the axis you choose, from
+its centre of mass, with no plume half-angle. A spacecraft without a 3D
+model cannot take a thruster.
 
 A device the spacecraft cannot take as it is (a magnetorquer without
 magnetic momentum management, for example) is not added, and the
@@ -277,6 +301,7 @@ it and its values. For each one you want, choose:
 | Star tracker: attitude noise (1-sigma) | arcsec, deg, rad | `star_tracker.noise_arcsec` |
 | Gyro / IMU: rate noise (1-sigma) | rad/s, deg/s, deg/h | `imu.gyro_noise_rad_s` |
 | Sun sensor: full field of view | deg, rad | `coarse_sun_sensor.fov_deg` |
+| Thruster: thrust | N, mN | `thruster.MaxThrust` |
 | Battery: capacity | W·h, kW·h | `battery.capacity_wh` |
 
 A unit is offered only when the property's type has the value's
