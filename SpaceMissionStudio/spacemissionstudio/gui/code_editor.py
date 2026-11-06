@@ -38,7 +38,13 @@ JE-01 to JE-03 of ``docs/developer/json-editor.md``).
   typing inside a key or a string value, offers what fits there in a
   list; Enter or Tab inserts the one chosen, Escape closes the list;
 - help (:attr:`JsonEditor.help_source`): pointing at a key shows its
-  description, as does Ctrl+Shift+Space at the cursor.
+  description, as does Ctrl+Shift+Space at the cursor;
+- refactoring: F2 asks to rename the name at the cursor
+  (:attr:`JsonEditor.rename_requested`, which the JSON page answers),
+  F12 goes to where it is defined (:attr:`JsonEditor.definition_source`),
+  Ctrl+. lists the quick fixes for the key or value there
+  (:attr:`JsonEditor.fix_source`) and Shift+Alt+F lays the text out
+  (:attr:`JsonEditor.format_source`); the right-click menu has them too.
 
 A problem's place is a ``QTextCursor`` selection, so it follows the text
 as it is edited until the problems are given again.
@@ -47,10 +53,10 @@ as it is edited until the problems are given again.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from PySide6.QtCore import QEvent, QRect, QSize, Qt, Signal
+from PySide6.QtCore import QEvent, QPoint, QRect, QSize, Qt, Signal
 from PySide6.QtGui import (QColor, QFont, QPainter, QStandardItem, QStandardItemModel, QSyntaxHighlighter,
                            QTextCharFormat, QTextCursor, QTextFormat)
-from PySide6.QtWidgets import QCompleter, QPlainTextEdit, QTextEdit, QToolTip, QWidget
+from PySide6.QtWidgets import QCompleter, QMenu, QPlainTextEdit, QTextEdit, QToolTip, QWidget
 
 from . import theme
 from .json_positions import tokens
@@ -59,6 +65,13 @@ from .theme import TOKENS
 ERROR, WARNING = "error", "warning"
 _SEVERITY_TOKEN = {ERROR: "status.critical", WARNING: "status.caution"}
 _INDENT = "  "  # the indentation the scenario file is written with (json.dumps(indent=2))
+# The editor's own keys, which it takes before the window's shortcuts: (key, modifiers).
+_OWN_KEYS = {(Qt.Key.Key_F2, Qt.KeyboardModifier.NoModifier), (Qt.Key.Key_F12, Qt.KeyboardModifier.NoModifier),
+             (Qt.Key.Key_F8, Qt.KeyboardModifier.NoModifier), (Qt.Key.Key_F8, Qt.KeyboardModifier.ShiftModifier),
+             (Qt.Key.Key_Period, Qt.KeyboardModifier.ControlModifier),
+             (Qt.Key.Key_Space, Qt.KeyboardModifier.ControlModifier),
+             (Qt.Key.Key_Space, Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.ShiftModifier),
+             (Qt.Key.Key_F, Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.ShiftModifier)}
 
 
 @dataclass
@@ -116,6 +129,8 @@ class JsonEditor(QPlainTextEdit):
     carries :attr:`problem_at_cursor` when it changes."""
 
     cursor_problem_changed = Signal(str)
+    rename_requested = Signal()  # F2: the page asks for the new name (it may need a dialog)
+    message = Signal(str, str)  # (text, kind): what a command did or why it did nothing
 
     def __init__(self, parent: QWidget | None = None) -> None:
         super().__init__(parent)
@@ -129,6 +144,10 @@ class JsonEditor(QPlainTextEdit):
         # (text, position) -> (start, end, [json_assist.Completion]); (text, position) -> description
         self.completion_source = None
         self.help_source = None
+        # (text, position) -> (start, end) or None; (text, position) -> [json_refactor.Fix]; text -> text
+        self.definition_source = None
+        self.fix_source = None
+        self.format_source = None
         self.completer = QCompleter(self)
         self.completer.setWidget(self)
         self.completer.setCompletionMode(QCompleter.CompletionMode.UnfilteredPopupCompletion)
@@ -361,6 +380,94 @@ class JsonEditor(QPlainTextEdit):
         self.setTextCursor(cursor)
         self.completer.popup().hide()
 
+    # -- refactoring ------------------------------------------------------------------
+    def go_to_definition(self) -> bool:
+        """Move to where the name at the cursor is defined; False when
+        there is none."""
+        span = (self.definition_source(self.toPlainText(), self.textCursor().position())
+                if self.definition_source is not None else None)
+        if span is None:
+            self.message.emit("Go to Definition: the cursor is not on the name of a spacecraft, a ground station "
+                              "or a part that this scenario defines.", "info")
+            return False
+        cursor = self.textCursor()
+        cursor.setPosition(span[0])
+        cursor.setPosition(span[1], QTextCursor.MoveMode.KeepAnchor)
+        self.setTextCursor(cursor)
+        self.centerCursor()
+        return True
+
+    def fixes(self) -> list:
+        """The quick fixes at the cursor (``json_refactor.Fix``)."""
+        return self.fix_source(self.toPlainText(), self.textCursor().position()) if self.fix_source else []
+
+    def apply_fix(self, fix) -> None:
+        cursor = self.textCursor()
+        cursor.beginEditBlock()
+        cursor.setPosition(fix.start)
+        cursor.setPosition(fix.end, QTextCursor.MoveMode.KeepAnchor)
+        cursor.insertText(fix.insert)
+        cursor.endEditBlock()
+        self.setTextCursor(cursor)
+
+    def show_quick_fixes(self) -> QMenu | None:
+        """A menu of the quick fixes at the cursor, under it; None (and a
+        message) when there are none."""
+        found = self.fixes()
+        if not found:
+            self.message.emit("Quick Fix: nothing to fix at the cursor.", "info")
+            return None
+        menu = QMenu(self)
+        menu.setAccessibleName("Quick fixes")
+        for fix in found:
+            menu.addAction(fix.label).triggered.connect(lambda _on=False, fix=fix: self.apply_fix(fix))
+        menu.popup(self.viewport().mapToGlobal(self.cursorRect().bottomLeft() + QPoint(0, 2)))
+        return menu
+
+    def replace_text(self, text: str) -> None:
+        """Put ``text`` in place of the whole text, as one edit (undone at
+        once), the cursor kept on its line."""
+        line = self.textCursor().blockNumber()
+        scroll = self.verticalScrollBar().value()
+        cursor = QTextCursor(self.document())
+        cursor.beginEditBlock()
+        cursor.select(QTextCursor.SelectionType.Document)
+        cursor.insertText(text)
+        cursor.endEditBlock()
+        block = self.document().findBlockByNumber(min(line, self.document().blockCount() - 1))
+        self.setTextCursor(QTextCursor(block))
+        self.verticalScrollBar().setValue(scroll)
+
+    def format_document(self) -> bool:
+        """Lay the text out (Shift+Alt+F); False when it is not JSON."""
+        if self.format_source is None:
+            return False
+        try:
+            text = self.format_source(self.toPlainText())
+        except ValueError as exc:
+            self.message.emit(f"Format Document: the text is not JSON ({exc}); fix it first.", "warning")
+            return False
+        if text != self.toPlainText():
+            self.replace_text(text)
+        return True
+
+    def contextMenuEvent(self, event) -> None:  # noqa: N802 -- Qt's name
+        """The standard menu, with the editor's commands and their keys."""
+        cursor = self.cursorForPosition(event.pos())
+        if not self.textCursor().hasSelection():
+            self.setTextCursor(cursor)
+        menu = self.createStandardContextMenu()
+        menu.addSeparator()
+        for label, keys, slot in (("Suggest", "Ctrl+Space", self.show_completions),
+                                  ("Rename...", "F2", self.rename_requested.emit),
+                                  ("Go to Definition", "F12", self.go_to_definition),
+                                  ("Quick Fix...", "Ctrl+.", self.show_quick_fixes),
+                                  ("Next Problem", "F8", self.go_to_problem),
+                                  ("Format Document", "Shift+Alt+F", self.format_document)):
+            action = menu.addAction(f"{label}\t{keys}")
+            action.triggered.connect(lambda _on=False, slot=slot: slot())
+        menu.exec(event.globalPos())
+
     def help_text(self, position: int) -> str:
         return self.help_source(self.toPlainText(), position) if self.help_source is not None else ""
 
@@ -377,7 +484,26 @@ class JsonEditor(QPlainTextEdit):
             return True
         return super().viewportEvent(event)
 
+    def event(self, event) -> bool:  # noqa: D102 -- Qt's
+        if event.type() == QEvent.Type.ShortcutOverride and (event.key(), event.modifiers()) in _OWN_KEYS:
+            event.accept()  # the editor's own keys go to keyPressEvent, not to a window shortcut
+            return True
+        return super().event(event)
+
     def keyPressEvent(self, event) -> None:  # noqa: N802 -- Qt's name
+        key, modifiers = event.key(), event.modifiers()
+        if (key, modifiers) == (Qt.Key.Key_F2, Qt.KeyboardModifier.NoModifier):
+            self.rename_requested.emit()
+            return
+        if (key, modifiers) == (Qt.Key.Key_F12, Qt.KeyboardModifier.NoModifier):
+            self.go_to_definition()
+            return
+        if (key, modifiers) == (Qt.Key.Key_Period, Qt.KeyboardModifier.ControlModifier):
+            self.show_quick_fixes()
+            return
+        if (key, modifiers) == (Qt.Key.Key_F, Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.ShiftModifier):
+            self.format_document()
+            return
         popup = self.completer.popup()
         if popup.isVisible() and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter, Qt.Key.Key_Escape,
                                                  Qt.Key.Key_Tab, Qt.Key.Key_Backtab):

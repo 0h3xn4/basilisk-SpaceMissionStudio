@@ -17,9 +17,10 @@ refactoring. This note records how it is built and in which steps.
    fixed choices of a value, the names the scenario already has (parts,
    ground stations, spacecraft), each with its type, default and unit;
    the same help when pointing at a key.
-3. **Refactoring**: rename a spacecraft, part, device or ground station
-   everywhere it is named; go from a name to its definition; format the
-   document; quick fixes for common problems.
+3. **Refactoring** (done): rename a spacecraft, ground station or 3D
+   model part everywhere it is named; go from a name to its definition;
+   format the document; quick fixes for a wrong key, a value that is not
+   one of its choices and a name that does not exist.
 
 ## Decisions
 
@@ -30,6 +31,9 @@ refactoring. This note records how it is built and in which steps.
 | JE-04 | **What fits at a place comes from the schema's own records.** `schema/fields.py` follows a path of the text from `Scenario` through the record classes (`record_at`): a field typed as a record (optional or not), and a list whose items are records (`LIST_ITEMS`, a table, since the type hints say only `list`). A field's fixed choices are the constants the validation checks it against (`CHOICES`, read at run time), and the names it may refer to (a spacecraft, a ground station, a part, a material) are read from the scenario as last read (`REFERENCES`, `names`). Free keys (a device's `params`, `fsw_params`) and the mission sequence's commands (their fields depend on their `type`) are not offered. | The records are the definition of the file, so what is offered cannot drift from what is accepted. `tests/test_schema_fields.py` checks every object of every template against the record `record_at` gives, every `CHOICES` constant against the validation, and that each list whose comment names a record is in `LIST_ITEMS`. |
 | JE-05 | **The help is the source's comment on each field, generated into `schema/field_help.json`** (`scripts/build_field_help.py`): the comment at the end of the field's line, with the comment lines under it that go on in lower case, else the comment block above it. It ships as package data. | An installed program has no source to read the comments from. The comments already give each field's unit, range and meaning (the ICD's field table is built from them). `tests/test_schema_fields.py` checks that the file is what the script writes, so a changed comment fails until the file is rebuilt. |
 | JE-06 | **Completion is offered, never forced.** Ctrl+Space, or typing inside a key or a string value, opens a list of what fits (starting with the text typed, then containing it); Enter or Tab inserts, Escape closes; typing outside a string never opens it. A new key is inserted with its default (or an empty value of its type), selected so that typing replaces it. The key under the cursor is described under the text (its first lines, shortened to 240 characters), in full on hover and with Ctrl+Shift+Space. | A list that pops up over numbers would get in the way of typing values; inside a string something is being named, which is when a choice helps. Under the text, the description is there for the keyboard and screen readers, not only for the mouse (WCAG 2.1.1). |
+| JE-07 | **Rename uses the forms' own rename** (`schema.references.rename_spacecraft`, `rename_ground_station`, `rename_part`) on the scenario the text holds, and puts back the text as the file is saved, as one edit (one Undo). A name is found at a place as a record's own `name` (a spacecraft, a ground station, a part) or a field that refers to one (`fields.REFERENCES`, a mission step's `spacecraft`/`ground_station`, `fsw_params.target_ground_station`). The new name is checked as the forms check it (`name_error`). Devices and materials are not renamed: an import record keeps device names inside value paths, and no rename of materials exists yet. | One list of reference sites (`references.py`'s, hand-listed and audited) for every way of renaming, so the JSON page cannot miss one the forms update (value marks, presets, import and export records, mission steps, dotted assignment targets). The text is written back in the saved layout, which is what the page shows to begin with; free text (a description) is not changed, as in the forms. |
+| JE-08 | **Keys a record does not have are marked and fixable.** Text with such a key cannot be applied (the banner names the key but not its place); `json_refactor.unknown_keys` marks it where it is, with the field it is closest to. Ctrl+. offers: for such a key, the closest free fields and its removal (with its comma); for a value outside its field's choices, each choice (closest first); for a name that does not exist, the existing names. Nothing is fixed without being chosen. | The common mistakes in hand-edited JSON are a misspelt key or value; the schema already knows what was meant to be there. |
+| JE-09 | **The editor's keys win while it has the focus** (F2, F12, F8, Ctrl+., Ctrl+Space, Ctrl+Shift+Space, Shift+Alt+F: a `ShortcutOverride` accepted), none of which the window uses; each is also in the editor's right-click menu with its key. Format Document lays the text out as the file is saved (two spaces), keeping the keys' order and the values. | The keys programmers' editors use for the same commands; the menu makes them findable without knowing the keys. |
 | JE-03 | **The syntax colours are the theme's words colours** (`code.key` = `text.link`, `code.string` = `status.normal.text`, `code.number` = `status.serious.text`, `code.literal` = `status.standby.text`, `code.punctuation` = `text.secondary`), with a current line and a matched bracket light enough to keep each at 4.5:1 (`code.current_line`, `code.bracket`; `bg.hover` and `accent.soft` do not). The pairs are in `CONTRAST_PAIRS`. A problem's message is also given in words under the text for the cursor's place, and F8 / Shift+F8 move between problems, so neither the colour of the underline nor a mouse hover is needed. | WCAG 2.2 AA (1.4.1, 1.4.3, 2.1.1), as everywhere else in the GUI. |
 
 ## How it works
@@ -67,6 +71,12 @@ Completion and help (step 2):
   hands it the scenario as last read (for the names) and shows the key's
   description under the text when no problem is there.
 
+Refactoring (step 3): `gui/json_refactor.py` (no Qt) finds the name at a
+place, its definition, renames, formats, marks unknown keys and lists
+quick fixes; `JsonEditor` has the keys, the right-click menu and the
+quick-fix menu; `ScenarioJsonView.rename_at_cursor` asks for the new name
+and says what was renamed (a toast, and the Log).
+
 ## Tests
 
 `tests/test_json_positions.py`: the tokens, every value of every template
@@ -86,3 +96,10 @@ defaults, choices, names, booleans, a key's help), and in
 `tests/gui/test_json_editor.py` the orbit type's choices chosen with the
 keyboard, Ctrl+Space in a new sensor and Escape, and a key's description
 under the text.
+
+Step 3: `tests/test_json_refactor.py` (the name at a place, its
+definition, renaming a spacecraft and a part with their references and
+the names refused, formatting, unknown keys and their fixes, choices and
+names), and in `tests/gui/test_json_editor.py` F2 renaming in template 05
+with Undo, F12 and Ctrl+., and a misspelt key marked and the text
+formatted with Shift+Alt+F.

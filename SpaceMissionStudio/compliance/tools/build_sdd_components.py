@@ -78,7 +78,7 @@ SRS_TO_COMPONENTS = {
                  "gui/budget_widget", "gui/lifetime_widget", "gui/constellation_dialog",
                  "gui/phasing_formation_dialog", "gui/spacecraft_template_dialog", "gui/app",
                  "gui/webengine_setup", "gui/json_view", "gui/code_editor", "gui/json_positions",
-                 "gui/json_assist", "schema/fields"],
+                 "gui/json_assist", "schema/fields", "gui/json_refactor"],
     "SRS-F-16": ["engine/vizard", "gui/vizard_launcher", "gui/vizard_dialog"],
     "SRS-F-17": ["dependencies", "engine/service", "output_provenance"],
     "SRS-F-18": ["fsw_export/catalog", "fsw_export/sources", "fsw_export/cdecl", "fsw_export/model",

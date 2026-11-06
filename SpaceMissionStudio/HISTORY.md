@@ -14514,6 +14514,28 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The JSON page as a code editor, step 3: refactoring (2026-11-06)
+
+The last step of the user's request (design note, JE-07 to JE-09).
+Rename (F2) reuses the forms' rename functions (`schema/references.py`,
+whose reference sites are hand-listed and audited) on the scenario the
+text holds and writes the text back in the saved layout as one edit, so
+the JSON page updates every place the forms do: value marks, presets,
+import and export records, mission steps and dotted assignment targets.
+Go to Definition (F12), Quick Fix (Ctrl+.) and Format Document
+(Shift+Alt+F) are new; the editor takes these keys before the window's
+shortcuts while it has the focus, and lists them in its right-click menu.
+
+A key an object does not have stopped the edit with a message naming the
+key but not its place; it is now marked where it is ("did you mean
+'dry_mass_kg'?"), and Ctrl+. changes or removes it. Writing the tests
+found that the quick fixes failed with an exception when a field refers
+to names and the scenario has none (difflib refuses n=0); fixed before
+the commit.
+
+**Tests:** `tests/test_json_refactor.py` (7) and three more in
+`tests/gui/test_json_editor.py`. No existing test changed.
+
 ## The JSON page as a code editor, step 2: completion and help (2026-11-06)
 
 Step 2 of the user's request (design note `docs/developer/json-editor.md`,

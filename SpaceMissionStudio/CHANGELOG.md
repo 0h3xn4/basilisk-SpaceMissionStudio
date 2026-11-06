@@ -29,6 +29,13 @@ fixes bugs.
   or true/false. The key under the cursor is described under the text
   (type, default, unit and meaning); hover or **Ctrl+Shift+Space** shows
   it all.
+- **Refactoring in the JSON page.** **F2** renames a spacecraft, ground
+  station or 3D model part everywhere the scenario names it (as its form
+  does); **F12** goes to where a name is defined; **Ctrl+.** offers
+  quick fixes for a misspelt key, a value that is not one of its choices
+  or a name that does not exist; **Shift+Alt+F** formats the text. A key
+  an object does not have is now marked where it is, with the field it
+  is close to.
 
 ## 2.4.0 (2026-11-05)
 

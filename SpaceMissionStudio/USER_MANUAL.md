@@ -586,6 +586,21 @@ When the cursor is on a key, the line under the text describes its
 field: its type, its default and what it means, with its unit; point at
 the key, or press **Ctrl+Shift+Space**, to read it all.
 
+Commands of a code editor work there too (also in the right-click menu):
+
+- **F2** renames the spacecraft, ground station or 3D model part whose
+  name is at the cursor (its own `name`, or a field that names it, such
+  as a follower's `chief_spacecraft` or a mount's `part`), everywhere the
+  scenario names it, as renaming it on its form does. The text is then
+  laid out as the file is saved; one **Ctrl+Z** in the text undoes it.
+- **F12** goes to where the name at the cursor is defined.
+- **Ctrl+.** lists quick fixes for the key or value at the cursor: a key
+  the object does not have (marked in red: "did you mean ...?") can be
+  changed to the field it is close to, or removed; a value that is not
+  one of its choices, or a name the scenario does not have, can be
+  replaced by one that is.
+- **Shift+Alt+F** lays the text out again (two spaces, one value a line).
+
 A **validation message** at the very bottom of the Scenario area updates live as
 you type, in plain language (e.g. naming exactly which field is missing
 or invalid) -- you don't have to guess why Run is unavailable. It names
