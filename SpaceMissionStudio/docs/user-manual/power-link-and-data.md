@@ -23,6 +23,13 @@ The run records the battery's charge and the power in and out. Watch it
 drop in eclipse. Flexible solar arrays can feed the same budget from
 their own cells (template **27**).
 
+An [IDM-CIC import](idm-cic.md#power-from-the-model) can set the bus
+idle power from the power of the imported equipment in one of the
+model's system modes (or their duty-cycle average), the panel area and
+normal from its solar arrays' panels, and the battery capacity from a
+property your team keeps. The file does not give the panel efficiency:
+set it yourself.
+
 The panel efficiency is the beginning-of-life one, and by default it does
 not change. To see the end of life, choose a degradation model in the
 project configuration file
@@ -53,8 +60,8 @@ are in [the power model](../models/link-data-and-power.md#solar-array-degradatio
 | Pattern | Use it for |
 |---|---|
 | Fixed gain | An antenna that tracks the station, or a first estimate |
-| Patch (cos^n) | A patch antenna on one face, before you have its datasheet |
-| Gain table | A real antenna's datasheet: gain against angle |
+| Patch antenna (cos^n from the peak gain) | A patch antenna on one face, before you have its datasheet |
+| Gain table from the datasheet | A real antenna's datasheet: gain against angle |
 
 The run records, per station, `link_margin_db` and `link_closed`. The link
 closes when the station is in view and the margin is 0 dB or more; a

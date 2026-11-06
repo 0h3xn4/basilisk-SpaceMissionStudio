@@ -1,5 +1,11 @@
 # UI overhaul: SpaceMissionStudio
 
+> **Status:** done. This brief was carried out in milestones M1 to M9 of
+> [`UI_OVERHAUL_PLAN.md`](UI_OVERHAUL_PLAN.md) and released in 1.3.0;
+> [`BEFORE_AFTER.md`](BEFORE_AFTER.md) has what changed. It is kept as it
+> was written, so it describes the GUI before the overhaul (the Carbon
+> restyle), not the current one.
+
 > **How to use:** save this file as `docs/ui/UI_OVERHAUL.md` in the repository, start Claude Code in plan mode (Shift+Tab) and send: *"Read docs/ui/UI_OVERHAUL.md and follow it. Do Phase 1 only, then stop for my review."* After approving the plan, run one milestone per session: *"Implement milestone M1 from docs/ui/UI_OVERHAUL_PLAN.md. Stop when its acceptance criteria pass."*
 
 ## Role and goal

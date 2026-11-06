@@ -6,12 +6,15 @@ avoidances. Each has a default, a unit, a source and limits. A project
 changes them in a configuration file. No code is edited, and every result
 records what was changed.
 
-The rules of the propellant budget, the orbital lifetime, the RF link
-and data handling, how a run's results are read, the dynamics'
-integration and run control, the environment's data rules, and the orbit
-controllers (station keeping, phasing, GEO station keeping) are
-parameters. The other areas follow ([Models](../models/README.md), "Not
-yet covered").
+The rules of the propellant budget, the orbital lifetime, the RF link,
+data handling and power, how a run's results are read, the dynamics'
+integration and run control, the environment's data rules, the orbit
+controllers (station keeping, phasing, GEO station keeping), ROE
+formation guidance, the flight software's attitude thrusters and the
+navigation filters, the pre-run checks, Explain, the Monte Carlo
+statistics, the analyses built on the 3D model and the re-entry casualty
+estimate are parameters. [Models](../models/README.md) lists each area
+with its page.
 
 ## See the parameters
 

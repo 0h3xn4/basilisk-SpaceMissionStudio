@@ -317,7 +317,14 @@ at the user's question, the body frame's origin at the centre of gravity,
 a minor release because it adds features. No template, golden file or scenario field changed; 2.3.0
 opens the files 2.4.0 saves (checked with 2.3.0's code on a file with
 devices imported along the model's axes). The space weather is still
-1.3.0's (CelesTrak refused the connection again, K-13).
+1.3.0's (CelesTrak refused the connection again, K-13). The release pull
+request (#228) was merged once CI was green, and the user tagged
+`spacemissionstudio-v2.4.0` on `ac4b90065` and published it on
+2026-11-05 at 20:58 UTC, with notes written for it, which the workflow
+kept. Published two seconds before the workflow started, it was public
+without files for 35 minutes, until the workflow attached them at 21:33,
+the ninth release so. To avoid it: push the tag, or save the release as
+a draft, wait for the files (about 40 minutes), then publish.
 
 ---
 

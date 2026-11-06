@@ -4,6 +4,11 @@ Phase 1 of [`UI_OVERHAUL.md`](UI_OVERHAUL.md): the audit and the plan. No GUI
 code has changed. Implementation starts after you approve this plan, one
 milestone per session.
 
+> **Status:** implemented. Milestones M1 to M9 were built and released in
+> 1.3.0; [`BEFORE_AFTER.md`](BEFORE_AFTER.md) has the measurements and
+> pictures. The plan below is kept as written: "now" and "today" in it
+> mean the GUI of 1.1.0 it was made on.
+
 **Contents**
 
 1. [What was read and measured](#1-what-was-read-and-measured)

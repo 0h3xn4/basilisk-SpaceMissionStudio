@@ -66,7 +66,8 @@ writes, so you can move data to and from other tools.
 - `spacemissionstudio run ... --bundle` and `spacemissionstudio reproduce`
   make a result folder anyone can run again and compare.
 - `spacemissionstudio.api` ([The Python API](api.md)) gives a script the
-  same lifetime, budget, run and comparison the app computes.
+  same lifetime, budget, run, comparison, design checks, model analyses
+  and re-entry estimate the app computes.
 - The [examples](../examples/README.md) show the engine from Python: build a
   scenario, sweep a parameter, read a Monte Carlo batch.
 
@@ -78,12 +79,14 @@ writes, so you can move data to and from other tools.
 |---|---|---|
 | Scenario | JSON (`.json`) | Open... (Ctrl+O), `spacemissionstudio` commands |
 | TLE | Two text lines, pasted | Spacecraft page, Orbit / mass |
-| Orbit messages | CCSDS OPM, OMM (KVN text) | `ccsds-import`, `ccsds-validate` |
+| Orbit messages | CCSDS OPM, OMM (KVN text) | Spacecraft page, Orbit / mass > Import CCSDS OPM/OMM..., `ccsds-import` |
+| Orbit messages to check | CCSDS OPM, OMM, OEM (KVN text) | Check a CCSDS File... (`Ctrl+K`), `ccsds-validate` |
 | Space weather | CelesTrak CSV or TXT | Reference data > Import file..., Scenario tree > Environment |
 | Solar-activity prediction | NASA MSFC table (`.txt`) | Scenario tree > Environment |
 | Earth orientation | NAIF Earth PCK (`.bpc`, `.cmt`) | Reference data > Import file..., `earth-orientation --import` |
 | 3D model | Wavefront OBJ (`.obj`, with its `.mtl`) | 3D Model... > Import .obj..., Spacecraft page > Vizard model |
 | Mass properties | JSON or CSV | 3D Model... > Mass properties > Import file... |
+| IDM-CIC model | `.idm` (IDM-CIC is © CNES; read only) | 3D Model... > Import IDM-CIC model..., `idm-import`, `idm-info` |
 | Flight-software program | An executable speaking the SIL contract | Run in SIL mode, `sil --binary` |
 | Project configuration | YAML (`config_file` in the scenario) | Scenario › Assumptions, `assumptions` |
 | Atmosphere gases data | ITU-R P.676-13 Part 1 (`.txt`) | Reference data > Import file..., `gaseous-attenuation --import` |
@@ -103,9 +106,11 @@ writes, so you can move data to and from other tools.
 | Scenario as run | JSON (`scenario_as_run.json`) | `run --out-dir`, beside the results |
 | Reproduction bundle | Folder: results, provenance, the scenario as run and copies of the files it refers to (`bundle.json`) | Results > Plots > Export all... > Reproduction bundle..., `run --bundle` |
 | Lifetime and budget records | JSON, with inputs, traces and provenance | End of Life > Export JSON..., `lifetime --out`, `budget --out` |
+| Design checks, model analyses | JSON record and a CSV per table, with provenance | Run > Design Checks > Save..., Results > Model Analyses > Save..., `check-design --out --tables`, `model-analyses --out --tables` |
+| Re-entry estimate | JSON, with provenance | Run > End of Life > Re-entry casualty > Save..., `reentry --out` |
 | Change history | `mission.history.jsonl` beside `mission.json` | Every save; Change History... |
 | Plots | PNG, SVG | Results > Plots > Save PNG... / Save SVG... (the selected plot), Export all... (every shown plot, with CSV) |
-| Orbit messages | CCSDS OPM, OEM (KVN text) | `ccsds-export`, `run --oem` |
+| Orbit messages | CCSDS OPM, OMM, OEM (KVN text) | Export Orbits as CCSDS... (`Ctrl+K`), Results > Plots > Export all... > CCSDS ephemeris (OEM)..., `ccsds-export`, `run --oem` |
 | Vizard playback | `.bin` | Run > Run (the Vizard save file), `run --vizard-save-file` |
 | Monte Carlo batch | `batch_results.npz` and `.json`, plus Basilisk's archive | Run in Monte Carlo mode, `monte-carlo --archive-dir` |
 | Monte Carlo table | CSV | Results > Monte Carlo > Export table CSV... |

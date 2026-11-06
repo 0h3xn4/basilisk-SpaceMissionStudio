@@ -40,8 +40,8 @@ for the follower, a **New follower name**, the offset (**Along-track (T)
 the follower with **Phasing keeping** and its own station keeping already
 filled in.
 
-When the scenario's gravity includes J2 (**Degree** 2 or more under
-**Propagation setup**), the follower is placed by its *mean* elements: it
+When the scenario's gravity includes J2 (**Degree/order** 2 or more on
+the **Environment** page), the follower is placed by its *mean* elements: it
 gets the chief's mean semi-major axis, so it does not drift off on its
 own. With the same osculating semi-major axis instead, a 50 km follower
 was at about 38 km after a day, and the controller paid for the
@@ -74,7 +74,7 @@ elements](roe-formation.md), and template **29**.
 delta.
 
 The pattern is one of mean elements. When the scenario's gravity includes
-J2 (**Degree** 2 or more), each satellite's mean elements are converted
+J2 (**Degree/order** 2 or more), each satellite's mean elements are converted
 to the osculating ones the run starts from (stored with a true anomaly),
 so the satellites keep their spacing: with equal osculating elements, two
 satellites 90 deg apart at 550 km and 53 deg closed to about 76 deg in a

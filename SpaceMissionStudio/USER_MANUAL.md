@@ -72,6 +72,7 @@ Scenario (one .json file)
  |   |- Orbit ................... where it starts: orbital elements, position/velocity or a TLE
  |   |- Mass and shape .......... mass, inertia, drag and sunlight areas (or flat plates)
  |   |- Hardware ................ sensors, wheels, torque rods, thrusters, tank, battery, radio
+ |   |- 3D model (optional) ..... parts, mass properties, equipment, stowed configuration
  |   '- Control ................. pointing mode, station keeping, formation keeping
  |- Ground stations ............. where on Earth, lowest usable elevation, receiver
  |- Mission sequence (optional) . coast, burn, report, step by step
@@ -94,6 +95,7 @@ Where each piece lives in the app, and which template shows it best:
 | Where it points | ... > **Attitude control** | 06, 15, 19 |
 | Power, thrusters, radio | ... > **Power / propulsion / link budget** | 07, 17, 18, 19 |
 | Instruments, memory, downlink | ... > **Power / propulsion / link budget** > Data handling | 26 |
+| 3D model, equipment, design checks | ... > **3D model**, or **3D Model...** at the top of the Scenario area | 28, 32 |
 | Ground stations | Scenario tree > **Ground stations** > its name | 19, 22 |
 | Mission sequence | Scenario tree > **Mission sequence** | 08, 16, 23 |
 | Monte Carlo | Scenario tree > **Monte Carlo** | 09, 25 |
@@ -203,7 +205,7 @@ A few things to notice right away:
     (`spacemissionstudio reproduce` runs it again, Section 7), events,
     mission output, the Monte Carlo runs table, the lifetime estimate,
     the budget, the flight-software project, the SIL report, the Vizard
-    playback file and the 3D model. Each row gives the
+    playback file, the 3D model and the CCSDS orbit files. Each row gives the
     format, the view and button that make it, where it goes by default,
     the provenance written with it (the versions, the run or the
     scenario's SHA-256 and the time, in the file or beside it; the Vizard
@@ -311,7 +313,7 @@ A few things to notice right away:
   "No problems"; click it to open **Problems**), the Basilisk
   version ("(not qualified)" when it is not the verified 2.12.0), the
   reference data ("all OK", or how many files need attention; click it
-  to open the **Reference data** dialog), how far the Earth orientation data is high
+  to open the **Reference data** window), how far the Earth orientation data is high
   accuracy, and the frames runs use (EME2000 for orbits and results,
   ITRF93 or IAU_EARTH for ground stations, UTC for dates).
 
@@ -344,7 +346,7 @@ its Scenario page ("Building your own scenario, step by step", below).
 
 ## 4. Your first simulation, in five minutes
 
-1. **Pick a template.** Home shows all 31 built-in example missions as
+1. **Pick a template.** Home shows all 32 built-in example missions as
    cards, numbered roughly from simplest to most advanced -- "01 -
    Two-body circular orbit" is the simplest possible case (one
    satellite, one orbit, nothing else going on) and a good first choice.
@@ -391,12 +393,13 @@ path, each step building on the one before:
 | 1. Orbits | 01, 02, 22 | An ideal orbit; what Earth's shape, the Sun and the Moon do to it; a realistic satellite with drag and a ground station |
 | 2. Keeping an orbit | 18, 03, 17 | Station keeping against drag (low orbit) and drift (geostationary); how propellant runs down |
 | 3. Pointing | 06, 07, 15, 14, 27 | Attitude control, ideal and with real hardware; pointing at the Moon; finding the Sun with sun sensors; flexible wings swinging in a turn |
-| 4. Disturbances and momentum | 10, 21, 12, 13, 11 | Gravity-gradient and surface torques; unloading wheels with thrusters or torque rods; thrusters for pointing |
+| 4. Disturbances and momentum | 10, 21, 28, 12, 13, 11 | Gravity-gradient and surface torques; a center of mass off the body origin; unloading wheels with thrusters or torque rods; thrusters for pointing |
 | 5. Missions in steps | 08, 16, 23 | Mission Sequences: burns, a Lambert transfer, stopping on a ground pass |
 | 6. Several spacecraft | 04, 05, 24, 29 | A Walker constellation; a formation held by two different control laws; a passively safe formation in relative orbital elements |
 | 7. Whole systems | 19, 20, 23, 26 | Power, radio link and thermal working together; data from instrument to ground |
 | 8. Uncertainty | 09, 25 | Monte Carlo batches: mass, orbit insertion, drag |
 | 9. Navigation | 30, 31 | Estimating an orbit around Mars from camera images of the planet; flying around asteroid Eros with its shape's gravity and navigating from its landmarks |
+| 10. The spacecraft as designed | 28, 32 | A 3D model with its equipment mounted: fields of view, a plume, the mass budget and the launcher envelope checked without a run; the disturbance torques and the arrays' shading in a run |
 
 **Starting your own mission?** Open **22** (a realistic satellite, orbit
 only) or **23** (a complete small satellite with hardware, a radio link
@@ -493,10 +496,13 @@ fixed:
   the values before and after, converted by Basilisk's own `orbitalMotion`
   at the scenario epoch), or **Use the ... page's values** takes what that
   page already holds. A TLE is never made from the other forms: it holds
-  SGP4 mean elements fitted to tracking data. There are also
-  **Generate Walker constellation...** and **Generate phasing
-  formation...** buttons here for building multi-satellite setups
-  automatically instead of adding spacecraft one at a time.
+  SGP4 mean elements fitted to tracking data. **Import CCSDS OPM/OMM...**
+  sets the orbit from an orbit file another tool or an operator wrote
+  ([Exchange orbits with other tools](docs/user-manual/orbit-files.md)).
+  There are also **Generate Walker constellation...** and **Generate
+  phasing formation...** buttons here for building multi-satellite setups
+  automatically instead of adding spacecraft one at a time; a Walker
+  constellation can hold its spacing (**Hold each plane's spacing**).
   On the **Orbit / mass** page, **Surface facets** describes the spacecraft as
   flat plates (**Box + solar array...** fills in a bus and an array).
   Drag and solar pressure then follow the attitude, and an off-centre
@@ -844,8 +850,11 @@ build the spacecraft from boxes, prisms (an octagonal bus), cylinders,
 cones, spheres and panels, or import an `.obj` from a CAD or modelling
 tool, and give each part its mass; or import the whole spacecraft from
 an IDM-CIC model (IDM-CIC is © CNES) with its masses, and later versions
-of it without losing your edits
-([Import from IDM-CIC](docs/user-manual/idm-cic.md)). The model then sets the spacecraft's
+of it without losing your edits. The import can also add the sensors and
+actuators the model names, along the axes its shapes show, set the power
+budget from its power modes and solar arrays, read the values your team
+keeps as properties, and put the body frame's origin at the center of
+gravity ([Import from IDM-CIC](docs/user-manual/idm-cic.md)). The model then sets the spacecraft's
 dry mass, center of mass, inertia and surface facets, and its look in
 Vizard; mass properties can also be typed in or imported from a file.
 A model problem in **Problems**, or the "3D model" badge in **Explain**,
@@ -1172,7 +1181,10 @@ it.
   `.csv` files in SI units, for a spreadsheet or another tool.
   **Export all...** saves every shown plot as a PNG or SVG image,
   numbered in grid order, with each plot's series as CSV and the run's
-  `provenance.json`, into one folder. Its **Reproduction bundle...** saves
+  `provenance.json`, into one folder. Its **CCSDS ephemeris (OEM)...**
+  writes each spacecraft's trajectory as a CCSDS orbit file for another
+  tool ([Exchange orbits with other tools](docs/user-manual/orbit-files.md)).
+  Its **Reproduction bundle...** saves
   the shown run as a folder (every series, the provenance, the scenario
   as run and copies of the files it refers to) that
   `spacemissionstudio reproduce <folder>` runs again on any computer and
@@ -1302,7 +1314,7 @@ status bar shows the cursor's time; **Clear Time Cursor** (at the top of
 Results and the Timeline; **Alt+Backspace**, or Esc in the Timeline) clears it. A saved PNG or SVG includes the line if
 it is showing.
 
-The **Reference data** dialog (the status bar's reference data entry,
+The **Reference data** window (the status bar's reference data entry,
 **Settings > Reference data** or **Check Reference Data** (the Run area)) lists every reference data file the app uses (SPICE kernels,
 gravity field, magnetic model, space weather, Earth orientation, ITU-R
 P.676-13 Part 1) with its status, the dates it covers, where it came from and its SHA-256.
@@ -1489,7 +1501,7 @@ download anything. The installers bring the standard reference files
 fields and magnetic model, around 117 MB); the install script fetches
 them once. If they are missing (a development checkout, a cleared
 cache), open the **Reference data**
-dialog (**Check Reference Data** (the Run area)) and choose **Download... > Support
+window (**Check Reference Data** (the Run area)) and choose **Download... > Support
 data**; it asks before fetching. `spacemissionstudio kernels-status`
 does the same from the command line.
 

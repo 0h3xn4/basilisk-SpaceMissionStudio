@@ -54,6 +54,12 @@ directly (an ideal actuator).
 150, 300 or 500 kg spacecraft with sensors, wheels and torque rods
 already set up.
 
+A spacecraft designed in IDM-CIC brings its own: the import finds the
+star trackers, gyros, sun sensors, magnetometers, reaction wheels and
+magnetorquers by their names and adds the ones you tick, placed and
+turned as in the model, with its axis from its shapes when they show one (see
+[Devices found in the model](idm-cic.md#devices-found-in-the-model)).
+
 ## Unload the wheels
 
 Wheels slowly fill up with momentum. Two ways to unload them, both on

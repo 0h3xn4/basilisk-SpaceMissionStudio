@@ -1,6 +1,6 @@
 # Run a template
 
-How to run one of the 31 ready-made missions and look at what it did.
+How to run one of the 32 ready-made missions and look at what it did.
 
 ## In the app
 
@@ -38,7 +38,7 @@ You should see `Wrote 20 result file(s) to out:` followed by the files.
 ## Which template?
 
 The [template catalog](../../spacemissionstudio/scenarios/templates/README.md)
-lists all 31 with what each one teaches and a suggested order. Start with
+lists all 32 with what each one teaches and a suggested order. Start with
 01 (the simplest orbit), then 22.
 
 **More detail:** User Manual section 4,

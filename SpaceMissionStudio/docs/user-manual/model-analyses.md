@@ -6,6 +6,13 @@ The methods and their sources are in
 [docs/models/model-analyses.md](../models/model-analyses.md) and
 [docs/models/reentry.md](../models/reentry.md); template 32 shows them all.
 
+The fields named below are those of the scenario file. In the app, the
+3D model editor edits all of them: its **Equipment**, **Stowed**,
+**Materials** and **Budget and launcher** tabs and the part form (see
+[3D model](3d-model.md#equipment-stowed-configuration-materials-and-the-analyses)).
+An [IDM-CIC import](idm-cic.md) brings in the parts, the stowed poses
+and, with **Devices found**, the sensors and actuators at their places.
+
 ## Mount the equipment
 
 What the scenario already defines is reused: a thruster's `r_B` and

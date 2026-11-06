@@ -22,7 +22,7 @@ Code: `spacemissionstudio/schema/scenario.py` (`SimSettings`,
 | The dynamics step | at least 0.001 s | `schema.step_min` | The editor's least; a smaller step was accepted and asked for 86 400 billion steps a day (audit R9) |
 | Spacecraft in a scenario, or a generated constellation | at most 1000 | `schema.spacecraft_max` | Far above any real scenario (the templates have at most 6): it stops a mistyped or damaged input (audit R9) |
 | The description | at most 100 000 characters | `schema.description_max` | It stops a damaged input (audit R9) |
-| The scenario file | at most 20 MB | `schema.file_size_max` | The templates are at most 27 KB; a larger file is refused after reading one byte past the limit, never whole (audit R9) |
+| The scenario file | at most 20 MB | `schema.file_size_max` | The templates are at most 30 KB; a larger file is refused after reading one byte past the limit, never whole (audit R9) |
 | A name (spacecraft, part, sensor, actuator, ground station) | at most 64 characters | `schema.name_length` | Names become file names and the first part of series names (audit R8) |
 | A data-handling instrument's name | at most 127 characters | `schema.data_name_length` | Basilisk's `DataNodeUsageMsgPayload.dataName` is `char[128]` |
 | Monte Carlo runs | at most 100 000 | `schema.monte_carlo_runs` | The editor's own range: it stops a mistyped count (audit R4) |

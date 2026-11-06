@@ -175,7 +175,7 @@ Then start the GUI (installed apps: from the menu; from source:
 - The status bar at the bottom shows the Basilisk version. "(not
   qualified)" after it means a version other than 2.12.0 is installed:
   runs still work, but outside what the app was verified against.
-- **Check Reference Data** (the Run area) opens the **Reference data** dialog: every file
+- **Check Reference Data** (the Run area) opens the **Reference data** window: every file
   should be `ok`.
 - **Settings > About** shows the app's version
   (`spacemissionstudio --version` in a terminal).

@@ -300,7 +300,8 @@ reads.
 
 ## D-21: The 3D model editor does not yet edit equipment or draw cones
 
-*Superseded by D-24 for the equipment, the stowed poses and the cones.*
+*Superseded by D-24 for the equipment, the stowed poses and the cones,
+and by D-25 for the rest.*
 
 - **Chosen:** mounts, equipment, stowed poses, materials, maturity, face
   properties, the mass budget and the launcher are edited in the scenario

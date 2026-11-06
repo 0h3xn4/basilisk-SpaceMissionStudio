@@ -2,8 +2,9 @@
 
 How to build a spacecraft's [3D model](3d-model.md), with its mass,
 centre of mass and inertia, from a concurrent-engineering model made in
-IDM-CIC, and how to bring later versions of that model in without losing
-your own changes.
+IDM-CIC, with the sensors, actuators and power budget the model gives,
+and how to bring later versions of that model in without losing your own
+changes.
 
 > SpaceMissionStudio reads IDM-CIC models (IDM-CIC is © CNES) with its
 > own reader, written from the format's published description. It does
@@ -40,12 +41,16 @@ budget's bus load and solar panel can be set from the model's power
 modes and solar arrays: see
 [Power from the model](#power-from-the-model).
 
-Not imported: the performance of thrusters, batteries and solar cells,
+Not imported: the performance of thrusters, batteries and solar cells
+(a battery's capacity can come from your team's properties: see
+[Values from your team's properties](#values-from-your-teams-properties)),
 the dissipation of the power modes, thermal data, scenarios (trajectories and attitudes), the
 pictures and documents attached to the model, and surface coefficients
 (the file has none: facets stay off unless you ask for them, with the
 default coefficients). Shapes on layers that IDM-CIC hides by default and
-that carry no mass (fields of view, keep-out zones) are left out.
+that carry no mass (fields of view, keep-out zones) are left out of the
+parts; a device's field-of-view cone still gives its axis (see
+[Devices found in the model](#devices-found-in-the-model)).
 
 ## Import a model
 
@@ -62,11 +67,17 @@ In the 3D model editor (**Scenario › 3D Model...**), choose
 - **Origin of the body frame** (see [The origin of the body
   frame](#the-origin-of-the-body-frame)).
 
-![The import dialog: the model file, the configuration, the stowed configuration and the body element, and below what the import will do](../images/idm_import.png)
+![The import dialog: the model file, the configuration, the stowed configuration, the body element, the facets and the origin of the body frame, what the import will do, and the Devices found, Properties and Power tabs](../images/idm_import.png)
 
 The dialog shows what the import will do before you apply it: the
 elements imported and left out, the number of parts and point masses,
-the mass, and every approximation. The scenario must be saved as your
+the mass, and every approximation. Its tabs list the
+[devices found](#devices-found-in-the-model), the
+[properties](#values-from-your-teams-properties) and the
+[power](#power-from-the-model) choices. **Import** puts the model in
+the editor and says what was added, updated and kept as edited; the
+model, the devices and the power values go into the spacecraft when you
+click **OK** in the 3D model editor. The scenario must be saved as your
 own file first (not a built-in template, whose folder is not yours to
 write to): the shapes that are not one of the model's own primitives are
 written as meshes to `models/<spacecraft>_idm.obj` beside the scenario
@@ -81,11 +92,14 @@ $ spacemissionstudio idm-import demosat.idm scenario.json --spacecraft sat-1 \
       --configuration OPS --stowed-configuration LCH
 ```
 
-`idm-info` lists the elements, configurations and approximations
+`idm-info` lists the elements, configurations and approximations, and
+the devices, system modes, solar array panels and properties found,
 without writing anything; `idm-import` writes the model, saves the
 scenario through the change history and prints the same summary as the
-dialog. Both accept `--body-element`; `idm-import` also `--apply-facets`,
-`--origin element|cog` and `--out`.
+dialog. Both accept `--configuration` and `--body-element`; `idm-import` also
+`--stowed-configuration`, `--apply-facets`, `--origin element|cog` and
+`--out`, and the options of the sections below (`--devices`,
+`--bus-load`, `--solar-panels`, `--battery`, `--property-map`).
 
 ## The origin of the body frame
 
@@ -95,7 +109,7 @@ it does there. The centre of gravity is then usually elsewhere, and the
 import summary says where ("the centre of gravity is [0.35, -0.013,
 -0.006] m from it"). The simulation is right either way: it takes the
 centre of gravity from the origin (**Center of mass** on the spacecraft's
-Mass page), so drag, solar pressure and thrust push about the true
+**Orbit / mass** page), so drag, solar pressure and thrust push about the true
 centre of gravity.
 
 Choose **The centre of gravity** to put the origin there instead. The
@@ -253,17 +267,17 @@ it and its values. For each one you want, choose:
 - **Use as**: the value it gives, among those its devices take;
 - **Unit**: the unit its values are in.
 
-| Use as | Units |
-|---|---|
-| Reaction wheel: maximum torque | N·m, mN·m |
-| Reaction wheel: inertia about the spin axis | kg·m², g·cm² |
-| Reaction wheel: maximum speed | RPM, rad/s |
-| Reaction wheel: maximum momentum | N·m·s, mN·m·s |
-| Magnetorquer: maximum dipole | A·m² |
-| Star tracker: attitude noise (1-sigma) | arcsec, deg, rad |
-| Gyro / IMU: rate noise (1-sigma) | rad/s, deg/s, deg/h |
-| Sun sensor: full field of view | deg, rad |
-| Battery: capacity | W·h, kW·h |
+| Use as | Units | On the command line |
+|---|---|---|
+| Reaction wheel: maximum torque | N·m, mN·m | `reaction_wheel.u_max` |
+| Reaction wheel: inertia about the spin axis | kg·m², g·cm² | `reaction_wheel.Js` |
+| Reaction wheel: maximum speed | RPM, rad/s | `reaction_wheel.Omega_max` |
+| Reaction wheel: maximum momentum | N·m·s, mN·m·s | `reaction_wheel.maxMomentum` |
+| Magnetorquer: maximum dipole | A·m² | `magnetic_torque_rod.max_dipole_a_m2` |
+| Star tracker: attitude noise (1-sigma) | arcsec, deg, rad | `star_tracker.noise_arcsec` |
+| Gyro / IMU: rate noise (1-sigma) | rad/s, deg/s, deg/h | `imu.gyro_noise_rad_s` |
+| Sun sensor: full field of view | deg, rad | `coarse_sun_sensor.fov_deg` |
+| Battery: capacity | W·h, kW·h | `battery.capacity_wh` |
 
 A unit is offered only when the property's type has the value's
 dimension (an angle for a field of view, in degrees, the format's own
@@ -284,8 +298,10 @@ The mapping is kept with the import, so a newer version of the model is
 read the same way, and the dialog shows it next time.
 
 From the command line, give each mapping as
-`--property-map 'NAME=KIND.PARAM[UNIT]'`, for example
-`--property-map 'Max torque=reaction_wheel.u_max[mN*m]'`. Without the
+`--property-map 'NAME=KIND.PARAM[UNIT]'`, with `KIND.PARAM` from the
+table above and the unit written with `*` and `^` (`mN*m`, `kg*m^2`),
+for example `--property-map 'Max torque=reaction_wheel.u_max[mN*m]'`;
+repeat the option for each property. Without the
 option, the mapping of the spacecraft's last import is used;
 `--property-map none` drops it. `idm-info` lists the properties found and
 the values they can give.

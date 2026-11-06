@@ -27,6 +27,8 @@ pip install "bsk[all]==2.12.0"         # Basilisk, the version the tool is verif
 pip install -e ".[dev,gui]"            # the tool, its GUI, and pytest, pytest-qt, pytest-cov, pytest-xdist, ruff
 spacemissionstudio kernels-status      # downloads the reference data once (about 116 MB)
 spacemissionstudio earth-orientation --fetch
+spacemissionstudio small-bodies --fetch          # optional: the Eros files, for the small-body tests
+spacemissionstudio gaseous-attenuation --fetch   # optional: the ITU-R P.676-13 file, for the gaseous-attenuation tests
 ```
 
 On a minimal Debian or Ubuntu system, Qt needs a few system libraries:
@@ -59,7 +61,8 @@ QT_QPA_PLATFORM=offscreen python -m pytest tests -q -n auto
   - `requires_c_toolchain`: builds the exported C code; needs CMake and a
     C compiler.
 - Tests whose data is not installed skip: the Eros files, the IERS Earth
-  orientation files, the GMAT references, a German locale. The tests of
+  orientation files, the ITU-R P.676-13 file, the GMAT references, a
+  German locale. The tests of
   what happens without Basilisk run with Basilisk hidden (the
   `basilisk_unavailable` fixture in `tests/conftest.py`).
 - `slow` marks the tests that take about a minute or more (each a full
@@ -170,7 +173,8 @@ request that touches `SpaceMissionStudio/`:
 
 | Job | Runs on | What |
 |---|---|---|
-| `docs` | Ubuntu, when only documentation changed | Whitespace hooks, the compliance-document checks, `tests/gui/test_help.py` |
+| `changes` | Ubuntu | Decides which of the next jobs run: `docs` when a push or pull request changes only Markdown files, `test` and `platforms` otherwise |
+| `docs` | Ubuntu, when only Markdown files changed | Whitespace hooks, the compliance-document checks, `tests/gui/test_help.py` |
 | `test` | Ubuntu, Python 3.14 | Lint; compliance-document checks; reference data download; the full suite with coverage; the offline tests; metrics (statement coverage at least 90 %, branch at least 80 %); `pip-audit` of the pinned packages (`packaging/constraints.txt`, `constraints-dev.txt`); traceability, ICS and compliance matrix |
 | `platforms` | `windows-latest`, Python 3.14 | Reference data download and the full suite |
 
@@ -197,8 +201,12 @@ SIL link test, many times over, on Windows). Basilisk's own workflows (in
 
 - [Architecture](architecture.md): how the code is organised.
 - [Releasing](releasing.md): cutting a release.
-- [IDM-CIC import: design](idm-cic-integration.md): the proposed importer
-  for IDM-CIC models (© CNES), under review.
+- [IDM-CIC import: design](idm-cic-integration.md): how the importer of
+  IDM-CIC models (© CNES) reads a model and maps it into a spacecraft,
+  and the decisions taken when it was built.
+- [Analyses built on the 3D model](model-analyses-design.md): the design
+  of the design checks and model analyses, with its
+  [decision log](model-analyses-decisions.md).
 - [Syncing with upstream Basilisk](upstream-sync.md): taking a new
   Basilisk, and refreshing the upstream part of the root README.
 - [`compliance/`](../../compliance/README.md): the ECSS and CCSDS
