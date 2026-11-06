@@ -25,9 +25,10 @@ indices, as ``json.loads`` gives them) from :class:`Scenario` through the
 record classes of ``schema/scenario.py``: a field whose type is a record,
 or an optional one, and a list whose items are records
 (:data:`LIST_ITEMS`; the type hints say only ``list``). It gives None
-where the file holds free keys (a device's ``params``, ``fsw_params``),
-the mission sequence (its commands' fields depend on their ``type``) or
-a value.
+where the file holds free keys (a device's ``params``, ``fsw_params``,
+a mission step's ``params``) or a value. A mission step is a
+``schema.command.Command``; what its ``params`` hold depends on its
+``kind`` (:func:`command_params`, the table :data:`COMMAND_PARAMS`).
 
 :func:`fields` describes a record's fields (:class:`FieldInfo`): the JSON
 type, the default, whether it is required, the source's comment on it
@@ -46,6 +47,7 @@ from functools import cache
 from pathlib import Path
 from types import NoneType, UnionType
 
+from . import command as _command
 from . import scenario as _scenario
 
 HELP_FILE = Path(__file__).with_name("field_help.json")
@@ -72,6 +74,8 @@ LIST_ITEMS = {
     ("ModelAnalysesConfig", "observers"): "ObserverSiteConfig",
     ("DataHandlingConfig", "instruments"): "InstrumentConfig",
     ("RoeFormationConfig", "targets"): "RoeTargetConfig",
+    ("Scenario", "mission_sequence"): "Command",
+    ("Command", "children"): "Command",
 }
 #: A field's fixed choices: the constant of ``schema/scenario.py`` the validation checks it against.
 CHOICES = {
@@ -102,6 +106,7 @@ CHOICES = {
     ("ValueMark", "state"): "VALUE_MARK_STATES",
     ("ImportRecord", "target"): "IMPORT_TARGETS",
     ("ImportRecord", "format"): "IMPORT_FORMATS",
+    ("Command", "kind"): "SUPPORTED_COMMAND_KINDS",
 }
 #: What kind of name a field refers to: "spacecraft", "ground_station", "part" or "material".
 REFERENCES = {
@@ -118,9 +123,15 @@ REFERENCES = {
 
 
 def record(name: str) -> type | None:
-    """The record class ``name`` of ``schema/scenario.py``, or None."""
-    cls = getattr(_scenario, name, None)
+    """The record class ``name`` of ``schema/scenario.py`` (or
+    ``schema/command.py``'s ``Command``), or None."""
+    cls = getattr(_scenario, name, None) or getattr(_command, name, None)
     return cls if isinstance(cls, type) and dataclasses.is_dataclass(cls) else None
+
+
+def constant(name: str):
+    """The constant ``name`` of ``schema/scenario.py`` or ``schema/command.py``."""
+    return getattr(_scenario, name, None) or getattr(_command, name, ())
 
 
 @cache
@@ -186,7 +197,7 @@ class FieldInfo:
     def describe(self) -> str:
         """The field in words, for a tooltip."""
         parts = [f"{self.name}: {self.kind}" + (f" of {self.record}" if self.record else "")]
-        parts.append("required" if self.required else f"default {self.default}")
+        parts.append("required" if self.required else f"default {self.default}" if self.default else "optional")
         text = ", ".join(parts)
         if self.choices:
             text += "\nOne of: " + ", ".join(self.choices)
@@ -248,7 +259,7 @@ def fields(cls) -> tuple[FieldInfo, ...]:
             continue
         hint = _hints(cls).get(f.name, object)
         constant = CHOICES.get((cls.__name__, f.name))
-        choices = getattr(_scenario, constant) if constant else ()
+        choices = globals()["constant"](constant) if constant else ()
         held = field_record(cls, f.name)
         default = _default(f)
         found.append(FieldInfo(f.name, _kind(hint), default, default == "", helps.get(f.name, ""),
@@ -291,3 +302,59 @@ def names(data, refers: str, path=()) -> list[str]:
             if isinstance(model, dict):
                 return named(model.get("parts" if refers == "part" else "materials"))
     return []
+
+
+def _param(name, kind, default="", help_="", choices=(), refers="", required=False) -> FieldInfo:
+    return FieldInfo(name, kind, default, required, help_, tuple(choices), refers)
+
+
+#: What a mission step's ``params`` hold, by its kind, as ``Command.validate`` reads them
+#: (``tests/test_schema_fields.py`` checks the names against it).
+COMMAND_PARAMS = {
+    "propagate": (
+        _param("stop_condition", "string", '"duration"', "What ends the propagation.",
+               _command.SUPPORTED_STOP_CONDITIONS),
+        _param("duration_days", "number", "", "[day] How long, when stop_condition is \"duration\"."),
+        _param("stop_epoch_utc", "string", "", "ISO 8601 UTC, when stop_condition is \"epoch\"."),
+        _param("event_kind", "string", "", "The orbital event that ends it, when stop_condition is \"event\".",
+               _command.SUPPORTED_EVENT_KINDS),
+        _param("spacecraft", "string", "", "The spacecraft the event is evaluated against, when stop_condition "
+               "is \"event\".", refers="spacecraft"),
+        _param("ground_station", "string", "", "The station whose pass starts or ends it, for pass_start and "
+               "pass_end.", refers="ground_station"),
+    ),
+    "maneuver": (
+        _param("spacecraft", "string", "", "The spacecraft that burns.", refers="spacecraft", required=True),
+        _param("delta_v_m_s", "array", "[0.0, 0.0, 0.0]", "[m/s] The impulsive burn [x, y, z], in frame.",
+               required=True),
+        _param("frame", "string", '"inertial"', "The frame of delta_v_m_s.", _command.SUPPORTED_MANEUVER_FRAMES),
+    ),
+    "lambert_transfer": (
+        _param("spacecraft", "string", "", "The spacecraft that transfers.", refers="spacecraft", required=True),
+        _param("target_position_m", "array", "[0.0, 0.0, 0.0]", "[m] Where to arrive, inertial, from the central "
+               "body.", required=True),
+        _param("time_of_flight_s", "number", "", "[s] From this step until arrival; the burn is applied at once.",
+               required=True),
+        _param("num_revolutions", "number", "0", "[-] Whole revolutions on the way (an integer >= 0)."),
+        _param("max_distance_target_m", "number", "1000.0", "[m] The largest miss distance accepted."),
+        _param("min_orbit_radius_m", "number", "0.0", "[m] The lowest radius the transfer may dip to (0: no "
+               "check)."),
+    ),
+    "assignment": (
+        _param("target", "string", "", "A dotted path, e.g. \"sat-1.station_keeping.thrust_n\".", required=True),
+        _param("value", "any", "", "The value to set.", required=True),
+    ),
+    "report": (
+        _param("series", "array", "[]", "The series to record (names); empty: everything."),
+    ),
+    "if": (_param("condition", "string", "", "An expression; the children run when it is true.", required=True),),
+    "while": (_param("condition", "string", "", "An expression; the children run while it is true.",
+                     required=True),),
+    "script_block": (_param("code", "string", "", "Python code, run only with the user's consent.", required=True),),
+}
+
+
+def command_params(kind) -> tuple[FieldInfo, ...] | None:
+    """What a mission step of ``kind`` holds in its ``params``, or None
+    for a kind there is not."""
+    return COMMAND_PARAMS.get(kind)

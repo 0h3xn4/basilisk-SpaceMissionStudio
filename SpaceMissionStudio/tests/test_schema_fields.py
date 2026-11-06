@@ -68,7 +68,9 @@ def test_the_record_at_a_path():
     assert fields.record_at(("monte_carlo", "dispersions", 0)) is schema.DispersionConfig
     assert fields.record_at(("spacecraft",)) is None  # the list, not an item
     assert fields.record_at(("spacecraft", 0, "sensors", 0, "params")) is None  # free keys
-    assert fields.record_at(("mission_sequence", 0)) is None  # a command's fields depend on its type
+    assert fields.record_at(("mission_sequence", 0)) is fields.record("Command")  # a mission step
+    assert fields.record_at(("mission_sequence", 0, "children", 2)) is fields.record("Command")
+    assert fields.record_at(("mission_sequence", 0, "params")) is None  # free keys: they depend on its kind
     assert fields.record_at(("nope",)) is None and fields.record_at(("spacecraft", "x")) is None
 
 
@@ -116,7 +118,7 @@ def test_the_choices_are_the_validation_s():
     """Each fixed choice is a constant of the schema; a template's value of
     such a field is one of its choices."""
     for (owner, name), constant in fields.CHOICES.items():
-        assert isinstance(getattr(schema, constant), (tuple, list, dict)), constant
+        assert isinstance(fields.constant(constant), (tuple, list, dict)) and fields.constant(constant), constant
         info = fields.field(fields.record(owner), name)
         assert info is not None and info.choices, (owner, name)
     sensor = fields.field(schema.SensorConfig, "kind")
@@ -153,3 +155,30 @@ def test_the_names_a_field_refers_to():
     assert fields.names(data, "material", ("spacecraft", 0, "model", "parts", 1)) == ["Al"]
     assert fields.names(data, "part", ("spacecraft", 1, "sensors", 0)) == []
     assert fields.names(None, "spacecraft") == [] and fields.names(data, "part") == []
+
+
+def test_the_step_params_are_those_the_validation_reads():
+    """Each mission step kind's params in COMMAND_PARAMS are exactly the
+    names its validation method reads from ``self.params``; every kind
+    has an entry."""
+    import inspect
+    import re
+
+    from spacemissionstudio.schema import command
+
+    methods = {"propagate": "_validate_propagate", "maneuver": "_validate_maneuver",
+               "lambert_transfer": "_validate_lambert_transfer", "assignment": "_validate_assignment",
+               "report": "_validate_report", "if": "_validate_conditional", "while": "_validate_conditional",
+               "script_block": "_validate_script_block"}
+    assert set(fields.COMMAND_PARAMS) == set(command.SUPPORTED_COMMAND_KINDS) == set(methods)
+    for kind, method in methods.items():
+        source = inspect.getsource(getattr(command.Command, method))
+        read = set(re.findall(r'self\.params\.get\("(\w+)"', source)) | set(re.findall(r'"(\w+)" in self\.params',
+                                                                                        source))
+        assert {f.name for f in fields.command_params(kind)} == read, kind
+    assert fields.command_params("nope") is None
+    frame = next(f for f in fields.command_params("maneuver") if f.name == "frame")
+    assert frame.choices == command.SUPPORTED_MANEUVER_FRAMES and frame.describe().startswith(
+        'frame: string, default "inertial"')
+    days = next(f for f in fields.command_params("propagate") if f.name == "duration_days")
+    assert days.describe().startswith("duration_days: number, optional") and "[day]" in days.describe()

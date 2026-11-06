@@ -2,6 +2,13 @@
  "ActuatorConfig": {
   "mount": "where it sits on the 3D model; written only when set"
  },
+ "Command": {
+  "children": "nested commands, meaningful ONLY for ``kind in (\"if\", \"while\")`` (the compound/control-block kinds) -- empty for every other kind. A plain ``list[Command]``, not a separate type, so the same tree-walking code (validation, reference-scanning, execution) recurses uniformly regardless of nesting depth.",
+  "enabled": "False leaves the command (and its children) out of the run, as if commented out; it is still validated, so enabling it again cannot break the scenario. Saved only when False (``Scenario.to_dict``), so older files load unchanged.",
+  "kind": "one of :data:`SUPPORTED_COMMAND_KINDS`.",
+  "label": "optional user-facing name (e.g. ``\"Prop to Periapsis\"`` instead of an auto-numbered ``\"Propagate3\"``) -- purely cosmetic, never referenced by other commands/resources.",
+  "params": "kind-specific fields -- see :meth:`validate` for exactly what each kind requires/accepts."
+ },
  "CommsPointingConfig": {
   "antenna_boresight_b": "body-frame unit vector",
   "comms_power_w": "[W] additional transmitter draw while ground-station-pointing is active",

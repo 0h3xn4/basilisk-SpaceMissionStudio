@@ -14514,6 +14514,23 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The JSON page: completion inside params (2026-11-06)
+
+The first follow-up suggested after the three steps: a device's `params`
+and a mission step had no completion, though they are where most values
+are typed by hand (JE-10). A device's `params` now offer what its form
+offers for its kind, and a mission step (`schema.command.Command`) is a
+record of the schema helper, its `params` described per kind by a table
+a test checks against the names `Command`'s validation reads. Help, the
+quick fixes and the marks of unknown keys use the same lookup; a step
+param no kind reads is a warning, since the run ignores it rather than
+refusing it. Two tests of step 2 (on this unmerged series) changed with
+it: a mission step now has a record, and choices may come from
+`schema/command.py`.
+
+**Tests:** one more in `tests/test_schema_fields.py`, two in
+`tests/test_json_assist.py`, one in `tests/test_json_refactor.py`.
+
 ## The JSON page as a code editor, step 3: refactoring (2026-11-06)
 
 The last step of the user's request (design note, JE-07 to JE-09).

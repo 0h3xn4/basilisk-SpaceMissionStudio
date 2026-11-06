@@ -20,7 +20,8 @@
 record (the dataclasses of ``spacemissionstudio/schema/scenario.py``), the
 comment its source gives each field (unit, range, meaning): the comment
 at the end of the field's line, with the comment lines under it that go
-on in lower case, else the comment lines just above it.
+on in lower case, else the comment lines just above it; for a mission
+step (``schema/command.py``'s ``Command``), its docstring's "Args:".
 
 The JSON page's completion and hover help read it (``schema/fields.py``,
 decision JE-05 of ``docs/developer/json-editor.md``): an installed
@@ -43,7 +44,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from spacemissionstudio.schema import scenario  # noqa: E402
+from spacemissionstudio.schema import command, scenario  # noqa: E402
 
 OUTPUT = ROOT / "spacemissionstudio" / "schema" / "field_help.json"
 _FIELD = re.compile(r"^    ([a-z_][a-z0-9_]*)\s*:\s*[^=#]+(?:=[^#]*)?(?:#\s*(.*))?$")
@@ -78,11 +79,33 @@ def _help(cls) -> dict[str, str]:
     return {name: " ".join(text.split()) for name, text in found.items()}
 
 
+def _docstring_args(cls) -> dict[str, str]:
+    """``{field: text}`` from the "Args:" section of ``cls``'s docstring
+    (a record whose fields are described there, as ``Command``'s)."""
+    found: dict[str, str] = {}
+    lines = (inspect.getdoc(cls) or "").splitlines()
+    if "Args:" not in lines:
+        return found
+    current = ""
+    for line in lines[lines.index("Args:") + 1:]:
+        entry = re.match(r"^    ([a-z_]+): (.*)$", line)
+        if entry:
+            current = entry.group(1)
+            found[current] = entry.group(2)
+        elif line.startswith("        ") and current:
+            found[current] += " " + line.strip()
+        elif line.strip():
+            break
+    return {name: " ".join(text.split()) for name, text in found.items()}
+
+
 def build() -> dict:
     """``{record class name: {field: comment}}``, sorted."""
     records = {name: cls for name, cls in vars(scenario).items()
                if inspect.isclass(cls) and dataclasses.is_dataclass(cls) and cls.__module__ == scenario.__name__}
-    return {name: dict(sorted(_help(cls).items())) for name, cls in sorted(records.items())}
+    found = {name: dict(sorted(_help(cls).items())) for name, cls in sorted(records.items())}
+    found["Command"] = dict(sorted(_docstring_args(command.Command).items()))
+    return dict(sorted(found.items()))
 
 
 def text() -> str:

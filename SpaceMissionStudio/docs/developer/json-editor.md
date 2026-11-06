@@ -34,6 +34,7 @@ refactoring. This note records how it is built and in which steps.
 | JE-07 | **Rename uses the forms' own rename** (`schema.references.rename_spacecraft`, `rename_ground_station`, `rename_part`) on the scenario the text holds, and puts back the text as the file is saved, as one edit (one Undo). A name is found at a place as a record's own `name` (a spacecraft, a ground station, a part) or a field that refers to one (`fields.REFERENCES`, a mission step's `spacecraft`/`ground_station`, `fsw_params.target_ground_station`). The new name is checked as the forms check it (`name_error`). Devices and materials are not renamed: an import record keeps device names inside value paths, and no rename of materials exists yet. | One list of reference sites (`references.py`'s, hand-listed and audited) for every way of renaming, so the JSON page cannot miss one the forms update (value marks, presets, import and export records, mission steps, dotted assignment targets). The text is written back in the saved layout, which is what the page shows to begin with; free text (a description) is not changed, as in the forms. |
 | JE-08 | **Keys a record does not have are marked and fixable.** Text with such a key cannot be applied (the banner names the key but not its place); `json_refactor.unknown_keys` marks it where it is, with the field it is closest to. Ctrl+. offers: for such a key, the closest free fields and its removal (with its comma); for a value outside its field's choices, each choice (closest first); for a name that does not exist, the existing names. Nothing is fixed without being chosen. | The common mistakes in hand-edited JSON are a misspelt key or value; the schema already knows what was meant to be there. |
 | JE-09 | **The editor's keys win while it has the focus** (F2, F12, F8, Ctrl+., Ctrl+Space, Ctrl+Shift+Space, Shift+Alt+F: a `ShortcutOverride` accepted), none of which the window uses; each is also in the editor's right-click menu with its key. Format Document lays the text out as the file is saved (two spaces), keeping the keys' order and the values. | The keys programmers' editors use for the same commands; the menu makes them findable without knowing the keys. |
+| JE-10 | **Inside `params`, the keys of the kind beside them.** A device's `params` offer the parameters its form offers for its `kind` (`sensor_actuator_editor`'s per-kind specs, with the wheel and thruster models as choices); a mission step (a `schema.command.Command`, now a record of `fields.record_at`) offers its own fields and, in its `params`, those its `kind` reads (`fields.COMMAND_PARAMS`, with their choices and the spacecraft and station names they refer to). A step param its kind does not read is marked as a warning (it would be ignored) with its fixes; a device's are not checked, since its form lists the usual parameters, not every one Basilisk takes. | The two places a user types most by hand had no help. The step table is checked against the names `Command`'s validation reads, so it cannot drift; the device list is the form's, so the page and the form offer the same. |
 | JE-03 | **The syntax colours are the theme's words colours** (`code.key` = `text.link`, `code.string` = `status.normal.text`, `code.number` = `status.serious.text`, `code.literal` = `status.standby.text`, `code.punctuation` = `text.secondary`), with a current line and a matched bracket light enough to keep each at 4.5:1 (`code.current_line`, `code.bracket`; `bg.hover` and `accent.soft` do not). The pairs are in `CONTRAST_PAIRS`. A problem's message is also given in words under the text for the cursor's place, and F8 / Shift+F8 move between problems, so neither the colour of the underline nor a mouse hover is needed. | WCAG 2.2 AA (1.4.1, 1.4.3, 2.1.1), as everywhere else in the GUI. |
 
 ## How it works
@@ -77,6 +78,11 @@ quick fixes; `JsonEditor` has the keys, the right-click menu and the
 quick-fix menu; `ScenarioJsonView.rename_at_cursor` asks for the new name
 and says what was renamed (a toast, and the Log).
 
+Inside `params` (JE-10): `json_assist.fields_at` gives the fields an
+object can hold, its record's or, for `params`, those of the `kind`
+read beside it; completion, help and the quick fixes use it, and
+`json_refactor.unknown_keys` marks a step param its kind does not read.
+
 ## Tests
 
 `tests/test_json_positions.py`: the tokens, every value of every template
@@ -103,3 +109,9 @@ the names refused, formatting, unknown keys and their fixes, choices and
 names), and in `tests/gui/test_json_editor.py` F2 renaming in template 05
 with Undo, F12 and Ctrl+., and a misspelt key marked and the text
 formatted with Shift+Alt+F.
+
+Inside `params`: `tests/test_schema_fields.py` checks each step kind's
+params against what its validation reads; `tests/test_json_assist.py`
+offers a wheel's, a star tracker's and a maneuver's params, their
+choices, names and help; `tests/test_json_refactor.py` marks and fixes a
+misspelt step param and a wheel model.

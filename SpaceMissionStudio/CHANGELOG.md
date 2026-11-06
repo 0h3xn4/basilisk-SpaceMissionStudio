@@ -49,6 +49,11 @@ fixes bugs.
   or a name that does not exist; **Shift+Alt+F** formats the text. A key
   an object does not have is now marked where it is, with the field it
   is close to.
+- **Completion inside `params`.** A device's `params` offer the
+  parameters of its kind (as its form does), and a mission step its
+  kinds and the parameters its kind reads, with their choices, the names
+  they refer to and their help. A step parameter its kind does not read
+  is marked (the run would ignore it), with a fix.
 
 ## 2.4.0 (2026-11-05)
 

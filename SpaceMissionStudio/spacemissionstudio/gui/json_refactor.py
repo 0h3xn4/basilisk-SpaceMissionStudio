@@ -43,7 +43,7 @@ from dataclasses import dataclass
 
 from ..schema import fields, references
 from ..schema.scenario import name_error, parse_scenario_text, scenario_text
-from . import json_positions
+from . import json_assist, json_positions
 
 KINDS = ("spacecraft", "ground_station", "part")
 _LABELS = {"spacecraft": "spacecraft", "ground_station": "ground station", "part": "part"}
@@ -190,22 +190,48 @@ def _span_of_member(text: str, nodes, path: tuple) -> tuple[int, int]:
     return start, end
 
 
+def _checked_keys(text: str, nodes, path: tuple):
+    """``(names, severity, what)`` when the keys of the object at ``path``
+    are checked: a record's (an error: the text cannot be applied) and a
+    mission step's ``params`` (a warning: a key no step kind reads is
+    ignored); None otherwise. A device's ``params`` are not checked: its
+    form lists the usual ones, not every one Basilisk takes."""
+    record = fields.record_at(path)
+    if record is not None:
+        return [f.name for f in fields.fields(record)], "error", f"a field of {record.__name__}"
+    owner = fields.record_at(path[:-1]) if path and path[-1] == "params" else None
+    if owner is not None and owner.__name__ == "Command":
+        kind_node = nodes.get(path[:-1] + ("kind",))
+        kind = json.loads(text[kind_node.start:kind_node.end]) if kind_node is not None and \
+            kind_node.kind == "string" else None
+        known = fields.command_params(kind)
+        if known is not None:
+            return [f.name for f in known], "warning", f"read by a {kind!r} step: it is ignored"
+    return None
+
+
 def unknown_keys(text: str) -> list[tuple[str, str, int, int]]:
     """``(severity, message, start, end)`` for each key of a record that
-    is not one of its fields."""
+    is not one of its fields, and each key of a mission step's ``params``
+    that its kind does not read."""
     nodes = json_positions.index(text)
     found = []
+    checked: dict = {}
     for path, node in nodes.items():
         if not path or node.key_start is None or not isinstance(path[-1], str):
             continue
-        record = fields.record_at(path[:-1])
-        if record is None or nodes.get(path[:-1]) is None or nodes[path[:-1]].kind != "object":
+        owner = path[:-1]
+        if nodes.get(owner) is None or nodes[owner].kind != "object":
             continue
-        names = [f.name for f in fields.fields(record)]
+        if owner not in checked:
+            checked[owner] = _checked_keys(text, nodes, owner)
+        if checked[owner] is None:
+            continue
+        names, severity, what = checked[owner]
         if path[-1] not in names:
             close = difflib.get_close_matches(path[-1], names, n=1)
-            hint = f": did you mean {close[0]!r}?" if close else ""
-            found.append(("error", f"{path[-1]!r} is not a field of {record.__name__}{hint} (Ctrl+. offers fixes)",
+            hint = f"; did you mean {close[0]!r}?" if close else ""
+            found.append((severity, f"{path[-1]!r} is not {what}{hint} (Ctrl+. offers fixes)",
                           node.key_start, node.key_end))
     return found
 
@@ -235,12 +261,13 @@ def quick_fixes(text: str, position: int, data=None) -> list[Fix]:
     for path, node in nodes.items():
         if not path or not isinstance(path[-1], str):
             continue
-        record = fields.record_at(path[:-1])
-        if record is None:
+        on_key = node.key_start is not None and node.key_start <= position <= node.key_end
+        if not on_key and not (node.kind == "string" and node.start <= position <= node.end):
             continue
         key = path[-1]
-        names = [f.name for f in fields.fields(record)]
-        if node.key_start is not None and node.key_start <= position <= node.key_end and key not in names:
+        checked = _checked_keys(text, nodes, path[:-1])
+        if on_key and checked is not None and key not in checked[0]:
+            names = checked[0]
             taken = {p[-1] for p in nodes if len(p) == len(path) and p[:-1] == path[:-1]}
             fixes = [Fix(f"Change to {name!r}", node.key_start, node.key_end, json.dumps(name))
                      for name in difflib.get_close_matches(key, [n for n in names if n not in taken], n=3)]
@@ -248,7 +275,7 @@ def quick_fixes(text: str, position: int, data=None) -> list[Fix]:
             return fixes + [Fix(f"Remove {key!r}", start, end, "")]
         if node.kind != "string" or not node.start <= position <= node.end:
             continue
-        info = fields.field(record, key)
+        info = json_assist.field_at(text, path[:-1], key)
         if info is None:
             continue
         value = json.loads(text[node.start:node.end])

@@ -94,3 +94,39 @@ def test_the_help_of_a_key():
     assert "[kg]" in json_assist.help_at(text, position)
     assert json_assist.help_at(text, text.index("orbit_only")) == ""  # a value, not a key
     assert json_assist.help_at('{"nope": 1}', 3) == ""
+
+
+def test_a_device_s_params_offer_its_kind_s_parameters():
+    """A reaction wheel's params offer the wheel's parameters (as its form
+    does), its rw_type the wheel models; a star tracker's, its own; a
+    device whose kind is not read yet offers nothing."""
+    from spacemissionstudio.schema.scenario import RW_TYPES
+
+    wheel = _SAT + '"actuators": [{"kind": "reaction_wheel", "name": "w", "params": {"'
+    _s, _e, labels, items = _offer(wheel)
+    assert labels[:3] == ["gsHat_B", "rw_type", "Omega_max"] and "u_max" in labels
+    assert items[0].insert.startswith('"gsHat_B": [') and items[0].select is not None
+    assert _offer(wheel + 'rw_type": "')[2] == list(RW_TYPES)
+    tracker = _SAT + '"sensors": [{"kind": "star_tracker", "name": "st", "params": {"'
+    assert _offer(tracker)[2] == ["noise_arcsec", "bias_walk_bound_arcsec"]
+    assert _offer(_SAT + '"sensors": [{"name": "st", "params": {"')[2] == []  # no kind yet
+    text = json.dumps({"spacecraft": [{"name": "a", "sensors": [{"kind": "imu", "name": "g",
+                                                                  "params": {"gyro_noise_rad_s": 1e-5}}]}]})
+    assert "[rad/s]" in json_assist.help_at(text, text.index("gyro_noise") + 2)
+
+
+def test_a_mission_step_offers_its_fields_and_its_kind_s_params():
+    """A step's own fields, its kinds, the params of a maneuver with their
+    frame choices and the spacecraft names, and their help."""
+    _s, _e, labels, _items = _offer('{"mission_sequence": [{"')
+    assert labels == ["kind", "label", "params", "children", "enabled"]
+    assert _offer('{"mission_sequence": [{"kind": "lam')[2] == ["lambert_transfer"]
+    step = '{"mission_sequence": [{"kind": "maneuver", "params": {"'
+    _s, _e, labels, items = _offer(step)
+    assert labels == ["spacecraft", "delta_v_m_s", "frame"] and items[1].insert == '"delta_v_m_s": [0.0, 0.0, 0.0]'
+    assert _offer(step + 'frame": "')[2] == ["inertial", "vnb", "rtn"]
+    assert _offer(step + 'spacecraft": "', {"spacecraft": [{"name": "sat-1"}]})[2] == ["sat-1"]
+    nested = '{"mission_sequence": [{"kind": "if", "children": [{"kind": "propagate", "params": {"st'
+    assert _offer(nested)[2] == ["stop_condition", "stop_epoch_utc", "ground_station"]  # starts, then contains
+    text = json.dumps({"mission_sequence": [{"kind": "propagate", "params": {"duration_days": 1.0}}]})
+    assert json_assist.help_at(text, text.index("duration_days") + 2).startswith("duration_days: number, optional")

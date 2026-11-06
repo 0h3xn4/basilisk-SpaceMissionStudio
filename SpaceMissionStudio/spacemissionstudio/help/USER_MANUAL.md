@@ -601,6 +601,13 @@ Commands of a code editor work there too (also in the right-click menu):
   replaced by one that is.
 - **Shift+Alt+F** lays the text out again (two spaces, one value a line).
 
+Inside a device's `params`, the list offers the parameters its form has
+for its `kind` (a wheel's `u_max`, `Js`, ... and its `rw_type` models);
+inside a mission step, its `kind`s and, in its `params`, what that kind
+of step reads (a maneuver's `spacecraft`, `delta_v_m_s`, `frame`). A
+step parameter its kind does not read is marked in amber: the run would
+ignore it.
+
 A **validation message** at the very bottom of the Scenario area updates live as
 you type, in plain language (e.g. naming exactly which field is missing
 or invalid) -- you don't have to guess why Run is unavailable. It names

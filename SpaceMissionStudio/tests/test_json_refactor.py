@@ -139,3 +139,23 @@ def test_a_value_that_is_not_a_choice_or_a_name_is_fixed():
     fixes = refactor.quick_fixes(wrong, _at(wrong, '"chief_spacecraft": "'))
     assert [f.label for f in fixes][0] == "Use 'chief-1'"
     assert refactor.quick_fixes(_text(_FORMATION), _at(_text(_FORMATION), '"chief_spacecraft": "')) == []
+
+
+def test_a_step_param_its_kind_does_not_read_is_a_warning_with_fixes():
+    """A maneuver's misspelt "fram" is marked as a warning (the step would
+    ignore it), and fixed to "frame"; a value outside a step param's
+    choices is fixed too. A device's params are not checked for keys."""
+    text = json.dumps({"mission_sequence": [{"kind": "maneuver", "params": {"spacecraft": "a", "fram": "vnb"}}]},
+                      indent=2)
+    [(severity, message, start, end)] = refactor.unknown_keys(text)
+    assert severity == "warning" and text[start:end] == '"fram"' and "did you mean 'frame'" in message
+    assert "read by a 'maneuver' step" in message
+    assert [f.label for f in refactor.quick_fixes(text, start + 2)] == ["Change to 'frame'", "Remove 'fram'"]
+    wrong = json.dumps({"mission_sequence": [{"kind": "maneuver", "params": {"frame": "vbn"}}]})
+    assert [f.label for f in refactor.quick_fixes(wrong, wrong.index("vbn"))][0] == "Use 'vnb'"
+    device = json.dumps({"spacecraft": [{"name": "a", "sensors": [{"kind": "imu", "name": "g",
+                                                                    "params": {"anything": 1}}]}]})
+    assert refactor.unknown_keys(device) == []
+    wheel = json.dumps({"spacecraft": [{"name": "a", "actuators": [{"kind": "reaction_wheel", "name": "w",
+                                                                     "params": {"rw_type": "Honeywel_HR16"}}]}]})
+    assert refactor.quick_fixes(wheel, wheel.index("Honeywel"))[0].label == "Use 'Honeywell_HR16'"
