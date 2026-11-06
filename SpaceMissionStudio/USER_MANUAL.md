@@ -562,6 +562,18 @@ opened. Going back to **Form** applies an edit still waiting, and is
 refused while the text is not valid: fix it, or press **Discard** to put
 the scenario's own text back.
 
+The text is coloured by what each part is (keys, text values, numbers,
+`true`/`false`/`null`), with line numbers, the cursor's line shaded and
+the bracket matching the one at the cursor in bold. Each problem the
+**Problems** list shows is also marked in the text, at the value or key
+it is about: a wavy red underline for an error, amber for a warning,
+and a dot of the same colour beside the line number. Point at it to read
+its message, or put the cursor on it: the message then shows under the
+text ("At the cursor: ..."). **F8** goes to the next problem and
+**Shift+F8** to the previous one. A problem about the scenario as a
+whole, with no single place, stays in Problems only. Enter keeps the
+line's indentation (two spaces more after `{` or `[`).
+
 A **validation message** at the very bottom of the Scenario area updates live as
 you type, in plain language (e.g. naming exactly which field is missing
 or invalid) -- you don't have to guess why Run is unavailable. It names

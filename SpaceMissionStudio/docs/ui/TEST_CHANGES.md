@@ -1873,3 +1873,14 @@ new one:
 | `tests/test_idm_device_axes.py::test_the_model_s_axis_is_the_default_choice` | "Thruster 2": "+z" | "Thruster 2": "model" | Its plume cone shows its direction |
 | `tests/test_idm_device_axes.py::test_a_cone_s_axis_is_read_from_a_primitive_and_from_a_mesh` | `_cone_axis` returns (vector, angle) | it returns (vector, angle, start), and each start is checked: the primitive's apex, a mesh cone's narrow end at z = 0 and at z = h | The start is where a thruster sits |
 | `tests/test_idm_devices.py::test_by_default_only_what_can_run_is_added` | a thruster's reason contains "direction and thrust are not in the file" | without a plume cone it contains "no plume cone"; with one there is no reason (it is added) | A thruster is added when its direction is known; the set of devices added by default for devicesat is unchanged (its thruster has no shapes) |
+
+## The JSON page as a code editor (2026-11-06)
+
+No test removed, no assertion weakened, no golden or output file
+changed. The JSON page's text box became a code editor whose highlighted
+regions include the current line, the matched bracket and each problem's
+underline, so one test that counted them now checks what they mark:
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/gui/test_json_view.py::test_text_that_is_not_json_is_marked_and_blocks_the_run` | exactly one extra selection while the text is broken, none once fixed | the error line is 2 and the one problem marked is the parser's reason ("Expecting ':' delimiter") on that line; once fixed, no error line and no such mark | The editor now also draws the current line and the matched bracket as extra selections, and underlines the error's place; the test checks the error's line and place instead of a count |

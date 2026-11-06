@@ -90,6 +90,13 @@ from the table (`tokens.tokens(mode)`).
 | `status.off` | `#666D77` | `#868E9A` | off: icons and indicators (3:1) |
 | `status.off.text` | `#666D77` | `#868E9A` | off: words (4.5:1) |
 | `status.off.soft` | `#F0F1F3` | `#1D222A` | off: tinted background |
+| `code.key` | `#2563EB` | `#4C8DFF` | the JSON page: a key (text.link) |
+| `code.string` | `#00833F` | `#3DD68C` | the JSON page: a string value (status.normal.text) |
+| `code.number` | `#BD4E00` | `#FF8A3D` | the JSON page: a number (status.serious.text) |
+| `code.literal` | `#0077B4` | `#56B4F5` | the JSON page: true, false, null (status.standby.text) |
+| `code.punctuation` | `#50565F` | `#A1A8B3` | the JSON page: braces, brackets, commas, colons (text.secondary) |
+| `code.current_line` | `#F8F8F8` | `#1E2125` | the JSON page: the cursor's line, text.primary at 3 % (light) or 6 % (dark) over bg.surface, every code colour 4.5:1 on it |
+| `code.bracket` | `#F4F7FE` | `#1A273D` | the JSON page: a matched bracket, the accent at 5 % (light) or 16 % (dark) over bg.surface, every code colour 4.5:1 on it |
 | `diff.added` | `#EDF9F4` | `#18332B` | diff background: normal tint |
 | `diff.removed` | `#FFF3F3` | `#371D21` | diff background: critical tint |
 | `diff.changed` | `#FAF6ED` | `#352E1E` | diff background: caution tint |
