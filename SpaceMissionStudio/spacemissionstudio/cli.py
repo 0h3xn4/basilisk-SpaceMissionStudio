@@ -2210,7 +2210,9 @@ def build_parser() -> argparse.ArgumentParser:
                                "sensors, magnetometers, reaction wheels, magnetorquers), each along the axis its shapes show "
                                "(a field-of-view cone, or a wheel's or rod's cylinder; else its +z axis), with the catalog product its name names and the values of its mapped properties "
                                "(--property-map); without either it runs with Basilisk's defaults until its values "
-                               "are set")
+                               "are set. Thrusters whose plume cone shows their direction go to the 3D model's "
+                               "equipment, for the design checks (plume impingement, thrust authority), with the "
+                               "thrust of their product or mapped property")
     p_idm_in.add_argument("--bus-load", metavar="MODE",
                           help="set the power budget's bus load to the power of the imported equipment in this "
                                "system mode of the model (its name; idm-info lists them), or 'average' for the "

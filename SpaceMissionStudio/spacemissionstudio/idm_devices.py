@@ -32,15 +32,21 @@ pre-run checks say it runs with Basilisk's defaults
 (``import.device_defaults``) until its values are set. Nothing is
 estimated.
 
-Star trackers, IMUs, sun sensors, magnetometers, reaction wheels and
-magnetorquers can be added (:data:`ADDABLE_KINDS`), the wheels and
-magnetorquers only with a catalog product, since Basilisk builds neither
-without values the file does not give (:data:`REQUIRED_VALUES`); thrusters, solar
-arrays and batteries are found and listed, not added: a thruster's
-direction and thrust and a battery's capacity are not in the file, and
-the power model takes one panel area and one battery for the whole
-spacecraft (the solar arrays' panels can set that area and its normal:
-``idm_import.apply_power``).
+Star trackers, IMUs, sun sensors, magnetometers, reaction wheels,
+magnetorquers and thrusters can be added (:data:`ADDABLE_KINDS`), the
+wheels and magnetorquers only with a catalog product or mapped
+properties, since Basilisk builds neither without values the file does
+not give (:data:`REQUIRED_VALUES`). A thruster is added to the 3D model's
+equipment (:data:`EQUIPMENT_KINDS`, decision IDM-32), not to the
+actuators, whose thrusters are the attitude control's: placed where its
+plume cone starts, thrusting against the plume, with the plume's
+half-angle and its thrust (from a product or a mapped property) for the
+design checks (plume impingement, the authority matrix); only one whose
+plume cone shows its direction is added by default. Solar arrays and
+batteries are found and listed, not added: the power model takes one
+panel area and one battery for the whole spacecraft (the solar arrays'
+panels can set that area and its normal, and a mapped property the
+battery's capacity: ``idm_import.apply_power``).
 
 A device's axis (a sun sensor's boresight, a wheel's spin axis, a
 magnetorquer's dipole axis, a star tracker's boresight for the field of
@@ -66,13 +72,16 @@ import numpy as np
 from .engine import device_catalog
 from .idm import frames
 from .schema.scenario import (SUPPORTED_ACTUATOR_KINDS, SUPPORTED_SENSOR_KINDS, ActuatorConfig, MountConfig,
+                              MountedEquipmentConfig,
                               SensorConfig)
 
 #: The kinds :func:`build_devices` adds to the spacecraft.
 ADDABLE_KINDS = ("star_tracker", "imu", "coarse_sun_sensor", "magnetometer", "reaction_wheel",
-                 "magnetic_torque_rod")
+                 "magnetic_torque_rod", "thruster")
+#: The kinds added to the 3D model's equipment rather than to the sensors and actuators (decision IDM-32).
+EQUIPMENT_KINDS = ("thruster",)
 #: The kinds found and listed only (see the module docstring).
-LISTED_KINDS = ("thruster", "solar_array", "battery")
+LISTED_KINDS = ("solar_array", "battery")
 KIND_LABELS = {"star_tracker": "Star tracker", "imu": "Gyro / IMU", "coarse_sun_sensor": "Sun sensor",
                "magnetometer": "Magnetometer", "reaction_wheel": "Reaction wheel",
                "magnetic_torque_rod": "Magnetorquer", "thruster": "Thruster", "solar_array": "Solar array",
@@ -191,7 +200,8 @@ class DeviceFinding:
     properties: tuple = ()  # idm.properties.PropertyValue of its equipment definition
     model_axis: list | None = None  # body-frame unit vector read from its shapes (model_axis)
     axis_source: str = ""  # which shape gave model_axis
-    fov_deg: float | None = None  # [deg] full angle of the field-of-view cone it was read from
+    fov_deg: float | None = None  # [deg] full angle of the cone it was read from (a field of view, a plume)
+    axis_origin_m: list | None = None  # [m] body frame: where that cone starts (its narrow end's centre)
 
     @property
     def addable(self) -> bool:
@@ -231,6 +241,7 @@ class DeviceResult:
     values: dict = field(default_factory=dict)  # {path: number or text}, as device_import_values
     details: dict = field(default_factory=dict)  # {device path: "product: ..." or "no product: ..."}
     skipped: list = field(default_factory=list)  # (equipment name, why)
+    equipment: list = field(default_factory=list)  # MountedEquipmentConfig for the model (EQUIPMENT_KINDS)
 
 
 def _tidy(value: float) -> float:
@@ -267,23 +278,26 @@ def detect(model, placement, body: str, mounted: dict | None = None) -> list[Dev
 
 
 def _cone_axis(geometry, frame):
-    """``(boresight, full angle [deg])`` of a cone or truncated cone in
-    ``frame`` (its shape's frame in the body frame): from the narrow end
-    toward the wide one; None for a cylinder-like or degenerate one."""
+    """``(boresight, full angle [deg], narrow end's centre [m])`` of a cone
+    or truncated cone in ``frame`` (its shape's frame in the body frame):
+    the boresight from the narrow end toward the wide one; None for a
+    cylinder-like or degenerate one."""
     if geometry.kind == "cone":  # the primitive: its base at -z of its centred frame, its apex at +z
         local = frame @ geometry.local
         height = geometry.dims.get("height", 0.0)
         radius = geometry.dims.get("base_diameter", 0.0) / 2.0
         if height <= 0.0 or radius <= 0.0:
             return None
-        return -local[:3, 2], 2.0 * np.degrees(np.arctan2(radius, height))
+        apex = local @ np.array([0.0, 0.0, height / 2.0, 1.0])
+        return -local[:3, 2], 2.0 * np.degrees(np.arctan2(radius, height)), apex[:3]
     if geometry.cone is None:
         return None
     r0, r1, h = geometry.cone  # [m] radius at z = 0, radius at z = h, h: as the model gives them
     if h == 0.0 or abs(r1 - r0) <= 1.0e-12 or min(r0, r1) < 0.0:
         return None
     sign = 1.0 if (r1 - r0) * h > 0.0 else -1.0
-    return sign * frame[:3, 2], 2.0 * np.degrees(np.arctan2(abs(r1 - r0), abs(h)))
+    narrow = frame @ np.array([0.0, 0.0, 0.0 if r0 < r1 else h, 1.0])
+    return sign * frame[:3, 2], 2.0 * np.degrees(np.arctan2(abs(r1 - r0), abs(h))), narrow[:3]
 
 
 _CONES = ("Cone", "FilledCone", "HollowCone")
@@ -291,15 +305,17 @@ _CYLINDERS = ("Cylinder", "FilledCylinder", "HollowCylinder")
 
 
 def model_axis(kind: str, equipment, pose) -> tuple:
-    """``(axis, source, field of view [deg])`` that the equipment's shapes
-    give a device of ``kind`` placed at ``pose`` (the unit's frame in the
-    body frame), decision IDM-30: its largest cone (a field of view),
-    from the apex toward the base, with its full angle; else, for a wheel
-    or a magnetorquer, its largest cylinder's axis, along the cylinder's
-    own +z; else ``(None, "", None)``. Only for the kinds that are added (a
-    thruster's cone is its plume, and thrusters are listed, not added)."""
+    """``(axis, source, cone angle [deg], cone origin [m])`` that the
+    equipment's shapes give a device of ``kind`` placed at ``pose`` (the
+    unit's frame in the body frame), decision IDM-30: its largest cone (a
+    field of view), from the apex toward the base, with its full angle and
+    its apex; else, for a wheel or a magnetorquer, its largest cylinder's
+    axis, along the cylinder's own +z; else ``(None, "", None, None)``. A
+    thruster's cone is its plume (decision IDM-32): the thruster pushes
+    the other way, from the base toward the apex, and sits at the apex.
+    Only for the kinds that are added."""
     if kind not in ADDABLE_KINDS:
-        return None, "", None
+        return None, "", None, None
     cones, cylinders = [], []
     for shape in equipment.shapes:
         geometry = shape.geometry
@@ -311,13 +327,16 @@ def model_axis(kind: str, equipment, pose) -> tuple:
         elif geometry.object_type in _CYLINDERS and kind in CYLINDER_KINDS:
             cylinders.append((float(geometry.volume_m3 or geometry.area_m2), shape.name, frame[:3, 2]))
     if cones:
-        _size, name, vector, angle = max(cones, key=lambda c: c[0])
-        source = f"the field-of-view cone {name!r}" if name else "the field-of-view cone"
-        return _unit(vector), source, float(f"{angle:.6g}")
+        _size, name, vector, angle, apex = max(cones, key=lambda c: c[0])
+        what = "plume" if kind == "thruster" else "field-of-view"
+        source = f"the {what} cone {name!r}" if name else f"the {what} cone"
+        if kind == "thruster":
+            vector = -np.asarray(vector)  # the thrust, against the plume
+        return _unit(vector), source, float(f"{angle:.6g}"), [_tidy(v) for v in apex]
     if cylinders:
         _size, name, vector = max(cylinders, key=lambda c: c[0])
-        return _unit(vector), (f"the cylinder {name!r}" if name else "its cylinder"), None
-    return None, "", None
+        return _unit(vector), (f"the cylinder {name!r}" if name else "its cylinder"), None, None
+    return None, "", None, None
 
 
 def _unit(vector) -> list:
@@ -326,7 +345,6 @@ def _unit(vector) -> list:
 
 
 _LISTED_WHY = {
-    "thruster": "listed, not added: its direction and thrust are not in the file; add it to the actuators yourself",
     "solar_array": "listed, not added: the power model takes one panel area for the whole spacecraft; its panels "
                    "can set it (the import's Power choices)",
     "battery": "listed, not added: the power model takes one battery for the whole spacecraft, and the file "
@@ -354,12 +372,16 @@ def finding_values(finding: DeviceFinding, mappings=()) -> tuple[list, list]:
     return mapped_values(finding.kind, finding.properties, mappings) if mappings else ([], [])
 
 
-def why_not(kind: str, product: str = "", mapped=()) -> str:
-    """Why a finding of ``kind`` (with catalog ``product``, and the
-    parameters ``mapped`` from its properties) is not added unless chosen:
-    "" when it is added by default."""
+def why_not(kind: str, product: str = "", mapped=(), axis_known: bool = True) -> str:
+    """Why a finding of ``kind`` (with catalog ``product``, the parameters
+    ``mapped`` from its properties, and ``axis_known`` when its shapes
+    show its axis) is not added unless chosen: "" when it is added by
+    default."""
     if kind in _LISTED_WHY:
         return f"a {KIND_LABELS[kind].lower()} is {_LISTED_WHY[kind]}"
+    if kind in EQUIPMENT_KINDS and not axis_known:
+        return ("its direction is not in its shapes (no plume cone): choose the axis it thrusts along to add it "
+                "to the 3D model's equipment")
     if kind in REQUIRED_VALUES and not product and not complete(kind, mapped):
         return (f"a {KIND_LABELS[kind].lower()} needs {' and '.join(REQUIRED_VALUES[kind])}, which the file does not "
                 "give: choose a catalog product, map the properties that give them, or add it yourself")
@@ -370,12 +392,13 @@ def default_choices(findings: list[DeviceFinding], mappings=()) -> list[DeviceCh
     """Add each addable finding along the axis its shapes show (+z when
     they show none) with the product its name names; not one that needs
     values only a product, or its mapped properties, give and has
-    neither."""
+    neither, nor a thruster whose shapes show no plume cone."""
     choices = []
     for f in findings:
         mapped = [v.target.param for v in finding_values(f, mappings)[0]]
         needs_product = f.kind in REQUIRED_VALUES and not f.product and not complete(f.kind, mapped)
-        choices.append(DeviceChoice(f.addable and not needs_product, f.kind,
+        needs_axis = f.kind in EQUIPMENT_KINDS and f.model_axis is None
+        choices.append(DeviceChoice(f.addable and not needs_product and not needs_axis, f.kind,
                                     MODEL_AXIS if f.model_axis is not None else DEFAULT_AXIS, f.product))
     return choices
 
@@ -389,22 +412,26 @@ def _unique(base: str, taken: set) -> str:
 
 
 def build_devices(findings: list[DeviceFinding], choices: list[DeviceChoice], taken: set,
-                  mappings=()) -> DeviceResult:
+                  mappings=(), taken_equipment: set | None = None) -> DeviceResult:
     """The sensors and actuators of the findings chosen to be added, named
-    after their equipment (made unique against ``taken``, which grows), and
-    what the import record keeps. The values ``mappings`` read from a
-    finding's properties go over its product's. A finding is skipped, with
-    the reason, when it is not chosen, its kind cannot be added, or it
-    needs values (:data:`REQUIRED_VALUES`) that neither a product nor its
+    after their equipment (made unique against ``taken``, which grows), the
+    3D model equipment of the thrusters (:data:`EQUIPMENT_KINDS`, named
+    "EQUIPMENT nozzle", unique against ``taken_equipment``), and what the
+    import record keeps. The values ``mappings`` read from a finding's
+    properties go over its product's. A finding is skipped, with the
+    reason, when it is not chosen, its kind cannot be added, or it needs
+    values (:data:`REQUIRED_VALUES`) that neither a product nor its
     properties give."""
     result = DeviceResult()
+    taken_equipment = set() if taken_equipment is None else taken_equipment
     if len(findings) != len(choices):
         raise ValueError("one choice per finding")
     for finding, choice in zip(findings, choices):
         values, _problems = finding_values(finding, mappings)
         mapped = [v.target.param for v in values]
         if not choice.add:
-            result.skipped.append((finding.equipment, why_not(choice.kind, choice.product, mapped) or "not chosen"))
+            result.skipped.append((finding.equipment, why_not(choice.kind, choice.product, mapped,
+                                                              finding.model_axis is not None) or "not chosen"))
             continue
         kind = choice.kind
         if kind not in ADDABLE_KINDS:
@@ -422,6 +449,12 @@ def build_devices(findings: list[DeviceFinding], choices: list[DeviceChoice], ta
             if value.target.param in _EITHER:  # Basilisk's wheel factory takes one of the two, never both
                 params.pop(_EITHER[value.target.param], None)
             params[value.target.param] = value.value
+        if kind in EQUIPMENT_KINDS:
+            item, detail = _model_equipment(finding, choice.axis, axis, params, product, values, taken_equipment)
+            result.equipment.append(item)
+            result.values.update(equipment_values(item))
+            result.details[f"model.equipment[{item.name}]"] = detail
+            continue
         if kind in AXIS_PARAMS:
             params[AXIS_PARAMS[kind]] = list(axis)
         name = _unique(finding.equipment.strip() or KIND_LABELS[kind], taken)
@@ -450,9 +483,60 @@ def build_devices(findings: list[DeviceFinding], choices: list[DeviceChoice], ta
     return result
 
 
+def _model_equipment(finding: DeviceFinding, choice: str, axis: list, params: dict, product, values,
+                     taken: set) -> tuple:
+    """``(MountedEquipmentConfig, record detail)`` of a thruster finding
+    (decision IDM-32): at the start of its plume cone when the axis is the
+    model's (else at its unit's centre of mass), thrusting along ``axis``,
+    with the plume's half-angle and the thrust ``MaxThrust`` of
+    ``params`` (its product's, or a mapped property's). Massless: the
+    model import carries its mass."""
+    from_model = choice == MODEL_AXIS and finding.model_axis is not None
+    at_plume = from_model and finding.axis_origin_m is not None
+    mount = MountConfig(position_m=list(finding.axis_origin_m if at_plume else finding.position_m),
+                        boresight=list(axis))
+    if from_model and finding.fov_deg is not None:
+        mount.plume_half_angle_deg = float(f"{finding.fov_deg / 2.0:.6g}")  # [deg] the model's plume, as drawn
+    thrust = params.get("MaxThrust")
+    base = f"{finding.equipment.strip() or KIND_LABELS[finding.kind]} nozzle"
+    item = MountedEquipmentConfig(name=_unique(base, taken), kind=finding.kind, mount=mount, mass_kg=0.0,
+                                  subsystem=finding.subsystem,
+                                  thrust_n=float(thrust) if isinstance(thrust, (int, float)) else None)
+    if product is not None and not any(v.target.param == "MaxThrust" for v in values):
+        origin = f"thrust from product: {product.display_name} ({product.source_url})"
+    elif item.thrust_n is not None:
+        origin = "thrust from properties: " + ", ".join(v.describe() for v in values)
+    else:
+        origin = "no thrust: the authority matrix takes it per newton"
+    detail = (origin + "; axis " + axis_text(finding, choice)
+              + ("; at the plume cone's start" if at_plume else "; at its centre of mass")
+              + f"; from {finding.equipment}; unit {finding.source_id}")
+    return item, detail
+
+
+def equipment_values(item) -> dict:
+    """A thruster's 3D model equipment (``MountedEquipmentConfig``) by
+    path (``model.equipment[NAME].KEY``), as an import record of devices
+    keeps it."""
+    where = f"model.equipment[{item.name}]"
+    values = {f"{where}.kind": item.kind}
+    for key in ("position_m", "boresight"):
+        vector = getattr(item.mount, key)
+        if vector is not None:
+            values.update({f"{where}.mount.{key}[{i}]": float(v) for i, v in enumerate(vector)})
+    if item.mount.plume_half_angle_deg is not None:
+        values[f"{where}.mount.plume_half_angle_deg"] = float(item.mount.plume_half_angle_deg)
+    if item.thrust_n is not None:
+        values[f"{where}.thrust_n"] = float(item.thrust_n)
+    return values
+
+
 def axis_text(finding: DeviceFinding, choice: str) -> str:
     """Where the axis ``choice`` of ``finding`` comes from, in words."""
     if choice == MODEL_AXIS and finding.model_axis is not None:
+        if finding.kind == "thruster":
+            return f"from {finding.axis_source}, against the plume" + (
+                f" (plume half-angle {finding.fov_deg / 2.0:g} deg)" if finding.fov_deg is not None else "")
         return f"from {finding.axis_source}" + (f" (field of view {finding.fov_deg:g} deg)"
                                                  if finding.fov_deg is not None else "")
     if choice == MODEL_AXIS:
@@ -473,26 +557,54 @@ def recorded_units(record) -> set:
             for match in [re.search(r"; unit (\S+)$", text)] if match}
 
 
+_NO_MODEL = "it has no 3D model to carry it"
+
+
 def keep_fitting(config, result: DeviceResult) -> DeviceResult:
     """``result`` without the devices spacecraft ``config`` cannot take as
-    it is (a magnetorquer without magnetic momentum management, say): each
-    is tried in turn against the spacecraft's own validation, and one that
-    fails is moved to ``skipped`` with the reason. When the spacecraft is
-    not valid without them, nothing is tried."""
+    it is (a magnetorquer without magnetic momentum management, a thruster
+    without a 3D model, say): each is tried in turn against the
+    spacecraft's own validation, and one that fails is moved to
+    ``skipped`` with the reason. When the spacecraft is not valid without
+    them, nothing is tried, but a thruster still goes only on a model."""
     from .schema.scenario import ScenarioValidationError
 
-    def problem(sensors, actuators) -> str:
+    def problem(sensors, actuators, equipment=()) -> str:
         trial = copy.copy(config)
         trial.sensors, trial.actuators = list(config.sensors) + sensors, list(config.actuators) + actuators
+        if equipment:
+            trial.model = copy.copy(config.model)
+            trial.model.equipment = list(config.model.equipment) + list(equipment)
         try:
             trial.validate()
         except ScenarioValidationError as exc:
             return str(exc)
         return ""
 
+    no_model = getattr(config, "model", None) is None
     if problem([], []):
-        return result
+        if not (no_model and result.equipment):
+            return result
+        kept = copy.copy(result)  # no validation to try, but a thruster still needs a model to go on
+        kept.equipment, kept.skipped = [], list(result.skipped)
+        kept.details, kept.values = dict(result.details), dict(result.values)
+        for item in result.equipment:
+            path = f"model.equipment[{item.name}]"
+            equipment = re.search(r"; from (.*); unit ", kept.details.pop(path))
+            kept.skipped.append((equipment.group(1) if equipment else item.name, f"{CANNOT_TAKE}: {_NO_MODEL}"))
+            kept.values = {k: v for k, v in kept.values.items() if not k.startswith(f"{path}.")}
+        return kept
     kept = DeviceResult(skipped=list(result.skipped))
+    for item in result.equipment:
+        path = f"model.equipment[{item.name}]"
+        equipment = re.search(r"; from (.*); unit ", result.details[path])
+        why = _NO_MODEL if no_model else problem([], [], kept.equipment + [item])
+        if why:
+            kept.skipped.append((equipment.group(1) if equipment else item.name, f"{CANNOT_TAKE}: {why}"))
+            continue
+        kept.equipment.append(item)
+        kept.details[path] = result.details[path]
+        kept.values.update({k: v for k, v in result.values.items() if k.startswith(f"{path}.")})
     for source, devices in (("sensors", result.sensors), ("actuators", result.actuators)):
         for device in devices:
             mine = [device] if source == "sensors" else []
@@ -535,12 +647,17 @@ def device_values(device, source: str) -> dict:
 
 
 def device_import_values(config) -> dict:
-    """Every device of spacecraft ``config`` by :func:`device_values`: what
-    an import record of its devices is compared with."""
+    """Every device of spacecraft ``config`` by :func:`device_values`, and
+    its model's thrusters by :func:`equipment_values`: what an import
+    record of its devices is compared with."""
     values = {}
     for source in ("sensors", "actuators"):
         for device in getattr(config, source, None) or []:
             values.update(device_values(device, source))
+    model = getattr(config, "model", None)
+    for item in getattr(model, "equipment", None) or []:
+        if item.kind in EQUIPMENT_KINDS and not item.source_id:  # those of the model import have a source
+            values.update(equipment_values(item))
     return values
 
 

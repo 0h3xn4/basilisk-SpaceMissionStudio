@@ -377,11 +377,12 @@ decision of this project, reversible when better information comes.
 | IDM-24 | **The bus load from the power modes** (section 16): a system mode's total is the power of the imported units in it, through the element mode of the unit's element the system mode links, else the unit's own system-mode mapping; a mapping's power mode's power, or its custom power. A unit with power modes that no mapping covers counts 0 W and is counted in the record. The duty-cycle average only when the duty cycles add up to one (within 1e-6). Watts. The user chooses the mode; nothing is set by default. | The format describes both mappings and says an element linked through an element mode has no direct ones; the description gives no unit, and the samples' values (a wheel about 10, a magnetometer about 1) are watts. The scenario has one constant load, so which mode matters is the user's call. |
 | IDM-25 | **The panel from the solar arrays** (section 16): for each solar array unit, its largest flat shape (a box whose thinnest side is at most a tenth of the next, or a plane surface), the others taken as its layers; the panels grouped by normal line (within 1 deg, either sense), the largest group's area and line; the side carrying the cells chosen by the user. | The power model takes one panel area and one normal; the file does not say which side carries the cells. In the samples a panel is a thin box with cover layers of the same outline. |
 | IDM-26 | **A power budget made by the import** (the spacecraft had none, the panels chosen) takes the spacecraft editor's panel efficiency and battery, recorded, and `import.power_defaults` warns until they are set. A bus load alone does not make one. | A new budget needs an efficiency and a battery the file does not give; the editor's values are the ones a user would start from, and the warning keeps them from passing for the spacecraft's. |
-| IDM-27 | **A team's properties are read only through a mapping the user gives** (section 17): a property name (accents, case and spacing ignored) to one of nine values (`idm_properties.TARGETS`), with the unit its values are in; a unit is offered only when the property's value type has the value's dimension (Angle: deg; Distance: m; Mass: kg; MomentOfInertia: kg*m^2), else the user chooses. | The names are the team's; `DecimalWithoutUnit` carries no unit and the format's description gives none for typed values. The samples show both a torque of "12" without a unit and a wheel speed typed as a distance. |
+| IDM-27 | **A team's properties are read only through a mapping the user gives** (section 17): a property name (accents, case and spacing ignored) to one of the values of `idm_properties.TARGETS` (nine, ten since IDM-32 added a thruster's thrust), with the unit its values are in; a unit is offered only when the property's value type has the value's dimension (Angle: deg; Distance: m; Mass: kg; MomentOfInertia: kg*m^2), else the user chooses. | The names are the team's; `DecimalWithoutUnit` carries no unit and the format's description gives none for typed values. The samples show both a torque of "12" without a unit and a wheel speed typed as a distance. |
 | IDM-28 | **Mapped values go over a product's**, and complete a wheel or magnetorquer without one when they give every required value (`idm_devices.complete`). A wheel's mapped inertia drops a product's maximum momentum and the reverse. A device with mapped values and no product is recorded as "properties: Basilisk's defaults for the rest", which `import.device_defaults` does not flag. | The user stated the values; Basilisk's wheel factory stops the process when given both inertia and momentum. |
 | IDM-29 | **The battery capacity** is the sum of the batteries' mapped capacity, set only when the user chooses it (`PowerChoice.battery`); a power budget the import makes with it lists only the rest as the editor's values. **The mapping is kept** in the model import record (`property_map`) and reused by the next import (CLI without `--property-map`, the dialog's initial rows). | The power model has one battery; a newer model version should read the same way without re-entering the mapping. |
-| IDM-30 | **A device's axis from its shapes** (section 18): its largest cone (a field of view, often on a layer hidden by default), from the narrow end toward the wide one, with its full angle as the mount's field of view; else, for a reaction wheel or a magnetorquer, its largest cylinder's axis, along the cylinder's +z; else +z of its frame (IDM-20). Only for the kinds that are added: a thruster's cone is its plume. The user can choose an axis of the frame instead. The angle is read from the cone's radii and height as the model gives them, not from its mesh. The simulated values (a sun sensor's `fov_deg`) are not set from the drawing. | The file has no boresight field, but a team draws a sensor's field of view as a cone and builds a wheel or a rod as a cylinder; their axes are the device's. In the samples the star tracker's cone (30 deg) and the wheels' cylinders give the axes the +z rule gave, and the magnetorquers' cylinders are turned inside their equipment, so +z had given each of them a wrong axis. A drawn cone may be a margin or a keep-out zone rather than the sensor's specification, so it is shown and recorded, not simulated. |
+| IDM-30 | **A device's axis from its shapes** (section 18): its largest cone (a field of view, often on a layer hidden by default), from the narrow end toward the wide one, with its full angle as the mount's field of view; else, for a reaction wheel or a magnetorquer, its largest cylinder's axis, along the cylinder's +z; else +z of its frame (IDM-20). Only for the kinds that are added; a thruster's cone is its plume (IDM-32). The user can choose an axis of the frame instead. The angle is read from the cone's radii and height as the model gives them, not from its mesh. The simulated values (a sun sensor's `fov_deg`) are not set from the drawing. | The file has no boresight field, but a team draws a sensor's field of view as a cone and builds a wheel or a rod as a cylinder; their axes are the device's. In the samples the star tracker's cone (30 deg) and the wheels' cylinders give the axes the +z rule gave, and the magnetorquers' cylinders are turned inside their equipment, so +z had given each of them a wrong axis. A drawn cone may be a margin or a keep-out zone rather than the sensor's specification, so it is shown and recorded, not simulated. |
 | IDM-31 | **The origin of the body frame** (section 19): the body element's own origin by default; on request, the computed centre of gravity of the merged model (propellant as the configuration fills it), rounded to the micrometre. Moving the origin moves every position of the spacecraft measured from it (`model3d.origin.move_origin`: the model's parts, mounted equipment, stowed poses, launcher plane and typed centre of mass; the devices' mounts and `r_B`/`rWB_B`, the RF antenna, facets, fuel tank, solar array hinges and Vizard offset), the import records' positions (`shift_record_values`) and the plan's devices. The model record keeps the choice and the origin's place in the element frame (`origin`, `origin_offset_m`); the next import takes the recorded choice unless told otherwise, and recentres at the centre of gravity of that model. | The user asked for the centre of gravity to be the origin. Basilisk takes a centre of mass away from B (`r_BcB_B`), so the results do not depend on it; the element's frame keeps positions as the team reads them in IDM-CIC. Rounding the move to the micrometre keeps an unchanged model's re-import unchanged and a move there and back exact (to 1e-10 m). Moving the records as well keeps the re-import's "edited since" test comparing like with like. |
+| IDM-32 | **Thrusters to the 3D model's equipment** (section 20): a thruster found by name becomes a `MountedEquipmentConfig` of kind "thruster", named "EQUIPMENT nozzle", massless, with no `source_id`: at the tip of its largest cone (its plume), pushing from the cone's wide end toward its tip, with half the cone's angle as `plume_half_angle_deg` and `thrust_n` from the product's or a mapped property's `MaxThrust` (target `thruster.MaxThrust`, N or mN). Added by default only when a cone shows its direction; else, when ticked, along the axis chosen, at the unit's centre of mass, with no half-angle. Recorded in the devices record as `model.equipment[NAME]`. | A team may draw a thruster's plume as a cone; the file has no thrust field and no direction field. The actuators' thrusters are the attitude control's, which refuses them next to wheels; the design checks (plume impingement, the authority matrix) read the model's equipment and need only a position, a direction, a half-angle and a thrust. Massless and without a source so that the model import's point mass of the same unit is neither counted twice nor overwritten. Without a cone the direction would be a guess, so it waits for the user's axis. |
 | IDM-23 | **Re-import of devices** adds only the units no earlier import added a device for (the record names each device's unit); devices already added are left as they are. | A device's values are the user's once added; the record keeps what was imported for comparison. |
 
 Validation (question 10) remains open: no example stores IDM-CIC's own
@@ -522,8 +523,7 @@ Each axis is the shape's in the body frame (the unit's pose times the
 shape's position), so a shape turned inside its equipment and a unit
 turned by its instance both count. A cylinder gives nothing to the
 other kinds (a magnetometer's can says nothing of its axes), and a
-thruster's cone is its plume, not a field of view; thrusters are listed,
-not added.
+thruster's cone is its plume, not a field of view (section 20).
 
 `DeviceFinding` carries `model_axis`, `axis_source` (the shape that gave
 it) and `fov_deg`; `default_choices` chooses `MODEL_AXIS` when there is
@@ -573,3 +573,53 @@ hole is a polygon) with its re-import and its way back, the devices of
 devicesat through the command line, and a massless model;
 `tests/gui/test_idm_origin_gui.py` the dialog, the editor and both ways
 the spacecraft's other positions are moved.
+
+## 20. Thrusters from their plume cones
+
+Added after the device axes and the origin (2.4.0). A
+thruster was listed, not added: the file has no thrust and no direction
+field, and the actuators' thrusters are the attitude control's (they
+are refused next to reaction wheels unless they dump momentum). But a
+team may draw a thruster's plume as a cone, on the field-of-view
+layer for example, and the design checks need only what that cone and a product
+give. Decision IDM-32:
+
+- `model_axis` reads a thruster's largest cone as its plume: the thrust
+  is from the cone's wide end toward its narrow end (the negative of a
+  sensor's boresight), the source is "the plume cone 'NAME'", and
+  `_cone_axis` also returns where the cone starts, the centre of its
+  narrow end (a primitive cone's apex at `+h/2` of its centred frame, a
+  mesh cone's `z = 0` or `z = h`), kept as `DeviceFinding.axis_origin_m`
+  and moved with the origin (`shift_plan`).
+- `build_devices` makes a `MountedEquipmentConfig` per thruster chosen
+  (`DeviceResult.equipment`, `EQUIPMENT_KINDS`): at `axis_origin_m` when
+  the model's axis is chosen (else the unit's centre of mass), boresight
+  the thrust direction, `plume_half_angle_deg` half the cone's angle,
+  `thrust_n` the `MaxThrust` of the product or of a mapped property,
+  mass 0 (the model import's point mass of the unit carries it), no
+  `source_id` (it is not the model import's). Its name is the
+  equipment's plus " nozzle", unique among the model's equipment.
+- The devices record keeps it as `model.equipment[NAME]` (kind, mount
+  position and boresight, plume half-angle, thrust: `equipment_values`),
+  with a detail ending in its unit, so `recorded_units` keeps a re-import
+  from adding it twice and `device_import_values` compares it. Its detail
+  never starts with "no product": nothing simulates it, so
+  `import.device_defaults` does not apply.
+- `keep_fitting` tries each against the spacecraft's validation with
+  its model, and refuses one when there is no model.
+- `default_choices` adds it only with a plume cone; `why_not(...,
+  axis_known=False)` says why not. The import dialog's note says it goes
+  to the 3D model's equipment and where its thrust comes from; its
+  product list offers "None (no thrust)".
+- `idm_import.add_devices` appends the equipment to the model; the
+  spacecraft list and dialog take it with the devices on the 3D model
+  editor's OK.
+
+The synthetic fixture's "Thruster 2" (axessat) is checked by hand in
+`tests/test_idm_thrusters.py`: its thrust direction, half-angle and
+start (with the plume moved inside its equipment, so the start and the
+centre of mass differ), the product's and a mapped property's thrust,
+the model-less refusal, the import through the command line with both
+design checks and a re-import, and the origin at the centre of gravity;
+`tests/gui/test_idm_thrusters_gui.py` the dialog's rows and a spacecraft
+dialog putting it on its model.

@@ -1859,6 +1859,21 @@ unchanged, and `tests/test_idm_power.py` passes unchanged).
 |---|---|---|---|
 | `tests/test_idm_devices.py::test_by_default_only_what_can_run_is_added` | a battery's reason contains "capacity is not in the file" | contains "the file has no capacity field" | The reason now also says a mapped capacity property can set the power budget's battery; the file still has no capacity field of its own |
 
+## IDM-CIC thrusters to the 3D model (2026-11-06)
+
+No test removed, no assertion weakened, no fixture or golden file
+changed. A thruster's plume cone now gives its direction, and a thruster
+is added (to the 3D model's equipment, decision IDM-32) instead of being
+listed only, so four tests that checked the old behaviour now check the
+new one:
+
+| Test | Before | Now | Why |
+|---|---|---|---|
+| `tests/test_idm_device_axes.py::test_the_axes_are_read_from_the_shapes` | "Thruster 2" has no model axis, no source and no angle | its axis is +z (against the plume), from "the plume cone 'Plume'", full angle 2 atan(0.1 / 0.2), starting at (0, 0, -0.3) m; the star tracker has a start and the rod none | A thruster's cone is now read as its plume; each value is worked out by hand in the docstring |
+| `tests/test_idm_device_axes.py::test_the_model_s_axis_is_the_default_choice` | "Thruster 2": "+z" | "Thruster 2": "model" | Its plume cone shows its direction |
+| `tests/test_idm_device_axes.py::test_a_cone_s_axis_is_read_from_a_primitive_and_from_a_mesh` | `_cone_axis` returns (vector, angle) | it returns (vector, angle, start), and each start is checked: the primitive's apex, a mesh cone's narrow end at z = 0 and at z = h | The start is where a thruster sits |
+| `tests/test_idm_devices.py::test_by_default_only_what_can_run_is_added` | a thruster's reason contains "direction and thrust are not in the file" | without a plume cone it contains "no plume cone"; with one there is no reason (it is added) | A thruster is added when its direction is known; the set of devices added by default for devicesat is unchanged (its thruster has no shapes) |
+
 ## The JSON page as a code editor (2026-11-06)
 
 No test removed, no assertion weakened, no golden or output file

@@ -64,9 +64,13 @@ def test_the_axes_are_read_from_the_shapes(tmp_path):
       smaller baffle cone is not the one used;
     * the sun sensor's cone narrowing along +z (radius 0.17 m at z = 0, 0
       at z = 0.1 m): it looks along -z, full angle 2 atan(0.17 / 0.1);
-    * no axis from the gyro (no shape), the magnetometer (a cylinder
-      says nothing about a magnetometer's axes) or the thruster (its cone
-      is its plume, and a thruster is listed, not added)."""
+    * the thruster placed with Rx 180 deg, its plume cone widening along
+      its +z from the apex at its origin (radius 0 at z = 0, 0.1 m at
+      z = 0.2 m): the plume goes along Rx(180) z = -z, so the thrust is +z
+      (decision IDM-32), full angle 2 atan(0.1 / 0.2), from the apex at
+      the unit's origin (0, 0, -0.3) m;
+    * no axis from the gyro (no shape) or the magnetometer (a cylinder
+      says nothing about a magnetometer's axes)."""
     found = _found(_plan(tmp_path))
     tilted = found["Reaction wheel tilted"]
     assert tilted.model_axis == pytest.approx([_SIN20, -_SIN30 * _COS20, _COS30 * _COS20])
@@ -81,7 +85,12 @@ def test_the_axes_are_read_from_the_shapes(tmp_path):
     sun = found["Sun sensor bottom"]
     assert sun.model_axis == pytest.approx([0.0, 0.0, -1.0])
     assert sun.fov_deg == pytest.approx(2.0 * math.degrees(math.atan(0.17 / 0.1)), abs=1.0e-4)  # [deg] kept to 6 digits
-    for name in ("Gyro unit", "Magnetometer boom tip", "Thruster 2"):
+    thruster = found["Thruster 2"]
+    assert thruster.model_axis == pytest.approx([0.0, 0.0, 1.0]) and thruster.axis_source == "the plume cone 'Plume'"
+    assert thruster.fov_deg == pytest.approx(2.0 * math.degrees(math.atan(0.1 / 0.2)), abs=1.0e-4)  # [deg] 6 digits
+    assert thruster.axis_origin_m == pytest.approx([0.0, 0.0, -0.3])  # [m]
+    assert tracker.axis_origin_m is not None and found["Torque rod A"].axis_origin_m is None
+    for name in ("Gyro unit", "Magnetometer boom tip"):
         assert (found[name].model_axis, found[name].axis_source, found[name].fov_deg) == (None, "", None), name
     assert found["Gyro unit"].axis(idm_devices.MODEL_AXIS) == found["Gyro unit"].axis("+z")
 
@@ -93,7 +102,7 @@ def test_the_model_s_axis_is_the_default_choice(tmp_path):
     axes = {f.equipment: c.axis for f, c in zip(plan.devices, idm_devices.default_choices(plan.devices))}
     assert axes == {"Reaction wheel tilted": "model", "Reaction wheel sideways": "model", "Torque rod A": "model",
                     "Star tracker optical head": "model", "Sun sensor bottom": "model", "Gyro unit": "+z",
-                    "Magnetometer boom tip": "+z", "Thruster 2": "+z"}
+                    "Magnetometer boom tip": "+z", "Thruster 2": "model"}
     with pytest.raises(ValueError, match="must be 'model' or one of"):
         plan.devices[0].axis("z")
 
@@ -144,28 +153,32 @@ def test_the_axis_text_says_where_the_axis_comes_from(tmp_path):
 
 def test_a_cone_s_axis_is_read_from_a_primitive_and_from_a_mesh():
     """``_cone_axis`` directly: a primitive cone (its base at -z of its
-    centred frame, its apex at +z) looks along -z of that frame; a cone
-    built as a mesh looks from its narrow end toward its wide one, with the
+    centred frame, its apex at +z) looks along -z of that frame from its
+    apex; a cone built as a mesh looks from its narrow end (where it
+    starts) toward its wide one, with the
     angle from the model's radii (not the mesh's, scaled to keep each
     circle's area); a cylinder-like or flat one gives none. Frames: the
     identity, and a turn of 90 deg about x (which takes z to -y)."""
     turn = np.eye(4)
     turn[:3, :3] = [[1.0, 0.0, 0.0], [0.0, 0.0, -1.0], [0.0, 1.0, 0.0]]  # Rx(90)
     primitive = SimpleNamespace(kind="cone", local=np.eye(4), dims={"height": 0.2, "base_diameter": 0.4}, cone=None)
-    vector, angle = idm_devices._cone_axis(primitive, turn)
+    vector, angle, start = idm_devices._cone_axis(primitive, turn)
     assert vector == pytest.approx([0.0, 1.0, 0.0]) and angle == pytest.approx(90.0)
+    assert start == pytest.approx([0.0, -0.1, 0.0])  # [m] the apex, at +z 0.1 m of the cone's frame, turned
     flat = SimpleNamespace(kind="cone", local=np.eye(4), dims={"height": 0.0, "base_diameter": 0.4}, cone=None)
     assert idm_devices._cone_axis(flat, np.eye(4)) is None
 
     def mesh(r0, r1, h):  # [m]
         return SimpleNamespace(kind="mesh", cone=(r0, r1, h))
 
-    vector, angle = idm_devices._cone_axis(mesh(0.05, 0.15, 0.1), turn)  # truncated, widening along +z
+    vector, angle, start = idm_devices._cone_axis(mesh(0.05, 0.15, 0.1), turn)  # truncated, widening along +z
     assert vector == pytest.approx([0.0, -1.0, 0.0]) and angle == pytest.approx(90.0)
-    vector, angle = idm_devices._cone_axis(mesh(0.15, 0.05, 0.1), np.eye(4))
+    assert start == pytest.approx([0.0, 0.0, 0.0])  # [m] the narrow end, at z = 0
+    vector, angle, start = idm_devices._cone_axis(mesh(0.15, 0.05, 0.1), np.eye(4))
     assert vector == pytest.approx([0.0, 0.0, -1.0]) and angle == pytest.approx(90.0)
-    vector, _angle = idm_devices._cone_axis(mesh(0.0, 0.1, -0.1), np.eye(4))  # drawn along -z, widening along it
-    assert vector == pytest.approx([0.0, 0.0, -1.0])
+    assert start == pytest.approx([0.0, 0.0, 0.1])  # [m] the narrow end, at z = h
+    vector, _angle, start = idm_devices._cone_axis(mesh(0.0, 0.1, -0.1), np.eye(4))  # drawn along -z, widening along it
+    assert vector == pytest.approx([0.0, 0.0, -1.0]) and start == pytest.approx([0.0, 0.0, 0.0])
     assert idm_devices._cone_axis(mesh(0.1, 0.1, 0.1), np.eye(4)) is None
     assert idm_devices._cone_axis(mesh(0.1, 0.2, 0.0), np.eye(4)) is None
     assert idm_devices._cone_axis(SimpleNamespace(kind="mesh", cone=None), np.eye(4)) is None
