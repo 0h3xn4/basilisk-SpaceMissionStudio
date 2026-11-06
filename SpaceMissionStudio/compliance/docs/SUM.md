@@ -65,7 +65,12 @@ The tool lets a mission analyst do the following without writing code:
 - simulate them with Basilisk, at validated accuracy (SVR);
 - analyse the results: lifetime, delta-V and propellant budgets, passes,
   link budget, Monte Carlo;
-- exchange orbits with other tools through CCSDS OPM, OMM and OEM.
+- check and analyse the spacecraft's design on its 3D model: fields of
+  view, thrusters, mass budget, launcher envelope, disturbance torques,
+  blinding, shading, exposure, brightness and a preliminary re-entry
+  casualty estimate;
+- exchange orbits with other tools through CCSDS OPM, OMM and OEM, and
+  build a spacecraft from an IDM-CIC model.
 
 ## 6 Referenced documentation (H.2.1<6>)
 
@@ -76,9 +81,15 @@ The tool lets a mission analyst do the following without writing code:
 | Basilisk 2.12.0 and its data (SPICE kernels) | Python environment; Basilisk's data cache | Installed by the installer; runs never download. The **Reference data** dialog lists every file (source, dates, SHA-256) and downloads only after asking |
 | Space weather (CelesTrak SW-All, NASA MSFC prediction) | Bundled in the package; optional newer copy in `~/.cache/SpaceMissionStudio/` | Downloaded only when you agree (the **Fetch or update reference data?** card on Home at start-up, or **Settings > Reference data**) |
 | IERS-based Earth orientation files (NAIF PCKs) | `~/.cache/SpaceMissionStudio/earth_orientation/` or the installation's `share/` | Optional. Without them the Earth frame is less accurate and runs say so. `spacemissionstudio earth-orientation --fetch` |
+| 433 Eros ephemeris (NAIF) and shape model | `~/.cache/SpaceMissionStudio/small_bodies/`; the shape in Basilisk's data cache | Optional; only a run around Eros needs them, and it says so without them. `spacemissionstudio small-bodies --fetch` |
+| ITU-R P.676-13 Part 1 data file | `~/.cache/SpaceMissionStudio/itu_p676/` or the installation's `share/` | Optional; only the link budget's gaseous attenuation (`link.atmospheric_loss: itu_r_p676`) needs it. `spacemissionstudio gaseous-attenuation --fetch` |
 | Vizard (optional) | Downloaded on request, or your own installation | 3-D view only |
 | Scenario files (`.json`) | Where you save them | Your data |
+| A scenario's change history (`<name>.history.jsonl`) | Beside the scenario file | Written at each save |
+| Project configuration files (`.yaml`) | Where the scenario's `config_file` names them | Optional; they change the named parameters (HT `project-configuration.md`) |
+| 3D model files (`.obj` meshes, IDM-CIC `.idm` models) | Where you keep them; an IDM-CIC import writes its meshes beside the scenario | Your data |
 | Results (`.csv`, `provenance.json`, `.oem`) | The output folder you choose | Your data |
+| Saved runs | `~/.spacemissionstudio/runs/` | **Run > History** and **Results > Compare** read them |
 | Log file | `~/.spacemissionstudio/logs/` | For problem reports |
 
 **Security and privacy:**
@@ -102,8 +113,8 @@ The tool lets a mission analyst do the following without writing code:
   - Memory: not measured systematically (SRS-R-02). A five-year run
     recorded at the default interval used 452 MB (HISTORY.md).
   - Disk: the audit's environment, with Basilisk and the development
-    tools, took 1.4 GB. Basilisk's kernels take about 100 MB (UM
-    section 11), and the tool's data cache 42 MB.
+    tools, took 1.4 GB. Basilisk's kernels and other reference data
+    take about 117 MB (UM section 11), and the tool's data cache 42 MB.
   - A display for the GUI. Vizard benefits from a graphics card.
 - **No FPGAs and no communications equipment.**
 
@@ -112,7 +123,7 @@ The tool lets a mission analyst do the following without writing code:
 ```
   Operating system (Linux, Windows)
     Python 3.14 virtual environment
-      SpaceMissionStudio  --uses-->  Basilisk 2.12.0, numpy, sgp4, pyerfa, PySide6, plotly
+      SpaceMissionStudio  --uses-->  Basilisk 2.12.0, numpy, sgp4, pyerfa, PyYAML, PySide6, plotly
       Vizard (optional, separate program)
 ```
 
@@ -123,10 +134,11 @@ The tool lets a mission analyst do the following without writing code:
   - a navigation rail with the areas **Home** (templates, recent
     scenarios), **Scenario** (the scenario tree, with **Overview**, the
     former Explain), **Run** (**Run**, **End of Life**, **Budget**,
-    **History**, **Log**), **Results** (**Overview**, **Plots**,
-    **Dashboard**, **Output**, **Monte Carlo** when there is a batch,
-    **Compare**), **Timeline** (the former Events), **Reports**
-    (**Exports**, **Flight Software**), **Settings** and **Help**;
+    **Design Checks**, **History**, **Log**), **Results** (**Overview**,
+    **Plots**, **Dashboard**, **Output**, **Compare**, **Model Analyses**
+    when the run asked for some, **Monte Carlo** when there is a batch),
+    **Timeline** (the former Events), **Reports** (**Exports**,
+    **Flight Software**), **Settings** and **Help**;
   - a top bar with Run and the command palette (`Ctrl+K`), which holds
     every command (there is no menu bar); the **Inspector** panel on the
     right and the **Problems** panel at the bottom;
@@ -135,7 +147,8 @@ The tool lets a mission analyst do the following without writing code:
 - **States:**
   - **Editing:** everything available.
   - **Running:** the run controls are disabled and **Cancel Run**
-    (`Esc`) is enabled, except for a Monte Carlo batch.
+    (`Esc`) is enabled. Cancelling a Monte Carlo batch keeps the runs
+    already finished.
   - **Degraded:**
     - without Basilisk, you can edit but not run (UM section 11);
     - without the Earth orientation files, runs are less accurate and
@@ -216,8 +229,9 @@ operating-system rights. See 9.9.
 
 ### 9.6 Normal termination (H.2.1<9.6>)
 
-- **Close the window:** the tool refuses to close while a run is in
-  progress. Cancel the run first.
+- **Close the window:** the tool refuses to close while a single run is
+  in progress; cancel the run first. During a Monte Carlo batch it asks
+  **Cancel and close** (the runs finished are kept) or **Keep running**.
 - **Cancel Run** (`Esc`; in the Run area's header and the status bar): stops a run at the next checkpoint and keeps the
   results so far. The status says "cancelled".
 - **CLI:** a finished command prints its result and returns 0 (AD1).
@@ -280,6 +294,9 @@ in the CLI. An error never closes the application.
 | Earth orientation files | the reference-data card on Home; **Settings > Reference data** | `spacemissionstudio earth-orientation [--fetch \| --import FILES \| --rollback]` |
 | CCSDS | **Import CCSDS OPM/OMM...** (a spacecraft's Orbit / mass page); **Export Orbits as CCSDS...** and **Check a CCSDS File...** (`Ctrl+K`); **Results > Plots > Export all... > CCSDS ephemeris (OEM)...** | `ccsds-validate`, `ccsds-export`, `ccsds-import`, `run --oem` |
 | IDM-CIC model | **3D Model... > Import IDM-CIC model...** | `idm-info FILE.idm`, `idm-import FILE.idm SCENARIO --spacecraft NAME` |
+| Design checks | **Run > Design Checks** | `spacemissionstudio check-design FILE` |
+| Model analyses | **Results > Model Analyses** | `spacemissionstudio model-analyses FILE` |
+| Re-entry casualty estimate | **Run > End of Life** | `spacemissionstudio reentry FILE` |
 
 ### 10.2 Help method (H.2.1<10.2>)
 

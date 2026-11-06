@@ -100,7 +100,11 @@ This is a requalification, described in
    in the documentation (`grep -rn "bsk\[all\]==" --include=*.md .`).
 4. Re-vendor the flight-software sources the export uses
    (`spacemissionstudio/fsw_export/basilisk_fsw_sources.*`, from the new
-   release's sources) and run `tests/test_fsw_vendored_sources.py`.
+   release's sources): set `BASILISK_VERSION` and `BASILISK_REVISION` (the
+   release tag's commit) in `spacemissionstudio/fsw_export/catalog.py`,
+   run `python scripts/vendor_basilisk_fsw.py --repo <a Basilisk clone
+   with that tag>` from `SpaceMissionStudio/`, and run
+   `tests/test_fsw_vendored_sources.py`.
 
 ---
 

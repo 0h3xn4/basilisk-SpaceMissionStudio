@@ -11,6 +11,7 @@ One line per value that a save changes, with:
 
 | Field | What it holds |
 |---|---|
+| `format` | the line's format, 1 |
 | `time_utc` | when it was saved |
 | `author` | who saved it: the name set in **Settings > Change history > Author**, else your operating-system user name |
 | `source` | `app`, or the command that saved it (`spacemissionstudio generate-constellation`, ...) |
@@ -52,12 +53,14 @@ operating-system user name ("unknown" when there is none).
 ## Reading the history
 
 - **In the app:** **Change History...** (the Scenario area's commands, or
-  the command palette) lists every change, newest first: the time, the
+  the command palette) opens a window of its own beside the main window,
+  and lists every change, newest first: the time, the
   author, what saved it, the kind, the field, the old and the new value,
   and the reason. Choose a spacecraft to see its changes (and the
   scenario's created and replaced lines), or type part of a field's name
-  (`dry_mass`, `orbit`). The view only reads the file. A scenario not
-  saved yet has no history: it starts with the first save.
+  (`dry_mass`, `orbit`). The view only reads the file; asking again
+  brings the window back, read again. A scenario not saved yet has no
+  history: it starts with the first save.
 - **On the command line:**
 
       spacemissionstudio history mission.json [--spacecraft sat-1] [--field dry_mass]

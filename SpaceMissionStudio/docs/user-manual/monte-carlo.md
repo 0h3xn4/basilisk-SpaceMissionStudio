@@ -7,14 +7,16 @@ far apart the results end up.
 
 1. In the scenario tree, open the **Monte Carlo** page and tick
    **Enabled**.
-2. Set how many runs, and how many run in parallel (**Thread count**).
+2. Set how many runs (**Number of runs**, up to 100 000), and how many
+   run in parallel (**Thread count**; at most one process per CPU is used).
 3. Add one or more **dispersions**: which quantity varies, for which
    spacecraft, and by how much. A new dispersion starts at the
    spacecraft's own value (dry mass, drag or radiation-pressure
    coefficient) with no spread: widen its bounds, or give it a standard
    deviation, for it to vary.
-4. Set the mode beside **Run** to **Monte Carlo**, press **Run**, and
-   choose a folder (or set it first under **Archive folder** on **Run >
+4. Set the mode beside **Run** to **Monte Carlo** (if the batch is off,
+   **Run > Run** says so and offers **Enable Monte Carlo**), press
+   **Run**, and choose a folder (or set it first under **Archive folder** on **Run >
    Run**, where it is remembered for the scenario). Every run is saved there; the progress in the status bar counts
    the cases done. **Cancel** (`Esc`) stops the batch: the runs
    finished stay in the folder and **Results > Monte Carlo** opens on them.
@@ -43,7 +45,13 @@ solar pressure on.
   spread over time.
 - **Runs:** what each run drew and where it ended. Sort a column to see
   which drawn value goes with the largest offset. **Export table CSV...**
-  saves it.
+  saves it, with the batch's provenance in `<file>.provenance.json`
+  beside it.
+
+The spread is the population standard deviation of the runs, unless a
+project file chooses the sample one
+([Choose a model](project-configuration.md#choose-a-model)); the page
+names the statistic, and a batch keeps the one it was run with.
 
 **Open Monte Carlo Results...** (the Run area) opens a batch you ran earlier.
 

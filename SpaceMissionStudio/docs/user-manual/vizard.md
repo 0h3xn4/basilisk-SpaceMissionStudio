@@ -44,7 +44,8 @@ spacemissionstudio run scenario.json --out-dir out --vizard-live-stream
 ## Limits
 
 Live streaming and playback files are limited to runs of up to 100 days.
-Vizard shows the RF link and the Mission Dashboard values for a
+A spacecraft with a power budget gets a battery panel in Vizard, in
+watt-hours like the rest of the app. Vizard shows the RF link and the Mission Dashboard values for a
 comms-pointing spacecraft (template 19), and a formation follower's
 delta-V and separation from its chief (templates 05 and 29; an ROE
 formation also shows its closest radial/cross-track approach). A spacecraft's own look comes

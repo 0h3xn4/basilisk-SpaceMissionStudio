@@ -37,7 +37,7 @@ Without Basilisk, `template`, `load`, `validate`, `assumptions`,
 | `monte_carlo(scenario, archive_dir, allow_scripts=False, overwrite=False)` | `MonteCarloBatch` | The scenario's Monte Carlo batch, archived with its provenance; raises `MonteCarloError` when it has none; `overwrite=True` replaces an earlier batch in `archive_dir` |
 | `compare(a_scenario, a_result, b_scenario, b_result)` | `Comparison` | Two runs side by side (Results > Compare) |
 | `design_checks(scenario, spacecraft=None, samples=None, base_dir=None)` | `DesignReport` | The 3D model's design checks: field-of-view obstruction, thruster authority and plumes, mass budget, launcher envelope, and their `findings()` |
-| `model_analyses(scenario, result, spacecraft=None)` | `RunReport` | A run's model analyses: the disturbance-torque budget, blinding, antenna obstruction, array shading, exposure and brightness |
+| `model_analyses(scenario, result, spacecraft=None, base_dir=None)` | `RunReport` | A run's model analyses: the disturbance-torque budget, blinding, antenna obstruction, array shading, exposure and brightness; `base_dir` resolves the model's relative mesh paths (default: the scenario file's folder) |
 | `reentry(scenario, spacecraft=None, population_density_per_km2=None, base_dir=None)` | `ReentryEstimate` | The preliminary re-entry casualty estimate from the 3D model |
 | `record(scenario, analysis, spacecraft=None, result=None)` | `dict` | A lifetime's, budget's, sweep's, trade's, design report's, model analyses' or re-entry estimate's JSON record, as `--out` writes it; `result` is the run the analysis took its inputs from |
 | `write(path, data)` | `Path` | Writes a record as JSON |

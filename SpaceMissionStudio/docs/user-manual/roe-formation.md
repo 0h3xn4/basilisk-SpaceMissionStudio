@@ -64,8 +64,10 @@ On the follower's **Power / propulsion / link budget** page, tick
 **ROE formation (relative orbital elements)**, pick the **Chief
 spacecraft** and fill **Targets**. Each row is a formation, held from its
 **Start [day]** to the next row's; the first starts at day 0. Below the
-table, **Passively safe:** adds a helix row one day after the last; the
-line under it shows the selected row's closest approach.
+table, set **Passively safe:** (the along-track offset, the radial and
+cross-track half-sizes and the phase) and press **Add safe formation**:
+it adds a helix row one day after the last. The line under it shows the
+selected row's closest approach.
 
 The follower's own orbit is where it starts. To start on the first
 target, use the generator.

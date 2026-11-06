@@ -77,7 +77,8 @@ A few seconds later the **Results** area shows the orbit and the
   magnetometers, reaction wheels, thrusters, torque rods, momentum
   unloading, navigation error, surface facets and flexible solar arrays.
 - **Orbit keeping:** LEO station keeping, GEO longitude and inclination
-  boxes, formations with three control laws, Walker constellations.
+  boxes, formations with three control laws, Walker constellations
+  that can hold their spacing.
 - **Mission Sequence:** coast, burn, Lambert transfers, reports,
   conditions and loops, stopping on events such as a ground pass.
 - **Analysis:** ground passes, eclipses, power, radio link margin,
@@ -87,9 +88,22 @@ A few seconds later the **Results** area shows the orbit and the
 - **Results:** interactive plots, an events timeline, a time cursor
   shared by every view, run comparison, CSV, PNG and SVG export, and a
   provenance record on every output.
-- **Exchange:** CCSDS OPM, OMM and OEM orbit messages; flight-software
-  export as a standalone C project; software-in-the-loop testing of
-  your own flight software.
+- **Transparency:** **Show calculation** beside a figure opens its
+  equation, inputs and rule; named parameters a project file can change;
+  a change history beside each scenario; plugins with models and rules
+  of your own; reproduction bundles that run again on another computer.
+- **3D model** of the spacecraft, built from shapes, `.obj` meshes or an
+  IDM-CIC model: its mass, center of mass, inertia, surfaces, equipment
+  and stowed configuration (from IDM-CIC also its sensors and actuators,
+  the power budget's bus load and solar panel, and the values your team
+  keeps as properties); design checks (fields of view, thrusters, mass
+  budget, launcher fit) and analyses after a run (disturbance torques,
+  blinding, shading, exposure, brightness, a preliminary re-entry
+  estimate).
+- **Exchange:** CCSDS OPM, OMM and OEM orbit messages, in the app and on
+  the command line; IDM-CIC models (read only); flight-software export
+  as a standalone C project; software-in-the-loop testing of your own
+  flight software.
 - **3D view** in Vizard, live or played back.
 - **Command line** for every analysis, and a Python API.
 - **Offline by design:** nothing is downloaded without asking.

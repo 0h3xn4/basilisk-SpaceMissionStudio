@@ -6,8 +6,8 @@ or build one up from an empty scenario.
 ## The quick way: start from a starter
 
 1. On **Home**, open **22 - Starter: your first LEO satellite**
-   (one satellite, orbit only) or **23 - Starter: a complete small
-   satellite** (sensors, wheels, power and a radio link).
+   (one satellite, orbit only) or **23 - Starter: complete
+   small-satellite mission** (sensors, wheels, power and a radio link).
 2. **Save As...** (Ctrl+Shift+S) and give it your own name.
 3. Change what you need in the **Scenario** area. Each template's
    description says what to change first.
@@ -19,7 +19,7 @@ or build one up from an empty scenario.
    upper atmosphere is, and when ground stations see you. Leave
    **Simulation mode** on *Orbit only* for now.
 2. **Environment** (in the scenario tree): for a satellite around Earth,
-   - tick **Enable spherical-harmonics gravity**, degree 10;
+   - tick **Enable spherical-harmonics gravity**, **Degree/order** 10;
    - add **sun** and **moon** as third-body perturbers;
    - set **Duration** to 1 day;
    - leave the atmosphere on the bundled, real space-weather data.
@@ -34,6 +34,9 @@ or build one up from an empty scenario.
    - or choose the TLE orbit type and paste a real satellite's TLE
      (switching the orbit type asks whether to convert the orbit you
      have or use the new page's values);
+   - or take the orbit from another tool's CCSDS OPM or OMM with
+     **Import CCSDS OPM/OMM...**
+     ([Exchange orbits with other tools](orbit-files.md#in-the-app));
    - set **Dry mass**, and tick **Enable atmospheric drag** with its area
      (and **Enable solar radiation pressure**).
 4. **Ground stations > Add**: a name, latitude, longitude and the lowest

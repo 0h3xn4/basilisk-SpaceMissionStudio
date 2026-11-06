@@ -1,6 +1,8 @@
 # Analyses built on the 3D model: progress
 
 Branch `feature/model-analyses`, from `develop` at `6608682a3` (2.0.0).
+Status: complete; merged and released in 2.1.0 (2026-11-04). The rest of
+this file is the record as kept during the work.
 Re-read this file first after an interruption. Design:
 [model-analyses-design.md](model-analyses-design.md); decisions:
 [model-analyses-decisions.md](model-analyses-decisions.md).
@@ -16,7 +18,7 @@ Re-read this file first after an interruption. Design:
 | 4 | Static checks: fov, thrusters, mass budget, launcher; CLI `check-design`, API, findings, Run › Design Checks | done |
 | 5 | Run analyses: disturbance recorder, blinding, antenna obstruction, shading, exposure, brightness; series, events, CLI `model-analyses`, API, Results › Model Analyses | done (shading in the power budget dropped, D-09) |
 | 6 | Re-entry casualty estimate on End of Life; CLI `reentry`, API | done |
-| 7 | 3D model editor: Equipment and Stowed tabs, cones | done after the merge (D-24); materials, face properties, the mass budget's policy and the launcher stay in the JSON view |
+| 7 | 3D model editor: Equipment and Stowed tabs, cones | done after the merge (D-24); materials, face properties, the mass budget's policy and the launcher followed in D-25 |
 | 8 | Template 32 on the 300 kg bus; template claims; bus presets | done (presets unchanged, D-20) |
 | 9 | Docs, V&V records, generated docs, full suite, coverage, Basilisk path check | done; final suite and commits below |
 
@@ -79,5 +81,6 @@ Re-read this file first after an interruption. Design:
 
 ## Known issues
 
-- PR #207 (the 2.0.0 publication record, documents only) is open on
+- PR #207 (the 2.0.0 publication record, documents only) was open on
   `develop` and not merged: the brief says not to merge into `develop`.
+  It was merged on 2026-11-03.
