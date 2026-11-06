@@ -29,6 +29,7 @@ at z = 0 and 0.1 m at z = 0.2 m of its shape frame. By hand: the plume
 goes along Rx(180) z = -z of the body frame, so the thrust is +z; the
 half-angle is atan(0.1 / 0.2); the plume starts at the apex."""
 
+import copy
 import math
 import shutil
 from dataclasses import replace
@@ -168,8 +169,9 @@ def test_the_thrust_comes_from_a_product_or_a_mapped_property(tmp_path):
 
 def test_a_spacecraft_without_a_model_cannot_take_a_thruster(tmp_path):
     """keep_fitting leaves out a thruster when the spacecraft has no 3D
-    model to carry it, with the reason; and one whose thrust is out of
-    range for the model's validation."""
+    model to carry it, with the reason, even when the spacecraft is not
+    valid as it is (then nothing else is tried); and one whose thrust is
+    out of range for the model's validation."""
     scenario = load_scenario(_scenario(tmp_path))
     sat = scenario.spacecraft[0]
     assert sat.model is None
@@ -184,6 +186,13 @@ def test_a_spacecraft_without_a_model_cannot_take_a_thruster(tmp_path):
 
     sat.model = SpacecraftModelConfig(apply_facets=False, parts=[
         ModelPartConfig(name="bus", shape="box", mass_kg=100.0, dimensions_m={"x": 1.0, "y": 1.0, "z": 1.0})])
+    invalid = copy.deepcopy(sat)
+    invalid.model = None
+    invalid.dry_mass_kg = -1.0  # [kg] not valid as it is: nothing is tried, but the thruster still needs a model
+    kept = idm_devices.keep_fitting(invalid, built)
+    assert not kept.equipment and kept.skipped == [("Thruster 2", f"{idm_devices.CANNOT_TAKE}: it has no 3D model "
+                                                                  "to carry it")]
+    assert not any(k.startswith("model.") for k in kept.values) and not kept.details
     built.equipment[0].thrust_n = 2.0e5  # [N] above the model's limit
     kept = idm_devices.keep_fitting(sat, built)
     assert not kept.equipment and "thrust_n must be in (0, 1e5] N" in kept.skipped[0][1]

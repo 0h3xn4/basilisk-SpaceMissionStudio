@@ -557,13 +557,16 @@ def recorded_units(record) -> set:
             for match in [re.search(r"; unit (\S+)$", text)] if match}
 
 
+_NO_MODEL = "it has no 3D model to carry it"
+
+
 def keep_fitting(config, result: DeviceResult) -> DeviceResult:
     """``result`` without the devices spacecraft ``config`` cannot take as
     it is (a magnetorquer without magnetic momentum management, a thruster
     without a 3D model, say): each is tried in turn against the
     spacecraft's own validation, and one that fails is moved to
     ``skipped`` with the reason. When the spacecraft is not valid without
-    them, nothing is tried."""
+    them, nothing is tried, but a thruster still goes only on a model."""
     from .schema.scenario import ScenarioValidationError
 
     def problem(sensors, actuators, equipment=()) -> str:
@@ -578,14 +581,24 @@ def keep_fitting(config, result: DeviceResult) -> DeviceResult:
             return str(exc)
         return ""
 
+    no_model = getattr(config, "model", None) is None
     if problem([], []):
-        return result
+        if not (no_model and result.equipment):
+            return result
+        kept = copy.copy(result)  # no validation to try, but a thruster still needs a model to go on
+        kept.equipment, kept.skipped = [], list(result.skipped)
+        kept.details, kept.values = dict(result.details), dict(result.values)
+        for item in result.equipment:
+            path = f"model.equipment[{item.name}]"
+            equipment = re.search(r"; from (.*); unit ", kept.details.pop(path))
+            kept.skipped.append((equipment.group(1) if equipment else item.name, f"{CANNOT_TAKE}: {_NO_MODEL}"))
+            kept.values = {k: v for k, v in kept.values.items() if not k.startswith(f"{path}.")}
+        return kept
     kept = DeviceResult(skipped=list(result.skipped))
     for item in result.equipment:
         path = f"model.equipment[{item.name}]"
         equipment = re.search(r"; from (.*); unit ", result.details[path])
-        why = "it has no 3D model to carry it" if getattr(config, "model", None) is None \
-            else problem([], [], kept.equipment + [item])
+        why = _NO_MODEL if no_model else problem([], [], kept.equipment + [item])
         if why:
             kept.skipped.append((equipment.group(1) if equipment else item.name, f"{CANNOT_TAKE}: {why}"))
             continue
