@@ -20,7 +20,15 @@ fixes bugs.
   warning) on the value or key, a dot beside the line number, the
   message on hover and under the text when the cursor is on it. **F8**
   and **Shift+F8** go to the next and the previous problem; Enter keeps
-  the indentation. Completion and refactoring come next.
+  the indentation.
+- **Completion and help in the JSON page.** Inside a key or a text
+  value, or with **Ctrl+Space**, a list offers what fits there: the
+  fields that object can still have (inserted with their default), the
+  choices of a field such as an orbit's type or a sensor's kind, the
+  names a field refers to (ground stations, spacecraft, 3D model parts),
+  or true/false. The key under the cursor is described under the text
+  (type, default, unit and meaning); hover or **Ctrl+Shift+Space** shows
+  it all.
 
 ## 2.4.0 (2026-11-05)
 

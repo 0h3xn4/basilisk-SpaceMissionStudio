@@ -193,3 +193,93 @@ def test_the_scenario_s_problem_is_marked_at_its_value(qtbot, monkeypatch):
     editor.revalidate()
     assert not [m for m in view.problem_marks() if "dry_mass_kg" in m[1]]
     assert not view.cursor_problem.isVisibleTo(view)
+
+
+def _page(qtbot, monkeypatch):
+    """Template 22's JSON page."""
+    from PySide6.QtWidgets import QMessageBox
+
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
+    window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+    qtbot.addWidget(window)
+    assert window.open_path(_TEMPLATES / "22_starter_first_leo_satellite.json")
+    window.scenario_editor.show_json()
+    return window
+
+
+def _select(edit, start, end):
+    from PySide6.QtGui import QTextCursor
+
+    cursor = edit.textCursor()
+    cursor.setPosition(start)
+    cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+    edit.setTextCursor(cursor)
+
+
+def test_typing_a_value_offers_its_choices_and_enter_inserts_one(qtbot, monkeypatch):
+    """The orbit's type, typed over with a quote, offers the three orbit
+    types; Down and Enter put "cartesian" there, and the edit applies."""
+    from PySide6.QtCore import Qt
+
+    window = _page(qtbot, monkeypatch)
+    view = window.scenario_editor.json_view
+    edit = view.edit
+    text = edit.toPlainText()
+    start = text.index('"type": "classical_elements"') + len('"type": ')
+    _select(edit, start, start + len('"classical_elements"'))
+    qtbot.keyClicks(edit, '"')
+    popup = edit.completer.popup()
+    assert popup.isVisible()
+    assert [edit._model.item(i).text() for i in range(edit._model.rowCount())] == ["classical_elements", "cartesian",
+                                                                                   "tle"]
+    assert "One of: classical_elements, cartesian, tle" in edit._model.item(0).toolTip()
+    qtbot.keyClick(popup, Qt.Key.Key_Down)
+    qtbot.keyClick(popup, Qt.Key.Key_Return)
+    assert not popup.isVisible()
+    assert '"type": "cartesian",' in edit.toPlainText()
+    qtbot.keyClick(edit, Qt.Key.Key_Escape)  # no list: nothing happens
+    view.flush()
+    assert json.loads(edit.toPlainText())["spacecraft"][0]["orbit"]["type"] == "cartesian"
+
+
+def test_ctrl_space_offers_a_new_key_and_selects_its_default(qtbot, monkeypatch):
+    """In a new sensor object, Ctrl+Space offers its fields; "mount" is
+    inserted with an empty object, selected to type over; Escape closes
+    the list without inserting."""
+    from PySide6.QtCore import Qt
+
+    window = _page(qtbot, monkeypatch)
+    edit = window.scenario_editor.json_view.edit
+    text = edit.toPlainText()
+    start = text.index('"sensors": [') + len('"sensors": [')
+    end = text.index("]", start)
+    _select(edit, start, end)
+    edit.insertPlainText('{"kind": "imu", "name": "gyro", ')
+    qtbot.keyClick(edit, Qt.Key.Key_Space, Qt.KeyboardModifier.ControlModifier)
+    popup = edit.completer.popup()
+    labels = [edit._model.item(i).text() for i in range(edit._model.rowCount())]
+    assert popup.isVisible() and labels == ["params", "mount"]
+    qtbot.keyClick(popup, Qt.Key.Key_Escape)
+    assert not popup.isVisible() and edit.toPlainText().count('"mount"') == 0
+    edit.show_completions()
+    edit.insert_completion("mount")
+    assert '"name": "gyro", "mount": {}' in edit.toPlainText() and edit.textCursor().selectedText() == "{}"
+
+
+def test_a_key_is_described_on_hover_and_under_the_text(qtbot, monkeypatch):
+    """The cursor on "dry_mass_kg": its type, default and the source's
+    comment under the text, shortened, and in full from help_text."""
+    window = _page(qtbot, monkeypatch)
+    view = window.scenario_editor.json_view
+    edit = view.edit
+    position = edit.toPlainText().index('"dry_mass_kg"') + 3
+    _select(edit, position, position)
+    full = edit.help_text(position)
+    assert full.startswith("dry_mass_kg: number, default 100.0") and "WITHOUT station-keeping propellant" in full
+    line = view.cursor_problem.text()
+    assert view.cursor_problem.isVisibleTo(view) and line.startswith("dry_mass_kg: number, default 100.0 [kg]")
+    assert len(line) <= 240 and line.endswith("…")
+    _select(edit, 0, 0)
+    assert not view.cursor_problem.isVisibleTo(view)

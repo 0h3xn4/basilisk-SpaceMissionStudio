@@ -90,7 +90,7 @@ spacemissionstudio = ["scenarios/*.json", "scenarios/templates/*.json", "scenari
                       "data/spaceweather/SW-All.txt", "data/spaceweather/oct2026f10-prd.txt",
                       "data/spaceweather/README.md", "help/USER_MANUAL.md", "help/docs/images/*.png",
                       "fsw_export/basilisk_fsw_sources.zip", "fsw_export/basilisk_fsw_sources.json",
-                      "fsw_export/templates/*", "config/defaults.yaml"]
+                      "fsw_export/templates/*", "config/defaults.yaml", "schema/field_help.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

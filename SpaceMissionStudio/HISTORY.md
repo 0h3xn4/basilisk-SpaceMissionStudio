@@ -14514,6 +14514,33 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The JSON page as a code editor, step 2: completion and help (2026-11-06)
+
+Step 2 of the user's request (design note `docs/developer/json-editor.md`,
+JE-04 to JE-06). What fits at a place comes from the schema's own
+records: `schema/fields.py` follows the text's path through them, with a
+table for the record each list holds (the type hints say only `list`;
+a test checks every object of every template against it), the
+validation's constants as a field's choices, and the scenario's names
+for the fields that refer to a spacecraft, a ground station, a part or a
+material. The help is each field's comment in the source, generated into
+`schema/field_help.json` because an installed program has no source to
+read; a test fails when a comment changes until the file is rebuilt.
+The first generator took the comment block above a field even when it
+was the tail of the previous field's comment (`simulation_mode` began
+"truth for time; ..."); lower-case lines now continue the comment they
+follow.
+
+`json_positions.context_at` reads what is being typed at the cursor; a
+first version offered keys the object already had further down (it
+looked only above the cursor), found on the screenshot and fixed before
+the tests were written. The list opens only inside a string or on
+Ctrl+Space, never over numbers.
+
+**Tests:** `tests/test_schema_fields.py` (39), `tests/test_json_assist.py`
+(4), three more in `tests/gui/test_json_editor.py`. No existing test
+changed. The wheel was built to check that `field_help.json` ships.
+
 ## The JSON page as a code editor, step 1 (2026-11-06)
 
 The user asked whether the JSON editor could have what a programming

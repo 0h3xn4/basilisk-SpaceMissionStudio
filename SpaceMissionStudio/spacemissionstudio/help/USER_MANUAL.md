@@ -574,6 +574,18 @@ text ("At the cursor: ..."). **F8** goes to the next problem and
 whole, with no single place, stays in Problems only. Enter keeps the
 line's indentation (two spaces more after `{` or `[`).
 
+The editor also suggests what can be typed. Inside a key or a text
+value, or anywhere with **Ctrl+Space**, a list shows what fits there:
+the fields that object can still have (each inserted with its default,
+selected so you can type over it), the choices of a field that takes
+one of a few values (an orbit's `type`, a sensor's `kind`), the names a
+field refers to (a ground station, a spacecraft, a part of the 3D
+model), or `true`/`false`. **Enter** or **Tab** inserts the one chosen,
+**Escape** closes the list. Each entry's tooltip describes the field.
+When the cursor is on a key, the line under the text describes its
+field: its type, its default and what it means, with its unit; point at
+the key, or press **Ctrl+Shift+Space**, to read it all.
+
 A **validation message** at the very bottom of the Scenario area updates live as
 you type, in plain language (e.g. naming exactly which field is missing
 or invalid) -- you don't have to guess why Run is unavailable. It names
