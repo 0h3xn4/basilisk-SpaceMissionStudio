@@ -92,6 +92,7 @@ TARGETS = {t.key: t for t in (
            "Gyro / IMU: rate noise (1-sigma)"),
     Target("coarse_sun_sensor", "fov_deg", "deg", (("deg", 1.0), ("rad", 180.0 / math.pi)),
            "Sun sensor: full field of view"),
+    Target("thruster", "MaxThrust", "N", (("N", 1.0), ("mN", 1.0e-3)), "Thruster: thrust"),
     Target("battery", "capacity_wh", "W*h", (("W*h", 1.0), ("kW*h", 1000.0)), "Battery: capacity"),
 )}
 

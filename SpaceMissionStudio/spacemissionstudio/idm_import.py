@@ -239,6 +239,8 @@ def shift_plan(the_plan: Plan, d) -> None:
                        for source, pose in the_plan.stowed.items()}
     for finding in the_plan.devices:
         finding.position_m = _vec(np.asarray(finding.position_m) - d)
+        if finding.axis_origin_m is not None:  # a thruster's plume start (decision IDM-32)
+            finding.axis_origin_m = _vec(np.asarray(finding.axis_origin_m) - d)
     the_plan.origin_m = _vec(np.asarray(the_plan.origin_m) + d)
 
 
@@ -757,8 +759,8 @@ def add_devices(scenario, spacecraft: str, the_plan: Plan, choices, author: str 
                 summary: ImportSummary | None = None):
     """Add the devices of ``the_plan`` chosen in ``choices`` (one
     ``idm_devices.DeviceChoice`` per finding) to ``scenario``'s spacecraft
-    ``spacecraft``, and record them (an import record of target
-    "devices"). A finding whose unit an earlier import already added a
+    ``spacecraft`` (a thruster to its 3D model's equipment, decision
+    IDM-32), and record them (an import record of target "devices"). A finding whose unit an earlier import already added a
     device for is left as it is (it may have been edited since). Returns the
     ``idm_devices.DeviceResult``; ``summary``, when given, lists what was
     added and skipped."""
@@ -777,11 +779,14 @@ def add_devices(scenario, spacecraft: str, the_plan: Plan, choices, author: str 
         findings.append(finding)
         kept_choices.append(choice)
     taken = {d.name for d in list(sc.sensors) + list(sc.actuators)}
+    taken_equipment = {e.name for e in sc.model.equipment} if sc.model is not None else set()
     result = idm_devices.keep_fitting(sc, idm_devices.build_devices(findings, kept_choices, taken,
-                                                                    the_plan.mappings))
+                                                                    the_plan.mappings, taken_equipment))
     result.skipped[:0] = skipped
     sc.sensors = list(sc.sensors) + result.sensors
     sc.actuators = list(sc.actuators) + result.actuators
+    if result.equipment:  # keep_fitting kept them only with a model to carry them
+        sc.model.equipment = list(sc.model.equipment) + result.equipment
     if result.values:
         values = dict(previous.values) if previous is not None else {}
         details = dict(previous.details) if previous is not None else {}
@@ -791,7 +796,7 @@ def add_devices(scenario, spacecraft: str, the_plan: Plan, choices, author: str 
                                           the_plan.summary.sha256, values,
                                           datetime.now(UTC).replace(microsecond=0).isoformat(), author, details))
     if summary is not None:
-        summary.devices_added = [d.name for d in result.sensors + result.actuators]
+        summary.devices_added = [d.name for d in result.sensors + result.actuators + result.equipment]
         summary.devices_skipped = list(result.skipped)
     return result
 

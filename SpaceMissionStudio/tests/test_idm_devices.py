@@ -116,8 +116,9 @@ def test_the_devices_are_found_with_their_place_and_axes(tmp_path):
 def test_by_default_only_what_can_run_is_added(tmp_path):
     """By default: the sensors and a magnetorquer named after a catalog
     product are added; wheels and a magnetorquer without a product are
-    not (Basilisk builds neither without values the file lacks); thrusters,
-    solar arrays and batteries are listed only, each with why."""
+    not (Basilisk builds neither without values the file lacks), nor a
+    thruster whose shapes show no plume cone; solar arrays and batteries
+    are listed only, each with why."""
     plan = _plan(tmp_path)
     choices = dict(zip((f.equipment for f in plan.devices), idm_devices.default_choices(plan.devices)))
     added = {name for name, choice in choices.items() if choice.add}
@@ -125,7 +126,8 @@ def test_by_default_only_what_can_run_is_added(tmp_path):
                      "Magnetometer 1"}
     assert "u_max" in idm_devices.why_not("reaction_wheel")
     assert idm_devices.why_not("reaction_wheel", "a product") == ""
-    assert "direction and thrust are not in the file" in idm_devices.why_not("thruster")
+    assert "no plume cone" in idm_devices.why_not("thruster", axis_known=False)  # Thruster 1N: no shapes
+    assert idm_devices.why_not("thruster") == ""
     assert "the file has no capacity field" in idm_devices.why_not("battery")
 
 

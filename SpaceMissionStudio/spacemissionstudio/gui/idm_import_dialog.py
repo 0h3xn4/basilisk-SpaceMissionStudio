@@ -27,8 +27,12 @@ actuator (``spacemissionstudio.idm_devices``): for each, whether to add it
 to the spacecraft, the axis of its equipment frame that is its boresight
 or spin axis, and the catalog product whose values it takes (none: the
 device runs with Basilisk's defaults until its values are set, and the
-pre-run checks say so). Thrusters, solar arrays and batteries are listed,
-not added. :meth:`IdmImportDialog.device_choices` is what was chosen.
+pre-run checks say so). A thruster goes to the 3D model's equipment
+(decision IDM-32): placed at the start of its plume cone, thrusting
+against it, with the thrust of its product or mapped property; one whose
+shapes show no plume cone is added only when ticked, along the axis
+chosen. Solar arrays and batteries are listed, not added.
+:meth:`IdmImportDialog.device_choices` is what was chosen.
 
 **Power** offers what the model says of the power budget
 (``idm_import.PowerPlan``): the bus load as the power of the imported
@@ -482,12 +486,14 @@ class IdmImportDialog(QDialog):
                 ("From the model: " + idm_devices.axis_text(finding, idm_devices.MODEL_AXIS) + ", "
                  f"[{', '.join(f'{v:.3g}' for v in finding.model_axis)}] in the body frame. "
                  if finding.model_axis is not None else
-                 "The model's shapes show no axis (no field-of-view cone"
+                 "The model's shapes show no axis (no "
+                 + ("plume" if finding.kind == "thruster" else "field-of-view") + " cone"
                  + (" or cylinder" if finding.kind in idm_devices.CYLINDER_KINDS else "") + "): +z by default. ")
                 + "Or an axis of the equipment's frame in IDM-CIC (+z: the axis of its revolution shapes).")
             table.setCellWidget(row, 4, axis)
             product = ComboBox()
-            product.addItem("None (Basilisk's defaults)" if finding.kind not in idm_devices.REQUIRED_VALUES else
+            product.addItem("None (no thrust)" if finding.kind in idm_devices.EQUIPMENT_KINDS else
+                            "None (Basilisk's defaults)" if finding.kind not in idm_devices.REQUIRED_VALUES else
                             "None", "")
             for name in idm_devices.product_names(finding.kind) if finding.addable else []:
                 product.addItem(name, name)
@@ -505,7 +511,7 @@ class IdmImportDialog(QDialog):
              if not self._devices_allowed else
              "The model says what each device is and where it sits, not how it performs: a device takes its values "
              "from the catalog product chosen, or runs with Basilisk's defaults until you set them (the pre-run "
-             "checks say so)."))
+             "checks say so). A thruster goes to the 3D model's equipment, for the design checks."))
 
     def _update_device_row(self, row: int) -> None:
         """The note of a row: why it is not added, or where its values come from."""
@@ -526,7 +532,13 @@ class IdmImportDialog(QDialog):
             text = why
             add.setChecked(False)
         elif not add.isChecked():
-            text = "not added"
+            text = "not added" + (": " + idm_devices.why_not(finding.kind, product, mapped, axis_known=False)
+                                  if finding.kind in idm_devices.EQUIPMENT_KINDS and finding.model_axis is None else "")
+        elif finding.kind in idm_devices.EQUIPMENT_KINDS:
+            thrust = "MaxThrust" in mapped
+            text = ("to the 3D model's equipment; thrust: " + (
+                "from its properties" if thrust else product if product else
+                "none (the authority matrix takes it per newton)"))
         elif product:
             text = f"values: {product}" + (f", with {', '.join(mapped)} from its properties" if mapped else "")
         elif mapped:
