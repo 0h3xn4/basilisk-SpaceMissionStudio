@@ -17,6 +17,7 @@ bus from a 3D model", is a worked example.
 - [Surfaces: drag and solar pressure](#surfaces-drag-and-solar-pressure)
 - [What the model changes](#what-the-model-changes)
 - [From the command line](#from-the-command-line)
+- [Equipment, stowed configuration, materials and the analyses](#equipment-stowed-configuration-materials-and-the-analyses)
 
 ## Open the editor
 
@@ -30,6 +31,7 @@ edit made meanwhile in the main window is kept), and **Undo** takes it
 back. **Cancel**, or closing the window, asks first when you changed
 something; so do **File › New**, **Open** and closing SpaceMissionStudio
 while an editor holds changes.
+
 On a spacecraft's **3D model** page (scenario tree > **Spacecraft** > its name > **3D model**):
 **Build a 3D model...** (**Open 3D model editor...** once it has one). On the left is the list
 of parts, in the middle the selected part's settings, on the right the
@@ -163,7 +165,10 @@ B, so a center of mass away from B gives drag, sunlight and thrust a
 torque. If the model and the spacecraft's values drift apart (after an
 edit in the file, say), the 3D model page and the Scenario Editor's
 warnings say so; **Apply the model** on the **3D model** page puts them
-back in line, and so does **OK** in the editor.
+back in line, and so does **OK** in the editor. An IDM-CIC import can
+put B at the model's centre of gravity, moving everything on the
+spacecraft with it (see
+[The origin of the body frame](idm-cic.md#the-origin-of-the-body-frame)).
 
 Elsewhere in the app:
 

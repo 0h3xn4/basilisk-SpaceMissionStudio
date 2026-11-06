@@ -47,6 +47,11 @@ ground station or a planet.
 AVS Lab at the University of Colorado Boulder. It computes every number in
 SpaceMissionStudio. This repository is a fork of it.
 
+**Body frame** -- the axes fixed to the spacecraft, in which the
+positions of its parts, sensors, thrusters and facets are given; its
+origin is body point B. An [IDM-CIC](#i) import keeps the body element's
+origin, or puts it at the model's [center of gravity](#c) if you choose.
+
 **Boresight** -- the direction an antenna or sensor looks straight out
 of; its gain or field of view is centred on it.
 
@@ -94,6 +99,11 @@ them, facing different ways, give a rough direction to the Sun.
 **Delta-V** -- how much a manoeuvre changes a spacecraft's velocity, in
 m/s. The usual way to say how much propellant something costs,
 independent of the spacecraft.
+
+**Design checks** -- checks of a spacecraft's 3D model that need no
+run: parts in a field of view or a thruster's plume, the thrusters'
+authority, the mass budget with growth allowances and the fit in a
+launcher (**Run › Design Checks**, `spacemissionstudio check-design`).
 
 **Differential drag** -- the difference in [drag](#d) between two
 spacecraft flying together, from different mass, area or drag
@@ -188,6 +198,13 @@ symmetric body). The app uses the tensor sign convention, Ixy = -∫xy dm.
 message a piece of software reads and writes: its fields, units, who
 writes it and who reads it. Each flight-software export has one.
 
+**IDM-CIC** -- a concurrent-engineering tool whose models (`.idm`
+files) describe a spacecraft's elements, equipment, shapes, masses and
+power modes (IDM-CIC is © CNES). SpaceMissionStudio reads them with its
+own reader to build a 3D model and add sensors, actuators and power
+budget values; it never writes them. See
+[Import a spacecraft from IDM-CIC](user-manual/idm-cic.md).
+
 **IERS** -- the International Earth Rotation and Reference Systems
 Service, which measures exactly how Earth turns. Its data make the
 [ITRF93](#i) frame accurate.
@@ -254,6 +271,11 @@ averaged out, so slow trends (such as the orbit plane turning under
 propagate (fly) until something happens, burn, compute a Lambert
 transfer, report a value, branch with `if`/`while`, or run a script
 block. Like GMAT's or FreeFlyer's mission sequence.
+
+**Model analyses** -- what a run computes on the spacecraft's 3D model:
+disturbance torques, sensor blinding, antenna obstruction, array
+shading, atomic-oxygen exposure and brightness (**Results › Model
+Analyses**, `spacemissionstudio model-analyses`).
 
 **Monte Carlo** -- running the same scenario many times with small random
 changes (mass, attitude, orbit, drag, ...), to see the range of outcomes
@@ -380,7 +402,7 @@ without propellant.
 
 **Reference data** -- the data files runs need: [SPICE kernels](#s), the
 gravity field, the magnetic field model, Earth orientation files and
-space weather. The **Reference data** dialog lists them.
+space weather. The **Reference data** window lists them.
 
 **Relative orbital elements (ROE)** -- six numbers that describe one
 spacecraft's orbit relative to another's (D'Amico's quasi-nonsingular
@@ -447,7 +469,7 @@ TAI plus 32.184 s. **TDB**: the time scale of planet positions, within
 2 ms of TT. **UT1**: time by Earth's actual rotation. [UTC](#u) follows
 TAI with leap seconds and stays within 0.9 s of UT1.
 
-**Template** -- one of the 31 ready-made scenarios that come with the
+**Template** -- one of the 32 ready-made scenarios that come with the
 app, each showing one idea or a complete mission. See the
 [template catalog](../spacemissionstudio/scenarios/templates/README.md).
 
@@ -491,7 +513,9 @@ can stream a run to it live or save a file to play back.
 
 **Walker constellation** -- a constellation of satellites spread evenly
 over several orbit planes, given as total satellites / planes / phasing
-factor. **Generate Walker constellation** builds one.
+factor. **Generate Walker constellation** builds one; **Hold each
+plane's spacing** makes each plane's first satellite the chief and gives
+the others [phasing keeping](#p) that holds their slots.
 
 ---
 

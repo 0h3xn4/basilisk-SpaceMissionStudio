@@ -7,6 +7,7 @@ do it, and what has been verified.
 
 - [Capabilities](#capabilities)
   - [Scenario model & data](#scenario-model--data)
+  - [Orbit files (CCSDS)](#orbit-files-ccsds)
   - [Orbital dynamics & propagation](#orbital-dynamics--propagation)
   - [Attitude, sensors & actuators](#attitude-sensors--actuators)
   - [3D spacecraft models](#3d-spacecraft-models)
@@ -44,6 +45,22 @@ messages, a schema-migration registry, and reference-integrity checking
 (rename a spacecraft and every reference to it updates atomically;
 deleting one that's still referenced is refused, listing exactly what
 references it). No third-party schema library.
+
+### Orbit files (CCSDS)
+
+CCSDS 502.0-B-3 orbit data messages in KVN (`engine.ccsds_odm`), the same
+in the app and on the command line: one module
+(`spacemissionstudio.ccsds_files`) does both, so both write the same
+bytes. A spacecraft's orbit is set from an OPM or a TLE-based OMM
+(**Import CCSDS OPM/OMM...** on its Orbit / mass page, `ccsds-import`);
+the starting orbits are written as OPMs, or OMMs for TLE spacecraft
+(**Export Orbits as CCSDS...**, `ccsds-export`); a run's trajectory is
+written as one OEM per spacecraft (**Results › Plots › Export all... ›
+CCSDS ephemeris (OEM)...**, `run --oem`); and any OPM, OMM or OEM is
+checked against the standard, each issue with its line and clause
+(**Check a CCSDS File...**, `ccsds-validate`). The OCM and the XML form
+are not supported. See
+[Exchange orbits with other tools](../user-manual/orbit-files.md).
 
 ### Orbital dynamics & propagation
 
@@ -118,8 +135,19 @@ masses as point masses, tank propellant and a second configuration's
 stowed poses; every approximation reported, every value recorded with
 the file's SHA-256 and the source object's identifier, and a re-import
 that keeps the user's edits (`idm-import`, `idm-info`, the editor's
-**Import IDM-CIC model...**). Checked against hand calculations on a
-synthetic model; see
+**Import IDM-CIC model...**). The import can also add the sensors and
+actuators the model's equipment names (star trackers, gyros, sun
+sensors, magnetometers, reaction wheels, magnetorquers; thrusters, solar
+arrays and batteries are listed only), each placed as its equipment and
+along the axis its shapes show (a field-of-view cone, a wheel's or
+magnetorquer's cylinder), with a catalog product's values or those of
+the team's properties mapped to it; set the power budget's bus load from
+one of the model's system modes or the duty-cycle average, and its panel
+from the solar arrays' panels; and put the body frame's origin at the
+model's centre of gravity, everything on the spacecraft moving with it.
+Nothing is estimated: a value the file does not give stays the catalog
+product's, Basilisk's or the editor's, and the pre-run checks say so.
+Checked against hand calculations on a synthetic model; see
 [Import a spacecraft from IDM-CIC](../user-manual/idm-cic.md).
 
 ### Analyses built on the 3D model
@@ -397,7 +425,7 @@ reproduced from the files it was exported with (2.0.0;
 
 A full PySide6 desktop shell (scenario editor,
 Monte Carlo, live progress feedback, a real visual theme and icons, a
-navigation rail and a command palette) and an equivalent headless CLI (29 commands; see
+navigation rail and a command palette) and an equivalent headless CLI (34 commands; see
 [Use the command line](../user-manual/command-line.md)), both built on
 the exact same `schema`/`engine` layer -- neither is a thin wrapper
 around the other. Result plots are Plotly figures (a validated,
@@ -432,10 +460,10 @@ compliance matrix.
   the shell's areas and commands, dialogs and the plots in their embedded
   web view.
 - **Template claims are re-checked.** `tests/test_template_claims.py`
-  runs templates 03, 07, 08, 10-14, 16, 17, 19-24 and 26-31 in Basilisk and
+  runs templates 03, 07, 08, 10-14, 16, 17, 19-24 and 26-32 in Basilisk and
   checks the headline numbers their descriptions quote; template 25 runs
   in `tests/test_examples.py`. `tests/test_golden_outputs.py` checks that
-  all 31 templates still give the outputs recorded in `tests/golden/`.
+  all 32 templates still give the outputs recorded in `tests/golden/`.
 - **Long runs**: a real 5-year LEO station-keeping run and a 7-day run of
   template 05 with live Vizard were run to completion.
 - **Packaging**: for 1.0.0 the Linux `.deb` and `install.sh`, and for

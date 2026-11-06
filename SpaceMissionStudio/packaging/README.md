@@ -153,7 +153,8 @@ in `packaging/` needed to change for it.
 builds the release files of a tag (`spacemissionstudio-vX.Y.Z`) on
 GitHub's runners and attaches them to its release, a draft when the
 release does not exist yet (`docs/developer/releasing.md`, sections 5
-and 6):
+and 6). It attaches nothing until the whole test suite has passed on the
+tag (its `tests` job runs `spacemissionstudio.yml`):
 
 | Platform | Files | Installed and run in the workflow |
 |---|---|---|

@@ -23,6 +23,7 @@ configuration file changes them without editing code
 | A Monte Carlo batch's offsets and the statistic of its spread | [Monte Carlo statistics](monte-carlo-statistics.md) | `monte_carlo.*` |
 | Analyses built on the 3D model: fields of view, thrusters, mass budget, launcher, disturbance torques, blinding, shading, exposure, brightness | [Analyses built on the 3D model](model-analyses.md) | `analyses.*` |
 | The preliminary re-entry casualty estimate: break-up, demise, casualty area, risk | [Preliminary re-entry casualty estimate](reentry.md) | `reentry.*` |
+| The material library the 3D model's parts and faces name, each value with its source | [The material library](materials.md) | none (a library: `config/materials.py`) |
 | The scenario file's limits: run length, step, counts, sizes, names | [The scenario file's limits](scenario-limits.md) | none (constants) |
 | Computed and overridden values: what is marked, its status, where it is recorded | [Computed and overridden values](value-marks.md) | none |
 

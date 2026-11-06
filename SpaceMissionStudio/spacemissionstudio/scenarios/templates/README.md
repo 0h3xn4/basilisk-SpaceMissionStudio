@@ -1,6 +1,6 @@
 # Template missions
 
-Thirty-one ready-to-run scenario files, for learning the tool and the
+Thirty-two ready-to-run scenario files, for learning the tool and the
 orbital mechanics it simulates, and as starting points for your own
 missions (copy one, edit it, save it under a new name):
 
@@ -19,6 +19,8 @@ missions (copy one, edit it, save it under a new name):
   from 2 km behind to a passively safe helix around the chief.
 * **30 and 31** navigate from camera images: around Mars from the
   planet's disk, around asteroid Eros from its landmarks.
+* **32** mounts a small satellite's equipment on its 3D model and checks
+  the design: a star tracker and a nozzle plume that see an array.
 
 **New here?** Run 01, then 22, then follow the learning path at the end
 of this file. To start your own mission, open 22 or 23 and Save As.
@@ -113,6 +115,7 @@ before it, but none of them depend on running an earlier one first.
 | 7. Whole systems | 19, 20, 23, 26 | Power, radio link and thermal working together; data from instrument to ground |
 | 8. Uncertainty | 09, 25 | Monte Carlo batches: mass, orbit insertion, drag |
 | 9. Navigation | 30, 31 | Estimating an orbit around Mars from camera images of the planet; flying around asteroid Eros with its shape's gravity and navigating from its landmarks |
+| 10. The spacecraft as designed | 28, 32 | A 3D model with its equipment mounted: fields of view, a plume, the mass budget and the launcher envelope checked without a run; the disturbance torques and the arrays' shading in a run |
 
 ## Using one as a starting point for your own mission
 

@@ -6,7 +6,8 @@ do what they are configured for, so a run is not wasted:
 - **the editor's Problems panel** shows, while typing, the plausibility
   checks: an initial orbit that cannot be flown (inside the Earth, an
   escape, a perigee below the ground or the re-entry altitude), a run
-  outside the installed reference data, a 3D model out of date;
+  outside the installed reference data, a 3D model out of date, and the
+  design checks of a spacecraft's 3D model;
 - **`spacemissionstudio validate`** prints both.
 
 Code: `spacemissionstudio/engine/scenario_checks.py`. The checks are
@@ -59,7 +60,10 @@ Other checks have no threshold, each with its rule:
   (`space_weather.unreadable`, `space_weather.starts_late`,
   `space_weather.ends_early`, `earth_orientation.none`,
   `earth_orientation.not_covered`, `earth_orientation.predicted`); the
-  3D model (`model.problem`, `model.stale`).
+  3D model (`model.problem`, `model.stale`); the design checks
+  (`design.fov_obstructed`, `design.plume_impingement`,
+  `design.mass_over_limit`, `design.envelope_protrusion`,
+  `design.launcher_limit`: [Analyses built on the 3D model](model-analyses.md#design-checks-no-run)).
 - **The scenario:**
   - an unreadable TLE (`tle.unreadable`);
   - drag with point-mass gravity (`gravity.drag_point_mass`);
@@ -71,7 +75,15 @@ Other checks have no threshold, each with its rule:
     (`formation.hill_pd_hold`, `formation.hill_pd_start`);
   - missing small-body data (`small_body.ephemeris_missing`,
     `small_body.shape_missing`);
-  - more Monte Carlo processes than CPUs (`monte_carlo.processes`).
+  - more Monte Carlo processes than CPUs (`monte_carlo.processes`);
+  - values read from a file whose file has changed or is missing
+    (`import.source_changed`, `import.source_missing`), an item of a 3D
+    model its IDM-CIC file no longer has (`import.source_item_gone`), and
+    a device or power budget an IDM-CIC import added without its own
+    values (`import.device_defaults`, `import.power_defaults`):
+    [Values read from a file](value-marks.md#values-read-from-a-file);
+  - the rules of the installed plugins
+    ([Add your own models and rules](../user-manual/plugins.md)).
 - **A check that fails:** it says "check not run" with the reason
   (`check.not_run`).
 

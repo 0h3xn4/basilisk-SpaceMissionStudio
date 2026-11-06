@@ -30,7 +30,9 @@ ones supplied, and every requirement ID and text here comes from them.
   `unreached_code.py`.
 * `audit/` -- the assessment rules `tools/build_matrix.py` reads;
   `validation/` -- the GMAT scripts and the generator of the validation
-  references (`validation/make_gmat_references.py`).
+  references (`validation/make_gmat_references.py`), and the
+  verification record of the analyses built on the 3D model
+  (`validation/model-analyses-vv.md`).
 
 * `gap_analysis.md`, `compliance_matrix.csv` (Phase 1; rebuilt by CI from
   `audit/`), `traceability_matrix.csv`, `ics_ccsds_502.csv`.

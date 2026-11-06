@@ -27,7 +27,7 @@ to do. New here? Start with **Getting started**.
 |---|---|
 | [Use the command line](user-manual/command-line.md) | Every `spacemissionstudio` command |
 | [The definition of done](definition-of-done.md) | How each transparency criterion is checked, with the walkthrough of every output's calculation |
-| [The Python API](api.md) | `spacemissionstudio.api`: load, check, run, lifetime, budget, trades, Monte Carlo and comparisons from a script, with tested examples |
+| [The Python API](api.md) | `spacemissionstudio.api`: load, check, run, lifetime, budget, trades, Monte Carlo, comparisons, design checks, model analyses and the re-entry estimate from a script, with tested examples |
 | [Models, rules and assumptions](models/README.md) | One page per model: how it computes, every rule with its value, unit and source, and what it assumes |
 | [Capabilities and verification](reference/capabilities.md) | What the app can do, which Basilisk modules do it, what has been verified |
 | [Known limitations](reference/limitations.md) | What it does not do, and why |
@@ -57,6 +57,8 @@ to do. New here? Start with **Getting started**.
 | [UI overhaul brief](ui/UI_OVERHAUL.md), [plan](ui/UI_OVERHAUL_PLAN.md) and [before and after](ui/BEFORE_AFTER.md) | The 1.3.0 interface: what was asked, the milestones, and what changed, measured and pictured |
 | [Decisions](DECISIONS.md) | Choices made during the UI overhaul where the brief and the plan are silent, each with its rationale |
 | [Third-party assets](THIRD_PARTY_ASSETS.md) | The fonts, icons and libraries the GUI bundles or needs, with their licences |
+| [IDM-CIC import: design](developer/idm-cic-integration.md) | How the IDM-CIC reader and import work, and what was decided when they were built |
+| [Analyses built on the 3D model: design](developer/model-analyses-design.md) | The design of the equipment, design checks and model analyses, with its [decisions](developer/model-analyses-decisions.md), [progress](developer/model-analyses-progress.md) and [sources](developer/model-analyses-sources.md) |
 | [Releasing](developer/releasing.md) | Version numbers, checks, building the packages |
 | [Keeping up with upstream Basilisk](developer/upstream-sync.md) | Merging upstream, refreshing the root README's upstream part |
 | [Development log](../HISTORY.md) | Why everything is the way it is, change by change |

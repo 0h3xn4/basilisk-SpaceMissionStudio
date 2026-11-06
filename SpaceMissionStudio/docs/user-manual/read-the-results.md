@@ -7,23 +7,28 @@ and the exported files.
 
 | Where | What it shows | Needs a run? |
 |---|---|---|
-| **Results > Overview** | The shown run's headline figures, and its provenance | Yes |
+| **Results > Overview** | The shown run's headline figures (click one for how it was computed), and its provenance | Yes |
 | **Results > Plots** | A catalog of the run's plots and a grid of up to six, with a readout | Yes |
 | **Results > Dashboard** | Pointing mode, power and link at a glance (for a comms-pointing spacecraft) | Yes |
 | **Results > Output** | What each `report` command in a Mission Sequence recorded | Yes |
 | **Results > Monte Carlo** | The spread of a batch (shown when the scenario has Monte Carlo on or a batch is open) | A batch |
+| **Results > Model Analyses** | Disturbance torques, blinding, shading and the other analyses on the 3D model (shown after a run that asked for them; [Analyses built on the 3D model](model-analyses.md#analyses-of-a-run)) | Yes |
 | **Timeline** | Passes, eclipses, burns and mode changes, as a timeline and a table | Yes |
 | **Results > Compare** | Two or more saved runs: a summary with differences, the inputs that differ, events, plots | Two runs |
-| **Run > History** | Every run kept, newest first, with its status, start and duration | Yes |
+| **Run > Run** | What the next run uses, for the mode chosen beside **Run** (single, Monte Carlo or SIL) | No |
+| **Run > History** | Every run kept, newest first, with its status, start and duration; **Show everything recorded** opens a run's whole record | Yes |
 | **Run > Log** | What the app logged in this session, with every message a toast showed; a failed run opens it | No |
 | **Run > End of Life** | Orbital lifetime and deorbit check | No |
 | **Run > Budget** | Delta-V and propellant budget | No (better after a run) |
+| **Run > Design Checks** | The 3D model's fields of view, thrusters and plumes, mass budget and launcher envelope ([Check the design](model-analyses.md#check-the-design-no-run)) | No |
 | **Reports > Exports** | Every export the app makes, where it is made, and when this machine last wrote one | No |
 | **Reports > Flight Software** | Export the flight software, or run it in the loop | No |
 | Right: **Inspector** | The field you are in: its value, accepted range and help | No |
+| Right: **Calculation** | How a number was computed: its equation, its inputs with their units and sources; **Show calculation** opens it | No |
 | **Scenario > Overview** | What the scenario is set up to do, and warnings before you run | No |
+| **Scenario > Assumptions** | Every named parameter with its value, unit and source ([Change a parameter](project-configuration.md)) | No |
 | Bottom: **Problems** | What does not validate or looks implausible, by severity, field and object; double-click one to go to its field | No |
-| **Reference data** dialog (status bar, or **Settings > Reference data**) | Every reference data file, its status and where it came from | No |
+| **Reference data** window (status bar, or **Settings > Reference data**) | Every reference data file, its status and where it came from | No |
 
 ## Find a plot
 
@@ -64,7 +69,9 @@ On the **Timeline**, the search box (**Ctrl+F**) and the station list
 narrow the timeline and the table. Each value has its own column with
 its unit, such as "Max elevation [deg]". Select rows and press
 **Ctrl+C** to paste them into a spreadsheet; the arrow keys move the
-time cursor from event to event.
+time cursor from event to event. **Show calculation** says how the
+selected event was found: the series and rule behind it, and the samples
+it starts and ends on.
 
 ![The Timeline after a run of template 22: a timeline of the Berlin passes and the eclipses, above a table of every event](../images/events_tab.png)
 
@@ -97,6 +104,7 @@ either way.
 | Results: **Save PNG...** / **Save SVG...** | The selected plot (click a plot to select it) |
 | Results: **Export all...** | Every shown plot as PNG or SVG, with its data as CSV and `provenance.json` |
 | Results: **Export all...** › **Reproduction bundle...** | The shown run as a folder that `spacemissionstudio reproduce` runs again and compares: every series, the provenance, the scenario as run and copies of the files it refers to |
+| Results: **Export all...** › **CCSDS ephemeris (OEM)...** | Each spacecraft's trajectory as a CCSDS OEM, for GMAT, STK or another tool ([Exchange orbits with other tools](orbit-files.md#in-the-app)) |
 | Timeline: **Export CSV...** | The events shown, in seconds and UTC, one column per measured value |
 | Timeline: **Ctrl+C** | The selected rows, as tab-separated text |
 | Results > Output: **Export CSV...** | Every report, in SI units |
@@ -116,13 +124,18 @@ field of view, or a wheel's inertia from Basilisk's catalogue
 Basilisk's own value applies.
 The Results export writes a `provenance.json` into its folder; the
 Timeline and Output exports write `<file>.provenance.json` beside
-the CSV; PNG and SVG files carry it inside the image.
+the CSV; PNG and SVG files carry it inside the image. **Reports > Exports**
+lists every export with the view that makes it and when it was last
+written.
 
 ## From the command line
 
 `spacemissionstudio run scenario.json --out-dir out` writes the same CSV
 files, `events.csv` and `provenance.json` into `out/`, and
-`scenario_as_run.json`, the scenario as it was run.
+`scenario_as_run.json`, the scenario as it was run. Add `--oem` for the
+CCSDS ephemeris, `--bundle` for a reproduction bundle, `--explain` for how
+each headline figure was computed, and `--save` to keep the run for
+`spacemissionstudio runs` and `compare`.
 
 **More detail:** User Manual section 7,
 [Reading the results](../../USER_MANUAL.md#7-reading-the-results).

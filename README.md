@@ -22,7 +22,7 @@ Basilisk itself is unchanged: its README follows below, under
 SpaceMissionStudio lets you design a satellite mission in forms, run it,
 and read the results, without writing code. Every number comes from
 Basilisk; SpaceMissionStudio adds the windows, scenario files, plots,
-checks and analysis around it. Start from one of 31 template missions, or
+checks and analysis around it. Start from one of 32 template missions, or
 build your own, then look at orbits, ground passes, eclipses, pointing,
 battery, link margin, lifetime and propellant.
 
@@ -83,10 +83,8 @@ A few seconds later **Results > Plots** shows the orbit and the
   about 10 years.
 - **Pointing:** five pointing modes, real sensors and actuators, momentum
   unloading, navigation error, surface facets, flexible solar arrays.
-- **3D models** of the spacecraft, built from shapes or imported `.obj`
-  files, giving its mass, center of mass, inertia and surfaces.
 - **Orbit keeping:** LEO and GEO station keeping, formations with three
-  control laws, Walker constellations.
+  control laws, Walker constellations that can hold their spacing.
 - **Mission Sequence:** burns, Lambert transfers, reports, conditions,
   stopping on events such as a ground pass.
 - **Analysis:** passes, eclipses, power, link margin, onboard data,
@@ -100,11 +98,14 @@ A few seconds later **Results > Plots** shows the orbit and the
   a change history beside each scenario; plugins with models and rules
   of your own; reproduction bundles that run again on another computer.
 - **3D model:** build the spacecraft from shapes, CAD meshes or an
-  IDM-CIC model, with its mass properties, equipment and stowed
-  configuration; design checks (fields of view, thrusters, mass budget,
+  IDM-CIC model, with its mass properties, surfaces, equipment and stowed
+  configuration (from IDM-CIC also its sensors and actuators, the power
+  budget's bus load and solar panel, and the values your team keeps as
+  properties); design checks (fields of view, thrusters, mass budget,
   launcher fit) and analyses after a run (disturbance torques, blinding,
   shading, exposure, brightness, a preliminary re-entry estimate).
-- **Exchange:** CCSDS orbit messages; IDM-CIC models (read only);
+- **Exchange:** CCSDS orbit messages, in the app and on the command
+  line; IDM-CIC models (read only);
   flight-software export as a C project; software-in-the-loop testing.
 - **3D view** in Vizard; a **command line** for every analysis; a
   **Python API**; light and dark themes; **offline by design**.

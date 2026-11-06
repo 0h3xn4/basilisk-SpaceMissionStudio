@@ -4,6 +4,12 @@ Status: design for the feature branch `feature/model-analyses`, written
 before the feature code (Step 0 of the brief). The decisions behind it are
 in [model-analyses-decisions.md](model-analyses-decisions.md), and the
 progress in [model-analyses-progress.md](model-analyses-progress.md).
+Implemented and released in 2.1.0 (2026-11-04); the methods as built are
+in [docs/models/model-analyses.md](../models/model-analyses.md). Where
+the code differs from this plan, the code is the reference: the materials
+are in `config/materials.py` and the launcher envelopes in
+`config/envelopes.py`, and the geometry and ephemeris helpers are one
+module, `analyses/run_geometry.py`.
 
 Target: spacecraft of 100 kg and above (ESPA-class microsatellites and
 small satellites), with deployed arrays and antennas, star trackers,

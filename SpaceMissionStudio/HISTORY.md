@@ -14514,6 +14514,66 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The documentation brought up to 2.4.0 (2026-11-06)
+
+The user asked for all documentation to be updated: the READMEs, the user
+manuals, the how-tos and anything else stale. Five releases in four
+days (2.0.0 to 2.4.0) had left pages behind the code. Four reviewers
+(assistant subagents, each on its own set of files) checked every
+statement against the code, the command line's `--help` and the
+CHANGELOG, and changed only what was stale or wrong; the main user
+manual and the release records were done directly, and every change
+was reviewed before the commit.
+
+- **Front pages and reference:** 32 templates, not 31; CCSDS in the
+  app; the IDM-CIC import's devices, power, properties, device axes and
+  origin; new glossary entries (body frame, design checks, IDM-CIC,
+  model analyses); a CCSDS section and 34 commands in the capabilities;
+  the API page's `model_analyses(base_dir=...)`; two troubleshooting
+  entries (2.2.0 refusing a 2.3.0 file, importing into a template).
+- **User manual and how-tos:** `command-line.md` checked option by
+  option against all 34 commands (`--origin`, `--store`,
+  `--allow-scripts`, `--set-epoch`, ...); what `kernels-status` does;
+  the IDM-CIC page's tabs and command-line keys; Design Checks, Model
+  Analyses, the Calculation panel and Assumptions where the results are
+  described; re-entry casualty and the budget's run inputs; the
+  Reference data, change history and manual as windows of their own;
+  field labels as the forms show them (**Degree/order**, the antenna
+  patterns); the main manual's learning path, the 3D model row and tree,
+  CCSDS import and export, and Walker spacing.
+- **Developer and model docs:** the package table in `architecture.md`
+  (idm/, idm_import, idm_devices, idm_properties, ccsds_files,
+  model3d/origin), the CI jobs, the pre-run rules (`design.*`,
+  `import.*`), the import records' targets, status lines on the
+  model-analyses and UI-overhaul plans (shipped), and the Software User
+  Manual's pointers (commands, areas, files, a cancellable batch).
+- **Screenshots:** all eleven re-taken from the 2.4.0 app with
+  `scripts/capture_screenshots.py` (they dated from 1.3.0; the budget
+  showed 7.26 kg from before the 2.0.0 propellant fix, now 6.907 kg). The
+  3D view needs software WebGL offscreen: the script's docstring now
+  gives the Chromium flags. The IDM-CIC dialog is shown on the axes
+  fixture, with its devices' axes **from the model**.
+
+Left as they were, being records of their time: HISTORY, the audits and
+plans' history, DECISIONS, the 1.1.x verification notes in
+`packaging/README.md`. Not verified (they need long runs): a few
+timings and figures quoted from earlier measurements, listed in the
+pull request.
+
+## Release 2.4.0 published (2026-11-05)
+
+#228 was merged once CI was green. The user tagged
+`spacemissionstudio-v2.4.0` on its merge commit `ac4b90065` and published
+the release at 20:58:24 UTC with notes written for it (prepared with the
+assistant: what is new, who should update, install, known limits, and
+the IDM-CIC credit). The release workflow
+([run 42108301360](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/runs/42108301360)) started two seconds
+later; it ran the whole suite on the tagged commit on Linux and Windows,
+built, installed and checked the six files and attached them at 21:33,
+keeping the notes. So the release was public without files for 35
+minutes, the ninth release so (`releasing.md`). SRelD issue 28, the SDP,
+H05 and `releasing.md` record the tag, the run and the files' digests.
+
 ## The body frame's origin at the centre of gravity (2026-11-05)
 
 While 2.4.0 was being prepared, the user asked whether the imported

@@ -17,6 +17,8 @@ with a non-zero status and prints `ERROR:` or `INVALID:` with the reason.
 - [Orbit files (CCSDS)](#orbit-files-ccsds)
 - [Flight software](#flight-software)
 - [Reference data](#reference-data)
+- [Exit codes](#exit-codes)
+- [From Python](#from-python)
 
 ## Check and run
 
@@ -26,8 +28,8 @@ with a non-zero status and prints `ERROR:` or `INVALID:` with the reason.
 | `run scenario.json --out-dir out` | Runs it and writes one CSV per quantity, `events.csv`, `provenance.json` and `scenario_as_run.json` |
 | `monte-carlo scenario.json --archive-dir mc` | Runs the scenario's Monte Carlo batch and writes its provenance, `archive.provenance.json`. `--archive-dir` must be empty or hold an earlier batch, which `--overwrite` replaces; `--allow-scripts` runs the Mission Sequence's `script_block` commands in every run |
 | `run scenario.json --save` | Also keeps the run in the run store, as the app does (`--store DIR` for another folder) |
-| `runs` | Lists the runs kept in the run store: the app's and `run --save`'s |
-| `compare 3 5 --out comparison.json` | Two kept runs side by side (Results > Compare): the scenario differences, the headline figures with the difference, the events; `--out` writes JSON with both runs' provenance |
+| `runs` | Lists the runs kept in the run store: the app's and `run --save`'s (`--store DIR` for another folder) |
+| `compare 3 5 --out comparison.json` | Two kept runs side by side (Results > Compare): the scenario differences, the headline figures with the difference, the events; `--out` writes JSON with both runs' provenance (`--store DIR` for another folder) |
 | `gui` | Starts the app |
 
 ```console
@@ -128,7 +130,9 @@ REPRODUCED: 19 series within 1e-06 of their scale
 ```
 
 A series agrees when every value is within `--rtol` (default 1e-6) of
-the largest value in its column. `reproduce` also says:
+the largest value in its column. `--allow-scripts` runs the scenario's
+`script_block` commands, as for `run`: only for a bundle you trust and
+have read. `reproduce` also says:
 
 - which copies it used (`USED:`): your files, or the bundle's space weather
   when this computer's differs;
@@ -147,9 +151,9 @@ made with. The GUI writes the same bundle from Results › Plots ›
 
 | Command | What it does |
 |---|---|
-| `lifetime scenario.json` | Re-entry date, and the 5-year and 25-year checks (`--spacecraft`, `--max-years`, `--drag-coeff`, `--forecast-percentile 5\|50\|95` for MSFC's solar-activity percentile, `--deorbit-perigee-km` to lower the perigee with the orbit thruster first) |
+| `lifetime scenario.json` | Re-entry date, and the 5-year and 25-year checks (`--spacecraft`, `--max-years`, `--drag-coeff`, a value or `own` for the spacecraft's, `--forecast-percentile 5\|50\|95` for MSFC's solar-activity percentile, `--deorbit-perigee-km` to lower the perigee with the orbit thruster first) |
 | `reentry scenario.json` | A preliminary re-entry casualty estimate from the 3D model: the fragments that reach the ground and the casualty area (`--spacecraft`, `--population-density` people per km² for the risk, `--out`); see [Preliminary re-entry casualty estimate](../models/reentry.md) |
-| `budget scenario.json` | Delta-V and propellant budget (ESA AD10 style) |
+| `budget scenario.json` | Delta-V and propellant budget, ESA AD10 style (`--spacecraft`; `--run` runs the scenario first, for orbit control and formation keeping) |
 | `budget scenario.json --launch-delays` | The same, for launches 1 to 5 years late |
 | `budget scenario.json --altitudes 400,450,500` | Which altitude fits the tank |
 | `lifetime scenario.json --out life.json` | Also writes the lifetime as JSON |
@@ -221,7 +225,7 @@ Each input says where it came from: `scenario:` (a field of the file),
 | Command | What it does |
 |---|---|
 | `generate-constellation in.json --out out.json --total-satellites 12 --planes 3 --phasing-factor 1 --altitude-km 780 --inclination-deg 86.4` | A Walker constellation from one spacecraft. Also: `--pattern delta\|star`, `--eccentricity`, `--arg-periapsis-deg`, `--raan-offset-deg`, `--name-prefix`, `--template-spacecraft`, `--append` to add the satellites to the file's spacecraft instead of replacing them, and `--phasing-keeping` (with `--phasing-control-law drift_orbit\|mean_oe\|hill_pd`) to have each plane's satellites hold their spacing from its first one; the template needs station keeping |
-| `generate-phasing-formation in.json --out out.json --chief chief-1 --follower-name follower-1 --along-track-km 50` | A follower that holds a distance ahead of a chief. `--along-track-km` is the held separation; `--radial-km` and `--cross-track-km` only set the starting geometry. Further options set the reconfiguration and correction windows and tolerances, the station-keeping altitude and deadband, the shared thruster (`--thrust-n`, `--isp-s`, `--min-on-time-s`, `--propellant-kg`), and `--control-law drift_orbit\|mean_oe\|hill_pd` (`generate-phasing-formation --help` lists them) |
+| `generate-phasing-formation in.json --out out.json --chief chief-1 --follower-name follower-1 --along-track-km 50` | A follower that holds a distance ahead of a chief. `--along-track-km` is the held separation; `--radial-km` and `--cross-track-km` only set the starting geometry. `--template-spacecraft` clones another spacecraft than the chief. Further options set the reconfiguration and correction windows and tolerances (`--reconfiguration-interval-days`, `--tolerance-fraction`, `--restore-tolerance-fraction`, `--correction-window-days`, `--max-drift-days`, `--max-delta-semi-major-axis-km`), the station-keeping altitude and deadband (`--station-keeping-target-altitude-km`, `--station-keeping-deadband-km`), the shared thruster (`--thrust-n`, `--isp-s`, `--min-on-time-s`, `--propellant-kg`), when a reboost may fire (`--eclipse-sunlit-threshold`, `--eccentricity-neutral-burns`), and `--control-law drift_orbit\|mean_oe\|hill_pd` (`generate-phasing-formation --help` explains each) |
 | `generate-roe-formation in.json --out out.json --chief chief-1 --follower-name follower-1 --safe 0,300,300` | A follower in a formation of relative orbital elements: `--safe along,radial,cross[,phase]` [m, deg] for a passively safe helix, or `--roe` with the six ROE in metres; `--control-law impulsive` (default) or `continuous`. Clones the chief (or `--template-spacecraft`), whose station keeping provides the thruster |
 
 ## 3D models
@@ -237,8 +241,8 @@ drag and solar pressure act on.
 | `model scenario.json --spacecraft sat-1 --export-obj sat.obj` | Writes the model as a Wavefront `.obj` (and `.mtl`), body frame, metres, +z up |
 | `check-design scenario.json` | The design checks of a model, with no run: field-of-view obstruction, thruster authority and plumes, mass budget, launcher envelope (`--spacecraft`, `--samples` rays per cone, `--explain`, `--out` for the record, `--tables DIR` for the CSV tables); see [Analyses built on the 3D model](model-analyses.md) |
 | `model-analyses scenario.json` | Runs the scenario and reports its model analyses: disturbance torques with the wheel and magnetorquer sizing, blinding, antenna obstruction, array shading, exposure and brightness (`--spacecraft`, `--out`, `--tables DIR`) |
-| `idm-info model.idm` | Lists an IDM-CIC model's elements, configurations and what an import would approximate; writes nothing (`--configuration`, `--body-element`) |
-| `idm-import model.idm scenario.json --spacecraft sat-1` | Builds or updates the spacecraft's 3D model from an IDM-CIC model (`--configuration`, `--stowed-configuration`, `--body-element`, `--apply-facets`, `--out`), with `--devices` the sensors and actuators found by name, with `--bus-load MODE`, `--solar-panels +`/`-` and `--battery` the power budget's bus load, panel and battery, and with `--property-map 'NAME=KIND.PARAM[UNIT]'` values from the team's properties; see [Import a spacecraft from IDM-CIC](idm-cic.md) |
+| `idm-info model.idm` | Lists an IDM-CIC model's elements, configurations and what an import would approximate, and the devices, system modes, solar array panels and properties it finds; writes nothing (`--configuration`, `--body-element`) |
+| `idm-import model.idm scenario.json --spacecraft sat-1` | Builds or updates the spacecraft's 3D model from an IDM-CIC model (`--configuration`, `--stowed-configuration`, `--body-element`, `--apply-facets`, `--out`), with `--origin element\|cog` the origin of the body frame at the body element's or at the centre of gravity, with `--devices` the sensors and actuators found by name, with `--bus-load MODE`, `--solar-panels +`/`-` and `--battery` the power budget's bus load, panel and battery, and with `--property-map 'NAME=KIND.PARAM[UNIT]'` (`none` for none) values from the team's properties; see [Import a spacecraft from IDM-CIC](idm-cic.md) |
 
 ```console
 $ spacemissionstudio model octagon.json
@@ -263,8 +267,8 @@ file formats are in the ICD (`compliance/docs/ICD.md`, 5.3.11).
 | Command | What it does |
 |---|---|
 | `ccsds-validate file.opm ...` | Checks OPM, OMM or OEM files against the standard |
-| `ccsds-export scenario.json --out dir` | Writes each spacecraft's starting state as an OPM |
-| `ccsds-import file.opm scenario.json --spacecraft sat-1` | Sets a spacecraft's orbit from an OPM or OMM |
+| `ccsds-export scenario.json --out dir` | Writes each spacecraft's starting state as an OPM (an OMM for a TLE spacecraft) |
+| `ccsds-import file.opm scenario.json --spacecraft sat-1` | Sets a spacecraft's orbit from an OPM or OMM (`--set-epoch` moves the scenario epoch to the OPM's; `--out` writes the result to another file instead of overwriting) |
 
 See [Orbit files](orbit-files.md).
 
@@ -286,7 +290,7 @@ See [Flight software and SIL](flight-software-and-sil.md).
 
 | Command | What it does |
 |---|---|
-| `kernels-status` | Lists the SPICE kernels, gravity field and magnetic model, and whether each is installed |
+| `kernels-status` | Downloads any missing support file (SPICE kernels, gravity fields, magnetic model, albedo maps; internet), then lists each with where it is, or why it could not be fetched |
 | `earth-orientation` | Shows the Earth orientation files; `--fetch` downloads new ones, `--import` installs them from disk, `--rollback` undoes the last change |
 | `small-bodies` | Shows the asteroid Eros files (ephemeris and shape); `--fetch` downloads them, `--import FILE` installs the ephemeris kernel `eros_1900_2100.bsp` from disk; see [Small bodies](small-body-navigation.md) |
 | `gaseous-attenuation` | Shows the ITU-R P.676-13 data file (Part 1) that `link.atmospheric_loss` reads; `--fetch` downloads it, `--import FILE` installs the ITU's `R11010000020001TXTM.txt` from disk |
@@ -304,7 +308,7 @@ A script can tell from the exit code what happened:
 | 2 | A component is missing (Basilisk, a SPICE kernel for `kernels-status`, PySide6 for `gui`), or the command line is wrong |
 | 3 | The run or analysis failed, including a Monte Carlo batch in which a run failed |
 | 4 | An internal error of SpaceMissionStudio; report it with the log file it names |
-| 5 | The command ran, but its check did not pass: `fsw-status` found an export that is not up to date, `sil --max-error` found a residual over the limit, or `reproduce` found a series that differs |
+| 5 | The command ran, but its check did not pass: `fsw-status` found an export that is not up to date, `sil --max-error` found a residual over the limit, `reproduce` found a series that differs, or `plugins` found a plugin that could not be loaded |
 
 ## From Python
 

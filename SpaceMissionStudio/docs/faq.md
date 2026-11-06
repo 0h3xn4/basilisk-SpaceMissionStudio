@@ -23,7 +23,8 @@ details.
 
 A desktop app for planning and simulating satellite missions: orbits,
 pointing, power, radio links, station keeping, formations, lifetime and
-propellant budgets. Every number comes from
+propellant budgets, and the spacecraft's 3D model with its design
+checks. Every number comes from
 [Basilisk](https://avslab.github.io/basilisk/), the open-source
 astrodynamics framework from the AVS Lab at the University of Colorado
 Boulder. SpaceMissionStudio adds the windows, forms, plots, templates and
@@ -31,7 +32,7 @@ checks around it.
 
 ## Do I need to know programming, or spaceflight?
 
-No. Start from one of the 31 templates and change it in forms
+No. Start from one of the 32 templates and change it in forms
 ([Getting started](getting-started.md)). The [glossary](glossary.md)
 explains the terms. Python is optional: for scripting and batch runs.
 
@@ -55,7 +56,7 @@ way it then runs offline:
   says which one.
 - Nothing is downloaded without your say-so. Each time the GUI starts,
   a **Fetch or update reference data?** card on Home offers to check
-  for newer reference data; **Not now** touches no network. The **Reference data** dialog's downloads ask
+  for newer reference data; **Not now** touches no network. The **Reference data** window's downloads ask
   first, naming the source, the files and the size, and default to No.
   Vizard downloads only when you click **Download Vizard**. On the
   command line, only `kernels-status`, `earth-orientation --fetch`,
@@ -105,8 +106,15 @@ Monte Carlo and Vizard are limited to 100 days.
 
 Yes, through standard files:
 
-- orbits in and out as CCSDS OPM, OMM and OEM, and in as TLEs
+- orbits in and out as CCSDS OPM, OMM and OEM, and in as TLEs, in the
+  app or on the command line
   ([Orbit files](user-manual/orbit-files.md));
+- a spacecraft's 3D model, mass properties, sensors and actuators, and
+  the power budget's bus load and solar panel, in from an IDM-CIC model
+  (`.idm`, read only; IDM-CIC is © CNES;
+  [Import a spacecraft from IDM-CIC](user-manual/idm-cic.md)), and 3D
+  shapes in and out as Wavefront `.obj`
+  ([Build a 3D model](user-manual/3d-model.md));
 - results as CSV in SI units;
 - scenarios as plain JSON;
 - the attitude flight software as a C project with an interface control
@@ -120,7 +128,8 @@ every file the app reads and writes.
 Yes. [`examples/`](../examples/README.md) builds a scenario in code, runs
 templates, plans a Hohmann transfer, sweeps altitudes and reads a Monte
 Carlo batch. `spacemissionstudio.api` loads, checks and runs a scenario
-and computes its lifetime, budget and comparisons with the app's engine
+and computes its lifetime, budget, comparisons, design checks, model
+analyses and re-entry estimate with the app's engine
 ([The Python API](api.md)). Every
 command-line command uses the same engine
 ([Use the command line](user-manual/command-line.md)).

@@ -70,6 +70,13 @@ supported):
   TDB; `--set-epoch` moves the scenario epoch to the OPM's) or from a
   TLE-based OMM (converted to the TLE it represents).
 
+The app does the same with the same module
+(`spacemissionstudio/ccsds_files.py`), so both write the same bytes:
+**Import CCSDS OPM/OMM...** on a spacecraft's Orbit / mass page,
+**Export Orbits as CCSDS...** and **Check a CCSDS File...** (from the
+command palette, `Ctrl+K`), and **Results › Plots › Export all... ›
+CCSDS ephemeris (OEM)...**.
+
 [`compliance/ics_ccsds_502.csv`](../../compliance/ics_ccsds_502.csv) is the Implementation Conformance Statement
 (Annex A) for the three messages.
 
@@ -82,7 +89,10 @@ of model versions 3.4 and 3.5 with its own reader, written from the
 format's published description and checked against example models; other
 versions are read with a note. It reads only the archive's `model.xml`,
 never runs or downloads CNES software, and never writes `.idm` files. It
-is not affiliated with or endorsed by CNES. The conventions it uses
+is not affiliated with or endorsed by CNES. From the model it takes the
+elements, configurations, shapes and masses, and the equipment's names,
+power in each system mode and the properties a team keeps, for the
+sensors, actuators and power budget. The conventions it uses
 (rotation order, shape origins) and what it leaves out are in the
 [design note](../developer/idm-cic-integration.md), section 14.
 

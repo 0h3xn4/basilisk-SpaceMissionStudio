@@ -11,6 +11,7 @@ disk on a machine without internet, and undo an update.
 | Gravity fields (GGM03S, GGM2B) | Earth's and Mars's detailed gravity | the Basilisk repository | |
 | Magnetic model (WMM2025) | Torque rods, magnetometers | the Basilisk repository | |
 | Albedo maps (Earth CERES, Mars TES) | Reflected sunlight on the sun sensors | the Basilisk repository | |
+| Atmosphere profiles (U.S. Standard Atmosphere 1976, Earth-GRAM 2016 and NRLMSISE-00 nominal profiles) | The tabular atmosphere (`atmosphere_model` "tabular") | the Basilisk repository | |
 | Space weather (observed F10.7 and Ap) | Atmospheric density, so drag | CelesTrak; a copy is bundled | about 3 MB |
 | Solar-activity prediction | Drag after the observed record ends | NASA MSFC; bundled | small |
 | Earth orientation (IERS-based NAIF Earth PCKs) | Measured Earth rotation | NAIF | about 36 MB |
@@ -62,13 +63,14 @@ Hosts to allow through a firewall: `naif.jpl.nasa.gov`,
    `~/.cache/SpaceMissionStudio/earth_orientation/` or a CelesTrak
    `SW-All.csv`.
 2. On the offline machine, **Import file...** in the **Reference data**
-   dialog installs a
+   window installs a
    space-weather, Earth orientation, Eros ephemeris or ITU-R P.676-13
    Part 1 file from disk. From the command line: `spacemissionstudio
    earth-orientation --import FILE.bpc`, `spacemissionstudio
    small-bodies --import FILE`, `spacemissionstudio
    gaseous-attenuation --import FILE.txt`.
-3. Support data (SPICE kernels, gravity, magnetic model) goes into
+3. Support data (SPICE kernels, gravity, magnetic model, albedo maps,
+   atmosphere profiles) goes into
    Basilisk's own cache; copy that folder (`kernels-status` prints where
    it is).
 

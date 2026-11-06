@@ -21,6 +21,13 @@ instead of one run of a fixed length.
    it is on ("Step 2 of 5: ..."). The run follows the
    commands instead of the scenario's duration.
 
+**Scenario > Overview** shows how long the sequence runs, marked
+"(sequence)", and counts the passes over it; a note under the
+**Duration** field says the same. The **Duration** must still cover the
+whole sequence: a run with drag that would go past the space weather
+loaded for it (the Duration and 10 days after it) stops with a message to
+set the Duration longer.
+
 A step with a problem is shown in red; the problem is over its form and
 in **Problems**, which opens the step on a double-click.
 

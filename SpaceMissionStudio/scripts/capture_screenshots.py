@@ -33,6 +33,13 @@ documentation shows) and ``--size WxH`` at another window size, e.g. for
 the dark-theme and 2560 x 1440 checks, into another folder::
 
     QT_QPA_PLATFORM=offscreen python scripts/capture_screenshots.py /tmp/dark --theme dark --size 1280x720
+
+Offscreen, the 3D view (Qt WebEngine) needs Chromium's software WebGL,
+or it shows "WebGL is not supported"; run as root, also without its
+sandbox::
+
+    QTWEBENGINE_CHROMIUM_FLAGS="--no-sandbox --use-angle=swiftshader --enable-unsafe-swiftshader" \
+        QT_QPA_PLATFORM=offscreen python scripts/capture_screenshots.py docs/images
 """
 
 import argparse
@@ -195,23 +202,24 @@ def main(out: Path, theme: str = "light", size: tuple = WINDOW_SIZE) -> int:
 
 
 def capture_idm_import(out: Path, spin) -> None:
-    """``idm_import.png``: the IDM-CIC import dialog on the synthetic test
-    model (``tests/data/idm/demosat``, made up; never a real model)."""
+    """``idm_import.png``: the IDM-CIC import dialog on a synthetic test
+    model (``tests/data/idm/axessat``, made up; never a real model), its
+    devices listed with the axes their shapes show."""
     import tempfile
 
     from spacemissionstudio.gui.idm_import_dialog import IdmImportDialog
 
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
-    from idm_fixtures import write_idm
+    from idm_fixtures import model_xml, write_idm
 
     with tempfile.TemporaryDirectory() as folder:
-        dialog = IdmImportDialog(write_idm(Path(folder) / "demosat.idm"))
-        dialog.resize(760, 560)
+        dialog = IdmImportDialog(write_idm(Path(folder) / "axessat.idm", model_xml("axessat")))
+        dialog.resize(900, 720)  # [px] its own default size: the tabs and the origin row fit
         dialog.show()
-        spin(1.5)  # [s] the file read and the import planned in the worker
-        dialog.configuration_combo.setCurrentIndex(1)
-        dialog.stowed_combo.setCurrentIndex(2)
-        spin(1.5)  # [s]
+        end = time.time() + 30.0  # [s] the file read and the import planned in the worker
+        while (dialog.busy() or dialog.plan() is None) and time.time() < end:
+            spin(0.1)  # [s]
+        spin(1.0)  # [s]
         dialog.grab().save(str(out / "idm_import.png"))
         print(f"wrote {out / 'idm_import.png'}")
         dialog.close()

@@ -164,7 +164,8 @@ A value read from a file keeps the file it came from, so a later change
 of the file, or of the value, can be seen (the transparency plan,
 Phase 8c).
 
-- **An orbit from a CCSDS message** (`spacemissionstudio ccsds-import`):
+- **An orbit from a CCSDS message** (`spacemissionstudio ccsds-import`,
+  or **Import CCSDS OPM/OMM...** on a spacecraft's Orbit / mass page):
   the scenario's `imports` (`ImportRecord`) keeps the spacecraft, what
   was set (`orbit`), the format (`ccsds_opm` or `ccsds_omm`), the file's
   absolute path and SHA-256, when and who, and every value as it was read
@@ -175,9 +176,21 @@ Phase 8c).
   absolute path (`source_path`), written only when there is one.
 - **Meshes** (`.obj`) already keep their SHA-256; a changed one is a
   warning when the model is built.
+- **A spacecraft from an IDM-CIC model** (`spacemissionstudio
+  idm-import`, or **Import IDM-CIC model...** in the 3D model editor):
+  one record per target it set, `model` (the 3D model's imported parts,
+  point masses and stowed poses), `devices` (the sensors and actuators it
+  added) and `power` (the power budget's values), in the format
+  `idm_cic`, with the values set and, in `details`, notes such as the
+  stowed configuration used and where the bus load came from. A
+  re-import replaces the record; an imported item the file no longer has is the pre-run warning
+  `import.source_item_gone`, a device added without its own values
+  `import.device_defaults`, and a power budget made with the editor's
+  values `import.power_defaults`
+  ([Import a spacecraft from IDM-CIC](../user-manual/idm-cic.md)).
 
 **Status:** the file is hashed again: unchanged, changed or missing
-(`file_state`); an orbit's values are compared with those read
+(`file_state`); the values now are compared with those read
 (`import_status`), each one changed named. **Where it shows:** a changed
 file is the pre-run warning `import.source_changed`, a missing one
 `import.source_missing` (with the other pre-run warnings: the app's
@@ -194,6 +207,9 @@ keeps it; a removed one takes it along.
 - `tests/test_imports.py`: the record of an import, a changed and a
   missing file, values edited since, a rename, the file saved only with
   records, the mass properties file's path, the run's provenance.
+- `tests/test_idm_import.py`, `tests/test_idm_devices.py`,
+  `tests/test_idm_power.py`: the IDM-CIC import's records, re-imports and
+  warnings.
 
 - `tests/test_value_marks.py`: a round trip through the file, each
   status, the paths, each rule, the provenance records.

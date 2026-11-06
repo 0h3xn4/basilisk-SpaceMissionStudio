@@ -52,8 +52,9 @@ Python inside the tool.
    you trust it (it runs with your rights) and press **Run**.
 3. The run goes as usual. At the end, the Flight Software page compares
    every command the program sent with what the simulation's own modules
-   computed: the largest residual, round-trip times, and plots over time.
-   **Save report...** writes it as JSON and CSV.
+   computed: the largest residual, round-trip times, a table of every
+   signal with its residuals in the signal's own **Unit**, and plots over
+   time. **Save report...** writes it as JSON and CSV.
 
 On Linux, the exported `fsw_host` reproduces the normal run bit for bit
 for the templates tested (06, 12 and 13).

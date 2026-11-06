@@ -25,6 +25,13 @@ Each layer uses only the layers below it.
    data/    bundled data files (space weather)
 ```
 
+`model3d/`, `analyses/`, `idm/`, the IDM-CIC mapping modules and
+`ccsds_files.py` sit beside `engine/`, at its level: the GUI and the CLI
+both call them, and they use `schema/`, `config/` and parts of `engine/`
+(results, findings, the device catalogue, the CCSDS messages). The package also
+ships the templates (`scenarios/templates/`) and the copy of the User
+Manual the app shows (`help/`).
+
 | Package | What it holds | Needs Basilisk |
 |---|---|---|
 | `schema/` | The scenario model (`Scenario`, `SpacecraftConfig`, `OrbitIC`, ...) as dataclasses, its validation, file migrations, the Mission Sequence commands and reference checks | No |
@@ -37,8 +44,12 @@ Each layer uses only the layers below it.
 | `dependencies.py`, `constants.py`, `logging_setup.py`, `temp_folders.py`, `_offline.py` | The qualified Basilisk version and its check; the physical constants the tool's own calculations use; logging to the terminal and `~/.spacemissionstudio/logs/`; the temporary folders and their clean-up; keeping Basilisk's import-time request off the network | No |
 | `fsw_export/` | Exports a spacecraft's attitude flight software as a standalone C project | Only to record a run |
 | `sil/` | Software in the loop: the transport contract, the session, the runner, the comparison report | Only to run |
-| `model3d/` | 3D spacecraft models: shapes and `.obj` files, mass properties, surface facets, mounted equipment, the stowed configuration, ray casting (`raycast.py`), and applying them to a spacecraft | No (numpy only) |
+| `model3d/` | 3D spacecraft models: shapes and `.obj` files, mass properties (and reading them from a file: `mass_import.py`), surface facets, mounted equipment, the stowed configuration, ray casting (`raycast.py`), moving the body frame's origin (`origin.py`), and applying them to a spacecraft | No (numpy only) |
 | `analyses/` | Analyses built on the 3D model: the design checks (fields of view, thrusters and plumes, mass budget, launcher envelope), a run's model analyses (disturbance budget, blinding, obstruction, shading, exposure, brightness), the preliminary re-entry estimate, and their records and tables | Only for the device defaults (thrusters, wheels) and the atmosphere table, imported inside functions |
+| `idm/` | Reading IDM-CIC models (`.idm` files; IDM-CIC is © CNES) with the tool's own code: the archive, its values, objects, frames and shapes, the power modes (`power.py`) and a team's properties (`properties.py`); it knows nothing of scenarios | No |
+| `idm_import.py`, `idm_devices.py`, `idm_properties.py` | Mapping an IDM-CIC model into a spacecraft: the 3D model, mass properties, stowed poses, the power budget and the body frame's origin, re-imports that keep your edits (`idm_import.py`); the sensors and actuators found by name, with their axes (`idm_devices.py`); device and battery values from a team's properties (`idm_properties.py`). Design: [IDM-CIC import](idm-cic-integration.md) | No |
+| `ccsds_files.py` | CCSDS orbit data message files for a scenario (validate, export, import, a run's OEM), shared by the CLI and the GUI; the messages themselves are `engine/ccsds_odm.py`'s | Only to export an OPM, imported inside a function |
+| `plot_categories.py` | How each named result series is shown: title, axis label, unit, column names, display-only unit conversion | No |
 
 Nothing is duplicated between the GUI and the CLI: both call `schema` and
 `engine`.
@@ -69,8 +80,12 @@ days (`engine/long_run.py`).
 - The GUI thread handles only the interface. Every long operation (a run,
   a Monte Carlo batch, a download) runs in its own worker thread and
   reports through Qt signals.
-- A Monte Carlo batch with more than one thread uses a process pool; each
-  run is contained in its own process.
+- In the app, a Monte Carlo batch runs in a child process
+  (`gui/monte_carlo_process.py`), because Basilisk's controller must run
+  on a process's main thread; with more than one thread it uses a process
+  pool from there, each run in its own process. The start-up reading of
+  the reference data also runs in a child process
+  (`gui/reference_data_process.py`), so the window does not stall.
 - Vizard is a separate program, fed by a save file or a live stream.
 
 ## Where things live

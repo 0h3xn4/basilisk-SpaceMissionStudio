@@ -97,7 +97,7 @@ from disk ([work offline](user-manual/reference-data.md#work-offline)).
 ### `ERROR: run failed: support-data file GGM03S.txt is not installed (...)`
 
 The full message continues: "SpaceMissionStudio does not download during
-a run: download it from the Reference data dialog (Settings > Reference
+a run: download it from the Reference data window (Settings > Reference
 data, Download... > Support data) or with `spacemissionstudio
 kernels-status`." Do one of those two, then run again. The dialog opens
 from **Settings > Reference data** > **Reference Data...**, by clicking
@@ -163,12 +163,21 @@ trust it, add `--allow-scripts` (the GUI asks instead).
 | `INVALID: my-sat: dry_mass_kg must be in (0, 1e6] -- if your intended value is outside this range, check for a units mixup (e.g. g instead of kg)` | A value is out of range |
 | `INVALID: f.json: could not read file (No such file or directory)` | Wrong path |
 | `INVALID: f.json: malformed scenario structure (...)` from SpaceMissionStudio 1.3.1 or earlier | The file was saved by 2.0.0, which writes fields older versions do not know (`sim_settings.seed` in every file). Open it with 2.0.0; 2.0.0 opens every file 1.x saved. Update a team together |
+| `... imports[1].target must be one of ('orbit', 'model')` from SpaceMissionStudio 2.2.0 | The file was saved by 2.3.0 or later after an IDM-CIC import added sensors and actuators or set the power budget. Open it with 2.3.0 or later; update a team together |
 
 `ccsds-import` refuses a message whose epoch differs from the scenario's:
 
 ```text
 ERROR: the OPM state is at 2030-01-01T08:30:00 UTC, the scenario epoch is 2030-02-01T00:00:00; pass --set-epoch to move the scenario epoch to the OPM's
 ```
+
+### `Cannot import here yet: the scenario is a built-in template: save it as your own file first (File › Save As), then try again.`
+
+The 3D model editor's **Import IDM-CIC model...** writes the model's
+meshes beside the scenario file, and the app keeps the built-in
+templates as shipped. **Save As...** (Ctrl+Shift+S) under your own name,
+then import again. A scenario never saved, or saved in a read-only
+folder, is refused the same way, with its own reason.
 
 ## Messages that are normal
 

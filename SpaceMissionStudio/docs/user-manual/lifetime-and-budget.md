@@ -40,7 +40,13 @@ The warnings are normal for a mission after the observed record ends.
 
 **Show calculation** (beside the result) opens how each figure was computed:
 its equation, its inputs with their units and sources, and the rule applied.
-On the command line, add `--explain`.
+On the command line, add `--explain`. **Export JSON...** writes the
+estimate with its inputs, the decay and the provenance, as `lifetime --out
+FILE.json` does.
+
+Below the estimate, **Re-entry casualty (preliminary)** gives a first
+casualty estimate from the spacecraft's 3D model
+([Re-entry casualty](model-analyses.md#re-entry-casualty-preliminary)).
 
 To compare altitudes, [`examples/altitude_lifetime_sweep.py`](../../examples/altitude_lifetime_sweep.py)
 prints a table (400 km: 2.65 years, 550 km: 17.26 years).
@@ -57,12 +63,14 @@ prints a table (400 km: 2.65 years, 550 km: 17.26 years).
 3. On the **Budget** page (**Run > Budget**), press **Compute budget**. It lists each
    contributor per mission phase with its margin, the total, and notes on
    anything that departs from the guideline. **Copy as CSV** puts the
-   table on the clipboard.
+   table on the clipboard. After a run, the page lists the orbit control
+   and formation keeping the run flew, scaled to the mission, before you
+   compute, and warns when the scenario has changed since the run.
 
 Without a run, a LEO station keeper's orbit control is estimated from the
 drag on its orbit.
 
-![The Budget page for template 18, estimated without a run: each contributor per mission phase, 696.6 m/s and 7.26 kg in all, with notes on the space weather used](../images/budget_tab.png)
+![The Budget page for template 18, estimated without a run: each contributor per mission phase, 696.6 m/s and 6.91 kg in all with the residual and loading uncertainty, with notes on the space weather used](../images/budget_tab.png)
 
 Two trades, as AD10 asks:
 
@@ -80,6 +88,10 @@ spacemissionstudio budget scenario.json --run
 spacemissionstudio budget scenario.json --launch-delays
 spacemissionstudio budget scenario.json --altitudes 400,450,500
 ```
+
+Each takes `--out FILE.json` (the budget, or every case of a sweep or
+trade, with its provenance); `--explain` prints how each number of the
+budget itself was computed.
 
 **More detail:** User Manual section 11,
 [Common questions and problems](../../USER_MANUAL.md#11-common-questions-and-problems)
