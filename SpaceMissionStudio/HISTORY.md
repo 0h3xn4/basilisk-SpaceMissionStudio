@@ -14514,6 +14514,72 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The JSON page: completion inside params (2026-11-06)
+
+The first follow-up suggested after the three steps: a device's `params`
+and a mission step had no completion, though they are where most values
+are typed by hand (JE-10). A device's `params` now offer what its form
+offers for its kind, and a mission step (`schema.command.Command`) is a
+record of the schema helper, its `params` described per kind by a table
+a test checks against the names `Command`'s validation reads. Help, the
+quick fixes and the marks of unknown keys use the same lookup; a step
+param no kind reads is a warning, since the run ignores it rather than
+refusing it. Two tests of step 2 (on this unmerged series) changed with
+it: a mission step now has a record, and choices may come from
+`schema/command.py`.
+
+**Tests:** one more in `tests/test_schema_fields.py`, two in
+`tests/test_json_assist.py`, one in `tests/test_json_refactor.py`.
+
+## The JSON page as a code editor, step 3: refactoring (2026-11-06)
+
+The last step of the user's request (design note, JE-07 to JE-09).
+Rename (F2) reuses the forms' rename functions (`schema/references.py`,
+whose reference sites are hand-listed and audited) on the scenario the
+text holds and writes the text back in the saved layout as one edit, so
+the JSON page updates every place the forms do: value marks, presets,
+import and export records, mission steps and dotted assignment targets.
+Go to Definition (F12), Quick Fix (Ctrl+.) and Format Document
+(Shift+Alt+F) are new; the editor takes these keys before the window's
+shortcuts while it has the focus, and lists them in its right-click menu.
+
+A key an object does not have stopped the edit with a message naming the
+key but not its place; it is now marked where it is ("did you mean
+'dry_mass_kg'?"), and Ctrl+. changes or removes it. Writing the tests
+found that the quick fixes failed with an exception when a field refers
+to names and the scenario has none (difflib refuses n=0); fixed before
+the commit.
+
+**Tests:** `tests/test_json_refactor.py` (7) and three more in
+`tests/gui/test_json_editor.py`. No existing test changed.
+
+## The JSON page as a code editor, step 2: completion and help (2026-11-06)
+
+Step 2 of the user's request (design note `docs/developer/json-editor.md`,
+JE-04 to JE-06). What fits at a place comes from the schema's own
+records: `schema/fields.py` follows the text's path through them, with a
+table for the record each list holds (the type hints say only `list`;
+a test checks every object of every template against it), the
+validation's constants as a field's choices, and the scenario's names
+for the fields that refer to a spacecraft, a ground station, a part or a
+material. The help is each field's comment in the source, generated into
+`schema/field_help.json` because an installed program has no source to
+read; a test fails when a comment changes until the file is rebuilt.
+The first generator took the comment block above a field even when it
+was the tail of the previous field's comment (`simulation_mode` began
+"truth for time; ..."); lower-case lines now continue the comment they
+follow.
+
+`json_positions.context_at` reads what is being typed at the cursor; a
+first version offered keys the object already had further down (it
+looked only above the cursor), found on the screenshot and fixed before
+the tests were written. The list opens only inside a string or on
+Ctrl+Space, never over numbers.
+
+**Tests:** `tests/test_schema_fields.py` (39), `tests/test_json_assist.py`
+(4), three more in `tests/gui/test_json_editor.py`. No existing test
+changed. The wheel was built to check that `field_help.json` ships.
+
 ## The JSON page as a code editor, step 1 (2026-11-06)
 
 The user asked whether the JSON editor could have what a programming

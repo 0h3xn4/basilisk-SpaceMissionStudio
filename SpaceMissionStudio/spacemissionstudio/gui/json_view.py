@@ -46,13 +46,14 @@ from PySide6.QtGui import QTextCursor
 from PySide6.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
 
 from ..schema.scenario import Scenario, ScenarioJSONError, ScenarioValidationError, parse_scenario_text, scenario_text
-from . import json_positions
+from . import json_assist, json_positions, json_refactor
 from .code_editor import ERROR, WARNING, JsonEditor
-from .feedback import ProblemBanner
+from .feedback import ProblemBanner, report
 from .problem_location import locate
 from .theme import set_role
 
 SOURCE = "JSON view"  # how this page's problems start
+_HELP_CHARS = 240  # the longest key description shown under the text (the tooltip has it all)
 
 
 class ScenarioJsonView(QWidget):
@@ -81,7 +82,10 @@ class ScenarioJsonView(QWidget):
         self.edit = JsonEditor()
         self.edit.setObjectName("jsonEdit")
         self.edit.setAccessibleName("Scenario JSON")
-        self.edit.setAccessibleDescription("F8 and Shift+F8 go to the next and the previous problem.")
+        self.edit.setAccessibleDescription("Ctrl+Space offers what can be typed at the cursor, Ctrl+Shift+Space "
+                                           "describes the key there; F8 and Shift+F8 go to the next and the "
+                                           "previous problem; F2 renames, F12 goes to the definition, Ctrl+. "
+                                           "lists quick fixes, Shift+Alt+F formats the text.")
         self.edit.setTabChangesFocus(True)  # keyboard users leave the page with Tab
         layout.addWidget(self.edit, 1)
         self.cursor_problem = QLabel("")
@@ -89,7 +93,17 @@ class ScenarioJsonView(QWidget):
         self.cursor_problem.setWordWrap(True)
         self.cursor_problem.setVisible(False)
         layout.addWidget(self.cursor_problem)
-        self.edit.cursor_problem_changed.connect(self._on_cursor_problem)
+        self.edit.cursor_problem_changed.connect(self._update_cursor_line)
+        self.edit.cursorPositionChanged.connect(self._update_cursor_line)
+        self.edit.completion_source = lambda text, position: json_assist.completions(text, position, self._data)
+        self.edit.help_source = json_assist.help_at
+        self.edit.definition_source = lambda text, position: (
+            json_refactor.definition(text, target) if (target := json_refactor.name_at(text, position)) else None)
+        self.edit.fix_source = lambda text, position: json_refactor.quick_fixes(text, position, self._data)
+        self.edit.format_source = json_refactor.format_text
+        self.edit.rename_requested.connect(self.rename_at_cursor)
+        self.edit.message.connect(lambda text, kind: report(self, text, kind=kind))
+        self._data = None  # the scenario's JSON as last read: the names completion offers
         self._problems: list = []  # (severity, message) of the scenario, as the Problems list gives them
         self._names: tuple = ((), ())  # the spacecraft's and ground stations' names, for locate
         self.error = ""
@@ -143,8 +157,9 @@ class ScenarioJsonView(QWidget):
             data = json.loads(text)
         except ValueError:
             return  # not JSON: its own error is marked instead
+        self._data = data
         nodes = json_positions.index(text)
-        marks = []
+        marks = list(json_refactor.unknown_keys(text))
         for severity, message in self._problems:
             path = json_positions.json_path(locate(message, *self._names), data)
             span = json_positions.mark_span(nodes, path) if path is not None else None
@@ -152,16 +167,58 @@ class ScenarioJsonView(QWidget):
                 marks.append((WARNING if severity == "warning" else ERROR, message, *span))
         self.edit.set_diagnostics(marks)
 
+    def rename_at_cursor(self, new_name: str | None = None) -> bool:
+        """Rename the spacecraft, ground station or part whose name is at
+        the cursor, and every reference to it (F2; ``new_name`` given, no
+        dialog). The text becomes the scenario as it is saved; the edit
+        applies as any other. Returns whether it was renamed."""
+        from PySide6.QtWidgets import QInputDialog
+
+        text = self.edit.toPlainText()
+        target = json_refactor.name_at(text, self.edit.textCursor().position())
+        if target is None:
+            report(self, "Rename: put the cursor on the name of a spacecraft, a ground station or a 3D model part, "
+                         "or on a field that names one.", kind="info")
+            return False
+        if new_name is None:
+            new_name, ok = QInputDialog.getText(
+                self, "Rename", f"New name for the {target.label} {target.name!r} (every reference to it is "
+                                "renamed too):", text=target.name)
+            if not ok or new_name == target.name:
+                return False
+        try:
+            renamed, count = json_refactor.rename(text, target, new_name)
+        except ValueError as exc:
+            report(self, f"{target.label.capitalize()} {target.name!r} not renamed: {exc}", kind="warning")
+            return False
+        self.edit.replace_text(renamed)
+        self.flush()
+        report(self, f"Renamed the {target.label} {target.name!r} to {new_name!r} and {count} reference(s) to it.",
+               kind="success")
+        return True
+
     def problem_marks(self) -> list[tuple[str, str, str]]:
         """``(severity, message, marked text)`` of each problem marked."""
         return [(d.severity, d.message, d.cursor.selectedText()) for d in self.edit.diagnostics]
 
-    def _on_cursor_problem(self, text: str) -> None:
-        self.cursor_problem.setText(f"At the cursor: {text}" if text else "")
-        self.cursor_problem.setVisible(bool(text))
+    def _update_cursor_line(self, _problem: str = "") -> None:
+        """Under the text: the problem at the cursor, else the description
+        of the key the cursor is on (the first line and the source's
+        comment, shortened), else nothing."""
         here = self.edit.textCursor().position()
-        severity = next((d.severity for d in self.edit.diagnostics if d.covers(here)), ERROR)
-        set_role(self.cursor_problem, tone="critical" if severity == ERROR else "caution")
+        problem = self.edit.problem_at_cursor
+        if problem:
+            severity = next((d.severity for d in self.edit.diagnostics if d.covers(here)), ERROR)
+            text, tone = f"At the cursor: {problem}", "critical" if severity == ERROR else "caution"
+        else:
+            lines = self.edit.help_text(here).split("\n")
+            text = " ".join(line for line in lines if line)
+            if len(text) > _HELP_CHARS:
+                text = text[:_HELP_CHARS - 1].rstrip() + "…"
+            tone = "secondary"
+        self.cursor_problem.setText(text)
+        self.cursor_problem.setVisible(bool(text))
+        set_role(self.cursor_problem, tone=tone)
 
     def reset(self) -> None:
         """Forget an edit not applied (another scenario was opened)."""
@@ -194,6 +251,7 @@ class ScenarioJsonView(QWidget):
             return
         except ScenarioValidationError as exc:
             self._set_error(str(exc), None)
+            self.edit.set_diagnostics(json_refactor.unknown_keys(self.edit.toPlainText()))  # where, when it is a key
             return
         self._dirty = False
         self._set_error("", None)

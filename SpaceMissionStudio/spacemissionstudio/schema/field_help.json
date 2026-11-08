@@ -1,0 +1,426 @@
+{
+ "ActuatorConfig": {
+  "mount": "where it sits on the 3D model; written only when set"
+ },
+ "Command": {
+  "children": "nested commands, meaningful ONLY for ``kind in (\"if\", \"while\")`` (the compound/control-block kinds) -- empty for every other kind. A plain ``list[Command]``, not a separate type, so the same tree-walking code (validation, reference-scanning, execution) recurses uniformly regardless of nesting depth.",
+  "enabled": "False leaves the command (and its children) out of the run, as if commented out; it is still validated, so enabling it again cannot break the scenario. Saved only when False (``Scenario.to_dict``), so older files load unchanged.",
+  "kind": "one of :data:`SUPPORTED_COMMAND_KINDS`.",
+  "label": "optional user-facing name (e.g. ``\"Prop to Periapsis\"`` instead of an auto-numbered ``\"Propagate3\"``) -- purely cosmetic, never referenced by other commands/resources.",
+  "params": "kind-specific fields -- see :meth:`validate` for exactly what each kind requires/accepts."
+ },
+ "CommsPointingConfig": {
+  "antenna_boresight_b": "body-frame unit vector",
+  "comms_power_w": "[W] additional transmitter draw while ground-station-pointing is active",
+  "sun_pointing_axis_b": "None (the default) falls back to PowerConfig.panel_normal_b (the solar panel's own normal is the natural Sun-pointing axis whenever a power budget is also configured); with no power budget, falls back to [0, 0, 1]. Set explicitly to point a DIFFERENT body axis at the sun than the panel normal."
+ },
+ "ConstantThrustConfig": {
+  "direction": "unit vector in `frame` [-]",
+  "frame": "one of SUPPORTED_THRUST_FRAMES",
+  "isp_s": "[s]",
+  "propellant_kg": "[kg] initial propellant mass available",
+  "thrust_n": "[N]"
+ },
+ "DataHandlingConfig": {
+  "instruments": "InstrumentConfig",
+  "storage_capacity_gbit": "[Gbit] 8 Gbit = 1 GB",
+  "transmitter_power_w": "[W] DC draw while transmitting; needs SpacecraftConfig.power when > 0"
+ },
+ "DispersionConfig": {
+  "angle_std_deg": "[deg] \"inertia_kg_m2\": 1-sigma rotation that mixes in off-diagonal terms",
+  "bounds": "[lo, hi] in the quantity's unit (User Manual section 10)",
+  "element_spread": "\"orbit_elements\": {element key: spread}",
+  "kind": "one of DISPERSION_KINDS_BY_QUANTITY[quantity]",
+  "mean": "required for \"normal\" on dry_mass_kg, drag_coeff, srp_coeff required for \"normal\": kg, [-], kg*m^2 (each diagonal element of the inertia), deg/s (each axis of the initial rate)",
+  "quantity": "one of DISPERSION_QUANTITIES",
+  "spacecraft": "must match a SpacecraftConfig.name in this scenario",
+  "std_deviation": "1-sigma in the quantity's unit (User Manual section 10)"
+ },
+ "FacePropertyConfig": {
+  "diffuse_coeff": "[-]",
+  "specular_coeff": "[-]"
+ },
+ "FacetConfig": {
+  "area_m2": "[m^2]",
+  "diffuse_coeff": "[-] fraction reflected diffusely; the rest is absorbed",
+  "drag_coeff": "[-]",
+  "location_b": "[m] centre of pressure from point B",
+  "normal_b": "[-] outward normal, body frame (normalized when built)",
+  "specular_coeff": "[-] fraction of sunlight reflected mirror-like"
+ },
+ "FswExportRecord": {
+  "config_digest": "64 hex digits (fsw_export.digest.fsw_config_digest)",
+  "parts": "setting group -> 16 hex digits",
+  "path": "the export folder, absolute or relative to the scenario file"
+ },
+ "FuelTankConfig": {
+  "max_propellant_mass_kg": "[kg] tank capacity -- propellant_mass_kg must not exceed this",
+  "propellant_mass_kg": "[kg] initial propellant mass loaded in the tank",
+  "tank_position_b_m": "[m] r_TB_B, tank position in body frame"
+ },
+ "GeoStationKeepingConfig": {
+  "inclination_max_deg": "[deg]",
+  "isp_s": "[s]",
+  "longitude_deadband_deg": "[deg] half-width of the longitude box",
+  "propellant_kg": "[kg] initial propellant, on top of dry_mass_kg",
+  "target_longitude_deg": "[deg] east longitude of the slot",
+  "thrust_n": "[N]"
+ },
+ "GravityConfig": {
+  "albedo": "Sunlight the central body reflects onto the coarse sun sensors (Basilisk's albedo module with the body's measured albedo map).",
+  "central_body_degree": "0 == point-mass only",
+  "polyhedral_gravity": "A small body's gravity from its shape model at constant density (Basilisk's polyhedralGravityModel) instead of a point mass.",
+  "third_body_perturbers": "e.g. [\"sun\", \"moon\"]"
+ },
+ "GroundStationConfig": {
+  "altitude_m": "[m] height above the ellipsoid",
+  "latitude_deg": "[deg] geodetic latitude, north positive",
+  "longitude_deg": "[deg] east positive",
+  "rx_antenna_gain_dbi": "[dBi] ground station receive antenna gain",
+  "system_noise_temp_k": "[K] ground receiver system noise temperature"
+ },
+ "ImportRecord": {
+  "details": "{name: text}",
+  "format": "one of IMPORT_FORMATS",
+  "target": "one of IMPORT_TARGETS",
+  "values": "{path: number or text}, as imported"
+ },
+ "InstrumentConfig": {
+  "data_rate_bps": "[bit/s]",
+  "initial_data_gbit": "[Gbit] already in the instrument's memory partition at the start",
+  "power_w": "[W] constant electrical draw; needs SpacecraftConfig.power when > 0"
+ },
+ "LandmarkNavigationConfig": {
+  "camera_mrp_cb": "[-] MRP of the camera frame (boresight +z) relative to the body frame",
+  "field_of_view_deg": "[deg] edge to edge along the image's width (x)",
+  "initial_position_sigma_m": "[m] 1 sigma, each axis: the filter's start and its error",
+  "initial_velocity_sigma_mps": "[m/s] 1 sigma, each axis",
+  "measurement_interval_s": "[s] one image this often",
+  "min_sun_elevation_deg": "[deg] a landmark in lower light is not seen",
+  "pixel_noise_px": "[px] 1 sigma added to each pixel coordinate, on top of the rounding",
+  "process_noise_mps2_per_sqrt_hz": "[m/s^1.5] spectral density of the filter's white acceleration noise, each axis",
+  "resolution_px": "[px] width, height",
+  "seed": "landmark placement, pixel noise and the initial error"
+ },
+ "LauncherConfig": {
+  "axis_b": "[-] up the envelope, from the separation plane",
+  "com_height_limit_m": "[m] above the separation plane",
+  "com_lateral_limit_m": "[m] from the envelope's axis",
+  "depth_m": "[m]",
+  "diameter_m": "[m]",
+  "height_m": "[m]",
+  "mass_limit_kg": "[kg]",
+  "origin_b_m": "[m] the separation plane's centre",
+  "profile": "[[height_m, radius_m], ...] rising heights",
+  "shape": "one of LAUNCHER_SHAPES",
+  "source": "where the limits come from",
+  "width_axis_b": "[-] box only",
+  "width_m": "[m]"
+ },
+ "MagneticMomentumManagementConfig": {
+  "c_gain": "[-] control gain mapping wheel speed error to desired magnetic torque",
+  "wheel_speed_biases_rad_s": "[rad/s] one entry per reaction_wheel actuator, in listed order"
+ },
+ "MassBudgetConfig": {
+  "limit_source": "where the limit comes from (a launcher's guide, a port's rating)",
+  "mass_limit_kg": "[kg]",
+  "policy": "\"\" for the default policy",
+  "system_margin_percent": "[%] None: the policy's"
+ },
+ "MaterialConfig": {
+  "ao_erosion_yield_cm3_atom": "[cm^3/atom]",
+  "density_kg_m3": "[kg/m^3]",
+  "emissivity": "[-]",
+  "heat_of_fusion_j_kg": "[J/kg]",
+  "melting_temperature_k": "[K]",
+  "solar_absorptance": "[-]",
+  "specific_heat_j_kg_k": "[J/(kg*K)]"
+ },
+ "ModelAnalysesConfig": {
+  "antenna_obstruction": "parts between the antenna and the ground station during passes",
+  "array_shading": "solar-cell panels shaded by other parts",
+  "brightness": "visual magnitude from the ground stations and observer sites",
+  "disturbance_torques": "aero, SRP, gravity gradient and magnetic torques, recorded in the run",
+  "observers": "list[ObserverSiteConfig]",
+  "residual_dipole_a_m2": "[A*m^2] body frame",
+  "samples": "[-] ray samples per face or cone",
+  "sensor_blinding": "Sun, Earth and Moon in the sensors' exclusion cones",
+  "surface_exposure": "atomic oxygen fluence and sun hours per face"
+ },
+ "ModelMassPropertiesConfig": {
+  "center_of_mass_b_m": "[m] from body point B",
+  "inertia_kg_m2": "about it",
+  "mass_kg": "[kg]",
+  "source_file": "imported: the file's name",
+  "source_sha256": "imported: its SHA-256 imported: the file's absolute path, so a later change of it is seen (Phase 8c); written only when set"
+ },
+ "ModelMeshConfig": {
+  "path": "absolute, or relative to the scenario file",
+  "sha256": "[-] of the file when it was imported; \"\" when not recorded",
+  "units": "one of MESH_UNITS",
+  "up_axis": "one of MESH_UP_AXES: \"y\" for files exported Y-up"
+ },
+ "ModelPartConfig": {
+  "color": "[-] RGB, each 0..1",
+  "counts_toward_mass": "False for a part whose mass is modelled elsewhere (a flexible array)",
+  "diffuse_coeff": "[-]",
+  "dimensions_m": "[m] the keys MODEL_SHAPE_DIMENSIONS gives for the shape",
+  "distribution": "\"solid\": through the volume; \"shell\": over the surface",
+  "drag_coeff": "[-]",
+  "excluded_faces": "names from MODEL_SHAPE_FACES left out of the facets",
+  "in_surface_model": "its outer faces become drag/SRP facets",
+  "mass_kg": "[kg]",
+  "material": "The analyses built on the model (written only when set): the part's material (config.materials, or one of the model's own), its mass maturity category and its subsystem, for the mass budget.",
+  "mesh_group": "mesh parts: the group (o/g name) in that file",
+  "mesh_index": "mesh parts: index into SpacecraftModelConfig.meshes",
+  "position_b_m": "[m]",
+  "rotation_deg": "[deg] roll, pitch, yaw (3-2-1)",
+  "scale": "[-] mesh parts only",
+  "segments": "cylinder, cone, sphere: sides they are drawn and faceted with",
+  "shape": "one of MODEL_SHAPES",
+  "sides": "prism only: an octagon by default",
+  "source_id": "Where the part was imported from (written only when set): the source object's identifier, e.g. an IDM-CIC shape occurrence's fullId, which a re-import matches on (docs/developer/idm-cic-integration.md).",
+  "specular_coeff": "[-]"
+ },
+ "MomentumDumpingConfig": {
+  "hs_max": "[N*m*s] total RW angular momentum magnitude that triggers desaturation",
+  "max_counter_value": "[-] control periods to wait between desaturation firings",
+  "thr_min_fire_time": "[s] thruster firing pulse resolution"
+ },
+ "MonteCarloConfig": {
+  "dispersions": "list[DispersionConfig]"
+ },
+ "MountConfig": {
+  "boresight": "[-] unit vector (normalized when used)",
+  "earth_atmosphere_km": "[km] added to the Earth's radius for the limb",
+  "exclusion_earth_deg": "[deg] from the Earth's limb, atmosphere margin included",
+  "exclusion_moon_deg": "[deg] from the Moon's limb",
+  "exclusion_sun_deg": "[deg] half-angle about the boresight",
+  "field_of_view_deg": "[deg] full cone angle",
+  "plume_half_angle_deg": "[deg] thrusters: the plume cone, along -boresight",
+  "position_m": "[m]"
+ },
+ "MountedEquipmentConfig": {
+  "kind": "one of EQUIPMENT_KINDS",
+  "mass_kg": "[kg]",
+  "maturity": "the mass budget's maturity category; \"\" for none",
+  "source_id": "where it was imported from, as ModelPartConfig.source_id; written only when set",
+  "subsystem": "the mass budget's grouping; \"\" for none",
+  "thrust_n": "[N] thrusters only"
+ },
+ "NavigationErrorConfig": {
+  "attitude_bound_deg": "[deg] per axis",
+  "attitude_step_deg": "[deg] 1-sigma change per step, per axis",
+  "position_bound_m": "[m]",
+  "position_step_m": "[m]",
+  "rate_bound_deg_s": "[deg/s]",
+  "rate_step_deg_s": "[deg/s]",
+  "sun_bound_deg": "[deg]",
+  "sun_step_deg": "[deg]",
+  "velocity_bound_m_s": "[m/s]",
+  "velocity_step_m_s": "[m/s]"
+ },
+ "ObserverSiteConfig": {
+  "altitude_m": "[m] above the WGS-84 ellipsoid",
+  "latitude_deg": "[deg] geodetic",
+  "longitude_deg": "[deg] east",
+  "min_elevation_deg": "[deg] above the horizon"
+ },
+ "OpticalNavigationConfig": {
+  "camera_mrp_cb": "[-] MRP of the camera frame (boresight +z) relative to the body frame",
+  "center_noise_px": "[px] 1 sigma on the disk centre, each axis",
+  "field_of_view_deg": "[deg] edge to edge along the image's y (line) axis",
+  "initial_position_sigma_m": "[m] 1 sigma, each axis: the filter's start and its error",
+  "initial_velocity_sigma_mps": "[m/s] 1 sigma, each axis",
+  "max_phase_angle_deg": "[deg] Sun-body-camera angle above which the image is not used",
+  "measurement_interval_s": "[s] one image this often",
+  "min_radius_px": "[px] a smaller disk is not used",
+  "process_noise_position_m": "[m] and [m/s] 1 sigma of the process noise the filter adds at each of its time updates",
+  "radius_noise_px": "[px] 1 sigma on the disk radius",
+  "resolution_px": "[px] width, height",
+  "seed": "pixel noise and the initial error"
+ },
+ "OrbitIC": {
+  "anomaly_type": "one of ANOMALY_TYPES",
+  "position_km": "[x, y, z]",
+  "semi_major_axis_km": "type == \"classical_elements\" (angles in degrees, matching the rest of this codebase's convention -- see mission_config.py in ../missionAnalysis). Exactly one of true_anomaly_deg/mean_anomaly_deg is used, chosen by anomaly_type -- mean anomaly is the natural input for a mission design spec (e.g. \"M0 at epoch\"), true anomaly for a specific geometric snapshot; engine.service converts mean -> true via Kepler's equation before calling elem2rv (which only accepts true anomaly).",
+  "tle_line1": "type == \"tle\"",
+  "type": "one of ORBIT_IC_TYPES",
+  "velocity_km_s": "[vx, vy, vz]"
+ },
+ "PartPoseConfig": {
+  "position_b_m": "[m]",
+  "rotation_deg": "[deg] roll, pitch, yaw (3-2-1)"
+ },
+ "PhasingKeepingConfig": {
+  "control_law": "one of PHASING_CONTROL_LAWS: drift_orbit, mean_oe, hill_pd meanOEFeedback outputs a force, so its K is this per-kilogram gain times the follower's mass at the start of the run.",
+  "correction_window_days": "[day] target time to null a fresh phasing error",
+  "hill_position_gain": "[1/s^2] \"hill_pd\": diagonal of K",
+  "hill_velocity_gain": "[1/s] \"hill_pd\": diagonal of P",
+  "max_delta_semi_major_axis_km": "[km] safety clamp on the drift-orbit SMA offset",
+  "max_drift_days": "[day] safety cap on the drift coast phase",
+  "mean_oe_gain": "[m^2/s^3] \"mean_oe\": diagonal of K per kg of spacecraft",
+  "reconfiguration_interval_days": "[day] only matters if target_separation_km has >1 entry",
+  "restore_tolerance_fraction": "[-] \"close enough, stop drifting\" threshold, same units",
+  "target_separation_km": "[km] one or more along-track distances ahead of the chief",
+  "tolerance_fraction": "[-] trigger threshold, as a fraction of the current target separation"
+ },
+ "PowerConfig": {
+  "battery_capacity_wh": "[W*hr]",
+  "battery_initial_soc": "[-] initial state of charge, fraction of capacity, 0 <= x <= 1",
+  "bus_idle_power_w": "[W] constant always-on avionics/thermal/ADCS housekeeping load",
+  "panel_area_m2": "[m^2] total deployed solar panel area",
+  "panel_efficiency": "[-] fraction of incident solar power converted to electrical power, 0 < x <= 1",
+  "panel_normal_b": "body-frame unit vector"
+ },
+ "PresetRecord": {
+  "values": "{path: number}, as added"
+ },
+ "PropellantBudgetConfig": {
+  "attitude_thruster_propellant_kg": "[kg] before the 100% margin",
+  "clearance_sma_drop_km": "[km] AD10 suggests >= 5 km for formation flyers",
+  "collision_avoidance_count": "[-] e.g. from ESA DRAMA, before the x4 margin",
+  "controlled_reentry_delta_v_m_s": "[m/s] burns before the last",
+  "controlled_reentry_last_burn_m_s": "[m/s] the last burn, before its 15% margin",
+  "disposal": "see SUPPORTED_DISPOSALS",
+  "disposal_lifetime_years": "[year] orbit lifetime after the disposal burn",
+  "dry_mass_includes_margin": "else the system margin below is added (Sec. 5.10)",
+  "formation_delta_v_m_s": "[m/s]",
+  "hall_thruster_ignition_kg": "[kg] cathode start-up losses over the mission",
+  "in_plane_control_delta_v_m_s": "[m/s]",
+  "injection_eccentricity_error": "[-] eccentricity-vector error to correct (frozen orbit)",
+  "injection_inclination_error_deg": "[deg]",
+  "injection_raan_delta_v_m_s": "[m/s] RAAN/MLST correction, strategy-specific",
+  "injection_sma_error_km": "[km]",
+  "isp_s": "[s] None = the orbit thruster's (station keeping etc.)",
+  "misalignment_deg": "[deg] incl. attitude error while thrusting",
+  "mission_years": "[year] nominal operations from the epoch (AD10 Sec. 5.7)",
+  "modulation_efficiency": "[-]",
+  "orbit_acquisition_delta_v_m_s": "[m/s]",
+  "out_of_plane_control_delta_v_m_s": "[m/s]",
+  "plume_efficiency": "[-]",
+  "system_margin_fraction": "[-] Sec. 5.10 default",
+  "tank_capacity_kg": "[kg] maximum propellant load (Sec. 5.8); 0 = the budget's own total",
+  "thrust_angle_deg": "[deg] thruster axis vs wanted thrust direction (Sec. 5.11)",
+  "transfer_delta_v_m_s": "[m/s]"
+ },
+ "RFLinkConfig": {
+  "antenna_beamwidth_deg": "[deg] half-power beamwidth of the spacecraft's downlink antenna pattern. None (the default) keeps every existing scenario's exact prior behavior (no pointing-loss term at all -- same as before this field existed). Set together with CommsPointingConfig to make the link margin respond to the spacecraft's own actual achieved antenna pointing error (see engine.link_budget's module docstring for the parabolic-pattern approximation this applies: L_point_dB = 12*(pointing_error_deg / antenna_beamwidth_deg)^2, the standard textbook falloff for a Gaussian/parabolic-reflector main lobe).",
+  "antenna_boresight_b": "Body-frame boresight of the downlink antenna. None falls back to comms_pointing.antenna_boresight_b; \"cosine\" and \"table\" need one of the two, since the gain then depends on the real attitude.",
+  "antenna_front_to_back_db": "[dB] \"cosine\" only: gain behind the ground plane, below the peak",
+  "antenna_gain_table": "[off-boresight angle deg, gain dBi] pairs, angles rising from 0; linear in dB between them, the last gain beyond the last angle.",
+  "antenna_mount": "Where the antenna sits on the 3D model (its boresight and beamwidth default to the two above); written only when set.",
+  "antenna_pattern": "How the spacecraft antenna's gain falls off away from boresight, used wherever the downlink is evaluated live (engine.data_handling's link gate: a DataHandlingConfig, or any pattern other than \"fixed\"): \"fixed\" -- tx_antenna_gain_dbi in every direction (minus the antenna_beamwidth_deg pointing loss above, if set); \"cosine\" -- a patch antenna: gain G0*cos^n(theta) in front of the ground plane, n from the peak gain (engine.link_budget. cosine_exponent), antenna_front_to_back_db below the peak behind it; \"table\" -- antenna_gain_table, read off the antenna's datasheet.",
+  "data_rate_bps": "[bit/s] downlink data rate",
+  "frequency_hz": "[Hz] downlink carrier frequency",
+  "implementation_loss_db": "[dB] combined pointing/polarization/implementation loss",
+  "required_ebno_db": "[dB] required Eb/N0 for the assumed modulation/coding",
+  "tx_antenna_gain_dbi": "[dBi] spacecraft downlink antenna gain",
+  "tx_power_w": "[W] downlink transmitter RF output power"
+ },
+ "RoeFormationConfig": {
+  "continuous_gain": "[m^2/s^3] \"continuous\": diagonal of K per kg (as phasing_keeping.mean_oe_gain); ten times phasing's default, which leaves metre-scale ROE errors growing",
+  "control_law": "one of ROE_CONTROL_LAWS",
+  "correction_window_days": "[day] \"impulsive\": time to bring the mean longitude back by drifting",
+  "differential_drag": "\"impulsive\": estimate the steady decay of the relative semi-major axis that differential drag causes (from the measured mean ROE) and plan the hold around it, once it is large enough to matter",
+  "drag_estimate_window_days": "[day] \"impulsive\": how far back the decay is fitted",
+  "max_burn_fraction_of_orbit": "[-] \"impulsive\": a burn longer than this fraction of an orbit is split over several orbits, so it stays close to an impulse",
+  "max_drift_m": "[m] \"impulsive\": largest a*|da| held while drifting",
+  "target_refresh_s": "[s] \"continuous\": how often the element target follows the chief's J2 drift",
+  "targets": "RoeTargetConfig, start_day increasing from 0",
+  "tolerance_m": "[m] \"impulsive\": how far each part of the mean ROE may stray before a correction: a*|d(da)|, a*|d(dlambda)|, a*|d(de)|, a*|d(di)|"
+ },
+ "RoeTargetConfig": {
+  "roe_m": "[m] a*(da, dlambda, dex, dey, dix, diy): relative semi-major axis, mean longitude, eccentricity vector, inclination vector",
+  "start_day": "[day] from the epoch"
+ },
+ "Scenario": {
+  "config_file": "The project configuration file this scenario uses (transparency audit, Phase 3b; spacemissionstudio.config.files): YAML naming parameters and the values the project gives them. Absolute, or relative to the scenario file's folder; None: every parameter has its default.",
+  "configuration": "That file, read (config.registry.Configuration): set where the scenario is loaded (load_scenario, the GUI's editor), never saved, left out of the scenario's hash and of comparisons; the run's provenance records the file's SHA-256 and each value it changes.",
+  "epoch_utc": "ISO 8601, e.g. \"2030-01-01T00:00:00\" -- single source of truth for time; TAI/TT/ET are DERIVED (see engine/time_system.py), never separately stored, so they cannot drift out of sync with epoch_utc.",
+  "fsw_exports": "list[FswExportRecord], at most one per spacecraft",
+  "ground_stations": "list[GroundStationConfig]",
+  "imports": "list[ImportRecord]",
+  "mission_sequence": "list[Command]",
+  "presets": "list[PresetRecord]",
+  "simulation_mode": "Chosen up front (the GUI's scenario editor puts it at the top of the form, \"before starting with anything else\" per the feature request this responds to): \"full_attitude\" (the default, and everything this schema always supported) simulates attitude/sensors/actuators/FSW/ power normally. \"orbit_only\" is a beginner-friendly, deliberately STRICTER mode for pure orbit-propagation questions (delta-V budgets, orbit lifetime, station-keeping cadence, ...) where attitude doesn't matter and modeling it is only friction: no spacecraft may set fsw_mode/sensors/actuators/power in this mode (Scenario.validate() rejects it with a specific error naming the offending spacecraft and field, same \"don't let something look configured that isn't\" honesty as everywhere else in this schema) -- the spacecraft is simulated as a cannonball with SpacecraftConfig.drag_area_m2/srp_area_m2 as its average cross-section. station_keeping/phasing_keeping/ constant_thrust remain available in EITHER mode: none of them need attitude knowledge (their thrust directions are prograde or orbit-frame-relative, not a commanded body axis).",
+  "spacecraft": "list[SpacecraftConfig], >= 1 required",
+  "value_marks": "list[ValueMark]"
+ },
+ "SensorConfig": {
+  "mount": "where it sits on the 3D model; written only when set"
+ },
+ "SimSettings": {
+  "integrator": "see SUPPORTED_INTEGRATORS",
+  "record_interval_s": "[s] How often results are recorded; 0 = every dynamics step. Long runs need this: a 5-year run at a 30 s step is ~5 million samples per series. Controller burn flags record \"fired since the last sample\", so short burns still show; positions, angles and access flags are snapshots, so anything shorter than this (e.g. a ground-station pass) can fall between two samples.",
+  "seed": "The run's random seed. Every model with a random generator (sensor noise, navigation error, faults) gets its own seed derived from this one and its name (engine.seeds.assign_rng_seeds), so two sensors never draw the same noise, and the same scenario gives the same run. Change it for another realisation of the noise."
+ },
+ "SolarArrayConfig": {
+  "damping_ratio": "[-] of that mode",
+  "deploy_direction_b": "body-frame direction from the hinge to the tip",
+  "first_mode_hz": "[Hz] first bending frequency, hub held fixed",
+  "hinge_position_b": "[m] body frame",
+  "initial_deflection_deg": "[deg] about the hinge, positive toward normal_b",
+  "initial_rate_deg_s": "[deg/s]",
+  "mass_kg": "[kg]",
+  "normal_b": "body-frame normal of the cell side, perpendicular to deploy_direction_b",
+  "span_m": "[m] hinge to tip",
+  "width_m": "[m] along the hinge"
+ },
+ "SpaceWeatherConfig": {
+  "atmosphere_model": "\"nrlmsise00\" | \"exponential\" | \"tabular\"",
+  "atmosphere_table": "The profile \"tabular\" interpolates (ATMOSPHERE_TABLES); written only with \"tabular\": a scenario without it saves, and hashes, as before.",
+  "cache_dir": "defaults to engine.spaceweather's own cache dir when None",
+  "forecast_percentile": "[%] which of MSFC's predicted percentiles drives the days past the observations: 95 conservative (ESA AD10 Sec. 5.9, operations), 50 nominal (AD10, end of life), 5 low",
+  "msfc_file_path": "your own MSFC prediction table; None = the one shipped with the app",
+  "source": "\"bundled\" | \"local_file\""
+ },
+ "SpacecraftConfig": {
+  "actuators": "list[ActuatorConfig]",
+  "center_of_mass_b_m": "[m] The center of mass from body point B, in body axes (Basilisk's hub.r_BcB_B); inertia_kg_m2 is about this point. Facet locations, thruster and sensor positions stay measured from B, so an offset here gives drag, SRP and thrust their torque about the center of mass.",
+  "control_params": "{\"K\": ..., \"P\": ...} MRP feedback control gains; see engine.fsw.DEFAULT_MRP_GAINS for the defaults used when a key is absent.",
+  "dry_mass_kg": "[kg] The spacecraft's mass WITHOUT station-keeping propellant. With station_keeping unset (the default), this is simply the whole spacecraft's simulated mass, exactly as before StationKeepingConfig existed. With station_keeping set, engine.service initializes the simulated mass to dry_mass_kg + station_keeping.propellant_kg, and the station-keeping controller depletes it back toward dry_mass_kg as propellant burns -- see StationKeepingConfig's docstring.",
+  "enable_drag": "Perturbations -- Phase 0's service only ever consumes central-body gravity; these flags are validated/round-tripped now and read starting Phase 1, matching the \"reserve the shape, don't wire it all up yet\" note.",
+  "enable_gravity_gradient": "Torque from the central body's (and, if present, any third-body perturber's) gravity gradient across the spacecraft's own mass distribution -- Basilisk's real GravityGradientEffector, not an approximation: it reads the spacecraft's actual simulated inertia/ position/attitude every tick (see engine.service), so it stays correct through inertia changes (e.g. FuelTank depletion, once that exists) rather than being computed once from initial conditions. Negligible in LEO for an actively-controlled spacecraft (the RW/MRP feedback loop simply rejects it as one more disturbance torque), but real for anything coasting without active control (fsw_mode=None) or in a large/elongated inertia configuration -- exactly the case this schema previously had no way to model at all. False by default: every scenario written before this field existed keeps its exact previous dynamics.",
+  "facets": "Optional flat-plate model of the outer surface (list[FacetConfig]). When set, enabled drag and SRP use it (attitude-dependent forces plus their torques) instead of the sphere-like drag_area_m2/drag_coeff and srp_area_m2/srp_coeff above. Needs simulation_mode 'full_attitude'.",
+  "fsw_mode": "One of SUPPORTED_FSW_MODES, or None for no attitude control (attitude still integrates -- see engine.service -- it just isn't commanded).",
+  "fsw_params": "Mode-specific settings engine.fsw needs to build the guidance chain, e.g. {\"sigma_R0N\": [...]} for \"inertial3D\" or {\"target_ground_station\": \"dsn-goldstone\", \"pHat_B\": [0, 0, 1]} for \"locationPointing\" -- see engine/fsw.py's per-mode builder docstrings for the full set each mode reads.",
+  "landmark_navigation": "camera navigation from a small body's landmarks",
+  "model": "The spacecraft's 3D model, if one was built or imported in the model editor; see SpacecraftModelConfig.",
+  "model_analyses": "The run analyses built on the model and the mounted equipment (ModelAnalysesConfig); None, as every scenario before them: none.",
+  "navigation_error": "What simpleNav tells the flight software; None: the true state.",
+  "optical_navigation": "camera navigation from the central body's disk",
+  "propellant_budget": "see engine/propellant_budget.py",
+  "roe_formation": "formation in relative orbital elements",
+  "sensors": "list[SensorConfig]",
+  "solar_arrays": "SolarArrayConfig: flexible, hinged arrays",
+  "vizard_model_path": "path to a .obj file, or \"CUBE\"/\"CYLINDER\"/\"SPHERE\"",
+  "vizard_model_rotation_deg": "3-2-1 Euler (z,y,x)"
+ },
+ "SpacecraftModelConfig": {
+  "equipment": "list[MountedEquipmentConfig]",
+  "face_properties": "list[FacePropertyConfig]",
+  "mass_properties": "for \"typed\" and \"imported\"",
+  "mass_properties_source": "one of MASS_PROPERTIES_SOURCES",
+  "materials": "list[MaterialConfig]: the model's own",
+  "meshes": "list[ModelMeshConfig]",
+  "parts": "list[ModelPartConfig]",
+  "stowed": "list[PartPoseConfig]: the stowed configuration"
+ },
+ "StationKeepingConfig": {
+  "deadband_km": "[km] how far below target_altitude_km before a reboost burn starts",
+  "eccentricity_neutral_burns": "Gate firings so a multi-orbit, eclipse-interrupted burn doesn't accumulate an eccentricity change (it waits for the balancing side of the orbit instead).",
+  "eclipse_sunlit_threshold": "[-] shadow factor above which the spacecraft is treated as sunlit",
+  "isp_s": "[s] reboost thruster specific impulse",
+  "min_on_time_s": "[s] minimum firing duration (minimum impulse bit = thrust_n * min_on_time_s)",
+  "propellant_kg": "[kg] initial propellant mass available for station-keeping",
+  "target_altitude_km": "[km] altitude above the central body's equatorial radius to maintain",
+  "thrust_n": "[N] reboost thruster thrust"
+ },
+ "ValueMark": {
+  "reason": "why the scenario's value replaces it: required when overridden",
+  "source": "what computed or suggested it",
+  "time_utc": "ISO 8601 UTC",
+  "value": "the value computed or suggested, in the field's own unit"
+ }
+}

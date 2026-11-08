@@ -574,6 +574,40 @@ text ("At the cursor: ..."). **F8** goes to the next problem and
 whole, with no single place, stays in Problems only. Enter keeps the
 line's indentation (two spaces more after `{` or `[`).
 
+The editor also suggests what can be typed. Inside a key or a text
+value, or anywhere with **Ctrl+Space**, a list shows what fits there:
+the fields that object can still have (each inserted with its default,
+selected so you can type over it), the choices of a field that takes
+one of a few values (an orbit's `type`, a sensor's `kind`), the names a
+field refers to (a ground station, a spacecraft, a part of the 3D
+model), or `true`/`false`. **Enter** or **Tab** inserts the one chosen,
+**Escape** closes the list. Each entry's tooltip describes the field.
+When the cursor is on a key, the line under the text describes its
+field: its type, its default and what it means, with its unit; point at
+the key, or press **Ctrl+Shift+Space**, to read it all.
+
+Commands of a code editor work there too (also in the right-click menu):
+
+- **F2** renames the spacecraft, ground station or 3D model part whose
+  name is at the cursor (its own `name`, or a field that names it, such
+  as a follower's `chief_spacecraft` or a mount's `part`), everywhere the
+  scenario names it, as renaming it on its form does. The text is then
+  laid out as the file is saved; one **Ctrl+Z** in the text undoes it.
+- **F12** goes to where the name at the cursor is defined.
+- **Ctrl+.** lists quick fixes for the key or value at the cursor: a key
+  the object does not have (marked in red: "did you mean ...?") can be
+  changed to the field it is close to, or removed; a value that is not
+  one of its choices, or a name the scenario does not have, can be
+  replaced by one that is.
+- **Shift+Alt+F** lays the text out again (two spaces, one value a line).
+
+Inside a device's `params`, the list offers the parameters its form has
+for its `kind` (a wheel's `u_max`, `Js`, ... and its `rw_type` models);
+inside a mission step, its `kind`s and, in its `params`, what that kind
+of step reads (a maneuver's `spacecraft`, `delta_v_m_s`, `frame`). A
+step parameter its kind does not read is marked in amber: the run would
+ignore it.
+
 A **validation message** at the very bottom of the Scenario area updates live as
 you type, in plain language (e.g. naming exactly which field is missing
 or invalid) -- you don't have to guess why Run is unavailable. It names

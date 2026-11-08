@@ -33,7 +33,27 @@ fixes bugs.
   warning) on the value or key, a dot beside the line number, the
   message on hover and under the text when the cursor is on it. **F8**
   and **Shift+F8** go to the next and the previous problem; Enter keeps
-  the indentation. Completion and refactoring come next.
+  the indentation.
+- **Completion and help in the JSON page.** Inside a key or a text
+  value, or with **Ctrl+Space**, a list offers what fits there: the
+  fields that object can still have (inserted with their default), the
+  choices of a field such as an orbit's type or a sensor's kind, the
+  names a field refers to (ground stations, spacecraft, 3D model parts),
+  or true/false. The key under the cursor is described under the text
+  (type, default, unit and meaning); hover or **Ctrl+Shift+Space** shows
+  it all.
+- **Refactoring in the JSON page.** **F2** renames a spacecraft, ground
+  station or 3D model part everywhere the scenario names it (as its form
+  does); **F12** goes to where a name is defined; **Ctrl+.** offers
+  quick fixes for a misspelt key, a value that is not one of its choices
+  or a name that does not exist; **Shift+Alt+F** formats the text. A key
+  an object does not have is now marked where it is, with the field it
+  is close to.
+- **Completion inside `params`.** A device's `params` offer the
+  parameters of its kind (as its form does), and a mission step its
+  kinds and the parameters its kind reads, with their choices, the names
+  they refer to and their help. A step parameter its kind does not read
+  is marked (the run would ignore it), with a fix.
 
 ## 2.4.0 (2026-11-05)
 

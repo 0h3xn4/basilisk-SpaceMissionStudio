@@ -302,3 +302,121 @@ def matching_bracket(text: str, position: int) -> int | None:
             if depth == 0:
                 return place
     return None
+
+
+@dataclass(frozen=True)
+class Context:
+    """What is being typed at a place of the text (:func:`context_at`):
+    ``kind`` "key" (a key of the object at ``path``) or "value" (the
+    value of ``path``, whose last part is its key), the text typed so far
+    (``prefix``, without its opening quote) and the characters an inserted
+    completion replaces (``start`` to ``end``: the word being typed with
+    its quotes, when it is a string). ``keys`` are the keys the object
+    already has, before and after the place."""
+
+    kind: str
+    path: tuple
+    prefix: str
+    start: int
+    end: int
+    keys: tuple = ()
+
+
+def context_at(text: str, position: int) -> Context | None:
+    """Where ``position`` is in the text's structure: typing a key of an
+    object, or the value of a key or a list item; None inside a value that
+    is not a string being typed (a number, a literal) or outside any
+    object."""
+    stack: list[dict] = []  # {"kind": "object"/"array", "path": tuple, "key": str|None, "expect": "key"/"value",
+    #                         "index": int, "keys": list}
+    before = tokens(text[:position])
+    last = None
+    for token in before:
+        value = text[token.start:token.end]
+        frame = stack[-1] if stack else None
+        if token.kind == "punctuation":
+            if value in "{[":
+                if frame is None:
+                    path: tuple = ()
+                elif frame["kind"] == "object":
+                    path = frame["path"] + ((frame["key"],) if frame["key"] is not None else ())
+                else:
+                    path = frame["path"] + (frame["index"],)
+                stack.append({"kind": "object" if value == "{" else "array", "path": path, "key": None,
+                              "expect": "key" if value == "{" else "value", "index": 0, "keys": []})
+            elif value in "}]":
+                if stack:
+                    stack.pop()
+            elif value == ":" and frame is not None:
+                frame["expect"] = "value"
+            elif value == "," and frame is not None:
+                if frame["kind"] == "object":
+                    frame["expect"], frame["key"] = "key", None
+                else:
+                    frame["index"] += 1
+        elif token.kind == "key" and frame is not None and frame["kind"] == "object":
+            frame["key"] = _unquote(value) if value.endswith('"') and len(value) > 1 else value[1:]
+            frame["keys"].append(frame["key"])
+        last = token
+    if not stack:
+        return None
+    frame = stack[-1]
+    touching = last is not None and last.end == position  # the cursor is at the end of the last token
+    typing_string = touching and text[last.start] == '"' and (last.end - last.start == 1
+                                                              or text[last.end - 1] != '"')
+    if touching and not typing_string and last.kind in ("number", "literal"):
+        return None  # inside a number or a literal
+    if typing_string:
+        start = last.start
+        prefix = text[last.start + 1:position]
+        end = _string_end(text, position)
+    else:
+        start = end = position
+        prefix = ""
+    if frame["kind"] == "object" and frame["expect"] == "key":
+        keys = tuple(k for k in frame["keys"] if not (typing_string and k == prefix)) + _keys_after(text, end)
+        return Context("key", frame["path"], prefix, start, end, keys)
+    if frame["kind"] == "object":
+        if frame["key"] is None:
+            return None
+        return Context("value", frame["path"] + (frame["key"],), prefix, start, end)
+    return Context("value", frame["path"] + (frame["index"],), prefix, start, end)
+
+
+def _keys_after(text: str, position: int) -> tuple:
+    """The keys of the object the place is in that come after it, up to
+    the brace that closes it."""
+    found, depth = [], 0
+    for token in tokens(text[position:]):
+        value = text[position + token.start:position + token.end]
+        if token.kind == "punctuation" and value in "{[":
+            depth += 1
+        elif token.kind == "punctuation" and value in "}]":
+            depth -= 1
+            if depth < 0:
+                break
+        elif token.kind == "key" and depth == 0 and value.endswith('"') and len(value) > 1:
+            found.append(_unquote(value))
+    return tuple(found)
+
+
+def _string_end(text: str, position: int) -> int:
+    """Where the string being typed at ``position`` ends: after its
+    closing quote on the same line, else at the end of the word."""
+    i = position
+    while i < len(text) and text[i] not in '"\n,:{}[]':
+        i += 1
+    return i + 1 if i < len(text) and text[i] == '"' else i
+
+
+def key_at(text: str, position: int) -> tuple[tuple, str] | None:
+    """``(path of its object, key)`` of the key the place is on, or None."""
+    for token in tokens(text):
+        if token.kind == "key" and token.start <= position <= token.end:
+            context = context_at(text, token.start)
+            if context is not None and context.kind == "key":
+                return context.path, _unquote(text[token.start:token.end])
+            return None
+        if token.start > position:
+            return None
+    return None

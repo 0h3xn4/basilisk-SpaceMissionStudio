@@ -513,6 +513,13 @@ standard key is checked against the running platform's binding.
 | Home, template cards | Arrows, Home, End | Move between the cards |
 | Home, template cards | Enter | Open the card's template |
 | Home, recent scenarios | Delete | Take the scenario off the list |
+| Scenario JSON page | Ctrl+Space | Suggest what can be typed at the cursor |
+| Scenario JSON page | Ctrl+Shift+Space | Describe the key at the cursor |
+| Scenario JSON page | F8, Shift+F8 | Go to the next, the previous problem |
+| Scenario JSON page | F2 | Rename the spacecraft, ground station or part named at the cursor, everywhere |
+| Scenario JSON page | F12 | Go to where the name at the cursor is defined |
+| Scenario JSON page | Ctrl+. | Quick fixes for the key or value at the cursor |
+| Scenario JSON page | Shift+Alt+F | Format the text |
 
 **Tab order.** A Tab walk of Templates, the Scenario page, a spacecraft's
 page, Results, Events, Log, End of Life and Budget at 1280 x 720

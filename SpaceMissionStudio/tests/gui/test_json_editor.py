@@ -193,3 +193,182 @@ def test_the_scenario_s_problem_is_marked_at_its_value(qtbot, monkeypatch):
     editor.revalidate()
     assert not [m for m in view.problem_marks() if "dry_mass_kg" in m[1]]
     assert not view.cursor_problem.isVisibleTo(view)
+
+
+def _page(qtbot, monkeypatch):
+    """Template 22's JSON page."""
+    from PySide6.QtWidgets import QMessageBox
+
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
+    window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+    qtbot.addWidget(window)
+    assert window.open_path(_TEMPLATES / "22_starter_first_leo_satellite.json")
+    window.scenario_editor.show_json()
+    return window
+
+
+def _select(edit, start, end):
+    from PySide6.QtGui import QTextCursor
+
+    cursor = edit.textCursor()
+    cursor.setPosition(start)
+    cursor.setPosition(end, QTextCursor.MoveMode.KeepAnchor)
+    edit.setTextCursor(cursor)
+
+
+def test_typing_a_value_offers_its_choices_and_enter_inserts_one(qtbot, monkeypatch):
+    """The orbit's type, typed over with a quote, offers the three orbit
+    types; Down and Enter put "cartesian" there, and the edit applies."""
+    from PySide6.QtCore import Qt
+
+    window = _page(qtbot, monkeypatch)
+    view = window.scenario_editor.json_view
+    edit = view.edit
+    text = edit.toPlainText()
+    start = text.index('"type": "classical_elements"') + len('"type": ')
+    _select(edit, start, start + len('"classical_elements"'))
+    qtbot.keyClicks(edit, '"')
+    popup = edit.completer.popup()
+    assert popup.isVisible()
+    assert [edit._model.item(i).text() for i in range(edit._model.rowCount())] == ["classical_elements", "cartesian",
+                                                                                   "tle"]
+    assert "One of: classical_elements, cartesian, tle" in edit._model.item(0).toolTip()
+    qtbot.keyClick(popup, Qt.Key.Key_Down)
+    qtbot.keyClick(popup, Qt.Key.Key_Return)
+    assert not popup.isVisible()
+    assert '"type": "cartesian",' in edit.toPlainText()
+    qtbot.keyClick(edit, Qt.Key.Key_Escape)  # no list: nothing happens
+    view.flush()
+    assert json.loads(edit.toPlainText())["spacecraft"][0]["orbit"]["type"] == "cartesian"
+
+
+def test_ctrl_space_offers_a_new_key_and_selects_its_default(qtbot, monkeypatch):
+    """In a new sensor object, Ctrl+Space offers its fields; "mount" is
+    inserted with an empty object, selected to type over; Escape closes
+    the list without inserting."""
+    from PySide6.QtCore import Qt
+
+    window = _page(qtbot, monkeypatch)
+    edit = window.scenario_editor.json_view.edit
+    text = edit.toPlainText()
+    start = text.index('"sensors": [') + len('"sensors": [')
+    end = text.index("]", start)
+    _select(edit, start, end)
+    edit.insertPlainText('{"kind": "imu", "name": "gyro", ')
+    qtbot.keyClick(edit, Qt.Key.Key_Space, Qt.KeyboardModifier.ControlModifier)
+    popup = edit.completer.popup()
+    labels = [edit._model.item(i).text() for i in range(edit._model.rowCount())]
+    assert popup.isVisible() and labels == ["params", "mount"]
+    qtbot.keyClick(popup, Qt.Key.Key_Escape)
+    assert not popup.isVisible() and edit.toPlainText().count('"mount"') == 0
+    edit.show_completions()
+    edit.insert_completion("mount")
+    assert '"name": "gyro", "mount": {}' in edit.toPlainText() and edit.textCursor().selectedText() == "{}"
+
+
+def test_a_key_is_described_on_hover_and_under_the_text(qtbot, monkeypatch):
+    """The cursor on "dry_mass_kg": its type, default and the source's
+    comment under the text, shortened, and in full from help_text."""
+    window = _page(qtbot, monkeypatch)
+    view = window.scenario_editor.json_view
+    edit = view.edit
+    position = edit.toPlainText().index('"dry_mass_kg"') + 3
+    _select(edit, position, position)
+    full = edit.help_text(position)
+    assert full.startswith("dry_mass_kg: number, default 100.0") and "WITHOUT station-keeping propellant" in full
+    line = view.cursor_problem.text()
+    assert view.cursor_problem.isVisibleTo(view) and line.startswith("dry_mass_kg: number, default 100.0 [kg]")
+    assert len(line) <= 240 and line.endswith("…")
+    _select(edit, 0, 0)
+    assert not view.cursor_problem.isVisibleTo(view)
+
+
+def _page_of(qtbot, monkeypatch, template):
+    from PySide6.QtWidgets import QMessageBox
+
+    from spacemissionstudio.gui.main_window import MainWindow
+
+    monkeypatch.setattr(QMessageBox, "question", staticmethod(lambda *a, **k: QMessageBox.StandardButton.Discard))
+    window = MainWindow(prompt_startup_fetch=False, check_autosave_recovery=False)
+    qtbot.addWidget(window)
+    assert window.open_path(_TEMPLATES / template)
+    window.scenario_editor.show_json()
+    return window
+
+
+def test_f2_renames_a_spacecraft_everywhere_and_applies(qtbot, monkeypatch):
+    """Template 05: F2 on the follower's chief asks for the new name
+    (answered "leader"); both places change, the edit applies to the
+    form, and Undo (Ctrl+Z in the text) puts the text back at once."""
+    from PySide6.QtCore import Qt
+    from PySide6.QtWidgets import QInputDialog
+
+    window = _page_of(qtbot, monkeypatch, "05_formation_flying_phasing.json")
+    view = window.scenario_editor.json_view
+    edit = view.edit
+    before = edit.toPlainText()
+    position = before.index('"chief_spacecraft": "') + len('"chief_spacecraft": "') + 1
+    _select(edit, position, position)
+    asked = []
+    monkeypatch.setattr(QInputDialog, "getText",
+                        staticmethod(lambda parent, title, label, text="": (asked.append((label, text)), ("leader", True))[1]))
+    edit.setFocus()
+    qtbot.keyClick(edit, Qt.Key.Key_F2)
+    [(label, proposed)] = asked
+    assert proposed == "chief-1" and "spacecraft 'chief-1'" in label
+    after = edit.toPlainText()
+    assert after.count('"leader"') == 2 and '"chief-1"' not in after
+    scenario = window.scenario_editor.to_scenario()
+    assert "leader" in [sc.name for sc in scenario.spacecraft]
+    edit.undo()
+    assert edit.toPlainText() == before
+
+
+def test_f12_goes_to_the_definition_and_ctrl_period_fixes(qtbot, monkeypatch):
+    """F12 on the chief selects its own name; Ctrl+. on an orbit type that
+    is not one offers the three, and the first is applied."""
+    from PySide6.QtCore import Qt
+
+    window = _page_of(qtbot, monkeypatch, "05_formation_flying_phasing.json")
+    edit = window.scenario_editor.json_view.edit
+    text = edit.toPlainText()
+    position = text.index('"chief_spacecraft": "') + len('"chief_spacecraft": "') + 1
+    _select(edit, position, position)
+    edit.setFocus()
+    qtbot.keyClick(edit, Qt.Key.Key_F12)
+    assert edit.textCursor().selectedText() == '"chief-1"' and edit.textCursor().position() != position
+    start = text.index('"type": "classical_elements"') + len('"type": ')
+    _select(edit, start, start + len('"classical_elements"'))
+    edit.insertPlainText('"clasical"')
+    _select(edit, start + 2, start + 2)
+    assert [f.label for f in edit.fixes()] == ["Use 'classical_elements'", "Use 'cartesian'", "Use 'tle'"]
+    menu = edit.show_quick_fixes()
+    assert menu is not None and [a.text() for a in menu.actions()][0] == "Use 'classical_elements'"
+    menu.actions()[0].trigger()
+    menu.close()
+    assert '"type": "classical_elements"' in edit.toPlainText()
+
+
+def test_a_misspelt_key_is_marked_where_it_is_and_the_text_formats(qtbot, monkeypatch):
+    """A key the record does not have stops the edit (the banner says
+    which); it is now also marked at its place. Shift+Alt+F lays out a
+    text squeezed onto one line again."""
+    from PySide6.QtCore import Qt
+
+    window = _page_of(qtbot, monkeypatch, "22_starter_first_leo_satellite.json")
+    view = window.scenario_editor.json_view
+    edit = view.edit
+    good = edit.toPlainText()
+    edit.setPlainText(good.replace('"dry_mass_kg"', '"dry_mas_kg"', 1))
+    view.flush()
+    assert "dry_mas_kg" in view.error
+    [mark] = [d for d in edit.diagnostics if "dry_mas_kg" in d.message]
+    assert mark.cursor.selectedText() == '"dry_mas_kg"' and "did you mean 'dry_mass_kg'" in mark.message
+    edit.setPlainText(json.dumps(json.loads(good)))
+    edit.setFocus()
+    qtbot.keyClick(edit, Qt.Key.Key_F, Qt.KeyboardModifier.AltModifier | Qt.KeyboardModifier.ShiftModifier)
+    assert edit.toPlainText() == good
+    edit.setPlainText('{"name": ')
+    assert not edit.format_document() and edit.toPlainText() == '{"name": '
