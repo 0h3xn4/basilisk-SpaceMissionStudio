@@ -61,9 +61,11 @@ The objectives, in order:
 
 No project master schedule exists. Development is continuous and driven by
 the user's requests. Releases are made when the user decides, tagged, not
-signed (decision 11). The current release is 2.4.0, device axes from
-the IDM-CIC model's shapes and the body frame's origin at the centre of
-gravity (published 2026-11-05); before it 2.3.0, the
+signed (decision 11). The current release is 2.5.0, the JSON page as
+a code editor and IDM-CIC thrusters on the 3D model (prepared
+2026-11-08); before it 2.4.0, device axes from the IDM-CIC model's
+shapes and the body frame's origin at the centre of gravity (published
+2026-11-05), 2.3.0, the
 satellite's components from IDM-CIC and a Walker constellation that
 holds its spacing (published 2026-11-05), 2.2.0, CCSDS orbit files in the
 app (published 2026-11-05), 2.1.1, fixes to the 3D model
@@ -151,7 +153,7 @@ Incremental development on the `develop` line.
 - **Versioning:** semantic version (`MAJOR.MINOR.PATCH`) in
   `spacemissionstudio/__init__.py`, `pyproject.toml` and the Inno Setup
   script, set at release (`docs/developer/releasing.md`); the current
-  release is 2.4.0, and the code is at 2.4.0.
+  release is 2.5.0, and the code is at 2.5.0.
 - **Processes covered:**
   - requirements: SRS;
   - design: SDD;

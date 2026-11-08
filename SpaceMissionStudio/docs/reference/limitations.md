@@ -277,6 +277,17 @@ Each item was checked against Basilisk's own source.
   * The launcher envelope library is empty (D-11): the 3D model
     editor's Budget and launcher tab takes the user's own envelope.
 
+* **The JSON page (`gui/code_editor.py`, `gui/json_assist.py`,
+  `gui/json_refactor.py`).**
+  * Qt's own text editor (decision JE-01): no code folding, no multiple
+    cursors, no minimap.
+  * Completion offers what the scenario's records and the validation's
+    choices allow; a device's `params` offer what its form offers for its
+    kind and are not checked there, and a mission step's `params` its
+    kind does not read are a warning (the run ignores them).
+  * Rename (F2) covers spacecraft, ground stations and 3D model parts,
+    as their forms do; devices and materials are renamed in their forms.
+
 ## Planned, not yet built
 
 Scoped from real use, with the detail in

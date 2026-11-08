@@ -8,7 +8,17 @@ The version follows [semantic versioning](https://semver.org): a major
 version breaks something you rely on, a minor one adds features, a patch
 fixes bugs.
 
-## Unreleased
+## 2.5.0 (2026-11-08)
+
+Thrusters from the IDM-CIC model, and the JSON page as a code editor.
+A thruster whose plume the team drew now comes into the 3D model, where
+the design checks (plume impingement, thrust authority) use it. And the
+scenario's text, under **Form · JSON**, now has what a programming
+language's editor has: colours, problems marked where they are,
+completion and help from the scenario's own fields, renaming everywhere,
+go to definition, quick fixes and formatting. Nothing the tool computes
+for an existing scenario changes: every template gives the same results
+as in 2.4.0.
 
 ### Added
 
@@ -54,6 +64,37 @@ fixes bugs.
   kinds and the parameters its kind reads, with their choices, the names
   they refer to and their help. A step parameter its kind does not read
   is marked (the run would ignore it), with a fix.
+
+### Who should update
+
+- **Teams using IDM-CIC models with thrusters:** import the model again
+  (with **Devices** ticked) to get the thrusters whose plume is drawn as a
+  cone into the 3D model; give their thrust as a property
+  (**Thruster: thrust**) when no catalog product fits. Devices already
+  added are left as they are.
+- **Anyone who edits the scenario's text:** the JSON page now completes,
+  explains, renames and fixes. Its keys (F2, F8, F12, Ctrl+.,
+  Ctrl+Space, Shift+Alt+F) are the editor's while it has the focus.
+- **Everyone else can update when convenient:** results, templates and
+  the scenario format are as in 2.4.0, and 2.4.0 opens the files 2.5.0
+  saves, thrusters included.
+- **The installers:** on Linux, `apt install
+  ./spacemissionstudio_2.5.0_amd64.deb` replaces 2.4.0; on Windows, run
+  the 2.5.0 setup over 2.4.0.
+
+### Known limits
+
+As in 2.4.0, except that a thruster with a plume cone is now added to
+the 3D model. A thruster without one is added only when you tick it, on
+the axis you choose, and a thruster added this way is for the design
+checks, not the attitude control's actuators. The JSON page has no code
+folding and no multiple cursors (Qt's editor, decision JE-01), its
+completion knows a device's `params` as the device's form does, and it
+checks a mission step's `params` against what the step reads, as a
+warning ([Limitations](docs/reference/limitations.md)). The bundled space
+weather is still 1.3.0's (observations to 2026-10-24, CelesTrak's
+forecast to 2026-12-07; CelesTrak could not be reached for this release
+either): fetch the current file before a drag study.
 
 ## 2.4.0 (2026-11-05)
 
