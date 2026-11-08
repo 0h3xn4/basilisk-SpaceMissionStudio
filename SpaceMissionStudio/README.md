@@ -1,7 +1,7 @@
 # SpaceMissionStudio
 
 [![CI](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml/badge.svg?branch=develop)](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/actions/workflows/spacemissionstudio.yml)
-![Version 2.4.0](https://img.shields.io/badge/version-2.4.0-blue)
+![Version 2.5.0](https://img.shields.io/badge/version-2.5.0-blue)
 ![Basilisk 2.12.0](https://img.shields.io/badge/Basilisk-2.12.0-informational)
 ![Licence ISC](https://img.shields.io/badge/licence-ISC-green)
 
@@ -129,10 +129,12 @@ internet needed.
 ## Licence and status
 
 - **Licence:** ISC, the same as Basilisk ([`LICENSE`](LICENSE)).
-- **Version:** 2.4.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.4.0),
-  [changelog](CHANGELOG.md)): the IDM-CIC import reads each device's
-  axis from its shapes and can put the body frame's origin at the centre
-  of gravity. 2.3.0 brought the satellite's sensors, actuators,
+- **Version:** 2.5.0 ([release](https://github.com/0h3xn4/basilisk-SpaceMissionStudio/releases/tag/spacemissionstudio-v2.5.0),
+  [changelog](CHANGELOG.md)): the JSON page is a code editor
+  (highlighting, problems in place, completion, help, rename, quick
+  fixes), and IDM-CIC thrusters go on the 3D model from their plume
+  cones. 2.4.0 read each device's axis from its shapes and can put the
+  body frame's origin at the centre of gravity; 2.3.0 brought the satellite's sensors, actuators,
   power budget and team properties in, and a Walker constellation that
   holds its spacing; 2.2.0 put CCSDS orbit files (OPM,
   OMM, OEM) in the app; 2.1.1 fixed 2.1.0, which was the
@@ -153,7 +155,7 @@ internet needed.
   relative-orbital-element formations, optical and landmark navigation,
   asteroid Eros, Mars's gravity field and albedo on the sun sensors; and
   1.0.0 was the first release of the renewed tool.
-- **Platforms:** 2.4.0 has the Linux `.deb`, the Windows setup program
+- **Platforms:** 2.5.0 has the Linux `.deb`, the Windows setup program
   and the wheel. Both installers carry their own Python, Basilisk and
   reference data; each was installed and run offline by the release
   workflow, the `.deb` also by hand in a container

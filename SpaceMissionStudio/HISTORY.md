@@ -14514,6 +14514,35 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## Release 2.5.0 prepared (2026-11-08)
+
+A minor release: it adds features. The standing instruction is to
+continue until the features are in and a release is ready. Contents
+since 2.4.0: thrusters from the IDM-CIC model (#230), the JSON page as a
+code editor (#231 highlighting and problems at their place, #232
+completion, help, refactoring and completion inside `params`), and the
+documentation refresh with the 2.4.0 publication record (#229).
+
+Prepared by `docs/developer/releasing.md`: version 2.5.0 in
+`pyproject.toml`, `__init__.py` and the Inno Setup script; the CHANGELOG's
+Unreleased entries under 2.5.0 with an introduction, Who should update
+and Known limits; SRelD issue 29 (2.5.0 prepared, 2.4.0 previous with its
+publication details, K-13 extended); the SDP, SRS, ICD (ICD-12 names the
+thruster equipment and `thruster.MaxThrust`), CSD, SUM, both READMEs and
+`releasing.md` name 2.5.0; the limitations page lists the JSON page's.
+
+Compatibility checked with 2.4.0's own code (the tagged commit
+`ac4b90065`): a scenario saved by 2.5.0 after importing the axes fixture
+with its thruster at the centre of gravity opens and validates in 2.4.0,
+and its design checks run on the thruster. The golden-output regression
+tests passed, so every template's outputs are as in 2.4.0.
+
+CelesTrak refused the connection again (`curl: (35) Recv failure:
+Connection reset by peer`), so the bundled space weather is still
+1.3.0's (K-13).
+
+Full suite on Python 3.14 (a home holding only the reference data cache), on the release's code: 4805 passed in 12 min 16 s.
+
 ## The JSON page: completion inside params (2026-11-06)
 
 The first follow-up suggested after the three steps: a device's `params`

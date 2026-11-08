@@ -326,6 +326,15 @@ without files for 35 minutes, until the workflow attached them at 21:33,
 the ninth release so. To avoid it: push the tag, or save the release as
 a draft, wait for the files (about 40 minutes), then publish.
 
+2.5.0 was prepared on 2026-11-08 by this checklist: thrusters from the
+IDM-CIC model (#230) and the JSON page as a code editor (#231, #232),
+with the documentation refresh and the 2.4.0 publication record (#229),
+a minor release because it adds features. No template, golden file or
+scenario field changed; 2.4.0 opens the files 2.5.0 saves (checked with
+2.4.0's code on a file with a thruster imported at the centre of
+gravity). The space weather is still 1.3.0's (CelesTrak refused the
+connection again, K-13).
+
 ---
 
 **Next:** [Syncing with upstream Basilisk](upstream-sync.md) ·
