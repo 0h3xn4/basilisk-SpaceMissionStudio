@@ -124,6 +124,10 @@ CONTROL_BORDER_SHARE = {"light": 0.51, "dark": 0.42}  # [-]
 # The accent's hover and pressed steps: mixed towards black (light) or
 # white (dark) by these shares.
 ACCENT_STEP = {"hover": 0.10, "pressed": 0.20}  # [-]
+# The JSON page's current line (text.primary) and matched bracket (accent)
+# over the surface at these shares (gui/code_editor.py).
+CODE_LINE_SHARE = {"light": 0.03, "dark": 0.06}  # [-]
+CODE_BRACKET_SHARE = {"light": 0.05, "dark": 0.16}  # [-]
 # The shadow of floating elements (menus, popovers, dialogs, toasts).
 SHADOW = {"light": "#16181D", "dark": "#000000"}
 SHADOW_ALPHA = {"light": 0.12, "dark": 0.48}  # [-]
@@ -160,6 +164,17 @@ def _build(mode: str) -> dict[str, str]:
         t[f"status.{name}"] = icon
         t[f"status.{name}.text"] = text
         t[f"status.{name}.soft"] = mix(icon, surface, SOFT_SHARE[mode]) if name != "off" else t["bg.hover"]
+    # The JSON page's syntax colours (gui/code_editor.py): words in the
+    # theme's text colours, so they keep 4.5:1 (CONTRAST_PAIRS below).
+    t["code.key"] = t["text.link"]
+    t["code.string"] = t["status.normal.text"]
+    t["code.number"] = t["status.serious.text"]
+    t["code.literal"] = t["status.standby.text"]
+    t["code.punctuation"] = t["text.secondary"]
+    # Its current line and a matched bracket's background: light enough to
+    # keep every syntax colour at 4.5:1 (bg.hover and accent.soft do not).
+    t["code.current_line"] = mix(t["text.primary"], surface, CODE_LINE_SHARE[mode])
+    t["code.bracket"] = mix(accent, surface, CODE_BRACKET_SHARE[mode])
     t["diff.added"] = t["status.normal.soft"]
     t["diff.removed"] = t["status.critical.soft"]
     t["diff.changed"] = t["status.caution.soft"]
@@ -192,6 +207,9 @@ CONTRAST_PAIRS = (
     + [("border.focus", bg, 3.0) for bg in ("bg.canvas", "bg.surface", "bg.raised", "bg.field")]
     + [("border.control", bg, 3.0) for bg in ("bg.canvas", "bg.surface", "bg.raised", "bg.field", "bg.hover")]
     + [("accent", bg, 3.0) for bg in ("bg.canvas", "bg.surface")]
+    # The JSON page's text, on its field, its current line and a matched bracket.
+    + [(f"code.{kind}", bg, 4.5) for kind in ("key", "string", "number", "literal", "punctuation")
+       for bg in ("bg.field", "code.current_line", "code.bracket")]
 )
 
 

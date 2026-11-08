@@ -14514,6 +14514,39 @@ the new defaults apply only to a dispersion or station made after this
 change. Each new test fails on the code before.
 Full suite on Python 3.14 (a home holding only the reference data cache), with the regression baseline and the engine fixes (#151): 4009 passed in 13 min 15 s.
 
+## The JSON page as a code editor, step 1 (2026-11-06)
+
+The user asked whether the JSON editor could have what a programming
+language's editor has: completion, syntax highlighting, warnings and
+errors marked, refactoring. It was a plain text box that shaded only the
+line where the text stopped being JSON. Two ways were weighed (design
+note `docs/developer/json-editor.md`): Qt's own text editor, extended, or
+Microsoft's Monaco in the web view the 3D view already uses. Qt's was
+recommended (JE-01): the scenario's own validation stays the one source
+of problems, nothing new is shipped, and theme, keyboard and
+accessibility follow the rest of the GUI; folding and multiple cursors
+are what it gives up. The work is in three steps; this is the first.
+
+`gui/json_positions.py` reads where each value of the text is (4 ms on
+the largest template) and turns the place a problem is about, as
+`problem_location.locate` already gives it for the forms and Problems
+(an area, a name, a field path), into characters of the text (JE-02).
+`gui/code_editor.py`'s `JsonEditor` highlights the text in five new
+`code.*` colour tokens taken from the theme's word colours, draws line
+numbers with a dot per problem line, shades the current line and shows
+the matching bracket, underlines each problem in its colour, and gives
+its message on hover, under the text at the cursor, and through F8. The
+first current-line and bracket backgrounds tried (`bg.hover`,
+`accent.soft`) left four light-theme colours under 4.5:1 (down to 3.56);
+two lighter tokens fix it, and all fourteen new pairs are in
+`CONTRAST_PAIRS` (JE-03).
+
+**Tests:** `tests/test_json_positions.py` (39, every template's every
+value read back from its place) and `tests/gui/test_json_editor.py` (7).
+One assertion of `tests/gui/test_json_view.py` changed (logged in
+`docs/ui/TEST_CHANGES.md`): it counted the editor's highlighted regions,
+which now include the bracket and the error's own underline.
+
 ## The IDM-CIC import adds thrusters to the 3D model (2026-11-06)
 
 After the documentation refresh the user asked what comes next. Of the

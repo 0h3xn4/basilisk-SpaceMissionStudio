@@ -889,6 +889,7 @@ class ScenarioEditorWidget(QWidget):
             self.page_tree.set_problem_count(parent, sum(counts.get(id(node.item), 0) for node in nodes),
                                              sum(warnings.get(id(node.item), 0) for node in nodes))
         self.json_button.setText(f"JSON ({json_problems})" if json_problems else "JSON")
+        self.json_view.set_problems(problems, spacecraft, stations)  # marked where they are in its text
 
     # -- (dis)assembly -------------------------------------------------------
     def _on_config_file_changed(self, config_file) -> None:

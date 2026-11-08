@@ -204,6 +204,9 @@ SIL link test, many times over, on Windows). Basilisk's own workflows (in
 - [IDM-CIC import: design](idm-cic-integration.md): how the importer of
   IDM-CIC models (© CNES) reads a model and maps it into a spacecraft,
   and the decisions taken when it was built.
+- [The JSON page as a code editor](json-editor.md): the scenario's text
+  highlighted, with its problems marked where they are, and the steps
+  that follow (completion, refactoring).
 - [Analyses built on the 3D model](model-analyses-design.md): the design
   of the design checks and model analyses, with its
   [decision log](model-analyses-decisions.md).
