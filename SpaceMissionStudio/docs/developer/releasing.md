@@ -348,6 +348,18 @@ workflow attached them at 20:01, the tenth release so. To avoid it: push
 the tag, or save the release as a draft, wait for the files (about 35
 minutes), then publish.
 
+2.6.0 was prepared on 2026-11-09 by this checklist: network use enforced
+and offline mode (#235), the network audit (#236), hash-checked
+installers with a bill of materials (#237) and the 3D View in place of
+the Vizard download (#239), with the documentation refresh and the 2.5.0
+publication record (#234), a minor release because it adds features.
+The first release whose files include each installer's bill of
+materials (`*.cdx.json`), listed in `SHA256SUMS-*`. No template, golden
+file or scenario field changed; 2.5.0 opens the files 2.6.0 saves
+(checked with 2.5.0's code on the 32 templates as 2.6.0 saves them). The
+space weather is still 1.3.0's (CelesTrak reset the connection again,
+K-13).
+
 ---
 
 **Next:** [Syncing with upstream Basilisk](upstream-sync.md) ·
