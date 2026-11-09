@@ -204,6 +204,14 @@ jobs:
           # unprivileged user namespaces are restricted by AppArmor on ubuntu-24.04
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           unshare -rn python -m pytest tests/test_offline.py -q -p no:cacheprovider
+      # Every connect, sendto, sendmsg and bind of every process of a full CLI
+      # and GUI session (Chromium and the Monte Carlo workers included), with
+      # no network interface: any call to another computer fails the job,
+      # after a self-test shows a deliberate one is seen (docs/reference/network.md).
+      - name: Network audit of a full CLI and GUI session (strace)
+        run: |
+          sudo apt-get install -y --no-install-recommends strace
+          python scripts/network_audit.py --out network-audit --self-test
       - name: Native stacks of crashed processes, if any
         if: always()
         timeout-minutes: 15
@@ -238,6 +246,8 @@ jobs:
             SpaceMissionStudio/compliance/metrics.json
             SpaceMissionStudio/compliance/traceability_matrix.csv
             SpaceMissionStudio/compliance/compliance_matrix.csv
+            SpaceMissionStudio/network-audit/report.md
+            SpaceMissionStudio/network-audit/report.json
             SpaceMissionStudio/compliance/ics_ccsds_502.csv
       - uses: actions/upload-artifact@v6
         if: always()
@@ -290,8 +300,14 @@ jobs:
         run: spacemissionstudio gaseous-attenuation --fetch
       - name: Tests
         run: python -m pytest tests -q -n auto -p no:cacheprovider -o faulthandler_timeout=600 --junitxml=test-report-${{ matrix.os }}.xml
+      # No strace on Windows: the same sessions, read from the guard's log
+      # (Python code only; docs/reference/network.md has the Windows protocol).
+      - name: Network audit of a full CLI and GUI session (guard log)
+        run: python scripts/network_audit.py --out network-audit --method guard
       - uses: actions/upload-artifact@v6
         if: always()
         with:
           name: spacemissionstudio-tests-${{ matrix.os }}
-          path: SpaceMissionStudio/test-report-${{ matrix.os }}.xml
+          path: |
+            SpaceMissionStudio/test-report-${{ matrix.os }}.xml
+            SpaceMissionStudio/network-audit/report.md

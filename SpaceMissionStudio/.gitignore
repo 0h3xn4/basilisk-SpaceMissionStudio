@@ -25,3 +25,6 @@ packaging/.python-build-cache/
 # fixtures of the importer's tests (docs/developer/idm-cic-integration.md).
 *.[iI][dD][mM]
 !tests/data/idm/*.[iI][dD][mM]
+
+# scripts/network_audit.py output
+network-audit/

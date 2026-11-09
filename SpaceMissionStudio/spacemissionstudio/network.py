@@ -195,7 +195,9 @@ def _proxy_hosts() -> set[str]:
     import urllib.request  # here, not at import (see open_url)
 
     hosts = set()
-    for url in urllib.request.getproxies().values():
+    for scheme, url in urllib.request.getproxies().items():
+        if scheme == "no":  # NO_PROXY: the hosts not to proxy, not a proxy
+            continue
         host = urllib.parse.urlsplit(url if "://" in url else f"http://{url}").hostname
         if host:
             hosts.add(host.lower())

@@ -14,6 +14,7 @@ downloads off for good, and what is outside the tool's control.
 - [The network log](#the-network-log)
 - [What this does not cover](#what-this-does-not-cover)
 - [How it is tested](#how-it-is-tested)
+- [Check it yourself](#check-it-yourself)
 
 ## What can reach the network
 
@@ -115,6 +116,70 @@ downloaded nothing leaves no line.
 | `tests/test_network.py` | Only the reviewed modules can reach the network; each download's URLs are among its hosts; the gateway refuses other hosts and http; the policy, its precedence and its lock; the guard's refusals, its permits per thread and per host, and a child process inheriting it; `spacemissionstudio network` |
 | `tests/test_offline.py` | Validating, exporting and running a template need no network; a guarded run leaves the network log empty; the GUI starts with the download question declined and nothing is fetched. CI also runs it in a network namespace with no interface |
 | `tests/gui/test_network_gui.py` | **Settings > Network**, the locked policy, Download and the start-up card offline; a web view's request for another computer is blocked and logged; Chromium's flags |
+| `scripts/network_audit.py`, in CI on Linux | Every `connect`, `sendto`, `sendmsg` and `bind` of every process of a full GUI session (start-up with the download question unanswered, runs, plots, Compare, a Monte Carlo batch in worker processes, the 3D view, an IDM-CIC import, every Settings section) and a full command-line session, recorded by `strace` in a network namespace with no interface. A call to any address but this computer's, any DNS query, a connection to a local proxy or a socket other computers could reach fails the job, after a self-test shows a deliberate attempt is seen. The report lists every program started (Chromium's `QtWebEngineProcess` among them) and every call |
+| `scripts/network_audit.py --method guard`, in CI on Windows | The same sessions; the guard's log must stay empty (Python code only) |
+| `tests/test_network_audit.py` | How the audit classifies each kind of call |
+
+The first audit (2026-11-09, Linux, Python 3.14, Basilisk 2.12.0) traced
+53 processes and threads in the command-line session and 135 in the GUI
+session (two of them Chromium's): 34 network calls, all to this
+computer: Basilisk's import-time request to the closed local port, the
+Monte Carlo workers' own sockets, Chromium asking for the local D-Bus,
+the kernel asked for the network interfaces, the local name-service
+cache (absent). None to another computer.
+
+## Check it yourself
+
+You need not trust the tests above. Any of these, on a computer of yours:
+
+**Linux, every call of every process (about 3 minutes).** From the
+source, with Basilisk, the `gui` extra and the reference data installed,
+and `strace` (`sudo apt install strace`):
+
+```bash
+cd SpaceMissionStudio
+python scripts/network_audit.py --out network-audit --self-test
+```
+
+It prints the report (also in `network-audit/report.md`; the raw
+record is `network-audit/strace.*.txt*`). `PASSED` means no process
+called, or tried to call, another computer. Where unprivileged user
+namespaces are restricted (Ubuntu 24.04), first run
+`sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0`.
+
+**Any computer, with the firewall (the strongest check: it needs
+nothing from this project).** In a virtual machine or a spare computer:
+
+1. Install SpaceMissionStudio from the installer and check its
+   checksum against `SHA256SUMS-linux` or `SHA256SUMS-windows`.
+2. Block all outgoing traffic and log what is blocked:
+   - **Windows:** Windows Defender Firewall with Advanced Security:
+     *Properties*, each profile: *Outbound connections: Block*; *Logging*:
+     *Log dropped packets: Yes* (the log is
+     `%systemroot%\system32\LogFiles\Firewall\pfirewall.log`). For a log
+     with the program's path, also install Sysmon and read event 3
+     (*Network connection*) in the Event Viewer.
+   - **Linux:** for example with nftables:
+     `sudo nft add table inet audit`,
+     `sudo nft add chain inet audit out '{ type filter hook output priority 0; policy accept; }'`,
+     `sudo nft add rule inet audit out oif != lo log prefix "sms-audit " drop`;
+     blocked packets appear in `journalctl -k | grep sms-audit`.
+3. Use SpaceMissionStudio as you normally would, for as long as you
+   like: open your scenarios, run, look at the results, export. Leave the
+   start-up question unanswered (or choose **Not now**).
+4. Read the firewall's log: it should hold nothing from
+   SpaceMissionStudio (`spacemissionstudio`, its `python`, or
+   `QtWebEngineProcess`). Other programs of the computer may appear.
+5. Then try **Download...** once: it must fail, and the network log
+   (**Settings > Network > Open the network log**) and the firewall's log
+   show the one host it tried.
+
+**Offline mode.** Set it for every user as above, then check that
+**Download...** is off and that `spacemissionstudio network` says
+`Offline` and who set it.
+
+**Vizard** is a separate program and is not covered by any of this;
+watch it the same way with the firewall if you use it.
 
 ---
 
